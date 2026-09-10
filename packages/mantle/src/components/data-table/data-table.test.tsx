@@ -14,39 +14,193 @@ import { describe, expect, test, vi } from "vitest";
 import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import type { ButtonAppearance, ButtonIntent, IconButtonAppearance } from "../button/index.js";
 import {
+	type Column,
 	DataTable,
 	type ExpandedState,
 	type Row as TableRow,
+	columnGroupingFeature,
+	columnVisibilityFeature,
 	createColumnHelper,
-	getCoreRowModel,
-	getExpandedRowModel,
-	useReactTable,
+	createExpandedRowModel,
+	createGroupedRowModel,
+	createSortedRowModel,
+	rowExpandingFeature,
+	rowSortingFeature,
+	sortFn_alphanumeric,
+	sortFn_datetime,
+	sortFn_text,
+	tableFeatures,
+	useTable,
 } from "./index.js";
 
 type Row = { id: string; name: string };
 
-const columnHelper = createColumnHelper<Row>();
-const columns = [
+// Why an empty feature set: a v9 instance carries a feature's methods only when
+// the table registers that feature, so a table with none exercises every static
+// fallback in `DataTable`.
+const features = tableFeatures({});
+const columnHelper = createColumnHelper<typeof features, Row>();
+const columns = columnHelper.columns([
 	columnHelper.accessor("name", {
 		id: "name",
 		header: () => <DataTable.Header>Name</DataTable.Header>,
 		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
 	}),
-];
+]);
 const data: Row[] = [{ id: "row-1", name: "Alice" }];
 
-function Harness(props: Omit<ComponentProps<typeof DataTable.Row>, "row">) {
-	const table = useReactTable({
-		data,
-		columns,
-		getCoreRowModel: getCoreRowModel(),
-	});
+const sortableFeatures = tableFeatures({
+	rowSortingFeature,
+	sortedRowModel: createSortedRowModel(),
+	sortFns: {
+		alphanumeric: sortFn_alphanumeric,
+		datetime: sortFn_datetime,
+		text: sortFn_text,
+	},
+});
+const sortableColumnHelper = createColumnHelper<typeof sortableFeatures, Row>();
+// Why digits in the names: the alphanumeric comparator puts `web-2` before
+// `web-10`, and the `sortFn_basic` fallback puts it after. A sorted order that
+// matches the first proves the `sortFns` registry is wired.
+const sortableData: Row[] = [
+	{ id: "row-1", name: "web-10" },
+	{ id: "row-2", name: "web-1" },
+	{ id: "row-3", name: "web-2" },
+];
+
+const expandableFeatures = tableFeatures({
+	rowExpandingFeature,
+	expandedRowModel: createExpandedRowModel(),
+});
+const expandableColumnHelper = createColumnHelper<typeof expandableFeatures, Row>();
+
+const visibilityFeatures = tableFeatures({ columnVisibilityFeature });
+const visibilityColumnHelper = createColumnHelper<typeof visibilityFeatures, Row>();
+
+// Why omit `renderExpanded`: its `row` parameter is typed against the generic
+// constraint, and v9 rows are invariant in their features, so the spread cannot
+// unify with the concrete row. This harness renders no detail panel.
+function Harness(props: Omit<ComponentProps<typeof DataTable.Row>, "row" | "renderExpanded">) {
+	const table = useTable({ features, data, columns });
 	const row = table.getRowModel().rows[0];
 	invariant(row, "Harness expected at least one row");
 	return (
 		<DataTable.Root table={table}>
 			<DataTable.Body>
 				<DataTable.Row data-testid="row" row={row} {...props} />
+			</DataTable.Body>
+		</DataTable.Root>
+	);
+}
+
+/**
+ * Three leaf columns on a table with no optional features: an accessor whose
+ * header carries `column`, a plain accessor, and an action column. Each
+ * `DataTable` part's static fallback renders against an instance that lacks the
+ * feature method.
+ */
+const threeColumns = columnHelper.columns([
+	columnHelper.accessor("id", {
+		id: "id",
+		header: (props) => <DataTable.Header column={props.column}>ID</DataTable.Header>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+	columnHelper.accessor("name", {
+		id: "name",
+		header: () => <DataTable.Header>Name</DataTable.Header>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+	columnHelper.display({
+		id: "actions",
+		header: () => <DataTable.ActionHeader />,
+		cell: () => <DataTable.ActionCell>Edit</DataTable.ActionCell>,
+	}),
+]);
+
+type PlainHarnessProps = {
+	rows: Row[];
+	/** Render a `DataTable.ExpandedRow` under every row, so its default `colSpan` is readable. */
+	withDetail?: boolean;
+};
+
+function PlainHarness({ rows, withDetail = false }: PlainHarnessProps) {
+	const table = useTable({
+		features,
+		data: rows,
+		columns: threeColumns,
+		getRowId: (row) => row.id,
+	});
+	const bodyRows = table.getRowModel().rows;
+	return (
+		<DataTable.Root table={table}>
+			<DataTable.Head />
+			<DataTable.Body>
+				{bodyRows.length > 0 ? (
+					bodyRows.map((row) => (
+						<Fragment key={row.id}>
+							<DataTable.Row data-testid={`row-${row.id}`} row={row} />
+							{withDetail && (
+								<DataTable.ExpandedRow data-testid={`detail-${row.id}`} row={row}>
+									<span>Detail</span>
+								</DataTable.ExpandedRow>
+							)}
+						</Fragment>
+					))
+				) : (
+					<DataTable.EmptyRow>No results.</DataTable.EmptyRow>
+				)}
+			</DataTable.Body>
+		</DataTable.Root>
+	);
+}
+
+/** The same three columns on a table that registers `columnVisibilityFeature`. */
+const visibilityColumns = visibilityColumnHelper.columns([
+	visibilityColumnHelper.accessor("id", {
+		id: "id",
+		header: () => <DataTable.Header>ID</DataTable.Header>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+	visibilityColumnHelper.accessor("name", {
+		id: "name",
+		header: () => <DataTable.Header>Name</DataTable.Header>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+	visibilityColumnHelper.display({
+		id: "actions",
+		header: () => <DataTable.ActionHeader />,
+		cell: () => <DataTable.ActionCell>Edit</DataTable.ActionCell>,
+	}),
+]);
+
+/** Hides the `name` column through `columnVisibility` state. */
+function VisibilityHarness({ rows, withDetail = false }: PlainHarnessProps) {
+	const table = useTable({
+		features: visibilityFeatures,
+		data: rows,
+		columns: visibilityColumns,
+		state: { columnVisibility: { name: false } },
+		getRowId: (row) => row.id,
+	});
+	const bodyRows = table.getRowModel().rows;
+	return (
+		<DataTable.Root table={table}>
+			<DataTable.Head />
+			<DataTable.Body>
+				{bodyRows.length > 0 ? (
+					bodyRows.map((row) => (
+						<Fragment key={row.id}>
+							<DataTable.Row data-testid={`row-${row.id}`} row={row} />
+							{withDetail && (
+								<DataTable.ExpandedRow data-testid={`detail-${row.id}`} row={row}>
+									<span>Detail</span>
+								</DataTable.ExpandedRow>
+							)}
+						</Fragment>
+					))
+				) : (
+					<DataTable.EmptyRow>No results.</DataTable.EmptyRow>
+				)}
 			</DataTable.Body>
 		</DataTable.Root>
 	);
@@ -113,6 +267,49 @@ describe("DataTable.Row", () => {
 		fireEvent.click(screen.getByTestId("row"), { button: 1 });
 		expect(handleClick).not.toHaveBeenCalled();
 	});
+
+	test("renders every cell for a table without `columnVisibilityFeature`", () => {
+		// A revert to `row.getVisibleCells()` throws a `TypeError` here: the
+		// method exists on the row only when the table registers the feature.
+		render(<PlainHarness rows={data} />);
+		const cells = within(screen.getByTestId("row-row-1")).getAllByRole("cell");
+		expect(cells.map((cell) => cell.textContent)).toEqual(["row-1", "Alice", "Edit"]);
+	});
+
+	test("omits a hidden column's cell when the table registers `columnVisibilityFeature`", () => {
+		// A revert to `row.getAllCells()` renders the hidden `name` cell too.
+		render(<VisibilityHarness rows={data} />);
+		const cells = within(screen.getByTestId("row-row-1")).getAllByRole("cell");
+		expect(cells.map((cell) => cell.textContent)).toEqual(["row-1", "Edit"]);
+	});
+
+	test("carries no `data-expanded` for a table without `rowExpandingFeature`", () => {
+		// A revert to `row.getIsExpanded()` throws a `TypeError` here: the method
+		// exists on the row only when the table registers the feature.
+		render(<Harness />);
+		expect(screen.getByTestId("row")).not.toHaveAttribute("data-expanded");
+	});
+
+	test("stamps `data-expanded` only while the row is expanded", async () => {
+		const user = userEvent.setup();
+		render(<ExpandableHarness />);
+		expect(screen.getByTestId("row-row-1")).not.toHaveAttribute("data-expanded");
+
+		await user.click(screen.getByRole("button", { name: "Show details for Alice" }));
+		expect(screen.getByTestId("row-row-1")).toHaveAttribute("data-expanded");
+
+		await user.click(screen.getByRole("button", { name: "Hide details for Alice" }));
+		expect(screen.getByTestId("row-row-1")).not.toHaveAttribute("data-expanded");
+	});
+});
+
+describe("DataTable.Header", () => {
+	test("renders without `aria-sort` for a column from a table without `rowSortingFeature`", () => {
+		// A revert to `column.getIsSorted()` throws a `TypeError` here: the method
+		// exists on the column only when the table registers the feature.
+		render(<PlainHarness rows={data} />);
+		expect(screen.getByRole("columnheader", { name: "ID" })).not.toHaveAttribute("aria-sort");
+	});
 });
 
 type ActionCellHarnessProps = {
@@ -127,31 +324,28 @@ type ActionCellHarnessProps = {
  */
 function ActionCellHarness({ onRowClick, onCellClick, onButtonClick }: ActionCellHarnessProps) {
 	const actionColumns = useMemo(
-		() => [
-			columnHelper.accessor("name", {
-				id: "name",
-				header: () => <DataTable.Header>Name</DataTable.Header>,
-				cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
-			}),
-			columnHelper.display({
-				id: "actions",
-				header: () => <DataTable.ActionHeader />,
-				cell: () => (
-					<DataTable.ActionCell onClick={onCellClick}>
-						<button type="button" onClick={onButtonClick}>
-							Open actions
-						</button>
-					</DataTable.ActionCell>
-				),
-			}),
-		],
+		() =>
+			columnHelper.columns([
+				columnHelper.accessor("name", {
+					id: "name",
+					header: () => <DataTable.Header>Name</DataTable.Header>,
+					cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+				}),
+				columnHelper.display({
+					id: "actions",
+					header: () => <DataTable.ActionHeader />,
+					cell: () => (
+						<DataTable.ActionCell onClick={onCellClick}>
+							<button type="button" onClick={onButtonClick}>
+								Open actions
+							</button>
+						</DataTable.ActionCell>
+					),
+				}),
+			]),
 		[onCellClick, onButtonClick],
 	);
-	const table = useReactTable({
-		data,
-		columns: actionColumns,
-		getCoreRowModel: getCoreRowModel(),
-	});
+	const table = useTable({ features, data, columns: actionColumns });
 	return (
 		<DataTable.Root table={table}>
 			<DataTable.Head />
@@ -223,43 +417,44 @@ function SortableHarness({
 	enableSorting = true,
 }: SortableHarnessProps) {
 	const sortableColumns = useMemo(
-		() => [
-			columnHelper.accessor("name", {
-				id: "name",
-				enableSorting,
-				header: (props) => (
-					<DataTable.Header column={props.column}>
-						{disableSorting ? (
-							<DataTable.HeaderSortButton
-								column={props.column}
-								disableSorting
-								id="name-label"
-								title="Customer name"
-								ref={disabledHeaderRef}
-							>
-								Name
-							</DataTable.HeaderSortButton>
-						) : (
-							<DataTable.HeaderSortButton
-								column={props.column}
-								sortingMode="alphanumeric"
-								appearance={appearance}
-								intent={intent}
-							>
-								Name
-							</DataTable.HeaderSortButton>
-						)}
-					</DataTable.Header>
-				),
-				cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
-			}),
-		],
+		() =>
+			sortableColumnHelper.columns([
+				sortableColumnHelper.accessor("name", {
+					id: "name",
+					enableSorting,
+					header: (props) => (
+						<DataTable.Header column={props.column}>
+							{disableSorting ? (
+								<DataTable.HeaderSortButton
+									column={props.column}
+									disableSorting
+									id="name-label"
+									title="Customer name"
+									ref={disabledHeaderRef}
+								>
+									Name
+								</DataTable.HeaderSortButton>
+							) : (
+								<DataTable.HeaderSortButton
+									column={props.column}
+									sortingMode="alphanumeric"
+									appearance={appearance}
+									intent={intent}
+								>
+									Name
+								</DataTable.HeaderSortButton>
+							)}
+						</DataTable.Header>
+					),
+					cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+				}),
+			]),
 		[appearance, disableSorting, disabledHeaderRef, enableSorting, intent],
 	);
-	const table = useReactTable({
-		data,
+	const table = useTable({
+		features: sortableFeatures,
+		data: sortableData,
 		columns: sortableColumns,
-		getCoreRowModel: getCoreRowModel(),
 	});
 	return (
 		<DataTable.Root table={table}>
@@ -321,6 +516,27 @@ describe("DataTable.HeaderSortButton", () => {
 		expect(header).not.toHaveAttribute("aria-sort");
 	});
 
+	test("reorders the rows through unsorted → ascending → descending → unsorted", async () => {
+		const user = userEvent.setup();
+		render(<SortableHarness />);
+		const button = screen.getByRole("button", { name: "Name" });
+		// One accessor column, so the body cells read top to bottom as the rows do.
+		const names = () => screen.getAllByRole("cell").map((cell) => cell.textContent);
+
+		expect(names()).toEqual(["web-10", "web-1", "web-2"]);
+
+		await user.click(button);
+		// A dropped `sortedRowModel` leaves this order untouched. A dropped
+		// `sortFns` falls back to `sortFn_basic`, which puts `web-10` before `web-2`.
+		expect(names()).toEqual(["web-1", "web-2", "web-10"]);
+
+		await user.click(button);
+		expect(names()).toEqual(["web-10", "web-2", "web-1"]);
+
+		await user.click(button);
+		expect(names()).toEqual(["web-10", "web-1", "web-2"]);
+	});
+
 	test("disableSorting renders the label as plain text with no button and forwards the other props", () => {
 		const ref = createRef<HTMLButtonElement>();
 		render(<SortableHarness disableSorting disabledHeaderRef={ref} />);
@@ -360,25 +576,22 @@ describe("DataTable.HeaderSortButton", () => {
  */
 function ActionHeaderHarness({ rows }: { rows: Row[] }) {
 	const actionColumns = useMemo(
-		() => [
-			columnHelper.accessor("name", {
-				id: "name",
-				header: () => <DataTable.Header>Name</DataTable.Header>,
-				cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
-			}),
-			columnHelper.display({
-				id: "actions",
-				header: () => <DataTable.ActionHeader>Actions</DataTable.ActionHeader>,
-				cell: () => <DataTable.ActionCell>Edit</DataTable.ActionCell>,
-			}),
-		],
+		() =>
+			columnHelper.columns([
+				columnHelper.accessor("name", {
+					id: "name",
+					header: () => <DataTable.Header>Name</DataTable.Header>,
+					cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+				}),
+				columnHelper.display({
+					id: "actions",
+					header: () => <DataTable.ActionHeader>Actions</DataTable.ActionHeader>,
+					cell: () => <DataTable.ActionCell>Edit</DataTable.ActionCell>,
+				}),
+			]),
 		[],
 	);
-	const table = useReactTable({
-		data: rows,
-		columns: actionColumns,
-		getCoreRowModel: getCoreRowModel(),
-	});
+	const table = useTable({ features, data: rows, columns: actionColumns });
 	return (
 		<DataTable.Root table={table}>
 			<DataTable.Head />
@@ -393,15 +606,15 @@ function ActionHeaderHarness({ rows }: { rows: Row[] }) {
 
 describe("DataTable.ActionHeader", () => {
 	test('names the column "Actions" by default', () => {
-		const columns = [
+		const actionOnlyColumns = columnHelper.columns([
 			columnHelper.display({
 				id: "actions",
 				header: () => <DataTable.ActionHeader />,
 				cell: () => <DataTable.ActionCell>Edit</DataTable.ActionCell>,
 			}),
-		];
+		]);
 		function DefaultLabelHarness() {
-			const table = useReactTable({ data, columns, getCoreRowModel: getCoreRowModel() });
+			const table = useTable({ features, data, columns: actionOnlyColumns });
 			return (
 				<DataTable.Root table={table}>
 					<DataTable.Head />
@@ -457,37 +670,37 @@ function ExpandableHarness({
 }: ExpandableHarnessProps) {
 	const [expanded, setExpanded] = useState<ExpandedState>({});
 	const expandableColumns = useMemo(
-		() => [
-			columnHelper.display({
-				id: "expander",
-				header: () => <DataTable.ExpandHeader />,
-				cell: (props) => (
-					<DataTable.Cell>
-						<DataTable.RowExpandButton
-							row={props.row}
-							label={props.row.original.name}
-							onClick={buttonOnClick}
-							appearance={buttonAppearance}
-						/>
-					</DataTable.Cell>
-				),
-			}),
-			columnHelper.accessor("name", {
-				id: "name",
-				header: () => <DataTable.Header>Name</DataTable.Header>,
-				cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
-			}),
-		],
+		() =>
+			expandableColumnHelper.columns([
+				expandableColumnHelper.display({
+					id: "expander",
+					header: () => <DataTable.ExpandHeader />,
+					cell: (props) => (
+						<DataTable.Cell>
+							<DataTable.RowExpandButton
+								row={props.row}
+								label={props.row.original.name}
+								onClick={buttonOnClick}
+								appearance={buttonAppearance}
+							/>
+						</DataTable.Cell>
+					),
+				}),
+				expandableColumnHelper.accessor("name", {
+					id: "name",
+					header: () => <DataTable.Header>Name</DataTable.Header>,
+					cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+				}),
+			]),
 		[buttonOnClick, buttonAppearance],
 	);
-	const table = useReactTable({
+	const table = useTable({
+		features: expandableFeatures,
 		data,
 		columns: expandableColumns,
 		state: { expanded },
 		onExpandedChange: setExpanded,
 		getRowCanExpand: () => canExpand,
-		getCoreRowModel: getCoreRowModel(),
-		getExpandedRowModel: getExpandedRowModel(),
 		getRowId: (row) => row.id,
 	});
 	return (
@@ -625,6 +838,21 @@ describe("DataTable.ExpandedRow", () => {
 			.closest("td");
 		expect(detailCell).toHaveAttribute("colspan", "1");
 	});
+
+	test("defaults `colSpan` to the row's cell count for a table without `columnVisibilityFeature`", () => {
+		// A revert to `row.getVisibleCells().length` throws a `TypeError` here: the
+		// method exists on the row only when the table registers the feature.
+		render(<PlainHarness rows={data} withDetail />);
+		const detailCell = within(screen.getByTestId("detail-row-1")).getByText("Detail").closest("td");
+		expect(detailCell).toHaveAttribute("colspan", "3");
+	});
+
+	test("defaults `colSpan` to the visible cells only when the table registers `columnVisibilityFeature`", () => {
+		// A swap to `row.getAllCells().length` counts the hidden `name` cell too.
+		render(<VisibilityHarness rows={data} withDetail />);
+		const detailCell = within(screen.getByTestId("detail-row-1")).getByText("Detail").closest("td");
+		expect(detailCell).toHaveAttribute("colspan", "2");
+	});
 });
 
 describe("DataTable.ExpandHeader", () => {
@@ -647,40 +875,44 @@ describe("DataTable.ExpandHeader", () => {
 	});
 });
 
+type RenderExpandedHarnessProps = {
+	renderSpy?: (row: TableRow<typeof expandableFeatures, Row>) => void;
+};
+
 /**
  * Renders a table that drives its detail panel through `DataTable.Row`'s
  * `renderExpanded` prop (rather than a hand-written `ExpandedRow`). `renderSpy`
  * lets tests assert the lazy contract — that the panel is built only while open.
  */
-function RenderExpandedHarness({ renderSpy }: { renderSpy?: (row: TableRow<Row>) => void }) {
+function RenderExpandedHarness({ renderSpy }: RenderExpandedHarnessProps) {
 	const [expanded, setExpanded] = useState<ExpandedState>({});
 	const expandableColumns = useMemo(
-		() => [
-			columnHelper.display({
-				id: "expander",
-				header: () => <DataTable.ExpandHeader />,
-				cell: (props) => (
-					<DataTable.Cell>
-						<DataTable.RowExpandButton row={props.row} label={props.row.original.name} />
-					</DataTable.Cell>
-				),
-			}),
-			columnHelper.accessor("name", {
-				id: "name",
-				header: () => <DataTable.Header>Name</DataTable.Header>,
-				cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
-			}),
-		],
+		() =>
+			expandableColumnHelper.columns([
+				expandableColumnHelper.display({
+					id: "expander",
+					header: () => <DataTable.ExpandHeader />,
+					cell: (props) => (
+						<DataTable.Cell>
+							<DataTable.RowExpandButton row={props.row} label={props.row.original.name} />
+						</DataTable.Cell>
+					),
+				}),
+				expandableColumnHelper.accessor("name", {
+					id: "name",
+					header: () => <DataTable.Header>Name</DataTable.Header>,
+					cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+				}),
+			]),
 		[],
 	);
-	const table = useReactTable({
+	const table = useTable({
+		features: expandableFeatures,
 		data,
 		columns: expandableColumns,
 		state: { expanded },
 		onExpandedChange: setExpanded,
 		getRowCanExpand: () => true,
-		getCoreRowModel: getCoreRowModel(),
-		getExpandedRowModel: getExpandedRowModel(),
 		getRowId: (row) => row.id,
 	});
 	return (
@@ -705,7 +937,7 @@ function RenderExpandedHarness({ renderSpy }: { renderSpy?: (row: TableRow<Row>)
 
 describe("DataTable.Row renderExpanded", () => {
 	test("does not render or call the panel while the row is collapsed (lazy)", () => {
-		const renderSpy = vi.fn<(row: TableRow<Row>) => void>();
+		const renderSpy = vi.fn<(row: TableRow<typeof expandableFeatures, Row>) => void>();
 		render(<RenderExpandedHarness renderSpy={renderSpy} />);
 
 		expect(screen.queryByTestId("panel-row-1")).not.toBeInTheDocument();
@@ -714,12 +946,13 @@ describe("DataTable.Row renderExpanded", () => {
 
 	test("renders the panel in an ExpandedRow spanning every visible column once expanded", async () => {
 		const user = userEvent.setup();
-		const renderSpy = vi.fn<(row: TableRow<Row>) => void>();
+		const renderSpy = vi.fn<(row: TableRow<typeof expandableFeatures, Row>) => void>();
 		render(<RenderExpandedHarness renderSpy={renderSpy} />);
 
 		await user.click(screen.getByRole("button", { name: "Show details for Alice" }));
 
 		expect(renderSpy).toHaveBeenCalled();
+		expect(renderSpy).toHaveBeenLastCalledWith(expect.objectContaining({ id: "row-1" }));
 		const panelCell = screen.getByTestId("panel-row-1").closest("td");
 		expect(panelCell).toHaveAttribute("colspan", "2");
 		expect(panelCell).toHaveAttribute("id", "data-table-expanded-row-row-1");
@@ -740,32 +973,32 @@ describe("expandedRowId encoding", () => {
 		function WhitespaceIdHarness() {
 			const [expanded, setExpanded] = useState<ExpandedState>({});
 			const cols = useMemo(
-				() => [
-					columnHelper.display({
-						id: "expander",
-						header: () => <DataTable.ExpandHeader />,
-						cell: (props) => (
-							<DataTable.Cell>
-								<DataTable.RowExpandButton row={props.row} label={props.row.original.name} />
-							</DataTable.Cell>
-						),
-					}),
-					columnHelper.accessor("name", {
-						id: "name",
-						header: () => <DataTable.Header>Name</DataTable.Header>,
-						cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
-					}),
-				],
+				() =>
+					expandableColumnHelper.columns([
+						expandableColumnHelper.display({
+							id: "expander",
+							header: () => <DataTable.ExpandHeader />,
+							cell: (props) => (
+								<DataTable.Cell>
+									<DataTable.RowExpandButton row={props.row} label={props.row.original.name} />
+								</DataTable.Cell>
+							),
+						}),
+						expandableColumnHelper.accessor("name", {
+							id: "name",
+							header: () => <DataTable.Header>Name</DataTable.Header>,
+							cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+						}),
+					]),
 				[],
 			);
-			const table = useReactTable({
+			const table = useTable({
+				features: expandableFeatures,
 				data: spacedData,
 				columns: cols,
 				state: { expanded },
 				onExpandedChange: setExpanded,
 				getRowCanExpand: () => true,
-				getCoreRowModel: getCoreRowModel(),
-				getExpandedRowModel: getExpandedRowModel(),
 				getRowId: (row) => row.id, // a row id WITH a space
 			});
 			return (
@@ -802,41 +1035,177 @@ describe("expandedRowId encoding", () => {
 });
 
 describe("DataTable.EmptyRow", () => {
-	test("spans the visible leaf columns only, not hidden ones", () => {
-		const columns = [
-			columnHelper.accessor("id", {
-				id: "id",
-				header: () => <DataTable.Header>ID</DataTable.Header>,
-				cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
-			}),
-			columnHelper.accessor("name", {
-				id: "name",
-				header: () => <DataTable.Header>Name</DataTable.Header>,
-				cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
-			}),
-			columnHelper.display({
-				id: "actions",
-				header: () => <DataTable.ActionHeader />,
-				cell: () => <DataTable.ActionCell>Edit</DataTable.ActionCell>,
-			}),
-		];
-		function EmptyHarness() {
-			const table = useReactTable({
-				data: [],
-				columns,
-				state: { columnVisibility: { name: false } },
-				getCoreRowModel: getCoreRowModel(),
-			});
-			return (
-				<DataTable.Root table={table}>
-					<DataTable.Head />
-					<DataTable.Body>
-						<DataTable.EmptyRow>No results.</DataTable.EmptyRow>
-					</DataTable.Body>
-				</DataTable.Root>
-			);
-		}
-		render(<EmptyHarness />);
+	test("spans every leaf column for a table without `columnVisibilityFeature`", () => {
+		// A revert to `table.getVisibleLeafColumns()` throws a `TypeError` here:
+		// the method exists on the table only when it registers the feature.
+		render(<PlainHarness rows={[]} />);
+		expect(screen.getByRole("cell", { name: "No results." })).toHaveAttribute("colspan", "3");
+	});
+
+	test("spans the visible leaf columns only when the table registers `columnVisibilityFeature`", () => {
+		// A revert to `table.getAllLeafColumns()` counts the hidden `name` column too.
+		render(<VisibilityHarness rows={[]} />);
 		expect(screen.getByRole("cell", { name: "No results." })).toHaveAttribute("colspan", "2");
+	});
+});
+
+/**
+ * Type-level contracts, owned by `pnpm typecheck` rather than by a `test()`: a
+ * `@ts-expect-error` that compiles is the assertion, and pairing it with a runtime
+ * `expect` would read as coverage the vitest run does not have.
+ *
+ * `DataTable.HeaderSortButton` and `DataTable.RowExpandButton` call a feature's
+ * API, so each rejects an instance from a table that never registered the
+ * feature. `features` above registers none.
+ */
+export function typeLevelContracts(
+	column: Column<typeof features, Row, string>,
+	row: TableRow<typeof features, Row>,
+) {
+	return (
+		<>
+			{/* @ts-expect-error -- the table registers no rowSortingFeature */}
+			<DataTable.HeaderSortButton column={column} sortingMode="alphanumeric">
+				Name
+			</DataTable.HeaderSortButton>
+			{/* @ts-expect-error -- the table registers no rowExpandingFeature */}
+			<DataTable.RowExpandButton row={row} label="Alice" />
+		</>
+	);
+}
+
+// Why `rowExpandingFeature` alone: a detail panel needs `row.getIsExpanded()` and
+// `row.toggleExpanded()`, which the feature adds. `expandedRowModel` only flattens
+// sub-rows into the row model, so a flat table can leave it out.
+const detailFeatures = tableFeatures({ rowExpandingFeature });
+const detailColumnHelper = createColumnHelper<typeof detailFeatures, Row>();
+const detailColumns = detailColumnHelper.columns([
+	detailColumnHelper.display({
+		id: "expander",
+		header: () => <DataTable.ExpandHeader />,
+		cell: (props) => (
+			<DataTable.Cell>
+				<DataTable.RowExpandButton row={props.row} label={props.row.original.name} />
+			</DataTable.Cell>
+		),
+	}),
+	detailColumnHelper.accessor("name", {
+		id: "name",
+		header: () => <DataTable.Header>Name</DataTable.Header>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+]);
+
+function DetailOnlyHarness() {
+	const table = useTable({
+		features: detailFeatures,
+		data,
+		columns: detailColumns,
+		getRowCanExpand: () => true,
+	});
+	return (
+		<DataTable.Root table={table}>
+			<DataTable.Head />
+			<DataTable.Body>
+				{table.getRowModel().rows.map((row) => (
+					<DataTable.Row
+						key={row.id}
+						row={row}
+						renderExpanded={(row) => <span data-testid="panel">Panel for {row.original.name}</span>}
+					/>
+				))}
+			</DataTable.Body>
+		</DataTable.Root>
+	);
+}
+
+describe("DataTable.Row renderExpanded without expandedRowModel", () => {
+	test("a table with only `rowExpandingFeature` opens and closes a detail panel", async () => {
+		const user = userEvent.setup();
+		render(<DetailOnlyHarness />);
+		expect(screen.queryByTestId("panel")).not.toBeInTheDocument();
+
+		await user.click(screen.getByRole("button", { name: "Show details for Alice" }));
+
+		const button = screen.getByRole("button", { name: "Hide details for Alice" });
+		expect(button).toHaveAttribute("aria-expanded", "true");
+		expect(screen.getByTestId("panel").closest("td")).toHaveAttribute("colspan", "2");
+
+		await user.click(button);
+
+		expect(screen.getByRole("button", { name: "Show details for Alice" })).toHaveAttribute(
+			"aria-expanded",
+			"false",
+		);
+		expect(screen.queryByTestId("panel")).not.toBeInTheDocument();
+	});
+});
+
+type TeamRow = { id: string; team: string; name: string };
+
+const groupingFeatures = tableFeatures({
+	columnGroupingFeature,
+	groupedRowModel: createGroupedRowModel(),
+	rowExpandingFeature,
+	expandedRowModel: createExpandedRowModel(),
+});
+const groupingColumnHelper = createColumnHelper<typeof groupingFeatures, TeamRow>();
+const groupingColumns = groupingColumnHelper.columns([
+	groupingColumnHelper.accessor("team", {
+		id: "team",
+		header: () => <DataTable.Header>Team</DataTable.Header>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+	groupingColumnHelper.accessor("name", {
+		id: "name",
+		header: () => <DataTable.Header>Name</DataTable.Header>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+]);
+const teamData: TeamRow[] = [
+	{ id: "row-1", team: "web", name: "Alice" },
+	{ id: "row-2", team: "web", name: "Bob" },
+	{ id: "row-3", team: "api", name: "Cleo" },
+];
+
+function GroupingHarness() {
+	const table = useTable({
+		features: groupingFeatures,
+		data: teamData,
+		columns: groupingColumns,
+		initialState: { grouping: ["team"], expanded: true },
+	});
+	return (
+		<DataTable.Root table={table}>
+			<DataTable.Head />
+			<DataTable.Body>
+				{table.getRowModel().rows.map((row) => (
+					<DataTable.Row
+						key={row.id}
+						data-testid={row.getIsGrouped() ? "group-row" : "leaf-row"}
+						row={row}
+					/>
+				))}
+			</DataTable.Body>
+		</DataTable.Root>
+	);
+}
+
+describe("DataTable.Row with grouping", () => {
+	// Why this pins `flexRender`: a leaf row under a group carries a placeholder
+	// cell in the grouping column. TanStack's `FlexRender` component renders
+	// `null` for it, which drops the `<td>` and shifts every later cell left.
+	test("keeps one `<td>` per leaf column on group rows and leaf rows, placeholder cells included", () => {
+		render(<GroupingHarness />);
+		const groupRows = screen.getAllByTestId("group-row");
+		const leafRows = screen.getAllByTestId("leaf-row");
+		expect(groupRows).toHaveLength(2);
+		expect(leafRows).toHaveLength(3);
+		for (const row of [...groupRows, ...leafRows]) {
+			expect(within(row).getAllByRole("cell")).toHaveLength(2);
+		}
+		const [firstLeaf] = leafRows;
+		invariant(firstLeaf, "expected a leaf row");
+		expect(within(firstLeaf).getAllByRole("cell")[0]).toHaveTextContent("web");
 	});
 });

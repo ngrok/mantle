@@ -358,6 +358,7 @@ export const migrationPages = [
 	//,
 	"CodeBlock",
 	"DataTable Action Column",
+	"DataTable TanStack Table v9",
 	"Dialog.Footer DOM Order",
 	"Field.Item Control Id",
 	"Priority → Intent",
@@ -367,6 +368,7 @@ export const migrationPages = [
 export const migrationRoutes = {
 	CodeBlock: "/migrations/code-block-migration",
 	"DataTable Action Column": "/migrations/data-table-action-header-migration",
+	"DataTable TanStack Table v9": "/migrations/data-table-tanstack-v9-migration",
 	"Dialog.Footer DOM Order": "/migrations/dialog-footer-dom-order-migration",
 	"Field.Item Control Id": "/migrations/field-item-owns-control-id-migration",
 	"Priority → Intent": "/migrations/priority-to-intent-migration",
@@ -377,6 +379,8 @@ export const migrationDescriptions = {
 	CodeBlock: "Migrate from PrismJS-powered code blocks to mantle's Shiki-powered CodeBlock.",
 	"DataTable Action Column":
 		"Switch a pinned action column's header to DataTable.ActionHeader so it stays aligned on horizontal scroll.",
+	"DataTable TanStack Table v9":
+		"Move a DataTable from TanStack Table v8 to v9: useTable with a features object, columnHelper.columns, sortFn, and table.state.",
 	"Dialog.Footer DOM Order":
 		"Dialog.Footer now renders children in DOM order — reverse footer children to preserve their layout.",
 	"Field.Item Control Id":

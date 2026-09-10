@@ -276,7 +276,7 @@ function ControlledPageSize() {
 
 `CursorPagination` pairs with a [`DataTable`](/components/data-display/data-table): drive its `Buttons` and `PageSizeSelect` from a TanStack Table instance.
 
-**Client-paginated:** the table holds every row and `getPaginationRowModel()` slices them. The table owns the page size, so pass `table.getState().pagination.pageSize` as `pageSize` and the select follows a `setPageSize()` call from anywhere. Read `getCanPreviousPage()` / `getCanNextPage()` for the buttons and call `setPageSize()` / `setPageIndex(0)` when the size changes:
+**Client-paginated:** the table holds every row, and the `paginatedRowModel` slices them. Register `rowPaginationFeature` and `createPaginatedRowModel()` with `tableFeatures`. The table owns the page size, so pass `table.state.pagination.pageSize` as `pageSize` and the select follows a `setPageSize()` call from anywhere. Read `getCanPreviousPage()` / `getCanNextPage()` for the buttons and call `setPageSize()` / `setPageIndex(0)` when the size changes:
 
 <Example>
 	<PaginatedPaymentsDemo />
@@ -286,9 +286,10 @@ function ControlledPageSize() {
 import {
 	DataTable,
 	createColumnHelper,
-	getCoreRowModel,
-	getPaginationRowModel,
-	useReactTable,
+	createPaginatedRowModel,
+	rowPaginationFeature,
+	tableFeatures,
+	useTable,
 } from "@ngrok/mantle/data-table";
 import { CursorPagination } from "@ngrok/mantle/pagination";
 
@@ -303,9 +304,16 @@ type Payment = {
 	email: string;
 };
 
-const columnHelper = createColumnHelper<Payment>();
+// Register only the features the table uses: pagination and the row model
+// that slices rows into pages.
+const features = tableFeatures({
+	rowPaginationFeature,
+	paginatedRowModel: createPaginatedRowModel(),
+});
 
-const columns = [
+const columnHelper = createColumnHelper<typeof features, Payment>();
+
+const columns = columnHelper.columns([
 	columnHelper.accessor("email", {
 		id: "email",
 		header: () => <DataTable.Header>Email</DataTable.Header>,
@@ -321,15 +329,14 @@ const columns = [
 		header: () => <DataTable.Header className="text-right">Amount</DataTable.Header>,
 		cell: (props) => <DataTable.Cell className="text-right">${props.getValue()}</DataTable.Cell>,
 	}),
-];
+]);
 
 function PaginatedTable({ data }: { data: Payment[] }) {
-	const table = useReactTable({
+	const table = useTable({
+		features,
 		data,
 		columns,
-		getCoreRowModel: getCoreRowModel(),
-		getPaginationRowModel: getPaginationRowModel(),
-		initialState: { pagination: { pageSize: DEFAULT_PAGE_SIZE } },
+		initialState: { pagination: { pageIndex: 0, pageSize: DEFAULT_PAGE_SIZE } },
 	});
 
 	const rows = table.getRowModel().rows;
@@ -348,7 +355,7 @@ function PaginatedTable({ data }: { data: Payment[] }) {
 			</DataTable.Root>
 			<CursorPagination.Root
 				className="flex justify-end"
-				pageSize={table.getState().pagination.pageSize}
+				pageSize={table.state.pagination.pageSize}
 				onChangePageSize={(size) => {
 					table.setPageSize(size);
 					table.setPageIndex(0); // reset to the first page when the size changes
@@ -367,7 +374,7 @@ function PaginatedTable({ data }: { data: Payment[] }) {
 }
 ```
 
-**Server / cursor data:** the server returns one page at a time, so there is no `getPaginationRowModel` and no total count. Wire `Buttons` to your fetch's has-next / has-prev and load callbacks, and show the fixed, server-controlled page size with the read-only `PageSizeValue` instead of `PageSizeSelect`. The example simulates the server's cursor state with a page index:
+**Server / cursor data:** the server returns one page at a time, so there is no `paginatedRowModel` and no total count. Wire `Buttons` to your fetch's has-next / has-prev and load callbacks, and show the fixed, server-controlled page size with the read-only `PageSizeValue` instead of `PageSizeSelect`. The example simulates the server's cursor state with a page index:
 
 <Example>
 	<ServerCursorPaginationExample />

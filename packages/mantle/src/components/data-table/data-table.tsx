@@ -1,12 +1,24 @@
 import { MinusIcon } from "@phosphor-icons/react/Minus";
 import { PlusIcon } from "@phosphor-icons/react/Plus";
 import {
+	type CellData,
 	type Column,
-	type HeaderContext,
-	type Table as TableInstance,
+	type Column_RowSorting,
 	type Row as TableRow,
+	type RowData,
+	type Row_RowExpanding,
+	type StockFeatures,
+	type Table as TableInstance,
+	type TableFeatures,
+	callMemoOrStaticFn,
 	flexRender,
 } from "@tanstack/react-table";
+import {
+	column_getIsSorted,
+	row_getIsExpanded,
+	row_getVisibleCells,
+	table_getVisibleLeafColumns,
+} from "@tanstack/react-table/static-functions";
 import {
 	type ComponentProps,
 	Fragment,
@@ -33,33 +45,79 @@ import { Table } from "../table/table.js";
 import { getNextSortDirection } from "./helpers.js";
 import type { SortDirection } from "./types.js";
 
-type DataTableContextShape<TData = unknown> = {
-	table: TableInstance<TData>;
+/**
+ * The table features a sortable column needs. `DataTable.HeaderSortButton`
+ * calls the column's sorting API, which exists only when the table registers
+ * `rowSortingFeature`.
+ */
+type SortableTableFeatures = Pick<StockFeatures, "rowSortingFeature">;
+
+/**
+ * The table features an expandable row needs. `DataTable.RowExpandButton`
+ * calls the row's expansion API, which exists only when the table registers
+ * `rowExpandingFeature`.
+ */
+type ExpandableTableFeatures = Pick<StockFeatures, "rowExpandingFeature">;
+
+// Why the intersections: TypeScript cannot resolve a feature method on
+// `Column<TFeatures, …>` or `Row<TFeatures, …>` while `TFeatures` is generic,
+// even under the constraint above. The intersection names the feature API so
+// the body can call it; the constraint puts the feature in the signature and
+// in the first line of a consumer's error. The alias omits `TableFeatures &`
+// on purpose: with it, `Column<SortableTableFeatures, …>` claims every optional
+// feature and the error's last line names faceting instead of sorting.
+// See decisions/2026-09-10-data-table-tanstack-v9-feature-typing.md.
+
+/** A column from a table that registers `rowSortingFeature`. */
+type SortableColumn<
+	TFeatures extends SortableTableFeatures,
+	TData extends RowData,
+	TValue extends CellData,
+> = Column<TFeatures, TData, TValue> & Column_RowSorting<TFeatures, TData>;
+
+/** A row from a table that registers `rowExpandingFeature`. */
+type ExpandableRow<TFeatures extends ExpandableTableFeatures, TData extends RowData> = TableRow<
+	TFeatures,
+	TData
+> &
+	Row_RowExpanding;
+
+type DataTableContextShape<TFeatures extends TableFeatures, TData extends RowData> = {
+	table: TableInstance<TFeatures, TData>;
 };
 
-// oxlint-disable-next-line @typescript-eslint/no-explicit-any -- React context cannot preserve this generic across provider boundaries.
-const DataTableContext = createContext<DataTableContextShape<any> | null>(null);
+// oxlint-disable-next-line @typescript-eslint/no-explicit-any -- React context cannot preserve these generics across provider boundaries.
+const DataTableContext = createContext<DataTableContextShape<any, any> | null>(null);
 
 /**
  * @private
  */
-function useDataTableContext<TData>() {
+function useDataTableContext<
+	TFeatures extends TableFeatures = TableFeatures,
+	TData extends RowData = RowData,
+>() {
 	const context = useContext(DataTableContext);
 
 	invariant(context, "useDataTableContext should only be used within a DataTable child component");
 
-	return context as DataTableContextShape<TData>;
+	return context as DataTableContextShape<TFeatures, TData>;
 }
 
-type DataTableProps<TData> = ComponentProps<typeof Table.Root> & {
-	table: TableInstance<TData>;
+type DataTableProps<TFeatures extends TableFeatures, TData extends RowData> = ComponentProps<
+	typeof Table.Root
+> & {
+	/**
+	 * The TanStack Table instance from `useTable`. Every other `DataTable` part
+	 * reads it through context.
+	 */
+	table: TableInstance<TFeatures, TData>;
 };
 
 /**
  * The root container for a data table. Wraps all other `DataTable`
  * sub-components and provides the table context to its descendants.
  *
- * REQUIRED: Construct a TanStack Table instance via `useReactTable` (from
+ * REQUIRED: Construct a TanStack Table instance via `useTable` (from
  * `@tanstack/react-table`, also re-exported from `@ngrok/mantle/data-table`)
  * and pass it through the `table` prop. The instance owns columns, data, and
  * any sorting / filtering / pagination state — the wrapper components read
@@ -72,22 +130,23 @@ type DataTableProps<TData> = ComponentProps<typeof Table.Root> & {
  * import {
  *   DataTable,
  *   createColumnHelper,
- *   getCoreRowModel,
- *   useReactTable,
+ *   tableFeatures,
+ *   useTable,
  * } from "@ngrok/mantle/data-table";
  *
  * type Row = { id: string; name: string };
- * const columnHelper = createColumnHelper<Row>();
- * const columns = [
+ * const features = tableFeatures({});
+ * const columnHelper = createColumnHelper<typeof features, Row>();
+ * const columns = columnHelper.columns([
  *   columnHelper.accessor("name", {
  *     id: "name",
  *     header: () => <DataTable.Header>Name</DataTable.Header>,
  *     cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
  *   }),
- * ];
+ * ]);
  *
  * function MyTable({ data }: { data: Row[] }) {
- *   const table = useReactTable({ data, columns, getCoreRowModel: getCoreRowModel() });
+ *   const table = useTable({ features, data, columns });
  *   const rows = table.getRowModel().rows;
  *
  *   return (
@@ -103,8 +162,12 @@ type DataTableProps<TData> = ComponentProps<typeof Table.Root> & {
  * }
  * ```
  */
-function Root<TData>({ children, table, ...props }: DataTableProps<TData>) {
-	const context: DataTableContextShape<TData> = useMemo(() => ({ table }), [table]);
+function Root<TFeatures extends TableFeatures, TData extends RowData>({
+	children,
+	table,
+	...props
+}: DataTableProps<TFeatures, TData>) {
+	const context: DataTableContextShape<TFeatures, TData> = useMemo(() => ({ table }), [table]);
 
 	return (
 		<DataTableContext.Provider value={context}>
@@ -115,24 +178,29 @@ function Root<TData>({ children, table, ...props }: DataTableProps<TData>) {
 	);
 }
 
-type DataTableHeaderSortButtonProps<TData, TValue> = Omit<
-	ComponentProps<typeof Button>,
-	"appearance" | "icon" | "intent"
-> &
-	Pick<HeaderContext<TData, TValue>, "column"> & {
-		/**
-		 * The visual style of the sort button. Optional — the header sort button's
-		 * design is a ghost button, so the wrapper defaults it.
-		 * @default "ghost"
-		 */
-		appearance?: ButtonAppearance;
-		/**
-		 * The tone of the sort button. Optional — the header sort button's design
-		 * is neutral-toned, so the wrapper defaults it.
-		 * @default "neutral"
-		 */
-		intent?: ButtonIntent;
-	} & (
+type DataTableHeaderSortButtonProps<
+	TFeatures extends SortableTableFeatures,
+	TData extends RowData,
+	TValue extends CellData,
+> = Omit<ComponentProps<typeof Button>, "appearance" | "icon" | "intent"> & {
+	/**
+	 * The TanStack Table column this button sorts (`props.column` in `header`).
+	 * The table must register `rowSortingFeature`.
+	 */
+	column: SortableColumn<TFeatures, TData, TValue>;
+	/**
+	 * The visual style of the sort button. Optional — the header sort button's
+	 * design is a ghost button, so the wrapper defaults it.
+	 * @default "ghost"
+	 */
+	appearance?: ButtonAppearance;
+	/**
+	 * The tone of the sort button. Optional — the header sort button's design
+	 * is neutral-toned, so the wrapper defaults it.
+	 * @default "neutral"
+	 */
+	intent?: ButtonIntent;
+} & (
 		| {
 				/**
 				 * Disable sorting for this column.
@@ -175,6 +243,11 @@ type DataTableHeaderSortButtonProps<TData, TValue> = Omit<
  * - For `"alphanumeric"` sorting: `unsorted → ascending → descending → unsorted`
  * - For `"time"` sorting: `unsorted → newest-first → oldest-first → unsorted`
  *
+ * The table must register `rowSortingFeature`; the `column` prop's type rejects a
+ * column from a table without it. Pair it with `sortedRowModel: createSortedRowModel()`,
+ * or the button toggles the icon and never reorders a row. Register a `sortFns` slot
+ * too: without one, auto-sort falls back to `sortFn_basic`.
+ *
  * When the column cannot sort (`disableSorting`, or `enableSorting: false` on
  * the column), the part renders the label as plain text in a `<span>`: no
  * button, no icon. The other props, `ref` included, land on that span.
@@ -183,10 +256,26 @@ type DataTableHeaderSortButtonProps<TData, TValue> = Omit<
  * For right-aligned numeric columns, pass `className="justify-end"` and
  * `iconPlacement="start"` so the sort icon stays paired with the label.
  *
+ * | Data Attribute             | Value                              | Description                                                                                                                 |
+ * | -------------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+ * | `data-sort-direction`      | `"asc"`, `"desc"`, or `"unsorted"` | The column's current sort direction. Always `"unsorted"` on the plain-text span.                                            |
+ * | `data-table-header-action` | present on the button              | Presence-only. `DataTable.Header` drops its horizontal padding when a descendant carries it. Absent on the plain-text span. |
+ *
  * @see https://mantle.ngrok.com/components/data-display/data-table#datatableheadersortbutton
  *
  * @example
  * ```tsx
+ * const features = tableFeatures({
+ *   rowSortingFeature,
+ *   sortedRowModel: createSortedRowModel(),
+ *   sortFns: {
+ *     alphanumeric: sortFn_alphanumeric,
+ *     datetime: sortFn_datetime,
+ *     text: sortFn_text,
+ *   },
+ * });
+ * const columnHelper = createColumnHelper<typeof features, Row>();
+ *
  * columnHelper.accessor("email", {
  *   id: "email",
  *   header: (props) => (
@@ -200,7 +289,11 @@ type DataTableHeaderSortButtonProps<TData, TValue> = Omit<
  * });
  * ```
  */
-function HeaderSortButton<TData, TValue>({
+function HeaderSortButton<
+	TFeatures extends SortableTableFeatures,
+	TData extends RowData,
+	TValue extends CellData,
+>({
 	appearance = "ghost",
 	children,
 	className,
@@ -212,7 +305,7 @@ function HeaderSortButton<TData, TValue>({
 	sortIcon: propSortIcon,
 	onClick,
 	...props
-}: DataTableHeaderSortButtonProps<TData, TValue>) {
+}: DataTableHeaderSortButtonProps<TFeatures, TData, TValue>) {
 	const rawSortDirection = column.getIsSorted();
 	const canSort = !disableSorting && column.getCanSort();
 
@@ -277,8 +370,17 @@ function HeaderSortButton<TData, TValue>({
 	);
 }
 
-type DataTableHeaderProps<TData, TValue> = ComponentProps<typeof Table.Header> &
-	Partial<Pick<HeaderContext<TData, TValue>, "column">>;
+type DataTableHeaderProps<
+	TFeatures extends TableFeatures,
+	TData extends RowData,
+	TValue extends CellData,
+> = ComponentProps<typeof Table.Header> & {
+	/**
+	 * The TanStack Table column this cell heads (`props.column` in `header`).
+	 * When the column is sorted, the cell carries `aria-sort`.
+	 */
+	column?: Column<TFeatures, TData, TValue>;
+};
 
 /**
  * The `aria-sort` value for a column's current sort state. `undefined` when the
@@ -291,10 +393,18 @@ type DataTableHeaderProps<TData, TValue> = ComponentProps<typeof Table.Header> &
  * resolveAriaSort(unsortedColumn); // => undefined
  * ```
  */
-function resolveAriaSort<TData, TValue>(
-	column: HeaderContext<TData, TValue>["column"] | undefined,
-): "ascending" | "descending" | undefined {
-	const sorted = column?.getIsSorted();
+function resolveAriaSort<
+	TFeatures extends TableFeatures,
+	TData extends RowData,
+	TValue extends CellData,
+>(column: Column<TFeatures, TData, TValue> | undefined): "ascending" | "descending" | undefined {
+	if (column == null) {
+		return undefined;
+	}
+	// Why callMemoOrStaticFn: `getIsSorted` exists on the column only when the
+	// table registers `rowSortingFeature`. The static function reads the same
+	// state and reports `false` for a table that cannot sort.
+	const sorted = callMemoOrStaticFn(column, "getIsSorted", column_getIsSorted);
 	if (sorted === "asc") {
 		return "ascending";
 	}
@@ -327,12 +437,12 @@ function resolveAriaSort<TData, TValue>(
  * });
  * ```
  */
-function Header<TData, TValue>({
+function Header<TFeatures extends TableFeatures, TData extends RowData, TValue extends CellData>({
 	children,
 	className,
 	column,
 	...props
-}: DataTableHeaderProps<TData, TValue>) {
+}: DataTableHeaderProps<TFeatures, TData, TValue>) {
 	return (
 		<Table.Header
 			aria-sort={resolveAriaSort(column)}
@@ -353,7 +463,7 @@ function Header<TData, TValue>({
  *
  * @example
  * ```tsx
- * const table = useReactTable({ data, columns, getCoreRowModel: getCoreRowModel() });
+ * const table = useTable({ features, data, columns });
  * const rows = table.getRowModel().rows;
  *
  * <DataTable.Root table={table}>
@@ -381,7 +491,7 @@ type DataTableHeadProps = Omit<ComponentProps<typeof Table.Head>, "children">;
  *
  * @example
  * ```tsx
- * const table = useReactTable({ data, columns, getCoreRowModel: getCoreRowModel() });
+ * const table = useTable({ features, data, columns });
  * const rows = table.getRowModel().rows;
  *
  * <DataTable.Root table={table}>
@@ -394,8 +504,8 @@ type DataTableHeadProps = Omit<ComponentProps<typeof Table.Head>, "children">;
  * </DataTable.Root>
  * ```
  */
-function Head<TData>(props: DataTableHeadProps) {
-	const { table } = useDataTableContext<TData>();
+function Head(props: DataTableHeadProps) {
+	const { table } = useDataTableContext();
 
 	return (
 		<Table.Head data-slot="data-table-head" {...props}>
@@ -404,7 +514,7 @@ function Head<TData>(props: DataTableHeadProps) {
 					{headerGroup.headers.map((header) => (
 						<Fragment key={header.id}>
 							{header.isPlaceholder ? (
-								<Table.Header key={header.id} />
+								<Table.Header />
 							) : (
 								flexRender(header.column.columnDef.header, header.getContext())
 							)}
@@ -416,20 +526,25 @@ function Head<TData>(props: DataTableHeadProps) {
 	);
 }
 
-type DataTableRowProps<TData> = Omit<ComponentProps<typeof Table.Row>, "children"> & {
-	row: TableRow<TData>;
+type DataTableRowProps<TFeatures extends TableFeatures, TData extends RowData> = Omit<
+	ComponentProps<typeof Table.Row>,
+	"children"
+> & {
+	/** The TanStack Table row instance to render. */
+	row: TableRow<TFeatures, TData>;
 	/**
 	 * Renders an inline detail panel beneath the row. Called only while the row is
 	 * expanded (`row.getIsExpanded()`), so the panel — and any expensive work it
 	 * does — stays lazy. Mantle wraps the returned content in a sibling
 	 * `DataTable.ExpandedRow` spanning every visible column, so return the
-	 * panel content (not a `<tr>`). Requires the table to be configured for
-	 * expansion (`getExpandedRowModel`, plus `getRowCanExpand` for detail panels);
-	 * pair it with a `DataTable.RowExpandButton` toggle in a leading column. For
-	 * full control over the detail row (custom `colSpan`, multiple panels), omit
-	 * this and render `DataTable.ExpandedRow` yourself.
+	 * panel content (not a `<tr>`). Requires the table to register
+	 * `rowExpandingFeature`, plus `getRowCanExpand` for detail panels; pair it
+	 * with a `DataTable.RowExpandButton` toggle in a leading column. Add
+	 * `expandedRowModel: createExpandedRowModel()` when rows have sub-rows. For
+	 * full control over the detail row (custom `colSpan`,
+	 * multiple panels), omit this and render `DataTable.ExpandedRow` yourself.
 	 */
-	renderExpanded?: (row: TableRow<TData>) => ReactNode;
+	renderExpanded?: (row: TableRow<TFeatures, TData>) => ReactNode;
 };
 
 /**
@@ -483,7 +598,7 @@ function isRowActivationClick(event: MouseEvent<HTMLTableRowElement>): boolean {
  * Pass `renderExpanded` to give the row an inline detail panel: when the row is
  * expanded the row renders its data `<tr>` plus a sibling `DataTable.ExpandedRow`
  * holding the returned content. Pair it with a `DataTable.RowExpandButton` toggle
- * and configure the table for expansion (`getExpandedRowModel`, `getRowCanExpand`).
+ * and register `rowExpandingFeature` and `getRowCanExpand` on the table.
  *
  * | Data Attribute   | Value                         | Description                                             |
  * | ---------------- | ----------------------------- | ------------------------------------------------------- |
@@ -527,20 +642,27 @@ function isRowActivationClick(event: MouseEvent<HTMLTableRowElement>): boolean {
  * ))}
  * ```
  */
-function Row<TData>({
+function Row<TFeatures extends TableFeatures, TData extends RowData>({
 	className,
 	onClick,
 	renderExpanded,
 	row,
 	...props
-}: DataTableRowProps<TData>) {
+}: DataTableRowProps<TFeatures, TData>) {
+	// Why callMemoOrStaticFn: `getIsExpanded` and `getVisibleCells` exist on the
+	// row only when the table registers `rowExpandingFeature` and
+	// `columnVisibilityFeature`. The static functions read the same state, so a
+	// table without those features renders every cell and never expands.
+	const isExpanded = callMemoOrStaticFn(row, "getIsExpanded", row_getIsExpanded);
+	const cells = callMemoOrStaticFn(row, "getVisibleCells", row_getVisibleCells);
+
 	const dataRow = (
 		<Table.Row
 			data-slot="data-table-row"
 			// Styling hook for the "this row is expanded" state (e.g. to pair the
 			// parent row visually with its `DataTable.ExpandedRow`). Absent when the
 			// row is collapsed or expansion is not configured.
-			data-expanded={row.getIsExpanded() || undefined}
+			data-expanded={isExpanded || undefined}
 			// Styling and test hook for "this row runs a handler on click", so a
 			// consumer never has to read `cursor-pointer` off the class list.
 			data-clickable={onClick != null ? "" : undefined}
@@ -555,7 +677,11 @@ function Row<TData>({
 			}
 			{...props}
 		>
-			{row.getVisibleCells().map((cell) => (
+			{cells.map((cell) => (
+				// Why flexRender, not FlexRender: the column's `cell` definition owns
+				// the `<td>`. `FlexRender` renders `null` for a grouped row's
+				// placeholder cells, which would drop their `<td>` and shift every cell
+				// after them one column to the left.
 				<Fragment key={cell.id}>
 					{flexRender(cell.column.columnDef.cell, cell.getContext())}
 				</Fragment>
@@ -573,7 +699,7 @@ function Row<TData>({
 	return (
 		<>
 			{dataRow}
-			{row.getIsExpanded() && <ExpandedRow row={row}>{renderExpanded(row)}</ExpandedRow>}
+			{isExpanded && <ExpandedRow row={row}>{renderExpanded(row)}</ExpandedRow>}
 		</>
 	);
 }
@@ -600,9 +726,9 @@ type DataTableEmptyRowProps = ComponentProps<typeof Table.Row>;
  * import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
  * import { TrayIcon } from "@phosphor-icons/react/Tray";
  *
- * // `table` is your useReactTable instance; derive everything else from it.
+ * // `table` is your useTable instance; derive everything else from it.
  * const rows = table.getRowModel().rows;
- * const isFiltered = (table.getState().globalFilter ?? "") !== "";
+ * const isFiltered = (table.state.globalFilter ?? "") !== "";
  *
  * // EmptyRow already spans every column and Empty.Root centers itself — drop a
  * // single Empty.Root in as the child; don't hand-roll a <td> or any centering.
@@ -637,9 +763,16 @@ type DataTableEmptyRowProps = ComponentProps<typeof Table.Row>;
  * </DataTable.Body>
  * ```
  */
-function EmptyRow<TData>({ children, ...props }: DataTableEmptyRowProps) {
-	const { table } = useDataTableContext<TData>();
-	const numberOfColumns = table.getVisibleLeafColumns().length;
+function EmptyRow({ children, ...props }: DataTableEmptyRowProps) {
+	const { table } = useDataTableContext();
+	// Why callMemoOrStaticFn: `getVisibleLeafColumns` exists on the table only
+	// when it registers `columnVisibilityFeature`. The static function counts
+	// every leaf column for a table that cannot hide columns.
+	const numberOfColumns = callMemoOrStaticFn(
+		table,
+		"getVisibleLeafColumns",
+		table_getVisibleLeafColumns,
+	).length;
 
 	return (
 		<Table.Row data-slot="data-table-empty-row" {...props}>
@@ -804,7 +937,9 @@ function ActionHeader({ children, className, ...props }: DataTableActionHeaderPr
  * // ...renders id={expandedRowId(row)} — the same value, so they stay associated.
  * ```
  */
-function expandedRowId<TData>(row: TableRow<TData>): string {
+function expandedRowId<TFeatures extends TableFeatures, TData extends RowData>(
+	row: TableRow<TFeatures, TData>,
+): string {
 	// `encodeURIComponent` guarantees a whitespace-free, valid HTML id token (and
 	// thus a valid `aria-controls` IDREF) for ANY `getRowId` value — e.g. a display
 	// name like "Acme Inc". Both the toggle's `aria-controls` and the expanded
@@ -866,7 +1001,10 @@ function ExpandHeader({ children, className, ...props }: DataTableExpandHeaderPr
 const defaultExpandIcon = <PlusIcon weight="bold" className="size-3.5" />;
 const defaultCollapseIcon = <MinusIcon weight="bold" className="size-3.5" />;
 
-type DataTableRowExpandButtonProps<TData> = Omit<
+type DataTableRowExpandButtonProps<
+	TFeatures extends ExpandableTableFeatures,
+	TData extends RowData,
+> = Omit<
 	ComponentProps<typeof IconButton>,
 	"appearance" | "aria-controls" | "aria-expanded" | "icon" | "intent" | "label"
 > & {
@@ -884,11 +1022,11 @@ type DataTableRowExpandButtonProps<TData> = Omit<
 	 */
 	intent?: IconButtonIntent;
 	/**
-	 * The TanStack Table row this button toggles. The table must be configured for
-	 * expansion (`getExpandedRowModel`, plus `getRowCanExpand: () => true` for
-	 * custom detail panels, which have no sub-rows).
+	 * The TanStack Table row this button toggles. The table must register
+	 * `rowExpandingFeature`, plus `getRowCanExpand: () => true` for custom detail
+	 * panels, which have no sub-rows.
 	 */
-	row: TableRow<TData>;
+	row: ExpandableRow<TFeatures, TData>;
 	/**
 	 * A human-readable name for the row, woven into the accessible label:
 	 * `Show details for {label}` / `Hide details for {label}`.
@@ -919,10 +1057,20 @@ type DataTableRowExpandButtonProps<TData> = Omit<
  * pass `onClick` to run side effects before the toggle (call
  * `event.preventDefault()` to veto it).
  *
+ * The table must register `rowExpandingFeature`; the `row` prop's type rejects a row
+ * from a table without it. Add `expandedRowModel: createExpandedRowModel()` when rows
+ * have sub-rows; a detail panel expands without it.
+ *
  * @see https://mantle.ngrok.com/components/data-display/data-table#datatablerowexpandbutton
  *
  * @example
  * ```tsx
+ * const features = tableFeatures({
+ *   rowExpandingFeature,
+ *   expandedRowModel: createExpandedRowModel(),
+ * });
+ * const columnHelper = createColumnHelper<typeof features, Row>();
+ *
  * columnHelper.display({
  *   id: "expander",
  *   header: () => <DataTable.ExpandHeader />,
@@ -934,7 +1082,7 @@ type DataTableRowExpandButtonProps<TData> = Omit<
  * });
  * ```
  */
-function RowExpandButton<TData>({
+function RowExpandButton<TFeatures extends ExpandableTableFeatures, TData extends RowData>({
 	appearance = "ghost",
 	className,
 	collapseIcon = defaultCollapseIcon,
@@ -945,7 +1093,7 @@ function RowExpandButton<TData>({
 	row,
 	size = "sm",
 	...props
-}: DataTableRowExpandButtonProps<TData>) {
+}: DataTableRowExpandButtonProps<TFeatures, TData>) {
 	if (!row.getCanExpand()) {
 		return null;
 	}
@@ -982,9 +1130,12 @@ function RowExpandButton<TData>({
 	);
 }
 
-type DataTableExpandedRowProps<TData> = Omit<ComponentProps<typeof Table.Row>, "children"> & {
+type DataTableExpandedRowProps<TFeatures extends TableFeatures, TData extends RowData> = Omit<
+	ComponentProps<typeof Table.Row>,
+	"children"
+> & {
 	/** The row whose detail panel this displays. */
-	row: TableRow<TData>;
+	row: TableRow<TFeatures, TData>;
 	/**
 	 * Override the cell's `colSpan`. Defaults to the row's visible-cell count so
 	 * the panel spans every visible column (visibility- and pinning-aware).
@@ -1039,13 +1190,19 @@ type DataTableExpandedRowProps<TData> = Omit<ComponentProps<typeof Table.Row>, "
  * ))}
  * ```
  */
-function ExpandedRow<TData>({
+function ExpandedRow<TFeatures extends TableFeatures, TData extends RowData>({
 	children,
 	className,
 	colSpan,
 	row,
 	...props
-}: DataTableExpandedRowProps<TData>) {
+}: DataTableExpandedRowProps<TFeatures, TData>) {
+	// Why callMemoOrStaticFn: `getVisibleCells` exists on the row only when the
+	// table registers `columnVisibilityFeature`. The static function counts
+	// every cell for a table that cannot hide columns.
+	const numberOfColumns =
+		colSpan ?? callMemoOrStaticFn(row, "getVisibleCells", row_getVisibleCells).length;
+
 	return (
 		<Table.Row
 			data-slot="data-table-expanded-row"
@@ -1057,7 +1214,7 @@ function ExpandedRow<TData>({
 		>
 			<Table.Cell
 				id={expandedRowId(row)}
-				colSpan={colSpan ?? row.getVisibleCells().length}
+				colSpan={numberOfColumns}
 				// Opaque card surface (so scrolled content never shows through a sticky
 				// column) with neutral body typography (Table.Cell defaults to mono).
 				className="bg-card font-sans text-body"
@@ -1071,12 +1228,12 @@ function ExpandedRow<TData>({
 /**
  * Use `DataTable` for INTERACTIVE tabular data — sorting, filtering, pagination,
  * row selection, and server-side or client-side data. Built on TanStack Table;
- * the consumer MUST construct a `useReactTable` instance from
+ * the consumer MUST construct a `useTable` instance from
  * `@tanstack/react-table` and pass it to `DataTable.Root` via the `table` prop.
- * Every TanStack utility (`createColumnHelper`, `getCoreRowModel`,
- * `getSortedRowModel`, `getPaginationRowModel`, `getFilteredRowModel`,
- * `useReactTable`, …) is re-exported from `@ngrok/mantle/data-table` so a single
- * import covers both the wrapper components and the TanStack helpers.
+ * Every TanStack export (`useTable`, `tableFeatures`, `createColumnHelper`, the
+ * `*Feature` objects, the `create*RowModel` factories, the `sortFn_*` and `filterFn_*` comparators,
+ * …) is re-exported from `@ngrok/mantle/data-table` so a single import covers
+ * both the wrapper components and the TanStack helpers.
  *
  * For STATIC, layout-driven tables (read-only data dumps, simple key/value
  * displays, plain markup tables with no interactivity), use `Table` instead.
@@ -1108,14 +1265,31 @@ function ExpandedRow<TData>({
  * import {
  *   DataTable,
  *   createColumnHelper,
- *   getCoreRowModel,
- *   useReactTable,
+ *   createSortedRowModel,
+ *   rowSortingFeature,
+ *   sortFn_alphanumeric,
+ *   sortFn_datetime,
+ *   sortFn_text,
+ *   tableFeatures,
+ *   useTable,
  * } from "@ngrok/mantle/data-table";
  *
  * type Row = { id: string; name: string };
  *
- * const columnHelper = createColumnHelper<Row>();
- * const columns = [
+ * // Register only the features the table uses. Auto-sort resolves the
+ * // `alphanumeric`, `text`, and `datetime` comparators by name, so register those three.
+ * const features = tableFeatures({
+ *   rowSortingFeature,
+ *   sortedRowModel: createSortedRowModel(),
+ *   sortFns: {
+ *     alphanumeric: sortFn_alphanumeric,
+ *     datetime: sortFn_datetime,
+ *     text: sortFn_text,
+ *   },
+ * });
+ *
+ * const columnHelper = createColumnHelper<typeof features, Row>();
+ * const columns = columnHelper.columns([
  *   columnHelper.accessor("name", {
  *     id: "name",
  *     header: (props) => (
@@ -1127,10 +1301,10 @@ function ExpandedRow<TData>({
  *     ),
  *     cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
  *   }),
- * ];
+ * ]);
  *
  * function MyTable({ data }: { data: Row[] }) {
- *   const table = useReactTable({ data, columns, getCoreRowModel: getCoreRowModel() });
+ *   const table = useTable({ features, data, columns });
  *   const rows = table.getRowModel().rows;
  *
  *   return (
@@ -1154,12 +1328,19 @@ function ExpandedRow<TData>({
  * ```tsx
  * import {
  *   DataTable,
+ *   columnFilteringFeature,
  *   createColumnHelper,
- *   getCoreRowModel,
- *   getFilteredRowModel,
- *   getPaginationRowModel,
- *   getSortedRowModel,
- *   useReactTable,
+ *   createFilteredRowModel,
+ *   createPaginatedRowModel,
+ *   createSortedRowModel,
+ *   globalFilteringFeature,
+ *   rowPaginationFeature,
+ *   rowSortingFeature,
+ *   sortFn_alphanumeric,
+ *   sortFn_datetime,
+ *   sortFn_text,
+ *   tableFeatures,
+ *   useTable,
  * } from "@ngrok/mantle/data-table";
  * import { Button } from "@ngrok/mantle/button";
  * import { CursorPagination } from "@ngrok/mantle/pagination";
@@ -1175,8 +1356,24 @@ function ExpandedRow<TData>({
  * // (default 5 | 10 | 20 | 50 | 100).
  * const DEFAULT_PAGE_SIZE = 10;
  *
- * const columnHelper = createColumnHelper<Payment>();
- * const columns = [
+ * // `globalFilteringFeature` builds on `columnFilteringFeature`, so register both.
+ * const features = tableFeatures({
+ *   columnFilteringFeature,
+ *   globalFilteringFeature,
+ *   rowPaginationFeature,
+ *   rowSortingFeature,
+ *   filteredRowModel: createFilteredRowModel(),
+ *   paginatedRowModel: createPaginatedRowModel(),
+ *   sortedRowModel: createSortedRowModel(),
+ *   sortFns: {
+ *     alphanumeric: sortFn_alphanumeric,
+ *     datetime: sortFn_datetime,
+ *     text: sortFn_text,
+ *   },
+ * });
+ *
+ * const columnHelper = createColumnHelper<typeof features, Payment>();
+ * const columns = columnHelper.columns([
  *   columnHelper.accessor("status", {
  *     id: "status",
  *     header: (props) => (
@@ -1219,21 +1416,18 @@ function ExpandedRow<TData>({
  *       </DataTable.Cell>
  *     ),
  *   }),
- * ];
+ * ]);
  *
  * function PaymentsTable({ data }: { data: Payment[] }) {
  *   const [globalFilter, setGlobalFilter] = useState("");
  *
- *   const table = useReactTable({
+ *   const table = useTable({
+ *     features,
  *     data,
  *     columns,
  *     state: { globalFilter },
  *     onGlobalFilterChange: setGlobalFilter,
- *     getCoreRowModel: getCoreRowModel(),
- *     getSortedRowModel: getSortedRowModel(),
- *     getFilteredRowModel: getFilteredRowModel(),
- *     getPaginationRowModel: getPaginationRowModel(),
- *     initialState: { pagination: { pageSize: DEFAULT_PAGE_SIZE } },
+ *     initialState: { pagination: { pageIndex: 0, pageSize: DEFAULT_PAGE_SIZE } },
  *   });
  *   const rows = table.getRowModel().rows;
  *   const isFiltered = globalFilter.trim() !== "";
@@ -1287,7 +1481,7 @@ function ExpandedRow<TData>({
  *       </DataTable.Root>
  *       <CursorPagination.Root
  *         className="flex justify-end"
- *         pageSize={table.getState().pagination.pageSize}
+ *         pageSize={table.state.pagination.pageSize}
  *         onChangePageSize={(size) => {
  *           table.setPageSize(size);
  *           table.setPageIndex(0); // reset to the first page when the size changes
@@ -1316,9 +1510,9 @@ function ExpandedRow<TData>({
  * import { IconButton } from "@ngrok/mantle/button";
  * import { DotsThreeVerticalIcon } from "@phosphor-icons/react/DotsThreeVertical";
  *
- * const columnHelper = createColumnHelper<Payment>();
+ * const columnHelper = createColumnHelper<typeof features, Payment>();
  *
- * const columns = [
+ * const columns = columnHelper.columns([
  *   // …other columns…
  *   columnHelper.display({
  *     id: "actions",
@@ -1341,7 +1535,7 @@ function ExpandedRow<TData>({
  *       </DataTable.ActionCell>
  *     ),
  *   }),
- * ];
+ * ]);
  * ```
  *
  * @example
@@ -1349,13 +1543,13 @@ function ExpandedRow<TData>({
  * primary cell also renders a `<Link>` as the keyboard and screen-reader path.
  * `SandboxedOnClick` keeps the link's click from also running the row handler:
  * ```tsx
- * import { DataTable } from "@ngrok/mantle/data-table";
+ * import { DataTable, useTable } from "@ngrok/mantle/data-table";
  * import { SandboxedOnClick } from "@ngrok/mantle/sandboxed-on-click";
  * import { Link, href, useNavigate } from "react-router";
  *
  * function PaymentsTable({ data }: { data: Payment[] }) {
  *   const navigate = useNavigate();
- *   const table = useReactTable({ data, columns, getCoreRowModel: getCoreRowModel() });
+ *   const table = useTable({ features, data, columns });
  *   const rows = table.getRowModel().rows;
  *
  *   return (
@@ -1393,7 +1587,7 @@ function ExpandedRow<TData>({
 const DataTable = {
 	/**
 	 * The root container of the data table component. REQUIRED: pass a
-	 * `useReactTable` instance (from `@tanstack/react-table`, also re-exported
+	 * `useTable` instance (from `@tanstack/react-table`, also re-exported
 	 * from `@ngrok/mantle/data-table`) via the `table` prop — every other
 	 * `DataTable.*` part reads from it through context.
 	 *
@@ -1401,7 +1595,7 @@ const DataTable = {
 	 *
 	 * @example
 	 * ```tsx
-	 * const table = useReactTable({ data, columns, getCoreRowModel: getCoreRowModel() });
+	 * const table = useTable({ features, data, columns });
 	 * const rows = table.getRowModel().rows;
 	 *
 	 * <DataTable.Root table={table}>
@@ -1574,16 +1768,37 @@ const DataTable = {
 	 * - For `"alphanumeric"` sorting: `unsorted → ascending → descending → unsorted`
 	 * - For `"time"` sorting: `unsorted → newest-first → oldest-first → unsorted`
 	 *
+	 * The table must register `rowSortingFeature`; the `column` prop's type rejects a
+	 * column from a table without it. Pair it with `sortedRowModel: createSortedRowModel()`,
+	 * or the button toggles the icon and never reorders a row. Register a `sortFns` slot
+	 * too: without one, auto-sort falls back to `sortFn_basic`.
+	 *
 	 * When the column cannot sort (`disableSorting`, or `enableSorting: false` on
 	 * the column), the part renders the label as plain text: no button, no icon.
 	 *
 	 * For right-aligned numeric columns, pass `className="justify-end"` and
 	 * `iconPlacement="start"` so the sort icon stays paired with the label.
 	 *
+	 * | Data Attribute             | Value                              | Description                                                                                                                 |
+	 * | -------------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+	 * | `data-sort-direction`      | `"asc"`, `"desc"`, or `"unsorted"` | The column's current sort direction. Always `"unsorted"` on the plain-text span.                                            |
+	 * | `data-table-header-action` | present on the button              | Presence-only. `DataTable.Header` drops its horizontal padding when a descendant carries it. Absent on the plain-text span. |
+	 *
 	 * @see https://mantle.ngrok.com/components/data-display/data-table#datatableheadersortbutton
 	 *
 	 * @example
 	 * ```tsx
+	 * const features = tableFeatures({
+	 *   rowSortingFeature,
+	 *   sortedRowModel: createSortedRowModel(),
+	 *   sortFns: {
+	 *     alphanumeric: sortFn_alphanumeric,
+	 *     datetime: sortFn_datetime,
+	 *     text: sortFn_text,
+	 *   },
+	 * });
+	 * const columnHelper = createColumnHelper<typeof features, Row>();
+	 *
 	 * columnHelper.accessor("email", {
 	 *   id: "email",
 	 *   header: (props) => (
@@ -1663,7 +1878,8 @@ const DataTable = {
 	 * column and pair it with `DataTable.ExpandedRow`. Sets `aria-expanded` and
 	 * (while expanded) `aria-controls`, stops click propagation so it never fires
 	 * a row-level `onClick`, and renders nothing when `row.getCanExpand()` is
-	 * false.
+	 * false. The table must register `rowExpandingFeature`; the `row` prop's
+	 * type rejects a row from a table without it.
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/data-table#datatablerowexpandbutton
 	 *
@@ -1747,10 +1963,11 @@ function DefaultSortIcon({ direction, mode, ...props }: DefaultSortIconProps) {
  *   unsorted ➡️ descending ➡️ ascending ➡️ unsorted ➡️ ...
  * ```
  */
-function toggleNextSortingDirection<TData, TValue>(
-	column: Column<TData, TValue>,
-	sortingMode: SortingMode,
-) {
+function toggleNextSortingDirection<
+	TFeatures extends SortableTableFeatures,
+	TData extends RowData,
+	TValue extends CellData,
+>(column: SortableColumn<TFeatures, TData, TValue>, sortingMode: SortingMode) {
 	if (!column.getCanSort()) {
 		return;
 	}

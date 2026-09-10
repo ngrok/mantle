@@ -145,19 +145,16 @@ import { DataTable } from "@ngrok/mantle/data-table";
 
 ```tsx
 import { IconButton } from "@ngrok/mantle/button";
-import {
-	DataTable,
-	createColumnHelper,
-	getCoreRowModel,
-	useReactTable,
-} from "@ngrok/mantle/data-table";
+import { DataTable, createColumnHelper, tableFeatures } from "@ngrok/mantle/data-table";
 import { DotsThreeIcon } from "@phosphor-icons/react/DotsThree";
 
 type Payment = { id: string; amount: number; status: string };
 
-const columnHelper = createColumnHelper<Payment>();
+const features = tableFeatures({});
 
-const columns = [
+const columnHelper = createColumnHelper<typeof features, Payment>();
+
+const columns = columnHelper.columns([
 	columnHelper.accessor("id", {
 		id: "id",
 		header: () => <DataTable.Header>ID</DataTable.Header>,
@@ -179,26 +176,23 @@ const columns = [
 			</DataTable.ActionCell>
 		),
 	}),
-];
+]);
 ```
 
 **After:**
 
 ```tsx
 import { IconButton } from "@ngrok/mantle/button";
-import {
-	DataTable,
-	createColumnHelper,
-	getCoreRowModel,
-	useReactTable,
-} from "@ngrok/mantle/data-table";
+import { DataTable, createColumnHelper, tableFeatures } from "@ngrok/mantle/data-table";
 import { DotsThreeIcon } from "@phosphor-icons/react/DotsThree";
 
 type Payment = { id: string; amount: number; status: string };
 
-const columnHelper = createColumnHelper<Payment>();
+const features = tableFeatures({});
 
-const columns = [
+const columnHelper = createColumnHelper<typeof features, Payment>();
+
+const columns = columnHelper.columns([
 	columnHelper.accessor("id", {
 		id: "id",
 		header: () => <DataTable.Header>ID</DataTable.Header>,
@@ -220,7 +214,7 @@ const columns = [
 			</DataTable.ActionCell>
 		),
 	}),
-];
+]);
 ```
 
 ---
