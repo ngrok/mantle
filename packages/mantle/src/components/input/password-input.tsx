@@ -4,7 +4,7 @@ import { EyeIcon } from "@phosphor-icons/react/Eye";
 import { EyeClosedIcon } from "@phosphor-icons/react/EyeClosed";
 import { useId, useRef, useState } from "react";
 import type { ComponentProps } from "react";
-import { flushSync } from "react-dom";
+import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
 import { getPrefersReducedMotion } from "../../hooks/use-prefers-reduced-motion.js";
 import type { WithValidation } from "../field/validation.js";
 import { Icon } from "../icon/icon.js";
@@ -47,7 +47,9 @@ type PasswordInputType = Extract<InputType, "text" | "password">;
  * **Visibility state.** The toggle is uncontrolled by default. Pass
  * `showValue` to control the visibility from the outside (useful when one
  * UI control toggles multiple password fields), and `onValueVisibilityChange`
- * to be notified when the user toggles via the built-in button.
+ * to be notified when the user toggles via the built-in button. The eye icon
+ * animates whenever the visibility changes, from the built-in button or from
+ * `showValue`, unless the user prefers reduced motion.
  *
  * **Accessibility.** Always pair with a {@link https://mantle.ngrok.com/components/forms/label Label}.
  * The toggle is a focusable `aria-pressed` button named "Show value". Its
@@ -113,6 +115,40 @@ const PasswordInput = ({
 	const EyeCon = showPassword ? EyeIcon : EyeClosedIcon;
 	const iconRef = useRef<SVGSVGElement>(null);
 	const animationRef = useRef<Animation | null>(null);
+	const animatedShowPassword = useRef(showPassword);
+
+	// Why an effect and not the click handler: the visibility can change from
+	// outside through `showValue`, and the icon must animate the same way for
+	// both. A layout effect runs after the commit that swaps the icon, so it
+	// animates the `<svg>` now in the DOM, before paint.
+	useIsomorphicLayoutEffect(() => {
+		if (animatedShowPassword.current === showPassword) {
+			return;
+		}
+		animatedShowPassword.current = showPassword;
+
+		// Cancel any in-flight animation so rapid toggles are never blocked
+		animationRef.current?.cancel();
+		animationRef.current = null;
+
+		const icon = iconRef.current;
+		if (icon == null || getPrefersReducedMotion()) {
+			return;
+		}
+
+		const animation = icon.animate([{ transform: "scaleY(0)" }, { transform: "scaleY(1)" }], {
+			duration: 200,
+			easing: "ease-out",
+		});
+		animationRef.current = animation;
+		animation.onfinish = () => {
+			animationRef.current = null;
+		};
+		// Why: `cancel()` rejects `finished` with an AbortError, and nothing
+		// awaits it, so a rapid second toggle would surface an unhandled
+		// rejection.
+		animation.finished.catch(() => {});
+	}, [showPassword]);
 
 	return (
 		<Input data-slot="password-input" disabled={disabled} id={id} type={type} ref={ref} {...props}>
@@ -133,37 +169,11 @@ const PasswordInput = ({
 				aria-controls={id}
 				className="text-body hover:text-strong focus-visible:ring-focus-accent ml-1 cursor-pointer rounded-xs bg-inherit p-0 focus-visible:ring-2 focus-visible:outline-hidden"
 				onClick={() => {
-					// Cancel any in-flight animation so rapid clicks are never blocked
-					if (animationRef.current) {
-						animationRef.current.cancel();
-						animationRef.current = null;
-					}
-
 					const nextShowPassword = !showPassword;
-					// Why flushSync around both: `icon.animate` below needs the new icon in
-					// the DOM first. In controlled mode, the parent's setState inside the
-					// callback is the render that swaps it.
-					flushSync(() => {
-						if (!isControlled) {
-							setInternalShowValue(nextShowPassword);
-						}
-						onValueVisibilityChange?.(nextShowPassword);
-					});
-
-					const icon = iconRef.current;
-					if (icon && !getPrefersReducedMotion()) {
-						animationRef.current = icon.animate(
-							[{ transform: "scaleY(0)" }, { transform: "scaleY(1)" }],
-							{ duration: 200, easing: "ease-out" },
-						);
-						animationRef.current.onfinish = () => {
-							animationRef.current = null;
-						};
-						// Why: `cancel()` rejects `finished` with an AbortError, and nothing
-						// awaits it, so a rapid second click would surface an unhandled
-						// rejection.
-						animationRef.current.finished.catch(() => {});
+					if (!isControlled) {
+						setInternalShowValue(nextShowPassword);
 					}
+					onValueVisibilityChange?.(nextShowPassword);
 				}}
 			>
 				<Icon ref={iconRef} svg={<EyeCon aria-hidden />} />

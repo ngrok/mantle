@@ -258,6 +258,38 @@ describe("PasswordInput", () => {
 			expect(animateSpy.mock.contexts[1]).toBe(toggle.querySelector("svg"));
 		});
 
+		// Regression: the animation ran inside the toggle's click handler, so a
+		// `showValue` change from another control swapped the icon with no motion.
+		test("a showValue change from outside animates the icon now in the DOM", () => {
+			const animateSpy = vi.spyOn(SVGSVGElement.prototype, "animate");
+			const { rerender } = render(<PasswordInput placeholder="test" showValue={false} />);
+			const toggle = screen.getByRole("button", { name: "Show value" });
+
+			// The first paint is not a change, so it does not animate.
+			expect(animateSpy).not.toHaveBeenCalled();
+
+			rerender(<PasswordInput placeholder="test" showValue />);
+			expect(animateSpy).toHaveBeenCalledTimes(1);
+			expect(animateSpy.mock.contexts[0]).toBe(toggle.querySelector("svg"));
+
+			rerender(<PasswordInput placeholder="test" showValue={false} />);
+			expect(animateSpy).toHaveBeenCalledTimes(2);
+			expect(animateSpy.mock.contexts[1]).toBe(toggle.querySelector("svg"));
+		});
+
+		// The icon did not change, so motion would claim a reveal that did not happen.
+		test("given a consumer that does not echo, a click does not animate the icon", async () => {
+			const user = userEvent.setup();
+			const animateSpy = vi.spyOn(SVGSVGElement.prototype, "animate");
+			render(
+				<PasswordInput placeholder="test" showValue={false} onValueVisibilityChange={() => {}} />,
+			);
+
+			await user.click(screen.getByRole("button", { name: "Show value" }));
+
+			expect(animateSpy).not.toHaveBeenCalled();
+		});
+
 		// `Profiler` counts commits. A mirror effect commits the stale `type`
 		// first and the corrected one second; derivation commits once.
 		test("a showValue change swaps the type and aria-pressed in one commit", () => {
