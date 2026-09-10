@@ -68,8 +68,9 @@ createExpandedRowModel()`, `columnGroupingFeature` + `groupedRowModel: createGro
   `sortFn_alphanumeric`, `sortFn_datetime`, and `sortFn_text` there to keep v8 auto-sort behavior; without a
   slot, auto-sort falls back to `sortFn_basic`. The exported `sortFns` and `filterFns` registries are deprecated in
   v9, so import the functions you use.
-- A column's `filterFn`, including the `"auto"` default, resolves only against the `filterFns` slot, and a grouped
-  total resolves only against `aggregationFns` with `rowAggregationFeature` registered. Register
+- A column's `filterFn: "auto"` default and every string name resolve only against the `filterFns` slot. A grouped
+  total with `aggregationFn: "auto"` or a string name resolves only against `aggregationFns`, and it needs
+  `rowAggregationFeature` registered. A function value bypasses both slots. Register
   `includesString: filterFn_includesString` to keep v8 column filtering on string columns, and `sum: aggregationFn_sum`
   to keep v8 totals on group rows. Without them, a column filter returns every row and a group row's `getValue()` is
   `undefined`; only a development build warns.
