@@ -2,6 +2,7 @@
 
 import type { ComponentProps, ComponentRef } from "react";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 
@@ -1070,7 +1071,7 @@ function useHorizontalOverflowObserver<T extends HTMLElement>() {
 			});
 		};
 
-		// Coalesce rapid-fire events (scroll, mutation, resize) into a single
+		// Coalesce rapid-fire events (scroll, mutation) into a single
 		// layout read per animation frame to avoid redundant work.
 		const scheduleCheck = () => {
 			if (frameId === 0) {
@@ -1081,15 +1082,20 @@ function useHorizontalOverflowObserver<T extends HTMLElement>() {
 			}
 		};
 
-		const resizeObserver = new ResizeObserver(scheduleCheck);
+		// Why the observer does the first read: inside this effect, a `scrollWidth`
+		// read forces a layout of the whole table during React's commit. `observe()`
+		// delivers one notification after the browser's own layout, so the same read
+		// there costs nothing. Observer callbacks run before paint, so `flushSync`
+		// lands the new attributes in the first painted frame.
+		const resizeObserver = new ResizeObserver(() => {
+			flushSync(checkState);
+		});
 		resizeObserver.observe(element);
 
 		const mutationObserver = new MutationObserver(scheduleCheck);
 		mutationObserver.observe(element, { childList: true, subtree: true });
 
 		element.addEventListener("scroll", scheduleCheck, { passive: true });
-
-		checkState();
 
 		return () => {
 			cancelAnimationFrame(frameId);
