@@ -1047,7 +1047,7 @@ A `<th>` cell optimized for header actions. Wrap sortable headers' contents in `
 
 A sortable button toggle for column headers. Clicking cycles through sort directions: `unsorted → asc → desc → unsorted` for `"alphanumeric"`, and `unsorted → desc → asc → unsorted` (newest-first) for `"time"`. Renders a sort icon that reflects the current direction. The button's accessible name is the column label and does not change with the sort state. When the column cannot sort, the part renders the label as plain text with no button.
 
-The table must register `rowSortingFeature`; the `column` prop rejects a column from a table without it at compile time. Pair it with a `sortedRowModel` and a `sortFns` registry, or the button toggles the icon and never reorders a row (see [Anti-patterns](#anti-patterns)).
+The table must register `rowSortingFeature`; the `column` prop rejects a column from a table without it at compile time. Pair it with a `sortedRowModel`, or the button toggles the icon and never reorders a row (see [Anti-patterns](#anti-patterns)). Register a `sortFns` slot too: without one, auto-sort falls back to `sortFn_basic`.
 
 | Prop              | Type                                             | Default     | Description                                                                                                                                                        |
 | :---------------- | :----------------------------------------------- | :---------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------- |

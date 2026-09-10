@@ -244,8 +244,9 @@ type DataTableHeaderSortButtonProps<
  * - For `"time"` sorting: `unsorted → newest-first → oldest-first → unsorted`
  *
  * The table must register `rowSortingFeature`; the `column` prop's type rejects a
- * column from a table without it. Pair it with `sortedRowModel: createSortedRowModel()`
- * and a `sortFns` registry, or the button toggles the icon and never reorders a row.
+ * column from a table without it. Pair it with `sortedRowModel: createSortedRowModel()`,
+ * or the button toggles the icon and never reorders a row. Register a `sortFns` slot
+ * too: without one, auto-sort falls back to `sortFn_basic`.
  *
  * When the column cannot sort (`disableSorting`, or `enableSorting: false` on
  * the column), the part renders the label as plain text in a `<span>`: no
@@ -1768,8 +1769,9 @@ const DataTable = {
 	 * - For `"time"` sorting: `unsorted → newest-first → oldest-first → unsorted`
 	 *
 	 * The table must register `rowSortingFeature`; the `column` prop's type rejects a
-	 * column from a table without it. Pair it with `sortedRowModel: createSortedRowModel()`
-	 * and a `sortFns` registry, or the button toggles the icon and never reorders a row.
+	 * column from a table without it. Pair it with `sortedRowModel: createSortedRowModel()`,
+	 * or the button toggles the icon and never reorders a row. Register a `sortFns` slot
+	 * too: without one, auto-sort falls back to `sortFn_basic`.
 	 *
 	 * When the column cannot sort (`disableSorting`, or `enableSorting: false` on
 	 * the column), the part renders the label as plain text: no button, no icon.

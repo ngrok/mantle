@@ -18,9 +18,11 @@ import {
 	DataTable,
 	type ExpandedState,
 	type Row as TableRow,
+	columnGroupingFeature,
 	columnVisibilityFeature,
 	createColumnHelper,
 	createExpandedRowModel,
+	createGroupedRowModel,
 	createSortedRowModel,
 	rowExpandingFeature,
 	rowSortingFeature,
@@ -1071,3 +1073,139 @@ export function typeLevelContracts(
 		</>
 	);
 }
+
+// Why `rowExpandingFeature` alone: a detail panel needs `row.getIsExpanded()` and
+// `row.toggleExpanded()`, which the feature adds. `expandedRowModel` only flattens
+// sub-rows into the row model, so a flat table can leave it out.
+const detailFeatures = tableFeatures({ rowExpandingFeature });
+const detailColumnHelper = createColumnHelper<typeof detailFeatures, Row>();
+const detailColumns = detailColumnHelper.columns([
+	detailColumnHelper.display({
+		id: "expander",
+		header: () => <DataTable.ExpandHeader />,
+		cell: (props) => (
+			<DataTable.Cell>
+				<DataTable.RowExpandButton row={props.row} label={props.row.original.name} />
+			</DataTable.Cell>
+		),
+	}),
+	detailColumnHelper.accessor("name", {
+		id: "name",
+		header: () => <DataTable.Header>Name</DataTable.Header>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+]);
+
+function DetailOnlyHarness() {
+	const table = useTable({
+		features: detailFeatures,
+		data,
+		columns: detailColumns,
+		getRowCanExpand: () => true,
+	});
+	return (
+		<DataTable.Root table={table}>
+			<DataTable.Head />
+			<DataTable.Body>
+				{table.getRowModel().rows.map((row) => (
+					<DataTable.Row
+						key={row.id}
+						row={row}
+						renderExpanded={(row) => <span data-testid="panel">Panel for {row.original.name}</span>}
+					/>
+				))}
+			</DataTable.Body>
+		</DataTable.Root>
+	);
+}
+
+describe("DataTable.Row renderExpanded without expandedRowModel", () => {
+	test("a table with only `rowExpandingFeature` opens and closes a detail panel", async () => {
+		const user = userEvent.setup();
+		render(<DetailOnlyHarness />);
+		expect(screen.queryByTestId("panel")).not.toBeInTheDocument();
+
+		await user.click(screen.getByRole("button", { name: "Show details for Alice" }));
+
+		const button = screen.getByRole("button", { name: "Hide details for Alice" });
+		expect(button).toHaveAttribute("aria-expanded", "true");
+		expect(screen.getByTestId("panel").closest("td")).toHaveAttribute("colspan", "2");
+
+		await user.click(button);
+
+		expect(screen.getByRole("button", { name: "Show details for Alice" })).toHaveAttribute(
+			"aria-expanded",
+			"false",
+		);
+		expect(screen.queryByTestId("panel")).not.toBeInTheDocument();
+	});
+});
+
+type TeamRow = { id: string; team: string; name: string };
+
+const groupingFeatures = tableFeatures({
+	columnGroupingFeature,
+	groupedRowModel: createGroupedRowModel(),
+	rowExpandingFeature,
+	expandedRowModel: createExpandedRowModel(),
+});
+const groupingColumnHelper = createColumnHelper<typeof groupingFeatures, TeamRow>();
+const groupingColumns = groupingColumnHelper.columns([
+	groupingColumnHelper.accessor("team", {
+		id: "team",
+		header: () => <DataTable.Header>Team</DataTable.Header>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+	groupingColumnHelper.accessor("name", {
+		id: "name",
+		header: () => <DataTable.Header>Name</DataTable.Header>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+]);
+const teamData: TeamRow[] = [
+	{ id: "row-1", team: "web", name: "Alice" },
+	{ id: "row-2", team: "web", name: "Bob" },
+	{ id: "row-3", team: "api", name: "Cleo" },
+];
+
+function GroupingHarness() {
+	const table = useTable({
+		features: groupingFeatures,
+		data: teamData,
+		columns: groupingColumns,
+		initialState: { grouping: ["team"], expanded: true },
+	});
+	return (
+		<DataTable.Root table={table}>
+			<DataTable.Head />
+			<DataTable.Body>
+				{table.getRowModel().rows.map((row) => (
+					<DataTable.Row
+						key={row.id}
+						data-testid={row.getIsGrouped() ? "group-row" : "leaf-row"}
+						row={row}
+					/>
+				))}
+			</DataTable.Body>
+		</DataTable.Root>
+	);
+}
+
+describe("DataTable.Row with grouping", () => {
+	// Why this pins `flexRender`: a leaf row under a group carries a placeholder
+	// cell in the grouping column. TanStack's `FlexRender` component renders
+	// `null` for it, which drops the `<td>` and shifts every later cell left.
+	test("keeps one `<td>` per leaf column on group rows and leaf rows, placeholder cells included", () => {
+		render(<GroupingHarness />);
+		const groupRows = screen.getAllByTestId("group-row");
+		const leafRows = screen.getAllByTestId("leaf-row");
+		expect(groupRows).toHaveLength(2);
+		expect(leafRows).toHaveLength(3);
+		for (const row of [...groupRows, ...leafRows]) {
+			expect(within(row).getAllByRole("cell")).toHaveLength(2);
+		}
+		const [firstLeaf] = leafRows;
+		invariant(firstLeaf, "expected a leaf row");
+		expect(within(firstLeaf).getAllByRole("cell")[0]).toHaveTextContent("web");
+	});
+});

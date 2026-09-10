@@ -23,7 +23,7 @@ const table = useReactTable({
 	getCoreRowModel: getCoreRowModel(),
 	getSortedRowModel: getSortedRowModel(),
 });
-const pageSize = table.getState().pagination.pageSize;
+const sorting = table.getState().sorting;
 
 // after
 import {
@@ -50,7 +50,7 @@ const features = tableFeatures({
 const columnHelper = createColumnHelper<typeof features, Payment>();
 const columns = columnHelper.columns([columnHelper.accessor("email", { /* … */ })]);
 const table = useTable({ features, data, columns });
-const pageSize = table.state.pagination.pageSize;
+const sorting = table.state.sorting;
 ```
 
 - `useReactTable` is now `useTable`, and its options require `features` from `tableFeatures({ … })`.
