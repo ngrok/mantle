@@ -1,5 +1,13 @@
 # @ngrok/mantle
 
+## 0.84.3
+
+### Patch Changes
+
+- [#1489](https://github.com/ngrok/mantle/pull/1489) [`af79e2e`](https://github.com/ngrok/mantle/commit/af79e2e7259100bc46e3c4b2ab824b49dd242518) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `PasswordInput` now animates its eye icon on every visibility change, including a change to `showValue` from another control. Before this change, only a click on the built-in toggle animated the icon, so a page that reveals several fields from one control swapped the icons with no motion. The icon no longer animates when a controlled consumer ignores the toggle, because the icon did not change. Reduced motion still turns the animation off. The docs page shows a controlled example under [Visibility state](https://mantle.ngrok.com/components/forms/password-input#visibility-state).
+
+- [#1489](https://github.com/ngrok/mantle/pull/1489) [`af79e2e`](https://github.com/ngrok/mantle/commit/af79e2e7259100bc46e3c4b2ab824b49dd242518) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `PasswordInput` now documents every data attribute it stamps, in its JSDoc and on its docs page: `data-slot="input-capture"` on the `<input>`, and `data-disabled` and `data-validation` on the chrome, beside the two `data-slot` values it already listed. `PasswordInputProps` gained a JSDoc summary. See the [PasswordInput API](https://mantle.ngrok.com/components/forms/password-input#passwordinput).
+
 ## 0.84.2
 
 ### Patch Changes
