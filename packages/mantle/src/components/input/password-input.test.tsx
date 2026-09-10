@@ -325,15 +325,42 @@ describe("PasswordInput", () => {
 		});
 	});
 
-	test("stamps data-slot on the chrome and the toggle", () => {
+	test("forwards className to the chrome, and ref and data-* to the input", () => {
+		const ref = vi.fn<(node: HTMLInputElement | null) => void>();
+		const { container } = render(
+			<PasswordInput className="custom" data-testid="secret" placeholder="test" ref={ref} />,
+		);
+
+		const input = screen.getByPlaceholderText("test");
+		expect(container.querySelector('[data-slot="password-input"]')).toHaveClass("custom");
+		// Why the input: `Input` routes every unclaimed prop to the `<input>`
+		// through context, so `data-*` lands beside `name` and `placeholder`.
+		expect(input).toHaveAttribute("data-testid", "secret");
+		expect(ref).toHaveBeenCalledTimes(1);
+		expect(ref).toHaveBeenLastCalledWith(input);
+	});
+
+	test("stamps data-slot on the chrome, the input, and the toggle", () => {
 		const { container } = render(<PasswordInput placeholder="test" />);
 
-		expect(container.querySelector('[data-slot="password-input"]')).toContainElement(
-			screen.getByPlaceholderText("test"),
-		);
+		const input = screen.getByPlaceholderText("test");
+		expect(container.querySelector('[data-slot="password-input"]')).toContainElement(input);
+		expect(input).toHaveAttribute("data-slot", "input-capture");
 		expect(screen.getByRole("button", { name: "Show value" })).toHaveAttribute(
 			"data-slot",
 			"password-input-toggle",
 		);
+	});
+
+	test("stamps data-disabled and data-validation on the chrome, and omits them when unset", () => {
+		const { container, rerender } = render(<PasswordInput placeholder="test" />);
+		const chrome = container.querySelector('[data-slot="password-input"]');
+
+		expect(chrome).not.toHaveAttribute("data-disabled");
+		expect(chrome).not.toHaveAttribute("data-validation");
+
+		rerender(<PasswordInput placeholder="test" disabled validation="warning" />);
+		expect(chrome).toHaveAttribute("data-disabled");
+		expect(chrome).toHaveAttribute("data-validation", "warning");
 	});
 });

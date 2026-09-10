@@ -36,16 +36,18 @@ describe("PasswordInput (browser)", () => {
 		const toggle = screen.getByRole("button", { name: "Show value" });
 
 		await user.click(toggle);
-		expect(handleChange).toHaveBeenCalledWith(true);
+		expect(handleChange).toHaveBeenCalledTimes(1);
+		expect(handleChange).toHaveBeenLastCalledWith(true);
 
 		await user.click(toggle);
-		expect(handleChange).toHaveBeenCalledWith(false);
+		expect(handleChange).toHaveBeenCalledTimes(2);
+		expect(handleChange).toHaveBeenLastCalledWith(false);
 	});
 
 	test("does not call Element.animate when prefers-reduced-motion is enabled", async () => {
 		const user = userEvent.setup();
 		// Simulate prefers-reduced-motion: reduce
-		const matchMediaSpy = vi.spyOn(window, "matchMedia").mockImplementation((query) => ({
+		vi.spyOn(window, "matchMedia").mockImplementation((query) => ({
 			matches: false, // "(prefers-reduced-motion: no-preference)" → false means reduced motion
 			media: query,
 			onchange: null,
@@ -67,8 +69,5 @@ describe("PasswordInput (browser)", () => {
 
 		expect(screen.getByPlaceholderText("test")).toHaveAttribute("type", "text");
 		expect(animateSpy).not.toHaveBeenCalled();
-
-		matchMediaSpy.mockRestore();
-		animateSpy.mockRestore();
 	});
 });

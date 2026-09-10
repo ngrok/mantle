@@ -11,6 +11,9 @@ import { Icon } from "../icon/icon.js";
 import { Input, InputCapture } from "./input.js";
 import type { InputType, WithAutoComplete } from "./types.js";
 
+/**
+ * The props for the `PasswordInput` component.
+ */
 type PasswordInputProps = Omit<ComponentProps<"input">, "autoComplete" | "type"> &
 	WithValidation &
 	WithAutoComplete & {
@@ -40,16 +43,16 @@ type PasswordInputType = Extract<InputType, "text" | "password">;
  *   accurately and may want to verify visually before submitting.
  *
  * **When not to use**
- * - For values that are never sensitive — use a plain {@link https://mantle.ngrok.com/components/forms/input Input}.
+ * - For values that are never sensitive: use a plain {@link https://mantle.ngrok.com/components/forms/input Input}.
  * - For controls where the toggle would be confusing (e.g. masked input
  *   formatting like phone numbers).
  *
  * **Visibility state.** The toggle is uncontrolled by default. Pass
- * `showValue` to control the visibility from the outside (useful when one
- * UI control toggles multiple password fields), and `onValueVisibilityChange`
- * to be notified when the user toggles via the built-in button. The eye icon
- * animates whenever the visibility changes, from the built-in button or from
- * `showValue`, unless the user prefers reduced motion.
+ * `showValue` to control the visibility from the outside, for example when
+ * one control reveals several password fields. Pass `onValueVisibilityChange`
+ * to receive the next visibility when the user clicks the built-in toggle.
+ * The eye icon animates on every visibility change, from the built-in toggle
+ * or from `showValue`, unless the user prefers reduced motion.
  *
  * **Accessibility.** Always pair with a {@link https://mantle.ngrok.com/components/forms/label Label}.
  * The toggle is a focusable `aria-pressed` button named "Show value". Its
@@ -63,11 +66,14 @@ type PasswordInputType = Extract<InputType, "text" | "password">;
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
  * | `data-slot` | `"password-input"` | The chrome around the input. |
+ * | `data-slot` | `"input-capture"` | The `<input>` element. |
  * | `data-slot` | `"password-input-toggle"` | The visibility toggle button. |
+ * | `data-disabled` | present when disabled | On the chrome. Style with `data-disabled:`. |
+ * | `data-validation` | `"error"` \| `"success"` \| `"warning"` | On the chrome and the `<input>`. Omitted when unset. |
  *
  * **Browser password managers.** When revealed, the input switches to
- * `type="text"` — some password managers may pause autofill in this state,
- * which is the intended security tradeoff.
+ * `type="text"`. Some password managers may pause autofill in this state,
+ * which is the intended security trade-off.
  *
  * @see https://mantle.ngrok.com/components/forms/password-input
  *
@@ -114,7 +120,6 @@ const PasswordInput = ({
 	const type: PasswordInputType = showPassword ? "text" : "password";
 	const EyeCon = showPassword ? EyeIcon : EyeClosedIcon;
 	const iconRef = useRef<SVGSVGElement>(null);
-	const animationRef = useRef<Animation | null>(null);
 	const animatedShowPassword = useRef(showPassword);
 
 	// Why an effect and not the click handler: the visibility can change from
@@ -127,27 +132,18 @@ const PasswordInput = ({
 		}
 		animatedShowPassword.current = showPassword;
 
-		// Cancel any in-flight animation so rapid toggles are never blocked
-		animationRef.current?.cancel();
-		animationRef.current = null;
-
 		const icon = iconRef.current;
 		if (icon == null || getPrefersReducedMotion()) {
 			return;
 		}
 
-		const animation = icon.animate([{ transform: "scaleY(0)" }, { transform: "scaleY(1)" }], {
+		// Why no cancel: every visibility change swaps `EyeIcon` for
+		// `EyeClosedIcon`, so the previous animation runs on a detached `<svg>`
+		// and cannot block or stack with this one.
+		icon.animate([{ transform: "scaleY(0)" }, { transform: "scaleY(1)" }], {
 			duration: 200,
 			easing: "ease-out",
 		});
-		animationRef.current = animation;
-		animation.onfinish = () => {
-			animationRef.current = null;
-		};
-		// Why: `cancel()` rejects `finished` with an AbortError, and nothing
-		// awaits it, so a rapid second toggle would surface an unhandled
-		// rejection.
-		animation.finished.catch(() => {});
 	}, [showPassword]);
 
 	return (
