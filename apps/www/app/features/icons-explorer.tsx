@@ -5,27 +5,16 @@ import { Icon } from "@ngrok/mantle/icon";
 import { Input } from "@ngrok/mantle/input";
 import { Label } from "@ngrok/mantle/label";
 import { CheckIcon } from "@phosphor-icons/react/Check";
-import Fuse, { type IFuseOptions } from "fuse.js";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { type IconData, iconData } from "~/features/icons/icon-data";
-
-const fuseOptions = {
-	keys: [
-		{ name: "name", weight: 0.6 },
-		{ name: "id", weight: 0.25 },
-		{ name: "tags", weight: 0.15 },
-	],
-	threshold: 0.25,
-} as const satisfies IFuseOptions<IconData>;
+import { rankIcons } from "~/features/icons/rank-icons";
 
 /**
  * Interactive icon explorer with search and click-to-copy.
  */
 export function IconsExplorer() {
 	const [query, setQuery] = useState("");
-	const fuzzy = useMemo(() => new Fuse(iconData, fuseOptions), []);
-
-	const filtered = query ? fuzzy.search(query).map((result) => result.item) : iconData;
+	const filtered = rankIcons(iconData, query);
 
 	return (
 		<div className="space-y-4 mb-4">

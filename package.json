@@ -29,7 +29,7 @@
     "@changesets/cli": "3.0.2",
     "@types/node": "catalog:",
     "husky": "9.1.7",
-    "lint-staged": "17.5.0",
+    "lint-staged": "17.5.1",
     "oxfmt": "0.67.0",
     "oxlint": "1.82.0",
     "tsx": "catalog:",
