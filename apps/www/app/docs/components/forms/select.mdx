@@ -632,9 +632,10 @@ When the label is an ID, a path, a filename, or a key, set `translate="no"` on t
 
 All props from Radix [Select.Item](https://www.radix-ui.com/primitives/docs/components/select#item), plus:
 
-| Prop    | Type        | Default | Description                                     |
-| ------- | ----------- | ------- | ----------------------------------------------- |
-| `icon?` | `ReactNode` |         | An optional icon rendered before the item text. |
+| Prop         | Type            | Default | Description                                                                                                                                                       |
+| ------------ | --------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `icon?`      | `ReactNode`     |         | An optional icon rendered before the item text.                                                                                                                   |
+| `translate?` | `"yes" \| "no"` |         | The standard HTML attribute, also set on the label span so the copy the trigger shows keeps it. Set `"no"` when the label is an ID, a path, a filename, or a key. |
 
 #### Data attributes
 
