@@ -1013,7 +1013,7 @@ When `onClick` is set, the row receives `cursor-pointer` and `data-clickable`. P
 
 The row works with any features. It renders the visible cells when the table registers `columnVisibilityFeature`, and every cell otherwise. `renderExpanded` and `data-expanded` need `rowExpandingFeature`.
 
-The row subscribes to the whole table state and re-renders its cells when any slice changes, so a column's `cell` renderer can read state through `row` or `cell` (for example, `row.getIsSelected()`) without its own subscription. A re-render of the parent with the same `row` does not re-render the cells.
+The row subscribes to the whole table state and to the table options. It re-renders its cells when any state slice changes or when `useTable` receives new options, so a column's `cell` renderer can read state through `row` or `cell` (for example, `row.getIsSelected()`) and close over your component's values.
 
 | Prop              | Type                                               | Default | Description                                                                                                                        |
 | :---------------- | :------------------------------------------------- | :------ | :--------------------------------------------------------------------------------------------------------------------------------- |

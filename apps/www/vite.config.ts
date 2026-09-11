@@ -61,6 +61,10 @@ const reactCompiler = (): Plugin => ({
 export default defineConfig(({ command }) => ({
 	optimizeDeps: {
 		exclude: ["@ngrok/mantle"],
+		// Why: the compiler adds the `react/compiler-runtime` import in the transform, so
+		// Vite's dependency scanner never sees it in source. Without this include, the dev
+		// server discovers it on the first request, re-optimizes, and reloads the page.
+		include: ["react/compiler-runtime"],
 	},
 	plugins: [
 		//

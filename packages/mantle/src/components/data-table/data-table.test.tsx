@@ -1234,6 +1234,128 @@ function VisibilityToggleHarness() {
 	);
 }
 
+/** Columns whose `cell` closes over a value of the rendering component. */
+function ClosureHarness() {
+	const [label, setLabel] = useState("before");
+	const closureColumns = useMemo(
+		() =>
+			columnHelper.columns([
+				columnHelper.accessor("name", {
+					id: "name",
+					header: () => <DataTable.Header>Name</DataTable.Header>,
+					cell: (props) => (
+						<DataTable.Cell>
+							{props.getValue()} {label}
+						</DataTable.Cell>
+					),
+				}),
+			]),
+		[label],
+	);
+	const table = useTable({ features, data, columns: closureColumns });
+	return (
+		<>
+			<button type="button" onClick={() => setLabel("after")}>
+				Relabel
+			</button>
+			<DataTable.Root table={table}>
+				<DataTable.Body>
+					{table.getRowModel().rows.map((row) => (
+						<DataTable.Row key={row.id} row={row} />
+					))}
+				</DataTable.Body>
+			</DataTable.Root>
+		</>
+	);
+}
+
+describe("DataTable.Row options subscription", () => {
+	test("re-renders its cells when a new `columns` array arrives with the same `row` and state", async () => {
+		// TanStack keeps the `row` object across a `columns` change and the store state
+		// does not move, so only the options half of the selector re-runs the cells.
+		const user = userEvent.setup();
+		render(<ClosureHarness />);
+		expect(screen.getByRole("cell", { name: "Alice before" })).toBeInTheDocument();
+
+		await user.click(screen.getByRole("button", { name: "Relabel" }));
+
+		expect(screen.getByRole("cell", { name: "Alice after" })).toBeInTheDocument();
+	});
+});
+
+describe("DataTable.RowExpandButton options subscription", () => {
+	test("disappears when a re-render changes `getRowCanExpand` for the same `row`", () => {
+		// `row.getCanExpand()` reads an option, not state. Dropping the options from the
+		// selector keeps the toggle mounted after the predicate flips.
+		const { rerender } = render(<ExpandableHarness canExpand />);
+		expect(screen.getByRole("button", { name: "Show details for Alice" })).toBeInTheDocument();
+
+		rerender(<ExpandableHarness canExpand={false} />);
+
+		expect(screen.queryByRole("button")).not.toBeInTheDocument();
+	});
+});
+
+/** Renders a detail row under the only data row, with two or three columns. */
+function ColumnCountHarness({ withExtraColumn }: { withExtraColumn: boolean }) {
+	const countColumns = useMemo(
+		() =>
+			columnHelper.columns([
+				columnHelper.accessor("id", {
+					id: "id",
+					header: () => <DataTable.Header>ID</DataTable.Header>,
+					cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+				}),
+				columnHelper.accessor("name", {
+					id: "name",
+					header: () => <DataTable.Header>Name</DataTable.Header>,
+					cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+				}),
+				...(withExtraColumn
+					? [
+							columnHelper.display({
+								id: "extra",
+								header: () => <DataTable.Header>Extra</DataTable.Header>,
+								cell: () => <DataTable.Cell>extra</DataTable.Cell>,
+							}),
+						]
+					: []),
+			]),
+		[withExtraColumn],
+	);
+	const table = useTable({ features, data, columns: countColumns, getRowId: (row) => row.id });
+	return (
+		<DataTable.Root table={table}>
+			<DataTable.Head />
+			<DataTable.Body>
+				{table.getRowModel().rows.map((row) => (
+					<Fragment key={row.id}>
+						<DataTable.Row row={row} />
+						<DataTable.ExpandedRow data-testid={`detail-${row.id}`} row={row}>
+							<span>Detail</span>
+						</DataTable.ExpandedRow>
+					</Fragment>
+				))}
+			</DataTable.Body>
+		</DataTable.Root>
+	);
+}
+
+describe("DataTable.ExpandedRow options subscription", () => {
+	test("its `colSpan` follows a new `columns` array for the same `row`", () => {
+		// The cell count changes through the options, not the store, so dropping the
+		// options from the selector leaves `colspan` at 2.
+		const { rerender } = render(<ColumnCountHarness withExtraColumn={false} />);
+		const detailCell = () =>
+			within(screen.getByTestId("detail-row-1")).getByText("Detail").closest("td");
+		expect(detailCell()).toHaveAttribute("colspan", "2");
+
+		rerender(<ColumnCountHarness withExtraColumn />);
+
+		expect(detailCell()).toHaveAttribute("colspan", "3");
+	});
+});
+
 describe("DataTable.ExpandedRow state subscription", () => {
 	test("its `colSpan` follows a column visibility change while the `row` prop stays the same", async () => {
 		// The compiled panel keeps the same `row` prop, so only its subscription to

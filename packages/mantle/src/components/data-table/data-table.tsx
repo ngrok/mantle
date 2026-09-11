@@ -5,9 +5,11 @@
 // state. Per TanStack's React Compiler guide, each such part (`Header`, `Row`,
 // `HeaderSortButton`, `RowExpandButton`, `ExpandedRow`) reads the changing
 // state inside a `Subscribe` render function, which the store re-runs when
-// the selected value changes. Parts that read the React-facing `table` from
+// the selected value changes. Each selector also closes over the table
+// options (`useTableOptions`), so a consumer render that passes new options
+// re-runs the part as well. Parts that read the React-facing `table` from
 // context need no boundary: `useTable` returns a new value with each state
-// change the consumer's selector includes.
+// change the consumer's selector includes and with each new options object.
 import { MinusIcon } from "@phosphor-icons/react/Minus";
 import { PlusIcon } from "@phosphor-icons/react/Plus";
 import {
@@ -99,6 +101,20 @@ type DataTableContextShape<TFeatures extends TableFeatures, TData extends RowDat
 
 // oxlint-disable-next-line @typescript-eslint/no-explicit-any -- React context cannot preserve these generics across provider boundaries.
 const DataTableContext = createContext<DataTableContextShape<any, any> | null>(null);
+
+/**
+ * The options the consumer passed to `useTable` on its latest render, or
+ * `undefined` outside `DataTable.Root`. Only the identity matters.
+ *
+ * Why: a part that receives a stable `row` or `column` also reads options
+ * through it (a column's `cell` definition, `getRowCanExpand`, `enableSorting`),
+ * and a consumer render can change them while the row and the store state stay
+ * the same. `useSelector` caches by selector identity, so a selector that
+ * closes over these options re-runs on that render.
+ */
+function useTableOptions(): unknown {
+	return useContext(DataTableContext)?.table.options;
+}
 
 /**
  * @private
@@ -382,10 +398,14 @@ function HeaderSortButton<
 		);
 	};
 
-	// The selector reads the column's sort state, so the button re-renders only when
-	// this column's direction changes.
+	// The selector reads the column's sort state and the table options, so the button
+	// re-renders when this column's direction changes or the consumer passes new options.
+	const options = useTableOptions();
 	return (
-		<Subscribe source={column.table.store} selector={() => column.getIsSorted()}>
+		<Subscribe
+			source={column.table.store}
+			selector={() => ({ sorted: column.getIsSorted(), options })}
+		>
 			{renderSortButton}
 		</Subscribe>
 	);
@@ -475,14 +495,20 @@ function Header<TFeatures extends TableFeatures, TData extends RowData, TValue e
 		</Table.Header>
 	);
 
+	const options = useTableOptions();
+
 	if (column == null) {
 		return renderHeader();
 	}
 
-	// The selector resolves the `aria-sort` value, so the cell re-renders only when
-	// this column's sort state changes.
+	// The selector resolves the `aria-sort` value next to the table options, so the
+	// cell re-renders when this column's sort state changes or the consumer passes
+	// new options.
 	return (
-		<Subscribe source={column.table.store} selector={() => resolveAriaSort(column)}>
+		<Subscribe
+			source={column.table.store}
+			selector={() => ({ ariaSort: resolveAriaSort(column), options })}
+		>
 			{renderHeader}
 		</Subscribe>
 	);
@@ -633,10 +659,10 @@ function isRowActivationClick(event: MouseEvent<HTMLTableRowElement>): boolean {
  * holding the returned content. Pair it with a `DataTable.RowExpandButton` toggle
  * and register `rowExpandingFeature` and `getRowCanExpand` on the table.
  *
- * The row subscribes to the whole table state and re-renders its cells when any
- * slice changes, so a column's `cell` renderer can read state through `row` or
- * `cell` (`row.getIsSelected()`) without its own subscription. A re-render of
- * the parent with the same `row` does not re-render the cells.
+ * The row subscribes to the whole table state and to the table options. It
+ * re-renders its cells when any state slice changes or when `useTable` receives
+ * new options, so a column's `cell` renderer can read state through `row` or
+ * `cell` (`row.getIsSelected()`) and close over your component's values.
  *
  * | Data Attribute   | Value                         | Description                                             |
  * | ---------------- | ----------------------------- | ------------------------------------------------------- |
@@ -743,12 +769,14 @@ function Row<TFeatures extends TableFeatures, TData extends RowData>({
 		);
 	};
 
-	// Why the whole state: a column's `cell` renderer is opaque to this row and
-	// may read any slice through `row` or `cell`, so the row re-renders its cells
-	// on every state change, as an uncompiled row did. The selector returns the
-	// state object, and a shallow compare of its slices decides the re-render.
+	// Why the whole state and the options: a column's `cell` renderer is opaque to
+	// this row. It may read any state slice through `row` or `cell`, and it may
+	// close over the consumer's values, which arrive as a new `columns` array. So
+	// the row re-renders its cells on every state change and on every render that
+	// passes new options, as an uncompiled row did.
+	const options = useTableOptions();
 	return (
-		<Subscribe source={row.table.store} selector={(state) => state}>
+		<Subscribe source={row.table.store} selector={(state) => ({ state, options })}>
 			{renderRow}
 		</Subscribe>
 	);
@@ -1181,10 +1209,15 @@ function RowExpandButton<TFeatures extends ExpandableTableFeatures, TData extend
 		);
 	};
 
-	// The selector reads this row's expanded flag, so the toggle re-renders only
-	// when its own row expands or collapses.
+	// The selector reads this row's expanded flag and the table options, so the toggle
+	// re-renders when its own row expands or collapses, or when the consumer passes new
+	// options (`getRowCanExpand` decides whether it renders at all).
+	const options = useTableOptions();
 	return (
-		<Subscribe source={row.table.store} selector={() => row.getIsExpanded()}>
+		<Subscribe
+			source={row.table.store}
+			selector={() => ({ isExpanded: row.getIsExpanded(), options })}
+		>
 			{renderToggle}
 		</Subscribe>
 	);
@@ -1263,7 +1296,7 @@ function ExpandedRow<TFeatures extends TableFeatures, TData extends RowData>({
 	const countVisibleCells = () =>
 		callMemoOrStaticFn(row, "getVisibleCells", row_getVisibleCells).length;
 
-	const renderPanel = (numberOfColumns: number) => (
+	const renderPanel = ({ numberOfColumns }: { numberOfColumns: number }) => (
 		<Table.Row
 			data-slot="data-table-expanded-row"
 			data-expanded-content
@@ -1284,14 +1317,20 @@ function ExpandedRow<TFeatures extends TableFeatures, TData extends RowData>({
 		</Table.Row>
 	);
 
+	const options = useTableOptions();
+
 	if (colSpan != null) {
-		return renderPanel(colSpan);
+		return renderPanel({ numberOfColumns: colSpan });
 	}
 
-	// The selector counts the visible cells, so the panel re-renders only when a
-	// column is hidden, shown, pinned, or reordered.
+	// The selector counts the visible cells next to the table options, so the panel
+	// re-renders when a column is hidden, shown, pinned, or reordered, or when a new
+	// `columns` array changes the count.
 	return (
-		<Subscribe source={row.table.store} selector={countVisibleCells}>
+		<Subscribe
+			source={row.table.store}
+			selector={() => ({ numberOfColumns: countVisibleCells(), options })}
+		>
 			{renderPanel}
 		</Subscribe>
 	);

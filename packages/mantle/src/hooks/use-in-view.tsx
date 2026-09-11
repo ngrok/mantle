@@ -1,6 +1,6 @@
 "use client";
 
-import { type RefObject, useEffect, useState } from "react";
+import { type RefObject, useEffect, useRef, useState } from "react";
 import type { InViewOptions, MarginType } from "../utils/in-view.js";
 import { inView } from "../utils/in-view.js";
 
@@ -80,21 +80,30 @@ function useInView(
 	{ root, margin, amount, once = false, initial = false }: UseInViewOptions = {},
 ): boolean {
 	const [isInView, setInView] = useState(initial);
+	// Why a ref next to the state: the effect below reads the latest visibility
+	// without listing the state in its deps. The state there restarts the observer
+	// on every enter or leave, and a `react-hooks/exhaustive-deps` suppression
+	// opts the hook out of the React Compiler.
+	const isInViewRef = useRef(initial);
 
-	// Why the effect never reads `isInView`: `inView` unobserves the element itself
-	// after a `once` entry, and a later enter only sets `true` again. Reading the
-	// state here would need it in the deps, which restarts the observer on every
-	// enter or leave, or a `react-hooks/exhaustive-deps` suppression, which opts
-	// the hook out of the React Compiler.
 	useEffect(() => {
 		const element = ref.current;
-		if (element == null) {
+		// After a `once` entry the element counts as in view for good, so a later
+		// option change does not observe it again.
+		if (element == null || (once && isInViewRef.current)) {
 			return;
 		}
 
 		function onEnter() {
+			isInViewRef.current = true;
 			setInView(true);
-			return once ? undefined : () => setInView(false);
+			if (once) {
+				return undefined;
+			}
+			return () => {
+				isInViewRef.current = false;
+				setInView(false);
+			};
 		}
 
 		const options: InViewOptions = {
