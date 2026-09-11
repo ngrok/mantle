@@ -416,7 +416,7 @@ A list has **two** distinct empty states, and they need different copy and actio
 1. **No data**: nothing exists yet. Informational, optionally a primary "create" action.
 2. **No results for the active filter/search**: the user filtered to nothing and needs a way out (a **Clear filters** button).
 
-Branch on `rows.length`, then on whether a filter is active, and host an [`Empty`](/components/feedback/empty) inside `DataTable.EmptyRow` for each branch. `EmptyRow` already spans every column (auto `colSpan`) and `Empty.Root` centers itself. Drop a single `Empty.Root` in as the child; don't hand-roll a `<td>` or any centering. Type into the filter below to see the "no results" branch and its working `Clear filters` reset:
+Branch on `rows.length`, then on whether a filter is active, and host an [`Empty`](/components/feedback/empty) inside `DataTable.EmptyRow` for each branch. A pending query is a third state that comes before both: the [List Page Loading States](/recipes/list-page-loading-states) recipe wires all three, with skeleton rows that match the loaded rows. `EmptyRow` already spans every column (auto `colSpan`) and `Empty.Root` centers itself. Drop a single `Empty.Root` in as the child; don't hand-roll a `<td>` or any centering. Type into the filter below to see the "no results" branch and its working `Clear filters` reset:
 
 <Example>
 	<FilteredEmptyStateDemo />

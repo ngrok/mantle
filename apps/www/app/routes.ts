@@ -143,7 +143,12 @@ const docsPages = [
 const layoutsPages = ["app-layout", "centered-layout"];
 
 // recipes section: compositional how-tos spanning multiple primitives
-const recipesPages = ["breadcrumbs-from-routes", "overlay-async", "route-announcer"];
+const recipesPages = [
+	"breadcrumbs-from-routes",
+	"list-page-loading-states",
+	"overlay-async",
+	"route-announcer",
+];
 
 // migrations section, in publish order. The four-digit prefix is the
 // guide's number. A guide keeps its number forever, and no later guide takes

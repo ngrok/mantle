@@ -332,6 +332,7 @@ export const layoutDescriptions = {
 export const recipePages = [
 	//,
 	"Breadcrumbs from Routes",
+	"List Page Loading States",
 	"Overlays + Async Data",
 	"Route Announcer",
 ] as const;
@@ -339,6 +340,7 @@ export const recipePages = [
 /** Route lookup for recipe pages. */
 export const recipeRoutes = {
 	"Breadcrumbs from Routes": "/recipes/breadcrumbs-from-routes",
+	"List Page Loading States": "/recipes/list-page-loading-states",
 	"Overlays + Async Data": "/recipes/overlay-async",
 	"Route Announcer": "/recipes/route-announcer",
 } as const satisfies Record<(typeof recipePages)[number], Route>;
@@ -347,6 +349,8 @@ export const recipeRoutes = {
 export const recipeDescriptions = {
 	"Breadcrumbs from Routes":
 		"Derive a breadcrumb trail from the matched route chain with React Router route handles \u2014 derived state, so it is correct on the server and on the first frame, with no context and no effects.",
+	"List Page Loading States":
+		"Render a list page's header, filters, and column headers on the first frame, then fill the table with skeleton rows that match the loaded rows, so nothing shifts when the data lands.",
 	"Overlays + Async Data":
 		"Open a Sheet, Dialog, or Alert Dialog immediately, then swap the body between pending, loaded, 404, and 500 states with TanStack Query.",
 	"Route Announcer":
