@@ -10,6 +10,7 @@ import {
 	componentsByCategory,
 	layoutPages,
 	previewComponents,
+	recipePages,
 	utilsPages,
 	welcomePages,
 } from "./navigation-data";
@@ -39,6 +40,7 @@ describe("buildPaletteCommands", () => {
 			utilsPages.length +
 			componentCount +
 			layoutPages.length +
+			recipePages.length +
 			previewComponents.length +
 			5; // theme commands
 
@@ -73,6 +75,16 @@ describe("buildPaletteCommands", () => {
 		});
 	});
 
+	test("recipe commands carry their docs route as both target and subtitle", () => {
+		const routeAnnouncer = commands.find((command) => command.title === "Route Announcer");
+		expect(routeAnnouncer).toMatchObject({
+			kind: "route",
+			group: "Recipes",
+			to: "/recipes/route-announcer",
+			subtitle: "/recipes/route-announcer",
+		});
+	});
+
 	test("preview components are flagged so search results can badge them", () => {
 		const calendar = commands.find((command) => command.title === "Calendar");
 		expect(calendar).toMatchObject({
@@ -94,6 +106,7 @@ describe("groupPaletteCommands", () => {
 			"Utils",
 			...componentCategories.map((category) => `Components: ${category}`),
 			"Layouts",
+			"Recipes",
 			"Preview Components",
 			"Theme",
 		]);
@@ -163,6 +176,16 @@ describe("searchPaletteCommands", () => {
 		expect(titles("bsf")).not.toContain("Scroll Fade");
 		// positive control: a real route substring still finds the page
 		expect(titles("scroll-fade")).toContain("Scroll Fade");
+	});
+
+	test("finds recipes by title and by route-path substring", () => {
+		expect(titles("announcer")[0]).toBe("Route Announcer");
+		expect(titles("async")).toContain("Overlays + Async Data");
+
+		const results = titles("/recipes/");
+		for (const page of recipePages) {
+			expect(results).toContain(page);
+		}
 	});
 
 	test("finds external links by their subtitle", () => {
