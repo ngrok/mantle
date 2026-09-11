@@ -47,7 +47,7 @@ import {
 	useQueryClient,
 	type UseQueryResult,
 } from "@tanstack/react-query";
-import { useDeferredValue, useState } from "react";
+import { type ReactNode, useDeferredValue, useEffect, useState } from "react";
 
 const SIMULATED_API_LATENCY_MS = 1_500;
 const PAGE_SIZE = 8;
@@ -380,13 +380,15 @@ const columns = columnHelper.columns([
 		id: "name",
 		header: () => <DataTable.Header>Domain</DataTable.Header>,
 		cell: (props) => (
-			<DataTable.Cell className="text-strong truncate">{props.getValue()}</DataTable.Cell>
+			<DataTable.Cell className="text-strong truncate" translate="no">
+				{props.getValue()}
+			</DataTable.Cell>
 		),
 	}),
 	columnHelper.accessor("region", {
 		id: "region",
 		header: () => <DataTable.Header className="w-24">Region</DataTable.Header>,
-		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+		cell: (props) => <DataTable.Cell translate="no">{props.getValue()}</DataTable.Cell>,
 	}),
 	columnHelper.accessor("certificate", {
 		id: "certificate",
@@ -646,7 +648,7 @@ type FilterSelectProps = {
 	/** The selected option value. */
 	value: string;
 	/** The options, including the `"any"` option first. */
-	options: ReadonlyArray<{ value: string; label: string }>;
+	options: ReadonlyArray<{ value: string; label: ReactNode }>;
 	/** Called with the raw option value; the caller narrows it. */
 	onValueChange: (value: string) => void;
 };
@@ -677,9 +679,11 @@ function FilterSelect({ label, value, options, onValueChange }: FilterSelectProp
 	);
 }
 
+// Why translate="no": a region code is copied into a CLI flag, and a translated
+// one names the wrong region. The domain and region cells above lock it too.
 const regionOptions = [
 	{ value: "any", label: "any" },
-	...regions.map((region) => ({ value: region, label: region })),
+	...regions.map((region) => ({ value: region, label: <span translate="no">{region}</span> })),
 ];
 
 const certificateOptions = [
@@ -704,14 +708,27 @@ export function DomainsListPage({ scenario }: DomainsListPageProps) {
 	// query key follows one frame behind, so typing never waits on a render of
 	// the table.
 	const deferredSearch = useDeferredValue(filters.search);
-	const query = useDomainsQuery({ filters: { ...filters, search: deferredSearch }, scenario });
-	const state = resolveListBodyState({ query, isFiltered: hasActiveFilter(filters) });
+	// Why one filters value for the query and the empty check: the eager
+	// `filters` run a frame ahead of the deferred search. If the empty check
+	// read them, clearing a no-result search would show "No domains yet" for
+	// the frame in which the query still holds the old search.
+	const queryFilters: DomainFilters = { ...filters, search: deferredSearch };
+	const query = useDomainsQuery({ filters: queryFilters, scenario });
+	const isFiltered = hasActiveFilter(queryFilters);
+	const state = resolveListBodyState({ query, isFiltered });
+	const message = describeListState({ state, isRefetching: query.isFetching && !query.isPending });
+
+	// Why an effect: a live region announces changes, not the text it mounts
+	// with. The region mounts empty, in the server HTML too, and the first
+	// message is published after mount so a screen reader hears it.
+	const [announcement, setAnnouncement] = useState("");
+	useEffect(() => {
+		setAnnouncement(message);
+	}, [message]);
 
 	return (
 		<div className="mx-auto flex w-full max-w-6xl flex-col gap-4 p-6">
-			<LiveRegion>
-				{describeListState({ state, isRefetching: query.isFetching && !query.isPending })}
-			</LiveRegion>
+			<LiveRegion>{announcement}</LiveRegion>
 			<div className="flex flex-wrap items-start justify-between gap-4">
 				<div className="flex flex-col gap-1">
 					<h1 className="text-strong text-2xl font-medium">Domains</h1>
@@ -759,7 +776,7 @@ export function DomainsListPage({ scenario }: DomainsListPageProps) {
 			</div>
 			<DomainsTable
 				query={query}
-				isFiltered={hasActiveFilter(filters)}
+				isFiltered={isFiltered}
 				onClearFilters={() => {
 					setFilters(defaultFilters);
 				}}
@@ -844,7 +861,7 @@ Pick a scenario in the toolbar, then click **Replay load** to watch it from a co
 
 - **The first frame is the layout.** Everything above the rows is static markup. Paint it before the request resolves, and the reader gets the page's shape at once. The browser gets its largest paint without a round trip to the server.
 - **A skeleton that matches the rows moves nothing.** Cumulative Layout Shift (CLS) counts every element that moves after it paints. Skeleton rows with the same cell padding, the same row count, and bars near the real content's width mean the swap to real rows changes pixels, not positions.
-- **Fixed column widths hold from skeleton to rows.** The default `table-layout: auto` sizes every column by its content, so the header columns slide sideways the moment real text arrives. `table-fixed` plus a width on each header pins them.
+- **Column widths come from the headers, not the data.** The default `table-layout: auto` sizes every column by its widest cell. With no header widths, the columns slide sideways the moment real text arrives, and a long value on page two widens its column, moves every header after it, and pushes the table into a horizontal scroll. A width on each header holds the columns through the skeleton swap. `table-fixed` makes those widths final, so a long value truncates instead of moving the table.
 - **A refetch is not a cold load.** The reader already has rows on screen. Replacing them with skeletons throws away a working page for the length of a request. Keep them, dim them, and swap when the next page lands.
 - **Screen readers can't see a skeleton.** `Skeleton` renders `aria-hidden`, which is right: the bars carry no information. The page still has to say that it is loading, and later how many rows it shows, so a `LiveRegion` mounted from the first frame announces each state.
 
@@ -884,10 +901,10 @@ The rules below keep the code consistent with the intent above.
 3. **Build the skeleton from the real table.** `SkeletonRows` takes `table.getAllLeafColumns()` and renders one `DataTable.Cell` per column, so the skeleton can't have more or fewer columns than the loaded rows. A second column list, or a copy of the real one with different flags, drifts.
 4. **Match the row count to the page size.** Eight skeleton rows for a page of eight. Three skeleton rows for a page of twenty guarantee seventeen rows of shift. If the table registers `rowPaginationFeature`, pass `manualPagination: true` to the skeleton's table, or the row model caps the placeholder at the default page size.
 5. **Size each bar to its column.** A `Record` keyed by column id holds one class per column: a wide bar for the domain name, a pill for the badge, a right-aligned bar for the number. Bars that match the content's shape keep the row height still.
-6. **Pin the column widths.** Set `[&_table]:table-fixed` on `DataTable.Root` and a width class on every `DataTable.Header` but one. The unsized column absorbs the remaining width, and `truncate` on its cells keeps a long value on one line.
+6. **Pin the column widths.** Set a width class on every `DataTable.Header` but one, and `[&_table]:table-fixed` on `DataTable.Root`. The header widths hold from skeleton to rows on their own, as long as no cell is wider than its column. `table-fixed` covers the case where one is: under auto layout that column grows and every header after it moves, and `truncate` only clips text under fixed layout. The unsized column absorbs the remaining width.
 7. **Mount the count line in every state.** `DomainCount` is a fixed-height `<p>` aligned to the right edge, so a wider number moves nothing beside it. It shows a skeleton while pending and the count when loaded. It never shows `0` before the first response, because a count that appears with the data pushes the table down.
 8. **Keep the loaded rows through a refetch.** `placeholderData: keepPreviousData` keeps the previous page while a new key loads. The wrapper sets `aria-busy` and dims, and `isRefetching` (fetching with data present) drives both. If your list filters on the client instead, run the filter in the query's `select` and pass the filter value through `useDeferredValue`. The query never re-enters pending.
-9. **Announce every state once.** One `LiveRegion` renders from the first frame and swaps its text: `Loading domains`, `Updating domains`, `Showing 8 of 1,284 domains`, and the empty and error messages. Skeleton rows are `aria-hidden`, so the region is the loading signal.
+9. **Announce every state once.** One `LiveRegion` renders from the first frame, empty, and an effect publishes the message after mount: `Loading domains`, `Updating domains`, `Showing 8 of 1,284 domains`, and the empty and error messages. A live region announces changes, not the text it mounts with, so an empty mount is what makes the first message audible. Skeleton rows are `aria-hidden`, so the region is the loading signal.
 10. **Keep errors inside the frame.** An error renders an `Empty` in `DataTable.EmptyRow` with a **Retry** button that calls `query.refetch()`. The frame, the header, and the filters stay where they are. Put the retry policy in the hook, as the [Overlays + Async Data](/recipes/overlay-async) recipe does.
 11. **Cache the page for the return trip.** A `staleTime` long enough to cover a detail-and-back navigation renders the list from cache, so the reader sees the skeleton once per session instead of once per visit.
 
@@ -895,17 +912,17 @@ The rules below keep the code consistent with the intent above.
 
 The left column is what not to do. The right column is the fix.
 
-| Don't                                                                                                                    | Do                                                                                                                                                             |
-| :----------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Return a full-page spinner while an existence check resolves. The heading and toolbar wait on a request they don't need. | Render the heading, description, and toolbar, and gate only the region below them. If a zero state replaces the whole page, gate below the heading they share. |
-| Render three skeleton rows for a twenty-row page.                                                                        | Render one skeleton row per row of the page size.                                                                                                              |
-| Mount pagination only with the loaded table.                                                                             | Render the pagination controls in every state and disable them while pending.                                                                                  |
-| Show `0 results` while the first page loads.                                                                             | Show a skeleton, or nothing, until the first response.                                                                                                         |
-| Build the skeleton from a second column list with hard-coded flags.                                                      | Pass the real table's leaf columns to the skeleton.                                                                                                            |
-| Leave the default `table-auto` layout, so columns move when text arrives.                                                | Set `table-fixed` and a width on every header but one.                                                                                                         |
-| Replace loaded rows with skeletons on a filter change.                                                                   | Keep the rows with `keepPreviousData`, or filter on the client in `select`.                                                                                    |
-| Say nothing to screen readers while the rows load.                                                                       | Mount a `LiveRegion` on the first frame and change its text per state.                                                                                         |
+| Don't                                                                                                                     | Do                                                                                                                                                             |
+| :------------------------------------------------------------------------------------------------------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Return a full-page spinner while an existence check resolves. The heading and toolbar wait on a request they don't need.  | Render the heading, description, and toolbar, and gate only the region below them. If a zero state replaces the whole page, gate below the heading they share. |
+| Render three skeleton rows for a twenty-row page.                                                                         | Render one skeleton row per row of the page size.                                                                                                              |
+| Mount pagination only with the loaded table.                                                                              | Render the pagination controls in every state and disable them while pending.                                                                                  |
+| Show `0 results` while the first page loads.                                                                              | Show a skeleton, or nothing, until the first response.                                                                                                         |
+| Build the skeleton from a second column list with hard-coded flags.                                                       | Pass the real table's leaf columns to the skeleton.                                                                                                            |
+| Leave the default `table-auto` layout with no header widths, so the columns move when text arrives or a long value lands. | Set a width on every header but one, and `table-fixed` so a long value truncates instead of widening its column.                                               |
+| Replace loaded rows with skeletons on a filter change.                                                                    | Keep the rows with `keepPreviousData`, or filter on the client in `select`.                                                                                    |
+| Say nothing to screen readers while the rows load.                                                                        | Mount a `LiveRegion` on the first frame and change its text per state.                                                                                         |
 
 ## Other data layers
 
-The rules don't depend on TanStack Query. With React Router loaders, render the same shell with skeleton rows as the route's `HydrateFallback`, and read `useNavigation().state` for the pending state of a filter change. Never gate an `<Outlet />` on a pending request: every child route waits behind it. For a page-level loading indicator, a fixed, zero-height progress bar at the top of the viewport costs no layout at all.
+The rules don't depend on TanStack Query. With React Router, a server `loader` blocks the document until the list resolves, so the first paint has rows and no skeleton, at the cost of a slower document. To paint the shell first, keep the list out of the loader and fetch it from the component, or return the promise from the loader and render the skeleton rows as the `Suspense` fallback around `Await`. `HydrateFallback` applies only when a `clientLoader` runs during hydration; if you have one, make it the same shell with skeleton rows, never a spinner. For later navigations, read `useNavigation().state`. Never gate an `<Outlet />` on a pending request: every child route waits behind it. For a page-level loading indicator, a fixed, zero-height progress bar at the top of the viewport costs no layout at all.

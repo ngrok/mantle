@@ -26,7 +26,7 @@ import {
 	useQueryClient,
 	type UseQueryResult,
 } from "@tanstack/react-query";
-import { useDeferredValue, useState } from "react";
+import { type ReactNode, useDeferredValue, useEffect, useState } from "react";
 
 const SIMULATED_API_LATENCY_MS = 1_500;
 const PAGE_SIZE = 8;
@@ -359,13 +359,15 @@ const columns = columnHelper.columns([
 		id: "name",
 		header: () => <DataTable.Header>Domain</DataTable.Header>,
 		cell: (props) => (
-			<DataTable.Cell className="text-strong truncate">{props.getValue()}</DataTable.Cell>
+			<DataTable.Cell className="text-strong truncate" translate="no">
+				{props.getValue()}
+			</DataTable.Cell>
 		),
 	}),
 	columnHelper.accessor("region", {
 		id: "region",
 		header: () => <DataTable.Header className="w-24">Region</DataTable.Header>,
-		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+		cell: (props) => <DataTable.Cell translate="no">{props.getValue()}</DataTable.Cell>,
 	}),
 	columnHelper.accessor("certificate", {
 		id: "certificate",
@@ -625,7 +627,7 @@ type FilterSelectProps = {
 	/** The selected option value. */
 	value: string;
 	/** The options, including the `"any"` option first. */
-	options: ReadonlyArray<{ value: string; label: string }>;
+	options: ReadonlyArray<{ value: string; label: ReactNode }>;
 	/** Called with the raw option value; the caller narrows it. */
 	onValueChange: (value: string) => void;
 };
@@ -656,9 +658,11 @@ function FilterSelect({ label, value, options, onValueChange }: FilterSelectProp
 	);
 }
 
+// Why translate="no": a region code is copied into a CLI flag, and a translated
+// one names the wrong region. The domain and region cells above lock it too.
 const regionOptions = [
 	{ value: "any", label: "any" },
-	...regions.map((region) => ({ value: region, label: region })),
+	...regions.map((region) => ({ value: region, label: <span translate="no">{region}</span> })),
 ];
 
 const certificateOptions = [
@@ -683,14 +687,27 @@ export function DomainsListPage({ scenario }: DomainsListPageProps) {
 	// query key follows one frame behind, so typing never waits on a render of
 	// the table.
 	const deferredSearch = useDeferredValue(filters.search);
-	const query = useDomainsQuery({ filters: { ...filters, search: deferredSearch }, scenario });
-	const state = resolveListBodyState({ query, isFiltered: hasActiveFilter(filters) });
+	// Why one filters value for the query and the empty check: the eager
+	// `filters` run a frame ahead of the deferred search. If the empty check
+	// read them, clearing a no-result search would show "No domains yet" for
+	// the frame in which the query still holds the old search.
+	const queryFilters: DomainFilters = { ...filters, search: deferredSearch };
+	const query = useDomainsQuery({ filters: queryFilters, scenario });
+	const isFiltered = hasActiveFilter(queryFilters);
+	const state = resolveListBodyState({ query, isFiltered });
+	const message = describeListState({ state, isRefetching: query.isFetching && !query.isPending });
+
+	// Why an effect: a live region announces changes, not the text it mounts
+	// with. The region mounts empty, in the server HTML too, and the first
+	// message is published after mount so a screen reader hears it.
+	const [announcement, setAnnouncement] = useState("");
+	useEffect(() => {
+		setAnnouncement(message);
+	}, [message]);
 
 	return (
 		<div className="mx-auto flex w-full max-w-6xl flex-col gap-4 p-6">
-			<LiveRegion>
-				{describeListState({ state, isRefetching: query.isFetching && !query.isPending })}
-			</LiveRegion>
+			<LiveRegion>{announcement}</LiveRegion>
 			<div className="flex flex-wrap items-start justify-between gap-4">
 				<div className="flex flex-col gap-1">
 					<h1 className="text-strong text-2xl font-medium">Domains</h1>
@@ -738,7 +755,7 @@ export function DomainsListPage({ scenario }: DomainsListPageProps) {
 			</div>
 			<DomainsTable
 				query={query}
-				isFiltered={hasActiveFilter(filters)}
+				isFiltered={isFiltered}
 				onClearFilters={() => {
 					setFilters(defaultFilters);
 				}}

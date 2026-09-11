@@ -1,6 +1,8 @@
 // @vitest-environment happy-dom
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, render, screen, within } from "@testing-library/react";
+import { userEvent } from "@testing-library/user-event";
+import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DomainsListPage, ListPageLoadingDemo } from "./list-page-loading-demo";
 
@@ -9,11 +11,16 @@ const PAST_THE_MOCK_LATENCY_MS = 2_000;
 
 const columnHeaders = ["Domain", "Region", "Certificate", "Endpoints", "Created"];
 
+type Scenario = "success" | "no-domains" | "server-error";
+
+function createQueryClient() {
+	return new QueryClient({ defaultOptions: { queries: { retry: false } } });
+}
+
 /** Renders the recipe page inside the QueryClientProvider it expects from the app root. */
-function renderPage(scenario: "success" | "no-domains" | "server-error" = "success") {
-	const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+function renderPage(scenario: Scenario = "success") {
 	return render(
-		<QueryClientProvider client={queryClient}>
+		<QueryClientProvider client={createQueryClient()}>
 			<DomainsListPage scenario={scenario} />
 		</QueryClientProvider>,
 	);
@@ -21,12 +28,16 @@ function renderPage(scenario: "success" | "no-domains" | "server-error" = "succe
 
 /** Renders the framed demo document, toolbar controls included. */
 function renderDemo() {
-	const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 	return render(
-		<QueryClientProvider client={queryClient}>
+		<QueryClientProvider client={createQueryClient()}>
 			<ListPageLoadingDemo />
 		</QueryClientProvider>,
 	);
+}
+
+/** A user whose inter-action waits run on the fake clock. */
+function setupUser() {
+	return userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 }
 
 /** Lets the simulated request resolve and TanStack Query publish the result. */
@@ -54,7 +65,10 @@ function countSkeletons(): number {
 }
 
 beforeEach(() => {
-	vi.useFakeTimers();
+	// Why shouldAdvanceTime: Testing Library drains user-event actions with a
+	// `setTimeout(0)` that it only advances for jest's fake timers. Under a
+	// frozen vitest clock that timer never fires, and every `user.*` call hangs.
+	vi.useFakeTimers({ shouldAdvanceTime: true });
 });
 
 afterEach(() => {
@@ -86,6 +100,30 @@ describe("DomainsListPage", () => {
 		expect(screen.getByRole("status").textContent).toBe("Loading domains");
 	});
 
+	it("serves the shell with the count skeleton inside its paragraph and an empty live region", () => {
+		const html = renderToString(
+			<QueryClientProvider client={createQueryClient()}>
+				<DomainsListPage scenario="success" />
+			</QueryClientProvider>,
+		);
+		const document = new DOMParser().parseFromString(html, "text/html");
+
+		// A `<div>` skeleton would end the paragraph in the parsed HTML, and the
+		// table below would move on hydration.
+		const countSkeleton = document.querySelector('p [data-slot="skeleton"]');
+		expect(countSkeleton?.tagName).toBe("SPAN");
+		expect(countSkeleton?.parentElement?.tagName).toBe("P");
+
+		expect(document.querySelectorAll("tbody tr")).toHaveLength(8);
+		// The region publishes its first message after mount, so the server sends it empty.
+		expect(document.querySelector('[role="status"]')?.textContent).toBe("");
+		// Radix fills an empty `Select.Value` only on the client; the text has to ship in the HTML.
+		expect(document.querySelector('[aria-label="Region"]')?.textContent).toContain("Region: any");
+		expect(document.querySelector('[aria-label="Certificate"]')?.textContent).toContain(
+			"Certificate: any",
+		);
+	});
+
 	it("swaps the skeleton rows for data rows without changing the row count", async () => {
 		renderPage();
 		await settleRequests();
@@ -105,12 +143,11 @@ describe("DomainsListPage", () => {
 	});
 
 	it("keeps the loaded rows, marked busy, while a search refetches", async () => {
+		const user = setupUser();
 		renderPage();
 		await settleRequests();
 
-		fireEvent.change(screen.getByRole("searchbox", { name: "Search domains" }), {
-			target: { value: "no-such-domain" },
-		});
+		await user.type(screen.getByRole("searchbox", { name: "Search domains" }), "no-such-domain");
 		await flushRenders();
 
 		// keepPreviousData: the rows stay, the wrapper reports busy, and no skeleton returns.
@@ -128,12 +165,50 @@ describe("DomainsListPage", () => {
 
 		// The unfiltered page is still fresh in the cache, so clearing renders it
 		// with no request and no skeleton.
-		fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
+		await user.click(screen.getByRole("button", { name: "Clear filters" }));
 		await flushRenders();
 
 		expect(getBodyRows()).toHaveLength(8);
 		expect(countSkeletons()).toBe(0);
 		expect(document.querySelector('[aria-busy="true"]')).toBeNull();
+	});
+
+	// Regression: the empty check once read the eager filters while the query
+	// key followed the deferred search. Clearing a no-result search rendered a
+	// frame with no filter and the old empty page, which announced "No domains yet".
+	it("never announces the no-data state while a cleared search catches up", async () => {
+		const user = setupUser();
+		renderPage();
+		await settleRequests();
+		await user.type(screen.getByRole("searchbox", { name: "Search domains" }), "no-such-domain");
+		await settleRequests();
+
+		const status = screen.getByRole("status");
+		// Why the records, not `status.textContent`: React commits the stale frame
+		// and the corrected one inside one act() flush, so the callback runs once,
+		// after both. Each record still carries the text a commit wrote.
+		const announcements: string[] = [];
+		const observer = new MutationObserver((records) => {
+			for (const record of records) {
+				announcements.push(
+					record.oldValue ?? "",
+					...Array.from(record.addedNodes, (node) => node.textContent ?? ""),
+				);
+			}
+		});
+		observer.observe(status, {
+			childList: true,
+			characterData: true,
+			characterDataOldValue: true,
+			subtree: true,
+		});
+
+		await user.click(screen.getByRole("button", { name: "Clear filters" }));
+		await flushRenders();
+		observer.disconnect();
+
+		expect(announcements).not.toContain("No domains yet");
+		expect(status.textContent).toBe("Showing 8 of 1,284 domains");
 	});
 
 	it("shows the no-data state only after the response", async () => {
@@ -173,6 +248,7 @@ describe("DomainsListPage", () => {
 
 describe("ListPageLoadingDemo", () => {
 	it("owns the main landmark and replays the cold load from the toolbar", async () => {
+		const user = setupUser();
 		renderDemo();
 		await settleRequests();
 
@@ -180,7 +256,7 @@ describe("ListPageLoadingDemo", () => {
 		expect(screen.getByRole("combobox", { name: "Demo scenario" })).not.toBeNull();
 		expect(countSkeletons()).toBe(0);
 
-		fireEvent.click(screen.getByRole("button", { name: "Replay load" }));
+		await user.click(screen.getByRole("button", { name: "Replay load" }));
 		await flushRenders();
 
 		// resetQueries drops the cached page, so the skeleton rows return.
