@@ -47,6 +47,14 @@ test("throws when a marker names a generator the map does not have", async () =>
 	);
 });
 
+test("throws when a marker names an inherited object member", async () => {
+	const source = "// @mantle-generated toString()";
+
+	await expect(fillGeneratedCode(source, stubSources)).rejects.toThrow(
+		/Unknown @mantle-generated source "toString\(\)"/,
+	);
+});
+
 test("fills the theme scripts from @ngrok/mantle/theme by default", async () => {
 	const source = [
 		"// @mantle-generated preventWrongThemeFlashScriptContent()",

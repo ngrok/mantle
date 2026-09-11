@@ -84,7 +84,9 @@ export async function fillGeneratedCode(
 			}
 			const indent = match[1] ?? "";
 			const name = match[2] ?? "";
-			const generate = sources[name];
+			// Why hasOwn: a bracket lookup reads inherited members, so a marker such as
+			// `toString()` would call `Object.prototype.toString` instead of failing.
+			const generate = Object.hasOwn(sources, name) ? sources[name] : undefined;
 			if (generate == null) {
 				const known = Object.keys(sources).join(", ");
 				throw new Error(
