@@ -82,7 +82,7 @@ export function MigrationsList() {
 					</Button>
 				</div>
 			) : (
-				<ul className="mt-6 divide-y divide-gray-300 border-y border-gray-300">
+				<ul className="mt-6 divide-y divide-gray-300">
 					{filtered.map((migration) => (
 						<li key={migration.number}>
 							<Link
