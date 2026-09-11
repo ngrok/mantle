@@ -330,6 +330,7 @@ Follow these invariants for a correctly styled, accessible, and behaving `DataTa
 9. **Stop click propagation inside `DataTable.ActionCell` when the row is clickable.** Without it, clicks on dropdown triggers, buttons, and links inside the action cell will bubble and fire the row `onClick`.
 10. **Add a keyboard-accessible equivalent for row navigation.** A `<tr>` is not focusable and is not announced as interactive to assistive tech. If clicking a row navigates, render a `<Link>` in the primary cell so keyboard and screen-reader users have a reachable equivalent.
 11. **Register features, not row models.** `useTable` wires up only what `tableFeatures` registers: `rowSortingFeature` with `sortedRowModel` for sorting, `rowPaginationFeature` with `paginatedRowModel` for pagination, `columnFilteringFeature` with `filteredRowModel` for filtering. A feature without its row model is a dead control: `rowSortingFeature` alone toggles the sort icon and never reorders a row.
+12. **Give a compiled component of your own its subscription.** mantle ships `DataTable` compiled with the React Compiler, and each part subscribes to the state it reads. If your app also compiles, and one of your components receives only a stable `row`, `column`, `cell`, or `header` and reads state through it, wrap that read in TanStack's `Subscribe`. See [TanStack's React Compiler guide](https://tanstack.com/table/latest/docs/framework/react/guide/react-compiler).
 
 ## Anti-patterns
 
@@ -1011,6 +1012,8 @@ Renders a single body row using the column definitions from the table instance. 
 When `onClick` is set, the row receives `cursor-pointer` and `data-clickable`. Pass a different `cursor-*` class via `className` (for example, `cursor-wait`) to override the cursor. The row runs `onClick` only for a plain primary click: a modified click, a non-primary button, and a click that ends a text selection inside the row all skip it. A `<tr>` isn't focusable, so also render a `<Link>` inside the primary cell as the keyboard and screen-reader path; see [Navigating on row click](#navigating-on-row-click).
 
 The row works with any features. It renders the visible cells when the table registers `columnVisibilityFeature`, and every cell otherwise. `renderExpanded` and `data-expanded` need `rowExpandingFeature`.
+
+The row subscribes to the whole table state and to the table options. It re-renders its cells when any state slice changes or when `useTable` receives new options, so a column's `cell` renderer can read state through `row` or `cell` (for example, `row.getIsSelected()`) and close over your component's values.
 
 | Prop              | Type                                               | Default | Description                                                                                                                        |
 | :---------------- | :------------------------------------------------- | :------ | :--------------------------------------------------------------------------------------------------------------------------------- |

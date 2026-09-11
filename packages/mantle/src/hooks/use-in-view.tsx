@@ -1,6 +1,6 @@
 "use client";
 
-import { type RefObject, useEffect, useState } from "react";
+import { type RefObject, useEffect, useRef, useState } from "react";
 import type { InViewOptions, MarginType } from "../utils/in-view.js";
 import { inView } from "../utils/in-view.js";
 
@@ -80,32 +80,39 @@ function useInView(
 	{ root, margin, amount, once = false, initial = false }: UseInViewOptions = {},
 ): boolean {
 	const [isInView, setInView] = useState(initial);
+	// Why a ref next to the state: the effect below reads the latest visibility
+	// without listing the state in its deps. The state there restarts the observer
+	// on every enter or leave, and a `react-hooks/exhaustive-deps` suppression
+	// opts the hook out of the React Compiler.
+	const isInViewRef = useRef(initial);
 
 	useEffect(() => {
-		if (!ref.current || (once && isInView)) {
+		const element = ref.current;
+		// After a `once` entry the element counts as in view for good, so a later
+		// option change does not observe it again.
+		if (element == null || (once && isInViewRef.current)) {
 			return;
 		}
 
 		function onEnter() {
+			isInViewRef.current = true;
 			setInView(true);
-			return once ? undefined : () => setInView(false);
+			if (once) {
+				return undefined;
+			}
+			return () => {
+				isInViewRef.current = false;
+				setInView(false);
+			};
 		}
 
 		const options: InViewOptions = {
-			root: (root && root.current) || undefined,
+			root: root?.current ?? undefined,
 			margin,
 			amount,
 		};
 
-		return inView(ref.current, onEnter, options);
-		/**
-		 * Intentionally omit `isInView` from deps. The effect must only re-run
-		 * when the observation parameters change, not when visibility changes.
-		 * Including `isInView` would restart the observer (disconnect + reconnect)
-		 * on every enter/leave event, causing wasteful churn for the common
-		 * `once=false` case.
-		 */
-		// oxlint-disable-next-line react-hooks/exhaustive-deps
+		return inView(element, onEnter, options);
 	}, [root, ref, margin, once, amount]);
 
 	return isInView;

@@ -40,6 +40,7 @@ catalog:
   "@vitest/browser-playwright": "5.0.0"
   "happy-dom": "20.14.3"
   "oxc-parser": "0.149.0"
+  "oxc-transform-react": "0.149.0"
   "playwright-core": "1.63.0"
   "playwright": "1.63.0"
   "react-dom": "19.3.0"

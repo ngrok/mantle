@@ -79,6 +79,24 @@ describe("useInView", () => {
 		expect(result.current).toBe(true);
 	});
 
+	test("with once=true, a later option change does not observe the element again", () => {
+		// `once` promises to stop observing after the first entry. A guard that forgets the
+		// entry re-runs the effect on the option change and observes a second time.
+		const element = document.createElement("div");
+		const { result, rerender } = renderHook(
+			({ amount }: { amount: number }) => useInView(useRef(element), { once: true, amount }),
+			{ initialProps: { amount: 0.5 } },
+		);
+		triggerIntersection(element, true);
+		expect(result.current).toBe(true);
+		expect(mockObserve).toHaveBeenCalledTimes(1);
+
+		rerender({ amount: 1 });
+
+		expect(mockObserve).toHaveBeenCalledTimes(1);
+		expect(result.current).toBe(true);
+	});
+
 	test("unobserves and disconnects the observer on unmount", () => {
 		const element = document.createElement("div");
 		const { unmount } = renderHook(() => useInView(useRef(element)));

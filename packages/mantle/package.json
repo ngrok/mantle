@@ -483,6 +483,7 @@
 		"@vitest/browser-playwright": "catalog:",
 		"axe-core": "4.13.0",
 		"happy-dom": "catalog:",
+		"oxc-transform-react": "catalog:",
 		"playwright": "catalog:",
 		"react": "catalog:",
 		"react-dom": "catalog:",

@@ -3,11 +3,12 @@ import { reactRouter } from "@react-router/dev/vite";
 import tailwindcss from "@tailwindcss/vite";
 import { mantleCodeBlockPlugins } from "@ngrok/mantle-vite-plugins";
 import path from "node:path";
+import { transform } from "oxc-transform-react";
 import rehypeSlug from "rehype-slug";
 import remarkFrontmatter from "remark-frontmatter";
 import { remarkMdxGithubAlerts } from "@ngrok/remark-mdx-github-alerts";
 import remarkGfm from "remark-gfm";
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import devtoolsJson from "vite-plugin-devtools-json";
 
 import { remarkMdxNoParagraphWrap } from "@ngrok/remark-mdx-no-paragraph-wrap";
@@ -20,9 +21,50 @@ import { remarkMdxFrontmatterData } from "./vite-plugins/remark-mdx-frontmatter-
 
 const codeBlockPlugins = mantleCodeBlockPlugins();
 
+/**
+ * Runs the React Compiler over the app and over the mantle source that
+ * `resolve.conditions` maps in. The published dist ships compiled output (see
+ * `packages/mantle/tsdown.config.ts`), so compiling mantle here keeps docs
+ * pages rendering the library exactly as npm consumers get it.
+ *
+ * Why `enforce: "pre"`: Vite's own transform strips the JSX the compiler must
+ * see, and the React Router Fast Refresh transform rewrites components.
+ */
+const reactCompiler = (): Plugin => ({
+	name: "react-compiler",
+	enforce: "pre",
+	transform: {
+		filter: {
+			id: {
+				include: [
+					/[\\/]apps[\\/]www[\\/]app[\\/].+\.tsx?$/,
+					/[\\/]packages[\\/]mantle[\\/]src[\\/].+\.tsx?$/,
+				],
+				exclude: [/\.test\.tsx?$/],
+			},
+		},
+		async handler(code, id) {
+			const result = await transform(id, code, {
+				jsx: "preserve",
+				sourcemap: true,
+				reactCompiler: { target: "19" },
+			});
+			if (result.fatal) {
+				const messages = result.errors.map((error) => error.message).join("\n");
+				throw new Error(`The React Compiler pass failed for ${id}:\n${messages}`);
+			}
+			return { code: result.code, map: result.map };
+		},
+	},
+});
+
 export default defineConfig(({ command }) => ({
 	optimizeDeps: {
 		exclude: ["@ngrok/mantle"],
+		// Why: the compiler adds the `react/compiler-runtime` import in the transform, so
+		// Vite's dependency scanner never sees it in source. Without this include, the dev
+		// server discovers it on the first request, re-optimizes, and reloads the page.
+		include: ["react/compiler-runtime"],
 	},
 	plugins: [
 		//
@@ -63,6 +105,7 @@ export default defineConfig(({ command }) => ({
 		// check that throws when .tsx modules load under Vitest, and tests
 		// don't need the framework plugin — component tests render directly.
 		...(process.env.VITEST ? [] : [reactRouter()]),
+		reactCompiler(),
 	],
 	// A spy or global stub a test installs and then fails to tear down leaks into every test that
 	// runs after it, turning an unrelated failure into a cascade and making results order-dependent.

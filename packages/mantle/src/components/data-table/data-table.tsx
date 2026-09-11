@@ -1,3 +1,15 @@
+// Why `Subscribe` boundaries: TanStack Table v9 keeps its core `row`, `column`,
+// and `header` objects referentially stable and reads state through their
+// methods. A compiled part that receives only those objects as props memoizes
+// on the stable prop, so it never calls the method again and serves stale
+// state. Per TanStack's React Compiler guide, each such part (`Header`, `Row`,
+// `HeaderSortButton`, `RowExpandButton`, `ExpandedRow`) reads the changing
+// state inside a `Subscribe` render function, which the store re-runs when
+// the selected value changes. Each selector also closes over the table
+// options (`useTableOptions`), so a consumer render that passes new options
+// re-runs the part as well. Parts that read the React-facing `table` from
+// context need no boundary: `useTable` returns a new value with each state
+// change the consumer's selector includes and with each new options object.
 import { MinusIcon } from "@phosphor-icons/react/Minus";
 import { PlusIcon } from "@phosphor-icons/react/Plus";
 import {
@@ -8,6 +20,7 @@ import {
 	type RowData,
 	type Row_RowExpanding,
 	type StockFeatures,
+	Subscribe,
 	type Table as TableInstance,
 	type TableFeatures,
 	callMemoOrStaticFn,
@@ -88,6 +101,20 @@ type DataTableContextShape<TFeatures extends TableFeatures, TData extends RowDat
 
 // oxlint-disable-next-line @typescript-eslint/no-explicit-any -- React context cannot preserve these generics across provider boundaries.
 const DataTableContext = createContext<DataTableContextShape<any, any> | null>(null);
+
+/**
+ * The options the consumer passed to `useTable` on its latest render, or
+ * `undefined` outside `DataTable.Root`. Only the identity matters.
+ *
+ * Why: a part that receives a stable `row` or `column` also reads options
+ * through it (a column's `cell` definition, `getRowCanExpand`, `enableSorting`),
+ * and a consumer render can change them while the row and the store state stay
+ * the same. `useSelector` caches by selector identity, so a selector that
+ * closes over these options re-runs on that render.
+ */
+function useTableOptions(): unknown {
+	return useContext(DataTableContext)?.table.options;
+}
 
 /**
  * @private
@@ -306,67 +333,81 @@ function HeaderSortButton<
 	onClick,
 	...props
 }: DataTableHeaderSortButtonProps<TFeatures, TData, TValue>) {
-	const rawSortDirection = column.getIsSorted();
-	const canSort = !disableSorting && column.getCanSort();
+	const renderSortButton = () => {
+		const rawSortDirection = column.getIsSorted();
+		const canSort = !disableSorting && column.getCanSort();
 
-	const sortDirection: SortDirection =
-		canSort && typeof rawSortDirection === "string" ? rawSortDirection : "unsorted";
+		const sortDirection: SortDirection =
+			canSort && typeof rawSortDirection === "string" ? rawSortDirection : "unsorted";
 
-	if (!canSort) {
-		// Why a span: a button that does nothing on click is a focusable dead end
-		// for a keyboard user. `justify-*` and text classes still apply.
+		if (!canSort) {
+			// Why a span: a button that does nothing on click is a focusable dead end
+			// for a keyboard user. `justify-*` and text classes still apply.
+			return (
+				<span
+					data-slot="data-table-header-sort-button"
+					data-sort-direction="unsorted"
+					className={cx(
+						"flex w-full items-center justify-start",
+						appearance === "ghost" && intent === "neutral" && "text-muted",
+						className,
+					)}
+					{...props}
+				>
+					{children}
+				</span>
+			);
+		}
+
+		const sortIcon = propSortIcon?.(sortDirection) ?? (
+			<DefaultSortIcon mode={sortingMode} direction={sortDirection} />
+		);
+
 		return (
-			<span
+			<Button
+				appearance={appearance}
 				data-slot="data-table-header-sort-button"
-				data-sort-direction="unsorted"
 				className={cx(
-					"flex w-full items-center justify-start",
+					"flex justify-start w-full h-full rounded-none not-disabled:active:scale-none",
+					// Only mute the default ghost+neutral design; the consumer className is
+					// merged last by tw-merge, so an unconditional text-muted would strip the
+					// tone text color from every non-default appearance/intent combination.
 					appearance === "ghost" && intent === "neutral" && "text-muted",
 					className,
 				)}
+				data-sort-direction={sortDirection}
+				data-table-header-action
+				icon={sortIcon}
+				iconPlacement={iconPlacement}
+				onClick={(event) => {
+					onClick?.(event);
+					if (event.defaultPrevented) {
+						return;
+					}
+					if (typeof sortingMode === "undefined") {
+						return;
+					}
+					toggleNextSortingDirection(column, sortingMode);
+				}}
+				intent={intent}
+				type="button"
 				{...props}
 			>
 				{children}
-			</span>
+			</Button>
 		);
-	}
+	};
 
-	const sortIcon = propSortIcon?.(sortDirection) ?? (
-		<DefaultSortIcon mode={sortingMode} direction={sortDirection} />
-	);
-
+	// The selector reads the column's sort state and the table options, so the button
+	// re-renders when this column's direction changes or the consumer passes new options.
+	const options = useTableOptions();
 	return (
-		<Button
-			appearance={appearance}
-			data-slot="data-table-header-sort-button"
-			className={cx(
-				"flex justify-start w-full h-full rounded-none not-disabled:active:scale-none",
-				// Only mute the default ghost+neutral design; the consumer className is
-				// merged last by tw-merge, so an unconditional text-muted would strip the
-				// tone text color from every non-default appearance/intent combination.
-				appearance === "ghost" && intent === "neutral" && "text-muted",
-				className,
-			)}
-			data-sort-direction={sortDirection}
-			data-table-header-action
-			icon={sortIcon}
-			iconPlacement={iconPlacement}
-			onClick={(event) => {
-				onClick?.(event);
-				if (event.defaultPrevented) {
-					return;
-				}
-				if (typeof sortingMode === "undefined") {
-					return;
-				}
-				toggleNextSortingDirection(column, sortingMode);
-			}}
-			intent={intent}
-			type="button"
-			{...props}
+		<Subscribe
+			source={column.table.store}
+			selector={() => ({ sorted: column.getIsSorted(), options })}
 		>
-			{children}
-		</Button>
+			{renderSortButton}
+		</Subscribe>
 	);
 }
 
@@ -443,7 +484,7 @@ function Header<TFeatures extends TableFeatures, TData extends RowData, TValue e
 	column,
 	...props
 }: DataTableHeaderProps<TFeatures, TData, TValue>) {
-	return (
+	const renderHeader = () => (
 		<Table.Header
 			aria-sort={resolveAriaSort(column)}
 			data-slot="data-table-header"
@@ -452,6 +493,24 @@ function Header<TFeatures extends TableFeatures, TData extends RowData, TValue e
 		>
 			{children}
 		</Table.Header>
+	);
+
+	const options = useTableOptions();
+
+	if (column == null) {
+		return renderHeader();
+	}
+
+	// The selector resolves the `aria-sort` value next to the table options, so the
+	// cell re-renders when this column's sort state changes or the consumer passes
+	// new options.
+	return (
+		<Subscribe
+			source={column.table.store}
+			selector={() => ({ ariaSort: resolveAriaSort(column), options })}
+		>
+			{renderHeader}
+		</Subscribe>
 	);
 }
 
@@ -600,6 +659,11 @@ function isRowActivationClick(event: MouseEvent<HTMLTableRowElement>): boolean {
  * holding the returned content. Pair it with a `DataTable.RowExpandButton` toggle
  * and register `rowExpandingFeature` and `getRowCanExpand` on the table.
  *
+ * The row subscribes to the whole table state and to the table options. It
+ * re-renders its cells when any state slice changes or when `useTable` receives
+ * new options, so a column's `cell` renderer can read state through `row` or
+ * `cell` (`row.getIsSelected()`) and close over your component's values.
+ *
  * | Data Attribute   | Value                         | Description                                             |
  * | ---------------- | ----------------------------- | ------------------------------------------------------- |
  * | `data-clickable` | present when `onClick` is set | Presence-only. The row runs a handler on a plain click. |
@@ -649,58 +713,72 @@ function Row<TFeatures extends TableFeatures, TData extends RowData>({
 	row,
 	...props
 }: DataTableRowProps<TFeatures, TData>) {
-	// Why callMemoOrStaticFn: `getIsExpanded` and `getVisibleCells` exist on the
-	// row only when the table registers `rowExpandingFeature` and
-	// `columnVisibilityFeature`. The static functions read the same state, so a
-	// table without those features renders every cell and never expands.
-	const isExpanded = callMemoOrStaticFn(row, "getIsExpanded", row_getIsExpanded);
-	const cells = callMemoOrStaticFn(row, "getVisibleCells", row_getVisibleCells);
+	const renderRow = () => {
+		// Why callMemoOrStaticFn: `getIsExpanded` and `getVisibleCells` exist on the
+		// row only when the table registers `rowExpandingFeature` and
+		// `columnVisibilityFeature`. The static functions read the same state, so a
+		// table without those features renders every cell and never expands.
+		const isExpanded = callMemoOrStaticFn(row, "getIsExpanded", row_getIsExpanded);
+		const cells = callMemoOrStaticFn(row, "getVisibleCells", row_getVisibleCells);
 
-	const dataRow = (
-		<Table.Row
-			data-slot="data-table-row"
-			// Styling hook for the "this row is expanded" state (e.g. to pair the
-			// parent row visually with its `DataTable.ExpandedRow`). Absent when the
-			// row is collapsed or expansion is not configured.
-			data-expanded={isExpanded || undefined}
-			// Styling and test hook for "this row runs a handler on click", so a
-			// consumer never has to read `cursor-pointer` off the class list.
-			data-clickable={onClick != null ? "" : undefined}
-			className={cx(onClick != null && "cursor-pointer", className)}
-			onClick={
-				onClick &&
-				((event) => {
-					if (isRowActivationClick(event)) {
-						onClick(event);
-					}
-				})
-			}
-			{...props}
-		>
-			{cells.map((cell) => (
-				// Why flexRender, not FlexRender: the column's `cell` definition owns
-				// the `<td>`. `FlexRender` renders `null` for a grouped row's
-				// placeholder cells, which would drop their `<td>` and shift every cell
-				// after them one column to the left.
-				<Fragment key={cell.id}>
-					{flexRender(cell.column.columnDef.cell, cell.getContext())}
-				</Fragment>
-			))}
-		</Table.Row>
-	);
+		const dataRow = (
+			<Table.Row
+				data-slot="data-table-row"
+				// Styling hook for the "this row is expanded" state (e.g. to pair the
+				// parent row visually with its `DataTable.ExpandedRow`). Absent when the
+				// row is collapsed or expansion is not configured.
+				data-expanded={isExpanded || undefined}
+				// Styling and test hook for "this row runs a handler on click", so a
+				// consumer never has to read `cursor-pointer` off the class list.
+				data-clickable={onClick != null ? "" : undefined}
+				className={cx(onClick != null && "cursor-pointer", className)}
+				onClick={
+					onClick &&
+					((event) => {
+						if (isRowActivationClick(event)) {
+							onClick(event);
+						}
+					})
+				}
+				{...props}
+			>
+				{cells.map((cell) => (
+					// Why flexRender, not FlexRender: the column's `cell` definition owns
+					// the `<td>`. `FlexRender` renders `null` for a grouped row's
+					// placeholder cells, which would drop their `<td>` and shift every cell
+					// after them one column to the left.
+					<Fragment key={cell.id}>
+						{flexRender(cell.column.columnDef.cell, cell.getContext())}
+					</Fragment>
+				))}
+			</Table.Row>
+		);
 
-	// Without `renderExpanded`, behave exactly as a plain single-`<tr>` row.
-	if (renderExpanded == null) {
-		return dataRow;
-	}
+		// Without `renderExpanded`, behave exactly as a plain single-`<tr>` row.
+		if (renderExpanded == null) {
+			return dataRow;
+		}
 
-	// With it, render the data row plus — only while expanded — its detail row.
-	// `renderExpanded` is called lazily so collapsed rows pay nothing.
+		// With it, render the data row plus — only while expanded — its detail row.
+		// `renderExpanded` is called lazily so collapsed rows pay nothing.
+		return (
+			<>
+				{dataRow}
+				{isExpanded && <ExpandedRow row={row}>{renderExpanded(row)}</ExpandedRow>}
+			</>
+		);
+	};
+
+	// Why the whole state and the options: a column's `cell` renderer is opaque to
+	// this row. It may read any state slice through `row` or `cell`, and it may
+	// close over the consumer's values, which arrive as a new `columns` array. So
+	// the row re-renders its cells on every state change and on every render that
+	// passes new options, as an uncompiled row did.
+	const options = useTableOptions();
 	return (
-		<>
-			{dataRow}
-			{isExpanded && <ExpandedRow row={row}>{renderExpanded(row)}</ExpandedRow>}
-		</>
+		<Subscribe source={row.table.store} selector={(state) => ({ state, options })}>
+			{renderRow}
+		</Subscribe>
 	);
 }
 
@@ -1094,39 +1172,54 @@ function RowExpandButton<TFeatures extends ExpandableTableFeatures, TData extend
 	size = "sm",
 	...props
 }: DataTableRowExpandButtonProps<TFeatures, TData>) {
-	if (!row.getCanExpand()) {
-		return null;
-	}
+	const renderToggle = () => {
+		if (!row.getCanExpand()) {
+			return null;
+		}
 
-	const isExpanded = row.getIsExpanded();
-	const toggleExpanded = row.getToggleExpandedHandler();
+		const isExpanded = row.getIsExpanded();
+		const toggleExpanded = row.getToggleExpandedHandler();
 
+		return (
+			<IconButton
+				type="button"
+				data-slot="data-table-row-expand-button"
+				appearance={appearance}
+				intent={intent}
+				size={size}
+				className={cx("rounded", className)}
+				aria-expanded={isExpanded}
+				// Reference the detail row only while it actually exists in the DOM — a
+				// dangling `aria-controls` IDREF is an accessibility validity violation.
+				aria-controls={isExpanded ? expandedRowId(row) : undefined}
+				icon={isExpanded ? collapseIcon : expandIcon}
+				label={`${isExpanded ? "Hide" : "Show"} details for ${label}`}
+				onClick={(event) => {
+					// Always keep the toggle click from bubbling to a row-level onClick
+					// (e.g. navigation) — even when a consumer vetoes the toggle below.
+					event.stopPropagation();
+					onClick?.(event);
+					if (event.defaultPrevented) {
+						return;
+					}
+					toggleExpanded();
+				}}
+				{...props}
+			/>
+		);
+	};
+
+	// The selector reads this row's expanded flag and the table options, so the toggle
+	// re-renders when its own row expands or collapses, or when the consumer passes new
+	// options (`getRowCanExpand` decides whether it renders at all).
+	const options = useTableOptions();
 	return (
-		<IconButton
-			type="button"
-			data-slot="data-table-row-expand-button"
-			appearance={appearance}
-			intent={intent}
-			size={size}
-			className={cx("rounded", className)}
-			aria-expanded={isExpanded}
-			// Reference the detail row only while it actually exists in the DOM — a
-			// dangling `aria-controls` IDREF is an accessibility validity violation.
-			aria-controls={isExpanded ? expandedRowId(row) : undefined}
-			icon={isExpanded ? collapseIcon : expandIcon}
-			label={`${isExpanded ? "Hide" : "Show"} details for ${label}`}
-			onClick={(event) => {
-				// Always keep the toggle click from bubbling to a row-level onClick
-				// (e.g. navigation) — even when a consumer vetoes the toggle below.
-				event.stopPropagation();
-				onClick?.(event);
-				if (event.defaultPrevented) {
-					return;
-				}
-				toggleExpanded();
-			}}
-			{...props}
-		/>
+		<Subscribe
+			source={row.table.store}
+			selector={() => ({ isExpanded: row.getIsExpanded(), options })}
+		>
+			{renderToggle}
+		</Subscribe>
 	);
 }
 
@@ -1200,10 +1293,10 @@ function ExpandedRow<TFeatures extends TableFeatures, TData extends RowData>({
 	// Why callMemoOrStaticFn: `getVisibleCells` exists on the row only when the
 	// table registers `columnVisibilityFeature`. The static function counts
 	// every cell for a table that cannot hide columns.
-	const numberOfColumns =
-		colSpan ?? callMemoOrStaticFn(row, "getVisibleCells", row_getVisibleCells).length;
+	const countVisibleCells = () =>
+		callMemoOrStaticFn(row, "getVisibleCells", row_getVisibleCells).length;
 
-	return (
+	const renderPanel = ({ numberOfColumns }: { numberOfColumns: number }) => (
 		<Table.Row
 			data-slot="data-table-expanded-row"
 			data-expanded-content
@@ -1222,6 +1315,24 @@ function ExpandedRow<TFeatures extends TableFeatures, TData extends RowData>({
 				{children}
 			</Table.Cell>
 		</Table.Row>
+	);
+
+	const options = useTableOptions();
+
+	if (colSpan != null) {
+		return renderPanel({ numberOfColumns: colSpan });
+	}
+
+	// The selector counts the visible cells next to the table options, so the panel
+	// re-renders when a column is hidden, shown, pinned, or reordered, or when a new
+	// `columns` array changes the count.
+	return (
+		<Subscribe
+			source={row.table.store}
+			selector={() => ({ numberOfColumns: countVisibleCells(), options })}
+		>
+			{renderPanel}
+		</Subscribe>
 	);
 }
 

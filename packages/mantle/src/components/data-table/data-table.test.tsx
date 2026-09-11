@@ -18,6 +18,7 @@ import {
 	DataTable,
 	type ExpandedState,
 	type Row as TableRow,
+	type RowSelectionState,
 	columnGroupingFeature,
 	columnVisibilityFeature,
 	createColumnHelper,
@@ -25,6 +26,7 @@ import {
 	createGroupedRowModel,
 	createSortedRowModel,
 	rowExpandingFeature,
+	rowSelectionFeature,
 	rowSortingFeature,
 	sortFn_alphanumeric,
 	sortFn_datetime,
@@ -1138,6 +1140,236 @@ describe("DataTable.Row renderExpanded without expandedRowModel", () => {
 			"false",
 		);
 		expect(screen.queryByTestId("panel")).not.toBeInTheDocument();
+	});
+});
+
+const selectionFeatures = tableFeatures({ rowSelectionFeature });
+const selectionColumnHelper = createColumnHelper<typeof selectionFeatures, Row>();
+const selectionColumns = selectionColumnHelper.columns([
+	selectionColumnHelper.accessor("name", {
+		id: "name",
+		header: () => <DataTable.Header>Name</DataTable.Header>,
+		// The cell reads state through the stable `row`, the pattern TanStack's
+		// React Compiler guide flags as stale under compilation.
+		cell: (props) => (
+			<DataTable.Cell>
+				{props.getValue()} is {props.row.getIsSelected() ? "selected" : "not selected"}
+			</DataTable.Cell>
+		),
+	}),
+]);
+
+function SelectionHarness() {
+	const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+	const table = useTable({
+		features: selectionFeatures,
+		data,
+		columns: selectionColumns,
+		state: { rowSelection },
+		onRowSelectionChange: setRowSelection,
+		getRowId: (row) => row.id,
+	});
+	const rows = table.getRowModel().rows;
+	return (
+		<>
+			<button type="button" onClick={() => rows[0]?.toggleSelected()}>
+				Toggle Alice
+			</button>
+			<DataTable.Root table={table}>
+				<DataTable.Body>
+					{rows.map((row) => (
+						<DataTable.Row key={row.id} row={row} />
+					))}
+				</DataTable.Body>
+			</DataTable.Root>
+		</>
+	);
+}
+
+describe("DataTable.Row state subscription", () => {
+	test("re-renders a cell that reads selection state through `row` when the selection changes", async () => {
+		// The compiled row keeps the same `row` prop across the change, so only its
+		// whole-state subscription re-runs the cell renderer. A selector narrowed to
+		// the row's expansion state leaves the cell at "not selected".
+		const user = userEvent.setup();
+		render(<SelectionHarness />);
+		expect(screen.getByRole("cell", { name: "Alice is not selected" })).toBeInTheDocument();
+
+		await user.click(screen.getByRole("button", { name: "Toggle Alice" }));
+
+		expect(screen.getByRole("cell", { name: "Alice is selected" })).toBeInTheDocument();
+	});
+});
+
+function VisibilityToggleHarness() {
+	const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({});
+	const table = useTable({
+		features: visibilityFeatures,
+		data,
+		columns: visibilityColumns,
+		state: { columnVisibility },
+		onColumnVisibilityChange: setColumnVisibility,
+		getRowId: (row) => row.id,
+	});
+	const rows = table.getRowModel().rows;
+	return (
+		<>
+			<button type="button" onClick={() => table.getColumn("name")?.toggleVisibility()}>
+				Toggle name
+			</button>
+			<DataTable.Root table={table}>
+				<DataTable.Head />
+				<DataTable.Body>
+					{rows.map((row) => (
+						<Fragment key={row.id}>
+							<DataTable.Row row={row} />
+							<DataTable.ExpandedRow data-testid={`detail-${row.id}`} row={row}>
+								<span>Detail</span>
+							</DataTable.ExpandedRow>
+						</Fragment>
+					))}
+				</DataTable.Body>
+			</DataTable.Root>
+		</>
+	);
+}
+
+/** Columns whose `cell` closes over a value of the rendering component. */
+function ClosureHarness() {
+	const [label, setLabel] = useState("before");
+	const closureColumns = useMemo(
+		() =>
+			columnHelper.columns([
+				columnHelper.accessor("name", {
+					id: "name",
+					header: () => <DataTable.Header>Name</DataTable.Header>,
+					cell: (props) => (
+						<DataTable.Cell>
+							{props.getValue()} {label}
+						</DataTable.Cell>
+					),
+				}),
+			]),
+		[label],
+	);
+	const table = useTable({ features, data, columns: closureColumns });
+	return (
+		<>
+			<button type="button" onClick={() => setLabel("after")}>
+				Relabel
+			</button>
+			<DataTable.Root table={table}>
+				<DataTable.Body>
+					{table.getRowModel().rows.map((row) => (
+						<DataTable.Row key={row.id} row={row} />
+					))}
+				</DataTable.Body>
+			</DataTable.Root>
+		</>
+	);
+}
+
+describe("DataTable.Row options subscription", () => {
+	test("re-renders its cells when a new `columns` array arrives with the same `row` and state", async () => {
+		// TanStack keeps the `row` object across a `columns` change and the store state
+		// does not move, so only the options half of the selector re-runs the cells.
+		const user = userEvent.setup();
+		render(<ClosureHarness />);
+		expect(screen.getByRole("cell", { name: "Alice before" })).toBeInTheDocument();
+
+		await user.click(screen.getByRole("button", { name: "Relabel" }));
+
+		expect(screen.getByRole("cell", { name: "Alice after" })).toBeInTheDocument();
+	});
+});
+
+describe("DataTable.RowExpandButton options subscription", () => {
+	test("disappears when a re-render changes `getRowCanExpand` for the same `row`", () => {
+		// `row.getCanExpand()` reads an option, not state. Dropping the options from the
+		// selector keeps the toggle mounted after the predicate flips.
+		const { rerender } = render(<ExpandableHarness canExpand />);
+		expect(screen.getByRole("button", { name: "Show details for Alice" })).toBeInTheDocument();
+
+		rerender(<ExpandableHarness canExpand={false} />);
+
+		expect(screen.queryByRole("button")).not.toBeInTheDocument();
+	});
+});
+
+/** Renders a detail row under the only data row, with two or three columns. */
+function ColumnCountHarness({ withExtraColumn }: { withExtraColumn: boolean }) {
+	const countColumns = useMemo(
+		() =>
+			columnHelper.columns([
+				columnHelper.accessor("id", {
+					id: "id",
+					header: () => <DataTable.Header>ID</DataTable.Header>,
+					cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+				}),
+				columnHelper.accessor("name", {
+					id: "name",
+					header: () => <DataTable.Header>Name</DataTable.Header>,
+					cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+				}),
+				...(withExtraColumn
+					? [
+							columnHelper.display({
+								id: "extra",
+								header: () => <DataTable.Header>Extra</DataTable.Header>,
+								cell: () => <DataTable.Cell>extra</DataTable.Cell>,
+							}),
+						]
+					: []),
+			]),
+		[withExtraColumn],
+	);
+	const table = useTable({ features, data, columns: countColumns, getRowId: (row) => row.id });
+	return (
+		<DataTable.Root table={table}>
+			<DataTable.Head />
+			<DataTable.Body>
+				{table.getRowModel().rows.map((row) => (
+					<Fragment key={row.id}>
+						<DataTable.Row row={row} />
+						<DataTable.ExpandedRow data-testid={`detail-${row.id}`} row={row}>
+							<span>Detail</span>
+						</DataTable.ExpandedRow>
+					</Fragment>
+				))}
+			</DataTable.Body>
+		</DataTable.Root>
+	);
+}
+
+describe("DataTable.ExpandedRow options subscription", () => {
+	test("its `colSpan` follows a new `columns` array for the same `row`", () => {
+		// The cell count changes through the options, not the store, so dropping the
+		// options from the selector leaves `colspan` at 2.
+		const { rerender } = render(<ColumnCountHarness withExtraColumn={false} />);
+		const detailCell = () =>
+			within(screen.getByTestId("detail-row-1")).getByText("Detail").closest("td");
+		expect(detailCell()).toHaveAttribute("colspan", "2");
+
+		rerender(<ColumnCountHarness withExtraColumn />);
+
+		expect(detailCell()).toHaveAttribute("colspan", "3");
+	});
+});
+
+describe("DataTable.ExpandedRow state subscription", () => {
+	test("its `colSpan` follows a column visibility change while the `row` prop stays the same", async () => {
+		// The compiled panel keeps the same `row` prop, so only its subscription to
+		// the visible cell count re-renders it. A count read in the component body
+		// leaves `colspan` at 3 after the toggle.
+		const user = userEvent.setup();
+		render(<VisibilityToggleHarness />);
+		const detailCell = () =>
+			within(screen.getByTestId("detail-row-1")).getByText("Detail").closest("td");
+		expect(detailCell()).toHaveAttribute("colspan", "3");
+
+		await user.click(screen.getByRole("button", { name: "Toggle name" }));
+
+		expect(detailCell()).toHaveAttribute("colspan", "2");
 	});
 });
 
