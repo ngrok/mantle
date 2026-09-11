@@ -1,16 +1,9 @@
 "use client";
 
-// Why "use no memo": `useVirtualizer` returns a referentially stable,
-// internally mutable instance, so a compiled component reuses stale
-// `getVirtualItems()` output after a scroll. The suite cannot catch this one
-// — happy-dom geometry is degenerate — so the directive rides on TanStack's
-// documented React Compiler guidance, the same break as `data-table.tsx`.
-"use no memo";
-
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type { VirtualItem, Virtualizer } from "@tanstack/react-virtual";
 import { Children, isValidElement, useCallback, useEffect, useMemo, useRef } from "react";
-import type { ReactNode } from "react";
+import type { Key, ReactNode, RefObject } from "react";
 import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
 import {
 	findItemControl,
@@ -102,6 +95,71 @@ function WindowedItem({
 }
 
 /**
+ * The windowed slice for one render, as plain values.
+ */
+type VirtualWindow = {
+	/** The rows inside the viewport plus `overscan` on each side, in index order. A new array whenever the window or a measurement changes. */
+	virtualItems: VirtualItem[];
+	/** The height of the full collection in px. It sizes the scroll area. */
+	totalSize: number;
+	/** The virtualizer's stable ref callback that measures a mounted row. */
+	measureElement: Virtualizer<HTMLDivElement, Element>["measureElement"];
+	/** The virtualizer's stable scroll method. */
+	scrollToIndex: Virtualizer<HTMLDivElement, Element>["scrollToIndex"];
+};
+
+/**
+ * Reads the windowed slice from `@tanstack/react-virtual` and returns plain
+ * values, so `VirtualRoot` never touches the `Virtualizer` instance.
+ *
+ * Why "use no memo": `useVirtualizer` returns one referentially stable
+ * `Virtualizer` and mutates it in place, so a compiled reader memoizes
+ * `getVirtualItems()` on the instance and freezes the window. The React
+ * Compiler also skips any function that calls `useVirtualizer`; the directive
+ * records the decision. The compiled `VirtualRoot` stays correct because
+ * `getVirtualItems()` returns a new array whenever the window or a measurement
+ * changes, `getTotalSize()` returns a number, and the two methods are stable
+ * class fields.
+ */
+function useVirtualWindow({
+	count,
+	estimateItemHeight,
+	getItemKey,
+	overscan,
+	scrollRef,
+}: {
+	count: number;
+	estimateItemHeight: number;
+	getItemKey: (index: number) => Key;
+	overscan: number;
+	scrollRef: RefObject<HTMLDivElement | null>;
+}): VirtualWindow {
+	"use no memo";
+	const virtualizer = useVirtualizer({
+		count,
+		getScrollElement: () => scrollRef.current,
+		estimateSize: () => estimateItemHeight,
+		getItemKey,
+		overscan,
+		// Reproduce the plain collection's `gap-px` between windowed rows, which
+		// are out of flow and so can't inherit the flex gap.
+		gap: 1,
+		// Why initialRect: the virtualizer measures the viewport in a layout
+		// effect, which never runs on the server. A zero-height rect windows no
+		// rows. The seed is a viewport of `overscan + 1` estimated rows; with the
+		// overscan below it, the server HTML and the first client render carry
+		// `2 * overscan + 1` rows before hydration measures the real viewport.
+		initialRect: { width: 0, height: estimateItemHeight * (overscan + 1) },
+	});
+	return {
+		virtualItems: virtualizer.getVirtualItems(),
+		totalSize: virtualizer.getTotalSize(),
+		measureElement: virtualizer.measureElement,
+		scrollToIndex: virtualizer.scrollToIndex,
+	};
+}
+
+/**
  * The windowed counterpart to `Root`: renders only the visible slice of its
  * composed `Item` children via `@tanstack/react-virtual`, sharing the plain
  * shell's chrome, semantics, and — for a grid — `aria-activedescendant`
@@ -154,14 +212,6 @@ const VirtualRoot = ({
 	semantics = "list",
 	...props
 }: VirtualRootProps) => {
-	// Why "use no memo": `useVirtualizer` keeps one mutable `Virtualizer` and
-	// calls `setOptions` during render. `getVirtualItems()` and `getTotalSize()`
-	// below read that mutable state, so compiler memoization keyed on the stable
-	// instance would freeze the window. The React Compiler already skips any
-	// component that calls `useVirtualizer`; the directive records the decision.
-	// Only this component touches the instance: `WindowedItem` and `Item` receive
-	// plain values.
-	"use no memo";
 	const scrollRef = useRef<HTMLDivElement>(null);
 	const composedViewportRef = useComposedRefs(scrollRef, ref);
 	// Memoized so a scroll or keyboard-nav re-render (`useVirtualizer` re-renders
@@ -178,25 +228,16 @@ const VirtualRoot = ({
 	// identity. A fresh closure per render rebuilds every measurement and hands
 	// each mounted row a new `virtualItem`, so every row re-renders on scroll.
 	const getItemKey = useCallback((index: number) => items[index]?.key ?? index, [items]);
-	const virtualizer = useVirtualizer({
+	const { virtualItems, totalSize, measureElement, scrollToIndex } = useVirtualWindow({
 		count,
-		getScrollElement: () => scrollRef.current,
-		estimateSize: () => estimateItemHeight,
+		estimateItemHeight,
 		getItemKey,
 		overscan,
-		// Reproduce the plain collection's `gap-px` between windowed rows, which
-		// are out of flow and so can't inherit the flex gap.
-		gap: 1,
-		// Why initialRect: the virtualizer measures the viewport in a layout
-		// effect, which never runs on the server. A zero-height rect windows no
-		// rows. The seed is a viewport of `overscan + 1` estimated rows; with the
-		// overscan below it, the server HTML and the first client render carry
-		// `2 * overscan + 1` rows before hydration measures the real viewport.
-		initialRect: { width: 0, height: estimateItemHeight * (overscan + 1) },
+		scrollRef,
 	});
-	const scrollToIndex = useCallback(
-		(index: number) => virtualizer.scrollToIndex(index, { align: "auto" }),
-		[virtualizer],
+	const scrollRowIntoView = useCallback(
+		(index: number) => scrollToIndex(index, { align: "auto" }),
+		[scrollToIndex],
 	);
 	const focusFrameRef = useRef<number | null>(null);
 	// Cancel any in-flight focus poll when the list unmounts, so a row that was
@@ -227,7 +268,7 @@ const VirtualRoot = ({
 				}
 				// A jump target (Home/End) may not be mounted until the virtualizer
 				// renders the new window — scroll it in, then poll for its control.
-				virtualizer.scrollToIndex(target, { align: "auto" });
+				scrollRowIntoView(target);
 				const item = viewport.querySelector(`[data-index="${target}"]`);
 				if (item != null) {
 					const control = findItemControl(item);
@@ -249,7 +290,7 @@ const VirtualRoot = ({
 			};
 			tryFocus();
 		},
-		[count, virtualizer],
+		[count, scrollRowIntoView],
 	);
 	const { collectionProps, gridNav, listContext } = useListShell({
 		count,
@@ -259,10 +300,9 @@ const VirtualRoot = ({
 		isItemDisabled: isItemDisabled ?? ((index) => isItemChildDisabled(items[index])),
 		onActivate,
 		itemId,
-		scrollToIndex,
+		scrollToIndex: scrollRowIntoView,
 		semantics,
 	});
-	const virtualItems = virtualizer.getVirtualItems();
 	// `aria-activedescendant` must reference an element in the DOM: when the
 	// user mouse-scrolls the active row outside the mounted window, drop the
 	// reference rather than leave a dangling IDREF (the active index is kept, so
@@ -283,7 +323,7 @@ const VirtualRoot = ({
 				// Only the windowed slice is in the DOM, so tell AT how many rows
 				// the grid really has (rows carry the matching aria-rowindex).
 				"aria-rowcount": semantics === "grid" ? count : undefined,
-				style: { height: `${virtualizer.getTotalSize()}px` },
+				style: { height: `${totalSize}px` },
 			}}
 			gridNav={gridNav}
 			listContext={listContext}
@@ -300,7 +340,7 @@ const VirtualRoot = ({
 						key={virtualItem.key}
 						virtualItem={virtualItem}
 						count={count}
-						measureRef={virtualizer.measureElement}
+						measureRef={measureElement}
 					>
 						{item}
 					</WindowedItem>

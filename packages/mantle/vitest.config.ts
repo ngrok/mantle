@@ -1,5 +1,5 @@
 import { playwright, type PlaywrightProviderOptions } from "@vitest/browser-playwright";
-import babel from "vite-plugin-babel";
+import { transform } from "oxc-transform-react";
 import { configDefaults, defineConfig } from "vitest/config";
 
 type ContextOptions = Pick<PlaywrightProviderOptions, "contextOptions">["contextOptions"];
@@ -16,16 +16,36 @@ const contextOptions = {
 // The published dist ships React Compiler output (see `tsdown.config.ts`), so tests must run the
 // same compiled components: a suite that runs uncompiled source never executes what npm consumers
 // get. Test files stay uncompiled, because a consumer's own code is not compiled either.
-const reactCompiler = () =>
-	babel({
-		include: [`${import.meta.dirname}/src/**/*.{ts,tsx}`],
-		exclude: [`${import.meta.dirname}/src/**/*.test.{ts,tsx}`],
-		babelConfig: {
-			presets: ["@babel/preset-typescript"],
-			plugins: ["babel-plugin-react-compiler"],
-			sourceMaps: true,
+// Why `enforce: "pre"`: Vite's own transform strips JSX, and the compiler must see the original
+// source.
+const reactCompiler = () => ({
+	name: "react-compiler",
+	enforce: "pre" as const,
+	transform: {
+		filter: {
+			id: {
+				include: [/[\\/]packages[\\/]mantle[\\/]src[\\/].+\.tsx?$/],
+				exclude: [/\.test\.tsx?$/],
+			},
 		},
-	});
+		handler: async (code: string, id: string) => {
+			const result = await transform(id, code, {
+				jsx: "preserve",
+				sourcemap: true,
+				reactCompiler: { target: "19" },
+			});
+			if (result.fatal) {
+				const messages = result.errors.map((error) => error.message).join("\n");
+				throw new Error(`The React Compiler pass failed for ${id}:\n${messages}`);
+			}
+			return { code: result.code, map: result.map };
+		},
+	},
+});
+
+// `MANTLE_REACT_COMPILER=off` runs the suite on uncompiled source: the way to bisect a failure to
+// the compiler, and the baseline arm when you profile the compiled output.
+const compilerPlugins = process.env.MANTLE_REACT_COMPILER === "off" ? [] : [reactCompiler()];
 
 // Both projects inherit every option here (Vitest 5 defaults projects to `extends: true`), so a
 // hygiene or locale pin is written once and cannot drift between them.
@@ -51,7 +71,7 @@ export default defineConfig({
 		setupFiles: "./vitest.setup.ts",
 		projects: [
 			{
-				plugins: [reactCompiler()],
+				plugins: compilerPlugins,
 				test: {
 					name: "unit",
 					environment: "happy-dom",
@@ -68,7 +88,11 @@ export default defineConfig({
 				},
 			},
 			{
-				plugins: [reactCompiler()],
+				plugins: compilerPlugins,
+				// Why: the compiler adds the `react/compiler-runtime` import in the transform, so Vite's
+				// dependency scanner never sees it in source. Without this include, the first browser run
+				// discovers it mid-run, re-optimizes, reloads, and loads two copies of React.
+				optimizeDeps: { include: ["react/compiler-runtime"] },
 				test: {
 					name: "browser",
 					include: ["**/*.browser.test.{ts,tsx}"],

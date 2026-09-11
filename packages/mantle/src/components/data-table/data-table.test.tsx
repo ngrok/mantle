@@ -18,6 +18,7 @@ import {
 	DataTable,
 	type ExpandedState,
 	type Row as TableRow,
+	type RowSelectionState,
 	columnGroupingFeature,
 	columnVisibilityFeature,
 	createColumnHelper,
@@ -25,6 +26,7 @@ import {
 	createGroupedRowModel,
 	createSortedRowModel,
 	rowExpandingFeature,
+	rowSelectionFeature,
 	rowSortingFeature,
 	sortFn_alphanumeric,
 	sortFn_datetime,
@@ -1138,6 +1140,114 @@ describe("DataTable.Row renderExpanded without expandedRowModel", () => {
 			"false",
 		);
 		expect(screen.queryByTestId("panel")).not.toBeInTheDocument();
+	});
+});
+
+const selectionFeatures = tableFeatures({ rowSelectionFeature });
+const selectionColumnHelper = createColumnHelper<typeof selectionFeatures, Row>();
+const selectionColumns = selectionColumnHelper.columns([
+	selectionColumnHelper.accessor("name", {
+		id: "name",
+		header: () => <DataTable.Header>Name</DataTable.Header>,
+		// The cell reads state through the stable `row`, the pattern TanStack's
+		// React Compiler guide flags as stale under compilation.
+		cell: (props) => (
+			<DataTable.Cell>
+				{props.getValue()} is {props.row.getIsSelected() ? "selected" : "not selected"}
+			</DataTable.Cell>
+		),
+	}),
+]);
+
+function SelectionHarness() {
+	const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+	const table = useTable({
+		features: selectionFeatures,
+		data,
+		columns: selectionColumns,
+		state: { rowSelection },
+		onRowSelectionChange: setRowSelection,
+		getRowId: (row) => row.id,
+	});
+	const rows = table.getRowModel().rows;
+	return (
+		<>
+			<button type="button" onClick={() => rows[0]?.toggleSelected()}>
+				Toggle Alice
+			</button>
+			<DataTable.Root table={table}>
+				<DataTable.Body>
+					{rows.map((row) => (
+						<DataTable.Row key={row.id} row={row} />
+					))}
+				</DataTable.Body>
+			</DataTable.Root>
+		</>
+	);
+}
+
+describe("DataTable.Row state subscription", () => {
+	test("re-renders a cell that reads selection state through `row` when the selection changes", async () => {
+		// The compiled row keeps the same `row` prop across the change, so only its
+		// whole-state subscription re-runs the cell renderer. A selector narrowed to
+		// the row's expansion state leaves the cell at "not selected".
+		const user = userEvent.setup();
+		render(<SelectionHarness />);
+		expect(screen.getByRole("cell", { name: "Alice is not selected" })).toBeInTheDocument();
+
+		await user.click(screen.getByRole("button", { name: "Toggle Alice" }));
+
+		expect(screen.getByRole("cell", { name: "Alice is selected" })).toBeInTheDocument();
+	});
+});
+
+function VisibilityToggleHarness() {
+	const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({});
+	const table = useTable({
+		features: visibilityFeatures,
+		data,
+		columns: visibilityColumns,
+		state: { columnVisibility },
+		onColumnVisibilityChange: setColumnVisibility,
+		getRowId: (row) => row.id,
+	});
+	const rows = table.getRowModel().rows;
+	return (
+		<>
+			<button type="button" onClick={() => table.getColumn("name")?.toggleVisibility()}>
+				Toggle name
+			</button>
+			<DataTable.Root table={table}>
+				<DataTable.Head />
+				<DataTable.Body>
+					{rows.map((row) => (
+						<Fragment key={row.id}>
+							<DataTable.Row row={row} />
+							<DataTable.ExpandedRow data-testid={`detail-${row.id}`} row={row}>
+								<span>Detail</span>
+							</DataTable.ExpandedRow>
+						</Fragment>
+					))}
+				</DataTable.Body>
+			</DataTable.Root>
+		</>
+	);
+}
+
+describe("DataTable.ExpandedRow state subscription", () => {
+	test("its `colSpan` follows a column visibility change while the `row` prop stays the same", async () => {
+		// The compiled panel keeps the same `row` prop, so only its subscription to
+		// the visible cell count re-renders it. A count read in the component body
+		// leaves `colspan` at 3 after the toggle.
+		const user = userEvent.setup();
+		render(<VisibilityToggleHarness />);
+		const detailCell = () =>
+			within(screen.getByTestId("detail-row-1")).getByText("Detail").closest("td");
+		expect(detailCell()).toHaveAttribute("colspan", "3");
+
+		await user.click(screen.getByRole("button", { name: "Toggle name" }));
+
+		expect(detailCell()).toHaveAttribute("colspan", "2");
 	});
 });
 

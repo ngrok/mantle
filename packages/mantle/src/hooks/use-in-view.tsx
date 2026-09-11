@@ -81,8 +81,14 @@ function useInView(
 ): boolean {
 	const [isInView, setInView] = useState(initial);
 
+	// Why the effect never reads `isInView`: `inView` unobserves the element itself
+	// after a `once` entry, and a later enter only sets `true` again. Reading the
+	// state here would need it in the deps, which restarts the observer on every
+	// enter or leave, or a `react-hooks/exhaustive-deps` suppression, which opts
+	// the hook out of the React Compiler.
 	useEffect(() => {
-		if (!ref.current || (once && isInView)) {
+		const element = ref.current;
+		if (element == null) {
 			return;
 		}
 
@@ -92,20 +98,12 @@ function useInView(
 		}
 
 		const options: InViewOptions = {
-			root: (root && root.current) || undefined,
+			root: root?.current ?? undefined,
 			margin,
 			amount,
 		};
 
-		return inView(ref.current, onEnter, options);
-		/**
-		 * Intentionally omit `isInView` from deps. The effect must only re-run
-		 * when the observation parameters change, not when visibility changes.
-		 * Including `isInView` would restart the observer (disconnect + reconnect)
-		 * on every enter/leave event, causing wasteful churn for the common
-		 * `once=false` case.
-		 */
-		// oxlint-disable-next-line react-hooks/exhaustive-deps
+		return inView(element, onEnter, options);
 	}, [root, ref, margin, once, amount]);
 
 	return isInView;

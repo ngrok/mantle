@@ -27,8 +27,6 @@ minimumReleaseAgeExclude:
 pmOnFail: ignore
 
 catalog:
-  "@babel/core": "7.29.7"
-  "@babel/preset-typescript": "7.29.7"
   "@phosphor-icons/react": "2.1.10"
   "@types/react": "19.3.0"
   "@types/react-dom": "19.3.0"
@@ -40,9 +38,9 @@ catalog:
   "@tsdown/css": "0.23.0"
   "@types/node": "24.13.3"
   "@vitest/browser-playwright": "5.0.0"
-  "babel-plugin-react-compiler": "1.0.0"
   "happy-dom": "20.14.3"
   "oxc-parser": "0.149.0"
+  "oxc-transform-react": "0.149.0"
   "playwright-core": "1.63.0"
   "playwright": "1.63.0"
   "react-dom": "19.3.0"
@@ -52,7 +50,6 @@ catalog:
   "tsx": "4.23.13"
   "typescript": "7.0.2"
   "vite": "8.3.0"
-  "vite-plugin-babel": "1.7.3"
 
 overrides:
   "@types/node": "catalog:"
