@@ -5,7 +5,9 @@ description: Displays a list of options for the user to pick from—triggered by
 
 import { Button } from "@ngrok/mantle/button";
 import { Field, toErrorMessages } from "@ngrok/mantle/field";
+import { Icon } from "@ngrok/mantle/icon";
 import { Select } from "@ngrok/mantle/select";
+import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
 import { useForm } from "@tanstack/react-form";
 import { useState } from "react";
 import { z } from "zod";
@@ -84,6 +86,49 @@ window.alert(`Submitted: ${JSON.stringify(value, null, 2)}`);
     			Submit
     		</Button>
     	</form>
+    );
+
+}
+
+export const regions = [
+	{ value: "us", label: "United States", host: "us.ngrok.com" },
+	{ value: "eu", label: "Europe", host: "eu.ngrok.com" },
+	{ value: "ap", label: "Asia Pacific", host: "ap.ngrok.com" },
+	{ value: "au", label: "Australia", host: "au.ngrok.com" },
+];
+
+export function RichItemLabelsExample() {
+	const [value, setValue] = useState("us");
+	const region = regions.find((candidate) => candidate.value === value);
+
+    return (
+    	<Select.Root value={value} onValueChange={setValue}>
+    		<Select.Trigger className="w-72" aria-label="Region">
+    			<Select.Value placeholder="Select a region">
+    				{region && (
+    					<span className="flex items-center gap-2">
+    						<Icon svg={<GlobeHemisphereWestIcon />} className="size-4" />
+    						<span>{region.label}</span>
+    						<span className="text-muted text-xs" translate="no">
+    							{region.host}
+    						</span>
+    					</span>
+    				)}
+    			</Select.Value>
+    		</Select.Trigger>
+    		<Select.Content width="trigger">
+    			{regions.map((region) => (
+    				<Select.Item key={region.value} value={region.value} icon={<GlobeHemisphereWestIcon />}>
+    					<span className="flex flex-col">
+    						<span>{region.label}</span>
+    						<span className="text-muted text-xs" translate="no">
+    							{region.host}
+    						</span>
+    					</span>
+    				</Select.Item>
+    			))}
+    		</Select.Content>
+    	</Select.Root>
     );
 
 }
@@ -375,6 +420,107 @@ function Example() {
 		</Select.Root>
 	);
 }
+```
+
+### Rich item labels
+
+An item takes any content, and the trigger shows the selected label as-is. When the list needs a second line and the trigger needs one, control the select and render a compact value with `Select.Value` children. Both renders stay safe on a translated page: React removes the label span or the value span, never a bare text node.
+
+<Example>
+	<RichItemLabelsExample />
+</Example>
+
+```tsx
+import { Icon } from "@ngrok/mantle/icon";
+import { Select } from "@ngrok/mantle/select";
+import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
+import { useState } from "react";
+
+const regions = [
+	{ value: "us", label: "United States", host: "us.ngrok.com" },
+	{ value: "eu", label: "Europe", host: "eu.ngrok.com" },
+	{ value: "ap", label: "Asia Pacific", host: "ap.ngrok.com" },
+	{ value: "au", label: "Australia", host: "au.ngrok.com" },
+];
+
+function Example() {
+	const [value, setValue] = useState("us");
+	const region = regions.find((candidate) => candidate.value === value);
+
+	return (
+		<Select.Root value={value} onValueChange={setValue}>
+			<Select.Trigger className="w-72" aria-label="Region">
+				<Select.Value placeholder="Select a region">
+					{region && (
+						<span className="flex items-center gap-2">
+							<Icon svg={<GlobeHemisphereWestIcon />} className="size-4" />
+							<span>{region.label}</span>
+							<span className="text-muted text-xs" translate="no">
+								{region.host}
+							</span>
+						</span>
+					)}
+				</Select.Value>
+			</Select.Trigger>
+			<Select.Content width="trigger">
+				{regions.map((region) => (
+					<Select.Item key={region.value} value={region.value} icon={<GlobeHemisphereWestIcon />}>
+						<span className="flex flex-col">
+							<span>{region.label}</span>
+							<span className="text-muted text-xs" translate="no">
+								{region.host}
+							</span>
+						</span>
+					</Select.Item>
+				))}
+			</Select.Content>
+		</Select.Root>
+	);
+}
+```
+
+### Untranslatable labels
+
+When a label is an ID, a path, a filename, or a key, set `translate="no"` on the item. A browser translation engine then skips the row and the copy the trigger shows, so the reader copies the right string.
+
+<Example>
+	<Select.Root defaultValue="us-east-1">
+		<Select.Trigger className="w-56" aria-label="AWS region">
+			<Select.Value placeholder="Select a region" />
+		</Select.Trigger>
+		<Select.Content width="trigger">
+			<Select.Item value="us-east-1" translate="no">
+				us-east-1
+			</Select.Item>
+			<Select.Item value="eu-west-1" translate="no">
+				eu-west-1
+			</Select.Item>
+			<Select.Item value="ap-southeast-2" translate="no">
+				ap-southeast-2
+			</Select.Item>
+		</Select.Content>
+	</Select.Root>
+</Example>
+
+```tsx
+import { Select } from "@ngrok/mantle/select";
+
+<Select.Root defaultValue="us-east-1">
+	<Select.Trigger className="w-56" aria-label="AWS region">
+		<Select.Value placeholder="Select a region" />
+	</Select.Trigger>
+	<Select.Content width="trigger">
+		<Select.Item value="us-east-1" translate="no">
+			us-east-1
+		</Select.Item>
+		<Select.Item value="eu-west-1" translate="no">
+			eu-west-1
+		</Select.Item>
+		<Select.Item value="ap-southeast-2" translate="no">
+			ap-southeast-2
+		</Select.Item>
+	</Select.Content>
+</Select.Root>;
 ```
 
 ## Composition
