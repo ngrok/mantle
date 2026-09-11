@@ -4,6 +4,7 @@ import { AppLayoutDemo } from "~/features/app-layout-demos";
 import { AppLayoutEditorDemo, AppLayoutPinnedFooterDemo } from "~/features/app-layout-editor-demo";
 import { AppShellDemo } from "~/features/app-shell-demo";
 import { CommandSearchShellDemo } from "~/features/command-demos";
+import { ListPageLoadingDemo } from "~/features/list-page-loading-demo";
 import {
 	CenteredLayoutDemo,
 	CenteredLayoutHeaderDemo,
@@ -100,6 +101,11 @@ export const previewExamples = {
 		title: "Centered layout notice demo",
 		Component: CenteredLayoutNoticeDemo,
 		sourceFile: "centered-layout-demos.tsx",
+	},
+	"list-page-loading": {
+		title: "List page loading demo",
+		Component: ListPageLoadingDemo,
+		sourceFile: "list-page-loading-demo.tsx",
 	},
 	sandbar: {
 		title: "Sandbar demo",
