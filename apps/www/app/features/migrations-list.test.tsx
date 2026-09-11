@@ -85,7 +85,7 @@ describe("MigrationsList", () => {
 	it("narrows the list as the user types and restores it on clear", async () => {
 		const user = userEvent.setup();
 		renderList();
-		const input = screen.getByRole("textbox", { name: "Filter migrations" });
+		const input = screen.getByRole("searchbox", { name: "Filter migrations" });
 
 		await user.type(input, "dialog.footer");
 
@@ -104,16 +104,18 @@ describe("MigrationsList", () => {
 	it("shows the empty state for a query with no match, and the clear button resets it", async () => {
 		const user = userEvent.setup();
 		renderList();
-		const input = screen.getByRole("textbox", { name: "Filter migrations" });
+		const input = screen.getByRole("searchbox", { name: "Filter migrations" });
 
 		await user.type(input, "no such guide");
 
 		expect(screen.queryByRole("list")).toBeNull();
-		expect(screen.getByText("no such guide").tagName).toBe("CODE");
+		expect(
+			screen.getByRole("heading", { name: "No migrations match “no such guide”" }),
+		).not.toBeNull();
 
 		await user.click(screen.getByRole("button", { name: "Clear filter" }));
 
-		const restoredInput = screen.getByRole("textbox", { name: "Filter migrations" });
+		const restoredInput = screen.getByRole("searchbox", { name: "Filter migrations" });
 		expect(restoredInput.getAttribute("value")).toBe("");
 		expect(document.activeElement).toBe(restoredInput);
 		expect(within(screen.getByRole("list")).getAllByRole("link")).toHaveLength(
