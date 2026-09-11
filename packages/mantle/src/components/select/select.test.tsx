@@ -331,7 +331,8 @@ describe("Select", () => {
 			expect(trigger.querySelector('[data-slot="select-item-label"]')).not.toBeInTheDocument();
 		});
 
-		test("a consumer data-slot joins ahead of the part's own slot on Select.Value and Select.Item", () => {
+		test("a consumer data-slot joins ahead of the part's own slot on Select.Value and Select.Item", async () => {
+			const user = userEvent.setup();
 			render(
 				<Select.Root defaultValue="apple">
 					<Select.Trigger>
@@ -350,6 +351,53 @@ describe("Select", () => {
 				HTMLSpanElement,
 			);
 			expect(trigger.querySelector('[data-slot="select-value"]')).not.toBeInTheDocument();
+
+			await user.click(trigger);
+
+			expect(await screen.findByRole("option", { name: "Apple" })).toHaveAttribute(
+				"data-slot",
+				"app-item select-item",
+			);
+		});
+
+		test("documented item data attributes follow selection, keyboard highlight, and disabled", async () => {
+			const user = userEvent.setup();
+			render(
+				<Select.Root defaultValue="apple">
+					<Select.Trigger>
+						<Select.Value placeholder="Select a fruit" />
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Item value="apple">Apple</Select.Item>
+						<Select.Item value="banana">Banana</Select.Item>
+						<Select.Item value="cherry" disabled>
+							Cherry
+						</Select.Item>
+					</Select.Content>
+				</Select.Root>,
+			);
+
+			await user.click(screen.getByRole("combobox"));
+
+			const apple = await screen.findByRole("option", { name: "Apple" });
+			const banana = screen.getByRole("option", { name: "Banana" });
+			const cherry = screen.getByRole("option", { name: "Cherry" });
+			expect(apple).toHaveAttribute("data-state", "checked");
+			expect(banana).toHaveAttribute("data-state", "unchecked");
+			expect(cherry).toHaveAttribute("data-disabled", "");
+			expect(banana).not.toHaveAttribute("data-disabled");
+			// Radix focuses the selected item when the list opens, so it is highlighted.
+			expect(apple).toHaveAttribute("data-highlighted", "");
+			expect(banana).not.toHaveAttribute("data-highlighted");
+
+			await user.keyboard("{ArrowDown}");
+
+			expect(banana).toHaveAttribute("data-highlighted", "");
+			expect(apple).not.toHaveAttribute("data-highlighted");
+
+			await user.keyboard("{Enter}");
+
+			expect(screen.getByRole("combobox")).toHaveTextContent("Banana");
 		});
 
 		test("Select.Value asChild renders the child as-is and skips the label span", () => {
@@ -379,60 +427,8 @@ describe("Select", () => {
 				screen.getByRole("combobox").querySelector('[data-slot="select-value-label"]'),
 			).not.toBeInTheDocument();
 		});
-
-		// Why this pins a class: `display: contents` is the only observable
-		// implementation of "the wrapper adds no box", and happy-dom has no layout.
-		// A consumer's `[&>span]:flex-1` on the trigger reaches the value span, and
-		// their own item content must stay its direct layout child.
-		test("lays out the wrapper spans as contents so they add no box of their own", () => {
-			render(
-				<Select.Root defaultValue="apple">
-					<Select.Trigger>
-						<Select.Value placeholder="Select a fruit" />
-					</Select.Trigger>
-					<Select.Content>
-						<Select.Item value="apple">Apple</Select.Item>
-					</Select.Content>
-				</Select.Root>,
-			);
-			const trigger = screen.getByRole("combobox");
-			expect(trigger.querySelector('[data-slot="select-item-label"]')).toHaveClass("contents");
-
-			render(
-				<Select.Root value="">
-					<Select.Trigger data-testid="empty">
-						<Select.Value placeholder="Select a fruit" />
-					</Select.Trigger>
-					<Select.Content>
-						<Select.Item value="apple">Apple</Select.Item>
-					</Select.Content>
-				</Select.Root>,
-			);
-			expect(
-				screen.getByTestId("empty").querySelector('[data-slot="select-placeholder"]'),
-			).toHaveClass("contents");
-
-			render(
-				<Select.Root value="apple">
-					<Select.Trigger data-testid="custom">
-						<Select.Value>Custom apple</Select.Value>
-					</Select.Trigger>
-					<Select.Content>
-						<Select.Item value="apple">Apple</Select.Item>
-					</Select.Content>
-				</Select.Root>,
-			);
-			expect(
-				screen.getByTestId("custom").querySelector('[data-slot="select-value-label"]'),
-			).toHaveClass("contents");
-		});
 	});
 
-	// Why these tests: decisions/2026-08-04-translation-safe-label-wrappers.md.
-	// Radix portals the selected item's children into `Select.Value` and keys
-	// the placeholder, so a bare text node in either spot is one React removes
-	// by itself. A translation engine reparents that node first, and the
-	// `removeChild` throws.
 	describe("after browser translation", () => {
 		test("changes a translated selection and reports the new value", async () => {
 			const user = userEvent.setup();

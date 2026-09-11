@@ -424,7 +424,7 @@ function Example() {
 
 ### Rich item labels
 
-An item takes any content, and the trigger shows the selected label as-is. When the list needs a second line and the trigger needs one, control the select and render a compact value with `Select.Value` children. Both renders stay safe on a translated page: React removes the label span or the value span, never a bare text node.
+An item takes any content, and the trigger shows the selected label as-is. When the list needs two lines and the trigger must stay on one line, control the select and render a compact value with `Select.Value` children. Both renders stay safe on a translated page: React removes the label span or the value span, never a bare text node.
 
 <Example>
 	<RichItemLabelsExample />
