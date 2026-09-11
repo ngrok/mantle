@@ -14,6 +14,7 @@ import devtoolsJson from "vite-plugin-devtools-json";
 import { remarkMdxNoParagraphWrap } from "@ngrok/remark-mdx-no-paragraph-wrap";
 import { mantleChangelogMdx } from "./vite-plugins/mantle-changelog-mdx.ts";
 import { mdxDocComponentImports } from "./vite-plugins/mdx-doc-component-imports.ts";
+import { mdxGeneratedCode } from "./vite-plugins/mdx-generated-code.ts";
 import { rawMdxDocs } from "./vite-plugins/raw-mdx-docs.ts";
 import { rehypeMdxDocHandle } from "./vite-plugins/rehype-mdx-doc-handle.ts";
 import { remarkMdxDemoteLowercaseExports } from "./vite-plugins/remark-mdx-demote-lowercase-exports.ts";
@@ -69,6 +70,7 @@ export default defineConfig(({ command }) => ({
 	plugins: [
 		//
 		...codeBlockPlugins.vitePlugins,
+		mdxGeneratedCode(path.resolve(import.meta.dirname, "app/docs")),
 		rawMdxDocs(path.resolve(import.meta.dirname, "app/docs")),
 		mdxDocComponentImports(path.resolve(import.meta.dirname, "app/docs")),
 		mantleChangelogMdx(path.resolve(import.meta.dirname, "../../packages/mantle/CHANGELOG.md")),

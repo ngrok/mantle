@@ -30,7 +30,7 @@
     "@types/node": "catalog:",
     "husky": "9.1.7",
     "lint-staged": "17.5.1",
-    "oxfmt": "0.67.0",
+    "oxfmt": "catalog:",
     "oxlint": "1.82.0",
     "tsx": "catalog:",
     "turbo": "2.10.12",
