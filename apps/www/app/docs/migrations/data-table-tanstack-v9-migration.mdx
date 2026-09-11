@@ -10,7 +10,7 @@ description: Move a DataTable from TanStack Table v8 to v9 by registering featur
 **TL;DR:** for each table that calls `useReactTable`:
 
 1. Build a `features` object with `tableFeatures({ … })` at module scope and call `useTable({ features, data, columns })`.
-2. Delete `getCoreRowModel`. Turn every other `get*RowModel()` option into a feature plus a row-model slot inside `tableFeatures`.
+2. Delete `getCoreRowModel`. Turn every other `get*RowModel()` option into a feature plus a row-model slot inside `tableFeatures`. Register the `filterFns` and `aggregationFns` your columns resolve by name.
 3. Type the helper as `createColumnHelper<typeof features, T>()` and wrap the array in `columnHelper.columns([…])`.
 4. Rename `sortingFn` to `sortFn` and register the comparators you use in the `sortFns` slot.
 5. Read `table.state` instead of `table.getState()`.
@@ -36,7 +36,7 @@ Mantle's `DataTable` parts are generic over that features object. `DataTable.Hea
 
 ## Before you start
 
-- `@tanstack/react-table` must not be a direct dependency of your app. `@ngrok/mantle/data-table` re-exports every v9 export: `useTable`, `tableFeatures`, `createColumnHelper`, every `*Feature` object, every `create*RowModel` factory, the `sortFn_*` and `filterFn_*` comparators, `metaHelper`, `flexRender`, and every type. If `package.json` lists `@tanstack/react-table`, remove it and point every import at `@ngrok/mantle/data-table`.
+- `@tanstack/react-table` must not be a direct dependency of your app. `@ngrok/mantle/data-table` re-exports every v9 export: `useTable`, `tableFeatures`, `createColumnHelper`, every `*Feature` object, every `create*RowModel` factory, the `sortFn_*`, `filterFn_*`, and `aggregationFn_*` functions, `metaHelper`, `flexRender`, and every type. If `package.json` lists `@tanstack/react-table`, remove it and point every import at `@ngrok/mantle/data-table`.
 - Do not reach for the compatibility layer. Mantle does not re-export `@tanstack/react-table/legacy`, `useLegacyTable`, `legacyCreateColumnHelper`, or the deprecated `get*RowModel` stubs. See [What not to do](#what-not-to-do).
 - Read the [DataTable docs](/components/data-display/data-table) for the current recipes. Every example there is already on v9.
 
@@ -47,7 +47,7 @@ Mantle's `DataTable` parts are generic over that features object. `DataTable.Hea
 Every file that imports from `@ngrok/mantle/data-table` is a candidate. Run this from your app root to find the renamed calls and options:
 
 ```bash
-grep -rnE "useReactTable|getCoreRowModel|get(Sorted|Filtered|Pagination|Expanded|Grouped|Faceted)RowModel|sortingFn|getSortingFn|getState\(\)|onStateChange|options\.meta|columnSizingInfo|enablePinning" --include='*.ts' --include='*.tsx' app
+grep -rnE "useReactTable|getCoreRowModel|get(Sorted|Filtered|Pagination|Expanded|Grouped|Faceted)RowModel|sortingFn|getSortingFn|filterFn|columnFilters|aggregationFn|getIsAggregated|getState\(\)|onStateChange|options\.meta|columnSizingInfo|enablePinning" --include='*.ts' --include='*.tsx' app
 ```
 
 The grep covers the renames. The table below adds the type, state, and method names to check by hand in each candidate file, and maps each to a step:
@@ -57,6 +57,8 @@ The grep covers the renames. The table below adds the type, state, and method na
 | `useReactTable(`                                                                                                                       | [Step 1](#step-1-build-a-features-object)                      |
 | `getCoreRowModel`                                                                                                                      | [Step 2](#step-2-replace-the-row-models) (delete it)           |
 | `getSortedRowModel`, `getFilteredRowModel`, `getPaginationRowModel`, `getExpandedRowModel`, `getGroupedRowModel`, `getFacetedRowModel` | [Step 2](#step-2-replace-the-row-models)                       |
+| `filterFn:`, `columnFilters`, `setFilterValue(`                                                                                        | [Step 2](#register-filterfns)                                  |
+| `aggregationFn:`, `aggregatedCell:`, `getIsAggregated(`, a group row that shows a total                                                | [Step 2](#register-aggregationfns-for-grouped-totals)          |
 | `createColumnHelper<`                                                                                                                  | [Step 3](#step-3-type-the-column-helper-and-wrap-the-columns)  |
 | `sortingFn:`, `sortingFns`, `getSortingFn(`                                                                                            | [Step 4](#step-4-rename-the-sort-options-and-register-sortfns) |
 | `getState()`, `onStateChange`                                                                                                          | [Step 5](#step-5-read-tablestate)                              |
@@ -254,24 +256,80 @@ const table = useTable({
 
 v8 turned a row model on by passing a `get*RowModel()` option. v9 pairs a feature (the state and methods) with a row-model slot (the client-side processing). Both go in `tableFeatures`. If a slot is present without its feature, `tableFeatures` fails to typecheck with a message that names the missing feature.
 
-| v8 `useReactTable` option                                                               | v9 `tableFeatures({ … })` entries                                                                                                                                       |
-| --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `getCoreRowModel: getCoreRowModel()`                                                    | Delete it. The core row model is built in.                                                                                                                              |
-| `getSortedRowModel: getSortedRowModel()`                                                | `rowSortingFeature`, `sortedRowModel: createSortedRowModel()`, a `sortFns` registry                                                                                     |
-| `getFilteredRowModel: getFilteredRowModel()`                                            | `columnFilteringFeature`, `filteredRowModel: createFilteredRowModel()`                                                                                                  |
-| A global filter (`state.globalFilter`, `onGlobalFilterChange`, `table.setGlobalFilter`) | `globalFilteringFeature`, which requires `columnFilteringFeature` in the same call                                                                                      |
-| `getPaginationRowModel: getPaginationRowModel()`                                        | `rowPaginationFeature`, `paginatedRowModel: createPaginatedRowModel()`                                                                                                  |
-| `getExpandedRowModel: getExpandedRowModel()`                                            | `rowExpandingFeature`, `expandedRowModel: createExpandedRowModel()`                                                                                                     |
-| `getGroupedRowModel: getGroupedRowModel()`                                              | `columnGroupingFeature`, `groupedRowModel: createGroupedRowModel()`, plus `rowAggregationFeature` when a cell or column uses `aggregationFn` or `getAggregationValue()` |
-| `getFacetedRowModel: getFacetedRowModel()`                                              | `columnFacetingFeature`, `facetedRowModel: createFacetedRowModel()`                                                                                                     |
+| v8 `useReactTable` option                                                               | v9 `tableFeatures({ … })` entries                                                                                                                                                                                   |
+| --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `getCoreRowModel: getCoreRowModel()`                                                    | Delete it. The core row model is built in.                                                                                                                                                                          |
+| `getSortedRowModel: getSortedRowModel()`                                                | `rowSortingFeature`, `sortedRowModel: createSortedRowModel()`, a `sortFns` registry                                                                                                                                 |
+| `getFilteredRowModel: getFilteredRowModel()`                                            | `columnFilteringFeature`, `filteredRowModel: createFilteredRowModel()`, a `filterFns` registry for column filters that use `"auto"` or a string name                                                                |
+| A global filter (`state.globalFilter`, `onGlobalFilterChange`, `table.setGlobalFilter`) | `globalFilteringFeature`, which requires `columnFilteringFeature` in the same call                                                                                                                                  |
+| `getPaginationRowModel: getPaginationRowModel()`                                        | `rowPaginationFeature`, `paginatedRowModel: createPaginatedRowModel()`                                                                                                                                              |
+| `getExpandedRowModel: getExpandedRowModel()`                                            | `rowExpandingFeature`, `expandedRowModel: createExpandedRowModel()`                                                                                                                                                 |
+| `getGroupedRowModel: getGroupedRowModel()`                                              | `columnGroupingFeature`, `groupedRowModel: createGroupedRowModel()`, plus `rowAggregationFeature` when a group row shows a total, and an `aggregationFns` registry when those columns use `"auto"` or a string name |
+| `getFacetedRowModel: getFacetedRowModel()`                                              | `columnFacetingFeature`, `facetedRowModel: createFacetedRowModel()`                                                                                                                                                 |
 
 Three rules that `tableFeatures` enforces at the type level:
 
 - `sortedRowModel` requires `rowSortingFeature`, `filteredRowModel` requires `columnFilteringFeature`, `paginatedRowModel` requires `rowPaginationFeature`, `expandedRowModel` requires `rowExpandingFeature`, and `groupedRowModel` requires `columnGroupingFeature`.
-- `globalFilteringFeature` requires `columnFilteringFeature`. The default global filter is `includesString`, and it needs no `filterFns` registration.
-- `sortFns` and `filterFns` require `rowSortingFeature` and `columnFilteringFeature`.
+- `globalFilteringFeature` requires `columnFilteringFeature`. The default global filter is `filterFn_includesString` itself, and it needs no `filterFns` registration. A column filter with `"auto"` or a string name does: see [Register filterFns](#register-filterfns).
+- `sortFns`, `filterFns`, and `aggregationFns` require `rowSortingFeature`, `columnFilteringFeature`, and `rowAggregationFeature`.
 
-A grouped usage table that also hides a column, a shape ngrok's dashboard uses today:
+### Register filterFns
+
+A column's `filterFn` defaults to `"auto"`, which picks a built-in filter by the column's first non-null value. In v9, `"auto"` and every string name resolve against the `filterFns` slot on your features object. With no slot, the column has no filter function: `table.getFilteredRowModel()` returns every row, and only a development build logs a warning. A function value for `filterFn` bypasses the slot, and `manualFiltering: true` runs no filter function on the client. The global filter's `"auto"` default is `filterFn_includesString` itself, so a table with only a search box needs no slot either.
+
+Register the filters your columns resolve by name. The registry keys become the only valid string values for `filterFn`:
+
+| Column value      | `"auto"` picks   | Register                                  |
+| ----------------- | ---------------- | ----------------------------------------- |
+| `string`          | `includesString` | `includesString: filterFn_includesString` |
+| `number`          | `inNumberRange`  | `inNumberRange: filterFn_inNumberRange`   |
+| `boolean`, object | `equals`         | `equals: filterFn_equals`                 |
+| `Date`            | `inDateRange`    | `inDateRange: filterFn_inDateRange`       |
+| array             | `arrIncludes`    | `arrIncludes: filterFn_arrIncludes`       |
+
+**Before:**
+
+```tsx
+const table = useReactTable({
+	getCoreRowModel: getCoreRowModel(),
+	getFilteredRowModel: getFilteredRowModel(),
+	data,
+	columns,
+	state: { columnFilters },
+	onColumnFiltersChange: setColumnFilters,
+});
+```
+
+**After:**
+
+```tsx
+// The filtered columns hold strings, so `"auto"` resolves `includesString`.
+const features = tableFeatures({
+	columnFilteringFeature,
+	filteredRowModel: createFilteredRowModel(),
+	filterFns: {
+		includesString: filterFn_includesString,
+	},
+});
+
+const table = useTable({
+	features,
+	data,
+	columns,
+	state: { columnFilters },
+	onColumnFiltersChange: setColumnFilters,
+});
+```
+
+`columnFilters` state, `onColumnFiltersChange`, `column.setFilterValue()`, `column.getFilterValue()`, and `column.getIsFiltered()` are unchanged. A custom named filter goes in the same object, and its key becomes a valid `filterFn` string.
+
+### Register aggregationFns for grouped totals
+
+v8 aggregated every non-grouping column on a group row by default: `getValue()` on a `number` column returned the `sum` of the leaf rows, and on a `Date` column the `extent`, with no `aggregationFn` on the column. In v9 that behavior lives in `rowAggregationFeature`, and its `"auto"` default resolves `sum` and `extent` against the `aggregationFns` slot. With `columnGroupingFeature` alone, a group row's `getValue()` returns `undefined` for every non-grouping column, so a cell that renders `props.getValue()` goes blank on the group rows. `rowAggregationFeature` without the slot does the same, and only a development build logs a warning.
+
+If a group row shows a value for a non-grouping column, register `rowAggregationFeature` and the aggregations its columns resolve by name. `cell.getIsAggregated()`, `aggregatedCell`, `column.getAggregationValue()`, and a column's own `aggregationFn: "name"` also need the feature. A column whose `aggregationFn` is a `constructAggregationFn({ … })` value, not a name, bypasses the slot but still needs the feature. The registry keys become the only valid string values for `aggregationFn`.
+
+ngrok's dashboard has a grouped usage table that also hides a column. Its usage columns hold numbers, so v8 summed them on each group row:
 
 **Before:**
 
@@ -290,12 +348,17 @@ const table = useReactTable({
 **After:**
 
 ```tsx
+// `"auto"` resolves `sum` for the number columns, so register it to keep the totals.
 const features = tableFeatures({
 	columnGroupingFeature,
 	columnVisibilityFeature,
+	rowAggregationFeature,
 	rowExpandingFeature,
 	expandedRowModel: createExpandedRowModel(),
 	groupedRowModel: createGroupedRowModel(),
+	aggregationFns: {
+		sum: aggregationFn_sum,
+	},
 });
 
 const table = useTable({
@@ -436,7 +499,7 @@ const features = tableFeatures({
 });
 ```
 
-TanStack still exports the full `sortFns` and `filterFns` registries, but v9 marks them deprecated. Do not spread them into the slot; import the functions you use.
+TanStack still exports the full `sortFns`, `filterFns`, and `aggregationFns` registries, but v9 marks them deprecated. Do not spread them into the slots; import the functions you use.
 
 ---
 
@@ -800,33 +863,35 @@ Every `DataTable` part infers its generics from the `table`, `column`, or `row` 
 
 Apply these in order. Each row is a mechanical edit; the notes call out the ones that need a second look.
 
-| Before                                                        | After                                                                 | Note                                                                                                                                       |
-| ------------------------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `useReactTable(`                                              | `useTable(`                                                           | Add `features` to the options object.                                                                                                      |
-| `getCoreRowModel: getCoreRowModel(),`                         | (delete the line)                                                     | Also delete the import.                                                                                                                    |
-| `getSortedRowModel: getSortedRowModel(),`                     | (delete the line)                                                     | Add `rowSortingFeature`, `sortedRowModel: createSortedRowModel()`, a `sortFns` registry to `tableFeatures`.                                |
-| `getFilteredRowModel: getFilteredRowModel(),`                 | (delete the line)                                                     | Add `columnFilteringFeature`, `filteredRowModel: createFilteredRowModel()`. Add `globalFilteringFeature` if the table has a global filter. |
-| `getPaginationRowModel: getPaginationRowModel(),`             | (delete the line)                                                     | Add `rowPaginationFeature`, `paginatedRowModel: createPaginatedRowModel()`.                                                                |
-| `getExpandedRowModel: getExpandedRowModel(),`                 | (delete the line)                                                     | Add `rowExpandingFeature`, `expandedRowModel: createExpandedRowModel()`.                                                                   |
-| `getGroupedRowModel: getGroupedRowModel(),`                   | (delete the line)                                                     | Add `columnGroupingFeature`, `groupedRowModel: createGroupedRowModel()`.                                                                   |
-| `createColumnHelper<T>()`                                     | `createColumnHelper<typeof features, T>()`                            |                                                                                                                                            |
-| `TableOptions<T>`                                             | `TableOptions<typeof features, T>`                                    | `features` is required; add it to any `Omit<…, "data" \| "columns">`, or build the config with `tableOptions()`.                           |
-| `const columns = [`                                           | `const columns = columnHelper.columns([`                              | Close with `]);`.                                                                                                                          |
-| `sortingFn:`                                                  | `sortFn:`                                                             | Register the string names in `sortFns`.                                                                                                    |
-| `sortingFns`                                                  | `sortFns`                                                             |                                                                                                                                            |
-| `.getSortingFn()`                                             | `.getSortFn()`                                                        |                                                                                                                                            |
-| `table.getState()`                                            | `table.state`                                                         |                                                                                                                                            |
-| `onStateChange:`                                              | (delete)                                                              | Use the per-slice `on*Change` callbacks.                                                                                                   |
-| `Column<T, V>`                                                | `Column<typeof features, T, V>`                                       | Or a `TFeatures extends TableFeatures` generic.                                                                                            |
-| `Row<T>`, `Table<T>`                                          | `Row<typeof features, T>`, `Table<typeof features, T>`                |                                                                                                                                            |
-| `ColumnDef<T, V>`, `HeaderContext<T, V>`, `CellContext<T, V>` | `ColumnDef<typeof features, T, V>`, and the same for the two contexts |                                                                                                                                            |
-| `(table.options.meta as M)`                                   | `table.options.meta?`                                                 | Add `tableMeta: metaHelper<M>()` to `tableFeatures`.                                                                                       |
-| `declare module "@tanstack/react-table"`                      | (delete the block)                                                    | Use the `tableMeta` and `columnMeta` slots.                                                                                                |
-| `state: { columnVisibility`                                   | (keep)                                                                | Add `columnVisibilityFeature`.                                                                                                             |
-| `state: { rowSelection`                                       | (keep)                                                                | Add `rowSelectionFeature`.                                                                                                                 |
-| `columnPinning: { left`, `right`                              | `columnPinning: { start`, `end`                                       | Add `columnPinningFeature`.                                                                                                                |
-| `enablePinning:` (table option)                               | `enableColumnPinning:`                                                |                                                                                                                                            |
-| `columnSizingInfo`                                            | `columnResizing`                                                      | Add `columnSizingFeature` and `columnResizingFeature`.                                                                                     |
+| Before                                                        | After                                                                 | Note                                                                                                                                                                                                                         |
+| ------------------------------------------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `useReactTable(`                                              | `useTable(`                                                           | Add `features` to the options object.                                                                                                                                                                                        |
+| `getCoreRowModel: getCoreRowModel(),`                         | (delete the line)                                                     | Also delete the import.                                                                                                                                                                                                      |
+| `getSortedRowModel: getSortedRowModel(),`                     | (delete the line)                                                     | Add `rowSortingFeature`, `sortedRowModel: createSortedRowModel()`, a `sortFns` registry to `tableFeatures`.                                                                                                                  |
+| `getFilteredRowModel: getFilteredRowModel(),`                 | (delete the line)                                                     | Add `columnFilteringFeature`, `filteredRowModel: createFilteredRowModel()`, and a `filterFns` registry for column filters that use `"auto"` or a string name. Add `globalFilteringFeature` if the table has a global filter. |
+| `getPaginationRowModel: getPaginationRowModel(),`             | (delete the line)                                                     | Add `rowPaginationFeature`, `paginatedRowModel: createPaginatedRowModel()`.                                                                                                                                                  |
+| `getExpandedRowModel: getExpandedRowModel(),`                 | (delete the line)                                                     | Add `rowExpandingFeature`, `expandedRowModel: createExpandedRowModel()`.                                                                                                                                                     |
+| `getGroupedRowModel: getGroupedRowModel(),`                   | (delete the line)                                                     | Add `columnGroupingFeature`, `groupedRowModel: createGroupedRowModel()`. Add `rowAggregationFeature` when a group row shows a total, and an `aggregationFns` registry when those columns use `"auto"` or a string name.      |
+| `createColumnHelper<T>()`                                     | `createColumnHelper<typeof features, T>()`                            |                                                                                                                                                                                                                              |
+| `TableOptions<T>`                                             | `TableOptions<typeof features, T>`                                    | `features` is required; add it to any `Omit<…, "data" \| "columns">`, or build the config with `tableOptions()`.                                                                                                             |
+| `const columns = [`                                           | `const columns = columnHelper.columns([`                              | Close with `]);`.                                                                                                                                                                                                            |
+| `sortingFn:`                                                  | `sortFn:`                                                             | Register the string names in `sortFns`.                                                                                                                                                                                      |
+| `sortingFns`                                                  | `sortFns`                                                             |                                                                                                                                                                                                                              |
+| `.getSortingFn()`                                             | `.getSortFn()`                                                        |                                                                                                                                                                                                                              |
+| `filterFn: "…"`                                               | (keep)                                                                | Register the name in `filterFns`. A column with the default `"auto"` needs the entry for its value type too.                                                                                                                 |
+| `aggregationFn: "…"`, or a group row that shows a total       | (keep)                                                                | Add `rowAggregationFeature`, and register the name in `aggregationFns` (`sum` for the `"auto"` default on numbers).                                                                                                          |
+| `table.getState()`                                            | `table.state`                                                         |                                                                                                                                                                                                                              |
+| `onStateChange:`                                              | (delete)                                                              | Use the per-slice `on*Change` callbacks.                                                                                                                                                                                     |
+| `Column<T, V>`                                                | `Column<typeof features, T, V>`                                       | Or a `TFeatures extends TableFeatures` generic.                                                                                                                                                                              |
+| `Row<T>`, `Table<T>`                                          | `Row<typeof features, T>`, `Table<typeof features, T>`                |                                                                                                                                                                                                                              |
+| `ColumnDef<T, V>`, `HeaderContext<T, V>`, `CellContext<T, V>` | `ColumnDef<typeof features, T, V>`, and the same for the two contexts |                                                                                                                                                                                                                              |
+| `(table.options.meta as M)`                                   | `table.options.meta?`                                                 | Add `tableMeta: metaHelper<M>()` to `tableFeatures`.                                                                                                                                                                         |
+| `declare module "@tanstack/react-table"`                      | (delete the block)                                                    | Use the `tableMeta` and `columnMeta` slots.                                                                                                                                                                                  |
+| `state: { columnVisibility`                                   | (keep)                                                                | Add `columnVisibilityFeature`.                                                                                                                                                                                               |
+| `state: { rowSelection`                                       | (keep)                                                                | Add `rowSelectionFeature`.                                                                                                                                                                                                   |
+| `columnPinning: { left`, `right`                              | `columnPinning: { start`, `end`                                       | Add `columnPinningFeature`.                                                                                                                                                                                                  |
+| `enablePinning:` (table option)                               | `enableColumnPinning:`                                                |                                                                                                                                                                                                                              |
+| `columnSizingInfo`                                            | `columnResizing`                                                      | Add `columnSizingFeature` and `columnResizingFeature`.                                                                                                                                                                       |
 
 ---
 
@@ -1069,6 +1134,8 @@ Work through this for every file that imports from `@ngrok/mantle/data-table`:
 - No `getCoreRowModel` remains.
 - Every `get*RowModel()` option is now a feature plus a row-model slot inside `tableFeatures`.
 - A table with a global filter registers both `columnFilteringFeature` and `globalFilteringFeature`.
+- A table whose column filters use `"auto"` or a string name registers a `filterFns` slot, with `includesString: filterFn_includesString` for the `"auto"` default on string columns.
+- A grouped table whose group rows show a total registers `rowAggregationFeature`, and `sum: aggregationFn_sum` in `aggregationFns` when those columns use `"auto"` (`extent: aggregationFn_extent` for `Date` columns).
 - Every `createColumnHelper<T>()` is `createColumnHelper<typeof features, T>()`.
 - Every column array, including one a function returns, goes through `columnHelper.columns([…])`.
 - Every `sortingFn` is `sortFn`, and every sortable table registers its comparators in the `sortFns` slot.
@@ -1080,4 +1147,4 @@ Work through this for every file that imports from `@ngrok/mantle/data-table`:
 - A table that selects rows registers `rowSelectionFeature`.
 - A table that pins, sizes, or resizes columns registers the matching feature and uses `start` and `end`.
 - Every `DataTable.HeaderSortButton` sits in a table with `rowSortingFeature`, and every `DataTable.RowExpandButton` sits in a table with `rowExpandingFeature`.
-- `tsc` passes, and the table sorts, filters, paginates, expands, and selects the way it did before.
+- `tsc` passes, and the table sorts, filters, paginates, expands, selects, and totals its group rows the way it did before.
