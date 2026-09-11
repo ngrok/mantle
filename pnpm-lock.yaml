@@ -45,6 +45,9 @@ catalogs:
     oxc-transform-react:
       specifier: 0.149.0
       version: 0.149.0
+    oxfmt:
+      specifier: 0.67.0
+      version: 0.67.0
     react:
       specifier: 19.3.0
       version: 19.3.0
@@ -100,7 +103,7 @@ importers:
         specifier: 17.5.1
         version: 17.5.1
       oxfmt:
-        specifier: 0.67.0
+        specifier: 'catalog:'
         version: 0.67.0
       oxlint:
         specifier: 1.82.0
@@ -232,6 +235,9 @@ importers:
       oxc-transform-react:
         specifier: 'catalog:'
         version: 0.149.0
+      oxfmt:
+        specifier: 'catalog:'
+        version: 0.67.0
       rehype-slug:
         specifier: 6.0.0
         version: 6.0.0

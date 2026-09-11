@@ -304,14 +304,17 @@ createRoot(document.getElementById("root")!).render(
 );
 ```
 
-To prevent a flash of unstyled content (FOUC), update your `index.html` to include the theme
-script. Import `preventWrongThemeFlashScriptContent` from `@ngrok/mantle/theme` and inline its
-output in a `<script>` tag in the `<head>`:
+To prevent a flash of unstyled content (FOUC), add the theme script to the `<head>` of your
+`index.html`. The `<script>` below holds the output of `preventWrongThemeFlashScriptContent()`
+from `@ngrok/mantle/theme`, generated from the version of mantle this page was built with.
+Generate it again after you upgrade mantle. For the theme stylesheet `<link>` tags and the media
+fix script that complete a non-React `<head>`, see
+[Non-React head](/components/primitives/theme#non-react-head) on the Theme page.
 
 > [!WARNING]
-> While mantle supports any type of react application, vite is not the primary target. For now,
-> you will need to manually include the following script in the `<head>` of your app. We plan to
-> add a vite plugin in the future to automate this.
+> While mantle supports any type of React application, Vite is not the primary target. For now,
+> you need to add the following script to the `<head>` of your app yourself. We plan to add a
+> Vite plugin in the future to automate this.
 
 ```html
 <!-- index.html -->
@@ -323,8 +326,7 @@ output in a `<script>` tag in the `<head>`:
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>Vite + React + TS</title>
 		<script>
-			// Inline the output of preventWrongThemeFlashScriptContent()
-			// from "@ngrok/mantle/theme" here to prevent FOUC
+			// @mantle-generated preventWrongThemeFlashScriptContent()
 		</script>
 	</head>
 	<body>
@@ -381,19 +383,21 @@ root.render(
 );
 ```
 
-To prevent a flash of unstyled content (FOUC), include the theme script in the `<head>` of your
-`index.html`. Import `preventWrongThemeFlashScriptContent` from `@ngrok/mantle/theme` and inline
-its output:
+To prevent a flash of unstyled content (FOUC), add the theme script to the `<head>` of your
+`index.html`. The `<script>` below holds the output of `preventWrongThemeFlashScriptContent()`
+from `@ngrok/mantle/theme`, generated from the version of mantle this page was built with.
+Generate it again after you upgrade mantle. For the full `<head>` (this script, the theme
+stylesheet `<link>` tags, and the media fix script), see
+[Non-React head](/components/primitives/theme#non-react-head) on the Theme page.
 
 > [!WARNING]
-> While mantle supports any type of react application, arbitrary react SPA apps are not the
-> primary target. For now, you will need to manually include the following script in the `<head>`
-> of your app.
+> While mantle supports any type of React application, arbitrary React SPA apps are not the
+> primary target. For now, you need to add the following script to the `<head>` of your app
+> yourself.
 
 ```html
 <script>
-	// Inline the output of preventWrongThemeFlashScriptContent()
-	// from "@ngrok/mantle/theme" here to prevent FOUC
+	// @mantle-generated preventWrongThemeFlashScriptContent()
 </script>
 ```
 

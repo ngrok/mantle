@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { globSync } from "tinyglobby";
 import type { Plugin } from "vite";
+import { fillGeneratedCode } from "./mdx-generated-code.ts";
 
 /**
  * Vite plugin that bundles raw MDX source files as a virtual module.
@@ -19,7 +20,7 @@ function rawMdxDocs(docsDir: string): Plugin {
 				return resolvedId;
 			}
 		},
-		load(id) {
+		async load(id) {
 			if (id !== resolvedId) {
 				return;
 			}
@@ -28,7 +29,10 @@ function rawMdxDocs(docsDir: string): Plugin {
 			const entries: Record<string, string> = {};
 
 			for (const file of files) {
-				const content = readFileSync(path.join(docsDir, file), "utf-8");
+				// Why fill here too: `.md`, `llms-full.txt`, and the `Accept: text/markdown`
+				// twin all read this module, and a reader of those has no other way to
+				// get the script.
+				const content = await fillGeneratedCode(readFileSync(path.join(docsDir, file), "utf-8"));
 				// Use the same key format as docModules ("../docs/...")
 				entries[`../docs/${file}`] = content;
 			}
