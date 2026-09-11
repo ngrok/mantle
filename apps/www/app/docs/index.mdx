@@ -77,10 +77,11 @@ bun add -DE tailwindcss
 
 ### Stylesheet
 
-Create one CSS entry file for your app and import both mantle stylesheets from it:
+Create one CSS entry file, `app.css`, and import both mantle stylesheets from it. Each framework
+section below says where the file lives.
 
 ```css
-/* app/app.css */
+/* app.css */
 @import "@ngrok/mantle/mantle.css";
 @import "@ngrok/mantle/source-all.css";
 ```
@@ -128,9 +129,9 @@ export default defineConfig({
 });
 ```
 
-In your app's `app/root.tsx`, import `app.css` and set up the
-[Theme Provider](/components/primitives/theme), [Toaster](/components/feedback/toast), and
-[Tooltip Provider](/components/overlays/tooltip).
+In your app's `app/root.tsx`, import `app.css` (created in [Stylesheet](#stylesheet), here at
+`app/app.css`) and set up the [Theme Provider](/components/primitives/theme),
+[Toaster](/components/feedback/toast), and [Tooltip Provider](/components/overlays/tooltip).
 
 > [!WARNING]
 > It is critical to include `PreventWrongThemeFlashScript` early in the `<head>` of your app to

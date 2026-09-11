@@ -68,7 +68,7 @@ design system. Conventions:
 - The app's CSS entry must `@import "@ngrok/mantle/mantle.css"` and then
   `@import "@ngrok/mantle/source-all.css"`. Keep both in one CSS file.
   Without the second import Tailwind generates none of the classes
-  mantle's components use, and they render unstyled.
+  mantle's components use. The components render unstyled.
 - Color scales use Tailwind's 50-950 steps (`text-accent-600`). There is
   no 1-12 scale, so `text-accent-11` matches nothing. Text color tokens
   are `text-strong`, `text-body`, `text-muted`, and `text-placeholder`.
@@ -88,7 +88,7 @@ design system. Conventions:
 - **`cx` over string interpolation.** Compose class names with [`cx`](/utils/cx). It merges Tailwind classes and de-duplicates conflicts.
 - **Nullish checks use `== null` / `!= null`.** The codebase prefers these over `=== undefined` / `!== undefined`, since `== null` covers both `null` and `undefined`.
 - **Theme + provider setup.** Apps must mount [`ThemeProvider`](/components/primitives/theme) and [`Toaster`](/components/feedback/toast) at the root. Add [`TooltipProvider`](/components/overlays/tooltip) once when using shared tooltip delay or hover settings. Without `ThemeProvider`, theme tokens are unstyled and there's a flash of unstyled content.
-- **Stylesheet setup.** The app's CSS entry imports `@ngrok/mantle/mantle.css` and then `@ngrok/mantle/source-all.css` (see [Stylesheet](/#stylesheet)). `mantle.css` declares no `@source`, and Tailwind 4 skips `node_modules` when it scans for class names, so without `source-all.css` Tailwind generates none of the classes mantle's components use. The components render without their styles, and an open `Dialog` shows its content in the page flow with no backdrop. Import both from the same CSS file: Tailwind compiles each CSS entry on its own, so an `@source` in a separate file adds nothing.
+- **Stylesheet setup.** The app's CSS entry imports `@ngrok/mantle/mantle.css` and then `@ngrok/mantle/source-all.css` (see [Stylesheet](/#stylesheet)). `mantle.css` declares no `@source`, and Tailwind 4 skips `node_modules` when it scans for class names, so without `source-all.css` Tailwind generates none of the classes mantle's components use. The components render without their styles. An open `Dialog` shows its content in the page flow with no backdrop. Import both from the same CSS file: Tailwind compiles each CSS entry on its own, so an `@source` in a separate file adds nothing.
 - **Phosphor icons by default.** Import icons from `@phosphor-icons/react/<IconName>` (e.g. `@phosphor-icons/react/Fire`). Custom ngrok icons live at [`@ngrok/mantle/icons`](/components/data-display/icons).
 - **No `as` casts in app code.** Use proper null checks and type narrowing. Type assertions are restricted to `as const` and dedicated type guards (see [Conventions](https://github.com/ngrok/mantle/blob/main/CONVENTIONS.md)).
 - **Translation-safe markup.** Google Translate reparents every text node, so React throws `NotFoundError` and the page goes blank when it inserts an element before one. Never render a conditional element immediately before bare text children: wrap the text in a `<span>`, move the element after it, or mount it unconditionally. Pass a `Button` or `Badge` icon through the `icon` prop, never as a child. Mark code, keys, filenames, IDs, and passcodes `translate="no"`; [`Code`](/components/data-display/code), [`Kbd`](/components/data-display/kbd), `CodeBlock.Code`, and `OtpInput.Slot` already do.
