@@ -235,6 +235,10 @@ Three fixes work, and the conditional element decides which one:
 A lone expression child is already safe: React writes it through `setTextContent`, which repairs the subtree.
 The failure needs a sibling.
 
+A portal is the exception. React removes a portal's children from the container one at a time, so a portal
+whose only child is a bare text node throws on unmount with no sibling in play. Wrap what you portal in an
+element. `Select.Item` wraps the label Radix portals into the trigger for this reason.
+
 ### Mark untranslatable content `translate="no"`
 
 A reader copies or retypes some strings: code, a CLI flag, an env var, a YAML key, a shortcut key, a filename,

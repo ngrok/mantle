@@ -5,7 +5,9 @@ description: Displays a list of options for the user to pick from—triggered by
 
 import { Button } from "@ngrok/mantle/button";
 import { Field, toErrorMessages } from "@ngrok/mantle/field";
+import { Icon } from "@ngrok/mantle/icon";
 import { Select } from "@ngrok/mantle/select";
+import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
 import { useForm } from "@tanstack/react-form";
 import { useState } from "react";
 import { z } from "zod";
@@ -84,6 +86,49 @@ window.alert(`Submitted: ${JSON.stringify(value, null, 2)}`);
     			Submit
     		</Button>
     	</form>
+    );
+
+}
+
+export const regions = [
+	{ value: "us", label: "United States", host: "us.ngrok.com" },
+	{ value: "eu", label: "Europe", host: "eu.ngrok.com" },
+	{ value: "ap", label: "Asia Pacific", host: "ap.ngrok.com" },
+	{ value: "au", label: "Australia", host: "au.ngrok.com" },
+];
+
+export function RichItemLabelsExample() {
+	const [value, setValue] = useState("us");
+	const region = regions.find((candidate) => candidate.value === value);
+
+    return (
+    	<Select.Root value={value} onValueChange={setValue}>
+    		<Select.Trigger className="w-72" aria-label="Region">
+    			<Select.Value placeholder="Select a region">
+    				{region && (
+    					<span className="flex items-center gap-2">
+    						<Icon svg={<GlobeHemisphereWestIcon />} className="size-4" />
+    						<span>{region.label}</span>
+    						<span className="text-muted text-xs" translate="no">
+    							{region.host}
+    						</span>
+    					</span>
+    				)}
+    			</Select.Value>
+    		</Select.Trigger>
+    		<Select.Content width="trigger">
+    			{regions.map((region) => (
+    				<Select.Item key={region.value} value={region.value} icon={<GlobeHemisphereWestIcon />}>
+    					<span className="flex flex-col">
+    						<span>{region.label}</span>
+    						<span className="text-muted text-xs" translate="no">
+    							{region.host}
+    						</span>
+    					</span>
+    				</Select.Item>
+    			))}
+    		</Select.Content>
+    	</Select.Root>
     );
 
 }
@@ -170,6 +215,32 @@ import { Select } from "@ngrok/mantle/select";
 	</Field.Control>
 </Field.Item>;
 ```
+
+## Composition
+
+Compose the parts of a `Select` together to build your own:
+
+```text showLineNumbers=false
+Select.Root
+├── Select.Trigger
+│   └── Select.Value
+└── Select.Content
+    ├── Select.Group
+    │   ├── Select.Label
+    │   └── Select.Item
+    └── Select.Separator
+```
+
+## Polymorphism
+
+`Select.Group`, `Select.Label`, and `Select.Separator` accept `asChild`, which swaps the part's default element for your single child while keeping its styling and the select's keyboard and selection behavior. `Select.Label asChild` helps when a group heading must be a specific element for the page's outline.
+
+`Select.Root` is a state provider that renders no DOM, so it takes no `asChild`.
+
+> [!WARNING]
+> `Select.Trigger`, `Select.Content`, and `Select.Item` currently advertise `asChild` in their prop types but **throw at runtime** (`Primitive.* failed to slot onto its children`). Each one renders its own chrome next to your content (the trigger's caret, the content's scroll buttons and viewport, the item's check indicator), so the underlying Radix `Slot` receives more than the single child it requires. Do not use `asChild` on these three parts. To customize the trigger's content, pass it as `children` instead.
+>
+> `Select.Value asChild` renders your element but **drops every prop**: Radix hands its `Slot` a keyed Fragment, so the value's `data-slot`, `ref`, and `style` never reach your element, and React warns about invalid Fragment props. Do not use it. To render a custom value, pass `children` instead, as the [custom selected value](#custom-selected-value) example does.
 
 ## Layering and z-index
 
@@ -377,31 +448,106 @@ function Example() {
 }
 ```
 
-## Composition
+### Rich item labels
 
-Compose the parts of a `Select` together to build your own:
+An item takes any content, and the trigger shows the selected label as-is. When the list needs two lines and the trigger must stay on one line, control the select and render a compact value with `Select.Value` children. Both renders stay safe on a translated page: React removes the label span or the value span, never a bare text node.
 
-```text showLineNumbers=false
-Select.Root
-├── Select.Trigger
-│   └── Select.Value
-└── Select.Content
-    ├── Select.Group
-    │   ├── Select.Label
-    │   └── Select.Item
-    └── Select.Separator
+<Example>
+	<RichItemLabelsExample />
+</Example>
+
+```tsx
+import { Icon } from "@ngrok/mantle/icon";
+import { Select } from "@ngrok/mantle/select";
+import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
+import { useState } from "react";
+
+const regions = [
+	{ value: "us", label: "United States", host: "us.ngrok.com" },
+	{ value: "eu", label: "Europe", host: "eu.ngrok.com" },
+	{ value: "ap", label: "Asia Pacific", host: "ap.ngrok.com" },
+	{ value: "au", label: "Australia", host: "au.ngrok.com" },
+];
+
+function Example() {
+	const [value, setValue] = useState("us");
+	const region = regions.find((candidate) => candidate.value === value);
+
+	return (
+		<Select.Root value={value} onValueChange={setValue}>
+			<Select.Trigger className="w-72" aria-label="Region">
+				<Select.Value placeholder="Select a region">
+					{region && (
+						<span className="flex items-center gap-2">
+							<Icon svg={<GlobeHemisphereWestIcon />} className="size-4" />
+							<span>{region.label}</span>
+							<span className="text-muted text-xs" translate="no">
+								{region.host}
+							</span>
+						</span>
+					)}
+				</Select.Value>
+			</Select.Trigger>
+			<Select.Content width="trigger">
+				{regions.map((region) => (
+					<Select.Item key={region.value} value={region.value} icon={<GlobeHemisphereWestIcon />}>
+						<span className="flex flex-col">
+							<span>{region.label}</span>
+							<span className="text-muted text-xs" translate="no">
+								{region.host}
+							</span>
+						</span>
+					</Select.Item>
+				))}
+			</Select.Content>
+		</Select.Root>
+	);
+}
 ```
 
-## Polymorphism
+### Untranslatable labels
 
-`Select.Group`, `Select.Label`, `Select.Value`, and `Select.Separator` accept `asChild`, which swaps the part's default element for your single child while keeping its styling and the select's keyboard and selection behavior.
+When a label is an ID, a path, a filename, or a key, set `translate="no"` on the item. A browser translation engine then skips the row and the copy the trigger shows, so the reader copies the right string.
 
-`Select.Value asChild` is the useful one: reach for it when the displayed value needs its own element for truncation or badge chrome. `Select.Label asChild` helps when a group heading must be a specific element for the page's outline.
+<Example>
+	<Select.Root defaultValue="us-east-1">
+		<Select.Trigger className="w-56" aria-label="AWS region">
+			<Select.Value placeholder="Select a region" />
+		</Select.Trigger>
+		<Select.Content width="trigger">
+			<Select.Item value="us-east-1" translate="no">
+				us-east-1
+			</Select.Item>
+			<Select.Item value="eu-west-1" translate="no">
+				eu-west-1
+			</Select.Item>
+			<Select.Item value="ap-southeast-2" translate="no">
+				ap-southeast-2
+			</Select.Item>
+		</Select.Content>
+	</Select.Root>
+</Example>
 
-`Select.Root` is a state provider that renders no DOM, so it takes no `asChild`.
+```tsx
+import { Select } from "@ngrok/mantle/select";
 
-> [!WARNING]
-> `Select.Trigger`, `Select.Content`, and `Select.Item` currently advertise `asChild` in their prop types but **throw at runtime** (`Primitive.* failed to slot onto its children`). Each one renders its own chrome next to your content (the trigger's caret, the content's scroll buttons and viewport, the item's check indicator), so the underlying Radix `Slot` receives more than the single child it requires. Do not use `asChild` on these three parts. To customize the trigger's content, pass it as `children` instead.
+<Select.Root defaultValue="us-east-1">
+	<Select.Trigger className="w-56" aria-label="AWS region">
+		<Select.Value placeholder="Select a region" />
+	</Select.Trigger>
+	<Select.Content width="trigger">
+		<Select.Item value="us-east-1" translate="no">
+			us-east-1
+		</Select.Item>
+		<Select.Item value="eu-west-1" translate="no">
+			eu-west-1
+		</Select.Item>
+		<Select.Item value="ap-southeast-2" translate="no">
+			ap-southeast-2
+		</Select.Item>
+	</Select.Content>
+</Select.Root>;
+```
 
 ## API Reference
 
@@ -429,7 +575,7 @@ All props from Radix [Select.Root](https://www.radix-ui.com/primitives/docs/comp
 
 The button that toggles the `Select`. The `Select.Content` will position itself adjacent to the trigger.
 
-When composing with `Field.Item`, wrap `Select.Root` (not the trigger) in `Field.Control`. The generated `id`, `name`, and `aria-invalid` flow onto `Select.Root` — so the hidden form input picks up the field name — and the trigger reads `aria-describedby` / `aria-errormessage` from `FieldControlContext`. Validation resolves from explicit `Select.Root`, then `Select.Trigger`, then the nearest `Field.Item`.
+When composing with `Field.Item`, wrap `Select.Root` (not the trigger) in `Field.Control`. The generated `id`, `name`, and `aria-invalid` flow onto `Select.Root` (so the hidden form input picks up the field name), and the trigger reads `aria-describedby` / `aria-errormessage` from `FieldControlContext`. Validation resolves from explicit `Select.Root`, then `Select.Trigger`, then the nearest `Field.Item`.
 
 All props from Radix [Select.Trigger](https://www.radix-ui.com/primitives/docs/components/select#trigger), plus:
 
@@ -437,11 +583,31 @@ All props from Radix [Select.Trigger](https://www.radix-ui.com/primitives/docs/c
 | ------------- | -------------------------------------------------------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `validation?` | `"error" \| "success" \| "warning" \| false \| (() => "error" \| "success" \| "warning" \| false)` |         | Use the `validation` prop to show if the select trigger has a specific validation status. This will change the border and outline of the select trigger. The `false` type is useful when using short-circuiting logic so that you don't need to use a ternary with `undefined`. Setting `validation` to `error` also sets `aria-invalid`. |
 
+#### Data attributes
+
+| Data Attribute     | Value                                   | Description                                                         |
+| ------------------ | --------------------------------------- | ------------------------------------------------------------------- |
+| `data-slot`        | `"select-trigger"`                      | On the trigger button.                                              |
+| `data-state`       | `"open"` \| `"closed"`                  | Whether the list is open.                                           |
+| `data-placeholder` | present when there is no value          | Presence-only. Style the placeholder text with `data-placeholder:`. |
+| `data-disabled`    | present when disabled                   | Presence-only. The `disabled` prop on `Select.Root`.                |
+| `data-validation`  | `"success"` \| `"warning"` \| `"error"` | The resolved `validation` state. Omitted when there is none.        |
+
 ### Select.Value
 
-The part that reflects the selected value. Renders the selected item's text by default. For more control, control the select and pass your own children. Do not style this part — under `Select.Content position="item-aligned"`, Radix measures its box to align the open list over the selected item. Pass `placeholder` for the text to show when the select has no value.
+The part that reflects the selected value. Renders the selected item's text by default. For more control, control the select and pass your own children. Do not style this part: under `Select.Content position="item-aligned"`, Radix measures its box to align the open list over the selected item. Pass `placeholder` for the text to show when the select has no value.
+
+`placeholder` renders inside a `<span data-slot="select-placeholder">`, your own `children` inside a `<span data-slot="select-value-label">`, and the selected item's text arrives inside the `select-item-label` span from `Select.Item`. Each span is `display: contents`, so it adds no box and changes no layout. React removes one of those spans whenever the value changes, and an element removal is safe on a translated page. A browser translation engine reparents text nodes, and a removal aimed at a reparented text node throws. [Browser translation](/browser-translation) covers the mechanism.
 
 Radix [Select.Value](https://www.radix-ui.com/primitives/docs/components/select#value) props.
+
+#### Data attributes
+
+| Data Attribute | Value                  | Description                                                                   |
+| -------------- | ---------------------- | ----------------------------------------------------------------------------- |
+| `data-slot`    | `"select-value"`       | On the value element.                                                         |
+| `data-slot`    | `"select-placeholder"` | On the `<span>` wrapping `placeholder`. Present only while there is no value. |
+| `data-slot`    | `"select-value-label"` | On the `<span>` wrapping your `children`. Absent under `asChild`.             |
 
 ### Select.Content
 
@@ -456,28 +622,70 @@ All props from Radix [Select.Content](https://www.radix-ui.com/primitives/docs/c
 | `position?` | `"popper" \| "item-aligned"` | `"popper"`  | `popper` opens the list below the trigger. `item-aligned` is the Radix default: the list opens over the trigger with the selected item aligned to it.                           |
 | `width?`    | `"trigger" \| "content"`     | `"trigger"` | `trigger` makes the content the same width as the trigger button. `content` makes it the intrinsic size of the content itself; it will be the width of the longest/widest item. |
 
+#### Data attributes
+
+| Data Attribute | Value                                          | Description                                                           |
+| -------------- | ---------------------------------------------- | --------------------------------------------------------------------- |
+| `data-slot`    | `"select-content"`                             | On the content element.                                               |
+| `data-state`   | `"open"` \| `"closed"`                         | Drives the open and close animations.                                 |
+| `data-side`    | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | The side of the trigger the list opened on. `position="popper"` only. |
+| `data-align`   | `"start"` \| `"center"` \| `"end"`             | The alignment against the trigger. `position="popper"` only.          |
+
 ### Select.Group
 
 A group of related options within a select menu. Similar to an html `optgroup` element. Pair it with `Select.Label`, which gives the group its accessible name.
 
 Radix [Select.Group](https://www.radix-ui.com/primitives/docs/components/select#group) props.
 
+#### Data attributes
+
+| Data Attribute | Value            | Description           |
+| -------------- | ---------------- | --------------------- |
+| `data-slot`    | `"select-group"` | On the group element. |
+
 ### Select.Separator
 
 Used to visually separate items in the select. Composed from [Mantle Separator](/components/structure/separator).
+
+#### Data attributes
+
+| Data Attribute | Value                | Description               |
+| -------------- | -------------------- | ------------------------- |
+| `data-slot`    | `"select-separator"` | On the separator element. |
 
 ### Select.Item
 
 An option within a select menu. Similar to an html `option` element. Has a required `value` prop. When a user selects this item, `Select.Root` passes that value to its `onValueChange` handler. Displays the children as the option's text. Pass `icon` to render an icon before the text.
 
+`children` render inside a `<span data-slot="select-item-label">`. Radix portals that span into `Select.Value` while the item is selected and removes it when the selection changes. The span exists so the node React removes is an element: a browser translation engine reparents text nodes, and a removal aimed at one throws. The span is `display: contents`, so it adds no box in the list or in the trigger, and your own item content stays the direct layout child of the value. To style it as a box, set a display of your own on it first. [Browser translation](/browser-translation) covers the mechanism and the rule your own components need.
+
+When the label is an ID, a path, a filename, or a key, set `translate="no"` on the item. The attribute also rides on the label span, so the copy the trigger shows stays untranslated too.
+
 All props from Radix [Select.Item](https://www.radix-ui.com/primitives/docs/components/select#item), plus:
 
-| Prop    | Type        | Default | Description                                     |
-| ------- | ----------- | ------- | ----------------------------------------------- |
-| `icon?` | `ReactNode` |         | An optional icon rendered before the item text. |
+| Prop         | Type            | Default | Description                                                                                                                                                       |
+| ------------ | --------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `icon?`      | `ReactNode`     |         | An optional icon rendered before the item text.                                                                                                                   |
+| `translate?` | `"yes" \| "no"` |         | The standard HTML attribute, also set on the label span so the copy the trigger shows keeps it. Set `"no"` when the label is an ID, a path, a filename, or a key. |
+
+#### Data attributes
+
+| Data Attribute     | Value                        | Description                                                          |
+| ------------------ | ---------------------------- | -------------------------------------------------------------------- |
+| `data-slot`        | `"select-item"`              | On the option element.                                               |
+| `data-slot`        | `"select-item-label"`        | On the `<span>` wrapping `children`, in the list and in the trigger. |
+| `data-state`       | `"checked"` \| `"unchecked"` | Whether this item is the selected value.                             |
+| `data-highlighted` | present when highlighted     | Presence-only. The item under the pointer or the keyboard focus.     |
+| `data-disabled`    | present when disabled        | Presence-only. The `disabled` prop.                                  |
 
 ### Select.Label
 
 Used to render the label of a group. It won't be focusable using arrow keys. Pair it with `Select.Group` — the label gives the group its accessible name.
 
 Radix [Select.Label](https://www.radix-ui.com/primitives/docs/components/select#label) props.
+
+#### Data attributes
+
+| Data Attribute | Value            | Description                 |
+| -------------- | ---------------- | --------------------------- |
+| `data-slot`    | `"select-label"` | On the group label element. |

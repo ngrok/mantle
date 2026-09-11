@@ -83,6 +83,9 @@ long one with `min-w-0 truncate`. `Select.Item` was already the precedent in the
 library: it has the identical `{icon && …}` shape but wraps children in
 `SelectPrimitive.ItemText`, so it never threw.
 
+**Revised 2026-09-11: see [the second amendment](#amendment-2026-09-11-a-portals-text-child-is-an-outermost-node).**
+`Select.Item` never threw in the list. It threw in the trigger.
+
 Both the plain and the `asChild` path wrap, because both render the same shape.
 
 ### 2. The label is one flex item. Pass an icon through `icon`, not as a child
@@ -156,6 +159,41 @@ lays its children out in inline flow and spaces its icons with margins.
 
 Decisions 3 and 4 stand. An always-mounted announcer and a trailing decorative
 sibling are still the right shapes, and neither depends on how the wrapper displays.
+
+## Amendment, 2026-09-11: a portal's text child is an outermost node
+
+Decision 1 cited `Select.Item` as the part that never threw, because
+`SelectPrimitive.ItemText` wraps its children. That held for the list and not for
+the trigger. Radix portals the selected item's raw `children` into the
+`Select.Value` node, and it keys the placeholder fragment so a value change
+remounts it. A portal has no host node of its own, so React removes each portal
+child from the container by itself. When that child is a text node the engine
+reparented, `removeChild` throws. Three interactions on a translated page threw:
+picking a different value, picking a first value over a placeholder, and
+unmounting the select on navigation. ngrok-private/frontend#3757 worked around
+the first two by wrapping every item label in a `<span>` at the call site.
+
+`Select.Item` now wraps `children` in a `<span data-slot="select-item-label">`,
+which is the node Radix portals. `Select.Value` wraps `placeholder` in a
+`<span data-slot="select-placeholder">` and a consumer's own `children` in a
+`<span data-slot="select-value-label">`. The last one also moves a lone string
+child onto React's `textContent` path, so a swap between text and an element
+there wipes the `<font>` instead of removing a node React no longer owns.
+
+All three spans are `display: contents`, for the reason the first amendment gives.
+Product code restyles the value node through the trigger, with
+`[&>span]:flex-1` and `[&>span]:line-clamp-none`, and puts flex rows in its
+items; a span that generated a box would make the row one flex item and take the
+consumer's layout away. `asChild` on `Select.Value` skips the wrapper, because the
+consumer's element is then the node React removes.
+
+The mechanism table gains a row:
+
+| Update                            | Result                                                                            |
+| --------------------------------- | --------------------------------------------------------------------------------- |
+| Remove a portal's bare text child | Throws. A portal has no node of its own, so its children are the outermost nodes. |
+
+The rule in Consequences gains a second clause: **never portal bare text.**
 
 ## Consequences
 
