@@ -75,6 +75,30 @@ pnpm add -DE tailwindcss
 bun add -DE tailwindcss
 ```
 
+### Stylesheet
+
+Create one CSS entry file for your app and import both mantle stylesheets from it:
+
+```css
+/* app/app.css */
+@import "@ngrok/mantle/mantle.css";
+@import "@ngrok/mantle/source-all.css";
+```
+
+`mantle.css` imports Tailwind, the theme tokens, and the light theme. `source-all.css` holds one
+`@source` directive that points Tailwind at mantle's `dist/` directory. Tailwind 4 skips
+`node_modules` when it scans for class names, so without that directive it generates none of the
+classes mantle's components use. The components then render without their styles: an open
+`Dialog`, for example, shows its content in the page flow with no backdrop.
+
+> [!WARNING]
+> Import `source-all.css` from the same CSS file as `mantle.css`, not from JavaScript. Tailwind
+> compiles each CSS entry on its own, so an `@source` in a separate file adds nothing to the
+> stylesheet that holds `mantle.css`.
+
+Add your own `@source` directives to the same file when you keep components in a workspace
+package that Tailwind's automatic detection can't see.
+
 ### React Router
 
 Install the additional dev dependencies for the Tailwind Vite plugin:
@@ -104,7 +128,7 @@ export default defineConfig({
 });
 ```
 
-In your app's `app/root.tsx`, import `mantle.css` and set up the
+In your app's `app/root.tsx`, import `app.css` and set up the
 [Theme Provider](/components/primitives/theme), [Toaster](/components/feedback/toast), and
 [Tooltip Provider](/components/overlays/tooltip).
 
@@ -149,7 +173,7 @@ import {
 } from "react-router";
 
 import type { Route } from "./+types/root";
-import "@ngrok/mantle/mantle.css";
+import "./app.css";
 
 export function Layout({ children }: PropsWithChildren) {
 	const initialHtmlThemeProps = useInitialHtmlThemeProps({
@@ -278,9 +302,9 @@ export default defineConfig({
 });
 ```
 
-In your app's `src/main.tsx`, import `mantle.css` and set up the
-[Theme Provider](/components/primitives/theme), [Toaster](/components/feedback/toast), and
-[Tooltip Provider](/components/overlays/tooltip):
+In your app's `src/main.tsx`, import `app.css` (created in [Stylesheet](#stylesheet), here at
+`src/app.css`) and set up the [Theme Provider](/components/primitives/theme),
+[Toaster](/components/feedback/toast), and [Tooltip Provider](/components/overlays/tooltip):
 
 ```tsx
 // src/main.tsx
@@ -289,7 +313,7 @@ import { createRoot } from "react-dom/client";
 import { ThemeProvider } from "@ngrok/mantle/theme";
 import { Toaster } from "@ngrok/mantle/toast";
 import { TooltipProvider } from "@ngrok/mantle/tooltip";
-import "@ngrok/mantle/mantle.css";
+import "./app.css";
 import App from "./App.tsx";
 
 createRoot(document.getElementById("root")!).render(
@@ -347,8 +371,8 @@ You are now ready to use mantle components in your application! Start with the
 
 ### React SPA
 
-In your app's entry/root file, import `mantle.css` and set up the
-[Theme Provider](/components/primitives/theme), [Toaster](/components/feedback/toast), and
+In your app's entry/root file, import `app.css` (created in [Stylesheet](#stylesheet)) and set
+up the [Theme Provider](/components/primitives/theme), [Toaster](/components/feedback/toast), and
 [Tooltip Provider](/components/overlays/tooltip):
 
 ```tsx
@@ -358,7 +382,7 @@ import { createRoot } from "react-dom/client";
 import { ThemeProvider } from "@ngrok/mantle/theme";
 import { Toaster } from "@ngrok/mantle/toast";
 import { TooltipProvider } from "@ngrok/mantle/tooltip";
-import "@ngrok/mantle/mantle.css";
+import "./app.css";
 import App from "./App.tsx";
 
 const container = window.document.getElementById("app");
