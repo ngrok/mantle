@@ -113,9 +113,9 @@ describe("MigrationsList", () => {
 
 		await user.click(screen.getByRole("button", { name: "Clear filter" }));
 
-		expect(screen.getByRole("textbox", { name: "Filter migrations" }).getAttribute("value")).toBe(
-			"",
-		);
+		const restoredInput = screen.getByRole("textbox", { name: "Filter migrations" });
+		expect(restoredInput.getAttribute("value")).toBe("");
+		expect(document.activeElement).toBe(restoredInput);
 		expect(within(screen.getByRole("list")).getAllByRole("link")).toHaveLength(
 			migrationsNewestFirst.length,
 		);

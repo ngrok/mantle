@@ -1,3 +1,4 @@
+import { Badge } from "@ngrok/mantle/badge";
 import { cx } from "@ngrok/mantle/cx";
 import type { WithStyleProps } from "@ngrok/mantle/types";
 import { NavLink } from "./nav-link";
@@ -12,9 +13,14 @@ export function MigrationsNavigation({ className, style }: WithStyleProps) {
 				{migrationsNewestFirst.map((migration) => (
 					<li key={migration.number}>
 						<NavLink to={migration.route} prefetch="intent" className="flex items-baseline gap-2">
-							<span className="shrink-0 font-mono text-xs tabular-nums" translate="no">
+							<Badge
+								appearance="muted"
+								color="neutral"
+								className="shrink-0 font-mono tabular-nums"
+								translate="no"
+							>
 								{formatMigrationNumber(migration.number)}
-							</span>
+							</Badge>
 							<span>{migration.title}</span>
 						</NavLink>
 					</li>

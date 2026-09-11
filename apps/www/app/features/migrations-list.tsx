@@ -3,7 +3,7 @@ import { Button } from "@ngrok/mantle/button";
 import { Code } from "@ngrok/mantle/code";
 import { Input } from "@ngrok/mantle/input";
 import { Label } from "@ngrok/mantle/label";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link } from "react-router";
 import {
 	type Migration,
@@ -44,6 +44,7 @@ export function filterMigrations(list: readonly Migration[], query: string): rea
  */
 export function MigrationsList() {
 	const [query, setQuery] = useState("");
+	const inputRef = useRef<HTMLInputElement>(null);
 	const filtered = filterMigrations(migrationsNewestFirst, query);
 
 	return (
@@ -56,6 +57,7 @@ export function MigrationsList() {
 					autoComplete="off"
 					id="migration-filter"
 					placeholder="Number, title, or description"
+					ref={inputRef}
 					value={query}
 					onChange={(event) => setQuery(event.target.value)}
 				/>
@@ -65,7 +67,17 @@ export function MigrationsList() {
 					<p className="text-strong">
 						No migrations match <Code>{query}</Code>
 					</p>
-					<Button type="button" appearance="outlined" intent="neutral" onClick={() => setQuery("")}>
+					<Button
+						type="button"
+						appearance="outlined"
+						intent="neutral"
+						onClick={() => {
+							setQuery("");
+							// Why: the clear resets the list, and that unmounts this button.
+							// Without a new target, focus falls to the document body.
+							inputRef.current?.focus();
+						}}
+					>
 						Clear filter
 					</Button>
 				</div>
