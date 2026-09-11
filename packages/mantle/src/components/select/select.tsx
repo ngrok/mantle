@@ -40,13 +40,40 @@ type SelectContextType = WithValidation &
 const SelectContext = createContext<SelectContextType>({});
 
 type SelectProps = PropsWithChildren & {
+	/**
+	 * The `autocomplete` attribute of the hidden native select.
+	 */
 	autoComplete?: string;
+	/**
+	 * Whether the list is open on first render. Use for an uncontrolled open state.
+	 * @default false
+	 */
 	defaultOpen?: boolean;
+	/**
+	 * The value on first render. Use for an uncontrolled value.
+	 */
 	defaultValue?: string;
+	/**
+	 * The reading direction. When omitted, inherits from `DirectionProvider`.
+	 */
 	dir?: "ltr" | "rtl";
+	/**
+	 * Whether the whole select is inert. The trigger stamps `data-disabled`.
+	 * @default false
+	 */
 	disabled?: boolean;
+	/**
+	 * The `id` of the form the hidden native select belongs to, when it sits
+	 * outside that form.
+	 */
 	form?: string;
+	/**
+	 * The `id` of the trigger button. `Field.Control` sets it for you.
+	 */
 	id?: string;
+	/**
+	 * The name of the hidden native select, submitted with its owning form.
+	 */
 	name?: string;
 	/**
 	 * Event handler called when the trigger button blurs. Runs after any
@@ -58,14 +85,30 @@ type SelectProps = PropsWithChildren & {
 	 * @deprecated Use `onValueChange` instead.
 	 */
 	onChange?: (value: string) => void;
+	/**
+	 * Event handler called when the open state changes.
+	 */
 	onOpenChange?(open: boolean): void;
+	/**
+	 * Event handler called when the value changes.
+	 */
 	onValueChange?(value: string): void;
+	/**
+	 * The controlled open state. Pair with `onOpenChange`.
+	 */
 	open?: boolean;
 	/**
 	 * Ref for the trigger button.
 	 */
 	ref?: Ref<HTMLButtonElement>;
+	/**
+	 * Whether a value is required before the owning form submits.
+	 * @default false
+	 */
 	required?: boolean;
+	/**
+	 * The controlled value. Pair with `onValueChange`.
+	 */
 	value?: string;
 } & WithValidation &
 	WithAriaInvalid;
@@ -155,6 +198,10 @@ const Root = ({
  * A group of related options within a select menu. Similar to an html `<optgroup>` element.
  * Pair it with `Select.Label`, which gives the group its accessible name.
  *
+ * | Data Attribute | Value            | Description           |
+ * | -------------- | ---------------- | --------------------- |
+ * | `data-slot`    | `"select-group"` | On the group element. |
+ *
  * @see https://mantle.ngrok.com/components/forms/select#selectgroup
  *
  * @example
@@ -180,10 +227,15 @@ const Root = ({
  * </Select.Root>
  * ```
  */
-const Group = ({ className, ref, ...props }: ComponentProps<typeof SelectPrimitive.Group>) => (
+const Group = ({
+	className,
+	"data-slot": dataSlot,
+	ref,
+	...props
+}: ComponentProps<typeof SelectPrimitive.Group> & WithDataSlot) => (
 	<SelectPrimitive.Group
 		ref={ref}
-		data-slot="select-group"
+		data-slot={joinDataSlot(dataSlot, "select-group")}
 		className={cx("space-y-px", className)}
 		{...props}
 	/>
@@ -277,14 +329,23 @@ const Value = ({
 
 type SelectTriggerProps = ComponentProps<typeof SelectPrimitive.Trigger> &
 	WithAriaInvalid &
+	WithDataSlot &
 	WithValidation;
 
 /**
  * The button that toggles the select. The Select.Content will position itself adjacent to the trigger.
- * When composing with `Field.Item`, wrap `Select.Root` in `Field.Control` —
+ * When composing with `Field.Item`, wrap `Select.Root` in `Field.Control`:
  * the generated `id`, `name`, and `aria-invalid` flow onto `Select.Root` (so
  * the hidden form input gets the field name), and the trigger reads
  * `aria-describedby` / `aria-errormessage` from `FieldControlContext`.
+ *
+ * | Data Attribute     | Value                                   | Description                                                          |
+ * | ------------------ | --------------------------------------- | -------------------------------------------------------------------- |
+ * | `data-slot`        | `"select-trigger"`                      | On the trigger button.                                               |
+ * | `data-state`       | `"open"` \| `"closed"`                  | Whether the list is open.                                            |
+ * | `data-placeholder` | present when there is no value          | Presence-only. Style the placeholder text with `data-placeholder:`.  |
+ * | `data-disabled`    | present when disabled                   | Presence-only. The `disabled` prop on `Select.Root`.                 |
+ * | `data-validation`  | `"success"` \| `"warning"` \| `"error"` | The resolved `validation` state. Omitted when there is none.         |
  *
  * @see https://mantle.ngrok.com/components/forms/select#selecttrigger
  *
@@ -315,6 +376,7 @@ const Trigger = ({
 	"aria-invalid": ariaInValidProp,
 	className,
 	children,
+	"data-slot": dataSlot,
 	id: propId,
 	onBlur,
 	ref,
@@ -340,7 +402,7 @@ const Trigger = ({
 
 	return (
 		<SelectPrimitive.Trigger
-			data-slot="select-trigger"
+			data-slot={joinDataSlot(dataSlot, "select-trigger")}
 			className={cx(
 				"h-9 text-sm",
 				"border-form bg-form text-strong font-sans placeholder:text-placeholder hover:bg-form-hover hover:text-strong flex w-full items-center justify-between gap-1.5 rounded-md border px-3 py-2 disabled:pointer-events-none disabled:opacity-50 [&>span]:line-clamp-1 [&>span]:text-left",
@@ -412,14 +474,15 @@ const SelectScrollDownButton = ({
 	</SelectPrimitive.ScrollDownButton>
 );
 
-type SelectContentProps = ComponentProps<typeof SelectPrimitive.Content> & {
-	/**
-	 * The width of the content. Defaults to the width of the trigger.
-	 * If set to "content", the content takes its intrinsic width — the width of the widest item.
-	 * @default "trigger"
-	 */
-	width?: "trigger" | "content";
-};
+type SelectContentProps = ComponentProps<typeof SelectPrimitive.Content> &
+	WithDataSlot & {
+		/**
+		 * The width of the content. Defaults to the width of the trigger.
+		 * If set to "content", the content takes its intrinsic width: the width of the widest item.
+		 * @default "trigger"
+		 */
+		width?: "trigger" | "content";
+	};
 
 /**
  * The component that pops out when the select is open as a portal adjacent to the trigger button.
@@ -433,6 +496,13 @@ type SelectContentProps = ComponentProps<typeof SelectPrimitive.Content> & {
  * every overlay, it portals to `document.body`, below the overlay tier
  * (`z-60`). When sibling floats share a container, the most recently mounted
  * float paints on top.
+ *
+ * | Data Attribute | Value                                          | Description                                                            |
+ * | -------------- | ---------------------------------------------- | ---------------------------------------------------------------------- |
+ * | `data-slot`    | `"select-content"`                             | On the content element.                                                |
+ * | `data-state`   | `"open"` \| `"closed"`                         | Drives the open and close animations.                                  |
+ * | `data-side`    | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | The side of the trigger the list opened on. `position="popper"` only.  |
+ * | `data-align`   | `"start"` \| `"center"` \| `"end"`             | The alignment against the trigger. `position="popper"` only.           |
  *
  * @see https://mantle.ngrok.com/components/forms/select#selectcontent
  *
@@ -462,6 +532,7 @@ type SelectContentProps = ComponentProps<typeof SelectPrimitive.Content> & {
 const Content = ({
 	className,
 	children,
+	"data-slot": dataSlot,
 	position = "popper",
 	ref,
 	width = "trigger",
@@ -473,9 +544,9 @@ const Content = ({
 		<SelectPrimitive.Portal container={layerContainer}>
 			<SelectPrimitive.Content
 				ref={ref}
-				data-slot="select-content"
+				data-slot={joinDataSlot(dataSlot, "select-content")}
 				className={cx(
-					"border-popover data-side-bottom:slide-in-from-top-2 data-side-left:slide-in-from-right-2 data-side-right:slide-in-from-left-2 data-side-top:slide-in-from-bottom-2 data-state-closed:animate-out data-state-closed:fade-out-0 data-state-closed:zoom-out-95 data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95 relative z-50 max-h-96 min-w-32 overflow-hidden rounded-md border shadow-md",
+					"border-popover data-side-bottom:slide-in-from-top-2 data-side-left:slide-in-from-right-2 data-side-right:slide-in-from-left-2 data-side-top:slide-in-from-bottom-2 data-state-closed:animate-out data-state-closed:fade-out-0 data-state-closed:zoom-out-95 data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95 motion-reduce:animate-none relative z-50 max-h-96 min-w-32 overflow-hidden rounded-md border shadow-md",
 					"bg-popover font-sans",
 					position === "popper" &&
 						"data-side-bottom:translate-y-2 data-side-left:-translate-x-2 data-side-right:translate-x-2 data-side-top:-translate-y-2 max-h-(--radix-select-content-available-height)",
@@ -503,6 +574,10 @@ const Content = ({
 /**
  * Used to render the label of a group. It won't be focusable using arrow keys.
  *
+ * | Data Attribute | Value            | Description                 |
+ * | -------------- | ---------------- | --------------------------- |
+ * | `data-slot`    | `"select-label"` | On the group label element. |
+ *
  * @see https://mantle.ngrok.com/components/forms/select#selectlabel
  *
  * @example
@@ -528,10 +603,15 @@ const Content = ({
  * </Select.Root>
  * ```
  */
-const Label = ({ className, ref, ...props }: ComponentProps<typeof SelectPrimitive.Label>) => (
+const Label = ({
+	className,
+	"data-slot": dataSlot,
+	ref,
+	...props
+}: ComponentProps<typeof SelectPrimitive.Label> & WithDataSlot) => (
 	<SelectPrimitive.Label
 		ref={ref}
-		data-slot="select-label"
+		data-slot={joinDataSlot(dataSlot, "select-label")}
 		className={cx("px-2 py-1.5 text-sm font-medium", className)}
 		{...props}
 	/>
@@ -637,6 +717,10 @@ const Item = ({
 /**
  * Used to visually separate items or groups of items in the select content.
  *
+ * | Data Attribute | Value                | Description               |
+ * | -------------- | -------------------- | ------------------------- |
+ * | `data-slot`    | `"select-separator"` | On the separator element. |
+ *
  * @see https://mantle.ngrok.com/components/forms/select#selectseparator
  *
  * @example
@@ -664,12 +748,13 @@ const Item = ({
  */
 const SelectSeparatorComponent = ({
 	className,
+	"data-slot": dataSlot,
 	ref,
 	...props
-}: ComponentProps<typeof Separator>) => (
+}: ComponentProps<typeof Separator> & WithDataSlot) => (
 	<Separator
 		ref={ref}
-		data-slot="select-separator"
+		data-slot={joinDataSlot(dataSlot, "select-separator")}
 		className={cx("-mx-1 my-1 h-px w-auto", className)}
 		{...props}
 	/>
@@ -789,6 +874,13 @@ const Select = {
 	 * (`z-60`). When sibling floats share a container, the most recently mounted
 	 * float paints on top.
 	 *
+	 * | Data Attribute | Value                                          | Description                                                            |
+	 * | -------------- | ---------------------------------------------- | ---------------------------------------------------------------------- |
+	 * | `data-slot`    | `"select-content"`                             | On the content element.                                                |
+	 * | `data-state`   | `"open"` \| `"closed"`                         | Drives the open and close animations.                                  |
+	 * | `data-side`    | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | The side of the trigger the list opened on. `position="popper"` only.  |
+	 * | `data-align`   | `"start"` \| `"center"` \| `"end"`             | The alignment against the trigger. `position="popper"` only.           |
+	 *
 	 * @see https://mantle.ngrok.com/components/forms/select#selectcontent
 	 *
 	 * @example
@@ -818,6 +910,10 @@ const Select = {
 	/**
 	 * A group of related options within a select menu. Similar to an html `<optgroup>` element.
 	 * Pair it with `Select.Label`, which gives the group its accessible name.
+	 *
+	 * | Data Attribute | Value            | Description           |
+	 * | -------------- | ---------------- | --------------------- |
+	 * | `data-slot`    | `"select-group"` | On the group element. |
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/select#selectgroup
 	 *
@@ -901,6 +997,10 @@ const Select = {
 	/**
 	 * Used to render the label of a group. It won't be focusable using arrow keys.
 	 *
+	 * | Data Attribute | Value            | Description                 |
+	 * | -------------- | ---------------- | --------------------------- |
+	 * | `data-slot`    | `"select-label"` | On the group label element. |
+	 *
 	 * @see https://mantle.ngrok.com/components/forms/select#selectlabel
 	 *
 	 * @example
@@ -929,6 +1029,10 @@ const Select = {
 	Label,
 	/**
 	 * Used to visually separate items or groups of items in the select content.
+	 *
+	 * | Data Attribute | Value                | Description               |
+	 * | -------------- | -------------------- | ------------------------- |
+	 * | `data-slot`    | `"select-separator"` | On the separator element. |
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/select#selectseparator
 	 *
@@ -962,6 +1066,14 @@ const Select = {
 	 * the generated `id`, `name`, and `aria-invalid` flow onto `Select.Root` (so
 	 * the hidden form input gets the field name), and the trigger reads
 	 * `aria-describedby` / `aria-errormessage` from `FieldControlContext`.
+	 *
+	 * | Data Attribute     | Value                                   | Description                                                          |
+	 * | ------------------ | --------------------------------------- | -------------------------------------------------------------------- |
+	 * | `data-slot`        | `"select-trigger"`                      | On the trigger button.                                               |
+	 * | `data-state`       | `"open"` \| `"closed"`                  | Whether the list is open.                                            |
+	 * | `data-placeholder` | present when there is no value          | Presence-only. Style the placeholder text with `data-placeholder:`.  |
+	 * | `data-disabled`    | present when disabled                   | Presence-only. The `disabled` prop on `Select.Root`.                 |
+	 * | `data-validation`  | `"success"` \| `"warning"` \| `"error"` | The resolved `validation` state. Omitted when there is none.         |
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/select#selecttrigger
 	 *

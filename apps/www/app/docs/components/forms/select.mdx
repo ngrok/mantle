@@ -216,6 +216,32 @@ import { Select } from "@ngrok/mantle/select";
 </Field.Item>;
 ```
 
+## Composition
+
+Compose the parts of a `Select` together to build your own:
+
+```text showLineNumbers=false
+Select.Root
+├── Select.Trigger
+│   └── Select.Value
+└── Select.Content
+    ├── Select.Group
+    │   ├── Select.Label
+    │   └── Select.Item
+    └── Select.Separator
+```
+
+## Polymorphism
+
+`Select.Group`, `Select.Label`, and `Select.Separator` accept `asChild`, which swaps the part's default element for your single child while keeping its styling and the select's keyboard and selection behavior. `Select.Label asChild` helps when a group heading must be a specific element for the page's outline.
+
+`Select.Root` is a state provider that renders no DOM, so it takes no `asChild`.
+
+> [!WARNING]
+> `Select.Trigger`, `Select.Content`, and `Select.Item` currently advertise `asChild` in their prop types but **throw at runtime** (`Primitive.* failed to slot onto its children`). Each one renders its own chrome next to your content (the trigger's caret, the content's scroll buttons and viewport, the item's check indicator), so the underlying Radix `Slot` receives more than the single child it requires. Do not use `asChild` on these three parts. To customize the trigger's content, pass it as `children` instead.
+>
+> `Select.Value asChild` renders your element but **drops every prop**: Radix hands its `Slot` a keyed Fragment, so the value's `data-slot`, `ref`, and `style` never reach your element, and React warns about invalid Fragment props. Do not use it. To render a custom value, pass `children` instead, as the [custom selected value](#custom-selected-value) example does.
+
 ## Layering and z-index
 
 `Select.Content` renders at Tailwind `z-50`, Mantle's float tier. When composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into that overlay's positioner and paints above the overlay that owns it. Outside every overlay, it portals to `document.body`, below the overlay tier (`z-60`). When sibling floats share a container, the most recently mounted float paints on top.
@@ -523,32 +549,6 @@ import { Select } from "@ngrok/mantle/select";
 </Select.Root>;
 ```
 
-## Composition
-
-Compose the parts of a `Select` together to build your own:
-
-```text showLineNumbers=false
-Select.Root
-├── Select.Trigger
-│   └── Select.Value
-└── Select.Content
-    ├── Select.Group
-    │   ├── Select.Label
-    │   └── Select.Item
-    └── Select.Separator
-```
-
-## Polymorphism
-
-`Select.Group`, `Select.Label`, and `Select.Separator` accept `asChild`, which swaps the part's default element for your single child while keeping its styling and the select's keyboard and selection behavior. `Select.Label asChild` helps when a group heading must be a specific element for the page's outline.
-
-`Select.Root` is a state provider that renders no DOM, so it takes no `asChild`.
-
-> [!WARNING]
-> `Select.Trigger`, `Select.Content`, and `Select.Item` currently advertise `asChild` in their prop types but **throw at runtime** (`Primitive.* failed to slot onto its children`). Each one renders its own chrome next to your content (the trigger's caret, the content's scroll buttons and viewport, the item's check indicator), so the underlying Radix `Slot` receives more than the single child it requires. Do not use `asChild` on these three parts. To customize the trigger's content, pass it as `children` instead.
->
-> `Select.Value asChild` renders your element but **drops every prop**: Radix hands its `Slot` a keyed Fragment, so the value's `data-slot`, `ref`, and `style` never reach your element, and React warns about invalid Fragment props. Do not use it. To render a custom value, pass `children` instead, as the [custom selected value](#custom-selected-value) example does.
-
 ## API Reference
 
 The `Select` components are built on top of [Radix Select](https://www.radix-ui.com/primitives/docs/components/select).
@@ -575,13 +575,23 @@ All props from Radix [Select.Root](https://www.radix-ui.com/primitives/docs/comp
 
 The button that toggles the `Select`. The `Select.Content` will position itself adjacent to the trigger.
 
-When composing with `Field.Item`, wrap `Select.Root` (not the trigger) in `Field.Control`. The generated `id`, `name`, and `aria-invalid` flow onto `Select.Root` — so the hidden form input picks up the field name — and the trigger reads `aria-describedby` / `aria-errormessage` from `FieldControlContext`. Validation resolves from explicit `Select.Root`, then `Select.Trigger`, then the nearest `Field.Item`.
+When composing with `Field.Item`, wrap `Select.Root` (not the trigger) in `Field.Control`. The generated `id`, `name`, and `aria-invalid` flow onto `Select.Root` (so the hidden form input picks up the field name), and the trigger reads `aria-describedby` / `aria-errormessage` from `FieldControlContext`. Validation resolves from explicit `Select.Root`, then `Select.Trigger`, then the nearest `Field.Item`.
 
 All props from Radix [Select.Trigger](https://www.radix-ui.com/primitives/docs/components/select#trigger), plus:
 
 | Prop          | Type                                                                                               | Default | Description                                                                                                                                                                                                                                                                                                                               |
 | ------------- | -------------------------------------------------------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `validation?` | `"error" \| "success" \| "warning" \| false \| (() => "error" \| "success" \| "warning" \| false)` |         | Use the `validation` prop to show if the select trigger has a specific validation status. This will change the border and outline of the select trigger. The `false` type is useful when using short-circuiting logic so that you don't need to use a ternary with `undefined`. Setting `validation` to `error` also sets `aria-invalid`. |
+
+#### Data attributes
+
+| Data Attribute     | Value                                   | Description                                                         |
+| ------------------ | --------------------------------------- | ------------------------------------------------------------------- |
+| `data-slot`        | `"select-trigger"`                      | On the trigger button.                                              |
+| `data-state`       | `"open"` \| `"closed"`                  | Whether the list is open.                                           |
+| `data-placeholder` | present when there is no value          | Presence-only. Style the placeholder text with `data-placeholder:`. |
+| `data-disabled`    | present when disabled                   | Presence-only. The `disabled` prop on `Select.Root`.                |
+| `data-validation`  | `"success"` \| `"warning"` \| `"error"` | The resolved `validation` state. Omitted when there is none.        |
 
 ### Select.Value
 
@@ -612,15 +622,36 @@ All props from Radix [Select.Content](https://www.radix-ui.com/primitives/docs/c
 | `position?` | `"popper" \| "item-aligned"` | `"popper"`  | `popper` opens the list below the trigger. `item-aligned` is the Radix default: the list opens over the trigger with the selected item aligned to it.                           |
 | `width?`    | `"trigger" \| "content"`     | `"trigger"` | `trigger` makes the content the same width as the trigger button. `content` makes it the intrinsic size of the content itself; it will be the width of the longest/widest item. |
 
+#### Data attributes
+
+| Data Attribute | Value                                          | Description                                                           |
+| -------------- | ---------------------------------------------- | --------------------------------------------------------------------- |
+| `data-slot`    | `"select-content"`                             | On the content element.                                               |
+| `data-state`   | `"open"` \| `"closed"`                         | Drives the open and close animations.                                 |
+| `data-side`    | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | The side of the trigger the list opened on. `position="popper"` only. |
+| `data-align`   | `"start"` \| `"center"` \| `"end"`             | The alignment against the trigger. `position="popper"` only.          |
+
 ### Select.Group
 
 A group of related options within a select menu. Similar to an html `optgroup` element. Pair it with `Select.Label`, which gives the group its accessible name.
 
 Radix [Select.Group](https://www.radix-ui.com/primitives/docs/components/select#group) props.
 
+#### Data attributes
+
+| Data Attribute | Value            | Description           |
+| -------------- | ---------------- | --------------------- |
+| `data-slot`    | `"select-group"` | On the group element. |
+
 ### Select.Separator
 
 Used to visually separate items in the select. Composed from [Mantle Separator](/components/structure/separator).
+
+#### Data attributes
+
+| Data Attribute | Value                | Description               |
+| -------------- | -------------------- | ------------------------- |
+| `data-slot`    | `"select-separator"` | On the separator element. |
 
 ### Select.Item
 
@@ -652,3 +683,9 @@ All props from Radix [Select.Item](https://www.radix-ui.com/primitives/docs/comp
 Used to render the label of a group. It won't be focusable using arrow keys. Pair it with `Select.Group` — the label gives the group its accessible name.
 
 Radix [Select.Label](https://www.radix-ui.com/primitives/docs/components/select#label) props.
+
+#### Data attributes
+
+| Data Attribute | Value            | Description                 |
+| -------------- | ---------------- | --------------------------- |
+| `data-slot`    | `"select-label"` | On the group label element. |
