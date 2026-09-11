@@ -353,41 +353,101 @@ export const recipeDescriptions = {
 		"Announce completed client-side navigations to screen readers by pairing a persistent LiveRegion with React Router's location, with page-name fallbacks and repeat-message handling.",
 } as const satisfies Record<(typeof recipePages)[number], string>;
 
-/** Migration guide pages. */
-export const migrationPages = [
-	//,
-	"CodeBlock",
-	"DataTable Action Column",
-	"DataTable TanStack Table v9",
-	"Dialog.Footer DOM Order",
-	"Field.Item Control Id",
-	"Priority → Intent",
-] as const;
+/**
+ * A migration guide. The index page, the sidebar, and the legacy redirects
+ * all read from this record.
+ */
+export type Migration = {
+	/**
+	 * The guide's publish-order number. A guide keeps its number forever, and no
+	 * later guide takes it. It is the four-digit prefix of `route` and of the
+	 * MDX file name.
+	 */
+	number: number;
+	/**
+	 * The URL slug without the number prefix. The guides shipped at
+	 * `/migrations/<slug>` before they carried a number, so this is the source
+	 * of each guide's legacy redirect.
+	 */
+	slug: string;
+	/** The short name the index page and the sidebar show. */
+	title: string;
+	/** The one-sentence summary the index page shows under the title. */
+	description: string;
+	/** The canonical docs route: `/migrations/<number>-<slug>`. */
+	route: Route;
+};
 
-/** Route lookup for migration guide pages. */
-export const migrationRoutes = {
-	CodeBlock: "/migrations/code-block-migration",
-	"DataTable Action Column": "/migrations/data-table-action-header-migration",
-	"DataTable TanStack Table v9": "/migrations/data-table-tanstack-v9-migration",
-	"Dialog.Footer DOM Order": "/migrations/dialog-footer-dom-order-migration",
-	"Field.Item Control Id": "/migrations/field-item-owns-control-id-migration",
-	"Priority → Intent": "/migrations/priority-to-intent-migration",
-} as const satisfies Record<(typeof migrationPages)[number], Route>;
+/**
+ * Zero-pad a migration number to the four digits its URL slug carries.
+ *
+ * @example
+ * formatMigrationNumber(6); // "0006"
+ */
+export function formatMigrationNumber(number: number): string {
+	return String(number).padStart(4, "0");
+}
 
-/** Short descriptions for the migration guide index page. */
-export const migrationDescriptions = {
-	CodeBlock: "Migrate from PrismJS-powered code blocks to mantle's Shiki-powered CodeBlock.",
-	"DataTable Action Column":
-		"Switch a pinned action column's header to DataTable.ActionHeader so it stays aligned on horizontal scroll.",
-	"DataTable TanStack Table v9":
-		"Move a DataTable from TanStack Table v8 to v9: useTable with a features object, columnHelper.columns, sortFn, and table.state.",
-	"Dialog.Footer DOM Order":
-		"Dialog.Footer now renders children in DOM order — reverse footer children to preserve their layout.",
-	"Field.Item Control Id":
-		"Field.Item owns the control id: move a child id to Field.Item, drop htmlFor from Field.Label, and update PasswordInput toggle selectors.",
-	"Priority → Intent":
-		"priority is now intent across Button, Alert, AlertDialog, and Toast — and Button and IconButton require explicit appearance and intent.",
-} as const satisfies Record<(typeof migrationPages)[number], string>;
+/**
+ * Migration guides in publish order, oldest first. Add a new guide at the end
+ * with the next number. Its MDX file lives at
+ * `app/docs/migrations/<number>-<slug>.mdx` and its slug is also listed in
+ * `app/routes.ts`.
+ */
+export const migrations = [
+	{
+		number: 1,
+		slug: "code-block-migration",
+		title: "CodeBlock",
+		description: "Migrate from PrismJS-powered code blocks to mantle's Shiki-powered CodeBlock.",
+		route: "/migrations/0001-code-block-migration",
+	},
+	{
+		number: 2,
+		slug: "data-table-action-header-migration",
+		title: "DataTable Action Column",
+		description:
+			"Switch a pinned action column's header to DataTable.ActionHeader so it stays aligned on horizontal scroll.",
+		route: "/migrations/0002-data-table-action-header-migration",
+	},
+	{
+		number: 3,
+		slug: "dialog-footer-dom-order-migration",
+		title: "Dialog.Footer DOM Order",
+		description:
+			"Dialog.Footer now renders children in DOM order — reverse footer children to preserve their layout.",
+		route: "/migrations/0003-dialog-footer-dom-order-migration",
+	},
+	{
+		number: 4,
+		slug: "priority-to-intent-migration",
+		title: "Priority → Intent",
+		description:
+			"priority is now intent across Button, Alert, AlertDialog, and Toast — and Button and IconButton require explicit appearance and intent.",
+		route: "/migrations/0004-priority-to-intent-migration",
+	},
+	{
+		number: 5,
+		slug: "field-item-owns-control-id-migration",
+		title: "Field.Item Control Id",
+		description:
+			"Field.Item owns the control id: move a child id to Field.Item, drop htmlFor from Field.Label, and update PasswordInput toggle selectors.",
+		route: "/migrations/0005-field-item-owns-control-id-migration",
+	},
+	{
+		number: 6,
+		slug: "data-table-tanstack-v9-migration",
+		title: "DataTable TanStack Table v9",
+		description:
+			"Move a DataTable from TanStack Table v8 to v9: useTable with a features object, columnHelper.columns, sortFn, and table.state.",
+		route: "/migrations/0006-data-table-tanstack-v9-migration",
+	},
+] as const satisfies readonly Migration[];
+
+/** Migration guides, newest first: the order the index page and the sidebar show. */
+export const migrationsNewestFirst: readonly Migration[] = migrations.toSorted(
+	(a, b) => b.number - a.number,
+);
 
 /**
  * Override map for components whose docs URL slug does not match their
