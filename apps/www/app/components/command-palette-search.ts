@@ -119,8 +119,16 @@ function routeCommand({
 
 /**
  * Builds every command the docs palette offers, in browse display order:
- * Welcome (docs pages plus the GitHub links), Base, Hooks, Utils, one group
- * per component category, Layouts, Recipes, Preview Components, and Theme.
+ *
+ * - Welcome (docs pages plus the GitHub links)
+ * - Base
+ * - Hooks
+ * - Utils
+ * - one group per component category
+ * - Layouts
+ * - Recipes
+ * - Preview Components
+ * - Theme
  *
  * Pure: derives everything from `navigation-data` and the given version, so
  * a page missing here means it is missing from `navigation-data` itself.
