@@ -331,6 +331,27 @@ describe("Select", () => {
 			expect(trigger.querySelector('[data-slot="select-item-label"]')).not.toBeInTheDocument();
 		});
 
+		test("a consumer data-slot joins ahead of the part's own slot on Select.Value and Select.Item", () => {
+			render(
+				<Select.Root defaultValue="apple">
+					<Select.Trigger>
+						<Select.Value placeholder="Select a fruit" data-slot="app-value" />
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Item value="apple" data-slot="app-item">
+							Apple
+						</Select.Item>
+					</Select.Content>
+				</Select.Root>,
+			);
+
+			const trigger = screen.getByRole("combobox");
+			expect(trigger.querySelector('[data-slot="app-value select-value"]')).toBeInstanceOf(
+				HTMLSpanElement,
+			);
+			expect(trigger.querySelector('[data-slot="select-value"]')).not.toBeInTheDocument();
+		});
+
 		test("Select.Value asChild renders the child as-is and skips the label span", () => {
 			render(
 				<Select.Root value="apple">
@@ -345,10 +366,13 @@ describe("Select", () => {
 				</Select.Root>,
 			);
 
-			// Why no `data-slot` assertion: Radix 2.3.7 hands `Slot` a keyed Fragment,
-			// so an `asChild` child receives none of the value's props. The child is
-			// still the node React removes, which is what this test pins.
+			// Why this pins a missing attribute: Radix 2.3.7 hands `Slot` a keyed
+			// Fragment, so an `asChild` child receives none of the value's props, and
+			// the docs page marks the path unsupported. When this assertion fails,
+			// Radix fixed the Fragment wrap: drop the warning from the docs page and
+			// the JSDoc, and assert the joined slot here instead.
 			const value = screen.getByTestId("value");
+			expect(value).not.toHaveAttribute("data-slot");
 			expect(value.parentElement).toBe(screen.getByRole("combobox"));
 			expect(value.querySelector('[data-slot="select-value-label"]')).not.toBeInTheDocument();
 			expect(

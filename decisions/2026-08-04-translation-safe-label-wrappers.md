@@ -83,7 +83,7 @@ long one with `min-w-0 truncate`. `Select.Item` was already the precedent in the
 library: it has the identical `{icon && …}` shape but wraps children in
 `SelectPrimitive.ItemText`, so it never threw.
 
-**Revised 2026-09-11 — see [the second amendment](#amendment-2026-09-11-a-portals-text-child-is-an-outermost-node).**
+**Revised 2026-09-11: see [the second amendment](#amendment-2026-09-11-a-portals-text-child-is-an-outermost-node).**
 `Select.Item` never threw in the list. It threw in the trigger.
 
 Both the plain and the `asChild` path wrap, because both render the same shape.

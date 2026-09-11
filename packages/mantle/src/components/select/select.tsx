@@ -15,6 +15,8 @@ import type {
 import { createContext, useContext, useMemo } from "react";
 import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
 import { cx } from "../../utils/cx/cx.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
 import { useLayerContainer } from "../../utils/layer-container/layer-container.js";
 import { FieldControlContext } from "../field/field-context.js";
 import { parseValidation, useFieldValidation } from "../field/validation.js";
@@ -187,6 +189,8 @@ const Group = ({ className, ref, ...props }: ComponentProps<typeof SelectPrimiti
 	/>
 );
 
+type SelectValueProps = ComponentProps<typeof SelectPrimitive.Value> & WithDataSlot;
+
 /**
  * The part that reflects the selected value. Renders the selected item's text
  * by default. For more control, control the select and pass your own children.
@@ -201,7 +205,11 @@ const Group = ({ className, ref, ...props }: ComponentProps<typeof SelectPrimiti
  * `display: contents`, so it lays out nothing of its own. React removes one of
  * those spans whenever the value changes, and an element removal cannot throw:
  * a browser translation engine reparents text nodes, and a removal aimed at a
- * reparented text node does. Under `asChild`, your element is the wrapper.
+ * reparented text node does.
+ *
+ * **`asChild` is not supported.** Radix hands its `Slot` a keyed Fragment, so
+ * your element receives none of the value's props and React warns. Pass
+ * `children` instead.
  *
  * | Data Attribute | Value                  | Description                                                                   |
  * | -------------- | ---------------------- | ----------------------------------------------------------------------------- |
@@ -237,14 +245,15 @@ const Group = ({ className, ref, ...props }: ComponentProps<typeof SelectPrimiti
 const Value = ({
 	asChild,
 	children,
+	"data-slot": dataSlot,
 	placeholder,
 	ref,
 	...props
-}: ComponentProps<typeof SelectPrimitive.Value>) => (
+}: SelectValueProps) => (
 	<SelectPrimitive.Value
 		ref={ref}
 		asChild={asChild}
-		data-slot="select-value"
+		data-slot={joinDataSlot(dataSlot, "select-value")}
 		// Why the spans: decisions/2026-08-04-translation-safe-label-wrappers.md
 		placeholder={
 			placeholder != null && (
@@ -528,12 +537,13 @@ const Label = ({ className, ref, ...props }: ComponentProps<typeof SelectPrimiti
 	/>
 );
 
-type SelectItemProps = ComponentProps<typeof SelectPrimitive.Item> & {
-	/**
-	 * An optional icon rendered before the item text.
-	 */
-	icon?: ReactNode;
-};
+type SelectItemProps = ComponentProps<typeof SelectPrimitive.Item> &
+	WithDataSlot & {
+		/**
+		 * An optional icon rendered before the item text.
+		 */
+		icon?: ReactNode;
+	};
 
 /**
  * An option within a select menu. Similar to an html `<option>` element.
@@ -587,10 +597,18 @@ type SelectItemProps = ComponentProps<typeof SelectPrimitive.Item> & {
  * </Select.Root>
  * ```
  */
-const Item = ({ className, children, icon, ref, translate, ...props }: SelectItemProps) => (
+const Item = ({
+	className,
+	children,
+	"data-slot": dataSlot,
+	icon,
+	ref,
+	translate,
+	...props
+}: SelectItemProps) => (
 	<SelectPrimitive.Item
 		ref={ref}
-		data-slot="select-item"
+		data-slot={joinDataSlot(dataSlot, "select-item")}
 		translate={translate}
 		className={cx(
 			"relative flex gap-2 w-full cursor-pointer select-none items-center rounded-md py-1.5 pl-2 pr-8 text-strong text-sm outline-hidden",
@@ -985,7 +1003,11 @@ const Select = {
 	 * `display: contents`, so it lays out nothing of its own. React removes one of
 	 * those spans whenever the value changes, and an element removal cannot throw:
 	 * a browser translation engine reparents text nodes, and a removal aimed at a
-	 * reparented text node does. Under `asChild`, your element is the wrapper.
+	 * reparented text node does.
+	 *
+	 * **`asChild` is not supported.** Radix hands its `Slot` a keyed Fragment, so
+	 * your element receives none of the value's props and React warns. Pass
+	 * `children` instead.
 	 *
 	 * | Data Attribute | Value                  | Description                                                                   |
 	 * | -------------- | ---------------------- | ----------------------------------------------------------------------------- |
