@@ -46,7 +46,11 @@ describe("CommandPalette", () => {
 
 		expect(screen.getByText("Welcome")).toBeTruthy();
 		expect(screen.getByText("Components: Navigation")).toBeTruthy();
+		expect(screen.getByText("Recipes")).toBeTruthy();
 		expect(screen.getByRole("option", { name: /Overview & Setup/ })).toBeTruthy();
+		expect(screen.getByRole("option", { name: /Route Announcer/ }).getAttribute("href")).toBe(
+			"/recipes/route-announcer",
+		);
 	});
 
 	// Regression: with cmdk's built-in filtering, searching "tabs" surfaced

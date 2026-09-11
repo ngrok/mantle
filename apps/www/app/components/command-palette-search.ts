@@ -13,6 +13,8 @@ import {
 	previewComponents,
 	previewComponentsRouteLookup,
 	prodReadyComponentRouteLookup,
+	recipePages,
+	recipeRoutes,
 	utilsPages,
 	utilsRoutes,
 	welcomePages,
@@ -117,8 +119,16 @@ function routeCommand({
 
 /**
  * Builds every command the docs palette offers, in browse display order:
- * Welcome (docs pages plus the GitHub links), Base, Hooks, Utils, one group
- * per component category, Layouts, Preview Components, and Theme.
+ *
+ * - Welcome (docs pages plus the GitHub links)
+ * - Base
+ * - Hooks
+ * - Utils
+ * - one group per component category
+ * - Layouts
+ * - Recipes
+ * - Preview Components
+ * - Theme
  *
  * Pure: derives everything from `navigation-data` and the given version, so
  * a page missing here means it is missing from `navigation-data` itself.
@@ -190,6 +200,14 @@ export function buildPaletteCommands(mantleVersion: string): PaletteCommand[] {
 				to: layoutRoutes[page],
 				group: "Layouts",
 				subtitle: layoutRoutes[page],
+			}),
+		),
+		...recipePages.map((page) =>
+			routeCommand({
+				title: page,
+				to: recipeRoutes[page],
+				group: "Recipes",
+				subtitle: recipeRoutes[page],
 			}),
 		),
 		...previewComponents.map((component) =>
