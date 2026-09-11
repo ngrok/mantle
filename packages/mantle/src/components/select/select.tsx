@@ -190,9 +190,24 @@ const Group = ({ className, ref, ...props }: ComponentProps<typeof SelectPrimiti
 /**
  * The part that reflects the selected value. Renders the selected item's text
  * by default. For more control, control the select and pass your own children.
- * Do not style this part — under `Select.Content position="item-aligned"`, Radix
+ * Do not style this part: under `Select.Content position="item-aligned"`, Radix
  * measures its box to align the open list over the selected item. Pass
  * `placeholder` for the text to show when the select has no value.
+ *
+ * **Structure.** `placeholder` renders inside a
+ * `<span data-slot="select-placeholder">`, your own `children` inside a
+ * `<span data-slot="select-value-label">`, and the selected item's text arrives
+ * inside the `select-item-label` span that `Select.Item` renders. Each span is
+ * `display: contents`, so it lays out nothing of its own. React removes one of
+ * those spans whenever the value changes, and an element removal cannot throw:
+ * a browser translation engine reparents text nodes, and a removal aimed at a
+ * reparented text node does. Under `asChild`, your element is the wrapper.
+ *
+ * | Data Attribute | Value                  | Description                                                                   |
+ * | -------------- | ---------------------- | ----------------------------------------------------------------------------- |
+ * | `data-slot`    | `"select-value"`       | On the value element.                                                         |
+ * | `data-slot`    | `"select-placeholder"` | On the `<span>` wrapping `placeholder`. Present only while there is no value. |
+ * | `data-slot`    | `"select-value-label"` | On the `<span>` wrapping your `children`. Absent under `asChild`.             |
  *
  * @see https://mantle.ngrok.com/components/forms/select#selectvalue
  *
@@ -219,7 +234,37 @@ const Group = ({ className, ref, ...props }: ComponentProps<typeof SelectPrimiti
  * </Select.Root>
  * ```
  */
-const Value = SelectPrimitive.Value;
+const Value = ({
+	asChild,
+	children,
+	placeholder,
+	ref,
+	...props
+}: ComponentProps<typeof SelectPrimitive.Value>) => (
+	<SelectPrimitive.Value
+		ref={ref}
+		asChild={asChild}
+		data-slot="select-value"
+		// Why the spans: decisions/2026-08-04-translation-safe-label-wrappers.md
+		placeholder={
+			placeholder != null && (
+				<span data-slot="select-placeholder" className="contents">
+					{placeholder}
+				</span>
+			)
+		}
+		{...props}
+	>
+		{/* Why `== null` passes through: Radix reads `children !== undefined` to decide whether to portal the item text, so `undefined` must stay `undefined`. */}
+		{asChild || children == null ? (
+			children
+		) : (
+			<span data-slot="select-value-label" className="contents">
+				{children}
+			</span>
+		)}
+	</SelectPrimitive.Value>
+);
 
 type SelectTriggerProps = ComponentProps<typeof SelectPrimitive.Trigger> &
 	WithAriaInvalid &
@@ -497,6 +542,26 @@ type SelectItemProps = ComponentProps<typeof SelectPrimitive.Item> & {
  * Displays the children as the option's text. Pass `icon` to render an icon
  * before the text.
  *
+ * **Structure.** `children` render inside a `<span data-slot="select-item-label">`.
+ * Radix portals that span into `Select.Value` while the item is selected and
+ * removes it when the selection changes. The span exists so the node React
+ * removes is an element: a browser translation engine reparents text nodes,
+ * and a removal aimed at one throws. The span is `display: contents`, so it
+ * lays out nothing of its own in the list or in the trigger. To style it as a
+ * box, set a display of your own on it first.
+ *
+ * **Untranslatable labels.** When the label is an ID, a path, a filename, or a
+ * key, set `translate="no"` on the item. The attribute also rides on the label
+ * span, so the copy the trigger shows stays untranslated too.
+ *
+ * | Data Attribute     | Value                        | Description                                                          |
+ * | ------------------ | ---------------------------- | -------------------------------------------------------------------- |
+ * | `data-slot`        | `"select-item"`              | On the option element.                                               |
+ * | `data-slot`        | `"select-item-label"`        | On the `<span>` wrapping `children`, in the list and in the trigger. |
+ * | `data-state`       | `"checked"` \| `"unchecked"` | Whether this item is the selected value.                             |
+ * | `data-highlighted` | present when highlighted     | Presence-only. The item under the pointer or the keyboard focus.     |
+ * | `data-disabled`    | present when disabled        | Presence-only. The `disabled` prop.                                  |
+ *
  * @see https://mantle.ngrok.com/components/forms/select#selectitem
  *
  * @example
@@ -522,10 +587,11 @@ type SelectItemProps = ComponentProps<typeof SelectPrimitive.Item> & {
  * </Select.Root>
  * ```
  */
-const Item = ({ className, children, icon, ref, ...props }: SelectItemProps) => (
+const Item = ({ className, children, icon, ref, translate, ...props }: SelectItemProps) => (
 	<SelectPrimitive.Item
 		ref={ref}
 		data-slot="select-item"
+		translate={translate}
 		className={cx(
 			"relative flex gap-2 w-full cursor-pointer select-none items-center rounded-md py-1.5 pl-2 pr-8 text-strong text-sm outline-hidden",
 			"focus:bg-active-menu-item",
@@ -537,7 +603,13 @@ const Item = ({ className, children, icon, ref, ...props }: SelectItemProps) => 
 		{...props}
 	>
 		{icon && <Icon svg={icon} />}
-		<SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
+		<SelectPrimitive.ItemText>
+			{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
+			{/* Why `translate` repeats: Radix portals this span into the trigger, out of the item's subtree, so the item's attribute never reaches that copy. */}
+			<span data-slot="select-item-label" className="contents" translate={translate}>
+				{children}
+			</span>
+		</SelectPrimitive.ItemText>
 		<SelectPrimitive.ItemIndicator className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
 			<Icon svg={<CheckIcon weight="bold" />} className="size-4 text-accent-600" />
 		</SelectPrimitive.ItemIndicator>
@@ -762,6 +834,26 @@ const Select = {
 	 * Displays the children as the option's text. Pass `icon` to render an icon
 	 * before the text.
 	 *
+	 * **Structure.** `children` render inside a `<span data-slot="select-item-label">`.
+	 * Radix portals that span into `Select.Value` while the item is selected and
+	 * removes it when the selection changes. The span exists so the node React
+	 * removes is an element: a browser translation engine reparents text nodes,
+	 * and a removal aimed at one throws. The span is `display: contents`, so it
+	 * lays out nothing of its own in the list or in the trigger. To style it as a
+	 * box, set a display of your own on it first.
+	 *
+	 * **Untranslatable labels.** When the label is an ID, a path, a filename, or a
+	 * key, set `translate="no"` on the item. The attribute also rides on the label
+	 * span, so the copy the trigger shows stays untranslated too.
+	 *
+	 * | Data Attribute     | Value                        | Description                                                          |
+	 * | ------------------ | ---------------------------- | -------------------------------------------------------------------- |
+	 * | `data-slot`        | `"select-item"`              | On the option element.                                               |
+	 * | `data-slot`        | `"select-item-label"`        | On the `<span>` wrapping `children`, in the list and in the trigger. |
+	 * | `data-state`       | `"checked"` \| `"unchecked"` | Whether this item is the selected value.                             |
+	 * | `data-highlighted` | present when highlighted     | Presence-only. The item under the pointer or the keyboard focus.     |
+	 * | `data-disabled`    | present when disabled        | Presence-only. The `disabled` prop.                                  |
+	 *
 	 * @see https://mantle.ngrok.com/components/forms/select#selectitem
 	 *
 	 * @example
@@ -882,9 +974,24 @@ const Select = {
 	/**
 	 * The part that reflects the selected value. Renders the selected item's text
 	 * by default. For more control, control the select and pass your own children.
-	 * Do not style this part — under `Select.Content position="item-aligned"`, Radix
+	 * Do not style this part: under `Select.Content position="item-aligned"`, Radix
 	 * measures its box to align the open list over the selected item. Pass
 	 * `placeholder` for the text to show when the select has no value.
+	 *
+	 * **Structure.** `placeholder` renders inside a
+	 * `<span data-slot="select-placeholder">`, your own `children` inside a
+	 * `<span data-slot="select-value-label">`, and the selected item's text arrives
+	 * inside the `select-item-label` span that `Select.Item` renders. Each span is
+	 * `display: contents`, so it lays out nothing of its own. React removes one of
+	 * those spans whenever the value changes, and an element removal cannot throw:
+	 * a browser translation engine reparents text nodes, and a removal aimed at a
+	 * reparented text node does. Under `asChild`, your element is the wrapper.
+	 *
+	 * | Data Attribute | Value                  | Description                                                                   |
+	 * | -------------- | ---------------------- | ----------------------------------------------------------------------------- |
+	 * | `data-slot`    | `"select-value"`       | On the value element.                                                         |
+	 * | `data-slot`    | `"select-placeholder"` | On the `<span>` wrapping `placeholder`. Present only while there is no value. |
+	 * | `data-slot`    | `"select-value-label"` | On the `<span>` wrapping your `children`. Absent under `asChild`.             |
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/select#selectvalue
 	 *

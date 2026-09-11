@@ -497,17 +497,17 @@ A translation engine reparents the text nodes React holds, which turns a routine
 [CONVENTIONS.md → Browser Translation](./CONVENTIONS.md#browser-translation) owns both rules and the mechanism.
 What they mean for a part:
 
-- **No part renders a conditional element immediately before bare text children.** Wrap the text in an element
-  carrying `<component-name>-label`, move the conditional element after the text, or mount that element
-  unconditionally. A wrapper's `data-slot` is public API, so document it like every other one
-  ([§6](#6-data-attributes-are-api)).
+- **No part renders a conditional element immediately before bare text children, and no part portals bare
+  text.** Wrap the text in an element carrying `<component-name>-label`, move the conditional element after the
+  text, or mount that element unconditionally. A wrapper's `data-slot` is public API, so document it like every
+  other one ([§6](#6-data-attributes-are-api)).
 - **A part that renders code, a key, a filename, an ID, or a passcode sets `translate="no"`.** Lock it —
   `Omit<ComponentProps<…>, "translate">`, plus the attribute stamped after the props spread — when the part can
   never hold prose. Keep the prop when it can, and document the default in the JSDoc and the API reference.
 
 `Kbd`, `CodeBlock.Code`, and `OtpInput.Slot` lock the attribute. `Code` and `CodeBlock.Title` default it.
-`Button`, `Badge`, and `Anchor` wrap their label. `DataTable` moves one indicator after its children, and keeps
-its sort announcer mounted at all times.
+`Button`, `Badge`, `Anchor`, and `Select.Item` wrap their label, and `Select.Value` wraps its placeholder and its
+children. `DataTable` moves one indicator after its children, and keeps its sort announcer mounted at all times.
 
 ---
 

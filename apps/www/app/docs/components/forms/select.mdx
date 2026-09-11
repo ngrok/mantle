@@ -439,9 +439,19 @@ All props from Radix [Select.Trigger](https://www.radix-ui.com/primitives/docs/c
 
 ### Select.Value
 
-The part that reflects the selected value. Renders the selected item's text by default. For more control, control the select and pass your own children. Do not style this part — under `Select.Content position="item-aligned"`, Radix measures its box to align the open list over the selected item. Pass `placeholder` for the text to show when the select has no value.
+The part that reflects the selected value. Renders the selected item's text by default. For more control, control the select and pass your own children. Do not style this part: under `Select.Content position="item-aligned"`, Radix measures its box to align the open list over the selected item. Pass `placeholder` for the text to show when the select has no value.
+
+`placeholder` renders inside a `<span data-slot="select-placeholder">`, your own `children` inside a `<span data-slot="select-value-label">`, and the selected item's text arrives inside the `select-item-label` span from `Select.Item`. Each span is `display: contents`, so it adds no box and changes no layout. React removes one of those spans whenever the value changes, and an element removal is safe on a translated page. A browser translation engine reparents text nodes, and a removal aimed at a reparented text node throws. [Browser translation](/browser-translation) covers the mechanism.
 
 Radix [Select.Value](https://www.radix-ui.com/primitives/docs/components/select#value) props.
+
+#### Data attributes
+
+| Data Attribute | Value                  | Description                                                                   |
+| -------------- | ---------------------- | ----------------------------------------------------------------------------- |
+| `data-slot`    | `"select-value"`       | On the value element.                                                         |
+| `data-slot`    | `"select-placeholder"` | On the `<span>` wrapping `placeholder`. Present only while there is no value. |
+| `data-slot`    | `"select-value-label"` | On the `<span>` wrapping your `children`. Absent under `asChild`.             |
 
 ### Select.Content
 
@@ -470,11 +480,25 @@ Used to visually separate items in the select. Composed from [Mantle Separator](
 
 An option within a select menu. Similar to an html `option` element. Has a required `value` prop. When a user selects this item, `Select.Root` passes that value to its `onValueChange` handler. Displays the children as the option's text. Pass `icon` to render an icon before the text.
 
+`children` render inside a `<span data-slot="select-item-label">`. Radix portals that span into `Select.Value` while the item is selected and removes it when the selection changes. The span exists so the node React removes is an element: a browser translation engine reparents text nodes, and a removal aimed at one throws. The span is `display: contents`, so it adds no box in the list or in the trigger, and your own item content stays the direct layout child of the value. To style it as a box, set a display of your own on it first. [Browser translation](/browser-translation) covers the mechanism and the rule your own components need.
+
+When the label is an ID, a path, a filename, or a key, set `translate="no"` on the item. The attribute also rides on the label span, so the copy the trigger shows stays untranslated too.
+
 All props from Radix [Select.Item](https://www.radix-ui.com/primitives/docs/components/select#item), plus:
 
 | Prop    | Type        | Default | Description                                     |
 | ------- | ----------- | ------- | ----------------------------------------------- |
 | `icon?` | `ReactNode` |         | An optional icon rendered before the item text. |
+
+#### Data attributes
+
+| Data Attribute     | Value                        | Description                                                          |
+| ------------------ | ---------------------------- | -------------------------------------------------------------------- |
+| `data-slot`        | `"select-item"`              | On the option element.                                               |
+| `data-slot`        | `"select-item-label"`        | On the `<span>` wrapping `children`, in the list and in the trigger. |
+| `data-state`       | `"checked"` \| `"unchecked"` | Whether this item is the selected value.                             |
+| `data-highlighted` | present when highlighted     | Presence-only. The item under the pointer or the keyboard focus.     |
+| `data-disabled`    | present when disabled        | Presence-only. The `disabled` prop.                                  |
 
 ### Select.Label
 

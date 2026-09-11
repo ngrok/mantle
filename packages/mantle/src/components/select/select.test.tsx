@@ -1,6 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
+import { useState } from "react";
 import { describe, expect, test, vi } from "vitest";
+import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import { Field } from "../field/field.js";
 import { Select } from "./select.js";
 
@@ -242,5 +244,335 @@ describe("Select", () => {
 
 		expect(screen.getByRole("combobox")).toHaveAttribute("aria-invalid", "true");
 		expect(screen.getByRole("combobox")).toHaveAttribute("data-validation", "error");
+	});
+
+	describe("data-slot", () => {
+		test("every part carries its slot, and the selected label reaches the trigger", async () => {
+			const user = userEvent.setup();
+			render(
+				<Select.Root defaultValue="apple">
+					<Select.Trigger>
+						<Select.Value placeholder="Select a fruit" />
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Group>
+							<Select.Label>Fruits</Select.Label>
+							<Select.Item value="apple">Apple</Select.Item>
+						</Select.Group>
+						<Select.Separator />
+						<Select.Group>
+							<Select.Label>Veggies</Select.Label>
+							<Select.Item value="carrot">Carrot</Select.Item>
+						</Select.Group>
+					</Select.Content>
+				</Select.Root>,
+			);
+
+			const trigger = screen.getByRole("combobox");
+			expect(trigger).toHaveAttribute("data-slot", "select-trigger");
+			const value = trigger.querySelector('[data-slot="select-value"]');
+			expect(value).toBeInstanceOf(HTMLSpanElement);
+			// Radix portals the selected item's children into the value node, so
+			// the label span is the node it later removes.
+			expect(value?.querySelector('[data-slot="select-item-label"]')).toHaveTextContent("Apple");
+
+			await user.click(trigger);
+
+			const listbox = await screen.findByRole("listbox");
+			const option = screen.getByRole("option", { name: "Apple" });
+			expect(listbox).toHaveAttribute("data-slot", "select-content");
+			expect(screen.getByRole("group", { name: "Fruits" })).toHaveAttribute(
+				"data-slot",
+				"select-group",
+			);
+			expect(screen.getByText("Fruits")).toHaveAttribute("data-slot", "select-label");
+			expect(option).toHaveAttribute("data-slot", "select-item");
+			expect(listbox.querySelector('[data-slot="select-separator"]')).toBeInTheDocument();
+			expect(option.querySelector('[data-slot="select-item-label"]')).toHaveTextContent("Apple");
+		});
+
+		test("the placeholder renders inside its own slot until a value is picked", () => {
+			render(
+				<Select.Root>
+					<Select.Trigger>
+						<Select.Value placeholder="Select a fruit" />
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Item value="apple">Apple</Select.Item>
+					</Select.Content>
+				</Select.Root>,
+			);
+
+			const trigger = screen.getByRole("combobox");
+			expect(trigger.querySelector('[data-slot="select-placeholder"]')).toHaveTextContent(
+				"Select a fruit",
+			);
+			expect(trigger.querySelector('[data-slot="select-item-label"]')).not.toBeInTheDocument();
+		});
+
+		test("Select.Value with children renders them and no placeholder slot", () => {
+			render(
+				<Select.Root value="apple">
+					<Select.Trigger>
+						<Select.Value placeholder="Select a fruit">Custom apple</Select.Value>
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Item value="apple">Apple</Select.Item>
+					</Select.Content>
+				</Select.Root>,
+			);
+
+			const trigger = screen.getByRole("combobox");
+			expect(trigger.querySelector('[data-slot="select-value"]')).toHaveTextContent("Custom apple");
+			expect(trigger.querySelector('[data-slot="select-value-label"]')).toHaveTextContent(
+				"Custom apple",
+			);
+			expect(trigger.querySelector('[data-slot="select-placeholder"]')).not.toBeInTheDocument();
+			expect(trigger.querySelector('[data-slot="select-item-label"]')).not.toBeInTheDocument();
+		});
+
+		test("Select.Value asChild renders the child as-is and skips the label span", () => {
+			render(
+				<Select.Root value="apple">
+					<Select.Trigger>
+						<Select.Value placeholder="Select a fruit" asChild>
+							<output data-testid="value">Custom apple</output>
+						</Select.Value>
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Item value="apple">Apple</Select.Item>
+					</Select.Content>
+				</Select.Root>,
+			);
+
+			// Why no `data-slot` assertion: Radix 2.3.7 hands `Slot` a keyed Fragment,
+			// so an `asChild` child receives none of the value's props. The child is
+			// still the node React removes, which is what this test pins.
+			const value = screen.getByTestId("value");
+			expect(value.parentElement).toBe(screen.getByRole("combobox"));
+			expect(value.querySelector('[data-slot="select-value-label"]')).not.toBeInTheDocument();
+			expect(
+				screen.getByRole("combobox").querySelector('[data-slot="select-value-label"]'),
+			).not.toBeInTheDocument();
+		});
+
+		// Why this pins a class: `display: contents` is the only observable
+		// implementation of "the wrapper adds no box", and happy-dom has no layout.
+		// A consumer's `[&>span]:flex-1` on the trigger reaches the value span, and
+		// their own item content must stay its direct layout child.
+		test("lays out the wrapper spans as contents so they add no box of their own", () => {
+			render(
+				<Select.Root defaultValue="apple">
+					<Select.Trigger>
+						<Select.Value placeholder="Select a fruit" />
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Item value="apple">Apple</Select.Item>
+					</Select.Content>
+				</Select.Root>,
+			);
+			const trigger = screen.getByRole("combobox");
+			expect(trigger.querySelector('[data-slot="select-item-label"]')).toHaveClass("contents");
+
+			render(
+				<Select.Root value="">
+					<Select.Trigger data-testid="empty">
+						<Select.Value placeholder="Select a fruit" />
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Item value="apple">Apple</Select.Item>
+					</Select.Content>
+				</Select.Root>,
+			);
+			expect(
+				screen.getByTestId("empty").querySelector('[data-slot="select-placeholder"]'),
+			).toHaveClass("contents");
+
+			render(
+				<Select.Root value="apple">
+					<Select.Trigger data-testid="custom">
+						<Select.Value>Custom apple</Select.Value>
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Item value="apple">Apple</Select.Item>
+					</Select.Content>
+				</Select.Root>,
+			);
+			expect(
+				screen.getByTestId("custom").querySelector('[data-slot="select-value-label"]'),
+			).toHaveClass("contents");
+		});
+	});
+
+	// Why these tests: decisions/2026-08-04-translation-safe-label-wrappers.md.
+	// Radix portals the selected item's children into `Select.Value` and keys
+	// the placeholder, so a bare text node in either spot is one React removes
+	// by itself. A translation engine reparents that node first, and the
+	// `removeChild` throws.
+	describe("after browser translation", () => {
+		test("changes a translated selection and reports the new value", async () => {
+			const user = userEvent.setup();
+			const onValueChange = vi.fn<(value: string) => void>();
+			render(
+				<Select.Root defaultValue="apple" onValueChange={onValueChange}>
+					<Select.Trigger>
+						<Select.Value placeholder="Select a fruit" />
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Item value="apple">Apple</Select.Item>
+						<Select.Item value="banana">Banana</Select.Item>
+					</Select.Content>
+				</Select.Root>,
+			);
+			const trigger = screen.getByRole("combobox");
+			translateTextNodes(trigger);
+			expect(trigger).toHaveTextContent("[Apple-es]");
+
+			await user.click(trigger);
+			await user.click(await screen.findByRole("option", { name: "Banana" }));
+
+			expect(onValueChange).toHaveBeenCalledTimes(1);
+			expect(onValueChange).toHaveBeenLastCalledWith("banana");
+			expect(trigger).toHaveTextContent("Banana");
+		});
+
+		test("picks a first value over a translated placeholder", async () => {
+			const user = userEvent.setup();
+			const onValueChange = vi.fn<(value: string) => void>();
+			render(
+				<Select.Root onValueChange={onValueChange}>
+					<Select.Trigger>
+						<Select.Value placeholder="Select a fruit" />
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Item value="apple">Apple</Select.Item>
+						<Select.Item value="banana">Banana</Select.Item>
+					</Select.Content>
+				</Select.Root>,
+			);
+			const trigger = screen.getByRole("combobox");
+			translateTextNodes(trigger);
+			expect(trigger).toHaveTextContent("[Select a fruit-es]");
+
+			await user.click(trigger);
+			await user.click(await screen.findByRole("option", { name: "Apple" }));
+
+			expect(onValueChange).toHaveBeenCalledTimes(1);
+			expect(onValueChange).toHaveBeenLastCalledWith("apple");
+			expect(trigger).toHaveTextContent("Apple");
+			expect(trigger.querySelector('[data-slot="select-placeholder"]')).not.toBeInTheDocument();
+		});
+
+		test("clears a translated custom value back to the placeholder", async () => {
+			const user = userEvent.setup();
+			function Page() {
+				const [value, setValue] = useState("apple");
+				return (
+					<>
+						<Select.Root value={value} onValueChange={setValue}>
+							<Select.Trigger>
+								<Select.Value placeholder="Select a fruit">{value.toUpperCase()}</Select.Value>
+							</Select.Trigger>
+							<Select.Content>
+								<Select.Item value="apple">Apple</Select.Item>
+							</Select.Content>
+						</Select.Root>
+						<button type="button" onClick={() => setValue("")}>
+							Clear
+						</button>
+					</>
+				);
+			}
+			render(<Page />);
+			const trigger = screen.getByRole("combobox");
+			translateTextNodes(trigger);
+			expect(trigger).toHaveTextContent("[APPLE-es]");
+
+			await user.click(screen.getByRole("button", { name: "Clear" }));
+
+			expect(trigger).toHaveTextContent("Select a fruit");
+			expect(trigger.querySelector('[data-slot="select-value-label"]')).not.toBeInTheDocument();
+		});
+
+		test("swaps a translated custom value between text and an element", async () => {
+			const user = userEvent.setup();
+			function Page() {
+				const [paused, setPaused] = useState(true);
+				return (
+					<>
+						<Select.Root value="past-3d">
+							<Select.Trigger>
+								<Select.Value>{paused ? "Paused" : <time>Past 3 days</time>}</Select.Value>
+							</Select.Trigger>
+							<Select.Content>
+								<Select.Item value="past-3d">Past 3 days</Select.Item>
+							</Select.Content>
+						</Select.Root>
+						<button type="button" onClick={() => setPaused(false)}>
+							Resume
+						</button>
+					</>
+				);
+			}
+			render(<Page />);
+			const trigger = screen.getByRole("combobox");
+			translateTextNodes(trigger);
+			expect(trigger).toHaveTextContent("[Paused-es]");
+
+			await user.click(screen.getByRole("button", { name: "Resume" }));
+
+			// The lone string child took the `textContent` path, so the swap wiped
+			// the `<font>` wrapper instead of removing a node it no longer owned.
+			expect(trigger.querySelector("time")).toHaveTextContent("Past 3 days");
+			expect(trigger).not.toHaveTextContent("Paused");
+		});
+
+		test('translate="no" on an item rides on the label copy the trigger shows', async () => {
+			const user = userEvent.setup();
+			render(
+				<Select.Root defaultValue="us-east-1">
+					<Select.Trigger>
+						<Select.Value placeholder="Select a region" />
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Item value="us-east-1" translate="no">
+							us-east-1
+						</Select.Item>
+					</Select.Content>
+				</Select.Root>,
+			);
+			const trigger = screen.getByRole("combobox");
+			expect(trigger.querySelector('[data-slot="select-item-label"]')).toHaveAttribute(
+				"translate",
+				"no",
+			);
+
+			translateTextNodes(trigger);
+
+			expect(trigger).toHaveTextContent("us-east-1");
+			expect(trigger).not.toHaveTextContent("-es]");
+
+			await user.click(trigger);
+			const option = await screen.findByRole("option", { name: "us-east-1" });
+			expect(option).toHaveAttribute("translate", "no");
+		});
+
+		test("unmounts a translated selection", () => {
+			const { unmount } = render(
+				<Select.Root defaultValue="apple">
+					<Select.Trigger>
+						<Select.Value placeholder="Select a fruit" />
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Item value="apple">Apple</Select.Item>
+					</Select.Content>
+				</Select.Root>,
+			);
+			translateTextNodes(screen.getByRole("combobox"));
+
+			unmount();
+
+			expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
+		});
 	});
 });

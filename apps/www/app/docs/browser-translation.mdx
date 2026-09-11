@@ -22,22 +22,24 @@ This is not hypothetical. It shipped in mantle 0.83.2: the first click of any su
 
 The failure needs React to insert before, or remove, a **text** node the engine reparented. Element children are never reparented.
 
-| Update                                          | Result                                  |
-| ----------------------------------------------- | --------------------------------------- |
-| Insert an element before a translated text node | **Throws**                              |
-| Remove a text child while siblings remain       | **Throws**                              |
-| A text child changes type to an element         | **Throws**                              |
-| Change a text child's value                     | Safe. The translation reverts.          |
-| Reorder or remove **element** children          | Safe. Elements are never reparented.    |
-| **Append** after a translated text node         | Safe.                                   |
-| Unmount the whole subtree                       | Safe. React removes the outermost node. |
-| A **lone** expression child                     | Safe, and self-healing.                 |
+| Update                                          | Result                                                                                |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Insert an element before a translated text node | **Throws**                                                                            |
+| Remove a text child while siblings remain       | **Throws**                                                                            |
+| A text child changes type to an element         | **Throws**                                                                            |
+| Change a text child's value                     | Safe. The translation reverts.                                                        |
+| Reorder or remove **element** children          | Safe. Elements are never reparented.                                                  |
+| **Append** after a translated text node         | Safe.                                                                                 |
+| Unmount the whole subtree                       | Safe. React removes the outermost node.                                               |
+| Remove a portal's bare text child               | **Throws**. A portal has no node of its own, so its children are the outermost nodes. |
+| A **lone** expression child                     | Safe, and self-healing.                                                               |
 
 The last row is the one to design toward. When `children` is the only child of a host element, React writes it through `textContent`, which wipes the `<font>` wrapper and repairs the subtree instead of fighting it.
 
 ## What mantle guarantees
 
 - [`Button`](/components/actions/button), [`Badge`](/components/data-display/badge), and [`Anchor`](/components/navigation/anchor) render `children` inside a label slot, so an appearing `icon` or `isLoading` spinner inserts before an **element** sibling. In `Button` and `Badge` that slot is `display: contents`, so it adds no box and changes no layout.
+- [`Select.Item`](/components/forms/select#selectitem) renders `children` inside a label slot, and [`Select.Value`](/components/forms/select#selectvalue) wraps its `placeholder` and your own `children` the same way. Radix portals the selected label into the trigger and removes it on its own when the value changes, so the node it removes has to be an element. All three slots are `display: contents`. `translate="no"` on a `Select.Item` rides on that portaled label too, so an ID or a path stays untranslated in the trigger.
 - `DataTable.HeaderSortButton` renders its label through `Button`'s label slot, and the sort state lives in attributes (`aria-sort` on the header cell, `data-sort-direction` on the button), so a sort change inserts no node before text.
 - `DataTable.ActionHeader` renders its sticky indicator after `children`, which turns the mount into an append.
 - [`Code`](/components/data-display/code), [`Kbd`](/components/data-display/kbd), `CodeBlock.Code`, `CodeBlock.Title`, and `OtpInput.Slot` mark their content [`translate="no"`](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/translate), so the engine skips those subtrees entirely.
