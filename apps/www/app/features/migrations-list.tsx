@@ -1,14 +1,11 @@
 import { Badge } from "@ngrok/mantle/badge";
 import { Button } from "@ngrok/mantle/button";
 import { Empty } from "@ngrok/mantle/empty";
-import { Icon } from "@ngrok/mantle/icon";
 import { Input } from "@ngrok/mantle/input";
-import { List } from "@ngrok/mantle/list";
 import { Well } from "@ngrok/mantle/well";
-import { ArrowRightIcon } from "@phosphor-icons/react/ArrowRight";
 import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
 import { useRef, useState } from "react";
-import { Link } from "react-router";
+import { DocIndexList } from "~/components/doc-index-list";
 import {
 	type Migration,
 	formatMigrationNumber,
@@ -36,39 +33,6 @@ export function filterMigrations(list: readonly Migration[], query: string): rea
 			migration.description,
 			migration.slug,
 		].some((field) => field.toLowerCase().includes(needle)),
-	);
-}
-
-/**
- * One guide's list item. The whole row is a link to the guide: the number
- * badge and title, the description under them, and a trailing arrow.
- */
-function MigrationListItem({ migration }: { migration: Migration }) {
-	return (
-		<List.Item asChild className="py-2.5">
-			<Link className="group" to={migration.route} prefetch="intent">
-				<div className="flex items-center gap-3">
-					<div className="flex min-w-0 flex-1 flex-col gap-0.5">
-						<span className="flex flex-wrap items-center gap-2">
-							<Badge
-								appearance="muted"
-								color="neutral"
-								className="font-mono tabular-nums"
-								translate="no"
-							>
-								{formatMigrationNumber(migration.number)}
-							</Badge>
-							<List.ItemTitle>{migration.title}</List.ItemTitle>
-						</span>
-						<List.ItemDescription>{migration.description}</List.ItemDescription>
-					</div>
-					<Icon
-						svg={<ArrowRightIcon />}
-						className="text-muted group-hover:text-accent-600 group-focus-visible:text-accent-600 shrink-0 transition duration-150 ease-out group-hover:translate-x-0.5 group-focus-visible:translate-x-0.5 motion-reduce:transition-none"
-					/>
-				</div>
-			</Link>
-		</List.Item>
 	);
 }
 
@@ -121,11 +85,24 @@ export function MigrationsList() {
 					</Empty.Root>
 				</Well>
 			) : (
-				<List.Root aria-label="Migration guides">
-					{filtered.map((migration) => (
-						<MigrationListItem key={migration.number} migration={migration} />
-					))}
-				</List.Root>
+				<DocIndexList
+					label="Migration guides"
+					items={filtered.map((migration) => ({
+						to: migration.route,
+						title: migration.title,
+						description: migration.description,
+						badge: (
+							<Badge
+								appearance="muted"
+								color="neutral"
+								className="font-mono tabular-nums"
+								translate="no"
+							>
+								{formatMigrationNumber(migration.number)}
+							</Badge>
+						),
+					}))}
+				/>
 			)}
 		</div>
 	);

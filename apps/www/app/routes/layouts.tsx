@@ -1,4 +1,5 @@
 import { Link, href } from "react-router";
+import { DocIndexList } from "~/components/doc-index-list";
 import { layoutDescriptions, layoutPages, layoutRoutes } from "~/components/navigation-data";
 
 export const meta = () => {
@@ -38,20 +39,16 @@ export default function LayoutsPage() {
 				</Link>
 				.
 			</p>
-			<ul className="mt-8 max-w-3xl divide-y divide-gray-300 border-y border-gray-300 empty:hidden">
-				{layoutPages.map((page) => (
-					<li key={page}>
-						<Link
-							to={layoutRoutes[page]}
-							prefetch="intent"
-							className="group block rounded py-4 focus:outline-hidden focus-visible:ring-3 focus-visible:ring-focus-accent"
-						>
-							<span className="font-medium text-strong group-hover:text-accent-600">{page}</span>
-							<p className="mt-1 text-sm leading-relaxed text-body">{layoutDescriptions[page]}</p>
-						</Link>
-					</li>
-				))}
-			</ul>
+			<div className="mt-8">
+				<DocIndexList
+					label="Layouts"
+					items={layoutPages.map((page) => ({
+						to: layoutRoutes[page],
+						title: page,
+						description: layoutDescriptions[page],
+					}))}
+				/>
+			</div>
 		</div>
 	);
 }
