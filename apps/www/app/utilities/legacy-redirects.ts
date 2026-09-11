@@ -1,4 +1,4 @@
-import { prodReadyComponentRouteLookup } from "~/components/navigation-data";
+import { migrations, prodReadyComponentRouteLookup } from "~/components/navigation-data";
 
 /**
  * Redirect targets for pre-IA-reorg docs URLs, keyed by legacy slug (no
@@ -34,6 +34,12 @@ function buildLegacySlugMap(): Map<string, string> {
 	map.set("blocks", "recipes");
 	map.set("blocks/sheet-async", "recipes/overlay-async");
 	map.set("recipes/sheet-async", "recipes/overlay-async");
+
+	// The migration guides shipped at /migrations/<slug> before they carried a
+	// number. The published CHANGELOG links those URLs.
+	for (const migration of migrations) {
+		map.set(`migrations/${migration.slug}`, migration.route.slice(1));
+	}
 
 	return map;
 }

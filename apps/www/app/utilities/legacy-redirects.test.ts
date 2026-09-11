@@ -44,6 +44,16 @@ describe("legacyRedirectFor", () => {
 		expect(legacyRedirectFor("/recipes/sheet-async.md")).toBe("/recipes/overlay-async.md");
 	});
 
+	it("redirects the unnumbered migration guide URLs to their numbered homes", () => {
+		expect(legacyRedirectFor("/migrations/code-block-migration")).toBe(
+			"/migrations/0001-code-block-migration",
+		);
+		expect(legacyRedirectFor("/migrations/data-table-tanstack-v9-migration.md")).toBe(
+			"/migrations/0006-data-table-tanstack-v9-migration.md",
+		);
+		expect(legacyRedirectFor("/migrations/0006-data-table-tanstack-v9-migration")).toBeNull();
+	});
+
 	it("returns null for canonical, unknown, and preview paths", () => {
 		expect(legacyRedirectFor("/components/actions/button")).toBeNull();
 		expect(legacyRedirectFor("/components/preview/calendar")).toBeNull();

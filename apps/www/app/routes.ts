@@ -145,14 +145,17 @@ const layoutsPages = ["app-layout", "centered-layout"];
 // recipes section: compositional how-tos spanning multiple primitives
 const recipesPages = ["breadcrumbs-from-routes", "overlay-async", "route-announcer"];
 
-// migrations section
+// migrations section, in publish order. The four-digit prefix is the
+// guide's number. A guide keeps its number forever, and no later guide takes
+// it. Add a new guide with the next number, and add its entry to
+// `migrations` in app/components/navigation-data.ts.
 const migrationsPages = [
-	"code-block-migration",
-	"data-table-action-header-migration",
-	"data-table-tanstack-v9-migration",
-	"dialog-footer-dom-order-migration",
-	"field-item-owns-control-id-migration",
-	"priority-to-intent-migration",
+	"0001-code-block-migration",
+	"0002-data-table-action-header-migration",
+	"0003-dialog-footer-dom-order-migration",
+	"0004-priority-to-intent-migration",
+	"0005-field-item-owns-control-id-migration",
+	"0006-data-table-tanstack-v9-migration",
 ];
 
 export default [

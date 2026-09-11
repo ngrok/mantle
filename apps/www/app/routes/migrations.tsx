@@ -1,9 +1,4 @@
-import { Link } from "react-router";
-import {
-	migrationDescriptions,
-	migrationPages,
-	migrationRoutes,
-} from "~/components/navigation-data";
+import { MigrationsList } from "~/features/migrations-list";
 
 export const meta = () => {
 	return [
@@ -24,22 +19,11 @@ export default function MigrationsPage() {
 				behaviors. Each guide is written to be handed directly to a coding agent — append{" "}
 				<code>.md</code> to any guide&rsquo;s URL to fetch its raw markdown.
 			</p>
-			<ul className="mt-8 max-w-3xl divide-y divide-gray-300 border-y border-gray-300">
-				{migrationPages.map((page) => (
-					<li key={page}>
-						<Link
-							to={migrationRoutes[page]}
-							prefetch="intent"
-							className="group block rounded py-4 focus:outline-hidden focus-visible:ring-3 focus-visible:ring-focus-accent"
-						>
-							<span className="font-medium text-strong group-hover:text-accent-600">{page}</span>
-							<p className="mt-1 text-sm leading-relaxed text-body">
-								{migrationDescriptions[page]}
-							</p>
-						</Link>
-					</li>
-				))}
-			</ul>
+			<p className="mb-4 leading-relaxed text-pretty text-body">
+				Each guide has a number in the order it shipped, and the list shows the newest guide first.
+				The number is the prefix of the guide&rsquo;s URL.
+			</p>
+			<MigrationsList />
 		</div>
 	);
 }
