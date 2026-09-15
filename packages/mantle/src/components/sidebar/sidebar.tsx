@@ -746,16 +746,23 @@ const defaultTriggerIcon = <SidebarSimpleIcon />;
  * `aria-keyshortcuts`, so repeating it here would speak it twice.
  */
 const TooltipLabel = ({ label, shortcut }: { label: ReactNode; shortcut: ReactNode }) => (
-	// Why always the wrapper: an early return for a null `shortcut` made this
+	// Why always the row: an early return for a null `shortcut` made this
 	// component's root flip between a text node and an element, so React deleted
 	// the whole child list when a chord arrived. A translated label is reparented
 	// by then, and that removal raises `NotFoundError`.
 	// decisions/2026-08-04-translation-safe-label-wrappers.md
-	<span data-slot="sidebar-tooltip-label" className="flex items-center gap-1.5">
-		{label}
+	<span data-slot="sidebar-tooltip-row" className="flex items-center gap-1.5">
+		{/* Why the label span: the chips stay mounted once a chord arrives, so a
+		    bare text `label` is not a lone child and the consumer's own swap to an
+		    element throws on a translated page. `contents` keeps the label a flex
+		    item of the row. */}
+		<span data-slot="sidebar-tooltip-label" className="contents">
+			{label}
+		</span>
 		{shortcut != null && (
 			<span
 				aria-hidden
+				data-slot="sidebar-tooltip-shortcut"
 				className="inline-flex shrink-0 items-center gap-0.5 [&_kbd]:h-4 [&_kbd]:min-w-4 [&_kbd]:bg-neutral-500/25 [&_kbd]:px-0.5 [&_kbd]:text-xs"
 			>
 				{shortcut}
@@ -793,7 +800,9 @@ const TooltipLabel = ({ label, shortcut }: { label: ReactNode; shortcut: ReactNo
  * | --- | --- | --- |
  * | `data-state` | `"expanded"` \| `"collapsed"` | Mirrors what the trigger toggles: the mobile sheet below the root's `mobileBreakpoint`, the desktop panel otherwise. Pairs with `aria-expanded`. |
  * | `data-slot` | `"sidebar-trigger-tooltip"` | On the tooltip surface, not the button — the styling hook for the label-and-chord popup this part renders. |
- * | `data-slot` | `"sidebar-tooltip-label"` | Inside that surface, on the flex row holding `label` and the optional chord chips. Nested inside `Tooltip.Content`'s own `tooltip-label` span. Always present. |
+ * | `data-slot` | `"sidebar-tooltip-row"` | Inside that surface, on the flex row holding the label and the optional chord chips. Nested inside `Tooltip.Content`'s own `tooltip-label` span. Always present. |
+ * | `data-slot` | `"sidebar-tooltip-label"` | On the `<span>` wrapping `label` inside that row. Always present, and `display: contents`, so the label stays a flex item of the row. |
+ * | `data-slot` | `"sidebar-tooltip-shortcut"` | On the chord chips. Present only while `shortcut` holds something. |
  * | `data-appearance` | `"filled"` \| `"ghost"` \| `"outlined"` | Read, not stamped: the underlying `IconButton` reflects its `appearance`, which this part defaults to `"ghost"`. |
  * | `data-intent` | `"neutral"` | Read, not stamped: the underlying `IconButton` reflects its `intent`, and it draws the neutral tone only. |
  * | `data-size` | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | Read, not stamped: the underlying `IconButton` reflects its `size` and its own `"md"` default. |
@@ -1868,15 +1877,10 @@ type SidebarSearchTriggerProps = ComponentProps<"button"> &
  *
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
- * | `data-state` | `"open"` \| `"closed"` | **Read, not stamped** — supplied by the composing `Command.SearchTrigger` / `Dialog.Trigger`. The row stays highlighted while its palette is open. |
- *
- * **Data attributes:**
- *
- * | Data Attribute | Value | Description |
- * | --- | --- | --- |
  * | `data-slot` | `"sidebar-search-trigger"` | On the row element. |
  * | `data-slot` | `"sidebar-search-trigger-label"` | On the `<span>` wrapping `children` on the default `button` path. Absent under `asChild`, which renders no sibling. |
  * | `data-slot` | `"sidebar-search-trigger-shortcut"` | On the chord chips. Always present on the default `button` path, and `display: none` while it is empty. Absent under `asChild`, where the props union forbids `shortcut`. |
+ * | `data-state` | `"open"` \| `"closed"` | **Read, not stamped** — supplied by the composing `Command.SearchTrigger` / `Dialog.Trigger`. The row stays highlighted while its palette is open. |
  *
  * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarsearchtrigger
  *
@@ -2228,7 +2232,9 @@ type SidebarTooltipProps = Omit<ComponentProps<typeof Tooltip.Content>, "childre
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
  * | `data-slot` | `"sidebar-tooltip"` | On the tooltip surface. |
- * | `data-slot` | `"sidebar-tooltip-label"` | Inside that surface, on the flex row holding `label` and the optional chord chips. Nested inside `Tooltip.Content`'s own `tooltip-label` span. Always present, so a chord that arrives later appends instead of replacing the label. |
+ * | `data-slot` | `"sidebar-tooltip-row"` | Inside that surface, on the flex row holding the label and the optional chord chips. Nested inside `Tooltip.Content`'s own `tooltip-label` span. Always present, so a chord that arrives later appends instead of replacing the label. |
+ * | `data-slot` | `"sidebar-tooltip-label"` | On the `<span>` wrapping `label` inside that row. Always present, and `display: contents`, so the label stays a flex item of the row. |
+ * | `data-slot` | `"sidebar-tooltip-shortcut"` | On the chord chips. Present only while `shortcut` holds something. |
  *
  * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebartooltip
  *
@@ -3175,15 +3181,10 @@ const Sidebar = {
 	 *
 	 * | Data Attribute | Value | Description |
 	 * | --- | --- | --- |
-	 * | `data-state` | `"open"` \| `"closed"` | **Read, not stamped** — supplied by the composing `Command.SearchTrigger` / `Dialog.Trigger`. Style the row while its palette is open with `data-state-open:`. |
-	 *
-	 * **Data attributes:**
-	 *
-	 * | Data Attribute | Value | Description |
-	 * | --- | --- | --- |
 	 * | `data-slot` | `"sidebar-search-trigger"` | On the row element. |
 	 * | `data-slot` | `"sidebar-search-trigger-label"` | On the `<span>` wrapping `children` on the default `button` path. Absent under `asChild`, which renders no sibling. |
 	 * | `data-slot` | `"sidebar-search-trigger-shortcut"` | On the chord chips. Always present on the default `button` path, and `display: none` while it is empty. Absent under `asChild`, where the props union forbids `shortcut`. |
+	 * | `data-state` | `"open"` \| `"closed"` | **Read, not stamped** — supplied by the composing `Command.SearchTrigger` / `Dialog.Trigger`. Style the row while its palette is open with `data-state-open:`. |
 	 *
 	 * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarsearchtrigger
 	 *
@@ -3315,7 +3316,9 @@ const Sidebar = {
 	 * | Data Attribute | Value | Description |
 	 * | --- | --- | --- |
 	 * | `data-slot` | `"sidebar-tooltip"` | On the tooltip surface. |
-	 * | `data-slot` | `"sidebar-tooltip-label"` | Inside that surface, on the flex row holding `label` and the optional chord chips. Nested inside `Tooltip.Content`'s own `tooltip-label` span. Always present, so a chord that arrives later appends instead of replacing the label. |
+	 * | `data-slot` | `"sidebar-tooltip-row"` | Inside that surface, on the flex row holding the label and the optional chord chips. Nested inside `Tooltip.Content`'s own `tooltip-label` span. Always present, so a chord that arrives later appends instead of replacing the label. |
+	 * | `data-slot` | `"sidebar-tooltip-label"` | On the `<span>` wrapping `label` inside that row. Always present, and `display: contents`, so the label stays a flex item of the row. |
+	 * | `data-slot` | `"sidebar-tooltip-shortcut"` | On the chord chips. Present only while `shortcut` holds something. |
 	 *
 	 * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebartooltip
 	 *

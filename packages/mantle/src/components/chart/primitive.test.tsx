@@ -295,4 +295,44 @@ describe("Tooltip and Legend after browser translation", () => {
 		expect(container.querySelector('[data-slot="bar-chart-legend"]')).toHaveTextContent("Desktop");
 		expect(container.querySelector('[data-slot="bar-chart-legend-label"]')).not.toBeInTheDocument();
 	});
+
+	test("dropping a translated custom legend for the default one removes the label div", () => {
+		// A fragment of bare text is the natural minimal custom legend. It is also
+		// the shape that throws: a fragment owns no host node, so React removes
+		// each text node on its own rather than resetting one parent's text.
+		function Chart({ custom }: { custom: boolean }) {
+			return (
+				<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
+					<BarChart.Bar dataKey="desktop" label="Desktop" />
+					<BarChart.Bar dataKey="mobile" label="Mobile" />
+					{custom ? (
+						<BarChart.Legend>
+							{(series) => (
+								<>
+									{series[0]?.label} and {series[1]?.label}
+								</>
+							)}
+						</BarChart.Legend>
+					) : (
+						<BarChart.Legend />
+					)}
+				</BarChart.Root>
+			);
+		}
+		const { container, rerender } = render(<Chart custom />);
+
+		const legend = container.querySelector('[data-slot="bar-chart-legend"]');
+		translateTextNodes(container);
+		// Guards the step below: a helper that silently no-ops would leave the last
+		// assertion green whether or not the label div does its job.
+		expect(legend).toHaveTextContent("[Desktop-es]");
+
+		// The custom readout goes away and the default rows mount. React removes
+		// the label div instead of the readout's own reparented text nodes.
+		rerender(<Chart custom={false} />);
+
+		expect(container.querySelector('[data-slot="bar-chart-legend-label"]')).not.toBeInTheDocument();
+		expect(legend).toHaveTextContent("Desktop");
+		expect(legend?.querySelector("font")).toBeNull();
+	});
 });

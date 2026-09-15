@@ -270,14 +270,14 @@ describe("Sidebar.Nav (desktop)", () => {
 		translateTextNodes(tooltip);
 		expect(tooltip).toHaveTextContent("[Toggle Sidebar-es]");
 
-		// The label wrapper is always mounted, so the chips append beside an
+		// The row wrapper is always mounted, so the chips append beside an
 		// element. An early return for a null `shortcut` flipped this component's
 		// root from a text node to an element, and React deleted the translated
 		// label instead.
 		rerender(<Page shortcut={<kbd>B</kbd>} />);
 
 		expect(tooltip).toHaveTextContent("[Toggle Sidebar-es]");
-		expect(tooltip.querySelector('[data-slot="sidebar-tooltip-label"]')).toHaveTextContent("B");
+		expect(tooltip.querySelector('[data-slot="sidebar-tooltip-shortcut"]')).toHaveTextContent("B");
 	});
 
 	describe("Trigger aria-keyshortcuts", () => {
@@ -1385,6 +1385,39 @@ describe("Sidebar.Tooltip", () => {
 
 		await user.hover(screen.getByRole("button", { name: "Endpoints" }));
 		expect(await screen.findByRole("tooltip")).toHaveTextContent("Endpoints");
+	});
+
+	test("keeps rendering when a translated label swaps to an element beside a chord", async () => {
+		// The chips stay mounted, so `label` is not a lone child of the row. Only
+		// the label span keeps a consumer's own swap off React's removal path.
+		const user = userEvent.setup();
+		function Page({ label }: { label: ReactNode }) {
+			return (
+				<TooltipProvider>
+					<Sidebar.Root defaultOpen={false}>
+						<Sidebar.Nav>
+							<Sidebar.Tooltip label={label} shortcut={<kbd>E</kbd>}>
+								<Sidebar.ItemButton>Endpoints</Sidebar.ItemButton>
+							</Sidebar.Tooltip>
+						</Sidebar.Nav>
+					</Sidebar.Root>
+				</TooltipProvider>
+			);
+		}
+		const { rerender } = render(<Page label="Endpoints" />);
+		await user.hover(screen.getByRole("button", { name: "Endpoints" }));
+		const tooltip = await screen.findByRole("tooltip");
+		translateTextNodes(tooltip);
+		expect(tooltip.querySelector('[data-slot="sidebar-tooltip-label"]')).toHaveTextContent(
+			"[Endpoints-es]",
+		);
+
+		rerender(<Page label={<strong>Endpoints</strong>} />);
+
+		const label = tooltip.querySelector('[data-slot="sidebar-tooltip-label"]');
+		expect(label?.querySelector("font")).toBeNull();
+		expect(label?.querySelector("strong")).toHaveTextContent("Endpoints");
+		expect(tooltip.querySelector('[data-slot="sidebar-tooltip-shortcut"]')).toHaveTextContent("E");
 	});
 
 	test("stays silent while the panel is expanded — the row reads its own label", async () => {

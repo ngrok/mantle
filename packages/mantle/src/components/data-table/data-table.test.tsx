@@ -5,6 +5,7 @@ import {
 	createRef,
 	Fragment,
 	type MouseEvent,
+	type ReactNode,
 	type Ref,
 	useMemo,
 	useState,
@@ -13,6 +14,7 @@ import invariant from "tiny-invariant";
 import { describe, expect, test, vi } from "vitest";
 import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import type { ButtonAppearance, ButtonIntent, IconButtonAppearance } from "../button/index.js";
+import { Table } from "../table/table.js";
 import {
 	type Column,
 	DataTable,
@@ -1524,5 +1526,55 @@ describe("DataTable action cells after browser translation", () => {
 		expect(header.querySelector('[data-slot="data-table-action-header-label"]')).toHaveTextContent(
 			"[Actions-es]",
 		);
+	});
+
+	// Why the header renders outside a column def: TanStack caches a column's
+	// `columnDef`, so rebuilding `columns` around a new label never reaches the
+	// rendered header. `DataTable.ActionHeader` reads only the table context, so
+	// composing it here drives the swap the consumer actually makes. `data` is
+	// non-empty, so the sticky indicator stays mounted beside the label.
+	function ActionHeaderSwapHarness({ label }: { label: ReactNode }) {
+		const table = useTable({ features, data, columns });
+		return (
+			<DataTable.Root table={table}>
+				<Table.Head>
+					<Table.Row>
+						<DataTable.ActionHeader>{label}</DataTable.ActionHeader>
+					</Table.Row>
+				</Table.Head>
+			</DataTable.Root>
+		);
+	}
+
+	test("keeps rendering when a translated action header label swaps to an element", () => {
+		const { rerender } = render(<ActionHeaderSwapHarness label="Actions" />);
+		const header = screen.getByRole("columnheader", { name: "Actions" });
+		// The precondition: the label span plus the sticky indicator beside it.
+		expect(header.childElementCount).toBe(2);
+		translateTextNodes(header);
+		expect(header).toHaveTextContent("[Actions-es]");
+
+		// Without the label span the header holds two child fibers, React deletes
+		// the text fiber, and `removeChild` names a node the engine reparented.
+		rerender(<ActionHeaderSwapHarness label={<span data-testid="header-label">Actions</span>} />);
+
+		expect(header.querySelector("font")).toBeNull();
+		expect(screen.getByTestId("header-label")).toHaveTextContent("Actions");
+	});
+
+	test("keeps rendering when a translated action header label falls back to the default", () => {
+		const { rerender } = render(<ActionHeaderSwapHarness label="Actions" />);
+		const header = screen.getByRole("columnheader", { name: "Actions" });
+		translateTextNodes(header);
+		expect(header).toHaveTextContent("[Actions-es]");
+
+		// `children ?? <span className="sr-only">Actions</span>` swaps the bare text
+		// for an element. The swap happens inside the label span, where the text is
+		// a lone child, so React resets the span's text instead of removing a node
+		// the engine reparented.
+		rerender(<ActionHeaderSwapHarness label={undefined} />);
+
+		expect(header.querySelector("font")).toBeNull();
+		expect(header).toHaveTextContent("Actions");
 	});
 });

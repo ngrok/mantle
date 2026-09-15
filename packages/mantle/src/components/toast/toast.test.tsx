@@ -118,7 +118,7 @@ describe("Toast.Root label slot", () => {
 		return <Toast.Root intent="info">{children}</Toast.Root>;
 	}
 
-	test("wraps children in a contents label span directly under the root", () => {
+	test("wraps children in a contents label div directly under the root", () => {
 		const { container } = render(
 			<Toast.Root intent="info">
 				<Toast.Message>Saved</Toast.Message>
@@ -130,6 +130,8 @@ describe("Toast.Root label slot", () => {
 		expect(label).toHaveTextContent("Saved");
 		expect(label).toHaveClass("contents");
 		expect(label?.parentElement).toBe(root);
+		// A `<span>` may not contain the `<p>` that `Toast.Message` renders.
+		expect(label?.tagName).toBe("DIV");
 	});
 
 	test("keeps rendering when a translated text child swaps to an element", () => {

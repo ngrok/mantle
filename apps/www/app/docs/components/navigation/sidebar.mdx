@@ -1695,7 +1695,9 @@ after hydration reads the platform in its first render.
 | -------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `data-state`   | `"expanded"` \| `"collapsed"` | Mirrors what the trigger toggles: the mobile sheet below the root's `mobileBreakpoint`, the desktop panel otherwise. Pairs with `aria-expanded`. |
 | `data-slot`    | `"sidebar-trigger-tooltip"`   | On the tooltip surface, not the button — the styling hook for the label-and-chord popup this part renders.                                       |
-| `data-slot`    | `"sidebar-tooltip-label"`     | Inside that surface, on the flex row holding `label` and the optional chord chips. Always present.                                               |
+| `data-slot`    | `"sidebar-tooltip-row"`       | Inside that surface, on the flex row holding the label and the optional chord chips. Always present.                                             |
+| `data-slot`    | `"sidebar-tooltip-label"`     | On the `<span>` wrapping `label` inside that row. Always present, and `display: contents`.                                                       |
+| `data-slot`    | `"sidebar-tooltip-shortcut"`  | On the chord chips. Present only while `shortcut` holds something.                                                                               |
 
 ### Sidebar.Header
 
@@ -1837,8 +1839,15 @@ quiet.
 
 The hint renders in a `<span data-slot="sidebar-search-trigger-shortcut">` that is always mounted on the
 default `button` path, so a chord that resolves later appends instead of replacing the row's children. While
-it holds nothing it is `display: none`, so it costs the row no flex gap. Under `asChild` the span is absent,
-because the props union forbids `shortcut` there. [Browser translation](/browser-translation) covers why.
+it holds nothing it is `display: none`, so it costs the row no flex gap. `children` render in their own
+`<span data-slot="sidebar-search-trigger-label">` beside it. That span is `display: contents`, so it adds no
+box. It keeps your own swap of a text label to an element off React's removal path. Under `asChild` both spans
+are absent, because the row renders a single slotted child there.
+[Browser translation](/browser-translation) covers why.
+
+The label span makes an icon you pass a grandchild of the row, so the row sizes that icon through
+`[&>[data-slot=sidebar-search-trigger-label]>svg:first-child]`. Match that shape in a class of your own; a
+bare `[&>svg]` no longer reaches it.
 
 A styled button only — compose it with
 [`Command.SearchTrigger`](/components/navigation/command#commandsearchtrigger), which supplies the dialog
@@ -1854,10 +1863,12 @@ All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Elemen
 
 **Data attributes**
 
-| Data Attribute | Value                      | Description                                                                                                                                        |
-| -------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `data-slot`    | `"sidebar-search-trigger"` | Names the part, with any composing ancestor's chain ahead of it — `"command-search-trigger sidebar-search-trigger"` once a palette wraps it.       |
-| `data-state`   | `"open"` \| `"closed"`     | **Read, not stamped** — supplied by the composing `Command.SearchTrigger` / `Dialog.Trigger`. The row stays highlighted while its palette is open. |
+| Data Attribute | Value                               | Description                                                                                                                                                     |
+| -------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-slot`    | `"sidebar-search-trigger"`          | Names the part, with any composing ancestor's chain ahead of it — `"command-search-trigger sidebar-search-trigger"` once a palette wraps it.                    |
+| `data-slot`    | `"sidebar-search-trigger-label"`    | On the `<span>` wrapping `children`. Default `button` path only — under `asChild` the row renders no sibling, so it needs no wrapper.                           |
+| `data-slot`    | `"sidebar-search-trigger-shortcut"` | On the chord chips. Default `button` path only, where it is always mounted and `display: none` while empty; the props union forbids `shortcut` under `asChild`. |
+| `data-state`   | `"open"` \| `"closed"`              | **Read, not stamped** — supplied by the composing `Command.SearchTrigger` / `Dialog.Trigger`. The row stays highlighted while its palette is open.              |
 
 The `shortcut` hint is dropped outright in the collapsed rail — the chip has room for the icon and nothing
 else, and `aria-keyshortcuts` already announces the chord. The row's label is clipped rather than removed, so
@@ -1928,14 +1939,18 @@ four in the table above are the exceptions: this part reads them itself.
 
 **Data attributes**
 
-| Data Attribute | Value                     | Description                                                                                    |
-| -------------- | ------------------------- | ---------------------------------------------------------------------------------------------- |
-| `data-slot`    | `"sidebar-tooltip"`       | On the tooltip surface, with any forwarded chain ahead of it. Styling and test-targeting hook. |
-| `data-slot`    | `"sidebar-tooltip-label"` | Inside that surface, on the flex row holding `label` and the optional chord chips.             |
+| Data Attribute | Value                        | Description                                                                                    |
+| -------------- | ---------------------------- | ---------------------------------------------------------------------------------------------- |
+| `data-slot`    | `"sidebar-tooltip"`          | On the tooltip surface, with any forwarded chain ahead of it. Styling and test-targeting hook. |
+| `data-slot`    | `"sidebar-tooltip-row"`      | Inside that surface, on the flex row holding the label and the optional chord chips.           |
+| `data-slot`    | `"sidebar-tooltip-label"`    | On the `<span>` wrapping `label` inside that row. Always present, and `display: contents`.     |
+| `data-slot`    | `"sidebar-tooltip-shortcut"` | On the chord chips. Present only while `shortcut` holds something.                             |
 
-That label row is always mounted, so a `shortcut` that resolves later appends beside an element instead of
-replacing the label. It nests inside `Tooltip.Content`'s own `tooltip-label` span:
-`sidebar-tooltip` → `tooltip-label` (`display: contents`) → `sidebar-tooltip-label` (the flex row).
+That row is always mounted, so a `shortcut` that resolves later appends beside an element instead of replacing
+the label. The label span is always mounted too, so your own swap of `label` from text to an element never
+aims a removal at a text node the engine reparented. The row nests inside `Tooltip.Content`'s own
+`tooltip-label` span: `sidebar-tooltip` → `tooltip-label` (`display: contents`) → `sidebar-tooltip-row` (the
+flex row) → `sidebar-tooltip-label` (`display: contents`).
 [Browser translation](/browser-translation) covers why.
 
 ### Sidebar.Separator

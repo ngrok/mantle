@@ -19,76 +19,109 @@ describe("DropdownMenu", () => {
 	});
 });
 
+type ItemLabels = {
+	subTrigger: ReactNode;
+	checkboxItem: ReactNode;
+	radioItem: ReactNode;
+};
+
+const defaultLabels: ItemLabels = {
+	subTrigger: "Share",
+	checkboxItem: "Errors",
+	radioItem: "Small",
+};
+
 /** An open, non-modal menu holding the three parts that wrap their children. */
-function WrappedItems({ label = "Errors" }: { label?: ReactNode }) {
+function WrappedItems({ labels = defaultLabels }: { labels?: ItemLabels }) {
 	return (
 		<DropdownMenu.Root open modal={false}>
 			<DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
 			<DropdownMenu.Content>
 				<DropdownMenu.Sub open>
-					<DropdownMenu.SubTrigger>Share</DropdownMenu.SubTrigger>
+					<DropdownMenu.SubTrigger>{labels.subTrigger}</DropdownMenu.SubTrigger>
 					<DropdownMenu.SubContent>
 						<DropdownMenu.Item>Copy link</DropdownMenu.Item>
 					</DropdownMenu.SubContent>
 				</DropdownMenu.Sub>
-				<DropdownMenu.CheckboxItem checked>{label}</DropdownMenu.CheckboxItem>
+				<DropdownMenu.CheckboxItem checked>{labels.checkboxItem}</DropdownMenu.CheckboxItem>
 				<DropdownMenu.RadioGroup value="small">
-					<DropdownMenu.RadioItem value="small">Small</DropdownMenu.RadioItem>
+					<DropdownMenu.RadioItem value="small">{labels.radioItem}</DropdownMenu.RadioItem>
 				</DropdownMenu.RadioGroup>
 			</DropdownMenu.Content>
 		</DropdownMenu.Root>
 	);
 }
 
+/**
+ * The three parts that render a permanent element beside the label a consumer
+ * passes: the sub-trigger's caret, and the check indicator each selection item
+ * keeps mounted while it is checked.
+ */
+const wrappedParts = [
+	{ part: "subTrigger", slot: "dropdown-menu-sub-trigger", text: "Share" },
+	{ part: "checkboxItem", slot: "dropdown-menu-checkbox-item", text: "Errors" },
+	{ part: "radioItem", slot: "dropdown-menu-radio-item", text: "Small" },
+] as const;
+
+function getItem(slot: string): HTMLElement {
+	const item = document.querySelector(`[data-slot="${slot}"]`);
+	if (!(item instanceof HTMLElement)) {
+		throw new Error(`expected a mounted ${slot}`);
+	}
+	return item;
+}
+
 describe("DropdownMenu label slots", () => {
-	test.each([
-		["dropdown-menu-sub-trigger", "Share"],
-		["dropdown-menu-checkbox-item", "Errors"],
-		["dropdown-menu-radio-item", "Small"],
-	])("%s wraps its children in a contents label span", (slot, text) => {
+	test.each(wrappedParts)("$slot wraps its children in a contents label span", ({ slot, text }) => {
 		render(<WrappedItems />);
 
-		const item = document.querySelector(`[data-slot="${slot}"]`);
-		const label = item?.querySelector(`[data-slot="${slot}-label"]`);
+		const item = getItem(slot);
+		const label = item.querySelector(`[data-slot="${slot}-label"]`);
 		expect(label).toHaveTextContent(text);
 		expect(label).toHaveClass("contents");
 		expect(label?.parentElement).toBe(item);
 	});
 
-	test("keeps rendering when a translated checkbox label unmounts", () => {
-		const { rerender } = render(<WrappedItems />);
-		const item = document.querySelector('[data-slot="dropdown-menu-checkbox-item"]');
-		if (item == null) {
-			throw new Error("expected a mounted checkbox item");
-		}
-		translateTextNodes(item);
-		expect(item).toHaveTextContent("[Errors-es]");
+	test.each(wrappedParts)(
+		"$slot keeps rendering when a translated label unmounts",
+		({ part, slot, text }) => {
+			const { rerender } = render(<WrappedItems />);
+			const item = getItem(slot);
+			translateTextNodes(item);
+			expect(item).toHaveTextContent(`[${text}-es]`);
 
-		rerender(<WrappedItems label={null} />);
+			// The indicator beside the label stays mounted, so React deletes the
+			// label on its own. Without the span that deletion names a text node the
+			// engine reparented, and `removeChild` throws.
+			rerender(<WrappedItems labels={{ ...defaultLabels, [part]: null }} />);
 
-		expect(item).toHaveTextContent("");
-	});
+			expect(item).toHaveTextContent("");
+		},
+	);
 
-	test("keeps rendering when a translated checkbox label swaps to an element", () => {
-		const { rerender } = render(<WrappedItems />);
-		const item = document.querySelector('[data-slot="dropdown-menu-checkbox-item"]');
-		if (item == null) {
-			throw new Error("expected a mounted checkbox item");
-		}
-		translateTextNodes(item);
-		expect(item).toHaveTextContent("[Errors-es]");
+	test.each(wrappedParts)(
+		"$slot keeps rendering when a translated label swaps to an element",
+		({ part, slot, text }) => {
+			const { rerender } = render(<WrappedItems />);
+			const item = getItem(slot);
+			translateTextNodes(item);
+			expect(item).toHaveTextContent(`[${text}-es]`);
 
-		rerender(
-			<WrappedItems
-				label={
-					<span>
-						Errors <span data-testid="count">12</span>
-					</span>
-				}
-			/>,
-		);
+			rerender(
+				<WrappedItems
+					labels={{
+						...defaultLabels,
+						[part]: (
+							<span>
+								{text} <span data-testid="count">12</span>
+							</span>
+						),
+					}}
+				/>,
+			);
 
-		expect(item.querySelector("font")).toBeNull();
-		expect(screen.getByTestId("count")).toHaveTextContent("12");
-	});
+			expect(item.querySelector("font")).toBeNull();
+			expect(screen.getByTestId("count")).toHaveTextContent("12");
+		},
+	);
 });
