@@ -644,7 +644,7 @@ function FilterSelect({ label, value, options, onValueChange }: FilterSelectProp
 				    label in the server HTML, so the trigger is not blank on the
 				    first frame. */}
 				<Select.Value>
-					{label}: {selected?.label}
+					{label}: <span>{selected?.label}</span>
 				</Select.Value>
 			</Select.Trigger>
 			<Select.Content width="trigger">

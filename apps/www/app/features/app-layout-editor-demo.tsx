@@ -138,7 +138,7 @@ export function AppLayoutEditorDemo() {
 												/>
 											</ButtonGroup>
 										</div>
-										<pre className="text-body p-6 font-mono text-xs leading-6">
+										<pre translate="no" className="text-body p-6 font-mono text-xs leading-6">
 											{fakePolicy(ruleCount)}
 										</pre>
 									</div>
@@ -280,7 +280,7 @@ export function AppLayoutPinnedFooterDemo() {
 												</Button>
 											</div>
 											<div className="min-h-0 flex-1 overflow-y-auto">
-												<pre className="text-body p-6 font-mono text-xs leading-6">
+												<pre translate="no" className="text-body p-6 font-mono text-xs leading-6">
 													{fakePolicy(ruleCount)}
 												</pre>
 											</div>

@@ -74,7 +74,9 @@ export function ScrollFadeEdges() {
 	return (
 		<div className="grid w-full grid-cols-1 gap-6 sm:grid-cols-2">
 			<figure className="flex flex-col gap-2">
-				<figcaption className="text-muted-foreground font-mono text-xs">scroll-fade-t</figcaption>
+				<figcaption translate="no" className="text-muted-foreground font-mono text-xs">
+					scroll-fade-t
+				</figcaption>
 				<div className={cardClassName}>
 					<div
 						ref={scrollToMiddleY}
@@ -86,7 +88,9 @@ export function ScrollFadeEdges() {
 			</figure>
 
 			<figure className="flex flex-col gap-2">
-				<figcaption className="text-muted-foreground font-mono text-xs">scroll-fade-b</figcaption>
+				<figcaption translate="no" className="text-muted-foreground font-mono text-xs">
+					scroll-fade-b
+				</figcaption>
 				<div className={cardClassName}>
 					<div
 						ref={scrollToMiddleY}
@@ -98,7 +102,9 @@ export function ScrollFadeEdges() {
 			</figure>
 
 			<figure className="flex flex-col gap-2">
-				<figcaption className="text-muted-foreground font-mono text-xs">scroll-fade-l</figcaption>
+				<figcaption translate="no" className="text-muted-foreground font-mono text-xs">
+					scroll-fade-l
+				</figcaption>
 				<div className={cardClassName}>
 					<div
 						ref={scrollToMiddleX}
@@ -110,7 +116,9 @@ export function ScrollFadeEdges() {
 			</figure>
 
 			<figure className="flex flex-col gap-2">
-				<figcaption className="text-muted-foreground font-mono text-xs">scroll-fade-r</figcaption>
+				<figcaption translate="no" className="text-muted-foreground font-mono text-xs">
+					scroll-fade-r
+				</figcaption>
 				<div className={cardClassName}>
 					<div
 						ref={scrollToMiddleX}

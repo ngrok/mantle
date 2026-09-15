@@ -84,7 +84,9 @@ export function RegionPinningDemo() {
 								{filteredAliases.map(({ value, popCount }) => (
 									<MultiSelect.Item key={value} value={value} disabled={value !== "global"}>
 										<span className="flex min-w-0 flex-1 items-center justify-between gap-2">
-											<span className="font-mono">{value}</span>
+											<span translate="no" className="font-mono">
+												{value}
+											</span>
 											<span className="text-muted font-sans text-xs font-normal">{popCount}</span>
 										</span>
 									</MultiSelect.Item>
@@ -101,7 +103,9 @@ export function RegionPinningDemo() {
 								{filteredPops.map(({ value, location }) => (
 									<MultiSelect.Item key={value} value={value} disabled>
 										<span className="flex min-w-0 flex-1 items-center justify-between gap-2">
-											<span className="font-mono">{value}</span>
+											<span translate="no" className="font-mono">
+												{value}
+											</span>
 											<span className="text-muted font-sans text-xs font-normal">{location}</span>
 										</span>
 									</MultiSelect.Item>
@@ -116,7 +120,9 @@ export function RegionPinningDemo() {
 								{filteredDedicatedIPs.map(({ ip, description }) => (
 									<MultiSelect.Item key={ip} value={ip} disabled>
 										<span className="flex min-w-0 flex-1 flex-col">
-											<span className="font-mono">{ip}</span>
+											<span translate="no" className="font-mono">
+												{ip}
+											</span>
 											{description && (
 												<span className="text-muted font-sans text-xs font-normal">
 													{description}

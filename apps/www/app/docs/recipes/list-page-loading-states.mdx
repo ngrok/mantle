@@ -665,7 +665,7 @@ function FilterSelect({ label, value, options, onValueChange }: FilterSelectProp
 				    label in the server HTML, so the trigger is not blank on the
 				    first frame. */}
 				<Select.Value>
-					{label}: {selected?.label}
+					{label}: <span>{selected?.label}</span>
 				</Select.Value>
 			</Select.Trigger>
 			<Select.Content width="trigger">
@@ -896,7 +896,7 @@ DomainsListPage                              renders on the first frame
 
 The rules below keep the code consistent with the intent above.
 
-1. **Render everything that does not read the query outside the branch.** The heading, description, primary action, filters, and `DataTable.Head` take no data. In the demo, only `DomainCount` and `DomainsTableBody` read `state`. Give each `Select.Value` its text as children: Radix fills an empty one from the mounted items, which the server never renders, so the trigger is blank until hydration.
+1. **Render everything that does not read the query outside the branch.** The heading, description, primary action, filters, and `DataTable.Head` take no data. In the demo, only `DomainCount` and `DomainsTableBody` read `state`. Give each `Select.Value` its text as children: Radix fills an empty one from the mounted items, which the server never renders, so the trigger is blank until hydration. Wrap the part of that text that changes in a `<span>`. A filter that starts on a plain string and resolves to an element flips a child's type beside a sibling that stays put, which crashes a page a browser translation engine has translated — see [Browser translation](/browser-translation).
 2. **Derive one body state, and check pending first.** `resolveListBodyState` returns exactly one of `pending`, `rows`, `no-results`, `no-data`, and `error`. Pending comes first, so an empty state can't render before the first response. A `switch` on the state renders exactly one region.
 3. **Build the skeleton from the real table.** `SkeletonRows` takes `table.getAllLeafColumns()` and renders one `DataTable.Cell` per column, so the skeleton can't have more or fewer columns than the loaded rows. A second column list, or a copy of the real one with different flags, drifts.
 4. **Match the row count to the page size.** Eight skeleton rows for a page of eight. Three skeleton rows for a page of twenty guarantee seventeen rows of shift. If the table registers `rowPaginationFeature`, pass `manualPagination: true` to the skeleton's table, or the row model caps the placeholder at the default page size.

@@ -552,11 +552,17 @@ function SearchEverythingItem({ query }: { query: string }) {
 
 	return (
 		<Command.Item onSelect={() => openWithQuery(query)}>
-			Search everything for “{query}”
+			{`Search everything for “${query}”`}
 		</Command.Item>
 	);
 }
 ```
+
+The label is one template literal rather than text around a `{query}` expression. `Command.DialogRoot` resets
+the query every time the palette opens, so a bare interpolation between two literal siblings makes React
+remove a text node — and a browser translation engine has reparented it first, so the removal throws and the
+page goes blank. One interpolated string is a lone child, which React writes through `textContent` instead.
+[Browser translation](/browser-translation) covers the mechanism.
 
 ### searchActionFromKeyDown
 

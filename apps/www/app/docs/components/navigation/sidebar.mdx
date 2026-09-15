@@ -45,7 +45,7 @@ sidebar: the header's switcher becomes a back link, `Sidebar.Body` renders the s
 `<nav>` landmark renames itself from `Main` to `Settings`. That is composition, not a feature: the sidebar
 never knows which section it is showing; the app derives it from the route and renders different children.
 The footer does not move while that happens.
-Click into the frame and press <kbd>⌘B</kbd>/<kbd>Ctrl+B</kbd>; the shortcut binds to the frame's own
+Click into the frame and press <kbd translate="no">⌘B</kbd>/<kbd translate="no">Ctrl+B</kbd>; the shortcut binds to the frame's own
 window, not this page. The demo narrows `mobileBreakpoint` to `md` so the desktop panel survives the
 preview's desktop and tablet widths; ngrok's dashboards keep the `lg` default.
 
@@ -951,7 +951,7 @@ Everything in the icon rail stays in the tab order and the accessibility tree (l
 visually hidden, not removed), so screen readers announce the full row names and lists keep their group
 names. The scrollable `Sidebar.Body` always fades its overflowing edges; in the collapsed rail it also
 hides its scrollbar and relies on the fade alone. Collapse and expand the shell demo at the top of this page
-with its header trigger or <kbd>⌘B</kbd>/<kbd>Ctrl+B</kbd> (click into the frame first; the shortcut binds
+with its header trigger or <kbd translate="no">⌘B</kbd>/<kbd translate="no">Ctrl+B</kbd> (click into the frame first; the shortcut binds
 to the frame's own window).
 
 ### Labeling the rail for pointer users
@@ -1695,6 +1695,7 @@ after hydration reads the platform in its first render.
 | -------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `data-state`   | `"expanded"` \| `"collapsed"` | Mirrors what the trigger toggles: the mobile sheet below the root's `mobileBreakpoint`, the desktop panel otherwise. Pairs with `aria-expanded`. |
 | `data-slot`    | `"sidebar-trigger-tooltip"`   | On the tooltip surface, not the button — the styling hook for the label-and-chord popup this part renders.                                       |
+| `data-slot`    | `"sidebar-tooltip-label"`     | Inside that surface, on the flex row holding `label` and the optional chord chips. Always present.                                               |
 
 ### Sidebar.Header
 
@@ -1834,6 +1835,11 @@ because a search entry point in a sidebar is one of the rows, not a form control
 `shortcut` hint appears on hover or keyboard focus and is otherwise invisible, which keeps the resting panel
 quiet.
 
+The hint renders in a `<span data-slot="sidebar-search-trigger-shortcut">` that is always mounted on the
+default `button` path, so a chord that resolves later appends instead of replacing the row's children. While
+it holds nothing it is `display: none`, so it costs the row no flex gap. Under `asChild` the span is absent,
+because the props union forbids `shortcut` there. [Browser translation](/browser-translation) covers why.
+
 A styled button only — compose it with
 [`Command.SearchTrigger`](/components/navigation/command#commandsearchtrigger), which supplies the dialog
 wiring, `aria-keyshortcuts`, and the behavior that makes typing or pasting into the row open the palette with
@@ -1922,9 +1928,15 @@ four in the table above are the exceptions: this part reads them itself.
 
 **Data attributes**
 
-| Data Attribute | Value               | Description                                                                                    |
-| -------------- | ------------------- | ---------------------------------------------------------------------------------------------- |
-| `data-slot`    | `"sidebar-tooltip"` | On the tooltip surface, with any forwarded chain ahead of it. Styling and test-targeting hook. |
+| Data Attribute | Value                     | Description                                                                                    |
+| -------------- | ------------------------- | ---------------------------------------------------------------------------------------------- |
+| `data-slot`    | `"sidebar-tooltip"`       | On the tooltip surface, with any forwarded chain ahead of it. Styling and test-targeting hook. |
+| `data-slot`    | `"sidebar-tooltip-label"` | Inside that surface, on the flex row holding `label` and the optional chord chips.             |
+
+That label row is always mounted, so a `shortcut` that resolves later appends beside an element instead of
+replacing the label. It nests inside `Tooltip.Content`'s own `tooltip-label` span:
+`sidebar-tooltip` → `tooltip-label` (`display: contents`) → `sidebar-tooltip-label` (the flex row).
+[Browser translation](/browser-translation) covers why.
 
 ### Sidebar.Separator
 

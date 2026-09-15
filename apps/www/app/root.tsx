@@ -275,7 +275,12 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
 			<PageContainer>
 				<ErrorPage status={status} />
 				{stack && (
-					<pre className="mx-auto max-w-full overflow-x-auto rounded-md bg-gray-100 p-4 text-left text-xs text-body">
+					// A translated stack trace names functions and files that do not
+					// exist, and it is the one string a developer pastes verbatim.
+					<pre
+						translate="no"
+						className="mx-auto max-w-full overflow-x-auto rounded-md bg-gray-100 p-4 text-left text-xs text-body"
+					>
 						{stack}
 					</pre>
 				)}

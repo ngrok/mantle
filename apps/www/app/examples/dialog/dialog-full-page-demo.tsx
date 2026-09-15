@@ -54,7 +54,7 @@ export function FullPageDialogDemo() {
 							</Field.Label>
 						</Field.Item>
 					</div>
-					<div className="divide-card-muted divide-y font-mono text-sm">
+					<div translate="no" className="divide-card-muted divide-y font-mono text-sm">
 						{requestLog.map((request) => (
 							<div
 								key={request.id}

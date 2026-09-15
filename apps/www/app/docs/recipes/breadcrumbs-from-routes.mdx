@@ -151,6 +151,12 @@ export const handle = {
 component that renders the whole segment itself and holds the row's shape with
 [`Breadcrumb.Skeleton`](/components/navigation/breadcrumb#breadcrumbskeleton) while its query is pending.
 
+A content crumb must render a host element at its root, never bare text. `Breadcrumb.List` renders an `<ol>`,
+so the crumb's outermost node is a direct child of a list: a bare string there is a text node React removes by
+itself, and a browser translation engine has reparented it first, so the removal throws and the page goes
+blank. Every shape below returns a `Breadcrumb.Item` or a `Fragment` of them.
+[Browser translation](/browser-translation) covers the mechanism.
+
 ```tsx
 // app/routes/apps/$appId.settings.tsx
 import { routeBreadcrumb, type BreadcrumbHandle } from "@ngrok/mantle/breadcrumb";
@@ -585,7 +591,7 @@ describe("Breadcrumbs", () => {
 		expect(screen.getByText("General").getAttribute("aria-current")).toBe("page");
 	});
 
-	it("renders a content crumb's own items after its separator", () => {
+	it("renders a content crumb's own items as direct children of the list", () => {
 		const { container } = render(
 			<MemoryRouter>
 				<Breadcrumbs
@@ -607,6 +613,10 @@ describe("Breadcrumbs", () => {
 
 		expect(screen.getByText("my-app").getAttribute("aria-current")).toBe("page");
 		expect(container.querySelectorAll('[data-slot="breadcrumb-separator"]')).toHaveLength(1);
+		// The crumb's own node is a direct child of the `<ol>`, so it has to be a
+		// host element. A bare string there is a text node React removes by itself,
+		// which throws once a translation engine has reparented it.
+		expect(screen.getByText("my-app").closest("li")?.parentElement).toBe(screen.getByRole("list"));
 	});
 
 	it("renders a pending content crumb as the skeleton placeholder", () => {

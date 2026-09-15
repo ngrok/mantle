@@ -369,7 +369,7 @@ export function SeriesIdentityAreaChartExample() {
 
 # Area Chart
 
-A canvas-rendered area chart for showing how values — and, when stacked, a total and its parts — change over a continuous x axis. Each area fills with a 10% wash of its series color plus a 2px stroke on the band edge, rising from a shared zero baseline. Interaction ships with the Root unconditionally: a crosshair with an every-series tooltip, keyboard stepping with polite announcements, an sr-only data table, and click / <kbd>Enter</kbd> / <kbd>Space</kbd> activation. Large datasets decimate before painting.
+A canvas-rendered area chart for showing how values — and, when stacked, a total and its parts — change over a continuous x axis. Each area fills with a 10% wash of its series color plus a 2px stroke on the band edge, rising from a shared zero baseline. Interaction ships with the Root unconditionally: a crosshair with an every-series tooltip, keyboard stepping with polite announcements, an sr-only data table, and click / <kbd translate="no">Enter</kbd> / <kbd translate="no">Space</kbd> activation. Large datasets decimate before painting.
 
 ## When to use
 
@@ -882,14 +882,14 @@ Every interactive chart must have an accessible name: the Root requires exactly 
 
 The plot is a single tab stop with a keyboard point cursor:
 
-| Key                                       | Action                                                     |
-| ----------------------------------------- | ---------------------------------------------------------- |
-| <kbd>Tab</kbd>                            | Focus the plot.                                            |
-| <kbd>←</kbd> / <kbd>→</kbd>               | Step between data points.                                  |
-| <kbd>Page Up</kbd> / <kbd>Page Down</kbd> | Step by larger jumps.                                      |
-| <kbd>Home</kbd> / <kbd>End</kbd>          | Jump to the first / last data point.                       |
-| <kbd>Enter</kbd> / <kbd>Space</kbd>       | Activate the current data point (fires `onDatumActivate`). |
-| <kbd>Escape</kbd>                         | Dismiss the point cursor and tooltip.                      |
+| Key                                                                     | Action                                                     |
+| ----------------------------------------------------------------------- | ---------------------------------------------------------- |
+| <kbd translate="no">Tab</kbd>                                           | Focus the plot.                                            |
+| <kbd translate="no">←</kbd> / <kbd translate="no">→</kbd>               | Step between data points.                                  |
+| <kbd translate="no">Page Up</kbd> / <kbd translate="no">Page Down</kbd> | Step by larger jumps.                                      |
+| <kbd translate="no">Home</kbd> / <kbd translate="no">End</kbd>          | Jump to the first / last data point.                       |
+| <kbd translate="no">Enter</kbd> / <kbd translate="no">Space</kbd>       | Activate the current data point (fires `onDatumActivate`). |
+| <kbd translate="no">Escape</kbd>                                        | Dismiss the point cursor and tooltip.                      |
 
 Keyboard stepping announces the x value and every series' value at it through a debounced polite live region, so rapid arrowing never floods the screen-reader queue.
 
@@ -921,7 +921,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | `pending`             | `boolean`                           | `false`       | Hold the previous render at reduced opacity while fresh data loads — never swap a chart that has rendered once for a skeleton.                                                                                                                                                                                                               |
 | `activeIndex`         | `number \| null`                    |               | Controlled active datum index (`null` = none). Omit for uncontrolled hover. Forbidden when `decorative`.                                                                                                                                                                                                                                     |
 | `onActiveIndexChange` | `(index: number \| null) => void`   |               | Notified when hover or keyboard stepping moves the active index. Forbidden when `decorative`.                                                                                                                                                                                                                                                |
-| `onDatumActivate`     | `(event: ChartDatumEvent) => void`  |               | Notified on datum activation: a mark click, or <kbd>Enter</kbd>/<kbd>Space</kbd> on the focused chart. Forbidden when `decorative`.                                                                                                                                                                                                          |
+| `onDatumActivate`     | `(event: ChartDatumEvent) => void`  |               | Notified on datum activation: a mark click, or <kbd translate="no">Enter</kbd>/<kbd translate="no">Space</kbd> on the focused chart. Forbidden when `decorative`.                                                                                                                                                                            |
 
 `ChartDatumEvent` is importable from `@ngrok/mantle/area-chart`: `{ index: number; xValue: string | number | Date; datum: object; dataKey: string | null }` (`datum` is the original row — narrow it to your row type), where `dataKey` names the series nearest the pointer on mouse activation and is `null` for keyboard activation.
 

@@ -82,7 +82,7 @@ describe("Breadcrumbs", () => {
 		expect(screen.getByText("General").getAttribute("aria-current")).toBe("page");
 	});
 
-	it("renders a content crumb's own items after its separator", () => {
+	it("renders a content crumb's own items as direct children of the list", () => {
 		const { container } = render(
 			<MemoryRouter>
 				<Breadcrumbs
@@ -104,6 +104,10 @@ describe("Breadcrumbs", () => {
 
 		expect(screen.getByText("my-app").getAttribute("aria-current")).toBe("page");
 		expect(container.querySelectorAll('[data-slot="breadcrumb-separator"]')).toHaveLength(1);
+		// The crumb's own node is a direct child of the `<ol>`, so it has to be a
+		// host element. A bare string there is a text node React removes by itself,
+		// which throws once a translation engine has reparented it.
+		expect(screen.getByText("my-app").closest("li")?.parentElement).toBe(screen.getByRole("list"));
 	});
 
 	it("renders a pending content crumb as the skeleton placeholder", () => {

@@ -81,7 +81,7 @@ export function CustomRowsExample() {
 										{status}
 									</Badge>
 								</div>
-								<SelectableList.ItemDescription className="font-mono">
+								<SelectableList.ItemDescription translate="no" className="font-mono">
 									{option.description}
 								</SelectableList.ItemDescription>
 							</SelectableList.Item>
@@ -159,7 +159,9 @@ export function ControlledQueryExample() {
 				<SelectableList.Viewport aria-label="Access keys" className="max-h-72" />
 				<SelectableList.Empty>No access keys found.</SelectableList.Empty>
 			</SelectableList.Root>
-			<p className="text-muted text-sm">query: “{query}”</p>
+			<p className="text-muted text-sm">
+				query: <span translate="no">“{query}”</span>
+			</p>
 		</div>
 	);
 }
@@ -340,7 +342,7 @@ function Example() {
 									{status}
 								</Badge>
 							</div>
-							<SelectableList.ItemDescription className="font-mono">
+							<SelectableList.ItemDescription translate="no" className="font-mono">
 								{option.description}
 							</SelectableList.ItemDescription>
 						</SelectableList.Item>
@@ -507,7 +509,9 @@ function Example() {
 				<SelectableList.Viewport aria-label="Access keys" className="max-h-72" />
 				<SelectableList.Empty>No access keys found.</SelectableList.Empty>
 			</SelectableList.Root>
-			<p className="text-muted text-sm">query: “{query}”</p>
+			<p className="text-muted text-sm">
+				query: <span translate="no">“{query}”</span>
+			</p>
 		</div>
 	);
 }
