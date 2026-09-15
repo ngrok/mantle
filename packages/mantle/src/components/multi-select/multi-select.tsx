@@ -937,6 +937,21 @@ type MultiSelectItemProps = Omit<Primitive.ComboboxItemProps, "render"> & WithAs
  * Renders a selectable item inside a `MultiSelect.Content` component.
  * Items display a checkbox indicator when selected.
  *
+ * **Structure.** `children` render inside a
+ * `<span data-slot="multi-select-item-label">`. The selected-state check is a
+ * permanent element sibling, so without the span a bare text label is never a
+ * lone child: a browser translation engine reparents that text node, and the
+ * removal React runs when the label changes shape or goes away throws. The span
+ * is `display: contents`, so a child of your own stays a flex item of the option
+ * and any `flex-1` on it still resolves.
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"multi-select-item"` | On the option element. |
+ * | `data-slot` | `"multi-select-item-label"` | On the `<span>` wrapping `children`. |
+ *
  * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectitem
  *
  * @example
@@ -993,7 +1008,10 @@ const Item = ({
 			value={value}
 			{...props}
 		>
-			{children}
+			{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
+			<span data-slot="multi-select-item-label" className="contents">
+				{children}
+			</span>
 			<Primitive.ComboboxItemCheck className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
 				<Icon svg={<CheckIcon weight="bold" />} className="size-4 text-accent-600" />
 			</Primitive.ComboboxItemCheck>
@@ -1481,6 +1499,21 @@ const MultiSelect = {
 	ContentFooter,
 	/**
 	 * Renders a selectable item with a checkbox indicator inside a `MultiSelect.Content`.
+	 *
+	 * **Structure.** `children` render inside a
+	 * `<span data-slot="multi-select-item-label">`. The selected-state check is a
+	 * permanent element sibling, so without the span a bare text label is never a
+	 * lone child: a browser translation engine reparents that text node, and the
+	 * removal React runs when the label changes shape or goes away throws. The span
+	 * is `display: contents`, so a child of your own stays a flex item of the option
+	 * and any `flex-1` on it still resolves.
+	 *
+	 * **Data attributes:**
+	 *
+	 * | Data Attribute | Value | Description |
+	 * | --- | --- | --- |
+	 * | `data-slot` | `"multi-select-item"` | On the option element. |
+	 * | `data-slot` | `"multi-select-item-label"` | On the `<span>` wrapping `children`. |
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectitem
 	 *

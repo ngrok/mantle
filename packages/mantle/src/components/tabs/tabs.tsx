@@ -333,7 +333,10 @@ const triggerVariants = cva(
 		"ring-focus-accent outline-hidden",
 		"aria-disabled:cursor-default aria-disabled:opacity-50",
 		"focus-visible:ring-4",
-		"[&>svg]:shrink-0 [&>svg]:size-5",
+		// Why slot-scoped: the label span makes a consumer's svg a grandchild, so a
+		// bare `[&>svg]` matches nothing. A `[&_svg]` would also size the glyph
+		// inside `Tabs.Badge`.
+		"[&>[data-slot=tabs-trigger-label]>svg]:shrink-0 [&>[data-slot=tabs-trigger-label]>svg]:size-5",
 		"not-aria-disabled:hover:text-gray-900",
 	),
 	{
@@ -361,6 +364,24 @@ const triggerVariants = cva(
 
 /**
  * The button that activates its associated content.
+ *
+ * **Structure.** `children` render inside a
+ * `<span data-slot="tabs-trigger-label">`, on the plain path and the `asChild`
+ * path alike. The active-tab decoration is a permanent element sibling, so
+ * without the span a bare text label is never a lone child: a browser
+ * translation engine reparents that text node, and the removal React runs when
+ * the label changes shape or goes away throws. The span is `display: contents`,
+ * so the icon, the label, and `Tabs.Badge` stay flex items of the trigger and
+ * keep its `gap`. A `[&>svg]` class of your own no longer reaches an icon you
+ * pass as a child, because that icon is now a grandchild. Write `[&_svg]`, or
+ * put the size class on the icon itself.
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value                    | Description                          |
+ * | -------------- | ------------------------ | ------------------------------------ |
+ * | `data-slot`    | `"tabs-trigger"`         | On the trigger element.              |
+ * | `data-slot`    | `"tabs-trigger-label"`   | On the `<span>` wrapping `children`. |
  *
  * @see https://mantle.ngrok.com/components/navigation/tabs#tabstrigger
  *
@@ -421,7 +442,10 @@ const Trigger = ({
 					cloneProps,
 					<>
 						<TabsTriggerDecoration />
-						{grandchildren}
+						{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
+						<span data-slot="tabs-trigger-label" className="contents">
+							{grandchildren}
+						</span>
 					</>,
 				)}
 			</TabsPrimitiveTrigger>
@@ -431,7 +455,10 @@ const Trigger = ({
 	return (
 		<TabsPrimitiveTrigger data-slot="tabs-trigger" ref={ref} {...tabsTriggerProps}>
 			<TabsTriggerDecoration />
-			{children}
+			{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
+			<span data-slot="tabs-trigger-label" className="contents">
+				{children}
+			</span>
 		</TabsPrimitiveTrigger>
 	);
 };
@@ -592,6 +619,24 @@ const Tabs = {
 	List,
 	/**
 	 * The button that activates its associated content.
+	 *
+	 * **Structure.** `children` render inside a
+	 * `<span data-slot="tabs-trigger-label">`, on the plain path and the `asChild`
+	 * path alike. The active-tab decoration is a permanent element sibling, so
+	 * without the span a bare text label is never a lone child: a browser
+	 * translation engine reparents that text node, and the removal React runs when
+	 * the label changes shape or goes away throws. The span is `display: contents`,
+	 * so the icon, the label, and `Tabs.Badge` stay flex items of the trigger and
+	 * keep its `gap`. A `[&>svg]` class of your own no longer reaches an icon you
+	 * pass as a child, because that icon is now a grandchild. Write `[&_svg]`, or
+	 * put the size class on the icon itself.
+	 *
+	 * **Data attributes:**
+	 *
+	 * | Data Attribute | Value                    | Description                          |
+	 * | -------------- | ------------------------ | ------------------------------------ |
+	 * | `data-slot`    | `"tabs-trigger"`         | On the trigger element.              |
+	 * | `data-slot`    | `"tabs-trigger-label"`   | On the `<span>` wrapping `children`. |
 	 *
 	 * @see https://mantle.ngrok.com/components/navigation/tabs#tabstrigger
 	 *

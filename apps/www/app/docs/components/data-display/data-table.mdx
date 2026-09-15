@@ -1086,10 +1086,19 @@ A `<td>` for rendering individual data cells. Applies mantle typography, padding
 
 A sticky-right `<th>` that pairs with `DataTable.ActionCell`. Use as the `header` for your action column so the pinned column stays aligned across the header and every body row when the table scrolls horizontally. Automatically opts out of stickiness when the table is empty so the scroll-fade shows correctly. Renders a screen-reader-only "Actions" label by default, so the column has a name while it stays visually empty.
 
+`children` render inside a `<span data-slot="data-table-action-header-label">`. The indicator and the fallback `sr-only` label both sit beside `children`, so without the span a bare text child is never a lone child: a browser translation engine reparents that text node, and the removal React runs when the content changes shape or goes away throws. The span is `display: contents`, so it adds no box. [Browser translation](/browser-translation) covers the mechanism and the rules your own components need.
+
 | Prop         | Type        | Default | Description                                                                               |
 | :----------- | :---------- | :------ | :---------------------------------------------------------------------------------------- |
 | `children?`  | `ReactNode` |         | Header content. When omitted, a screen-reader-only "Actions" label.                       |
 | `className?` | `string`    |         | Extra classes merged onto the `<th>`. Remaining props forward to the HTML `<th>` element. |
+
+#### Data attributes
+
+| Data Attribute | Value                              | Description                          |
+| :------------- | :--------------------------------- | :----------------------------------- |
+| `data-slot`    | `"data-table-action-header"`       | On the `<th>`.                       |
+| `data-slot`    | `"data-table-action-header-label"` | On the `<span>` wrapping `children`. |
 
 ### DataTable.ActionCell
 
@@ -1097,11 +1106,20 @@ A sticky-right `<td>` for per-row action buttons (typically an `IconButton` that
 
 A click inside the cell never reaches a clickable row: the cell stops propagation and keeps the click's default action, so an action menu opens without the row navigating. Your own `onClick` still runs, and the `<td>` keeps its `role="cell"`.
 
+`children` render inside a `<span data-slot="data-table-action-cell-label">`. The sticky-column indicator is a permanent element sibling, so without the span a bare text child is never a lone child: a browser translation engine reparents that text node, and the removal React runs when the content changes shape or goes away throws. The span is `display: contents`, so it adds no box. [Browser translation](/browser-translation) covers the mechanism and the rules your own components need.
+
 | Prop         | Type                                                | Default | Description                                                                               |
 | :----------- | :-------------------------------------------------- | :------ | :---------------------------------------------------------------------------------------- |
 | `children`   | `ReactNode`                                         |         | The row's action controls.                                                                |
 | `onClick?`   | `(event: MouseEvent<HTMLTableCellElement>) => void` |         | Runs after the cell stops propagation; the click never reaches the row.                   |
 | `className?` | `string`                                            |         | Extra classes merged onto the `<td>`. Remaining props forward to the HTML `<td>` element. |
+
+#### Data attributes
+
+| Data Attribute | Value                            | Description                          |
+| :------------- | :------------------------------- | :----------------------------------- |
+| `data-slot`    | `"data-table-action-cell"`       | On the `<td>`.                       |
+| `data-slot`    | `"data-table-action-cell-label"` | On the `<span>` wrapping `children`. |
 
 ### DataTable.ExpandHeader
 

@@ -396,6 +396,15 @@ describe("DataTable.ActionCell", () => {
 		// take only the handler, or it drops out of the table.
 		expect(screen.getByRole("cell", { name: "Open actions" })).not.toHaveAttribute("role");
 	});
+
+	test('wraps children in a span carrying data-slot="data-table-action-cell-label"', () => {
+		render(<ActionCellHarness />);
+
+		const cell = screen.getByRole("cell", { name: "Open actions" });
+		const label = cell.querySelector('[data-slot="data-table-action-cell-label"]');
+		expect(label).toContainElement(screen.getByRole("button", { name: "Open actions" }));
+		expect(label).toHaveClass("contents");
+	});
 });
 
 type SortableHarnessProps = {
@@ -1439,5 +1448,81 @@ describe("DataTable.Row with grouping", () => {
 		const [firstLeaf] = leafRows;
 		invariant(firstLeaf, "expected a leaf row");
 		expect(within(firstLeaf).getAllByRole("cell")[0]).toHaveTextContent("web");
+	});
+});
+
+describe("DataTable action cells after browser translation", () => {
+	type ActionRow = { id: string; name: string; actionable: boolean };
+	const actionColumnHelper = createColumnHelper<typeof features, ActionRow>();
+
+	function ActionCellSwapHarness({ rows }: { rows: ActionRow[] }) {
+		const actionColumns = useMemo(
+			() =>
+				actionColumnHelper.columns([
+					actionColumnHelper.accessor("name", {
+						id: "name",
+						header: () => <DataTable.Header>Name</DataTable.Header>,
+						cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+					}),
+					actionColumnHelper.display({
+						id: "actions",
+						header: () => <DataTable.ActionHeader />,
+						cell: (props) => (
+							<DataTable.ActionCell>
+								{props.row.original.actionable ? (
+									<button type="button">Open actions</button>
+								) : (
+									"No actions"
+								)}
+							</DataTable.ActionCell>
+						),
+					}),
+				]),
+			[],
+		);
+		const table = useTable({ features, data: rows, columns: actionColumns });
+		return (
+			<DataTable.Root table={table}>
+				<DataTable.Head />
+				<DataTable.Body>
+					{table.getRowModel().rows.map((row) => (
+						<DataTable.Row key={row.id} row={row} />
+					))}
+				</DataTable.Body>
+			</DataTable.Root>
+		);
+	}
+
+	test("keeps rendering when a translated placeholder cell gains an action button", () => {
+		const { rerender } = render(
+			<ActionCellSwapHarness rows={[{ id: "row-1", name: "Alice", actionable: false }]} />,
+		);
+		const cell = screen.getByRole("cell", { name: "No actions" });
+		translateTextNodes(cell);
+		expect(cell).toHaveTextContent("[No actions-es]");
+
+		// Without the label span the cell holds two child fibers, React deletes the
+		// text fiber, and `removeChild` names a node the engine reparented.
+		rerender(<ActionCellSwapHarness rows={[{ id: "row-1", name: "Alice", actionable: true }]} />);
+
+		expect(cell.querySelector("font")).toBeNull();
+		expect(cell.querySelector("button")).toHaveTextContent("Open actions");
+	});
+
+	test("keeps rendering when a translated action header gains its sticky indicator", () => {
+		// The indicator mounts once the table has rows, which is the insert the
+		// 2026-08-04 decision moved after `children`. The label span is what also
+		// covers a removal and a type swap.
+		const { rerender } = render(<ActionHeaderHarness rows={[]} />);
+		const header = screen.getByRole("columnheader", { name: "Actions" });
+		translateTextNodes(header);
+		expect(header).toHaveTextContent("[Actions-es]");
+
+		rerender(<ActionHeaderHarness rows={data} />);
+
+		expect(header).toHaveTextContent("[Actions-es]");
+		expect(header.querySelector('[data-slot="data-table-action-header-label"]')).toHaveTextContent(
+			"[Actions-es]",
+		);
 	});
 });

@@ -182,7 +182,8 @@ const ToastStateContext = createContext<ToastState>({
 
 /**
  * Props for `Toast.Root`. `asChild` is omitted: the root renders the intent
- * accent bar next to `children`, so a slot would receive two elements and throw.
+ * accent bar next to the label span holding `children`, so a slot would receive
+ * two elements and throw.
  */
 type ToastProps = ComponentProps<"div"> & {
 	/**
@@ -195,6 +196,21 @@ type ToastProps = ComponentProps<"div"> & {
  * A succinct message with an intent that appears temporarily. The intent
  * is the tone or status that the toast's color communicates.
  * Toasts give the user feedback without interrupting their workflow.
+ *
+ * **Structure.** `children` render inside a
+ * `<span data-slot="toast-label">`. The intent accent bar is a permanent
+ * element sibling, so without the span a bare text child is never a lone child:
+ * a browser translation engine reparents that text node, and the removal React
+ * runs when the content changes shape or goes away throws. The span is
+ * `display: contents`, so the icon, the message, and an action stay flex items
+ * of the root and `Toast.Message`'s `flex-1` still resolves.
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"toast"` | On the toast root. |
+ * | `data-slot` | `"toast-label"` | On the `<span>` wrapping `children`, not only the message text. |
  *
  * @see https://mantle.ngrok.com/components/feedback/toast#toastroot
  *
@@ -229,7 +245,10 @@ const Root = ({ children, className, intent, ref, ...props }: ToastProps) => {
 				{...props}
 			>
 				<IntentBarAccent intent={intent} />
-				{children}
+				{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
+				<span data-slot="toast-label" className="contents">
+					{children}
+				</span>
 			</div>
 		</ToastStateContext.Provider>
 	);
@@ -407,6 +426,21 @@ const Message = ({ asChild, className, ref, ...props }: ToastMessageProps) => {
 const Toast = {
 	/**
 	 * A succinct message with an intent that appears temporarily.
+	 *
+	 * **Structure.** `children` render inside a
+	 * `<span data-slot="toast-label">`. The intent accent bar is a permanent
+	 * element sibling, so without the span a bare text child is never a lone child:
+	 * a browser translation engine reparents that text node, and the removal React
+	 * runs when the content changes shape or goes away throws. The span is
+	 * `display: contents`, so the icon, the message, and an action stay flex items
+	 * of the root and `Toast.Message`'s `flex-1` still resolves.
+	 *
+	 * **Data attributes:**
+	 *
+	 * | Data Attribute | Value | Description |
+	 * | --- | --- | --- |
+	 * | `data-slot` | `"toast"` | On the toast root. |
+	 * | `data-slot` | `"toast-label"` | On the `<span>` wrapping `children`, not only the message text. |
 	 *
 	 * @see https://mantle.ngrok.com/components/feedback/toast#toastroot
 	 *

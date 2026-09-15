@@ -1,5 +1,7 @@
 import { render, screen } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { describe, expect, test } from "vitest";
+import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import type { ToastIntent } from "./toast.js";
 import { resolveToastDuration, Toast } from "./toast.js";
 
@@ -108,5 +110,58 @@ describe("Toast", () => {
 		const bar = container.querySelector('[aria-hidden="true"]');
 		expect(bar).not.toBeNull();
 		expect(bar).toHaveClass("-inset-px");
+	});
+});
+
+describe("Toast.Root label slot", () => {
+	function Harness({ children }: { children: ReactNode }) {
+		return <Toast.Root intent="info">{children}</Toast.Root>;
+	}
+
+	test("wraps children in a contents label span directly under the root", () => {
+		const { container } = render(
+			<Toast.Root intent="info">
+				<Toast.Message>Saved</Toast.Message>
+			</Toast.Root>,
+		);
+
+		const root = getToastRoot(container);
+		const label = root?.querySelector('[data-slot="toast-label"]');
+		expect(label).toHaveTextContent("Saved");
+		expect(label).toHaveClass("contents");
+		expect(label?.parentElement).toBe(root);
+	});
+
+	test("keeps rendering when a translated text child swaps to an element", () => {
+		const { container, rerender } = render(<Harness>Saving…</Harness>);
+		const root = getToastRoot(container);
+		if (root == null) {
+			throw new Error("expected a mounted toast root");
+		}
+		translateTextNodes(root);
+		expect(root).toHaveTextContent("[Saving…-es]");
+
+		rerender(
+			<Harness>
+				<Toast.Message>Saved</Toast.Message>
+			</Harness>,
+		);
+
+		expect(root.querySelector("font")).toBeNull();
+		expect(root).toHaveTextContent("Saved");
+	});
+
+	test("keeps rendering when a translated text child unmounts", () => {
+		const { container, rerender } = render(<Harness>Saving…</Harness>);
+		const root = getToastRoot(container);
+		if (root == null) {
+			throw new Error("expected a mounted toast root");
+		}
+		translateTextNodes(root);
+		expect(root).toHaveTextContent("[Saving…-es]");
+
+		rerender(<Harness>{null}</Harness>);
+
+		expect(root).toHaveTextContent("");
 	});
 });

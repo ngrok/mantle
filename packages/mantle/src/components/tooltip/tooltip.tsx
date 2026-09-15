@@ -35,11 +35,9 @@ const TooltipProvider = ({
 	delayDuration = 0,
 	...props
 }: ComponentPropsWithoutRef<typeof TooltipPrimitive.Provider>) => (
-	<TooltipPrimitive.Provider
-		data-slot="tooltip-provider"
-		delayDuration={delayDuration ?? 0}
-		{...props}
-	/>
+	// Why no `data-slot`: the Radix provider renders no DOM, so the attribute
+	// named an element that never existed.
+	<TooltipPrimitive.Provider delayDuration={delayDuration ?? 0} {...props} />
 );
 
 /**
@@ -100,6 +98,13 @@ function Trigger(props: ComponentProps<typeof TooltipPrimitive.Trigger>) {
 }
 
 /**
+ * Props for `Tooltip.Content`. `asChild` is omitted: the content renders its own
+ * arrow next to `children`, so a slot would receive more than one element and
+ * throw.
+ */
+type TooltipContentProps = Omit<ComponentProps<typeof TooltipPrimitive.Content>, "asChild">;
+
+/**
  * The content to render inside the tooltip.
  *
  * `Tooltip.Content` renders at Tailwind `z-50`, Mantle's float tier. When
@@ -108,6 +113,23 @@ function Trigger(props: ComponentProps<typeof TooltipPrimitive.Trigger>) {
  * every overlay, it portals to `document.body`, below the overlay tier
  * (`z-60`). When sibling floats share a container, the most recently mounted
  * float paints on top.
+ *
+ * **Structure.** `children` render inside a
+ * `<span data-slot="tooltip-label">`. The arrow is a permanent element sibling,
+ * so without the span a bare text body is never a lone child: a browser
+ * translation engine reparents that text node, and the removal React runs when
+ * the body changes shape or goes away throws. The span is `display: contents`,
+ * so it adds no box and every child of the body stays a layout child of the
+ * surface.
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute   | Value                                              | Description                                       |
+ * | ---------------- | -------------------------------------------------- | ------------------------------------------------- |
+ * | `data-slot`      | `"tooltip-content"`                                | On the tooltip surface.                           |
+ * | `data-slot`      | `"tooltip-label"`                                  | On the `<span>` wrapping `children`.              |
+ * | `data-state`     | `"delayed-open"` \| `"instant-open"` \| `"closed"` | The open state Radix stamps on the surface.       |
+ * | `data-side`      | `"top"` \| `"right"` \| `"bottom"` \| `"left"`     | Which side of the trigger the surface resolved to. |
  *
  * @see https://mantle.ngrok.com/components/overlays/tooltip#tooltipcontent
  *
@@ -125,13 +147,6 @@ function Trigger(props: ComponentProps<typeof TooltipPrimitive.Trigger>) {
  * </Tooltip.Root>
  * ```
  */
-/**
- * Props for `Tooltip.Content`. `asChild` is omitted: the content renders its own
- * arrow next to `children`, so a slot would receive more than one element and
- * throw.
- */
-type TooltipContentProps = Omit<ComponentProps<typeof TooltipPrimitive.Content>, "asChild">;
-
 const Content = ({ children, className, ref, sideOffset = 4, ...props }: TooltipContentProps) => {
 	const layerContainer = useLayerContainer();
 
@@ -147,7 +162,10 @@ const Content = ({ children, className, ref, sideOffset = 4, ...props }: Tooltip
 				sideOffset={sideOffset}
 				{...props}
 			>
-				{children}
+				{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
+				<span data-slot="tooltip-label" className="contents">
+					{children}
+				</span>
 				<TooltipPrimitive.Arrow asChild>
 					<div className="bg-tooltip z-50 size-2.5 translate-y-[calc(-50%-2px)] rotate-45 rounded-xs" />
 				</TooltipPrimitive.Arrow>
@@ -243,6 +261,23 @@ const Tooltip = {
 	 * every overlay, it portals to `document.body`, below the overlay tier
 	 * (`z-60`). When sibling floats share a container, the most recently mounted
 	 * float paints on top.
+	 *
+	 * **Structure.** `children` render inside a
+	 * `<span data-slot="tooltip-label">`. The arrow is a permanent element sibling,
+	 * so without the span a bare text body is never a lone child: a browser
+	 * translation engine reparents that text node, and the removal React runs when
+	 * the body changes shape or goes away throws. The span is `display: contents`,
+	 * so it adds no box and every child of the body stays a layout child of the
+	 * surface.
+	 *
+	 * **Data attributes:**
+	 *
+	 * | Data Attribute   | Value                                              | Description                                       |
+	 * | ---------------- | -------------------------------------------------- | ------------------------------------------------- |
+	 * | `data-slot`      | `"tooltip-content"`                                | On the tooltip surface.                           |
+	 * | `data-slot`      | `"tooltip-label"`                                  | On the `<span>` wrapping `children`.              |
+	 * | `data-state`     | `"delayed-open"` \| `"instant-open"` \| `"closed"` | The open state Radix stamps on the surface.       |
+	 * | `data-side`      | `"top"` \| `"right"` \| `"bottom"` \| `"left"`     | Which side of the trigger the surface resolved to. |
 	 *
 	 * @see https://mantle.ngrok.com/components/overlays/tooltip#tooltipcontent
 	 *

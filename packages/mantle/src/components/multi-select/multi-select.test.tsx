@@ -1,7 +1,9 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { describe, expect, test, vi } from "vitest";
+import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import { Field } from "../field/field.js";
 import { Sheet } from "../sheet/sheet.js";
 import { MultiSelect } from "./multi-select.js";
@@ -691,5 +693,48 @@ describe("MultiSelect", () => {
 			</Field.Item>,
 		);
 		expect(screen.getByTestId("trigger")).toHaveAttribute("data-validation", "warning");
+	});
+});
+
+describe("MultiSelect.Item label slot", () => {
+	function Options({ label }: { label: ReactNode }) {
+		return (
+			<MultiSelect.Root>
+				<MultiSelect.Trigger>
+					<MultiSelect.TagValues />
+					<MultiSelect.Input placeholder="Pick fruit" />
+				</MultiSelect.Trigger>
+				<MultiSelect.Content>
+					<MultiSelect.Item value="apple">{label}</MultiSelect.Item>
+				</MultiSelect.Content>
+			</MultiSelect.Root>
+		);
+	}
+
+	test("wraps children in a contents label span", async () => {
+		const user = userEvent.setup();
+		render(<Options label="Apple" />);
+		await user.click(screen.getByRole("combobox"));
+
+		const item = await screen.findByRole("option", { name: "Apple" });
+		const label = item.querySelector('[data-slot="multi-select-item-label"]');
+		expect(label).toHaveTextContent("Apple");
+		expect(label).toHaveClass("contents");
+		expect(label?.parentElement).toBe(item);
+	});
+
+	test("keeps rendering when a translated label swaps to an element", async () => {
+		const user = userEvent.setup();
+		const { rerender } = render(<Options label="Apple" />);
+		await user.click(screen.getByRole("combobox"));
+
+		const item = await screen.findByRole("option", { name: "Apple" });
+		translateTextNodes(item);
+		expect(item).toHaveTextContent("[Apple-es]");
+
+		rerender(<Options label={<strong>Apple</strong>} />);
+
+		expect(item.querySelector("font")).toBeNull();
+		expect(item.querySelector("strong")).toHaveTextContent("Apple");
 	});
 });

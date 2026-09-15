@@ -579,6 +579,13 @@ The optional tri-state "select all" header over the currently filtered options. 
 | ---------- | ----------- | ------- | -------------------------------------- |
 | `children` | `ReactNode` |         | The visible label (e.g. "Select all"). |
 
+`children` render inside a `<span data-slot="selectable-list-select-all-label">`. The checkbox is a permanent element sibling, so without the span a bare text label is never a lone child: a browser translation engine reparents that text node, and the removal React runs when a count-aware label swaps to an element throws. The span is `display: contents`, so the checkbox and the label stay flex items of the header and keep its `gap`. [Browser translation](/browser-translation) covers the mechanism and the rules your own components need.
+
+| Data Attribute | Value                                | Description                          |
+| -------------- | ------------------------------------ | ------------------------------------ |
+| `data-slot`    | `"selectable-list-select-all"`       | On the header `<label>`.             |
+| `data-slot`    | `"selectable-list-select-all-label"` | On the `<span>` wrapping `children`. |
+
 Its checkbox is automatically disabled when no filtered option is selectable.
 
 ### SelectableList.Viewport

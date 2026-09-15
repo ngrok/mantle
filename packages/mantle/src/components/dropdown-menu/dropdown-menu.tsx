@@ -157,6 +157,23 @@ const RadioGroup = ({
  * A trigger for a dropdown menu sub-menu. It opens the submenu on hover, or on
  * ArrowRight or Enter.
  *
+ * **Structure.** `children` render inside a
+ * `<span data-slot="dropdown-menu-sub-trigger-label">`. The caret is a permanent element
+ * sibling, so without the span a bare text label is never a lone child: a
+ * browser translation engine reparents that text node, and the removal React
+ * runs when the label changes shape or goes away throws. The span is
+ * `display: contents`, so an icon and its label stay flex items of the item and
+ * keep its `gap`. An icon you pass as a child is now a grandchild, so a
+ * `[&>svg]` class of your own no longer reaches it. Write `[&_svg]` instead, or
+ * put the size class on the icon itself.
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"dropdown-menu-sub-trigger"` | On the item element. |
+ * | `data-slot` | `"dropdown-menu-sub-trigger-label"` | On the `<span>` wrapping `children`. |
+ *
  * @see https://mantle.ngrok.com/components/overlays/dropdown-menu#dropdownmenusubtrigger
  *
  * @example
@@ -188,13 +205,19 @@ const SubTrigger = ({
 		className={cx(
 			"focus:bg-accent data-state-open:bg-accent relative flex select-none items-center rounded-md py-1.5 pl-2 pr-9 text-sm outline-hidden",
 			"data-highlighted:bg-active-menu-item data-state-open:bg-active-menu-item",
-			"[&>svg]:size-5 [&_svg]:shrink-0",
+			// Why slot-scoped: the label span makes a consumer's svg a grandchild, so
+			// a bare `[&>svg]` matches nothing. A `[&_svg]` would also resize the
+			// indicator this part renders.
+			"[&>[data-slot=dropdown-menu-sub-trigger-label]>svg]:size-5 [&_svg]:shrink-0",
 			inset && "pl-8",
 			className,
 		)}
 		{...props}
 	>
-		{children}
+		{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
+		<span data-slot="dropdown-menu-sub-trigger-label" className="contents">
+			{children}
+		</span>
 		<span className="absolute right-2 flex items-center">
 			<Icon svg={<CaretRightIcon weight="bold" />} className="size-4" />
 		</span>
@@ -362,6 +385,23 @@ const Item = ({
 /**
  * A menu item with a checkbox that can be controlled or uncontrolled.
  *
+ * **Structure.** `children` render inside a
+ * `<span data-slot="dropdown-menu-checkbox-item-label">`. The check indicator is a permanent element
+ * sibling, so without the span a bare text label is never a lone child: a
+ * browser translation engine reparents that text node, and the removal React
+ * runs when the label changes shape or goes away throws. The span is
+ * `display: contents`, so an icon and its label stay flex items of the item and
+ * keep its `gap`. An icon you pass as a child is now a grandchild, so a
+ * `[&>svg]` class of your own no longer reaches it. Write `[&_svg]` instead, or
+ * put the size class on the icon itself.
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"dropdown-menu-checkbox-item"` | On the item element. |
+ * | `data-slot` | `"dropdown-menu-checkbox-item-label"` | On the `<span>` wrapping `children`. |
+ *
  * @see https://mantle.ngrok.com/components/overlays/dropdown-menu#dropdownmenucheckboxitem
  *
  * @example
@@ -389,7 +429,10 @@ const CheckboxItem = ({
 			"data-highlighted:bg-active-menu-item",
 			"aria-checked:bg-selected-menu-item",
 			"data-highlighted:aria-checked:bg-active-selected-menu-item!",
-			"[&>svg]:size-5 [&_svg]:shrink-0",
+			// Why slot-scoped: the label span makes a consumer's svg a grandchild, so
+			// a bare `[&>svg]` matches nothing. A `[&_svg]` would also resize the
+			// indicator this part renders.
+			"[&>[data-slot=dropdown-menu-checkbox-item-label]>svg]:size-5 [&_svg]:shrink-0",
 			className,
 		)}
 		checked={checked}
@@ -400,7 +443,10 @@ const CheckboxItem = ({
 				<Icon svg={<CheckIcon weight="bold" />} className="size-4 text-accent-600" />
 			</DropdownMenuPrimitive.ItemIndicator>
 		</span>
-		{children}
+		{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
+		<span data-slot="dropdown-menu-checkbox-item-label" className="contents">
+			{children}
+		</span>
 	</DropdownMenuPrimitive.CheckboxItem>
 );
 
@@ -412,6 +458,23 @@ type DropdownMenuRadioItemProps = ComponentProps<typeof DropdownMenuPrimitive.Ra
 /**
  * A menu item with a radio button that can be controlled or uncontrolled.
  * Used within a RadioGroup to create a set of mutually exclusive options.
+ *
+ * **Structure.** `children` render inside a
+ * `<span data-slot="dropdown-menu-radio-item-label">`. The check indicator is a permanent element
+ * sibling, so without the span a bare text label is never a lone child: a
+ * browser translation engine reparents that text node, and the removal React
+ * runs when the label changes shape or goes away throws. The span is
+ * `display: contents`, so an icon and its label stay flex items of the item and
+ * keep its `gap`. An icon you pass as a child is now a grandchild, so a
+ * `[&>svg]` class of your own no longer reaches it. Write `[&_svg]` instead, or
+ * put the size class on the icon itself.
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"dropdown-menu-radio-item"` | On the item element. |
+ * | `data-slot` | `"dropdown-menu-radio-item-label"` | On the `<span>` wrapping `children`. |
  *
  * @see https://mantle.ngrok.com/components/overlays/dropdown-menu#dropdownmenuradioitem
  *
@@ -438,7 +501,10 @@ const RadioItem = ({ className, children, ...props }: DropdownMenuRadioItemProps
 			"data-highlighted:bg-active-menu-item",
 			"aria-checked:bg-selected-menu-item aria-checked:pr-9",
 			"data-highlighted:aria-checked:bg-active-selected-menu-item!",
-			"[&>svg]:size-5 [&_svg]:shrink-0",
+			// Why slot-scoped: the label span makes a consumer's svg a grandchild, so
+			// a bare `[&>svg]` matches nothing. A `[&_svg]` would also resize the
+			// indicator this part renders.
+			"[&>[data-slot=dropdown-menu-radio-item-label]>svg]:size-5 [&_svg]:shrink-0",
 			className,
 		)}
 		{...props}
@@ -448,7 +514,10 @@ const RadioItem = ({ className, children, ...props }: DropdownMenuRadioItemProps
 				<Icon svg={<CheckIcon weight="bold" />} className="size-4 text-accent-600" />
 			</DropdownMenuPrimitive.ItemIndicator>
 		</span>
-		{children}
+		{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
+		<span data-slot="dropdown-menu-radio-item-label" className="contents">
+			{children}
+		</span>
 	</DropdownMenuPrimitive.RadioItem>
 );
 
@@ -618,6 +687,23 @@ const DropdownMenu = {
 	/**
 	 * A checkbox item in the dropdown menu that can be toggled on and off.
 	 *
+	 * **Structure.** `children` render inside a
+	 * `<span data-slot="dropdown-menu-checkbox-item-label">`. The check indicator is a permanent element
+	 * sibling, so without the span a bare text label is never a lone child: a
+	 * browser translation engine reparents that text node, and the removal React
+	 * runs when the label changes shape or goes away throws. The span is
+	 * `display: contents`, so an icon and its label stay flex items of the item and
+	 * keep its `gap`. An icon you pass as a child is now a grandchild, so a
+	 * `[&>svg]` class of your own no longer reaches it. Write `[&_svg]` instead, or
+	 * put the size class on the icon itself.
+	 *
+	 * **Data attributes:**
+	 *
+	 * | Data Attribute | Value | Description |
+	 * | --- | --- | --- |
+	 * | `data-slot` | `"dropdown-menu-checkbox-item"` | On the item element. |
+	 * | `data-slot` | `"dropdown-menu-checkbox-item-label"` | On the `<span>` wrapping `children`. |
+	 *
 	 * @see https://mantle.ngrok.com/components/overlays/dropdown-menu#dropdownmenucheckboxitem
 	 *
 	 * @example
@@ -738,6 +824,23 @@ const DropdownMenu = {
 	/**
 	 * A radio item in the dropdown menu where only one item in the group can be selected.
 	 *
+	 * **Structure.** `children` render inside a
+	 * `<span data-slot="dropdown-menu-radio-item-label">`. The check indicator is a permanent element
+	 * sibling, so without the span a bare text label is never a lone child: a
+	 * browser translation engine reparents that text node, and the removal React
+	 * runs when the label changes shape or goes away throws. The span is
+	 * `display: contents`, so an icon and its label stay flex items of the item and
+	 * keep its `gap`. An icon you pass as a child is now a grandchild, so a
+	 * `[&>svg]` class of your own no longer reaches it. Write `[&_svg]` instead, or
+	 * put the size class on the icon itself.
+	 *
+	 * **Data attributes:**
+	 *
+	 * | Data Attribute | Value | Description |
+	 * | --- | --- | --- |
+	 * | `data-slot` | `"dropdown-menu-radio-item"` | On the item element. |
+	 * | `data-slot` | `"dropdown-menu-radio-item-label"` | On the `<span>` wrapping `children`. |
+	 *
 	 * @see https://mantle.ngrok.com/components/overlays/dropdown-menu#dropdownmenuradioitem
 	 *
 	 * @example
@@ -847,6 +950,23 @@ const DropdownMenu = {
 	/**
 	 * A trigger for a dropdown menu sub-menu. It opens the submenu on hover, or on
 	 * ArrowRight or Enter.
+	 *
+	 * **Structure.** `children` render inside a
+	 * `<span data-slot="dropdown-menu-sub-trigger-label">`. The caret is a permanent element
+	 * sibling, so without the span a bare text label is never a lone child: a
+	 * browser translation engine reparents that text node, and the removal React
+	 * runs when the label changes shape or goes away throws. The span is
+	 * `display: contents`, so an icon and its label stay flex items of the item and
+	 * keep its `gap`. An icon you pass as a child is now a grandchild, so a
+	 * `[&>svg]` class of your own no longer reaches it. Write `[&_svg]` instead, or
+	 * put the size class on the icon itself.
+	 *
+	 * **Data attributes:**
+	 *
+	 * | Data Attribute | Value | Description |
+	 * | --- | --- | --- |
+	 * | `data-slot` | `"dropdown-menu-sub-trigger"` | On the item element. |
+	 * | `data-slot` | `"dropdown-menu-sub-trigger-label"` | On the `<span>` wrapping `children`. |
 	 *
 	 * @see https://mantle.ngrok.com/components/overlays/dropdown-menu#dropdownmenusubtrigger
 	 *

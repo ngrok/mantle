@@ -122,6 +122,8 @@ The component that pops out when the tooltip is open.
 
 `Tooltip.Content` renders at Tailwind `z-50`, Mantle's float tier. When composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into that overlay's positioner and paints above the overlay that owns it. Outside every overlay, it portals to `document.body`, below the overlay tier (`z-60`). When sibling floats share a container, the most recently mounted float paints on top.
 
+`children` render inside a `<span data-slot="tooltip-label">`. The arrow is a permanent element sibling, so without the span a bare text body is never a lone child: a browser translation engine reparents that text node, and the removal React runs when the body changes shape or goes away throws. The span is `display: contents`, so it adds no box and every child of your body stays a layout child of the surface. [Browser translation](/browser-translation) covers the mechanism and the rules your own components need.
+
 | Prop               | Type                                     | Default    | Description                                                                                                                             |
 | ------------------ | ---------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | `side?`            | `"top" \| "right" \| "bottom" \| "left"` | `"top"`    | The preferred side of the trigger to render against when open. Will be reversed when collisions occur and `avoidCollisions` is enabled. |
@@ -129,3 +131,12 @@ The component that pops out when the tooltip is open.
 | `align?`           | `"start" \| "center" \| "end"`           | `"center"` | The preferred alignment against the trigger. May change when collisions occur.                                                          |
 | `alignOffset?`     | `number`                                 | `0`        | An offset in pixels from the `start` or `end` alignment options.                                                                        |
 | `avoidCollisions?` | `boolean`                                | `true`     | When `true`, overrides the `side` and `align` preferences to prevent collisions with boundary edges.                                    |
+
+#### Data attributes
+
+| Data Attribute | Value                                              | Description                                        |
+| -------------- | -------------------------------------------------- | -------------------------------------------------- |
+| `data-slot`    | `"tooltip-content"`                                | On the tooltip surface.                            |
+| `data-slot`    | `"tooltip-label"`                                  | On the `<span>` wrapping `children`.               |
+| `data-state`   | `"delayed-open"` \| `"instant-open"` \| `"closed"` | The open state Radix stamps on the surface.        |
+| `data-side`    | `"top"` \| `"right"` \| `"bottom"` \| `"left"`     | Which side of the trigger the surface resolved to. |

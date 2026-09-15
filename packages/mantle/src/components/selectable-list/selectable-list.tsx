@@ -441,6 +441,19 @@ const Filter = ({
  * indeterminate when only some are, unchecked when none are — and toggling it
  * selects or clears that filtered set. Optional. Children are the visible label.
  *
+ * **Structure.** `children` render inside a
+ * `<span data-slot="selectable-list-select-all-label">`. The checkbox is a
+ * permanent element sibling, so without the span a bare text label is never a
+ * lone child: a browser translation engine reparents that text node, and the
+ * removal React runs when a count-aware label swaps to an element throws. The
+ * span is `display: contents`, so the checkbox and the label stay flex items of
+ * the header and keep its `gap`.
+ *
+ * | Data Attribute | Value                                | Description                          |
+ * | -------------- | ------------------------------------ | ------------------------------------ |
+ * | `data-slot`    | `"selectable-list-select-all"`       | On the header `<label>`.             |
+ * | `data-slot`    | `"selectable-list-select-all-label"` | On the `<span>` wrapping `children`. |
+ *
  * @see https://mantle.ngrok.com/components/data-display/selectable-list
  *
  * @example
@@ -499,7 +512,10 @@ const SelectAll = ({
 				onChange={handleChange}
 				disabled={!hasSelectable}
 			/>
-			{children}
+			{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
+			<span data-slot="selectable-list-select-all-label" className="contents">
+				{children}
+			</span>
 		</label>
 	);
 };
@@ -1061,6 +1077,19 @@ const SelectableList = {
 	 * of the **currently filtered** options: checked when all are selected,
 	 * indeterminate when only some are, unchecked when none are. Toggling it
 	 * selects or clears that filtered set. Optional. Children are the visible label.
+	 *
+	 * **Structure.** `children` render inside a
+	 * `<span data-slot="selectable-list-select-all-label">`. The checkbox is a
+	 * permanent element sibling, so without the span a bare text label is never a
+	 * lone child: a browser translation engine reparents that text node, and the
+	 * removal React runs when a count-aware label swaps to an element throws. The
+	 * span is `display: contents`, so the checkbox and the label stay flex items of
+	 * the header and keep its `gap`.
+	 *
+	 * | Data Attribute | Value                                | Description                          |
+	 * | -------------- | ------------------------------------ | ------------------------------------ |
+	 * | `data-slot`    | `"selectable-list-select-all"`       | On the header `<label>`.             |
+	 * | `data-slot`    | `"selectable-list-select-all-label"` | On the `<span>` wrapping `children`. |
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/selectable-list
 	 *

@@ -900,6 +900,20 @@ type DataTableActionCellProps = ComponentProps<typeof Table.Cell>;
  * without the row navigating. Your own `onClick` still runs. The `<td>` keeps
  * its `role="cell"`.
  *
+ * **Structure.** `children` render inside a
+ * `<span data-slot="data-table-action-cell-label">`. The sticky-column indicator is a permanent element sibling,
+ * so without the span a bare text child is never a lone child: a browser
+ * translation engine reparents that text node, and the removal React runs when
+ * the content changes shape or goes away throws. The span is
+ * `display: contents`, so it adds no box and the cell's layout is unchanged.
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"data-table-action-cell"` | On the cell element. |
+ * | `data-slot` | `"data-table-action-cell-label"` | On the `<span>` wrapping `children`. |
+ *
  * @see https://mantle.ngrok.com/components/data-display/data-table#datatableactioncell
  *
  * @example
@@ -941,7 +955,10 @@ function ActionCell({ children, className, onClick, ...props }: DataTableActionC
 			{...props}
 		>
 			<StickyColIndicator />
-			{children}
+			{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
+			<span data-slot="data-table-action-cell-label" className="contents">
+				{children}
+			</span>
 		</Table.Cell>
 	);
 }
@@ -954,6 +971,20 @@ type DataTableActionHeaderProps = ComponentProps<typeof Table.Header>;
  * header and every body row when the table scrolls horizontally. Renders a
  * screen-reader-only "Actions" label by default, so the column has a name while
  * it stays visually empty.
+ *
+ * **Structure.** `children` render inside a
+ * `<span data-slot="data-table-action-header-label">`. The indicator and the fallback `sr-only` label both sit beside `children`,
+ * so without the span a bare text child is never a lone child: a browser
+ * translation engine reparents that text node, and the removal React runs when
+ * the content changes shape or goes away throws. The span is
+ * `display: contents`, so it adds no box and the cell's layout is unchanged.
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"data-table-action-header"` | On the cell element. |
+ * | `data-slot` | `"data-table-action-header-label"` | On the `<span>` wrapping `children`. |
  *
  * @see https://mantle.ngrok.com/components/data-display/data-table#datatableactionheader
  *
@@ -983,14 +1014,14 @@ function ActionHeader({ children, className, ...props }: DataTableActionHeaderPr
 			)}
 			{...props}
 		>
-			{children ?? <span className="sr-only">Actions</span>}
+			{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
+			<span data-slot="data-table-action-header-label" className="contents">
+				{children ?? <span className="sr-only">Actions</span>}
+			</span>
 			{/* Why last: the indicator is absolutely positioned outside the cell's
-			    content box, so DOM order costs nothing here. Mounting it before
-			    `children` would aim an `insertBefore` at header text a browser
-			    translation engine has reparented, which throws. The move cures that
-			    mount alone. It does not cure the `??` above, which trades text for an
-			    element while the indicator stays mounted. See
-			    decisions/2026-08-04-translation-safe-label-wrappers.md. */}
+			    content box, so DOM order costs nothing here. The move cures its own
+			    mount. The label span above is what cures the `??` swap and a removal.
+			    See decisions/2026-08-04-translation-safe-label-wrappers.md. */}
 			{hasRows && <StickyColIndicator />}
 		</Table.Header>
 	);
@@ -1730,6 +1761,20 @@ const DataTable = {
 	 * propagation and keeps the click's default action, so an action menu opens
 	 * without the row navigating.
 	 *
+	 * **Structure.** `children` render inside a
+	 * `<span data-slot="data-table-action-cell-label">`. The sticky-column indicator is a permanent element sibling,
+	 * so without the span a bare text child is never a lone child: a browser
+	 * translation engine reparents that text node, and the removal React runs when
+	 * the content changes shape or goes away throws. The span is
+	 * `display: contents`, so it adds no box and the cell's layout is unchanged.
+	 *
+	 * **Data attributes:**
+	 *
+	 * | Data Attribute | Value | Description |
+	 * | --- | --- | --- |
+	 * | `data-slot` | `"data-table-action-cell"` | On the cell element. |
+	 * | `data-slot` | `"data-table-action-cell-label"` | On the `<span>` wrapping `children`. |
+	 *
 	 * @see https://mantle.ngrok.com/components/data-display/data-table#datatableactioncell
 	 *
 	 * @example
@@ -1752,6 +1797,20 @@ const DataTable = {
 	 * header and every body row when the table scrolls horizontally. Renders a
 	 * screen-reader-only "Actions" label by default, so the column has a name while
 	 * it stays visually empty.
+	 *
+	 * **Structure.** `children` render inside a
+	 * `<span data-slot="data-table-action-header-label">`. The indicator and the fallback `sr-only` label both sit beside `children`,
+	 * so without the span a bare text child is never a lone child: a browser
+	 * translation engine reparents that text node, and the removal React runs when
+	 * the content changes shape or goes away throws. The span is
+	 * `display: contents`, so it adds no box and the cell's layout is unchanged.
+	 *
+	 * **Data attributes:**
+	 *
+	 * | Data Attribute | Value | Description |
+	 * | --- | --- | --- |
+	 * | `data-slot` | `"data-table-action-header"` | On the cell element. |
+	 * | `data-slot` | `"data-table-action-header-label"` | On the `<span>` wrapping `children`. |
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/data-table#datatableactionheader
 	 *

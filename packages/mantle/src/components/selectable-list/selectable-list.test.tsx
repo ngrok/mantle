@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import type { ComponentProps } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { useState } from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
@@ -260,6 +260,49 @@ describe("SelectableList.SelectAll with an active filter", () => {
 		// "Cranb" matches only the disabled option.
 		await user.type(screen.getByRole("textbox", { name: "Filter fruit" }), "Cranb");
 		expect(screen.getByRole("checkbox", { name: "Select all" })).toBeDisabled();
+	});
+});
+
+describe("SelectableList.SelectAll after browser translation", () => {
+	function Header({ label }: { label: ReactNode }) {
+		return (
+			<SelectableList.Root options={options} defaultValue={[]}>
+				<SelectableList.SelectAll>{label}</SelectableList.SelectAll>
+			</SelectableList.Root>
+		);
+	}
+
+	test("renders the label inside the select-all label slot", () => {
+		const { container } = render(<Header label="Select all" />);
+
+		const header = container.querySelector('[data-slot="selectable-list-select-all"]');
+		const label = header?.querySelector('[data-slot="selectable-list-select-all-label"]');
+		expect(label).toHaveTextContent("Select all");
+		expect(label).toHaveClass("contents");
+		expect(label?.parentElement).toBe(header);
+	});
+
+	test("keeps rendering when a translated label gains a count element", () => {
+		const { container, rerender } = render(<Header label="Select all" />);
+		const header = container.querySelector('[data-slot="selectable-list-select-all"]');
+		if (header == null) {
+			throw new Error("expected a mounted select-all header");
+		}
+		translateTextNodes(header);
+		expect(header).toHaveTextContent("[Select all-es]");
+
+		rerender(
+			<Header
+				label={
+					<span>
+						Select all <span data-testid="count">3</span>
+					</span>
+				}
+			/>,
+		);
+
+		expect(header.querySelector("font")).toBeNull();
+		expect(screen.getByTestId("count")).toHaveTextContent("3");
 	});
 });
 
