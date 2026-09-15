@@ -220,6 +220,26 @@ DropdownMenu.Root
         └── DropdownMenu.SubContent
 ```
 
+## Polymorphism
+
+`asChild` renders the part's single child instead of its default element, and forwards class names, `data-*`
+attributes, and `ref` onto that child. These parts take it:
+
+| Part                      | Reach for it when                                                    |
+| ------------------------- | -------------------------------------------------------------------- |
+| `DropdownMenu.Trigger`    | The trigger is a `Button`, an `IconButton`, or your own control.     |
+| `DropdownMenu.Content`    | The panel needs its own element to carry layout or a motion wrapper. |
+| `DropdownMenu.SubContent` | The same, for a submenu panel.                                       |
+| `DropdownMenu.Item`       | The item navigates, so it must render an `<a>` or a router `Link`.   |
+| `DropdownMenu.Label`      | The label needs a heading element for the document outline.          |
+| `DropdownMenu.Group`      | The group needs its own element.                                     |
+| `DropdownMenu.RadioGroup` | The same, for a radio group.                                         |
+
+Three parts do **not** take it, and the prop is omitted from their props types:
+`DropdownMenu.SubTrigger`, `DropdownMenu.CheckboxItem`, and `DropdownMenu.RadioItem`. Each renders a second
+element beside your children — the submenu caret, or the check indicator — so a slot would receive two
+elements and throw. Style them with `className` instead.
+
 ## API Reference
 
 The `DropdownMenu` components are built on top of [Radix Dropdown Menu](https://www.radix-ui.com/primitives/docs/components/dropdown-menu).

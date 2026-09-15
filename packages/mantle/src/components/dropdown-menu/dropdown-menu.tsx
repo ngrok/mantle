@@ -154,6 +154,18 @@ const RadioGroup = ({
 );
 
 /**
+ * Props for `DropdownMenu.SubTrigger`. `asChild` is omitted: the trigger renders
+ * the caret next to the label span holding `children`, so a slot would receive
+ * two elements and throw.
+ */
+type DropdownMenuSubTriggerProps = Omit<
+	ComponentProps<typeof DropdownMenuPrimitive.SubTrigger>,
+	"asChild"
+> & {
+	inset?: boolean;
+};
+
+/**
  * A trigger for a dropdown menu sub-menu. It opens the submenu on hover, or on
  * ArrowRight or Enter.
  *
@@ -168,6 +180,9 @@ const RadioGroup = ({
  * variant instead — `[&>[data-slot=dropdown-menu-sub-trigger-label]>svg]:size-4`.
  * A `[&_svg]` class or a class on the icon loses to the default, which is more
  * specific.
+ *
+ * **Why no `asChild`:** the caret sits beside the label span, so `Slot` would
+ * receive two elements and throw. The prop is omitted from the props type.
  *
  * **Data attributes:**
  *
@@ -194,14 +209,7 @@ const RadioGroup = ({
  * </DropdownMenu.Root>
  * ```
  */
-const SubTrigger = ({
-	className,
-	inset,
-	children,
-	...props
-}: ComponentProps<typeof DropdownMenuPrimitive.SubTrigger> & {
-	inset?: boolean;
-}) => (
+const SubTrigger = ({ className, inset, children, ...props }: DropdownMenuSubTriggerProps) => (
 	<DropdownMenuPrimitive.SubTrigger
 		data-slot="dropdown-menu-sub-trigger"
 		className={cx(
@@ -385,6 +393,16 @@ const Item = ({
 );
 
 /**
+ * Props for `DropdownMenu.CheckboxItem`. `asChild` is omitted: the item renders
+ * the check indicator next to the label span holding `children`, so a slot would
+ * receive two elements and throw.
+ */
+type DropdownMenuCheckboxItemProps = Omit<
+	ComponentProps<typeof DropdownMenuPrimitive.CheckboxItem>,
+	"asChild"
+>;
+
+/**
  * A menu item with a checkbox that can be controlled or uncontrolled.
  *
  * **Structure.** `children` render inside a
@@ -398,6 +416,9 @@ const Item = ({
  * variant instead — `[&>[data-slot=dropdown-menu-checkbox-item-label]>svg]:size-4`.
  * A `[&_svg]` class or a class on the icon loses to the default, which is more
  * specific.
+ *
+ * **Why no `asChild`:** the check indicator sits beside the label span, so `Slot` would
+ * receive two elements and throw. The prop is omitted from the props type.
  *
  * **Data attributes:**
  *
@@ -425,7 +446,7 @@ const CheckboxItem = ({
 	children,
 	checked,
 	...props
-}: ComponentProps<typeof DropdownMenuPrimitive.CheckboxItem>) => (
+}: DropdownMenuCheckboxItemProps) => (
 	<DropdownMenuPrimitive.CheckboxItem
 		data-slot="dropdown-menu-checkbox-item"
 		className={cx(
@@ -454,7 +475,15 @@ const CheckboxItem = ({
 	</DropdownMenuPrimitive.CheckboxItem>
 );
 
-type DropdownMenuRadioItemProps = ComponentProps<typeof DropdownMenuPrimitive.RadioItem> & {
+/**
+ * Props for `DropdownMenu.RadioItem`. `asChild` is omitted: the item renders the
+ * check indicator next to the label span holding `children`, so a slot would
+ * receive two elements and throw.
+ */
+type DropdownMenuRadioItemProps = Omit<
+	ComponentProps<typeof DropdownMenuPrimitive.RadioItem>,
+	"asChild"
+> & {
 	name?: string;
 	id?: string;
 };
@@ -474,6 +503,9 @@ type DropdownMenuRadioItemProps = ComponentProps<typeof DropdownMenuPrimitive.Ra
  * variant instead — `[&>[data-slot=dropdown-menu-radio-item-label]>svg]:size-4`.
  * A `[&_svg]` class or a class on the icon loses to the default, which is more
  * specific.
+ *
+ * **Why no `asChild`:** the check indicator sits beside the label span, so `Slot` would
+ * receive two elements and throw. The prop is omitted from the props type.
  *
  * **Data attributes:**
  *
@@ -705,6 +737,9 @@ const DropdownMenu = {
 	 * A `[&_svg]` class or a class on the icon loses to the default, which is more
 	 * specific.
 	 *
+	 * **Why no `asChild`:** the check indicator sits beside the label span, so `Slot` would
+	 * receive two elements and throw. The prop is omitted from the props type.
+	 *
 	 * **Data attributes:**
 	 *
 	 * | Data Attribute | Value | Description |
@@ -844,6 +879,9 @@ const DropdownMenu = {
 	 * A `[&_svg]` class or a class on the icon loses to the default, which is more
 	 * specific.
 	 *
+	 * **Why no `asChild`:** the check indicator sits beside the label span, so `Slot` would
+	 * receive two elements and throw. The prop is omitted from the props type.
+	 *
 	 * **Data attributes:**
 	 *
 	 * | Data Attribute | Value | Description |
@@ -972,6 +1010,9 @@ const DropdownMenu = {
 	 * variant instead — `[&>[data-slot=dropdown-menu-sub-trigger-label]>svg]:size-4`.
 	 * A `[&_svg]` class or a class on the icon loses to the default, which is more
 	 * specific.
+	 *
+	 * **Why no `asChild`:** the caret sits beside the label span, so `Slot` would
+	 * receive two elements and throw. The prop is omitted from the props type.
 	 *
 	 * **Data attributes:**
 	 *

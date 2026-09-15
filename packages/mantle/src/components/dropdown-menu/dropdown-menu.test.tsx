@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import type { ReactNode } from "react";
+import { createRef, type ReactNode } from "react";
 import { describe, expect, test } from "vitest";
 import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import { DropdownMenu } from "./dropdown-menu.js";
@@ -15,6 +15,52 @@ describe("DropdownMenu", () => {
 			const wideProps: Record<string, string> = { translate: "yes" };
 			render(<DropdownMenu.Shortcut {...wideProps}>⌘S</DropdownMenu.Shortcut>);
 			expect(screen.getByText("⌘S")).toHaveAttribute("translate", "no");
+		});
+	});
+
+	describe("asChild", () => {
+		test("Trigger renders the child and merges class, data-*, and ref", () => {
+			const ref = createRef<HTMLButtonElement>();
+			render(
+				<DropdownMenu.Root modal={false}>
+					<DropdownMenu.Trigger asChild>
+						<button type="button" className="mine" data-testid="custom" ref={ref}>
+							Open
+						</button>
+					</DropdownMenu.Trigger>
+				</DropdownMenu.Root>,
+			);
+
+			const trigger = screen.getByRole("button", { name: "Open" });
+			expect(trigger.tagName).toBe("BUTTON");
+			expect(trigger).toHaveClass("mine");
+			expect(trigger).toHaveAttribute("data-testid", "custom");
+			expect(trigger).toHaveAttribute("data-slot", "dropdown-menu-trigger");
+			expect(ref.current).toBe(trigger);
+		});
+
+		test("Item renders the child anchor and merges class, data-*, and ref", () => {
+			const ref = createRef<HTMLAnchorElement>();
+			render(
+				<DropdownMenu.Root open modal={false}>
+					<DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+					<DropdownMenu.Content>
+						<DropdownMenu.Item asChild>
+							<a href="/endpoints" className="mine" data-testid="custom" ref={ref}>
+								Endpoints
+							</a>
+						</DropdownMenu.Item>
+					</DropdownMenu.Content>
+				</DropdownMenu.Root>,
+			);
+
+			const item = screen.getByRole("menuitem", { name: "Endpoints" });
+			expect(item.tagName).toBe("A");
+			expect(item).toHaveAttribute("href", "/endpoints");
+			expect(item).toHaveClass("mine");
+			expect(item).toHaveAttribute("data-testid", "custom");
+			expect(item).toHaveAttribute("data-slot", "dropdown-menu-item");
+			expect(ref.current).toBe(item);
 		});
 	});
 });
