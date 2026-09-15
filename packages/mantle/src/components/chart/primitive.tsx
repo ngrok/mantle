@@ -994,7 +994,10 @@ const ChartTooltipSurface = ({
 			{...divProps}
 		>
 			{hover == null ? null : config?.children != null ? (
-				config.children(hover)
+				// Why the label div: decisions/2026-08-04-translation-safe-label-wrappers.md
+				<div data-slot={`${slotName}-tooltip-label`} className="contents">
+					{config.children(hover)}
+				</div>
 			) : (
 				<>
 					<div className="text-muted font-medium">
@@ -1229,14 +1232,19 @@ const ChartLegendPrimitive = ({
 			)}
 			{...props}
 		>
-			{children != null
-				? children(series)
-				: series.map((item) => (
-						<div key={item.dataKey} className="flex items-center gap-1.5">
-							<LegendSwatch series={item} orientation={orientation} />
-							{item.label}
-						</div>
-					))}
+			{children != null ? (
+				// Why the label div: decisions/2026-08-04-translation-safe-label-wrappers.md
+				<div data-slot={`${slotName}-legend-label`} className="contents">
+					{children(series)}
+				</div>
+			) : (
+				series.map((item) => (
+					<div key={item.dataKey} className="flex items-center gap-1.5">
+						<LegendSwatch series={item} orientation={orientation} />
+						{item.label}
+					</div>
+				))
+			)}
 		</div>
 	);
 };

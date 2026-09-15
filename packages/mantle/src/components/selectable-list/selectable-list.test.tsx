@@ -4,6 +4,7 @@ import type { ComponentProps } from "react";
 import { useState } from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
+import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import type * as CheckboxModule from "../checkbox/checkbox.js";
 import {
 	filterSelectableOptions,
@@ -479,6 +480,52 @@ describe("SelectableList.Empty", () => {
 
 		// Clearing the filter empties the region again without unmounting it.
 		await user.clear(screen.getByRole("textbox", { name: "Filter fruit" }));
+		expect(screen.getByRole("status")).toBeEmptyDOMElement();
+	});
+
+	test("puts the message in a label slot inside the status region", async () => {
+		const user = userEvent.setup();
+		render(
+			<SelectableList.Root options={options} defaultValue={[]}>
+				<SelectableList.Filter aria-label="Filter fruit" />
+				<SelectableList.Empty>No results found.</SelectableList.Empty>
+			</SelectableList.Root>,
+		);
+
+		const status = screen.getByRole("status");
+		expect(status.querySelector('[data-slot="selectable-list-empty-label"]')).toBeNull();
+
+		await user.type(screen.getByRole("textbox", { name: "Filter fruit" }), "zzz");
+
+		const label = status.querySelector('[data-slot="selectable-list-empty-label"]');
+		expect(label).toHaveTextContent("No results found.");
+		expect(label?.parentElement).toBe(status);
+	});
+
+	test("restores the rows after a translated multi-node message", async () => {
+		const user = userEvent.setup();
+		const query = "zzz";
+		render(
+			<SelectableList.Root options={options} defaultValue={[]}>
+				<SelectableList.Filter aria-label="Filter fruit" />
+				<SelectableList.Viewport aria-label="Fruit" />
+				<SelectableList.Empty>
+					No results for <strong>{query}</strong>.
+				</SelectableList.Empty>
+			</SelectableList.Root>,
+		);
+
+		await user.type(screen.getByRole("textbox", { name: "Filter fruit" }), query);
+		expect(screen.queryAllByRole("row")).toHaveLength(0);
+
+		// A translation engine reparents each text node under its own `<font>`.
+		// Without the label span, React aims `removeChild` at one of those nodes
+		// when the filter matches options again, and the DOM raises `NotFoundError`.
+		translateTextNodes(screen.getByRole("status"));
+		expect(screen.getByRole("status")).toHaveTextContent("[No results for-es][zzz-es][.-es]");
+
+		await user.clear(screen.getByRole("textbox", { name: "Filter fruit" }));
+		expect(screen.getAllByRole("row")).toHaveLength(options.length);
 		expect(screen.getByRole("status")).toBeEmptyDOMElement();
 	});
 });

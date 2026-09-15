@@ -308,7 +308,10 @@ class AlertCenterStore {
 			return;
 		}
 		const host = this.#hostById.get(id);
-		if (host != null && host.hasChildNodes()) {
+		// Why `firstElementChild`: the item's portal always puts its label wrapper
+		// in the host, so `hasChildNodes()` on the host itself can no longer tell
+		// an item that rendered content from one that rendered nothing.
+		if (host != null && host.firstElementChild?.hasChildNodes() === true) {
 			this.#hostSnapshot = { id, content: host.cloneNode(true) };
 		}
 	}
@@ -735,11 +738,20 @@ type AlertCenterItemProps = {
  * Server rendering emits no alert DOM — the bar enters after hydration with
  * its height animation, the same entrance every arriving alert gets.
  *
+ * **Structure.** `children` render inside a
+ * `<div data-slot="alert-center-item-label">`, the only node the portal puts
+ * in the host. A portal owns no node of its own, so React removes each portal
+ * child from the host by itself. A browser translation engine reparents a bare
+ * text child. A removal aimed at one throws, so the wrapper keeps the removed
+ * node an element. The wrapper is `display: contents`, so the authored children
+ * stay direct flex items of the banner chrome and keep its `gap`.
+ *
  * **Data attributes:**
  *
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
  * | `data-slot` | `alert-center-item-host` | On the stable per-id host element the item's children portal into. |
+ * | `data-slot` | `alert-center-item-label` | On the layout-transparent element inside the host that wraps the item's children. |
  * | `data-alert-host` | the item's `id` | On that same host — which alert's projected children it holds. |
  *
  * @see https://mantle.ngrok.com/components/feedback/alert-center#alertcenteritem
@@ -798,7 +810,17 @@ const Item = ({ children, className, id, intent, order }: AlertCenterItemProps) 
 	// would read that as a deliberate move and skip the redirect.
 	return createPortal(
 		<AlertContextProvider intent={intent} redirectDismissFocus={false}>
-			<AlertCenterItemContext.Provider value={true}>{children}</AlertCenterItemContext.Provider>
+			<AlertCenterItemContext.Provider value={true}>
+				{/* Why the wrapper: a portal owns no node of its own, so React removes
+				    each portal child from the host by itself. A browser translation
+				    engine reparents a bare text child first. That removal then raises
+				    `NotFoundError`, which tears down the React root. `display: contents`
+				    keeps the authored children direct flex items of the chrome.
+				    decisions/2026-08-04-translation-safe-label-wrappers.md */}
+				<div className="contents" data-slot="alert-center-item-label">
+					{children}
+				</div>
+			</AlertCenterItemContext.Provider>
 		</AlertContextProvider>,
 		host,
 	);
@@ -1939,11 +1961,15 @@ const AlertCenter = {
 	 * expansion row adopts by rank — children stay in the author's React tree
 	 * and keep their state across re-ranks. Mount to show; unmount to dismiss.
 	 *
+	 * `children` render inside a `<div data-slot="alert-center-item-label">`, so
+	 * the node React removes from the host is always an element.
+	 *
 	 * **Data attributes:**
 	 *
 	 * | Data Attribute | Value | Description |
 	 * | --- | --- | --- |
 	 * | `data-slot` | `alert-center-item-host` | On the stable per-id host element the item's children portal into. |
+	 * | `data-slot` | `alert-center-item-label` | On the layout-transparent element inside the host that wraps the item's children. |
 	 * | `data-alert-host` | the item's `id` | On that same host — which alert's projected children it holds. |
 	 *
 	 * @see https://mantle.ngrok.com/components/feedback/alert-center#alertcenteritem

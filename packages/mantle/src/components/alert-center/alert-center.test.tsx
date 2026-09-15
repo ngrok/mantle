@@ -3,6 +3,7 @@ import { userEvent } from "@testing-library/user-event";
 import { createContext, createRef, useContext, useState } from "react";
 import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, test, vi } from "vitest";
+import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import { Alert } from "../alert/alert.js";
 import {
 	AlertCenter,
@@ -49,6 +50,19 @@ function getBarWrapper(): HTMLElement {
 		throw new Error("expected the AlertCenter bar presence wrapper to be mounted");
 	}
 	return wrapper;
+}
+
+/**
+ * The stable per-id host element an item portals its children into. Throws
+ * rather than returning `null` so call sites stay type-safe without a non-null
+ * assertion.
+ */
+function getItemHost(id: string): HTMLElement {
+	const host = document.querySelector<HTMLElement>(`[data-alert-host="${id}"]`);
+	if (host == null) {
+		throw new Error(`expected a mounted host for the alert "${id}"`);
+	}
+	return host;
 }
 
 /** The bar's banner chrome — the `Alert.Root` the top item's children render inside. */
@@ -1320,6 +1334,111 @@ describe("AlertCenter.Item projection", () => {
 	});
 });
 
+describe("AlertCenter.Item after browser translation", () => {
+	test("wraps the projected children, so the portal's outermost node is an element", () => {
+		render(
+			<AlertCenter.Root>
+				<AlertCenter.Bar />
+				<AlertCenter.Content />
+				<AlertCenter.Item id="payment" intent="danger">
+					Payment failed
+				</AlertCenter.Item>
+			</AlertCenter.Root>,
+		);
+
+		const host = getItemHost("payment");
+		const wrapper = host.firstElementChild;
+		expect(wrapper).toHaveAttribute("data-slot", "alert-center-item-label");
+		// The portal puts exactly one node in the host, and it is that element. A
+		// bare text child here is the node React removes, and the one an engine
+		// reparents.
+		expect(host.childNodes).toHaveLength(1);
+		expect(host.firstChild).toBe(wrapper);
+		expect(wrapper).toHaveTextContent("Payment failed");
+	});
+
+	test("dismissing a translated alert unmounts the item instead of throwing", async () => {
+		const user = userEvent.setup();
+		function Page() {
+			const [dismissed, setDismissed] = useState(false);
+			return (
+				<>
+					<button type="button" onClick={() => setDismissed(true)}>
+						Dismiss
+					</button>
+					<AlertCenter.Root>
+						<AlertCenter.Bar />
+						<AlertCenter.Content />
+						{!dismissed && (
+							<AlertCenter.Item id="payment" intent="danger">
+								Payment failed
+							</AlertCenter.Item>
+						)}
+						<AlertCenter.Item id="transfer" intent="warning">
+							<AlertBody title="Transfer limit" />
+						</AlertCenter.Item>
+					</AlertCenter.Root>
+				</>
+			);
+		}
+		render(<Page />);
+		const host = getItemHost("payment");
+		// Only the host, so the harness button keeps its accessible name.
+		translateTextNodes(host);
+		expect(host).toHaveTextContent("[Payment failed-es]");
+
+		// React removes the wrapper from the host. A bare text child would be the
+		// node the engine reparented, and `removeChild` would raise NotFoundError.
+		await user.click(screen.getByRole("button", { name: "Dismiss" }));
+
+		expect(host).toBeEmptyDOMElement();
+		expect(getBarChrome()).toHaveAttribute("data-alert-id", "transfer");
+	});
+
+	test("swaps a translated string child for an element and wipes the engine's wrapper", () => {
+		function Page({ linked }: { linked: boolean }) {
+			return (
+				<AlertCenter.Root>
+					<AlertCenter.Bar />
+					<AlertCenter.Content />
+					<AlertCenter.Item id="payment" intent="danger">
+						{linked ? <strong>Payment failed</strong> : "Payment failed"}
+					</AlertCenter.Item>
+				</AlertCenter.Root>
+			);
+		}
+		const { rerender } = render(<Page linked={false} />);
+		const host = getItemHost("payment");
+		translateTextNodes(host);
+		expect(host).toHaveTextContent("[Payment failed-es]");
+
+		rerender(<Page linked />);
+
+		// A lone child of the wrapper goes through React's textContent path, which
+		// wipes the engine's <font> instead of removing a node React lost.
+		expect(host.querySelector("font")).toBeNull();
+		expect(host.querySelector("strong")).toHaveTextContent("Payment failed");
+	});
+
+	test("an item whose children render nothing captures no exit ghost", () => {
+		render(
+			<AlertCenter.Root>
+				<AlertCenter.Bar />
+				<AlertCenter.Content />
+				<AlertCenter.Item id="payment" intent="danger">
+					{null}
+				</AlertCenter.Item>
+			</AlertCenter.Root>,
+		);
+
+		// The wrapper always lands in the host, so the snapshot guard reads the
+		// wrapper's own children rather than the host's.
+		const host = getItemHost("payment");
+		expect(host.firstElementChild).toHaveAttribute("data-slot", "alert-center-item-label");
+		expect(host.firstElementChild).toBeEmptyDOMElement();
+	});
+});
+
 describe("AlertCenter.DismissIconButton", () => {
 	test("derives its label from the enclosing banner's rendered title and calls onClick", async () => {
 		const user = userEvent.setup();
@@ -2118,6 +2237,7 @@ describe("AlertCenter server render", () => {
 		expect(html).not.toContain("alert-center-bar");
 		expect(html).not.toContain("alert-center-content");
 		expect(html).not.toContain("alert-center-item-host");
+		expect(html).not.toContain("alert-center-item-label");
 		expect(html).not.toContain("data-alert-id");
 		expect(html).not.toContain("Payment failed");
 		expect(html).not.toContain("Transfer limit");

@@ -851,6 +851,13 @@ One authored alert: the coordination facts as props, the banner content as child
 place and registers with the center; mount to show, unmount to dismiss. Two items mounted at once may not
 share an `id` — the second registration throws, since both would project into that id's single host.
 
+`children` render inside a `<div data-slot="alert-center-item-label">`, which is the only node the portal
+puts in the host. A portal owns no node of its own, so React removes each portal child from the host by
+itself. A browser translation engine reparents a bare text child. A removal aimed at one throws, so the
+wrapper keeps the removed node an element. The wrapper is `display: contents`, so it adds no box: your
+children stay direct flex items of the banner chrome and keep its `gap`.
+[Browser translation](/browser-translation) covers the mechanism and the rules your own components need.
+
 | Prop        | Type                                                          | Default | Description                                                                                                                                                                                                                         |
 | ----------- | ------------------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `id`        | `string`                                                      | —       | Stable identity: keys the projection, pins arrival order (a returning id resumes its spot), and stamps `data-alert-id`. Unique among the items mounted under one `AlertCenter.Root`; unmounting and remounting the same id is fine. |
@@ -859,10 +866,11 @@ share an `id` — the second registration throws, since both would project into 
 | `order`     | `number`                                                      | —       | The position among same-intent peers. Lower comes first. Items that share an order keep arrival order. An item with no order follows every item that declares one. `Infinity` counts as declared. `intent` still decides the tier.  |
 | `children`  | `ReactNode`                                                   | —       | The banner content — `Alert` parts, not `Alert.Root`. Rendered at the Bar/Content position, not where the item is authored.                                                                                                         |
 
-| Data Attribute    | Value                    | Description                                                        |
-| ----------------- | ------------------------ | ------------------------------------------------------------------ |
-| `data-slot`       | `alert-center-item-host` | On the stable per-id host element the item's children portal into. |
-| `data-alert-host` | the item's `id`          | On that same host — which alert's projected children it holds.     |
+| Data Attribute    | Value                     | Description                                                                       |
+| ----------------- | ------------------------- | --------------------------------------------------------------------------------- |
+| `data-slot`       | `alert-center-item-host`  | On the stable per-id host element the item's children portal into.                |
+| `data-slot`       | `alert-center-item-label` | On the layout-transparent element inside the host that wraps the item's children. |
+| `data-alert-host` | the item's `id`           | On that same host — which alert's projected children it holds.                    |
 
 ### AlertCenter.DismissIconButton
 

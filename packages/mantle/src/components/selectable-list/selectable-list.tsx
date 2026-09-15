@@ -910,6 +910,19 @@ const VirtualViewport = ({ children, ref, ...props }: SelectableListVirtualViewp
  * hidden while there are matches), so screen-reader users hear the message
  * when their filter empties the list instead of the grid silently vanishing.
  *
+ * **Structure.** The message renders inside a
+ * `<span data-slot="selectable-list-empty-label">`. The live region stays
+ * mounted, so React removes that span when options match again. The span
+ * exists so the node React removes is an element: a browser translation
+ * engine reparents text nodes, and a removal aimed at one throws. The span is
+ * `display: contents`, so it adds no box and the message stays a direct child
+ * of the centered region.
+ *
+ * | Data Attribute | Value                           | Description                                                                |
+ * | -------------- | ------------------------------- | -------------------------------------------------------------------------- |
+ * | `data-slot`    | `"selectable-list-empty"`       | On the live-region element.                                                |
+ * | `data-slot`    | `"selectable-list-empty-label"` | On the `<span>` wrapping `children`. Present only while the message shows. |
+ *
  * @see https://mantle.ngrok.com/components/data-display/selectable-list
  *
  * @example
@@ -942,7 +955,12 @@ const Empty = ({ children, className, ref, ...props }: ComponentProps<"div">) =>
 			)}
 			{...props}
 		>
-			{isEmpty ? children : null}
+			{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
+			{isEmpty && (
+				<span data-slot="selectable-list-empty-label" className="contents">
+					{children}
+				</span>
+			)}
 		</div>
 	);
 };
@@ -1189,6 +1207,19 @@ const SelectableList = {
 	 * It is a polite `role="status"` live region that stays mounted (visually
 	 * hidden while there are matches), so screen-reader users hear the message
 	 * when their filter empties the list instead of the grid silently vanishing.
+	 *
+	 * **Structure.** The message renders inside a
+	 * `<span data-slot="selectable-list-empty-label">`. The live region stays
+	 * mounted, so React removes that span when options match again. The span
+	 * exists so the node React removes is an element: a browser translation
+	 * engine reparents text nodes, and a removal aimed at one throws. The span is
+	 * `display: contents`, so it adds no box and the message stays a direct child
+	 * of the centered region.
+	 *
+	 * | Data Attribute | Value                           | Description                                                                |
+	 * | -------------- | ------------------------------- | -------------------------------------------------------------------------- |
+	 * | `data-slot`    | `"selectable-list-empty"`       | On the live-region element.                                                |
+	 * | `data-slot`    | `"selectable-list-empty-label"` | On the `<span>` wrapping `children`. Present only while the message shows. |
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/selectable-list
 	 *

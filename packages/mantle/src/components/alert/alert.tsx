@@ -74,7 +74,9 @@ function useAlertContext() {
  * @example
  * ```tsx
  * createPortal(
- *   <AlertContextProvider intent={intent}>{children}</AlertContextProvider>,
+ *   <AlertContextProvider intent={intent}>
+ *     <div className="contents" data-slot="alert-center-item-label">{children}</div>
+ *   </AlertContextProvider>,
  *   host,
  * );
  * ```
