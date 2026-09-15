@@ -984,10 +984,12 @@ function ActionHeader({ children, className, ...props }: DataTableActionHeaderPr
 			{...props}
 		>
 			{children ?? <span className="sr-only">Actions</span>}
-			{/* Last, not first: the indicator is absolutely positioned outside the
-			    cell's content box, so DOM order costs nothing here — and mounting it
-			    before `children` would aim an `insertBefore` at header text that a
-			    browser translation engine has reparented, which throws. See
+			{/* Why last: the indicator is absolutely positioned outside the cell's
+			    content box, so DOM order costs nothing here. Mounting it before
+			    `children` would aim an `insertBefore` at header text a browser
+			    translation engine has reparented, which throws. The move cures that
+			    mount alone. It does not cure the `??` above, which trades text for an
+			    element while the indicator stays mounted. See
 			    decisions/2026-08-04-translation-safe-label-wrappers.md. */}
 			{hasRows && <StickyColIndicator />}
 		</Table.Header>

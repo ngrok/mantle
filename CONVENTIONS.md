@@ -197,9 +197,9 @@ import { cx } from "@ngrok/mantle/cx";
 ## Browser Translation
 
 A browser translation engine rewrites the DOM under React. Google Translate wraps each text node in a `<font>`
-and reparents the original node, so React's reference points at a node its parent no longer owns. Two rules
-follow, and both bind `packages/` and `apps/` alike. The mechanism, the update-by-update table of what breaks,
-and the rejected alternatives are in
+and reparents the original node, so React's reference points at a node its parent no longer owns. Three rules
+follow, and all three bind `packages/` and `apps/` alike. The mechanism, the update-by-update table of what
+breaks, and the rejected alternatives are in
 [`decisions/2026-08-04-translation-safe-label-wrappers.md`](./decisions/2026-08-04-translation-safe-label-wrappers.md).
 
 ### Never render a conditional element immediately before bare text children
@@ -227,17 +227,56 @@ Three fixes work, and the conditional element decides which one:
   `anchor-label` — so a consumer can find the label. Give it `display: contents` inside a flex container,
   because a wrapper that lays out a box takes every child out of the parent's `gap`.
 - **Move the element after the text.** The mount becomes an `appendChild`, which is safe. Prefer this for a
-  decorative element that sits out of flow, because it adds no DOM (`DataTable.ActionHeader`).
+  decorative element that sits out of flow, because it adds no DOM (`DataTable.ActionHeader`). It cures the
+  mount and nothing else, so text that can still unmount or swap to an element takes a wrapper as well.
 - **Mount the element unconditionally and write text into it.** A `textContent` write is safe and self-healing, because
   it wipes the `<font>`. Prefer this for an `sr-only` announcer, which costs no layout
   (`DataTable.HeaderSortButton`).
 
-A lone expression child is already safe: React writes it through `setTextContent`, which repairs the subtree.
-The failure needs a sibling.
+A lone string or number child is already safe: React writes it through `setTextContent`, which repairs the
+subtree. The failure needs a sibling. A component element that returns bare text at its root is not that
+lone child, because the component owns no host node and React mounts the text node by itself.
 
-A portal is the exception. React removes a portal's children from the container one at a time, so a portal
-whose only child is a bare text node throws on unmount with no sibling in play. Wrap what you portal in an
-element. `Select.Item` wraps the label Radix portals into the trigger for this reason.
+A parent with no host node of its own is the exception. A portal, a `Fragment`, and an array all lack one.
+React then removes each of their children from the DOM one at a time, so a bare text child there throws on
+unmount with no sibling in play. Wrap what you portal. Wrap the text children of a `Fragment` or an array too.
+`Select.Item` wraps the label Radix portals into the trigger for this reason.
+
+A reorder needs the same wrapper. React inserts a moved element before the next host sibling. That walk
+returns a text node as readily as an element, so a keyed list that re-sorts in front of a bare text summary
+throws.
+
+### Never render a permanent element beside a consumer's children
+
+The rule above covers the element that appears. A permanent one is worse, because it voids the guarantee the
+lone-child row publishes and then waits:
+
+```tsx
+// ❌ the caret is always there, so `children` are never a lone child
+<button>
+	{children}
+	<CaretRightIcon />
+</button>
+
+// ✅ the consumer's own swap now names an element
+<button>
+	<span data-slot="menu-item-label">{children}</span>
+	<CaretRightIcon />
+</button>
+```
+
+Without the caret, React writes `children` through `setTextContent` and repairs the `<font>` on every update.
+With the caret, React creates a real text node instead. The consumer then swaps their own child from a string
+to an element, follows every rule on this page, and still gets a blank page.
+
+So when a component renders anything beside the `children` it receives, wrap those children. An icon, an
+indicator, a caret, a checkmark, a portal, and a sibling that CSS hides all count. The wrapper carries its own
+`data-slot`, which is public API from its first release.
+
+A wrapper is a new child, so read the parent's CSS before you add one. `:nth-child`, `:first-child`,
+`:last-child`, `has-[… :first-child]`, and a `[&>…]` child combinator all shift under it. `Input`,
+`SplitButton`, and `Sidebar.SwitcherTrigger` carry selectors of that kind today. Widen every one of them in
+the same edit.
 
 ### Mark untranslatable content `translate="no"`
 

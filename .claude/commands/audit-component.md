@@ -29,12 +29,13 @@ Walk [§10.2](../../COMPONENT_SPEC.md#102-check)'s table in order and record eve
 
 - **Surface & API** — §1.1–§1.7
 - **Implementation** — §3
+- **Translation** — §3.8, plus §6 for each label slot
 - **JSDoc** — §4, plus §5.2 and §6
 - **Docs page** — §7
 - **Wiring** — §2
 - **Tests** — §8
 
-Two checks are worth calling out because they are the ones most often missed and the spec's own review pass found them absent library-wide: every public CSS variable must appear in **both** the JSDoc and the docs-page API reference (§5.2), and every `data-*` the component stamps for styling or coordination must appear in both as well (§6).
+Three checks are worth calling out because they are the ones most often missed and the spec's own review pass found them absent library-wide: every public CSS variable must appear in **both** the JSDoc and the docs-page API reference (§5.2), every `data-*` the component stamps for styling or coordination must appear in both as well (§6), and every part that renders an element beside the `children` it receives must wrap those children (§3.8). The third one is a shape rather than a missing token, so walk the JSX part by part with the `browser-translation-hazards` skill loaded. It carries the shapes to flag, the safe shapes to leave alone, and the nine blind spots no tool can see. A 2026-09-14 audit found ten parts that ship the unwrapped shape.
 
 ## 3. Fix
 

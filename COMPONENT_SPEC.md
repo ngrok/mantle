@@ -97,6 +97,10 @@ slogan.
     pattern into ~57 call sites before the docs were fixed. Maintain examples with the same care as API.
 13. **Decisions get recorded.** A contested trade-off lands in `decisions/` with alternatives and honest
     negative consequences ([§1.8](#18-write-a-decision-doc-when-the-answer-was-contested)).
+14. **A translated page is still your page.** A translation engine reparents the text nodes React holds. A part
+    that renders anything beside a consumer's `children` then turns that consumer's next update into a thrown
+    `DOMException` and a blank page. The part owns the fix, and the call site cannot see the problem
+    ([§3.8](#38-browser-translation)).
 
 ---
 
@@ -492,22 +496,60 @@ Errors are control flow. `console.error` is not error handling.
 
 ### 3.8. Browser translation
 
-A translation engine reparents the text nodes React holds, which turns a routine update into a thrown
-`DOMException` and a blank page.
-[CONVENTIONS.md → Browser Translation](./CONVENTIONS.md#browser-translation) owns both rules and the mechanism.
-What they mean for a part:
+A translation engine wraps each text node in a `<font>` and reparents the original node. React later names that
+node in an `insertBefore` or a `removeChild`, and its parent no longer owns it. The DOM raises `NotFoundError`,
+React re-throws the raw `DOMException`, and the root tears down. The page goes blank.
+[CONVENTIONS.md → Browser Translation](./CONVENTIONS.md#browser-translation) owns the mechanism and the three
+rules that bind every file in the monorepo. A part carries more, because it renders elements beside children a
+consumer wrote. The call site cannot see those elements.
 
-- **No part renders a conditional element immediately before bare text children, and no part portals bare
-  text.** Wrap the text in an element carrying `<component-name>-label`, move the conditional element after the
-  text, or mount that element unconditionally. A wrapper's `data-slot` is public API, so document it like every
-  other one ([§6](#6-data-attributes-are-api)).
-- **A part that renders code, a key, a filename, an ID, or a passcode sets `translate="no"`.** Lock it —
-  `Omit<ComponentProps<…>, "translate">`, plus the attribute stamped after the props spread — when the part can
-  never hold prose. Keep the prop when it can, and document the default in the JSDoc and the API reference.
+**A part never leaves text bare beside a sibling.** Six shapes throw. A parent with no host node of its own
+means a portal, a keyed `Fragment`, an array, or a component that returns bare text at its root.
 
-`Kbd`, `CodeBlock.Code`, and `OtpInput.Slot` lock the attribute. `Code` and `CodeBlock.Title` default it.
-`Button`, `Badge`, `Anchor`, and `Select.Item` wrap their label, and `Select.Value` wraps its placeholder and its
-children. `DataTable` moves one indicator after its children, and keeps its sort announcer mounted at all times.
+| Shape a part must not emit                                          | What React does to the reparented node         |
+| ------------------------------------------------------------------- | ---------------------------------------------- |
+| A conditional element renders immediately before bare text          | Inserts before it                              |
+| A bare text child unmounts while an element sibling stays mounted   | Removes it                                     |
+| A child flips between a string and an element while a sibling stays | Removes it, then inserts the element           |
+| A keyed list re-sorts in front of bare text                         | Inserts a moved element before it              |
+| A parent with no host node of its own holds bare text directly      | Removes each of its children by itself         |
+| Any unconditional element renders beside a consumer's `children`    | Removes the consumer's node on their next swap |
+
+The last row is the one a review misses, and it is why this section is a component rule rather than consumer
+guidance. React repairs a **lone** string or number child through `setTextContent`, which wipes the `<font>` and
+heals the subtree. One permanent sibling takes that repair away from children the part does not own. The
+consumer then follows the rule the docs publish, swaps their own child, and still gets a blank page. A permanent
+sibling is the same defect as a conditional one. The 2026-09-14 audit found the shape in ten shipped parts.
+
+Three cures work, and the sibling picks one:
+
+- **Wrap the text in an element.** The default. The wrapper is a `<span>` carrying its own `data-slot`, and
+  inside a flex container it takes `className="contents"` so every child stays a flex item of the parent. When a
+  consumer can fill the wrapper, its slot is public API: name it `<component-name>-label`, and document it in
+  both the JSDoc and the API reference ([§6](#6-data-attributes-are-api)).
+- **Move the element after the text.** The mount becomes an `appendChild`, which is safe. Prefer it for a
+  decorative element that sits out of flow, because it adds no DOM. It cures an insert and not a removal, so a
+  part whose text can still unmount wraps as well.
+- **Mount the element unconditionally and write text into it.** A `textContent` write is safe and self-healing.
+  Prefer it for an `sr-only` announcer, which costs no layout.
+
+A wrapper is a new child, so read the part's own CSS before you add one. `:nth-child`, `:first-child`,
+`:last-child`, `has-[… :first-child]`, and every `[&>…]` child combinator shift under it, because the consumer's
+element becomes a grandchild. Widen each one in the same edit, scoped to the new slot
+(`[&>[data-slot=tabs-trigger-label]>svg]:size-5`), never with a `:where()` form that drops specificity to
+`(0,0,0)` and hands the cascade to a consumer's own class. `Input`, `SplitButton`, and `Sidebar.SwitcherTrigger`
+carry positional selectors of that kind today.
+
+Pin the wrapper with a `translateTextNodes` regression test that drives the update which used to throw
+([§8](#8-tests)). A `data-slot` assertion is not a substitute: it stays green when the wrapper moves after the
+sibling or turns conditional.
+
+**A part that renders code, a key, a filename, an ID, or a passcode sets `translate="no"`.** When the part can
+never hold prose, lock it: `Omit<ComponentProps<…>, "translate">`, plus the attribute stamped after the props
+spread. When the part can hold prose, keep the prop and document the default in the JSDoc and the API reference.
+
+[The Browser Translation page](./apps/www/app/docs/browser-translation.mdx) publishes which part ships which
+cure. Read the roster there rather than restating it here, because an enumerated copy drifts.
 
 ---
 
@@ -818,14 +860,21 @@ family-directory component, `components/<family>/<component-name>.tsx`
 
 Walk the spec in order and record every violation with a file:line:
 
-| Area           | Sections                                                                          |
-| -------------- | --------------------------------------------------------------------------------- |
-| Surface & API  | [§1.1](#11-one-component-per-user-intent)–[§1.7](#17-forbidden-api-shapes)        |
-| Implementation | [§3](#3-implementation-rules)                                                     |
-| JSDoc          | [§4](#4-jsdoc), plus [§5.2](#52-documenting) and [§6](#6-data-attributes-are-api) |
-| Docs page      | [§7](#7-the-docs-page)                                                            |
-| Wiring         | [§2](#2-what-a-component-must-ship)                                               |
-| Tests          | [§8](#8-tests)                                                                    |
+| Area           | Sections                                                                                   |
+| -------------- | ------------------------------------------------------------------------------------------ |
+| Surface & API  | [§1.1](#11-one-component-per-user-intent)–[§1.7](#17-forbidden-api-shapes)                 |
+| Implementation | [§3](#3-implementation-rules)                                                              |
+| Translation    | [§3.8](#38-browser-translation), plus [§6](#6-data-attributes-are-api) for each label slot |
+| JSDoc          | [§4](#4-jsdoc), plus [§5.2](#52-documenting) and [§6](#6-data-attributes-are-api)          |
+| Docs page      | [§7](#7-the-docs-page)                                                                     |
+| Wiring         | [§2](#2-what-a-component-must-ship)                                                        |
+| Tests          | [§8](#8-tests)                                                                             |
+
+Translation is a shape check, not a token check, so it needs its own pass over the JSX. Ask one question of
+every part: does anything render beside the `children` this part receives? An icon, an indicator, a caret, a
+checkmark, a portal, and a sibling that CSS hides all count. When the answer is yes and the part does not wrap
+those children in an element, record the part. Record every `[&>svg]` or `[&>span]` selector in the same file
+beside it, because a wrapper makes the consumer's element a grandchild and breaks that selector.
 
 ### 10.3. Fix
 
@@ -854,6 +903,10 @@ accessibility semantics:
 - A missing JSDoc description or `@example` where the content is non-obvious.
 - Refactoring a non-namespace exported object into the POJO namespace pattern.
 - Adding `asChild` to a part that lacks it, or adding a missing test file.
+- A part that renders an element beside the `children` it receives and does not wrap them
+  ([§3.8](#38-browser-translation)). The wrapper is a DOM change: it makes a consumer's own element a
+  grandchild, so every `[&>…]` selector reaching into the part needs widening in the same edit. The new slot is
+  public API from its first release. Report the part, the selectors, and the proposed slot name.
 - A component or part borrowing an unearned ARIA pattern word → propose the standards-vocabulary rename with
   the markup and keyboard evidence behind it. Renames are breaking and must go all the way through.
 - A prop whose name does not read as the DOM/ARIA it emits (`isActive` → `current`).
@@ -899,8 +952,13 @@ Run this against the diff before calling a component done. Each line is a defect
       `== null` for nullish checks.
 - [ ] Invariants throw descriptively; no `console.error` as handling.
 - [ ] Animation honors reduced motion; SSR renders the final paint.
-- [ ] No conditional element sits immediately before bare text children; code, keys, filenames, IDs, and
-      passcodes carry `translate="no"`, locked when the part can never hold prose.
+- [ ] No part leaves text bare beside a sibling: no element mounts in front of it, no keyed list re-sorts in
+      front of it, no text child unmounts while a sibling stays, no child swaps between a string and an element,
+      and no portal, keyed `Fragment`, array, or text-returning component holds bare text directly.
+- [ ] Every part that renders an unconditional element beside the `children` it receives wraps them, and every
+      `[&>…]` selector the wrapper displaced is widened in the same edit.
+- [ ] Code, keys, filenames, IDs, and passcodes carry `translate="no"`, locked when the part can never hold
+      prose.
 
 **Docs**
 
@@ -911,6 +969,8 @@ Run this against the diff before calling a component done. Each line is a defect
       default a consumer actually observes. Private variables use `--_` and stay undocumented.
 - [ ] Every `data-*` the component stamps for styling or coordination appears in the JSDoc and the API
       reference; boolean states use presence semantics.
+- [ ] Every label slot a part renders is documented under that part, in both the JSDoc and the API reference,
+      with the wrapper's `display` stated.
 - [ ] Docs page has the required sections in order; `title:` is the Title Case display name; every example is
       live and self-contained.
 - [ ] Trees in the JSDoc and the docs page match.
@@ -925,6 +985,8 @@ Run this against the diff before calling a component done. Each line is a defect
 **Proof**
 
 - [ ] Tests cover render, forwarding, the `asChild` merge triple, ARIA/keyboard, and business-logic edge cases.
+- [ ] Every part that wraps children, portals them, or locks `translate="no"` has a `translateTextNodes`
+      regression test that drives the update which used to throw.
 - [ ] All five verification commands pass, and `components-surface.json` is regenerated **and committed**.
 
 ---
