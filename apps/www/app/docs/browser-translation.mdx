@@ -33,9 +33,9 @@ The failure needs React to insert before, or remove, a **text** node the engine 
 | Remove an **element** child                     | Safe. An element is never reparented.                                      |
 | **Append** after a translated text node         | Safe.                                                                      |
 | Unmount a subtree that owns a host node         | Safe. React removes that one node.                                         |
-| A lone **string** or **number** child           | Safe, and self-healing.                                                    |
+| A lone **string**, **number**, or **bigint**    | Safe, and self-healing.                                                    |
 
-The last row is the one to design toward, and it is narrower than it looks. When a host element's `children` is one string or one number, React writes it through `textContent`, which wipes the `<font>` wrapper and repairs the subtree instead of fighting it. A component element that returns bare text at its root does not qualify. That component owns no host node, so React mounts and removes the text node by itself.
+The last row is the one to design toward, and it is narrower than it looks. When a host element's `children` is one string, one number, or one `bigint`, React writes it through `textContent`, which wipes the `<font>` wrapper and repairs the subtree instead of fighting it. A component element that returns bare text at its root does not qualify. That component owns no host node, so React mounts and removes the text node by itself.
 
 The reorder row is about the **reference** node, not the moved one. React picks that node by walking to the next host sibling. The walk returns a text node as readily as an element, so a keyed list that re-sorts in front of a bare text summary throws.
 

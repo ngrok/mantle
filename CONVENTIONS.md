@@ -233,8 +233,8 @@ Three fixes work, and the conditional element decides which one:
   it wipes the `<font>`. Prefer this for an `sr-only` announcer, which costs no layout
   (`DataTable.HeaderSortButton`).
 
-A lone string or number child is already safe: React writes it through `setTextContent`, which repairs the
-subtree. The failure needs a sibling. A component element that returns bare text at its root is not that
+A lone string, number, or `bigint` child is already safe: React writes it through `setTextContent`,
+which repairs the subtree. The failure needs a sibling. A component element that returns bare text at its root is not that
 lone child, because the component owns no host node and React mounts the text node by itself.
 
 A parent with no host node of its own is the exception. A portal, a `Fragment`, and an array all lack one.

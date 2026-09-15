@@ -516,8 +516,8 @@ means a portal, a keyed `Fragment`, an array, or a component that returns bare t
 | Any unconditional element renders beside a consumer's `children`    | Removes the consumer's node on their next swap |
 
 The last row is the one a review misses, and it is why this section is a component rule rather than consumer
-guidance. React repairs a **lone** string or number child through `setTextContent`, which wipes the `<font>` and
-heals the subtree. One permanent sibling takes that repair away from children the part does not own. The
+guidance. React repairs a **lone** string, number, or `bigint` child through `setTextContent`, which wipes the
+`<font>` and heals the subtree. One permanent sibling takes that repair away from children the part does not own. The
 consumer then follows the rule the docs publish, swaps their own child, and still gets a blank page. A permanent
 sibling is the same defect as a conditional one. The 2026-09-14 audit found the shape in ten shipped parts.
 

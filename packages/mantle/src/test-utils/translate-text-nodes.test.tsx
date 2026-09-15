@@ -68,6 +68,10 @@ function ArrayEntry({ entry }: { entry: Entry }) {
 	return [<dt key="term">{entry.term}</dt>, entry.description];
 }
 
+function TextReturningLabel({ text }: { text: string }) {
+	return text;
+}
+
 function HostEntries({ entries }: { entries: Entry[] }) {
 	return (
 		<dl>
@@ -131,6 +135,50 @@ describe("translateTextNodes", () => {
 			array.rerender(<dl />);
 		});
 		expect(arrayThrown).toContain(REMOVE_FAILED);
+	});
+
+	test("a lone string, number, or bigint child of a host element self-heals", () => {
+		// The row every label slot is designed toward. React takes the
+		// `shouldSetTextContent` fast path for all three primitives, so the update
+		// is a `textContent` write that wipes the `<font>` rather than a removal
+		// aimed at a node the parent no longer owns.
+		for (const [before, after] of [
+			["Alpha", <strong key="a">Bravo</strong>],
+			[7, <strong key="b">Bravo</strong>],
+			[7n, <strong key="c">Bravo</strong>],
+		] as const) {
+			const { container, rerender, unmount } = render(<p>{before}</p>);
+			translateTextNodes(container);
+			expect(container.querySelector("font")).not.toBeNull();
+
+			rerender(<p>{after}</p>);
+
+			expect(container.querySelector("font")).toBeNull();
+			expect(container.querySelector("strong")).toHaveTextContent("Bravo");
+			unmount();
+		}
+	});
+
+	test("a component that returns bare text at its root is not that lone child", () => {
+		// The distinction the table's last row turns on. The component owns no host
+		// node, so React builds a real `HostText` fiber and removes it by itself
+		// instead of writing through the parent's `textContent`.
+		const { container, rerender } = render(
+			<p>
+				<TextReturningLabel text="Alpha" />
+			</p>,
+		);
+		translateTextNodes(container);
+
+		const thrown = caughtFrom(() => {
+			rerender(
+				<p>
+					<strong>Bravo</strong>
+				</p>,
+			);
+		});
+
+		expect(thrown).toContain(REMOVE_FAILED);
 	});
 
 	test("removing a subtree that owns a host node survives", () => {

@@ -30,8 +30,8 @@ Each one needs a **reparented text node** and an **update that names it**. Both 
 
 ## Safe shapes to leave alone
 
-- **A lone string or number child of a host element.** React writes it through `setTextContent`, which wipes
-  the `<font>` and heals the subtree. This is the shape to design toward.
+- **A lone string, number, or `bigint` child of a host element.** React writes it through
+  `setTextContent`, which wipes the `<font>` and heals the subtree. This is the shape to design toward.
 - **A child list that never changes**, however long it is, and however much bare text it holds.
 - **An element child that unmounts.** An engine never reparents an element.
 - **An element that mounts _after_ the text.** The mount is an `appendChild`.

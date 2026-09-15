@@ -214,7 +214,8 @@ one at a time. The second amendment named that rule and pinned it to portals.
 The rule covers all four.
 
 `A lone expression child` is narrower than it reads, for the same reason.
-React's `setTextContent` path needs one string or one number written into a host
+React's `setTextContent` path needs one string, one number, or one `bigint`
+written into a host
 element's `children`. A component element that returns bare text is not that.
 
 The two rows split into four:
