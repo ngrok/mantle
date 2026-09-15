@@ -1172,6 +1172,42 @@ describe("Sidebar.SearchTrigger", () => {
 		).toBeEmptyDOMElement();
 	});
 
+	test("keeps rendering when a translated label swaps to an element", () => {
+		// The chord span never unmounts, so `children` are not a lone child. Only
+		// the label span keeps a consumer's own swap off React's removal path.
+		function Row({ label }: { label: ReactNode }) {
+			return <Sidebar.SearchTrigger>{label}</Sidebar.SearchTrigger>;
+		}
+		const { rerender } = render(<Row label="Search" />);
+		const button = screen.getByRole("button", { name: "Search" });
+		translateTextNodes(button);
+		expect(button).toHaveTextContent("[Search-es]");
+
+		rerender(<Row label={<strong>Search</strong>} />);
+
+		expect(button.querySelector("font")).toBeNull();
+		expect(button.querySelector("strong")).toHaveTextContent("Search");
+	});
+
+	test("sizes the leading icon through the label-scoped selector", () => {
+		// Cross-file pin: the `[&>[data-slot=sidebar-search-trigger-label]>svg]`
+		// utilities only match while the label span carries that slot and the
+		// consumer's icon stays its direct child.
+		render(
+			<Sidebar.SearchTrigger>
+				<MagnifyingGlassIcon />
+				<span>Search</span>
+			</Sidebar.SearchTrigger>,
+		);
+
+		const button = screen.getByRole("button", { name: "Search" });
+		expect(button.className).toContain(
+			"[&>[data-slot=sidebar-search-trigger-label]>svg:first-child]:size-5",
+		);
+		const label = button.querySelector('[data-slot="sidebar-search-trigger-label"]');
+		expect(label?.firstElementChild?.tagName).toBe("svg");
+	});
+
 	test("takes a chord that arrives on a translated row with a bare text label", () => {
 		function Row({ shortcut }: { shortcut?: ReactNode }) {
 			return <Sidebar.SearchTrigger shortcut={shortcut}>Search</Sidebar.SearchTrigger>;

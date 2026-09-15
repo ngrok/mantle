@@ -373,8 +373,9 @@ const triggerVariants = cva(
  * the label changes shape or goes away throws. The span is `display: contents`,
  * so the icon, the label, and `Tabs.Badge` stay flex items of the trigger and
  * keep its `gap`. A `[&>svg]` class of your own no longer reaches an icon you
- * pass as a child, because that icon is now a grandchild. Write `[&_svg]`, or
- * put the size class on the icon itself.
+ * pass as a child, because that icon is now a grandchild. Match the part's own
+ * variant instead — `[&>[data-slot=tabs-trigger-label]>svg]:size-4`. A `[&_svg]`
+ * or a class on the icon loses to the default, which is more specific.
  *
  * **Data attributes:**
  *
@@ -628,8 +629,9 @@ const Tabs = {
 	 * the label changes shape or goes away throws. The span is `display: contents`,
 	 * so the icon, the label, and `Tabs.Badge` stay flex items of the trigger and
 	 * keep its `gap`. A `[&>svg]` class of your own no longer reaches an icon you
-	 * pass as a child, because that icon is now a grandchild. Write `[&_svg]`, or
-	 * put the size class on the icon itself.
+	 * pass as a child, because that icon is now a grandchild. Match the part's own
+	 * variant instead — `[&>[data-slot=tabs-trigger-label]>svg]:size-4`. A `[&_svg]`
+	 * or a class on the icon loses to the default, which is more specific.
 	 *
 	 * **Data attributes:**
 	 *

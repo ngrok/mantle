@@ -164,8 +164,10 @@ const RadioGroup = ({
  * runs when the label changes shape or goes away throws. The span is
  * `display: contents`, so an icon and its label stay flex items of the item and
  * keep its `gap`. An icon you pass as a child is now a grandchild, so a
- * `[&>svg]` class of your own no longer reaches it. Write `[&_svg]` instead, or
- * put the size class on the icon itself.
+ * `[&>svg]` class of your own no longer reaches it. Match the part's own
+ * variant instead — `[&>[data-slot=dropdown-menu-sub-trigger-label]>svg]:size-4`.
+ * A `[&_svg]` class or a class on the icon loses to the default, which is more
+ * specific.
  *
  * **Data attributes:**
  *
@@ -392,8 +394,10 @@ const Item = ({
  * runs when the label changes shape or goes away throws. The span is
  * `display: contents`, so an icon and its label stay flex items of the item and
  * keep its `gap`. An icon you pass as a child is now a grandchild, so a
- * `[&>svg]` class of your own no longer reaches it. Write `[&_svg]` instead, or
- * put the size class on the icon itself.
+ * `[&>svg]` class of your own no longer reaches it. Match the part's own
+ * variant instead — `[&>[data-slot=dropdown-menu-checkbox-item-label]>svg]:size-4`.
+ * A `[&_svg]` class or a class on the icon loses to the default, which is more
+ * specific.
  *
  * **Data attributes:**
  *
@@ -466,8 +470,10 @@ type DropdownMenuRadioItemProps = ComponentProps<typeof DropdownMenuPrimitive.Ra
  * runs when the label changes shape or goes away throws. The span is
  * `display: contents`, so an icon and its label stay flex items of the item and
  * keep its `gap`. An icon you pass as a child is now a grandchild, so a
- * `[&>svg]` class of your own no longer reaches it. Write `[&_svg]` instead, or
- * put the size class on the icon itself.
+ * `[&>svg]` class of your own no longer reaches it. Match the part's own
+ * variant instead — `[&>[data-slot=dropdown-menu-radio-item-label]>svg]:size-4`.
+ * A `[&_svg]` class or a class on the icon loses to the default, which is more
+ * specific.
  *
  * **Data attributes:**
  *
@@ -694,8 +700,10 @@ const DropdownMenu = {
 	 * runs when the label changes shape or goes away throws. The span is
 	 * `display: contents`, so an icon and its label stay flex items of the item and
 	 * keep its `gap`. An icon you pass as a child is now a grandchild, so a
-	 * `[&>svg]` class of your own no longer reaches it. Write `[&_svg]` instead, or
-	 * put the size class on the icon itself.
+	 * `[&>svg]` class of your own no longer reaches it. Match the part's own
+	 * variant instead — `[&>[data-slot=dropdown-menu-checkbox-item-label]>svg]:size-4`.
+	 * A `[&_svg]` class or a class on the icon loses to the default, which is more
+	 * specific.
 	 *
 	 * **Data attributes:**
 	 *
@@ -831,8 +839,10 @@ const DropdownMenu = {
 	 * runs when the label changes shape or goes away throws. The span is
 	 * `display: contents`, so an icon and its label stay flex items of the item and
 	 * keep its `gap`. An icon you pass as a child is now a grandchild, so a
-	 * `[&>svg]` class of your own no longer reaches it. Write `[&_svg]` instead, or
-	 * put the size class on the icon itself.
+	 * `[&>svg]` class of your own no longer reaches it. Match the part's own
+	 * variant instead — `[&>[data-slot=dropdown-menu-radio-item-label]>svg]:size-4`.
+	 * A `[&_svg]` class or a class on the icon loses to the default, which is more
+	 * specific.
 	 *
 	 * **Data attributes:**
 	 *
@@ -958,8 +968,10 @@ const DropdownMenu = {
 	 * runs when the label changes shape or goes away throws. The span is
 	 * `display: contents`, so an icon and its label stay flex items of the item and
 	 * keep its `gap`. An icon you pass as a child is now a grandchild, so a
-	 * `[&>svg]` class of your own no longer reaches it. Write `[&_svg]` instead, or
-	 * put the size class on the icon itself.
+	 * `[&>svg]` class of your own no longer reaches it. Match the part's own
+	 * variant instead — `[&>[data-slot=dropdown-menu-sub-trigger-label]>svg]:size-4`.
+	 * A `[&_svg]` class or a class on the icon loses to the default, which is more
+	 * specific.
 	 *
 	 * **Data attributes:**
 	 *

@@ -1875,6 +1875,7 @@ type SidebarSearchTriggerProps = ComponentProps<"button"> &
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
  * | `data-slot` | `"sidebar-search-trigger"` | On the row element. |
+ * | `data-slot` | `"sidebar-search-trigger-label"` | On the `<span>` wrapping `children` on the default `button` path. Absent under `asChild`, which renders no sibling. |
  * | `data-slot` | `"sidebar-search-trigger-shortcut"` | On the chord chips. Always present on the default `button` path, and `display: none` while it is empty. Absent under `asChild`, where the props union forbids `shortcut`. |
  *
  * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarsearchtrigger
@@ -1953,7 +1954,13 @@ const SearchTrigger = ({
 		children
 	) : (
 		<>
-			{children}
+			{/* Why the label span: the chord span below never unmounts, so without
+			    this one a bare text label is not a lone child and a consumer's own
+			    swap throws on a translated page.
+			    decisions/2026-08-04-translation-safe-label-wrappers.md */}
+			<span data-slot="sidebar-search-trigger-label" className="contents">
+				{children}
+			</span>
 			<span
 				aria-hidden
 				data-slot="sidebar-search-trigger-shortcut"
@@ -1990,7 +1997,12 @@ const SearchTrigger = ({
 				// The leading magnifier matches a nav row's leading icon, hover
 				// brightening included — without it the row's label lifts to
 				// `text-strong` while its icon stays muted, which no nav row does.
-				"[&>svg:first-child]:text-muted hover:[&>svg:first-child]:text-strong [&>svg:first-child]:size-5 [&>svg]:shrink-0",
+				// Why slot-scoped: the label span makes a consumer's icon a
+				// grandchild, so a bare `[&>svg]` matches nothing on the `button` path.
+				"[&>[data-slot=sidebar-search-trigger-label]>svg:first-child]:text-muted",
+				"hover:[&>[data-slot=sidebar-search-trigger-label]>svg:first-child]:text-strong",
+				"[&>[data-slot=sidebar-search-trigger-label]>svg:first-child]:size-5",
+				"[&_svg]:shrink-0",
 				className,
 			)}
 			{...props}
@@ -3170,6 +3182,7 @@ const Sidebar = {
 	 * | Data Attribute | Value | Description |
 	 * | --- | --- | --- |
 	 * | `data-slot` | `"sidebar-search-trigger"` | On the row element. |
+	 * | `data-slot` | `"sidebar-search-trigger-label"` | On the `<span>` wrapping `children` on the default `button` path. Absent under `asChild`, which renders no sibling. |
 	 * | `data-slot` | `"sidebar-search-trigger-shortcut"` | On the chord chips. Always present on the default `button` path, and `display: none` while it is empty. Absent under `asChild`, where the props union forbids `shortcut`. |
 	 *
 	 * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarsearchtrigger

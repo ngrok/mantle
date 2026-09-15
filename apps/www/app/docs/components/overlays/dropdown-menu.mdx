@@ -279,7 +279,7 @@ A menu item with a checkbox that can be controlled or uncontrolled.
 
 `children` render inside a `<span data-slot="dropdown-menu-checkbox-item-label">`. The check indicator is a permanent element sibling, so without the span a bare text label is never a lone child: a browser translation engine reparents that text node, and the removal React runs when the label changes shape or goes away throws. The span is `display: contents`, so an icon and its label stay flex items of the item and keep its `gap`. [Browser translation](/browser-translation) covers the mechanism and the rules your own components need.
 
-An icon you pass as a child is now a grandchild of the item, so a `[&>svg]` class of your own no longer reaches it. Write `[&_svg]` instead, or put the size class on the icon itself.
+An icon you pass as a child is now a grandchild of the item, so a `[&>svg]` class of your own no longer reaches it. Match the part's own variant instead: `[&>[data-slot=dropdown-menu-checkbox-item-label]>svg]:size-4`. A `[&_svg]` class or a class on the icon itself loses to the item's default, which carries one more attribute selector.
 
 All props from Radix [DropdownMenu.CheckboxItem](https://www.radix-ui.com/primitives/docs/components/dropdown-menu#checkboxitem), including:
 
@@ -311,7 +311,7 @@ A radio item where only one item in the group can be selected at a time.
 
 `children` render inside a `<span data-slot="dropdown-menu-radio-item-label">`. The check indicator is a permanent element sibling, so without the span a bare text label is never a lone child: a browser translation engine reparents that text node, and the removal React runs when the label changes shape or goes away throws. The span is `display: contents`, so an icon and its label stay flex items of the item and keep its `gap`. [Browser translation](/browser-translation) covers the mechanism and the rules your own components need.
 
-An icon you pass as a child is now a grandchild of the item, so a `[&>svg]` class of your own no longer reaches it. Write `[&_svg]` instead, or put the size class on the icon itself.
+An icon you pass as a child is now a grandchild of the item, so a `[&>svg]` class of your own no longer reaches it. Match the part's own variant instead: `[&>[data-slot=dropdown-menu-radio-item-label]>svg]:size-4`. A `[&_svg]` class or a class on the icon itself loses to the item's default, which carries one more attribute selector.
 
 All props from Radix [DropdownMenu.RadioItem](https://www.radix-ui.com/primitives/docs/components/dropdown-menu#radioitem), including:
 
@@ -363,7 +363,7 @@ A trigger for a dropdown menu sub-menu. It opens the submenu on hover, or on Arr
 
 `children` render inside a `<span data-slot="dropdown-menu-sub-trigger-label">`. The caret is a permanent element sibling, so without the span a bare text label is never a lone child: a browser translation engine reparents that text node, and the removal React runs when the label changes shape or goes away throws. The span is `display: contents`, so an icon and its label stay flex items of the item and keep its `gap`. [Browser translation](/browser-translation) covers the mechanism and the rules your own components need.
 
-An icon you pass as a child is now a grandchild of the item, so a `[&>svg]` class of your own no longer reaches it. Write `[&_svg]` instead, or put the size class on the icon itself.
+An icon you pass as a child is now a grandchild of the item, so a `[&>svg]` class of your own no longer reaches it. Match the part's own variant instead: `[&>[data-slot=dropdown-menu-sub-trigger-label]>svg]:size-4`. A `[&_svg]` class or a class on the icon itself loses to the item's default, which carries one more attribute selector.
 
 | Prop     | Type      | Default | Description                                                         |
 | :------- | :-------- | :------ | :------------------------------------------------------------------ |

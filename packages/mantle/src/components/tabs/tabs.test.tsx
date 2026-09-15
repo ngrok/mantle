@@ -374,5 +374,25 @@ describe("Tabs", () => {
 			expect(trigger.className).toContain("[&>svg]:size-4");
 			expect(trigger.className).toContain("[&>[data-slot=tabs-trigger-label]>svg]:size-5");
 		});
+
+		test("lets the matching slot-scoped override replace the default", () => {
+			// The migration the changeset recommends. Same variant prefix, so
+			// tailwind-merge drops the default instead of shipping both — which is
+			// what a `[&_svg]` override cannot do, because it also loses on
+			// specificity to the trigger's extra attribute selector.
+			render(
+				<Tabs.Root orientation="horizontal" defaultValue="a">
+					<Tabs.List>
+						<Tabs.Trigger value="a" className="[&>[data-slot=tabs-trigger-label]>svg]:size-4">
+							Tab A
+						</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>,
+			);
+
+			const trigger = screen.getByRole("tab");
+			expect(trigger.className).toContain("[&>[data-slot=tabs-trigger-label]>svg]:size-4");
+			expect(trigger.className).not.toContain("[&>[data-slot=tabs-trigger-label]>svg]:size-5");
+		});
 	});
 });
