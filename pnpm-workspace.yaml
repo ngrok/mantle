@@ -38,7 +38,7 @@ catalog:
   "@tsdown/css": "0.23.0"
   "@types/node": "24.13.3"
   "@vitest/browser-playwright": "5.0.0"
-  "happy-dom": "20.14.3"
+  "happy-dom": "20.14.5"
   "oxc-parser": "0.149.0"
   "oxc-transform-react": "0.149.0"
   "oxfmt": "0.67.0"
