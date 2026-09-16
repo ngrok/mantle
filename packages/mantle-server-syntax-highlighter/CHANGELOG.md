@@ -1,5 +1,13 @@
 # @ngrok/mantle-server-syntax-highlighter
 
+## 1.1.15
+
+### Patch Changes
+
+- [#1508](https://github.com/ngrok/mantle/pull/1508) [`fc71cca`](https://github.com/ngrok/mantle/commit/fc71cca330e3aae43efb3773a568a59e3025ef62) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Bump runtime dependencies: `oxc-parser` to 0.150.0.
+
+  `oxc-parser` computes the fold ranges for JS, TS, JSX, and TSX code blocks. Version 0.150.0 rejects more invalid syntax, such as `accessor` modifiers on methods, `readonly` on constructors, and return types on constructor overloads. A code block that already compiles with TypeScript folds the same way as before.
+
 ## 1.1.14
 
 ### Patch Changes
