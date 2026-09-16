@@ -62,7 +62,8 @@ const MAX_TIMEOUT_MS = 2_147_483_647;
 /**
  * Matches one `@import` statement whose specifier names mantle's `source-all.css`: the bare
  * `@ngrok/mantle/source-all.css`, or a path into the package's `dist`. A consumer's own file
- * of the same name does not match.
+ * of the same name does not match. Run it on {@link blankComments} output, never on raw CSS,
+ * so a commented-out import does not match.
  */
 const SOURCE_ALL_IMPORT_PATTERN =
 	/@import\s+(?:url\(\s*)?(["'])[^"'\n]*@ngrok\/mantle\/(?:dist\/)?source-all\.css\1\s*\)?[^;\n]*;/;
@@ -537,10 +538,80 @@ function planSourceGroups(
 }
 
 /**
+ * Returns the index after the CSS string that opens at `start`. A backslash escapes the next
+ * character. An unescaped newline or the end of `code` also closes the string.
+ */
+function endOfString(code: string, start: number): number {
+	const quote = code[start];
+	let index = start + 1;
+	while (index < code.length) {
+		const char = code[index];
+		if (char === "\\") {
+			index += 2;
+			continue;
+		}
+		if (char === quote || char === "\n") {
+			return index + 1;
+		}
+		index += 1;
+	}
+	return code.length;
+}
+
+/**
+ * Replaces every `/* … *\/` comment in `code` with spaces of the same length, so a match
+ * index on the result is a match index on `code`. A `/*` inside a string does not open a
+ * comment. An unterminated comment runs to the end.
+ *
+ * @example
+ * ```ts
+ * blankComments('a /* b *\/ "/*" c');
+ * // 'a         "/*" c'
+ * ```
+ */
+function blankComments(code: string): string {
+	let result = "";
+	let index = 0;
+	while (index < code.length) {
+		const char = code[index];
+		if (char === '"' || char === "'") {
+			const end = endOfString(code, index);
+			result += code.slice(index, end);
+			index = end;
+			continue;
+		}
+		if (char === "/" && code[index + 1] === "*") {
+			const close = code.indexOf("*/", index + 2);
+			const end = close === -1 ? code.length : close + 2;
+			result += " ".repeat(end - index);
+			index = end;
+			continue;
+		}
+		result += char;
+		index += 1;
+	}
+	return result;
+}
+
+/**
+ * Finds every `source-all.css` import in `code` that is not inside a comment. Each match's
+ * `index` and length address `code` itself.
+ *
+ * @example
+ * ```ts
+ * findSourceAllImports('/* @import "@ngrok/mantle/source-all.css"; *\/').length;
+ * // 0
+ * ```
+ */
+function findSourceAllImports(code: string): RegExpExecArray[] {
+	return [...blankComments(code).matchAll(new RegExp(SOURCE_ALL_IMPORT_PATTERN.source, "g"))];
+}
+
+/**
  * Replaces every `source-all.css` import in `code` with the `@source` directives for `groups`.
- * Returns null when `code` holds no such import. When `groups` is empty, it writes a comment
- * that says the bundle holds no mantle module. A neighbor whose name the scanner cannot take
- * as text stays in the scan.
+ * Returns null when `code` holds no such import outside a comment. When `groups` is empty, it
+ * writes a comment that says the bundle holds no mantle module. A neighbor whose name the
+ * scanner cannot take as text stays in the scan.
  *
  * @example
  * ```ts
@@ -561,7 +632,7 @@ function rewriteSourceAllImports(input: {
 	groups: readonly SourceGroup[];
 }): { code: string; map: ReturnType<MagicString["generateMap"]> } | null {
 	const { code, cssFile, groups } = input;
-	const matches = [...code.matchAll(new RegExp(SOURCE_ALL_IMPORT_PATTERN.source, "g"))];
+	const matches = findSourceAllImports(code);
 	if (matches.length === 0) {
 		return null;
 	}
@@ -786,7 +857,7 @@ function mantleSourcesPlugin(options: MantleSourcesPluginOptions = {}): Plugin {
 					return null;
 				}
 				const cssFile = fileOf(id);
-				if (cssFile == null || !SOURCE_ALL_IMPORT_PATTERN.test(code)) {
+				if (cssFile == null || findSourceAllImports(code).length === 0) {
 					return null;
 				}
 
@@ -922,6 +993,7 @@ function mantleSourcesPlugin(options: MantleSourcesPluginOptions = {}): Plugin {
 
 export {
 	//,
+	blankComments,
 	createClientGraph,
 	findMissing,
 	formatIdList,

@@ -14,6 +14,7 @@ import {
 } from "vite";
 import { afterAll, afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 import {
+	blankComments,
 	createClientGraph,
 	findMissing,
 	formatIdList,
@@ -324,7 +325,75 @@ describe("formatIdList", () => {
 	});
 });
 
+describe("blankComments", () => {
+	test("replaces each comment with spaces of the same length", () => {
+		expect(blankComments("a /* b */ c")).toBe("a         c");
+		expect(blankComments("a /* b */ c").length).toBe("a /* b */ c".length);
+	});
+
+	test("keeps a /* inside a string", () => {
+		const code = 'content: "/*"; /* x */ color: red;';
+		expect(blankComments(code)).toBe('content: "/*";         color: red;');
+	});
+
+	test("skips an escaped quote inside a string", () => {
+		const code = 'content: "a\\"b"; /* x */';
+		expect(blankComments(code)).toBe('content: "a\\"b";        ');
+	});
+
+	test("blanks an unterminated comment to the end", () => {
+		expect(blankComments("a /* b")).toBe("a     ");
+	});
+});
+
 describe("rewriteSourceAllImports", () => {
+	test("leaves an import inside a comment alone", () => {
+		const code = [
+			'@import "tailwindcss";',
+			'/* @import "@ngrok/mantle/source-all.css"; */',
+			"",
+		].join("\n");
+		expect(
+			rewriteSourceAllImports({
+				code,
+				cssFile: "/app/app.css",
+				groups: [{ directory: "/app/dist", excluded: [] }],
+			}),
+		).toBeNull();
+	});
+
+	test("rewrites the import outside a comment and keeps the commented one verbatim", () => {
+		const code = [
+			'/* @import "@ngrok/mantle/source-all.css"; */',
+			'@import "@ngrok/mantle/source-all.css";',
+			"",
+		].join("\n");
+		const result = rewriteSourceAllImports({
+			code,
+			cssFile: "/app/app.css",
+			groups: [{ directory: "/app/dist", excluded: [] }],
+		});
+		expect(result?.code).toBe(
+			['/* @import "@ngrok/mantle/source-all.css"; */', '@source "./dist";', ""].join("\n"),
+		);
+	});
+
+	test("does not let a /* inside a string hide the import", () => {
+		const code = [
+			'.a::before { content: "/*"; }',
+			'@import "@ngrok/mantle/source-all.css";',
+			"",
+		].join("\n");
+		const result = rewriteSourceAllImports({
+			code,
+			cssFile: "/app/app.css",
+			groups: [{ directory: "/app/dist", excluded: [] }],
+		});
+		expect(result?.code).toBe(
+			['.a::before { content: "/*"; }', '@source "./dist";', ""].join("\n"),
+		);
+	});
+
 	test("replaces the import with the directory and one negation per excluded entry", () => {
 		const result = rewriteSourceAllImports({
 			code: appCss,
@@ -910,6 +979,28 @@ describe("mantleSourcesPlugin graph shapes", () => {
 		expect(result.logs.info).toContain(
 			"mantle sources: 0 @ngrok/mantle files listed for src/app.css",
 		);
+	});
+
+	test("treats a commented-out import as no import", async () => {
+		const commented = appCss.replace(
+			'@import "@ngrok/mantle/source-all.css";',
+			'/* @import "@ngrok/mantle/source-all.css"; */',
+		);
+		const root = await createFixture({
+			"index.html": indexHtml,
+			"src/app.css": commented,
+			"src/main.ts":
+				'import { Badge } from "@ngrok/mantle/badge";\nimport "./app.css";\nconsole.log(Badge);',
+		});
+		const capture = captureCss();
+		const result = await buildFixture(root, [mantleSourcesPlugin(), capture.plugin]);
+		expect(seenIn(capture.seen, path.join(root, "src/app.css"))).toBe(commented);
+		expect(result.logs.warn).toContainEqual(
+			expect.stringContaining(
+				'no CSS module that Vite processes holds the `@import "@ngrok/mantle/source-all.css";` line, so the plugin changed nothing',
+			),
+		);
+		expect(result.logs.info).not.toContainEqual(expect.stringMatching(/files listed for/));
 	});
 
 	test("warns when mantle is in the bundle and no CSS imports source-all.css", async () => {
