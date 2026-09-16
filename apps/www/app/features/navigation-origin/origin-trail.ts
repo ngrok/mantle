@@ -68,7 +68,7 @@ const MAX_ORIGIN_DEPTH = 3;
  * @example
  * ```ts
  * readOriginTrail(useLocation().state);
- * // [{ kind: "endpoint", id: "ep_1", to: "/endpoints/ep_1", ancestors: [{ label: "Endpoints", to: "/endpoints" }] }]
+ * // [{ kind: "endpoint", id: "ep_1", to: "/endpoints/cloud/ep_1", ancestors: [{ label: "Endpoints", to: "/endpoints" }] }]
  * ```
  */
 function readOriginTrail(state: unknown): ReadonlyArray<OriginEntry> {
@@ -94,7 +94,7 @@ function readOriginTrail(state: unknown): ReadonlyArray<OriginEntry> {
  * @example
  * ```ts
  * pushOrigin([], endpoint, "/domains/rd_1"); // [endpoint]
- * pushOrigin([endpoint], domain, "/endpoints/ep_1"); // []: back to where the trail started
+ * pushOrigin([endpoint], domain, "/endpoints/cloud/ep_1"); // []: back to where the trail started
  * ```
  */
 function pushOrigin(
@@ -182,8 +182,8 @@ function hasOrigin<TMatch extends OriginMatch>(
  * @example
  * ```ts
  * findSelfOrigin(useMatches());
- * // on /endpoints/ep_1/traffic-policy:
- * // { kind: "endpoint", id: "ep_1", to: "/endpoints/ep_1", ancestors: [{ label: "Endpoints", to: "/endpoints" }] }
+ * // on /endpoints/cloud/ep_1/traffic-policy:
+ * // { kind: "endpoint", id: "ep_1", to: "/endpoints/cloud/ep_1", ancestors: [{ label: "Endpoints", to: "/endpoints" }] }
  * ```
  */
 function findSelfOrigin<TMatch extends OriginMatch>(

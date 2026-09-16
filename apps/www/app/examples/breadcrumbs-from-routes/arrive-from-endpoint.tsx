@@ -26,7 +26,7 @@ export default function ArriveFromEndpoint({ params }: Route.ComponentProps) {
 					{
 						kind: "endpoint",
 						id: endpoint.id,
-						to: demoPaths.endpoint(endpoint.id),
+						to: demoPaths.endpoint(endpoint.type, endpoint.id),
 						ancestors: [{ label: "Endpoints", to: demoPaths.endpoints }],
 					},
 				],

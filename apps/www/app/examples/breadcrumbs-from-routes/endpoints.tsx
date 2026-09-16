@@ -21,7 +21,7 @@ export default function EndpointsList() {
 						meta={endpoint.id}
 						title={
 							<Anchor asChild>
-								<Link to={demoPaths.endpoint(endpoint.id)}>{endpoint.url}</Link>
+								<Link to={demoPaths.endpoint(endpoint.type, endpoint.id)}>{endpoint.url}</Link>
 							</Anchor>
 						}
 					/>

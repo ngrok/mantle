@@ -87,7 +87,6 @@ export function PreviewFrame({ src, title, className }: PreviewFrameProps) {
 	const iframeRef = useRef<HTMLIFrameElement>(null);
 	// null until the framed document reports; a fresh document has nowhere to go
 	const [history, setHistory] = useState<PreviewHistoryMessage | null>(null);
-	const previewHref = src;
 
 	useEffect(() => {
 		function onMessage(event: MessageEvent) {
@@ -182,7 +181,7 @@ export function PreviewFrame({ src, title, className }: PreviewFrameProps) {
 						label={`Open the ${title} preview in a new tab`}
 						icon={<ArrowSquareOutIcon />}
 					>
-						<a href={previewHref} target="_blank" rel="noreferrer" />
+						<a href={src} target="_blank" rel="noreferrer" />
 					</IconButton>
 				</div>
 			</div>
@@ -203,7 +202,7 @@ export function PreviewFrame({ src, title, className }: PreviewFrameProps) {
 					<iframe
 						key={reloadCount}
 						ref={iframeRef}
-						src={previewHref}
+						src={src}
 						title={`Preview of the ${title}`}
 						loading="lazy"
 						className="bg-card size-full"

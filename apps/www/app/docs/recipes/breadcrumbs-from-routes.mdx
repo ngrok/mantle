@@ -29,10 +29,14 @@ becomes the current page, and its ancestors become links:
 route("preview/breadcrumbs-from-routes", "./examples/breadcrumbs-from-routes/shell.tsx", [
 	index("./examples/breadcrumbs-from-routes/home.tsx"),
 	route("endpoints", "./examples/breadcrumbs-from-routes/endpoints.tsx"),
-	// the detail is a sibling of its list, the dashboard's real shape
-	route("endpoints/:endpointId", "./examples/breadcrumbs-from-routes/endpoint.tsx", [
-		index("./examples/breadcrumbs-from-routes/endpoint-overview.tsx"),
+	// the detail is a sibling of its list, the dashboard's real shape; its
+	// bare URL redirects to the Overview tab
+	route("endpoints/:endpointType/:endpointId", "./examples/breadcrumbs-from-routes/endpoint.tsx", [
+		index("./examples/breadcrumbs-from-routes/endpoint-index.tsx"),
+		route("overview", "./examples/breadcrumbs-from-routes/endpoint-overview.tsx"),
+		route("traffic", "./examples/breadcrumbs-from-routes/endpoint-traffic.tsx"),
 		route("traffic-policy", "./examples/breadcrumbs-from-routes/endpoint-traffic-policy.tsx"),
+		route("settings", "./examples/breadcrumbs-from-routes/endpoint-settings.tsx"),
 	]),
 	// a hub: URL siblings share chrome through a pathless layout
 	layout("./examples/breadcrumbs-from-routes/domains-hub.tsx", [
@@ -41,16 +45,19 @@ route("preview/breadcrumbs-from-routes", "./examples/breadcrumbs-from-routes/she
 	]),
 	// a full-page detail stays out from under the hub's tabs
 	route("domains/:domainId", "./examples/breadcrumbs-from-routes/domain.tsx"),
-	route("apps", "./examples/breadcrumbs-from-routes/apps.tsx"),
-	route("apps/:appId", "./examples/breadcrumbs-from-routes/app.tsx"),
-	// settings: a gate layout that contributes nothing, then one pathless
-	// section layout per group that contributes its label
-	layout("./examples/breadcrumbs-from-routes/settings-gate.tsx", [
-		layout("./examples/breadcrumbs-from-routes/settings-account.tsx", [
+	route("vaults", "./examples/breadcrumbs-from-routes/vaults.tsx"),
+	// a resource shell: the vault is an ancestor of its secret's page, so its
+	// crumb is query-backed
+	route("vaults/:vaultId", "./examples/breadcrumbs-from-routes/vault.tsx", [
+		index("./examples/breadcrumbs-from-routes/vault-secrets.tsx"),
+		route("secrets/:secretId", "./examples/breadcrumbs-from-routes/secret.tsx"),
+	]),
+	// settings: a pathless shell that contributes the `Settings` label, then a
+	// gate layout that contributes nothing; the pages keep flat URLs
+	layout("./examples/breadcrumbs-from-routes/settings-shell.tsx", [
+		layout("./examples/breadcrumbs-from-routes/settings-gate.tsx", [
 			route("settings/general", "./examples/breadcrumbs-from-routes/settings-general.tsx"),
 			route("billing", "./examples/breadcrumbs-from-routes/billing.tsx"),
-		]),
-		layout("./examples/breadcrumbs-from-routes/settings-identity-access.tsx", [
 			route("team-members", "./examples/breadcrumbs-from-routes/team-members.tsx"),
 		]),
 	]),
@@ -170,7 +177,7 @@ crumb _is_ that route. The endpoint's crumb below is its id from the URL, so it 
 byte; the heading, which needs a fetch, is not:
 
 <PreviewFrame
-	src="/preview/breadcrumbs-from-routes/endpoints/ep_3Exgo"
+	src="/preview/breadcrumbs-from-routes/endpoints/cloud/ep_3Exgo/overview"
 	title="URL-derived label demo"
 	className="mb-6 h-112"
 />
@@ -196,9 +203,9 @@ export const handle = {
 > `UIMatch<YourLoaderData>` as `BreadcrumbHandle`'s match type is what gives you a checked `loaderData`
 > instead of `unknown`.
 
-**4. Backed by a query.** Some names only exist in fetched data: `Apps > my-app > Settings`, where
-`my-app` is a resource name the URL does not carry and no loader fetched. Contribute a **content crumb**: a
-component that renders the whole segment itself and holds the row's shape with
+**4. Backed by a query.** Some names only exist in fetched data: `Vaults & Secrets > production > sec_4Kd9w`,
+where `production` is a vault's name that the secret's URL does not carry and no loader fetched. Contribute
+a **content crumb**: a component that renders the whole segment itself and holds the row's shape with
 [`Breadcrumb.Skeleton`](/components/navigation/breadcrumb#breadcrumbskeleton) while its query is pending.
 
 A content crumb must render a host element at its root, never bare text. `Breadcrumb.List` renders an `<ol>`,
@@ -208,46 +215,58 @@ blank. Every shape below returns a `Breadcrumb.Item` or a `Fragment` of them.
 [Browser translation](/browser-translation) covers the mechanism.
 
 ```tsx
-// app/routes/apps/$appId.settings.tsx
+// app/routes/vaults/$vaultId.tsx: the vault's shell, over its index and its secrets' pages
 import { routeBreadcrumb, type BreadcrumbHandle } from "@ngrok/mantle/breadcrumb";
-import type { UIMatch } from "react-router";
-import { AppSettingsTrail } from "~/features/apps/app-settings-trail";
+import { href, type UIMatch } from "react-router";
+import { VaultCrumb } from "~/features/vaults/vault-crumb";
 
 export const handle = {
-	breadcrumb: (match) => [routeBreadcrumb.content(<AppSettingsTrail appId={match.params.appId} />)],
+	breadcrumb: (match) => [
+		routeBreadcrumb("Vaults & Secrets", { to: href("/vaults") }),
+		routeBreadcrumb.content(<VaultCrumb vaultId={match.params.vaultId} />),
+	],
 } satisfies BreadcrumbHandle<UIMatch>;
 ```
 
 ```tsx
-// app/features/apps/app-settings-trail.tsx
+// app/features/vaults/vault-crumb.tsx
 import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
-import { Link } from "react-router";
-import { useApp } from "./queries";
+import { href, Link, useParams } from "react-router";
+import { useVault } from "./queries";
 
 /**
- * The app's trail segment. It calls the same query hook as the app's pages, so
- * the crumb and the page share one cache entry and the crumb adds no request.
+ * The vault's trail segment. It calls the same query hook as the vault's
+ * shell, so the crumb and the heading share one cache entry and the crumb
+ * adds no request. On the vault's own page it is the leaf; on a secret's
+ * page it links back to the vault.
  */
-export function AppSettingsTrail({ appId }: { appId: string | undefined }) {
-	const appQuery = useApp(appId);
+export function VaultCrumb({ vaultId }: { vaultId: string | undefined }) {
+	const vaultQuery = useVault(vaultId ?? "");
+	// a secret's page is the only route below the vault, so its param says
+	// whether the vault is the current page or an ancestor
+	const { secretId } = useParams();
 
-	if (appQuery.isPending) {
-		// a stable best-guess width for the two crumbs the segment resolves to
-		return <Breadcrumb.Skeleton className="w-40" />;
+	if (vaultQuery.isPending) {
+		// a stable best-guess width for the name the segment resolves to
+		return <Breadcrumb.Skeleton className="w-24" />;
+	}
+
+	const label = vaultQuery.data?.name ?? vaultId;
+
+	if (secretId == null || vaultId == null) {
+		return (
+			<Breadcrumb.Item>
+				<Breadcrumb.Page>{label}</Breadcrumb.Page>
+			</Breadcrumb.Item>
+		);
 	}
 
 	return (
-		<>
-			<Breadcrumb.Item>
-				<Breadcrumb.Link asChild>
-					<Link to={`/apps/${appId}`}>{appQuery.data?.name ?? appId}</Link>
-				</Breadcrumb.Link>
-			</Breadcrumb.Item>
-			<Breadcrumb.Separator />
-			<Breadcrumb.Item>
-				<Breadcrumb.Page>Settings</Breadcrumb.Page>
-			</Breadcrumb.Item>
-		</>
+		<Breadcrumb.Item>
+			<Breadcrumb.Link asChild>
+				<Link to={href("/vaults/:vaultId", { vaultId })}>{label}</Link>
+			</Breadcrumb.Link>
+		</Breadcrumb.Item>
 	);
 }
 ```
@@ -260,14 +279,16 @@ Three rules keep the pending trail honest:
 - **Size the skeleton to the resolved trail.** Pass a `w-*` utility that approximates the segment the
   skeleton stands in for, so the row keeps its width on resolve instead of reflowing the shell header.
 - **The segment owns link vs current page.** The trail builder cannot see inside a content node, so the
-  deepest-crumb-becomes-`Breadcrumb.Page` rule stops at its boundary: the component renders
-  `Breadcrumb.Page` on its own last item.
+  deepest-crumb-becomes-`Breadcrumb.Page` rule stops at its boundary: the component decides, and renders
+  `Breadcrumb.Page` when it is the leaf. A segment that is never the leaf, such as a resource name above
+  a fixed child label, always renders a link; a segment that may be either reads the route it is under,
+  as `VaultCrumb` does.
 
-Open an app below. Its list did not fetch the app, so the crumb holds the row's shape with a skeleton until
-the name arrives; go back and open it again, and the warm cache makes the name instant:
+Open a vault below. Its list did not fetch the vault, so the crumb holds the row's shape with a skeleton
+until the name arrives; open a secret, and the same segment becomes a link over the secret's id:
 
 <PreviewFrame
-	src="/preview/breadcrumbs-from-routes/apps"
+	src="/preview/breadcrumbs-from-routes/vaults"
 	title="Query-backed crumb demo"
 	className="mb-6 h-112"
 />
@@ -295,50 +316,52 @@ https://forward-labels.test     ← the page's h1, where the name belongs
 ```
 
 Reach for a content crumb when the trail genuinely needs the fetched name: a deep shell where the
-resource is an ancestor of the current page, not the page itself (`Apps > my-app > Settings`).
+resource is an ancestor of the current page, not the page itself (`Vaults & Secrets > production > sec_4Kd9w`).
+The demo's vault shows its name on its own page too, so the segment reads the same on both pages; the
+endpoint shows its id, and its `<h1>` owns the URL. Either is a fine design, and the two demos show both.
 
 ## The prefix crumb
 
-Some levels are sections, not destinations. ngrok's dashboard groups its settings pages into sections
-(`Account`, `Identity & Access`) that have no landing page of their own: `/settings` only redirects to
-`/settings/general`, and a link to a section would bounce the user back to the page they are already
-on. The crumb still belongs in the trail; the link does not.
+Some levels are sections, not destinations. ngrok's dashboard puts its settings pages under a `Settings`
+shell that has no landing page of its own: `/settings` only redirects to `/settings/general`, and a link
+to it would bounce the user back to the page they are already on. The crumb still belongs in the trail;
+the link does not.
 
 Give the **layout route** that owns the section a `routeBreadcrumb.label` crumb. That layout is
-**pathless**: the section's pages keep the URLs they have (`/settings/general`, `/billing`), and the
-route tree, not the URL, puts them under the section.
+**pathless**: the section's pages keep the URLs they have (`/settings/general`, `/billing`,
+`/team-members`), and the route tree, not the URL, puts them under the section.
 
 ```tsx
-// app/routes/layouts/settings-account.tsx (pathless: no path, no loader, an Outlet)
+// app/routes/layouts/settings.tsx (pathless: no path, no loader, an Outlet)
 import { routeBreadcrumb, type BreadcrumbHandle } from "@ngrok/mantle/breadcrumb";
 import { Outlet } from "react-router";
 
 export const handle = {
-	breadcrumb: () => [routeBreadcrumb.label("Account")],
+	breadcrumb: () => [routeBreadcrumb.label("Settings")],
 } satisfies BreadcrumbHandle;
 
-export default function SettingsAccountSection() {
+export default function SettingsShell() {
 	return <Outlet />;
 }
 ```
 
 ```ts
-// app/routes.ts: the section layouts wrap the pages; the URLs do not change
-layout("routes/layouts/settings-account.tsx", [
-	route("settings/general", "routes/settings/general.tsx"),
-	route("billing", "routes/billing.tsx"),
-]),
-layout("routes/layouts/settings-identity-access.tsx", [
-	route("team-members", "routes/team-members.tsx"),
+// app/routes.ts: the shell wraps the pages, and an access gate under it contributes nothing
+layout("routes/layouts/settings.tsx", [
+	layout("routes/layouts/settings-gate.tsx", [
+		route("settings/general", "routes/settings/general.tsx"),
+		route("billing", "routes/billing.tsx"),
+		route("team-members", "routes/team-members.tsx"),
+	]),
 ]),
 ```
 
 The renderer draws it as a
 [`Breadcrumb.Label`](/components/navigation/breadcrumb#the-prefix-crumb): muted text with no `href` and
 no `aria-current`, still counted as a step in the `<ol>`. Every child route contributes its own crumb
-under it, so `/settings/general` renders `Account > General` and `/team-members` renders
-`Identity & Access > Team Members` with no per-page wiring. A page that moves sections moves in the
-route tree, and its own handle does not change. The demo's Settings group is this shape:
+under it, so `/settings/general` renders `Settings > General` and `/team-members` renders
+`Settings > Team Members` with no per-page wiring. A page that moves into or out of the shell moves in
+the route tree, and its own handle does not change. The demo's Settings group is this shape:
 
 <PreviewFrame
 	src="/preview/breadcrumbs-from-routes/team-members"
@@ -512,11 +535,12 @@ Everything here runs on the server unchanged, which is the point of deriving rat
 A label that depends on other client-only state (`localStorage`, `window.matchMedia`) has no place in the
 trail at all: move the data into the loader or drop the crumb.
 
-Reload the frame below with its toolbar button. The `Apps` crumb and the skeleton are in the HTML the server
-sends; the name fills in when the query resolves, and the row never changes shape:
+Reload the frame below with its toolbar button. The `Vaults & Secrets` crumb, the skeleton, and the
+secret's id are in the HTML the server sends; the vault's name fills in when the query resolves, and the
+row never changes shape:
 
 <PreviewFrame
-	src="/preview/breadcrumbs-from-routes/apps/app_123"
+	src="/preview/breadcrumbs-from-routes/vaults/vlt_9Xk2p/secrets/sec_4Kd9w"
 	title="Server-rendered trail demo"
 	className="mb-6 h-112"
 />
@@ -563,8 +587,8 @@ rules that hold up:
   [settings section](#the-prefix-crumb), a [hub](#hubs-over-url-siblings)) contributes a prefix even
   though it owns no URL. The trail reads the route tree, and the tree is where the grouping lives.
 - **Omit a level that another affordance already owns.** If a detail page renders a tab row
-  (`Overview` / `Traffic Policy`), those tabs _are_ routes, but giving them crumbs prints the same label
-  twice, once as the trail's leaf and once as the selected tab. Let the trail end at the resource and let
+  (`Overview`, `Traffic`, `Traffic Policy`, `Settings`), those tabs _are_ routes, but giving them crumbs
+  prints the same label twice, once as the trail's leaf and once as the selected tab. Let the trail end at the resource and let
   the tabs own the level below it. The exception is a tab that is a **destination of its own**, with its
   own top-level URL and a former sidebar row: a hub member. Its crumb is the page's name and the hub is its
   parent; [Hubs](#hubs-over-url-siblings) explains why the two tab rows differ.
@@ -577,7 +601,7 @@ The endpoint's tabs below are child routes with no `handle`, so the trail ends a
 tab row names the view. Open the braces toggle: the tab's match is there, with no `handle`:
 
 <PreviewFrame
-	src="/preview/breadcrumbs-from-routes/endpoints/ep_3Exgo/traffic-policy"
+	src="/preview/breadcrumbs-from-routes/endpoints/cloud/ep_3Exgo/traffic-policy"
 	title="Tabs own the level demo"
 	className="mb-6 h-112"
 />
@@ -590,11 +614,10 @@ a detail page frequently needs to escape its list page's layout:
 
 ```ts
 // a real shape, from ngrok's dashboard route config
-route("endpoints", "routes/endpoints/_index.tsx", [
-	route("new", "routes/endpoints/new.tsx"),
-]),
+route("endpoints", "routes/endpoints/_index.tsx"),
 // detail breaks out of the endpoints list layout
 route("endpoints/:endpointType/:endpointId", "routes/endpoints/$endpointType.$endpointId.tsx", [
+	route("overview", "…"),
 	route("traffic-policy", "…"),
 ]),
 ```
@@ -647,7 +670,7 @@ thing that catches a trail quietly losing its ancestor when someone reorganises 
 
 A hub is one page header, one tab row, and two or more top-level URLs behind it: `Domains`, with
 `Domains` and `TLS Certificates` tabs at `/domains` and `/tls-certs`. The URLs stay flat (bookmarks, docs
-links, and the gateway's routing table all see them), so the members cannot nest in the route tree. The
+links, and redirects from older pages all see them), so the members cannot nest in the route tree. The
 only thing that can share chrome across URL siblings is a **pathless layout**:
 
 ```ts
@@ -789,7 +812,7 @@ hand, which is the fragile state machine [the provider section](#why-not-a-conte
 about. The state stores **references, never resource labels**: `{ kind, id, to, ancestors }`. A hop's
 label resolves at render time the way a [content crumb](#choosing-a-label) does, so a renamed resource
 never shows a stale name. The ancestors are the static section crumbs above the page (`Endpoints`,
-`Account`), captured when the page is pushed, so the root of the stack keeps its section; only the oldest
+`Settings`), captured when the page is pushed, so the root of the stack keeps its section; only the oldest
 entry's ancestors render.
 
 ### Identity: the route declares who it is
@@ -800,7 +823,7 @@ is cumulative and stops at that route, so a tab under the detail route still res
 root, and the resource's own tabs never enter the trail.
 
 ```tsx
-// app/routes/endpoints/$endpointId.tsx
+// app/routes/endpoints/$endpointType.$endpointId.tsx
 import { routeBreadcrumb, type BreadcrumbHandle } from "@ngrok/mantle/breadcrumb";
 import { href, type UIMatch } from "react-router";
 import type { OriginHandle } from "~/features/navigation-origin/origin-trail";
@@ -910,7 +933,7 @@ const MAX_ORIGIN_DEPTH = 3;
  * @example
  * ```ts
  * readOriginTrail(useLocation().state);
- * // [{ kind: "endpoint", id: "ep_1", to: "/endpoints/ep_1", ancestors: [{ label: "Endpoints", to: "/endpoints" }] }]
+ * // [{ kind: "endpoint", id: "ep_1", to: "/endpoints/cloud/ep_1", ancestors: [{ label: "Endpoints", to: "/endpoints" }] }]
  * ```
  */
 function readOriginTrail(state: unknown): ReadonlyArray<OriginEntry> {
@@ -936,7 +959,7 @@ function readOriginTrail(state: unknown): ReadonlyArray<OriginEntry> {
  * @example
  * ```ts
  * pushOrigin([], endpoint, "/domains/rd_1"); // [endpoint]
- * pushOrigin([endpoint], domain, "/endpoints/ep_1"); // []: back to where the trail started
+ * pushOrigin([endpoint], domain, "/endpoints/cloud/ep_1"); // []: back to where the trail started
  * ```
  */
 function pushOrigin(
@@ -1024,8 +1047,8 @@ function hasOrigin<TMatch extends OriginMatch>(
  * @example
  * ```ts
  * findSelfOrigin(useMatches());
- * // on /endpoints/ep_1/traffic-policy:
- * // { kind: "endpoint", id: "ep_1", to: "/endpoints/ep_1", ancestors: [{ label: "Endpoints", to: "/endpoints" }] }
+ * // on /endpoints/cloud/ep_1/traffic-policy:
+ * // { kind: "endpoint", id: "ep_1", to: "/endpoints/cloud/ep_1", ancestors: [{ label: "Endpoints", to: "/endpoints" }] }
  * ```
  */
 function findSelfOrigin<TMatch extends OriginMatch>(
@@ -1242,6 +1265,15 @@ export {
 - **In-resource links must forward the state, or the trail drops on the first tab click.** The demo's
   tab component passes `state={location.state}` on every tab. Keep a resource's own links in one
   component per resource, so the forwarding lives in one place.
+- **A resource root that redirects must forward the state too.** An origin crumb links to the resource
+  root, because that is the `to` the entry stores. The endpoint's bare URL redirects to its Overview
+  tab, and a `Navigate` with no `state` there drops the trail the reader is following back. The demo's
+  `endpoint-index.tsx` passes `state={location.state}`; a `loader` redirect cannot, so keep this
+  redirect in the component.
+- **A link between resources targets the resource root, never a tab.** `pushOrigin` pops the trail
+  when the target's pathname equals an entry's `to`. A link to `/endpoints/cloud/ep_1/overview` never
+  equals the stored `/endpoints/cloud/ep_1`, so it appends instead of popping, and two pages that link
+  each other grow the trail.
 - **A label component calls the resource page's own query hook.** The referring page was just open, so
   the query is warm and the name resolves on the first client render. A reload starts cold and shows
   `Breadcrumb.Skeleton`. In the demo, open an endpoint, follow its domain link, then reload the frame to
@@ -1354,13 +1386,13 @@ describe("Breadcrumbs", () => {
 			<MemoryRouter>
 				<Breadcrumbs
 					crumbs={[
-						{ kind: "link", key: "apps:0", label: "Apps", to: "/apps" },
+						{ kind: "link", key: "vaults:0", label: "Vaults & Secrets", to: "/vaults" },
 						{
 							kind: "content",
-							key: "app:0",
+							key: "vault:0",
 							content: (
 								<Breadcrumb.Item>
-									<Breadcrumb.Page>my-app</Breadcrumb.Page>
+									<Breadcrumb.Page>production</Breadcrumb.Page>
 								</Breadcrumb.Item>
 							),
 						},
@@ -1369,12 +1401,14 @@ describe("Breadcrumbs", () => {
 			</MemoryRouter>,
 		);
 
-		expect(screen.getByText("my-app").getAttribute("aria-current")).toBe("page");
+		expect(screen.getByText("production").getAttribute("aria-current")).toBe("page");
 		expect(container.querySelectorAll('[data-slot="breadcrumb-separator"]')).toHaveLength(1);
 		// The crumb's own node is a direct child of the `<ol>`, so it has to be a
 		// host element. A bare string there is a text node React removes by itself,
 		// which throws once a translation engine has reparented it.
-		expect(screen.getByText("my-app").closest("li")?.parentElement).toBe(screen.getByRole("list"));
+		expect(screen.getByText("production").closest("li")?.parentElement).toBe(
+			screen.getByRole("list"),
+		);
 	});
 
 	it("renders a pending content crumb as the skeleton placeholder", () => {
@@ -1384,7 +1418,7 @@ describe("Breadcrumbs", () => {
 					crumbs={[
 						{
 							kind: "content",
-							key: "app:0",
+							key: "vault:0",
 							content: <Breadcrumb.Skeleton className="w-40" />,
 						},
 					]}
@@ -1408,14 +1442,14 @@ describe("RouteBreadcrumbs (through a real router)", () => {
 				Component: () => <RouteBreadcrumbs />,
 				children: [
 					{
-						path: ":endpointId",
+						path: ":endpointType/:endpointId",
 						handle: { breadcrumb: (m: UIMatch) => [routeBreadcrumb(m.params.endpointId)] },
 					},
 				],
 			},
 		]);
 
-		render(<Stub initialEntries={["/endpoints/ep_1"]} />);
+		render(<Stub initialEntries={["/endpoints/cloud/ep_1"]} />);
 
 		expect(screen.getByRole("link", { name: "Endpoints" }).getAttribute("href")).toBe("/endpoints");
 		expect(screen.getByText("ep_1").getAttribute("aria-current")).toBe("page");
@@ -1444,12 +1478,12 @@ describe("RouteBreadcrumbs (through a real router)", () => {
 	it("renders a route's content crumb", () => {
 		const Stub = createRoutesStub([
 			{
-				path: "/apps/:appId",
+				path: "/vaults/:vaultId",
 				handle: {
 					breadcrumb: () => [
 						routeBreadcrumb.content(
 							<Breadcrumb.Item>
-								<Breadcrumb.Page>my-app</Breadcrumb.Page>
+								<Breadcrumb.Page>production</Breadcrumb.Page>
 							</Breadcrumb.Item>,
 						),
 					],
@@ -1458,9 +1492,9 @@ describe("RouteBreadcrumbs (through a real router)", () => {
 			},
 		]);
 
-		render(<Stub initialEntries={["/apps/app_123"]} />);
+		render(<Stub initialEntries={["/vaults/vlt_9Xk2p"]} />);
 
-		expect(screen.getByText("my-app").getAttribute("aria-current")).toBe("page");
+		expect(screen.getByText("production").getAttribute("aria-current")).toBe("page");
 	});
 
 	it("loses the ancestor when the detail route is a sibling, not a child", () => {
@@ -1470,13 +1504,13 @@ describe("RouteBreadcrumbs (through a real router)", () => {
 		const Stub = createRoutesStub([
 			{ path: "/endpoints", handle: { breadcrumb: "Endpoints" } },
 			{
-				path: "/endpoints/:endpointId",
+				path: "/endpoints/:endpointType/:endpointId",
 				handle: { breadcrumb: (m: UIMatch) => [routeBreadcrumb(m.params.endpointId)] },
 				Component: () => <RouteBreadcrumbs />,
 			},
 		]);
 
-		render(<Stub initialEntries={["/endpoints/ep_1"]} />);
+		render(<Stub initialEntries={["/endpoints/cloud/ep_1"]} />);
 
 		expect(screen.queryByRole("link", { name: "Endpoints" })).toBeNull();
 		expect(screen.getByText("ep_1").getAttribute("aria-current")).toBe("page");

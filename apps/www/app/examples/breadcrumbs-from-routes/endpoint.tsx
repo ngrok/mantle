@@ -4,6 +4,7 @@ import { Skeleton } from "@ngrok/mantle/skeleton";
 import { Outlet, type UIMatch } from "react-router";
 import type { OriginHandle } from "~/features/navigation-origin/origin-trail";
 import type { Route } from "./+types/endpoint";
+import { isEndpointType } from "./fixtures";
 import { demoPaths } from "./paths";
 import { useEndpoint } from "./queries";
 import { RouteTabs } from "./route-tabs";
@@ -26,6 +27,12 @@ export const handle = {
 export default function EndpointDetail({ params }: Route.ComponentProps) {
 	const endpointQuery = useEndpoint(params.endpointId);
 
+	if (!isEndpointType(params.endpointType)) {
+		return <p className="text-muted p-6 text-sm">No endpoint type has this name.</p>;
+	}
+
+	const { endpointType, endpointId } = params;
+
 	return (
 		<div className="flex flex-col gap-6 p-6">
 			<div className="flex flex-col gap-1">
@@ -35,17 +42,31 @@ export default function EndpointDetail({ params }: Route.ComponentProps) {
 					<Skeleton className="h-8 w-80" />
 				)}
 				<code translate="no" className="text-muted text-xs">
-					{params.endpointId}
+					{endpointId}
 				</code>
 			</div>
 			<RouteTabs
 				aria-label="Endpoint sections"
 				tabs={[
-					{ value: "overview", label: "Overview", to: demoPaths.endpoint(params.endpointId) },
+					{
+						value: "overview",
+						label: "Overview",
+						to: demoPaths.endpointTab(endpointType, endpointId, "overview"),
+					},
+					{
+						value: "traffic",
+						label: "Traffic",
+						to: demoPaths.endpointTab(endpointType, endpointId, "traffic"),
+					},
 					{
 						value: "traffic-policy",
 						label: "Traffic Policy",
-						to: demoPaths.endpointTrafficPolicy(params.endpointId),
+						to: demoPaths.endpointTab(endpointType, endpointId, "traffic-policy"),
+					},
+					{
+						value: "settings",
+						label: "Settings",
+						to: demoPaths.endpointTab(endpointType, endpointId, "settings"),
 					},
 				]}
 			/>

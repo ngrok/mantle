@@ -33,7 +33,7 @@ describe("ArriveFromEndpoint", () => {
 				{
 					kind: "endpoint",
 					id: "ep_3Exgo",
-					to: demoPaths.endpoint("ep_3Exgo"),
+					to: demoPaths.endpoint("cloud", "ep_3Exgo"),
 					ancestors: [{ label: "Endpoints", to: demoPaths.endpoints }],
 				},
 			],

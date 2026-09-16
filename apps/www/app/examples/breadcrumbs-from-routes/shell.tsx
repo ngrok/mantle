@@ -3,11 +3,11 @@ import { Main } from "@ngrok/mantle/main";
 import { Sidebar } from "@ngrok/mantle/sidebar";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { CreditCardIcon } from "@phosphor-icons/react/CreditCard";
-import { CubeIcon } from "@phosphor-icons/react/Cube";
 import { GearIcon } from "@phosphor-icons/react/Gear";
-import { GlobeIcon } from "@phosphor-icons/react/Globe";
+import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
 import { GraphIcon } from "@phosphor-icons/react/Graph";
 import { UsersThreeIcon } from "@phosphor-icons/react/UsersThree";
+import { VaultIcon } from "@phosphor-icons/react/Vault";
 import type { ReactNode } from "react";
 import { Link, Outlet, useLocation } from "react-router";
 import { RouteBreadcrumbs } from "~/features/breadcrumbs/breadcrumbs";
@@ -23,41 +23,69 @@ type NavItem = {
 	currentFor: ReadonlyArray<string>;
 };
 
-const productItems: ReadonlyArray<NavItem> = [
-	{
-		label: "Endpoints",
-		icon: <GraphIcon />,
-		to: demoPaths.endpoints,
-		currentFor: [demoPaths.endpoints],
-	},
-	{
-		label: "Domains",
-		icon: <GlobeIcon />,
-		to: demoPaths.domains,
-		// one sidebar row for the hub: the absorbed TLS Certificates row is gone
-		currentFor: [demoPaths.domains, demoPaths.tlsCerts],
-	},
-	{ label: "Apps", icon: <CubeIcon />, to: demoPaths.apps, currentFor: [demoPaths.apps] },
-];
+type NavGroupItems = {
+	label: string;
+	items: ReadonlyArray<NavItem>;
+};
 
-const settingsItems: ReadonlyArray<NavItem> = [
+/** The demo's sidebar: the dashboard's groups, reduced to the rows the demo has pages for. */
+const navGroups: ReadonlyArray<NavGroupItems> = [
 	{
-		label: "General",
-		icon: <GearIcon />,
-		to: demoPaths.settingsGeneral,
-		currentFor: [demoPaths.settingsGeneral],
+		label: "Connectivity",
+		items: [
+			{
+				label: "Endpoints",
+				icon: <GraphIcon />,
+				to: demoPaths.endpoints,
+				currentFor: [demoPaths.endpoints],
+			},
+		],
 	},
 	{
-		label: "Billing",
-		icon: <CreditCardIcon />,
-		to: demoPaths.billing,
-		currentFor: [demoPaths.billing],
+		label: "Network",
+		items: [
+			{
+				label: "Domains",
+				icon: <GlobeHemisphereWestIcon />,
+				to: demoPaths.domains,
+				// one sidebar row for the hub: the absorbed TLS Certificates row is gone
+				currentFor: [demoPaths.domains, demoPaths.tlsCerts],
+			},
+		],
 	},
 	{
-		label: "Team Members",
-		icon: <UsersThreeIcon />,
-		to: demoPaths.teamMembers,
-		currentFor: [demoPaths.teamMembers],
+		label: "Resources",
+		items: [
+			{
+				label: "Vaults & Secrets",
+				icon: <VaultIcon />,
+				to: demoPaths.vaults,
+				currentFor: [demoPaths.vaults],
+			},
+		],
+	},
+	{
+		label: "Settings",
+		items: [
+			{
+				label: "General",
+				icon: <GearIcon />,
+				to: demoPaths.settingsGeneral,
+				currentFor: [demoPaths.settingsGeneral],
+			},
+			{
+				label: "Billing",
+				icon: <CreditCardIcon />,
+				to: demoPaths.billing,
+				currentFor: [demoPaths.billing],
+			},
+			{
+				label: "Team Members",
+				icon: <UsersThreeIcon />,
+				to: demoPaths.teamMembers,
+				currentFor: [demoPaths.teamMembers],
+			},
+		],
 	},
 ];
 
@@ -66,7 +94,7 @@ function isCurrent(pathname: string, item: NavItem): boolean {
 	return item.currentFor.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
 }
 
-function NavGroup({ label, items }: { label: string; items: ReadonlyArray<NavItem> }) {
+function NavGroup({ label, items }: NavGroupItems) {
 	const { pathname } = useLocation();
 
 	return (
@@ -111,8 +139,9 @@ export default function BreadcrumbsRecipeShell() {
 				<AppLayout.Workspace>
 					<Sidebar.Nav aria-label="Main">
 						<Sidebar.Body>
-							<NavGroup label="Connectivity" items={productItems} />
-							<NavGroup label="Settings" items={settingsItems} />
+							{navGroups.map((group) => (
+								<NavGroup key={group.label} label={group.label} items={group.items} />
+							))}
 						</Sidebar.Body>
 					</Sidebar.Nav>
 					<AppLayout.Content>

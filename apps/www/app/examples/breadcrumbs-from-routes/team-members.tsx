@@ -8,7 +8,7 @@ export default function TeamMembers() {
 		<div className="flex flex-col gap-6 p-6">
 			<PageHeader
 				title="Team Members"
-				description="Another section, another pathless layout: Identity & Access."
+				description="A third flat URL under the same Settings shell."
 			/>
 		</div>
 	);

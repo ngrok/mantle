@@ -8,7 +8,7 @@ export default function Billing() {
 		<div className="flex flex-col gap-6 p-6">
 			<PageHeader
 				title="Billing"
-				description="A top-level URL in the Account section. The route tree, not the URL, decides the trail."
+				description="A top-level URL under Settings. The route tree, not the URL, decides the trail."
 			/>
 		</div>
 	);

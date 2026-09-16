@@ -23,9 +23,9 @@ export const handle = {
 } satisfies BreadcrumbHandle<UIMatch> & OriginHandle<UIMatch>;
 
 /**
- * A domain's detail page. Each endpoint on it is an `OriginLink`, so a reader
- * who came from an endpoint and goes back to it pops the trail instead of
- * growing it.
+ * A domain's detail page. Each endpoint on it is an `OriginLink` to the
+ * endpoint's resource root, so a reader who came from an endpoint and goes
+ * back to it pops the trail instead of growing it.
  */
 export default function DomainDetail({ params }: Route.ComponentProps) {
 	const domainQuery = useDomain(params.domainId);
@@ -50,7 +50,9 @@ export default function DomainDetail({ params }: Route.ComponentProps) {
 						meta={endpoint.id}
 						title={
 							<Anchor asChild>
-								<OriginLink to={demoPaths.endpoint(endpoint.id)}>{endpoint.url}</OriginLink>
+								<OriginLink to={demoPaths.endpoint(endpoint.type, endpoint.id)}>
+									{endpoint.url}
+								</OriginLink>
 							</Anchor>
 						}
 					/>

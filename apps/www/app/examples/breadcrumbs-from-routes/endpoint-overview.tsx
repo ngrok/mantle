@@ -27,7 +27,7 @@ export default function EndpointOverview({ params }: Route.ComponentProps) {
 			<dt className="text-muted">Binding</dt>
 			<dd className="text-strong">public</dd>
 			<dt className="text-muted">Type</dt>
-			<dd className="text-strong">cloud</dd>
+			<dd className="text-strong">{endpoint.type}</dd>
 		</dl>
 	);
 }

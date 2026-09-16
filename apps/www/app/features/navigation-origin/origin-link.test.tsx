@@ -3,6 +3,7 @@ import { routeBreadcrumb } from "@ngrok/mantle/breadcrumb";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
+import { renderToString } from "react-dom/server";
 import { createRoutesStub, Link, type UIMatch, useLocation } from "react-router";
 import { afterEach, describe, expect, it } from "vitest";
 import type { DemoDomain, DemoEndpoint } from "~/examples/breadcrumbs-from-routes/fixtures";
@@ -164,6 +165,7 @@ describe("useOriginCrumbs", () => {
 		const queryClient = new QueryClient();
 		const warmEndpoint: DemoEndpoint = {
 			id: "ep_3Exgo",
+			type: "cloud",
 			url: "https://forward-labels.test",
 			domainId: "rd_2Kq9a",
 			trafficPolicy: "",
@@ -186,6 +188,7 @@ describe("useOriginCrumbs", () => {
 		const queryClient = new QueryClient();
 		const warmEndpoint: DemoEndpoint = {
 			id: "ep_3Exgo",
+			type: "cloud",
 			url: "https://forward-labels.test",
 			domainId: "rd_2Kq9a",
 			trafficPolicy: "",
@@ -223,6 +226,7 @@ describe("useOriginCrumbs", () => {
 		const queryClient = new QueryClient();
 		const warmEndpoint: DemoEndpoint = {
 			id: "ep_3Exgo",
+			type: "cloud",
 			url: "https://forward-labels.test",
 			domainId: "rd_2Kq9a",
 			trafficPolicy: "",
@@ -286,48 +290,48 @@ describe("useOriginCrumbs", () => {
 });
 
 describe("RouteBreadcrumbs with an origin", () => {
+	const Stub = createRoutesStub([
+		{
+			path: "/domains/:domainId",
+			// the domain page's own ancestor (`Domains`) is not where the reader was
+			handle: {
+				breadcrumb: (match: UIMatch) => [
+					routeBreadcrumb("Domains", { to: "/domains" }),
+					routeBreadcrumb(match.params.domainId),
+				],
+			},
+			Component: RouteBreadcrumbs,
+		},
+	]);
+
+	const arrivedFromEndpoint = {
+		pathname: "/domains/rd_2Kq9a",
+		state: {
+			origin: [
+				{
+					kind: "endpoint",
+					id: "ep_3Exgo",
+					to: "/endpoints/ep_3Exgo",
+					ancestors: [{ label: "Endpoints", to: "/endpoints" }],
+				},
+			],
+		},
+	};
+
 	it("reads as a stack: the origin's ancestors, the hop, then this page's leaf only", () => {
 		const queryClient = new QueryClient();
 		const warmEndpoint: DemoEndpoint = {
 			id: "ep_3Exgo",
+			type: "cloud",
 			url: "https://forward-labels.test",
 			domainId: "rd_2Kq9a",
 			trafficPolicy: "",
 		};
 		queryClient.setQueryData(endpointQueryOptions(warmEndpoint.id).queryKey, warmEndpoint);
-		const Stub = createRoutesStub([
-			{
-				path: "/domains/:domainId",
-				// the domain page's own ancestor (`Domains`) is not where the reader was
-				handle: {
-					breadcrumb: (match: UIMatch) => [
-						routeBreadcrumb("Domains", { to: "/domains" }),
-						routeBreadcrumb(match.params.domainId),
-					],
-				},
-				Component: RouteBreadcrumbs,
-			},
-		]);
 
 		render(
 			<QueryClientProvider client={queryClient}>
-				<Stub
-					initialEntries={[
-						{
-							pathname: "/domains/rd_2Kq9a",
-							state: {
-								origin: [
-									{
-										kind: "endpoint",
-										id: "ep_3Exgo",
-										to: "/endpoints/ep_3Exgo",
-										ancestors: [{ label: "Endpoints", to: "/endpoints" }],
-									},
-								],
-							},
-						},
-					]}
-				/>
+				<Stub initialEntries={[arrivedFromEndpoint]} />
 			</QueryClientProvider>,
 		);
 
@@ -339,5 +343,21 @@ describe("RouteBreadcrumbs with an origin", () => {
 		]);
 		expect(screen.queryByRole("link", { name: "Domains" })).toBeNull();
 		expect(screen.getByText("rd_2Kq9a").getAttribute("aria-current")).toBe("page");
+	});
+
+	it("renders the route trail alone on the server, where location.state does not exist", () => {
+		// The mount effect overwrites this branch, so only the server render can see it:
+		// drop the `useIsHydrated` gate in `useOriginCrumbs` and the origin crumbs land in
+		// the HTML, which the browser then mismatches on hydration.
+		const html = renderToString(
+			<QueryClientProvider client={new QueryClient()}>
+				<Stub initialEntries={[arrivedFromEndpoint]} />
+			</QueryClientProvider>,
+		);
+
+		expect(html).toContain('href="/domains"');
+		expect(html).toContain('aria-current="page"');
+		expect(html).not.toContain("Endpoints");
+		expect(html).not.toContain("Loading breadcrumbs");
 	});
 });

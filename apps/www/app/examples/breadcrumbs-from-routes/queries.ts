@@ -1,5 +1,5 @@
 import { queryOptions, useQuery } from "@tanstack/react-query";
-import { apps, domains, endpoints } from "./fixtures";
+import { domains, endpoints, vaults } from "./fixtures";
 
 /**
  * How long a demo "fetch" takes. Long enough to see a skeleton on a cold
@@ -37,11 +37,11 @@ function domainQueryOptions(id: string) {
 	});
 }
 
-/** The query for one app; see {@link endpointQueryOptions}. */
-function appQueryOptions(id: string) {
+/** The query for one vault; see {@link endpointQueryOptions}. */
+function vaultQueryOptions(id: string) {
 	return queryOptions({
-		queryKey: ["breadcrumbs-demo", "app", id],
-		queryFn: () => simulateFetch(apps.find((app) => app.id === id) ?? null),
+		queryKey: ["breadcrumbs-demo", "vault", id],
+		queryFn: () => simulateFetch(vaults.find((vault) => vault.id === id) ?? null),
 		staleTime: Infinity,
 	});
 }
@@ -73,24 +73,24 @@ function useDomain(id: string) {
 }
 
 /**
- * One app by id; see {@link useEndpoint}.
+ * One vault by id; see {@link useEndpoint}.
  *
  * @example
  * ```ts
- * useApp("app_123").data?.name; // "my-app" once loaded
+ * useVault("vlt_9Xk2p").data?.name; // "production" once loaded
  * ```
  */
-function useApp(id: string) {
-	return useQuery(appQueryOptions(id));
+function useVault(id: string) {
+	return useQuery(vaultQueryOptions(id));
 }
 
 export {
 	//,
-	appQueryOptions,
 	DEMO_LATENCY_MS,
 	domainQueryOptions,
 	endpointQueryOptions,
-	useApp,
 	useDomain,
 	useEndpoint,
+	useVault,
+	vaultQueryOptions,
 };

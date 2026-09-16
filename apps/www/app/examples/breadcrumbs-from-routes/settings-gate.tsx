@@ -4,9 +4,9 @@ import { Outlet } from "react-router";
 // URL and contributes nothing to the trail.
 
 /**
- * Stands in for the dashboard's account gate, which sends a personal account
- * away from account-only settings. It shows up in `useMatches()` and in the
- * debug popover with no `handle`.
+ * Stands in for an access gate: a pathless layout that checks who the reader
+ * is and sends them elsewhere when the pages below are not theirs. It shows
+ * up in `useMatches()` and in the debug popover with no `handle`.
  */
 export default function SettingsGate() {
 	return <Outlet />;
