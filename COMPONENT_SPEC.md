@@ -548,6 +548,10 @@ sibling or turns conditional.
 never hold prose, lock it: `Omit<ComponentProps<…>, "translate">`, plus the attribute stamped after the props
 spread. When the part can hold prose, keep the prop and document the default in the JSDoc and the API reference.
 
+The attribute classifies content. It is never the cure for a shape in the table above: fix the structure, then
+set `translate="no"` only when the content also belongs on that list. A part that sets it on prose, or on
+`children` it does not own, fails review.
+
 [The Browser Translation page](./apps/www/app/docs/browser-translation.mdx) publishes which part ships which
 cure. Read the roster there rather than restating it here, because an enumerated copy drifts.
 

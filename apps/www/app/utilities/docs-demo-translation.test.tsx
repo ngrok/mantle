@@ -34,11 +34,14 @@ describe("SelectableList controlled-query demo on a translated page", () => {
 
 		await user.clear(screen.getByRole("textbox", { name: "Filter access keys" }));
 
-		// The echo lives in a `translate="no"` span, so the query is a lone child
-		// React writes through `textContent` rather than a node it has to remove.
-		const echo = container.querySelector("p [translate='no']");
-		expect(echo).not.toBeNull();
-		expect(echo?.querySelector("font")).toBeNull();
+		// The echo is the lone string child of its span, so React writes it
+		// through `textContent` and wipes the `<font>` instead of removing a node
+		// it no longer owns. The fix is structural, so the span carries no
+		// `translate="no"`, and the query stays translatable prose.
+		const echo = screen.getByText("“”");
+		expect(echo.tagName).toBe("SPAN");
+		expect(echo.querySelector("font")).toBeNull();
+		expect(container.querySelector("p [translate='no']")).toBeNull();
 	});
 });
 

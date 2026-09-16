@@ -37,7 +37,8 @@ Each one needs a **reparented text node** and an **update that names it**. Both 
 - **An element that mounts _after_ the text.** The mount is an `appendChild`.
 - **A subtree that owns a host node and unmounts whole.** React removes that one node.
 - **Anything under `translate="no"`.** The engine never enters the subtree, so it reparents nothing. Check the
-  ancestors before flagging a descendant.
+  ancestors before flagging a descendant. Never add the attribute to make a shape safe: it classifies content,
+  and a `translate="no"` on prose, or on `children` the part does not own, is a finding of its own.
 - **A part that renders only its own authored text beside a sibling.** No consumer swaps it, so there is no
   update to throw on. Shape 6 scopes to `children` and to `ReactNode` props a consumer fills.
 - **A self-closing part.** `DropdownMenu.Item` renders no sibling and needs no wrapper.

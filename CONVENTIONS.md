@@ -283,8 +283,15 @@ the same edit.
 A reader copies or retypes some strings: code, a CLI flag, an env var, a YAML key, a shortcut key, a filename,
 an ID, a one-time passcode. A translated one is wrong, and the reader uses it anyway. Set
 [`translate="no"`](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/translate) on
-the element that holds the string. Descendants inherit the attribute, so it also keeps the engine out of the
-subtree — which makes it the second fix for the crash above.
+the element that holds the string. Reach for the part that already owns the attribute before a raw one:
+`Code`, `Kbd`, `CodeBlock.Code`, `CodeBlock.Title`, `Command.Shortcut`, `DropdownMenu.Shortcut`, and
+`OtpInput.Slot`.
+
+The attribute classifies content. It is never the fix for a crash. Descendants inherit it, so the engine skips
+the subtree and a crash shape under it stops throwing, but the shape stays: the next prose child, or the next
+call site without the attribute, hits it. When a shape from the two rules above throws, fix the structure (wrap
+the text, move the element, or keep the element mounted), and set `translate="no"` only when the content also
+belongs on the list above. A search query, a name, a status label, and any other prose stay translatable.
 
 When the element can never hold prose, lock the attribute. Omit `translate` from the props type, and stamp it
 **after** the props spread, so a wider props object cannot carry a value past the type either:
