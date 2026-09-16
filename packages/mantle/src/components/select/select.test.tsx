@@ -270,8 +270,11 @@ describe("Select", () => {
 
 			const trigger = screen.getByRole("combobox");
 			expect(trigger).toHaveAttribute("data-slot", "select-trigger");
+			const triggerLabel = trigger.querySelector('[data-slot="select-trigger-label"]');
+			expect(trigger.firstElementChild).toBe(triggerLabel);
 			const value = trigger.querySelector('[data-slot="select-value"]');
 			expect(value).toBeInstanceOf(HTMLSpanElement);
+			expect(value?.parentElement).toBe(triggerLabel);
 			// Radix portals the selected item's children into the value node, so
 			// the label span is the node it later removes.
 			expect(value?.querySelector('[data-slot="select-item-label"]')).toHaveTextContent("Apple");
@@ -552,7 +555,9 @@ describe("Select", () => {
 			// the JSDoc, and assert the joined slot here instead.
 			const value = screen.getByTestId("value");
 			expect(value).not.toHaveAttribute("data-slot");
-			expect(value.parentElement).toBe(screen.getByRole("combobox"));
+			expect(value.parentElement).toBe(
+				screen.getByRole("combobox").querySelector('[data-slot="select-trigger-label"]'),
+			);
 			expect(value.querySelector('[data-slot="select-value-label"]')).not.toBeInTheDocument();
 			expect(
 				screen.getByRole("combobox").querySelector('[data-slot="select-value-label"]'),
@@ -560,7 +565,120 @@ describe("Select", () => {
 		});
 	});
 
+	describe("Select.Trigger label slot", () => {
+		test("scopes the trigger's line-clamp to the label slot", () => {
+			// Cross-file pin: the `[&>[data-slot=select-trigger-label]>span]` utilities
+			// on the trigger only reach `Select.Value` while the label span carries
+			// that slot and the value stays its direct child. A bare `[&>span]` must
+			// not come back: `line-clamp` sets `display`, which would give the
+			// `contents` wrapper a box.
+			render(
+				<Select.Root value="apple">
+					<Select.Trigger>
+						<Select.Value placeholder="Select a fruit" />
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Item value="apple">Apple</Select.Item>
+					</Select.Content>
+				</Select.Root>,
+			);
+
+			const trigger = screen.getByRole("combobox");
+			expect(trigger.className).toContain("[&>[data-slot=select-trigger-label]>span]:line-clamp-1");
+			expect(trigger.className).not.toContain(" [&>span]:");
+			const label = trigger.querySelector('[data-slot="select-trigger-label"]');
+			expect(trigger.querySelector('[data-slot="select-value"]')?.parentElement).toBe(label);
+		});
+
+		test("lets the matching slot-scoped override replace the default", () => {
+			// tailwind-merge override contract: the migration the changeset names.
+			// Same variant prefix, so the consumer's class replaces the default
+			// instead of shipping beside it.
+			render(
+				<Select.Root value="apple">
+					<Select.Trigger className="[&>[data-slot=select-trigger-label]>span]:line-clamp-none">
+						<Select.Value placeholder="Select a fruit" />
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Item value="apple">Apple</Select.Item>
+					</Select.Content>
+				</Select.Root>,
+			);
+
+			const trigger = screen.getByRole("combobox");
+			expect(trigger.className).toContain(
+				"[&>[data-slot=select-trigger-label]>span]:line-clamp-none",
+			);
+			expect(trigger.className).not.toContain(
+				"[&>[data-slot=select-trigger-label]>span]:line-clamp-1",
+			);
+		});
+	});
+
 	describe("after browser translation", () => {
+		test("picks a value over a translated bare string child of the trigger", async () => {
+			const user = userEvent.setup();
+			const options = [{ value: "openai", label: "OpenAI" }];
+			function Page() {
+				const [value, setValue] = useState("");
+				const selected = options.find((option) => option.value === value);
+				return (
+					<Select.Root value={value} onValueChange={setValue}>
+						<Select.Trigger aria-label="Provider">
+							{selected ? <span data-testid="selected">{selected.label}</span> : "Select"}
+						</Select.Trigger>
+						<Select.Content>
+							{options.map((option) => (
+								<Select.Item key={option.value} value={option.value}>
+									{option.label}
+								</Select.Item>
+							))}
+						</Select.Content>
+					</Select.Root>
+				);
+			}
+			render(<Page />);
+			const trigger = screen.getByRole("combobox");
+			translateTextNodes(trigger);
+			expect(trigger).toHaveTextContent("[Select-es]");
+
+			await user.click(trigger);
+			await user.click(await screen.findByRole("option", { name: "OpenAI" }));
+
+			// The string was the label span's lone child, so the swap took the
+			// `textContent` path and wiped the `<font>` instead of removing a node
+			// the trigger no longer owned.
+			expect(screen.getByTestId("selected")).toHaveTextContent("OpenAI");
+			expect(trigger.querySelector("font")).toBeNull();
+			expect(trigger).not.toHaveTextContent("Select");
+		});
+
+		test("removes a translated bare string child of the trigger", () => {
+			const { rerender } = render(
+				<Select.Root>
+					<Select.Trigger aria-label="Provider">Select</Select.Trigger>
+					<Select.Content>
+						<Select.Item value="openai">OpenAI</Select.Item>
+					</Select.Content>
+				</Select.Root>,
+			);
+			const trigger = screen.getByRole("combobox");
+			translateTextNodes(trigger);
+			expect(trigger).toHaveTextContent("[Select-es]");
+
+			rerender(
+				<Select.Root>
+					<Select.Trigger aria-label="Provider">{null}</Select.Trigger>
+					<Select.Content>
+						<Select.Item value="openai">OpenAI</Select.Item>
+					</Select.Content>
+				</Select.Root>,
+			);
+
+			expect(trigger).toHaveTextContent("");
+			expect(trigger.querySelector('[data-slot="select-trigger-label"]')).toBeEmptyDOMElement();
+		});
+
 		test("changes a translated selection and reports the new value", async () => {
 			const user = userEvent.setup();
 			const onValueChange = vi.fn<(value: string) => void>();

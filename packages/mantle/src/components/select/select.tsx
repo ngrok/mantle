@@ -327,7 +327,12 @@ const Value = ({
 	</SelectPrimitive.Value>
 );
 
-type SelectTriggerProps = ComponentProps<typeof SelectPrimitive.Trigger> &
+/**
+ * Props for `Select.Trigger`. `asChild` is omitted: the trigger renders its
+ * caret next to the label span holding `children`, so a slot would receive two
+ * elements and throw.
+ */
+type SelectTriggerProps = Omit<ComponentProps<typeof SelectPrimitive.Trigger>, "asChild"> &
 	WithAriaInvalid &
 	WithDataSlot &
 	WithValidation;
@@ -339,9 +344,23 @@ type SelectTriggerProps = ComponentProps<typeof SelectPrimitive.Trigger> &
  * the hidden form input gets the field name), and the trigger reads
  * `aria-describedby` / `aria-errormessage` from `FieldControlContext`.
  *
+ * **Structure.** `children` render inside a
+ * `<span data-slot="select-trigger-label">`. The caret is a permanent element
+ * sibling, so without the span a bare text child is never a lone child: a
+ * browser translation engine reparents that text node, and the removal React
+ * runs when the child changes shape or goes away throws. The span is
+ * `display: contents`, so `Select.Value` stays a flex item of the trigger and
+ * keeps its `gap`. A `[&>span]` class of your own now reaches the wrapper, not
+ * `Select.Value`. Match the part's own variant instead:
+ * `[&>[data-slot=select-trigger-label]>span]:line-clamp-none`.
+ *
+ * **Why no `asChild`:** the caret sits beside the label span, so `Slot` would
+ * receive two elements and throw. The prop is omitted from the props type.
+ *
  * | Data Attribute     | Value                                   | Description                                                          |
  * | ------------------ | --------------------------------------- | -------------------------------------------------------------------- |
  * | `data-slot`        | `"select-trigger"`                      | On the trigger button.                                               |
+ * | `data-slot`        | `"select-trigger-label"`                | On the `<span>` wrapping `children`.                                 |
  * | `data-state`       | `"open"` \| `"closed"`                  | Whether the list is open.                                            |
  * | `data-placeholder` | present when there is no value          | Presence-only. Style the placeholder text with `data-placeholder:`.  |
  * | `data-disabled`    | present when disabled                   | Presence-only. The `disabled` prop on `Select.Root`.                 |
@@ -405,7 +424,11 @@ const Trigger = ({
 			data-slot={joinDataSlot(dataSlot, "select-trigger")}
 			className={cx(
 				"h-9 text-sm",
-				"border-form bg-form text-strong font-sans placeholder:text-placeholder hover:bg-form-hover hover:text-strong flex w-full items-center justify-between gap-1.5 rounded-md border px-3 py-2 disabled:pointer-events-none disabled:opacity-50 [&>span]:line-clamp-1 [&>span]:text-left",
+				"border-form bg-form text-strong font-sans placeholder:text-placeholder hover:bg-form-hover hover:text-strong flex w-full items-center justify-between gap-1.5 rounded-md border px-3 py-2 disabled:pointer-events-none disabled:opacity-50",
+				// Why slot-scoped: the label span is itself a `<span>`, so a bare `[&>span]`
+				// would reach the wrapper. `line-clamp` sets `display`, which would undo
+				// the wrapper's `contents` and give it a box.
+				"[&>[data-slot=select-trigger-label]>span]:line-clamp-1 [&>[data-slot=select-trigger-label]>span]:text-left",
 				"hover:border-neutral-400",
 				"focus:outline-hidden focus:ring-4 aria-expanded:ring-4",
 				"focus:border-accent-600 focus:ring-focus-accent aria-expanded:border-accent-600 aria-expanded:ring-focus-accent",
@@ -430,7 +453,10 @@ const Trigger = ({
 				: undefined)}
 			aria-invalid={ariaInvalid}
 		>
-			{children}
+			{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
+			<span data-slot="select-trigger-label" className="contents">
+				{children}
+			</span>
 			<SelectPrimitive.Icon asChild>
 				<Icon svg={<CaretDownIcon weight="bold" />} className="size-4" />
 			</SelectPrimitive.Icon>
@@ -474,7 +500,12 @@ const SelectScrollDownButton = ({
 	</SelectPrimitive.ScrollDownButton>
 );
 
-type SelectContentProps = ComponentProps<typeof SelectPrimitive.Content> &
+/**
+ * Props for `Select.Content`. `asChild` is omitted: the content renders its
+ * scroll buttons and viewport around `children`, so a slot would receive more
+ * than one element and throw.
+ */
+type SelectContentProps = Omit<ComponentProps<typeof SelectPrimitive.Content>, "asChild"> &
 	WithDataSlot & {
 		/**
 		 * The width of the content. Defaults to the width of the trigger.
@@ -496,6 +527,10 @@ type SelectContentProps = ComponentProps<typeof SelectPrimitive.Content> &
  * every overlay, it portals to `document.body`, below the overlay tier
  * (`z-60`). When sibling floats share a container, the most recently mounted
  * float paints on top.
+ *
+ * **Why no `asChild`:** the scroll buttons and the viewport sit around
+ * `children`, so `Slot` would receive more than one element and throw. The
+ * prop is omitted from the props type.
  *
  * | Data Attribute | Value                                          | Description                                                            |
  * | -------------- | ---------------------------------------------- | ---------------------------------------------------------------------- |
@@ -617,7 +652,12 @@ const Label = ({
 	/>
 );
 
-type SelectItemProps = ComponentProps<typeof SelectPrimitive.Item> &
+/**
+ * Props for `Select.Item`. `asChild` is omitted: the item renders its check
+ * indicator next to the label span holding `children`, so a slot would receive
+ * two elements and throw.
+ */
+type SelectItemProps = Omit<ComponentProps<typeof SelectPrimitive.Item>, "asChild"> &
 	WithDataSlot & {
 		/**
 		 * An optional icon rendered before the item text.
@@ -643,6 +683,10 @@ type SelectItemProps = ComponentProps<typeof SelectPrimitive.Item> &
  * **Untranslatable labels.** When the label is an ID, a path, a filename, or a
  * key, set `translate="no"` on the item. The attribute also rides on the label
  * span, so the copy the trigger shows stays untranslated too.
+ *
+ * **Why no `asChild`:** the check indicator sits beside the label span, so
+ * `Slot` would receive two elements and throw. The prop is omitted from the
+ * props type.
  *
  * | Data Attribute     | Value                        | Description                                                          |
  * | ------------------ | ---------------------------- | -------------------------------------------------------------------- |
@@ -874,6 +918,10 @@ const Select = {
 	 * (`z-60`). When sibling floats share a container, the most recently mounted
 	 * float paints on top.
 	 *
+	 * **Why no `asChild`:** the scroll buttons and the viewport sit around
+	 * `children`, so `Slot` would receive more than one element and throw. The
+	 * prop is omitted from the props type.
+	 *
 	 * | Data Attribute | Value                                          | Description                                                            |
 	 * | -------------- | ---------------------------------------------- | ---------------------------------------------------------------------- |
 	 * | `data-slot`    | `"select-content"`                             | On the content element.                                                |
@@ -959,6 +1007,10 @@ const Select = {
 	 * **Untranslatable labels.** When the label is an ID, a path, a filename, or a
 	 * key, set `translate="no"` on the item. The attribute also rides on the label
 	 * span, so the copy the trigger shows stays untranslated too.
+	 *
+	 * **Why no `asChild`:** the check indicator sits beside the label span, so
+	 * `Slot` would receive two elements and throw. The prop is omitted from the
+	 * props type.
 	 *
 	 * | Data Attribute     | Value                        | Description                                                          |
 	 * | ------------------ | ---------------------------- | -------------------------------------------------------------------- |
@@ -1067,9 +1119,23 @@ const Select = {
 	 * the hidden form input gets the field name), and the trigger reads
 	 * `aria-describedby` / `aria-errormessage` from `FieldControlContext`.
 	 *
+	 * **Structure.** `children` render inside a
+	 * `<span data-slot="select-trigger-label">`. The caret is a permanent element
+	 * sibling, so without the span a bare text child is never a lone child: a
+	 * browser translation engine reparents that text node, and the removal React
+	 * runs when the child changes shape or goes away throws. The span is
+	 * `display: contents`, so `Select.Value` stays a flex item of the trigger and
+	 * keeps its `gap`. A `[&>span]` class of your own now reaches the wrapper, not
+	 * `Select.Value`. Match the part's own variant instead:
+	 * `[&>[data-slot=select-trigger-label]>span]:line-clamp-none`.
+	 *
+	 * **Why no `asChild`:** the caret sits beside the label span, so `Slot` would
+	 * receive two elements and throw. The prop is omitted from the props type.
+	 *
 	 * | Data Attribute     | Value                                   | Description                                                          |
 	 * | ------------------ | --------------------------------------- | -------------------------------------------------------------------- |
 	 * | `data-slot`        | `"select-trigger"`                      | On the trigger button.                                               |
+	 * | `data-slot`        | `"select-trigger-label"`                | On the `<span>` wrapping `children`.                                 |
 	 * | `data-state`       | `"open"` \| `"closed"`                  | Whether the list is open.                                            |
 	 * | `data-placeholder` | present when there is no value          | Presence-only. Style the placeholder text with `data-placeholder:`.  |
 	 * | `data-disabled`    | present when disabled                   | Presence-only. The `disabled` prop on `Select.Root`.                 |
