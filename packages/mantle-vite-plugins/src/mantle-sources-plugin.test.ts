@@ -383,6 +383,21 @@ describe("rewriteSourceAllImports", () => {
 		expect(result?.code).not.toContain("source-all.css");
 	});
 
+	test("leaves a consumer's own file named source-all.css alone", () => {
+		const code = [
+			'@import "tailwindcss";',
+			'@import "./source-all.css";',
+			"@import url('../styles/some-source-all.css');",
+		].join("\n");
+		expect(
+			rewriteSourceAllImports({
+				code,
+				cssFile: "/app/app.css",
+				groups: [{ directory: "/app/dist", excluded: [] }],
+			}),
+		).toBeNull();
+	});
+
 	test("returns null without the import", () => {
 		expect(
 			rewriteSourceAllImports({
@@ -434,7 +449,7 @@ describe("findMissing", () => {
 	test("returns the bundle ids the list lacks, sorted", () => {
 		expect(
 			findMissing({
-				bundleIds: new Set(["/m/tooltip.js", "/m/badge.js", "/m/cx.js"]),
+				bundleFiles: new Set(["/m/tooltip.js", "/m/badge.js", "/m/cx.js"]),
 				listed: new Set(["/m/badge.js"]),
 			}),
 		).toEqual(["/m/cx.js", "/m/tooltip.js"]);
@@ -767,8 +782,11 @@ describe("mantleSourcesPlugin graph shapes", () => {
 			}),
 			"index.js": [
 				'import { Badge } from "@ngrok/mantle/badge";',
-				'export const Severity = () => ({ badge: Badge, className: "mb-[13px]" });',
+				'import labels from "./labels.json";',
+				'export const Severity = () => ({ badge: Badge, className: "mb-[13px]", label: labels.warning });',
 			].join("\n"),
+			// Why JSON: a component package can keep class names in data, and the scan must reach it.
+			"labels.json": JSON.stringify({ warning: "mt-[17px]" }),
 		});
 		const root = await createFixture(
 			{
@@ -786,19 +804,21 @@ describe("mantleSourcesPlugin graph shapes", () => {
 		expect(plainFiles.map((file) => path.basename(file))).toContain("badge.js");
 		expect(plainFiles).not.toContain(path.join(uiPackage, "index.js"));
 		expect(withoutInclude.css).not.toContain("margin-bottom:13px");
+		expect(withoutInclude.css).not.toContain("margin-top:17px");
 
 		const included = captureCss();
 		const withInclude = await buildFixture(root, [
 			mantleSourcesPlugin({ include: ["@fixture/ui"] }),
 			included.plugin,
 		]);
-		expect(listedFilesIn(included.seen, path.join(root, "src/app.css"))).toContain(
-			path.join(uiPackage, "index.js"),
-		);
+		const includedFiles = listedFilesIn(included.seen, path.join(root, "src/app.css"));
+		expect(includedFiles).toContain(path.join(uiPackage, "index.js"));
+		expect(includedFiles).toContain(path.join(uiPackage, "labels.json"));
 		expect(withInclude.css).toContain("margin-bottom:13px");
+		expect(withInclude.css).toContain("margin-top:17px");
 		expect(withInclude.logs.info).toContainEqual(
 			expect.stringMatching(
-				/^mantle sources: \d+ @ngrok\/mantle files and 1 @fixture\/ui file listed for src\/app\.css/,
+				/^mantle sources: \d+ @ngrok\/mantle files and 2 @fixture\/ui files listed for src\/app\.css/,
 			),
 		);
 	});

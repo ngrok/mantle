@@ -60,10 +60,12 @@ const DEFAULT_IDLE_TIMEOUT_MS = 15_000;
 const MAX_TIMEOUT_MS = 2_147_483_647;
 
 /**
- * Matches one `@import` statement whose specifier ends with `source-all.css`.
+ * Matches one `@import` statement whose specifier names mantle's `source-all.css`: the bare
+ * `@ngrok/mantle/source-all.css`, or a path into the package's `dist`. A consumer's own file
+ * of the same name does not match.
  */
 const SOURCE_ALL_IMPORT_PATTERN =
-	/@import\s+(?:url\(\s*)?(["'])[^"'\n]*source-all\.css\1\s*\)?[^;\n]*;/;
+	/@import\s+(?:url\(\s*)?(["'])[^"'\n]*@ngrok\/mantle\/(?:dist\/)?source-all\.css\1\s*\)?[^;\n]*;/;
 
 /**
  * The client environment's module graph, as the plugin observes it through hooks.
@@ -83,7 +85,7 @@ type ClientGraph = {
 	waiting: Set<string>;
 	/** Callbacks that run on every `load` and `moduleParsed` event. */
 	listeners: Set<() => void>;
-	/** The module ids written into each rewritten CSS module, keyed by the CSS module id. */
+	/** The files written into each rewritten CSS module, keyed by the CSS module id. */
 	listedBy: Map<string, Set<string>>;
 	/** The modules that were still pending when the wait gave up, or null when it did not. */
 	stalled: string[] | null;
@@ -93,9 +95,9 @@ type ClientGraph = {
  * What the client build reached, kept for the server environment's cross-check.
  */
 type ClientBundle = {
-	/** The modules from a listed package that the client bundle holds. */
-	moduleIds: Set<string>;
-	/** The modules every rewritten CSS scans. A late chunk or a stall leaves a module in `moduleIds` and not here. */
+	/** The files from a listed package that the client bundle holds. */
+	files: Set<string>;
+	/** The files every rewritten CSS scans. A late chunk or a stall leaves a file in `files` and not here. */
 	listed: Set<string>;
 };
 
@@ -274,35 +276,30 @@ function fileOf(id: string): string | null {
 }
 
 /**
- * Module extensions that never carry a class name Tailwind should keep: stylesheets, data, and
- * text. `scriptFileOf` drops `.d.ts` on its own, because `path.extname` reports `.ts` for it.
- * Every other module counts, so an `include` package's `.mdx` or `.vue` file stays in the list.
+ * Stylesheet extensions. Tailwind's scanner skips them on its own, and mantle's own `.css`
+ * files carry no class a component renders.
  */
-const INERT_EXTENSIONS = new Set([
-	".css",
-	".scss",
-	".sass",
-	".less",
-	".styl",
-	".pcss",
-	".json",
-	".json5",
-	".yaml",
-	".yml",
-	".toml",
-	".txt",
-]);
+const STYLESHEET_EXTENSIONS = new Set([".css", ".scss", ".sass", ".less", ".styl", ".pcss"]);
 
 /**
- * Returns the file path of a module that runs in the bundle, or null for a virtual id, an id
- * with a query (`?raw` embeds the text and renders nothing), and an inert file.
+ * Import queries whose module never renders the file's own text: `?raw` and `?inline` hand the
+ * text to the app as a string, `?url` hands it a URL, and a worker has no DOM.
  */
-function scriptFileOf(id: string): string | null {
-	if (id.includes("?")) {
+const NON_RENDERING_QUERY_PATTERN = /(?:^|&)(?:raw|inline|url|worker|sharedworker)(?:=|&|$)/;
+
+/**
+ * Returns the file a module can render class names from, or null for a virtual id, a
+ * stylesheet, a `.d.ts` file, and a non-rendering import such as `?raw`. Any other query
+ * (`?commonjs-proxy`, `?v=…`) still names the file, so the file counts. JSON, YAML, and text
+ * modules count too: a component package can keep class names in them.
+ */
+function renderedFileOf(id: string): string | null {
+	const file = fileOf(id);
+	if (file == null || file.endsWith(".d.ts") || STYLESHEET_EXTENSIONS.has(path.extname(file))) {
 		return null;
 	}
-	const file = fileOf(id);
-	if (file == null || file.endsWith(".d.ts") || INERT_EXTENSIONS.has(path.extname(file))) {
+	const query = id.slice(file.length + 1);
+	if (query !== "" && NON_RENDERING_QUERY_PATTERN.test(query)) {
 		return null;
 	}
 	return file;
@@ -644,22 +641,22 @@ function displayPath(root: string, id: string): string {
 }
 
 /**
- * Returns the module ids in `bundleIds` that `listed` does not hold, sorted.
+ * Returns the files in `bundleFiles` that `listed` does not hold, sorted.
  *
  * @example
  * ```ts
  * findMissing({
- *   bundleIds: new Set(["/m/badge.js", "/m/tooltip.js"]),
+ *   bundleFiles: new Set(["/m/badge.js", "/m/tooltip.js"]),
  *   listed: new Set(["/m/badge.js"]),
  * });
  * // ["/m/tooltip.js"]
  * ```
  */
 function findMissing(input: {
-	bundleIds: ReadonlySet<string>;
+	bundleFiles: ReadonlySet<string>;
 	listed: ReadonlySet<string>;
 }): string[] {
-	return [...input.bundleIds].filter((id) => !input.listed.has(id)).toSorted();
+	return [...input.bundleFiles].filter((file) => !input.listed.has(file)).toSorted();
 }
 
 /**
@@ -711,19 +708,30 @@ function mantleSourcesPlugin(options: MantleSourcesPluginOptions = {}): Plugin {
 	/** Server bundles that finished before the client one, keyed by environment name. */
 	const pendingServerBundles = new Map<string, Set<string>>();
 
-	function isListedModule(id: string): boolean {
-		const file = scriptFileOf(id);
+	/** The file a module renders class names from, when a listed package owns it. */
+	function listedFileOf(id: string): string | null {
+		const file = renderedFileOf(id);
 		if (file == null) {
-			return false;
+			return null;
 		}
 		const info = packageOf(file);
-		return info != null && listedPackages.has(info.name);
+		return info != null && listedPackages.has(info.name) ? file : null;
 	}
 
-	function mantleDirOf(ids: Iterable<string>): string | null {
+	function listedFilesOf(ids: Iterable<string>): Set<string> {
+		const files = new Set<string>();
 		for (const id of ids) {
-			const file = scriptFileOf(id);
-			const info = file == null ? null : packageOf(file);
+			const file = listedFileOf(id);
+			if (file != null) {
+				files.add(file);
+			}
+		}
+		return files;
+	}
+
+	function mantleDirOf(files: Iterable<string>): string | null {
+		for (const file of files) {
+			const info = packageOf(file);
 			if (info?.name === MANTLE_PACKAGE_NAME) {
 				return info.dir;
 			}
@@ -789,18 +797,10 @@ function mantleSourcesPlugin(options: MantleSourcesPluginOptions = {}): Plugin {
 					graph.waiting.delete(id);
 				}
 
-				const listed = new Set<string>();
-				for (const moduleId of graph.seen) {
-					if (isListedModule(moduleId)) {
-						listed.add(moduleId);
-					}
-				}
+				const listed = listedFilesOf(graph.seen);
 				graph.listedBy.set(id, listed);
 
-				const moduleFiles = [...listed]
-					.map((moduleId) => scriptFileOf(moduleId))
-					.filter((file): file is string => file != null)
-					.toSorted();
+				const moduleFiles = [...listed].toSorted();
 				const groups = planSourceGroups(moduleFiles, readDirectoryListing);
 				const result = rewriteSourceAllImports({ code, cssFile, groups });
 				if (result == null) {
@@ -820,17 +820,11 @@ function mantleSourcesPlugin(options: MantleSourcesPluginOptions = {}): Plugin {
 		generateBundle(_outputOptions, bundle) {
 			const environmentName = this.environment.name;
 			const root = this.environment.config.root;
-			const inBundle = new Set<string>();
-			for (const output of Object.values(bundle)) {
-				if (output.type !== "chunk") {
-					continue;
-				}
-				for (const moduleId of output.moduleIds) {
-					if (isListedModule(moduleId)) {
-						inBundle.add(moduleId);
-					}
-				}
-			}
+			const inBundle = listedFilesOf(
+				Object.values(bundle).flatMap((output) =>
+					output.type === "chunk" ? output.moduleIds : [],
+				),
+			);
 
 			const warnServerOnly = (
 				serverName: string,
@@ -838,8 +832,8 @@ function mantleSourcesPlugin(options: MantleSourcesPluginOptions = {}): Plugin {
 				client: ClientBundle,
 			) => {
 				const serverOnly = findMissing({
-					bundleIds: serverBundle,
-					listed: new Set([...client.listed, ...client.moduleIds]),
+					bundleFiles: serverBundle,
+					listed: new Set([...client.listed, ...client.files]),
 				});
 				if (serverOnly.length > 0) {
 					this.warn(
@@ -859,7 +853,7 @@ function mantleSourcesPlugin(options: MantleSourcesPluginOptions = {}): Plugin {
 			}
 
 			clientBundle = {
-				moduleIds: inBundle,
+				files: inBundle,
 				listed: new Set([...graph.listedBy.values()].flatMap((listed) => [...listed])),
 			};
 			for (const [serverName, serverBundle] of pendingServerBundles) {
@@ -886,13 +880,13 @@ function mantleSourcesPlugin(options: MantleSourcesPluginOptions = {}): Plugin {
 				);
 			}
 
-			const mantleDir = mantleDirOf(inBundle.size > 0 ? inBundle : graph.seen);
+			const mantleDir = mantleDirOf(inBundle.size > 0 ? inBundle : listedFilesOf(graph.seen));
 			const sourceAllCount = mantleDir == null ? null : countSourceAllFiles(mantleDir);
 
 			for (const [cssId, listed] of graph.listedBy) {
 				const cssFile = fileOf(cssId) ?? cssId;
 				const cssPath = path.relative(root, cssFile);
-				const missing = findMissing({ bundleIds: inBundle, listed });
+				const missing = findMissing({ bundleFiles: inBundle, listed });
 				if (missing.length > 0) {
 					const cause =
 						stall == null
@@ -909,9 +903,8 @@ function mantleSourcesPlugin(options: MantleSourcesPluginOptions = {}): Plugin {
 				// Why seeded: the summary names mantle first and then each `include` entry in the
 				// order the consumer wrote, whatever order the bundler loaded the files in.
 				const counts = new Map<string, number>([[MANTLE_PACKAGE_NAME, 0]]);
-				for (const moduleId of listed) {
-					const file = scriptFileOf(moduleId);
-					const info = file == null ? null : packageOf(file);
+				for (const file of listed) {
+					const info = packageOf(file);
 					if (info != null) {
 						counts.set(info.name, (counts.get(info.name) ?? 0) + 1);
 					}
