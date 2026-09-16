@@ -112,3 +112,84 @@ describe("Table.Root overflow observer", () => {
 		expect(root).not.toHaveAttribute("data-sticky-active");
 	});
 });
+
+/**
+ * Mirrors the CSS Tailwind 4 emits for the padding utilities that `Table.Header` and
+ * `Table.Cell` apply. We inline it instead of importing the mantle stylesheet so the
+ * test stays hermetic and needs no Tailwind build step.
+ *
+ * Keep the shorthand before the axis utilities. That source order is Tailwind's own,
+ * and it is what lets a consumer's `px-*` beat a default `p-*`. The numeric values are
+ * inlined so the test does not depend on the mantle theme being loaded.
+ */
+const PADDING_STYLE = `
+@layer utilities {
+	.p-3 { padding: 12px; }
+	.px-2 { padding-inline: 8px; }
+	.px-4 { padding-inline: 16px; }
+	.py-3 { padding-block: 12px; }
+}
+`;
+
+describe("Table horizontal padding", () => {
+	let paddingStyleElement: HTMLStyleElement;
+
+	beforeAll(() => {
+		paddingStyleElement = document.createElement("style");
+		paddingStyleElement.textContent = PADDING_STYLE;
+		document.head.appendChild(paddingStyleElement);
+	});
+
+	afterAll(() => {
+		paddingStyleElement.remove();
+	});
+
+	function renderHeaderAndCell(cellClassName?: string) {
+		return render(
+			<Table.Root>
+				<Table.Element>
+					<Table.Head>
+						<Table.Row>
+							<Table.Header>Invoice</Table.Header>
+						</Table.Row>
+					</Table.Head>
+					<Table.Body>
+						<Table.Row>
+							<Table.Cell className={cellClassName}>INV001</Table.Cell>
+						</Table.Row>
+					</Table.Body>
+				</Table.Element>
+			</Table.Root>,
+		);
+	}
+
+	// Turns red if `Table.Cell` goes back to the `p-3` shorthand: the body text drops
+	// to a 12px inset while the column label stays at 16px.
+	test("a body cell lines up with its column label", () => {
+		renderHeaderAndCell();
+		const header = getComputedStyle(screen.getByRole("columnheader"));
+		const cell = getComputedStyle(screen.getByRole("cell"));
+
+		expect(cell.paddingLeft).toBe(header.paddingLeft);
+		expect(cell.paddingRight).toBe(header.paddingRight);
+		expect(cell.paddingLeft).toBe("16px");
+	});
+
+	// Why assert the merge outcome: this is the tailwind-merge override contract, so it
+	// pins what a consumer's `className` produces, not the component's internal defaults.
+	test("a consumer className overrides the default horizontal padding", () => {
+		renderHeaderAndCell("px-2");
+
+		expect(getComputedStyle(screen.getByRole("cell")).paddingLeft).toBe("8px");
+	});
+
+	// The row density is the other half of the contract: #1067 wanted a shorter row and
+	// this fix must not undo it by restoring the old `p-4`.
+	test("the cell keeps its 12px vertical padding", () => {
+		renderHeaderAndCell();
+		const cell = getComputedStyle(screen.getByRole("cell"));
+
+		expect(cell.paddingTop).toBe("12px");
+		expect(cell.paddingBottom).toBe("12px");
+	});
+});
