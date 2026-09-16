@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { createRef, useState } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import { Field } from "../field/field.js";
@@ -735,5 +735,107 @@ describe("MultiSelect.Item label slot", () => {
 
 		expect(item.querySelector("font")).toBeNull();
 		expect(item.querySelector("strong")).toHaveTextContent("Apple");
+	});
+});
+
+describe("MultiSelect.Item asChild", () => {
+	function Options({ label }: { label: ReactNode }) {
+		return (
+			<MultiSelect.Root>
+				<MultiSelect.Trigger>
+					<MultiSelect.TagValues />
+					<MultiSelect.Input placeholder="Pick fruit" />
+				</MultiSelect.Trigger>
+				<MultiSelect.Content>
+					<MultiSelect.Item value="apple" asChild>
+						<a href="#apple">{label}</a>
+					</MultiSelect.Item>
+				</MultiSelect.Content>
+			</MultiSelect.Root>
+		);
+	}
+
+	test("slots onto the anchor, merges class, data-*, and ref, and keeps the label div inside it", async () => {
+		const user = userEvent.setup();
+		const ref = createRef<HTMLAnchorElement>();
+		render(
+			<MultiSelect.Root>
+				<MultiSelect.Trigger>
+					<MultiSelect.TagValues />
+					<MultiSelect.Input placeholder="Pick fruit" />
+				</MultiSelect.Trigger>
+				<MultiSelect.Content>
+					<MultiSelect.Item value="apple" asChild className="mine" data-testid="custom">
+						<a href="#apple" className="theirs" ref={ref}>
+							Apple
+						</a>
+					</MultiSelect.Item>
+				</MultiSelect.Content>
+			</MultiSelect.Root>,
+		);
+		await user.click(screen.getByRole("combobox"));
+
+		const item = await screen.findByRole("option", { name: "Apple" });
+		expect(item.tagName).toBe("A");
+		expect(item).toHaveAttribute("href", "#apple");
+		expect(item).toHaveClass("mine", "theirs");
+		expect(item).toHaveAttribute("data-testid", "custom");
+		expect(item).toHaveAttribute("data-slot", "multi-select-item");
+		expect(ref.current).toBe(item);
+
+		const label = item.querySelector('[data-slot="multi-select-item-label"]');
+		expect(label).toHaveTextContent("Apple");
+		expect(label?.parentElement).toBe(item);
+		expect(Array.from(item.childNodes).every((node) => node instanceof Element)).toBe(true);
+	});
+
+	test("selects through the anchor and shows the check inside it", async () => {
+		const user = userEvent.setup();
+		render(<Options label="Apple" />);
+		await user.click(screen.getByRole("combobox"));
+
+		const item = await screen.findByRole("option", { name: "Apple" });
+		await user.click(item);
+
+		expect(item).toHaveAttribute("aria-selected", "true");
+		expect(item.querySelector("svg")?.closest('[role="option"]')).toBe(item);
+	});
+
+	test("keeps rendering when a translated label swaps to an element", async () => {
+		const user = userEvent.setup();
+		const { rerender } = render(<Options label="Apple" />);
+		await user.click(screen.getByRole("combobox"));
+
+		const item = await screen.findByRole("option", { name: "Apple" });
+		translateTextNodes(item);
+		expect(item).toHaveTextContent("[Apple-es]");
+
+		rerender(<Options label={<strong>Apple</strong>} />);
+
+		expect(item.querySelector("font")).toBeNull();
+		expect(item.querySelector("strong")).toHaveTextContent("Apple");
+	});
+
+	test("throws with the reason when the child is bare text", async () => {
+		const user = userEvent.setup();
+		// Why silence: React logs the error a render throws before it rethrows it.
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		render(
+			<MultiSelect.Root>
+				<MultiSelect.Trigger>
+					<MultiSelect.TagValues />
+					<MultiSelect.Input placeholder="Pick fruit" />
+				</MultiSelect.Trigger>
+				<MultiSelect.Content>
+					<MultiSelect.Item value="apple" asChild>
+						Apple
+					</MultiSelect.Item>
+				</MultiSelect.Content>
+			</MultiSelect.Root>,
+		);
+
+		await expect(user.click(screen.getByRole("combobox"))).rejects.toThrow(
+			"When using `asChild`, MultiSelect.Item must be passed a single child as a JSX tag.",
+		);
 	});
 });

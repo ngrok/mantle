@@ -233,11 +233,11 @@ Select.Root
 
 ## Polymorphism
 
-`Select.Group`, `Select.Label`, and `Select.Separator` accept `asChild`, which swaps the part's default element for your single child while keeping its styling and the select's keyboard and selection behavior. `Select.Label asChild` helps when a group heading must be a specific element for the page's outline.
+`Select.Trigger`, `Select.Item`, `Select.Group`, `Select.Label`, and `Select.Separator` accept `asChild`, which swaps the part's default element for your single child while keeping its styling and the select's keyboard and selection behavior. `Select.Label asChild` helps when a group heading must be a specific element for the page's outline. `Select.Trigger asChild` makes your own control the combobox, and `Select.Item asChild` makes your own element the option. Each part renders its own chrome beside your children (the trigger's caret, the item's check indicator), so Radix clones your single child as the part's element and moves the label span and that chrome inside it. The [translation guarantee](/browser-translation) holds on both paths.
 
 `Select.Root` is a state provider that renders no DOM, so it takes no `asChild`.
 
-`Select.Trigger`, `Select.Content`, and `Select.Item` take no `asChild`, and their props types omit it. Each one renders its own chrome next to your content (the trigger's caret, the content's scroll buttons and viewport, the item's check indicator), so the underlying Radix `Slot` would receive more than the single child it requires and throw. To customize the trigger's content, pass it as `children` instead.
+`Select.Content` takes no `asChild`, and its props type omits it. It renders the scroll buttons and the viewport around your items, so there is no single child for a slot to clone. Style it with `className` instead.
 
 > [!WARNING]
 > `Select.Value asChild` renders your element but **drops every prop**: Radix hands its `Slot` a keyed Fragment, so the value's `data-slot`, `ref`, and `style` never reach your element, and React warns about invalid Fragment props. Do not use it. To render a custom value, pass `children` instead, as the [custom selected value](#custom-selected-value) example does.
@@ -581,7 +581,7 @@ When composing with `Field.Item`, wrap `Select.Root` (not the trigger) in `Field
 
 `Select.Value` is now a grandchild of the trigger, so a `[&>span]` class of your own reaches the wrapper instead. Match the part's own variant: `[&>[data-slot=select-trigger-label]>span]:line-clamp-none`. That form shares the default's variant prefix, so tailwind-merge drops the default instead of shipping both. A bare `[&>span]:line-clamp-none` lands on the wrapper, and `line-clamp` sets `display`, which gives the wrapper a box and takes `Select.Value` out of the trigger's flex row.
 
-All props from Radix [Select.Trigger](https://www.radix-ui.com/primitives/docs/components/select#trigger), except `asChild`, plus:
+All props from Radix [Select.Trigger](https://www.radix-ui.com/primitives/docs/components/select#trigger), plus:
 
 | Prop          | Type                                                                                               | Default | Description                                                                                                                                                                                                                                                                                                                               |
 | ------------- | -------------------------------------------------------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -666,7 +666,7 @@ An option within a select menu. Similar to an html `option` element. Has a requi
 
 When the label is an ID, a path, a filename, or a key, set `translate="no"` on the item. The attribute also rides on the label span, so the copy the trigger shows stays untranslated too.
 
-All props from Radix [Select.Item](https://www.radix-ui.com/primitives/docs/components/select#item), except `asChild`, plus:
+All props from Radix [Select.Item](https://www.radix-ui.com/primitives/docs/components/select#item), plus:
 
 | Prop         | Type            | Default | Description                                                                                                                                                       |
 | ------------ | --------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |

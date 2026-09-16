@@ -225,21 +225,24 @@ DropdownMenu.Root
 `asChild` renders the part's single child instead of its default element, and forwards class names, `data-*`
 attributes, and `ref` onto that child. These parts take it:
 
-| Part                      | Reach for it when                                                    |
-| ------------------------- | -------------------------------------------------------------------- |
-| `DropdownMenu.Trigger`    | The trigger is a `Button`, an `IconButton`, or your own control.     |
-| `DropdownMenu.Content`    | The panel needs its own element to carry layout or a motion wrapper. |
-| `DropdownMenu.SubContent` | The same, for a submenu panel.                                       |
-| `DropdownMenu.Item`       | The item navigates, so it must render an `<a>` or a router `Link`.   |
-| `DropdownMenu.Label`      | The label needs a heading element for the document outline.          |
-| `DropdownMenu.Group`      | The group needs its own element.                                     |
-| `DropdownMenu.RadioGroup` | The same, for a radio group.                                         |
-| `DropdownMenu.Separator`  | The divider must be a specific element, such as an `<hr>`.           |
+| Part                        | Reach for it when                                                    |
+| --------------------------- | -------------------------------------------------------------------- |
+| `DropdownMenu.Trigger`      | The trigger is a `Button`, an `IconButton`, or your own control.     |
+| `DropdownMenu.Content`      | The panel needs its own element to carry layout or a motion wrapper. |
+| `DropdownMenu.SubContent`   | The same, for a submenu panel.                                       |
+| `DropdownMenu.Item`         | The item navigates, so it must render an `<a>` or a router `Link`.   |
+| `DropdownMenu.CheckboxItem` | The same, for a choice a URL carries.                                |
+| `DropdownMenu.RadioItem`    | The same, for one choice out of a URL-driven set.                    |
+| `DropdownMenu.SubTrigger`   | The submenu opener must be your own element.                         |
+| `DropdownMenu.Label`        | The label needs a heading element for the document outline.          |
+| `DropdownMenu.Group`        | The group needs its own element.                                     |
+| `DropdownMenu.RadioGroup`   | The same, for a radio group.                                         |
+| `DropdownMenu.Separator`    | The divider must be a specific element, such as an `<hr>`.           |
 
-Three parts do **not** take it, and the prop is omitted from their props types:
-`DropdownMenu.SubTrigger`, `DropdownMenu.CheckboxItem`, and `DropdownMenu.RadioItem`. Each renders a second
-element beside your children — the submenu caret, or the check indicator — so a slot would receive two
-elements and throw. Style them with `className` instead.
+`DropdownMenu.SubTrigger`, `DropdownMenu.CheckboxItem`, and `DropdownMenu.RadioItem` each render a second
+element beside your children: the submenu caret, or the check indicator. Under `asChild`, Radix clones your
+single child as the item element and moves the label span and that element inside it, so the
+[translation guarantee](/browser-translation) holds on both paths.
 
 ## API Reference
 

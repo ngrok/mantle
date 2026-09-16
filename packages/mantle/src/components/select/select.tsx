@@ -4,6 +4,7 @@ import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
 import { CaretUpIcon } from "@phosphor-icons/react/CaretUp";
 import { CheckIcon } from "@phosphor-icons/react/Check";
 import * as SelectPrimitive from "@radix-ui/react-select";
+import { Slottable } from "@radix-ui/react-slot";
 import type {
 	ComponentProps,
 	FocusEvent,
@@ -328,11 +329,9 @@ const Value = ({
 );
 
 /**
- * Props for `Select.Trigger`. `asChild` is omitted: the trigger renders its
- * caret next to the label span holding `children`, so a slot would receive two
- * elements and throw.
+ * Props for `Select.Trigger`.
  */
-type SelectTriggerProps = Omit<ComponentProps<typeof SelectPrimitive.Trigger>, "asChild"> &
+type SelectTriggerProps = ComponentProps<typeof SelectPrimitive.Trigger> &
 	WithAriaInvalid &
 	WithDataSlot &
 	WithValidation;
@@ -354,8 +353,8 @@ type SelectTriggerProps = Omit<ComponentProps<typeof SelectPrimitive.Trigger>, "
  * `Select.Value`. Match the part's own variant instead:
  * `[&>[data-slot=select-trigger-label]>span]:line-clamp-none`.
  *
- * **Why no `asChild`:** the caret sits beside the label span, so `Slot` would
- * receive two elements and throw. The prop is omitted from the props type.
+ * **`asChild`.** Radix clones your single child as the trigger element. The label
+ * span and the caret move inside it, so the guarantee above holds on both paths.
  *
  * | Data Attribute     | Value                                   | Description                                                          |
  * | ------------------ | --------------------------------------- | -------------------------------------------------------------------- |
@@ -453,10 +452,16 @@ const Trigger = ({
 				: undefined)}
 			aria-invalid={ariaInvalid}
 		>
-			{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
-			<span data-slot="select-trigger-label" className="contents">
-				{children}
-			</span>
+			{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md
+			    Why `Slottable`: under `asChild` Radix clones the consumer's element and
+			    moves every sibling inside it, so the span and the caret keep their places. */}
+			<Slottable child={children}>
+				{(label) => (
+					<span data-slot="select-trigger-label" className="contents">
+						{label}
+					</span>
+				)}
+			</Slottable>
 			<SelectPrimitive.Icon asChild>
 				<Icon svg={<CaretDownIcon weight="bold" />} className="size-4" />
 			</SelectPrimitive.Icon>
@@ -653,11 +658,9 @@ const Label = ({
 );
 
 /**
- * Props for `Select.Item`. `asChild` is omitted: the item renders its check
- * indicator next to the label span holding `children`, so a slot would receive
- * two elements and throw.
+ * Props for `Select.Item`.
  */
-type SelectItemProps = Omit<ComponentProps<typeof SelectPrimitive.Item>, "asChild"> &
+type SelectItemProps = ComponentProps<typeof SelectPrimitive.Item> &
 	WithDataSlot & {
 		/**
 		 * An optional icon rendered before the item text.
@@ -684,9 +687,8 @@ type SelectItemProps = Omit<ComponentProps<typeof SelectPrimitive.Item>, "asChil
  * key, set `translate="no"` on the item. The attribute also rides on the label
  * span, so the copy the trigger shows stays untranslated too.
  *
- * **Why no `asChild`:** the check indicator sits beside the label span, so
- * `Slot` would receive two elements and throw. The prop is omitted from the
- * props type.
+ * **`asChild`.** Radix clones your single child as the option element. The label
+ * span and the indicator move inside it, so the guarantee above holds on both paths.
  *
  * | Data Attribute     | Value                        | Description                                                          |
  * | ------------------ | ---------------------------- | -------------------------------------------------------------------- |
@@ -745,13 +747,20 @@ const Item = ({
 		{...props}
 	>
 		{icon && <Icon svg={icon} />}
-		<SelectPrimitive.ItemText>
-			{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
-			{/* Why `translate` repeats: Radix portals this span into the trigger, out of the item's subtree, so the item's attribute never reaches that copy. */}
-			<span data-slot="select-item-label" className="contents" translate={translate}>
-				{children}
-			</span>
-		</SelectPrimitive.ItemText>
+		{/* Why `Slottable`: under `asChild` Radix clones the consumer's element and
+		    moves every sibling inside it. `ItemText` rides inside the render function
+		    because Radix only finds a `Slottable` among the item's direct children. */}
+		<Slottable child={children}>
+			{(label) => (
+				<SelectPrimitive.ItemText>
+					{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
+					{/* Why `translate` repeats: Radix portals this span into the trigger, out of the item's subtree, so the item's attribute never reaches that copy. */}
+					<span data-slot="select-item-label" className="contents" translate={translate}>
+						{label}
+					</span>
+				</SelectPrimitive.ItemText>
+			)}
+		</Slottable>
 		<SelectPrimitive.ItemIndicator className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
 			<Icon svg={<CheckIcon weight="bold" />} className="size-4 text-accent-600" />
 		</SelectPrimitive.ItemIndicator>
@@ -1008,9 +1017,8 @@ const Select = {
 	 * key, set `translate="no"` on the item. The attribute also rides on the label
 	 * span, so the copy the trigger shows stays untranslated too.
 	 *
-	 * **Why no `asChild`:** the check indicator sits beside the label span, so
-	 * `Slot` would receive two elements and throw. The prop is omitted from the
-	 * props type.
+	 * **`asChild`.** Radix clones your single child as the option element. The label
+	 * span and the indicator move inside it, so the guarantee above holds on both paths.
 	 *
 	 * | Data Attribute     | Value                        | Description                                                          |
 	 * | ------------------ | ---------------------------- | -------------------------------------------------------------------- |
@@ -1129,8 +1137,8 @@ const Select = {
 	 * `Select.Value`. Match the part's own variant instead:
 	 * `[&>[data-slot=select-trigger-label]>span]:line-clamp-none`.
 	 *
-	 * **Why no `asChild`:** the caret sits beside the label span, so `Slot` would
-	 * receive two elements and throw. The prop is omitted from the props type.
+	 * **`asChild`.** Radix clones your single child as the trigger element. The label
+	 * span and the caret move inside it, so the guarantee above holds on both paths.
 	 *
 	 * | Data Attribute     | Value                                   | Description                                                          |
 	 * | ------------------ | --------------------------------------- | -------------------------------------------------------------------- |

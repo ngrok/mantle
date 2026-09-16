@@ -1146,13 +1146,13 @@ MultiSelect.Root
 
 ## Polymorphism
 
-`MultiSelect.Content`, `MultiSelect.Group`, `MultiSelect.GroupLabel`, and `MultiSelect.Separator` accept `asChild`, rendering your single child in place of the part's default element while keeping its selection and keyboard behavior.
+`MultiSelect.Item`, `MultiSelect.Content`, `MultiSelect.Group`, `MultiSelect.GroupLabel`, and `MultiSelect.Separator` accept `asChild`, rendering your single child in place of the part's default element while keeping its selection and keyboard behavior.
 
 `MultiSelect.GroupLabel asChild` is the useful one: reach for it when a group heading must be a specific element for the page's outline. `MultiSelect.Content asChild` lets you own the popover panel element.
 
 The trigger-side parts (`MultiSelect.Root`, `Trigger`, `Input`, `Tag`, `TagValues`) own input and tag behavior that depends on the elements they render, so they do not accept `asChild`.
 
-`MultiSelect.Item` takes no `asChild`, and its props type omits it. The item renders its own check indicator beside your children, so the slot would receive two elements and throw. To give an option a custom layout, pass it as `children` (a [`MediaObject`](/components/structure/media-object) with an avatar, say), which is unrestricted.
+`MultiSelect.Item asChild` clones your single child as the option element and moves the label div and the check indicator inside it, so the [translation guarantee](/browser-translation) holds on both paths. To give an option a custom layout inside the default element, pass it as `children` (a [`MediaObject`](/components/structure/media-object) with an avatar, say), which is unrestricted.
 
 ## API Reference
 
@@ -1258,11 +1258,12 @@ Renders a selectable item with a checkbox indicator inside a `MultiSelect.Conten
 
 `children` render inside a `<div data-slot="multi-select-item-label">`. The selected-state check is a permanent element sibling, so without the wrapper a bare text label is never a lone child: a browser translation engine reparents that text node, and the removal React runs when the label changes shape or goes away throws. The wrapper is a `<div>` because a custom option layout is often a `MediaObject`, whose root is a `<div>` that a `<span>` may not contain. It is `display: contents`, so a child of your own stays a flex item of the option and any `flex-1` on it still resolves. [Browser translation](/browser-translation) covers the mechanism and the rules your own components need.
 
-All props from ariakit [ComboboxItem](https://ariakit.org/reference/combobox-item), except `render` and `asChild`, plus:
+All props from ariakit [ComboboxItem](https://ariakit.org/reference/combobox-item), except `render`, plus:
 
-| Prop            | Type      | Default | Description                                     |
-| :-------------- | :-------- | :------ | :---------------------------------------------- |
-| `focusOnHover?` | `boolean` | `true`  | Whether the item should receive focus on hover. |
+| Prop            | Type      | Default | Description                                                           |
+| :-------------- | :-------- | :------ | :-------------------------------------------------------------------- |
+| `asChild?`      | `boolean` | `false` | Compose onto an alternative element type or your own React component. |
+| `focusOnHover?` | `boolean` | `true`  | Whether the item should receive focus on hover.                       |
 
 | Data Attribute | Value                       | Description                         |
 | :------------- | :-------------------------- | :---------------------------------- |

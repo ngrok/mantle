@@ -3,6 +3,7 @@
 import { CaretRightIcon } from "@phosphor-icons/react/CaretRight";
 import { CheckIcon } from "@phosphor-icons/react/Check";
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
+import { Slottable } from "@radix-ui/react-slot";
 import type { ComponentProps } from "react";
 import { cx } from "../../utils/cx/cx.js";
 import { useLayerContainer } from "../../utils/layer-container/layer-container.js";
@@ -154,14 +155,9 @@ const RadioGroup = ({
 );
 
 /**
- * Props for `DropdownMenu.SubTrigger`. `asChild` is omitted: the trigger renders
- * the caret next to the label span holding `children`, so a slot would receive
- * two elements and throw.
+ * Props for `DropdownMenu.SubTrigger`.
  */
-type DropdownMenuSubTriggerProps = Omit<
-	ComponentProps<typeof DropdownMenuPrimitive.SubTrigger>,
-	"asChild"
-> & {
+type DropdownMenuSubTriggerProps = ComponentProps<typeof DropdownMenuPrimitive.SubTrigger> & {
 	inset?: boolean;
 };
 
@@ -181,8 +177,8 @@ type DropdownMenuSubTriggerProps = Omit<
  * A `[&_svg]` class or a class on the icon loses to the default, which is more
  * specific.
  *
- * **Why no `asChild`:** the caret sits beside the label span, so `Slot` would
- * receive two elements and throw. The prop is omitted from the props type.
+ * **`asChild`.** Radix clones your single child as the item element. The label
+ * span and the caret move inside it, so the guarantee above holds on both paths.
  *
  * **Data attributes:**
  *
@@ -224,10 +220,16 @@ const SubTrigger = ({ className, inset, children, ...props }: DropdownMenuSubTri
 		)}
 		{...props}
 	>
-		{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
-		<span data-slot="dropdown-menu-sub-trigger-label" className="contents">
-			{children}
-		</span>
+		{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md
+		    Why `Slottable`: under `asChild` Radix clones the consumer's element and
+		    moves every sibling inside it, so the span and the caret keep their places. */}
+		<Slottable child={children}>
+			{(label) => (
+				<span data-slot="dropdown-menu-sub-trigger-label" className="contents">
+					{label}
+				</span>
+			)}
+		</Slottable>
 		<span className="absolute right-2 flex items-center">
 			<Icon svg={<CaretRightIcon weight="bold" />} className="size-4" />
 		</span>
@@ -393,14 +395,9 @@ const Item = ({
 );
 
 /**
- * Props for `DropdownMenu.CheckboxItem`. `asChild` is omitted: the item renders
- * the check indicator next to the label span holding `children`, so a slot would
- * receive two elements and throw.
+ * Props for `DropdownMenu.CheckboxItem`.
  */
-type DropdownMenuCheckboxItemProps = Omit<
-	ComponentProps<typeof DropdownMenuPrimitive.CheckboxItem>,
-	"asChild"
->;
+type DropdownMenuCheckboxItemProps = ComponentProps<typeof DropdownMenuPrimitive.CheckboxItem>;
 
 /**
  * A menu item with a checkbox that can be controlled or uncontrolled.
@@ -417,8 +414,8 @@ type DropdownMenuCheckboxItemProps = Omit<
  * A `[&_svg]` class or a class on the icon loses to the default, which is more
  * specific.
  *
- * **Why no `asChild`:** the check indicator sits beside the label span, so `Slot` would
- * receive two elements and throw. The prop is omitted from the props type.
+ * **`asChild`.** Radix clones your single child as the item element. The label
+ * span and the indicator move inside it, so the guarantee above holds on both paths.
  *
  * **Data attributes:**
  *
@@ -468,22 +465,23 @@ const CheckboxItem = ({
 				<Icon svg={<CheckIcon weight="bold" />} className="size-4 text-accent-600" />
 			</DropdownMenuPrimitive.ItemIndicator>
 		</span>
-		{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
-		<span data-slot="dropdown-menu-checkbox-item-label" className="contents">
-			{children}
-		</span>
+		{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md
+		    Why `Slottable`: under `asChild` Radix clones the consumer's element and
+		    moves every sibling inside it, so the span and the indicator keep their places. */}
+		<Slottable child={children}>
+			{(label) => (
+				<span data-slot="dropdown-menu-checkbox-item-label" className="contents">
+					{label}
+				</span>
+			)}
+		</Slottable>
 	</DropdownMenuPrimitive.CheckboxItem>
 );
 
 /**
- * Props for `DropdownMenu.RadioItem`. `asChild` is omitted: the item renders the
- * check indicator next to the label span holding `children`, so a slot would
- * receive two elements and throw.
+ * Props for `DropdownMenu.RadioItem`.
  */
-type DropdownMenuRadioItemProps = Omit<
-	ComponentProps<typeof DropdownMenuPrimitive.RadioItem>,
-	"asChild"
-> & {
+type DropdownMenuRadioItemProps = ComponentProps<typeof DropdownMenuPrimitive.RadioItem> & {
 	name?: string;
 	id?: string;
 };
@@ -504,8 +502,8 @@ type DropdownMenuRadioItemProps = Omit<
  * A `[&_svg]` class or a class on the icon loses to the default, which is more
  * specific.
  *
- * **Why no `asChild`:** the check indicator sits beside the label span, so `Slot` would
- * receive two elements and throw. The prop is omitted from the props type.
+ * **`asChild`.** Radix clones your single child as the item element. The label
+ * span and the indicator move inside it, so the guarantee above holds on both paths.
  *
  * **Data attributes:**
  *
@@ -552,10 +550,16 @@ const RadioItem = ({ className, children, ...props }: DropdownMenuRadioItemProps
 				<Icon svg={<CheckIcon weight="bold" />} className="size-4 text-accent-600" />
 			</DropdownMenuPrimitive.ItemIndicator>
 		</span>
-		{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
-		<span data-slot="dropdown-menu-radio-item-label" className="contents">
-			{children}
-		</span>
+		{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md
+		    Why `Slottable`: under `asChild` Radix clones the consumer's element and
+		    moves every sibling inside it, so the span and the indicator keep their places. */}
+		<Slottable child={children}>
+			{(label) => (
+				<span data-slot="dropdown-menu-radio-item-label" className="contents">
+					{label}
+				</span>
+			)}
+		</Slottable>
 	</DropdownMenuPrimitive.RadioItem>
 );
 
@@ -737,8 +741,8 @@ const DropdownMenu = {
 	 * A `[&_svg]` class or a class on the icon loses to the default, which is more
 	 * specific.
 	 *
-	 * **Why no `asChild`:** the check indicator sits beside the label span, so `Slot` would
-	 * receive two elements and throw. The prop is omitted from the props type.
+	 * **`asChild`.** Radix clones your single child as the item element. The label
+	 * span and the indicator move inside it, so the guarantee above holds on both paths.
 	 *
 	 * **Data attributes:**
 	 *
@@ -879,8 +883,8 @@ const DropdownMenu = {
 	 * A `[&_svg]` class or a class on the icon loses to the default, which is more
 	 * specific.
 	 *
-	 * **Why no `asChild`:** the check indicator sits beside the label span, so `Slot` would
-	 * receive two elements and throw. The prop is omitted from the props type.
+	 * **`asChild`.** Radix clones your single child as the item element. The label
+	 * span and the indicator move inside it, so the guarantee above holds on both paths.
 	 *
 	 * **Data attributes:**
 	 *
@@ -1011,8 +1015,8 @@ const DropdownMenu = {
 	 * A `[&_svg]` class or a class on the icon loses to the default, which is more
 	 * specific.
 	 *
-	 * **Why no `asChild`:** the caret sits beside the label span, so `Slot` would
-	 * receive two elements and throw. The prop is omitted from the props type.
+	 * **`asChild`.** Radix clones your single child as the item element. The label
+	 * span and the caret move inside it, so the guarantee above holds on both paths.
 	 *
 	 * **Data attributes:**
 	 *
