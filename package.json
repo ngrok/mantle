@@ -26,18 +26,18 @@
   },
   "devDependencies": {
     "@changesets/changelog-github": "1.0.1",
-    "@changesets/cli": "3.0.2",
+    "@changesets/cli": "3.0.3",
     "@types/node": "catalog:",
     "husky": "9.1.7",
     "lint-staged": "17.5.1",
     "oxfmt": "catalog:",
-    "oxlint": "1.82.0",
+    "oxlint": "1.83.0",
     "tsx": "catalog:",
-    "turbo": "2.10.12",
-    "vitest": "5.0.0"
+    "turbo": "2.10.13",
+    "vitest": "5.0.1"
   },
   "engines": {
     "node": "^24.0.0"
   },
-  "packageManager": "pnpm@12.3.4"
+  "packageManager": "pnpm@12.4.2"
 }
