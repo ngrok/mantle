@@ -1,5 +1,119 @@
 # @ngrok/mantle
 
+## 0.86.0
+
+### Minor Changes
+
+- [#1505](https://github.com/ngrok/mantle/pull/1505) [`748773c`](https://github.com/ngrok/mantle/commit/748773c0269f26c893d9e6b54aeac8e434c4306e) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Select.Content` no longer accepts `asChild`. The prop is omitted from its props type.
+
+  The content renders the scroll buttons and the viewport around your items, so there is no single child for a slot to clone. `asChild` hands `Slot` every child, and `Slot` takes exactly one, so the prop threw `Primitive.div failed to slot onto its children` at render. The docs page has carried that warning since the part shipped. The type error now names the problem at compile time instead.
+
+  **Migration.** A call site that passes `asChild` to `Select.Content` crashes today, so nothing working breaks. Style the part with `className` instead.
+
+  `Select.Trigger`, `Select.Item`, `Select.Group`, `Select.Label`, and `Select.Separator` keep `asChild`.
+
+### Patch Changes
+
+- [#1505](https://github.com/ngrok/mantle/pull/1505) [`748773c`](https://github.com/ngrok/mantle/commit/748773c0269f26c893d9e6b54aeac8e434c4306e) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `AlertCenter.Item` no longer crashes on a page a browser translation engine has translated. The item portals its `children` into a per-id host element, and a portal owns no node of its own, so React removed each of those children from the host one at a time. When a child was a bare string, Google Translate had already reparented that text node into a `<font>` wrapper, and the `removeChild` raised `NotFoundError`. React re-threw the raw `DOMException`, which tore down the React root and blanked the page. Dismissing the alert and navigating away from the route both took that path, and both are the documented way to remove an item.
+
+  `children` now render inside a `<div data-slot="alert-center-item-label">`, which is the only node the portal puts in the host. React removes that element instead of a text node, and an element removal cannot throw. A lone string child also moves onto React's `textContent` path, which wipes the translation wrapper, so a swap between text and an element inside the item is safe too.
+
+  The wrapper is `display: contents`, so it adds no box: `Alert.Icon` and `Alert.Content` stay direct flex items of the banner chrome and keep its `gap`. The bar's exit ghost now reads the wrapper's children rather than the host's, so an item whose children render nothing still captures no ghost. `alert-center-item-label` is public API, and the docs page lists it beside `alert-center-item-host`.
+
+- [#1505](https://github.com/ngrok/mantle/pull/1505) [`748773c`](https://github.com/ngrok/mantle/commit/748773c0269f26c893d9e6b54aeac8e434c4306e) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `routeBreadcrumb.content` now documents what a content crumb must render: a host element at its root, never bare text. `Breadcrumb.List` renders an `<ol>`, so the crumb's outermost node is a direct child of a list. A bare string there is a text node React removes by itself, and a browser translation engine has reparented it first, so the removal throws and the page goes blank. No wrapper can fix it from mantle's side, because a `Breadcrumb.Item` wrapper would nest an `<li>` in an `<li>`.
+
+  The JSDoc on the `content` factory and on the `Crumb` union both carry the contract, and the breadcrumbs recipe states it above every content-crumb example. The type still takes `ReactNode`; narrowing it to `ReactElement` is a breaking change and waits for the next `minor`.
+
+- [#1508](https://github.com/ngrok/mantle/pull/1508) [`fc71cca`](https://github.com/ngrok/mantle/commit/fc71cca330e3aae43efb3773a568a59e3025ef62) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Bump runtime dependencies: `@ariakit/react` to 0.4.40 and `@tanstack/react-virtual` to 3.14.13.
+
+  The `@ariakit/react` bump reaches `Combobox` and `MultiSelect`, whose items build on ariakit's `Command`. Version 0.4.40 fixes `Command` keyboard activation with Enter and Space in Vitest's default jsdom environment, so a consumer test that runs in jsdom and presses Enter or Space on an item now selects it. The fix only reaches jsdom.
+
+  The `@tanstack/react-virtual` bump reaches `List.VirtualRoot` and `SelectableList.VirtualViewport`, which compose the virtualizer's `measureElement` onto each row as a ref callback. The virtualizer no longer calls `flushSync` from that callback, so React's development build no longer logs the `flushSync` warning when a row measures. The bump also keeps a row's key in the measurement cache, so a `getItemKey` callback that reads mutable data cannot change the identity of a measured row, and the debounced scroll-end fallback now reads the current scroll offset instead of overwriting a measurement adjustment with stale state.
+
+- [#1505](https://github.com/ngrok/mantle/pull/1505) [`748773c`](https://github.com/ngrok/mantle/commit/748773c0269f26c893d9e6b54aeac8e434c4306e) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `AreaChart`, `BarChart`, `LineChart`, and `ScatterPlot` no longer crash their `Tooltip` and `Legend` render props on a page a browser translation engine has translated. Both host elements stay mounted for the life of the chart, so React removed a render prop's text nodes one at a time whenever the content went away: the pointer left the plot, the chart lost focus, `Escape` dismissed the readout, or keyboard stepping cleared the point cursor. Google Translate reparents each of those text nodes into a `<font>` first, and the `removeChild` threw `NotFoundError`, which tore down the React root and blanked the page. A readout that returned a fragment of bare text, such as `<>{hover.xValue}: {value}</>`, hit it on the first mouse-out.
+
+  A `children` readout now renders inside a `<div data-slot="area-chart-tooltip-label">`, and a `children` legend inside `<div data-slot="area-chart-legend-label">`. The other three charts spell them `bar-chart-`, `line-chart-`, and `scatter-plot-`. React removes that element instead of the text nodes, and an element removal cannot throw. Each div is `display: contents`, so it adds no box: your content stays a direct layout child of the tooltip or the legend, and a `className` you pass to either part keeps laying it out. The default readout and the default legend are unchanged and render no such div.
+
+  The eight slots are public API. The JSDoc and the docs-page API reference for each part list them.
+
+- [#1505](https://github.com/ngrok/mantle/pull/1505) [`748773c`](https://github.com/ngrok/mantle/commit/748773c0269f26c893d9e6b54aeac8e434c4306e) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - The `@example` on `useCommandDialog` no longer teaches a shape that crashes a translated page. It rendered `Search everything for “{query}”` as three children of a `Command.Item`, and `Command.DialogRoot` resets the query on every open, so React removed the middle text node between two literal siblings. A browser translation engine reparents that node first, so the removal threw `NotFoundError` and blanked the page. The example is one template literal now, which makes the interpolation a lone child React writes through `textContent`.
+
+- [#1505](https://github.com/ngrok/mantle/pull/1505) [`748773c`](https://github.com/ngrok/mantle/commit/748773c0269f26c893d9e6b54aeac8e434c4306e) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `DataTable.ActionCell` and `DataTable.ActionHeader` now render `children` inside a label span: `data-table-action-cell-label` and `data-table-action-header-label`. Both cells hold a sticky-column indicator beside `children`, so a bare text child was never a lone child. On a page a browser translation engine had translated, the removal React runs when the content changes shape or goes away raised `NotFoundError` and blanked the page. A placeholder cell that gains an action button, and an `ActionHeader` whose `children` fall back to the built-in `sr-only` label, both took that path.
+
+  Moving the indicator after `children` cured its own mount and nothing else, so the 2026-08-04 guarantee for `ActionHeader` was narrower than the docs stated. The label span covers the removal and the type swap the move never reached.
+
+  Both spans are `display: contents`, so no layout moves. The two slots are public API, and the docs page lists each beside its cell.
+
+- [#1505](https://github.com/ngrok/mantle/pull/1505) [`748773c`](https://github.com/ngrok/mantle/commit/748773c0269f26c893d9e6b54aeac8e434c4306e) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `DropdownMenu.SubTrigger`, `DropdownMenu.CheckboxItem`, and `DropdownMenu.RadioItem` now render `children` inside a label span: `dropdown-menu-sub-trigger-label`, `dropdown-menu-checkbox-item-label`, and `dropdown-menu-radio-item-label`. Each part renders a caret or a check indicator that never unmounts, so a bare text label was never a lone child. On a page a browser translation engine had translated, the removal React runs when the label changes shape or goes away raised `NotFoundError` and blanked the page. Each span stays mounted, so a lone string label takes React's `textContent` path, which wipes the translation wrapper instead of removing a node the item no longer owns. Each span is `display: contents`, so an icon and its label stay flex items of the item and keep its `gap`.
+
+  **Migration.** An icon you pass as a child of one of these three parts is now a grandchild, so a `[&>svg]` class on the item no longer reaches it. Each part's own default moved with it, to `[&>[data-slot=<part>-label]>svg]:size-5`. Change a `[&>svg]:…` override of your own to the matching `[&>[data-slot=<part>-label]>svg]:…`. That form shares the default's variant prefix, so tailwind-merge drops the default instead of shipping both. A `[&_svg]:…` class, or a class on the icon itself, is not enough: it also loses on specificity to the item's extra attribute selector. `DropdownMenu.Item` renders no sibling and no wrapper, so its `[&>svg]` default is unchanged.
+
+  The three slots are public API, and the docs page lists each beside its part.
+
+- [#1505](https://github.com/ngrok/mantle/pull/1505) [`748773c`](https://github.com/ngrok/mantle/commit/748773c0269f26c893d9e6b54aeac8e434c4306e) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `MultiSelect.Item` now renders `children` inside a `<div data-slot="multi-select-item-label">`. The selected-state check is a permanent element sibling, so a bare text label was never a lone child: on a page a browser translation engine had translated, the removal React runs when the label changes shape or goes away raised `NotFoundError` and blanked the page. The wrapper stays mounted, so a lone string label takes React's `textContent` path, which wipes the translation wrapper instead of removing a node the option no longer owns.
+
+  The wrapper is a `<div>` because a custom option layout is often a `MediaObject`, whose root is a `<div>` that a `<span>` may not contain. It is `display: contents`, so a child of your own stays a flex item of the option and any `flex-1` on it still resolves.
+
+  `multi-select-item-label` is public API, and the docs page lists it beside `multi-select-item`.
+
+- [#1509](https://github.com/ngrok/mantle/pull/1509) [`171c72d`](https://github.com/ngrok/mantle/commit/171c72d278d0327ffb11172fa163e07ca175a183) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `asChild` now works on `DropdownMenu.SubTrigger`, `DropdownMenu.CheckboxItem`, `DropdownMenu.RadioItem`, `Select.Trigger`, `Select.Item`, and `MultiSelect.Item`.
+
+  Each of the six renders a second element beside your children: a submenu caret, or a check indicator. The prop threw at render on every one of them, because the slot received two children and takes exactly one. Each part now clones your single child as its element and moves the label span and that second element inside it. Your child keeps its own props, and the part's class names, data attributes, and `ref` merge onto it.
+
+  ```tsx
+  <DropdownMenu.RadioItem value="small" asChild>
+  	<Link to="?size=small">Small</Link>
+  </DropdownMenu.RadioItem>
+  ```
+
+  The label wrapper each part carries for translated pages rides along, so a bare string inside your child stays safe on both paths.
+
+- [#1505](https://github.com/ngrok/mantle/pull/1505) [`748773c`](https://github.com/ngrok/mantle/commit/748773c0269f26c893d9e6b54aeac8e434c4306e) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Select.Trigger` now renders `children` inside a `<span data-slot="select-trigger-label">`. The caret is a permanent element sibling, so a bare text child was never a lone child: on a page a browser translation engine had translated, the removal React runs when that child changes shape or goes away raised `NotFoundError` and blanked the page. A trigger that renders `selected ? <span>{selected.label}</span> : "Select"` took that path on the first pick. The span stays mounted, so a lone string child takes React's `textContent` path, which wipes the translation wrapper instead of removing a node the trigger no longer owns.
+
+  The span is `display: contents`, so `Select.Value` stays a flex item of the trigger and keeps its `gap`.
+
+  **Migration.** `Select.Value` is now a grandchild of the trigger, so a `[&>span]` class on the trigger reaches the wrapper instead. The part's own defaults moved with it, from `[&>span]:line-clamp-1 [&>span]:text-left` to `[&>[data-slot=select-trigger-label]>span]:line-clamp-1` and `[&>[data-slot=select-trigger-label]>span]:text-left`. Change a `[&>span]:…` override of your own to the matching `[&>[data-slot=select-trigger-label]>span]:…`. That form shares the default's variant prefix, so tailwind-merge drops the default instead of shipping both. An unchanged `[&>span]:line-clamp-none` now lands on the wrapper: `line-clamp` sets `display`, which gives the wrapper a box and takes `Select.Value` out of the trigger's flex row.
+
+  `select-trigger-label` is public API, and the docs page lists it beside `select-trigger`.
+
+- [#1505](https://github.com/ngrok/mantle/pull/1505) [`748773c`](https://github.com/ngrok/mantle/commit/748773c0269f26c893d9e6b54aeac8e434c4306e) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `SelectableList.Empty` no longer crashes on a page a browser translation engine has translated. The part is a `role="status"` live region that stays mounted, so React removes the message from inside it when the filter matches options again. A message built from more than one node, such as `No results for <strong>{query}</strong>.`, puts real text nodes there. Google Translate reparents each one first, and the `removeChild` threw `NotFoundError`, which tore down the React root and blanked the page. One keystroke in each direction was enough to hit it.
+
+  The message now renders inside a `<span data-slot="selectable-list-empty-label">`. React removes that element instead of the text nodes, and an element removal cannot throw. The span is `display: contents`, so it adds no box: the message stays a direct child of the centered region, and the layout is unchanged. A message that is a lone string also takes React's `textContent` path now, which wipes the translation wrapper instead of fighting it.
+
+  The new slot is public API. The JSDoc and the docs-page API reference list it beside `selectable-list-empty`.
+
+- [#1505](https://github.com/ngrok/mantle/pull/1505) [`748773c`](https://github.com/ngrok/mantle/commit/748773c0269f26c893d9e6b54aeac8e434c4306e) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `SelectableList.SelectAll` now renders `children` inside a `<span data-slot="selectable-list-select-all-label">`. The checkbox is a permanent element sibling, so a bare text label was never a lone child: on a page a browser translation engine had translated, the removal React runs when a count-aware label swaps to an element raised `NotFoundError` and blanked the page.
+
+  The span is `display: contents`, so the checkbox and the label stay flex items of the header and keep its `gap`.
+
+  `selectable-list-select-all-label` is public API, and the docs page lists it beside `selectable-list-select-all`.
+
+- [#1505](https://github.com/ngrok/mantle/pull/1505) [`748773c`](https://github.com/ngrok/mantle/commit/748773c0269f26c893d9e6b54aeac8e434c4306e) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Sidebar.Trigger`, `Sidebar.Tooltip`, and `Sidebar.SearchTrigger` no longer crash on a page a browser translation engine has translated. Both defects were the same shape: a `shortcut` crossing `null` changed the rendered node type, so React deleted the whole child list instead of appending. The translated label was reparented by then, and that removal raised `NotFoundError`, which tore down the React root and blanked the page.
+
+  The shared tooltip body always renders its `<span data-slot="sidebar-tooltip-row">` now, and only the chord chips are conditional, so a `shortcut` that resolves after the first paint appends beside an element. `Sidebar.SearchTrigger` branches on `asChild` rather than on `shortcut`, and its `<span data-slot="sidebar-search-trigger-shortcut">` is always mounted on the default `button` path. That span is `display: none` while it is empty, so a row with no chord keeps its layout and its flex `gap` exactly as before. Under `asChild` the span is absent, which keeps `Slot` at exactly one child.
+
+  Each part also wraps the content a consumer passes, because a mounted chord span leaves a bare text label with a sibling and crashes the consumer's own label swap. The tooltip body wraps `label` in a `<span data-slot="sidebar-tooltip-label">`, and `Sidebar.SearchTrigger` wraps `children` in a `<span data-slot="sidebar-search-trigger-label">` on the default `button` path. Both are `display: contents`, so neither adds a box. The chord chips carry `sidebar-tooltip-shortcut` and `sidebar-search-trigger-shortcut`. All five slots are public API, and the docs page lists each beside its part.
+
+  **Migration.** The leading icon in a `Sidebar.SearchTrigger` is now a grandchild on the default `button` path, so the part's own `[&>svg:first-child]` utilities gained a `[&>[data-slot=sidebar-search-trigger-label]>svg:first-child]` twin. Both forms ship, so a direct leading icon on the `asChild` path keeps its size and its colors exactly as before. Add the matching slot-scoped form to a `[&>svg]:…` override of your own, or it stops reaching the icon on the `button` path.
+
+- [#1505](https://github.com/ngrok/mantle/pull/1505) [`748773c`](https://github.com/ngrok/mantle/commit/748773c0269f26c893d9e6b54aeac8e434c4306e) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Tabs.Trigger` now renders `children` inside a `<span data-slot="tabs-trigger-label">`, on the plain path and the `asChild` path alike. The active-tab decoration is a permanent element sibling, so a bare text label was never a lone child: on a page a browser translation engine had translated, the removal React runs when the label changes shape or goes away raised `NotFoundError` and blanked the page. The span stays mounted, so a lone string label takes React's `textContent` path, which wipes the translation wrapper instead of removing a node the trigger no longer owns. The span is `display: contents`, so the icon, the label, and `Tabs.Badge` stay flex items of the trigger and keep its `gap`.
+
+  **Migration.** An icon you pass as a child of a trigger is now a grandchild, so a `[&>svg]` class on the trigger no longer reaches it. The part's own default moved with it, from `[&>svg]:size-5` to `[&>[data-slot=tabs-trigger-label]>svg]:size-5`. Change a `[&>svg]:…` override of your own to the matching `[&>[data-slot=tabs-trigger-label]>svg]:…`. That form shares the default's variant prefix, so tailwind-merge drops the default instead of shipping both. A `[&_svg]:…` class, or a class on the icon itself, is not enough: it also loses on specificity to the trigger's extra attribute selector. An unchanged `[&>svg]:…` override now matches nothing, and the default survives beside it.
+
+  `tabs-trigger-label` is public API, and the docs page lists it beside `tabs-trigger`.
+
+- [#1505](https://github.com/ngrok/mantle/pull/1505) [`748773c`](https://github.com/ngrok/mantle/commit/748773c0269f26c893d9e6b54aeac8e434c4306e) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Toast.Root` now renders `children` inside a `<div data-slot="toast-label">`. The intent accent bar is a permanent element sibling, so a bare text child was never a lone child: on a page a browser translation engine had translated, the removal React runs when the content changes shape or goes away raised `NotFoundError` and blanked the page. A toast that `makeToast` updates in place under a repeated id took that path.
+
+  The wrapper is a `<div>` because `Toast.Message` renders a `<p>`, which a `<span>` may not contain. It is `display: contents`, so the icon, the message, and an action stay flex items of the root and `Toast.Message`'s `flex-1` still resolves.
+
+  `toast-label` is public API, and the docs page lists it beside `toast`. It wraps everything you pass the root, not only the message text.
+
+- [#1505](https://github.com/ngrok/mantle/pull/1505) [`748773c`](https://github.com/ngrok/mantle/commit/748773c0269f26c893d9e6b54aeac8e434c4306e) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Tooltip.Content` now renders `children` inside a `<div data-slot="tooltip-label">`. The arrow is a permanent element sibling, so a bare text body was never a lone child of the surface: React held a real text node for it, and on a page a browser translation engine had translated, the removal React runs when the body changes shape or goes away raised `NotFoundError` and blanked the page. The wrapper stays mounted, so a lone string body takes React's `textContent` path, which wipes the translation wrapper instead of removing a node the surface no longer owns.
+
+  The wrapper is a `<div>` because a tooltip body is often a `<p>`, which a `<span>` may not contain. It is `display: contents`, so it adds no box and every child of your body stays a layout child of the surface.
+
+  `tooltip-label` is public API, and the docs page lists it beside `tooltip-content`. `TooltipProvider` no longer stamps `data-slot="tooltip-provider"`: the Radix provider renders no DOM, so that attribute named an element that never existed.
+
 ## 0.85.2
 
 ### Patch Changes
