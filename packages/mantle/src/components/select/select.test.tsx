@@ -914,6 +914,60 @@ describe("Select", () => {
 			expect(Array.from(option.childNodes).every((node) => node instanceof Element)).toBe(true);
 		});
 
+		/** An open select whose one option slots onto a consumer `<div>`. */
+		function SlottedPicker({ label }: { label: ReactNode }) {
+			return (
+				<Select.Root defaultValue="apple" open>
+					<Select.Trigger>
+						<Select.Value placeholder="Select a fruit" />
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Item value="apple" asChild>
+							<div>{label}</div>
+						</Select.Item>
+					</Select.Content>
+				</Select.Root>
+			);
+		}
+
+		/**
+		 * Translates both copies of the slotted option's label: the one in the list,
+		 * and the one Radix portals into `Select.Value`.
+		 */
+		function renderTranslatedSlottedPicker() {
+			const view = render(<SlottedPicker label="Apple" />);
+			const option = screen.getByRole("option", { name: "Apple" });
+			// Why `hidden`: while the list is open, Radix marks the rest of the page
+			// `aria-hidden`, and the trigger with it.
+			const trigger = screen.getByRole("combobox", { hidden: true });
+			translateTextNodes(option);
+			translateTextNodes(trigger);
+			expect(option).toHaveTextContent("[Apple-es]");
+			expect(trigger).toHaveTextContent("[Apple-es]");
+			return { ...view, option, trigger };
+		}
+
+		test("Select.Item asChild keeps rendering when a translated label swaps to an element", () => {
+			const { rerender, option, trigger } = renderTranslatedSlottedPicker();
+
+			rerender(<SlottedPicker label={<strong>Apple</strong>} />);
+
+			expect(option.querySelector("font")).toBeNull();
+			expect(option.querySelector("strong")).toHaveTextContent("Apple");
+			expect(trigger.querySelector("font")).toBeNull();
+			expect(trigger.querySelector("strong")).toHaveTextContent("Apple");
+		});
+
+		test("Select.Item asChild keeps rendering when a translated label unmounts", () => {
+			const { rerender, option, trigger } = renderTranslatedSlottedPicker();
+
+			rerender(<SlottedPicker label={null} />);
+
+			expect(option.querySelector("font")).toBeNull();
+			expect(option.querySelector('[data-slot="select-item-label"]')).toHaveTextContent("");
+			expect(trigger.querySelector("font")).toBeNull();
+		});
+
 		test("Select.Trigger asChild keeps rendering when a translated bare string child swaps to an element", () => {
 			function Picker({ label }: { label: ReactNode }) {
 				return (
