@@ -1,7 +1,7 @@
 import mdx from "@mdx-js/rollup";
 import { reactRouter } from "@react-router/dev/vite";
 import tailwindcss from "@tailwindcss/vite";
-import { mantleCodeBlockPlugins } from "@ngrok/mantle-vite-plugins";
+import { mantleCodeBlockPlugins, mantleSourcesPlugin } from "@ngrok/mantle-vite-plugins";
 import path from "node:path";
 import { transform } from "oxc-transform-react";
 import rehypeSlug from "rehype-slug";
@@ -76,6 +76,12 @@ export default defineConfig(({ command }) => ({
 		mantleChangelogMdx(path.resolve(import.meta.dirname, "../../packages/mantle/CHANGELOG.md")),
 		devtoolsJson(),
 		tailwindcss(),
+		// Why here: this app resolves mantle to source through `resolve.conditions`, so the
+		// listed files are `packages/mantle/src` modules. The `@source "../../../packages/mantle/src"`
+		// line in `app/global.css` already covers them, and the plugin's `@source not` lines drop
+		// the neighbors outside the client graph, such as test files, from that broad scan. The
+		// plugin runs here to prove the graph walk and the bundle check on a real React Router build.
+		mantleSourcesPlugin(),
 		mdx({
 			// Only treat `.mdx` files as MDX. `.md` is left alone so `?raw`
 			// imports of plain markdown stay raw — `@mdx-js/rollup`'s filter

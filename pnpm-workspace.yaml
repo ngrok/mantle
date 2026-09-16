@@ -30,6 +30,7 @@ catalog:
   "@phosphor-icons/react": "2.1.10"
   "@types/react": "19.3.0"
   "@types/react-dom": "19.3.0"
+  "@tailwindcss/oxide": "4.3.3"
   "@tailwindcss/vite": "4.3.3"
   "@testing-library/dom": "10.4.2"
   "@testing-library/jest-dom": "7.0.1"

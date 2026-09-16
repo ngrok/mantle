@@ -38,7 +38,10 @@
   "devDependencies": {
     "@cfg/tsconfig": "workspace:*",
     "@ngrok/mantle": "workspace:*",
+    "@tailwindcss/oxide": "catalog:",
+    "@tailwindcss/vite": "catalog:",
     "@types/node": "catalog:",
+    "tailwindcss": "catalog:",
     "tsdown": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:"
