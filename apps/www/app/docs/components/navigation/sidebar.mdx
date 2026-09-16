@@ -1950,7 +1950,7 @@ four in the table above are the exceptions: this part reads them itself.
 That row is always mounted, so a `shortcut` that resolves later appends beside an element instead of replacing
 the label. The label span is always mounted too, so your own swap of `label` from text to an element never
 aims a removal at a text node the engine reparented. The row nests inside `Tooltip.Content`'s own
-`tooltip-label` span: `sidebar-tooltip` → `tooltip-label` (`display: contents`) → `sidebar-tooltip-row` (the
+`tooltip-label` div: `sidebar-tooltip` → `tooltip-label` (`display: contents`) → `sidebar-tooltip-row` (the
 flex row) → `sidebar-tooltip-label` (`display: contents`).
 [Browser translation](/browser-translation) covers why.
 

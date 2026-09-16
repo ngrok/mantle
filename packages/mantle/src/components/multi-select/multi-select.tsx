@@ -931,7 +931,12 @@ const Content = ({
 	);
 };
 
-type MultiSelectItemProps = Omit<Primitive.ComboboxItemProps, "render"> & WithAsChild;
+/**
+ * Props for `MultiSelect.Item`. `asChild` is omitted: the item renders its check
+ * indicator next to the label div holding `children`, so a slot would receive
+ * two elements and throw.
+ */
+type MultiSelectItemProps = Omit<Primitive.ComboboxItemProps, "render">;
 
 /**
  * Renders a selectable item inside a `MultiSelect.Content` component.
@@ -946,6 +951,9 @@ type MultiSelectItemProps = Omit<Primitive.ComboboxItemProps, "render"> & WithAs
  * whose root is a `<div>` that a `<span>` may not contain. It is
  * `display: contents`, so a child of your own stays a flex item of the option
  * and any `flex-1` on it still resolves.
+ *
+ * **Why no `asChild`:** the check indicator sits beside the label div, so `Slot`
+ * would receive two elements and throw. The prop is omitted from the props type.
  *
  * **Data attributes:**
  *
@@ -971,7 +979,6 @@ type MultiSelectItemProps = Omit<Primitive.ComboboxItemProps, "render"> & WithAs
  * ```
  */
 const Item = ({
-	asChild = false,
 	children,
 	className,
 	focusOnHover = true,
@@ -1005,7 +1012,6 @@ const Item = ({
 				onClick?.(event);
 			}}
 			ref={ref}
-			render={asChild ? ({ ref, ...childProps }) => <Slot ref={ref} {...childProps} /> : undefined}
 			resetValueOnSelect
 			value={value}
 			{...props}
@@ -1514,6 +1520,9 @@ const MultiSelect = {
 	 * whose root is a `<div>` that a `<span>` may not contain. It is
 	 * `display: contents`, so a child of your own stays a flex item of the option
 	 * and any `flex-1` on it still resolves.
+	 *
+	 * **Why no `asChild`:** the check indicator sits beside the label div, so `Slot`
+	 * would receive two elements and throw. The prop is omitted from the props type.
 	 *
 	 * **Data attributes:**
 	 *

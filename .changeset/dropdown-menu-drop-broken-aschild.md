@@ -8,4 +8,4 @@ Each of the three renders a second element beside your children: the submenu car
 
 **Migration.** A call site that passes `asChild` to one of them crashes today, so nothing working breaks. The type error now names the problem at compile time instead. Style the part with `className`, or move the element you were slotting into the part's children.
 
-The other seven parts keep `asChild` and are unaffected: `DropdownMenu.Trigger`, `Content`, `SubContent`, `Item`, `Label`, `Group`, and `RadioGroup`. The docs page lists them under a new **Polymorphism** section.
+The other eight parts keep `asChild` and are unaffected: `DropdownMenu.Trigger`, `Content`, `SubContent`, `Item`, `Label`, `Group`, `RadioGroup`, and `Separator`. The docs page lists them under a new **Polymorphism** section.

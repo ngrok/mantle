@@ -2,7 +2,7 @@
 "@ngrok/mantle": patch
 ---
 
-`Select.Trigger` now renders `children` inside a `<span data-slot="select-trigger-label">`. The caret is a permanent element sibling, so a bare text child was never a lone child: on a page a browser translation engine had translated, the removal React runs when that child changes shape or goes away raised `NotFoundError` and blanked the page. A trigger that renders `selected ? <span>{selected.label}</span> : "Select"` took that path on the first pick. React removes the span instead, and a lone string child moves onto React's `textContent` path, which wipes the translation wrapper.
+`Select.Trigger` now renders `children` inside a `<span data-slot="select-trigger-label">`. The caret is a permanent element sibling, so a bare text child was never a lone child: on a page a browser translation engine had translated, the removal React runs when that child changes shape or goes away raised `NotFoundError` and blanked the page. A trigger that renders `selected ? <span>{selected.label}</span> : "Select"` took that path on the first pick. The span stays mounted, so a lone string child takes React's `textContent` path, which wipes the translation wrapper instead of removing a node the trigger no longer owns.
 
 The span is `display: contents`, so `Select.Value` stays a flex item of the trigger and keeps its `gap`.
 
