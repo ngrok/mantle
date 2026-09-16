@@ -100,6 +100,13 @@ classes mantle's components use. The components then render without their styles
 Add your own `@source` directives to the same file when you keep components in a workspace
 package that Tailwind's automatic detection can't see.
 
+In production, `source-all.css` makes Tailwind scan every file in mantle's `dist/`, so the
+stylesheet carries the utilities of every mantle component, whether your app renders it or not. On
+an app that renders `Badge` alone, that's 181 KB of CSS where 71 KB would do. If you build with
+Vite, add [`mantleSourcesPlugin`](/vite-plugins#mantlesourcesplugin) from
+`@ngrok/mantle-vite-plugins` to `vite.config.ts` to ship only the classes your bundle uses. The CSS
+above stays as it is.
+
 ### React Router
 
 Install the additional dev dependencies for the Tailwind Vite plugin:

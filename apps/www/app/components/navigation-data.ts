@@ -236,6 +236,7 @@ export const welcomePages = [
 	"Philosophy",
 	"Accessibility",
 	"Browser Translation",
+	"Vite Plugins",
 	"For AI Agents",
 	"Changelog",
 ] as const;
@@ -246,6 +247,7 @@ export const welcomeRoutes = {
 	Philosophy: "/philosophy",
 	Accessibility: "/accessibility",
 	"Browser Translation": "/browser-translation",
+	"Vite Plugins": "/vite-plugins",
 	"For AI Agents": "/for-ai-agents",
 	Changelog: "/changelog",
 } as const satisfies Record<(typeof welcomePages)[number], Route>;

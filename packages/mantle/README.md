@@ -47,7 +47,7 @@ Mantle ships machine-readable entry points for coding agents — see [For AI Age
 Mantle ships runtime components from `@ngrok/mantle`, while build-time and server-side tooling lives in `@ngrok/mantle-vite-plugins`:
 
 - `@ngrok/mantle/code-block`: runtime React components and `mantleCode` template tag
-- `@ngrok/mantle-vite-plugins`: Vite + rehype integration via `mantleCodeBlockPlugins()`
+- `@ngrok/mantle-vite-plugins`: Vite + rehype integration via `mantleCodeBlockPlugins()`, and `mantleSourcesPlugin()` to trim the production Tailwind scan ([docs](https://mantle.ngrok.com/vite-plugins))
 - `@ngrok/mantle-server-syntax-highlighter`: server-side highlighting engine for API routes/actions
 
 This keeps Vite/Shiki/parser dependencies out of frontend installs that only need Mantle's runtime UI package.
@@ -74,10 +74,10 @@ const result = await highlighter.highlight({
 
 ## Related Packages
 
-| Package                                   | Description                                             | Links                                                                                                                                                                        |
-| ----------------------------------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@ngrok/mantle-vite-plugins`              | Vite + rehype plugins for code block highlighting       | [GitHub](https://github.com/ngrok/mantle/tree/main/packages/mantle-vite-plugins) · [npm](https://www.npmjs.com/package/@ngrok/mantle-vite-plugins)                           |
-| `@ngrok/mantle-server-syntax-highlighter` | Server-side syntax highlighting engine powered by Shiki | [GitHub](https://github.com/ngrok/mantle/tree/main/packages/mantle-server-syntax-highlighter) · [npm](https://www.npmjs.com/package/@ngrok/mantle-server-syntax-highlighter) |
+| Package                                   | Description                                                                          | Links                                                                                                                                                                        |
+| ----------------------------------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@ngrok/mantle-vite-plugins`              | Vite plugins: trim the production Tailwind scan, highlight code blocks at build time | [GitHub](https://github.com/ngrok/mantle/tree/main/packages/mantle-vite-plugins) · [npm](https://www.npmjs.com/package/@ngrok/mantle-vite-plugins)                           |
+| `@ngrok/mantle-server-syntax-highlighter` | Server-side syntax highlighting engine powered by Shiki                              | [GitHub](https://github.com/ngrok/mantle/tree/main/packages/mantle-server-syntax-highlighter) · [npm](https://www.npmjs.com/package/@ngrok/mantle-server-syntax-highlighter) |
 
 ## Contributing
 
