@@ -258,7 +258,7 @@ Reach for `Toast.Action asChild` when the action must be a link ("View logs" nav
 
 `Toast.Icon` takes its element through the `svg` prop and clones it, so it needs no `asChild`.
 
-`Toast.Root` does not take `asChild`. The root renders the intent accent bar alongside your children, so a slot would receive two elements. Style the toast surface with `className` instead.
+`Toast.Root` does not take `asChild`. The root renders the intent accent bar alongside the label div holding your children, so a slot would receive two elements. Style the toast surface with `className` instead.
 
 ## API Reference
 
@@ -277,11 +277,20 @@ The `Toaster` component renders all toasts. It accepts the following props:
 
 The `Toast.Root` is the container for a toast message.
 
+`children` render inside a `<div data-slot="toast-label">`. The intent accent bar is a permanent element sibling, so without the wrapper a bare text child is never a lone child: a browser translation engine reparents that text node, and the removal React runs when the content changes shape or goes away throws. The wrapper is a `<div>` because `Toast.Message` renders a `<p>`, which a `<span>` may not contain. It is `display: contents`, so the icon, the message, and an action stay flex items of the root and `Toast.Message`'s `flex-1` still resolves. [Browser translation](/browser-translation) covers the mechanism and the rules your own components need.
+
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div), plus:
 
 | Prop     | Type                                           | Default | Description                                                                                                   |
 | -------- | ---------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------- |
 | `intent` | `"info" \| "success" \| "warning" \| "danger"` |         | The tone of the toast. Determines the visual styling and default icon that communicate the status it reports. |
+
+#### Data attributes
+
+| Data Attribute | Value           | Description                                                    |
+| -------------- | --------------- | -------------------------------------------------------------- |
+| `data-slot`    | `"toast"`       | On the toast root.                                             |
+| `data-slot`    | `"toast-label"` | On the `<div>` wrapping `children`, not only the message text. |
 
 ### Toast.Icon
 

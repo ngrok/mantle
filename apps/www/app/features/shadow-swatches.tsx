@@ -3,7 +3,9 @@
  */
 export function ShadowSwatches() {
 	return (
-		<div className="text-mono mt-8 flex flex-wrap gap-8 font-mono">
+		// Every child names a Tailwind class a reader retypes, so nothing here
+		// should be translated.
+		<div translate="no" className="text-mono mt-8 flex flex-wrap gap-8 font-mono">
 			<div className="bg-card xs:size-36 flex h-36 w-full shrink-0 items-center justify-center rounded-lg shadow-inner">
 				.shadow-inner
 			</div>

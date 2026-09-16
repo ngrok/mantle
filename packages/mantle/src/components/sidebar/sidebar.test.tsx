@@ -1,10 +1,11 @@
 import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
 import { fireEvent, render as renderComponent, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { createRef, type ReactElement } from "react";
+import { createRef, type ReactElement, type ReactNode } from "react";
 import { renderToString } from "react-dom/server";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import mantleCss from "../../mantle.css?raw";
+import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import type * as UseBreakpointModule from "../../hooks/use-breakpoint.js";
 import { Avatar } from "../avatar/index.js";
 import { Command } from "../command/command.js";
@@ -251,6 +252,32 @@ describe("Sidebar.Nav (desktop)", () => {
 		const tooltip = await screen.findByRole("tooltip");
 		expect(tooltip).toHaveTextContent("Toggle Sidebar");
 		expect(tooltip).not.toHaveTextContent("B");
+	});
+
+	test("Trigger's tooltip takes a shortcut that arrives on a translated page", async () => {
+		const user = userEvent.setup();
+		function Page({ shortcut }: { shortcut?: ReactNode }) {
+			return (
+				<Sidebar.Root>
+					<Sidebar.Nav />
+					<Sidebar.Trigger shortcut={shortcut} />
+				</Sidebar.Root>
+			);
+		}
+		const { rerender } = render(<Page />);
+		await user.hover(screen.getByRole("button", { name: "Toggle Sidebar" }));
+		const tooltip = await screen.findByRole("tooltip");
+		translateTextNodes(tooltip);
+		expect(tooltip).toHaveTextContent("[Toggle Sidebar-es]");
+
+		// The row wrapper is always mounted, so the chips append beside an
+		// element. An early return for a null `shortcut` flipped this component's
+		// root from a text node to an element, and React deleted the translated
+		// label instead.
+		rerender(<Page shortcut={<kbd>B</kbd>} />);
+
+		expect(tooltip).toHaveTextContent("[Toggle Sidebar-es]");
+		expect(tooltip.querySelector('[data-slot="sidebar-tooltip-shortcut"]')).toHaveTextContent("B");
 	});
 
 	describe("Trigger aria-keyshortcuts", () => {
@@ -1122,12 +1149,16 @@ describe("Sidebar.SearchTrigger", () => {
 			</Sidebar.SearchTrigger>,
 		);
 		const button = screen.getByRole("button", { name: "Search" });
-		const hint = button.querySelector("[aria-hidden='true']");
-		expect(hint).not.toBeNull();
+		const hint = button.querySelector('[data-slot="sidebar-search-trigger-shortcut"]');
+		expect(hint).toHaveAttribute("aria-hidden", "true");
 		expect(hint).toHaveTextContent("K");
 	});
 
-	test("renders no hint element when no shortcut is passed", () => {
+	test("keeps the hint span mounted and empty when no shortcut is passed", () => {
+		// Why always mounted: branching the child list on `shortcut` flipped the
+		// row's fiber shape, so a chord arriving on a translated page deleted the
+		// label React no longer owned. `empty:hidden` keeps the empty span out of
+		// the row's flex layout.
 		render(
 			<Sidebar.SearchTrigger>
 				<MagnifyingGlassIcon />
@@ -1135,8 +1166,83 @@ describe("Sidebar.SearchTrigger", () => {
 			</Sidebar.SearchTrigger>,
 		);
 		expect(
-			screen.getByRole("button", { name: "Search" }).querySelector("[aria-hidden='true']"),
-		).toBeNull();
+			screen
+				.getByRole("button", { name: "Search" })
+				.querySelector('[data-slot="sidebar-search-trigger-shortcut"]'),
+		).toBeEmptyDOMElement();
+	});
+
+	test("keeps rendering when a translated label swaps to an element", () => {
+		// The chord span never unmounts, so `children` are not a lone child. Only
+		// the label span keeps a consumer's own swap off React's removal path.
+		function Row({ label }: { label: ReactNode }) {
+			return <Sidebar.SearchTrigger>{label}</Sidebar.SearchTrigger>;
+		}
+		const { rerender } = render(<Row label="Search" />);
+		const button = screen.getByRole("button", { name: "Search" });
+		translateTextNodes(button);
+		expect(button).toHaveTextContent("[Search-es]");
+
+		rerender(<Row label={<strong>Search</strong>} />);
+
+		expect(button.querySelector("font")).toBeNull();
+		expect(button.querySelector("strong")).toHaveTextContent("Search");
+	});
+
+	test("sizes the leading icon on the button path through the label-scoped selector", () => {
+		// Cross-file pin: the `[&>[data-slot=sidebar-search-trigger-label]>svg]`
+		// utilities only match while the label span carries that slot and the
+		// consumer's icon stays its direct child.
+		render(
+			<Sidebar.SearchTrigger>
+				<MagnifyingGlassIcon />
+				<span>Search</span>
+			</Sidebar.SearchTrigger>,
+		);
+
+		const button = screen.getByRole("button", { name: "Search" });
+		expect(button.className).toContain(
+			"[&>[data-slot=sidebar-search-trigger-label]>svg:first-child]:size-5",
+		);
+		const label = button.querySelector('[data-slot="sidebar-search-trigger-label"]');
+		expect(label?.firstElementChild?.tagName).toBe("svg");
+	});
+
+	test("keeps the direct-child selector for the asChild path, which renders no label span", () => {
+		// Cross-file pin, and a regression: `asChild` renders no label span, so the
+		// slot-scoped utilities reach nothing there. Dropping the direct-child form
+		// left a leading icon unsized and unmuted on that path.
+		render(
+			<Sidebar.SearchTrigger asChild>
+				<a href="/search">
+					<MagnifyingGlassIcon />
+					<span>Search</span>
+				</a>
+			</Sidebar.SearchTrigger>,
+		);
+
+		const link = screen.getByRole("link", { name: "Search" });
+		expect(link.querySelector('[data-slot="sidebar-search-trigger-label"]')).toBeNull();
+		expect(link.firstElementChild?.tagName).toBe("svg");
+		expect(link.className).toContain("[&>svg:first-child]:size-5");
+		expect(link.className).toContain("[&>svg:first-child]:text-muted");
+	});
+
+	test("takes a chord that arrives on a translated row with a bare text label", () => {
+		function Row({ shortcut }: { shortcut?: ReactNode }) {
+			return <Sidebar.SearchTrigger shortcut={shortcut}>Search</Sidebar.SearchTrigger>;
+		}
+		const { rerender } = render(<Row />);
+		const button = screen.getByRole("button", { name: "Search" });
+		translateTextNodes(button);
+		expect(button).toHaveTextContent("[Search-es]");
+
+		rerender(<Row shortcut={<kbd>K</kbd>} />);
+
+		expect(button).toHaveTextContent("[Search-es]");
+		expect(button.querySelector('[data-slot="sidebar-search-trigger-shortcut"]')).toHaveTextContent(
+			"K",
+		);
 	});
 
 	test("a Sidebar.Tooltip around it opens in the rail, shortcut and all", async () => {
@@ -1299,6 +1405,39 @@ describe("Sidebar.Tooltip", () => {
 
 		await user.hover(screen.getByRole("button", { name: "Endpoints" }));
 		expect(await screen.findByRole("tooltip")).toHaveTextContent("Endpoints");
+	});
+
+	test("keeps rendering when a translated label swaps to an element beside a chord", async () => {
+		// The chips stay mounted, so `label` is not a lone child of the row. Only
+		// the label span keeps a consumer's own swap off React's removal path.
+		const user = userEvent.setup();
+		function Page({ label }: { label: ReactNode }) {
+			return (
+				<TooltipProvider>
+					<Sidebar.Root defaultOpen={false}>
+						<Sidebar.Nav>
+							<Sidebar.Tooltip label={label} shortcut={<kbd>E</kbd>}>
+								<Sidebar.ItemButton>Endpoints</Sidebar.ItemButton>
+							</Sidebar.Tooltip>
+						</Sidebar.Nav>
+					</Sidebar.Root>
+				</TooltipProvider>
+			);
+		}
+		const { rerender } = render(<Page label="Endpoints" />);
+		await user.hover(screen.getByRole("button", { name: "Endpoints" }));
+		const tooltip = await screen.findByRole("tooltip");
+		translateTextNodes(tooltip);
+		expect(tooltip.querySelector('[data-slot="sidebar-tooltip-label"]')).toHaveTextContent(
+			"[Endpoints-es]",
+		);
+
+		rerender(<Page label={<strong>Endpoints</strong>} />);
+
+		const label = tooltip.querySelector('[data-slot="sidebar-tooltip-label"]');
+		expect(label?.querySelector("font")).toBeNull();
+		expect(label?.querySelector("strong")).toHaveTextContent("Endpoints");
+		expect(tooltip.querySelector('[data-slot="sidebar-tooltip-shortcut"]')).toHaveTextContent("E");
 	});
 
 	test("stays silent while the panel is expanded — the row reads its own label", async () => {

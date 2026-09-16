@@ -39,7 +39,7 @@ export const ControlledAccordionExample = () => {
 				</Accordion.Item>
 			</Accordion.Root>
 			<p className="text-muted text-sm">
-				Open section: <code>{value || "none"}</code>
+				Open section: <code translate="no">{value || "none"}</code>
 			</p>
 			<div className="flex gap-2">
 				<Button
@@ -64,7 +64,7 @@ A vertically stacked set of disclosure sections, styled after the shadcn / ngrok
 
 Its defining feature: **collapsed content is never removed from the DOM.** Closed sections keep their content with
 `hidden="until-found"` (which applies `content-visibility: hidden` rather than unmounting it), so the browser's
-find-in-page (<kbd>⌘F</kbd> / <kbd>Ctrl+F</kbd>) can find text inside a closed section and automatically expand it.
+find-in-page (<kbd translate="no">⌘F</kbd> / <kbd translate="no">Ctrl+F</kbd>) can find text inside a closed section and automatically expand it.
 The `beforematch` event (fired right before the browser reveals a match) syncs that reveal back into the accordion's
 state. It's built on plain `<div>` and `<button>` elements (matching native `<details>`/`<summary>` accessibility:
 the item is a `role="group"` and the trigger a `<button aria-expanded>`), so a section header can be any layout.
@@ -82,7 +82,8 @@ the item is a `role="group"` and the trigger a `<button aria-expanded>`), so a s
 			<Accordion.Content>
 				<Accordion.Body>
 					Add a CNAME record at your DNS provider that targets the CNAME value shown on your
-					reserved domain, then start your tunnel with the matching <code>--domain</code> flag.
+					reserved domain, then start your tunnel with the matching{" "}
+					<code translate="no">--domain</code> flag.
 				</Accordion.Body>
 			</Accordion.Content>
 		</Accordion.Item>
@@ -126,7 +127,7 @@ import { Accordion } from "@ngrok/mantle/accordion";
 		<Accordion.Content>
 			<Accordion.Body>
 				Add a CNAME record at your DNS provider that targets the CNAME value shown on your reserved
-				domain, then start your tunnel with the matching <code>--domain</code> flag.
+				domain, then start your tunnel with the matching <code translate="no">--domain</code> flag.
 			</Accordion.Body>
 		</Accordion.Content>
 	</Accordion.Item>
@@ -170,7 +171,8 @@ most one section is open at a time:
 			<Accordion.Content>
 				<Accordion.Body>
 					Add a CNAME record at your DNS provider that targets the CNAME value shown on your
-					reserved domain, then start your tunnel with the matching <code>--domain</code> flag.
+					reserved domain, then start your tunnel with the matching{" "}
+					<code translate="no">--domain</code> flag.
 				</Accordion.Body>
 			</Accordion.Content>
 		</Accordion.Item>
@@ -211,7 +213,7 @@ most one section is open at a time:
 		<Accordion.Content>
 			<Accordion.Body>
 				Add a CNAME record at your DNS provider that targets the CNAME value shown on your reserved
-				domain, then start your tunnel with the matching <code>--domain</code> flag.
+				domain, then start your tunnel with the matching <code translate="no">--domain</code> flag.
 			</Accordion.Body>
 		</Accordion.Content>
 	</Accordion.Item>
@@ -243,7 +245,7 @@ most one section is open at a time:
 ```
 
 > [!NOTE]
-> Collapse every section above, then press <kbd>⌘F</kbd> and search for a word that only appears inside a closed
+> Collapse every section above, then press <kbd translate="no">⌘F</kbd> and search for a word that only appears inside a closed
 > section (for example **"Stripe"** or **"prototype"**). The matching section expands on its own. Find-in-page reveal
 > requires Chrome 97+, Firefox 139+, or Safari 26.2+; older browsers fall back to a normal collapsed section.
 
@@ -352,7 +354,7 @@ function ControlledAccordionExample() {
 				</Accordion.Item>
 			</Accordion.Root>
 			<p className="text-muted text-sm">
-				Open section: <code>{value || "none"}</code>
+				Open section: <code translate="no">{value || "none"}</code>
 			</p>
 			<div className="flex gap-2">
 				<Button

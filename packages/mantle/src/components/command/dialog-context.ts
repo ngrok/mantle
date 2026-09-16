@@ -90,7 +90,7 @@ const CommandDialogContext = createContext<CommandDialogState | null>(null);
  *   const { openWithQuery } = useCommandDialog();
  *   return (
  *     <Command.Item onSelect={() => openWithQuery(query)}>
- *       Search everything for “{query}”
+ *       {`Search everything for “${query}”`}
  *     </Command.Item>
  *   );
  * }

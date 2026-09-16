@@ -313,6 +313,19 @@ const ReferenceLine = (props: ScatterPlotReferenceLineProps) =>
  * or replace the content entirely via the render-prop `children`.
  * In 3D the readout also carries the point's z value.
  *
+ * **Structure.** A `children` readout renders inside a
+ * `<div data-slot="scatter-plot-tooltip-label">`. When it goes away, React removes
+ * that div instead of your own text nodes: a browser translation engine
+ * reparents a text node, and a removal aimed at one throws. The div is
+ * `display: contents`, so it lays out nothing of its own. To style it as a box,
+ * set a display of your own on it first.
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"scatter-plot-tooltip-label"` | On the `<div>` wrapping a `children` readout. The default readout has none. |
+ *
  * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterplottooltip
  *
  * @example
@@ -333,11 +346,19 @@ const Tooltip = (props: ScatterPlotTooltipProps) =>
  * never rely on color-matching alone. It renders nothing for a single series
  * (the chart's title already names it).
  *
+ * **Structure.** A `children` render prop renders inside a
+ * `<div data-slot="scatter-plot-legend-label">`. When it goes away, React removes
+ * that div instead of your own text nodes: a browser translation engine
+ * reparents a text node, and a removal aimed at one throws. The div is
+ * `display: contents`, so it lays out nothing of its own. To style it as a box,
+ * set a display of your own on it first.
+ *
  * **Data attributes:**
  *
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
  * | `data-slot` | `"scatter-plot-legend"` | The legend list. `ScatterPlot.Legend` renders it in flow below the plot. |
+ * | `data-slot` | `"scatter-plot-legend-label"` | On the `<div>` wrapping a `children` render prop. The default legend has none. |
  * | `data-shape` | `"circle"` \| `"square"` \| `"triangle"` \| `"diamond"` \| `"triangle-down"` \| `"plus"` \| `"cross"` \| `"star"` | On each series' swatch, naming the glyph its `ScatterPlot.Point` wears — the `shape` it set, else the one paired to its series slot. The swatch clips itself to that glyph, so target this only to restyle a key. |
  *
  * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterplotlegend

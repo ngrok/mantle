@@ -17,11 +17,11 @@ export default function LayoutsPage() {
 		<div>
 			<h1 className="text-4xl font-medium text-strong sm:text-5xl mb-4">Layouts</h1>
 			<p className="mb-4 leading-relaxed text-pretty text-body">
-				Published <code>@ngrok/mantle</code> primitives that own page and viewport structure: region
-				skeletons, landmark wiring, and scroll architecture. A layout is the frame you put
-				components in — it owns <em>where things go</em>, while a component owns an interaction or a
-				widget. App state (routing, sessions, data) never enters a layout; it arrives as slotted
-				JSX.
+				Published <code translate="no">@ngrok/mantle</code> primitives that own page and viewport
+				structure: region skeletons, landmark wiring, and scroll architecture. A layout is the frame
+				you put components in — it owns <em>where things go</em>, while a component owns an
+				interaction or a widget. App state (routing, sessions, data) never enters a layout; it
+				arrives as slotted JSX.
 			</p>
 			<p className="mb-4 leading-relaxed text-pretty text-body">
 				More residents are incubating in ngrok&rsquo;s apps and will graduate here once their APIs

@@ -263,8 +263,11 @@ function UserSheet({ onClose, scenario, userId }: UserOverlayProps) {
 						</Sheet.Actions>
 					</Sheet.TitleGroup>
 					<Sheet.Description>
-						Loading <span className="font-mono">{userId}</span> through the{" "}
-						{scenarioLabels[scenario]} case.
+						Loading{" "}
+						<span translate="no" className="font-mono">
+							{userId}
+						</span>{" "}
+						through the {scenarioLabels[scenario]} case.
 					</Sheet.Description>
 				</Sheet.Header>
 				<Sheet.Body>
@@ -308,8 +311,11 @@ function UserDialog({ onClose, scenario, userId }: UserOverlayProps) {
 				</Dialog.Header>
 				<Dialog.Body className="space-y-4">
 					<Dialog.Description>
-						Loading <span className="font-mono">{userId}</span> through the{" "}
-						{scenarioLabels[scenario]} case.
+						Loading{" "}
+						<span translate="no" className="font-mono">
+							{userId}
+						</span>{" "}
+						through the {scenarioLabels[scenario]} case.
 					</Dialog.Description>
 					<UserDetailsBody query={query} />
 				</Dialog.Body>
@@ -352,8 +358,11 @@ function UserAlertDialog({ onClose, scenario, userId }: UserOverlayProps) {
 					<AlertDialog.Header>
 						<AlertDialog.Title>Remove this user?</AlertDialog.Title>
 						<AlertDialog.Description>
-							Review <span className="font-mono">{userId}</span> before removing them — loaded
-							through the {scenarioLabels[scenario]} case.
+							Review{" "}
+							<span translate="no" className="font-mono">
+								{userId}
+							</span>{" "}
+							before removing them — loaded through the {scenarioLabels[scenario]} case.
 						</AlertDialog.Description>
 					</AlertDialog.Header>
 					<div className="mt-4">
@@ -458,7 +467,10 @@ function UserDetailsError({ error, isRetrying, onRetry }: UserDetailsErrorProps)
 				<p>{copy.description}</p>
 				{copy.requestId && (
 					<p>
-						Request ID <span className="font-mono text-strong">{copy.requestId}</span>
+						Request ID{" "}
+						<span translate="no" className="font-mono text-strong">
+							{copy.requestId}
+						</span>
 					</p>
 				)}
 			</Empty.Description>
@@ -549,7 +561,7 @@ function UserDetails({ user }: UserDetailsProps) {
 			<DescriptionList.Root>
 				<DescriptionList.Item>
 					<DescriptionList.Label>ID</DescriptionList.Label>
-					<DescriptionList.Value>{user.id}</DescriptionList.Value>
+					<DescriptionList.Value translate="no">{user.id}</DescriptionList.Value>
 				</DescriptionList.Item>
 				<DescriptionList.Item>
 					<DescriptionList.Label>Role</DescriptionList.Label>

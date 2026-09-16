@@ -195,6 +195,68 @@ The mechanism table gains a row:
 
 The rule in Consequences gains a second clause: **never portal bare text.**
 
+## Amendment, 2026-09-14: the reorder row and the unmount row are too wide
+
+Two rows of the mechanism table call a shape safe that throws. A 2026-09-14
+audit reproduced both against React 19.3.0 in happy-dom.
+
+`Reorder or remove element children` explains the **moved** node and says
+nothing about the **reference** node. React places a moved element with
+`insertBefore`, and it picks the reference node by walking to the next host
+sibling. That walk stops at a `HostText` fiber as readily as a `HostComponent`
+one, so a keyed list that re-sorts in front of a bare text summary throws.
+Removing an element child stays safe.
+
+`Unmount the whole subtree` holds only while the subtree owns a host node. A
+portal, a keyed `Fragment`, an array, and a component that returns bare text at
+its root own none, so React removes each of their host children from the parent
+one at a time. The second amendment named that rule and pinned it to portals.
+The rule covers all four.
+
+`A lone expression child` is narrower than it reads, for the same reason.
+React's `setTextContent` path needs one string, one number, or one `bigint`
+written into a host
+element's `children`. A component element that returns bare text is not that.
+
+The two rows split into four:
+
+| Update                                        | Result                                                                |
+| --------------------------------------------- | --------------------------------------------------------------------- |
+| Reorder element children before a text node   | Throws. React inserts the moved element before the next host sibling. |
+| Unmount a parent with no host node of its own | Throws on a bare text child. React removes each child by itself.      |
+| Remove an **element** child                   | Safe. An element is never reparented.                                 |
+| Unmount a subtree that owns a host node       | Safe. React removes that one node.                                    |
+
+The rule in Consequences gains a wider second clause: **never leave bare text as
+a direct child of a portal, a `Fragment`, or an array.**
+
+## Amendment, 2026-09-14: a permanent sibling is the same defect as a conditional one
+
+Decision 1 fixed the parts that render a **conditional** element beside bare
+text. It never reached the parts that render a **permanent** one, and the same
+2026-09-14 audit found that shape in ten shipped parts.
+
+The permanent case voids the guarantee the lone-child row publishes. When a part
+renders anything beside the `children` it received, those children stop being a
+lone child, so React creates a real text node for them instead of writing them
+through `setTextContent`. The consumer then swaps their own child from a string
+to an element, follows every rule the docs page states, and still gets a blank
+page. The conditional case fails loudly on a known trigger. The permanent case
+fails later, in code the part's author never sees.
+
+So the rule widens: **a part wraps the `children` it receives whenever it renders
+anything beside them.** An icon, an indicator, a caret, a checkmark, a portal,
+and a sibling that CSS hides all count.
+
+Decision 4 narrows with it. Moving a decorative sibling after `children` cures
+the **mount** and nothing else. `DataTable.ActionHeader` still holds its
+indicator beside `children` once the table has rows, and its own
+`children ?? <span className="sr-only">Actions</span>` swaps text for an element
+while that indicator stays mounted. The move was the right call for the mount it
+was chosen for, and a part whose text can still unmount or swap wraps as well.
+
+Decisions 1, 2, and 3 stand.
+
 ## Consequences
 
 - Consumer CSS that targeted a button's, badge's, or anchor's text through a

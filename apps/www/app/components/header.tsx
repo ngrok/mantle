@@ -67,7 +67,7 @@ export function Header({ className, ...props }: Omit<ComponentProps<"header">, "
 				<div className="flex items-center ml-auto">
 					<div className="flex items-center">
 						<Button asChild appearance="ghost" intent="neutral" className="hidden md:inline-flex">
-							<a href={releaseHref(mantleVersion)} target="_blank" rel="noopener">
+							<a translate="no" href={releaseHref(mantleVersion)} target="_blank" rel="noopener">
 								{mantleVersion}
 							</a>
 						</Button>
@@ -102,7 +102,10 @@ export function Header({ className, ...props }: Omit<ComponentProps<"header">, "
 										className="justify-between gap-4"
 									>
 										<span>
-											Version <span className="font-mono">{mantleVersion}</span>
+											Version{" "}
+											<span translate="no" className="font-mono">
+												{mantleVersion}
+											</span>
 										</span>
 										<ArrowSquareOutIcon className="text-muted" />
 									</a>

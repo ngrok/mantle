@@ -38,7 +38,7 @@ gutter shows no seam. Every row here is wrapped in
 [`Sidebar.Tooltip`](/components/navigation/sidebar#sidebartooltip), which is what labels the rail for
 pointer users once it collapses; it needs a `TooltipProvider` ancestor, which a real app mounts at its root.
 The demo runs in its own framed document, exactly like a real app: collapse
-the sidebar to its icon rail with the trigger (or <kbd>⌘B</kbd>/<kbd>Ctrl+B</kbd>; the shortcut binds to
+the sidebar to its icon rail with the trigger (or <kbd translate="no">⌘B</kbd>/<kbd translate="no">Ctrl+B</kbd>; the shortcut binds to
 the frame, not this page), hover a row to see its tooltip, and reopen it the same way, toggle the
 notice to see the strip push the whole shell (sidebar included) down, and switch the preview to the mobile
 viewport for the sheet presentation. The sidebar's footer stays put through all of it: the account-scoped
@@ -1596,7 +1596,7 @@ the card: the only other element that could hold it is `AppLayout.Workspace`, wh
 so padding there would push the sidebar off the window edge.
 
 It is `overflow-clip`, not `overflow-hidden`, and the distinction matters: `hidden` **is** a scroll container
-that paints no scrollbar, so a toolbar wider than the card lets <kbd>Tab</kbd> scroll it sideways —
+that paints no scrollbar, so a toolbar wider than the card lets <kbd translate="no">Tab</kbd> scroll it sideways —
 translating the header and the page out of view with no scrollbar and no gesture to bring them back. `clip`
 is not a scroll container at all. It also keeps a full-bleed page background from painting square corners
 over the card's `rounded-xl`.

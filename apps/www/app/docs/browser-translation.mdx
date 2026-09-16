@@ -1,6 +1,6 @@
 ---
 title: Browser Translation
-description: What a browser translation engine does to a React DOM, which guarantees mantle ships, and the one rule your own components must follow to survive it.
+description: What a browser translation engine does to a React DOM, which guarantees mantle ships, and the rules your own components must follow to survive it.
 ---
 
 import { Button } from "@ngrok/mantle/button";
@@ -22,31 +22,50 @@ This is not hypothetical. It shipped in mantle 0.83.2: the first click of any su
 
 The failure needs React to insert before, or remove, a **text** node the engine reparented. Element children are never reparented.
 
-| Update                                          | Result                                                                                |
-| ----------------------------------------------- | ------------------------------------------------------------------------------------- |
-| Insert an element before a translated text node | **Throws**                                                                            |
-| Remove a text child while siblings remain       | **Throws**                                                                            |
-| A text child changes type to an element         | **Throws**                                                                            |
-| Change a text child's value                     | Safe. The translation reverts.                                                        |
-| Reorder or remove **element** children          | Safe. Elements are never reparented.                                                  |
-| **Append** after a translated text node         | Safe.                                                                                 |
-| Unmount the whole subtree                       | Safe. React removes the outermost node.                                               |
-| Remove a portal's bare text child               | **Throws**. A portal has no node of its own, so its children are the outermost nodes. |
-| A **lone** expression child                     | Safe, and self-healing.                                                               |
+| Update                                          | Result                                                                     |
+| ----------------------------------------------- | -------------------------------------------------------------------------- |
+| Insert an element before a translated text node | **Throws**                                                                 |
+| Remove a text child while siblings remain       | **Throws**                                                                 |
+| A text child changes type to an element         | **Throws**                                                                 |
+| Reorder element children before a text node     | **Throws**. React inserts before the next host sibling, which can be text. |
+| Unmount a parent with no host node of its own   | **Throws** on a bare text child. React removes each child by itself.       |
+| Change a text child's value                     | Safe. The translation reverts.                                             |
+| Remove an **element** child                     | Safe. An element is never reparented.                                      |
+| **Append** after a translated text node         | Safe.                                                                      |
+| Unmount a subtree that owns a host node         | Safe. React removes that one node.                                         |
+| A lone **string**, **number**, or **bigint**    | Safe, and self-healing.                                                    |
 
-The last row is the one to design toward. When `children` is the only child of a host element, React writes it through `textContent`, which wipes the `<font>` wrapper and repairs the subtree instead of fighting it.
+The last row is the one to design toward, and it is narrower than it looks. When a host element's `children` is one string, one number, or one `bigint`, React writes it through `textContent`, which wipes the `<font>` wrapper and repairs the subtree instead of fighting it. A component element that returns bare text at its root does not qualify. That component owns no host node, so React mounts and removes the text node by itself.
+
+The reorder row is about the **reference** node, not the moved one. React picks that node by walking to the next host sibling. The walk returns a text node as readily as an element, so a keyed list that re-sorts in front of a bare text summary throws.
+
+The unmount row is about the outermost **host** node. A portal, a `Fragment`, an array, and a component that returns bare text own none. React removes each of their host children one at a time, so a bare text child among them throws.
 
 ## What mantle guarantees
 
-- [`Button`](/components/actions/button), [`Badge`](/components/data-display/badge), and [`Anchor`](/components/navigation/anchor) render `children` inside a label slot, so an appearing `icon` or `isLoading` spinner inserts before an **element** sibling. In `Button` and `Badge` that slot is `display: contents`, so it adds no box and changes no layout.
-- [`Select.Item`](/components/forms/select#selectitem) renders `children` inside a label slot, and [`Select.Value`](/components/forms/select#selectvalue) wraps its `placeholder` and your own `children` the same way. Radix portals the selected label into the trigger and removes it on its own when the value changes, so the node it removes has to be an element. All three slots are `display: contents`. `translate="no"` on a `Select.Item` rides on that portaled label too, so an ID or a path stays untranslated in the trigger.
-- `DataTable.HeaderSortButton` renders its label through `Button`'s label slot, and the sort state lives in attributes (`aria-sort` on the header cell, `data-sort-direction` on the button), so a sort change inserts no node before text.
-- `DataTable.ActionHeader` renders its sticky indicator after `children`, which turns the mount into an append.
-- [`Code`](/components/data-display/code), [`Kbd`](/components/data-display/kbd), `CodeBlock.Code`, `CodeBlock.Title`, and `OtpInput.Slot` mark their content [`translate="no"`](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/translate), so the engine skips those subtrees entirely.
+Each bullet is one cure. A part picks the cure its own shape needs.
+
+- **A label slot wraps the text.** The default, and what most parts do. [`Button`](/components/actions/button), [`Badge`](/components/data-display/badge), and [`Anchor`](/components/navigation/anchor) render `children` inside one, so an appearing `icon` or `isLoading` spinner inserts before an **element** sibling. [`Select.Item`](/components/forms/select#selectitem) wraps `children`, and [`Select.Value`](/components/forms/select#selectvalue) wraps its `placeholder` and your own `children` the same way. So do [`Select.Trigger`](/components/forms/select#selecttrigger), [`Tooltip.Content`](/components/overlays/tooltip#tooltipcontent), [`Tabs.Trigger`](/components/navigation/tabs#tabstrigger) on both paths, [`Toast.Root`](/components/feedback/toast#toastroot), [`MultiSelect.Item`](/components/forms/multi-select#multiselectitem), `DropdownMenu.SubTrigger`, `DropdownMenu.CheckboxItem`, `DropdownMenu.RadioItem`, `DataTable.ActionCell`, `DataTable.ActionHeader`, `SelectableList.SelectAll`, `SelectableList.Empty`, `AlertCenter.Item`, and each chart's `Tooltip` and `Legend` render prop. Every slot but `Anchor`'s is `display: contents`, so it adds no box and changes no layout.
+- **A wrapper that never unmounts holds a conditional sibling.** `Sidebar.Trigger` and `Sidebar.Tooltip` always render the flex row that pairs a row's label with its chord chips, so a `shortcut` that resolves after the first paint appends beside an element. `Sidebar.SearchTrigger` always renders its chord span on the default `button` path and hides it with `display: none` while it is empty.
+- **A decorative sibling renders after the text.** `DataTable.ActionHeader` renders its sticky indicator last, which turns the mount into an append. The move cures that mount and nothing else, so the part carries a label slot too.
+- **An announcer stays mounted and takes a lone string.** `DataTable.HeaderSortButton` renders its label through `Button`'s label slot, and the sort state lives in attributes (`aria-sort` on the header cell, `data-sort-direction` on the button), so a sort change inserts no node before text.
+- **Untranslatable content carries [`translate="no"`](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/translate).** [`Code`](/components/data-display/code), [`Kbd`](/components/data-display/kbd), `CodeBlock.Code`, `CodeBlock.Title`, `Command.Shortcut`, `DropdownMenu.Shortcut`, and `OtpInput.Slot` mark their content, so the engine skips those subtrees entirely. The attribute classifies content and is never a part's fix for a crash. The attribute rides on a `Select.Item`'s portaled label too, so an ID or a path stays untranslated in the trigger.
+
+Each label slot is public API. Its name is the part's own `data-slot` plus `-label`, and the part's docs page lists it.
+
+One caveat, and it is the sentence to act on: when a mantle part renders anything beside your `children`, your children are not a lone child, and the self-healing row does not apply to them. That is why these parts wrap, and it is the rule your own components need too.
+
+`Breadcrumb` is the exception that cannot wrap: `Breadcrumb.List` renders an `<ol>`, so a wrapper would nest an `<li>` in an `<li>`. A [content crumb](/recipes/breadcrumbs-from-routes) must render a host element at its root instead.
 
 A label slot protects the insert **mantle** makes. It cannot protect an insert your own children make inside it; that is the next section.
 
-## The one rule for your own code
+## Who owns what
+
+- **Mantle owns its parts.** Every part stays safe on a translated page with plain `children`, a bare string included. A part that renders anything beside your children wraps them in a label slot, so the node React removes is an element. A crash inside a part's own markup is a mantle bug: report it, and do not work around it with `translate="no"`.
+- **You own your own markup.** The rules below cover the shapes a component of yours can emit. A label slot cannot protect a conditional element you render before bare text inside it.
+- **Both keep `translate="no"` to content.** Set it on a string a reader copies or retypes, through the part that owns it when one exists. Never set it to stop a crash, and never set it on prose. A translated page that stays readable is the goal, and the attribute takes a string out of that page, so every use has to earn it.
+
+## The rules for your own code
 
 **Never render a conditional element immediately before bare text children.**
 
@@ -70,7 +89,35 @@ Three fixes work. Pick by what the conditional element is:
 - **Move the element after the text.** A mount then becomes an append, which is safe. Prefer this when the element is decorative and out of flow, because it adds no DOM.
 - **Mount the element unconditionally and write text into it.** A `textContent` write is safe and self-healing. Prefer this for a `sr-only` announcer, which costs no layout.
 
-The rule is narrow on purpose. Static children never throw, however many there are. The hazard is a sibling that **appears** beside text that stays mounted.
+Two more shapes throw with no conditional element in sight.
+
+**Never re-sort a keyed list in front of bare text.** React inserts each moved element before the next host sibling. That sibling can be the text node. Wrap the text, and the moved element then names an element.
+
+**Never leave bare text as a direct child of a portal, a `Fragment`, or an array.** None of the three owns a host node, and neither does a component that returns bare text at its root. React removes each child by itself, so a bare text child is the outermost node.
+
+```tsx
+// ❌ the Fragment owns no host node, so React removes the bare description by itself
+<dl>
+	{rows.map((row) => (
+		<Fragment key={row.id}>
+			<dt>{row.term}</dt>
+			{row.description}
+		</Fragment>
+	))}
+</dl>
+
+// ✅ the description is an element now, and React removes it in one call
+<dl>
+	{rows.map((row) => (
+		<Fragment key={row.id}>
+			<dt>{row.term}</dt>
+			<dd>{row.description}</dd>
+		</Fragment>
+	))}
+</dl>
+```
+
+A child list that never changes is safe, however long it is. Every shape above needs an update that moves, removes, or mounts a node beside text that stays put.
 
 ## Buttons with an icon, or two
 
@@ -96,13 +143,15 @@ The label text is wrapped, which matters when that second icon is conditional: a
 
 ## Marking content untranslatable
 
-Set `translate="no"` on the element that holds a string a reader copies or retypes: code, a CLI flag, an env var, a YAML key, a shortcut key, a filename, an ID, a passcode. Descendants inherit the attribute, so it also keeps the engine out of the subtree, which makes it a second cure for the crash above.
+Set `translate="no"` on the element that holds a string a reader copies or retypes: code, a CLI flag, an env var, a YAML key, a shortcut key, a filename, an ID, a passcode. Reach for the part that already carries it before a raw attribute: `Code`, `Kbd`, `CodeBlock.Code`, `CodeBlock.Title`, `Command.Shortcut`, `DropdownMenu.Shortcut`, and `OtpInput.Slot`.
 
 ```tsx
 <span translate="no">{endpointId}</span>
 ```
 
-`Code` and `CodeBlock.Title` set the attribute as an overridable default, because both also hold prose. Pass `translate="yes"` there when the content is a word rather than a token. `Kbd`, `CodeBlock.Code`, and `OtpInput.Slot` lock it: those omit the prop from their types, so no call site can turn the guard off.
+The attribute classifies content. It is not a fix for a crash. Descendants inherit it, so the engine skips the subtree and a crash shape under it stops throwing, but the shape stays, and the next prose child hits it. When one of the rules above throws, fix the structure, and set `translate="no"` only when the content also belongs on the list. A search query, a name, a status label, and any other prose stay translatable.
+
+`Code` and `CodeBlock.Title` set the attribute as an overridable default, because both also hold prose. Pass `translate="yes"` there when the content is a word rather than a token. `Kbd`, `CodeBlock.Code`, `Command.Shortcut`, `DropdownMenu.Shortcut`, and `OtpInput.Slot` lock it: those omit the prop from their types, so no call site can turn the guard off.
 
 ## A label that has to shrink
 

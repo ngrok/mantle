@@ -88,7 +88,10 @@ function ListItem({ item }: { item: IconData }) {
 					</div>
 				)}
 				<Icon className="size-10" svg={item.Icon} />
-				<p className="text-sm text-strong font-medium">{item.name}</p>
+				{/* The tile pastes this name straight into an import. */}
+				<p translate="no" className="text-sm text-strong font-medium">
+					{item.name}
+				</p>
 				<div className="text-sm">{item.description}</div>
 			</button>
 		</li>

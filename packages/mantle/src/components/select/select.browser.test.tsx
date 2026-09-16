@@ -15,6 +15,7 @@ const STYLE = `
 	.contents { display: contents; }
 }
 [data-slot~="select-value"] { display: flex; align-items: center; gap: 8px; }
+[data-slot~="select-trigger"] { display: flex; align-items: center; gap: 8px; }
 `;
 
 const GAP = 8;
@@ -92,6 +93,30 @@ describe("Select wrapper span layout", () => {
 		expect(horizontalDistance(name, screen.getByTestId("hint"))).toBeCloseTo(GAP, 0);
 		expect(wrapper("select-item-label").getClientRects()).toHaveLength(0);
 		expect(getComputedStyle(wrapper("select-item-label")).display).toBe("contents");
+	});
+
+	test("the trigger label span generates no box, so a consumer's children stay flex items of the trigger", () => {
+		render(
+			<Select.Root>
+				<Select.Trigger>
+					<span data-testid="name">Provider</span>
+					<span data-testid="hint">required</span>
+				</Select.Trigger>
+				<Select.Content>
+					<Select.Item value="openai">OpenAI</Select.Item>
+				</Select.Content>
+			</Select.Root>,
+		);
+
+		// Same proof as the value node: both children are flex items of the
+		// trigger, so its `gap` separates them. With a box on the span they would
+		// be one inline run, laid out flush at 0px.
+		expect(horizontalDistance(screen.getByTestId("name"), screen.getByTestId("hint"))).toBeCloseTo(
+			GAP,
+			0,
+		);
+		expect(wrapper("select-trigger-label").getClientRects()).toHaveLength(0);
+		expect(getComputedStyle(wrapper("select-trigger-label")).display).toBe("contents");
 	});
 
 	test("the placeholder span generates no box", () => {

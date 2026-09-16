@@ -931,11 +931,36 @@ const Content = ({
 	);
 };
 
-type MultiSelectItemProps = Omit<Primitive.ComboboxItemProps, "render"> & WithAsChild;
+/**
+ * Props for `MultiSelect.Item`. `asChild` is omitted: the item renders its check
+ * indicator next to the label div holding `children`, so a slot would receive
+ * two elements and throw.
+ */
+type MultiSelectItemProps = Omit<Primitive.ComboboxItemProps, "render">;
 
 /**
  * Renders a selectable item inside a `MultiSelect.Content` component.
  * Items display a checkbox indicator when selected.
+ *
+ * **Structure.** `children` render inside a
+ * `<div data-slot="multi-select-item-label">`. The selected-state check is a
+ * permanent element sibling, so without the wrapper a bare text label is never a
+ * lone child: a browser translation engine reparents that text node, and the
+ * removal React runs when the label changes shape or goes away throws. The
+ * wrapper is a `<div>` because a custom option layout is often a `MediaObject`,
+ * whose root is a `<div>` that a `<span>` may not contain. It is
+ * `display: contents`, so a child of your own stays a flex item of the option
+ * and any `flex-1` on it still resolves.
+ *
+ * **Why no `asChild`:** the check indicator sits beside the label div, so `Slot`
+ * would receive two elements and throw. The prop is omitted from the props type.
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"multi-select-item"` | On the option element. |
+ * | `data-slot` | `"multi-select-item-label"` | On the `<div>` wrapping `children`. |
  *
  * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectitem
  *
@@ -954,7 +979,6 @@ type MultiSelectItemProps = Omit<Primitive.ComboboxItemProps, "render"> & WithAs
  * ```
  */
 const Item = ({
-	asChild = false,
 	children,
 	className,
 	focusOnHover = true,
@@ -988,12 +1012,17 @@ const Item = ({
 				onClick?.(event);
 			}}
 			ref={ref}
-			render={asChild ? ({ ref, ...childProps }) => <Slot ref={ref} {...childProps} /> : undefined}
 			resetValueOnSelect
 			value={value}
 			{...props}
 		>
-			{children}
+			{/* Why the label div: decisions/2026-08-04-translation-safe-label-wrappers.md
+			    Why a div and not a span: the docs point a custom option layout at
+			    `MediaObject`, whose root is a `<div>`, which a `<span>` may not
+			    contain. */}
+			<div data-slot="multi-select-item-label" className="contents">
+				{children}
+			</div>
 			<Primitive.ComboboxItemCheck className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
 				<Icon svg={<CheckIcon weight="bold" />} className="size-4 text-accent-600" />
 			</Primitive.ComboboxItemCheck>
@@ -1481,6 +1510,26 @@ const MultiSelect = {
 	ContentFooter,
 	/**
 	 * Renders a selectable item with a checkbox indicator inside a `MultiSelect.Content`.
+	 *
+	 * **Structure.** `children` render inside a
+	 * `<div data-slot="multi-select-item-label">`. The selected-state check is a
+	 * permanent element sibling, so without the wrapper a bare text label is never a
+	 * lone child: a browser translation engine reparents that text node, and the
+	 * removal React runs when the label changes shape or goes away throws. The
+	 * wrapper is a `<div>` because a custom option layout is often a `MediaObject`,
+	 * whose root is a `<div>` that a `<span>` may not contain. It is
+	 * `display: contents`, so a child of your own stays a flex item of the option
+	 * and any `flex-1` on it still resolves.
+	 *
+	 * **Why no `asChild`:** the check indicator sits beside the label div, so `Slot`
+	 * would receive two elements and throw. The prop is omitted from the props type.
+	 *
+	 * **Data attributes:**
+	 *
+	 * | Data Attribute | Value | Description |
+	 * | --- | --- | --- |
+	 * | `data-slot` | `"multi-select-item"` | On the option element. |
+	 * | `data-slot` | `"multi-select-item-label"` | On the `<div>` wrapping `children`. |
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectitem
 	 *

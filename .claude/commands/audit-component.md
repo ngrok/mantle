@@ -29,12 +29,23 @@ Walk [§10.2](../../COMPONENT_SPEC.md#102-check)'s table in order and record eve
 
 - **Surface & API** — §1.1–§1.7
 - **Implementation** — §3
+- **Translation** — §3.8, plus §6 for each label slot
 - **JSDoc** — §4, plus §5.2 and §6
 - **Docs page** — §7
 - **Wiring** — §2
 - **Tests** — §8
 
-Two checks are worth calling out because they are the ones most often missed and the spec's own review pass found them absent library-wide: every public CSS variable must appear in **both** the JSDoc and the docs-page API reference (§5.2), and every `data-*` the component stamps for styling or coordination must appear in both as well (§6).
+Two checks are worth calling out because they are the ones most often missed and the spec's own review pass found them absent library-wide: every public CSS variable must appear in **both** the JSDoc and the docs-page API reference (§5.2), and every `data-*` the component stamps for styling or coordination must appear in both as well (§6). Translation is the third, and it needs a pass of its own — the section below.
+
+## 2b. Walk the translation shapes
+
+Translation safety is a shape check, and nothing greps for a shape. Load the `browser-translation-hazards` skill and walk the component's JSX part by part, because [§3.8](../../COMPONENT_SPEC.md#38-browser-translation) is the one area where a clean grep proves nothing.
+
+Ask one question of every part: does anything render beside the `children` this part receives? An icon, an indicator, a caret, a checkmark, a portal, and a sibling that CSS hides all count. When the answer is yes and the part does not wrap those children, record it — with every `[&>…]` selector in the same file, because a wrapper makes a consumer's element a grandchild.
+
+Then work the skill's blind-spot list by hand. An `.mdx` file, a JSDoc `@example` fence, a portal a dependency makes, and a component whose rendered element type changes cross-file are all invisible to any tool. So is the whole `translate="no"` question, which is content classification rather than structure.
+
+The skill also carries the safe shapes. Read them before you propose a wrapper: over-fixing costs a release and a public `data-slot`, and buys nothing.
 
 ## 3. Fix
 

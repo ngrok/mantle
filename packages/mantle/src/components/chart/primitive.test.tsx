@@ -3,11 +3,12 @@ import { userEvent } from "@testing-library/user-event";
 import type { ComponentProps, MouseEvent, ReactNode } from "react";
 import { createRef } from "react";
 import { describe, expect, test, vi } from "vitest";
+import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import { BarChart } from "../bar-chart/index.js";
 import { LineChart } from "../line-chart/index.js";
 import { datumValue } from "./datum.js";
 import { ChartStore } from "./store.js";
-import type { SeriesMeta } from "./types.js";
+import type { HoverSnapshot, SeriesMeta } from "./types.js";
 
 // Why a spied module: `datumValue` is the single read point for chart rows. The
 // engine reads them once at ingest, so after mount every call comes from a
@@ -212,5 +213,126 @@ describe("CopyButton consumer onClick", () => {
 		expect(onClick).toHaveBeenLastCalledWith(expect.objectContaining({ defaultPrevented: true }));
 		expect(onCopy).toHaveBeenCalledTimes(0);
 		expect(status).toBeEmptyDOMElement();
+	});
+});
+
+describe("Tooltip and Legend after browser translation", () => {
+	// The natural minimal custom readout: a fragment whose children are bare text.
+	const readout = (hover: HoverSnapshot) => (
+		<>
+			{hover.xValue}: {hover.points[0]?.value}
+		</>
+	);
+
+	test("clearing the point cursor removes a translated custom readout", async () => {
+		const user = userEvent.setup();
+		const { container } = render(
+			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
+				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Tooltip>{readout}</BarChart.Tooltip>
+			</BarChart.Root>,
+		);
+
+		await user.tab();
+		await user.keyboard("{ArrowRight}");
+
+		const tooltip = container.querySelector('[data-slot="bar-chart-tooltip"]');
+		expect(tooltip?.querySelector('[data-slot="bar-chart-tooltip-label"]')).toHaveTextContent(
+			"January: 186",
+		);
+
+		translateTextNodes(container);
+		// Guards the step below: a helper that silently no-ops would leave the
+		// last assertion green whether or not the label div does its job.
+		expect(tooltip).toHaveTextContent("[January-es]");
+
+		// Escape clears the point cursor, the engine publishes `hover: null`, and
+		// React removes the label div instead of the readout's own text nodes.
+		await user.keyboard("{Escape}");
+		expect(tooltip).toBeEmptyDOMElement();
+	});
+
+	test("the default readout renders no label slot", async () => {
+		const user = userEvent.setup();
+		const { container } = render(
+			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
+				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Tooltip />
+			</BarChart.Root>,
+		);
+
+		await user.tab();
+		await user.keyboard("{ArrowRight}");
+
+		const tooltip = container.querySelector('[data-slot="bar-chart-tooltip"]');
+		expect(tooltip).toHaveTextContent("January");
+		expect(tooltip?.querySelector('[data-slot="bar-chart-tooltip-label"]')).not.toBeInTheDocument();
+	});
+
+	test("a custom legend renders inside a label slot", () => {
+		const { container } = render(
+			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
+				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Bar dataKey="mobile" label="Mobile" />
+				<BarChart.Legend>{(series) => series.map((item) => item.label).join(", ")}</BarChart.Legend>
+			</BarChart.Root>,
+		);
+
+		const label = container.querySelector('[data-slot="bar-chart-legend-label"]');
+		expect(label).toHaveTextContent("Desktop, Mobile");
+		expect(label?.parentElement).toHaveAttribute("data-slot", "bar-chart-legend");
+	});
+
+	test("the default legend renders no label slot", () => {
+		const { container } = render(
+			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
+				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Bar dataKey="mobile" label="Mobile" />
+				<BarChart.Legend />
+			</BarChart.Root>,
+		);
+
+		expect(container.querySelector('[data-slot="bar-chart-legend"]')).toHaveTextContent("Desktop");
+		expect(container.querySelector('[data-slot="bar-chart-legend-label"]')).not.toBeInTheDocument();
+	});
+
+	test("dropping a translated custom legend for the default one removes the label div", () => {
+		// A fragment of bare text is the natural minimal custom legend. It is also
+		// the shape that throws: a fragment owns no host node, so React removes
+		// each text node on its own rather than resetting one parent's text.
+		function Chart({ custom }: { custom: boolean }) {
+			return (
+				<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
+					<BarChart.Bar dataKey="desktop" label="Desktop" />
+					<BarChart.Bar dataKey="mobile" label="Mobile" />
+					{custom ? (
+						<BarChart.Legend>
+							{(series) => (
+								<>
+									{series[0]?.label} and {series[1]?.label}
+								</>
+							)}
+						</BarChart.Legend>
+					) : (
+						<BarChart.Legend />
+					)}
+				</BarChart.Root>
+			);
+		}
+		const { container, rerender } = render(<Chart custom />);
+
+		const legend = container.querySelector('[data-slot="bar-chart-legend"]');
+		translateTextNodes(container);
+		// Guards the step below: a helper that silently no-ops would leave the last
+		// assertion green whether or not the label div does its job.
+		expect(legend).toHaveTextContent("[Desktop-es]");
+
+		// The custom readout goes away and the default rows mount. React removes
+		// the label div instead of the readout's own reparented text nodes.
+		rerender(<Chart custom={false} />);
+
+		expect(container.querySelector('[data-slot="bar-chart-legend-label"]')).not.toBeInTheDocument();
+		expect(legend).toHaveTextContent("Desktop");
+		expect(legend?.querySelector("font")).toBeNull();
 	});
 });

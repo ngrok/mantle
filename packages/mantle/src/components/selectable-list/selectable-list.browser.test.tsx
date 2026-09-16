@@ -4,7 +4,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import axe from "axe-core";
 import { useState } from "react";
-import { describe, expect, test, vi } from "vitest";
+import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 import { SelectableList } from "./selectable-list.js";
 
 const options = [
@@ -437,5 +437,49 @@ describe("SelectableList (browser)", () => {
 		});
 
 		expect(results.violations).toEqual([]);
+	});
+});
+
+/**
+ * Mirrors the CSS Tailwind 4 emits for the one utility the empty-message label
+ * span carries. Inlined so the test stays hermetic and needs no Tailwind build
+ * step: a browser test loads no stylesheet, so without this the span would
+ * report its initial `display` and the assertion would pass for the wrong
+ * reason.
+ */
+const EMPTY_LABEL_STYLE = `
+@layer utilities {
+	.contents { display: contents; }
+}
+`;
+
+describe("SelectableList.Empty label slot (browser)", () => {
+	let styleElement: HTMLStyleElement;
+
+	beforeAll(() => {
+		styleElement = document.createElement("style");
+		styleElement.textContent = EMPTY_LABEL_STYLE;
+		document.head.appendChild(styleElement);
+	});
+
+	afterAll(() => {
+		styleElement.remove();
+	});
+
+	test("the label span generates no box, so the message stays a flex child of the region", async () => {
+		const user = userEvent.setup();
+		render(<Harness />);
+
+		await user.type(screen.getByRole("textbox", { name: "Filter fruit" }), "zzz");
+
+		const label = screen
+			.getByRole("status")
+			.querySelector('[data-slot="selectable-list-empty-label"]');
+		if (label == null) {
+			throw new Error('No element carries data-slot="selectable-list-empty-label".');
+		}
+
+		expect(label.getClientRects()).toHaveLength(0);
+		expect(getComputedStyle(label).display).toBe("contents");
 	});
 });

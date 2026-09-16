@@ -220,6 +220,27 @@ DropdownMenu.Root
         └── DropdownMenu.SubContent
 ```
 
+## Polymorphism
+
+`asChild` renders the part's single child instead of its default element, and forwards class names, `data-*`
+attributes, and `ref` onto that child. These parts take it:
+
+| Part                      | Reach for it when                                                    |
+| ------------------------- | -------------------------------------------------------------------- |
+| `DropdownMenu.Trigger`    | The trigger is a `Button`, an `IconButton`, or your own control.     |
+| `DropdownMenu.Content`    | The panel needs its own element to carry layout or a motion wrapper. |
+| `DropdownMenu.SubContent` | The same, for a submenu panel.                                       |
+| `DropdownMenu.Item`       | The item navigates, so it must render an `<a>` or a router `Link`.   |
+| `DropdownMenu.Label`      | The label needs a heading element for the document outline.          |
+| `DropdownMenu.Group`      | The group needs its own element.                                     |
+| `DropdownMenu.RadioGroup` | The same, for a radio group.                                         |
+| `DropdownMenu.Separator`  | The divider must be a specific element, such as an `<hr>`.           |
+
+Three parts do **not** take it, and the prop is omitted from their props types:
+`DropdownMenu.SubTrigger`, `DropdownMenu.CheckboxItem`, and `DropdownMenu.RadioItem`. Each renders a second
+element beside your children — the submenu caret, or the check indicator — so a slot would receive two
+elements and throw. Style them with `className` instead.
+
 ## API Reference
 
 The `DropdownMenu` components are built on top of [Radix Dropdown Menu](https://www.radix-ui.com/primitives/docs/components/dropdown-menu).
@@ -277,6 +298,10 @@ A standard item in the dropdown menu that can be selected or activated.
 
 A menu item with a checkbox that can be controlled or uncontrolled.
 
+`children` render inside a `<span data-slot="dropdown-menu-checkbox-item-label">`. The check indicator is a permanent element sibling, so without the span a bare text label is never a lone child: a browser translation engine reparents that text node, and the removal React runs when the label changes shape or goes away throws. The span is `display: contents`, so an icon and its label stay flex items of the item and keep its `gap`. [Browser translation](/browser-translation) covers the mechanism and the rules your own components need.
+
+An icon you pass as a child is now a grandchild of the item, so a `[&>svg]` class of your own no longer reaches it. Match the part's own variant instead: `[&>[data-slot=dropdown-menu-checkbox-item-label]>svg]:size-4`. A `[&_svg]` class or a class on the icon itself loses to the item's default, which carries one more attribute selector.
+
 All props from Radix [DropdownMenu.CheckboxItem](https://www.radix-ui.com/primitives/docs/components/dropdown-menu#checkboxitem), including:
 
 | Prop               | Type                           | Default | Description                                                                    |
@@ -284,6 +309,13 @@ All props from Radix [DropdownMenu.CheckboxItem](https://www.radix-ui.com/primit
 | `checked?`         | `boolean` \| `"indeterminate"` |         | The controlled checked state of the item. Must be used with `onCheckedChange`. |
 | `onCheckedChange?` | `(checked: boolean) => void`   |         | Event handler called when the checked state changes.                           |
 | `disabled?`        | `boolean`                      |         | When `true`, prevents the user from interacting with the item.                 |
+
+#### Data attributes
+
+| Data Attribute | Value                                 | Description                          |
+| :------------- | :------------------------------------ | :----------------------------------- |
+| `data-slot`    | `"dropdown-menu-checkbox-item"`       | On the item element.                 |
+| `data-slot`    | `"dropdown-menu-checkbox-item-label"` | On the `<span>` wrapping `children`. |
 
 ### DropdownMenu.RadioGroup
 
@@ -298,12 +330,23 @@ A radio group container for exclusive selection within the dropdown menu.
 
 A radio item where only one item in the group can be selected at a time.
 
+`children` render inside a `<span data-slot="dropdown-menu-radio-item-label">`. The check indicator is a permanent element sibling, so without the span a bare text label is never a lone child: a browser translation engine reparents that text node, and the removal React runs when the label changes shape or goes away throws. The span is `display: contents`, so an icon and its label stay flex items of the item and keep its `gap`. [Browser translation](/browser-translation) covers the mechanism and the rules your own components need.
+
+An icon you pass as a child is now a grandchild of the item, so a `[&>svg]` class of your own no longer reaches it. Match the part's own variant instead: `[&>[data-slot=dropdown-menu-radio-item-label]>svg]:size-4`. A `[&_svg]` class or a class on the icon itself loses to the item's default, which carries one more attribute selector.
+
 All props from Radix [DropdownMenu.RadioItem](https://www.radix-ui.com/primitives/docs/components/dropdown-menu#radioitem), including:
 
 | Prop        | Type      | Default | Description                                                    |
 | :---------- | :-------- | :------ | :------------------------------------------------------------- |
 | `value`     | `string`  |         | The unique value of the item.                                  |
 | `disabled?` | `boolean` |         | When `true`, prevents the user from interacting with the item. |
+
+#### Data attributes
+
+| Data Attribute | Value                              | Description                          |
+| :------------- | :--------------------------------- | :----------------------------------- |
+| `data-slot`    | `"dropdown-menu-radio-item"`       | On the item element.                 |
+| `data-slot`    | `"dropdown-menu-radio-item-label"` | On the `<span>` wrapping `children`. |
 
 ### DropdownMenu.Label
 
@@ -339,9 +382,20 @@ A submenu container for creating nested dropdown menus. Accepts all props from R
 
 A trigger for a dropdown menu sub-menu. It opens the submenu on hover, or on ArrowRight or Enter.
 
+`children` render inside a `<span data-slot="dropdown-menu-sub-trigger-label">`. The caret is a permanent element sibling, so without the span a bare text label is never a lone child: a browser translation engine reparents that text node, and the removal React runs when the label changes shape or goes away throws. The span is `display: contents`, so an icon and its label stay flex items of the item and keep its `gap`. [Browser translation](/browser-translation) covers the mechanism and the rules your own components need.
+
+An icon you pass as a child is now a grandchild of the item, so a `[&>svg]` class of your own no longer reaches it. Match the part's own variant instead: `[&>[data-slot=dropdown-menu-sub-trigger-label]>svg]:size-4`. A `[&_svg]` class or a class on the icon itself loses to the item's default, which carries one more attribute selector.
+
 | Prop     | Type      | Default | Description                                                         |
 | :------- | :-------- | :------ | :------------------------------------------------------------------ |
 | `inset?` | `boolean` |         | When `true`, adds left padding to align with items that have icons. |
+
+#### Data attributes
+
+| Data Attribute | Value                               | Description                          |
+| :------------- | :---------------------------------- | :----------------------------------- |
+| `data-slot`    | `"dropdown-menu-sub-trigger"`       | On the item element.                 |
+| `data-slot`    | `"dropdown-menu-sub-trigger-label"` | On the `<span>` wrapping `children`. |
 
 ### DropdownMenu.SubContent
 

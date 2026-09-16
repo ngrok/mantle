@@ -7,7 +7,9 @@ import { XIcon } from "@phosphor-icons/react/X";
  */
 export function TailwindVariantsPills() {
 	return (
-		<ul className="mt-8 flex flex-wrap gap-4 font-mono text-xs">
+		// Every label is a Tailwind variant prefix a reader retypes, and the
+		// attribute is inherited by the whole list.
+		<ul translate="no" className="mt-8 flex flex-wrap gap-4 font-mono text-xs">
 			<li className="pointer-coarse:border-green-600 pointer-coarse:bg-green-600/10 flex items-center justify-between gap-1 rounded-lg border border-red-600 bg-red-600/10 p-4">
 				pointer-coarse:{" "}
 				<Icon

@@ -1,6 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
+import type { ReactNode } from "react";
 import { describe, expect, test, vi } from "vitest";
+import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import { Tabs } from "./tabs.js";
 
 describe("Tabs", () => {
@@ -269,6 +271,127 @@ describe("Tabs", () => {
 			await user.click(tabB);
 			expect(onClick).not.toHaveBeenCalled();
 			expect(tabB).toHaveAttribute("aria-selected", "false");
+		});
+		test.each([{ asChild: false }, { asChild: true }])(
+			"wraps children in the label slot (asChild: $asChild)",
+			({ asChild }) => {
+				render(
+					<Tabs.Root orientation="horizontal" defaultValue="a">
+						<Tabs.List>
+							<Tabs.Trigger value="a" asChild={asChild}>
+								{asChild ? <a href="/a">Tab A</a> : "Tab A"}
+							</Tabs.Trigger>
+						</Tabs.List>
+					</Tabs.Root>,
+				);
+
+				const trigger = screen.getByRole("tab", { name: "Tab A" });
+				const label = trigger.querySelector('[data-slot="tabs-trigger-label"]');
+				expect(label).toHaveTextContent("Tab A");
+			},
+		);
+
+		test("keeps rendering when a translated label swaps to an element", () => {
+			const renderTree = (label: ReactNode) => (
+				<Tabs.Root orientation="horizontal" defaultValue="a">
+					<Tabs.List>
+						<Tabs.Trigger value="a">{label}</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>
+			);
+			const { rerender } = render(renderTree("Tab A"));
+			const trigger = screen.getByRole("tab");
+			translateTextNodes(trigger);
+			expect(trigger).toHaveTextContent("[Tab A-es]");
+
+			rerender(renderTree(<strong>Tab A</strong>));
+
+			expect(trigger.querySelector("font")).toBeNull();
+			expect(trigger.querySelector("strong")).toHaveTextContent("Tab A");
+		});
+
+		test("keeps rendering when a translated asChild label swaps to an element", () => {
+			const renderTree = (label: ReactNode) => (
+				<Tabs.Root orientation="horizontal" defaultValue="a">
+					<Tabs.List>
+						<Tabs.Trigger value="a" asChild>
+							<a href="/a">{label}</a>
+						</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>
+			);
+			const { rerender } = render(renderTree("Tab A"));
+			const trigger = screen.getByRole("tab");
+			translateTextNodes(trigger);
+			expect(trigger).toHaveTextContent("[Tab A-es]");
+
+			rerender(renderTree(<strong>Tab A</strong>));
+
+			expect(trigger.querySelector("font")).toBeNull();
+			expect(trigger.querySelector("strong")).toHaveTextContent("Tab A");
+		});
+
+		test("sizes a raw svg child through the label-scoped selector", () => {
+			// Cross-file pin: the `[&>[data-slot=tabs-trigger-label]>svg]` utility in
+			// `triggerVariants` only matches while the label span carries that slot
+			// and the svg stays its direct child.
+			render(
+				<Tabs.Root orientation="horizontal" defaultValue="a">
+					<Tabs.List>
+						<Tabs.Trigger value="a">
+							<svg data-testid="glyph" />
+							Tab A
+						</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>,
+			);
+
+			const trigger = screen.getByRole("tab");
+			expect(trigger.className).toContain("[&>[data-slot=tabs-trigger-label]>svg]:size-5");
+			const label = trigger.querySelector('[data-slot="tabs-trigger-label"]');
+			expect(label).toContainElement(screen.getByTestId("glyph"));
+			expect(screen.getByTestId("glyph").parentElement).toBe(label);
+		});
+
+		test("stops merging a consumer's own [&>svg] override away", () => {
+			// tailwind-merge override contract. Moving the default off the `[&>svg]`
+			// variant prefix puts it in a different conflict group, so a consumer's
+			// `[&>svg]:size-4` survives instead of replacing the default. Both classes
+			// have to reach the DOM, and the consumer's now matches nothing — which is
+			// the migration the changeset names.
+			render(
+				<Tabs.Root orientation="horizontal" defaultValue="a">
+					<Tabs.List>
+						<Tabs.Trigger value="a" className="[&>svg]:size-4">
+							Tab A
+						</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>,
+			);
+
+			const trigger = screen.getByRole("tab");
+			expect(trigger.className).toContain("[&>svg]:size-4");
+			expect(trigger.className).toContain("[&>[data-slot=tabs-trigger-label]>svg]:size-5");
+		});
+
+		test("lets the matching slot-scoped override replace the default", () => {
+			// The migration the changeset recommends. Same variant prefix, so
+			// tailwind-merge drops the default instead of shipping both — which is
+			// what a `[&_svg]` override cannot do, because it also loses on
+			// specificity to the trigger's extra attribute selector.
+			render(
+				<Tabs.Root orientation="horizontal" defaultValue="a">
+					<Tabs.List>
+						<Tabs.Trigger value="a" className="[&>[data-slot=tabs-trigger-label]>svg]:size-4">
+							Tab A
+						</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>,
+			);
+
+			const trigger = screen.getByRole("tab");
+			expect(trigger.className).toContain("[&>[data-slot=tabs-trigger-label]>svg]:size-4");
+			expect(trigger.className).not.toContain("[&>[data-slot=tabs-trigger-label]>svg]:size-5");
 		});
 	});
 });

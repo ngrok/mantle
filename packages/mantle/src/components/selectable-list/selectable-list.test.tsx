@@ -1,9 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import type { ComponentProps } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { useState } from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
+import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import type * as CheckboxModule from "../checkbox/checkbox.js";
 import {
 	filterSelectableOptions,
@@ -262,6 +263,48 @@ describe("SelectableList.SelectAll with an active filter", () => {
 	});
 });
 
+describe("SelectableList.SelectAll after browser translation", () => {
+	function Header({ label }: { label: ReactNode }) {
+		return (
+			<SelectableList.Root options={options} defaultValue={[]}>
+				<SelectableList.SelectAll>{label}</SelectableList.SelectAll>
+			</SelectableList.Root>
+		);
+	}
+
+	test("renders the label inside the select-all label slot", () => {
+		const { container } = render(<Header label="Select all" />);
+
+		const header = container.querySelector('[data-slot="selectable-list-select-all"]');
+		const label = header?.querySelector('[data-slot="selectable-list-select-all-label"]');
+		expect(label).toHaveTextContent("Select all");
+		expect(label?.parentElement).toBe(header);
+	});
+
+	test("keeps rendering when a translated label gains a count element", () => {
+		const { container, rerender } = render(<Header label="Select all" />);
+		const header = container.querySelector('[data-slot="selectable-list-select-all"]');
+		if (header == null) {
+			throw new Error("expected a mounted select-all header");
+		}
+		translateTextNodes(header);
+		expect(header).toHaveTextContent("[Select all-es]");
+
+		rerender(
+			<Header
+				label={
+					<span>
+						Select all <span data-testid="count">3</span>
+					</span>
+				}
+			/>,
+		);
+
+		expect(header.querySelector("font")).toBeNull();
+		expect(screen.getByTestId("count")).toHaveTextContent("3");
+	});
+});
+
 describe("SelectableList selection state", () => {
 	test("uncontrolled selection seeds from defaultValue, toggles internally, and reports changes", async () => {
 		const user = userEvent.setup();
@@ -479,6 +522,52 @@ describe("SelectableList.Empty", () => {
 
 		// Clearing the filter empties the region again without unmounting it.
 		await user.clear(screen.getByRole("textbox", { name: "Filter fruit" }));
+		expect(screen.getByRole("status")).toBeEmptyDOMElement();
+	});
+
+	test("puts the message in a label slot inside the status region", async () => {
+		const user = userEvent.setup();
+		render(
+			<SelectableList.Root options={options} defaultValue={[]}>
+				<SelectableList.Filter aria-label="Filter fruit" />
+				<SelectableList.Empty>No results found.</SelectableList.Empty>
+			</SelectableList.Root>,
+		);
+
+		const status = screen.getByRole("status");
+		expect(status.querySelector('[data-slot="selectable-list-empty-label"]')).toBeNull();
+
+		await user.type(screen.getByRole("textbox", { name: "Filter fruit" }), "zzz");
+
+		const label = status.querySelector('[data-slot="selectable-list-empty-label"]');
+		expect(label).toHaveTextContent("No results found.");
+		expect(label?.parentElement).toBe(status);
+	});
+
+	test("restores the rows after a translated multi-node message", async () => {
+		const user = userEvent.setup();
+		const query = "zzz";
+		render(
+			<SelectableList.Root options={options} defaultValue={[]}>
+				<SelectableList.Filter aria-label="Filter fruit" />
+				<SelectableList.Viewport aria-label="Fruit" />
+				<SelectableList.Empty>
+					No results for <strong>{query}</strong>.
+				</SelectableList.Empty>
+			</SelectableList.Root>,
+		);
+
+		await user.type(screen.getByRole("textbox", { name: "Filter fruit" }), query);
+		expect(screen.queryAllByRole("row")).toHaveLength(0);
+
+		// A translation engine reparents each text node under its own `<font>`.
+		// Without the label span, React aims `removeChild` at one of those nodes
+		// when the filter matches options again, and the DOM raises `NotFoundError`.
+		translateTextNodes(screen.getByRole("status"));
+		expect(screen.getByRole("status")).toHaveTextContent("[No results for-es][zzz-es][.-es]");
+
+		await user.clear(screen.getByRole("textbox", { name: "Filter fruit" }));
+		expect(screen.getAllByRole("row")).toHaveLength(options.length);
 		expect(screen.getByRole("status")).toBeEmptyDOMElement();
 	});
 });

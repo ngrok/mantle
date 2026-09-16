@@ -33,6 +33,8 @@ Work [COMPONENT_SPEC.md §1](../../COMPONENT_SPEC.md#1-before-you-scaffold) with
 - §1.5 — composition or data-driven?
 - §1.6 / §1.7 — are invalid states unrepresentable, and does the API avoid every forbidden shape?
 
+One more surface question belongs here, because its answer is a public name: if any part will render an icon, an indicator, or a caret beside the consumer's `children`, that part ships a label slot, and the slot is API from its first release ([§3.8](../../COMPONENT_SPEC.md#38-browser-translation), [§6](../../COMPONENT_SPEC.md#6-data-attributes-are-api)).
+
 Then ask the user:
 
 > Is `<ComponentName>` a compound component (a POJO namespace with multiple parts) or a simple single-element component?
@@ -49,7 +51,9 @@ If the component wraps a third-party primitive, add the dependency first with an
 
 Create `packages/mantle/src/components/<component-name>/` — or the family directory, per §2.2 — with the implementation, `index.ts`, and a colocated test file.
 
-Follow [§3](../../COMPONENT_SPEC.md#3-implementation-rules) for the implementation (`"use client"`, `.js` imports, `ComponentProps`-based props, `data-slot` on every part, `asChild` on every DOM-rendering part, compound namespace shape, invariants, accessibility, SSR), [§4](../../COMPONENT_SPEC.md#4-jsdoc) for JSDoc, [§5](../../COMPONENT_SPEC.md#5-css-variables-are-api) and [§6](../../COMPONENT_SPEC.md#6-data-attributes-are-api) for public CSS variables and data attributes, and [§8](../../COMPONENT_SPEC.md#8-tests) for tests.
+Follow [§3](../../COMPONENT_SPEC.md#3-implementation-rules) for the implementation (`"use client"`, `.js` imports, `ComponentProps`-based props, `data-slot` on every part, `asChild` on every DOM-rendering part, compound namespace shape, invariants, accessibility, SSR, translation-safe children), [§4](../../COMPONENT_SPEC.md#4-jsdoc) for JSDoc, [§5](../../COMPONENT_SPEC.md#5-css-variables-are-api) and [§6](../../COMPONENT_SPEC.md#6-data-attributes-are-api) for public CSS variables and data attributes, and [§8](../../COMPONENT_SPEC.md#8-tests) for tests.
+
+One §3 rule decides markup you write on the first pass, and a retrofit later changes the DOM under consumers. Ask it of every part: does the part render anything beside the `children` it receives? An icon, an indicator, a caret, a checkmark, and a portal all count. When the answer is yes, wrap those children now in `<span data-slot="<component-name>-label">` ([§3.8](../../COMPONENT_SPEC.md#38-browser-translation)). Add `className="contents"` when the part lays its children out as a flex or grid container, so every child stays an item of the parent — `Button` and `Badge` do, and `Anchor` keeps a plain inline span because it lays out in inline flow. Use a `<div>` instead when the children are flow content a `<span>` cannot legally hold, as `AlertCenter.Item` does. Name the slot, document it in the JSDoc and the API reference, and pin it with a `translateTextNodes` test ([§8](../../COMPONENT_SPEC.md#8-tests)).
 
 `index.ts` re-exports from `./<component-name>.js`. If the component surfaces helpers from a wrapped library that consumers need to compose it (pattern constants, type predicates), re-export those too — only the ones consumers need:
 

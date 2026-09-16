@@ -40,6 +40,12 @@ type Crumb =
 			 * links that only exist in fetched data. The node renders its own
 			 * `Breadcrumb.Item`s and `Breadcrumb.Separator`s, and falls back to
 			 * `Breadcrumb.Skeleton` while its data loads.
+			 *
+			 * Render a host element at the root, never bare text. `Breadcrumb.List`
+			 * renders an `<ol>`, so a crumb's outermost node is a direct child of a
+			 * list. A bare string there is a text node React removes by itself, and
+			 * a browser translation engine has reparented it first, so the removal
+			 * throws and the page goes blank.
 			 */
 			kind: "content";
 			content: ReactNode;
@@ -88,6 +94,11 @@ const routeBreadcrumb = Object.assign(
 		 * Creates a content crumb — a complete rendered trail segment, for labels
 		 * and links that only exist in fetched data. The node decides link vs
 		 * current page itself, because the trail builder cannot see inside it.
+		 *
+		 * `content` must render a host element at its root, never bare text. A
+		 * bare string lands as a direct text child of `Breadcrumb.List`'s `<ol>`,
+		 * where a removal throws on a translated page. Wrap it in a
+		 * `Breadcrumb.Item`, or in whatever the segment already renders.
 		 *
 		 * @example
 		 * ```tsx

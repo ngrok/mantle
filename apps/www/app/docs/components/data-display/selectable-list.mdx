@@ -81,7 +81,7 @@ export function CustomRowsExample() {
 										{status}
 									</Badge>
 								</div>
-								<SelectableList.ItemDescription className="font-mono">
+								<SelectableList.ItemDescription translate="no" className="font-mono">
 									{option.description}
 								</SelectableList.ItemDescription>
 							</SelectableList.Item>
@@ -159,7 +159,9 @@ export function ControlledQueryExample() {
 				<SelectableList.Viewport aria-label="Access keys" className="max-h-72" />
 				<SelectableList.Empty>No access keys found.</SelectableList.Empty>
 			</SelectableList.Root>
-			<p className="text-muted text-sm">query: “{query}”</p>
+			<p className="text-muted text-sm">
+				query: <span>{`“${query}”`}</span>
+			</p>
 		</div>
 	);
 }
@@ -340,7 +342,7 @@ function Example() {
 									{status}
 								</Badge>
 							</div>
-							<SelectableList.ItemDescription className="font-mono">
+							<SelectableList.ItemDescription translate="no" className="font-mono">
 								{option.description}
 							</SelectableList.ItemDescription>
 						</SelectableList.Item>
@@ -507,7 +509,9 @@ function Example() {
 				<SelectableList.Viewport aria-label="Access keys" className="max-h-72" />
 				<SelectableList.Empty>No access keys found.</SelectableList.Empty>
 			</SelectableList.Root>
-			<p className="text-muted text-sm">query: “{query}”</p>
+			<p className="text-muted text-sm">
+				query: <span>{`“${query}”`}</span>
+			</p>
 		</div>
 	);
 }
@@ -579,6 +583,13 @@ The optional tri-state "select all" header over the currently filtered options. 
 | ---------- | ----------- | ------- | -------------------------------------- |
 | `children` | `ReactNode` |         | The visible label (e.g. "Select all"). |
 
+`children` render inside a `<span data-slot="selectable-list-select-all-label">`. The checkbox is a permanent element sibling, so without the span a bare text label is never a lone child: a browser translation engine reparents that text node, and the removal React runs when a count-aware label swaps to an element throws. The span is `display: contents`, so the checkbox and the label stay flex items of the header and keep its `gap`. [Browser translation](/browser-translation) covers the mechanism and the rules your own components need.
+
+| Data Attribute | Value                                | Description                          |
+| -------------- | ------------------------------------ | ------------------------------------ |
+| `data-slot`    | `"selectable-list-select-all"`       | On the header `<label>`.             |
+| `data-slot`    | `"selectable-list-select-all-label"` | On the `<span>` wrapping `children`. |
+
 Its checkbox is automatically disabled when no filtered option is selectable.
 
 ### SelectableList.Viewport
@@ -620,3 +631,10 @@ The title and de-emphasized sub-line inside a `SelectableList.Item`. `ItemTitle`
 ### SelectableList.Empty
 
 Shown in place of the viewport when no options match the filter. Accepts all `<div>` props; `children` are the message (e.g. "No access keys found."). It is an always-mounted polite `role="status"` live region — visually hidden while options match — so the empty state is announced as the filter narrows.
+
+The message renders inside a `<span data-slot="selectable-list-empty-label">`. The live region stays mounted, so React removes that span when options match again. The span exists so the node React removes is an element: a browser translation engine reparents text nodes, and a removal aimed at one throws. The span is `display: contents`, so it adds no box and your message stays a direct child of the centered region. [Browser translation](/browser-translation) covers the mechanism.
+
+| Data Attribute | Value                           | Description                                                                |
+| -------------- | ------------------------------- | -------------------------------------------------------------------------- |
+| `data-slot`    | `"selectable-list-empty"`       | On the live-region element.                                                |
+| `data-slot`    | `"selectable-list-empty-label"` | On the `<span>` wrapping `children`. Present only while the message shows. |
