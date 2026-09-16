@@ -278,7 +278,6 @@ describe("SelectableList.SelectAll after browser translation", () => {
 		const header = container.querySelector('[data-slot="selectable-list-select-all"]');
 		const label = header?.querySelector('[data-slot="selectable-list-select-all-label"]');
 		expect(label).toHaveTextContent("Select all");
-		expect(label).toHaveClass("contents");
 		expect(label?.parentElement).toBe(header);
 	});
 

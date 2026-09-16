@@ -711,7 +711,7 @@ describe("MultiSelect.Item label slot", () => {
 		);
 	}
 
-	test("wraps children in a contents label span", async () => {
+	test("wraps children in a label div", async () => {
 		const user = userEvent.setup();
 		render(<Options label="Apple" />);
 		await user.click(screen.getByRole("combobox"));
@@ -719,7 +719,6 @@ describe("MultiSelect.Item label slot", () => {
 		const item = await screen.findByRole("option", { name: "Apple" });
 		const label = item.querySelector('[data-slot="multi-select-item-label"]');
 		expect(label).toHaveTextContent("Apple");
-		expect(label).toHaveClass("contents");
 		expect(label?.parentElement).toBe(item);
 	});
 

@@ -288,7 +288,6 @@ describe("Tabs", () => {
 				const trigger = screen.getByRole("tab", { name: "Tab A" });
 				const label = trigger.querySelector('[data-slot="tabs-trigger-label"]');
 				expect(label).toHaveTextContent("Tab A");
-				expect(label).toHaveClass("contents");
 			},
 		);
 

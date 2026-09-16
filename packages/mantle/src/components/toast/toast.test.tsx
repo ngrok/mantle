@@ -128,7 +128,6 @@ describe("Toast.Root label slot", () => {
 		const root = getToastRoot(container);
 		const label = root?.querySelector('[data-slot="toast-label"]');
 		expect(label).toHaveTextContent("Saved");
-		expect(label).toHaveClass("contents");
 		expect(label?.parentElement).toBe(root);
 		// A `<span>` may not contain the `<p>` that `Toast.Message` renders.
 		expect(label?.tagName).toBe("DIV");

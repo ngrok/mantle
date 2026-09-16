@@ -2001,8 +2001,11 @@ const SearchTrigger = ({
 				// The leading magnifier matches a nav row's leading icon, hover
 				// brightening included — without it the row's label lifts to
 				// `text-strong` while its icon stays muted, which no nav row does.
-				// Why slot-scoped: the label span makes a consumer's icon a
-				// grandchild, so a bare `[&>svg]` matches nothing on the `button` path.
+				// Why both forms: the label span makes a consumer's icon a grandchild
+				// on the `button` path, and `asChild` renders no label span at all, so
+				// each path needs the selector that reaches its own leading icon.
+				"[&>svg:first-child]:text-muted hover:[&>svg:first-child]:text-strong",
+				"[&>svg:first-child]:size-5",
 				"[&>[data-slot=sidebar-search-trigger-label]>svg:first-child]:text-muted",
 				"hover:[&>[data-slot=sidebar-search-trigger-label]>svg:first-child]:text-strong",
 				"[&>[data-slot=sidebar-search-trigger-label]>svg:first-child]:size-5",

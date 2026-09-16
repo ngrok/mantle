@@ -1,7 +1,7 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import { PointerEventsCheckLevel, userEvent } from "@testing-library/user-event";
 import { type ReactNode, useState } from "react";
-import { describe, expect, test } from "vitest";
+import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { AlertDialog } from "../alert-dialog/alert-dialog.js";
 import { Dialog } from "../dialog/dialog.js";
 import { Sheet } from "../sheet/sheet.js";
@@ -558,5 +558,60 @@ describe("MultiSelect (browser)", () => {
 			await user.keyboard("{Meta>}a{/Meta}");
 			expect(getTagOption("apple")).toHaveFocus();
 		});
+	});
+});
+
+/**
+ * Mirrors the CSS Tailwind 4 emits for the one utility the item's label div
+ * carries. Inlined so the test stays hermetic and needs no Tailwind build step:
+ * a browser test loads no stylesheet, so without this the wrapper would report
+ * its initial `display` and the assertion would pass for the wrong reason.
+ */
+const ITEM_LABEL_STYLE = `
+@layer utilities {
+	.contents { display: contents; }
+}
+`;
+
+describe("MultiSelect.Item label slot (browser)", () => {
+	let styleElement: HTMLStyleElement;
+
+	beforeAll(() => {
+		styleElement = document.createElement("style");
+		styleElement.textContent = ITEM_LABEL_STYLE;
+		document.head.appendChild(styleElement);
+	});
+
+	afterAll(() => {
+		styleElement.remove();
+	});
+
+	test("the label div generates no box, so a child of your own stays a flex item", async () => {
+		const user = setupUser();
+		render(
+			<MultiSelect.Root>
+				<MultiSelect.Trigger>
+					<MultiSelect.Input placeholder="Pick fruit" />
+				</MultiSelect.Trigger>
+				<MultiSelect.Content>
+					<MultiSelect.Item value="apple">
+						<div data-testid="row">Apple</div>
+					</MultiSelect.Item>
+				</MultiSelect.Content>
+			</MultiSelect.Root>,
+		);
+
+		await user.click(screen.getByRole("combobox"));
+		const item = await screen.findByRole("option", { name: "Apple" });
+		const label = item.querySelector('[data-slot="multi-select-item-label"]');
+		if (label == null) {
+			throw new Error('No element carries data-slot="multi-select-item-label".');
+		}
+
+		expect(getComputedStyle(label).display).toBe("contents");
+		expect(label.getClientRects()).toHaveLength(0);
+		// A `<div>` may legally hold the `<div>` a `MediaObject` child renders.
+		expect(label.tagName).toBe("DIV");
+		expect(screen.getByTestId("row").parentElement).toBe(label);
 	});
 });

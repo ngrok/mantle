@@ -1189,7 +1189,7 @@ describe("Sidebar.SearchTrigger", () => {
 		expect(button.querySelector("strong")).toHaveTextContent("Search");
 	});
 
-	test("sizes the leading icon through the label-scoped selector", () => {
+	test("sizes the leading icon on the button path through the label-scoped selector", () => {
 		// Cross-file pin: the `[&>[data-slot=sidebar-search-trigger-label]>svg]`
 		// utilities only match while the label span carries that slot and the
 		// consumer's icon stays its direct child.
@@ -1206,6 +1206,26 @@ describe("Sidebar.SearchTrigger", () => {
 		);
 		const label = button.querySelector('[data-slot="sidebar-search-trigger-label"]');
 		expect(label?.firstElementChild?.tagName).toBe("svg");
+	});
+
+	test("keeps the direct-child selector for the asChild path, which renders no label span", () => {
+		// Cross-file pin, and a regression: `asChild` renders no label span, so the
+		// slot-scoped utilities reach nothing there. Dropping the direct-child form
+		// left a leading icon unsized and unmuted on that path.
+		render(
+			<Sidebar.SearchTrigger asChild>
+				<a href="/search">
+					<MagnifyingGlassIcon />
+					<span>Search</span>
+				</a>
+			</Sidebar.SearchTrigger>,
+		);
+
+		const link = screen.getByRole("link", { name: "Search" });
+		expect(link.querySelector('[data-slot="sidebar-search-trigger-label"]')).toBeNull();
+		expect(link.firstElementChild?.tagName).toBe("svg");
+		expect(link.className).toContain("[&>svg:first-child]:size-5");
+		expect(link.className).toContain("[&>svg:first-child]:text-muted");
 	});
 
 	test("takes a chord that arrives on a translated row with a bare text label", () => {

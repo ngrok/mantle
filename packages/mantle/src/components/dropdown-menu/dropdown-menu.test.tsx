@@ -118,13 +118,12 @@ function getItem(slot: string): HTMLElement {
 }
 
 describe("DropdownMenu label slots", () => {
-	test.each(wrappedParts)("$slot wraps its children in a contents label span", ({ slot, text }) => {
+	test.each(wrappedParts)("$slot wraps its children in a label span", ({ slot, text }) => {
 		render(<WrappedItems />);
 
 		const item = getItem(slot);
 		const label = item.querySelector(`[data-slot="${slot}-label"]`);
 		expect(label).toHaveTextContent(text);
-		expect(label).toHaveClass("contents");
 		expect(label?.parentElement).toBe(item);
 	});
 

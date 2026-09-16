@@ -115,19 +115,20 @@ type TooltipContentProps = Omit<ComponentProps<typeof TooltipPrimitive.Content>,
  * float paints on top.
  *
  * **Structure.** `children` render inside a
- * `<span data-slot="tooltip-label">`. The arrow is a permanent element sibling,
- * so without the span a bare text body is never a lone child: a browser
+ * `<div data-slot="tooltip-label">`. The arrow is a permanent element sibling,
+ * so without the wrapper a bare text body is never a lone child: a browser
  * translation engine reparents that text node, and the removal React runs when
- * the body changes shape or goes away throws. The span is `display: contents`,
- * so it adds no box and every child of the body stays a layout child of the
- * surface.
+ * the body changes shape or goes away throws. The wrapper is a `<div>` because a
+ * tooltip body is often a `<p>`, which a `<span>` may not contain. It is
+ * `display: contents`, so it adds no box and every child of the body stays a
+ * layout child of the surface.
  *
  * **Data attributes:**
  *
  * | Data Attribute   | Value                                              | Description                                       |
  * | ---------------- | -------------------------------------------------- | ------------------------------------------------- |
  * | `data-slot`      | `"tooltip-content"`                                | On the tooltip surface.                           |
- * | `data-slot`      | `"tooltip-label"`                                  | On the `<span>` wrapping `children`.              |
+ * | `data-slot`      | `"tooltip-label"`                                  | On the `<div>` wrapping `children`.               |
  * | `data-state`     | `"delayed-open"` \| `"instant-open"` \| `"closed"` | The open state Radix stamps on the surface.       |
  * | `data-side`      | `"top"` \| `"right"` \| `"bottom"` \| `"left"`     | Which side of the trigger the surface resolved to. |
  *
@@ -162,10 +163,12 @@ const Content = ({ children, className, ref, sideOffset = 4, ...props }: Tooltip
 				sideOffset={sideOffset}
 				{...props}
 			>
-				{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
-				<span data-slot="tooltip-label" className="contents">
+				{/* Why the label div: decisions/2026-08-04-translation-safe-label-wrappers.md
+				    Why a div and not a span: a documented tooltip body is a `<p>`, which a
+				    `<span>` may not contain. */}
+				<div data-slot="tooltip-label" className="contents">
 					{children}
-				</span>
+				</div>
 				<TooltipPrimitive.Arrow asChild>
 					<div className="bg-tooltip z-50 size-2.5 translate-y-[calc(-50%-2px)] rotate-45 rounded-xs" />
 				</TooltipPrimitive.Arrow>
@@ -263,19 +266,20 @@ const Tooltip = {
 	 * float paints on top.
 	 *
 	 * **Structure.** `children` render inside a
-	 * `<span data-slot="tooltip-label">`. The arrow is a permanent element sibling,
-	 * so without the span a bare text body is never a lone child: a browser
+	 * `<div data-slot="tooltip-label">`. The arrow is a permanent element sibling,
+	 * so without the wrapper a bare text body is never a lone child: a browser
 	 * translation engine reparents that text node, and the removal React runs when
-	 * the body changes shape or goes away throws. The span is `display: contents`,
-	 * so it adds no box and every child of the body stays a layout child of the
-	 * surface.
+	 * the body changes shape or goes away throws. The wrapper is a `<div>` because a
+	 * tooltip body is often a `<p>`, which a `<span>` may not contain. It is
+	 * `display: contents`, so it adds no box and every child of the body stays a
+	 * layout child of the surface.
 	 *
 	 * **Data attributes:**
 	 *
 	 * | Data Attribute   | Value                                              | Description                                       |
 	 * | ---------------- | -------------------------------------------------- | ------------------------------------------------- |
 	 * | `data-slot`      | `"tooltip-content"`                                | On the tooltip surface.                           |
-	 * | `data-slot`      | `"tooltip-label"`                                  | On the `<span>` wrapping `children`.              |
+	 * | `data-slot`      | `"tooltip-label"`                                  | On the `<div>` wrapping `children`.               |
 	 * | `data-state`     | `"delayed-open"` \| `"instant-open"` \| `"closed"` | The open state Radix stamps on the surface.       |
 	 * | `data-side`      | `"top"` \| `"right"` \| `"bottom"` \| `"left"`     | Which side of the trigger the surface resolved to. |
 	 *

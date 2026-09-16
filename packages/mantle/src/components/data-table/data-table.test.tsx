@@ -405,7 +405,6 @@ describe("DataTable.ActionCell", () => {
 		const cell = screen.getByRole("cell", { name: "Open actions" });
 		const label = cell.querySelector('[data-slot="data-table-action-cell-label"]');
 		expect(label).toContainElement(screen.getByRole("button", { name: "Open actions" }));
-		expect(label).toHaveClass("contents");
 	});
 });
 

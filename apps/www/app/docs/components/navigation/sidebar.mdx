@@ -1845,9 +1845,10 @@ box. It keeps your own swap of a text label to an element off React's removal pa
 are absent, because the row renders a single slotted child there.
 [Browser translation](/browser-translation) covers why.
 
-The label span makes an icon you pass a grandchild of the row, so the row sizes that icon through
-`[&>[data-slot=sidebar-search-trigger-label]>svg:first-child]`. Match that shape in a class of your own; a
-bare `[&>svg]` no longer reaches it.
+The label span makes an icon you pass a grandchild of the row, so the row carries both selector forms: a
+direct-child one for the `asChild` path, and `[&>[data-slot=sidebar-search-trigger-label]>svg:first-child]`
+for the default `button` path. A `[&>svg]` override of your own still reaches an `asChild` icon. Add the
+slot-scoped twin when you override the `button` path.
 
 A styled button only — compose it with
 [`Command.SearchTrigger`](/components/navigation/command#commandsearchtrigger), which supplies the dialog

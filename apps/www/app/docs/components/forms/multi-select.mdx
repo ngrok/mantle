@@ -1257,7 +1257,7 @@ All props from ariakit [ComboboxPopover](https://ariakit.org/reference/combobox-
 
 Renders a selectable item with a checkbox indicator inside a `MultiSelect.Content`.
 
-`children` render inside a `<span data-slot="multi-select-item-label">`. The selected-state check is a permanent element sibling, so without the span a bare text label is never a lone child: a browser translation engine reparents that text node, and the removal React runs when the label changes shape or goes away throws. The span is `display: contents`, so a child of your own stays a flex item of the option and any `flex-1` on it still resolves. [Browser translation](/browser-translation) covers the mechanism and the rules your own components need.
+`children` render inside a `<div data-slot="multi-select-item-label">`. The selected-state check is a permanent element sibling, so without the wrapper a bare text label is never a lone child: a browser translation engine reparents that text node, and the removal React runs when the label changes shape or goes away throws. The wrapper is a `<div>` because a custom option layout is often a `MediaObject`, whose root is a `<div>` that a `<span>` may not contain. It is `display: contents`, so a child of your own stays a flex item of the option and any `flex-1` on it still resolves. [Browser translation](/browser-translation) covers the mechanism and the rules your own components need.
 
 All props from ariakit [ComboboxItem](https://ariakit.org/reference/combobox-item), plus:
 
@@ -1266,10 +1266,10 @@ All props from ariakit [ComboboxItem](https://ariakit.org/reference/combobox-ite
 | `asChild?`      | `boolean` | `false` | Compose onto an alternative element type or your own React component. |
 | `focusOnHover?` | `boolean` | `true`  | Whether the item should receive focus on hover.                       |
 
-| Data Attribute | Value                       | Description                          |
-| :------------- | :-------------------------- | :----------------------------------- |
-| `data-slot`    | `"multi-select-item"`       | On the option element.               |
-| `data-slot`    | `"multi-select-item-label"` | On the `<span>` wrapping `children`. |
+| Data Attribute | Value                       | Description                         |
+| :------------- | :-------------------------- | :---------------------------------- |
+| `data-slot`    | `"multi-select-item"`       | On the option element.              |
+| `data-slot`    | `"multi-select-item-label"` | On the `<div>` wrapping `children`. |
 
 ### MultiSelect.Group
 
