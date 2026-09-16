@@ -8,12 +8,15 @@ import type {
 	ComponentProps,
 	Dispatch,
 	KeyboardEvent,
+	PropsWithChildren,
 	ReactNode,
 	RefObject,
 	SetStateAction,
 } from "react";
 import {
+	cloneElement,
 	createContext,
+	isValidElement,
 	useCallback,
 	useContext,
 	useEffect,
@@ -33,6 +36,7 @@ import type { WithValidation } from "../field/validation.js";
 import { Icon } from "../icon/icon.js";
 import { Separator } from "../separator/separator.js";
 import { Slot } from "../slot/index.js";
+import invariant from "tiny-invariant";
 
 /** Type guard to safely narrow Ariakit store state to `string[]` without `as` assertions. */
 const isStringArray = (value: unknown): value is string[] =>
@@ -932,11 +936,22 @@ const Content = ({
 };
 
 /**
- * Props for `MultiSelect.Item`. `asChild` is omitted: the item renders its check
- * indicator next to the label div holding `children`, so a slot would receive
- * two elements and throw.
+ * The label wrapper `MultiSelect.Item` renders around the consumer's children.
+ *
+ * Why the label div: decisions/2026-08-04-translation-safe-label-wrappers.md
+ * Why a div and not a span: the docs point a custom option layout at
+ * `MediaObject`, whose root is a `<div>`, which a `<span>` may not contain.
  */
-type MultiSelectItemProps = Omit<Primitive.ComboboxItemProps, "render">;
+const renderItemLabel = (label: ReactNode) => (
+	<div data-slot="multi-select-item-label" className="contents">
+		{label}
+	</div>
+);
+
+/**
+ * Props for `MultiSelect.Item`.
+ */
+type MultiSelectItemProps = Omit<Primitive.ComboboxItemProps, "render"> & WithAsChild;
 
 /**
  * Renders a selectable item inside a `MultiSelect.Content` component.
@@ -952,8 +967,8 @@ type MultiSelectItemProps = Omit<Primitive.ComboboxItemProps, "render">;
  * `display: contents`, so a child of your own stays a flex item of the option
  * and any `flex-1` on it still resolves.
  *
- * **Why no `asChild`:** the check indicator sits beside the label div, so `Slot`
- * would receive two elements and throw. The prop is omitted from the props type.
+ * **`asChild`.** Your single child becomes the option element. The label div
+ * and the check move inside it, so the guarantee above holds on both paths.
  *
  * **Data attributes:**
  *
@@ -979,6 +994,7 @@ type MultiSelectItemProps = Omit<Primitive.ComboboxItemProps, "render">;
  * ```
  */
 const Item = ({
+	asChild = false,
 	children,
 	className,
 	focusOnHover = true,
@@ -989,6 +1005,38 @@ const Item = ({
 }: MultiSelectItemProps) => {
 	const lockedValues = useContext(LockedValuesContext);
 	const isLocked = value != null && lockedValues.includes(value);
+
+	const check = (
+		<Primitive.ComboboxItemCheck className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
+			<Icon svg={<CheckIcon weight="bold" />} className="size-4 text-accent-600" />
+		</Primitive.ComboboxItemCheck>
+	);
+
+	let content: ReactNode;
+	if (asChild) {
+		// Why clone here and not in `render`: Ariakit hands `render` one element, and
+		// mantle's `Slot` takes one. The consumer's element becomes that one, with the
+		// label div and the check inside it, so both keep their places.
+		invariant(
+			isValidElement<PropsWithChildren>(children),
+			"When using `asChild`, MultiSelect.Item must be passed a single child as a JSX tag.",
+		);
+		content = cloneElement(
+			children,
+			{},
+			<>
+				{renderItemLabel(children.props.children)}
+				{check}
+			</>,
+		);
+	} else {
+		content = (
+			<>
+				{renderItemLabel(children)}
+				{check}
+			</>
+		);
+	}
 
 	return (
 		<Primitive.ComboboxItem
@@ -1012,20 +1060,12 @@ const Item = ({
 				onClick?.(event);
 			}}
 			ref={ref}
+			render={asChild ? ({ ref, ...childProps }) => <Slot ref={ref} {...childProps} /> : undefined}
 			resetValueOnSelect
 			value={value}
 			{...props}
 		>
-			{/* Why the label div: decisions/2026-08-04-translation-safe-label-wrappers.md
-			    Why a div and not a span: the docs point a custom option layout at
-			    `MediaObject`, whose root is a `<div>`, which a `<span>` may not
-			    contain. */}
-			<div data-slot="multi-select-item-label" className="contents">
-				{children}
-			</div>
-			<Primitive.ComboboxItemCheck className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
-				<Icon svg={<CheckIcon weight="bold" />} className="size-4 text-accent-600" />
-			</Primitive.ComboboxItemCheck>
+			{content}
 		</Primitive.ComboboxItem>
 	);
 };
@@ -1521,8 +1561,8 @@ const MultiSelect = {
 	 * `display: contents`, so a child of your own stays a flex item of the option
 	 * and any `flex-1` on it still resolves.
 	 *
-	 * **Why no `asChild`:** the check indicator sits beside the label div, so `Slot`
-	 * would receive two elements and throw. The prop is omitted from the props type.
+	 * **`asChild`.** Your single child becomes the option element. The label div
+	 * and the check move inside it, so the guarantee above holds on both paths.
 	 *
 	 * **Data attributes:**
 	 *

@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { useState } from "react";
+import type { ReactNode } from "react";
+import { createRef, useState } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import { Field } from "../field/field.js";
@@ -842,6 +843,153 @@ describe("Select", () => {
 			unmount();
 
 			expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
+		});
+	});
+
+	describe("asChild", () => {
+		test("Select.Trigger slots onto the child button and keeps the label span and the caret inside it", () => {
+			const ref = createRef<HTMLButtonElement>();
+			render(
+				<Select.Root defaultValue="apple">
+					<Select.Trigger asChild className="mine" data-testid="custom">
+						<button type="button" className="theirs" ref={ref}>
+							<Select.Value placeholder="Select a fruit" />
+						</button>
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Item value="apple">Apple</Select.Item>
+					</Select.Content>
+				</Select.Root>,
+			);
+
+			const trigger = screen.getByRole("combobox");
+			expect(trigger.tagName).toBe("BUTTON");
+			expect(trigger).toHaveClass("mine", "theirs");
+			expect(trigger).toHaveAttribute("data-testid", "custom");
+			expect(trigger).toHaveAttribute("data-slot", "select-trigger");
+			expect(ref.current).toBe(trigger);
+
+			const label = trigger.querySelector('[data-slot="select-trigger-label"]');
+			expect(label?.parentElement).toBe(trigger);
+			expect(label?.querySelector('[data-slot="select-value"]')).toHaveTextContent("Apple");
+			expect(trigger.querySelector("svg")?.parentElement).toBe(trigger);
+			expect(trigger.childElementCount).toBe(2);
+		});
+
+		test("Select.Item slots onto the child and keeps the label span and the indicator inside it", async () => {
+			const user = userEvent.setup();
+			const ref = createRef<HTMLDivElement>();
+			render(
+				<Select.Root defaultValue="apple">
+					<Select.Trigger>
+						<Select.Value placeholder="Select a fruit" />
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Item value="apple" asChild className="mine" data-testid="custom">
+							<div className="theirs" ref={ref}>
+								Apple
+							</div>
+						</Select.Item>
+					</Select.Content>
+				</Select.Root>,
+			);
+
+			// The label reaches the trigger through the portal before the list opens.
+			expect(screen.getByRole("combobox")).toHaveTextContent("Apple");
+
+			await user.click(screen.getByRole("combobox"));
+
+			const option = await screen.findByRole("option", { name: "Apple" });
+			expect(option.tagName).toBe("DIV");
+			expect(option).toHaveClass("mine", "theirs");
+			expect(option).toHaveAttribute("data-testid", "custom");
+			expect(option).toHaveAttribute("data-slot", "select-item");
+			expect(option).toHaveAttribute("data-state", "checked");
+			expect(ref.current).toBe(option);
+
+			const label = option.querySelector('[data-slot="select-item-label"]');
+			expect(label).toHaveTextContent("Apple");
+			expect(label?.parentElement?.parentElement).toBe(option);
+			expect(option.querySelector("svg")).toBeInTheDocument();
+			expect(Array.from(option.childNodes).every((node) => node instanceof Element)).toBe(true);
+		});
+
+		/** An open select whose one option slots onto a consumer `<div>`. */
+		function SlottedPicker({ label }: { label: ReactNode }) {
+			return (
+				<Select.Root defaultValue="apple" open>
+					<Select.Trigger>
+						<Select.Value placeholder="Select a fruit" />
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Item value="apple" asChild>
+							<div>{label}</div>
+						</Select.Item>
+					</Select.Content>
+				</Select.Root>
+			);
+		}
+
+		/**
+		 * Translates both copies of the slotted option's label: the one in the list,
+		 * and the one Radix portals into `Select.Value`.
+		 */
+		function renderTranslatedSlottedPicker() {
+			const view = render(<SlottedPicker label="Apple" />);
+			const option = screen.getByRole("option", { name: "Apple" });
+			// Why `hidden`: while the list is open, Radix marks the rest of the page
+			// `aria-hidden`, and the trigger with it.
+			const trigger = screen.getByRole("combobox", { hidden: true });
+			translateTextNodes(option);
+			translateTextNodes(trigger);
+			expect(option).toHaveTextContent("[Apple-es]");
+			expect(trigger).toHaveTextContent("[Apple-es]");
+			return { ...view, option, trigger };
+		}
+
+		test("Select.Item asChild keeps rendering when a translated label swaps to an element", () => {
+			const { rerender, option, trigger } = renderTranslatedSlottedPicker();
+
+			rerender(<SlottedPicker label={<strong>Apple</strong>} />);
+
+			expect(option.querySelector("font")).toBeNull();
+			expect(option.querySelector("strong")).toHaveTextContent("Apple");
+			expect(trigger.querySelector("font")).toBeNull();
+			expect(trigger.querySelector("strong")).toHaveTextContent("Apple");
+		});
+
+		test("Select.Item asChild keeps rendering when a translated label unmounts", () => {
+			const { rerender, option, trigger } = renderTranslatedSlottedPicker();
+
+			rerender(<SlottedPicker label={null} />);
+
+			expect(option.querySelector("font")).toBeNull();
+			expect(option.querySelector('[data-slot="select-item-label"]')).toHaveTextContent("");
+			expect(trigger.querySelector("font")).toBeNull();
+		});
+
+		test("Select.Trigger asChild keeps rendering when a translated bare string child swaps to an element", () => {
+			function Picker({ label }: { label: ReactNode }) {
+				return (
+					<Select.Root>
+						<Select.Trigger asChild>
+							<button type="button">{label}</button>
+						</Select.Trigger>
+						<Select.Content>
+							<Select.Item value="apple">Apple</Select.Item>
+						</Select.Content>
+					</Select.Root>
+				);
+			}
+			const { rerender } = render(<Picker label="Pick a fruit" />);
+			const trigger = screen.getByRole("combobox");
+			translateTextNodes(trigger);
+			expect(trigger).toHaveTextContent("[Pick a fruit-es]");
+
+			rerender(<Picker label={<strong>Pick a fruit</strong>} />);
+
+			expect(trigger.querySelector("font")).toBeNull();
+			expect(trigger.querySelector("strong")).toHaveTextContent("Pick a fruit");
 		});
 	});
 });
