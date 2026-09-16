@@ -100,77 +100,12 @@ classes mantle's components use. The components then render without their styles
 Add your own `@source` directives to the same file when you keep components in a workspace
 package that Tailwind's automatic detection can't see.
 
-#### Trim the scan in production
-
-`source-all.css` points Tailwind at every mantle file, so the production stylesheet carries the
-utilities of every component, whether the app renders it or not. `mantleSourcesPlugin` from
-`@ngrok/mantle-vite-plugins` narrows the scan to the mantle files the client bundle contains.
-Install the package and add the plugin next to the Tailwind plugin. The CSS file does not change.
-
-```sh
-# npm
-npm install -DE @ngrok/mantle-vite-plugins
-
-# pnpm
-pnpm add -DE @ngrok/mantle-vite-plugins
-
-# bun
-bun add -DE @ngrok/mantle-vite-plugins
-```
-
-```ts
-// vite.config.ts
-import { mantleSourcesPlugin } from "@ngrok/mantle-vite-plugins";
-import tailwindcss from "@tailwindcss/vite";
-import { defineConfig } from "vite";
-
-export default defineConfig({
-	plugins: [tailwindcss(), mantleSourcesPlugin()],
-});
-```
-
-In `vite dev` the plugin is inactive. `source-all.css` scans every mantle file, so Tailwind styles
-every component the app can reach, including one that first appears through hot module replacement
-(HMR). In `vite build` the plugin reads the bundler's module graph in the client environment. It
-replaces the `source-all.css` import with `@source` directives that keep the mantle files the graph
-holds: one per directory, plus an `@source not` for every neighbor outside the graph. A
-component that arrives through a workspace package, a dynamic `import()`, or a chunk another plugin
-emits before the CSS transform is in the graph, so it is in the list. The build logs one line:
-
-```
-mantle sources: 18 @ngrok/mantle files listed for app/app.css (source-all.css scans 248)
-```
-
-After the bundle is final, the plugin compares the list with every chunk. If the bundle holds a
-mantle file the CSS does not list, the build fails and names the file. That happens when another
-plugin adds a chunk after the CSS transform ran. Move that plugin's emit earlier, or pass
-`onMiss: "warn"` to log the miss and ship the CSS without those classes.
-
-The plugin takes four options:
-
-- `onMiss`: `"error"` fails the build on a missed file. `"warn"` logs it instead. Default `"error"`.
-- `include`: package names whose reached files the plugin lists too. A component package that sets
-  Tailwind classes on mantle parts needs its own files scanned, because Tailwind skips
-  `node_modules`. `include: ["@acme/ui"]` lists the files of that package the bundle contains.
-- `verbose`: print every listed path.
-- `idleTimeoutMs`: how long the CSS waits with no module event before it stops waiting and lists
-  the files parsed so far. Default 15000. When one module, such as a `?worker` sub-build, takes
-  longer, raise it; `Infinity` waits for events only. A file that loads after the wait still shows
-  up in the bundle check.
-
-Five limits apply:
-
-- The `source-all.css` import must sit in a CSS file Vite processes, as in the recipe above. An
-  import chain that Tailwind resolves on its own is invisible to the plugin.
-- The server build gets no rewrite. When the same `vite build --app` run builds it and bundles
-  mantle (`ssr.noExternal`), it warns about a mantle file that only the server graph reaches. Such
-  a component has no classes in the client CSS. Render it from a module the client also imports.
-- The `@source not` lines apply to every `@source` that walks the same directory. A directory
-  `@source` of your own that overlaps mantle's files loses the same neighbors.
-- A chunk another plugin emits after the CSS transform is in the bundle and not in the CSS. The
-  bundle check turns that into the build error above.
-- A module that fails to parse holds the CSS wait until the idle limit, so a syntax error surfaces
-  up to 15 seconds later than it does without the plugin.
+In production, `source-all.css` makes Tailwind scan every file in mantle's `dist/`, so the
+stylesheet carries the utilities of every mantle component, whether your app renders it or not. On
+an app that renders `Badge` alone, that's 181 KB of CSS where 71 KB would do. If you build with
+Vite, add [`mantleSourcesPlugin`](/vite-plugins#mantlesourcesplugin) from
+`@ngrok/mantle-vite-plugins` to `vite.config.ts` to ship only the classes your bundle uses. The CSS
+above stays as it is.
 
 ### React Router
 

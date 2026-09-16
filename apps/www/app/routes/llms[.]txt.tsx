@@ -1,4 +1,8 @@
-import { componentCategories, componentCategorySlugs } from "~/components/navigation-data";
+import {
+	componentCategories,
+	componentCategorySlugs,
+	welcomeRoutes,
+} from "~/components/navigation-data";
 import { canonicalHref } from "~/utilities/canonical-origin";
 import { loadFrontmatter, urlToFileMap } from "~/utilities/docs";
 import { etagFor } from "~/utilities/etag";
@@ -17,17 +21,17 @@ type Section = {
 	match: (slug: string) => boolean;
 };
 
+// Why derived: the sidebar's welcome list is the source of truth for these pages, and a
+// hardcoded copy here dropped a new page from the index once.
+const welcomeSlugs = new Set(
+	Object.values(welcomeRoutes).map((route) => (route === "/" ? "index" : route.slice(1))),
+);
+
 const SECTION_ORDER: readonly Section[] = [
 	{
 		id: "welcome",
 		title: "Welcome",
-		match: (slug) =>
-			slug === "index" ||
-			slug === "philosophy" ||
-			slug === "accessibility" ||
-			slug === "browser-translation" ||
-			slug === "for-ai-agents" ||
-			slug === "changelog",
+		match: (slug) => welcomeSlugs.has(slug),
 	},
 	{ id: "base", title: "Base", match: (slug) => slug.startsWith("base/") },
 	...componentCategories.map((category): Section => ({

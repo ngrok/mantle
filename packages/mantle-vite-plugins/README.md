@@ -1,11 +1,12 @@
 # @ngrok/mantle-vite-plugins
 
-Vite plugins for apps built with [`@ngrok/mantle`](https://github.com/ngrok/mantle).
+Vite plugins for apps built with [`@ngrok/mantle`](https://github.com/ngrok/mantle). The docs page is
+[mantle.ngrok.com/vite-plugins](https://mantle.ngrok.com/vite-plugins).
 
 ## Requirements
 
 - Node.js 24+
-- Vite 8+
+- Vite 8.3 or later
 - `@ngrok/mantle` installed in the same project
 
 ## Installation
@@ -31,7 +32,7 @@ Earlier versions of this package shipped `mantleTwSourcePlugin`, which injected 
 
 ### `mantleSourcesPlugin(options?)`
 
-Vite plugin that narrows mantle's Tailwind scan to the files the production bundle contains. Add it next to the Tailwind plugin; the position in the array does not matter.
+Vite plugin that narrows mantle's Tailwind scan to the files the client bundle contains. Add it next to the Tailwind plugin; the position in the array does not matter.
 
 ```ts
 import { mantleSourcesPlugin } from "@ngrok/mantle-vite-plugins";
@@ -43,13 +44,13 @@ export default defineConfig({
 });
 ```
 
-In `vite dev` the plugin is inactive, so `source-all.css` scans every mantle file. Tailwind styles every component the app can reach. In `vite build`, in the client environment, the plugin reads the bundler's module graph. It replaces the `source-all.css` import with `@source` directives that keep the `@ngrok/mantle` files the graph holds, chunks and dynamic imports included: one per directory, plus an `@source not` for every neighbor outside the graph. The build logs one line:
+In `vite dev` the plugin is inactive, so `source-all.css` scans every mantle file. Tailwind styles every component the app can reach. In `vite build`, in the client environment, the plugin reads the bundler's module graph. It replaces the `source-all.css` import with `@source` directives for the `@ngrok/mantle` files the graph holds, chunks and dynamic imports included. That is one `@source` per directory, plus an `@source not` for every neighbor outside the graph. The build logs one line:
 
 ```
-mantle sources: 18 @ngrok/mantle files listed for src/app.css (source-all.css scans 248)
+mantle sources: 6 @ngrok/mantle files listed for src/app.css (source-all.css scans 248)
 ```
 
-After the bundle is final, the plugin compares the list with every chunk. If the bundle holds a mantle file the CSS does not list, the build fails and names the file. That happens when another plugin adds a chunk after the CSS transform ran. Move that plugin's emit earlier, or pass `onMiss: "warn"` to log the miss and ship the CSS without those classes. The server build gets no rewrite. When the same `vite build --app` run builds it and bundles mantle (`ssr.noExternal`), it warns about a mantle file that only the server graph reaches, because such a component has no classes in the client CSS. The `@source not` lines apply to every `@source` that walks the same directory, so a directory `@source` of your own that overlaps mantle's files loses the same neighbors.
+After the bundle is final, the plugin compares the list with every chunk. If the bundle holds a mantle file the CSS does not list, the build fails and names the file and one of two causes. Either another plugin added a chunk after the CSS transform ran: move that plugin's emit earlier. Or the wait for the module graph gave up before a slow module parsed: raise `idleTimeoutMs`. In both cases `onMiss: "warn"` logs the miss and ships the CSS without those classes instead. The server build gets no rewrite. When one `vite build --app` run also builds the server and bundles mantle into it (`ssr.noExternal`), the plugin warns about a mantle file that only the server graph reaches. Such a component has no classes in the client CSS. The `@source not` lines apply to every `@source` that walks the same directory. A directory `@source` of your own that overlaps mantle's files loses the same neighbors.
 
 The `source-all.css` import must sit in a CSS file Vite processes. An import chain that Tailwind resolves on its own is invisible to the plugin.
 
@@ -57,7 +58,7 @@ The `source-all.css` import must sit in a CSS file Vite processes. An import cha
 
 | Option          | Type                | Default   | Description                                                                                                                                                                                    |
 | --------------- | ------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `onMiss`        | `"error" \| "warn"` | `"error"` | What the build does when the client bundle holds a mantle file the CSS does not list. `"error"` fails the build; `"warn"` logs the file.                                                       |
+| `onMiss`        | `"error" \| "warn"` | `"error"` | What the build does when the client bundle holds a mantle or `include` file the CSS does not list. `"error"` fails the build; `"warn"` logs the file.                                          |
 | `include`       | `string[]`          | `[]`      | Package names whose reached files the plugin lists too. Use it for a component package that sets Tailwind classes on mantle parts.                                                             |
 | `verbose`       | `boolean`           | `false`   | Print every listed path.                                                                                                                                                                       |
 | `idleTimeoutMs` | `number`            | `15000`   | How long the CSS waits with no module event before it lists the files parsed so far. When one module, such as a `?worker` sub-build, takes longer, raise it; `Infinity` waits for events only. |

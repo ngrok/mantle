@@ -274,9 +274,9 @@ function fileOf(id: string): string | null {
 }
 
 /**
- * Module extensions that never carry a class name Tailwind should keep: stylesheets, data,
- * text, and type declarations. Every other module counts, so an `include` package's `.mdx`
- * or `.vue` file stays in the list.
+ * Module extensions that never carry a class name Tailwind should keep: stylesheets, data, and
+ * text. `scriptFileOf` drops `.d.ts` on its own, because `path.extname` reports `.ts` for it.
+ * Every other module counts, so an `include` package's `.mdx` or `.vue` file stays in the list.
  */
 const INERT_EXTENSIONS = new Set([
 	".css",
@@ -493,11 +493,11 @@ function readDirectoryListing(directory: string): DirectoryListing {
 /**
  * Groups the kept files by directory and names every neighbor the CSS must exclude: each
  * other file in that directory, and each subdirectory that holds no kept file. A directory
- * between a group and a kept file deeper down gets a group too, so its own neighbors are
- * excluded as well.
+ * between a group and a kept file deeper down gets a group too, so the CSS excludes its own
+ * neighbors as well.
  *
- * Why negations: Tailwind's scanner adds a file `@source` that sits under the project root as
- * its own walk root with only a whitelist rule, so it scans the whole directory. A directory
+ * Why negations: Tailwind's scanner adds a file `@source` under the project root as its own
+ * walk root with only a whitelist rule. It then scans the whole directory. A directory
  * `@source` plus one `@source not` per neighbor narrows the scan in every layout.
  *
  * @example
@@ -608,16 +608,16 @@ function countSourceAllFiles(mantleDir: string): number | null {
 
 /**
  * Formats the one-line build summary, for example
- * `mantle sources: 18 @ngrok/mantle files listed for src/app.css (source-all.css scans 253)`.
+ * `mantle sources: 6 @ngrok/mantle files listed for src/app.css (source-all.css scans 248)`.
  *
  * @example
  * ```ts
  * formatSummary({
  *   cssPath: "src/app.css",
  *   counts: new Map([["@ngrok/mantle", 18], ["@pkg/ui", 2]]),
- *   sourceAllCount: 253,
+ *   sourceAllCount: 248,
  * });
- * // "mantle sources: 18 @ngrok/mantle files and 2 @pkg/ui files listed for src/app.css (source-all.css scans 253)"
+ * // "mantle sources: 18 @ngrok/mantle files and 2 @pkg/ui files listed for src/app.css (source-all.css scans 248)"
  * ```
  */
 function formatSummary(input: {
@@ -663,27 +663,27 @@ function findMissing(input: {
 }
 
 /**
- * Vite plugin that narrows mantle's Tailwind scan to the files the production bundle
- * contains.
+ * Vite plugin that narrows mantle's Tailwind scan to the files the client bundle contains.
  *
  * In `vite dev` the plugin is inactive: `source-all.css` scans every mantle file, so Tailwind
  * styles every component the app can reach. In `vite build`, in the client environment, the
- * plugin reads the bundler's module graph and replaces the `@import "@ngrok/mantle/source-all.css"`
- * line with `@source` directives that keep the `@ngrok/mantle` files the graph holds: one per
- * directory, plus an `@source not` for every neighbor outside the graph. A component
- * that arrives through a workspace package, a dynamic `import()`, or a chunk another plugin
- * emits before the CSS transform is in the graph, so it is in the list. After the bundle is
- * final, the plugin compares the list with every chunk's modules. If a mantle file is in the
- * bundle and not in the CSS, the build fails and names the file; `onMiss: "warn"` downgrades
- * that to a warning.
+ * plugin reads the bundler's module graph. It replaces the `@import "@ngrok/mantle/source-all.css"`
+ * line with `@source` directives for the `@ngrok/mantle` files the graph holds: one per
+ * directory, plus an `@source not` for every neighbor outside the graph. A component that
+ * arrives through a workspace package or a dynamic `import()` is in the graph, so it is in the
+ * list. So is a chunk another plugin emits before the CSS transform. After the bundle is final,
+ * the plugin compares the list with every chunk's modules. If a mantle file is in the bundle
+ * and not in the CSS, the build fails and names the file; `onMiss: "warn"` downgrades that to a
+ * warning.
  *
- * The server environment gets no rewrite. When the same `vite build --app` run builds it and
- * bundles mantle (`ssr.noExternal`), it warns about a mantle file that only the server graph
- * reaches, because such a component has no classes in the client CSS.
+ * The server environment gets no rewrite. When one `vite build --app` run also builds the
+ * server and bundles mantle into it (`ssr.noExternal`), the plugin warns about a mantle file
+ * that only the server graph reaches. Such a component has no classes in the client CSS.
  *
  * The plugin must run in the same `vite build` as `@tailwindcss/vite`. Its position in the
  * `plugins` array does not matter.
  *
+ * @see https://mantle.ngrok.com/vite-plugins#mantlesourcesplugin
  * @example
  * ```ts
  * // vite.config.ts

@@ -29,6 +29,7 @@ const docsPages = [
 	"philosophy",
 	"accessibility",
 	"browser-translation",
+	"vite-plugins",
 	"for-ai-agents",
 	"base/breakpoints",
 	"base/colors",

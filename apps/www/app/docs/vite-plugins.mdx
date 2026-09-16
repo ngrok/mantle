@@ -1,0 +1,158 @@
+---
+title: Vite Plugins
+description: The @ngrok/mantle-vite-plugins package. mantleSourcesPlugin trims mantle's Tailwind scan to the files your client bundle contains. mantleCodeBlockPlugins highlights code blocks at build time.
+---
+
+# Vite Plugins
+
+`@ngrok/mantle-vite-plugins` ships two build-time integrations for apps built with mantle:
+
+- [`mantleSourcesPlugin`](#mantlesourcesplugin) trims your production stylesheet to the mantle
+  components your bundle contains. On an app that renders `Badge` alone, that's 71 KB of CSS
+  instead of 181 KB.
+- [`mantleCodeBlockPlugins`](#mantlecodeblockplugins) highlights code at build time, so no
+  highlighter runs in the browser.
+
+Both need Node.js 24, Vite 8.3 or later, and `@ngrok/mantle` in the same project. Install the package
+as a dev dependency:
+
+```sh
+# npm
+npm install -DE @ngrok/mantle-vite-plugins
+
+# pnpm
+pnpm add -DE @ngrok/mantle-vite-plugins
+
+# bun
+bun add -DE @ngrok/mantle-vite-plugins
+```
+
+## mantleSourcesPlugin
+
+### Why it exists
+
+Tailwind generates only the classes it finds in the files it scans. It skips `node_modules`. That's
+why the [Stylesheet](/#stylesheet) recipe imports `source-all.css`: it points Tailwind at mantle's
+`dist/` directory, so every component renders with its styles.
+
+The cost is that Tailwind scans all 137 component scripts in `dist/`, plus every `.d.ts` and JSON
+file next to them. Your production stylesheet then carries the utilities of every mantle component,
+whether your app renders it or not. A site that renders `Badge` alone ships the classes of
+`DataTable`, `Sidebar`, and every chart too: 180.9 KB of minified CSS on Vite 8.3.0 with mantle
+0.85.2 and Tailwind 4.3.3. The plugin cuts it to 71.1 KB.
+
+`mantleSourcesPlugin` removes that cost without touching your CSS. It reads the bundler's module
+graph during the production build and narrows the scan to the mantle files the client bundle
+contains.
+
+### Setup
+
+Add the plugin next to the Tailwind plugin. Its position in the array doesn't matter.
+
+```ts
+// vite.config.ts
+import { mantleSourcesPlugin } from "@ngrok/mantle-vite-plugins";
+import tailwindcss from "@tailwindcss/vite";
+import { defineConfig } from "vite";
+
+export default defineConfig({
+	plugins: [tailwindcss(), mantleSourcesPlugin()],
+});
+```
+
+Keep the CSS from the [Stylesheet](/#stylesheet) recipe as it is. The plugin rewrites that
+`source-all.css` import, so the import must sit in a CSS file Vite processes, next to `mantle.css`.
+
+```css
+/* app.css */
+@import "@ngrok/mantle/mantle.css";
+@import "@ngrok/mantle/source-all.css";
+```
+
+If your CSS still holds the block between the `/* @ngrok/mantle-vite-plugins:source:start */` and
+`:end` markers that `mantleTwSourcePlugin` wrote (removed in 1.2.0), delete it and drop that plugin
+from `vite.config.ts` first.
+
+### What it does
+
+In `vite dev` the plugin is inactive. `source-all.css` scans every mantle file, so Tailwind styles
+every component your app can reach, including one that first appears through hot module
+replacement (HMR). The dev server serves that CSS locally, so its size doesn't matter.
+
+In `vite build` the plugin reads the bundler's module graph in the client environment. When the
+last module parses, it replaces the `source-all.css` import with `@source` directives that keep the
+mantle files the graph holds: one per directory, plus an `@source not` for every neighbor outside
+the graph. A component that arrives through a workspace package, a dynamic `import()`, or a chunk
+another plugin emits before the CSS transform is in the graph, so it's in the list. The plugin
+writes nothing to disk. The build logs one line:
+
+```
+mantle sources: 6 @ngrok/mantle files listed for src/app.css (source-all.css scans 248)
+```
+
+After the bundle is final, the plugin compares the list with every chunk. If the bundle holds a
+mantle file the CSS doesn't list, the build fails and names the file, so a wrong list never ships.
+
+### When the build fails
+
+The error names the files and one of two causes:
+
+- **A plugin added a chunk after the CSS transform ran.** Move that plugin's emit earlier, or pass
+  `onMiss: "warn"` to log the miss and ship the CSS without those classes.
+- **The wait for the module graph gave up.** One module, such as a `?worker` sub-build, took
+  longer than `idleTimeoutMs` with nothing else in flight. Raise `idleTimeoutMs`, or pass
+  `onMiss: "warn"`.
+
+### Options
+
+| Option          | Type                | Default   | What it does                                                                                                                                                                                                                                                                                   |
+| --------------- | ------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `onMiss`        | `"error" \| "warn"` | `"error"` | What the build does when the client bundle holds a mantle or `include` file the CSS doesn't list. `"error"` fails the build. `"warn"` logs the file and ships the CSS.                                                                                                                         |
+| `include`       | `string[]`          | `[]`      | Other packages whose files the plugin lists too, when the bundle reaches them. A component package that sets Tailwind classes on mantle parts needs its own files scanned, because Tailwind skips `node_modules`. `include: ["@acme/ui"]` lists the files of that package the bundle contains. |
+| `verbose`       | `boolean`           | `false`   | Whether to print every listed path, relative to the CSS file.                                                                                                                                                                                                                                  |
+| `idleTimeoutMs` | `number`            | `15000`   | How many milliseconds the CSS waits with no module event before it lists the files parsed so far. When one module, such as a `?worker` sub-build, takes longer, raise it. `Infinity` waits for events only. A file that loads after the wait still shows up in the bundle check.               |
+
+### Limits
+
+- The `source-all.css` import must sit in a CSS file Vite processes, as in the recipe above. An
+  import chain that Tailwind resolves on its own is invisible to the plugin. The build then warns
+  `no CSS module that Vite processes holds the @import` and ships the full scan.
+- The server build gets no rewrite. When one `vite build --app` run also builds the server and
+  bundles mantle into it (`ssr.noExternal`), the plugin warns about a mantle file that only the
+  server graph reaches. Such a component has no classes in the client CSS. Render it from a module
+  the client also imports.
+- The `@source not` lines apply to every `@source` that walks the same directory. A directory
+  `@source` of your own that overlaps mantle's files loses the same neighbors.
+- A module that fails to parse holds the plugin's wait for the full `idleTimeoutMs`, so a syntax
+  error surfaces up to 15 seconds later than it does without the plugin.
+
+## mantleCodeBlockPlugins
+
+`mantleCodeBlockPlugins` highlights [`CodeBlock`](/components/data-display/code-block) content
+with [Shiki](https://shiki.style/) at build time. It returns two plugin lists. `vitePlugins` holds
+`mantleCodeVitePlugin`, which transforms `mantleCode("language")` tagged templates in your source.
+`rehypePlugins` holds `mantleCodeRehypePlugin`, which highlights fenced code blocks in MDX. Import
+either plugin on its own when you need only one.
+
+```ts
+// vite.config.ts
+import mdx from "@mdx-js/rollup";
+import { mantleCodeBlockPlugins } from "@ngrok/mantle-vite-plugins";
+import { defineConfig } from "vite";
+
+const codeBlockPlugins = mantleCodeBlockPlugins();
+
+export default defineConfig({
+	plugins: [
+		...codeBlockPlugins.vitePlugins,
+		mdx({
+			rehypePlugins: [...codeBlockPlugins.rehypePlugins],
+		}),
+	],
+});
+```
+
+Pass `{ runtime: false }` to skip the tagged-template transform, or `{ mdx: false }` to skip the
+rehype plugin. The [Code Block](/components/data-display/code-block) page covers the components
+and the tagged templates. The [migration guide](/migrations/0001-code-block-migration) covers the
+move from the runtime highlighter.
