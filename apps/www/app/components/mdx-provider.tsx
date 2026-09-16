@@ -178,9 +178,7 @@ const components = {
 	},
 	td: (props) => {
 		const { node: _node, className, ...rest } = props;
-		return (
-			<Table.Cell className={cx("px-4 py-3 align-top font-sans text-sm", className)} {...rest} />
-		);
+		return <Table.Cell className={cx("align-top font-sans text-sm", className)} {...rest} />;
 	},
 	tfoot: (props) => {
 		const { node: _node, ...rest } = props;
