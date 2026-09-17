@@ -24,6 +24,8 @@ description: "Write concise, unambiguous technical prose with the ASD-STE100 Sim
 | `The input component for the Command. It provides the input for the command palette.`                                         | `The palette's query field.`                                                                                                      |
 | `By default the selected item's text will be rendered.`                                                                       | `Renders the selected item's text by default.`                                                                                    |
 | `It should not be styled to ensure correct positioning.`                                                                      | `Do not style this part; Radix measures its box to align the open list.`                                                          |
+| `// Reads the open state from context now, not from the prop.`                                                                | `// Why context: the trigger and the content mount in separate subtrees.`                                                         |
+| `/** Lists the items. No longer virtualizes; the windowing design was dropped. */`                                            | `/** Renders every item in one pass. */`                                                                                          |
 | `// This could be removed, or simplified`                                                                                     | Delete it. Investigation narration belongs in the PR description.                                                                 |
 | `This PR essentially refactors the handler in order to facilitate improved testability.`                                      | `Split the handler so the parser runs without a server.`                                                                          |
 | `The configuration file parsing utility function`                                                                             | `The config parser`                                                                                                               |
@@ -38,6 +40,7 @@ description: "Write concise, unambiguous technical prose with the ASD-STE100 Sim
 - one idea per sentence, and the condition first
 - a noun stack over three words, or an abbreviation that is not on the exempt list
 - a comment or JSDoc summary that restates the identifier
+- a reference to a previous state or a dropped design that the reader cannot see
 - a code comment over two sentences
 - a `@param` or `@returns` that only restates the name or the type
 - a sentence past 25 words outside `.changeset/*.md` and `decisions/*.md`: it usually wants a list, not a trim
