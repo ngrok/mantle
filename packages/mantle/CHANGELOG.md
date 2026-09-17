@@ -1,5 +1,13 @@
 # @ngrok/mantle
 
+## 0.86.1
+
+### Patch Changes
+
+- [#1512](https://github.com/ngrok/mantle/pull/1512) [`0ca0fbd`](https://github.com/ngrok/mantle/commit/0ca0fbd22f05fff9c2181c5f63f24ede6756d8bc) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Command.DialogRoot` and `Sidebar.Root` no longer throw on a `keydown` that carries no `key`.
+
+  Both bind a `window` listener for their chord. The listener reads `event.key.toLowerCase()`. The DOM type promises a string, so the read looked safe. A browser extension or a password manager can dispatch a bare `Event("keydown")` instead of a real `KeyboardEvent`. The listener then threw `Cannot read properties of undefined (reading 'toLowerCase')` on the page. Both listeners now read the key optionally. They ignore an event that names no key.
+
 ## 0.86.0
 
 ### Minor Changes
