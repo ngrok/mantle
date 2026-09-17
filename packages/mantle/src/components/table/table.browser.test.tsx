@@ -114,13 +114,11 @@ describe("Table.Root overflow observer", () => {
 });
 
 /**
- * Mirrors the CSS Tailwind 4 emits for the padding utilities that `Table.Header` and
- * `Table.Cell` apply. We inline it instead of importing the mantle stylesheet so the
- * test stays hermetic and needs no Tailwind build step.
+ * Mirrors the CSS Tailwind 4 emits for the padding utilities `Table.Header` and
+ * `Table.Cell` apply. Inlined, so the test needs no Tailwind build and no mantle theme.
  *
- * Keep the shorthand before the axis utilities. That source order is Tailwind's own,
- * and it is what lets a consumer's `px-*` beat a default `p-*`. The numeric values are
- * inlined so the test does not depend on the mantle theme being loaded.
+ * Keep the shorthand before the axis utilities. That is Tailwind's own source order,
+ * and it is what lets a consumer's `px-*` beat a default `p-*`.
  */
 const PADDING_STYLE = `
 @layer utilities {
@@ -163,8 +161,7 @@ describe("Table horizontal padding", () => {
 		);
 	}
 
-	// Turns red if `Table.Cell` goes back to the `p-3` shorthand: the body text drops
-	// to a 12px inset while the column label stays at 16px.
+	// Turns red if `Table.Cell` goes back to the `p-3` shorthand.
 	test("a body cell lines up with its column label", () => {
 		renderHeaderAndCell();
 		const header = getComputedStyle(screen.getByRole("columnheader"));
@@ -175,16 +172,16 @@ describe("Table horizontal padding", () => {
 		expect(cell.paddingLeft).toBe("16px");
 	});
 
-	// Why assert the merge outcome: this is the tailwind-merge override contract, so it
-	// pins what a consumer's `className` produces, not the component's internal defaults.
+	// The tailwind-merge override contract, asserted as the merge outcome rather than
+	// as the component's internal defaults.
 	test("a consumer className overrides the default horizontal padding", () => {
 		renderHeaderAndCell("px-2");
 
 		expect(getComputedStyle(screen.getByRole("cell")).paddingLeft).toBe("8px");
 	});
 
-	// The row density is the other half of the contract: #1067 wanted a shorter row and
-	// this fix must not undo it by restoring the old `p-4`.
+	// The row density is the other half of the contract: the horizontal fix must not
+	// restore the old `p-4`.
 	test("the cell keeps its 12px vertical padding", () => {
 		renderHeaderAndCell();
 		const cell = getComputedStyle(screen.getByRole("cell"));

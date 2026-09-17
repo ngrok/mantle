@@ -543,8 +543,8 @@ const Cell = ({ children, className, ref, ...props }: ComponentProps<"td">) => (
 	<td
 		data-slot="table-cell"
 		ref={ref}
-		// `px-4` must stay equal to the `px-4` on `Table.Header`, or the body text sits
-		// inboard of the column label. `py-3` keeps the row density.
+		// `px-4` must equal the `px-4` on `Table.Header`, or the body text sits inboard
+		// of the column label.
 		className={cx(
 			"px-4 py-3 align-middle [&:has([role=checkbox])]:pr-0 font-mono text-mono",
 			className,
