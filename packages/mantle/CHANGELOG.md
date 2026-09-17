@@ -1,5 +1,11 @@
 # @ngrok/mantle
 
+## 0.86.2
+
+### Patch Changes
+
+- [#1511](https://github.com/ngrok/mantle/pull/1511) [`e26dc3b`](https://github.com/ngrok/mantle/commit/e26dc3bf8d7fdbf66120cdde02841a7fac6249aa) Thanks [@randseay](https://github.com/randseay)! - `Table.Header` changes from `px-4` to `px-3`, so the column label aligns with the `p-3` body text in `Table.Cell`. Body cells do not move and the row height does not change. A header that sets its own horizontal padding keeps it, because a consumer `className` wins through tailwind-merge.
+
 ## 0.86.1
 
 ### Patch Changes
