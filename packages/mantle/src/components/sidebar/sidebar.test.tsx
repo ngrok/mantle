@@ -222,7 +222,7 @@ describe("Sidebar.Nav (desktop)", () => {
 
 	test("a keydown that carries no `key` leaves the shortcut working", () => {
 		// Extensions and password managers dispatch a bare `Event("keydown")`.
-		// The DOM type promises a string; the event on the wire does not, and an
+		// The DOM type promises a string; the event on the wire does not. An
 		// unguarded read throws out of the listener.
 		render(
 			<Sidebar.Root>
