@@ -114,11 +114,9 @@ describe("Table.Root overflow observer", () => {
 });
 
 /**
- * Mirrors the CSS Tailwind 4 emits for the padding utilities `Table.Header` and
- * `Table.Cell` apply. Inlined, so the test needs no Tailwind build and no mantle theme.
- *
- * Keep the shorthand before the axis utilities. That is Tailwind's own source order,
- * and it is what lets a consumer's `px-*` beat a default `p-*`.
+ * Mirrors the padding utilities Tailwind 4 emits, inlined so the test needs no Tailwind
+ * build and no mantle theme. Keep the shorthand first, as Tailwind emits it, so a
+ * consumer `px-*` beats a default `p-*`.
  */
 const PADDING_STYLE = `
 @layer utilities {
@@ -162,7 +160,7 @@ describe("Table horizontal padding", () => {
 		);
 	}
 
-	// Turns red if `Table.Header` goes back to `px-4`.
+	// Fails if `Table.Header` and `Table.Cell` take different horizontal padding.
 	test("a column label lines up with its body cell", () => {
 		renderHeaderAndCell();
 		const header = getComputedStyle(screen.getByRole("columnheader"));
@@ -173,16 +171,16 @@ describe("Table horizontal padding", () => {
 		expect(header.paddingLeft).toBe("12px");
 	});
 
-	// The tailwind-merge override contract, asserted as the merge outcome rather than
-	// as the component's internal defaults.
+	// The tailwind-merge override contract, read as the merge outcome rather than as a
+	// list of the component's defaults.
 	test("a consumer className overrides the default horizontal padding", () => {
 		renderHeaderAndCell("px-2");
 
 		expect(getComputedStyle(screen.getByRole("cell")).paddingLeft).toBe("8px");
 	});
 
-	// The row density is the other half of the contract: the cell must not go back to
-	// the old `p-4`.
+	// Row density is the other half of the contract, so the horizontal pin alone is not
+	// enough.
 	test("the cell keeps its 12px vertical padding", () => {
 		renderHeaderAndCell();
 		const cell = getComputedStyle(screen.getByRole("cell"));
