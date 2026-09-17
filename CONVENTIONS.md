@@ -389,7 +389,7 @@ Before you add a case, name the branch, boundary, or lookup entry that only this
 
 - One guard, one test. `null` and `undefined` take the same `== null` branch. A second enum value, a second row, or a second platform that runs the same code on the same data is a duplicate.
 - A boundary is its own case. The input on a comparison (`0`, the limit, the limit plus one) catches an operator flip that a far value cannot.
-- An entry in a lookup mantle owns is its own case. Each key of a `Record<Union, string>` or a `cva` variant map selects its own output, so only a test per key catches a permuted table (`toast.test.tsx`'s intent tables are the reference).
+- An entry in a lookup that mantle owns is its own case. Each key of a `Record<Union, string>` or a `cva` variant map selects its own output, so only a test per key catches a permuted table (`toast.test.tsx`'s intent tables are the reference).
 - Test shared logic where it lives, once. A wrapper, a variant, or a consumer asserts only what it adds. `useIsBelowBreakpoint` owns the media-query read, so `sidebar.test.tsx` mocks it and pins only the mobile swap. An `apps/www` demo test pins the demo's own copy and wiring; the part's ARIA, keyboard contract, and slots are tested once, in `packages/mantle`.
 - A `test.each` table holds only the rows no dedicated test covers.
 - Pin a third-party library once per option you set. Do not enumerate its output table: every Radix `data-state` value, every `Intl` format output, every TanStack Table sort order.
@@ -414,7 +414,7 @@ Mock what happy-dom cannot supply: `matchMedia` (`test-utils/mock-match-media.ts
 - Never mock a mantle part to replace it. Wrap a module with `vi.mock(…, { spy: true })` or a pass-through wrapper only when its call count or an option's identity is the one observable trace. Say so in a `// Why:` comment. `primitive.test.tsx` counts `datumValue` reads this way, and `virtual.test.tsx` records the `getItemKey` option and calls the real hook.
 - Never assert that a mock received the value the test passed in. `render(<Sidebar.Root mobileBreakpoint="lg" />)` followed by `expect(useIsBelowBreakpoint).toHaveBeenCalledWith("lg")` is an echo. Assert what the part does with the mock's return value.
 - Never read a mocked child's props through a captured object. Render the real child and assert what it shows, or assert a `data-*` attribute it emits.
-- Assert a mocked hook's arguments only for an option that changes behavior, with `expect.objectContaining`. Never pin an empty argument list or an options object by identity.
+- Assert a mocked hook's arguments only for an option that changes behavior. Match an options object with `expect.objectContaining`, and a primitive argument with `toHaveBeenCalledWith`. Never pin an empty argument list or an options object by identity.
 - Spy on a DOM method only when happy-dom leaves the call as the sole observable (`scrollIntoView`), and say so in a comment. Otherwise assert the effect where a consumer sees it: the DOM, ARIA state, or a callback's arguments.
 - A hook that only forwards one mocked hook's result into another has nothing to test. Test the guard it protects or the consumer that renders the result.
 - When several parts share one hook or helper, test it once where it lives. A part's test then pins only its own wiring.
