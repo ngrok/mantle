@@ -22,7 +22,7 @@ Single source of truth for code style, prose style, patterns, and conventions in
 - Optimize for readability and changeability over terseness or cleverness. Code is read far more often than it is written.
 - Always brace control flow — no single-line `if`/`for` bodies.
 - Descriptive names — `error` not `e`, `event` not `evt`, `element` not `el`. Widely-known initialisms (`URL`, `CSS`, `SSR`) are fine.
-- Comments explain _why_, not _what_. Do not restate the code. [Writing](#writing) governs how the sentence itself reads.
+- Comments explain _why_, not _what_. Do not restate the code. A comment stops at two sentences and uses plain words. [Writing](#writing) governs how the sentence itself reads.
 - Prefer inline single-use event handlers when they improve locality and readability. Hoist handlers only when reused, memoized, or meaningfully simplifying the render body.
 - Avoid nested ternaries. Prefer early returns or component-based branching. A single ternary is fine; nesting harms readability.
 - Render conditional JSX with `{condition && <Thing />}`, not `{condition ? <Thing /> : null}`. React drops `false` children the same way it drops `null`, so the `: null` arm is noise. Guard non-boolean conditions first (`items.length > 0 && …`) so a `0` or `""` never renders. Use a ternary only when both branches render something.
@@ -60,7 +60,7 @@ Single source of truth for code style, prose style, patterns, and conventions in
 
 - Add JSDoc to all exported functions, methods, hooks, components, and prop types.
 - Add JSDoc to complex file-local logic whose intent or contract would not be immediately obvious from the implementation and types alone.
-- JSDoc prose follows [Writing](#writing): lead with one summary sentence stating the contract, not implementation commentary.
+- JSDoc prose follows [Writing](#writing): lead with one summary sentence stating the contract, not implementation commentary. Delete a `@param` or `@returns` that only restates the name or the type.
 - JSDoc for functions, hooks, and components SHOULD include at least one concise `@example`.
 - Each `@example` should demonstrate the intended call or render shape with realistic inputs/props and the key expected behavior or result. Keep setup minimal.
 - Generated code, code-gen output, and config files are exempt.
@@ -93,7 +93,7 @@ These rules are [ASD-STE100](https://www.asd-ste100.org/) Simplified Technical E
 
 - **One word, one meaning, within one file.** Reuse one term per concept verbatim. `cache`, `store`, and `buffer` in one file read as three things.
 - **Match the code.** Write the identifier's exact name and casing, in backticks — `ThemeProvider`, `data-slot`, `performance.now()`. Never paraphrase an identifier. The backticks are load-bearing: no word rule below reaches inside a backtick span. That is what keeps `justify-center`, `enabled`, and `oxlint-enable` off the ban list.
-- **Prefer the short common verb** — `use`, `get`, `set`, `add`, `remove`, `keep`, `read`, `write`, `start`, `stop`, `fix`.
+- **Prefer the short common word** — `use`, `get`, `set`, `add`, `remove`, `keep`, `read`, `write`, `start`, `stop`, `fix`. Write the rest in plain words. The reader knows the identifiers and the house terms, and no other jargon.
 - **Never write** `utilize`, `facilitate`, `orchestrate`, `basically`, `essentially`, `comprehensive`, `robust`, or `ensure`. None of them states a fact. For `ensure`, write `make sure` — [Testing](#testing) already uses it — or name the mechanism that guarantees the outcome.
 - **Never write `simply`.** The ban is word-exact: `simplify`, `simpler`, and `simplified` are fine.
 - **Cut the hedges.** Delete `it seems`, `arguably`, `might possibly`, `should probably`, and `this could be removed`. Keep `must`, `can`, `may`, `never`, and `always` — each states a constraint or a real option.
@@ -130,11 +130,11 @@ These rules are [ASD-STE100](https://www.asd-ste100.org/) Simplified Technical E
 
 ### Comments and JSDoc
 
-- **State the constraint, the trade-off, or the surprise.** The code already states what it does — see [Readability & Maintainability](#readability--maintainability). Never restate the identifier.
+- **State the constraint, the trade-off, or the surprise, in one sentence, two at most.** The code already states what it does — see [Readability & Maintainability](#readability--maintainability). Never restate the identifier.
 - **Prefer the `Why <topic>:` label for a constraint** — `// Why: navigator.platform is deprecated…`, `// Why no asChild:`, `// Why event delegation:`. Do not expand a label into a sentence.
 - **Never narrate the investigation.** What you checked, tried, or read belongs in the PR description.
 - **Put the warning above the code it guards.**
-- **Lead with one summary sentence, then state the contract** — inputs, outputs, errors, units, invariants. [JSDoc](#jsdoc) says which exports need one. [COMPONENT_SPEC.md §4](./COMPONENT_SPEC.md#4-jsdoc) owns _what_ a component's JSDoc must contain; this section owns _how_ those sentences read.
+- **Lead with one summary sentence, then state the contract** — inputs, outputs, errors, units, invariants, and nothing more. Delete a `@param` or `@returns` that only restates the name or the type. Keep one that names a unit, a range, a default, or a side effect. [JSDoc](#jsdoc) says which exports need one. [COMPONENT_SPEC.md §4](./COMPONENT_SPEC.md#4-jsdoc) owns _what_ a component's JSDoc must contain; this section owns _how_ those sentences read.
 - **Restructure instead of explaining.** If a comment excuses confusing code, rename or split the code.
 - **`@example` prose follows these rules; the code in the fence does not.** Never paraphrase example code. Never de-duplicate the repeated full-tree examples [COMPONENT_SPEC.md §4.2](./COMPONENT_SPEC.md#42-compound-components-the-full-tree-rule) requires.
 - **Editing a JSDoc summary is a multi-file change.** The same summary often repeats on a part declaration, its namespace property, and an `.mdx` page — fix every copy. Editing a summary or an `@example` also changes `apps/www/app/utilities/__snapshots__/components-surface.json` — regenerate it with `pnpm -F @app/www test -u` or CI fails.
@@ -178,6 +178,8 @@ Before you return text or report a diff complete, read what you wrote for:
 - a sentence with two independent ideas, or a condition at the end
 - a noun stack over three words, or an unexpanded abbreviation that is not exempt
 - a comment or summary that restates the identifier, the code, or itself
+- a code comment over two sentences
+- a `@param` or `@returns` that only restates the name or the type
 - a changed JSDoc summary whose other copies and `components-surface.json` snapshot are still stale
 
 Fix what you find. Report it in the `Conventions pass:` note [AGENTS.md](./AGENTS.md) requires.
