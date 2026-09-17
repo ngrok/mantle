@@ -22,7 +22,7 @@ Single source of truth for code style, prose style, patterns, and conventions in
 - Optimize for readability and changeability over terseness or cleverness. Code is read far more often than it is written.
 - Always brace control flow — no single-line `if`/`for` bodies.
 - Descriptive names — `error` not `e`, `event` not `evt`, `element` not `el`. Widely-known initialisms (`URL`, `CSS`, `SSR`) are fine.
-- Comments explain _why_, not _what_. Do not restate the code. A comment stops at two sentences and uses plain words. [Writing](#writing) governs how the sentence itself reads.
+- Comments explain _why_, not _what_. Do not restate the code. Describe the code as it is now. Never refer to a previous state or a dropped design that exists only in your context window. A comment stops at two sentences and uses plain words. [Writing](#writing) governs how the sentence itself reads.
 - Prefer inline single-use event handlers when they improve locality and readability. Hoist handlers only when reused, memoized, or meaningfully simplifying the render body.
 - Avoid nested ternaries. Prefer early returns or component-based branching. A single ternary is fine; nesting harms readability.
 - Render conditional JSX with `{condition && <Thing />}`, not `{condition ? <Thing /> : null}`. React drops `false` children the same way it drops `null`, so the `: null` arm is noise. Guard non-boolean conditions first (`items.length > 0 && …`) so a `0` or `""` never renders. Use a ternary only when both branches render something.
@@ -60,7 +60,7 @@ Single source of truth for code style, prose style, patterns, and conventions in
 
 - Add JSDoc to all exported functions, methods, hooks, components, and prop types.
 - Add JSDoc to complex file-local logic whose intent or contract would not be immediately obvious from the implementation and types alone.
-- JSDoc prose follows [Writing](#writing): lead with one summary sentence stating the contract, not implementation commentary. Delete a `@param` or `@returns` that only restates the name or the type.
+- JSDoc prose follows [Writing](#writing): lead with one summary sentence stating the contract, not the implementation or the history. Delete a `@param` or `@returns` that only restates the name or the type.
 - JSDoc for functions, hooks, and components SHOULD include at least one concise `@example`.
 - Each `@example` should demonstrate the intended call or render shape with realistic inputs/props and the key expected behavior or result. Keep setup minimal.
 - Generated code, code-gen output, and config files are exempt.
@@ -133,6 +133,7 @@ These rules are [ASD-STE100](https://www.asd-ste100.org/) Simplified Technical E
 - **State the constraint, the trade-off, or the surprise, in one sentence, two at most.** The code already states what it does — see [Readability & Maintainability](#readability--maintainability). Never restate the identifier.
 - **Prefer the `Why <topic>:` label for a constraint** — `// Why: navigator.platform is deprecated…`, `// Why no asChild:`, `// Why event delegation:`. Do not expand a label into a sentence.
 - **Never narrate the investigation.** What you checked, tried, or read belongs in the PR description.
+- **Describe the code as it is now.** Never refer to a previous state or a dropped design that exists only in your context window. The reader has the code and the git history, not your session.
 - **Put the warning above the code it guards.**
 - **Lead with one summary sentence, then state the contract** — inputs, outputs, errors, units, ranges, defaults, side effects, invariants, and nothing more. Delete a `@param` or `@returns` that only restates the name or the type. Keep one that names a unit, a range, a default, or a side effect. [JSDoc](#jsdoc) says which exports need one. [COMPONENT_SPEC.md §4](./COMPONENT_SPEC.md#4-jsdoc) owns _what_ a component's JSDoc must contain; this section owns _how_ those sentences read.
 - **Restructure instead of explaining.** If a comment excuses confusing code, rename or split the code.
@@ -145,6 +146,11 @@ These rules are [ASD-STE100](https://www.asd-ste100.org/) Simplified Technical E
 /** The input component for the Command. It provides the input for the command palette. */
 // ✅ names what this part does that a sibling does not
 /** The palette's query field. */
+
+// ❌ names a design the reader never saw
+/** Measures the list. No longer uses ResizeObserver; that design was dropped. */
+// ✅ states the contract as it stands
+/** Reports whether the list overflows its scrollport. */
 ```
 
 Worked before/after pairs live in the `simplified-technical-english` skill, out of always-on context.
@@ -178,6 +184,7 @@ Before you return text or report a diff complete, read what you wrote for:
 - a sentence with two independent ideas, or a condition at the end
 - a noun stack over three words, or an unexpanded abbreviation that is not exempt
 - a comment or summary that restates the identifier, the code, or itself
+- a reference to a previous state or a dropped design that the reader cannot see
 - a code comment over two sentences
 - a `@param` or `@returns` that only restates the name or the type
 - a changed JSDoc summary whose other copies and `components-surface.json` snapshot are still stale
