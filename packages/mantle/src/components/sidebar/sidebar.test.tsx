@@ -220,6 +220,23 @@ describe("Sidebar.Nav (desktop)", () => {
 		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "collapsed");
 	});
 
+	test("a keydown that carries no `key` leaves the shortcut working", () => {
+		// Extensions and password managers dispatch a bare `Event("keydown")`.
+		// The DOM type promises a string; the event on the wire does not, and an
+		// unguarded read throws out of the listener.
+		render(
+			<Sidebar.Root>
+				<Sidebar.Nav data-testid="nav" />
+			</Sidebar.Root>,
+		);
+
+		window.dispatchEvent(new Event("keydown", { bubbles: true, cancelable: true }));
+		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "expanded");
+
+		fireEvent.keyDown(window, { key: "b", ctrlKey: true });
+		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "collapsed");
+	});
+
 	test("Trigger's tooltip shows its label and shortcut to pointer users", async () => {
 		// Not gated on the rail state the way `Sidebar.Tooltip` is: the trigger is
 		// icon-only at every breakpoint, so a pointer user has nothing else to read.

@@ -438,8 +438,11 @@ const Root = ({
 			const foreignModifier = isApple ? event.ctrlKey : event.metaKey;
 			// toLowerCase: with Caps Lock on, browsers report key "B" with
 			// shiftKey false — the shortcut must not silently die there.
+			// The optional read is not redundant: the DOM type says `key` is a
+			// string, but an extension or a password manager can dispatch a
+			// `keydown` that omits it, and the bare read throws on the page.
 			if (
-				event.key.toLowerCase() === SIDEBAR_KEYBOARD_SHORTCUT &&
+				event.key?.toLowerCase() === SIDEBAR_KEYBOARD_SHORTCUT &&
 				platformModifier &&
 				!foreignModifier &&
 				!event.altKey &&
