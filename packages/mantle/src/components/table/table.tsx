@@ -485,8 +485,10 @@ const Header = ({ children, className, ref, scope = "col", ...props }: Component
 		data-slot="table-header"
 		ref={ref}
 		scope={scope}
+		// `px-3` must equal the horizontal padding on `Table.Cell`, or the column label
+		// sits outboard of the body text.
 		className={cx(
-			"h-11 px-4 text-left align-middle text-sm font-medium [&:has([role=checkbox])]:pr-0",
+			"h-11 px-3 text-left align-middle text-sm font-medium [&:has([role=checkbox])]:pr-0",
 			className,
 		)}
 		{...props}
@@ -543,12 +545,7 @@ const Cell = ({ children, className, ref, ...props }: ComponentProps<"td">) => (
 	<td
 		data-slot="table-cell"
 		ref={ref}
-		// `px-4` must equal the `px-4` on `Table.Header`, or the body text sits inboard
-		// of the column label.
-		className={cx(
-			"px-4 py-3 align-middle [&:has([role=checkbox])]:pr-0 font-mono text-mono",
-			className,
-		)}
+		className={cx("p-3 align-middle [&:has([role=checkbox])]:pr-0 font-mono text-mono", className)}
 		{...props}
 	>
 		{children}

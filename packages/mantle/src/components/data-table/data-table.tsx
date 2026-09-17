@@ -1093,7 +1093,7 @@ function ExpandHeader({ children, className, ...props }: DataTableExpandHeaderPr
 	return (
 		<Table.Header
 			data-slot="data-table-expand-header"
-			// `Table.Header` defaults to `px-4`; zero it (and center) so the column is
+			// `Table.Header` carries horizontal padding; zero it (and center) so the column is
 			// actually as narrow as `w-9` and aligns with the icon toggle in the cells
 			// below it. A consumer `className` still wins via tailwind-merge.
 			className={cx("w-9 px-0 text-center", className)}

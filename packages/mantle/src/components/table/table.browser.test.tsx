@@ -123,9 +123,10 @@ describe("Table.Root overflow observer", () => {
 const PADDING_STYLE = `
 @layer utilities {
 	.p-3 { padding: 12px; }
+	.p-4 { padding: 16px; }
 	.px-2 { padding-inline: 8px; }
+	.px-3 { padding-inline: 12px; }
 	.px-4 { padding-inline: 16px; }
-	.py-3 { padding-block: 12px; }
 }
 `;
 
@@ -161,15 +162,15 @@ describe("Table horizontal padding", () => {
 		);
 	}
 
-	// Turns red if `Table.Cell` goes back to the `p-3` shorthand.
-	test("a body cell lines up with its column label", () => {
+	// Turns red if `Table.Header` goes back to `px-4`.
+	test("a column label lines up with its body cell", () => {
 		renderHeaderAndCell();
 		const header = getComputedStyle(screen.getByRole("columnheader"));
 		const cell = getComputedStyle(screen.getByRole("cell"));
 
-		expect(cell.paddingLeft).toBe(header.paddingLeft);
-		expect(cell.paddingRight).toBe(header.paddingRight);
-		expect(cell.paddingLeft).toBe("16px");
+		expect(header.paddingLeft).toBe(cell.paddingLeft);
+		expect(header.paddingRight).toBe(cell.paddingRight);
+		expect(header.paddingLeft).toBe("12px");
 	});
 
 	// The tailwind-merge override contract, asserted as the merge outcome rather than
@@ -180,8 +181,8 @@ describe("Table horizontal padding", () => {
 		expect(getComputedStyle(screen.getByRole("cell")).paddingLeft).toBe("8px");
 	});
 
-	// The row density is the other half of the contract: the horizontal fix must not
-	// restore the old `p-4`.
+	// The row density is the other half of the contract: the cell must not go back to
+	// the old `p-4`.
 	test("the cell keeps its 12px vertical padding", () => {
 		renderHeaderAndCell();
 		const cell = getComputedStyle(screen.getByRole("cell"));
