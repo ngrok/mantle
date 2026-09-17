@@ -809,14 +809,20 @@ Minimums:
   element, and a label wrapper is driven against a translated DOM — `translateTextNodes` from
   `../../test-utils/translate-text-nodes.js`, then the update that used to throw.
 
-Every test must be able to fail: name the one-line implementation change it would catch. See
-[CONVENTIONS.md → Testing](./CONVENTIONS.md#testing) for the full rules on that, on why Tailwind
-utility-string assertions are not coverage, and on determinism.
+Every test must be able to fail: name the one-line implementation change it would catch. Add a case only
+when it reaches a branch, a boundary, or a lookup entry no sibling reaches. Mock the environment
+(`matchMedia`, `ResizeObserver`, the clipboard), never a mantle part; a module wrapper that is the one
+observable trace needs a `// Why:` comment. See [CONVENTIONS.md → Testing](./CONVENTIONS.md#testing) for
+the full rules on that, on [one test per branch](./CONVENTIONS.md#one-test-per-branch), on
+[mocking](./CONVENTIONS.md#mock-the-environment-not-the-tree), on why Tailwind utility-string assertions are
+not coverage, and on determinism.
 
 Never: rendered-HTML snapshots (`toMatchInlineSnapshot` is fine for serialized data shapes), `*.test.*` files
 under `apps/www/app/routes/`, browser mode for something happy-dom can already do, Tailwind utility-string
-assertions standing in for behavior, arbitrary `setTimeout` waits, or `toBeDefined()` / `not.toThrow()` as a
-test's only assertion.
+assertions standing in for behavior, an assertion that a class is absent, arbitrary `setTimeout` waits,
+`toBeDefined()` / `not.toThrow()` as a test's only assertion, a `getBy*` query wrapped in `toBeDefined()` /
+`not.toBeNull()`, a mocked part's props read through a capture, or a second case that reaches a branch a
+sibling already reaches.
 
 ---
 
