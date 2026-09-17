@@ -333,6 +333,19 @@ describe("Command.DialogRoot", () => {
 			expect(queryInput()).toBeInTheDocument();
 		});
 
+		test("a keydown that carries no `key` leaves the shortcut working", () => {
+			// Extensions and password managers dispatch a bare `Event("keydown")`.
+			// The DOM type promises a string; the event on the wire does not. An
+			// unguarded read throws out of the listener.
+			render(<Palette />);
+
+			window.dispatchEvent(new Event("keydown", { bubbles: true, cancelable: true }));
+			expect(queryInput()).not.toBeInTheDocument();
+
+			fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+			expect(queryInput()).toBeInTheDocument();
+		});
+
 		test("a held chord does not flap the palette", () => {
 			render(<Palette />);
 
