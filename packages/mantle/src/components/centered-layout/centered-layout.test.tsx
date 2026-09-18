@@ -62,9 +62,10 @@ describe("CenteredLayout", () => {
 			</CenteredLayout.Body>,
 		);
 		const body = screen.getByTestId("body");
-		// Why the class assertions: a tailwind-merge override contract, so the consumer's gap replaces the default.
-		expect(body).toHaveClass("gap-8");
-		expect(body).not.toHaveClass("gap-6");
+		// Why the class assertion: a tailwind-merge override contract. Only one `gap-*`
+		// class may survive the merge, and `toHaveClass` ignores extra classes.
+		const gapClasses = Array.from(body.classList).filter((token) => token.startsWith("gap-"));
+		expect(gapClasses).toEqual(["gap-8"]);
 	});
 
 	test("Body renders as child element when asChild is true, keeping data-slot", () => {
