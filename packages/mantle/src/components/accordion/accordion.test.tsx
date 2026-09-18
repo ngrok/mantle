@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
+import { useState } from "react";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { isItemOpen, nextOpenValues, toOpenValues } from "./accordion-state.js";
@@ -13,7 +14,6 @@ describe("isItemOpen", () => {
 
 	test("returns false when the value is not in the open set", () => {
 		expect(isItemOpen(["a", "c"], "b")).toBe(false);
-		expect(isItemOpen([], "a")).toBe(false);
 	});
 });
 
@@ -39,22 +39,13 @@ describe("nextOpenValues", () => {
 			expect(nextOpenValues(["a"], "b", true, "single")).toEqual(["b"]);
 		});
 
-		test("opening from empty opens the item", () => {
-			expect(nextOpenValues([], "a", true, "single")).toEqual(["a"]);
+		test("opening an item that is open beside another keeps only it", () => {
+			expect(nextOpenValues(["a", "b"], "a", true, "single")).toEqual(["a"]);
 		});
 
 		test("opening the already-open item is a no-op (same reference)", () => {
 			const open = ["a"];
 			expect(nextOpenValues(open, "a", true, "single")).toBe(open);
-		});
-
-		test("closing the open item clears the set", () => {
-			expect(nextOpenValues(["a"], "a", false, "single")).toEqual([]);
-		});
-
-		test("closing an item that is not open is a no-op (same reference)", () => {
-			const open = ["a"];
-			expect(nextOpenValues(open, "b", false, "single")).toBe(open);
 		});
 	});
 
@@ -80,27 +71,33 @@ describe("nextOpenValues", () => {
 });
 
 describe("Accordion", () => {
+	const sections = (
+		<>
+			<Accordion.Item value="a">
+				<Accordion.Trigger>
+					Trigger A
+					<Accordion.TriggerIcon />
+				</Accordion.Trigger>
+				<Accordion.Content>
+					<Accordion.Body>Body of section A</Accordion.Body>
+				</Accordion.Content>
+			</Accordion.Item>
+			<Accordion.Item value="b">
+				<Accordion.Trigger>
+					Trigger B
+					<Accordion.TriggerIcon />
+				</Accordion.Trigger>
+				<Accordion.Content>
+					<Accordion.Body>Body of section B</Accordion.Body>
+				</Accordion.Content>
+			</Accordion.Item>
+		</>
+	);
+
 	const renderExample = (defaultValue: string) =>
 		render(
 			<Accordion.Root type="single" defaultValue={defaultValue}>
-				<Accordion.Item value="a">
-					<Accordion.Trigger>
-						Trigger A
-						<Accordion.TriggerIcon />
-					</Accordion.Trigger>
-					<Accordion.Content>
-						<Accordion.Body>Body of section A</Accordion.Body>
-					</Accordion.Content>
-				</Accordion.Item>
-				<Accordion.Item value="b">
-					<Accordion.Trigger>
-						Trigger B
-						<Accordion.TriggerIcon />
-					</Accordion.Trigger>
-					<Accordion.Content>
-						<Accordion.Body>Body of section B</Accordion.Body>
-					</Accordion.Content>
-				</Accordion.Item>
+				{sections}
 			</Accordion.Root>,
 		);
 
@@ -275,7 +272,6 @@ describe("Accordion", () => {
 			</Accordion.Root>,
 		);
 		const icon = screen.getByTestId("custom-trigger-icon");
-		expect(icon.tagName.toLowerCase()).toBe("svg");
 		// The override still carries the part's data-slot for styling/targeting.
 		expect(icon).toHaveAttribute("data-slot", "accordion-trigger-icon");
 	});
@@ -307,13 +303,13 @@ describe("Accordion", () => {
 		expect(root).not.toHaveAttribute("defaultValue");
 	});
 
-	test("Body marks the content region with data-slot and forwards a consumer className", () => {
+	test("Body marks the content region with data-slot and lets a consumer className override the default padding", () => {
 		render(
 			<Accordion.Root type="single" defaultValue="a">
 				<Accordion.Item value="a">
 					<Accordion.Trigger>Trigger A</Accordion.Trigger>
 					<Accordion.Content>
-						<Accordion.Body className="custom-body-class" data-testid="body-a">
+						<Accordion.Body className="pb-6" data-testid="body-a">
 							Body of section A
 						</Accordion.Body>
 					</Accordion.Content>
@@ -321,11 +317,11 @@ describe("Accordion", () => {
 			</Accordion.Root>,
 		);
 		const body = screen.getByTestId("body-a");
-		// This is the tailwind-merge override contract: it pins that Body forwards a
-		// consumer `className`. Why no `pb-4` assertion: neither vitest project loads
-		// Tailwind, so an internal utility is only a source literal here.
 		expect(body).toHaveAttribute("data-slot", "accordion-body");
-		expect(body).toHaveClass("custom-body-class");
+		// Why: a tailwind-merge override contract. The consumer's `pb-6` replaces the
+		// default `pb-4` instead of landing beside it.
+		expect(body).toHaveClass("pb-6");
+		expect(body).not.toHaveClass("pb-4");
 	});
 
 	test("defaults to multiple mode when `type` is omitted (sections open independently)", () => {
@@ -352,6 +348,103 @@ describe("Accordion", () => {
 		const itemB = screen.getByText("Body of section B").closest('[data-slot="accordion-item"]');
 		expect(itemA).toHaveAttribute("data-state", "open");
 		expect(itemB).toHaveAttribute("data-state", "open");
+	});
+
+	test('type="multiple" allows several sections open at once', async () => {
+		const user = userEvent.setup();
+		render(
+			<Accordion.Root type="multiple" defaultValue={["a"]}>
+				{sections}
+			</Accordion.Root>,
+		);
+		const triggerA = screen.getByRole("button", { name: /Trigger A/ });
+		const triggerB = screen.getByRole("button", { name: /Trigger B/ });
+		expect(triggerA).toHaveAttribute("aria-expanded", "true");
+
+		await user.click(triggerB);
+		expect(triggerB).toHaveAttribute("aria-expanded", "true");
+		expect(triggerA).toHaveAttribute("aria-expanded", "true");
+	});
+
+	test("controlled value round-trips through onValueChange", async () => {
+		const user = userEvent.setup();
+		const onValueChange = vi.fn<(value: string[]) => void>();
+		const Controlled = () => {
+			const [value, setValue] = useState<string[]>(["a"]);
+			return (
+				<Accordion.Root
+					type="multiple"
+					value={value}
+					onValueChange={(next) => {
+						onValueChange(next);
+						setValue(next);
+					}}
+				>
+					{sections}
+				</Accordion.Root>
+			);
+		};
+		render(<Controlled />);
+		const triggerA = screen.getByRole("button", { name: /Trigger A/ });
+		// Why `["a"]` at mount: with no `defaultValue`, an expanded Trigger A proves Root
+		// reads `value` and not its internal state.
+		expect(triggerA).toHaveAttribute("aria-expanded", "true");
+
+		await user.click(triggerA);
+		expect(onValueChange).toHaveBeenCalledTimes(1);
+		expect(onValueChange).toHaveBeenLastCalledWith([]);
+		expect(triggerA).toHaveAttribute("aria-expanded", "false");
+
+		await user.click(triggerA);
+		expect(onValueChange).toHaveBeenCalledTimes(2);
+		expect(onValueChange).toHaveBeenLastCalledWith(["a"]);
+		expect(triggerA).toHaveAttribute("aria-expanded", "true");
+	});
+
+	test("Trigger composes a consumer onClick", async () => {
+		const user = userEvent.setup();
+		const onClick = vi.fn<() => void>();
+		render(
+			<Accordion.Root type="single" defaultValue="">
+				<Accordion.Item value="a">
+					<Accordion.Trigger onClick={onClick}>Trigger A</Accordion.Trigger>
+					<Accordion.Content>
+						<Accordion.Body>Body of section A</Accordion.Body>
+					</Accordion.Content>
+				</Accordion.Item>
+			</Accordion.Root>,
+		);
+		const triggerA = screen.getByRole("button", { name: /Trigger A/ });
+
+		await user.click(triggerA);
+		expect(onClick).toHaveBeenCalledTimes(1);
+		expect(triggerA).toHaveAttribute("aria-expanded", "true");
+	});
+
+	test("an action button beside the trigger never toggles the section", async () => {
+		const user = userEvent.setup();
+		const onAction = vi.fn<() => void>();
+		render(
+			<Accordion.Root type="single" defaultValue="a">
+				<Accordion.Item value="a">
+					<div>
+						<Accordion.Trigger>Trigger A</Accordion.Trigger>
+						<button type="button" onClick={onAction}>
+							Add Rule
+						</button>
+					</div>
+					<Accordion.Content>
+						<Accordion.Body>Body of section A</Accordion.Body>
+					</Accordion.Content>
+				</Accordion.Item>
+			</Accordion.Root>,
+		);
+		const triggerA = screen.getByRole("button", { name: /Trigger A/ });
+		expect(triggerA).toHaveAttribute("aria-expanded", "true");
+
+		await user.click(screen.getByRole("button", { name: "Add Rule" }));
+		expect(onAction).toHaveBeenCalledTimes(1);
+		expect(triggerA).toHaveAttribute("aria-expanded", "true");
 	});
 });
 
@@ -432,6 +525,8 @@ describe("Accordion Root context", () => {
 				// Precondition: the collapsed region took the `until-found` branch, so
 				// the subscription the spy watches is live.
 				expect(contentB).toHaveAttribute("hidden", "until-found");
+				// Why a spy: a re-subscription removes and re-adds the same listener with no
+				// visible effect, so the `addEventListener` call count is the only observable.
 				const addEventListener = vi.spyOn(contentB, "addEventListener");
 
 				rerender(<Sections controlled={controlled} />);

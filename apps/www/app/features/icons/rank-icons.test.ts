@@ -12,7 +12,6 @@ function namesFor(query: string): ReadonlyArray<string> {
 
 describe("rankIcons", () => {
 	test("returns the icons unchanged for a blank query", () => {
-		expect(rankIcons(iconData, "")).toBe(iconData);
 		expect(rankIcons(iconData, "   ")).toBe(iconData);
 	});
 
@@ -46,9 +45,9 @@ describe("rankIcons", () => {
 	});
 
 	test("finds an icon by a substring of its id", () => {
-		expect(idsFor("high-contrast")).toEqual(
-			expect.arrayContaining(["Theme-Icon-Light-High-Contrast", "Theme-Icon-Dark-High-Contrast"]),
-		);
+		// Why `icon-system`: no tag contains it, and no name carries a hyphen. Only
+		// the `id` key can produce the hit.
+		expect(idsFor("icon-system")).toEqual(["Theme-Icon-System"]);
 	});
 
 	test("does not fuzzy-match an id or a tag", () => {

@@ -109,9 +109,11 @@ describe("computeKeywordFoldRanges (ruby)", () => {
 	});
 
 	test("does not fold a modifier-if statement", () => {
-		// `x = 1 if condition` is a one-liner; `if` is mid-line and shouldn't fold.
-		const tokens: FoldLine[] = [line(["puts x if condition"]), line(["other"])];
-		expect(computeKeywordFoldRanges({ language: "ruby", tokens })).toEqual([]);
+		// Why nested: an unclosed opener alone yields no range, so only the outer `end` can expose a wrong push.
+		const tokens: FoldLine[] = [line(["def foo"]), line(["  puts x if condition"]), line(["end"])];
+		expect(computeKeywordFoldRanges({ language: "ruby", tokens })).toEqual([
+			{ id: "1", startLine: 1, endLine: 3 },
+		]);
 	});
 });
 
@@ -160,13 +162,6 @@ describe("computeKeywordFoldRanges (bash)", () => {
 		]);
 	});
 
-	test("folds a function with `function` keyword", () => {
-		const tokens: FoldLine[] = [line(["function foo() {"]), line(["  echo hi"]), line(["}"])];
-		expect(computeKeywordFoldRanges({ language: "bash", tokens })).toEqual([
-			{ id: "1", startLine: 1, endLine: 3 },
-		]);
-	});
-
 	test("folds a function without `function` keyword", () => {
 		const tokens: FoldLine[] = [line(["foo() {"]), line(["  echo hi"]), line(["}"])];
 		expect(computeKeywordFoldRanges({ language: "bash", tokens })).toEqual([
@@ -175,9 +170,15 @@ describe("computeKeywordFoldRanges (bash)", () => {
 	});
 
 	test("does not fold an if that closes on the same line", () => {
-		// `if x; then echo hi; fi` matches end-on-same-line; no fold.
-		const tokens: FoldLine[] = [line(["if x; then echo hi; fi"])];
-		expect(computeKeywordFoldRanges({ language: "bash", tokens })).toEqual([]);
+		// Why nested: an unclosed opener alone yields no range, so only the outer `fi` can expose a wrong push.
+		const tokens: FoldLine[] = [
+			line(["if a; then"]),
+			line(["  if x; then echo hi; fi"]),
+			line(["fi"]),
+		];
+		expect(computeKeywordFoldRanges({ language: "bash", tokens })).toEqual([
+			{ id: "1", startLine: 1, endLine: 3 },
+		]);
 	});
 
 	test("ignores `}` inside parameter expansion", () => {

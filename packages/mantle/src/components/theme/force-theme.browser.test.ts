@@ -112,7 +112,7 @@ function resetHtml() {
 }
 
 /** The exact `<html>` state the four forced writers produce. */
-function applyForced({ forced, preference }: { forced: Theme; preference: Theme | "system" }) {
+function applyForced({ forced, preference }: { forced: Theme; preference: Theme }) {
 	resetHtml();
 	const html = document.documentElement;
 	html.setAttribute("class", forced);
@@ -137,7 +137,7 @@ describe("forceTheme wins over a disagreeing stored preference", () => {
 		resetHtml();
 	});
 
-	test("the four themes compute four distinct surfaces, so the assertions below can fail", () => {
+	test("light and dark surfaces differ within each contrast tier, so the assertions below can fail", () => {
 		const values = THEMES.map((theme) => expected.get(theme));
 		expect(values.every((value) => value != null && value !== "")).toBe(true);
 		// light vs dark must differ, else a wrong-theme page would assert clean
@@ -147,7 +147,10 @@ describe("forceTheme wins over a disagreeing stored preference", () => {
 
 	// every forced theme against every preference that disagrees with it
 	const cases = THEMES.flatMap((forced) =>
-		([...THEMES, "system"] as const).map((preference) => ({ forced, preference })),
+		THEMES.filter((preference) => preference !== forced).map((preference) => ({
+			forced,
+			preference,
+		})),
 	);
 
 	test.for(cases)(

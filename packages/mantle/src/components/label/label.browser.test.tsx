@@ -1,6 +1,7 @@
 "use client";
 
 import { render } from "@testing-library/react";
+import type { ReactElement } from "react";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { Label } from "./label.js";
 
@@ -40,116 +41,90 @@ afterAll(() => {
 	styleElement.remove();
 });
 
+/** Renders `node` and reads the computed `font-weight` of the `<label>` it emits. */
+const fontWeightOf = (node: ReactElement): string => {
+	const { container } = render(node);
+	const label = container.querySelector("label");
+	if (label == null) {
+		throw new Error("No <label> rendered.");
+	}
+	return getComputedStyle(label).fontWeight;
+};
+
 describe("Label conditional font-weight", () => {
 	test("standalone label renders font-medium (500)", () => {
-		const { container } = render(<Label>Email</Label>);
-		const label = container.querySelector("label");
-		expect(label).not.toBeNull();
-		expect(getComputedStyle(label as HTMLLabelElement).fontWeight).toBe("500");
+		expect(fontWeightOf(<Label>Email</Label>)).toBe("500");
 	});
 
 	test("label wrapping <input> inherits its weight (does not become medium)", () => {
-		const { container } = render(
-			<Label>
-				<span>Email</span>
-				<input type="email" />
-			</Label>,
-		);
-		const label = container.querySelector("label");
-		expect(label).not.toBeNull();
-		expect(getComputedStyle(label as HTMLLabelElement).fontWeight).toBe("100");
+		expect(
+			fontWeightOf(
+				<Label>
+					<span>Email</span>
+					<input type="email" />
+				</Label>,
+			),
+		).toBe("100");
 	});
 
-	test("label wrapping <textarea>, <select>, or <button> also opts out", () => {
-		const cases = [
-			<Label key="ta">
-				<textarea />
-			</Label>,
-			<Label key="sel">
-				<select>
-					<option>a</option>
-				</select>
-			</Label>,
-			<Label key="btn">
-				<button type="button">x</button>
-			</Label>,
-		];
-		for (const node of cases) {
-			const { container, unmount } = render(node);
-			const label = container.querySelector("label");
-			expect(label).not.toBeNull();
-			expect(getComputedStyle(label as HTMLLabelElement).fontWeight).toBe("100");
-			unmount();
-		}
+	test.each([
+		["textarea", <textarea key="textarea" />],
+		[
+			"select",
+			<select key="select">
+				<option>a</option>
+			</select>,
+		],
+		[
+			"button",
+			<button key="button" type="button">
+				x
+			</button>,
+		],
+	] as const)("label wrapping <%s> inherits its weight", (_name, control) => {
+		expect(fontWeightOf(<Label>{control}</Label>)).toBe("100");
 	});
 
 	test("user-supplied font-bold overrides the default on a standalone label", () => {
-		const { container } = render(<Label className="font-bold">Email</Label>);
-		const label = container.querySelector("label");
-		expect(label).not.toBeNull();
-		expect(getComputedStyle(label as HTMLLabelElement).fontWeight).toBe("700");
-	});
-
-	test("user-supplied font-normal overrides the default on a standalone label", () => {
-		const { container } = render(<Label className="font-normal">Email</Label>);
-		const label = container.querySelector("label");
-		expect(label).not.toBeNull();
-		expect(getComputedStyle(label as HTMLLabelElement).fontWeight).toBe("400");
+		expect(fontWeightOf(<Label className="font-bold">Email</Label>)).toBe("700");
 	});
 
 	test("user-supplied font-bold still applies when wrapping a control", () => {
-		const { container } = render(
-			<Label className="font-bold">
-				<span>Email</span>
-				<input type="email" />
-			</Label>,
-		);
-		const label = container.querySelector("label");
-		expect(label).not.toBeNull();
-		expect(getComputedStyle(label as HTMLLabelElement).fontWeight).toBe("700");
-	});
-
-	test("user-supplied font-bold still applies when wrapping a [contenteditable]", () => {
-		const { container } = render(
-			<Label className="font-bold">
-				<span>Bio</span>
-				<div contentEditable suppressContentEditableWarning>
-					hi
-				</div>
-			</Label>,
-		);
-		const label = container.querySelector("label");
-		expect(label).not.toBeNull();
-		expect(getComputedStyle(label as HTMLLabelElement).fontWeight).toBe("700");
+		expect(
+			fontWeightOf(
+				<Label className="font-bold">
+					<span>Email</span>
+					<input type="email" />
+				</Label>,
+			),
+		).toBe("700");
 	});
 
 	test("label wrapping a [contenteditable] element opts out", () => {
-		const { container } = render(
-			<Label>
-				<span>Bio</span>
-				<div contentEditable suppressContentEditableWarning>
-					hello
-				</div>
-			</Label>,
-		);
-		const label = container.querySelector("label");
-		expect(label).not.toBeNull();
-		expect(getComputedStyle(label as HTMLLabelElement).fontWeight).toBe("100");
+		expect(
+			fontWeightOf(
+				<Label>
+					<span>Bio</span>
+					<div contentEditable suppressContentEditableWarning>
+						hello
+					</div>
+				</Label>,
+			),
+		).toBe("100");
 	});
 
 	test("nested control deeper than direct child still suppresses the default", () => {
-		const { container } = render(
-			<Label>
-				<span>Email</span>
-				<div>
+		expect(
+			fontWeightOf(
+				<Label>
+					<span>Email</span>
 					<div>
-						<input type="email" />
+						<div>
+							<input type="email" />
+						</div>
 					</div>
-				</div>
-			</Label>,
-		);
-		const label = container.querySelector("label");
-		expect(label).not.toBeNull();
-		expect(getComputedStyle(label as HTMLLabelElement).fontWeight).toBe("100");
+				</Label>,
+			),
+		).toBe("100");
 	});
 });

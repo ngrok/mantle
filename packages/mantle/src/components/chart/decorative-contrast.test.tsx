@@ -1,7 +1,5 @@
-import { render } from "@testing-library/react";
 import { describe, expect, test } from "vitest";
 import twThemeCss from "tailwindcss/theme.css?raw";
-import { BarChart } from "../bar-chart/index.js";
 import darkHighContrastCss from "../../mantle-dark-high-contrast.css?raw";
 import darkCss from "../../mantle-dark.css?raw";
 import lightHighContrastCss from "../../mantle-light-high-contrast.css?raw";
@@ -149,20 +147,6 @@ const THEMES: Theme[] = [
 ];
 
 describe("empty-state text over a decorative chart", () => {
-	test("the chart composites nothing over its marks, which is what these measurements assume", () => {
-		// Every ratio below reads the fill as the color behind the text. A blur or an
-		// opacity on the root would put some other color there — a blur pulls
-		// neighboring marks under the copy, and this file cannot see either one.
-		const { container } = render(
-			<BarChart.Root data={[{ month: "January", desktop: 1 }]} xKey="month" decorative>
-				<BarChart.Bar dataKey="desktop" />
-			</BarChart.Root>,
-		);
-		const root = container.querySelector('[data-slot="bar-chart"]');
-		expect(root).toHaveAttribute("aria-hidden", "true");
-		expect(root?.className).not.toMatch(/(?:^|\s)(?:blur|opacity)-/);
-	});
-
 	test.each(THEMES.map((theme) => [theme.name, theme] as const))(
 		"%s: the decorative fill reads as gray, so no mark carries series identity",
 		(_name, theme) => {

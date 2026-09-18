@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { afterAll, beforeAll, expect, test } from "vitest";
 import { Toast } from "./toast.js";
 
 /**
@@ -17,40 +17,37 @@ const TOAST_LAYOUT_STYLE = `
 }
 `;
 
-describe("Toast.Root label slot (browser)", () => {
-	let styleElement: HTMLStyleElement;
+let styleElement: HTMLStyleElement;
 
-	beforeAll(() => {
-		styleElement = document.createElement("style");
-		styleElement.textContent = TOAST_LAYOUT_STYLE;
-		document.head.appendChild(styleElement);
-	});
+beforeAll(() => {
+	styleElement = document.createElement("style");
+	styleElement.textContent = TOAST_LAYOUT_STYLE;
+	document.head.appendChild(styleElement);
+});
 
-	afterAll(() => {
-		styleElement.remove();
-	});
+afterAll(() => {
+	styleElement.remove();
+});
 
-	test("the label div generates no box, so the message stays a flex child of the root", () => {
-		const { container } = render(
-			<Toast.Root intent="info">
-				<Toast.Icon />
-				<Toast.Message>Changes saved</Toast.Message>
-			</Toast.Root>,
-		);
+test("Toast.Root's label div generates no box, so the message stays a flex child of the root", () => {
+	const { container } = render(
+		<Toast.Root intent="info">
+			<Toast.Icon />
+			<Toast.Message>Changes saved</Toast.Message>
+		</Toast.Root>,
+	);
 
-		const root = container.querySelector('[data-slot="toast"]');
-		const label = root?.querySelector('[data-slot="toast-label"]');
-		if (root == null || label == null) {
-			throw new Error("expected a mounted toast root and its label slot");
-		}
+	const root = container.querySelector('[data-slot="toast"]');
+	const label = root?.querySelector('[data-slot="toast-label"]');
+	if (root == null || label == null) {
+		throw new Error("expected a mounted toast root and its label slot");
+	}
 
-		expect(getComputedStyle(label).display).toBe("contents");
-		expect(label.getClientRects()).toHaveLength(0);
+	expect(getComputedStyle(label).display).toBe("contents");
+	expect(label.getClientRects()).toHaveLength(0);
 
-		// `Toast.Message` carries `flex-1`, which only resolves while the root is
-		// its flex container. A wrapper that generated a box would take it out.
-		const message = screen.getByText("Changes saved");
-		expect(getComputedStyle(message).flexGrow).toBe("1");
-		expect(message.getBoundingClientRect().width).toBeGreaterThan(0);
-	});
+	// Why the right edge: `flex-grow` computes to `1` on any element, so only a
+	// message that fills the root to its far edge proves the root lays it out.
+	const message = screen.getByText("Changes saved");
+	expect(message.getBoundingClientRect().right).toBeCloseTo(root.getBoundingClientRect().right, 0);
 });

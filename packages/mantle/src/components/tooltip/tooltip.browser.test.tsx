@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { afterAll, beforeAll, expect, test } from "vitest";
 import { Tooltip, TooltipProvider } from "./tooltip.js";
 
 /**
@@ -15,43 +15,40 @@ const TOOLTIP_LAYOUT_STYLE = `
 }
 `;
 
-describe("Tooltip.Content label slot (browser)", () => {
-	let styleElement: HTMLStyleElement;
+let styleElement: HTMLStyleElement;
 
-	beforeAll(() => {
-		styleElement = document.createElement("style");
-		styleElement.textContent = TOOLTIP_LAYOUT_STYLE;
-		document.head.appendChild(styleElement);
-	});
+beforeAll(() => {
+	styleElement = document.createElement("style");
+	styleElement.textContent = TOOLTIP_LAYOUT_STYLE;
+	document.head.appendChild(styleElement);
+});
 
-	afterAll(() => {
-		styleElement.remove();
-	});
+afterAll(() => {
+	styleElement.remove();
+});
 
-	test("the label div generates no box, so a body element stays a child of the surface", async () => {
-		const user = userEvent.setup();
-		render(
-			<TooltipProvider>
-				<Tooltip.Root>
-					<Tooltip.Trigger>Hover me</Tooltip.Trigger>
-					<Tooltip.Content>
-						<p>This feature is part of your plan</p>
-					</Tooltip.Content>
-				</Tooltip.Root>
-			</TooltipProvider>,
-		);
+test("Tooltip.Content's label div generates no box, so a body element stays a child of the surface", async () => {
+	const user = userEvent.setup();
+	render(
+		<TooltipProvider>
+			<Tooltip.Root>
+				<Tooltip.Trigger>Hover me</Tooltip.Trigger>
+				<Tooltip.Content>
+					<p>This feature is part of your plan</p>
+				</Tooltip.Content>
+			</Tooltip.Root>
+		</TooltipProvider>,
+	);
 
-		await user.hover(screen.getByRole("button", { name: "Hover me" }));
-		const tooltip = await screen.findByRole("tooltip");
-		const label = tooltip.querySelector('[data-slot="tooltip-label"]');
-		if (label == null) {
-			throw new Error('No element carries data-slot="tooltip-label".');
-		}
+	await user.hover(screen.getByRole("button", { name: "Hover me" }));
+	const tooltip = await screen.findByRole("tooltip");
+	const label = tooltip.querySelector('[data-slot="tooltip-label"]');
+	if (label == null) {
+		throw new Error('No element carries data-slot="tooltip-label".');
+	}
 
-		expect(getComputedStyle(label).display).toBe("contents");
-		expect(label.getClientRects()).toHaveLength(0);
-		// A `<div>` may legally hold the `<p>` the documented example passes.
-		expect(label.tagName).toBe("DIV");
-		expect(screen.getByText("This feature is part of your plan").tagName).toBe("P");
-	});
+	expect(getComputedStyle(label).display).toBe("contents");
+	expect(label.getClientRects()).toHaveLength(0);
+	// A `<div>` may legally hold the `<p>` the documented example passes.
+	expect(label.tagName).toBe("DIV");
 });

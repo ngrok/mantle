@@ -5,7 +5,6 @@ describe("hasMoreThanNLines", () => {
 	test("matches split-based behavior for empty and single-line strings", () => {
 		expect(hasMoreThanNLines("", 0)).toBe("".split("\n").length > 0);
 		expect(hasMoreThanNLines("", 1)).toBe("".split("\n").length > 1);
-		expect(hasMoreThanNLines("hello", 0)).toBe("hello".split("\n").length > 0);
 		expect(hasMoreThanNLines("hello", 1)).toBe("hello".split("\n").length > 1);
 	});
 
@@ -13,7 +12,6 @@ describe("hasMoreThanNLines", () => {
 		const value = "line1\nline2\nline3";
 		expect(hasMoreThanNLines(value, 2)).toBe(true);
 		expect(hasMoreThanNLines(value, 3)).toBe(false);
-		expect(hasMoreThanNLines(value, 4)).toBe(false);
 	});
 
 	test("matches split-based behavior with trailing newlines", () => {

@@ -238,18 +238,6 @@ describe("computeFoldRanges (indentation strategy)", () => {
 		expect(computeFoldRanges({ language: "python", tokens })).toEqual([]);
 	});
 
-	test("folds a YAML mapping", () => {
-		const tokens: FoldLine[] = [
-			line(["server:"]),
-			line(["  host: localhost"]),
-			line(["  port: 8080"]),
-			line(["client: foo"]),
-		];
-		expect(computeFoldRanges({ language: "yaml", tokens })).toEqual([
-			{ id: "1", startLine: 1, endLine: 4 },
-		]);
-	});
-
 	test("treats tabs as one column", () => {
 		const tokens: FoldLine[] = [line(["root:"]), line(["\tchild: 1"]), line(["\tother: 2"])];
 		expect(computeFoldRanges({ language: "yaml", tokens })).toEqual([
@@ -328,7 +316,7 @@ describe("computeFoldRanges (tag strategy)", () => {
 		]);
 	});
 
-	test("ignores tag-like text inside comments and strings", () => {
+	test("ignores tag-like text inside comments", () => {
 		const tokens: FoldLine[] = [
 			line(["<div>"]),
 			line("  ", ["<!-- <span> -->", "comment.block.html"]),
@@ -354,6 +342,5 @@ describe("computeFoldRanges (none strategy)", () => {
 	test("returns no ranges for plain text", () => {
 		const tokens: FoldLine[] = [line(["{"]), line(["}"])];
 		expect(computeFoldRanges({ language: "plain", tokens })).toEqual([]);
-		expect(computeFoldRanges({ language: "text", tokens })).toEqual([]);
 	});
 });

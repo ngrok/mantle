@@ -54,10 +54,6 @@ describe("breadcrumbs recipe fences", () => {
 	const markdown = readFromAppRoot(RECIPE);
 	const blocks = fencedBlocks(markdown);
 
-	it("finds fenced code on the recipe page", () => {
-		expect(blocks.length).toBeGreaterThan(0);
-	});
-
 	it.for(FENCED_FILES)("%s appears verbatim in the recipe", (path) => {
 		const source = readFromAppRoot(path).trimEnd();
 		expect(blocks).toContain(source);

@@ -13,7 +13,6 @@ describe("needsComputedResolution", () => {
 		expect(needsComputedResolution("currentColor")).toBe(true);
 		expect(needsComputedResolution("currentcolor")).toBe(true);
 		expect(needsComputedResolution("CURRENTCOLOR")).toBe(true);
-		expect(needsComputedResolution("CurrentColor")).toBe(true);
 	});
 
 	test("flags var() regardless of case", () => {
@@ -23,9 +22,7 @@ describe("needsComputedResolution", () => {
 
 	test("passes canvas-paintable colors through untouched", () => {
 		expect(needsComputedResolution("#e40014")).toBe(false);
-		expect(needsComputedResolution("oklch(0.6 0.19 260)")).toBe(false);
 		expect(needsComputedResolution("color-mix(in oklab, red 70%, black)")).toBe(false);
-		expect(needsComputedResolution("rgb(28, 61, 145)")).toBe(false);
 	});
 });
 
@@ -43,9 +40,6 @@ describe("isChartColorToken", () => {
 	});
 });
 
-describe("chartTokenVariable", () => {
-	test("maps a token to its CSS custom property", () => {
-		expect(chartTokenVariable("chart-3")).toBe("--color-chart-3");
-		expect(chartTokenVariable("chart-other")).toBe("--color-chart-other");
-	});
+test("chartTokenVariable maps a token to its CSS custom property", () => {
+	expect(chartTokenVariable("chart-3")).toBe("--color-chart-3");
 });

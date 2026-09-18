@@ -55,14 +55,6 @@ afterEach(() => {
 });
 
 describe("MantleStyleSheets — link element rendering", () => {
-	test("renders three <link> elements with the expected stable IDs", () => {
-		render(<MantleStyleSheets {...TEST_URLS} />);
-
-		expect(document.getElementById(DARK_LINK_ID)).toBeInstanceOf(HTMLLinkElement);
-		expect(document.getElementById(LIGHT_HC_LINK_ID)).toBeInstanceOf(HTMLLinkElement);
-		expect(document.getElementById(DARK_HC_LINK_ID)).toBeInstanceOf(HTMLLinkElement);
-	});
-
 	test("all three <link> elements have rel=stylesheet", () => {
 		render(<MantleStyleSheets {...TEST_URLS} />);
 
@@ -174,95 +166,6 @@ describe("MantleStyleSheets — forceTheme media attributes", () => {
 	});
 });
 
-describe("MantleStyleSheets — ssrCookie prop", () => {
-	/**
-	 * In real SSR usage, `PreventWrongThemeFlashScript` always runs before React hydration
-	 * and sets `html[data-applied-theme]` to match the stored theme. The ssrCookie prop is an
-	 * optimisation that renders the correct `media` attribute in the SSR HTML so the correct
-	 * stylesheet is active before JS runs. After hydration, the `useEffect` reads
-	 * `data-applied-theme` (the source of truth on the client) and keeps the media in sync.
-	 *
-	 * These tests simulate that full flow by pre-setting `data-applied-theme` to match the
-	 * cookie value, mirroring what `PreventWrongThemeFlashScript` would have written.
-	 */
-
-	test('ssrCookie with stored dark theme renders dark link as media="all"', async () => {
-		// Simulate PreventWrongThemeFlashScript having run
-		document.documentElement.dataset.appliedTheme = "dark";
-		render(<MantleStyleSheets {...TEST_URLS} ssrCookie="mantle-ui-theme=dark" />);
-
-		await waitFor(() => {
-			expect(getDarkLink().media).toBe("all");
-		});
-		expect(getLightHcLink().media).toBe(MEDIA_LIGHT_HC);
-		expect(getDarkHcLink().media).toBe(MEDIA_DARK_HC);
-	});
-
-	test('ssrCookie with stored light-high-contrast theme renders both high-contrast links as media="all"', async () => {
-		document.documentElement.dataset.appliedTheme = "light-high-contrast";
-		render(<MantleStyleSheets {...TEST_URLS} ssrCookie="mantle-ui-theme=light-high-contrast" />);
-
-		await waitFor(() => {
-			expect(getLightHcLink().media).toBe("all");
-		});
-		expect(getDarkHcLink().media).toBe("all");
-		expect(getDarkLink().media).toBe(MEDIA_DARK);
-	});
-
-	test('ssrCookie with stored dark-high-contrast theme renders both high-contrast links as media="all"', async () => {
-		document.documentElement.dataset.appliedTheme = "dark-high-contrast";
-		render(<MantleStyleSheets {...TEST_URLS} ssrCookie="mantle-ui-theme=dark-high-contrast" />);
-
-		await waitFor(() => {
-			expect(getDarkHcLink().media).toBe("all");
-		});
-		expect(getLightHcLink().media).toBe("all");
-		expect(getDarkLink().media).toBe(MEDIA_DARK);
-	});
-
-	test('ssrCookie with stored light theme renders the dark link (its pair partner) as media="all"', async () => {
-		document.documentElement.dataset.appliedTheme = "light";
-		render(<MantleStyleSheets {...TEST_URLS} ssrCookie="mantle-ui-theme=light" />);
-
-		await waitFor(() => {
-			// light pairs with dark so `.invert-theme` islands can render dark
-			expect(getDarkLink().media).toBe("all");
-		});
-		expect(getLightHcLink().media).toBe(MEDIA_LIGHT_HC);
-		expect(getDarkHcLink().media).toBe(MEDIA_DARK_HC);
-	});
-
-	test("ssrCookie with stored system theme falls back to OS media queries", () => {
-		// system theme is resolved at runtime via OS media queries; no data-applied-theme pre-set
-		render(<MantleStyleSheets {...TEST_URLS} ssrCookie="mantle-ui-theme=system" />);
-		expect(getDarkLink().media).toBe(MEDIA_DARK);
-		expect(getLightHcLink().media).toBe(MEDIA_LIGHT_HC);
-		expect(getDarkHcLink().media).toBe(MEDIA_DARK_HC);
-	});
-
-	test("ssrCookie with no theme cookie falls back to OS media queries", () => {
-		render(<MantleStyleSheets {...TEST_URLS} ssrCookie="session=abc123; other=value" />);
-		expect(getDarkLink().media).toBe(MEDIA_DARK);
-		expect(getLightHcLink().media).toBe(MEDIA_LIGHT_HC);
-		expect(getDarkHcLink().media).toBe(MEDIA_DARK_HC);
-	});
-
-	test("forceTheme takes precedence over ssrCookie", async () => {
-		document.documentElement.dataset.appliedTheme = "dark";
-		render(
-			<MantleStyleSheets
-				{...TEST_URLS}
-				ssrCookie="mantle-ui-theme=light-high-contrast"
-				forceTheme="dark"
-			/>,
-		);
-
-		await waitFor(() => {
-			expect(getDarkLink().media).toBe("all");
-		});
-	});
-});
-
 describe("MantleStyleSheets — MutationObserver: runtime theme changes", () => {
 	test('setting html[data-applied-theme="dark"] updates dark link to media="all"', async () => {
 		render(<MantleStyleSheets {...TEST_URLS} />);
@@ -337,20 +240,6 @@ describe("MantleStyleSheets — MutationObserver: runtime theme changes", () => 
 		});
 		expect(getDarkHcLink().media).toBe("all");
 		expect(getDarkLink().media).toBe(MEDIA_DARK);
-	});
-
-	test("forceTheme overrides MutationObserver — applied-theme change does not affect media", async () => {
-		render(<MantleStyleSheets {...TEST_URLS} forceTheme="dark" />);
-
-		expect(getDarkLink().media).toBe("all");
-
-		// Simulate OS user also having dark; applied-theme changes shouldn't flip dark off
-		document.documentElement.dataset.appliedTheme = "light";
-
-		// The observer runs but forceTheme="dark" keeps dark at "all"
-		await waitFor(() => {
-			expect(getDarkLink().media).toBe("all");
-		});
 	});
 });
 

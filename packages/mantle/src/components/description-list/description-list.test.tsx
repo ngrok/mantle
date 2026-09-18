@@ -3,20 +3,7 @@ import { describe, expect, test } from "vitest";
 import { DescriptionList } from "./description-list.js";
 
 describe("DescriptionList", () => {
-	test("Root renders a dl element", () => {
-		render(
-			<DescriptionList.Root data-testid="dl">
-				<DescriptionList.Item>
-					<DescriptionList.Label>Name</DescriptionList.Label>
-					<DescriptionList.Value>foo</DescriptionList.Value>
-				</DescriptionList.Item>
-			</DescriptionList.Root>,
-		);
-		const dl = screen.getByTestId("dl");
-		expect(dl.tagName).toBe("DL");
-	});
-
-	test("Label renders a dt element", () => {
+	test("Label renders its children", () => {
 		render(
 			<DescriptionList.Root>
 				<DescriptionList.Item>
@@ -26,11 +13,10 @@ describe("DescriptionList", () => {
 			</DescriptionList.Root>,
 		);
 		const dt = screen.getByTestId("label");
-		expect(dt.tagName).toBe("DT");
 		expect(dt).toHaveTextContent("Name");
 	});
 
-	test("Value renders a dd element", () => {
+	test("Value renders its children", () => {
 		render(
 			<DescriptionList.Root>
 				<DescriptionList.Item>
@@ -40,11 +26,10 @@ describe("DescriptionList", () => {
 			</DescriptionList.Root>,
 		);
 		const dd = screen.getByTestId("value");
-		expect(dd.tagName).toBe("DD");
 		expect(dd).toHaveTextContent("foo");
 	});
 
-	test("Item renders a div element", () => {
+	test("Item forwards consumer attributes to its element", () => {
 		render(
 			<DescriptionList.Root>
 				<DescriptionList.Item data-testid="item">
@@ -53,8 +38,7 @@ describe("DescriptionList", () => {
 				</DescriptionList.Item>
 			</DescriptionList.Root>,
 		);
-		const div = screen.getByTestId("item");
-		expect(div.tagName).toBe("DIV");
+		expect(screen.getByTestId("item")).toHaveAttribute("data-slot", "description-list-item");
 	});
 
 	test.each([
@@ -140,13 +124,13 @@ describe("DescriptionList", () => {
 			<DescriptionList.Root>
 				<DescriptionList.Item>
 					<DescriptionList.Label>Name</DescriptionList.Label>
-					<DescriptionList.Value className="font-mono" data-testid="value">
+					<DescriptionList.Value className="custom-class" data-testid="value">
 						foo
 					</DescriptionList.Value>
 				</DescriptionList.Item>
 			</DescriptionList.Root>,
 		);
 		const dd = screen.getByTestId("value");
-		expect(dd.className).toContain("font-mono");
+		expect(dd).toHaveClass("custom-class");
 	});
 });

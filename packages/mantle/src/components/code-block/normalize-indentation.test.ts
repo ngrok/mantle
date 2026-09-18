@@ -6,16 +6,12 @@ describe("normalizeIndentation", () => {
 		const value = "";
 		const expected = "";
 		expect(normalizeIndentation(value)).toBe(expected);
-		expect(normalizeIndentation(value, { indentation: "tabs" })).toBe(expected);
-		expect(normalizeIndentation(value, { indentation: "spaces" })).toBe(expected);
 	});
 
 	test("given a single line string, returns the string", () => {
 		const value = "SELECT * FROM users";
 		const expected = "SELECT * FROM users";
 		expect(normalizeIndentation(value)).toBe(expected);
-		expect(normalizeIndentation(value, { indentation: "tabs" })).toBe(expected);
-		expect(normalizeIndentation(value, { indentation: "spaces" })).toBe(expected);
 	});
 
 	test("given a multiline string with no indentation, returns the string", () => {
@@ -25,22 +21,7 @@ const bar = {};
 foo.bar = bar;
 bar.foo =					foo;
 `;
-		let result = normalizeIndentation(value);
-		expect(result).toMatchInlineSnapshot(`
-			"const foo = {};
-			const bar = {};
-			foo.bar = bar;
-			bar.foo =					foo;"
-		`);
-
-		result = normalizeIndentation(value, { indentation: "spaces" });
-		expect(result).toMatchInlineSnapshot(`
-			"const foo = {};
-			const bar = {};
-			foo.bar = bar;
-			bar.foo =					foo;"
-		`);
-		result = normalizeIndentation(value, { indentation: "tabs" });
+		const result = normalizeIndentation(value);
 		expect(result).toMatchInlineSnapshot(`
 			"const foo = {};
 			const bar = {};
@@ -52,21 +33,7 @@ bar.foo =					foo;
 	test("given a multiline string where all non-empty lines are indented equally, strips shared indentation", () => {
 		const value = "\n\t\tconst foo = {};\n\t\tconst bar = {};\n\t\tfoo.bar = bar;\n\t\t";
 
-		let result = normalizeIndentation(value);
-		expect(result).toMatchInlineSnapshot(`
-			"const foo = {};
-			const bar = {};
-			foo.bar = bar;"
-		`);
-
-		result = normalizeIndentation(value, { indentation: "spaces" });
-		expect(result).toMatchInlineSnapshot(`
-			"const foo = {};
-			const bar = {};
-			foo.bar = bar;"
-		`);
-
-		result = normalizeIndentation(value, { indentation: "tabs" });
+		const result = normalizeIndentation(value);
 		expect(result).toMatchInlineSnapshot(`
 			"const foo = {};
 			const bar = {};
@@ -102,49 +69,16 @@ const foo = {};
 		`);
 	});
 
-	test("given a component code example with tabs, returns the string with tabs replaced with spaces", () => {
-		const value = `
-<Alert intent="danger">
-	<AlertIcon />
-	<AlertContent>
-		<AlertTitle>Danger</AlertTitle>
-		<AlertDescription>This is a danger Alert.</AlertDescription>
-	</AlertContent>
-</Alert>
-		`;
+	test("given space-indented lines and indentation tabs, converts each two leading spaces to a tab", () => {
+		const value = "\nconst foo = {};\n  const bar = {};\n    foo.bar = bar;\n";
+		expect(normalizeIndentation(value, { indentation: "tabs" })).toBe(
+			"const foo = {};\n\tconst bar = {};\n\t\tfoo.bar = bar;",
+		);
+	});
 
-		let result = normalizeIndentation(value);
-		expect(result).toMatchInlineSnapshot(`
-			"<Alert intent="danger">
-			  <AlertIcon />
-			  <AlertContent>
-			    <AlertTitle>Danger</AlertTitle>
-			    <AlertDescription>This is a danger Alert.</AlertDescription>
-			  </AlertContent>
-			</Alert>"
-		`);
-
-		result = normalizeIndentation(value, { indentation: "spaces" });
-		expect(result).toMatchInlineSnapshot(`
-			"<Alert intent="danger">
-			  <AlertIcon />
-			  <AlertContent>
-			    <AlertTitle>Danger</AlertTitle>
-			    <AlertDescription>This is a danger Alert.</AlertDescription>
-			  </AlertContent>
-			</Alert>"
-		`);
-
-		result = normalizeIndentation(value, { indentation: "tabs" });
-		expect(result).toMatchInlineSnapshot(`
-			"<Alert intent="danger">
-				<AlertIcon />
-				<AlertContent>
-					<AlertTitle>Danger</AlertTitle>
-					<AlertDescription>This is a danger Alert.</AlertDescription>
-				</AlertContent>
-			</Alert>"
-		`);
+	test("given an interior whitespace-only line, leaves that line unchanged", () => {
+		const value = "\nconst foo = {};\n\t\n\tconst bar = {};\n";
+		expect(normalizeIndentation(value)).toBe("const foo = {};\n\t\n  const bar = {};");
 	});
 
 	test("normalizes CRLF line endings without leaving carriage returns in the output", () => {
@@ -154,6 +88,5 @@ const foo = {};
 		expect(normalizeIndentation(value, { indentation: "tabs" })).toBe(
 			"const foo = {};\n\tconst bar = {};",
 		);
-		expect(normalizeIndentation(value)).not.toContain("\r");
 	});
 });

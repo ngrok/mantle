@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { expect, it } from "vitest";
 
 import { buildManifest, type ManifestComponent } from "./manifest.server";
 
@@ -44,15 +44,13 @@ function toSurface(component: ManifestComponent): SurfaceEntry {
 	};
 }
 
-describe("agent surface drift", () => {
-	it("component manifest matches the committed snapshot (regenerate with `pnpm -F @app/www test -u`)", async () => {
-		const manifest = await buildManifest();
-		const surface = manifest.components.map(toSurface);
+it("component manifest matches the committed snapshot (regenerate with `pnpm -F @app/www test -u`)", async () => {
+	const manifest = await buildManifest();
+	const surface = manifest.components.map(toSurface);
 
-		// 2-space JSON + trailing newline matches oxfmt's formatting, so the
-		// committed snapshot satisfies both this drift check and `fmt:check`.
-		await expect(`${JSON.stringify(surface, null, 2)}\n`).toMatchFileSnapshot(
-			"./__snapshots__/components-surface.json",
-		);
-	});
+	// 2-space JSON + trailing newline matches oxfmt's formatting, so the
+	// committed snapshot satisfies both this drift check and `fmt:check`.
+	await expect(`${JSON.stringify(surface, null, 2)}\n`).toMatchFileSnapshot(
+		"./__snapshots__/components-surface.json",
+	);
 });

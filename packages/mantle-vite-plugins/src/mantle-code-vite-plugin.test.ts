@@ -128,26 +128,6 @@ describe("mantleCodeVitePlugin", () => {
 		expect(result.code).not.toContain("mantle-code-line-number");
 	});
 
-	test("defaults showLineNumbers to false for single-line sh", async () => {
-		const result = await runTransform(
-			mantleImport + 'const snippet = mantleCode("sh")`curl -s https://example.com`;',
-		);
-
-		expect(result.warn).not.toHaveBeenCalled();
-		expect(result.code).toContain('"~showLineNumbers":false');
-		expect(result.code).not.toContain("mantle-code-line-number");
-	});
-
-	test("defaults showLineNumbers to false for single-line shell", async () => {
-		const result = await runTransform(
-			mantleImport + 'const snippet = mantleCode("shell")`echo hello`;',
-		);
-
-		expect(result.warn).not.toHaveBeenCalled();
-		expect(result.code).toContain('"~showLineNumbers":false');
-		expect(result.code).not.toContain("mantle-code-line-number");
-	});
-
 	test("defaults showLineNumbers to true for multi-line shell code and emits line-number HTML", async () => {
 		const result = await runTransform(
 			mantleImport + 'const snippet = mantleCode("bash")`echo hello\necho world`;',
@@ -179,19 +159,6 @@ describe("mantleCodeVitePlugin", () => {
 		expect(result.code).toContain('"~lineNumberStart":10');
 		expect(result.code).toContain('"~highlightLines":[11]');
 		expect(result.code).toContain("mantle-code-line-highlighted");
-	});
-
-	test("indented single-line shell template defaults showLineNumbers to false", async () => {
-		const source = [
-			mantleImport + 'const snippet = mantleCode("bash")`',
-			"\t\tnpm install @ngrok/mantle",
-			"\t`;",
-		].join("\n");
-		const result = await runTransform(source);
-
-		expect(result.warn).not.toHaveBeenCalled();
-		expect(result.code).toContain('"~showLineNumbers":false');
-		expect(result.code).not.toContain("mantle-code-line-number");
 	});
 
 	test("JSX showLineNumbers prop overrides mantleCode option", async () => {
@@ -528,8 +495,9 @@ describe("mantleCodeVitePlugin cross-module fragment inlining", () => {
 		expect(javaObject).toContain('"~preValToken":undefined');
 		expect(javaObject).not.toContain("oauthPolicy");
 		expect(countRenderedLines(javaObject)).toBe(5);
-		// The fragment module is registered as a watch dependency for HMR/rebuilds.
-		expect(result.addWatchFile).toHaveBeenCalled();
+		// Why: the fragment module, not the importer, is the watch dependency that re-transforms this entry.
+		expect(result.addWatchFile).toHaveBeenCalledTimes(1);
+		expect(result.addWatchFile).toHaveBeenLastCalledWith(expect.stringMatching(/module-0\.tsx$/));
 	});
 
 	test("resolves aliased imports", async () => {

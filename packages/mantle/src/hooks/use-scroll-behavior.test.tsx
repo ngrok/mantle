@@ -1,15 +1,11 @@
 import { act, renderHook } from "@testing-library/react";
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { describe, expect, test } from "vitest";
 import { mockMatchMedia } from "../test-utils/mock-match-media.js";
 import { useScrollBehavior } from "./use-scroll-behavior.js";
 
 const noPreferenceQuery = "(prefers-reduced-motion: no-preference)";
 
 describe("useScrollBehavior", () => {
-	afterEach(() => {
-		vi.restoreAllMocks();
-	});
-
 	test('returns "smooth" when the user allows motion', () => {
 		mockMatchMedia({ [noPreferenceQuery]: true });
 

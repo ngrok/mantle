@@ -143,7 +143,7 @@ describe("ChaseTween", () => {
 				time += 16.67;
 				chase.tick(time);
 				const current = chase.values()[1] ?? 0;
-				expect(current).toBeGreaterThanOrEqual(previous);
+				expect(current).toBeGreaterThan(previous);
 				previous = current;
 			}
 		}
@@ -231,7 +231,7 @@ describe("ChaseTween", () => {
 		// An unchanged-target re-aim must be a no-op, so the glide settles in
 		// exactly as many frames as the control.
 		const reaimed = runScenario({ reaimEveryNthFrame: 9 });
-		expect(reaimed.frames).toBeLessThanOrEqual(control.frames);
+		expect(reaimed.frames).toBe(control.frames);
 		expect(reaimed.upperValue).toBe(100);
 	});
 

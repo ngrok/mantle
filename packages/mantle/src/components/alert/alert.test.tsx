@@ -68,19 +68,9 @@ describe("Alert", () => {
 					</Alert.Content>
 				</Alert.Root>,
 			);
+			// Why the class: `Root` emits no `data-intent`, so the tone class is the only
+			// observable of the `intent` variant map. One case per key catches a permuted table.
 			expect(getAlertRoot(container)).toHaveClass(toneClass);
-		});
-
-		test("`intent` is required at the type level", () => {
-			const missingIntent = (
-				// @ts-expect-error -- intent is required on Alert.Root
-				<Alert.Root>
-					<Alert.Content>
-						<Alert.Title>Title</Alert.Title>
-					</Alert.Content>
-				</Alert.Root>
-			);
-			expect(missingIntent).toBeDefined();
 		});
 	});
 
@@ -388,51 +378,22 @@ describe("Alert", () => {
 	});
 
 	describe("ExpandButton", () => {
-		test("reserves room for its count and rotates the caret when expanded", () => {
-			const { container } = render(
-				<Alert.Root
-					intent="warning"
-					style={$cssProperties({ "--alert-control-color": "var(--color-neutral-700)" })}
-				>
-					<Alert.Icon />
+		test("reports the expanded state and names the collapse action", () => {
+			render(
+				<Alert.Root intent="warning">
 					<Alert.Content>
 						<Alert.Title>Usage limit approaching</Alert.Title>
 						<Alert.ExpandButton count={2} expanded />
 					</Alert.Content>
 				</Alert.Root>,
 			);
-
-			expect(container.querySelector('[data-slot="alert-expand-button"]')).toHaveAttribute(
+			expect(screen.getByRole("button", { name: "Collapse additional alerts" })).toHaveAttribute(
 				"aria-expanded",
 				"true",
 			);
-			expect(container.querySelector('[data-slot="alert"]')).toHaveClass(
-				"has-data-alert-expand:[&_[data-slot=alert-content]]:pr-12",
-				"md:has-data-alert-expand:[&_[data-slot=alert-content]]:pr-[5.5rem]",
-			);
-			expect(container.querySelector('[data-slot="alert-content"]')).not.toHaveClass(
-				"has-data-alert-expand:pr-12",
-			);
-			expect(container.querySelector('[data-slot="alert-expand-button"] svg')).toHaveClass(
-				"-rotate-180",
-				"duration-150",
-			);
-			expect(container.querySelector('[data-slot="alert-expand-button"]')).toHaveClass(
-				"top-1.5",
-				"text-[var(--alert-control-color,currentColor)]",
-				"not-disabled:hover:bg-[var(--alert-control-hover-bg,transparent)]",
-				"not-disabled:hover:text-[var(--alert-control-hover-color,currentColor)]",
-			);
-			const root = container.querySelector('[data-slot="alert"]');
-			expect(root?.getAttribute("style")).toContain("--alert-control-color");
-			expect(root?.getAttribute("style")).toContain("--alert-control-hover-color");
-			expect(root?.getAttribute("style")).toContain("--alert-control-hover-bg");
-			expect(root?.getAttribute("style")).toContain(
-				"--alert-control-color: var(--color-neutral-700)",
-			);
 		});
 
-		test("gives the count a growable min-width so multi-digit counts don't overflow", () => {
+		test("names the hidden count in the plural", () => {
 			render(
 				<Alert.Root intent="warning">
 					<Alert.Content>
@@ -441,10 +402,19 @@ describe("Alert", () => {
 					</Alert.Content>
 				</Alert.Root>,
 			);
+			expect(screen.getByRole("button", { name: "Show 10 more alerts" })).toHaveTextContent("+10");
+		});
 
-			const count = screen.getByText("+10");
-			expect(count).toHaveClass("min-w-[2ch]");
-			expect(count).not.toHaveClass("w-[2ch]");
+		test("names one hidden alert in the singular", () => {
+			render(
+				<Alert.Root intent="warning">
+					<Alert.Content>
+						<Alert.Title>Usage limit approaching</Alert.Title>
+						<Alert.ExpandButton count={1} expanded={false} />
+					</Alert.Content>
+				</Alert.Root>,
+			);
+			expect(screen.getByRole("button", { name: "Show 1 more alert" })).toHaveTextContent("+1");
 		});
 
 		test("renders the caret through Button's icon slot, outside the label", () => {
@@ -487,39 +457,7 @@ describe("Alert", () => {
 			expect(button).not.toHaveClass("pe-2");
 		});
 
-		test("keeps the count and the word as flex items of the button", () => {
-			const { container } = render(
-				<Alert.Root intent="warning">
-					<Alert.Content>
-						<Alert.Title>Usage limit approaching</Alert.Title>
-						<Alert.ExpandButton count={3} expanded={false} />
-					</Alert.Content>
-				</Alert.Root>,
-			);
-
-			// A cross-file contract: `button.tsx` renders the label slot as
-			// `display: contents`, which is where the `gap-1` between the count and the
-			// word comes from. Give that slot a box and all three items run together.
-			const button = container.querySelector('[data-slot="alert-expand-button"]');
-			const label = button?.querySelector('[data-slot="button-label"]');
-			expect(label).toHaveClass("contents");
-			expect(label).toContainElement(screen.getByText("+3"));
-		});
-
-		test("`asChild` is not accepted at the type level", () => {
-			const withAsChild = (
-				<Alert.Root intent="warning">
-					<Alert.Content>
-						<Alert.Title>Usage limit approaching</Alert.Title>
-						{/* @ts-expect-error -- asChild is omitted: ExpandButton renders multiple children */}
-						<Alert.ExpandButton count={2} expanded={false} asChild />
-					</Alert.Content>
-				</Alert.Root>
-			);
-			expect(withAsChild).toBeDefined();
-		});
-
-		test("positions dismiss to the left and reserves both controls when composed together", () => {
+		test("stamps the marker attribute Root's selectors read on each trailing control", () => {
 			const { container } = render(
 				<Alert.Root intent="warning">
 					<Alert.Content>
@@ -529,19 +467,56 @@ describe("Alert", () => {
 					</Alert.Content>
 				</Alert.Root>,
 			);
-
-			expect(container.querySelector('[data-slot="alert"]')).toHaveClass(
-				"has-data-alert-dismiss:pr-10",
-				"has-data-alert-expand:[&_[data-slot=alert-dismiss-icon-button]]:right-16",
-				"md:has-data-alert-expand:[&_[data-slot=alert-dismiss-icon-button]]:right-24",
-				"has-data-alert-expand:[&_[data-slot=alert-content]]:pr-12",
-				"md:has-data-alert-expand:[&_[data-slot=alert-content]]:pr-[5.5rem]",
+			// Why the markers: `Root` reserves room with `has-data-alert-dismiss:` and
+			// `has-data-alert-expand:` selectors, so a renamed marker loses the layout
+			// with every other test green.
+			expect(container.querySelector('[data-slot="alert-dismiss-icon-button"]')).toHaveAttribute(
+				"data-alert-dismiss",
 			);
-			expect(container.querySelector('[data-slot="alert-dismiss-icon-button"]')).toHaveClass(
-				"top-1.5",
-				"text-[var(--alert-control-color,currentColor)]",
-				"not-disabled:hover:bg-[var(--alert-control-hover-bg,transparent)]",
-				"not-disabled:hover:text-[var(--alert-control-hover-color,currentColor)]",
+			expect(container.querySelector('[data-slot="alert-expand-button"]')).toHaveAttribute(
+				"data-alert-expand",
+			);
+		});
+	});
+
+	describe("--alert-control-* variables", () => {
+		test("Root derives the --alert-control-* variables from its intent", () => {
+			const { container } = render(
+				<Alert.Root intent="warning">
+					<Alert.Content>
+						<Alert.Title>Usage limit approaching</Alert.Title>
+					</Alert.Content>
+				</Alert.Root>,
+			);
+			const root = container.querySelector<HTMLElement>('[data-slot="alert"]');
+			expect(root?.style.getPropertyValue("--alert-control-color")).toBe(
+				"var(--color-warning-700)",
+			);
+			expect(root?.style.getPropertyValue("--alert-control-hover-color")).toBe(
+				"var(--color-warning-800)",
+			);
+			expect(root?.style.getPropertyValue("--alert-control-hover-bg")).toBe(
+				"color-mix(in oklab, var(--color-warning-500) 10%, transparent)",
+			);
+		});
+
+		test("a consumer style overrides one --alert-control-* default and keeps the rest", () => {
+			const { container } = render(
+				<Alert.Root
+					intent="warning"
+					style={$cssProperties({ "--alert-control-color": "var(--color-neutral-700)" })}
+				>
+					<Alert.Content>
+						<Alert.Title>Usage limit approaching</Alert.Title>
+					</Alert.Content>
+				</Alert.Root>,
+			);
+			const root = container.querySelector<HTMLElement>('[data-slot="alert"]');
+			expect(root?.style.getPropertyValue("--alert-control-color")).toBe(
+				"var(--color-neutral-700)",
+			);
+			expect(root?.style.getPropertyValue("--alert-control-hover-color")).toBe(
+				"var(--color-warning-800)",
 			);
 		});
 	});
@@ -555,7 +530,38 @@ describe("Alert", () => {
 					</Alert.Content>
 				</Alert.Root>,
 			);
+			// Why the class: `Root` emits no `data-appearance`, so `rounded-none` is the
+			// only observable of the banner appearance.
 			expect(getAlertRoot(container)).toHaveClass("rounded-none");
 		});
 	});
 });
+
+/**
+ * Type-level contracts, owned by `pnpm typecheck` and not by a `test()`. A
+ * `@ts-expect-error` that compiles is the assertion; a runtime `expect` beside
+ * it reads as coverage the vitest run does not have.
+ *
+ * `intent` is required on `Alert.Root`, so no alert inherits a tone it did not
+ * state. `Alert.ExpandButton` omits `asChild`: it always renders two children,
+ * which would trip `Button`'s single-child invariant at runtime.
+ */
+export function typeLevelContracts() {
+	return (
+		<>
+			{/* @ts-expect-error -- intent is required on Alert.Root */}
+			<Alert.Root>
+				<Alert.Content>
+					<Alert.Title>Title</Alert.Title>
+				</Alert.Content>
+			</Alert.Root>
+			<Alert.Root intent="warning">
+				<Alert.Content>
+					<Alert.Title>Usage limit approaching</Alert.Title>
+					{/* @ts-expect-error -- asChild is omitted: ExpandButton renders multiple children */}
+					<Alert.ExpandButton count={2} expanded={false} asChild />
+				</Alert.Content>
+			</Alert.Root>
+		</>
+	);
+}

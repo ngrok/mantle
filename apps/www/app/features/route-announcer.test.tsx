@@ -62,8 +62,7 @@ describe("RouteAnnouncer", () => {
 			</MemoryRouter>,
 		);
 
-		expect(html).toContain('role="status"');
-		expect(html).toContain('aria-live="polite"');
+		expect(html).toMatch(/<span[^>]*role="status"[^>]*><\/span>/);
 	});
 
 	test("does not announce the initial page load", async () => {
@@ -74,16 +73,7 @@ describe("RouteAnnouncer", () => {
 		expect(screen.getByRole("status").textContent).toBe("");
 	});
 
-	test("announces the new page heading after a navigation", async () => {
-		const router = renderWithRouter();
-
-		await act(() => router.navigate("/components"));
-		await flushAnnouncement();
-
-		expect(screen.getByRole("status").textContent).toBe("Navigated to Components");
-	});
-
-	test("prefers the page heading over the document title", async () => {
+	test("announces the page heading over a stale document title", async () => {
 		const router = renderWithRouter();
 		document.title = "Stale title from the previous page";
 
@@ -112,19 +102,10 @@ describe("RouteAnnouncer", () => {
 		expect(screen.getByRole("status").textContent).toBe("Navigated to /no-heading");
 	});
 
-	test("stays silent when only the search params change", async () => {
+	test("stays silent when only the search params or hash change", async () => {
 		const router = renderWithRouter();
 
-		await act(() => router.navigate("/?tab=examples"));
-		await flushAnnouncement();
-
-		expect(screen.getByRole("status").textContent).toBe("");
-	});
-
-	test("stays silent when only the hash changes", async () => {
-		const router = renderWithRouter();
-
-		await act(() => router.navigate("/#api-reference"));
+		await act(() => router.navigate("/?tab=examples#api-reference"));
 		await flushAnnouncement();
 
 		expect(screen.getByRole("status").textContent).toBe("");

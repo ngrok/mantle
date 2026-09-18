@@ -36,7 +36,7 @@ describe("IconsExplorer", () => {
 		await user.type(search, "zzzz");
 
 		expect(screen.queryAllByRole("listitem")).toHaveLength(0);
-		expect(screen.getByText("zzzz").textContent).toBe("zzzz");
+		expect(screen.queryByText("zzzz")).not.toBeNull();
 
 		await user.click(screen.getByRole("button", { name: "Clear Search" }));
 

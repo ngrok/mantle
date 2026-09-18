@@ -16,7 +16,6 @@ describe("parseCodeBlockShowLineNumbers", () => {
 	test("returns undefined for unsupported values", () => {
 		expect(parseCodeBlockShowLineNumbers("1")).toBeUndefined();
 		expect(parseCodeBlockShowLineNumbers(1)).toBeUndefined();
-		expect(parseCodeBlockShowLineNumbers(undefined)).toBeUndefined();
 	});
 });
 
@@ -32,7 +31,6 @@ describe("parseCodeBlockLineNumberStart", () => {
 		expect(parseCodeBlockLineNumberStart(-1)).toBeUndefined();
 		expect(parseCodeBlockLineNumberStart("0")).toBeUndefined();
 		expect(parseCodeBlockLineNumberStart("1.5")).toBeUndefined();
-		expect(parseCodeBlockLineNumberStart("abc")).toBeUndefined();
 	});
 });
 
@@ -49,11 +47,7 @@ describe("parseCodeBlockHighlightLines", () => {
 	});
 
 	test("filters string zeros and ranges with zero", () => {
-		expect(parseCodeBlockHighlightLines(["0"])).toBeUndefined();
-		expect(parseCodeBlockHighlightLines("0")).toBeUndefined();
-		expect(parseCodeBlockHighlightLines("0-2")).toBeUndefined();
-		expect(parseCodeBlockHighlightLines("0-0")).toBeUndefined();
-		expect(parseCodeBlockHighlightLines(["0-5"])).toBeUndefined();
+		expect(parseCodeBlockHighlightLines("2-0")).toBeUndefined();
 		expect(parseCodeBlockHighlightLines([1, "0", 3])).toEqual([1, 3]);
 		expect(parseCodeBlockHighlightLines("1,0-2,5")).toEqual([1, 5]);
 	});

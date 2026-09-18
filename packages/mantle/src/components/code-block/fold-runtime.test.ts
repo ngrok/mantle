@@ -213,8 +213,10 @@ describe("fold-runtime", () => {
 		const { pre, code } = buildFoldDom();
 		attachFoldHandler(pre);
 		const line5 = code.querySelector('[data-line-number="5"]');
-		expect(line5).toBeInstanceOf(HTMLElement);
-		(line5 as HTMLElement).click();
+		if (!(line5 instanceof HTMLElement)) {
+			throw new Error("expected line 5");
+		}
+		line5.click();
 		expect(code.hasAttribute("data-folded-regions")).toBe(false);
 	});
 

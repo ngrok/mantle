@@ -42,7 +42,7 @@ describe("Tooltip.Content", () => {
 			const { rerender } = render(<CopyTooltip body="Copy endpoint URL" />);
 			const tooltip = await hoverTooltip(user);
 			translateTextNodes(tooltip);
-			expect(tooltip).toHaveTextContent("[Copy endpoint URL-es]");
+			expect(tooltip.querySelector("font")).toHaveTextContent("[Copy endpoint URL-es]");
 
 			rerender(<CopyTooltip body={<strong>Copy endpoint URL</strong>} />);
 

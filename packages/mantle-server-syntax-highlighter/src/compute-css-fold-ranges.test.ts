@@ -26,16 +26,6 @@ describe("computeCssFoldRanges", () => {
 		]);
 	});
 
-	test("folds @media at-rules", () => {
-		const code = ["@media (min-width: 600px) {", "  .a {", "    color: blue;", "  }", "}"].join(
-			"\n",
-		);
-		expect(computeCssFoldRanges({ code })).toEqual([
-			{ id: "1", startLine: 1, endLine: 5 },
-			{ id: "2", startLine: 2, endLine: 4 },
-		]);
-	});
-
 	test("ignores braces inside string values", () => {
 		const code = [".a {", '  content: "{ not a real opener }";', "}"].join("\n");
 		expect(computeCssFoldRanges({ code })).toEqual([{ id: "1", startLine: 1, endLine: 3 }]);

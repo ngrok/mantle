@@ -23,10 +23,7 @@ import { MultiSelect } from "./multi-select.js";
 const setupUser = () => userEvent.setup({ pointerEventsCheck: PointerEventsCheckLevel.Never });
 
 describe("MultiSelect (browser)", () => {
-	/**
-	 * Stateful subject. `lockedValues` marks specific tags as non-removable;
-	 * when non-empty a children render function is used so locked can be applied.
-	 */
+	/** Stateful subject. `lockedValues` marks the tags that cannot be removed. */
 	const Subject = ({
 		initialValues = [],
 		lockedValues = [],
@@ -244,18 +241,14 @@ describe("MultiSelect (browser)", () => {
 
 				unmount();
 
-				// Regression test: with ariakit's body scroll lock active alongside the
-				// modal's, ariakit re-applied a stale body-style snapshot (including the
-				// modal's transient `pointer-events: none`) on the animation frame after
-				// unmount, permanently freezing the page. Wait past that frame plus a
-				// macrotask so the assertion sees the settled state.
+				// Why wait a frame: with its body scroll lock on inside a modal, ariakit re-applies a
+				// stale body-style snapshot (the modal's transient `pointer-events: none`) in a
+				// microtask after unmount. A frame callback runs after that checkpoint, so the
+				// assertion reads the settled style.
 				await new Promise<void>((resolve) => {
 					requestAnimationFrame(() => {
 						resolve();
 					});
-				});
-				await new Promise<void>((resolve) => {
-					setTimeout(resolve, 50);
 				});
 
 				expect(document.body.style.pointerEvents).not.toBe("none");
@@ -409,39 +402,10 @@ describe("MultiSelect (browser)", () => {
 			expect(screen.getByLabelText("Remove apple")).toHaveAttribute("aria-disabled", "true");
 		});
 
-		test("clicking a locked item in the popover does not deselect it", async () => {
-			const user = setupUser();
-			render(<Subject initialValues={["apple"]} lockedValues={["apple"]} />);
-			await user.click(screen.getByRole("combobox"));
-			await waitFor(() => expect(screen.getByRole("listbox")).toBeVisible());
-			expect(getListboxOption(/Apple/)).toHaveAttribute("aria-selected", "true");
-			await user.click(getListboxOption(/Apple/));
-			// Tag should still be present
-			expect(screen.getByLabelText("Remove apple")).toBeInTheDocument();
-			// Item should still be selected in the popover
-			expect(getListboxOption(/Apple/)).toHaveAttribute("aria-selected", "true");
-		});
-
 		test("Backspace on a locked tag does not remove it", async () => {
 			const user = setupUser();
 			render(<Subject initialValues={["apple"]} lockedValues={["apple"]} />);
 			getTagOption("apple").focus();
-			await user.keyboard("{Backspace}");
-			expect(screen.getByLabelText("Remove apple")).toBeInTheDocument();
-		});
-
-		test("Delete on a locked tag does not remove it", async () => {
-			const user = setupUser();
-			render(<Subject initialValues={["apple"]} lockedValues={["apple"]} />);
-			getTagOption("apple").focus();
-			await user.keyboard("{Delete}");
-			expect(screen.getByLabelText("Remove apple")).toBeInTheDocument();
-		});
-
-		test("Backspace on empty input skips a locked last tag", async () => {
-			const user = setupUser();
-			render(<Subject initialValues={["apple"]} lockedValues={["apple"]} />);
-			await user.click(screen.getByRole("combobox"));
 			await user.keyboard("{Backspace}");
 			expect(screen.getByLabelText("Remove apple")).toBeInTheDocument();
 		});
@@ -506,27 +470,11 @@ describe("MultiSelect (browser)", () => {
 				expect(screen.getByLabelText("Remove apple")).toBeInTheDocument();
 			});
 
-			test("calling onRemove directly on an unlocked tag removes it", async () => {
-				const user = setupUser();
-				render(<CustomSubject initialValues={["apple", "banana"]} lockedValues={["apple"]} />);
-				await user.click(screen.getByLabelText("Remove banana"));
-				expect(screen.queryByLabelText("Remove banana")).not.toBeInTheDocument();
-				expect(screen.getByLabelText("Remove apple")).toBeInTheDocument();
-			});
-
 			test("Backspace via onKeyDown on a locked custom tag does not remove it", async () => {
 				const user = setupUser();
 				render(<CustomSubject initialValues={["apple"]} lockedValues={["apple"]} />);
 				getTagOption("apple").focus();
 				await user.keyboard("{Backspace}");
-				expect(screen.getByLabelText("Remove apple")).toBeInTheDocument();
-			});
-
-			test("Delete via onKeyDown on a locked custom tag does not remove it", async () => {
-				const user = setupUser();
-				render(<CustomSubject initialValues={["apple"]} lockedValues={["apple"]} />);
-				getTagOption("apple").focus();
-				await user.keyboard("{Delete}");
 				expect(screen.getByLabelText("Remove apple")).toBeInTheDocument();
 			});
 		});

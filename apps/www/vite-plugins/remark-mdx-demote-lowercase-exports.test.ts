@@ -54,11 +54,6 @@ test("keeps an all-caps constant export, which reads as a component by name", ()
 	expect(types).toEqual(["ExportNamedDeclaration"]);
 });
 
-test("keeps a PascalCase arrow component export", () => {
-	const types = transformedStatementTypes("export const DynamicColorsExample = () => null;");
-	expect(types).toEqual(["ExportNamedDeclaration"]);
-});
-
 test("handles each statement independently within one block", () => {
 	const types = transformedStatementTypes(
 		[
@@ -80,21 +75,22 @@ test("keeps a destructuring export intact", () => {
 	expect(types).toEqual(["ExportNamedDeclaration"]);
 });
 
-test("keeps React Router's lowercase route-module exports", () => {
-	const types = transformedStatementTypes(
-		[
-			"export const meta = () => [];",
-			"",
-			"export function loader() { return null; }",
-			"",
-			"export const shouldRevalidate = () => false;",
-		].join("\n"),
-	);
-	expect(types).toEqual([
-		"ExportNamedDeclaration",
-		"ExportNamedDeclaration",
-		"ExportNamedDeclaration",
-	]);
+// Why literals: a row read from `ROUTE_MODULE_EXPORTS` cannot see a dropped entry.
+test.each([
+	"action",
+	"clientAction",
+	"clientLoader",
+	"clientMiddleware",
+	"handle",
+	"headers",
+	"links",
+	"loader",
+	"meta",
+	"middleware",
+	"shouldRevalidate",
+])("keeps React Router's route-module export %s", (name) => {
+	const types = transformedStatementTypes(`export const ${name} = null;`);
+	expect(types).toEqual(["ExportNamedDeclaration"]);
 });
 
 test("keeps re-exports and leaves imports untouched", () => {
@@ -102,20 +98,4 @@ test("keeps re-exports and leaves imports untouched", () => {
 		['import { thing } from "./thing";', "", 'export { widget } from "./widget";'].join("\n"),
 	);
 	expect(types).toEqual(["ImportDeclaration", "ExportNamedDeclaration"]);
-});
-
-test("ignores export-shaped text inside code fences", () => {
-	const source = ["```ts", "export const invoices = [];", "```"].join("\n");
-	const tree = unified().use(remarkParse).use(remarkMdx).parse(source);
-
-	remarkMdxDemoteLowercaseExports()(tree);
-
-	// The fence parses as a `code` node, never as ESM, so the plugin has no
-	// statement to rewrite. The fenced text survives verbatim.
-	const codeNode = tree.children.find((child) => child.type === "code");
-	if (codeNode?.type !== "code") {
-		throw new Error("Expected the fence to parse as a code node");
-	}
-	expect(codeNode.value).toBe("export const invoices = [];");
-	expect(tree.children.some((child) => child.type === "mdxjsEsm")).toBe(false);
 });

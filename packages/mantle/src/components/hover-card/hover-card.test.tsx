@@ -86,7 +86,10 @@ describe("HoverCard", () => {
 			await user.hover(screen.getByRole("link", { name: "@ngrok/mantle" }));
 
 			const arrow = await screen.findByTestId("arrow");
-			expect(arrow.getAttribute("class")).toContain("fill-red-500");
+			// Why the class assertion: a tailwind-merge override contract. Only one `fill-*`
+			// class may survive the merge, and `toHaveClass` ignores extra classes.
+			const fillClasses = Array.from(arrow.classList).filter((token) => token.startsWith("fill-"));
+			expect(fillClasses).toEqual(["fill-red-500"]);
 			expect(arrow).toHaveAttribute("width", "20");
 			expect(arrow).toHaveAttribute("height", "10");
 		});

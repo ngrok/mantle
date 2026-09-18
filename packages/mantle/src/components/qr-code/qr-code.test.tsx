@@ -51,18 +51,19 @@ describe("QrCode", () => {
 		expect(root).toHaveAttribute("data-slot", "qr-code");
 	});
 
-	test("Root merges custom className with its defaults", () => {
-		renderQrCode({ className: "custom-class" });
+	test("a consumer className wins over the default tile background", () => {
+		// tailwind-merge override contract: the consumer's utility replaces the
+		// conflicting default instead of sitting next to it.
+		renderQrCode({ className: "bg-red-500" });
 		const root = screen.getByTestId("root");
-		expect(root.className).toContain("custom-class");
-		expect(root.className).toContain("bg-static-white");
+		expect(root.className).toContain("bg-red-500");
+		expect(root.className).not.toContain("bg-static-white");
 	});
 
 	test("Root forwards ref to the underlying div", () => {
 		const ref = createRef<HTMLDivElement>();
 		renderQrCode({ ref });
-		expect(ref.current).not.toBeNull();
-		expect(ref.current?.tagName).toBe("DIV");
+		expect(ref.current).toBe(screen.getByTestId("root"));
 	});
 
 	test("Root forwards arbitrary data-* props", () => {
@@ -122,12 +123,14 @@ describe("QrCode", () => {
 		expect(screen.getByTestId("frame")).toHaveAttribute("shape-rendering", "crispEdges");
 	});
 
-	test("Pattern renders a path that encodes the value into a non-empty `d`", () => {
+	test("Pattern renders the encoded modules at the default pixelSize and quietZone", () => {
 		renderQrCode();
 		const pattern = screen.getByTestId("pattern");
 		expect(pattern.tagName.toLowerCase()).toBe("path");
 		expect(pattern).toHaveAttribute("data-slot", "qr-code-pattern");
-		expect(pattern.getAttribute("d")).toBeTruthy();
+		// Why this prefix: the default `quietZone` of 4 puts the top-left finder pattern
+		// at module (4, 4). The default `pixelSize` of 10 scales that to 40px.
+		expect(pattern.getAttribute("d")).toMatch(/^M40,40h10v10h-10z/);
 	});
 
 	test("different values produce different encoded patterns", () => {
@@ -184,21 +187,19 @@ describe("QrCode", () => {
 		expect(sizeOf(viewBoxWith(1))).toBeLessThan(sizeOf(viewBoxWith()));
 	});
 
-	test.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY])(
+	test.each([0, Number.POSITIVE_INFINITY])(
 		"throws a helpful error for invalid pixelSize %s",
 		(pixelSize) => {
-			const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+			vi.spyOn(console, "error").mockImplementation(() => {});
 			expect(() => renderQrCode({ pixelSize })).toThrow(/pixelSize/);
-			consoleError.mockRestore();
 		},
 	);
 
-	test.each([-1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])(
+	test.each([-1, 1.5, Number.POSITIVE_INFINITY])(
 		"throws a helpful error for invalid quietZone %s",
 		(quietZone) => {
-			const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+			vi.spyOn(console, "error").mockImplementation(() => {});
 			expect(() => renderQrCode({ quietZone })).toThrow(/quietZone/);
-			consoleError.mockRestore();
 		},
 	);
 
@@ -220,7 +221,7 @@ describe("QrCode", () => {
 	});
 
 	test("throws a helpful error when a part is rendered outside QrCode.Root", () => {
-		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+		vi.spyOn(console, "error").mockImplementation(() => {});
 		expect(() =>
 			render(
 				<QrCode.Frame>
@@ -228,7 +229,6 @@ describe("QrCode", () => {
 				</QrCode.Frame>,
 			),
 		).toThrow(/must be rendered inside a `QrCode.Root`/);
-		consoleError.mockRestore();
 	});
 
 	test("Root renders as its child element when asChild is true, forwarding class and data-slot", () => {

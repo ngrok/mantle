@@ -1,9 +1,14 @@
-import { describe, expect, test } from "vitest";
+import { parse } from "parse5";
+import { describe, expect, test, vi } from "vitest";
 import {
 	computeServerFoldRanges,
 	serverFoldNeedsTokens,
 	serverFoldStrategyFor,
 } from "./server-fold-ranges.js";
+
+// Why a spy on parse5: no string input makes parse5 or oxc-parser throw. Only a
+// parser that throws on demand reaches the dispatcher's `catch`.
+vi.mock("parse5", { spy: true });
 
 describe("serverFoldStrategyFor", () => {
 	test("dispatches JS / TS / JSX / TSX to the AST strategy", () => {
@@ -53,14 +58,8 @@ describe("serverFoldStrategyFor", () => {
 		expect(serverFoldStrategyFor("txt")).toBe("none");
 	});
 
-	test("dispatches Go / Rust / Java / C# / Terraform to the bracket strategy", () => {
+	test("dispatches a language without its own case to the bracket strategy", () => {
 		expect(serverFoldStrategyFor("go")).toBe("token-bracket");
-		expect(serverFoldStrategyFor("rust")).toBe("token-bracket");
-		expect(serverFoldStrategyFor("java")).toBe("token-bracket");
-		expect(serverFoldStrategyFor("csharp")).toBe("token-bracket");
-		expect(serverFoldStrategyFor("cs")).toBe("token-bracket");
-		expect(serverFoldStrategyFor("terraform")).toBe("token-bracket");
-		expect(serverFoldStrategyFor("tf")).toBe("token-bracket");
 	});
 });
 
@@ -129,13 +128,11 @@ describe("computeServerFoldRanges", () => {
 		).toEqual([]);
 	});
 
-	test("recovers from AST parser failures", () => {
-		// Pass HTML to the JSX strategy via a bogus dispatch — verifies the
-		// `try/catch` wrapping inside the dispatcher.
-		const code = ["function broken( {", "  a: 1", "}"].join("\n");
-		// `oxc-parser` recovers but doesn't throw for this; just ensure no throw.
-		expect(() =>
-			computeServerFoldRanges({ code, language: "javascript", tokens: undefined }),
-		).not.toThrow();
+	test("returns no ranges when the AST parser throws", () => {
+		vi.mocked(parse).mockImplementationOnce(() => {
+			throw new Error("parse5 exploded");
+		});
+		const code = ["<div>", "  hi", "</div>"].join("\n");
+		expect(computeServerFoldRanges({ code, language: "html", tokens: undefined })).toEqual([]);
 	});
 });

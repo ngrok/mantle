@@ -4,7 +4,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import axe from "axe-core";
 import { useState } from "react";
-import { describe, expect, test } from "vitest";
+import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { List } from "./list.js";
 
 const accounts = [
@@ -31,6 +31,24 @@ function Harness() {
 	);
 }
 
+// Why inline CSS: the browser project loads no Tailwind. This block mirrors the
+// two focus utilities the file asserts, in Tailwind's selector form.
+const FOCUS_STYLE = `
+@layer utilities {
+	.focus-visible\\:outline-hidden:focus-visible { outline-style: none; }
+	.has-\\[\\:focus-visible\\]\\:bg-active-menu-item:has(:focus-visible) { background-color: rgb(10, 20, 30); }
+}
+`;
+let focusStyleElement: HTMLStyleElement;
+beforeAll(() => {
+	focusStyleElement = document.createElement("style");
+	focusStyleElement.textContent = FOCUS_STYLE;
+	document.head.appendChild(focusStyleElement);
+});
+afterAll(() => {
+	focusStyleElement.remove();
+});
+
 describe("List (browser)", () => {
 	test("renders a labeled list of clickable items", async () => {
 		render(<Harness />);
@@ -49,26 +67,6 @@ describe("List (browser)", () => {
 
 		await user.click(bravo);
 		expect(bravo.closest("[data-slot='list-item']")).toHaveAttribute("data-state", "selected");
-	});
-
-	test("asChild renders items as links", async () => {
-		function LinkHarness() {
-			return (
-				<List.Root aria-label="Providers" className="max-h-40">
-					{accounts.map((account) => (
-						<List.Item key={account.id} asChild>
-							<a href={`#${account.id}`}>
-								<List.ItemTitle>{account.name}</List.ItemTitle>
-							</a>
-						</List.Item>
-					))}
-				</List.Root>
-			);
-		}
-		render(<LinkHarness />);
-
-		const link = await screen.findByRole("link", { name: /Bravo/ });
-		expect(link).toHaveAttribute("href", "#b");
 	});
 
 	test("VirtualRoot windows the same Item children behind a labeled list", async () => {
@@ -157,7 +155,7 @@ describe("List (browser)", () => {
 		expect(screen.getByRole("button", { name: "Item 0" })).toHaveFocus();
 	});
 
-	test("Ctrl/Meta + Arrow is left to the browser, not hijacked into row navigation", async () => {
+	test("Alt/Ctrl/Meta + Arrow is left to the browser, not hijacked into row navigation", async () => {
 		// Regression: modifier chords (Ctrl+Home to jump to top of page, etc.) were
 		// preventDefault-ed and reinterpreted as plain row moves.
 		const user = userEvent.setup();
@@ -171,6 +169,10 @@ describe("List (browser)", () => {
 		screen.getByRole("button", { name: "Item 0" }).focus();
 		await user.keyboard("{Control>}{ArrowDown}{/Control}");
 		// Focus stays put — the chord belongs to the browser/OS.
+		expect(screen.getByRole("button", { name: "Item 0" })).toHaveFocus();
+		await user.keyboard("{Meta>}{ArrowDown}{/Meta}");
+		expect(screen.getByRole("button", { name: "Item 0" })).toHaveFocus();
+		await user.keyboard("{Alt>}{ArrowDown}{/Alt}");
 		expect(screen.getByRole("button", { name: "Item 0" })).toHaveFocus();
 	});
 
@@ -214,16 +216,14 @@ describe("List (browser)", () => {
 
 		const focused = screen.getByRole("button", { name: "Item 1" });
 		expect(focused).toHaveFocus();
-		// The control suppresses its own ring/outline; the enclosing pill lights up
-		// via the has-[:focus-visible] tint instead (same treatment as hover).
-		expect(focused.className).not.toContain("focus-visible:ring");
-		expect(focused.className).toContain("focus-visible:outline-hidden");
 		const pill = focused.closest("[data-slot='list-item']");
 		if (pill == null) {
 			throw new Error("list item pill not found");
 		}
+		// The pill tints through `:has(:focus-visible)`. The control hides its own outline instead of a ring.
 		expect(pill.matches(":has(:focus-visible)")).toBe(true);
-		expect(pill.className).toContain("has-[:focus-visible]:bg-active-menu-item");
+		expect(getComputedStyle(focused).outlineStyle).toBe("none");
+		expect(getComputedStyle(pill).backgroundColor).toBe("rgb(10, 20, 30)");
 	});
 
 	test("arrow navigation crosses the virtual window (End mounts and focuses the last item)", async () => {
@@ -239,15 +239,13 @@ describe("List (browser)", () => {
 				))}
 			</List.VirtualRoot>,
 		);
-		// Let the virtualizer measure and mount the first window.
-		await new Promise((resolve) => {
-			setTimeout(resolve, 100);
-		});
+		// Why findByRole: the absence check below passes on an empty list, so pin the first window before it runs.
+		const first = await screen.findByRole("button", { name: "Account 0" });
 
 		// The last item isn't mounted under a small window.
 		expect(screen.queryByRole("button", { name: "Account 49" })).not.toBeInTheDocument();
 
-		screen.getByRole("button", { name: "Account 0" }).focus();
+		first.focus();
 		await user.keyboard("{End}");
 		// End scrolls + mounts the last item, then moves focus onto it.
 		await waitFor(() => expect(screen.getByRole("button", { name: "Account 49" })).toHaveFocus());

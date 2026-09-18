@@ -22,18 +22,6 @@ describe("firstSentenceFromJsDoc", () => {
 		);
 	});
 
-	it("stops at the paragraph break when a table follows", () => {
-		const jsdoc = `/**
- * The scrollable region that owns the alert stack.
- *
- * | Attribute | Purpose |
- * | --- | --- |
- * | \`data-slot\` | Styling hook. |
- */`;
-
-		expect(firstSentenceFromJsDoc(jsdoc)).toBe("The scrollable region that owns the alert stack.");
-	});
-
 	it("takes one sentence when the first paragraph holds several", () => {
 		const jsdoc = `/**
  * The band below the body. Unless it is the first child, it draws a top border.

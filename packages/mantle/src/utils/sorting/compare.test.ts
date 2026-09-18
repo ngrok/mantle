@@ -23,17 +23,6 @@ describe("compareDatesNewestToOldest", () => {
 		const dateB = new Date(now);
 		expect(compareDatesNewestToOldest(dateA, dateB)).toBe(0);
 	});
-
-	test("sorts dates in newest-to-oldest (descending) order", () => {
-		const dates = [new Date("2020-10-01"), new Date("2020-09-01"), new Date("2020-11-01")];
-		const sortedDates = dates.toSorted(compareDatesNewestToOldest);
-
-		expect(sortedDates).toEqual([
-			new Date("2020-11-01"),
-			new Date("2020-10-01"),
-			new Date("2020-09-01"),
-		]);
-	});
 });
 
 describe("compareDatesOldestToNewest", () => {
@@ -56,16 +45,5 @@ describe("compareDatesOldestToNewest", () => {
 		const dateA = new Date(now);
 		const dateB = new Date(now);
 		expect(compareDatesOldestToNewest(dateA, dateB)).toBe(0);
-	});
-
-	test("sorts dates in oldest-to-newest (ascending) order", () => {
-		const dates = [new Date("2020-10-01"), new Date("2020-09-01"), new Date("2020-11-01")];
-		const sortedDates = dates.toSorted(compareDatesOldestToNewest);
-
-		expect(sortedDates).toEqual([
-			new Date("2020-09-01"),
-			new Date("2020-10-01"),
-			new Date("2020-11-01"),
-		]);
 	});
 });

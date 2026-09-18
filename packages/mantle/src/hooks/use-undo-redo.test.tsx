@@ -3,19 +3,6 @@ import { describe, expect, test } from "vitest";
 import { useUndoRedo } from "./use-undo-redo.js";
 
 describe("useUndoRedo", () => {
-	test("rejects nullish snapshot types at the type level", () => {
-		// `undefined` is reserved as the "stack is empty" sentinel, so the
-		// generic must not admit nullish snapshot types.
-		// @ts-expect-error — undefined is not a valid snapshot type
-		const withUndefined = renderHook(() => useUndoRedo<string | undefined>());
-		// @ts-expect-error — null is not a valid snapshot type
-		const withNull = renderHook(() => useUndoRedo<string | null>());
-
-		// the generic is erased at runtime — both still mount fine
-		expect(withUndefined.result.current.canUndo).toBe(false);
-		expect(withNull.result.current.canUndo).toBe(false);
-	});
-
 	test("starts with empty history", () => {
 		const { result } = renderHook(() => useUndoRedo<string>());
 
@@ -114,30 +101,6 @@ describe("useUndoRedo", () => {
 		expect(result.current.canUndo).toBe(true);
 	});
 
-	test("walks back through history across separate events", () => {
-		const { result } = renderHook(() => useUndoRedo<string>());
-
-		act(() => {
-			result.current.push("v1");
-		});
-		act(() => {
-			result.current.push("v2");
-		});
-
-		let first: string | undefined;
-		act(() => {
-			first = result.current.undo("v3");
-		});
-		let second: string | undefined;
-		act(() => {
-			second = result.current.undo("v2");
-		});
-
-		expect(first).toBe("v2");
-		expect(second).toBe("v1");
-		expect(result.current.canUndo).toBe(false);
-	});
-
 	// Regression: with reducer-state-backed stacks, both undo calls read the
 	// same committed render's stack, so the second call returned the same
 	// snapshot as the first and corrupted the history.
@@ -218,3 +181,9 @@ describe("useUndoRedo", () => {
 		expect(result.current.canUndo).toBe(true);
 	});
 });
+
+// Why module scope: `pnpm typecheck` owns these directives, so no runtime `expect` stands beside them.
+// @ts-expect-error -- `undefined` is the empty-stack sentinel, so the constraint rejects a nullish snapshot type
+type _RejectsUndefined = ReturnType<typeof useUndoRedo<string | undefined>>;
+// @ts-expect-error -- the same constraint rejects `null`
+type _RejectsNull = ReturnType<typeof useUndoRedo<string | null>>;

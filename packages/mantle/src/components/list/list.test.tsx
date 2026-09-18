@@ -49,7 +49,7 @@ describe("List.Item", () => {
 		expect(link).toHaveAttribute("data-slot", "list-item-control");
 	});
 
-	test("asChild conveys disabled inertly (aria-disabled + removed from tab order + no pointer events)", () => {
+	test("asChild conveys disabled inertly (aria-disabled + removed from tab order)", () => {
 		render(
 			<List.Root aria-label="Accounts">
 				<List.Item asChild disabled>
@@ -57,13 +57,11 @@ describe("List.Item", () => {
 				</List.Item>
 			</List.Root>,
 		);
-		// `aria-disabled` alone is advisory, so a disabled <a> (which can't take the
-		// real `disabled` attribute) is also pulled out of the tab order and has its
-		// pointer events blocked, so it can't be clicked or Enter-activated.
+		// Why `tabindex="-1"`: an `<a>` cannot take the `disabled` attribute.
+		// `aria-disabled` alone is advisory.
 		const link = screen.getByRole("link", { name: "Account" });
 		expect(link).toHaveAttribute("aria-disabled", "true");
 		expect(link).toHaveAttribute("tabindex", "-1");
-		expect(link.className).toContain("aria-disabled:pointer-events-none");
 	});
 
 	test("a disabled asChild link swallows activation (AT dispatches clicks without hit testing)", () => {
@@ -101,13 +99,10 @@ describe("List.Item", () => {
 	});
 
 	test("throws a helpful error when rendered outside a Root", () => {
-		const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-		try {
-			expect(() => render(<List.Item>Account</List.Item>)).toThrow(
-				/must be composed inside List\.Root/,
-			);
-		} finally {
-			errorSpy.mockRestore();
-		}
+		// Why the spy: React logs the thrown render error to `console.error` and floods the report.
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		expect(() => render(<List.Item>Account</List.Item>)).toThrow(
+			/must be composed inside List\.Root/,
+		);
 	});
 });

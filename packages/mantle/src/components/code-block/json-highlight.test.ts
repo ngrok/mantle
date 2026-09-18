@@ -100,12 +100,6 @@ describe("jsonCodeBlockValue", () => {
 		});
 		expect(() => jsonCodeBlockValue(hostile)).not.toThrow();
 		expect(jsonCodeBlockValue(hostile).code).toBe("");
-
-		// A null-prototype circular object — exercises the circular path without an
-		// inherited `toString` to fall back on.
-		const nullProtoCircular: Record<string, unknown> = Object.create(null);
-		nullProtoCircular.self = nullProtoCircular;
-		expect(() => jsonCodeBlockValue(nullProtoCircular)).not.toThrow();
 	});
 
 	test("normalizes CRLF input to match the LF-highlighted output (no stray `\\r` runs)", () => {

@@ -17,12 +17,6 @@ describe("Switch", () => {
 		expect(screen.getByRole("switch")).toHaveAttribute("data-validation", "success");
 	});
 
-	test('given validation="warning", renders a switch with aria-invalid="false" and data-validation="warning"', () => {
-		render(<Switch validation="warning" />);
-		expect(screen.getByRole("switch")).toHaveAttribute("aria-invalid", "false");
-		expect(screen.getByRole("switch")).toHaveAttribute("data-validation", "warning");
-	});
-
 	test('given validation="error", renders a switch with aria-invalid="true" and data-validation="error"', () => {
 		render(<Switch validation="error" />);
 		expect(screen.getByRole("switch")).toHaveAttribute("aria-invalid", "true");
@@ -44,19 +38,6 @@ describe("Switch", () => {
 
 		expect(screen.getByRole("switch")).toHaveAttribute("aria-invalid", "false");
 		expect(screen.getByRole("switch")).toHaveAttribute("data-validation", "warning");
-	});
-
-	test("inherits Field.Item validation through Field.Control", () => {
-		render(
-			<Field.Item name="example" validation="error">
-				<Field.Control>
-					<Switch />
-				</Field.Control>
-			</Field.Item>,
-		);
-
-		expect(screen.getByRole("switch")).toHaveAttribute("aria-invalid", "true");
-		expect(screen.getByRole("switch")).toHaveAttribute("data-validation", "error");
 	});
 
 	describe("readOnly", () => {

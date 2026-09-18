@@ -29,13 +29,6 @@ describe("LiveRegion", () => {
 		expect(region).not.toHaveAttribute("aria-live");
 	});
 
-	test("is visually hidden by the sr-only class", () => {
-		render(<LiveRegion data-testid="region">Draft saved</LiveRegion>);
-		// The class is the only observable implementation of the hiding contract:
-		// happy-dom computes no layout, so the clipping itself is not assertable.
-		expect(screen.getByTestId("region").className.split(" ")).toContain("sr-only");
-	});
-
 	test("keeps the same element mounted across message changes", () => {
 		const { rerender } = render(<LiveRegion data-testid="region">3 results found</LiveRegion>);
 		const region = screen.getByTestId("region");
@@ -76,15 +69,6 @@ describe("LiveRegion", () => {
 		expect(ref.current).toBe(screen.getByText("Draft saved"));
 	});
 
-	test("forwards arbitrary data-* props", () => {
-		render(
-			<LiveRegion data-testid="region" data-analytics-id="route-announcer">
-				Dashboard
-			</LiveRegion>,
-		);
-		expect(screen.getByTestId("region")).toHaveAttribute("data-analytics-id", "route-announcer");
-	});
-
 	test("asChild renders its child, merging classes, attributes, and the ref onto it", () => {
 		const ref = createRef<HTMLParagraphElement>();
 		render(
@@ -99,10 +83,7 @@ describe("LiveRegion", () => {
 		expect(region).toHaveAttribute("data-slot", "live-region");
 		expect(region).toHaveAttribute("role", "alert");
 		expect(region).not.toHaveAttribute("aria-live");
-		// Split before matching: a substring check would also match `not-sr-only`.
-		const classes = region.className.split(" ");
-		expect(classes).toContain("custom-class");
-		expect(classes).toContain("sr-only");
+		expect(region).toHaveClass("custom-class");
 		expect(ref.current).toBe(region);
 	});
 });

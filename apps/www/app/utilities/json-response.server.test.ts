@@ -58,18 +58,30 @@ describe("jsonAgentResponse", () => {
 		expect(revalidated.headers.get("Content-Type")).toBe(contentType);
 	});
 
-	it("honors etag lists, wildcard matches, and weak validators", () => {
-		const matchingHeaders = [etag, `"old-etag", ${etag}`, "*", `W/${etag}`];
+	it.each([
+		["a list", `"old-etag", ${etag}`],
+		["the wildcard", "*"],
+		["a weak validator", `W/${etag}`],
+	])("returns 304 when If-None-Match carries %s", (_label, ifNoneMatch) => {
+		const response = jsonAgentResponse(
+			data,
+			new Request("https://mantle.ngrok.com/api/package.json", {
+				headers: { "If-None-Match": ifNoneMatch },
+			}),
+		);
 
-		for (const ifNoneMatch of matchingHeaders) {
-			const response = jsonAgentResponse(
-				data,
-				new Request("https://mantle.ngrok.com/api/package.json", {
-					headers: { "If-None-Match": ifNoneMatch },
-				}),
-			);
+		expect(response.status).toBe(304);
+	});
 
-			expect(response.status).toBe(304);
-		}
+	it("returns 200 when If-None-Match carries a stale etag", async () => {
+		const response = jsonAgentResponse(
+			data,
+			new Request("https://mantle.ngrok.com/api/package.json", {
+				headers: { "If-None-Match": '"stale-etag"' },
+			}),
+		);
+
+		expect(response.status).toBe(200);
+		expect(await response.text()).toBe(body);
 	});
 });

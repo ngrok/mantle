@@ -14,6 +14,14 @@ describe("SkipToMainLink", () => {
 		expect(link).toHaveAttribute("href", "#main");
 	});
 
+	test("joins the ancestor `data-slot` chain ahead of its own slot on the anchor", () => {
+		render(<SkipToMainLink data-slot="outer" />);
+		expect(screen.getByRole("link", { name: "Skip to main content" })).toHaveAttribute(
+			"data-slot",
+			"outer skip-to-main-link anchor",
+		);
+	});
+
 	test("renders an anchor with `href` derived from a custom `targetId`", () => {
 		render(<SkipToMainLink targetId="content" />);
 		const link = screen.getByRole("link", { name: "Skip to main content" });
@@ -58,14 +66,20 @@ describe("SkipToMainLink", () => {
 
 		await user.click(screen.getByRole("link", { name: "Skip to main content" }));
 
-		expect(replaceStateSpy).toHaveBeenCalledWith(null, "", "#main");
+		expect(replaceStateSpy).toHaveBeenCalledTimes(1);
+		expect(replaceStateSpy).toHaveBeenLastCalledWith(null, "", "#main");
 		expect(pushStateSpy).not.toHaveBeenCalled();
 		expect(window.location.hash).toBe("#main");
 	});
 
-	test("invokes the consumer `onClick` after performing the core behavior", async () => {
+	test("calls the consumer `onClick` after the hash update and the focus move", async () => {
 		const user = userEvent.setup();
-		const handleClick = vi.fn<() => void>();
+		let hashAtCall = "";
+		let focusedAtCall: Element | null = null;
+		const handleClick = vi.fn<() => void>(() => {
+			hashAtCall = window.location.hash;
+			focusedAtCall = document.activeElement;
+		});
 		render(
 			<>
 				<SkipToMainLink onClick={handleClick} />
@@ -78,5 +92,7 @@ describe("SkipToMainLink", () => {
 		await user.click(screen.getByRole("link", { name: "Skip to main content" }));
 
 		expect(handleClick).toHaveBeenCalledTimes(1);
+		expect(hashAtCall).toBe("#main");
+		expect(focusedAtCall).toBe(screen.getByRole("main"));
 	});
 });

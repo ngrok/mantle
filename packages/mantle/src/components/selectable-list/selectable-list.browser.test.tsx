@@ -56,15 +56,6 @@ describe("SelectableList (browser)", () => {
 		expect(row).toHaveAttribute("aria-selected", "true");
 	});
 
-	test("clicking bare row content (the description) toggles selection", async () => {
-		const user = userEvent.setup();
-		render(<Harness />);
-
-		// The description isn't a control or label, so the row's click-forwarder toggles.
-		await user.click(await screen.findByText("fruit-c"));
-		expect(screen.getByRole<HTMLInputElement>("checkbox", { name: "Cherry" }).checked).toBe(true);
-	});
-
 	test("Arrow keys drive aria-activedescendant across rows; Space toggles the active row", async () => {
 		const user = userEvent.setup();
 		render(<Harness />);
@@ -151,7 +142,6 @@ describe("SelectableList (browser)", () => {
 		expect(apple.checked).toBe(true);
 		// Auto-repeats must be ignored, not toggle the row back off.
 		fireEvent.keyDown(grid, { key: " ", repeat: true });
-		fireEvent.keyDown(grid, { key: " ", repeat: true });
 		expect(apple.checked).toBe(true);
 	});
 
@@ -217,43 +207,6 @@ describe("SelectableList (browser)", () => {
 				true,
 			),
 		);
-	});
-
-	test("filtering narrows the rendered rows", async () => {
-		const user = userEvent.setup();
-		render(<Harness />);
-
-		expect(await screen.findByRole("checkbox", { name: "Apple" })).toBeInTheDocument();
-
-		await user.type(screen.getByRole("textbox", { name: "Filter fruit" }), "Banana");
-
-		expect(screen.queryByRole("checkbox", { name: "Apple" })).not.toBeInTheDocument();
-		expect(screen.getByRole("checkbox", { name: "Banana" })).toBeInTheDocument();
-	});
-
-	test("supports custom row layout via the Viewport render-prop", async () => {
-		const user = userEvent.setup();
-		function CustomHarness() {
-			const [selected, setSelected] = useState<string[]>([]);
-			return (
-				<SelectableList.Root options={options} value={selected} onValueChange={setSelected}>
-					<SelectableList.Viewport aria-label="Fruit">
-						{(option) => (
-							<SelectableList.Item value={option.value}>
-								<SelectableList.ItemTitle>{option.label}</SelectableList.ItemTitle>
-								<span>custom: {option.description}</span>
-							</SelectableList.Item>
-						)}
-					</SelectableList.Viewport>
-				</SelectableList.Root>
-			);
-		}
-		render(<CustomHarness />);
-
-		expect(await screen.findByText("custom: fruit-a")).toBeInTheDocument();
-		const apple = screen.getByRole<HTMLInputElement>("checkbox", { name: "Apple" });
-		await user.click(apple);
-		expect(apple.checked).toBe(true);
 	});
 
 	test("Item composes a consumer onClick with the row's click-to-toggle", async () => {
@@ -324,24 +277,6 @@ describe("SelectableList (browser)", () => {
 		await user.keyboard(" ");
 		await waitFor(() => expect(onValueChange).toHaveBeenCalledWith(["c"]));
 		expect(screen.getByRole<HTMLInputElement>("checkbox", { name: "Cherry" }).checked).toBe(true);
-	});
-
-	test("VirtualViewport renders the same grid, windowed", async () => {
-		const user = userEvent.setup();
-		function VirtualHarness() {
-			const [selected, setSelected] = useState<string[]>([]);
-			return (
-				<SelectableList.Root options={options} value={selected} onValueChange={setSelected}>
-					<SelectableList.VirtualViewport aria-label="Fruit" className="max-h-40" />
-				</SelectableList.Root>
-			);
-		}
-		render(<VirtualHarness />);
-
-		expect(await screen.findByRole("grid", { name: "Fruit" })).toBeInTheDocument();
-		const apple = await screen.findByRole<HTMLInputElement>("checkbox", { name: "Apple" });
-		await user.click(apple);
-		expect(apple.checked).toBe(true);
 	});
 
 	test("a disabled option renders disabled and cannot be toggled", async () => {

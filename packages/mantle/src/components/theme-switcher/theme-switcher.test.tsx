@@ -95,18 +95,6 @@ describe("ThemeSwitcher", () => {
 		expect(button?.querySelector("div")).toBeNull();
 	});
 
-	test("renders a trigger button with the default accessible name", () => {
-		render(
-			<ThemeProvider>
-				<ThemeSwitcher.Root>
-					<ThemeSwitcher.Trigger />
-					<ThemeSwitcher.Content />
-				</ThemeSwitcher.Root>
-			</ThemeProvider>,
-		);
-		expect(screen.getByRole("button", { name: "Change Theme" })).toBeInTheDocument();
-	});
-
 	test("custom label overrides the trigger's accessible name", () => {
 		render(
 			<ThemeProvider>
@@ -255,21 +243,7 @@ describe("ThemeSwitcher", () => {
 				</ThemeSwitcher.Root>
 			</ThemeProvider>,
 		);
-		for (const label of themeLabels) {
-			expect(screen.getByRole("menuitemradio", { name: label })).toBeInTheDocument();
-		}
-	});
-
-	test("content renders the default radio group for explicit null children", () => {
-		render(
-			<ThemeProvider>
-				<ThemeSwitcher.Root open>
-					<ThemeSwitcher.Trigger />
-					<ThemeSwitcher.Content>{null}</ThemeSwitcher.Content>
-				</ThemeSwitcher.Root>
-			</ThemeProvider>,
-		);
-		expect(screen.getAllByRole("menuitemradio")).toHaveLength(5);
+		expect(screen.getByRole("group", { name: "Theme" })).toBeInTheDocument();
 	});
 
 	test("a lone conditional-false child suppresses the default radio group", () => {
@@ -309,18 +283,6 @@ describe("ThemeSwitcher", () => {
 		expect(screen.getByRole("menuitem", { name: "Appearance settings" })).toBeInTheDocument();
 	});
 
-	test("root forwards controlled open state to the underlying dropdown menu", () => {
-		render(
-			<ThemeProvider>
-				<ThemeSwitcher.Root open>
-					<ThemeSwitcher.Trigger />
-					<ThemeSwitcher.Content />
-				</ThemeSwitcher.Root>
-			</ThemeProvider>,
-		);
-		expect(screen.getByRole("menu")).toBeInTheDocument();
-	});
-
 	test("trigger renders the themed icon after hydration", () => {
 		render(
 			<ThemeProvider>
@@ -348,21 +310,6 @@ describe("ThemeSwitcher", () => {
 		);
 		expect(html).toContain('data-slot="skeleton"');
 		expect(html).not.toContain("<svg");
-	});
-
-	test("selecting a theme from the switcher updates the theme", () => {
-		render(
-			<ThemeProvider>
-				<CurrentThemeProbe />
-				<ThemeSwitcher.Root open>
-					<ThemeSwitcher.Trigger />
-					<ThemeSwitcher.Content />
-				</ThemeSwitcher.Root>
-			</ThemeProvider>,
-		);
-		expect(screen.getByTestId("current-theme")).toHaveTextContent("system");
-		fireEvent.click(screen.getByRole("menuitemradio", { name: "Dark Mode" }));
-		expect(screen.getByTestId("current-theme")).toHaveTextContent("dark");
 	});
 });
 

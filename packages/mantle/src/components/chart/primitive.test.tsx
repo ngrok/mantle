@@ -192,28 +192,28 @@ describe("Tooltip consumer ref", () => {
 	});
 });
 
-describe("CopyButton consumer onClick", () => {
-	test("a consumer onClick that prevents default cancels the copy", async () => {
-		const user = userEvent.setup();
-		const onCopy = vi.fn<(value: string) => void>();
-		const onClick = vi.fn<(event: MouseEvent<HTMLButtonElement>) => void>((event) => {
-			event.preventDefault();
-		});
-		render(
-			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
-				<BarChart.CopyButton onClick={onClick} onCopy={onCopy} />
-			</BarChart.Root>,
-		);
-		const button = screen.getByRole("button", { name: "Copy data as Markdown" });
-		const status = button.nextElementSibling;
-		expect(status).toHaveAttribute("role", "status");
-		await user.click(button);
-		expect(onClick).toHaveBeenCalledTimes(1);
-		expect(onClick).toHaveBeenLastCalledWith(expect.objectContaining({ defaultPrevented: true }));
-		expect(onCopy).toHaveBeenCalledTimes(0);
-		expect(status).toBeEmptyDOMElement();
+test("a CopyButton consumer onClick that prevents default cancels the copy", async () => {
+	const user = userEvent.setup();
+	const onCopy = vi.fn<(value: string) => void>();
+	const onClick = vi.fn<(event: MouseEvent<HTMLButtonElement>) => void>((event) => {
+		event.preventDefault();
 	});
+	const { container } = render(
+		<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
+			<BarChart.Bar dataKey="desktop" label="Desktop" />
+			<BarChart.CopyButton onClick={onClick} onCopy={onCopy} />
+		</BarChart.Root>,
+	);
+	const button = screen.getByRole("button", { name: "Copy data as Markdown" });
+	// Why the slot: the keyboard announcer is a second `role="status"` span. The
+	// copy button's region is the chart's only `LiveRegion`.
+	const status = container.querySelector('[data-slot="live-region"]');
+	expect(status).toHaveAttribute("role", "status");
+	await user.click(button);
+	expect(onClick).toHaveBeenCalledTimes(1);
+	expect(onClick).toHaveBeenLastCalledWith(expect.objectContaining({ defaultPrevented: true }));
+	expect(onCopy).toHaveBeenCalledTimes(0);
+	expect(status).toBeEmptyDOMElement();
 });
 
 describe("Tooltip and Legend after browser translation", () => {

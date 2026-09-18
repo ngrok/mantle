@@ -1,8 +1,8 @@
 "use client";
 
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
+import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { Item as ListItem, Root as ListRoot } from "./primitive.js";
 import { VirtualRoot as ListVirtualRoot } from "./virtual.js";
 
@@ -83,43 +83,38 @@ async function firstRowGeometry(): Promise<{
 	};
 }
 
-describe("List virtualization spacing", () => {
-	test("windowed rows match non-virtualized rows in pitch and border inset", async () => {
-		const plain = render(
-			<ListRoot semantics="list" aria-label="plain" className="max-h-60">
-				{rows.map((row) => (
-					<Item key={row.id} row={row} />
-				))}
-			</ListRoot>,
-		);
-		await new Promise((resolve) => {
-			requestAnimationFrame(() => resolve(null));
-		});
-		const plainGeometry = await firstRowGeometry();
-		plain.unmount();
+test("windowed rows match non-virtualized rows in pitch and border inset", async () => {
+	const plain = render(
+		<ListRoot semantics="list" aria-label="plain" className="max-h-60">
+			{rows.map((row) => (
+				<Item key={row.id} row={row} />
+			))}
+		</ListRoot>,
+	);
+	const plainGeometry = await firstRowGeometry();
+	plain.unmount();
 
-		const virtual = render(
-			<ListVirtualRoot semantics="list" aria-label="virtual" className="max-h-60">
-				{rows.map((row) => (
-					<Item key={row.id} row={row} />
-				))}
-			</ListVirtualRoot>,
-		);
-		// Give the virtualizer time to measure and reposition.
-		await new Promise((resolve) => {
-			setTimeout(resolve, 100);
-		});
-		const virtualGeometry = await firstRowGeometry();
-		virtual.unmount();
+	const virtual = render(
+		<ListVirtualRoot semantics="list" aria-label="virtual" className="max-h-60">
+			{rows.map((row) => (
+				<Item key={row.id} row={row} />
+			))}
+		</ListVirtualRoot>,
+	);
+	// Poll the pitch itself: once the virtualizer measures the rows, it repositions them.
+	await expect
+		.poll(async () => (await firstRowGeometry()).pitch)
+		.toBeCloseTo(plainGeometry.pitch, 0);
+	const virtualGeometry = await firstRowGeometry();
+	virtual.unmount();
 
-		// The windowed list must not add vertical spacing between rows...
-		expect(virtualGeometry.pitch).toBeCloseTo(plainGeometry.pitch, 0);
-		// ...nor let its absolutely-positioned rows lose the horizontal inset that
-		// keeps each pill clear of the viewport border (the bug this guards).
-		expect(virtualGeometry.leftInset).toBeCloseTo(plainGeometry.leftInset, 0);
-		expect(virtualGeometry.rightInset).toBeCloseTo(plainGeometry.rightInset, 0);
-		expect(virtualGeometry.leftInset).toBeGreaterThan(0);
-	});
+	// The windowed list must not add vertical spacing between rows...
+	expect(virtualGeometry.pitch).toBeCloseTo(plainGeometry.pitch, 0);
+	// ...nor let its absolutely-positioned rows lose the horizontal inset that
+	// keeps each pill clear of the viewport border (the bug this guards).
+	expect(virtualGeometry.leftInset).toBeCloseTo(plainGeometry.leftInset, 0);
+	expect(virtualGeometry.rightInset).toBeCloseTo(plainGeometry.rightInset, 0);
+	expect(virtualGeometry.leftInset).toBeGreaterThan(0);
 });
 
 const gridRows = Array.from({ length: 40 }, (_, index) => ({
@@ -127,44 +122,42 @@ const gridRows = Array.from({ length: 40 }, (_, index) => ({
 	name: `Grid row ${index}`,
 }));
 
-describe("List virtualization row identity", () => {
-	test("row identity follows consumer keys across a reorder, matching the plain Root", async () => {
-		// Regression: windowed rows used to be keyed by the virtualizer's default
-		// key (the index), so a reorder remounted every moved row — losing its DOM
-		// node and any state inside it — instead of following the consumer's `key`s
-		// the way the non-virtualized `Root` does.
-		const keyedRows = gridRows.slice(0, 5);
-		function KeyedList({ order }: { order: typeof keyedRows }) {
-			return (
-				<ListVirtualRoot semantics="list" aria-label="keyed" style={{ maxHeight: 400 }}>
-					{order.map((row) => (
-						<ListItem key={row.id}>
-							<button type="button">{row.name}</button>
-						</ListItem>
-					))}
-				</ListVirtualRoot>
-			);
-		}
-		const { rerender } = render(<KeyedList order={keyedRows} />);
-		await new Promise((resolve) => {
-			setTimeout(resolve, 100);
-		});
-		const buttonBefore = screen.getByRole("button", { name: "Grid row 0" });
+test("row identity follows consumer keys across a reorder, matching the plain Root", async () => {
+	// Regression: windowed rows used to be keyed by the virtualizer's default
+	// key (the index), so a reorder remounted every moved row — losing its DOM
+	// node and any state inside it — instead of following the consumer's `key`s
+	// the way the non-virtualized `Root` does.
+	const keyedRows = gridRows.slice(0, 5);
+	function KeyedList({ order }: { order: typeof keyedRows }) {
+		return (
+			<ListVirtualRoot semantics="list" aria-label="keyed" style={{ maxHeight: 400 }}>
+				{order.map((row) => (
+					<ListItem key={row.id}>
+						<button type="button">{row.name}</button>
+					</ListItem>
+				))}
+			</ListVirtualRoot>
+		);
+	}
+	const { rerender } = render(<KeyedList order={keyedRows} />);
+	const buttonBefore = await screen.findByRole("button", { name: "Grid row 0" });
 
-		rerender(<KeyedList order={keyedRows.toReversed()} />);
-		await new Promise((resolve) => {
-			setTimeout(resolve, 100);
-		});
-
-		// The same DOM node still renders "Grid row 0" — moved, not remounted...
-		expect(screen.getByRole("button", { name: "Grid row 0" })).toBe(buttonBefore);
-		// ...and its row now sits at the end of the reversed collection.
-		expect(buttonBefore.closest("[data-index]")?.getAttribute("data-index")).toBe("4");
+	rerender(<KeyedList order={keyedRows.toReversed()} />);
+	// Wait for the reversed window to land: the row that renders "Grid row 0" now sits last.
+	await waitFor(() => {
+		expect(
+			screen.getByRole("button", { name: "Grid row 0" }).closest("[data-index]"),
+		).toHaveAttribute("data-index", "4");
 	});
+
+	// The same DOM node still renders "Grid row 0" — moved, not remounted...
+	expect(screen.getByRole("button", { name: "Grid row 0" })).toBe(buttonBefore);
+	// ...and its row now sits at the end of the reversed collection.
+	expect(buttonBefore.closest("[data-index]")?.getAttribute("data-index")).toBe("4");
 });
 
 describe("List grid navigation", () => {
-	test("clicking a windowed row selects it without resetting the scroll position", async () => {
+	test("clicking a windowed row's control makes it the active descendant and keeps focus on the collection without resetting the scroll position", async () => {
 		render(
 			<ListVirtualRoot
 				semantics="grid"
@@ -184,22 +177,17 @@ describe("List grid navigation", () => {
 				))}
 			</ListVirtualRoot>,
 		);
-		// Let the virtualizer measure so the viewport is scrollable.
-		await new Promise((resolve) => {
-			setTimeout(resolve, 100);
-		});
-
 		const viewport = document.querySelector("[data-slot='list']");
 		if (viewport == null) {
 			throw new Error("viewport not found");
 		}
+		// Once the virtualizer measures the rows, the viewport turns scrollable.
+		await expect.poll(() => viewport.scrollHeight).toBeGreaterThan(viewport.clientHeight);
+
 		viewport.scrollTop = 150;
-		await new Promise((resolve) => {
-			requestAnimationFrame(() => resolve(null));
-		});
+		// Wait for the scroll to land, or the hold assertion below is meaningless.
+		await expect.poll(() => viewport.scrollTop).toBeGreaterThan(50);
 		const scrollBefore = viewport.scrollTop;
-		// Sanity: the list actually scrolled, otherwise the assertion is meaningless.
-		expect(scrollBefore).toBeGreaterThan(50);
 
 		// Click a row that is currently within the visible window.
 		const viewportRect = viewport.getBoundingClientRect();
@@ -211,29 +199,25 @@ describe("List grid navigation", () => {
 			throw new Error("no fully-visible row button found");
 		}
 		const clickedIndex = button.closest("[data-index]")?.getAttribute("data-index");
+		const grid = screen.getByRole("grid");
 		const user = userEvent.setup();
 		await user.click(button);
-		await new Promise((resolve) => {
-			setTimeout(resolve, 100);
-		});
+		// Focus must move to the collection (the single tab stop), not linger on
+		// the clicked control; otherwise a later arrow press lights the control
+		// with a `:focus-visible` ring.
+		await waitFor(() => expect(grid).toHaveFocus());
 
 		// The scroll must stay put (the bug snapped it back to the top)...
 		expect(Math.abs(viewport.scrollTop - scrollBefore)).toBeLessThan(20);
-
-		const grid = viewport.querySelector("[role='grid']");
-		// ...focus must move to the collection (the single tab stop), not linger on
-		// the clicked control — otherwise a later arrow press lights the control
-		// with a `:focus-visible` ring...
-		expect(document.activeElement).toBe(grid);
 		// ...and the clicked row — not row 0 — becomes the active descendant.
-		expect(grid?.getAttribute("aria-activedescendant")).toBe(
-			grid?.querySelector(`[data-index='${clickedIndex}']`)?.id,
+		expect(grid.getAttribute("aria-activedescendant")).toBe(
+			grid.querySelector(`[data-index='${clickedIndex}']`)?.id,
 		);
 
 		// Arrowing after the click keeps focus on the collection (never a ring on
 		// the previously-clicked control).
 		await user.keyboard("{ArrowUp}");
-		expect(document.activeElement).toBe(grid);
+		expect(grid).toHaveFocus();
 	});
 
 	test("a genuinely tabbable control inside a grid row keeps focus (no keyboard trap)", async () => {
@@ -254,22 +238,12 @@ describe("List grid navigation", () => {
 				))}
 			</ListVirtualRoot>,
 		);
-		await new Promise((resolve) => {
-			setTimeout(resolve, 100);
-		});
-
-		const link = document.querySelector<HTMLAnchorElement>("[data-slot='list'] a[href]");
-		if (link == null) {
-			throw new Error("link not found");
-		}
+		const link = await screen.findByRole("link", { name: "Grid row 0" });
 		// Focusing a tabbable in-row control must NOT bounce focus back to the grid —
 		// otherwise the control is keyboard-unreachable and forward-Tab is trapped.
 		// (The row's own tabIndex=-1 controls are still reclaimed; see the click test.)
 		link.focus();
-		await new Promise((resolve) => {
-			requestAnimationFrame(() => resolve(null));
-		});
-		expect(document.activeElement).toBe(link);
+		expect(link).toHaveFocus();
 	});
 
 	test("keyboard navigation skips rows whose `disabled` prop is set", async () => {
@@ -293,14 +267,7 @@ describe("List grid navigation", () => {
 				))}
 			</ListVirtualRoot>,
 		);
-		await new Promise((resolve) => {
-			setTimeout(resolve, 100);
-		});
-
-		const grid = document.querySelector<HTMLElement>("[data-slot='list'] [role='grid']");
-		if (grid == null) {
-			throw new Error("grid not found");
-		}
+		const grid = await screen.findByRole("grid");
 		const activeIndex = () =>
 			document
 				.querySelector("[data-slot='list'] [role='row'][data-active]")
@@ -308,10 +275,7 @@ describe("List grid navigation", () => {
 
 		const user = userEvent.setup();
 		grid.focus(); // activates the first enabled row (0)
-		// Let the focus-driven state update flush before reading the active row.
-		await new Promise((resolve) => {
-			requestAnimationFrame(() => resolve(null));
-		});
+		await waitFor(() => expect(activeIndex()).toBe("0"));
 		const sequence = [activeIndex()];
 		for (let step = 0; step < 4; step++) {
 			await user.keyboard("{ArrowDown}");
@@ -327,46 +291,10 @@ describe("List grid navigation", () => {
 		).toBe(false);
 	});
 
-	test("Enter and Space on a focused nested tabbable control operate the control, not the row", async () => {
-		// Regression: the grid keydown handler used to preventDefault Enter/Space
-		// bubbling from a focused in-row control, so the control could receive focus
-		// but never be operated — the row toggled instead.
-		const onActivate = vi.fn<(index: number) => void>();
-		const onMenuAction = vi.fn<() => void>();
+	test("windowed listitem rows carry aria-posinset/aria-setsize and no grid attributes", () => {
+		// Why no grid attributes: WAI-ARIA 1.2 reserves `aria-rowindex` and
+		// `aria-rowcount` for grids. Listitem rows carry `aria-posinset` and `aria-setsize` instead.
 		render(
-			<ListRoot semantics="grid" aria-label="grid" onActivate={onActivate}>
-				<ListItem>
-					<div role="gridcell">Item 0</div>
-				</ListItem>
-				<ListItem>
-					<div role="gridcell">
-						<button type="button" onClick={onMenuAction}>
-							open menu
-						</button>
-					</div>
-				</ListItem>
-			</ListRoot>,
-		);
-
-		const menuButton = screen.getByRole("button", { name: "open menu" });
-		menuButton.focus();
-		expect(menuButton).toHaveFocus();
-
-		const user = userEvent.setup();
-		await user.keyboard("{Enter}");
-		expect(onMenuAction).toHaveBeenCalledTimes(1);
-		expect(onActivate).not.toHaveBeenCalled();
-
-		await user.keyboard(" ");
-		expect(onMenuAction).toHaveBeenCalledTimes(2);
-		expect(onActivate).not.toHaveBeenCalled();
-	});
-
-	test("windowed rows expose the ARIA attributes their semantics allow", async () => {
-		// listitem rows: aria-posinset/aria-setsize. Grid rows: aria-rowindex with
-		// aria-rowcount on the collection (posinset/setsize are invalid on grid rows
-		// per WAI-ARIA 1.2).
-		const listRender = render(
 			<ListVirtualRoot semantics="list" aria-label="windowed list" style={{ maxHeight: 200 }}>
 				{gridRows.map((row) => (
 					<ListItem key={row.id}>
@@ -375,17 +303,17 @@ describe("List grid navigation", () => {
 				))}
 			</ListVirtualRoot>,
 		);
-		await new Promise((resolve) => {
-			setTimeout(resolve, 100);
-		});
 
 		const firstListItem = document.querySelector("[role='listitem'][data-index='0']");
 		expect(firstListItem).toHaveAttribute("aria-posinset", "1");
 		expect(firstListItem).toHaveAttribute("aria-setsize", String(gridRows.length));
 		expect(firstListItem).not.toHaveAttribute("aria-rowindex");
 		expect(document.querySelector("[role='list']")).not.toHaveAttribute("aria-rowcount");
-		listRender.unmount();
+	});
 
+	test("windowed grid rows carry aria-rowindex under aria-rowcount and no listitem attributes", () => {
+		// Why no listitem attributes: WAI-ARIA 1.2 forbids `aria-posinset` and `aria-setsize`
+		// on grid rows. The collection carries `aria-rowcount` instead.
 		render(
 			<ListVirtualRoot
 				semantics="grid"
@@ -400,9 +328,6 @@ describe("List grid navigation", () => {
 				))}
 			</ListVirtualRoot>,
 		);
-		await new Promise((resolve) => {
-			setTimeout(resolve, 100);
-		});
 
 		const grid = document.querySelector("[role='grid']");
 		expect(grid).toHaveAttribute("aria-rowcount", String(gridRows.length));
@@ -430,36 +355,27 @@ describe("List grid navigation", () => {
 				))}
 			</ListVirtualRoot>,
 		);
-		await new Promise((resolve) => {
-			setTimeout(resolve, 100);
-		});
-
-		const grid = document.querySelector<HTMLElement>("[role='grid']");
+		const grid = await screen.findByRole("grid");
 		const viewport = document.querySelector("[data-slot='list']");
-		if (grid == null || viewport == null) {
-			throw new Error("grid or viewport not found");
+		if (viewport == null) {
+			throw new Error("viewport not found");
 		}
 
 		grid.focus(); // activates row 0
-		await new Promise((resolve) => {
-			requestAnimationFrame(() => resolve(null));
-		});
-		expect(grid).toHaveAttribute("aria-activedescendant");
+		await waitFor(() => expect(grid).toHaveAttribute("aria-activedescendant"));
+		// Pin the query before asserting its absence below.
+		expect(document.querySelector("[role='row'][data-index='0']")).toBeInTheDocument();
 
 		// Mouse-scroll to the bottom: row 0 leaves the mounted window (+ overscan).
 		viewport.scrollTop = viewport.scrollHeight;
-		await new Promise((resolve) => {
-			setTimeout(resolve, 100);
-		});
-		expect(document.querySelector("[role='row'][data-index='0']")).not.toBeInTheDocument();
+		await waitFor(() =>
+			expect(document.querySelector("[role='row'][data-index='0']")).not.toBeInTheDocument(),
+		);
 		expect(grid).not.toHaveAttribute("aria-activedescendant");
 
 		// Keyboard nav scrolls the (new) active row back into view and restores the reference.
 		const user = userEvent.setup();
 		await user.keyboard("{ArrowDown}");
-		await new Promise((resolve) => {
-			setTimeout(resolve, 100);
-		});
-		expect(grid).toHaveAttribute("aria-activedescendant");
+		await waitFor(() => expect(grid).toHaveAttribute("aria-activedescendant"));
 	});
 });

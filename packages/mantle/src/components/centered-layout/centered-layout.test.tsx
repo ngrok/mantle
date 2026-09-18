@@ -20,8 +20,7 @@ describe("CenteredLayout", () => {
 			</CenteredLayout.Root>,
 		);
 		const root = screen.getByTestId("root");
-		expect(root.className).toContain("custom-class");
-		expect(root.className).toContain("min-h-full");
+		expect(root).toHaveClass("custom-class");
 	});
 
 	test("Root renders as child element when asChild is true, keeping data-slot", () => {
@@ -56,15 +55,17 @@ describe("CenteredLayout", () => {
 		expect(body).toHaveTextContent("content");
 	});
 
-	test("Body merges custom className", () => {
+	test("Body's gap default loses to a consumer gap utility", () => {
 		render(
 			<CenteredLayout.Body className="gap-8" data-testid="body">
 				content
 			</CenteredLayout.Body>,
 		);
 		const body = screen.getByTestId("body");
-		expect(body.className).toContain("gap-8");
-		expect(body.className).toContain("flex-1");
+		// Why the class assertion: a tailwind-merge override contract. Only one `gap-*`
+		// class may survive the merge, and `toHaveClass` ignores extra classes.
+		const gapClasses = Array.from(body.classList).filter((token) => token.startsWith("gap-"));
+		expect(gapClasses).toEqual(["gap-8"]);
 	});
 
 	test("Body renders as child element when asChild is true, keeping data-slot", () => {
@@ -90,12 +91,11 @@ describe("CenteredLayout", () => {
 		expect(ref.current).toBe(body);
 	});
 
-	test("Notice renders an unstyled full-width strip", () => {
+	test("Notice renders a div element with data-slot", () => {
 		render(<CenteredLayout.Notice data-testid="notice">maintenance</CenteredLayout.Notice>);
 		const notice = screen.getByTestId("notice");
 		expect(notice.tagName).toBe("DIV");
 		expect(notice).toHaveAttribute("data-slot", "centered-layout-notice");
-		expect(notice.className).toContain("shrink-0");
 		expect(notice).toHaveTextContent("maintenance");
 	});
 
@@ -142,8 +142,7 @@ describe("CenteredLayout", () => {
 			</CenteredLayout.Footer>,
 		);
 		const footer = screen.getByTestId("footer");
-		expect(footer.className).toContain("justify-center");
-		expect(footer.className).toContain("shrink-0");
+		expect(footer).toHaveClass("justify-center");
 	});
 
 	test("Footer renders as child element when asChild is true, keeping data-slot", () => {
@@ -185,8 +184,7 @@ describe("CenteredLayout", () => {
 			</CenteredLayout.Header>,
 		);
 		const header = screen.getByTestId("header");
-		expect(header.className).toContain("sticky");
-		expect(header.className).toContain("shrink-0");
+		expect(header).toHaveClass("sticky");
 	});
 
 	test("Header renders as child element when asChild is true, keeping data-slot", () => {

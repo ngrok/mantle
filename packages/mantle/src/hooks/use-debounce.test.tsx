@@ -59,17 +59,15 @@ describe("useDebounce", () => {
 	});
 
 	test("unmounting cancels the pending update", () => {
-		const { result, rerender, unmount } = renderHook(
-			({ value }) => useDebounce(value, { waitMs: 300 }),
-			{ initialProps: { value: "kept" } },
-		);
+		const { rerender, unmount } = renderHook(({ value }) => useDebounce(value, { waitMs: 300 }), {
+			initialProps: { value: "kept" },
+		});
 
 		rerender({ value: "dropped" });
-		unmount();
+		expect(vi.getTimerCount()).toBe(1);
 
-		act(() => {
-			vi.advanceTimersByTime(1_000);
-		});
-		expect(result.current).toBe("kept");
+		unmount();
+		// Why the timer count: `result.current` freezes at unmount, so the cleared timer is the only observable of the cancel.
+		expect(vi.getTimerCount()).toBe(0);
 	});
 });

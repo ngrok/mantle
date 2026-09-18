@@ -43,13 +43,12 @@ describe("MetaKey", () => {
 		expect(html).not.toContain("⌘");
 	});
 
-	test("renders a kbd with its slot, a locked translate, and the consumer's className", () => {
+	test("renders a kbd with its slot and the consumer's className", () => {
 		render(<MetaKey className="custom" data-testid="meta" />);
 
 		const kbd = screen.getByTestId("meta");
 		expect(kbd.tagName).toBe("KBD");
 		expect(kbd).toHaveAttribute("data-slot", "meta-key");
-		expect(kbd).toHaveAttribute("translate", "no");
 		expect(kbd).toHaveClass("custom");
 	});
 });

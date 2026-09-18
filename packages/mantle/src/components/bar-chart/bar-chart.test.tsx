@@ -3,7 +3,6 @@ import { userEvent } from "@testing-library/user-event";
 import { createRef } from "react";
 import invariant from "tiny-invariant";
 import { describe, expect, test, vi } from "vitest";
-import type { BarTexture } from "../chart/types.js";
 import { BarChart } from "./bar-chart.js";
 
 const data = [
@@ -63,7 +62,7 @@ describe("BarChart.Root", () => {
 		// Loosely-typed rows (API responses) evade the compile-time xKey check,
 		// which is exactly the hole the runtime invariant backstops.
 		const untypedRows: Array<Record<string, unknown>> = data;
-		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+		vi.spyOn(console, "error").mockImplementation(() => {});
 		expect(() =>
 			render(
 				<BarChart.Root data={untypedRows} xKey="mnth" aria-label="Typo chart">
@@ -71,7 +70,6 @@ describe("BarChart.Root", () => {
 				</BarChart.Root>,
 			),
 		).toThrow(/BarChart\.Root xKey "mnth" does not match any key.*month, desktop, mobile/);
-		consoleError.mockRestore();
 	});
 
 	test("forwards className, ref, and data-* props to the root element", () => {
@@ -91,8 +89,7 @@ describe("BarChart.Root", () => {
 		const root = container.querySelector('[data-slot="bar-chart"]');
 		expect(root).toBeInTheDocument();
 		expect(ref.current).toBe(root);
-		expect(root?.className).toContain("custom-class");
-		expect(root?.className).toContain("flex");
+		expect(root).toHaveClass("custom-class");
 		expect(root?.getAttribute("data-testid")).toBe("chart-root");
 	});
 
@@ -132,7 +129,7 @@ describe("BarChart.Root", () => {
 	});
 
 	test("a dataKey matching no row in non-empty data throws with the available keys", () => {
-		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+		vi.spyOn(console, "error").mockImplementation(() => {});
 		expect(() =>
 			render(
 				<BarChart.Root data={data} xKey="month" aria-label="Typo chart">
@@ -140,7 +137,6 @@ describe("BarChart.Root", () => {
 				</BarChart.Root>,
 			),
 		).toThrow(/dataKey "desktp" does not match any key.*month, desktop, mobile/);
-		consoleError.mockRestore();
 	});
 });
 
@@ -235,14 +231,11 @@ describe("BarChart series paint order", () => {
 	});
 });
 
-describe("BarChart parts outside Root", () => {
-	test("a part rendered outside Root throws", () => {
-		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
-		expect(() => render(<BarChart.Bar dataKey="desktop" />)).toThrow(
-			/BarChart\.Bar must be composed inside BarChart\.Root/,
-		);
-		consoleError.mockRestore();
-	});
+test("a BarChart part rendered outside Root throws", () => {
+	vi.spyOn(console, "error").mockImplementation(() => {});
+	expect(() => render(<BarChart.Bar dataKey="desktop" />)).toThrow(
+		/BarChart\.Bar must be composed inside BarChart\.Root/,
+	);
 });
 
 describe("BarChart.Legend", () => {
@@ -329,7 +322,8 @@ describe("BarChart keyboard interaction", () => {
 		renderChart({ onDatumActivate });
 		await user.tab();
 		await user.keyboard("{ArrowRight}{Enter}");
-		expect(onDatumActivate).toHaveBeenCalledWith(
+		expect(onDatumActivate).toHaveBeenCalledTimes(1);
+		expect(onDatumActivate).toHaveBeenLastCalledWith(
 			expect.objectContaining({
 				index: 0,
 				xValue: "January",
@@ -345,9 +339,11 @@ describe("BarChart keyboard interaction", () => {
 		renderChart({ onActiveIndexChange });
 		await user.tab();
 		await user.keyboard("{ArrowRight}");
-		expect(onActiveIndexChange).toHaveBeenCalledWith(0);
+		expect(onActiveIndexChange).toHaveBeenCalledTimes(1);
+		expect(onActiveIndexChange).toHaveBeenLastCalledWith(0);
 		await user.keyboard("{ArrowRight}");
-		expect(onActiveIndexChange).toHaveBeenCalledWith(1);
+		expect(onActiveIndexChange).toHaveBeenCalledTimes(2);
+		expect(onActiveIndexChange).toHaveBeenLastCalledWith(1);
 	});
 });
 
@@ -441,72 +437,21 @@ describe("BarChart controlled activeIndex", () => {
 	});
 });
 
-/**
- * Every `BarTexture` value, keyed by itself. The mapped key type makes a missing
- * or misspelled value a compile error, and `Object.values` reads the list back
- * typed and in declaration order.
- */
-const EVERY_TEXTURE = {
-	solid: "solid",
-	hatch: "hatch",
-	"hatch-reverse": "hatch-reverse",
-	crosshatch: "crosshatch",
-	perpendicular: "perpendicular",
-	parallel: "parallel",
-	grid: "grid",
-	dots: "dots",
-} as const satisfies { [Texture in BarTexture]: Texture };
-
-describe("BarChart textures", () => {
-	const texturedChart = (
+test("legend keys wear the series' texture as a redundant encoding", () => {
+	// Why no gradient assertion: happy-dom's CSS parser drops repeating-linear-gradient
+	// values, so texture.browser.test.tsx owns the stripe itself.
+	const { container } = render(
 		<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
 			<BarChart.Bar dataKey="desktop" label="Desktop" />
 			<BarChart.Bar dataKey="mobile" label="Mobile" texture="hatch" />
 			<BarChart.Legend />
-		</BarChart.Root>
+		</BarChart.Root>,
 	);
-
-	const legendSwatches = (container: HTMLElement) => {
-		const legend = container.querySelector('[data-slot="bar-chart-legend"]');
-		return legend == null ? [] : [...legend.querySelectorAll<HTMLElement>("span[data-texture]")];
-	};
-
-	test("legend keys wear the series' texture as a redundant encoding", () => {
-		// The stripe gradient itself is asserted in browser mode
-		// (texture.browser.test.tsx) — happy-dom's CSS parser drops
-		// repeating-linear-gradient values, so here we assert the structural
-		// data-texture channel and that color still follows the entity.
-		const { container } = render(texturedChart);
-		const swatches = legendSwatches(container);
-		expect(swatches.map((swatch) => swatch.getAttribute("data-texture"))).toEqual([
-			"solid",
-			"hatch",
-		]);
-		expect(swatches[1]?.style.backgroundColor).toContain("chart-2");
-	});
-
-	test("every texture value flows through to its legend key", () => {
-		// `data-texture` is public API, so every value needs a key that carries it.
-		// The table is keyed by `BarTexture` itself, so a ninth value fails to
-		// typecheck here until it has a bar. A hand-copied list would keep
-		// compiling and cover nothing new.
-		const textures = Object.values(EVERY_TEXTURE);
-		const row = {
-			month: "January",
-			...Object.fromEntries(textures.map((texture, index) => [texture, 10 * (index + 1)])),
-		};
-		const { container } = render(
-			<BarChart.Root data={[row]} xKey="month" aria-label="Visitors by month">
-				{textures.map((texture) => (
-					<BarChart.Bar key={texture} dataKey={texture} label={texture} texture={texture} />
-				))}
-				<BarChart.Legend />
-			</BarChart.Root>,
-		);
-		expect(legendSwatches(container).map((swatch) => swatch.getAttribute("data-texture"))).toEqual(
-			textures,
-		);
-	});
+	const swatches = [
+		...container.querySelectorAll<HTMLElement>('[data-slot="bar-chart-legend"] span[data-texture]'),
+	];
+	expect(swatches.map((swatch) => swatch.getAttribute("data-texture"))).toEqual(["solid", "hatch"]);
+	expect(swatches[1]?.style.backgroundColor).toContain("chart-2");
 });
 
 describe("BarChart decorative mode", () => {
@@ -606,7 +551,7 @@ describe("BarChart decorative mode", () => {
 		expect(container.querySelector('[data-slot="bar-chart"]')).toHaveAttribute("inert");
 	});
 
-	test("pointer and keyboard never surface a tooltip readout", async () => {
+	test("keyboard never surfaces a tooltip readout", async () => {
 		const user = userEvent.setup();
 		const { container } = renderDecorative();
 		const tooltip = container.querySelector('[data-slot="bar-chart-tooltip"]');
@@ -634,30 +579,6 @@ describe("BarChart decorative mode", () => {
 		);
 		const tooltip = container.querySelector('[data-slot="bar-chart-tooltip"]');
 		expect(tooltip?.textContent).toBe("");
-	});
-
-	test("type model: decorative needs no name; interactive requires one and forbids decorative extras", () => {
-		const { container } = render(
-			<>
-				{/* ✅ decorative needs neither an accessible name nor interaction props */}
-				<BarChart.Root data={data} xKey="month" decorative>
-					<BarChart.Bar dataKey="desktop" />
-				</BarChart.Root>
-				{/* @ts-expect-error — an interactive chart requires an accessible name */}
-				<BarChart.Root data={data} xKey="month">
-					<BarChart.Bar dataKey="desktop" />
-				</BarChart.Root>
-				{/* @ts-expect-error — decorative forbids an accessible name */}
-				<BarChart.Root data={data} xKey="month" decorative aria-label="Placeholder">
-					<BarChart.Bar dataKey="desktop" />
-				</BarChart.Root>
-				{/* @ts-expect-error — decorative forbids interaction callbacks */}
-				<BarChart.Root data={data} xKey="month" decorative onDatumActivate={() => {}}>
-					<BarChart.Bar dataKey="desktop" />
-				</BarChart.Root>
-			</>,
-		);
-		expect(container).toBeInTheDocument();
 	});
 });
 
@@ -747,34 +668,62 @@ describe("BarChart series slots", () => {
 	});
 });
 
-describe("BarChart.CopyButton", () => {
-	test("announces 'Copied' through a live region, and again for a second copy inside the reset window", async () => {
-		const user = userEvent.setup();
-		render(
-			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
-				<BarChart.CopyButton />
-			</BarChart.Root>,
-		);
+test("BarChart.CopyButton announces 'Copied' through a live region, and again for a second copy inside the reset window", async () => {
+	const user = userEvent.setup();
+	render(
+		<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
+			<BarChart.Bar dataKey="desktop" label="Desktop" />
+			<BarChart.CopyButton />
+		</BarChart.Root>,
+	);
 
-		const button = screen.getByRole("button", { name: "Copy data as Markdown" });
-		// Why the sibling: the chart's keyboard announcer is a second `role="status"`.
-		const status = button.nextElementSibling;
-		invariant(status != null, "the copy button renders its live region as the next sibling");
-		expect(status).toHaveTextContent("");
+	const button = screen.getByRole("button", { name: "Copy data as Markdown" });
+	// Why the sibling: the chart's keyboard announcer is a second `role="status"`.
+	const status = button.nextElementSibling;
+	invariant(status != null, "the copy button renders its live region as the next sibling");
+	expect(status).toHaveTextContent("");
 
-		await user.click(button);
-		await vi.waitFor(() => {
-			expect(status).toHaveTextContent("Copied");
-		});
-		const first = status.textContent;
-
-		await user.click(button);
-		// A live region announces a DOM change, so a repeat must differ from the
-		// text before it. The trailing no-break space reads the same.
-		await vi.waitFor(() => {
-			expect(status.textContent).not.toBe(first);
-		});
+	await user.click(button);
+	await vi.waitFor(() => {
 		expect(status).toHaveTextContent("Copied");
 	});
+	const first = status.textContent;
+
+	await user.click(button);
+	// A live region announces a DOM change, so a repeat must differ from the
+	// text before it. The trailing no-break space reads the same.
+	await vi.waitFor(() => {
+		expect(status.textContent).not.toBe(first);
+	});
+	expect(status).toHaveTextContent("Copied");
 });
+
+/**
+ * Type-level contracts, owned by `pnpm typecheck` and not by a `test()`. A
+ * `@ts-expect-error` that compiles is the assertion; a runtime `expect` beside
+ * it reads as coverage the vitest run does not have.
+ *
+ * A decorative chart needs no accessible name and takes no interaction props. An
+ * interactive chart requires a name.
+ */
+export function typeLevelContracts() {
+	return (
+		<>
+			<BarChart.Root data={data} xKey="month" decorative>
+				<BarChart.Bar dataKey="desktop" />
+			</BarChart.Root>
+			{/* @ts-expect-error -- an interactive chart requires an accessible name */}
+			<BarChart.Root data={data} xKey="month">
+				<BarChart.Bar dataKey="desktop" />
+			</BarChart.Root>
+			{/* @ts-expect-error -- decorative forbids an accessible name */}
+			<BarChart.Root data={data} xKey="month" decorative aria-label="Placeholder">
+				<BarChart.Bar dataKey="desktop" />
+			</BarChart.Root>
+			{/* @ts-expect-error -- decorative forbids interaction callbacks */}
+			<BarChart.Root data={data} xKey="month" decorative onDatumActivate={() => {}}>
+				<BarChart.Bar dataKey="desktop" />
+			</BarChart.Root>
+		</>
+	);
+}

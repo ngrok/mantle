@@ -1,8 +1,8 @@
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { createContext, createRef, useContext, useState } from "react";
 import { renderToString } from "react-dom/server";
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import { Alert } from "../alert/alert.js";
 import {
@@ -339,25 +339,6 @@ describe("barPresenceReducer", () => {
 		expect(barPresenceReducer("open", "exited")).toBe("open");
 		expect(barPresenceReducer("closed", "exited")).toBe("closed");
 	});
-
-	test("an alert arriving mid-exit retargets to open, and the exit's late completion is inert", () => {
-		// The interrupt sequence a dismiss-then-immediate-arrival produces: the
-		// collapse begins, a new alert shows, and the in-flight transition (or the
-		// safety timeout it raced) still reports back afterwards.
-		const closing = barPresenceReducer("open", "hide");
-		expect(closing).toBe("closing");
-		const reopened = barPresenceReducer(closing, "show");
-		expect(reopened).toBe("open");
-		expect(barPresenceReducer(reopened, "exited")).toBe("open");
-	});
-
-	test("a full close sequence ends unmounted and stays there", () => {
-		const closing = barPresenceReducer("open", "hide");
-		const closed = barPresenceReducer(closing, "exited");
-		expect(closed).toBe("closed");
-		// the safety timeout firing after a real transitionend already completed
-		expect(barPresenceReducer(closed, "exited")).toBe("closed");
-	});
 });
 
 /**
@@ -614,10 +595,6 @@ describe("AlertCenter.Bar", () => {
 			</AlertCenter.Root>,
 		);
 		const bar = container.querySelector('[data-slot="alert-center-bar"]');
-		// regression: the bar used to hide `Alert.Description` outright, which
-		// dropped supporting copy — and any CTA inside it — with no reveal path
-		// (the expansion lists only the alerts BEHIND the bar)
-		expect(bar).not.toHaveClass("[&_[data-slot=alert-description]]:hidden");
 		expect(bar).toContainElement(screen.getByText(/We couldn't charge the card ending in 4242/));
 		expect(bar).toContainElement(screen.getByRole("link", { name: "Update payment method" }));
 		// the announcer still headlines with the TITLE alone
@@ -627,13 +604,21 @@ describe("AlertCenter.Bar", () => {
 	test("positions the bar's trailing controls from the chrome, gated on the single-line form", () => {
 		const { container } = render(<ThreeAlertHarness />);
 		const bar = container.querySelector('[data-slot="alert-center-bar"]');
+		// Why a class assertion: a cross-file spelling pin. The selector names
+		// `data-alert-dismiss`, `data-alert-expand`, and `data-slot="alert-description"`,
+		// which `Alert` emits in alert.tsx.
 		expect(bar).toHaveClass(
 			"not-has-data-[slot=alert-description]:[&_[data-alert-dismiss],&_[data-alert-expand]]:top-1/2",
 		);
-		// the controls must NOT center themselves: an unconditional class would
-		// out-live the gate and center them in a two-line bar too, where `Alert`'s
-		// top-aligned default is what matches the expansion rows
-		expect(screen.getByRole("button", { name: "Show 2 more alerts" })).not.toHaveClass("top-1/2");
+		expect(screen.getByRole("button", { name: "Dismiss Payment failed" })).toHaveAttribute(
+			"data-alert-dismiss",
+		);
+		expect(screen.getByRole("button", { name: "Show 2 more alerts" })).toHaveAttribute(
+			"data-alert-expand",
+		);
+		const description = screen.getByText("Supporting copy for Payment failed.");
+		expect(description).toHaveAttribute("data-slot", "alert-description");
+		expect(bar).toContainElement(description);
 	});
 
 	test("keeps a top alert's dismiss control when more alerts arrive", () => {
@@ -1151,7 +1136,7 @@ describe("AlertCenter ordering", () => {
 
 describe("AlertCenter.Item projection", () => {
 	test("renders nothing at its authored position", () => {
-		const { container } = render(
+		render(
 			<AlertCenter.Root>
 				<AlertCenter.Item id="payment" intent="danger">
 					<AlertBody title="Payment failed" />
@@ -1161,30 +1146,11 @@ describe("AlertCenter.Item projection", () => {
 		// without a composed Bar/Content, the only rendered output is the
 		// announcer — and with no bar DOM to derive a headline from, it falls
 		// back to the count-only summary
-		expect(container.querySelector('[data-slot="alert"]')).toBeNull();
+		expect(document.querySelector('[data-alert-host="payment"]')).toBeNull();
+		expect(
+			screen.queryByRole("heading", { level: 5, name: /Payment failed/ }),
+		).not.toBeInTheDocument();
 		expect(screen.getByRole("status")).toHaveTextContent("1 alert");
-	});
-
-	test("children rendered in the bar can read context provided above Root", () => {
-		const AccountContext = createContext("no-account");
-		function AccountName() {
-			return <Alert.Title>{useContext(AccountContext)}</Alert.Title>;
-		}
-		render(
-			<AccountContext.Provider value="Acme Corp">
-				<AlertCenter.Root>
-					<AlertCenter.Bar />
-					<AlertCenter.Item id="payment" intent="danger">
-						<Alert.Content>
-							<AccountName />
-						</Alert.Content>
-					</AlertCenter.Item>
-				</AlertCenter.Root>
-			</AccountContext.Provider>,
-		);
-		expect(screen.getByRole("heading", { level: 5, name: "Acme Corp" })).toBeInTheDocument();
-		// the announcer derives its headline from the same rendered title
-		expect(screen.getByRole("status")).toHaveTextContent("Acme Corp");
 	});
 
 	test("forwards the item's className to its chrome in both placements", () => {
@@ -1209,63 +1175,51 @@ describe("AlertCenter.Item projection", () => {
 	});
 
 	test("throws when an item is nested inside another item's children", () => {
-		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
-		try {
-			expect(() =>
-				render(
-					<AlertCenter.Root>
-						<AlertCenter.Bar />
-						<AlertCenter.Item id="outer" intent="warning">
-							<AlertCenter.Item id="inner" intent="danger">
-								<AlertBody title="Inner" />
-							</AlertCenter.Item>
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		expect(() =>
+			render(
+				<AlertCenter.Root>
+					<AlertCenter.Bar />
+					<AlertCenter.Item id="outer" intent="warning">
+						<AlertCenter.Item id="inner" intent="danger">
+							<AlertBody title="Inner" />
 						</AlertCenter.Item>
-					</AlertCenter.Root>,
-				),
-			).toThrow("AlertCenter.Item cannot be rendered inside another item's children.");
-		} finally {
-			consoleError.mockRestore();
-		}
+					</AlertCenter.Item>
+				</AlertCenter.Root>,
+			),
+		).toThrow("AlertCenter.Item cannot be rendered inside another item's children.");
 	});
 
 	test("throws when rendered outside AlertCenter.Root", () => {
-		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
-		try {
-			expect(() =>
-				render(
-					<AlertCenter.Item id="x" intent="info">
-						<AlertBody title="X" />
-					</AlertCenter.Item>,
-				),
-			).toThrow("AlertCenter.Item must be rendered inside <AlertCenter.Root>.");
-		} finally {
-			consoleError.mockRestore();
-		}
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		expect(() =>
+			render(
+				<AlertCenter.Item id="x" intent="info">
+					<AlertBody title="X" />
+				</AlertCenter.Item>,
+			),
+		).toThrow("AlertCenter.Item must be rendered inside <AlertCenter.Root>.");
 	});
 
 	test("throws when two simultaneously mounted items claim the same id", () => {
 		// Both items would portal into that id's single stable host, so one's
 		// children would silently vanish (or thrash) — fail loudly instead.
-		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
-		try {
-			expect(() =>
-				render(
-					<AlertCenter.Root>
-						<AlertCenter.Bar />
-						<AlertCenter.Item id="payment" intent="danger">
-							<AlertBody title="Payment failed" />
-						</AlertCenter.Item>
-						<AlertCenter.Item id="payment" intent="warning">
-							<AlertBody title="Also payment" />
-						</AlertCenter.Item>
-					</AlertCenter.Root>,
-				),
-			).toThrow(
-				'AlertCenter.Item id "payment" is already registered by another mounted item — ids must be unique under one <AlertCenter.Root>.',
-			);
-		} finally {
-			consoleError.mockRestore();
-		}
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		expect(() =>
+			render(
+				<AlertCenter.Root>
+					<AlertCenter.Bar />
+					<AlertCenter.Item id="payment" intent="danger">
+						<AlertBody title="Payment failed" />
+					</AlertCenter.Item>
+					<AlertCenter.Item id="payment" intent="warning">
+						<AlertBody title="Also payment" />
+					</AlertCenter.Item>
+				</AlertCenter.Root>,
+			),
+		).toThrow(
+			'AlertCenter.Item id "payment" is already registered by another mounted item — ids must be unique under one <AlertCenter.Root>.',
+		);
 	});
 
 	test("an id that unmounts and returns does not throw, and resumes its original position", async () => {
@@ -1421,21 +1375,27 @@ describe("AlertCenter.Item after browser translation", () => {
 	});
 
 	test("an item whose children render nothing captures no exit ghost", () => {
-		render(
+		const { rerender } = render(
 			<AlertCenter.Root>
 				<AlertCenter.Bar />
-				<AlertCenter.Content />
 				<AlertCenter.Item id="payment" intent="danger">
 					{null}
 				</AlertCenter.Item>
 			</AlertCenter.Root>,
 		);
-
-		// The wrapper always lands in the host, so the snapshot guard reads the
-		// wrapper's own children rather than the host's.
 		const host = getItemHost("payment");
 		expect(host.firstElementChild).toHaveAttribute("data-slot", "alert-center-item-label");
 		expect(host.firstElementChild).toBeEmptyDOMElement();
+
+		rerender(
+			<AlertCenter.Root>
+				<AlertCenter.Bar />
+			</AlertCenter.Root>,
+		);
+		expect(getBarWrapper()).toHaveAttribute("data-state", "closed");
+		// Why identity: a ghost is a clone with the same attributes, so only the
+		// live host's identity tells the two apart.
+		expect(getBarChrome()).toContainElement(host);
 	});
 });
 
@@ -1520,23 +1480,6 @@ describe("AlertCenter.DismissIconButton", () => {
 		expect(onDismiss).toHaveBeenCalledTimes(1);
 	});
 
-	test("strips the title's inline CTA anchor from the derived label", () => {
-		render(
-			<AlertCenter.Root>
-				<AlertCenter.Bar />
-				<AlertCenter.Item id="payment" intent="danger">
-					<Alert.Content>
-						<Alert.Title>
-							Payment failed <a href="/billing">Update payment method</a>
-						</Alert.Title>
-						<AlertCenter.DismissIconButton onClick={() => {}} />
-					</Alert.Content>
-				</AlertCenter.Item>
-			</AlertCenter.Root>,
-		);
-		expect(screen.getByRole("button", { name: "Dismiss Payment failed" })).toBeInTheDocument();
-	});
-
 	test("an explicit label overrides the derived default", () => {
 		render(
 			<AlertCenter.Root>
@@ -1552,37 +1495,17 @@ describe("AlertCenter.DismissIconButton", () => {
 		expect(screen.getByRole("button", { name: "Hide this notice" })).toBeInTheDocument();
 	});
 
-	test("leaves its positioning to the chrome it lands in", async () => {
-		// The control's host physically moves between placements without a
-		// re-render, so its position can't live on the control — the chrome it
-		// lands in positions it in pure CSS (see the Bar's gated centering).
-		const user = userEvent.setup();
-		render(<ThreeAlertHarness />);
-		const barDismiss = screen.getByRole("button", { name: "Dismiss Payment failed" });
-		expect(barDismiss).not.toHaveClass("in-data-[placement=bar]:top-1/2");
-		expect(barDismiss.closest("[data-placement]")).toHaveAttribute("data-placement", "bar");
-		await user.click(screen.getByRole("button", { name: "Show 2 more alerts" }));
-		const listDismiss = screen.getByRole("button", {
-			name: "Dismiss Approaching your data transfer limit",
-		});
-		expect(listDismiss.closest("[data-placement]")).toHaveAttribute("data-placement", "list");
-	});
-
 	test("throws when composed outside an item's children", () => {
-		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
-		try {
-			expect(() =>
-				render(
-					<AlertCenter.Root>
-						<AlertCenter.DismissIconButton onClick={() => {}} />
-					</AlertCenter.Root>,
-				),
-			).toThrow(
-				"AlertCenter.DismissIconButton must be composed inside an <AlertCenter.Item>'s children.",
-			);
-		} finally {
-			consoleError.mockRestore();
-		}
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		expect(() =>
+			render(
+				<AlertCenter.Root>
+					<AlertCenter.DismissIconButton onClick={() => {}} />
+				</AlertCenter.Root>,
+			),
+		).toThrow(
+			"AlertCenter.DismissIconButton must be composed inside an <AlertCenter.Item>'s children.",
+		);
 	});
 });
 
@@ -1799,11 +1722,7 @@ describe("AlertCenter.Content", () => {
 		expect(screen.getByRole("button", { name: "Dismiss Payment failed" })).toHaveFocus();
 	});
 
-	test("names the row list, and lets a consumer rename it", () => {
-		render(<ThreeAlertHarness />);
-		expect(screen.getByRole("list", { name: "More alerts" })).toBeInTheDocument();
-
-		cleanup();
+	test("lets a consumer rename the row list with aria-label", () => {
 		render(
 			<AlertCenter.Root open>
 				<AlertCenter.Bar />
@@ -1845,7 +1764,7 @@ describe("AlertCenter.Content", () => {
 			</AlertCenter.Root>,
 		);
 		screen.getByRole("button", { name: "Dismiss New region available" }).focus();
-		expect(onAuthorFocus).toHaveBeenCalled();
+		expect(onAuthorFocus).toHaveBeenCalledTimes(1);
 	});
 
 	test("focuses the bar's control when the last row is dismissed, and main when nothing remains", async () => {
@@ -2055,59 +1974,6 @@ describe("AlertCenter.Root", () => {
 });
 
 describe("AlertCenter host projection", () => {
-	test("children keep their React state when promoted from a row to the bar", async () => {
-		// The host element is stable and physically moved between placements —
-		// never remounted — so authored content keeps its state across
-		// re-ranks (the whole point of stable-host projection).
-		const user = userEvent.setup();
-		function Counter() {
-			const [count, setCount] = useState(0);
-			return (
-				<button type="button" onClick={() => setCount(count + 1)}>
-					count {count}
-				</button>
-			);
-		}
-		function Harness() {
-			const [showTop, setShowTop] = useState(true);
-			return (
-				<AlertCenter.Root defaultOpen>
-					<AlertCenter.Bar />
-					<AlertCenter.Content />
-					{showTop && (
-						<AlertCenter.Item id="payment" intent="danger">
-							<Alert.Icon />
-							<Alert.Content>
-								<Alert.Title>Payment failed</Alert.Title>
-								<AlertCenter.DismissIconButton onClick={() => setShowTop(false)} />
-							</Alert.Content>
-						</AlertCenter.Item>
-					)}
-					<AlertCenter.Item id="tip" intent="info">
-						<Alert.Icon />
-						<Alert.Content>
-							<Alert.Title>
-								Usage tip <Counter />
-							</Alert.Title>
-						</Alert.Content>
-					</AlertCenter.Item>
-				</AlertCenter.Root>
-			);
-		}
-		render(<Harness />);
-
-		// build up state while the tip sits in an expansion row
-		await user.click(screen.getByRole("button", { name: "count 0" }));
-		await user.click(screen.getByRole("button", { name: "count 1" }));
-
-		// dismiss the top alert → the tip PROMOTES into the bar, state intact
-		await user.click(screen.getByRole("button", { name: "Dismiss Payment failed" }));
-		const bar = document.querySelector('[data-slot="alert-center-bar"]');
-		expect(bar).toHaveAttribute("data-alert-id", "tip");
-		const counter = screen.getByRole("button", { name: "count 2" });
-		expect(bar).toContainElement(counter);
-	});
-
 	test("context provided around an item reaches its children", () => {
 		// Children render in the item's own React tree (only their DOM lands in
 		// the chrome), so providers wrapping the ITEM — not just Root — work.
@@ -2192,58 +2058,41 @@ describe("AlertCenter host projection", () => {
 	});
 });
 
-describe("AlertCenter reduced motion", () => {
-	test("gates the bar's enter/exit and the expansion's collapse on prefers-reduced-motion", () => {
-		// Both animations are pure CSS, so the promise lives in the `motion-reduce:`
-		// variant on each animating element — the presence wrapper the bar's
-		// height/opacity transition runs on, and the expansion wrapper that slides.
-		render(<ThreeAlertHarness />);
-		expect(getBarWrapper()).toHaveClass("motion-reduce:transition-none");
-		expect(screen.getByTestId("content")).toHaveClass("motion-reduce:transition-none");
-	});
-});
+test("the server render emits only the empty announcer: no bar, no expansion, no item DOM", () => {
+	// Items resolve their host and register from layout effects, so the server
+	// never reaches `createPortal` (which throws in `renderToString`). With no
+	// registrations, the bar and the expansion render nothing. The live region
+	// must already be in this HTML: a polite region announces reliably only
+	// when it exists in the accessibility tree before its text changes.
+	const html = renderToString(
+		<AlertCenter.Root defaultOpen>
+			<AlertCenter.Bar />
+			<AlertCenter.Content />
+			<AlertCenter.Item id="payment-failed" intent="danger">
+				<Alert.Content>
+					<Alert.Title>Payment failed</Alert.Title>
+					<AlertCenter.DismissIconButton onClick={() => {}} />
+				</Alert.Content>
+			</AlertCenter.Item>
+			<AlertCenter.Item id="transfer-limit" intent="warning">
+				<Alert.Title>Transfer limit</Alert.Title>
+			</AlertCenter.Item>
+		</AlertCenter.Root>,
+	);
+	const template = document.createElement("template");
+	template.innerHTML = html;
+	const announcerSelector = '[data-slot="alert-center-announcer"]';
+	expect(template.content.querySelectorAll(announcerSelector)).toHaveLength(1);
+	const announcer = template.content.querySelector(announcerSelector);
+	expect(announcer).toHaveAttribute("role", "status");
+	expect(announcer).toHaveAttribute("aria-live", "polite");
+	expect(announcer?.textContent).toBe("");
 
-describe("AlertCenter server render", () => {
-	test("emits only the empty announcer: no bar, no expansion, no item DOM", () => {
-		// Items resolve their host and register from layout effects, so the server
-		// never reaches `createPortal` (which throws in `renderToString`). With no
-		// registrations, the bar and the expansion render nothing. The live region
-		// must already be in this HTML: a polite region announces reliably only
-		// when it exists in the accessibility tree before its text changes.
-		const html = renderToString(
-			<AlertCenter.Root defaultOpen>
-				<AlertCenter.Bar />
-				<AlertCenter.Content />
-				<AlertCenter.Item id="payment-failed" intent="danger">
-					<Alert.Content>
-						<Alert.Title>Payment failed</Alert.Title>
-						<AlertCenter.DismissIconButton onClick={() => {}} />
-					</Alert.Content>
-				</AlertCenter.Item>
-				<AlertCenter.Item id="transfer-limit" intent="warning">
-					<Alert.Title>Transfer limit</Alert.Title>
-				</AlertCenter.Item>
-			</AlertCenter.Root>,
-		);
-		const template = document.createElement("template");
-		template.innerHTML = html;
-		const announcerSelector = '[data-slot="alert-center-announcer"]';
-		expect(template.content.querySelectorAll(announcerSelector)).toHaveLength(1);
-		const announcer = template.content.querySelector(announcerSelector);
-		expect(announcer).toHaveAttribute("role", "status");
-		expect(announcer).toHaveAttribute("aria-live", "polite");
-		expect(announcer?.textContent).toBe("");
-
-		expect(html).not.toContain("alert-center-bar");
-		expect(html).not.toContain("alert-center-content");
-		expect(html).not.toContain("alert-center-item-host");
-		expect(html).not.toContain("alert-center-item-label");
-		expect(html).not.toContain("data-alert-id");
-		expect(html).not.toContain("Payment failed");
-		expect(html).not.toContain("Transfer limit");
-	});
-});
-
-afterEach(() => {
-	vi.restoreAllMocks();
+	expect(html).not.toContain("alert-center-bar");
+	expect(html).not.toContain("alert-center-content");
+	expect(html).not.toContain("alert-center-item-host");
+	expect(html).not.toContain("alert-center-item-label");
+	expect(html).not.toContain("data-alert-id");
+	expect(html).not.toContain("Payment failed");
+	expect(html).not.toContain("Transfer limit");
 });

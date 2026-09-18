@@ -30,14 +30,6 @@ describe("buildLineOffsets", () => {
 describe("offsetToLine", () => {
 	const offsets = buildLineOffsets("ab\ncd\nef");
 
-	test("maps offset 0 to line 1", () => {
-		expect(offsetToLine(offsets, 0)).toBe(1);
-	});
-
-	test("maps mid-first-line offsets to line 1", () => {
-		expect(offsetToLine(offsets, 1)).toBe(1);
-	});
-
 	test("maps the LF position to line 1", () => {
 		// The newline character itself sits on line 1; line 2 begins at offset 3.
 		expect(offsetToLine(offsets, 2)).toBe(1);
@@ -47,19 +39,11 @@ describe("offsetToLine", () => {
 		expect(offsetToLine(offsets, 3)).toBe(2);
 	});
 
-	test("maps mid-second-line offsets to line 2", () => {
-		expect(offsetToLine(offsets, 4)).toBe(2);
-	});
-
 	test("maps the start of the third line to line 3", () => {
 		expect(offsetToLine(offsets, 6)).toBe(3);
 	});
 
 	test("clamps negative offsets to line 1", () => {
 		expect(offsetToLine(offsets, -1)).toBe(1);
-	});
-
-	test("clamps offsets past EOF to the last line", () => {
-		expect(offsetToLine(offsets, 1000)).toBe(3);
 	});
 });

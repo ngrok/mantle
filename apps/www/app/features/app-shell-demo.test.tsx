@@ -43,8 +43,8 @@ describe("AppShellDemo settings section", () => {
 	it("shows the product navigation under the Main landmark by default", () => {
 		renderShell(AppShellDemo);
 
-		expect(screen.getByRole("navigation", { name: "Main" })).toBeDefined();
-		expect(screen.getByRole("link", { name: "Endpoints" })).toBeDefined();
+		expect(screen.queryByRole("navigation", { name: "Main" })).not.toBeNull();
+		expect(screen.queryByRole("link", { name: "Endpoints" })).not.toBeNull();
 		expect(screen.queryByRole("link", { name: "Audit Logs" })).toBeNull();
 	});
 
@@ -53,8 +53,8 @@ describe("AppShellDemo settings section", () => {
 
 		enterSettings();
 
-		expect(screen.getByRole("navigation", { name: "Settings" })).toBeDefined();
-		expect(screen.getByRole("link", { name: "Audit Logs" })).toBeDefined();
+		expect(screen.queryByRole("navigation", { name: "Settings" })).not.toBeNull();
+		expect(screen.queryByRole("link", { name: "Audit Logs" })).not.toBeNull();
 		expect(screen.queryByRole("link", { name: "Endpoints" })).toBeNull();
 		// exactly one current row across the whole panel — the settings landing
 		// page — so neither the pinned entry link nor a footer row doubles the
@@ -71,7 +71,7 @@ describe("AppShellDemo settings section", () => {
 		enterSettings();
 		fireEvent.click(screen.getByRole("link", { name: /settings.*back to Agents/i }));
 
-		expect(screen.getByRole("navigation", { name: "Main" })).toBeDefined();
+		expect(screen.queryByRole("navigation", { name: "Main" })).not.toBeNull();
 		expect(
 			screen.getAllByRole("link", { current: "page" }).map((link) => link.textContent),
 		).toEqual(["Agents"]);
@@ -82,21 +82,18 @@ describe("AppShellDemo settings section", () => {
 // DropdownMenu.Trigger. The row is a menu button, not a link, and its items are
 // menu items — a regression here (a plain row, or items that stop rendering)
 // reads as a working demo until a reader clicks it.
-describe("AppShellDemo footer help menu", () => {
-	it("opens a menu of help destinations from the footer row", () => {
-		renderShell(AppShellDemo);
+it("opens a menu of help destinations from the footer Help row", () => {
+	renderShell(AppShellDemo);
 
-		openMenu(screen.getByRole("button", { name: "Help" }));
+	openMenu(screen.getByRole("button", { name: "Help" }));
 
-		expect(screen.getByRole("menu")).toBeDefined();
-		expect(screen.getAllByRole("menuitem").map((item) => item.textContent)).toEqual([
-			"Request early access",
-			"Documentation",
-			"Give feedback",
-			"Contact support",
-			"System status",
-		]);
-	});
+	expect(screen.getAllByRole("menuitem").map((item) => item.textContent)).toEqual([
+		"Request early access",
+		"Documentation",
+		"Give feedback",
+		"Contact support",
+		"System status",
+	]);
 });
 
 // The multi-product shell's footer switcher row: one row, one menu, two scopes
@@ -113,7 +110,7 @@ describe("AppShellDemo footer account switcher", () => {
 		});
 		fireEvent.click(screen.getByRole("menuitemradio", { name: "Skunkworks" }));
 
-		expect(screen.getByRole("button", { name: /Skunkworks/ })).toBeDefined();
+		expect(screen.queryByRole("button", { name: /Skunkworks/ })).not.toBeNull();
 		expect(screen.queryByRole("button", { name: /Acme Corp/ })).toBeNull();
 	});
 
@@ -123,7 +120,7 @@ describe("AppShellDemo footer account switcher", () => {
 		openMenu(screen.getByRole("button", { name: /Acme Corp/ }));
 		fireEvent.click(screen.getByRole("menuitem", { name: "Billing" }));
 
-		expect(screen.getByRole("navigation", { name: "Settings" })).toBeDefined();
+		expect(screen.queryByRole("navigation", { name: "Settings" })).not.toBeNull();
 		expect(
 			screen.getAllByRole("link", { current: "page" }).map((link) => link.textContent),
 		).toEqual(["Billing"]);

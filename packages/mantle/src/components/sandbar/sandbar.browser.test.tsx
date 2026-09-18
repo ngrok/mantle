@@ -1,6 +1,6 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { createRef } from "react";
-import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
+import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
 import type { SandbarHandle } from "./sandbar.js";
 import { Sandbar } from "./sandbar.js";
@@ -30,13 +30,16 @@ describe("Sandbar (browser)", () => {
 			</Sandbar.Root>,
 		);
 
-		const animateSpy = vi.spyOn(HTMLDivElement.prototype, "animate");
 		handle.current?.shake();
 
-		expect(animateSpy).toHaveBeenCalledTimes(1);
-		const [keyframes, options] = animateSpy.mock.calls[0] ?? [];
-		expect(Array.isArray(keyframes) && keyframes.length).toBe(8);
-		expect(options).toMatchObject({ duration: 400, easing: "ease-in-out" });
+		const animations = getPanel().getAnimations();
+		expect(animations).toHaveLength(1);
+		const effect = animations[0]?.effect;
+		if (!(effect instanceof KeyframeEffect)) {
+			throw new Error("expected the shake to run as a keyframe effect on the panel");
+		}
+		expect(effect.getKeyframes()).toHaveLength(8);
+		expect(effect.getTiming()).toMatchObject({ duration: 400, easing: "ease-in-out" });
 	});
 
 	test("a re-triggered shake cancels the in-flight animation", () => {
@@ -68,10 +71,9 @@ describe("Sandbar (browser)", () => {
 			</Sandbar.Root>,
 		);
 
-		const animateSpy = vi.spyOn(HTMLDivElement.prototype, "animate");
 		handle.current?.shake();
 
-		expect(animateSpy).not.toHaveBeenCalled();
+		expect(getPanel().getAnimations()).toHaveLength(0);
 		await waitFor(() => {
 			expect(getAlertRegion()).toHaveTextContent(
 				"You have unsaved changes. Save or discard them before leaving.",

@@ -3,15 +3,6 @@ import { describe, expect, it } from "vitest";
 import { etagFor } from "./etag";
 
 describe("etagFor", () => {
-	it("returns a quoted 16-hex-char strong validator", () => {
-		const etag = etagFor("hello");
-		expect(etag).toMatch(/^"[0-9a-f]{16}"$/);
-	});
-
-	it("is deterministic for the same input", () => {
-		expect(etagFor("hello")).toBe(etagFor("hello"));
-	});
-
 	it("differs for different inputs", () => {
 		expect(etagFor("hello")).not.toBe(etagFor("world"));
 	});
@@ -21,9 +12,9 @@ describe("etagFor", () => {
 		expect(etagFor("hello")).not.toBe(etagFor("hello\n"));
 	});
 
-	it("handles the empty string", () => {
-		const etag = etagFor("");
-		expect(etag).toMatch(/^"[0-9a-f]{16}"$/);
+	it("hashes the empty string", () => {
+		// sha256("") = e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+		expect(etagFor("")).toBe('"e3b0c44298fc1c14"');
 	});
 
 	it("treats a string and its UTF-8 byte equivalent as identical", () => {

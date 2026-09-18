@@ -33,17 +33,22 @@ describe("PreviewFrame", () => {
 		expect(
 			screen.getByRole("radio", { name: "Desktop viewport" }).getAttribute("aria-checked"),
 		).toBe("true");
-		expect(getIframe().parentElement?.className).toContain("w-full");
+		// Why a class-token check: the wrapper emits no data attribute, so the width class is the
+		// only observable of the `viewportWidthClasses` lookup. `max-w-full` contains `w-full`, so a
+		// substring match cannot tell the presets apart.
+		expect(getIframe().parentElement?.classList.contains("w-full")).toBe(true);
 	});
 
 	it("resizes the frame when a viewport preset is picked", () => {
 		render(<PreviewFrame example="centered-layout" title="Centered layout demo" />);
 
 		fireEvent.click(screen.getByRole("radio", { name: "Tablet viewport" }));
-		expect(getIframe().parentElement?.className).toContain("w-192");
+		// Why a class-token check: the wrapper emits no data attribute, so the width class is the
+		// only observable of the `viewportWidthClasses` lookup.
+		expect(getIframe().parentElement?.classList.contains("w-192")).toBe(true);
 
 		fireEvent.click(screen.getByRole("radio", { name: "Mobile viewport" }));
-		expect(getIframe().parentElement?.className).toContain("w-[375px]");
+		expect(getIframe().parentElement?.classList.contains("w-[375px]")).toBe(true);
 	});
 
 	it("reloads the preview by remounting the iframe", () => {

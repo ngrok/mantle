@@ -19,12 +19,13 @@ const chartPages = import.meta.glob<Record<string, unknown>>("../docs/components
 	eager: true,
 });
 
+/** Narrows a page export to a renderable demo. */
+const isDemo = (value: unknown): value is () => ReactNode => typeof value === "function";
+
 /** The page's demo components — by convention every `*Example` export. */
 const demosOf = (page: Record<string, unknown>): Array<[string, () => ReactNode]> =>
 	Object.entries(page).flatMap(([name, value]) =>
-		name.endsWith("Example") && typeof value === "function"
-			? [[name, value as () => ReactNode]]
-			: [],
+		name.endsWith("Example") && isDemo(value) ? [[name, value]] : [],
 	);
 
 test("every chart page is globbed", () => {

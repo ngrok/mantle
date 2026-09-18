@@ -53,7 +53,10 @@ const render3dChart = () =>
 describe("ScatterPlot.Root", () => {
 	test("renders a labelled interaction overlay and an aria-hidden canvas", () => {
 		renderChart();
-		expect(screen.getByRole("application", { name: "Latency by region" })).toBeInTheDocument();
+		expect(screen.getByRole("application", { name: "Latency by region" })).toHaveAttribute(
+			"tabindex",
+			"0",
+		);
 		// The canvas is decorative pixels; the overlay is the single named element.
 		expect(document.querySelector("canvas")).toHaveAttribute("aria-hidden");
 	});
@@ -76,7 +79,6 @@ describe("ScatterPlot.Root", () => {
 		expect(root).toBeInTheDocument();
 		expect(ref.current).toBe(root);
 		expect(root?.className).toContain("custom-class");
-		expect(root?.className).toContain("flex");
 		expect(root?.getAttribute("data-testid")).toBe("chart-root");
 	});
 
@@ -118,7 +120,7 @@ describe("ScatterPlot.Root", () => {
 	});
 
 	test("a dataKey matching no row in non-empty data throws with the available keys", () => {
-		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+		vi.spyOn(console, "error").mockImplementation(() => {});
 		expect(() =>
 			render(
 				<ScatterPlot.Root data={data} xKey="latency" aria-label="Typo chart">
@@ -128,7 +130,6 @@ describe("ScatterPlot.Root", () => {
 		).toThrow(
 			/ScatterPlot\.Point dataKey "regionsA" does not match any key.*latency, regionA, regionB/,
 		);
-		consoleError.mockRestore();
 	});
 
 	test("a leading null x row does not misclassify the scale or crash", () => {
@@ -183,28 +184,22 @@ describe("ScatterPlot data slots", () => {
 	});
 });
 
-describe("ScatterPlot parts outside Root", () => {
-	test("a part rendered outside Root throws", () => {
-		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
-		expect(() => render(<ScatterPlot.Point dataKey="regionA" />)).toThrow(
-			/ScatterPlot\.Point must be composed inside ScatterPlot\.Root/,
-		);
-		consoleError.mockRestore();
-	});
+test("a part rendered outside Root throws", () => {
+	vi.spyOn(console, "error").mockImplementation(() => {});
+	expect(() => render(<ScatterPlot.Point dataKey="regionA" />)).toThrow(
+		/ScatterPlot\.Point must be composed inside ScatterPlot\.Root/,
+	);
 });
 
-describe("ScatterPlot cross-family composition", () => {
-	test("a BarChart.Bar composed inside ScatterPlot.Root throws", () => {
-		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
-		expect(() =>
-			render(
-				<ScatterPlot.Root data={data} xKey="latency" aria-label="Cross-family chart">
-					<BarChart.Bar dataKey="regionA" label="Region A" />
-				</ScatterPlot.Root>,
-			),
-		).toThrow(/BarChart\.Bar cannot be composed inside ScatterPlot\.Root/);
-		consoleError.mockRestore();
-	});
+test("a BarChart.Bar composed inside ScatterPlot.Root throws", () => {
+	vi.spyOn(console, "error").mockImplementation(() => {});
+	expect(() =>
+		render(
+			<ScatterPlot.Root data={data} xKey="latency" aria-label="Cross-family chart">
+				<BarChart.Bar dataKey="regionA" label="Region A" />
+			</ScatterPlot.Root>,
+		),
+	).toThrow(/BarChart\.Bar cannot be composed inside ScatterPlot\.Root/);
 });
 
 describe("ScatterPlot.Legend", () => {
@@ -395,7 +390,8 @@ describe("ScatterPlot keyboard interaction", () => {
 		await user.keyboard("{ArrowRight}{Enter}");
 		// dataKey names the hit point's series for pointer activation only;
 		// keyboard stepping is series-less, so the payload carries null.
-		expect(onDatumActivate).toHaveBeenCalledWith(
+		expect(onDatumActivate).toHaveBeenCalledTimes(1);
+		expect(onDatumActivate).toHaveBeenLastCalledWith(
 			expect.objectContaining({
 				index: 0,
 				xValue: 12,
@@ -411,9 +407,11 @@ describe("ScatterPlot keyboard interaction", () => {
 		renderChart({ onActiveIndexChange });
 		await user.tab();
 		await user.keyboard("{ArrowRight}");
-		expect(onActiveIndexChange).toHaveBeenCalledWith(0);
+		expect(onActiveIndexChange).toHaveBeenCalledTimes(1);
+		expect(onActiveIndexChange).toHaveBeenLastCalledWith(0);
 		await user.keyboard("{ArrowRight}");
-		expect(onActiveIndexChange).toHaveBeenCalledWith(1);
+		expect(onActiveIndexChange).toHaveBeenCalledTimes(2);
+		expect(onActiveIndexChange).toHaveBeenLastCalledWith(1);
 	});
 });
 

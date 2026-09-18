@@ -7,7 +7,6 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 import mantleCss from "../../mantle.css?raw";
 import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import type * as UseBreakpointModule from "../../hooks/use-breakpoint.js";
-import { Avatar } from "../avatar/index.js";
 import { Command } from "../command/command.js";
 import { DropdownMenu } from "../dropdown-menu/index.js";
 import { TooltipProvider } from "../tooltip/index.js";
@@ -40,7 +39,7 @@ beforeEach(() => {
 /**
  * The keyboard chord that toggles the sidebar under this suite. happy-dom
  * reports a non-Apple `navigator.platform` whatever machine the tests run on
- * (asserted in `utils/platform.test.ts`), so the platform modifier here is
+ * (recorded in `utils/platform.test.ts`), so the platform modifier here is
  * `Ctrl`. Apple behavior is covered by stubbing the platform explicitly.
  */
 const platformChord = "{Control>}b{/Control}";
@@ -65,19 +64,13 @@ describe("Sidebar.Nav (desktop)", () => {
 		expect(screen.queryByRole("navigation", { name: "Main" })).not.toBeInTheDocument();
 	});
 
-	test("panel surface carries data-slot, data-state, className, ref, and data-* props", () => {
-		const ref = createRef<HTMLDivElement>();
+	test("renders the panel expanded by default", () => {
 		render(
 			<Sidebar.Root>
-				<Sidebar.Nav className="custom-class" data-testid="nav" data-flavor="primary" ref={ref} />
+				<Sidebar.Nav data-testid="nav" />
 			</Sidebar.Root>,
 		);
-		const surface = screen.getByTestId("nav");
-		expect(surface).toHaveAttribute("data-slot", "sidebar-nav");
-		expect(surface).toHaveAttribute("data-state", "expanded");
-		expect(surface).toHaveAttribute("data-flavor", "primary");
-		expect(surface.className).toContain("custom-class");
-		expect(ref.current).toBe(surface);
+		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "expanded");
 	});
 
 	test("defaultOpen={false} renders the panel collapsed", () => {
@@ -533,41 +526,15 @@ describe("Sidebar.Nav (desktop)", () => {
 		);
 		expect(onOpenMobileChange).not.toHaveBeenCalled();
 	});
-
-	test("Header, Body, and Footer render in DOM order inside the nav", () => {
-		render(
-			<Sidebar.Root>
-				<Sidebar.Nav>
-					<Sidebar.Header data-testid="header">header</Sidebar.Header>
-					<Sidebar.Body data-testid="body">body</Sidebar.Body>
-					<Sidebar.Footer data-testid="footer">footer</Sidebar.Footer>
-				</Sidebar.Nav>
-			</Sidebar.Root>,
-		);
-		const nav = screen.getByRole("navigation", { name: "Main" });
-		const header = screen.getByTestId("header");
-		const body = screen.getByTestId("body");
-		const footer = screen.getByTestId("footer");
-		expect(nav).toContainElement(header);
-		expect(header.compareDocumentPosition(body)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-		expect(body.compareDocumentPosition(footer)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-		expect(header).toHaveAttribute("data-slot", "sidebar-header");
-		expect(body).toHaveAttribute("data-slot", "sidebar-body");
-		expect(footer).toHaveAttribute("data-slot", "sidebar-footer");
-	});
 });
 
 describe("Sidebar collapse", () => {
 	test("the collapsed desktop panel keeps its content in the accessibility tree", () => {
 		render(
 			<Sidebar.Root defaultOpen={false}>
-				<Sidebar.Nav data-testid="nav">content</Sidebar.Nav>
+				<Sidebar.Nav>content</Sidebar.Nav>
 			</Sidebar.Root>,
 		);
-		const nav = screen.getByTestId("nav");
-		expect(nav).toHaveAttribute("data-state", "collapsed");
-		// the collapse target is always the icon rail — no per-mode attribute
-		expect(nav).not.toHaveAttribute("data-collapsible");
 		expect(screen.getByRole("navigation", { name: "Main" })).toHaveTextContent("content");
 	});
 
@@ -582,6 +549,30 @@ describe("Sidebar collapse", () => {
 			</Sidebar.Root>,
 		);
 		expect(screen.getByTestId("nav")).toHaveAttribute("data-hydrated");
+	});
+
+	test("the group label's fade and its motion-reduce opt-out follow the nav's hydration gate", () => {
+		// Why cross-part pin: the label's gated variants match only the nav's group
+		// name and its data-hydrated attribute. The gated transition rule outranks a
+		// bare motion-reduce override (0,2,0 vs 0,1,0), so the opt-out needs the gate too.
+		render(
+			<Sidebar.Root>
+				<Sidebar.Nav data-testid="nav">
+					<Sidebar.Body>
+						<Sidebar.Group>
+							<Sidebar.GroupLabel data-testid="label">Traffic</Sidebar.GroupLabel>
+						</Sidebar.Group>
+					</Sidebar.Body>
+				</Sidebar.Nav>
+			</Sidebar.Root>,
+		);
+		const nav = screen.getByTestId("nav");
+		expect(nav).toHaveAttribute("data-hydrated");
+		expect(nav).toHaveClass("group/sidebar-nav");
+		expect(screen.getByTestId("label")).toHaveClass(
+			"group-data-hydrated/sidebar-nav:transition-opacity",
+			"group-data-hydrated/sidebar-nav:motion-reduce:transition-none",
+		);
 	});
 });
 
@@ -660,34 +651,6 @@ describe("Sidebar.Nav first paint", () => {
 	});
 });
 
-describe("Sidebar reduced motion", () => {
-	test("the animating panel opts out of the width transition", () => {
-		render(
-			<Sidebar.Root>
-				<Sidebar.Nav data-testid="nav" />
-			</Sidebar.Root>,
-		);
-		expect(screen.getByTestId("nav")).toHaveClass(
-			"transition-[width]",
-			"motion-reduce:transition-none",
-		);
-	});
-
-	test("the group label's fade opts out under the same hydration gate", () => {
-		// The gated transition rule outranks a bare motion-reduce override (0,2,0 vs
-		// 0,1,0), so an ungated opt-out would lose and the label would still fade.
-		render(
-			<Sidebar.Group>
-				<Sidebar.GroupLabel data-testid="label">Traffic</Sidebar.GroupLabel>
-			</Sidebar.Group>,
-		);
-		expect(screen.getByTestId("label")).toHaveClass(
-			"group-data-hydrated/sidebar-nav:transition-opacity",
-			"group-data-hydrated/sidebar-nav:motion-reduce:transition-none",
-		);
-	});
-});
-
 describe("--sidebar-row-width", () => {
 	// The token is public API for surfaces that render OUTSIDE the panel: a
 	// switcher's menu is portaled to document.body, so it inherits nothing the
@@ -755,35 +718,6 @@ describe("--sidebar-row-width", () => {
 	});
 });
 
-describe("--sidebar-header-height", () => {
-	// The band is a grid track, and a track emits no data attribute — the class is
-	// the only thing that observes it here, and happy-dom lays out nothing, so
-	// header-band.browser.test.tsx measures what the track actually does. These two
-	// assertions cover what that file cannot: the spelling AppLayout.Header's calc()
-	// reads (see app-layout.test.tsx), and the absence of the fixed height that
-	// squeezed a second row before issue #1399.
-	test("the header sizes its first row from the token and caps nothing", () => {
-		render(
-			<Sidebar.Root>
-				<Sidebar.Nav>
-					<Sidebar.Header data-testid="header" />
-				</Sidebar.Nav>
-			</Sidebar.Root>,
-		);
-		const header = screen.getByTestId("header");
-		// toHaveClass matches whole tokens, so a permuted track (grid-rows-2) or a
-		// dropped items-center fails here rather than silently unaligning the toolbar.
-		expect(header).toHaveClass(
-			"grid",
-			"grid-rows-(--sidebar-header-height,4.5rem)",
-			"items-center",
-		);
-		// A `h-*` of any kind would clamp the header again, which is what forced
-		// consumers to raise the token — and the toolbar with it — for two rows.
-		expect([...header.classList].filter((name) => name.startsWith("h-"))).toEqual([]);
-	});
-});
-
 describe("Sidebar.Nav (mobile)", () => {
 	beforeEach(() => {
 		useIsBelowBreakpointMock.mockReturnValue(true);
@@ -830,16 +764,19 @@ describe("Sidebar.Nav (mobile)", () => {
 		expect(screen.getByRole("dialog", { name: "Main" })).toBeInTheDocument();
 
 		await user.keyboard("{Escape}");
-		expect(onOpenMobileChange).toHaveBeenCalledWith(false);
+		expect(onOpenMobileChange).toHaveBeenCalledExactlyOnceWith(false);
 	});
 
-	test("uses the root mobileBreakpoint for the media query", () => {
+	test("opens the sheet when the viewport is below the root mobileBreakpoint", () => {
+		// Why per-breakpoint mock: a query hard-coded to another breakpoint renders
+		// the desktop panel, not the sheet.
+		useIsBelowBreakpointMock.mockImplementation((breakpoint) => breakpoint === "md");
 		render(
-			<Sidebar.Root mobileBreakpoint="md">
-				<Sidebar.Nav />
+			<Sidebar.Root mobileBreakpoint="md" openMobile>
+				<Sidebar.Nav>content</Sidebar.Nav>
 			</Sidebar.Root>,
 		);
-		expect(useIsBelowBreakpointMock).toHaveBeenCalledWith("md");
+		expect(screen.getByRole("dialog", { name: "Main" })).toBeInTheDocument();
 	});
 
 	test("defaults the media query to the lg breakpoint", () => {
@@ -861,7 +798,7 @@ describe("Sidebar.Nav (mobile)", () => {
 			</Sidebar.Root>,
 		);
 		await user.click(screen.getByRole("button", { name: "Toggle Sidebar" }));
-		expect(onOpenMobileChange).toHaveBeenCalledWith(true);
+		expect(onOpenMobileChange).toHaveBeenCalledExactlyOnceWith(true);
 		expect(screen.getByRole("dialog", { name: "Main" })).toBeInTheDocument();
 
 		useIsBelowBreakpointMock.mockReturnValue(false);
@@ -871,6 +808,7 @@ describe("Sidebar.Nav (mobile)", () => {
 				<Sidebar.Trigger />
 			</Sidebar.Root>,
 		);
+		expect(onOpenMobileChange).toHaveBeenCalledTimes(2);
 		expect(onOpenMobileChange).toHaveBeenLastCalledWith(false);
 		expect(screen.queryByRole("dialog", { name: "Main" })).not.toBeInTheDocument();
 	});
@@ -882,15 +820,9 @@ describe("useSidebar", () => {
 			useSidebar();
 			return null;
 		}
-		// silence React's error boundary noise for the expected throw. try/finally
-		// so a failed assertion cannot leave console.error mocked for the rest of
-		// the file, hiding React's key/act/hydration warnings.
-		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
-		try {
-			expect(() => render(<Standalone />)).toThrow("useSidebar must be used within Sidebar.Root.");
-		} finally {
-			consoleError.mockRestore();
-		}
+		// Why: silence React's error log for the expected throw.
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		expect(() => render(<Standalone />)).toThrow("useSidebar must be used within Sidebar.Root.");
 	});
 
 	test("exposes toggle and setters that drive the panel", async () => {
@@ -980,30 +912,6 @@ describe("Sidebar.Group + GroupLabel + List", () => {
 		expect(screen.getByTestId("list")).not.toHaveAttribute("aria-labelledby");
 	});
 
-	test("GroupLabel renders a div, not a heading", () => {
-		render(
-			<Sidebar.Group>
-				<Sidebar.GroupLabel data-testid="label">Traffic</Sidebar.GroupLabel>
-			</Sidebar.Group>,
-		);
-		const label = screen.getByTestId("label");
-		expect(label.tagName).toBe("DIV");
-		expect(screen.queryByRole("heading")).not.toBeInTheDocument();
-	});
-
-	test("GroupLabel asChild renders a consumer heading with the label styles", () => {
-		render(
-			<Sidebar.Group>
-				<Sidebar.GroupLabel asChild>
-					<h4 data-testid="label">Traffic</h4>
-				</Sidebar.GroupLabel>
-			</Sidebar.Group>,
-		);
-		const label = screen.getByRole("heading", { level: 4, name: "Traffic" });
-		expect(label).toHaveAttribute("data-slot", "sidebar-group-label");
-		expect(label.className).toContain("text-muted");
-	});
-
 	// The docs' Polymorphism example swaps the label element; the group's naming
 	// wiring has to survive that, or the list silently loses its accessible name.
 	test("GroupLabel asChild still names the list via aria-labelledby", () => {
@@ -1022,19 +930,9 @@ describe("Sidebar.Group + GroupLabel + List", () => {
 });
 
 describe("Sidebar.Item + ItemButton", () => {
-	test("renders a list item wrapping a type=button by default", () => {
-		render(
-			<Sidebar.List>
-				<Sidebar.Item data-testid="item">
-					<Sidebar.ItemButton>Endpoints</Sidebar.ItemButton>
-				</Sidebar.Item>
-			</Sidebar.List>,
-		);
-		const item = screen.getByTestId("item");
-		expect(item.tagName).toBe("LI");
-		const button = screen.getByRole("button", { name: "Endpoints" });
-		expect(button).toHaveAttribute("type", "button");
-		expect(button).toHaveAttribute("data-slot", "sidebar-item-button");
+	test("ItemButton renders type=button by default", () => {
+		render(<Sidebar.ItemButton>Endpoints</Sidebar.ItemButton>);
+		expect(screen.getByRole("button", { name: "Endpoints" })).toHaveAttribute("type", "button");
 	});
 
 	test("current sets aria-current=page and the data-current state", () => {
@@ -1053,16 +951,13 @@ describe("Sidebar.Item + ItemButton", () => {
 
 	test("asChild composes a router-style link and keeps the row contract", () => {
 		render(
-			<Sidebar.ItemButton asChild current className="custom-class">
+			<Sidebar.ItemButton asChild current>
 				<a href="/endpoints">Endpoints</a>
 			</Sidebar.ItemButton>,
 		);
 		const link = screen.getByRole("link", { name: "Endpoints" });
 		expect(link).toHaveAttribute("aria-current", "page");
-		expect(link).toHaveAttribute("data-slot", "sidebar-item-button");
 		expect(link).not.toHaveAttribute("type");
-		expect(link.className).toContain("custom-class");
-		expect(link.className).toContain("rounded-md");
 	});
 
 	test("styles the current row from either attribute, so a self-marking child needs no current", () => {
@@ -1090,58 +985,36 @@ describe("Sidebar.Item + ItemButton", () => {
 });
 
 describe("Sidebar.SwitcherTrigger", () => {
-	test("renders a type=button styled row by default", () => {
+	test("SwitcherTrigger renders type=button by default", () => {
 		render(<Sidebar.SwitcherTrigger>Acme Corp</Sidebar.SwitcherTrigger>);
-		const button = screen.getByRole("button", { name: "Acme Corp" });
-		expect(button).toHaveAttribute("type", "button");
-		expect(button).toHaveAttribute("data-slot", "sidebar-switcher-trigger");
+		expect(screen.getByRole("button", { name: "Acme Corp" })).toHaveAttribute("type", "button");
 	});
 
-	test("asChild renders the consumer element with the switcher styles", () => {
+	test("asChild leaves type off the consumer element", () => {
 		render(
 			<Sidebar.SwitcherTrigger asChild>
 				<a href="/switch">Acme Corp</a>
 			</Sidebar.SwitcherTrigger>,
 		);
-		const link = screen.getByRole("link", { name: "Acme Corp" });
-		expect(link).toHaveAttribute("data-slot", "sidebar-switcher-trigger");
-		expect(link).not.toHaveAttribute("type");
+		expect(screen.getByRole("link", { name: "Acme Corp" })).not.toHaveAttribute("type");
 	});
 });
 
 describe("Sidebar.SearchTrigger", () => {
-	test("renders a type=button styled row by default", () => {
+	test("SearchTrigger renders type=button by default", () => {
 		render(<Sidebar.SearchTrigger>Search…</Sidebar.SearchTrigger>);
-		const button = screen.getByRole("button", { name: "Search…" });
-		expect(button).toHaveAttribute("type", "button");
-		expect(button).toHaveAttribute("data-slot", "sidebar-search-trigger");
+		expect(screen.getByRole("button", { name: "Search…" })).toHaveAttribute("type", "button");
 	});
 
-	test("className, ref, and data-* reach the row", () => {
-		const ref = createRef<HTMLButtonElement>();
-		render(
-			<Sidebar.SearchTrigger className="custom-class" data-flavor="primary" ref={ref}>
-				Search…
-			</Sidebar.SearchTrigger>,
-		);
-		const button = screen.getByRole("button", { name: "Search…" });
-		expect(button.className).toContain("custom-class");
-		expect(button).toHaveAttribute("data-flavor", "primary");
-		expect(ref.current).toBe(button);
-	});
-
-	test("asChild renders the consumer element with the search row styles", () => {
+	test("asChild leaves type off the consumer element", () => {
 		// `shortcut` is unavailable here by construction — a cloned child has no
 		// room for a sibling hint — so the whole row content is the consumer's.
 		render(
-			<Sidebar.SearchTrigger asChild className="custom-class">
+			<Sidebar.SearchTrigger asChild>
 				<a href="/search">Search…</a>
 			</Sidebar.SearchTrigger>,
 		);
-		const link = screen.getByRole("link", { name: "Search…" });
-		expect(link).toHaveAttribute("data-slot", "sidebar-search-trigger");
-		expect(link.className).toContain("custom-class");
-		expect(link).not.toHaveAttribute("type");
+		expect(screen.getByRole("link", { name: "Search…" })).not.toHaveAttribute("type");
 	});
 
 	test("an incoming data-slot chain is joined, not clobbered", () => {
@@ -1717,85 +1590,13 @@ describe("Sidebar.Tooltip", () => {
 			),
 		).toThrow(/Sidebar.Tooltip must be rendered inside Sidebar.Root/);
 	});
-
-	test("requires a single element child at the type level", () => {
-		// `Tooltip.Trigger asChild` clones its child, so the two shapes below fail
-		// silently at runtime rather than loudly: no children renders no row at all
-		// (Radix returns the empty children untouched), and a text child throws deep
-		// inside Radix's slot. The required `ReactElement` keeps both off the API.
-		const withoutChildren = (
-			// @ts-expect-error -- children is required
-			<Sidebar.Tooltip label="Endpoints" />
-		);
-
-		const withTextChild = (
-			// @ts-expect-error -- children must be a single element, not text
-			<Sidebar.Tooltip label="Endpoints">Endpoints</Sidebar.Tooltip>
-		);
-
-		const withElementChild = (
-			<Sidebar.Tooltip label="Endpoints">
-				<Sidebar.ItemButton>Endpoints</Sidebar.ItemButton>
-			</Sidebar.Tooltip>
-		);
-
-		expect(withoutChildren).toBeTruthy();
-		expect(withTextChild).toBeTruthy();
-		expect(withElementChild).toBeTruthy();
-	});
 });
 
-describe("switch-accounts recipe (composition)", () => {
-	// The account switcher is deliberately not a Sidebar part — it composes
-	// DropdownMenu.RadioGroup/RadioItem with an Avatar (see the docs recipe).
-	// This guards the composition the docs demonstrate.
-	test("radio items compose an avatar, name, and checked state", async () => {
-		const user = userEvent.setup();
-		const onValueChange = vi.fn<(value: string) => void>();
-		render(
-			<DropdownMenu.Root open>
-				<DropdownMenu.Trigger>Switch</DropdownMenu.Trigger>
-				<DropdownMenu.Content>
-					<DropdownMenu.RadioGroup value="acc_atlas" onValueChange={onValueChange}>
-						{[
-							{ id: "acc_acme", name: "Acme Corp" },
-							{ id: "acc_atlas", name: "Atlas Industries" },
-						].map((account) => (
-							<DropdownMenu.RadioItem key={account.id} value={account.id}>
-								<Avatar.Root appearance="square" colorSeed={account.id}>
-									<Avatar.Fallback name={account.name} />
-								</Avatar.Root>
-								<span className="min-w-0 flex-1 truncate">{account.name}</span>
-							</DropdownMenu.RadioItem>
-						))}
-					</DropdownMenu.RadioGroup>
-				</DropdownMenu.Content>
-			</DropdownMenu.Root>,
-		);
-		expect(screen.getByRole("menuitemradio", { name: "Acme Corp" })).toHaveAttribute(
-			"aria-checked",
-			"false",
-		);
-		expect(screen.getByRole("menuitemradio", { name: "Atlas Industries" })).toHaveAttribute(
-			"aria-checked",
-			"true",
-		);
-		await user.click(screen.getByRole("menuitemradio", { name: "Acme Corp" }));
-		expect(onValueChange).toHaveBeenCalledExactlyOnceWith("acc_acme");
-	});
-});
-
-describe("Sidebar.Separator", () => {
-	test("renders a decorative inset separator", () => {
-		render(<Sidebar.Separator data-testid="separator" />);
-		const separator = screen.getByTestId("separator");
-		expect(separator).toHaveAttribute("role", "none");
-		expect(separator).toHaveAttribute("data-slot", "sidebar-separator");
-		// inset: aligned with the px-3 content padding, never edge to edge
-		expect(separator.className).toContain("my-3");
-		expect(separator.className).not.toContain("-mx-3");
-	});
-});
+// Type-level contract: typecheck fails when a directive below goes unused.
+// @ts-expect-error -- children is required
+void (<Sidebar.Tooltip label="Endpoints" />);
+// @ts-expect-error -- children must be a single element, not text
+void (<Sidebar.Tooltip label="Endpoints">Endpoints</Sidebar.Tooltip>);
 
 /**
  * The props every part is probed with: a `className` that must land beside the

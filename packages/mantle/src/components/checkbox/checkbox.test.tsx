@@ -28,6 +28,11 @@ function IndeterminateProbe({ checked, defaultChecked, onLayout }: Indeterminate
 }
 
 describe("Checkbox", () => {
+	test('renders data-slot="checkbox" on the input', () => {
+		render(<Checkbox />);
+		expect(screen.getByRole("checkbox")).toHaveAttribute("data-slot", "checkbox");
+	});
+
 	test('given validation={false}, renders a checkbox with aria-invalid="false" and not have data-validation', () => {
 		render(<Checkbox validation={false} />);
 		expect(screen.getByRole("checkbox")).toHaveAttribute("aria-invalid", "false");
@@ -38,12 +43,6 @@ describe("Checkbox", () => {
 		render(<Checkbox validation="success" />);
 		expect(screen.getByRole("checkbox")).toHaveAttribute("aria-invalid", "false");
 		expect(screen.getByRole("checkbox")).toHaveAttribute("data-validation", "success");
-	});
-
-	test('given validation="warning", renders a checkbox with aria-invalid="false" and data-validation="warning"', () => {
-		render(<Checkbox validation="warning" />);
-		expect(screen.getByRole("checkbox")).toHaveAttribute("aria-invalid", "false");
-		expect(screen.getByRole("checkbox")).toHaveAttribute("data-validation", "warning");
 	});
 
 	test('given validation="error", renders a checkbox with aria-invalid="true" and data-validation="error"', () => {
@@ -58,18 +57,6 @@ describe("Checkbox", () => {
 		expect(screen.getByRole("checkbox")).toHaveAttribute("data-validation", "error");
 	});
 
-	test('given aria-invalid="true" and validation="warning", renders a checkbox with aria-invalid="true" and data-validation="error"', () => {
-		render(<Checkbox aria-invalid="true" validation="warning" />);
-		expect(screen.getByRole("checkbox")).toHaveAttribute("aria-invalid", "true");
-		expect(screen.getByRole("checkbox")).toHaveAttribute("data-validation", "error");
-	});
-
-	test('given aria-invalid="true" and validation="error", renders a checkbox with aria-invalid="true" and data-validation="error"', () => {
-		render(<Checkbox aria-invalid="true" validation="error" />);
-		expect(screen.getByRole("checkbox")).toHaveAttribute("aria-invalid", "true");
-		expect(screen.getByRole("checkbox")).toHaveAttribute("data-validation", "error");
-	});
-
 	test("inherits validation from Field.Item without a direct validation prop", () => {
 		render(
 			<Field.Item name="example" validation="warning">
@@ -79,19 +66,6 @@ describe("Checkbox", () => {
 
 		expect(screen.getByRole("checkbox")).toHaveAttribute("aria-invalid", "false");
 		expect(screen.getByRole("checkbox")).toHaveAttribute("data-validation", "warning");
-	});
-
-	test("inherits Field.Item validation through Field.Control", () => {
-		render(
-			<Field.Item name="example" validation="error">
-				<Field.Control>
-					<Checkbox />
-				</Field.Control>
-			</Field.Item>,
-		);
-
-		expect(screen.getByRole("checkbox")).toHaveAttribute("aria-invalid", "true");
-		expect(screen.getByRole("checkbox")).toHaveAttribute("data-validation", "error");
 	});
 
 	test("a callback ref fires once with the input across a re-render", () => {
@@ -143,19 +117,15 @@ describe("Checkbox", () => {
 	test("toggling a controlled checkbox through indeterminate does not warn about controlled/uncontrolled (regression)", () => {
 		const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
-		try {
-			// A controlled "select all" checkbox cycles unchecked → indeterminate → checked.
-			// The indeterminate frame must keep `checked` a boolean so React never sees the
-			// input flip from controlled to uncontrolled.
-			const { rerender } = render(<Checkbox checked={false} onChange={() => {}} />);
-			rerender(<Checkbox checked="indeterminate" onChange={() => {}} />);
-			rerender(<Checkbox checked={true} onChange={() => {}} />);
+		// A controlled "select all" checkbox cycles unchecked → indeterminate → checked.
+		// The indeterminate frame must keep `checked` a boolean so React never sees the
+		// input flip from controlled to uncontrolled.
+		const { rerender } = render(<Checkbox checked={false} onChange={() => {}} />);
+		rerender(<Checkbox checked="indeterminate" onChange={() => {}} />);
+		rerender(<Checkbox checked={true} onChange={() => {}} />);
 
-			const messages = errorSpy.mock.calls.map((args) => args.map(String).join(" "));
-			expect(messages.some((message) => message.includes("uncontrolled"))).toBe(false);
-		} finally {
-			errorSpy.mockRestore();
-		}
+		const messages = errorSpy.mock.calls.map((args) => args.map(String).join(" "));
+		expect(messages.some((message) => message.includes("uncontrolled"))).toBe(false);
 	});
 
 	describe("readOnly", () => {

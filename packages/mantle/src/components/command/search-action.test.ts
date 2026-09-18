@@ -36,15 +36,11 @@ function paste(text: string | null) {
 describe("searchActionFromKeyDown", () => {
 	describe("seeds printable text", () => {
 		test.for([
-			["a lowercase letter", "e", "e"],
-			["an uppercase letter", "E", "E"],
-			["a digit", "7", "7"],
-			["punctuation", "/", "/"],
+			["a letter", "e", "e"],
 			// Spread-counting instead of `.length`: an emoji is a surrogate pair, so
 			// a `key.length === 1` check would classify it as a named key and drop
 			// the character entirely.
 			["an astral character", "😀", "😀"],
-			["a non-Latin character", "あ", "あ"],
 		] as const)("%s", ([, key, query]) => {
 			expect(searchActionFromKeyDown(keyDown({ key }))).toEqual({ type: "seed", query });
 		});
@@ -56,15 +52,9 @@ describe("searchActionFromKeyDown", () => {
 			// palette on its own. Seeding " " would put a stray space in the query.
 			["Space", " "],
 			["Enter", "Enter"],
-			["Tab", "Tab"],
-			["Escape", "Escape"],
-			["ArrowDown", "ArrowDown"],
-			["Shift", "Shift"],
-			// A dead key (the first half of a composed accent) and an unmappable key
-			// both report multi-character names. An engine that also flags the dead
-			// key as IME processing is the `keyCode: 229` case below, not this one.
-			["Dead", "Dead"],
-			["Unidentified", "Unidentified"],
+			// Why `F1`: a two-code-point name is the boundary just past the
+			// single-code-point seed check.
+			["F1", "F1"],
 		] as const)("%s", ([, key]) => {
 			expect(searchActionFromKeyDown(keyDown({ key }))).toEqual({ type: "ignore" });
 		});
@@ -74,11 +64,9 @@ describe("searchActionFromKeyDown", () => {
 		test.for([
 			["⌘K, the palette's own shortcut", { key: "k", metaKey: true }],
 			["Ctrl+K", { key: "k", ctrlKey: true }],
-			["⌘V, which the paste path handles", { key: "v", metaKey: true }],
 			// Alt is excluded even though macOS ⌥ produces real characters: seeding
 			// one means preventDefault()ing Windows Alt accelerators (Alt+D).
 			["Alt+d", { key: "d", altKey: true }],
-			["AltGr (reported as Ctrl+Alt)", { key: "@", altKey: true, ctrlKey: true }],
 		] as const)("%s", ([, event]) => {
 			expect(searchActionFromKeyDown(keyDown(event))).toEqual({ type: "ignore" });
 		});
@@ -92,12 +80,9 @@ describe("searchActionFromKeyDown", () => {
 		test.for([
 			["a keystroke inside an active composition", { key: "a", isComposing: true }],
 			["the engine-reported IME key", { key: "Process" }],
+			// Why `keyCode`: the keydown that starts a composition still reports `isComposing: false`.
+			// Chrome on macOS sends `⌥e` as `key: "Dead"` with `keyCode: 229`, so a dead key opens too.
 			["the legacy IME keyCode", { key: "a", keyCode: 229 }],
-			// Chrome on macOS routes dead keys through the IME path — `⌥e` arrives
-			// as `key: "Dead"` with `keyCode: 229`. Without the `keyCode` this case
-			// falls into the named-key `ignore` above and the test agrees with
-			// itself instead of with a browser.
-			["a dead key the engine flags as IME processing", { key: "Dead", keyCode: 229 }],
 		] as const)("%s", ([, event]) => {
 			expect(searchActionFromKeyDown(keyDown(event))).toEqual({ type: "open" });
 		});

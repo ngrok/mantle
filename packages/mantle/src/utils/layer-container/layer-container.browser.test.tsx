@@ -16,7 +16,8 @@ import { makeToast, Toaster } from "../../components/toast/toast.js";
  * `document.elementFromPoint`.
  *
  * Cross-file spelling pin: browser tests load no Tailwind, so this restates
- * the CSS the layering utilities emit (`fixed`, `z-50`, `z-60`, insets).
+ * the CSS the layering utilities and `Toaster` emit (`fixed`, `z-50`, `z-60`,
+ * `pointer-events-auto`, insets).
  * Radix mirrors each float content's computed z-index onto its popper wrapper,
  * so `.z-50` here engages the real stacking mechanism. If a component's tier
  * class changes, `layer-container.test.tsx`'s tier test catches the class; if
@@ -27,6 +28,7 @@ const STYLE = `
 .fixed { position: fixed; }
 .z-50 { z-index: 50; }
 .z-60 { z-index: 60; }
+.pointer-events-auto { pointer-events: auto; }
 .inset-0 { inset: 0px; }
 .inset-4 { inset: 16px; }
 .inset-y-0 { top: 0px; bottom: 0px; }
@@ -228,11 +230,11 @@ describe("paint order across layer tiers", () => {
 		}
 	});
 
-	test("toasts paint above the overlay tier", async () => {
+	test("toasts stay hit-testable above a modal dialog", async () => {
 		render(
 			<div>
 				<Toaster />
-				<Dialog.Root open modal={false}>
+				<Dialog.Root open>
 					<Dialog.Content appearance="full-bleed">
 						<Dialog.Title>Takeover</Dialog.Title>
 					</Dialog.Content>
@@ -241,13 +243,15 @@ describe("paint order across layer tiers", () => {
 		);
 
 		makeToast(<p>toast content</p>);
-		await screen.findByText("toast content");
+		const toastContent = await screen.findByText("toast content");
 
-		// Sonner injects its own stylesheet at runtime, so the viewport's
-		// computed z-index is real. It must clear the overlay tier.
-		const viewport = document.querySelector("[data-sonner-toaster]");
-		expect(viewport).not.toBeNull();
-		const viewportZ = Number(getComputedStyle(viewport as Element).zIndex);
-		expect(viewportZ).toBeGreaterThan(60);
+		// Why modal: a modal dialog sets `pointer-events: none` on `body`. Only the
+		// toaster's own `pointer-events-auto` keeps the toast the hit target above
+		// the overlay.
+		await waitFor(() => {
+			const topElement = topElementAt(toastContent);
+			expect(topElement).not.toBeNull();
+			expect(toastContent.contains(topElement)).toBe(true);
+		});
 	});
 });

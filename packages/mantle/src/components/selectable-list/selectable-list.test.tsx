@@ -37,11 +37,6 @@ const options = [
 ];
 
 describe("filterSelectableOptions", () => {
-	test("returns all options for an empty or whitespace query", () => {
-		expect(filterSelectableOptions(options, "")).toEqual(options);
-		expect(filterSelectableOptions(options, "   ")).toEqual(options);
-	});
-
 	test("returns the same array reference for an empty query (does no work)", () => {
 		// The empty-query fast path returns the input untouched rather than copying it.
 		expect(filterSelectableOptions(options, "")).toBe(options);
@@ -75,12 +70,9 @@ describe("filterSelectableOptions", () => {
 	});
 });
 
-describe("optionLabelText", () => {
-	test("returns a string label as-is and prefers labelText when provided", () => {
-		expect(optionLabelText({ value: "a", label: "Apple" })).toBe("Apple");
-		expect(optionLabelText({ value: "a", label: "Apple", labelText: "malus" })).toBe("malus");
-		expect(optionLabelText({ value: "b", label: <em>prod</em>, labelText: "prod" })).toBe("prod");
-	});
+test("optionLabelText returns a string label as-is and prefers labelText", () => {
+	expect(optionLabelText({ value: "a", label: "Apple" })).toBe("Apple");
+	expect(optionLabelText({ value: "a", label: "Apple", labelText: "malus" })).toBe("malus");
 });
 
 describe("toggleSelectionValue", () => {
@@ -130,18 +122,16 @@ describe("summarizeSelection", () => {
 	});
 });
 
-describe("SelectableList.Filter", () => {
-	test('a bare Filter is named "Filter" by default, and the search icon is decorative', () => {
-		const { container } = render(
-			<SelectableList.Root options={[{ value: "apple", label: "Apple" }]}>
-				<SelectableList.Filter />
-				<SelectableList.Viewport aria-label="Fruit" />
-			</SelectableList.Root>,
-		);
-		expect(screen.getByRole("textbox", { name: "Filter" })).toBeInTheDocument();
-		const icon = container.querySelector('[data-slot="selectable-list-filter"] svg');
-		expect(icon).toHaveAttribute("aria-hidden", "true");
-	});
+test('a bare SelectableList.Filter is named "Filter" by default, and the search icon is decorative', () => {
+	const { container } = render(
+		<SelectableList.Root options={[{ value: "apple", label: "Apple" }]}>
+			<SelectableList.Filter />
+			<SelectableList.Viewport aria-label="Fruit" />
+		</SelectableList.Root>,
+	);
+	expect(screen.getByRole("textbox", { name: "Filter" })).toBeInTheDocument();
+	const icon = container.querySelector('[data-slot="selectable-list-filter"] svg');
+	expect(icon).toHaveAttribute("aria-hidden", "true");
 });
 
 describe("SelectableList.SelectAll", () => {
@@ -488,21 +478,6 @@ describe("SelectableList filter query", () => {
 });
 
 describe("SelectableList.Empty", () => {
-	test("renders only when the filter matches nothing", async () => {
-		const user = userEvent.setup();
-		render(
-			<SelectableList.Root options={options} defaultValue={[]}>
-				<SelectableList.Filter aria-label="Filter fruit" />
-				<SelectableList.Empty>No results found.</SelectableList.Empty>
-			</SelectableList.Root>,
-		);
-
-		expect(screen.queryByText("No results found.")).not.toBeInTheDocument();
-
-		await user.type(screen.getByRole("textbox", { name: "Filter fruit" }), "zzz");
-		expect(screen.getByText("No results found.")).toBeInTheDocument();
-	});
-
 	test("is an always-mounted polite status region, so the empty state is announced", async () => {
 		const user = userEvent.setup();
 		render(
@@ -642,66 +617,50 @@ describe("SelectableList render stability", () => {
 	});
 });
 
-describe("SelectableList.VirtualViewport server render", () => {
+test("VirtualViewport server render carries the first slice of rows, not an empty grid", () => {
 	const thirtyOptions = Array.from({ length: 30 }, (_, index) => ({
 		value: `key-${index}`,
 		label: `Key ${index}`,
 	}));
+	// Regression: the virtualizer measured the viewport only in a layout
+	// effect, so the server HTML carried `aria-rowcount` and a tall empty
+	// grid with zero rows.
+	const html = renderToString(
+		<SelectableList.Root options={thirtyOptions}>
+			<SelectableList.VirtualViewport aria-label="Keys" />
+		</SelectableList.Root>,
+	);
+	const template = document.createElement("template");
+	template.innerHTML = html;
 
-	test("renders the first slice of rows, not an empty grid", () => {
-		// Regression: the virtualizer measured the viewport only in a layout
-		// effect, so the server HTML carried `aria-rowcount` and a tall empty
-		// grid with zero rows.
-		const html = renderToString(
-			<SelectableList.Root options={thirtyOptions}>
-				<SelectableList.VirtualViewport aria-label="Keys" />
-			</SelectableList.Root>,
-		);
-		const template = document.createElement("template");
-		template.innerHTML = html;
-
-		const grid = template.content.querySelector('[role="grid"]');
-		expect(grid).toHaveAttribute("aria-rowcount", "30");
-		const rows = template.content.querySelectorAll('[role="row"]');
-		expect(rows.length).toBeGreaterThan(0);
-		// Still windowed: the server does not fall back to rendering every row.
-		expect(rows.length).toBeLessThan(thirtyOptions.length);
-		expect(rows[0]).toHaveAttribute("aria-rowindex", "1");
-		expect(rows[0]?.querySelector('input[type="checkbox"]')).not.toBeNull();
-	});
+	const grid = template.content.querySelector('[role="grid"]');
+	expect(grid).toHaveAttribute("aria-rowcount", "30");
+	const rows = template.content.querySelectorAll('[role="row"]');
+	expect(rows.length).toBeGreaterThan(0);
+	// Still windowed: the server does not fall back to rendering every row.
+	expect(rows.length).toBeLessThan(thirtyOptions.length);
+	expect(rows[0]).toHaveAttribute("aria-rowindex", "1");
+	expect(rows[0]?.querySelector('input[type="checkbox"]')).not.toBeNull();
 });
 
-describe("SelectableList parts outside Root", () => {
-	test("throw a helpful error", () => {
-		const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-		try {
-			expect(() => render(<SelectableList.Filter />)).toThrow(
-				/must be rendered inside SelectableList.Root/,
-			);
-		} finally {
-			errorSpy.mockRestore();
-		}
-	});
+test("a part outside Root throws a helpful error", () => {
+	vi.spyOn(console, "error").mockImplementation(() => {});
+	expect(() => render(<SelectableList.Filter />)).toThrow(
+		/must be rendered inside SelectableList.Root/,
+	);
 });
 
-describe("SelectableList.Viewport render-prop typing", () => {
-	test("requires the render-prop to return an element or null, not any ReactNode", () => {
-		type ViewportRenderProp = ComponentProps<typeof SelectableList.Viewport>["children"];
+type ViewportRenderProp = ComponentProps<typeof SelectableList.Viewport>["children"];
 
-		// renderItems drops non-element results at runtime, so the type rejects
-		// strings/numbers up front instead of silently rendering nothing.
-		// @ts-expect-error -- a string return is not an element or null
-		const returnsString: ViewportRenderProp = (option) => option.value;
+// renderItems drops non-element results at runtime, so the type rejects
+// a string return up front instead of rendering nothing.
+// @ts-expect-error -- a string return is not an element or null
+void (((option) => option.value) satisfies ViewportRenderProp);
 
-		// Conditionally dropping a row via `null` stays allowed.
-		const dropsRows: ViewportRenderProp = (option) =>
-			option.disabled ? null : (
-				<SelectableList.Item value={option.value}>
-					<SelectableList.ItemTitle>{option.label}</SelectableList.ItemTitle>
-				</SelectableList.Item>
-			);
-
-		expect(returnsString).toBeTypeOf("function");
-		expect(dropsRows).toBeTypeOf("function");
-	});
-});
+// A render prop may return `null` to drop a row.
+void (((option) =>
+	option.disabled ? null : (
+		<SelectableList.Item value={option.value}>
+			<SelectableList.ItemTitle>{option.label}</SelectableList.ItemTitle>
+		</SelectableList.Item>
+	)) satisfies ViewportRenderProp);

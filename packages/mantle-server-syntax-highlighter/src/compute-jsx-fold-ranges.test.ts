@@ -1,8 +1,6 @@
-import type * as OxcParserModule from "oxc-parser";
+import * as oxcParser from "oxc-parser";
 import { describe, expect, test } from "vitest";
 import { computeJsxFoldRanges, createOxcParserLoader } from "./compute-jsx-fold-ranges.js";
-
-type OxcParser = typeof OxcParserModule;
 
 describe("createOxcParserLoader", () => {
 	test("caches load failures", () => {
@@ -19,14 +17,13 @@ describe("createOxcParserLoader", () => {
 
 	test("caches successful loads", () => {
 		let calls = 0;
-		const parser = {} as OxcParser;
 		const load = createOxcParserLoader(() => {
 			calls += 1;
-			return parser;
+			return oxcParser;
 		});
 
-		expect(load()).toBe(parser);
-		expect(load()).toBe(parser);
+		expect(load()).toBe(oxcParser);
+		expect(load()).toBe(oxcParser);
 		expect(calls).toBe(1);
 	});
 });
@@ -221,24 +218,22 @@ describe("computeJsxFoldRanges", () => {
 		});
 	});
 
-	describe("class bodies", () => {
-		test("folds a class body and method bodies inside it", () => {
-			const code = ["class Greeter {", "  greet(name) {", "    return name;", "  }", "}"].join(
-				"\n",
-			);
-			expect(computeJsxFoldRanges({ code, language: "javascript" })).toEqual([
-				{ id: "1", startLine: 1, endLine: 5 },
-				{ id: "2", startLine: 2, endLine: 4 },
-			]);
-		});
+	test("folds a class body and method bodies inside it", () => {
+		const code = ["class Greeter {", "  greet(name) {", "    return name;", "  }", "}"].join("\n");
+		expect(computeJsxFoldRanges({ code, language: "javascript" })).toEqual([
+			{ id: "1", startLine: 1, endLine: 5 },
+			{ id: "2", startLine: 2, endLine: 4 },
+		]);
 	});
 
-	describe("malformed sources", () => {
-		test("tolerates a syntax error and emits folds for the parts that did parse", () => {
-			// `oxc-parser` recovers from many errors and still returns a partial
-			// AST. We don't crash on partial input.
-			const code = ["function broken( {", "  a: 1", "}"].join("\n");
-			expect(() => computeJsxFoldRanges({ code, language: "javascript" })).not.toThrow();
-		});
+	test("emits folds for the parts that parse when the source has a syntax error", () => {
+		// Why this fixture: oxc-parser reports the mismatched closing tag and still
+		// returns the element, so the fold survives the error.
+		const code = ["<Foo>", "  <Bar />", "</Baz>"].join("\n");
+		const parsed = oxcParser.parseSync("fixture.tsx", code, { lang: "tsx" });
+		expect(parsed.errors.length).toBeGreaterThan(0);
+		expect(computeJsxFoldRanges({ code, language: "tsx" })).toEqual([
+			{ id: "1", startLine: 1, endLine: 3 },
+		]);
 	});
 });

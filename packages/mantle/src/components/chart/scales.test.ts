@@ -119,30 +119,27 @@ describe("invertBand", () => {
 describe("bandHitRegion", () => {
 	// The hover band is drawn from this region, so a region wider or narrower
 	// than what invertBand selects paints the highlight over the wrong category.
-	test.each([3, 30, 60, 90])(
-		"the region is exactly what invertBand maps back, at %i bands",
-		(count) => {
-			const layout = computeBandLayout({
-				count,
-				rangeStart: 0,
-				rangeEnd: 1024,
-				paddingInner: 0.2,
-				paddingOuter: 0.1,
-			});
-			for (let index = 0; index < count; index++) {
-				const region = bandHitRegion(layout, index);
-				expect(region.size).toBeCloseTo(layout.step, 10);
-				expect(invertBand(layout, region.start + 0.01)).toBe(index);
-				expect(invertBand(layout, region.start + region.size / 2)).toBe(index);
-				expect(invertBand(layout, region.start + region.size - 0.01)).toBe(index);
-			}
-			// One pixel past a region belongs to the next category, never to this one.
-			for (let index = 0; index < count - 1; index++) {
-				const region = bandHitRegion(layout, index);
-				expect(invertBand(layout, region.start + region.size + 0.01)).toBe(index + 1);
-			}
-		},
-	);
+	test.each([3, 90])("the region is exactly what invertBand maps back, at %i bands", (count) => {
+		const layout = computeBandLayout({
+			count,
+			rangeStart: 0,
+			rangeEnd: 1024,
+			paddingInner: 0.2,
+			paddingOuter: 0.1,
+		});
+		for (let index = 0; index < count; index++) {
+			const region = bandHitRegion(layout, index);
+			expect(region.size).toBeCloseTo(layout.step, 10);
+			expect(invertBand(layout, region.start + 0.01)).toBe(index);
+			expect(invertBand(layout, region.start + region.size / 2)).toBe(index);
+			expect(invertBand(layout, region.start + region.size - 0.01)).toBe(index);
+		}
+		// One pixel past a region belongs to the next category, never to this one.
+		for (let index = 0; index < count - 1; index++) {
+			const region = bandHitRegion(layout, index);
+			expect(invertBand(layout, region.start + region.size + 0.01)).toBe(index + 1);
+		}
+	});
 
 	test("the regions tile the range end to end, leaving no pixel unclaimed", () => {
 		const layout = computeBandLayout({

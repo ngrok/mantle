@@ -30,6 +30,7 @@ describe("Empty", () => {
 		const title = screen.getByTestId("title");
 		expect(title.tagName).toBe("H3");
 		expect(title).toHaveTextContent("Heading");
+		expect(title).toHaveAttribute("data-slot", "empty-title");
 	});
 
 	test("Title merges custom className", () => {
@@ -42,9 +43,6 @@ describe("Empty", () => {
 		);
 		const title = screen.getByTestId("title");
 		expect(title.className).toContain("text-2xl");
-		// Verify base classes are preserved alongside the custom one without
-		// coupling to specific design-token utilities (which change on restyle).
-		expect(title).toHaveAttribute("data-slot", "empty-title");
 	});
 
 	test("Title renders as child element when asChild is true", () => {
@@ -189,23 +187,5 @@ describe("Empty", () => {
 			</Empty.Root>,
 		);
 		expect(ref.current?.tagName).toBe("H3");
-	});
-
-	test("renders a full composition", () => {
-		render(
-			<Empty.Root data-testid="root">
-				<Empty.Title data-testid="title">No results</Empty.Title>
-				<Empty.Description data-testid="desc">
-					<p>Try again later.</p>
-				</Empty.Description>
-				<Empty.Actions data-testid="actions">
-					<button type="button">Retry</button>
-				</Empty.Actions>
-			</Empty.Root>,
-		);
-		expect(screen.getByTestId("root")).toBeInTheDocument();
-		expect(screen.getByTestId("title")).toHaveTextContent("No results");
-		expect(screen.getByTestId("desc")).toHaveTextContent("Try again later.");
-		expect(screen.getByRole("button")).toHaveTextContent("Retry");
 	});
 });

@@ -56,12 +56,10 @@ describe("projectPoint", () => {
 	});
 });
 
-describe("clampPitch", () => {
-	test("clamps within just under a quarter turn either way", () => {
-		expect(clampPitch(10)).toBeLessThan(Math.PI / 2);
-		expect(clampPitch(-10)).toBeGreaterThan(-Math.PI / 2);
-		expect(clampPitch(0.3)).toBe(0.3);
-	});
+test("clampPitch clamps within just under a quarter turn either way", () => {
+	expect(clampPitch(10)).toBeLessThan(Math.PI / 2);
+	expect(clampPitch(-10)).toBeGreaterThan(-Math.PI / 2);
+	expect(clampPitch(0.3)).toBe(0.3);
 });
 
 describe("normalizeToCube", () => {
@@ -76,13 +74,13 @@ describe("normalizeToCube", () => {
 	});
 });
 
-describe("cube geometry", () => {
-	test("8 corners, 12 edges, every edge endpoint in range", () => {
-		expect(CUBE_CORNERS).toHaveLength(8);
-		expect(CUBE_EDGES).toHaveLength(12);
-		for (const [from, to] of CUBE_EDGES) {
-			expect(from).toBeGreaterThanOrEqual(0);
-			expect(to).toBeLessThan(8);
-		}
-	});
+test("the cube has 8 corners, 12 edges, and every edge endpoint indexes a corner", () => {
+	expect(CUBE_CORNERS).toHaveLength(8);
+	expect(CUBE_EDGES).toHaveLength(12);
+	for (const [from, to] of CUBE_EDGES) {
+		expect(from).toBeGreaterThanOrEqual(0);
+		expect(from).toBeLessThan(CUBE_CORNERS.length);
+		expect(to).toBeGreaterThanOrEqual(0);
+		expect(to).toBeLessThan(CUBE_CORNERS.length);
+	}
 });

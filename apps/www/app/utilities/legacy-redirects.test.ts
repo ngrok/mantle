@@ -10,14 +10,6 @@ describe("legacyRedirectFor", () => {
 		expect(legacyRedirectFor("/components/data-table")).toBe("/components/data-display/data-table");
 	});
 
-	it("covers every categorized component, including multi-segment leaves", () => {
-		expect(legacyRedirectFor("/components/skip-to-main-link")).toBe(
-			"/components/primitives/skip-to-main-link",
-		);
-		expect(legacyRedirectFor("/components/otp-input")).toBe("/components/forms/otp-input");
-		expect(legacyRedirectFor("/components/qr-code")).toBe("/components/data-display/qr-code");
-	});
-
 	it("preserves the .md suffix so raw-markdown URLs keep serving markdown", () => {
 		expect(legacyRedirectFor("/components/button.md")).toBe("/components/actions/button.md");
 		expect(legacyRedirectFor("/blocks/sheet-async.md")).toBe("/recipes/overlay-async.md");

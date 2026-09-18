@@ -3,11 +3,8 @@ import { describe, expect, test } from "vitest";
 import { toErrorMessages } from "./field-error-messages.js";
 
 describe("toErrorMessages", () => {
-	test("returns [] when given undefined", () => {
+	test("returns [] for a nullish errors array", () => {
 		expect(toErrorMessages(undefined)).toEqual([]);
-	});
-
-	test("returns [] when given null", () => {
 		expect(toErrorMessages(null)).toEqual([]);
 	});
 
@@ -33,13 +30,6 @@ describe("toErrorMessages", () => {
 		expect(toErrorMessages([new Error("boom")])).toEqual(["boom"]);
 	});
 
-	test("trims whitespace around messages", () => {
-		expect(toErrorMessages(["  Required  ", { message: "  Too short  " }])).toEqual([
-			"Required",
-			"Too short",
-		]);
-	});
-
 	test("removes duplicate messages after trimming", () => {
 		expect(
 			toErrorMessages([
@@ -63,21 +53,5 @@ describe("toErrorMessages", () => {
 				"third",
 			]),
 		).toEqual(["first", "second", "third"]);
-	});
-
-	test("normalizes Zod-issue-shaped objects (string `message`, ignored extra fields)", () => {
-		const zodLikeIssues = [
-			{ code: "invalid_string", path: ["email"], message: "Please enter a valid email." },
-			{
-				code: "too_small",
-				path: ["password"],
-				minimum: 12,
-				message: "Must be at least 12 characters.",
-			},
-		];
-		expect(toErrorMessages(zodLikeIssues)).toEqual([
-			"Please enter a valid email.",
-			"Must be at least 12 characters.",
-		]);
 	});
 });

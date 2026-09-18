@@ -73,28 +73,6 @@ describe("Popover", () => {
 			expect(border).toHaveAttribute("vector-effect", "non-scaling-stroke");
 		});
 
-		test("relies on Popover.Content positioning itself", async () => {
-			const user = userEvent.setup();
-			render(
-				<Popover.Root>
-					<Popover.Trigger>Open</Popover.Trigger>
-					<Popover.Content>
-						<Popover.Arrow />
-					</Popover.Content>
-				</Popover.Root>,
-			);
-
-			await user.click(screen.getByRole("button", { name: "Open" }));
-
-			// A cross-element pin, asserted where both sides render together. The arrow's
-			// wrapper is absolutely positioned, so `Popover.Content` has to be its
-			// containing block — otherwise the open animation's `scale` becomes that
-			// containing block for one frame and the arrow lands 1px off. No Tailwind runs
-			// in either vitest project, so the class is the only observable form here;
-			// `popover.browser.test.tsx` measures the geometry it buys.
-			expect(await screen.findByRole("dialog")).toHaveClass("relative");
-		});
-
 		test("takes a consumer className and forwards arbitrary props", async () => {
 			const user = userEvent.setup();
 			render(
@@ -115,29 +93,27 @@ describe("Popover", () => {
 		});
 	});
 
-	describe("Content", () => {
-		test("opens on trigger click and closes on Escape, returning focus to the trigger", async () => {
-			const user = userEvent.setup();
-			render(
-				<Popover.Root>
-					<Popover.Trigger>Open</Popover.Trigger>
-					<Popover.Content>
-						<Popover.Arrow />
-						<p>Products moved up here</p>
-					</Popover.Content>
-				</Popover.Root>,
-			);
+	test("opens on trigger click and closes on Escape, returning focus to the trigger", async () => {
+		const user = userEvent.setup();
+		render(
+			<Popover.Root>
+				<Popover.Trigger>Open</Popover.Trigger>
+				<Popover.Content>
+					<Popover.Arrow />
+					<p>Products moved up here</p>
+				</Popover.Content>
+			</Popover.Root>,
+		);
 
-			const trigger = screen.getByRole("button", { name: "Open" });
-			expect(trigger).toHaveAttribute("aria-expanded", "false");
+		const trigger = screen.getByRole("button", { name: "Open" });
+		expect(trigger).toHaveAttribute("aria-expanded", "false");
 
-			await user.click(trigger);
-			expect(await screen.findByText("Products moved up here")).toBeInTheDocument();
-			expect(trigger).toHaveAttribute("aria-expanded", "true");
+		await user.click(trigger);
+		expect(await screen.findByText("Products moved up here")).toBeInTheDocument();
+		expect(trigger).toHaveAttribute("aria-expanded", "true");
 
-			await user.keyboard("{Escape}");
-			expect(screen.queryByText("Products moved up here")).not.toBeInTheDocument();
-			expect(trigger).toHaveFocus();
-		});
+		await user.keyboard("{Escape}");
+		expect(screen.queryByText("Products moved up here")).not.toBeInTheDocument();
+		expect(trigger).toHaveFocus();
 	});
 });

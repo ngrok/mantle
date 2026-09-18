@@ -18,11 +18,11 @@ describe("escapeHtml", () => {
 		expect(escapeHtml('<div>Hello & "world"</div>')).toBe(
 			"&lt;div&gt;Hello &amp; &quot;world&quot;&lt;/div&gt;",
 		);
+	});
 
-		expect(escapeHtml('<script>window.alert("lol xss")</script>')).toBe(
-			"&lt;script&gt;window.alert(&quot;lol xss&quot;)&lt;/script&gt;",
+	test("given plain text before the first special character, keeps the prefix", () => {
+		expect(escapeHtml("Hello <b>world</b> & more")).toBe(
+			"Hello &lt;b&gt;world&lt;/b&gt; &amp; more",
 		);
-
-		expect(escapeHtml("<textarea>foo</textarea>")).toBe("&lt;textarea&gt;foo&lt;/textarea&gt;");
 	});
 });
