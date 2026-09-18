@@ -19,6 +19,7 @@ import { rawMdxDocs } from "./vite-plugins/raw-mdx-docs.ts";
 import { rehypeMdxDocHandle } from "./vite-plugins/rehype-mdx-doc-handle.ts";
 import { remarkMdxDemoteLowercaseExports } from "./vite-plugins/remark-mdx-demote-lowercase-exports.ts";
 import { remarkMdxFrontmatterData } from "./vite-plugins/remark-mdx-frontmatter-data.ts";
+import { workspacePluginCacheKey } from "./vite-plugins/workspace-plugin-cache-key.ts";
 
 const codeBlockPlugins = mantleCodeBlockPlugins();
 
@@ -114,6 +115,15 @@ export default defineConfig(({ command }) => ({
 		// don't need the framework plugin — component tests render directly.
 		...(process.env.VITEST ? [] : [reactRouter()]),
 		reactCompiler(),
+		workspacePluginCacheKey([
+			"@ngrok/mantle-vite-plugins",
+			"@ngrok/mantle-server-syntax-highlighter",
+			// Why these subpaths: `mdxGeneratedCode` imports the theme scripts, and the two plugin
+			// packages leave these mantle imports external, so a mantle rebuild changes their output.
+			"@ngrok/mantle/theme",
+			"@ngrok/mantle/highlight-utils",
+			"@ngrok/mantle/types",
+		]),
 	],
 	// A spy or global stub a test installs and then fails to tear down leaks into every test that
 	// runs after it, turning an unrelated failure into a cascade and making results order-dependent.
@@ -124,6 +134,11 @@ export default defineConfig(({ command }) => ({
 		restoreMocks: true,
 		unstubEnvs: true,
 		unstubGlobals: true,
+		// Why: a run spends three quarters of its time in the MDX, React Compiler, and code-block
+		// transforms, so keeping their output in `node_modules/.vitest-cache` cuts a warm run from
+		// 17s to 7s. `workspacePluginCacheKey` folds the built workspace plugins into the key.
+		// Why not in CI: a fresh runner has nothing to read, so the run only pays the writes.
+		fsModuleCache: !(process.env.CI === "1" || /true/i.test(process.env.CI ?? "")),
 	},
 	resolve: {
 		// Ensure Mantle components resolve to source in dev mode (not dist)

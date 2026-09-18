@@ -27,8 +27,12 @@ _.path = ["{{config_root}}/node_modules/.bin"]
 DO_NOT_TRACK = "1"
 TURBO_TELEMETRY_DISABLED = "1"
 VERCEL_TELEMETRY_DISABLED = "1"
-TURBO_TEAM = "ngrok-frontend"
+# Why ngrok-dev: CI writes under the `TURBO_TEAM` repo variable, and a local read only hits
+# artifacts in the same team.
+TURBO_TEAM = "ngrok-dev"
 # Local runs may write local cache; CI is the sole remote writer for reproducibility.
+# The read-only host in turbo.json `remoteCache.apiUrl` takes the developer token from
+# `mise.local.toml` (see CONTRIBUTING.md). CI writes through turborepo-ci.corp.ngrok.com.
 TURBO_CACHE = "local:rw,remote:r"
 
 [tasks.install]
