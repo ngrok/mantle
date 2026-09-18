@@ -118,6 +118,11 @@ export default defineConfig(({ command }) => ({
 		workspacePluginCacheKey([
 			"@ngrok/mantle-vite-plugins",
 			"@ngrok/mantle-server-syntax-highlighter",
+			// Why these subpaths: `mdxGeneratedCode` imports the theme scripts, and the two plugin
+			// packages leave these mantle imports external, so a mantle rebuild changes their output.
+			"@ngrok/mantle/theme",
+			"@ngrok/mantle/highlight-utils",
+			"@ngrok/mantle/types",
 		]),
 	],
 	// A spy or global stub a test installs and then fails to tear down leaks into every test that
@@ -133,7 +138,7 @@ export default defineConfig(({ command }) => ({
 		// transforms, so keeping their output in `node_modules/.vitest-cache` cuts a warm run from
 		// 17s to 7s. `workspacePluginCacheKey` folds the built workspace plugins into the key.
 		// Why not in CI: a fresh runner has nothing to read, so the run only pays the writes.
-		fsModuleCache: !process.env.CI,
+		fsModuleCache: !(process.env.CI === "1" || /true/i.test(process.env.CI ?? "")),
 	},
 	resolve: {
 		// Ensure Mantle components resolve to source in dev mode (not dist)
