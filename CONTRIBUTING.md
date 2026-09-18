@@ -74,7 +74,7 @@ The turbo remote cache has two hosts. Both hosts serve one cache, so a local run
 | `turborepo.corp.ngrok.com`    | read-only  | the developer token: copy `TURBO_TOKEN` from the `mise.toml` in `ngrok-private/frontend` | local runs, through `remoteCache.apiUrl` in [`turbo.json`](./turbo.json) |
 | `turborepo-ci.corp.ngrok.com` | read-write | the CI token in the `TURBO_TOKEN` repo secret                                            | the workflows that set `TURBO_API`, which overrides `remoteCache.apiUrl` |
 
-This repo is public, so the developer token stays in `mise.local.toml`. Never commit either token. The read-only host answers a `PUT` with 403, and `TURBO_CACHE` in `mise.toml` keeps a local run from trying one.
+This repo is public, so the developer token stays in `mise.local.toml`. Never commit either token. The read-only host answers a `PUT` with 403, and `TURBO_CACHE` in `mise.toml` keeps a local run from trying one. `TURBO_TEAM` is `ngrok-dev` on both hosts: the `TURBO_TEAM` repo variable in CI and `mise.toml` locally.
 
 ### Manual Installation
 
