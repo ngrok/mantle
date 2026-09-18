@@ -1,6 +1,13 @@
 "use client";
 
-import * as TooltipPrimitive from "@radix-ui/react-tooltip";
+import {
+	Arrow as TooltipPrimitiveArrow,
+	Content as TooltipPrimitiveContent,
+	Portal as TooltipPrimitivePortal,
+	Provider as TooltipPrimitiveProvider,
+	Root as TooltipPrimitiveRoot,
+	Trigger as TooltipPrimitiveTrigger,
+} from "@radix-ui/react-tooltip";
 import type { ComponentProps, ComponentPropsWithoutRef } from "react";
 import { cx } from "../../utils/cx/cx.js";
 import { useLayerContainer } from "../../utils/layer-container/layer-container.js";
@@ -34,10 +41,10 @@ import { useLayerContainer } from "../../utils/layer-container/layer-container.j
 const TooltipProvider = ({
 	delayDuration = 0,
 	...props
-}: ComponentPropsWithoutRef<typeof TooltipPrimitive.Provider>) => (
+}: ComponentPropsWithoutRef<typeof TooltipPrimitiveProvider>) => (
 	// Why no `data-slot`: the Radix provider renders no DOM, so the attribute
 	// named an element that never existed.
-	<TooltipPrimitive.Provider delayDuration={delayDuration ?? 0} {...props} />
+	<TooltipPrimitiveProvider delayDuration={delayDuration ?? 0} {...props} />
 );
 
 /**
@@ -69,9 +76,9 @@ const TooltipProvider = ({
  * </Tooltip.Root>
  * ```
  */
-function Root(props: ComponentProps<typeof TooltipPrimitive.Root>) {
+function Root(props: ComponentProps<typeof TooltipPrimitiveRoot>) {
 	// Why no data-slot: the Radix Root renders no DOM, so an attribute never lands.
-	return <TooltipPrimitive.Root {...props} />;
+	return <TooltipPrimitiveRoot {...props} />;
 }
 
 /**
@@ -93,8 +100,8 @@ function Root(props: ComponentProps<typeof TooltipPrimitive.Root>) {
  * </Tooltip.Root>
  * ```
  */
-function Trigger(props: ComponentProps<typeof TooltipPrimitive.Trigger>) {
-	return <TooltipPrimitive.Trigger data-slot="tooltip-trigger" {...props} />;
+function Trigger(props: ComponentProps<typeof TooltipPrimitiveTrigger>) {
+	return <TooltipPrimitiveTrigger data-slot="tooltip-trigger" {...props} />;
 }
 
 /**
@@ -102,7 +109,7 @@ function Trigger(props: ComponentProps<typeof TooltipPrimitive.Trigger>) {
  * arrow next to `children`, so a slot would receive more than one element and
  * throw.
  */
-type TooltipContentProps = Omit<ComponentProps<typeof TooltipPrimitive.Content>, "asChild">;
+type TooltipContentProps = Omit<ComponentProps<typeof TooltipPrimitiveContent>, "asChild">;
 
 /**
  * The content to render inside the tooltip.
@@ -152,8 +159,8 @@ const Content = ({ children, className, ref, sideOffset = 4, ...props }: Tooltip
 	const layerContainer = useLayerContainer();
 
 	return (
-		<TooltipPrimitive.Portal container={layerContainer}>
-			<TooltipPrimitive.Content
+		<TooltipPrimitivePortal container={layerContainer}>
+			<TooltipPrimitiveContent
 				className={cx(
 					"bg-tooltip text-tooltip animate-in fade-in-0 zoom-in-95 data-side-bottom:slide-in-from-top-2 data-side-left:slide-in-from-right-2 data-side-right:slide-in-from-left-2 data-side-top:slide-in-from-bottom-2 data-state-closed:animate-out data-state-closed:fade-out-0 data-state-closed:zoom-out-95 z-50 max-w-72 overflow-visible wrap-break-word rounded-md px-3 py-1.5 text-sm font-sans shadow",
 					className,
@@ -169,11 +176,11 @@ const Content = ({ children, className, ref, sideOffset = 4, ...props }: Tooltip
 				<div data-slot="tooltip-label" className="contents">
 					{children}
 				</div>
-				<TooltipPrimitive.Arrow asChild>
+				<TooltipPrimitiveArrow asChild>
 					<div className="bg-tooltip z-50 size-2.5 translate-y-[calc(-50%-2px)] rotate-45 rounded-xs" />
-				</TooltipPrimitive.Arrow>
-			</TooltipPrimitive.Content>
-		</TooltipPrimitive.Portal>
+				</TooltipPrimitiveArrow>
+			</TooltipPrimitiveContent>
+		</TooltipPrimitivePortal>
 	);
 };
 

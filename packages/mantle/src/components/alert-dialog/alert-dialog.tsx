@@ -9,7 +9,16 @@ import { cx } from "../../utils/cx/cx.js";
 import { LayerContainer } from "../../utils/layer-container/layer-container.js";
 import { Button, type ButtonAppearance, type ButtonProps } from "../button/button.js";
 import type { ButtonIntent } from "../button/intents.js";
-import * as AlertDialogPrimitive from "../dialog/primitive.js";
+import {
+	Close as AlertDialogPrimitiveClose,
+	Content as AlertDialogPrimitiveContent,
+	Description as AlertDialogPrimitiveDescription,
+	Overlay as AlertDialogPrimitiveOverlay,
+	Portal as AlertDialogPrimitivePortal,
+	Root as AlertDialogPrimitiveRoot,
+	Title as AlertDialogPrimitiveTitle,
+	Trigger as AlertDialogPrimitiveTrigger,
+} from "../dialog/primitive.js";
 import { SvgOnly } from "../icon/svg-only.js";
 import type { SvgAttributes } from "../icon/types.js";
 import { Slot } from "../slot/index.js";
@@ -29,7 +38,7 @@ function useAlertDialogContext() {
 	return context;
 }
 
-type AlertDialogProps = ComponentProps<typeof AlertDialogPrimitive.Root> & {
+type AlertDialogProps = ComponentProps<typeof AlertDialogPrimitiveRoot> & {
 	/**
 	 * The intent of the AlertDialog — the tone its color communicates to the
 	 * user, affecting the color and styling of descendants like
@@ -86,7 +95,7 @@ function Root({ intent, ...props }: AlertDialogProps) {
 
 	return (
 		<AlertDialogContext.Provider value={context}>
-			<AlertDialogPrimitive.Root {...props} />
+			<AlertDialogPrimitiveRoot {...props} />
 		</AlertDialogContext.Provider>
 	);
 }
@@ -126,8 +135,8 @@ function Root({ intent, ...props }: AlertDialogProps) {
  * </AlertDialog.Root>
  * ```
  */
-const Trigger = ({ ref, ...props }: ComponentProps<typeof AlertDialogPrimitive.Trigger>) => (
-	<AlertDialogPrimitive.Trigger ref={ref} data-slot="alert-dialog-trigger" {...props} />
+const Trigger = ({ ref, ...props }: ComponentProps<typeof AlertDialogPrimitiveTrigger>) => (
+	<AlertDialogPrimitiveTrigger ref={ref} data-slot="alert-dialog-trigger" {...props} />
 );
 
 /**
@@ -136,7 +145,7 @@ const Trigger = ({ ref, ...props }: ComponentProps<typeof AlertDialogPrimitive.T
  *
  * @private
  */
-const AlertDialogPortal = AlertDialogPrimitive.Portal;
+const AlertDialogPortal = AlertDialogPrimitivePortal;
 
 /**
  * A layer that covers the inert portion of the view when the dialog is open.
@@ -147,8 +156,8 @@ const AlertDialogOverlay = ({
 	className,
 	ref,
 	...props
-}: ComponentProps<typeof AlertDialogPrimitive.Overlay>) => (
-	<AlertDialogPrimitive.Overlay
+}: ComponentProps<typeof AlertDialogPrimitiveOverlay>) => (
+	<AlertDialogPrimitiveOverlay
 		data-slot="alert-dialog-overlay"
 		className={cx(
 			"data-state-open:animate-in data-state-closed:animate-out data-state-closed:fade-out-0 data-state-open:fade-in-0 bg-overlay fixed inset-0 z-60 backdrop-blur-xs",
@@ -159,7 +168,7 @@ const AlertDialogOverlay = ({
 	/>
 );
 
-type AlertDialogContentProps = ComponentProps<typeof AlertDialogPrimitive.Content> & {
+type AlertDialogContentProps = ComponentProps<typeof AlertDialogPrimitiveContent> & {
 	/**
 	 * The preferred width of the `AlertDialogContent` as a tailwind `max-w-` class.
 	 *
@@ -235,7 +244,7 @@ const Content = ({
 			data-slot="alert-dialog-positioner"
 			className="fixed inset-4 z-60 flex items-center justify-center"
 		>
-			<AlertDialogPrimitive.Content
+			<AlertDialogPrimitiveContent
 				role="alertdialog"
 				data-slot="alert-dialog-content"
 				data-mantle-modal-content
@@ -458,8 +467,8 @@ const Footer = ({
  * </AlertDialog.Root>
  * ```
  */
-const Title = ({ className, ref, ...props }: ComponentProps<typeof AlertDialogPrimitive.Title>) => (
-	<AlertDialogPrimitive.Title
+const Title = ({ className, ref, ...props }: ComponentProps<typeof AlertDialogPrimitiveTitle>) => (
+	<AlertDialogPrimitiveTitle
 		ref={ref}
 		data-slot="alert-dialog-title"
 		className={cx("text-strong text-center text-lg font-medium sm:text-start", className)}
@@ -511,8 +520,8 @@ const Description = ({
 	className,
 	ref,
 	...props
-}: ComponentProps<typeof AlertDialogPrimitive.Description>) => (
-	<AlertDialogPrimitive.Description
+}: ComponentProps<typeof AlertDialogPrimitiveDescription>) => (
+	<AlertDialogPrimitiveDescription
 		ref={ref}
 		data-slot="alert-dialog-description"
 		className={cx("text-body text-center text-sm font-normal sm:text-start", className)}
@@ -677,7 +686,7 @@ const Cancel = ({
 	ref,
 	...props
 }: AlertDialogCancelProps) => (
-	<AlertDialogPrimitive.Close asChild>
+	<AlertDialogPrimitiveClose asChild>
 		<Button
 			appearance={appearance}
 			data-slot="alert-dialog-cancel"
@@ -686,7 +695,7 @@ const Cancel = ({
 			ref={ref}
 			{...props}
 		/>
-	</AlertDialogPrimitive.Close>
+	</AlertDialogPrimitiveClose>
 );
 
 type AlertDialogIconProps = Omit<SvgAttributes, "children"> & {
@@ -807,8 +816,8 @@ const Icon = ({ className, ref, svg, ...props }: AlertDialogIconProps) => {
  * </AlertDialog.Root>
  * ```
  */
-const Close = ({ ref, ...props }: ComponentProps<typeof AlertDialogPrimitive.Close>) => (
-	<AlertDialogPrimitive.Close ref={ref} data-slot="alert-dialog-close" {...props} />
+const Close = ({ ref, ...props }: ComponentProps<typeof AlertDialogPrimitiveClose>) => (
+	<AlertDialogPrimitiveClose ref={ref} data-slot="alert-dialog-close" {...props} />
 );
 
 /**

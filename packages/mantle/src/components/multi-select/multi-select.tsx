@@ -1,6 +1,24 @@
 "use client";
 
-import * as Primitive from "@ariakit/react";
+import {
+	Combobox as AriakitCombobox,
+	ComboboxGroup as AriakitComboboxGroup,
+	ComboboxGroupLabel as AriakitComboboxGroupLabel,
+	ComboboxItem as AriakitComboboxItem,
+	ComboboxItemCheck as AriakitComboboxItemCheck,
+	ComboboxPopover as AriakitComboboxPopover,
+	ComboboxProvider as AriakitComboboxProvider,
+	useComboboxContext as useAriakitComboboxContext,
+} from "@ariakit/react/combobox";
+import type {
+	ComboboxGroupLabelProps as AriakitComboboxGroupLabelProps,
+	ComboboxGroupProps as AriakitComboboxGroupProps,
+	ComboboxItemProps as AriakitComboboxItemProps,
+	ComboboxPopoverProps as AriakitComboboxPopoverProps,
+	ComboboxProps as AriakitComboboxProps,
+	ComboboxProviderProps as AriakitComboboxProviderProps,
+} from "@ariakit/react/combobox";
+import { useStoreState as useAriakitStoreState } from "@ariakit/react/store";
 import { CheckIcon } from "@phosphor-icons/react/Check";
 import { LockIcon } from "@phosphor-icons/react/Lock";
 import { XIcon } from "@phosphor-icons/react/X";
@@ -78,7 +96,7 @@ const TagBridgeContext = createContext<TagBridgeContextValue>({
 	setLockedValues: () => {},
 });
 
-type MultiSelectProps = Primitive.ComboboxProviderProps<string[]>;
+type MultiSelectProps = AriakitComboboxProviderProps<string[]>;
 
 /**
  * Root component for a multi-select combobox. Owns the selected values and the
@@ -131,12 +149,9 @@ const Root = ({ children, defaultSelectedValue = EMPTY_ARRAY, ...props }: MultiS
 		<TriggerRefContext.Provider value={triggerRef}>
 			<TagBridgeContext.Provider value={tagBridge}>
 				<LockedValuesContext.Provider value={lockedValues}>
-					<Primitive.ComboboxProvider<string[]>
-						defaultSelectedValue={defaultSelectedValue}
-						{...props}
-					>
+					<AriakitComboboxProvider<string[]> defaultSelectedValue={defaultSelectedValue} {...props}>
 						{children}
-					</Primitive.ComboboxProvider>
+					</AriakitComboboxProvider>
 				</LockedValuesContext.Provider>
 			</TagBridgeContext.Provider>
 		</TriggerRefContext.Provider>
@@ -179,7 +194,7 @@ const Trigger = ({
 }: MultiSelectTriggerProps) => {
 	const triggerRef = useContext(TriggerRefContext);
 	const { inputRef } = useContext(TagBridgeContext);
-	const store = Primitive.useComboboxContext();
+	const store = useAriakitComboboxContext();
 	const fieldValidation = useFieldValidation();
 	const { validation } = parseValidation({
 		"aria-invalid": _ariaInvalid,
@@ -456,8 +471,8 @@ const TagValues = ({
 	children,
 	lockedValues = EMPTY_ARRAY,
 }: MultiSelectTagValuesProps) => {
-	const store = Primitive.useComboboxContext();
-	const rawSelectedValue = Primitive.useStoreState(store, "selectedValue");
+	const store = useAriakitComboboxContext();
+	const rawSelectedValue = useAriakitStoreState(store, "selectedValue");
 	const selectedValues = isStringArray(rawSelectedValue) ? rawSelectedValue : undefined;
 	const selectedArray = selectedValues ?? EMPTY_ARRAY;
 	// Why a layout effect: the `requestAnimationFrame` callbacks below run after the
@@ -707,7 +722,7 @@ const TagValues = ({
 	);
 };
 
-type MultiSelectInputProps = Omit<Primitive.ComboboxProps, "render"> & {
+type MultiSelectInputProps = Omit<AriakitComboboxProps, "render"> & {
 	/**
 	 * Called with the raw string value whenever the input text changes.
 	 * Use this to drive external filtering (e.g. with matchSorter) without
@@ -756,15 +771,15 @@ const Input = ({
 	ref,
 	...props
 }: MultiSelectInputProps) => {
-	const store = Primitive.useComboboxContext();
+	const store = useAriakitComboboxContext();
 	const { onInputKeyDownRef, inputRef } = useContext(TagBridgeContext);
 	const fieldControl = useContext(FieldControlContext);
-	const rawSelectedValue = Primitive.useStoreState(store, "selectedValue");
+	const rawSelectedValue = useAriakitStoreState(store, "selectedValue");
 	const selectedValues = isStringArray(rawSelectedValue) ? rawSelectedValue : undefined;
 	const hasSelectedValues = (selectedValues?.length ?? 0) > 0;
 
 	return (
-		<Primitive.Combobox
+		<AriakitCombobox
 			autoSelect
 			data-slot="multi-select-input"
 			className={cx(
@@ -815,7 +830,7 @@ const Input = ({
 	);
 };
 
-type MultiSelectContentProps = Omit<Primitive.ComboboxPopoverProps, "render"> & WithAsChild;
+type MultiSelectContentProps = Omit<AriakitComboboxPopoverProps, "render"> & WithAsChild;
 
 /**
  * Renders a popover that contains multi-select content, such as items, groups,
@@ -911,7 +926,7 @@ const Content = ({
 	);
 
 	return (
-		<Primitive.ComboboxPopover
+		<AriakitComboboxPopover
 			data-slot="multi-select-content"
 			className={cx(
 				"border-popover bg-popover relative z-50 max-h-96 min-w-32 scrollbar overflow-y-scroll overflow-x-hidden overscroll-y-none rounded-md border shadow-md pt-1 pb-1 has-data-content-footer:pb-0 font-sans flex flex-col gap-px focus:outline-hidden",
@@ -931,7 +946,7 @@ const Content = ({
 			{...props}
 		>
 			{children}
-		</Primitive.ComboboxPopover>
+		</AriakitComboboxPopover>
 	);
 };
 
@@ -951,7 +966,7 @@ const renderItemLabel = (label: ReactNode) => (
 /**
  * Props for `MultiSelect.Item`.
  */
-type MultiSelectItemProps = Omit<Primitive.ComboboxItemProps, "render"> & WithAsChild;
+type MultiSelectItemProps = Omit<AriakitComboboxItemProps, "render"> & WithAsChild;
 
 /**
  * Renders a selectable item inside a `MultiSelect.Content` component.
@@ -1007,9 +1022,9 @@ const Item = ({
 	const isLocked = value != null && lockedValues.includes(value);
 
 	const check = (
-		<Primitive.ComboboxItemCheck className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
+		<AriakitComboboxItemCheck className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
 			<Icon svg={<CheckIcon weight="bold" />} className="size-4 text-accent-600" />
-		</Primitive.ComboboxItemCheck>
+		</AriakitComboboxItemCheck>
 	);
 
 	let content: ReactNode;
@@ -1039,7 +1054,7 @@ const Item = ({
 	}
 
 	return (
-		<Primitive.ComboboxItem
+		<AriakitComboboxItem
 			data-slot="multi-select-item"
 			className={cx(
 				"relative mx-1 cursor-pointer rounded-md pl-2 pr-8 py-1.5 text-strong text-sm font-normal flex min-w-0 items-center gap-2",
@@ -1066,11 +1081,11 @@ const Item = ({
 			{...props}
 		>
 			{content}
-		</Primitive.ComboboxItem>
+		</AriakitComboboxItem>
 	);
 };
 
-type MultiSelectGroupProps = Omit<Primitive.ComboboxGroupProps, "render"> & WithAsChild;
+type MultiSelectGroupProps = Omit<AriakitComboboxGroupProps, "render"> & WithAsChild;
 
 /**
  * Renders a group for MultiSelect.Item elements.
@@ -1096,7 +1111,7 @@ type MultiSelectGroupProps = Omit<Primitive.ComboboxGroupProps, "render"> & With
  */
 const Group = ({ asChild = false, children, ref, ...props }: MultiSelectGroupProps) => {
 	return (
-		<Primitive.ComboboxGroup
+		<AriakitComboboxGroup
 			data-slot="multi-select-group"
 			className="mx-1"
 			ref={ref}
@@ -1104,11 +1119,11 @@ const Group = ({ asChild = false, children, ref, ...props }: MultiSelectGroupPro
 			{...props}
 		>
 			{children}
-		</Primitive.ComboboxGroup>
+		</AriakitComboboxGroup>
 	);
 };
 
-type MultiSelectGroupLabelProps = Omit<Primitive.ComboboxGroupLabelProps, "render"> & WithAsChild;
+type MultiSelectGroupLabelProps = Omit<AriakitComboboxGroupLabelProps, "render"> & WithAsChild;
 
 /**
  * Renders a label in a multi-select group.
@@ -1139,7 +1154,7 @@ const GroupLabel = ({
 	...props
 }: MultiSelectGroupLabelProps) => {
 	return (
-		<Primitive.ComboboxGroupLabel
+		<AriakitComboboxGroupLabel
 			data-slot="multi-select-group-label"
 			className={cx("text-muted px-2 py-1 text-xs font-medium", className)}
 			ref={ref}
@@ -1147,7 +1162,7 @@ const GroupLabel = ({
 			{...props}
 		>
 			{children}
-		</Primitive.ComboboxGroupLabel>
+		</AriakitComboboxGroupLabel>
 	);
 };
 

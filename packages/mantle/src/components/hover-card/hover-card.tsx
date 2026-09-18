@@ -1,6 +1,12 @@
 "use client";
 
-import * as HoverCardPrimitive from "@radix-ui/react-hover-card";
+import {
+	Arrow as HoverCardPrimitiveArrow,
+	Content as HoverCardPrimitiveContent,
+	Portal as HoverCardPrimitivePortal,
+	Root as HoverCardPrimitiveRoot,
+	Trigger as HoverCardPrimitiveTrigger,
+} from "@radix-ui/react-hover-card";
 import type { ComponentProps } from "react";
 import { cx } from "../../utils/cx/cx.js";
 import {
@@ -39,8 +45,8 @@ const Root = ({
 	closeDelay = 300,
 	openDelay = 100,
 	...props
-}: ComponentProps<typeof HoverCardPrimitive.Root>) => (
-	<HoverCardPrimitive.Root closeDelay={closeDelay} openDelay={openDelay} {...props} />
+}: ComponentProps<typeof HoverCardPrimitiveRoot>) => (
+	<HoverCardPrimitiveRoot closeDelay={closeDelay} openDelay={openDelay} {...props} />
 );
 
 /**
@@ -62,8 +68,8 @@ const Root = ({
  * </HoverCard.Root>
  * ```
  */
-const Trigger = (props: ComponentProps<typeof HoverCardPrimitive.Trigger>) => (
-	<HoverCardPrimitive.Trigger data-slot="hover-card-trigger" {...props} />
+const Trigger = (props: ComponentProps<typeof HoverCardPrimitiveTrigger>) => (
+	<HoverCardPrimitiveTrigger data-slot="hover-card-trigger" {...props} />
 );
 
 /**
@@ -94,7 +100,7 @@ const Trigger = (props: ComponentProps<typeof HoverCardPrimitive.Trigger>) => (
  * </HoverCard.Root>
  * ```
  */
-const Portal = ({ container, ...props }: ComponentProps<typeof HoverCardPrimitive.Portal>) => {
+const Portal = ({ container, ...props }: ComponentProps<typeof HoverCardPrimitivePortal>) => {
 	const layerContainer = useLayerContainer();
 	const resolvedContainer = container ?? layerContainer;
 
@@ -103,7 +109,7 @@ const Portal = ({ container, ...props }: ComponentProps<typeof HoverCardPrimitiv
 	// subtree — otherwise the inner portal would ignore an explicit `container`.
 	return (
 		<LayerContainerContext.Provider value={resolvedContainer}>
-			<HoverCardPrimitive.Portal container={resolvedContainer} {...props} />
+			<HoverCardPrimitivePortal container={resolvedContainer} {...props} />
 		</LayerContainerContext.Provider>
 	);
 };
@@ -144,9 +150,9 @@ const Content = ({
 	align = "center",
 	sideOffset = 4,
 	...props
-}: ComponentProps<typeof HoverCardPrimitive.Content>) => (
+}: ComponentProps<typeof HoverCardPrimitiveContent>) => (
 	<Portal>
-		<HoverCardPrimitive.Content
+		<HoverCardPrimitiveContent
 			data-slot="hover-card-content"
 			align={align}
 			sideOffset={sideOffset}
@@ -173,7 +179,7 @@ const Content = ({
 );
 
 type HoverCardArrowProps = Omit<
-	ComponentProps<typeof HoverCardPrimitive.Arrow>,
+	ComponentProps<typeof HoverCardPrimitiveArrow>,
 	"asChild" | "children"
 >;
 
@@ -206,7 +212,7 @@ const Arrow = ({ className, height = 7, width = 14, ...props }: HoverCardArrowPr
 	// `HoverCard.Content`'s border. `HoverCardArrowProps` omits the prop, so restyle
 	// with `className` instead. The `asChild` below is mantle's own, and hands that
 	// shape to the primitive.
-	<HoverCardPrimitive.Arrow
+	<HoverCardPrimitiveArrow
 		aria-hidden="true"
 		asChild
 		data-slot="hover-card-arrow"
@@ -246,7 +252,7 @@ const Arrow = ({ className, height = 7, width = 14, ...props }: HoverCardArrowPr
 				vectorEffect="non-scaling-stroke"
 			/>
 		</svg>
-	</HoverCardPrimitive.Arrow>
+	</HoverCardPrimitiveArrow>
 );
 
 /**
