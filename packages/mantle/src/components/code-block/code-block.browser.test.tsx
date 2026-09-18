@@ -115,7 +115,6 @@ describe("CodeBlock (browser)", () => {
 	 */
 	const LAYOUT_STYLE = `
 		:root {
-			--background-color-base: rgb(16 16 20);
 			--mantle-code-line-number-width: 2rem;
 			--mantle-code-line-number-gap: 1rem;
 			--mantle-code-fold-gutter-width: 1.125rem;
@@ -158,19 +157,6 @@ describe("CodeBlock (browser)", () => {
 			flex-shrink: 0;
 			width: var(--mantle-code-line-number-width);
 			margin-right: var(--mantle-code-line-number-gap);
-		}
-		.mantle-code-line-number::before {
-			content: "";
-			position: absolute;
-			inset: 0 calc(-1 * var(--_gutter-overhang, var(--mantle-code-line-number-gap))) 0 0;
-			z-index: -1;
-			background-color: var(--background-color-base);
-		}
-		pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle) .mantle-code-line-number::before {
-			--_gutter-overhang: calc(
-				var(--mantle-code-line-number-gap) + var(--mantle-code-fold-gutter-width) +
-					var(--mantle-code-fold-gutter-gap)
-			);
 		}
 		pre[data-mantle-line-numbers="true"] .mantle-code-fold-toggle {
 			position: sticky;
@@ -360,7 +346,7 @@ describe("CodeBlock (browser)", () => {
 			expect(content.getBoundingClientRect().left).toBe(contentLeftBefore - 100);
 		});
 
-		test("fold toggles pin with the numbers and the backdrop masks the gutter", () => {
+		test("fold toggles pin with the line numbers while the code scrolls", () => {
 			render(
 				<div style={{ width: 340 }}>
 					<CodeBlock.Root>
@@ -377,10 +363,9 @@ describe("CodeBlock (browser)", () => {
 			);
 
 			const pre = getPre();
-			const number = pre.querySelector(".mantle-code-line-number");
 			const toggle = pre.querySelector(".mantle-code-fold-toggle");
-			if (number == null || toggle == null) {
-				throw new Error("expected a line number and fold toggle");
+			if (toggle == null) {
+				throw new Error("expected a fold toggle");
 			}
 
 			const preLeft = pre.getBoundingClientRect().left;
@@ -388,8 +373,6 @@ describe("CodeBlock (browser)", () => {
 
 			// Why 48px: the 2rem number column plus its 1rem gap.
 			expect(toggle.getBoundingClientRect().left - preLeft).toBe(48);
-			// The opaque backdrop that masks code scrolling under the gutter.
-			expect(getComputedStyle(number, "::before").backgroundColor).toBe("rgb(16, 16, 20)");
 		});
 	});
 });

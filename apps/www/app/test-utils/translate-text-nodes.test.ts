@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { expect, it } from "vitest";
 
 /**
  * `translateTextNodes` lives in `packages/mantle/src/test-utils/`, and
@@ -18,8 +18,6 @@ function read(relative: string) {
 	return readFileSync(fileURLToPath(new URL(relative, import.meta.url)), "utf8");
 }
 
-describe("translateTextNodes copy", () => {
-	it("is byte-identical to the mantle original", () => {
-		expect(read(COPY)).toBe(read(ORIGINAL));
-	});
+it("the translateTextNodes copy is byte-identical to the mantle original", () => {
+	expect(read(COPY)).toBe(read(ORIGINAL));
 });

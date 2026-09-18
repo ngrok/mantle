@@ -80,13 +80,13 @@ describe("DomainsListPage", () => {
 	it("renders the shell and one skeleton row per page row before the first response", () => {
 		renderPage();
 
-		expect(screen.getByRole("heading", { level: 1, name: "Domains" })).not.toBeNull();
-		expect(screen.getByRole("button", { name: "New domain" })).not.toBeNull();
-		expect(screen.getByRole("combobox", { name: "Region" })).not.toBeNull();
-		expect(screen.getByRole("combobox", { name: "Certificate" })).not.toBeNull();
-		expect(screen.getByRole("searchbox", { name: "Search domains" })).not.toBeNull();
+		expect(screen.queryByRole("heading", { level: 1, name: "Domains" })).not.toBeNull();
+		expect(screen.queryByRole("button", { name: "New domain" })).not.toBeNull();
+		expect(screen.queryByRole("combobox", { name: "Region" })).not.toBeNull();
+		expect(screen.queryByRole("combobox", { name: "Certificate" })).not.toBeNull();
+		expect(screen.queryByRole("searchbox", { name: "Search domains" })).not.toBeNull();
 		for (const header of columnHeaders) {
-			expect(screen.getByRole("columnheader", { name: header })).not.toBeNull();
+			expect(screen.queryByRole("columnheader", { name: header })).not.toBeNull();
 		}
 
 		// Eight skeleton rows for a page of eight, one skeleton per column, plus
@@ -135,7 +135,7 @@ describe("DomainsListPage", () => {
 		if (firstRow == null) {
 			throw new Error("expected a first data row");
 		}
-		expect(within(firstRow).getByText("api-1.ngrok.app")).not.toBeNull();
+		expect(within(firstRow).queryByText("api-1.ngrok.app")).not.toBeNull();
 
 		// The count line and the live region both carry the count.
 		expect(screen.getAllByText("Showing 8 of 1,284 domains")).toHaveLength(2);
@@ -159,7 +159,7 @@ describe("DomainsListPage", () => {
 		await settleRequests();
 
 		const table = screen.getByRole("table");
-		expect(within(table).getByText("No domains match the filters")).not.toBeNull();
+		expect(within(table).queryByText("No domains match the filters")).not.toBeNull();
 		expect(document.querySelector('[aria-busy="true"]')).toBeNull();
 		expect(screen.getByRole("status").textContent).toBe("No domains match the filters");
 
@@ -220,8 +220,8 @@ describe("DomainsListPage", () => {
 		await settleRequests();
 
 		const table = screen.getByRole("table");
-		expect(within(table).getByText("No domains yet")).not.toBeNull();
-		expect(within(table).getByRole("button", { name: "New domain" })).not.toBeNull();
+		expect(within(table).queryByText("No domains yet")).not.toBeNull();
+		expect(within(table).queryByRole("button", { name: "New domain" })).not.toBeNull();
 		expect(screen.getByRole("status").textContent).toBe("No domains yet");
 		expect(screen.getAllByText("Showing 0 of 0 domains")).toHaveLength(1);
 	});
@@ -231,18 +231,18 @@ describe("DomainsListPage", () => {
 		await settleRequests();
 
 		const table = screen.getByRole("table");
-		expect(within(table).getByText("Domains failed to load")).not.toBeNull();
+		expect(within(table).queryByText("Domains failed to load")).not.toBeNull();
 		expect(
-			within(table).getByText("The domains service returned 503 Service Unavailable."),
+			within(table).queryByText("The domains service returned 503 Service Unavailable."),
 		).not.toBeNull();
-		expect(within(table).getByRole("button", { name: "Retry" })).not.toBeNull();
+		expect(within(table).queryByRole("button", { name: "Retry" })).not.toBeNull();
 		expect(screen.getByRole("status").textContent).toBe("Domains failed to load");
 
 		// The shell never left: the column headers and the filters are still in place.
 		for (const header of columnHeaders) {
-			expect(screen.getByRole("columnheader", { name: header })).not.toBeNull();
+			expect(screen.queryByRole("columnheader", { name: header })).not.toBeNull();
 		}
-		expect(screen.getByRole("combobox", { name: "Region" })).not.toBeNull();
+		expect(screen.queryByRole("combobox", { name: "Region" })).not.toBeNull();
 	});
 });
 
@@ -252,8 +252,8 @@ describe("ListPageLoadingDemo", () => {
 		renderDemo();
 		await settleRequests();
 
-		expect(screen.getByRole("main")).not.toBeNull();
-		expect(screen.getByRole("combobox", { name: "Demo scenario" })).not.toBeNull();
+		expect(screen.queryByRole("main")).not.toBeNull();
+		expect(screen.queryByRole("combobox", { name: "Demo scenario" })).not.toBeNull();
 		expect(countSkeletons()).toBe(0);
 
 		await user.click(screen.getByRole("button", { name: "Replay load" }));

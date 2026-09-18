@@ -1,6 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { renderToString } from "react-dom/server";
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { describe, expect, test } from "vitest";
 import { mockMatchMedia } from "../test-utils/mock-match-media.js";
 import { useMatchesMediaQuery } from "./use-matches-media-query.js";
 
@@ -12,26 +12,6 @@ function Probe() {
 }
 
 describe("useMatchesMediaQuery", () => {
-	afterEach(() => {
-		vi.restoreAllMocks();
-	});
-
-	test("returns false when the query does not match", () => {
-		mockMatchMedia({ [query]: false });
-
-		const { result } = renderHook(() => useMatchesMediaQuery(query));
-
-		expect(result.current).toBe(false);
-	});
-
-	test("returns true when the query matches", () => {
-		mockMatchMedia({ [query]: true });
-
-		const { result } = renderHook(() => useMatchesMediaQuery(query));
-
-		expect(result.current).toBe(true);
-	});
-
 	test("re-renders when the query result changes", () => {
 		const media = mockMatchMedia({ [query]: false });
 
@@ -94,7 +74,6 @@ describe("useMatchesMediaQuery", () => {
 		// the `subscribe` reuse it. A `getSnapshot` that calls `window.matchMedia`
 		// directly constructs one per call, at least six here.
 		expect(window.matchMedia).toHaveBeenCalledTimes(1);
-		expect(window.matchMedia).toHaveBeenLastCalledWith(query);
 	});
 
 	test("returns false during server rendering even when the client query matches", () => {

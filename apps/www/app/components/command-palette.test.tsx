@@ -44,10 +44,10 @@ describe("CommandPalette", () => {
 		renderPalette();
 		await openPalette();
 
-		expect(screen.getByText("Welcome")).toBeTruthy();
-		expect(screen.getByText("Components: Navigation")).toBeTruthy();
-		expect(screen.getByText("Recipes")).toBeTruthy();
-		expect(screen.getByRole("option", { name: /Overview & Setup/ })).toBeTruthy();
+		expect(screen.queryByText("Welcome")).not.toBeNull();
+		expect(screen.queryByText("Components: Navigation")).not.toBeNull();
+		expect(screen.queryByText("Recipes")).not.toBeNull();
+		expect(screen.queryByRole("option", { name: /Overview & Setup/ })).not.toBeNull();
 		expect(screen.getByRole("option", { name: /Route Announcer/ }).getAttribute("href")).toBe(
 			"/recipes/route-announcer",
 		);
@@ -61,6 +61,9 @@ describe("CommandPalette", () => {
 	it("renders search results in ranked order with the best match first", async () => {
 		renderPalette();
 		const input = await openPalette();
+
+		// Why the browse check: if the same query cannot match, the absence assertion below never fails.
+		expect(screen.queryByText("Tailwind Variants")).not.toBeNull();
 
 		fireEvent.change(input, { target: { value: "tabs" } });
 
@@ -85,7 +88,7 @@ describe("CommandPalette", () => {
 		fireEvent.keyDown(input, { key: "Enter" });
 
 		await waitFor(() => {
-			expect(screen.getByText("Tabs docs page")).toBeTruthy();
+			expect(screen.queryByText("Tabs docs page")).not.toBeNull();
 		});
 		expect(screen.queryByPlaceholderText("Search Mantle...")).toBeNull();
 	});
@@ -115,11 +118,15 @@ describe("CommandPalette", () => {
 
 		fireEvent.click(repoOption);
 
-		expect(openSpy).toHaveBeenCalledWith("https://github.com/ngrok/mantle", "_blank", "noopener");
+		expect(openSpy).toHaveBeenCalledTimes(1);
+		expect(openSpy).toHaveBeenLastCalledWith(
+			"https://github.com/ngrok/mantle",
+			"_blank",
+			"noopener",
+		);
 		await waitFor(() => {
 			expect(screen.queryByPlaceholderText("Search Mantle...")).toBeNull();
 		});
-		openSpy.mockRestore();
 	});
 
 	it("badges preview components inline in search results", async () => {
@@ -148,7 +155,7 @@ describe("CommandPalette", () => {
 		fireEvent.change(input, { target: { value: " " } });
 
 		await waitFor(() => {
-			expect(screen.getByText("Welcome")).toBeTruthy();
+			expect(screen.queryByText("Welcome")).not.toBeNull();
 		});
 		expect(document.querySelectorAll("[data-slot='command-separator']").length).toBe(
 			separatorCount,
@@ -162,7 +169,7 @@ describe("CommandPalette", () => {
 		fireEvent.change(input, { target: { value: "xyzzyplugh" } });
 
 		await waitFor(() => {
-			expect(screen.getByText("No results found.")).toBeTruthy();
+			expect(screen.queryByText("No results found.")).not.toBeNull();
 		});
 	});
 
@@ -183,7 +190,7 @@ describe("CommandPalette", () => {
 
 		expect(notPrevented).toBe(false);
 		await waitFor(() => {
-			expect(screen.getByPlaceholderText("Search Mantle...")).toBeTruthy();
+			expect(screen.queryByPlaceholderText("Search Mantle...")).not.toBeNull();
 		});
 	});
 
@@ -203,6 +210,6 @@ describe("CommandPalette", () => {
 			throw new Error("expected the palette input to be an input element");
 		}
 		expect(reopenedInput.value).toBe("");
-		expect(screen.getByText("Welcome")).toBeTruthy();
+		expect(screen.queryByText("Welcome")).not.toBeNull();
 	});
 });

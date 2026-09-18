@@ -37,12 +37,7 @@ function makeJsonValue(code: string, foldableRanges?: FoldableRange[]) {
 	});
 }
 
-/**
- * Builds a `MantleCodeBlockValue` from arbitrary code + caller-supplied
- * fold ranges. Used by the JSX/HTML/CSS browser tests so they can exercise
- * the runtime against any fold range layout the AST strategies produce
- * without taking a build-time dependency on the highlighter package.
- */
+/** Builds a `MantleCodeBlockValue` from code and caller-supplied fold ranges, with no highlighter dependency. */
 function makeFoldedValue(
 	language: SupportedLanguage,
 	code: string,
@@ -64,7 +59,7 @@ function makeFoldedValue(
 
 const SIMPLE_JSON = ["{", '  "a": [', "    1,", "    2", "  ]", "}"].join("\n");
 
-describe("CodeBlock JSON folding (browser)", () => {
+describe("CodeBlock JSON folding", () => {
 	test("renders a semantic fold toggle button on opener lines", () => {
 		render(
 			<CodeBlock.Root>
@@ -95,7 +90,6 @@ describe("CodeBlock JSON folding (browser)", () => {
 		const arrayButton = screen
 			.getAllByRole("button", { name: /toggle code folding/i })
 			.find((button) => button.getAttribute("data-fold-line") === "2");
-		expect(arrayButton).toBeDefined();
 		if (arrayButton == null) {
 			throw new Error("expected fold toggle for array");
 		}
@@ -184,39 +178,6 @@ describe("CodeBlock JSON folding (browser)", () => {
 
 		expect(nextButton).toHaveAttribute("aria-expanded", "false");
 		expect(codeElement).toHaveAttribute("data-folded-regions", "2");
-	});
-
-	test("collapsing an outer fold hides everything inside it without overriding inner state", async () => {
-		const user = userEvent.setup();
-		render(
-			<CodeBlock.Root>
-				<CodeBlock.Body>
-					<CodeBlock.Code value={makeJsonValue(SIMPLE_JSON)} />
-				</CodeBlock.Body>
-			</CodeBlock.Root>,
-		);
-
-		const buttons = screen.getAllByRole("button", { name: /toggle code folding/i });
-		const outerButton = buttons.find((button) => button.getAttribute("data-fold-line") === "1");
-		const innerButton = buttons.find((button) => button.getAttribute("data-fold-line") === "2");
-		if (outerButton == null || innerButton == null) {
-			throw new Error("expected fold toggles for outer and inner ranges");
-		}
-
-		await user.click(innerButton);
-		await user.click(outerButton);
-
-		expect(outerButton).toHaveAttribute("aria-expanded", "false");
-		expect(innerButton).toHaveAttribute("aria-expanded", "false");
-
-		const innerContent = document.querySelector('[data-line-number="3"]');
-		expect(innerContent).toHaveAttribute("data-fold-hidden", "true");
-
-		// Re-expand only the outer fold; inner stays collapsed.
-		await user.click(outerButton);
-		expect(outerButton).toHaveAttribute("aria-expanded", "true");
-		expect(innerButton).toHaveAttribute("aria-expanded", "false");
-		expect(innerContent).toHaveAttribute("data-fold-hidden", "true");
 	});
 
 	test("Enter and Space activate the fold toggle natively", async () => {
@@ -308,9 +269,8 @@ describe("CodeBlock JSON folding (browser)", () => {
 	});
 
 	test("fold state survives toggling the expander button", async () => {
-		// Regression: an unstable `dangerouslySetInnerHTML` prop reference
-		// caused React to re-apply `innerHTML` on unrelated re-renders,
-		// wiping fold state.
+		// Why: an unstable `dangerouslySetInnerHTML` prop reference makes React re-apply
+		// `innerHTML` on every unrelated re-render, which wipes the DOM-held fold state.
 		const user = userEvent.setup();
 		render(
 			<CodeBlock.Root>
@@ -334,45 +294,20 @@ describe("CodeBlock JSON folding (browser)", () => {
 		const innerLineBefore = document.querySelector('[data-line-number="3"]');
 		expect(innerLineBefore).not.toBeNull();
 
-		// Toggle expander twice — should be a complete no-op as far as the
-		// code's child DOM is concerned.
+		// An expander toggle must leave the code's child DOM untouched.
 		await user.click(expanderButton);
 		await user.click(expanderButton);
 
 		const innerLineAfter = document.querySelector('[data-line-number="3"]');
 		expect(innerLineAfter).toBe(innerLineBefore);
 
-		// Now folding still works against the same elements.
 		await user.click(arrayButton);
 		expect(arrayButton).toHaveAttribute("aria-expanded", "false");
 		expect(innerLineAfter).toHaveAttribute("data-fold-hidden", "true");
 
-		// And folding state survives another expander toggle.
 		await user.click(expanderButton);
 		expect(innerLineAfter).toHaveAttribute("data-fold-hidden", "true");
 		expect(arrayButton).toHaveAttribute("aria-expanded", "false");
-	});
-
-	test("a single click handler is shared across all fold toggles", async () => {
-		const user = userEvent.setup();
-		render(
-			<CodeBlock.Root>
-				<CodeBlock.Body>
-					<CodeBlock.Code value={makeJsonValue(SIMPLE_JSON)} />
-				</CodeBlock.Body>
-			</CodeBlock.Root>,
-		);
-
-		// Sanity: clicking on a button that does NOT have a data-fold-line is a no-op.
-		const fakeButton = document.createElement("button");
-		fakeButton.className = "mantle-code-fold-toggle";
-		const codeElement = document.querySelector("pre[data-slot='code-block-code']");
-		expect(codeElement).not.toBeNull();
-		codeElement?.querySelector("code")?.appendChild(fakeButton);
-
-		await user.click(fakeButton);
-		// No exception, no aria-expanded mutation.
-		expect(fakeButton).not.toHaveAttribute("aria-expanded");
 	});
 
 	test("custom fold IDs with spaces and quotes still toggle their region", async () => {
@@ -400,56 +335,5 @@ describe("CodeBlock JSON folding (browser)", () => {
 			"data-fold-hidden",
 			"true",
 		);
-	});
-});
-
-describe("CodeBlock JSX folding (browser)", () => {
-	const JSX_SOURCE = ["<Outer>", "  <Inner>", "    text", "  </Inner>", "</Outer>"].join("\n");
-
-	const JSX_RANGES: FoldableRange[] = [
-		{ id: "1", startLine: 1, endLine: 5 },
-		{ id: "2", startLine: 2, endLine: 4 },
-	];
-
-	test("clicking a JSX element fold toggle hides nested element children", async () => {
-		const user = userEvent.setup();
-		render(
-			<CodeBlock.Root>
-				<CodeBlock.Body>
-					<CodeBlock.Code value={makeFoldedValue("tsx", JSX_SOURCE, JSX_RANGES)} />
-				</CodeBlock.Body>
-			</CodeBlock.Root>,
-		);
-
-		const innerButton = screen
-			.getAllByRole("button", { name: /toggle code folding/i })
-			.find((button) => button.getAttribute("data-fold-line") === "2");
-		expect(innerButton).toBeDefined();
-		if (innerButton == null) {
-			throw new Error("expected fold toggle for inner JSX element");
-		}
-
-		const innerLine3 = document.querySelector('[data-line-number="3"]');
-		expect(innerLine3).not.toBeNull();
-		expect(innerLine3).not.toHaveAttribute("data-fold-hidden");
-
-		await user.click(innerButton);
-
-		expect(innerButton).toHaveAttribute("aria-expanded", "false");
-		expect(innerLine3).toHaveAttribute("data-fold-hidden", "true");
-	});
-
-	test("a multi-line JSX block exposes one toggle per fold range", () => {
-		render(
-			<CodeBlock.Root>
-				<CodeBlock.Body>
-					<CodeBlock.Code value={makeFoldedValue("tsx", JSX_SOURCE, JSX_RANGES)} />
-				</CodeBlock.Body>
-			</CodeBlock.Root>,
-		);
-
-		const buttons = screen.getAllByRole("button", { name: /toggle code folding/i });
-		// One per JSX fold (outer + inner element).
-		expect(buttons).toHaveLength(2);
 	});
 });

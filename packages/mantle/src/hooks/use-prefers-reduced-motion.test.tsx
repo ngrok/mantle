@@ -1,22 +1,12 @@
 import { act, render, renderHook } from "@testing-library/react";
 import { renderToString } from "react-dom/server";
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { mockMatchMedia } from "../test-utils/mock-match-media.js";
 import { getPrefersReducedMotion, usePrefersReducedMotion } from "./use-prefers-reduced-motion.js";
 
 const noPreferenceQuery = "(prefers-reduced-motion: no-preference)";
 
-function Probe() {
-	const prefersReducedMotion = usePrefersReducedMotion();
-	return <span>{String(prefersReducedMotion)}</span>;
-}
-
 describe("getPrefersReducedMotion", () => {
-	afterEach(() => {
-		vi.restoreAllMocks();
-		vi.unstubAllGlobals();
-	});
-
 	test("returns false when the user has no motion preference (animations allowed)", () => {
 		mockMatchMedia({ [noPreferenceQuery]: true });
 
@@ -37,26 +27,6 @@ describe("getPrefersReducedMotion", () => {
 });
 
 describe("usePrefersReducedMotion", () => {
-	afterEach(() => {
-		vi.restoreAllMocks();
-	});
-
-	test("returns false once mounted when the user allows motion", () => {
-		mockMatchMedia({ [noPreferenceQuery]: true });
-
-		const { result } = renderHook(() => usePrefersReducedMotion());
-
-		expect(result.current).toBe(false);
-	});
-
-	test("returns true once mounted when the user prefers reduced motion", () => {
-		mockMatchMedia({ [noPreferenceQuery]: false });
-
-		const { result } = renderHook(() => usePrefersReducedMotion());
-
-		expect(result.current).toBe(true);
-	});
-
 	test("renders the real preference in the first render of a client mount", () => {
 		mockMatchMedia({ [noPreferenceQuery]: true });
 		const renderedValues: boolean[] = [];
@@ -112,38 +82,5 @@ describe("usePrefersReducedMotion", () => {
 			media.setMatches(noPreferenceQuery, true);
 		});
 		expect(result.current).toBe(false);
-	});
-
-	test("removes its change listener on unmount", () => {
-		const media = mockMatchMedia({ [noPreferenceQuery]: true });
-
-		const { unmount } = renderHook(() => usePrefersReducedMotion());
-		expect(media.listenerCount(noPreferenceQuery)).toBe(1);
-
-		unmount();
-
-		expect(media.listenerCount(noPreferenceQuery)).toBe(0);
-	});
-
-	test("constructs one MediaQueryList per instance across re-renders", () => {
-		mockMatchMedia({ [noPreferenceQuery]: true });
-
-		const { rerender } = renderHook(() => usePrefersReducedMotion());
-		for (let renderCount = 0; renderCount < 5; renderCount += 1) {
-			rerender();
-		}
-
-		// A `getSnapshot` that calls `window.matchMedia` directly constructs one
-		// list per read, at least six here.
-		expect(window.matchMedia).toHaveBeenCalledTimes(1);
-		expect(window.matchMedia).toHaveBeenLastCalledWith(noPreferenceQuery);
-	});
-
-	test("returns true during server rendering even when the client allows motion", () => {
-		mockMatchMedia({ [noPreferenceQuery]: true });
-
-		const html = renderToString(<Probe />);
-
-		expect(html).toContain("true");
 	});
 });

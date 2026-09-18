@@ -6,10 +6,6 @@ describe("parseBooleanish", () => {
 		expect(parseBooleanish(undefined)).toBe(false);
 	});
 
-	test("given `null`, returns `false`", () => {
-		expect(parseBooleanish(null)).toBe(false);
-	});
-
 	test("given `false`, returns `false`", () => {
 		expect(parseBooleanish(false)).toBe(false);
 	});

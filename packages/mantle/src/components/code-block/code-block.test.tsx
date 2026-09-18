@@ -263,7 +263,8 @@ describe("CodeBlock", () => {
 
 			await user.click(button);
 
-			expect(onCopy).toHaveBeenCalledWith(code);
+			expect(onCopy).toHaveBeenCalledTimes(1);
+			expect(onCopy).toHaveBeenLastCalledWith(code);
 		});
 
 		test("announces 'Copied' through a live region after a copy", async () => {
@@ -337,7 +338,8 @@ describe("CodeBlock", () => {
 			const button = screen.getByRole("button", { name: /copy code/i });
 			await user.click(button);
 
-			expect(onCopy).toHaveBeenCalledWith(code);
+			expect(onCopy).toHaveBeenCalledTimes(1);
+			expect(onCopy).toHaveBeenLastCalledWith(code);
 		});
 
 		test("fires onCopyError when clipboard write fails", async () => {
@@ -416,7 +418,10 @@ describe("CodeBlock", () => {
 	});
 
 	describe("TabList", () => {
-		test("scrolls horizontally on overflow instead of wrapping", () => {
+		// Why the class: a cross-file spelling pin. `mantle.css` declares
+		// `@utility scroll-fade-x`, so a rename here alone drops the edge fade with
+		// every other test green.
+		test("carries the scroll-fade-x edge mask", () => {
 			render(
 				<CodeBlock.Root defaultTab="a">
 					<CodeBlock.Header>
@@ -428,17 +433,7 @@ describe("CodeBlock", () => {
 				</CodeBlock.Root>,
 			);
 
-			// The list is a scroll container with an edge fade rather than a wrapping row.
-			expect(screen.getByRole("tablist")).toHaveClass(
-				"scroll-fade-x",
-				"overflow-x-auto",
-				"min-w-0",
-			);
-
-			// Triggers keep their intrinsic width so labels never wrap under width pressure.
-			for (const tab of screen.getAllByRole("tab")) {
-				expect(tab).toHaveClass("shrink-0", "whitespace-nowrap");
-			}
+			expect(screen.getByRole("tablist")).toHaveClass("scroll-fade-x");
 		});
 	});
 

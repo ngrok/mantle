@@ -3,7 +3,7 @@ import type { ReactElement } from "react";
 import type { Root } from "react-dom/client";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
 import { ThemeProvider } from "../theme/theme-provider.js";
 import { resolvedThemes } from "../theme/themes.js";
@@ -47,44 +47,42 @@ function glyphOf(html: string): string | null {
 	return path == null ? null : path.getAttribute("d");
 }
 
-describe("AutoThemeIcon", () => {
-	afterEach(() => {
-		resetRootTheme();
+afterEach(() => {
+	resetRootTheme();
+});
+
+test("hydrates the stored theme's glyph when ThemeProvider gets ssrCookie", () => {
+	mockMatchMedia({});
+	document.cookie = `${THEME_COOKIE}=dark; path=/`;
+	const app = (
+		<ThemeProvider ssrCookie={`${THEME_COOKIE}=dark`}>
+			<AutoThemeIcon />
+		</ThemeProvider>
+	);
+	const container = document.createElement("div");
+	container.innerHTML = renderOnServer(app);
+	document.body.append(container);
+	const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+	const onRecoverableError = vi.fn<(error: unknown) => void>();
+
+	let root: Root | undefined;
+	act(() => {
+		root = hydrateRoot(container, app, { onRecoverableError });
 	});
 
-	test("hydrates the stored theme's glyph when ThemeProvider gets ssrCookie", () => {
-		mockMatchMedia({});
-		document.cookie = `${THEME_COOKIE}=dark; path=/`;
-		const app = (
-			<ThemeProvider ssrCookie={`${THEME_COOKIE}=dark`}>
-				<AutoThemeIcon />
-			</ThemeProvider>
-		);
-		const container = document.createElement("div");
-		container.innerHTML = renderOnServer(app);
-		document.body.append(container);
-		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
-		const onRecoverableError = vi.fn<(error: unknown) => void>();
+	const moonGlyph = glyphOf(renderToString(<ThemeIcon theme="dark" />));
+	const sunGlyph = glyphOf(renderToString(<ThemeIcon theme="light" />));
+	// Why the guard: a null glyph on both sides would make the equality below pass for nothing.
+	expect(moonGlyph).not.toBeNull();
+	expect(moonGlyph).not.toBe(sunGlyph);
 
-		let root: Root | undefined;
-		act(() => {
-			root = hydrateRoot(container, app, { onRecoverableError });
-		});
+	const hydratedPath = container.querySelector("path");
+	expect(hydratedPath == null ? null : hydratedPath.getAttribute("d")).toBe(moonGlyph);
+	expect(consoleError).toHaveBeenCalledTimes(0);
+	expect(onRecoverableError).toHaveBeenCalledTimes(0);
 
-		const moonGlyph = glyphOf(renderToString(<ThemeIcon theme="dark" />));
-		const sunGlyph = glyphOf(renderToString(<ThemeIcon theme="light" />));
-		// Why the guard: a null glyph on both sides would make the equality below pass for nothing.
-		expect(moonGlyph).not.toBeNull();
-		expect(moonGlyph).not.toBe(sunGlyph);
-
-		const hydratedPath = container.querySelector("path");
-		expect(hydratedPath == null ? null : hydratedPath.getAttribute("d")).toBe(moonGlyph);
-		expect(consoleError).toHaveBeenCalledTimes(0);
-		expect(onRecoverableError).toHaveBeenCalledTimes(0);
-
-		act(() => {
-			root?.unmount();
-		});
-		container.remove();
+	act(() => {
+		root?.unmount();
 	});
+	container.remove();
 });

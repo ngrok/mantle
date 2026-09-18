@@ -4,13 +4,12 @@ import { describe, expect, test, vi } from "vitest";
 import { Item as ListItem, Root as ListRoot } from "./primitive.js";
 
 /**
- * Focus the grid the way a Tab-in would. happy-dom's `focus()` moves
- * `document.activeElement` (so later keystrokes land on the grid) but does not
- * dispatch a focus event React's `onFocus` sees — fire it explicitly.
+ * Focus an element the way a Tab press does. happy-dom's `focus()` dispatches
+ * no focus event React's `onFocus` sees, so the helper fires one.
  */
-function focusGrid(grid: HTMLElement) {
-	grid.focus();
-	fireEvent.focus(grid);
+function focusViaTab(element: HTMLElement) {
+	element.focus();
+	fireEvent.focus(element);
 }
 
 /**
@@ -48,7 +47,7 @@ describe("List grid keyboard navigation edges", () => {
 		render(<Grid count={6} disabled={[0, 3, 5]} onActivate={onActivate} />);
 
 		const grid = screen.getByRole("grid", { name: "grid" });
-		focusGrid(grid);
+		focusViaTab(grid);
 		// Focus defaults to the first enabled row, skipping the disabled row 0.
 		expect(activeIndex()).toBe("1");
 
@@ -82,7 +81,7 @@ describe("List grid keyboard navigation edges", () => {
 		render(<Grid count={3} disabled={[0, 1, 2]} onActivate={onActivate} />);
 
 		const grid = screen.getByRole("grid", { name: "grid" });
-		focusGrid(grid);
+		focusViaTab(grid);
 		expect(activeIndex()).toBeNull();
 		expect(grid).not.toHaveAttribute("aria-activedescendant");
 
@@ -97,7 +96,7 @@ describe("List grid keyboard navigation edges", () => {
 		const view = render(<Grid count={5} onActivate={onActivate} />);
 
 		const grid = screen.getByRole("grid", { name: "grid" });
-		focusGrid(grid);
+		focusViaTab(grid);
 		await user.keyboard("{End}");
 		expect(activeIndex()).toBe("4");
 
@@ -115,33 +114,67 @@ describe("List grid keyboard navigation edges", () => {
 		await user.keyboard(" ");
 		expect(onActivate).toHaveBeenCalledExactlyOnceWith(0);
 	});
-});
 
-describe("List list-semantics arrow navigation", () => {
-	test("moves focus between asChild rows that are themselves the control", () => {
-		// Regression: `findItemControl` only searched a row's descendants, so an
-		// `asChild` row that *is* the focusable control (the docs' Polymorphism
-		// example — the row renders as an <a>) was never a navigation target.
+	test("Enter and Space on a focused nested tabbable control operate the control, not the row", async () => {
+		const user = userEvent.setup();
+		const onActivate = vi.fn<(index: number) => void>();
+		const onMenuAction = vi.fn<() => void>();
 		render(
-			<ListRoot semantics="list" aria-label="links">
-				<ListItem asChild>
-					<a href="#one">One</a>
+			<ListRoot semantics="grid" aria-label="grid" onActivate={onActivate}>
+				<ListItem>
+					<div role="gridcell">Item 0</div>
 				</ListItem>
-				<ListItem asChild>
-					<a href="#two">Two</a>
+				<ListItem>
+					<div role="gridcell">
+						<button type="button" onClick={onMenuAction}>
+							open menu
+						</button>
+					</div>
 				</ListItem>
 			</ListRoot>,
 		);
 
-		const first = screen.getByText("One");
-		const second = screen.getByText("Two");
-		first.focus();
-		fireEvent.keyDown(first, { key: "ArrowDown" });
-		expect(second).toHaveFocus();
+		const menuButton = screen.getByRole("button", { name: "open menu" });
+		focusViaTab(menuButton);
+		// Why pin the active row: with no active row, Enter is a no-op with or
+		// without the keydown bail for nested controls, so the assertions below
+		// cannot fail.
+		expect(activeIndex()).toBe("1");
+		expect(menuButton).toHaveFocus();
 
-		fireEvent.keyDown(second, { key: "ArrowUp" });
-		expect(first).toHaveFocus();
+		await user.keyboard("{Enter}");
+		expect(onMenuAction).toHaveBeenCalledTimes(1);
+		expect(onActivate).not.toHaveBeenCalled();
+
+		await user.keyboard(" ");
+		expect(onMenuAction).toHaveBeenCalledTimes(2);
+		expect(onActivate).not.toHaveBeenCalled();
 	});
+});
+
+test("list semantics moves focus between asChild rows that are themselves the control", () => {
+	// Regression: `findItemControl` only searched a row's descendants, so an
+	// `asChild` row that *is* the focusable control (the docs' Polymorphism
+	// example — the row renders as an <a>) was never a navigation target.
+	render(
+		<ListRoot semantics="list" aria-label="links">
+			<ListItem asChild>
+				<a href="#one">One</a>
+			</ListItem>
+			<ListItem asChild>
+				<a href="#two">Two</a>
+			</ListItem>
+		</ListRoot>,
+	);
+
+	const first = screen.getByText("One");
+	const second = screen.getByText("Two");
+	first.focus();
+	fireEvent.keyDown(first, { key: "ArrowDown" });
+	expect(second).toHaveFocus();
+
+	fireEvent.keyDown(second, { key: "ArrowUp" });
+	expect(first).toHaveFocus();
 });
 
 describe("List grid pointer activation", () => {
@@ -193,35 +226,33 @@ describe("List grid pointer activation", () => {
 	});
 });
 
-describe("List isItemDisabled", () => {
-	test("drives disabled state from data instead of row-element props", async () => {
-		const user = userEvent.setup();
-		const onActivate = vi.fn<(index: number) => void>();
-		render(
-			<ListRoot
-				semantics="grid"
-				aria-label="grid"
-				onActivate={onActivate}
-				isItemDisabled={(index) => index === 0}
-			>
-				<ListItem>
-					<div role="gridcell">Item 0</div>
-				</ListItem>
-				<ListItem>
-					<div role="gridcell">Item 1</div>
-				</ListItem>
-			</ListRoot>,
-		);
+test("isItemDisabled drives disabled state from data instead of row-element props", async () => {
+	const user = userEvent.setup();
+	const onActivate = vi.fn<(index: number) => void>();
+	render(
+		<ListRoot
+			semantics="grid"
+			aria-label="grid"
+			onActivate={onActivate}
+			isItemDisabled={(index) => index === 0}
+		>
+			<ListItem>
+				<div role="gridcell">Item 0</div>
+			</ListItem>
+			<ListItem>
+				<div role="gridcell">Item 1</div>
+			</ListItem>
+		</ListRoot>,
+	);
 
-		const grid = screen.getByRole("grid", { name: "grid" });
-		focusGrid(grid);
-		// No row element carries `disabled`; the callback alone makes navigation
-		// skip row 0 and default to row 1.
-		expect(activeIndex()).toBe("1");
+	const grid = screen.getByRole("grid", { name: "grid" });
+	focusViaTab(grid);
+	// No row element carries `disabled`; the callback alone makes navigation
+	// skip row 0 and default to row 1.
+	expect(activeIndex()).toBe("1");
 
-		await user.click(screen.getByText("Item 0"));
-		expect(onActivate).not.toHaveBeenCalled();
-	});
+	await user.click(screen.getByText("Item 0"));
+	expect(onActivate).not.toHaveBeenCalled();
 });
 
 describe("List grid row ids", () => {
@@ -229,7 +260,7 @@ describe("List grid row ids", () => {
 		render(<Grid count={2} />);
 
 		const grid = screen.getByRole("grid", { name: "grid" });
-		focusGrid(grid);
+		focusViaTab(grid);
 		const firstRow = document.querySelector("[role='row'][data-index='0']");
 		if (!(firstRow instanceof HTMLElement)) {
 			throw new Error("first row not found");
@@ -255,7 +286,7 @@ describe("List grid row ids", () => {
 		);
 
 		const grid = screen.getByRole("grid", { name: "grid" });
-		focusGrid(grid);
+		focusViaTab(grid);
 		expect(screen.getByRole("row")).toHaveAttribute("id", "consumer-row");
 		expect(grid).toHaveAttribute("aria-activedescendant", "ctrl-0");
 		expect(document.querySelectorAll("#ctrl-0")).toHaveLength(1);
@@ -298,17 +329,13 @@ describe("List semantics and attributes", () => {
 	});
 
 	test("ListItem outside a Root throws a helpful error", () => {
-		const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-		try {
-			expect(() =>
-				render(
-					<ListItem>
-						<button type="button">stray</button>
-					</ListItem>,
-				),
-			).toThrow(/must be composed inside List\.Root/);
-		} finally {
-			errorSpy.mockRestore();
-		}
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		expect(() =>
+			render(
+				<ListItem>
+					<button type="button">stray</button>
+				</ListItem>,
+			),
+		).toThrow(/must be composed inside List\.Root/);
 	});
 });

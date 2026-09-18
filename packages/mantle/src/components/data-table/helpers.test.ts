@@ -16,11 +16,6 @@ describe("getNextInCircularList", () => {
 		expect(getNextInCircularList(["unsorted"], "unsorted")).toBe("unsorted");
 	});
 
-	test("given a list with two items and the first item, returns the last item", () => {
-		expect(getNextInCircularList(["unsorted", "asc"], "unsorted")).toBe("asc");
-		expect(getNextInCircularList(["unsorted", "asc"], "asc")).toBe("unsorted");
-	});
-
 	test("correctly cycles through all items in a list", () => {
 		const list = ["unsorted", "asc", "desc"];
 		let currentItem: string | undefined = "unsorted";

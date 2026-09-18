@@ -45,12 +45,6 @@ function renderAlertDialog({
 }
 
 describe("AlertDialog", () => {
-	test("renders title and description when open", () => {
-		renderAlertDialog({ intent: "info" });
-		expect(screen.getByText("Are you sure?")).toBeInTheDocument();
-		expect(screen.getByText("This cannot be undone.")).toBeInTheDocument();
-	});
-
 	test("the content is an alertdialog named by its title and described by its description", () => {
 		renderAlertDialog({ intent: "danger" });
 		const dialog = screen.getByRole("alertdialog", { name: "Are you sure?" });
@@ -157,16 +151,6 @@ describe("AlertDialog", () => {
 	});
 
 	describe("intent", () => {
-		test("`intent` is required at the type level", () => {
-			const missingIntent = (
-				// @ts-expect-error -- intent is required on AlertDialog.Root
-				<AlertDialog.Root open>
-					<AlertDialog.Content />
-				</AlertDialog.Root>
-			);
-			expect(missingIntent).toBeDefined();
-		});
-
 		test(`Action derives a danger button from intent="danger"`, () => {
 			const { action } = renderAlertDialog({ intent: "danger" });
 			expect(action).toHaveAttribute("data-appearance", "filled");
@@ -191,3 +175,17 @@ describe("AlertDialog", () => {
 		});
 	});
 });
+
+/**
+ * Type-level contracts, owned by `pnpm typecheck` and not by a `test()`. A
+ * `@ts-expect-error` that compiles is the assertion; a runtime `expect` beside
+ * it reads as coverage the vitest run does not have.
+ */
+export function typeLevelContracts() {
+	return (
+		// @ts-expect-error -- intent is required on AlertDialog.Root
+		<AlertDialog.Root open>
+			<AlertDialog.Content />
+		</AlertDialog.Root>
+	);
+}

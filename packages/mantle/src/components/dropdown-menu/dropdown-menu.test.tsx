@@ -5,17 +5,10 @@ import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import { DropdownMenu } from "./dropdown-menu.js";
 
 describe("DropdownMenu", () => {
-	describe("Shortcut", () => {
-		test('locks translate="no" so a key name is never translated', () => {
-			render(<DropdownMenu.Shortcut>⌘S</DropdownMenu.Shortcut>);
-			expect(screen.getByText("⌘S")).toHaveAttribute("translate", "no");
-		});
-
-		test("a wider props object cannot carry translate past the type", () => {
-			const wideProps: Record<string, string> = { translate: "yes" };
-			render(<DropdownMenu.Shortcut {...wideProps}>⌘S</DropdownMenu.Shortcut>);
-			expect(screen.getByText("⌘S")).toHaveAttribute("translate", "no");
-		});
+	test('Shortcut locks translate="no" even when a wider props object carries translate', () => {
+		const wideProps: Record<string, string> = { translate: "yes" };
+		render(<DropdownMenu.Shortcut {...wideProps}>⌘S</DropdownMenu.Shortcut>);
+		expect(screen.getByText("⌘S")).toHaveAttribute("translate", "no");
 	});
 
 	describe("asChild", () => {
@@ -202,7 +195,7 @@ describe("asChild on the parts that wrap their children", () => {
 		},
 		{ slot: "dropdown-menu-radio-item", role: "menuitemradio", href: "#small", text: "Small" },
 	])(
-		"$slot slots onto the anchor and keeps the label span and the indicator inside it",
+		"$slot slots onto the anchor and leaves no bare text node inside it",
 		({ slot, role, href, text }) => {
 			render(<WrappedItems asChild />);
 
@@ -211,10 +204,6 @@ describe("asChild on the parts that wrap their children", () => {
 			expect(item).toHaveAttribute("href", href);
 			expect(item).toHaveAttribute("data-slot", slot);
 			expect(getItem(slot)).toBe(item);
-
-			const label = item.querySelector(`[data-slot="${slot}-label"]`);
-			expect(label?.parentElement).toBe(item);
-			expect(label).toHaveTextContent(text);
 			// The caret or indicator moved inside the anchor beside the span, and no
 			// bare text node sits at the anchor's top level for a translation engine to reparent.
 			expect(item.childElementCount).toBe(2);

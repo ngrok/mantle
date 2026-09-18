@@ -110,7 +110,7 @@ describe("MigrationsList", () => {
 
 		expect(screen.queryByRole("list")).toBeNull();
 		expect(
-			screen.getByRole("heading", { name: "No migrations match “no such guide”" }),
+			screen.queryByRole("heading", { name: "No migrations match “no such guide”" }),
 		).not.toBeNull();
 
 		await user.click(screen.getByRole("button", { name: "Clear filter" }));

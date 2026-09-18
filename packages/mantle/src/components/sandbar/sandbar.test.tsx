@@ -24,9 +24,9 @@ function getStatusRegion(): HTMLElement {
 }
 
 function getAlertRegion(): HTMLElement {
-	// the persistent assertive announcer is the sr-only role="alert" sibling of
-	// the panel — the only role="alert" the component renders
-	const region = document.querySelector('div.sr-only[role="alert"]');
+	// Why the bare role: the panel carries `role="group"`, so this announcer is the only
+	// `role="alert"` in the tree.
+	const region = document.querySelector('[role="alert"]');
 	if (!(region instanceof HTMLElement)) {
 		throw new Error("assertive region not found");
 	}
@@ -256,16 +256,11 @@ describe("Sandbar structure", () => {
 		const save = screen.getByRole("button", { name: "Save" });
 		expect(save).toHaveAttribute("data-appearance", "filled");
 		expect(save).toHaveAttribute("data-intent", "neutral");
-		expect(save).toHaveAttribute("data-size", "md");
-		expect(save).toHaveAttribute("data-disabled", "false");
 		expect(save).toHaveAttribute("data-loading", "false");
 
 		const discard = screen.getByRole("button", { name: "Discard" });
 		expect(discard).toHaveAttribute("data-appearance", "outlined");
 		expect(discard).toHaveAttribute("data-intent", "neutral");
-		expect(discard).toHaveAttribute("data-size", "md");
-		expect(discard).toHaveAttribute("data-disabled", "false");
-		expect(discard).toHaveAttribute("data-loading", "false");
 	});
 
 	test("a consumer appearance and intent win over the part defaults", () => {
@@ -290,8 +285,6 @@ describe("Sandbar structure", () => {
 		const save = screen.getByRole("button", { name: "Delete" });
 		expect(save).toHaveAttribute("data-appearance", "link");
 		expect(save).toHaveAttribute("data-intent", "danger");
-		// documented in both JSDoc tables: `data-size` is absent for `link`
-		expect(save).not.toHaveAttribute("data-size");
 	});
 
 	test("a consumer className can cancel the enter/exit travel", () => {
@@ -567,9 +560,9 @@ describe("Sandbar presence", () => {
 
 	test("the announcers stay mounted and unhidden while the panel is closed", () => {
 		render(fullTree({ open: false }));
-		expect(getStatusRegion()).toBeInTheDocument();
-		expect(getAlertRegion()).toBeInTheDocument();
-		expect(getStatusRegion()).not.toHaveAttribute("hidden");
+		// Why closest: an announcer inside the hidden panel is as silent as one that carries `hidden` itself.
+		expect(getStatusRegion().closest("[hidden]")).toBeNull();
+		expect(getAlertRegion().closest("[hidden]")).toBeNull();
 		expect(getPanel()).toHaveAttribute("hidden");
 	});
 

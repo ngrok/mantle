@@ -19,8 +19,8 @@ type MatchMediaControls = {
  * happy-dom tests. Queries not primed via `initialMatches` (or a later
  * `setMatches`) report `matches: false`.
  *
- * Installed with `vi.spyOn`, so restore it in `afterEach` with
- * `vi.restoreAllMocks()`.
+ * `restoreMocks` in `vitest.config.ts` restores the `vi.spyOn` stub between
+ * tests, so a test file needs no teardown of its own.
  *
  * @param initialMatches - Initial `matches` value per media query string.
  * @returns Controls to change query state and inspect listener counts.

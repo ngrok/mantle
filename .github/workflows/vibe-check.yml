@@ -315,7 +315,7 @@ jobs:
             --concurrency="${TURBO_TEST_CONCURRENCY}" \
             --continue=always \
             --filter='@ngrok/mantle' \
-            -- --project=browser --maxWorkers="${TURBO_TEST_CONCURRENCY}"
+            -- --project='browser*' --maxWorkers="${TURBO_TEST_CONCURRENCY}"
 
   vibe-check:
     name: vibe-check

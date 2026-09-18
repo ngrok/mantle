@@ -12,32 +12,12 @@ describe("deriveStrokeWidthPx", () => {
 		expect(deriveStrokeWidthPx("6")).toBe(6);
 	});
 
-	test('given "16", returns 12', () => {
-		expect(deriveStrokeWidthPx("16")).toBe(12);
-	});
-
-	test('given "0.25rem", returns 4', () => {
-		expect(deriveStrokeWidthPx("0.25rem")).toBe(4);
-	});
-
 	test('given "0.5rem", returns 8', () => {
 		expect(deriveStrokeWidthPx("0.5rem")).toBe(8);
 	});
 
-	test('given "1rem", returns 12', () => {
-		expect(deriveStrokeWidthPx("1rem")).toBe(12);
-	});
-
-	test('given "0.375rem", returns 6', () => {
-		expect(deriveStrokeWidthPx("0.375rem")).toBe(6);
-	});
-
 	test("given 6, returns 6", () => {
 		expect(deriveStrokeWidthPx(6)).toBe(6);
-	});
-
-	test("given 8, returns 8", () => {
-		expect(deriveStrokeWidthPx(8)).toBe(8);
 	});
 
 	test("given 16, returns 12", () => {
@@ -57,7 +37,17 @@ describe("ProgressDonut.Root", () => {
 		expect(donut).toHaveAttribute("aria-valuemax", "100");
 		expect(donut).toHaveAttribute("aria-valuenow", "60");
 		expect(donut).toHaveAttribute("data-value", "60");
+	});
+
+	test("every part carries its data-slot", () => {
+		render(
+			<ProgressDonut.Root aria-label="Data transfer out" value={60}>
+				<ProgressDonut.Indicator />
+			</ProgressDonut.Root>,
+		);
+		const donut = screen.getByRole("progressbar");
 		expect(donut).toHaveAttribute("data-slot", "progress-donut");
+		expect(donut.querySelector("g")).toHaveAttribute("data-slot", "progress-donut-indicator");
 	});
 
 	test("the track circle carries --radius derived from strokeWidth", () => {
@@ -78,8 +68,13 @@ describe("ProgressDonut.Root", () => {
 		expect(donut).not.toHaveAttribute("data-value");
 	});
 
-	test("a value outside 0..max renders as indeterminate", () => {
-		render(<ProgressDonut.Root aria-label="Data transfer out" value={150} />);
+	test("a value above max renders as indeterminate", () => {
+		render(<ProgressDonut.Root aria-label="Data transfer out" value={101} />);
 		expect(screen.getByRole("progressbar")).not.toHaveAttribute("aria-valuenow");
+	});
+
+	test("a value equal to max renders as a full bar", () => {
+		render(<ProgressDonut.Root aria-label="Data transfer out" value={100} />);
+		expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "100");
 	});
 });

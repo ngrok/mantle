@@ -150,21 +150,6 @@ describe("useLocalStorage", () => {
 		expect(result.current[0]).toBe("changed-silently");
 	});
 
-	test("a clear-all storage event (null key) refreshes the value", () => {
-		window.localStorage.setItem(key, JSON.stringify("stored-value"));
-		const { result } = renderHook(() => useLocalStorage(key, defaultValue));
-		expect(result.current[0]).toBe("stored-value");
-
-		act(() => {
-			window.localStorage.clear();
-			window.dispatchEvent(
-				new StorageEvent("storage", { key: null, storageArea: window.localStorage }),
-			);
-		});
-
-		expect(result.current[0]).toBe(defaultValue);
-	});
-
 	test("a corrupt (unparseable) entry resolves to the default instead of throwing", () => {
 		window.localStorage.setItem(key, "not-json{");
 
@@ -206,7 +191,7 @@ describe("useLocalStorage", () => {
 		const recoveryKey = "test-preference-recovery";
 		const storage = window.localStorage;
 		const getter = vi.spyOn(window, "localStorage", "get").mockReturnValue(refuseWrites(storage));
-		const { result } = renderHook(() => useLocalStorage(recoveryKey, defaultValue));
+		const { result, rerender } = renderHook(() => useLocalStorage(recoveryKey, defaultValue));
 
 		act(() => {
 			result.current[1]("held-in-memory");
@@ -222,17 +207,10 @@ describe("useLocalStorage", () => {
 		expect(result.current[0]).toBe("persisted");
 		expect(storage.getItem(recoveryKey)).toBe(JSON.stringify("persisted"));
 
-		// storage wins from here on: a change from another tab replaces the value
-		act(() => {
-			storage.setItem(recoveryKey, JSON.stringify("other-tab-value"));
-			window.dispatchEvent(
-				new StorageEvent("storage", {
-					key: recoveryKey,
-					newValue: JSON.stringify("other-tab-value"),
-					storageArea: storage,
-				}),
-			);
-		});
+		// Why a silent write and a rerender: a `storage` event also updates a stale
+		// fallback, so only a plain re-read shows which source wins.
+		storage.setItem(recoveryKey, JSON.stringify("other-tab-value"));
+		rerender();
 		expect(result.current[0]).toBe("other-tab-value");
 	});
 

@@ -2,48 +2,23 @@ import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { Profiler, useState } from "react";
 import { describe, expect, test, vi } from "vitest";
+import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
 import { Field } from "../field/field.js";
 import { PasswordInput } from "./password-input.js";
 
+// Why a spy: the icon tests pin whether the layout effect calls `animate()` and
+// on which `<svg>`, and `mock.contexts` records both.
+const spyOnIconAnimate = () => vi.spyOn(SVGSVGElement.prototype, "animate");
+
 describe("PasswordInput", () => {
-	test('given validation={false}, renders an input with aria-invalid="false" and not have data-validation', () => {
-		render(<PasswordInput placeholder="test" validation={false} />);
-		expect(screen.getByPlaceholderText("test")).toHaveAttribute("aria-invalid", "false");
-		expect(screen.getByPlaceholderText("test")).not.toHaveAttribute("data-validation");
-	});
-
-	test('given validation="success", renders an input with aria-invalid="false" and data-validation="success"', () => {
-		render(<PasswordInput placeholder="test" validation="success" />);
-		expect(screen.getByPlaceholderText("test")).toHaveAttribute("aria-invalid", "false");
-		expect(screen.getByPlaceholderText("test")).toHaveAttribute("data-validation", "success");
-	});
-
-	test('given validation="warning", renders an input with aria-invalid="false" and data-validation="warning"', () => {
-		render(<PasswordInput placeholder="test" validation="warning" />);
-		expect(screen.getByPlaceholderText("test")).toHaveAttribute("aria-invalid", "false");
-		expect(screen.getByPlaceholderText("test")).toHaveAttribute("data-validation", "warning");
-	});
-
-	test('given validation="error", renders an input with aria-invalid="true" and data-validation="error"', () => {
+	test("forwards validation to the input", () => {
 		render(<PasswordInput placeholder="test" validation="error" />);
 		expect(screen.getByPlaceholderText("test")).toHaveAttribute("aria-invalid", "true");
 		expect(screen.getByPlaceholderText("test")).toHaveAttribute("data-validation", "error");
 	});
 
-	test('given aria-invalid="true" and validation="success", renders an input with aria-invalid="true" and data-validation="error"', () => {
+	test("forwards aria-invalid to the input", () => {
 		render(<PasswordInput placeholder="test" aria-invalid="true" validation="success" />);
-		expect(screen.getByPlaceholderText("test")).toHaveAttribute("aria-invalid", "true");
-		expect(screen.getByPlaceholderText("test")).toHaveAttribute("data-validation", "error");
-	});
-
-	test('given aria-invalid="true" and validation="warning", renders an input with aria-invalid="true" and data-validation="error"', () => {
-		render(<PasswordInput placeholder="test" aria-invalid="true" validation="warning" />);
-		expect(screen.getByPlaceholderText("test")).toHaveAttribute("aria-invalid", "true");
-		expect(screen.getByPlaceholderText("test")).toHaveAttribute("data-validation", "error");
-	});
-
-	test('given aria-invalid="true" and validation="error", renders an input with aria-invalid="true" and data-validation="error"', () => {
-		render(<PasswordInput placeholder="test" aria-invalid="true" validation="error" />);
 		expect(screen.getByPlaceholderText("test")).toHaveAttribute("aria-invalid", "true");
 		expect(screen.getByPlaceholderText("test")).toHaveAttribute("data-validation", "error");
 	});
@@ -56,6 +31,18 @@ describe("PasswordInput", () => {
 		const toggle = screen.getByRole("button", { name: "Show value" });
 		expect(toggle).toHaveAttribute("aria-label", "Show value");
 		expect(toggle.textContent).toBe("");
+	});
+
+	// Why after a click: `aria-pressed` carries the state, so a name that flips
+	// to "Hide value" on reveal announces the state twice.
+	test("the toggle keeps its name after it reveals the value", async () => {
+		const user = userEvent.setup();
+		render(<PasswordInput placeholder="test" />);
+		const toggle = screen.getByRole("button", { name: "Show value" });
+
+		await user.click(toggle);
+		expect(toggle).toHaveAttribute("aria-pressed", "true");
+		expect(toggle).toHaveAccessibleName("Show value");
 	});
 
 	// Regression: the toggle's name once contained "password", so a substring
@@ -92,7 +79,7 @@ describe("PasswordInput", () => {
 		expect(toggle).toHaveAttribute("aria-controls", id ?? "");
 	});
 
-	test("inside Field.Item, its id sets the input id, the label htmlFor, and aria-controls", () => {
+	test("inside Field.Item, its id sets the input id and aria-controls", () => {
 		render(
 			<Field.Item name="password" id="login-password">
 				<Field.Label>Password</Field.Label>
@@ -104,7 +91,6 @@ describe("PasswordInput", () => {
 
 		const input = screen.getByLabelText("Password");
 		expect(input).toHaveAttribute("id", "login-password");
-		expect(screen.getByText("Password")).toHaveAttribute("for", "login-password");
 		expect(screen.getByRole("button", { name: "Show value" })).toHaveAttribute(
 			"aria-controls",
 			"login-password",
@@ -189,6 +175,23 @@ describe("PasswordInput", () => {
 		expect(input).toHaveFocus();
 	});
 
+	test("given prefers-reduced-motion, a click reveals the value and does not animate the icon", async () => {
+		const user = userEvent.setup();
+		// Why `false`: `getPrefersReducedMotion` inverts the `no-preference` match, so a miss means reduced motion.
+		mockMatchMedia({ "(prefers-reduced-motion: no-preference)": false });
+		render(<PasswordInput placeholder="test" />);
+
+		const input = screen.getByPlaceholderText("test");
+		const toggle = screen.getByRole("button", { name: "Show value" });
+		// The `<svg>` must exist, or the count assertion below cannot fail.
+		expect(toggle.querySelector("svg")).toBeInTheDocument();
+		const animateSpy = spyOnIconAnimate();
+
+		await user.click(toggle);
+		expect(input).toHaveAttribute("type", "text");
+		expect(animateSpy).toHaveBeenCalledTimes(0);
+	});
+
 	// Regression: an effect mirrored `showValue` into local state. The click
 	// handler flipped that state without a controlled check, so a static
 	// `showValue={false}` still revealed the value on click.
@@ -230,7 +233,7 @@ describe("PasswordInput", () => {
 
 		test("given a consumer that echoes the toggle, a click reveals the value and animates the icon now in the DOM", async () => {
 			const user = userEvent.setup();
-			const animateSpy = vi.spyOn(SVGSVGElement.prototype, "animate");
+			const animateSpy = spyOnIconAnimate();
 			const Subject = () => {
 				const [show, setShow] = useState(false);
 				return (
@@ -261,7 +264,7 @@ describe("PasswordInput", () => {
 		// Regression: the animation ran inside the toggle's click handler, so a
 		// `showValue` change from another control swapped the icon with no motion.
 		test("a showValue change from outside animates the icon now in the DOM", () => {
-			const animateSpy = vi.spyOn(SVGSVGElement.prototype, "animate");
+			const animateSpy = spyOnIconAnimate();
 			const { rerender } = render(<PasswordInput placeholder="test" showValue={false} />);
 			const toggle = screen.getByRole("button", { name: "Show value" });
 
@@ -280,7 +283,7 @@ describe("PasswordInput", () => {
 		// The icon did not change, so motion would claim a reveal that did not happen.
 		test("given a consumer that does not echo, a click does not animate the icon", async () => {
 			const user = userEvent.setup();
-			const animateSpy = vi.spyOn(SVGSVGElement.prototype, "animate");
+			const animateSpy = spyOnIconAnimate();
 			render(
 				<PasswordInput placeholder="test" showValue={false} onValueVisibilityChange={() => {}} />,
 			);

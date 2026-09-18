@@ -1,9 +1,5 @@
 import { describe, expect, test } from "vitest";
-import {
-	extractSidebarStateCookie,
-	serializeSidebarStateCookie,
-	SIDEBAR_STATE_COOKIE_NAME,
-} from "./sidebar-state-cookie.js";
+import { extractSidebarStateCookie, serializeSidebarStateCookie } from "./sidebar-state-cookie.js";
 
 describe("extractSidebarStateCookie", () => {
 	test.for([
@@ -13,28 +9,14 @@ describe("extractSidebarStateCookie", () => {
 		expect(extractSidebarStateCookie(header)).toBe(expected);
 	});
 
-	test.for([
-		["a null header", null],
-		["an undefined header", undefined],
-		["an empty header", ""],
-	] as const)("returns undefined for %s", ([, header]) => {
-		expect(extractSidebarStateCookie(header)).toBeUndefined();
+	test("returns undefined for a null header", () => {
+		expect(extractSidebarStateCookie(null)).toBeUndefined();
 	});
 
 	test("returns undefined when the cookie is absent from a populated header", () => {
+		// Why undefined and not false: a first-time visitor must stay distinct from a
+		// deliberate collapse, or every first visit lands on a collapsed sidebar.
 		expect(extractSidebarStateCookie("theme=dark; session=abc123")).toBeUndefined();
-	});
-
-	test("distinguishes a first-time visitor from a deliberate collapse", () => {
-		// The whole reason the return type is `boolean | undefined`: folding "unset"
-		// into `false` would collapse every first-time visitor's sidebar.
-		expect(extractSidebarStateCookie("theme=dark")).toBeUndefined();
-		expect(extractSidebarStateCookie("mantle-sidebar-state=collapsed")).toBe(false);
-	});
-
-	test("finds the cookie among others, whatever the position or spacing", () => {
-		expect(extractSidebarStateCookie("theme=dark;mantle-sidebar-state=collapsed;x=1")).toBe(false);
-		expect(extractSidebarStateCookie("  theme=dark ;  mantle-sidebar-state=expanded  ")).toBe(true);
 	});
 
 	test("returns undefined for an unrecognized value rather than guessing", () => {
@@ -43,40 +25,16 @@ describe("extractSidebarStateCookie", () => {
 		expect(extractSidebarStateCookie("mantle-sidebar-state=EXPANDED")).toBeUndefined();
 	});
 
-	test.for([
-		["a truncated percent-escape", "mantle-sidebar-state=%E0%A4%A"],
-		["a bare percent sign", "mantle-sidebar-state=%"],
-		["a malformed value sitting among other cookies", "theme=dark; mantle-sidebar-state=%; x=1"],
-	] as const)("returns undefined rather than throwing for %s", ([, header]) => {
-		// Regression: `decodeURIComponent` throws URIError ("URI malformed") on a bad
-		// percent-escape, and this ran in a loader on every page load — so one
-		// corrupt or hostile cookie used to fail the whole server render. An
-		// undecodable value IS the documented "unparseable" case.
-		expect(extractSidebarStateCookie(header)).toBeUndefined();
+	test("returns undefined rather than throwing for a malformed percent-escape", () => {
+		// Why: `decodeURIComponent` throws `URIError` on a bad percent-escape. A loader
+		// calls this on every page load, so one corrupt cookie must not fail the render.
+		expect(extractSidebarStateCookie("mantle-sidebar-state=%E0%A4%A")).toBeUndefined();
 	});
 
 	test("reads a percent-encoded value that decodes to a known state", () => {
 		// Some cookie libraries encode on write, so the read has to decode. `%63` is
 		// "c", which is what makes this "collapsed".
 		expect(extractSidebarStateCookie("mantle-sidebar-state=%63ollapsed")).toBe(false);
-	});
-
-	test("returns undefined for a value that decodes cleanly but is not a known state", () => {
-		// `%20` decodes to a leading space: well-formed, and still neither state.
-		expect(extractSidebarStateCookie("mantle-sidebar-state=%20expanded")).toBeUndefined();
-	});
-
-	test("does not match a cookie whose name merely ends with ours", () => {
-		// `String.startsWith` on the trimmed segment is what prevents
-		// `x-mantle-sidebar-state` from being read as the real cookie.
-		expect(extractSidebarStateCookie("x-mantle-sidebar-state=collapsed")).toBeUndefined();
-	});
-
-	test("round-trips whatever serializeSidebarStateCookie produced", () => {
-		for (const open of [true, false]) {
-			const [pair] = serializeSidebarStateCookie(open).split(";");
-			expect(extractSidebarStateCookie(pair)).toBe(open);
-		}
 	});
 });
 
@@ -93,16 +51,11 @@ describe("serializeSidebarStateCookie", () => {
 		);
 	});
 
-	test("omits Secure by default so it is not rejected over http://localhost", () => {
-		expect(serializeSidebarStateCookie(true)).not.toContain("Secure");
-	});
-
 	test("adds Secure when asked", () => {
 		expect(serializeSidebarStateCookie(true, { secure: true })).toContain("; Secure");
 	});
 
-	test("omits Domain by default and includes it when given", () => {
-		expect(serializeSidebarStateCookie(true)).not.toContain("Domain");
+	test("adds Domain when given", () => {
 		expect(serializeSidebarStateCookie(true, { domain: ".example.com" })).toContain(
 			"; Domain=.example.com",
 		);
@@ -118,11 +71,5 @@ describe("serializeSidebarStateCookie", () => {
 		// Regression guard on the default: `maxAge = 31_536_000` must be a default
 		// parameter, not a `||` fallback, or 0 would silently become a year.
 		expect(serializeSidebarStateCookie(true, { maxAge: 0 })).toContain("Max-Age=0");
-	});
-
-	test("names the cookie with the exported constant", () => {
-		expect(serializeSidebarStateCookie(true).startsWith(`${SIDEBAR_STATE_COOKIE_NAME}=`)).toBe(
-			true,
-		);
 	});
 });

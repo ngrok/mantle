@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { afterAll, beforeAll, expect, test } from "vitest";
 import { Tabs } from "./tabs.js";
 
 /**
@@ -17,45 +17,43 @@ const TABS_LAYOUT_STYLE = `
 }
 `;
 
-describe("Tabs.Trigger label slot (browser)", () => {
-	let styleElement: HTMLStyleElement;
+let styleElement: HTMLStyleElement;
 
-	beforeAll(() => {
-		styleElement = document.createElement("style");
-		styleElement.textContent = TABS_LAYOUT_STYLE;
-		document.head.appendChild(styleElement);
-	});
+beforeAll(() => {
+	styleElement = document.createElement("style");
+	styleElement.textContent = TABS_LAYOUT_STYLE;
+	document.head.appendChild(styleElement);
+});
 
-	afterAll(() => {
-		styleElement.remove();
-	});
+afterAll(() => {
+	styleElement.remove();
+});
 
-	test("the label span generates no box, so an icon stays a flex child of the trigger", () => {
-		render(
-			<Tabs.Root orientation="horizontal" defaultValue="a">
-				<Tabs.List>
-					<Tabs.Trigger className="tabs-trigger" value="a">
-						<svg data-testid="glyph" />
-						Tab A
-					</Tabs.Trigger>
-				</Tabs.List>
-				<Tabs.Content value="a">Panel A</Tabs.Content>
-			</Tabs.Root>,
-		);
+test("the label span generates no box, so an icon stays a flex child of the trigger", () => {
+	render(
+		<Tabs.Root orientation="horizontal" defaultValue="a">
+			<Tabs.List>
+				<Tabs.Trigger className="tabs-trigger" value="a">
+					<svg data-testid="glyph" />
+					Tab A
+				</Tabs.Trigger>
+			</Tabs.List>
+			<Tabs.Content value="a">Panel A</Tabs.Content>
+		</Tabs.Root>,
+	);
 
-		const trigger = screen.getByRole("tab");
-		const label = trigger.querySelector('[data-slot="tabs-trigger-label"]');
-		if (label == null) {
-			throw new Error('No element carries data-slot="tabs-trigger-label".');
-		}
+	const trigger = screen.getByRole("tab");
+	const label = trigger.querySelector('[data-slot="tabs-trigger-label"]');
+	if (label == null) {
+		throw new Error('No element carries data-slot="tabs-trigger-label".');
+	}
 
-		expect(getComputedStyle(label).display).toBe("contents");
-		expect(label.getClientRects()).toHaveLength(0);
+	expect(getComputedStyle(label).display).toBe("contents");
+	expect(label.getClientRects()).toHaveLength(0);
 
-		// The slot-scoped rule reaches the icon through the wrapper, and the `gap`
-		// still separates icon from text because the wrapper generates no box.
-		const glyph = screen.getByTestId("glyph");
-		expect(glyph.getBoundingClientRect().width).toBe(20);
-		expect(glyph.parentElement).toBe(label);
-	});
+	// The slot-scoped rule reaches the icon through the wrapper, and the `gap`
+	// still separates icon from text because the wrapper generates no box.
+	const glyph = screen.getByTestId("glyph");
+	expect(glyph.getBoundingClientRect().width).toBe(20);
+	expect(glyph.parentElement).toBe(label);
 });

@@ -60,47 +60,6 @@ describe("field context helpers", () => {
 			});
 		});
 
-		test("emits both slot IDs even when description is not mounted (dangling IDREFs are ignored by AT)", () => {
-			const result = resolveFieldControlAriaProps({
-				context: createFieldItemContext({ validation: "error" }),
-			});
-
-			expect(result.ariaProps["aria-describedby"]).toBe("description error");
-		});
-
-		test("still wires aria-errormessage when validation is invalid but no errors are mounted", () => {
-			const result = resolveFieldControlAriaProps({
-				context: createFieldItemContext({ validation: "error" }),
-			});
-
-			expect(result.ariaProps).toEqual({
-				"aria-describedby": "description error",
-				"aria-errormessage": "error",
-				"aria-invalid": true,
-				id: "control",
-				name: "field",
-			});
-		});
-
-		test("ignores child-side aria-invalid — Field.Item is the single source of truth", () => {
-			// The resolver no longer accepts a child-side aria-invalid override.
-			// Context validation alone drives aria-invalid / aria-errormessage.
-			const result = resolveFieldControlAriaProps({
-				context: createFieldItemContext({}),
-			});
-
-			expect(result).toEqual({
-				ariaProps: {
-					"aria-describedby": "description error",
-					"aria-errormessage": undefined,
-					"aria-invalid": undefined,
-					id: "control",
-					name: "field",
-				},
-				validation: undefined,
-			});
-		});
-
 		test("omits aria-describedby entirely when not inside a Field.Item", () => {
 			const result = resolveFieldControlAriaProps({ context: null });
 

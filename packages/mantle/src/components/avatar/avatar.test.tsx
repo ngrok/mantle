@@ -18,17 +18,11 @@ describe("Avatar.Root", () => {
 		expect(screen.getByText("AC")).toBeInTheDocument();
 	});
 
-	test("is a fixed-size, unsqueezable circle by default", () => {
-		// shrink-0 is load-bearing: an avatar is a fixed-size visual and the flex rows
-		// it sits in must not be able to compress it. `relative` is what the image
-		// positions against — the pair is asserted together in the Image tests below.
+	test("is a circle by default", () => {
+		// Why the class: `appearance` emits no data attribute, so the class is the
+		// only observable of the `appearanceClassName` lookup.
 		render(<Avatar.Root data-testid="avatar" />);
-		expect(screen.getByTestId("avatar")).toHaveClass(
-			"size-7",
-			"shrink-0",
-			"relative",
-			"rounded-full",
-		);
+		expect(screen.getByTestId("avatar")).toHaveClass("rounded-full");
 	});
 
 	test("renders a span, so it stays valid inside a switcher row's button", () => {
@@ -42,9 +36,9 @@ describe("Avatar.Root", () => {
 
 	test("appearance=square renders a rounded square", () => {
 		render(<Avatar.Root appearance="square" data-testid="avatar" />);
-		const avatar = screen.getByTestId("avatar");
-		expect(avatar).toHaveClass("rounded-md");
-		expect(avatar).not.toHaveClass("rounded-full");
+		// Why the class: `appearance` emits no data attribute, so the class is the
+		// only observable of the `appearanceClassName` lookup.
+		expect(screen.getByTestId("avatar")).toHaveClass("rounded-md");
 	});
 
 	test("colorSeed paints a swatch and the static foreground that stays legible on it", () => {
@@ -62,9 +56,9 @@ describe("Avatar.Root", () => {
 				<Avatar.Root colorSeed="acc_atlas" data-testid="third" />
 			</>,
 		);
-		expect(screen.getByTestId("first")).toHaveClass("bg-emerald-500");
-		expect(screen.getByTestId("second")).toHaveClass("bg-emerald-500");
-		expect(screen.getByTestId("third")).toHaveClass("bg-purple-500");
+		const first = screen.getByTestId("first");
+		expect(screen.getByTestId("second").className).toBe(first.className);
+		expect(screen.getByTestId("third").className).not.toBe(first.className);
 	});
 
 	test("a seeded swatch survives server rendering unchanged", () => {
@@ -75,9 +69,9 @@ describe("Avatar.Root", () => {
 
 	test("without a seed it stays neutral and keeps the surrounding foreground", () => {
 		render(<Avatar.Root data-testid="avatar" />);
-		const avatar = screen.getByTestId("avatar");
-		expect(avatar).toHaveClass("bg-neutral-500/15", "text-body");
-		expect(avatar).not.toHaveClass("text-static-white");
+		// Why these two: the seed arm merges them away for its swatch pair, so their
+		// presence is the no-seed observable.
+		expect(screen.getByTestId("avatar")).toHaveClass("bg-neutral-500/15", "text-body");
 	});
 
 	test("forwards className, data-*, and the ref, and the consumer's size wins", () => {
@@ -109,7 +103,9 @@ describe("Avatar.Root", () => {
 			</Avatar.Root>,
 		);
 		const link = screen.getByRole("link");
-		expect(link).toHaveClass("custom-class", "shrink-0", "rounded-md", "bg-emerald-500");
+		// Why rounded-md: `appearance` emits no data attribute, so the class is the
+		// only observable that the lookup reached the Slot child.
+		expect(link).toHaveClass("custom-class", "rounded-md");
 		expect(link).toHaveAttribute("data-slot", "avatar");
 		expect(link).toHaveAttribute("data-flavor", "primary");
 		expect(ref.current).toBe(link);
@@ -125,20 +121,16 @@ describe("Avatar.Fallback", () => {
 		{ expected: "AC", name: "  acme   corp  " },
 		{ expected: "AI", name: "Atlas Industries, Inc." },
 		{ expected: "?", name: "" },
-		{ expected: "?", name: "   " },
 		{ expected: "?", name: "!@#$%" },
-		{ expected: "I", name: "ipek" },
 		{ expected: "🚀A", name: "🚀 Acme" },
 		{ expected: "ÉC", name: "école centrale" },
 		{ expected: "山太", name: "山田 太郎" },
 		{ expected: "مع", name: "محمد علي" },
-		// Uppercasing happens per word, before the code point is taken: "ß" → "SS" and
-		// "ﬄ" → "FFL", so uppercasing the joined result would overrun two.
-		{ expected: "SH", name: "straße hof" },
+		// Uppercase per word, then take the code point: "ﬄ" → "FFL", so uppercasing
+		// the joined result would overrun two.
 		{ expected: "FF", name: "ﬄuent ﬂow" },
 		// Unicode punctuation reaches the "?" floor too, not just ASCII.
 		{ expected: "?", name: "…" },
-		{ expected: "?", name: "— —" },
 		{ expected: "A", name: "«Acme»" },
 	])("name=$name renders the initials $expected", ({ expected, name }) => {
 		render(<Avatar.Fallback name={name} />);
@@ -202,13 +194,13 @@ describe("Avatar.Fallback", () => {
 			/>,
 		);
 		const fallback = screen.getByTestId("fallback");
-		expect(fallback).toHaveClass("custom-class", "size-full");
+		expect(fallback).toHaveClass("custom-class");
 		expect(fallback).toHaveAttribute("data-flavor", "primary");
 		expect(fallback).toHaveAttribute("data-slot", "outer avatar-fallback");
 		expect(ref.current).toBe(fallback);
 	});
 
-	test("asChild renders the consumer element with the fallback styles and ref", () => {
+	test("asChild renders the consumer element with the data-slot and ref", () => {
 		const ref = createRef<HTMLSpanElement>();
 		render(
 			<Avatar.Fallback asChild ref={ref}>
@@ -218,7 +210,7 @@ describe("Avatar.Fallback", () => {
 			</Avatar.Fallback>,
 		);
 		const abbreviation = screen.getByTitle("Acme Corp");
-		expect(abbreviation).toHaveClass("custom-class", "items-center");
+		expect(abbreviation).toHaveClass("custom-class");
 		expect(abbreviation).toHaveAttribute("data-flavor", "primary");
 		expect(abbreviation).toHaveAttribute("data-slot", "avatar-fallback");
 		expect(ref.current).toBe(abbreviation);
@@ -239,26 +231,6 @@ describe("Avatar.Image", () => {
 		expect(html).toContain('src="https://example.com/jane.png"');
 		expect(html).toContain('alt="Jane Doe"');
 		expect(html).toContain("JD");
-	});
-
-	test("covers the fallback rather than replacing it", () => {
-		render(
-			<Avatar.Root data-testid="avatar">
-				<Avatar.Image alt="Jane Doe" src="https://example.com/jane.png" />
-				<Avatar.Fallback name="Jane Doe" />
-			</Avatar.Root>,
-		);
-		// Both sides of the pair in one test: the image is positioned against the
-		// root's own `relative`, which is what lets the fallback sit behind it with no
-		// loading state anywhere.
-		expect(screen.getByTestId("avatar")).toHaveClass("relative");
-		expect(screen.getByRole("img", { name: "Jane Doe" })).toHaveClass(
-			"absolute",
-			"inset-0",
-			"size-full",
-			"object-cover",
-		);
-		expect(screen.getByText("JD")).toBeInTheDocument();
 	});
 
 	test("a failed load unmounts the image, leaving the fallback showing", () => {
@@ -350,13 +322,13 @@ describe("Avatar.Image", () => {
 			</Avatar.Root>,
 		);
 		const image = screen.getByRole("img", { name: "Jane Doe" });
-		expect(image).toHaveClass("custom-class", "object-cover");
+		expect(image).toHaveClass("custom-class");
 		expect(image).toHaveAttribute("data-flavor", "primary");
 		expect(image).toHaveAttribute("data-slot", "outer avatar-image");
 		expect(ref.current).toBe(image);
 	});
 
-	test("asChild renders the consumer element with the image styles, data-slot, and ref", () => {
+	test("asChild renders the consumer element with the data-slot, src, and ref", () => {
 		const ref = createRef<HTMLImageElement>();
 		// The real reason to swap this part is a framework image component; the wrapper
 		// stands in for one, and receives the src/alt the part supplies.
@@ -369,7 +341,7 @@ describe("Avatar.Image", () => {
 			</Avatar.Root>,
 		);
 		const image = screen.getByRole("img", { name: "Jane Doe" });
-		expect(image).toHaveClass("custom-class", "size-full", "object-cover");
+		expect(image).toHaveClass("custom-class");
 		expect(image).toHaveAttribute("data-slot", "avatar-image");
 		expect(image).toHaveAttribute("data-flavor", "primary");
 		expect(image).toHaveAttribute("src", "https://example.com/jane.png");

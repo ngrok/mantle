@@ -1,13 +1,14 @@
 import { act, renderHook } from "@testing-library/react";
 import { useRef } from "react";
-import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
+import type { Mock } from "vitest";
 import { useInView } from "./use-in-view.js";
 
 describe("useInView", () => {
-	let intersectionCallback: IntersectionObserverCallback;
-	let mockObserve: ReturnType<typeof vi.fn>;
-	let mockUnobserve: ReturnType<typeof vi.fn>;
-	let mockDisconnect: ReturnType<typeof vi.fn>;
+	let dispatchEntries: (entries: IntersectionObserverEntry[]) => void;
+	let mockObserve: Mock<(target: Element) => void>;
+	let mockUnobserve: Mock<(target: Element) => void>;
+	let mockDisconnect: Mock<() => void>;
 
 	beforeEach(() => {
 		mockObserve = vi.fn<(target: Element) => void>();
@@ -16,29 +17,36 @@ describe("useInView", () => {
 
 		// vi.fn() produces an arrow function which cannot be used as a constructor with `new`,
 		// so we use a class to create a proper constructor mock.
-		class MockIntersectionObserver {
+		class MockIntersectionObserver implements IntersectionObserver {
+			root = null;
+			rootMargin = "";
+			scrollMargin = "";
+			thresholds: number[] = [];
 			observe = mockObserve;
 			unobserve = mockUnobserve;
 			disconnect = mockDisconnect;
+			takeRecords = () => [];
 
 			constructor(callback: IntersectionObserverCallback) {
-				intersectionCallback = callback;
+				dispatchEntries = (entries) => callback(entries, this);
 			}
 		}
 
 		vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
 	});
 
-	afterEach(() => {
-		vi.unstubAllGlobals();
-	});
-
 	function triggerIntersection(element: Element, isIntersecting: boolean) {
+		const entry: IntersectionObserverEntry = {
+			target: element,
+			isIntersecting,
+			intersectionRatio: isIntersecting ? 1 : 0,
+			boundingClientRect: new DOMRectReadOnly(),
+			intersectionRect: new DOMRectReadOnly(),
+			rootBounds: null,
+			time: 0,
+		};
 		act(() => {
-			intersectionCallback(
-				[{ target: element, isIntersecting } as IntersectionObserverEntry],
-				{} as IntersectionObserver,
-			);
+			dispatchEntries([entry]);
 		});
 	}
 
@@ -57,7 +65,7 @@ describe("useInView", () => {
 	test("starts observing the element immediately", () => {
 		const element = document.createElement("div");
 		renderHook(() => useInView(useRef(element)));
-		expect(mockObserve).toHaveBeenCalledWith(element);
+		expect(mockObserve).toHaveBeenCalledExactlyOnceWith(element);
 	});
 
 	test("returns true when element enters the viewport", () => {
@@ -68,14 +76,22 @@ describe("useInView", () => {
 		expect(result.current).toBe(true);
 	});
 
-	test("with once=true, stays true after element enters the viewport", () => {
+	test("returns false again when the element leaves the viewport", () => {
+		const element = document.createElement("div");
+		const { result } = renderHook(() => useInView(useRef(element)));
+
+		triggerIntersection(element, true);
+		triggerIntersection(element, false);
+		expect(result.current).toBe(false);
+	});
+
+	test("with once=true, stays true after the element leaves the viewport", () => {
 		const element = document.createElement("div");
 		const { result } = renderHook(() => useInView(useRef(element), { once: true }));
 
 		triggerIntersection(element, true);
-		expect(result.current).toBe(true);
-
-		// After once=true fires, the observer unobserves internally; state must remain true
+		// Why a leave entry: with `once` the hook stores no leave handler, so the entry changes nothing.
+		triggerIntersection(element, false);
 		expect(result.current).toBe(true);
 	});
 
@@ -102,7 +118,7 @@ describe("useInView", () => {
 		const { unmount } = renderHook(() => useInView(useRef(element)));
 
 		unmount();
-		expect(mockUnobserve).toHaveBeenCalledWith(element);
-		expect(mockDisconnect).toHaveBeenCalled();
+		expect(mockUnobserve).toHaveBeenCalledExactlyOnceWith(element);
+		expect(mockDisconnect).toHaveBeenCalledTimes(1);
 	});
 });

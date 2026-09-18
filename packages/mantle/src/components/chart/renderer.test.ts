@@ -29,9 +29,9 @@ const makeRecorder = () => {
 };
 
 /**
- * Every glyph the union carries, in slot order. The clip-path record is keyed
- * by the union, so the coverage test below fails the moment a ninth shape
- * ships without an entry here.
+ * Every glyph the union carries, in slot order. `satisfies` checks each entry
+ * alone, so `typeLevelContracts` at the end of the file fails typecheck when a
+ * ninth shape ships without an entry here.
  */
 const ALL_SHAPES = [
 	"circle",
@@ -258,10 +258,6 @@ describe("tracePointShape", () => {
 });
 
 describe("point glyphs across the canvas and the CSS clip", () => {
-	test("the clip-path table covers every glyph the canvas can trace", () => {
-		expect(Object.keys(POINT_SHAPE_CLIP_PATHS).toSorted()).toEqual(ALL_SHAPES.toSorted());
-	});
-
 	test.each(POLYGON_SHAPES)("%s clips to the silhouette its canvas path traces", (shape) => {
 		// The canvas paints the marks. The CSS clip cuts the hover dot and the
 		// legend key. A reader compares them side by side, so a polygon that
@@ -290,3 +286,16 @@ describe("point glyphs across the canvas and the CSS clip", () => {
 		expect(POINT_SHAPE_CLIP_PATHS.square).toMatch(/^inset\(/);
 	});
 });
+
+/**
+ * `ALL_SHAPES` must list every `PointShape`, or the data-driven tests above skip
+ * the new glyph. `Exclude` leaves the missing members, and the return type
+ * collapses to `never` while any remain.
+ */
+export function typeLevelContracts(): [Exclude<PointShape, (typeof ALL_SHAPES)[number]>] extends [
+	never,
+]
+	? true
+	: never {
+	return true;
+}

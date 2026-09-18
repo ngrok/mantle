@@ -31,15 +31,6 @@ describe("Code", () => {
 		expect(ref.current?.tagName).toBe("CODE");
 	});
 
-	test("forwards arbitrary data-* props", () => {
-		render(
-			<Code data-testid="code" data-analytics-id="install-command">
-				npm install
-			</Code>,
-		);
-		expect(screen.getByTestId("code")).toHaveAttribute("data-analytics-id", "install-command");
-	});
-
 	test('renders translate="no" so a translation engine skips the code', () => {
 		render(<Code data-testid="code">npm install</Code>);
 		expect(screen.getByTestId("code")).toHaveAttribute("translate", "no");

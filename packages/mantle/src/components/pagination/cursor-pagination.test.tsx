@@ -70,30 +70,28 @@ describe("CursorPagination", () => {
 		expect(onPreviousPage).toHaveBeenCalledTimes(1);
 	});
 
-	describe("uncontrolled page size", () => {
-		test("picking a size updates the select, the value, and both callbacks", async () => {
-			const user = userEvent.setup();
-			const onRootChange = vi.fn<(pageSize: number) => void>();
-			const onSelectChange = vi.fn<(pageSize: number) => void>();
-			render(
-				<CursorPagination.Root defaultPageSize={10} onChangePageSize={onRootChange}>
-					<CursorPagination.PageSizeSelect onChangePageSize={onSelectChange} />
-					<CursorPagination.PageSizeValue data-testid="value" />
-				</CursorPagination.Root>,
-			);
+	test("uncontrolled: picking a size updates the select, the value, and both callbacks", async () => {
+		const user = userEvent.setup();
+		const onRootChange = vi.fn<(pageSize: number) => void>();
+		const onSelectChange = vi.fn<(pageSize: number) => void>();
+		render(
+			<CursorPagination.Root defaultPageSize={10} onChangePageSize={onRootChange}>
+				<CursorPagination.PageSizeSelect onChangePageSize={onSelectChange} />
+				<CursorPagination.PageSizeValue data-testid="value" />
+			</CursorPagination.Root>,
+		);
 
-			await user.click(screen.getByRole("combobox", { name: "Items per page" }));
-			await user.click(await screen.findByRole("option", { name: "20 per page" }));
+		await user.click(screen.getByRole("combobox", { name: "Items per page" }));
+		await user.click(await screen.findByRole("option", { name: "20 per page" }));
 
-			expect(onRootChange).toHaveBeenCalledTimes(1);
-			expect(onRootChange).toHaveBeenLastCalledWith(20);
-			expect(onSelectChange).toHaveBeenCalledTimes(1);
-			expect(onSelectChange).toHaveBeenLastCalledWith(20);
-			expect(screen.getByRole("combobox", { name: "Items per page" })).toHaveTextContent(
-				"20 per page",
-			);
-			expect(screen.getByTestId("value")).toHaveTextContent("20 per page");
-		});
+		expect(onRootChange).toHaveBeenCalledTimes(1);
+		expect(onRootChange).toHaveBeenLastCalledWith(20);
+		expect(onSelectChange).toHaveBeenCalledTimes(1);
+		expect(onSelectChange).toHaveBeenLastCalledWith(20);
+		expect(screen.getByRole("combobox", { name: "Items per page" })).toHaveTextContent(
+			"20 per page",
+		);
+		expect(screen.getByTestId("value")).toHaveTextContent("20 per page");
 	});
 
 	describe("controlled page size", () => {

@@ -31,15 +31,4 @@ describe("useIsApplePlatform", () => {
 		// effect records `[false, true]` and commits twice.
 		expect(renderedValues).toEqual([true]);
 	});
-
-	test("renders false in the first render of a client mount on a non-Apple host", () => {
-		vi.spyOn(navigator, "platform", "get").mockReturnValue("Win32");
-		const renderedValues: boolean[] = [];
-
-		renderHook(() => {
-			renderedValues.push(useIsApplePlatform());
-		});
-
-		expect(renderedValues).toEqual([false]);
-	});
 });

@@ -61,7 +61,6 @@ describe("AreaChart.Root", () => {
 		expect(root).toBeInTheDocument();
 		expect(ref.current).toBe(root);
 		expect(root?.className).toContain("custom-class");
-		expect(root?.className).toContain("flex");
 		expect(root?.getAttribute("data-testid")).toBe("chart-root");
 	});
 
@@ -101,7 +100,7 @@ describe("AreaChart.Root", () => {
 	});
 
 	test("a dataKey matching no row in non-empty data throws with the available keys", () => {
-		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+		vi.spyOn(console, "error").mockImplementation(() => {});
 		expect(() =>
 			render(
 				<AreaChart.Root data={data} xKey="date" aria-label="Typo chart">
@@ -109,7 +108,6 @@ describe("AreaChart.Root", () => {
 				</AreaChart.Root>,
 			),
 		).toThrow(/AreaChart\.Area dataKey "htp" does not match any key.*date, http, tcp/);
-		consoleError.mockRestore();
 	});
 });
 
@@ -146,17 +144,16 @@ describe("AreaChart data slots", () => {
 
 describe("AreaChart parts outside Root", () => {
 	test("a part rendered outside Root throws", () => {
-		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+		vi.spyOn(console, "error").mockImplementation(() => {});
 		expect(() => render(<AreaChart.Area dataKey="http" />)).toThrow(
 			/AreaChart\.Area must be composed inside AreaChart\.Root/,
 		);
-		consoleError.mockRestore();
 	});
 });
 
 describe("AreaChart cross-family composition", () => {
 	test("a BarChart.Bar composed inside AreaChart.Root throws", () => {
-		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+		vi.spyOn(console, "error").mockImplementation(() => {});
 		expect(() =>
 			render(
 				<AreaChart.Root data={data} xKey="date" aria-label="Traffic by protocol">
@@ -164,7 +161,6 @@ describe("AreaChart cross-family composition", () => {
 				</AreaChart.Root>,
 			),
 		).toThrow(/BarChart\.Bar cannot be composed inside AreaChart\.Root/);
-		consoleError.mockRestore();
 	});
 });
 
@@ -270,13 +266,9 @@ describe("AreaChart keyboard interaction", () => {
 		renderChart({ onDatumActivate });
 		await user.tab();
 		await user.keyboard("{ArrowRight}{Enter}");
-		expect(onDatumActivate).toHaveBeenCalledWith(
-			expect.objectContaining({
-				index: 0,
-				xValue: firstRow.date,
-				datum: firstRow,
-				dataKey: null,
-			}),
+		expect(onDatumActivate).toHaveBeenCalledTimes(1);
+		expect(onDatumActivate).toHaveBeenLastCalledWith(
+			expect.objectContaining({ index: 0, xValue: firstRow.date, datum: firstRow, dataKey: null }),
 		);
 	});
 
@@ -286,12 +278,9 @@ describe("AreaChart keyboard interaction", () => {
 		renderChart({ stacked: true, onDatumActivate });
 		await user.tab();
 		await user.keyboard("{Home}{Enter}");
-		expect(onDatumActivate).toHaveBeenCalledWith(
-			expect.objectContaining({
-				index: 0,
-				datum: firstRow,
-				dataKey: null,
-			}),
+		expect(onDatumActivate).toHaveBeenCalledTimes(1);
+		expect(onDatumActivate).toHaveBeenLastCalledWith(
+			expect.objectContaining({ index: 0, datum: firstRow, dataKey: null }),
 		);
 	});
 
@@ -301,9 +290,11 @@ describe("AreaChart keyboard interaction", () => {
 		renderChart({ onActiveIndexChange });
 		await user.tab();
 		await user.keyboard("{ArrowRight}");
-		expect(onActiveIndexChange).toHaveBeenCalledWith(0);
+		expect(onActiveIndexChange).toHaveBeenCalledTimes(1);
+		expect(onActiveIndexChange).toHaveBeenLastCalledWith(0);
 		await user.keyboard("{ArrowRight}");
-		expect(onActiveIndexChange).toHaveBeenCalledWith(1);
+		expect(onActiveIndexChange).toHaveBeenCalledTimes(2);
+		expect(onActiveIndexChange).toHaveBeenLastCalledWith(1);
 	});
 });
 

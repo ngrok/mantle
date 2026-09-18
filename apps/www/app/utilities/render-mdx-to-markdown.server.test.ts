@@ -90,23 +90,20 @@ function countFences(source: string, opener: string): number {
 }
 
 describe("renderMdxToMarkdown on real doc pages", () => {
-	// Regression: fences nested inside JSX wrappers (CodeExample.Code) must
-	// come out as real markdown code blocks in the agent-facing .md output —
-	// not collapse into dropped/unrendered JSX.
-	const pages = [
-		"../docs/components/navigation/breadcrumb.mdx",
-		"../docs/components/navigation/sidebar.mdx",
-		"../docs/components/forms/theme-switcher.mdx",
-		"../docs/layouts/app-layout.mdx",
-		"../docs/layouts/centered-layout.mdx",
-	];
+	// Why real pages: a fence nested inside `CodeExample.Code` must land in the
+	// `.md` output as a code block, not vanish with the wrapper.
+	// Why these two rows: sidebar.mdx reaches `Example` -> drop, top-level fences,
+	// and `CodeExample.Code` -> unwrap; app-layout.mdx adds `CodeExample.Preview` -> drop.
+	const pages = ["../docs/components/navigation/sidebar.mdx", "../docs/layouts/app-layout.mdx"];
 
 	for (const page of pages) {
 		test(`preserves every code fence in ${page.split("/").pop()}`, () => {
 			const source = readFileSync(fileURLToPath(new URL(page, import.meta.url)), "utf8");
 			const output = renderMdxToMarkdown(source);
 
-			for (const opener of ["```tsx", "```text", "```jsx", "```sh"]) {
+			// The openers are the languages these two pages fence; an opener no page
+			// uses asserts 0 === 0.
+			for (const opener of ["```tsx", "```text", "```css"]) {
 				expect(countFences(output, opener)).toBe(countFences(source, opener));
 			}
 

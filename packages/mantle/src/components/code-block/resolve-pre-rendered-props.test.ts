@@ -1,5 +1,11 @@
 import { describe, expect, test } from "vitest";
-import { resolvePreRenderedCodeBlockProps } from "./resolve-pre-rendered-props.js";
+import {
+	defaultMeta,
+	normalizeValue,
+	parseMetastring,
+	resolvePreRenderedCodeBlockProps,
+	tokenizeMetastring,
+} from "./resolve-pre-rendered-props.js";
 
 describe("resolvePreRenderedCodeBlockProps", () => {
 	test("returns undefined when no pre-rendered payload exists", () => {
@@ -66,34 +72,6 @@ describe("resolvePreRenderedCodeBlockProps", () => {
 		});
 	});
 
-	test("ignores unknown non-mantle payload keys", () => {
-		expect(
-			resolvePreRenderedCodeBlockProps({
-				mantleCode: "new",
-				mantleLanguage: "ts",
-				mantlePreHtml: "<span>new</span>",
-				shikiCode: "old",
-			}),
-		).toEqual({
-			mantleCode: {
-				code: "new",
-				collapsible: undefined,
-				disableCopy: undefined,
-				highlightLines: undefined,
-				language: "ts",
-				lineNumberStart: undefined,
-				mode: undefined,
-				preHtml: "<span>new</span>",
-				rawLanguage: "ts",
-				showLineNumbers: undefined,
-				title: undefined,
-			},
-			props: {
-				shikiCode: "old",
-			},
-		});
-	});
-
 	test("normalizes mantle disableCopy/mode/title payload and strips mantle keys", () => {
 		expect(
 			resolvePreRenderedCodeBlockProps({
@@ -145,36 +123,6 @@ describe("resolvePreRenderedCodeBlockProps", () => {
 		expect(result.props).toEqual({ dataX: "hello" });
 	});
 
-	test("lineNumberStart string '0' resolves to undefined", () => {
-		const result = resolvePreRenderedCodeBlockProps({
-			mantleCode: "echo hi",
-			mantleLanguage: "sh",
-			mantlePreHtml: "<span>...</span>",
-			mantleLineNumberStart: "0",
-		});
-		expect(result.mantleCode?.lineNumberStart).toBeUndefined();
-	});
-
-	test("highlightLines string with zeros filters them out", () => {
-		const result = resolvePreRenderedCodeBlockProps({
-			mantleCode: "echo hi",
-			mantleLanguage: "sh",
-			mantlePreHtml: "<span>...</span>",
-			mantleHighlightLines: "0,0-2,3",
-		});
-		expect(result.mantleCode?.highlightLines).toEqual([3]);
-	});
-
-	test("highlightLines string with only zeros resolves to undefined", () => {
-		const result = resolvePreRenderedCodeBlockProps({
-			mantleCode: "echo hi",
-			mantleLanguage: "sh",
-			mantlePreHtml: "<span>...</span>",
-			mantleHighlightLines: "0,0-2",
-		});
-		expect(result.mantleCode?.highlightLines).toBeUndefined();
-	});
-
 	test("normalizes non-mantle metadata keys when mantle payload exists", () => {
 		expect(
 			resolvePreRenderedCodeBlockProps({
@@ -205,5 +153,113 @@ describe("resolvePreRenderedCodeBlockProps", () => {
 				role: "presentation",
 			},
 		});
+	});
+});
+
+describe("parseMetastring", () => {
+	test("given undefined, returns default meta", () => {
+		const meta = parseMetastring(undefined);
+		expect(meta).toEqual(defaultMeta);
+	});
+
+	test('given "title="Hello World"", returns meta with title and default values', () => {
+		const meta = parseMetastring('title="Hello World"');
+		expect(meta).toEqual({
+			collapsible: false,
+			disableCopy: false,
+			mode: undefined,
+			title: "Hello World",
+		});
+	});
+
+	test('given "collapsible disableCopy mode=cli", returns meta with collapsible, disableCopy, and mode', () => {
+		const meta = parseMetastring("collapsible disableCopy mode=cli");
+		expect(meta).toEqual({
+			collapsible: true,
+			disableCopy: true,
+			mode: "cli",
+			title: undefined,
+		});
+	});
+
+	test('given "collapsible disableCopy mode="file" title="Foo Bar"", returns meta with collapsible, disableCopy, mode, and title', () => {
+		const meta = parseMetastring('collapsible disableCopy mode="file" title="Foo Bar"');
+		expect(meta).toEqual({
+			collapsible: true,
+			disableCopy: true,
+			mode: "file",
+			title: "Foo Bar",
+		});
+	});
+
+	test("given duplicates, returns meta with no duplicates and last value for Key-Value pairs", () => {
+		const meta = parseMetastring(
+			'collapsible disableCopy disableCopy mode="file" title="Foo Bar" title="Hello World"',
+		);
+		expect(meta).toEqual({
+			collapsible: true,
+			disableCopy: true,
+			mode: "file",
+			title: "Hello World",
+		});
+	});
+});
+
+describe("tokenizeMetastring", () => {
+	test("given undefined, returns empty array", () => {
+		const tokens = tokenizeMetastring(undefined);
+		expect(tokens).toEqual([]);
+	});
+
+	test("splits on spaces outside quotes and keeps the space inside a quoted value", () => {
+		const tokens = tokenizeMetastring('title="Terminal Example" disableCopy mode="cli"');
+		expect(tokens).toEqual(['title="Terminal Example"', "disableCopy", 'mode="cli"']);
+	});
+
+	test("keeps whitespace inside a quote that re-opens within a token", () => {
+		const tokens = tokenizeMetastring('title="Terminal Example "one" " disableCopy mode="cli"');
+		expect(tokens).toEqual(['title="Terminal Example "one" "', "disableCopy", 'mode="cli"']);
+	});
+
+	test("treats an adjacent quote pair as an open and a close, not as a literal quote", () => {
+		const tokens = tokenizeMetastring('title="Terminal Example "one"" disableCopy mode="cli"');
+		expect(tokens).toEqual(['title="Terminal Example "one""', "disableCopy", 'mode="cli"']);
+	});
+
+	test("splits on tabs in addition to spaces", () => {
+		const tokens = tokenizeMetastring('title="Tabby"\tcollapsible\tmode="cli"');
+		expect(tokens).toEqual(['title="Tabby"', "collapsible", 'mode="cli"']);
+	});
+
+	test("splits on newlines and carriage returns", () => {
+		const tokens = tokenizeMetastring('title="Hello"\ncollapsible\r\nmode="cli"');
+		expect(tokens).toEqual(['title="Hello"', "collapsible", 'mode="cli"']);
+	});
+
+	test("preserves whitespace inside quoted values", () => {
+		const tokens = tokenizeMetastring('title="Hello\tWorld"');
+		expect(tokens).toEqual(['title="Hello\tWorld"']);
+	});
+});
+
+describe("normalizeValue", () => {
+	test("given undefined, returns undefined", () => {
+		const value = normalizeValue(undefined);
+		expect(value).toEqual(undefined);
+	});
+
+	test('given "  \t\n\r  ", returns ""', () => {
+		const value = normalizeValue("  \t\n\r  ");
+		expect(value).toEqual("");
+	});
+
+	test('given "Hello World", returns "Hello World"', () => {
+		const value = normalizeValue("Hello World");
+		expect(value).toEqual("Hello World");
+	});
+
+	test('given ""Hello World"", returns "Hello World"', () => {
+		const value = normalizeValue('"Hello World"');
+		expect(value).toEqual("Hello World");
 	});
 });

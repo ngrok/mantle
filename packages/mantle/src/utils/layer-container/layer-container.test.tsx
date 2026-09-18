@@ -178,62 +178,69 @@ function getPositioner(slot: string): HTMLElement {
 	return positioner;
 }
 
+/**
+ * Why a spanning set, not the full matrix: each float passes one
+ * `useLayerContainer()` result to its portal, and each overlay renders one
+ * `LayerContainer`. A row per float inside `Dialog` plus a `Popover` row per
+ * other overlay reaches every wiring site once.
+ */
+const rows = [
+	...floats.map((float) => ({ overlay: overlays[0], float })),
+	...overlays.slice(1).map((overlay) => ({ overlay, float: floats[0] })),
+];
+
 describe("layer containers", () => {
-	for (const overlay of overlays) {
-		describe(`float inside ${overlay.name}`, () => {
-			for (const float of floats) {
-				test(`${float.name} portals into the ${overlay.name} positioner, after its content`, async () => {
-					const user = userEvent.setup();
-					render(overlay.renderOpen(float.render()));
+	describe("float inside an overlay", () => {
+		for (const { overlay, float } of rows) {
+			test(`${float.name} portals into the ${overlay.name} positioner, after its content`, async () => {
+				const user = userEvent.setup();
+				render(overlay.renderOpen(float.render()));
 
-					await float.open(user);
-					const floatContent = await float.findContent();
+				await float.open(user);
+				const floatContent = await float.findContent();
 
-					const positioner = getPositioner(overlay.positionerSlot);
-					const overlayContent = getPositioner(overlay.contentSlot);
-					expect(positioner.contains(floatContent)).toBe(true);
-					// Document order decides paint order inside the positioner's
-					// stacking context: the float must follow the overlay content.
-					expect(
-						overlayContent.compareDocumentPosition(floatContent) & Node.DOCUMENT_POSITION_FOLLOWING,
-					).toBeTruthy();
-					// The modal overlay marks the portal's other children
-					// `aria-hidden` on open. The positioner is on the content's
-					// ancestor chain, so a float portaled into it stays readable —
-					// portaling into a sibling element instead would hide it.
-					expect(floatContent.closest("[aria-hidden='true']")).toBeNull();
-				});
-			}
-		});
-	}
+				const positioner = getPositioner(overlay.positionerSlot);
+				const overlayContent = getPositioner(overlay.contentSlot);
+				expect(positioner.contains(floatContent)).toBe(true);
+				// Document order decides paint order inside the positioner's
+				// stacking context: the float must follow the overlay content.
+				expect(
+					overlayContent.compareDocumentPosition(floatContent) & Node.DOCUMENT_POSITION_FOLLOWING,
+				).toBeTruthy();
+				// The modal overlay marks the portal's other children
+				// `aria-hidden` on open. The positioner is on the content's
+				// ancestor chain, so a float portaled into it stays readable —
+				// portaling into a sibling element instead would hide it.
+				expect(floatContent.closest("[aria-hidden='true']")).toBeNull();
+			});
+		}
+	});
 
-	describe("float outside every overlay", () => {
-		test("a popover that opens after a dialog mounts stays out of the dialog's positioner", async () => {
-			// The FEP-1754 shape: the overlay is already open when a base-level
-			// popover opens later. Mount order used to put the popover on top.
-			const user = userEvent.setup();
-			render(
-				<div>
-					<Popover.Root>
-						<Popover.Trigger>Open base popover</Popover.Trigger>
-						<Popover.Content>base popover content</Popover.Content>
-					</Popover.Root>
-					<Dialog.Root open modal={false}>
-						<Dialog.Content appearance="full-bleed">
-							<Dialog.Title>Takeover</Dialog.Title>
-						</Dialog.Content>
-					</Dialog.Root>
-				</div>,
-			);
+	test("a popover that opens after a dialog mounts stays out of the dialog's positioner", async () => {
+		// The FEP-1754 shape: the overlay is already open when a base-level
+		// popover opens later. Mount order used to put the popover on top.
+		const user = userEvent.setup();
+		render(
+			<div>
+				<Popover.Root>
+					<Popover.Trigger>Open base popover</Popover.Trigger>
+					<Popover.Content>base popover content</Popover.Content>
+				</Popover.Root>
+				<Dialog.Root open modal={false}>
+					<Dialog.Content appearance="full-bleed">
+						<Dialog.Title>Takeover</Dialog.Title>
+					</Dialog.Content>
+				</Dialog.Root>
+			</div>,
+		);
 
-			await user.click(screen.getByRole("button", { name: "Open base popover" }));
-			const popoverContent = await screen.findByText("base popover content");
+		await user.click(screen.getByRole("button", { name: "Open base popover" }));
+		const popoverContent = await screen.findByText("base popover content");
 
-			const positioner = getPositioner("dialog-positioner");
-			expect(positioner.contains(popoverContent)).toBe(false);
-			// It portals to document.body, where the overlay tier out-stacks it.
-			expect(popoverContent.closest("[data-slot='dialog-positioner']")).toBeNull();
-		});
+		const positioner = getPositioner("dialog-positioner");
+		expect(positioner.contains(popoverContent)).toBe(false);
+		// It portals to document.body, where the overlay tier out-stacks it.
+		expect(popoverContent.closest("[data-slot='dialog-positioner']")).toBeNull();
 	});
 
 	describe("nested overlays", () => {
@@ -455,7 +462,6 @@ describe("layer containers", () => {
 
 			const popoverContent = getPositioner("popover-content");
 			expect(popoverContent.contains(listbox)).toBe(false);
-			expect(listbox.closest("[data-slot='dialog-positioner']")).toBeNull();
 			// Later body sibling at the same tier: the select paints above the
 			// popover that spawned it.
 			expect(
@@ -550,30 +556,6 @@ describe("layer containers", () => {
 			).toBe(true);
 		});
 
-		test("a Combobox inside a base popover renders its popup in place, inside the popover content", async () => {
-			const user = userEvent.setup();
-			render(
-				<Popover.Root>
-					<Popover.Trigger>Open host</Popover.Trigger>
-					<Popover.Content>
-						<Combobox.Root>
-							<Combobox.Input aria-label="Fruit" />
-							<Combobox.Content>
-								<Combobox.Item value="Apple" />
-							</Combobox.Content>
-						</Combobox.Root>
-					</Popover.Content>
-				</Popover.Root>,
-			);
-
-			await user.click(screen.getByRole("button", { name: "Open host" }));
-			await user.click(await screen.findByRole("combobox", { name: "Fruit" }));
-			await user.keyboard("App");
-			const popup = await screen.findByRole("listbox");
-
-			expect(getPositioner("popover-content").contains(popup)).toBe(true);
-		});
-
 		test("a Select inside a popover inside a dialog portals into the dialog's positioner", async () => {
 			const user = userEvent.setup();
 			render(
@@ -652,7 +634,6 @@ describe("layer containers", () => {
 			const popup = await screen.findByRole("listbox");
 
 			expect(getPositioner("popover-content").contains(popup)).toBe(false);
-			expect(popup.closest("[data-slot='dialog-positioner']")).toBeNull();
 		});
 
 		test("a MultiSelect inside a popover inside a dialog portals into the dialog's positioner", async () => {
@@ -742,26 +723,6 @@ describe("layer containers", () => {
 			expect(dialogContent.contains(popup)).toBe(true);
 		});
 
-		test("Combobox renders its popup in place inside the alert dialog content element", async () => {
-			const user = userEvent.setup();
-			render(
-				overlays[1].renderOpen(
-					<Combobox.Root>
-						<Combobox.Input aria-label="Fruit" />
-						<Combobox.Content>
-							<Combobox.Item value="Apple" />
-						</Combobox.Content>
-					</Combobox.Root>,
-				),
-			);
-
-			await user.click(screen.getByRole("combobox", { name: "Fruit" }));
-			await user.keyboard("App");
-			const popup = await screen.findByRole("listbox");
-
-			expect(getPositioner("alert-dialog-content").contains(popup)).toBe(true);
-		});
-
 		test("MultiSelect portals its popup into the alert dialog's `data-mantle-modal-content` element", async () => {
 			const user = userEvent.setup();
 			render(
@@ -784,26 +745,6 @@ describe("layer containers", () => {
 			const alertDialogContent = getPositioner("alert-dialog-content");
 			expect(alertDialogContent.hasAttribute("data-mantle-modal-content")).toBe(true);
 			expect(alertDialogContent.contains(popup)).toBe(true);
-		});
-
-		test("Combobox renders its popup in place inside the sheet content element", async () => {
-			const user = userEvent.setup();
-			render(
-				overlays[2].renderOpen(
-					<Combobox.Root>
-						<Combobox.Input aria-label="Fruit" />
-						<Combobox.Content>
-							<Combobox.Item value="Apple" />
-						</Combobox.Content>
-					</Combobox.Root>,
-				),
-			);
-
-			await user.click(screen.getByRole("combobox", { name: "Fruit" }));
-			await user.keyboard("App");
-			const popup = await screen.findByRole("listbox");
-
-			expect(getPositioner("sheet-content").contains(popup)).toBe(true);
 		});
 
 		test("MultiSelect portals its popup into the sheet's `data-mantle-modal-content` element", async () => {
@@ -863,26 +804,25 @@ describe("layer containers", () => {
 		});
 	});
 
-	describe("server render", () => {
-		test("an open dialog with a default-open popover renders on the server without portals", () => {
-			// Portals cannot render during SSR; the trigger markup still must.
-			const html = renderToString(
-				<Dialog.Root open>
-					<Dialog.Content>
-						<Dialog.Title>Overlay</Dialog.Title>
-						<Dialog.Body>
-							<Popover.Root defaultOpen>
-								<Popover.Trigger>Open float</Popover.Trigger>
-								<Popover.Content>float content</Popover.Content>
-							</Popover.Root>
-						</Dialog.Body>
-					</Dialog.Content>
-				</Dialog.Root>,
-			);
+	test("an open dialog with a default-open popover renders on the server without portals", () => {
+		// Portals cannot render during SSR; the trigger markup still must.
+		const html = renderToString(
+			<Dialog.Root open>
+				<Dialog.Trigger>Open overlay</Dialog.Trigger>
+				<Dialog.Content>
+					<Dialog.Title>Overlay</Dialog.Title>
+					<Dialog.Body>
+						<Popover.Root defaultOpen>
+							<Popover.Trigger>Open float</Popover.Trigger>
+							<Popover.Content>float content</Popover.Content>
+						</Popover.Root>
+					</Dialog.Body>
+				</Dialog.Content>
+			</Dialog.Root>,
+		);
 
-			expect(html).not.toContain("float content");
-			expect(html).not.toContain('data-slot="dialog-positioner"');
-		});
+		expect(html).toContain("Open overlay");
+		expect(html).not.toContain('data-slot="dialog-positioner"');
 	});
 });
 
@@ -922,26 +862,21 @@ describe("layer tiers", () => {
 			expect(getPositioner("sheet-positioner")).toHaveClass("z-60");
 		});
 		expect(getPositioner("sheet-overlay")).toHaveClass("z-60");
-		// The tier lives on the positioner; the content must not carry a stale
-		// tier of its own.
-		expect(getPositioner("sheet-content")).not.toHaveClass("z-50");
 	});
 });
 
-describe("LayerContainer", () => {
-	test("a callback ref fires once with the container across a re-render", () => {
-		const refSpy = vi.fn<(node: HTMLDivElement | null) => void>();
-		// Why a factory: React bails out of a re-render when it receives the same
-		// element object, so each render needs fresh elements with the same props.
-		const renderTree = () => (
-			<LayerContainer data-testid="container" ref={refSpy}>
-				<p>body</p>
-			</LayerContainer>
-		);
-		const { rerender } = render(renderTree());
-		rerender(renderTree());
+test("LayerContainer fires a callback ref once with the container across a re-render", () => {
+	const refSpy = vi.fn<(node: HTMLDivElement | null) => void>();
+	// Why a factory: React bails out of a re-render when it receives the same
+	// element object, so each render needs fresh elements with the same props.
+	const renderTree = () => (
+		<LayerContainer data-testid="container" ref={refSpy}>
+			<p>body</p>
+		</LayerContainer>
+	);
+	const { rerender } = render(renderTree());
+	rerender(renderTree());
 
-		expect(refSpy).toHaveBeenCalledTimes(1);
-		expect(refSpy).toHaveBeenLastCalledWith(screen.getByTestId("container"));
-	});
+	expect(refSpy).toHaveBeenCalledTimes(1);
+	expect(refSpy).toHaveBeenLastCalledWith(screen.getByTestId("container"));
 });

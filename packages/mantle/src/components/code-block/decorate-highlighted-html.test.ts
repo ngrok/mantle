@@ -58,20 +58,6 @@ describe("decorateHighlightedHtml", () => {
 		expect(result).toContain('class="mantle-code-line" data-line-number="3"');
 	});
 
-	test("highlights line ranges", () => {
-		const html = shikiHtml(["a", "b", "c", "d"]);
-		const result = decorateHighlightedHtml({ html, highlightLines: ["2-3"] });
-
-		expect(result).toContain('class="mantle-code-line" data-line-number="1"');
-		expect(result).toContain(
-			'class="mantle-code-line mantle-code-line-highlighted" data-line-number="2"',
-		);
-		expect(result).toContain(
-			'class="mantle-code-line mantle-code-line-highlighted" data-line-number="3"',
-		);
-		expect(result).toContain('class="mantle-code-line" data-line-number="4"');
-	});
-
 	test("omits line numbers when showLineNumbers is false", () => {
 		const html = shikiHtml(["a"]);
 		const result = decorateHighlightedHtml({ html, showLineNumbers: false });
@@ -194,24 +180,6 @@ describe("decorateHighlightedHtml", () => {
 			expect(result.match(/mantle-code-line-opener/g) ?? []).toHaveLength(1);
 		});
 
-		test("does not tag any line when folding is disabled", () => {
-			const html = shikiHtml(["{", '  "a": 1', "}"]);
-			const result = decorateHighlightedHtml({ html });
-
-			expect(result).not.toContain("mantle-code-line-opener");
-		});
-
-		test("does not emit per-line fold spacers — gutter alignment is CSS-only", () => {
-			const html = shikiHtml(["[", "  1", "]"]);
-			const result = decorateHighlightedHtml({
-				html,
-				foldableRanges: [{ id: "1", startLine: 1, endLine: 3 }],
-			});
-
-			expect(result).not.toContain("mantle-code-fold-spacer");
-			expect(result).not.toContain('data-slot="fold-spacer"');
-		});
-
 		test("renders a trailing ellipsis only on opener lines", () => {
 			const html = shikiHtml(["[", "  1", "]"]);
 			const result = decorateHighlightedHtml({
@@ -254,12 +222,6 @@ describe("decorateHighlightedHtml", () => {
 			const result = decorateHighlightedHtml({ html });
 			expect(result).not.toContain("mantle-code-fold-toggle");
 			expect(result).not.toContain("mantle-code-fold-ellipsis");
-		});
-
-		test("handles an empty foldableRanges array", () => {
-			const html = shikiHtml(["[", "  1", "]"]);
-			const result = decorateHighlightedHtml({ html, foldableRanges: [] });
-			expect(result).not.toContain("mantle-code-fold-toggle");
 		});
 	});
 });

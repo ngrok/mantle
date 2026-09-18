@@ -47,33 +47,27 @@ describe("Tabs", () => {
 			expect(refSpy).toHaveBeenLastCalledWith(screen.getByRole("tablist"));
 		});
 
-		// scroll-fade-x lives on the shared horizontal-orientation variant, so both
-		// appearances inherit it. This guards against a regression that would scope
-		// the overflow handling to only the classic appearance.
-		test.each(["classic", "pill"] as const)(
-			"horizontal %s appearance scrolls on overflow with scroll-fade-x",
-			(appearance) => {
-				render(
-					<Tabs.Root appearance={appearance} orientation="horizontal" defaultValue="a">
-						<Tabs.List>
-							<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
-							<Tabs.Trigger value="b">Tab B</Tabs.Trigger>
-						</Tabs.List>
-					</Tabs.Root>,
-				);
+		// Why class assertions: `aria-orientation` reads the prop, not the lookup
+		// entry, so the classes are the only observable of the shared horizontal
+		// entry. The pill row is the one that turns red when the overflow classes
+		// move into the classic compound.
+		test("the horizontal pill appearance inherits the shared scroll-fade-x overflow handling", () => {
+			render(
+				<Tabs.Root appearance="pill" orientation="horizontal" defaultValue="a">
+					<Tabs.List>
+						<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
+						<Tabs.Trigger value="b">Tab B</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>,
+			);
 
-				expect(screen.getByRole("tablist")).toHaveClass(
-					"scroll-fade-x",
-					"overflow-x-auto",
-					"min-w-0",
-				);
-			},
-		);
+			expect(screen.getByRole("tablist")).toHaveClass(
+				"scroll-fade-x",
+				"overflow-x-auto",
+				"min-w-0",
+			);
+		});
 
-		// The bottom border is on by default for the classic appearance, painted
-		// as a content-box background in the separator color so the px-1/-mx-1
-		// focus-ring breathing room doesn't push it past the container edges;
-		// --_fade-bottom-border pins the border row opaque in the scroll-fade mask.
 		test("horizontal classic appearance draws the bottom border by default", () => {
 			render(
 				<Tabs.Root appearance="classic" orientation="horizontal" defaultValue="a">
@@ -85,11 +79,15 @@ describe("Tabs", () => {
 			);
 
 			const tablist = screen.getByRole("tablist");
+			// Why class assertions: the border-on compound stamps no attribute of its
+			// own (`data-hide-border` reads the prop), so its classes are the only
+			// observable of that lookup entry. `--_fade-bottom-border` also pins the
+			// custom property `scroll-fade-x` reads in `mantle.css`.
 			expect(tablist).toHaveClass("bg-origin-content", "pb-px", "[--_fade-bottom-border:black]");
 			expect(tablist).not.toHaveAttribute("data-hide-border");
 		});
 
-		test("hideBorder removes the border paint and renders data-hide-border", () => {
+		test("hideBorder removes the bottom border paint and renders data-hide-border", () => {
 			render(
 				<Tabs.Root appearance="classic" orientation="horizontal" defaultValue="a">
 					<Tabs.List hideBorder>
@@ -100,9 +98,11 @@ describe("Tabs", () => {
 			);
 
 			const tablist = screen.getByRole("tablist");
-			expect(tablist).not.toHaveClass("bg-origin-content");
-			expect(tablist).not.toHaveClass("pb-px");
 			expect(tablist).toHaveAttribute("data-hide-border");
+			// Why a class absence: the `hideBorder: false` compound is the only source
+			// of `bg-origin-content`, and the default test above pins that spelling, so
+			// its absence is the one observable of the compound's `hideBorder` condition.
+			expect(tablist).not.toHaveClass("bg-origin-content");
 		});
 
 		test("horizontal pill appearance never draws the bottom border", () => {
@@ -118,24 +118,6 @@ describe("Tabs", () => {
 			expect(screen.getByRole("tablist")).not.toHaveClass("bg-origin-content");
 		});
 
-		// hideBorder is documented as a no-op for pill (which never draws a
-		// border), but the data attribute still renders appearance-independently.
-		test("hideBorder on the pill appearance is a no-op but still renders data-hide-border", () => {
-			render(
-				<Tabs.Root appearance="pill" orientation="horizontal" defaultValue="a">
-					<Tabs.List hideBorder>
-						<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
-						<Tabs.Trigger value="b">Tab B</Tabs.Trigger>
-					</Tabs.List>
-				</Tabs.Root>,
-			);
-
-			const tablist = screen.getByRole("tablist");
-			expect(tablist).not.toHaveClass("bg-origin-content");
-			expect(tablist).not.toHaveClass("pb-px");
-			expect(tablist).toHaveAttribute("data-hide-border");
-		});
-
 		test("vertical classic appearance draws the side border by default with the separator token", () => {
 			render(
 				<Tabs.Root appearance="classic" orientation="vertical" defaultValue="a">
@@ -146,6 +128,9 @@ describe("Tabs", () => {
 				</Tabs.Root>,
 			);
 
+			// Why class assertions: the vertical border-on compound stamps no attribute
+			// of its own (`data-hide-border` reads the prop), so its classes are the
+			// only observable of that lookup entry.
 			expect(screen.getByRole("tablist")).toHaveClass("border-r", "border-separator");
 		});
 
@@ -159,9 +144,10 @@ describe("Tabs", () => {
 				</Tabs.Root>,
 			);
 
-			const tablist = screen.getByRole("tablist");
-			expect(tablist).not.toHaveClass("border-r");
-			expect(tablist).toHaveAttribute("data-hide-border");
+			// Why a class absence: the vertical `hideBorder: false` compound is the only
+			// source of `border-r`, and the default test above pins that spelling, so its
+			// absence is the one observable of the compound's `hideBorder` condition.
+			expect(screen.getByRole("tablist")).not.toHaveClass("border-r");
 		});
 
 		// Regression: a pointer press focused the trigger, the list scrolled it to
@@ -169,6 +155,8 @@ describe("Tabs", () => {
 		// never navigated.
 		test("a pointer click on a trigger does not scroll it into view and still fires onClick", async () => {
 			const user = userEvent.setup();
+			// Why a spy: happy-dom lays out nothing, so the `scrollIntoView` call is the
+			// only observable of the scroll.
 			const scrollIntoView = vi.spyOn(HTMLElement.prototype, "scrollIntoView");
 			const onClick = vi.fn<() => void>();
 			render(
@@ -191,6 +179,8 @@ describe("Tabs", () => {
 
 		test("keyboard focus scrolls the trigger into view", async () => {
 			const user = userEvent.setup();
+			// Why a spy: happy-dom lays out nothing, so the `scrollIntoView` call is the
+			// only observable of the scroll.
 			const scrollIntoView = vi.spyOn(HTMLElement.prototype, "scrollIntoView");
 			render(
 				<Tabs.Root orientation="horizontal" defaultValue="a">

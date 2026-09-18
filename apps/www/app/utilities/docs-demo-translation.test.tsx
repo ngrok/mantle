@@ -32,16 +32,18 @@ describe("SelectableList controlled-query demo on a translated page", () => {
 		const { container } = render(<demo.ControlledQueryExample />);
 		translateTextNodes(container);
 
+		// Why this check: it proves the engine wrapped the echo, so the `<font>`
+		// absence after the clear can fail.
+		expect(screen.getByText("[“ng-3f”-es]").tagName).toBe("FONT");
+
 		await user.clear(screen.getByRole("textbox", { name: "Filter access keys" }));
 
 		// The echo is the lone string child of its span, so React writes it
 		// through `textContent` and wipes the `<font>` instead of removing a node
-		// it no longer owns. The fix is structural, so the span carries no
-		// `translate="no"`, and the query stays translatable prose.
+		// it no longer owns.
 		const echo = screen.getByText("“”");
 		expect(echo.tagName).toBe("SPAN");
 		expect(echo.querySelector("font")).toBeNull();
-		expect(container.querySelector("p [translate='no']")).toBeNull();
 	});
 });
 

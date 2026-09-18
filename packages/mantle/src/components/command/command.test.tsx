@@ -25,7 +25,7 @@ function SearchButton(props: ComponentProps<"button">) {
  * input. `Command.List` is absent because nothing here needs filtering. The
  * `Command.Empty` suite below mounts the list in happy-dom, where cmdk's
  * `ResizeObserver` never fires. Query seeding, dismissal, and focus return
- * live in `command.browser.test.tsx`.
+ * live in `command-dialog.test.tsx`.
  */
 function Palette(props: ComponentProps<typeof Command.DialogRoot>) {
 	return (
@@ -46,7 +46,7 @@ const input = () => screen.getByPlaceholderText("Type a command or search...");
 
 /**
  * The chord that toggles the palette under this suite. happy-dom reports a
- * non-Apple `navigator.platform` on every machine (asserted in
+ * non-Apple `navigator.platform` on every machine (recorded in
  * `utils/platform.test.ts`), so the platform modifier here is `Ctrl`. Apple
  * behavior is covered by stubbing the platform explicitly.
  */

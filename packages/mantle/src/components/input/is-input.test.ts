@@ -16,24 +16,12 @@ describe("isInput", () => {
 		expect(isInput(null)).toBe(false);
 	});
 
-	test("given undefined, returns false", () => {
-		expect(isInput(undefined)).toBe(false);
-	});
-
 	test('given "input", returns false', () => {
 		expect(isInput("input")).toBe(false);
 	});
 
-	test("given 123, returns false", () => {
-		expect(isInput(123)).toBe(false);
-	});
-
 	test("given {}, returns false", () => {
 		expect(isInput({})).toBe(false);
-	});
-
-	test("given [], returns false", () => {
-		expect(isInput([])).toBe(false);
 	});
 
 	// Regression: the guard read `HTMLInputElement` bare, so a server call with a

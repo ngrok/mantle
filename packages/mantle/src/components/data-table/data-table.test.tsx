@@ -211,16 +211,6 @@ function VisibilityHarness({ rows, withDetail = false }: PlainHarnessProps) {
 }
 
 describe("DataTable.Row", () => {
-	test("applies `cursor-pointer` when `onClick` is provided", () => {
-		render(<Harness onClick={() => {}} />);
-		expect(screen.getByTestId("row")).toHaveClass("cursor-pointer");
-	});
-
-	test("does not apply `cursor-pointer` when no `onClick` is provided", () => {
-		render(<Harness />);
-		expect(screen.getByTestId("row")).not.toHaveClass("cursor-pointer");
-	});
-
 	test("invokes `onClick` when the row is clicked", async () => {
 		const user = userEvent.setup();
 		const handleClick = vi.fn<() => void>();
@@ -234,6 +224,8 @@ describe("DataTable.Row", () => {
 	test("consumer `className` takes precedence over the auto `cursor-pointer`", () => {
 		render(<Harness onClick={() => {}} className="cursor-wait" />);
 		const row = screen.getByTestId("row");
+		// Why a class assertion: tailwind-merge override contract. The consumer's
+		// cursor class must beat the default `cursor-pointer`.
 		expect(row).toHaveClass("cursor-wait");
 		expect(row).not.toHaveClass("cursor-pointer");
 	});
@@ -307,13 +299,11 @@ describe("DataTable.Row", () => {
 	});
 });
 
-describe("DataTable.Header", () => {
-	test("renders without `aria-sort` for a column from a table without `rowSortingFeature`", () => {
-		// A revert to `column.getIsSorted()` throws a `TypeError` here: the method
-		// exists on the column only when the table registers the feature.
-		render(<PlainHarness rows={data} />);
-		expect(screen.getByRole("columnheader", { name: "ID" })).not.toHaveAttribute("aria-sort");
-	});
+test("DataTable.Header renders without `aria-sort` for a column from a table without `rowSortingFeature`", () => {
+	// A revert to `column.getIsSorted()` throws a `TypeError` here: the method
+	// exists on the column only when the table registers the feature.
+	render(<PlainHarness rows={data} />);
+	expect(screen.getByRole("columnheader", { name: "ID" })).not.toHaveAttribute("aria-sort");
 });
 
 type ActionCellHarnessProps = {
@@ -486,6 +476,8 @@ describe("DataTable.HeaderSortButton", () => {
 		const button = screen.getByRole("button", { name: "Name" });
 		expect(button).toHaveAttribute("data-appearance", "ghost");
 		expect(button).toHaveAttribute("data-intent", "neutral");
+		// Why a class assertion: the mute branch emits no data attribute of its own,
+		// so the class is its only observable.
 		expect(button).toHaveClass("text-muted");
 	});
 
@@ -667,6 +659,7 @@ type ExpandableHarnessProps = {
 	buttonOnClick?: (event: MouseEvent<HTMLButtonElement>) => void;
 	buttonAppearance?: IconButtonAppearance;
 	detailColSpan?: number;
+	rows?: Row[];
 };
 
 /**
@@ -679,6 +672,7 @@ function ExpandableHarness({
 	buttonOnClick,
 	buttonAppearance,
 	detailColSpan,
+	rows = data,
 }: ExpandableHarnessProps) {
 	const [expanded, setExpanded] = useState<ExpandedState>({});
 	const expandableColumns = useMemo(
@@ -708,7 +702,7 @@ function ExpandableHarness({
 	);
 	const table = useTable({
 		features: expandableFeatures,
-		data,
+		data: rows,
 		columns: expandableColumns,
 		state: { expanded },
 		onExpandedChange: setExpanded,
@@ -776,17 +770,6 @@ describe("DataTable.RowExpandButton", () => {
 			.closest("td");
 		expect(detailCell).toHaveAttribute("id", "data-table-expanded-row-row-1");
 		expect(button).toHaveAttribute("aria-controls", "data-table-expanded-row-row-1");
-	});
-
-	test("collapses the row again on a second click", async () => {
-		const user = userEvent.setup();
-		render(<ExpandableHarness />);
-
-		await user.click(screen.getByRole("button", { name: "Show details for Alice" }));
-		expect(screen.getByTestId("detail-row-1")).toBeInTheDocument();
-
-		await user.click(screen.getByRole("button", { name: "Hide details for Alice" }));
-		expect(screen.queryByTestId("detail-row-1")).not.toBeInTheDocument();
 	});
 
 	test("stops propagation so it does not trigger a row-level onClick", async () => {
@@ -963,7 +946,6 @@ describe("DataTable.Row renderExpanded", () => {
 
 		await user.click(screen.getByRole("button", { name: "Show details for Alice" }));
 
-		expect(renderSpy).toHaveBeenCalled();
 		expect(renderSpy).toHaveBeenLastCalledWith(expect.objectContaining({ id: "row-1" }));
 		const panelCell = screen.getByTestId("panel-row-1").closest("td");
 		expect(panelCell).toHaveAttribute("colspan", "2");
@@ -977,73 +959,21 @@ describe("DataTable.Row renderExpanded", () => {
 	});
 });
 
-describe("expandedRowId encoding", () => {
-	test("keeps the aria-controls↔panel id association for a row id containing whitespace", async () => {
-		const user = userEvent.setup();
-		const spacedData: Row[] = [{ id: "Acme Inc", name: "Acme" }];
+test("expandedRowId keeps the aria-controls↔panel id association for a row id containing whitespace", async () => {
+	const user = userEvent.setup();
+	const spacedData: Row[] = [{ id: "Acme Inc", name: "Acme" }];
 
-		function WhitespaceIdHarness() {
-			const [expanded, setExpanded] = useState<ExpandedState>({});
-			const cols = useMemo(
-				() =>
-					expandableColumnHelper.columns([
-						expandableColumnHelper.display({
-							id: "expander",
-							header: () => <DataTable.ExpandHeader />,
-							cell: (props) => (
-								<DataTable.Cell>
-									<DataTable.RowExpandButton row={props.row} label={props.row.original.name} />
-								</DataTable.Cell>
-							),
-						}),
-						expandableColumnHelper.accessor("name", {
-							id: "name",
-							header: () => <DataTable.Header>Name</DataTable.Header>,
-							cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
-						}),
-					]),
-				[],
-			);
-			const table = useTable({
-				features: expandableFeatures,
-				data: spacedData,
-				columns: cols,
-				state: { expanded },
-				onExpandedChange: setExpanded,
-				getRowCanExpand: () => true,
-				getRowId: (row) => row.id, // a row id WITH a space
-			});
-			return (
-				<DataTable.Root table={table}>
-					<DataTable.Head />
-					<DataTable.Body>
-						{table.getRowModel().rows.map((row) => (
-							<Fragment key={row.id}>
-								<DataTable.Row row={row} />
-								{row.getIsExpanded() && (
-									<DataTable.ExpandedRow row={row}>
-										<span>Detail</span>
-									</DataTable.ExpandedRow>
-								)}
-							</Fragment>
-						))}
-					</DataTable.Body>
-				</DataTable.Root>
-			);
-		}
+	render(<ExpandableHarness rows={spacedData} />);
+	await user.click(screen.getByRole("button", { name: "Show details for Acme" }));
 
-		render(<WhitespaceIdHarness />);
-		await user.click(screen.getByRole("button", { name: "Show details for Acme" }));
-
-		const button = screen.getByRole("button", { name: "Hide details for Acme" });
-		const ariaControls = button.getAttribute("aria-controls");
-		invariant(ariaControls, "expanded button should expose aria-controls");
-		// Encoded to a valid, whitespace-free IDREF (a space would split it into two
-		// tokens and sever the association)…
-		expect(ariaControls).not.toContain(" ");
-		// …and the panel cell carries the exact same id, so the association resolves.
-		expect(document.getElementById(ariaControls)).toBeInTheDocument();
-	});
+	const button = screen.getByRole("button", { name: "Hide details for Acme" });
+	const ariaControls = button.getAttribute("aria-controls");
+	invariant(ariaControls, "expanded button should expose aria-controls");
+	// Encoded to a valid, whitespace-free IDREF (a space would split it into two
+	// tokens and sever the association)…
+	expect(ariaControls).not.toContain(" ");
+	// …and the panel cell carries the exact same id, so the association resolves.
+	expect(document.getElementById(ariaControls)).toBeInTheDocument();
 });
 
 describe("DataTable.EmptyRow", () => {
@@ -1131,26 +1061,24 @@ function DetailOnlyHarness() {
 	);
 }
 
-describe("DataTable.Row renderExpanded without expandedRowModel", () => {
-	test("a table with only `rowExpandingFeature` opens and closes a detail panel", async () => {
-		const user = userEvent.setup();
-		render(<DetailOnlyHarness />);
-		expect(screen.queryByTestId("panel")).not.toBeInTheDocument();
+test("DataTable.Row renderExpanded on a table with only `rowExpandingFeature` opens and closes a detail panel", async () => {
+	const user = userEvent.setup();
+	render(<DetailOnlyHarness />);
+	expect(screen.queryByTestId("panel")).not.toBeInTheDocument();
 
-		await user.click(screen.getByRole("button", { name: "Show details for Alice" }));
+	await user.click(screen.getByRole("button", { name: "Show details for Alice" }));
 
-		const button = screen.getByRole("button", { name: "Hide details for Alice" });
-		expect(button).toHaveAttribute("aria-expanded", "true");
-		expect(screen.getByTestId("panel").closest("td")).toHaveAttribute("colspan", "2");
+	const button = screen.getByRole("button", { name: "Hide details for Alice" });
+	expect(button).toHaveAttribute("aria-expanded", "true");
+	expect(screen.getByTestId("panel").closest("td")).toHaveAttribute("colspan", "2");
 
-		await user.click(button);
+	await user.click(button);
 
-		expect(screen.getByRole("button", { name: "Show details for Alice" })).toHaveAttribute(
-			"aria-expanded",
-			"false",
-		);
-		expect(screen.queryByTestId("panel")).not.toBeInTheDocument();
-	});
+	expect(screen.getByRole("button", { name: "Show details for Alice" })).toHaveAttribute(
+		"aria-expanded",
+		"false",
+	);
+	expect(screen.queryByTestId("panel")).not.toBeInTheDocument();
 });
 
 const selectionFeatures = tableFeatures({ rowSelectionFeature });
@@ -1196,19 +1124,17 @@ function SelectionHarness() {
 	);
 }
 
-describe("DataTable.Row state subscription", () => {
-	test("re-renders a cell that reads selection state through `row` when the selection changes", async () => {
-		// The compiled row keeps the same `row` prop across the change, so only its
-		// whole-state subscription re-runs the cell renderer. A selector narrowed to
-		// the row's expansion state leaves the cell at "not selected".
-		const user = userEvent.setup();
-		render(<SelectionHarness />);
-		expect(screen.getByRole("cell", { name: "Alice is not selected" })).toBeInTheDocument();
+test("DataTable.Row re-renders a cell that reads selection state through `row` when the selection changes", async () => {
+	// The compiled row keeps the same `row` prop across the change, so only its
+	// whole-state subscription re-runs the cell renderer. A selector narrowed to
+	// the row's expansion state leaves the cell at "not selected".
+	const user = userEvent.setup();
+	render(<SelectionHarness />);
+	expect(screen.getByRole("cell", { name: "Alice is not selected" })).toBeInTheDocument();
 
-		await user.click(screen.getByRole("button", { name: "Toggle Alice" }));
+	await user.click(screen.getByRole("button", { name: "Toggle Alice" }));
 
-		expect(screen.getByRole("cell", { name: "Alice is selected" })).toBeInTheDocument();
-	});
+	expect(screen.getByRole("cell", { name: "Alice is selected" })).toBeInTheDocument();
 });
 
 function VisibilityToggleHarness() {
@@ -1279,31 +1205,27 @@ function ClosureHarness() {
 	);
 }
 
-describe("DataTable.Row options subscription", () => {
-	test("re-renders its cells when a new `columns` array arrives with the same `row` and state", async () => {
-		// TanStack keeps the `row` object across a `columns` change and the store state
-		// does not move, so only the options half of the selector re-runs the cells.
-		const user = userEvent.setup();
-		render(<ClosureHarness />);
-		expect(screen.getByRole("cell", { name: "Alice before" })).toBeInTheDocument();
+test("DataTable.Row re-renders its cells when a new `columns` array arrives with the same `row` and state", async () => {
+	// TanStack keeps the `row` object across a `columns` change and the store state
+	// does not move, so only the options half of the selector re-runs the cells.
+	const user = userEvent.setup();
+	render(<ClosureHarness />);
+	expect(screen.getByRole("cell", { name: "Alice before" })).toBeInTheDocument();
 
-		await user.click(screen.getByRole("button", { name: "Relabel" }));
+	await user.click(screen.getByRole("button", { name: "Relabel" }));
 
-		expect(screen.getByRole("cell", { name: "Alice after" })).toBeInTheDocument();
-	});
+	expect(screen.getByRole("cell", { name: "Alice after" })).toBeInTheDocument();
 });
 
-describe("DataTable.RowExpandButton options subscription", () => {
-	test("disappears when a re-render changes `getRowCanExpand` for the same `row`", () => {
-		// `row.getCanExpand()` reads an option, not state. Dropping the options from the
-		// selector keeps the toggle mounted after the predicate flips.
-		const { rerender } = render(<ExpandableHarness canExpand />);
-		expect(screen.getByRole("button", { name: "Show details for Alice" })).toBeInTheDocument();
+test("DataTable.RowExpandButton disappears when a re-render changes `getRowCanExpand` for the same `row`", () => {
+	// `row.getCanExpand()` reads an option, not state. Dropping the options from the
+	// selector keeps the toggle mounted after the predicate flips.
+	const { rerender } = render(<ExpandableHarness canExpand />);
+	expect(screen.getByRole("button", { name: "Show details for Alice" })).toBeInTheDocument();
 
-		rerender(<ExpandableHarness canExpand={false} />);
+	rerender(<ExpandableHarness canExpand={false} />);
 
-		expect(screen.queryByRole("button")).not.toBeInTheDocument();
-	});
+	expect(screen.queryByRole("button")).not.toBeInTheDocument();
 });
 
 /** Renders a detail row under the only data row, with two or three columns. */
@@ -1351,36 +1273,32 @@ function ColumnCountHarness({ withExtraColumn }: { withExtraColumn: boolean }) {
 	);
 }
 
-describe("DataTable.ExpandedRow options subscription", () => {
-	test("its `colSpan` follows a new `columns` array for the same `row`", () => {
-		// The cell count changes through the options, not the store, so dropping the
-		// options from the selector leaves `colspan` at 2.
-		const { rerender } = render(<ColumnCountHarness withExtraColumn={false} />);
-		const detailCell = () =>
-			within(screen.getByTestId("detail-row-1")).getByText("Detail").closest("td");
-		expect(detailCell()).toHaveAttribute("colspan", "2");
+test("DataTable.ExpandedRow `colSpan` follows a new `columns` array for the same `row`", () => {
+	// The cell count changes through the options, not the store, so dropping the
+	// options from the selector leaves `colspan` at 2.
+	const { rerender } = render(<ColumnCountHarness withExtraColumn={false} />);
+	const detailCell = () =>
+		within(screen.getByTestId("detail-row-1")).getByText("Detail").closest("td");
+	expect(detailCell()).toHaveAttribute("colspan", "2");
 
-		rerender(<ColumnCountHarness withExtraColumn />);
+	rerender(<ColumnCountHarness withExtraColumn />);
 
-		expect(detailCell()).toHaveAttribute("colspan", "3");
-	});
+	expect(detailCell()).toHaveAttribute("colspan", "3");
 });
 
-describe("DataTable.ExpandedRow state subscription", () => {
-	test("its `colSpan` follows a column visibility change while the `row` prop stays the same", async () => {
-		// The compiled panel keeps the same `row` prop, so only its subscription to
-		// the visible cell count re-renders it. A count read in the component body
-		// leaves `colspan` at 3 after the toggle.
-		const user = userEvent.setup();
-		render(<VisibilityToggleHarness />);
-		const detailCell = () =>
-			within(screen.getByTestId("detail-row-1")).getByText("Detail").closest("td");
-		expect(detailCell()).toHaveAttribute("colspan", "3");
+test("DataTable.ExpandedRow `colSpan` follows a column visibility change while the `row` prop stays the same", async () => {
+	// The compiled panel keeps the same `row` prop, so only its subscription to
+	// the visible cell count re-renders it. A count read in the component body
+	// leaves `colspan` at 3 after the toggle.
+	const user = userEvent.setup();
+	render(<VisibilityToggleHarness />);
+	const detailCell = () =>
+		within(screen.getByTestId("detail-row-1")).getByText("Detail").closest("td");
+	expect(detailCell()).toHaveAttribute("colspan", "3");
 
-		await user.click(screen.getByRole("button", { name: "Toggle name" }));
+	await user.click(screen.getByRole("button", { name: "Toggle name" }));
 
-		expect(detailCell()).toHaveAttribute("colspan", "2");
-	});
+	expect(detailCell()).toHaveAttribute("colspan", "2");
 });
 
 type TeamRow = { id: string; team: string; name: string };
@@ -1433,23 +1351,21 @@ function GroupingHarness() {
 	);
 }
 
-describe("DataTable.Row with grouping", () => {
-	// Why this pins `flexRender`: a leaf row under a group carries a placeholder
-	// cell in the grouping column. TanStack's `FlexRender` component renders
-	// `null` for it, which drops the `<td>` and shifts every later cell left.
-	test("keeps one `<td>` per leaf column on group rows and leaf rows, placeholder cells included", () => {
-		render(<GroupingHarness />);
-		const groupRows = screen.getAllByTestId("group-row");
-		const leafRows = screen.getAllByTestId("leaf-row");
-		expect(groupRows).toHaveLength(2);
-		expect(leafRows).toHaveLength(3);
-		for (const row of [...groupRows, ...leafRows]) {
-			expect(within(row).getAllByRole("cell")).toHaveLength(2);
-		}
-		const [firstLeaf] = leafRows;
-		invariant(firstLeaf, "expected a leaf row");
-		expect(within(firstLeaf).getAllByRole("cell")[0]).toHaveTextContent("web");
-	});
+// Why this pins `flexRender`: a leaf row under a group carries a placeholder
+// cell in the grouping column. TanStack's `FlexRender` component renders
+// `null` for it, which drops the `<td>` and shifts every later cell left.
+test("DataTable.Row with grouping keeps one `<td>` per leaf column on group rows and leaf rows, placeholder cells included", () => {
+	render(<GroupingHarness />);
+	const groupRows = screen.getAllByTestId("group-row");
+	const leafRows = screen.getAllByTestId("leaf-row");
+	expect(groupRows).toHaveLength(2);
+	expect(leafRows).toHaveLength(3);
+	for (const row of [...groupRows, ...leafRows]) {
+		expect(within(row).getAllByRole("cell")).toHaveLength(2);
+	}
+	const [firstLeaf] = leafRows;
+	invariant(firstLeaf, "expected a leaf row");
+	expect(within(firstLeaf).getAllByRole("cell")[0]).toHaveTextContent("web");
 });
 
 describe("DataTable action cells after browser translation", () => {

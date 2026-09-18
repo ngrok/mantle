@@ -39,7 +39,7 @@ describe("UserOverlayDemo", () => {
 
 		// The shell mounts synchronously with the pending body — that is the
 		// recipe's core claim. (Sheet renders role="dialog".)
-		expect(screen.getByRole("dialog", { name: "User details" })).toBeDefined();
+		expect(screen.queryByRole("dialog", { name: "User details" })).not.toBeNull();
 	});
 
 	it("opens the alert dialog when Alert Dialog is picked", () => {
@@ -50,7 +50,7 @@ describe("UserOverlayDemo", () => {
 
 		// The alert-dialog shell is distinguishable by its confirmation title and
 		// its gated destructive action (disabled while the query is pending).
-		expect(screen.getByRole("alertdialog", { name: "Remove this user?" })).toBeDefined();
+		expect(screen.queryByRole("alertdialog", { name: "Remove this user?" })).not.toBeNull();
 		expect(screen.getByRole("button", { name: "Remove user" }).hasAttribute("disabled")).toBe(true);
 	});
 
@@ -60,7 +60,11 @@ describe("UserOverlayDemo", () => {
 		fireEvent.click(screen.getByRole("radio", { name: "Dialog" }));
 		fireEvent.click(screen.getByRole("button", { name: "404 error" }));
 
-		expect(screen.getByRole("dialog", { name: "User details" })).toBeDefined();
-		expect(screen.queryByRole("dialog", { name: "Remove this user?" })).toBeNull();
+		// Why data-slot: `Sheet.Content` and `Dialog.Content` both render `role="dialog"`
+		// titled "User details", so the slot is the only observable of the Dialog branch.
+		expect(screen.getByRole("dialog", { name: "User details" }).getAttribute("data-slot")).toBe(
+			"dialog-content",
+		);
+		expect(screen.queryByRole("alertdialog", { name: "Remove this user?" })).toBeNull();
 	});
 });

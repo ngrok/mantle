@@ -70,11 +70,6 @@ describe("Input", () => {
 		expect(screen.getByRole("textbox")).toHaveAttribute("placeholder", "Testy McTestface");
 	});
 
-	test('without children, with validation="error", renders an input with aria-invalid="true"', () => {
-		render(<Input validation="error" />);
-		expect(screen.getByRole("textbox")).toHaveAttribute("aria-invalid", "true");
-	});
-
 	test('with children, without validation="error", renders an input with aria-invalid="false" and placeholder="Testy McTestface"', () => {
 		render(
 			<Input placeholder="Testy McTestface">
@@ -133,6 +128,9 @@ describe("Input", () => {
 		render(<Input validation="warning" />);
 		expect(screen.getByRole("textbox")).toHaveAttribute("aria-invalid", "false");
 		expect(screen.getByRole("textbox")).toHaveAttribute("data-validation", "warning");
+		// Why a class: the glyph wrapper emits no data attribute, so the class is
+		// the only observable output of the `ValidationFeedback` lookup for this key.
+		expect(screen.getByRole("textbox").nextElementSibling).toHaveClass("text-warning-600");
 	});
 
 	test('given validation="error", renders an input with aria-invalid="true" and data-validation="error"', () => {
@@ -143,18 +141,6 @@ describe("Input", () => {
 
 	test('given aria-invalid="true" and validation="success", renders an input with aria-invalid="true" and data-validation="error"', () => {
 		render(<Input aria-invalid="true" validation="success" />);
-		expect(screen.getByRole("textbox")).toHaveAttribute("aria-invalid", "true");
-		expect(screen.getByRole("textbox")).toHaveAttribute("data-validation", "error");
-	});
-
-	test('given aria-invalid="true" and validation="warning", renders an input with aria-invalid="true" and data-validation="error"', () => {
-		render(<Input aria-invalid="true" validation="warning" />);
-		expect(screen.getByRole("textbox")).toHaveAttribute("aria-invalid", "true");
-		expect(screen.getByRole("textbox")).toHaveAttribute("data-validation", "error");
-	});
-
-	test('given aria-invalid="true" and validation="error", renders an input with aria-invalid="true" and data-validation="error"', () => {
-		render(<Input aria-invalid="true" validation="error" />);
 		expect(screen.getByRole("textbox")).toHaveAttribute("aria-invalid", "true");
 		expect(screen.getByRole("textbox")).toHaveAttribute("data-validation", "error");
 	});

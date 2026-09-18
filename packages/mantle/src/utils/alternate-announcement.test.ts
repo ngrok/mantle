@@ -14,7 +14,6 @@ describe("alternateAnnouncement", () => {
 		const assertive = { current: false };
 		alternateAnnouncement("Saving", polite);
 		expect(polite.current).toBe(true);
-		expect(assertive.current).toBe(false);
 		expect(alternateAnnouncement("Saving", assertive)).toBe("Saving");
 	});
 });

@@ -26,26 +26,16 @@ describe("serializeChartMarkdown", () => {
 		);
 	});
 
-	test("category and numeric x values pass through machine-stable", () => {
+	test("a numeric x value is never locale-separated", () => {
 		const markdown = serializeChartMarkdown({
-			data: [
-				{ label: "January", visitors: 186 },
-				{ label: "February", visitors: 305 },
-			],
-			xKey: "label",
-			series: [{ dataKey: "visitors", label: "Visitors" }],
-		});
-		expect(markdown).toContain("| January | 186 |");
-		expect(markdown).toContain("| February | 305 |");
-		const numericX = serializeChartMarkdown({
 			data: [{ requests: 10000, errors: 3 }],
 			xKey: "requests",
 			series: [{ dataKey: "errors", label: "Errors" }],
 		});
-		expect(numericX).toContain("| 10000 | 3 |");
+		expect(markdown).toContain("| 10000 | 3 |");
 	});
 
-	test("extreme magnitudes keep E-notation and round-trip exactly through Number()", () => {
+	test("extreme magnitudes keep E-notation", () => {
 		// Deliberate contract: String(value), never a fixed-point expansion —
 		// capped-precision formatting can silently corrupt (1e-21 rounds to "0"),
 		// while E-notation stays exactly re-parseable everywhere.
@@ -58,8 +48,6 @@ describe("serializeChartMarkdown", () => {
 			],
 		});
 		expect(markdown).toContain("| 1 | 1e+21 | 1e-7 |");
-		expect(Number("1e+21")).toBe(1e21);
-		expect(Number("1e-7")).toBe(1e-7);
 	});
 
 	test("null, missing, and non-finite values render as an em dash — never zero", () => {

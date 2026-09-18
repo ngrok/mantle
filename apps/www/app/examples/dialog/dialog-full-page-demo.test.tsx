@@ -18,20 +18,14 @@ async function openDialog() {
 }
 
 describe("FullPageDialogDemo", () => {
-	it("names the switch through the label so a click on the caption reaches it", async () => {
+	it("names the switch by its caption", async () => {
 		await openDialog();
 
-		const toggle = screen.getByRole("switch");
-		const label = document.querySelector('[data-slot="dialog-body"] [data-slot="label"]');
-
-		expect(toggle.id).not.toBe("");
-		expect(label?.getAttribute("for")).toBe(toggle.id);
-	});
-
-	it("opens as a full-page dialog, keeping the 16px gutter", async () => {
-		const { content } = await openDialog();
-
-		expect(content.dataset.appearance).toBe("full-page");
+		const toggle = screen.queryByRole("switch", { name: "Full bleed" });
+		expect(toggle).not.toBeNull();
+		// Why the `for` pin: a wrapping label names the switch even when `for` points
+		// at nothing. Only a matching id shows that `Field.Control` reached the switch.
+		expect(screen.getByText("Full bleed").getAttribute("for")).toBe(toggle?.id);
 	});
 
 	it("swaps to full-bleed when the switch goes on, and back when it goes off", async () => {
@@ -39,6 +33,7 @@ describe("FullPageDialogDemo", () => {
 		const toggle = screen.getByRole("switch");
 
 		expect(toggle.getAttribute("aria-checked")).toBe("false");
+		expect(content.dataset.appearance).toBe("full-page");
 
 		await user.click(toggle);
 		expect(toggle.getAttribute("aria-checked")).toBe("true");

@@ -131,25 +131,26 @@ const dotPosition = (dot: HTMLElement): { x: number; y: number } => {
  * and retry `assertGeometry` until the overlay reflects settled layout. The
  * first key event can race the first layout commit and the engine re-syncs
  * dots on later frames, so both the dispatch (Home/End are idempotent per
- * position) and the geometry assertions must live inside the retry loop —
- * reading positions once after a visibility check reads pre-layout values.
+ * position) and the geometry assertions must live inside the retry loop:
+ * a single read after a visibility check returns pre-layout values.
+ * Resolves with the value `assertGeometry` returns on the pass that settles.
  */
-const assertDatumGeometry = async (
+const assertDatumGeometry = async <T,>(
 	container: HTMLElement,
 	key: "Home" | "End",
-	assertGeometry: () => void,
-) => {
+	assertGeometry: () => T,
+): Promise<T> => {
 	const canvas = mustBe(container.querySelector("canvas"), HTMLCanvasElement, "the chart canvas");
 	const overlay = mustBe(container.querySelector('[role="application"]'), HTMLElement, "overlay");
 	await waitFor(() => {
 		expect(canvas.width).toBeGreaterThan(0);
 	});
 	overlay.focus();
-	await waitFor(() => {
+	return waitFor(() => {
 		overlay.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
 		const visibleDots = activeDots(container).filter((dot) => dot.style.opacity === "1");
 		expect(visibleDots.length).toBeGreaterThan(0);
-		assertGeometry();
+		return assertGeometry();
 	});
 };
 
@@ -411,8 +412,7 @@ describe("hover marker geometry", () => {
 				</ScatterPlot.Root>
 			</div>,
 		);
-		let first: { x: number; y: number } | null = null;
-		await assertDatumGeometry(container, "Home", () => {
+		const first = await assertDatumGeometry(container, "Home", () => {
 			const tooltip = container.querySelector('[data-slot="scatter-plot-tooltip"]');
 			expect(tooltip?.textContent).toContain("10");
 			const [dot] = activeDots(container).map(dotPosition);
@@ -423,13 +423,13 @@ describe("hover marker geometry", () => {
 			// must map into the 300px wrapper's lower half, not the pre-layout
 			// margin position near the top.
 			expect(dot.y).toBeGreaterThan(150);
-			first = dot;
+			return dot;
 		});
 		await assertDatumGeometry(container, "End", () => {
 			const tooltip = container.querySelector('[data-slot="scatter-plot-tooltip"]');
 			expect(tooltip?.textContent).toContain("90");
 			const [last] = activeDots(container).map(dotPosition);
-			if (first == null || last == null) {
+			if (last == null) {
 				throw new Error("expected the active-point dot");
 			}
 			// (2, 90) sits to the right of and above (1, 10) in screen space.

@@ -291,19 +291,17 @@ describe("planSourceGroups", () => {
 	});
 });
 
-describe("readDirectoryListing", () => {
-	test("splits entries by kind and follows a symlink to what it points to", async () => {
-		const root = await realpath(await mkdtemp(path.join(tmpdir(), "mantle-sources-listing-")));
-		fixtureRoots.push(root);
-		await writeFile(path.join(root, "badge.js"), "");
-		await mkdir(path.join(root, "chunks"));
-		await symlink(path.join(root, "badge.js"), path.join(root, "linked.js"), "file");
-		await symlink(path.join(root, "chunks"), path.join(root, "linked-dir"), "dir");
-		await symlink(path.join(root, "missing.js"), path.join(root, "dangling.js"), "file");
-		expect(readDirectoryListing(root)).toEqual({
-			files: ["badge.js", "linked.js"],
-			directories: ["chunks", "linked-dir"],
-		});
+test("readDirectoryListing splits entries by kind and follows a symlink to what it points to", async () => {
+	const root = await realpath(await mkdtemp(path.join(tmpdir(), "mantle-sources-listing-")));
+	fixtureRoots.push(root);
+	await writeFile(path.join(root, "badge.js"), "");
+	await mkdir(path.join(root, "chunks"));
+	await symlink(path.join(root, "badge.js"), path.join(root, "linked.js"), "file");
+	await symlink(path.join(root, "chunks"), path.join(root, "linked-dir"), "dir");
+	await symlink(path.join(root, "missing.js"), path.join(root, "dangling.js"), "file");
+	expect(readDirectoryListing(root)).toEqual({
+		files: ["badge.js", "linked.js"],
+		directories: ["chunks", "linked-dir"],
 	});
 });
 
@@ -514,15 +512,13 @@ describe("formatSummary", () => {
 	});
 });
 
-describe("findMissing", () => {
-	test("returns the bundle ids the list lacks, sorted", () => {
-		expect(
-			findMissing({
-				bundleFiles: new Set(["/m/tooltip.js", "/m/badge.js", "/m/cx.js"]),
-				listed: new Set(["/m/badge.js"]),
-			}),
-		).toEqual(["/m/cx.js", "/m/tooltip.js"]);
-	});
+test("findMissing returns the bundle ids the list lacks, sorted", () => {
+	expect(
+		findMissing({
+			bundleFiles: new Set(["/m/tooltip.js", "/m/badge.js", "/m/cx.js"]),
+			listed: new Set(["/m/badge.js"]),
+		}),
+	).toEqual(["/m/cx.js", "/m/tooltip.js"]);
 });
 
 describe("graph tracking", () => {
@@ -1157,61 +1153,55 @@ describe("mantleSourcesPlugin bundle check", () => {
 	});
 });
 
-describe("mantleSourcesPlugin environments", () => {
-	test("leaves the server CSS alone and warns about a server-only mantle import, across environments a config function re-creates", async () => {
-		const root = await createFixture({
-			"index.html": indexHtml,
-			"src/app.css": appCss,
-			"src/main.ts":
-				'import { Badge } from "@ngrok/mantle/badge";\nimport "./app.css";\nconsole.log(Badge);',
-			"src/entry.server.ts": [
-				'import { Badge } from "@ngrok/mantle/badge";',
-				'import { Tooltip } from "@ngrok/mantle/tooltip";',
-				'import "./app.css";',
-				"export const render = () => [Badge, Tooltip];",
-			].join("\n"),
-			// Why a function: `vite build --app` evaluates it once per environment, so each
-			// environment gets a fresh plugin object unless the plugin opts into sharing.
-			"vite.config.mjs": [
-				'import tailwindcss from "@tailwindcss/vite";',
-				`import { mantleSourcesPlugin } from ${JSON.stringify(pluginSource)};`,
-				"export default () => ({",
-				"\tbuild: { write: false },",
-				"\tenvironments: {",
-				'\t\tclient: { build: { rolldownOptions: { input: "index.html" } } },',
-				'\t\tssr: { build: { ssr: true, rolldownOptions: { input: "src/entry.server.ts" } } },',
-				"\t},",
-				"\tssr: { noExternal: true },",
-				"\tplugins: [tailwindcss(), mantleSourcesPlugin()],",
-				"});",
-			].join("\n"),
-		});
-		const { logger, logs } = captureLogger();
-		const capture = captureCss();
-		const builder = await createBuilder({
-			root,
-			configFile: path.join(root, "vite.config.mjs"),
-			envDir: false,
-			logLevel: "warn",
-			customLogger: logger,
-			plugins: [capture.plugin],
-		});
-		await builder.buildApp();
-
-		const cssFile = path.join(root, "src/app.css");
-		expect(seenIn(capture.seen, cssFile, "client")).toContain("@source ");
-		expect(seenIn(capture.seen, cssFile, "ssr")).toContain(
-			'@import "@ngrok/mantle/source-all.css";',
-		);
-		expect(logs.info).toContainEqual(
-			expect.stringMatching(
-				/^mantle sources: \d+ @ngrok\/mantle files listed for src\/app\.css \(/,
-			),
-		);
-		expect(logs.warn).toContainEqual(
-			expect.stringMatching(
-				/the ssr bundle holds \d+ listed file\(s\) the client bundle does not reach:[\s\S]*dist\/tooltip[\w-]*\.js/,
-			),
-		);
+test("mantleSourcesPlugin leaves the server CSS alone and warns about a server-only mantle import, across environments a config function re-creates", async () => {
+	const root = await createFixture({
+		"index.html": indexHtml,
+		"src/app.css": appCss,
+		"src/main.ts":
+			'import { Badge } from "@ngrok/mantle/badge";\nimport "./app.css";\nconsole.log(Badge);',
+		"src/entry.server.ts": [
+			'import { Badge } from "@ngrok/mantle/badge";',
+			'import { Tooltip } from "@ngrok/mantle/tooltip";',
+			'import "./app.css";',
+			"export const render = () => [Badge, Tooltip];",
+		].join("\n"),
+		// Why a function: `vite build --app` evaluates it once per environment, so each
+		// environment gets a fresh plugin object unless the plugin opts into sharing.
+		"vite.config.mjs": [
+			'import tailwindcss from "@tailwindcss/vite";',
+			`import { mantleSourcesPlugin } from ${JSON.stringify(pluginSource)};`,
+			"export default () => ({",
+			"\tbuild: { write: false },",
+			"\tenvironments: {",
+			'\t\tclient: { build: { rolldownOptions: { input: "index.html" } } },',
+			'\t\tssr: { build: { ssr: true, rolldownOptions: { input: "src/entry.server.ts" } } },',
+			"\t},",
+			"\tssr: { noExternal: true },",
+			"\tplugins: [tailwindcss(), mantleSourcesPlugin()],",
+			"});",
+		].join("\n"),
 	});
+	const { logger, logs } = captureLogger();
+	const capture = captureCss();
+	const builder = await createBuilder({
+		root,
+		configFile: path.join(root, "vite.config.mjs"),
+		envDir: false,
+		logLevel: "warn",
+		customLogger: logger,
+		plugins: [capture.plugin],
+	});
+	await builder.buildApp();
+
+	const cssFile = path.join(root, "src/app.css");
+	expect(seenIn(capture.seen, cssFile, "client")).toContain("@source ");
+	expect(seenIn(capture.seen, cssFile, "ssr")).toContain('@import "@ngrok/mantle/source-all.css";');
+	expect(logs.info).toContainEqual(
+		expect.stringMatching(/^mantle sources: \d+ @ngrok\/mantle files listed for src\/app\.css \(/),
+	);
+	expect(logs.warn).toContainEqual(
+		expect.stringMatching(
+			/the ssr bundle holds \d+ listed file\(s\) the client bundle does not reach:[\s\S]*dist\/tooltip[\w-]*\.js/,
+		),
+	);
 });

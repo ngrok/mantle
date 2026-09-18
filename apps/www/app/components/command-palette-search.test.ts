@@ -115,8 +115,7 @@ describe("groupPaletteCommands", () => {
 });
 
 describe("searchPaletteCommands", () => {
-	test("an empty or whitespace-only query returns every command in browse order", () => {
-		expect(searchPaletteCommands(commands, "")).toEqual(commands);
+	test("a whitespace-only query returns every command in browse order", () => {
 		expect(searchPaletteCommands(commands, "   ")).toEqual(commands);
 	});
 
@@ -130,17 +129,6 @@ describe("searchPaletteCommands", () => {
 		expect(results).not.toContain("Tailwind Variants");
 		expect(results).not.toContain("Typography");
 		expect(results).not.toContain("Table");
-	});
-
-	test("is case-insensitive", () => {
-		expect(titles("TABS")[0]).toBe("Tabs");
-	});
-
-	test("ranks an exact title match above a word-prefix match", () => {
-		const results = titles("table");
-
-		expect(results.indexOf("Table")).toBe(0);
-		expect(results).toContain("Data Table");
 	});
 
 	test("ranks exact > prefix > word-prefix for title matches", () => {
@@ -225,6 +213,6 @@ describe("searchPaletteCommands", () => {
 	});
 
 	test("treats regex special characters as plain text", () => {
-		expect(() => searchPaletteCommands(commands, "c++ (draft) [wip]")).not.toThrow();
+		expect(titles("overlays + async")).toEqual(["Overlays + Async Data"]);
 	});
 });

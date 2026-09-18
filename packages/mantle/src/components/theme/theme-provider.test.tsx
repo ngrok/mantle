@@ -32,6 +32,10 @@ function resetRootTheme() {
 	document.cookie = `${THEME_COOKIE}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
 }
 
+afterEach(() => {
+	resetRootTheme();
+});
+
 /**
  * Renders on the server path. happy-dom defines `window`, so `canUseDOM()`
  * returns true. The `window` stub routes the initializer to `ssrCookie`.
@@ -115,10 +119,6 @@ describe("determineThemeFromMediaQuery", () => {
 });
 
 describe("ssrCookie seeds the server render", () => {
-	afterEach(() => {
-		resetRootTheme();
-	});
-
 	test("the server render resolves the stored theme from ssrCookie", () => {
 		const html = renderOnServer(
 			<ThemeProvider ssrCookie={`${THEME_COOKIE}=dark`}>
@@ -179,33 +179,27 @@ describe("ssrCookie seeds the server render", () => {
 	});
 });
 
-describe("ThemeProvider closes the cross-tab channel on unmount", () => {
-	afterEach(() => {
-		resetRootTheme();
+test("ThemeProvider closes the cross-tab channel once on unmount and survives a close() that throws", () => {
+	mockMatchMedia({});
+	const close = vi.fn<() => void>(() => {
+		throw new Error("channel already closed");
 	});
+	class ThrowingBroadcastChannel {
+		close = close;
+		addEventListener() {}
+	}
+	vi.stubGlobal("BroadcastChannel", ThrowingBroadcastChannel);
+	const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
 
-	test("closes the channel once and survives a close() that throws", () => {
-		mockMatchMedia({});
-		const close = vi.fn<() => void>(() => {
-			throw new Error("channel already closed");
-		});
-		class ThrowingBroadcastChannel {
-			close = close;
-			addEventListener() {}
-		}
-		vi.stubGlobal("BroadcastChannel", ThrowingBroadcastChannel);
-		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+	const { unmount } = render(
+		<ThemeProvider>
+			<span>content</span>
+		</ThemeProvider>,
+	);
 
-		const { unmount } = render(
-			<ThemeProvider>
-				<span>content</span>
-			</ThemeProvider>,
-		);
-
-		expect(() => unmount()).not.toThrow();
-		expect(close).toHaveBeenCalledTimes(1);
-		expect(consoleError).toHaveBeenCalledTimes(0);
-	});
+	expect(() => unmount()).not.toThrow();
+	expect(close).toHaveBeenCalledTimes(1);
+	expect(consoleError).toHaveBeenCalledTimes(0);
 });
 
 describe("PreventWrongThemeFlashScript", () => {
@@ -228,10 +222,6 @@ describe("PreventWrongThemeFlashScript", () => {
 });
 
 describe("forceTheme pins what lands on <html>", () => {
-	afterEach(() => {
-		resetRootTheme();
-	});
-
 	// `MantleStyleSheets`' `forceTheme` applies a theme's stylesheet *pair*, so the
 	// partner sheet is live on every forced page. Which block wins is then decided
 	// by the class and `data-applied-theme` on `<html>` — and these three writers

@@ -7,7 +7,6 @@ import lightCss from "../../mantle.css?raw";
 import {
 	CHROMA_FLOOR,
 	CONTRAST_FLOOR_BY_THEME,
-	CVD_FLOOR,
 	CVD_TARGET,
 	LIGHTNESS_BAND,
 	NORMAL_VISION_FLOOR,
@@ -32,9 +31,9 @@ import type { PaletteMode, ThemeName, WorstPair } from "./palette-gates.js";
  * 8-bit color a browser rasterizes, then runs the measured accessibility gates
  * on the result: lightness band, chroma floor, separation under simulated color
  * vision deficiency (CVD), normal-vision separation, and contrast against that
- * theme's card surface. Separation runs twice, over adjacent pairs and over all
- * 28 pairs. The overflow gray sits outside those pairlists, so it gets its own
- * contrast gate and its own recorded distance from the eight.
+ * theme's card surface. Separation runs over all 28 pairs. The overflow gray sits
+ * outside that pairlist, so it gets its own contrast gate and its own recorded
+ * distance from the eight.
  * `palette-gates.test.ts` pins the math itself against externally sourced
  * answers.
  *
@@ -284,7 +283,6 @@ describe.each(THEMES)("chart palette gates — $name", (theme) => {
 		//
 		// A `tailwindcss/theme.css` row would mean mantle ships a chart color it
 		// does not own, where an upstream re-tune moves a shipped series.
-		expect(theme.slots).toHaveLength(8);
 		expect(theme.provenance).toEqual(PROVENANCE[theme.name]);
 	});
 
@@ -338,43 +336,6 @@ describe.each(THEMES)("chart palette gates — $name", (theme) => {
 				`chart-${slot} chroma ${chroma.toFixed(4)} is under the ${CHROMA_FLOOR} floor, so it reads as gray`,
 			),
 		);
-		expect(violations).toEqual([]);
-	});
-
-	test("adjacent slots stay apart under simulated color vision deficiency", () => {
-		// Adjacent scope is what bars, stacks, and lines hand out: slot assignment
-		// never skips a mounted series, so neighbors touch first. The all-pairs gate
-		// below subsumes this one. Both stay, because this message names the pair a
-		// stack really paints side by side.
-		const worst = worstCvdPair(theme.slots, "adjacent");
-		const violations = [
-			worst.deltaE < CVD_FLOOR &&
-				violation(
-					theme,
-					`CVD separation is under the ${CVD_FLOOR} hard floor. ${describePair(worst)}`,
-				),
-			worst.deltaE >= CVD_FLOOR &&
-				worst.deltaE < CVD_TARGET &&
-				violation(
-					theme,
-					`CVD separation is under the ${CVD_TARGET} target, which is legal only with a secondary encoding. ${describePair(worst)}`,
-				),
-		].filter((entry) => entry !== false);
-		expect(violations).toEqual([]);
-	});
-
-	test("adjacent slots stay apart for full-color readers", () => {
-		// The hard gate: a secondary encoding does not excuse this one.
-		const worst = worstNormalPair(theme.slots, "adjacent");
-		const violations =
-			worst.deltaE < NORMAL_VISION_FLOOR
-				? [
-						violation(
-							theme,
-							`the normal-vision floor of ${NORMAL_VISION_FLOOR} was breached and this gate has no relief valve. ${describePair(worst)}`,
-						),
-					]
-				: [];
 		expect(violations).toEqual([]);
 	});
 

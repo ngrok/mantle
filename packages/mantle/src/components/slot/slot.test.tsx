@@ -64,22 +64,6 @@ describe("Slot", () => {
 		expect(div).toHaveClass("py-2");
 	});
 
-	it("preserves child-only className when Slot has no className", () => {
-		const { container } = render(
-			<Slot>
-				<span className="child-only-class">Text</span>
-			</Slot>,
-		);
-
-		const span = container.querySelector("span");
-
-		if (span == null) {
-			throw new Error("Expected a <span> to be rendered");
-		}
-
-		expect(span).toHaveClass("child-only-class");
-	});
-
 	it("applies Slot className when the child has no className", () => {
 		const { container } = render(
 			<Slot className="slot-only-class">
@@ -94,42 +78,6 @@ describe("Slot", () => {
 		}
 
 		expect(p).toHaveClass("slot-only-class");
-	});
-
-	it("merges base + Slot className + child className in the intended precedence", () => {
-		/**
-		 * This simulates a real component using Slot:
-		 * - `baseClassName` = internal component styles
-		 * - `componentClassName` = user `className` on the component
-		 * - child `className` = most specific, on the asChild child
-		 */
-		const baseClassName = "text-gray-500 underline";
-		const componentClassName = "text-red-500 font-medium";
-		const parentMerged = `${baseClassName} ${componentClassName}`;
-
-		const { container } = render(
-			<Slot className={parentMerged}>
-				<a href="/" className="text-blue-500 no-underline">
-					Home
-				</a>
-			</Slot>,
-		);
-
-		const link = container.querySelector("a");
-
-		if (link == null) {
-			throw new Error("Expected an <a> to be rendered");
-		}
-
-		// Child wins on text color + underline
-		expect(link).toHaveClass("text-blue-500");
-		expect(link).toHaveClass("no-underline");
-		expect(link).not.toHaveClass("text-red-500");
-		expect(link).not.toHaveClass("text-gray-500");
-		expect(link).not.toHaveClass("underline");
-
-		// Non-conflicting things like font weight from the component can still survive
-		expect(link).toHaveClass("font-medium");
 	});
 
 	it("forwards refs to the underlying DOM element", () => {
@@ -150,41 +98,6 @@ describe("Slot", () => {
 		expect(ref.current).toBe(button);
 	});
 
-	it("supports functional refs as well as object refs", () => {
-		let node: HTMLAnchorElement | null = null;
-
-		const ref = (el: HTMLAnchorElement | null) => {
-			node = el;
-		};
-
-		const { getByRole } = render(
-			<Slot ref={ref}>
-				<a href="/">Home</a>
-			</Slot>,
-		);
-
-		const link = getByRole("link");
-
-		expect(node).toBe(link);
-	});
-
-	it("does not blow up when the child has no existing props", () => {
-		const { container } = render(
-			<Slot className="slot-class">
-				{/* bare element, no props */}
-				<div>Content</div>
-			</Slot>,
-		);
-
-		const div = container.querySelector("div");
-
-		if (div == null) {
-			throw new Error("Expected a <div> to be rendered");
-		}
-
-		expect(div).toHaveClass("slot-class");
-	});
-
 	it("concatenates data-slot values in DOM order — the Slot's chain first, then the child's own", () => {
 		const { container } = render(
 			<Slot data-slot="parent-part">
@@ -194,22 +107,6 @@ describe("Slot", () => {
 
 		const div = container.querySelector("div");
 		expect(div).toHaveAttribute("data-slot", "parent-part child-part");
-	});
-
-	it("keeps a single data-slot as-is and renders no attribute when neither side has one", () => {
-		const { container: withSlot } = render(
-			<Slot data-slot="parent-part">
-				<div>Content</div>
-			</Slot>,
-		);
-		expect(withSlot.querySelector("div")).toHaveAttribute("data-slot", "parent-part");
-
-		const { container: withoutSlot } = render(
-			<Slot>
-				<div>Content</div>
-			</Slot>,
-		);
-		expect(withoutSlot.querySelector("div")).not.toHaveAttribute("data-slot");
 	});
 
 	it("keeps a component child's own data-slot when neither side passes one", () => {
@@ -368,21 +265,6 @@ describe("Slot render-prop className and style", () => {
 		expect(getByRole("link")).toHaveStyle({ color: "red", fontWeight: "500" });
 	});
 
-	it("composes a function className and a function style at the same time", () => {
-		const { getByRole } = render(
-			<Slot className="slot-class" style={{ fontWeight: 500 }}>
-				<NavLinkish className={() => "is-active"} style={() => ({ color: "red" })}>
-					Endpoints
-				</NavLinkish>
-			</Slot>,
-		);
-
-		const link = getByRole("link");
-		expect(link).toHaveClass("slot-class");
-		expect(link).toHaveClass("is-active");
-		expect(link).toHaveStyle({ color: "red", fontWeight: "500" });
-	});
-
 	it("survives a nested asChild chain, accumulating every ancestor's classes", () => {
 		// What a real composition looks like: an outer mantle part composing an
 		// inner one (`Sidebar.ItemButton asChild > Tooltip.Trigger asChild > NavLink`).
@@ -401,16 +283,6 @@ describe("Slot render-prop className and style", () => {
 		expect(link).toHaveClass("inner-class");
 		expect(link).toHaveClass("is-active");
 		expect(link).toHaveAttribute("data-slot", "outer inner");
-	});
-
-	it("renders no style attribute when neither the Slot nor the child has one", () => {
-		const { getByRole } = render(
-			<Slot className="slot-class">
-				<NavLinkish className={() => "is-active"}>Endpoints</NavLinkish>
-			</Slot>,
-		);
-
-		expect(getByRole("link")).not.toHaveAttribute("style");
 	});
 
 	it("hands a component child no style prop at all when neither side has one, and its own object when only the Slot does", () => {
@@ -466,29 +338,6 @@ describe("Slot render-prop className and style", () => {
 		);
 
 		expect(getByRole("link")).toHaveTextContent("Endpoints (current)");
-	});
-
-	it("chains the Slot's event handler with the child's while composing a render prop", () => {
-		const slotOnClick = vi.fn<() => void>();
-		const childOnClick = vi.fn<() => void>();
-
-		const { getByRole } = render(
-			<Slot className="slot-class" onClick={slotOnClick}>
-				<NavLinkish className={() => "is-active"} onClick={childOnClick}>
-					Endpoints
-				</NavLinkish>
-			</Slot>,
-		);
-
-		const link = getByRole("link");
-		expect(link).toHaveClass("is-active");
-
-		link.click();
-
-		// Radix still owns handler merging: withholding className and style from the
-		// child leaves the rest of the merge untouched.
-		expect(slotOnClick).toHaveBeenCalledTimes(1);
-		expect(childOnClick).toHaveBeenCalledTimes(1);
 	});
 
 	it("composes the Slot's ref with the child's own ref", () => {

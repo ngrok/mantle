@@ -18,7 +18,7 @@ function getPanel(): HTMLElement {
 describe("SandbarReducedMotionDemo", () => {
 	it("reports the system preference, which happy-dom leaves at motion allowed", () => {
 		render(<SandbarReducedMotionDemo />);
-		expect(screen.getByText("motion allowed")).not.toBeNull();
+		expect(screen.queryByText("motion allowed")).not.toBeNull();
 	});
 
 	it("swaps the panel's travel utility for stillness when the switch is on", () => {
@@ -40,11 +40,11 @@ describe("SandbarReducedMotionDemo", () => {
 
 	it("describes the motion it will use, and updates when the switch flips", () => {
 		render(<SandbarReducedMotionDemo />);
-		expect(screen.getByText(/rises 400ms on enter/)).not.toBeNull();
+		expect(screen.queryByText(/rises 400ms on enter/)).not.toBeNull();
 
 		fireEvent.click(screen.getByRole("switch", { name: /simulate reduced motion/i }));
 
-		expect(screen.getByText(/fades in and out/)).not.toBeNull();
+		expect(screen.queryByText(/fades in and out/)).not.toBeNull();
 		expect(screen.queryByText(/rises 400ms on enter/)).toBeNull();
 	});
 
@@ -56,7 +56,8 @@ describe("SandbarReducedMotionDemo", () => {
 		expect(getPanel().getAttribute("data-state")).toBe("closed");
 
 		fireEvent.click(screen.getByRole("button", { name: "Show the bar" }));
-		// the enter paints one frame in the closed pose before transitioning
-		expect(getPanel().hasAttribute("hidden")).toBe(false);
+		// Why "open" at once: the panel is still visible mid-exit, so the reopen
+		// skips the pre-enter frame.
+		expect(getPanel().getAttribute("data-state")).toBe("open");
 	});
 });

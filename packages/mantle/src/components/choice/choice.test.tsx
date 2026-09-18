@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import type { MouseEvent } from "react";
 import { describe, expect, test, vi } from "vitest";
+import { Checkbox } from "../checkbox/checkbox.js";
 import { Field } from "../field/field.js";
 import { Switch } from "../switch/switch.js";
 import { Choice } from "./choice.js";
@@ -19,25 +20,6 @@ describe("Choice", () => {
 			</Choice.Root>,
 		);
 		expect(screen.getByRole("checkbox")).toHaveAttribute("id", expect.stringMatching(/.+/));
-	});
-
-	test("Indicator shares the title's text-sm line box so the control centers on the first line", () => {
-		render(
-			<Choice.Root>
-				<Choice.Indicator>
-					<input type="checkbox" aria-label="control" />
-				</Choice.Indicator>
-				<Choice.Content>
-					<Choice.Label>Email</Choice.Label>
-				</Choice.Content>
-			</Choice.Root>,
-		);
-		// `h-lh` resolves to the element's own line-height, so the indicator must use
-		// the same `text-sm` line box as the title/label — otherwise it sizes to the
-		// inherited line-height and the control can't vertically center on the first line.
-		const indicator = screen.getByRole("checkbox").closest('[data-slot="choice-indicator"]');
-		expect(indicator).toHaveClass("h-lh", "items-center", "text-sm");
-		expect(screen.getByText("Email")).toHaveClass("text-sm");
 	});
 
 	test("Label renders a <label> whose htmlFor targets the injected control id", () => {
@@ -114,7 +96,7 @@ describe("Choice", () => {
 		expect(control.getAttribute("aria-describedby")?.split(" ")).toContain(description.id);
 	});
 
-	test("disabled disables the control and dims the text", () => {
+	test("disabled disables the control and marks the Label disabled", () => {
 		render(
 			<Choice.Root disabled>
 				<Choice.Indicator>
@@ -126,7 +108,8 @@ describe("Choice", () => {
 			</Choice.Root>,
 		);
 		expect(screen.getByRole("checkbox")).toBeDisabled();
-		expect(screen.getByText("Email")).toHaveClass("opacity-50");
+		// Why `data-disabled`: only the mantle `Label` stamps it, so this also pins that `Choice.Label` is that `Label`.
+		expect(screen.getByText("Email")).toHaveAttribute("data-disabled", "true");
 	});
 
 	test("name lands on the control", () => {
@@ -159,28 +142,6 @@ describe("Choice", () => {
 		expect(control).toHaveAttribute("name", "custom");
 	});
 
-	test("Label reuses the base Label component (keeps its styling + context-owned wiring)", () => {
-		render(
-			<Choice.Root disabled>
-				<Choice.Indicator>
-					<input type="checkbox" aria-label="control" />
-				</Choice.Indicator>
-				<Choice.Content>
-					<Choice.Label>Email</Choice.Label>
-				</Choice.Content>
-			</Choice.Root>,
-		);
-		const control = screen.getByRole("checkbox");
-		const label = screen.getByText("Email");
-		// It IS the mantle Label, not a re-implementation, so it keeps base-label
-		// styling (cursor-pointer); htmlFor + disabled are owned by Choice.Root.
-		expect(label.tagName).toBe("LABEL");
-		expect(label).toHaveClass("cursor-pointer");
-		expect(label).toHaveAttribute("for", control.id);
-		expect(label).toHaveAttribute("data-disabled", "true");
-		expect(label).toHaveClass("opacity-50");
-	});
-
 	test("forwards aria-errormessage from Root onto the control (standalone, not the wrapper)", () => {
 		render(
 			<Choice.Root aria-errormessage="error-1" aria-invalid="true">
@@ -202,6 +163,75 @@ describe("Choice", () => {
 		expect(() => render(<Choice.Label>orphan</Choice.Label>)).toThrow(
 			/Choice\.Label must be rendered inside Choice\.Root/,
 		);
+	});
+});
+
+describe("Choice — clicking the Label toggles the control", () => {
+	test("checkbox, standalone", async () => {
+		const user = userEvent.setup();
+		render(
+			<Choice.Root name="terms">
+				<Choice.Indicator>
+					<Checkbox />
+				</Choice.Indicator>
+				<Choice.Content>
+					<Choice.Label>I agree to the terms</Choice.Label>
+					<Choice.Description>You can change this later.</Choice.Description>
+				</Choice.Content>
+			</Choice.Root>,
+		);
+
+		const checkbox = screen.getByRole("checkbox");
+		expect(checkbox).not.toBeChecked();
+		await user.click(screen.getByText("I agree to the terms"));
+		expect(checkbox).toBeChecked();
+	});
+
+	test("checkbox, inside a Field", async () => {
+		const user = userEvent.setup();
+		render(
+			<Field.Item name="notify">
+				<Field.Control>
+					<Choice.Root>
+						<Choice.Indicator>
+							<Checkbox />
+						</Choice.Indicator>
+						<Choice.Content>
+							<Choice.Label>Email</Choice.Label>
+							<Choice.Description>Sent to your primary address.</Choice.Description>
+						</Choice.Content>
+					</Choice.Root>
+				</Field.Control>
+			</Field.Item>,
+		);
+
+		const checkbox = screen.getByRole("checkbox");
+		expect(checkbox).not.toBeChecked();
+		// Why a Field: `Choice.Root` takes the control id from `Field.Control`, so the label must target that id, not its own.
+		await user.click(screen.getByText("Email"));
+		expect(checkbox).toBeChecked();
+	});
+
+	test("switch, standalone", async () => {
+		const user = userEvent.setup();
+		render(
+			<Choice.Root name="airplane-mode">
+				<Choice.Indicator>
+					<Switch />
+				</Choice.Indicator>
+				<Choice.Content>
+					<Choice.Label>Airplane mode</Choice.Label>
+					<Choice.Description>Disables wireless radios while in flight.</Choice.Description>
+				</Choice.Content>
+			</Choice.Root>,
+		);
+
+		// Why a switch: a `<button role="switch">` is labelable, so the `htmlFor` on
+		// `Choice.Label` forwards the click to it.
+		const toggle = screen.getByRole("switch");
+		expect(toggle).not.toBeChecked();
+		await user.click(screen.getByText("Airplane mode"));
+		expect(toggle).toBeChecked();
 	});
 });
 
@@ -270,50 +300,6 @@ describe("Choice — Description extends the label's click target", () => {
 		await user.click(screen.getByRole("link", { name: "rich content" }));
 		expect(screen.getByRole("checkbox")).not.toBeChecked();
 	});
-
-	// The shared predicate's own table lives in `utils/interactive-target.test.ts`;
-	// these rows pin that the description consults it.
-	test.each([
-		{
-			name: "a <summary> inside a <details>",
-			content: (
-				<details>
-					<summary>More</summary>
-					Extra text.
-				</details>
-			),
-			query: () => screen.getByText("More"),
-		},
-		{
-			name: "a nested <label>",
-			content: (
-				<label>
-					Also <input type="checkbox" />
-				</label>
-			),
-			query: () => screen.getByText("Also"),
-		},
-	])(
-		"a click on $name inside the Description does not toggle the control",
-		async ({ content, query }) => {
-			const user = userEvent.setup();
-			render(
-				<Choice.Root>
-					<Choice.Indicator>
-						<input type="checkbox" aria-label="control" />
-					</Choice.Indicator>
-					<Choice.Content>
-						<Choice.Label>Email</Choice.Label>
-						<Choice.Description asChild>
-							<div>{content}</div>
-						</Choice.Description>
-					</Choice.Content>
-				</Choice.Root>,
-			);
-			await user.click(query());
-			expect(screen.getByRole("checkbox", { name: "control" })).not.toBeChecked();
-		},
-	);
 
 	test("after the forward, the click is marked handled so a click-to-activate ancestor defers", async () => {
 		const user = userEvent.setup();
@@ -442,7 +428,6 @@ describe("Choice + Switch interop", () => {
 			</Choice.Root>,
 		);
 		expect(screen.getByRole("switch")).toBeDisabled();
-		expect(screen.getByText("Airplane mode")).toHaveClass("opacity-50");
 	});
 });
 

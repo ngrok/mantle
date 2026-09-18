@@ -1,28 +1,18 @@
-import { render, screen } from "@testing-library/react";
-import type { ReactNode } from "react";
-import { describe, expect, test } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
+import { userEvent } from "@testing-library/user-event";
+import type { MouseEvent, ReactNode } from "react";
+import { toast as sonnerToast } from "sonner";
+import { describe, expect, test, vi } from "vitest";
 import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
-import type { ToastIntent } from "./toast.js";
-import { resolveToastDuration, Toast } from "./toast.js";
+import { makeToast, resolveToastDuration, Toast, Toaster } from "./toast.js";
 
 function getToastRoot(container: HTMLElement) {
 	return container.querySelector('[data-slot="toast"]');
 }
 
 describe("Toast", () => {
-	test("renders the message", () => {
-		// `ToastIntent` is the public name for the toast tone union; annotating
-		// the prop value here keeps the exported type exercised by tsc.
-		const intent: ToastIntent = "success";
-		render(
-			<Toast.Root intent={intent}>
-				<Toast.Message>Changes saved</Toast.Message>
-			</Toast.Root>,
-		);
-		expect(screen.getByText("Changes saved")).toBeInTheDocument();
-	});
-
 	describe("intent", () => {
+		// Why the class: the bar carries no data attribute, so its class is the only observable of the `intentBackgroundColor` lookup.
 		test.each([
 			["danger", "bg-danger-600"],
 			["info", "bg-accent-600"],
@@ -38,19 +28,10 @@ describe("Toast", () => {
 			expect(bar).not.toBeNull();
 			expect(bar).toHaveClass(barClass);
 		});
-
-		test("`intent` is required at the type level", () => {
-			const missingIntent = (
-				// @ts-expect-error -- intent is required on Toast.Root
-				<Toast.Root>
-					<Toast.Message>message</Toast.Message>
-				</Toast.Root>
-			);
-			expect(missingIntent).toBeDefined();
-		});
 	});
 
 	describe("Icon", () => {
+		// Why the class: the icon carries no intent attribute, so its tone class is the only observable of the intent `switch`.
 		test.each([
 			["danger", "text-danger-600"],
 			["warning", "text-warning-600"],
@@ -88,28 +69,10 @@ describe("Toast", () => {
 			[0, Number.POSITIVE_INFINITY],
 			[-1, Number.POSITIVE_INFINITY],
 			[5000, 5000],
-			[Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY],
 			[undefined, undefined],
 		])("resolves %s to %s", (input, expected) => {
 			expect(resolveToastDuration(input)).toBe(expected);
 		});
-	});
-
-	test("renders the toast container with the intent bar overlapping the border", () => {
-		const { container } = render(
-			<Toast.Root intent="info">
-				<Toast.Message>message</Toast.Message>
-			</Toast.Root>,
-		);
-		// The intent bar must overlap the toast border: overflow-hidden on the
-		// root would clip the bar's -inset-px overhang (see the warning comment
-		// in Toast.Root's className in toast.tsx).
-		const root = getToastRoot(container);
-		expect(root).toBeInTheDocument();
-		expect(root).not.toHaveClass("overflow-hidden");
-		const bar = container.querySelector('[aria-hidden="true"]');
-		expect(bar).not.toBeNull();
-		expect(bar).toHaveClass("-inset-px");
 	});
 });
 
@@ -166,3 +129,57 @@ describe("Toast.Root label slot", () => {
 		expect(root).toHaveTextContent("");
 	});
 });
+
+describe("Toast.Action", () => {
+	function renderToast(message: string, action: ReactNode) {
+		render(<Toaster />);
+		makeToast(
+			<Toast.Root intent="info">
+				<Toast.Message>{message}</Toast.Message>
+				{action}
+			</Toast.Root>,
+		);
+	}
+
+	test("dismisses the toast on click", async () => {
+		const user = userEvent.setup();
+		renderToast("Saved", <Toast.Action>Dismiss</Toast.Action>);
+
+		await user.click(await screen.findByRole("button", { name: "Dismiss" }));
+
+		// Why `waitFor`: sonner unmounts a dismissed toast on a timer.
+		await waitFor(() => {
+			expect(screen.queryByText("Saved")).toBeNull();
+		});
+	});
+
+	test("keeps the toast when `onClick` calls `preventDefault`", async () => {
+		const user = userEvent.setup();
+		// Why the spy: a dismissed toast stays in the DOM until sonner's unmount
+		// timer fires, so the skipped `dismiss` call is the only synchronous trace.
+		const dismiss = vi.spyOn(sonnerToast, "dismiss");
+		const handleClick = vi.fn<(event: MouseEvent<HTMLButtonElement>) => void>((event) => {
+			event.preventDefault();
+		});
+		renderToast("Draft kept", <Toast.Action onClick={handleClick}>Keep</Toast.Action>);
+
+		await user.click(await screen.findByRole("button", { name: "Keep" }));
+
+		expect(handleClick).toHaveBeenCalledTimes(1);
+		expect(dismiss).toHaveBeenCalledTimes(0);
+	});
+});
+
+/**
+ * Type-level contracts, owned by `pnpm typecheck` and not by a `test()`. A
+ * `@ts-expect-error` that compiles is the assertion; a runtime `expect` beside
+ * it reads as coverage the vitest run does not have.
+ */
+export function typeLevelContracts() {
+	return (
+		// @ts-expect-error -- intent is required on Toast.Root
+		<Toast.Root>
+			<Toast.Message>message</Toast.Message>
+		</Toast.Root>
+	);
+}

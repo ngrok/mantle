@@ -96,6 +96,10 @@ export default defineConfig({
 				test: {
 					name: "browser",
 					include: ["**/*.browser.test.{ts,tsx}"],
+					// Why a bench project: the `bench` test-context fixture refuses to run in a regular
+					// project, so this derives a `browser (bench)` project that runs `*.browser.bench.ts`
+					// in Chromium under `vitest run`. CI selects both with `--project='browser*'`.
+					benchmark: { enabled: true, include: ["**/*.browser.bench.ts"] },
 					browser: {
 						enabled: true,
 						screenshotFailures: false,

@@ -94,29 +94,13 @@ describe("computeHtmlFoldRanges", () => {
 			]);
 		});
 
-		test("respects XML self-closing tags", () => {
-			const code = ["<root>", "  <empty/>", "  <other />", "</root>"].join("\n");
-			// Both self-closing tags must NOT fold, otherwise parse5's HTML mode
-			// would treat them as openers and consume the rest of the document.
+		test("folds an element whose name HTML treats as void", () => {
+			const code = ["<root>", "  <input>", "    x", "  </input>", "</root>"].join("\n");
+			// Why `<input>`: HTML mode treats `<input>` as void and drops its fold. The
+			// test turns red when the XML branch falls back to `parse()` or loses the SVG namespace.
 			expect(computeHtmlFoldRanges({ code, language: "xml" })).toEqual([
-				{ id: "1", startLine: 1, endLine: 4 },
-			]);
-		});
-
-		test("emits nested ranges for nested XML", () => {
-			const code = [
-				"<project>",
-				"  <dependencies>",
-				"    <dependency>",
-				"      <name>a</name>",
-				"    </dependency>",
-				"  </dependencies>",
-				"</project>",
-			].join("\n");
-			expect(computeHtmlFoldRanges({ code, language: "xml" })).toEqual([
-				{ id: "1", startLine: 1, endLine: 7 },
-				{ id: "2", startLine: 2, endLine: 6 },
-				{ id: "3", startLine: 3, endLine: 5 },
+				{ id: "1", startLine: 1, endLine: 5 },
+				{ id: "2", startLine: 2, endLine: 4 },
 			]);
 		});
 

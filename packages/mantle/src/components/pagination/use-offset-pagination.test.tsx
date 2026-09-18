@@ -18,18 +18,14 @@ describe("useOffsetPagination", () => {
 
 	// Regression: `goToLastPage` set `currentPage` to `totalPages`, which is 0 for
 	// an empty list, so the 1-indexed page went to 0 and the offset went negative.
-	test("goToLastPage on an empty list stays on page 1", () => {
+	test("goToLastPage on an empty list reports page 1", () => {
+		const onPageChange = vi.fn<(page: number) => void>();
 		const { result } = renderHook(() =>
-			useOffsetPagination({
-				listSize: 0,
-				pageSize: 10,
-			}),
+			useOffsetPagination({ listSize: 0, pageSize: 10, page: 2, onPageChange }),
 		);
-		act(() => {
-			result.current.goToLastPage();
-		});
-		expect(result.current.currentPage).toBe(1);
-		expect(result.current.offset).toBe(0);
+		act(() => result.current.goToLastPage());
+		expect(onPageChange).toHaveBeenCalledTimes(1);
+		expect(onPageChange).toHaveBeenLastCalledWith(1);
 	});
 
 	test("given a list size of 1", () => {
@@ -45,56 +41,25 @@ describe("useOffsetPagination", () => {
 		expect(result.current.hasPreviousPage).toBe(false);
 	});
 
-	test("given a list size of 1867 and a page size of 100", () => {
+	test("previousPage steps back one page", () => {
 		const { result } = renderHook(() =>
-			useOffsetPagination({
-				listSize: 1867,
-				pageSize: 100,
-			}),
+			useOffsetPagination({ listSize: 1867, pageSize: 100, defaultPage: 19 }),
 		);
-		expect(result.current.currentPage).toBe(1);
-		expect(result.current.totalPages).toBe(19);
-		expect(result.current.hasNextPage).toBe(true);
-		expect(result.current.hasPreviousPage).toBe(false);
-
-		act(() => {
-			result.current.nextPage();
-		});
-		expect(result.current.currentPage).toBe(2);
-		expect(result.current.hasNextPage).toBe(true);
-		expect(result.current.hasPreviousPage).toBe(true);
-
-		act(() => {
-			result.current.goToPage(10);
-		});
-		expect(result.current.currentPage).toBe(10);
-		expect(result.current.hasNextPage).toBe(true);
-		expect(result.current.hasPreviousPage).toBe(true);
-
-		act(() => {
-			result.current.goToLastPage();
-		});
-		expect(result.current.currentPage).toBe(19);
-		expect(result.current.hasNextPage).toBe(false);
-		expect(result.current.hasPreviousPage).toBe(true);
-
-		act(() => {
-			result.current.previousPage();
-		});
+		act(() => result.current.previousPage());
 		expect(result.current.currentPage).toBe(18);
-		expect(result.current.hasNextPage).toBe(true);
-		expect(result.current.hasPreviousPage).toBe(true);
-
-		act(() => {
-			result.current.setPageSize(50);
-		});
-		expect(result.current.currentPage).toBe(1);
-		expect(result.current.totalPages).toBe(38);
-		expect(result.current.hasNextPage).toBe(true);
-		expect(result.current.hasPreviousPage).toBe(false);
 	});
 
-	test("changing the page size resets the current page to 1", async () => {
+	test("setPageSize adopts the size and resets to page 1", () => {
+		const { result } = renderHook(() =>
+			useOffsetPagination({ listSize: 1867, pageSize: 100, defaultPage: 18 }),
+		);
+		act(() => result.current.setPageSize(50));
+		expect(result.current.currentPage).toBe(1);
+		expect(result.current.pageSize).toBe(50);
+		expect(result.current.totalPages).toBe(38);
+	});
+
+	test("a pageSize change adopts the size and resets to page 1", async () => {
 		const { result, rerender } = renderHook((props) => useOffsetPagination(props), {
 			initialProps: {
 				listSize: 1867,
@@ -110,6 +75,8 @@ describe("useOffsetPagination", () => {
 
 		rerender({ listSize: 1867, pageSize: 50 });
 		expect(result.current.currentPage).toBe(1);
+		expect(result.current.pageSize).toBe(50);
+		expect(result.current.totalPages).toBe(38);
 	});
 
 	test("changing the list size resets the current page to 1", async () => {
@@ -170,11 +137,14 @@ describe("useOffsetPagination", () => {
 		});
 	});
 
-	test("goToPage rounds a fraction down", () => {
-		const { result } = renderHook(() => useOffsetPagination({ listSize: 50, pageSize: 10 }));
+	test("goToPage reports the floored page", () => {
+		const onPageChange = vi.fn<(page: number) => void>();
+		const { result } = renderHook(() =>
+			useOffsetPagination({ listSize: 50, pageSize: 10, page: 1, onPageChange }),
+		);
 		act(() => result.current.goToPage(3.9));
-		expect(result.current.currentPage).toBe(3);
-		expect(result.current.offset).toBe(20);
+		expect(onPageChange).toHaveBeenCalledTimes(1);
+		expect(onPageChange).toHaveBeenLastCalledWith(3);
 	});
 
 	describe("controlled page", () => {
@@ -209,6 +179,24 @@ describe("useOffsetPagination", () => {
 				useOffsetPagination({ listSize: 50, pageSize: 10, page: 2, onPageChange }),
 			);
 			act(() => result.current.goToPage(2));
+			expect(onPageChange).not.toHaveBeenCalled();
+		});
+
+		test("nextPage on the last page does not call onPageChange", () => {
+			const onPageChange = vi.fn<(page: number) => void>();
+			const { result } = renderHook(() =>
+				useOffsetPagination({ listSize: 25, pageSize: 10, page: 3, onPageChange }),
+			);
+			act(() => result.current.nextPage());
+			expect(onPageChange).not.toHaveBeenCalled();
+		});
+
+		test("previousPage on the first page does not call onPageChange", () => {
+			const onPageChange = vi.fn<(page: number) => void>();
+			const { result } = renderHook(() =>
+				useOffsetPagination({ listSize: 25, pageSize: 10, page: 1, onPageChange }),
+			);
+			act(() => result.current.previousPage());
 			expect(onPageChange).not.toHaveBeenCalled();
 		});
 
@@ -287,80 +275,23 @@ describe("useOffsetPagination", () => {
 			expect(result.current.hasNextPage).toBe(false);
 			expect(result.current.hasPreviousPage).toBe(true);
 		});
-
-		test("a listSize change does not call onPageChange", () => {
-			const onPageChange = vi.fn<(page: number) => void>();
-			const { result, rerender } = renderHook((props) => useOffsetPagination(props), {
-				initialProps: {
-					listSize: 500,
-					pageSize: 10,
-					page: 4,
-					onPageChange,
-					resetPageOnListSizeChange: false,
-				},
-			});
-			rerender({
-				listSize: 400,
-				pageSize: 10,
-				page: 4,
-				onPageChange,
-				resetPageOnListSizeChange: false,
-			});
-			expect(onPageChange).not.toHaveBeenCalled();
-			expect(result.current.currentPage).toBe(4);
-		});
 	});
 });
 
-describe("getOffsetPaginatedSlice", () => {
-	test("given a list size of zero and a page size of 10", () => {
-		const list: number[] = [];
-		const pageSize = 10;
-		const { result } = renderHook(() =>
-			useOffsetPagination({
-				listSize: list.length,
-				pageSize,
-			}),
-		);
+test("getOffsetPaginatedSlice returns the current page of the list", () => {
+	const list = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+	const pageSize = 10;
+	const { result } = renderHook(() =>
+		useOffsetPagination({
+			listSize: list.length,
+			pageSize,
+		}),
+	);
 
-		const slice = getOffsetPaginatedSlice(list, result.current);
-		expect(slice).toEqual([]);
-	});
+	const slice = getOffsetPaginatedSlice(list, result.current);
+	expect(slice).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
 
-	test("given a list size of 1 and a page size of 10", () => {
-		const list = [1];
-		const pageSize = 10;
-		const { result } = renderHook(() =>
-			useOffsetPagination({
-				listSize: list.length,
-				pageSize,
-			}),
-		);
-
-		const slice = getOffsetPaginatedSlice(list, result.current);
-		expect(slice).toEqual([1]);
-	});
-
-	test("given a list of size 11 and a page size of 10", () => {
-		const list = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
-		const pageSize = 10;
-		const { result } = renderHook(() =>
-			useOffsetPagination({
-				listSize: list.length,
-				pageSize,
-			}),
-		);
-
-		const slice = getOffsetPaginatedSlice(list, result.current);
-		expect(slice).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-
-		act(() => result.current.nextPage());
-		const nextSlice = getOffsetPaginatedSlice(list, result.current);
-		expect(nextSlice).toEqual([11]);
-
-		// there should be no more pages, the slice should be the same as the previous one
-		act(() => result.current.nextPage());
-		const lastSlice = getOffsetPaginatedSlice(list, result.current);
-		expect(lastSlice).toEqual([11]);
-	});
+	act(() => result.current.nextPage());
+	const nextSlice = getOffsetPaginatedSlice(list, result.current);
+	expect(nextSlice).toEqual([11]);
 });

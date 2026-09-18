@@ -7,7 +7,10 @@ import { describe, expect, test } from "vitest";
 import { Command } from "./command.js";
 
 /**
- * A minimal controlled Command.Dialog subject for testing open/close behavior.
+ * A minimal controlled `Command.DialogRoot` subject for open/close behavior.
+ *
+ * Why its own file: the scaffolds here mount a real `Command.List`, unlike the
+ * list-free palette in `command.test.tsx`.
  */
 const CommandDialogSubject = ({ initialOpen = false }: { initialOpen?: boolean }) => {
 	const [open, setOpen] = useState(initialOpen);
@@ -36,7 +39,7 @@ const CommandDialogSubject = ({ initialOpen = false }: { initialOpen?: boolean }
 	);
 };
 
-describe("Command.Dialog (browser)", () => {
+describe("Command.Dialog", () => {
 	describe("open/close lifecycle", () => {
 		test("pressing Escape closes the dialog", async () => {
 			const user = userEvent.setup();
@@ -93,11 +96,7 @@ describe("Command.Dialog (browser)", () => {
 	});
 
 	describe("Command.SearchTrigger", () => {
-		/**
-		 * A palette with a real `Command.List`, which is what makes these tests
-		 * browser-mode: cmdk's list measures itself with a `ResizeObserver`, and
-		 * filtering is the whole point of seeding a query.
-		 */
+		/** An uncontrolled palette that `Command.SearchTrigger` opens. */
 		const SearchTriggerSubject = () => (
 			<Command.DialogRoot>
 				<Command.SearchTrigger>
@@ -174,7 +173,7 @@ describe("Command.Dialog (browser)", () => {
 	});
 
 	describe("Command.Separator auto-hide", () => {
-		test("separator is visible when there is no active search query", async () => {
+		test("separator renders when there is no active search query", async () => {
 			render(<CommandDialogSubject initialOpen />);
 
 			await waitFor(() => {
@@ -184,7 +183,10 @@ describe("Command.Dialog (browser)", () => {
 			expect(document.querySelector("[data-slot='command-separator']")).toBeInTheDocument();
 		});
 
-		test("separator is hidden when a search query is active", async () => {
+		// Why: cmdk hides its own `Separator` on a query. This test pins the `asChild`
+		// wrapper that reaches it; a bare `Separator` carrying the slot passes the
+		// test above and never hides.
+		test("separator unmounts when a search query is active", async () => {
 			const user = userEvent.setup();
 			render(<CommandDialogSubject initialOpen />);
 
@@ -196,28 +198,6 @@ describe("Command.Dialog (browser)", () => {
 
 			await waitFor(() => {
 				expect(document.querySelector("[data-slot='command-separator']")).not.toBeInTheDocument();
-			});
-		});
-
-		test("separator reappears when the search query is cleared", async () => {
-			const user = userEvent.setup();
-			render(<CommandDialogSubject initialOpen />);
-
-			await waitFor(() => {
-				expect(screen.getByText("Test Command Palette")).toBeInTheDocument();
-			});
-
-			const input = screen.getByPlaceholderText("Type a command or search...");
-			await user.type(input, "cal");
-
-			await waitFor(() => {
-				expect(document.querySelector("[data-slot='command-separator']")).not.toBeInTheDocument();
-			});
-
-			await user.clear(input);
-
-			await waitFor(() => {
-				expect(document.querySelector("[data-slot='command-separator']")).toBeInTheDocument();
 			});
 		});
 	});

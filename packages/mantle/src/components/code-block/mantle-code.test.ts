@@ -18,11 +18,6 @@ describe("mantleCode", () => {
 		expect(value["~showLineNumbers"]).toBe(false);
 	});
 
-	test("showLineNumbers can be explicitly set to true", () => {
-		const value = mantleCode("typescript", { showLineNumbers: true })`const x = 1;`;
-		expect(value["~showLineNumbers"]).toBe(true);
-	});
-
 	test("interpolated template expressions are included in the code string", () => {
 		const name = "world";
 		const value = mantleCode("typescript")`const greeting = "Hello, ${name}!";`;

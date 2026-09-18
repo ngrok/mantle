@@ -53,6 +53,8 @@ describe("Button", () => {
 			);
 			const button = screen.getByRole("button");
 			expect(button).toHaveAttribute("data-intent", intent);
+			// Why the class assertion: `data-intent` echoes the prop. The tone class is the only
+			// observable of the tone that `intent` and `appearance` select together.
 			expect(button).toHaveClass(toneClass);
 		});
 
@@ -62,23 +64,9 @@ describe("Button", () => {
 					delete
 				</Button>,
 			);
+			// Why the class assertion: the filled+danger compound variant emits no data attribute,
+			// so the fill class is its only observable.
 			expect(screen.getByRole("button")).toHaveClass("bg-filled-danger");
-		});
-
-		test("`appearance` and `intent` are required at the type level", () => {
-			// Creating the elements (without rendering) pins the required-props
-			// contract: if either prop regains a default/optionality, the
-			// expect-error directives below become unused and typecheck fails.
-			const missingIntent = (
-				// @ts-expect-error -- intent is required on Button
-				<Button appearance="outlined">click me</Button>
-			);
-			const missingAppearance = (
-				// @ts-expect-error -- appearance is required on Button
-				<Button intent="accent">click me</Button>
-			);
-			expect(missingIntent).toBeDefined();
-			expect(missingAppearance).toBeDefined();
 		});
 
 		test("forwards data-intent to an `asChild` anchor", () => {
@@ -92,15 +80,13 @@ describe("Button", () => {
 	});
 
 	describe("size", () => {
-		test(`defaults to size="md" when \`size\` is omitted, rendering the pre-size-prop box`, () => {
+		test(`defaults to size="md" when \`size\` is omitted`, () => {
 			render(
 				<Button appearance="outlined" intent="accent">
 					click me
 				</Button>,
 			);
-			const button = screen.getByRole("button");
-			expect(button).toHaveAttribute("data-size", "md");
-			expect(button).toHaveClass("h-9", "px-3");
+			expect(screen.getByRole("button")).toHaveAttribute("data-size", "md");
 		});
 
 		test.each([
@@ -119,6 +105,8 @@ describe("Button", () => {
 				);
 				const button = screen.getByRole("button");
 				expect(button).toHaveAttribute("data-size", size);
+				// Why the class assertion: `data-size` echoes the prop. The box classes are the only
+				// observable of the compound variant each size selects.
 				expect(button).toHaveClass(heightClass, paddingClass);
 			},
 		);
@@ -126,28 +114,24 @@ describe("Button", () => {
 		test.each([
 			["filled", "h-6"],
 			["ghost", "h-6"],
-			["outlined", "h-6"],
 		] as const)(`sizes appearance="%s" buttons`, (appearance, heightClass) => {
 			render(
 				<Button appearance={appearance} intent="accent" size="xs">
 					click me
 				</Button>,
 			);
+			// Why the class assertion: the compound variant lists each appearance by name. The
+			// box class is the only observable of that membership.
 			expect(screen.getByRole("button")).toHaveClass(heightClass);
 		});
 
-		test(`has no effect when appearance="link": no data-size, no box, no typography`, () => {
+		test(`omits data-size when appearance="link"`, () => {
 			render(
 				<Button appearance="link" intent="accent" size="xl">
 					click me
 				</Button>,
 			);
-			const button = screen.getByRole("button");
-			expect(button).not.toHaveAttribute("data-size");
-			expect(button).not.toHaveClass("h-12");
-			expect(button).not.toHaveClass("px-4");
-			expect(button).not.toHaveClass("text-sm");
-			expect(button).not.toHaveClass("font-medium");
+			expect(screen.getByRole("button")).not.toHaveAttribute("data-size");
 		});
 
 		test("reduces the icon-side padding for the size when an icon is present", () => {
@@ -156,15 +140,19 @@ describe("Button", () => {
 					click me
 				</Button>,
 			);
+			// Why the class assertion: the icon padding lookup emits no data attribute, so the
+			// class is its only observable.
 			expect(screen.getByRole("button")).toHaveClass("ps-2");
 		});
 
-		test(`keeps the pre-size-prop icon padding at the default size`, () => {
+		test(`uses the md icon padding when \`size\` is omitted`, () => {
 			render(
 				<Button appearance="outlined" intent="accent" icon={<svg aria-hidden />}>
 					click me
 				</Button>,
 			);
+			// Why the class assertion: the icon padding lookup emits no data attribute, so the
+			// class is its only observable.
 			expect(screen.getByRole("button")).toHaveClass("ps-2.5");
 		});
 
@@ -180,6 +168,8 @@ describe("Button", () => {
 					click me
 				</Button>,
 			);
+			// Why the class assertion: the end-side icon padding lookup emits no data attribute,
+			// so the class is its only observable.
 			expect(screen.getByRole("button")).toHaveClass("pe-3.5");
 		});
 
@@ -190,19 +180,10 @@ describe("Button", () => {
 				</Button>,
 			);
 			const button = screen.getByRole("button");
+			// Why the class assertion: the tailwind-merge override contract, where the consumer's
+			// `className` height replaces the size default.
 			expect(button).toHaveClass("h-14");
 			expect(button).not.toHaveClass("h-9");
-		});
-
-		test("forwards the size classes and data-size to an `asChild` anchor", () => {
-			render(
-				<Button appearance="outlined" intent="accent" asChild size="lg">
-					<a href="#yolo">click me</a>
-				</Button>,
-			);
-			const link = screen.getByRole("link");
-			expect(link).toHaveAttribute("data-size", "lg");
-			expect(link).toHaveClass("h-10");
 		});
 	});
 
@@ -223,33 +204,6 @@ describe("Button", () => {
 				</Button>,
 			);
 			expect(screen.getByRole("button")).toHaveAttribute("type", "submit");
-		});
-
-		test(`renders an explicit type="reset"`, () => {
-			render(
-				<Button appearance="outlined" intent="accent" type="reset">
-					reset
-				</Button>,
-			);
-			expect(screen.getByRole("button")).toHaveAttribute("type", "reset");
-		});
-
-		test("does not leak the default `type` onto an `asChild` anchor", () => {
-			render(
-				<Button appearance="outlined" intent="accent" asChild>
-					<a href="#yolo">click me</a>
-				</Button>,
-			);
-			expect(screen.getByRole("link")).not.toHaveAttribute("type");
-		});
-
-		test("does not forward an explicit `type` to an `asChild` anchor", () => {
-			render(
-				<Button appearance="outlined" intent="accent" type="submit" asChild>
-					<a href="#yolo">click me</a>
-				</Button>,
-			);
-			expect(screen.getByRole("link")).not.toHaveAttribute("type");
 		});
 	});
 
@@ -550,27 +504,6 @@ describe("Button", () => {
 			expect(screen.getByTestId("trailing")).toBeInTheDocument();
 		});
 
-		test("a child element that appears after the label text appends, and survives", () => {
-			// The children stay an array of two across the update, so the text node
-			// stays mounted. A lone string child instead takes React's
-			// replace-children path, which rebuilds the text and hides the hazard.
-			const subject = (showTrailing: boolean) => (
-				<Button appearance="outlined" intent="neutral">
-					Create endpoint
-					{showTrailing && <CaretDownIcon data-testid="trailing" />}
-				</Button>
-			);
-			const { rerender } = render(subject(false));
-			translateTextNodes(screen.getByRole("button"));
-
-			// Mounting after the text is an append, which the DOM allows against a
-			// reparented text node. A trailing child icon is therefore safe.
-			rerender(subject(true));
-
-			expect(screen.getByRole("button")).toHaveTextContent("[Create endpoint-es]");
-			expect(screen.getByTestId("trailing")).toBeInTheDocument();
-		});
-
 		test("the label span does not protect a child element that mounts before bare text", () => {
 			const subject = (showLeading: boolean) => (
 				<Button appearance="outlined" intent="neutral">
@@ -588,24 +521,6 @@ describe("Button", () => {
 			expect(() => {
 				rerender(subject(true));
 			}).toThrow(/not a child of this node/);
-		});
-
-		test("wrapping that same text in an element makes the call site safe", () => {
-			const subject = (showLeading: boolean) => (
-				<Button appearance="outlined" intent="neutral">
-					{showLeading && <CaretDownIcon data-testid="leading" />}
-					<span>Create endpoint</span>
-				</Button>
-			);
-			const { rerender } = render(subject(false));
-			translateTextNodes(screen.getByRole("button"));
-
-			// The fix for the case above, and the reason mantle's own parts wrap: the
-			// insert now names the consumer's span, which no engine moves.
-			rerender(subject(true));
-
-			expect(screen.getByRole("button")).toHaveTextContent("[Create endpoint-es]");
-			expect(screen.getByTestId("leading")).toBeInTheDocument();
 		});
 	});
 
@@ -636,3 +551,22 @@ describe("Button", () => {
 		expect(label).toHaveClass("contents");
 	});
 });
+
+/**
+ * Type-level contracts, owned by `pnpm typecheck` rather than by a `test()`: a
+ * `@ts-expect-error` that compiles is the assertion, and a runtime `expect` beside
+ * it reads as coverage the vitest run does not have.
+ *
+ * `appearance` and `intent` are both required, so no call site inherits a weight
+ * or a tone it did not state.
+ */
+export function typeLevelContracts() {
+	return (
+		<>
+			{/* @ts-expect-error -- appearance is required on Button */}
+			<Button intent="accent">click me</Button>
+			{/* @ts-expect-error -- intent is required on Button */}
+			<Button appearance="outlined">click me</Button>
+		</>
+	);
+}

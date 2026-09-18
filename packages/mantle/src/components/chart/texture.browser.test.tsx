@@ -188,12 +188,8 @@ const inkCoverage = (texture: NonSolidTexture, devicePixelRatio: number): number
 
 describe("createBarTexturePattern", () => {
 	/** The red channel at one pixel of a pattern-filled canvas. */
-	const redAt = (
-		texture: NonSolidTexture,
-		x: number,
-		y: number,
-		orientation: BarOrientation = "vertical",
-	) => tileReds(texture, orientation)[y]?.[x] ?? 255;
+	const redAt = (texture: NonSolidTexture, x: number, y: number) =>
+		tileReds(texture)[y]?.[x] ?? 255;
 
 	test("rasterizes a two-tone tile: the series ground plus darker ink lines", () => {
 		const context = makeContext(64);
@@ -253,16 +249,6 @@ describe("createBarTexturePattern", () => {
 		expect(redAt("dots", 6, 6)).toBeLessThan(40);
 		expect(redAt("dots", 5, 2)).toBe(62);
 		expect(redAt("dots", 2, 5)).toBe(62);
-	});
-
-	test("horizontal orientation turns the perpendicular rung vertical", () => {
-		// Perpendicular rungs run across the bar's length, so horizontal bars get a
-		// vertical rung: the ink now spans x ∈ [3, 5) of every tile column instead
-		// of the y band it occupies for vertical bars.
-		expect(redAt("perpendicular", 3, 3, "horizontal")).toBeLessThan(40);
-		expect(redAt("perpendicular", 4, 3, "horizontal")).toBeLessThan(40);
-		expect(redAt("perpendicular", 0, 3, "horizontal")).toBe(62);
-		expect(redAt("perpendicular", 6, 3, "horizontal")).toBe(62);
 	});
 
 	test("the two rung textures run at right angles, and each flips with the bars", () => {

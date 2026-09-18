@@ -1,11 +1,7 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { Dialog } from "./dialog.js";
-
-afterEach(() => {
-	cleanup();
-});
 
 type DialogAppearance = "centered" | "full-page" | "full-bleed";
 
@@ -83,10 +79,10 @@ describe("Dialog.Content", () => {
 			);
 
 			const content = await screen.findByRole("dialog");
-			// tailwind-merge override contract: the consumer's cap has to replace the
-			// max-w-lg default, not land beside it where source order would decide.
+			// Why the class assertion: `preferredWidth` is itself a `max-w-*` class and emits
+			// no data attribute. tailwind-merge keeps one `max-w-*`, so the cap's presence also
+			// proves the `max-w-lg` default is gone.
 			expect(content.className).toContain("max-w-2xl");
-			expect(content.className).not.toContain("max-w-lg");
 		});
 
 		it.each(["full-page", "full-bleed"] as const)(
@@ -94,25 +90,21 @@ describe("Dialog.Content", () => {
 			async (appearance) => {
 				const { content } = await open(appearance);
 
+				// Why the class assertion: the width uncap emits no data attribute. tailwind-merge
+				// keeps one `max-w-*`, so the presence of `max-w-none` also pins the centered-only
+				// `max-w-lg` guard.
 				expect(content.className).toContain("max-w-none");
-				expect(content.className).not.toContain("max-w-lg");
 			},
 		);
 
-		it.each([
-			{ appearance: "centered", rounded: true },
-			{ appearance: "full-page", rounded: true },
-			{ appearance: "full-bleed", rounded: false },
-		] as const)(
-			"paints $appearance with rounded=$rounded corners and a matching border",
-			async ({ appearance, rounded }) => {
+		it.each(["centered", "full-page"] as const)(
+			"paints %s with rounded corners and a border",
+			async (appearance) => {
 				const { content } = await open(appearance);
 
-				// The radius and border are the only observable difference between
-				// full-page and full-bleed: neither emits a data attribute, and happy-dom
-				// computes no styles for them.
-				expect(content.className.includes("rounded-xl")).toBe(rounded);
-				expect(content.className.includes("border-dialog")).toBe(rounded);
+				// Why the class assertion: the radius and border emit no data attribute.
+				// happy-dom computes no styles for them either.
+				expect(content).toHaveClass("rounded-xl", "border-dialog");
 			},
 		);
 
@@ -125,15 +117,16 @@ describe("Dialog.Content", () => {
 		it("lets a consumer className beat the appearance defaults", async () => {
 			render(
 				<Dialog.Root defaultOpen>
-					<Dialog.Content appearance="full-bleed" className="rounded-lg">
+					<Dialog.Content appearance="full-page" className="rounded-lg">
 						<Dialog.Title>Request log</Dialog.Title>
 					</Dialog.Content>
 				</Dialog.Root>,
 			);
 
 			const content = await screen.findByRole("dialog");
-			// tailwind-merge override contract: consumer className merges last.
-			expect(content.className).toContain("rounded-lg");
+			// tailwind-merge override contract: the consumer's `rounded-lg` beats the table's
+			// `rounded-xl` because `className` merges last.
+			expect(content).toHaveClass("rounded-lg");
 		});
 	});
 

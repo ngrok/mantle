@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { createRef, useState } from "react";
@@ -129,23 +129,6 @@ describe("MultiSelect", () => {
 		expect(screen.getByRole("list", { name: "Chosen fruits" })).toBeInTheDocument();
 	});
 
-	test("renders remove buttons for each selected tag", () => {
-		render(
-			<MultiSelect.Root selectedValue={["apple", "banana"]} setSelectedValue={() => {}}>
-				<MultiSelect.Trigger>
-					<MultiSelect.TagValues />
-					<MultiSelect.Input placeholder="Select items..." />
-				</MultiSelect.Trigger>
-				<MultiSelect.Content>
-					<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
-					<MultiSelect.Item value="banana">Banana</MultiSelect.Item>
-				</MultiSelect.Content>
-			</MultiSelect.Root>,
-		);
-		expect(screen.getByLabelText("Remove apple")).toBeInTheDocument();
-		expect(screen.getByLabelText("Remove banana")).toBeInTheDocument();
-	});
-
 	test("renders the empty state when popover is open", () => {
 		render(
 			<MultiSelect.Root open>
@@ -245,9 +228,14 @@ describe("MultiSelect", () => {
 					}),
 			);
 
-		test("ArrowLeft from input focuses the first tag to the left of the input", () => {
+		test("ArrowLeft from input focuses the first tag to the left of the input", async () => {
+			const user = userEvent.setup();
 			render(<Subject />);
-			fireEvent.keyDown(screen.getByRole("combobox"), { key: "ArrowLeft" });
+			await user.click(screen.getByRole("combobox"));
+			// Why Escape first: while the modal popover is open, Ariakit marks the tag list
+			// `inert`, so `focus()` cannot enter a tag.
+			await user.keyboard("{Escape}");
+			await user.keyboard("{ArrowLeft}");
 			expect(getTagOption("cherry")).toHaveFocus();
 		});
 
@@ -547,8 +535,11 @@ describe("MultiSelect", () => {
 			// `locked` reaches the tag
 			expect(screen.getByLabelText("Remove apple")).toHaveAttribute("aria-disabled", "true");
 			expect(screen.getByLabelText("Remove cherry")).not.toHaveAttribute("aria-disabled");
-			// `ref` registers the tag, so ArrowLeft from the input can focus it
-			fireEvent.keyDown(screen.getByRole("combobox"), { key: "ArrowLeft" });
+			// `ref` registers the tag, so ArrowLeft from the input can focus it. Escape closes
+			// the popover first, because Ariakit marks the tag list `inert` while it is open.
+			await user.click(screen.getByRole("combobox"));
+			await user.keyboard("{Escape}");
+			await user.keyboard("{ArrowLeft}");
 			expect(getTagOption("cherry")).toHaveFocus();
 			// `onKeyDown` removes the focused tag
 			await user.keyboard("{Backspace}");

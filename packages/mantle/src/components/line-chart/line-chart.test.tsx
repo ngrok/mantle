@@ -52,7 +52,6 @@ describe("LineChart.Root", () => {
 		expect(root).toBeInTheDocument();
 		expect(ref.current).toBe(root);
 		expect(root?.className).toContain("custom-class");
-		expect(root?.className).toContain("flex");
 		expect(root?.getAttribute("data-testid")).toBe("chart-root");
 	});
 
@@ -102,7 +101,7 @@ describe("LineChart.Root", () => {
 	});
 
 	test("a dataKey matching no row in non-empty data throws with the available keys", () => {
-		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+		vi.spyOn(console, "error").mockImplementation(() => {});
 		expect(() =>
 			render(
 				<LineChart.Root data={data} xKey="time" aria-label="Typo chart">
@@ -110,7 +109,6 @@ describe("LineChart.Root", () => {
 				</LineChart.Root>,
 			),
 		).toThrow(/LineChart\.Line dataKey "p95" does not match any key.*time, p50, p99/);
-		consoleError.mockRestore();
 	});
 });
 
@@ -167,7 +165,7 @@ describe("LineChart.CopyButton", () => {
 		);
 		await user.click(screen.getByRole("button", { name: "Copy data as Markdown" }));
 		await vi.waitFor(() => {
-			expect(onCopy).toHaveBeenCalledWith(
+			expect(onCopy).toHaveBeenCalledExactlyOnceWith(
 				[
 					"| time | p50 | p99 |",
 					"| --- | --- | --- |",
@@ -200,7 +198,7 @@ describe("LineChart.CopyButton", () => {
 		);
 		await user.click(screen.getByRole("button", { name: "Copy data as Markdown" }));
 		await vi.waitFor(() => {
-			expect(onCopy).toHaveBeenCalledWith(
+			expect(onCopy).toHaveBeenCalledExactlyOnceWith(
 				["| time | p50 |", "| --- | --- |", "| 2026-07-18T11:00:00.000Z | 777 |"].join("\n"),
 			);
 		});
@@ -239,11 +237,10 @@ describe("LineChart.CopyButton", () => {
 	});
 
 	test("rendered outside Root throws", () => {
-		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+		vi.spyOn(console, "error").mockImplementation(() => {});
 		expect(() => render(<LineChart.CopyButton />)).toThrow(
 			/LineChart\.CopyButton must be composed inside LineChart\.Root/,
 		);
-		consoleError.mockRestore();
 	});
 });
 
@@ -278,28 +275,22 @@ describe("LineChart data slots", () => {
 	});
 });
 
-describe("LineChart parts outside Root", () => {
-	test("a part rendered outside Root throws", () => {
-		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
-		expect(() => render(<LineChart.Line dataKey="p50" />)).toThrow(
-			/LineChart\.Line must be composed inside LineChart\.Root/,
-		);
-		consoleError.mockRestore();
-	});
+test("a LineChart part rendered outside Root throws", () => {
+	vi.spyOn(console, "error").mockImplementation(() => {});
+	expect(() => render(<LineChart.Line dataKey="p50" />)).toThrow(
+		/LineChart\.Line must be composed inside LineChart\.Root/,
+	);
 });
 
-describe("LineChart cross-family composition", () => {
-	test("a BarChart.Bar composed inside LineChart.Root throws", () => {
-		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
-		expect(() =>
-			render(
-				<LineChart.Root data={data} xKey="time" aria-label="Cross-family chart">
-					<BarChart.Bar dataKey="p50" label="p50" />
-				</LineChart.Root>,
-			),
-		).toThrow(/BarChart\.Bar cannot be composed inside LineChart\.Root/);
-		consoleError.mockRestore();
-	});
+test("a BarChart.Bar composed inside LineChart.Root throws", () => {
+	vi.spyOn(console, "error").mockImplementation(() => {});
+	expect(() =>
+		render(
+			<LineChart.Root data={data} xKey="time" aria-label="Cross-family chart">
+				<BarChart.Bar dataKey="p50" label="p50" />
+			</LineChart.Root>,
+		),
+	).toThrow(/BarChart\.Bar cannot be composed inside LineChart\.Root/);
 });
 
 describe("LineChart.Legend", () => {
@@ -333,6 +324,24 @@ describe("LineChart.Legend", () => {
 		);
 		expect(screen.getByText("custom p50")).toBeInTheDocument();
 		expect(screen.getByText("custom p99")).toBeInTheDocument();
+	});
+
+	test("legend keys wear each series' glyph on the stroke", () => {
+		// Regression: line keys were bare strokes, so `shape` — the redundant
+		// encoding alongside color — never reached the legend.
+		const { container } = render(
+			<LineChart.Root data={data} xKey="time" aria-label="Request latency">
+				<LineChart.Line dataKey="p50" label="p50" />
+				<LineChart.Line dataKey="p99" label="p99" shape="triangle" />
+				<LineChart.Legend />
+			</LineChart.Root>,
+		);
+		const legend = container.querySelector('[data-slot="line-chart-legend"]');
+		const swatches = legend == null ? [] : [...legend.querySelectorAll("span[data-shape]")];
+		expect(swatches.map((swatch) => swatch.getAttribute("data-shape"))).toEqual([
+			"circle",
+			"triangle",
+		]);
 	});
 });
 
@@ -410,7 +419,7 @@ describe("LineChart keyboard interaction", () => {
 		renderChart({ onDatumActivate });
 		await user.tab();
 		await user.keyboard("{ArrowRight}{Enter}");
-		expect(onDatumActivate).toHaveBeenCalledWith(
+		expect(onDatumActivate).toHaveBeenCalledExactlyOnceWith(
 			expect.objectContaining({
 				index: 0,
 				xValue: new Date("2026-07-18T10:00:00Z"),
@@ -426,9 +435,11 @@ describe("LineChart keyboard interaction", () => {
 		renderChart({ onActiveIndexChange });
 		await user.tab();
 		await user.keyboard("{ArrowRight}");
-		expect(onActiveIndexChange).toHaveBeenCalledWith(0);
+		expect(onActiveIndexChange).toHaveBeenCalledTimes(1);
+		expect(onActiveIndexChange).toHaveBeenLastCalledWith(0);
 		await user.keyboard("{ArrowRight}");
-		expect(onActiveIndexChange).toHaveBeenCalledWith(1);
+		expect(onActiveIndexChange).toHaveBeenCalledTimes(2);
+		expect(onActiveIndexChange).toHaveBeenLastCalledWith(1);
 	});
 });
 
@@ -509,34 +520,32 @@ describe("LineChart.Tooltip customization", () => {
 	});
 });
 
-describe("LineChart data + series swaps", () => {
-	test("swapping data and a series dataKey in the same commit does not crash", () => {
-		// Regression: the series re-registration used to trigger an ingest
-		// against the PREVIOUS commit's rows (child effects run before the
-		// parent's), so the dataKey fail-fast threw even though the new data
-		// contains the new key.
-		const memRows = [
-			{ time: new Date("2026-07-18T10:00:00Z"), mem: 61 },
-			{ time: new Date("2026-07-18T10:01:00Z"), mem: 66 },
-		];
-		const cpuRows = [
-			{ time: new Date("2026-07-18T10:00:00Z"), cpu: 12 },
-			{ time: new Date("2026-07-18T10:01:00Z"), cpu: 19 },
-		];
-		const { rerender } = render(
-			<LineChart.Root data={memRows} xKey="time" aria-label="Usage">
-				<LineChart.Line dataKey="mem" label="mem" />
-			</LineChart.Root>,
-		);
-		expect(screen.getByRole("columnheader", { name: "mem" })).toBeInTheDocument();
-		rerender(
-			<LineChart.Root data={cpuRows} xKey="time" aria-label="Usage">
-				<LineChart.Line dataKey="cpu" label="cpu" />
-			</LineChart.Root>,
-		);
-		expect(screen.getByRole("columnheader", { name: "cpu" })).toBeInTheDocument();
-		expect(screen.getByRole("cell", { name: "19" })).toBeInTheDocument();
-	});
+test("swapping data and a series dataKey in the same commit does not crash", () => {
+	// Regression: the series re-registration used to trigger an ingest
+	// against the PREVIOUS commit's rows (child effects run before the
+	// parent's), so the dataKey fail-fast threw even though the new data
+	// contains the new key.
+	const memRows = [
+		{ time: new Date("2026-07-18T10:00:00Z"), mem: 61 },
+		{ time: new Date("2026-07-18T10:01:00Z"), mem: 66 },
+	];
+	const cpuRows = [
+		{ time: new Date("2026-07-18T10:00:00Z"), cpu: 12 },
+		{ time: new Date("2026-07-18T10:01:00Z"), cpu: 19 },
+	];
+	const { rerender } = render(
+		<LineChart.Root data={memRows} xKey="time" aria-label="Usage">
+			<LineChart.Line dataKey="mem" label="mem" />
+		</LineChart.Root>,
+	);
+	expect(screen.getByRole("columnheader", { name: "mem" })).toBeInTheDocument();
+	rerender(
+		<LineChart.Root data={cpuRows} xKey="time" aria-label="Usage">
+			<LineChart.Line dataKey="cpu" label="cpu" />
+		</LineChart.Root>,
+	);
+	expect(screen.getByRole("columnheader", { name: "cpu" })).toBeInTheDocument();
+	expect(screen.getByRole("cell", { name: "19" })).toBeInTheDocument();
 });
 
 describe("LineChart public index space", () => {
@@ -566,8 +575,8 @@ describe("LineChart public index space", () => {
 		await user.tab();
 		// Home = the earliest timestamp = the consumer's SECOND row.
 		await user.keyboard("{Home}{Enter}");
-		expect(onActiveIndexChange).toHaveBeenCalledWith(1);
-		expect(onDatumActivate).toHaveBeenCalledWith(
+		expect(onActiveIndexChange).toHaveBeenCalledExactlyOnceWith(1);
+		expect(onDatumActivate).toHaveBeenCalledExactlyOnceWith(
 			expect.objectContaining({ index: 1, datum: unsorted[1] }),
 		);
 	});
@@ -614,7 +623,7 @@ describe("LineChart pointer activation", () => {
 
 describe("LineChart degenerate x data", () => {
 	test("x values that cannot live on the requested scale throw instead of rendering a blank chart", () => {
-		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+		vi.spyOn(console, "error").mockImplementation(() => {});
 		expect(() =>
 			render(
 				<LineChart.Root
@@ -630,14 +639,13 @@ describe("LineChart degenerate x data", () => {
 				</LineChart.Root>,
 			),
 		).toThrow(/LineChart\.Root could not read any "time" values as numbers/);
-		consoleError.mockRestore();
 	});
 
 	test("an xKey matching no row throws with the available keys", () => {
 		// Loosely-typed rows (API responses) evade the compile-time xKey check,
 		// which is exactly the hole the runtime invariant backstops.
 		const untypedRows: Array<Record<string, unknown>> = data;
-		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+		vi.spyOn(console, "error").mockImplementation(() => {});
 		expect(() =>
 			render(
 				<LineChart.Root data={untypedRows} xKey="tme" xScale="time" aria-label="Typo chart">
@@ -645,7 +653,6 @@ describe("LineChart degenerate x data", () => {
 				</LineChart.Root>,
 			),
 		).toThrow(/LineChart\.Root xKey "tme" does not match any key.*time, p50, p99/);
-		consoleError.mockRestore();
 	});
 
 	test("an Infinity value renders as a gap instead of blanking the chart", async () => {
@@ -671,23 +678,21 @@ describe("LineChart degenerate x data", () => {
 	});
 });
 
-describe("LineChart date label granularity", () => {
-	test("the midnight sample in an hourly series keeps its time of day", () => {
-		// Granularity is a dataset property: the local-midnight sample inside an
-		// hourly series must not collapse to a bare date while its neighbors
-		// carry times. Local-time constructors keep this TZ-agnostic.
-		const hourly = [
-			{ time: new Date(2026, 6, 17, 23, 0), p50: 1 },
-			{ time: new Date(2026, 6, 18, 0, 0), p50: 2 },
-		];
-		render(
-			<LineChart.Root data={hourly} xKey="time" aria-label="Hourly latency">
-				<LineChart.Line dataKey="p50" label="p50" />
-			</LineChart.Root>,
-		);
-		const rowHeaders = screen.getAllByRole("rowheader");
-		expect(rowHeaders[1]?.textContent).toMatch(/12:00\sAM/);
-	});
+test("the midnight sample in an hourly series keeps its time of day", () => {
+	// Granularity is a dataset property: the local-midnight sample inside an
+	// hourly series must not collapse to a bare date while its neighbors
+	// carry times. Local-time constructors keep this TZ-agnostic.
+	const hourly = [
+		{ time: new Date(2026, 6, 17, 23, 0), p50: 1 },
+		{ time: new Date(2026, 6, 18, 0, 0), p50: 2 },
+	];
+	render(
+		<LineChart.Root data={hourly} xKey="time" aria-label="Hourly latency">
+			<LineChart.Line dataKey="p50" label="p50" />
+		</LineChart.Root>,
+	);
+	const rowHeaders = screen.getAllByRole("rowheader");
+	expect(rowHeaders[1]?.textContent).toMatch(/12:00\sAM/);
 });
 
 describe("LineChart controlled activeIndex", () => {
@@ -758,86 +763,62 @@ describe("LineChart controlled activeIndex", () => {
 	});
 });
 
-describe("LineChart.Legend", () => {
-	test("legend keys wear each series' glyph on the stroke", () => {
-		// Regression: line keys were bare strokes, so `shape` — the redundant
-		// encoding alongside color — never reached the legend.
-		const { container } = render(
-			<LineChart.Root data={data} xKey="time" aria-label="Request latency">
-				<LineChart.Line dataKey="p50" label="p50" />
-				<LineChart.Line dataKey="p99" label="p99" shape="triangle" />
-				<LineChart.Legend />
-			</LineChart.Root>,
-		);
+test("a fixed slot keeps a series identity across conditional composition", () => {
+	const filterableData = [
+		{ time: new Date("2026-07-18T10:00:00Z"), p50: 120, p99: 480, p95: 300 },
+		{ time: new Date("2026-07-18T10:01:00Z"), p50: 132, p99: 510, p95: 320 },
+	];
+	const { container, rerender } = render(
+		<LineChart.Root data={filterableData} xKey="time" aria-label="Request latency">
+			<LineChart.Line dataKey="p50" label="p50" />
+			<LineChart.Line dataKey="p99" label="p99" seriesSlot={2} />
+			<LineChart.Legend />
+		</LineChart.Root>,
+	);
+	const swatchColors = () => {
 		const legend = container.querySelector('[data-slot="line-chart-legend"]');
-		const swatches = legend == null ? [] : [...legend.querySelectorAll("span[data-shape]")];
-		expect(swatches.map((swatch) => swatch.getAttribute("data-shape"))).toEqual([
-			"circle",
-			"triangle",
-		]);
-	});
+		// The glyph span carries the series color (line keys are composite:
+		// a stroke span plus the shape glyph span).
+		const items = legend == null ? [] : [...legend.querySelectorAll("span[data-shape]")];
+		return items.map((item) => (item instanceof HTMLElement ? item.style.backgroundColor : ""));
+	};
+	const [, p99Before] = swatchColors();
+	expect(p99Before).toContain("chart-2");
+	rerender(
+		<LineChart.Root data={filterableData} xKey="time" aria-label="Request latency">
+			<LineChart.Line dataKey="p99" label="p99" seriesSlot={2} />
+			<LineChart.Line dataKey="p95" label="p95" />
+			<LineChart.Legend />
+		</LineChart.Root>,
+	);
+	const [p99After, p95After] = swatchColors();
+	expect(p99After).toBe(p99Before);
+	expect(p95After).toContain("chart-1");
 });
 
-describe("LineChart series slots", () => {
-	test("a fixed slot keeps a series identity across conditional composition", () => {
-		const filterableData = [
-			{ time: new Date("2026-07-18T10:00:00Z"), p50: 120, p99: 480, p95: 300 },
-			{ time: new Date("2026-07-18T10:01:00Z"), p50: 132, p99: 510, p95: 320 },
-		];
-		const { container, rerender } = render(
-			<LineChart.Root data={filterableData} xKey="time" aria-label="Request latency">
-				<LineChart.Line dataKey="p50" label="p50" />
-				<LineChart.Line dataKey="p99" label="p99" seriesSlot={2} />
-				<LineChart.Legend />
-			</LineChart.Root>,
-		);
-		const swatchColors = () => {
-			const legend = container.querySelector('[data-slot="line-chart-legend"]');
-			// The glyph span carries the series color (line keys are composite:
-			// a stroke span plus the shape glyph span).
-			const items = legend == null ? [] : [...legend.querySelectorAll("span[data-shape]")];
-			return items.map((item) => (item instanceof HTMLElement ? item.style.backgroundColor : ""));
-		};
-		const [, p99Before] = swatchColors();
-		expect(p99Before).toContain("chart-2");
-		rerender(
-			<LineChart.Root data={filterableData} xKey="time" aria-label="Request latency">
-				<LineChart.Line dataKey="p99" label="p99" seriesSlot={2} />
-				<LineChart.Line dataKey="p95" label="p95" />
-				<LineChart.Legend />
-			</LineChart.Root>,
-		);
-		const [p99After, p95After] = swatchColors();
-		expect(p99After).toBe(p99Before);
-		expect(p95After).toContain("chart-1");
-	});
-});
-
-describe("LineChart invalid x values", () => {
-	test("rows with unparseable timestamps are dropped without blanking the chart or crashing the tooltip", async () => {
-		// Regression: a NaN epoch used to poison the x domain into NaN (blank
-		// chart) and crash Intl date formatting in the tooltip on hover.
-		const user = userEvent.setup();
-		const gappyRows = [
-			{ time: new Date("2026-07-18T10:00:00Z"), p50: 111 },
-			{ time: null, p50: 999 },
-			{ time: new Date("2026-07-18T10:01:00Z"), p50: 222 },
-		];
-		render(
-			<LineChart.Root data={gappyRows} xKey="time" xScale="time" aria-label="Latency">
-				<LineChart.Line dataKey="p50" label="p50" />
-			</LineChart.Root>,
-		);
-		await user.tab();
-		await user.keyboard("{Home}");
-		const tooltip = document.querySelector('[data-slot="line-chart-tooltip"]');
-		expect(tooltip?.textContent).toContain("111");
-		await user.keyboard("{End}");
-		expect(tooltip?.textContent).toContain("222");
-		// The invalid row is unreachable by stepping — only two positions exist.
-		await user.keyboard("{Home}{ArrowRight}");
-		expect(tooltip?.textContent).toContain("222");
-	});
+test("rows with unparseable timestamps are dropped without blanking the chart or crashing the tooltip", async () => {
+	// Regression: a NaN epoch used to poison the x domain into NaN (blank
+	// chart) and crash Intl date formatting in the tooltip on hover.
+	const user = userEvent.setup();
+	const gappyRows = [
+		{ time: new Date("2026-07-18T10:00:00Z"), p50: 111 },
+		{ time: null, p50: 999 },
+		{ time: new Date("2026-07-18T10:01:00Z"), p50: 222 },
+	];
+	render(
+		<LineChart.Root data={gappyRows} xKey="time" xScale="time" aria-label="Latency">
+			<LineChart.Line dataKey="p50" label="p50" />
+		</LineChart.Root>,
+	);
+	await user.tab();
+	await user.keyboard("{Home}");
+	const tooltip = document.querySelector('[data-slot="line-chart-tooltip"]');
+	expect(tooltip?.textContent).toContain("111");
+	await user.keyboard("{End}");
+	expect(tooltip?.textContent).toContain("222");
+	// The invalid row is unreachable by stepping — only two positions exist.
+	await user.keyboard("{Home}{ArrowRight}");
+	expect(tooltip?.textContent).toContain("222");
 });
 
 describe("LineChart decorative mode", () => {

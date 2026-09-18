@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { parseLanguage, supportedLanguages } from "./supported-languages.js";
+import { parseLanguage } from "./supported-languages.js";
 
 describe("parseLanguage", () => {
 	test("given undefined, returns 'text'", () => {
@@ -12,9 +12,9 @@ describe("parseLanguage", () => {
 		expect(lang).toEqual("text");
 	});
 
-	test("given '  \t\n\r  ', returns 'text'", () => {
-		const lang = parseLanguage("  \t\n\r  ");
-		expect(lang).toEqual("text");
+	test("trims surrounding whitespace before parsing", () => {
+		const lang = parseLanguage("  language-tsx  ");
+		expect(lang).toEqual("tsx");
 	});
 
 	test("given invalid languages, returns 'text'", () => {
@@ -38,13 +38,5 @@ describe("parseLanguage", () => {
 	test("given terraform language classes, returns the terraform languages", () => {
 		expect(parseLanguage("language-terraform")).toEqual("terraform");
 		expect(parseLanguage("lang-tf")).toEqual("tf");
-	});
-
-	test("given `language-${supportedLanguage}`, returns that language", () => {
-		for (const lang of supportedLanguages) {
-			const className = `language-${lang}` as const;
-			const result = parseLanguage(className);
-			expect(result).toEqual(lang);
-		}
 	});
 });

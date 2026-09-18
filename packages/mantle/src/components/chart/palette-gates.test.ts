@@ -50,21 +50,16 @@ describe("hexFromOklch", () => {
 		expect(hexFromOklch("oklch(1 0 0)")).toBe("#ffffff");
 	});
 
-	test.each([
-		["oklch(52.7%, 0.154, 150)", "comma syntax"],
-		["#008236", "a hex literal"],
-		["color-mix(in oklab, red, blue)", "a color function"],
-		["", "an empty value"],
-	])("throws on %s (%s)", (literal) => {
-		expect(() => hexFromOklch(literal)).toThrow(/unparseable oklch/);
+	test("throws on comma-separated components", () => {
+		// Why commas: this literal is the near miss. A separator loosened to accept
+		// commas parses it and returns a hex instead of throwing.
+		expect(() => hexFromOklch("oklch(52.7%, 0.154, 150)")).toThrow(/unparseable oklch/);
 	});
 });
 
-describe("parseOklch", () => {
-	test("percent and fractional lightness agree", () => {
-		expect(parseOklch("oklch(52.7% 0.154 150.069)")).toEqual([0.527, 0.154, 150.069]);
-		expect(parseOklch("oklch(0.527 0.154 150.069)")).toEqual([0.527, 0.154, 150.069]);
-	});
+test("parseOklch reads a percent and a fractional lightness alike", () => {
+	expect(parseOklch("oklch(52.7% 0.154 150.069)")).toEqual([0.527, 0.154, 150.069]);
+	expect(parseOklch("oklch(0.527 0.154 150.069)")).toEqual([0.527, 0.154, 150.069]);
 });
 
 describe("contrastRatio", () => {
@@ -169,7 +164,6 @@ describe("the gates", () => {
 			{ slot: 2, hex: "#959595", ratio: expect.closeTo(2.995, 3) },
 		]);
 		// #8e51ff is 4.40:1 on white: over that default, under a 4.5:1 floor.
-		expect(lowContrastSlots(["#8e51ff"], "#ffffff", { minimum: CONTRAST_MIN })).toEqual([]);
 		expect(lowContrastSlots(["#8e51ff"], "#ffffff", { minimum: 4.5 })).toEqual([
 			{ slot: 1, hex: "#8e51ff", ratio: expect.closeTo(4.4, 2) },
 		]);

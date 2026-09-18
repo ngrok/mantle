@@ -8,13 +8,14 @@ import { mantleCodeRehypePlugin } from "./mantle-code-rehype-plugin.js";
  * ```
  */
 function createCodeFenceTree(language: string, code: string, meta?: string) {
+	const properties: Record<string, unknown> = {};
 	return {
 		type: "root" as const,
 		children: [
 			{
 				type: "element" as const,
 				tagName: "pre",
-				properties: {} as Record<string, unknown>,
+				properties,
 				children: [
 					{
 						type: "element" as const,
@@ -58,22 +59,8 @@ describe("mantleCodeRehypePlugin", () => {
 		expect(pre.properties.mantlePreHtml).not.toContain("mantle-code-line-number");
 	});
 
-	test("defaults showLineNumbers to false for single-line sh", async () => {
-		const tree = createCodeFenceTree("sh", "curl -s https://example.com");
-		await mantleCodeRehypePlugin()(tree);
-
-		const pre = getPreNode(tree);
-		expect(pre.properties.mantleShowLineNumbers).toBe("false");
-	});
-
-	test("defaults showLineNumbers to false for single-line shell", async () => {
-		const tree = createCodeFenceTree("shell", "echo hello");
-		await mantleCodeRehypePlugin()(tree);
-
-		const pre = getPreNode(tree);
-		expect(pre.properties.mantleShowLineNumbers).toBe("false");
-	});
-
+	// Why multi-line shell: only this case shows the full code text, newlines
+	// included, reaches `defaultShowLineNumbers`.
 	test("defaults showLineNumbers to true for multi-line bash", async () => {
 		const tree = createCodeFenceTree("bash", "echo hello\necho world");
 		await mantleCodeRehypePlugin()(tree);
@@ -138,14 +125,6 @@ describe("mantleCodeRehypePlugin", () => {
 		expect(pre.properties.mantleCollapsible).toBe("false");
 	});
 
-	test(`meta collapsible="true" (quoted) enables collapsible`, async () => {
-		const tree = createCodeFenceTree("typescript", "const a = 1;", 'collapsible="true"');
-		await mantleCodeRehypePlugin()(tree);
-
-		const pre = getPreNode(tree);
-		expect(pre.properties.mantleCollapsible).toBe("true");
-	});
-
 	test("meta disableCopy (bare flag) disables copy", async () => {
 		const tree = createCodeFenceTree("typescript", "const a = 1;", "disableCopy");
 		await mantleCodeRehypePlugin()(tree);
@@ -168,26 +147,5 @@ describe("mantleCodeRehypePlugin", () => {
 
 		const pre = getPreNode(tree);
 		expect(pre.properties.mantleTitle).toBe("second");
-	});
-
-	test("meta with duplicate showLineNumbers keys uses the last value", async () => {
-		const tree = createCodeFenceTree(
-			"typescript",
-			"const a = 1;\nconst b = 2;",
-			"showLineNumbers=true showLineNumbers=false",
-		);
-		await mantleCodeRehypePlugin()(tree);
-
-		const pre = getPreNode(tree);
-		expect(pre.properties.mantleShowLineNumbers).toBe("false");
-	});
-
-	test("meta tokens separated by tabs are parsed as distinct tokens", async () => {
-		const tree = createCodeFenceTree("typescript", "const a = 1;", 'title="Tabby"\tcollapsible');
-		await mantleCodeRehypePlugin()(tree);
-
-		const pre = getPreNode(tree);
-		expect(pre.properties.mantleTitle).toBe("Tabby");
-		expect(pre.properties.mantleCollapsible).toBe("true");
 	});
 });

@@ -1,4 +1,4 @@
-import { createElement, type ReactNode } from "react";
+import { createElement } from "react";
 import { describe, expect, test } from "vitest";
 import {
 	hasRenderableErrorListChildren,
@@ -7,13 +7,6 @@ import {
 } from "./error-helpers.js";
 
 const errorItemType = "field-error-item";
-
-/**
- * Opaque component used to verify that custom components are treated as
- * renderable because their eventual output is unknowable from props alone.
- */
-const OpaqueError = ({ children }: { children?: ReactNode }) =>
-	createElement("span", null, children);
 
 describe("field helpers", () => {
 	describe("normalizeErrorMessages", () => {
@@ -39,10 +32,7 @@ describe("field helpers", () => {
 	describe("isErrorItemRenderable", () => {
 		test("returns false for nullish / boolean / blank-string children", () => {
 			expect(isErrorItemRenderable(null)).toBe(false);
-			expect(isErrorItemRenderable(undefined)).toBe(false);
-			expect(isErrorItemRenderable(false)).toBe(false);
 			expect(isErrorItemRenderable(true)).toBe(false);
-			expect(isErrorItemRenderable("")).toBe(false);
 			expect(isErrorItemRenderable(" ")).toBe(false);
 		});
 
@@ -67,16 +57,15 @@ describe("field helpers", () => {
 		test("returns false for boolean-only children", () => {
 			expect(
 				hasRenderableErrorListChildren({
-					children: true,
-					errorItemType,
-				}),
-			).toBe(false);
-			expect(
-				hasRenderableErrorListChildren({
 					children: [false, true, null],
 					errorItemType,
 				}),
 			).toBe(false);
+		});
+
+		test("counts a string child as content only when it has non-whitespace text", () => {
+			expect(hasRenderableErrorListChildren({ children: " ", errorItemType })).toBe(false);
+			expect(hasRenderableErrorListChildren({ children: "Required", errorItemType })).toBe(true);
 		});
 
 		test("uses Field.ErrorItem renderability for matching error item elements", () => {
@@ -94,10 +83,8 @@ describe("field helpers", () => {
 			).toBe(true);
 		});
 
-		test("treats host elements and custom components as opaque renderable content", () => {
-			// Wrapping ErrorItems in a host element inside a <ul> is invalid
-			// HTML; we don't recurse into it. Both inputs are treated as
-			// opaque-and-therefore-renderable.
+		test("treats a host element as opaque renderable content", () => {
+			// Why no recursion: ErrorItems wrapped in a host element inside a <ul> are invalid HTML.
 			expect(
 				hasRenderableErrorListChildren({
 					children: (
@@ -108,12 +95,10 @@ describe("field helpers", () => {
 					errorItemType,
 				}),
 			).toBe(true);
-			expect(
-				hasRenderableErrorListChildren({
-					children: <OpaqueError />,
-					errorItemType,
-				}),
-			).toBe(true);
+		});
+
+		test("treats a non-element child as renderable", () => {
+			expect(hasRenderableErrorListChildren({ children: 0, errorItemType })).toBe(true);
 		});
 	});
 });

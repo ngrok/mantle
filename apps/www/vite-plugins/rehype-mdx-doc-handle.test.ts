@@ -1,3 +1,4 @@
+import { valueToEstree } from "estree-util-value-to-estree";
 import type { Root } from "hast";
 import remarkMdx from "remark-mdx";
 import remarkParse from "remark-parse";
@@ -58,14 +59,12 @@ test("injects an `export const handle` with frontmatter and toc", () => {
 	const injected = injectedHandleDeclarator(tree);
 	expect(injected.id.name).toBe("handle");
 
-	// The literal carries both halves: the parsed frontmatter and the
-	// heading's id/text collected into the toc.
-	const serialized = JSON.stringify(injected.init);
-	expect(serialized).toContain('"frontmatter"');
-	expect(serialized).toContain('"Button"');
-	expect(serialized).toContain('"toc"');
-	expect(serialized).toContain('"usage"');
-	expect(serialized).toContain('"Usage"');
+	expect(injected.init).toEqual(
+		valueToEstree({
+			frontmatter: { title: "Button" },
+			toc: [{ id: "usage", text: "Usage", level: 2 }],
+		}),
+	);
 });
 
 test("falls back to an empty frontmatter object when the file has none", () => {

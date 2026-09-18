@@ -86,7 +86,10 @@ describe("HoverCard", () => {
 			await user.hover(screen.getByRole("link", { name: "@ngrok/mantle" }));
 
 			const arrow = await screen.findByTestId("arrow");
-			expect(arrow.getAttribute("class")).toContain("fill-red-500");
+			// A tailwind-merge override contract: the consumer's fill replaces the default
+			// `fill-[var(--background-color-popover)]` instead of landing beside it.
+			expect(arrow).toHaveClass("fill-red-500");
+			expect(arrow).not.toHaveClass("fill-[var(--background-color-popover)]");
 			expect(arrow).toHaveAttribute("width", "20");
 			expect(arrow).toHaveAttribute("height", "10");
 		});

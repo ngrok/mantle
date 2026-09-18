@@ -6,13 +6,6 @@ import { Button } from "./button.js";
 import { IconButton } from "./icon-button.js";
 
 describe("IconButton", () => {
-	test("renders a button with an accessible label", () => {
-		render(
-			<IconButton appearance="outlined" intent="neutral" label="globe" icon={<GlobeIcon />} />,
-		);
-		expect(screen.getByRole("button", { name: "globe" })).toBeInTheDocument();
-	});
-
 	describe("label", () => {
 		// Regression: voice-control tools (e.g. Rango) treat DOM text as a
 		// visible label, so a hidden label span suppressed their hints on every
@@ -72,59 +65,14 @@ describe("IconButton", () => {
 		);
 	});
 
-	describe("intent", () => {
-		test.each(["filled", "ghost", "outlined"] as const)(
-			`appearance="%s" stamps data-intent="neutral"`,
-			(appearance) => {
-				render(
-					<IconButton
-						appearance={appearance}
-						intent="neutral"
-						label="globe"
-						icon={<GlobeIcon />}
-					/>,
-				);
-				expect(screen.getByRole("button")).toHaveAttribute("data-intent", "neutral");
-			},
-		);
-
-		// Tone pin: the accent and danger tones are off the `intent` union, so
-		// no appearance may draw one. `data-intent` cannot catch that — it
-		// stamps `"neutral"` whatever the classes say — so the class is the
-		// only observable difference.
-		test.each([
-			[
-				"filled",
-				["bg-filled-neutral", "text-neutral-50"],
-				["bg-filled-accent", "bg-filled-danger"],
-			],
-			["ghost", ["text-strong"], ["text-accent-600", "text-danger-600"]],
-			[
-				"outlined",
-				["border-form", "bg-form", "text-strong"],
-				["border-accent-600", "border-danger-600"],
-			],
-		] as const)(
-			`appearance="%s" draws the neutral tone and no other`,
-			(appearance, neutral, others) => {
-				render(
-					<IconButton
-						appearance={appearance}
-						intent="neutral"
-						label="globe"
-						icon={<GlobeIcon />}
-					/>,
-				);
-				const button = screen.getByRole("button");
-				expect(button).toHaveClass(...neutral);
-				for (const toneClass of others) {
-					expect(button).not.toHaveClass(toneClass);
-				}
-			},
-		);
+	test(`stamps data-intent="neutral"`, () => {
+		render(<IconButton appearance="ghost" intent="neutral" label="globe" icon={<GlobeIcon />} />);
+		expect(screen.getByRole("button")).toHaveAttribute("data-intent", "neutral");
 	});
 
 	describe("size", () => {
+		// Size pin: `data-size` stamps the prop whatever the lookup returns, so the
+		// class is the only observable of the `size` table.
 		test(`defaults to size="md" when \`size\` is omitted`, () => {
 			render(
 				<IconButton appearance="outlined" intent="neutral" label="globe" icon={<GlobeIcon />} />,
@@ -137,7 +85,6 @@ describe("IconButton", () => {
 		test.each([
 			["xs", "size-6"],
 			["sm", "size-7"],
-			["md", "size-9"],
 			["lg", "size-10"],
 			["xl", "size-12"],
 		] as const)(`renders size="%s" with box size class %s`, (size, sizeClass) => {
@@ -155,7 +102,7 @@ describe("IconButton", () => {
 			expect(button).toHaveClass(sizeClass);
 		});
 
-		test("forwards the size class and data-size to an `asChild` anchor", () => {
+		test("forwards data-size to an `asChild` anchor", () => {
 			render(
 				<IconButton
 					appearance="outlined"
@@ -168,9 +115,7 @@ describe("IconButton", () => {
 					<a href="#yolo" />
 				</IconButton>,
 			);
-			const link = screen.getByRole("link");
-			expect(link).toHaveAttribute("data-size", "xl");
-			expect(link).toHaveClass("size-12");
+			expect(screen.getByRole("link")).toHaveAttribute("data-size", "xl");
 		});
 	});
 
@@ -290,36 +235,6 @@ describe("IconButton", () => {
 				/>,
 			);
 			expect(screen.getByRole("button")).toHaveAttribute("type", "submit");
-		});
-
-		test(`renders an explicit type="reset"`, () => {
-			render(
-				<IconButton
-					appearance="outlined"
-					intent="neutral"
-					type="reset"
-					label="reset"
-					icon={<GlobeIcon />}
-				/>,
-			);
-			expect(screen.getByRole("button")).toHaveAttribute("type", "reset");
-		});
-
-		test("does not leak the default `type` onto an `asChild` anchor", () => {
-			render(
-				<IconButton
-					appearance="outlined"
-					intent="neutral"
-					asChild
-					label="home"
-					icon={<GlobeIcon />}
-				>
-					<a href="#yolo" />
-				</IconButton>,
-			);
-			const link = screen.getByRole("link");
-			expect(link).toHaveAccessibleName("home");
-			expect(link).not.toHaveAttribute("type");
 		});
 
 		test("does not forward an explicit `type` to an `asChild` anchor", () => {

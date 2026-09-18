@@ -12,6 +12,7 @@ describe("shouldDecimate", () => {
 		// Between 3x and 4x, the current mode sticks.
 		expect(shouldDecimate({ pointCount: 2800, columnCount: 800, wasDecimated: true })).toBe(true);
 		expect(shouldDecimate({ pointCount: 2800, columnCount: 800, wasDecimated: false })).toBe(false);
+		expect(shouldDecimate({ pointCount: 2400, columnCount: 800, wasDecimated: true })).toBe(true);
 		expect(shouldDecimate({ pointCount: 2399, columnCount: 800, wasDecimated: true })).toBe(false);
 	});
 

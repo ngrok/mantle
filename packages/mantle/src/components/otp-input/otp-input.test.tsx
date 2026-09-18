@@ -1,10 +1,51 @@
 import { render, screen } from "@testing-library/react";
+import type { ComponentProps } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import { Field } from "../field/field.js";
 import { OtpInput } from "./otp-input.js";
 
+type RenderOtpProps = Pick<ComponentProps<typeof OtpInput.Root>, "aria-invalid" | "validation">;
+
+/**
+ * Renders the six-slot composition from the docs page. `bridge` is the element
+ * that carries `data-otp-state` and `data-validation`.
+ */
+const renderOtp = (props: RenderOtpProps = {}) => {
+	const { container } = render(
+		<OtpInput.Root maxLength={6} aria-label="otp" {...props}>
+			<OtpInput.Group>
+				<OtpInput.Slot index={0} />
+				<OtpInput.Slot index={1} />
+				<OtpInput.Slot index={2} />
+			</OtpInput.Group>
+			<OtpInput.Separator />
+			<OtpInput.Group>
+				<OtpInput.Slot index={3} />
+				<OtpInput.Slot index={4} />
+				<OtpInput.Slot index={5} />
+			</OtpInput.Group>
+		</OtpInput.Root>,
+	);
+	const input = screen.getByRole("textbox", { name: "otp" });
+	const bridge = container.querySelector<HTMLElement>("[data-otp-state]");
+	if (bridge == null) {
+		throw new Error("OtpInput.Root rendered no bridge element.");
+	}
+
+	return { bridge, container, input };
+};
+
 describe("OtpInput", () => {
+	test("stamps each part with its data-slot", () => {
+		const { container, input } = renderOtp();
+
+		expect(input).toHaveAttribute("data-slot", "otp-input");
+		expect(container.querySelectorAll('[data-slot="otp-input-group"]')).toHaveLength(2);
+		expect(container.querySelectorAll('[data-slot="otp-input-slot"]')).toHaveLength(6);
+		expect(container.querySelectorAll('[data-slot="otp-input-separator"]')).toHaveLength(1);
+	});
+
 	test("Field.Control wrapping OtpInput.Root applies field ARIA wiring to the hidden input", () => {
 		render(
 			<Field.Item name="code">
@@ -31,25 +72,118 @@ describe("OtpInput", () => {
 		expect(input).toHaveAttribute("aria-errormessage", errors.id);
 	});
 
-	describe("translation", () => {
-		test('every slot renders translate="no" so a translation engine skips the passcode', () => {
+	describe("compound parts", () => {
+		test("Group renders a div by default", () => {
+			const { container } = renderOtp();
+
+			const groups = container.querySelectorAll('[data-slot="otp-input-group"]');
+			expect(Array.from(groups, (group) => group.tagName)).toEqual(["DIV", "DIV"]);
+		});
+
+		test("Group asChild renders the child element instead of a div", () => {
 			render(
-				<OtpInput.Root maxLength={3} aria-label="otp">
-					<OtpInput.Group>
-						<OtpInput.Slot index={0} />
-						<OtpInput.Slot index={1} />
-						<OtpInput.Slot index={2} />
+				<OtpInput.Root maxLength={1} aria-label="otp">
+					<OtpInput.Group asChild>
+						<section data-testid="custom-group">
+							<OtpInput.Slot index={0} />
+						</section>
 					</OtpInput.Group>
 				</OtpInput.Root>,
 			);
 
-			const slots = document.querySelectorAll('[data-slot="otp-input-slot"]');
-			expect(slots).toHaveLength(3);
-			for (const slot of slots) {
-				expect(slot).toHaveAttribute("translate", "no");
-			}
+			const customGroup = screen.getByTestId("custom-group");
+			expect(customGroup.tagName).toBe("SECTION");
+			expect(customGroup).toHaveAttribute("data-slot", "otp-input-group");
 		});
 
+		test("Separator is decorative and renders the minus icon by default", () => {
+			const { container } = renderOtp();
+
+			const separator = container.querySelector('[data-slot="otp-input-separator"]');
+			expect(separator).toHaveAttribute("role", "none");
+			expect(separator).toHaveAttribute("aria-hidden", "true");
+			expect(container.querySelector('[data-slot="otp-input-separator"] svg')).toBeInTheDocument();
+		});
+
+		test("Separator with `semantic` renders role='separator'", () => {
+			render(
+				<OtpInput.Root maxLength={2} aria-label="otp">
+					<OtpInput.Group>
+						<OtpInput.Slot index={0} />
+					</OtpInput.Group>
+					<OtpInput.Separator semantic />
+					<OtpInput.Group>
+						<OtpInput.Slot index={1} />
+					</OtpInput.Group>
+				</OtpInput.Root>,
+			);
+
+			expect(screen.getByRole("separator")).toHaveAttribute("data-slot", "otp-input-separator");
+		});
+
+		test("Separator children replace the default minus icon", () => {
+			render(
+				<OtpInput.Root maxLength={2} aria-label="otp">
+					<OtpInput.Group>
+						<OtpInput.Slot index={0} />
+					</OtpInput.Group>
+					<OtpInput.Separator semantic>
+						<span>·</span>
+					</OtpInput.Separator>
+					<OtpInput.Group>
+						<OtpInput.Slot index={1} />
+					</OtpInput.Group>
+				</OtpInput.Root>,
+			);
+
+			const separator = screen.getByRole("separator");
+			expect(separator).toHaveTextContent("·");
+			expect(separator.querySelector("svg")).toBeNull();
+		});
+	});
+
+	describe("validation", () => {
+		test("leaves the bridge unstamped and aria-invalid unset when validation is omitted", () => {
+			const { bridge, input } = renderOtp();
+
+			expect(bridge).not.toHaveAttribute("data-validation");
+			expect(bridge.style.getPropertyValue("--otp-validation-border")).toBe("");
+			expect(bridge.style.getPropertyValue("--otp-validation-ring")).toBe("");
+			expect(input).not.toHaveAttribute("aria-invalid");
+		});
+
+		// Why a table: each validation value is its own entry in the hue lookup, so
+		// only a case per value catches a permuted row.
+		test.each([
+			["error", "var(--color-danger-600)", "var(--ring-color-focus-danger)"],
+			["success", "var(--color-success-600)", "var(--ring-color-focus-success)"],
+			["warning", "var(--color-warning-600)", "var(--ring-color-focus-warning)"],
+		] as const)(
+			"validation=%s stamps the bridge and sets its hue variables",
+			(validation, border, ring) => {
+				const { bridge } = renderOtp({ validation });
+
+				expect(bridge).toHaveAttribute("data-validation", validation);
+				expect(bridge.style.getPropertyValue("--otp-validation-border")).toBe(border);
+				expect(bridge.style.getPropertyValue("--otp-validation-ring")).toBe(ring);
+			},
+		);
+
+		test("validation='error' marks the input aria-invalid", () => {
+			const { input } = renderOtp({ validation: "error" });
+
+			expect(input).toHaveAttribute("aria-invalid", "true");
+		});
+
+		test("aria-invalid='true' forces data-validation=error over a non-error validation", () => {
+			const { bridge, input } = renderOtp({ "aria-invalid": "true", validation: "success" });
+
+			expect(bridge).toHaveAttribute("data-validation", "error");
+			expect(input).toHaveAttribute("aria-invalid", "true");
+		});
+	});
+
+	describe("translation", () => {
 		test("a translation engine skips the slots, so clearing a character cannot throw", () => {
 			const handleChange = vi.fn<(value: string) => void>();
 			const subject = (value: string) => (

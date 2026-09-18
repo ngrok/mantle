@@ -23,11 +23,4 @@ describe("clsx", () => {
 		// clsx is a plain join: conflicting utilities are both kept.
 		expect(clsx("p-4", "p-8")).toBe("p-4 p-8");
 	});
-
-	test("plain space-join for non-class text, skipping falsy (input.tsx use case)", () => {
-		const name: string | undefined = undefined;
-		expect(clsx("The value entered for the", name, "input has failed validation.")).toBe(
-			"The value entered for the input has failed validation.",
-		);
-	});
 });

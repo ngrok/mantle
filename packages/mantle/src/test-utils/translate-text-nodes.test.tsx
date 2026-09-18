@@ -103,18 +103,26 @@ describe("translateTextNodes", () => {
 		expect(thrown).toContain(INSERT_FAILED);
 	});
 
-	test("a keyed re-sort away from text, and an element removal beside text, both survive", () => {
-		const resorted = render(<Chips ids={["alpha", "bravo", "charlie"]} />);
-		translateTextNodes(resorted.container);
-		resorted.rerender(<Chips ids={["charlie", "alpha", "bravo"]} />);
-		expect(chipOrder(resorted.container)).toEqual(["charlie", "alpha", "bravo"]);
-		expect(resorted.container.textContent).toContain("[alpha-es]");
+	test("a keyed re-sort away from text survives", () => {
+		const { container, rerender } = render(<Chips ids={["alpha", "bravo", "charlie"]} />);
+		translateTextNodes(container);
 
-		const removed = render(<Chips ids={["alpha", "bravo", "charlie"]} total="Total: 3 items" />);
-		translateTextNodes(removed.container);
-		removed.rerender(<Chips ids={["alpha", "charlie"]} total="Total: 3 items" />);
-		expect(chipOrder(removed.container)).toEqual(["alpha", "charlie"]);
-		expect(removed.container.textContent).toContain("[Total: 3 items-es]");
+		rerender(<Chips ids={["charlie", "alpha", "bravo"]} />);
+
+		expect(chipOrder(container)).toEqual(["charlie", "alpha", "bravo"]);
+		expect(container.textContent).toContain("[alpha-es]");
+	});
+
+	test("an element removal beside bare text survives", () => {
+		const { container, rerender } = render(
+			<Chips ids={["alpha", "bravo", "charlie"]} total="Total: 3 items" />,
+		);
+		translateTextNodes(container);
+
+		rerender(<Chips ids={["alpha", "charlie"]} total="Total: 3 items" />);
+
+		expect(chipOrder(container)).toEqual(["alpha", "charlie"]);
+		expect(container.textContent).toContain("[Total: 3 items-es]");
 	});
 
 	test("removing a parent with no host node of its own throws on its bare text child", () => {

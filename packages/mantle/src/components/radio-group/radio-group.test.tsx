@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import { userEvent } from "@testing-library/user-event";
 import { describe, expect, test } from "vitest";
 import { Choice } from "../choice/choice.js";
 import { Field } from "../field/field.js";
@@ -111,6 +112,54 @@ describe("RadioGroup", () => {
 		);
 	});
 
+	test("a consumer id on Choice.Title is the id aria-labelledby points at", () => {
+		render(
+			<RadioGroup.Root aria-label="Plan" defaultValue="free">
+				<RadioGroup.Item value="free">
+					<Choice.Root>
+						<Choice.Indicator>
+							<RadioGroup.Indicator />
+						</Choice.Indicator>
+						<Choice.Content>
+							<Choice.Title id="free-title">Free</Choice.Title>
+						</Choice.Content>
+					</Choice.Root>
+				</RadioGroup.Item>
+			</RadioGroup.Root>,
+		);
+		expect(screen.getByRole("radio", { name: "Free" })).toHaveAttribute(
+			"aria-labelledby",
+			"free-title",
+		);
+	});
+
+	test("removing the description removes its id from aria-describedby", () => {
+		const option = (withDescription: boolean) => (
+			<RadioGroup.Root aria-label="Plan" defaultValue="free">
+				<RadioGroup.Item value="free">
+					<Choice.Root>
+						<Choice.Indicator>
+							<RadioGroup.Indicator />
+						</Choice.Indicator>
+						<Choice.Content>
+							<Choice.Title>Free</Choice.Title>
+							{withDescription && (
+								<Choice.Description>Up to 3 projects and 1 member.</Choice.Description>
+							)}
+						</Choice.Content>
+					</Choice.Root>
+				</RadioGroup.Item>
+			</RadioGroup.Root>
+		);
+		const { rerender } = render(option(true));
+		expect(screen.getByRole("radio", { name: "Free" })).toHaveAccessibleDescription(
+			"Up to 3 projects and 1 member.",
+		);
+
+		rerender(option(false));
+		expect(screen.getByRole("radio", { name: "Free" })).not.toHaveAttribute("aria-describedby");
+	});
+
 	test("RadioGroup.Indicator inside Choice.Indicator drops the injected name", () => {
 		render(
 			<RadioGroup.Root aria-label="Plan" defaultValue="pro">
@@ -131,6 +180,31 @@ describe("RadioGroup", () => {
 		expect(indicator.tagName).toBe("DIV");
 		expect(indicator).not.toHaveAttribute("name");
 	});
+
+	test("InputSandbox keeps its input out of the tab order until a click checks the item", async () => {
+		const user = userEvent.setup();
+		render(
+			<RadioGroup.Root aria-label="Amount" defaultValue="fixed">
+				<RadioGroup.Item value="fixed">
+					<RadioGroup.Indicator />
+					<span>Fixed</span>
+				</RadioGroup.Item>
+				<RadioGroup.Item value="custom">
+					<RadioGroup.Indicator />
+					<span>Custom</span>
+					<RadioGroup.InputSandbox>
+						<input aria-label="Custom amount" />
+					</RadioGroup.InputSandbox>
+				</RadioGroup.Item>
+			</RadioGroup.Root>,
+		);
+		const input = screen.getByRole("textbox", { name: "Custom amount" });
+		expect(input).toHaveAttribute("tabindex", "-1");
+
+		await user.click(screen.getByRole("radio", { name: "Custom" }));
+		expect(screen.getByRole("radio", { name: "Custom" })).toBeChecked();
+		expect(input).not.toHaveAttribute("tabindex");
+	});
 });
 
 const variants = [
@@ -140,8 +214,9 @@ const variants = [
 	{ variant: "Button", Group: RadioGroup.ButtonGroup, Option: RadioGroup.Button },
 ] as const;
 
-describe.each(variants)("RadioGroup.$variant with Choice", ({ Group, Option }) => {
-	test("the title names the radio and the description describes it", () => {
+test.each(variants)(
+	"RadioGroup.$variant: the title names the radio and the description describes it",
+	({ Group, Option }) => {
 		render(
 			<Group aria-label="Plan" defaultValue="free">
 				<Option value="free">
@@ -175,53 +250,5 @@ describe.each(variants)("RadioGroup.$variant with Choice", ({ Group, Option }) =
 		expect(screen.getByRole("radio", { name: "Pro" })).toHaveAccessibleDescription(
 			"Unlimited projects and up to 25 members.",
 		);
-	});
-
-	test("a consumer id on Choice.Title is the id aria-labelledby points at", () => {
-		render(
-			<Group aria-label="Plan" defaultValue="free">
-				<Option value="free">
-					<Choice.Root>
-						<Choice.Indicator>
-							<RadioGroup.Indicator />
-						</Choice.Indicator>
-						<Choice.Content>
-							<Choice.Title id="free-title">Free</Choice.Title>
-						</Choice.Content>
-					</Choice.Root>
-				</Option>
-			</Group>,
-		);
-		expect(screen.getByRole("radio", { name: "Free" })).toHaveAttribute(
-			"aria-labelledby",
-			"free-title",
-		);
-	});
-
-	test("removing the description removes its id from aria-describedby", () => {
-		const option = (withDescription: boolean) => (
-			<Group aria-label="Plan" defaultValue="free">
-				<Option value="free">
-					<Choice.Root>
-						<Choice.Indicator>
-							<RadioGroup.Indicator />
-						</Choice.Indicator>
-						<Choice.Content>
-							<Choice.Title>Free</Choice.Title>
-							{withDescription && (
-								<Choice.Description>Up to 3 projects and 1 member.</Choice.Description>
-							)}
-						</Choice.Content>
-					</Choice.Root>
-				</Option>
-			</Group>
-		);
-		const { rerender } = render(option(true));
-		expect(screen.getByRole("radio", { name: "Free" })).toHaveAccessibleDescription(
-			"Up to 3 projects and 1 member.",
-		);
-
-		rerender(option(false));
-		expect(screen.getByRole("radio", { name: "Free" })).not.toHaveAttribute("aria-describedby");
-	});
-});
+	},
+);
