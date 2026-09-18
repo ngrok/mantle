@@ -37,6 +37,9 @@ COPY apps apps
 COPY packages packages
 COPY config config
 
+# The build writes to the turbo remote cache, so the CI token needs the write host.
+ARG TURBO_API
+
 # Install turbo at the version declared in package.json (avoids installing all root devDeps)
 RUN TURBO_VERSION=$(node -e "process.stdout.write(require('./package.json').devDependencies.turbo)") && \
     npm install -g turbo@$TURBO_VERSION
@@ -68,6 +71,9 @@ RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
 
 # Copy full pruned source
 COPY --from=pruner /app/out/full/ ./
+
+# The build writes to the turbo remote cache, so the CI token needs the write host.
+ARG TURBO_API
 
 # Build
 RUN --mount=type=secret,id=TURBO_TOKEN \

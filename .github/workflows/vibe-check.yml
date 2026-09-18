@@ -28,6 +28,8 @@ env:
   TURBO_TEAM: ${{ vars.TURBO_TEAM }}
   TURBO_TELEMETRY_DISABLED: 1
   TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  # The CI token writes only through the ci host. TURBO_API overrides `remoteCache.apiUrl` in turbo.json.
+  TURBO_API: https://turborepo-ci.corp.ngrok.com
   VERCEL_TELEMETRY_DISABLED: 1
 
 jobs:

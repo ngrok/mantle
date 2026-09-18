@@ -67,6 +67,15 @@ TURBO_TOKEN = "…"
 
 These are merged with the committed `mise.toml [env]` whenever mise resolves the environment.
 
+The turbo remote cache has two hosts. Both hosts serve one cache, so a local run reads what CI wrote.
+
+| Host                          | Access     | Token                                                                                    | Client                                                                   |
+| ----------------------------- | ---------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `turborepo.corp.ngrok.com`    | read-only  | the developer token: copy `TURBO_TOKEN` from the `mise.toml` in `ngrok-private/frontend` | local runs, through `remoteCache.apiUrl` in [`turbo.json`](./turbo.json) |
+| `turborepo-ci.corp.ngrok.com` | read-write | the CI token in the `TURBO_TOKEN` repo secret                                            | the workflows that set `TURBO_API`, which overrides `remoteCache.apiUrl` |
+
+This repo is public, so the developer token stays in `mise.local.toml`. Never commit either token. The read-only host answers a `PUT` with 403, and `TURBO_CACHE` in `mise.toml` keeps a local run from trying one.
+
 ### Manual Installation
 
 If you prefer to manage Node and pnpm yourself, match the committed pins:
