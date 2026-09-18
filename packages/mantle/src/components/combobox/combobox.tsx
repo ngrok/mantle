@@ -1,6 +1,23 @@
 "use client";
 
-import * as Primitive from "@ariakit/react";
+import {
+	Combobox as AriakitCombobox,
+	ComboboxGroup as AriakitComboboxGroup,
+	ComboboxGroupLabel as AriakitComboboxGroupLabel,
+	ComboboxItem as AriakitComboboxItem,
+	ComboboxItemValue as AriakitComboboxItemValue,
+	ComboboxPopover as AriakitComboboxPopover,
+	ComboboxProvider as AriakitComboboxProvider,
+} from "@ariakit/react/combobox";
+import type {
+	ComboboxGroupLabelProps as AriakitComboboxGroupLabelProps,
+	ComboboxGroupProps as AriakitComboboxGroupProps,
+	ComboboxItemProps as AriakitComboboxItemProps,
+	ComboboxItemValueProps as AriakitComboboxItemValueProps,
+	ComboboxPopoverProps as AriakitComboboxPopoverProps,
+	ComboboxProps as AriakitComboboxProps,
+	ComboboxProviderProps as AriakitComboboxProviderProps,
+} from "@ariakit/react/combobox";
 import type { ComponentProps } from "react";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
@@ -9,7 +26,7 @@ import type { WithValidation } from "../field/validation.js";
 import { Separator } from "../separator/separator.js";
 import { Slot } from "../slot/index.js";
 
-type ComboboxProps = Primitive.ComboboxProviderProps;
+type ComboboxProps = AriakitComboboxProviderProps;
 
 /**
  * The outermost part of a combobox. It owns the ariakit store that holds the query text, the open state, and the selection.
@@ -37,11 +54,11 @@ type ComboboxProps = Primitive.ComboboxProviderProps;
  * ```
  */
 const Root = ({ children, ...props }: ComboboxProps) => {
-	return <Primitive.ComboboxProvider {...props}>{children}</Primitive.ComboboxProvider>;
+	return <AriakitComboboxProvider {...props}>{children}</AriakitComboboxProvider>;
 };
 
 type ComboboxInputProps = Omit<
-	Primitive.ComboboxProps,
+	AriakitComboboxProps,
 	"render" // we don't support a render prop for the combobox input
 > &
 	WithValidation;
@@ -78,7 +95,7 @@ const Input = ({
 	});
 
 	return (
-		<Primitive.Combobox
+		<AriakitCombobox
 			aria-invalid={ariaInvalid}
 			autoComplete={autoComplete}
 			autoSelect={autoSelect}
@@ -104,7 +121,7 @@ const Input = ({
 	);
 };
 
-type ComboboxContentProps = Omit<Primitive.ComboboxPopoverProps, "render"> & WithAsChild;
+type ComboboxContentProps = Omit<AriakitComboboxPopoverProps, "render"> & WithAsChild;
 
 /**
  * Renders a popover that contains combobox content, e.g. Combobox.Items, Combobox.Groups, and Combobox.Separators.
@@ -137,7 +154,7 @@ const Content = ({
 	...props
 }: ComboboxContentProps) => {
 	return (
-		<Primitive.ComboboxPopover
+		<AriakitComboboxPopover
 			data-slot="combobox-content"
 			className={cx(
 				"border-popover bg-popover relative z-50 max-h-96 min-w-32 scrollbar overflow-y-scroll overflow-x-hidden rounded-md border shadow-md p-1 my-2 space-y-px font-sans focus:outline-hidden",
@@ -150,11 +167,11 @@ const Content = ({
 			{...props}
 		>
 			{children}
-		</Primitive.ComboboxPopover>
+		</AriakitComboboxPopover>
 	);
 };
 
-type ComboboxItemProps = Omit<Primitive.ComboboxItemProps, "render"> & WithAsChild;
+type ComboboxItemProps = Omit<AriakitComboboxItemProps, "render"> & WithAsChild;
 
 /**
  * Renders a combobox item inside a Combobox.Content component.
@@ -183,7 +200,7 @@ const Item = ({
 	...props
 }: ComboboxItemProps) => {
 	return (
-		<Primitive.ComboboxItem
+		<AriakitComboboxItem
 			data-slot="combobox-item"
 			className={cx(
 				"cursor-pointer rounded-md px-2 py-1.5 text-strong text-sm flex min-w-0 gap-2 items-center [&>svg]:size-5 [&_svg]:shrink-0",
@@ -198,11 +215,11 @@ const Item = ({
 			{...props}
 		>
 			{children}
-		</Primitive.ComboboxItem>
+		</AriakitComboboxItem>
 	);
 };
 
-type ComboboxGroupProps = Omit<Primitive.ComboboxGroupProps, "render"> & WithAsChild;
+type ComboboxGroupProps = Omit<AriakitComboboxGroupProps, "render"> & WithAsChild;
 
 /**
  * Renders a group for Combobox.Item elements.
@@ -229,7 +246,7 @@ type ComboboxGroupProps = Omit<Primitive.ComboboxGroupProps, "render"> & WithAsC
  */
 const Group = ({ asChild = false, children, className, ref, ...props }: ComboboxGroupProps) => {
 	return (
-		<Primitive.ComboboxGroup
+		<AriakitComboboxGroup
 			data-slot="combobox-group"
 			className={cx("space-y-px", className)}
 			ref={ref}
@@ -237,11 +254,11 @@ const Group = ({ asChild = false, children, className, ref, ...props }: Combobox
 			{...props}
 		>
 			{children}
-		</Primitive.ComboboxGroup>
+		</AriakitComboboxGroup>
 	);
 };
 
-type ComboboxGroupLabelProps = Omit<Primitive.ComboboxGroupLabelProps, "render"> & WithAsChild;
+type ComboboxGroupLabelProps = Omit<AriakitComboboxGroupLabelProps, "render"> & WithAsChild;
 
 /**
  * Renders a label in a combobox group.
@@ -274,7 +291,7 @@ const GroupLabel = ({
 	...props
 }: ComboboxGroupLabelProps) => {
 	return (
-		<Primitive.ComboboxGroupLabel
+		<AriakitComboboxGroupLabel
 			data-slot="combobox-group-label"
 			className={cx("text-muted px-2 py-1 text-xs font-medium", className)}
 			ref={ref}
@@ -282,12 +299,11 @@ const GroupLabel = ({
 			{...props}
 		>
 			{children}
-		</Primitive.ComboboxGroupLabel>
+		</AriakitComboboxGroupLabel>
 	);
 };
 
-type ComboboxItemValueProps = Omit<Primitive.ComboboxItemValueProps<"span">, "render"> &
-	WithAsChild;
+type ComboboxItemValueProps = Omit<AriakitComboboxItemValueProps<"span">, "render"> & WithAsChild;
 
 /**
  * Highlights the match between the current Combobox.Input value (userValue) and parent Combobox.Item value.
@@ -322,7 +338,7 @@ type ComboboxItemValueProps = Omit<Primitive.ComboboxItemValueProps<"span">, "re
  */
 const ItemValue = ({ asChild = false, className, ref, ...props }: ComboboxItemValueProps) => {
 	return (
-		<Primitive.ComboboxItemValue
+		<AriakitComboboxItemValue
 			data-slot="combobox-item-value"
 			className={cx(
 				"*:data-user-value:font-medium flex-1 shrink-0 text-strong font-normal",

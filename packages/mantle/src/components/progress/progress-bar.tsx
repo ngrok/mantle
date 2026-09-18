@@ -1,6 +1,9 @@
 "use client";
 
-import * as ProgressPrimitive from "@radix-ui/react-progress";
+import {
+	Indicator as ProgressPrimitiveIndicator,
+	Root as ProgressPrimitiveRoot,
+} from "@radix-ui/react-progress";
 
 import { type ComponentProps, createContext, useContext, useMemo } from "react";
 import { cx } from "../../utils/cx/cx.js";
@@ -99,7 +102,7 @@ function Root({ className, children, max: _max = defaultMax, value: _value, ...p
 
 	return (
 		<ProgressContext.Provider value={ctx}>
-			<ProgressPrimitive.Root
+			<ProgressPrimitiveRoot
 				data-slot="progress-bar"
 				className={cx(
 					"bg-base-hover dark:bg-base shadow-inner relative h-3 w-full overflow-hidden rounded-md",
@@ -110,11 +113,11 @@ function Root({ className, children, max: _max = defaultMax, value: _value, ...p
 				{...props}
 			>
 				{children}
-			</ProgressPrimitive.Root>
+			</ProgressPrimitiveRoot>
 		</ProgressContext.Provider>
 	);
 }
-type IndicatorProps = ComponentProps<typeof ProgressPrimitive.Indicator>;
+type IndicatorProps = ComponentProps<typeof ProgressPrimitiveIndicator>;
 
 /**
  * Displays the progress indicator, which visually represents the completion progress of a task.
@@ -143,7 +146,7 @@ function Indicator({ className, style, ...props }: IndicatorProps) {
 	const translatePercent = ((max - value) / max) * 100;
 
 	return (
-		<ProgressPrimitive.Indicator
+		<ProgressPrimitiveIndicator
 			data-slot="progress-bar-indicator"
 			className={cx("bg-accent-600 h-full w-full flex-1 transition-all", className)}
 			style={{ ...style, transform: `translateX(-${translatePercent}%)` }}

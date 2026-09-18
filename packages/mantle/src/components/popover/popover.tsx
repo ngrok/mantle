@@ -1,6 +1,14 @@
 "use client";
 
-import * as PopoverPrimitive from "@radix-ui/react-popover";
+import {
+	Anchor as PopoverPrimitiveAnchor,
+	Arrow as PopoverPrimitiveArrow,
+	Close as PopoverPrimitiveClose,
+	Content as PopoverPrimitiveContent,
+	Portal as PopoverPrimitivePortal,
+	Root as PopoverPrimitiveRoot,
+	Trigger as PopoverPrimitiveTrigger,
+} from "@radix-ui/react-popover";
 import type { ComponentProps } from "react";
 import { cx } from "../../utils/cx/cx.js";
 import { useLayerContainer } from "../../utils/layer-container/layer-container.js";
@@ -32,7 +40,7 @@ import { useLayerContainer } from "../../utils/layer-container/layer-container.j
  * </Popover.Root>
  * ```
  */
-const Root = PopoverPrimitive.Root;
+const Root = PopoverPrimitiveRoot;
 
 /**
  * The trigger button that opens the popover.
@@ -53,7 +61,7 @@ const Root = PopoverPrimitive.Root;
  * </Popover.Root>
  * ```
  */
-const Trigger = PopoverPrimitive.Trigger;
+const Trigger = PopoverPrimitiveTrigger;
 
 /**
  * An optional element to position the PopoverContent against. If this part is not used, the content will position alongside the PopoverTrigger.
@@ -77,7 +85,7 @@ const Trigger = PopoverPrimitive.Trigger;
  * </Popover.Root>
  * ```
  */
-const Anchor = PopoverPrimitive.Anchor;
+const Anchor = PopoverPrimitiveAnchor;
 
 /**
  * A button that closes an open popover.
@@ -101,9 +109,9 @@ const Anchor = PopoverPrimitive.Anchor;
  * </Popover.Root>
  * ```
  */
-const Close = PopoverPrimitive.Close;
+const Close = PopoverPrimitiveClose;
 
-type PopoverContentProps = ComponentProps<typeof PopoverPrimitive.Content> & {
+type PopoverContentProps = ComponentProps<typeof PopoverPrimitiveContent> & {
 	/**
 	 * The preferred width of the `PopoverContent` as a tailwind `max-w-` class.
 	 *
@@ -158,8 +166,8 @@ const Content = ({
 	const layerContainer = useLayerContainer();
 
 	return (
-		<PopoverPrimitive.Portal container={layerContainer}>
-			<PopoverPrimitive.Content
+		<PopoverPrimitivePortal container={layerContainer}>
+			<PopoverPrimitiveContent
 				align={align}
 				data-slot="popover-content"
 				className={cx(
@@ -184,14 +192,11 @@ const Content = ({
 				sideOffset={sideOffset}
 				{...props}
 			/>
-		</PopoverPrimitive.Portal>
+		</PopoverPrimitivePortal>
 	);
 };
 
-type PopoverArrowProps = Omit<
-	ComponentProps<typeof PopoverPrimitive.Arrow>,
-	"asChild" | "children"
->;
+type PopoverArrowProps = Omit<ComponentProps<typeof PopoverPrimitiveArrow>, "asChild" | "children">;
 
 /**
  * An optional tip that points from `Popover.Content` at its anchor. Render it as
@@ -224,7 +229,7 @@ const Arrow = ({ className, height = 7, width = 14, ...props }: PopoverArrowProp
 	// `Popover.Content`'s border. `PopoverArrowProps` omits the prop, so restyle with
 	// `className` instead. The `asChild` below is mantle's own, and hands that shape
 	// to the primitive.
-	<PopoverPrimitive.Arrow
+	<PopoverPrimitiveArrow
 		aria-hidden="true"
 		asChild
 		data-slot="popover-arrow"
@@ -264,7 +269,7 @@ const Arrow = ({ className, height = 7, width = 14, ...props }: PopoverArrowProp
 				vectorEffect="non-scaling-stroke"
 			/>
 		</svg>
-	</PopoverPrimitive.Arrow>
+	</PopoverPrimitiveArrow>
 );
 
 /**

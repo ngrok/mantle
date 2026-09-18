@@ -12,7 +12,7 @@ import {
 	useContext,
 	useMemo,
 } from "react";
-import * as ToastPrimitive from "sonner";
+import { Toaster as SonnerToaster, toast as sonnerToast } from "sonner";
 import type { WithAsChild } from "../../types/as-child.js";
 import type { WithStyleProps } from "../../types/with-style-props.js";
 import { cx } from "../../utils/cx/cx.js";
@@ -21,7 +21,7 @@ import type { SvgOnlyProps } from "../icon/svg-only.js";
 import { Slot } from "../slot/index.js";
 import { useAppliedTheme } from "../theme/theme-provider.js";
 
-type ToasterPrimitiveProps = ComponentProps<typeof ToastPrimitive.Toaster>;
+type ToasterPrimitiveProps = ComponentProps<typeof SonnerToaster>;
 type ToasterPrimitiveTheme = ToasterPrimitiveProps["theme"];
 
 type ToasterProps = WithStyleProps &
@@ -82,7 +82,7 @@ const Toaster = ({
 	const theme = useAppliedTheme();
 
 	return (
-		<ToastPrimitive.Toaster
+		<SonnerToaster
 			data-slot="toaster"
 			className={cx("toaster overlay-prompt pointer-events-auto *:duration-200", className)}
 			containerAriaLabel={containerAriaLabel}
@@ -146,7 +146,7 @@ type MakeToastOptions = {
 function makeToast(children: ReactNode, options?: MakeToastOptions) {
 	const duration = resolveToastDuration(options?.duration_ms);
 
-	return ToastPrimitive.toast.custom(
+	return sonnerToast.custom(
 		(toastId) => <ToastIdContext.Provider value={toastId}>{children}</ToastIdContext.Provider>,
 		{
 			//
@@ -362,7 +362,7 @@ const Action = ({ asChild, className, onClick, ref, ...props }: ToastActionProps
 				if (event.defaultPrevented) {
 					return;
 				}
-				ToastPrimitive.toast.dismiss(ctx);
+				sonnerToast.dismiss(ctx);
 			}}
 			ref={ref}
 			{...props}

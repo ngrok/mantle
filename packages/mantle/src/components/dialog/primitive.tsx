@@ -1,6 +1,15 @@
 "use client";
 
-import * as DialogPrimitive from "@radix-ui/react-dialog";
+import {
+	Close as DialogPrimitiveClose,
+	Content as DialogPrimitiveContent,
+	Description as DialogPrimitiveDescription,
+	Overlay as DialogPrimitiveOverlay,
+	Portal as DialogPrimitivePortal,
+	Root as DialogPrimitiveRoot,
+	Title as DialogPrimitiveTitle,
+	Trigger as DialogPrimitiveTrigger,
+} from "@radix-ui/react-dialog";
 import type { ComponentProps, ComponentPropsWithoutRef, Ref } from "react";
 import { Slot } from "../slot/index.js";
 import { preventCloseOnPromptInteraction } from "../toast/prevent-close-on-prompt-interaction.js";
@@ -10,17 +19,17 @@ import {
 	useLayerContainer,
 } from "../../utils/layer-container/layer-container.js";
 
-type DialogPrimitiveContentProps = ComponentProps<typeof DialogPrimitive.Content>;
+type DialogPrimitiveContentProps = ComponentProps<typeof DialogPrimitiveContent>;
 
-const Root = DialogPrimitive.Root;
-const Trigger = DialogPrimitive.Trigger;
+const Root = DialogPrimitiveRoot;
+const Trigger = DialogPrimitiveTrigger;
 
 /**
  * Mounts dialog layers into the nearest layer container — an enclosing
  * overlay's positioner when one is open, else `document.body`. An explicit
  * `container` prop wins over both.
  */
-const Portal = ({ container, ...props }: ComponentProps<typeof DialogPrimitive.Portal>) => {
+const Portal = ({ container, ...props }: ComponentProps<typeof DialogPrimitivePortal>) => {
 	const layerContainer = useLayerContainer();
 	const resolvedContainer = container ?? layerContainer;
 
@@ -29,15 +38,15 @@ const Portal = ({ container, ...props }: ComponentProps<typeof DialogPrimitive.P
 	// subtree — otherwise the inner portal would ignore an explicit `container`.
 	return (
 		<LayerContainerContext.Provider value={resolvedContainer}>
-			<DialogPrimitive.Portal container={resolvedContainer} {...props} />
+			<DialogPrimitivePortal container={resolvedContainer} {...props} />
 		</LayerContainerContext.Provider>
 	);
 };
 
-const Close = DialogPrimitive.Close;
+const Close = DialogPrimitiveClose;
 
-const Overlay = (props: ComponentProps<typeof DialogPrimitive.Overlay>) => (
-	<DialogPrimitive.Overlay
+const Overlay = (props: ComponentProps<typeof DialogPrimitiveOverlay>) => (
+	<DialogPrimitiveOverlay
 		/**
 		 * Mark the overlay with a data attribute so we can target it, e.g. in
 		 * event handlers
@@ -54,7 +63,7 @@ const Content = ({
 	ref,
 	...props
 }: DialogPrimitiveContentProps) => (
-	<DialogPrimitive.Content
+	<DialogPrimitiveContent
 		ref={ref}
 		onEscapeKeyDown={(event) => {
 			preventCloseOnNestedPopupEscape(event);
@@ -75,7 +84,7 @@ const Content = ({
 	/>
 );
 
-const Title = DialogPrimitive.Title;
+const Title = DialogPrimitiveTitle;
 
 /**
  * An accessible description for the dialog primitive.
@@ -87,15 +96,15 @@ const Description = ({
 	children,
 	ref,
 	...props
-}: ComponentPropsWithoutRef<typeof DialogPrimitive.Description> & {
+}: ComponentPropsWithoutRef<typeof DialogPrimitiveDescription> & {
 	ref?: Ref<HTMLDivElement>;
 }) => {
 	const Component = asChild ? Slot : "div";
 
 	return (
-		<DialogPrimitive.Description ref={ref} asChild>
+		<DialogPrimitiveDescription ref={ref} asChild>
 			<Component {...props}>{children}</Component>
-		</DialogPrimitive.Description>
+		</DialogPrimitiveDescription>
 	);
 };
 

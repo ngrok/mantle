@@ -9,7 +9,16 @@ import {
 	type IconButtonIntent,
 	type IconButtonProps,
 } from "../button/icon-button.js";
-import * as SheetPrimitive from "../dialog/primitive.js";
+import {
+	Close as SheetPrimitiveClose,
+	Content as SheetPrimitiveContent,
+	Description as SheetPrimitiveDescription,
+	Overlay as SheetPrimitiveOverlay,
+	Portal as SheetPrimitivePortal,
+	Root as SheetPrimitiveRoot,
+	Title as SheetPrimitiveTitle,
+	Trigger as SheetPrimitiveTrigger,
+} from "../dialog/primitive.js";
 
 /**
  * The root component for a `Sheet`. Should compose the `Sheet.Trigger` and `Sheet.Content`.
@@ -116,7 +125,7 @@ import * as SheetPrimitive from "../dialog/primitive.js";
  * </Sheet.Root>
  * ```
  */
-const Root = SheetPrimitive.Root;
+const Root = SheetPrimitiveRoot;
 
 /**
  * The button trigger for a `Sheet`. Should be rendered as a child of the `Sheet` component.
@@ -155,7 +164,7 @@ const Root = SheetPrimitive.Root;
  * </Sheet.Root>
  * ```
  */
-const Trigger = SheetPrimitive.Trigger;
+const Trigger = SheetPrimitiveTrigger;
 
 /**
  * The close button for a `Sheet`. Should be rendered as a child of the `Sheet.Content` component.
@@ -195,14 +204,14 @@ const Trigger = SheetPrimitive.Trigger;
  * </Sheet.Root>
  * ```
  */
-const Close = SheetPrimitive.Close;
+const Close = SheetPrimitiveClose;
 
 /**
  * Mounts `SheetOverlay` and `Sheet.Content` outside the app's DOM tree.
  *
  * @private
  */
-const SheetPortal = SheetPrimitive.Portal;
+const SheetPortal = SheetPrimitivePortal;
 
 /**
  * The overlay backdrop for a sheet. Should be rendered as a child of the `SheetPortal` component.
@@ -215,8 +224,8 @@ const SheetOverlay = ({
 	className,
 	ref,
 	...props
-}: ComponentProps<typeof SheetPrimitive.Overlay>) => (
-	<SheetPrimitive.Overlay
+}: ComponentProps<typeof SheetPrimitiveOverlay>) => (
+	<SheetPrimitiveOverlay
 		data-slot="sheet-overlay"
 		className={cx(
 			"bg-overlay data-state-closed:animate-out data-state-closed:fade-out-0 data-state-open:animate-in data-state-open:fade-in-0 fixed inset-0 z-60 backdrop-blur-xs",
@@ -246,7 +255,7 @@ const sheetVariants = cva(
 	},
 );
 
-type SheetContentProps = ComponentProps<typeof SheetPrimitive.Content> &
+type SheetContentProps = ComponentProps<typeof SheetPrimitiveContent> &
 	VariantProps<typeof sheetVariants> & {
 		/**
 		 * The preferred width of the `Sheet.Content` as a tailwind `max-w-` class.
@@ -335,7 +344,7 @@ const Content = ({
 		    relative to the content. The positioner has no box of its own; the
 		    content keeps its own fixed positioning. */}
 		<LayerContainer data-slot="sheet-positioner" className="fixed z-60">
-			<SheetPrimitive.Content
+			<SheetPrimitiveContent
 				data-slot="sheet-content"
 				data-mantle-modal-content
 				className={cx(sheetVariants({ side }), preferredWidth, className)}
@@ -343,7 +352,7 @@ const Content = ({
 				{...props}
 			>
 				{children}
-			</SheetPrimitive.Content>
+			</SheetPrimitiveContent>
 		</LayerContainer>
 	</SheetPortal>
 );
@@ -430,7 +439,7 @@ const CloseIconButton = ({
 	intent = "neutral",
 	...props
 }: SheetCloseIconButtonProps) => (
-	<SheetPrimitive.Close asChild>
+	<SheetPrimitiveClose asChild>
 		<IconButton
 			data-slot="sheet-close-icon-button"
 			appearance={appearance}
@@ -441,7 +450,7 @@ const CloseIconButton = ({
 			type={type}
 			{...props}
 		/>
-	</SheetPrimitive.Close>
+	</SheetPrimitiveClose>
 );
 
 /**
@@ -678,8 +687,8 @@ const Footer = ({ className, ...props }: HTMLAttributes<HTMLDivElement>) => (
  * </Sheet.Root>
  * ```
  */
-const Title = ({ className, ref, ...props }: ComponentProps<typeof SheetPrimitive.Title>) => (
-	<SheetPrimitive.Title
+const Title = ({ className, ref, ...props }: ComponentProps<typeof SheetPrimitiveTitle>) => (
+	<SheetPrimitiveTitle
 		data-slot="sheet-title"
 		ref={ref}
 		className={cx("text-strong flex-1 truncate text-lg font-medium", className)}
@@ -800,8 +809,8 @@ const Description = ({
 	className,
 	ref,
 	...props
-}: ComponentProps<typeof SheetPrimitive.Description>) => (
-	<SheetPrimitive.Description
+}: ComponentProps<typeof SheetPrimitiveDescription>) => (
+	<SheetPrimitiveDescription
 		data-slot="sheet-description"
 		ref={ref}
 		className={cx("text-body text-sm", className)}

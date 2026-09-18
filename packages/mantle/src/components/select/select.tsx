@@ -3,7 +3,22 @@
 import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
 import { CaretUpIcon } from "@phosphor-icons/react/CaretUp";
 import { CheckIcon } from "@phosphor-icons/react/Check";
-import * as SelectPrimitive from "@radix-ui/react-select";
+import {
+	Content as SelectPrimitiveContent,
+	Group as SelectPrimitiveGroup,
+	Icon as SelectPrimitiveIcon,
+	Item as SelectPrimitiveItem,
+	ItemIndicator as SelectPrimitiveItemIndicator,
+	ItemText as SelectPrimitiveItemText,
+	Label as SelectPrimitiveLabel,
+	Portal as SelectPrimitivePortal,
+	Root as SelectPrimitiveRoot,
+	ScrollDownButton as SelectPrimitiveScrollDownButton,
+	ScrollUpButton as SelectPrimitiveScrollUpButton,
+	Trigger as SelectPrimitiveTrigger,
+	Value as SelectPrimitiveValue,
+	Viewport as SelectPrimitiveViewport,
+} from "@radix-ui/react-select";
 import { Slottable } from "@radix-ui/react-slot";
 import type {
 	ComponentProps,
@@ -183,7 +198,7 @@ const Root = ({
 		[_ariaInvalid, id, validation, onBlur, ref],
 	);
 	return (
-		<SelectPrimitive.Root
+		<SelectPrimitiveRoot
 			{...props}
 			onValueChange={(value) => {
 				onChange?.(value);
@@ -191,7 +206,7 @@ const Root = ({
 			}}
 		>
 			<SelectContext.Provider value={contextValue}>{children}</SelectContext.Provider>
-		</SelectPrimitive.Root>
+		</SelectPrimitiveRoot>
 	);
 };
 
@@ -233,8 +248,8 @@ const Group = ({
 	"data-slot": dataSlot,
 	ref,
 	...props
-}: ComponentProps<typeof SelectPrimitive.Group> & WithDataSlot) => (
-	<SelectPrimitive.Group
+}: ComponentProps<typeof SelectPrimitiveGroup> & WithDataSlot) => (
+	<SelectPrimitiveGroup
 		ref={ref}
 		data-slot={joinDataSlot(dataSlot, "select-group")}
 		className={cx("space-y-px", className)}
@@ -242,7 +257,7 @@ const Group = ({
 	/>
 );
 
-type SelectValueProps = ComponentProps<typeof SelectPrimitive.Value> & WithDataSlot;
+type SelectValueProps = ComponentProps<typeof SelectPrimitiveValue> & WithDataSlot;
 
 /**
  * The part that reflects the selected value. Renders the selected item's text
@@ -303,7 +318,7 @@ const Value = ({
 	ref,
 	...props
 }: SelectValueProps) => (
-	<SelectPrimitive.Value
+	<SelectPrimitiveValue
 		ref={ref}
 		asChild={asChild}
 		data-slot={joinDataSlot(dataSlot, "select-value")}
@@ -325,13 +340,13 @@ const Value = ({
 				{children}
 			</span>
 		)}
-	</SelectPrimitive.Value>
+	</SelectPrimitiveValue>
 );
 
 /**
  * Props for `Select.Trigger`.
  */
-type SelectTriggerProps = ComponentProps<typeof SelectPrimitive.Trigger> &
+type SelectTriggerProps = ComponentProps<typeof SelectPrimitiveTrigger> &
 	WithAriaInvalid &
 	WithDataSlot &
 	WithValidation;
@@ -419,7 +434,7 @@ const Trigger = ({
 	const id = fieldControl ? fieldControl.id : (ctx.id ?? propId);
 
 	return (
-		<SelectPrimitive.Trigger
+		<SelectPrimitiveTrigger
 			data-slot={joinDataSlot(dataSlot, "select-trigger")}
 			className={cx(
 				"h-9 text-sm",
@@ -462,10 +477,10 @@ const Trigger = ({
 					</span>
 				)}
 			</Slottable>
-			<SelectPrimitive.Icon asChild>
+			<SelectPrimitiveIcon asChild>
 				<Icon svg={<CaretDownIcon weight="bold" />} className="size-4" />
-			</SelectPrimitive.Icon>
-		</SelectPrimitive.Trigger>
+			</SelectPrimitiveIcon>
+		</SelectPrimitiveTrigger>
 	);
 };
 
@@ -477,14 +492,14 @@ const SelectScrollUpButton = ({
 	className,
 	ref,
 	...props
-}: ComponentProps<typeof SelectPrimitive.ScrollUpButton>) => (
-	<SelectPrimitive.ScrollUpButton
+}: ComponentProps<typeof SelectPrimitiveScrollUpButton>) => (
+	<SelectPrimitiveScrollUpButton
 		ref={ref}
 		className={cx("flex cursor-default items-center justify-center py-1", className)}
 		{...props}
 	>
 		<Icon svg={<CaretUpIcon weight="bold" />} className="size-4" />
-	</SelectPrimitive.ScrollUpButton>
+	</SelectPrimitiveScrollUpButton>
 );
 
 /**
@@ -495,14 +510,14 @@ const SelectScrollDownButton = ({
 	className,
 	ref,
 	...props
-}: ComponentProps<typeof SelectPrimitive.ScrollDownButton>) => (
-	<SelectPrimitive.ScrollDownButton
+}: ComponentProps<typeof SelectPrimitiveScrollDownButton>) => (
+	<SelectPrimitiveScrollDownButton
 		ref={ref}
 		className={cx("flex cursor-default items-center justify-center py-1", className)}
 		{...props}
 	>
 		<Icon svg={<CaretDownIcon weight="bold" />} className="size-4" />
-	</SelectPrimitive.ScrollDownButton>
+	</SelectPrimitiveScrollDownButton>
 );
 
 /**
@@ -510,7 +525,7 @@ const SelectScrollDownButton = ({
  * scroll buttons and viewport around `children`, so a slot would receive more
  * than one element and throw.
  */
-type SelectContentProps = Omit<ComponentProps<typeof SelectPrimitive.Content>, "asChild"> &
+type SelectContentProps = Omit<ComponentProps<typeof SelectPrimitiveContent>, "asChild"> &
 	WithDataSlot & {
 		/**
 		 * The width of the content. Defaults to the width of the trigger.
@@ -581,8 +596,8 @@ const Content = ({
 	const layerContainer = useLayerContainer();
 
 	return (
-		<SelectPrimitive.Portal container={layerContainer}>
-			<SelectPrimitive.Content
+		<SelectPrimitivePortal container={layerContainer}>
+			<SelectPrimitiveContent
 				ref={ref}
 				data-slot={joinDataSlot(dataSlot, "select-content")}
 				className={cx(
@@ -597,17 +612,17 @@ const Content = ({
 				{...props}
 			>
 				<SelectScrollUpButton />
-				<SelectPrimitive.Viewport
+				<SelectPrimitiveViewport
 					className={cx(
 						"p-1 space-y-px",
 						position === "popper" && "h-(--radix-select-trigger-height) w-full",
 					)}
 				>
 					{children}
-				</SelectPrimitive.Viewport>
+				</SelectPrimitiveViewport>
 				<SelectScrollDownButton />
-			</SelectPrimitive.Content>
-		</SelectPrimitive.Portal>
+			</SelectPrimitiveContent>
+		</SelectPrimitivePortal>
 	);
 };
 
@@ -648,8 +663,8 @@ const Label = ({
 	"data-slot": dataSlot,
 	ref,
 	...props
-}: ComponentProps<typeof SelectPrimitive.Label> & WithDataSlot) => (
-	<SelectPrimitive.Label
+}: ComponentProps<typeof SelectPrimitiveLabel> & WithDataSlot) => (
+	<SelectPrimitiveLabel
 		ref={ref}
 		data-slot={joinDataSlot(dataSlot, "select-label")}
 		className={cx("px-2 py-1.5 text-sm font-medium", className)}
@@ -660,7 +675,7 @@ const Label = ({
 /**
  * Props for `Select.Item`.
  */
-type SelectItemProps = ComponentProps<typeof SelectPrimitive.Item> &
+type SelectItemProps = ComponentProps<typeof SelectPrimitiveItem> &
 	WithDataSlot & {
 		/**
 		 * An optional icon rendered before the item text.
@@ -732,7 +747,7 @@ const Item = ({
 	translate,
 	...props
 }: SelectItemProps) => (
-	<SelectPrimitive.Item
+	<SelectPrimitiveItem
 		ref={ref}
 		data-slot={joinDataSlot(dataSlot, "select-item")}
 		translate={translate}
@@ -752,19 +767,19 @@ const Item = ({
 		    because Radix only finds a `Slottable` among the item's direct children. */}
 		<Slottable child={children}>
 			{(label) => (
-				<SelectPrimitive.ItemText>
+				<SelectPrimitiveItemText>
 					{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
 					{/* Why `translate` repeats: Radix portals this span into the trigger, out of the item's subtree, so the item's attribute never reaches that copy. */}
 					<span data-slot="select-item-label" className="contents" translate={translate}>
 						{label}
 					</span>
-				</SelectPrimitive.ItemText>
+				</SelectPrimitiveItemText>
 			)}
 		</Slottable>
-		<SelectPrimitive.ItemIndicator className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
+		<SelectPrimitiveItemIndicator className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
 			<Icon svg={<CheckIcon weight="bold" />} className="size-4 text-accent-600" />
-		</SelectPrimitive.ItemIndicator>
-	</SelectPrimitive.Item>
+		</SelectPrimitiveItemIndicator>
+	</SelectPrimitiveItem>
 );
 
 /**

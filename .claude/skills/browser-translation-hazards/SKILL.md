@@ -67,7 +67,7 @@ Hand-check these. Each was measured, not assumed.
 
 1. **Every `.mdx` file.** oxlint lints none of the 104 in this repo, and docs demos crash like any other code.
 2. **Anything inside a JSDoc `@example` fence.** A fence that teaches the crash shape copies into call sites.
-3. **A portal a dependency makes.** `SelectPrimitive.ItemText` portals children from inside Radix.
+3. **A portal a dependency makes.** `SelectPrimitiveItemText` portals children from inside Radix.
 4. **A bare re-export with no JSX.**
 5. **A component whose rendered element type changes cross-file.** `<AutoThemeIcon />` before bare text is
    byte-identical to a safe sibling five lines up. There is no type-aware linting here.

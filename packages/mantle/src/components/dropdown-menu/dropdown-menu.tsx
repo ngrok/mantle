@@ -2,7 +2,22 @@
 
 import { CaretRightIcon } from "@phosphor-icons/react/CaretRight";
 import { CheckIcon } from "@phosphor-icons/react/Check";
-import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
+import {
+	CheckboxItem as DropdownMenuPrimitiveCheckboxItem,
+	Content as DropdownMenuPrimitiveContent,
+	Group as DropdownMenuPrimitiveGroup,
+	Item as DropdownMenuPrimitiveItem,
+	ItemIndicator as DropdownMenuPrimitiveItemIndicator,
+	Label as DropdownMenuPrimitiveLabel,
+	Portal as DropdownMenuPrimitivePortal,
+	RadioGroup as DropdownMenuPrimitiveRadioGroup,
+	RadioItem as DropdownMenuPrimitiveRadioItem,
+	Root as DropdownMenuPrimitiveRoot,
+	Sub as DropdownMenuPrimitiveSub,
+	SubContent as DropdownMenuPrimitiveSubContent,
+	SubTrigger as DropdownMenuPrimitiveSubTrigger,
+	Trigger as DropdownMenuPrimitiveTrigger,
+} from "@radix-ui/react-dropdown-menu";
 import { Slottable } from "@radix-ui/react-slot";
 import type { ComponentProps } from "react";
 import { cx } from "../../utils/cx/cx.js";
@@ -40,7 +55,7 @@ import { Separator } from "../separator/separator.js";
  * </DropdownMenu.Root>
  * ```
  */
-const Root = DropdownMenuPrimitive.Root;
+const Root = DropdownMenuPrimitiveRoot;
 
 /**
  * The trigger button that opens the dropdown menu.
@@ -61,8 +76,8 @@ const Root = DropdownMenuPrimitive.Root;
  * </DropdownMenu.Root>
  * ```
  */
-const Trigger = (props: ComponentProps<typeof DropdownMenuPrimitive.Trigger>) => (
-	<DropdownMenuPrimitive.Trigger data-slot="dropdown-menu-trigger" {...props} />
+const Trigger = (props: ComponentProps<typeof DropdownMenuPrimitiveTrigger>) => (
+	<DropdownMenuPrimitiveTrigger data-slot="dropdown-menu-trigger" {...props} />
 );
 
 /**
@@ -84,8 +99,8 @@ const Trigger = (props: ComponentProps<typeof DropdownMenuPrimitive.Trigger>) =>
  * </DropdownMenu.Root>
  * ```
  */
-const Group = ({ className, ...props }: ComponentProps<typeof DropdownMenuPrimitive.Group>) => (
-	<DropdownMenuPrimitive.Group
+const Group = ({ className, ...props }: ComponentProps<typeof DropdownMenuPrimitiveGroup>) => (
+	<DropdownMenuPrimitiveGroup
 		data-slot="dropdown-menu-group"
 		className={cx("space-y-px", className)}
 		{...props}
@@ -97,9 +112,9 @@ const Group = ({ className, ...props }: ComponentProps<typeof DropdownMenuPrimit
  * overlay's positioner when one is open, else `document.body`. An explicit
  * `container` prop wins over both.
  */
-const Portal = ({ container, ...props }: ComponentProps<typeof DropdownMenuPrimitive.Portal>) => {
+const Portal = ({ container, ...props }: ComponentProps<typeof DropdownMenuPrimitivePortal>) => {
 	const layerContainer = useLayerContainer();
-	return <DropdownMenuPrimitive.Portal container={container ?? layerContainer} {...props} />;
+	return <DropdownMenuPrimitivePortal container={container ?? layerContainer} {...props} />;
 };
 
 /**
@@ -123,7 +138,7 @@ const Portal = ({ container, ...props }: ComponentProps<typeof DropdownMenuPrimi
  * </DropdownMenu.Root>
  * ```
  */
-const Sub = DropdownMenuPrimitive.Sub;
+const Sub = DropdownMenuPrimitiveSub;
 
 /**
  * A radio group container for exclusive selection within the dropdown menu.
@@ -146,8 +161,8 @@ const Sub = DropdownMenuPrimitive.Sub;
 const RadioGroup = ({
 	className,
 	...props
-}: ComponentProps<typeof DropdownMenuPrimitive.RadioGroup>) => (
-	<DropdownMenuPrimitive.RadioGroup
+}: ComponentProps<typeof DropdownMenuPrimitiveRadioGroup>) => (
+	<DropdownMenuPrimitiveRadioGroup
 		data-slot="dropdown-menu-radio-group"
 		className={cx("space-y-px", className)}
 		{...props}
@@ -157,7 +172,7 @@ const RadioGroup = ({
 /**
  * Props for `DropdownMenu.SubTrigger`.
  */
-type DropdownMenuSubTriggerProps = ComponentProps<typeof DropdownMenuPrimitive.SubTrigger> & {
+type DropdownMenuSubTriggerProps = ComponentProps<typeof DropdownMenuPrimitiveSubTrigger> & {
 	inset?: boolean;
 };
 
@@ -206,7 +221,7 @@ type DropdownMenuSubTriggerProps = ComponentProps<typeof DropdownMenuPrimitive.S
  * ```
  */
 const SubTrigger = ({ className, inset, children, ...props }: DropdownMenuSubTriggerProps) => (
-	<DropdownMenuPrimitive.SubTrigger
+	<DropdownMenuPrimitiveSubTrigger
 		data-slot="dropdown-menu-sub-trigger"
 		className={cx(
 			"focus:bg-accent data-state-open:bg-accent relative flex select-none items-center rounded-md py-1.5 pl-2 pr-9 text-sm outline-hidden",
@@ -233,7 +248,7 @@ const SubTrigger = ({ className, inset, children, ...props }: DropdownMenuSubTri
 		<span className="absolute right-2 flex items-center">
 			<Icon svg={<CaretRightIcon weight="bold" />} className="size-4" />
 		</span>
-	</DropdownMenuPrimitive.SubTrigger>
+	</DropdownMenuPrimitiveSubTrigger>
 );
 
 /**
@@ -268,9 +283,9 @@ const SubContent = ({
 	className,
 	loop = true,
 	...props
-}: ComponentProps<typeof DropdownMenuPrimitive.SubContent>) => (
+}: ComponentProps<typeof DropdownMenuPrimitiveSubContent>) => (
 	<Portal>
-		<DropdownMenuPrimitive.SubContent
+		<DropdownMenuPrimitiveSubContent
 			data-slot="dropdown-menu-sub-content"
 			className={cx(
 				"scrollbar",
@@ -284,7 +299,7 @@ const SubContent = ({
 	</Portal>
 );
 
-type DropdownMenuContentProps = ComponentProps<typeof DropdownMenuPrimitive.Content> &
+type DropdownMenuContentProps = ComponentProps<typeof DropdownMenuPrimitiveContent> &
 	WithDataSlot & {
 		/**
 		 * Whether the DropdownMenuContent should match the width of the trigger or use the intrinsic content width.
@@ -328,7 +343,7 @@ const Content = ({
 	...props
 }: DropdownMenuContentProps) => (
 	<Portal>
-		<DropdownMenuPrimitive.Content
+		<DropdownMenuPrimitiveContent
 			data-slot={joinDataSlot(dataSlot, "dropdown-menu-content")}
 			className={cx(
 				"scrollbar",
@@ -376,10 +391,10 @@ const Item = ({
 	className,
 	inset,
 	...props
-}: ComponentProps<typeof DropdownMenuPrimitive.Item> & {
+}: ComponentProps<typeof DropdownMenuPrimitiveItem> & {
 	inset?: boolean;
 }) => (
-	<DropdownMenuPrimitive.Item
+	<DropdownMenuPrimitiveItem
 		data-slot="dropdown-menu-item"
 		className={cx(
 			"relative flex cursor-pointer select-none items-center rounded-md px-2 py-1.5 text-strong text-sm font-normal outline-hidden transition-colors",
@@ -397,7 +412,7 @@ const Item = ({
 /**
  * Props for `DropdownMenu.CheckboxItem`.
  */
-type DropdownMenuCheckboxItemProps = ComponentProps<typeof DropdownMenuPrimitive.CheckboxItem>;
+type DropdownMenuCheckboxItemProps = ComponentProps<typeof DropdownMenuPrimitiveCheckboxItem>;
 
 /**
  * A menu item with a checkbox that can be controlled or uncontrolled.
@@ -444,7 +459,7 @@ const CheckboxItem = ({
 	checked,
 	...props
 }: DropdownMenuCheckboxItemProps) => (
-	<DropdownMenuPrimitive.CheckboxItem
+	<DropdownMenuPrimitiveCheckboxItem
 		data-slot="dropdown-menu-checkbox-item"
 		className={cx(
 			"text-strong data-disabled:pointer-events-none data-disabled:opacity-50 relative flex cursor-pointer select-none items-center gap-2 rounded-md py-1.5 pl-2 pr-9 text-sm font-normal outline-hidden",
@@ -461,9 +476,9 @@ const CheckboxItem = ({
 		{...props}
 	>
 		<span className="absolute right-2 flex items-center">
-			<DropdownMenuPrimitive.ItemIndicator>
+			<DropdownMenuPrimitiveItemIndicator>
 				<Icon svg={<CheckIcon weight="bold" />} className="size-4 text-accent-600" />
-			</DropdownMenuPrimitive.ItemIndicator>
+			</DropdownMenuPrimitiveItemIndicator>
 		</span>
 		{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md
 		    Why `Slottable`: under `asChild` Radix clones the consumer's element and
@@ -475,13 +490,13 @@ const CheckboxItem = ({
 				</span>
 			)}
 		</Slottable>
-	</DropdownMenuPrimitive.CheckboxItem>
+	</DropdownMenuPrimitiveCheckboxItem>
 );
 
 /**
  * Props for `DropdownMenu.RadioItem`.
  */
-type DropdownMenuRadioItemProps = ComponentProps<typeof DropdownMenuPrimitive.RadioItem> & {
+type DropdownMenuRadioItemProps = ComponentProps<typeof DropdownMenuPrimitiveRadioItem> & {
 	name?: string;
 	id?: string;
 };
@@ -529,7 +544,7 @@ type DropdownMenuRadioItemProps = ComponentProps<typeof DropdownMenuPrimitive.Ra
  * ```
  */
 const RadioItem = ({ className, children, ...props }: DropdownMenuRadioItemProps) => (
-	<DropdownMenuPrimitive.RadioItem
+	<DropdownMenuPrimitiveRadioItem
 		data-slot="dropdown-menu-radio-item"
 		className={cx(
 			"group/dropdown-menu-radio-item",
@@ -546,9 +561,9 @@ const RadioItem = ({ className, children, ...props }: DropdownMenuRadioItemProps
 		{...props}
 	>
 		<span className="absolute right-2 items-center hidden group-aria-checked/dropdown-menu-radio-item:flex">
-			<DropdownMenuPrimitive.ItemIndicator>
+			<DropdownMenuPrimitiveItemIndicator>
 				<Icon svg={<CheckIcon weight="bold" />} className="size-4 text-accent-600" />
-			</DropdownMenuPrimitive.ItemIndicator>
+			</DropdownMenuPrimitiveItemIndicator>
 		</span>
 		{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md
 		    Why `Slottable`: under `asChild` Radix clones the consumer's element and
@@ -560,7 +575,7 @@ const RadioItem = ({ className, children, ...props }: DropdownMenuRadioItemProps
 				</span>
 			)}
 		</Slottable>
-	</DropdownMenuPrimitive.RadioItem>
+	</DropdownMenuPrimitiveRadioItem>
 );
 
 /**
@@ -584,10 +599,10 @@ const Label = ({
 	className,
 	inset,
 	...props
-}: ComponentProps<typeof DropdownMenuPrimitive.Label> & {
+}: ComponentProps<typeof DropdownMenuPrimitiveLabel> & {
 	inset?: boolean;
 }) => (
-	<DropdownMenuPrimitive.Label
+	<DropdownMenuPrimitiveLabel
 		data-slot="dropdown-menu-label"
 		className={cx("px-2 py-1.5 text-sm font-medium", inset && "pl-8", className)}
 		{...props}

@@ -8,7 +8,16 @@ import {
 	type IconButtonIntent,
 	type IconButtonProps,
 } from "../button/icon-button.js";
-import * as DialogPrimitive from "./primitive.js";
+import {
+	Close as DialogPrimitiveClose,
+	Content as DialogPrimitiveContent,
+	Description as DialogPrimitiveDescription,
+	Overlay as DialogPrimitiveOverlay,
+	Portal as DialogPrimitivePortal,
+	Root as DialogPrimitiveRoot,
+	Title as DialogPrimitiveTitle,
+	Trigger as DialogPrimitiveTrigger,
+} from "./primitive.js";
 
 /**
  * A window overlaid on either the primary window or another dialog window.
@@ -47,7 +56,7 @@ import * as DialogPrimitive from "./primitive.js";
  * </Dialog.Root>
  * ```
  */
-const Root = DialogPrimitive.Root;
+const Root = DialogPrimitiveRoot;
 
 /**
  * A button that opens the dialog.
@@ -79,8 +88,8 @@ const Root = DialogPrimitive.Root;
  * </Dialog.Root>
  * ```
  */
-const Trigger = (props: ComponentProps<typeof DialogPrimitive.Trigger>) => (
-	<DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />
+const Trigger = (props: ComponentProps<typeof DialogPrimitiveTrigger>) => (
+	<DialogPrimitiveTrigger data-slot="dialog-trigger" {...props} />
 );
 
 /**
@@ -121,7 +130,7 @@ const Trigger = (props: ComponentProps<typeof DialogPrimitive.Trigger>) => (
  * </Dialog.Root>
  * ```
  */
-const Portal = DialogPrimitive.Portal;
+const Portal = DialogPrimitivePortal;
 
 /**
  * A button that closes the dialog when clicked. Wrap an interactive element
@@ -154,8 +163,8 @@ const Portal = DialogPrimitive.Portal;
  * </Dialog.Root>
  * ```
  */
-const Close = (props: ComponentProps<typeof DialogPrimitive.Close>) => (
-	<DialogPrimitive.Close data-slot="dialog-close" {...props} />
+const Close = (props: ComponentProps<typeof DialogPrimitiveClose>) => (
+	<DialogPrimitiveClose data-slot="dialog-close" {...props} />
 );
 
 /**
@@ -196,8 +205,8 @@ const Close = (props: ComponentProps<typeof DialogPrimitive.Close>) => (
  * </Dialog.Root>
  * ```
  */
-const Overlay = ({ className, ref, ...props }: ComponentProps<typeof DialogPrimitive.Overlay>) => (
-	<DialogPrimitive.Overlay
+const Overlay = ({ className, ref, ...props }: ComponentProps<typeof DialogPrimitiveOverlay>) => (
+	<DialogPrimitiveOverlay
 		ref={ref}
 		data-slot="dialog-overlay"
 		className={cx(
@@ -241,7 +250,7 @@ const contentClassName: Record<DialogAppearance, string> = {
 	"full-bleed": "h-full max-w-none",
 };
 
-type ContentProps = ComponentProps<typeof DialogPrimitive.Content> &
+type ContentProps = ComponentProps<typeof DialogPrimitiveContent> &
 	(
 		| {
 				/**
@@ -372,7 +381,7 @@ const Content = ({
 			data-slot="dialog-positioner"
 			className={cx("fixed z-60 flex items-center justify-center", wrapperClassName[appearance])}
 		>
-			<DialogPrimitive.Content
+			<DialogPrimitiveContent
 				data-appearance={appearance}
 				data-mantle-modal-content
 				data-slot="dialog-content"
@@ -389,7 +398,7 @@ const Content = ({
 				{...props}
 			>
 				{children}
-			</DialogPrimitive.Content>
+			</DialogPrimitiveContent>
 		</LayerContainer>
 	</Portal>
 );
@@ -496,7 +505,7 @@ const CloseIconButton = ({
 	intent = "neutral",
 	...props
 }: CloseIconButtonProps) => (
-	<DialogPrimitive.Close asChild>
+	<DialogPrimitiveClose asChild>
 		<IconButton
 			appearance={appearance}
 			data-slot="dialog-close-icon-button"
@@ -507,7 +516,7 @@ const CloseIconButton = ({
 			type={type}
 			{...props}
 		/>
-	</DialogPrimitive.Close>
+	</DialogPrimitiveClose>
 );
 
 /**
@@ -622,8 +631,8 @@ const Footer = ({ className, ...props }: ComponentProps<"div">) => (
  * </Dialog.Root>
  * ```
  */
-const Title = ({ className, ref, ...props }: ComponentProps<typeof DialogPrimitive.Title>) => (
-	<DialogPrimitive.Title
+const Title = ({ className, ref, ...props }: ComponentProps<typeof DialogPrimitiveTitle>) => (
+	<DialogPrimitiveTitle
 		ref={ref}
 		data-slot="dialog-title"
 		className={cx("text-strong truncate text-lg font-medium", className)}
@@ -667,8 +676,8 @@ const Description = ({
 	className,
 	ref,
 	...props
-}: ComponentProps<typeof DialogPrimitive.Description>) => (
-	<DialogPrimitive.Description
+}: ComponentProps<typeof DialogPrimitiveDescription>) => (
+	<DialogPrimitiveDescription
 		ref={ref}
 		data-slot="dialog-description"
 		className={cx("text-muted", className)}

@@ -31,9 +31,9 @@ const LayerContainerContext = createContext<Element | DocumentFragment | null>(n
  * ```tsx
  * const layerContainer = useLayerContainer();
  * return (
- *   <PopoverPrimitive.Portal container={layerContainer}>
- *     <PopoverPrimitive.Content>…</PopoverPrimitive.Content>
- *   </PopoverPrimitive.Portal>
+ *   <PopoverPrimitivePortal container={layerContainer}>
+ *     <PopoverPrimitiveContent>…</PopoverPrimitiveContent>
+ *   </PopoverPrimitivePortal>
  * );
  * ```
  */
@@ -54,7 +54,7 @@ function useLayerContainer(): Element | DocumentFragment | null {
  * <Portal>
  *   <Overlay />
  *   <LayerContainer data-slot="dialog-positioner" className="fixed inset-4 z-60 flex items-center justify-center">
- *     <DialogPrimitive.Content>…</DialogPrimitive.Content>
+ *     <DialogPrimitiveContent>…</DialogPrimitiveContent>
  *   </LayerContainer>
  * </Portal>
  * ```

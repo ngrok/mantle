@@ -1,12 +1,17 @@
 "use client";
 
-import * as SliderPrimitive from "@radix-ui/react-slider";
+import {
+	Range as SliderPrimitiveRange,
+	Root as SliderPrimitiveRoot,
+	Thumb as SliderPrimitiveThumb,
+	Track as SliderPrimitiveTrack,
+} from "@radix-ui/react-slider";
 import type { ComponentProps } from "react";
 import { useContext } from "react";
 import { cx } from "../../utils/cx/cx.js";
 import { FieldControlContext } from "../field/field-context.js";
 
-type SliderBaseProps = Omit<ComponentProps<typeof SliderPrimitive.Root>, "defaultValue" | "value">;
+type SliderBaseProps = Omit<ComponentProps<typeof SliderPrimitiveRoot>, "defaultValue" | "value">;
 
 /**
  * Value props for the {@link Slider} component. Either both `defaultValue` and
@@ -136,7 +141,7 @@ function Slider({
 	const tickCount = computeTickCount(showTicks, min, max, step);
 
 	return (
-		<SliderPrimitive.Root
+		<SliderPrimitiveRoot
 			data-slot="slider"
 			defaultValue={normalizedDefaultValue}
 			value={normalizedValue}
@@ -161,7 +166,7 @@ function Slider({
 			)}
 			{...props}
 		>
-			<SliderPrimitive.Track
+			<SliderPrimitiveTrack
 				data-slot="slider-track"
 				className={cx(
 					"bg-neutral-300 rounded-full relative grow overflow-hidden",
@@ -169,16 +174,16 @@ function Slider({
 					"data-orientation-vertical:w-1.5 data-orientation-vertical:h-full",
 				)}
 			>
-				<SliderPrimitive.Range
+				<SliderPrimitiveRange
 					data-slot="slider-range"
 					className={cx(
 						"absolute select-none data-orientation-horizontal:h-full data-orientation-vertical:w-full",
 						color,
 					)}
 				/>
-			</SliderPrimitive.Track>
+			</SliderPrimitiveTrack>
 			{Array.from({ length: values.length }, (_, index) => (
-				<SliderPrimitive.Thumb
+				<SliderPrimitiveThumb
 					data-slot="slider-thumb"
 					key={index}
 					aria-describedby={fieldControl?.["aria-describedby"] ?? ariaDescribedBy}
@@ -215,7 +220,7 @@ function Slider({
 					))}
 				</div>
 			)}
-		</SliderPrimitive.Root>
+		</SliderPrimitiveRoot>
 	);
 }
 
