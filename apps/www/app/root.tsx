@@ -35,6 +35,7 @@ import { NavigationProvider } from "./components/navigation-context";
 import { PageContainer } from "./components/page-container";
 import { useNonce } from "./components/nonce";
 import { RouteAnnouncer } from "./features/route-announcer";
+import { FramedPreviewHistory } from "./features/preview-history/framed-preview-history";
 import "./global.css";
 import { canonicalDomain, canonicalHref } from "./utilities/canonical-origin";
 import { parseMantleVersion } from "./utilities/mantle-version.server";
@@ -127,16 +128,28 @@ export function shouldRevalidate() {
 	return false;
 }
 
+/** The route id of the registry's `/preview/:exampleName` document, which renders one example and never navigates. */
+const previewExampleRouteId = "preview-example";
+
+/** The route id of the breadcrumbs recipe's routed demo: a route tree that navigates inside its frame. */
+const routedDemoRouteId = "preview-breadcrumbs-from-routes";
+
 /**
- * Whether the matched route is a chrome-less framed example preview
- * (`/preview/:exampleName`). Matched on route identity, not pathname —
- * mirroring the `layouts-index` pattern in layouts-layout.tsx. Preview
- * documents render inside the docs pages' iframes, so they skip the site
- * chrome and the forced scrollbar gutter.
+ * Which chrome-less framed preview the matched route is, if any. Matched on
+ * route identity, not pathname, mirroring the `layouts-index` pattern in
+ * layouts-layout.tsx. Preview documents render inside the docs pages'
+ * iframes, so they skip the site chrome and the forced scrollbar gutter. A
+ * routed demo also navigates, so it keeps the route announcer.
  */
-function useIsFramedPreview() {
+function useFramedPreviewKind(): "example" | "routed-demo" | null {
 	const matches = useMatches();
-	return matches.some((match) => match.id === "preview-example");
+	if (matches.some((match) => match.id === previewExampleRouteId)) {
+		return "example";
+	}
+	if (matches.some((match) => match.id === routedDemoRouteId)) {
+		return "routed-demo";
+	}
+	return null;
 }
 
 const ReactQueryDevtoolsLazy = lazy(() =>
@@ -158,7 +171,8 @@ export function Layout({ children }: PropsWithChildren) {
 		ssrCookie: loaderData?.ssrCookie,
 	});
 	const scrollBehavior = useScrollBehavior();
-	const isFramedPreview = useIsFramedPreview();
+	const framedPreviewKind = useFramedPreviewKind();
+	const isFramedPreview = framedPreviewKind != null;
 	const nonce = useNonce();
 	const [showReactQueryDevtools, setShowReactQueryDevtools] = useState(
 		Boolean(loaderData?.renderReactQueryDevtools),
@@ -220,10 +234,12 @@ export function Layout({ children }: PropsWithChildren) {
 						</QueryClientProvider>
 					</TooltipProvider>
 				</ThemeProvider>
-				{/* Suppressed inside framed example previews: nothing navigates inside
-				    the preview iframe, and each iframe would add its own status region
-				    to the page. */}
-				{!isFramedPreview && <RouteAnnouncer />}
+				{/* Suppressed inside a framed example preview, which never navigates:
+				    each iframe would add its own status region to the docs page that
+				    embeds it. A routed demo navigates, so it keeps the announcer. */}
+				{framedPreviewKind !== "example" && <RouteAnnouncer />}
+				{/* The framed side of the preview toolbar's Back and Forward buttons. */}
+				{isFramedPreview && <FramedPreviewHistory />}
 				<ScrollRestoration nonce={nonce} />
 				<Scripts nonce={nonce} />
 			</body>
@@ -239,7 +255,7 @@ export function Layout({ children }: PropsWithChildren) {
  * the entire document.
  */
 export default function App() {
-	const isFramedPreview = useIsFramedPreview();
+	const isFramedPreview = useFramedPreviewKind() != null;
 
 	// framed example previews own their whole document: no site header or skip
 	// link — the example brings its own landmarks (see routes/preview.tsx)
