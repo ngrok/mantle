@@ -14,6 +14,7 @@ import { Main } from "@ngrok/mantle/main";
 import { Sidebar, useSidebar } from "@ngrok/mantle/sidebar";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { ThemeDropdownMenuRadioGroup } from "@ngrok/mantle/theme-switcher";
+import { Tooltip } from "@ngrok/mantle/tooltip";
 import { ArrowLeftIcon } from "@phosphor-icons/react/ArrowLeft";
 import { ArrowRightIcon } from "@phosphor-icons/react/ArrowRight";
 import { ArrowsClockwiseIcon } from "@phosphor-icons/react/ArrowsClockwise";
@@ -27,6 +28,7 @@ import { ClipboardTextIcon } from "@phosphor-icons/react/ClipboardText";
 import { ClockCounterClockwiseIcon } from "@phosphor-icons/react/ClockCounterClockwise";
 import { CreditCardIcon } from "@phosphor-icons/react/CreditCard";
 import { DoorOpenIcon } from "@phosphor-icons/react/DoorOpen";
+import { DotsThreeIcon } from "@phosphor-icons/react/DotsThree";
 import { FingerprintIcon } from "@phosphor-icons/react/Fingerprint";
 import { GearIcon } from "@phosphor-icons/react/Gear";
 import { GlobeIcon } from "@phosphor-icons/react/Globe";
@@ -863,6 +865,66 @@ function AppShellAccountSwitcher({
 	);
 }
 
+/** One page-level action, described once so the icon buttons and the mobile menu stay in step. */
+type PageAction = {
+	label: string;
+	icon: ReactNode;
+	onSelect: () => void;
+};
+
+/**
+ * The header's page actions: one icon button per action from `md` up, and one
+ * menu behind a single icon button below it. Both renderings are in the HTML
+ * and CSS picks one, so the server paints the right one and hydration swaps
+ * nothing. The `md` breakpoint matches this demo's `mobileBreakpoint`.
+ */
+function PageActions({ actions }: { actions: ReadonlyArray<PageAction> }) {
+	return (
+		<>
+			{/* display: contents from md up, so the buttons sit in the slot's own gap */}
+			<div className="hidden md:contents">
+				{actions.map((action) => (
+					<Tooltip.Root key={action.label}>
+						<Tooltip.Trigger asChild>
+							<IconButton
+								type="button"
+								appearance="outlined"
+								intent="neutral"
+								size="sm"
+								icon={action.icon}
+								label={action.label}
+								onClick={action.onSelect}
+							/>
+						</Tooltip.Trigger>
+						<Tooltip.Content>{action.label}</Tooltip.Content>
+					</Tooltip.Root>
+				))}
+			</div>
+			<DropdownMenu.Root>
+				<DropdownMenu.Trigger asChild>
+					<IconButton
+						type="button"
+						appearance="outlined"
+						intent="neutral"
+						size="sm"
+						className="md:hidden"
+						icon={<DotsThreeIcon />}
+						label="More actions"
+					/>
+				</DropdownMenu.Trigger>
+				<DropdownMenu.Content align="end">
+					{actions.map((action) => (
+						<DropdownMenu.Item key={action.label} className="gap-2" onSelect={action.onSelect}>
+							{action.icon}
+							{action.label}
+						</DropdownMenu.Item>
+					))}
+				</DropdownMenu.Content>
+			</DropdownMenu.Root>
+		</>
+	);
+}
+
 /**
  * The canonical Sidebar + AppLayout composition, shared by both docs pages: a
  * decoupled app shell with a sidebar that collapses to the icon rail, a
@@ -909,6 +971,17 @@ export function AppShellDemo() {
 		setDismissed(new Set());
 		setAlertExample((current) => (current === example ? null : example));
 	};
+	// A real shell derives these from the matched route chain; see the
+	// "Header Actions from Routes" recipe.
+	const headerActions: ReadonlyArray<PageAction> = [
+		{
+			label: "Toggle notice",
+			icon: <MegaphoneIcon />,
+			onSelect: () => setShowNotice((current) => !current),
+		},
+		{ label: "One warning", icon: <WarningIcon />, onSelect: () => chooseAlertExample("single") },
+		{ label: "Three alerts", icon: <BellIcon />, onSelect: () => chooseAlertExample("multiple") },
+	];
 
 	const inSettings = isSettingsPath(pathname);
 	const productItems = [...demoNavSections.flatMap((section) => section.items), ...demoFooterItems];
@@ -1008,66 +1081,44 @@ export function AppShellDemo() {
 
 					<AppLayout.Content>
 						<AppLayout.Header>
-							<Sidebar.Trigger
-								shortcut={
-									<>
-										<MetaKey />
-										<Kbd>B</Kbd>
-									</>
-								}
-							/>
-							<Breadcrumb.Root>
-								<Breadcrumb.List>
-									{inSettings && (
+							<AppLayout.HeaderStart>
+								<Sidebar.Trigger
+									shortcut={
 										<>
-											<Breadcrumb.Item>
-												<Breadcrumb.Link
-													href={settingsSectionPath}
-													onClick={(event) => {
-														event.preventDefault();
-														navigate(settingsSectionPath);
-													}}
-												>
-													Settings
-												</Breadcrumb.Link>
-											</Breadcrumb.Item>
-											<Breadcrumb.Separator />
+											<MetaKey />
+											<Kbd>B</Kbd>
 										</>
-									)}
-									<Breadcrumb.Item>
-										<Breadcrumb.Page>{currentItem?.label ?? "Overview"}</Breadcrumb.Page>
-									</Breadcrumb.Item>
-								</Breadcrumb.List>
-							</Breadcrumb.Root>
-							<div className="ml-auto flex gap-2">
-								<IconButton
-									type="button"
-									appearance="outlined"
-									intent="neutral"
-									size="sm"
-									label="Toggle notice"
-									icon={<MegaphoneIcon />}
-									onClick={() => setShowNotice((current) => !current)}
+									}
 								/>
-								<IconButton
-									type="button"
-									appearance="outlined"
-									intent="neutral"
-									size="sm"
-									label="One warning"
-									icon={<WarningIcon />}
-									onClick={() => chooseAlertExample("single")}
-								/>
-								<IconButton
-									type="button"
-									appearance="outlined"
-									intent="neutral"
-									size="sm"
-									label="Three alerts"
-									icon={<BellIcon />}
-									onClick={() => chooseAlertExample("multiple")}
-								/>
-							</div>
+							</AppLayout.HeaderStart>
+							<AppLayout.HeaderContent>
+								<Breadcrumb.Root>
+									<Breadcrumb.List>
+										{inSettings && (
+											<>
+												<Breadcrumb.Item>
+													<Breadcrumb.Link
+														href={settingsSectionPath}
+														onClick={(event) => {
+															event.preventDefault();
+															navigate(settingsSectionPath);
+														}}
+													>
+														Settings
+													</Breadcrumb.Link>
+												</Breadcrumb.Item>
+												<Breadcrumb.Separator />
+											</>
+										)}
+										<Breadcrumb.Item>
+											<Breadcrumb.Page>{currentItem?.label ?? "Overview"}</Breadcrumb.Page>
+										</Breadcrumb.Item>
+									</Breadcrumb.List>
+								</Breadcrumb.Root>
+							</AppLayout.HeaderContent>
+							<AppLayout.HeaderActions>
+								<PageActions actions={headerActions} />
+							</AppLayout.HeaderActions>
 						</AppLayout.Header>
 						<AppLayout.Body asChild>
 							<Main>

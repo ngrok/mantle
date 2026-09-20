@@ -78,18 +78,22 @@ export function AppLayoutEditorDemo() {
 					</Sidebar.Nav>
 					<AppLayout.Content>
 						<AppLayout.Header>
-							<Sidebar.Trigger />
-							<Breadcrumb.Root>
-								<Breadcrumb.List>
-									<Breadcrumb.Item>
-										<Breadcrumb.Link href="/endpoints">Endpoints</Breadcrumb.Link>
-									</Breadcrumb.Item>
-									<Breadcrumb.Separator />
-									<Breadcrumb.Item>
-										<Breadcrumb.Page>Traffic Policy</Breadcrumb.Page>
-									</Breadcrumb.Item>
-								</Breadcrumb.List>
-							</Breadcrumb.Root>
+							<AppLayout.HeaderStart>
+								<Sidebar.Trigger />
+							</AppLayout.HeaderStart>
+							<AppLayout.HeaderContent>
+								<Breadcrumb.Root>
+									<Breadcrumb.List>
+										<Breadcrumb.Item>
+											<Breadcrumb.Link href="/endpoints">Endpoints</Breadcrumb.Link>
+										</Breadcrumb.Item>
+										<Breadcrumb.Separator />
+										<Breadcrumb.Item>
+											<Breadcrumb.Page>Traffic Policy</Breadcrumb.Page>
+										</Breadcrumb.Item>
+									</Breadcrumb.List>
+								</Breadcrumb.Root>
+							</AppLayout.HeaderContent>
 						</AppLayout.Header>
 						<AppLayout.Body asChild>
 							<Main>
@@ -213,7 +217,9 @@ export function AppLayoutPinnedFooterDemo() {
 					</Sidebar.Nav>
 					<AppLayout.Content>
 						<AppLayout.Header>
-							<Sidebar.Trigger />
+							<AppLayout.HeaderStart>
+								<Sidebar.Trigger />
+							</AppLayout.HeaderStart>
 						</AppLayout.Header>
 						<AppLayout.Body asChild>
 							<Main>

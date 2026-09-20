@@ -1,10 +1,14 @@
 import { AppLayout } from "@ngrok/mantle/app-layout";
-import { Button } from "@ngrok/mantle/button";
+import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
+import { Button, IconButton } from "@ngrok/mantle/button";
 import { Main } from "@ngrok/mantle/main";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
+import { ArrowLeftIcon } from "@phosphor-icons/react/ArrowLeft";
 import { CheckCircleIcon } from "@phosphor-icons/react/CheckCircle";
+import { CopyIcon } from "@phosphor-icons/react/Copy";
+import { TrashIcon } from "@phosphor-icons/react/Trash";
 import { WarningCircleIcon } from "@phosphor-icons/react/WarningCircle";
-import { useLayoutEffect, useRef, useState } from "react";
+import { Fragment, useLayoutEffect, useRef, useState } from "react";
 
 /**
  * The AppLayout shell on its own — no sidebar. A toggleable `Notice` strip
@@ -30,17 +34,20 @@ export function AppLayoutDemo() {
 			<AppLayout.Workspace>
 				<AppLayout.Content>
 					<AppLayout.Header>
-						<p className="text-strong text-sm font-medium">Endpoints</p>
-						<Button
-							type="button"
-							appearance="outlined"
-							intent="neutral"
-							className="ml-auto"
-							size="sm"
-							onClick={() => setShowNotice((current) => !current)}
-						>
-							Toggle notice
-						</Button>
+						<AppLayout.HeaderContent>
+							<p className="text-strong text-sm font-medium">Endpoints</p>
+						</AppLayout.HeaderContent>
+						<AppLayout.HeaderActions>
+							<Button
+								type="button"
+								appearance="outlined"
+								intent="neutral"
+								size="sm"
+								onClick={() => setShowNotice((current) => !current)}
+							>
+								Toggle notice
+							</Button>
+						</AppLayout.HeaderActions>
 					</AppLayout.Header>
 					<AppLayout.Body asChild>
 						<Main>
@@ -161,6 +168,112 @@ function DemoPage({ shape }: { shape: PageShape }) {
  * </CodeExample.Preview>
  * ```
  */
+/** The crumbs the header-slots example grows through, outermost first. */
+const headerSlotsTrail = [
+	"Endpoints",
+	"https://forward-labels.test",
+	"Traffic Policy",
+	"Rules",
+	"Rate limit",
+	"Edit",
+] as const;
+
+/**
+ * The header's three slots on their own. Grow the trail and watch it scroll
+ * inside `AppLayout.HeaderContent` while `AppLayout.HeaderStart` and
+ * `AppLayout.HeaderActions` hold the row's two ends at their own width. The
+ * shell is embedded and has no sidebar, so a back link takes the start slot
+ * that `Sidebar.Trigger` takes in an app shell.
+ */
+export function AppLayoutHeaderSlotsExample() {
+	const [depth, setDepth] = useState(2);
+	const crumbs = headerSlotsTrail.slice(0, depth);
+
+	return (
+		<AppLayout.Root className="rounded-lg">
+			<AppLayout.Workspace>
+				<AppLayout.Content>
+					<AppLayout.Header>
+						<AppLayout.HeaderStart>
+							<IconButton
+								asChild
+								appearance="ghost"
+								intent="neutral"
+								size="sm"
+								icon={<ArrowLeftIcon />}
+								label="Back to endpoints"
+							>
+								<a href="/endpoints" onClick={(event) => event.preventDefault()}>
+									Back
+								</a>
+							</IconButton>
+						</AppLayout.HeaderStart>
+						<AppLayout.HeaderContent>
+							<Breadcrumb.Root>
+								<Breadcrumb.List>
+									{crumbs.map((crumb, index) => (
+										<Fragment key={crumb}>
+											{index > 0 && <Breadcrumb.Separator />}
+											<Breadcrumb.Item>
+												{index === crumbs.length - 1 ? (
+													<Breadcrumb.Page>{crumb}</Breadcrumb.Page>
+												) : (
+													<Breadcrumb.Link href="#">{crumb}</Breadcrumb.Link>
+												)}
+											</Breadcrumb.Item>
+										</Fragment>
+									))}
+								</Breadcrumb.List>
+							</Breadcrumb.Root>
+						</AppLayout.HeaderContent>
+						<AppLayout.HeaderActions>
+							<IconButton
+								type="button"
+								appearance="ghost"
+								intent="neutral"
+								size="sm"
+								icon={<CopyIcon />}
+								label="Copy endpoint URL"
+							/>
+							<IconButton
+								type="button"
+								appearance="ghost"
+								intent="neutral"
+								size="sm"
+								icon={<TrashIcon />}
+								label="Delete endpoint"
+							/>
+						</AppLayout.HeaderActions>
+					</AppLayout.Header>
+					<AppLayout.Body>
+						<div className="flex flex-wrap items-center gap-2 p-6">
+							<Button
+								type="button"
+								appearance="outlined"
+								intent="neutral"
+								size="sm"
+								disabled={depth >= headerSlotsTrail.length}
+								onClick={() => setDepth((current) => current + 1)}
+							>
+								Add a crumb
+							</Button>
+							<Button
+								type="button"
+								appearance="ghost"
+								intent="neutral"
+								size="sm"
+								onClick={() => setDepth(2)}
+							>
+								Reset
+							</Button>
+						</div>
+					</AppLayout.Body>
+				</AppLayout.Content>
+			</AppLayout.Workspace>
+		</AppLayout.Root>
+	);
+}
+
 export function AppLayoutPageShapesExample() {
 	const [shape, setShape] = useState<PageShape>("grow");
 

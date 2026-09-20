@@ -146,6 +146,7 @@ const layoutsPages = ["app-layout", "centered-layout"];
 // recipes section: compositional how-tos spanning multiple primitives
 const recipesPages = [
 	"breadcrumbs-from-routes",
+	"header-actions-from-routes",
 	"list-page-loading-states",
 	"overlay-async",
 	"route-announcer",

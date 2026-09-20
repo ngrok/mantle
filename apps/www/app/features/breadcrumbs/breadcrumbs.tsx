@@ -87,8 +87,12 @@ function Breadcrumbs({ crumbs }: { crumbs: ReadonlyArray<ResolvedCrumb> }) {
  * @example
  * ```tsx
  * <AppLayout.Header>
- *   <Sidebar.Trigger />
- *   <RouteBreadcrumbs />
+ *   <AppLayout.HeaderStart>
+ *     <Sidebar.Trigger />
+ *   </AppLayout.HeaderStart>
+ *   <AppLayout.HeaderContent>
+ *     <RouteBreadcrumbs />
+ *   </AppLayout.HeaderContent>
  * </AppLayout.Header>
  * ```
  */

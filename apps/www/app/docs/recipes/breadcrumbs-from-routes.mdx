@@ -363,8 +363,12 @@ function Breadcrumbs({ crumbs }: { crumbs: ReadonlyArray<ResolvedCrumb> }) {
  * @example
  * ```tsx
  * <AppLayout.Header>
- *   <Sidebar.Trigger />
- *   <RouteBreadcrumbs />
+ *   <AppLayout.HeaderStart>
+ *     <Sidebar.Trigger />
+ *   </AppLayout.HeaderStart>
+ *   <AppLayout.HeaderContent>
+ *     <RouteBreadcrumbs />
+ *   </AppLayout.HeaderContent>
  * </AppLayout.Header>
  * ```
  */
@@ -406,7 +410,8 @@ trail at all: move the data into the loader or drop the crumb.
 
 ## Where it goes in the shell
 
-Render it once, in [`AppLayout.Header`](/layouts/app-layout#applayoutheader):
+Render it once, in [`AppLayout.HeaderContent`](/layouts/app-layout#applayoutheadercontent), the header's
+filling slot:
 
 ```tsx
 import { AppLayout } from "@ngrok/mantle/app-layout";
@@ -414,11 +419,19 @@ import { Main } from "@ngrok/mantle/main";
 import { Sidebar } from "@ngrok/mantle/sidebar";
 import { Outlet } from "react-router";
 import { RouteBreadcrumbs } from "~/features/breadcrumbs/breadcrumbs";
+import { RouteHeaderActions } from "~/features/header-actions/header-actions";
 
 <AppLayout.Content>
 	<AppLayout.Header>
-		<Sidebar.Trigger />
-		<RouteBreadcrumbs />
+		<AppLayout.HeaderStart>
+			<Sidebar.Trigger />
+		</AppLayout.HeaderStart>
+		<AppLayout.HeaderContent>
+			<RouteBreadcrumbs />
+		</AppLayout.HeaderContent>
+		<AppLayout.HeaderActions>
+			<RouteHeaderActions />
+		</AppLayout.HeaderActions>
 	</AppLayout.Header>
 	<AppLayout.Body asChild>
 		<Main>
@@ -429,7 +442,9 @@ import { RouteBreadcrumbs } from "~/features/breadcrumbs/breadcrumbs";
 ```
 
 `AppLayout.Header` is a `shrink-0` sibling **outside** the scroll container, so the trail is pinned by
-construction. Resist the urge to hand-roll a `sticky top-0 z-10` breadcrumb bar inside the scrolling region
+construction. `AppLayout.HeaderContent` is `min-w-0 flex-1`, so a long trail scrolls inside it instead of
+pushing the actions off the card. The actions beside it are the route's decision too, derived the same way:
+[Header Actions from Routes](/recipes/header-actions-from-routes). Resist the urge to hand-roll a `sticky top-0 z-10` breadcrumb bar inside the scrolling region
 instead: a `sticky` element is still in flow, so it silently steals its own height from any page asking for
 `h-full`, and it competes for the same layer as page-authored `sticky` content.
 

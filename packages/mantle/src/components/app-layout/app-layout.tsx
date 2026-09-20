@@ -39,8 +39,15 @@ import { Slot } from "../slot/index.js";
  *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
  *       <AppLayout.Content>
  *         <AppLayout.Header>
- *           <Sidebar.Trigger />
- *           <Breadcrumbs />
+ *           <AppLayout.HeaderStart>
+ *             <Sidebar.Trigger />
+ *           </AppLayout.HeaderStart>
+ *           <AppLayout.HeaderContent>
+ *             <Breadcrumbs />
+ *           </AppLayout.HeaderContent>
+ *           <AppLayout.HeaderActions>
+ *             <PageActions />
+ *           </AppLayout.HeaderActions>
  *         </AppLayout.Header>
  *         <AppLayout.Body asChild>
  *           <Main>
@@ -113,8 +120,15 @@ const Root = ({
  *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
  *       <AppLayout.Content>
  *         <AppLayout.Header>
- *           <Sidebar.Trigger />
- *           <Breadcrumbs />
+ *           <AppLayout.HeaderStart>
+ *             <Sidebar.Trigger />
+ *           </AppLayout.HeaderStart>
+ *           <AppLayout.HeaderContent>
+ *             <Breadcrumbs />
+ *           </AppLayout.HeaderContent>
+ *           <AppLayout.HeaderActions>
+ *             <PageActions />
+ *           </AppLayout.HeaderActions>
  *         </AppLayout.Header>
  *         <AppLayout.Body asChild>
  *           <Main>
@@ -170,8 +184,15 @@ const Notice = ({
  *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
  *       <AppLayout.Content>
  *         <AppLayout.Header>
- *           <Sidebar.Trigger />
- *           <Breadcrumbs />
+ *           <AppLayout.HeaderStart>
+ *             <Sidebar.Trigger />
+ *           </AppLayout.HeaderStart>
+ *           <AppLayout.HeaderContent>
+ *             <Breadcrumbs />
+ *           </AppLayout.HeaderContent>
+ *           <AppLayout.HeaderActions>
+ *             <PageActions />
+ *           </AppLayout.HeaderActions>
  *         </AppLayout.Header>
  *         <AppLayout.Body asChild>
  *           <Main>
@@ -242,8 +263,15 @@ const Workspace = ({
  *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
  *       <AppLayout.Content>
  *         <AppLayout.Header>
- *           <Sidebar.Trigger />
- *           <Breadcrumbs />
+ *           <AppLayout.HeaderStart>
+ *             <Sidebar.Trigger />
+ *           </AppLayout.HeaderStart>
+ *           <AppLayout.HeaderContent>
+ *             <Breadcrumbs />
+ *           </AppLayout.HeaderContent>
+ *           <AppLayout.HeaderActions>
+ *             <PageActions />
+ *           </AppLayout.HeaderActions>
  *         </AppLayout.Header>
  *         <AppLayout.Body asChild>
  *           <Main>
@@ -289,10 +317,13 @@ const Content = ({
 };
 
 /**
- * The toolbar row at the top of the content card — render it as the **first
- * child of `AppLayout.Content`**. The natural home for a `Sidebar.Trigger` in
- * its top-left, followed by `Breadcrumb` navigation, search, or page-level
- * actions.
+ * The toolbar row at the top of the content card. Render it as the **first
+ * child of `AppLayout.Content`**, and compose its three slots in order:
+ * `AppLayout.HeaderStart` for the `Sidebar.Trigger`, `AppLayout.HeaderContent`
+ * for the `Breadcrumb` trail, and `AppLayout.HeaderActions` for the page's
+ * actions. The slots carry the flex (`shrink-0`, `min-w-0 flex-1`, and
+ * `ml-auto shrink-0`), so no call site sets it. The row's `gap-2` spaces the
+ * three slots, and each slot repeats it between its own children.
  *
  * It is pinned by construction, not by `sticky`: as a `shrink-0` flex sibling
  * *outside* the scrolling `AppLayout.Body`, it cannot scroll away, cannot be
@@ -335,8 +366,15 @@ const Content = ({
  *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
  *       <AppLayout.Content>
  *         <AppLayout.Header>
- *           <Sidebar.Trigger />
- *           <Breadcrumbs />
+ *           <AppLayout.HeaderStart>
+ *             <Sidebar.Trigger />
+ *           </AppLayout.HeaderStart>
+ *           <AppLayout.HeaderContent>
+ *             <Breadcrumbs />
+ *           </AppLayout.HeaderContent>
+ *           <AppLayout.HeaderActions>
+ *             <PageActions />
+ *           </AppLayout.HeaderActions>
  *         </AppLayout.Header>
  *         <AppLayout.Body asChild>
  *           <Main>
@@ -374,6 +412,195 @@ const Header = ({
 				"group-has-data-[slot~=sidebar-header]/app-layout:h-[calc(var(--sidebar-header-height,4.5rem)-2*var(--app-layout-card-gutter,0.5rem)-2px)]",
 				className,
 			)}
+			{...props}
+		>
+			{children}
+		</Comp>
+	);
+};
+
+/**
+ * The leading slot of `AppLayout.Header`: the home of `Sidebar.Trigger`, or of
+ * the control that opens the row in a shell with no sidebar. Renders a `<div>`
+ * that is `shrink-0`, so it takes only the width its children need and keeps
+ * the row's start while `AppLayout.HeaderContent` gives up width beside it. It
+ * is a flex row with the header's own `gap-2`, so a second control sits beside
+ * the first at the same spacing.
+ *
+ * @see https://mantle.ngrok.com/layouts/app-layout#applayoutheaderstart
+ *
+ * @example
+ * ```tsx
+ * <Sidebar.Root>
+ *   <AppLayout.Root className="fixed inset-0">
+ *     <SkipToMainLink />
+ *     <AppLayout.Notice>{isUnderMaintenance && <MaintenanceBanner />}</AppLayout.Notice>
+ *     <AppLayout.Workspace>
+ *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
+ *       <AppLayout.Content>
+ *         <AppLayout.Header>
+ *           <AppLayout.HeaderStart>
+ *             <Sidebar.Trigger />
+ *           </AppLayout.HeaderStart>
+ *           <AppLayout.HeaderContent>
+ *             <Breadcrumbs />
+ *           </AppLayout.HeaderContent>
+ *           <AppLayout.HeaderActions>
+ *             <PageActions />
+ *           </AppLayout.HeaderActions>
+ *         </AppLayout.Header>
+ *         <AppLayout.Body asChild>
+ *           <Main>
+ *             <Outlet />
+ *           </Main>
+ *         </AppLayout.Body>
+ *       </AppLayout.Content>
+ *     </AppLayout.Workspace>
+ *   </AppLayout.Root>
+ * </Sidebar.Root>
+ * ```
+ */
+const HeaderStart = ({
+	asChild,
+	children,
+	className,
+	"data-slot": dataSlot,
+	...props
+}: ComponentProps<"div"> & WithAsChild & WithDataSlot) => {
+	const Comp = asChild ? Slot : "div";
+
+	return (
+		<Comp
+			data-slot={joinDataSlot(dataSlot, "app-layout-header-start")}
+			className={cx("flex shrink-0 items-center gap-2", className)}
+			{...props}
+		>
+			{children}
+		</Comp>
+	);
+};
+
+/**
+ * The slot that fills `AppLayout.Header`: the home of the `Breadcrumb` trail,
+ * or of a page title in a shell with no trail. Renders a `<div>` that is
+ * `min-w-0 flex-1`, so it takes every pixel `AppLayout.HeaderStart` and
+ * `AppLayout.HeaderActions` leave, and it gives width back before either of
+ * them does. The `min-w-0` is what lets a `Breadcrumb.List` inside it scroll
+ * sideways instead of pushing the actions off the card. It is a flex row with
+ * the header's own `gap-2`.
+ *
+ * @see https://mantle.ngrok.com/layouts/app-layout#applayoutheadercontent
+ *
+ * @example
+ * ```tsx
+ * <Sidebar.Root>
+ *   <AppLayout.Root className="fixed inset-0">
+ *     <SkipToMainLink />
+ *     <AppLayout.Notice>{isUnderMaintenance && <MaintenanceBanner />}</AppLayout.Notice>
+ *     <AppLayout.Workspace>
+ *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
+ *       <AppLayout.Content>
+ *         <AppLayout.Header>
+ *           <AppLayout.HeaderStart>
+ *             <Sidebar.Trigger />
+ *           </AppLayout.HeaderStart>
+ *           <AppLayout.HeaderContent>
+ *             <Breadcrumbs />
+ *           </AppLayout.HeaderContent>
+ *           <AppLayout.HeaderActions>
+ *             <PageActions />
+ *           </AppLayout.HeaderActions>
+ *         </AppLayout.Header>
+ *         <AppLayout.Body asChild>
+ *           <Main>
+ *             <Outlet />
+ *           </Main>
+ *         </AppLayout.Body>
+ *       </AppLayout.Content>
+ *     </AppLayout.Workspace>
+ *   </AppLayout.Root>
+ * </Sidebar.Root>
+ * ```
+ */
+const HeaderContent = ({
+	asChild,
+	children,
+	className,
+	"data-slot": dataSlot,
+	...props
+}: ComponentProps<"div"> & WithAsChild & WithDataSlot) => {
+	const Comp = asChild ? Slot : "div";
+
+	return (
+		<Comp
+			data-slot={joinDataSlot(dataSlot, "app-layout-header-content")}
+			className={cx("flex min-w-0 flex-1 items-center gap-2", className)}
+			{...props}
+		>
+			{children}
+		</Comp>
+	);
+};
+
+/**
+ * The trailing slot of `AppLayout.Header`: the page's actions, aligned to the
+ * row's end. Renders a `<div>` that is `ml-auto shrink-0`, so it takes only the
+ * width its children need, grows to the left as actions are added, and stays at
+ * the end even when the header renders no `AppLayout.HeaderContent`. It is a
+ * flex row with the header's own `gap-2`.
+ *
+ * Keep it to three actions or fewer, and collapse them into one `DropdownMenu`
+ * behind a single `IconButton` below the sidebar's mobile breakpoint; the docs
+ * show the shape. Which actions render is the route's decision: derive them
+ * from the matched route chain, the way the breadcrumb trail is derived, and
+ * never from a context a page writes into from an effect.
+ *
+ * @see https://mantle.ngrok.com/layouts/app-layout#applayoutheaderactions
+ *
+ * @example
+ * ```tsx
+ * <Sidebar.Root>
+ *   <AppLayout.Root className="fixed inset-0">
+ *     <SkipToMainLink />
+ *     <AppLayout.Notice>{isUnderMaintenance && <MaintenanceBanner />}</AppLayout.Notice>
+ *     <AppLayout.Workspace>
+ *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
+ *       <AppLayout.Content>
+ *         <AppLayout.Header>
+ *           <AppLayout.HeaderStart>
+ *             <Sidebar.Trigger />
+ *           </AppLayout.HeaderStart>
+ *           <AppLayout.HeaderContent>
+ *             <Breadcrumbs />
+ *           </AppLayout.HeaderContent>
+ *           <AppLayout.HeaderActions>
+ *             <PageActions />
+ *           </AppLayout.HeaderActions>
+ *         </AppLayout.Header>
+ *         <AppLayout.Body asChild>
+ *           <Main>
+ *             <Outlet />
+ *           </Main>
+ *         </AppLayout.Body>
+ *       </AppLayout.Content>
+ *     </AppLayout.Workspace>
+ *   </AppLayout.Root>
+ * </Sidebar.Root>
+ * ```
+ */
+const HeaderActions = ({
+	asChild,
+	children,
+	className,
+	"data-slot": dataSlot,
+	...props
+}: ComponentProps<"div"> & WithAsChild & WithDataSlot) => {
+	const Comp = asChild ? Slot : "div";
+
+	return (
+		<Comp
+			data-slot={joinDataSlot(dataSlot, "app-layout-header-actions")}
+			className={cx("ml-auto flex shrink-0 items-center gap-2", className)}
 			{...props}
 		>
 			{children}
@@ -431,8 +658,15 @@ const Header = ({
  *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
  *       <AppLayout.Content>
  *         <AppLayout.Header>
- *           <Sidebar.Trigger />
- *           <Breadcrumbs />
+ *           <AppLayout.HeaderStart>
+ *             <Sidebar.Trigger />
+ *           </AppLayout.HeaderStart>
+ *           <AppLayout.HeaderContent>
+ *             <Breadcrumbs />
+ *           </AppLayout.HeaderContent>
+ *           <AppLayout.HeaderActions>
+ *             <PageActions />
+ *           </AppLayout.HeaderActions>
  *         </AppLayout.Header>
  *         <AppLayout.Body asChild>
  *           <Main>
@@ -500,6 +734,9 @@ const Body = ({
  * └── AppLayout.Workspace
  *     └── AppLayout.Content
  *         ├── AppLayout.Header
+ *         │   ├── AppLayout.HeaderStart
+ *         │   ├── AppLayout.HeaderContent
+ *         │   └── AppLayout.HeaderActions
  *         └── AppLayout.Body
  * ```
  *
@@ -513,8 +750,15 @@ const Body = ({
  *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
  *       <AppLayout.Content>
  *         <AppLayout.Header>
- *           <Sidebar.Trigger />
- *           <Breadcrumbs />
+ *           <AppLayout.HeaderStart>
+ *             <Sidebar.Trigger />
+ *           </AppLayout.HeaderStart>
+ *           <AppLayout.HeaderContent>
+ *             <Breadcrumbs />
+ *           </AppLayout.HeaderContent>
+ *           <AppLayout.HeaderActions>
+ *             <PageActions />
+ *           </AppLayout.HeaderActions>
  *         </AppLayout.Header>
  *         <AppLayout.Body asChild>
  *           <Main>
@@ -544,8 +788,15 @@ const AppLayout = {
 	 *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
 	 *       <AppLayout.Content>
 	 *         <AppLayout.Header>
-	 *           <Sidebar.Trigger />
-	 *           <Breadcrumbs />
+	 *           <AppLayout.HeaderStart>
+	 *             <Sidebar.Trigger />
+	 *           </AppLayout.HeaderStart>
+	 *           <AppLayout.HeaderContent>
+	 *             <Breadcrumbs />
+	 *           </AppLayout.HeaderContent>
+	 *           <AppLayout.HeaderActions>
+	 *             <PageActions />
+	 *           </AppLayout.HeaderActions>
 	 *         </AppLayout.Header>
 	 *         <AppLayout.Body asChild>
 	 *           <Main>
@@ -575,8 +826,15 @@ const AppLayout = {
 	 *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
 	 *       <AppLayout.Content>
 	 *         <AppLayout.Header>
-	 *           <Sidebar.Trigger />
-	 *           <Breadcrumbs />
+	 *           <AppLayout.HeaderStart>
+	 *             <Sidebar.Trigger />
+	 *           </AppLayout.HeaderStart>
+	 *           <AppLayout.HeaderContent>
+	 *             <Breadcrumbs />
+	 *           </AppLayout.HeaderContent>
+	 *           <AppLayout.HeaderActions>
+	 *             <PageActions />
+	 *           </AppLayout.HeaderActions>
 	 *         </AppLayout.Header>
 	 *         <AppLayout.Body asChild>
 	 *           <Main>
@@ -606,8 +864,15 @@ const AppLayout = {
 	 *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
 	 *       <AppLayout.Content>
 	 *         <AppLayout.Header>
-	 *           <Sidebar.Trigger />
-	 *           <Breadcrumbs />
+	 *           <AppLayout.HeaderStart>
+	 *             <Sidebar.Trigger />
+	 *           </AppLayout.HeaderStart>
+	 *           <AppLayout.HeaderContent>
+	 *             <Breadcrumbs />
+	 *           </AppLayout.HeaderContent>
+	 *           <AppLayout.HeaderActions>
+	 *             <PageActions />
+	 *           </AppLayout.HeaderActions>
 	 *         </AppLayout.Header>
 	 *         <AppLayout.Body asChild>
 	 *           <Main>
@@ -638,8 +903,15 @@ const AppLayout = {
 	 *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
 	 *       <AppLayout.Content>
 	 *         <AppLayout.Header>
-	 *           <Sidebar.Trigger />
-	 *           <Breadcrumbs />
+	 *           <AppLayout.HeaderStart>
+	 *             <Sidebar.Trigger />
+	 *           </AppLayout.HeaderStart>
+	 *           <AppLayout.HeaderContent>
+	 *             <Breadcrumbs />
+	 *           </AppLayout.HeaderContent>
+	 *           <AppLayout.HeaderActions>
+	 *             <PageActions />
+	 *           </AppLayout.HeaderActions>
 	 *         </AppLayout.Header>
 	 *         <AppLayout.Body asChild>
 	 *           <Main>
@@ -670,8 +942,15 @@ const AppLayout = {
 	 *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
 	 *       <AppLayout.Content>
 	 *         <AppLayout.Header>
-	 *           <Sidebar.Trigger />
-	 *           <Breadcrumbs />
+	 *           <AppLayout.HeaderStart>
+	 *             <Sidebar.Trigger />
+	 *           </AppLayout.HeaderStart>
+	 *           <AppLayout.HeaderContent>
+	 *             <Breadcrumbs />
+	 *           </AppLayout.HeaderContent>
+	 *           <AppLayout.HeaderActions>
+	 *             <PageActions />
+	 *           </AppLayout.HeaderActions>
 	 *         </AppLayout.Header>
 	 *         <AppLayout.Body asChild>
 	 *           <Main>
@@ -685,6 +964,121 @@ const AppLayout = {
 	 * ```
 	 */
 	Header,
+	/**
+	 * The header's leading slot, `shrink-0`: the home of `Sidebar.Trigger`.
+	 *
+	 * @see https://mantle.ngrok.com/layouts/app-layout#applayoutheaderstart
+	 *
+	 * @example
+	 * ```tsx
+	 * <Sidebar.Root>
+	 *   <AppLayout.Root className="fixed inset-0">
+	 *     <SkipToMainLink />
+	 *     <AppLayout.Notice>{isUnderMaintenance && <MaintenanceBanner />}</AppLayout.Notice>
+	 *     <AppLayout.Workspace>
+	 *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
+	 *       <AppLayout.Content>
+	 *         <AppLayout.Header>
+	 *           <AppLayout.HeaderStart>
+	 *             <Sidebar.Trigger />
+	 *           </AppLayout.HeaderStart>
+	 *           <AppLayout.HeaderContent>
+	 *             <Breadcrumbs />
+	 *           </AppLayout.HeaderContent>
+	 *           <AppLayout.HeaderActions>
+	 *             <PageActions />
+	 *           </AppLayout.HeaderActions>
+	 *         </AppLayout.Header>
+	 *         <AppLayout.Body asChild>
+	 *           <Main>
+	 *             <Outlet />
+	 *           </Main>
+	 *         </AppLayout.Body>
+	 *       </AppLayout.Content>
+	 *     </AppLayout.Workspace>
+	 *   </AppLayout.Root>
+	 * </Sidebar.Root>
+	 * ```
+	 */
+	HeaderStart,
+	/**
+	 * The header's filling slot, `min-w-0 flex-1`: the home of the
+	 * `Breadcrumb` trail, whose list scrolls instead of pushing the actions
+	 * off the card.
+	 *
+	 * @see https://mantle.ngrok.com/layouts/app-layout#applayoutheadercontent
+	 *
+	 * @example
+	 * ```tsx
+	 * <Sidebar.Root>
+	 *   <AppLayout.Root className="fixed inset-0">
+	 *     <SkipToMainLink />
+	 *     <AppLayout.Notice>{isUnderMaintenance && <MaintenanceBanner />}</AppLayout.Notice>
+	 *     <AppLayout.Workspace>
+	 *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
+	 *       <AppLayout.Content>
+	 *         <AppLayout.Header>
+	 *           <AppLayout.HeaderStart>
+	 *             <Sidebar.Trigger />
+	 *           </AppLayout.HeaderStart>
+	 *           <AppLayout.HeaderContent>
+	 *             <Breadcrumbs />
+	 *           </AppLayout.HeaderContent>
+	 *           <AppLayout.HeaderActions>
+	 *             <PageActions />
+	 *           </AppLayout.HeaderActions>
+	 *         </AppLayout.Header>
+	 *         <AppLayout.Body asChild>
+	 *           <Main>
+	 *             <Outlet />
+	 *           </Main>
+	 *         </AppLayout.Body>
+	 *       </AppLayout.Content>
+	 *     </AppLayout.Workspace>
+	 *   </AppLayout.Root>
+	 * </Sidebar.Root>
+	 * ```
+	 */
+	HeaderContent,
+	/**
+	 * The header's trailing slot, `ml-auto shrink-0`: the page's actions,
+	 * aligned to the row's end. Three or fewer; collapse them into one
+	 * `DropdownMenu` below the mobile breakpoint.
+	 *
+	 * @see https://mantle.ngrok.com/layouts/app-layout#applayoutheaderactions
+	 *
+	 * @example
+	 * ```tsx
+	 * <Sidebar.Root>
+	 *   <AppLayout.Root className="fixed inset-0">
+	 *     <SkipToMainLink />
+	 *     <AppLayout.Notice>{isUnderMaintenance && <MaintenanceBanner />}</AppLayout.Notice>
+	 *     <AppLayout.Workspace>
+	 *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
+	 *       <AppLayout.Content>
+	 *         <AppLayout.Header>
+	 *           <AppLayout.HeaderStart>
+	 *             <Sidebar.Trigger />
+	 *           </AppLayout.HeaderStart>
+	 *           <AppLayout.HeaderContent>
+	 *             <Breadcrumbs />
+	 *           </AppLayout.HeaderContent>
+	 *           <AppLayout.HeaderActions>
+	 *             <PageActions />
+	 *           </AppLayout.HeaderActions>
+	 *         </AppLayout.Header>
+	 *         <AppLayout.Body asChild>
+	 *           <Main>
+	 *             <Outlet />
+	 *           </Main>
+	 *         </AppLayout.Body>
+	 *       </AppLayout.Content>
+	 *     </AppLayout.Workspace>
+	 *   </AppLayout.Root>
+	 * </Sidebar.Root>
+	 * ```
+	 */
+	HeaderActions,
 	/**
 	 * The page region and the shell's only scroll container. A flex item that is
 	 * block inside, so `h-full` pages fit the card and `mx-auto max-w-7xl` pages
@@ -703,8 +1097,15 @@ const AppLayout = {
 	 *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
 	 *       <AppLayout.Content>
 	 *         <AppLayout.Header>
-	 *           <Sidebar.Trigger />
-	 *           <Breadcrumbs />
+	 *           <AppLayout.HeaderStart>
+	 *             <Sidebar.Trigger />
+	 *           </AppLayout.HeaderStart>
+	 *           <AppLayout.HeaderContent>
+	 *             <Breadcrumbs />
+	 *           </AppLayout.HeaderContent>
+	 *           <AppLayout.HeaderActions>
+	 *             <PageActions />
+	 *           </AppLayout.HeaderActions>
 	 *         </AppLayout.Header>
 	 *         <AppLayout.Body asChild>
 	 *           <Main>
