@@ -105,8 +105,9 @@ type PageAction = {
 /**
  * Renders a route's actions for `AppLayout.HeaderActions`: one icon button per
  * action from the `md` breakpoint up, and one menu behind a single icon button
- * below it. Both renderings are in the HTML and CSS picks one, so the server
- * paints the right one and hydration swaps nothing. Keep the list to three.
+ * below it. Both controls are in the HTML and CSS picks one, so the server
+ * paints the right control and hydration swaps nothing. The menu's items mount
+ * when the menu opens. Keep the list to three.
  *
  * The `md` breakpoint matches the docs demos' `mobileBreakpoint`. ngrok's
  * dashboards keep the sidebar's `lg` default, so change `md:contents` and
@@ -165,7 +166,8 @@ function PageActions({ actions }: { actions: ReadonlyArray<PageAction> }) {
 					{actions.map((action) => (
 						<DropdownMenu.Item key={action.label} className="gap-2" onSelect={action.onSelect}>
 							{action.icon}
-							{action.label}
+							{/* an element, not bare text: a swapped icon then inserts before a node React still owns on a translated page */}
+							<span>{action.label}</span>
 						</DropdownMenu.Item>
 					))}
 				</DropdownMenu.Content>

@@ -1,8 +1,9 @@
 // @vitest-environment happy-dom
 import { TooltipProvider } from "@ngrok/mantle/tooltip";
 import { cleanup, render, screen } from "@testing-library/react";
+import { userEvent } from "@testing-library/user-event";
 import { createRoutesStub, Outlet } from "react-router";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { findHeaderActions, PageActions, RouteHeaderActions } from "./header-actions";
 
 afterEach(() => {
@@ -79,24 +80,48 @@ describe("RouteHeaderActions (through a real router)", () => {
 });
 
 describe("PageActions", () => {
-	it("renders every action twice: as an icon button and as a menu item behind one trigger", () => {
+	/** Two actions, the first with the spy under test. */
+	function renderActions(onSelect: () => void) {
 		render(
 			<TooltipProvider>
 				<PageActions
 					actions={[
-						{ label: "New endpoint", icon: <svg />, onSelect: () => {} },
+						{ label: "New endpoint", icon: <svg />, onSelect },
 						{ label: "Refresh", icon: <svg />, onSelect: () => {} },
 					]}
 				/>
 			</TooltipProvider>,
 		);
+	}
 
-		// Both renderings are in the HTML, and CSS picks one per breakpoint. The
-		// menu's items mount only once it opens, so the closed state shows the
+	it("runs an action from its desktop icon button", async () => {
+		const user = userEvent.setup();
+		const onSelect = vi.fn<() => void>();
+		renderActions(onSelect);
+
+		await user.click(screen.getByRole("button", { name: "New endpoint" }));
+
+		expect(onSelect).toHaveBeenCalledTimes(1);
+	});
+
+	it("opens the menu and runs the same action from its item", async () => {
+		const user = userEvent.setup();
+		const onSelect = vi.fn<() => void>();
+		renderActions(onSelect);
+		// The items mount when the menu opens, so the closed state holds only the
 		// icon buttons and the one menu trigger.
-		expect(
-			screen.getAllByRole("button").map((button) => button.getAttribute("aria-label")),
-		).toEqual(["New endpoint", "Refresh", "More actions"]);
+		expect(screen.queryByRole("menu")).toBeNull();
+
+		await user.click(screen.getByRole("button", { name: "More actions" }));
+		expect(screen.getAllByRole("menuitem").map((item) => item.textContent)).toEqual([
+			"New endpoint",
+			"Refresh",
+		]);
+
+		await user.click(screen.getByRole("menuitem", { name: "New endpoint" }));
+
+		expect(onSelect).toHaveBeenCalledTimes(1);
+		expect(screen.queryByRole("menu")).toBeNull();
 	});
 
 	it("renders nothing for an empty list", () => {

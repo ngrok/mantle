@@ -10,6 +10,6 @@
 
 Each slot is a flex row with the header's own `gap-2`, accepts `asChild`, and joins an ancestor's `data-slot`. A header composed without the slots renders as before.
 
-Every shell example in the docs now composes the three slots, and a new recipe derives each route's actions from a React Router route handle and collapses them into one menu below the mobile breakpoint: https://mantle.ngrok.com/recipes/header-actions-from-routes
+The App Layout docs compose the three slots in the app shell, standalone, editor, and landmark examples, and a new recipe derives each route's actions from a React Router route handle and collapses them into one menu below the mobile breakpoint: https://mantle.ngrok.com/recipes/header-actions-from-routes
 
 API reference: https://mantle.ngrok.com/layouts/app-layout#applayoutheaderstart

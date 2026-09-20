@@ -15,7 +15,8 @@ import { AppLayout } from "./app-layout.js";
  *
  * The stylesheet is Tailwind 4's own output for the utilities the header and its
  * slots emit, keyed by the same class selectors. Drop `min-w-0`, `flex-1`,
- * `shrink-0`, or `ml-auto` from a part and the matching assertion fails.
+ * `shrink-0`, or `ml-auto` from a part and the matching assertion fails: the
+ * over-constrained row is the one where `shrink-0` decides the width.
  */
 const STYLE = `
 @layer theme, base, components, utilities;
@@ -71,6 +72,22 @@ function renderHeader(children: ReactNode) {
 /** A child with a fixed width, so a slot's own width is the child's. */
 function Box({ width }: { width: number }) {
 	return <div style={{ width, height: 20 }} />;
+}
+
+/**
+ * A child whose max-content width is `width` and whose min-content width is one
+ * 100px segment, so the slot around it can shrink and only `shrink-0` on the
+ * slot keeps the full width. A fixed `width` would not do: a definite width is
+ * also the box's min-content contribution, so the slot could never shrink.
+ */
+function ShrinkableBox({ width }: { width: number }) {
+	return (
+		<div style={{ fontSize: 0 }}>
+			{Array.from({ length: width / 100 }, (_, index) => (
+				<span key={index} style={{ display: "inline-block", width: 100, height: 20 }} />
+			))}
+		</div>
+	);
 }
 
 const rectOf = (testId: string) => screen.getByTestId(testId).getBoundingClientRect();
@@ -132,5 +149,26 @@ describe("AppLayout.Header slots", () => {
 		expect(rectOf("content").width).toBe(header.width - 32 - 40 - 100 - 16);
 		expect(rectOf("actions").right).toBe(header.right - 16);
 		expect(rectOf("actions").width).toBe(100);
+	});
+
+	test("the start and actions slots keep their width when the row is over-constrained", () => {
+		renderHeader(
+			<>
+				<AppLayout.HeaderStart data-testid="start">
+					<ShrinkableBox width={300} />
+				</AppLayout.HeaderStart>
+				<AppLayout.HeaderContent data-testid="content">
+					<Box width={10} />
+				</AppLayout.HeaderContent>
+				<AppLayout.HeaderActions data-testid="actions">
+					<ShrinkableBox width={400} />
+				</AppLayout.HeaderActions>
+			</>,
+		);
+		// Why: 300 + 400 is wider than the 568px row, so a slot that can shrink
+		// would. `shrink-0` keeps both ends at their content width and lets the
+		// row overflow instead of squeezing a control.
+		expect(rectOf("start").width).toBe(300);
+		expect(rectOf("actions").width).toBe(400);
 	});
 });

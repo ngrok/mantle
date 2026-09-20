@@ -1,9 +1,11 @@
 // @vitest-environment happy-dom
+import { TooltipProvider } from "@ngrok/mantle/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it } from "vitest";
+import { PageActions } from "~/features/header-actions/header-actions";
 import { DomainsListPage } from "~/features/list-page-loading-demo";
 import { translateTextNodes } from "~/test-utils/translate-text-nodes";
 
@@ -65,5 +67,32 @@ describe("Region filter demo on a translated page", () => {
 		// The selected label is wrapped, so the `any` string giving way to a
 		// region element is a swap between two elements, not a removal.
 		expect(region.textContent).toContain("eu");
+	});
+});
+
+describe("Header actions recipe on a translated page", () => {
+	it("swaps an action's icon while the menu is open without inserting before a reparented text node", async () => {
+		const user = userEvent.setup();
+		const actions = (icon: ReactElement) => (
+			<TooltipProvider>
+				<PageActions actions={[{ label: "New endpoint", icon, onSelect: () => {} }]} />
+			</TooltipProvider>
+		);
+		const { rerender } = render(actions(<svg data-icon="plus" />));
+		await user.click(screen.getByRole("button", { name: "More actions" }));
+		const item = screen.getByRole("menuitem", { name: "New endpoint" });
+		translateTextNodes(item);
+
+		// Why this check: it proves the engine wrapped the label, so the swap below
+		// can fail.
+		expect(screen.getByText("[New endpoint-es]").tagName).toBe("FONT");
+
+		// A new element type unmounts the old icon and inserts the new one before
+		// the next host sibling. The label is a span, so that sibling is an element
+		// React still owns, and not the text node the engine moved.
+		rerender(actions(<i data-icon="trash" />));
+
+		expect(item.querySelector("[data-icon=trash]")).not.toBeNull();
+		expect(item.querySelector("[data-icon=plus]")).toBeNull();
 	});
 });

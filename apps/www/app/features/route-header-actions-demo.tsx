@@ -157,6 +157,7 @@ export function RouteHeaderActionsDemo() {
 						type="button"
 						size="sm"
 						appearance={index === routeIndex ? "filled" : "outlined"}
+						aria-pressed={index === routeIndex}
 						intent={index === routeIndex ? "accent" : "neutral"}
 						onClick={() => setRouteIndex(index)}
 					>

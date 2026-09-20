@@ -56,7 +56,7 @@ routes.ts                 the route tree, the single source of truth for which p
             └── AppLayout.HeaderActions                              the slot, at the row's end, shrink-0
 ```
 
-Three pieces, each with one job, and one renderer:
+Four pieces, each with one job:
 
 1. **`handle.headerActions`** on a route module: the element to render, or `null` to render none.
 2. **`findHeaderActions`**: picks the deepest match that declares one. Pure and router-agnostic, so a test
@@ -166,11 +166,12 @@ to the other.
 
 ## Collapsing below the mobile breakpoint
 
-`PageActions` renders every action twice and lets CSS pick: one icon button per action with a tooltip from
-the `md` breakpoint up, and one `DotsThree` icon button that opens a [DropdownMenu](/components/overlays/dropdown-menu)
-of the same actions below it. Both renderings are in the HTML, so the server paints the right one and
-hydration swaps nothing. A `useIsBelowBreakpoint` branch would render the desktop buttons on the server and
-swap them after hydration on a phone.
+`PageActions` renders two controls and lets CSS pick one: an icon button per action with a tooltip from the
+`md` breakpoint up, and one `DotsThree` icon button below it that opens a
+[DropdownMenu](/components/overlays/dropdown-menu) of the same actions. Both controls are in the HTML, so the
+server paints the right one and hydration swaps nothing. The menu's items mount when the menu opens. A
+`useIsBelowBreakpoint` branch would render the desktop buttons on the server and swap them after hydration
+on a phone.
 
 Two rules keep the row honest:
 
@@ -228,7 +229,8 @@ Everything here runs on the server unchanged:
 - **`handle` is available on the server.** Route modules load there too, so the element is in the first
   render. No `typeof window` guard, no effect, no hydration-only branch.
 - **`findHeaderActions` is pure.** Same matches, same element, both sides.
-- **Both renderings ship in the HTML.** The collapse is CSS, so a phone gets the menu in the first byte.
+- **Both controls ship in the HTML.** The collapse is CSS, so a phone gets the menu's trigger in the first
+  byte, and the items mount when it opens.
 - **URL state renders right the first time.** A label that reads a search param is correct on the server
   because the server has the URL.
 
@@ -349,8 +351,9 @@ type PageAction = {
 /**
  * Renders a route's actions for `AppLayout.HeaderActions`: one icon button per
  * action from the `md` breakpoint up, and one menu behind a single icon button
- * below it. Both renderings are in the HTML and CSS picks one, so the server
- * paints the right one and hydration swaps nothing. Keep the list to three.
+ * below it. Both controls are in the HTML and CSS picks one, so the server
+ * paints the right control and hydration swaps nothing. The menu's items mount
+ * when the menu opens. Keep the list to three.
  *
  * The `md` breakpoint matches the docs demos' `mobileBreakpoint`. ngrok's
  * dashboards keep the sidebar's `lg` default, so change `md:contents` and
@@ -409,7 +412,8 @@ function PageActions({ actions }: { actions: ReadonlyArray<PageAction> }) {
 					{actions.map((action) => (
 						<DropdownMenu.Item key={action.label} className="gap-2" onSelect={action.onSelect}>
 							{action.icon}
-							{action.label}
+							{/* an element, not bare text: a swapped icon then inserts before a node React still owns on a translated page */}
+							<span>{action.label}</span>
 						</DropdownMenu.Item>
 					))}
 				</DropdownMenu.Content>
@@ -446,8 +450,9 @@ in this repo:
 // @vitest-environment happy-dom
 import { TooltipProvider } from "@ngrok/mantle/tooltip";
 import { cleanup, render, screen } from "@testing-library/react";
+import { userEvent } from "@testing-library/user-event";
 import { createRoutesStub, Outlet } from "react-router";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { findHeaderActions, PageActions, RouteHeaderActions } from "./header-actions";
 
 afterEach(() => {
@@ -524,24 +529,48 @@ describe("RouteHeaderActions (through a real router)", () => {
 });
 
 describe("PageActions", () => {
-	it("renders every action twice: as an icon button and as a menu item behind one trigger", () => {
+	/** Two actions, the first with the spy under test. */
+	function renderActions(onSelect: () => void) {
 		render(
 			<TooltipProvider>
 				<PageActions
 					actions={[
-						{ label: "New endpoint", icon: <svg />, onSelect: () => {} },
+						{ label: "New endpoint", icon: <svg />, onSelect },
 						{ label: "Refresh", icon: <svg />, onSelect: () => {} },
 					]}
 				/>
 			</TooltipProvider>,
 		);
+	}
 
-		// Both renderings are in the HTML, and CSS picks one per breakpoint. The
-		// menu's items mount only once it opens, so the closed state shows the
+	it("runs an action from its desktop icon button", async () => {
+		const user = userEvent.setup();
+		const onSelect = vi.fn<() => void>();
+		renderActions(onSelect);
+
+		await user.click(screen.getByRole("button", { name: "New endpoint" }));
+
+		expect(onSelect).toHaveBeenCalledTimes(1);
+	});
+
+	it("opens the menu and runs the same action from its item", async () => {
+		const user = userEvent.setup();
+		const onSelect = vi.fn<() => void>();
+		renderActions(onSelect);
+		// The items mount when the menu opens, so the closed state holds only the
 		// icon buttons and the one menu trigger.
-		expect(
-			screen.getAllByRole("button").map((button) => button.getAttribute("aria-label")),
-		).toEqual(["New endpoint", "Refresh", "More actions"]);
+		expect(screen.queryByRole("menu")).toBeNull();
+
+		await user.click(screen.getByRole("button", { name: "More actions" }));
+		expect(screen.getAllByRole("menuitem").map((item) => item.textContent)).toEqual([
+			"New endpoint",
+			"Refresh",
+		]);
+
+		await user.click(screen.getByRole("menuitem", { name: "New endpoint" }));
+
+		expect(onSelect).toHaveBeenCalledTimes(1);
+		expect(screen.queryByRole("menu")).toBeNull();
 	});
 
 	it("renders nothing for an empty list", () => {
