@@ -1,3 +1,5 @@
+"use client";
+
 import { XIcon } from "@phosphor-icons/react/X";
 import { type VariantProps, cva } from "class-variance-authority";
 import type { ComponentProps, HTMLAttributes } from "react";
@@ -10,6 +12,7 @@ import {
 	type IconButtonProps,
 } from "../button/icon-button.js";
 import {
+	createDialogScope,
 	Close as SheetPrimitiveClose,
 	Content as SheetPrimitiveContent,
 	Description as SheetPrimitiveDescription,
@@ -20,9 +23,31 @@ import {
 	Trigger as SheetPrimitiveTrigger,
 } from "../dialog/primitive.js";
 
+// Why a private dialog scope: a sheet wraps arbitrary content, and Radix binds
+// a default-scope `Dialog.Trigger` to the nearest dialog. With a scope of its
+// own, the sheet is never that dialog.
+const useSheetDialogScope = createDialogScope();
+
+/**
+ * The scope props every `Sheet` part spreads onto the Radix part it renders.
+ * Radix hands the scope out through a hook, so each part calls this in render.
+ * Spread it after the props, so a wider props object cannot carry a foreign
+ * `__scopeDialog` past the type.
+ */
+function useSheetScope() {
+	return useSheetDialogScope(undefined);
+}
+
 /**
  * The root component for a `Sheet`. Should compose the `Sheet.Trigger` and `Sheet.Content`.
  * Acts as a stateful provider for the Sheet's open/closed state.
+ *
+ * Every `Sheet` part reads a dialog scope of its own, so it binds to the
+ * nearest `Sheet.Root` and never to a `Dialog.Root`. The reverse holds too: a
+ * `Dialog.Trigger` or `Command.SearchTrigger` inside `Sheet.Content` reaches
+ * the `Dialog.Root` or `Command.DialogRoot` above the sheet, not the sheet. A
+ * `Dialog.Close` inside a sheet with no `Dialog.Root` above it throws Radix's
+ * "must be used within `Dialog`"; use `Sheet.Close` to close a sheet.
  *
  * `Sheet` renders its floating layer at Tailwind `z-60`, Mantle's overlay tier,
  * above every float (`z-50`). Floats composed inside the content portal into
@@ -125,11 +150,17 @@ import {
  * </Sheet.Root>
  * ```
  */
-const Root = SheetPrimitiveRoot;
+const Root = (props: ComponentProps<typeof SheetPrimitiveRoot>) => {
+	const sheetScope = useSheetScope();
+	return <SheetPrimitiveRoot {...props} {...sheetScope} />;
+};
 
 /**
  * The button trigger for a `Sheet`. Should be rendered as a child of the `Sheet` component.
  * Renders an unstyled button by default, but can be customized with the `asChild` prop.
+ *
+ * Opens the nearest `Sheet.Root`. It never opens a `Dialog.Root`, and a
+ * `Dialog.Trigger` inside the sheet never opens the sheet.
  *
  * @see https://mantle.ngrok.com/components/overlays/sheet#sheettrigger
  *
@@ -164,12 +195,18 @@ const Root = SheetPrimitiveRoot;
  * </Sheet.Root>
  * ```
  */
-const Trigger = SheetPrimitiveTrigger;
+const Trigger = (props: ComponentProps<typeof SheetPrimitiveTrigger>) => {
+	const sheetScope = useSheetScope();
+	return <SheetPrimitiveTrigger {...props} {...sheetScope} />;
+};
 
 /**
  * The close button for a `Sheet`. Should be rendered as a child of the `Sheet.Content` component.
  * Usually contained within the `Sheet.Footer` component.
  * Renders an unstyled button by default, but can be customized with the `asChild` prop.
+ *
+ * Closes the nearest `Sheet.Root`. It never closes a `Dialog.Root`, and a
+ * `Dialog.Close` inside the sheet never closes the sheet.
  *
  * @see https://mantle.ngrok.com/components/overlays/sheet#sheetclose
  *
@@ -204,14 +241,20 @@ const Trigger = SheetPrimitiveTrigger;
  * </Sheet.Root>
  * ```
  */
-const Close = SheetPrimitiveClose;
+const Close = (props: ComponentProps<typeof SheetPrimitiveClose>) => {
+	const sheetScope = useSheetScope();
+	return <SheetPrimitiveClose {...props} {...sheetScope} />;
+};
 
 /**
  * Mounts `SheetOverlay` and `Sheet.Content` outside the app's DOM tree.
  *
  * @private
  */
-const SheetPortal = SheetPrimitivePortal;
+const SheetPortal = (props: ComponentProps<typeof SheetPrimitivePortal>) => {
+	const sheetScope = useSheetScope();
+	return <SheetPrimitivePortal {...props} {...sheetScope} />;
+};
 
 /**
  * The overlay backdrop for a sheet. Should be rendered as a child of the `SheetPortal` component.
@@ -224,17 +267,21 @@ const SheetOverlay = ({
 	className,
 	ref,
 	...props
-}: ComponentProps<typeof SheetPrimitiveOverlay>) => (
-	<SheetPrimitiveOverlay
-		data-slot="sheet-overlay"
-		className={cx(
-			"bg-overlay data-state-closed:animate-out data-state-closed:fade-out-0 data-state-open:animate-in data-state-open:fade-in-0 fixed inset-0 z-60 backdrop-blur-xs",
-			className,
-		)}
-		{...props}
-		ref={ref}
-	/>
-);
+}: ComponentProps<typeof SheetPrimitiveOverlay>) => {
+	const sheetScope = useSheetScope();
+	return (
+		<SheetPrimitiveOverlay
+			data-slot="sheet-overlay"
+			className={cx(
+				"bg-overlay data-state-closed:animate-out data-state-closed:fade-out-0 data-state-open:animate-in data-state-open:fade-in-0 fixed inset-0 z-60 backdrop-blur-xs",
+				className,
+			)}
+			{...props}
+			{...sheetScope}
+			ref={ref}
+		/>
+	);
+};
 
 const sheetVariants = cva(
 	"bg-dialog border-dialog inset-y-0 h-full w-full fixed flex flex-col shadow-lg outline-hidden transition ease-in-out focus-within:outline-hidden data-state-closed:duration-100 data-state-closed:animate-out data-state-open:duration-100 data-state-open:animate-in",
@@ -333,29 +380,33 @@ const Content = ({
 	side = "right",
 	ref,
 	...props
-}: SheetContentProps) => (
-	<SheetPortal>
-		<SheetOverlay />
-		{/* Why the positioner is the layer container: floats composed inside the
-		    sheet portal into it, after the content, so they paint above the
-		    content inside the sheet's own stacking context. The content cannot be
-		    the container itself — its slide animation carries a transform, which
-		    would turn a portaled float's `position: fixed` into a position
-		    relative to the content. The positioner has no box of its own; the
-		    content keeps its own fixed positioning. */}
-		<LayerContainer data-slot="sheet-positioner" className="fixed z-60">
-			<SheetPrimitiveContent
-				data-slot="sheet-content"
-				data-mantle-modal-content
-				className={cx(sheetVariants({ side }), preferredWidth, className)}
-				ref={ref}
-				{...props}
-			>
-				{children}
-			</SheetPrimitiveContent>
-		</LayerContainer>
-	</SheetPortal>
-);
+}: SheetContentProps) => {
+	const sheetScope = useSheetScope();
+	return (
+		<SheetPortal>
+			<SheetOverlay />
+			{/* Why the positioner is the layer container: floats composed inside the
+			    sheet portal into it, after the content, so they paint above the
+			    content inside the sheet's own stacking context. The content cannot be
+			    the container itself — its slide animation carries a transform, which
+			    would turn a portaled float's `position: fixed` into a position
+			    relative to the content. The positioner has no box of its own; the
+			    content keeps its own fixed positioning. */}
+			<LayerContainer data-slot="sheet-positioner" className="fixed z-60">
+				<SheetPrimitiveContent
+					data-slot="sheet-content"
+					data-mantle-modal-content
+					className={cx(sheetVariants({ side }), preferredWidth, className)}
+					ref={ref}
+					{...props}
+					{...sheetScope}
+				>
+					{children}
+				</SheetPrimitiveContent>
+			</LayerContainer>
+		</SheetPortal>
+	);
+};
 
 type SheetCloseIconButtonProps = Partial<
 	Omit<IconButtonProps, "icon" | "appearance" | "intent">
@@ -438,20 +489,23 @@ const CloseIconButton = ({
 	appearance = "ghost",
 	intent = "neutral",
 	...props
-}: SheetCloseIconButtonProps) => (
-	<SheetPrimitiveClose asChild>
-		<IconButton
-			data-slot="sheet-close-icon-button"
-			appearance={appearance}
-			icon={<XIcon />}
-			intent={intent}
-			label={label}
-			size={size}
-			type={type}
-			{...props}
-		/>
-	</SheetPrimitiveClose>
-);
+}: SheetCloseIconButtonProps) => {
+	const sheetScope = useSheetScope();
+	return (
+		<SheetPrimitiveClose asChild {...sheetScope}>
+			<IconButton
+				data-slot="sheet-close-icon-button"
+				appearance={appearance}
+				icon={<XIcon />}
+				intent={intent}
+				label={label}
+				size={size}
+				type={type}
+				{...props}
+			/>
+		</SheetPrimitiveClose>
+	);
+};
 
 /**
  * The body container for a `Sheet`. This is where you would typically place the main content of the sheet, such as forms or text.
@@ -687,14 +741,18 @@ const Footer = ({ className, ...props }: HTMLAttributes<HTMLDivElement>) => (
  * </Sheet.Root>
  * ```
  */
-const Title = ({ className, ref, ...props }: ComponentProps<typeof SheetPrimitiveTitle>) => (
-	<SheetPrimitiveTitle
-		data-slot="sheet-title"
-		ref={ref}
-		className={cx("text-strong flex-1 truncate text-lg font-medium", className)}
-		{...props}
-	/>
-);
+const Title = ({ className, ref, ...props }: ComponentProps<typeof SheetPrimitiveTitle>) => {
+	const sheetScope = useSheetScope();
+	return (
+		<SheetPrimitiveTitle
+			data-slot="sheet-title"
+			ref={ref}
+			className={cx("text-strong flex-1 truncate text-lg font-medium", className)}
+			{...props}
+			{...sheetScope}
+		/>
+	);
+};
 
 /**
  * A group container for the title and actions of a sheet. Typically rendered as a child of `Sheet.Header`.
@@ -809,14 +867,18 @@ const Description = ({
 	className,
 	ref,
 	...props
-}: ComponentProps<typeof SheetPrimitiveDescription>) => (
-	<SheetPrimitiveDescription
-		data-slot="sheet-description"
-		ref={ref}
-		className={cx("text-body text-sm", className)}
-		{...props}
-	/>
-);
+}: ComponentProps<typeof SheetPrimitiveDescription>) => {
+	const sheetScope = useSheetScope();
+	return (
+		<SheetPrimitiveDescription
+			data-slot="sheet-description"
+			ref={ref}
+			className={cx("text-body text-sm", className)}
+			{...props}
+			{...sheetScope}
+		/>
+	);
+};
 
 /**
  * A group container for the actions of a `Sheet`. Typically rendered as a child of `Sheet.TitleGroup`.
@@ -1009,6 +1071,13 @@ const Sheet = {
 	 * The root component for a `Sheet`. Should compose the `Sheet.Trigger` and `Sheet.Content`.
 	 * Acts as a stateful provider for the Sheet's open/closed state.
 	 *
+	 * Every `Sheet` part reads a dialog scope of its own, so it binds to the
+	 * nearest `Sheet.Root` and never to a `Dialog.Root`. The reverse holds too: a
+	 * `Dialog.Trigger` or `Command.SearchTrigger` inside `Sheet.Content` reaches
+	 * the `Dialog.Root` or `Command.DialogRoot` above the sheet, not the sheet. A
+	 * `Dialog.Close` inside a sheet with no `Dialog.Root` above it throws Radix's
+	 * "must be used within `Dialog`"; use `Sheet.Close` to close a sheet.
+	 *
 	 * `Sheet` renders its floating layer at Tailwind `z-60`, Mantle's overlay
 	 * tier, above every float (`z-50`). Floats composed inside the content portal
 	 * into the positioner (`data-slot="sheet-positioner"`) and paint above the
@@ -1128,6 +1197,9 @@ const Sheet = {
 	 * The close button for a `Sheet`. Should be rendered as a child of the `Sheet.Content` component.
 	 * Usually contained within the `Sheet.Footer` component.
 	 * Renders an unstyled button by default, but can be customized with the `asChild` prop.
+	 *
+	 * Closes the nearest `Sheet.Root`. It never closes a `Dialog.Root`, and a
+	 * `Dialog.Close` inside the sheet never closes the sheet.
 	 *
 	 * @see https://mantle.ngrok.com/components/overlays/sheet#sheetclose
 	 *
@@ -1440,6 +1512,9 @@ const Sheet = {
 	/**
 	 * The button trigger for a `Sheet`. Should be rendered as a child of the `Sheet` component.
 	 * Renders an unstyled button by default, but can be customized with the `asChild` prop.
+	 *
+	 * Opens the nearest `Sheet.Root`. It never opens a `Dialog.Root`, and a
+	 * `Dialog.Trigger` inside the sheet never opens the sheet.
 	 *
 	 * @see https://mantle.ngrok.com/components/overlays/sheet#sheettrigger
 	 *

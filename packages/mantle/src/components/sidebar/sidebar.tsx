@@ -1890,15 +1890,15 @@ type SidebarSearchTriggerProps = ComponentProps<"button"> &
  * @example
  * ```tsx
  * <Sidebar.Root>
- *   <Sidebar.Nav aria-label="Main">
- *     <Sidebar.Header>
- *       <Sidebar.SwitcherTrigger>
- *         <GlobeIcon />
- *         <span className="text-strong min-w-0 flex-1 truncate text-base">Universal Gateway</span>
- *       </Sidebar.SwitcherTrigger>
- *     </Sidebar.Header>
- *     <Sidebar.Body>
- *       <Command.DialogRoot>
+ *   <Command.DialogRoot>
+ *     <Sidebar.Nav aria-label="Main">
+ *       <Sidebar.Header>
+ *         <Sidebar.SwitcherTrigger>
+ *           <GlobeIcon />
+ *           <span className="text-strong min-w-0 flex-1 truncate text-base">Universal Gateway</span>
+ *         </Sidebar.SwitcherTrigger>
+ *       </Sidebar.Header>
+ *       <Sidebar.Body>
  *         <Sidebar.Tooltip label="Search">
  *           <Command.SearchTrigger>
  *             <Sidebar.SearchTrigger
@@ -1914,28 +1914,28 @@ type SidebarSearchTriggerProps = ComponentProps<"button"> &
  *             </Sidebar.SearchTrigger>
  *           </Command.SearchTrigger>
  *         </Sidebar.Tooltip>
- *         <Command.DialogContent>
- *           <Command.Input placeholder="Search endpoints, agents, and settings..." />
- *           <Command.List>
- *             <Command.Empty>No results found.</Command.Empty>
- *           </Command.List>
- *         </Command.DialogContent>
- *       </Command.DialogRoot>
- *       <Sidebar.Group>
- *         <Sidebar.GroupLabel>Traffic</Sidebar.GroupLabel>
- *         <Sidebar.List>
- *           <Sidebar.Item>
- *             <Sidebar.ItemButton asChild current>
- *               <a href="/endpoints">
- *                 <GraphIcon />
- *                 Endpoints
- *               </a>
- *             </Sidebar.ItemButton>
- *           </Sidebar.Item>
- *         </Sidebar.List>
- *       </Sidebar.Group>
- *     </Sidebar.Body>
- *   </Sidebar.Nav>
+ *         <Sidebar.Group>
+ *           <Sidebar.GroupLabel>Traffic</Sidebar.GroupLabel>
+ *           <Sidebar.List>
+ *             <Sidebar.Item>
+ *               <Sidebar.ItemButton asChild current>
+ *                 <a href="/endpoints">
+ *                   <GraphIcon />
+ *                   Endpoints
+ *                 </a>
+ *               </Sidebar.ItemButton>
+ *             </Sidebar.Item>
+ *           </Sidebar.List>
+ *         </Sidebar.Group>
+ *       </Sidebar.Body>
+ *     </Sidebar.Nav>
+ *     <Command.DialogContent>
+ *       <Command.Input placeholder="Search endpoints, agents, and settings..." />
+ *       <Command.List>
+ *         <Command.Empty>No results found.</Command.Empty>
+ *       </Command.List>
+ *     </Command.DialogContent>
+ *   </Command.DialogRoot>
  *   <Sidebar.Trigger />
  * </Sidebar.Root>
  * ```
@@ -3197,15 +3197,15 @@ const Sidebar = {
 	 * @example
 	 * ```tsx
 	 * <Sidebar.Root>
-	 *   <Sidebar.Nav aria-label="Main">
-	 *     <Sidebar.Header>
-	 *       <Sidebar.SwitcherTrigger>
-	 *         <GlobeIcon />
-	 *         <span className="text-strong min-w-0 flex-1 truncate text-base">Universal Gateway</span>
-	 *       </Sidebar.SwitcherTrigger>
-	 *     </Sidebar.Header>
-	 *     <Sidebar.Body>
-	 *       <Command.DialogRoot>
+	 *   <Command.DialogRoot>
+	 *     <Sidebar.Nav aria-label="Main">
+	 *       <Sidebar.Header>
+	 *         <Sidebar.SwitcherTrigger>
+	 *           <GlobeIcon />
+	 *           <span className="text-strong min-w-0 flex-1 truncate text-base">Universal Gateway</span>
+	 *         </Sidebar.SwitcherTrigger>
+	 *       </Sidebar.Header>
+	 *       <Sidebar.Body>
 	 *         <Sidebar.Tooltip label="Search">
 	 *           <Command.SearchTrigger>
 	 *             <Sidebar.SearchTrigger
@@ -3221,28 +3221,28 @@ const Sidebar = {
 	 *             </Sidebar.SearchTrigger>
 	 *           </Command.SearchTrigger>
 	 *         </Sidebar.Tooltip>
-	 *         <Command.DialogContent>
-	 *           <Command.Input placeholder="Search endpoints, agents, and settings..." />
-	 *           <Command.List>
-	 *             <Command.Empty>No results found.</Command.Empty>
-	 *           </Command.List>
-	 *         </Command.DialogContent>
-	 *       </Command.DialogRoot>
-	 *       <Sidebar.Group>
-	 *         <Sidebar.GroupLabel>Traffic</Sidebar.GroupLabel>
-	 *         <Sidebar.List>
-	 *           <Sidebar.Item>
-	 *             <Sidebar.ItemButton asChild current>
-	 *               <a href="/endpoints">
-	 *                 <GraphIcon />
-	 *                 Endpoints
-	 *               </a>
-	 *             </Sidebar.ItemButton>
-	 *           </Sidebar.Item>
-	 *         </Sidebar.List>
-	 *       </Sidebar.Group>
-	 *     </Sidebar.Body>
-	 *   </Sidebar.Nav>
+	 *         <Sidebar.Group>
+	 *           <Sidebar.GroupLabel>Traffic</Sidebar.GroupLabel>
+	 *           <Sidebar.List>
+	 *             <Sidebar.Item>
+	 *               <Sidebar.ItemButton asChild current>
+	 *                 <a href="/endpoints">
+	 *                   <GraphIcon />
+	 *                   Endpoints
+	 *                 </a>
+	 *               </Sidebar.ItemButton>
+	 *             </Sidebar.Item>
+	 *           </Sidebar.List>
+	 *         </Sidebar.Group>
+	 *       </Sidebar.Body>
+	 *     </Sidebar.Nav>
+	 *     <Command.DialogContent>
+	 *       <Command.Input placeholder="Search endpoints, agents, and settings..." />
+	 *       <Command.List>
+	 *         <Command.Empty>No results found.</Command.Empty>
+	 *       </Command.List>
+	 *     </Command.DialogContent>
+	 *   </Command.DialogRoot>
 	 *   <Sidebar.Trigger />
 	 * </Sidebar.Root>
 	 * ```

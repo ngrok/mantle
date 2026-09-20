@@ -1329,46 +1329,23 @@ import { Kbd } from "@ngrok/mantle/kbd";
 import { Sidebar, useSidebar } from "@ngrok/mantle/sidebar";
 import { GraphIcon } from "@phosphor-icons/react/Graph";
 import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
+import type { ReactNode } from "react";
 
-function SidebarSearch() {
+function SidebarSearch({ children }: { children: ReactNode }) {
 	const { setOpenMobile } = useSidebar();
 
 	return (
 		<Command.DialogRoot
 			onOpenChange={(open) => {
-				// Below the mobileBreakpoint the panel *is* a Sheet, so leaving it open
-				// would stack a dialog inside a dialog — two focus traps, and two
-				// scroll locks unwinding in an order neither owns.
+				// Why close the sheet: below the mobileBreakpoint the panel is a Sheet,
+				// and a palette over an open sheet stacks two focus traps and two
+				// scroll locks.
 				if (open) {
 					setOpenMobile(false);
 				}
 			}}
 		>
-			{/* the rail drops the row's own hint along with its label, so the
-			    tooltip repeats the chord for a pointer user */}
-			<Sidebar.Tooltip
-				label="Search"
-				shortcut={
-					<>
-						<MetaKey />
-						<Kbd>K</Kbd>
-					</>
-				}
-			>
-				<Command.SearchTrigger>
-					<Sidebar.SearchTrigger
-						shortcut={
-							<>
-								<MetaKey />
-								<Kbd>K</Kbd>
-							</>
-						}
-					>
-						<MagnifyingGlassIcon />
-						<span className="min-w-0 flex-1 truncate">Search</span>
-					</Sidebar.SearchTrigger>
-				</Command.SearchTrigger>
-			</Sidebar.Tooltip>
+			{children}
 			<Command.DialogContent>
 				<Command.Input placeholder="Search pages…" />
 				<Command.List>
@@ -1383,28 +1360,63 @@ function SidebarSearch() {
 	);
 }
 
+function SidebarSearchRow() {
+	// The rail drops the row's own hint along with its label, so the tooltip
+	// repeats the chord for a pointer user.
+	return (
+		<Sidebar.Tooltip
+			label="Search"
+			shortcut={
+				<>
+					<MetaKey />
+					<Kbd>K</Kbd>
+				</>
+			}
+		>
+			<Command.SearchTrigger>
+				<Sidebar.SearchTrigger
+					shortcut={
+						<>
+							<MetaKey />
+							<Kbd>K</Kbd>
+						</>
+					}
+				>
+					<MagnifyingGlassIcon />
+					<span className="min-w-0 flex-1 truncate">Search</span>
+				</Sidebar.SearchTrigger>
+			</Command.SearchTrigger>
+		</Sidebar.Tooltip>
+	);
+}
+
 function SidebarWithSearch() {
 	return (
 		<Sidebar.Root>
-			<Sidebar.Nav aria-label="Main">
-				<Sidebar.Body>
-					<SidebarSearch />
-					<Sidebar.Group>
-						<Sidebar.GroupLabel>Traffic</Sidebar.GroupLabel>
-						<Sidebar.List>
-							<Sidebar.Item>
-								<Sidebar.Tooltip label="Endpoints">
-									<Sidebar.ItemButton current>
-										<GraphIcon />
-										Endpoints
-									</Sidebar.ItemButton>
-								</Sidebar.Tooltip>
-							</Sidebar.Item>
-						</Sidebar.List>
-					</Sidebar.Group>
-				</Sidebar.Body>
-			</Sidebar.Nav>
-			<Sidebar.Trigger />
+			{/* Above Sidebar.Nav, not inside it: below the mobileBreakpoint the nav
+			    is a Sheet that unmounts its subtree when it closes, and a root in
+			    there takes the ⌘K binding with it. */}
+			<SidebarSearch>
+				<Sidebar.Nav aria-label="Main">
+					<Sidebar.Body>
+						<SidebarSearchRow />
+						<Sidebar.Group>
+							<Sidebar.GroupLabel>Traffic</Sidebar.GroupLabel>
+							<Sidebar.List>
+								<Sidebar.Item>
+									<Sidebar.Tooltip label="Endpoints">
+										<Sidebar.ItemButton current>
+											<GraphIcon />
+											Endpoints
+										</Sidebar.ItemButton>
+									</Sidebar.Tooltip>
+								</Sidebar.Item>
+							</Sidebar.List>
+						</Sidebar.Group>
+					</Sidebar.Body>
+				</Sidebar.Nav>
+				<Sidebar.Trigger />
+			</SidebarSearch>
 		</Sidebar.Root>
 	);
 }

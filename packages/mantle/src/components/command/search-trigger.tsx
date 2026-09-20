@@ -52,7 +52,10 @@ type CommandSearchTriggerProps = Omit<ComponentProps<typeof Slot>, "children"> &
  * What it contributes to the child:
  *
  * - `aria-haspopup="dialog"`, `aria-expanded`, `aria-controls`, and focus
- *   restoration on close, from the `Dialog.Trigger` it composes.
+ *   restoration on close, from the `Dialog.Trigger` it composes. Inside a
+ *   `Sheet` (a `Sidebar.Nav` below its `mobileBreakpoint`) the trigger still
+ *   binds to `Command.DialogRoot`, because `Sheet` parts read a dialog scope
+ *   of their own.
  * - `data-state="open" | "closed"`, stamped from the palette's own state so it
  *   survives being wrapped in another cloning trigger — a `Sidebar.Tooltip`
  *   passes its own `data-state` down, and Radix's prop merge would otherwise
@@ -108,25 +111,32 @@ type CommandSearchTriggerProps = Omit<ComponentProps<typeof Slot>, "children"> &
  * @example
  * In a sidebar, where `Sidebar.SearchTrigger` owns the row's appearance in both
  * panel states — including its hover-revealed shortcut hint — and
- * `Sidebar.Tooltip` labels it in the collapsed rail:
+ * `Sidebar.Tooltip` labels it in the collapsed rail. `Command.DialogRoot` sits
+ * above `Sidebar.Nav`: below `mobileBreakpoint` the nav is a sheet that
+ * unmounts its subtree when it closes, and a root inside it takes the `⌘K`
+ * binding with it.
  * ```tsx
- * <Sidebar.Body>
+ * <Sidebar.Root>
  *   <Command.DialogRoot>
- *     <Sidebar.Tooltip label="Search">
- *       <Command.SearchTrigger>
- *         <Sidebar.SearchTrigger
- *           shortcut={
- *             <>
- *               <MetaKey />
- *               <Kbd>K</Kbd>
- *             </>
- *           }
- *         >
- *           <MagnifyingGlassIcon />
- *           <span className="min-w-0 flex-1 truncate">Search</span>
- *         </Sidebar.SearchTrigger>
- *       </Command.SearchTrigger>
- *     </Sidebar.Tooltip>
+ *     <Sidebar.Nav aria-label="Main">
+ *       <Sidebar.Body>
+ *         <Sidebar.Tooltip label="Search">
+ *           <Command.SearchTrigger>
+ *             <Sidebar.SearchTrigger
+ *               shortcut={
+ *                 <>
+ *                   <MetaKey />
+ *                   <Kbd>K</Kbd>
+ *                 </>
+ *               }
+ *             >
+ *               <MagnifyingGlassIcon />
+ *               <span className="min-w-0 flex-1 truncate">Search</span>
+ *             </Sidebar.SearchTrigger>
+ *           </Command.SearchTrigger>
+ *         </Sidebar.Tooltip>
+ *       </Sidebar.Body>
+ *     </Sidebar.Nav>
  *     <Command.DialogContent>
  *       <Command.Input placeholder="Search endpoints, agents, and settings..." />
  *       <Command.List>
@@ -134,7 +144,8 @@ type CommandSearchTriggerProps = Omit<ComponentProps<typeof Slot>, "children"> &
  *       </Command.List>
  *     </Command.DialogContent>
  *   </Command.DialogRoot>
- * </Sidebar.Body>
+ *   <Sidebar.Trigger />
+ * </Sidebar.Root>
  * ```
  */
 // Why no `asChild` prop: this part is *only* a child-cloning wrapper, so
