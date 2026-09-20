@@ -142,26 +142,4 @@ describe("Sheet dialog scope", () => {
 
 		expect(onOpenChange).toHaveBeenCalledExactlyOnceWith(false);
 	});
-
-	it.each([
-		{ part: "Sheet.Trigger", name: "Open", slot: "sheet-trigger" },
-		{ part: "Sheet.Close", name: "Done", slot: "sheet-close" },
-	])("$part joins data-slot=$slot after a forwarded slot", ({ name, slot }) => {
-		render(
-			<Sheet.Root open>
-				<Sheet.Trigger data-slot="outer">Open</Sheet.Trigger>
-				<Sheet.Content>
-					<Sheet.Header>
-						<Sheet.Title>Filters</Sheet.Title>
-					</Sheet.Header>
-					<Sheet.Close data-slot="outer">Done</Sheet.Close>
-				</Sheet.Content>
-			</Sheet.Root>,
-		);
-		// `hidden`: the open sheet marks its own trigger `aria-hidden`.
-		expect(screen.getByRole("button", { name, hidden: true })).toHaveAttribute(
-			"data-slot",
-			`outer ${slot}`,
-		);
-	});
 });

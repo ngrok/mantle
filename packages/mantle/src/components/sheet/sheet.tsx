@@ -4,7 +4,6 @@ import { XIcon } from "@phosphor-icons/react/X";
 import { type VariantProps, cva } from "class-variance-authority";
 import type { ComponentProps, HTMLAttributes } from "react";
 import { cx } from "../../utils/cx/cx.js";
-import { joinDataSlot, type WithDataSlot } from "../../utils/data-slot.js";
 import { LayerContainer } from "../../utils/layer-container/layer-container.js";
 import {
 	IconButton,
@@ -161,8 +160,7 @@ const Root = (props: ComponentProps<typeof SheetPrimitiveRoot>) => {
  * Renders an unstyled button by default, but can be customized with the `asChild` prop.
  *
  * Opens the nearest `Sheet.Root`. It never opens a `Dialog.Root`, and a
- * `Dialog.Trigger` inside the sheet never opens the sheet. Carries
- * `data-slot="sheet-trigger"`, joined after any `data-slot` you forward.
+ * `Dialog.Trigger` inside the sheet never opens the sheet.
  *
  * @see https://mantle.ngrok.com/components/overlays/sheet#sheettrigger
  *
@@ -197,18 +195,9 @@ const Root = (props: ComponentProps<typeof SheetPrimitiveRoot>) => {
  * </Sheet.Root>
  * ```
  */
-const Trigger = ({
-	"data-slot": dataSlot,
-	...props
-}: ComponentProps<typeof SheetPrimitiveTrigger> & WithDataSlot) => {
+const Trigger = (props: ComponentProps<typeof SheetPrimitiveTrigger>) => {
 	const sheetScope = useSheetScope();
-	return (
-		<SheetPrimitiveTrigger
-			data-slot={joinDataSlot(dataSlot, "sheet-trigger")}
-			{...props}
-			{...sheetScope}
-		/>
-	);
+	return <SheetPrimitiveTrigger {...props} {...sheetScope} />;
 };
 
 /**
@@ -217,8 +206,7 @@ const Trigger = ({
  * Renders an unstyled button by default, but can be customized with the `asChild` prop.
  *
  * Closes the nearest `Sheet.Root`. It never closes a `Dialog.Root`, and a
- * `Dialog.Close` inside the sheet never closes the sheet. Carries
- * `data-slot="sheet-close"`, joined after any `data-slot` you forward.
+ * `Dialog.Close` inside the sheet never closes the sheet.
  *
  * @see https://mantle.ngrok.com/components/overlays/sheet#sheetclose
  *
@@ -253,18 +241,9 @@ const Trigger = ({
  * </Sheet.Root>
  * ```
  */
-const Close = ({
-	"data-slot": dataSlot,
-	...props
-}: ComponentProps<typeof SheetPrimitiveClose> & WithDataSlot) => {
+const Close = (props: ComponentProps<typeof SheetPrimitiveClose>) => {
 	const sheetScope = useSheetScope();
-	return (
-		<SheetPrimitiveClose
-			data-slot={joinDataSlot(dataSlot, "sheet-close")}
-			{...props}
-			{...sheetScope}
-		/>
-	);
+	return <SheetPrimitiveClose {...props} {...sheetScope} />;
 };
 
 /**
@@ -1220,8 +1199,7 @@ const Sheet = {
 	 * Renders an unstyled button by default, but can be customized with the `asChild` prop.
 	 *
 	 * Closes the nearest `Sheet.Root`. It never closes a `Dialog.Root`, and a
-	 * `Dialog.Close` inside the sheet never closes the sheet. Carries
-	 * `data-slot="sheet-close"`, joined after any `data-slot` you forward.
+	 * `Dialog.Close` inside the sheet never closes the sheet.
 	 *
 	 * @see https://mantle.ngrok.com/components/overlays/sheet#sheetclose
 	 *
@@ -1536,8 +1514,7 @@ const Sheet = {
 	 * Renders an unstyled button by default, but can be customized with the `asChild` prop.
 	 *
 	 * Opens the nearest `Sheet.Root`. It never opens a `Dialog.Root`, and a
-	 * `Dialog.Trigger` inside the sheet never opens the sheet. Carries
-	 * `data-slot="sheet-trigger"`, joined after any `data-slot` you forward.
+	 * `Dialog.Trigger` inside the sheet never opens the sheet.
 	 *
 	 * @see https://mantle.ngrok.com/components/overlays/sheet#sheettrigger
 	 *
