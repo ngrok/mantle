@@ -1,6 +1,7 @@
 "use client";
 
 import {
+	createDialogScope,
 	Close as DialogPrimitiveClose,
 	Content as DialogPrimitiveContent,
 	Description as DialogPrimitiveDescription,
@@ -101,9 +102,11 @@ const Description = ({
 }) => {
 	const Component = asChild ? Slot : "div";
 
+	// Why the props go on the Radix part: Radix reads `__scopeDialog` off them,
+	// and its slot merges the rest onto the child.
 	return (
-		<DialogPrimitiveDescription ref={ref} asChild>
-			<Component {...props}>{children}</Component>
+		<DialogPrimitiveDescription ref={ref} asChild {...props}>
+			<Component>{children}</Component>
 		</DialogPrimitiveDescription>
 	);
 };
@@ -120,6 +123,7 @@ function isDialogOverlayTarget(target: EventTarget | null): boolean {
 
 export {
 	//,
+	createDialogScope,
 	Root,
 	Trigger,
 	Portal,

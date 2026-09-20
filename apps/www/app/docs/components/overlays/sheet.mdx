@@ -524,6 +524,8 @@ The `Sheet` components are built on top of [Radix Dialog](https://www.radix-ui.c
 
 The root component for a `Sheet`. Should compose the `Sheet.Trigger` and `Sheet.Content`. Acts as a stateful provider for the Sheet's open/closed state.
 
+Every `Sheet` part reads a dialog scope of its own, so it binds to the nearest `Sheet.Root` and never to a `Dialog.Root`. The reverse holds too: a `Dialog.Trigger` or `Command.SearchTrigger` inside `Sheet.Content` reaches the `Dialog.Root` or `Command.DialogRoot` above the sheet, not the sheet. A `Dialog.Close` inside a sheet with no `Dialog.Root` above it throws Radix's "must be used within `Dialog`"; use `Sheet.Close` to close a sheet.
+
 `Sheet` renders its floating layer at Tailwind `z-60`, Mantle's overlay tier, above every float (`z-50`). Floats composed inside the content portal into the positioner (`data-slot="sheet-positioner"`) and paint above the content. When multiple overlays are open, the most recently mounted overlay renders on top.
 
 All props from Radix [Dialog.Root](https://www.radix-ui.com/primitives/docs/components/dialog#root).
@@ -532,11 +534,15 @@ All props from Radix [Dialog.Root](https://www.radix-ui.com/primitives/docs/comp
 
 The button trigger for a `Sheet`. Should be rendered as a child of the `Sheet` component. Renders an unstyled `button` by default, but can be customized with the `asChild` prop.
 
+Opens the nearest `Sheet.Root`. It never opens a `Dialog.Root`, and a `Dialog.Trigger` inside the sheet never opens the sheet. Carries `data-slot="sheet-trigger"`, joined after any `data-slot` you forward.
+
 All props from Radix [Dialog.Trigger](https://www.radix-ui.com/primitives/docs/components/dialog#trigger).
 
 ### Sheet.Close
 
 The close button for a `Sheet`. Should be rendered as a child of the `Sheet.Content` component. Usually contained within the `Sheet.Footer` component. Renders an unstyled `button` by default, but can be customized with the `asChild` prop.
+
+Closes the nearest `Sheet.Root`. It never closes a `Dialog.Root`, and a `Dialog.Close` inside the sheet never closes the sheet. Carries `data-slot="sheet-close"`, joined after any `data-slot` you forward.
 
 Radix [Dialog.Close](https://www.radix-ui.com/primitives/docs/components/dialog#close) props.
 

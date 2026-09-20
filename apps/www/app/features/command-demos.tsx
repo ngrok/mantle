@@ -19,6 +19,7 @@ import {
 	SmileyIcon,
 	UserIcon,
 } from "@phosphor-icons/react";
+import type { ReactNode } from "react";
 
 /**
  * The palette body every demo on this page shares: the input, the list, and two
@@ -129,14 +130,16 @@ export function CommandDialogDemo() {
 }
 
 /**
- * The sidebar's search row and the palette it opens.
+ * The palette a sidebar's search row opens. Wrap `Sidebar.Nav` in it, not the
+ * row: below the sidebar's `mobileBreakpoint` the panel is a `Sheet` that
+ * unmounts its subtree when it closes, and a root inside it takes the `⌘K`
+ * binding with it.
  *
- * `setOpenMobile(false)` as the palette opens is load-bearing, not tidiness:
- * below the sidebar's `mobileBreakpoint` the panel *is* a `Sheet`, so leaving it
- * open would stack a dialog inside a dialog — two focus traps, and two scroll
- * locks unwinding in an order neither owns.
+ * `setOpenMobile(false)` as the palette opens is load-bearing, not tidiness: a
+ * palette over an open sheet stacks two focus traps and two scroll locks, and
+ * they unwind in an order neither owns.
  */
-function SidebarSearch() {
+function SidebarSearch({ children }: { children: ReactNode }) {
 	const { setOpenMobile } = useSidebar();
 
 	return (
@@ -147,31 +150,41 @@ function SidebarSearch() {
 				}
 			}}
 		>
-			<Sidebar.Tooltip
-				label="Search"
-				shortcut={
-					<>
-						<MetaKey />
-						<Kbd>K</Kbd>
-					</>
-				}
-			>
-				<Command.SearchTrigger>
-					<Sidebar.SearchTrigger
-						shortcut={
-							<>
-								<MetaKey />
-								<Kbd>K</Kbd>
-							</>
-						}
-					>
-						<MagnifyingGlassIcon />
-						<span className="min-w-0 flex-1 truncate">Search</span>
-					</Sidebar.SearchTrigger>
-				</Command.SearchTrigger>
-			</Sidebar.Tooltip>
+			{children}
 			<DemoPaletteContent />
 		</Command.DialogRoot>
+	);
+}
+
+/**
+ * The sidebar's search row. It must render under {@link SidebarSearch}, in the
+ * sheet or out of it: the trigger binds to the palette either way.
+ */
+function SidebarSearchRow() {
+	return (
+		<Sidebar.Tooltip
+			label="Search"
+			shortcut={
+				<>
+					<MetaKey />
+					<Kbd>K</Kbd>
+				</>
+			}
+		>
+			<Command.SearchTrigger>
+				<Sidebar.SearchTrigger
+					shortcut={
+						<>
+							<MetaKey />
+							<Kbd>K</Kbd>
+						</>
+					}
+				>
+					<MagnifyingGlassIcon />
+					<span className="min-w-0 flex-1 truncate">Search</span>
+				</Sidebar.SearchTrigger>
+			</Command.SearchTrigger>
+		</Sidebar.Tooltip>
 	);
 }
 
@@ -195,41 +208,43 @@ export function CommandSearchShellDemo() {
 		<Sidebar.Root mobileBreakpoint="md">
 			<AppLayout.Root className="fixed inset-0">
 				<AppLayout.Workspace>
-					<Sidebar.Nav aria-label="Main">
-						<Sidebar.Header>
-							<Sidebar.SwitcherTrigger>
-								<GlobeIcon />
-								<span className="text-strong min-w-0 flex-1 truncate text-base">
-									Universal Gateway
-								</span>
-								<CaretDownIcon className="text-muted size-4 shrink-0" />
-							</Sidebar.SwitcherTrigger>
-						</Sidebar.Header>
-						<Sidebar.Body>
-							<SidebarSearch />
-							<Sidebar.Group>
-								<Sidebar.GroupLabel>Traffic</Sidebar.GroupLabel>
-								<Sidebar.List>
-									<Sidebar.Item>
-										<Sidebar.Tooltip label="Endpoints">
-											<Sidebar.ItemButton current>
-												<GraphIcon />
-												Endpoints
-											</Sidebar.ItemButton>
-										</Sidebar.Tooltip>
-									</Sidebar.Item>
-									<Sidebar.Item>
-										<Sidebar.Tooltip label="Edges">
-											<Sidebar.ItemButton>
-												<ShieldCheckIcon />
-												Edges
-											</Sidebar.ItemButton>
-										</Sidebar.Tooltip>
-									</Sidebar.Item>
-								</Sidebar.List>
-							</Sidebar.Group>
-						</Sidebar.Body>
-					</Sidebar.Nav>
+					<SidebarSearch>
+						<Sidebar.Nav aria-label="Main">
+							<Sidebar.Header>
+								<Sidebar.SwitcherTrigger>
+									<GlobeIcon />
+									<span className="text-strong min-w-0 flex-1 truncate text-base">
+										Universal Gateway
+									</span>
+									<CaretDownIcon className="text-muted size-4 shrink-0" />
+								</Sidebar.SwitcherTrigger>
+							</Sidebar.Header>
+							<Sidebar.Body>
+								<SidebarSearchRow />
+								<Sidebar.Group>
+									<Sidebar.GroupLabel>Traffic</Sidebar.GroupLabel>
+									<Sidebar.List>
+										<Sidebar.Item>
+											<Sidebar.Tooltip label="Endpoints">
+												<Sidebar.ItemButton current>
+													<GraphIcon />
+													Endpoints
+												</Sidebar.ItemButton>
+											</Sidebar.Tooltip>
+										</Sidebar.Item>
+										<Sidebar.Item>
+											<Sidebar.Tooltip label="Edges">
+												<Sidebar.ItemButton>
+													<ShieldCheckIcon />
+													Edges
+												</Sidebar.ItemButton>
+											</Sidebar.Tooltip>
+										</Sidebar.Item>
+									</Sidebar.List>
+								</Sidebar.Group>
+							</Sidebar.Body>
+						</Sidebar.Nav>
+					</SidebarSearch>
 					<AppLayout.Content>
 						<AppLayout.Header>
 							<Sidebar.Trigger

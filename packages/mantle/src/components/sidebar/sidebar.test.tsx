@@ -1233,6 +1233,44 @@ describe("Sidebar.SearchTrigger", () => {
 		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "collapsed");
 		expect(screen.getByRole("button", { name: "Search…" })).toBeInTheDocument();
 	});
+
+	test("inside the mobile sheet, Command.SearchTrigger opens the palette above Sidebar.Nav", async () => {
+		// Regression (#1523): the trigger is a Radix `Dialog.Trigger` and the
+		// mobile sheet is a Radix dialog, so without the sheet's own dialog scope
+		// a click toggles the sheet and never opens the palette.
+		useIsBelowBreakpointMock.mockReturnValue(true);
+		const user = userEvent.setup();
+		const onOpenMobileChange = vi.fn<(open: boolean) => void>();
+		render(
+			<Sidebar.Root openMobile onOpenMobileChange={onOpenMobileChange}>
+				<Command.DialogRoot keyboardShortcut={false}>
+					<Sidebar.Nav>
+						<Sidebar.Header>
+							<Command.SearchTrigger>
+								<Sidebar.SearchTrigger>
+									<MagnifyingGlassIcon />
+									<span>Search</span>
+								</Sidebar.SearchTrigger>
+							</Command.SearchTrigger>
+						</Sidebar.Header>
+					</Sidebar.Nav>
+					<Command.DialogContent title="Palette">
+						<Command.Input placeholder="Type a command…" />
+					</Command.DialogContent>
+				</Command.DialogRoot>
+			</Sidebar.Root>,
+		);
+
+		const trigger = screen.getByRole("button", { name: "Search" });
+		await user.click(trigger);
+
+		// Held from before the click: the open palette marks the trigger
+		// `aria-hidden`, so a role query cannot reach it any more.
+		const palette = await screen.findByRole("dialog", { name: "Palette" });
+		expect(trigger).toHaveAttribute("aria-controls", palette.id);
+		expect(trigger).toHaveAttribute("aria-expanded", "true");
+		expect(onOpenMobileChange).not.toHaveBeenCalled();
+	});
 });
 
 describe("Sidebar.Tooltip", () => {
