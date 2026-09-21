@@ -33,7 +33,7 @@
     "oxfmt": "catalog:",
     "oxlint": "1.83.0",
     "tsx": "catalog:",
-    "turbo": "2.10.13",
+    "turbo": "2.11.1",
     "vitest": "5.0.1"
   },
   "engines": {
