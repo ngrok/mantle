@@ -99,6 +99,18 @@ it("opens a menu of help destinations from the footer Help row", () => {
 // The multi-product shell's footer switcher row: one row, one menu, two scopes
 // (account and user). The row names the account, and the menu is the only way
 // into the settings section from this shell.
+describe("AppShellDemo header actions", () => {
+	it("runs an action from the collapsed More actions menu", () => {
+		renderShell(AppShellDemo);
+		expect(screen.queryByText("Preview notice")).toBeNull();
+
+		openMenu(screen.getByRole("button", { name: "More actions" }));
+		fireEvent.click(screen.getByRole("menuitem", { name: "Toggle notice" }));
+
+		expect(screen.queryByText("Preview notice")).not.toBeNull();
+	});
+});
+
 describe("AppShellDemo footer account switcher", () => {
 	it("switches accounts from the menu's submenu", () => {
 		renderShell(AppShellDemo);

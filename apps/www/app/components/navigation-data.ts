@@ -457,7 +457,7 @@ export const migrations = [
 		slug: "app-layout-header-slots-migration",
 		title: "App Layout Header Slots",
 		description:
-			"Compose AppLayout.Header from its three slots, and move a route's header actions from a context push onto the route's handle.",
+			"Compose AppLayout.Header from its three slots, let AppLayout.Body be the main landmark, and render the header in every route instead of the shell.",
 		route: "/migrations/0007-app-layout-header-slots-migration",
 	},
 ] as const satisfies readonly Migration[];

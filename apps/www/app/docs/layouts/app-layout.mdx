@@ -66,7 +66,6 @@ import { IconButton } from "@ngrok/mantle/button";
 import { Dialog } from "@ngrok/mantle/dialog";
 import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
 import { AutoThemeIcon } from "@ngrok/mantle/icons";
-import { Main } from "@ngrok/mantle/main";
 import { Sidebar, useSidebar } from "@ngrok/mantle/sidebar";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { ThemeDropdownMenuRadioGroup } from "@ngrok/mantle/theme-switcher";
@@ -93,7 +92,7 @@ import { UserIcon } from "@phosphor-icons/react/User";
 import { UserCircleIcon } from "@phosphor-icons/react/UserCircle";
 import { UsersThreeIcon } from "@phosphor-icons/react/UsersThree";
 import { WarningIcon } from "@phosphor-icons/react/Warning";
-import type { ReactNode } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { useState } from "react";
 
 type NavSection = {
@@ -450,7 +449,7 @@ function AccountSwitcher({
 /** One page-level action, described once so the icon buttons and the mobile menu stay in step. */
 type PageAction = {
 	label: string;
-	icon: ReactNode;
+	icon: ReactElement;
 	onSelect: () => void;
 };
 
@@ -1342,7 +1341,6 @@ import { AppLayout } from "@ngrok/mantle/app-layout";
 import { Badge } from "@ngrok/mantle/badge";
 import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
 import { Button, ButtonGroup, IconButton } from "@ngrok/mantle/button";
-import { Main } from "@ngrok/mantle/main";
 import { Separator } from "@ngrok/mantle/separator";
 import { Sidebar } from "@ngrok/mantle/sidebar";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";

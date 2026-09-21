@@ -59,7 +59,7 @@ import { UserCircleIcon } from "@phosphor-icons/react/UserCircle";
 import { UsersThreeIcon } from "@phosphor-icons/react/UsersThree";
 import { VaultIcon } from "@phosphor-icons/react/Vault";
 import { WarningIcon } from "@phosphor-icons/react/Warning";
-import type { KeyboardEvent, ReactNode } from "react";
+import type { KeyboardEvent, ReactElement, ReactNode } from "react";
 import { useRef, useState } from "react";
 
 /*
@@ -867,7 +867,7 @@ function AppShellAccountSwitcher({
 /** One page-level action, described once so the icon buttons and the mobile menu stay in step. */
 type PageAction = {
 	label: string;
-	icon: ReactNode;
+	icon: ReactElement;
 	onSelect: () => void;
 };
 

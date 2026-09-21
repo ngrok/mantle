@@ -254,7 +254,7 @@ import { IconButton } from "@ngrok/mantle/button";
 import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
 import { Tooltip } from "@ngrok/mantle/tooltip";
 import { DotsThreeIcon } from "@phosphor-icons/react/DotsThree";
-import { isValidElement, type ReactElement, type ReactNode } from "react";
+import { isValidElement, type ReactElement } from "react";
 import { useMatches } from "react-router";
 
 /**
@@ -348,8 +348,8 @@ function RouteHeaderActions() {
 type PageAction = {
 	/** The button's accessible name and the menu item's text. Name the action, not the icon. */
 	label: string;
-	/** The icon both renderings show. */
-	icon: ReactNode;
+	/** The icon both renderings show: one SVG element, as `IconButton` requires. */
+	icon: ReactElement;
 	/** Runs when the reader picks the action, from either rendering. */
 	onSelect: () => void;
 };
