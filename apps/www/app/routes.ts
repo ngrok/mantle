@@ -163,6 +163,7 @@ const migrationsPages = [
 	"0004-priority-to-intent-migration",
 	"0005-field-item-owns-control-id-migration",
 	"0006-data-table-tanstack-v9-migration",
+	"0007-app-layout-header-slots-migration",
 ];
 
 export default [

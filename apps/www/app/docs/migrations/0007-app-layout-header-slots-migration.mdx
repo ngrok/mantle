@@ -1,0 +1,180 @@
+---
+title: App Layout Header Slots Migration
+description: Compose AppLayout.Header from its three slots, and move a route's header actions from a context a page writes into onto the route's own handle.
+---
+
+# Mantle App Layout Header Slots Migration Guide
+
+`@ngrok/mantle`'s `AppLayout.Header` has three slots. `AppLayout.HeaderStart` holds the `Sidebar.Trigger`, `AppLayout.HeaderContent` holds the breadcrumb trail, and `AppLayout.HeaderActions` holds the page's actions. The slots carry the row's flex (`shrink-0`, `min-w-0 flex-1`, and `ml-auto shrink-0`), so a call site sets none of it. A header composed without them still renders, so nothing breaks on upgrade. This guide moves a shell onto the slots and moves a route's actions out of a context and onto its route module.
+
+**TL;DR:** Wrap the trigger in `AppLayout.HeaderStart`, the trail in `AppLayout.HeaderContent`, and the actions in `AppLayout.HeaderActions`. Delete the `min-w-0 flex-1` wrapper around the trail and the `ml-auto` on the actions. Replace a header-actions context and its effect hook with a `handle.headerActions` export on each route, read through `useMatches()`.
+
+---
+
+## You are an agent migrating a codebase. Do this:
+
+1. Find every `AppLayout.Header`. Wrap its `Sidebar.Trigger` in `AppLayout.HeaderStart`.
+2. Wrap the breadcrumb trail (`RouteBreadcrumbs`, or a `Breadcrumb.Root`) in `AppLayout.HeaderContent`. Delete a wrapper such as `<div className="min-w-0 flex-1">` around it, and delete a `flex-1` or `min-w-0` set on the trail for this purpose.
+3. Wrap the header's actions in `AppLayout.HeaderActions`. Delete a wrapper such as `<div className="ml-auto flex gap-2">` around them, and delete an `ml-auto` set on an action for this purpose.
+4. Find a header-actions context: a provider in the shell, a hook such as `usePageHeaderActions(<Actions />)` that a page calls from an effect, and a component that renders the context's value in the header. Copy `header-actions.tsx` from [Header Actions from Routes](/recipes/header-actions-from-routes) into the app.
+5. For every page that calls the hook, move the element it passes onto the page's route module: `export const handle = { headerActions: <Actions /> } satisfies HeaderActionsHandle`. Merge it with an existing `breadcrumb` handle. When the actions read page state, move that state to the URL (`useSearchParams`) or read the same query the page reads, because the element renders in the shell and not in the page.
+6. Render `<RouteHeaderActions />` inside `AppLayout.HeaderActions` in the shell. Delete the provider, the hook, and the old render component.
+7. Where the actions are icon buttons, render them through `PageActions`, so they collapse into one menu below the sidebar's mobile breakpoint. Change `md:contents` and `md:hidden` in the copied file to the app's `mobileBreakpoint` (`lg:` for ngrok's dashboards).
+8. After editing, run the project's formatter, linter, type checker, and tests.
+
+> **Why a route handle?** A context push arrives in an effect, so the server HTML and the first frame have no actions. The outgoing page's cleanup and the incoming page's push race on navigation. The route tree already says which page is active, and the provider says it again. A `handle` is a static export the server reads too, so the shell derives the actions from `useMatches()` the way it derives the trail.
+
+---
+
+## Before → after
+
+### The shell header
+
+```tsx
+// BEFORE: the row's flex is set by hand at the call site, and a context feeds the actions
+<AppLayout.Header>
+	<Sidebar.Trigger />
+	<div className="min-w-0 flex-1">
+		<RouteBreadcrumbs />
+	</div>
+	<PageHeaderActions />
+</AppLayout.Header>
+```
+
+```tsx
+// AFTER: the slots carry the flex, and the route declares the actions
+<AppLayout.Header>
+	<AppLayout.HeaderStart>
+		<Sidebar.Trigger />
+	</AppLayout.HeaderStart>
+	<AppLayout.HeaderContent>
+		<RouteBreadcrumbs />
+	</AppLayout.HeaderContent>
+	<AppLayout.HeaderActions>
+		<RouteHeaderActions />
+	</AppLayout.HeaderActions>
+</AppLayout.Header>
+```
+
+### A page that pushes its actions from an effect
+
+```tsx
+// BEFORE: app/routes/playground.tsx
+import type { BreadcrumbHandle } from "@ngrok/mantle/breadcrumb";
+import { Button } from "@ngrok/mantle/button";
+import { usePageHeaderActions } from "~/features/app-header/page-header-actions";
+import { Playground, useCodePanel } from "~/features/playground/playground";
+
+export const handle = { breadcrumb: "Playground" } satisfies BreadcrumbHandle;
+
+export default function PlaygroundPage() {
+	const { open } = useCodePanel();
+	usePageHeaderActions(
+		<Button type="button" appearance="outlined" intent="neutral" onClick={open}>
+			Get code
+		</Button>,
+	);
+	return <Playground />;
+}
+```
+
+```tsx
+// AFTER: app/routes/playground.tsx
+import type { BreadcrumbHandle } from "@ngrok/mantle/breadcrumb";
+import type { HeaderActionsHandle } from "~/features/header-actions/header-actions";
+import { Playground } from "~/features/playground/playground";
+import { PlaygroundActions } from "~/features/playground/playground-actions";
+
+export const handle = {
+	breadcrumb: "Playground",
+	headerActions: <PlaygroundActions />,
+} satisfies BreadcrumbHandle & HeaderActionsHandle;
+
+export default function PlaygroundPage() {
+	return <Playground />;
+}
+```
+
+```tsx
+// AFTER: app/features/playground/playground-actions.tsx
+import { CodeIcon } from "@phosphor-icons/react/Code";
+import { useSearchParams } from "react-router";
+import { PageActions } from "~/features/header-actions/header-actions";
+
+/**
+ * The playground's header actions. The code panel's open state lives in the
+ * URL, so the page and this element read one value and the server renders
+ * the right label.
+ */
+export function PlaygroundActions() {
+	const [searchParams, setSearchParams] = useSearchParams();
+	const codeOpen = searchParams.get("code") === "open";
+
+	return (
+		<PageActions
+			actions={[
+				{
+					label: codeOpen ? "Hide code" : "Get code",
+					icon: <CodeIcon />,
+					onSelect: () => {
+						setSearchParams((previous) => {
+							const next = new URLSearchParams(previous);
+							if (codeOpen) {
+								next.delete("code");
+							} else {
+								next.set("code", "open");
+							}
+							return next;
+						});
+					},
+				},
+			]}
+		/>
+	);
+}
+```
+
+### A header with no actions
+
+```tsx
+// BEFORE
+<AppLayout.Header>
+	<Sidebar.Trigger />
+	<RouteBreadcrumbs />
+</AppLayout.Header>
+```
+
+```tsx
+// AFTER: two slots; the actions slot is optional
+<AppLayout.Header>
+	<AppLayout.HeaderStart>
+		<Sidebar.Trigger />
+	</AppLayout.HeaderStart>
+	<AppLayout.HeaderContent>
+		<RouteBreadcrumbs />
+	</AppLayout.HeaderContent>
+</AppLayout.Header>
+```
+
+---
+
+## Edge cases & gotchas
+
+- **A route with tab children.** A child route that exports no `headerActions` inherits its ancestor's, so a detail route's actions stay on every tab. Export `headerActions: null` on a child that must show none.
+- **A detail route registered beside its list route**, not nested under it, inherits nothing from the list. Declare its own actions.
+- **Actions that read page state.** The element renders in the shell, above the `<Outlet />`, so a `useState` in the page is out of reach. Use the URL, the route's loader data, or the query the page reads.
+- **`useLoaderData()` inside the actions element** returns the layout route's data, not the leaf's. Use `useRouteLoaderData` with the leaf's route id.
+- **An action that is not a plain button** (a `Dialog.Trigger`, a router `Link`). Compose the element yourself instead of a `PageActions` list. The slot takes any JSX.
+- **CSS on the old wrappers.** A selector such as `[data-slot="app-layout-header"] > div` now matches the slots. Target `[data-slot="app-layout-header-content"]` or `[data-slot="app-layout-header-actions"]` instead.
+- **Tests that select the header's children by position.** The slots add one element level. Select by role and name instead.
+
+---
+
+## How to verify
+
+1. Type check. A `headerActions` value that is not an element or `null` fails the `satisfies HeaderActionsHandle` clause.
+2. Load a page with a long breadcrumb trail at a narrow width. The trail scrolls inside the header, and the actions stay at the row's end.
+3. View the server HTML of a page that declares actions. The actions are in the first response.
+4. Navigate between two pages that declare different actions. The header shows the new page's actions with no flash of the old ones.
+5. Narrow the viewport below the sidebar's mobile breakpoint. The icon buttons become one menu with the same actions.
+6. Run the project's formatter, linter, type checker, and tests.

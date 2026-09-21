@@ -452,6 +452,14 @@ export const migrations = [
 			"Move a DataTable from TanStack Table v8 to v9: useTable with a features object, columnHelper.columns, sortFn, and table.state.",
 		route: "/migrations/0006-data-table-tanstack-v9-migration",
 	},
+	{
+		number: 7,
+		slug: "app-layout-header-slots-migration",
+		title: "App Layout Header Slots",
+		description:
+			"Compose AppLayout.Header from its three slots, and move a route's header actions from a context push onto the route's handle.",
+		route: "/migrations/0007-app-layout-header-slots-migration",
+	},
 ] as const satisfies readonly Migration[];
 
 /** Migration guides, newest first: the order the index page and the sidebar show. */

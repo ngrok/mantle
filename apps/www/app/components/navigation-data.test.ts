@@ -35,5 +35,5 @@ describe("migrations", () => {
 });
 
 it("migrationsNewestFirst orders the guides by descending number", () => {
-	expect(migrationsNewestFirst.map((migration) => migration.number)).toEqual([6, 5, 4, 3, 2, 1]);
+	expect(migrationsNewestFirst.map((migration) => migration.number)).toEqual([7, 6, 5, 4, 3, 2, 1]);
 });
