@@ -1,6 +1,6 @@
 ---
 title: Header Actions from Routes
-description: Declare each route's header actions on its React Router route handle (derived state, so the server renders them and no page pushes anything up).
+description: The documented deviation from the canonical route-owned header. A shell-owned header takes its actions from React Router route handles (derived state, so the server renders them and no page pushes anything up).
 ---
 
 import { Example } from "~/components/example";
@@ -17,8 +17,11 @@ decision a declaration on the route module, the same way
 [Breadcrumbs from Routes](/recipes/breadcrumbs-from-routes) declares the trail: the route exports a
 `handle`, and the shell reads it out of `useMatches()`.
 
-This is the composition for a shell that owns the header. When a route's actions read page state, the route
-owns the header instead: [One header per page](/layouts/app-layout#one-header-per-page) shows that shape.
+> [!IMPORTANT]
+> This recipe is the documented deviation, not the canonical shell. In the canonical shell each route renders
+> its own header through the app's `Page` component, and an action reads the page's own state:
+> [One header per page](/layouts/app-layout#one-header-per-page). Use this recipe only when an app keeps the
+> header in its shell and no route needs page state in its actions. Never mix the two in one app.
 
 Pick a URL. The actions follow the deepest route that declares any:
 
@@ -109,7 +112,7 @@ That constraint keeps the first paint right. Keep the state where the server can
 route's loader data, or the query cache the page reads. Router hooks work in the
 shell, because the element renders inside the router. `useParams()` returns the leaf's params from a layout,
 `useSearchParams()` reads and writes the URL, and `useRouteLoaderData(routeId)` reads any matched route's
-data. If the actions must read the page component's own state, switch to the route-owned header in
+data. If the actions must read the page component's own state, use the canonical shell instead:
 [One header per page](/layouts/app-layout#one-header-per-page).
 
 ```tsx

@@ -18,7 +18,7 @@ This is a breaking change for a shell embedded in a page that already owns a `ma
 
 Each slot is a flex row with the header's own `gap-2`, accepts `asChild`, and appends its own `data-slot` after any you forward. A header composed without the slots renders as before.
 
-Every page in an app that renders `AppLayout` renders one `AppLayout.Header`, with `Sidebar.Trigger` in `AppLayout.HeaderStart` and the route's breadcrumb trail in `AppLayout.HeaderContent`. The App Layout docs state that requirement and show the two compositions that meet it: a shell-owned header whose actions come from route handles, and a route-owned header through an app-level `Page` component. The docs compose the three slots in the app shell, standalone, editor, and landmark examples. A new recipe derives each route's actions from a React Router route handle and collapses them into one menu below the mobile breakpoint: https://mantle.ngrok.com/recipes/header-actions-from-routes
+Every page in an app that renders `AppLayout` renders one `AppLayout.Header`, with `Sidebar.Trigger` in `AppLayout.HeaderStart` and the route's breadcrumb trail in `AppLayout.HeaderContent`. The App Layout docs state that requirement and show the canonical shell: the shell renders `AppLayout.Content` around its `<Outlet />`, and an app-level `Page` component renders the header row and `AppLayout.Body` for every route, so an action reads the page's own state. The docs compose the three slots in the app shell, standalone, editor, and landmark examples. A shell-owned header whose actions come from React Router route handles is the documented deviation: https://mantle.ngrok.com/recipes/header-actions-from-routes
 
 Migration guide: https://mantle.ngrok.com/migrations/0007-app-layout-header-slots-migration
 

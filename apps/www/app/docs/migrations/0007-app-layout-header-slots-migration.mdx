@@ -1,28 +1,28 @@
 ---
 title: App Layout Header Slots Migration
-description: Compose AppLayout.Header from its three slots, let AppLayout.Body be the main landmark, and move each route's header actions out of a context and onto the route.
+description: Compose AppLayout.Header from its three slots, let AppLayout.Body be the main landmark, and give each route its header through an app-level Page component.
 ---
 
 # Mantle App Layout Header Slots Migration Guide
 
-`@ngrok/mantle`'s `AppLayout.Header` has three slots. `AppLayout.HeaderStart` holds the `Sidebar.Trigger`, `AppLayout.HeaderContent` holds the breadcrumb trail, and `AppLayout.HeaderActions` holds the page's actions. The slots carry the row's flex (`shrink-0`, `min-w-0 flex-1`, and `ml-auto shrink-0`), so a call site sets none of it. A header composed without them still renders, so nothing breaks on upgrade. This guide moves a shell onto the slots and moves a route's actions out of a context and onto its route module.
+`@ngrok/mantle`'s `AppLayout.Header` has three slots. `AppLayout.HeaderStart` holds the `Sidebar.Trigger`, `AppLayout.HeaderContent` holds the breadcrumb trail, and `AppLayout.HeaderActions` holds the page's actions. The slots carry the row's flex (`shrink-0`, `min-w-0 flex-1`, and `ml-auto shrink-0`), so a call site sets none of it. A header composed without them still renders, so nothing breaks on upgrade. This guide moves a shell onto the slots and onto the canonical composition: each route renders its header and its body through one app-level `Page` component, and a context that pages push actions into goes away.
 
-**TL;DR:** Wrap the trigger in `AppLayout.HeaderStart`, the trail in `AppLayout.HeaderContent`, and the actions in `AppLayout.HeaderActions`. Delete the `min-w-0 flex-1` wrapper around the trail and the `ml-auto` on the actions. Replace a header-actions context and its effect hook with a `handle.headerActions` export on each route, read through `useMatches()`. `AppLayout.Body` now renders `Main` itself, so delete the `Main` composed onto it, and pass `asChild` with a `<div>` where the page already owns a `main`.
+**TL;DR:** Copy `Page` from [One header per page](/layouts/app-layout#one-header-per-page) into the app. It renders `AppLayout.Header` (`AppLayout.HeaderStart` with `Sidebar.Trigger`, `AppLayout.HeaderContent` with `RouteBreadcrumbs`, `AppLayout.HeaderActions` with the route's actions) and `AppLayout.Body`. The shell keeps only `<Outlet />` inside `AppLayout.Content`, and every route renders `<Page actions={…}>`. Delete the header-actions context and its effect hook. `AppLayout.Body` now renders `Main` itself, so delete the `Main` composed onto it, and pass `asChild` with a `<div>` where the page already owns a `main`.
 
 ---
 
 ## You are an agent migrating a codebase. Do this:
 
-1. Find every `AppLayout.Header`. Wrap its `Sidebar.Trigger` in `AppLayout.HeaderStart`.
-2. Wrap the breadcrumb trail (`RouteBreadcrumbs`, or a `Breadcrumb.Root`) in `AppLayout.HeaderContent`. Delete a wrapper such as `<div className="min-w-0 flex-1">` around it, and delete a `flex-1` or `min-w-0` set on the trail for this purpose.
-3. Wrap the header's actions in `AppLayout.HeaderActions`. Delete a wrapper such as `<div className="ml-auto flex gap-2">` around them, and delete an `ml-auto` set on an action for this purpose.
-4. Find a header-actions context: a provider in the shell, a hook such as `usePageHeaderActions(<Actions />)` that a page calls from an effect, and a component that renders the context's value in the header. Copy `header-actions.tsx` from [Header Actions from Routes](/recipes/header-actions-from-routes) into the app.
-5. For every page that calls the hook, move the element it passes onto the page's route module: `export const handle = { headerActions: <Actions /> } satisfies HeaderActionsHandle`. Merge it with an existing `breadcrumb` handle. When the actions read page state, move that state to the URL (`useSearchParams`) or read the same query the page reads, because the element renders in the shell and not in the page.
-6. Render `<RouteHeaderActions />` inside `AppLayout.HeaderActions` in the shell. Delete the provider, the hook, and the old render component.
-7. Where the actions are icon buttons, render them through `PageActions`, so they collapse into one menu below the sidebar's mobile breakpoint. Change `md:contents` and `md:hidden` in the copied file to the app's `mobileBreakpoint` (`lg:` for ngrok's dashboards).
+1. Copy the `Page` component from [One header per page](/layouts/app-layout#one-header-per-page) into the app at `app/features/page/page.tsx`. Point its `RouteBreadcrumbs` import at the app's copy of [Breadcrumbs from Routes](/recipes/breadcrumbs-from-routes).
+2. In the shell, delete `AppLayout.Header` and `AppLayout.Body`. `AppLayout.Content` holds only the `<Outlet />`.
+3. In every route module that renders a page, wrap the page in `<Page>`. A layout route with tab children renders `Page` once, and the tab routes render only their content through its `<Outlet />`.
+4. Find a header-actions context: a provider in the shell, a hook such as `usePageHeaderActions(<Actions />)` that a page calls from an effect, and a component that renders the context's value. For every page that calls the hook, move the element it passes onto that page's `<Page actions={…}>`. The element keeps reading the page's own state. Delete the provider, the hook, and the render component.
+5. Delete a wrapper such as `<div className="min-w-0 flex-1">` around a trail and `<div className="ml-auto flex gap-2">` around actions, and delete a `flex-1`, `min-w-0`, or `ml-auto` set on them for this purpose. The slots carry the flex.
+6. Where the actions are icon buttons, collapse them into one menu below the sidebar's mobile breakpoint. `PageActions` in [Header Actions from Routes → The file](/recipes/header-actions-from-routes#the-file) is a router-free component that does this. Change `md:contents` and `md:hidden` to the app's `mobileBreakpoint` (`lg:` for ngrok's dashboards).
+7. If a route suspends, keep the boundary inside `AppLayout.Body`, the way `Page` does. Delete a boundary that wraps the shell's `<Outlet />` with a whole-card fallback.
 8. After editing, run the project's formatter, linter, type checker, and tests.
 
-> **Why a route handle?** A context push arrives in an effect, so the server HTML and the first frame have no actions. The outgoing page's cleanup and the incoming page's push race on navigation. The route tree already says which page is active, and the provider says it again. A `handle` is a static export the server reads too, so the shell derives the actions from `useMatches()` the way it derives the trail.
+> **Why `Page`, not a context or a handle?** A context push arrives in an effect, so the server HTML and the first frame have no actions, and the outgoing page's cleanup races the incoming page's push. A route handle is a static export, so an action there cannot read the page's state. `Page` renders in the route: the header is in the first paint, the server renders it, and an action reads the state beside it. Every route renders `Page`, so no page ships without the trigger and the trail.
 
 ---
 
@@ -38,32 +38,73 @@ The same release makes `AppLayout.Body` the `main` landmark by default. It rende
 
 ## Before → after
 
-### The shell header
+### The shell
 
 ```tsx
-// BEFORE: the call site sets the row's flex by hand, and a context feeds the actions
-<AppLayout.Header>
-	<Sidebar.Trigger />
-	<div className="min-w-0 flex-1">
-		<RouteBreadcrumbs />
-	</div>
-	<PageHeaderActions />
-</AppLayout.Header>
+// BEFORE: the shell renders the header, sets the row's flex by hand, and a context feeds the actions
+<AppLayout.Content>
+	<AppLayout.Header>
+		<Sidebar.Trigger />
+		<div className="min-w-0 flex-1">
+			<RouteBreadcrumbs />
+		</div>
+		<PageHeaderActions />
+	</AppLayout.Header>
+	<AppLayout.Body asChild>
+		<Main>
+			<Outlet />
+		</Main>
+	</AppLayout.Body>
+</AppLayout.Content>
 ```
 
 ```tsx
-// AFTER: the slots carry the flex, and the route declares the actions
-<AppLayout.Header>
-	<AppLayout.HeaderStart>
-		<Sidebar.Trigger />
-	</AppLayout.HeaderStart>
-	<AppLayout.HeaderContent>
-		<RouteBreadcrumbs />
-	</AppLayout.HeaderContent>
-	<AppLayout.HeaderActions>
-		<RouteHeaderActions />
-	</AppLayout.HeaderActions>
-</AppLayout.Header>
+// AFTER: the shell renders the card, and each route renders Page
+<AppLayout.Content>
+	<Outlet />
+</AppLayout.Content>
+```
+
+### The `Page` component
+
+```tsx
+// app/features/page/page.tsx
+import { AppLayout } from "@ngrok/mantle/app-layout";
+import { Sidebar } from "@ngrok/mantle/sidebar";
+import { Skeleton } from "@ngrok/mantle/skeleton";
+import { Suspense, type ReactNode } from "react";
+import { RouteBreadcrumbs } from "~/features/breadcrumbs/breadcrumbs";
+
+type PageProps = {
+	/** The page's header actions, three at most. Omit the prop when the page has none. */
+	actions?: ReactNode;
+	children: ReactNode;
+};
+
+/**
+ * The header row and the scroll container for one route. Every route renders
+ * it, so no page ships without `Sidebar.Trigger` and the trail. The Suspense
+ * boundary sits inside `AppLayout.Body`, so a page that suspends keeps its
+ * header on screen.
+ */
+export function Page({ actions, children }: PageProps) {
+	return (
+		<>
+			<AppLayout.Header>
+				<AppLayout.HeaderStart>
+					<Sidebar.Trigger />
+				</AppLayout.HeaderStart>
+				<AppLayout.HeaderContent>
+					<RouteBreadcrumbs />
+				</AppLayout.HeaderContent>
+				{actions != null && <AppLayout.HeaderActions>{actions}</AppLayout.HeaderActions>}
+			</AppLayout.Header>
+			<AppLayout.Body>
+				<Suspense fallback={<Skeleton className="m-6 h-32" />}>{children}</Suspense>
+			</AppLayout.Body>
+		</>
+	);
+}
 ```
 
 ### A page that pushes its actions from an effect
@@ -91,63 +132,34 @@ export default function PlaygroundPage() {
 ```tsx
 // AFTER: app/routes/playground.tsx
 import type { BreadcrumbHandle } from "@ngrok/mantle/breadcrumb";
-import type { HeaderActionsHandle } from "~/features/header-actions/header-actions";
-import { Playground } from "~/features/playground/playground";
-import { PlaygroundActions } from "~/features/playground/playground-actions";
+import { Button } from "@ngrok/mantle/button";
+import { Page } from "~/features/page/page";
+import { Playground, useCodePanel } from "~/features/playground/playground";
 
-export const handle = {
-	breadcrumb: "Playground",
-	headerActions: <PlaygroundActions />,
-} satisfies BreadcrumbHandle & HeaderActionsHandle;
+export const handle = { breadcrumb: "Playground" } satisfies BreadcrumbHandle;
 
 export default function PlaygroundPage() {
-	return <Playground />;
-}
-```
-
-```tsx
-// AFTER: app/features/playground/playground-actions.tsx
-import { CodeIcon } from "@phosphor-icons/react/Code";
-import { useSearchParams } from "react-router";
-import { PageActions } from "~/features/header-actions/header-actions";
-
-/**
- * The playground's header actions. The code panel's open state lives in the
- * URL, so the page and this element read one value and the server renders
- * the right label.
- */
-export function PlaygroundActions() {
-	const [searchParams, setSearchParams] = useSearchParams();
-	const codeOpen = searchParams.get("code") === "open";
-
+	const { open } = useCodePanel();
 	return (
-		<PageActions
-			actions={[
-				{
-					label: codeOpen ? "Hide code" : "Get code",
-					icon: <CodeIcon />,
-					onSelect: () => {
-						setSearchParams((previous) => {
-							const next = new URLSearchParams(previous);
-							if (codeOpen) {
-								next.delete("code");
-							} else {
-								next.set("code", "open");
-							}
-							return next;
-						});
-					},
-				},
-			]}
-		/>
+		<Page
+			actions={
+				<Button type="button" appearance="outlined" intent="neutral" size="sm" onClick={open}>
+					Get code
+				</Button>
+			}
+		>
+			<Playground />
+		</Page>
 	);
 }
 ```
 
-### A header with no actions
+The action reads the same state as the page, with no URL round trip and no effect.
+
+### A page with no actions
 
 ```tsx
-// BEFORE
+// BEFORE: the shell rendered this header for every page
 <AppLayout.Header>
 	<Sidebar.Trigger />
 	<RouteBreadcrumbs />
@@ -155,39 +167,39 @@ export function PlaygroundActions() {
 ```
 
 ```tsx
-// AFTER: two slots; the actions slot is optional
-<AppLayout.Header>
-	<AppLayout.HeaderStart>
-		<Sidebar.Trigger />
-	</AppLayout.HeaderStart>
-	<AppLayout.HeaderContent>
-		<RouteBreadcrumbs />
-	</AppLayout.HeaderContent>
-</AppLayout.Header>
+// AFTER: app/routes/settings.tsx
+export default function SettingsPage() {
+	return (
+		<Page>
+			<SettingsForm />
+		</Page>
+	);
+}
 ```
 
 ---
 
 ## Edge cases & gotchas
 
-- **A route with tab children.** A child route that exports no `headerActions` inherits its ancestor's, so a detail route's actions stay on every tab. Export `headerActions: null` on a child that must show none.
-- **A detail route registered beside its list route**, not nested under it, inherits nothing from the list. Declare its own actions.
-- **Actions that read page state.** The element renders in the shell, above the `<Outlet />`, so a `useState` in the page is out of reach. Use the URL, the route's loader data, or the query the page reads.
-- **`useLoaderData()` inside the actions element** returns the layout route's data, not the leaf's. Use `useRouteLoaderData` with the leaf's route id.
-- **An action that is not a plain button** (a `Dialog.Trigger`, a router `Link`). Compose the element yourself instead of a `PageActions` list. The slot takes any JSX.
+- **A layout route with tab children.** The layout renders `Page` once, and its tab routes render only their content through the layout's `<Outlet />`. Two `Page`s on one URL render two headers.
+- **A route that renders no `Page`** ships without the trigger and the trail. Compare the route list with the modules that render `<Page`. A leaf route or its layout renders it, never neither.
+- **An action that is not a plain button** (a `Dialog.Trigger`, a router `Link`, a toggle with its own state). Pass it as `actions`. The slot takes any JSX.
+- **Three actions at most.** The header is one row, and the trail beside it needs the width more than a fourth button does. Move the rest into the page.
+- **A shell that must keep its header.** Derive the actions from a route handle with [Header Actions from Routes](/recipes/header-actions-from-routes). That is the documented deviation, and an action there reads only the URL and loader data. Never mix the two in one app.
 - **CSS on the old wrappers.** A selector such as `[data-slot="app-layout-header"] > div` now matches the slots. Target `[data-slot="app-layout-header-content"]` or `[data-slot="app-layout-header-actions"]` instead.
 - **Tests that select the header's children by position.** The slots add one element level. Select by role and name instead.
-- **Actions that must read the page component's own state.** Give the route the header instead of a handle: an app-level `Page` component renders the header row and `AppLayout.Body`, and each route passes its actions. [One header per page](/layouts/app-layout#one-header-per-page) shows it.
 - **Tests that render `AppLayout.Body` inside a page that already has a `main`.** `getByRole("main")` now finds two. Pass `asChild` with a `<div>` in the embedded one.
 
 ---
 
 ## How to verify
 
-1. Type check. A `headerActions` value that is not an element or `null` fails the `satisfies HeaderActionsHandle` clause.
-2. Load a page with a long breadcrumb trail at a narrow width. The trail scrolls inside the header, and the actions stay at the row's end.
-3. View the server HTML of a page that declares actions. The actions are in the first response.
-4. Press Tab on a fresh page load and take the skip link. Focus lands on the scrolling body, and PageDown scrolls it.
-5. Navigate between two pages that declare different actions. The header shows the new page's actions with no flash of the old ones.
-6. Narrow the viewport below the sidebar's mobile breakpoint. The icon buttons become one menu with the same actions.
-7. Run the project's formatter, linter, type checker, and tests.
+1. Type check.
+2. Compare the route list with the modules that render `<Page`. Every URL renders exactly one.
+3. Load a page with a long breadcrumb trail at a narrow width. The trail scrolls inside the header, and the actions stay at the row's end.
+4. View the server HTML of a page with actions. The header and the actions are in the first response.
+5. Press Tab on a fresh page load and take the skip link. Focus lands on the scrolling body, and PageDown scrolls it.
+6. Navigate between two pages with different actions. The header shows the new page's actions with no flash of the old ones.
+7. Suspend a load inside a page. The header stays on screen while the body shows the fallback.
+8. Narrow the viewport below the sidebar's mobile breakpoint. Icon buttons rendered through `PageActions` become one menu with the same actions.
+9. Run the project's formatter, linter, type checker, and tests.

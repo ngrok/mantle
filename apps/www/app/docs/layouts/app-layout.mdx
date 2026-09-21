@@ -509,6 +509,34 @@ function PageActions({ actions }: { actions: ReadonlyArray<PageAction> }) {
 	);
 }
 
+/**
+ * The header row and the scroll container every route renders. A real app's
+ * `Page` renders `RouteBreadcrumbs` in the content slot; the demo's fake
+ * router has no matches, so the shell passes the trail in.
+ */
+function Page({
+	trail,
+	actions,
+	children,
+}: {
+	trail: ReactNode;
+	actions?: ReactNode;
+	children: ReactNode;
+}) {
+	return (
+		<>
+			<AppLayout.Header>
+				<AppLayout.HeaderStart>
+					<Sidebar.Trigger />
+				</AppLayout.HeaderStart>
+				<AppLayout.HeaderContent>{trail}</AppLayout.HeaderContent>
+				{actions != null && <AppLayout.HeaderActions>{actions}</AppLayout.HeaderActions>}
+			</AppLayout.Header>
+			<AppLayout.Body>{children}</AppLayout.Body>
+		</>
+	);
+}
+
 export function Shell() {
 	// the framed examples fake a router so they can be embedded; a real app
 	// renders react-router `Link`s through `asChild` and derives both `current`
@@ -666,11 +694,8 @@ export function Shell() {
 					</Sidebar.Nav>
 
 					<AppLayout.Content>
-						<AppLayout.Header>
-							<AppLayout.HeaderStart>
-								<Sidebar.Trigger />
-							</AppLayout.HeaderStart>
-							<AppLayout.HeaderContent>
+						<Page
+							trail={
 								<Breadcrumb.Root>
 									<Breadcrumb.List>
 										{inSettings && (
@@ -694,12 +719,11 @@ export function Shell() {
 										</Breadcrumb.Item>
 									</Breadcrumb.List>
 								</Breadcrumb.Root>
-							</AppLayout.HeaderContent>
-							<AppLayout.HeaderActions>
-								<PageActions actions={headerActions} />
-							</AppLayout.HeaderActions>
-						</AppLayout.Header>
-						<AppLayout.Body>{/* your routed page content */}</AppLayout.Body>
+							}
+							actions={<PageActions actions={headerActions} />}
+						>
+							{/* your routed page content */}
+						</Page>
 					</AppLayout.Content>
 				</AppLayout.Workspace>
 			</AppLayout.Root>
@@ -983,11 +1007,10 @@ export function AppLayoutHeaderSlotsExample() {
 
 </CodeExample.Root>
 
-Either the shell renders the header once, above its `<Outlet />`, or each route renders its own.
-[One header per page](#one-header-per-page) states the requirement both meet and shows each. Collapse the
-actions into one menu below the sidebar's mobile breakpoint. The [app shell demo](#app-layout) at the top of
-this page shows the collapse: switch its preview to the mobile viewport and the three icon buttons become one
-menu.
+Each route renders its own header through the app's `Page` component, and
+[One header per page](#one-header-per-page) is the canonical shell. Collapse the actions into one menu below
+the sidebar's mobile breakpoint. The [app shell demo](#app-layout) at the top of this page shows both: its
+`Page` renders the header, and in the mobile viewport the three icon buttons become one menu.
 
 ## One header per page
 
@@ -997,18 +1020,12 @@ menu.
 > breadcrumb trail. This is a hard requirement. The sidebar can collapse at every breakpoint, and
 > `Sidebar.Trigger` is the only way back from a collapsed rail or a closed mobile sheet.
 
-Two compositions meet it. Pick one per app.
-
-**The shell owns the header.** The shell renders `AppLayout.Header` once, above its `<Outlet />`, and each
-route declares its actions on its route handle.
-[Header Actions from Routes](/recipes/header-actions-from-routes) is the recipe. It fits an app whose
-actions read only the URL and loader data, because the actions element renders outside the page.
-
-**The route owns the header.** The shell renders `AppLayout.Content` around its `<Outlet />`, and one
-app-level `Page` component renders the header row and `AppLayout.Body`. Each route renders `<Page>` and
-passes its actions, so an action reads the page's own state. Prefer this composition when a route's actions
-read page state, and use it on every route once you pick it, so no page ships without the trigger and the
-trail.
+The canonical shell gives each route its header. The shell renders `AppLayout.Content` around its
+`<Outlet />`, and one app-level `Page` component renders the header row and `AppLayout.Body`. Each route
+renders `<Page>` and passes its actions, so an action reads the page's own state, and no page ships without
+the trigger and the trail. Every route renders `Page`. The single-page demos on this page render
+`AppLayout.Header` and `AppLayout.Body` directly where `Page` would, and the one other composition is the
+[deviation](#the-deviation-a-shell-owned-header) at the end of this section.
 
 The shell renders the card and nothing inside it:
 
@@ -1128,6 +1145,14 @@ A boundary above the header blanks the trigger and the trail until the data arri
 loses the only way back to the sidebar. React Router awaits a route module before it commits a navigation,
 so only suspension inside the page component (a `use()` call, `useSuspenseQuery`, a lazy child) reaches a
 boundary. Never wrap the shell's `<Outlet />` in a boundary whose fallback replaces the whole card.
+
+### The deviation: a shell-owned header
+
+A shell can render `AppLayout.Header` once, above its `<Outlet />`, and derive each route's actions from a
+route handle. [Header Actions from Routes](/recipes/header-actions-from-routes) documents it. It is
+secondary, and it costs something: the actions element renders outside the page, so it reads only the URL
+and loader data, and a route whose action needs page state cannot use it. Pick it only when an app already
+keeps its header in the shell and no route needs page state in its actions. Never mix the two in one app.
 
 ## Standalone
 
@@ -1840,14 +1865,15 @@ owns one (a docs page, a test, a widget inside another layout), pass `asChild` a
 The part adds its classes and `data-slot="app-layout-body"` to your element and no landmark. Every inline
 example on this page does this, because the page you are reading owns the `main`.
 
-The composition below is exactly what every framed preview on this page renders. It is the one example here
-with no inline preview beside it, deliberately: a document may contain only one `main` landmark and this docs
-page already owns one, and the shell pins itself over the whole viewport with `fixed inset-0`, so the live
-version of it can only be a framed preview, which the sections above already are.
+The composition below is the canonical shell. It renders the frame, the skip link, and the content card, and
+each route renders its header and its body through the app's `Page` component (see
+[One header per page](#one-header-per-page)). It is the one example here with no inline preview beside it,
+deliberately: a document may contain only one `main` landmark and this docs page already owns one, and the
+shell pins itself over the whole viewport with `fixed inset-0`. The framed previews on this page are single
+pages, so each renders `AppLayout.Header` and `AppLayout.Body` directly where `Page` would.
 
 ```tsx
 import { AppLayout } from "@ngrok/mantle/app-layout";
-import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { Outlet } from "react-router";
 
@@ -1857,20 +1883,8 @@ export function Shell() {
 			<SkipToMainLink />
 			<AppLayout.Workspace>
 				<AppLayout.Content>
-					<AppLayout.Header>
-						<AppLayout.HeaderContent>
-							<Breadcrumb.Root>
-								<Breadcrumb.List>
-									<Breadcrumb.Item>
-										<Breadcrumb.Page>Endpoints</Breadcrumb.Page>
-									</Breadcrumb.Item>
-								</Breadcrumb.List>
-							</Breadcrumb.Root>
-						</AppLayout.HeaderContent>
-					</AppLayout.Header>
-					<AppLayout.Body>
-						<Outlet />
-					</AppLayout.Body>
+					{/* each route renders <Page>: AppLayout.Header and AppLayout.Body */}
+					<Outlet />
 				</AppLayout.Content>
 			</AppLayout.Workspace>
 		</AppLayout.Root>
@@ -1896,7 +1910,7 @@ export function Shell() {
   route's trail in `AppLayout.HeaderContent`.** The sidebar can collapse at every breakpoint, and
   `Sidebar.Trigger` is the only way back from a collapsed rail or a closed mobile sheet. A page with a
   collapsible sidebar and no visible trigger is unrecoverable. [One header per page](#one-header-per-page)
-  shows the two compositions that meet the requirement.
+  is the canonical shell that meets it.
 
 ## API Reference
 
@@ -1959,7 +1973,8 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 The card surface beside the sidebar:
 `bg-card border-card-muted relative m-(--app-layout-card-gutter,0.5rem) flex min-w-0 flex-1 flex-col overflow-clip rounded-xl border shadow-sm`.
-Holds `AppLayout.Header` and `AppLayout.Body`.
+Holds `AppLayout.Header` and `AppLayout.Body`. In the canonical shell it wraps the route's `<Outlet />`, and the
+route's `Page` renders both (see [One header per page](#one-header-per-page)).
 
 The card **does not scroll** — [`AppLayout.Body`](#applayoutbody) does. It insets itself from the window edge
 and the rail with its own margin, driven by `--app-layout-card-gutter`, because the gutter has to belong to
@@ -1993,7 +2008,8 @@ order: [`AppLayout.HeaderStart`](#applayoutheaderstart) for the
 [`Sidebar.Trigger`](/components/navigation/sidebar#sidebartrigger),
 [`AppLayout.HeaderContent`](#applayoutheadercontent) for the [Breadcrumb](/components/navigation/breadcrumb)
 trail, and [`AppLayout.HeaderActions`](#applayoutheaderactions) for the page's actions. The slots carry the
-flex, so no call site sets `flex-1`, `min-w-0`, `shrink-0`, or `ml-auto` itself.
+flex, so no call site sets `flex-1`, `min-w-0`, `shrink-0`, or `ml-auto` itself. In the canonical shell, each route's `Page` renders it (see
+[One header per page](#one-header-per-page)).
 
 It is **pinned by construction, not by `sticky`**: as a `shrink-0` flex sibling _outside_ the scrolling
 `AppLayout.Body`, it cannot scroll away, cannot be overlapped by a page's own `sticky top-0`, does not
@@ -2079,7 +2095,8 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 The page region, and the shell's **only** scroll container:
 `scrollbar relative min-h-0 w-full flex-1 overflow-y-auto overscroll-none`. Render it after
-`AppLayout.Header` inside `AppLayout.Content`, and put your `<Outlet />` in it.
+`AppLayout.Header` inside `AppLayout.Content`. In the canonical shell the route's `Page` renders both, with
+the page content as the body's children (see [One header per page](#one-header-per-page)).
 
 It renders mantle's [Main](/components/primitives/main) landmark: `<main id="main" tabIndex={-1}>` with
 `data-slot="app-layout-body main"`, so a [SkipToMainLink](/components/primitives/skip-to-main-link) lands on

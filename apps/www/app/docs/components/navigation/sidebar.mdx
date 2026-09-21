@@ -1564,12 +1564,8 @@ export default function Root({ loaderData }: Route.ComponentProps) {
 						</Sidebar.Body>
 					</Sidebar.Nav>
 					<AppLayout.Content>
-						<AppLayout.Header>
-							<Sidebar.Trigger />
-						</AppLayout.Header>
-						<AppLayout.Body>
-							<Outlet />
-						</AppLayout.Body>
+						{/* each route renders <Page>: Sidebar.Trigger, the trail, and AppLayout.Body */}
+						<Outlet />
 					</AppLayout.Content>
 				</AppLayout.Workspace>
 			</AppLayout.Root>
