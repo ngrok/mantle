@@ -19,6 +19,7 @@ import {
 	useRef,
 } from "react";
 import invariant from "tiny-invariant";
+import type { SelfClosingWithAsChild } from "../../types/as-child.js";
 import { parseBooleanish } from "../../types/booleanish.js";
 import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
 import { clsx } from "../../utils/cx/clsx.js";
@@ -35,10 +36,17 @@ type TabsStateContextValue = {
 	appearance: Appearance;
 };
 
-const TabsStateContext = createContext<TabsStateContextValue>({
-	orientation: "horizontal",
-	appearance: "classic",
-});
+const TabsStateContext = createContext<TabsStateContextValue | null>(null);
+
+/**
+ * Reads the root's `orientation` and `appearance` for a part. Throws with the
+ * part's name when the part renders outside `Tabs.Root`.
+ */
+function useTabsState(partName: string): TabsStateContextValue {
+	const context = useContext(TabsStateContext);
+	invariant(context != null, `${partName} must be rendered inside Tabs.Root.`);
+	return context;
+}
 
 /**
  * A set of layered sections of content—known as tab panels—that are displayed one at a time.
@@ -156,7 +164,7 @@ const listVariants = cva("flex", {
  * ```
  */
 const List = ({ className, ref, ...props }: ComponentProps<typeof TabsPrimitiveList>) => {
-	const { orientation, appearance } = useContext(TabsStateContext);
+	const { orientation, appearance } = useTabsState("Tabs.List");
 	const scrollRef = useRef<ComponentRef<typeof TabsPrimitiveList>>(null);
 	const composedRef = useComposedRefs(scrollRef, ref);
 
@@ -232,7 +240,11 @@ const List = ({ className, ref, ...props }: ComponentProps<typeof TabsPrimitiveL
 	);
 };
 
-type TabsSeparatorProps = Omit<ComponentProps<typeof Separator>, "orientation">;
+type TabsSeparatorProps = Omit<
+	ComponentProps<typeof Separator>,
+	"asChild" | "children" | "orientation"
+> &
+	SelfClosingWithAsChild;
 
 /**
  * The hairline between the list and the content, in the `separator` color
@@ -246,7 +258,7 @@ type TabsSeparatorProps = Omit<ComponentProps<typeof Separator>, "orientation">;
  * own, the offset stays off.
  *
  * The separator is decorative (`role="none"`). Pass `semantic` for
- * `role="separator"`.
+ * `role="separator"`. Outside `Tabs.Root` it throws.
  *
  * **CSS variables:**
  *
@@ -279,7 +291,7 @@ type TabsSeparatorProps = Omit<ComponentProps<typeof Separator>, "orientation">;
  * ```
  */
 const TabsSeparator = ({ className, ...props }: TabsSeparatorProps) => {
-	const { orientation } = useContext(TabsStateContext);
+	const { orientation } = useTabsState("Tabs.Separator");
 
 	// Why the parent selector: the root lays its children out with `gap`, so
 	// only a separator that is the root's direct child has a gap to cancel.
@@ -321,7 +333,7 @@ const triggerDecorationVariants = cva("absolute z-0", {
 });
 
 const TabsTriggerDecoration = () => {
-	const { orientation, appearance } = useContext(TabsStateContext);
+	const { orientation, appearance } = useTabsState("Tabs.Trigger");
 
 	return (
 		<span aria-hidden className={clsx(triggerDecorationVariants({ orientation, appearance }))} />
@@ -413,7 +425,7 @@ const Trigger = ({
 	ref,
 	...props
 }: TabsTriggerProps) => {
-	const { orientation, appearance } = useContext(TabsStateContext);
+	const { orientation, appearance } = useTabsState("Tabs.Trigger");
 	const disabled = parseBooleanish(_ariaDisabled ?? _disabled);
 
 	const tabsTriggerProps = {
@@ -640,7 +652,7 @@ const Tabs = {
 	 * own, the offset stays off.
 	 *
 	 * The separator is decorative (`role="none"`). Pass `semantic` for
-	 * `role="separator"`.
+	 * `role="separator"`. Outside `Tabs.Root` it throws.
 	 *
 	 * @see https://mantle.ngrok.com/components/navigation/tabs#tabsseparator
 	 *
