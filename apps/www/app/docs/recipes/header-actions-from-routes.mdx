@@ -173,6 +173,9 @@ server paints the right one and hydration swaps nothing. The menu's items mount 
 `useIsBelowBreakpoint` branch would render the desktop buttons on the server and swap them after hydration
 on a phone.
 
+The tooltips need a [`TooltipProvider`](/components/overlays/tooltip#tooltipprovider) ancestor, so mount one
+at the app root. `Tooltip.Root` throws without it.
+
 Two rules keep the row honest:
 
 - **Three actions at most.** The header is one row, and the trail beside it needs the width more than a
