@@ -164,6 +164,7 @@ const migrationsPages = [
 	"0005-field-item-owns-control-id-migration",
 	"0006-data-table-tanstack-v9-migration",
 	"0007-app-layout-header-slots-migration",
+	"0008-tabs-separator-migration",
 ];
 
 export default [

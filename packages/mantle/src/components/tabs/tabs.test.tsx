@@ -68,88 +68,6 @@ describe("Tabs", () => {
 			);
 		});
 
-		test("horizontal classic appearance draws the bottom border by default", () => {
-			render(
-				<Tabs.Root appearance="classic" orientation="horizontal" defaultValue="a">
-					<Tabs.List>
-						<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
-						<Tabs.Trigger value="b">Tab B</Tabs.Trigger>
-					</Tabs.List>
-				</Tabs.Root>,
-			);
-
-			const tablist = screen.getByRole("tablist");
-			// Why class assertions: the border-on compound stamps no attribute of its
-			// own (`data-hide-border` reads the prop), so its classes are the only
-			// observable of that lookup entry. `--_fade-bottom-border` also pins the
-			// custom property `scroll-fade-x` reads in `mantle.css`.
-			expect(tablist).toHaveClass("bg-origin-content", "pb-px", "[--_fade-bottom-border:black]");
-			expect(tablist).not.toHaveAttribute("data-hide-border");
-		});
-
-		test("hideBorder removes the bottom border paint and renders data-hide-border", () => {
-			render(
-				<Tabs.Root appearance="classic" orientation="horizontal" defaultValue="a">
-					<Tabs.List hideBorder>
-						<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
-						<Tabs.Trigger value="b">Tab B</Tabs.Trigger>
-					</Tabs.List>
-				</Tabs.Root>,
-			);
-
-			const tablist = screen.getByRole("tablist");
-			expect(tablist).toHaveAttribute("data-hide-border");
-			// Why a class absence: the `hideBorder: false` compound is the only source
-			// of `bg-origin-content`, and the default test above pins that spelling, so
-			// its absence is the one observable of the compound's `hideBorder` condition.
-			expect(tablist).not.toHaveClass("bg-origin-content");
-		});
-
-		test("horizontal pill appearance never draws the bottom border", () => {
-			render(
-				<Tabs.Root appearance="pill" orientation="horizontal" defaultValue="a">
-					<Tabs.List>
-						<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
-						<Tabs.Trigger value="b">Tab B</Tabs.Trigger>
-					</Tabs.List>
-				</Tabs.Root>,
-			);
-
-			expect(screen.getByRole("tablist")).not.toHaveClass("bg-origin-content");
-		});
-
-		test("vertical classic appearance draws the side border by default with the separator token", () => {
-			render(
-				<Tabs.Root appearance="classic" orientation="vertical" defaultValue="a">
-					<Tabs.List>
-						<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
-						<Tabs.Trigger value="b">Tab B</Tabs.Trigger>
-					</Tabs.List>
-				</Tabs.Root>,
-			);
-
-			// Why class assertions: the vertical border-on compound stamps no attribute
-			// of its own (`data-hide-border` reads the prop), so its classes are the
-			// only observable of that lookup entry.
-			expect(screen.getByRole("tablist")).toHaveClass("border-r", "border-separator");
-		});
-
-		test("hideBorder removes the vertical classic side border", () => {
-			render(
-				<Tabs.Root appearance="classic" orientation="vertical" defaultValue="a">
-					<Tabs.List hideBorder>
-						<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
-						<Tabs.Trigger value="b">Tab B</Tabs.Trigger>
-					</Tabs.List>
-				</Tabs.Root>,
-			);
-
-			// Why a class absence: the vertical `hideBorder: false` compound is the only
-			// source of `border-r`, and the default test above pins that spelling, so its
-			// absence is the one observable of the compound's `hideBorder` condition.
-			expect(screen.getByRole("tablist")).not.toHaveClass("border-r");
-		});
-
 		// Regression: a pointer press focused the trigger, the list scrolled it to
 		// the center, and the click landed on empty space, so an asChild link
 		// never navigated.
@@ -202,6 +120,60 @@ describe("Tabs", () => {
 			expect(screen.getByRole("tab", { name: "Tab B" })).toHaveFocus();
 			expect(screen.getByRole("tab", { name: "Tab B" })).toHaveAttribute("aria-selected", "true");
 			expect(scrollIntoView).toHaveBeenCalledTimes(2);
+		});
+	});
+
+	describe("Separator", () => {
+		test.each(["horizontal", "vertical"] as const)(
+			"follows the root's %s orientation and names its slot",
+			(orientation) => {
+				const { container } = render(
+					<Tabs.Root orientation={orientation} defaultValue="a">
+						<Tabs.List>
+							<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
+						</Tabs.List>
+						<Tabs.Separator />
+						<Tabs.Content value="a">Panel A</Tabs.Content>
+					</Tabs.Root>,
+				);
+
+				const separator = container.querySelector('[data-slot="tabs-separator"]');
+				expect(separator).toHaveAttribute("data-orientation", orientation);
+				expect(separator).toHaveAttribute("data-separator");
+			},
+		);
+
+		test("is decorative until semantic", () => {
+			const { container, rerender } = render(
+				<Tabs.Root defaultValue="a">
+					<Tabs.Separator />
+				</Tabs.Root>,
+			);
+			expect(container.querySelector('[data-slot="tabs-separator"]')).toHaveAttribute(
+				"role",
+				"none",
+			);
+
+			rerender(
+				<Tabs.Root defaultValue="a">
+					<Tabs.Separator semantic />
+				</Tabs.Root>,
+			);
+			expect(screen.getByRole("separator")).toHaveAttribute("data-slot", "tabs-separator");
+		});
+
+		test("merges the consumer's className and ref onto the separator element", () => {
+			const refSpy = vi.fn<(node: HTMLDivElement | null) => void>();
+			const { container } = render(
+				<Tabs.Root defaultValue="a">
+					<Tabs.Separator className="my-2" ref={refSpy} />
+				</Tabs.Root>,
+			);
+
+			const separator = container.querySelector('[data-slot="tabs-separator"]');
+			expect(separator).toHaveClass("my-2");
+			expect(refSpy).toHaveBeenCalledTimes(1);
+			expect(refSpy).toHaveBeenLastCalledWith(separator);
 		});
 	});
 
