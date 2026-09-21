@@ -5,7 +5,6 @@ import { AppLayout } from "@ngrok/mantle/app-layout";
 import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
 import { Button } from "@ngrok/mantle/button";
 import { useSessionStorage } from "@ngrok/mantle/hooks";
-import { Main } from "@ngrok/mantle/main";
 import { Sidebar } from "@ngrok/mantle/sidebar";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { GearIcon } from "@phosphor-icons/react/Gear";
@@ -212,25 +211,23 @@ export function AlertCenterShellDemo() {
 								Reset alerts
 							</Button>
 						</AppLayout.Header>
-						<AppLayout.Body asChild>
-							<Main>
-								<div className="space-y-4 p-6">
-									<p className="text-muted text-sm">
-										The alert bar is composed in the top-of-window notice slot. Choose the
-										count-and-caret control to expand or collapse the other alert banners.
-									</p>
-									{Array.from({ length: 10 }, (_, index) => (
-										<div key={index} className="border-card-muted rounded-lg border p-4">
-											<p className="text-strong text-sm font-medium">
-												{currentLabel} row {index + 1}
-											</p>
-											<p className="text-muted text-sm">
-												The page region is the only scroll container — the document never scrolls.
-											</p>
-										</div>
-									))}
-								</div>
-							</Main>
+						<AppLayout.Body>
+							<div className="space-y-4 p-6">
+								<p className="text-muted text-sm">
+									The alert bar is composed in the top-of-window notice slot. Choose the
+									count-and-caret control to expand or collapse the other alert banners.
+								</p>
+								{Array.from({ length: 10 }, (_, index) => (
+									<div key={index} className="border-card-muted rounded-lg border p-4">
+										<p className="text-strong text-sm font-medium">
+											{currentLabel} row {index + 1}
+										</p>
+										<p className="text-muted text-sm">
+											The page region is the only scroll container — the document never scrolls.
+										</p>
+									</div>
+								))}
+							</div>
 						</AppLayout.Body>
 					</AppLayout.Content>
 				</AppLayout.Workspace>
@@ -647,8 +644,9 @@ export function AlertCenterRouteAlertExample() {
 									</Button>
 								))}
 							</AppLayout.Header>
-							<AppLayout.Body>
-								{pathname === "/endpoints" ? <EndpointsRoute /> : <AgentsRoute />}
+							{/* Why asChild: the docs page already owns the main landmark. */}
+							<AppLayout.Body asChild>
+								<div>{pathname === "/endpoints" ? <EndpointsRoute /> : <AgentsRoute />}</div>
 							</AppLayout.Body>
 						</AppLayout.Content>
 					</AppLayout.Workspace>

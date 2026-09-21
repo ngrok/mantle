@@ -12,7 +12,6 @@ import {
 import { Empty } from "@ngrok/mantle/empty";
 import { Input } from "@ngrok/mantle/input";
 import { LiveRegion } from "@ngrok/mantle/live-region";
-import { Main } from "@ngrok/mantle/main";
 import { Select } from "@ngrok/mantle/select";
 import { Skeleton } from "@ngrok/mantle/skeleton";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
@@ -818,10 +817,8 @@ export function ListPageLoadingDemo() {
 							</Button>
 						</div>
 					</AppLayout.Header>
-					<AppLayout.Body asChild>
-						<Main>
-							<DomainsListPage scenario={scenario} />
-						</Main>
+					<AppLayout.Body>
+						<DomainsListPage scenario={scenario} />
 					</AppLayout.Body>
 				</AppLayout.Content>
 			</AppLayout.Workspace>

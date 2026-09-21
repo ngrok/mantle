@@ -4,7 +4,6 @@ import { AppLayout } from "@ngrok/mantle/app-layout";
 import { Button } from "@ngrok/mantle/button";
 import { Command, MetaKey } from "@ngrok/mantle/command";
 import { Kbd } from "@ngrok/mantle/kbd";
-import { Main } from "@ngrok/mantle/main";
 import { Sidebar, useSidebar } from "@ngrok/mantle/sidebar";
 import {
 	CalculatorIcon,
@@ -258,13 +257,13 @@ export function CommandSearchShellDemo() {
 							<span className="text-strong text-sm font-medium">Endpoints</span>
 						</AppLayout.Header>
 						<AppLayout.Body>
-							<Main className="p-6">
+							<div className="p-6">
 								<p className="text-muted text-sm">
 									Collapse the sidebar to see the search row become an icon chip, or press{" "}
 									<MetaKey />
 									<Kbd>K</Kbd> to open the palette.
 								</p>
-							</Main>
+							</div>
 						</AppLayout.Body>
 					</AppLayout.Content>
 				</AppLayout.Workspace>

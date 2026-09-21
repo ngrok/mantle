@@ -334,6 +334,7 @@ export const layoutDescriptions = {
 export const recipePages = [
 	//,
 	"Breadcrumbs from Routes",
+	"Header Actions from Routes",
 	"List Page Loading States",
 	"Overlays + Async Data",
 	"Route Announcer",
@@ -342,6 +343,7 @@ export const recipePages = [
 /** Route lookup for recipe pages. */
 export const recipeRoutes = {
 	"Breadcrumbs from Routes": "/recipes/breadcrumbs-from-routes",
+	"Header Actions from Routes": "/recipes/header-actions-from-routes",
 	"List Page Loading States": "/recipes/list-page-loading-states",
 	"Overlays + Async Data": "/recipes/overlay-async",
 	"Route Announcer": "/recipes/route-announcer",
@@ -351,6 +353,8 @@ export const recipeRoutes = {
 export const recipeDescriptions = {
 	"Breadcrumbs from Routes":
 		"Derive a breadcrumb trail from the matched route chain with React Router route handles \u2014 derived state, so it is correct on the server and on the first frame, with no context and no effects.",
+	"Header Actions from Routes":
+		"Put each route's actions in the app header's actions slot from a React Router route handle. The deepest route wins, the server renders them, and below the mobile breakpoint they collapse into one menu.",
 	"List Page Loading States":
 		"Render a list page's header, filters, and column headers on the first frame, then fill the table with skeleton rows that match the loaded rows, so nothing shifts when the data lands.",
 	"Overlays + Async Data":
@@ -447,6 +451,14 @@ export const migrations = [
 		description:
 			"Move a DataTable from TanStack Table v8 to v9: useTable with a features object, columnHelper.columns, sortFn, and table.state.",
 		route: "/migrations/0006-data-table-tanstack-v9-migration",
+	},
+	{
+		number: 7,
+		slug: "app-layout-header-slots-migration",
+		title: "App Layout Header Slots",
+		description:
+			"Compose AppLayout.Header from its three slots, let AppLayout.Body be the main landmark, and render the header in every route instead of the shell.",
+		route: "/migrations/0007-app-layout-header-slots-migration",
 	},
 ] as const satisfies readonly Migration[];
 

@@ -41,7 +41,6 @@ one) to watch the next-highest severity promote into the bar.
 import { Alert } from "@ngrok/mantle/alert";
 import { AlertCenter } from "@ngrok/mantle/alert-center";
 import { AppLayout } from "@ngrok/mantle/app-layout";
-import { Main } from "@ngrok/mantle/main";
 import { Sidebar } from "@ngrok/mantle/sidebar";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { useState } from "react";
@@ -101,14 +100,8 @@ export function Shell() {
 						</Sidebar.Body>
 					</Sidebar.Nav>
 					<AppLayout.Content>
-						<AppLayout.Header>
-							<Sidebar.Trigger />
-						</AppLayout.Header>
-						<AppLayout.Body asChild>
-							<Main>
-								<Outlet />
-							</Main>
-						</AppLayout.Body>
+						{/* each route renders AppLayout.Header and AppLayout.Body */}
+						<Outlet />
 					</AppLayout.Content>
 				</AppLayout.Workspace>
 			</AppLayout.Root>
@@ -627,8 +620,9 @@ export function Shell() {
 								</Button>
 							))}
 						</AppLayout.Header>
-						<AppLayout.Body>
-							{pathname === "/endpoints" ? <EndpointsRoute /> : <AgentsRoute />}
+						{/* Why asChild: the docs page already owns the main landmark. */}
+						<AppLayout.Body asChild>
+							<div>{pathname === "/endpoints" ? <EndpointsRoute /> : <AgentsRoute />}</div>
 						</AppLayout.Body>
 					</AppLayout.Content>
 				</AppLayout.Workspace>
@@ -639,10 +633,10 @@ export function Shell() {
 ```
 
 The item unmounts with the route, so the alert clears on navigation for free. The route buttons stand in for
-a router; a real shell renders its `Outlet` inside `AppLayout.Body`, pins the shell with
-`className="fixed inset-0"`, and composes the `Main` landmark onto `AppLayout.Body` with `asChild`, exactly
-as in the [example at the top of this page](#alert-center). This demo is embedded in a docs page that already
-owns the document, so it does neither.
+a router. A real shell renders its `Outlet` inside `AppLayout.Body`, which is the `main` landmark, and pins
+the shell with `className="fixed inset-0"`, exactly as in the
+[example at the top of this page](#alert-center). This demo is embedded in a docs page that already owns the
+`main` landmark, so it composes `AppLayout.Body` onto a plain `<div>` with `asChild` and does not pin.
 
 One consequence worth knowing: `AlertCenter.Root` renders the `sr-only` live region at its **own** position
 in the tree, so hoisting it also moves that element out of the notice slot. It is visually hidden either way,

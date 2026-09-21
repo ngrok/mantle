@@ -1,0 +1,621 @@
+---
+title: Header Actions from Routes
+description: The documented deviation from the canonical route-owned header. A shell-owned header takes its actions from React Router route handles (derived state, so the server renders them and no page pushes anything up).
+---
+
+import { Example } from "~/components/example";
+import { RouteHeaderActionsDemo } from "~/features/route-header-actions-demo";
+
+# Header Actions from Routes
+
+The app header has three slots. [`AppLayout.HeaderStart`](/layouts/app-layout#applayoutheaderstart) holds
+the sidebar trigger, [`AppLayout.HeaderContent`](/layouts/app-layout#applayoutheadercontent) holds the
+breadcrumb trail, and [`AppLayout.HeaderActions`](/layouts/app-layout#applayoutheaderactions) holds the
+page's actions. The shell renders that header once, above its `<Outlet />`, so a leaf route cannot reach the
+third slot from its own JSX. Which actions render is still that route's decision. This recipe makes the
+decision a declaration on the route module, the same way
+[Breadcrumbs from Routes](/recipes/breadcrumbs-from-routes) declares the trail: the route exports a
+`handle`, and the shell reads it out of `useMatches()`.
+
+> [!IMPORTANT]
+> This recipe is the documented deviation, not the canonical shell. In the canonical shell each route renders
+> its own `AppLayout.Header` and `AppLayout.Body`, and an action reads the page's own state:
+> [One header per page](/layouts/app-layout#one-header-per-page). Use this recipe only when an app keeps the
+> header in its shell and no route needs page state in its actions. Never mix the two in one app.
+
+Pick a URL. The actions follow the deepest route that declares any:
+
+<Example className="md:p-8">
+	<RouteHeaderActionsDemo />
+</Example>
+
+> [!NOTE]
+> The demo does not navigate. It swaps between **fixture** match arrays, because a demo embedded in this page
+> cannot mount a second router. The real `findHeaderActions` reads them, unmodified. Narrow the window below
+> `md` to watch the actions collapse into one menu.
+
+## Why not a context provider
+
+The tempting shape is a provider in the shell and a `usePageHeaderActions(<Actions />)` hook a page calls
+from an effect. Avoid it. It shares three of the
+[four costs the breadcrumbs recipe lists](/recipes/breadcrumbs-from-routes#why-not-a-context-provider) (a
+fixed depth does not apply), and adds one more:
+
+- **A wrong first paint.** The actions arrive in an effect, so the first frame has none. Server-rendered HTML
+  has none at all.
+- **Clobbering on navigation.** The outgoing page's cleanup and the incoming page's push race, so which
+  actions survive depends on effect order.
+- **Two sources of truth.** The route tree already says which page is active; the provider says it again.
+- **Actions that outlive their page.** The push depends on the page having mounted. A page that suspends,
+  errors, or renders behind a gate leaves the previous page's actions in the header.
+
+Deriving from `useMatches()` has none of these. It is correct on the server, correct on the first frame, has
+no order to get wrong, and follows the route tree exactly.
+
+## Anatomy
+
+```text showLineNumbers=false
+routes.ts                 the route tree, the single source of truth for which page is active
+└── each route module
+    └── export const handle = { headerActions: <PageActions … /> }   what this route puts in the slot
+        └── <RouteHeaderActions />                                  reads useMatches(), picks the deepest one
+            └── AppLayout.HeaderActions                              the slot, at the row's end, shrink-0
+```
+
+Four pieces, each with one job:
+
+1. **`handle.headerActions`** on a route module: the element to render, or `null` to render none.
+2. **`findHeaderActions`**: picks the deepest match that declares one. Pure and router-agnostic, so a test
+   asserts it over a fixture.
+3. **`RouteHeaderActions`**: the one component that calls `useMatches()`. The hook stays at the edge, so the
+   demo above runs the same function with no router.
+4. **`PageActions`**: renders a list of actions as icon buttons at desktop widths and as one menu below the
+   mobile breakpoint. A route composes its own element instead whenever an action is not a plain button.
+
+All four ship in [one file](#the-file), which stays in your app because it owns the two decisions mantle
+cannot make: which router you use, and how your product draws an action.
+
+## The handle
+
+`handle` is a static export of the route module, so it is never serialized and it is available on the server.
+Its shape here is one property:
+
+```tsx
+// app/routes/endpoints.tsx
+import type { BreadcrumbHandle } from "@ngrok/mantle/breadcrumb";
+import { PlusIcon } from "@phosphor-icons/react/Plus";
+import { type HeaderActionsHandle, PageActions } from "~/features/header-actions/header-actions";
+
+export const handle = {
+	breadcrumb: "Endpoints",
+	headerActions: (
+		<PageActions
+			actions={[{ id: "new", label: "New endpoint", icon: <PlusIcon />, onSelect: () => {} }]}
+		/>
+	),
+} satisfies BreadcrumbHandle & HeaderActionsHandle;
+```
+
+Three rules decide what renders:
+
+- **The deepest match that declares `headerActions` wins.** A detail route replaces its list route's actions.
+- **A route that declares nothing inherits.** A tab route under a detail route keeps the detail's actions on
+  every tab, with no per-tab wiring.
+- **`null` opts out.** A child route under an ancestor that declares actions renders none.
+
+Declare an **element**, not a component type: `headerActions: <PlaygroundActions />`. The shell renders it
+where the slot is, so hooks inside `PlaygroundActions` run normally. The `satisfies` clause makes a string or
+a component type a compile error, and `hasHeaderActions` treats one as no declaration at runtime.
+
+## Actions that need state
+
+The element renders in the shell, not inside the page, so it cannot read the page component's `useState`.
+That constraint keeps the first paint right. Keep the state where the server can see it: the URL, the
+route's loader data, or the query cache the page reads. Router hooks work in the
+shell, because the element renders inside the router. `useParams()` returns the leaf's params from a layout,
+`useSearchParams()` reads and writes the URL, and `useRouteLoaderData(routeId)` reads any matched route's
+data. If the actions must read the page component's own state, use the canonical shell instead:
+[One header per page](/layouts/app-layout#one-header-per-page).
+
+```tsx
+// app/features/playground/playground-actions.tsx
+import { PlusIcon } from "@phosphor-icons/react/Plus";
+import { SidebarSimpleIcon } from "@phosphor-icons/react/SidebarSimple";
+import { useNavigate, useSearchParams } from "react-router";
+import { PageActions } from "~/features/header-actions/header-actions";
+
+/**
+ * The playground's header actions. The sessions panel's open state lives in
+ * the URL, so the server renders the right label and a reload keeps the panel.
+ */
+export function PlaygroundActions() {
+	const [searchParams, setSearchParams] = useSearchParams();
+	const navigate = useNavigate();
+	const sessionsOpen = searchParams.get("sessions") === "open";
+
+	return (
+		<PageActions
+			actions={[
+				{
+					id: "new",
+					label: "New session",
+					icon: <PlusIcon />,
+					onSelect: () => navigate("/playground/new"),
+				},
+				{
+					id: "sessions",
+					label: sessionsOpen ? "Hide sessions" : "Show sessions",
+					icon: <SidebarSimpleIcon />,
+					onSelect: () => {
+						setSearchParams((previous) => {
+							const next = new URLSearchParams(previous);
+							if (sessionsOpen) {
+								next.delete("sessions");
+							} else {
+								next.set("sessions", "open");
+							}
+							return next;
+						});
+					},
+				},
+			]}
+		/>
+	);
+}
+```
+
+```tsx
+// app/routes/playground.tsx
+import type { BreadcrumbHandle } from "@ngrok/mantle/breadcrumb";
+import type { HeaderActionsHandle } from "~/features/header-actions/header-actions";
+import { PlaygroundActions } from "~/features/playground/playground-actions";
+
+export const handle = {
+	breadcrumb: "Playground",
+	headerActions: <PlaygroundActions />,
+} satisfies BreadcrumbHandle & HeaderActionsHandle;
+```
+
+The page reads the same search param to open its panel. One value, two readers, and neither pushes anything
+to the other.
+
+## Collapsing below the mobile breakpoint
+
+`PageActions` renders two controls and lets CSS pick one: an icon button per action with a tooltip from the
+`md` breakpoint up, and one `DotsThree` icon button below it that opens a
+[DropdownMenu](/components/overlays/dropdown-menu) of the same actions. Both controls are in the HTML, so the
+server paints the right one and hydration swaps nothing. The menu's items mount when the menu opens. A
+`useIsBelowBreakpoint` branch would render the desktop buttons on the server and swap them after hydration
+on a phone.
+
+The tooltips need a [`TooltipProvider`](/components/overlays/tooltip#tooltipprovider) ancestor, so mount one
+at the app root. `Tooltip.Root` throws without it.
+
+Two rules keep the row honest:
+
+- **Three actions at most.** The header is one row, and the trail beside it needs the width more than a
+  fourth button does. Move the rest into the page.
+- **Match the sidebar's breakpoint.** The file uses `md` because the docs demos narrow `mobileBreakpoint` to
+  `md`. ngrok's dashboards keep the sidebar's `lg` default, so change `md:contents` and `md:hidden` together.
+
+When an action is not a plain button (a [Dialog](/components/overlays/dialog) trigger, a router `Link`, a
+toggle with its own state), compose the element yourself instead of a `PageActions` list. The slot takes any
+JSX.
+
+## Where it goes in the shell
+
+Render it once, in [`AppLayout.HeaderActions`](/layouts/app-layout#applayoutheaderactions). The three slots
+carry the flex, so no call site sets `flex-1`, `min-w-0`, `shrink-0`, or `ml-auto` itself:
+
+```tsx
+import { AppLayout } from "@ngrok/mantle/app-layout";
+import { Sidebar } from "@ngrok/mantle/sidebar";
+import { Outlet } from "react-router";
+import { RouteBreadcrumbs } from "~/features/breadcrumbs/breadcrumbs";
+import { RouteHeaderActions } from "~/features/header-actions/header-actions";
+
+<AppLayout.Content>
+	<AppLayout.Header>
+		<AppLayout.HeaderStart>
+			<Sidebar.Trigger />
+		</AppLayout.HeaderStart>
+		<AppLayout.HeaderContent>
+			<RouteBreadcrumbs />
+		</AppLayout.HeaderContent>
+		<AppLayout.HeaderActions>
+			<RouteHeaderActions />
+		</AppLayout.HeaderActions>
+	</AppLayout.Header>
+	<AppLayout.Body>
+		<Outlet />
+	</AppLayout.Body>
+</AppLayout.Content>;
+```
+
+`AppLayout.HeaderActions` is `ml-auto shrink-0`: it takes only the width its actions need, and it stays at the
+row's end even when the trail is empty. `AppLayout.HeaderContent` is `min-w-0 flex-1`, so a long trail scrolls
+inside it instead of pushing the actions off the card.
+
+## Server rendering
+
+Everything here runs on the server unchanged:
+
+- **`useMatches()` is SSR-safe.** The matched chain is what the server router already resolved.
+- **`handle` is available on the server.** Route modules load there too, so the element is in the first
+  render.
+- **`findHeaderActions` is pure.** Same matches, same element, both sides.
+- **Both controls ship in the HTML.** The collapse is CSS, so a phone gets the menu's trigger in the first
+  byte, and the items mount when it opens.
+- **URL state renders right the first time.** A label that reads a search param is correct on the server
+  because the server has the URL.
+
+An action whose label depends on client-only state (`localStorage`, `window.matchMedia`) reads it after
+hydration inside its own component, never in the handle.
+
+## The file
+
+The one file to copy. `RouteHeaderActions` is the only piece that touches the router. `findHeaderActions`
+and `PageActions` are pure, so a fixture tests them and the demo above uses them unmodified.
+
+````tsx
+import { IconButton } from "@ngrok/mantle/button";
+import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
+import { Tooltip } from "@ngrok/mantle/tooltip";
+import { DotsThreeIcon } from "@phosphor-icons/react/DotsThree";
+import { isValidElement, type ReactElement } from "react";
+import { useMatches } from "react-router";
+
+/**
+ * The `handle` shape a route exports to put actions in the app header. The
+ * deepest matched route that exports one wins, so a child route inherits its
+ * ancestor's actions until it exports its own. `null` opts a route out.
+ *
+ * @example
+ * ```tsx
+ * // app/routes/playground.tsx
+ * export const handle = {
+ * 	breadcrumb: "Playground",
+ * 	headerActions: <PlaygroundActions />,
+ * } satisfies BreadcrumbHandle & HeaderActionsHandle;
+ * ```
+ */
+type HeaderActionsHandle = {
+	/** The element `AppLayout.HeaderActions` renders for this route, or `null` for none. */
+	headerActions: ReactElement | null;
+};
+
+/**
+ * The fields {@link findHeaderActions} reads off a route match. Router-agnostic
+ * on purpose: react-router's `UIMatch` satisfies it structurally, and so does a
+ * fixture in a test or a docs demo.
+ */
+type HeaderActionsMatch = {
+	/** The route module's `handle` export, `unknown` until narrowed. */
+	handle: unknown;
+};
+
+/**
+ * Whether a route match declares header actions. A real type guard, not a
+ * cast: the router types `handle` as `unknown`, and the narrowing is what lets
+ * {@link findHeaderActions} read `match.handle` without an assertion.
+ *
+ * @example
+ * ```ts
+ * useMatches().filter(hasHeaderActions);
+ * ```
+ */
+function hasHeaderActions<TMatch extends HeaderActionsMatch>(
+	match: TMatch,
+): match is TMatch & { handle: HeaderActionsHandle } {
+	const { handle } = match;
+	if (typeof handle !== "object" || handle == null || !("headerActions" in handle)) {
+		return false;
+	}
+	return handle.headerActions === null || isValidElement(handle.headerActions);
+}
+
+/**
+ * The actions of the deepest matched route that declares any, or `null`. Pure:
+ * it reads only `handle` off each match, so a test asserts it over a fixture
+ * and a docs demo runs it with no router.
+ *
+ * @example
+ * ```ts
+ * findHeaderActions(useMatches()); // the leaf's <PlaygroundActions />, or null
+ * ```
+ */
+function findHeaderActions(matches: ReadonlyArray<HeaderActionsMatch>): ReactElement | null {
+	const match = matches.findLast(hasHeaderActions);
+	return match == null ? null : match.handle.headerActions;
+}
+
+/**
+ * The header actions for the current route. Render it once, in
+ * `AppLayout.HeaderActions`: it derives everything from the matched route
+ * chain, so no page pushes anything up, and the server renders the same
+ * actions the client does.
+ *
+ * This is the only piece that touches the router, which keeps the hook at the
+ * edge.
+ *
+ * @example
+ * ```tsx
+ * <AppLayout.HeaderActions>
+ *   <RouteHeaderActions />
+ * </AppLayout.HeaderActions>
+ * ```
+ */
+function RouteHeaderActions() {
+	return findHeaderActions(useMatches());
+}
+
+/**
+ * One page-level action: an icon button at desktop widths and a menu item
+ * below them. A thin description, so the two renderings never drift apart.
+ */
+type PageAction = {
+	/** A stable key for the action. The label may change with state; this must not. */
+	id: string;
+	/** The button's accessible name and the menu item's text. Name the action, not the icon. */
+	label: string;
+	/** The icon both renderings show: one SVG element, as `IconButton` requires. */
+	icon: ReactElement;
+	/** Runs when the reader picks the action, from either rendering. */
+	onSelect: () => void;
+};
+
+/**
+ * Renders a route's actions for `AppLayout.HeaderActions`: one icon button per
+ * action from the `md` breakpoint up, and one menu behind a single icon button
+ * below it. Both controls are in the HTML and CSS picks one, so the server
+ * paints the right control and hydration swaps nothing. The menu's items mount
+ * when the menu opens. Keep the list to three.
+ *
+ * The `md` breakpoint matches the docs demos' `mobileBreakpoint`. ngrok's
+ * dashboards keep the sidebar's `lg` default, so change `md:contents` and
+ * `md:hidden` together to match yours.
+ *
+ * @example
+ * ```tsx
+ * export const handle = {
+ * 	headerActions: (
+ * 		<PageActions
+ * 			actions={[{ id: "new", label: "New endpoint", icon: <PlusIcon />, onSelect: openNewEndpoint }]}
+ * 		/>
+ * 	),
+ * } satisfies HeaderActionsHandle;
+ * ```
+ */
+function PageActions({ actions }: { actions: ReadonlyArray<PageAction> }) {
+	if (actions.length === 0) {
+		return null;
+	}
+
+	return (
+		<>
+			{/* display: contents from md up, so the buttons sit in the slot's own gap */}
+			<div className="hidden md:contents">
+				{actions.map((action) => (
+					<Tooltip.Root key={action.id}>
+						<Tooltip.Trigger asChild>
+							<IconButton
+								type="button"
+								appearance="ghost"
+								intent="neutral"
+								size="sm"
+								icon={action.icon}
+								label={action.label}
+								onClick={action.onSelect}
+							/>
+						</Tooltip.Trigger>
+						<Tooltip.Content>{action.label}</Tooltip.Content>
+					</Tooltip.Root>
+				))}
+			</div>
+			<DropdownMenu.Root>
+				<DropdownMenu.Trigger asChild>
+					<IconButton
+						type="button"
+						appearance="ghost"
+						intent="neutral"
+						size="sm"
+						className="md:hidden"
+						icon={<DotsThreeIcon />}
+						label="More actions"
+					/>
+				</DropdownMenu.Trigger>
+				<DropdownMenu.Content align="end">
+					{actions.map((action) => (
+						<DropdownMenu.Item key={action.id} className="gap-2" onSelect={action.onSelect}>
+							{action.icon}
+							{/* an element, not bare text: a swapped icon then inserts before a node React still owns on a translated page */}
+							<span>{action.label}</span>
+						</DropdownMenu.Item>
+					))}
+				</DropdownMenu.Content>
+			</DropdownMenu.Root>
+		</>
+	);
+}
+
+export {
+	//,
+	findHeaderActions,
+	hasHeaderActions,
+	PageActions,
+	RouteHeaderActions,
+};
+
+export type {
+	//,
+	HeaderActionsHandle,
+	HeaderActionsMatch,
+	PageAction,
+};
+````
+
+## Testing it
+
+`findHeaderActions` is a plain function over an array of matches, so the branches that matter (deepest
+wins, a child inherits, `null` opts out) need no router at all.
+[`createRoutesStub`](https://reactrouter.com/api/utils/createRoutesStub) forwards `handle` from stub routes
+onto the matches, which covers the `useMatches()` edge end to end. This is the file's test, verbatim. It runs
+in this repo:
+
+```tsx
+// @vitest-environment happy-dom
+import { TooltipProvider } from "@ngrok/mantle/tooltip";
+import { cleanup, render, screen } from "@testing-library/react";
+import { userEvent } from "@testing-library/user-event";
+import { createRoutesStub, Outlet } from "react-router";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { findHeaderActions, PageActions, RouteHeaderActions } from "./header-actions";
+
+afterEach(() => {
+	cleanup();
+});
+
+const listActions = <button type="button">New endpoint</button>;
+const detailActions = <button type="button">Delete endpoint</button>;
+
+describe("findHeaderActions", () => {
+	it("returns the actions of the deepest match that declares them", () => {
+		const matches = [
+			{ handle: { headerActions: listActions } },
+			{ handle: { headerActions: detailActions } },
+		];
+		expect(findHeaderActions(matches)).toBe(detailActions);
+	});
+
+	it("lets a child route without a handle inherit its ancestor's actions", () => {
+		// The tab-route shape: `/endpoints/:id/traffic-policy` declares nothing, so
+		// the detail route's actions stay in the header across every tab.
+		const matches = [{ handle: { headerActions: detailActions } }, { handle: undefined }];
+		expect(findHeaderActions(matches)).toBe(detailActions);
+	});
+
+	it("lets a child route opt out with null", () => {
+		const matches = [
+			{ handle: { headerActions: listActions } },
+			{ handle: { headerActions: null } },
+		];
+		expect(findHeaderActions(matches)).toBeNull();
+	});
+
+	it("skips a handle whose headerActions is not an element", () => {
+		// A string there is a text node in a flex row, and never what the route
+		// meant, so the guard treats it as no declaration at all.
+		const matches = [
+			{ handle: { headerActions: listActions } },
+			{ handle: { headerActions: "…" } },
+		];
+		expect(findHeaderActions(matches)).toBe(listActions);
+	});
+
+	it("returns null when no match declares actions", () => {
+		expect(
+			findHeaderActions([{ handle: { breadcrumb: "Settings" } }, { handle: undefined }]),
+		).toBeNull();
+	});
+});
+
+describe("RouteHeaderActions (through a real router)", () => {
+	it("renders the leaf route's actions from its handle", () => {
+		// createRoutesStub forwards `handle` onto the matches, so this exercises the
+		// real useMatches() path without standing up the whole app.
+		const Stub = createRoutesStub([
+			{
+				path: "/endpoints",
+				handle: { headerActions: listActions },
+				Component: () => (
+					<>
+						<RouteHeaderActions />
+						<Outlet />
+					</>
+				),
+				children: [{ path: ":endpointId", handle: { headerActions: detailActions } }],
+			},
+		]);
+
+		render(<Stub initialEntries={["/endpoints/ep_1"]} />);
+
+		expect(screen.queryByRole("button", { name: "Delete endpoint" })).not.toBeNull();
+		expect(screen.queryByRole("button", { name: "New endpoint" })).toBeNull();
+	});
+});
+
+describe("PageActions", () => {
+	/** Two actions, the first with the spy under test. */
+	function renderActions(onSelect: () => void) {
+		render(
+			<TooltipProvider>
+				<PageActions
+					actions={[
+						{ id: "new", label: "New endpoint", icon: <svg />, onSelect },
+						{ id: "refresh", label: "Refresh", icon: <svg />, onSelect: () => {} },
+					]}
+				/>
+			</TooltipProvider>,
+		);
+	}
+
+	it("runs an action from its desktop icon button", async () => {
+		const user = userEvent.setup();
+		const onSelect = vi.fn<() => void>();
+		renderActions(onSelect);
+
+		await user.click(screen.getByRole("button", { name: "New endpoint" }));
+
+		expect(onSelect).toHaveBeenCalledTimes(1);
+	});
+
+	it("opens the menu and runs the same action from its item", async () => {
+		const user = userEvent.setup();
+		const onSelect = vi.fn<() => void>();
+		renderActions(onSelect);
+		// The items mount when the menu opens, so the closed state holds only the
+		// icon buttons and the one menu trigger.
+		expect(screen.queryByRole("menu")).toBeNull();
+
+		await user.click(screen.getByRole("button", { name: "More actions" }));
+		expect(screen.getAllByRole("menuitem").map((item) => item.textContent)).toEqual([
+			"New endpoint",
+			"Refresh",
+		]);
+
+		await user.click(screen.getByRole("menuitem", { name: "New endpoint" }));
+
+		expect(onSelect).toHaveBeenCalledTimes(1);
+		expect(screen.queryByRole("menu")).toBeNull();
+	});
+
+	it("keeps focus on a desktop button whose label changes", async () => {
+		const user = userEvent.setup();
+		const actions = (label: string) => (
+			<TooltipProvider>
+				<PageActions actions={[{ id: "sessions", label, icon: <svg />, onSelect: () => {} }]} />
+			</TooltipProvider>
+		);
+		const { rerender } = render(actions("Show sessions"));
+		await user.tab();
+		const button = screen.getByRole("button", { name: "Show sessions" });
+		expect(document.activeElement).toBe(button);
+
+		// The key is the id, so a label change updates the button in place. A key
+		// on the label would remount it and drop focus to the body.
+		rerender(actions("Hide sessions"));
+
+		expect(screen.getByRole("button", { name: "Hide sessions" })).toBe(button);
+		expect(document.activeElement).toBe(button);
+	});
+
+	it("renders nothing for an empty list", () => {
+		const { container } = render(
+			<TooltipProvider>
+				<PageActions actions={[]} />
+			</TooltipProvider>,
+		);
+		expect(container.querySelector("button")).toBeNull();
+	});
+});
+```

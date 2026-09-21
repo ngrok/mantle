@@ -34,6 +34,10 @@ describe("migrations", () => {
 	});
 });
 
-it("migrationsNewestFirst orders the guides by descending number", () => {
-	expect(migrationsNewestFirst.map((migration) => migration.number)).toEqual([6, 5, 4, 3, 2, 1]);
+it("migrationsNewestFirst is the publish order reversed", () => {
+	// Derived from `migrations`, which the test above pins to 1..n in publish
+	// order, so a new guide needs no edit here.
+	expect(migrationsNewestFirst.map((migration) => migration.number)).toEqual(
+		migrations.map((migration) => migration.number).toReversed(),
+	);
 });

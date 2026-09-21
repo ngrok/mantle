@@ -107,6 +107,36 @@
   },
   "overrides": [
     {
+      // Why: `@ngrok/mantle` depends on React alone. A router or app framework in
+      // its source becomes a peer every consumer installs, pinned to that
+      // framework's major (the `AutoScrollToHash` lesson). The glue that reads
+      // router state lives in the app, as a recipe under `apps/www`.
+      // See CONVENTIONS.md § Framework Boundary.
+      "files": ["packages/mantle/src/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "react-router",
+                  "react-router/*",
+                  "react-router-dom",
+                  "@remix-run/*",
+                  "@tanstack/react-router",
+                  "@tanstack/react-router/*",
+                  "next",
+                  "next/*"
+                ],
+                "message": "@ngrok/mantle depends on React alone. Type the seam structurally and put the router glue in an apps/www recipe (CONVENTIONS.md § Framework Boundary)."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       "files": ["**/*.test.{ts,tsx}", "**/*.browser.test.{ts,tsx}"],
       "rules": {
         "react/no-object-type-as-default-prop": "off",

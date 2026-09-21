@@ -13,13 +13,11 @@ import { joinDataSlot } from "../../utils/data-slot.js";
  * `id` and `tabIndex` are not props: the skip link's default target is
  * `#main`, and a focusable landmark needs `tabIndex={-1}`, so `Main` stamps
  * both. `ref` lands on the rendered `<main>`, so it also composes as an `asChild`
- * child of layout parts — in an app shell, compose it onto `AppLayout.Body`
- * (`<AppLayout.Body asChild>`), never onto the `AppLayout.Content` card around
- * it. `AppLayout.Body` is the shell's only scroll container, and the skip link
- * focuses *this* element: when the landmark **is** the scrollport, arrows,
- * `Space`, and `PageDown` scroll the page immediately after the jump. Composed
- * onto the card instead, focus lands on an element that cannot scroll and the
- * keyboard user is stranded.
+ * child of a layout part. In an app shell, `AppLayout.Body` renders it by
+ * default: the landmark **is** the shell's only scroll container, so arrows,
+ * `Space`, and `PageDown` scroll the page as soon as the skip lands. Never put
+ * it on the `AppLayout.Content` card around the body. Focus then lands on an
+ * element that cannot scroll, and the keyboard user is stranded.
  *
  * @see https://mantle.ngrok.com/components/primitives/main
  *
@@ -33,7 +31,7 @@ import { joinDataSlot } from "../../utils/data-slot.js";
  * ```
  *
  * @example
- * Composed onto the scrolling page region of an app shell:
+ * In an app shell, `AppLayout.Body` renders it:
  * ```tsx
  * <Sidebar.Root>
  *   <AppLayout.Root className="fixed inset-0">
@@ -46,10 +44,8 @@ import { joinDataSlot } from "../../utils/data-slot.js";
  *           <Sidebar.Trigger />
  *           <Breadcrumbs />
  *         </AppLayout.Header>
- *         <AppLayout.Body asChild>
- *           <Main>
- *             <Outlet />
- *           </Main>
+ *         <AppLayout.Body>
+ *           <Outlet />
  *         </AppLayout.Body>
  *       </AppLayout.Content>
  *     </AppLayout.Workspace>

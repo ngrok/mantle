@@ -1,10 +1,13 @@
 import { AppLayout } from "@ngrok/mantle/app-layout";
-import { Button } from "@ngrok/mantle/button";
-import { Main } from "@ngrok/mantle/main";
+import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
+import { Button, IconButton } from "@ngrok/mantle/button";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
+import { ArrowLeftIcon } from "@phosphor-icons/react/ArrowLeft";
 import { CheckCircleIcon } from "@phosphor-icons/react/CheckCircle";
+import { CopyIcon } from "@phosphor-icons/react/Copy";
+import { TrashIcon } from "@phosphor-icons/react/Trash";
 import { WarningCircleIcon } from "@phosphor-icons/react/WarningCircle";
-import { useLayoutEffect, useRef, useState } from "react";
+import { Fragment, useLayoutEffect, useRef, useState } from "react";
 
 /**
  * The AppLayout shell on its own — no sidebar. A toggleable `Notice` strip
@@ -30,32 +33,33 @@ export function AppLayoutDemo() {
 			<AppLayout.Workspace>
 				<AppLayout.Content>
 					<AppLayout.Header>
-						<p className="text-strong text-sm font-medium">Endpoints</p>
-						<Button
-							type="button"
-							appearance="outlined"
-							intent="neutral"
-							className="ml-auto"
-							size="sm"
-							onClick={() => setShowNotice((current) => !current)}
-						>
-							Toggle notice
-						</Button>
+						<AppLayout.HeaderContent>
+							<p className="text-strong text-sm font-medium">Endpoints</p>
+						</AppLayout.HeaderContent>
+						<AppLayout.HeaderActions>
+							<Button
+								type="button"
+								appearance="outlined"
+								intent="neutral"
+								size="sm"
+								onClick={() => setShowNotice((current) => !current)}
+							>
+								Toggle notice
+							</Button>
+						</AppLayout.HeaderActions>
 					</AppLayout.Header>
-					<AppLayout.Body asChild>
-						<Main>
-							<div className="space-y-4 p-6">
-								{Array.from({ length: 10 }, (_, index) => (
-									<div key={index} className="border-card-muted rounded-lg border p-4">
-										<p className="text-strong text-sm font-medium">Row {index + 1}</p>
-										<p className="text-muted text-sm">
-											Scroll happens inside this card with `overscroll-none` — the shell never moves
-											and scroll never bounces the page.
-										</p>
-									</div>
-								))}
-							</div>
-						</Main>
+					<AppLayout.Body>
+						<div className="space-y-4 p-6">
+							{Array.from({ length: 10 }, (_, index) => (
+								<div key={index} className="border-card-muted rounded-lg border p-4">
+									<p className="text-strong text-sm font-medium">Row {index + 1}</p>
+									<p className="text-muted text-sm">
+										Scroll happens inside this card with `overscroll-none` — the shell never moves
+										and scroll never bounces the page.
+									</p>
+								</div>
+							))}
+						</div>
 					</AppLayout.Body>
 				</AppLayout.Content>
 			</AppLayout.Workspace>
@@ -146,13 +150,122 @@ function DemoPage({ shape }: { shape: PageShape }) {
 	);
 }
 
+/** The crumbs the header-slots example grows through, outermost first. */
+const headerSlotsTrail = [
+	"Endpoints",
+	"https://forward-labels.test",
+	"Traffic Policy",
+	"Rules",
+	"Rate limit",
+	"Edit",
+] as const;
+
+/**
+ * The header's three slots on their own. Grow the trail and watch it scroll
+ * inside `AppLayout.HeaderContent` while `AppLayout.HeaderStart` and
+ * `AppLayout.HeaderActions` hold the row's two ends at their own width. The
+ * shell is embedded and has no sidebar, so a back link takes the start slot
+ * that `Sidebar.Trigger` takes in an app shell.
+ */
+export function AppLayoutHeaderSlotsExample() {
+	const [depth, setDepth] = useState(2);
+	const crumbs = headerSlotsTrail.slice(0, depth);
+
+	return (
+		<AppLayout.Root className="rounded-lg">
+			<AppLayout.Workspace>
+				<AppLayout.Content>
+					<AppLayout.Header>
+						<AppLayout.HeaderStart>
+							<IconButton
+								asChild
+								appearance="ghost"
+								intent="neutral"
+								size="sm"
+								icon={<ArrowLeftIcon />}
+								label="Back to endpoints"
+							>
+								<a href="/endpoints" onClick={(event) => event.preventDefault()}>
+									Back
+								</a>
+							</IconButton>
+						</AppLayout.HeaderStart>
+						<AppLayout.HeaderContent>
+							<Breadcrumb.Root>
+								<Breadcrumb.List>
+									{crumbs.map((crumb, index) => (
+										<Fragment key={crumb}>
+											{index > 0 && <Breadcrumb.Separator />}
+											<Breadcrumb.Item>
+												{index === crumbs.length - 1 ? (
+													<Breadcrumb.Page>{crumb}</Breadcrumb.Page>
+												) : (
+													<Breadcrumb.Link href="#">{crumb}</Breadcrumb.Link>
+												)}
+											</Breadcrumb.Item>
+										</Fragment>
+									))}
+								</Breadcrumb.List>
+							</Breadcrumb.Root>
+						</AppLayout.HeaderContent>
+						<AppLayout.HeaderActions>
+							<IconButton
+								type="button"
+								appearance="ghost"
+								intent="neutral"
+								size="sm"
+								icon={<CopyIcon />}
+								label="Copy endpoint URL"
+							/>
+							<IconButton
+								type="button"
+								appearance="ghost"
+								intent="neutral"
+								size="sm"
+								icon={<TrashIcon />}
+								label="Delete endpoint"
+							/>
+						</AppLayout.HeaderActions>
+					</AppLayout.Header>
+					{/* Why asChild: the docs page already owns the main landmark. */}
+					<AppLayout.Body asChild>
+						<div>
+							<div className="flex flex-wrap items-center gap-2 p-6">
+								<Button
+									type="button"
+									appearance="outlined"
+									intent="neutral"
+									size="sm"
+									disabled={depth >= headerSlotsTrail.length}
+									onClick={() => setDepth((current) => current + 1)}
+								>
+									Add a crumb
+								</Button>
+								<Button
+									type="button"
+									appearance="ghost"
+									intent="neutral"
+									size="sm"
+									onClick={() => setDepth(2)}
+								>
+									Reset
+								</Button>
+							</div>
+						</div>
+					</AppLayout.Body>
+				</AppLayout.Content>
+			</AppLayout.Workspace>
+		</AppLayout.Root>
+	);
+}
+
 /**
  * The four page shapes from the docs' "Sizing a page to the card", switchable
  * live: the shell markup never changes, only the classes on the page's own
  * root. Embedded rather than pinned with `fixed inset-0`, so it can sit inside
  * the docs page — `AppLayout.Root` fills its nearest sized ancestor — and
- * `AppLayout.Body` keeps its default `<div>` because the page already owns the
- * `Main` landmark.
+ * `AppLayout.Body` renders a `<div>` through `asChild` because the page already
+ * owns the `main` landmark.
  *
  * @example
  * ```tsx
@@ -183,8 +296,11 @@ export function AppLayoutPageShapesExample() {
 								</Button>
 							))}
 						</AppLayout.Header>
-						<AppLayout.Body>
-							<DemoPage shape={shape} />
+						{/* Why asChild: the docs page already owns the main landmark. */}
+						<AppLayout.Body asChild>
+							<div>
+								<DemoPage shape={shape} />
+							</div>
 						</AppLayout.Body>
 					</AppLayout.Content>
 				</AppLayout.Workspace>
@@ -215,34 +331,37 @@ export function AppLayoutPinnedFooterExample() {
 			<AppLayout.Root className="rounded-lg">
 				<AppLayout.Workspace>
 					<AppLayout.Content>
-						<AppLayout.Body>
-							{/* the page's own root — this is what "pinned to the bottom of the
+						{/* Why asChild: the docs page already owns the main landmark. */}
+						<AppLayout.Body asChild>
+							<div>
+								{/* the page's own root — this is what "pinned to the bottom of the
 							    card" means, and it is all three rules at once */}
-							<div className="flex h-full flex-col">
-								{/* anything that must keep its height: shrink-0 */}
-								<div className="border-card-muted flex shrink-0 items-center gap-3 border-b px-6 py-3">
-									<p className="text-strong text-sm font-medium">Traffic policy</p>
-									<Button
-										type="button"
-										appearance="outlined"
-										intent="neutral"
-										size="sm"
-										className="ml-auto"
-										onClick={() => setRuleCount((current) => (current >= 16 ? 4 : current + 6))}
-									>
-										{ruleCount >= 16 ? "Reset policy" : "Add rules"}
-									</Button>
-								</div>
-								{/* the region that absorbs the slack and scrolls: min-h-0 flex-1 */}
-								<div className="relative min-h-0 flex-1 overflow-y-auto">
-									<div className="space-y-3 p-6">
-										<DemoRows count={ruleCount} label="Rule" />
+								<div className="flex h-full flex-col">
+									{/* anything that must keep its height: shrink-0 */}
+									<div className="border-card-muted flex shrink-0 items-center gap-3 border-b px-6 py-3">
+										<p className="text-strong text-sm font-medium">Traffic policy</p>
+										<Button
+											type="button"
+											appearance="outlined"
+											intent="neutral"
+											size="sm"
+											className="ml-auto"
+											onClick={() => setRuleCount((current) => (current >= 16 ? 4 : current + 6))}
+										>
+											{ruleCount >= 16 ? "Reset policy" : "Add rules"}
+										</Button>
 									</div>
-								</div>
-								{/* the footer, on the card's bottom edge: shrink-0 */}
-								<div className="border-card-muted text-muted flex shrink-0 items-center gap-2 border-t px-6 py-2 text-xs">
-									<CheckCircleIcon weight="fill" className="fill-success-600 shrink-0" />
-									Traffic policy is valid — {ruleCount} rules
+									{/* the region that absorbs the slack and scrolls: min-h-0 flex-1 */}
+									<div className="relative min-h-0 flex-1 overflow-y-auto">
+										<div className="space-y-3 p-6">
+											<DemoRows count={ruleCount} label="Rule" />
+										</div>
+									</div>
+									{/* the footer, on the card's bottom edge: shrink-0 */}
+									<div className="border-card-muted text-muted flex shrink-0 items-center gap-2 border-t px-6 py-2 text-xs">
+										<CheckCircleIcon weight="fill" className="fill-success-600 shrink-0" />
+										Traffic policy is valid — {ruleCount} rules
+									</div>
 								</div>
 							</div>
 						</AppLayout.Body>
@@ -309,9 +428,12 @@ export function AppLayoutScrollResetExample() {
 							))}
 							<p className="text-muted ml-auto text-xs">Scroll down, then switch pages</p>
 						</AppLayout.Header>
-						<AppLayout.Body ref={scrollportRef}>
-							<div className="space-y-3 p-6">
-								<DemoRows count={12} label={`${current.label} row`} />
+						{/* Why asChild: the docs page already owns the main landmark. */}
+						<AppLayout.Body asChild ref={scrollportRef}>
+							<div>
+								<div className="space-y-3 p-6">
+									<DemoRows count={12} label={`${current.label} row`} />
+								</div>
 							</div>
 						</AppLayout.Body>
 					</AppLayout.Content>
@@ -322,9 +444,9 @@ export function AppLayoutScrollResetExample() {
 }
 
 /**
- * `AppLayout.Body` swapping its default `<div>` for a consumer element via
- * `asChild` — here a `<section>`; in a real app shell that owns the document,
- * this is how you compose the `Main` landmark onto `AppLayout.Body`.
+ * `AppLayout.Body` swapping its default `Main` landmark for a consumer element
+ * via `asChild`, here a `<section>`. A shell embedded in a page that already
+ * owns the `main` landmark composes a plain `<div>` the same way.
  */
 export function AppLayoutPolymorphismDemo() {
 	return (

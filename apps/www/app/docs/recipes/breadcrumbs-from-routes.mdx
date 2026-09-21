@@ -363,8 +363,12 @@ function Breadcrumbs({ crumbs }: { crumbs: ReadonlyArray<ResolvedCrumb> }) {
  * @example
  * ```tsx
  * <AppLayout.Header>
- *   <Sidebar.Trigger />
- *   <RouteBreadcrumbs />
+ *   <AppLayout.HeaderStart>
+ *     <Sidebar.Trigger />
+ *   </AppLayout.HeaderStart>
+ *   <AppLayout.HeaderContent>
+ *     <RouteBreadcrumbs />
+ *   </AppLayout.HeaderContent>
  * </AppLayout.Header>
  * ```
  */
@@ -406,32 +410,41 @@ trail at all: move the data into the loader or drop the crumb.
 
 ## Where it goes in the shell
 
-Render it once, in [`AppLayout.Header`](/layouts/app-layout#applayoutheader):
+Render it in every route's [`AppLayout.HeaderContent`](/layouts/app-layout#applayoutheadercontent). Each
+route renders its own header, so the trail is on every page.
+[One header per page](/layouts/app-layout#one-header-per-page) is the canonical shell:
 
 ```tsx
+// app/routes/endpoints.tsx
 import { AppLayout } from "@ngrok/mantle/app-layout";
-import { Main } from "@ngrok/mantle/main";
 import { Sidebar } from "@ngrok/mantle/sidebar";
-import { Outlet } from "react-router";
 import { RouteBreadcrumbs } from "~/features/breadcrumbs/breadcrumbs";
 
-<AppLayout.Content>
-	<AppLayout.Header>
-		<Sidebar.Trigger />
-		<RouteBreadcrumbs />
-	</AppLayout.Header>
-	<AppLayout.Body asChild>
-		<Main>
-			<Outlet />
-		</Main>
-	</AppLayout.Body>
-</AppLayout.Content>;
+export default function EndpointsPage() {
+	return (
+		<>
+			<AppLayout.Header>
+				<AppLayout.HeaderStart>
+					<Sidebar.Trigger />
+				</AppLayout.HeaderStart>
+				<AppLayout.HeaderContent>
+					<RouteBreadcrumbs />
+				</AppLayout.HeaderContent>
+			</AppLayout.Header>
+			<AppLayout.Body>{/* the page */}</AppLayout.Body>
+		</>
+	);
+}
 ```
 
 `AppLayout.Header` is a `shrink-0` sibling **outside** the scroll container, so the trail is pinned by
-construction. Resist the urge to hand-roll a `sticky top-0 z-10` breadcrumb bar inside the scrolling region
-instead: a `sticky` element is still in flow, so it silently steals its own height from any page asking for
-`h-full`, and it competes for the same layer as page-authored `sticky` content.
+construction. `AppLayout.HeaderContent` is `min-w-0 flex-1`, so a long trail scrolls inside it instead of
+pushing the actions off the card. The actions beside it are the route's own, in `AppLayout.HeaderActions`. A shell that
+keeps its header instead derives them from a handle, which is the documented deviation:
+[Header Actions from Routes](/recipes/header-actions-from-routes). Resist the urge to hand-roll a
+`sticky top-0 z-10` breadcrumb bar inside the scrolling region instead: a `sticky` element is still in flow,
+so it silently steals its own height from any page asking for `h-full`, and it competes for the same layer as
+page-authored `sticky` content.
 
 ## Choosing which routes get a crumb
 

@@ -2,7 +2,6 @@ import { AppLayout } from "@ngrok/mantle/app-layout";
 import { Avatar } from "@ngrok/mantle/avatar";
 import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
 import { useLocalStorage } from "@ngrok/mantle/hooks";
-import { Main } from "@ngrok/mantle/main";
 import { Sidebar } from "@ngrok/mantle/sidebar";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { BookOpenIcon } from "@phosphor-icons/react/BookOpen";
@@ -384,13 +383,11 @@ export function SidebarPersistenceDemo() {
 						<AppLayout.Header>
 							<Sidebar.Trigger />
 						</AppLayout.Header>
-						<AppLayout.Body asChild>
-							<Main>
-								<p className="text-muted p-6 text-sm">
-									Toggle the sidebar, then reload the preview — the collapsed state is restored from
-									localStorage.
-								</p>
-							</Main>
+						<AppLayout.Body>
+							<p className="text-muted p-6 text-sm">
+								Toggle the sidebar, then reload the preview — the collapsed state is restored from
+								localStorage.
+							</p>
 						</AppLayout.Body>
 					</AppLayout.Content>
 				</AppLayout.Workspace>

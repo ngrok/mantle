@@ -215,17 +215,18 @@ Avoid optional-property-heavy "bag of props" types where states are mutually exc
 
 ### 1.7. Forbidden API shapes
 
-| Never                                                              | Instead                                                                |
-| ------------------------------------------------------------------ | ---------------------------------------------------------------------- |
-| Nested namespace (`Command.Dialog.Root`)                           | Flatten into member names (`Command.DialogRoot`)                       |
-| Prop-bag passthrough (`contentProps`, `triggerProps`, `slotProps`) | Expose the internal element as a compound part                         |
-| Re-exporting another mantle namespace under yours                  | Let consumers import that primitive directly                           |
-| `Component.displayName = "…"`                                      | Nothing — React DevTools infers the name from the function             |
-| `forwardRef`                                                       | `ref` is a regular prop (React 19+)                                    |
-| `React.FC` / `FC`                                                  | Inline function types                                                  |
-| Boolean-bag prop types where states are mutually exclusive         | Discriminated unions that make invalid states unrepresentable          |
-| Reading collection facts off children (`cloneElement`, prop-sniff) | A data prop or index-based callbacks                                   |
-| A deprecated API from a dependency                                 | The current replacement (or a `// Why:` comment naming the constraint) |
+| Never                                                              | Instead                                                                                                                                                                                             |
+| ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Nested namespace (`Command.Dialog.Root`)                           | Flatten into member names (`Command.DialogRoot`)                                                                                                                                                    |
+| Prop-bag passthrough (`contentProps`, `triggerProps`, `slotProps`) | Expose the internal element as a compound part                                                                                                                                                      |
+| Re-exporting another mantle namespace under yours                  | Let consumers import that primitive directly                                                                                                                                                        |
+| `Component.displayName = "…"`                                      | Nothing — React DevTools infers the name from the function                                                                                                                                          |
+| `forwardRef`                                                       | `ref` is a regular prop (React 19+)                                                                                                                                                                 |
+| `React.FC` / `FC`                                                  | Inline function types                                                                                                                                                                               |
+| Boolean-bag prop types where states are mutually exclusive         | Discriminated unions that make invalid states unrepresentable                                                                                                                                       |
+| Reading collection facts off children (`cloneElement`, prop-sniff) | A data prop or index-based callbacks                                                                                                                                                                |
+| A deprecated API from a dependency                                 | The current replacement (or a `// Why:` comment naming the constraint)                                                                                                                              |
+| An import from a router or app framework (`react-router`, `next`)  | A structural type for the fields you read, `asChild` for the framework's element, and the glue in an `apps/www` recipe ([CONVENTIONS.md § Framework Boundary](./CONVENTIONS.md#framework-boundary)) |
 
 Two of these are non-obvious enough to justify:
 
@@ -950,6 +951,8 @@ Run this against the diff before calling a component done. Each line is a defect
 - [ ] Namespace is one level deep, annotated if any member's type is third-party.
 - [ ] No `forwardRef`, no `React.FC`, no `displayName` assignment.
 - [ ] Mutually exclusive states are a discriminated union, not a boolean bag.
+- [ ] Nothing imports a router or app framework; router state enters through a structural type and the glue is an
+      `apps/www` recipe.
 
 **Code**
 
