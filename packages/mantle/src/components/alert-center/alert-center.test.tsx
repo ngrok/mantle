@@ -12,7 +12,6 @@ import {
 	alertTitleText,
 	barPresenceReducer,
 	rankAlerts,
-	SEVERITY_RANK,
 } from "./alert-center.js";
 
 /** The canonical banner content for a test alert: icon, linked title, description. */
@@ -155,10 +154,21 @@ describe("rankAlerts", () => {
 	});
 
 	test("ranks every intent in the documented order", () => {
-		expect(SEVERITY_RANK.danger).toBeGreaterThan(SEVERITY_RANK.warning);
-		expect(SEVERITY_RANK.warning).toBeGreaterThan(SEVERITY_RANK.important);
-		expect(SEVERITY_RANK.important).toBeGreaterThan(SEVERITY_RANK.info);
-		expect(SEVERITY_RANK.info).toBeGreaterThan(SEVERITY_RANK.success);
+		// Why arrival order reversed: sequence alone would keep the input order, so only the rank table can produce the expected output.
+		const ranked = rankAlerts([
+			{ id: "success", intent: "success", order: 0, sequence: 0 },
+			{ id: "info", intent: "info", order: 0, sequence: 1 },
+			{ id: "important", intent: "important", order: 0, sequence: 2 },
+			{ id: "warning", intent: "warning", order: 0, sequence: 3 },
+			{ id: "danger", intent: "danger", order: 0, sequence: 4 },
+		] as const);
+		expect(ranked.map((alert) => alert.id)).toEqual([
+			"danger",
+			"warning",
+			"important",
+			"info",
+			"success",
+		]);
 	});
 });
 

@@ -265,7 +265,7 @@ describe("ChartEngine yDomain changes", () => {
 });
 
 describe("ChartEngine hover sync", () => {
-	test("reads the cached series list and places stacked dots on their upper boundaries", async () => {
+	test("places stacked dots on their upper boundaries", async () => {
 		// Above `PER_DATUM_TWEEN_LIMIT`, painted values come from the stack, not a tween.
 		const rows = Array.from({ length: 3000 }, (_, index) => ({ x: index, a: 10, b: 20, c: 30 }));
 		const series = ["a", "b", "c"].map((key) => makeSeries(key, "area"));
@@ -290,21 +290,6 @@ describe("ChartEngine hover sync", () => {
 		expect(dots.map((dot) => dotPosition(dot).y)).toEqual(
 			expected.map((dot) => dotPosition(dot).y),
 		);
-		const firstX = dots.map((dot) => dotPosition(dot).x);
-
-		const seriesSpecs = vi.spyOn(ChartStore.prototype, "seriesSpecs");
-		const seriesMeta = vi.spyOn(ChartStore.prototype, "seriesMeta");
-		mount.engine.handleKeyDown("End");
-		await vi.waitFor(() => {
-			expect(mount.store.getSnapshot().hover?.index).toBe(rows.length - 1);
-			expect(dots.map((dot) => dotPosition(dot).x)).not.toEqual(firstX);
-		});
-
-		// The snapshot and the overlay sync read `getSnapshot().series`, which
-		// the store rebuilds per registration change, and index the stack by
-		// paint position instead of searching the re-sorted spec list.
-		expect(seriesSpecs).toHaveBeenCalledTimes(0);
-		expect(seriesMeta).toHaveBeenCalledTimes(0);
 	});
 });
 

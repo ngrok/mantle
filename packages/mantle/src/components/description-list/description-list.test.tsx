@@ -56,6 +56,7 @@ describe("DescriptionList", () => {
 			</DescriptionList.Root>,
 		);
 		const element = container.querySelector(`[data-slot="${slot}"]`);
+		// Why tagName: the JSDoc names <dl>, <dt>, and <dd> as the parts' elements. No role query pins a <dl>.
 		expect(element?.tagName).toBe(tagName);
 	});
 
@@ -116,6 +117,7 @@ describe("DescriptionList", () => {
 			</DescriptionList.Root>,
 		);
 		const dt = screen.getByTestId("label");
+		// The tailwind-merge contract: the consumer's class survives the merge.
 		expect(dt.className).toContain("font-bold");
 	});
 

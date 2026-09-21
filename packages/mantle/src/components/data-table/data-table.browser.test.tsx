@@ -1,9 +1,18 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import type { ComponentProps } from "react";
+import { type ComponentProps, useMemo } from "react";
 import invariant from "tiny-invariant";
-import { describe, expect, test, vi } from "vitest";
+import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 import { userEvent } from "vitest/browser";
-import { DataTable, createColumnHelper, tableFeatures, useTable } from "./index.js";
+import type { ButtonAppearance, ButtonIntent } from "../button/index.js";
+import {
+	DataTable,
+	createColumnHelper,
+	createSortedRowModel,
+	rowSortingFeature,
+	sortFn_alphanumeric,
+	tableFeatures,
+	useTable,
+} from "./index.js";
 
 type Row = { id: string; name: string; email: string };
 
@@ -80,5 +89,89 @@ describe("DataTable.Row (browser) — text selection", () => {
 		// guard must ignore a selection that is not anchored in this row either way.
 		fireEvent.click(screen.getByTestId("row"));
 		expect(handleClick).toHaveBeenCalledTimes(1);
+	});
+});
+
+const sortableFeatures = tableFeatures({
+	rowSortingFeature,
+	sortedRowModel: createSortedRowModel(),
+	sortFns: { alphanumeric: sortFn_alphanumeric },
+});
+const sortableColumnHelper = createColumnHelper<typeof sortableFeatures, Row>();
+
+// Why inline CSS: the browser project loads no Tailwind, so the two text
+// utilities the mute gate chooses between are bare classes until these rules
+// define them.
+const HEADER_STYLE = `
+.text-muted { color: rgb(1, 2, 3); }
+.text-danger-600 { color: rgb(4, 5, 6); }
+`;
+
+type SortableHeaderHarnessProps = {
+	appearance?: ButtonAppearance;
+	intent?: ButtonIntent;
+};
+
+function SortableHeaderHarness({ appearance, intent }: SortableHeaderHarnessProps) {
+	const sortableColumns = useMemo(
+		() =>
+			sortableColumnHelper.columns([
+				sortableColumnHelper.accessor("name", {
+					id: "name",
+					header: (props) => (
+						<DataTable.Header column={props.column}>
+							<DataTable.HeaderSortButton
+								column={props.column}
+								sortingMode="alphanumeric"
+								appearance={appearance}
+								intent={intent}
+							>
+								Name
+							</DataTable.HeaderSortButton>
+						</DataTable.Header>
+					),
+					cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+				}),
+			]),
+		[appearance, intent],
+	);
+	const table = useTable({ features: sortableFeatures, data, columns: sortableColumns });
+	return (
+		<DataTable.Root table={table}>
+			<DataTable.Head />
+			<DataTable.Body>
+				{table.getRowModel().rows.map((row) => (
+					<DataTable.Row key={row.id} row={row} />
+				))}
+			</DataTable.Body>
+		</DataTable.Root>
+	);
+}
+
+// Why browser mode: the mute is a class tailwind-merge weighs against the tone
+// class, so only the computed color shows which one survived the merge.
+describe("DataTable.HeaderSortButton (browser) — muted header text", () => {
+	let styleElement: HTMLStyleElement;
+
+	beforeAll(() => {
+		styleElement = document.createElement("style");
+		styleElement.textContent = HEADER_STYLE;
+		document.head.appendChild(styleElement);
+	});
+
+	afterAll(() => {
+		styleElement.remove();
+	});
+
+	test("mutes the default ghost + neutral header", () => {
+		render(<SortableHeaderHarness />);
+		const button = screen.getByRole("button", { name: "Name" });
+		expect(getComputedStyle(button).color).toBe("rgb(1, 2, 3)");
+	});
+
+	test("keeps a danger intent's tone instead of muting it", () => {
+		render(<SortableHeaderHarness appearance="outlined" intent="danger" />);
+		const button = screen.getByRole("button", { name: "Name" });
+		expect(getComputedStyle(button).color).toBe("rgb(4, 5, 6)");
 	});
 });

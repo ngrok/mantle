@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import { etagFor } from "./etag";
-import { AGENT_API_CACHE_CONTROL, jsonAgentResponse } from "./json-response.server";
+import { jsonAgentResponse } from "./json-response.server";
 
 const data = { name: "@ngrok/mantle", entries: ["button"] };
 const body = JSON.stringify(data, null, "\t");
 const etag = etagFor(body);
+// Why the literal: the CDN in front of mantle.ngrok.com reads this header, and
+// both response paths must send the same directives.
+const cacheControl = "public, max-age=300, s-maxage=300, stale-while-revalidate=3600";
 
 describe("jsonAgentResponse", () => {
 	it("returns pretty JSON with the shared agent API headers", async () => {
@@ -16,7 +19,7 @@ describe("jsonAgentResponse", () => {
 
 		expect(response.status).toBe(200);
 		expect(response.headers.get("Content-Type")).toBe("application/json; charset=utf-8");
-		expect(response.headers.get("Cache-Control")).toBe(AGENT_API_CACHE_CONTROL);
+		expect(response.headers.get("Cache-Control")).toBe(cacheControl);
 		expect(response.headers.get("ETag")).toBe(etag);
 		expect(response.headers.get("Access-Control-Allow-Origin")).toBe("*");
 		expect(await response.text()).toBe(body);
@@ -32,7 +35,7 @@ describe("jsonAgentResponse", () => {
 
 		expect(response.status).toBe(304);
 		expect(response.headers.get("Content-Type")).toBe("application/json; charset=utf-8");
-		expect(response.headers.get("Cache-Control")).toBe(AGENT_API_CACHE_CONTROL);
+		expect(response.headers.get("Cache-Control")).toBe(cacheControl);
 		expect(response.headers.get("ETag")).toBe(etag);
 		expect(response.headers.get("Access-Control-Allow-Origin")).toBe("*");
 		expect(await response.text()).toBe("");

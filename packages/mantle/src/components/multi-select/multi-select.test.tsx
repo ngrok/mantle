@@ -766,6 +766,8 @@ describe("MultiSelect.Item asChild", () => {
 		);
 		await user.click(screen.getByRole("combobox"));
 
+		// Why tagName and the class check: the asChild swap renders the child element in
+		// place of the default, and the tailwind-merge contract keeps both classes on it.
 		const item = await screen.findByRole("option", { name: "Apple" });
 		expect(item.tagName).toBe("A");
 		expect(item).toHaveAttribute("href", "#apple");

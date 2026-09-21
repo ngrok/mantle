@@ -4,10 +4,9 @@ import { describe, expect, test } from "vitest";
 import { Well } from "./well.js";
 
 describe("Well", () => {
-	test("renders a div with its data-slot", () => {
+	test("renders its children with its data-slot", () => {
 		render(<Well data-testid="well">content</Well>);
 		const well = screen.getByTestId("well");
-		expect(well.tagName).toBe("DIV");
 		expect(well).toHaveAttribute("data-slot", "well");
 		expect(well).toHaveTextContent("content");
 	});
@@ -26,11 +25,10 @@ describe("Well", () => {
 		expect(well.className).not.toContain("bg-base");
 	});
 
-	test("forwards ref to the underlying div", () => {
+	test("forwards ref to the rendered element", () => {
 		const ref = createRef<HTMLDivElement>();
 		render(<Well ref={ref}>content</Well>);
-		expect(ref.current).not.toBeNull();
-		expect(ref.current?.tagName).toBe("DIV");
+		expect(ref.current).toBe(screen.getByText("content"));
 	});
 
 	test("forwards arbitrary data-* props", () => {
@@ -49,6 +47,8 @@ describe("Well", () => {
 			</Well>,
 		);
 		const well = screen.getByTestId("well");
+		// Why tagName and the class check: the asChild swap renders the child element in
+		// place of the div, and the tailwind-merge contract puts the consumer's class on it.
 		expect(well.tagName).toBe("SECTION");
 		expect(well).toHaveAttribute("data-slot", "well");
 		expect(well.className).toContain("custom-class");

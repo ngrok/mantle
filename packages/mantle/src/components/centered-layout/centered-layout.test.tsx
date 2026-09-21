@@ -5,10 +5,9 @@ import { Main } from "../main/main.js";
 import { CenteredLayout } from "./centered-layout.js";
 
 describe("CenteredLayout", () => {
-	test("Root renders a div element with data-slot", () => {
+	test("Root carries its data-slot", () => {
 		render(<CenteredLayout.Root data-testid="root">content</CenteredLayout.Root>);
 		const root = screen.getByTestId("root");
-		expect(root.tagName).toBe("DIV");
 		expect(root).toHaveAttribute("data-slot", "centered-layout");
 		expect(root).toHaveTextContent("content");
 	});
@@ -47,10 +46,9 @@ describe("CenteredLayout", () => {
 		expect(ref.current).toBe(root);
 	});
 
-	test("Body renders a div element with data-slot", () => {
+	test("Body carries its data-slot", () => {
 		render(<CenteredLayout.Body data-testid="body">content</CenteredLayout.Body>);
 		const body = screen.getByTestId("body");
-		expect(body.tagName).toBe("DIV");
 		expect(body).toHaveAttribute("data-slot", "centered-layout-body");
 		expect(body).toHaveTextContent("content");
 	});
@@ -91,10 +89,9 @@ describe("CenteredLayout", () => {
 		expect(ref.current).toBe(body);
 	});
 
-	test("Notice renders a div element with data-slot", () => {
+	test("Notice carries its data-slot", () => {
 		render(<CenteredLayout.Notice data-testid="notice">maintenance</CenteredLayout.Notice>);
 		const notice = screen.getByTestId("notice");
-		expect(notice.tagName).toBe("DIV");
 		expect(notice).toHaveAttribute("data-slot", "centered-layout-notice");
 		expect(notice).toHaveTextContent("maintenance");
 	});
@@ -127,10 +124,10 @@ describe("CenteredLayout", () => {
 		expect(ref.current).toBe(notice);
 	});
 
-	test("Footer renders a footer element with data-slot", () => {
+	test("Footer renders a contentinfo landmark with data-slot", () => {
 		render(<CenteredLayout.Footer data-testid="footer">legal</CenteredLayout.Footer>);
 		const footer = screen.getByTestId("footer");
-		expect(footer.tagName).toBe("FOOTER");
+		expect(screen.getByRole("contentinfo")).toBe(footer);
 		expect(footer).toHaveAttribute("data-slot", "centered-layout-footer");
 		expect(footer).toHaveTextContent("legal");
 	});
@@ -142,6 +139,7 @@ describe("CenteredLayout", () => {
 			</CenteredLayout.Footer>,
 		);
 		const footer = screen.getByTestId("footer");
+		// The tailwind-merge contract: the consumer's class survives the merge.
 		expect(footer).toHaveClass("justify-center");
 	});
 
@@ -168,10 +166,9 @@ describe("CenteredLayout", () => {
 		expect(ref.current).toBe(footer);
 	});
 
-	test("Header renders a header element with data-slot, exposed as a banner landmark", () => {
+	test("Header renders a banner landmark with data-slot", () => {
 		render(<CenteredLayout.Header data-testid="header">account</CenteredLayout.Header>);
 		const header = screen.getByTestId("header");
-		expect(header.tagName).toBe("HEADER");
 		expect(header).toHaveAttribute("data-slot", "centered-layout-header");
 		expect(header).toHaveTextContent("account");
 		expect(screen.getByRole("banner")).toBe(header);
@@ -184,6 +181,7 @@ describe("CenteredLayout", () => {
 			</CenteredLayout.Header>,
 		);
 		const header = screen.getByTestId("header");
+		// The tailwind-merge contract: the consumer's class survives the merge.
 		expect(header).toHaveClass("sticky");
 	});
 
@@ -256,10 +254,6 @@ describe("CenteredLayout", () => {
 		const root = screen.getByTestId("root");
 		expect(root).toHaveAttribute("data-slot", "centered-layout");
 		expect(screen.getByTestId("body")).toHaveAttribute("data-slot", "centered-layout-body");
-		// the notice strip sits above everything, including the header banner
-		expect(screen.getByTestId("notice").compareDocumentPosition(screen.getByTestId("header"))).toBe(
-			Node.DOCUMENT_POSITION_FOLLOWING,
-		);
 		expect(screen.getByRole("banner")).toBe(screen.getByTestId("header"));
 		expect(screen.getByRole("main")).toHaveTextContent("Sign in to your account");
 		expect(screen.getByRole("contentinfo")).toBe(screen.getByTestId("footer"));

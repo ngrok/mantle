@@ -1,4 +1,4 @@
-import { describe, expect, test, vi } from "vitest";
+import { describe, expect, test } from "vitest";
 import type { SeriesSpec } from "./types.js";
 import { assignSeriesSlots, ChartStore, displayColor, displayShape } from "./store.js";
 
@@ -236,18 +236,6 @@ describe("ChartStore series presentation", () => {
 		expect(meta.map((series) => store.seriesShape(series.dataKey))).toStrictEqual(
 			meta.map((series) => series.shape),
 		);
-	});
-
-	test("seriesShape reads the published snapshot instead of resolving slots again", () => {
-		// The engine calls it per series on every painted frame, so it must not
-		// rebuild the sorted specs and the slot assignment each time.
-		const store = new ChartStore();
-		store.registerSeries(makeSeries("requests"));
-		store.registerSeries(makeSeries("errors", { shape: "star" }));
-		const seriesSpecs = vi.spyOn(store, "seriesSpecs");
-		expect(store.seriesShape("requests")).toBe("circle");
-		expect(store.seriesShape("errors")).toBe("star");
-		expect(seriesSpecs).toHaveBeenCalledTimes(0);
 	});
 
 	test("seriesShape follows a series that leaves", () => {

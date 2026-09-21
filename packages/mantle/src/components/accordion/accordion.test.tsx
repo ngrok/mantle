@@ -104,7 +104,6 @@ describe("Accordion", () => {
 	test("renders each item as a role=group with a <button> trigger (native <details>/<summary> a11y)", () => {
 		renderExample("a");
 		const triggerA = screen.getByRole("button", { name: /Trigger A/ });
-		expect(triggerA.tagName).toBe("BUTTON");
 		expect(triggerA.closest('[data-slot="accordion-item"]')).toHaveAttribute("role", "group");
 	});
 

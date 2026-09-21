@@ -40,11 +40,10 @@ describe("SelectableList controlled-query demo on a translated page", () => {
 
 		await user.clear(screen.getByRole("textbox", { name: "Filter access keys" }));
 
-		// The echo is the lone string child of its span, so React writes it
-		// through `textContent` and wipes the `<font>` instead of removing a node
-		// it no longer owns.
+		// React writes the lone string child through `textContent`, which wipes the
+		// `<font>`. `getByText` returns the text's owner, so a surviving `<font>` is the match.
 		const echo = screen.getByText("“”");
-		expect(echo.tagName).toBe("SPAN");
+		expect(echo.tagName).not.toBe("FONT");
 		expect(echo.querySelector("font")).toBeNull();
 	});
 });

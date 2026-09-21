@@ -225,7 +225,11 @@ describe("RouteAnnouncer", () => {
 			</MemoryRouter>,
 		);
 
-		expect(html).toMatch(/<span[^>]*role="status"[^>]*><\/span>/);
+		const region = new DOMParser()
+			.parseFromString(html, "text/html")
+			.querySelector('[role="status"]');
+		expect(region).not.toBeNull();
+		expect(region?.textContent).toBe("");
 	});
 
 	test("does not announce the initial page load", async () => {

@@ -670,7 +670,7 @@ describe("BarChart series slots", () => {
 
 test("BarChart.CopyButton announces 'Copied' through a live region, and again for a second copy inside the reset window", async () => {
 	const user = userEvent.setup();
-	render(
+	const { container } = render(
 		<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
 			<BarChart.Bar dataKey="desktop" label="Desktop" />
 			<BarChart.CopyButton />
@@ -678,9 +678,10 @@ test("BarChart.CopyButton announces 'Copied' through a live region, and again fo
 	);
 
 	const button = screen.getByRole("button", { name: "Copy data as Markdown" });
-	// Why the sibling: the chart's keyboard announcer is a second `role="status"`.
-	const status = button.nextElementSibling;
-	invariant(status != null, "the copy button renders its live region as the next sibling");
+	// Why the slot: the chart's keyboard announcer is a second `role="status"`. The
+	// copy button's region is the chart's only `LiveRegion`.
+	const status = container.querySelector('[data-slot="live-region"]');
+	invariant(status != null, "the copy button renders its live region");
 	expect(status).toHaveTextContent("");
 
 	await user.click(button);

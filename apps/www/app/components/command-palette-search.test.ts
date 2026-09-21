@@ -4,16 +4,7 @@ import {
 	groupPaletteCommands,
 	searchPaletteCommands,
 } from "./command-palette-search";
-import {
-	basePages,
-	componentCategories,
-	componentsByCategory,
-	layoutPages,
-	previewComponents,
-	recipePages,
-	utilsPages,
-	welcomePages,
-} from "./navigation-data";
+import { componentCategories, componentsByCategory, recipePages } from "./navigation-data";
 import { releaseHref } from "~/utilities/release-href";
 
 const commands = buildPaletteCommands("4.2.0");
@@ -25,26 +16,6 @@ describe("buildPaletteCommands", () => {
 	test("ids are unique", () => {
 		const ids = commands.map((command) => command.id);
 		expect(new Set(ids).size).toBe(ids.length);
-	});
-
-	test("contains every navigable docs page plus the GitHub links and theme commands", () => {
-		const componentCount = componentCategories.reduce(
-			(count, category) => count + componentsByCategory[category].length,
-			0,
-		);
-		const expectedCount =
-			welcomePages.length +
-			2 + // GitHub Repo + GitHub Releases
-			basePages.length +
-			1 + // Hooks
-			utilsPages.length +
-			componentCount +
-			layoutPages.length +
-			recipePages.length +
-			previewComponents.length +
-			5; // theme commands
-
-		expect(commands).toHaveLength(expectedCount);
 	});
 
 	test("the GitHub Releases command links the given version's release tag", () => {

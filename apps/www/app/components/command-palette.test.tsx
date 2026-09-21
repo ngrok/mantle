@@ -103,7 +103,7 @@ describe("CommandPalette", () => {
 		fireEvent.click(darkOption);
 
 		await waitFor(() => {
-			expect(document.documentElement.classList.contains("dark")).toBe(true);
+			expect(document.documentElement.dataset.appliedTheme).toBe("dark");
 		});
 		expect(screen.queryByPlaceholderText("Search Mantle...")).toBeNull();
 	});

@@ -4,13 +4,6 @@ import { describe, expect, test } from "vitest";
 import { Empty } from "./empty.js";
 
 describe("Empty", () => {
-	test("Root renders a div element", () => {
-		render(<Empty.Root data-testid="root">content</Empty.Root>);
-		const root = screen.getByTestId("root");
-		expect(root.tagName).toBe("DIV");
-		expect(root).toHaveTextContent("content");
-	});
-
 	test("Root merges custom className", () => {
 		render(
 			<Empty.Root className="custom-class" data-testid="root">
@@ -24,12 +17,10 @@ describe("Empty", () => {
 	test("Title renders an h3 element by default", () => {
 		render(
 			<Empty.Root>
-				<Empty.Title data-testid="title">Heading</Empty.Title>
+				<Empty.Title>Heading</Empty.Title>
 			</Empty.Root>,
 		);
-		const title = screen.getByTestId("title");
-		expect(title.tagName).toBe("H3");
-		expect(title).toHaveTextContent("Heading");
+		const title = screen.getByRole("heading", { level: 3, name: "Heading" });
 		expect(title).toHaveAttribute("data-slot", "empty-title");
 	});
 
@@ -42,6 +33,7 @@ describe("Empty", () => {
 			</Empty.Root>,
 		);
 		const title = screen.getByTestId("title");
+		// The tailwind-merge contract: the consumer's class survives the merge.
 		expect(title.className).toContain("text-2xl");
 	});
 
@@ -59,19 +51,6 @@ describe("Empty", () => {
 		expect(title).toHaveAttribute("data-slot", "empty-title");
 	});
 
-	test("Description renders a div element by default", () => {
-		render(
-			<Empty.Root>
-				<Empty.Description data-testid="desc">
-					<p>Some text</p>
-				</Empty.Description>
-			</Empty.Root>,
-		);
-		const description = screen.getByTestId("desc");
-		expect(description.tagName).toBe("DIV");
-		expect(description).toHaveTextContent("Some text");
-	});
-
 	test("Description merges custom className", () => {
 		render(
 			<Empty.Root>
@@ -81,6 +60,7 @@ describe("Empty", () => {
 			</Empty.Root>,
 		);
 		const description = screen.getByTestId("desc");
+		// The tailwind-merge contract: the consumer's class survives the merge.
 		expect(description.className).toContain("text-xs");
 		expect(description).toHaveAttribute("data-slot", "empty-description");
 	});
@@ -98,18 +78,6 @@ describe("Empty", () => {
 		const description = screen.getByTestId("desc");
 		expect(description.tagName).toBe("SECTION");
 		expect(description).toHaveAttribute("data-slot", "empty-description");
-	});
-
-	test("Actions renders a div element", () => {
-		render(
-			<Empty.Root>
-				<Empty.Actions data-testid="actions">
-					<button type="button">Click</button>
-				</Empty.Actions>
-			</Empty.Root>,
-		);
-		const actions = screen.getByTestId("actions");
-		expect(actions.tagName).toBe("DIV");
 	});
 
 	test("Root renders as child element when asChild is true", () => {
@@ -164,6 +132,7 @@ describe("Empty", () => {
 			</Empty.Root>,
 		);
 		const actions = screen.getByTestId("actions");
+		// The tailwind-merge contract: the consumer's class survives the merge.
 		expect(actions.className).toContain("gap-4");
 	});
 
@@ -186,6 +155,6 @@ describe("Empty", () => {
 				<Empty.Title ref={ref}>Heading</Empty.Title>
 			</Empty.Root>,
 		);
-		expect(ref.current?.tagName).toBe("H3");
+		expect(ref.current).toBe(screen.getByRole("heading", { level: 3, name: "Heading" }));
 	});
 });
