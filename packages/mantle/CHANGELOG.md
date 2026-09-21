@@ -1,5 +1,44 @@
 # @ngrok/mantle
 
+## 0.87.0
+
+### Minor Changes
+
+- [#1526](https://github.com/ngrok/mantle/pull/1526) [`9ed4e53`](https://github.com/ngrok/mantle/commit/9ed4e53c1a083c9c4ec2e58cb6595828fc8f387e) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `AppLayout.Body` renders mantle's `Main` landmark by default: `<main id="main" tabIndex={-1}>` with `data-slot="app-layout-body main"`. A skip link's default target now lands on the shell's only scroll container with no extra composition, so arrows, `Space`, and `PageDown` scroll the page as soon as the jump lands. `id` and `tabIndex` are no longer props on `AppLayout.Body`, for the same reason they are not props on `Main`.
+
+  This is a breaking change for a shell embedded in a page that already owns a `main` landmark (a docs demo, a test, a widget inside another layout). There the body now renders a second `main` with a duplicate `id`. Migrate:
+
+  - In a shell that owns the document, replace `<AppLayout.Body asChild><Main>…</Main></AppLayout.Body>` with `<AppLayout.Body>…</AppLayout.Body>`. The old form still renders one `main`, but the inner `Main` is redundant.
+  - In an embedded shell, replace `<AppLayout.Body>` with `<AppLayout.Body asChild><div>…</div></AppLayout.Body>`. The part adds its classes and `data-slot="app-layout-body"` to your element and no landmark.
+  - Replace a selector that matched `[data-slot="app-layout-body"]` exactly with `[data-slot~="app-layout-body"]`, because the default body's `data-slot` now ends in `main`.
+
+  `AppLayout.Header` gains three slots that carry the row's flex, so no call site sets `flex-1`, `min-w-0`, `shrink-0`, or `ml-auto` itself:
+
+  - `AppLayout.HeaderStart` (`data-slot="app-layout-header-start"`) is `shrink-0`: the home of `Sidebar.Trigger`, at the row's start.
+  - `AppLayout.HeaderContent` (`data-slot="app-layout-header-content"`) is `min-w-0 flex-1`: the home of the `Breadcrumb` trail. It fills the row and gives width back first, so a long trail scrolls inside it instead of pushing the actions off the card.
+  - `AppLayout.HeaderActions` (`data-slot="app-layout-header-actions"`) is `ml-auto shrink-0`: the page's actions, at the row's end. It takes only the width its children need and grows to the left as actions are added.
+
+  Each slot is a flex row with the header's own `gap-2`, accepts `asChild`, and appends its own `data-slot` after any you forward. A header composed without the slots renders as before.
+
+  Every page in an app that renders `AppLayout` renders one `AppLayout.Header`, with `Sidebar.Trigger` in `AppLayout.HeaderStart` and the route's breadcrumb trail in `AppLayout.HeaderContent`. The App Layout docs state that requirement and show the canonical shell: the shell renders `AppLayout.Content` around its `<Outlet />`, and each route renders `AppLayout.Header` and `AppLayout.Body` itself, so an action reads the page's own state. The docs compose the three slots in the app shell, standalone, editor, and landmark examples. A shell-owned header whose actions come from React Router route handles is the documented deviation: https://mantle.ngrok.com/recipes/header-actions-from-routes
+
+  Migration guide: https://mantle.ngrok.com/migrations/0007-app-layout-header-slots-migration
+
+  API reference: https://mantle.ngrok.com/layouts/app-layout#applayoutbody
+
+### Patch Changes
+
+- [#1524](https://github.com/ngrok/mantle/pull/1524) [`4854ba3`](https://github.com/ngrok/mantle/commit/4854ba3c7afcbaea0dbb767018aacfc41d0a9edd) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Sheet` parts now read a private Radix dialog scope, so each one binds to the nearest `Sheet.Root` and to nothing else. A `Command.SearchTrigger`, `Command.DialogTrigger`, `Dialog.Trigger`, or `Dialog.Close` rendered inside `Sheet.Content` (a `Sidebar.Nav` below its `mobileBreakpoint`, say) now reaches the `Dialog.Root` or `Command.DialogRoot` above the sheet instead of toggling the sheet. Before this fix, a click on the search row in the mobile sidebar closed the sheet and never opened the palette.
+
+  Two undocumented shapes now fail fast instead of controlling the wrong overlay:
+
+  - A `Dialog.Trigger` or `Dialog.Close` inside a sheet with no `Dialog.Root` above it throws Radix's "must be used within `Dialog`". Use `Sheet.Trigger` and `Sheet.Close` to control a sheet.
+  - A `Sheet.Trigger`, `Sheet.Close`, or `Sheet.CloseIconButton` inside a `Dialog.Content` with no `Sheet.Root` above it throws the same error. Use `Dialog.Close` there.
+
+  The Sheet docs state the binding rule: https://mantle.ngrok.com/components/overlays/sheet#sheetroot
+
+  The Command docs now put `Command.DialogRoot` above `Sidebar.Nav`, where `⌘K` outlives the mobile sheet and the search row inside the sheet still opens the palette: https://mantle.ngrok.com/components/navigation/command#in-a-sidebar
+
 ## 0.86.3
 
 ### Patch Changes
