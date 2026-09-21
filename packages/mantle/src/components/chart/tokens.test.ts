@@ -232,6 +232,9 @@ const PROVENANCE: Record<ThemeName, Array<{ slot: string; value: string; source:
 const violation = (theme: ThemePalette, detail: string) =>
 	`${theme.name}: ${detail} — re-step a slot and re-validate. Never widen a threshold, and never update an expectation to match. Resolved: ${theme.slots.join(",")} on surface ${theme.surface}.`;
 
+/** WCAG 2.2 SC 1.4.11 Non-text Contrast: the floor for a graphical object against its surface. */
+const WCAG_NON_TEXT_CONTRAST = 3;
+
 const describePair = (pair: WorstPair) =>
 	`chart-${pair.first.slot} ${pair.first.hex} <-> chart-${pair.second.slot} ${pair.second.hex} (${pair.kind}) ΔE ${pair.deltaE.toFixed(2)}`;
 
@@ -373,17 +376,17 @@ describe.each(THEMES)("chart palette gates — $name", (theme) => {
 	});
 
 	test("every slot and the overflow clear the WCAG 3:1 floor", () => {
-		// Why a flat floor as well: the per-theme floors below are inputs a
-		// maintainer can lower, and the standard's floor is not.
-		const violations = lowContrastSlots([...theme.slots, theme.overflow], theme.surface).map(
-			({ slot, hex, ratio }) => {
-				const name = slot > theme.slots.length ? "overflow" : `chart-${slot}`;
-				return violation(
-					theme,
-					`${name} ${hex} is ${ratio.toFixed(2)}:1 against the surface, under 3:1`,
-				);
-			},
-		);
+		// Why a literal floor: the per-theme floors below and the `CONTRAST_MIN`
+		// default are inputs a maintainer can lower, and the standard's floor is not.
+		const violations = lowContrastSlots([...theme.slots, theme.overflow], theme.surface, {
+			minimum: WCAG_NON_TEXT_CONTRAST,
+		}).map(({ slot, hex, ratio }) => {
+			const name = slot > theme.slots.length ? "overflow" : `chart-${slot}`;
+			return violation(
+				theme,
+				`${name} ${hex} is ${ratio.toFixed(2)}:1 against the surface, under ${WCAG_NON_TEXT_CONTRAST}:1`,
+			);
+		});
 		expect(violations).toEqual([]);
 	});
 

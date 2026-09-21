@@ -11,6 +11,14 @@ it("formatMigrationNumber zero-pads to four digits and leaves a wider number alo
 	expect(formatMigrationNumber(12345)).toBe("12345");
 });
 
+it("numbers the guides from 1 with no gaps, in publish order", () => {
+	// Why the relation: `number` is the sidebar's React key and the badge text,
+	// and a guide keeps it forever. A reused or skipped number is a data error.
+	expect(migrations.map((migration) => migration.number)).toEqual(
+		migrations.map((_, index) => index + 1),
+	);
+});
+
 it("has an MDX file on disk for each migration guide's route", () => {
 	for (const migration of migrations) {
 		const file = path.join(migrationsDirectory, `${migration.route.split("/").pop()}.mdx`);

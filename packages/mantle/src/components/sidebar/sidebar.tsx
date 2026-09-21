@@ -642,10 +642,6 @@ const Nav = ({
 		<div
 			data-slot={joinDataSlot(dataSlot, "sidebar-nav")}
 			data-state={open ? "expanded" : "collapsed"}
-			// Why data-hydrated: the first-paint gates below and the descendants'
-			// collapse transitions key off this attribute in CSS, so an SSR state
-			// correction snaps instead of animating.
-			data-hydrated={isHydrated ? "" : undefined}
 			className={cx(
 				// bg lives on this surface (not the inner nav) so consumer
 				// className overrides like `bg-card` take effect on desktop too.
@@ -667,6 +663,12 @@ const Nav = ({
 				className,
 			)}
 			{...props}
+			// Why data-hydrated: the first-paint gates above and the descendants'
+			// collapse transitions key off this attribute in CSS, so an SSR state
+			// correction snaps instead of animating.
+			// Why after the spread: a wider props object can carry `data-hydrated`
+			// past the type, and a consumer value would release or hold the gate.
+			data-hydrated={isHydrated ? "" : undefined}
 		>
 			<nav
 				id={navId}
