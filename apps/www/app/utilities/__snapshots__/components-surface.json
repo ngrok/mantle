@@ -896,8 +896,8 @@
     "summary": "A set of layered sections of content—known as tab panels—that are displayed one at a time.",
     "jsdoc": "A set of layered sections of content—known as tab panels—that are displayed one at a time.",
     "examples": [
-      "Composition:\n```\nTabs.Root\n├── Tabs.List\n│   └── Tabs.Trigger\n│       └── Tabs.Badge\n└── Tabs.Content\n```",
-      "```tsx\n<Tabs.Root defaultValue=\"account\">\n  <Tabs.List>\n    <Tabs.Trigger value=\"account\">Account</Tabs.Trigger>\n    <Tabs.Trigger value=\"password\">Password</Tabs.Trigger>\n  </Tabs.List>\n  <Tabs.Content value=\"account\">\n    <p>Make changes to your account here.</p>\n  </Tabs.Content>\n  <Tabs.Content value=\"password\">\n    <p>Change your password here.</p>\n  </Tabs.Content>\n</Tabs.Root>\n```"
+      "Composition:\n```\nTabs.Root\n├── Tabs.List\n│   └── Tabs.Trigger\n│       └── Tabs.Badge\n├── Tabs.Separator\n└── Tabs.Content\n```",
+      "```tsx\n<Tabs.Root defaultValue=\"account\">\n  <Tabs.List>\n    <Tabs.Trigger value=\"account\">Account</Tabs.Trigger>\n    <Tabs.Trigger value=\"password\">Password</Tabs.Trigger>\n  </Tabs.List>\n  <Tabs.Separator />\n  <Tabs.Content value=\"account\">\n    <p>Make changes to your account here.</p>\n  </Tabs.Content>\n  <Tabs.Content value=\"password\">\n    <p>Change your password here.</p>\n  </Tabs.Content>\n</Tabs.Root>\n```"
     ]
   },
   {

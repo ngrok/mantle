@@ -25,6 +25,7 @@ import { clsx } from "../../utils/cx/clsx.js";
 import { cx } from "../../utils/cx/cx.js";
 import { getPrefersReducedMotion } from "../../hooks/use-prefers-reduced-motion.js";
 import type { ScrollBehavior } from "../../hooks/use-scroll-behavior.js";
+import { Separator } from "../separator/separator.js";
 
 type Orientation = "horizontal" | "vertical";
 type Appearance = "classic" | "pill";
@@ -44,6 +45,12 @@ const TabsStateContext = createContext<TabsStateContextValue>({
  * The outermost part; it owns `orientation` and `appearance`. It stamps both as
  * `data-orientation` and `data-appearance` for the parts below to style against.
  *
+ * **CSS variables:**
+ *
+ * | CSS Variable | Default | Description                                                                                                                              |
+ * | ------------ | ------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+ * | `--tabs-gap` | `1rem`  | The space between the list and the content. `Tabs.Separator` pulls itself up by it, so set the variable here instead of a `gap-*` class. |
+ *
  * @see https://mantle.ngrok.com/components/navigation/tabs#tabsroot
  *
  * @example
@@ -53,6 +60,7 @@ const TabsStateContext = createContext<TabsStateContextValue>({
  *     <Tabs.Trigger value="account">Account</Tabs.Trigger>
  *     <Tabs.Trigger value="password">Password</Tabs.Trigger>
  *   </Tabs.List>
+ *   <Tabs.Separator />
  *   <Tabs.Content value="account">
  *     <p>Make changes to your account here.</p>
  *   </Tabs.Content>
@@ -82,7 +90,9 @@ const Root = ({
 			data-slot="tabs"
 			data-appearance={appearance}
 			className={cx(
-				"flex gap-4",
+				// Why a variable: `Tabs.Separator` reads `--tabs-gap` to cancel this gap
+				// and sit flush against the list, so both must move together.
+				"flex [--tabs-gap:--spacing(4)] gap-(--tabs-gap)",
 				orientation === "horizontal" ? "flex-col" : "flex-row",
 				className,
 			)}
@@ -93,33 +103,6 @@ const Root = ({
 		</TabsPrimitiveRoot>
 	);
 };
-
-/**
- * The horizontal classic tablist's bottom border, drawn by default and
- * removed by the `hideBorder` prop on `Tabs.List`.
- *
- * Painted as a content-box background on the list instead of `border-bottom`
- * or an absolutely-positioned child because:
- * - the tablist is a scroll container with `px-1 -mx-1` breathing room for
- *   focus rings: a real border paints across the border box, which the
- *   negative margins push past the container's content edge, and
- * - absolutely-positioned children of a scroll container anchor to the scroll
- *   origin, so a positioned rule scrolls away with the triggers on overflow.
- *
- * The content box excludes the breathing padding, so the rule stays inside
- * the container and sits put while triggers scroll beneath it. `pb-px`
- * reserves the 1px row below the triggers (and below the active trigger's
- * decoration) that the rule occupies; the `calc(100% + 1px)` y-position
- * drops the rule out of the content box into that row, and
- * `--_fade-bottom-border: black` pins that row opaque in the scroll-fade
- * mask so the border runs solid to the container edges while the scrolled
- * triggers above it fade (see scroll-fade-x in mantle.css).
- */
-const listBottomRule = cx(
-	"pb-px bg-origin-content bg-no-repeat bg-size-[100%_1px] bg-position-[0_calc(100%+1px)]",
-	"bg-[image:linear-gradient(var(--color-separator),var(--color-separator))]",
-	"[--_fade-bottom-border:black]",
-);
 
 /**
  * Variants for the List component
@@ -135,10 +118,6 @@ const listVariants = cva("flex", {
 			classic: "",
 			pill: "",
 		} as const satisfies Record<Appearance, string>,
-		hideBorder: {
-			true: "",
-			false: "",
-		},
 	},
 	compoundVariants: [
 		{
@@ -152,35 +131,13 @@ const listVariants = cva("flex", {
 			appearance: "classic",
 			className: "gap-6",
 		},
-		{
-			orientation: "horizontal",
-			appearance: "classic",
-			hideBorder: false,
-			// see listBottomRule for why the border is a background, not border-bottom
-			className: listBottomRule,
-		},
-		{
-			orientation: "vertical",
-			appearance: "classic",
-			hideBorder: false,
-			className: "border-r border-separator",
-		},
 	],
-	// cva compound matching is strict equality, so an omitted hideBorder would
-	// silently skip the `hideBorder: false` compounds and drop the border; the
-	// default keeps the border-on contract inside the variant machine itself.
-	defaultVariants: {
-		hideBorder: false,
-	},
 });
 
 /**
  * Contains the triggers that are aligned along the edge of the active content.
- *
- * By default a horizontal classic tablist draws a 1px bottom border in the
- * `separator` color token, and a vertical classic tablist draws the matching
- * side border. Pass `hideBorder` to remove it; the pill appearance never
- * draws a border.
+ * The list draws no border of its own: compose `Tabs.Separator` after it for
+ * the hairline between the triggers and the content.
  *
  * @see https://mantle.ngrok.com/components/navigation/tabs#tabslist
  *
@@ -191,36 +148,14 @@ const listVariants = cva("flex", {
  *     <Tabs.Trigger value="account">Account</Tabs.Trigger>
  *     <Tabs.Trigger value="password">Password</Tabs.Trigger>
  *   </Tabs.List>
+ *   <Tabs.Separator />
  *   <Tabs.Content value="account">
  *     <p>Make changes to your account here.</p>
  *   </Tabs.Content>
  * </Tabs.Root>
  * ```
- *
- * @example
- * ```tsx
- * // render the tablist without its border
- * <Tabs.List hideBorder>
- *   <Tabs.Trigger value="account">Account</Tabs.Trigger>
- *   <Tabs.Trigger value="password">Password</Tabs.Trigger>
- * </Tabs.List>
- * ```
  */
-const List = ({
-	className,
-	hideBorder = false,
-	ref,
-	...props
-}: ComponentProps<typeof TabsPrimitiveList> & {
-	/**
-	 * Hide the tablist's border — the bottom border of a horizontal classic
-	 * tablist, or the side border of a vertical one. Also rendered as a
-	 * `data-hide-border` attribute on the tablist element. Has no effect on
-	 * the pill appearance, which never draws a border.
-	 * @default false
-	 */
-	hideBorder?: boolean;
-}) => {
+const List = ({ className, ref, ...props }: ComponentProps<typeof TabsPrimitiveList>) => {
 	const { orientation, appearance } = useContext(TabsStateContext);
 	const scrollRef = useRef<ComponentRef<typeof TabsPrimitiveList>>(null);
 	const composedRef = useComposedRefs(scrollRef, ref);
@@ -290,9 +225,78 @@ const List = ({
 		<TabsPrimitiveList
 			aria-orientation={orientation}
 			data-slot="tabs-list"
-			data-hide-border={hideBorder ? "" : undefined}
-			className={cx(listVariants({ orientation, appearance, hideBorder }), className)}
+			className={cx(listVariants({ orientation, appearance }), className)}
 			ref={composedRef}
+			{...props}
+		/>
+	);
+};
+
+type TabsSeparatorProps = Omit<ComponentProps<typeof Separator>, "orientation">;
+
+/**
+ * The hairline between the list and the content, in the `separator` color
+ * token. Compose it directly after `Tabs.List`. It follows the root's
+ * `orientation`: a horizontal root draws it under the list, a vertical root
+ * draws it beside the list. It is a sibling of the list and not a child, so it
+ * spans the root's full width and neither scrolls nor fades with the triggers.
+ *
+ * As the root's direct child it pulls itself up by `--tabs-gap` and sits flush
+ * against the list, while the content keeps the gap. Inside a wrapper of your
+ * own, the offset stays off.
+ *
+ * The separator is decorative (`role="none"`). Pass `semantic` for
+ * `role="separator"`.
+ *
+ * **CSS variables:**
+ *
+ * | CSS Variable | Default | Description                                                                                   |
+ * | ------------ | ------- | --------------------------------------------------------------------------------------------- |
+ * | `--tabs-gap` | `1rem`  | Read, not owned. `Tabs.Root` sets it; the separator cancels it to sit flush against the list. |
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute     | Value                          | Description                                   |
+ * | ------------------ | ------------------------------ | --------------------------------------------- |
+ * | `data-slot`        | `"tabs-separator"`             | On the separator element.                     |
+ * | `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation.                       |
+ * | `data-separator`   | present                        | Presence-only. Set by the mantle `Separator`. |
+ *
+ * @see https://mantle.ngrok.com/components/navigation/tabs#tabsseparator
+ *
+ * @example
+ * ```tsx
+ * <Tabs.Root defaultValue="account">
+ *   <Tabs.List>
+ *     <Tabs.Trigger value="account">Account</Tabs.Trigger>
+ *     <Tabs.Trigger value="password">Password</Tabs.Trigger>
+ *   </Tabs.List>
+ *   <Tabs.Separator />
+ *   <Tabs.Content value="account">
+ *     <p>Make changes to your account here.</p>
+ *   </Tabs.Content>
+ * </Tabs.Root>
+ * ```
+ */
+const TabsSeparator = ({ className, ...props }: TabsSeparatorProps) => {
+	const { orientation } = useContext(TabsStateContext);
+
+	// Why the parent selector: the root lays its children out with `gap`, so
+	// only a separator that is the root's direct child has a gap to cancel.
+	//
+	// Why `h-auto self-stretch`: `Separator` sets `h-full` when vertical, and a
+	// flex item stretches only when its height computes to `auto`. `100%` of the
+	// root's auto height resolves to nothing, so the hairline would be 0px tall.
+	const orientationClasses =
+		orientation === "horizontal"
+			? "[[data-slot=tabs]>&]:-mt-(--tabs-gap)"
+			: "h-auto self-stretch [[data-slot=tabs]>&]:-ml-(--tabs-gap)";
+
+	return (
+		<Separator
+			data-slot="tabs-separator"
+			orientation={orientation}
+			className={cx(orientationClasses, className)}
 			{...props}
 		/>
 	);
@@ -393,6 +397,7 @@ const triggerVariants = cva(
  *     <Tabs.Trigger value="account">Account</Tabs.Trigger>
  *     <Tabs.Trigger value="password">Password</Tabs.Trigger>
  *   </Tabs.List>
+ *   <Tabs.Separator />
  *   <Tabs.Content value="account">
  *     <p>Make changes to your account here.</p>
  *   </Tabs.Content>
@@ -478,6 +483,7 @@ const Trigger = ({
  *     </Tabs.Trigger>
  *     <Tabs.Trigger value="password">Password</Tabs.Trigger>
  *   </Tabs.List>
+ *   <Tabs.Separator />
  * </Tabs.Root>
  * ```
  */
@@ -509,6 +515,7 @@ const Badge = ({ className, children, ...props }: HTMLAttributes<HTMLSpanElement
  *     <Tabs.Trigger value="account">Account</Tabs.Trigger>
  *     <Tabs.Trigger value="password">Password</Tabs.Trigger>
  *   </Tabs.List>
+ *   <Tabs.Separator />
  *   <Tabs.Content value="account">
  *     <p>Make changes to your account here.</p>
  *   </Tabs.Content>
@@ -538,6 +545,7 @@ const Content = ({ className, ...props }: ComponentProps<typeof TabsPrimitiveCon
  * ├── Tabs.List
  * │   └── Tabs.Trigger
  * │       └── Tabs.Badge
+ * ├── Tabs.Separator
  * └── Tabs.Content
  * ```
  *
@@ -548,6 +556,7 @@ const Content = ({ className, ...props }: ComponentProps<typeof TabsPrimitiveCon
  *     <Tabs.Trigger value="account">Account</Tabs.Trigger>
  *     <Tabs.Trigger value="password">Password</Tabs.Trigger>
  *   </Tabs.List>
+ *   <Tabs.Separator />
  *   <Tabs.Content value="account">
  *     <p>Make changes to your account here.</p>
  *   </Tabs.Content>
@@ -572,6 +581,7 @@ const Tabs = {
 	 *     <Tabs.Trigger value="account">Account</Tabs.Trigger>
 	 *     <Tabs.Trigger value="password">Password</Tabs.Trigger>
 	 *   </Tabs.List>
+	 *   <Tabs.Separator />
 	 *   <Tabs.Content value="account">
 	 *     <p>Make changes to your account here.</p>
 	 *   </Tabs.Content>
@@ -591,6 +601,7 @@ const Tabs = {
 	 *   <Tabs.List>
 	 *     <Tabs.Trigger value="account">Account</Tabs.Trigger>
 	 *   </Tabs.List>
+	 *   <Tabs.Separator />
 	 *   <Tabs.Content value="account">
 	 *     <p>Make changes to your account here.</p>
 	 *   </Tabs.Content>
@@ -600,10 +611,8 @@ const Tabs = {
 	Content,
 	/**
 	 * Contains the triggers that are aligned along the edge of the active content.
-	 *
-	 * By default a classic tablist draws a 1px border in the `separator` color
-	 * token (bottom border when horizontal, side border when vertical); pass
-	 * `hideBorder` to remove it. The pill appearance never draws a border.
+	 * The list draws no border of its own: compose `Tabs.Separator` after it for
+	 * the hairline between the triggers and the content.
 	 *
 	 * @see https://mantle.ngrok.com/components/navigation/tabs#tabslist
 	 *
@@ -614,10 +623,42 @@ const Tabs = {
 	 *     <Tabs.Trigger value="account">Account</Tabs.Trigger>
 	 *     <Tabs.Trigger value="password">Password</Tabs.Trigger>
 	 *   </Tabs.List>
+	 *   <Tabs.Separator />
 	 * </Tabs.Root>
 	 * ```
 	 */
 	List,
+	/**
+	 * The hairline between the list and the content, in the `separator` color
+	 * token. Compose it directly after `Tabs.List`. It follows the root's
+	 * `orientation`: a horizontal root draws it under the list, a vertical root
+	 * draws it beside the list. It is a sibling of the list and not a child, so it
+	 * spans the root's full width and neither scrolls nor fades with the triggers.
+	 *
+	 * As the root's direct child it pulls itself up by `--tabs-gap` and sits flush
+	 * against the list, while the content keeps the gap. Inside a wrapper of your
+	 * own, the offset stays off.
+	 *
+	 * The separator is decorative (`role="none"`). Pass `semantic` for
+	 * `role="separator"`.
+	 *
+	 * @see https://mantle.ngrok.com/components/navigation/tabs#tabsseparator
+	 *
+	 * @example
+	 * ```tsx
+	 * <Tabs.Root defaultValue="account">
+	 *   <Tabs.List>
+	 *     <Tabs.Trigger value="account">Account</Tabs.Trigger>
+	 *     <Tabs.Trigger value="password">Password</Tabs.Trigger>
+	 *   </Tabs.List>
+	 *   <Tabs.Separator />
+	 *   <Tabs.Content value="account">
+	 *     <p>Make changes to your account here.</p>
+	 *   </Tabs.Content>
+	 * </Tabs.Root>
+	 * ```
+	 */
+	Separator: TabsSeparator,
 	/**
 	 * The button that activates its associated content.
 	 *
@@ -649,6 +690,7 @@ const Tabs = {
 	 *     <Tabs.Trigger value="account">Account</Tabs.Trigger>
 	 *     <Tabs.Trigger value="password">Password</Tabs.Trigger>
 	 *   </Tabs.List>
+	 *   <Tabs.Separator />
 	 * </Tabs.Root>
 	 * ```
 	 */
@@ -666,6 +708,7 @@ const Tabs = {
 	 *       Account <Tabs.Badge>5</Tabs.Badge>
 	 *     </Tabs.Trigger>
 	 *   </Tabs.List>
+	 *   <Tabs.Separator />
 	 * </Tabs.Root>
 	 * ```
 	 */

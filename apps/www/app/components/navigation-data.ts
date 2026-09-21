@@ -460,6 +460,14 @@ export const migrations = [
 			"Compose AppLayout.Header from its three slots, let AppLayout.Body be the main landmark, and render the header in every route instead of the shell.",
 		route: "/migrations/0007-app-layout-header-slots-migration",
 	},
+	{
+		number: 8,
+		slug: "tabs-separator-migration",
+		title: "Tabs Separator",
+		description:
+			"Tabs.List no longer draws a border: compose Tabs.Separator after the list, delete hideBorder, and set --tabs-gap instead of a gap-* class on Tabs.Root.",
+		route: "/migrations/0008-tabs-separator-migration",
+	},
 ] as const satisfies readonly Migration[];
 
 /** Migration guides, newest first: the order the index page and the sidebar show. */
