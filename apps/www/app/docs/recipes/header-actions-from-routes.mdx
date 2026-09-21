@@ -1,6 +1,6 @@
 ---
 title: Header Actions from Routes
-description: Put each route's actions in the app header's actions slot with React Router route handles (derived state, so the server renders them, the first frame is right, and no page pushes anything up).
+description: Declare each route's header actions on its React Router route handle (derived state, so the server renders them and no page pushes anything up).
 ---
 
 import { Example } from "~/components/example";
@@ -14,7 +14,7 @@ breadcrumb trail, and [`AppLayout.HeaderActions`](/layouts/app-layout#applayouth
 page's actions. The shell renders that header once, above its `<Outlet />`, so a leaf route cannot reach the
 third slot from its own JSX. Which actions render is still that route's decision. This recipe makes the
 decision a declaration on the route module, the same way
-[Breadcrumbs from Routes](/recipes/breadcrumbs-from-routes) makes the trail one: the route exports a
+[Breadcrumbs from Routes](/recipes/breadcrumbs-from-routes) declares the trail: the route exports a
 `handle`, and the shell reads it out of `useMatches()`.
 
 Pick a URL. The actions follow the deepest route that declares any:
@@ -24,16 +24,16 @@ Pick a URL. The actions follow the deepest route that declares any:
 </Example>
 
 > [!NOTE]
-> The demo switches between **fixture** match arrays rather than really navigating: a demo embedded in this
-> page cannot mount a second router. The function reading them is the real `findHeaderActions`, unmodified.
-> Narrow the window below `md` to watch the actions collapse into one menu.
+> The demo does not navigate. It swaps between **fixture** match arrays, because a demo embedded in this page
+> cannot mount a second router. The real `findHeaderActions` reads them, unmodified. Narrow the window below
+> `md` to watch the actions collapse into one menu.
 
 ## Why not a context provider
 
 The tempting shape is a provider in the shell and a `usePageHeaderActions(<Actions />)` hook a page calls
-from an effect. Avoid it. It has the
-[four costs the breadcrumbs recipe lists](/recipes/breadcrumbs-from-routes#why-not-a-context-provider), and
-one more:
+from an effect. Avoid it. It shares three of the
+[four costs the breadcrumbs recipe lists](/recipes/breadcrumbs-from-routes#why-not-a-context-provider) (a
+fixed depth does not apply), and adds one more:
 
 - **A wrong first paint.** The actions arrive in an effect, so the first frame has none. Server-rendered HTML
   has none at all.
@@ -61,8 +61,8 @@ Four pieces, each with one job:
 1. **`handle.headerActions`** on a route module: the element to render, or `null` to render none.
 2. **`findHeaderActions`**: picks the deepest match that declares one. Pure and router-agnostic, so a test
    asserts it over a fixture.
-3. **`RouteHeaderActions`**: the one component that calls `useMatches()`. Keeping the hook at the edge is what
-   lets the demo above run the same function with no router.
+3. **`RouteHeaderActions`**: the one component that calls `useMatches()`. The hook stays at the edge, so the
+   demo above runs the same function with no router.
 4. **`PageActions`**: renders a list of actions as icon buttons at desktop widths and as one menu below the
    mobile breakpoint. A route composes its own element instead whenever an action is not a plain button.
 
@@ -102,8 +102,8 @@ a component type a compile error, and `hasHeaderActions` treats one as no declar
 ## Actions that need state
 
 The element renders in the shell, not inside the page, so it cannot read the page component's `useState`.
-That is the constraint that keeps the first paint right, and the fix is to keep the state where the server
-can see it: the URL, the route's loader data, or the query cache the page reads. Router hooks work in the
+That constraint keeps the first paint right. Keep the state where the server can see it: the URL, the
+route's loader data, or the query cache the page reads. Router hooks work in the
 shell, because the element renders inside the router. `useParams()` returns the leaf's params from a layout,
 `useSearchParams()` reads and writes the URL, and `useRouteLoaderData(routeId)` reads any matched route's
 data.
@@ -227,7 +227,7 @@ Everything here runs on the server unchanged:
 
 - **`useMatches()` is SSR-safe.** The matched chain is what the server router already resolved.
 - **`handle` is available on the server.** Route modules load there too, so the element is in the first
-  render. No `typeof window` guard, no effect, no hydration-only branch.
+  render.
 - **`findHeaderActions` is pure.** Same matches, same element, both sides.
 - **Both controls ship in the HTML.** The collapse is CSS, so a phone gets the menu's trigger in the first
   byte, and the items mount when it opens.
@@ -239,9 +239,8 @@ hydration inside its own component, never in the handle.
 
 ## The file
 
-The one file to copy. `RouteHeaderActions` is the only thing that touches the router; `findHeaderActions`
-and `PageActions` are pure rendering, which is what makes them testable with a fixture and what lets the demo
-above use them unmodified.
+The one file to copy. `RouteHeaderActions` is the only piece that touches the router. `findHeaderActions`
+and `PageActions` are pure, so a fixture tests them and the demo above uses them unmodified.
 
 ````tsx
 import { IconButton } from "@ngrok/mantle/button";

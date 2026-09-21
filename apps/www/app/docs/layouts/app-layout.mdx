@@ -18,8 +18,8 @@ import {
 A viewport-locked application shell. The shell itself never scrolls: `AppLayout.Content` is a rounded card
 holding a toolbar and a page region, and `AppLayout.Body` (the page region) is the only scroll container
 in the whole shell, with `overscroll-none` so long pages never bounce or drag the chrome. Above it,
-`AppLayout.Header` is a toolbar row pinned by being a sibling of the scroll container rather than by `sticky`,
-with three slots for the sidebar trigger, the breadcrumb trail, and the page's actions. `AppLayout.Notice` is a full-window composition slot for
+`AppLayout.Header` is a toolbar row with three slots: the sidebar trigger, the breadcrumb trail, and the
+page's actions. It sits beside the scroll container, so it stays pinned without `sticky`. `AppLayout.Notice` is a full-window composition slot for
 app-wide messaging that pushes everything (including any sidebar) down. It can stack a rare maintenance or
 environment banner with a persistent account-alert bar. It is a **layout**: it owns _where things go_, and
 app state (routing, sessions, data) never enters it.
@@ -840,19 +840,18 @@ Composing the [Main](/components/primitives/main) landmark works the same way; s
 
 ## Header slots
 
-`AppLayout.Header` is one flex row, and its three slots carry the flex a call site used to set by hand.
-Compose them in order:
+`AppLayout.Header` is one flex row, and its three slots carry the flex. Compose them in order:
 
 - **`AppLayout.HeaderStart`** is `shrink-0`: it takes only the width its children need and holds the row's
   start. `Sidebar.Trigger` goes here.
 - **`AppLayout.HeaderContent`** is `min-w-0 flex-1`: it takes every pixel the other two slots leave and gives
-  width back first. The [Breadcrumb](/components/navigation/breadcrumb) trail goes here, and `min-w-0` is
-  what lets `Breadcrumb.List` scroll sideways instead of pushing the actions off the card.
+  width back first. The [Breadcrumb](/components/navigation/breadcrumb) trail goes here, and `min-w-0` lets
+  `Breadcrumb.List` scroll sideways instead of pushing the actions off the card.
 - **`AppLayout.HeaderActions`** is `ml-auto shrink-0`: it takes only the width its children need, grows to
   the left as actions are added, and stays at the row's end even when the header renders no content slot.
   The page's actions go here, three at most.
 
-The header's `gap-2` spaces the three slots, and each slot repeats it between its own children, so a second
+The header's `gap-2` spaces the three slots. Each slot repeats it between its own children, so a second
 control at the start or a second action at the end sits at the same spacing as the slots themselves. Grow the
 trail below and watch it scroll inside the content slot while the two ends hold their width. The shell is
 embedded and has no sidebar, so a back link takes the start slot that `Sidebar.Trigger` takes in an app shell.
@@ -983,9 +982,9 @@ export function AppLayoutHeaderSlotsExample() {
 
 </CodeExample.Root>
 
-Which actions render is the route's decision, and the shell renders the header once above its `<Outlet />`.
-Derive them from the matched route chain the way the trail is derived, and collapse them into one menu below
-the sidebar's mobile breakpoint. [Header Actions from Routes](/recipes/header-actions-from-routes) is the
+The shell renders the header once, above its `<Outlet />`. Which actions render is the route's decision, so
+derive them from the matched route chain the way you derive the trail. Collapse them into one menu below the
+sidebar's mobile breakpoint. [Header Actions from Routes](/recipes/header-actions-from-routes) is the
 recipe. The [app shell demo](#app-layout) at the top of this page shows the collapse: switch its preview to the
 mobile viewport and the three icon buttons become one menu.
 
@@ -1893,8 +1892,8 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 The header's leading slot: `flex shrink-0 items-center gap-2`. It takes only the width its children need and
 holds the row's start while [`AppLayout.HeaderContent`](#applayoutheadercontent) gives up width beside it. The
-home of [`Sidebar.Trigger`](/components/navigation/sidebar#sidebartrigger), or of the control that opens the
-row in a shell with no sidebar.
+home of [`Sidebar.Trigger`](/components/navigation/sidebar#sidebartrigger), or of a back link in a shell with
+no sidebar.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
@@ -1905,7 +1904,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 ### AppLayout.HeaderContent
 
 The slot that fills the header: `flex min-w-0 flex-1 items-center gap-2`. It takes every pixel the other two
-slots leave and gives width back before either of them does. `min-w-0` is what lets a
+slots leave and gives width back before either of them does. `min-w-0` lets a
 [`Breadcrumb.List`](/components/navigation/breadcrumb#breadcrumblist) inside it scroll sideways instead of
 pushing the actions off the card. The home of the trail, or of a page title in a shell with no trail.
 

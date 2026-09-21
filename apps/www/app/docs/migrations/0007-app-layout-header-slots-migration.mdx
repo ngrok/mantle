@@ -1,6 +1,6 @@
 ---
 title: App Layout Header Slots Migration
-description: Compose AppLayout.Header from its three slots, and move a route's header actions from a context a page writes into onto the route's own handle.
+description: Compose AppLayout.Header from its three slots, and move each route's header actions out of a context and onto its route handle.
 ---
 
 # Mantle App Layout Header Slots Migration Guide
@@ -31,7 +31,7 @@ description: Compose AppLayout.Header from its three slots, and move a route's h
 ### The shell header
 
 ```tsx
-// BEFORE: the row's flex is set by hand at the call site, and a context feeds the actions
+// BEFORE: the call site sets the row's flex by hand, and a context feeds the actions
 <AppLayout.Header>
 	<Sidebar.Trigger />
 	<div className="min-w-0 flex-1">
