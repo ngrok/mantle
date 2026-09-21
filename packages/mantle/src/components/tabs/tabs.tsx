@@ -7,7 +7,7 @@ import {
 	Trigger as TabsPrimitiveTrigger,
 } from "@radix-ui/react-tabs";
 import { cva } from "class-variance-authority";
-import type { ComponentProps, ComponentRef, HTMLAttributes } from "react";
+import type { ComponentProps, ComponentRef } from "react";
 import {
 	Children,
 	cloneElement,
@@ -22,6 +22,8 @@ import invariant from "tiny-invariant";
 import type { SelfClosingWithAsChild } from "../../types/as-child.js";
 import { parseBooleanish } from "../../types/booleanish.js";
 import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { clsx } from "../../utils/cx/clsx.js";
 import { cx } from "../../utils/cx/cx.js";
 import { getPrefersReducedMotion } from "../../hooks/use-prefers-reduced-motion.js";
@@ -49,9 +51,17 @@ function useTabsState(partName: string): TabsStateContextValue {
 }
 
 /**
- * A set of layered sections of content—known as tab panels—that are displayed one at a time.
+ * Layered sections of content, called tab panels, that show one at a time.
  * The outermost part; it owns `orientation` and `appearance`. It stamps both as
  * `data-orientation` and `data-appearance` for the parts below to style against.
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute     | Value                          | Description                                               |
+ * | ------------------ | ------------------------------ | --------------------------------------------------------- |
+ * | `data-slot`        | `"tabs"`                       | On the root element.                                      |
+ * | `data-orientation` | `"horizontal"` \| `"vertical"` | The `orientation` prop. Set by Radix.                     |
+ * | `data-appearance`  | `"classic"` \| `"pill"`        | The `appearance` prop. Descendant parts style against it. |
  *
  * **CSS variables:**
  *
@@ -81,21 +91,23 @@ function useTabsState(partName: string): TabsStateContextValue {
 const Root = ({
 	className,
 	children,
+	"data-slot": dataSlot,
 	orientation = "horizontal",
 	appearance = "classic",
 	...props
-}: ComponentProps<typeof TabsPrimitiveRoot> & {
-	/**
-	 * The appearance of the tabs. Classic appearance shows the tab
-	 * list with an underline; pill appearance shows each tab as a pill.
-	 * @default "classic"
-	 */
-	appearance?: "classic" | "pill";
-}) => {
+}: ComponentProps<typeof TabsPrimitiveRoot> &
+	WithDataSlot & {
+		/**
+		 * The appearance of the tabs. Classic appearance shows the tab
+		 * list with an underline; pill appearance shows each tab as a pill.
+		 * @default "classic"
+		 */
+		appearance?: "classic" | "pill";
+	}) => {
 	const contextValue = useMemo(() => ({ orientation, appearance }), [orientation, appearance]);
 	return (
 		<TabsPrimitiveRoot
-			data-slot="tabs"
+			data-slot={joinDataSlot(dataSlot, "tabs")}
 			data-appearance={appearance}
 			className={cx(
 				// Why a variable: `Tabs.Separator` reads `--tabs-gap` to cancel this gap
@@ -147,6 +159,13 @@ const listVariants = cva("flex", {
  * The list draws no border of its own: compose `Tabs.Separator` after it for
  * the hairline between the triggers and the content.
  *
+ * **Data attributes:**
+ *
+ * | Data Attribute     | Value                          | Description                           |
+ * | ------------------ | ------------------------------ | ------------------------------------- |
+ * | `data-slot`        | `"tabs-list"`                  | On the tablist element.               |
+ * | `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation. Set by Radix. |
+ *
  * @see https://mantle.ngrok.com/components/navigation/tabs#tabslist
  *
  * @example
@@ -163,7 +182,12 @@ const listVariants = cva("flex", {
  * </Tabs.Root>
  * ```
  */
-const List = ({ className, ref, ...props }: ComponentProps<typeof TabsPrimitiveList>) => {
+const List = ({
+	className,
+	"data-slot": dataSlot,
+	ref,
+	...props
+}: ComponentProps<typeof TabsPrimitiveList> & WithDataSlot) => {
 	const { orientation, appearance } = useTabsState("Tabs.List");
 	const scrollRef = useRef<ComponentRef<typeof TabsPrimitiveList>>(null);
 	const composedRef = useComposedRefs(scrollRef, ref);
@@ -232,7 +256,7 @@ const List = ({ className, ref, ...props }: ComponentProps<typeof TabsPrimitiveL
 	return (
 		<TabsPrimitiveList
 			aria-orientation={orientation}
-			data-slot="tabs-list"
+			data-slot={joinDataSlot(dataSlot, "tabs-list")}
 			className={cx(listVariants({ orientation, appearance }), className)}
 			ref={composedRef}
 			{...props}
@@ -244,7 +268,8 @@ type TabsSeparatorProps = Omit<
 	ComponentProps<typeof Separator>,
 	"asChild" | "children" | "orientation"
 > &
-	SelfClosingWithAsChild;
+	SelfClosingWithAsChild &
+	WithDataSlot;
 
 /**
  * The hairline between the list and the content, in the `separator` color
@@ -290,7 +315,7 @@ type TabsSeparatorProps = Omit<
  * </Tabs.Root>
  * ```
  */
-const TabsSeparator = ({ className, ...props }: TabsSeparatorProps) => {
+const TabsSeparator = ({ className, "data-slot": dataSlot, ...props }: TabsSeparatorProps) => {
 	const { orientation } = useTabsState("Tabs.Separator");
 
 	// Why the parent selector: the root lays its children out with `gap`, so
@@ -306,7 +331,7 @@ const TabsSeparator = ({ className, ...props }: TabsSeparatorProps) => {
 
 	return (
 		<Separator
-			data-slot="tabs-separator"
+			data-slot={joinDataSlot(dataSlot, "tabs-separator")}
 			orientation={orientation}
 			className={cx(orientationClasses, className)}
 			{...props}
@@ -314,7 +339,7 @@ const TabsSeparator = ({ className, ...props }: TabsSeparatorProps) => {
 	);
 };
 
-type TabsTriggerProps = ComponentProps<typeof TabsPrimitiveTrigger>;
+type TabsTriggerProps = ComponentProps<typeof TabsPrimitiveTrigger> & WithDataSlot;
 
 /**
  * Variants for the TabsTriggerDecoration component
@@ -390,7 +415,7 @@ const triggerVariants = cva(
  * so the icon, the label, and `Tabs.Badge` stay flex items of the trigger and
  * keep its `gap`. A `[&>svg]` class of your own no longer reaches an icon you
  * pass as a child, because that icon is now a grandchild. Match the part's own
- * variant instead — `[&>[data-slot=tabs-trigger-label]>svg]:size-4`. A `[&_svg]`
+ * variant instead: `[&>[data-slot=tabs-trigger-label]>svg]:size-4`. A `[&_svg]`
  * or a class on the icon loses to the default, which is more specific.
  *
  * **Data attributes:**
@@ -399,6 +424,9 @@ const triggerVariants = cva(
  * | -------------- | ------------------------ | ------------------------------------ |
  * | `data-slot`    | `"tabs-trigger"`         | On the trigger element.              |
  * | `data-slot`    | `"tabs-trigger-label"`   | On the `<span>` wrapping `children`. |
+ * | `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation. Set by Radix. |
+ * | `data-state`   | `"active"` \| `"inactive"` | Whether the trigger's panel is shown. Set by Radix. |
+ * | `data-disabled` | present when `disabled` | Presence-only. Set by Radix. |
  *
  * @see https://mantle.ngrok.com/components/navigation/tabs#tabstrigger
  *
@@ -421,6 +449,7 @@ const Trigger = ({
 	asChild = false,
 	children,
 	className,
+	"data-slot": dataSlot,
 	disabled: _disabled,
 	ref,
 	...props
@@ -431,6 +460,7 @@ const Trigger = ({
 	const tabsTriggerProps = {
 		"aria-disabled": _ariaDisabled ?? _disabled,
 		className: cx(triggerVariants({ orientation, appearance }), className),
+		"data-slot": joinDataSlot(dataSlot, "tabs-trigger"),
 		disabled,
 		...props,
 	};
@@ -454,7 +484,7 @@ const Trigger = ({
 		const cloneProps = disabled ? { href: undefined, to: undefined } : {};
 
 		return (
-			<TabsPrimitiveTrigger asChild data-slot="tabs-trigger" {...tabsTriggerProps} ref={ref}>
+			<TabsPrimitiveTrigger asChild {...tabsTriggerProps} ref={ref}>
 				{cloneElement(
 					disabled ? <button type="button" /> : singleChild,
 					cloneProps,
@@ -471,7 +501,7 @@ const Trigger = ({
 	}
 
 	return (
-		<TabsPrimitiveTrigger data-slot="tabs-trigger" ref={ref} {...tabsTriggerProps}>
+		<TabsPrimitiveTrigger ref={ref} {...tabsTriggerProps}>
 			<TabsTriggerDecoration />
 			{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
 			<span data-slot="tabs-trigger-label" className="contents">
@@ -483,6 +513,12 @@ const Trigger = ({
 
 /**
  * A badge to render inside a tab trigger, typically a count or a status indicator.
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value          | Description           |
+ * | -------------- | -------------- | --------------------- |
+ * | `data-slot`    | `"tabs-badge"` | On the badge element. |
  *
  * @see https://mantle.ngrok.com/components/navigation/tabs#tabsbadge
  *
@@ -499,9 +535,14 @@ const Trigger = ({
  * </Tabs.Root>
  * ```
  */
-const Badge = ({ className, children, ...props }: HTMLAttributes<HTMLSpanElement>) => (
+const Badge = ({
+	className,
+	children,
+	"data-slot": dataSlot,
+	...props
+}: ComponentProps<"span"> & WithDataSlot) => (
 	<span
-		data-slot="tabs-badge"
+		data-slot={joinDataSlot(dataSlot, "tabs-badge")}
 		className={cx(
 			"rounded-full bg-neutral-500/20 px-1.5 text-xs font-medium text-gray-600",
 			"group-data-state-active/tab-trigger:bg-neutral-950/10 group-data-state-active/tab-trigger:text-strong group-hover/tab-trigger:group-enabled/tab-trigger:group-data-state-active/tab-trigger:text-strong",
@@ -517,6 +558,14 @@ const Badge = ({ className, children, ...props }: HTMLAttributes<HTMLSpanElement
 /**
  * Contains the content associated with each trigger.
  * It renders when that trigger is active.
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute     | Value                          | Description                               |
+ * | ------------------ | ------------------------------ | ----------------------------------------- |
+ * | `data-slot`        | `"tabs-content"`               | On the panel element.                     |
+ * | `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation. Set by Radix.     |
+ * | `data-state`       | `"active"` \| `"inactive"`     | Whether the panel is shown. Set by Radix. |
  *
  * @see https://mantle.ngrok.com/components/navigation/tabs#tabscontent
  *
@@ -537,16 +586,20 @@ const Badge = ({ className, children, ...props }: HTMLAttributes<HTMLSpanElement
  * </Tabs.Root>
  * ```
  */
-const Content = ({ className, ...props }: ComponentProps<typeof TabsPrimitiveContent>) => (
+const Content = ({
+	className,
+	"data-slot": dataSlot,
+	...props
+}: ComponentProps<typeof TabsPrimitiveContent> & WithDataSlot) => (
 	<TabsPrimitiveContent
-		data-slot="tabs-content"
+		data-slot={joinDataSlot(dataSlot, "tabs-content")}
 		className={cx("focus-visible:ring-focus-accent outline-hidden focus-visible:ring-4", className)}
 		{...props}
 	/>
 );
 
 /**
- * A set of layered sections of content—known as tab panels—that are displayed one at a time.
+ * Layered sections of content, called tab panels, that show one at a time.
  *
  * @see https://mantle.ngrok.com/components/navigation/tabs
  *
@@ -580,9 +633,17 @@ const Content = ({ className, ...props }: ComponentProps<typeof TabsPrimitiveCon
  */
 const Tabs = {
 	/**
-	 * A set of layered sections of content—known as tab panels—that are displayed one at a time.
+	 * Layered sections of content, called tab panels, that show one at a time.
 	 * The outermost part; it owns `orientation` and `appearance`. It stamps both as
 	 * `data-orientation` and `data-appearance` for the parts below to style against.
+	 *
+	 * **Data attributes:**
+	 *
+	 * | Data Attribute     | Value                          | Description                                               |
+	 * | ------------------ | ------------------------------ | --------------------------------------------------------- |
+	 * | `data-slot`        | `"tabs"`                       | On the root element.                                      |
+	 * | `data-orientation` | `"horizontal"` \| `"vertical"` | The `orientation` prop. Set by Radix.                     |
+	 * | `data-appearance`  | `"classic"` \| `"pill"`        | The `appearance` prop. Descendant parts style against it. |
 	 *
 	 * @see https://mantle.ngrok.com/components/navigation/tabs#tabsroot
 	 *
@@ -605,6 +666,14 @@ const Tabs = {
 	 * Contains the content associated with each trigger.
 	 * It renders when that trigger is active.
 	 *
+	 * **Data attributes:**
+	 *
+	 * | Data Attribute     | Value                          | Description                               |
+	 * | ------------------ | ------------------------------ | ----------------------------------------- |
+	 * | `data-slot`        | `"tabs-content"`               | On the panel element.                     |
+	 * | `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation. Set by Radix.     |
+	 * | `data-state`       | `"active"` \| `"inactive"`     | Whether the panel is shown. Set by Radix. |
+	 *
 	 * @see https://mantle.ngrok.com/components/navigation/tabs#tabscontent
 	 *
 	 * @example
@@ -625,6 +694,13 @@ const Tabs = {
 	 * Contains the triggers that are aligned along the edge of the active content.
 	 * The list draws no border of its own: compose `Tabs.Separator` after it for
 	 * the hairline between the triggers and the content.
+	 *
+	 * **Data attributes:**
+	 *
+	 * | Data Attribute     | Value                          | Description                           |
+	 * | ------------------ | ------------------------------ | ------------------------------------- |
+	 * | `data-slot`        | `"tabs-list"`                  | On the tablist element.               |
+	 * | `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation. Set by Radix. |
 	 *
 	 * @see https://mantle.ngrok.com/components/navigation/tabs#tabslist
 	 *
@@ -683,7 +759,7 @@ const Tabs = {
 	 * so the icon, the label, and `Tabs.Badge` stay flex items of the trigger and
 	 * keep its `gap`. A `[&>svg]` class of your own no longer reaches an icon you
 	 * pass as a child, because that icon is now a grandchild. Match the part's own
-	 * variant instead — `[&>[data-slot=tabs-trigger-label]>svg]:size-4`. A `[&_svg]`
+	 * variant instead: `[&>[data-slot=tabs-trigger-label]>svg]:size-4`. A `[&_svg]`
 	 * or a class on the icon loses to the default, which is more specific.
 	 *
 	 * **Data attributes:**
@@ -692,6 +768,9 @@ const Tabs = {
 	 * | -------------- | ------------------------ | ------------------------------------ |
 	 * | `data-slot`    | `"tabs-trigger"`         | On the trigger element.              |
 	 * | `data-slot`    | `"tabs-trigger-label"`   | On the `<span>` wrapping `children`. |
+	 * | `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation. Set by Radix. |
+	 * | `data-state`   | `"active"` \| `"inactive"` | Whether the trigger's panel is shown. Set by Radix. |
+	 * | `data-disabled` | present when `disabled` | Presence-only. Set by Radix. |
 	 *
 	 * @see https://mantle.ngrok.com/components/navigation/tabs#tabstrigger
 	 *
@@ -709,6 +788,12 @@ const Tabs = {
 	Trigger,
 	/**
 	 * A badge to render inside a tab trigger, typically a count or a status indicator.
+	 *
+	 * **Data attributes:**
+	 *
+	 * | Data Attribute | Value          | Description           |
+	 * | -------------- | -------------- | --------------------- |
+	 * | `data-slot`    | `"tabs-badge"` | On the badge element. |
 	 *
 	 * @see https://mantle.ngrok.com/components/navigation/tabs#tabsbadge
 	 *

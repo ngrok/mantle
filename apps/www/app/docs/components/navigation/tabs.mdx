@@ -1,6 +1,6 @@
 ---
 title: Tabs
-description: A set of layered sections of content—known as tab panels—that are displayed one at a time.
+description: Layered sections of content, called tab panels, that show one at a time.
 ---
 
 import { Card } from "@ngrok/mantle/card";
@@ -25,7 +25,7 @@ import { Example } from "~/components/example";
 
 # Tabs
 
-A set of layered sections of content—known as tab panels—that are displayed one at a time.
+Layered sections of content, called tab panels, that show one at a time.
 
 <Example className="mt-4 grid gap-6">
 	<p>`asChild` with `Link`s</p>
@@ -382,6 +382,64 @@ import { Link, href } from "react-router";
 		</Card.Root>
 	</Tabs.Content>
 </Tabs.Root>
+```
+
+## Composition
+
+Compose the parts of `Tabs` together to build your own:
+
+```text showLineNumbers=false
+Tabs.Root
+├── Tabs.List
+│   └── Tabs.Trigger
+│       └── Tabs.Badge
+├── Tabs.Separator
+└── Tabs.Content
+```
+
+## Polymorphism
+
+`Tabs.Trigger` accepts an `asChild` prop. When `true`, it composes the trigger styling and tab behavior onto its single child instead of rendering its own `<button>`. Use it to render each tab as a router link (a `react-router` `Link` here) so tabs drive client-side navigation while keeping the active-tab styling.
+
+`Tabs.Separator` accepts `asChild` too. When `true`, it composes the hairline's styling and attributes onto your own element instead of rendering its own `<div>`.
+
+`Tabs.Root`, `Tabs.List`, and `Tabs.Content` accept `asChild` through Radix. Each composes its part's attributes and behavior onto your own element instead of rendering its own `<div>`.
+
+<Example className="scrollbar -m-1 p-1 overflow-x-scroll">
+	<Tabs.Root orientation="horizontal" defaultValue="colors">
+		<Tabs.List>
+			<Tabs.Trigger value="colors" asChild>
+				<Link to={href("/base/colors")}>Colors</Link>
+			</Tabs.Trigger>
+			<Tabs.Trigger value="shadows" asChild>
+				<Link to={href("/base/shadows")}>Shadows</Link>
+			</Tabs.Trigger>
+			<Tabs.Trigger value="typography" asChild>
+				<Link to={href("/base/typography")}>Typography</Link>
+			</Tabs.Trigger>
+		</Tabs.List>
+		<Tabs.Separator />
+	</Tabs.Root>
+</Example>
+
+```tsx
+import { Tabs } from "@ngrok/mantle/tabs";
+import { Link, href } from "react-router";
+
+<Tabs.Root orientation="horizontal" defaultValue="colors">
+	<Tabs.List>
+		<Tabs.Trigger value="colors" asChild>
+			<Link to={href("/base/colors")}>Colors</Link>
+		</Tabs.Trigger>
+		<Tabs.Trigger value="shadows" asChild>
+			<Link to={href("/base/shadows")}>Shadows</Link>
+		</Tabs.Trigger>
+		<Tabs.Trigger value="typography" asChild>
+			<Link to={href("/base/typography")}>Typography</Link>
+		</Tabs.Trigger>
+	</Tabs.List>
+	<Tabs.Separator />
+</Tabs.Root>;
 ```
 
 ## Horizontal overflow
@@ -1009,69 +1067,13 @@ import { Tabs } from "@ngrok/mantle/tabs";
 | `data-state`       | `"active"` \| `"inactive"`                                                                                                          | On each trigger and content panel. Set by Radix.                                             |
 | `data-disabled`    | present when `disabled`                                                                                                             | Presence-only, on a trigger. Set by Radix.                                                   |
 
-## Composition
-
-Compose the parts of `Tabs` together to build your own:
-
-```text showLineNumbers=false
-Tabs.Root
-├── Tabs.List
-│   └── Tabs.Trigger
-│       └── Tabs.Badge
-├── Tabs.Separator
-└── Tabs.Content
-```
-
-## Polymorphism
-
-`Tabs.Trigger` accepts an `asChild` prop. When `true`, it composes the trigger styling and tab behavior onto its single child instead of rendering its own `<button>`. Use it to render each tab as a router link (a `react-router` `Link` here) so tabs drive client-side navigation while keeping the active-tab styling.
-
-`Tabs.Separator` accepts `asChild` too. When `true`, it composes the hairline's styling and attributes onto your own element instead of rendering its own `<div>`.
-
-<Example className="scrollbar -m-1 p-1 overflow-x-scroll">
-	<Tabs.Root orientation="horizontal" defaultValue="colors">
-		<Tabs.List>
-			<Tabs.Trigger value="colors" asChild>
-				<Link to={href("/base/colors")}>Colors</Link>
-			</Tabs.Trigger>
-			<Tabs.Trigger value="shadows" asChild>
-				<Link to={href("/base/shadows")}>Shadows</Link>
-			</Tabs.Trigger>
-			<Tabs.Trigger value="typography" asChild>
-				<Link to={href("/base/typography")}>Typography</Link>
-			</Tabs.Trigger>
-		</Tabs.List>
-		<Tabs.Separator />
-	</Tabs.Root>
-</Example>
-
-```tsx
-import { Tabs } from "@ngrok/mantle/tabs";
-import { Link, href } from "react-router";
-
-<Tabs.Root orientation="horizontal" defaultValue="colors">
-	<Tabs.List>
-		<Tabs.Trigger value="colors" asChild>
-			<Link to={href("/base/colors")}>Colors</Link>
-		</Tabs.Trigger>
-		<Tabs.Trigger value="shadows" asChild>
-			<Link to={href("/base/shadows")}>Shadows</Link>
-		</Tabs.Trigger>
-		<Tabs.Trigger value="typography" asChild>
-			<Link to={href("/base/typography")}>Typography</Link>
-		</Tabs.Trigger>
-	</Tabs.List>
-	<Tabs.Separator />
-</Tabs.Root>;
-```
-
 ## API Reference
 
 The `Tabs` components accept the following props.
 
 ### Tabs.Root
 
-A set of layered sections of content—known as tab panels—that are displayed one at a time. The outermost part; it owns `orientation` and `appearance`. It stamps both as `data-orientation` and `data-appearance` for the parts below to style against. Based on [Radix Tabs Root](https://www.radix-ui.com/primitives/docs/components/tabs#root).
+Layered sections of content, called tab panels, that show one at a time. The outermost part; it owns `orientation` and `appearance`. It stamps both as `data-orientation` and `data-appearance` for the parts below to style against. Based on [Radix Tabs Root](https://www.radix-ui.com/primitives/docs/components/tabs#root).
 
 | Prop             | Type                           | Default        | Description                                                                                                                    |
 | ---------------- | ------------------------------ | -------------- | ------------------------------------------------------------------------------------------------------------------------------ |
@@ -1080,6 +1082,7 @@ A set of layered sections of content—known as tab panels—that are displayed 
 | `onValueChange?` | `(value: string) => void`      |                | Event handler called when the value changes.                                                                                   |
 | `orientation?`   | `"horizontal"` \| `"vertical"` | `"horizontal"` | The orientation of the tabs.                                                                                                   |
 | `appearance?`    | `"classic"` \| `"pill"`        | `"classic"`    | The appearance of the tabs. Classic appearance shows the tab list with an underline; pill appearance shows each tab as a pill. |
+| `asChild?`       | `boolean`                      | `false`        | When `true`, renders the single child instead of its own `<div>` and forwards the root's attributes and behavior onto it.      |
 | `className?`     | `string`                       |                | Additional CSS classes to apply to the tabs root element.                                                                      |
 
 #### CSS variables
@@ -1088,15 +1091,31 @@ A set of layered sections of content—known as tab panels—that are displayed 
 | ------------ | ------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | `--tabs-gap` | `1rem`  | The space between the list and the content. `Tabs.Separator` pulls itself up by it, so set the variable here instead of a `gap-*` class. |
 
+#### Data attributes
+
+| Data Attribute     | Value                          | Description                                               |
+| ------------------ | ------------------------------ | --------------------------------------------------------- |
+| `data-slot`        | `"tabs"`                       | On the root element.                                      |
+| `data-orientation` | `"horizontal"` \| `"vertical"` | The `orientation` prop. Set by Radix.                     |
+| `data-appearance`  | `"classic"` \| `"pill"`        | The `appearance` prop. Descendant parts style against it. |
+
 ### Tabs.List
 
 Contains the triggers that are aligned along the edge of the active content. Based on [Radix Tabs List](https://www.radix-ui.com/primitives/docs/components/tabs#list).
 
 The list draws no border of its own. Compose [`Tabs.Separator`](#tabsseparator) after it for the hairline between the triggers and the content.
 
-| Prop         | Type     | Default | Description                                               |
-| ------------ | -------- | ------- | --------------------------------------------------------- |
-| `className?` | `string` |         | Additional CSS classes to apply to the tabs list element. |
+| Prop         | Type      | Default | Description                                                                                                                  |
+| ------------ | --------- | ------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?`   | `boolean` | `false` | When `true`, renders the single child instead of its own `<div>` and forwards the tablist's attributes and behavior onto it. |
+| `className?` | `string`  |         | Additional CSS classes to apply to the tabs list element.                                                                    |
+
+#### Data attributes
+
+| Data Attribute     | Value                          | Description                           |
+| ------------------ | ------------------------------ | ------------------------------------- |
+| `data-slot`        | `"tabs-list"`                  | On the tablist element.               |
+| `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation. Set by Radix. |
 
 ### Tabs.Separator
 
@@ -1139,19 +1158,31 @@ An icon you pass as a child is now a grandchild of the trigger, so a `[&>svg]` c
 
 #### Data attributes
 
-| Data Attribute | Value                  | Description                          |
-| -------------- | ---------------------- | ------------------------------------ |
-| `data-slot`    | `"tabs-trigger"`       | On the trigger element.              |
-| `data-slot`    | `"tabs-trigger-label"` | On the `<span>` wrapping `children`. |
+| Data Attribute     | Value                          | Description                                         |
+| ------------------ | ------------------------------ | --------------------------------------------------- |
+| `data-slot`        | `"tabs-trigger"`               | On the trigger element.                             |
+| `data-slot`        | `"tabs-trigger-label"`         | On the `<span>` wrapping `children`.                |
+| `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation. Set by Radix.               |
+| `data-state`       | `"active"` \| `"inactive"`     | Whether the trigger's panel is shown. Set by Radix. |
+| `data-disabled`    | present when `disabled`        | Presence-only. Set by Radix.                        |
 
 ### Tabs.Content
 
 Contains the content associated with each trigger. Based on [Radix Tabs Content](https://www.radix-ui.com/primitives/docs/components/tabs#content).
 
-| Prop         | Type     | Default | Description                                                |
-| ------------ | -------- | ------- | ---------------------------------------------------------- |
-| `value`      | `string` |         | A unique value that associates the content with a trigger. |
-| `className?` | `string` |         | Additional CSS classes to apply to the content element.    |
+| Prop         | Type      | Default | Description                                                                                                                |
+| ------------ | --------- | ------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `value`      | `string`  |         | A unique value that associates the content with a trigger.                                                                 |
+| `asChild?`   | `boolean` | `false` | When `true`, renders the single child instead of its own `<div>` and forwards the panel's attributes and behavior onto it. |
+| `className?` | `string`  |         | Additional CSS classes to apply to the content element.                                                                    |
+
+#### Data attributes
+
+| Data Attribute     | Value                          | Description                               |
+| ------------------ | ------------------------------ | ----------------------------------------- |
+| `data-slot`        | `"tabs-content"`               | On the panel element.                     |
+| `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation. Set by Radix.     |
+| `data-state`       | `"active"` \| `"inactive"`     | Whether the panel is shown. Set by Radix. |
 
 ### Tabs.Badge
 
@@ -1161,3 +1192,9 @@ A badge to render inside a tab trigger, typically a count or a status indicator.
 | ------------ | ----------- | ------- | ----------------------------------------------------- |
 | `children`   | `ReactNode` |         | The content to be rendered inside the badge.          |
 | `className?` | `string`    |         | Additional CSS classes to apply to the badge element. |
+
+#### Data attributes
+
+| Data Attribute | Value          | Description           |
+| -------------- | -------------- | --------------------- |
+| `data-slot`    | `"tabs-badge"` | On the badge element. |
