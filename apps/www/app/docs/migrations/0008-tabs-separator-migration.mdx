@@ -15,7 +15,7 @@ description: Tabs.List no longer draws a border. Compose Tabs.Separator after th
 
 1. Find every `Tabs.List` (the tablist of `@ngrok/mantle`'s `Tabs` compound component). Search for `Tabs.List`, and for a destructured or renamed import of the same part (`const { List } = Tabs;`, or `import { Tabs as MantleTabs }`).
 2. For each `Tabs.List` without `hideBorder`, check the root's `appearance`. When the root is classic (the default), add `<Tabs.Separator />` on the line after `</Tabs.List>`, at the same indentation. When the root is `appearance="pill"`, add nothing. A pill list never drew a border.
-3. For each `Tabs.List` with `hideBorder`, delete the prop and add nothing. Delete `hideBorder={…}` with a dynamic value the same way, and add the separator behind that value instead: `{showBorder && <Tabs.Separator />}`.
+3. For each `Tabs.List` with `hideBorder`, delete the prop and add nothing. When the value is dynamic, keep the condition and negate it: `hideBorder={condition}` becomes `{!condition && <Tabs.Separator />}` on the line after `</Tabs.List>`.
 4. Find a `data-hide-border` selector in CSS, in a `[data-hide-border]` Tailwind variant, or in a test. Replace it with `[data-slot="tabs-separator"]`, or with the absence of that element.
 5. Find a `Tabs.Root` with a `gap-*` class in its `className`. When the root holds a `Tabs.Separator` as a direct child, replace the class with `[--tabs-gap:<value>]`, so `gap-2` becomes `[--tabs-gap:--spacing(2)]` and `gap-0` becomes `[--tabs-gap:0px]`. When the list and the separator sit inside a wrapper of your own, leave the class alone.
 6. Delete a `border-b`, `border-r`, or `border-separator` class from a `Tabs.List` that a consumer added to draw its own border. The separator replaces it.

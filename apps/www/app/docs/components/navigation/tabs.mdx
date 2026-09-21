@@ -1102,11 +1102,11 @@ The list draws no border of its own. Compose [`Tabs.Separator`](#tabsseparator) 
 
 The hairline between the list and the content, in the `separator` color. Compose it directly after `Tabs.List`. It follows the root's `orientation`: under the list when horizontal, beside the list when vertical. It is a sibling of the list and not a child, so it spans the root's full width and neither scrolls nor fades with the triggers. As the root's direct child it pulls itself up by `--tabs-gap` and sits flush against the list. Inside a wrapper of your own, the offset stays off. Composes the mantle [Separator](/components/structure/separator).
 
-| Prop         | Type      | Default | Description                                                                                                                              |
-| ------------ | --------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `semantic?`  | `boolean` | `false` | When `true`, renders `role="separator"` with its `aria-orientation`. When `false`, renders `role="none"`, so the hairline is decorative. |
-| `asChild?`   | `boolean` | `false` | Use the `asChild` prop to compose the separator styling and attributes onto your own element.                                            |
-| `className?` | `string`  |         | Additional CSS classes to apply to the separator element.                                                                                |
+| Prop         | Type      | Default | Description                                                                                                                                                                     |
+| ------------ | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `semantic?`  | `boolean` | `false` | When `true`, renders `role="separator"` with its `aria-orientation`. When `false`, renders `role="none"`, so the hairline is decorative.                                        |
+| `asChild?`   | `boolean` | `false` | When `true`, renders the single child instead of its own `<div>` and forwards the classes, `data-*` attributes, and ref onto it. The part takes `children` only with `asChild`. |
+| `className?` | `string`  |         | Additional CSS classes to apply to the separator element.                                                                                                                       |
 
 #### CSS variables
 

@@ -175,6 +175,33 @@ describe("Tabs", () => {
 			expect(refSpy).toHaveBeenCalledTimes(1);
 			expect(refSpy).toHaveBeenLastCalledWith(separator);
 		});
+
+		test("asChild renders the child and merges the slot, classes, data attributes, and ref", () => {
+			const refSpy = vi.fn<(node: HTMLDivElement | null) => void>();
+			render(
+				<Tabs.Root orientation="vertical" defaultValue="a">
+					<Tabs.Separator asChild className="my-2" data-testid="rule" ref={refSpy}>
+						<hr />
+					</Tabs.Separator>
+				</Tabs.Root>,
+			);
+
+			const rule = screen.getByTestId("rule");
+			expect(rule.tagName).toBe("HR");
+			expect(rule).toHaveAttribute("data-slot", "tabs-separator");
+			expect(rule).toHaveAttribute("data-orientation", "vertical");
+			expect(rule).toHaveClass("my-2");
+			expect(refSpy).toHaveBeenCalledTimes(1);
+			expect(refSpy).toHaveBeenLastCalledWith(rule);
+		});
+
+		test("throws when rendered outside Tabs.Root", () => {
+			// Why: silence React's error log for the expected throw.
+			vi.spyOn(console, "error").mockImplementation(() => {});
+			expect(() => render(<Tabs.Separator />)).toThrow(
+				"Tabs.Separator must be rendered inside Tabs.Root.",
+			);
+		});
 	});
 
 	describe("Trigger", () => {
@@ -357,3 +384,9 @@ describe("Tabs", () => {
 		});
 	});
 });
+
+// Type-level contract: typecheck fails when a directive below goes unused.
+// @ts-expect-error -- children need asChild
+void (<Tabs.Separator>rule</Tabs.Separator>);
+// @ts-expect-error -- asChild needs a child to clone
+void (<Tabs.Separator asChild />);
