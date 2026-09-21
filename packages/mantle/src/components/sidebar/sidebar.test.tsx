@@ -599,6 +599,17 @@ describe("Sidebar.Nav first paint", () => {
 		},
 	);
 
+	test("keeps data-hydrated its own when a call site passes it", () => {
+		// Why: the visibility gate keys off the attribute in CSS, so a consumer
+		// value would show the desktop panel on a narrow screen before hydration.
+		const html = renderToString(
+			<Sidebar.Root>
+				<Sidebar.Nav data-hydrated="" />
+			</Sidebar.Root>,
+		);
+		expect(html).not.toContain("data-hydrated=");
+	});
+
 	test("stamps data-hydrated only after mount, so the CSS-gated transition snaps on an SSR state correction", () => {
 		const html = renderToString(
 			<Sidebar.Root defaultOpen={false}>
