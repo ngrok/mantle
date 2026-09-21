@@ -94,6 +94,8 @@ function RouteHeaderActions() {
  * below them. A thin description, so the two renderings never drift apart.
  */
 type PageAction = {
+	/** A stable key for the action. The label may change with state; this must not. */
+	id: string;
 	/** The button's accessible name and the menu item's text. Name the action, not the icon. */
 	label: string;
 	/** The icon both renderings show: one SVG element, as `IconButton` requires. */
@@ -118,7 +120,7 @@ type PageAction = {
  * export const handle = {
  * 	headerActions: (
  * 		<PageActions
- * 			actions={[{ label: "New endpoint", icon: <PlusIcon />, onSelect: openNewEndpoint }]}
+ * 			actions={[{ id: "new", label: "New endpoint", icon: <PlusIcon />, onSelect: openNewEndpoint }]}
  * 		/>
  * 	),
  * } satisfies HeaderActionsHandle;
@@ -134,7 +136,7 @@ function PageActions({ actions }: { actions: ReadonlyArray<PageAction> }) {
 			{/* display: contents from md up, so the buttons sit in the slot's own gap */}
 			<div className="hidden md:contents">
 				{actions.map((action) => (
-					<Tooltip.Root key={action.label}>
+					<Tooltip.Root key={action.id}>
 						<Tooltip.Trigger asChild>
 							<IconButton
 								type="button"
@@ -164,7 +166,7 @@ function PageActions({ actions }: { actions: ReadonlyArray<PageAction> }) {
 				</DropdownMenu.Trigger>
 				<DropdownMenu.Content align="end">
 					{actions.map((action) => (
-						<DropdownMenu.Item key={action.label} className="gap-2" onSelect={action.onSelect}>
+						<DropdownMenu.Item key={action.id} className="gap-2" onSelect={action.onSelect}>
 							{action.icon}
 							{/* an element, not bare text: a swapped icon then inserts before a node React still owns on a translated page */}
 							<span>{action.label}</span>

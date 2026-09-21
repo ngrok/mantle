@@ -866,6 +866,8 @@ function AppShellAccountSwitcher({
 
 /** One page-level action, described once so the icon buttons and the mobile menu stay in step. */
 type PageAction = {
+	/** A stable key for the action. The label may change with state; this must not. */
+	id: string;
 	label: string;
 	icon: ReactElement;
 	onSelect: () => void;
@@ -884,7 +886,7 @@ function PageActions({ actions }: { actions: ReadonlyArray<PageAction> }) {
 			{/* display: contents from md up, so the buttons sit in the slot's own gap */}
 			<div className="hidden md:contents">
 				{actions.map((action) => (
-					<Tooltip.Root key={action.label}>
+					<Tooltip.Root key={action.id}>
 						<Tooltip.Trigger asChild>
 							<IconButton
 								type="button"
@@ -914,7 +916,7 @@ function PageActions({ actions }: { actions: ReadonlyArray<PageAction> }) {
 				</DropdownMenu.Trigger>
 				<DropdownMenu.Content align="end">
 					{actions.map((action) => (
-						<DropdownMenu.Item key={action.label} className="gap-2" onSelect={action.onSelect}>
+						<DropdownMenu.Item key={action.id} className="gap-2" onSelect={action.onSelect}>
 							{action.icon}
 							{/* an element, not bare text: a swapped icon then inserts before a node React still owns on a translated page */}
 							<span>{action.label}</span>
@@ -976,12 +978,23 @@ export function AppShellDemo() {
 	// "Header Actions from Routes" recipe.
 	const headerActions: ReadonlyArray<PageAction> = [
 		{
+			id: "notice",
 			label: "Toggle notice",
 			icon: <MegaphoneIcon />,
 			onSelect: () => setShowNotice((current) => !current),
 		},
-		{ label: "One warning", icon: <WarningIcon />, onSelect: () => chooseAlertExample("single") },
-		{ label: "Three alerts", icon: <BellIcon />, onSelect: () => chooseAlertExample("multiple") },
+		{
+			id: "warning",
+			label: "One warning",
+			icon: <WarningIcon />,
+			onSelect: () => chooseAlertExample("single"),
+		},
+		{
+			id: "alerts",
+			label: "Three alerts",
+			icon: <BellIcon />,
+			onSelect: () => chooseAlertExample("multiple"),
+		},
 	];
 
 	const inSettings = isSettingsPath(pathname);

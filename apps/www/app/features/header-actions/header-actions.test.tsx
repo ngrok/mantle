@@ -86,8 +86,8 @@ describe("PageActions", () => {
 			<TooltipProvider>
 				<PageActions
 					actions={[
-						{ label: "New endpoint", icon: <svg />, onSelect },
-						{ label: "Refresh", icon: <svg />, onSelect: () => {} },
+						{ id: "new", label: "New endpoint", icon: <svg />, onSelect },
+						{ id: "refresh", label: "Refresh", icon: <svg />, onSelect: () => {} },
 					]}
 				/>
 			</TooltipProvider>,
@@ -122,6 +122,26 @@ describe("PageActions", () => {
 
 		expect(onSelect).toHaveBeenCalledTimes(1);
 		expect(screen.queryByRole("menu")).toBeNull();
+	});
+
+	it("keeps focus on a desktop button whose label changes", async () => {
+		const user = userEvent.setup();
+		const actions = (label: string) => (
+			<TooltipProvider>
+				<PageActions actions={[{ id: "sessions", label, icon: <svg />, onSelect: () => {} }]} />
+			</TooltipProvider>
+		);
+		const { rerender } = render(actions("Show sessions"));
+		await user.tab();
+		const button = screen.getByRole("button", { name: "Show sessions" });
+		expect(document.activeElement).toBe(button);
+
+		// The key is the id, so a label change updates the button in place. A key
+		// on the label would remount it and drop focus to the body.
+		rerender(actions("Hide sessions"));
+
+		expect(screen.getByRole("button", { name: "Hide sessions" })).toBe(button);
+		expect(document.activeElement).toBe(button);
 	});
 
 	it("renders nothing for an empty list", () => {

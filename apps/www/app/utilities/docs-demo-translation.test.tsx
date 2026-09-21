@@ -75,7 +75,7 @@ describe("Header actions recipe on a translated page", () => {
 		const user = userEvent.setup();
 		const actions = (icon: ReactElement) => (
 			<TooltipProvider>
-				<PageActions actions={[{ label: "New endpoint", icon, onSelect: () => {} }]} />
+				<PageActions actions={[{ id: "new", label: "New endpoint", icon, onSelect: () => {} }]} />
 			</TooltipProvider>
 		);
 		const { rerender } = render(actions(<svg data-icon="plus" />));

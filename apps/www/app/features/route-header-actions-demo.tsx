@@ -36,9 +36,20 @@ const endpointsHandle = {
 	headerActions: (
 		<PageActions
 			actions={[
-				{ label: "New endpoint", icon: <PlusIcon />, onSelect: () => announce("New endpoint") },
-				{ label: "Refresh", icon: <ArrowsClockwiseIcon />, onSelect: () => announce("Refreshed") },
 				{
+					id: "new",
+					label: "New endpoint",
+					icon: <PlusIcon />,
+					onSelect: () => announce("New endpoint"),
+				},
+				{
+					id: "refresh",
+					label: "Refresh",
+					icon: <ArrowsClockwiseIcon />,
+					onSelect: () => announce("Refreshed"),
+				},
+				{
+					id: "docs",
 					label: "Endpoint docs",
 					icon: <BookOpenIcon />,
 					onSelect: () => announce("Endpoint docs"),
@@ -52,8 +63,14 @@ const endpointHandle = {
 	headerActions: (
 		<PageActions
 			actions={[
-				{ label: "Copy endpoint URL", icon: <CopyIcon />, onSelect: () => announce("Copied") },
 				{
+					id: "copy",
+					label: "Copy endpoint URL",
+					icon: <CopyIcon />,
+					onSelect: () => announce("Copied"),
+				},
+				{
+					id: "delete",
 					label: "Delete endpoint",
 					icon: <TrashIcon />,
 					onSelect: () => announce("Delete endpoint"),
