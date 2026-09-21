@@ -1,13 +1,13 @@
 ---
 title: App Layout Header Slots Migration
-description: Compose AppLayout.Header from its three slots, and move each route's header actions out of a context and onto its route handle.
+description: Compose AppLayout.Header from its three slots, let AppLayout.Body be the main landmark, and move each route's header actions out of a context and onto the route.
 ---
 
 # Mantle App Layout Header Slots Migration Guide
 
 `@ngrok/mantle`'s `AppLayout.Header` has three slots. `AppLayout.HeaderStart` holds the `Sidebar.Trigger`, `AppLayout.HeaderContent` holds the breadcrumb trail, and `AppLayout.HeaderActions` holds the page's actions. The slots carry the row's flex (`shrink-0`, `min-w-0 flex-1`, and `ml-auto shrink-0`), so a call site sets none of it. A header composed without them still renders, so nothing breaks on upgrade. This guide moves a shell onto the slots and moves a route's actions out of a context and onto its route module.
 
-**TL;DR:** Wrap the trigger in `AppLayout.HeaderStart`, the trail in `AppLayout.HeaderContent`, and the actions in `AppLayout.HeaderActions`. Delete the `min-w-0 flex-1` wrapper around the trail and the `ml-auto` on the actions. Replace a header-actions context and its effect hook with a `handle.headerActions` export on each route, read through `useMatches()`.
+**TL;DR:** Wrap the trigger in `AppLayout.HeaderStart`, the trail in `AppLayout.HeaderContent`, and the actions in `AppLayout.HeaderActions`. Delete the `min-w-0 flex-1` wrapper around the trail and the `ml-auto` on the actions. Replace a header-actions context and its effect hook with a `handle.headerActions` export on each route, read through `useMatches()`. `AppLayout.Body` now renders `Main` itself, so delete the `Main` composed onto it, and pass `asChild` with a `<div>` where the page already owns a `main`.
 
 ---
 
@@ -23,6 +23,16 @@ description: Compose AppLayout.Header from its three slots, and move each route'
 8. After editing, run the project's formatter, linter, type checker, and tests.
 
 > **Why a route handle?** A context push arrives in an effect, so the server HTML and the first frame have no actions. The outgoing page's cleanup and the incoming page's push race on navigation. The route tree already says which page is active, and the provider says it again. A `handle` is a static export the server reads too, so the shell derives the actions from `useMatches()` the way it derives the trail.
+
+---
+
+## `AppLayout.Body` renders `Main`
+
+The same release makes `AppLayout.Body` the `main` landmark by default. It renders `<main id="main" tabIndex={-1}>` with `data-slot="app-layout-body main"`, and it no longer accepts `id` or `tabIndex`.
+
+1. In a shell that owns the document, replace `<AppLayout.Body asChild><Main>…</Main></AppLayout.Body>` with `<AppLayout.Body>…</AppLayout.Body>`. Delete the `Main` import when nothing else uses it.
+2. In a shell embedded in a page that already has a `main` (a docs demo, a test, a widget inside another layout), replace `<AppLayout.Body>` with `<AppLayout.Body asChild><div>…</div></AppLayout.Body>`. Move an `id` or a `tabIndex` from the body onto the `<div>`.
+3. Replace a selector that matches `[data-slot="app-layout-body"]` exactly with `[data-slot~="app-layout-body"]`.
 
 ---
 
@@ -167,6 +177,8 @@ export function PlaygroundActions() {
 - **An action that is not a plain button** (a `Dialog.Trigger`, a router `Link`). Compose the element yourself instead of a `PageActions` list. The slot takes any JSX.
 - **CSS on the old wrappers.** A selector such as `[data-slot="app-layout-header"] > div` now matches the slots. Target `[data-slot="app-layout-header-content"]` or `[data-slot="app-layout-header-actions"]` instead.
 - **Tests that select the header's children by position.** The slots add one element level. Select by role and name instead.
+- **Actions that must read the page component's own state.** Give the route the header instead of a handle: an app-level `Page` component renders the header row and `AppLayout.Body`, and each route passes its actions. [One header per page](/layouts/app-layout#one-header-per-page) shows it.
+- **Tests that render `AppLayout.Body` inside a page that already has a `main`.** `getByRole("main")` now finds two. Pass `asChild` with a `<div>` in the embedded one.
 
 ---
 
@@ -175,6 +187,7 @@ export function PlaygroundActions() {
 1. Type check. A `headerActions` value that is not an element or `null` fails the `satisfies HeaderActionsHandle` clause.
 2. Load a page with a long breadcrumb trail at a narrow width. The trail scrolls inside the header, and the actions stay at the row's end.
 3. View the server HTML of a page that declares actions. The actions are in the first response.
-4. Navigate between two pages that declare different actions. The header shows the new page's actions with no flash of the old ones.
-5. Narrow the viewport below the sidebar's mobile breakpoint. The icon buttons become one menu with the same actions.
-6. Run the project's formatter, linter, type checker, and tests.
+4. Press Tab on a fresh page load and take the skip link. Focus lands on the scrolling body, and PageDown scrolls it.
+5. Navigate between two pages that declare different actions. The header shows the new page's actions with no flash of the old ones.
+6. Narrow the viewport below the sidebar's mobile breakpoint. The icon buttons become one menu with the same actions.
+7. Run the project's formatter, linter, type checker, and tests.

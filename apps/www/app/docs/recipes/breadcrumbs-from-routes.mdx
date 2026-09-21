@@ -415,7 +415,6 @@ fills the header:
 
 ```tsx
 import { AppLayout } from "@ngrok/mantle/app-layout";
-import { Main } from "@ngrok/mantle/main";
 import { Sidebar } from "@ngrok/mantle/sidebar";
 import { Outlet } from "react-router";
 import { RouteBreadcrumbs } from "~/features/breadcrumbs/breadcrumbs";
@@ -433,10 +432,8 @@ import { RouteHeaderActions } from "~/features/header-actions/header-actions";
 			<RouteHeaderActions />
 		</AppLayout.HeaderActions>
 	</AppLayout.Header>
-	<AppLayout.Body asChild>
-		<Main>
-			<Outlet />
-		</Main>
+	<AppLayout.Body>
+		<Outlet />
 	</AppLayout.Body>
 </AppLayout.Content>;
 ```

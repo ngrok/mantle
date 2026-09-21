@@ -189,11 +189,14 @@ export function RouteHeaderActionsDemo() {
 							</AppLayout.HeaderContent>
 							<AppLayout.HeaderActions>{findHeaderActions(route.matches)}</AppLayout.HeaderActions>
 						</AppLayout.Header>
-						<AppLayout.Body>
-							<p className="text-muted p-6 text-sm">
-								The actions above come from the deepest matched route&rsquo;s{" "}
-								<code>handle.headerActions</code>. The page below never touches them.
-							</p>
+						{/* Why asChild: the docs page already owns the main landmark. */}
+						<AppLayout.Body asChild>
+							<div>
+								<p className="text-muted p-6 text-sm">
+									The actions above come from the deepest matched route&rsquo;s{" "}
+									<code>handle.headerActions</code>. The page below never touches them.
+								</p>
+							</div>
 						</AppLayout.Body>
 					</AppLayout.Content>
 				</AppLayout.Workspace>

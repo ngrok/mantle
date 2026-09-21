@@ -62,7 +62,6 @@ import { cx } from "@ngrok/mantle/cx";
 import { Dialog } from "@ngrok/mantle/dialog";
 import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
 import { AutoThemeIcon } from "@ngrok/mantle/icons";
-import { Main } from "@ngrok/mantle/main";
 import { Sidebar, useSidebar } from "@ngrok/mantle/sidebar";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { ThemeDropdownMenuRadioGroup } from "@ngrok/mantle/theme-switcher";
@@ -656,9 +655,7 @@ export function AppShell() {
 								Toggle notice
 							</Button>
 						</AppLayout.Header>
-						<AppLayout.Body asChild>
-							<Main>{/* your routed page content */}</Main>
-						</AppLayout.Body>
+						<AppLayout.Body>{/* your routed page content */}</AppLayout.Body>
 					</AppLayout.Content>
 				</AppLayout.Workspace>
 			</AppLayout.Root>
@@ -1458,7 +1455,6 @@ instead, the same way the theme system solves FOUC server-side.
 ```tsx
 import { AppLayout } from "@ngrok/mantle/app-layout";
 import { useLocalStorage } from "@ngrok/mantle/hooks";
-import { Main } from "@ngrok/mantle/main";
 import { Sidebar } from "@ngrok/mantle/sidebar";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { GraphIcon } from "@phosphor-icons/react/Graph";
@@ -1495,9 +1491,7 @@ export function PersistedShell() {
 						<AppLayout.Header>
 							<Sidebar.Trigger />
 						</AppLayout.Header>
-						<AppLayout.Body asChild>
-							<Main>{/* your routed page content */}</Main>
-						</AppLayout.Body>
+						<AppLayout.Body>{/* your routed page content */}</AppLayout.Body>
 					</AppLayout.Content>
 				</AppLayout.Workspace>
 			</AppLayout.Root>
@@ -1526,7 +1520,6 @@ JavaScript runs. Here is the whole route module, a react-router 7 root, complete
 ```tsx
 // app/root.tsx
 import { AppLayout } from "@ngrok/mantle/app-layout";
-import { Main } from "@ngrok/mantle/main";
 import {
 	extractSidebarStateCookie,
 	serializeSidebarStateCookie,
@@ -1574,10 +1567,8 @@ export default function Root({ loaderData }: Route.ComponentProps) {
 						<AppLayout.Header>
 							<Sidebar.Trigger />
 						</AppLayout.Header>
-						<AppLayout.Body asChild>
-							<Main>
-								<Outlet />
-							</Main>
+						<AppLayout.Body>
+							<Outlet />
 						</AppLayout.Body>
 					</AppLayout.Content>
 				</AppLayout.Workspace>
@@ -1614,8 +1605,8 @@ the rail.
   also ignored while focus is in an `<input>`, `<textarea>`, `<select>`, or any `contenteditable` host,
   which covers embedded editors like Monaco and CodeMirror. Opt out entirely with
   `keyboardShortcut={false}` on `Sidebar.Root`.
-- When the shell owns the document, pair the sidebar with a `SkipToMainLink` and compose `Main` onto
-  `AppLayout.Body` so keyboard users can jump past the sidebar's tab gauntlet straight into the scrolling
+- When the shell owns the document, pair the sidebar with a `SkipToMainLink`. `AppLayout.Body` is the `main`
+  landmark the link targets, so keyboard users jump past the sidebar's tab gauntlet straight into the scrolling
   page region (see [App Layout → Landmarks](/layouts/app-layout#landmarks)).
 - The collapsed icon rail stays fully interactive: row labels are clipped and switcher text is visually
   hidden, but both remain in the tab order and the accessibility tree, so accessible names do not change

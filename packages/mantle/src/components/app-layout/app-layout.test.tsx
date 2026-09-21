@@ -1,7 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { createRef } from "react";
 import { describe, expect, test } from "vitest";
-import { Main } from "../main/main.js";
 import { Sidebar } from "../sidebar/sidebar.js";
 import { AppLayout } from "./app-layout.js";
 
@@ -187,21 +186,20 @@ describe("AppLayout.Header", () => {
 	});
 
 	test("renders a div, so it never becomes the banner landmark", () => {
-		// With Main composed onto AppLayout.Body, a <header> here would have no
-		// sectioning ancestor and would therefore BE the banner landmark.
+		// AppLayout.Body is the main landmark and the header is its sibling, so a
+		// <header> here would have no sectioning ancestor and would BE the banner.
 		render(
 			<AppLayout.Root>
 				<AppLayout.Workspace>
 					<AppLayout.Content>
 						<AppLayout.Header data-testid="header">toolbar</AppLayout.Header>
-						<AppLayout.Body asChild>
-							<Main>page</Main>
-						</AppLayout.Body>
+						<AppLayout.Body>page</AppLayout.Body>
 					</AppLayout.Content>
 				</AppLayout.Workspace>
 			</AppLayout.Root>,
 		);
 		expect(screen.getByTestId("header").tagName).toBe("DIV");
+		expect(screen.getByRole("main")).toHaveTextContent("page");
 		expect(screen.queryByRole("banner")).not.toBeInTheDocument();
 	});
 
@@ -366,16 +364,18 @@ describe("AppLayout.Content", () => {
 });
 
 describe("AppLayout.Body", () => {
-	test("renders a div stamped data-slot app-layout-body with its children", () => {
+	test("renders the Main landmark stamped data-slot app-layout-body main", () => {
 		render(<AppLayout.Body data-testid="body">page</AppLayout.Body>);
 		const body = screen.getByTestId("body");
-		expect(body.tagName).toBe("DIV");
-		expect(body).toHaveAttribute("data-slot", "app-layout-body");
+		expect(body.tagName).toBe("MAIN");
+		expect(body).toHaveAttribute("id", "main");
+		expect(body).toHaveAttribute("tabindex", "-1");
+		expect(body).toHaveAttribute("data-slot", "app-layout-body main");
 		expect(body).toHaveTextContent("page");
 	});
 
 	test("forwards className, a ref, and arbitrary data-* to the rendered root", () => {
-		const ref = createRef<HTMLDivElement>();
+		const ref = createRef<HTMLElement>();
 		render(
 			<AppLayout.Body className="consumer-page" data-flavor="page" data-testid="body" ref={ref}>
 				page
@@ -393,21 +393,24 @@ describe("AppLayout.Body", () => {
 				page
 			</AppLayout.Body>,
 		);
-		expect(screen.getByTestId("body")).toHaveAttribute("data-slot", "app-shell app-layout-body");
+		expect(screen.getByTestId("body")).toHaveAttribute(
+			"data-slot",
+			"app-shell app-layout-body main",
+		);
 	});
 
-	test("asChild renders the child, merging classes, data attributes, and the ref", () => {
+	test("asChild renders the child with no landmark, merging classes, data attributes, and the ref", () => {
 		const ref = createRef<HTMLDivElement>();
 		render(
 			<AppLayout.Body asChild className="consumer-page" data-flavor="page" ref={ref}>
-				<Main data-testid="body">page</Main>
+				<div data-testid="body">page</div>
 			</AppLayout.Body>,
 		);
 		const body = screen.getByTestId("body");
-		expect(body.tagName).toBe("MAIN");
-		// Main stamps its own slot, so the chain reads in DOM order with the
-		// composed child's name last.
-		expect(body).toHaveAttribute("data-slot", "app-layout-body main");
+		expect(body.tagName).toBe("DIV");
+		expect(screen.queryByRole("main")).not.toBeInTheDocument();
+		expect(body).not.toHaveAttribute("id");
+		expect(body).toHaveAttribute("data-slot", "app-layout-body");
 		expect(body.className).toContain("consumer-page");
 		expect(body).toHaveAttribute("data-flavor", "page");
 		expect(ref.current).toBe(body);

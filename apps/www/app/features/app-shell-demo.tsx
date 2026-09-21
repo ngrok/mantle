@@ -10,7 +10,6 @@ import { Dialog } from "@ngrok/mantle/dialog";
 import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
 import { AutoThemeIcon } from "@ngrok/mantle/icons";
 import { Kbd } from "@ngrok/mantle/kbd";
-import { Main } from "@ngrok/mantle/main";
 import { Sidebar, useSidebar } from "@ngrok/mantle/sidebar";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { ThemeDropdownMenuRadioGroup } from "@ngrok/mantle/theme-switcher";
@@ -1122,21 +1121,19 @@ export function AppShellDemo() {
 								<PageActions actions={headerActions} />
 							</AppLayout.HeaderActions>
 						</AppLayout.Header>
-						<AppLayout.Body asChild>
-							<Main>
-								<div className="space-y-4 p-6">
-									{Array.from({ length: 12 }, (_, index) => (
-										<div key={index} className="border-card-muted rounded-lg border p-4">
-											<p className="text-strong text-sm font-medium">
-												{currentItem?.label ?? "Overview"} row {index + 1}
-											</p>
-											<p className="text-muted text-sm">
-												The page region is the only scroll container — the document never scrolls.
-											</p>
-										</div>
-									))}
-								</div>
-							</Main>
+						<AppLayout.Body>
+							<div className="space-y-4 p-6">
+								{Array.from({ length: 12 }, (_, index) => (
+									<div key={index} className="border-card-muted rounded-lg border p-4">
+										<p className="text-strong text-sm font-medium">
+											{currentItem?.label ?? "Overview"} row {index + 1}
+										</p>
+										<p className="text-muted text-sm">
+											The page region is the only scroll container — the document never scrolls.
+										</p>
+									</div>
+								))}
+							</div>
 						</AppLayout.Body>
 					</AppLayout.Content>
 				</AppLayout.Workspace>

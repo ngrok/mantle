@@ -17,7 +17,7 @@ import {
 
 A viewport-locked application shell. The shell itself never scrolls: `AppLayout.Content` is a rounded card
 holding a toolbar and a page region, and `AppLayout.Body` (the page region) is the only scroll container
-in the whole shell, with `overscroll-none` so long pages never bounce or drag the chrome. Above it,
+in the whole shell and its `main` landmark, with `overscroll-none` so long pages never bounce or drag the chrome. Above it,
 `AppLayout.Header` is a toolbar row with three slots: the sidebar trigger, the breadcrumb trail, and the
 page's actions. It sits beside the scroll container, so it stays pinned without `sticky`. `AppLayout.Notice` is a full-window composition slot for
 app-wide messaging that pushes everything (including any sidebar) down. It can stack a rare maintenance or
@@ -699,9 +699,7 @@ export function Shell() {
 								<PageActions actions={headerActions} />
 							</AppLayout.HeaderActions>
 						</AppLayout.Header>
-						<AppLayout.Body asChild>
-							<Main>{/* your routed page content */}</Main>
-						</AppLayout.Body>
+						<AppLayout.Body>{/* your routed page content */}</AppLayout.Body>
 					</AppLayout.Content>
 				</AppLayout.Workspace>
 			</AppLayout.Root>
@@ -771,7 +769,7 @@ overflow-clip rounded-xl border shadow-sm`. It insets **itself** with its own ma
   row's end. They carry the flex, so no call site sets it. See [Header slots](#header-slots).
 - **`Body`** is the page region and the shell's **only** scroll container
   (`scrollbar relative min-h-0 w-full flex-1 overflow-y-auto overscroll-none`). Render your `<Outlet />`
-  here. In a real app shell it should almost always be the `Main` landmark (see [Landmarks](#landmarks)).
+  here. It is mantle's `Main` landmark by default (see [Landmarks](#landmarks)).
   See [Sizing a page to the card](#sizing-a-page-to-the-card) for what its classes buy you.
   There is deliberately **no `Footer` part**. A bar pinned to the bottom of the card is almost always a
   _page's_ bar (an editor's validity line, a save bar), and a route rendering through an `<Outlet />` inside
@@ -798,8 +796,8 @@ All nine parts support it, and each has a reason a consumer would reach for it:
 - **`AppLayout.HeaderContent`**: `Breadcrumb.Root` itself, so the trail's `<nav>` is the slot and the header
   holds one element fewer.
 - **`AppLayout.HeaderActions`**: a `<form>` when every action submits the same form.
-- **`AppLayout.Body`**: the [Main](/components/primitives/main) landmark, which is what a real app shell
-  should almost always do (see [Landmarks](#landmarks)).
+- **`AppLayout.Body`**: a plain `<div>` when the document already owns the `main` landmark: a docs demo, a
+  test, a shell embedded in a page (see [Landmarks](#landmarks)).
 
 <CodeExample.Root>
 	<CodeExample.Preview className="p-0 md:p-0">
@@ -948,27 +946,30 @@ export function AppLayoutHeaderSlotsExample() {
 							/>
 						</AppLayout.HeaderActions>
 					</AppLayout.Header>
-					<AppLayout.Body>
-						<div className="flex flex-wrap items-center gap-2 p-6">
-							<Button
-								type="button"
-								appearance="outlined"
-								intent="neutral"
-								size="sm"
-								disabled={depth >= headerSlotsTrail.length}
-								onClick={() => setDepth((current) => current + 1)}
-							>
-								Add a crumb
-							</Button>
-							<Button
-								type="button"
-								appearance="ghost"
-								intent="neutral"
-								size="sm"
-								onClick={() => setDepth(2)}
-							>
-								Reset
-							</Button>
+					{/* Why asChild: the docs page already owns the main landmark. */}
+					<AppLayout.Body asChild>
+						<div>
+							<div className="flex flex-wrap items-center gap-2 p-6">
+								<Button
+									type="button"
+									appearance="outlined"
+									intent="neutral"
+									size="sm"
+									disabled={depth >= headerSlotsTrail.length}
+									onClick={() => setDepth((current) => current + 1)}
+								>
+									Add a crumb
+								</Button>
+								<Button
+									type="button"
+									appearance="ghost"
+									intent="neutral"
+									size="sm"
+									onClick={() => setDepth(2)}
+								>
+									Reset
+								</Button>
+							</div>
 						</div>
 					</AppLayout.Body>
 				</AppLayout.Content>
@@ -982,11 +983,151 @@ export function AppLayoutHeaderSlotsExample() {
 
 </CodeExample.Root>
 
-The shell renders the header once, above its `<Outlet />`. Which actions render is the route's decision, so
-derive them from the matched route chain the way you derive the trail. Collapse them into one menu below the
-sidebar's mobile breakpoint. [Header Actions from Routes](/recipes/header-actions-from-routes) is the
-recipe. The [app shell demo](#app-layout) at the top of this page shows the collapse: switch its preview to the
-mobile viewport and the three icon buttons become one menu.
+Either the shell renders the header once, above its `<Outlet />`, or each route renders its own.
+[One header per page](#one-header-per-page) states the requirement both meet and shows each. Collapse the
+actions into one menu below the sidebar's mobile breakpoint. The [app shell demo](#app-layout) at the top of
+this page shows the collapse: switch its preview to the mobile viewport and the three icon buttons become one
+menu.
+
+## One header per page
+
+> [!IMPORTANT]
+> Every page in an app that renders `AppLayout` renders one `AppLayout.Header`, and that header holds at
+> minimum `AppLayout.HeaderStart` with `Sidebar.Trigger` and `AppLayout.HeaderContent` with the route's
+> breadcrumb trail. This is a hard requirement. The sidebar can collapse at every breakpoint, and
+> `Sidebar.Trigger` is the only way back from a collapsed rail or a closed mobile sheet.
+
+Two compositions meet it. Pick one per app.
+
+**The shell owns the header.** The shell renders `AppLayout.Header` once, above its `<Outlet />`, and each
+route declares its actions on its route handle.
+[Header Actions from Routes](/recipes/header-actions-from-routes) is the recipe. It fits an app whose
+actions read only the URL and loader data, because the actions element renders outside the page.
+
+**The route owns the header.** The shell renders `AppLayout.Content` around its `<Outlet />`, and one
+app-level `Page` component renders the header row and `AppLayout.Body`. Each route renders `<Page>` and
+passes its actions, so an action reads the page's own state. Prefer this composition when a route's actions
+read page state, and use it on every route once you pick it, so no page ships without the trigger and the
+trail.
+
+The shell renders the card and nothing inside it:
+
+```tsx
+// app/routes/app-shell.tsx
+import { AppLayout } from "@ngrok/mantle/app-layout";
+import { Sidebar } from "@ngrok/mantle/sidebar";
+import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
+import { Outlet } from "react-router";
+import { AppSidebar } from "~/components/layout/app-sidebar";
+
+export default function AppShell() {
+	return (
+		<Sidebar.Root>
+			<AppLayout.Root className="fixed inset-0">
+				<SkipToMainLink />
+				<AppLayout.Workspace>
+					<AppSidebar />
+					<AppLayout.Content>
+						<Outlet />
+					</AppLayout.Content>
+				</AppLayout.Workspace>
+			</AppLayout.Root>
+		</Sidebar.Root>
+	);
+}
+```
+
+`Page` lives in the app because it owns two decisions mantle cannot make: where the trail comes from, and
+how a page loads.
+
+```tsx
+// app/features/page/page.tsx
+import { AppLayout } from "@ngrok/mantle/app-layout";
+import { Sidebar } from "@ngrok/mantle/sidebar";
+import { Skeleton } from "@ngrok/mantle/skeleton";
+import { Suspense, type ReactNode } from "react";
+import { RouteBreadcrumbs } from "~/features/breadcrumbs/breadcrumbs";
+
+type PageProps = {
+	/** The page's header actions, three at most. Omit the prop when the page has none. */
+	actions?: ReactNode;
+	children: ReactNode;
+};
+
+/**
+ * The header row and the scroll container for one route. Every route renders
+ * it, so no page ships without `Sidebar.Trigger` and the trail. The Suspense
+ * boundary sits inside `AppLayout.Body`, so a page that suspends keeps its
+ * header on screen.
+ */
+export function Page({ actions, children }: PageProps) {
+	return (
+		<>
+			<AppLayout.Header>
+				<AppLayout.HeaderStart>
+					<Sidebar.Trigger />
+				</AppLayout.HeaderStart>
+				<AppLayout.HeaderContent>
+					<RouteBreadcrumbs />
+				</AppLayout.HeaderContent>
+				{actions != null && <AppLayout.HeaderActions>{actions}</AppLayout.HeaderActions>}
+			</AppLayout.Header>
+			<AppLayout.Body>
+				<Suspense fallback={<Skeleton className="m-6 h-32" />}>{children}</Suspense>
+			</AppLayout.Body>
+		</>
+	);
+}
+```
+
+A route passes its actions and its content:
+
+```tsx
+// app/routes/endpoints.tsx
+import type { BreadcrumbHandle } from "@ngrok/mantle/breadcrumb";
+import { Button } from "@ngrok/mantle/button";
+import { useState } from "react";
+import { EndpointsTable } from "~/features/endpoints/endpoints-table";
+import { NewEndpointDialog } from "~/features/endpoints/new-endpoint-dialog";
+import { Page } from "~/features/page/page";
+
+export const handle = { breadcrumb: "Endpoints" } satisfies BreadcrumbHandle;
+
+export default function EndpointsPage() {
+	const [dialogOpen, setDialogOpen] = useState(false);
+
+	return (
+		<Page
+			actions={
+				<Button
+					type="button"
+					appearance="filled"
+					intent="primary"
+					size="sm"
+					onClick={() => setDialogOpen(true)}
+				>
+					New endpoint
+				</Button>
+			}
+		>
+			<EndpointsTable />
+			<NewEndpointDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+		</Page>
+	);
+}
+```
+
+`AppLayout.Body` is still the `Main` landmark, so the skip link lands on the scrollport (see
+[Landmarks](#landmarks)). The trigger and the trail remount on every navigation. Neither holds state, and the
+sidebar's own state lives on `Sidebar.Root`, so nothing is lost.
+
+### Keep Suspense inside the body
+
+If a route suspends, put the boundary inside `AppLayout.Body`, around the page content, the way `Page` does.
+A boundary above the header blanks the trigger and the trail until the data arrives, and a keyboard user
+loses the only way back to the sidebar. React Router awaits a route module before it commits a navigation,
+so only suspension inside the page component (a `use()` call, `useSuspenseQuery`, a lazy child) reaches a
+boundary. Never wrap the shell's `<Outlet />` in a boundary whose fallback replaces the whole card.
 
 ## Standalone
 
@@ -1000,7 +1141,6 @@ there. Nothing in the shell knows the sidebar exists; the pairing above is compo
 ```tsx
 import { AppLayout } from "@ngrok/mantle/app-layout";
 import { Button } from "@ngrok/mantle/button";
-import { Main } from "@ngrok/mantle/main";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { WarningCircleIcon } from "@phosphor-icons/react/WarningCircle";
 import { useState } from "react";
@@ -1037,9 +1177,7 @@ export function Shell() {
 							</Button>
 						</AppLayout.HeaderActions>
 					</AppLayout.Header>
-					<AppLayout.Body asChild>
-						<Main>{/* your routed page content */}</Main>
-					</AppLayout.Body>
+					<AppLayout.Body>{/* your routed page content */}</AppLayout.Body>
 				</AppLayout.Content>
 			</AppLayout.Workspace>
 		</AppLayout.Root>
@@ -1065,8 +1203,8 @@ one class on the route root:
 | Fill the card             | `flex h-full flex-col`    |
 
 Switch between all four shapes below: the shell markup never changes, only the classes on the page's own
-root. The example embeds the shell rather than pinning it with `fixed inset-0`, and leaves `AppLayout.Body` as
-its default `<div>`, because this docs page already owns the `Main` landmark.
+root. The example embeds the shell rather than pinning it with `fixed inset-0`, and passes `asChild` with a
+`<div>` to `AppLayout.Body`, because this docs page already owns the `main` landmark.
 
 <CodeExample.Root>
 	<CodeExample.Preview className="p-0 md:p-0">
@@ -1182,8 +1320,11 @@ export function PageShapes() {
 							</Button>
 						))}
 					</AppLayout.Header>
-					<AppLayout.Body>
-						<Page shape={shape} />
+					{/* Why asChild: the docs page already owns the main landmark. */}
+					<AppLayout.Body asChild>
+						<div>
+							<Page shape={shape} />
+						</div>
 					</AppLayout.Body>
 				</AppLayout.Content>
 			</AppLayout.Workspace>
@@ -1294,65 +1435,63 @@ export function EditorPage() {
 								</Breadcrumb.Root>
 							</AppLayout.HeaderContent>
 						</AppLayout.Header>
-						<AppLayout.Body asChild>
-							<Main>
-								{/* The page fills the card: flex column, h-full. */}
-								<div className="flex h-full flex-col">
-									{/* Toolbar row — shrink-0 so it never gives up height */}
-									<div className="border-card-muted flex shrink-0 items-center gap-3 border-b px-6 py-3">
-										<p className="text-strong text-sm font-medium">Policy editor</p>
-										<Badge appearance="muted" color="neutral">
-											YAML
-										</Badge>
-										<Button
-											type="button"
-											appearance="outlined"
-											intent="neutral"
-											size="sm"
-											className="ml-auto"
-											onClick={() => setRuleCount((current) => (current >= 12 ? 3 : current + 3))}
-										>
-											{ruleCount >= 12 ? "Reset policy" : "Add rules"}
-										</Button>
-									</div>
-
-									{/*
-									 * The editor region: `relative` contains the floating actions,
-									 * `min-h-0 flex-1` lets it absorb the leftover height and scroll
-									 * internally instead of pushing the status bar off the card.
-									 */}
-									<div className="relative min-h-0 flex-1 overflow-y-auto">
-										<div className="absolute top-2 right-6 z-10">
-											<ButtonGroup appearance="panel">
-												<IconButton
-													type="button"
-													appearance="ghost"
-													intent="neutral"
-													icon={<DownloadSimpleIcon />}
-													label="Download policy"
-												/>
-												<Separator orientation="vertical" className="min-h-5" />
-												<IconButton
-													type="button"
-													appearance="ghost"
-													intent="neutral"
-													icon={<CopyIcon />}
-													label="Copy policy"
-												/>
-											</ButtonGroup>
-										</div>
-										<pre className="text-body p-6 font-mono text-xs leading-6">
-											{fakePolicy(ruleCount)}
-										</pre>
-									</div>
-
-									{/* Status bar — shrink-0, so it pins to the card's bottom edge */}
-									<div className="border-card-muted text-muted flex shrink-0 items-center gap-2 border-t px-6 py-2 text-xs">
-										<CheckCircleIcon weight="fill" className="fill-success-600 shrink-0" />
-										Policy is valid — {ruleCount} rules
-									</div>
+						<AppLayout.Body>
+							{/* The page fills the card: flex column, h-full. */}
+							<div className="flex h-full flex-col">
+								{/* Toolbar row — shrink-0 so it never gives up height */}
+								<div className="border-card-muted flex shrink-0 items-center gap-3 border-b px-6 py-3">
+									<p className="text-strong text-sm font-medium">Policy editor</p>
+									<Badge appearance="muted" color="neutral">
+										YAML
+									</Badge>
+									<Button
+										type="button"
+										appearance="outlined"
+										intent="neutral"
+										size="sm"
+										className="ml-auto"
+										onClick={() => setRuleCount((current) => (current >= 12 ? 3 : current + 3))}
+									>
+										{ruleCount >= 12 ? "Reset policy" : "Add rules"}
+									</Button>
 								</div>
-							</Main>
+
+								{/*
+								 * The editor region: `relative` contains the floating actions,
+								 * `min-h-0 flex-1` lets it absorb the leftover height and scroll
+								 * internally instead of pushing the status bar off the card.
+								 */}
+								<div className="relative min-h-0 flex-1 overflow-y-auto">
+									<div className="absolute top-2 right-6 z-10">
+										<ButtonGroup appearance="panel">
+											<IconButton
+												type="button"
+												appearance="ghost"
+												intent="neutral"
+												icon={<DownloadSimpleIcon />}
+												label="Download policy"
+											/>
+											<Separator orientation="vertical" className="min-h-5" />
+											<IconButton
+												type="button"
+												appearance="ghost"
+												intent="neutral"
+												icon={<CopyIcon />}
+												label="Copy policy"
+											/>
+										</ButtonGroup>
+									</div>
+									<pre className="text-body p-6 font-mono text-xs leading-6">
+										{fakePolicy(ruleCount)}
+									</pre>
+								</div>
+
+								{/* Status bar — shrink-0, so it pins to the card's bottom edge */}
+								<div className="border-card-muted text-muted flex shrink-0 items-center gap-2 border-t px-6 py-2 text-xs">
+									<CheckCircleIcon weight="fill" className="fill-success-600 shrink-0" />
+									Policy is valid — {ruleCount} rules
+								</div>
+							</div>
 						</AppLayout.Body>
 					</AppLayout.Content>
 				</AppLayout.Workspace>
@@ -1414,40 +1553,43 @@ export function PolicyPage() {
 		<AppLayout.Root className="rounded-lg">
 			<AppLayout.Workspace>
 				<AppLayout.Content>
-					<AppLayout.Body>
-						{/* the page's own root — this is what "pinned to the bottom of the
-						    card" means, and it is all three rules at once */}
-						<div className="flex h-full flex-col">
-							{/* anything that must keep its height: shrink-0 */}
-							<div className="border-card-muted flex shrink-0 items-center gap-3 border-b px-6 py-3">
-								<p className="text-strong text-sm font-medium">Traffic policy</p>
-								<Button
-									type="button"
-									appearance="outlined"
-									intent="neutral"
-									size="sm"
-									className="ml-auto"
-									onClick={() => setRuleCount((current) => (current >= 16 ? 4 : current + 6))}
-								>
-									{ruleCount >= 16 ? "Reset policy" : "Add rules"}
-								</Button>
-							</div>
-
-							{/* the region that absorbs the slack and scrolls: min-h-0 flex-1 */}
-							<div className="relative min-h-0 flex-1 overflow-y-auto">
-								<div className="space-y-3 p-6">
-									{Array.from({ length: ruleCount }, (_, index) => (
-										<div key={index} className="border-card-muted rounded-lg border p-4">
-											<p className="text-strong text-sm font-medium">Rule {index + 1}</p>
-										</div>
-									))}
+					{/* Why asChild: the docs page already owns the main landmark. */}
+					<AppLayout.Body asChild>
+						<div>
+							{/* the page's own root — this is what "pinned to the bottom of the
+							    card" means, and it is all three rules at once */}
+							<div className="flex h-full flex-col">
+								{/* anything that must keep its height: shrink-0 */}
+								<div className="border-card-muted flex shrink-0 items-center gap-3 border-b px-6 py-3">
+									<p className="text-strong text-sm font-medium">Traffic policy</p>
+									<Button
+										type="button"
+										appearance="outlined"
+										intent="neutral"
+										size="sm"
+										className="ml-auto"
+										onClick={() => setRuleCount((current) => (current >= 16 ? 4 : current + 6))}
+									>
+										{ruleCount >= 16 ? "Reset policy" : "Add rules"}
+									</Button>
 								</div>
-							</div>
 
-							{/* the footer, on the card's bottom edge: shrink-0 */}
-							<div className="border-card-muted text-muted flex shrink-0 items-center gap-2 border-t px-6 py-2 text-xs">
-								<CheckCircleIcon weight="fill" className="fill-success-600 shrink-0" />
-								Traffic policy is valid — {ruleCount} rules
+								{/* the region that absorbs the slack and scrolls: min-h-0 flex-1 */}
+								<div className="relative min-h-0 flex-1 overflow-y-auto">
+									<div className="space-y-3 p-6">
+										{Array.from({ length: ruleCount }, (_, index) => (
+											<div key={index} className="border-card-muted rounded-lg border p-4">
+												<p className="text-strong text-sm font-medium">Rule {index + 1}</p>
+											</div>
+										))}
+									</div>
+								</div>
+
+								{/* the footer, on the card's bottom edge: shrink-0 */}
+								<div className="border-card-muted text-muted flex shrink-0 items-center gap-2 border-t px-6 py-2 text-xs">
+									<CheckCircleIcon weight="fill" className="fill-success-600 shrink-0" />
+									Traffic policy is valid — {ruleCount} rules
+								</div>
 							</div>
 						</div>
 					</AppLayout.Body>
@@ -1485,7 +1627,6 @@ positions, the editor scrolls, and the validity bar stays on the card's bottom e
 import { AppLayout } from "@ngrok/mantle/app-layout";
 import { Badge } from "@ngrok/mantle/badge";
 import { Button } from "@ngrok/mantle/button";
-import { Main } from "@ngrok/mantle/main";
 import { Tabs } from "@ngrok/mantle/tabs";
 import { CheckCircleIcon } from "@phosphor-icons/react/CheckCircle";
 import { Outlet } from "react-router";
@@ -1513,33 +1654,31 @@ const policy = [
 // gap-0 because the rows below manage their own spacing.
 export function EndpointDetailRoute() {
 	return (
-		<AppLayout.Body asChild>
-			<Main>
-				<Tabs.Root defaultValue="traffic-policy" className="h-full gap-0">
-					<div className="shrink-0 px-6 pt-4">
-						<h1 className="text-strong text-xl font-medium break-all">{endpoint.url}</h1>
-						<div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1">
-							<Badge appearance="muted" color="info">
-								{endpoint.protocol}
-							</Badge>
-							<Badge appearance="muted" color="success">
-								{endpoint.visibility}
-							</Badge>
-							<span className="text-muted text-xs">Last updated {endpoint.updatedAt}</span>
-						</div>
-						<Tabs.List>
-							<Tabs.Trigger value="overview">Overview</Tabs.Trigger>
-							<Tabs.Trigger value="traffic-policy">Traffic Policy</Tabs.Trigger>
-							<Tabs.Trigger value="settings">Settings</Tabs.Trigger>
-						</Tabs.List>
+		<AppLayout.Body>
+			<Tabs.Root defaultValue="traffic-policy" className="h-full gap-0">
+				<div className="shrink-0 px-6 pt-4">
+					<h1 className="text-strong text-xl font-medium break-all">{endpoint.url}</h1>
+					<div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1">
+						<Badge appearance="muted" color="info">
+							{endpoint.protocol}
+						</Badge>
+						<Badge appearance="muted" color="success">
+							{endpoint.visibility}
+						</Badge>
+						<span className="text-muted text-xs">Last updated {endpoint.updatedAt}</span>
 					</div>
+					<Tabs.List>
+						<Tabs.Trigger value="overview">Overview</Tabs.Trigger>
+						<Tabs.Trigger value="traffic-policy">Traffic Policy</Tabs.Trigger>
+						<Tabs.Trigger value="settings">Settings</Tabs.Trigger>
+					</Tabs.List>
+				</div>
 
-					{/* hands the child route a definite height */}
-					<Tabs.Content value="traffic-policy" className="min-h-0 flex-1">
-						<Outlet />
-					</Tabs.Content>
-				</Tabs.Root>
-			</Main>
+				{/* hands the child route a definite height */}
+				<Tabs.Content value="traffic-policy" className="min-h-0 flex-1">
+					<Outlet />
+				</Tabs.Content>
+			</Tabs.Root>
 		</AppLayout.Body>
 	);
 }
@@ -1598,8 +1737,8 @@ What that means in practice:
 Scroll a page down, then switch pages: the card returns to the top. Navigation in the example is a **fake
 router**, so it can be embedded here; a real shell has no local `pathname` and keys the effect on
 `useLocation().key` instead, so a back/forward entry counts as a navigation too. The ref goes on the same
-element either way: this example leaves `AppLayout.Body` as its default `<div>` because the docs page already
-owns the `Main` landmark, while a real shell puts the ref on the `Main` composed into `AppLayout.Body`.
+element either way: this example passes `asChild` with a `<div>` because the docs page already owns the
+`main` landmark, while a real shell puts the ref on `AppLayout.Body` itself.
 
 <CodeExample.Root>
 	<CodeExample.Preview className="p-0 md:p-0">
@@ -1648,15 +1787,18 @@ export function ScrollResetShell() {
 						))}
 						<p className="text-muted ml-auto text-xs">Scroll down, then switch pages</p>
 					</AppLayout.Header>
-					<AppLayout.Body ref={scrollportRef}>
-						<div className="space-y-3 p-6">
-							{Array.from({ length: 12 }, (_, index) => (
-								<div key={index} className="border-card-muted rounded-lg border p-4">
-									<p className="text-strong text-sm font-medium">
-										{current.label} row {index + 1}
-									</p>
-								</div>
-							))}
+					{/* Why asChild: the docs page already owns the main landmark. */}
+					<AppLayout.Body asChild ref={scrollportRef}>
+						<div>
+							<div className="space-y-3 p-6">
+								{Array.from({ length: 12 }, (_, index) => (
+									<div key={index} className="border-card-muted rounded-lg border p-4">
+										<p className="text-strong text-sm font-medium">
+											{current.label} row {index + 1}
+										</p>
+									</div>
+								))}
+							</div>
 						</div>
 					</AppLayout.Body>
 				</AppLayout.Content>
@@ -1675,22 +1817,28 @@ To restore rather than reset, save `scrollportRef.current.scrollTop` into `sessi
 
 ## Landmarks
 
-Exactly one element in a document may be the Main landmark, so `AppLayout.Body` renders a plain `<div>` by
-default: composing the shell inside a page that already owns the landmark (a docs page, for example) is safe
-by default. But when the shell owns the document (the normal case for an app shell),
-`AppLayout.Body` should almost always **be** the Main landmark: compose mantle's
-[Main](/components/primitives/main) via `asChild`, and pair a
-[SkipToMainLink](/components/primitives/skip-to-main-link) as the first child of `AppLayout.Root`. Its
-default `targetId` matches `Main`'s `id="main"`. The framed demos on this page do exactly this: each preview
-is its own document, so each owns a real `Main`.
+`AppLayout.Body` is the Main landmark. It renders mantle's [Main](/components/primitives/main), so it carries
+`id="main"` and `tabIndex={-1}`. Pair it with a [SkipToMainLink](/components/primitives/skip-to-main-link) as
+the first child of `AppLayout.Root`. Its default `targetId` matches that `id`. The framed demos on this page
+do exactly this: each preview is its own document, so each owns a real `main`.
 
-**Compose `Main` onto `Body`, not onto `Content`.** `Body` is the scroll container, and that is what makes
-the skip link actually useful: the element the link focuses **is** the scrollport, so arrows, `Space`, and
-`PageDown` scroll the page straight away. Put `Main` on the card instead and a keyboard user who takes the
-skip link lands on an element with no scrollable ancestor: the keys do nothing, and `Main` hardcodes its
-`id`, so the consumer cannot patch around it. Composing it here also finally takes the toolbar _out_ of the
-`main` landmark, which is what the skip link's own promise ("jump past the sidebar and toolbar") always
-implied.
+**The landmark is the scroll container, and that is what makes the skip link useful.** The element the link
+focuses **is** the scrollport, so arrows, `Space`, and `PageDown` scroll the page straight away. It also keeps
+the toolbar _out_ of the `main` landmark, which is what the skip link's own promise ("jump past the sidebar
+and toolbar") always implied. Never move the landmark to the `AppLayout.Content` card. A keyboard user who
+takes the skip link then lands on an element with no scrollable ancestor, and the keys do nothing.
+
+Exactly one element in a document may be the Main landmark. When the shell is embedded in a page that already
+owns one (a docs page, a test, a widget inside another layout), pass `asChild` and render a plain `<div>`:
+
+```tsx
+<AppLayout.Body asChild>
+	<div>{/* your page content */}</div>
+</AppLayout.Body>
+```
+
+The part adds its classes and `data-slot="app-layout-body"` to your element and no landmark. Every inline
+example on this page does this, because the page you are reading owns the `main`.
 
 The composition below is exactly what every framed preview on this page renders. It is the one example here
 with no inline preview beside it, deliberately: a document may contain only one `main` landmark and this docs
@@ -1700,7 +1848,6 @@ version of it can only be a framed preview, which the sections above already are
 ```tsx
 import { AppLayout } from "@ngrok/mantle/app-layout";
 import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
-import { Main } from "@ngrok/mantle/main";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { Outlet } from "react-router";
 
@@ -1721,10 +1868,8 @@ export function Shell() {
 							</Breadcrumb.Root>
 						</AppLayout.HeaderContent>
 					</AppLayout.Header>
-					<AppLayout.Body asChild>
-						<Main>
-							<Outlet />
-						</Main>
+					<AppLayout.Body>
+						<Outlet />
 					</AppLayout.Body>
 				</AppLayout.Content>
 			</AppLayout.Workspace>
@@ -1735,22 +1880,23 @@ export function Shell() {
 
 ## Accessibility
 
-- `AppLayout.Header` renders a plain `<div>`, not a `<header>`. With `Main` composed onto `AppLayout.Body`,
-  a `<header>` here would have no sectioning ancestor and would therefore **be** the ARIA `banner` landmark,
-  which a card toolbar is not. If you need one, compose your own element via `asChild`.
+- `AppLayout.Header` renders a plain `<div>`, not a `<header>`. `AppLayout.Body` is the `main` landmark and
+  the header is its sibling, so a `<header>` here would have no sectioning ancestor and would **be** the ARIA
+  `banner` landmark, which a card toolbar is not. If you need one, compose your own element via `asChild`.
 - `AppLayout.Notice` is deliberately **not** named Banner: it renders a plain `div` and claims no landmark.
   If the notice content needs its own semantics, put them on the content.
-- Compose `Main` into `AppLayout.Body` (via `asChild`) and render `SkipToMainLink` first in the shell, so the
-  landmark the skip link focuses is the scroll container (see [Landmarks](#landmarks)).
+- `AppLayout.Body` is the `Main` landmark. Render `SkipToMainLink` first in the shell, so the landmark the
+  skip link focuses is the scroll container (see [Landmarks](#landmarks)).
 - The shell never scrolls; only `AppLayout.Body` does. Focus scrolling behaves like any regular scroll
   container. Both `AppLayout.Root` and `AppLayout.Content` are `overflow-clip` rather than `overflow-hidden`
   specifically so neither can become a hidden scroll container: `hidden` scrolls on focus with no scrollbar to
   scroll back, which a wide toolbar would trigger by translating the whole card (or, on the pinned frame, the
   whole window) out of view.
-- **Once a `Sidebar` is composed, `AppLayout.Header` stops being optional.** The sidebar can collapse at
-  every breakpoint, `Sidebar.Trigger` is the only way back from a collapsed rail or a closed mobile sheet,
-  and `AppLayout.HeaderStart` is its only natural home. A shell with a collapsible sidebar and no visible trigger is
-  unrecoverable. Put the trigger somewhere else if you skip the header, but do not skip both.
+- **Every page renders one `AppLayout.Header`, with `Sidebar.Trigger` in `AppLayout.HeaderStart` and the
+  route's trail in `AppLayout.HeaderContent`.** The sidebar can collapse at every breakpoint, and
+  `Sidebar.Trigger` is the only way back from a collapsed rail or a closed mobile sheet. A page with a
+  collapsible sidebar and no visible trigger is unrecoverable. [One header per page](#one-header-per-page)
+  shows the two compositions that meet the requirement.
 
 ## API Reference
 
@@ -1854,8 +2000,9 @@ It is **pinned by construction, not by `sticky`**: as a `shrink-0` flex sibling 
 translate sideways when the page scrolls horizontally, and does not steal height from a page asking for
 `h-full`.
 
-Renders a `<div>`, not a `<header>` — with `Main` composed onto `AppLayout.Body`, a `<header>` here would
-have no sectioning ancestor and would therefore _be_ the ARIA `banner` landmark, which a card toolbar is not.
+Renders a `<div>`, not a `<header>`. `AppLayout.Body` is the `main` landmark and this row is its sibling, so a
+`<header>` here would have no sectioning ancestor and would _be_ the ARIA `banner` landmark, which a card
+toolbar is not.
 Optional standalone; effectively required once a `Sidebar` is composed (see
 [Accessibility](#accessibility)).
 
@@ -1934,18 +2081,21 @@ The page region, and the shell's **only** scroll container:
 `scrollbar relative min-h-0 w-full flex-1 overflow-y-auto overscroll-none`. Render it after
 `AppLayout.Header` inside `AppLayout.Content`, and put your `<Outlet />` in it.
 
-It renders a `<div>` by default, but in a real app shell it should almost always be the
-[Main](/components/primitives/main) landmark composed via `asChild` — see [Landmarks](#landmarks).
+It renders mantle's [Main](/components/primitives/main) landmark: `<main id="main" tabIndex={-1}>` with
+`data-slot="app-layout-body main"`, so a [SkipToMainLink](/components/primitives/skip-to-main-link) lands on
+the scroll container (see [Landmarks](#landmarks)). `id` and `tabIndex` are not props. When the document
+already owns a `main`, pass `asChild` and render a `<div>`. The part then adds its classes and
+`data-slot="app-layout-body"` to your element and no landmark.
 
 Every class on it has a job; see [Sizing a page to the card](#sizing-a-page-to-the-card) for what each
 one buys a route author, and [Scroll restoration](#scroll-restoration) for what an inner scrollport means for
 your router.
 
-All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+All props from [main](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/main#attributes) except `id` and `tabIndex`, plus:
 
-| Prop       | Type      | Default | Description                                                                                                                                        |
-| ---------- | --------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `AppLayout.Body` styling onto alternative element types (e.g. `Main`, a `<section>`) or your own components. |
+| Prop       | Type      | Default | Description                                                                                                                                                                                         |
+| ---------- | --------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `AppLayout.Body` styling onto alternative element types (a `<div>` when the document already owns the `main` landmark, a `<section>`) or your own components. |
 
 ### There is no AppLayout.Footer
 

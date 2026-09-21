@@ -3,6 +3,7 @@ import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
+import { Main } from "../main/main.js";
 import { Slot } from "../slot/index.js";
 
 /**
@@ -23,9 +24,9 @@ import { Slot } from "../slot/index.js";
  * container at all.
  *
  * When the shell owns the document, render a `SkipToMainLink` as its first
- * child and compose the `Main` landmark into `AppLayout.Body` via `asChild` so
- * keyboard users can jump past the sidebar and toolbar straight into the
- * scrolling page region.
+ * child. `AppLayout.Body` is the `Main` landmark, so the link sends keyboard
+ * users past the sidebar and the toolbar straight into the scrolling page
+ * region.
  *
  * @see https://mantle.ngrok.com/layouts/app-layout#applayoutroot
  *
@@ -49,10 +50,8 @@ import { Slot } from "../slot/index.js";
  *             <PageActions />
  *           </AppLayout.HeaderActions>
  *         </AppLayout.Header>
- *         <AppLayout.Body asChild>
- *           <Main>
- *             <Outlet />
- *           </Main>
+ *         <AppLayout.Body>
+ *           <Outlet />
  *         </AppLayout.Body>
  *       </AppLayout.Content>
  *     </AppLayout.Workspace>
@@ -130,10 +129,8 @@ const Root = ({
  *             <PageActions />
  *           </AppLayout.HeaderActions>
  *         </AppLayout.Header>
- *         <AppLayout.Body asChild>
- *           <Main>
- *             <Outlet />
- *           </Main>
+ *         <AppLayout.Body>
+ *           <Outlet />
  *         </AppLayout.Body>
  *       </AppLayout.Content>
  *     </AppLayout.Workspace>
@@ -194,10 +191,8 @@ const Notice = ({
  *             <PageActions />
  *           </AppLayout.HeaderActions>
  *         </AppLayout.Header>
- *         <AppLayout.Body asChild>
- *           <Main>
- *             <Outlet />
- *           </Main>
+ *         <AppLayout.Body>
+ *           <Outlet />
  *         </AppLayout.Body>
  *       </AppLayout.Content>
  *     </AppLayout.Workspace>
@@ -273,10 +268,8 @@ const Workspace = ({
  *             <PageActions />
  *           </AppLayout.HeaderActions>
  *         </AppLayout.Header>
- *         <AppLayout.Body asChild>
- *           <Main>
- *             <Outlet />
- *           </Main>
+ *         <AppLayout.Body>
+ *           <Outlet />
  *         </AppLayout.Body>
  *       </AppLayout.Content>
  *     </AppLayout.Workspace>
@@ -331,9 +324,9 @@ const Content = ({
  * when the page scrolls horizontally. It also no longer steals height from a
  * page that asks for `h-full`.
  *
- * Renders a `<div>`, not a `<header>`: the `Main` landmark is composed onto
- * `AppLayout.Body`, so a `<header>` here would have no sectioning ancestor and
- * would therefore *become* the ARIA `banner` landmark — which a card toolbar is
+ * Renders a `<div>`, not a `<header>`: `AppLayout.Body` is the `main` landmark
+ * and this row is its sibling, so a `<header>` here would have no sectioning
+ * ancestor and would become the ARIA `banner` landmark, which a card toolbar is
  * not. Compose your own element with `asChild` if you need one.
  *
  * **Sidebar alignment is an invariant, not a coincidence:** standalone, the
@@ -376,10 +369,8 @@ const Content = ({
  *             <PageActions />
  *           </AppLayout.HeaderActions>
  *         </AppLayout.Header>
- *         <AppLayout.Body asChild>
- *           <Main>
- *             <Outlet />
- *           </Main>
+ *         <AppLayout.Body>
+ *           <Outlet />
  *         </AppLayout.Body>
  *       </AppLayout.Content>
  *     </AppLayout.Workspace>
@@ -449,10 +440,8 @@ const Header = ({
  *             <PageActions />
  *           </AppLayout.HeaderActions>
  *         </AppLayout.Header>
- *         <AppLayout.Body asChild>
- *           <Main>
- *             <Outlet />
- *           </Main>
+ *         <AppLayout.Body>
+ *           <Outlet />
  *         </AppLayout.Body>
  *       </AppLayout.Content>
  *     </AppLayout.Workspace>
@@ -511,10 +500,8 @@ const HeaderStart = ({
  *             <PageActions />
  *           </AppLayout.HeaderActions>
  *         </AppLayout.Header>
- *         <AppLayout.Body asChild>
- *           <Main>
- *             <Outlet />
- *           </Main>
+ *         <AppLayout.Body>
+ *           <Outlet />
  *         </AppLayout.Body>
  *       </AppLayout.Content>
  *     </AppLayout.Workspace>
@@ -577,10 +564,8 @@ const HeaderContent = ({
  *             <PageActions />
  *           </AppLayout.HeaderActions>
  *         </AppLayout.Header>
- *         <AppLayout.Body asChild>
- *           <Main>
- *             <Outlet />
- *           </Main>
+ *         <AppLayout.Body>
+ *           <Outlet />
  *         </AppLayout.Body>
  *       </AppLayout.Content>
  *     </AppLayout.Workspace>
@@ -614,18 +599,20 @@ const HeaderActions = ({
  * and scroll never bounces the shell. Render it after `AppLayout.Header` inside
  * `AppLayout.Content`.
  *
- * In a real app shell this should almost always be mantle's `Main` landmark,
- * composed via `asChild`, and paired with a `SkipToMainLink` as the first child
- * of `AppLayout.Root` (`SkipToMainLink`'s default `targetId` matches `Main`'s
- * `id="main"`). Composing `Main` here rather than onto the card is what makes
- * the skip link actually useful: the focused landmark **is** the scroll
- * container, so arrows, `Space`, and `PageDown` scroll the page immediately, and
- * the skip really does jump past the sidebar *and* the toolbar. The plain
- * `<div>` default exists for embedded usage (docs demos, tests) where the
- * surrounding document already owns the Main landmark.
+ * It renders mantle's `Main` landmark: `<main id="main" tabIndex={-1}>` with
+ * `data-slot="app-layout-body main"`. Pair it with a `SkipToMainLink` as the
+ * first child of `AppLayout.Root`; the link's default `targetId` matches
+ * `Main`'s `id`. The focused landmark **is** the scroll container, so arrows,
+ * `Space`, and `PageDown` scroll the page as soon as the jump lands, and the
+ * skip clears the sidebar *and* the toolbar. `id` and `tabIndex` are not props,
+ * for the same reason they are not props on `Main`.
  *
- * It is a flex **item** that is **block inside**, and both halves are
- * load-bearing:
+ * When the surrounding document already owns the `main` landmark (a docs demo,
+ * a test, a shell embedded in a page), pass `asChild` and render a plain
+ * `<div>`. The part then adds its classes and its `data-slot` to your element
+ * and no landmark.
+ *
+ * It is a flex **item** that is **block inside**, and each half does a job:
  *
  * - `min-h-0 flex-1` gives it a definite height, so a page that asks for
  *   `h-full` fills exactly the card interior instead of overflowing it by the
@@ -668,10 +655,8 @@ const HeaderActions = ({
  *             <PageActions />
  *           </AppLayout.HeaderActions>
  *         </AppLayout.Header>
- *         <AppLayout.Body asChild>
- *           <Main>
- *             <Outlet />
- *           </Main>
+ *         <AppLayout.Body>
+ *           <Outlet />
  *         </AppLayout.Body>
  *       </AppLayout.Content>
  *     </AppLayout.Workspace>
@@ -685,8 +670,11 @@ const Body = ({
 	className,
 	"data-slot": dataSlot,
 	...props
-}: ComponentProps<"div"> & WithAsChild & WithDataSlot) => {
-	const Comp = asChild ? Slot : "div";
+}: Omit<ComponentProps<"main">, "id" | "tabIndex"> & WithAsChild & WithDataSlot) => {
+	// Why `Main`: the body is the shell's only scroll container, and the skip
+	// link must land on the element that scrolls. `Main` stamps the `id` and
+	// `tabIndex` the link needs; `asChild` hands the element to the consumer.
+	const Comp = asChild ? Slot : Main;
 
 	return (
 		<Comp
@@ -760,10 +748,8 @@ const Body = ({
  *             <PageActions />
  *           </AppLayout.HeaderActions>
  *         </AppLayout.Header>
- *         <AppLayout.Body asChild>
- *           <Main>
- *             <Outlet />
- *           </Main>
+ *         <AppLayout.Body>
+ *           <Outlet />
  *         </AppLayout.Body>
  *       </AppLayout.Content>
  *     </AppLayout.Workspace>
@@ -798,10 +784,8 @@ const AppLayout = {
 	 *             <PageActions />
 	 *           </AppLayout.HeaderActions>
 	 *         </AppLayout.Header>
-	 *         <AppLayout.Body asChild>
-	 *           <Main>
-	 *             <Outlet />
-	 *           </Main>
+	 *         <AppLayout.Body>
+	 *           <Outlet />
 	 *         </AppLayout.Body>
 	 *       </AppLayout.Content>
 	 *     </AppLayout.Workspace>
@@ -836,10 +820,8 @@ const AppLayout = {
 	 *             <PageActions />
 	 *           </AppLayout.HeaderActions>
 	 *         </AppLayout.Header>
-	 *         <AppLayout.Body asChild>
-	 *           <Main>
-	 *             <Outlet />
-	 *           </Main>
+	 *         <AppLayout.Body>
+	 *           <Outlet />
 	 *         </AppLayout.Body>
 	 *       </AppLayout.Content>
 	 *     </AppLayout.Workspace>
@@ -874,10 +856,8 @@ const AppLayout = {
 	 *             <PageActions />
 	 *           </AppLayout.HeaderActions>
 	 *         </AppLayout.Header>
-	 *         <AppLayout.Body asChild>
-	 *           <Main>
-	 *             <Outlet />
-	 *           </Main>
+	 *         <AppLayout.Body>
+	 *           <Outlet />
 	 *         </AppLayout.Body>
 	 *       </AppLayout.Content>
 	 *     </AppLayout.Workspace>
@@ -913,10 +893,8 @@ const AppLayout = {
 	 *             <PageActions />
 	 *           </AppLayout.HeaderActions>
 	 *         </AppLayout.Header>
-	 *         <AppLayout.Body asChild>
-	 *           <Main>
-	 *             <Outlet />
-	 *           </Main>
+	 *         <AppLayout.Body>
+	 *           <Outlet />
 	 *         </AppLayout.Body>
 	 *       </AppLayout.Content>
 	 *     </AppLayout.Workspace>
@@ -952,10 +930,8 @@ const AppLayout = {
 	 *             <PageActions />
 	 *           </AppLayout.HeaderActions>
 	 *         </AppLayout.Header>
-	 *         <AppLayout.Body asChild>
-	 *           <Main>
-	 *             <Outlet />
-	 *           </Main>
+	 *         <AppLayout.Body>
+	 *           <Outlet />
 	 *         </AppLayout.Body>
 	 *       </AppLayout.Content>
 	 *     </AppLayout.Workspace>
@@ -989,10 +965,8 @@ const AppLayout = {
 	 *             <PageActions />
 	 *           </AppLayout.HeaderActions>
 	 *         </AppLayout.Header>
-	 *         <AppLayout.Body asChild>
-	 *           <Main>
-	 *             <Outlet />
-	 *           </Main>
+	 *         <AppLayout.Body>
+	 *           <Outlet />
 	 *         </AppLayout.Body>
 	 *       </AppLayout.Content>
 	 *     </AppLayout.Workspace>
@@ -1028,10 +1002,8 @@ const AppLayout = {
 	 *             <PageActions />
 	 *           </AppLayout.HeaderActions>
 	 *         </AppLayout.Header>
-	 *         <AppLayout.Body asChild>
-	 *           <Main>
-	 *             <Outlet />
-	 *           </Main>
+	 *         <AppLayout.Body>
+	 *           <Outlet />
 	 *         </AppLayout.Body>
 	 *       </AppLayout.Content>
 	 *     </AppLayout.Workspace>
@@ -1067,10 +1039,8 @@ const AppLayout = {
 	 *             <PageActions />
 	 *           </AppLayout.HeaderActions>
 	 *         </AppLayout.Header>
-	 *         <AppLayout.Body asChild>
-	 *           <Main>
-	 *             <Outlet />
-	 *           </Main>
+	 *         <AppLayout.Body>
+	 *           <Outlet />
 	 *         </AppLayout.Body>
 	 *       </AppLayout.Content>
 	 *     </AppLayout.Workspace>
@@ -1080,10 +1050,10 @@ const AppLayout = {
 	 */
 	HeaderActions,
 	/**
-	 * The page region and the shell's only scroll container. A flex item that is
-	 * block inside, so `h-full` pages fit the card and `mx-auto max-w-7xl` pages
-	 * still center. Compose `Main` here via `asChild` when the shell owns the
-	 * document.
+	 * The page region and the shell's only scroll container, rendered as the
+	 * `Main` landmark. A flex item that is block inside, so `h-full` pages fit the
+	 * card and `mx-auto max-w-7xl` pages still center. Pass `asChild` with a
+	 * `<div>` when the document already owns a `main`.
 	 *
 	 * @see https://mantle.ngrok.com/layouts/app-layout#applayoutbody
 	 *
@@ -1107,10 +1077,8 @@ const AppLayout = {
 	 *             <PageActions />
 	 *           </AppLayout.HeaderActions>
 	 *         </AppLayout.Header>
-	 *         <AppLayout.Body asChild>
-	 *           <Main>
-	 *             <Outlet />
-	 *           </Main>
+	 *         <AppLayout.Body>
+	 *           <Outlet />
 	 *         </AppLayout.Body>
 	 *       </AppLayout.Content>
 	 *     </AppLayout.Workspace>
