@@ -251,6 +251,7 @@ export function AppLayoutPinnedFooterDemo() {
 										<Tabs.Trigger value="traffic-policy">Traffic Policy</Tabs.Trigger>
 										<Tabs.Trigger value="settings">Settings</Tabs.Trigger>
 									</Tabs.List>
+									<Tabs.Separator />
 								</div>
 
 								{/*

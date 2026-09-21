@@ -7,7 +7,7 @@ import {
 	Trigger as TabsPrimitiveTrigger,
 } from "@radix-ui/react-tabs";
 import { cva } from "class-variance-authority";
-import type { ComponentProps, ComponentRef, HTMLAttributes } from "react";
+import type { ComponentProps, ComponentRef } from "react";
 import {
 	Children,
 	cloneElement,
@@ -19,12 +19,16 @@ import {
 	useRef,
 } from "react";
 import invariant from "tiny-invariant";
+import type { SelfClosingWithAsChild } from "../../types/as-child.js";
 import { parseBooleanish } from "../../types/booleanish.js";
 import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { clsx } from "../../utils/cx/clsx.js";
 import { cx } from "../../utils/cx/cx.js";
 import { getPrefersReducedMotion } from "../../hooks/use-prefers-reduced-motion.js";
 import type { ScrollBehavior } from "../../hooks/use-scroll-behavior.js";
+import { Separator } from "../separator/separator.js";
 
 type Orientation = "horizontal" | "vertical";
 type Appearance = "classic" | "pill";
@@ -34,15 +38,36 @@ type TabsStateContextValue = {
 	appearance: Appearance;
 };
 
-const TabsStateContext = createContext<TabsStateContextValue>({
-	orientation: "horizontal",
-	appearance: "classic",
-});
+const TabsStateContext = createContext<TabsStateContextValue | null>(null);
 
 /**
- * A set of layered sections of content—known as tab panels—that are displayed one at a time.
+ * Reads the root's `orientation` and `appearance` for a part. Throws with the
+ * part's name when the part renders outside `Tabs.Root`.
+ */
+function useTabsState(partName: string): TabsStateContextValue {
+	const context = useContext(TabsStateContext);
+	invariant(context != null, `${partName} must be rendered inside Tabs.Root.`);
+	return context;
+}
+
+/**
+ * Layered sections of content, called tab panels, that show one at a time.
  * The outermost part; it owns `orientation` and `appearance`. It stamps both as
  * `data-orientation` and `data-appearance` for the parts below to style against.
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute     | Value                          | Description                                               |
+ * | ------------------ | ------------------------------ | --------------------------------------------------------- |
+ * | `data-slot`        | `"tabs"`                       | On the root element.                                      |
+ * | `data-orientation` | `"horizontal"` \| `"vertical"` | The `orientation` prop. Set by Radix.                     |
+ * | `data-appearance`  | `"classic"` \| `"pill"`        | The `appearance` prop. Descendant parts style against it. |
+ *
+ * **CSS variables:**
+ *
+ * | CSS Variable | Default | Description                                                                                                                              |
+ * | ------------ | ------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+ * | `--tabs-gap` | `1rem`  | The space between the list and the content. `Tabs.Separator` pulls itself up by it, so set the variable here instead of a `gap-*` class. |
  *
  * @see https://mantle.ngrok.com/components/navigation/tabs#tabsroot
  *
@@ -53,6 +78,7 @@ const TabsStateContext = createContext<TabsStateContextValue>({
  *     <Tabs.Trigger value="account">Account</Tabs.Trigger>
  *     <Tabs.Trigger value="password">Password</Tabs.Trigger>
  *   </Tabs.List>
+ *   <Tabs.Separator />
  *   <Tabs.Content value="account">
  *     <p>Make changes to your account here.</p>
  *   </Tabs.Content>
@@ -65,24 +91,28 @@ const TabsStateContext = createContext<TabsStateContextValue>({
 const Root = ({
 	className,
 	children,
+	"data-slot": dataSlot,
 	orientation = "horizontal",
 	appearance = "classic",
 	...props
-}: ComponentProps<typeof TabsPrimitiveRoot> & {
-	/**
-	 * The appearance of the tabs. Classic appearance shows the tab
-	 * list with an underline; pill appearance shows each tab as a pill.
-	 * @default "classic"
-	 */
-	appearance?: "classic" | "pill";
-}) => {
+}: ComponentProps<typeof TabsPrimitiveRoot> &
+	WithDataSlot & {
+		/**
+		 * The appearance of the tabs. Classic appearance shows the tab
+		 * list with an underline; pill appearance shows each tab as a pill.
+		 * @default "classic"
+		 */
+		appearance?: "classic" | "pill";
+	}) => {
 	const contextValue = useMemo(() => ({ orientation, appearance }), [orientation, appearance]);
 	return (
 		<TabsPrimitiveRoot
-			data-slot="tabs"
+			data-slot={joinDataSlot(dataSlot, "tabs")}
 			data-appearance={appearance}
 			className={cx(
-				"flex gap-4",
+				// Why a variable: `Tabs.Separator` reads `--tabs-gap` to cancel this gap
+				// and sit flush against the list, so both must move together.
+				"flex [--tabs-gap:--spacing(4)] gap-(--tabs-gap)",
 				orientation === "horizontal" ? "flex-col" : "flex-row",
 				className,
 			)}
@@ -93,33 +123,6 @@ const Root = ({
 		</TabsPrimitiveRoot>
 	);
 };
-
-/**
- * The horizontal classic tablist's bottom border, drawn by default and
- * removed by the `hideBorder` prop on `Tabs.List`.
- *
- * Painted as a content-box background on the list instead of `border-bottom`
- * or an absolutely-positioned child because:
- * - the tablist is a scroll container with `px-1 -mx-1` breathing room for
- *   focus rings: a real border paints across the border box, which the
- *   negative margins push past the container's content edge, and
- * - absolutely-positioned children of a scroll container anchor to the scroll
- *   origin, so a positioned rule scrolls away with the triggers on overflow.
- *
- * The content box excludes the breathing padding, so the rule stays inside
- * the container and sits put while triggers scroll beneath it. `pb-px`
- * reserves the 1px row below the triggers (and below the active trigger's
- * decoration) that the rule occupies; the `calc(100% + 1px)` y-position
- * drops the rule out of the content box into that row, and
- * `--_fade-bottom-border: black` pins that row opaque in the scroll-fade
- * mask so the border runs solid to the container edges while the scrolled
- * triggers above it fade (see scroll-fade-x in mantle.css).
- */
-const listBottomRule = cx(
-	"pb-px bg-origin-content bg-no-repeat bg-size-[100%_1px] bg-position-[0_calc(100%+1px)]",
-	"bg-[image:linear-gradient(var(--color-separator),var(--color-separator))]",
-	"[--_fade-bottom-border:black]",
-);
 
 /**
  * Variants for the List component
@@ -135,10 +138,6 @@ const listVariants = cva("flex", {
 			classic: "",
 			pill: "",
 		} as const satisfies Record<Appearance, string>,
-		hideBorder: {
-			true: "",
-			false: "",
-		},
 	},
 	compoundVariants: [
 		{
@@ -152,35 +151,20 @@ const listVariants = cva("flex", {
 			appearance: "classic",
 			className: "gap-6",
 		},
-		{
-			orientation: "horizontal",
-			appearance: "classic",
-			hideBorder: false,
-			// see listBottomRule for why the border is a background, not border-bottom
-			className: listBottomRule,
-		},
-		{
-			orientation: "vertical",
-			appearance: "classic",
-			hideBorder: false,
-			className: "border-r border-separator",
-		},
 	],
-	// cva compound matching is strict equality, so an omitted hideBorder would
-	// silently skip the `hideBorder: false` compounds and drop the border; the
-	// default keeps the border-on contract inside the variant machine itself.
-	defaultVariants: {
-		hideBorder: false,
-	},
 });
 
 /**
  * Contains the triggers that are aligned along the edge of the active content.
+ * The list draws no border of its own: compose `Tabs.Separator` after it for
+ * the hairline between the triggers and the content.
  *
- * By default a horizontal classic tablist draws a 1px bottom border in the
- * `separator` color token, and a vertical classic tablist draws the matching
- * side border. Pass `hideBorder` to remove it; the pill appearance never
- * draws a border.
+ * **Data attributes:**
+ *
+ * | Data Attribute     | Value                          | Description                           |
+ * | ------------------ | ------------------------------ | ------------------------------------- |
+ * | `data-slot`        | `"tabs-list"`                  | On the tablist element.               |
+ * | `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation. Set by Radix. |
  *
  * @see https://mantle.ngrok.com/components/navigation/tabs#tabslist
  *
@@ -191,37 +175,20 @@ const listVariants = cva("flex", {
  *     <Tabs.Trigger value="account">Account</Tabs.Trigger>
  *     <Tabs.Trigger value="password">Password</Tabs.Trigger>
  *   </Tabs.List>
+ *   <Tabs.Separator />
  *   <Tabs.Content value="account">
  *     <p>Make changes to your account here.</p>
  *   </Tabs.Content>
  * </Tabs.Root>
  * ```
- *
- * @example
- * ```tsx
- * // render the tablist without its border
- * <Tabs.List hideBorder>
- *   <Tabs.Trigger value="account">Account</Tabs.Trigger>
- *   <Tabs.Trigger value="password">Password</Tabs.Trigger>
- * </Tabs.List>
- * ```
  */
 const List = ({
 	className,
-	hideBorder = false,
+	"data-slot": dataSlot,
 	ref,
 	...props
-}: ComponentProps<typeof TabsPrimitiveList> & {
-	/**
-	 * Hide the tablist's border — the bottom border of a horizontal classic
-	 * tablist, or the side border of a vertical one. Also rendered as a
-	 * `data-hide-border` attribute on the tablist element. Has no effect on
-	 * the pill appearance, which never draws a border.
-	 * @default false
-	 */
-	hideBorder?: boolean;
-}) => {
-	const { orientation, appearance } = useContext(TabsStateContext);
+}: ComponentProps<typeof TabsPrimitiveList> & WithDataSlot) => {
+	const { orientation, appearance } = useTabsState("Tabs.List");
 	const scrollRef = useRef<ComponentRef<typeof TabsPrimitiveList>>(null);
 	const composedRef = useComposedRefs(scrollRef, ref);
 
@@ -289,16 +256,90 @@ const List = ({
 	return (
 		<TabsPrimitiveList
 			aria-orientation={orientation}
-			data-slot="tabs-list"
-			data-hide-border={hideBorder ? "" : undefined}
-			className={cx(listVariants({ orientation, appearance, hideBorder }), className)}
+			data-slot={joinDataSlot(dataSlot, "tabs-list")}
+			className={cx(listVariants({ orientation, appearance }), className)}
 			ref={composedRef}
 			{...props}
 		/>
 	);
 };
 
-type TabsTriggerProps = ComponentProps<typeof TabsPrimitiveTrigger>;
+type TabsSeparatorProps = Omit<
+	ComponentProps<typeof Separator>,
+	"asChild" | "children" | "orientation"
+> &
+	SelfClosingWithAsChild &
+	WithDataSlot;
+
+/**
+ * The hairline between the list and the content, in the `separator` color
+ * token. Compose it directly after `Tabs.List`. It follows the root's
+ * `orientation`: a horizontal root draws it under the list, a vertical root
+ * draws it beside the list. It is a sibling of the list and not a child, so it
+ * spans the root's full width and neither scrolls nor fades with the triggers.
+ *
+ * As the root's direct child it pulls itself up by `--tabs-gap` and sits flush
+ * against the list, while the content keeps the gap. Inside a wrapper of your
+ * own, the offset stays off.
+ *
+ * The separator is decorative (`role="none"`). Pass `semantic` for
+ * `role="separator"`. Outside `Tabs.Root` it throws.
+ *
+ * **CSS variables:**
+ *
+ * | CSS Variable | Default | Description                                                                                   |
+ * | ------------ | ------- | --------------------------------------------------------------------------------------------- |
+ * | `--tabs-gap` | `1rem`  | Read, not owned. `Tabs.Root` sets it; the separator cancels it to sit flush against the list. |
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute     | Value                          | Description                                   |
+ * | ------------------ | ------------------------------ | --------------------------------------------- |
+ * | `data-slot`        | `"tabs-separator"`             | On the separator element.                     |
+ * | `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation.                       |
+ * | `data-separator`   | present                        | Presence-only. Set by the mantle `Separator`. |
+ *
+ * @see https://mantle.ngrok.com/components/navigation/tabs#tabsseparator
+ *
+ * @example
+ * ```tsx
+ * <Tabs.Root defaultValue="account">
+ *   <Tabs.List>
+ *     <Tabs.Trigger value="account">Account</Tabs.Trigger>
+ *     <Tabs.Trigger value="password">Password</Tabs.Trigger>
+ *   </Tabs.List>
+ *   <Tabs.Separator />
+ *   <Tabs.Content value="account">
+ *     <p>Make changes to your account here.</p>
+ *   </Tabs.Content>
+ * </Tabs.Root>
+ * ```
+ */
+const TabsSeparator = ({ className, "data-slot": dataSlot, ...props }: TabsSeparatorProps) => {
+	const { orientation } = useTabsState("Tabs.Separator");
+
+	// Why the parent selector: the root lays its children out with `gap`, so
+	// only a separator that is the root's direct child has a gap to cancel.
+	//
+	// Why `h-auto self-stretch`: `Separator` sets `h-full` when vertical, and a
+	// flex item stretches only when its height computes to `auto`. `100%` of the
+	// root's auto height resolves to nothing, so the hairline would be 0px tall.
+	const orientationClasses =
+		orientation === "horizontal"
+			? "[[data-slot=tabs]>&]:-mt-(--tabs-gap)"
+			: "h-auto self-stretch [[data-slot=tabs]>&]:-ml-(--tabs-gap)";
+
+	return (
+		<Separator
+			data-slot={joinDataSlot(dataSlot, "tabs-separator")}
+			orientation={orientation}
+			className={cx(orientationClasses, className)}
+			{...props}
+		/>
+	);
+};
+
+type TabsTriggerProps = ComponentProps<typeof TabsPrimitiveTrigger> & WithDataSlot;
 
 /**
  * Variants for the TabsTriggerDecoration component
@@ -317,7 +358,7 @@ const triggerDecorationVariants = cva("absolute z-0", {
 });
 
 const TabsTriggerDecoration = () => {
-	const { orientation, appearance } = useContext(TabsStateContext);
+	const { orientation, appearance } = useTabsState("Tabs.Trigger");
 
 	return (
 		<span aria-hidden className={clsx(triggerDecorationVariants({ orientation, appearance }))} />
@@ -374,7 +415,7 @@ const triggerVariants = cva(
  * so the icon, the label, and `Tabs.Badge` stay flex items of the trigger and
  * keep its `gap`. A `[&>svg]` class of your own no longer reaches an icon you
  * pass as a child, because that icon is now a grandchild. Match the part's own
- * variant instead — `[&>[data-slot=tabs-trigger-label]>svg]:size-4`. A `[&_svg]`
+ * variant instead: `[&>[data-slot=tabs-trigger-label]>svg]:size-4`. A `[&_svg]`
  * or a class on the icon loses to the default, which is more specific.
  *
  * **Data attributes:**
@@ -383,6 +424,9 @@ const triggerVariants = cva(
  * | -------------- | ------------------------ | ------------------------------------ |
  * | `data-slot`    | `"tabs-trigger"`         | On the trigger element.              |
  * | `data-slot`    | `"tabs-trigger-label"`   | On the `<span>` wrapping `children`. |
+ * | `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation. Set by Radix. |
+ * | `data-state`   | `"active"` \| `"inactive"` | Whether the trigger's panel is shown. Set by Radix. |
+ * | `data-disabled` | present when `disabled` | Presence-only. Set by Radix. |
  *
  * @see https://mantle.ngrok.com/components/navigation/tabs#tabstrigger
  *
@@ -393,6 +437,7 @@ const triggerVariants = cva(
  *     <Tabs.Trigger value="account">Account</Tabs.Trigger>
  *     <Tabs.Trigger value="password">Password</Tabs.Trigger>
  *   </Tabs.List>
+ *   <Tabs.Separator />
  *   <Tabs.Content value="account">
  *     <p>Make changes to your account here.</p>
  *   </Tabs.Content>
@@ -404,16 +449,18 @@ const Trigger = ({
 	asChild = false,
 	children,
 	className,
+	"data-slot": dataSlot,
 	disabled: _disabled,
 	ref,
 	...props
 }: TabsTriggerProps) => {
-	const { orientation, appearance } = useContext(TabsStateContext);
+	const { orientation, appearance } = useTabsState("Tabs.Trigger");
 	const disabled = parseBooleanish(_ariaDisabled ?? _disabled);
 
 	const tabsTriggerProps = {
 		"aria-disabled": _ariaDisabled ?? _disabled,
 		className: cx(triggerVariants({ orientation, appearance }), className),
+		"data-slot": joinDataSlot(dataSlot, "tabs-trigger"),
 		disabled,
 		...props,
 	};
@@ -437,7 +484,7 @@ const Trigger = ({
 		const cloneProps = disabled ? { href: undefined, to: undefined } : {};
 
 		return (
-			<TabsPrimitiveTrigger asChild data-slot="tabs-trigger" {...tabsTriggerProps} ref={ref}>
+			<TabsPrimitiveTrigger asChild {...tabsTriggerProps} ref={ref}>
 				{cloneElement(
 					disabled ? <button type="button" /> : singleChild,
 					cloneProps,
@@ -454,7 +501,7 @@ const Trigger = ({
 	}
 
 	return (
-		<TabsPrimitiveTrigger data-slot="tabs-trigger" ref={ref} {...tabsTriggerProps}>
+		<TabsPrimitiveTrigger ref={ref} {...tabsTriggerProps}>
 			<TabsTriggerDecoration />
 			{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
 			<span data-slot="tabs-trigger-label" className="contents">
@@ -467,6 +514,12 @@ const Trigger = ({
 /**
  * A badge to render inside a tab trigger, typically a count or a status indicator.
  *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value          | Description           |
+ * | -------------- | -------------- | --------------------- |
+ * | `data-slot`    | `"tabs-badge"` | On the badge element. |
+ *
  * @see https://mantle.ngrok.com/components/navigation/tabs#tabsbadge
  *
  * @example
@@ -478,12 +531,18 @@ const Trigger = ({
  *     </Tabs.Trigger>
  *     <Tabs.Trigger value="password">Password</Tabs.Trigger>
  *   </Tabs.List>
+ *   <Tabs.Separator />
  * </Tabs.Root>
  * ```
  */
-const Badge = ({ className, children, ...props }: HTMLAttributes<HTMLSpanElement>) => (
+const Badge = ({
+	className,
+	children,
+	"data-slot": dataSlot,
+	...props
+}: ComponentProps<"span"> & WithDataSlot) => (
 	<span
-		data-slot="tabs-badge"
+		data-slot={joinDataSlot(dataSlot, "tabs-badge")}
 		className={cx(
 			"rounded-full bg-neutral-500/20 px-1.5 text-xs font-medium text-gray-600",
 			"group-data-state-active/tab-trigger:bg-neutral-950/10 group-data-state-active/tab-trigger:text-strong group-hover/tab-trigger:group-enabled/tab-trigger:group-data-state-active/tab-trigger:text-strong",
@@ -500,6 +559,14 @@ const Badge = ({ className, children, ...props }: HTMLAttributes<HTMLSpanElement
  * Contains the content associated with each trigger.
  * It renders when that trigger is active.
  *
+ * **Data attributes:**
+ *
+ * | Data Attribute     | Value                          | Description                               |
+ * | ------------------ | ------------------------------ | ----------------------------------------- |
+ * | `data-slot`        | `"tabs-content"`               | On the panel element.                     |
+ * | `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation. Set by Radix.     |
+ * | `data-state`       | `"active"` \| `"inactive"`     | Whether the panel is shown. Set by Radix. |
+ *
  * @see https://mantle.ngrok.com/components/navigation/tabs#tabscontent
  *
  * @example
@@ -509,6 +576,7 @@ const Badge = ({ className, children, ...props }: HTMLAttributes<HTMLSpanElement
  *     <Tabs.Trigger value="account">Account</Tabs.Trigger>
  *     <Tabs.Trigger value="password">Password</Tabs.Trigger>
  *   </Tabs.List>
+ *   <Tabs.Separator />
  *   <Tabs.Content value="account">
  *     <p>Make changes to your account here.</p>
  *   </Tabs.Content>
@@ -518,16 +586,20 @@ const Badge = ({ className, children, ...props }: HTMLAttributes<HTMLSpanElement
  * </Tabs.Root>
  * ```
  */
-const Content = ({ className, ...props }: ComponentProps<typeof TabsPrimitiveContent>) => (
+const Content = ({
+	className,
+	"data-slot": dataSlot,
+	...props
+}: ComponentProps<typeof TabsPrimitiveContent> & WithDataSlot) => (
 	<TabsPrimitiveContent
-		data-slot="tabs-content"
+		data-slot={joinDataSlot(dataSlot, "tabs-content")}
 		className={cx("focus-visible:ring-focus-accent outline-hidden focus-visible:ring-4", className)}
 		{...props}
 	/>
 );
 
 /**
- * A set of layered sections of content—known as tab panels—that are displayed one at a time.
+ * Layered sections of content, called tab panels, that show one at a time.
  *
  * @see https://mantle.ngrok.com/components/navigation/tabs
  *
@@ -538,6 +610,7 @@ const Content = ({ className, ...props }: ComponentProps<typeof TabsPrimitiveCon
  * ├── Tabs.List
  * │   └── Tabs.Trigger
  * │       └── Tabs.Badge
+ * ├── Tabs.Separator
  * └── Tabs.Content
  * ```
  *
@@ -548,6 +621,7 @@ const Content = ({ className, ...props }: ComponentProps<typeof TabsPrimitiveCon
  *     <Tabs.Trigger value="account">Account</Tabs.Trigger>
  *     <Tabs.Trigger value="password">Password</Tabs.Trigger>
  *   </Tabs.List>
+ *   <Tabs.Separator />
  *   <Tabs.Content value="account">
  *     <p>Make changes to your account here.</p>
  *   </Tabs.Content>
@@ -559,9 +633,17 @@ const Content = ({ className, ...props }: ComponentProps<typeof TabsPrimitiveCon
  */
 const Tabs = {
 	/**
-	 * A set of layered sections of content—known as tab panels—that are displayed one at a time.
+	 * Layered sections of content, called tab panels, that show one at a time.
 	 * The outermost part; it owns `orientation` and `appearance`. It stamps both as
 	 * `data-orientation` and `data-appearance` for the parts below to style against.
+	 *
+	 * **Data attributes:**
+	 *
+	 * | Data Attribute     | Value                          | Description                                               |
+	 * | ------------------ | ------------------------------ | --------------------------------------------------------- |
+	 * | `data-slot`        | `"tabs"`                       | On the root element.                                      |
+	 * | `data-orientation` | `"horizontal"` \| `"vertical"` | The `orientation` prop. Set by Radix.                     |
+	 * | `data-appearance`  | `"classic"` \| `"pill"`        | The `appearance` prop. Descendant parts style against it. |
 	 *
 	 * @see https://mantle.ngrok.com/components/navigation/tabs#tabsroot
 	 *
@@ -572,6 +654,7 @@ const Tabs = {
 	 *     <Tabs.Trigger value="account">Account</Tabs.Trigger>
 	 *     <Tabs.Trigger value="password">Password</Tabs.Trigger>
 	 *   </Tabs.List>
+	 *   <Tabs.Separator />
 	 *   <Tabs.Content value="account">
 	 *     <p>Make changes to your account here.</p>
 	 *   </Tabs.Content>
@@ -583,6 +666,14 @@ const Tabs = {
 	 * Contains the content associated with each trigger.
 	 * It renders when that trigger is active.
 	 *
+	 * **Data attributes:**
+	 *
+	 * | Data Attribute     | Value                          | Description                               |
+	 * | ------------------ | ------------------------------ | ----------------------------------------- |
+	 * | `data-slot`        | `"tabs-content"`               | On the panel element.                     |
+	 * | `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation. Set by Radix.     |
+	 * | `data-state`       | `"active"` \| `"inactive"`     | Whether the panel is shown. Set by Radix. |
+	 *
 	 * @see https://mantle.ngrok.com/components/navigation/tabs#tabscontent
 	 *
 	 * @example
@@ -591,6 +682,7 @@ const Tabs = {
 	 *   <Tabs.List>
 	 *     <Tabs.Trigger value="account">Account</Tabs.Trigger>
 	 *   </Tabs.List>
+	 *   <Tabs.Separator />
 	 *   <Tabs.Content value="account">
 	 *     <p>Make changes to your account here.</p>
 	 *   </Tabs.Content>
@@ -600,10 +692,15 @@ const Tabs = {
 	Content,
 	/**
 	 * Contains the triggers that are aligned along the edge of the active content.
+	 * The list draws no border of its own: compose `Tabs.Separator` after it for
+	 * the hairline between the triggers and the content.
 	 *
-	 * By default a classic tablist draws a 1px border in the `separator` color
-	 * token (bottom border when horizontal, side border when vertical); pass
-	 * `hideBorder` to remove it. The pill appearance never draws a border.
+	 * **Data attributes:**
+	 *
+	 * | Data Attribute     | Value                          | Description                           |
+	 * | ------------------ | ------------------------------ | ------------------------------------- |
+	 * | `data-slot`        | `"tabs-list"`                  | On the tablist element.               |
+	 * | `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation. Set by Radix. |
 	 *
 	 * @see https://mantle.ngrok.com/components/navigation/tabs#tabslist
 	 *
@@ -614,10 +711,42 @@ const Tabs = {
 	 *     <Tabs.Trigger value="account">Account</Tabs.Trigger>
 	 *     <Tabs.Trigger value="password">Password</Tabs.Trigger>
 	 *   </Tabs.List>
+	 *   <Tabs.Separator />
 	 * </Tabs.Root>
 	 * ```
 	 */
 	List,
+	/**
+	 * The hairline between the list and the content, in the `separator` color
+	 * token. Compose it directly after `Tabs.List`. It follows the root's
+	 * `orientation`: a horizontal root draws it under the list, a vertical root
+	 * draws it beside the list. It is a sibling of the list and not a child, so it
+	 * spans the root's full width and neither scrolls nor fades with the triggers.
+	 *
+	 * As the root's direct child it pulls itself up by `--tabs-gap` and sits flush
+	 * against the list, while the content keeps the gap. Inside a wrapper of your
+	 * own, the offset stays off.
+	 *
+	 * The separator is decorative (`role="none"`). Pass `semantic` for
+	 * `role="separator"`. Outside `Tabs.Root` it throws.
+	 *
+	 * @see https://mantle.ngrok.com/components/navigation/tabs#tabsseparator
+	 *
+	 * @example
+	 * ```tsx
+	 * <Tabs.Root defaultValue="account">
+	 *   <Tabs.List>
+	 *     <Tabs.Trigger value="account">Account</Tabs.Trigger>
+	 *     <Tabs.Trigger value="password">Password</Tabs.Trigger>
+	 *   </Tabs.List>
+	 *   <Tabs.Separator />
+	 *   <Tabs.Content value="account">
+	 *     <p>Make changes to your account here.</p>
+	 *   </Tabs.Content>
+	 * </Tabs.Root>
+	 * ```
+	 */
+	Separator: TabsSeparator,
 	/**
 	 * The button that activates its associated content.
 	 *
@@ -630,7 +759,7 @@ const Tabs = {
 	 * so the icon, the label, and `Tabs.Badge` stay flex items of the trigger and
 	 * keep its `gap`. A `[&>svg]` class of your own no longer reaches an icon you
 	 * pass as a child, because that icon is now a grandchild. Match the part's own
-	 * variant instead — `[&>[data-slot=tabs-trigger-label]>svg]:size-4`. A `[&_svg]`
+	 * variant instead: `[&>[data-slot=tabs-trigger-label]>svg]:size-4`. A `[&_svg]`
 	 * or a class on the icon loses to the default, which is more specific.
 	 *
 	 * **Data attributes:**
@@ -639,6 +768,9 @@ const Tabs = {
 	 * | -------------- | ------------------------ | ------------------------------------ |
 	 * | `data-slot`    | `"tabs-trigger"`         | On the trigger element.              |
 	 * | `data-slot`    | `"tabs-trigger-label"`   | On the `<span>` wrapping `children`. |
+	 * | `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation. Set by Radix. |
+	 * | `data-state`   | `"active"` \| `"inactive"` | Whether the trigger's panel is shown. Set by Radix. |
+	 * | `data-disabled` | present when `disabled` | Presence-only. Set by Radix. |
 	 *
 	 * @see https://mantle.ngrok.com/components/navigation/tabs#tabstrigger
 	 *
@@ -649,12 +781,19 @@ const Tabs = {
 	 *     <Tabs.Trigger value="account">Account</Tabs.Trigger>
 	 *     <Tabs.Trigger value="password">Password</Tabs.Trigger>
 	 *   </Tabs.List>
+	 *   <Tabs.Separator />
 	 * </Tabs.Root>
 	 * ```
 	 */
 	Trigger,
 	/**
 	 * A badge to render inside a tab trigger, typically a count or a status indicator.
+	 *
+	 * **Data attributes:**
+	 *
+	 * | Data Attribute | Value          | Description           |
+	 * | -------------- | -------------- | --------------------- |
+	 * | `data-slot`    | `"tabs-badge"` | On the badge element. |
 	 *
 	 * @see https://mantle.ngrok.com/components/navigation/tabs#tabsbadge
 	 *
@@ -666,6 +805,7 @@ const Tabs = {
 	 *       Account <Tabs.Badge>5</Tabs.Badge>
 	 *     </Tabs.Trigger>
 	 *   </Tabs.List>
+	 *   <Tabs.Separator />
 	 * </Tabs.Root>
 	 * ```
 	 */

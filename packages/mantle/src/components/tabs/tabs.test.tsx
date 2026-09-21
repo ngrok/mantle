@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { describe, expect, test, vi } from "vitest";
+import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
 import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import { Tabs } from "./tabs.js";
 
@@ -68,88 +69,6 @@ describe("Tabs", () => {
 			);
 		});
 
-		test("horizontal classic appearance draws the bottom border by default", () => {
-			render(
-				<Tabs.Root appearance="classic" orientation="horizontal" defaultValue="a">
-					<Tabs.List>
-						<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
-						<Tabs.Trigger value="b">Tab B</Tabs.Trigger>
-					</Tabs.List>
-				</Tabs.Root>,
-			);
-
-			const tablist = screen.getByRole("tablist");
-			// Why class assertions: the border-on compound stamps no attribute of its
-			// own (`data-hide-border` reads the prop), so its classes are the only
-			// observable of that lookup entry. `--_fade-bottom-border` also pins the
-			// custom property `scroll-fade-x` reads in `mantle.css`.
-			expect(tablist).toHaveClass("bg-origin-content", "pb-px", "[--_fade-bottom-border:black]");
-			expect(tablist).not.toHaveAttribute("data-hide-border");
-		});
-
-		test("hideBorder removes the bottom border paint and renders data-hide-border", () => {
-			render(
-				<Tabs.Root appearance="classic" orientation="horizontal" defaultValue="a">
-					<Tabs.List hideBorder>
-						<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
-						<Tabs.Trigger value="b">Tab B</Tabs.Trigger>
-					</Tabs.List>
-				</Tabs.Root>,
-			);
-
-			const tablist = screen.getByRole("tablist");
-			expect(tablist).toHaveAttribute("data-hide-border");
-			// Why a class absence: the `hideBorder: false` compound is the only source
-			// of `bg-origin-content`, and the default test above pins that spelling, so
-			// its absence is the one observable of the compound's `hideBorder` condition.
-			expect(tablist).not.toHaveClass("bg-origin-content");
-		});
-
-		test("horizontal pill appearance never draws the bottom border", () => {
-			render(
-				<Tabs.Root appearance="pill" orientation="horizontal" defaultValue="a">
-					<Tabs.List>
-						<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
-						<Tabs.Trigger value="b">Tab B</Tabs.Trigger>
-					</Tabs.List>
-				</Tabs.Root>,
-			);
-
-			expect(screen.getByRole("tablist")).not.toHaveClass("bg-origin-content");
-		});
-
-		test("vertical classic appearance draws the side border by default with the separator token", () => {
-			render(
-				<Tabs.Root appearance="classic" orientation="vertical" defaultValue="a">
-					<Tabs.List>
-						<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
-						<Tabs.Trigger value="b">Tab B</Tabs.Trigger>
-					</Tabs.List>
-				</Tabs.Root>,
-			);
-
-			// Why class assertions: the vertical border-on compound stamps no attribute
-			// of its own (`data-hide-border` reads the prop), so its classes are the
-			// only observable of that lookup entry.
-			expect(screen.getByRole("tablist")).toHaveClass("border-r", "border-separator");
-		});
-
-		test("hideBorder removes the vertical classic side border", () => {
-			render(
-				<Tabs.Root appearance="classic" orientation="vertical" defaultValue="a">
-					<Tabs.List hideBorder>
-						<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
-						<Tabs.Trigger value="b">Tab B</Tabs.Trigger>
-					</Tabs.List>
-				</Tabs.Root>,
-			);
-
-			// Why a class absence: the vertical `hideBorder: false` compound is the only
-			// source of `border-r`, and the default test above pins that spelling, so its
-			// absence is the one observable of the compound's `hideBorder` condition.
-			expect(screen.getByRole("tablist")).not.toHaveClass("border-r");
-		});
-
 		// Regression: a pointer press focused the trigger, the list scrolled it to
 		// the center, and the click landed on empty space, so an asChild link
 		// never navigated.
@@ -195,13 +114,197 @@ describe("Tabs", () => {
 			expect(screen.getByRole("tab", { name: "Tab A" })).toHaveFocus();
 			expect(scrollIntoView).toHaveBeenCalledTimes(1);
 			expect(scrollIntoView).toHaveBeenLastCalledWith(
-				expect.objectContaining({ inline: "center", block: "nearest" }),
+				expect.objectContaining({ behavior: "smooth", inline: "center", block: "nearest" }),
 			);
 
 			await user.keyboard("{ArrowRight}");
 			expect(screen.getByRole("tab", { name: "Tab B" })).toHaveFocus();
 			expect(screen.getByRole("tab", { name: "Tab B" })).toHaveAttribute("aria-selected", "true");
 			expect(scrollIntoView).toHaveBeenCalledTimes(2);
+		});
+
+		test("given prefers-reduced-motion, keyboard focus scrolls without animation", async () => {
+			const user = userEvent.setup();
+			// Why `false`: `getPrefersReducedMotion` inverts the `no-preference` match, so a miss means reduced motion.
+			mockMatchMedia({ "(prefers-reduced-motion: no-preference)": false });
+			// Why a spy: happy-dom lays out nothing, so the `scrollIntoView` call is the
+			// only observable of the scroll.
+			const scrollIntoView = vi.spyOn(HTMLElement.prototype, "scrollIntoView");
+			render(
+				<Tabs.Root orientation="horizontal" defaultValue="a">
+					<Tabs.List>
+						<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>,
+			);
+
+			await user.tab();
+
+			expect(scrollIntoView).toHaveBeenCalledTimes(1);
+			expect(scrollIntoView).toHaveBeenLastCalledWith(
+				expect.objectContaining({ behavior: "auto" }),
+			);
+		});
+	});
+
+	describe("data-slot", () => {
+		type SlotCase = {
+			name: string;
+			slot: string;
+			render: (probe: { "data-slot": string; "data-testid": string }) => ReactNode;
+		};
+		// Every part joins an incoming `data-slot` chain ancestors-first, so an
+		// `asChild` ancestor's slot survives beside the part's own.
+		const cases: Array<SlotCase> = [
+			{
+				name: "Root",
+				slot: "tabs",
+				render: (probe) => <Tabs.Root defaultValue="a" {...probe} />,
+			},
+			{
+				name: "List",
+				slot: "tabs-list",
+				render: (probe) => (
+					<Tabs.Root defaultValue="a">
+						<Tabs.List {...probe} />
+					</Tabs.Root>
+				),
+			},
+			{
+				name: "Separator",
+				slot: "tabs-separator",
+				render: (probe) => (
+					<Tabs.Root defaultValue="a">
+						<Tabs.Separator {...probe} />
+					</Tabs.Root>
+				),
+			},
+			{
+				name: "Trigger",
+				slot: "tabs-trigger",
+				render: (probe) => (
+					<Tabs.Root defaultValue="a">
+						<Tabs.List>
+							<Tabs.Trigger value="a" {...probe}>
+								Tab A
+							</Tabs.Trigger>
+						</Tabs.List>
+					</Tabs.Root>
+				),
+			},
+			{
+				name: "Badge",
+				slot: "tabs-badge",
+				render: (probe) => (
+					<Tabs.Root defaultValue="a">
+						<Tabs.List>
+							<Tabs.Trigger value="a">
+								Tab A <Tabs.Badge {...probe}>5</Tabs.Badge>
+							</Tabs.Trigger>
+						</Tabs.List>
+					</Tabs.Root>
+				),
+			},
+			{
+				name: "Content",
+				slot: "tabs-content",
+				render: (probe) => (
+					<Tabs.Root defaultValue="a">
+						<Tabs.Content value="a" {...probe}>
+							Panel A
+						</Tabs.Content>
+					</Tabs.Root>
+				),
+			},
+		];
+
+		test.each(cases)(
+			"$name joins its slot after an ancestor's chain",
+			({ slot, render: renderPart }) => {
+				render(renderPart({ "data-slot": "shell", "data-testid": "part" }));
+				expect(screen.getByTestId("part")).toHaveAttribute("data-slot", `shell ${slot}`);
+			},
+		);
+	});
+
+	describe("Separator", () => {
+		test.each(["horizontal", "vertical"] as const)(
+			"follows the root's %s orientation and names its slot",
+			(orientation) => {
+				const { container } = render(
+					<Tabs.Root orientation={orientation} defaultValue="a">
+						<Tabs.List>
+							<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
+						</Tabs.List>
+						<Tabs.Separator />
+						<Tabs.Content value="a">Panel A</Tabs.Content>
+					</Tabs.Root>,
+				);
+
+				const separator = container.querySelector('[data-slot="tabs-separator"]');
+				expect(separator).toHaveAttribute("data-orientation", orientation);
+				expect(separator).toHaveAttribute("data-separator");
+			},
+		);
+
+		test("is decorative until semantic", () => {
+			const { container, rerender } = render(
+				<Tabs.Root defaultValue="a">
+					<Tabs.Separator />
+				</Tabs.Root>,
+			);
+			expect(container.querySelector('[data-slot="tabs-separator"]')).toHaveAttribute(
+				"role",
+				"none",
+			);
+
+			rerender(
+				<Tabs.Root defaultValue="a">
+					<Tabs.Separator semantic />
+				</Tabs.Root>,
+			);
+			expect(screen.getByRole("separator")).toHaveAttribute("data-slot", "tabs-separator");
+		});
+
+		test("merges the consumer's className and ref onto the separator element", () => {
+			const refSpy = vi.fn<(node: HTMLDivElement | null) => void>();
+			const { container } = render(
+				<Tabs.Root defaultValue="a">
+					<Tabs.Separator className="my-2" ref={refSpy} />
+				</Tabs.Root>,
+			);
+
+			const separator = container.querySelector('[data-slot="tabs-separator"]');
+			expect(separator).toHaveClass("my-2");
+			expect(refSpy).toHaveBeenCalledTimes(1);
+			expect(refSpy).toHaveBeenLastCalledWith(separator);
+		});
+
+		test("asChild renders the child and merges the slot, classes, data attributes, and ref", () => {
+			const refSpy = vi.fn<(node: HTMLDivElement | null) => void>();
+			render(
+				<Tabs.Root orientation="vertical" defaultValue="a">
+					<Tabs.Separator asChild className="my-2" data-testid="rule" ref={refSpy}>
+						<hr />
+					</Tabs.Separator>
+				</Tabs.Root>,
+			);
+
+			const rule = screen.getByTestId("rule");
+			expect(rule.tagName).toBe("HR");
+			expect(rule).toHaveAttribute("data-slot", "tabs-separator");
+			expect(rule).toHaveAttribute("data-orientation", "vertical");
+			expect(rule).toHaveClass("my-2");
+			expect(refSpy).toHaveBeenCalledTimes(1);
+			expect(refSpy).toHaveBeenLastCalledWith(rule);
+		});
+
+		test("throws when rendered outside Tabs.Root", () => {
+			// Why: silence React's error log for the expected throw.
+			vi.spyOn(console, "error").mockImplementation(() => {});
+			expect(() => render(<Tabs.Separator />)).toThrow(
+				"Tabs.Separator must be rendered inside Tabs.Root.",
+			);
 		});
 	});
 
@@ -239,6 +342,33 @@ describe("Tabs", () => {
 			// The inactive tab is not a Tab stop, so Tab leaves the list.
 			await user.tab();
 			expect(screen.getByRole("button", { name: "After" })).toHaveFocus();
+		});
+
+		test("asChild renders the child and merges the slot, classes, data attributes, and ref", () => {
+			const refSpy = vi.fn<(node: HTMLButtonElement | null) => void>();
+			render(
+				<Tabs.Root orientation="horizontal" defaultValue="a">
+					<Tabs.List>
+						<Tabs.Trigger
+							value="a"
+							asChild
+							className="tracking-wide"
+							data-testid="link"
+							ref={refSpy}
+						>
+							<a href="/a">Tab A</a>
+						</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>,
+			);
+
+			const link = screen.getByTestId("link");
+			expect(link.tagName).toBe("A");
+			expect(link).toHaveAttribute("role", "tab");
+			expect(link).toHaveAttribute("data-slot", "tabs-trigger");
+			expect(link).toHaveClass("tracking-wide");
+			expect(refSpy).toHaveBeenCalledTimes(1);
+			expect(refSpy).toHaveBeenLastCalledWith(link);
 		});
 
 		test("a disabled asChild link drops its href and cannot be activated", async () => {
@@ -385,3 +515,9 @@ describe("Tabs", () => {
 		});
 	});
 });
+
+// Type-level contract: typecheck fails when a directive below goes unused.
+// @ts-expect-error -- children need asChild
+void (<Tabs.Separator>rule</Tabs.Separator>);
+// @ts-expect-error -- asChild needs a child to clone
+void (<Tabs.Separator asChild />);

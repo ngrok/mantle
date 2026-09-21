@@ -1,0 +1,148 @@
+---
+title: Tabs Separator Migration
+description: Tabs.List no longer draws a border. Compose Tabs.Separator after the list, delete hideBorder, and set --tabs-gap instead of a gap-* class on Tabs.Root.
+---
+
+# Mantle Tabs Separator Migration Guide
+
+`@ngrok/mantle`'s `Tabs.List` draws no border of its own. The `hideBorder` prop and the `data-hide-border` attribute are gone, and so is the side border of a vertical classic list. The new `Tabs.Separator` part draws the hairline instead: a sibling of the list that spans the root's full width and neither scrolls nor fades with the triggers. This guide moves a codebase from the default border onto the part.
+
+**TL;DR:** Add `<Tabs.Separator />` directly after every classic `Tabs.List` that relied on the default border. Delete `hideBorder` from every `Tabs.List`; a list that had it needs no separator. On a `Tabs.Root` that holds the separator as a direct child, replace a `gap-*` class with `[--tabs-gap:…]`.
+
+---
+
+## You are an agent migrating a codebase. Do this:
+
+1. Find every `Tabs.List` (the tablist of `@ngrok/mantle`'s `Tabs` compound component). Search for `Tabs.List`, and for a destructured or renamed import of the same part (`const { List } = Tabs;`, or `import { Tabs as MantleTabs }`).
+2. For each `Tabs.List` without `hideBorder`, check the root's `appearance`. When the root is classic (the default), add `<Tabs.Separator />` on the line after `</Tabs.List>`, at the same indentation. When the root is `appearance="pill"`, add nothing. A pill list never drew a border.
+3. For each `Tabs.List` with `hideBorder`, delete the prop and add nothing. When the value is dynamic, keep the condition and negate it: `hideBorder={condition}` becomes `{!condition && <Tabs.Separator />}` on the line after `</Tabs.List>`.
+4. Find a `data-hide-border` selector in CSS, in a `[data-hide-border]` Tailwind variant, or in a test. Replace it with `[data-slot="tabs-separator"]`, or with the absence of that element.
+5. Find a `Tabs.Root` with a `gap-*` class in its `className`. When the root holds a `Tabs.Separator` as a direct child, replace the class with `[--tabs-gap:<value>]`, so `gap-2` becomes `[--tabs-gap:--spacing(2)]` and `gap-0` becomes `[--tabs-gap:0px]`. When the list and the separator sit inside a wrapper of your own, leave the class alone.
+6. Delete a `border-b`, `border-r`, or `border-separator` class from a `Tabs.List` that a consumer added to draw its own border. The separator replaces it.
+7. After editing, run the project's formatter, linter, type checker, and tests.
+
+> **Why a sibling part?** A horizontal list is a scroll container, and it carries negative margins and padding so the focus ring has room. A border painted on the list itself had to live inside that padding, so it stopped short of the root's edges, and the scroll-fade mask faded it with the triggers. A sibling is outside the scroll container: it spans the root's full width, it never scrolls, and the mask never reaches it.
+
+---
+
+## Before → after
+
+### A classic list that relied on the default border
+
+```tsx
+// BEFORE: the list drew the border itself
+<Tabs.Root defaultValue="account">
+	<Tabs.List>
+		<Tabs.Trigger value="account">Account</Tabs.Trigger>
+		<Tabs.Trigger value="password">Password</Tabs.Trigger>
+	</Tabs.List>
+	<Tabs.Content value="account">…</Tabs.Content>
+	<Tabs.Content value="password">…</Tabs.Content>
+</Tabs.Root>
+```
+
+```tsx
+// AFTER: Tabs.Separator draws it, flush under the list
+<Tabs.Root defaultValue="account">
+	<Tabs.List>
+		<Tabs.Trigger value="account">Account</Tabs.Trigger>
+		<Tabs.Trigger value="password">Password</Tabs.Trigger>
+	</Tabs.List>
+	<Tabs.Separator />
+	<Tabs.Content value="account">…</Tabs.Content>
+	<Tabs.Content value="password">…</Tabs.Content>
+</Tabs.Root>
+```
+
+### A list that hid the border
+
+```tsx
+// BEFORE
+<Tabs.List hideBorder>
+	<Tabs.Trigger value="account">Account</Tabs.Trigger>
+	<Tabs.Trigger value="password">Password</Tabs.Trigger>
+</Tabs.List>
+```
+
+```tsx
+// AFTER: no prop, no separator
+<Tabs.List>
+	<Tabs.Trigger value="account">Account</Tabs.Trigger>
+	<Tabs.Trigger value="password">Password</Tabs.Trigger>
+</Tabs.List>
+```
+
+### A root that overrode the gap
+
+```tsx
+// BEFORE: gap-0 pulled the content up to the list's border
+<Tabs.Root defaultValue="overview" className="gap-0">
+	<Tabs.List>…</Tabs.List>
+	<Tabs.Content value="overview">…</Tabs.Content>
+</Tabs.Root>
+```
+
+```tsx
+// AFTER: the variable moves the separator and the content together
+<Tabs.Root defaultValue="overview" className="[--tabs-gap:0px]">
+	<Tabs.List>…</Tabs.List>
+	<Tabs.Separator />
+	<Tabs.Content value="overview">…</Tabs.Content>
+</Tabs.Root>
+```
+
+### A list inside a page header
+
+```tsx
+// BEFORE: the header wrapper owned the spacing, and the list drew the border
+<Tabs.Root defaultValue="overview" className="h-full gap-0">
+	<div className="shrink-0 px-6 pt-4">
+		<h1>{endpoint.url}</h1>
+		<Tabs.List>…</Tabs.List>
+	</div>
+	<Tabs.Content value="overview" className="min-h-0 flex-1">
+		…
+	</Tabs.Content>
+</Tabs.Root>
+```
+
+```tsx
+// AFTER: the separator joins the list inside the wrapper, and the gap class stays
+<Tabs.Root defaultValue="overview" className="h-full gap-0">
+	<div className="shrink-0 px-6 pt-4">
+		<h1>{endpoint.url}</h1>
+		<Tabs.List>…</Tabs.List>
+		<Tabs.Separator />
+	</div>
+	<Tabs.Content value="overview" className="min-h-0 flex-1">
+		…
+	</Tabs.Content>
+</Tabs.Root>
+```
+
+The separator is not the root's direct child here, so it takes no offset and sits where the wrapper lays it out.
+
+---
+
+## Edge cases & gotchas
+
+- **A vertical classic list.** It drew a side border, which is gone the same way. `Tabs.Separator` reads the root's `orientation` and draws a vertical hairline beside the list.
+- **A pill list.** It never drew a border, and `hideBorder` was a no-op there. Delete the prop and add nothing.
+- **A `gap-*` class on a root that holds the separator as a direct child.** The class changes the gap alone, and the separator keeps an offset of `1rem`, so it overlaps the triggers or floats below them. Set `--tabs-gap` instead.
+- **A separator inside a wrapper.** It takes no offset. When the wrapper has its own `gap`, give the wrapper no gap, or pass a negative margin of that size in the separator's `className`.
+- **A `[data-hide-border]` selector.** Nothing stamps the attribute any more, so the selector matches nothing and your style stops applying. Select `[data-slot="tabs-separator"]` instead.
+- **A consumer's own `border-b` on `Tabs.List`.** It still paints inside the list's focus-ring padding, short of the root's edges, and now beside a separator, so the page shows two lines. Delete it.
+- **Semantic separators.** The separator is `role="none"` by default. Pass `semantic` for `role="separator"` when a screen reader needs the boundary.
+- **Tests that count the root's children by position.** The separator is one more child between the list and the content. Select by role instead: `getByRole("tablist")`, `getByRole("tabpanel")`.
+
+---
+
+## How to verify
+
+1. Type check. A remaining `hideBorder` fails on `Tabs.List`.
+2. Search for `data-hide-border`. Zero hits.
+3. Load a page with a classic list. The hairline runs the root's full width, flush under the triggers, with the active tab's decoration above it.
+4. Load a page with a horizontal list that overflows. Scroll the list. The hairline stays put and stays solid to both edges while the triggers fade.
+5. Load a page with a vertical list. The hairline runs beside the list, the full height of the root.
+6. Load a page whose root had a `gap-*` class. The hairline touches the list, and the content keeps the space you set.
+7. Run the project's formatter, linter, type checker, and tests.
