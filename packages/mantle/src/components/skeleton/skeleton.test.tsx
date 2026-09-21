@@ -22,6 +22,7 @@ describe("Skeleton", () => {
 			</Skeleton>,
 		);
 		const skeleton = screen.getByTestId("skeleton");
+		// Why tagName: the asChild swap renders the child element in place of the default.
 		expect(skeleton.tagName).toBe("SPAN");
 		expect(skeleton).toHaveAttribute("aria-hidden", "true");
 		expect(skeleton).toHaveAttribute("data-slot", "skeleton");

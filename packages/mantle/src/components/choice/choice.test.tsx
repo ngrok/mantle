@@ -35,11 +35,11 @@ describe("Choice", () => {
 		);
 		const control = screen.getByRole("checkbox");
 		const label = screen.getByText("Email");
-		expect(label.tagName).toBe("LABEL");
+		expect(screen.getByLabelText("Email")).toBe(control);
 		expect(label).toHaveAttribute("for", control.id);
 	});
 
-	test("Title renders label-less text (a <p>, not a <label>)", () => {
+	test("Title renders text that does not label the control", () => {
 		render(
 			<Choice.Root>
 				<Choice.Indicator>
@@ -50,9 +50,8 @@ describe("Choice", () => {
 				</Choice.Content>
 			</Choice.Root>,
 		);
-		const title = screen.getByText("Onboarding Key");
-		expect(title.tagName).toBe("P");
-		expect(title).not.toHaveAttribute("for");
+		expect(screen.getByText("Onboarding Key")).toBeInTheDocument();
+		expect(screen.queryByLabelText("Onboarding Key")).not.toBeInTheDocument();
 	});
 
 	test("Description is associated to the control via aria-describedby", () => {
@@ -452,7 +451,7 @@ describe("Choice + Field interop", () => {
 		expect(screen.getByText("Notifications")).toHaveAttribute("for", control.id);
 		// The rich title is a real <label> for the same control, so clicking it toggles.
 		const choiceLabel = screen.getByText("Email");
-		expect(choiceLabel.tagName).toBe("LABEL");
+		expect(screen.getByLabelText("Email")).toBe(control);
 		expect(choiceLabel).toHaveAttribute("for", control.id);
 		expect(control).toHaveAttribute("name", "notify");
 	});

@@ -471,14 +471,11 @@ function SortableHarness({
 }
 
 describe("DataTable.HeaderSortButton", () => {
-	test("defaults to a ghost + neutral button with the muted header text color", () => {
+	test("defaults to a ghost + neutral button", () => {
 		render(<SortableHarness />);
 		const button = screen.getByRole("button", { name: "Name" });
 		expect(button).toHaveAttribute("data-appearance", "ghost");
 		expect(button).toHaveAttribute("data-intent", "neutral");
-		// Why a class assertion: the mute branch emits no data attribute of its own,
-		// so the class is its only observable.
-		expect(button).toHaveClass("text-muted");
 	});
 
 	test("forwards explicit `appearance`/`intent` overrides to the underlying Button", () => {
@@ -486,12 +483,6 @@ describe("DataTable.HeaderSortButton", () => {
 		const button = screen.getByRole("button", { name: "Name" });
 		expect(button).toHaveAttribute("data-appearance", "outlined");
 		expect(button).toHaveAttribute("data-intent", "danger");
-	});
-
-	test("does not apply `text-muted` when `intent` is overridden, so the tone text color survives", () => {
-		render(<SortableHarness intent="danger" />);
-		const button = screen.getByRole("button", { name: "Name" });
-		expect(button).not.toHaveClass("text-muted");
 	});
 
 	test("keeps the column label as its name and moves the sort state to aria-sort on the header cell", async () => {

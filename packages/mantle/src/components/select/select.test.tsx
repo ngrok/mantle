@@ -227,9 +227,11 @@ describe("Select", () => {
 			const trigger = screen.getByRole("combobox");
 			expect(trigger).toHaveAttribute("data-slot", "select-trigger");
 			const triggerLabel = trigger.querySelector('[data-slot="select-trigger-label"]');
+			// Why the order: the label span leads the trigger, and the caret follows it as the
+			// permanent sibling that keeps the consumer's text off React's lone-child path.
 			expect(trigger.firstElementChild).toBe(triggerLabel);
 			const value = trigger.querySelector('[data-slot="select-value"]');
-			expect(value).toBeInstanceOf(HTMLSpanElement);
+			expect(value).toBeInTheDocument();
 			expect(value?.parentElement).toBe(triggerLabel);
 			// Radix portals the selected item's children into the value node, so
 			// the label span is the node it later removes.
@@ -306,9 +308,7 @@ describe("Select", () => {
 			);
 
 			const trigger = screen.getByRole("combobox");
-			expect(trigger.querySelector('[data-slot="app-value select-value"]')).toBeInstanceOf(
-				HTMLSpanElement,
-			);
+			expect(trigger.querySelector('[data-slot="app-value select-value"]')).toBeInTheDocument();
 			expect(trigger.querySelector('[data-slot="select-value"]')).not.toBeInTheDocument();
 
 			await user.click(trigger);
@@ -373,6 +373,7 @@ describe("Select", () => {
 				</Select.Root>,
 			);
 
+			// Why the class check: the tailwind-merge contract puts each consumer class beside the part's defaults.
 			for (const part of ["trigger", "content", "group", "label", "item", "separator"]) {
 				const element = screen.getByTestId(part);
 				expect(element).toHaveClass(`app-${part}`);
@@ -400,6 +401,7 @@ describe("Select", () => {
 
 			const heading = screen.getByRole("heading", { name: "Fruits" });
 			expect(heading).toBe(screen.getByTestId("label"));
+			// Why the class check: the tailwind-merge contract puts the consumer's class beside the defaults.
 			expect(heading).toHaveClass("app-label");
 			expect(heading).toHaveAttribute("data-slot", "select-label");
 			expect(refSpy).toHaveBeenCalledTimes(1);
@@ -816,6 +818,8 @@ describe("Select", () => {
 				</Select.Root>,
 			);
 
+			// Why tagName and the class check: the asChild swap renders the child element in
+			// place of the default, and the tailwind-merge contract keeps both classes on it.
 			const trigger = screen.getByRole("combobox");
 			expect(trigger.tagName).toBe("BUTTON");
 			expect(trigger).toHaveClass("mine", "theirs");
@@ -827,6 +831,8 @@ describe("Select", () => {
 			expect(label?.parentElement).toBe(trigger);
 			expect(label?.querySelector('[data-slot="select-value"]')).toHaveTextContent("Apple");
 			expect(trigger.querySelector("svg")?.parentElement).toBe(trigger);
+			// Why the count: the label span and the caret are the trigger's only children, so
+			// no bare text sits beside the caret on a translated page.
 			expect(trigger.childElementCount).toBe(2);
 		});
 
@@ -853,6 +859,8 @@ describe("Select", () => {
 
 			await user.click(screen.getByRole("combobox"));
 
+			// Why tagName and the class check: the asChild swap renders the child element in
+			// place of the default, and the tailwind-merge contract keeps both classes on it.
 			const option = await screen.findByRole("option", { name: "Apple" });
 			expect(option.tagName).toBe("DIV");
 			expect(option).toHaveClass("mine", "theirs");

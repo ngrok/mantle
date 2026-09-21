@@ -262,12 +262,6 @@ describe("hover marker geometry", () => {
 			}
 			expect(p50.getAttribute("data-shape")).toBe("triangle");
 			expect(p99.getAttribute("data-shape")).toBe("diamond");
-			// The glyph is cut with a clip-path on the fill layer.
-			const fill = p50.lastElementChild;
-			if (!(fill instanceof HTMLElement)) {
-				throw new Error("expected the dot's fill layer");
-			}
-			expect(fill.style.clipPath).toContain("polygon");
 		});
 	});
 
@@ -301,10 +295,10 @@ describe("hover marker geometry", () => {
 		});
 	});
 
-	test("each hover dot clips both of its layers to the glyph data-shape names", async () => {
-		// The ring is faked by stacking two same-clipped layers, so a dot whose
-		// layers disagree paints a ring that is not the glyph's outline. Pin the
-		// pair against the engine's table, which the legend key reads too.
+	test("each hover dot clips every layer to the glyph its data-shape names", async () => {
+		// The ring is faked by stacking same-clipped layers, so a dot whose layers
+		// disagree paints a ring that is not the glyph's outline. Pin each layer
+		// against the engine's table, which the legend key reads too.
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
 				<LineChart.Root
@@ -333,9 +327,61 @@ describe("hover marker geometry", () => {
 				const layers = [...dot.children].filter(
 					(child): child is HTMLElement => child instanceof HTMLElement,
 				);
-				expect(layers).toHaveLength(2);
+				expect(layers.length).toBeGreaterThan(0);
 				for (const layer of layers) {
 					expect(layer.style.clipPath).toBe(clip);
+				}
+			}
+		});
+	});
+
+	test("paints a 2px card-colored ring around each hover dot's fill", async () => {
+		// Why geometry: a CSS border cannot follow a clip-path, so the ring is a
+		// card-colored layer that the fill sits 2px inside. A dot that lost either
+		// layer paints no ring, and only the layers' boxes and colors observe that.
+		const cardColor = "rgb(1, 2, 3)";
+		const { container } = render(
+			<div style={{ width: 600, height: 300 }}>
+				<LineChart.Root
+					data={[
+						{ t: 1, p50: 10, p99: 90 },
+						{ t: 2, p50: 12, p99: 95 },
+					]}
+					xKey="t"
+					animate={false}
+					aria-label="Latency"
+				>
+					<LineChart.Line dataKey="p50" label="p50" />
+					<LineChart.Line dataKey="p99" label="p99" />
+				</LineChart.Root>
+			</div>,
+		);
+		container.style.setProperty("--background-color-card", cardColor);
+		await assertDatumGeometry(container, "Home", () => {
+			const dots = activeDots(container);
+			expect(dots).toHaveLength(2);
+			for (const dot of dots) {
+				const layers = [...dot.children].filter(
+					(child): child is HTMLElement => child instanceof HTMLElement,
+				);
+				const ring = layers.find((layer) => getComputedStyle(layer).backgroundColor === cardColor);
+				if (ring == null) {
+					throw new Error("expected a card-colored ring layer");
+				}
+				const fills = layers.filter((layer) => layer !== ring);
+				expect(fills.length).toBeGreaterThan(0);
+				const dotRect = dot.getBoundingClientRect();
+				const ringRect = ring.getBoundingClientRect();
+				expect(ringRect.left).toBeCloseTo(dotRect.left, 1);
+				expect(ringRect.top).toBeCloseTo(dotRect.top, 1);
+				expect(ringRect.width).toBeCloseTo(dotRect.width, 1);
+				expect(ringRect.height).toBeCloseTo(dotRect.height, 1);
+				for (const fill of fills) {
+					const fillRect = fill.getBoundingClientRect();
+					expect(fillRect.left - dotRect.left).toBeCloseTo(2, 1);
+					expect(fillRect.top - dotRect.top).toBeCloseTo(2, 1);
+					expect(dotRect.right - fillRect.right).toBeCloseTo(2, 1);
+					expect(dotRect.bottom - fillRect.bottom).toBeCloseTo(2, 1);
 				}
 			}
 		});

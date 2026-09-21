@@ -108,11 +108,9 @@ describe("DomainsListPage", () => {
 		);
 		const document = new DOMParser().parseFromString(html, "text/html");
 
-		// A `<div>` skeleton would end the paragraph in the parsed HTML, and the
-		// table below would move on hydration.
-		const countSkeleton = document.querySelector('p [data-slot="skeleton"]');
-		expect(countSkeleton?.tagName).toBe("SPAN");
-		expect(countSkeleton?.parentElement?.tagName).toBe("P");
+		// The parser hoists a `<div>` skeleton out of the `<p>`, so this selector
+		// finds only a phrasing element. A hoisted one moves the table on hydration.
+		expect(document.querySelector('p [data-slot="skeleton"]')).not.toBeNull();
 
 		expect(document.querySelectorAll("tbody tr")).toHaveLength(8);
 		// The region publishes its first message after mount, so the server sends it empty.

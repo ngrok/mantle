@@ -21,6 +21,7 @@ describe("Main", () => {
 
 	test("merges custom className", () => {
 		render(<Main className="custom-class">content</Main>);
+		// Why the class check: the tailwind-merge contract puts the consumer's class beside the defaults.
 		expect(screen.getByRole("main")).toHaveClass("custom-class");
 	});
 

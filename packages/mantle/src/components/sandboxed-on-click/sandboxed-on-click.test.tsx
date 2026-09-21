@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
-import { SandboxedOnClick, sandboxedOnClickProps } from "./sandboxed-on-click.js";
+import { SandboxedOnClick } from "./sandboxed-on-click.js";
 
 describe("SandboxedOnClick", () => {
 	test("the default div is presentational and stops the click from bubbling", async () => {
@@ -67,9 +67,5 @@ describe("SandboxedOnClick", () => {
 		await user.click(screen.getByTestId("prevented"));
 		await user.click(screen.getByTestId("allowed"));
 		expect(seen).toEqual([true, false]);
-	});
-
-	test("sandboxedOnClickProps returns the presentational role for a consumer element", () => {
-		expect(sandboxedOnClickProps().role).toBe("presentation");
 	});
 });

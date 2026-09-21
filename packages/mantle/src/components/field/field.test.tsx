@@ -13,6 +13,7 @@ import { Field } from "./field.js";
 describe("Field", () => {
 	test("Field.Label outside a Field.Item renders a label with no for attribute", () => {
 		render(<Field.Label>Email</Field.Label>);
+		// Why tagName: the JSDoc promises a <label>, so the element is the contract.
 		expect(screen.getByText("Email").tagName).toBe("LABEL");
 		expect(screen.getByText("Email")).not.toHaveAttribute("for");
 	});
@@ -68,7 +69,7 @@ describe("Field", () => {
 			const errorListRef = createRef<HTMLUListElement>();
 			const errorRef = createRef<HTMLLIElement>();
 
-			render(
+			const { container } = render(
 				<Field.Set ref={setRef}>
 					<Field.Legend ref={legendRef}>Account</Field.Legend>
 					<Field.Group ref={groupRef}>
@@ -88,15 +89,22 @@ describe("Field", () => {
 				</Field.Set>,
 			);
 
-			expect(setRef.current?.tagName).toBe("FIELDSET");
-			expect(legendRef.current?.tagName).toBe("LEGEND");
-			expect(groupRef.current?.tagName).toBe("DIV");
-			expect(itemRef.current?.tagName).toBe("DIV");
-			expect(labelRowRef.current?.tagName).toBe("DIV");
-			expect(optionalRef.current?.tagName).toBe("SPAN");
-			expect(descriptionRef.current?.tagName).toBe("P");
-			expect(errorListRef.current?.tagName).toBe("UL");
-			expect(errorRef.current?.tagName).toBe("LI");
+			const bySlot = (slot: string) => {
+				const element = container.querySelector(`[data-slot="${slot}"]`);
+				if (element == null) {
+					throw new Error(`no element carries data-slot="${slot}"`);
+				}
+				return element;
+			};
+			expect(setRef.current).toBe(screen.getByRole("group", { name: "Account" }));
+			expect(legendRef.current).toBe(screen.getByText("Account"));
+			expect(groupRef.current).toBe(bySlot("field-group"));
+			expect(itemRef.current).toBe(bySlot("field-item"));
+			expect(labelRowRef.current).toBe(bySlot("field-label-row"));
+			expect(optionalRef.current).toBe(screen.getByText("(Optional)"));
+			expect(descriptionRef.current).toBe(screen.getByText("Use your work email."));
+			expect(errorListRef.current).toBe(screen.getByRole("list"));
+			expect(errorRef.current).toBe(screen.getByRole("listitem"));
 		});
 
 		test("forwards refs through asChild parts", () => {
@@ -152,14 +160,15 @@ describe("Field", () => {
 	});
 
 	describe("Field.Item", () => {
-		test("renders a plain div with no implicit role", () => {
+		test("renders a plain container with no role", () => {
 			render(
 				<Field.Item data-testid="root" name="example">
 					content
 				</Field.Item>,
 			);
 			const root = screen.getByTestId("root");
-			expect(root.tagName).toBe("DIV");
+			// Why the group query: a <fieldset> takes the group role, and `Field.Set` owns that element.
+			expect(screen.queryByRole("group")).not.toBeInTheDocument();
 			expect(root).not.toHaveAttribute("role");
 			expect(root).toHaveTextContent("content");
 		});
@@ -481,10 +490,9 @@ describe("Field", () => {
 	});
 
 	describe("Field.Group", () => {
-		test("renders a div with data-slot=field-group", () => {
+		test("carries data-slot=field-group", () => {
 			render(<Field.Group data-testid="group">content</Field.Group>);
 			const group = screen.getByTestId("group");
-			expect(group.tagName).toBe("DIV");
 			expect(group).toHaveAttribute("data-slot", "field-group");
 		});
 
@@ -505,10 +513,10 @@ describe("Field", () => {
 		});
 	});
 
-	test("Field.Set renders a fieldset with data-slot=field-set", () => {
+	test("Field.Set renders a group with data-slot=field-set", () => {
 		render(<Field.Set data-testid="set">content</Field.Set>);
 		const set = screen.getByTestId("set");
-		expect(set.tagName).toBe("FIELDSET");
+		expect(screen.getByRole("group")).toBe(set);
 		expect(set).toHaveAttribute("data-slot", "field-set");
 	});
 
@@ -520,7 +528,8 @@ describe("Field", () => {
 				</Field.Set>,
 			);
 			const legend = screen.getByTestId("legend");
-			expect(legend.tagName).toBe("LEGEND");
+			// A <legend> names its <fieldset>, so the group's accessible name is the element's observable.
+			expect(screen.getByRole("group", { name: "Title" })).toContainElement(legend);
 			expect(legend).toHaveAttribute("data-slot", "field-legend");
 			expect(legend).toHaveTextContent("Title");
 		});
@@ -557,10 +566,9 @@ describe("Field", () => {
 	});
 
 	describe("Field.Description", () => {
-		test("renders a p with data-slot=field-description", () => {
+		test("carries data-slot=field-description", () => {
 			render(<Field.Description data-testid="desc">help</Field.Description>);
 			const description = screen.getByTestId("desc");
-			expect(description.tagName).toBe("P");
 			expect(description).toHaveAttribute("data-slot", "field-description");
 			expect(description).toHaveTextContent("help");
 		});
@@ -611,6 +619,7 @@ describe("Field", () => {
 		test("renders an li with data-slot=field-error", () => {
 			render(<Field.ErrorItem data-testid="err">Required</Field.ErrorItem>);
 			const error = screen.getByTestId("err");
+			// Why tagName: a <ul> accepts only <li> children, so the element is the contract.
 			expect(error.tagName).toBe("LI");
 			expect(error).toHaveAttribute("data-slot", "field-error");
 			expect(error).toHaveTextContent("Required");
@@ -622,6 +631,7 @@ describe("Field", () => {
 					Required
 				</Field.ErrorItem>,
 			);
+			// The tailwind-merge contract: the consumer's class survives the merge.
 			expect(screen.getByTestId("err")).toHaveClass("font-bold");
 		});
 
@@ -632,15 +642,15 @@ describe("Field", () => {
 	});
 
 	describe("Field.LabelRow", () => {
-		test("renders a div with data-slot=field-label-row", () => {
+		test("carries data-slot=field-label-row", () => {
 			render(<Field.LabelRow data-testid="row">content</Field.LabelRow>);
 			const row = screen.getByTestId("row");
-			expect(row.tagName).toBe("DIV");
 			expect(row).toHaveAttribute("data-slot", "field-label-row");
 		});
 
 		test("merges custom className", () => {
 			render(<Field.LabelRow className="justify-between" data-testid="row" />);
+			// The tailwind-merge contract: the consumer's class survives the merge.
 			expect(screen.getByTestId("row")).toHaveClass("justify-between");
 		});
 
@@ -681,6 +691,7 @@ describe("Field", () => {
 					<Field.HelpContent>help body</Field.HelpContent>
 				</Field.Help>,
 			);
+			// The tailwind-merge contract: the consumer's class survives the merge.
 			expect(screen.getByRole("button", { name: "What is this?" })).toHaveClass("ml-2");
 		});
 
@@ -729,10 +740,9 @@ describe("Field", () => {
 	});
 
 	describe("Field.Optional", () => {
-		test("renders a span with default '(Optional)' content and data-slot", () => {
+		test("renders the default '(Optional)' content with data-slot", () => {
 			render(<Field.Optional data-testid="opt" />);
 			const optional = screen.getByTestId("opt");
-			expect(optional.tagName).toBe("SPAN");
 			expect(optional).toHaveAttribute("data-slot", "field-optional");
 			expect(optional).toHaveTextContent("(Optional)");
 		});
@@ -746,6 +756,7 @@ describe("Field", () => {
 
 		test("merges custom className", () => {
 			render(<Field.Optional className="italic" data-testid="opt" />);
+			// The tailwind-merge contract: the consumer's class survives the merge.
 			expect(screen.getByTestId("opt")).toHaveClass("italic");
 		});
 
@@ -762,10 +773,9 @@ describe("Field", () => {
 	});
 
 	describe("Field.LabelText", () => {
-		test("renders a <p> with data-slot", () => {
+		test("carries data-slot=field-label-text", () => {
 			render(<Field.LabelText data-testid="lt">Owner</Field.LabelText>);
 			const labelText = screen.getByTestId("lt");
-			expect(labelText.tagName).toBe("P");
 			expect(labelText).toHaveAttribute("data-slot", "field-label-text");
 			expect(labelText).toHaveTextContent("Owner");
 		});
@@ -776,6 +786,7 @@ describe("Field", () => {
 					Owner
 				</Field.LabelText>,
 			);
+			// The tailwind-merge contract: the consumer's class survives the merge.
 			expect(screen.getByTestId("lt")).toHaveClass("italic");
 		});
 
@@ -792,14 +803,14 @@ describe("Field", () => {
 	});
 
 	describe("Field.ErrorList", () => {
-		test("renders a ul with data-slot=field-error-list", () => {
+		test("renders a list with data-slot=field-error-list", () => {
 			render(
 				<Field.ErrorList data-testid="list">
 					<Field.ErrorItem>Required</Field.ErrorItem>
 				</Field.ErrorList>,
 			);
 			const list = screen.getByTestId("list");
-			expect(list.tagName).toBe("UL");
+			expect(screen.getByRole("list")).toBe(list);
 			expect(list).toHaveAttribute("data-slot", "field-error-list");
 		});
 
@@ -838,10 +849,13 @@ describe("Field", () => {
 					<Field.ErrorItem>Third error</Field.ErrorItem>
 				</Field.ErrorList>,
 			);
-			const errors = screen.getAllByText(/error$/);
-			expect(errors).toHaveLength(3);
+			const errors = screen.getAllByRole("listitem");
+			expect(errors.map((error) => error.textContent)).toEqual([
+				"First error",
+				"Second error",
+				"Third error",
+			]);
 			for (const error of errors) {
-				expect(error.tagName).toBe("LI");
 				expect(error).toHaveAttribute("data-slot", "field-error");
 			}
 		});
@@ -880,12 +894,13 @@ describe("Field", () => {
 			);
 
 			const list = screen.getByTestId("errors");
-			expect(list.tagName).toBe("UL");
+			expect(screen.getByRole("list")).toBe(list);
 			expect(list).toHaveAttribute("data-slot", "field-error-list");
 			expect(list).toHaveAttribute("role", "list");
-			expect(screen.getByText("Required").tagName).toBe("LI");
-			expect(screen.getByText("Too short").tagName).toBe("LI");
-			expect(screen.getAllByRole("listitem")).toHaveLength(2);
+			expect(screen.getAllByRole("listitem").map((item) => item.textContent)).toEqual([
+				"Required",
+				"Too short",
+			]);
 		});
 
 		test("renders nothing when all messages normalize away", () => {

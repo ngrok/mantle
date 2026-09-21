@@ -57,6 +57,7 @@ describe("Separator", () => {
 			</Separator>,
 		);
 		const child = screen.getByTestId("child");
+		// Why tagName: the asChild swap renders the child element in place of the default.
 		expect(child.tagName).toBe("LI");
 		expect(child).toHaveAttribute("role", "separator");
 		expect(child).toHaveAttribute("aria-orientation", "vertical");

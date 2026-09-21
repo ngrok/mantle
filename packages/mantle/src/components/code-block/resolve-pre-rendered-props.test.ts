@@ -1,6 +1,5 @@
 import { describe, expect, test } from "vitest";
 import {
-	defaultMeta,
 	normalizeValue,
 	parseMetastring,
 	resolvePreRenderedCodeBlockProps,
@@ -159,7 +158,12 @@ describe("resolvePreRenderedCodeBlockProps", () => {
 describe("parseMetastring", () => {
 	test("given undefined, returns default meta", () => {
 		const meta = parseMetastring(undefined);
-		expect(meta).toEqual(defaultMeta);
+		expect(meta).toEqual({
+			collapsible: false,
+			disableCopy: false,
+			mode: undefined,
+			title: undefined,
+		});
 	});
 
 	test('given "title="Hello World"", returns meta with title and default values', () => {

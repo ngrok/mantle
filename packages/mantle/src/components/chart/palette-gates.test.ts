@@ -1,7 +1,5 @@
 import { describe, expect, test } from "vitest";
 import {
-	CONTRAST_FLOOR_BY_THEME,
-	CONTRAST_MIN,
 	collectDeclarations,
 	contrastRatio,
 	deltaE,
@@ -250,29 +248,6 @@ describe("resolveProperty", () => {
 		const withFallback = [layer("a.css", "--x: var(--missing, red);")];
 		expect(() => resolveProperty(withFallback, "--x")).toThrow(
 			/neither a plain alias nor a literal/,
-		);
-	});
-});
-
-describe("CONTRAST_FLOOR_BY_THEME", () => {
-	test("no theme is held to less than the absolute minimum", () => {
-		// The map records each theme's measured minimum, rounded down to two places.
-		// An entry under CONTRAST_MIN would ship a palette the standard already
-		// rejects.
-		const belowStandard = Object.entries(CONTRAST_FLOOR_BY_THEME).filter(
-			([, floor]) => floor < CONTRAST_MIN,
-		);
-		expect(belowStandard).toEqual([]);
-	});
-
-	test("each high-contrast theme is held above its standard twin", () => {
-		// The whole reason the map exists: a flat gate lets a high-contrast theme
-		// regress to the floor a standard theme sits on.
-		expect(CONTRAST_FLOOR_BY_THEME["light-high-contrast"]).toBeGreaterThan(
-			CONTRAST_FLOOR_BY_THEME.light,
-		);
-		expect(CONTRAST_FLOOR_BY_THEME["dark-high-contrast"]).toBeGreaterThan(
-			CONTRAST_FLOOR_BY_THEME.dark,
 		);
 	});
 });

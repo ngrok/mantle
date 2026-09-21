@@ -9,6 +9,7 @@ describe("Anchor", () => {
 		render(<Anchor href="https://ngrok.com/">ngrok.com</Anchor>);
 
 		const label = screen.getByRole("link").querySelector("[data-slot='anchor-label']");
+		// Why tagName: the JSDoc documents the label slot as a <span>, so the element is API.
 		expect(label?.tagName).toBe("SPAN");
 		expect(label).toHaveTextContent("ngrok.com");
 	});

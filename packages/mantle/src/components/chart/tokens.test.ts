@@ -232,6 +232,9 @@ const PROVENANCE: Record<ThemeName, Array<{ slot: string; value: string; source:
 const violation = (theme: ThemePalette, detail: string) =>
 	`${theme.name}: ${detail} — re-step a slot and re-validate. Never widen a threshold, and never update an expectation to match. Resolved: ${theme.slots.join(",")} on surface ${theme.surface}.`;
 
+/** WCAG 2.2 SC 1.4.11 Non-text Contrast: the floor for a graphical object against its surface. */
+const WCAG_NON_TEXT_CONTRAST = 3;
+
 const describePair = (pair: WorstPair) =>
 	`chart-${pair.first.slot} ${pair.first.hex} <-> chart-${pair.second.slot} ${pair.second.hex} (${pair.kind}) ΔE ${pair.deltaE.toFixed(2)}`;
 
@@ -372,14 +375,27 @@ describe.each(THEMES)("chart palette gates — $name", (theme) => {
 		expect(violations).toEqual([]);
 	});
 
+	test("every slot and the overflow clear the WCAG 3:1 floor", () => {
+		// Why a literal floor: the per-theme floors below and the `CONTRAST_MIN`
+		// default are inputs a maintainer can lower, and the standard's floor is not.
+		const violations = lowContrastSlots([...theme.slots, theme.overflow], theme.surface, {
+			minimum: WCAG_NON_TEXT_CONTRAST,
+		}).map(({ slot, hex, ratio }) => {
+			const name = slot > theme.slots.length ? "overflow" : `chart-${slot}`;
+			return violation(
+				theme,
+				`${name} ${hex} is ${ratio.toFixed(2)}:1 against the surface, under ${WCAG_NON_TEXT_CONTRAST}:1`,
+			);
+		});
+		expect(violations).toEqual([]);
+	});
+
 	test("every slot clears this theme's own contrast floor", () => {
-		// The floor is this theme's measured minimum rounded down to two places, not
-		// the flat WCAG 3:1: a flat gate would let a re-step drop a high-contrast
-		// theme to the floor a standard theme sits on. `palette-gates.test.ts` holds
-		// every entry at or above `CONTRAST_MIN`, so the standard still backstops the
-		// map. The overflow runs through the same floor below, under its own name —
-		// `lowContrastSlots` numbers by position, so passing it as a ninth entry here
-		// would report a `chart-9` that does not exist.
+		// Why the theme's own floor: a flat WCAG 3:1 gate would let a re-step drop a
+		// high-contrast theme to the floor a standard theme sits on. The overflow
+		// runs through the same floor below under its own name, because
+		// `lowContrastSlots` numbers by position and a ninth entry here would report
+		// a `chart-9` that does not exist.
 		const minimum = CONTRAST_FLOOR_BY_THEME[theme.name];
 		const violations = lowContrastSlots(theme.slots, theme.surface, { minimum }).map(
 			({ slot, hex, ratio }) =>

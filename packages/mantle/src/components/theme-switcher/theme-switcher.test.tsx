@@ -119,6 +119,7 @@ describe("ThemeSwitcher", () => {
 		);
 		const trigger = screen.getByRole("button", { name: "Change Theme" });
 		expect(trigger).toHaveAttribute("data-slot", "theme-switcher-trigger");
+		// Why the class check: the tailwind-merge contract puts the consumer's class beside the defaults.
 		expect(trigger.className).toContain("custom-class");
 		expect(trigger).toHaveStyle({ marginTop: "4px" });
 	});
@@ -179,6 +180,7 @@ describe("ThemeSwitcher", () => {
 		);
 		fireEvent.pointerDown(screen.getByRole("button", { name: "Change Theme" }));
 		const menu = screen.getByRole("menu");
+		// Why the class check: the tailwind-merge contract puts the consumer's class beside the defaults.
 		expect(menu.className).toContain("shadow-2xl");
 		// The menu keeps its dropdown-menu-content identity — the part's slot
 		// name joins the chain rather than clobbering the wrapped primitive's.
@@ -354,6 +356,7 @@ describe("ThemeDropdownMenuRadioGroup", () => {
 		renderRadioGroup({ className: "custom-radio-class", style: { marginTop: "4px" } });
 		const group = screen.getByRole("group");
 		expect(group).toHaveAttribute("data-slot", "theme-dropdown-menu-radio-group");
+		// Why the class check: the tailwind-merge contract puts the consumer's class beside the defaults.
 		expect(group.className).toContain("custom-radio-class");
 		expect(group).toHaveStyle({ marginTop: "4px" });
 	});
