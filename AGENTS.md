@@ -45,6 +45,7 @@ Required diff-audit checklist:
 - className: composed with `cx` from `@ngrok/mantle/cx` — no string interpolation, `+`, or ternaries inside `className`.
 - Translation: a mantle part stays safe on a translated page with plain `children`, a bare string included, so the fix for a crash shape is structural: a label slot around consumer children, an element after the text, or an element that stays mounted. Never a conditional element immediately before bare text, and never a permanent element beside bare consumer children. `translate="no"` classifies content and is never the fix for a crash: set it only on code, a key, a filename, an ID, a shortcut key, or a passcode, prefer the part that owns it (`Code`, `Kbd`, `CodeBlock`) over a raw attribute, and lock it out of the props type when the element can never hold prose. See [CONVENTIONS.md § Browser Translation](./CONVENTIONS.md#browser-translation).
 - Deps: exact-pinned versions (no `^`/`~`); shared deps go through the `catalog:` in `pnpm-workspace.yaml`.
+- Framework boundary: nothing under `packages/mantle/src` imports a router or app framework (`react-router`, `@tanstack/react-router`, `next`, `@remix-run/*`), and no router joins `@ngrok/mantle`'s peers. Type the seam structurally, take the framework's element through `asChild`, and put the router glue in an `apps/www` recipe. See [CONVENTIONS.md § Framework Boundary](./CONVENTIONS.md#framework-boundary).
 
 ## Setup
 
@@ -117,6 +118,7 @@ Run these from the workspace root once a coherent chunk of work is done and befo
 ## Technology Stack
 
 - **React 19** only; `@ngrok/mantle` requires peer `react@^19` — `ref` is a regular prop, never use `forwardRef` — TypeScript, **Tailwind CSS 4**, vitest, pnpm, **Node.js 24**, Turborepo
+- **No router in the library**: `@ngrok/mantle` depends on React alone. Router and framework glue lives in `apps/www` as a recipe. See [CONVENTIONS.md § Framework Boundary](./CONVENTIONS.md#framework-boundary).
 - Radix UI, Ariakit, Headless UI, class-variance-authority
 - **Icons**: `@phosphor-icons/react` primarily, custom ngrok icons via `@ngrok/mantle/icons`
 - **Theme**: Built-in light/dark mode with ThemeProvider and FOUC prevention
