@@ -19,7 +19,7 @@ decision a declaration on the route module, the same way
 
 > [!IMPORTANT]
 > This recipe is the documented deviation, not the canonical shell. In the canonical shell each route renders
-> its own header through the app's `Page` component, and an action reads the page's own state:
+> its own `AppLayout.Header` and `AppLayout.Body`, and an action reads the page's own state:
 > [One header per page](/layouts/app-layout#one-header-per-page). Use this recipe only when an app keeps the
 > header in its shell and no route needs page state in its actions. Never mix the two in one app.
 

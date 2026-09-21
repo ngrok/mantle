@@ -410,32 +410,17 @@ trail at all: move the data into the loader or drop the crumb.
 
 ## Where it goes in the shell
 
-Render it once, in the app's `Page` component, inside
-[`AppLayout.HeaderContent`](/layouts/app-layout#applayoutheadercontent). Every route renders `Page`, so the
-trail is on every page. [One header per page](/layouts/app-layout#one-header-per-page) is the canonical
-shell:
+Render it in every route's [`AppLayout.HeaderContent`](/layouts/app-layout#applayoutheadercontent). Each
+route renders its own header, so the trail is on every page.
+[One header per page](/layouts/app-layout#one-header-per-page) is the canonical shell:
 
 ```tsx
-// app/features/page/page.tsx
+// app/routes/endpoints.tsx
 import { AppLayout } from "@ngrok/mantle/app-layout";
 import { Sidebar } from "@ngrok/mantle/sidebar";
-import { Skeleton } from "@ngrok/mantle/skeleton";
-import { Suspense, type ReactNode } from "react";
 import { RouteBreadcrumbs } from "~/features/breadcrumbs/breadcrumbs";
 
-type PageProps = {
-	/** The page's header actions, three at most. Omit the prop when the page has none. */
-	actions?: ReactNode;
-	children: ReactNode;
-};
-
-/**
- * The header row and the scroll container for one route. Every route renders
- * it, so no page ships without `Sidebar.Trigger` and the trail. The Suspense
- * boundary sits inside `AppLayout.Body`, so a page that suspends keeps its
- * header on screen.
- */
-export function Page({ actions, children }: PageProps) {
+export default function EndpointsPage() {
 	return (
 		<>
 			<AppLayout.Header>
@@ -445,11 +430,8 @@ export function Page({ actions, children }: PageProps) {
 				<AppLayout.HeaderContent>
 					<RouteBreadcrumbs />
 				</AppLayout.HeaderContent>
-				{actions != null && <AppLayout.HeaderActions>{actions}</AppLayout.HeaderActions>}
 			</AppLayout.Header>
-			<AppLayout.Body>
-				<Suspense fallback={<Skeleton className="m-6 h-32" />}>{children}</Suspense>
-			</AppLayout.Body>
+			<AppLayout.Body>{/* the page */}</AppLayout.Body>
 		</>
 	);
 }
@@ -457,7 +439,7 @@ export function Page({ actions, children }: PageProps) {
 
 `AppLayout.Header` is a `shrink-0` sibling **outside** the scroll container, so the trail is pinned by
 construction. `AppLayout.HeaderContent` is `min-w-0 flex-1`, so a long trail scrolls inside it instead of
-pushing the actions off the card. The actions beside it come from the route that renders `Page`. A shell that
+pushing the actions off the card. The actions beside it are the route's own, in `AppLayout.HeaderActions`. A shell that
 keeps its header instead derives them from a handle, which is the documented deviation:
 [Header Actions from Routes](/recipes/header-actions-from-routes). Resist the urge to hand-roll a
 `sticky top-0 z-10` breadcrumb bar inside the scrolling region instead: a `sticky` element is still in flow,

@@ -927,41 +927,6 @@ function PageActions({ actions }: { actions: ReadonlyArray<PageAction> }) {
 }
 
 /**
- * The header row and the scroll container every route renders. A real app's
- * `Page` renders `RouteBreadcrumbs` in the content slot; the demo's fake
- * router has no matches, so the shell passes the trail in.
- */
-function Page({
-	trail,
-	actions,
-	children,
-}: {
-	trail: ReactNode;
-	actions?: ReactNode;
-	children: ReactNode;
-}) {
-	return (
-		<>
-			<AppLayout.Header>
-				<AppLayout.HeaderStart>
-					<Sidebar.Trigger
-						shortcut={
-							<>
-								<MetaKey />
-								<Kbd>B</Kbd>
-							</>
-						}
-					/>
-				</AppLayout.HeaderStart>
-				<AppLayout.HeaderContent>{trail}</AppLayout.HeaderContent>
-				{actions != null && <AppLayout.HeaderActions>{actions}</AppLayout.HeaderActions>}
-			</AppLayout.Header>
-			<AppLayout.Body>{children}</AppLayout.Body>
-		</>
-	);
-}
-
-/**
  * The canonical Sidebar + AppLayout composition, shared by both docs pages: a
  * decoupled app shell with a sidebar that collapses to the icon rail, a
  * header-mounted trigger, a product-choice dialog in the sidebar header, a
@@ -1116,8 +1081,18 @@ export function AppShellDemo() {
 					</Sidebar.Nav>
 
 					<AppLayout.Content>
-						<Page
-							trail={
+						<AppLayout.Header>
+							<AppLayout.HeaderStart>
+								<Sidebar.Trigger
+									shortcut={
+										<>
+											<MetaKey />
+											<Kbd>B</Kbd>
+										</>
+									}
+								/>
+							</AppLayout.HeaderStart>
+							<AppLayout.HeaderContent>
 								<Breadcrumb.Root>
 									<Breadcrumb.List>
 										{inSettings && (
@@ -1141,9 +1116,12 @@ export function AppShellDemo() {
 										</Breadcrumb.Item>
 									</Breadcrumb.List>
 								</Breadcrumb.Root>
-							}
-							actions={<PageActions actions={headerActions} />}
-						>
+							</AppLayout.HeaderContent>
+							<AppLayout.HeaderActions>
+								<PageActions actions={headerActions} />
+							</AppLayout.HeaderActions>
+						</AppLayout.Header>
+						<AppLayout.Body>
 							<div className="space-y-4 p-6">
 								{Array.from({ length: 12 }, (_, index) => (
 									<div key={index} className="border-card-muted rounded-lg border p-4">
@@ -1156,7 +1134,7 @@ export function AppShellDemo() {
 									</div>
 								))}
 							</div>
-						</Page>
+						</AppLayout.Body>
 					</AppLayout.Content>
 				</AppLayout.Workspace>
 			</AppLayout.Root>
