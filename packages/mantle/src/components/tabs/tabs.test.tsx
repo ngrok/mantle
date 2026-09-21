@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { describe, expect, test, vi } from "vitest";
+import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
 import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import { Tabs } from "./tabs.js";
 
@@ -113,7 +114,7 @@ describe("Tabs", () => {
 			expect(screen.getByRole("tab", { name: "Tab A" })).toHaveFocus();
 			expect(scrollIntoView).toHaveBeenCalledTimes(1);
 			expect(scrollIntoView).toHaveBeenLastCalledWith(
-				expect.objectContaining({ inline: "center", block: "nearest" }),
+				expect.objectContaining({ behavior: "smooth", inline: "center", block: "nearest" }),
 			);
 
 			await user.keyboard("{ArrowRight}");
@@ -121,6 +122,109 @@ describe("Tabs", () => {
 			expect(screen.getByRole("tab", { name: "Tab B" })).toHaveAttribute("aria-selected", "true");
 			expect(scrollIntoView).toHaveBeenCalledTimes(2);
 		});
+
+		test("given prefers-reduced-motion, keyboard focus scrolls without animation", async () => {
+			const user = userEvent.setup();
+			// Why `false`: `getPrefersReducedMotion` inverts the `no-preference` match, so a miss means reduced motion.
+			mockMatchMedia({ "(prefers-reduced-motion: no-preference)": false });
+			// Why a spy: happy-dom lays out nothing, so the `scrollIntoView` call is the
+			// only observable of the scroll.
+			const scrollIntoView = vi.spyOn(HTMLElement.prototype, "scrollIntoView");
+			render(
+				<Tabs.Root orientation="horizontal" defaultValue="a">
+					<Tabs.List>
+						<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>,
+			);
+
+			await user.tab();
+
+			expect(scrollIntoView).toHaveBeenCalledTimes(1);
+			expect(scrollIntoView).toHaveBeenLastCalledWith(
+				expect.objectContaining({ behavior: "auto" }),
+			);
+		});
+	});
+
+	describe("data-slot", () => {
+		type SlotCase = {
+			name: string;
+			slot: string;
+			render: (probe: { "data-slot": string; "data-testid": string }) => ReactNode;
+		};
+		// Every part joins an incoming `data-slot` chain ancestors-first, so an
+		// `asChild` ancestor's slot survives beside the part's own.
+		const cases: Array<SlotCase> = [
+			{
+				name: "Root",
+				slot: "tabs",
+				render: (probe) => <Tabs.Root defaultValue="a" {...probe} />,
+			},
+			{
+				name: "List",
+				slot: "tabs-list",
+				render: (probe) => (
+					<Tabs.Root defaultValue="a">
+						<Tabs.List {...probe} />
+					</Tabs.Root>
+				),
+			},
+			{
+				name: "Separator",
+				slot: "tabs-separator",
+				render: (probe) => (
+					<Tabs.Root defaultValue="a">
+						<Tabs.Separator {...probe} />
+					</Tabs.Root>
+				),
+			},
+			{
+				name: "Trigger",
+				slot: "tabs-trigger",
+				render: (probe) => (
+					<Tabs.Root defaultValue="a">
+						<Tabs.List>
+							<Tabs.Trigger value="a" {...probe}>
+								Tab A
+							</Tabs.Trigger>
+						</Tabs.List>
+					</Tabs.Root>
+				),
+			},
+			{
+				name: "Badge",
+				slot: "tabs-badge",
+				render: (probe) => (
+					<Tabs.Root defaultValue="a">
+						<Tabs.List>
+							<Tabs.Trigger value="a">
+								Tab A <Tabs.Badge {...probe}>5</Tabs.Badge>
+							</Tabs.Trigger>
+						</Tabs.List>
+					</Tabs.Root>
+				),
+			},
+			{
+				name: "Content",
+				slot: "tabs-content",
+				render: (probe) => (
+					<Tabs.Root defaultValue="a">
+						<Tabs.Content value="a" {...probe}>
+							Panel A
+						</Tabs.Content>
+					</Tabs.Root>
+				),
+			},
+		];
+
+		test.each(cases)(
+			"$name joins its slot after an ancestor's chain",
+			({ slot, render: renderPart }) => {
+				render(renderPart({ "data-slot": "shell", "data-testid": "part" }));
+				expect(screen.getByTestId("part")).toHaveAttribute("data-slot", `shell ${slot}`);
+			},
+		);
 	});
 
 	describe("Separator", () => {
@@ -238,6 +342,33 @@ describe("Tabs", () => {
 			// The inactive tab is not a Tab stop, so Tab leaves the list.
 			await user.tab();
 			expect(screen.getByRole("button", { name: "After" })).toHaveFocus();
+		});
+
+		test("asChild renders the child and merges the slot, classes, data attributes, and ref", () => {
+			const refSpy = vi.fn<(node: HTMLButtonElement | null) => void>();
+			render(
+				<Tabs.Root orientation="horizontal" defaultValue="a">
+					<Tabs.List>
+						<Tabs.Trigger
+							value="a"
+							asChild
+							className="tracking-wide"
+							data-testid="link"
+							ref={refSpy}
+						>
+							<a href="/a">Tab A</a>
+						</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>,
+			);
+
+			const link = screen.getByTestId("link");
+			expect(link.tagName).toBe("A");
+			expect(link).toHaveAttribute("role", "tab");
+			expect(link).toHaveAttribute("data-slot", "tabs-trigger");
+			expect(link).toHaveClass("tracking-wide");
+			expect(refSpy).toHaveBeenCalledTimes(1);
+			expect(refSpy).toHaveBeenLastCalledWith(link);
 		});
 
 		test("a disabled asChild link drops its href and cannot be activated", async () => {
