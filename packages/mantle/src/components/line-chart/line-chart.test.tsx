@@ -216,16 +216,16 @@ describe("LineChart.CopyButton", () => {
 
 	test("announces 'Copied' through an always-mounted live region after a copy", async () => {
 		const user = userEvent.setup();
-		render(
+		const { container } = render(
 			<LineChart.Root data={data} xKey="time" aria-label="Request latency">
 				<LineChart.Line dataKey="p50" label="p50" />
 				<LineChart.CopyButton />
 			</LineChart.Root>,
 		);
-		// The chart's keyboard announcer is a second status region; the copy
-		// region is the one that sits right after the button.
+		// Why the slot: the chart's keyboard announcer is a second `role="status"`. The
+		// copy button's region is the chart's only `LiveRegion`.
 		const button = screen.getByRole("button", { name: "Copy data as Markdown" });
-		const status = button.nextElementSibling;
+		const status = container.querySelector('[data-slot="live-region"]');
 		expect(status).toHaveAttribute("role", "status");
 		expect(status).toHaveTextContent("");
 

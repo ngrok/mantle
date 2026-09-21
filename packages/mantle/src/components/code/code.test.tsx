@@ -7,6 +7,7 @@ describe("Code", () => {
 	test("renders a code element with its data-slot", () => {
 		render(<Code data-testid="code">npm install</Code>);
 		const code = screen.getByTestId("code");
+		// Why tagName: the JSDoc promises a <code> element, so the element is the contract.
 		expect(code.tagName).toBe("CODE");
 		expect(code).toHaveAttribute("data-slot", "code");
 		expect(code).toHaveTextContent("npm install");
@@ -28,7 +29,7 @@ describe("Code", () => {
 	test("forwards ref to the underlying code element", () => {
 		const ref = createRef<HTMLElement>();
 		render(<Code ref={ref}>npm install</Code>);
-		expect(ref.current?.tagName).toBe("CODE");
+		expect(ref.current).toBe(screen.getByText("npm install"));
 	});
 
 	test('renders translate="no" so a translation engine skips the code', () => {

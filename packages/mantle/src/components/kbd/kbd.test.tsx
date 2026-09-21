@@ -7,6 +7,7 @@ describe("Kbd", () => {
 	test("renders a kbd element with its data-slot", () => {
 		render(<Kbd data-testid="kbd">K</Kbd>);
 		const kbd = screen.getByTestId("kbd");
+		// Why tagName: the JSDoc promises a <kbd> element, so the element is the contract.
 		expect(kbd.tagName).toBe("KBD");
 		expect(kbd).toHaveAttribute("data-slot", "kbd");
 		expect(kbd).toHaveTextContent("K");
@@ -28,7 +29,7 @@ describe("Kbd", () => {
 	test("forwards ref to the underlying kbd element", () => {
 		const ref = createRef<HTMLElement>();
 		render(<Kbd ref={ref}>K</Kbd>);
-		expect(ref.current?.tagName).toBe("KBD");
+		expect(ref.current).toBe(screen.getByText("K"));
 	});
 
 	test('renders translate="no" so a translation engine skips the key', () => {

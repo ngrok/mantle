@@ -6,6 +6,7 @@ describe("Label", () => {
 	test("renders a native label with data-slot", () => {
 		render(<Label>Email</Label>);
 		const label = screen.getByText("Email");
+		// Why tagName: the JSDoc promises a <label>, so the element is the contract.
 		expect(label.tagName).toBe("LABEL");
 		expect(label).toHaveAttribute("data-slot", "label");
 	});

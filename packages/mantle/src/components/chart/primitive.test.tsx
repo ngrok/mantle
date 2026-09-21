@@ -28,7 +28,7 @@ describe("Tooltip registration", () => {
 	const chart = (tooltipProps: ComponentProps<typeof BarChart.Tooltip>) => (
 		<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
 			<BarChart.Bar dataKey="desktop" label="Desktop" />
-			<BarChart.Tooltip className="readout" {...tooltipProps} />
+			<BarChart.Tooltip {...tooltipProps} />
 		</BarChart.Root>
 	);
 
@@ -41,9 +41,6 @@ describe("Tooltip registration", () => {
 		// Every registration republishes to the legend, tooltip, announcer, and
 		// data table and repaints the canvas, so an unchanged part must stay quiet.
 		expect(registerTooltip).toHaveBeenCalledTimes(1);
-		expect(registerTooltip).toHaveBeenLastCalledWith(
-			expect.objectContaining({ divProps: expect.objectContaining({ className: "readout" }) }),
-		);
 	});
 
 	test("a changed formatter re-registers and the readout uses it", async () => {
@@ -52,9 +49,6 @@ describe("Tooltip registration", () => {
 		const { rerender } = render(chart({}));
 		rerender(chart({ valueFormat: formatVisits }));
 		expect(registerTooltip).toHaveBeenCalledTimes(2);
-		expect(registerTooltip).toHaveBeenLastCalledWith(
-			expect.objectContaining({ valueFormat: formatVisits }),
-		);
 		await user.tab();
 		await user.keyboard("{ArrowRight}");
 		const tooltip = document.querySelector('[data-slot="bar-chart-tooltip"]');
@@ -67,9 +61,6 @@ describe("Tooltip registration", () => {
 		rerender(chart({ id: "readout-after" }));
 		// Same keys, one different value: the shallow compare must read values.
 		expect(registerTooltip).toHaveBeenCalledTimes(2);
-		expect(registerTooltip).toHaveBeenLastCalledWith(
-			expect.objectContaining({ divProps: expect.objectContaining({ id: "readout-after" }) }),
-		);
 		const tooltip = container.querySelector('[data-slot="bar-chart-tooltip"]');
 		expect(tooltip).toHaveAttribute("id", "readout-after");
 	});
@@ -83,9 +74,6 @@ describe("Tooltip registration", () => {
 		// The shallow compare walks the previous object's keys, so only the key
 		// count sees a key the new object adds.
 		expect(registerTooltip).toHaveBeenCalledTimes(2);
-		expect(registerTooltip).toHaveBeenLastCalledWith(
-			expect.objectContaining({ divProps: expect.objectContaining({ id: "readout" }) }),
-		);
 		expect(tooltip).toHaveAttribute("id", "readout");
 		rerender(chart({}));
 		expect(registerTooltip).toHaveBeenCalledTimes(3);

@@ -228,6 +228,7 @@ describe("Tabs", () => {
 
 			const tabA = screen.getByRole("tab", { name: "Tab A" });
 			const tabB = screen.getByRole("tab", { name: "Tab B" });
+			// Why tagName: the asChild swap renders the child element in place of the default.
 			expect(tabA.tagName).toBe("A");
 			expect(tabB).toHaveAttribute("tabindex", "-1");
 

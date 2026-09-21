@@ -40,14 +40,12 @@ it("renders the badge before the title", () => {
 						to: "/guides/one",
 						title: "One",
 						description: "The first guide.",
-						badge: <span data-testid="badge">0001</span>,
+						badge: <span>0001</span>,
 					},
 				]}
 			/>
 		</MemoryRouter>,
 	);
 
-	const badge = screen.getByTestId("badge");
-	const title = screen.getByText("One");
-	expect(badge.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+	expect(screen.getByRole("link").textContent).toBe("0001OneThe first guide.");
 });

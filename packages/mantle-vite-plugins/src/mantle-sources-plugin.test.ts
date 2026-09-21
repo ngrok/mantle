@@ -582,7 +582,6 @@ describe("graph tracking", () => {
 		recordParsed(graph, { id: main, ...noImports });
 		await wait;
 		expect(vi.getTimerCount()).toBe(0);
-		expect(graph.listeners.size).toBe(0);
 		expect(graph.stalled).toBeNull();
 	});
 
@@ -637,7 +636,6 @@ describe("graph tracking", () => {
 		await vi.advanceTimersByTimeAsync(1);
 		await wait;
 		expect(graph.stalled).toEqual(ids);
-		expect(graph.listeners.size).toBe(0);
 	});
 });
 

@@ -39,11 +39,11 @@ describe("react-router NavLink composed through asChild", () => {
 		const link = screen.getByRole("link", { name: "Endpoints" });
 
 		expect(link.classList.contains("font-medium")).toBe(true);
-		// `Sidebar.ItemButton`'s own base styles survive the composition...
-		expect(link.classList.contains("rounded-md")).toBe(true);
 		expect(link.getAttribute("data-slot")).toBe("sidebar-item-button");
-		// ...but the render prop keeps child-wins precedence over them: the part's
-		// base `font-normal` loses to the resolved `font-medium`.
+		// tailwind-merge override contract: the part's base classes land, and the
+		// render prop keeps child-wins precedence, so only the base `font-normal`
+		// loses to the resolved `font-medium`.
+		expect(link.classList.contains("rounded-md")).toBe(true);
 		expect(link.classList.contains("font-normal")).toBe(false);
 	});
 

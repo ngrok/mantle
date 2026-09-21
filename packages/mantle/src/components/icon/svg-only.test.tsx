@@ -6,11 +6,13 @@ import { SvgOnly } from "./svg-only.js";
 describe("SvgOnly", () => {
 	test("passes the svg className through", () => {
 		const { container } = render(<SvgOnly svg={<svg className="size-12 sm:size-16" />} />);
+		// The tailwind-merge contract: the svg's own classes survive the merge onto the part.
 		expect(container.firstChild).toHaveClass("size-12 sm:size-16");
 	});
 
 	test("passes the SvgOnly className through", () => {
 		const { container } = render(<SvgOnly className="size-20 sm:size-28" svg={<svg />} />);
+		// The tailwind-merge contract: the consumer's className survives the merge onto the svg.
 		expect(container.firstChild).toHaveClass("size-20 sm:size-28");
 	});
 

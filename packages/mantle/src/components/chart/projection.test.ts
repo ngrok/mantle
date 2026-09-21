@@ -1,12 +1,5 @@
 import { describe, expect, test } from "vitest";
-import {
-	clampPitch,
-	CUBE_CORNERS,
-	CUBE_EDGES,
-	normalizeToCube,
-	projectionMatrix,
-	projectPoint,
-} from "./projection.js";
+import { clampPitch, normalizeToCube, projectionMatrix, projectPoint } from "./projection.js";
 
 describe("projectPoint", () => {
 	test("the identity camera maps x/y through unchanged (up to perspective)", () => {
@@ -72,15 +65,4 @@ describe("normalizeToCube", () => {
 	test("a degenerate domain maps to the cube center", () => {
 		expect(normalizeToCube(5, [5, 5])).toBe(0);
 	});
-});
-
-test("the cube has 8 corners, 12 edges, and every edge endpoint indexes a corner", () => {
-	expect(CUBE_CORNERS).toHaveLength(8);
-	expect(CUBE_EDGES).toHaveLength(12);
-	for (const [from, to] of CUBE_EDGES) {
-		expect(from).toBeGreaterThanOrEqual(0);
-		expect(from).toBeLessThan(CUBE_CORNERS.length);
-		expect(to).toBeGreaterThanOrEqual(0);
-		expect(to).toBeLessThan(CUBE_CORNERS.length);
-	}
 });

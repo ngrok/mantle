@@ -44,11 +44,9 @@ describe("buildPath", () => {
 });
 
 describe("QrCode", () => {
-	test("Root renders a div with its data-slot", () => {
+	test("Root carries its data-slot", () => {
 		renderQrCode();
-		const root = screen.getByTestId("root");
-		expect(root.tagName).toBe("DIV");
-		expect(root).toHaveAttribute("data-slot", "qr-code");
+		expect(screen.getByTestId("root")).toHaveAttribute("data-slot", "qr-code");
 	});
 
 	test("a consumer className wins over the default tile background", () => {
@@ -77,11 +75,9 @@ describe("QrCode", () => {
 		expect(screen.getByTestId("root")).toHaveAttribute("data-analytics-id", "mfa-qr");
 	});
 
-	test("Frame renders an svg with its data-slot", () => {
+	test("Frame carries its data-slot", () => {
 		renderQrCode();
-		const frame = screen.getByTestId("frame");
-		expect(frame.tagName.toLowerCase()).toBe("svg");
-		expect(frame).toHaveAttribute("data-slot", "qr-code-frame");
+		expect(screen.getByTestId("frame")).toHaveAttribute("data-slot", "qr-code-frame");
 	});
 
 	test("Frame is an image named 'QR code' when no label is passed", () => {
@@ -126,7 +122,6 @@ describe("QrCode", () => {
 	test("Pattern renders the encoded modules at the default pixelSize and quietZone", () => {
 		renderQrCode();
 		const pattern = screen.getByTestId("pattern");
-		expect(pattern.tagName.toLowerCase()).toBe("path");
 		expect(pattern).toHaveAttribute("data-slot", "qr-code-pattern");
 		// Why this prefix: the default `quietZone` of 4 puts the top-left finder pattern
 		// at module (4, 4). The default `pixelSize` of 10 scales that to 40px.
@@ -203,7 +198,7 @@ describe("QrCode", () => {
 		},
 	);
 
-	test("Overlay renders a centered container with its children", () => {
+	test("Overlay renders its children with its data-slot", () => {
 		render(
 			<QrCode.Root value="https://ngrok.com">
 				<QrCode.Frame>
@@ -215,7 +210,6 @@ describe("QrCode", () => {
 			</QrCode.Root>,
 		);
 		const overlay = screen.getByTestId("overlay");
-		expect(overlay.tagName).toBe("DIV");
 		expect(overlay).toHaveAttribute("data-slot", "qr-code-overlay");
 		expect(overlay).toHaveTextContent("logo");
 	});
@@ -242,6 +236,8 @@ describe("QrCode", () => {
 			</QrCode.Root>,
 		);
 		const root = screen.getByTestId("root");
+		// Why tagName and the class check: the asChild swap renders the child element in
+		// place of the div, and the tailwind-merge contract puts the consumer's class on it.
 		expect(root.tagName).toBe("SECTION");
 		expect(root).toHaveAttribute("data-slot", "qr-code");
 		expect(root.className).toContain("custom-class");

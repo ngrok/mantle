@@ -399,7 +399,7 @@ the boundary above is about the component library.
 - No `*.test.*` under `app/routes/` — React Router treats that as route modules. Put route-behavior tests under the owning `app/features/*` area.
 - Business logic MUST be thoroughly tested, including edge cases (transformations, validation, conditional rendering, state machines, parsing/formatting).
 - Every bug fix adds a regression test that fails before the fix and passes after — unless genuinely infeasible (document why in the PR).
-- Test count is not a quality signal. One test that pins a real contract is worth more than five that render and check attributes. A case that reaches a branch a sibling already reaches is run time, not coverage; see [One test per branch](#one-test-per-branch).
+- Test count is not a quality signal. One test that pins a real contract is worth more than five that render and check attributes. A case that reaches a branch a sibling already reaches is run time, not coverage; see [One test per branch](#one-test-per-branch). A constant asserted against a copy of itself and a class string frozen by a regression test are the next two; see [No tautological tests, no change-detector tests](#no-tautological-tests-no-change-detector-tests).
 
 ### The bar: a test must be able to fail
 
@@ -416,6 +416,39 @@ Before a test is done, answer: **what single-line change to the implementation w
 - `@ts-expect-error` is owned by `pnpm typecheck`. Do not pair it with a placeholder runtime `expect` — that reads as coverage the vitest run does not have.
 - Spies assert count and arguments: `toHaveBeenCalledTimes(n)` plus `toHaveBeenLastCalledWith(…)`, not a bare `toHaveBeenCalled()`. A call-count-blind spy cannot see a debounce that stopped debouncing.
 - `oxlint`'s `vitest(expect-expect)` rule catches the assertion-free case only. Everything above is on you.
+
+### No tautological tests, no change-detector tests
+
+Both shapes have an answer to "what turns this red", and it is the wrong answer. An edit to the value the test copies turns them red; a wrong behavior does not. Name the wrong behavior the test catches. If the only answer is "the code changed", delete the test or rewrite it.
+
+**A tautological test asserts a constant against a copy of itself.** The shapes:
+
+- `expect(intentIcons).toEqual({ … })` or `expect(DEFAULT_DELAY).toBe(700)`.
+- `expect(SNIPPET).toContain("ngrok http 80")` on a fixed string.
+- A `test.each` over the keys of the table it reads them from.
+- `toBeTruthy()` on every entry of a `Record<Union, string>`.
+
+Nothing runs between the value and the assertion, so the test proves that the file parses. When the constant changes, the fix is to paste the new value into the test.
+
+- A constant, a config object, a lookup table, a preset, or an enum has no test of its own. Test the branch that reads it: the part that renders the icon, the guard that reads the flag, the formatter that embeds the unit.
+- A `cva` variant map or an intent table is a lookup mantle owns, so [One test per branch](#one-test-per-branch) gives it a test per key. That test renders the part and asserts what the key selects. It never compares the table to a literal copy.
+- A function that returns the same string for every input is a constant. Do not assert its substrings. Assert the branches of a function whose output changes with its input, and assert what changed.
+- A static string a part renders unconditionally falls under [One test per branch](#one-test-per-branch): no branch, no test. A `data-slot` and a role are API, not static copy, and stay.
+- A literal that another system depends on is a contract, not a tautology. Examples: a CSS variable a consumer's stylesheet reads, a `data-*` attribute a selector in another file matches, a storage key the FOUC script reads. Pin it once, on the value the code emits, with a comment that names the other side. [Pin the contracts that cross files](#pin-the-contracts-that-cross-files) has the in-repo version.
+
+**A change-detector test mirrors the implementation.** It turns red on any edit to the code it covers, not on a wrong behavior. The signals:
+
+- An exact class string or a design token, or a `not.toHaveClass`.
+- A `toEqual` on an internal shape, or a `toHaveBeenCalledWith` that repeats the whole object the code builds.
+- A `tagName`, a child count, or a count of internal calls.
+- The exact set of keys the source lists.
+
+Each refactor then costs a test update, and the team learns to make the test match instead of reading the failure. Regression tests are the usual source, because the reflex after a bug is to freeze the current output.
+
+- Assert through the surface a user or a caller sees: text, role, accessible name, ARIA state, a documented data attribute, a return value, a callback's arguments. A rename, a re-order, a token swap, or an extracted helper that keeps that surface leaves every test green.
+- A regression test asserts the symptom the bug produced: the wrong string, the missing element, the stolen focus. It never asserts the internal state the fix touched.
+- A literal output is not a change detector when the literal is the contract. Examples: the formatted number, the rendered copy, the emitted `data-slot`, the generated `<script>` string. [Assert behavior, not styling internals](#assert-behavior-not-styling-internals) owns the class-string case and its three exceptions, and names where `tagName` and document order are mantle's contract.
+- `toEqual` reads both ways. Compare a returned object against the literal a caller depends on. Never compare it against the same object imported from the module under test.
 
 ### One test per branch
 

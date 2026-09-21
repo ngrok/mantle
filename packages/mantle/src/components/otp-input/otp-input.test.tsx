@@ -73,13 +73,6 @@ describe("OtpInput", () => {
 	});
 
 	describe("compound parts", () => {
-		test("Group renders a div by default", () => {
-			const { container } = renderOtp();
-
-			const groups = container.querySelectorAll('[data-slot="otp-input-group"]');
-			expect(Array.from(groups, (group) => group.tagName)).toEqual(["DIV", "DIV"]);
-		});
-
 		test("Group asChild renders the child element instead of a div", () => {
 			render(
 				<OtpInput.Root maxLength={1} aria-label="otp">
@@ -92,6 +85,7 @@ describe("OtpInput", () => {
 			);
 
 			const customGroup = screen.getByTestId("custom-group");
+			// Why tagName: the asChild swap renders the child element in place of the default.
 			expect(customGroup.tagName).toBe("SECTION");
 			expect(customGroup).toHaveAttribute("data-slot", "otp-input-group");
 		});

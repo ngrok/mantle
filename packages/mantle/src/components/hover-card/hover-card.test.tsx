@@ -25,7 +25,6 @@ describe("HoverCard", () => {
 
 			expect(await screen.findByText("The Design System")).toBeInTheDocument();
 			const arrow = document.querySelector("[data-slot='hover-card-arrow']");
-			expect(arrow?.tagName).toBe("svg");
 			expect(arrow).toHaveAttribute("aria-hidden", "true");
 		});
 
