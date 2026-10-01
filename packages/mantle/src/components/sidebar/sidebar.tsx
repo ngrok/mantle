@@ -16,7 +16,6 @@ import invariant from "tiny-invariant";
 import { useCallbackRef } from "../../hooks/use-callback-ref.js";
 import { useIsBelowBreakpoint } from "../../hooks/use-breakpoint.js";
 import { useIsApplePlatform } from "../../hooks/use-is-apple-platform.js";
-import { useIsHydrated } from "../../hooks/use-is-hydrated.js";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
@@ -45,16 +44,16 @@ import { Tooltip } from "../tooltip/index.js";
 type SidebarMobileBreakpoint = "sm" | "md" | "lg";
 
 /**
- * Maps each supported `mobileBreakpoint` to the static visibility classes that
- * hide the desktop panel below the breakpoint. Applied only until hydration —
- * the server cannot know the viewport, and after hydration `isMobile` picks the
+ * Maps each supported `mobileBreakpoint` to the static visibility class that
+ * hides the desktop panel below the breakpoint until hydration. The server
+ * cannot know the viewport, and after hydration `isMobile` picks the
  * presentation on its own (see `Sidebar.Nav`). A complete `Record` (not cva) so
- * adding a breakpoint without its classes is a compile error.
+ * adding a breakpoint without its class is a compile error.
  */
 const navVisibilityClassName: Record<SidebarMobileBreakpoint, string> = {
-	sm: "not-data-hydrated:hidden sm:not-data-hydrated:block",
-	md: "not-data-hydrated:hidden md:not-data-hydrated:block",
-	lg: "not-data-hydrated:hidden lg:not-data-hydrated:block",
+	sm: "max-sm:not-data-hydrated:hidden",
+	md: "max-md:not-data-hydrated:hidden",
+	lg: "max-lg:not-data-hydrated:hidden",
 };
 
 /**
@@ -535,7 +534,7 @@ type SidebarNavProps = ComponentProps<"div"> & WithDataSlot;
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
  * | `data-state` | `"expanded"` \| `"collapsed"` | On the desktop panel surface. Mirrors the root's expanded state and drives the width collapse to the icon rail; descendant parts style off it with `group-data-[state=collapsed]/sidebar-nav:`. |
- * | `data-hydrated` | present after hydration | Presence-only, desktop panel surface. The panel's pre-hydration visibility gate, its width transition, and descendant collapse transitions all key off it in CSS (`not-data-hydrated:`, `data-hydrated:`, `group-data-hydrated/sidebar-nav:`), so an SSR state correction snaps instead of animating on page load. |
+ * | `data-hydrated` | present one frame after hydration | Presence-only, desktop panel surface. The panel's pre-hydration visibility gate, its width transition, and descendant collapse transitions all key off its absence in CSS (`not-data-hydrated:`, `group-not-data-hydrated/sidebar-nav:`). The stamp waits one frame, so an SSR state correction paints first and snaps instead of animating on page load. |
  * | `data-mobile` | present in the mobile sheet | Presence-only. Marks the `Sheet.Content` presentation used below the root's `mobileBreakpoint`. |
  * | `data-state` | `"open"` \| `"closed"` | In the mobile sheet only, where the panel *is* the `Sheet`'s Radix dialog content element and Radix owns the attribute — the sheet's open/close animation state, not the desktop expanded state. Consumers style against it too. |
  *
@@ -601,7 +600,19 @@ const Nav = ({
 }: SidebarNavProps) => {
 	const { isMobile, mobileBreakpoint, navId, open, openMobile, setOpenMobile } =
 		useSidebarContext("Nav");
-	const isHydrated = useIsHydrated();
+	// Why a frame after mount: a `useLocalStorage` correction commits in the
+	// hydration flush, and CSS starts a transition from the after-change style,
+	// so a stamp in that commit animates the collapse. The next frame paints the
+	// correction first, so the stamp lands on a settled width.
+	const [isHydrated, setIsHydrated] = useState(false);
+	useEffect(() => {
+		const frame = requestAnimationFrame(() => {
+			setIsHydrated(true);
+		});
+		return () => {
+			cancelAnimationFrame(frame);
+		};
+	}, []);
 	const ariaLabel = ariaLabelProp ?? (ariaLabelledBy == null ? "Main" : undefined);
 
 	if (isMobile) {
@@ -641,7 +652,6 @@ const Nav = ({
 	return (
 		<div
 			data-slot={joinDataSlot(dataSlot, "sidebar-nav")}
-			data-state={open ? "expanded" : "collapsed"}
 			className={cx(
 				// bg lives on this surface (not the inner nav) so consumer
 				// className overrides like `bg-card` take effect on desktop too.
@@ -652,22 +662,26 @@ const Nav = ({
 				// Why a pre-hydration gate: the server cannot know the viewport, so CSS
 				// hides the desktop panel below the breakpoint until `data-hydrated`
 				// lands and `isMobile` takes over.
-				// Why it releases on hydration: Tailwind's `min-width` variant and the
-				// hook's `max-width` query differ by 0.01rem, so a held gate leaves a
-				// sliver of widths where CSS hides the panel and no mobile sheet exists.
+				// Why `max-*`: it asserts no display above the breakpoint, so a consumer
+				// display utility holds there before hydration too.
+				// Why it releases on hydration: Tailwind's `max-*` range and the hook's
+				// `max-width` query differ by 0.01rem, so a held gate leaves a sliver
+				// of widths where CSS hides the panel and no mobile sheet exists.
 				navVisibilityClassName[mobileBreakpoint],
-				// Why gate the transition on data-hydrated: an SSR state correction
-				// (persisted-collapsed applied by a controlled `open`) must snap, not
-				// animate shut on page load.
-				"data-hydrated:transition-[width] data-hydrated:duration-200 data-hydrated:ease-linear data-hydrated:motion-reduce:transition-none",
+				// Why one negated gate: an SSR state correction must snap, not animate
+				// shut on page load, and bare utilities let a consumer `transition-none`
+				// or `duration-*` override the default through tailwind-merge.
+				"transition-[width] duration-200 ease-linear motion-reduce:transition-none not-data-hydrated:transition-none",
 				className,
 			)}
 			{...props}
+			// Why after the spread: a wider props object can carry `data-state` or
+			// `data-hydrated` past the type, and a consumer value would desync the
+			// collapse from `open` or release the gate.
+			data-state={open ? "expanded" : "collapsed"}
 			// Why data-hydrated: the first-paint gates above and the descendants'
 			// collapse transitions key off this attribute in CSS, so an SSR state
 			// correction snaps instead of animating.
-			// Why after the spread: a wider props object can carry `data-hydrated`
-			// past the type, and a consumer value would release or hold the gate.
 			data-hydrated={isHydrated ? "" : undefined}
 		>
 			<nav
@@ -1454,10 +1468,10 @@ const GroupLabel = ({
 				// snaps instead of animating on page load.
 				"group-data-[state=collapsed]/sidebar-nav:opacity-0",
 				"group-data-[state=collapsed]/sidebar-nav:pointer-events-none",
-				// motion-reduce must carry the same group gate: the gated
-				// transition rule's selector outranks a bare motion-reduce
-				// override (0,2,0 vs 0,1,0), so an ungated one would lose.
-				"group-data-hydrated/sidebar-nav:transition-opacity group-data-hydrated/sidebar-nav:duration-200 group-data-hydrated/sidebar-nav:ease-linear group-data-hydrated/sidebar-nav:motion-reduce:transition-none",
+				// Why one negated gate: bare utilities let a consumer `transition-none`
+				// or `duration-*` override the default through tailwind-merge, and the
+				// `motion-reduce` rule wins on order at equal specificity.
+				"transition-opacity duration-200 ease-linear motion-reduce:transition-none group-not-data-hydrated/sidebar-nav:transition-none",
 				className,
 			)}
 			{...props}
@@ -2589,7 +2603,7 @@ const Sidebar = {
 	 * | Data Attribute | Value | Description |
 	 * | --- | --- | --- |
 	 * | `data-state` | `"expanded"` \| `"collapsed"` | On the desktop panel surface. Mirrors the root's expanded state and drives the width collapse to the icon rail; descendant parts style off it with `group-data-[state=collapsed]/sidebar-nav:`. |
-	 * | `data-hydrated` | present after hydration | Presence-only, desktop panel surface. The panel's pre-hydration visibility gate, its width transition, and descendant collapse transitions all key off it in CSS (`not-data-hydrated:`, `data-hydrated:`, `group-data-hydrated/sidebar-nav:`), so an SSR state correction snaps instead of animating on page load. |
+	 * | `data-hydrated` | present one frame after hydration | Presence-only, desktop panel surface. The panel's pre-hydration visibility gate, its width transition, and descendant collapse transitions all key off its absence in CSS (`not-data-hydrated:`, `group-not-data-hydrated/sidebar-nav:`). The stamp waits one frame, so an SSR state correction paints first and snaps instead of animating on page load. |
 	 * | `data-mobile` | present in the mobile sheet | Presence-only. Marks the `Sheet.Content` presentation used below the root's `mobileBreakpoint`. |
 	 * | `data-state` | `"open"` \| `"closed"` | In the mobile sheet only, where the panel *is* the `Sheet`'s Radix dialog content element and Radix owns the attribute — the sheet's open/close animation state, not the desktop expanded state. Consumers style against it too. |
 	 *

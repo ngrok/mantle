@@ -538,23 +538,24 @@ describe("Sidebar collapse", () => {
 		expect(screen.getByRole("navigation", { name: "Main" })).toHaveTextContent("content");
 	});
 
-	test("the desktop panel emits data-hydrated once client rendering settles", () => {
-		// data-hydrated is the CSS gate that lets descendant collapse
-		// transitions (e.g. GroupLabel's) snap instead of animating when an SSR
-		// state correction lands on load. In a client test, effects have run by
-		// the time we assert, so the attribute must be present.
+	test("the desktop panel stamps data-hydrated one frame after mount, not in the mount commit", async () => {
+		// Why a frame: a persisted-state correction commits in the mount flush, and
+		// the transition rules key off the attribute, so a same-commit stamp animates it.
 		render(
 			<Sidebar.Root>
 				<Sidebar.Nav data-testid="nav" />
 			</Sidebar.Root>,
 		);
-		expect(screen.getByTestId("nav")).toHaveAttribute("data-hydrated");
+		const nav = screen.getByTestId("nav");
+		expect(nav).not.toHaveAttribute("data-hydrated");
+		await waitFor(() => {
+			expect(nav).toHaveAttribute("data-hydrated", "");
+		});
 	});
 
-	test("the group label's fade and its motion-reduce opt-out follow the nav's hydration gate", () => {
-		// Why cross-part pin: the label's gated variants match only the nav's group
-		// name and its data-hydrated attribute. The gated transition rule outranks a
-		// bare motion-reduce override (0,2,0 vs 0,1,0), so the opt-out needs the gate too.
+	test("the group label's fade gate matches the nav's group name and data-hydrated", async () => {
+		// Why cross-part pin: the label's negated variant matches only the nav's
+		// group name and the absence of the attribute the nav stamps a frame later.
 		render(
 			<Sidebar.Root>
 				<Sidebar.Nav data-testid="nav">
@@ -567,11 +568,12 @@ describe("Sidebar collapse", () => {
 			</Sidebar.Root>,
 		);
 		const nav = screen.getByTestId("nav");
-		expect(nav).toHaveAttribute("data-hydrated");
 		expect(nav).toHaveClass("group/sidebar-nav");
+		await waitFor(() => {
+			expect(nav).toHaveAttribute("data-hydrated", "");
+		});
 		expect(screen.getByTestId("label")).toHaveClass(
-			"group-data-hydrated/sidebar-nav:transition-opacity",
-			"group-data-hydrated/sidebar-nav:motion-reduce:transition-none",
+			"group-not-data-hydrated/sidebar-nav:transition-none",
 		);
 	});
 });
@@ -592,9 +594,7 @@ describe("Sidebar.Nav first paint", () => {
 			// Why the class: `mobileBreakpoint` selects one entry of a lookup, and the
 			// class is that entry's only observable in the server HTML. Tailwind cannot
 			// see an interpolated class name, so the lookup is a complete Record.
-			expect(html).toContain(
-				`not-data-hydrated:hidden ${mobileBreakpoint}:not-data-hydrated:block`,
-			);
+			expect(html).toContain(`max-${mobileBreakpoint}:not-data-hydrated:hidden`);
 			expect(html).not.toContain("data-hydrated=");
 		},
 	);
@@ -610,23 +610,16 @@ describe("Sidebar.Nav first paint", () => {
 		expect(html).not.toContain("data-hydrated=");
 	});
 
-	test("stamps data-hydrated only after mount, so the CSS-gated transition snaps on an SSR state correction", () => {
+	test("keeps data-state its own when a call site passes it", () => {
+		// Why: the collapse width and every descendant's collapsed styles key off
+		// the attribute in CSS, so a consumer value would desync them from `open`.
 		const html = renderToString(
 			<Sidebar.Root defaultOpen={false}>
-				<Sidebar.Nav />
+				<Sidebar.Nav data-state="expanded" />
 			</Sidebar.Root>,
 		);
-		// The server paints the persisted state, so there is no first-frame
-		// correction to hide and nothing may animate on load.
 		expect(html).toContain('data-state="collapsed"');
-		expect(html).not.toContain("data-hydrated=");
-
-		render(
-			<Sidebar.Root defaultOpen={false}>
-				<Sidebar.Nav data-testid="nav" />
-			</Sidebar.Root>,
-		);
-		expect(screen.getByTestId("nav")).toHaveAttribute("data-hydrated", "");
+		expect(html).not.toContain('data-state="expanded"');
 	});
 });
 
