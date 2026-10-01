@@ -14,6 +14,8 @@ type DescriptionListProps = ComponentProps<"dl"> & WithAsChild & WithDataSlot;
  * A semantically correct description list built on the HTML `<dl>` element.
  * Renders a list of label/value pairs with alternating row backgrounds,
  * commonly used in detail views to display metadata about a resource.
+ * The value column has a `0` minimum width, so a value that truncates or
+ * wraps stays inside the row instead of widening the list.
  *
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
@@ -47,7 +49,7 @@ const Root = ({
 			ref={ref}
 			data-slot={joinDataSlot(dataSlot, "description-list")}
 			className={cx(
-				"relative scrollbar overflow-x-auto overscroll-x-none rounded-lg border border-card grid grid-cols-[auto_1fr] gap-x-4 [&>*:nth-child(odd)]:bg-neutral-500/5 p-1",
+				"relative scrollbar overflow-x-auto overscroll-x-none rounded-lg border border-card grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 [&>*:nth-child(odd)]:bg-neutral-500/5 p-1",
 				className,
 			)}
 			{...rest}
@@ -232,6 +234,8 @@ const DescriptionList = {
 	 * A semantically correct description list built on the HTML `<dl>` element.
 	 * Renders a list of label/value pairs with alternating row backgrounds,
 	 * commonly used in detail views to display metadata about a resource.
+	 * The value column has a `0` minimum width, so a value that truncates or
+	 * wraps stays inside the row instead of widening the list.
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/description-list#descriptionlistroot
 	 *
