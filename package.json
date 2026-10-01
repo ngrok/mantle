@@ -29,15 +29,15 @@
     "@changesets/cli": "3.0.3",
     "@types/node": "catalog:",
     "husky": "9.1.7",
-    "lint-staged": "17.5.1",
+    "lint-staged": "17.6.0",
     "oxfmt": "catalog:",
-    "oxlint": "1.83.0",
+    "oxlint": "1.86.0",
     "tsx": "catalog:",
-    "turbo": "2.10.13",
-    "vitest": "5.0.1"
+    "turbo": "2.11.6",
+    "vitest": "5.0.3"
   },
   "engines": {
     "node": "^24.0.0"
   },
-  "packageManager": "pnpm@12.4.2"
+  "packageManager": "pnpm@12.8.2"
 }

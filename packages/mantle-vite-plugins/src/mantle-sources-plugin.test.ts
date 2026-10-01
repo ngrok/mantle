@@ -111,6 +111,11 @@ function captureLogger(): { logger: ReturnType<typeof createLogger>; logs: Captu
 		logs.info.push(message);
 	};
 	logger.warn = (message) => {
+		// Why: rolldown 1.2.9+ warns once per bundled Radix module that opens with "use client".
+		// The plugin under test does not own those files, so the fixture drops the noise.
+		if (message.includes("[MODULE_LEVEL_DIRECTIVE]")) {
+			return;
+		}
 		logs.warn.push(message);
 	};
 	logger.warnOnce = logger.warn;

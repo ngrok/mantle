@@ -84,19 +84,6 @@ If you prefer to manage Node and pnpm yourself, match the committed pins:
 2. Install pnpm at the version pinned in `package.json#packageManager`: `npm install --global "pnpm@$(./scripts/package-manager-version)"`.
 3. Install workspace dependencies: `pnpm install --frozen-lockfile`.
 
-> [!NOTE]
-> On an Intel Mac, `mise install` fails on pnpm. The [aqua registry entry](https://github.com/aquaproj/aqua-registry/blob/main/pkgs/pnpm/pnpm/registry.yaml) that mise uses has no macOS x64 build. Keep the rest of the mise toolchain with a gitignored `mise.local.toml` that swaps pnpm to the npm backend:
->
-> ```toml
-> [settings]
-> disable_tools = ["aqua:pnpm/pnpm"]
->
-> [tools]
-> "npm:pnpm" = { version = "{{ exec(command='./scripts/package-manager-version') }}", allow_builds = ["pnpm"] }
-> ```
->
-> `allow_builds` lets pnpm's install script link its native binary. Without it the install leaves a placeholder that fails under Node.
-
 ### Bumping Node or pnpm
 
 Tool versions are pinned in `.nvmrc` (Node) and `package.json#packageManager` (pnpm); resolved entries with download URLs and SHA256 checksums are locked in `mise.lock`. `mise.toml` sets `[settings] lockfile = true` so installs record into `mise.lock`. CI enforces that the committed lockfile stays in sync with the source pins.
