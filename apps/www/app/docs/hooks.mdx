@@ -22,6 +22,7 @@ Custom React hooks exported from `@ngrok/mantle/hooks`.
 | `useDebounce`               | Returns a debounced copy of a value that updates after changes pause.                   |
 | `useDebouncedCallback`      | Creates a debounced version of a callback function.                                     |
 | `useIsHydrated`             | Returns whether the component tree has been hydrated on the client.                     |
+| `useIsHydratedAfterPaint`   | `true` from the first animation frame after hydration, for CSS transition gates.        |
 | `useIsomorphicLayoutEffect` | Uses `useLayoutEffect` on the client and `useEffect` on the server.                     |
 | `useLocalStorage`           | SSR-safe localStorage string state, synced across hook instances and tabs.              |
 | `useSessionStorage`         | SSR-safe sessionStorage string state for per-tab persistence.                           |
@@ -177,7 +178,7 @@ function SearchInput() {
 const isHydrated = useIsHydrated();
 ```
 
-Returns whether the component tree has been hydrated on the client. Returns `false` on the server and `true` after hydration on the client. Uses `useSyncExternalStore` to prevent hydration mismatches.
+Returns whether the component tree has been hydrated on the client. Returns `false` on the server and `true` after hydration on the client. Uses `useSyncExternalStore` to prevent hydration mismatches. To gate a CSS transition on a post-hydration state correction, use [`useIsHydratedAfterPaint`](#useishydratedafterpaint) instead. This hook flips in the same commit as the correction, so the transition runs.
 
 ```tsx
 import { useIsHydrated } from "@ngrok/mantle/hooks";
@@ -189,6 +190,33 @@ function ClientOnly({ children }: PropsWithChildren) {
 		return <span style={{ visibility: "hidden" }}>Loading…</span>;
 	}
 	return <>{children}</>;
+}
+```
+
+## useIsHydratedAfterPaint
+
+```tsx
+const isHydrated = useIsHydratedAfterPaint();
+```
+
+Returns `false` on the server, in the hydration render, and in the mount commit, then `true` from the next animation frame.
+
+Use it to gate a CSS transition that must not run on a post-hydration state correction. `useIsHydrated` flips in the hydration commit. A [`useLocalStorage`](#uselocalstorage) or any other `useSyncExternalStore` correction lands in that same commit. CSS starts a transition from the commit's after-change style, so the transition runs. One frame later the correction has painted, so a gate keyed on this result opens on settled values. For every other client-only branch, `useIsHydrated` is the right hook: it costs no extra render.
+
+```tsx
+import { useIsHydratedAfterPaint, useLocalStorage } from "@ngrok/mantle/hooks";
+
+function Panel() {
+	const [state] = useLocalStorage("panel-state", "expanded");
+	const isHydrated = useIsHydratedAfterPaint();
+	// A persisted-collapsed panel snaps on load and animates on every later toggle.
+	return (
+		<div
+			data-state={state}
+			data-hydrated={isHydrated ? "" : undefined}
+			className="w-52 transition-[width] data-[state=collapsed]:w-13 not-data-hydrated:transition-none"
+		/>
+	);
 }
 ```
 

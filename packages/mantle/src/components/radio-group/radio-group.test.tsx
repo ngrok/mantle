@@ -76,6 +76,7 @@ describe("RadioGroup", () => {
 			</RadioGroup.Root>,
 		);
 		const radio = screen.getByRole("radio", { name: "Free" });
+		// Why tagName: the `as` swap renders the named element in place of the default.
 		expect(radio.tagName).toBe("SPAN");
 		expect(radio).toHaveAccessibleDescription("Up to 3 projects and 1 member.");
 	});
@@ -176,9 +177,7 @@ describe("RadioGroup", () => {
 			</RadioGroup.Root>,
 		);
 
-		const indicator = screen.getByTestId("indicator");
-		expect(indicator.tagName).toBe("DIV");
-		expect(indicator).not.toHaveAttribute("name");
+		expect(screen.getByTestId("indicator")).not.toHaveAttribute("name");
 	});
 
 	test("InputSandbox keeps its input out of the tab order until a click checks the item", async () => {

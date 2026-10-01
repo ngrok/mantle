@@ -568,7 +568,7 @@ describe("graph tracking", () => {
 		expect(pendingIds(graph)).toEqual([]);
 	});
 
-	test("resolves once the last pending module parses and leaves no timer behind", async () => {
+	test("resolves once the last pending module parses and leaves no timer or listener behind", async () => {
 		vi.useFakeTimers();
 		const graph = createClientGraph();
 		recordLoad(graph, main);
@@ -582,6 +582,8 @@ describe("graph tracking", () => {
 		recordParsed(graph, { id: main, ...noImports });
 		await wait;
 		expect(vi.getTimerCount()).toBe(0);
+		// Why the listener count: a listener the wait leaves behind runs on every
+		// later graph event, so a long build leaks one closure per iteration.
 		expect(graph.listeners.size).toBe(0);
 		expect(graph.stalled).toBeNull();
 	});
@@ -617,7 +619,7 @@ describe("graph tracking", () => {
 		expect(graph.stalled).toBeNull();
 	});
 
-	test("gives up after the idle limit, records the pending modules, and resolves", async () => {
+	test("gives up after the idle limit, records the pending modules, and drops its listener", async () => {
 		vi.useFakeTimers();
 		const graph = createClientGraph();
 		const ids = Array.from(

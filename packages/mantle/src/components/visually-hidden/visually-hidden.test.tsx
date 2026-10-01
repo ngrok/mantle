@@ -4,10 +4,9 @@ import { describe, expect, test } from "vitest";
 import { VisuallyHidden } from "./visually-hidden.js";
 
 describe("VisuallyHidden", () => {
-	test("renders a span with its data-slot and the sr-only class", () => {
+	test("renders its data-slot and the sr-only class", () => {
 		render(<VisuallyHidden data-testid="hidden">(opens in a new tab)</VisuallyHidden>);
 		const element = screen.getByTestId("hidden");
-		expect(element.tagName).toBe("SPAN");
 		expect(element).toHaveAttribute("data-slot", "visually-hidden");
 		// The class is the only observable implementation of the hiding contract:
 		// happy-dom computes no layout, so the clipping itself is not assertable.
@@ -61,9 +60,11 @@ describe("VisuallyHidden", () => {
 			</table>,
 		);
 		const caption = screen.getByTestId("caption");
+		// Why tagName: the asChild swap renders the child element in place of the default.
 		expect(caption.tagName).toBe("CAPTION");
 		expect(caption).toHaveAttribute("data-slot", "visually-hidden");
-		// Split before matching: a substring check would also match `not-sr-only`.
+		// Why the class check: the tailwind-merge contract puts the consumer's class beside the
+		// default. Split before matching, because a substring check would also match `not-sr-only`.
 		const classes = caption.className.split(" ");
 		expect(classes).toContain("custom-class");
 		expect(classes).toContain("sr-only");

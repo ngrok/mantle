@@ -538,23 +538,24 @@ describe("Sidebar collapse", () => {
 		expect(screen.getByRole("navigation", { name: "Main" })).toHaveTextContent("content");
 	});
 
-	test("the desktop panel emits data-hydrated once client rendering settles", () => {
-		// data-hydrated is the CSS gate that lets descendant collapse
-		// transitions (e.g. GroupLabel's) snap instead of animating when an SSR
-		// state correction lands on load. In a client test, effects have run by
-		// the time we assert, so the attribute must be present.
+	test("the desktop panel stamps data-hydrated one frame after mount, not in the mount commit", async () => {
+		// Why a frame: a persisted-state correction commits in the mount flush, and
+		// the transition rules key off the attribute, so a same-commit stamp animates it.
 		render(
 			<Sidebar.Root>
 				<Sidebar.Nav data-testid="nav" />
 			</Sidebar.Root>,
 		);
-		expect(screen.getByTestId("nav")).toHaveAttribute("data-hydrated");
+		const nav = screen.getByTestId("nav");
+		expect(nav).not.toHaveAttribute("data-hydrated");
+		await waitFor(() => {
+			expect(nav).toHaveAttribute("data-hydrated", "");
+		});
 	});
 
-	test("the group label's fade and its motion-reduce opt-out follow the nav's hydration gate", () => {
-		// Why cross-part pin: the label's gated variants match only the nav's group
-		// name and its data-hydrated attribute. The gated transition rule outranks a
-		// bare motion-reduce override (0,2,0 vs 0,1,0), so the opt-out needs the gate too.
+	test("the group label's fade gate matches the nav's group name and data-hydrated", async () => {
+		// Why cross-part pin: the label's negated variant matches only the nav's
+		// group name and the absence of the attribute the nav stamps a frame later.
 		render(
 			<Sidebar.Root>
 				<Sidebar.Nav data-testid="nav">
@@ -567,11 +568,12 @@ describe("Sidebar collapse", () => {
 			</Sidebar.Root>,
 		);
 		const nav = screen.getByTestId("nav");
-		expect(nav).toHaveAttribute("data-hydrated");
 		expect(nav).toHaveClass("group/sidebar-nav");
+		await waitFor(() => {
+			expect(nav).toHaveAttribute("data-hydrated", "");
+		});
 		expect(screen.getByTestId("label")).toHaveClass(
-			"group-data-hydrated/sidebar-nav:transition-opacity",
-			"group-data-hydrated/sidebar-nav:motion-reduce:transition-none",
+			"group-not-data-hydrated/sidebar-nav:transition-none",
 		);
 	});
 });
@@ -589,65 +591,35 @@ describe("Sidebar.Nav first paint", () => {
 					<Sidebar.Nav />
 				</Sidebar.Root>,
 			);
-			// Static strings, one per breakpoint: Tailwind cannot see an interpolated
-			// class name, so the mapping is a complete Record rather than a template.
-			expect(html).toContain(`hidden ${mobileBreakpoint}:block`);
+			// Why the class: `mobileBreakpoint` selects one entry of a lookup, and the
+			// class is that entry's only observable in the server HTML. Tailwind cannot
+			// see an interpolated class name, so the lookup is a complete Record.
+			expect(html).toContain(`max-${mobileBreakpoint}:not-data-hydrated:hidden`);
+			expect(html).not.toContain("data-hydrated=");
 		},
 	);
 
-	test("drops the visibility gate once hydrated, so no sliver of widths is unreachable", () => {
-		// After hydration `isMobile` is authoritative. Keeping the CSS gate would
-		// leave a sliver (Tailwind's min-width variant vs the hook's max-width query
-		// differ by 0.01rem) where the desktop panel renders, CSS hides it, and no
-		// mobile sheet exists — navigation unreachable.
-		render(
-			<Sidebar.Root mobileBreakpoint="lg">
-				<Sidebar.Nav data-testid="nav" />
-			</Sidebar.Root>,
-		);
-		const nav = screen.getByTestId("nav");
-		expect(nav).not.toHaveClass("hidden");
-		expect(nav).not.toHaveClass("lg:block");
-	});
-
-	test("gates the collapse transition on hydration so an SSR state correction snaps", () => {
-		const html = renderToString(
-			<Sidebar.Root defaultOpen={false}>
-				<Sidebar.Nav />
-			</Sidebar.Root>,
-		);
-		// The server already paints the persisted state — there is no first-frame
-		// correction to hide — and it must not animate into it on load.
-		expect(html).toContain('data-state="collapsed"');
-		expect(html).not.toContain("transition-[width]");
-		expect(html).not.toContain("data-hydrated");
-
-		render(
-			<Sidebar.Root defaultOpen={false}>
-				<Sidebar.Nav data-testid="nav" />
-			</Sidebar.Root>,
-		);
-		const nav = screen.getByTestId("nav");
-		expect(nav).toHaveAttribute("data-hydrated", "");
-		expect(nav).toHaveClass("transition-[width]");
-	});
-
-	test("keeps the group label's fade gated on the nav's data-hydrated", () => {
+	test("keeps data-hydrated its own when a call site passes it", () => {
+		// Why: the visibility gate keys off the attribute in CSS, so a consumer
+		// value would show the desktop panel on a narrow screen before hydration.
 		const html = renderToString(
 			<Sidebar.Root>
-				<Sidebar.Nav>
-					<Sidebar.Body>
-						<Sidebar.Group>
-							<Sidebar.GroupLabel>Traffic</Sidebar.GroupLabel>
-						</Sidebar.Group>
-					</Sidebar.Body>
-				</Sidebar.Nav>
+				<Sidebar.Nav data-hydrated="" />
 			</Sidebar.Root>,
 		);
-		// The label's own transition is gated in CSS rather than in JS, so it ships
-		// in the server markup but only fires once the nav stamps data-hydrated.
-		expect(html).toContain("group-data-hydrated/sidebar-nav:transition-opacity");
 		expect(html).not.toContain("data-hydrated=");
+	});
+
+	test("keeps data-state its own when a call site passes it", () => {
+		// Why: the collapse width and every descendant's collapsed styles key off
+		// the attribute in CSS, so a consumer value would desync them from `open`.
+		const html = renderToString(
+			<Sidebar.Root defaultOpen={false}>
+				<Sidebar.Nav data-state="expanded" />
+			</Sidebar.Root>,
+		);
+		expect(html).toContain('data-state="collapsed"');
+		expect(html).not.toContain('data-state="expanded"');
 	});
 });
 
@@ -780,12 +752,15 @@ describe("Sidebar.Nav (mobile)", () => {
 	});
 
 	test("defaults the media query to the lg breakpoint", () => {
+		// Why per-breakpoint mock: a default that queries another breakpoint renders
+		// the desktop panel, not the sheet.
+		useIsBelowBreakpointMock.mockImplementation((breakpoint) => breakpoint === "lg");
 		render(
-			<Sidebar.Root>
-				<Sidebar.Nav />
+			<Sidebar.Root openMobile>
+				<Sidebar.Nav>content</Sidebar.Nav>
 			</Sidebar.Root>,
 		);
-		expect(useIsBelowBreakpointMock).toHaveBeenCalledWith("lg");
+		expect(screen.getByRole("dialog", { name: "Main" })).toBeInTheDocument();
 	});
 
 	test("clears a stale open sheet when the viewport leaves mobile", async () => {
@@ -960,12 +935,10 @@ describe("Sidebar.Item + ItemButton", () => {
 		expect(link).not.toHaveAttribute("type");
 	});
 
-	test("styles the current row from either attribute, so a self-marking child needs no current", () => {
-		// A composed child that resolved the match itself — react-router's `NavLink`
-		// sets `aria-current="page"` — gets the row treatment without the parent
-		// re-deriving the route to pass `current`. Both variants ride on every row;
-		// which one applies is the attribute's job, so this pins that the
-		// `aria-current` half is wired at all.
+	test("keeps a self-marking child's aria-current through asChild, so it needs no current", () => {
+		// A composed child that resolved the match itself (react-router's `NavLink`
+		// sets `aria-current="page"`) must keep that attribute through the Slot
+		// merge, or the parent has to re-derive the route to pass `current`.
 		render(
 			<Sidebar.ItemButton asChild>
 				<a aria-current="page" href="/endpoints">
@@ -977,10 +950,9 @@ describe("Sidebar.Item + ItemButton", () => {
 
 		expect(link).toHaveAttribute("aria-current", "page");
 		expect(link).not.toHaveAttribute("data-current");
-		expect(link.className).toContain("aria-[current=page]:bg-neutral-500/15");
-		expect(link.className).toContain("aria-[current=page]:text-strong");
-		// `current` keeps driving the same treatment through `data-current`.
-		expect(link.className).toContain("data-current:bg-neutral-500/15");
+		// Why the class: the row styles itself from `aria-current` through this
+		// variant, and no attribute of mantle's observes that wiring.
+		expect(link).toHaveClass("aria-[current=page]:bg-neutral-500/15");
 	});
 });
 
@@ -1535,7 +1507,7 @@ describe("Sidebar.Tooltip", () => {
 				<Sidebar.ItemButton>Endpoints</Sidebar.ItemButton>
 			</Sidebar.Tooltip>,
 		);
-		expect(tooltip).toHaveClass("bg-tooltip", "custom-class");
+		expect(tooltip).toHaveClass("custom-class");
 		expect(tooltip).toHaveAttribute("data-flavor", "primary");
 		// ancestors first, this row's slot name last
 		expect(tooltip).toHaveAttribute("data-slot", "outer sidebar-tooltip");
@@ -1637,11 +1609,11 @@ void (<Sidebar.Tooltip label="Endpoints" />);
 void (<Sidebar.Tooltip label="Endpoints">Endpoints</Sidebar.Tooltip>);
 
 /**
- * The props every part is probed with: a `className` that must land beside the
- * part's own classes, an arbitrary `data-*`, an incoming `data-slot` chain the
- * part must join rather than replace, a `data-testid` to find the element by,
- * and a `ref` that must receive the element that actually rendered. One shape,
- * so the default-element and `asChild` tables assert the same contract.
+ * The props every part is probed with: a `className` that must land on the
+ * element, an arbitrary `data-*`, an incoming `data-slot` chain the part must
+ * join rather than replace, a `data-testid` to find the element by, and a `ref`
+ * that must receive the element that actually rendered. One shape, so the
+ * default-element and `asChild` tables assert the same contract.
  */
 type PartProbeProps = {
 	className: string;
@@ -1652,14 +1624,12 @@ type PartProbeProps = {
 };
 
 /**
- * One part under probe: what it renders, what it styles itself with, and the
- * ancestors it needs to render at all.
+ * One part under probe: what it renders and the ancestors it needs to render at
+ * all.
  */
 type PartCase = {
 	/** The part's name, for the test title. */
 	name: string;
-	/** A class the part applies itself, which must survive beside the consumer's. */
-	ownClass: string;
 	/** The part's own `data-slot` name, joined after the incoming chain. */
 	slot: string;
 	/** The tag the probe must land on, which is what proves *which* element rendered. */
@@ -1670,10 +1640,10 @@ type PartCase = {
 
 /**
  * Renders one probed part and asserts the whole forwarding contract: the element
- * that rendered, the part's classes beside the consumer's, an arbitrary `data-*`,
- * the joined `data-slot` chain, and the `ref`.
+ * that rendered, the consumer's class, an arbitrary `data-*`, the joined
+ * `data-slot` chain, and the `ref`.
  */
-function expectPartForwarding({ ownClass, renderPart, slot, tagName }: PartCase): void {
+function expectPartForwarding({ renderPart, slot, tagName }: PartCase): void {
 	const refTarget: { current: HTMLElement | null } = { current: null };
 	render(
 		renderPart({
@@ -1689,7 +1659,7 @@ function expectPartForwarding({ ownClass, renderPart, slot, tagName }: PartCase)
 
 	const element = screen.getByTestId("part");
 	expect(element.tagName).toBe(tagName);
-	expect(element).toHaveClass(ownClass, "custom-class");
+	expect(element).toHaveClass("custom-class");
 	expect(element).toHaveAttribute("data-flavor", "primary");
 	// ancestors first, the part's own slot name last — a join, never a replacement
 	expect(element).toHaveAttribute("data-slot", `outer ${slot}`);
@@ -1700,7 +1670,6 @@ function expectPartForwarding({ ownClass, renderPart, slot, tagName }: PartCase)
 const defaultElementCases: Array<PartCase> = [
 	{
 		name: "Nav",
-		ownClass: "group/sidebar-nav",
 		slot: "sidebar-nav",
 		tagName: "DIV",
 		renderPart: (probe) => (
@@ -1711,7 +1680,6 @@ const defaultElementCases: Array<PartCase> = [
 	},
 	{
 		name: "Trigger",
-		ownClass: "icon-button",
 		slot: "sidebar-trigger",
 		tagName: "BUTTON",
 		renderPart: (probe) => (
@@ -1722,7 +1690,6 @@ const defaultElementCases: Array<PartCase> = [
 	},
 	{
 		name: "Header",
-		ownClass: "px-3",
 		slot: "sidebar-header",
 		tagName: "DIV",
 		renderPart: (probe) => (
@@ -1735,7 +1702,6 @@ const defaultElementCases: Array<PartCase> = [
 	},
 	{
 		name: "Body",
-		ownClass: "scroll-fade-y",
 		slot: "sidebar-body",
 		tagName: "DIV",
 		renderPart: (probe) => (
@@ -1748,7 +1714,6 @@ const defaultElementCases: Array<PartCase> = [
 	},
 	{
 		name: "Footer",
-		ownClass: "pt-3",
 		slot: "sidebar-footer",
 		tagName: "DIV",
 		renderPart: (probe) => (
@@ -1761,14 +1726,12 @@ const defaultElementCases: Array<PartCase> = [
 	},
 	{
 		name: "Group",
-		ownClass: "pt-0.5",
 		slot: "sidebar-group",
 		tagName: "DIV",
 		renderPart: (probe) => <Sidebar.Group {...probe} />,
 	},
 	{
 		name: "GroupLabel",
-		ownClass: "text-muted",
 		slot: "sidebar-group-label",
 		tagName: "DIV",
 		renderPart: (probe) => (
@@ -1779,7 +1742,6 @@ const defaultElementCases: Array<PartCase> = [
 	},
 	{
 		name: "List",
-		ownClass: "space-y-px",
 		slot: "sidebar-list",
 		tagName: "UL",
 		renderPart: (probe) => (
@@ -1790,7 +1752,6 @@ const defaultElementCases: Array<PartCase> = [
 	},
 	{
 		name: "Item",
-		ownClass: "list-none",
 		slot: "sidebar-item",
 		tagName: "LI",
 		renderPart: (probe) => (
@@ -1801,7 +1762,6 @@ const defaultElementCases: Array<PartCase> = [
 	},
 	{
 		name: "ItemButton",
-		ownClass: "rounded-md",
 		slot: "sidebar-item-button",
 		tagName: "BUTTON",
 		renderPart: (probe) => (
@@ -1814,21 +1774,18 @@ const defaultElementCases: Array<PartCase> = [
 	},
 	{
 		name: "SearchTrigger",
-		ownClass: "rounded-md",
 		slot: "sidebar-search-trigger",
 		tagName: "BUTTON",
 		renderPart: (probe) => <Sidebar.SearchTrigger {...probe}>Search…</Sidebar.SearchTrigger>,
 	},
 	{
 		name: "SwitcherTrigger",
-		ownClass: "font-medium",
 		slot: "sidebar-switcher-trigger",
 		tagName: "BUTTON",
 		renderPart: (probe) => <Sidebar.SwitcherTrigger {...probe}>Acme Corp</Sidebar.SwitcherTrigger>,
 	},
 	{
 		name: "Separator",
-		ownClass: "my-3",
 		slot: "sidebar-separator",
 		tagName: "DIV",
 		renderPart: (probe) => <Sidebar.Separator {...probe} />,
@@ -1842,17 +1799,21 @@ const defaultElementCases: Array<PartCase> = [
  * they take no `asChild` — and `Sidebar.Tooltip` forwards `asChild` to Radix's
  * `Tooltip.Content` rather than mantle's `Slot`.
  */
+/**
+ * Every slotted child carries `child-class`, so the `asChild` row can prove the
+ * merge keeps the child's class beside the consumer's. Conflicting classes are
+ * `Slot`'s own test.
+ */
 const asChildCases: Array<PartCase> = [
 	{
 		name: "Header",
-		ownClass: "px-3",
 		slot: "sidebar-header",
 		tagName: "SECTION",
 		renderPart: (probe) => (
 			<Sidebar.Root>
 				<Sidebar.Nav>
 					<Sidebar.Header asChild {...probe}>
-						<section>header</section>
+						<section className="child-class">header</section>
 					</Sidebar.Header>
 				</Sidebar.Nav>
 			</Sidebar.Root>
@@ -1860,14 +1821,13 @@ const asChildCases: Array<PartCase> = [
 	},
 	{
 		name: "Body",
-		ownClass: "scroll-fade-y",
 		slot: "sidebar-body",
 		tagName: "SECTION",
 		renderPart: (probe) => (
 			<Sidebar.Root>
 				<Sidebar.Nav>
 					<Sidebar.Body asChild {...probe}>
-						<section>body</section>
+						<section className="child-class">body</section>
 					</Sidebar.Body>
 				</Sidebar.Nav>
 			</Sidebar.Root>
@@ -1875,14 +1835,13 @@ const asChildCases: Array<PartCase> = [
 	},
 	{
 		name: "Footer",
-		ownClass: "pt-3",
 		slot: "sidebar-footer",
 		tagName: "FOOTER",
 		renderPart: (probe) => (
 			<Sidebar.Root>
 				<Sidebar.Nav>
 					<Sidebar.Footer asChild {...probe}>
-						<footer>footer</footer>
+						<footer className="child-class">footer</footer>
 					</Sidebar.Footer>
 				</Sidebar.Nav>
 			</Sidebar.Root>
@@ -1890,64 +1849,61 @@ const asChildCases: Array<PartCase> = [
 	},
 	{
 		name: "Group",
-		ownClass: "pt-0.5",
 		slot: "sidebar-group",
 		tagName: "SECTION",
 		renderPart: (probe) => (
 			<Sidebar.Group asChild {...probe}>
-				<section>group</section>
+				<section className="child-class">group</section>
 			</Sidebar.Group>
 		),
 	},
 	{
 		name: "GroupLabel",
-		ownClass: "text-muted",
 		slot: "sidebar-group-label",
 		tagName: "H3",
 		renderPart: (probe) => (
 			<Sidebar.Group>
 				<Sidebar.GroupLabel asChild {...probe}>
-					<h3>Traffic</h3>
+					<h3 className="child-class">Traffic</h3>
 				</Sidebar.GroupLabel>
 			</Sidebar.Group>
 		),
 	},
 	{
 		name: "List",
-		ownClass: "space-y-px",
 		slot: "sidebar-list",
 		tagName: "OL",
 		renderPart: (probe) => (
 			<Sidebar.Group>
 				<Sidebar.List asChild {...probe}>
-					<ol />
+					<ol className="child-class" />
 				</Sidebar.List>
 			</Sidebar.Group>
 		),
 	},
 	{
 		name: "Item",
-		ownClass: "list-none",
 		slot: "sidebar-item",
 		tagName: "DIV",
 		renderPart: (probe) => (
 			<Sidebar.List>
 				<Sidebar.Item asChild {...probe}>
-					<div>row</div>
+					<div className="child-class">row</div>
 				</Sidebar.Item>
 			</Sidebar.List>
 		),
 	},
 	{
 		name: "ItemButton",
-		ownClass: "rounded-md",
 		slot: "sidebar-item-button",
 		tagName: "A",
 		renderPart: (probe) => (
 			<Sidebar.List>
 				<Sidebar.Item>
 					<Sidebar.ItemButton asChild {...probe}>
-						<a href="/endpoints">Endpoints</a>
+						<a className="child-class" href="/endpoints">
+							Endpoints
+						</a>
 					</Sidebar.ItemButton>
 				</Sidebar.Item>
 			</Sidebar.List>
@@ -1955,34 +1911,35 @@ const asChildCases: Array<PartCase> = [
 	},
 	{
 		name: "SearchTrigger",
-		ownClass: "rounded-md",
 		slot: "sidebar-search-trigger",
 		tagName: "A",
 		renderPart: (probe) => (
 			<Sidebar.SearchTrigger asChild {...probe}>
-				<a href="/search">Search…</a>
+				<a className="child-class" href="/search">
+					Search…
+				</a>
 			</Sidebar.SearchTrigger>
 		),
 	},
 	{
 		name: "SwitcherTrigger",
-		ownClass: "font-medium",
 		slot: "sidebar-switcher-trigger",
 		tagName: "A",
 		renderPart: (probe) => (
 			<Sidebar.SwitcherTrigger asChild {...probe}>
-				<a href="/switch">Acme Corp</a>
+				<a className="child-class" href="/switch">
+					Acme Corp
+				</a>
 			</Sidebar.SwitcherTrigger>
 		),
 	},
 	{
 		name: "Separator",
-		ownClass: "my-3",
 		slot: "sidebar-separator",
 		tagName: "HR",
 		renderPart: (probe) => (
 			<Sidebar.Separator asChild {...probe}>
-				<hr />
+				<hr className="child-class" />
 			</Sidebar.Separator>
 		),
 	},
@@ -2000,6 +1957,8 @@ describe("Sidebar part forwarding", () => {
 		"$name asChild renders the child and merges classes, data-*, and the ref onto it",
 		(partCase) => {
 			expectPartForwarding(partCase);
+			// Why both classes: an overwrite of the child's `className` keeps one source.
+			expect(screen.getByTestId("part")).toHaveClass("custom-class", "child-class");
 		},
 	);
 });

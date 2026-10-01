@@ -14,7 +14,9 @@ function getPanel(): HTMLElement {
 }
 
 function getAlertRegion(): HTMLElement {
-	const region = document.querySelector('div.sr-only[role="alert"]');
+	// Why the bare role: the panel carries `role="group"`, so this announcer is the only
+	// `role="alert"` in the tree.
+	const region = document.querySelector('[role="alert"]');
 	if (!(region instanceof HTMLElement)) {
 		throw new Error("assertive region not found");
 	}
@@ -22,7 +24,7 @@ function getAlertRegion(): HTMLElement {
 }
 
 describe("Sandbar (browser)", () => {
-	test("shake animates the panel with the wiggle keyframes", () => {
+	test("shake wiggles the panel horizontally and settles at rest", () => {
 		const handle = createRef<SandbarHandle>();
 		render(
 			<Sandbar.Root handleRef={handle} open>
@@ -32,14 +34,20 @@ describe("Sandbar (browser)", () => {
 
 		handle.current?.shake();
 
-		const animations = getPanel().getAnimations();
-		expect(animations).toHaveLength(1);
-		const effect = animations[0]?.effect;
-		if (!(effect instanceof KeyframeEffect)) {
-			throw new Error("expected the shake to run as a keyframe effect on the panel");
+		const [animation] = getPanel().getAnimations();
+		if (animation == null) {
+			throw new Error("expected the shake to run as an animation on the panel");
 		}
-		expect(effect.getKeyframes()).toHaveLength(8);
-		expect(effect.getTiming()).toMatchObject({ duration: 400, easing: "ease-in-out" });
+		// Why sample mid-flight: the keyframe table is the implementation. The
+		// contract is a horizontal offset that is zero again at rest.
+		animation.pause();
+		animation.currentTime = 100;
+		const midFlight = new DOMMatrix(getComputedStyle(getPanel()).transform);
+		expect(midFlight.m41).not.toBe(0);
+		expect(midFlight.m42).toBe(0);
+
+		animation.finish();
+		expect(getComputedStyle(getPanel()).transform).toBe("none");
 	});
 
 	test("a re-triggered shake cancels the in-flight animation", () => {

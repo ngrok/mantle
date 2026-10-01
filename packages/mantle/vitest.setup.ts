@@ -12,6 +12,16 @@ declare module "vitest" {
 	interface Matchers<R, T> extends TestingLibraryMatchers<unknown, R> {}
 }
 
+declare module "vitest/browser" {
+	interface BrowserCommands {
+		/**
+		 * Sets the page's emulated media features through Playwright. Browser
+		 * project only; the config registers the command.
+		 */
+		emulateMedia: (options: { reducedMotion: "reduce" | "no-preference" }) => Promise<void>;
+	}
+}
+
 afterEach(() => {
 	cleanup();
 });

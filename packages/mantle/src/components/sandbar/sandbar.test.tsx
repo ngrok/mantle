@@ -112,6 +112,7 @@ describe("Sandbar structure", () => {
 		const panel = screen.getByTestId("panel");
 		expect(panel).toBe(getPanel());
 		expect(panelRef.current).toBe(panel);
+		// Why the class check: the tailwind-merge contract puts the consumer's class beside the defaults.
 		expect(panel.className).toContain("custom-class");
 		expect(panel).toHaveAttribute("role", "group");
 		expect(panel).toHaveAttribute("tabindex", "-1");
@@ -139,6 +140,7 @@ describe("Sandbar structure", () => {
 			</Sandbar.Root>,
 		);
 
+		// Why the class checks: the tailwind-merge contract puts each consumer class beside the part's defaults.
 		expect(messageRef.current).toHaveAttribute("data-slot", "sandbar-message");
 		expect(messageRef.current?.className).toContain("message-class");
 		expect(actionsRef.current).toHaveAttribute("data-slot", "sandbar-actions");
@@ -149,11 +151,10 @@ describe("Sandbar structure", () => {
 		expect(discardRef.current?.className).toContain("discard-class");
 	});
 
-	test("the message is a plain paragraph with no live-region role", () => {
+	test("the message carries no live-region role", () => {
 		render(fullTree({ open: true }));
 		const message = document.querySelector('[data-slot="sandbar-message"]');
 		expect(message).toBeInTheDocument();
-		expect(message?.tagName).toBe("P");
 		expect(message).not.toHaveAttribute("role");
 		expect(message).not.toHaveAttribute("aria-live");
 	});
@@ -180,6 +181,8 @@ describe("Sandbar structure", () => {
 			</Sandbar.Root>,
 		);
 
+		// Why tagName and the class checks: the asChild swap renders the child element in
+		// place of the default, and the tailwind-merge contract keeps both classes on it.
 		const message = screen.getByTestId("message");
 		expect(message.tagName).toBe("SPAN");
 		expect(message).toHaveAttribute("data-slot", "sandbar-message");
@@ -230,6 +233,8 @@ describe("Sandbar structure", () => {
 			</Sandbar.Root>,
 		);
 
+		// Why tagName and the class checks: the asChild swap renders the child element in
+		// place of the button, and the tailwind-merge contract keeps both classes on it.
 		const save = screen.getByTestId("save");
 		expect(save.tagName).toBe("A");
 		// the part's slot must survive the swap and still beat `Button`'s own

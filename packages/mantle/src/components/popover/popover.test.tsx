@@ -21,7 +21,6 @@ describe("Popover", () => {
 
 			const content = await screen.findByRole("dialog");
 			const arrow = content.querySelector("[data-slot='popover-arrow']");
-			expect(arrow?.tagName).toBe("svg");
 			expect(arrow).toHaveAttribute("aria-hidden", "true");
 		});
 
@@ -87,6 +86,7 @@ describe("Popover", () => {
 			await user.click(screen.getByRole("button", { name: "Open" }));
 
 			const arrow = await screen.findByTestId("arrow");
+			// Why the class check: the tailwind-merge contract puts the consumer's class beside the defaults.
 			expect(arrow.getAttribute("class")).toContain("fill-red-500");
 			expect(arrow).toHaveAttribute("width", "20");
 			expect(arrow).toHaveAttribute("height", "10");

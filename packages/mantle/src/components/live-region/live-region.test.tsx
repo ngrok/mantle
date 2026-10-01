@@ -8,6 +8,7 @@ describe("LiveRegion", () => {
 	test("renders a polite status region by default", () => {
 		render(<LiveRegion data-testid="region">Draft saved</LiveRegion>);
 		const region = screen.getByTestId("region");
+		// Why tagName: the JSDoc promises an inline <span> by default, so the element is the contract.
 		expect(region.tagName).toBe("SPAN");
 		expect(region).toHaveAttribute("data-slot", "live-region");
 		expect(region).toHaveAttribute("role", "status");

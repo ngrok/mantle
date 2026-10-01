@@ -38,6 +38,10 @@ function getServerSnapshot(): boolean {
  * localStorage): render a same-size placeholder until hydration so the real
  * UI mounts exactly once, with the real client-side values.
  *
+ * To gate a CSS transition on a post-hydration state correction, use
+ * `useIsHydratedAfterPaint` instead. This hook flips in the same commit as
+ * the correction, so the transition runs.
+ *
  * @example
  * ```tsx
  * function PreferencesPanel() {

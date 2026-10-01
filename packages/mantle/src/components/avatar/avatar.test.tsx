@@ -57,6 +57,7 @@ describe("Avatar.Root", () => {
 			</>,
 		);
 		const first = screen.getByTestId("first");
+		// Why className: `colorSeed` emits no data attribute, so the class list is the swatch's only observable.
 		expect(screen.getByTestId("second").className).toBe(first.className);
 		expect(screen.getByTestId("third").className).not.toBe(first.className);
 	});

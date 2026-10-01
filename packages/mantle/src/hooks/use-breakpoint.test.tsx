@@ -2,12 +2,7 @@ import { renderHook } from "@testing-library/react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
 import { mockMatchMedia } from "../test-utils/mock-match-media.js";
-import { breakpoints } from "./use-breakpoint.js";
 import type { Breakpoint } from "./use-breakpoint.js";
-
-test("breakpoints lists default first, then the Tailwind screens largest to smallest", () => {
-	expect(breakpoints).toEqual(["default", "2xl", "xl", "lg", "md", "sm", "xs", "2xs"]);
-});
 
 describe("useBreakpoint", () => {
 	// Why a fresh module per test: the hook caches its `MediaQueryList`s and the

@@ -4,6 +4,8 @@ import { type ComponentProps, type CSSProperties, createRef, type ReactNode } fr
 import { describe, expect, it, vi } from "vitest";
 import { Slot } from "./slot.js";
 
+// Why class assertions: the className merge is the value `Slot` returns, so each test
+// asserts the tailwind-merge outcome (the class that wins and the classes that stay).
 describe("Slot", () => {
 	it("renders the child element unchanged when no Slot props are provided", () => {
 		const { container } = render(
@@ -174,6 +176,8 @@ function NavLinkish({ children, className, isActive = true, style, ...props }: N
 	);
 }
 
+// Why class assertions: the resolved className merge is the value under test, so each
+// test asserts the tailwind-merge outcome (the class that wins and the classes that stay).
 describe("Slot render-prop className and style", () => {
 	it("composes a function className, resolved by the child with its own state", () => {
 		const { getByRole } = render(

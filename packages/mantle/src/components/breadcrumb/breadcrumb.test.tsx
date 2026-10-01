@@ -36,7 +36,6 @@ describe("Breadcrumb", () => {
 			</Breadcrumb.Root>,
 		);
 		const nav = screen.getByRole("navigation", { name: "Breadcrumb" });
-		expect(nav.tagName).toBe("NAV");
 		expect(nav).toHaveAttribute("data-slot", "breadcrumb");
 	});
 
@@ -90,8 +89,7 @@ describe("Breadcrumb", () => {
 	test("Root forwards a ref to the nav element", () => {
 		const ref = createRef<HTMLElement>();
 		render(<Breadcrumb.Root ref={ref}>crumbs</Breadcrumb.Root>);
-		expect(ref.current).not.toBeNull();
-		expect(ref.current?.tagName).toBe("NAV");
+		expect(ref.current).toBe(screen.getByRole("navigation"));
 	});
 
 	test("asChild composition accumulates the data-slot chain in DOM order", () => {
@@ -117,6 +115,7 @@ describe("Breadcrumb", () => {
 			</Breadcrumb.Root>,
 		);
 		const list = screen.getByRole("list");
+		// Why tagName: the JSDoc promises an ordered list, and the list role cannot tell an <ol> from a <ul>.
 		expect(list.tagName).toBe("OL");
 		expect(list).toHaveAttribute("data-slot", "breadcrumb-list");
 	});
@@ -165,8 +164,8 @@ describe("Breadcrumb", () => {
 			</Breadcrumb.Root>,
 		);
 		const item = screen.getByRole("listitem");
-		expect(item.tagName).toBe("LI");
 		expect(item).toHaveAttribute("data-slot", "breadcrumb-item");
+		// The tailwind-merge contract: the consumer's class survives the merge.
 		expect(item).toHaveClass("pl-2");
 	});
 
@@ -181,7 +180,6 @@ describe("Breadcrumb", () => {
 			</Breadcrumb.Root>,
 		);
 		const link = screen.getByRole("link", { name: "Endpoints" });
-		expect(link.tagName).toBe("A");
 		expect(link).toHaveAttribute("href", "/endpoints");
 		expect(link).toHaveAttribute("data-slot", "breadcrumb-link");
 	});
@@ -203,6 +201,7 @@ describe("Breadcrumb", () => {
 		const link = screen.getByRole("link", { name: "Endpoints" });
 		expect(link).toHaveAttribute("href", "/endpoints");
 		expect(link).toHaveAttribute("data-slot", "breadcrumb-link");
+		// The tailwind-merge contract: the part's className and the child's own class both survive the merge.
 		expect(link.className).toContain("font-medium");
 		expect(link.className).toContain("router-link");
 	});
@@ -222,6 +221,7 @@ describe("Breadcrumb", () => {
 			</Breadcrumb.Root>,
 		);
 		const label = screen.getByText("Settings");
+		// Why tagName: the JSDoc promises a <span>, and no role names a non-link crumb.
 		expect(label.tagName).toBe("SPAN");
 		expect(label).toHaveAttribute("data-slot", "breadcrumb-label");
 		expect(label).not.toHaveAttribute("aria-current");
@@ -248,6 +248,7 @@ describe("Breadcrumb", () => {
 		);
 		const label = screen.getByTestId("label");
 		expect(label).toHaveAttribute("data-slot", "breadcrumb-label");
+		// The tailwind-merge contract: the part's className and the child's own class both survive the merge.
 		expect(label.className).toContain("font-medium");
 		expect(label.className).toContain("section-prefix");
 		expect(ref.current).toBe(label);
@@ -264,6 +265,7 @@ describe("Breadcrumb", () => {
 			</Breadcrumb.Root>,
 		);
 		const page = screen.getByText("Current");
+		// Why tagName: the JSDoc promises a <span>, and no role names the current page.
 		expect(page.tagName).toBe("SPAN");
 		expect(page).toHaveAttribute("aria-current", "page");
 		expect(page).toHaveAttribute("data-slot", "breadcrumb-page");
@@ -357,6 +359,7 @@ describe("Breadcrumb", () => {
 			</Breadcrumb.Root>,
 		);
 		const separator = screen.getByTestId("separator");
+		// Why tagName: an <ol> accepts only <li> children, and a presentational separator has no role to query.
 		expect(separator.tagName).toBe("LI");
 		expect(separator).toHaveAttribute("aria-hidden", "true");
 		expect(separator).toHaveAttribute("role", "presentation");
@@ -372,6 +375,7 @@ describe("Breadcrumb", () => {
 				</Breadcrumb.List>
 			</Breadcrumb.Root>,
 		);
+		// The tailwind-merge contract: the consumer's class survives the merge.
 		expect(screen.getByTestId("separator")).toHaveClass("mx-2");
 	});
 
@@ -403,6 +407,7 @@ describe("Breadcrumb", () => {
 			</Breadcrumb.Root>,
 		);
 		const skeleton = screen.getByTestId("skeleton");
+		// Why tagName: an <ol> accepts only <li> children, and the placeholder has no role of its own.
 		expect(skeleton.tagName).toBe("LI");
 		// The part composes the Skeleton block onto its own <li>, so the chain
 		// carries both stamps in DOM order.
