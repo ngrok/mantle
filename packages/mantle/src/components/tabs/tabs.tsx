@@ -130,8 +130,11 @@ const Root = ({
 const listVariants = cva("flex", {
 	variants: {
 		orientation: {
+			// Why `self-stretch`: the list spans the root plus its own `-mx-1`, so the
+			// `px-1` content box ends at the root's edges and the last trigger meets
+			// the separator. A `100%` width ends 8px short on the right.
 			horizontal:
-				"scroll-fade-x flex-row items-center overflow-x-auto overscroll-x-none w-full min-w-0 pt-1 -mt-1 px-1 -mx-1",
+				"scroll-fade-x flex-row items-center overflow-x-auto overscroll-x-none self-stretch min-w-0 pt-1 -mt-1 px-1 -mx-1",
 			vertical: "flex-col items-end gap-3.5 self-stretch",
 		} as const satisfies Record<Orientation, string>,
 		appearance: {

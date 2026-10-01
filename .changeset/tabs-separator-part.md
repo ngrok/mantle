@@ -18,6 +18,8 @@
 
 Why: a horizontal list is a scroll container, and it carries negative margins and padding so the focus ring has room. A border painted on the list itself had to live inside that padding, so it stopped short of the root's edges and faded with the triggers under the scroll mask. The separator is a sibling of the list, so it spans the root's full width, never scrolls, and never fades.
 
+A horizontal `Tabs.List` now stretches across its own focus-ring margins instead of taking the root's width. Its triggers reach the root's right edge and line up with the separator; they stopped 8px short before.
+
 `Tabs.Separator` composes the mantle `Separator`. It paints the `separator` color token, follows the root's `orientation` (under the list when horizontal, beside the list when vertical), is decorative by default (`role="none"`), and accepts `semantic` and `asChild`. It stamps `data-slot="tabs-separator"`, `data-orientation`, and `data-separator`. As the root's direct child it pulls itself up by the new `--tabs-gap` CSS variable and sits flush against the list while the content keeps the gap. Inside a wrapper of your own, the offset stays off.
 
 `Tabs.Root` now sets `--tabs-gap` (default `1rem`) and reads it for its `gap`. Set the variable, not a `gap-*` class, to change the space between the list and the content. A `gap-*` class changes the gap alone and leaves the separator's offset at `1rem`.

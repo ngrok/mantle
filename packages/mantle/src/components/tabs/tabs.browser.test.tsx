@@ -4,8 +4,11 @@ import { Tabs } from "./tabs.js";
 
 /**
  * Mirrors the CSS Tailwind 4 emits for the utilities these tests read: the
- * slot-scoped icon rule the trigger carries, and the root's `--tabs-gap` flex
- * layout that `Tabs.Separator` cancels with a parent-scoped negative margin.
+ * slot-scoped icon rule the trigger carries, the root's `--tabs-gap` flex
+ * layout that `Tabs.Separator` cancels with a parent-scoped negative margin,
+ * and the horizontal list's scroll-container box. Preflight's `box-sizing`
+ * rule is load-bearing for that box: on a content-box list, `w-full` plus
+ * the padding still reaches the root's right edge and the bug hides.
  * Inlined so the tests stay hermetic and need no Tailwind build step: a browser
  * test loads no stylesheet, so without this the wrapper would report its initial
  * `display`, the separator would sit a gap below the list, and the assertions
@@ -13,6 +16,9 @@ import { Tabs } from "./tabs.js";
  */
 const TABS_LAYOUT_STYLE = `
 :root { --spacing: 0.25rem; }
+@layer base {
+	*, ::before, ::after { box-sizing: border-box; }
+}
 @layer utilities {
 	.contents { display: contents; }
 	.flex { display: flex; }
@@ -26,6 +32,9 @@ const TABS_LAYOUT_STYLE = `
 	.h-full { height: 100%; }
 	.h-auto { height: auto; }
 	.self-stretch { align-self: stretch; }
+	.overflow-x-auto { overflow-x: auto; }
+	.px-1 { padding-inline: calc(var(--spacing) * 1); }
+	.-mx-1 { margin-inline: calc(var(--spacing) * -1); }
 	[data-slot=tabs] > .\\[\\[data-slot\\=tabs\\]\\>\\&\\]\\:-mt-\\(--tabs-gap\\) { margin-top: calc(var(--tabs-gap) * -1); }
 	[data-slot=tabs] > .\\[\\[data-slot\\=tabs\\]\\>\\&\\]\\:-ml-\\(--tabs-gap\\) { margin-left: calc(var(--tabs-gap) * -1); }
 	.tabs-trigger { display: flex; align-items: center; gap: 0.5rem; }
@@ -154,4 +163,37 @@ test("a separator inside a wrapper of the consumer's own keeps its flow position
 	// The wrapper lays out with no gap, so the parent-scoped margin must not
 	// fire: a separator pulled up 16px here would overlap the triggers.
 	expect(separator.top).toBe(list.bottom);
+});
+
+test("a horizontal list's triggers line up with the separator at both scroll ends", () => {
+	const { container } = render(
+		<Tabs.Root orientation="horizontal" defaultValue="a" style={{ width: 240 }}>
+			<Tabs.List>
+				<Tabs.Trigger value="a" style={{ flex: "0 0 160px" }}>
+					Tab A
+				</Tabs.Trigger>
+				<Tabs.Trigger value="b" style={{ flex: "0 0 160px" }}>
+					Tab B
+				</Tabs.Trigger>
+				<Tabs.Trigger value="c" style={{ flex: "0 0 160px" }}>
+					Tab C
+				</Tabs.Trigger>
+			</Tabs.List>
+			<Tabs.Separator />
+			<Tabs.Content value="a">Panel A</Tabs.Content>
+		</Tabs.Root>,
+	);
+
+	const list = screen.getByRole("tablist");
+	const first = screen.getByRole("tab", { name: "Tab A" });
+	const last = screen.getByRole("tab", { name: "Tab C" });
+	const separator = getSeparator(container).getBoundingClientRect();
+
+	// The list's `-mx-1 px-1` give the focus ring room past the root on both
+	// sides, so the list must stretch across those margins. A list sized to
+	// `100%` of the root instead lands 8px short on the right edge alone.
+	list.scrollLeft = 0;
+	expect(first.getBoundingClientRect().left).toBe(separator.left);
+	list.scrollLeft = list.scrollWidth;
+	expect(last.getBoundingClientRect().right).toBe(separator.right);
 });
