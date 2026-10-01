@@ -1,6 +1,7 @@
 import { playwright, type PlaywrightProviderOptions } from "@vitest/browser-playwright";
 import { transform } from "oxc-transform-react";
 import { configDefaults, defineConfig } from "vitest/config";
+import type { BrowserCommand } from "vitest/node";
 
 type ContextOptions = Pick<PlaywrightProviderOptions, "contextOptions">["contextOptions"];
 
@@ -12,6 +13,15 @@ const contextOptions = {
 	permissions: ["clipboard-read", "clipboard-write"],
 	timezoneId: "UTC",
 } as const satisfies ContextOptions;
+
+/** The media features a browser test can emulate through `commands.emulateMedia`. */
+type EmulatedMedia = { reducedMotion: "reduce" | "no-preference" };
+
+// Why a command: `prefers-reduced-motion` is a Playwright page emulation, and no
+// script inside the test iframe can set it.
+const emulateMedia: BrowserCommand<[options: EmulatedMedia]> = async ({ page }, options) => {
+	await page.emulateMedia(options);
+};
 
 // The published dist ships React Compiler output (see `tsdown.config.ts`), so tests must run the
 // same compiled components: a suite that runs uncompiled source never executes what npm consumers
@@ -114,6 +124,7 @@ export default defineConfig({
 								})
 							: playwright({ contextOptions }),
 						instances: [{ browser: "chromium" }],
+						commands: { emulateMedia },
 					},
 				},
 			},

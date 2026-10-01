@@ -1,8 +1,9 @@
-import { render, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { renderToString } from "react-dom/server";
 import { afterAll, afterEach, beforeAll, expect, test } from "vitest";
-import { page } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { useLocalStorage } from "../../hooks/use-local-storage.js";
+import { TooltipProvider } from "../tooltip/index.js";
 import { Sidebar } from "./sidebar.js";
 
 /**
@@ -10,8 +11,9 @@ import { Sidebar } from "./sidebar.js";
  * gate is a `max-*:not-data-hydrated:` variant, so tailwind-merge keeps it
  * beside a consumer display utility and its `:not([data-hydrated])` selector
  * outranks the bare utility's class. The transition gates are negated the same
- * way, and only a running `CSSTransition` can observe whether they held.
- * happy-dom resolves no stylesheet and runs no transition.
+ * way, and only a running `CSSTransition` can observe whether they held or
+ * released. happy-dom resolves no stylesheet and runs no transition, and
+ * `prefers-reduced-motion` is a Playwright page emulation.
  *
  * The stylesheet below is Tailwind 4.3.3's own output for the utilities in
  * play, keyed by the same escaped class selectors, with the theme variables
@@ -47,13 +49,16 @@ const STYLE = `
 	@media (width < 64rem) {
 		.max-lg\\:not-data-hydrated\\:hidden:not([data-hydrated]) { display: none; }
 	}
+	@media (prefers-reduced-motion: reduce) {
+		.motion-reduce\\:transition-none { transition-property: none; }
+	}
 }
 `;
 
 const STORAGE_KEY = "sidebar-state";
 
 let styleElement: HTMLStyleElement;
-let container: HTMLDivElement;
+let container: HTMLDivElement | null = null;
 
 beforeAll(() => {
 	styleElement = document.createElement("style");
@@ -65,9 +70,11 @@ afterAll(() => {
 	styleElement.remove();
 });
 
-afterEach(() => {
-	container.remove();
+afterEach(async () => {
+	container?.remove();
+	container = null;
 	localStorage.removeItem(STORAGE_KEY);
+	await commands.emulateMedia({ reducedMotion: "no-preference" });
 });
 
 /** Mounts server markup as the browser paints it before hydration and returns the panel. */
@@ -141,6 +148,9 @@ test("snaps a persisted-collapsed correction into place with no transition", asy
 	// and only a painted width can be the start value of a transition.
 	expect(getComputedStyle(nav).width).toBe("208px");
 
+	if (container == null) {
+		throw new Error("The server markup is not mounted.");
+	}
 	render(<PersistedShell />, { container, hydrate: true });
 	// Why wait: the stamp lands one frame after the correction, and the
 	// transition rules apply only once it does.
@@ -156,4 +166,72 @@ test("snaps a persisted-collapsed correction into place with no transition", asy
 	expect(nav.getAnimations()).toHaveLength(0);
 	expect(getComputedStyle(label).opacity).toBe("0");
 	expect(label.getAnimations()).toHaveLength(0);
+});
+
+/** Renders the panel, a group label, and the trigger, then waits for the gates to release. */
+async function renderExpandedShell(): Promise<{ label: HTMLElement; nav: HTMLElement }> {
+	await page.viewport(1280, 800);
+	render(
+		<TooltipProvider>
+			<Sidebar.Root>
+				<Sidebar.Nav data-testid="nav">
+					<Sidebar.Body>
+						<Sidebar.Group>
+							<Sidebar.GroupLabel data-testid="label">Traffic</Sidebar.GroupLabel>
+						</Sidebar.Group>
+					</Sidebar.Body>
+				</Sidebar.Nav>
+				<Sidebar.Trigger />
+			</Sidebar.Root>
+		</TooltipProvider>,
+	);
+	const nav = screen.getByTestId("nav");
+	await waitFor(() => {
+		expect(nav).toHaveAttribute("data-hydrated", "");
+	});
+	// Why read the width: only a painted width can be the start value of a transition.
+	expect(getComputedStyle(nav).width).toBe("208px");
+	return { label: screen.getByTestId("label"), nav };
+}
+
+/**
+ * Records every transition that starts under `nav` as `<data-slot>:<property>`.
+ * A 200ms transition can end before a click round-trip returns, so the event
+ * is the stable observable, not `getAnimations()`.
+ */
+function recordTransitions(nav: HTMLElement): string[] {
+	const transitions: string[] = [];
+	nav.addEventListener("transitionrun", (event) => {
+		const slot = event.target instanceof HTMLElement ? event.target.dataset.slot : "";
+		transitions.push(`${slot}:${event.propertyName}`);
+	});
+	return transitions;
+}
+
+test("animates a collapse the user triggers after hydration", async () => {
+	const { nav } = await renderExpandedShell();
+	const transitions = recordTransitions(nav);
+
+	await userEvent.click(screen.getByRole("button", { name: "Toggle Sidebar" }));
+
+	expect(nav).toHaveAttribute("data-state", "collapsed");
+	await waitFor(() => {
+		expect(transitions).toEqual(
+			expect.arrayContaining(["sidebar-nav:width", "sidebar-group-label:opacity"]),
+		);
+	});
+});
+
+test("snaps a collapse the user triggers under reduced motion", async () => {
+	await commands.emulateMedia({ reducedMotion: "reduce" });
+	expect(window.matchMedia("(prefers-reduced-motion: reduce)").matches).toBe(true);
+	const { label, nav } = await renderExpandedShell();
+	const transitions = recordTransitions(nav);
+
+	await userEvent.click(screen.getByRole("button", { name: "Toggle Sidebar" }));
+
+	expect(nav).toHaveAttribute("data-state", "collapsed");
+	expect(getComputedStyle(nav).width).toBe("52px");
+	expect(getComputedStyle(label).opacity).toBe("0");
+	expect(transitions).toEqual([]);
 });

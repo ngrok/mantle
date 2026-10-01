@@ -57,6 +57,28 @@ const navVisibilityClassName: Record<SidebarMobileBreakpoint, string> = {
 };
 
 /**
+ * Returns `false` on the server, in the hydration render, and in the mount
+ * commit, then `true` from the next animation frame.
+ *
+ * Why not `useIsHydrated`: it flips in the hydration commit, where a
+ * `useLocalStorage` correction also lands, and CSS starts a transition from
+ * that commit's after-change style. One frame later the correction has
+ * painted, so a transition gate keyed on this result opens on a settled width.
+ */
+function useIsHydratedAfterPaint(): boolean {
+	const [isHydrated, setIsHydrated] = useState(false);
+	useEffect(() => {
+		const frame = requestAnimationFrame(() => {
+			setIsHydrated(true);
+		});
+		return () => {
+			cancelAnimationFrame(frame);
+		};
+	}, []);
+	return isHydrated;
+}
+
+/**
  * The state and actions shared by every part under a `Sidebar.Root`, returned
  * by {@link useSidebar}. Use it to build custom triggers, keyboard shortcuts,
  * or close-on-navigate behavior.
@@ -600,19 +622,7 @@ const Nav = ({
 }: SidebarNavProps) => {
 	const { isMobile, mobileBreakpoint, navId, open, openMobile, setOpenMobile } =
 		useSidebarContext("Nav");
-	// Why a frame after mount: a `useLocalStorage` correction commits in the
-	// hydration flush, and CSS starts a transition from the after-change style,
-	// so a stamp in that commit animates the collapse. The next frame paints the
-	// correction first, so the stamp lands on a settled width.
-	const [isHydrated, setIsHydrated] = useState(false);
-	useEffect(() => {
-		const frame = requestAnimationFrame(() => {
-			setIsHydrated(true);
-		});
-		return () => {
-			cancelAnimationFrame(frame);
-		};
-	}, []);
+	const isHydrated = useIsHydratedAfterPaint();
 	const ariaLabel = ariaLabelProp ?? (ariaLabelledBy == null ? "Main" : undefined);
 
 	if (isMobile) {
