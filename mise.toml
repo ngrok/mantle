@@ -17,8 +17,6 @@ ripgrep = "15.2.0"
 # The install needs no Node and runs no install script.
 # Why not npm:pnpm: mise skips pnpm's install script, so the bin stays a
 # placeholder that fails under Node.
-# The aqua registry lists no macOS x64 build; CONTRIBUTING.md → Manual
-# Installation covers Intel Macs.
 "aqua:pnpm/pnpm" = "{{ exec(command='./scripts/package-manager-version') }}"
 
 [env]
