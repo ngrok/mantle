@@ -35,8 +35,8 @@ const TABS_LAYOUT_STYLE = `
 	.overflow-x-auto { overflow-x: auto; }
 	.px-1 { padding-inline: calc(var(--spacing) * 1); }
 	.-mx-1 { margin-inline: calc(var(--spacing) * -1); }
-	[data-slot=tabs] > .\\[\\[data-slot\\=tabs\\]\\>\\&\\]\\:-mt-\\(--tabs-gap\\) { margin-top: calc(var(--tabs-gap) * -1); }
-	[data-slot=tabs] > .\\[\\[data-slot\\=tabs\\]\\>\\&\\]\\:-ml-\\(--tabs-gap\\) { margin-left: calc(var(--tabs-gap) * -1); }
+	[data-slot~=tabs] > .\\[\\[data-slot\\~\\=tabs\\]\\>\\&\\]\\:-mt-\\(--tabs-gap\\) { margin-top: calc(var(--tabs-gap) * -1); }
+	[data-slot~=tabs] > .\\[\\[data-slot\\~\\=tabs\\]\\>\\&\\]\\:-ml-\\(--tabs-gap\\) { margin-left: calc(var(--tabs-gap) * -1); }
 	.tabs-trigger { display: flex; align-items: center; gap: 0.5rem; }
 	.tabs-trigger > [data-slot="tabs-trigger-label"] > svg { width: 1.25rem; height: 1.25rem; }
 }
@@ -142,6 +142,31 @@ test("a vertical separator sits flush beside the list and spans the root's heigh
 	// 0px. The part's `h-auto self-stretch` is what reaches the content's height.
 	expect(separator.height).toBe(120);
 	expect(content.left).toBe(separator.right + 16);
+});
+
+test("a separator keeps its offset under a root whose slot an ancestor's chain joins", () => {
+	const { container } = render(
+		// The `data-slot` prop stands in for the chain an `asChild` ancestor
+		// forwards, so the root renders `data-slot="shell tabs"`.
+		<Tabs.Root orientation="horizontal" defaultValue="a" data-slot="shell">
+			<Tabs.List>
+				<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
+			</Tabs.List>
+			<Tabs.Separator />
+			<Tabs.Content value="a">Panel A</Tabs.Content>
+		</Tabs.Root>,
+	);
+
+	const root = container.querySelector('[data-slot="shell tabs"]');
+	if (root == null) {
+		throw new Error('No element carries data-slot="shell tabs".');
+	}
+	const list = screen.getByRole("tablist").getBoundingClientRect();
+	const separator = getSeparator(container).getBoundingClientRect();
+
+	// An exact `[data-slot=tabs]` parent match misses the joined value, and the
+	// separator then sits one gap below the list.
+	expect(separator.top).toBe(list.bottom);
 });
 
 test("a separator inside a wrapper of the consumer's own keeps its flow position", () => {

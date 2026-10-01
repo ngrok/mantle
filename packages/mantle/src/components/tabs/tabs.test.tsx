@@ -27,6 +27,54 @@ describe("Tabs", () => {
 				);
 			},
 		);
+
+		test("asChild renders the child and merges the slot, classes, data attributes, and ref", () => {
+			const refSpy = vi.fn<(node: HTMLDivElement | null) => void>();
+			render(
+				<Tabs.Root asChild orientation="vertical" defaultValue="a" className="shell" ref={refSpy}>
+					<section data-testid="root">
+						<Tabs.List>
+							<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
+						</Tabs.List>
+					</section>
+				</Tabs.Root>,
+			);
+
+			const root = screen.getByTestId("root");
+			// Why tagName: the asChild swap renders the child element in place of the default.
+			expect(root.tagName).toBe("SECTION");
+			expect(root).toHaveAttribute("data-slot", "tabs");
+			expect(root).toHaveAttribute("data-orientation", "vertical");
+			expect(root).toHaveAttribute("data-appearance", "classic");
+			expect(root).toHaveClass("shell");
+			expect(root).toContainElement(screen.getByRole("tablist"));
+			expect(refSpy).toHaveBeenCalledTimes(1);
+			expect(refSpy).toHaveBeenLastCalledWith(root);
+		});
+	});
+
+	describe("Badge", () => {
+		test("merges the consumer's className and ref onto the badge element", () => {
+			const refSpy = vi.fn<(node: HTMLSpanElement | null) => void>();
+			render(
+				<Tabs.Root defaultValue="a">
+					<Tabs.List>
+						<Tabs.Trigger value="a">
+							Tab A
+							<Tabs.Badge className="ml-2" ref={refSpy}>
+								5
+							</Tabs.Badge>
+						</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>,
+			);
+
+			const badge = screen.getByText("5");
+			expect(badge).toHaveAttribute("data-slot", "tabs-badge");
+			expect(badge).toHaveClass("ml-2");
+			expect(refSpy).toHaveBeenCalledTimes(1);
+			expect(refSpy).toHaveBeenLastCalledWith(badge);
+		});
 	});
 
 	describe("List", () => {

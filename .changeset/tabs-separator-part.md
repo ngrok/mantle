@@ -28,7 +28,7 @@ Migrate:
 
 - Add `<Tabs.Separator />` after every classic `Tabs.List` that relied on the default border. A pill list never drew one.
 - Delete `hideBorder` from every `Tabs.List`. A list that had `hideBorder` needs no separator.
-- Replace a `[data-hide-border]` selector with a `[data-slot="tabs-separator"]` selector, or with its absence.
+- Replace a `[data-hide-border]` selector with a `[data-slot~="tabs-separator"]` selector, or with its absence.
 - On a `Tabs.Root` that holds a `Tabs.Separator` as a direct child, replace a `gap-*` class with `[--tabs-gap:…]`.
 
 Migration guide: https://mantle.ngrok.com/migrations/0008-tabs-separator-migration

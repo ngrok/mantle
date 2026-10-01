@@ -105,22 +105,27 @@ const Root = ({
 		appearance?: "classic" | "pill";
 	}) => {
 	const contextValue = useMemo(() => ({ orientation, appearance }), [orientation, appearance]);
+	// Why the provider wraps the Radix root: with `asChild` Radix clones its only
+	// child, so a provider in that position takes the root's attributes and ref
+	// and the consumer's element gets none of them.
 	return (
-		<TabsPrimitiveRoot
-			data-slot={joinDataSlot(dataSlot, "tabs")}
-			data-appearance={appearance}
-			className={cx(
-				// Why a variable: `Tabs.Separator` reads `--tabs-gap` to cancel this gap
-				// and sit flush against the list, so both must move together.
-				"flex [--tabs-gap:--spacing(4)] gap-(--tabs-gap)",
-				orientation === "horizontal" ? "flex-col" : "flex-row",
-				className,
-			)}
-			orientation={orientation}
-			{...props}
-		>
-			<TabsStateContext.Provider value={contextValue}>{children}</TabsStateContext.Provider>
-		</TabsPrimitiveRoot>
+		<TabsStateContext.Provider value={contextValue}>
+			<TabsPrimitiveRoot
+				data-slot={joinDataSlot(dataSlot, "tabs")}
+				data-appearance={appearance}
+				className={cx(
+					// Why a variable: `Tabs.Separator` reads `--tabs-gap` to cancel this gap
+					// and sit flush against the list, so both must move together.
+					"flex [--tabs-gap:--spacing(4)] gap-(--tabs-gap)",
+					orientation === "horizontal" ? "flex-col" : "flex-row",
+					className,
+				)}
+				orientation={orientation}
+				{...props}
+			>
+				{children}
+			</TabsPrimitiveRoot>
+		</TabsStateContext.Provider>
 	);
 };
 
@@ -324,13 +329,16 @@ const TabsSeparator = ({ className, "data-slot": dataSlot, ...props }: TabsSepar
 	// Why the parent selector: the root lays its children out with `gap`, so
 	// only a separator that is the root's direct child has a gap to cancel.
 	//
+	// Why `~=`: an `asChild` ancestor joins its own slot ahead of `tabs`, and an
+	// exact match would miss that root.
+	//
 	// Why `h-auto self-stretch`: `Separator` sets `h-full` when vertical, and a
 	// flex item stretches only when its height computes to `auto`. `100%` of the
 	// root's auto height resolves to nothing, so the hairline would be 0px tall.
 	const orientationClasses =
 		orientation === "horizontal"
-			? "[[data-slot=tabs]>&]:-mt-(--tabs-gap)"
-			: "h-auto self-stretch [[data-slot=tabs]>&]:-ml-(--tabs-gap)";
+			? "[[data-slot~=tabs]>&]:-mt-(--tabs-gap)"
+			: "h-auto self-stretch [[data-slot~=tabs]>&]:-ml-(--tabs-gap)";
 
 	return (
 		<Separator
