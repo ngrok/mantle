@@ -121,7 +121,7 @@ import { DescriptionList } from "@ngrok/mantle/description-list";
 
 ## Long values
 
-The value column has a `0` minimum width, so a long value stays inside its row instead of widening the list. Give the child the overflow behavior you want: `truncate` clips a single line with an ellipsis, and `wrap-anywhere` breaks a line at any character. `DescriptionList.Value` needs no class of its own.
+The value column has a `0` minimum width, so a long value stays inside its row instead of widening the list. Set the overflow behavior on `DescriptionList.Value` or on a child: `truncate` clips a single line with an ellipsis, and `wrap-anywhere` breaks a line at any character. `DescriptionList.Value` does not need `min-w-0`.
 
 <Example>
 	<div className="w-full max-w-lg">
