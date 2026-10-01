@@ -16,6 +16,7 @@ import invariant from "tiny-invariant";
 import { useCallbackRef } from "../../hooks/use-callback-ref.js";
 import { useIsBelowBreakpoint } from "../../hooks/use-breakpoint.js";
 import { useIsApplePlatform } from "../../hooks/use-is-apple-platform.js";
+import { useIsHydratedAfterPaint } from "../../hooks/use-is-hydrated-after-paint.js";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
@@ -55,28 +56,6 @@ const navVisibilityClassName: Record<SidebarMobileBreakpoint, string> = {
 	md: "max-md:not-data-hydrated:hidden",
 	lg: "max-lg:not-data-hydrated:hidden",
 };
-
-/**
- * Returns `false` on the server, in the hydration render, and in the mount
- * commit, then `true` from the next animation frame.
- *
- * Why not `useIsHydrated`: it flips in the hydration commit, where a
- * `useLocalStorage` correction also lands, and CSS starts a transition from
- * that commit's after-change style. One frame later the correction has
- * painted, so a transition gate keyed on this result opens on a settled width.
- */
-function useIsHydratedAfterPaint(): boolean {
-	const [isHydrated, setIsHydrated] = useState(false);
-	useEffect(() => {
-		const frame = requestAnimationFrame(() => {
-			setIsHydrated(true);
-		});
-		return () => {
-			cancelAnimationFrame(frame);
-		};
-	}, []);
-	return isHydrated;
-}
 
 /**
  * The state and actions shared by every part under a `Sidebar.Root`, returned

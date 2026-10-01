@@ -1442,8 +1442,9 @@ state across visits, use the **fully controlled** form with
 
 This recipe is SSR-safe: [`useLocalStorage`](/hooks#uselocalstorage) is `useSyncExternalStore`-backed with a
 server snapshot, so the server render and the hydration render agree (no hydration mismatch), and the
-sidebar suppresses its collapse transition until one frame after hydration, so a persisted-collapsed
-sidebar **snaps** shut instead of animating on page load. What no localStorage recipe can do is affect the
+sidebar suppresses its collapse transition until one frame after hydration (through
+[`useIsHydratedAfterPaint`](/hooks#useishydratedafterpaint)), so a persisted-collapsed sidebar **snaps** shut
+instead of animating on page load. What no localStorage recipe can do is affect the
 server-rendered HTML itself: a persisted-collapsed sidebar paints expanded for one frame before the
 post-hydration correction. If that frame matters, [persist to a **cookie**](#persisting-to-a-cookie-ssr)
 instead, the same way the theme system solves FOUC server-side.

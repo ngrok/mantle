@@ -17,6 +17,7 @@ export { useCopyToClipboard } from "./use-copy-to-clipboard.js";
 export { useDebounce } from "./use-debounce.js";
 export { useDebouncedCallback } from "./use-debounced-callback.js";
 export { useIsHydrated } from "./use-is-hydrated.js";
+export { useIsHydratedAfterPaint } from "./use-is-hydrated-after-paint.js";
 export { useIsomorphicLayoutEffect } from "./use-isomorphic-layout-effect.js";
 export { useLocalStorage } from "./use-local-storage.js";
 export { useMatchesMediaQuery } from "./use-matches-media-query.js";
