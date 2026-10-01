@@ -1,5 +1,13 @@
 # @ngrok/mantle-vite-plugins
 
+## 1.2.3
+
+### Patch Changes
+
+- [#1540](https://github.com/ngrok/mantle/pull/1540) [`9016164`](https://github.com/ngrok/mantle/commit/9016164c88666a139ed9a806cfeccfba4804b7a0) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Bump `magic-string` from 1.4.1 to 1.4.2 and `oxc-parser` from 0.150.0 to 0.152.0. No API change.
+- Updated dependencies [[`9016164`](https://github.com/ngrok/mantle/commit/9016164c88666a139ed9a806cfeccfba4804b7a0)]:
+  - @ngrok/mantle-server-syntax-highlighter@1.1.16
+
 ## 1.2.2
 
 ### Patch Changes
