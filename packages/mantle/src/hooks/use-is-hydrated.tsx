@@ -39,7 +39,7 @@ function getServerSnapshot(): boolean {
  * UI mounts exactly once, with the real client-side values.
  *
  * To gate a CSS transition on a post-hydration state correction, use
- * `useIsHydratedAfterPaint` instead: this hook flips in the same commit as
+ * `useIsHydratedAfterPaint` instead. This hook flips in the same commit as
  * the correction, so the transition runs.
  *
  * @example

@@ -24,7 +24,7 @@ function getAlertRegion(): HTMLElement {
 }
 
 describe("Sandbar (browser)", () => {
-	test("shake runs one animation on the panel", () => {
+	test("shake wiggles the panel horizontally and settles at rest", () => {
 		const handle = createRef<SandbarHandle>();
 		render(
 			<Sandbar.Root handleRef={handle} open>
@@ -34,7 +34,20 @@ describe("Sandbar (browser)", () => {
 
 		handle.current?.shake();
 
-		expect(getPanel().getAnimations()).toHaveLength(1);
+		const [animation] = getPanel().getAnimations();
+		if (animation == null) {
+			throw new Error("expected the shake to run as an animation on the panel");
+		}
+		// Why sample mid-flight: the keyframe table is the implementation. The
+		// contract is a horizontal offset that is zero again at rest.
+		animation.pause();
+		animation.currentTime = 100;
+		const midFlight = new DOMMatrix(getComputedStyle(getPanel()).transform);
+		expect(midFlight.m41).not.toBe(0);
+		expect(midFlight.m42).toBe(0);
+
+		animation.finish();
+		expect(getComputedStyle(getPanel()).transform).toBe("none");
 	});
 
 	test("a re-triggered shake cancels the in-flight animation", () => {

@@ -178,7 +178,7 @@ function SearchInput() {
 const isHydrated = useIsHydrated();
 ```
 
-Returns whether the component tree has been hydrated on the client. Returns `false` on the server and `true` after hydration on the client. Uses `useSyncExternalStore` to prevent hydration mismatches. To gate a CSS transition on a post-hydration state correction, use [`useIsHydratedAfterPaint`](#useishydratedafterpaint) instead.
+Returns whether the component tree has been hydrated on the client. Returns `false` on the server and `true` after hydration on the client. Uses `useSyncExternalStore` to prevent hydration mismatches. To gate a CSS transition on a post-hydration state correction, use [`useIsHydratedAfterPaint`](#useishydratedafterpaint) instead. This hook flips in the same commit as the correction, so the transition runs.
 
 ```tsx
 import { useIsHydrated } from "@ngrok/mantle/hooks";
@@ -201,7 +201,7 @@ const isHydrated = useIsHydratedAfterPaint();
 
 Returns `false` on the server, in the hydration render, and in the mount commit, then `true` from the next animation frame.
 
-Use it to gate a CSS transition that must not run on a post-hydration state correction. `useIsHydrated` flips in the hydration commit, where a [`useLocalStorage`](#uselocalstorage) or any other `useSyncExternalStore` correction also lands, and CSS starts a transition from that commit's after-change style. One frame later the correction has painted, so a gate keyed on this result opens on settled values. For every other client-only branch, `useIsHydrated` is the right hook: it costs no extra render.
+Use it to gate a CSS transition that must not run on a post-hydration state correction. `useIsHydrated` flips in the hydration commit. A [`useLocalStorage`](#uselocalstorage) or any other `useSyncExternalStore` correction lands in that same commit. CSS starts a transition from the commit's after-change style, so the transition runs. One frame later the correction has painted, so a gate keyed on this result opens on settled values. For every other client-only branch, `useIsHydrated` is the right hook: it costs no extra render.
 
 ```tsx
 import { useIsHydratedAfterPaint, useLocalStorage } from "@ngrok/mantle/hooks";

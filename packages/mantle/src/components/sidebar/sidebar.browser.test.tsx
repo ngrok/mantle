@@ -24,6 +24,7 @@ const STYLE = `
 @layer utilities {
 	.flex { display: flex; }
 	.w-\\(--sidebar-width\\,13rem\\) { width: var(--sidebar-width, 13rem); }
+	.transition-none { transition-property: none; }
 	.transition-\\[width\\] {
 		transition-property: width;
 		transition-timing-function: var(--tw-ease, cubic-bezier(0.4, 0, 0.2, 1));
@@ -168,16 +169,28 @@ test("snaps a persisted-collapsed correction into place with no transition", asy
 	expect(label.getAnimations()).toHaveLength(0);
 });
 
+type ShellOptions = {
+	/** A consumer `className` for `Sidebar.Nav`. */
+	navClassName?: string;
+	/** A consumer `className` for `Sidebar.GroupLabel`. */
+	labelClassName?: string;
+};
+
 /** Renders the panel, a group label, and the trigger, then waits for the gates to release. */
-async function renderExpandedShell(): Promise<{ label: HTMLElement; nav: HTMLElement }> {
+async function renderExpandedShell({ labelClassName, navClassName }: ShellOptions = {}): Promise<{
+	label: HTMLElement;
+	nav: HTMLElement;
+}> {
 	await page.viewport(1280, 800);
 	render(
 		<TooltipProvider>
 			<Sidebar.Root>
-				<Sidebar.Nav data-testid="nav">
+				<Sidebar.Nav className={navClassName} data-testid="nav">
 					<Sidebar.Body>
 						<Sidebar.Group>
-							<Sidebar.GroupLabel data-testid="label">Traffic</Sidebar.GroupLabel>
+							<Sidebar.GroupLabel className={labelClassName} data-testid="label">
+								Traffic
+							</Sidebar.GroupLabel>
 						</Sidebar.Group>
 					</Sidebar.Body>
 				</Sidebar.Nav>
@@ -226,6 +239,23 @@ test("snaps a collapse the user triggers under reduced motion", async () => {
 	await commands.emulateMedia({ reducedMotion: "reduce" });
 	expect(window.matchMedia("(prefers-reduced-motion: reduce)").matches).toBe(true);
 	const { label, nav } = await renderExpandedShell();
+	const transitions = recordTransitions(nav);
+
+	await userEvent.click(screen.getByRole("button", { name: "Toggle Sidebar" }));
+
+	expect(nav).toHaveAttribute("data-state", "collapsed");
+	expect(getComputedStyle(nav).width).toBe("52px");
+	expect(getComputedStyle(label).opacity).toBe("0");
+	expect(transitions).toEqual([]);
+});
+
+test("lets a consumer transition-none replace the default transition", async () => {
+	// Why: the default and the consumer utility share one tailwind-merge group, so
+	// only the last one in `cx` reaches the element and the cascade never decides.
+	const { label, nav } = await renderExpandedShell({
+		labelClassName: "transition-none",
+		navClassName: "transition-none",
+	});
 	const transitions = recordTransitions(nav);
 
 	await userEvent.click(screen.getByRole("button", { name: "Toggle Sidebar" }));

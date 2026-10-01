@@ -1799,6 +1799,11 @@ const defaultElementCases: Array<PartCase> = [
  * they take no `asChild` — and `Sidebar.Tooltip` forwards `asChild` to Radix's
  * `Tooltip.Content` rather than mantle's `Slot`.
  */
+/**
+ * Every slotted child carries `child-class`, so the `asChild` row can prove the
+ * merge keeps the child's class beside the consumer's. Conflicting classes are
+ * `Slot`'s own test.
+ */
 const asChildCases: Array<PartCase> = [
 	{
 		name: "Header",
@@ -1808,7 +1813,7 @@ const asChildCases: Array<PartCase> = [
 			<Sidebar.Root>
 				<Sidebar.Nav>
 					<Sidebar.Header asChild {...probe}>
-						<section>header</section>
+						<section className="child-class">header</section>
 					</Sidebar.Header>
 				</Sidebar.Nav>
 			</Sidebar.Root>
@@ -1822,7 +1827,7 @@ const asChildCases: Array<PartCase> = [
 			<Sidebar.Root>
 				<Sidebar.Nav>
 					<Sidebar.Body asChild {...probe}>
-						<section>body</section>
+						<section className="child-class">body</section>
 					</Sidebar.Body>
 				</Sidebar.Nav>
 			</Sidebar.Root>
@@ -1836,7 +1841,7 @@ const asChildCases: Array<PartCase> = [
 			<Sidebar.Root>
 				<Sidebar.Nav>
 					<Sidebar.Footer asChild {...probe}>
-						<footer>footer</footer>
+						<footer className="child-class">footer</footer>
 					</Sidebar.Footer>
 				</Sidebar.Nav>
 			</Sidebar.Root>
@@ -1848,7 +1853,7 @@ const asChildCases: Array<PartCase> = [
 		tagName: "SECTION",
 		renderPart: (probe) => (
 			<Sidebar.Group asChild {...probe}>
-				<section>group</section>
+				<section className="child-class">group</section>
 			</Sidebar.Group>
 		),
 	},
@@ -1859,7 +1864,7 @@ const asChildCases: Array<PartCase> = [
 		renderPart: (probe) => (
 			<Sidebar.Group>
 				<Sidebar.GroupLabel asChild {...probe}>
-					<h3>Traffic</h3>
+					<h3 className="child-class">Traffic</h3>
 				</Sidebar.GroupLabel>
 			</Sidebar.Group>
 		),
@@ -1871,7 +1876,7 @@ const asChildCases: Array<PartCase> = [
 		renderPart: (probe) => (
 			<Sidebar.Group>
 				<Sidebar.List asChild {...probe}>
-					<ol />
+					<ol className="child-class" />
 				</Sidebar.List>
 			</Sidebar.Group>
 		),
@@ -1883,7 +1888,7 @@ const asChildCases: Array<PartCase> = [
 		renderPart: (probe) => (
 			<Sidebar.List>
 				<Sidebar.Item asChild {...probe}>
-					<div>row</div>
+					<div className="child-class">row</div>
 				</Sidebar.Item>
 			</Sidebar.List>
 		),
@@ -1896,7 +1901,9 @@ const asChildCases: Array<PartCase> = [
 			<Sidebar.List>
 				<Sidebar.Item>
 					<Sidebar.ItemButton asChild {...probe}>
-						<a href="/endpoints">Endpoints</a>
+						<a className="child-class" href="/endpoints">
+							Endpoints
+						</a>
 					</Sidebar.ItemButton>
 				</Sidebar.Item>
 			</Sidebar.List>
@@ -1908,7 +1915,9 @@ const asChildCases: Array<PartCase> = [
 		tagName: "A",
 		renderPart: (probe) => (
 			<Sidebar.SearchTrigger asChild {...probe}>
-				<a href="/search">Search…</a>
+				<a className="child-class" href="/search">
+					Search…
+				</a>
 			</Sidebar.SearchTrigger>
 		),
 	},
@@ -1918,7 +1927,9 @@ const asChildCases: Array<PartCase> = [
 		tagName: "A",
 		renderPart: (probe) => (
 			<Sidebar.SwitcherTrigger asChild {...probe}>
-				<a href="/switch">Acme Corp</a>
+				<a className="child-class" href="/switch">
+					Acme Corp
+				</a>
 			</Sidebar.SwitcherTrigger>
 		),
 	},
@@ -1928,7 +1939,7 @@ const asChildCases: Array<PartCase> = [
 		tagName: "HR",
 		renderPart: (probe) => (
 			<Sidebar.Separator asChild {...probe}>
-				<hr />
+				<hr className="child-class" />
 			</Sidebar.Separator>
 		),
 	},
@@ -1946,6 +1957,8 @@ describe("Sidebar part forwarding", () => {
 		"$name asChild renders the child and merges classes, data-*, and the ref onto it",
 		(partCase) => {
 			expectPartForwarding(partCase);
+			// Why both classes: an overwrite of the child's `className` keeps one source.
+			expect(screen.getByTestId("part")).toHaveClass("custom-class", "child-class");
 		},
 	);
 });

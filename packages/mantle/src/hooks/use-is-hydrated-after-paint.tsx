@@ -5,12 +5,13 @@ import { useEffect, useState } from "react";
  * commit, then `true` from the next animation frame.
  *
  * Use it to gate a CSS transition that must not run on a post-hydration
- * state correction. `useIsHydrated` flips in the hydration commit, where a
- * `useLocalStorage` or any other `useSyncExternalStore` correction also lands,
- * and CSS starts a transition from that commit's after-change style. One frame
- * later the correction has painted, so a gate keyed on this result opens on
- * settled values. For every other client-only branch, `useIsHydrated` is the
- * right hook: it costs no extra render.
+ * state correction. `useIsHydrated` flips in the hydration commit. A
+ * `useLocalStorage` or any other `useSyncExternalStore` correction lands in
+ * that same commit. CSS starts a transition from the commit's after-change
+ * style, so the transition runs. One frame later the correction has painted,
+ * so a gate keyed on this result opens on settled values. For every other
+ * client-only branch, `useIsHydrated` is the right hook: it costs no extra
+ * render.
  *
  * @example
  * ```tsx
