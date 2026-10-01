@@ -119,11 +119,59 @@ import { DescriptionList } from "@ngrok/mantle/description-list";
 </DescriptionList.Root>;
 ```
 
+## Long values
+
+The value column has a `0` minimum width, so a long value stays inside its row instead of widening the list. Give the child the overflow behavior you want: `truncate` clips a single line with an ellipsis, and `wrap-anywhere` breaks a line at any character. `DescriptionList.Value` needs no class of its own.
+
+<Example>
+	<div className="w-full max-w-lg">
+		<DescriptionList.Root>
+			<DescriptionList.Item>
+				<DescriptionList.Label>Request URL</DescriptionList.Label>
+				<DescriptionList.Value>
+					<span className="block truncate">
+						https://example.ngrok.app/api/items?filter=%7B%22name%22%3A%22very-long-value%22%7D&limit=200&offset=0
+					</span>
+				</DescriptionList.Value>
+			</DescriptionList.Item>
+			<DescriptionList.Item>
+				<DescriptionList.Label>Token</DescriptionList.Label>
+				<DescriptionList.Value translate="no" className="wrap-anywhere">
+					aigk_2fKm9x8Hn3QpYT7zKlR0vW5bN1cD4eF6gH8jK0lM2nP4qR6sT8uV0wX2yZ4aB6cD8eF0gH2jK4
+				</DescriptionList.Value>
+			</DescriptionList.Item>
+		</DescriptionList.Root>
+	</div>
+</Example>
+
+```tsx
+import { DescriptionList } from "@ngrok/mantle/description-list";
+
+<DescriptionList.Root>
+	<DescriptionList.Item>
+		<DescriptionList.Label>Request URL</DescriptionList.Label>
+		<DescriptionList.Value>
+			<span className="block truncate">
+				https://example.ngrok.app/api/items?filter=%7B%22name%22%3A%22very-long-value%22%7D&limit=200&offset=0
+			</span>
+		</DescriptionList.Value>
+	</DescriptionList.Item>
+	<DescriptionList.Item>
+		<DescriptionList.Label>Token</DescriptionList.Label>
+		<DescriptionList.Value translate="no" className="wrap-anywhere">
+			aigk_2fKm9x8Hn3QpYT7zKlR0vW5bN1cD4eF6gH8jK0lM2nP4qR6sT8uV0wX2yZ4aB6cD8eF0gH2jK4
+		</DescriptionList.Value>
+	</DescriptionList.Item>
+</DescriptionList.Root>;
+```
+
+Content that cannot shrink and has no scroll container of its own (a wide table, a `pre`) overflows its cell. `DescriptionList.Root` scrolls to reveal it. Give that content `overflow-x-auto` to scroll it inside the row instead.
+
 ## API Reference
 
 ### DescriptionList.Root
 
-The root container for a description list. Renders a `<dl>` element.
+The root container for a description list. Renders a `<dl>` element. The value column has a `0` minimum width, so a value that truncates or wraps stays inside the row instead of widening the list.
 
 All props from [dl](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/dl#attributes), plus:
 
