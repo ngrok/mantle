@@ -1,5 +1,68 @@
 # @ngrok/mantle
 
+## 0.88.0
+
+### Minor Changes
+
+- [#1527](https://github.com/ngrok/mantle/pull/1527) [`6f6a27b`](https://github.com/ngrok/mantle/commit/6f6a27b9f9ed55ba7dc072db381c8c6d53beb6db) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - **Breaking: `Tabs.List` draws no border.** The `hideBorder` prop and the `data-hide-border` attribute are gone, and so is the side border of a vertical classic list. The new `Tabs.Separator` part draws the hairline instead. Compose it directly after `Tabs.List`:
+
+  ```tsx
+  <Tabs.Root defaultValue="account">
+  	<Tabs.List>
+  		<Tabs.Trigger value="account">Account</Tabs.Trigger>
+  		<Tabs.Trigger value="password">Password</Tabs.Trigger>
+  	</Tabs.List>
+  	<Tabs.Separator />
+  	<Tabs.Content value="account">…</Tabs.Content>
+  	<Tabs.Content value="password">…</Tabs.Content>
+  </Tabs.Root>
+  ```
+
+  Why: a horizontal list is a scroll container, and it carries negative margins and padding so the focus ring has room. A border painted on the list itself had to live inside that padding, so it stopped short of the root's edges and faded with the triggers under the scroll mask. The separator is a sibling of the list, so it spans the root's full width, never scrolls, and never fades.
+
+  A horizontal `Tabs.List` now stretches across its own focus-ring margins instead of taking the root's width. Its triggers reach the root's right edge and line up with the separator; they stopped 8px short before.
+
+  `Tabs.Separator` composes the mantle `Separator`. It paints the `separator` color token, follows the root's `orientation` (under the list when horizontal, beside the list when vertical), is decorative by default (`role="none"`), and accepts `semantic` and `asChild`. It stamps `data-slot="tabs-separator"`, `data-orientation`, and `data-separator`. As the root's direct child it pulls itself up by the new `--tabs-gap` CSS variable and sits flush against the list while the content keeps the gap. Inside a wrapper of your own, the offset stays off.
+
+  `Tabs.Root` now sets `--tabs-gap` (default `1rem`) and reads it for its `gap`. Set the variable, not a `gap-*` class, to change the space between the list and the content. A `gap-*` class changes the gap alone and leaves the separator's offset at `1rem`.
+
+  Migrate:
+
+  - Add `<Tabs.Separator />` after every classic `Tabs.List` that relied on the default border. A pill list never drew one.
+  - Delete `hideBorder` from every `Tabs.List`. A list that had `hideBorder` needs no separator.
+  - Replace a `[data-hide-border]` selector with a `[data-slot~="tabs-separator"]` selector, or with its absence.
+  - On a `Tabs.Root` that holds a `Tabs.Separator` as a direct child, replace a `gap-*` class with `[--tabs-gap:…]`.
+
+  Migration guide: https://mantle.ngrok.com/migrations/0008-tabs-separator-migration
+
+  API reference: https://mantle.ngrok.com/components/navigation/tabs#tabsseparator
+
+### Patch Changes
+
+- [#1538](https://github.com/ngrok/mantle/pull/1538) [`1720c3c`](https://github.com/ngrok/mantle/commit/1720c3c180744be019a472710820480781bcf22a) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `DescriptionList.Root` sizes its value column `minmax(0, 1fr)` instead of `1fr`. A bare `1fr` track has an `auto` minimum that resolves to the value's min-content width, so a long single-line value (a URL, an ID, a token) widened the column and the list scrolled sideways. An ellipsis never appeared, and each call site patched the column with `min-w-0` on `DescriptionList.Value`.
+
+  The column now shrinks to the room left beside the label. A `truncate` child clips with an ellipsis, and `wrap-anywhere` or `break-all` on the value or on a child wraps it, with no `min-w-0` on `DescriptionList.Value`. Remove a `min-w-0` you set on `DescriptionList.Value` for this reason; it is now redundant.
+
+  Content that cannot shrink and has no scroll container of its own (a wide table, a `pre`) now overflows its cell past the row stripe. `DescriptionList.Root` still scrolls to reveal it. Give that content `overflow-x-auto` to scroll it inside the row instead.
+
+  Docs: https://mantle.ngrok.com/components/data-display/description-list#long-values
+
+- [#1540](https://github.com/ngrok/mantle/pull/1540) [`9016164`](https://github.com/ngrok/mantle/commit/9016164c88666a139ed9a806cfeccfba4804b7a0) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Bump `react-day-picker` from 10.0.1 to 10.0.2. `Calendar` picks up its fixes with no API change.
+
+- [#1531](https://github.com/ngrok/mantle/pull/1531) [`ad96b54`](https://github.com/ngrok/mantle/commit/ad96b540359aa81c6e4e8ecb92d0d1e50680c683) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Sidebar.Nav` now stamps `data-hydrated` one frame after hydration instead of in the hydration commit. A persisted-collapsed state that a controlled `open` applies after hydration (the `useLocalStorage` recipe) used to commit in the same flush as the stamp, so the collapse animated shut on page load. It now snaps into place.
+
+  `Sidebar.Nav` and `Sidebar.GroupLabel` key their hydration gates off `data-hydrated` in CSS instead of toggling classes in JS, with one negated variant per gate: `max-{breakpoint}:not-data-hydrated:hidden` for the pre-hydration visibility gate, `not-data-hydrated:transition-none` for the panel's width transition, and `group-not-data-hydrated/sidebar-nav:transition-none` for the label's fade. The gates no longer override consumer utilities: a `className` display utility holds above `mobileBreakpoint` before hydration as well as after, and a consumer `transition-none` or `duration-*` now replaces the default transition through tailwind-merge.
+
+  `Sidebar.Nav` also owns `data-state` and `data-hydrated`: a value passed through props no longer overrides either.
+
+  `useIsHydratedAfterPaint` is a new hook in `@ngrok/mantle/hooks`. It returns `false` on the server, in the hydration render, and in the mount commit, then `true` from the next animation frame. Use it to gate a CSS transition that must not run on a post-hydration state correction, where `useIsHydrated` flips too early. `Sidebar.Nav` stamps `data-hydrated` from it.
+
+- [#1527](https://github.com/ngrok/mantle/pull/1527) [`6f6a27b`](https://github.com/ngrok/mantle/commit/6f6a27b9f9ed55ba7dc072db381c8c6d53beb6db) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Every `Tabs` part now joins an incoming `data-slot` chain instead of replacing it, so a part rendered through an `asChild` ancestor keeps its own slot beside the ancestor's: `data-slot="app-layout-body tabs"`. Before, the ancestor's value won and the part's slot disappeared.
+
+  `Tabs.Badge` now accepts `ref`.
+
+  Every `Tabs` part documents the `data-*` attributes it stamps, including the `data-orientation`, `data-state`, and `data-disabled` values Radix sets, in both the JSDoc and the API reference: https://mantle.ngrok.com/components/navigation/tabs#api-reference
+
 ## 0.87.0
 
 ### Minor Changes

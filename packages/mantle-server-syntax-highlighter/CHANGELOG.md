@@ -1,5 +1,11 @@
 # @ngrok/mantle-server-syntax-highlighter
 
+## 1.1.16
+
+### Patch Changes
+
+- [#1540](https://github.com/ngrok/mantle/pull/1540) [`9016164`](https://github.com/ngrok/mantle/commit/9016164c88666a139ed9a806cfeccfba4804b7a0) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Bump `shiki` from 4.4.3 to 4.5.0 and `oxc-parser` from 0.150.0 to 0.152.0. No API change.
+
 ## 1.1.15
 
 ### Patch Changes
