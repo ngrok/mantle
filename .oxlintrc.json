@@ -137,6 +137,14 @@
       }
     },
     {
+      // Why: the claude.ai/design converter maps each preview to its component
+      // by filename, so a preview must be named `<Name>.tsx`.
+      "files": [".design-sync/previews/**"],
+      "rules": {
+        "unicorn/filename-case": "off"
+      }
+    },
+    {
       "files": ["**/*.test.{ts,tsx}", "**/*.browser.test.{ts,tsx}"],
       "rules": {
         "react/no-object-type-as-default-prop": "off",
@@ -157,6 +165,8 @@
     "node_modules",
     "public",
     "*/code-gen",
-    "packages/mantle/src/utils/cx/vendor"
+    "packages/mantle/src/utils/cx/vendor",
+    // Why: a fork of the converter's own module. Its upstream style keeps it diffable.
+    ".design-sync/overrides"
   ]
 }
