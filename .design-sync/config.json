@@ -1,0 +1,118 @@
+{
+  "projectId": "3506e6df-6958-4831-acd2-34f9dd23f7dd",
+  "shape": "package",
+  "pkg": "@ngrok/mantle",
+  "globalName": "Mantle",
+  "entry": ".design-sync/.cache/pkg/index.js",
+  "buildCmd": "mise x -- pnpm -w run build -F @ngrok/mantle && mise x -- node .ds-sync/node_modules/@tailwindcss/cli/dist/index.mjs -i .design-sync/tailwind-input.css -o .design-sync/.cache/mantle.compiled.css && mise x -- node .design-sync/make-entry.mjs",
+  "srcDir": "../../../packages/mantle/src",
+  "cssEntry": "mantle.compiled.css",
+  "docsDir": "../../../apps/www/app/docs/components",
+  "libOverrides": {
+    "source-kit.mjs": "group components by their docs-site category folder instead of the src dir"
+  },
+  "componentSrcMap": {
+    "AutoThemeIcon": "../../../packages/mantle/src/components/icons/theme.tsx",
+    "ThemeIcon": "../../../packages/mantle/src/components/icons/theme.tsx",
+    "NgrokLettermarkIcon": "../../../packages/mantle/src/components/icons/ngrok.tsx",
+    "NgrokWordmarkIcon": "../../../packages/mantle/src/components/icons/ngrok.tsx",
+    "SortIcon": "../../../packages/mantle/src/components/icons/sort.tsx",
+    "TrafficPolicyFileIcon": "../../../packages/mantle/src/components/icons/traffic-policy-file.tsx",
+    "HorizontalSeparatorGroup": "../../../packages/mantle/src/components/separator/separator.tsx",
+    "ThemeDropdownMenuRadioGroup": "../../../packages/mantle/src/components/theme-switcher/theme-switcher.tsx",
+    "PreventWrongThemeFlashScript": null,
+    "PreloadFont": null,
+    "MantleStyleSheets": null,
+    "BrowserOnly": null,
+    "SandboxedOnClick": null,
+    "Slot": null,
+    "InputCapture": null,
+    "TooltipProvider": null,
+    "Toaster": null,
+    "MetaKey": null,
+    "ColumnFaceting": null,
+    "ColumnFiltering": null,
+    "ColumnGrouping": null,
+    "ColumnOrdering": null,
+    "ColumnPinning": null,
+    "ColumnSizing": null,
+    "ColumnVisibility": null,
+    "GlobalFaceting": null,
+    "GlobalFiltering": null,
+    "Headers": null,
+    "RowExpanding": null,
+    "RowPagination": null,
+    "RowPinning": null,
+    "RowSelection": null,
+    "RowSorting": null,
+    "FlexRender": null,
+    "Subscribe": null
+  },
+  "docsMap": {
+    "AppLayout": "../../../apps/www/app/docs/layouts/app-layout.mdx",
+    "CenteredLayout": "../../../apps/www/app/docs/layouts/centered-layout.mdx"
+  },
+  "extraEntries": ["../../icons.mjs"],
+  "overrides": {
+    "Dialog": {
+      "cardMode": "single",
+      "viewport": "720x480"
+    },
+    "AlertDialog": {
+      "cardMode": "single",
+      "viewport": "720x480"
+    },
+    "DropdownMenu": {
+      "cardMode": "single",
+      "viewport": "720x480"
+    },
+    "Popover": {
+      "cardMode": "single",
+      "viewport": "720x480"
+    },
+    "Tooltip": {
+      "cardMode": "single",
+      "viewport": "720x480"
+    },
+    "Sheet": {
+      "cardMode": "single",
+      "viewport": "720x480"
+    },
+    "HoverCard": {
+      "cardMode": "single",
+      "viewport": "720x480"
+    },
+    "Table": {
+      "cardMode": "column"
+    },
+    "DataTable": {
+      "cardMode": "column"
+    },
+    "AreaChart": {
+      "cardMode": "column"
+    },
+    "BarChart": {
+      "cardMode": "column"
+    },
+    "LineChart": {
+      "cardMode": "column"
+    },
+    "DescriptionList": {
+      "cardMode": "column"
+    },
+    "CodeBlock": {
+      "cardMode": "column"
+    },
+    "IconButton": {
+      "cardMode": "column"
+    },
+    "MultiSelect": {
+      "cardMode": "column"
+    }
+  },
+  "readmeHeader": ".design-sync/conventions.md",
+  "dtsPropsFor": {
+    "Badge": "  /** Allows getting a ref to the component instance. Once the component unmounts, React will set `ref.current` to `null` (or  */\n  ref?: React.Ref;\n  className?: string;\n  id?: string;\n  style?: CSSProperties;\n  children?: React.ReactNode;\n  /** Use the `asChild` prop to compose component functionality onto alternative element types or your own React components. W */\n  asChild?: boolean;\n  /** The icon to render inside the badge. Decorative by default: it renders `aria-hidden` unless the SVG carries `aria-label` */\n  icon?: React.ReactNode;\n  /** The visual style of the badge. */\n  appearance: \"muted\";\n  /** The color variant of the badge. Prefer functional colors (`success`, `warning`, `danger`, `info`, `neutral`) for status. */\n  color?: \"amber\" | \"blue\" | \"cyan\" | \"emerald\" | \"fuchsia\" | \"gray\" | \"green\" | \"indigo\" | \"lime\" | \"orange\" | \"pink\" | \"purple\" | \"red\" | \"rose\" | \"sky\" | \"teal\" | \"violet\" | \"yellow\" | \"important\" | \"info\" | \"accent\" | \"danger\" | \"neutral\" | \"success\" | \"warning\";",
+    "Slider": "  form?: string;\n  style?: CSSProperties;\n  /** Allows getting a ref to the component instance. Once the component unmounts, React will set `ref.current` to `null` (or  */\n  ref?: React.Ref;\n  className?: string;\n  dir?: \"ltr\" | \"rtl\";\n  id?: string;\n  children?: React.ReactNode;\n  max?: number;\n  min?: number;\n  disabled?: boolean;\n  name?: string;\n  step?: number;\n  orientation?: \"horizontal\" | \"vertical\";\n  inverted?: boolean;\n  asChild?: boolean;\n  minStepsBetweenThumbs?: number;\n  /** The value of the slider when initially rendered. Use when you do not need to control the state of the slider. */\n  defaultValue?: number | number[];\n  /** The controlled value of the slider. Must be used with `onValueChange`. */\n  value?: number | number[];\n  /** Whether to show tick marks along the track: one per `step`, spread evenly across the track. When the range is not a mult */\n  showTicks?: boolean;\n  /** The color of the slider range: any Tailwind `bg-*` class, such as `\"bg-warning-600\"`. Defaults to `\"bg-accent-600\"`. */\n  color?: `bg-${string}`;"
+  }
+}
