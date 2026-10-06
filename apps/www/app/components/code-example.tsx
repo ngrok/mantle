@@ -1,6 +1,8 @@
 import { cx } from "@ngrok/mantle/cx";
 import { Tabs } from "@ngrok/mantle/tabs";
 import type { ComponentProps } from "react";
+import { href } from "react-router";
+import type { PreviewExampleName } from "~/features/preview-registry";
 import { PreviewFrame as PreviewFrameImpl } from "./preview-frame";
 
 type CodeExampleRootProps = Omit<
@@ -76,19 +78,47 @@ function Preview({ className, children, ...props }: CodeExamplePanelProps) {
 	);
 }
 
+/**
+ * What a `CodeExample.PreviewFrame` loads: a registered example by name, or a
+ * routed demo by its entry path. A routed demo is a route tree of its own
+ * under `/preview/` (see the breadcrumbs-from-routes demo in `routes.ts`),
+ * for a demo that needs real navigation rather than one component.
+ */
+type PreviewTarget =
+	| {
+			/** Which registered preview example the frame renders (see preview-registry.ts). */
+			example: PreviewExampleName;
+			path?: never;
+	  }
+	| {
+			/** The entry path of a routed demo below `/preview/`. */
+			path: `/preview/${string}`;
+			example?: never;
+	  };
+
+/** The chrome-less document URL for a {@link PreviewTarget}. */
+function previewSrc(target: PreviewTarget): string {
+	if (target.example != null) {
+		return href("/preview/:exampleName", { exampleName: target.example });
+	}
+	return target.path;
+}
+
 type CodeExamplePreviewFrameProps = Omit<
 	ComponentProps<typeof Tabs.Content>,
 	"value" | "forceMount" | "children"
 > &
-	ComponentProps<typeof PreviewFrameImpl>;
+	Omit<ComponentProps<typeof PreviewFrameImpl>, "src"> &
+	PreviewTarget;
 
 /**
- * The framed alternative to `CodeExample.Preview`: hosts a {@link PreviewFrameImpl PreviewFrame}
- * — an iframe pointed at the chrome-less `/preview/:exampleName` route with a
+ * The framed alternative to `CodeExample.Preview`: hosts a {@link PreviewFrameImpl PreviewFrame},
+ * an iframe pointed at a chrome-less `/preview/` document with a
  * desktop/tablet/mobile viewport switcher. Reach for it when the demo is a
  * full-page layout that wants its own document (real `Main` landmark, isolated
- * keyboard shortcuts, frame-driven breakpoints). The panel is force-mounted
- * so flipping to the Code tab and back never reloads the iframe.
+ * keyboard shortcuts, frame-driven breakpoints), or when the demo needs a
+ * real router of its own. The panel is force-mounted so flipping to the Code
+ * tab and back never reloads the iframe.
  *
  * @example
  * ```mdx
@@ -97,8 +127,17 @@ type CodeExamplePreviewFrameProps = Omit<
  * 	<CodeExample.Code>{tsx fence}</CodeExample.Code>
  * </CodeExample.Root>
  * ```
+ *
+ * @example
+ * ```mdx
+ * <CodeExample.PreviewFrame path="/preview/breadcrumbs-from-routes/endpoints" title="Breadcrumbs demo" />
+ * ```
  */
-function PreviewFrame({ className, example, title, ...props }: CodeExamplePreviewFrameProps) {
+function PreviewFrame(props: CodeExamplePreviewFrameProps) {
+	// the target stays whole for `previewSrc`, which needs the union to narrow
+	const src = previewSrc(props);
+	const { className, title, example: _example, path: _path, ...tabsContentProps } = props;
+
 	return (
 		<Tabs.Content
 			value="preview"
@@ -106,9 +145,9 @@ function PreviewFrame({ className, example, title, ...props }: CodeExamplePrevie
 			// force-mounted inactive panels visible, so hide it ourselves
 			forceMount
 			className="data-[state=inactive]:hidden"
-			{...props}
+			{...tabsContentProps}
 		>
-			<PreviewFrameImpl example={example} title={title} className={className} />
+			<PreviewFrameImpl src={src} title={title} className={className} />
 		</Tabs.Content>
 	);
 }

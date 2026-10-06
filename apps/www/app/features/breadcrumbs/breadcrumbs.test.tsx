@@ -87,13 +87,13 @@ describe("Breadcrumbs", () => {
 			<MemoryRouter>
 				<Breadcrumbs
 					crumbs={[
-						{ kind: "link", key: "apps:0", label: "Apps", to: "/apps" },
+						{ kind: "link", key: "vaults:0", label: "Vaults & Secrets", to: "/vaults" },
 						{
 							kind: "content",
-							key: "app:0",
+							key: "vault:0",
 							content: (
 								<Breadcrumb.Item>
-									<Breadcrumb.Page>my-app</Breadcrumb.Page>
+									<Breadcrumb.Page>production</Breadcrumb.Page>
 								</Breadcrumb.Item>
 							),
 						},
@@ -102,12 +102,14 @@ describe("Breadcrumbs", () => {
 			</MemoryRouter>,
 		);
 
-		expect(screen.getByText("my-app").getAttribute("aria-current")).toBe("page");
+		expect(screen.getByText("production").getAttribute("aria-current")).toBe("page");
 		expect(container.querySelectorAll('[data-slot="breadcrumb-separator"]')).toHaveLength(1);
 		// The crumb's own node is a direct child of the `<ol>`, so it has to be a
 		// host element. A bare string there is a text node React removes by itself,
 		// which throws once a translation engine has reparented it.
-		expect(screen.getByText("my-app").closest("li")?.parentElement).toBe(screen.getByRole("list"));
+		expect(screen.getByText("production").closest("li")?.parentElement).toBe(
+			screen.getByRole("list"),
+		);
 	});
 
 	it("renders a pending content crumb as the skeleton placeholder", () => {
@@ -117,7 +119,7 @@ describe("Breadcrumbs", () => {
 					crumbs={[
 						{
 							kind: "content",
-							key: "app:0",
+							key: "vault:0",
 							content: <Breadcrumb.Skeleton className="w-40" />,
 						},
 					]}
@@ -141,14 +143,14 @@ describe("RouteBreadcrumbs (through a real router)", () => {
 				Component: () => <RouteBreadcrumbs />,
 				children: [
 					{
-						path: ":endpointId",
+						path: ":endpointType/:endpointId",
 						handle: { breadcrumb: (m: UIMatch) => [routeBreadcrumb(m.params.endpointId)] },
 					},
 				],
 			},
 		]);
 
-		render(<Stub initialEntries={["/endpoints/ep_1"]} />);
+		render(<Stub initialEntries={["/endpoints/cloud/ep_1"]} />);
 
 		expect(screen.getByRole("link", { name: "Endpoints" }).getAttribute("href")).toBe("/endpoints");
 		expect(screen.getByText("ep_1").getAttribute("aria-current")).toBe("page");
@@ -177,12 +179,12 @@ describe("RouteBreadcrumbs (through a real router)", () => {
 	it("renders a route's content crumb", () => {
 		const Stub = createRoutesStub([
 			{
-				path: "/apps/:appId",
+				path: "/vaults/:vaultId",
 				handle: {
 					breadcrumb: () => [
 						routeBreadcrumb.content(
 							<Breadcrumb.Item>
-								<Breadcrumb.Page>my-app</Breadcrumb.Page>
+								<Breadcrumb.Page>production</Breadcrumb.Page>
 							</Breadcrumb.Item>,
 						),
 					],
@@ -191,9 +193,9 @@ describe("RouteBreadcrumbs (through a real router)", () => {
 			},
 		]);
 
-		render(<Stub initialEntries={["/apps/app_123"]} />);
+		render(<Stub initialEntries={["/vaults/vlt_9Xk2p"]} />);
 
-		expect(screen.getByText("my-app").getAttribute("aria-current")).toBe("page");
+		expect(screen.getByText("production").getAttribute("aria-current")).toBe("page");
 	});
 
 	it("loses the ancestor when the detail route is a sibling, not a child", () => {
@@ -203,13 +205,13 @@ describe("RouteBreadcrumbs (through a real router)", () => {
 		const Stub = createRoutesStub([
 			{ path: "/endpoints", handle: { breadcrumb: "Endpoints" } },
 			{
-				path: "/endpoints/:endpointId",
+				path: "/endpoints/:endpointType/:endpointId",
 				handle: { breadcrumb: (m: UIMatch) => [routeBreadcrumb(m.params.endpointId)] },
 				Component: () => <RouteBreadcrumbs />,
 			},
 		]);
 
-		render(<Stub initialEntries={["/endpoints/ep_1"]} />);
+		render(<Stub initialEntries={["/endpoints/cloud/ep_1"]} />);
 
 		expect(screen.queryByRole("link", { name: "Endpoints" })).toBeNull();
 		expect(screen.getByText("ep_1").getAttribute("aria-current")).toBe("page");
