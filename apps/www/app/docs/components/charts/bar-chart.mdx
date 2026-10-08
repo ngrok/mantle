@@ -271,7 +271,7 @@ export function BrandColorBarChartExample() {
 			data={requestsByModelProvider}
 			xKey="day"
 			stacked
-			// The canvas probe and the legend swatch both resolve through this
+			// The canvas paint and the legend swatch both resolve through this
 			// element's own cascade. A theme that needs its own value takes a variant:
 			// `dark:[--provider-claude:…]`.
 			className="[--provider-openai:#10a37f] [--provider-gemini:#3186ff] [--provider-claude:#d97757]"
@@ -760,7 +760,7 @@ function foldTail(rows, keys) {
 
 Set the fold's own series to `seriesSlot="other"`, so it always reads as the tail rather than taking a categorical slot. Keep it last, so it sits at the far end of a stack.
 
-Compose everything inside `BarChart.Root`: gridlines, axes, one `BarChart.Bar` per series, and (on multi-series charts) the legend. The interaction layer (per-category hover band and tooltip, keyboard stepping, polite announcements, and an sr-only data table) ships with `Root` unconditionally.
+Compose everything inside `BarChart.Root`: gridlines, axes, one `BarChart.Bar` per series, and (on multi-series charts) the legend. The interaction layer (per-category hover band and tooltip, keyboard stepping, polite announcements, and an sr-only description) ships with `Root` unconditionally; the sr-only data table mounts once the chart takes focus.
 
 Density takes care of itself: this chart plots 91 daily bars, and the band axis thins its own labels (evenly spaced from the first day, skipped rather than rotated when they'd collide). `Date` x values format as dates in the tooltip, land as exact ISO timestamps in the data-table twin, and take a `tickFormat` for short axis labels.
 
@@ -1166,7 +1166,7 @@ function RegroupBarChartExample() {
 
 A chart of named things (AI model providers, cloud vendors, plan tiers) often wants one recognizable color per
 thing across every chart and every page. Declare the values as custom properties on the Root and pass each one to
-the matching series. The canvas resolves them through a probe inside the Root. The legend swatch and the tooltip
+the matching series. The canvas resolves them from the Root's computed style, inside its own cascade. The legend swatch and the tooltip
 stroke emit the same `var()`, so one declaration set covers all three surfaces.
 
 Use `var(--your-token)` rather than a raw hex. A hex freezes: the same value paints on white and on near-black.
@@ -1216,7 +1216,7 @@ function BrandColorBarChartExample() {
 			data={requestsByModelProvider}
 			xKey="day"
 			stacked
-			// The canvas probe and the legend swatch both resolve through this
+			// The canvas paint and the legend swatch both resolve through this
 			// element's own cascade. A theme that needs its own value takes a variant:
 			// `dark:[--provider-claude:…]`.
 			className="[--provider-openai:#10a37f] [--provider-gemini:#3186ff] [--provider-claude:#d97757]"
@@ -1829,6 +1829,10 @@ function CopyMarkdownExample() {
 }
 ```
 
+## Lists of charts
+
+A page of 100 charts pays for the handful a reader can see. Every `BarChart.Root` ingests its data and answers the keyboard from its first render, but it paints and allocates its canvas only once it comes within one viewport of the visible area or takes focus. Three viewports away it releases its canvas memory and repaints on the way back; printing paints every chart. The screen-reader data table waits for focus alone: it mounts once a reader tabs into the chart, so a page of sparklines holds no hidden tables until a reader asks for one. Add `content-visibility: auto` to your list's cards as a complement: it skips style and layout for offscreen cards, and the chart's own gate already skips paint and canvas memory.
+
 ## Decorative charts
 
 Set `decorative` to render the chart as a placeholder backdrop instead of real data: synthetic bars behind an empty state, an atmospheric hero graphic. A decorative chart keeps its visual rendering and animation but drops every layer that only makes sense for real data: it is hidden from assistive technology, removed from the tab order, and inert to pointer and keyboard, with no hover band, tooltip, sr-only data table, or live region. Because the values aren't information, `decorative` is mutually exclusive with the accessible-name props (`aria-label` / `aria-labelledby`) and the interaction props (`activeIndex`, `onActiveIndexChange`, `onDatumActivate`); the type won't compile with both.
@@ -1893,7 +1897,7 @@ BarChart.Root
 
 Every interactive chart must have an accessible name: either a direct `aria-label` or an `aria-labelledby` reference to a visible title. This is enforced at the type level: `BarChart.Root` does not compile without exactly one of the two. Prefer `aria-labelledby` when the chart sits under a visible heading, so the name never drifts from the title. The name lands on the focusable interaction overlay, the chart's single named element (the canvas itself is hidden from assistive technology so the chart is never announced twice). [Decorative charts](#decorative-charts) are the exception: they carry no real data, so they take no accessible name and are hidden from assistive technology entirely.
 
-The chart is a single Tab stop with a full keyboard model, and it exposes usage instructions to assistive technology via `aria-describedby`:
+The chart is a single Tab stop with a full keyboard model:
 
 - **Left / Right arrows** step between categories.
 - **PageUp / PageDown** jump in larger strides (about a tenth of the data).
@@ -1903,9 +1907,11 @@ The chart is a single Tab stop with a full keyboard model, and it exposes usage 
 
 Keyboard stepping announces the category and each series' value through a debounced `aria-live="polite"` region, so rapid arrowing doesn't flood the screen-reader queue.
 
-`BarChart.Root` also renders an sr-only data table twin of the chart (the category column plus one column per series), bounded to the first 150 rows, with a caption stating the summarization when the data is longer. Tooltips enhance, they never gate: every plotted value is reachable through the table or the keyboard point cursor, and no part removal can strip keyboard access to the data.
+The overlay's `aria-describedby` points at a screen-reader description, `data-slot="bar-chart-description"`, so a screen reader hears what the chart holds when it takes focus: the chart kind, the number of categories, the first and last category, the series labels, and the keyboard instructions. For example: "Bar chart with 12 categories from Jan to Dec. Series: Desktop, Mobile. Use the left and right arrow keys to move between data points, …". An empty chart reads "Bar chart with no data." in place of the count and range. Server HTML carries the plain count alone. The range waits for hydration, because `Intl` output differs by locale, and the series labels register in layout effects, so both render on the client.
 
-The twin doubles as the chart's machine-readable surface: value cells carry the raw number in `data-value` (and date row headers, where present, the exact ISO timestamp in `<time dateTime>`), so agents and scrapers read precise data from the DOM without reverse-engineering locale formatting. Assistive tech still hears the human-formatted text, and the twin itself is addressable at `data-slot="bar-chart-data-table"`.
+`BarChart.Root` mounts dormant and renders its sr-only data table (the category column plus one column per series) once it engages: once focus lands inside it (the overlay is the Tab stop, and a focusable part composed inside the Root, such as `BarChart.CopyButton`, counts too). It never goes dormant again. Visibility paints the chart but never mounts the table. The table is bounded to the first 150 rows, with a caption stating the summarization when the data is longer. The Root stamps `data-state="dormant"`, then `data-state="engaged"`, and the table mounts with the flip, so a screen reader's table list names only the charts the reader has focused. The description above names what every chart holds, focused or not. Tooltips enhance, they never gate: every plotted value is reachable through the table or the keyboard point cursor, and no part removal can strip keyboard access to the data.
+
+The table doubles as the chart's machine-readable surface: value cells carry the raw number in `data-value` (and date row headers, where present, the exact ISO timestamp in `<time dateTime>`), so agents and scrapers read precise data from the DOM without reverse-engineering locale formatting. Assistive tech still hears the human-formatted text, and the table itself is addressable at `data-slot="bar-chart-data-table"`. To reach it, an agent focuses the chart (a scroll into view is not enough), then waits for `data-state="engaged"` on the Root. `BarChart.CopyButton` hands over the same rows as markdown with neither step.
 
 ## API Reference
 
@@ -1927,7 +1933,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | `yDomain?`             | `[0, number \| "auto"]`            | `[0, "auto"]` | Override the automatic y maximum. The minimum is always the zero baseline.                                                                                                                                                                                                                                                                   |
 | `stacked?`             | `boolean`                          | `false`       | Stack the series from the baseline up in registration order. See [Stacked bars](#stacked-bars).                                                                                                                                                                                                                                              |
 | `orientation?`         | `"vertical" \| "horizontal"`       | `"vertical"`  | The direction the bars point (not an axis): `"vertical"` bars stand up from a bottom baseline (categories along x); `"horizontal"` bars run rightward from a left baseline (categories down y). See [Horizontal bars](#horizontal-bars).                                                                                                     |
-| `animate?`             | `boolean`                          | `true`        | Animate enter/update transitions. `prefers-reduced-motion` always wins.                                                                                                                                                                                                                                                                      |
+| `animate?`             | `boolean`                          | `true`        | Animate enter/update transitions; the enter transition plays when the chart first comes into view. `prefers-reduced-motion` always wins.                                                                                                                                                                                                     |
 | `pending?`             | `boolean`                          | `false`       | Hold the previous render at reduced opacity while fresh data loads — never swap a chart that has rendered once for a skeleton.                                                                                                                                                                                                               |
 | `activeIndex?`         | `number \| null`                   |               | Controlled active datum index (`null` = none). Omit for uncontrolled hover. Forbidden when `decorative`.                                                                                                                                                                                                                                     |
 | `onActiveIndexChange?` | `(index: number \| null) => void`  |               | Notified when hover/keyboard moves the active index. Forbidden when `decorative`.                                                                                                                                                                                                                                                            |
@@ -1935,16 +1941,18 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 **Data attributes**
 
-| Data Attribute | Value                    | Description                                                                                                     |
-| -------------- | ------------------------ | --------------------------------------------------------------------------------------------------------------- |
-| `data-slot`    | `"bar-chart"`            | The Root wrapper, with any forwarded chain ahead of it.                                                         |
-| `data-slot`    | `"bar-chart-plot"`       | The plot box. Every overlay layer positions against it, and the resize observer measures it.                    |
-| `data-slot`    | `"bar-chart-canvas"`     | The `<canvas>` the marks paint on. Always `aria-hidden`.                                                        |
-| `data-slot`    | `"bar-chart-crosshair"`  | The vertical hairline. Mounted on every kind; a bar chart never shows it.                                       |
-| `data-slot`    | `"bar-chart-hover-band"` | The highlight behind the active category, one category wide. The engine writes its geometry as an inline style. |
-| `data-slot`    | `"bar-chart-markers"`    | The container for the per-series hover dots. Mounted on every kind; a bar chart never fills it.                 |
-| `data-slot`    | `"bar-chart-tooltip"`    | The tooltip surface. The Root renders it; `BarChart.Tooltip` configures it.                                     |
-| `data-slot`    | `"bar-chart-data-table"` | The `sr-only` table twin. Omitted when `decorative`.                                                            |
+| Data Attribute | Value                      | Description                                                                                                                                                                                                         |
+| -------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-slot`    | `"bar-chart"`              | The Root wrapper, with any forwarded chain ahead of it.                                                                                                                                                             |
+| `data-slot`    | `"bar-chart-plot"`         | The plot box. Every overlay layer positions against it, and the resize observer measures it.                                                                                                                        |
+| `data-slot`    | `"bar-chart-canvas"`       | The `<canvas>` the marks paint on. Always `aria-hidden`.                                                                                                                                                            |
+| `data-slot`    | `"bar-chart-crosshair"`    | The vertical hairline. Mounted on every kind; a bar chart never shows it.                                                                                                                                           |
+| `data-slot`    | `"bar-chart-hover-band"`   | The highlight behind the active category, one category wide. The engine writes its geometry as an inline style.                                                                                                     |
+| `data-slot`    | `"bar-chart-markers"`      | The container for the per-series hover dots. Mounted on every kind; a bar chart never fills it.                                                                                                                     |
+| `data-slot`    | `"bar-chart-tooltip"`      | The tooltip surface. The Root renders it; `BarChart.Tooltip` configures it.                                                                                                                                         |
+| `data-slot`    | `"bar-chart-description"`  | The `sr-only` description the overlay's `aria-describedby` points at: the chart kind, the category count, the first and last category, the series labels, and the keyboard instructions. Omitted when `decorative`. |
+| `data-slot`    | `"bar-chart-data-table"`   | The `sr-only` data table. Mounts once focus lands inside the chart (`data-state` flips to `"engaged"`) and stays. Omitted when `decorative`.                                                                        |
+| `data-state`   | `"dormant"` \| `"engaged"` | On the Root. Flips to `"engaged"` once focus lands inside the chart, and never flips back. The data table mounts with it. Visibility paints the chart but never flips it. Omitted when `decorative`.                |
 
 ### BarChart.Bar
 
@@ -2097,7 +2105,7 @@ Three public paths control a series identity or color.
 - **One color channel** — pass `color` on `BarChart.Bar`. It takes a chart token by name or any CSS color string without changing slot assignment.
 - **One chart** — redeclare the token on `BarChart.Root`: `className="[--color-chart-1:var(--color-brand)]"`. Every series that lands in slot 1 picks the new value up. So do its legend swatch and tooltip stroke.
 
-The chart resolves every token through a probe element it appends inside `Root`. The probe sits in that Root's own cascade, so a declaration scoped to one Root wins for that chart alone. Sibling charts on the page keep the theme value. Declare the same custom property higher up — on a dashboard wrapper, or at `:root` — to retheme a whole subtree.
+The chart resolves every token from `Root`'s computed style in one read, inside that Root's own cascade, so a declaration scoped to one Root wins for that chart alone. Sibling charts on the page keep the theme value. A bare `currentColor` resolves from `Root`'s computed `color`. A value the canvas cannot parse by itself, such as `light-dark()` or a `currentColor` nested inside `color-mix()`, resolves through a hidden element inside `Root` instead. Declare the same custom property higher up (on a dashboard wrapper, or at `:root`) to retheme a whole subtree.
 
 Both paths want a `var()` reference rather than a raw hex, for the reason [Fixed colors for known entities](#fixed-colors-for-known-entities) gives. An overridden slot leaves mantle's gates behind, so the measurement is yours. Grouped bars compare every series to every other, so measure your color against every slot the chart hands out — not only the two beside it. The `#d07c00` below clears 8 ΔE from `chart-2` under simulated protanopia and deuteranopia in all four themes, and 3.19:1 on the white card surface.
 

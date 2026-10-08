@@ -16,6 +16,7 @@ import {
 } from "react";
 import invariant from "tiny-invariant";
 import { useCopyToClipboard } from "../../hooks/use-copy-to-clipboard.js";
+import { useIsHydrated } from "../../hooks/use-is-hydrated.js";
 import type { SelfClosingWithAsChild } from "../../types/as-child.js";
 import { alternateAnnouncement } from "../../utils/alternate-announcement.js";
 import { composeRefs, useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
@@ -25,11 +26,14 @@ import type { WithDataSlot } from "../../utils/data-slot.js";
 import { IconButton } from "../button/icon-button.js";
 import { LiveRegion } from "../live-region/live-region.js";
 import { datumValue } from "./datum.js";
+import type { XSummary } from "./describe.js";
+import { describeChart, scanX } from "./describe.js";
 import { ChartEngine, POINT_SHAPE_CLIP_PATHS } from "./engine.js";
-import { formatNumber, formatXValue, hasTimeOfDay } from "./format.js";
+import { formatNumber, formatXValue } from "./format.js";
 import { serializeChartMarkdown } from "./serialize.js";
 import { ChartStore } from "./store.js";
 import { textureInkColor } from "./texture.js";
+import { observeChartVisibility } from "./visibility.js";
 import type {
 	BarOrientation,
 	BarTexture,
@@ -57,10 +61,16 @@ import type {
  *
  * Interaction is the Root's UNCONDITIONAL contract: the crosshair/hover band,
  * tooltip, keyboard stepping (arrows / PageUp / PageDown / Home / End /
- * Escape, Enter/Space to activate), aria-live announcements, and the sr-only
- * data table all ship with Root itself. The composed Tooltip part customizes
- * the readout; omitting it never removes the hover layer, and no part removal
- * can strip keyboard access to the data.
+ * Escape, Enter/Space to activate), aria-live announcements, the sr-only
+ * description, and the sr-only data table all ship with Root itself. The
+ * composed Tooltip part customizes the readout; omitting it never removes the
+ * hover layer, and no part removal can strip keyboard access to the data.
+ *
+ * A Root mounts dormant: it ingests its data and answers the keyboard, but it
+ * paints and allocates its canvas once it nears the viewport, and it mounts
+ * the data table once focus lands inside it. A list of 100 charts pays for
+ * the ones a reader can see, and a table of sparklines holds no hidden
+ * tables until a reader asks for one.
  *
  * This module is internal shared implementation — it is not exported from the
  * package.
@@ -355,14 +365,16 @@ const AUTO_Y_DOMAIN: YDomain = ["auto", "auto"];
 
 /**
  * The chart Root implementation: renders the canvas, the interaction overlay,
- * the hover overlay elements, the tooltip container, the aria-live region,
- * and the sr-only data table; owns the engine lifecycle.
+ * the sr-only description, the hover overlay elements, the tooltip container,
+ * the aria-live region, and (once engaged) the sr-only data table; owns the
+ * engine lifecycle and the engagement latch.
  *
  * When `decorative`, it keeps the canvas and hover overlay elements (the engine
- * still paints) but omits the interaction overlay, the aria-live region, and
- * the sr-only data table, marks the root `aria-hidden`, and publishes the
- * decorative fill to the store so every series paints neutral — a placeholder
- * backdrop with no interaction and nothing for assistive technology.
+ * still paints) but omits the interaction overlay, the description, the
+ * aria-live region, and the sr-only data table, marks the root `aria-hidden`,
+ * and publishes the decorative fill to the store so every series paints
+ * neutral: a placeholder backdrop with no interaction and nothing for
+ * assistive technology.
  *
  * No `asChild`: Root owns a fixed internal structure (canvas + observers +
  * overlay) whose lifecycles are bound to this exact element tree, so
@@ -398,11 +410,17 @@ const ChartRootPrimitive = ({
 	// passed (its own keyboard focus lives on the interaction overlay, not here).
 	"aria-hidden": ariaHidden,
 	tabIndex,
+	onFocus,
 	...props
 }: InternalRootProps) => {
 	// One store per Root lifetime: series identity and part registrations
 	// survive re-renders (and StrictMode's double effect pass).
 	const [store] = useState(() => new ChartStore());
+	// The engagement latch flips once focus lands inside the chart and never
+	// flips back, so a data table a screen reader is on never unmounts under
+	// its cursor. Visibility never mounts the table, or a list of sparklines
+	// would hold a 30-row table in every cell.
+	const [engaged, setEngaged] = useState(false);
 	const engineRef = useRef<ChartEngine | null>(null);
 	// Why a hoisted ref: the context object is state, so a write through
 	// `context.dataRef.current` reads as a state mutation to the React Compiler.
@@ -428,7 +446,7 @@ const ChartRootPrimitive = ({
 	const markersRef = useRef<HTMLDivElement | null>(null);
 	const tooltipRef = useRef<HTMLDivElement | null>(null);
 
-	const instructionsId = useId();
+	const descriptionId = useId();
 	const resolvedXScale: XScaleKind = kind === "bar" ? "band" : (xScale ?? detectXScale(data, xKey));
 	// Scatter axes are continuous by contract — a string x would silently render
 	// evenly-spaced categorical positions misaligned against the value axis.
@@ -438,19 +456,13 @@ const ChartRootPrimitive = ({
 	);
 	const [yDomainMin, yDomainMax] = yDomain;
 
-	// Date label granularity is a property of the dataset, not the sample: the
-	// midnight point inside an hourly series must keep its time of day, while
-	// all-midnight daily data reads as dates. Computed here (not per formatted
-	// value) and shared by the tooltip, the announcer, and the data table.
-	const xHasTimeOfDay = useMemo(() => {
-		for (const row of data) {
-			const value = datumValue(row, xKey);
-			if (value instanceof Date && hasTimeOfDay(value)) {
-				return true;
-			}
-		}
-		return false;
-	}, [data, xKey]);
+	// One pass over the rows feeds the description (count and x range) and the
+	// date label granularity. Granularity is a property of the dataset, not the
+	// sample: the midnight point inside an hourly series must keep its time of
+	// day, while all-midnight daily data reads as dates. The tooltip, the
+	// announcer, and the data table share it.
+	const xSummary = useMemo(() => scanX(data, xKey, resolvedXScale), [data, xKey, resolvedXScale]);
+	const xHasTimeOfDay = xSummary.hasTimeOfDay;
 
 	// Engine lifecycle. Child part registrations land in the store first
 	// (child layout effects run before the parent's), so the engine's first
@@ -478,6 +490,9 @@ const ChartRootPrimitive = ({
 			kind,
 			store,
 			elements: { root, plot, canvas, crosshair, band, markers, tooltip },
+			// The visibility effect below reports the real state; until then the
+			// chart ingests and answers the keyboard but allocates no canvas.
+			inView: false,
 		});
 		engineRef.current = engine;
 		return () => {
@@ -485,6 +500,26 @@ const ChartRootPrimitive = ({
 			engine.destroy();
 		};
 	}, [kind, store]);
+
+	// Why a layout effect: observing before the first frame means the browser
+	// computes the entries at the end of that frame, so a chart that starts in
+	// view paints on the second frame, the same frame the sized plot allows.
+	useLayoutEffect(() => {
+		const plot = plotRef.current;
+		if (plot == null) {
+			return;
+		}
+		return observeChartVisibility(plot, ({ band, inView }) => {
+			const engine = engineRef.current;
+			if (band === "near") {
+				engine?.setInView(inView);
+			} else if (band === "visible" && inView) {
+				engine?.markSeen();
+			} else if (band === "far" && !inView) {
+				engine?.releaseBackingStores();
+			}
+		});
+	}, []);
 
 	useLayoutEffect(() => {
 		engineRef.current?.setOptions({
@@ -568,7 +603,20 @@ const ChartRootPrimitive = ({
 			// whole backdrop out of the tab order too.
 			inert={decorative ? true : undefined}
 			ref={composedRootRef}
+			onFocus={(event) => {
+				onFocus?.(event);
+				// Focus engages synchronously: the data table must exist before the
+				// screen reader moves past the overlay, and a discrete event flushes
+				// its state update before the next key arrives.
+				setEngaged(true);
+				// A focused chart paints even when `preventScroll` kept it offscreen.
+				engineRef.current?.setInView(true);
+			}}
 			{...props}
+			// Why after the spread: the latch is the Root's own state, and a wider
+			// props object must not carry a stale value past it. A decorative chart
+			// has no overlay to focus, so it carries no latch.
+			data-state={decorative ? undefined : engaged ? "engaged" : "dormant"}
 		>
 			<ChartContext.Provider value={context}>
 				<div
@@ -599,7 +647,7 @@ const ChartRootPrimitive = ({
 								role="application"
 								aria-label={ariaLabel}
 								aria-labelledby={ariaLabelledBy}
-								aria-describedby={instructionsId}
+								aria-describedby={descriptionId}
 								// oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- role="application" is the keyboard point-cursor widget; focus is how arrow-key stepping works
 								tabIndex={0}
 								className={cx(
@@ -655,11 +703,13 @@ const ChartRootPrimitive = ({
 									}
 								}}
 							/>
-							<span id={instructionsId} className="sr-only">
-								Use the left and right arrow keys to move between data points, Page Up and Page Down
-								to jump by a tenth of the data, Home and End to jump to the first and last, Enter or
-								Space to activate the current point, and Escape to dismiss the readout.
-							</span>
+							<ChartDescription
+								id={descriptionId}
+								kind={kind}
+								slotName={slotName}
+								store={store}
+								summary={xSummary}
+							/>
 						</>
 					)}
 					{/* All three hover layers mount on every kind and stay at opacity 0
@@ -693,23 +743,22 @@ const ChartRootPrimitive = ({
 					/>
 				</div>
 				{children}
-				{/* No live region and no data-table twin for a decorative chart: its
-				    values are not meaningful data, so there is nothing to announce or
-				    tabulate for assistive technology. */}
-				{decorative ? null : (
-					<>
-						<ChartAnnouncer store={store} xHasTimeOfDay={xHasTimeOfDay} />
-						<ChartDataTable
-							data={data}
-							label={ariaLabel}
-							labelledBy={ariaLabelledBy}
-							slotName={slotName}
-							store={store}
-							xHasTimeOfDay={xHasTimeOfDay}
-							xKey={xKey}
-							zKey={zKey}
-						/>
-					</>
+				{/* A decorative chart has nothing to announce or tabulate. The live
+				    region mounts with the Root, because a region that appears right
+				    before its first message is not announced. */}
+				{!decorative && <ChartAnnouncer store={store} xHasTimeOfDay={xHasTimeOfDay} />}
+				{/* Why last: the table mounts as an append, which a translation engine cannot break. */}
+				{!decorative && engaged && (
+					<ChartDataTable
+						data={data}
+						label={ariaLabel}
+						labelledBy={ariaLabelledBy}
+						slotName={slotName}
+						store={store}
+						xHasTimeOfDay={xHasTimeOfDay}
+						xKey={xKey}
+						zKey={zKey}
+					/>
 				)}
 			</ChartContext.Provider>
 		</div>
@@ -1385,6 +1434,44 @@ const ChartCopyButtonPrimitive = ({
 };
 
 // ---- accessibility ----------------------------------------------------------
+
+/**
+ * The overlay's accessible description: the chart kind, how many points or
+ * categories it holds, their x range, the series, and the keyboard keys. A
+ * dormant chart has no data table yet, so this is what a screen reader gets
+ * from it. One string child, so React writes it with `textContent` and a
+ * browser translation engine cannot detach it. The grouped count and the x
+ * range wait for hydration, because `Intl` output can differ between the
+ * server and the client.
+ */
+const ChartDescription = ({
+	id,
+	kind,
+	slotName,
+	store,
+	summary,
+}: {
+	id: string;
+	kind: SeriesMark;
+	slotName: string;
+	store: ChartStore;
+	summary: XSummary;
+}) => {
+	// Why a selector: a hover publish must not rewrite the description.
+	const series = useStoreSeries(store);
+	const hydrated = useIsHydrated();
+	const text = describeChart({
+		kind,
+		summary,
+		seriesLabels: series.map((item) => item.label),
+		hydrated,
+	});
+	return (
+		<span id={id} data-slot={`${slotName}-description`} className="sr-only">
+			{text}
+		</span>
+	);
+};
 
 /**
  * Debounced polite announcements for keyboard stepping, so rapid arrowing

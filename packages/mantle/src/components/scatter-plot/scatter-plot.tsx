@@ -160,19 +160,36 @@ type ScatterPlotCopyButtonProps = CopyButtonPrimitiveProps;
 
 /**
  * The root of a scatter plot: owns the data, the scales, the canvas
- * renderer, and the entire interaction contract. Hovering hits the nearest
+ * renderer, and the entire interaction contract (the tooltip, keyboard
+ * stepping with polite announcements, an sr-only description, an sr-only
+ * data table, Enter/Space + click activation). Hovering hits the nearest
  * point within 24px (never a pinpoint target); the tooltip reads that point's
- * series, x, y — and z in 3D. With `zKey` the plot becomes a rotatable 3D
- * cube: drag to orbit, with points depth-sorted under gentle perspective.
+ * series, x, and y (and z in 3D). With `zKey` the plot becomes a rotatable
+ * 3D cube: drag to orbit, with points depth-sorted under gentle perspective.
+ *
+ * A Root mounts dormant: it ingests its data and answers the keyboard, but it
+ * paints and allocates its canvas once it comes within one viewport of the
+ * visible area or takes focus, and it mounts the sr-only data table once
+ * focus lands inside it. A list of charts pays for the ones a reader can see,
+ * and a page of sparklines holds no hidden tables until a reader asks for one.
  *
  * The Root's own subtree is addressable by slot: `scatter-plot` on the wrapper,
  * then `scatter-plot-plot`, `scatter-plot-canvas`, `scatter-plot-crosshair`,
  * `scatter-plot-hover-band`, `scatter-plot-markers`, `scatter-plot-tooltip`,
- * and `scatter-plot-data-table`. A scatter plot shows one marker dot on the hit
+ * `scatter-plot-description`, and, once focus lands inside the chart,
+ * `scatter-plot-data-table`. A scatter plot shows one marker dot on the hit
  * point, and never the crosshair or the band, but all three layers mount on
  * every kind. That dot carries `chart-active-point` plus a `data-shape` of
  * `"circle"`, `"square"`, `"triangle"`, `"diamond"`, `"triangle-down"`,
  * `"plus"`, `"cross"`, or `"star"`, naming the glyph its series wears.
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"scatter-plot-description"` | The `sr-only` description the overlay's `aria-describedby` points at: the chart kind, the point count, the x range, the series labels, and the keyboard instructions. Omitted when `decorative`. |
+ * | `data-slot` | `"scatter-plot-data-table"` | The `sr-only` data table. Mounts once focus lands inside the chart (`data-state` flips to `"engaged"`) and stays. Omitted when `decorative`. |
+ * | `data-state` | `"dormant"` \| `"engaged"` | On the Root. Flips to `"engaged"` once focus lands inside the chart, and never flips back. The data table mounts with it. Visibility paints the chart but never flips it. Omitted when `decorative`. |
  *
  * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterplotroot
  *
@@ -405,9 +422,12 @@ const CopyButton = (props: ScatterPlotCopyButtonProps) => (
  * A canvas-rendered scatter plot for correlating two measures — three with
  * the 3D projection (`zKey`), which renders a rotatable, depth-sorted point
  * cloud (drag to orbit). Hover hits the nearest point within 24px; keyboard
- * stepping, polite announcements, and the sr-only data table ship with `Root`
- * unconditionally. Scatter is an all-pairs chart form: the eight default chart
- * tokens hold at every pair, so keep it to eight series or fewer.
+ * stepping, polite announcements, and the sr-only description ship with
+ * `Root` unconditionally. A Root paints and allocates its canvas once it
+ * comes within one viewport of the visible area or takes focus, and it mounts
+ * its sr-only data table once focus lands inside it. Scatter is an all-pairs
+ * chart form: the eight default chart tokens hold at every pair, so keep it
+ * to eight series or fewer.
  *
  * **CSS variables (public API):**
  *
@@ -420,7 +440,7 @@ const CopyButton = (props: ScatterPlotCopyButtonProps) => (
  * `ScatterPlot.Point` sets one series and takes any CSS color. To restyle a slot itself,
  * redeclare its token on `Root` —
  * `className="[--color-chart-1:var(--color-brand)]"`. The engine resolves every
- * token through a probe inside `Root`, so a declaration scoped there wins for
+ * token from `Root`'s computed style, so a declaration scoped there wins for
  * that chart and leaves every other chart on the page alone.
  *
  * @see https://mantle.ngrok.com/components/charts/scatter-plot

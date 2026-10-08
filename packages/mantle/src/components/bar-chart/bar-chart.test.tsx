@@ -3,6 +3,7 @@ import { userEvent } from "@testing-library/user-event";
 import { createRef } from "react";
 import invariant from "tiny-invariant";
 import { describe, expect, test, vi } from "vitest";
+import { engageChart } from "../../test-utils/engage-chart.js";
 import { BarChart } from "./bar-chart.js";
 
 const data = [
@@ -49,6 +50,7 @@ describe("BarChart.Root", () => {
 				</BarChart.Root>
 			</>,
 		);
+		engageChart();
 		await vi.waitFor(() => {
 			expect(
 				screen.getByRole("table", { name: "Visitors by month — chart data." }),
@@ -95,6 +97,7 @@ describe("BarChart.Root", () => {
 
 	test("renders the sr-only data table twin with a row per datum", () => {
 		renderChart();
+		engageChart();
 		const table = screen.getByRole("table");
 		expect(table).toBeInTheDocument();
 		expect(screen.getByRole("columnheader", { name: "Desktop" })).toBeInTheDocument();
@@ -113,6 +116,7 @@ describe("BarChart.Root", () => {
 				<BarChart.Bar dataKey="desktop" label="Desktop" />
 			</BarChart.Root>,
 		);
+		engageChart();
 		expect(screen.getByRole("table")).toBeInTheDocument();
 		expect(screen.getAllByRole("row")).toHaveLength(151); // header + 150 bounded rows
 		expect(screen.getByText(/Showing the first 150 of 500 rows/)).toBeInTheDocument();
@@ -152,9 +156,11 @@ describe("BarChart data slots", () => {
 		["bar-chart-markers", "DIV"],
 		["bar-chart-tooltip", "DIV"],
 		["bar-chart-legend", "DIV"],
+		["bar-chart-description", "SPAN"],
 		["bar-chart-data-table", "DIV"],
 	])("%s lands on a %s", (slot, tagName) => {
 		const { container } = renderChart();
+		engageChart();
 		const element = container.querySelector(`[data-slot="${slot}"]`);
 		expect(element).toBeInTheDocument();
 		expect(element?.tagName).toBe(tagName);
@@ -199,6 +205,7 @@ describe("BarChart series paint order", () => {
 				<BarChart.Bar dataKey="mobile" label="Mobile" />
 			</BarChart.Root>,
 		);
+		engageChart();
 		expect(seriesColumns()).toEqual(["Desktop", "Mobile"]);
 		rerender(
 			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
@@ -221,6 +228,7 @@ describe("BarChart series paint order", () => {
 				<BarChart.Bar dataKey="desktop" label="Desktop" />
 			</BarChart.Root>,
 		);
+		engageChart();
 		rerender(
 			<BarChart.Root data={withTablet} xKey="month" aria-label="Visitors by month">
 				<BarChart.Bar dataKey="tablet" label="Tablet" />

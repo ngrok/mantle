@@ -150,6 +150,7 @@ const recipesPages = [
 	"list-page-loading-states",
 	"overlay-async",
 	"route-announcer",
+	"sparklines-in-a-list",
 ];
 
 // migrations section, in publish order. The four-digit prefix is the

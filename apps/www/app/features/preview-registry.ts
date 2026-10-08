@@ -17,6 +17,7 @@ import {
 	SandbarReducedMotionDemo,
 } from "~/features/sandbar-demos";
 import { SidebarPersistenceDemo } from "~/features/sidebar-demos";
+import { SparklinesInAListDemo } from "~/features/sparklines-in-a-list-demo";
 
 type PreviewExample = {
 	/**
@@ -131,6 +132,11 @@ export const previewExamples = {
 		title: "Sidebar persistence demo",
 		Component: SidebarPersistenceDemo,
 		sourceFile: "sidebar-demos.tsx",
+	},
+	"sparklines-in-a-list": {
+		title: "Sparklines in a list demo",
+		Component: SparklinesInAListDemo,
+		sourceFile: "sparklines-in-a-list-demo.tsx",
 	},
 } as const satisfies Record<string, PreviewExample>;
 

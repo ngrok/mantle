@@ -20,7 +20,31 @@
  */
 const datumValue = (datum: object, key: string): unknown => Reflect.get(datum, key);
 
+/**
+ * Coerce a consumer x value for continuous scales. Time scales accept `Date`,
+ * epoch milliseconds, or parseable date strings; anything else is `NaN`.
+ *
+ * @example
+ * ```ts
+ * toEpochOrNumber(new Date("2026-07-18T00:00:00Z"), true); // 1784332800000
+ * toEpochOrNumber("2026-07-18", false); // NaN
+ * ```
+ */
+const toEpochOrNumber = (raw: unknown, isTime: boolean): number => {
+	if (raw instanceof Date) {
+		return raw.getTime();
+	}
+	if (typeof raw === "number") {
+		return raw;
+	}
+	if (isTime && typeof raw === "string") {
+		return new Date(raw).getTime();
+	}
+	return Number.NaN;
+};
+
 export {
 	//,
 	datumValue,
+	toEpochOrNumber,
 };

@@ -3,11 +3,13 @@ import type { ChartColorToken, SeriesColor } from "./types.js";
 /**
  * Resolving mantle color tokens into strings a canvas context can paint with.
  *
- * Canvas `fillStyle` natively parses modern CSS color syntax (`oklch()`,
- * `color-mix()`), but it cannot substitute `var()` or `currentColor` — those
- * require a computed-style read against a live element. Reads are cached per
- * theme and happen in the engine commit's read phase (never per frame, never
- * per point) so multi-chart dashboards don't thrash style recalculation.
+ * Canvas `fillStyle` parses modern CSS color syntax (`oklch()`, `color-mix()`)
+ * but cannot substitute `var()` or `currentColor`. The computed value of a
+ * custom property arrives with every `var()` substituted, so one computed-style
+ * read of the chart root resolves every token the chart paints with, inside
+ * the root's own cascade. A probe element exists only for a value the canvas
+ * rejects. Reads happen in the engine commit's read phase (never per frame,
+ * never per point), so multi-chart dashboards don't thrash style recalculation.
  *
  * This module is internal shared implementation — not exported from the package.
  */
@@ -84,76 +86,205 @@ type ChartChromeColors = {
 };
 
 /**
- * Whether a CSS color string needs a computed-style pass before canvas can
- * paint with it. Matches `var()` and `currentColor` case-insensitively — CSS
- * function names and keywords are case-insensitive, so `currentcolor` and
- * `VAR(...)` must resolve through the probe just like their canonical spellings
- * (canvas would otherwise silently ignore the unresolved value and keep the
- * previous fill).
+ * One hidden probe per host, created on the first fallback read and kept
+ * mounted. Inserting and removing a probe per read invalidates the host's
+ * sibling-dependent styles and forces a recalc of the whole chart subtree;
+ * restyling a mounted `display: none` span recalcs that span alone.
  */
-const needsComputedResolution = (cssColor: string): boolean => {
-	const normalized = cssColor.toLowerCase();
-	return normalized.includes("var(") || normalized.includes("currentcolor");
+const probes = new WeakMap<HTMLElement, HTMLSpanElement>();
+
+const probeFor = (host: HTMLElement): HTMLSpanElement => {
+	let probe = probes.get(host);
+	if (probe == null || probe.parentNode !== host) {
+		probe = host.ownerDocument.createElement("span");
+		probe.style.display = "none";
+		probe.setAttribute("aria-hidden", "true");
+		host.appendChild(probe);
+		probes.set(host, probe);
+	}
+	return probe;
 };
 
 /**
  * Resolve any CSS color string (including `var(...)` chains, `color-mix()`,
  * and `currentColor`) to a canvas-paintable color by computing it as the
- * `color` of a probe element inside `host`. The probe participates in
- * `host`'s cascade, so chart-root-scoped custom property overrides apply.
+ * `color` of a hidden probe element inside `host`. The probe participates in
+ * `host`'s cascade, so chart-root-scoped custom property overrides apply. It
+ * is the fallback for a value the canvas cannot parse; `createColorResolver`
+ * resolves the common case without it.
  *
  * @example
  * ```ts
- * resolveThroughProbe(rootElement, "color-mix(in oklab, oklch(0.6 0.19 260) 70%, black)");
+ * resolveThroughProbe(rootElement, "color-mix(in oklab, var(--accent) 70%, black)");
  * // "rgb(28, 61, 145)" (computed, canvas-paintable)
  * ```
  */
 const resolveThroughProbe = (host: HTMLElement, cssColor: string): string => {
-	const document = host.ownerDocument;
-	const probe = document.createElement("span");
-	probe.style.display = "none";
+	const probe = probeFor(host);
 	probe.style.color = cssColor;
-	host.appendChild(probe);
-	const resolved = document.defaultView?.getComputedStyle(probe).color ?? "";
-	probe.remove();
-	return resolved;
+	return host.ownerDocument.defaultView?.getComputedStyle(probe).color ?? "";
 };
 
 /**
- * Resolve a series color (token or custom CSS string) against a chart root
- * element.
+ * The canvas surface the parse check writes to. A 2D context satisfies it; a
+ * test passes a fake.
+ */
+type ColorParseContext = Pick<CanvasRenderingContext2D, "fillStyle">;
+
+const parseContexts = new WeakMap<Document, ColorParseContext | null>();
+
+/**
+ * One 1×1 canvas context per document for parse checks, or `null` where the
+ * document has no 2D context (test DOMs).
+ */
+const colorParseContext = (document: Document): ColorParseContext | null => {
+	const cached = parseContexts.get(document);
+	if (cached !== undefined) {
+		return cached;
+	}
+	const canvas = document.createElement("canvas");
+	canvas.width = 1;
+	canvas.height = 1;
+	const context = canvas.getContext("2d");
+	parseContexts.set(document, context);
+	return context;
+};
+
+const PARSE_SENTINELS = ["#010203", "#030201"] as const;
+
+/**
+ * Whether the canvas parses `value` as a color. An invalid `fillStyle`
+ * assignment keeps the previous value, so the check assigns a sentinel first
+ * and reads back. A value equal to the first sentinel is tested against the
+ * second, because no value equals both.
  *
  * @example
  * ```ts
- * resolveSeriesColor(rootElement, "chart-2"); // "oklch(0.527 0.154 150.069)"
- * resolveSeriesColor(rootElement, "#e40014"); // "#e40014" (passthrough)
+ * canvasParses(context, "oklch(0.62 0.2 259)"); // true
+ * canvasParses(context, "var(--color-chart-1)"); // false
  * ```
  */
-const resolveSeriesColor = (host: HTMLElement, color: SeriesColor): string => {
-	if (isChartColorToken(color)) {
-		return resolveThroughProbe(host, `var(${chartTokenVariable(color)})`);
+const canvasParses = (context: ColorParseContext, value: string): boolean => {
+	for (const sentinel of PARSE_SENTINELS) {
+		context.fillStyle = sentinel;
+		context.fillStyle = value;
+		if (context.fillStyle !== sentinel) {
+			return true;
+		}
 	}
-	if (needsComputedResolution(color)) {
-		return resolveThroughProbe(host, color);
-	}
-	return color;
+	return false;
 };
 
 /**
- * Resolve the chrome color set against a chart root element.
+ * The computed-style reads the resolver makes. A `CSSStyleDeclaration` from
+ * `getComputedStyle` satisfies it; a test passes a fake.
+ */
+type ComputedColorSource = Pick<CSSStyleDeclaration, "getPropertyValue" | "color" | "fontFamily">;
+
+/**
+ * Resolves CSS color strings against one chart root for one resolution pass.
+ * `resolve` memoizes per input, so a chart that paints one token for several
+ * series reads it once.
+ */
+type ColorResolver = {
+	/** Resolve a CSS color string to a canvas-paintable color. */
+	resolve: (cssColor: string) => string;
+	/** The root's computed font family, for axis labels. */
+	fontFamily: string;
+};
+
+const BARE_VAR = /^var\(\s*(--[\w-]+)\s*\)$/i;
+
+/**
+ * A value the canvas cannot paint by itself: a consumer string with a nested
+ * `var()` (`rgb(var(--r) 0 0)`, `var(--a, red)`), a `currentColor` inside
+ * another function, or `light-dark()`, which only a color property resolves.
+ */
+const UNRESOLVED = /var\(|currentcolor|light-dark\(/i;
+
+/**
+ * Create the resolver for one resolution pass over `host`. A bare
+ * `var(--name)` reads the custom property's computed value (with `var()`
+ * substituted), `currentColor` reads the host's computed `color`, and any
+ * other string is tried as-is. Whatever the canvas rejects resolves through
+ * the probe. With no parse context (a test DOM) a non-empty value passes
+ * through unchecked.
  *
  * @example
  * ```ts
- * const chrome = resolveChromeColors(rootElement);
+ * const resolver = createColorResolver(root, {
+ *   computed: getComputedStyle(root),
+ *   parseContext: colorParseContext(root.ownerDocument),
+ * });
+ * resolver.resolve("var(--color-chart-1)"); // "oklch(62.2% .203 259)"
+ * ```
+ */
+const createColorResolver = (
+	host: HTMLElement,
+	source: { computed: ComputedColorSource; parseContext: ColorParseContext | null },
+): ColorResolver => {
+	const { computed, parseContext } = source;
+	const resolved = new Map<string, string>();
+	const resolve = (cssColor: string): string => {
+		const cached = resolved.get(cssColor);
+		if (cached != null) {
+			return cached;
+		}
+		const trimmed = cssColor.trim();
+		const bareVar = BARE_VAR.exec(trimmed);
+		let candidate: string;
+		if (bareVar?.[1] != null) {
+			candidate = computed.getPropertyValue(bareVar[1]).trim();
+		} else if (trimmed.toLowerCase() === "currentcolor") {
+			candidate = computed.color;
+		} else {
+			candidate = trimmed;
+		}
+		let result: string;
+		if (candidate === "" || UNRESOLVED.test(candidate)) {
+			result = resolveThroughProbe(host, trimmed);
+		} else if (parseContext == null || canvasParses(parseContext, candidate)) {
+			result = candidate;
+		} else {
+			result = resolveThroughProbe(host, trimmed);
+		}
+		resolved.set(cssColor, result);
+		return result;
+	};
+	return { resolve, fontFamily: computed.fontFamily || "sans-serif" };
+};
+
+/**
+ * Resolve a series color (token or custom CSS string) through a resolver.
+ *
+ * @example
+ * ```ts
+ * resolveSeriesColor(resolver, "chart-2"); // "oklch(47.8% .106 159.7)"
+ * resolveSeriesColor(resolver, "#e40014"); // "#e40014"
+ * ```
+ */
+const resolveSeriesColor = (resolver: ColorResolver, color: SeriesColor): string => {
+	if (isChartColorToken(color)) {
+		return resolver.resolve(`var(${chartTokenVariable(color)})`);
+	}
+	return resolver.resolve(color);
+};
+
+/**
+ * Resolve the chrome color set through a resolver.
+ *
+ * @example
+ * ```ts
+ * const chrome = resolveChromeColors(resolver);
  * context.strokeStyle = chrome.grid;
  * ```
  */
-const resolveChromeColors = (host: HTMLElement): ChartChromeColors => ({
-	grid: resolveThroughProbe(host, "var(--border-color-card-muted)"),
-	baseline: resolveThroughProbe(host, "var(--border-color-card)"),
-	tickText: resolveThroughProbe(host, "var(--text-color-muted)"),
-	reference: resolveThroughProbe(host, "var(--color-neutral-500)"),
-	surface: resolveThroughProbe(host, "var(--background-color-card)"),
+const resolveChromeColors = (resolver: ColorResolver): ChartChromeColors => ({
+	grid: resolver.resolve("var(--border-color-card-muted)"),
+	baseline: resolver.resolve("var(--border-color-card)"),
+	tickText: resolver.resolve("var(--text-color-muted)"),
+	reference: resolver.resolve("var(--color-neutral-500)"),
+	surface: resolver.resolve("var(--background-color-card)"),
 });
 
 /**
@@ -163,10 +294,20 @@ const resolveChromeColors = (host: HTMLElement): ChartChromeColors => ({
 const themeSignature = (documentElement: HTMLElement): string =>
 	`${documentElement.className}|${documentElement.getAttribute("data-applied-theme") ?? ""}|${documentElement.getAttribute("data-theme") ?? ""}`;
 
+type ThemeWatch = {
+	observer: MutationObserver;
+	listeners: Set<() => void>;
+	signature: string;
+};
+
+const themeWatches = new WeakMap<HTMLElement, ThemeWatch>();
+
 /**
  * Watch the documentElement for theme changes (the same channel mantle's
- * ThemeProvider writes and `MantleStyleSheets` observes). The callback should
- * only invalidate caches and schedule a commit — never resolve synchronously.
+ * ThemeProvider writes and `MantleStyleSheets` observes). Every chart in a
+ * document shares one observer, and listeners run only when the signature
+ * changed, so a same-value attribute rewrite re-resolves nothing. The callback
+ * invalidates caches and schedules a commit; it never resolves synchronously.
  *
  * @example
  * ```ts
@@ -174,25 +315,56 @@ const themeSignature = (documentElement: HTMLElement): string =>
  * ```
  */
 const observeThemeChanges = (documentElement: HTMLElement, onChange: () => void): (() => void) => {
-	const observer = new MutationObserver(onChange);
-	observer.observe(documentElement, {
-		attributes: true,
-		attributeFilter: ["class", "data-applied-theme", "data-theme"],
-	});
-	return () => observer.disconnect();
+	let watch = themeWatches.get(documentElement);
+	if (watch == null) {
+		const listeners = new Set<() => void>();
+		const created: ThemeWatch = {
+			observer: new MutationObserver(() => {
+				const signature = themeSignature(documentElement);
+				if (signature === created.signature) {
+					return;
+				}
+				created.signature = signature;
+				for (const listener of listeners) {
+					listener();
+				}
+			}),
+			listeners,
+			signature: themeSignature(documentElement),
+		};
+		created.observer.observe(documentElement, {
+			attributes: true,
+			attributeFilter: ["class", "data-applied-theme", "data-theme"],
+		});
+		themeWatches.set(documentElement, created);
+		watch = created;
+	}
+	watch.listeners.add(onChange);
+	return () => {
+		watch.listeners.delete(onChange);
+		if (watch.listeners.size === 0) {
+			watch.observer.disconnect();
+			themeWatches.delete(documentElement);
+		}
+	};
 };
 
 export type {
 	//,
 	ChartChromeColors,
+	ColorParseContext,
+	ColorResolver,
+	ComputedColorSource,
 };
 export {
 	//,
+	canvasParses,
 	CHART_COLOR_TOKENS,
 	CHART_DECORATIVE_COLOR,
 	chartTokenVariable,
+	colorParseContext,
+	createColorResolver,
 	isChartColorToken,
-	needsComputedResolution,
 	observeThemeChanges,
 	resolveChromeColors,
 	resolveSeriesColor,

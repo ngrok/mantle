@@ -1,7 +1,10 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import type { ComponentProps, MouseEvent, ReactNode } from "react";
 import { createRef } from "react";
+import type { Root } from "react-dom/client";
+import { hydrateRoot } from "react-dom/client";
+import { renderToString } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
 import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import { BarChart } from "../bar-chart/index.js";
@@ -98,13 +101,14 @@ describe("hover subscriptions", () => {
 				<BarChart.Bar dataKey="tablet" label="Tablet" />
 			</BarChart.Root>,
 		);
+		// Focus mounts the table, which reads every cell through the spy.
+		await user.tab();
 		expect(screen.getAllByRole("row")).toHaveLength(21);
 		const rowReads = vi.mocked(datumValue);
 		// Why this guard: if the module mock stops applying, the zero below is
-		// vacuous. The mount reads every cell through the spy.
+		// vacuous.
 		expect(rowReads).toHaveBeenCalledWith(rows[19], "tablet");
 		rowReads.mockClear();
-		await user.tab();
 		// Two distinct publishes. A zero-width plot widens the arrow stride to the
 		// whole set, so `Home` is the deterministic second index.
 		await user.keyboard("{ArrowRight}{Home}");
@@ -322,5 +326,57 @@ describe("Tooltip and Legend after browser translation", () => {
 		expect(container.querySelector('[data-slot="bar-chart-legend-label"]')).not.toBeInTheDocument();
 		expect(legend).toHaveTextContent("Desktop");
 		expect(legend?.querySelector("font")).toBeNull();
+	});
+});
+
+describe("server render", () => {
+	const latency = [
+		{ time: new Date("2026-07-18T10:00:00Z"), p50: 120 },
+		{ time: new Date("2026-07-18T10:01:00Z"), p50: 132 },
+	];
+	const chart = (
+		<LineChart.Root data={latency} xKey="time" aria-label="Request latency">
+			<LineChart.Line dataKey="p50" label="p50" />
+		</LineChart.Root>
+	);
+
+	test("the server markup is dormant, with a plain count and no table or formatted date", () => {
+		const html = renderToString(chart);
+		expect(html).toContain('data-state="dormant"');
+		// Parts register in layout effects, so the server lists no series.
+		expect(html).toContain("Line chart with 2 data points. Use the left and right arrow keys");
+		expect(html).toContain('role="status"');
+		const markup = document.createElement("div");
+		markup.innerHTML = html;
+		const overlay = markup.querySelector('[role="application"]');
+		const description = markup.querySelector('[data-slot="line-chart-description"]');
+		expect(description?.id).toBe(overlay?.getAttribute("aria-describedby"));
+		// The table waits for engagement, and `Intl` output waits for hydration.
+		expect(html).not.toContain("<table");
+		expect(html).not.toContain("Jul 18");
+	});
+
+	test("hydrating the server markup reports no mismatch and then describes the range", async () => {
+		const container = document.createElement("div");
+		container.innerHTML = renderToString(chart);
+		document.body.append(container);
+		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+		const onRecoverableError = vi.fn<(error: unknown) => void>();
+
+		let root: Root | undefined;
+		act(() => {
+			root = hydrateRoot(container, chart, { onRecoverableError });
+		});
+
+		expect(onRecoverableError).toHaveBeenCalledTimes(0);
+		expect(consoleError).toHaveBeenCalledTimes(0);
+		expect(
+			await screen.findByRole("application", { description: /from Jul 18/ }),
+		).toBeInTheDocument();
+
+		act(() => {
+			root?.unmount();
+		});
+		container.remove();
 	});
 });

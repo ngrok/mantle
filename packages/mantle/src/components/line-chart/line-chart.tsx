@@ -151,18 +151,35 @@ type LineChartCopyButtonProps = CopyButtonPrimitiveProps;
  * The root of a line chart: owns the data, the scales, the canvas renderer,
  * and the entire interaction contract (a crosshair snapped to the nearest x
  * with a tooltip reading every series, keyboard stepping with polite
- * announcements, an sr-only data table, Enter/Space + click activation).
- * Rendering is canvas with min/max decimation, so series of 100k+ points stay
- * smooth. Compose the chrome and series parts as children.
+ * announcements, an sr-only description, an sr-only data table, Enter/Space +
+ * click activation). Rendering is canvas with min/max decimation, so series
+ * of 100k+ points stay smooth. Compose the chrome and series parts as
+ * children.
+ *
+ * A Root mounts dormant: it ingests its data and answers the keyboard, but it
+ * paints and allocates its canvas once it comes within one viewport of the
+ * visible area or takes focus, and it mounts the sr-only data table once
+ * focus lands inside it. A list of charts pays for the ones a reader can see,
+ * and a page of sparklines holds no hidden tables until a reader asks for one.
  *
  * The Root's own subtree is addressable by slot: `line-chart` on the wrapper,
  * then `line-chart-plot`, `line-chart-canvas`, `line-chart-crosshair`,
- * `line-chart-hover-band`, `line-chart-markers`, `line-chart-tooltip`, and
- * `line-chart-data-table`. A line chart shows the crosshair and one marker dot
- * per series, and never the band, but all three layers mount on every kind.
+ * `line-chart-hover-band`, `line-chart-markers`, `line-chart-tooltip`,
+ * `line-chart-description`, and, once focus lands inside the chart,
+ * `line-chart-data-table`. A line chart shows the crosshair and one marker
+ * dot per series, and never the band, but all three layers mount on every
+ * kind.
  * Each hover dot carries `chart-active-point` plus a `data-shape` of
  * `"circle"`, `"square"`, `"triangle"`, `"diamond"`, `"triangle-down"`,
  * `"plus"`, `"cross"`, or `"star"`, naming the glyph its series wears.
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"line-chart-description"` | The `sr-only` description the overlay's `aria-describedby` points at: the chart kind, the point count, the x range, the series labels, and the keyboard instructions. Omitted when `decorative`. |
+ * | `data-slot` | `"line-chart-data-table"` | The `sr-only` data table. Mounts once focus lands inside the chart (`data-state` flips to `"engaged"`) and stays. Omitted when `decorative`. |
+ * | `data-state` | `"dormant"` \| `"engaged"` | On the Root. Flips to `"engaged"` once focus lands inside the chart, and never flips back. The data table mounts with it. Visibility paints the chart but never flips it. Omitted when `decorative`. |
  *
  * @see https://mantle.ngrok.com/components/charts/line-chart#linechartroot
  *
@@ -390,10 +407,13 @@ const CopyButton = (props: LineChartCopyButtonProps) => (
  * A canvas-rendered line chart for trends over a continuous x — time above
  * all. Series colors come from the theme's validated `--color-chart-*`
  * tokens; lines keep a fixed slot color for the chart's lifetime even as
- * other series are filtered in and out. Interaction — a crosshair snapped to
- * the nearest x with an every-series tooltip, keyboard stepping, aria-live
- * announcements, and an sr-only data table — ships with `Root`
- * unconditionally. Min/max decimation keeps 100k+ point series smooth.
+ * other series are filtered in and out. Interaction ships with `Root`
+ * unconditionally: a crosshair snapped to the nearest x with an every-series
+ * tooltip, keyboard stepping, aria-live announcements, and an sr-only
+ * description. A Root paints and allocates its canvas once it comes within
+ * one viewport of the visible area or takes focus, and it mounts its sr-only
+ * data table once focus lands inside it. Min/max decimation keeps 100k+ point
+ * series smooth.
  *
  * **CSS variables (public API):**
  *
@@ -406,7 +426,7 @@ const CopyButton = (props: LineChartCopyButtonProps) => (
  * `LineChart.Line` sets one series and takes any CSS color. To restyle a slot itself,
  * redeclare its token on `Root` —
  * `className="[--color-chart-1:var(--color-brand)]"`. The engine resolves every
- * token through a probe inside `Root`, so a declaration scoped there wins for
+ * token from `Root`'s computed style, so a declaration scoped there wins for
  * that chart and leaves every other chart on the page alone.
  *
  * @see https://mantle.ngrok.com/components/charts/line-chart

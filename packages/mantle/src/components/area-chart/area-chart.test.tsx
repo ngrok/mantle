@@ -4,6 +4,7 @@ import { createRef } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { BarChart } from "../bar-chart/index.js";
 import type { ChartDatumEvent } from "./area-chart.js";
+import { engageChart } from "../../test-utils/engage-chart.js";
 import { AreaChart } from "./area-chart.js";
 
 const firstRow = { date: new Date(2026, 6, 15), http: 420, tcp: 140 };
@@ -66,6 +67,7 @@ describe("AreaChart.Root", () => {
 
 	test("renders the sr-only data table twin with a row per datum", () => {
 		renderChart();
+		engageChart();
 		const table = screen.getByRole("table");
 		expect(table).toBeInTheDocument();
 		expect(screen.getByRole("columnheader", { name: "HTTP" })).toBeInTheDocument();
@@ -84,6 +86,7 @@ describe("AreaChart.Root", () => {
 				<AreaChart.Area dataKey="http" label="HTTP" />
 			</AreaChart.Root>,
 		);
+		engageChart();
 		expect(screen.getByRole("table")).toBeInTheDocument();
 		expect(screen.getAllByRole("row")).toHaveLength(151); // header + 150 bounded rows
 		expect(screen.getByText(/Showing the first 150 of 500 rows/)).toBeInTheDocument();
@@ -123,9 +126,11 @@ describe("AreaChart data slots", () => {
 		["area-chart-markers", "DIV"],
 		["area-chart-tooltip", "DIV"],
 		["area-chart-legend", "DIV"],
+		["area-chart-description", "SPAN"],
 		["area-chart-data-table", "DIV"],
 	])("%s lands on a %s", (slot, tagName) => {
 		const { container } = renderChart();
+		engageChart();
 		const element = container.querySelector(`[data-slot="${slot}"]`);
 		expect(element).toBeInTheDocument();
 		expect(element?.tagName).toBe(tagName);

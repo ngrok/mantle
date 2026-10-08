@@ -338,6 +338,7 @@ export const recipePages = [
 	"List Page Loading States",
 	"Overlays + Async Data",
 	"Route Announcer",
+	"Sparklines in a List",
 ] as const;
 
 /** Route lookup for recipe pages. */
@@ -347,6 +348,7 @@ export const recipeRoutes = {
 	"List Page Loading States": "/recipes/list-page-loading-states",
 	"Overlays + Async Data": "/recipes/overlay-async",
 	"Route Announcer": "/recipes/route-announcer",
+	"Sparklines in a List": "/recipes/sparklines-in-a-list",
 } as const satisfies Record<(typeof recipePages)[number], Route>;
 
 /** Short descriptions for recipe index pages. */
@@ -361,6 +363,8 @@ export const recipeDescriptions = {
 		"Open a Sheet, Dialog, or Alert Dialog immediately, then swap the body between pending, loaded, 404, and 500 states with TanStack Query.",
 	"Route Announcer":
 		"Announce completed client-side navigations to screen readers by pairing a persistent LiveRegion with React Router's location, with page-name fallbacks and repeat-message handling.",
+	"Sparklines in a List":
+		"Put two BarChart sparklines in every row of a DataTable: sized for a row, named for the row, with a compact total beside each one, and dormant until a reader scrolls to it.",
 } as const satisfies Record<(typeof recipePages)[number], string>;
 
 /**
