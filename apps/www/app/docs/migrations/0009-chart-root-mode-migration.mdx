@@ -83,6 +83,23 @@ const chart = screen.getByRole("application", { name: "Requests for edge-router,
 const chart = screen.getByRole("img", { name: "Requests for edge-router, last 30 days" });
 ```
 
+## What it buys on a list page
+
+The chart benchmark page in the docs site (`/bench/charts`) renders 100 rows with two bar sparklines each in a `DataTable`, 30 bars per chart, with the mount animation off. The same production build of that page ran against the previous mantle and against this one. Chromium 153 headless, DPR 2, CPU 1×, medians of 3 runs.
+
+| metric                                   |   before |  after |
+| :--------------------------------------- | -------: | -----: |
+| mount, from chart code loaded to painted | 1,328 ms | 117 ms |
+| main-thread time in the mount window     | 1,446 ms |  99 ms |
+| style recalculation                      | 1,154 ms |  28 ms |
+| Total Blocking Time                      | 1,145 ms |   0 ms |
+| longest task                             |   727 ms |  29 ms |
+| DOM nodes                                |   23,204 |  3,300 |
+| hover sweep, main-thread                 |   681 ms | 334 ms |
+| the same table with no charts            |    68 ms |  66 ms |
+
+The charts' share of the mount went from about 1,260 ms to about 35 ms, 0.17 ms per sparkline. Most of the gain is the dormant mount, which every chart gets on upgrade. `mode="static"` adds the rest: no overlay, no keyboard sentence, and no tooltip registration per cell, 700 fewer DOM nodes, and a hover sweep that costs 40% less, because no cell runs hover handling.
+
 ## What each mode renders
 
 | `mode`                    | Named element                     | Tab stop | Hover and tooltip | Keyboard point cursor | Data table on focus | Live region | Series colors    | `animate` default |
