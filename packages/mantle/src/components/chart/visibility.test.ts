@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { VisibilityChange } from "./visibility.js";
 import { observeChartVisibility } from "./visibility.js";
 
@@ -85,6 +85,18 @@ const observerWithMargin = (margin: string): FakeIntersectionObserver => {
 	);
 	if (observer == null) {
 		throw new Error(`expected an observer with a ${margin} root margin`);
+	}
+	return observer;
+};
+
+/** The live observer for one band and root. The disconnected support probe never matches. */
+const observerFor = (margin: string, root: Element | null): FakeIntersectionObserver => {
+	const observer = instances.find(
+		(instance) =>
+			instance.rootMargin === margin && instance.root === root && !instance.disconnected,
+	);
+	if (observer == null) {
+		throw new Error(`expected an observer with a ${margin} root margin at ${String(root)}`);
 	}
 	return observer;
 };
@@ -176,7 +188,7 @@ test("with no IntersectionObserver every band reports in view at once", () => {
 	expect(handler).toHaveBeenNthCalledWith(3, { band: "visible", inView: true, rect: null });
 });
 
-test("without scrollMargin support the observers root at the nearest scroll container", async () => {
+describe("without scrollMargin support", () => {
 	// An engine that ignores `scrollMargin` exposes no such property on its observers.
 	class LegacyIntersectionObserver extends FakeIntersectionObserver {
 		constructor(callback: IntersectionObserverCallback, options: IntersectionObserverInit = {}) {
@@ -184,19 +196,80 @@ test("without scrollMargin support the observers root at the nearest scroll cont
 			Reflect.deleteProperty(this, "scrollMargin");
 		}
 	}
-	vi.stubGlobal("IntersectionObserver", LegacyIntersectionObserver);
-	// Why a fresh module: the support probe runs once per module and is cached.
-	vi.resetModules();
-	const fresh = await import("./visibility.js");
-	const panel = document.createElement("div");
-	panel.style.overflowY = "auto";
-	const element = document.createElement("div");
-	panel.append(element);
-	document.body.append(panel);
-	const stop = fresh.observeChartVisibility(element, () => {});
-	stops.push(stop);
-	// A viewport root would clip the bands at the panel's edge on this engine.
-	expect(observerWithMargin("100%").root).toBe(panel);
-	expect(observerWithMargin("300%").root).toBe(panel);
-	panel.remove();
+
+	/** A chart inside a scrolling panel, observed through a fresh module whose support probe sees the legacy engine. */
+	const observeInPanel = async () => {
+		vi.stubGlobal("IntersectionObserver", LegacyIntersectionObserver);
+		// Why a fresh module: the support probe runs once per module and is cached.
+		vi.resetModules();
+		const fresh = await import("./visibility.js");
+		const panel = document.createElement("div");
+		panel.style.overflowY = "auto";
+		const element = document.createElement("div");
+		panel.append(element);
+		document.body.append(panel);
+		const handler = vi.fn<(change: VisibilityChange) => void>();
+		const stop = fresh.observeChartVisibility(element, handler);
+		stops.push(() => {
+			stop();
+			panel.remove();
+		});
+		return { panel, element, handler, stop };
+	};
+
+	test("a panel's chart observes the near band from the panel, and only while the panel is near the viewport", async () => {
+		const { panel, element, handler } = await observeInPanel();
+		const viewportNear = observerFor("100%", null);
+		const panelNear = observerFor("100%", panel);
+		// The panel is the viewport's target; the chart waits for the panel to open the band.
+		expect(viewportNear.targets.has(panel)).toBe(true);
+		expect(panelNear.targets.has(element)).toBe(false);
+
+		viewportNear.report(panel, true);
+		expect(panelNear.targets.has(element)).toBe(true);
+		panelNear.report(element, true);
+		expect(handler).toHaveBeenLastCalledWith({
+			band: "near",
+			inView: true,
+			rect: expect.objectContaining({ top: 0 }),
+		});
+
+		// A panel that scrolls away takes its charts out of view, whatever the panel-relative band says.
+		viewportNear.report(panel, false);
+		expect(handler).toHaveBeenLastCalledWith({ band: "near", inView: false, rect: null });
+		expect(panelNear.targets.has(element)).toBe(false);
+		expect(handler).toHaveBeenCalledTimes(2);
+	});
+
+	test("a panel beyond the far band releases its charts, and reopening the band observes them again", async () => {
+		const { panel, element, handler } = await observeInPanel();
+		const viewportFar = observerFor("300%", null);
+		const panelFar = observerFor("300%", panel);
+		viewportFar.report(panel, true);
+		panelFar.report(element, true);
+		viewportFar.report(panel, false);
+		expect(handler).toHaveBeenLastCalledWith({ band: "far", inView: false, rect: null });
+		viewportFar.report(panel, true);
+		// The band observes the chart again, so the engine reports its real state.
+		expect(panelFar.targets.has(element)).toBe(true);
+		expect(handler).toHaveBeenCalledTimes(2);
+	});
+
+	test("the visible band observes from the viewport, so a reveal never plays offscreen", async () => {
+		const { element } = await observeInPanel();
+		expect(observerFor("0px", null).targets.has(element)).toBe(true);
+		expect(
+			instances.some((instance) => instance.rootMargin === "0px" && instance.root != null),
+		).toBe(false);
+	});
+
+	test("the last chart's cleanup releases the panel's observers and its viewport entries", async () => {
+		const { panel, stop } = await observeInPanel();
+		const panelNear = observerFor("100%", panel);
+		const viewportNear = observerFor("100%", null);
+		stop();
+		expect(panelNear.disconnected).toBe(true);
+		expect(viewportNear.targets.has(panel)).toBe(false);
+		expect(viewportNear.disconnected).toBe(true);
+	});
 });

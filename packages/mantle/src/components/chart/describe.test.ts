@@ -54,6 +54,15 @@ describe("scanX", () => {
 		expect(summary.last).toEqual(at("2026-07-18T10:01:00Z"));
 	});
 
+	test("an infinite x is neither counted nor in the range, as the chart does not plot it", () => {
+		expect(scanX([{ x: 1 }, { x: Number.POSITIVE_INFINITY }, { x: 3 }], "x", "linear")).toEqual({
+			count: 2,
+			first: 1,
+			last: 3,
+			hasTimeOfDay: false,
+		});
+	});
+
 	test("no readable x leaves the count at zero and no range", () => {
 		expect(scanX([{ t: null }], "t", "time")).toEqual({
 			count: 0,

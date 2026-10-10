@@ -109,9 +109,9 @@ const probeFor = (host: HTMLElement): HTMLSpanElement => {
  * Resolve any CSS color string (including `var(...)` chains, `color-mix()`,
  * and `currentColor`) to a canvas-paintable color by computing it as the
  * `color` of a hidden probe element inside `host`. The probe participates in
- * `host`'s cascade, so chart-root-scoped custom property overrides apply. It
- * is the fallback for a value the canvas cannot parse; `createColorResolver`
- * resolves the common case without it.
+ * `host`'s cascade, so chart-root-scoped custom property overrides apply to a
+ * host anywhere under the Root. It is the fallback for a value the canvas
+ * cannot parse; `createColorResolver` resolves the common case without it.
  *
  * @example
  * ```ts
@@ -219,11 +219,11 @@ const BARE_VAR = /^var\(\s*(--[\w-]+)\s*\)$/i;
 const UNRESOLVED = /var\(|currentcolor|light-dark\(/i;
 
 /**
- * Create the resolver for one resolution pass over `host`. A bare
- * `var(--name)` reads the custom property's computed value (with `var()`
- * substituted), `currentColor` reads the host's computed `color`, and any
- * other string is tried as-is. Whatever the canvas rejects resolves through
- * the probe. With no parse context (a test DOM) a non-empty value passes
+ * Create the resolver for one resolution pass. A bare `var(--name)` reads
+ * the custom property's computed value (with `var()` substituted),
+ * `currentColor` reads the computed `color`, and any other string is tried
+ * as-is. Whatever the canvas rejects resolves through the probe, which mounts
+ * in `host`. With no parse context (a test DOM) a non-empty value passes
  * through unchecked.
  *
  * @example

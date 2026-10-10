@@ -19,7 +19,7 @@ type Row = Record<string, unknown> & {
 };
 
 const APP_ROOT = path.resolve(import.meta.dirname, "..");
-const files = process.argv.slice(2);
+const files = process.argv.slice(2).filter((argument) => !argument.startsWith("--"));
 
 const isRow = (value: unknown): value is Row =>
 	typeof value === "object" &&

@@ -78,10 +78,16 @@ type ChartKeys = {
 	zKey: string | null;
 };
 
+/** Whether any of `candidates` carries `key`: a `null` value counts, an absent key does not. */
+const hasKey = (candidates: readonly object[], key: string): boolean =>
+	candidates.some((row) => datumValue(row, key) !== undefined);
+
 /**
  * Throw the key invariants the engine's ingest throws, with the same
  * messages, so a chart that holds no engine yet fails fast in its mount
- * commit instead of in the observer task that activates it.
+ * commit instead of in the observer task that activates it. On a continuous
+ * scale the series and depth keys are checked against the rows the engine
+ * plots (those with a finite x), and no plotted row leaves nothing to check.
  *
  * @example
  * ```ts
@@ -101,33 +107,34 @@ const assertChartKeys = ({
 	if (rows.length === 0) {
 		return;
 	}
-	const hasKey = (key: string): boolean => rows.some((row) => datumValue(row, key) !== undefined);
-	if (!hasKey(xKey)) {
+	if (!hasKey(rows, xKey)) {
 		throw new Error(missingKeyMessage(rootName, "xKey", xKey, rows));
 	}
+	let plotted: readonly object[] = rows;
 	if (xScale === "linear" || xScale === "time") {
 		let sawNonNullish = false;
-		let sawCoercible = false;
-		for (const row of rows) {
+		plotted = rows.filter((row) => {
 			const raw = datumValue(row, xKey);
 			if (raw != null) {
 				sawNonNullish = true;
 			}
-			if (Number.isFinite(toEpochOrNumber(raw, xScale === "time"))) {
-				sawCoercible = true;
-				break;
-			}
-		}
-		if (sawNonNullish && !sawCoercible) {
+			return Number.isFinite(toEpochOrNumber(raw, xScale === "time"));
+		});
+		if (sawNonNullish && plotted.length === 0) {
 			throw new Error(uncoercibleXMessage(rootName, xKey, xScale));
 		}
 	}
+	// The engine reads the series and depth columns from the plotted rows alone,
+	// so a key that only a dropped row carries is a typo there too.
+	if (plotted.length === 0) {
+		return;
+	}
 	for (const dataKey of dataKeys) {
-		if (!hasKey(dataKey)) {
+		if (!hasKey(plotted, dataKey)) {
 			throw new Error(missingKeyMessage(partName, "dataKey", dataKey, rows));
 		}
 	}
-	if (zKey != null && !hasKey(zKey)) {
+	if (zKey != null && !hasKey(plotted, zKey)) {
 		throw new Error(missingKeyMessage(rootName, "zKey", zKey, rows));
 	}
 };

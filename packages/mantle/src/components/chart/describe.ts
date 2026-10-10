@@ -30,7 +30,8 @@ const asXValue = (raw: unknown): XValue =>
 
 /**
  * Summarize the x column in one pass. Category scales keep data order; a
- * continuous scale drops rows whose x cannot be coerced, as ingest does.
+ * continuous scale drops rows whose x is not a finite number or date, as
+ * ingest does.
  *
  * @example
  * ```ts
@@ -63,7 +64,7 @@ const scanX = (data: readonly ChartDatum[], xKey: string, xScale: XScaleKind): X
 			timeOfDay = true;
 		}
 		const epoch = toEpochOrNumber(raw, isTime);
-		if (Number.isNaN(epoch)) {
+		if (!Number.isFinite(epoch)) {
 			continue;
 		}
 		count += 1;

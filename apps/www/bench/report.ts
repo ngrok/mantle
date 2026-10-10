@@ -14,10 +14,17 @@ type Row = Record<string, unknown> & {
 	n: number;
 	points: number;
 	throttle: number;
+	/** Absent in a results file from before the runner recorded it; those ran at 2. */
+	dpr?: number;
+	/** Absent in a results file from before the runner recorded it; those ran with no gate. */
+	gate?: string;
 	ok: boolean;
 	error?: string;
 	pageErrors: string[];
 };
+
+const rowDpr = (row: Row): number => row.dpr ?? 2;
+const rowGate = (row: Row): string => row.gate ?? "none";
 
 const APP_ROOT = path.resolve(import.meta.dirname, "..");
 
@@ -140,8 +147,31 @@ const COLUMNS: Record<string, Column[]> = {
 	],
 };
 
-const groupKey = (row: Row) =>
-	`${row.mode}|${row.kind}|${row.n}|${row.points}|${row.throttle}|${row.lib}`;
+type Section = {
+	mode: string;
+	kind: string;
+	n: number;
+	points: number;
+	throttle: number;
+	gate: string;
+	dpr: number;
+};
+
+/** The case a row belongs to: every scenario input, so a gate or a DPR never merges into another run's median. */
+const sectionOf = (row: Row): Section => ({
+	mode: row.mode,
+	kind: row.kind,
+	n: row.n,
+	points: row.points,
+	throttle: row.throttle,
+	gate: rowGate(row),
+	dpr: rowDpr(row),
+});
+
+const sectionKey = (section: Section): string =>
+	`${section.mode}|${section.kind}|${section.n}|${section.points}|${section.throttle}|${section.gate}|${section.dpr}`;
+
+const groupKey = (row: Row): string => `${sectionKey(sectionOf(row))}|${row.lib}`;
 
 const groups = new Map<string, Row[]>();
 for (const row of rows) {
@@ -151,17 +181,10 @@ for (const row of rows) {
 	groups.set(key, list);
 }
 
-type Section = { mode: string; kind: string; n: number; points: number; throttle: number };
 const sections = new Map<string, Section>();
 for (const row of rows) {
-	const key = `${row.mode}|${row.kind}|${row.n}|${row.points}|${row.throttle}`;
-	sections.set(key, {
-		mode: row.mode,
-		kind: row.kind,
-		n: row.n,
-		points: row.points,
-		throttle: row.throttle,
-	});
+	const section = sectionOf(row);
+	sections.set(sectionKey(section), section);
 }
 
 const sortedSections = [...sections.values()].toSorted((left, right) => {
@@ -174,6 +197,12 @@ const sortedSections = [...sections.values()].toSorted((left, right) => {
 	if (left.throttle !== right.throttle) {
 		return left.throttle - right.throttle;
 	}
+	if (left.dpr !== right.dpr) {
+		return left.dpr - right.dpr;
+	}
+	if (left.gate !== right.gate) {
+		return left.gate.localeCompare(right.gate);
+	}
 	if (left.n !== right.n) {
 		return left.n - right.n;
 	}
@@ -185,8 +214,7 @@ const table = (section: Section, columns: Column[]): string => {
 	const divider = `| --- | ---: | ${columns.map(() => "---:").join(" | ")} |`;
 	const lines = [header, divider];
 	for (const lib of LIB_ORDER) {
-		const key = `${section.mode}|${section.kind}|${section.n}|${section.points}|${section.throttle}|${lib}`;
-		const list = groups.get(key);
+		const list = groups.get(`${sectionKey(section)}|${lib}`);
 		if (list == null) {
 			continue;
 		}
@@ -212,23 +240,26 @@ out.push(
 	`Sources: ${files.join(", ")}. Each cell is the median over runs, with the min–max spread in parentheses.\n`,
 );
 for (const section of sortedSections) {
-	const title =
-		section.mode === "list"
-			? `## list · ${section.kind} · ${section.n} charts × ${section.points} rows · CPU ×${section.throttle}`
-			: `## dense · ${section.kind} · 1 chart × ${section.points.toLocaleString()} rows · CPU ×${section.throttle}`;
-	out.push(title + "\n");
+	const shape =
+		section.mode === "dense"
+			? `1 chart × ${section.points.toLocaleString()} rows`
+			: section.mode === "table"
+				? `${section.n} rows × 2 sparklines × ${section.points} bars`
+				: `${section.n} charts × ${section.points} rows`;
+	const gate =
+		section.gate === "none"
+			? ""
+			: ` · ${section.gate === "cv" ? "content-visibility" : section.gate}`;
+	out.push(
+		`## ${section.mode} · ${section.kind} · ${shape} · CPU ×${section.throttle} · DPR ${section.dpr}${gate}\n`,
+	);
 	for (const [name, columns] of Object.entries(COLUMNS)) {
 		out.push(`### ${name}\n`);
 		out.push(table(section, columns) + "\n");
 	}
 	const failed = rows.filter(
 		(row) =>
-			row.mode === section.mode &&
-			row.kind === section.kind &&
-			row.n === section.n &&
-			row.points === section.points &&
-			row.throttle === section.throttle &&
-			(!row.ok || row.pageErrors.length > 0),
+			sectionKey(sectionOf(row)) === sectionKey(section) && (!row.ok || row.pageErrors.length > 0),
 	);
 	if (failed.length > 0) {
 		out.push(`### errors\n`);

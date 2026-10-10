@@ -41,8 +41,8 @@ const pick = <T extends string>(value: string | null, allowed: readonly T[], fal
  *
  * @example
  * ```ts
- * readConfig("?lib=mantle-static&kind=bar&mode=table&n=100&points=12");
- * // { lib: "mantle-static", kind: "bar", mode: "table", n: 100, points: 12, gate: "none", noCharts: false }
+ * readConfig("?lib=mantle-static&kind=bar&mode=table&n=100&points=30");
+ * // { lib: "mantle-static", kind: "bar", mode: "table", n: 100, points: 30, gate: "none", noCharts: false }
  * ```
  */
 export const readConfig = (search: string): Config => {
@@ -54,9 +54,7 @@ export const readConfig = (search: string): Config => {
 		kind: pick(params.get("kind"), KINDS, "line"),
 		mode,
 		n: mode === "dense" ? 1 : Number(params.get("n") ?? 50),
-		points: Number(
-			params.get("points") ?? (mode === "dense" ? 10_000 : mode === "table" ? 12 : 30),
-		),
+		points: Number(params.get("points") ?? (mode === "dense" ? 10_000 : 30)),
 		gate: params.get("gate") === "cv" ? "cv" : "none",
 		noCharts: params.get("nocharts") === "1",
 	};

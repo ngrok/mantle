@@ -56,6 +56,16 @@ export const categoryRows = (count: number, seed: number): Row[] => {
 	}));
 };
 
+/** Rows with a category x and a count that is zero most of the time: the release-cadence shape. */
+export const sparseRows = (count: number, seed: number): Row[] => {
+	const random = createRandom(seed);
+	return Array.from({ length: count }, (_, index) => ({
+		x: `/api/v${index}`,
+		a: random() < 0.3 ? 1 + Math.floor(random() * 6) : 0,
+		b: 0,
+	}));
+};
+
 /** A random point cloud. */
 export const pointRows = (count: number, seed: number): PointRow[] => {
 	const random = createRandom(seed);

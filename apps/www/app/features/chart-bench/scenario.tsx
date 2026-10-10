@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+import { Badge } from "@ngrok/mantle/badge";
+import { DataTable, createColumnHelper, tableFeatures, useTable } from "@ngrok/mantle/data-table";
+import { useEffect, useMemo, useState } from "react";
 import type { Config } from "./config";
 import type { PointRow, Row } from "./data";
-import { categoryRows, pointRows, sampleRows, timeRows } from "./data";
+import { categoryRows, pointRows, sampleRows, sparseRows, timeRows } from "./data";
 import { MantleChart, MantleSparkline } from "./mantle-charts";
 import type { UpdateMode } from "./metrics";
 import { startMetrics } from "./metrics";
@@ -26,25 +28,31 @@ const rowsFor = (config: Config, seed: number): readonly Row[] => {
 const EMPTY_ROWS: readonly Row[] = [];
 const EMPTY_POINTS: readonly PointRow[] = [];
 
-type Item = { index: number; rows: readonly Row[]; points: readonly PointRow[] };
+/** One chart card, or one table row with its two sparkline series. */
+type Item = {
+	index: number;
+	rows: readonly Row[];
+	/** The table row's second series, zero most of the time; empty outside table mode. */
+	releases: readonly Row[];
+	points: readonly PointRow[];
+};
 
 const buildItems = (config: Config, seedOffset: number): Item[] =>
-	Array.from({ length: config.n }, (_, index) => ({
-		index,
-		rows: config.kind === "scatter" ? EMPTY_ROWS : rowsFor(config, index + 1 + seedOffset),
-		points:
-			config.kind === "scatter" ? pointRows(config.points, index + 1 + seedOffset) : EMPTY_POINTS,
-	}));
+	Array.from({ length: config.n }, (_, index) => {
+		const seed = index + 1 + seedOffset;
+		return {
+			index,
+			rows: config.kind === "scatter" ? EMPTY_ROWS : rowsFor(config, seed),
+			releases: config.mode === "table" ? sparseRows(config.points, seed + 100_000) : EMPTY_ROWS,
+			points: config.kind === "scatter" ? pointRows(config.points, seed) : EMPTY_POINTS,
+		};
+	});
 
-/** Drops the oldest row and appends one: the streaming window slide. */
-const shiftItem = (item: Item, config: Config): Item => {
-	if (config.kind === "scatter") {
-		const last = item.points[item.points.length - 1] ?? { x: 0, y: 0 };
-		return { ...item, points: [...item.points.slice(1), { x: last.x + 1, y: last.y + 3 }] };
-	}
-	const last = item.rows[item.rows.length - 1];
+/** Drops the oldest row and appends one: the streaming window slide. An empty series keeps its identity. */
+const slide = (rows: readonly Row[]): readonly Row[] => {
+	const last = rows[rows.length - 1];
 	if (last == null) {
-		return item;
+		return rows;
 	}
 	const nextX =
 		last.x instanceof Date
@@ -52,11 +60,20 @@ const shiftItem = (item: Item, config: Config): Item => {
 			: typeof last.x === "number"
 				? last.x + 1
 				: `${last.x}+`;
-	return {
-		...item,
-		rows: [...item.rows.slice(1), { x: nextX, a: last.a * 1.05, b: last.b * 0.95 }],
-	};
+	return [...rows.slice(1), { x: nextX, a: last.a * 1.05, b: last.b * 0.95 }];
 };
+
+const shiftItem = (item: Item, config: Config): Item => {
+	if (config.kind === "scatter") {
+		const last = item.points[item.points.length - 1] ?? { x: 0, y: 0 };
+		return { ...item, points: [...item.points.slice(1), { x: last.x + 1, y: last.y + 3 }] };
+	}
+	return { ...item, rows: slide(item.rows), releases: slide(item.releases) };
+};
+
+/** Every chart family's Root slot, for the paint gate below. */
+const CHART_ROOTS =
+	'[data-slot="line-chart"], [data-slot="bar-chart"], [data-slot="area-chart"], [data-slot="scatter-plot"]';
 
 /**
  * Marks the commit that mounts every chart. An effect on the last sibling runs
@@ -71,7 +88,7 @@ const Ready = () => {
 		let visible: Element[] | null = null;
 		const painted = () => {
 			if (visible == null) {
-				const roots = [...document.querySelectorAll('[data-slot$="-chart"]')];
+				const roots = [...document.querySelectorAll(CHART_ROOTS)];
 				if (roots.length === 0) {
 					return true;
 				}
@@ -104,6 +121,122 @@ const Ready = () => {
 	return null;
 };
 
+// The table is static, so it registers no client-side features.
+const features = tableFeatures({});
+const columnHelper = createColumnHelper<typeof features, Item>();
+
+/** The sum of a series, the number beside its sparkline. */
+const total = (rows: readonly Row[]): number =>
+	Math.round(rows.reduce((sum, row) => sum + row.a, 0));
+
+/** A sparkline and its total, or the empty box of the `nocharts` floor. */
+const SparklineCell = ({
+	rows,
+	label,
+	config,
+}: {
+	rows: readonly Row[];
+	label: string;
+	config: Config;
+}) => (
+	<DataTable.Cell>
+		<div className="flex items-center gap-2">
+			{config.noCharts ? (
+				<div className="h-6 w-28" />
+			) : (
+				<MantleSparkline data={rows} animate={config.lib === "mantle"} label={label} />
+			)}
+			<span className="text-muted min-w-10 text-right text-xs tabular-nums">{total(rows)}</span>
+		</div>
+	</DataTable.Cell>
+);
+
+/** The app list's columns: a name, two badges, two sparklines, and a date, like the dashboard's. */
+const tableColumns = (config: Config) =>
+	columnHelper.columns([
+		columnHelper.accessor("index", {
+			id: "name",
+			header: () => <DataTable.Header>Name</DataTable.Header>,
+			cell: (props) => (
+				<DataTable.Cell className="text-strong truncate font-mono text-xs" translate="no">
+					{`app-${props.getValue() + 1}`}
+				</DataTable.Cell>
+			),
+		}),
+		columnHelper.display({
+			id: "kind",
+			header: () => <DataTable.Header className="w-28">Kind</DataTable.Header>,
+			cell: () => (
+				<DataTable.Cell>
+					<Badge appearance="muted" color="neutral">
+						GitHub
+					</Badge>
+				</DataTable.Cell>
+			),
+		}),
+		columnHelper.display({
+			id: "status",
+			header: () => <DataTable.Header className="w-28">Status</DataTable.Header>,
+			cell: () => (
+				<DataTable.Cell>
+					<Badge appearance="muted" color="success">
+						Enabled
+					</Badge>
+				</DataTable.Cell>
+			),
+		}),
+		columnHelper.accessor("rows", {
+			id: "requests",
+			header: () => <DataTable.Header className="w-44">Requests</DataTable.Header>,
+			cell: (props) => (
+				<SparklineCell
+					rows={props.getValue()}
+					label={`Requests for app ${props.row.original.index + 1}`}
+					config={config}
+				/>
+			),
+		}),
+		columnHelper.accessor("releases", {
+			id: "releases",
+			header: () => <DataTable.Header className="w-44">Releases</DataTable.Header>,
+			cell: (props) => (
+				<SparklineCell
+					rows={props.getValue()}
+					label={`Releases for app ${props.row.original.index + 1}`}
+					config={config}
+				/>
+			),
+		}),
+		columnHelper.accessor("index", {
+			id: "created",
+			header: () => <DataTable.Header className="w-24">Created</DataTable.Header>,
+			cell: (props) => <DataTable.Cell>{`${props.getValue() + 1}w ago`}</DataTable.Cell>,
+		}),
+	]);
+
+/** The sparkline table: `n` app rows with two dense sparklines each, in a `DataTable`. */
+const SparklineTable = ({ config, items }: { config: Config; items: Item[] }) => {
+	const columns = useMemo(() => tableColumns(config), [config]);
+	const table = useTable({ features, data: items, columns });
+	return (
+		<main className="mx-auto w-[1100px] p-6">
+			<h1 className="mb-4 text-lg font-semibold">
+				{config.lib} / sparkline table / n={config.n} rows × 2 charts / points={config.points}
+				{config.noCharts && " / no charts"}
+			</h1>
+			<DataTable.Root table={table} className="[&_table]:table-fixed">
+				<DataTable.Head />
+				<DataTable.Body>
+					{table.getRowModel().rows.map((row) => (
+						<DataTable.Row key={row.id} row={row} data-bench-chart />
+					))}
+				</DataTable.Body>
+			</DataTable.Root>
+			<Ready />
+		</main>
+	);
+};
+
 /**
  * The benchmark page body: `n` chart cards, one dense chart, or a table of
  * sparklines, per `config`. Publishes `window.__bench.update` so the driver
@@ -128,66 +261,7 @@ export const Scenario = ({ config }: { config: Config }) => {
 		};
 	}, [config]);
 	if (config.mode === "table") {
-		const animate = config.lib === "mantle";
-		return (
-			<main className="mx-auto w-[1100px] p-6">
-				<h1 className="text-lg font-semibold">
-					{config.lib} / sparkline table / n={config.n} rows × 2 charts / points={config.points}
-					{config.noCharts && " / no charts"}
-				</h1>
-				<table className="w-full text-sm">
-					<thead>
-						<tr className="text-left text-neutral-500">
-							<th className="py-2">Name</th>
-							<th>Kind</th>
-							<th>Status</th>
-							<th>Requests</th>
-							<th>Releases</th>
-							<th>Created</th>
-						</tr>
-					</thead>
-					<tbody>
-						{items.map((item) => (
-							<tr key={item.index} className="border-t border-neutral-200" data-bench-chart>
-								<td className="py-2 font-mono text-blue-700">app-{item.index + 1}</td>
-								<td>GitHub</td>
-								<td>Enabled</td>
-								<td>
-									<div className="flex items-center gap-2">
-										{config.noCharts ? (
-											<div className="h-6 w-28" />
-										) : (
-											<MantleSparkline
-												data={item.rows}
-												animate={animate}
-												label={`Requests for app ${item.index + 1}`}
-											/>
-										)}
-										<span>{Math.round(item.rows.reduce((sum, row) => sum + row.a, 0))}</span>
-									</div>
-								</td>
-								<td>
-									<div className="flex items-center gap-2">
-										{config.noCharts ? (
-											<div className="h-6 w-28" />
-										) : (
-											<MantleSparkline
-												data={item.rows.slice(0, Math.max(3, Math.floor(config.points / 2)))}
-												animate={animate}
-												label={`Releases for app ${item.index + 1}`}
-											/>
-										)}
-										<span>{item.index + 2}</span>
-									</div>
-								</td>
-								<td>{item.index + 1}w ago</td>
-							</tr>
-						))}
-					</tbody>
-				</table>
-				<Ready />
-			</main>
-		);
+		return <SparklineTable config={config} items={items} />;
 	}
 	return (
 		<main className="mx-auto flex w-[640px] flex-col gap-6 p-6">

@@ -445,6 +445,92 @@ describe("activation outside React", () => {
 		);
 	});
 
+	test("a dormant chart with no plottable row renders empty instead of throwing on a series key", () => {
+		const stub = createIntersectionObserverStub({ intersecting: false });
+		vi.stubGlobal("IntersectionObserver", stub.Observer);
+		// The engine reads series columns from the rows with a finite x alone, and
+		// this row has none, so it plots nothing and checks no series key.
+		render(
+			<LineChart.Root data={[{ t: null }]} xKey="t" xScale="time" aria-label="Latency">
+				<LineChart.Line dataKey="p50" label="p50" />
+			</LineChart.Root>,
+		);
+		expect(screen.getByRole("application", { name: "Latency" })).toHaveAccessibleDescription(
+			/^Line chart with no data\./,
+		);
+	});
+
+	test("a dormant chart throws a series key that only a dropped row carries", () => {
+		const stub = createIntersectionObserverStub({ intersecting: false });
+		vi.stubGlobal("IntersectionObserver", stub.Observer);
+		// The engine would throw this in the observer task that activates the
+		// chart, outside every error boundary.
+		expect(() =>
+			render(
+				<LineChart.Root
+					data={[
+						{ t: null, p50: 1 },
+						{ t: new Date("2026-07-18T10:00:00Z"), p99: 2 },
+					]}
+					xKey="t"
+					xScale="time"
+					aria-label="Latency"
+				>
+					<LineChart.Line dataKey="p50" label="p50" />
+				</LineChart.Root>,
+			),
+		).toThrow('LineChart.Line dataKey "p50" does not match any key in the provided data.');
+	});
+
+	test("focus paints a chart beyond the far band, and blur releases its canvas", async () => {
+		const stub = createIntersectionObserverStub({ intersecting: false });
+		vi.stubGlobal("IntersectionObserver", stub.Observer);
+		const user = userEvent.setup();
+		const { container } = render(
+			<>
+				<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
+					<BarChart.Bar dataKey="desktop" label="Desktop" />
+				</BarChart.Root>
+				<button type="button">After</button>
+			</>,
+		);
+		expect(container.querySelector("canvas")).toBeNull();
+		await user.tab();
+		const canvas = container.querySelector("canvas");
+		if (!(canvas instanceof HTMLCanvasElement)) {
+			throw new Error("expected focus to activate the chart");
+		}
+		// happy-dom paints nothing, so the test stands in for the paint: a bitmap
+		// the blur must drop, because the observer never reported the chart near.
+		canvas.width = 800;
+		canvas.height = 400;
+		await user.tab();
+		expect(screen.getByRole("button", { name: "After" })).toHaveFocus();
+		expect(canvas.width).toBe(0);
+	});
+
+	test("blur keeps the canvas of a chart inside the far band", async () => {
+		const user = userEvent.setup();
+		const { container } = render(
+			<>
+				<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
+					<BarChart.Bar dataKey="desktop" label="Desktop" />
+				</BarChart.Root>
+				<button type="button">After</button>
+			</>,
+		);
+		const canvas = container.querySelector("canvas");
+		if (!(canvas instanceof HTMLCanvasElement)) {
+			throw new Error("expected the chart to activate at mount");
+		}
+		await user.tab();
+		canvas.width = 800;
+		canvas.height = 400;
+		await user.tab();
+		expect(screen.getByRole("button", { name: "After" })).toHaveFocus();
+		expect(canvas.width).toBe(800);
+	});
+
 	test("unmounting removes the engine-owned layers with the Root", () => {
 		const { container, unmount } = render(
 			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
@@ -522,5 +608,23 @@ describe("description series sentence", () => {
 		expect(overlay).toHaveAccessibleDescription(/Series: Desktop\. Use/);
 		await user.click(screen.getByRole("button", { name: "Show mobile" }));
 		expect(overlay).toHaveAccessibleDescription(/Series: Desktop, Mobile\. Use/);
+	});
+
+	test("a Root that turns interactive after a decorative render describes its series", () => {
+		const { rerender } = render(
+			<BarChart.Root data={data} xKey="month" decorative>
+				<BarChart.Bar dataKey="desktop" label="Desktop" />
+			</BarChart.Root>,
+		);
+		rerender(
+			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
+				<BarChart.Bar dataKey="desktop" label="Desktop" />
+			</BarChart.Root>,
+		);
+		// The description span mounts with the overlay, so the writer binds to it
+		// here and not to the span the decorative render never had.
+		expect(
+			screen.getByRole("application", { name: "Visitors by month" }),
+		).toHaveAccessibleDescription(/Series: Desktop\. Use/);
 	});
 });

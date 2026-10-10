@@ -19,7 +19,9 @@ The page reads one scenario from its query string:
 | `nocharts` | `1`                              | table mode with an empty box per sparkline: the table's own floor              |
 
 List charts render at 558×314 CSS pixels with both axes, grid lines, a tooltip, and two series.
-Sparklines are 112×24 with one bar series and no axes. Data comes from a seeded generator.
+The table is a `DataTable` with a name, two badges, two sparklines, and a date per row, like the
+dashboard's app list. Sparklines are 112×24 with one bar series of `points` bars and no axes; the
+Releases series is zero most of the time. Data comes from a seeded generator.
 
 ## Commands
 
@@ -28,7 +30,7 @@ Run from `apps/www`. Every driver builds the site first; pass `--no-build` to re
 ```sh
 pnpm bench -- --matrix=list --runs=3 --throttle=1,4 --out=list   # the full matrix driver
 pnpm bench -- --matrix=table --n=100 --runs=3 --out=table
-pnpm bench:trace -- "?lib=mantle-static&kind=bar&mode=table&n=100&points=12" --runs=3 --per-task=14
+pnpm bench:trace -- "?lib=mantle-static&kind=bar&mode=table&n=100&points=30" --runs=3 --per-task=14
 pnpm bench:profile -- "?lib=mantle-static&kind=line&mode=list&n=100&points=30"
 pnpm bench:report -- bench/results/list.jsonl --out=bench/results/report.md
 pnpm exec tsx bench/summary.ts bench/results/list.jsonl

@@ -137,7 +137,7 @@ const buildMatrix = (): Case[] => {
 			if (matrix === "table" && kind === "bar") {
 				for (const n of listCounts) {
 					for (const lib of libs) {
-						cases.push({ lib, kind, mode: "table", n, points: 12, throttle, dpr, gate });
+						cases.push({ lib, kind, mode: "table", n, points: 30, throttle, dpr, gate });
 					}
 				}
 			}

@@ -14,7 +14,10 @@ import { BENCH_PATH, RESULTS_DIR, startServer } from "./serve";
 
 const PORT = 3447;
 
-const query = process.argv[2] ?? "?lib=mantle-static&kind=line&mode=list&n=100&points=30";
+// Why skip `--`: pnpm hands the separator to the script as its own argument.
+const query =
+	process.argv.slice(2).find((argument) => !argument.startsWith("--")) ??
+	"?lib=mantle-static&kind=line&mode=list&n=100&points=30";
 const readArg = (name: string, fallback: string): string =>
 	process.argv.find((argument) => argument.startsWith(`--${name}=`))?.slice(name.length + 3) ??
 	fallback;

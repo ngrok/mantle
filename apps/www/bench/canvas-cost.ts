@@ -5,7 +5,7 @@
  */
 import { chromium } from "playwright";
 
-const count = Number(process.argv[2] ?? 40);
+const count = Number(process.argv.slice(2).find((argument) => !argument.startsWith("--")) ?? 40);
 const browser = await chromium.launch({ headless: true, channel: "chromium" });
 try {
 	const context = await browser.newContext({

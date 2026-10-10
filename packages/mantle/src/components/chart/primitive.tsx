@@ -481,6 +481,7 @@ const ChartRootPrimitive = ({
 	"aria-hidden": ariaHidden,
 	tabIndex,
 	onFocus,
+	onBlur,
 	...props
 }: InternalRootProps) => {
 	// One store per Root lifetime: series identity and part registrations
@@ -498,8 +499,9 @@ const ChartRootPrimitive = ({
 	const engineRef = useRef<ChartEngine | null>(null);
 	const layersRef = useRef<ChartLayers | null>(null);
 	const activateRef = useRef<((rect: DOMRectReadOnly | null) => void) | null>(null);
-	// The visibility reports that arrive before the engine exists.
-	const visibilityRef = useRef({ near: false, seen: false });
+	// The observer's latest reports, kept for an engine created later, and
+	// whether focus holds the chart painted wherever it is.
+	const visibilityRef = useRef({ near: false, withinFar: true, seen: false, focused: false });
 	const descriptionSeriesRef = useRef<HTMLSpanElement | null>(null);
 	// Why a selector on the latch alone: a hover publish must not re-render the Root.
 	const tooltipWanted = useSyncExternalStore(
@@ -621,7 +623,7 @@ const ChartRootPrimitive = ({
 			engineRef.current = engine;
 			layersRef.current = layers;
 			engine.flushIngest();
-			engine.setInView(visibilityRef.current.near);
+			engine.setInView(visibilityRef.current.near || visibilityRef.current.focused);
 			if (visibilityRef.current.seen) {
 				engine.markSeen();
 			}
@@ -653,22 +655,27 @@ const ChartRootPrimitive = ({
 		}
 		return observeChartVisibility(plot, ({ band, inView, rect }) => {
 			const engine = engineRef.current;
+			const visibility = visibilityRef.current;
 			if (band === "near") {
-				visibilityRef.current.near = inView;
+				visibility.near = inView;
 				if (engine != null) {
-					engine.setInView(inView);
+					engine.setInView(inView || visibility.focused);
 				} else if (inView) {
 					queueActivation(plot, { rect, run: (entryRect) => activateRef.current?.(entryRect) });
 				}
 			} else if (band === "visible" && inView) {
-				visibilityRef.current.seen = true;
+				visibility.seen = true;
 				if (engine != null) {
 					engine.markSeen();
 				} else {
 					promoteActivation(plot);
 				}
-			} else if (band === "far" && !inView) {
-				engine?.releaseBackingStores();
+			} else if (band === "far") {
+				visibility.withinFar = inView;
+				// A focused chart keeps its canvas: a reader is driving it from the keyboard.
+				if (!inView && !visibility.focused) {
+					engine?.releaseBackingStores();
+				}
 			}
 		});
 	}, []);
@@ -754,6 +761,8 @@ const ChartRootPrimitive = ({
 	// rendered: the parts register after the Root's first render, and a
 	// re-render for it would change the text after the first layout. The
 	// subscription also follows a part that registers without a Root render.
+	// Why `decorative` in the deps: the span mounts with the overlay, so the
+	// writer rebinds when a Root turns interactive.
 	useLayoutEffect(() => {
 		const target = descriptionSeriesRef.current;
 		if (target == null) {
@@ -769,7 +778,7 @@ const ChartRootPrimitive = ({
 		};
 		write();
 		return store.subscribe(write);
-	}, [store]);
+	}, [store, decorative]);
 
 	// A dormant Root holds no engine, so it throws the key invariants itself:
 	// a typo must fail in the mount commit, not in the observer task that
@@ -824,9 +833,31 @@ const ChartRootPrimitive = ({
 				// its state update before the next key arrives.
 				setEngaged(true);
 				// A focused chart paints even when `preventScroll` kept it offscreen.
-				visibilityRef.current.near = true;
+				visibilityRef.current.focused = true;
 				activateRef.current?.(null);
 				engineRef.current?.setInView(true);
+			}}
+			onBlur={(event) => {
+				onBlur?.(event);
+				// Focus that moves between the chart's own parts never left the chart.
+				if (
+					event.relatedTarget instanceof Node &&
+					event.currentTarget.contains(event.relatedTarget)
+				) {
+					return;
+				}
+				const visibility = visibilityRef.current;
+				visibility.focused = false;
+				const engine = engineRef.current;
+				if (engine == null) {
+					return;
+				}
+				// The observer owns the paint gate again, and a chart beyond the far
+				// band gives up the canvas focus allocated.
+				engine.setInView(visibility.near);
+				if (!visibility.withinFar) {
+					engine.releaseBackingStores();
+				}
 			}}
 			{...props}
 			// Why after the spread: the latch is the Root's own state, and a wider

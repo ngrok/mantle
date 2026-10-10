@@ -58,9 +58,9 @@ const createIntersectionObserverStub = ({
 
 		observe(target: Element): void {
 			this.#targets.add(target);
-			if (intersecting) {
-				this.deliver(target, true);
-			}
+			// A browser reports the initial state of every observed element, in
+			// view or not, so a chart's visibility flags start from a real report.
+			this.deliver(target, intersecting);
 		}
 
 		unobserve(target: Element): void {

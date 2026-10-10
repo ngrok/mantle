@@ -146,6 +146,8 @@ type EngineCallbacks = {
 
 type ResolvedColors = {
 	signature: string;
+	/** The pass's resolver, kept so a reference line resolves through the same style read. */
+	resolver: ColorResolver;
 	series: Map<string, string>;
 	/** The paint inputs (color + texture) the maps were resolved from, for staleness checks. */
 	inputs: Map<string, string>;
@@ -1607,6 +1609,7 @@ class ChartEngine {
 		}
 		this.#colors = {
 			signature,
+			resolver,
 			series,
 			inputs,
 			barTextures,
@@ -1626,7 +1629,10 @@ class ChartEngine {
 		if (view == null) {
 			return null;
 		}
-		return createColorResolver(root, {
+		// Why the plot hosts the probe: the Root's child list is the consumer's
+		// (a legend, a copy button), and a structural selector there must not
+		// count a hidden span. The plot already holds the engine's own layers.
+		return createColorResolver(this.#elements.plot, {
 			computed: view.getComputedStyle(root),
 			parseContext: colorParseContext(root.ownerDocument),
 		});
@@ -1636,7 +1642,8 @@ class ChartEngine {
 	 * Resolve a reference-line color, cached per color input and invalidated with
 	 * the theme/dpr color signature. A reference line paints on every animation
 	 * frame, so resolving through the DOM probe each time would force a style
-	 * recalc inside the paint loop.
+	 * recalc inside the paint loop. The pass's own resolver serves it, so a
+	 * custom reference color adds no style read of its own.
 	 */
 	#resolveReferenceColor(input: SeriesColor): string {
 		const signature = this.#colors?.signature ?? "";
@@ -1648,7 +1655,7 @@ class ChartEngine {
 		if (cached != null) {
 			return cached;
 		}
-		const resolver = this.#colorResolver();
+		const resolver = this.#colors?.resolver ?? this.#colorResolver();
 		const resolved = resolver == null ? input : resolveSeriesColor(resolver, input);
 		this.#referenceColorCache.set(input, resolved);
 		return resolved;
