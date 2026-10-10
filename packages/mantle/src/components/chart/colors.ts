@@ -164,15 +164,31 @@ const PARSE_SENTINELS = ["#010203", "#030201"] as const;
  * canvasParses(context, "var(--color-chart-1)"); // false
  * ```
  */
+// Why a cache: every chart on a page resolves the same token values, and a
+// `fillStyle` round trip costs more than the computed-style read it checks.
+const parseVerdicts = new WeakMap<ColorParseContext, Map<string, boolean>>();
+
 const canvasParses = (context: ColorParseContext, value: string): boolean => {
+	let verdicts = parseVerdicts.get(context);
+	if (verdicts == null) {
+		verdicts = new Map();
+		parseVerdicts.set(context, verdicts);
+	}
+	const cached = verdicts.get(value);
+	if (cached != null) {
+		return cached;
+	}
+	let parses = false;
 	for (const sentinel of PARSE_SENTINELS) {
 		context.fillStyle = sentinel;
 		context.fillStyle = value;
 		if (context.fillStyle !== sentinel) {
-			return true;
+			parses = true;
+			break;
 		}
 	}
-	return false;
+	verdicts.set(value, parses);
+	return parses;
 };
 
 /**

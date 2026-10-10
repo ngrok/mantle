@@ -158,18 +158,23 @@ type BarChartCopyButtonProps = CopyButtonPrimitiveProps;
  * description, an sr-only data table, Enter/Space + click activation).
  * Compose the chrome and series parts as children.
  *
- * A Root mounts dormant: it ingests its data and answers the keyboard, but it
- * paints and allocates its canvas once it comes within one viewport of the
- * visible area or takes focus, and it mounts the sr-only data table once
- * focus lands inside it. A list of charts pays for the ones a reader can see,
- * and a page of sparklines holds no hidden tables until a reader asks for one.
+ * A Root mounts dormant: a shell of the plot, the named overlay, and its
+ * sr-only description. It builds its canvas, its hover layers, and its engine
+ * once it comes within one viewport of the visible area, takes focus, or
+ * prints (on-screen charts first, a few milliseconds at a time), and it mounts
+ * the sr-only data table once focus lands inside it. A list of charts pays
+ * for the ones a reader can see, and a page of sparklines holds no hidden
+ * tables until a reader asks for one.
  *
  * The Root's own subtree is addressable by slot: `bar-chart` on the wrapper,
  * then `bar-chart-plot`, `bar-chart-canvas`, `bar-chart-crosshair`,
  * `bar-chart-hover-band`, `bar-chart-markers`, `bar-chart-tooltip`,
  * `bar-chart-description`, and, once focus lands inside the chart,
  * `bar-chart-data-table`. A bar chart shows the band and never the crosshair
- * or the markers, but all three layers mount on every kind.
+ * or the markers. The canvas and the three layers are engine-owned: absent
+ * from server HTML and from a dormant chart, inserted at activation (near the
+ * viewport, on focus, or before print). The tooltip surface mounts on the
+ * first hover or keyboard step and stays.
  *
  * **Data attributes:**
  *
@@ -414,9 +419,9 @@ const CopyButton = (props: BarChartCopyButtonProps) => (
  * `--color-chart-*` tokens; bars keep a fixed slot color for the chart's
  * lifetime even as other series are filtered in and out. Interaction ships
  * with `Root` unconditionally: a per-category tooltip, keyboard stepping,
- * aria-live announcements, and an sr-only description. A Root paints and
- * allocates its canvas once it comes within one viewport of the visible area
- * or takes focus, and it mounts its sr-only data table once focus lands
+ * aria-live announcements, and an sr-only description. A Root builds and paints
+ * its canvas once it comes within one viewport of the visible area, takes
+ * focus, or prints, and it mounts its sr-only data table once focus lands
  * inside it.
  *
  * **CSS variables (public API):**

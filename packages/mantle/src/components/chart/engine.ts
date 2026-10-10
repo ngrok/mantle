@@ -25,7 +25,7 @@ import {
 	themeSignature,
 } from "./colors.js";
 import { createBarTexturePattern, textureInkColor } from "./texture.js";
-import { datumValue, toEpochOrNumber } from "./datum.js";
+import { datumValue, missingKeyMessage, toEpochOrNumber, uncoercibleXMessage } from "./datum.js";
 import { onPrint, prefersReducedMotion, watchDevicePixelRatio } from "./environment.js";
 import { decimateColumns, shouldDecimate } from "./decimate.js";
 import { formatNumber, formatXValue, hasTimeOfDay, tickFractionDigits } from "./format.js";
@@ -120,8 +120,12 @@ type EngineElements = {
 	band: HTMLElement;
 	/** Container for active-point marker dots (line/area charts). */
 	markers: HTMLElement;
-	/** The tooltip container; content is React-rendered, position is engine-written. */
-	tooltip: HTMLElement;
+	/**
+	 * The tooltip container; content is React-rendered, position is
+	 * engine-written. `null` until the Root mounts it on the first hover
+	 * (see `attachTooltip`).
+	 */
+	tooltip: HTMLElement | null;
 };
 
 /** The 3D frame's axis labels, painted after the marks clip is restored. */
@@ -352,6 +356,12 @@ class ChartEngine {
 		 * @default true
 		 */
 		inView?: boolean;
+		/**
+		 * The plot's CSS size when it is already known (the intersection entry
+		 * that activated the chart carries it), so the first commit paints
+		 * instead of waiting for the resize observer's first delivery.
+		 */
+		size?: { width: number; height: number };
 	}) {
 		this.#kind = options.kind;
 		this.#elements = options.elements;
@@ -359,6 +369,10 @@ class ChartEngine {
 		this.#inView = options.inView ?? true;
 		// A bare engine is in view from the start, so its first ingest reveals.
 		this.#seen = this.#inView;
+		if (options.size != null) {
+			this.#cssWidth = options.size.width;
+			this.#cssHeight = options.size.height;
+		}
 		// Why seed here: the first commit runs before the resize observer
 		// delivers, and a ratio of 1 there would key the color cache wrong and
 		// resolve every color twice.
@@ -508,11 +522,64 @@ class ChartEngine {
 	}
 
 	/**
-	 * Paint before the print snapshot. No animation frame runs between
-	 * `beforeprint` and the snapshot, so a dormant chart would print blank.
+	 * Run the pending commit now, inside the caller's task, instead of on the
+	 * next animation frame. Activation calls it so a chart paints in the task
+	 * that activated it.
+	 *
+	 * @example
+	 * ```ts
+	 * engine.setRows(rows);
+	 * engine.commitNow(); // painted before this line returns
+	 * ```
 	 */
-	#onBeforePrint = (): void => {
+	commitNow(): void {
 		if (this.#destroyed) {
+			return;
+		}
+		if (this.#frame !== 0) {
+			cancelAnimationFrame(this.#frame);
+			this.#frame = 0;
+		}
+		this.#scheduled = false;
+		this.#commit();
+	}
+
+	/**
+	 * Hand the engine its tooltip container once the Root mounts it. The
+	 * container arrives on the first hover, so a chart nobody points at never
+	 * holds one. Passing `null` detaches it.
+	 *
+	 * @example
+	 * ```ts
+	 * engine.attachTooltip(tooltipElement);
+	 * ```
+	 */
+	attachTooltip(element: HTMLElement | null): void {
+		if (this.#elements.tooltip === element || this.#destroyed) {
+			return;
+		}
+		this.#tooltipResizeObserver?.disconnect();
+		this.#tooltipResizeObserver = null;
+		this.#tooltipSize = { width: 0, height: 0 };
+		this.#elements.tooltip = element;
+		if (element != null && this.#inView) {
+			this.#observeTooltip();
+		}
+		this.#scheduleOverlay();
+	}
+
+	/**
+	 * Paint for the print snapshot. No animation frame runs between
+	 * `beforeprint` and the snapshot, so a chart that waited for a frame would
+	 * print blank. Idempotent within one print: a second call is a no-op.
+	 *
+	 * @example
+	 * ```ts
+	 * window.addEventListener("beforeprint", () => engine.paintForPrint());
+	 * ```
+	 */
+	paintForPrint(): void {
+		if (this.#destroyed || this.#printing) {
 			return;
 		}
 		this.#printing = true;
@@ -531,6 +598,10 @@ class ChartEngine {
 		}
 		this.#needsPaint = true;
 		this.#commit();
+	}
+
+	#onBeforePrint = (): void => {
+		this.paintForPrint();
 	};
 
 	#onAfterPrint = (): void => {
@@ -545,17 +616,22 @@ class ChartEngine {
 	 * `offsetWidth` forces a layout, so a dormant chart never pays for it.
 	 */
 	#observeTooltip(): void {
-		if (this.#tooltipResizeObserver != null || typeof ResizeObserver === "undefined") {
+		const tooltip = this.#elements.tooltip;
+		if (
+			tooltip == null ||
+			this.#tooltipResizeObserver != null ||
+			typeof ResizeObserver === "undefined"
+		) {
 			return;
 		}
 		this.#tooltipResizeObserver = new ResizeObserver(() => {
 			this.#tooltipSize = {
-				width: this.#elements.tooltip.offsetWidth,
-				height: this.#elements.tooltip.offsetHeight,
+				width: tooltip.offsetWidth,
+				height: tooltip.offsetHeight,
 			};
 			this.#scheduleOverlay();
 		});
-		this.#tooltipResizeObserver.observe(this.#elements.tooltip);
+		this.#tooltipResizeObserver.observe(tooltip);
 	}
 
 	/** The 2D context, created on first use so a chart that never paints never holds one. */
@@ -922,10 +998,7 @@ class ChartEngine {
 						: String(raw);
 				xs[index] = index;
 			}
-			invariant(
-				count === 0 || foundX,
-				`${this.#rootName()} xKey "${xKey}" does not match any key in the provided data. Available keys: ${Object.keys(rows[0] ?? {}).join(", ")}.`,
-			);
+			invariant(count === 0 || foundX, missingKeyMessage(this.#rootName(), "xKey", xKey, rows));
 			this.#order = null;
 			this.#orderInverse = null;
 			this.#rowCount = count;
@@ -964,11 +1037,11 @@ class ChartEngine {
 			}
 			invariant(
 				rows.length === 0 || sawXKey,
-				`${this.#rootName()} xKey "${xKey}" does not match any key in the provided data. Available keys: ${Object.keys(rows[0] ?? {}).join(", ")}.`,
+				missingKeyMessage(this.#rootName(), "xKey", xKey, rows),
 			);
 			invariant(
 				!sawNonNullish || sawCoercible,
-				`${this.#rootName()} could not read any "${xKey}" values as ${xScale === "time" ? "dates" : "numbers"} for the "${xScale}" x scale — check the xScale and the data types.`,
+				uncoercibleXMessage(this.#rootName(), xKey, xScale),
 			);
 			// Sorting once at ingest keeps decimation and hit-testing correct for
 			// out-of-order API responses; the sorted view is the engine's contract.
@@ -1113,7 +1186,7 @@ class ChartEngine {
 			}
 			invariant(
 				count === 0 || found,
-				`${PART_NAME[spec.mark]} dataKey "${spec.dataKey}" does not match any key in the provided data. Available keys: ${Object.keys(rows[0] ?? {}).join(", ")}.`,
+				missingKeyMessage(PART_NAME[spec.mark], "dataKey", spec.dataKey, rows),
 			);
 			this.#columns.set(spec.dataKey, values);
 		}
@@ -1146,10 +1219,7 @@ class ChartEngine {
 					}
 				}
 			}
-			invariant(
-				count === 0 || zFound,
-				`ScatterPlot.Root zKey "${zKey}" does not match any key in the provided data. Available keys: ${Object.keys(rows[0] ?? {}).join(", ")}.`,
-			);
+			invariant(count === 0 || zFound, missingKeyMessage("ScatterPlot.Root", "zKey", zKey, rows));
 			this.#zs = zs;
 			this.#zDomain =
 				zMin === Number.POSITIVE_INFINITY ? [0, 1] : niceDomain([zMin, zMax], Y_TICK_COUNT);
@@ -1831,8 +1901,13 @@ class ChartEngine {
 		// gridlines share the label alphas so everything slides together while
 		// the domains glide.
 		const instantLabels = this.#tweenDuration() === 0;
-		const desiredXTicks = is3d ? [] : this.#desiredXTicks(ctx, colors.fontFamily);
-		const desiredYTicks = is3d ? [] : this.#desiredValueTicks(ctx, colors.fontFamily);
+		// Why the guard: a chart with no axis and no grid draws no labels and no
+		// gridlines, and the `ctx.font` write plus a `measureText` per tick cost
+		// a sparkline more than its bars.
+		const wantsTicks = snapshot.xAxis != null || snapshot.yAxis != null || snapshot.grid != null;
+		const desiredXTicks = is3d || !wantsTicks ? [] : this.#desiredXTicks(ctx, colors.fontFamily);
+		const desiredYTicks =
+			is3d || !wantsTicks ? [] : this.#desiredValueTicks(ctx, colors.fontFamily);
 		let labelsAnimating = advanceLabelFade(this.#xLabelFade, desiredXTicks, paintDt, instantLabels);
 		labelsAnimating =
 			advanceLabelFade(this.#yLabelFade, desiredYTicks, paintDt, instantLabels) || labelsAnimating;
@@ -3009,7 +3084,9 @@ class ChartEngine {
 		crosshair.style.opacity = visible && !isBar && !isScatter ? "1" : "0";
 		band.style.opacity = visible && isBar ? "1" : "0";
 		markers.style.opacity = visible && !isBar ? "1" : "0";
-		tooltip.style.opacity = visible ? "1" : "0";
+		if (tooltip != null) {
+			tooltip.style.opacity = visible ? "1" : "0";
+		}
 		if (!visible) {
 			return;
 		}
@@ -3020,7 +3097,9 @@ class ChartEngine {
 			const screen = this.#activeScreen ?? this.#screenForIndex(index);
 			if (screen == null) {
 				markers.style.opacity = "0";
-				tooltip.style.opacity = "0";
+				if (tooltip != null) {
+					tooltip.style.opacity = "0";
+				}
 				return;
 			}
 			while (markers.children.length > 1) {
@@ -3133,6 +3212,9 @@ class ChartEngine {
 	#positionTooltip(anchorX: number, anchorY: number): void {
 		const plot = this.#plot;
 		const tooltip = this.#elements.tooltip;
+		if (tooltip == null) {
+			return;
+		}
 		const size = this.#tooltipSize;
 		const gapX = 12;
 		let tooltipLeft = anchorX + gapX;

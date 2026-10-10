@@ -361,9 +361,12 @@ describe("LineChart data slots", () => {
 		["line-chart-legend", "DIV"],
 		["line-chart-description", "SPAN"],
 		["line-chart-data-table", "DIV"],
-	])("%s lands on a %s", (slot, tagName) => {
+	])("%s lands on a %s", async (slot, tagName) => {
+		const user = userEvent.setup();
 		const { container } = renderChart();
 		engageChart();
+		// The tooltip surface mounts on the first hover or keyboard step.
+		await user.keyboard("{ArrowRight}");
 		const element = container.querySelector(`[data-slot="${slot}"]`);
 		expect(element).toBeInTheDocument();
 		expect(element?.tagName).toBe(tagName);
@@ -820,8 +823,8 @@ describe("LineChart controlled activeIndex", () => {
 				<LineChart.Line dataKey="p50" label="p50" />
 			</LineChart.Root>,
 		);
-		const tooltip = document.querySelector('[data-slot="line-chart-tooltip"]');
-		expect(tooltip?.textContent).toBe("");
+		// The surface mounts on the first active datum, so none means no surface.
+		expect(document.querySelector('[data-slot="line-chart-tooltip"]')).toBeNull();
 	});
 
 	test("keyboard stepping on a controlled chart still announces politely", async () => {

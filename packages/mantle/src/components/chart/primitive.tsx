@@ -25,10 +25,12 @@ import { joinDataSlot } from "../../utils/data-slot.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { IconButton } from "../button/icon-button.js";
 import { LiveRegion } from "../live-region/live-region.js";
-import { datumValue } from "./datum.js";
+import { assertChartKeys, datumValue } from "./datum.js";
 import type { XSummary } from "./describe.js";
-import { describeChart, scanX } from "./describe.js";
+import { promoteActivation, queueActivation } from "./activation.js";
+import { describeChartParts, describeSeries, scanX } from "./describe.js";
 import { ChartEngine, POINT_SHAPE_CLIP_PATHS } from "./engine.js";
+import { onPrint } from "./environment.js";
 import { formatNumber, formatXValue } from "./format.js";
 import { serializeChartMarkdown } from "./serialize.js";
 import { ChartStore } from "./store.js";
@@ -234,6 +236,14 @@ const useStoreSeries = (store: ChartStore): SeriesMeta[] =>
 	);
 
 /** Subscribe to the registered bar direction only (see {@link useStoreSeries}). */
+/** The hover snapshot alone, so a registration never re-renders the announcer. */
+const useStoreHover = (store: ChartStore): HoverSnapshot | null =>
+	useSyncExternalStore(
+		store.subscribe,
+		() => store.getSnapshot().hover,
+		() => store.getSnapshot().hover,
+	);
+
 const useStoreOrientation = (store: ChartStore): BarOrientation =>
 	useSyncExternalStore(
 		store.subscribe,
@@ -364,10 +374,11 @@ const detectXScale = (data: readonly ChartDatum[], xKey: string): ContinuousXSca
 const AUTO_Y_DOMAIN: YDomain = ["auto", "auto"];
 
 /**
- * The chart Root implementation: renders the canvas, the interaction overlay,
- * the sr-only description, the hover overlay elements, the tooltip container,
- * the aria-live region, and (once engaged) the sr-only data table; owns the
- * engine lifecycle and the engagement latch.
+ * The chart Root implementation: renders the plot, the interaction overlay,
+ * the sr-only description, the aria-live region, the tooltip container (from
+ * the first hover), and (once engaged) the sr-only data table; builds the
+ * canvas, the hover layers, and the engine at activation; owns the engine
+ * lifecycle and the engagement latch.
  *
  * When `decorative`, it keeps the canvas and hover overlay elements (the engine
  * still paints) but omits the interaction overlay, the description, the
@@ -380,6 +391,65 @@ const AUTO_Y_DOMAIN: YDomain = ["auto", "auto"];
  * overlay) whose lifecycles are bound to this exact element tree, so
  * element-swapping polymorphism does not apply.
  */
+/**
+ * The class strings of the engine-owned layers. They live here, not in
+ * `createChartLayers`, so the Tailwind source scan of this module finds them
+ * next to the Root's own classes.
+ */
+const CANVAS_CLASS = "absolute inset-0 size-full";
+const CROSSHAIR_CLASS = "bg-neutral-500 pointer-events-none absolute left-0 top-0 w-px opacity-0";
+const HOVER_BAND_CLASS =
+	"bg-neutral-500/10 pointer-events-none absolute left-0 top-0 rounded-sm opacity-0";
+const MARKERS_CLASS = "pointer-events-none absolute inset-0 opacity-0";
+
+type ChartLayers = {
+	canvas: HTMLCanvasElement;
+	crosshair: HTMLDivElement;
+	band: HTMLDivElement;
+	markers: HTMLDivElement;
+};
+
+/**
+ * Build the canvas and the three hover layers an engine paints and positions.
+ * The Root inserts them at activation and removes them with the engine, so
+ * React never owns them: a dormant chart is the overlay and its description
+ * alone.
+ */
+const createChartLayers = (document: Document, slotName: string): ChartLayers => {
+	const layer = (slot: string, className: string): HTMLDivElement => {
+		const element = document.createElement("div");
+		element.setAttribute("data-slot", `${slotName}-${slot}`);
+		element.setAttribute("aria-hidden", "true");
+		element.className = className;
+		return element;
+	};
+	const canvas = document.createElement("canvas");
+	canvas.setAttribute("data-slot", `${slotName}-canvas`);
+	canvas.setAttribute("aria-hidden", "true");
+	canvas.className = CANVAS_CLASS;
+	return {
+		canvas,
+		crosshair: layer("crosshair", CROSSHAIR_CLASS),
+		band: layer("hover-band", HOVER_BAND_CLASS),
+		markers: layer("markers", MARKERS_CLASS),
+	};
+};
+
+/** The series part of each family, for the key invariants a dormant Root throws. */
+const SERIES_PART_NAME: Record<SeriesMark, string> = {
+	bar: "Bar",
+	line: "Line",
+	area: "Area",
+	scatter: "Point",
+};
+
+/** The engine inputs a Root pushes through its setters, held for an engine created later. */
+type EngineInputs = {
+	options: Parameters<ChartEngine["setOptions"]>[0];
+	callbacks: Parameters<ChartEngine["setCallbacks"]>[0];
+	controlledActiveIndex: number | null | undefined;
+};
+
 const ChartRootPrimitive = ({
 	kind,
 	componentName,
@@ -421,7 +491,22 @@ const ChartRootPrimitive = ({
 	// its cursor. Visibility never mounts the table, or a list of sparklines
 	// would hold a 30-row table in every cell.
 	const [engaged, setEngaged] = useState(false);
+	// A dormant Root renders the shell alone: the plot, the overlay, and the
+	// description. The canvas, the hover layers, and the engine arrive through
+	// `activate`, outside React, once the chart nears the viewport, takes
+	// focus, or prints. The tooltip surface mounts on the first hover.
 	const engineRef = useRef<ChartEngine | null>(null);
+	const layersRef = useRef<ChartLayers | null>(null);
+	const activateRef = useRef<((rect: DOMRectReadOnly | null) => void) | null>(null);
+	// The visibility reports that arrive before the engine exists.
+	const visibilityRef = useRef({ near: false, seen: false });
+	const descriptionSeriesRef = useRef<HTMLSpanElement | null>(null);
+	// Why a selector on the latch alone: a hover publish must not re-render the Root.
+	const tooltipWanted = useSyncExternalStore(
+		store.subscribe,
+		() => store.hoverEver,
+		() => false,
+	);
 	// Why a hoisted ref: the context object is state, so a write through
 	// `context.dataRef.current` reads as a state mutation to the React Compiler.
 	const dataRef = useRef({ data, xKey, zKey });
@@ -440,10 +525,6 @@ const ChartRootPrimitive = ({
 	const rootRef = useRef<HTMLDivElement | null>(null);
 	const composedRootRef = useComposedRefs(rootRef, ref);
 	const plotRef = useRef<HTMLDivElement | null>(null);
-	const canvasRef = useRef<HTMLCanvasElement | null>(null);
-	const crosshairRef = useRef<HTMLDivElement | null>(null);
-	const bandRef = useRef<HTMLDivElement | null>(null);
-	const markersRef = useRef<HTMLDivElement | null>(null);
 	const tooltipRef = useRef<HTMLDivElement | null>(null);
 
 	const descriptionId = useId();
@@ -464,42 +545,103 @@ const ChartRootPrimitive = ({
 	const xSummary = useMemo(() => scanX(data, xKey, resolvedXScale), [data, xKey, resolvedXScale]);
 	const xHasTimeOfDay = xSummary.hasTimeOfDay;
 
-	// Engine lifecycle. Child part registrations land in the store first
-	// (child layout effects run before the parent's), so the engine's first
-	// ingest sees the composed series.
+	// The latest engine inputs, applied in one go when the engine is created
+	// after the commit that carried them.
+	const inputsRef = useRef<EngineInputs>({
+		options: {
+			xKey,
+			xScale: resolvedXScale,
+			yDomain: [yDomainMin, yDomainMax],
+			zKey: zKey ?? null,
+			dimensions,
+			stacked,
+			orientation,
+			animate,
+		},
+		callbacks: { onDatumActivate: null, onActiveIndexChange: null },
+		controlledActiveIndex: undefined,
+	});
 	useLayoutEffect(() => {
-		const root = rootRef.current;
-		const plot = plotRef.current;
-		const canvas = canvasRef.current;
-		const crosshair = crosshairRef.current;
-		const band = bandRef.current;
-		const markers = markersRef.current;
-		const tooltip = tooltipRef.current;
-		if (
-			root == null ||
-			plot == null ||
-			canvas == null ||
-			crosshair == null ||
-			band == null ||
-			markers == null ||
-			tooltip == null
-		) {
-			return;
-		}
-		const engine = new ChartEngine({
-			kind,
-			store,
-			elements: { root, plot, canvas, crosshair, band, markers, tooltip },
-			// The visibility effect below reports the real state; until then the
-			// chart ingests and answers the keyboard but allocates no canvas.
-			inView: false,
-		});
-		engineRef.current = engine;
-		return () => {
-			engineRef.current = null;
-			engine.destroy();
+		inputsRef.current = {
+			options: {
+				xKey,
+				xScale: resolvedXScale,
+				yDomain: [yDomainMin, yDomainMax],
+				zKey: zKey ?? null,
+				dimensions,
+				stacked,
+				orientation,
+				animate,
+			},
+			callbacks: decorative
+				? { onDatumActivate: null, onActiveIndexChange: null }
+				: {
+						onDatumActivate: onDatumActivate ?? null,
+						onActiveIndexChange: onActiveIndexChange ?? null,
+					},
+			controlledActiveIndex: decorative ? undefined : activeIndex,
 		};
-	}, [kind, store]);
+	});
+
+	// Engine lifecycle. `activate` builds the layers and the engine outside
+	// React and paints in the caller's task; the cleanup tears both down. Child
+	// part registrations land in the store first (child layout effects run
+	// before the parent's), so an engine built later still ingests the
+	// composed series.
+	useLayoutEffect(() => {
+		activateRef.current = (rect) => {
+			const root = rootRef.current;
+			const plot = plotRef.current;
+			if (engineRef.current != null || root == null || plot == null) {
+				return;
+			}
+			const layers = createChartLayers(plot.ownerDocument, slotName);
+			// The canvas goes under the overlay; the hover layers go above it and
+			// let pointer events through.
+			plot.prepend(layers.canvas);
+			plot.append(layers.crosshair, layers.band, layers.markers);
+			const size =
+				rect != null && rect.width > 0 && rect.height > 0
+					? { width: rect.width, height: rect.height }
+					: undefined;
+			const engine = new ChartEngine({
+				kind,
+				store,
+				elements: { root, plot, ...layers, tooltip: tooltipRef.current },
+				// Why false: the reveal must hold until the `visible` band reports
+				// the chart on screen; `setInView` below does not mark it seen.
+				inView: false,
+				size,
+			});
+			const inputs = inputsRef.current;
+			engine.setOptions(inputs.options);
+			engine.setRows(dataRef.current.data);
+			engine.setCallbacks(inputs.callbacks);
+			engine.setControlledActiveIndex(inputs.controlledActiveIndex);
+			engineRef.current = engine;
+			layersRef.current = layers;
+			engine.flushIngest();
+			engine.setInView(visibilityRef.current.near);
+			if (visibilityRef.current.seen) {
+				engine.markSeen();
+			}
+			engine.commitNow();
+		};
+		return () => {
+			activateRef.current = null;
+			const engine = engineRef.current;
+			const layers = layersRef.current;
+			engineRef.current = null;
+			layersRef.current = null;
+			engine?.destroy();
+			if (layers != null) {
+				layers.canvas.remove();
+				layers.crosshair.remove();
+				layers.band.remove();
+				layers.markers.remove();
+			}
+		};
+	}, [kind, store, slotName]);
 
 	// Why a layout effect: observing before the first frame means the browser
 	// computes the entries at the end of that frame, so a chart that starts in
@@ -509,15 +651,42 @@ const ChartRootPrimitive = ({
 		if (plot == null) {
 			return;
 		}
-		return observeChartVisibility(plot, ({ band, inView }) => {
+		return observeChartVisibility(plot, ({ band, inView, rect }) => {
 			const engine = engineRef.current;
 			if (band === "near") {
-				engine?.setInView(inView);
+				visibilityRef.current.near = inView;
+				if (engine != null) {
+					engine.setInView(inView);
+				} else if (inView) {
+					queueActivation(plot, { rect, run: (entryRect) => activateRef.current?.(entryRect) });
+				}
 			} else if (band === "visible" && inView) {
-				engine?.markSeen();
+				visibilityRef.current.seen = true;
+				if (engine != null) {
+					engine.markSeen();
+				} else {
+					promoteActivation(plot);
+				}
 			} else if (band === "far" && !inView) {
 				engine?.releaseBackingStores();
 			}
+		});
+	}, []);
+
+	// A dormant chart holds no engine, so the Root activates it before the
+	// print snapshot and paints at once; the engine's own print listener is a
+	// no-op after that.
+	useLayoutEffect(() => {
+		const view = rootRef.current?.ownerDocument.defaultView;
+		if (view == null) {
+			return;
+		}
+		return onPrint(view, {
+			before: () => {
+				activateRef.current?.(null);
+				engineRef.current?.paintForPrint();
+			},
+			after: () => {},
 		});
 	}, []);
 
@@ -581,8 +750,53 @@ const ChartRootPrimitive = ({
 	// inline (mid-commit) would validate one render's series specs against the
 	// previous render's rows — swapping `data` and a series `dataKey` together
 	// would fail fast on a key the settled commit does contain.
+	// The series sentence of the description is written from the store, not
+	// rendered: the parts register after the Root's first render, and a
+	// re-render for it would change the text after the first layout. The
+	// subscription also follows a part that registers without a Root render.
 	useLayoutEffect(() => {
-		engineRef.current?.flushIngest();
+		const target = descriptionSeriesRef.current;
+		if (target == null) {
+			return;
+		}
+		let last: string | null = null;
+		const write = () => {
+			const text = describeSeries(store.getSnapshot().series.map((series) => series.label));
+			if (text !== last) {
+				last = text;
+				target.textContent = text;
+			}
+		};
+		write();
+		return store.subscribe(write);
+	}, [store]);
+
+	// A dormant Root holds no engine, so it throws the key invariants itself:
+	// a typo must fail in the mount commit, not in the observer task that
+	// activates the chart. The signature skips the pass when nothing changed.
+	const validatedRef = useRef<{ data: readonly ChartDatum[]; signature: string } | null>(null);
+	useLayoutEffect(() => {
+		const engine = engineRef.current;
+		if (engine != null) {
+			engine.flushIngest();
+			return;
+		}
+		const dataKeys = store.seriesSpecs().map((spec) => spec.dataKey);
+		const signature = `${xKey}|${resolvedXScale}|${zKey ?? ""}|${dataKeys.join("|")}`;
+		const validated = validatedRef.current;
+		if (validated != null && validated.data === data && validated.signature === signature) {
+			return;
+		}
+		assertChartKeys({
+			rootName: `${componentName}.Root`,
+			partName: `${componentName}.${SERIES_PART_NAME[kind]}`,
+			rows: data,
+			xKey,
+			xScale: resolvedXScale,
+			dataKeys,
+			zKey: zKey ?? null,
+		});
+		validatedRef.current = { data, signature };
 	});
 
 	return (
@@ -610,6 +824,8 @@ const ChartRootPrimitive = ({
 				// its state update before the next key arrives.
 				setEngaged(true);
 				// A focused chart paints even when `preventScroll` kept it offscreen.
+				visibilityRef.current.near = true;
+				activateRef.current?.(null);
 				engineRef.current?.setInView(true);
 			}}
 			{...props}
@@ -630,12 +846,6 @@ const ChartRootPrimitive = ({
 					{/* aria-hidden: the overlay is the chart's single named element for
 					    AT — a role="img" sibling with the same name would announce the
 					    chart twice. The sr-only table carries the structured data. */}
-					<canvas
-						data-slot={`${slotName}-canvas`}
-						ref={canvasRef}
-						aria-hidden
-						className="absolute inset-0 size-full"
-					/>
 					{/* The interaction overlay is the chart's only focusable element and
 					    the surface every pointer/keyboard handler lives on. A decorative
 					    chart omits it entirely — no tab stop, no hover band, no
@@ -707,40 +917,27 @@ const ChartRootPrimitive = ({
 								id={descriptionId}
 								kind={kind}
 								slotName={slotName}
-								store={store}
+								seriesRef={descriptionSeriesRef}
 								summary={xSummary}
 							/>
 						</>
 					)}
-					{/* All three hover layers mount on every kind and stay at opacity 0
-					    until the kind that owns one activates: the crosshair on line and
-					    area, the band on bar, the markers on everything but bar. The
-					    engine writes their geometry as inline styles, so a consumer
-					    restyles them through the slot and leaves the transform alone. */}
-					<div
-						data-slot={`${slotName}-crosshair`}
-						ref={crosshairRef}
-						aria-hidden
-						className="bg-neutral-500 pointer-events-none absolute left-0 top-0 w-px opacity-0"
-					/>
-					<div
-						data-slot={`${slotName}-hover-band`}
-						ref={bandRef}
-						aria-hidden
-						className="bg-neutral-500/10 pointer-events-none absolute left-0 top-0 rounded-sm opacity-0"
-					/>
-					<div
-						data-slot={`${slotName}-markers`}
-						ref={markersRef}
-						aria-hidden
-						className="pointer-events-none absolute inset-0 opacity-0"
-					/>
-					<ChartTooltipSurface
-						slotName={slotName}
-						store={store}
-						tooltipRef={tooltipRef}
-						xHasTimeOfDay={xHasTimeOfDay}
-					/>
+					{/* The canvas and the three hover layers are engine-owned: `activate`
+					    inserts them around these children (the canvas first, the layers
+					    last) and the engine writes their geometry as inline styles. The
+					    tooltip surface is React-rendered for the consumer's render prop,
+					    so it mounts on the first hover and stays. */}
+					{tooltipWanted && (
+						<ChartTooltipSurface
+							slotName={slotName}
+							store={store}
+							tooltipRef={(element) => {
+								tooltipRef.current = element;
+								engineRef.current?.attachTooltip(element);
+							}}
+							xHasTimeOfDay={xHasTimeOfDay}
+						/>
+					)}
 				</div>
 				{children}
 				{/* A decorative chart has nothing to announce or tabulate. The live
@@ -1448,27 +1645,25 @@ const ChartDescription = ({
 	id,
 	kind,
 	slotName,
-	store,
+	seriesRef,
 	summary,
 }: {
 	id: string;
 	kind: SeriesMark;
 	slotName: string;
-	store: ChartStore;
+	/** The Root writes the registered series into this span after every commit. */
+	seriesRef: Ref<HTMLSpanElement>;
 	summary: XSummary;
 }) => {
-	// Why a selector: a hover publish must not rewrite the description.
-	const series = useStoreSeries(store);
 	const hydrated = useIsHydrated();
-	const text = describeChart({
-		kind,
-		summary,
-		seriesLabels: series.map((item) => item.label),
-		hydrated,
-	});
+	const { sentence, instructions } = describeChartParts({ kind, summary, hydrated });
 	return (
+		// Why sr-only, not hidden: a hidden span would shape no text, but browse
+		// mode would no longer read the description as page content.
 		<span id={id} data-slot={`${slotName}-description`} className="sr-only">
-			{text}
+			<span>{sentence}</span>
+			<span ref={seriesRef} />
+			<span>{instructions}</span>
 		</span>
 	);
 };
@@ -1485,9 +1680,8 @@ const ChartAnnouncer = ({
 	/** Whether the dataset's x dates carry a time-of-day component (label granularity). */
 	xHasTimeOfDay: boolean;
 }) => {
-	const snapshot = useStoreSnapshot(store);
+	const hover = useStoreHover(store);
 	const [announcement, setAnnouncement] = useState("");
-	const hover = snapshot.hover;
 	useEffect(() => {
 		if (hover == null || !hover.viaKeyboard) {
 			// Why sync setState: the clear must be a real DOM change before the

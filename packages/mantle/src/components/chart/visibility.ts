@@ -7,6 +7,7 @@
  *
  * This module is internal shared implementation — not exported from the package.
  */
+import { cancelActivation, flushActivations } from "./activation.js";
 
 /** Which band an entry reports: `visible` reveals, `near` paints, `far` releases memory. */
 type VisibilityBand = "visible" | "near" | "far";
@@ -15,6 +16,8 @@ type VisibilityChange = {
 	band: VisibilityBand;
 	/** Whether the element intersects the band. */
 	inView: boolean;
+	/** The element's rect at the time of the report; `null` without an observer. */
+	rect: DOMRectReadOnly | null;
 };
 
 type VisibilityHandler = (change: VisibilityChange) => void;
@@ -90,8 +93,15 @@ const createObserver = (
 	new IntersectionObserver(
 		(entries) => {
 			for (const entry of entries) {
-				handlersByElement.get(entry.target)?.({ band, inView: entry.isIntersecting });
+				handlersByElement.get(entry.target)?.({
+					band,
+					inView: entry.isIntersecting,
+					rect: entry.boundingClientRect,
+				});
 			}
+			// Why after the loop: one delivery's charts queue together, so the
+			// on-screen ones run first.
+			flushActivations();
 		},
 		{
 			root: root instanceof Element ? root : null,
@@ -126,10 +136,13 @@ const createObserver = (
  */
 const observeChartVisibility = (element: Element, onChange: VisibilityHandler): (() => void) => {
 	if (typeof IntersectionObserver === "undefined") {
-		onChange({ band: "near", inView: true });
-		onChange({ band: "far", inView: true });
-		onChange({ band: "visible", inView: true });
-		return () => {};
+		onChange({ band: "near", inView: true, rect: null });
+		onChange({ band: "far", inView: true, rect: null });
+		onChange({ band: "visible", inView: true, rect: null });
+		flushActivations();
+		return () => {
+			cancelActivation(element);
+		};
 	}
 	const root: ScrollRoot = supportsScrollMargin() ? element.ownerDocument : scrollRootOf(element);
 	let shared = observersByRoot.get(root);
@@ -153,6 +166,7 @@ const observeChartVisibility = (element: Element, onChange: VisibilityHandler): 
 			return;
 		}
 		handlersByElement.delete(element);
+		cancelActivation(element);
 		observers.near.unobserve(element);
 		observers.far.unobserve(element);
 		observers.visible.unobserve(element);

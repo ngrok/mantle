@@ -166,9 +166,12 @@ describe("ScatterPlot data slots", () => {
 		["scatter-plot-legend", "DIV"],
 		["scatter-plot-description", "SPAN"],
 		["scatter-plot-data-table", "DIV"],
-	])("%s lands on a %s", (slot, tagName) => {
+	])("%s lands on a %s", async (slot, tagName) => {
+		const user = userEvent.setup();
 		const { container } = renderChart();
 		engageChart();
+		// The tooltip surface mounts on the first hover or keyboard step.
+		await user.keyboard("{ArrowRight}");
 		const element = container.querySelector(`[data-slot="${slot}"]`);
 		expect(element).toBeInTheDocument();
 		expect(element?.tagName).toBe(tagName);
@@ -495,8 +498,8 @@ describe("ScatterPlot controlled activeIndex", () => {
 				<ScatterPlot.Point dataKey="regionA" label="Region A" />
 			</ScatterPlot.Root>,
 		);
-		const tooltip = document.querySelector('[data-slot="scatter-plot-tooltip"]');
-		expect(tooltip?.textContent).toBe("");
+		// The surface mounts on the first active datum, so none means no surface.
+		expect(document.querySelector('[data-slot="scatter-plot-tooltip"]')).toBeNull();
 	});
 });
 

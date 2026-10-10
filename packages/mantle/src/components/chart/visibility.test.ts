@@ -115,12 +115,25 @@ test("every element shares one observer per band: visible, near at one viewport,
 	expect(far.scrollMargin).toBe("300%");
 	expect(near.root).toBeNull();
 
+	// The rect rides along so an activation can seed the engine's size.
 	near.report(first.element, true);
-	expect(first.handler).toHaveBeenLastCalledWith({ band: "near", inView: true });
+	expect(first.handler).toHaveBeenLastCalledWith({
+		band: "near",
+		inView: true,
+		rect: expect.objectContaining({ top: 0 }),
+	});
 	visible.report(first.element, true);
-	expect(first.handler).toHaveBeenLastCalledWith({ band: "visible", inView: true });
+	expect(first.handler).toHaveBeenLastCalledWith({
+		band: "visible",
+		inView: true,
+		rect: expect.objectContaining({ top: 0 }),
+	});
 	far.report(first.element, false);
-	expect(first.handler).toHaveBeenLastCalledWith({ band: "far", inView: false });
+	expect(first.handler).toHaveBeenLastCalledWith({
+		band: "far",
+		inView: false,
+		rect: expect.objectContaining({ top: 0 }),
+	});
 	expect(first.handler).toHaveBeenCalledTimes(3);
 });
 
@@ -158,9 +171,9 @@ test("with no IntersectionObserver every band reports in view at once", () => {
 	vi.stubGlobal("IntersectionObserver", undefined);
 	const { handler } = observe();
 	expect(handler).toHaveBeenCalledTimes(3);
-	expect(handler).toHaveBeenNthCalledWith(1, { band: "near", inView: true });
-	expect(handler).toHaveBeenNthCalledWith(2, { band: "far", inView: true });
-	expect(handler).toHaveBeenNthCalledWith(3, { band: "visible", inView: true });
+	expect(handler).toHaveBeenNthCalledWith(1, { band: "near", inView: true, rect: null });
+	expect(handler).toHaveBeenNthCalledWith(2, { band: "far", inView: true, rect: null });
+	expect(handler).toHaveBeenNthCalledWith(3, { band: "visible", inView: true, rect: null });
 });
 
 test("without scrollMargin support the observers root at the nearest scroll container", async () => {

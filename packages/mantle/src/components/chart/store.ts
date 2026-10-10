@@ -217,6 +217,15 @@ class ChartStore {
 	#referenceLineSequenceById = new Map<string, number>();
 	#tooltip: TooltipConfig | null = null;
 	#hover: HoverSnapshot | null = null;
+	#hoverEver = false;
+
+	/**
+	 * Whether a hover was ever published. The Root mounts the tooltip surface
+	 * on the first one and keeps it, so a chart nobody points at holds none.
+	 */
+	get hoverEver(): boolean {
+		return this.#hoverEver;
+	}
 
 	/** Engine hook: series registrations changed — columnar data must re-ingest. */
 	onSeriesChange: (() => void) | null = null;
@@ -372,6 +381,9 @@ class ChartStore {
 			return;
 		}
 		this.#hover = hover;
+		if (hover != null) {
+			this.#hoverEver = true;
+		}
 		this.#snapshot = { ...this.#snapshot, hover };
 		this.#emit();
 	}

@@ -1,11 +1,12 @@
 import { act, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import type { ComponentProps, MouseEvent, ReactNode } from "react";
-import { createRef } from "react";
+import { createRef, useState } from "react";
 import type { Root } from "react-dom/client";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
+import { createIntersectionObserverStub } from "../../test-utils/mock-intersection-observer.js";
 import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import { BarChart } from "../bar-chart/index.js";
 import { LineChart } from "../line-chart/index.js";
@@ -58,9 +59,13 @@ describe("Tooltip registration", () => {
 		expect(tooltip?.textContent).toContain("186 visits");
 	});
 
-	test("a changed div prop re-registers and reaches the tooltip element", () => {
+	test("a changed div prop re-registers and reaches the tooltip element", async () => {
+		const user = userEvent.setup();
 		const registerTooltip = vi.spyOn(ChartStore.prototype, "registerTooltip");
 		const { container, rerender } = render(chart({ id: "readout-before" }));
+		// The surface mounts on the first keyboard step.
+		await user.tab();
+		await user.keyboard("{ArrowRight}");
 		rerender(chart({ id: "readout-after" }));
 		// Same keys, one different value: the shallow compare must read values.
 		expect(registerTooltip).toHaveBeenCalledTimes(2);
@@ -68,9 +73,12 @@ describe("Tooltip registration", () => {
 		expect(tooltip).toHaveAttribute("id", "readout-after");
 	});
 
-	test("a div prop added or removed on re-render re-registers and reaches the tooltip element", () => {
+	test("a div prop added or removed on re-render re-registers and reaches the tooltip element", async () => {
+		const user = userEvent.setup();
 		const registerTooltip = vi.spyOn(ChartStore.prototype, "registerTooltip");
 		const { container, rerender } = render(chart({}));
+		await user.tab();
+		await user.keyboard("{ArrowRight}");
 		const tooltip = container.querySelector('[data-slot="bar-chart-tooltip"]');
 		expect(tooltip).not.toHaveAttribute("id");
 		rerender(chart({ id: "readout" }));
@@ -148,7 +156,8 @@ describe("Tooltip consumer ref", () => {
 		{ time: new Date("2026-07-18T10:01:00Z"), p50: 132 },
 	];
 
-	test("an object ref holds the tooltip element and resets to null on unmount", () => {
+	test("an object ref holds the tooltip element and resets to null on unmount", async () => {
+		const user = userEvent.setup();
 		const ref = createRef<HTMLDivElement>();
 		const { container, unmount } = render(
 			<LineChart.Root data={latency} xKey="time" aria-label="Request latency">
@@ -156,6 +165,9 @@ describe("Tooltip consumer ref", () => {
 				<LineChart.Tooltip ref={ref} />
 			</LineChart.Root>,
 		);
+		// The surface mounts on the first keyboard step.
+		await user.tab();
+		await user.keyboard("{ArrowRight}");
 		const tooltip = container.querySelector('[data-slot="line-chart-tooltip"]');
 		expect(tooltip).toBeInTheDocument();
 		expect(ref.current).toBe(tooltip);
@@ -163,7 +175,8 @@ describe("Tooltip consumer ref", () => {
 		expect(ref.current).toBeNull();
 	});
 
-	test("a callback ref receives the element once and its cleanup runs once on unmount", () => {
+	test("a callback ref receives the element once and its cleanup runs once on unmount", async () => {
+		const user = userEvent.setup();
 		const cleanup = vi.fn<() => void>();
 		const callbackRef = vi.fn<(node: HTMLDivElement | null) => () => void>(() => cleanup);
 		const { container, unmount } = render(
@@ -172,6 +185,8 @@ describe("Tooltip consumer ref", () => {
 				<LineChart.Tooltip ref={callbackRef} />
 			</LineChart.Root>,
 		);
+		await user.tab();
+		await user.keyboard("{ArrowRight}");
 		const tooltip = container.querySelector('[data-slot="line-chart-tooltip"]');
 		expect(callbackRef).toHaveBeenCalledTimes(1);
 		expect(callbackRef).toHaveBeenLastCalledWith(tooltip);
@@ -343,9 +358,15 @@ describe("server render", () => {
 	test("the server markup is dormant, with a plain count and no table or formatted date", () => {
 		const html = renderToString(chart);
 		expect(html).toContain('data-state="dormant"');
-		// Parts register in layout effects, so the server lists no series.
-		expect(html).toContain("Line chart with 2 data points. Use the left and right arrow keys");
+		// Parts register in layout effects, so the server lists no series: the
+		// series span between the sentence and the instructions is empty.
+		expect(html).toContain(
+			"<span>Line chart with 2 data points.</span><span></span><span> Use the left and right arrow keys",
+		);
 		expect(html).toContain('role="status"');
+		// The canvas and the hover layers are engine-owned and arrive at activation.
+		expect(html).not.toContain("<canvas");
+		expect(html).not.toContain("line-chart-tooltip");
 		const markup = document.createElement("div");
 		markup.innerHTML = html;
 		const overlay = markup.querySelector('[role="application"]');
@@ -378,5 +399,128 @@ describe("server render", () => {
 			root?.unmount();
 		});
 		container.remove();
+	});
+});
+
+describe("activation outside React", () => {
+	test("a dormant chart is a shell: no canvas, no hover layers, no tooltip surface", () => {
+		// A stub that never reports intersection keeps the chart dormant.
+		const stub = createIntersectionObserverStub({ intersecting: false });
+		vi.stubGlobal("IntersectionObserver", stub.Observer);
+		const { container } = render(
+			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
+				<BarChart.Bar dataKey="desktop" label="Desktop" />
+			</BarChart.Root>,
+		);
+		expect(screen.getByRole("application", { name: "Visitors by month" })).toBeInTheDocument();
+		for (const slot of ["canvas", "crosshair", "hover-band", "markers", "tooltip"]) {
+			expect(container.querySelector(`[data-slot="bar-chart-${slot}"]`)).toBeNull();
+		}
+		const plot = container.querySelector('[data-slot="bar-chart-plot"]');
+		if (!(plot instanceof HTMLElement)) {
+			throw new Error("expected the plot to render");
+		}
+		act(() => {
+			stub.enter(plot);
+		});
+		for (const slot of ["canvas", "crosshair", "hover-band", "markers"]) {
+			expect(container.querySelector(`[data-slot="bar-chart-${slot}"]`)).toBeInTheDocument();
+		}
+		// The canvas sits under the overlay and the layers above it.
+		expect(plot.firstElementChild).toHaveAttribute("data-slot", "bar-chart-canvas");
+		expect(plot.lastElementChild).toHaveAttribute("data-slot", "bar-chart-markers");
+	});
+
+	test("a dormant chart still throws a dataKey typo in its mount commit", () => {
+		const stub = createIntersectionObserverStub({ intersecting: false });
+		vi.stubGlobal("IntersectionObserver", stub.Observer);
+		expect(() =>
+			render(
+				<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
+					<BarChart.Bar dataKey="visits" label="Visits" />
+				</BarChart.Root>,
+			),
+		).toThrow(
+			'BarChart.Bar dataKey "visits" does not match any key in the provided data. Available keys: month, desktop, mobile.',
+		);
+	});
+
+	test("unmounting removes the engine-owned layers with the Root", () => {
+		const { container, unmount } = render(
+			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
+				<BarChart.Bar dataKey="desktop" label="Desktop" />
+			</BarChart.Root>,
+		);
+		expect(container.querySelector("canvas")).toBeInTheDocument();
+		unmount();
+		expect(document.querySelector("canvas")).toBeNull();
+	});
+});
+
+describe("tooltip surface latch", () => {
+	test("the surface mounts on the first keyboard step, positions through the engine, and stays after Escape", async () => {
+		const user = userEvent.setup();
+		const { container } = render(
+			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
+				<BarChart.Bar dataKey="desktop" label="Desktop" />
+			</BarChart.Root>,
+		);
+		expect(container.querySelector('[data-slot="bar-chart-tooltip"]')).toBeNull();
+		await user.tab();
+		await user.keyboard("{ArrowRight}");
+		const tooltip = container.querySelector('[data-slot="bar-chart-tooltip"]');
+		expect(tooltip).toBeInTheDocument();
+		expect(tooltip).toHaveTextContent("186");
+		// The engine took the surface over: it reveals it with an inline opacity.
+		expect(tooltip).toHaveStyle({ opacity: "1" });
+		await user.keyboard("{Escape}");
+		expect(container.querySelector('[data-slot="bar-chart-tooltip"]')).toBe(tooltip);
+		expect(tooltip).toHaveStyle({ opacity: "0" });
+	});
+});
+
+describe("description series sentence", () => {
+	const Toggle = ({ children }: { children: ReactNode }) => {
+		const [shown, setShown] = useState(false);
+		return (
+			<>
+				<button type="button" onClick={() => setShown(true)}>
+					Show mobile
+				</button>
+				{shown && children}
+			</>
+		);
+	};
+
+	test("the overlay's accessible description names the series and the keys, and the span stays in the reading order", () => {
+		render(
+			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
+				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Bar dataKey="mobile" label="Mobile" />
+			</BarChart.Root>,
+		);
+		const overlay = screen.getByRole("application", { name: "Visitors by month" });
+		expect(overlay).toHaveAccessibleDescription(
+			/^Bar chart with 3 categories from January to March\. Series: Desktop, Mobile\. Use the left and right arrow keys/,
+		);
+		// Browse mode reads the description as page content, so it is never `hidden`.
+		const description = document.querySelector('[data-slot="bar-chart-description"]');
+		expect(description).not.toHaveAttribute("hidden");
+	});
+
+	test("a series part that registers from a child's state updates the description without a Root render", async () => {
+		const user = userEvent.setup();
+		render(
+			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
+				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<Toggle>
+					<BarChart.Bar dataKey="mobile" label="Mobile" />
+				</Toggle>
+			</BarChart.Root>,
+		);
+		const overlay = screen.getByRole("application", { name: "Visitors by month" });
+		expect(overlay).toHaveAccessibleDescription(/Series: Desktop\. Use/);
+		await user.click(screen.getByRole("button", { name: "Show mobile" }));
+		expect(overlay).toHaveAccessibleDescription(/Series: Desktop, Mobile\. Use/);
 	});
 });

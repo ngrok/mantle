@@ -153,19 +153,23 @@ type AreaChartCopyButtonProps = CopyButtonPrimitiveProps;
  * first-registered series at the baseline. Large datasets decimate before
  * painting on canvas. Compose the chrome and series parts as children.
  *
- * A Root mounts dormant: it ingests its data and answers the keyboard, but it
- * paints and allocates its canvas once it comes within one viewport of the
- * visible area or takes focus, and it mounts the sr-only data table once
- * focus lands inside it. A list of charts pays for the ones a reader can see,
- * and a page of sparklines holds no hidden tables until a reader asks for one.
+ * A Root mounts dormant: a shell of the plot, the named overlay, and its
+ * sr-only description. It builds its canvas, its hover layers, and its engine
+ * once it comes within one viewport of the visible area, takes focus, or
+ * prints (on-screen charts first, a few milliseconds at a time), and it mounts
+ * the sr-only data table once focus lands inside it. A list of charts pays
+ * for the ones a reader can see, and a page of sparklines holds no hidden
+ * tables until a reader asks for one.
  *
  * The Root's own subtree is addressable by slot: `area-chart` on the wrapper,
  * then `area-chart-plot`, `area-chart-canvas`, `area-chart-crosshair`,
  * `area-chart-hover-band`, `area-chart-markers`, `area-chart-tooltip`,
  * `area-chart-description`, and, once focus lands inside the chart,
  * `area-chart-data-table`. An area chart shows the crosshair and one marker
- * dot per series, and never the band, but all three layers mount on every
- * kind.
+ * dot per series, and never the band. The canvas and the three layers are
+ * engine-owned: absent from server HTML and from a dormant chart, inserted at
+ * activation (near the viewport, on focus, or before print). The tooltip
+ * surface mounts on the first hover or keyboard step and stays.
  * Each hover dot carries `chart-active-point` plus a `data-shape` of
  * `"circle"`, `"square"`, `"triangle"`, `"diamond"`, `"triangle-down"`,
  * `"plus"`, `"cross"`, or `"star"`, naming the glyph its series wears.
@@ -422,9 +426,9 @@ const CopyButton = (props: AreaChartCopyButtonProps) => (
  * tokens; areas keep a fixed slot color for the chart's lifetime even as
  * other series are filtered in and out. Interaction ships with `Root`
  * unconditionally: a crosshair with an every-series tooltip, keyboard
- * stepping, aria-live announcements, and an sr-only description. A Root
- * paints and allocates its canvas once it comes within one viewport of the
- * visible area or takes focus, and it mounts its sr-only data table once
+ * stepping, aria-live announcements, and an sr-only description. A Root builds
+ * and paints its canvas once it comes within one viewport of the visible
+ * area, takes focus, or prints, and it mounts its sr-only data table once
  * focus lands inside it. Large datasets decimate before painting on canvas.
  *
  * **CSS variables (public API):**

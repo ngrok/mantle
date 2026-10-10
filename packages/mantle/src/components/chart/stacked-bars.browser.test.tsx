@@ -1,6 +1,7 @@
 "use client";
 
 import { render, waitFor } from "@testing-library/react";
+import { findChartCanvas } from "../../test-utils/find-chart-canvas.js";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { AreaChart } from "../area-chart/index.js";
 import { BarChart } from "../bar-chart/index.js";
@@ -103,14 +104,6 @@ type Painted = {
 	height: number;
 	/** Device pixels per CSS pixel. */
 	scale: number;
-};
-
-const canvasOf = (container: HTMLElement): HTMLCanvasElement => {
-	const canvas = container.querySelector("canvas");
-	if (!(canvas instanceof HTMLCanvasElement)) {
-		throw new Error("expected the chart canvas to render");
-	}
-	return canvas;
 };
 
 const readCanvas = (canvas: HTMLCanvasElement): Painted => {
@@ -334,7 +327,7 @@ describe("stacked bar caps and baselines", () => {
 				</BarChart.Root>
 			</div>,
 		);
-		const canvas = canvasOf(container);
+		const canvas = await findChartCanvas(container);
 		await waitForPlot(canvas);
 		await waitFor(() => {
 			const painted = readCanvas(canvas);
@@ -369,7 +362,7 @@ describe("stacked bar caps and baselines", () => {
 				</BarChart.Root>
 			</div>,
 		);
-		const canvas = canvasOf(container);
+		const canvas = await findChartCanvas(container);
 		await waitForPlot(canvas);
 		await waitFor(() => {
 			const painted = readCanvas(canvas);
@@ -418,7 +411,7 @@ describe("stacked bar caps and baselines", () => {
 				</BarChart.Root>
 			</div>,
 		);
-		const canvas = canvasOf(container);
+		const canvas = await findChartCanvas(container);
 		await waitForPlot(canvas);
 		await waitFor(() => {
 			const painted = readCanvas(canvas);
@@ -454,7 +447,7 @@ describe("stacked bar caps and baselines", () => {
 				</BarChart.Root>
 			</div>,
 		);
-		const canvas = canvasOf(container);
+		const canvas = await findChartCanvas(container);
 		await waitForPlot(canvas);
 		await waitFor(() => {
 			const painted = readCanvas(canvas);
@@ -514,7 +507,7 @@ describe("stacked bar caps and baselines", () => {
 				</BarChart.Root>
 			</div>,
 		);
-		const canvas = canvasOf(container);
+		const canvas = await findChartCanvas(container);
 		await waitForPlot(canvas);
 		await waitFor(() => {
 			const painted = readCanvas(canvas);
@@ -566,7 +559,7 @@ describe("stacked bar caps and baselines", () => {
 				</BarChart.Root>
 			</div>,
 		);
-		const canvas = canvasOf(container);
+		const canvas = await findChartCanvas(container);
 		await waitForPlot(canvas);
 		await waitFor(() => {
 			const painted = readCanvas(canvas);
@@ -598,7 +591,7 @@ describe("stacked bar caps and baselines", () => {
 				</BarChart.Root>
 			</div>,
 		);
-		const canvas = canvasOf(container);
+		const canvas = await findChartCanvas(container);
 		await waitForPlot(canvas);
 		await waitFor(() => {
 			const painted = readCanvas(canvas);
@@ -643,7 +636,7 @@ describe("stacked bar caps and baselines", () => {
 				</BarChart.Root>
 			</div>,
 		);
-		const canvas = canvasOf(container);
+		const canvas = await findChartCanvas(container);
 		await waitForPlot(canvas);
 		await waitFor(() => {
 			const painted = readCanvas(canvas);
@@ -672,7 +665,7 @@ describe("stacked bar caps and baselines", () => {
 				</AreaChart.Root>
 			</div>,
 		);
-		const canvas = canvasOf(container);
+		const canvas = await findChartCanvas(container);
 		await waitForPlot(canvas);
 		await waitFor(() => {
 			const painted = readCanvas(canvas);
@@ -763,7 +756,7 @@ describe("hover band geometry", () => {
 				</BarChart.Root>
 			</div>,
 		);
-		const canvas = canvasOf(container);
+		const canvas = await findChartCanvas(container);
 		await waitForPlot(canvas);
 		const overlay = overlayOf(container);
 
@@ -835,7 +828,7 @@ describe("stacked segment hit resolution", () => {
 				</BarChart.Root>
 			</div>,
 		);
-		const canvas = canvasOf(container);
+		const canvas = await findChartCanvas(container);
 		await waitForPlot(canvas);
 		await waitFor(() => {
 			expect(columnRunsOf(readCanvas(canvas), CHART_2)).toHaveLength(1);
@@ -901,7 +894,7 @@ describe("stacked segment hit resolution", () => {
 				</BarChart.Root>
 			</div>,
 		);
-		const canvas = canvasOf(container);
+		const canvas = await findChartCanvas(container);
 		await waitForPlot(canvas);
 		await waitFor(() => {
 			expect(rowRunsOf(readCanvas(canvas), CHART_2)).toHaveLength(1);
@@ -961,7 +954,7 @@ describe("stacked segment hit resolution", () => {
 				</BarChart.Root>
 			</div>,
 		);
-		const canvas = canvasOf(container);
+		const canvas = await findChartCanvas(container);
 		await waitForPlot(canvas);
 		await waitFor(() => {
 			expect(columnRunsOf(readCanvas(canvas), CHART_3)).toHaveLength(1);
@@ -1000,12 +993,17 @@ describe("stacked segment hit resolution", () => {
 	});
 });
 
-const tooltipOf = (container: HTMLElement): HTMLElement => {
-	const tooltip = container.querySelector('[data-slot="bar-chart-tooltip"]');
-	if (!(tooltip instanceof HTMLElement)) {
-		throw new Error("expected the tooltip to render");
-	}
-	return tooltip;
+/** Hover the plot's center, which mounts the tooltip surface, then resolve it. */
+const findTooltip = async (container: HTMLElement, overlay: HTMLElement): Promise<HTMLElement> => {
+	const plot = overlay.getBoundingClientRect();
+	hoverAt(overlay, plot.left + plot.width / 2, plot.top + plot.height / 2);
+	return waitFor(() => {
+		const tooltip = container.querySelector('[data-slot="bar-chart-tooltip"]');
+		if (!(tooltip instanceof HTMLElement)) {
+			throw new Error("expected the tooltip to render");
+		}
+		return tooltip;
+	});
 };
 
 describe("tooltip placement", () => {
@@ -1027,10 +1025,10 @@ describe("tooltip placement", () => {
 				</BarChart.Root>
 			</div>,
 		);
-		const canvas = canvasOf(container);
+		const canvas = await findChartCanvas(container);
 		await waitForPlot(canvas);
 		const overlay = overlayOf(container);
-		const tooltip = tooltipOf(container);
+		const tooltip = await findTooltip(container, overlay);
 
 		// Re-hover inside the poll: the first pointer event can race the first
 		// layout commit, and the engine repositions again once its size observer
@@ -1064,10 +1062,10 @@ describe("tooltip placement", () => {
 				</BarChart.Root>
 			</div>,
 		);
-		const canvas = canvasOf(container);
+		const canvas = await findChartCanvas(container);
 		await waitForPlot(canvas);
 		const overlay = overlayOf(container);
-		const tooltip = tooltipOf(container);
+		const tooltip = await findTooltip(container, overlay);
 
 		await waitFor(() => {
 			const plot = overlay.getBoundingClientRect();
@@ -1102,10 +1100,10 @@ describe("tooltip placement", () => {
 				</BarChart.Root>
 			</div>,
 		);
-		const canvas = canvasOf(container);
+		const canvas = await findChartCanvas(container);
 		await waitForPlot(canvas);
 		const overlay = overlayOf(container);
-		const tooltip = tooltipOf(container);
+		const tooltip = await findTooltip(container, overlay);
 
 		/**
 		 * Hover one plot-relative y until the readout's center lands on it. The
@@ -1166,10 +1164,10 @@ describe("tooltip placement", () => {
 				</BarChart.Root>
 			</div>,
 		);
-		const canvas = canvasOf(container);
+		const canvas = await findChartCanvas(container);
 		await waitForPlot(canvas);
 		const overlay = overlayOf(container);
-		const tooltip = tooltipOf(container);
+		const tooltip = await findTooltip(container, overlay);
 
 		// Re-hover inside the poll, as the sibling test above does: the engine
 		// positions the readout on an animation frame, so a single event dispatched

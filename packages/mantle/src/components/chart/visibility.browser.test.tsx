@@ -5,9 +5,10 @@ import { afterAll, afterEach, beforeAll, expect, test } from "vitest";
 import { LineChart } from "../line-chart/index.js";
 
 /**
- * Real-browser visibility tests: a chart paints once an `IntersectionObserver`
- * reports it within a viewport of the visible area and releases its canvas three
- * viewports away. Both need real layout, a real observer, and real scrolling.
+ * Real-browser visibility tests: a chart activates (builds its canvas and
+ * paints) once an `IntersectionObserver` reports it within a viewport of the
+ * visible area, and releases its canvas three viewports away. Both need real
+ * layout, a real observer, and real scrolling.
  */
 const STYLE = `
 :root {
@@ -67,34 +68,35 @@ afterEach(() => {
 });
 
 const data = [
-	{ t: 0, v: 40 },
-	{ t: 1, v: 90 },
-	{ t: 2, v: 65 },
+	{ time: new Date("2026-07-18T10:00:00Z"), p50: 120 },
+	{ time: new Date("2026-07-18T10:01:00Z"), p50: 132 },
+	{ time: new Date("2026-07-18T10:02:00Z"), p50: 110 },
 ];
 
 const chart = (name: string) => (
 	<div style={{ width: 400, height: 200 }}>
-		<LineChart.Root data={data} xKey="t" aria-label={name} animate={false}>
-			<LineChart.Line dataKey="v" label="v" />
+		<LineChart.Root data={data} xKey="time" animate={false} aria-label={name}>
+			<LineChart.Line dataKey="p50" label="p50" />
 		</LineChart.Root>
 	</div>
 );
 
-type Chart = { root: HTMLElement; plot: HTMLElement; canvas: HTMLCanvasElement };
+type Chart = { root: HTMLElement; plot: HTMLElement };
 
 const chartNamed = (name: string): Chart => {
 	const overlay = screen.getByRole("application", { name });
 	const root = overlay.closest('[data-slot="line-chart"]');
 	const plot = overlay.parentElement;
-	const canvas = plot?.querySelector("canvas");
-	if (
-		!(root instanceof HTMLElement) ||
-		!(plot instanceof HTMLElement) ||
-		!(canvas instanceof HTMLCanvasElement)
-	) {
-		throw new Error(`expected the "${name}" chart to render its root, plot, and canvas`);
+	if (!(root instanceof HTMLElement) || !(plot instanceof HTMLElement)) {
+		throw new Error(`expected the "${name}" chart to render its root and plot`);
 	}
-	return { root, plot, canvas };
+	return { root, plot };
+};
+
+/** The chart's canvas, or `null` while the chart is dormant. */
+const canvasOf = ({ plot }: Chart): HTMLCanvasElement | null => {
+	const canvas = plot.querySelector("canvas");
+	return canvas instanceof HTMLCanvasElement ? canvas : null;
 };
 
 /** The backing-store width a painted canvas holds for its plot. */
@@ -122,18 +124,19 @@ const scrollToBottom = (): void => {
 /** Resolves once `chart` has painted, which also proves the observers delivered. */
 const painted = (chart: Chart): Promise<void> =>
 	waitFor(() => {
-		expect(chart.canvas.width).toBe(paintedWidth(chart));
+		expect(canvasOf(chart)?.width).toBe(paintedWidth(chart));
 	});
 
-test("a chart below the fold stays dormant while the chart in view paints", async () => {
+test("a chart below the fold stays a shell while the chart in view activates and paints", async () => {
 	const { top, far } = renderPage();
 	await painted(top);
-	// A chart that paints regardless of visibility holds a bitmap here.
+	// A chart that activates regardless of visibility holds a canvas here.
 	expect(far.root).toHaveAttribute("data-state", "dormant");
-	expect(far.canvas.width).toBe(0);
+	expect(canvasOf(far)).toBeNull();
+	expect(far.plot.querySelector('[data-slot="line-chart-hover-band"]')).toBeNull();
 });
 
-test("scrolling to a dormant chart paints it but mounts no data table", async () => {
+test("scrolling to a dormant chart activates it but mounts no data table", async () => {
 	const { top, far } = renderPage();
 	await painted(top);
 	scrollToBottom();
@@ -150,23 +153,55 @@ test("three viewports away the canvas is released, and it paints again on return
 
 	window.scrollTo(0, 0);
 	await waitFor(() => {
-		expect(far.canvas.width).toBe(0);
+		expect(canvasOf(far)?.width).toBe(0);
 	});
 
 	scrollToBottom();
 	await painted(far);
 });
 
-test("beforeprint paints a dormant chart synchronously and afterprint releases it", async () => {
+test("beforeprint activates and paints a dormant chart synchronously and afterprint releases it", async () => {
 	const { top, far } = renderPage();
 	await painted(top);
-	expect(far.canvas.width).toBe(0);
+	expect(canvasOf(far)).toBeNull();
 
 	window.dispatchEvent(new Event("beforeprint"));
 	// No frame runs before the print snapshot, so a listener that only schedules prints blank.
-	expect(far.canvas.width).toBe(paintedWidth(far));
+	expect(canvasOf(far)?.width).toBe(paintedWidth(far));
 
 	window.dispatchEvent(new Event("afterprint"));
-	expect(far.canvas.width).toBe(0);
-	expect(top.canvas.width).toBe(paintedWidth(top));
+	expect(canvasOf(far)?.width).toBe(0);
+	expect(canvasOf(top)?.width).toBe(paintedWidth(top));
+});
+
+test("beforeprint paints a page whose only chart is dormant", async () => {
+	// Why one chart: the Root's print entry is then the only one in the shared
+	// listener set, so the engine it creates mid-dispatch gets no turn of its own.
+	render(
+		<>
+			<div style={{ height: window.innerHeight * 4 }} />
+			{chart("Lone chart")}
+		</>,
+	);
+	const lone = chartNamed("Lone chart");
+	await waitFor(() => {
+		expect(screen.getByRole("application", { name: "Lone chart" })).toBeInTheDocument();
+	});
+	expect(canvasOf(lone)).toBeNull();
+
+	window.dispatchEvent(new Event("beforeprint"));
+	expect(canvasOf(lone)?.width).toBe(paintedWidth(lone));
+	window.dispatchEvent(new Event("afterprint"));
+});
+
+test("focus activates a dormant chart below the fold without scrolling it into view", async () => {
+	const { top, far } = renderPage();
+	await painted(top);
+	screen.getByRole("application", { name: "Far chart" }).focus({ preventScroll: true });
+	await waitFor(() => {
+		expect(far.root).toHaveAttribute("data-state", "engaged");
+	});
+	// The focus handler activates synchronously; the paint lands on the next frame
+	// once the resize observer reports the plot size.
+	await painted(far);
 });

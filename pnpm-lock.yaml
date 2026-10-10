@@ -189,6 +189,9 @@ importers:
       unified:
         specifier: 11.0.5
         version: 11.0.5
+      web-vitals:
+        specifier: 6.2.3
+        version: 6.2.3
       zod:
         specifier: 4.6.5
         version: 4.6.5
@@ -223,6 +226,9 @@ importers:
       '@types/mdast':
         specifier: 4.0.4
         version: 4.0.4
+      '@types/node':
+        specifier: 24.19.0
+        version: 24.19.0
       '@types/react':
         specifier: 'catalog:'
         version: 19.3.0
@@ -241,6 +247,9 @@ importers:
       oxfmt:
         specifier: 'catalog:'
         version: 0.71.0
+      playwright:
+        specifier: 1.63.0
+        version: 1.63.0
       rehype-slug:
         specifier: 6.0.0
         version: 6.0.0
@@ -256,6 +265,9 @@ importers:
       tinyglobby:
         specifier: 0.2.17
         version: 0.2.17
+      tsx:
+        specifier: 'catalog:'
+        version: 4.23.15
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -5101,6 +5113,9 @@ packages:
       jsdom:
         optional: true
 
+  web-vitals@6.2.3:
+    resolution: {integrity: sha512-Dmy+vdO1UPMqXiAtZSNayhl4f794Bxfd94W4HIj2HlYtczEQfEOon969memlcpcHrTuOKLa5baFjX7WbgmOq+A==}
+
   whatwg-mimetype@3.0.0:
     resolution: {integrity: sha512-nt+N2dzIutVRxARx1nghPKGv1xHikU7HKdfafKkLNLindmPU/ch3U31NOCGGA/dmPcmb1VlofO0vnKAcsm0o/Q==}
     engines: {node: '>=12'}
@@ -9645,6 +9660,8 @@ snapshots:
       happy-dom: 20.14.5
     transitivePeerDependencies:
       - msw
+
+  web-vitals@6.2.3: {}
 
   whatwg-mimetype@3.0.0: {}
 

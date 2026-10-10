@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { render } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { describe, expect, test } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 
 /**
  * Every chart docs-page demo mounts without throwing.
@@ -27,6 +27,48 @@ const demosOf = (page: Record<string, unknown>): Array<[string, () => ReactNode]
 	Object.entries(page).flatMap(([name, value]) =>
 		name.endsWith("Example") && isDemo(value) ? [[name, value]] : [],
 	);
+
+/**
+ * Why a stub: a chart builds its canvas when an `IntersectionObserver` reports
+ * it near the viewport, and happy-dom's observer never reports. This one
+ * reports every observed element in view inside `observe()`, so a demo
+ * activates at mount the way a visible chart does in a browser.
+ */
+class InViewObserver implements IntersectionObserver {
+	readonly root = null;
+	readonly rootMargin = "0px";
+	readonly scrollMargin = "0px";
+	readonly thresholds = [0];
+	#callback: IntersectionObserverCallback;
+	constructor(callback: IntersectionObserverCallback) {
+		this.#callback = callback;
+	}
+	observe(target: Element): void {
+		this.#callback(
+			[
+				{
+					target,
+					isIntersecting: true,
+					intersectionRatio: 1,
+					boundingClientRect: target.getBoundingClientRect(),
+					intersectionRect: target.getBoundingClientRect(),
+					rootBounds: null,
+					time: 0,
+				},
+			],
+			this,
+		);
+	}
+	unobserve(): void {}
+	disconnect(): void {}
+	takeRecords(): IntersectionObserverEntry[] {
+		return [];
+	}
+}
+
+beforeEach(() => {
+	vi.stubGlobal("IntersectionObserver", InViewObserver);
+});
 
 test("every chart page is globbed", () => {
 	// Guards the glob: a moved directory would otherwise leave this file testing

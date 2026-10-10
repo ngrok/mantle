@@ -167,19 +167,23 @@ type ScatterPlotCopyButtonProps = CopyButtonPrimitiveProps;
  * series, x, and y (and z in 3D). With `zKey` the plot becomes a rotatable
  * 3D cube: drag to orbit, with points depth-sorted under gentle perspective.
  *
- * A Root mounts dormant: it ingests its data and answers the keyboard, but it
- * paints and allocates its canvas once it comes within one viewport of the
- * visible area or takes focus, and it mounts the sr-only data table once
- * focus lands inside it. A list of charts pays for the ones a reader can see,
- * and a page of sparklines holds no hidden tables until a reader asks for one.
+ * A Root mounts dormant: a shell of the plot, the named overlay, and its
+ * sr-only description. It builds its canvas, its hover layers, and its engine
+ * once it comes within one viewport of the visible area, takes focus, or
+ * prints (on-screen charts first, a few milliseconds at a time), and it mounts
+ * the sr-only data table once focus lands inside it. A list of charts pays
+ * for the ones a reader can see, and a page of sparklines holds no hidden
+ * tables until a reader asks for one.
  *
  * The Root's own subtree is addressable by slot: `scatter-plot` on the wrapper,
  * then `scatter-plot-plot`, `scatter-plot-canvas`, `scatter-plot-crosshair`,
  * `scatter-plot-hover-band`, `scatter-plot-markers`, `scatter-plot-tooltip`,
  * `scatter-plot-description`, and, once focus lands inside the chart,
  * `scatter-plot-data-table`. A scatter plot shows one marker dot on the hit
- * point, and never the crosshair or the band, but all three layers mount on
- * every kind. That dot carries `chart-active-point` plus a `data-shape` of
+ * point, and never the crosshair or the band. The canvas and the three
+ * layers are engine-owned: absent from server HTML and from a dormant chart,
+ * inserted at activation (near the viewport, on focus, or before print). The
+ * tooltip surface mounts on the first hover or keyboard step and stays. That dot carries `chart-active-point` plus a `data-shape` of
  * `"circle"`, `"square"`, `"triangle"`, `"diamond"`, `"triangle-down"`,
  * `"plus"`, `"cross"`, or `"star"`, naming the glyph its series wears.
  *
@@ -423,8 +427,8 @@ const CopyButton = (props: ScatterPlotCopyButtonProps) => (
  * the 3D projection (`zKey`), which renders a rotatable, depth-sorted point
  * cloud (drag to orbit). Hover hits the nearest point within 24px; keyboard
  * stepping, polite announcements, and the sr-only description ship with
- * `Root` unconditionally. A Root paints and allocates its canvas once it
- * comes within one viewport of the visible area or takes focus, and it mounts
+ * `Root` unconditionally. A Root builds and paints its canvas once it comes
+ * within one viewport of the visible area, takes focus, or prints, and it mounts
  * its sr-only data table once focus lands inside it. Scatter is an all-pairs
  * chart form: the eight default chart tokens hold at every pair, so keep it
  * to eight series or fewer.

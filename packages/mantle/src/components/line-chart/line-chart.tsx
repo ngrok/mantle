@@ -156,19 +156,23 @@ type LineChartCopyButtonProps = CopyButtonPrimitiveProps;
  * of 100k+ points stay smooth. Compose the chrome and series parts as
  * children.
  *
- * A Root mounts dormant: it ingests its data and answers the keyboard, but it
- * paints and allocates its canvas once it comes within one viewport of the
- * visible area or takes focus, and it mounts the sr-only data table once
- * focus lands inside it. A list of charts pays for the ones a reader can see,
- * and a page of sparklines holds no hidden tables until a reader asks for one.
+ * A Root mounts dormant: a shell of the plot, the named overlay, and its
+ * sr-only description. It builds its canvas, its hover layers, and its engine
+ * once it comes within one viewport of the visible area, takes focus, or
+ * prints (on-screen charts first, a few milliseconds at a time), and it mounts
+ * the sr-only data table once focus lands inside it. A list of charts pays
+ * for the ones a reader can see, and a page of sparklines holds no hidden
+ * tables until a reader asks for one.
  *
  * The Root's own subtree is addressable by slot: `line-chart` on the wrapper,
  * then `line-chart-plot`, `line-chart-canvas`, `line-chart-crosshair`,
  * `line-chart-hover-band`, `line-chart-markers`, `line-chart-tooltip`,
  * `line-chart-description`, and, once focus lands inside the chart,
  * `line-chart-data-table`. A line chart shows the crosshair and one marker
- * dot per series, and never the band, but all three layers mount on every
- * kind.
+ * dot per series, and never the band. The canvas and the three layers are
+ * engine-owned: absent from server HTML and from a dormant chart, inserted at
+ * activation (near the viewport, on focus, or before print). The tooltip
+ * surface mounts on the first hover or keyboard step and stays.
  * Each hover dot carries `chart-active-point` plus a `data-shape` of
  * `"circle"`, `"square"`, `"triangle"`, `"diamond"`, `"triangle-down"`,
  * `"plus"`, `"cross"`, or `"star"`, naming the glyph its series wears.

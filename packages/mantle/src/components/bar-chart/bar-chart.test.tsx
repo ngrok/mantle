@@ -158,9 +158,12 @@ describe("BarChart data slots", () => {
 		["bar-chart-legend", "DIV"],
 		["bar-chart-description", "SPAN"],
 		["bar-chart-data-table", "DIV"],
-	])("%s lands on a %s", (slot, tagName) => {
+	])("%s lands on a %s", async (slot, tagName) => {
+		const user = userEvent.setup();
 		const { container } = renderChart();
 		engageChart();
+		// The tooltip surface mounts on the first hover or keyboard step.
+		await user.keyboard("{ArrowRight}");
 		const element = container.querySelector(`[data-slot="${slot}"]`);
 		expect(element).toBeInTheDocument();
 		expect(element?.tagName).toBe(tagName);
@@ -440,8 +443,8 @@ describe("BarChart controlled activeIndex", () => {
 				<BarChart.Bar dataKey="desktop" label="Desktop" />
 			</BarChart.Root>,
 		);
-		const tooltip = document.querySelector('[data-slot="bar-chart-tooltip"]');
-		expect(tooltip?.textContent).toBe("");
+		// The surface mounts on the first active datum, so none means no surface.
+		expect(document.querySelector('[data-slot="bar-chart-tooltip"]')).toBeNull();
 	});
 });
 
@@ -562,13 +565,11 @@ describe("BarChart decorative mode", () => {
 	test("keyboard never surfaces a tooltip readout", async () => {
 		const user = userEvent.setup();
 		const { container } = renderDecorative();
-		const tooltip = container.querySelector('[data-slot="bar-chart-tooltip"]');
-		// The engine still owns the tooltip element, but with no overlay to receive
-		// events it can never fill or reveal it.
-		expect(tooltip?.textContent).toBe("");
 		await user.tab();
 		await user.keyboard("{ArrowRight}{Enter}");
-		expect(tooltip?.textContent).toBe("");
+		// With no overlay to receive events, no hover is ever published, so the
+		// tooltip surface never mounts.
+		expect(container.querySelector('[data-slot="bar-chart-tooltip"]')).toBeNull();
 	});
 
 	test("suppresses a type-bypassing controlled activeIndex so no readout surfaces", () => {
@@ -585,8 +586,7 @@ describe("BarChart decorative mode", () => {
 				</BarChart.Root>
 			</>,
 		);
-		const tooltip = container.querySelector('[data-slot="bar-chart-tooltip"]');
-		expect(tooltip?.textContent).toBe("");
+		expect(container.querySelector('[data-slot="bar-chart-tooltip"]')).toBeNull();
 	});
 });
 

@@ -112,16 +112,34 @@ type DescribeChartOptions = {
 };
 
 /**
- * Compose the overlay's description: the chart kind, how many points or
- * categories it holds, their x range, the series, and the keyboard keys.
+ * The series sentence of a description, with its leading space; empty with
+ * no series.
  *
  * @example
  * ```ts
- * describeChart({ kind: "line", summary, seriesLabels: ["Requests", "Errors"], hydrated: true });
- * // "Line chart with 30 data points from Jul 1, 2026 to Jul 30, 2026. Series: Requests, Errors. Use the left and right arrow keys …"
+ * describeSeries(["Requests", "Errors"]); // " Series: Requests, Errors."
  * ```
  */
-const describeChart = ({ kind, summary, seriesLabels, hydrated }: DescribeChartOptions): string => {
+const describeSeries = (seriesLabels: readonly string[]): string =>
+	seriesLabels.length > 0 ? ` Series: ${seriesLabels.join(", ")}.` : "";
+
+/**
+ * The two fixed parts of a description: the sentence that names the chart
+ * kind, its count, and its x range, and the keyboard instructions with their
+ * leading space. The series sentence between them comes from
+ * {@link describeSeries}, written separately once the parts registered.
+ *
+ * @example
+ * ```ts
+ * const { sentence, instructions } = describeChartParts({ kind: "line", summary, hydrated: true });
+ * // sentence: "Line chart with 30 data points from Jul 1, 2026 to Jul 30, 2026."
+ * ```
+ */
+const describeChartParts = ({
+	kind,
+	summary,
+	hydrated,
+}: Omit<DescribeChartOptions, "seriesLabels">): { sentence: string; instructions: string } => {
 	let sentence: string;
 	if (summary.count === 0) {
 		sentence = `${KIND_LABEL[kind]} with no data.`;
@@ -138,8 +156,22 @@ const describeChart = ({ kind, summary, seriesLabels, hydrated }: DescribeChartO
 		}
 		sentence = `${KIND_LABEL[kind]} with ${count} ${noun}${range}.`;
 	}
-	const series = seriesLabels.length > 0 ? ` Series: ${seriesLabels.join(", ")}.` : "";
-	return `${sentence}${series} ${KEYBOARD_INSTRUCTIONS}`;
+	return { sentence, instructions: ` ${KEYBOARD_INSTRUCTIONS}` };
+};
+
+/**
+ * Compose the overlay's description: the chart kind, how many points or
+ * categories it holds, their x range, the series, and the keyboard keys.
+ *
+ * @example
+ * ```ts
+ * describeChart({ kind: "line", summary, seriesLabels: ["Requests", "Errors"], hydrated: true });
+ * // "Line chart with 30 data points from Jul 1, 2026 to Jul 30, 2026. Series: Requests, Errors. Use the left and right arrow keys …"
+ * ```
+ */
+const describeChart = ({ kind, summary, seriesLabels, hydrated }: DescribeChartOptions): string => {
+	const { sentence, instructions } = describeChartParts({ kind, summary, hydrated });
+	return `${sentence}${describeSeries(seriesLabels)}${instructions}`;
 };
 
 export type {
@@ -149,5 +181,7 @@ export type {
 export {
 	//,
 	describeChart,
+	describeChartParts,
+	describeSeries,
 	scanX,
 };

@@ -128,9 +128,12 @@ describe("AreaChart data slots", () => {
 		["area-chart-legend", "DIV"],
 		["area-chart-description", "SPAN"],
 		["area-chart-data-table", "DIV"],
-	])("%s lands on a %s", (slot, tagName) => {
+	])("%s lands on a %s", async (slot, tagName) => {
+		const user = userEvent.setup();
 		const { container } = renderChart();
 		engageChart();
+		// The tooltip surface mounts on the first hover or keyboard step.
+		await user.keyboard("{ArrowRight}");
 		const element = container.querySelector(`[data-slot="${slot}"]`);
 		expect(element).toBeInTheDocument();
 		expect(element?.tagName).toBe(tagName);
@@ -418,8 +421,8 @@ describe("AreaChart controlled activeIndex", () => {
 				<AreaChart.Area dataKey="http" label="HTTP" />
 			</AreaChart.Root>,
 		);
-		const tooltip = document.querySelector('[data-slot="area-chart-tooltip"]');
-		expect(tooltip?.textContent).toBe("");
+		// The surface mounts on the first active datum, so none means no surface.
+		expect(document.querySelector('[data-slot="area-chart-tooltip"]')).toBeNull();
 	});
 });
 
