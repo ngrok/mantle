@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import type { ComponentProps, MouseEvent, ReactNode } from "react";
 import { createRef, useState } from "react";
@@ -482,6 +482,44 @@ describe("activation outside React", () => {
 		).toThrow('LineChart.Line dataKey "p50" does not match any key in the provided data.');
 	});
 
+	test("a chart that leaves the near band before its slice runs never activates", async () => {
+		const stub = createIntersectionObserverStub({ intersecting: false });
+		vi.stubGlobal("IntersectionObserver", stub.Observer);
+		// Why a stepped clock: every activation then overspends the slice budget,
+		// so each band's delivery runs one chart and the rest wait for a later
+		// flush, the window in which a chart can scroll away.
+		let clock = 0;
+		vi.spyOn(performance, "now").mockImplementation(() => (clock += 5));
+		const names = ["First", "Second", "Third", "Fourth", "Fifth"];
+		const { container } = render(
+			<>
+				{names.map((name) => (
+					<BarChart.Root key={name} data={data} xKey="month" aria-label={name}>
+						<BarChart.Bar dataKey="desktop" label="Desktop" />
+					</BarChart.Root>
+				))}
+			</>,
+		);
+		const plots = [...container.querySelectorAll('[data-slot="bar-chart-plot"]')];
+		const fourth = plots[3];
+		const fifth = plots[4];
+		if (plots.length !== 5 || fourth == null || fifth == null) {
+			throw new Error("expected five plots");
+		}
+		act(() => {
+			stub.enter(...plots);
+		});
+		// Three bands flushed one chart each; the last two are still queued.
+		expect(plots[0]?.querySelector("canvas")).toBeInTheDocument();
+		expect(fourth.querySelector("canvas")).toBeNull();
+		act(() => {
+			stub.leave(fourth);
+		});
+		// The fifth chart's canvas proves the queue ran on after the exit.
+		await waitFor(() => expect(fifth.querySelector("canvas")).toBeInTheDocument());
+		expect(fourth.querySelector("canvas")).toBeNull();
+	});
+
 	test("focus paints a chart beyond the far band, and blur releases its canvas", async () => {
 		const stub = createIntersectionObserverStub({ intersecting: false });
 		vi.stubGlobal("IntersectionObserver", stub.Observer);
@@ -544,6 +582,27 @@ describe("activation outside React", () => {
 });
 
 describe("tooltip surface latch", () => {
+	test("a Root that turns decorative unmounts its tooltip surface", async () => {
+		const user = userEvent.setup();
+		const { container, rerender } = render(
+			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
+				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Tooltip />
+			</BarChart.Root>,
+		);
+		await user.tab();
+		await user.keyboard("{ArrowRight}");
+		expect(container.querySelector('[data-slot="bar-chart-tooltip"]')).toBeInTheDocument();
+		rerender(
+			<BarChart.Root data={data} xKey="month" decorative>
+				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Tooltip />
+			</BarChart.Root>,
+		);
+		// The latch stays set, so only the decorative contract can drop the surface.
+		expect(container.querySelector('[data-slot="bar-chart-tooltip"]')).toBeNull();
+	});
+
 	test("the surface mounts on the first keyboard step, positions through the engine, and stays after Escape", async () => {
 		const user = userEvent.setup();
 		const { container } = render(

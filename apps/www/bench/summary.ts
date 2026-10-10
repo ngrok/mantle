@@ -15,6 +15,8 @@ type Row = Record<string, unknown> & {
 	throttle: number;
 	twin?: boolean;
 	gate?: string;
+	/** Absent in a results file from before the runner recorded it; those ran at 2. */
+	dpr?: number;
 	ok: boolean;
 };
 
@@ -79,8 +81,9 @@ const COLUMNS = [
 ] as const;
 
 const LIB_ORDER = ["mantle", "mantle-static"];
+// Why every input: a gate or a pixel ratio changes the measured scenario, so it never shares a median.
 const caseKey = (row: Row) =>
-	`${row.mode}|${row.kind}|${row.n}|${row.points}|${row.throttle}|${row.twin ? "twin" : ""}|${row.gate ?? "none"}`;
+	`${row.mode}|${row.kind}|${row.n}|${row.points}|${row.throttle}|${row.twin ? "twin" : ""}|${row.gate ?? "none"}|${row.dpr ?? 2}`;
 
 const cases = new Map<string, Row[]>();
 for (const row of rows) {
@@ -98,8 +101,8 @@ const fmt = (value: number | undefined): string => {
 console.log(`| case | lib | ${COLUMNS.map(([label]) => label).join(" | ")} |`);
 console.log(`| --- | --- | ${COLUMNS.map(() => "---:").join(" | ")} |`);
 for (const [key, list] of cases) {
-	const [mode, kind, n, points, throttle, twin, gate] = key.split("|");
-	const label = `${mode} ${kind} ${mode === "list" ? `n=${n}` : `${Number(points).toLocaleString()} rows`} ×${throttle}${twin ? " +twin" : ""}${gate === "cv" ? " +cv" : ""}`;
+	const [mode, kind, n, points, throttle, twin, gate, dpr] = key.split("|");
+	const label = `${mode} ${kind} ${mode === "dense" ? `${Number(points).toLocaleString()} rows` : `n=${n}`} ×${throttle} @${dpr}x${twin ? " +twin" : ""}${gate === "cv" ? " +cv" : ""}`;
 	for (const lib of LIB_ORDER) {
 		const libRows = list.filter((row) => row.lib === lib);
 		if (libRows.length === 0) {

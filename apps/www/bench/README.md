@@ -6,7 +6,8 @@ through CDP. The page is linked from the Bar Chart docs page, under "Lists of ch
 
 ## Scenarios
 
-The page reads one scenario from its query string:
+The page reads one scenario from its query string. The form at the top of the page picks a
+variant and loads the page again with the new query, the way the driver does:
 
 | param      | values                           | meaning                                                                        |
 | ---------- | -------------------------------- | ------------------------------------------------------------------------------ |
@@ -38,10 +39,12 @@ pnpm exec tsx bench/canvas-cost.ts 40
 ```
 
 `run.ts` writes one JSON line per case to `bench/results/` (gitignored) and reports startup
-(the `lib-loaded` → `charts-painted` window, main-thread task time, long tasks, Total Blocking
-Time, frame deltas, web vitals), a hover sweep, clicks and keyboard stepping, two data updates,
-a scroll sweep, and memory. `trace.ts` prints every main-thread task inside the mount window
-with a per-phase breakdown and a sampled profile, which is the tool for "where does the time
-go". `canvas-cost.ts` measures raw canvas setup and paint with no React and no engine.
+(`mount ms` is the `lib-loaded` → `charts-painted` window; the main-thread, script, layout, and
+style times come from CDP counters that run from navigation through a two-second settle, so
+they cover the whole load; long tasks, Total Blocking Time, frame deltas, web vitals), a hover
+sweep, clicks and keyboard stepping, two data updates, a scroll sweep, and memory. `trace.ts`
+prints every main-thread task inside the mount window with a per-phase breakdown and a sampled
+profile, which is the tool for "where does the time go" and for a main-thread figure scoped to
+the mount. `canvas-cost.ts` measures raw canvas setup and paint with no React and no engine.
 
 Timing runs are sensitive: do not run builds or tests while one is active.

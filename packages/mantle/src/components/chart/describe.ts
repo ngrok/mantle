@@ -60,12 +60,17 @@ const scanX = (data: readonly ChartDatum[], xKey: string, xScale: XScaleKind): X
 	let max = Number.NEGATIVE_INFINITY;
 	for (const row of data) {
 		const raw = datumValue(row, xKey);
-		if (raw instanceof Date && hasTimeOfDay(raw)) {
-			timeOfDay = true;
-		}
 		const epoch = toEpochOrNumber(raw, isTime);
 		if (!Number.isFinite(epoch)) {
 			continue;
+		}
+		// A time scale also takes an epoch number or a parseable string, and their
+		// time of day sets the label granularity the same as a `Date`'s.
+		if (!timeOfDay) {
+			const date = raw instanceof Date ? raw : isTime ? new Date(epoch) : null;
+			if (date != null && hasTimeOfDay(date)) {
+				timeOfDay = true;
+			}
 		}
 		count += 1;
 		min = Math.min(min, epoch);

@@ -83,6 +83,12 @@ describe("scanX", () => {
 		expect(scanX(rows, "t", "time").hasTimeOfDay).toBe(true);
 	});
 
+	test("an ISO string or an epoch number with a time of day marks a time column", () => {
+		// Minutes, not hours: a whole-hour zone offset never zeroes them.
+		expect(scanX([{ t: "2026-07-18T10:30:00Z" }], "t", "time").hasTimeOfDay).toBe(true);
+		expect(scanX([{ t: Date.UTC(2026, 6, 18, 10, 30) }], "t", "time").hasTimeOfDay).toBe(true);
+	});
+
 	test("all-midnight rows carry no time of day", () => {
 		const rows = [{ t: new Date(2026, 6, 18) }, { t: new Date(2026, 6, 19) }];
 		expect(scanX(rows, "t", "time").hasTimeOfDay).toBe(false);

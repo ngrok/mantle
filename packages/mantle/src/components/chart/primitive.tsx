@@ -27,7 +27,7 @@ import { IconButton } from "../button/icon-button.js";
 import { LiveRegion } from "../live-region/live-region.js";
 import { assertChartKeys, datumValue } from "./datum.js";
 import type { XSummary } from "./describe.js";
-import { promoteActivation, queueActivation } from "./activation.js";
+import { cancelActivation, promoteActivation, queueActivation } from "./activation.js";
 import { describeChartParts, describeSeries, scanX } from "./describe.js";
 import { ChartEngine, POINT_SHAPE_CLIP_PATHS } from "./engine.js";
 import { onPrint } from "./environment.js";
@@ -662,6 +662,9 @@ const ChartRootPrimitive = ({
 					engine.setInView(inView || visibility.focused);
 				} else if (inView) {
 					queueActivation(plot, { rect, run: (entryRect) => activateRef.current?.(entryRect) });
+				} else {
+					// A chart that scrolled away before its slice ran has nothing to paint.
+					cancelActivation(plot);
 				}
 			} else if (band === "visible" && inView) {
 				visibility.seen = true;
@@ -957,8 +960,9 @@ const ChartRootPrimitive = ({
 					    inserts them around these children (the canvas first, the layers
 					    last) and the engine writes their geometry as inline styles. The
 					    tooltip surface is React-rendered for the consumer's render prop,
-					    so it mounts on the first hover and stays. */}
-					{tooltipWanted && (
+					    so it mounts on the first hover and stays while the chart is
+					    interactive. */}
+					{tooltipWanted && !decorative && (
 						<ChartTooltipSurface
 							slotName={slotName}
 							store={store}

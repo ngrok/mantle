@@ -392,6 +392,9 @@ const measure = async (
 			lcp: snapSettled.vitals.LCP,
 			cls: snapSettled.vitals.CLS,
 		};
+		// Why from ZERO: the CDP counters are cumulative from navigation, so these
+		// durations cover the whole load through the settle. `timing.mountMs` is
+		// the mount window alone, and `trace.ts` breaks that window down.
 		result.startup = {
 			...mainThread(ZERO, metricsSettled),
 			longTasks: startupTasks.length,

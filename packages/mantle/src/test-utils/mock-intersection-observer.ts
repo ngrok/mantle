@@ -1,10 +1,10 @@
 /** The stub's constructor plus the controls that deliver a later change. */
 type IntersectionObserverStub = {
 	Observer: typeof IntersectionObserver;
-	/** Report `target` as intersecting to every observer that holds it. */
-	enter: (target: Element) => void;
-	/** Report `target` as no longer intersecting to every observer that holds it. */
-	leave: (target: Element) => void;
+	/** Report `targets` as intersecting, in one delivery, to every observer that holds them. */
+	enter: (...targets: Element[]) => void;
+	/** Report `targets` as no longer intersecting, in one delivery, to every observer that holds them. */
+	leave: (...targets: Element[]) => void;
 };
 
 const entryFor = (target: Element, isIntersecting: boolean): IntersectionObserverEntry => ({
@@ -21,7 +21,8 @@ const entryFor = (target: Element, isIntersecting: boolean): IntersectionObserve
  * A controllable `IntersectionObserver` for happy-dom, whose own observer
  * never calls back. The stub reports every observed element as `intersecting`
  * says, synchronously inside `observe()`, and `enter`/`leave` deliver a later
- * change to every observer that holds the element.
+ * change to every observer that holds the elements. Several elements in one
+ * call arrive in one delivery, the way one scroll reports a row of charts.
  *
  * @example
  * ```ts
@@ -60,7 +61,7 @@ const createIntersectionObserverStub = ({
 			this.#targets.add(target);
 			// A browser reports the initial state of every observed element, in
 			// view or not, so a chart's visibility flags start from a real report.
-			this.deliver(target, intersecting);
+			this.deliver([target], intersecting);
 		}
 
 		unobserve(target: Element): void {
@@ -76,24 +77,28 @@ const createIntersectionObserverStub = ({
 			return [];
 		}
 
-		deliver(target: Element, isIntersecting: boolean): void {
-			if (!this.#targets.has(target)) {
+		deliver(targets: readonly Element[], isIntersecting: boolean): void {
+			const held = targets.filter((target) => this.#targets.has(target));
+			if (held.length === 0) {
 				return;
 			}
-			this.#callback([entryFor(target, isIntersecting)], this);
+			this.#callback(
+				held.map((target) => entryFor(target, isIntersecting)),
+				this,
+			);
 		}
 	}
 
-	const dispatch = (target: Element, isIntersecting: boolean): void => {
+	const dispatch = (targets: readonly Element[], isIntersecting: boolean): void => {
 		for (const observer of observers) {
-			observer.deliver(target, isIntersecting);
+			observer.deliver(targets, isIntersecting);
 		}
 	};
 
 	return {
 		Observer: StubObserver,
-		enter: (target) => dispatch(target, true),
-		leave: (target) => dispatch(target, false),
+		enter: (...targets) => dispatch(targets, true),
+		leave: (...targets) => dispatch(targets, false),
 	};
 };
 

@@ -1,5 +1,6 @@
 import { useLocation } from "react-router";
 import { readConfig } from "~/features/chart-bench/config";
+import { Controls } from "~/features/chart-bench/controls";
 import { Scenario } from "~/features/chart-bench/scenario";
 
 /**
@@ -29,12 +30,16 @@ export function HydrateFallback() {
 
 export default function ChartBenchPage() {
 	const location = useLocation();
+	const config = readConfig(location.search);
 	return (
 		// Why a local font stack: a webfont that loads (or fails) after the first
 		// layout re-shapes every text run in a second frame, which the window
 		// would count against the charts.
 		<div style={{ fontFamily: "ui-sans-serif, system-ui, sans-serif" }}>
-			<Scenario config={readConfig(location.search)} />
+			<Controls config={config} />
+			{/* Why keyed by the query: a scenario's rows are state built once, so a
+			    client-side change of query mounts a fresh scenario. */}
+			<Scenario key={location.search} config={config} />
 		</div>
 	);
 }
