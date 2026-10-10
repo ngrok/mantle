@@ -2,7 +2,7 @@
  * Traces one scenario's mount on the renderer main thread and prints every
  * task between the `lib-loaded` and `charts-painted` marks, with a per-task
  * breakdown and a sampled self-time profile of the same window. Run:
- * `pnpm bench:trace -- "?lib=mantle-static&kind=line&mode=list&n=100&points=30" --no-build`.
+ * `pnpm bench:trace -- "?animate=0&kind=line&mode=list&n=100&points=30" --no-build`.
  * `--runs=N` repeats the page load and prints the task list of the median run;
  * `--per-task=N` adds the top N functions of every task over 2 ms.
  */
@@ -17,7 +17,7 @@ const PORT = 3447;
 // Why skip `--`: pnpm hands the separator to the script as its own argument.
 const query =
 	process.argv.slice(2).find((argument) => !argument.startsWith("--")) ??
-	"?lib=mantle-static&kind=line&mode=list&n=100&points=30";
+	"?animate=0&kind=line&mode=list&n=100&points=30";
 const readArg = (name: string, fallback: string): string =>
 	process.argv.find((argument) => argument.startsWith(`--${name}=`))?.slice(name.length + 3) ??
 	fallback;

@@ -2,6 +2,7 @@
 
 import type {
 	ChartAccessibilityProps,
+	ChartMode,
 	ChartRootBaseProps,
 	CopyButtonPrimitiveProps,
 	GridPrimitiveProps,
@@ -37,11 +38,11 @@ import {
  * not length from a baseline, so the full y domain stays overridable via
  * `yDomain` — and lines never stack, so there is no `stacked` prop.
  */
-type LineChartRootProps<TDatum extends ChartDatum = ChartDatum> = Omit<
-	ChartRootBaseProps,
-	"stacked"
-> &
-	ChartAccessibilityProps & {
+type LineChartRootProps<
+	TDatum extends ChartDatum = ChartDatum,
+	TMode extends ChartMode = "interactive",
+> = Omit<ChartRootBaseProps, "stacked"> &
+	ChartAccessibilityProps<TMode> & {
 		/** Rows of data; each `LineChart.Line` reads one numeric key per row. */
 		data: readonly TDatum[];
 		/** The key of each row's x value. */
@@ -181,9 +182,9 @@ type LineChartCopyButtonProps = CopyButtonPrimitiveProps;
  *
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
- * | `data-slot` | `"line-chart-description"` | The `sr-only` description the overlay's `aria-describedby` points at: the chart kind, the point count, the x range, the series labels, and the keyboard instructions. Omitted when `decorative`. |
- * | `data-slot` | `"line-chart-data-table"` | The `sr-only` data table. Mounts once focus lands inside the chart (`data-state` flips to `"engaged"`) and stays. Omitted when `decorative`. |
- * | `data-state` | `"dormant"` \| `"engaged"` | On the Root. Flips to `"engaged"` once focus lands inside the chart, and never flips back. The data table mounts with it. Visibility paints the chart but never flips it. Omitted when `decorative`. |
+ * | `data-slot` | `"line-chart-description"` | The `sr-only` description the overlay's `aria-describedby` points at: the chart kind, the point count, the x range, the series labels, and, on an interactive chart, the keyboard instructions. Omitted when `mode="decorative"`. |
+ * | `data-slot` | `"line-chart-data-table"` | The `sr-only` data table. Mounts once focus lands inside the chart (`data-state` flips to `"engaged"`) and stays. Interactive charts only. |
+ * | `data-state` | `"dormant"` \| `"engaged"` | On the Root. Flips to `"engaged"` once focus lands inside the chart, and never flips back. The data table mounts with it. Visibility paints the chart but never flips it. Interactive charts only. |
  *
  * @see https://mantle.ngrok.com/components/charts/line-chart#linechartroot
  *
@@ -206,9 +207,9 @@ type LineChartCopyButtonProps = CopyButtonPrimitiveProps;
  * </LineChart.Root>
  * ```
  */
-const Root = <TDatum extends ChartDatum = ChartDatum>(props: LineChartRootProps<TDatum>) => (
-	<ChartRootPrimitive kind="line" componentName="LineChart" slotName="line-chart" {...props} />
-);
+const Root = <TDatum extends ChartDatum = ChartDatum, TMode extends ChartMode = "interactive">(
+	props: LineChartRootProps<TDatum, TMode>,
+) => <ChartRootPrimitive kind="line" componentName="LineChart" slotName="line-chart" {...props} />;
 
 /**
  * One line series. Renders nothing itself — it registers the series with the
@@ -644,6 +645,7 @@ const LineChart = {
 export type {
 	//,
 	ChartDatumEvent,
+	ChartMode,
 	LineChartCopyButtonProps,
 	LineChartGridProps,
 	LineChartLegendProps,

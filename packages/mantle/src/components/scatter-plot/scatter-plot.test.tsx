@@ -604,7 +604,7 @@ describe("ScatterPlot 3D depth (zKey)", () => {
 describe("ScatterPlot decorative mode", () => {
 	const renderDecorative = () =>
 		render(
-			<ScatterPlot.Root data={data} xKey="latency" decorative>
+			<ScatterPlot.Root data={data} xKey="latency" mode="decorative">
 				<ScatterPlot.Point dataKey="regionA" label="Region A" />
 			</ScatterPlot.Root>,
 		);

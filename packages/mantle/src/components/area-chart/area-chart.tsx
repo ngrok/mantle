@@ -2,6 +2,7 @@
 
 import type {
 	ChartAccessibilityProps,
+	ChartMode,
 	ChartRootBaseProps,
 	CopyButtonPrimitiveProps,
 	GridPrimitiveProps,
@@ -37,11 +38,11 @@ import {
  * the y domain minimum is fixed at `0` — a truncated-area axis is
  * unrepresentable.
  */
-type AreaChartRootProps<TDatum extends ChartDatum = ChartDatum> = Omit<
-	ChartRootBaseProps,
-	"yDomain"
-> &
-	ChartAccessibilityProps & {
+type AreaChartRootProps<
+	TDatum extends ChartDatum = ChartDatum,
+	TMode extends ChartMode = "interactive",
+> = Omit<ChartRootBaseProps, "yDomain"> &
+	ChartAccessibilityProps<TMode> & {
 		/** Rows of data; each `AreaChart.Area` reads one numeric key per row. */
 		data: readonly TDatum[];
 		/** The key of each row's x value. */
@@ -178,9 +179,9 @@ type AreaChartCopyButtonProps = CopyButtonPrimitiveProps;
  *
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
- * | `data-slot` | `"area-chart-description"` | The `sr-only` description the overlay's `aria-describedby` points at: the chart kind, the point count, the x range, the series labels, and the keyboard instructions. Omitted when `decorative`. |
- * | `data-slot` | `"area-chart-data-table"` | The `sr-only` data table. Mounts once focus lands inside the chart (`data-state` flips to `"engaged"`) and stays. Omitted when `decorative`. |
- * | `data-state` | `"dormant"` \| `"engaged"` | On the Root. Flips to `"engaged"` once focus lands inside the chart, and never flips back. The data table mounts with it. Visibility paints the chart but never flips it. Omitted when `decorative`. |
+ * | `data-slot` | `"area-chart-description"` | The `sr-only` description the overlay's `aria-describedby` points at: the chart kind, the point count, the x range, the series labels, and, on an interactive chart, the keyboard instructions. Omitted when `mode="decorative"`. |
+ * | `data-slot` | `"area-chart-data-table"` | The `sr-only` data table. Mounts once focus lands inside the chart (`data-state` flips to `"engaged"`) and stays. Interactive charts only. |
+ * | `data-state` | `"dormant"` \| `"engaged"` | On the Root. Flips to `"engaged"` once focus lands inside the chart, and never flips back. The data table mounts with it. Visibility paints the chart but never flips it. Interactive charts only. |
  *
  * @see https://mantle.ngrok.com/components/charts/area-chart#areachartroot
  *
@@ -203,9 +204,9 @@ type AreaChartCopyButtonProps = CopyButtonPrimitiveProps;
  * </AreaChart.Root>
  * ```
  */
-const Root = <TDatum extends ChartDatum = ChartDatum>(props: AreaChartRootProps<TDatum>) => (
-	<ChartRootPrimitive kind="area" componentName="AreaChart" slotName="area-chart" {...props} />
-);
+const Root = <TDatum extends ChartDatum = ChartDatum, TMode extends ChartMode = "interactive">(
+	props: AreaChartRootProps<TDatum, TMode>,
+) => <ChartRootPrimitive kind="area" componentName="AreaChart" slotName="area-chart" {...props} />;
 
 /**
  * One area series. Renders nothing itself — it registers the series with the
@@ -666,6 +667,7 @@ export type {
 	AreaChartXAxisProps,
 	AreaChartYAxisProps,
 	ChartDatumEvent,
+	ChartMode,
 };
 export {
 	//,

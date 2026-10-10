@@ -934,7 +934,7 @@ test("rows with unparseable timestamps are dropped without blanking the chart or
 describe("LineChart decorative mode", () => {
 	const renderDecorative = () =>
 		render(
-			<LineChart.Root data={data} xKey="time" decorative>
+			<LineChart.Root data={data} xKey="time" mode="decorative">
 				<LineChart.Line dataKey="p50" label="p50" />
 			</LineChart.Root>,
 		);

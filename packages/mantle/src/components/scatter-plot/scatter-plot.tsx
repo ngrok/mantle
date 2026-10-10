@@ -2,6 +2,7 @@
 
 import type {
 	ChartAccessibilityProps,
+	ChartMode,
 	ChartRootBaseProps,
 	CopyButtonPrimitiveProps,
 	GridPrimitiveProps,
@@ -40,11 +41,11 @@ import {
  * eight default chart tokens hold at every pair, so keep it to eight series or
  * fewer. Past eight, fold into an "Other" series or facet into small multiples.
  */
-type ScatterPlotRootProps<TDatum extends ChartDatum = ChartDatum> = Omit<
-	ChartRootBaseProps,
-	"stacked"
-> &
-	ChartAccessibilityProps & {
+type ScatterPlotRootProps<
+	TDatum extends ChartDatum = ChartDatum,
+	TMode extends ChartMode = "interactive",
+> = Omit<ChartRootBaseProps, "stacked"> &
+	ChartAccessibilityProps<TMode> & {
 		/** Rows of data; each row is one point per composed `ScatterPlot.Point` series. */
 		data: readonly TDatum[];
 		/** The key of each row's x value (number or `Date`). */
@@ -191,9 +192,9 @@ type ScatterPlotCopyButtonProps = CopyButtonPrimitiveProps;
  *
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
- * | `data-slot` | `"scatter-plot-description"` | The `sr-only` description the overlay's `aria-describedby` points at: the chart kind, the point count, the x range, the series labels, and the keyboard instructions. Omitted when `decorative`. |
- * | `data-slot` | `"scatter-plot-data-table"` | The `sr-only` data table. Mounts once focus lands inside the chart (`data-state` flips to `"engaged"`) and stays. Omitted when `decorative`. |
- * | `data-state` | `"dormant"` \| `"engaged"` | On the Root. Flips to `"engaged"` once focus lands inside the chart, and never flips back. The data table mounts with it. Visibility paints the chart but never flips it. Omitted when `decorative`. |
+ * | `data-slot` | `"scatter-plot-description"` | The `sr-only` description the overlay's `aria-describedby` points at: the chart kind, the point count, the x range, the series labels, and, on an interactive chart, the keyboard instructions. Omitted when `mode="decorative"`. |
+ * | `data-slot` | `"scatter-plot-data-table"` | The `sr-only` data table. Mounts once focus lands inside the chart (`data-state` flips to `"engaged"`) and stays. Interactive charts only. |
+ * | `data-state` | `"dormant"` \| `"engaged"` | On the Root. Flips to `"engaged"` once focus lands inside the chart, and never flips back. The data table mounts with it. Visibility paints the chart but never flips it. Interactive charts only. |
  *
  * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterplotroot
  *
@@ -216,7 +217,9 @@ type ScatterPlotCopyButtonProps = CopyButtonPrimitiveProps;
  * </ScatterPlot.Root>
  * ```
  */
-const Root = <TDatum extends ChartDatum = ChartDatum>(props: ScatterPlotRootProps<TDatum>) => (
+const Root = <TDatum extends ChartDatum = ChartDatum, TMode extends ChartMode = "interactive">(
+	props: ScatterPlotRootProps<TDatum, TMode>,
+) => (
 	<ChartRootPrimitive
 		kind="scatter"
 		componentName="ScatterPlot"
@@ -655,6 +658,7 @@ const ScatterPlot = {
 export type {
 	//,
 	ChartDatumEvent,
+	ChartMode,
 	ScatterPlotCopyButtonProps,
 	ScatterPlotGridProps,
 	ScatterPlotLegendProps,

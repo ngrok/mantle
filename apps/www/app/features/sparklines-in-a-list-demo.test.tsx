@@ -44,8 +44,9 @@ describe("ServicesListPage", () => {
 		render(<ServicesListPage />);
 
 		expect(getBodyRows()).toHaveLength(24);
-		const requests = screen.getAllByRole("application", { name: /^Requests for /u });
-		const deploys = screen.getAllByRole("application", { name: /^Deploys for /u });
+		// Static sparklines: each plot is a named image, not a Tab stop.
+		const requests = screen.getAllByRole("img", { name: /^Requests for /u });
+		const deploys = screen.getAllByRole("img", { name: /^Deploys for /u });
 		expect(requests).toHaveLength(24);
 		expect(deploys).toHaveLength(24);
 

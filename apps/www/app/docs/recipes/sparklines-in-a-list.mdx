@@ -7,12 +7,12 @@ import { CodeExample } from "~/components/code-example";
 
 # Sparklines in a List
 
-A sparkline beside each row shows a month of traffic for every service at once. The cost is 48 charts on one screen, each with a canvas, a hover readout, a keyboard contract, and a screen-reader table. This recipe wires a [Data Table](/components/data-display/data-table) of 24 services with two [Bar Chart](/components/charts/bar-chart) sparklines per row. Each sparkline is sized for a row, named for the row, and paired with a compact total, and it carries none of the chrome a full chart needs.
+A sparkline beside each row shows a month of traffic for every service at once. The cost is 48 charts on one screen, each with a canvas. This recipe wires a [Data Table](/components/data-display/data-table) of 24 services with two [Bar Chart](/components/charts/bar-chart) sparklines per row. Each sparkline is a static chart (`mode="static"`): sized for a row, named for the row, paired with a compact total, and carrying none of the chrome, the Tab stop, or the readout a full chart has.
 
-The failure modes it removes are the ones a first draft ships: a 16:9 chart as wide as its column, 48 Tab stops that all announce "Requests", axes and gridlines in a 24px row, and a `.map()` in the cell renderer that re-ingests every chart on the page on every render.
+The failure modes it removes are the ones a first draft ships: a 16:9 chart as wide as its column, 48 Tab stops in a table, 48 charts that all announce "Requests", axes and gridlines in a 24px row, and a `.map()` in the cell renderer that re-ingests every chart on the page on every render.
 
 > [!IMPORTANT]
-> Don't copy this UI verbatim. The recipe teaches the **per-row chart composition**: one `BarChart.Root` per measure, sized for a row, named for the row and the measure, a total beside it, and a `data` array that keeps its identity. The services table, its columns, and the seeded data are stand-ins. Swap them for your product's rows and keep the composition.
+> Don't copy this UI verbatim. The recipe teaches the **per-row chart composition**: one static `BarChart.Root` per measure, sized for a row, named for the row and the measure, a total beside it, and a `data` array that keeps its identity. The services table, its columns, and the seeded data are stand-ins. Swap them for your product's rows and keep the composition.
 
 <CodeExample.Root>
 	<CodeExample.PreviewFrame example="sparklines-in-a-list" title="Sparklines in a list demo" />
@@ -336,11 +336,11 @@ const columns = columnHelper.columns([
 						<BarChart.Root
 							data={service.requests}
 							xKey="day"
+							mode="static"
 							aria-label={`Requests for ${service.name}, last 30 days`}
 							className="aspect-auto h-6 w-28"
 						>
 							<BarChart.Bar dataKey="count" label="Requests" />
-							<BarChart.Tooltip />
 						</BarChart.Root>
 						<span className="text-muted min-w-10 text-right text-xs tabular-nums">
 							{compactNumber.format(service.requestTotal)}
@@ -361,11 +361,11 @@ const columns = columnHelper.columns([
 						<BarChart.Root
 							data={service.deploys}
 							xKey="week"
+							mode="static"
 							aria-label={`Deploys for ${service.name}, last 12 weeks`}
 							className="aspect-auto h-6 w-28"
 						>
 							<BarChart.Bar dataKey="count" label="Deploys" />
-							<BarChart.Tooltip />
 						</BarChart.Root>
 						<span className="text-muted min-w-10 text-right text-xs tabular-nums">
 							{compactNumber.format(service.deployTotal)}
@@ -412,9 +412,9 @@ const columns = columnHelper.columns([
 ]);
 
 /**
- * The recipe: a services list with two sparklines per row. Each `BarChart.Root`
- * mounts dormant, paints once it nears the viewport, and carries a name that
- * tells its Tab stop apart from the other 47.
+ * The recipe: a services list with two static sparklines per row. Each
+ * `BarChart.Root` mounts dormant, paints once it nears the viewport, and
+ * carries a name that tells it apart from the other 47.
  */
 export function ServicesListPage() {
 	const table = useTable({ features, data: services, columns });
@@ -468,15 +468,15 @@ export function SparklinesInAListDemo() {
 
 </CodeExample.Root>
 
-Hover a bar for that day's count. Then Tab into the table: every sparkline is a Tab stop, the arrow keys step through its days, and a screen reader hears the chart's name and what it holds.
+Tab through the table: no sparkline is a Tab stop. A screen reader that reaches a cell hears the chart's name and what it holds, and reads the total beside it.
 
 ## Why sparklines in a list
 
-- **A chart Root mounts dormant.** `BarChart.Root` renders its overlay and description from the first frame and holds no canvas and no engine until it comes within one viewport of the visible area; the charts on screen activate first, a few milliseconds at a time, so the page never stalls. A list of 100 rows pays for the rows a reader can see. Three viewports away a chart releases its canvas memory, and it repaints on the way back.
-- **The screen-reader table waits for focus.** Every interactive chart owns a screen-reader-only data table: the category column plus one column per series. It mounts once focus lands inside the chart, and it never unmounts, so a table of sparklines holds no hidden tables and a screen reader's table list names only the charts the reader has reached.
-- **Every chart is a Tab stop.** The interaction overlay is a `role="application"` element with `tabIndex={0}`. The arrow keys step through the categories, and a polite live region announces each one. Forty-eight charts are forty-eight Tab stops, so each needs a name that tells it apart: the row and the measure, `Requests for edge-router, last 30 days`. The same name is the caption of the chart's data table.
-- **The description is always there.** The overlay's `aria-describedby` points at a screen-reader-only sentence the Root renders from the first frame: the chart kind, the category count, the first and last category, the series label, and the keyboard instructions. A dormant chart has no table yet, so this sentence is what a screen reader gets from it: "Bar chart with 30 categories from Sep 9, 2026 to Oct 8, 2026. Series: Requests. Use the left and right arrow keys…".
-- **A sparkline is a chart with the chrome removed.** No axes, no grid, no legend. The row is 24px tall, and the total beside the chart carries the magnitude. The hover readout ships with `Root`, so a pointer user still gets the day and the count.
+- **A chart Root mounts dormant.** `BarChart.Root` renders its named plot and description from the first frame and holds no canvas and no engine until it comes within one viewport of the visible area; the charts on screen activate first, a few milliseconds at a time, so the page never stalls. A list of 100 rows pays for the rows a reader can see. Three viewports away a chart releases its canvas memory, and it repaints on the way back.
+- **A sparkline is a static chart.** `mode="static"` names the plot `role="img"` and drops the interaction overlay: no Tab stop, no hover band, no tooltip, no keyboard point cursor, no data table, no live region. Noninteractive is not decorative: the bars still tell a reader when activity happened and how it varied, so each chart keeps a name and a description, and the exact values live in the total beside it. Forty-eight Tab stops in a table is a focus order no reader wants, and a readout only a pointer can reach fails WCAG 1.4.13.
+- **No chart is a Tab stop, so no reveal plays.** A static chart defaults `animate` to `false`. A list of sparklines that each draw in as the reader scrolls is motion with no information in it.
+- **The description is always there.** The plot's `aria-describedby` points at a screen-reader-only sentence the Root renders from the first frame: the chart kind, the category count, the first and last category, and the series label: "Bar chart with 30 categories from Sep 9, 2026 to Oct 8, 2026. Series: Requests." Each chart's name tells it apart from the other 47: the row and the measure, `Requests for edge-router, last 30 days`.
+- **A sparkline is a chart with the chrome removed.** No axes, no grid, no legend. The row is 24px tall, and the total beside the chart carries the magnitude.
 
 ## What this covers
 
@@ -505,9 +505,8 @@ ServicesListPage
             ├── Cell: kind               Badge
             ├── Cell: status             Badge, colored by status
             ├── Cell: requests
-            │   ├── BarChart.Root        aspect-auto h-6 w-28 · aria-label="Requests for <name>, last 30 days"
-            │   │   ├── BarChart.Bar     dataKey="count" label="Requests"
-            │   │   └── BarChart.Tooltip
+            │   ├── BarChart.Root        mode="static" · aspect-auto h-6 w-28 · aria-label="Requests for <name>, last 30 days"
+            │   │   └── BarChart.Bar     dataKey="count" label="Requests"
             │   └── <span>               167K, the compact total
             ├── Cell: deploys            the same composition, for the 12-week series
             ├── Cell: owners             Avatar.Root × 1–3, each role="img" with the member's name
@@ -518,13 +517,13 @@ ServicesListPage
 
 The rules below keep the code consistent with the intent above.
 
-1. **Compose a sparkline as a Root, one series, and the tooltip part.** `BarChart.Root` takes the row's series as `data`, the x key, an `aria-label`, and a `className`. One `BarChart.Bar` names the series with `label`, which the hover readout, the live region, and the data table all read. Nothing else: a single-series chart renders no legend, and a 24px row has no room for axes.
+1. **Compose a sparkline as a static Root and one series.** `BarChart.Root` takes the row's series as `data`, the x key, `mode="static"`, an `aria-label`, and a `className`. One `BarChart.Bar` names the series with `label`, which the description reads. Nothing else: a single-series chart renders no legend, a 24px row has no room for axes, and a static chart has no readout for a `Tooltip` part to format.
 2. **Size it with `className="aspect-auto h-6 w-28"`.** The Root renders a `<div>` sized `aspect-video` at full width by default, so a bare Root in a table cell is a 16:9 chart as wide as the column. `aspect-auto` drops the ratio, `h-6` sets the height, and `w-28` sets the width. The plot fills the box, and each bar fills its share of the width.
-3. **Name each chart for the row and the measure.** ``aria-label={`Requests for ${service.name}, last 30 days`}``. The name is what a screen reader announces at the Tab stop and the caption of the chart's data table. Put the window in it, because the column header is not part of the chart's name. One shared label makes 48 identical stops.
+3. **Name each chart for the row and the measure.** ``aria-label={`Requests for ${service.name}, last 30 days`}``. The name is what a screen reader announces for the image. Put the window in it, because the column header is not part of the chart's name. One shared label makes 48 identical images.
 4. **Put the total in the same cell, as text.** `new Intl.NumberFormat("en-US", { notation: "compact" })` renders `167K` and `1.7M`. The number is what a reader compares down the column; the sparkline is its shape. Sum it once when the data lands, as the demo does when it builds its rows. Give the span `tabular-nums`, a `min-w`, and `text-right`, so the charts line up down the column.
 5. **Keep the `data` array stable.** The Root ingests and repaints whenever the `data` identity changes. A `.map()` or a `.slice()` inside the cell renderer makes a new array on every render, so one parent render re-ingests 48 charts. Pass the array the row already holds, or memoize the transform on the response.
-6. **Leave `animate` at its default.** The enter reveal plays once, when the chart first comes into the viewport. A row the reader scrolls to draws its bars as it arrives, and a chart painted ahead of the scroll holds its reveal until then. `prefers-reduced-motion` always wins.
-7. **Keep the hover readout.** `Root` owns the tooltip, so a pointer user gets the day and the count with no part composed, and no part removal can strip it. `BarChart.Tooltip` is where a `valueFormat`, a `labelFormat`, or a `footer` goes. The demo composes it with no props, so the readout is the default: the date, the series label, and the count.
+6. **Leave `animate` at its default.** A static chart plays no enter reveal unless you pass `animate`. Forty-eight bars that draw in as the reader scrolls say nothing the still bars do not.
+7. **Put the exact values in text.** A static chart has no hover readout and no data table, so the cell carries them: the total beside the chart, and a detail page for the day-by-day numbers. A reader who needs to inspect points gets an interactive chart there.
 8. **Pin the column widths.** A width on every `DataTable.Header` but the first, and `[&_table]:table-fixed` on `DataTable.Root`, hold a sparkline column at `w-44` down the whole list as the names vary. The [List Page Loading States](/recipes/list-page-loading-states) recipe explains why.
 9. **Name the avatars.** Initials from `Avatar.Fallback`'s `name` are `aria-hidden`, because they usually abbreviate a name beside them. In a bare stack nothing else names the member, so each `Avatar.Root` carries `role="img"` and `aria-label={owner.name}`.
 10. **Pair a long list with `content-visibility: auto`.** The chart's own gate skips paint and canvas memory for rows off screen. It can't skip the style and layout of their DOM. For a list of cards that nothing virtualizes, set `content-visibility: auto` with a `contain-intrinsic-size` on each card, so the browser skips both for cards far off screen, and the chart paints when the card renders. A `<tr>` can't take the size containment this relies on, so a table with hundreds of rows paginates or virtualizes instead.
@@ -533,12 +532,12 @@ The rules below keep the code consistent with the intent above.
 
 The left column is what not to do. The right column is the fix.
 
-| Don't                                                                                                                                            | Do                                                                                                                                                                                          |
-| :----------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Compose `BarChart.XAxis`, `BarChart.YAxis`, or `BarChart.Grid` in a sparkline. In 24px the labels collide and the gridlines are most of the ink. | Compose `Root`, one `Bar`, and `Tooltip`. The total beside the chart carries the magnitude. The hover readout and the data table carry the exact values.                                    |
-| Compose a `BarChart.Legend` in every row.                                                                                                        | Name the series once, in the column header. A single-series chart renders no legend, and the `Bar`'s `label` names the series in the readout and the table.                                 |
-| Set `decorative` to make a sparkline quiet.                                                                                                      | Reserve `decorative` for placeholder bars behind an empty state. On real data it hides the chart from assistive technology, removes the Tab stop, and paints every bar in one neutral fill. |
-| Give every chart the same `aria-label`.                                                                                                          | Name the row and the measure: `Requests for edge-router, last 30 days`. Each name is a distinct Tab stop and a distinct table caption.                                                      |
-| Build the `data` array in the cell renderer, `row.points.map(…)`.                                                                                | Pass the array the row already holds, or memoize the transform. A new array per render re-ingests and repaints every chart on the page.                                                     |
-| Leave the Root at its default size inside a cell.                                                                                                | Set `className="aspect-auto h-6 w-28"`. The default is a 16:9 chart as wide as the column.                                                                                                  |
-| Render the total in the tooltip only.                                                                                                            | Render it as text in the cell. A tooltip needs a pointer or the keyboard, and a total a reader compares down the column needs neither.                                                      |
+| Don't                                                                                                                                            | Do                                                                                                                                                                                                                           |
+| :----------------------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Compose `BarChart.XAxis`, `BarChart.YAxis`, or `BarChart.Grid` in a sparkline. In 24px the labels collide and the gridlines are most of the ink. | Compose a static `Root` and one `Bar`. The total beside the chart carries the magnitude, and a detail page carries the exact values.                                                                                         |
+| Compose a `BarChart.Legend` in every row.                                                                                                        | Name the series once, in the column header. A single-series chart renders no legend, and the `Bar`'s `label` names the series in the readout and the table.                                                                  |
+| Set `mode="decorative"` to make a sparkline quiet, or leave it interactive because it has real data.                                             | Set `mode="static"`. Decorative hides real data from assistive technology and paints every bar in one neutral fill; interactive makes 48 Tab stops of a table. Static keeps the name and the description and drops the rest. |
+| Give every chart the same `aria-label`.                                                                                                          | Name the row and the measure: `Requests for edge-router, last 30 days`. Each name is a distinct image for a screen reader.                                                                                                   |
+| Build the `data` array in the cell renderer, `row.points.map(…)`.                                                                                | Pass the array the row already holds, or memoize the transform. A new array per render re-ingests and repaints every chart on the page.                                                                                      |
+| Leave the Root at its default size inside a cell.                                                                                                | Set `className="aspect-auto h-6 w-28"`. The default is a 16:9 chart as wide as the column.                                                                                                                                   |
+| Compose `BarChart.Tooltip` for the exact values.                                                                                                 | Render the total as text in the cell. A static chart shows no readout, and a total a reader compares down the column needs no pointer.                                                                                       |

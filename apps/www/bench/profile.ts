@@ -1,7 +1,7 @@
 /**
  * Captures a CPU profile of one scenario from navigation to settle and prints
  * the functions with the most self time. Run:
- * `pnpm bench:profile -- "?lib=mantle&kind=line&mode=list&n=50&points=30" --no-build`.
+ * `pnpm bench:profile -- "?kind=line&mode=list&n=50&points=30" --no-build`.
  */
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -13,7 +13,7 @@ const PORT = 3446;
 // Why skip `--`: pnpm hands the separator to the script as its own argument.
 const query =
 	process.argv.slice(2).find((argument) => !argument.startsWith("--")) ??
-	"?lib=mantle&kind=line&mode=list&n=50&points=30";
+	"?kind=line&mode=list&n=50&points=30";
 const throttle = Number(
 	process.argv.find((argument) => argument.startsWith("--throttle="))?.slice(11) ?? 1,
 );

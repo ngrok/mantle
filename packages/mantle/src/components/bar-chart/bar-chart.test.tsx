@@ -183,7 +183,7 @@ describe("BarChart data slots", () => {
 		// They sit outside the `decorative` guard on purpose: the engine drives
 		// their opacity, and a decorative chart never activates.
 		const { container } = render(
-			<BarChart.Root data={data} xKey="month" decorative>
+			<BarChart.Root data={data} xKey="month" mode="decorative">
 				<BarChart.Bar dataKey="desktop" label="Desktop" />
 			</BarChart.Root>,
 		);
@@ -468,7 +468,7 @@ test("legend keys wear the series' texture as a redundant encoding", () => {
 describe("BarChart decorative mode", () => {
 	const renderDecorative = () =>
 		render(
-			<BarChart.Root data={data} xKey="month" decorative>
+			<BarChart.Root data={data} xKey="month" mode="decorative">
 				<BarChart.Grid />
 				<BarChart.Bar dataKey="desktop" label="Desktop" />
 				<BarChart.Bar dataKey="mobile" label="Mobile" />
@@ -496,7 +496,7 @@ describe("BarChart decorative mode", () => {
 		// canvas reads the same value from the same place — the browser sweep in
 		// chart/decorative-paint.browser.test.tsx samples the painted pixels.
 		const { container } = render(
-			<BarChart.Root data={data} xKey="month" decorative>
+			<BarChart.Root data={data} xKey="month" mode="decorative">
 				<BarChart.Bar dataKey="desktop" label="Desktop" color="chart-4" />
 				<BarChart.Bar dataKey="mobile" label="Mobile" />
 				<BarChart.Legend />
@@ -539,7 +539,7 @@ describe("BarChart decorative mode", () => {
 		// would otherwise ride `{...props}` onto the aria-hidden root and reintroduce
 		// a tab stop the decorative contract removed.
 		const { container } = render(
-			<BarChart.Root data={data} xKey="month" decorative tabIndex={0}>
+			<BarChart.Root data={data} xKey="month" mode="decorative" tabIndex={0}>
 				<BarChart.Bar dataKey="desktop" label="Desktop" />
 			</BarChart.Root>,
 		);
@@ -554,7 +554,7 @@ describe("BarChart decorative mode", () => {
 
 	test("is inert, so a composed CopyButton is not a tab stop inside the hidden backdrop", () => {
 		const { container } = render(
-			<BarChart.Root data={data} xKey="month" decorative>
+			<BarChart.Root data={data} xKey="month" mode="decorative">
 				<BarChart.Bar dataKey="desktop" label="Desktop" />
 				<BarChart.CopyButton />
 			</BarChart.Root>,
@@ -581,7 +581,7 @@ describe("BarChart decorative mode", () => {
 		const { container } = render(
 			<>
 				{/* @ts-expect-error — decorative forbids activeIndex; the runtime guard must suppress it anyway */}
-				<BarChart.Root data={data} xKey="month" decorative activeIndex={1}>
+				<BarChart.Root data={data} xKey="month" mode="decorative" activeIndex={1}>
 					<BarChart.Bar dataKey="desktop" label="Desktop" />
 				</BarChart.Root>
 			</>,
@@ -712,13 +712,25 @@ test("BarChart.CopyButton announces 'Copied' through a live region, and again fo
  * `@ts-expect-error` that compiles is the assertion; a runtime `expect` beside
  * it reads as coverage the vitest run does not have.
  *
- * A decorative chart needs no accessible name and takes no interaction props. An
- * interactive chart requires a name.
+ * A decorative chart needs no accessible name and takes no interaction props. A
+ * static chart requires a name and takes no interaction props. An interactive
+ * chart requires a name.
  */
 export function typeLevelContracts() {
 	return (
 		<>
-			<BarChart.Root data={data} xKey="month" decorative>
+			<BarChart.Root data={data} xKey="month" mode="decorative">
+				<BarChart.Bar dataKey="desktop" />
+			</BarChart.Root>
+			<BarChart.Root data={data} xKey="month" mode="static" aria-label="Visitors, last 3 months">
+				<BarChart.Bar dataKey="desktop" />
+			</BarChart.Root>
+			{/* @ts-expect-error -- a static chart requires an accessible name */}
+			<BarChart.Root data={data} xKey="month" mode="static">
+				<BarChart.Bar dataKey="desktop" />
+			</BarChart.Root>
+			{/* @ts-expect-error -- static forbids interaction props */}
+			<BarChart.Root data={data} xKey="month" mode="static" aria-label="Visitors" activeIndex={1}>
 				<BarChart.Bar dataKey="desktop" />
 			</BarChart.Root>
 			{/* @ts-expect-error -- an interactive chart requires an accessible name */}
@@ -726,11 +738,11 @@ export function typeLevelContracts() {
 				<BarChart.Bar dataKey="desktop" />
 			</BarChart.Root>
 			{/* @ts-expect-error -- decorative forbids an accessible name */}
-			<BarChart.Root data={data} xKey="month" decorative aria-label="Placeholder">
+			<BarChart.Root data={data} xKey="month" mode="decorative" aria-label="Placeholder">
 				<BarChart.Bar dataKey="desktop" />
 			</BarChart.Root>
 			{/* @ts-expect-error -- decorative forbids interaction callbacks */}
-			<BarChart.Root data={data} xKey="month" decorative onDatumActivate={() => {}}>
+			<BarChart.Root data={data} xKey="month" mode="decorative" onDatumActivate={() => {}}>
 				<BarChart.Bar dataKey="desktop" />
 			</BarChart.Root>
 		</>

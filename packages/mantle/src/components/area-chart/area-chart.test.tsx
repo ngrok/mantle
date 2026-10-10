@@ -462,7 +462,7 @@ describe("AreaChart series slots", () => {
 describe("AreaChart decorative mode", () => {
 	const renderDecorative = () =>
 		render(
-			<AreaChart.Root data={data} xKey="date" decorative>
+			<AreaChart.Root data={data} xKey="date" mode="decorative">
 				<AreaChart.Area dataKey="http" label="HTTP" />
 			</AreaChart.Root>,
 		);

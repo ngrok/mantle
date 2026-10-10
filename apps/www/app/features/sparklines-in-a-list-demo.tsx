@@ -315,11 +315,11 @@ const columns = columnHelper.columns([
 						<BarChart.Root
 							data={service.requests}
 							xKey="day"
+							mode="static"
 							aria-label={`Requests for ${service.name}, last 30 days`}
 							className="aspect-auto h-6 w-28"
 						>
 							<BarChart.Bar dataKey="count" label="Requests" />
-							<BarChart.Tooltip />
 						</BarChart.Root>
 						<span className="text-muted min-w-10 text-right text-xs tabular-nums">
 							{compactNumber.format(service.requestTotal)}
@@ -340,11 +340,11 @@ const columns = columnHelper.columns([
 						<BarChart.Root
 							data={service.deploys}
 							xKey="week"
+							mode="static"
 							aria-label={`Deploys for ${service.name}, last 12 weeks`}
 							className="aspect-auto h-6 w-28"
 						>
 							<BarChart.Bar dataKey="count" label="Deploys" />
-							<BarChart.Tooltip />
 						</BarChart.Root>
 						<span className="text-muted min-w-10 text-right text-xs tabular-nums">
 							{compactNumber.format(service.deployTotal)}
@@ -391,9 +391,9 @@ const columns = columnHelper.columns([
 ]);
 
 /**
- * The recipe: a services list with two sparklines per row. Each `BarChart.Root`
- * mounts dormant, paints once it nears the viewport, and carries a name that
- * tells its Tab stop apart from the other 47.
+ * The recipe: a services list with two static sparklines per row. Each
+ * `BarChart.Root` mounts dormant, paints once it nears the viewport, and
+ * carries a name that tells it apart from the other 47.
  */
 export function ServicesListPage() {
 	const table = useTable({ features, data: services, columns });

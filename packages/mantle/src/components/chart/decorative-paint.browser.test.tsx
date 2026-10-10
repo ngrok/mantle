@@ -122,7 +122,7 @@ describe("a decorative chart's painted fill", () => {
 		// the same neutral, and no categorical blue reaches the canvas at all.
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
-				<BarChart.Root data={data} xKey="cat" animate={false} decorative>
+				<BarChart.Root data={data} xKey="cat" animate={false} mode="decorative">
 					<BarChart.Bar dataKey="v" label="Value" color="chart-1" />
 				</BarChart.Root>
 			</div>,

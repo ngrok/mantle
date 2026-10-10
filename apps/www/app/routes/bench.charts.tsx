@@ -5,7 +5,7 @@ import { Scenario } from "~/features/chart-bench/scenario";
 
 /**
  * The chart mount benchmark page, a chrome-less document the Playwright driver
- * in `bench/` loads: `/bench/charts?lib=mantle-static&kind=bar&mode=table&n=100`.
+ * in `bench/` loads: `/bench/charts?animate=0&kind=bar&mode=table&n=100`.
  * It renders on the client only, so the window the driver measures starts at
  * the chart code's load and holds one mount, like an app page that renders a
  * list after its data arrives. Linked from the Bar Chart docs page.

@@ -1,108 +1,148 @@
-import { cx } from "@ngrok/mantle/cx";
-import type { ChangeEvent } from "react";
-import type { Config, Gate, Mode } from "./config";
-import { KINDS, LIBS } from "./config";
+import { Button } from "@ngrok/mantle/button";
+import { Checkbox } from "@ngrok/mantle/checkbox";
+import { Field } from "@ngrok/mantle/field";
+import { Input } from "@ngrok/mantle/input";
+import { Label } from "@ngrok/mantle/label";
+import { Select } from "@ngrok/mantle/select";
+import type { FormEvent } from "react";
+import type { Config } from "./config";
+import { GATES, KINDS, MODES, readConfig, writeConfig } from "./config";
 
-const MODES: readonly Mode[] = ["list", "dense", "table"];
-const GATES: readonly Gate[] = ["none", "cv"];
+/** Load the page with a scenario, the way the driver does: a full load, marks included. */
+const load = (search: string): void => {
+	window.location.assign(`${window.location.pathname}${search}`);
+};
 
-const FIELD = "flex flex-col gap-1";
-const LABEL = "text-muted text-xs";
-const CONTROL = "rounded-md border border-neutral-300 bg-white px-2 py-1 text-sm";
-
-/** Submit the form a control sits in, so a pick loads the page with the new query. */
-const submitOnChange = (event: ChangeEvent<HTMLSelectElement | HTMLInputElement>): void => {
-	event.currentTarget.form?.requestSubmit();
+/** A picker whose change loads the scenario with that one field replaced. */
+const Pick = ({
+	config,
+	name,
+	label,
+	options,
+}: {
+	config: Config;
+	name: "animate" | "kind" | "mode" | "gate";
+	label: string;
+	options: ReadonlyArray<{ value: string; label: string }>;
+}) => {
+	const current = new URLSearchParams(writeConfig(config)).get(name) ?? "";
+	return (
+		<Field.Item name={name} className="w-auto">
+			<Field.Label>{label}</Field.Label>
+			<Field.Control>
+				<Select.Root
+					name={name}
+					defaultValue={current}
+					onValueChange={(value) => {
+						// Why not the form: the hidden native select takes the new value
+						// after this handler, so a submit here would send the old one.
+						const params = new URLSearchParams(writeConfig(config));
+						params.set(name, value);
+						load(`?${params.toString()}`);
+					}}
+				>
+					<Select.Trigger className="w-44">
+						<Select.Value />
+					</Select.Trigger>
+					<Select.Content width="trigger">
+						{options.map((option) => (
+							<Select.Item key={option.value} value={option.value}>
+								{option.label}
+							</Select.Item>
+						))}
+					</Select.Content>
+				</Select.Root>
+			</Field.Control>
+		</Field.Item>
+	);
 };
 
 /**
- * The variant picker above a scenario. A plain GET form: the browser builds
- * the query string from the field names and loads the page again, so every
- * variant mounts the way the driver measures it, marks included.
+ * The scenario picker above the benchmark. A pick loads the page again with
+ * the new query, so every variant mounts the way the driver measures it. The
+ * number fields and the checkbox submit the form, which reads them back
+ * through `readConfig`.
  *
  * @example
  * ```tsx
  * <Controls config={readConfig(location.search)} />
  * ```
  */
-export const Controls = ({ config }: { config: Config }) => (
-	<form
-		method="get"
-		className="mx-auto flex w-[1100px] flex-wrap items-end gap-3 px-6 pt-4"
-		aria-label="Benchmark scenario"
-	>
-		<label className={FIELD}>
-			<span className={LABEL}>lib</span>
-			<select name="lib" defaultValue={config.lib} onChange={submitOnChange} className={CONTROL}>
-				{LIBS.map((lib) => (
-					<option key={lib} value={lib}>
-						{lib}
-					</option>
-				))}
-			</select>
-		</label>
-		<label className={FIELD}>
-			<span className={LABEL}>kind</span>
-			<select name="kind" defaultValue={config.kind} onChange={submitOnChange} className={CONTROL}>
-				{KINDS.map((kind) => (
-					<option key={kind} value={kind}>
-						{kind}
-					</option>
-				))}
-			</select>
-		</label>
-		<label className={FIELD}>
-			<span className={LABEL}>mode</span>
-			<select name="mode" defaultValue={config.mode} onChange={submitOnChange} className={CONTROL}>
-				{MODES.map((mode) => (
-					<option key={mode} value={mode}>
-						{mode}
-					</option>
-				))}
-			</select>
-		</label>
-		<label className={FIELD}>
-			<span className={LABEL}>n</span>
-			<input
-				name="n"
-				type="number"
-				min={1}
-				defaultValue={config.n}
-				className={cx(CONTROL, "w-24")}
+export const Controls = ({ config }: { config: Config }) => {
+	const submit = (event: FormEvent<HTMLFormElement>) => {
+		event.preventDefault();
+		const entries = [...new FormData(event.currentTarget).entries()].map(([key, value]) => [
+			key,
+			String(value),
+		]);
+		load(writeConfig(readConfig(`?${new URLSearchParams(entries).toString()}`)));
+	};
+	return (
+		<form
+			onSubmit={submit}
+			className="mx-auto flex w-[1100px] flex-wrap items-end gap-3 px-6 pt-4"
+			aria-label="Benchmark scenario"
+		>
+			<Pick
+				config={config}
+				name="animate"
+				label="Mount animation"
+				options={[
+					{ value: "1", label: "on" },
+					{ value: "0", label: "off" },
+				]}
 			/>
-		</label>
-		<label className={FIELD}>
-			<span className={LABEL}>points</span>
-			<input
-				name="points"
-				type="number"
-				min={1}
-				defaultValue={config.points}
-				className={cx(CONTROL, "w-24")}
+			<Pick
+				config={config}
+				name="kind"
+				label="Kind"
+				options={KINDS.map((kind) => ({ value: kind, label: kind }))}
 			/>
-		</label>
-		<label className={FIELD}>
-			<span className={LABEL}>gate</span>
-			<select name="gate" defaultValue={config.gate} onChange={submitOnChange} className={CONTROL}>
-				{GATES.map((gate) => (
-					<option key={gate} value={gate}>
-						{gate === "cv" ? "content-visibility" : "none"}
-					</option>
-				))}
-			</select>
-		</label>
-		<label className="flex items-center gap-2 pb-1 text-sm">
-			<input
-				name="nocharts"
-				type="checkbox"
-				value="1"
-				defaultChecked={config.noCharts}
-				onChange={submitOnChange}
+			<Pick
+				config={config}
+				name="mode"
+				label="Mode"
+				options={MODES.map((mode) => ({ value: mode, label: mode }))}
 			/>
-			<span>no charts</span>
-		</label>
-		<button type="submit" className={CONTROL}>
-			Load
-		</button>
-	</form>
-);
+			<Field.Item name="n" className="w-auto">
+				<Field.Label>Charts or rows</Field.Label>
+				<Field.Control>
+					<Input name="n" type="number" min={1} defaultValue={config.n} className="w-28" />
+				</Field.Control>
+			</Field.Item>
+			<Field.Item name="points" className="w-auto">
+				<Field.Label>Rows per chart</Field.Label>
+				<Field.Control>
+					<Input
+						name="points"
+						type="number"
+						min={1}
+						defaultValue={config.points}
+						className="w-28"
+					/>
+				</Field.Control>
+			</Field.Item>
+			<Pick
+				config={config}
+				name="gate"
+				label="Card gate"
+				options={GATES.map((gate) => ({
+					value: gate,
+					label: gate === "cv" ? "content-visibility" : "none",
+				}))}
+			/>
+			<Label className="flex items-center gap-2 pb-2">
+				<Checkbox
+					name="nocharts"
+					defaultValue="1"
+					defaultChecked={config.noCharts}
+					onChange={(event) => event.currentTarget.form?.requestSubmit()}
+				/>
+				No charts
+			</Label>
+			<Button type="submit" appearance="outlined" intent="neutral">
+				Load
+			</Button>
+		</form>
+	);
+};

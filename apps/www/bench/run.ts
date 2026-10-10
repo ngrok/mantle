@@ -10,12 +10,13 @@ import { appendFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { chromium } from "playwright";
 import type { Browser, CDPSession, Page } from "playwright";
-import type { Gate, Kind, Lib, Mode } from "../app/features/chart-bench/config";
+import type { Gate, Kind, Mode } from "../app/features/chart-bench/config";
 import type { BenchSnapshot } from "../app/features/chart-bench/metrics";
 import { BENCH_PATH, RESULTS_DIR, startServer } from "./serve";
 
 type Case = {
-	lib: Lib;
+	/** Whether the charts play their mount animation. */
+	animate: boolean;
 	kind: Kind;
 	mode: Mode;
 	n: number;
@@ -93,7 +94,7 @@ const readArg = (name: string): string | undefined => {
 };
 const hasFlag = (name: string): boolean => process.argv.includes(`--${name}`);
 
-const ALL_LIBS: readonly Lib[] = ["mantle", "mantle-static"];
+const ALL_ANIMATE: readonly string[] = ["on", "off"];
 const ALL_KINDS: readonly Kind[] = ["line", "bar", "area", "scatter"];
 
 const parseList = <T extends string>(value: string | undefined, all: readonly T[]): T[] => {
@@ -106,7 +107,8 @@ const parseList = <T extends string>(value: string | undefined, all: readonly T[
 
 const buildMatrix = (): Case[] => {
 	const matrix = readArg("matrix") ?? "smoke";
-	const libs = parseList(readArg("libs"), ALL_LIBS);
+	// Why on and off: the mount animation is the one chart option the bench varies.
+	const animations = parseList(readArg("animate"), ALL_ANIMATE).map((value) => value === "on");
 	const kinds = parseList(readArg("kinds"), ALL_KINDS);
 	const throttles = (readArg("throttle") ?? "1").split(",").map(Number);
 	const dpr = Number(readArg("dpr") ?? 2);
@@ -120,9 +122,9 @@ const buildMatrix = (): Case[] => {
 			if (matrix === "smoke" || matrix === "list" || matrix === "all") {
 				const counts = matrix === "smoke" ? [10] : listCounts;
 				for (const n of counts) {
-					for (const lib of libs) {
+					for (const animate of animations) {
 						cases.push({
-							lib,
+							animate,
 							kind,
 							mode: "list",
 							n,
@@ -136,8 +138,8 @@ const buildMatrix = (): Case[] => {
 			}
 			if (matrix === "table" && kind === "bar") {
 				for (const n of listCounts) {
-					for (const lib of libs) {
-						cases.push({ lib, kind, mode: "table", n, points: 30, throttle, dpr, gate });
+					for (const animate of animations) {
+						cases.push({ animate, kind, mode: "table", n, points: 30, throttle, dpr, gate });
 					}
 				}
 			}
@@ -146,8 +148,8 @@ const buildMatrix = (): Case[] => {
 				for (const points of sizes) {
 					// Bars past 10k categories are narrower than a device pixel.
 					const rows = kind === "bar" ? Math.min(points / 10, 10_000) : points;
-					for (const lib of libs) {
-						cases.push({ lib, kind, mode: "dense", n: 1, points: rows, throttle, dpr, gate });
+					for (const animate of animations) {
+						cases.push({ animate, kind, mode: "dense", n: 1, points: rows, throttle, dpr, gate });
 					}
 				}
 			}
@@ -158,7 +160,7 @@ const buildMatrix = (): Case[] => {
 
 const caseUrl = (base: string, item: Case): string => {
 	const params = new URLSearchParams({
-		lib: item.lib,
+		animate: item.animate ? "1" : "0",
 		kind: item.kind,
 		mode: item.mode,
 		n: String(item.n),
@@ -374,7 +376,7 @@ const measure = async (
 				path: path.join(
 					RESULTS_DIR,
 					"shots",
-					`${item.lib}-${item.kind}-${item.mode}-n${item.n}-p${item.points}.png`,
+					`${item.animate ? "animated" : "static"}-${item.kind}-${item.mode}-n${item.n}-p${item.points}.png`,
 				),
 			});
 		}
@@ -508,7 +510,7 @@ const main = async (): Promise<void> => {
 					? `mount ${Math.round(result.timing?.mountMs ?? 0)}ms quiet ${Math.round(result.timing?.quietAtMs ?? 0)}ms task ${Math.round(result.startup?.taskMs ?? 0)}ms tbt ${Math.round(result.startup?.tbtMs ?? 0)}ms upd ${Math.round(result.updateReplace?.taskMs ?? 0)}/${Math.round(result.updateShift?.taskMs ?? 0)}ms heap ${result.memory?.jsHeapMB}MB`
 					: `ERROR ${result.error}`;
 				console.log(
-					`[${done}/${total} eta ${eta}s] ${item.lib} ${item.kind} ${item.mode} n=${item.n} p=${item.points} x${item.throttle}: ${summary}${result.pageErrors.length > 0 ? ` pageErrors=${result.pageErrors.length}` : ""}`,
+					`[${done}/${total} eta ${eta}s] ${item.animate ? "animated" : "static"} ${item.kind} ${item.mode} n=${item.n} p=${item.points} x${item.throttle}: ${summary}${result.pageErrors.length > 0 ? ` pageErrors=${result.pageErrors.length}` : ""}`,
 				);
 			}
 		}

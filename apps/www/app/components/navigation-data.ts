@@ -472,6 +472,14 @@ export const migrations = [
 			"Tabs.List no longer draws a border: compose Tabs.Separator after the list, delete hideBorder, and set --tabs-gap instead of a gap-* class on Tabs.Root.",
 		route: "/migrations/0008-tabs-separator-migration",
 	},
+	{
+		number: 9,
+		slug: "chart-root-mode-migration",
+		title: "Chart Root Mode",
+		description:
+			'The chart Roots take mode in place of the decorative boolean: rewrite decorative to mode="decorative", and move sparklines to mode="static".',
+		route: "/migrations/0009-chart-root-mode-migration",
+	},
 ] as const satisfies readonly Migration[];
 
 /** Migration guides, newest first: the order the index page and the sidebar show. */

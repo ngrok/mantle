@@ -166,6 +166,7 @@ const migrationsPages = [
 	"0006-data-table-tanstack-v9-migration",
 	"0007-app-layout-header-slots-migration",
 	"0008-tabs-separator-migration",
+	"0009-chart-root-mode-migration",
 ];
 
 export default [

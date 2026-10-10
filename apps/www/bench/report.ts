@@ -8,7 +8,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 type Row = Record<string, unknown> & {
-	lib: string;
+	animate: boolean;
 	kind: string;
 	mode: string;
 	n: number;
@@ -36,7 +36,7 @@ if (files.length === 0) {
 const isRow = (value: unknown): value is Row =>
 	typeof value === "object" &&
 	value != null &&
-	"lib" in value &&
+	"animate" in value &&
 	"kind" in value &&
 	!("meta" in value);
 
@@ -94,7 +94,11 @@ const fmt = (value: number): string => {
 	return value.toFixed(2);
 };
 
-const LIB_ORDER = ["mantle", "mantle-static"];
+/** The animation rows of a section, and the label each one prints. */
+const ANIMATE_ORDER = [
+	{ animate: true, label: "animated" },
+	{ animate: false, label: "static" },
+] as const;
 const KIND_ORDER = ["line", "bar", "area", "scatter"];
 
 type Column = { label: string; key: string };
@@ -171,7 +175,7 @@ const sectionOf = (row: Row): Section => ({
 const sectionKey = (section: Section): string =>
 	`${section.mode}|${section.kind}|${section.n}|${section.points}|${section.throttle}|${section.gate}|${section.dpr}`;
 
-const groupKey = (row: Row): string => `${sectionKey(sectionOf(row))}|${row.lib}`;
+const groupKey = (row: Row): string => `${sectionKey(sectionOf(row))}|${row.animate}`;
 
 const groups = new Map<string, Row[]>();
 for (const row of rows) {
@@ -210,11 +214,11 @@ const sortedSections = [...sections.values()].toSorted((left, right) => {
 });
 
 const table = (section: Section, columns: Column[]): string => {
-	const header = `| lib | runs | ${columns.map((column) => column.label).join(" | ")} |`;
+	const header = `| animation | runs | ${columns.map((column) => column.label).join(" | ")} |`;
 	const divider = `| --- | ---: | ${columns.map(() => "---:").join(" | ")} |`;
 	const lines = [header, divider];
-	for (const lib of LIB_ORDER) {
-		const list = groups.get(`${sectionKey(section)}|${lib}`);
+	for (const { animate, label } of ANIMATE_ORDER) {
+		const list = groups.get(`${sectionKey(section)}|${animate}`);
 		if (list == null) {
 			continue;
 		}
@@ -229,7 +233,7 @@ const table = (section: Section, columns: Column[]): string => {
 		const failures = list.length - okRows.length;
 		const errors = list.flatMap((row) => row.pageErrors).length;
 		const note = `${okRows.length}/${list.length}${failures > 0 ? ` ✗${failures}` : ""}${errors > 0 ? ` ⚠${errors}` : ""}`;
-		lines.push(`| ${lib} | ${note} | ${cells.join(" | ")} |`);
+		lines.push(`| ${label} | ${note} | ${cells.join(" | ")} |`);
 	}
 	return lines.join("\n");
 };
@@ -265,7 +269,7 @@ for (const section of sortedSections) {
 		out.push(`### errors\n`);
 		for (const row of failed) {
 			out.push(
-				`- ${row.lib} run ${String(row.run)}: ${row.error ?? ""} ${[...new Set(row.pageErrors)].slice(0, 3).join(" | ")}`,
+				`- ${row.animate ? "animated" : "static"} run ${String(row.run)}: ${row.error ?? ""} ${[...new Set(row.pageErrors)].slice(0, 3).join(" | ")}`,
 			);
 		}
 		out.push("");

@@ -2,6 +2,7 @@
 
 import type {
 	ChartAccessibilityProps,
+	ChartMode,
 	ChartRootBaseProps,
 	CopyButtonPrimitiveProps,
 	GridPrimitiveProps,
@@ -36,11 +37,11 @@ import {
  * zero baseline, so the y domain minimum is fixed at `0` — a truncated-bar
  * axis is unrepresentable.
  */
-type BarChartRootProps<TDatum extends ChartDatum = ChartDatum> = Omit<
-	ChartRootBaseProps,
-	"yDomain"
-> &
-	ChartAccessibilityProps & {
+type BarChartRootProps<
+	TDatum extends ChartDatum = ChartDatum,
+	TMode extends ChartMode = "interactive",
+> = Omit<ChartRootBaseProps, "yDomain"> &
+	ChartAccessibilityProps<TMode> & {
 		/** Rows of data; each `BarChart.Bar` reads one numeric key per row. */
 		data: readonly TDatum[];
 		/** The key of each row's category (x) value. */
@@ -180,9 +181,9 @@ type BarChartCopyButtonProps = CopyButtonPrimitiveProps;
  *
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
- * | `data-slot` | `"bar-chart-description"` | The `sr-only` description the overlay's `aria-describedby` points at: the chart kind, the category count, the first and last category, the series labels, and the keyboard instructions. Omitted when `decorative`. |
- * | `data-slot` | `"bar-chart-data-table"` | The `sr-only` data table. Mounts once focus lands inside the chart (`data-state` flips to `"engaged"`) and stays. Omitted when `decorative`. |
- * | `data-state` | `"dormant"` \| `"engaged"` | On the Root. Flips to `"engaged"` once focus lands inside the chart, and never flips back. The data table mounts with it. Visibility paints the chart but never flips it. Omitted when `decorative`. |
+ * | `data-slot` | `"bar-chart-description"` | The `sr-only` description the overlay's `aria-describedby` points at: the chart kind, the category count, the first and last category, the series labels, and, on an interactive chart, the keyboard instructions. Omitted when `mode="decorative"`. |
+ * | `data-slot` | `"bar-chart-data-table"` | The `sr-only` data table. Mounts once focus lands inside the chart (`data-state` flips to `"engaged"`) and stays. Interactive charts only. |
+ * | `data-state` | `"dormant"` \| `"engaged"` | On the Root. Flips to `"engaged"` once focus lands inside the chart, and never flips back. The data table mounts with it. Visibility paints the chart but never flips it. Interactive charts only. |
  *
  * @see https://mantle.ngrok.com/components/charts/bar-chart#barchartroot
  *
@@ -204,9 +205,9 @@ type BarChartCopyButtonProps = CopyButtonPrimitiveProps;
  * </BarChart.Root>
  * ```
  */
-const Root = <TDatum extends ChartDatum = ChartDatum>(props: BarChartRootProps<TDatum>) => (
-	<ChartRootPrimitive kind="bar" componentName="BarChart" slotName="bar-chart" {...props} />
-);
+const Root = <TDatum extends ChartDatum = ChartDatum, TMode extends ChartMode = "interactive">(
+	props: BarChartRootProps<TDatum, TMode>,
+) => <ChartRootPrimitive kind="bar" componentName="BarChart" slotName="bar-chart" {...props} />;
 
 /**
  * One bar series. Renders nothing itself — it registers the series with the
@@ -667,6 +668,7 @@ export type {
 	BarChartXAxisProps,
 	BarChartYAxisProps,
 	ChartDatumEvent,
+	ChartMode,
 };
 export {
 	//,

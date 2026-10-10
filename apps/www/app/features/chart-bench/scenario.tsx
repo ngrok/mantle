@@ -16,11 +16,19 @@ if (typeof window !== "undefined") {
 }
 
 const rowsFor = (config: Config, seed: number): readonly Row[] => {
-	if (config.kind === "bar" || config.mode === "table") {
+	if (config.kind === "bar") {
 		return categoryRows(config.points, seed);
 	}
 	if (config.mode === "dense") {
 		return sampleRows(config.points, seed);
+	}
+	return timeRows(config.points, seed);
+};
+
+/** The table row's second series: sparse bars, or a second walk for the other kinds. */
+const releasesFor = (config: Config, seed: number): readonly Row[] => {
+	if (config.kind === "bar") {
+		return sparseRows(config.points, seed);
 	}
 	return timeRows(config.points, seed);
 };
@@ -32,19 +40,24 @@ const EMPTY_POINTS: readonly PointRow[] = [];
 type Item = {
 	index: number;
 	rows: readonly Row[];
-	/** The table row's second series, zero most of the time; empty outside table mode. */
+	/** The table row's second series; empty outside table mode. */
 	releases: readonly Row[];
 	points: readonly PointRow[];
+	/** The scatter table row's second cloud; empty otherwise. */
+	releasePoints: readonly PointRow[];
 };
 
 const buildItems = (config: Config, seedOffset: number): Item[] =>
 	Array.from({ length: config.n }, (_, index) => {
 		const seed = index + 1 + seedOffset;
+		const scatter = config.kind === "scatter";
+		const table = config.mode === "table";
 		return {
 			index,
-			rows: config.kind === "scatter" ? EMPTY_ROWS : rowsFor(config, seed),
-			releases: config.mode === "table" ? sparseRows(config.points, seed + 100_000) : EMPTY_ROWS,
-			points: config.kind === "scatter" ? pointRows(config.points, seed) : EMPTY_POINTS,
+			rows: scatter ? EMPTY_ROWS : rowsFor(config, seed),
+			releases: table && !scatter ? releasesFor(config, seed + 100_000) : EMPTY_ROWS,
+			points: scatter ? pointRows(config.points, seed) : EMPTY_POINTS,
+			releasePoints: table && scatter ? pointRows(config.points, seed + 100_000) : EMPTY_POINTS,
 		};
 	});
 
@@ -63,10 +76,22 @@ const slide = (rows: readonly Row[]): readonly Row[] => {
 	return [...rows.slice(1), { x: nextX, a: last.a * 1.05, b: last.b * 0.95 }];
 };
 
+/** The point-cloud slide: drops the oldest point and appends one. An empty cloud keeps its identity. */
+const slidePoints = (points: readonly PointRow[]): readonly PointRow[] => {
+	const last = points[points.length - 1];
+	if (last == null) {
+		return points;
+	}
+	return [...points.slice(1), { x: last.x + 1, y: last.y + 3 }];
+};
+
 const shiftItem = (item: Item, config: Config): Item => {
 	if (config.kind === "scatter") {
-		const last = item.points[item.points.length - 1] ?? { x: 0, y: 0 };
-		return { ...item, points: [...item.points.slice(1), { x: last.x + 1, y: last.y + 3 }] };
+		return {
+			...item,
+			points: slidePoints(item.points),
+			releasePoints: slidePoints(item.releasePoints),
+		};
 	}
 	return { ...item, rows: slide(item.rows), releases: slide(item.releases) };
 };
@@ -125,17 +150,21 @@ const Ready = () => {
 const features = tableFeatures({});
 const columnHelper = createColumnHelper<typeof features, Item>();
 
-/** The sum of a series, the number beside its sparkline. */
-const total = (rows: readonly Row[]): number =>
-	Math.round(rows.reduce((sum, row) => sum + row.a, 0));
+/** The sum of a series, the number beside its sparkline: the `a` values, or a cloud's `y` values. */
+const total = (rows: readonly Row[], points: readonly PointRow[]): number =>
+	Math.round(
+		rows.reduce((sum, row) => sum + row.a, 0) + points.reduce((sum, point) => sum + point.y, 0),
+	);
 
 /** A sparkline and its total, or the empty box of the `nocharts` floor. */
 const SparklineCell = ({
 	rows,
+	points,
 	label,
 	config,
 }: {
 	rows: readonly Row[];
+	points: readonly PointRow[];
 	label: string;
 	config: Config;
 }) => (
@@ -144,9 +173,17 @@ const SparklineCell = ({
 			{config.noCharts ? (
 				<div className="h-6 w-28" />
 			) : (
-				<MantleSparkline data={rows} animate={config.lib === "mantle"} label={label} />
+				<MantleSparkline
+					kind={config.kind}
+					rows={rows}
+					points={points}
+					animate={config.animate}
+					label={label}
+				/>
 			)}
-			<span className="text-muted min-w-10 text-right text-xs tabular-nums">{total(rows)}</span>
+			<span className="text-muted min-w-10 text-right text-xs tabular-nums">
+				{total(rows, points)}
+			</span>
 		</div>
 	</DataTable.Cell>
 );
@@ -185,23 +222,25 @@ const tableColumns = (config: Config) =>
 				</DataTable.Cell>
 			),
 		}),
-		columnHelper.accessor("rows", {
+		columnHelper.display({
 			id: "requests",
 			header: () => <DataTable.Header className="w-44">Requests</DataTable.Header>,
 			cell: (props) => (
 				<SparklineCell
-					rows={props.getValue()}
+					rows={props.row.original.rows}
+					points={props.row.original.points}
 					label={`Requests for app ${props.row.original.index + 1}`}
 					config={config}
 				/>
 			),
 		}),
-		columnHelper.accessor("releases", {
+		columnHelper.display({
 			id: "releases",
 			header: () => <DataTable.Header className="w-44">Releases</DataTable.Header>,
 			cell: (props) => (
 				<SparklineCell
-					rows={props.getValue()}
+					rows={props.row.original.releases}
+					points={props.row.original.releasePoints}
 					label={`Releases for app ${props.row.original.index + 1}`}
 					config={config}
 				/>
@@ -221,7 +260,8 @@ const SparklineTable = ({ config, items }: { config: Config; items: Item[] }) =>
 	return (
 		<main className="mx-auto w-[1100px] p-6">
 			<h1 className="mb-4 text-lg font-semibold">
-				{config.lib} / sparkline table / n={config.n} rows × 2 charts / points={config.points}
+				{config.kind} sparkline table / n={config.n} rows × 2 charts / points={config.points} /
+				animation {config.animate ? "on" : "off"}
 				{config.noCharts && " / no charts"}
 			</h1>
 			<DataTable.Root table={table} className="[&_table]:table-fixed">
@@ -266,7 +306,8 @@ export const Scenario = ({ config }: { config: Config }) => {
 	return (
 		<main className="mx-auto flex w-[640px] flex-col gap-6 p-6">
 			<h1 className="text-lg font-semibold">
-				{config.lib} / {config.kind} / {config.mode} / n={config.n} / points={config.points}
+				{config.kind} / {config.mode} / n={config.n} / points={config.points} / animation{" "}
+				{config.animate ? "on" : "off"}
 				{config.gate === "cv" && " / content-visibility"}
 			</h1>
 			{items.map((item) => (

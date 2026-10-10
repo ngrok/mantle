@@ -12,6 +12,7 @@ import { BarChart } from "../bar-chart/index.js";
 import { LineChart } from "../line-chart/index.js";
 import { datumValue } from "./datum.js";
 import { ChartStore } from "./store.js";
+import { ValueTween } from "./tween.js";
 import type { HoverSnapshot, SeriesMeta } from "./types.js";
 
 // Why a spied module: `datumValue` is the single read point for chart rows. The
@@ -594,7 +595,7 @@ describe("tooltip surface latch", () => {
 		await user.keyboard("{ArrowRight}");
 		expect(container.querySelector('[data-slot="bar-chart-tooltip"]')).toBeInTheDocument();
 		rerender(
-			<BarChart.Root data={data} xKey="month" decorative>
+			<BarChart.Root data={data} xKey="month" mode="decorative">
 				<BarChart.Bar dataKey="desktop" label="Desktop" />
 				<BarChart.Tooltip />
 			</BarChart.Root>,
@@ -621,6 +622,82 @@ describe("tooltip surface latch", () => {
 		await user.keyboard("{Escape}");
 		expect(container.querySelector('[data-slot="bar-chart-tooltip"]')).toBe(tooltip);
 		expect(tooltip).toHaveStyle({ opacity: "0" });
+	});
+});
+
+describe("static mode", () => {
+	const sparkline = (extra?: ReactNode) => (
+		<BarChart.Root data={data} xKey="month" mode="static" aria-label="Visitors by month">
+			<BarChart.Bar dataKey="desktop" label="Desktop" />
+			{extra}
+		</BarChart.Root>
+	);
+
+	test("the plot is a named image, described without the keyboard sentence, with no Tab stop", () => {
+		const { container } = render(sparkline());
+		const image = screen.getByRole("img", { name: "Visitors by month" });
+		expect(image).toHaveAttribute("data-slot", "bar-chart-plot");
+		expect(image).toHaveAccessibleDescription(
+			"Bar chart with 3 categories from January to March. Series: Desktop.",
+		);
+		expect(screen.queryByRole("application")).toBeNull();
+		expect(container.querySelector("[tabindex]")).toBeNull();
+		expect(container.querySelector('[data-slot="bar-chart"]')).not.toHaveAttribute("data-state");
+	});
+
+	test("a static chart keeps its palette", () => {
+		// Two series: a single-series chart renders no legend to read a swatch from.
+		const { container } = render(
+			sparkline(
+				<>
+					<BarChart.Bar dataKey="mobile" label="Mobile" />
+					<BarChart.Legend />
+				</>,
+			),
+		);
+		const swatches = [
+			...container.querySelectorAll<HTMLElement>(
+				'[data-slot="bar-chart-legend"] span[data-texture]',
+			),
+		];
+		expect(swatches.map((swatch) => swatch.style.backgroundColor)).toEqual([
+			"var(--color-chart-1)",
+			"var(--color-chart-2)",
+		]);
+	});
+
+	test("focus on a composed part engages no table, and a Tooltip part mounts no surface", async () => {
+		const user = userEvent.setup();
+		const { container } = render(
+			sparkline(
+				<>
+					<BarChart.Tooltip />
+					<BarChart.CopyButton />
+				</>,
+			),
+		);
+		await user.tab();
+		expect(screen.getByRole("button")).toHaveFocus();
+		expect(screen.queryByRole("table")).toBeNull();
+		expect(container.querySelector('[data-slot="bar-chart-tooltip"]')).toBeNull();
+	});
+
+	test("a static chart plays no reveal unless `animate` asks for one", () => {
+		const retarget = vi.spyOn(ValueTween.prototype, "retarget");
+		const reveals = () =>
+			retarget.mock.calls.filter(
+				([target, options]) =>
+					Array.isArray(target) && target[0] === 1 && (options?.duration ?? 0) > 0,
+			).length;
+		const { unmount } = render(sparkline());
+		expect(reveals()).toBe(0);
+		unmount();
+		render(
+			<BarChart.Root data={data} xKey="month" mode="static" animate aria-label="Visitors by month">
+				<BarChart.Bar dataKey="desktop" label="Desktop" />
+			</BarChart.Root>,
+		);
+		expect(reveals()).toBe(1);
 	});
 });
 
@@ -671,7 +748,7 @@ describe("description series sentence", () => {
 
 	test("a Root that turns interactive after a decorative render describes its series", () => {
 		const { rerender } = render(
-			<BarChart.Root data={data} xKey="month" decorative>
+			<BarChart.Root data={data} xKey="month" mode="decorative">
 				<BarChart.Bar dataKey="desktop" label="Desktop" />
 			</BarChart.Root>,
 		);

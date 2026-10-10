@@ -1,5 +1,5 @@
 /**
- * A compact cross-table for the write-up: one row per (case, lib) with the
+ * A compact cross-table for the write-up: one row per (case, animation) with the
  * handful of columns that decide the comparison. Medians over runs.
  * Run: `pnpm exec tsx bench/summary.ts bench/results/list.jsonl [more.jsonl]`.
  */
@@ -7,7 +7,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 
 type Row = Record<string, unknown> & {
-	lib: string;
+	animate: boolean;
 	kind: string;
 	mode: string;
 	n: number;
@@ -26,7 +26,7 @@ const files = process.argv.slice(2).filter((argument) => !argument.startsWith("-
 const isRow = (value: unknown): value is Row =>
 	typeof value === "object" &&
 	value != null &&
-	"lib" in value &&
+	"animate" in value &&
 	"kind" in value &&
 	!("meta" in value);
 
@@ -80,7 +80,10 @@ const COLUMNS = [
 	["DOM", "memory.domNodes"],
 ] as const;
 
-const LIB_ORDER = ["mantle", "mantle-static"];
+const ANIMATE_ORDER = [
+	{ animate: true, label: "animated" },
+	{ animate: false, label: "static" },
+] as const;
 // Why every input: a gate or a pixel ratio changes the measured scenario, so it never shares a median.
 const caseKey = (row: Row) =>
 	`${row.mode}|${row.kind}|${row.n}|${row.points}|${row.throttle}|${row.twin ? "twin" : ""}|${row.gate ?? "none"}|${row.dpr ?? 2}`;
@@ -98,13 +101,13 @@ const fmt = (value: number | undefined): string => {
 	return Math.abs(value) >= 100 ? String(Math.round(value)) : value.toFixed(1);
 };
 
-console.log(`| case | lib | ${COLUMNS.map(([label]) => label).join(" | ")} |`);
+console.log(`| case | animation | ${COLUMNS.map(([label]) => label).join(" | ")} |`);
 console.log(`| --- | --- | ${COLUMNS.map(() => "---:").join(" | ")} |`);
 for (const [key, list] of cases) {
 	const [mode, kind, n, points, throttle, twin, gate, dpr] = key.split("|");
 	const label = `${mode} ${kind} ${mode === "dense" ? `${Number(points).toLocaleString()} rows` : `n=${n}`} ×${throttle} @${dpr}x${twin ? " +twin" : ""}${gate === "cv" ? " +cv" : ""}`;
-	for (const lib of LIB_ORDER) {
-		const libRows = list.filter((row) => row.lib === lib);
+	for (const { animate, label: animation } of ANIMATE_ORDER) {
+		const libRows = list.filter((row) => row.animate === animate);
 		if (libRows.length === 0) {
 			continue;
 		}
@@ -115,6 +118,6 @@ for (const [key, list] of cases) {
 				),
 			),
 		);
-		console.log(`| ${label} | ${lib} (${libRows.length}) | ${cells.join(" | ")} |`);
+		console.log(`| ${label} | ${animation} (${libRows.length}) | ${cells.join(" | ")} |`);
 	}
 }
