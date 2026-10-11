@@ -107,6 +107,20 @@ describe("TruncatedText", () => {
 		expect(root.querySelector('[data-slot="truncated-text-tail"]')).toHaveTextContent("imit=200");
 	});
 
+	test("exposes the whole value once to assistive technology and hides the segments", () => {
+		renderValue();
+		const root = screen.getByTestId("value");
+		expect(root.querySelector('[data-slot="truncated-text-value"]')).toHaveTextContent(url);
+		expect(root.querySelector('[data-slot="truncated-text-head"]')).toHaveAttribute(
+			"aria-hidden",
+			"true",
+		);
+		expect(root.querySelector('[data-slot="truncated-text-tail"]')).toHaveAttribute(
+			"aria-hidden",
+			"true",
+		);
+	});
+
 	test("`tail` picks how many graphemes stay visible", () => {
 		renderValue({ tail: 3 });
 		const root = screen.getByTestId("value");
@@ -382,6 +396,7 @@ describe("TruncatedText", () => {
 		);
 
 		expect(root.querySelector("font")).toBeNull();
+		expect(root.querySelector('[data-slot="truncated-text-value"]')).toHaveTextContent("ep_2abcd");
 		expect(root.querySelector('[data-slot="truncated-text-head"]')).toHaveTextContent("");
 		expect(root.querySelector('[data-slot="truncated-text-tail"]')).toHaveTextContent("ep_2abcd");
 	});

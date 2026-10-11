@@ -129,8 +129,9 @@ const tailClassName = "inline-block min-w-(--_tail-width) align-bottom";
  * token) on a single line. When the value overflows its container, the head
  * clips with one ellipsis and the last `tail` graphemes stay visible, because
  * the tail is the part that tells two values apart. When the value fits, it
- * renders plain. The full value stays in the DOM, so a screen reader reads all
- * of it. A tooltip shows the full value on hover only while it overflows.
+ * renders plain. A visually hidden copy of the value gives a screen reader the
+ * whole value as one string. A tooltip shows the full value on hover only while
+ * it overflows.
  *
  * **When to use**
  * - A URL, an ID, an image reference, or a token in a table cell, a description
@@ -167,9 +168,15 @@ const tailClassName = "inline-block min-w-(--_tail-width) align-bottom";
  * overflows. It needs a `TooltipProvider` ancestor, like every mantle tooltip,
  * and throws without one. The server render and the first client render assume
  * no overflow; the measurement after mount adds the tooltip and `data-truncated`.
- * While the value overflows, the root is focusable, so a keyboard user can open
- * the tooltip with Tab. A value that fits is not a tab stop. A `tabIndex` prop
- * wins in both states.
+ * While the value overflows, the root is focusable, so Tab reaches it, a screen
+ * reader announces the whole value, and the tooltip opens. A value that fits is
+ * not a tab stop. A `tabIndex` prop wins in both states.
+ *
+ * **Accessibility.** The two visible segments are `aria-hidden`, because
+ * Chromium puts a space between two inline-block boxes in an accessible name.
+ * A visually hidden `<span data-slot="truncated-text-value">` holds the whole
+ * value instead, with `user-select: none`, so one click still copies the value
+ * once. A page-wide select-all copies it twice, like any visually hidden label.
  *
  * **Translation.** The root and the tooltip carry `translate="no"` by default,
  * because the component exists for values a reader copies. When the value is
@@ -187,6 +194,7 @@ const tailClassName = "inline-block min-w-(--_tail-width) align-bottom";
  * | `data-slot`      | `"truncated-text"`                                 | On the root, and joined onto the child via `asChild`.                              |
  * | `data-slot`      | `"truncated-text-head"`                            | On the `<span>` that clips. Holds everything before the tail.                      |
  * | `data-slot`      | `"truncated-text-tail"`                            | On the `<span>` that stays visible. Holds the last `tail` graphemes.               |
+ * | `data-slot`      | `"truncated-text-value"`                           | On the visually hidden `<span>` that holds the whole value for assistive technology. |
  * | `data-truncated` | present while the value overflows                  | Presence-only. Style with `data-truncated:`. Absent on the server render.          |
  * | `data-state`     | `"closed"` \| `"delayed-open"` \| `"instant-open"` | The tooltip state Radix stamps on the root.                                        |
  *
@@ -277,10 +285,15 @@ const TruncatedText = ({
 
 	const segments = (
 		<>
-			<span ref={headRef} data-slot="truncated-text-head" className={headClassName}>
+			{/* Why the hidden copy: a screen reader reads the two boxes below as two
+			    strings, so they are hidden from it and this one text node is not. */}
+			<span data-slot="truncated-text-value" className="sr-only select-none">
+				{value}
+			</span>
+			<span ref={headRef} aria-hidden data-slot="truncated-text-head" className={headClassName}>
 				{head}
 			</span>
-			<span ref={tailRef} data-slot="truncated-text-tail" className={tailClassName}>
+			<span ref={tailRef} aria-hidden data-slot="truncated-text-tail" className={tailClassName}>
 				{tailText}
 			</span>
 		</>

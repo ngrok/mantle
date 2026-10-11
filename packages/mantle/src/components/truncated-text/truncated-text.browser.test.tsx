@@ -24,6 +24,8 @@ const LAYOUT_STYLE = `
 	.max-w-full { max-width: 100%; }
 	.whitespace-nowrap { white-space: nowrap; }
 	.select-all { -webkit-user-select: all; user-select: all; }
+	.select-none { -webkit-user-select: none; user-select: none; }
+	.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0; }
 	.overflow-hidden { overflow: hidden; }
 	.text-ellipsis { text-overflow: ellipsis; }
 	.align-bottom { vertical-align: bottom; }
@@ -192,6 +194,8 @@ test("one click selects the whole value across both segments", async () => {
 
 	await userEvent.click(root);
 
+	// The hidden copy for assistive technology carries `user-select: none`, so
+	// the value appears once.
 	expect(window.getSelection()?.toString()).toBe(url);
 });
 

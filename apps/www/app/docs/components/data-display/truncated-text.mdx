@@ -158,7 +158,9 @@ import { TruncatedText } from "@ngrok/mantle/truncated-text";
 
 ## Accessibility
 
-The full value stays in the DOM as two text nodes, so a screen reader reads all of it, and the ellipsis is a CSS effect it never announces. The tooltip opens on hover only while the value overflows. It needs a [`TooltipProvider`](/components/overlays/tooltip#tooltipprovider) ancestor, like every mantle tooltip, and throws without one. While the value overflows, the root is focusable, so Tab reaches it and opens the tooltip. A value that fits isn't a tab stop. A `tabIndex` prop wins in both states.
+A screen reader reads the whole value as one string. The two visible segments are `aria-hidden`, because Chromium puts a space between two inline-block boxes in an accessible name, and a visually hidden `<span>` holds the whole value instead. That copy carries `user-select: none`, so one click still copies the value once. A page-wide select-all copies it twice, like any visually hidden label. The ellipsis is a CSS effect, so nothing announces it.
+
+The tooltip opens on hover only while the value overflows. It needs a [`TooltipProvider`](/components/overlays/tooltip#tooltipprovider) ancestor, like every mantle tooltip, and throws without one. While the value overflows, the root is focusable, so Tab reaches it, a screen reader announces the whole value, and the tooltip opens. A value that fits isn't a tab stop. A `tabIndex` prop wins in both states.
 
 ## Translation
 
@@ -181,10 +183,11 @@ All props from [span](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/
 
 #### Data attributes
 
-| Data Attribute   | Value                                              | Description                                                               |
-| ---------------- | -------------------------------------------------- | ------------------------------------------------------------------------- |
-| `data-slot`      | `"truncated-text"`                                 | On the root, and joined onto the child via `asChild`.                     |
-| `data-slot`      | `"truncated-text-head"`                            | On the `<span>` that clips. Holds everything before the tail.             |
-| `data-slot`      | `"truncated-text-tail"`                            | On the `<span>` that stays visible. Holds the last `tail` graphemes.      |
-| `data-truncated` | present while the value overflows                  | Presence-only. Style with `data-truncated:`. Absent on the server render. |
-| `data-state`     | `"closed"` \| `"delayed-open"` \| `"instant-open"` | The tooltip state Radix stamps on the root.                               |
+| Data Attribute   | Value                                              | Description                                                                          |
+| ---------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `data-slot`      | `"truncated-text"`                                 | On the root, and joined onto the child via `asChild`.                                |
+| `data-slot`      | `"truncated-text-head"`                            | On the `<span>` that clips. Holds everything before the tail.                        |
+| `data-slot`      | `"truncated-text-tail"`                            | On the `<span>` that stays visible. Holds the last `tail` graphemes.                 |
+| `data-slot`      | `"truncated-text-value"`                           | On the visually hidden `<span>` that holds the whole value for assistive technology. |
+| `data-truncated` | present while the value overflows                  | Presence-only. Style with `data-truncated:`. Absent on the server render.            |
+| `data-state`     | `"closed"` \| `"delayed-open"` \| `"instant-open"` | The tooltip state Radix stamps on the root.                                          |
