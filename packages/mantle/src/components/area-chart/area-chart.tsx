@@ -169,7 +169,8 @@ type AreaChartCopyButtonProps = CopyButtonPrimitiveProps;
  * `area-chart-data-table`. An area chart shows the crosshair and one marker
  * dot per series, and never the band. The canvas and the three layers are
  * engine-owned: absent from server HTML and from a dormant chart, inserted at
- * activation (near the viewport, on focus, or before print). The tooltip
+ * activation (near the viewport, on focus, or before print). A static or
+ * decorative chart inserts the canvas alone. The tooltip
  * surface mounts on the first hover or keyboard step and stays.
  * Each hover dot carries `chart-active-point` plus a `data-shape` of
  * `"circle"`, `"square"`, `"triangle"`, `"diamond"`, `"triangle-down"`,

@@ -147,12 +147,71 @@ const onPrint = (view: Window, listeners: PrintListeners): (() => void) => {
 	};
 };
 
+type ResizeHandler = (entry: ResizeObserverEntry) => void;
+
+type ResizeWatch = {
+	observer: ResizeObserver;
+	handlers: Map<Element, ResizeHandler>;
+};
+
+const resizeWatches = new WeakMap<Document, ResizeWatch>();
+
+/**
+ * Report size changes of `element` through the one `ResizeObserver` its
+ * document holds. Every chart in a document shares it, so a page of 200
+ * sparklines constructs one observer instead of 200. Returns the function
+ * that stops the reports; the observer disconnects after the last one. A
+ * second call for the same element replaces its handler. Without a
+ * `ResizeObserver` (a test DOM) nothing reports.
+ *
+ * @example
+ * ```ts
+ * const stop = observeResize(plot, (entry) => engine.resize(entry.contentRect));
+ * ```
+ */
+const observeResize = (element: Element, onResize: ResizeHandler): (() => void) => {
+	if (typeof ResizeObserver === "undefined") {
+		return () => {};
+	}
+	const document = element.ownerDocument;
+	let watch = resizeWatches.get(document);
+	if (watch == null) {
+		const handlers = new Map<Element, ResizeHandler>();
+		watch = {
+			handlers,
+			observer: new ResizeObserver((entries) => {
+				for (const entry of entries) {
+					handlers.get(entry.target)?.(entry);
+				}
+			}),
+		};
+		resizeWatches.set(document, watch);
+	}
+	const current = watch;
+	current.handlers.set(element, onResize);
+	current.observer.observe(element);
+	return () => {
+		if (current.handlers.get(element) !== onResize) {
+			return;
+		}
+		current.handlers.delete(element);
+		current.observer.unobserve(element);
+		if (current.handlers.size === 0) {
+			current.observer.disconnect();
+			if (resizeWatches.get(document) === current) {
+				resizeWatches.delete(document);
+			}
+		}
+	};
+};
+
 export type {
 	//,
 	PrintListeners,
 };
 export {
 	//,
+	observeResize,
 	onPrint,
 	prefersReducedMotion,
 	watchDevicePixelRatio,

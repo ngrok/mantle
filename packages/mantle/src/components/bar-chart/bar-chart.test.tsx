@@ -179,16 +179,17 @@ describe("BarChart data slots", () => {
 		}
 	});
 
-	test("a decorative chart still renders the hover layers", () => {
-		// They sit outside the `decorative` guard on purpose: the engine drives
-		// their opacity, and a decorative chart never activates.
+	test("a decorative chart inserts the canvas alone", () => {
+		// Without an overlay nothing ever hovers, so the hover layers would be
+		// dead DOM; the canvas still paints the placeholder.
 		const { container } = render(
 			<BarChart.Root data={data} xKey="month" mode="decorative">
 				<BarChart.Bar dataKey="desktop" label="Desktop" />
 			</BarChart.Root>,
 		);
-		expect(container.querySelector('[data-slot="bar-chart-hover-band"]')).toBeInTheDocument();
-		expect(container.querySelector('[data-slot="bar-chart-markers"]')).toBeInTheDocument();
+		expect(container.querySelector('[data-slot="bar-chart-canvas"]')).toBeInTheDocument();
+		expect(container.querySelector('[data-slot="bar-chart-hover-band"]')).toBeNull();
+		expect(container.querySelector('[data-slot="bar-chart-markers"]')).toBeNull();
 		expect(container.querySelector('[role="application"]')).not.toBeInTheDocument();
 	});
 });

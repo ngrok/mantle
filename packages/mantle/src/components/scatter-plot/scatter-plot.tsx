@@ -183,7 +183,8 @@ type ScatterPlotCopyButtonProps = CopyButtonPrimitiveProps;
  * `scatter-plot-data-table`. A scatter plot shows one marker dot on the hit
  * point, and never the crosshair or the band. The canvas and the three
  * layers are engine-owned: absent from server HTML and from a dormant chart,
- * inserted at activation (near the viewport, on focus, or before print). The
+ * inserted at activation (near the viewport, on focus, or before print). A
+ * static or decorative chart inserts the canvas alone. The
  * tooltip surface mounts on the first hover or keyboard step and stays. That dot carries `chart-active-point` plus a `data-shape` of
  * `"circle"`, `"square"`, `"triangle"`, `"diamond"`, `"triangle-down"`,
  * `"plus"`, `"cross"`, or `"star"`, naming the glyph its series wears.

@@ -1,5 +1,10 @@
 import { expect, test, vi } from "vitest";
-import { onPrint, prefersReducedMotion, watchDevicePixelRatio } from "./environment.js";
+import {
+	observeResize,
+	onPrint,
+	prefersReducedMotion,
+	watchDevicePixelRatio,
+} from "./environment.js";
 
 type ChangeListener = () => void;
 
@@ -99,4 +104,70 @@ test("onPrint shares one listener pair per window and removes it after the last 
 	expect(remove).toHaveBeenCalledTimes(2);
 	window.dispatchEvent(new Event("beforeprint"));
 	expect(second.before).toHaveBeenCalledTimes(1);
+});
+
+/** A fake `ResizeObserver` that counts constructions and lets a test deliver entries. */
+const fakeResizeObserver = () => {
+	class Fake implements ResizeObserver {
+		readonly targets = new Set<Element>();
+		disconnected = false;
+		readonly callback: ResizeObserverCallback;
+		constructor(callback: ResizeObserverCallback) {
+			this.callback = callback;
+			instances.push(this);
+		}
+		observe(target: Element): void {
+			this.targets.add(target);
+		}
+		unobserve(target: Element): void {
+			this.targets.delete(target);
+		}
+		disconnect(): void {
+			this.targets.clear();
+			this.disconnected = true;
+		}
+	}
+	const instances: Fake[] = [];
+	const deliver = (target: Element): void => {
+		for (const instance of instances) {
+			if (instance.targets.has(target)) {
+				const entry: ResizeObserverEntry = {
+					target,
+					contentRect: new DOMRect(0, 0, 10, 10),
+					borderBoxSize: [],
+					contentBoxSize: [],
+					devicePixelContentBoxSize: [],
+				};
+				instance.callback([entry], instance);
+			}
+		}
+	};
+	return { Fake, instances, deliver };
+};
+
+test("observeResize shares one observer per document, routes each entry to its element, and disconnects after the last stop", () => {
+	const { Fake, instances, deliver } = fakeResizeObserver();
+	vi.stubGlobal("ResizeObserver", Fake);
+	const first = document.createElement("div");
+	const second = document.createElement("div");
+	const onFirst = vi.fn<(entry: ResizeObserverEntry) => void>();
+	const onSecond = vi.fn<(entry: ResizeObserverEntry) => void>();
+	const stopFirst = observeResize(first, onFirst);
+	const stopSecond = observeResize(second, onSecond);
+	expect(instances).toHaveLength(1);
+
+	deliver(second);
+	expect(onSecond).toHaveBeenCalledTimes(1);
+	expect(onFirst).toHaveBeenCalledTimes(0);
+
+	stopFirst();
+	expect(instances[0]?.disconnected).toBe(false);
+	deliver(first);
+	expect(onFirst).toHaveBeenCalledTimes(0);
+	stopSecond();
+	expect(instances[0]?.disconnected).toBe(true);
+
+	// The next observation after the last stop builds a fresh observer.
+	observeResize(first, onFirst);
+	expect(instances).toHaveLength(2);
 });

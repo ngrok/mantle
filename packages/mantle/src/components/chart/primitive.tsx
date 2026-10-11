@@ -29,6 +29,7 @@ import { assertChartKeys, datumValue } from "./datum.js";
 import type { XSummary } from "./describe.js";
 import { cancelActivation, promoteActivation, queueActivation } from "./activation.js";
 import { describeChartParts, describeSeries, scanX } from "./describe.js";
+import type { HoverLayers } from "./engine.js";
 import { ChartEngine, POINT_SHAPE_CLIP_PATHS } from "./engine.js";
 import { onPrint } from "./environment.js";
 import { formatNumber, formatXValue } from "./format.js";
@@ -459,18 +460,22 @@ const MARKERS_CLASS = "pointer-events-none absolute inset-0 opacity-0";
 
 type ChartLayers = {
 	canvas: HTMLCanvasElement;
-	crosshair: HTMLDivElement;
-	band: HTMLDivElement;
-	markers: HTMLDivElement;
+	/** The three hover layers; `null` on a static chart, which never hovers. */
+	hover: HoverLayers | null;
 };
 
 /**
- * Build the canvas and the three hover layers an engine paints and positions.
+ * Build the canvas and, for an interactive chart, the three hover layers an
+ * engine paints and positions.
  * The Root inserts them at activation and removes them with the engine, so
  * React never owns them: a dormant chart is the overlay and its description
  * alone.
  */
-const createChartLayers = (document: Document, slotName: string): ChartLayers => {
+const createChartLayers = (
+	document: Document,
+	slotName: string,
+	options: { hover: boolean },
+): ChartLayers => {
 	const layer = (slot: string, className: string): HTMLDivElement => {
 		const element = document.createElement("div");
 		element.setAttribute("data-slot", `${slotName}-${slot}`);
@@ -484,9 +489,13 @@ const createChartLayers = (document: Document, slotName: string): ChartLayers =>
 	canvas.className = CANVAS_CLASS;
 	return {
 		canvas,
-		crosshair: layer("crosshair", CROSSHAIR_CLASS),
-		band: layer("hover-band", HOVER_BAND_CLASS),
-		markers: layer("markers", MARKERS_CLASS),
+		hover: options.hover
+			? {
+					crosshair: layer("crosshair", CROSSHAIR_CLASS),
+					band: layer("hover-band", HOVER_BAND_CLASS),
+					markers: layer("markers", MARKERS_CLASS),
+				}
+			: null,
 	};
 };
 
@@ -558,6 +567,8 @@ const ChartRootPrimitive = ({
 	// focus, or prints. The tooltip surface mounts on the first hover.
 	const engineRef = useRef<ChartEngine | null>(null);
 	const layersRef = useRef<ChartLayers | null>(null);
+	/** Whether the engine effect's cleanup tore down a live engine, so its next run paints at once. */
+	const reactivateRef = useRef(false);
 	const activateRef = useRef<((rect: DOMRectReadOnly | null) => void) | null>(null);
 	// The observer's latest reports, kept for an engine created later, and
 	// whether focus holds the chart painted wherever it is.
@@ -657,11 +668,14 @@ const ChartRootPrimitive = ({
 			if (engineRef.current != null || root == null || plot == null) {
 				return;
 			}
-			const layers = createChartLayers(plot.ownerDocument, slotName);
+			const layers = createChartLayers(plot.ownerDocument, slotName, { hover: interactive });
 			// The canvas goes under the overlay; the hover layers go above it and
-			// let pointer events through.
+			// let pointer events through. A static chart has no hover, so its
+			// plot holds the canvas alone.
 			plot.prepend(layers.canvas);
-			plot.append(layers.crosshair, layers.band, layers.markers);
+			if (layers.hover != null) {
+				plot.append(layers.hover.crosshair, layers.hover.band, layers.hover.markers);
+			}
 			const size =
 				rect != null && rect.width > 0 && rect.height > 0
 					? { width: rect.width, height: rect.height }
@@ -669,7 +683,13 @@ const ChartRootPrimitive = ({
 			const engine = new ChartEngine({
 				kind,
 				store,
-				elements: { root, plot, ...layers, tooltip: tooltipRef.current },
+				elements: {
+					root,
+					plot,
+					canvas: layers.canvas,
+					hover: layers.hover,
+					tooltip: tooltipRef.current,
+				},
 				// Why false: the reveal must hold until the `visible` band reports
 				// the chart on screen; `setInView` below does not mark it seen.
 				inView: false,
@@ -689,7 +709,14 @@ const ChartRootPrimitive = ({
 			}
 			engine.commitNow();
 		};
+		// A mode change rebuilt the layers under an active chart, so it paints
+		// again now instead of waiting for the next visibility report.
+		if (reactivateRef.current) {
+			reactivateRef.current = false;
+			activateRef.current(null);
+		}
 		return () => {
+			reactivateRef.current = engineRef.current != null;
 			activateRef.current = null;
 			const engine = engineRef.current;
 			const layers = layersRef.current;
@@ -698,12 +725,12 @@ const ChartRootPrimitive = ({
 			engine?.destroy();
 			if (layers != null) {
 				layers.canvas.remove();
-				layers.crosshair.remove();
-				layers.band.remove();
-				layers.markers.remove();
+				layers.hover?.crosshair.remove();
+				layers.hover?.band.remove();
+				layers.hover?.markers.remove();
 			}
 		};
-	}, [kind, store, slotName]);
+	}, [kind, store, slotName, interactive]);
 
 	// Why a layout effect: observing before the first frame means the browser
 	// computes the entries at the end of that frame, so a chart that starts in

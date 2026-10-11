@@ -174,7 +174,8 @@ type BarChartCopyButtonProps = CopyButtonPrimitiveProps;
  * `bar-chart-data-table`. A bar chart shows the band and never the crosshair
  * or the markers. The canvas and the three layers are engine-owned: absent
  * from server HTML and from a dormant chart, inserted at activation (near the
- * viewport, on focus, or before print). The tooltip surface mounts on the
+ * viewport, on focus, or before print). A static or decorative chart
+ * inserts the canvas alone. The tooltip surface mounts on the
  * first hover or keyboard step and stays.
  *
  * **Data attributes:**

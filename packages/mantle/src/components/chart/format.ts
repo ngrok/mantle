@@ -6,12 +6,18 @@ import type { XValue } from "./types.js";
  * This module is internal shared implementation — not exported from the package.
  */
 
-const numberFormatter = new Intl.NumberFormat();
+// Why lazy: an `Intl` constructor costs about a millisecond, and a page pays
+// for this module before any chart formats a label.
+let numberFormatter: Intl.NumberFormat | null = null;
+const defaultNumberFormatter = (): Intl.NumberFormat =>
+	(numberFormatter ??= new Intl.NumberFormat());
 
 // The locale default caps fraction digits at three, which would round
 // small-magnitude data (error rates, durations in seconds) to
 // indistinguishable "0"s — sub-1 magnitudes get significant digits instead.
-const smallNumberFormatter = new Intl.NumberFormat(undefined, { maximumSignificantDigits: 4 });
+let smallNumberFormatter: Intl.NumberFormat | null = null;
+const defaultSmallNumberFormatter = (): Intl.NumberFormat =>
+	(smallNumberFormatter ??= new Intl.NumberFormat(undefined, { maximumSignificantDigits: 4 }));
 
 const fractionDigitFormatters = new Map<number, Intl.NumberFormat>();
 
@@ -50,9 +56,9 @@ const formatNumber = (value: number, options?: FormatNumberOptions): string => {
 		return formatter.format(normalized);
 	}
 	if (normalized !== 0 && Math.abs(normalized) < 1) {
-		return smallNumberFormatter.format(normalized);
+		return defaultSmallNumberFormatter().format(normalized);
 	}
-	return numberFormatter.format(normalized);
+	return defaultNumberFormatter().format(normalized);
 };
 
 /**
@@ -75,18 +81,22 @@ const tickFractionDigits = (step: number): number => {
 	return Math.min(20, Math.max(0, -Math.floor(Math.log10(step))));
 };
 
-const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
-	month: "short",
-	day: "numeric",
-	hour: "numeric",
-	minute: "2-digit",
-});
+let dateTimeFormatter: Intl.DateTimeFormat | null = null;
+const defaultDateTimeFormatter = (): Intl.DateTimeFormat =>
+	(dateTimeFormatter ??= new Intl.DateTimeFormat(undefined, {
+		month: "short",
+		day: "numeric",
+		hour: "numeric",
+		minute: "2-digit",
+	}));
 
-const dateOnlyFormatter = new Intl.DateTimeFormat(undefined, {
-	year: "numeric",
-	month: "short",
-	day: "numeric",
-});
+let dateOnlyFormatter: Intl.DateTimeFormat | null = null;
+const defaultDateOnlyFormatter = (): Intl.DateTimeFormat =>
+	(dateOnlyFormatter ??= new Intl.DateTimeFormat(undefined, {
+		year: "numeric",
+		month: "short",
+		day: "numeric",
+	}));
 
 /**
  * True when a date carries a time-of-day component (anything past local
@@ -142,9 +152,9 @@ const formatXValue = (value: XValue, options?: FormatXValueOptions): string => {
 	}
 	const showTime = options?.datasetHasTimeOfDay ?? hasTimeOfDay(value);
 	if (showTime) {
-		return dateTimeFormatter.format(value);
+		return defaultDateTimeFormatter().format(value);
 	}
-	return dateOnlyFormatter.format(value);
+	return defaultDateOnlyFormatter().format(value);
 };
 
 export {

@@ -26,7 +26,12 @@ import {
 } from "./colors.js";
 import { createBarTexturePattern, textureInkColor } from "./texture.js";
 import { datumValue, missingKeyMessage, toEpochOrNumber, uncoercibleXMessage } from "./datum.js";
-import { onPrint, prefersReducedMotion, watchDevicePixelRatio } from "./environment.js";
+import {
+	observeResize,
+	onPrint,
+	prefersReducedMotion,
+	watchDevicePixelRatio,
+} from "./environment.js";
 import { decimateColumns, shouldDecimate } from "./decimate.js";
 import { formatNumber, formatXValue, hasTimeOfDay, tickFractionDigits } from "./format.js";
 import { nearestIndex } from "./hit-test.js";
@@ -108,18 +113,24 @@ import { MARKER_RADIUS } from "./renderer.js";
  * The DOM overlay elements the Root binding hands to the engine. All are
  * absolutely positioned inside the plot wrapper and moved imperatively.
  */
-type EngineElements = {
-	/** The chart root (color-resolution host; consumer CSS var overrides apply here). */
-	root: HTMLElement;
-	canvas: HTMLCanvasElement;
-	/** The plot wrapper the canvas fills; the resize-observation target. */
-	plot: HTMLElement;
+/** The three layers the engine positions around the active datum. */
+type HoverLayers = {
 	/** Vertical crosshair hairline (line/area charts). */
 	crosshair: HTMLElement;
 	/** Hover band behind the active category (bar charts). */
 	band: HTMLElement;
 	/** Container for active-point marker dots (line/area charts). */
 	markers: HTMLElement;
+};
+
+type EngineElements = {
+	/** The chart root (color-resolution host; consumer CSS var overrides apply here). */
+	root: HTMLElement;
+	canvas: HTMLCanvasElement;
+	/** The plot wrapper the canvas fills; the resize-observation target. */
+	plot: HTMLElement;
+	/** The hover layers; `null` on a static chart, which never hovers. */
+	hover: HoverLayers | null;
 	/**
 	 * The tooltip container; content is React-rendered, position is
 	 * engine-written. `null` until the Root mounts it on the first hover
@@ -204,7 +215,7 @@ class ChartEngine {
 	/** The 2D context, created on the first paint (see `#context`). */
 	#ctx: CanvasRenderingContext2D | null = null;
 	#contextRequested = false;
-	#resizeObserver: ResizeObserver | null = null;
+	#stopResize: (() => void) | null = null;
 	#themeDisconnect: (() => void) | null = null;
 	#tooltipResizeObserver: ResizeObserver | null = null;
 	#dprCleanup: (() => void) | null = null;
@@ -393,34 +404,27 @@ class ChartEngine {
 			this.#schedule();
 		};
 
-		if (typeof ResizeObserver !== "undefined") {
-			this.#resizeObserver = new ResizeObserver((entries) => {
-				// Record only; never paint or mutate DOM synchronously inside the
-				// observer callback (avoids resize-loop errors and layout thrash).
-				const entry = entries[0];
-				if (entry == null) {
-					return;
-				}
-				const dpr = this.#currentDpr();
-				if (
-					entry.contentRect.width === this.#cssWidth &&
-					entry.contentRect.height === this.#cssHeight &&
-					dpr === this.#dpr
-				) {
-					return;
-				}
-				this.#cssWidth = entry.contentRect.width;
-				this.#cssHeight = entry.contentRect.height;
-				this.#dpr = dpr;
-				this.#decimationCache.clear();
-				// The cached hover pixel is in plot space; a resize moves every mark,
-				// so drop it and let #updateOverlay recompute from the new projection
-				// (a stale pixel would detach the marker/tooltip from its point).
-				this.#activeScreen = null;
-				this.#schedule();
-			});
-			this.#resizeObserver.observe(options.elements.plot);
-		}
+		this.#stopResize = observeResize(options.elements.plot, (entry) => {
+			// Record only; never paint or mutate DOM synchronously inside the
+			// observer callback (avoids resize-loop errors and layout thrash).
+			const dpr = this.#currentDpr();
+			if (
+				entry.contentRect.width === this.#cssWidth &&
+				entry.contentRect.height === this.#cssHeight &&
+				dpr === this.#dpr
+			) {
+				return;
+			}
+			this.#cssWidth = entry.contentRect.width;
+			this.#cssHeight = entry.contentRect.height;
+			this.#dpr = dpr;
+			this.#decimationCache.clear();
+			// The cached hover pixel is in plot space; a resize moves every mark,
+			// so drop it and let #updateOverlay recompute from the new projection
+			// (a stale pixel would detach the marker/tooltip from its point).
+			this.#activeScreen = null;
+			this.#schedule();
+		});
 		if (this.#inView) {
 			this.#observeTooltip();
 		}
@@ -447,7 +451,7 @@ class ChartEngine {
 
 	destroy(): void {
 		this.#destroyed = true;
-		this.#resizeObserver?.disconnect();
+		this.#stopResize?.();
 		this.#tooltipResizeObserver?.disconnect();
 		this.#themeDisconnect?.();
 		this.#dprCleanup?.();
@@ -3082,7 +3086,12 @@ class ChartEngine {
 	}
 
 	#updateOverlay(): void {
-		const { crosshair, band, markers, tooltip } = this.#elements;
+		const { hover, tooltip } = this.#elements;
+		// A static chart has no layers to place and nothing to point at.
+		if (hover == null) {
+			return;
+		}
+		const { crosshair, band, markers } = hover;
 		const index = this.#effectiveIndex();
 		const visible = index != null && this.#rowCount > 0;
 		const isBar = this.#kind === "bar";
@@ -3385,6 +3394,7 @@ export type {
 	//,
 	EngineCallbacks,
 	EngineElements,
+	HoverLayers,
 };
 export {
 	//,

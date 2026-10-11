@@ -643,6 +643,25 @@ describe("static mode", () => {
 		expect(screen.queryByRole("application")).toBeNull();
 		expect(container.querySelector("[tabindex]")).toBeNull();
 		expect(container.querySelector('[data-slot="bar-chart"]')).not.toHaveAttribute("data-state");
+		// The plot holds the canvas alone: without an overlay the hover layers are dead DOM.
+		expect(container.querySelector('[data-slot="bar-chart-canvas"]')).toBeInTheDocument();
+		for (const slot of ["crosshair", "hover-band", "markers"]) {
+			expect(container.querySelector(`[data-slot="bar-chart-${slot}"]`)).toBeNull();
+		}
+	});
+
+	test("a Root that turns interactive gains its hover layers and paints again at once", () => {
+		const { container, rerender } = render(sparkline());
+		rerender(
+			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
+				<BarChart.Bar dataKey="desktop" label="Desktop" />
+			</BarChart.Root>,
+		);
+		// The mode change rebuilds the layers in the same commit, with no new
+		// visibility report to wait for.
+		expect(container.querySelector('[data-slot="bar-chart-canvas"]')).toBeInTheDocument();
+		expect(container.querySelector('[data-slot="bar-chart-hover-band"]')).toBeInTheDocument();
+		expect(screen.getByRole("application", { name: "Visitors by month" })).toBeInTheDocument();
 	});
 
 	test("a static chart keeps its palette", () => {

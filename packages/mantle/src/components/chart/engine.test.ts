@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { createColorResolver } from "./colors.js";
-import type { EngineElements } from "./engine.js";
+import type { EngineElements, HoverLayers } from "./engine.js";
 import { ChartEngine } from "./engine.js";
 import { ChartStore } from "./store.js";
 import { ChaseTween, ValueTween } from "./tween.js";
@@ -21,16 +21,19 @@ vi.mock("./colors.js", { spy: true });
  */
 
 type PlotSize = { width: number; height: number };
-type ResizeCallback = (entries: Array<{ contentRect: PlotSize }>) => void;
+type ResizeCallback = (entries: Array<{ target: Element; contentRect: PlotSize }>) => void;
 
 /** The `ResizeObserver` callbacks the engine registers, keyed by the observed element. */
 const resizeCallbacks = new Map<Element, ResizeCallback>();
 
 class FakeResizeObserver {
+	/** Observers built since the last reset; the engines of one document share one. */
+	static constructed = 0;
 	#callback: ResizeCallback;
 
 	constructor(callback: ResizeCallback) {
 		this.#callback = callback;
+		FakeResizeObserver.constructed += 1;
 	}
 
 	observe(target: Element): void {
@@ -94,7 +97,15 @@ const createElements = (): EngineElements => {
 	plot.append(canvas, crosshair, band, markers, tooltip);
 	root.append(plot);
 	document.body.append(root);
-	return { root, canvas, plot, crosshair, band, markers, tooltip };
+	return { root, canvas, plot, hover: { crosshair, band, markers }, tooltip };
+};
+
+/** The hover layers of a mounted engine; every mount here is interactive. */
+const hoverOf = (mount: Pick<Mounted, "elements">): HoverLayers => {
+	if (mount.elements.hover == null) {
+		throw new Error("expected an interactive mount with hover layers");
+	}
+	return mount.elements.hover;
 };
 
 /**
@@ -108,7 +119,7 @@ const deliverResize = (mount: Pick<Mounted, "elements">, size: PlotSize): void =
 	if (resize == null) {
 		throw new Error("expected the engine to observe the plot element");
 	}
-	resize([{ contentRect: size }]);
+	resize([{ target: mount.elements.plot, contentRect: size }]);
 };
 
 const mountEngine = (config: {
@@ -159,13 +170,13 @@ const dotPosition = (dot: Element): { x: number; y: number } => {
 const activateFirstDatum = async (mount: Mounted): Promise<Element[]> => {
 	mount.engine.handleKeyDown("Home");
 	await vi.waitFor(() => {
-		const dots = [...mount.elements.markers.children];
+		const dots = [...hoverOf(mount).markers.children];
 		expect(dots.length).toBeGreaterThan(0);
 		for (const dot of dots) {
 			expect(dot instanceof HTMLElement && dot.style.opacity).toBe("1");
 		}
 	});
-	return [...mount.elements.markers.children];
+	return [...hoverOf(mount).markers.children];
 };
 
 /**
@@ -181,6 +192,7 @@ const afterNextCommit = (): Promise<void> =>
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 
 beforeEach(() => {
+	FakeResizeObserver.constructed = 0;
 	vi.stubGlobal("ResizeObserver", FakeResizeObserver);
 });
 
@@ -636,7 +648,42 @@ describe("ChartEngine color resolution", () => {
 		}
 		// A dormant commit that skips layout projects onto a zero-height plot.
 		expect(dotPosition(dot)).toEqual(dotPosition(expected));
-		expect(dormant.elements.crosshair.style.opacity).toBe("1");
+		expect(hoverOf(dormant).crosshair.style.opacity).toBe("1");
+	});
+});
+
+describe("ChartEngine resize observation", () => {
+	test("every engine in a document reports through one observer, and each gets its own size", () => {
+		// Why out of view: an engine in view also observes its tooltip, and that
+		// observer is its own by design.
+		const first = mountEngine({
+			kind: "line",
+			series: lineSeries,
+			rows: flatRows,
+			size: null,
+			inView: false,
+		});
+		const second = mountEngine({
+			kind: "line",
+			series: lineSeries,
+			rows: flatRows,
+			size: null,
+			inView: false,
+		});
+		// A per-engine observer would construct two.
+		expect(FakeResizeObserver.constructed).toBe(1);
+		const measureFirst = vi
+			.spyOn(first.elements.plot, "getBoundingClientRect")
+			.mockReturnValue(new DOMRect(0, 0, 400, 200));
+		const measureSecond = vi
+			.spyOn(second.elements.plot, "getBoundingClientRect")
+			.mockReturnValue(new DOMRect(0, 0, 300, 150));
+		deliverResize(second, { width: 300, height: 150 });
+		// Only the second engine took the size, so a print measures the first
+		// plot and not the second. A dispatch to every handler would size both.
+		window.dispatchEvent(new Event("beforeprint"));
+		expect(measureFirst).toHaveBeenCalledTimes(1);
+		expect(measureSecond).toHaveBeenCalledTimes(0);
 	});
 });
 

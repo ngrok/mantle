@@ -23,6 +23,7 @@ The chart Roots had one switch, `decorative`, and it answered a different questi
 
 - The [Sparklines in a List](../apps/www/app/docs/recipes/sparklines-in-a-list.mdx) recipe renders static sparklines, and the bench table (`/bench/charts?mode=table`) does the same, so the measured mount cost of a list no longer includes forty overlays, descriptions with keyboard sentences, and tooltip registrations.
 - A static chart composes a `Tooltip` part without effect. The part stays allowed so a Root can switch modes without a tree change.
+- A static or decorative chart inserts the canvas alone at activation: the three hover layers are dead DOM without an overlay, 600 nodes on a 100-row table. The engine takes `hover: null` and skips the overlay update. A mode change rebuilds the layers and paints again in the same effect.
 - `ChartMode` is exported from every chart family for a consumer who threads the mode through a wrapper.
 
 ## Alternatives rejected
