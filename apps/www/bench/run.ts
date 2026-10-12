@@ -136,7 +136,7 @@ const buildMatrix = (): Case[] => {
 					}
 				}
 			}
-			if (matrix === "table" && kind === "bar") {
+			if ((matrix === "table" || matrix === "all") && kind === "bar") {
 				for (const n of listCounts) {
 					for (const animate of animations) {
 						cases.push({ animate, kind, mode: "table", n, points: 30, throttle, dpr, gate });

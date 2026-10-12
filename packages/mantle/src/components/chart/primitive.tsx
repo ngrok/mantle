@@ -168,7 +168,7 @@ type ChartAccessibilityProps<TMode extends ChartMode = ChartMode> = {
 	 * description, so a screen reader hears what the chart holds without a
 	 * Tab stop. There is no overlay: no hover band, no tooltip, no keyboard
 	 * point cursor, no data table, no live region, and a composed `Tooltip`
-	 * part registers nothing. Pointer events pass through to the row or card
+	 * part has no effect. Pointer events pass through to the row or card
 	 * behind it. The series keep their colors. `animate` defaults to `false`,
 	 * because a list of sparklines that each play a reveal as the reader
 	 * scrolls is motion with no information in it; pass `animate` to opt in.
