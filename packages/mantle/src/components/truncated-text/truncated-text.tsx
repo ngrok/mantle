@@ -160,6 +160,13 @@ const tailClassName = "inline-block min-w-(--_tail-width) align-bottom";
  * the clipped head sits flush against the tail; a proportional font leaves a
  * gap smaller than one glyph.
  *
+ * Until the first measurement, the tail reserves one `ch` per grapheme, which
+ * is exact in a monospace font. In another font the first paint of an
+ * overflowing value can be off by the difference: a tail of wide glyphs (CJK,
+ * emoji) can poke past the container, and a value that fits by less than the
+ * over-reserve of narrow glyphs can clip. The layout effect after mount
+ * replaces the estimate with the measured width.
+ *
  * **Selection.** The root carries `user-select: all`, so one click selects the
  * whole value across both segments, and a copy yields the full string. Pass
  * `className="select-text"` to opt out.

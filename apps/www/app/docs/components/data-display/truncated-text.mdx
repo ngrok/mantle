@@ -115,6 +115,8 @@ The root never shrinks below the tail, so pick a `tail` the narrowest container 
 
 The component sets no font. In a monospace font the clipped head sits flush against the tail. In a proportional font the browser leaves a gap smaller than one glyph.
 
+Until the first measurement, the tail reserves one `ch` per grapheme, which is exact in a monospace font. In another font the first paint of an overflowing value can be off by the difference: a tail of wide glyphs (CJK, emoji) can poke past the container, and a value that fits by less than the over-reserve of narrow glyphs can clip. The layout effect after mount replaces the estimate with the measured width.
+
 <Example>
 	<div className="w-full max-w-md">
 		<DescriptionList.Root>

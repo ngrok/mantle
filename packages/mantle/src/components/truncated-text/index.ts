@@ -8,3 +8,8 @@ export {
 	//,
 	TruncatedText,
 } from "./truncated-text.js";
+
+export type {
+	//,
+	TruncatedTextProps,
+} from "./truncated-text.js";
