@@ -113,7 +113,7 @@ The container decides the width. `TruncatedText` is an `inline-block` that grows
 
 When the container holds less than the tail and one cell, the ellipsis is all that remains of the head. The tail then clips at its start, so the end of the value is the last thing to go. A value no longer than `tail` has no head, so its tail draws the ellipsis itself. Give the value a line of its own: beside other inline text, an overflowing value wraps to the next line at the container's full width. The root sets `dir="ltr"`, because a URL, an ID, or a token reads left to right on an RTL page too. A `dir` prop wins.
 
-The component sets no font. In a monospace font the clipped head sits flush against the tail. In a proportional font the browser leaves a gap smaller than one glyph.
+The component sets no font, but it turns ligatures off, so a `//` or `=>` clips between its two characters. In a monospace font the clipped head sits flush against the tail. In a proportional font the browser leaves a gap smaller than one glyph.
 
 Until the first measurement, the tail reserves one `ch` per grapheme, which is exact in a monospace font. In another font the first paint of an overflowing value can be off by the difference: a tail of wide glyphs (CJK, emoji) can poke past the container, and a value that fits by less than the over-reserve of narrow glyphs can clip. The layout effect after mount replaces the estimate with the measured width.
 
