@@ -1,6 +1,7 @@
 "use client";
 
 import { render, waitFor } from "@testing-library/react";
+import { findChartCanvas } from "../../test-utils/find-chart-canvas.js";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { BarChart } from "../bar-chart/index.js";
 import { BAR_DENSE_THICKNESS, BAR_MAX_THICKNESS } from "./bar-geometry.js";
@@ -129,10 +130,7 @@ const chart = (rows: ReturnType<typeof seriesOf>) => (
 
 const measure = async (rows: ReturnType<typeof seriesOf>): Promise<number> => {
 	const { container } = render(chart(rows));
-	const canvas = container.querySelector("canvas");
-	if (!(canvas instanceof HTMLCanvasElement)) {
-		throw new Error("expected the chart canvas to render");
-	}
+	const canvas = await findChartCanvas(container);
 	let measured = 0;
 	await waitFor(() => {
 		expect(canvas.width).toBeGreaterThan(0);

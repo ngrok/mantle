@@ -1,4 +1,5 @@
 import { render, waitFor } from "@testing-library/react";
+import { findChartCanvas } from "../../test-utils/find-chart-canvas.js";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { BarChart } from "../bar-chart/index.js";
 import {
@@ -501,11 +502,8 @@ describe("textured bar charts", () => {
 		</div>
 	);
 
-	const chartCanvasContext = (container: HTMLElement) => {
-		const canvas = container.querySelector("canvas");
-		if (!(canvas instanceof HTMLCanvasElement)) {
-			throw new Error("expected the chart canvas to render");
-		}
+	const chartCanvasContext = async (container: HTMLElement) => {
+		const canvas = await findChartCanvas(container);
 		const context = canvas.getContext("2d");
 		if (context == null) {
 			throw new Error("expected the chart canvas to have a 2d context");
@@ -626,7 +624,7 @@ describe("textured bar charts", () => {
 
 	test("a textured series paints striped bars; a solid one stays flat", async () => {
 		const { container } = render(<Chart mobileTexture="hatch" />);
-		const { canvas, context } = chartCanvasContext(container);
+		const { canvas, context } = await chartCanvasContext(container);
 		await waitFor(() => {
 			expect(canvas.width).toBeGreaterThan(0);
 		});
@@ -647,7 +645,7 @@ describe("textured bar charts", () => {
 		// is unchanged across this rerender, so if the key regressed to comparing
 		// colors alone the cache would stay "fresh" and keep painting solid.
 		const { container, rerender } = render(<Chart mobileTexture="solid" />);
-		const { canvas, context } = chartCanvasContext(container);
+		const { canvas, context } = await chartCanvasContext(container);
 		await waitFor(() => {
 			expect(canvas.width).toBeGreaterThan(0);
 		});
@@ -669,7 +667,7 @@ describe("textured bar charts", () => {
 		// pixel ratio alone, a chart the consumer flips keeps wearing the rungs its
 		// old layout painted. No other test in the suite reads that repaint.
 		const { container, rerender } = render(<Chart mobileTexture="parallel" />);
-		const { canvas, context } = chartCanvasContext(container);
+		const { canvas, context } = await chartCanvasContext(container);
 		await waitFor(() => {
 			expect(canvas.width).toBeGreaterThan(0);
 		});

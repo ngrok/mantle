@@ -4,6 +4,7 @@ import { createRef } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { BarChart } from "../bar-chart/index.js";
 import type { ChartDatumEvent } from "./area-chart.js";
+import { engageChart } from "../../test-utils/engage-chart.js";
 import { AreaChart } from "./area-chart.js";
 
 const firstRow = { date: new Date(2026, 6, 15), http: 420, tcp: 140 };
@@ -66,6 +67,7 @@ describe("AreaChart.Root", () => {
 
 	test("renders the sr-only data table twin with a row per datum", () => {
 		renderChart();
+		engageChart();
 		const table = screen.getByRole("table");
 		expect(table).toBeInTheDocument();
 		expect(screen.getByRole("columnheader", { name: "HTTP" })).toBeInTheDocument();
@@ -84,6 +86,7 @@ describe("AreaChart.Root", () => {
 				<AreaChart.Area dataKey="http" label="HTTP" />
 			</AreaChart.Root>,
 		);
+		engageChart();
 		expect(screen.getByRole("table")).toBeInTheDocument();
 		expect(screen.getAllByRole("row")).toHaveLength(151); // header + 150 bounded rows
 		expect(screen.getByText(/Showing the first 150 of 500 rows/)).toBeInTheDocument();
@@ -123,9 +126,14 @@ describe("AreaChart data slots", () => {
 		["area-chart-markers", "DIV"],
 		["area-chart-tooltip", "DIV"],
 		["area-chart-legend", "DIV"],
+		["area-chart-description", "SPAN"],
 		["area-chart-data-table", "DIV"],
-	])("%s lands on a %s", (slot, tagName) => {
+	])("%s lands on a %s", async (slot, tagName) => {
+		const user = userEvent.setup();
 		const { container } = renderChart();
+		engageChart();
+		// The tooltip surface mounts on the first hover or keyboard step.
+		await user.keyboard("{ArrowRight}");
 		const element = container.querySelector(`[data-slot="${slot}"]`);
 		expect(element).toBeInTheDocument();
 		expect(element?.tagName).toBe(tagName);
@@ -413,8 +421,8 @@ describe("AreaChart controlled activeIndex", () => {
 				<AreaChart.Area dataKey="http" label="HTTP" />
 			</AreaChart.Root>,
 		);
-		const tooltip = document.querySelector('[data-slot="area-chart-tooltip"]');
-		expect(tooltip?.textContent).toBe("");
+		// The surface mounts on the first active datum, so none means no surface.
+		expect(document.querySelector('[data-slot="area-chart-tooltip"]')).toBeNull();
 	});
 });
 
@@ -454,7 +462,7 @@ describe("AreaChart series slots", () => {
 describe("AreaChart decorative mode", () => {
 	const renderDecorative = () =>
 		render(
-			<AreaChart.Root data={data} xKey="date" decorative>
+			<AreaChart.Root data={data} xKey="date" mode="decorative">
 				<AreaChart.Area dataKey="http" label="HTTP" />
 			</AreaChart.Root>,
 		);

@@ -2,6 +2,7 @@
 
 import type {
 	ChartAccessibilityProps,
+	ChartMode,
 	ChartRootBaseProps,
 	CopyButtonPrimitiveProps,
 	GridPrimitiveProps,
@@ -37,11 +38,11 @@ import {
  * the y domain minimum is fixed at `0` — a truncated-area axis is
  * unrepresentable.
  */
-type AreaChartRootProps<TDatum extends ChartDatum = ChartDatum> = Omit<
-	ChartRootBaseProps,
-	"yDomain"
-> &
-	ChartAccessibilityProps & {
+type AreaChartRootProps<
+	TDatum extends ChartDatum = ChartDatum,
+	TMode extends ChartMode = "interactive",
+> = Omit<ChartRootBaseProps, "yDomain"> &
+	ChartAccessibilityProps<TMode> & {
 		/** Rows of data; each `AreaChart.Area` reads one numeric key per row. */
 		data: readonly TDatum[];
 		/** The key of each row's x value. */
@@ -146,21 +147,42 @@ type AreaChartCopyButtonProps = CopyButtonPrimitiveProps;
 /**
  * The root of an area chart: owns the data, the scales, the canvas renderer,
  * and the entire interaction contract (a crosshair with an every-series
- * tooltip, keyboard stepping with polite announcements, an sr-only data
- * table, Enter/Space + click activation). Areas fill with a 10% wash of the
- * series color plus a 2px band-edge stroke; `stacked` on the Root stacks the
- * series in registration order, the first-registered series at the baseline.
- * Large datasets decimate before painting on canvas. Compose the chrome and
- * series parts as children.
+ * tooltip, keyboard stepping with polite announcements, an sr-only
+ * description, an sr-only data table, Enter/Space + click activation). Areas
+ * fill with a 10% wash of the series color plus a 2px band-edge stroke;
+ * `stacked` on the Root stacks the series in registration order, the
+ * first-registered series at the baseline. Large datasets decimate before
+ * painting on canvas. Compose the chrome and series parts as children.
+ *
+ * A Root mounts dormant: a shell of the plot, the named overlay, and its
+ * sr-only description. It builds its canvas, its hover layers, and its engine
+ * once it comes within one viewport of the visible area, takes focus, or
+ * prints (on-screen charts first, a few milliseconds at a time), and it mounts
+ * the sr-only data table once focus lands inside it. A list of charts pays
+ * for the ones a reader can see, and a page of sparklines holds no hidden
+ * tables until a reader asks for one.
  *
  * The Root's own subtree is addressable by slot: `area-chart` on the wrapper,
  * then `area-chart-plot`, `area-chart-canvas`, `area-chart-crosshair`,
- * `area-chart-hover-band`, `area-chart-markers`, `area-chart-tooltip`, and
- * `area-chart-data-table`. An area chart shows the crosshair and one marker dot
- * per series, and never the band, but all three layers mount on every kind.
+ * `area-chart-hover-band`, `area-chart-markers`, `area-chart-tooltip`,
+ * `area-chart-description`, and, once focus lands inside the chart,
+ * `area-chart-data-table`. An area chart shows the crosshair and one marker
+ * dot per series, and never the band. The canvas and the three layers are
+ * engine-owned: absent from server HTML and from a dormant chart, inserted at
+ * activation (near the viewport, on focus, or before print). A static or
+ * decorative chart inserts the canvas alone. The tooltip
+ * surface mounts on the first hover or keyboard step and stays.
  * Each hover dot carries `chart-active-point` plus a `data-shape` of
  * `"circle"`, `"square"`, `"triangle"`, `"diamond"`, `"triangle-down"`,
  * `"plus"`, `"cross"`, or `"star"`, naming the glyph its series wears.
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"area-chart-description"` | The `sr-only` description the overlay's `aria-describedby` points at: the chart kind, the point count, the x range, the series labels, and, on an interactive chart, the keyboard instructions. Omitted when `mode="decorative"`. |
+ * | `data-slot` | `"area-chart-data-table"` | The `sr-only` data table. Mounts once focus lands inside the chart (`data-state` flips to `"engaged"`) and stays. Interactive charts only. |
+ * | `data-state` | `"dormant"` \| `"engaged"` | On the Root. Flips to `"engaged"` once focus lands inside the chart, and never flips back. The data table mounts with it. Visibility paints the chart but never flips it. Interactive charts only. |
  *
  * @see https://mantle.ngrok.com/components/charts/area-chart#areachartroot
  *
@@ -183,9 +205,9 @@ type AreaChartCopyButtonProps = CopyButtonPrimitiveProps;
  * </AreaChart.Root>
  * ```
  */
-const Root = <TDatum extends ChartDatum = ChartDatum>(props: AreaChartRootProps<TDatum>) => (
-	<ChartRootPrimitive kind="area" componentName="AreaChart" slotName="area-chart" {...props} />
-);
+const Root = <TDatum extends ChartDatum = ChartDatum, TMode extends ChartMode = "interactive">(
+	props: AreaChartRootProps<TDatum, TMode>,
+) => <ChartRootPrimitive kind="area" componentName="AreaChart" slotName="area-chart" {...props} />;
 
 /**
  * One area series. Renders nothing itself — it registers the series with the
@@ -404,10 +426,12 @@ const CopyButton = (props: AreaChartCopyButtonProps) => (
  * `stacked` prop stacks the series in registration order from the baseline.
  * Series colors come from the theme's validated `--color-chart-*`
  * tokens; areas keep a fixed slot color for the chart's lifetime even as
- * other series are filtered in and out. Interaction — a crosshair with an
- * every-series tooltip, keyboard stepping, aria-live announcements, and an
- * sr-only data table — ships with `Root` unconditionally; large datasets
- * decimate before painting on canvas.
+ * other series are filtered in and out. Interaction ships with `Root`
+ * unconditionally: a crosshair with an every-series tooltip, keyboard
+ * stepping, aria-live announcements, and an sr-only description. A Root builds
+ * and paints its canvas once it comes within one viewport of the visible
+ * area, takes focus, or prints, and it mounts its sr-only data table once
+ * focus lands inside it. Large datasets decimate before painting on canvas.
  *
  * **CSS variables (public API):**
  *
@@ -420,7 +444,7 @@ const CopyButton = (props: AreaChartCopyButtonProps) => (
  * `AreaChart.Area` sets one series and takes any CSS color. To restyle a slot itself,
  * redeclare its token on `Root` —
  * `className="[--color-chart-1:var(--color-brand)]"`. The engine resolves every
- * token through a probe inside `Root`, so a declaration scoped there wins for
+ * token from `Root`'s computed style, so a declaration scoped there wins for
  * that chart and leaves every other chart on the page alone.
  *
  * @see https://mantle.ngrok.com/components/charts/area-chart
@@ -644,6 +668,7 @@ export type {
 	AreaChartXAxisProps,
 	AreaChartYAxisProps,
 	ChartDatumEvent,
+	ChartMode,
 };
 export {
 	//,

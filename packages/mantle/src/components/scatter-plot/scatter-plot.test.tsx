@@ -5,6 +5,7 @@ import { describe, expect, test, vi } from "vitest";
 import { BarChart } from "../bar-chart/index.js";
 import { POINT_SHAPE_CLIP_PATHS } from "../chart/engine.js";
 import type { ChartDatumEvent } from "./scatter-plot.js";
+import { engageChart } from "../../test-utils/engage-chart.js";
 import { ScatterPlot } from "./scatter-plot.js";
 
 // Scatter rows are individual points: most rows populate only one of the two
@@ -84,6 +85,7 @@ describe("ScatterPlot.Root", () => {
 
 	test("renders the sr-only data table twin with a row per datum and em dashes for gaps", () => {
 		renderChart();
+		engageChart();
 		const table = screen.getByRole("table");
 		expect(table).toBeInTheDocument();
 		expect(screen.getByRole("columnheader", { name: "Region A" })).toBeInTheDocument();
@@ -104,6 +106,7 @@ describe("ScatterPlot.Root", () => {
 				<ScatterPlot.Point dataKey="regionA" label="Region A" />
 			</ScatterPlot.Root>,
 		);
+		engageChart();
 		expect(screen.getByRole("table")).toBeInTheDocument();
 		expect(screen.getAllByRole("row")).toHaveLength(151); // header + 150 bounded rows
 		expect(screen.getByText(/Showing the first 150 of 500 rows/)).toBeInTheDocument();
@@ -161,9 +164,14 @@ describe("ScatterPlot data slots", () => {
 		["scatter-plot-markers", "DIV"],
 		["scatter-plot-tooltip", "DIV"],
 		["scatter-plot-legend", "DIV"],
+		["scatter-plot-description", "SPAN"],
 		["scatter-plot-data-table", "DIV"],
-	])("%s lands on a %s", (slot, tagName) => {
+	])("%s lands on a %s", async (slot, tagName) => {
+		const user = userEvent.setup();
 		const { container } = renderChart();
+		engageChart();
+		// The tooltip surface mounts on the first hover or keyboard step.
+		await user.keyboard("{ArrowRight}");
 		const element = container.querySelector(`[data-slot="${slot}"]`);
 		expect(element).toBeInTheDocument();
 		expect(element?.tagName).toBe(tagName);
@@ -490,8 +498,8 @@ describe("ScatterPlot controlled activeIndex", () => {
 				<ScatterPlot.Point dataKey="regionA" label="Region A" />
 			</ScatterPlot.Root>,
 		);
-		const tooltip = document.querySelector('[data-slot="scatter-plot-tooltip"]');
-		expect(tooltip?.textContent).toBe("");
+		// The surface mounts on the first active datum, so none means no surface.
+		expect(document.querySelector('[data-slot="scatter-plot-tooltip"]')).toBeNull();
 	});
 });
 
@@ -585,6 +593,7 @@ describe("ScatterPlot 3D depth (zKey)", () => {
 
 	test("the sr-only data table grows a depth column with the z values", () => {
 		render3dChart();
+		engageChart();
 		expect(screen.getByRole("columnheader", { name: "depth" })).toBeInTheDocument();
 		expect(screen.getByRole("cell", { name: "4" })).toBeInTheDocument();
 		expect(screen.getByRole("cell", { name: "7" })).toBeInTheDocument();
@@ -595,7 +604,7 @@ describe("ScatterPlot 3D depth (zKey)", () => {
 describe("ScatterPlot decorative mode", () => {
 	const renderDecorative = () =>
 		render(
-			<ScatterPlot.Root data={data} xKey="latency" decorative>
+			<ScatterPlot.Root data={data} xKey="latency" mode="decorative">
 				<ScatterPlot.Point dataKey="regionA" label="Region A" />
 			</ScatterPlot.Root>,
 		);

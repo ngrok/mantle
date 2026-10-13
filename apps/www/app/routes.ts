@@ -151,6 +151,7 @@ const recipesPages = [
 	"list-page-loading-states",
 	"overlay-async",
 	"route-announcer",
+	"sparklines-in-a-list",
 ];
 
 // migrations section, in publish order. The four-digit prefix is the
@@ -166,6 +167,7 @@ const migrationsPages = [
 	"0006-data-table-tanstack-v9-migration",
 	"0007-app-layout-header-slots-migration",
 	"0008-tabs-separator-migration",
+	"0009-chart-root-mode-migration",
 ];
 
 export default [
@@ -245,6 +247,9 @@ export default [
 	// to allow same-origin framing. Dynamic-param routes are excluded from
 	// prerendering and served by the runtime SSR function.
 	route("preview/:exampleName", "./routes/preview.tsx", { id: "preview-example" }),
+	// chrome-less chart mount benchmark page, driven by apps/www/bench/. The id is
+	// load-bearing too: root.tsx matches on it to skip the site chrome.
+	route("bench/charts", "./routes/bench.charts.tsx", { id: "bench-charts" }),
 
 	// 404 + legacy redirects — splat catch-all for any unmatched URL. Matches
 	// (so ancestor loaders run) and 301s known pre-IA-reorg paths (e.g.

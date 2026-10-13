@@ -128,15 +128,17 @@ export function shouldRevalidate() {
 }
 
 /**
- * Whether the matched route is a chrome-less framed example preview
- * (`/preview/:exampleName`). Matched on route identity, not pathname —
+ * Whether the matched route is a chrome-less document: a framed example
+ * preview (`/preview/:exampleName`) or the chart benchmark page
+ * (`/bench/charts`). Matched on route identity, not pathname —
  * mirroring the `layouts-index` pattern in layouts-layout.tsx. Preview
- * documents render inside the docs pages' iframes, so they skip the site
- * chrome and the forced scrollbar gutter.
+ * documents render inside the docs pages' iframes, and the benchmark page
+ * is a timing fixture, so both skip the site chrome and the forced
+ * scrollbar gutter.
  */
 function useIsFramedPreview() {
 	const matches = useMatches();
-	return matches.some((match) => match.id === "preview-example");
+	return matches.some((match) => match.id === "preview-example" || match.id === "bench-charts");
 }
 
 const ReactQueryDevtoolsLazy = lazy(() =>

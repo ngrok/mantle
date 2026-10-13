@@ -10,6 +10,7 @@ export {
 export type {
 	//,
 	ChartDatumEvent,
+	ChartMode,
 	ScatterPlotCopyButtonProps,
 	ScatterPlotGridProps,
 	ScatterPlotLegendProps,

@@ -1,0 +1,275 @@
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import type { VisibilityChange } from "./visibility.js";
+import { observeChartVisibility } from "./visibility.js";
+
+/** Every observer the module constructs in a test, in construction order. */
+const instances: FakeIntersectionObserver[] = [];
+
+/**
+ * An observer that records its options and delivers entries only when a test
+ * asks, so the test decides which band flips for which element.
+ */
+class FakeIntersectionObserver implements IntersectionObserver {
+	readonly root: Element | Document | null;
+	readonly rootMargin: string;
+	readonly scrollMargin: string;
+	readonly thresholds: readonly number[];
+	readonly targets = new Set<Element>();
+	disconnected = false;
+	#callback: IntersectionObserverCallback;
+
+	constructor(callback: IntersectionObserverCallback, options: IntersectionObserverInit = {}) {
+		this.#callback = callback;
+		this.root = options.root ?? null;
+		this.rootMargin = options.rootMargin ?? "0px";
+		this.scrollMargin = options.scrollMargin ?? "0px";
+		const threshold = options.threshold ?? 0;
+		this.thresholds = Array.isArray(threshold) ? threshold : [threshold];
+		instances.push(this);
+	}
+
+	observe(target: Element): void {
+		this.targets.add(target);
+	}
+
+	unobserve(target: Element): void {
+		this.targets.delete(target);
+	}
+
+	disconnect(): void {
+		this.targets.clear();
+		this.disconnected = true;
+	}
+
+	takeRecords(): IntersectionObserverEntry[] {
+		return [];
+	}
+
+	/** Deliver one entry for `target`, as the browser does when its intersection flips. */
+	report(target: Element, isIntersecting: boolean): void {
+		if (!this.targets.has(target)) {
+			return;
+		}
+		this.#callback(
+			[
+				{
+					target,
+					isIntersecting,
+					intersectionRatio: isIntersecting ? 1 : 0,
+					boundingClientRect: target.getBoundingClientRect(),
+					intersectionRect: target.getBoundingClientRect(),
+					rootBounds: null,
+					time: 0,
+				},
+			],
+			this,
+		);
+	}
+}
+
+/** Every observation a test started, released after it so the shared pair resets. */
+const stops: Array<() => void> = [];
+
+const observe = () => {
+	const element = document.createElement("div");
+	const handler = vi.fn<(change: VisibilityChange) => void>();
+	const stop = observeChartVisibility(element, handler);
+	stops.push(stop);
+	return { element, handler, stop };
+};
+
+/** The observer for one band. The one-off support probe holds no target, so it never matches. */
+const observerWithMargin = (margin: string): FakeIntersectionObserver => {
+	const observer = instances.find(
+		(instance) => instance.rootMargin === margin && instance.targets.size > 0,
+	);
+	if (observer == null) {
+		throw new Error(`expected an observer with a ${margin} root margin`);
+	}
+	return observer;
+};
+
+/** The live observer for one band and root. The disconnected support probe never matches. */
+const observerFor = (margin: string, root: Element | null): FakeIntersectionObserver => {
+	const observer = instances.find(
+		(instance) =>
+			instance.rootMargin === margin && instance.root === root && !instance.disconnected,
+	);
+	if (observer == null) {
+		throw new Error(`expected an observer with a ${margin} root margin at ${String(root)}`);
+	}
+	return observer;
+};
+
+beforeEach(() => {
+	instances.length = 0;
+	vi.stubGlobal("IntersectionObserver", FakeIntersectionObserver);
+});
+
+afterEach(() => {
+	for (const stop of stops) {
+		stop();
+	}
+	stops.length = 0;
+});
+
+test("every element shares one observer per band: visible, near at one viewport, far at three", () => {
+	const first = observe();
+	observe();
+	observe();
+	// A per-call trio would hold nine observers for three charts.
+	expect(instances.filter((instance) => instance.targets.size > 0)).toHaveLength(3);
+	const visible = observerWithMargin("0px");
+	const near = observerWithMargin("100%");
+	const far = observerWithMargin("300%");
+	// A scrolling panel clips the band too; `rootMargin` alone widens only the viewport.
+	expect(near.scrollMargin).toBe("100%");
+	expect(far.scrollMargin).toBe("300%");
+	expect(near.root).toBeNull();
+
+	// The rect rides along so an activation can seed the engine's size.
+	near.report(first.element, true);
+	expect(first.handler).toHaveBeenLastCalledWith({
+		band: "near",
+		inView: true,
+		rect: expect.objectContaining({ top: 0 }),
+	});
+	visible.report(first.element, true);
+	expect(first.handler).toHaveBeenLastCalledWith({
+		band: "visible",
+		inView: true,
+		rect: expect.objectContaining({ top: 0 }),
+	});
+	far.report(first.element, false);
+	expect(first.handler).toHaveBeenLastCalledWith({
+		band: "far",
+		inView: false,
+		rect: expect.objectContaining({ top: 0 }),
+	});
+	expect(first.handler).toHaveBeenCalledTimes(3);
+});
+
+test("one element's cleanup stops its entries and keeps the others observed", () => {
+	const first = observe();
+	const second = observe();
+	const near = observerWithMargin("100%");
+
+	first.stop();
+	near.report(first.element, true);
+	near.report(second.element, true);
+	expect(first.handler).toHaveBeenCalledTimes(0);
+	expect(second.handler).toHaveBeenCalledTimes(1);
+	// A cleanup that disconnects the shared observer would silence `second`.
+	expect(near.disconnected).toBe(false);
+});
+
+test("the last cleanup disconnects every observer and the next observation builds a new trio", () => {
+	const first = observe();
+	const second = observe();
+	const trio = instances.filter((instance) => instance.targets.size > 0);
+	expect(trio).toHaveLength(3);
+	first.stop();
+	second.stop();
+	expect(trio.map((instance) => instance.disconnected)).toEqual([true, true, true]);
+
+	observe();
+	// A leaked cache would hand the new element to the disconnected trio.
+	const fresh = instances.filter((instance) => instance.targets.size > 0);
+	expect(fresh).toHaveLength(3);
+	expect(fresh.some((instance) => trio.includes(instance))).toBe(false);
+});
+
+test("with no IntersectionObserver every band reports in view at once", () => {
+	vi.stubGlobal("IntersectionObserver", undefined);
+	const { handler } = observe();
+	expect(handler).toHaveBeenCalledTimes(3);
+	expect(handler).toHaveBeenNthCalledWith(1, { band: "near", inView: true, rect: null });
+	expect(handler).toHaveBeenNthCalledWith(2, { band: "far", inView: true, rect: null });
+	expect(handler).toHaveBeenNthCalledWith(3, { band: "visible", inView: true, rect: null });
+});
+
+describe("without scrollMargin support", () => {
+	// An engine that ignores `scrollMargin` exposes no such property on its observers.
+	class LegacyIntersectionObserver extends FakeIntersectionObserver {
+		constructor(callback: IntersectionObserverCallback, options: IntersectionObserverInit = {}) {
+			super(callback, options);
+			Reflect.deleteProperty(this, "scrollMargin");
+		}
+	}
+
+	/** A chart inside a scrolling panel, observed through a fresh module whose support probe sees the legacy engine. */
+	const observeInPanel = async () => {
+		vi.stubGlobal("IntersectionObserver", LegacyIntersectionObserver);
+		// Why a fresh module: the support probe runs once per module and is cached.
+		vi.resetModules();
+		const fresh = await import("./visibility.js");
+		const panel = document.createElement("div");
+		panel.style.overflowY = "auto";
+		const element = document.createElement("div");
+		panel.append(element);
+		document.body.append(panel);
+		const handler = vi.fn<(change: VisibilityChange) => void>();
+		const stop = fresh.observeChartVisibility(element, handler);
+		stops.push(() => {
+			stop();
+			panel.remove();
+		});
+		return { panel, element, handler, stop };
+	};
+
+	test("a panel's chart observes the near band from the panel, and only while the panel is near the viewport", async () => {
+		const { panel, element, handler } = await observeInPanel();
+		const viewportNear = observerFor("100%", null);
+		const panelNear = observerFor("100%", panel);
+		// The panel is the viewport's target; the chart waits for the panel to open the band.
+		expect(viewportNear.targets.has(panel)).toBe(true);
+		expect(panelNear.targets.has(element)).toBe(false);
+
+		viewportNear.report(panel, true);
+		expect(panelNear.targets.has(element)).toBe(true);
+		panelNear.report(element, true);
+		expect(handler).toHaveBeenLastCalledWith({
+			band: "near",
+			inView: true,
+			rect: expect.objectContaining({ top: 0 }),
+		});
+
+		// A panel that scrolls away takes its charts out of view, whatever the panel-relative band says.
+		viewportNear.report(panel, false);
+		expect(handler).toHaveBeenLastCalledWith({ band: "near", inView: false, rect: null });
+		expect(panelNear.targets.has(element)).toBe(false);
+		expect(handler).toHaveBeenCalledTimes(2);
+	});
+
+	test("a panel beyond the far band releases its charts, and reopening the band observes them again", async () => {
+		const { panel, element, handler } = await observeInPanel();
+		const viewportFar = observerFor("300%", null);
+		const panelFar = observerFor("300%", panel);
+		viewportFar.report(panel, true);
+		panelFar.report(element, true);
+		viewportFar.report(panel, false);
+		expect(handler).toHaveBeenLastCalledWith({ band: "far", inView: false, rect: null });
+		viewportFar.report(panel, true);
+		// The band observes the chart again, so the engine reports its real state.
+		expect(panelFar.targets.has(element)).toBe(true);
+		expect(handler).toHaveBeenCalledTimes(2);
+	});
+
+	test("the visible band observes from the viewport, so a reveal never plays offscreen", async () => {
+		const { element } = await observeInPanel();
+		expect(observerFor("0px", null).targets.has(element)).toBe(true);
+		expect(
+			instances.some((instance) => instance.rootMargin === "0px" && instance.root != null),
+		).toBe(false);
+	});
+
+	test("the last chart's cleanup releases the panel's observers and its viewport entries", async () => {
+		const { panel, stop } = await observeInPanel();
+		const panelNear = observerFor("100%", panel);
+		const viewportNear = observerFor("100%", null);
+		stop();
+		expect(panelNear.disconnected).toBe(true);
+		expect(viewportNear.targets.has(panel)).toBe(false);
+		expect(viewportNear.disconnected).toBe(true);
+	});
+});

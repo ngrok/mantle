@@ -1,6 +1,6 @@
 import invariant from "tiny-invariant";
 import { barThickness, isStackedDataEnd, stackedSegmentEdges } from "./bar-geometry.js";
-import type { ChartChromeColors } from "./colors.js";
+import type { ChartChromeColors, ColorResolver } from "./colors.js";
 import type { DecimatedColumns } from "./decimate.js";
 import type { BandLayout } from "./scales.js";
 import type { ChartStore } from "./store.js";
@@ -17,14 +17,21 @@ import type {
 	XValue,
 } from "./types.js";
 import {
+	colorParseContext,
+	createColorResolver,
 	observeThemeChanges,
 	resolveChromeColors,
 	resolveSeriesColor,
-	resolveThroughProbe,
 	themeSignature,
 } from "./colors.js";
 import { createBarTexturePattern, textureInkColor } from "./texture.js";
-import { datumValue } from "./datum.js";
+import { datumValue, missingKeyMessage, toEpochOrNumber, uncoercibleXMessage } from "./datum.js";
+import {
+	observeResize,
+	onPrint,
+	prefersReducedMotion,
+	watchDevicePixelRatio,
+} from "./environment.js";
 import { decimateColumns, shouldDecimate } from "./decimate.js";
 import { formatNumber, formatXValue, hasTimeOfDay, tickFractionDigits } from "./format.js";
 import { nearestIndex } from "./hit-test.js";
@@ -93,6 +100,9 @@ import { MARKER_RADIUS } from "./renderer.js";
  *   with transforms, so pointer moves never repaint the canvas
  * - resolves mantle color tokens once per theme (cached; invalidated by the
  *   documentElement theme attributes the ThemeProvider writes)
+ * - paints only while the Root reports it near the viewport (`setInView`), so a
+ *   list of charts pays for the ones a reader can see; the rest ingest and
+ *   answer keyboard input but hold no canvas backing store
  *
  * React never renders inside the paint path; the engine never touches React.
  *
@@ -103,20 +113,30 @@ import { MARKER_RADIUS } from "./renderer.js";
  * The DOM overlay elements the Root binding hands to the engine. All are
  * absolutely positioned inside the plot wrapper and moved imperatively.
  */
-type EngineElements = {
-	/** The chart root (color-resolution host; consumer CSS var overrides apply here). */
-	root: HTMLElement;
-	canvas: HTMLCanvasElement;
-	/** The plot wrapper the canvas fills; the resize-observation target. */
-	plot: HTMLElement;
+/** The three layers the engine positions around the active datum. */
+type HoverLayers = {
 	/** Vertical crosshair hairline (line/area charts). */
 	crosshair: HTMLElement;
 	/** Hover band behind the active category (bar charts). */
 	band: HTMLElement;
 	/** Container for active-point marker dots (line/area charts). */
 	markers: HTMLElement;
-	/** The tooltip container; content is React-rendered, position is engine-written. */
-	tooltip: HTMLElement;
+};
+
+type EngineElements = {
+	/** The chart root (color-resolution host; consumer CSS var overrides apply here). */
+	root: HTMLElement;
+	canvas: HTMLCanvasElement;
+	/** The plot wrapper the canvas fills; the resize-observation target. */
+	plot: HTMLElement;
+	/** The hover layers; `null` on a static chart, which never hovers. */
+	hover: HoverLayers | null;
+	/**
+	 * The tooltip container; content is React-rendered, position is
+	 * engine-written. `null` until the Root mounts it on the first hover
+	 * (see `attachTooltip`).
+	 */
+	tooltip: HTMLElement | null;
 };
 
 /** The 3D frame's axis labels, painted after the marks clip is restored. */
@@ -137,6 +157,8 @@ type EngineCallbacks = {
 
 type ResolvedColors = {
 	signature: string;
+	/** The pass's resolver, kept so a reference line resolves through the same style read. */
+	resolver: ColorResolver;
 	series: Map<string, string>;
 	/** The paint inputs (color + texture) the maps were resolved from, for staleness checks. */
 	inputs: Map<string, string>;
@@ -190,11 +212,33 @@ class ChartEngine {
 	};
 	#callbacks: EngineCallbacks = { onDatumActivate: null, onActiveIndexChange: null };
 
-	#ctx: CanvasRenderingContext2D | null;
-	#resizeObserver: ResizeObserver | null = null;
+	/** The 2D context, created on the first paint (see `#context`). */
+	#ctx: CanvasRenderingContext2D | null = null;
+	#contextRequested = false;
+	#stopResize: (() => void) | null = null;
 	#themeDisconnect: (() => void) | null = null;
 	#tooltipResizeObserver: ResizeObserver | null = null;
 	#dprCleanup: (() => void) | null = null;
+	#printCleanup: (() => void) | null = null;
+	/** The owning window, or `null` in a detached document. */
+	#view: Window | null = null;
+
+	/**
+	 * Whether the Root reports the chart near the viewport. Paint, text
+	 * measurement, color resolution, and the canvas backing store wait for it;
+	 * ingest, layout, and the keyboard point cursor do not.
+	 */
+	#inView: boolean;
+	/** Set between `beforeprint` and `afterprint`, when every chart paints. */
+	#printing = false;
+	/**
+	 * Whether a reader has seen the chart inside the viewport. Until then every
+	 * series' enter reveal holds at zero, so a chart painted one viewport ahead
+	 * of the scroll draws its marks when it comes into view, not before.
+	 */
+	#seen: boolean;
+	/** Whether a dormant commit still owes a layout (see `#commit`). */
+	#needsLayout = false;
 
 	#cssWidth = 0;
 	#cssHeight = 0;
@@ -239,8 +283,6 @@ class ChartEngine {
 	#xTween = new ChaseTween({ speed: 0.2 });
 	#valueTweens = new Map<string, ValueTween>();
 	#revealTweens = new Map<string, ValueTween>();
-	/** The reduced-motion query, created on the first read (see `#reducedMotion`). */
-	#reducedMotionQuery: MediaQueryList | null = null;
 	#hasIngested = false;
 	#xLabelFade = new Map<number, { alpha: number; target: number; text: string }>();
 	#yLabelFade = new Map<number, { alpha: number; target: number; text: string }>();
@@ -316,11 +358,38 @@ class ChartEngine {
 	#frame = 0;
 	#destroyed = false;
 
-	constructor(options: { kind: SeriesMark; elements: EngineElements; store: ChartStore }) {
+	constructor(options: {
+		kind: SeriesMark;
+		elements: EngineElements;
+		store: ChartStore;
+		/**
+		 * Whether the chart starts near the viewport. The Root passes `false` and
+		 * reports visibility through `setInView`; a bare engine paints at once.
+		 *
+		 * @default true
+		 */
+		inView?: boolean;
+		/**
+		 * The plot's CSS size when it is already known (the intersection entry
+		 * that activated the chart carries it), so the first commit paints
+		 * instead of waiting for the resize observer's first delivery.
+		 */
+		size?: { width: number; height: number };
+	}) {
 		this.#kind = options.kind;
 		this.#elements = options.elements;
 		this.#store = options.store;
-		this.#ctx = options.elements.canvas.getContext("2d");
+		this.#inView = options.inView ?? true;
+		// A bare engine is in view from the start, so its first ingest reveals.
+		this.#seen = this.#inView;
+		if (options.size != null) {
+			this.#cssWidth = options.size.width;
+			this.#cssHeight = options.size.height;
+		}
+		// Why seed here: the first commit runs before the resize observer
+		// delivers, and a ratio of 1 there would key the color cache wrong and
+		// resolve every color twice.
+		this.#dpr = this.#currentDpr();
 
 		this.#store.onSeriesChange = () => {
 			// Deferred (not ingested inline): a series (re)registration and its
@@ -335,34 +404,29 @@ class ChartEngine {
 			this.#schedule();
 		};
 
-		if (typeof ResizeObserver !== "undefined") {
-			this.#resizeObserver = new ResizeObserver((entries) => {
-				// Record only; never paint or mutate DOM synchronously inside the
-				// observer callback (avoids resize-loop errors and layout thrash).
-				const entry = entries[0];
-				if (entry == null) {
-					return;
-				}
-				this.#cssWidth = entry.contentRect.width;
-				this.#cssHeight = entry.contentRect.height;
-				this.#dpr = this.#currentDpr();
-				this.#decimationCache.clear();
-				// The cached hover pixel is in plot space; a resize moves every mark,
-				// so drop it and let #updateOverlay recompute from the new projection
-				// (a stale pixel would detach the marker/tooltip from its point).
-				this.#activeScreen = null;
-				this.#schedule();
-			});
-			this.#resizeObserver.observe(options.elements.plot);
-
-			this.#tooltipResizeObserver = new ResizeObserver(() => {
-				this.#tooltipSize = {
-					width: this.#elements.tooltip.offsetWidth,
-					height: this.#elements.tooltip.offsetHeight,
-				};
-				this.#scheduleOverlay();
-			});
-			this.#tooltipResizeObserver.observe(options.elements.tooltip);
+		this.#stopResize = observeResize(options.elements.plot, (entry) => {
+			// Record only; never paint or mutate DOM synchronously inside the
+			// observer callback (avoids resize-loop errors and layout thrash).
+			const dpr = this.#currentDpr();
+			if (
+				entry.contentRect.width === this.#cssWidth &&
+				entry.contentRect.height === this.#cssHeight &&
+				dpr === this.#dpr
+			) {
+				return;
+			}
+			this.#cssWidth = entry.contentRect.width;
+			this.#cssHeight = entry.contentRect.height;
+			this.#dpr = dpr;
+			this.#decimationCache.clear();
+			// The cached hover pixel is in plot space; a resize moves every mark,
+			// so drop it and let #updateOverlay recompute from the new projection
+			// (a stale pixel would detach the marker/tooltip from its point).
+			this.#activeScreen = null;
+			this.#schedule();
+		});
+		if (this.#inView) {
+			this.#observeTooltip();
 		}
 
 		const documentElement = options.elements.root.ownerDocument.documentElement;
@@ -370,16 +434,28 @@ class ChartEngine {
 			this.#colors = null;
 			this.#schedule();
 		});
-		this.#watchDpr();
+		this.#view = options.elements.root.ownerDocument.defaultView;
+		if (this.#view != null) {
+			this.#printCleanup = onPrint(this.#view, {
+				before: this.#onBeforePrint,
+				after: this.#onAfterPrint,
+			});
+			this.#dprCleanup = watchDevicePixelRatio(this.#view, () => {
+				this.#dpr = this.#currentDpr();
+				this.#decimationCache.clear();
+				this.#schedule();
+			});
+		}
 		this.#dimensionChase.jump([1, 1]);
 	}
 
 	destroy(): void {
 		this.#destroyed = true;
-		this.#resizeObserver?.disconnect();
+		this.#stopResize?.();
 		this.#tooltipResizeObserver?.disconnect();
 		this.#themeDisconnect?.();
 		this.#dprCleanup?.();
+		this.#printCleanup?.();
 		this.#store.onSeriesChange = null;
 		this.#store.onPresentationChange = null;
 		if (this.#edgeFadeDecayTimer != null) {
@@ -392,24 +468,185 @@ class ChartEngine {
 	}
 
 	/**
-	 * Browser zoom and monitor moves change devicePixelRatio without resizing
-	 * the element. A resolution media query matching the CURRENT ratio fires
-	 * once when it stops matching; re-arm at the new ratio each time.
+	 * Report whether the chart is near the viewport. Entering runs the paint
+	 * the dormant commits skipped. A dormant engine holds settled state (every
+	 * tween jumps instead of gliding), so entry paints the current data at
+	 * once; only the enter reveal animates, and `markSeen` owns that.
 	 */
-	#watchDpr(): void {
-		if (typeof matchMedia === "undefined" || this.#destroyed) {
+	setInView(inView: boolean): void {
+		if (inView === this.#inView || this.#destroyed) {
 			return;
 		}
-		this.#dprCleanup?.();
-		const media = matchMedia(`(resolution: ${this.#currentDpr()}dppx)`);
-		const onChange = (): void => {
-			this.#dpr = this.#currentDpr();
-			this.#decimationCache.clear();
-			this.#schedule();
-			this.#watchDpr();
-		};
-		media.addEventListener("change", onChange, { once: true });
-		this.#dprCleanup = () => media.removeEventListener("change", onChange);
+		this.#inView = inView;
+		if (!inView) {
+			return;
+		}
+		this.#observeTooltip();
+		if (this.#needsPaint || this.#pendingIngest) {
+			this.#request();
+		}
+	}
+
+	/**
+	 * Report that the chart is inside the viewport for the first time. Every
+	 * series' enter reveal, held at zero until now, plays from here, so a chart
+	 * painted ahead of the scroll draws its marks as the reader reaches it.
+	 */
+	markSeen(): void {
+		if (this.#seen || this.#destroyed) {
+			return;
+		}
+		this.#seen = true;
+		const now = performance.now();
+		const duration = this.#motionDuration();
+		for (const reveal of this.#revealTweens.values()) {
+			reveal.retarget([1], { duration, now });
+		}
+		this.#schedule();
+	}
+
+	/**
+	 * Drop the canvas backing stores of a chart far from the viewport. The next
+	 * in-view commit repaints in full, because `#paint` resizes a canvas whose
+	 * bitmap no longer matches the plot.
+	 */
+	releaseBackingStores(): void {
+		if (this.#destroyed) {
+			return;
+		}
+		const canvas = this.#elements.canvas;
+		if (canvas.width !== 0 || canvas.height !== 0) {
+			canvas.width = 0;
+			canvas.height = 0;
+		}
+		const marksLayer = this.#marksLayerCanvas;
+		if (marksLayer != null && (marksLayer.width !== 0 || marksLayer.height !== 0)) {
+			marksLayer.width = 0;
+			marksLayer.height = 0;
+		}
+		this.#needsPaint = true;
+	}
+
+	/**
+	 * Run the pending commit now, inside the caller's task, instead of on the
+	 * next animation frame. Activation calls it so a chart paints in the task
+	 * that activated it.
+	 *
+	 * @example
+	 * ```ts
+	 * engine.setRows(rows);
+	 * engine.commitNow(); // painted before this line returns
+	 * ```
+	 */
+	commitNow(): void {
+		if (this.#destroyed) {
+			return;
+		}
+		if (this.#frame !== 0) {
+			cancelAnimationFrame(this.#frame);
+			this.#frame = 0;
+		}
+		this.#scheduled = false;
+		this.#commit();
+	}
+
+	/**
+	 * Hand the engine its tooltip container once the Root mounts it. The
+	 * container arrives on the first hover, so a chart nobody points at never
+	 * holds one. Passing `null` detaches it.
+	 *
+	 * @example
+	 * ```ts
+	 * engine.attachTooltip(tooltipElement);
+	 * ```
+	 */
+	attachTooltip(element: HTMLElement | null): void {
+		if (this.#elements.tooltip === element || this.#destroyed) {
+			return;
+		}
+		this.#tooltipResizeObserver?.disconnect();
+		this.#tooltipResizeObserver = null;
+		this.#tooltipSize = { width: 0, height: 0 };
+		this.#elements.tooltip = element;
+		if (element != null && this.#inView) {
+			this.#observeTooltip();
+		}
+		this.#scheduleOverlay();
+	}
+
+	/**
+	 * Paint for the print snapshot. No animation frame runs between
+	 * `beforeprint` and the snapshot, so a chart that waited for a frame would
+	 * print blank. Idempotent within one print: a second call is a no-op.
+	 *
+	 * @example
+	 * ```ts
+	 * window.addEventListener("beforeprint", () => engine.paintForPrint());
+	 * ```
+	 */
+	paintForPrint(): void {
+		if (this.#destroyed || this.#printing) {
+			return;
+		}
+		this.#printing = true;
+		if (this.#cssWidth === 0 || this.#cssHeight === 0) {
+			const rect = this.#elements.plot.getBoundingClientRect();
+			this.#cssWidth = rect.width;
+			this.#cssHeight = rect.height;
+		}
+		// A reveal held for a reader who never scrolled here would print blank.
+		if (!this.#seen) {
+			this.#seen = true;
+			const now = performance.now();
+			for (const reveal of this.#revealTweens.values()) {
+				reveal.retarget([1], { duration: 0, now });
+			}
+		}
+		this.#needsPaint = true;
+		this.#commit();
+	}
+
+	#onBeforePrint = (): void => {
+		this.paintForPrint();
+	};
+
+	#onAfterPrint = (): void => {
+		this.#printing = false;
+		if (!this.#inView) {
+			this.releaseBackingStores();
+		}
+	};
+
+	/**
+	 * Observe the tooltip's size once the chart can show it. The read of
+	 * `offsetWidth` forces a layout, so a dormant chart never pays for it.
+	 */
+	#observeTooltip(): void {
+		const tooltip = this.#elements.tooltip;
+		if (
+			tooltip == null ||
+			this.#tooltipResizeObserver != null ||
+			typeof ResizeObserver === "undefined"
+		) {
+			return;
+		}
+		this.#tooltipResizeObserver = new ResizeObserver(() => {
+			this.#tooltipSize = {
+				width: tooltip.offsetWidth,
+				height: tooltip.offsetHeight,
+			};
+			this.#scheduleOverlay();
+		});
+		this.#tooltipResizeObserver.observe(tooltip);
+	}
+
+	/** The 2D context, created on first use so a chart that never paints never holds one. */
+	#context(): CanvasRenderingContext2D | null {
+		if (!this.#contextRequested) {
+			this.#contextRequested = true;
+			this.#ctx = this.#elements.canvas.getContext("2d");
+		}
+		return this.#ctx;
 	}
 
 	setOptions(options: ChartOptions): void {
@@ -704,10 +941,17 @@ class ChartEngine {
 	}
 
 	/**
-	 * Force color re-resolution (e.g. after consumer-driven CSS variable changes).
+	 * Drop the resolved colors and repaint, so the next commit reads them from
+	 * the Root's computed style again. A no-op before the first resolution.
 	 */
 	invalidateColors(): void {
+		if (this.#colors == null) {
+			return;
+		}
 		this.#colors = null;
+		// The theme signature is unchanged on a Root-scoped override, so the
+		// reference-line cache keyed on it needs an explicit clear.
+		this.#referenceColorCache.clear();
 		this.#schedule();
 	}
 
@@ -767,10 +1011,7 @@ class ChartEngine {
 						: String(raw);
 				xs[index] = index;
 			}
-			invariant(
-				count === 0 || foundX,
-				`${this.#rootName()} xKey "${xKey}" does not match any key in the provided data. Available keys: ${Object.keys(rows[0] ?? {}).join(", ")}.`,
-			);
+			invariant(count === 0 || foundX, missingKeyMessage(this.#rootName(), "xKey", xKey, rows));
 			this.#order = null;
 			this.#orderInverse = null;
 			this.#rowCount = count;
@@ -809,11 +1050,11 @@ class ChartEngine {
 			}
 			invariant(
 				rows.length === 0 || sawXKey,
-				`${this.#rootName()} xKey "${xKey}" does not match any key in the provided data. Available keys: ${Object.keys(rows[0] ?? {}).join(", ")}.`,
+				missingKeyMessage(this.#rootName(), "xKey", xKey, rows),
 			);
 			invariant(
 				!sawNonNullish || sawCoercible,
-				`${this.#rootName()} could not read any "${xKey}" values as ${xScale === "time" ? "dates" : "numbers"} for the "${xScale}" x scale — check the xScale and the data types.`,
+				uncoercibleXMessage(this.#rootName(), xKey, xScale),
 			);
 			// Sorting once at ingest keeps decimation and hit-testing correct for
 			// out-of-order API responses; the sorted view is the engine's contract.
@@ -958,7 +1199,7 @@ class ChartEngine {
 			}
 			invariant(
 				count === 0 || found,
-				`${PART_NAME[spec.mark]} dataKey "${spec.dataKey}" does not match any key in the provided data. Available keys: ${Object.keys(rows[0] ?? {}).join(", ")}.`,
+				missingKeyMessage(PART_NAME[spec.mark], "dataKey", spec.dataKey, rows),
 			);
 			this.#columns.set(spec.dataKey, values);
 		}
@@ -991,10 +1232,7 @@ class ChartEngine {
 					}
 				}
 			}
-			invariant(
-				count === 0 || zFound,
-				`ScatterPlot.Root zKey "${zKey}" does not match any key in the provided data. Available keys: ${Object.keys(rows[0] ?? {}).join(", ")}.`,
-			);
+			invariant(count === 0 || zFound, missingKeyMessage("ScatterPlot.Root", "zKey", zKey, rows));
 			this.#zs = zs;
 			this.#zDomain =
 				zMin === Number.POSITIVE_INFINITY ? [0, 1] : niceDomain([zMin, zMax], Y_TICK_COUNT);
@@ -1105,10 +1343,15 @@ class ChartEngine {
 			}
 
 			// Enter reveal: once per registered series, on its first non-empty data.
+			// A chart nobody has seen holds it at zero until `markSeen`, unless
+			// there is no motion to play.
 			if (!this.#revealTweens.has(spec.dataKey) && this.#rowCount > 0) {
 				const reveal = new ValueTween();
+				const motion = this.#motionDuration();
 				reveal.retarget([0], { duration: 0, now });
-				reveal.retarget([1], { duration, now });
+				if (this.#seen || motion === 0) {
+					reveal.retarget([1], { duration: this.#seen ? motion : 0, now });
+				}
 				this.#revealTweens.set(spec.dataKey, reveal);
 			}
 		});
@@ -1130,7 +1373,20 @@ class ChartEngine {
 		}
 	}
 
+	/**
+	 * How long a glide takes this frame: zero while dormant, so a chart that
+	 * enters view paints its current data instead of gliding from a stale
+	 * domain it never showed.
+	 */
 	#tweenDuration(): number {
+		if (!this.#inView && !this.#printing) {
+			return 0;
+		}
+		return this.#motionDuration();
+	}
+
+	/** The glide duration the viewer's settings allow, whatever the visibility. */
+	#motionDuration(): number {
 		if (!this.#options.animate) {
 			return 0;
 		}
@@ -1140,20 +1396,9 @@ class ChartEngine {
 		return CHART_TWEEN_DURATION_MS;
 	}
 
-	/**
-	 * Whether the viewer prefers reduced motion. `#paint` reads this on every
-	 * animated frame. `matchMedia` allocates a `MediaQueryList` and parses the
-	 * query per call, so one query lives per engine. `matches` is live, so a
-	 * preference toggled mid-session still snaps the next frame.
-	 */
+	/** Whether the viewer prefers reduced motion; `#paint` reads this on every animated frame. */
 	#reducedMotion(): boolean {
-		if (typeof matchMedia === "undefined") {
-			return false;
-		}
-		if (this.#reducedMotionQuery == null) {
-			this.#reducedMotionQuery = matchMedia("(prefers-reduced-motion: reduce)");
-		}
-		return this.#reducedMotionQuery.matches;
+		return this.#view != null && prefersReducedMotion(this.#view);
 	}
 
 	#targetYDomain(): [number, number] {
@@ -1260,6 +1505,7 @@ class ChartEngine {
 	/** Schedule a full canvas repaint (plus overlay sync) on the next frame. */
 	#schedule(): void {
 		this.#needsPaint = true;
+		this.#needsLayout = true;
 		this.#request();
 	}
 
@@ -1289,8 +1535,17 @@ class ChartEngine {
 			return;
 		}
 		this.flushIngest();
-		if (this.#needsPaint) {
+		if (this.#needsPaint && !this.#inView && !this.#printing) {
+			// Why layout without paint: a dormant chart can show a controlled
+			// active index, and the overlay below positions its markers from the
+			// plot rect. The paint waits for entry.
+			if (this.#needsLayout) {
+				this.#needsLayout = false;
+				this.#layout();
+			}
+		} else if (this.#needsPaint) {
 			this.#needsPaint = false;
+			this.#needsLayout = false;
 			const now = performance.now();
 			let animating = false;
 			animating = this.#yTween.tick(now) || animating;
@@ -1308,7 +1563,9 @@ class ChartEngine {
 				this.#camera = { yaw: view[0] ?? this.#camera.yaw, pitch: view[1] ?? this.#camera.pitch };
 			}
 
-			this.#resolveColorsIfNeeded();
+			if (this.#cssWidth > 0 && this.#cssHeight > 0) {
+				this.#resolveColorsIfNeeded();
+			}
 			this.#layout();
 			animating = this.#paint(now) || animating;
 
@@ -1336,23 +1593,23 @@ class ChartEngine {
 		if (this.#colors?.signature === signature) {
 			return;
 		}
-		const view = root.ownerDocument.defaultView;
-		if (view == null) {
+		const resolver = this.#colorResolver();
+		if (resolver == null) {
 			return;
 		}
-		const ctx = this.#ctx;
+		const ctx = this.#context();
 		const series = new Map<string, string>();
 		const inputs = new Map<string, string>();
 		const barTextures = new Map<string, CanvasPattern>();
 		for (const meta of this.#store.seriesMeta()) {
-			const resolved = resolveSeriesColor(root, meta.colorInput);
+			const resolved = resolveSeriesColor(resolver, meta.colorInput);
 			series.set(meta.dataKey, resolved);
 			inputs.set(meta.dataKey, seriesPaintInput(meta));
 			if (ctx != null && meta.mark === "bar" && meta.texture !== "solid") {
 				const pattern = createBarTexturePattern(ctx, {
 					texture: meta.texture,
 					color: resolved,
-					ink: resolveThroughProbe(root, textureInkColor(resolved)),
+					ink: resolver.resolve(textureInkColor(resolved)),
 					devicePixelRatio: this.#dpr,
 					orientation: this.#options.orientation,
 				});
@@ -1363,19 +1620,41 @@ class ChartEngine {
 		}
 		this.#colors = {
 			signature,
+			resolver,
 			series,
 			inputs,
 			barTextures,
-			chrome: resolveChromeColors(root),
-			fontFamily: view.getComputedStyle(root).fontFamily || "sans-serif",
+			chrome: resolveChromeColors(resolver),
+			fontFamily: resolver.fontFamily,
 		};
+	}
+
+	/**
+	 * One resolver per resolution pass: it holds the single computed-style read
+	 * every token resolves from, so a pass costs one style read instead of one
+	 * probe insertion per color. `null` in a detached document.
+	 */
+	#colorResolver(): ColorResolver | null {
+		const root = this.#elements.root;
+		const view = root.ownerDocument.defaultView;
+		if (view == null) {
+			return null;
+		}
+		// Why the plot hosts the probe: the Root's child list is the consumer's
+		// (a legend, a copy button), and a structural selector there must not
+		// count a hidden span. The plot already holds the engine's own layers.
+		return createColorResolver(this.#elements.plot, {
+			computed: view.getComputedStyle(root),
+			parseContext: colorParseContext(root.ownerDocument),
+		});
 	}
 
 	/**
 	 * Resolve a reference-line color, cached per color input and invalidated with
 	 * the theme/dpr color signature. A reference line paints on every animation
 	 * frame, so resolving through the DOM probe each time would force a style
-	 * recalc inside the paint loop.
+	 * recalc inside the paint loop. The pass's own resolver serves it, so a
+	 * custom reference color adds no style read of its own.
 	 */
 	#resolveReferenceColor(input: SeriesColor): string {
 		const signature = this.#colors?.signature ?? "";
@@ -1387,7 +1666,8 @@ class ChartEngine {
 		if (cached != null) {
 			return cached;
 		}
-		const resolved = resolveSeriesColor(this.#elements.root, input);
+		const resolver = this.#colors?.resolver ?? this.#colorResolver();
+		const resolved = resolver == null ? input : resolveSeriesColor(resolver, input);
 		this.#referenceColorCache.set(input, resolved);
 		return resolved;
 	}
@@ -1422,7 +1702,9 @@ class ChartEngine {
 		let left = PLOT_PADDING;
 		if (leftAxis) {
 			left = FALLBACK_AXIS_GUTTER;
-			const ctx = this.#ctx;
+			// Why colors first: a dormant chart lays out without resolved colors, and
+			// asking for the context here would allocate one it never paints with.
+			const ctx = this.#colors == null ? null : this.#context();
 			if (ctx != null && this.#colors != null) {
 				ctx.font = `${AXIS_FONT_SIZE}px ${this.#colors.fontFamily}`;
 				let widest = 0;
@@ -1605,7 +1887,7 @@ class ChartEngine {
 	}
 
 	#paint(now: number): boolean {
-		const ctx = this.#ctx;
+		const ctx = this.#context();
 		const colors = this.#colors;
 		if (ctx == null || colors == null || this.#cssWidth <= 0 || this.#cssHeight <= 0) {
 			return false;
@@ -1637,8 +1919,13 @@ class ChartEngine {
 		// gridlines share the label alphas so everything slides together while
 		// the domains glide.
 		const instantLabels = this.#tweenDuration() === 0;
-		const desiredXTicks = is3d ? [] : this.#desiredXTicks(ctx, colors.fontFamily);
-		const desiredYTicks = is3d ? [] : this.#desiredValueTicks(ctx, colors.fontFamily);
+		// Why the guard: a chart with no axis and no grid draws no labels and no
+		// gridlines, and the `ctx.font` write plus a `measureText` per tick cost
+		// a sparkline more than its bars.
+		const wantsTicks = snapshot.xAxis != null || snapshot.yAxis != null || snapshot.grid != null;
+		const desiredXTicks = is3d || !wantsTicks ? [] : this.#desiredXTicks(ctx, colors.fontFamily);
+		const desiredYTicks =
+			is3d || !wantsTicks ? [] : this.#desiredValueTicks(ctx, colors.fontFamily);
 		let labelsAnimating = advanceLabelFade(this.#xLabelFade, desiredXTicks, paintDt, instantLabels);
 		labelsAnimating =
 			advanceLabelFade(this.#yLabelFade, desiredYTicks, paintDt, instantLabels) || labelsAnimating;
@@ -2806,7 +3093,12 @@ class ChartEngine {
 	}
 
 	#updateOverlay(): void {
-		const { crosshair, band, markers, tooltip } = this.#elements;
+		const { hover, tooltip } = this.#elements;
+		// A static chart has no layers to place and nothing to point at.
+		if (hover == null) {
+			return;
+		}
+		const { crosshair, band, markers } = hover;
 		const index = this.#effectiveIndex();
 		const visible = index != null && this.#rowCount > 0;
 		const isBar = this.#kind === "bar";
@@ -2815,7 +3107,9 @@ class ChartEngine {
 		crosshair.style.opacity = visible && !isBar && !isScatter ? "1" : "0";
 		band.style.opacity = visible && isBar ? "1" : "0";
 		markers.style.opacity = visible && !isBar ? "1" : "0";
-		tooltip.style.opacity = visible ? "1" : "0";
+		if (tooltip != null) {
+			tooltip.style.opacity = visible ? "1" : "0";
+		}
 		if (!visible) {
 			return;
 		}
@@ -2826,7 +3120,9 @@ class ChartEngine {
 			const screen = this.#activeScreen ?? this.#screenForIndex(index);
 			if (screen == null) {
 				markers.style.opacity = "0";
-				tooltip.style.opacity = "0";
+				if (tooltip != null) {
+					tooltip.style.opacity = "0";
+				}
 				return;
 			}
 			while (markers.children.length > 1) {
@@ -2939,6 +3235,9 @@ class ChartEngine {
 	#positionTooltip(anchorX: number, anchorY: number): void {
 		const plot = this.#plot;
 		const tooltip = this.#elements.tooltip;
+		if (tooltip == null) {
+			return;
+		}
 		const size = this.#tooltipSize;
 		const gapX = 12;
 		let tooltipLeft = anchorX + gapX;
@@ -3087,23 +3386,6 @@ const styleMarkerDot = (dot: HTMLElement, shape: PointShape, color: string): voi
 };
 
 /**
- * Coerce a consumer x value for continuous scales. Time scales accept `Date`,
- * epoch milliseconds, or parseable date strings.
- */
-const toEpochOrNumber = (raw: unknown, isTime: boolean): number => {
-	if (raw instanceof Date) {
-		return raw.getTime();
-	}
-	if (typeof raw === "number") {
-		return raw;
-	}
-	if (isTime && typeof raw === "string") {
-		return new Date(raw).getTime();
-	}
-	return Number.NaN;
-};
-
-/**
  * A zero-baseline stand-in for the lower boundary of an unstacked area.
  */
 const zeroColumns = (template: DecimatedColumns, baseline: number): DecimatedColumns => ({
@@ -3119,6 +3401,7 @@ export type {
 	//,
 	EngineCallbacks,
 	EngineElements,
+	HoverLayers,
 };
 export {
 	//,

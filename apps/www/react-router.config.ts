@@ -70,6 +70,7 @@ export default {
 		// `.mdx` paths exist only to 301-redirect stale source URLs to the canonical
 		// doc page; they are not pages to snapshot. Visiting them during prerender
 		// fails because the framework treats the 301 as an unexpected status.
-		return getStaticPaths().filter((path) => !path.endsWith(".mdx"));
+		// The benchmark page renders on the client only; a snapshot of it holds nothing.
+		return getStaticPaths().filter((path) => !path.endsWith(".mdx") && !path.startsWith("/bench/"));
 	},
 } satisfies Config;

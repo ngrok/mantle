@@ -1,6 +1,7 @@
 "use client";
 
 import { render, waitFor } from "@testing-library/react";
+import { findChartCanvas } from "../../test-utils/find-chart-canvas.js";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { AreaChart } from "../area-chart/index.js";
 
@@ -104,10 +105,7 @@ const alphaAt = (canvas: HTMLCanvasElement, cssX: number, cssY: number): number 
 describe("left-edge scroll mask", () => {
 	test("a sliding window fades the marks at the left edge, then decays once idle", async () => {
 		const { container, rerender } = render(<Chart data={windowAt(0)} />);
-		const canvas = container.querySelector("canvas");
-		if (!(canvas instanceof HTMLCanvasElement)) {
-			throw new Error("expected the chart canvas to render");
-		}
+		const canvas = await findChartCanvas(container);
 		await waitFor(() => {
 			expect(canvas.width).toBeGreaterThan(0);
 		});

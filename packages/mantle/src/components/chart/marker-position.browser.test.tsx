@@ -1,6 +1,7 @@
 "use client";
 
 import { render, waitFor } from "@testing-library/react";
+import { findChartCanvas } from "../../test-utils/find-chart-canvas.js";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { AreaChart } from "../area-chart/index.js";
 import { BarChart } from "../bar-chart/index.js";
@@ -140,7 +141,7 @@ const assertDatumGeometry = async <T,>(
 	key: "Home" | "End",
 	assertGeometry: () => T,
 ): Promise<T> => {
-	const canvas = mustBe(container.querySelector("canvas"), HTMLCanvasElement, "the chart canvas");
+	const canvas = await findChartCanvas(container);
 	const overlay = mustBe(container.querySelector('[role="application"]'), HTMLElement, "overlay");
 	await waitFor(() => {
 		expect(canvas.width).toBeGreaterThan(0);
@@ -428,7 +429,7 @@ describe("hover marker geometry", () => {
 				</BarChart.Root>
 			</div>,
 		);
-		const canvas = mustBe(container.querySelector("canvas"), HTMLCanvasElement, "the chart canvas");
+		const canvas = await findChartCanvas(container);
 		const overlay = mustBe(container.querySelector('[role="application"]'), HTMLElement, "overlay");
 		await waitFor(() => {
 			expect(canvas.width).toBeGreaterThan(0);

@@ -1,28 +1,223 @@
-import { describe, expect, test } from "vitest";
-import { chartTokenVariable, isChartColorToken, needsComputedResolution } from "./colors.js";
+import { afterEach, describe, expect, test, vi } from "vitest";
+import type { ColorParseContext, ComputedColorSource } from "./colors.js";
+import {
+	canvasParses,
+	chartTokenVariable,
+	createColorResolver,
+	isChartColorToken,
+	observeThemeChanges,
+	resolveSeriesColor,
+} from "./colors.js";
 
-describe("needsComputedResolution", () => {
-	test("flags var() references", () => {
-		expect(needsComputedResolution("var(--color-chart-1)")).toBe(true);
+/**
+ * A `fillStyle` that accepts a hex color and the listed strings and keeps its
+ * previous value on anything else, the way a real canvas drops a color it
+ * cannot parse.
+ */
+const createParseContext = (accepted: readonly string[]): ColorParseContext => {
+	let fillStyle: string | CanvasGradient | CanvasPattern = "#000000";
+	return {
+		get fillStyle() {
+			return fillStyle;
+		},
+		set fillStyle(value) {
+			if (typeof value !== "string" || /^#[0-9a-f]{6}$/i.test(value) || accepted.includes(value)) {
+				fillStyle = value;
+			}
+		},
+	};
+};
+
+/** The computed-style reads the resolver makes, with no cascade behind them. */
+const createComputed = (
+	source: { properties?: Record<string, string>; color?: string; fontFamily?: string } = {},
+): ComputedColorSource => ({
+	getPropertyValue: (name) => source.properties?.[name] ?? "",
+	color: source.color ?? "rgb(0, 0, 0)",
+	fontFamily: source.fontFamily ?? "monospace",
+});
+
+/**
+ * The color a chart root passes down. happy-dom computes no cascade beyond
+ * inline styles and inheritance, so a read that returns this color can only
+ * have come from a probe inside the host.
+ */
+const HOST_COLOR = "rgb(5, 5, 5)";
+
+const mountHost = (): HTMLElement => {
+	const host = document.createElement("div");
+	host.style.color = HOST_COLOR;
+	document.body.append(host);
+	return host;
+};
+
+afterEach(() => {
+	document.body.replaceChildren();
+});
+
+describe("createColorResolver", () => {
+	test("a chart token resolves from the root's computed custom property with no probe", () => {
+		const host = mountHost();
+		const resolver = createColorResolver(host, {
+			computed: createComputed({ properties: { "--color-chart-1": "#3e6ff4" } }),
+			parseContext: createParseContext([]),
+		});
+		expect(resolveSeriesColor(resolver, "chart-1")).toBe("#3e6ff4");
+		// A resolver that probes first appends a span and reads the inherited color.
+		expect(host.childElementCount).toBe(0);
 	});
 
-	// Regression: CSS keywords and function names are case-insensitive, so a
-	// case-sensitive substring check let `currentcolor`/`VAR(` slip past probe
-	// resolution and reach canvas as an invalid, silently-ignored fillStyle.
-	test("flags currentColor regardless of case", () => {
-		expect(needsComputedResolution("currentColor")).toBe(true);
-		expect(needsComputedResolution("currentcolor")).toBe(true);
-		expect(needsComputedResolution("CURRENTCOLOR")).toBe(true);
+	test("one pass reads a custom property once for every series that paints it", () => {
+		const computed = createComputed({ properties: { "--color-chart-1": "#3e6ff4" } });
+		const reads = vi.spyOn(computed, "getPropertyValue");
+		const resolver = createColorResolver(mountHost(), {
+			computed,
+			parseContext: createParseContext([]),
+		});
+		resolveSeriesColor(resolver, "chart-1");
+		resolveSeriesColor(resolver, "chart-1");
+		expect(reads).toHaveBeenCalledTimes(1);
 	});
 
-	test("flags var() regardless of case", () => {
-		expect(needsComputedResolution("VAR(--color-chart-1)")).toBe(true);
-		expect(needsComputedResolution("Var(--color-chart-1)")).toBe(true);
+	test("a color the canvas rejects resolves through one hidden probe", () => {
+		const host = mountHost();
+		const resolver = createColorResolver(host, {
+			computed: createComputed(),
+			parseContext: createParseContext([]),
+		});
+		// happy-dom rejects `oklch()` inline, so the probe computes the color it
+		// inherits from the host. A resolver that hands the string through
+		// returns the input instead.
+		expect(resolver.resolve("oklch(0.62 0.2 259)")).toBe(HOST_COLOR);
+		expect(host.childElementCount).toBe(1);
+		const probe = host.querySelector("span");
+		expect(probe).toHaveAttribute("aria-hidden", "true");
+		expect(probe).not.toBeVisible();
 	});
 
-	test("passes canvas-paintable colors through untouched", () => {
-		expect(needsComputedResolution("#e40014")).toBe(false);
-		expect(needsComputedResolution("color-mix(in oklab, red 70%, black)")).toBe(false);
+	test("two colors the canvas rejects share the probe", () => {
+		const host = mountHost();
+		const resolver = createColorResolver(host, {
+			computed: createComputed(),
+			parseContext: createParseContext([]),
+		});
+		resolver.resolve("oklch(0.62 0.2 259)");
+		resolver.resolve("oklch(0.47 0.1 160)");
+		expect(host.querySelectorAll("span")).toHaveLength(1);
+	});
+
+	test("with no parse context an empty custom property still resolves through the probe", () => {
+		const host = mountHost();
+		const resolver = createColorResolver(host, { computed: createComputed(), parseContext: null });
+		// The probe inherits the host's color for a `var()` with no value. A
+		// resolver that treats "" as a color returns "".
+		expect(resolver.resolve("var(--color-chart-9)")).toBe(HOST_COLOR);
+		expect(host.childElementCount).toBe(1);
+	});
+
+	test("currentColor resolves from the root's computed color", () => {
+		const host = mountHost();
+		const resolver = createColorResolver(host, {
+			computed: createComputed({ color: "rgb(9, 8, 7)" }),
+			parseContext: createParseContext(["rgb(9, 8, 7)"]),
+		});
+		// A resolver that reads `getPropertyValue("currentcolor")` gets "" and
+		// probes, and one that compares case-sensitively probes too.
+		expect(resolver.resolve("currentColor")).toBe("rgb(9, 8, 7)");
+		expect(host.childElementCount).toBe(0);
+	});
+
+	test("an empty computed font family falls back to sans-serif", () => {
+		const resolver = createColorResolver(mountHost(), {
+			computed: createComputed({ fontFamily: "" }),
+			parseContext: null,
+		});
+		expect(resolver.fontFamily).toBe("sans-serif");
+	});
+});
+
+describe("canvasParses", () => {
+	test("a color equal to the first sentinel is checked against the second", () => {
+		// `#010203` is the first sentinel. A check with one sentinel reads it
+		// back unchanged and reports a parse failure.
+		expect(canvasParses(createParseContext([]), "#010203")).toBe(true);
+	});
+
+	test("a color the canvas drops leaves the sentinel in place", () => {
+		expect(canvasParses(createParseContext([]), "var(--color-chart-1)")).toBe(false);
+	});
+});
+
+describe("observeThemeChanges", () => {
+	const root = document.documentElement;
+
+	afterEach(() => {
+		root.removeAttribute("class");
+		root.removeAttribute("data-applied-theme");
+		root.removeAttribute("data-theme");
+	});
+
+	/**
+	 * Resolves once the next attribute mutation on `element` reaches an observer
+	 * registered after the theme watch, so the watch has seen it too.
+	 */
+	const nextMutationDelivered = (element: Element): Promise<void> =>
+		new Promise((resolve) => {
+			const observer = new MutationObserver(() => {
+				observer.disconnect();
+				resolve();
+			});
+			observer.observe(element, { attributes: true });
+		});
+
+	test("a rewrite that keeps the signature notifies nobody; a change notifies every listener once", async () => {
+		const first = vi.fn<() => void>();
+		const second = vi.fn<() => void>();
+		const stopFirst = observeThemeChanges(root, first);
+		const stopSecond = observeThemeChanges(root, second);
+
+		// An absent attribute and an empty one sign the same.
+		let delivered = nextMutationDelivered(root);
+		root.setAttribute("data-theme", "");
+		await delivered;
+		expect(first).toHaveBeenCalledTimes(0);
+		expect(second).toHaveBeenCalledTimes(0);
+
+		delivered = nextMutationDelivered(root);
+		root.setAttribute("data-theme", "dark");
+		await delivered;
+		expect(first).toHaveBeenCalledTimes(1);
+		expect(second).toHaveBeenCalledTimes(1);
+
+		stopFirst();
+		stopSecond();
+	});
+
+	// The other two attributes the ThemeProvider writes; `data-theme` is above.
+	test.each(["class", "data-applied-theme"])("a change to %s notifies", async (attribute) => {
+		const listener = vi.fn<() => void>();
+		const stop = observeThemeChanges(root, listener);
+		const delivered = nextMutationDelivered(root);
+		root.setAttribute(attribute, "dark");
+		await delivered;
+		expect(listener).toHaveBeenCalledTimes(1);
+		stop();
+	});
+
+	test("listeners share one observer, which disconnects with the last of them", () => {
+		const observe = vi.spyOn(MutationObserver.prototype, "observe");
+		const disconnect = vi.spyOn(MutationObserver.prototype, "disconnect");
+		const stopFirst = observeThemeChanges(root, () => {});
+		const stopSecond = observeThemeChanges(root, () => {});
+		expect(observe).toHaveBeenCalledTimes(1);
+		stopFirst();
+		expect(disconnect).toHaveBeenCalledTimes(0);
+		stopSecond();
+		expect(disconnect).toHaveBeenCalledTimes(1);
+		// The watch is gone, so the next listener observes anew.
+		const stopThird = observeThemeChanges(root, () => {});
+		expect(observe).toHaveBeenCalledTimes(2);
+		stopThird();
 	});
 });
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { render, waitFor } from "@testing-library/react";
+import { findChartCanvas } from "../../test-utils/find-chart-canvas.js";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { BarChart } from "../bar-chart/index.js";
 
@@ -81,14 +82,6 @@ const data = [
 	{ cat: "C", v: 65 },
 ];
 
-const canvasOf = (container: HTMLElement): HTMLCanvasElement => {
-	const canvas = container.querySelector("canvas");
-	if (!(canvas instanceof HTMLCanvasElement)) {
-		throw new Error("expected the chart canvas to render");
-	}
-	return canvas;
-};
-
 /**
  * How many pixels match one color within a tolerance, over the whole canvas.
  * The tolerance absorbs the antialiasing along a bar's rounded cap; a bar's
@@ -129,12 +122,12 @@ describe("a decorative chart's painted fill", () => {
 		// the same neutral, and no categorical blue reaches the canvas at all.
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
-				<BarChart.Root data={data} xKey="cat" animate={false} decorative>
+				<BarChart.Root data={data} xKey="cat" animate={false} mode="decorative">
 					<BarChart.Bar dataKey="v" label="Value" color="chart-1" />
 				</BarChart.Root>
 			</div>,
 		);
-		const canvas = canvasOf(container);
+		const canvas = await findChartCanvas(container);
 		await waitFor(() => {
 			expect(canvas.width).toBeGreaterThan(0);
 			expect(countPixels(canvas, DECORATIVE)).toBeGreaterThan(1000);
@@ -152,7 +145,7 @@ describe("a decorative chart's painted fill", () => {
 				</BarChart.Root>
 			</div>,
 		);
-		const canvas = canvasOf(container);
+		const canvas = await findChartCanvas(container);
 		await waitFor(() => {
 			expect(canvas.width).toBeGreaterThan(0);
 			expect(countPixels(canvas, CHART_1)).toBeGreaterThan(1000);

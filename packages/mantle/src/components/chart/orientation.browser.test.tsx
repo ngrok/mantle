@@ -1,6 +1,7 @@
 "use client";
 
 import { render, waitFor } from "@testing-library/react";
+import { findChartCanvas } from "../../test-utils/find-chart-canvas.js";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { BarChart } from "../bar-chart/index.js";
 
@@ -127,14 +128,6 @@ const twoCategories = [
 	{ cat: "B", v: 90 },
 ];
 
-const canvasOf = (container: HTMLElement): HTMLCanvasElement => {
-	const canvas = container.querySelector("canvas");
-	if (!(canvas instanceof HTMLCanvasElement)) {
-		throw new Error("expected the chart canvas to render");
-	}
-	return canvas;
-};
-
 describe("bar orientation", () => {
 	test("defaults to vertical: bars stand up from the bottom baseline", async () => {
 		// No `orientation` prop. Vertical bars band categories along x (A left, B
@@ -149,7 +142,7 @@ describe("bar orientation", () => {
 				</BarChart.Root>
 			</div>,
 		);
-		const canvas = canvasOf(container);
+		const canvas = await findChartCanvas(container);
 		await waitFor(() => {
 			expect(canvas.width).toBeGreaterThan(0);
 			const scan = scanInk(canvas);
@@ -180,7 +173,7 @@ describe("bar orientation", () => {
 				</BarChart.Root>
 			</div>,
 		);
-		const canvas = canvasOf(container);
+		const canvas = await findChartCanvas(container);
 		await waitFor(() => {
 			expect(canvas.width).toBeGreaterThan(0);
 			const scan = scanInk(canvas);

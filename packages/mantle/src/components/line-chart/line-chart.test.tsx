@@ -1,7 +1,10 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
+import type { FocusEvent } from "react";
 import { createRef, useState } from "react";
 import { describe, expect, test, vi } from "vitest";
+import { engageChart } from "../../test-utils/engage-chart.js";
+import { createIntersectionObserverStub } from "../../test-utils/mock-intersection-observer.js";
 import { BarChart } from "../bar-chart/index.js";
 import type { ChartDatumEvent } from "./line-chart.js";
 import { LineChart } from "./line-chart.js";
@@ -57,6 +60,7 @@ describe("LineChart.Root", () => {
 
 	test("renders the sr-only data table twin with a row per datum", () => {
 		const { container } = renderChart();
+		engageChart();
 		const table = screen.getByRole("table");
 		expect(table).toBeInTheDocument();
 		// The twin is addressable by slot so agents can target it directly.
@@ -85,6 +89,7 @@ describe("LineChart.Root", () => {
 				<LineChart.Line dataKey="p50" label="p50" />
 			</LineChart.Root>,
 		);
+		engageChart();
 		expect(screen.getByRole("table")).toBeInTheDocument();
 		expect(screen.getAllByRole("row")).toHaveLength(151); // header + 150 bounded rows
 		expect(screen.getByText(/Showing the first 150 of 500 rows/)).toBeInTheDocument();
@@ -110,11 +115,107 @@ describe("LineChart.Root", () => {
 			),
 		).toThrow(/LineChart\.Line dataKey "p95" does not match any key.*time, p50, p99/);
 	});
+
+	test("the overlay is described by the summary and the keys", () => {
+		const { container } = renderChart();
+		const overlay = screen.getByRole("application", { name: "Request latency" });
+		// The fixture's dates carry a time of day, so the range reads with times.
+		// The config pins TZ=UTC and en-US, so "Jul 18, 10:00 AM" is deterministic.
+		expect(overlay).toHaveAccessibleDescription(
+			/^Line chart with 3 data points from Jul 18, 10:00\sAM to Jul 18, 10:02\sAM\. Series: p50, p99\. Use the left and right arrow keys/,
+		);
+		const description = container.querySelector('[data-slot="line-chart-description"]');
+		expect(overlay.getAttribute("aria-describedby")).toBe(description?.id);
+	});
+});
+
+describe("LineChart.Root engagement", () => {
+	/** An observer that never reports the chart in view, so only focus can engage it. */
+	const neverInView = () => {
+		const stub = createIntersectionObserverStub({ intersecting: false });
+		vi.stubGlobal("IntersectionObserver", stub.Observer);
+		return stub;
+	};
+
+	const rootOf = (container: HTMLElement): Element | null =>
+		container.querySelector('[data-slot="line-chart"]');
+
+	const plotOf = (container: HTMLElement): Element => {
+		const plot = container.querySelector('[data-slot="line-chart-plot"]');
+		if (plot == null) {
+			throw new Error("expected the chart plot to render");
+		}
+		return plot;
+	};
+
+	test("a chart the observer has not reached mounts no data table but keeps its live region", () => {
+		neverInView();
+		const { container } = renderChart();
+		expect(rootOf(container)).toHaveAttribute("data-state", "dormant");
+		// The sibling table test above proves this query finds a mounted table.
+		expect(screen.queryByRole("table")).not.toBeInTheDocument();
+		// A live region that mounts with its first message is not announced.
+		expect(screen.getByRole("status")).toBeInTheDocument();
+	});
+
+	test("focus engages the chart before the first key", async () => {
+		neverInView();
+		const user = userEvent.setup();
+		const { container } = renderChart();
+		await user.tab();
+		// A discrete event flushes the latch, so the table exists before any key.
+		expect(screen.getByRole("table")).toBeInTheDocument();
+		expect(rootOf(container)).toHaveAttribute("data-state", "engaged");
+		await user.keyboard("{ArrowRight}");
+		const status = screen.getByRole("status");
+		await vi.waitFor(() => {
+			expect(status.textContent).toContain("p50: 120");
+		});
+	});
+
+	test("entering the viewport paints but mounts no data table; focus mounts it and leaving keeps it", () => {
+		const stub = neverInView();
+		const { container } = renderChart();
+		const plot = plotOf(container);
+		act(() => {
+			stub.enter(plot);
+		});
+		// A list of sparklines in view must not hold a table per cell.
+		expect(screen.queryByRole("table")).not.toBeInTheDocument();
+		expect(rootOf(container)).toHaveAttribute("data-state", "dormant");
+		engageChart();
+		expect(screen.getByRole("table")).toBeInTheDocument();
+		act(() => {
+			stub.leave(plot);
+		});
+		// A latch that follows visibility would unmount the table under a reader.
+		expect(screen.getByRole("table")).toBeInTheDocument();
+		expect(rootOf(container)).toHaveAttribute("data-state", "engaged");
+	});
+
+	test("a consumer data-state never overrides the latch", () => {
+		neverInView();
+		const { container } = renderChart({ "data-state": "engaged" });
+		// A spread after the latch would let a wider props object lie about it.
+		expect(rootOf(container)).toHaveAttribute("data-state", "dormant");
+	});
+
+	test("a consumer onFocus runs once and focus still engages the chart", async () => {
+		neverInView();
+		const user = userEvent.setup();
+		const onFocus = vi.fn<(event: FocusEvent<HTMLDivElement>) => void>();
+		const { container } = renderChart({ onFocus });
+		await user.tab();
+		expect(onFocus).toHaveBeenCalledTimes(1);
+		expect(onFocus).toHaveBeenLastCalledWith(expect.objectContaining({ type: "focus" }));
+		expect(rootOf(container)).toHaveAttribute("data-state", "engaged");
+	});
 });
 
 describe("LineChart machine-readable data table", () => {
 	test("date row headers expose exact ISO timestamps via <time dateTime>", () => {
 		renderChart();
+		engageChart();
 		// Agents scrape the exact timestamp from the attribute; AT still reads
 		// the display-formatted text content.
 		const [firstRowHeader] = screen.getAllByRole("rowheader");
@@ -133,6 +234,7 @@ describe("LineChart machine-readable data table", () => {
 				<LineChart.Line dataKey="p50" label="p50" />
 			</LineChart.Root>,
 		);
+		engageChart();
 		const cell = screen.getByRole("cell", { name: "1,284.5" });
 		expect(cell.getAttribute("data-value")).toBe("1284.5");
 	});
@@ -147,6 +249,7 @@ describe("LineChart machine-readable data table", () => {
 				<LineChart.Line dataKey="p50" label="p50" />
 			</LineChart.Root>,
 		);
+		engageChart();
 		const cell = screen.getByRole("cell", { name: "—" });
 		expect(cell.hasAttribute("data-value")).toBe(false);
 	});
@@ -256,9 +359,14 @@ describe("LineChart data slots", () => {
 		["line-chart-markers", "DIV"],
 		["line-chart-tooltip", "DIV"],
 		["line-chart-legend", "DIV"],
+		["line-chart-description", "SPAN"],
 		["line-chart-data-table", "DIV"],
-	])("%s lands on a %s", (slot, tagName) => {
+	])("%s lands on a %s", async (slot, tagName) => {
+		const user = userEvent.setup();
 		const { container } = renderChart();
+		engageChart();
+		// The tooltip surface mounts on the first hover or keyboard step.
+		await user.keyboard("{ArrowRight}");
 		const element = container.querySelector(`[data-slot="${slot}"]`);
 		expect(element).toBeInTheDocument();
 		expect(element?.tagName).toBe(tagName);
@@ -538,6 +646,7 @@ test("swapping data and a series dataKey in the same commit does not crash", () 
 			<LineChart.Line dataKey="mem" label="mem" />
 		</LineChart.Root>,
 	);
+	engageChart();
 	expect(screen.getByRole("columnheader", { name: "mem" })).toBeInTheDocument();
 	rerender(
 		<LineChart.Root data={cpuRows} xKey="time" aria-label="Usage">
@@ -691,6 +800,7 @@ test("the midnight sample in an hourly series keeps its time of day", () => {
 			<LineChart.Line dataKey="p50" label="p50" />
 		</LineChart.Root>,
 	);
+	engageChart();
 	const rowHeaders = screen.getAllByRole("rowheader");
 	expect(rowHeaders[1]?.textContent).toMatch(/12:00\sAM/);
 });
@@ -713,8 +823,8 @@ describe("LineChart controlled activeIndex", () => {
 				<LineChart.Line dataKey="p50" label="p50" />
 			</LineChart.Root>,
 		);
-		const tooltip = document.querySelector('[data-slot="line-chart-tooltip"]');
-		expect(tooltip?.textContent).toBe("");
+		// The surface mounts on the first active datum, so none means no surface.
+		expect(document.querySelector('[data-slot="line-chart-tooltip"]')).toBeNull();
 	});
 
 	test("keyboard stepping on a controlled chart still announces politely", async () => {
@@ -824,7 +934,7 @@ test("rows with unparseable timestamps are dropped without blanking the chart or
 describe("LineChart decorative mode", () => {
 	const renderDecorative = () =>
 		render(
-			<LineChart.Root data={data} xKey="time" decorative>
+			<LineChart.Root data={data} xKey="time" mode="decorative">
 				<LineChart.Line dataKey="p50" label="p50" />
 			</LineChart.Root>,
 		);
@@ -839,9 +949,13 @@ describe("LineChart decorative mode", () => {
 		expect(container.querySelector("canvas")).toBeInTheDocument();
 	});
 
-	test("is inert: no interaction overlay, tab stop, data table, or live region", () => {
+	test("is inert: no interaction overlay, description, tab stop, data table, or live region", () => {
 		const { container } = renderDecorative();
 		expect(screen.queryByRole("application")).not.toBeInTheDocument();
+		// The description belongs to the overlay; the slot test above finds it on an interactive chart.
+		expect(container.querySelector('[data-slot="line-chart-description"]')).not.toBeInTheDocument();
+		// No overlay means nothing can engage it, so the latch stays off the element.
+		expect(container.querySelector('[data-slot="line-chart"]')).not.toHaveAttribute("data-state");
 		expect(container.querySelector("[tabindex]")).not.toBeInTheDocument();
 		expect(screen.queryByRole("table")).not.toBeInTheDocument();
 		expect(screen.queryByRole("status")).not.toBeInTheDocument();

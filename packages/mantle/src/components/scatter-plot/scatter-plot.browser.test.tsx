@@ -1,6 +1,7 @@
 "use client";
 
 import { render, waitFor } from "@testing-library/react";
+import { findChartCanvas } from "../../test-utils/find-chart-canvas.js";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { ScatterPlot } from "./scatter-plot.js";
 
@@ -139,7 +140,7 @@ describe("ScatterPlot 3D painting", () => {
 				</ScatterPlot.Root>
 			</div>,
 		);
-		const canvas = mustBeCanvas(container.querySelector("canvas"));
+		const canvas = await findChartCanvas(container);
 		await waitFor(() => {
 			expect(countOpaquePixels(canvas)).toBeGreaterThan(500);
 		});
@@ -159,7 +160,7 @@ describe("ScatterPlot 3D painting", () => {
 				</ScatterPlot.Root>
 			</div>,
 		);
-		const canvas = mustBeCanvas(container.querySelector("canvas"));
+		const canvas = await findChartCanvas(container);
 		const overlay = container.querySelector('[role="application"]');
 		if (!(overlay instanceof HTMLElement)) {
 			throw new Error("expected the overlay to render");

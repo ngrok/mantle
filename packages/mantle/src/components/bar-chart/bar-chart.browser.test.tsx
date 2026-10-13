@@ -1,6 +1,7 @@
 "use client";
 
 import { render, waitFor } from "@testing-library/react";
+import { findChartCanvas } from "../../test-utils/find-chart-canvas.js";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { BarChart } from "./bar-chart.js";
 
@@ -154,7 +155,7 @@ const renderChart = () =>
 describe("BarChart canvas painting", () => {
 	test("paints token-colored bars at device-pixel resolution", async () => {
 		const { container } = renderChart();
-		const canvas = mustBe(container.querySelector("canvas"), HTMLCanvasElement, "the chart canvas");
+		const canvas = await findChartCanvas(container);
 		await waitFor(() => {
 			expect(canvas.width).toBeGreaterThan(0);
 		});
@@ -170,7 +171,7 @@ describe("BarChart canvas painting", () => {
 
 	test("re-resolves colors and repaints when the theme attributes change", async () => {
 		const { container } = renderChart();
-		const canvas = mustBe(container.querySelector("canvas"), HTMLCanvasElement, "the chart canvas");
+		const canvas = await findChartCanvas(container);
 		await waitFor(() => {
 			expect(
 				countPixels(
@@ -198,7 +199,7 @@ describe("BarChart canvas painting", () => {
 
 	test("pointer hover shows the band overlay and tooltip without clearing the canvas", async () => {
 		const { container } = renderChart();
-		const canvas = mustBe(container.querySelector("canvas"), HTMLCanvasElement, "the chart canvas");
+		const canvas = await findChartCanvas(container);
 		const overlay = mustBe(
 			container.querySelector('[role="application"]'),
 			HTMLElement,
@@ -265,10 +266,12 @@ describe("overriding a chart color token", () => {
 
 	/** The canvas of the nth rendered chart, in document order. */
 	const canvasAt = (container: HTMLElement, index: number, what: string) =>
-		mustBe(
-			container.querySelectorAll('[data-slot="bar-chart"]')[index]?.querySelector("canvas") ?? null,
-			HTMLCanvasElement,
-			`the ${what} chart canvas`,
+		findChartCanvas(
+			mustBe(
+				container.querySelectorAll('[data-slot="bar-chart"]')[index] ?? null,
+				HTMLElement,
+				`the ${what} chart root`,
+			),
 		);
 
 	test("a --color-chart-N override on the Root repaints only that chart", async () => {
@@ -278,8 +281,8 @@ describe("overriding a chart color token", () => {
 		// `[--color-chart-1:#e11d48]`; without a Tailwind build the injected
 		// `.scoped-chart-1` rule stands in for it.
 		const { container } = renderPair();
-		const overridden = canvasAt(container, 0, "overridden");
-		const untouched = canvasAt(container, 1, "default");
+		const overridden = await canvasAt(container, 0, "overridden");
+		const untouched = await canvasAt(container, 1, "default");
 		await waitFor(() => {
 			expect(overridden.width).toBeGreaterThan(0);
 			expect(untouched.width).toBeGreaterThan(0);

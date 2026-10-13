@@ -3,6 +3,7 @@ import { userEvent } from "@testing-library/user-event";
 import { createRef } from "react";
 import invariant from "tiny-invariant";
 import { describe, expect, test, vi } from "vitest";
+import { engageChart } from "../../test-utils/engage-chart.js";
 import { BarChart } from "./bar-chart.js";
 
 const data = [
@@ -49,6 +50,7 @@ describe("BarChart.Root", () => {
 				</BarChart.Root>
 			</>,
 		);
+		engageChart();
 		await vi.waitFor(() => {
 			expect(
 				screen.getByRole("table", { name: "Visitors by month — chart data." }),
@@ -95,6 +97,7 @@ describe("BarChart.Root", () => {
 
 	test("renders the sr-only data table twin with a row per datum", () => {
 		renderChart();
+		engageChart();
 		const table = screen.getByRole("table");
 		expect(table).toBeInTheDocument();
 		expect(screen.getByRole("columnheader", { name: "Desktop" })).toBeInTheDocument();
@@ -113,6 +116,7 @@ describe("BarChart.Root", () => {
 				<BarChart.Bar dataKey="desktop" label="Desktop" />
 			</BarChart.Root>,
 		);
+		engageChart();
 		expect(screen.getByRole("table")).toBeInTheDocument();
 		expect(screen.getAllByRole("row")).toHaveLength(151); // header + 150 bounded rows
 		expect(screen.getByText(/Showing the first 150 of 500 rows/)).toBeInTheDocument();
@@ -152,9 +156,14 @@ describe("BarChart data slots", () => {
 		["bar-chart-markers", "DIV"],
 		["bar-chart-tooltip", "DIV"],
 		["bar-chart-legend", "DIV"],
+		["bar-chart-description", "SPAN"],
 		["bar-chart-data-table", "DIV"],
-	])("%s lands on a %s", (slot, tagName) => {
+	])("%s lands on a %s", async (slot, tagName) => {
+		const user = userEvent.setup();
 		const { container } = renderChart();
+		engageChart();
+		// The tooltip surface mounts on the first hover or keyboard step.
+		await user.keyboard("{ArrowRight}");
 		const element = container.querySelector(`[data-slot="${slot}"]`);
 		expect(element).toBeInTheDocument();
 		expect(element?.tagName).toBe(tagName);
@@ -170,16 +179,17 @@ describe("BarChart data slots", () => {
 		}
 	});
 
-	test("a decorative chart still renders the hover layers", () => {
-		// They sit outside the `decorative` guard on purpose: the engine drives
-		// their opacity, and a decorative chart never activates.
+	test("a decorative chart inserts the canvas alone", () => {
+		// Without an overlay nothing ever hovers, so the hover layers would be
+		// dead DOM; the canvas still paints the placeholder.
 		const { container } = render(
-			<BarChart.Root data={data} xKey="month" decorative>
+			<BarChart.Root data={data} xKey="month" mode="decorative">
 				<BarChart.Bar dataKey="desktop" label="Desktop" />
 			</BarChart.Root>,
 		);
-		expect(container.querySelector('[data-slot="bar-chart-hover-band"]')).toBeInTheDocument();
-		expect(container.querySelector('[data-slot="bar-chart-markers"]')).toBeInTheDocument();
+		expect(container.querySelector('[data-slot="bar-chart-canvas"]')).toBeInTheDocument();
+		expect(container.querySelector('[data-slot="bar-chart-hover-band"]')).toBeNull();
+		expect(container.querySelector('[data-slot="bar-chart-markers"]')).toBeNull();
 		expect(container.querySelector('[role="application"]')).not.toBeInTheDocument();
 	});
 });
@@ -199,6 +209,7 @@ describe("BarChart series paint order", () => {
 				<BarChart.Bar dataKey="mobile" label="Mobile" />
 			</BarChart.Root>,
 		);
+		engageChart();
 		expect(seriesColumns()).toEqual(["Desktop", "Mobile"]);
 		rerender(
 			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
@@ -221,6 +232,7 @@ describe("BarChart series paint order", () => {
 				<BarChart.Bar dataKey="desktop" label="Desktop" />
 			</BarChart.Root>,
 		);
+		engageChart();
 		rerender(
 			<BarChart.Root data={withTablet} xKey="month" aria-label="Visitors by month">
 				<BarChart.Bar dataKey="tablet" label="Tablet" />
@@ -432,8 +444,8 @@ describe("BarChart controlled activeIndex", () => {
 				<BarChart.Bar dataKey="desktop" label="Desktop" />
 			</BarChart.Root>,
 		);
-		const tooltip = document.querySelector('[data-slot="bar-chart-tooltip"]');
-		expect(tooltip?.textContent).toBe("");
+		// The surface mounts on the first active datum, so none means no surface.
+		expect(document.querySelector('[data-slot="bar-chart-tooltip"]')).toBeNull();
 	});
 });
 
@@ -457,7 +469,7 @@ test("legend keys wear the series' texture as a redundant encoding", () => {
 describe("BarChart decorative mode", () => {
 	const renderDecorative = () =>
 		render(
-			<BarChart.Root data={data} xKey="month" decorative>
+			<BarChart.Root data={data} xKey="month" mode="decorative">
 				<BarChart.Grid />
 				<BarChart.Bar dataKey="desktop" label="Desktop" />
 				<BarChart.Bar dataKey="mobile" label="Mobile" />
@@ -485,7 +497,7 @@ describe("BarChart decorative mode", () => {
 		// canvas reads the same value from the same place — the browser sweep in
 		// chart/decorative-paint.browser.test.tsx samples the painted pixels.
 		const { container } = render(
-			<BarChart.Root data={data} xKey="month" decorative>
+			<BarChart.Root data={data} xKey="month" mode="decorative">
 				<BarChart.Bar dataKey="desktop" label="Desktop" color="chart-4" />
 				<BarChart.Bar dataKey="mobile" label="Mobile" />
 				<BarChart.Legend />
@@ -528,7 +540,7 @@ describe("BarChart decorative mode", () => {
 		// would otherwise ride `{...props}` onto the aria-hidden root and reintroduce
 		// a tab stop the decorative contract removed.
 		const { container } = render(
-			<BarChart.Root data={data} xKey="month" decorative tabIndex={0}>
+			<BarChart.Root data={data} xKey="month" mode="decorative" tabIndex={0}>
 				<BarChart.Bar dataKey="desktop" label="Desktop" />
 			</BarChart.Root>,
 		);
@@ -543,7 +555,7 @@ describe("BarChart decorative mode", () => {
 
 	test("is inert, so a composed CopyButton is not a tab stop inside the hidden backdrop", () => {
 		const { container } = render(
-			<BarChart.Root data={data} xKey="month" decorative>
+			<BarChart.Root data={data} xKey="month" mode="decorative">
 				<BarChart.Bar dataKey="desktop" label="Desktop" />
 				<BarChart.CopyButton />
 			</BarChart.Root>,
@@ -554,13 +566,11 @@ describe("BarChart decorative mode", () => {
 	test("keyboard never surfaces a tooltip readout", async () => {
 		const user = userEvent.setup();
 		const { container } = renderDecorative();
-		const tooltip = container.querySelector('[data-slot="bar-chart-tooltip"]');
-		// The engine still owns the tooltip element, but with no overlay to receive
-		// events it can never fill or reveal it.
-		expect(tooltip?.textContent).toBe("");
 		await user.tab();
 		await user.keyboard("{ArrowRight}{Enter}");
-		expect(tooltip?.textContent).toBe("");
+		// With no overlay to receive events, no hover is ever published, so the
+		// tooltip surface never mounts.
+		expect(container.querySelector('[data-slot="bar-chart-tooltip"]')).toBeNull();
 	});
 
 	test("suppresses a type-bypassing controlled activeIndex so no readout surfaces", () => {
@@ -572,13 +582,12 @@ describe("BarChart decorative mode", () => {
 		const { container } = render(
 			<>
 				{/* @ts-expect-error — decorative forbids activeIndex; the runtime guard must suppress it anyway */}
-				<BarChart.Root data={data} xKey="month" decorative activeIndex={1}>
+				<BarChart.Root data={data} xKey="month" mode="decorative" activeIndex={1}>
 					<BarChart.Bar dataKey="desktop" label="Desktop" />
 				</BarChart.Root>
 			</>,
 		);
-		const tooltip = container.querySelector('[data-slot="bar-chart-tooltip"]');
-		expect(tooltip?.textContent).toBe("");
+		expect(container.querySelector('[data-slot="bar-chart-tooltip"]')).toBeNull();
 	});
 });
 
@@ -704,13 +713,43 @@ test("BarChart.CopyButton announces 'Copied' through a live region, and again fo
  * `@ts-expect-error` that compiles is the assertion; a runtime `expect` beside
  * it reads as coverage the vitest run does not have.
  *
- * A decorative chart needs no accessible name and takes no interaction props. An
- * interactive chart requires a name.
+ * A decorative chart needs no accessible name and takes no interaction props. A
+ * static chart requires a name and takes no interaction props. An interactive
+ * chart requires a name. A `mode` picked at runtime satisfies every mode it
+ * can take, and a static or decorative Root type requires `mode`.
  */
-export function typeLevelContracts() {
+export function typeLevelContracts(isPlaceholder: boolean) {
+	type Row = (typeof data)[number];
 	return (
 		<>
-			<BarChart.Root data={data} xKey="month" decorative>
+			<BarChart.Root
+				data={data}
+				xKey="month"
+				mode={isPlaceholder ? "static" : "interactive"}
+				aria-label="Visitors"
+			>
+				<BarChart.Bar dataKey="desktop" />
+			</BarChart.Root>
+			{/* @ts-expect-error -- a runtime-picked mode satisfies every arm: the interactive arm needs a name */}
+			<BarChart.Root data={data} xKey="month" mode={isPlaceholder ? "decorative" : "interactive"}>
+				<BarChart.Bar dataKey="desktop" />
+			</BarChart.Root>
+			{/* @ts-expect-error -- a decorative Root type requires `mode`; omitted, the runtime default is interactive */}
+			<BarChart.Root<Row, "decorative"> data={data} xKey="month">
+				<BarChart.Bar dataKey="desktop" />
+			</BarChart.Root>
+			<BarChart.Root data={data} xKey="month" mode="decorative">
+				<BarChart.Bar dataKey="desktop" />
+			</BarChart.Root>
+			<BarChart.Root data={data} xKey="month" mode="static" aria-label="Visitors, last 3 months">
+				<BarChart.Bar dataKey="desktop" />
+			</BarChart.Root>
+			{/* @ts-expect-error -- a static chart requires an accessible name */}
+			<BarChart.Root data={data} xKey="month" mode="static">
+				<BarChart.Bar dataKey="desktop" />
+			</BarChart.Root>
+			{/* @ts-expect-error -- static forbids interaction props */}
+			<BarChart.Root data={data} xKey="month" mode="static" aria-label="Visitors" activeIndex={1}>
 				<BarChart.Bar dataKey="desktop" />
 			</BarChart.Root>
 			{/* @ts-expect-error -- an interactive chart requires an accessible name */}
@@ -718,11 +757,11 @@ export function typeLevelContracts() {
 				<BarChart.Bar dataKey="desktop" />
 			</BarChart.Root>
 			{/* @ts-expect-error -- decorative forbids an accessible name */}
-			<BarChart.Root data={data} xKey="month" decorative aria-label="Placeholder">
+			<BarChart.Root data={data} xKey="month" mode="decorative" aria-label="Placeholder">
 				<BarChart.Bar dataKey="desktop" />
 			</BarChart.Root>
 			{/* @ts-expect-error -- decorative forbids interaction callbacks */}
-			<BarChart.Root data={data} xKey="month" decorative onDatumActivate={() => {}}>
+			<BarChart.Root data={data} xKey="month" mode="decorative" onDatumActivate={() => {}}>
 				<BarChart.Bar dataKey="desktop" />
 			</BarChart.Root>
 		</>

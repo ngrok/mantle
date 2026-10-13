@@ -2,6 +2,7 @@
 
 import type {
 	ChartAccessibilityProps,
+	ChartMode,
 	ChartRootBaseProps,
 	CopyButtonPrimitiveProps,
 	GridPrimitiveProps,
@@ -36,11 +37,11 @@ import {
  * zero baseline, so the y domain minimum is fixed at `0` — a truncated-bar
  * axis is unrepresentable.
  */
-type BarChartRootProps<TDatum extends ChartDatum = ChartDatum> = Omit<
-	ChartRootBaseProps,
-	"yDomain"
-> &
-	ChartAccessibilityProps & {
+type BarChartRootProps<
+	TDatum extends ChartDatum = ChartDatum,
+	TMode extends ChartMode = "interactive",
+> = Omit<ChartRootBaseProps, "yDomain"> &
+	ChartAccessibilityProps<TMode> & {
 		/** Rows of data; each `BarChart.Bar` reads one numeric key per row. */
 		data: readonly TDatum[];
 		/** The key of each row's category (x) value. */
@@ -154,15 +155,36 @@ type BarChartCopyButtonProps = CopyButtonPrimitiveProps;
 /**
  * The root of a bar chart: owns the data, the scales, the canvas renderer,
  * and the entire interaction contract (per-category hover with a lifted band
- * and tooltip, keyboard stepping with polite announcements, an sr-only data
- * table, Enter/Space + click activation). Compose the chrome and series parts
- * as children.
+ * and tooltip, keyboard stepping with polite announcements, an sr-only
+ * description, an sr-only data table, Enter/Space + click activation).
+ * Compose the chrome and series parts as children.
+ *
+ * A Root mounts dormant: a shell of the plot, the named overlay, and its
+ * sr-only description. It builds its canvas, its hover layers, and its engine
+ * once it comes within one viewport of the visible area, takes focus, or
+ * prints (on-screen charts first, a few milliseconds at a time), and it mounts
+ * the sr-only data table once focus lands inside it. A list of charts pays
+ * for the ones a reader can see, and a page of sparklines holds no hidden
+ * tables until a reader asks for one.
  *
  * The Root's own subtree is addressable by slot: `bar-chart` on the wrapper,
  * then `bar-chart-plot`, `bar-chart-canvas`, `bar-chart-crosshair`,
- * `bar-chart-hover-band`, `bar-chart-markers`, `bar-chart-tooltip`, and
+ * `bar-chart-hover-band`, `bar-chart-markers`, `bar-chart-tooltip`,
+ * `bar-chart-description`, and, once focus lands inside the chart,
  * `bar-chart-data-table`. A bar chart shows the band and never the crosshair
- * or the markers, but all three layers mount on every kind.
+ * or the markers. The canvas and the three layers are engine-owned: absent
+ * from server HTML and from a dormant chart, inserted at activation (near the
+ * viewport, on focus, or before print). A static or decorative chart
+ * inserts the canvas alone. The tooltip surface mounts on the
+ * first hover or keyboard step and stays.
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"bar-chart-description"` | The `sr-only` description the overlay's `aria-describedby` points at: the chart kind, the category count, the first and last category, the series labels, and, on an interactive chart, the keyboard instructions. Omitted when `mode="decorative"`. |
+ * | `data-slot` | `"bar-chart-data-table"` | The `sr-only` data table. Mounts once focus lands inside the chart (`data-state` flips to `"engaged"`) and stays. Interactive charts only. |
+ * | `data-state` | `"dormant"` \| `"engaged"` | On the Root. Flips to `"engaged"` once focus lands inside the chart, and never flips back. The data table mounts with it. Visibility paints the chart but never flips it. Interactive charts only. |
  *
  * @see https://mantle.ngrok.com/components/charts/bar-chart#barchartroot
  *
@@ -184,9 +206,9 @@ type BarChartCopyButtonProps = CopyButtonPrimitiveProps;
  * </BarChart.Root>
  * ```
  */
-const Root = <TDatum extends ChartDatum = ChartDatum>(props: BarChartRootProps<TDatum>) => (
-	<ChartRootPrimitive kind="bar" componentName="BarChart" slotName="bar-chart" {...props} />
-);
+const Root = <TDatum extends ChartDatum = ChartDatum, TMode extends ChartMode = "interactive">(
+	props: BarChartRootProps<TDatum, TMode>,
+) => <ChartRootPrimitive kind="bar" componentName="BarChart" slotName="bar-chart" {...props} />;
 
 /**
  * One bar series. Renders nothing itself — it registers the series with the
@@ -397,9 +419,12 @@ const CopyButton = (props: BarChartCopyButtonProps) => (
  * A canvas-rendered bar chart for comparing values across categories, with
  * grouped and stacked variants. Series colors come from the theme's validated
  * `--color-chart-*` tokens; bars keep a fixed slot color for the chart's
- * lifetime even as other series are filtered in and out. Interaction —
- * per-category tooltip, keyboard stepping, aria-live announcements, and an
- * sr-only data table — ships with `Root` unconditionally.
+ * lifetime even as other series are filtered in and out. Interaction ships
+ * with `Root` unconditionally: a per-category tooltip, keyboard stepping,
+ * aria-live announcements, and an sr-only description. A Root builds and paints
+ * its canvas once it comes within one viewport of the visible area, takes
+ * focus, or prints, and it mounts its sr-only data table once focus lands
+ * inside it.
  *
  * **CSS variables (public API):**
  *
@@ -412,7 +437,7 @@ const CopyButton = (props: BarChartCopyButtonProps) => (
  * `BarChart.Bar` sets one series and takes any CSS color. To restyle a slot
  * itself, redeclare its token on `Root` —
  * `className="[--color-chart-1:var(--color-brand)]"`. The engine resolves every
- * token through a probe inside `Root`, so a declaration scoped there wins for
+ * token from `Root`'s computed style, so a declaration scoped there wins for
  * that chart and leaves every other chart on the page alone.
  *
  * @see https://mantle.ngrok.com/components/charts/bar-chart
@@ -644,6 +669,7 @@ export type {
 	BarChartXAxisProps,
 	BarChartYAxisProps,
 	ChartDatumEvent,
+	ChartMode,
 };
 export {
 	//,
