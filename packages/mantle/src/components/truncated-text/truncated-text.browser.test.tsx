@@ -32,6 +32,7 @@ const LAYOUT_STYLE = `
 	.whitespace-nowrap { white-space: nowrap; }
 	.select-all { -webkit-user-select: all; user-select: all; }
 	.select-none { -webkit-user-select: none; user-select: none; }
+	.${CSS.escape("[font-variant-ligatures:none]")} { font-variant-ligatures: none; }
 	.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0; }
 	.overflow-hidden { overflow: hidden; }
 	.text-ellipsis { text-overflow: ellipsis; }
@@ -229,6 +230,9 @@ test("rounds the clipped head down to whole ch cells in a monospace font", async
 	// clipped glyphs and the ellipsis fill it and the tail follows flush.
 	const cells = (head.getBoundingClientRect().width - 0.5) / ch;
 	expect(Math.abs(cells - Math.round(cells))).toBeLessThan(0.1);
+	// Why computed style: the ellipsis is paint only. A ligature such as `//`
+	// is one glyph, so with ligatures on, a clip inside it empties a cell.
+	expect(getComputedStyle(head).fontVariantLigatures).toBe("none");
 });
 
 test("reserves the tail's measured width in a proportional font", async () => {

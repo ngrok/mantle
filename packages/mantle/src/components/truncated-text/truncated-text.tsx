@@ -111,8 +111,10 @@ function measure(root: HTMLElement, head: HTMLElement, tail: HTMLElement): Measu
 // Why inline-block and not flex: a flex item is a block, and Chromium and WebKit
 // serialize a selection with a newline between blocks, so a copy pastes the
 // value as two lines.
+// Why no ligatures: a ligature such as `//` shapes as one glyph, so a clip
+// inside it drops both characters and the ellipsis lands a cell away.
 const rootClassName =
-	"inline-block min-w-0 max-w-full rounded whitespace-nowrap select-all focus:outline-hidden focus-visible:ring-3 focus-visible:ring-focus-accent data-truncated:cursor-help";
+	"inline-block min-w-0 max-w-full rounded whitespace-nowrap select-all [font-variant-ligatures:none] focus:outline-hidden focus-visible:ring-3 focus-visible:ring-focus-accent data-truncated:cursor-help";
 
 // Why 0.5px: without the slack, WebKit clips a value that fits exactly.
 // Why round(down, …, 1ch): while the value overflows, whole `ch` cells keep the
@@ -174,9 +176,10 @@ const tailClassName =
  * other inline text, an overflowing value wraps to the next line at the
  * container's full width. The root sets `dir="ltr"`, because a URL, an ID, or
  * a token reads left to right on an RTL page too; a `dir` prop wins. CSS draws
- * the ellipsis, so a selection never contains it. The component sets no font.
- * In a monospace font the clipped head sits flush against the tail; a
- * proportional font leaves a gap smaller than one glyph.
+ * the ellipsis, so a selection never contains it. The component sets no font,
+ * but it turns ligatures off, so a `//` or `=>` clips between its two
+ * characters. In a monospace font the clipped head sits flush against the
+ * tail; a proportional font leaves a gap smaller than one glyph.
  *
  * Until the first measurement, the tail reserves one `ch` per grapheme, which
  * is exact in a monospace font. In another font the first paint of an
