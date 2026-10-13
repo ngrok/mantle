@@ -123,6 +123,8 @@ import { DescriptionList } from "@ngrok/mantle/description-list";
 
 The value column has a `0` minimum width, so a long value stays inside its row instead of widening the list. Set the overflow behavior on `DescriptionList.Value` or on a child: `truncate` clips a single line with an ellipsis, and `wrap-anywhere` breaks a line at any character. `DescriptionList.Value` does not need `min-w-0`.
 
+When the end of the value is the part that matters, as in a URL or an ID, render it with [`TruncatedText`](/components/data-display/truncated-text): the head clips and the tail stays visible.
+
 <Example>
 	<div className="w-full max-w-lg">
 		<DescriptionList.Root>

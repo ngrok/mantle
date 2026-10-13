@@ -69,6 +69,7 @@ const docsPages = [
 	"components/data-display/qr-code",
 	"components/data-display/selectable-list",
 	"components/data-display/table",
+	"components/data-display/truncated-text",
 	// feedback
 	"components/feedback/alert",
 	"components/feedback/alert-center",

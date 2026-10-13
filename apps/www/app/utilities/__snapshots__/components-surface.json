@@ -966,6 +966,19 @@
     ]
   },
   {
+    "name": "Truncated Text",
+    "slug": "components/data-display/truncated-text",
+    "kind": "component",
+    "category": "Data Display",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/truncated-text",
+    "summary": "Renders one long opaque value on a single line and keeps its tail visible when it overflows.",
+    "jsdoc": "Renders one long opaque value (a URL, a resource ID, an image reference, a token) on a single line.",
+    "examples": [
+      "```tsx\nimport { TruncatedText } from \"@ngrok/mantle/truncated-text\";\n\n// A URL whose last path segment tells it apart from its neighbors.\n<TruncatedText\n  className=\"font-mono text-sm\"\n  value=\"https://example.ngrok.app/api/items?filter=%7B%22name%22%3A%22x%22%7D&limit=200\"\n/>\n\n// Keep the six characters that tell two IDs apart.\n<TruncatedText className=\"font-mono text-sm\" tail={6} value=\"ep_2abcdEFGhijKL123456\" />\n\n// As a <code> element.\n<TruncatedText asChild tail={12} value=\"ghcr.io/ngrok/ngrok-operator:0.14.0\">\n  <code />\n</TruncatedText>\n```"
+    ]
+  },
+  {
     "name": "Visually Hidden",
     "slug": "components/primitives/visually-hidden",
     "kind": "component",

@@ -67,6 +67,7 @@ export const componentsByCategory = {
 		"QR Code",
 		"Selectable List",
 		"Table",
+		"Truncated Text",
 	],
 	Feedback: [
 		"Alert",
@@ -212,6 +213,7 @@ export const prodReadyComponentRouteLookup = {
 	"Theme Switcher": "/components/forms/theme-switcher",
 	Toast: "/components/feedback/toast",
 	Tooltip: "/components/overlays/tooltip",
+	"Truncated Text": "/components/data-display/truncated-text",
 	"Visually Hidden": "/components/primitives/visually-hidden",
 	Well: "/components/structure/well",
 } as const satisfies Record<ProdReadyComponent, Route>;

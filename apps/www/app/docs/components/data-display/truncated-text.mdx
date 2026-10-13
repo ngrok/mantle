@@ -1,0 +1,195 @@
+---
+title: Truncated Text
+description: Renders one long opaque value on a single line and keeps its tail visible when it overflows.
+---
+
+import { Code } from "@ngrok/mantle/code";
+import { DescriptionList } from "@ngrok/mantle/description-list";
+import { TruncatedText } from "@ngrok/mantle/truncated-text";
+import { Example } from "~/components/example";
+
+# Truncated Text
+
+Renders one long opaque value (a URL, a resource ID, a container image reference, a token) on a single line. When the value overflows its container, the head clips with one ellipsis and the last eight graphemes stay visible. When the value fits, it renders plain. Hover a clipped value to read the whole thing in a tooltip.
+
+The tail is the part that tells values apart. Two URLs share a 60-character prefix and differ in the last path segment. Two IDs share a prefix and differ in the last six characters. A plain `truncate` hides exactly the part you need, so `TruncatedText` keeps it.
+
+## When to use
+
+- A URL, an ID, an image reference, or a token in a table cell, a description list, or a card, where the end of the value matters.
+
+## When not to use
+
+- For prose that may lose its end. Use the `truncate` utility.
+- For a value that may wrap over several lines. Let it wrap, or use [`CodeBlock`](/components/data-display/code-block).
+- For a short fragment of inline code that never overflows. Use [`Code`](/components/data-display/code).
+
+Drag the corner of the box to see the head give way while the tail stays put.
+
+<Example>
+	<div className="w-80 max-w-full resize-x overflow-auto rounded-md border border-gray-300 p-3 font-mono text-sm">
+		<TruncatedText value="https://example.ngrok.app/api/items?filter=%7B%22name%22%3A%22x%22%7D&limit=200" />
+	</div>
+</Example>
+
+```tsx
+import { TruncatedText } from "@ngrok/mantle/truncated-text";
+
+<div className="w-80 max-w-full resize-x overflow-auto rounded-md border border-gray-300 p-3 font-mono text-sm">
+	<TruncatedText value="https://example.ngrok.app/api/items?filter=%7B%22name%22%3A%22x%22%7D&limit=200" />
+</div>;
+```
+
+## Polymorphism
+
+Pass `asChild` to render the value inside a different element instead of the default `<span>`. The child must have no children of its own, because `value` is the content, and it must render `children` directly, as `<code>` does: `TruncatedText` renders the two segments inside the child. The class names, `data-*` attributes, and the ref land on that child.
+
+<Example>
+	<div className="w-72 max-w-full">
+		<TruncatedText asChild tail={12} value="ghcr.io/ngrok/ngrok-operator:0.14.0-rc.2">
+			<Code />
+		</TruncatedText>
+	</div>
+</Example>
+
+```tsx
+import { Code } from "@ngrok/mantle/code";
+import { TruncatedText } from "@ngrok/mantle/truncated-text";
+
+<div className="w-72 max-w-full">
+	<TruncatedText asChild tail={12} value="ghcr.io/ngrok/ngrok-operator:0.14.0-rc.2">
+		<Code />
+	</TruncatedText>
+</div>;
+```
+
+## Tail length
+
+`tail` is the number of graphemes that stay visible, 8 by default. Count what tells your values apart: an ngrok resource ID ends in the characters that differ, so `tail={6}` keeps them. The count is in grapheme clusters, so an emoji or a letter with a combining mark never splits in half.
+
+<Example>
+	<div className="flex w-40 max-w-full flex-col gap-1 rounded-md border border-gray-300 p-3 font-mono text-sm">
+		<TruncatedText tail={6} value="ep_2abcdEFGhijKL123456" />
+		<TruncatedText tail={6} value="ep_2abcdEFGhijKL789012" />
+		<TruncatedText tail={6} value="ep_2abcdEFGhijKL345678" />
+	</div>
+</Example>
+
+```tsx
+import { TruncatedText } from "@ngrok/mantle/truncated-text";
+
+<div className="flex w-40 max-w-full flex-col gap-1 rounded-md border border-gray-300 p-3 font-mono text-sm">
+	<TruncatedText tail={6} value="ep_2abcdEFGhijKL123456" />
+	<TruncatedText tail={6} value="ep_2abcdEFGhijKL789012" />
+	<TruncatedText tail={6} value="ep_2abcdEFGhijKL345678" />
+</div>;
+```
+
+## Selection
+
+The root carries `user-select: all`, so one click selects the whole value across both segments, and a copy yields the full string. CSS draws the ellipsis, so a selection never contains it. The two segments copy as one line. Click the value below, then copy it. Pass `className="select-text"` to get normal text selection instead.
+
+<Example>
+	<div className="w-72 max-w-full rounded-md border border-gray-300 p-3 font-mono text-sm">
+		<TruncatedText value="https://example.ngrok.app/api/items?filter=%7B%22name%22%3A%22x%22%7D&limit=200" />
+	</div>
+</Example>
+
+```tsx
+import { TruncatedText } from "@ngrok/mantle/truncated-text";
+
+<div className="w-72 max-w-full rounded-md border border-gray-300 p-3 font-mono text-sm">
+	<TruncatedText value="https://example.ngrok.app/api/items?filter=%7B%22name%22%3A%22x%22%7D&limit=200" />
+</div>;
+```
+
+## Layout
+
+The container decides the width. `TruncatedText` is an `inline-block` that grows to its container's width and no further, so the container has to stop growing first:
+
+- A flex item needs `min-w-0`, or it refuses to shrink below the full value.
+- A grid track needs `minmax(0, 1fr)`. [`DescriptionList.Value`](/components/data-display/description-list#descriptionlistvalue) already sizes its column that way.
+- An auto-layout table grows its column to the full value, even with a column width. Set `table-layout: fixed` on the table and give the table a width.
+
+When the container holds less than the tail and one cell, the ellipsis is all that remains of the head. The tail then clips at its start, so the end of the value is the last thing to go. A value no longer than `tail` has no head, so its tail draws the ellipsis itself. Give the value a line of its own: beside other inline text, an overflowing value wraps to the next line at the container's full width. The root sets `dir="ltr"`, because a URL, an ID, or a token reads left to right on an RTL page too. A `dir` prop wins.
+
+The component sets no font. In a monospace font the clipped head sits flush against the tail. In a proportional font the browser leaves a gap smaller than one glyph.
+
+Until the first measurement, the tail reserves one `ch` per grapheme, which is exact in a monospace font. In another font the first paint of an overflowing value can be off by the difference: a tail of wide glyphs (CJK, emoji) can poke past the container, and a value that fits by less than the over-reserve of narrow glyphs can clip. The layout effect after mount replaces the estimate with the measured width.
+
+<Example>
+	<div className="w-full max-w-md">
+		<DescriptionList.Root>
+			<DescriptionList.Item>
+				<DescriptionList.Label>Request URL</DescriptionList.Label>
+				<DescriptionList.Value className="font-mono text-sm">
+					<TruncatedText value="https://example.ngrok.app/api/items?filter=%7B%22name%22%3A%22x%22%7D&limit=200" />
+				</DescriptionList.Value>
+			</DescriptionList.Item>
+			<DescriptionList.Item>
+				<DescriptionList.Label>Endpoint</DescriptionList.Label>
+				<DescriptionList.Value className="font-mono text-sm">
+					<TruncatedText tail={6} value="ep_2abcdEFGhijKL123456" />
+				</DescriptionList.Value>
+			</DescriptionList.Item>
+		</DescriptionList.Root>
+	</div>
+</Example>
+
+```tsx
+import { DescriptionList } from "@ngrok/mantle/description-list";
+import { TruncatedText } from "@ngrok/mantle/truncated-text";
+
+<div className="w-full max-w-md">
+	<DescriptionList.Root>
+		<DescriptionList.Item>
+			<DescriptionList.Label>Request URL</DescriptionList.Label>
+			<DescriptionList.Value className="font-mono text-sm">
+				<TruncatedText value="https://example.ngrok.app/api/items?filter=%7B%22name%22%3A%22x%22%7D&limit=200" />
+			</DescriptionList.Value>
+		</DescriptionList.Item>
+		<DescriptionList.Item>
+			<DescriptionList.Label>Endpoint</DescriptionList.Label>
+			<DescriptionList.Value className="font-mono text-sm">
+				<TruncatedText tail={6} value="ep_2abcdEFGhijKL123456" />
+			</DescriptionList.Value>
+		</DescriptionList.Item>
+	</DescriptionList.Root>
+</div>;
+```
+
+## Accessibility
+
+A screen reader reads the whole value as one string. The two visible segments are `aria-hidden`, because Chromium puts a space between two inline-block boxes in an accessible name, and a visually hidden `<span>` holds the whole value instead. That copy carries `user-select: none`, so one click still copies the value once. A page-wide select-all copies it twice, like any visually hidden label. The ellipsis is a CSS effect, so nothing announces it.
+
+The tooltip opens on hover only while the value overflows. It needs a [`TooltipProvider`](/components/overlays/tooltip#tooltipprovider) ancestor, like every mantle tooltip, and throws without one. While the value overflows, the root is focusable, so Tab reaches it, a screen reader announces the whole value, and the tooltip opens. A value that fits isn't a tab stop. A `tabIndex` prop wins in both states.
+
+## Translation
+
+The root and the tooltip carry [`translate="no"`](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/translate) by default, so a browser translation engine skips the value. A translated URL or ID is wrong, and the reader copies it anyway. When the value is prose, pass `translate="yes"`. [Browser translation](/browser-translation) covers what an engine does to a React DOM.
+
+## API Reference
+
+### TruncatedText
+
+All props from [span](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/span#attributes), plus:
+
+| Prop         | Type                           | Default | Description                                                                                                                                                           |
+| ------------ | ------------------------------ | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?`   | `boolean`                      | `false` | Render the value inside the single child element instead of a `<span>`. The child must have no children of its own.                                                   |
+| `className?` | `string`                       |         | Additional CSS classes to apply to the root. `select-text` turns off the one-click selection.                                                                         |
+| `dir?`       | `"ltr"` \| `"rtl"` \| `"auto"` | `"ltr"` | The text direction. The default keeps the tail on the right on an RTL page.                                                                                           |
+| `tail?`      | `number`                       | `8`     | How many graphemes stay visible at the end of the value. Counts grapheme clusters, so an emoji or a letter with a combining mark counts once. A non-negative integer. |
+| `translate?` | `"yes"` \| `"no"`              | `"no"`  | Whether a browser translation engine may translate the value and its tooltip. When the value is prose, pass `"yes"`.                                                  |
+| `value`      | `string`                       |         | The full value. Required.                                                                                                                                             |
+
+#### Data attributes
+
+| Data Attribute   | Value                                              | Description                                                                          |
+| ---------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `data-slot`      | `"truncated-text"`                                 | On the root, and joined onto the child via `asChild`.                                |
+| `data-slot`      | `"truncated-text-head"`                            | On the `<span>` that clips. Holds everything before the tail.                        |
+| `data-slot`      | `"truncated-text-tail"`                            | On the `<span>` that stays visible. Holds the last `tail` graphemes.                 |
+| `data-slot`      | `"truncated-text-value"`                           | On the visually hidden `<span>` that holds the whole value for assistive technology. |
+| `data-truncated` | present while the value overflows                  | Presence-only. Style with `data-truncated:`. Absent on the server render.            |
+| `data-state`     | `"closed"` \| `"delayed-open"` \| `"instant-open"` | The tooltip state Radix stamps on the root.                                          |

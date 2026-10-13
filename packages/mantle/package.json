@@ -410,6 +410,11 @@
 			"types": "./dist/tooltip.d.ts",
 			"import": "./dist/tooltip.js"
 		},
+		"./truncated-text": {
+			"@ngrok/src-live-types": "./src/components/truncated-text/index.ts",
+			"types": "./dist/truncated-text.d.ts",
+			"import": "./dist/truncated-text.js"
+		},
 		"./types": {
 			"@ngrok/src-live-types": "./src/types/index.ts",
 			"types": "./dist/types.d.ts",
