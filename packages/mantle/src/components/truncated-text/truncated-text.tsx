@@ -122,8 +122,9 @@ const rootClassName =
 // Why the zero-width space: Chromium never swaps the first glyph of a box for
 // the ellipsis, so a one-cell head shows that glyph instead. The pseudo-element
 // is that first glyph, and generated content never enters a selection.
-const headClassName =
-	"inline-block overflow-hidden text-ellipsis whitespace-nowrap align-bottom before:content-['\\200B'] max-w-[calc(100%_-_var(--_tail-width)_+_0.5px)] [[data-truncated]>&]:max-w-[max(1ch_+_0.5px,calc(round(down,100%_-_var(--_tail-width),1ch)_+_0.5px))]";
+// Why String.raw: Tailwind reads this file's text, so the class must hold one
+// backslash, and a plain string literal spells that with two.
+const headClassName = String.raw`inline-block overflow-hidden text-ellipsis whitespace-nowrap align-bottom before:content-['\200B'] max-w-[calc(100%_-_var(--_tail-width)_+_0.5px)] [[data-truncated]>&]:max-w-[max(1ch_+_0.5px,calc(round(down,100%_-_var(--_tail-width),1ch)_+_0.5px))]`;
 
 // Why min-w: while the reserve is still the `ch` estimate, the tail holds the
 // width the head subtracts, so a value that fits never clips its head.
