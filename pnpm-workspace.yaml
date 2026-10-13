@@ -35,23 +35,23 @@ catalog:
   "@testing-library/dom": "10.4.2"
   "@testing-library/jest-dom": "7.0.1"
   "@testing-library/react": "16.3.3"
-  "@testing-library/user-event": "14.6.7"
-  "@tsdown/css": "0.23.0"
-  "@types/node": "24.19.0"
-  "@vitest/browser-playwright": "5.0.3"
-  "happy-dom": "20.14.5"
-  "oxc-parser": "0.152.0"
-  "oxc-transform-react": "0.152.0"
-  "oxfmt": "0.71.0"
-  "playwright-core": "1.63.0"
-  "playwright": "1.63.0"
+  "@testing-library/user-event": "14.6.8"
+  "@tsdown/css": "0.23.1"
+  "@types/node": "24.19.2"
+  "@vitest/browser-playwright": "5.0.4"
+  "happy-dom": "20.14.6"
+  "oxc-parser": "0.154.0"
+  "oxc-transform-react": "0.154.0"
+  "oxfmt": "0.73.0"
+  "playwright-core": "1.64.0"
+  "playwright": "1.64.0"
   "react-dom": "19.3.0"
   "react": "19.3.0"
   "tailwindcss": "4.3.3"
-  "tsdown": "0.23.0"
+  "tsdown": "0.23.1"
   "tsx": "4.23.15"
   "typescript": "7.0.2"
-  "vite": "8.3.2"
+  "vite": "8.3.4"
 
 overrides:
   "@types/node": "catalog:"
@@ -77,3 +77,9 @@ overrides:
 allowBuilds:
   "esbuild": true
   "@tailwindcss/oxide": true
+
+# Why no agent skills: the repo hand-writes its agent guidance, so a skill a
+# dependency ships stays out of the install.
+permissions:
+  "@tanstack/react-table":
+    skills: false

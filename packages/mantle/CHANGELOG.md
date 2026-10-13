@@ -353,7 +353,7 @@
     slot pairs: `rowSortingFeature` + `sortedRowModel: createSortedRowModel()`, `columnFilteringFeature` (+
     `globalFilteringFeature`) + `filteredRowModel: createFilteredRowModel()`, `rowPaginationFeature` +
     `paginatedRowModel: createPaginatedRowModel()`, `rowExpandingFeature` + `expandedRowModel:
-createExpandedRowModel()`, `columnGroupingFeature` + `groupedRowModel: createGroupedRowModel()`,
+    createExpandedRowModel()`, `columnGroupingFeature` + `groupedRowModel: createGroupedRowModel()`,
     `rowSelectionFeature`, `columnVisibilityFeature`.
   - `createColumnHelper<TData>()` is now `createColumnHelper<typeof features, TData>()`, and the column array
     must go through `columnHelper.columns([ … ])`. A bare array no longer typechecks against the `columns`

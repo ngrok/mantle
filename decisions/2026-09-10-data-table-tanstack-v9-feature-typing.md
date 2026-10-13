@@ -212,7 +212,7 @@ Consequences:
 - `stockFeatures` appears nowhere in mantle code, demos, or docs. The migration guide may name it as a consumer
   shortcut.
 - Every sortable example registers `sortFns: { alphanumeric: sortFn_alphanumeric, datetime: sortFn_datetime,
-text: sortFn_text }`. Those are the three names auto-sort resolves; numbers use `sortFn_basic` with no entry.
+  text: sortFn_text }`. Those are the three names auto-sort resolves; numbers use `sortFn_basic` with no entry.
   Without a `sortFns` slot, auto-sort logs a dev warning and falls back to `sortFn_basic`, which orders
   mixed-case strings and dates differently from v8. The exported `sortFns` and `filterFns` registries are
   `@deprecated` in 9.2.4, so no example spreads them.
