@@ -941,10 +941,17 @@ class ChartEngine {
 	}
 
 	/**
-	 * Force color re-resolution (e.g. after consumer-driven CSS variable changes).
+	 * Drop the resolved colors and repaint, so the next commit reads them from
+	 * the Root's computed style again. A no-op before the first resolution.
 	 */
 	invalidateColors(): void {
+		if (this.#colors == null) {
+			return;
+		}
 		this.#colors = null;
+		// The theme signature is unchanged on a Root-scoped override, so the
+		// reference-line cache keyed on it needs an explicit clear.
+		this.#referenceColorCache.clear();
 		this.#schedule();
 	}
 

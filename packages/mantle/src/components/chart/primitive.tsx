@@ -139,6 +139,12 @@ type ChartMode = "interactive" | "static" | "decorative";
  *   props.
  * - **`"decorative"`**: forbids the accessible name and the interaction props.
  *
+ * Each arm pins `mode` to its own literal, and the two noninteractive arms
+ * require it. A union `TMode` then satisfies every arm it can take, so a
+ * `mode` picked at runtime between `"decorative"` and `"interactive"` still
+ * needs the name. An explicit `"static"` or `"decorative"` type argument
+ * cannot omit `mode`, which would select the interactive runtime default.
+ *
  * Why a type parameter and not a union over `mode`: a family Root infers
  * `TMode` from the `mode` it is given, so the props resolve to one shape.
  * A union would make TypeScript relate a Root with no `mode` to the static
@@ -239,10 +245,10 @@ type ChartAccessibilityProps<TMode extends ChartMode = ChartMode> = {
 	 */
 	mode?: TMode;
 } & (TMode extends "decorative"
-	? ChartNoAccessibleName & ChartNoInteractionProps
+	? { mode: "decorative" } & ChartNoAccessibleName & ChartNoInteractionProps
 	: TMode extends "static"
-		? ChartAccessibleName & ChartNoInteractionProps
-		: ChartAccessibleName & ChartInteractionProps);
+		? { mode: "static" } & ChartAccessibleName & ChartNoInteractionProps
+		: { mode?: "interactive" } & ChartAccessibleName & ChartInteractionProps);
 
 type ChartContextValue = {
 	kind: SeriesMark;
@@ -335,6 +341,9 @@ const useShallowStable = <T extends object>(value: T): T => {
 	setStable(value);
 	return value;
 };
+
+/** The `style` identity a Root with no inline style keys its color effect on. */
+const NO_STYLE: CSSProperties = {};
 
 /**
  * Rows the sr-only data-table twin renders before summarizing. Screen-reader
@@ -546,6 +555,7 @@ const ChartRootPrimitive = ({
 	tabIndex,
 	onFocus,
 	onBlur,
+	style,
 	...props
 }: InternalRootProps) => {
 	const interactive = mode === "interactive";
@@ -668,6 +678,9 @@ const ChartRootPrimitive = ({
 			if (engineRef.current != null || root == null || plot == null) {
 				return;
 			}
+			// Focus, print, and a press activate ahead of the queue; the stale
+			// entry would spend a slice on a no-op.
+			cancelActivation(plot);
 			const layers = createChartLayers(plot.ownerDocument, slotName, { hover: interactive });
 			// The canvas goes under the overlay; the hover layers go above it and
 			// let pointer events through. A static chart has no hover, so its
@@ -842,6 +855,14 @@ const ChartRootPrimitive = ({
 		engineRef.current?.setControlledActiveIndex(interactive ? activeIndex : undefined);
 	}, [interactive, activeIndex]);
 
+	// The engine caches its resolved colors per theme, and a `--color-chart-N`
+	// or `color` override scoped to this Root lives in `className` or `style`.
+	// A new value re-resolves them; an equal inline `style` object does not.
+	const stableStyle = useShallowStable(style ?? NO_STYLE);
+	useLayoutEffect(() => {
+		engineRef.current?.invalidateColors();
+	}, [className, stableStyle]);
+
 	// Must stay the LAST effect: rows, options, and series registrations from
 	// one commit land in the engine as a single consistent ingest. Ingesting
 	// inline (mid-commit) would validate one render's series specs against the
@@ -952,6 +973,7 @@ const ChartRootPrimitive = ({
 					engine.releaseBackingStores();
 				}
 			}}
+			style={style}
 			{...props}
 			// Why after the spread: the latch is the Root's own state, and a wider
 			// props object must not carry a stale value past it. Only an interactive
@@ -1010,6 +1032,13 @@ const ChartRootPrimitive = ({
 								// throws before the engine ever sees the press.
 								if (event.isTrusted && kind === "scatter" && zKey != null) {
 									event.currentTarget.setPointerCapture(event.pointerId);
+								}
+								// A press can land before the chart's queued activation slice
+								// runs, and pointer-up activates only a press the engine saw.
+								// The plot rect sizes it now; the resize observer reports a
+								// frame later, after the press.
+								if (engineRef.current == null) {
+									activateRef.current?.(plotRef.current?.getBoundingClientRect() ?? null);
 								}
 								engineRef.current?.handlePointerDown(
 									event.nativeEvent.offsetX,

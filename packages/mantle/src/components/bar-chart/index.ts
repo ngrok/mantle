@@ -19,4 +19,5 @@ export type {
 	BarChartXAxisProps,
 	BarChartYAxisProps,
 	ChartDatumEvent,
+	ChartMode,
 } from "./bar-chart.js";

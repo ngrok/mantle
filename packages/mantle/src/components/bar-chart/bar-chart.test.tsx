@@ -715,11 +715,29 @@ test("BarChart.CopyButton announces 'Copied' through a live region, and again fo
  *
  * A decorative chart needs no accessible name and takes no interaction props. A
  * static chart requires a name and takes no interaction props. An interactive
- * chart requires a name.
+ * chart requires a name. A `mode` picked at runtime satisfies every mode it
+ * can take, and a static or decorative Root type requires `mode`.
  */
-export function typeLevelContracts() {
+export function typeLevelContracts(isPlaceholder: boolean) {
+	type Row = (typeof data)[number];
 	return (
 		<>
+			<BarChart.Root
+				data={data}
+				xKey="month"
+				mode={isPlaceholder ? "static" : "interactive"}
+				aria-label="Visitors"
+			>
+				<BarChart.Bar dataKey="desktop" />
+			</BarChart.Root>
+			{/* @ts-expect-error -- a runtime-picked mode satisfies every arm: the interactive arm needs a name */}
+			<BarChart.Root data={data} xKey="month" mode={isPlaceholder ? "decorative" : "interactive"}>
+				<BarChart.Bar dataKey="desktop" />
+			</BarChart.Root>
+			{/* @ts-expect-error -- a decorative Root type requires `mode`; omitted, the runtime default is interactive */}
+			<BarChart.Root<Row, "decorative"> data={data} xKey="month">
+				<BarChart.Bar dataKey="desktop" />
+			</BarChart.Root>
 			<BarChart.Root data={data} xKey="month" mode="decorative">
 				<BarChart.Bar dataKey="desktop" />
 			</BarChart.Root>

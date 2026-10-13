@@ -10,6 +10,7 @@ export {
 export type {
 	//,
 	ChartDatumEvent,
+	ChartMode,
 	LineChartCopyButtonProps,
 	LineChartGridProps,
 	LineChartLegendProps,
