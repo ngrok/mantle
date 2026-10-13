@@ -111,7 +111,7 @@ The container decides the width. `TruncatedText` is an `inline-block` that grows
 - A grid track needs `minmax(0, 1fr)`. [`DescriptionList.Value`](/components/data-display/description-list#descriptionlistvalue) already sizes its column that way.
 - An auto-layout table grows its column to the full value, even with a column width. Set `table-layout: fixed` on the table and give the table a width.
 
-The root never shrinks below the tail, so pick a `tail` the narrowest container can hold. Give the value a line of its own: beside other inline text, an overflowing value wraps to the next line at the container's full width. The root sets `dir="ltr"`, because a URL, an ID, or a token reads left to right on an RTL page too. A `dir` prop wins.
+When the container holds less than the tail and one cell, the ellipsis is all that remains of the head. The tail then clips at its start, so the end of the value is the last thing to go. A value no longer than `tail` has no head, so its tail draws the ellipsis itself. Give the value a line of its own: beside other inline text, an overflowing value wraps to the next line at the container's full width. The root sets `dir="ltr"`, because a URL, an ID, or a token reads left to right on an RTL page too. A `dir` prop wins.
 
 The component sets no font. In a monospace font the clipped head sits flush against the tail. In a proportional font the browser leaves a gap smaller than one glyph.
 

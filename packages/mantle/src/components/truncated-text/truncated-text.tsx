@@ -117,12 +117,27 @@ const rootClassName =
 // Why 0.5px: without the slack, WebKit clips a value that fits exactly.
 // Why round(down, …, 1ch): while the value overflows, whole `ch` cells keep the
 // clipped glyphs, the ellipsis, and the tail flush in a monospace font.
+// Why max(1ch …): when the container holds less, the head keeps one cell for
+// the ellipsis. A head of zero width also drops out of a copy in Chromium.
+// Why the zero-width space: Chromium never swaps the first glyph of a box for
+// the ellipsis, so a one-cell head shows that glyph instead. The pseudo-element
+// is that first glyph, and generated content never enters a selection.
 const headClassName =
-	"inline-block overflow-hidden text-ellipsis whitespace-nowrap align-bottom max-w-[calc(100%_-_var(--_tail-width)_+_0.5px)] [[data-truncated]>&]:max-w-[calc(round(down,100%_-_var(--_tail-width),1ch)_+_0.5px)]";
+	"inline-block overflow-hidden text-ellipsis whitespace-nowrap align-bottom before:content-['\\200B'] max-w-[calc(100%_-_var(--_tail-width)_+_0.5px)] [[data-truncated]>&]:max-w-[max(1ch_+_0.5px,calc(round(down,100%_-_var(--_tail-width),1ch)_+_0.5px))]";
 
-// While the reserve is still the `ch` estimate, the tail holds the width the
-// head subtracts, so a value that fits never clips its head.
-const tailClassName = "inline-block min-w-(--_tail-width) align-bottom";
+// Why min-w: while the reserve is still the `ch` estimate, the tail holds the
+// width the head subtracts, so a value that fits never clips its head.
+// Why `dir="rtl"` here and `ltr` inside: an RTL box overflows to the left, so a
+// tail wider than its box loses its start and keeps its end. The LTR isolate
+// inside keeps the characters in logical order.
+// Why text-left: while the tail fits, its text stays at the box's left edge, so
+// the estimate's spare width sits after the text and not before it.
+// Why round(down, …) from the tail's own width: the clip lands on the tail's
+// glyph grid, so a monospace tail loses whole glyphs and never half of one.
+// Why `:empty+&`: a value no longer than `tail` has no head to draw the
+// ellipsis, so the tail draws its own and takes the head's cell back.
+const tailClassName =
+	"inline-block overflow-hidden whitespace-nowrap text-left align-bottom min-w-(--_tail-width) [[data-truncated]>&]:min-w-0 [[data-truncated]>&]:max-w-[calc(round(down,100%_-_1ch_-_var(--_tail-width),1ch)_+_var(--_tail-width))] [[data-truncated]>:empty+&]:max-w-[calc(round(down,100%_-_var(--_tail-width),1ch)_+_var(--_tail-width)_+_0.5px)] [[data-truncated]>:empty+&]:text-ellipsis";
 
 /**
  * Renders one long opaque value (a URL, a resource ID, an image reference, a
@@ -151,14 +166,16 @@ const tailClassName = "inline-block min-w-(--_tail-width) align-bottom";
  * - An auto-layout table grows its column to the full value, even with a column
  *   width. Set `table-layout: fixed` on the table and give the table a width.
  *
- * The root never shrinks below the tail, so pick a `tail` the narrowest
- * container can hold. Give the value a line of its own: beside other inline
- * text, an overflowing value wraps to the next line at the container's full
- * width. The root sets `dir="ltr"`, because a URL, an ID, or a token reads left
- * to right on an RTL page too; a `dir` prop wins. CSS draws the ellipsis, so a
- * selection never contains it. The component sets no font. In a monospace font
- * the clipped head sits flush against the tail; a proportional font leaves a
- * gap smaller than one glyph.
+ * When the container holds less than the tail and one cell, the ellipsis is all
+ * that remains of the head. The tail then clips at its start, so the end of the
+ * value is the last thing to go. A value no longer than `tail` has no head, so
+ * its tail draws the ellipsis itself. Give the value a line of its own: beside
+ * other inline text, an overflowing value wraps to the next line at the
+ * container's full width. The root sets `dir="ltr"`, because a URL, an ID, or
+ * a token reads left to right on an RTL page too; a `dir` prop wins. CSS draws
+ * the ellipsis, so a selection never contains it. The component sets no font.
+ * In a monospace font the clipped head sits flush against the tail; a
+ * proportional font leaves a gap smaller than one glyph.
  *
  * Until the first measurement, the tail reserves one `ch` per grapheme, which
  * is exact in a monospace font. In another font the first paint of an
@@ -300,8 +317,14 @@ const TruncatedText = ({
 			<span ref={headRef} aria-hidden data-slot="truncated-text-head" className={headClassName}>
 				{head}
 			</span>
-			<span ref={tailRef} aria-hidden data-slot="truncated-text-tail" className={tailClassName}>
-				{tailText}
+			<span
+				ref={tailRef}
+				aria-hidden
+				data-slot="truncated-text-tail"
+				dir="rtl"
+				className={tailClassName}
+			>
+				<span dir="ltr">{tailText}</span>
 			</span>
 		</>
 	);

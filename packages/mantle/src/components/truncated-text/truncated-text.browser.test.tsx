@@ -5,17 +5,24 @@ import { userEvent } from "vitest/browser";
 import { TooltipProvider } from "../tooltip/index.js";
 import { TruncatedText } from "./truncated-text.js";
 
+const headBefore = "before:content-['\\200B']";
 const headMaxWidth = "max-w-[calc(100%_-_var(--_tail-width)_+_0.5px)]";
 const headTruncatedMaxWidth =
-	"[[data-truncated]>&]:max-w-[calc(round(down,100%_-_var(--_tail-width),1ch)_+_0.5px)]";
+	"[[data-truncated]>&]:max-w-[max(1ch_+_0.5px,calc(round(down,100%_-_var(--_tail-width),1ch)_+_0.5px))]";
 const tailMinWidth = "min-w-(--_tail-width)";
+const tailTruncatedMinWidth = "[[data-truncated]>&]:min-w-0";
+const tailTruncatedMaxWidth =
+	"[[data-truncated]>&]:max-w-[calc(round(down,100%_-_1ch_-_var(--_tail-width),1ch)_+_var(--_tail-width))]";
+const tailHeadlessMaxWidth =
+	"[[data-truncated]>:empty+&]:max-w-[calc(round(down,100%_-_var(--_tail-width),1ch)_+_var(--_tail-width)_+_0.5px)]";
+const tailHeadlessEllipsis = "[[data-truncated]>:empty+&]:text-ellipsis";
 
 /**
  * Mirrors the CSS Tailwind 4 emits for the utilities the component composes.
  * The browser project loads no stylesheet, so without it the segments lay out
  * as plain inline text and every geometry assertion passes for the wrong
- * reason. The three arbitrary classes match the component's spelling, so a
- * change there fails here.
+ * reason. The arbitrary classes match the component's spelling, so a change
+ * there fails here.
  */
 const LAYOUT_STYLE = `
 @layer utilities {
@@ -28,12 +35,22 @@ const LAYOUT_STYLE = `
 	.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0; }
 	.overflow-hidden { overflow: hidden; }
 	.text-ellipsis { text-overflow: ellipsis; }
+	.text-left { text-align: left; }
 	.align-bottom { vertical-align: bottom; }
+	.${CSS.escape(headBefore)}::before { content: "\\200B"; }
 	.${CSS.escape(headMaxWidth)} { max-width: calc(100% - var(--_tail-width) + 0.5px); }
 	[data-truncated] > .${CSS.escape(headTruncatedMaxWidth)} {
-		max-width: calc(round(down, 100% - var(--_tail-width), 1ch) + 0.5px);
+		max-width: max(1ch + 0.5px, calc(round(down, 100% - var(--_tail-width), 1ch) + 0.5px));
 	}
 	.${CSS.escape(tailMinWidth)} { min-width: var(--_tail-width); }
+	[data-truncated] > .${CSS.escape(tailTruncatedMinWidth)} { min-width: 0px; }
+	[data-truncated] > .${CSS.escape(tailTruncatedMaxWidth)} {
+		max-width: calc(round(down, 100% - 1ch - var(--_tail-width), 1ch) + var(--_tail-width));
+	}
+	[data-truncated] > :empty + .${CSS.escape(tailHeadlessMaxWidth)} {
+		max-width: calc(round(down, 100% - var(--_tail-width), 1ch) + var(--_tail-width) + 0.5px);
+	}
+	[data-truncated] > :empty + .${CSS.escape(tailHeadlessEllipsis)} { text-overflow: ellipsis; }
 }
 `;
 
@@ -55,20 +72,21 @@ type RenderOptions = {
 	/** The container's width in CSS pixels. */
 	width: number;
 	fontFamily?: "monospace" | "sans-serif";
+	value?: string;
 };
 
 /**
  * Renders the value inside a fixed-width container, with a probe that measures
  * `1ch` in the same font.
  */
-function renderValue({ width, fontFamily = "monospace" }: RenderOptions) {
+function renderValue({ width, fontFamily = "monospace", value = url }: RenderOptions) {
 	render(
 		<TooltipProvider>
 			<div
 				data-testid="container"
 				style={{ width, fontFamily, fontSize: "13px", lineHeight: "20px" }}
 			>
-				<TruncatedText data-testid="value" value={url} />
+				<TruncatedText data-testid="value" value={value} />
 				<span data-testid="probe">0</span>
 			</div>
 		</TooltipProvider>,
@@ -221,4 +239,84 @@ test("reserves the tail's measured width in a proportional font", async () => {
 	// width replaces it, so the tail's box shrinks to its text.
 	expect(tail.getBoundingClientRect().width).toBeCloseTo(textWidth(tail), 0);
 	expect(tail.getBoundingClientRect().width).toBeLessThan(8 * ch);
+});
+
+/**
+ * The glyphs of `element`'s text that lie inside its border box, in visual
+ * order from left to right.
+ */
+function visibleGlyphs(element: HTMLElement): string {
+	const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+	const textNode = walker.nextNode();
+	if (!(textNode instanceof Text)) {
+		throw new Error("The element holds no text node.");
+	}
+	const box = element.getBoundingClientRect();
+	const glyphs: Array<{ left: number; glyph: string }> = [];
+	for (let index = 0; index < textNode.length; index++) {
+		const range = document.createRange();
+		range.setStart(textNode, index);
+		range.setEnd(textNode, index + 1);
+		const rect = range.getBoundingClientRect();
+		if (rect.left >= box.left - 0.5 && rect.right <= box.right + 0.5) {
+			glyphs.push({ left: rect.left, glyph: textNode.data[index] ?? "" });
+		}
+	}
+	return glyphs
+		.sort((a, b) => a.left - b.left)
+		.map(({ glyph }) => glyph)
+		.join("");
+}
+
+test("keeps one cell for the ellipsis when the container holds the tail and one cell", async () => {
+	const { container, root, head, tail, ch } = renderValue({ width: 600 });
+	container.style.width = `${Math.round(9.4 * ch)}px`;
+	await expect.poll(() => root.hasAttribute("data-truncated")).toBe(true);
+
+	// Why the pseudo-element: the ellipsis is paint only, so the zero-width
+	// space that makes Chromium draw it in place of the first glyph is the
+	// observable.
+	expect(getComputedStyle(head, "::before").content).toBe('"​"');
+	expect(head.getBoundingClientRect().width).toBeCloseTo(ch + 0.5, 0);
+	expect(tail.getBoundingClientRect().width).toBeCloseTo(textWidth(tail), 0);
+	expect(container.scrollWidth).toBeLessThanOrEqual(container.clientWidth);
+});
+
+test("clips the tail at its start and keeps its end when the container is narrower than the tail", async () => {
+	const { container, root, head, tail, ch } = renderValue({ width: 600 });
+	container.style.width = `${Math.round(5.4 * ch)}px`;
+	await expect.poll(() => root.hasAttribute("data-truncated")).toBe(true);
+
+	expect(container.scrollWidth).toBeLessThanOrEqual(container.clientWidth);
+	expect(head.getBoundingClientRect().width).toBeCloseTo(ch + 0.5, 0);
+	// Four cells remain after the head's one, so the tail shows its last four
+	// glyphs, in reading order.
+	expect(visibleGlyphs(tail)).toBe("=200");
+	// The head's ellipsis is the only one.
+	expect(getComputedStyle(tail).textOverflow).toBe("clip");
+});
+
+test("one click still copies the whole value while the container is narrower than the tail", async () => {
+	const { container, root, ch } = renderValue({ width: 600 });
+	container.style.width = `${Math.round(5.4 * ch)}px`;
+	await expect.poll(() => root.hasAttribute("data-truncated")).toBe(true);
+
+	await userEvent.click(root);
+
+	// Why: Chromium drops a box of zero width from a selection, so a head
+	// clipped to nothing copies as the tail alone.
+	expect(window.getSelection()?.toString()).toBe(url);
+});
+
+test("a value no longer than its tail draws the ellipsis itself and keeps its end", async () => {
+	const { container, root, head, tail, ch } = renderValue({ width: 600, value: "ngrok:v3" });
+	container.style.width = `${Math.round(5.4 * ch)}px`;
+	await expect.poll(() => root.hasAttribute("data-truncated")).toBe(true);
+
+	expect(head).toBeEmptyDOMElement();
+	expect(getComputedStyle(tail).textOverflow).toBe("ellipsis");
+	expect(container.scrollWidth).toBeLessThanOrEqual(container.clientWidth);
+	// The tail takes all five cells; the ellipsis paints over the first of them.
+	expect(tail.getBoundingClientRect().width).toBeCloseTo(5 * ch + 0.5, 0);
+	expect(visibleGlyphs(tail)).toBe("ok:v3");
 });
