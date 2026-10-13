@@ -9,7 +9,7 @@ idiomatic_version_file_enable_tools = ["node"]
 aqua.github_attestations = false
 
 [tools]
-ast-grep = "0.45.3"
+ast-grep = "0.50.0"
 ripgrep = "15.2.0"
 # Keep pnpm's version single-sourced in root package.json#packageManager.
 # The helper avoids needing Node before mise has installed Node.

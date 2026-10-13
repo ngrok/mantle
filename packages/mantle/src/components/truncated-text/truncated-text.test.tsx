@@ -209,6 +209,19 @@ describe("TruncatedText", () => {
 			expect(root).not.toHaveAttribute("aria-describedby");
 		});
 
+		test("keeps a consumer's aria-describedby while the tooltip is open", async () => {
+			const user = userEvent.setup();
+			stubGeometry(overflows);
+			renderValue({ "aria-describedby": "hint" });
+			const root = screen.getByTestId("value");
+
+			await user.hover(root);
+
+			await screen.findByRole("tooltip");
+			// Why exact: the tooltip id must not join the consumer's own id.
+			expect(root).toHaveAttribute("aria-describedby", "hint");
+		});
+
 		test("becomes a tab stop and opens the tooltip on focus", async () => {
 			const user = userEvent.setup();
 			stubGeometry(overflows);

@@ -142,6 +142,30 @@ const headClassName = String.raw`inline-block overflow-hidden text-ellipsis whit
 const tailClassName =
 	"inline-block overflow-hidden whitespace-nowrap text-left align-bottom min-w-(--_tail-width) [[data-truncated]>&]:min-w-0 [[data-truncated]>&]:max-w-[calc(round(down,100%_-_1ch_-_var(--_tail-width),1ch)_+_var(--_tail-width))] [[data-truncated]>:empty+&]:max-w-[calc(round(down,100%_-_var(--_tail-width),1ch)_+_var(--_tail-width)_+_0.5px)] [[data-truncated]>:empty+&]:text-ellipsis";
 
+type TruncatedTextRootProps = ComponentProps<"span"> & {
+	/** Whether to render through `Slot` onto the consumer's element. */
+	asChild?: boolean;
+	/** The consumer's own `aria-describedby`, carried past the trigger merge. */
+	describedBy: string | undefined;
+};
+
+/**
+ * The root element, rendered after Radix merges the trigger props onto it.
+ *
+ * Why it drops `aria-describedby`: Radix joins the tooltip id onto the
+ * trigger, and here the tooltip's text is the root's own content, so a screen
+ * reader would read the value twice. Only the consumer's own ids land.
+ */
+const TruncatedTextRoot = ({
+	"aria-describedby": _merged,
+	asChild = false,
+	describedBy,
+	...props
+}: TruncatedTextRootProps) => {
+	const Component = asChild ? Slot : "span";
+	return <Component aria-describedby={describedBy} {...props} />;
+};
+
 /**
  * Renders one long opaque value (a URL, a resource ID, an image reference, a
  * token) on a single line. When the value overflows its container, the head
@@ -248,6 +272,7 @@ const tailClassName =
  * ```
  */
 const TruncatedText = ({
+	"aria-describedby": describedBy,
 	asChild = false,
 	children,
 	className,
@@ -337,10 +362,6 @@ const TruncatedText = ({
 		ref: composedRef,
 		"data-slot": joinDataSlot(dataSlot, "truncated-text"),
 		"data-truncated": isTruncated ? "" : undefined,
-		// Why `undefined`: Radix describes the trigger with the tooltip's text, and
-		// here that text is the root's own content, so a screen reader reads the
-		// value twice. An own key wins the merge, so the id never lands.
-		"aria-describedby": undefined,
 		// Why `ltr`: a URL, an ID, or a token reads left to right on an RTL page
 		// too, so the tail stays on the right and the head clips at its end.
 		dir: "ltr",
@@ -379,9 +400,17 @@ const TruncatedText = ({
 			singleChild.props.children == null,
 			"When using `asChild`, the child of TruncatedText must have no children of its own. `value` is the content.",
 		);
-		root = <Slot {...rootProps}>{cloneElement(singleChild, {}, segments)}</Slot>;
+		root = (
+			<TruncatedTextRoot asChild describedBy={describedBy} {...rootProps}>
+				{cloneElement(singleChild, {}, segments)}
+			</TruncatedTextRoot>
+		);
 	} else {
-		root = <span {...rootProps}>{segments}</span>;
+		root = (
+			<TruncatedTextRoot describedBy={describedBy} {...rootProps}>
+				{segments}
+			</TruncatedTextRoot>
+		);
 	}
 
 	return (
