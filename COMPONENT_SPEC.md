@@ -351,15 +351,15 @@ as the `<category>` URL segment. Page/viewport structure primitives are Layouts,
 [VERSIONING.md](./VERSIONING.md) decides the bump, and it outranks any semver habit from another repo:
 mantle is `0.x`, so there is no major, and additive changes are a `patch`. The component-shaped rows:
 
-| Change                                              | Bump                                                            |
-| --------------------------------------------------- | --------------------------------------------------------------- |
-| New top-level component                             | `minor`                                                         |
-| Preview → stable promotion                          | `minor`                                                         |
-| Breaking rename or removal                          | `minor` (and a migration note in the changeset)                 |
-| New part, prop, data attribute, or CSS variable     | `patch` — additive, so a consumer does nothing                  |
-| Bug fix, behavior fix, styling fix, JSDoc-only edit | `patch`                                                         |
-| Docs-site-only change (`apps/www/**`)               | none — `@app/*` is ignored in `.changeset/config.json`          |
-| Change to a component not yet released              | none — fold the description into that component's own changeset |
+| Change                                              | Bump                                                                         |
+| --------------------------------------------------- | ---------------------------------------------------------------------------- |
+| New top-level component                             | `minor`                                                                      |
+| Preview → stable promotion                          | `minor`                                                                      |
+| Breaking rename or removal                          | `minor`, a migration guide, and a codemod ([VERSIONING.md](./VERSIONING.md)) |
+| New part, prop, data attribute, or CSS variable     | `patch` — additive, so a consumer does nothing                               |
+| Bug fix, behavior fix, styling fix, JSDoc-only edit | `patch`                                                                      |
+| Docs-site-only change (`apps/www/**`)               | none — `@app/*` is ignored in `.changeset/config.json`                       |
+| Change to a component not yet released              | none — fold the description into that component's own changeset              |
 
 An edit to `packages/mantle-vite-plugins` needs its own changeset for that package.
 
@@ -974,6 +974,8 @@ Run this against the diff before calling a component done. Each line is a defect
 - [ ] Namespace is one level deep, annotated if any member's type is third-party.
 - [ ] No `forwardRef`, no `React.FC`, no `displayName` assignment.
 - [ ] Mutually exclusive states are a discriminated union, not a boolean bag.
+- [ ] A breaking change ships its migration guide and codemod, or the guide says `manual:` with a reason
+      ([VERSIONING.md](./VERSIONING.md), the `write-migration` skill).
 - [ ] Nothing imports a router or app framework; router state enters through a structural type and the glue is an
       `apps/www` recipe.
 
@@ -1038,7 +1040,8 @@ Run this against the diff before calling a component done. Each line is a defect
   `2026-07-08-docs-information-architecture.md` (categories),
   `2026-07-15-theme-switcher-compound-api.md` (parts over prop bags).
 - Workflows implementing this spec: `.claude/commands/scaffold-component.md`,
-  `.claude/commands/audit-component.md`, `.claude/commands/promote-preview-component.md`.
+  `.claude/commands/audit-component.md`, `.claude/commands/promote-preview-component.md`, and, for a
+  breaking `minor`, `.claude/commands/scaffold-migration.md` with the `write-migration` skill.
 - **Shapes worth copying, with their known gaps.** Copy compound-namespace JSDoc from `alert` or `card`. Copy
   docs-page structure from `list` or `selectable-list` — the pages that already match §7.2. Copy the
   CSS-variable tables from `alert` and `icon-button`. Do **not** copy: `card` and `dialog` ship no test file;
