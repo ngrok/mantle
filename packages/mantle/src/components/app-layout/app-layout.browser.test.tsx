@@ -44,6 +44,14 @@ const STYLE = `
 	.gap-2 { gap: calc(var(--spacing) * 2); }
 	.border-b { border-bottom-width: 1px; }
 	.px-4 { padding-inline: calc(var(--spacing) * 4); }
+	.relative { position: relative; }
+	.\\@container\\/app-layout-workspace {
+		container-type: inline-size;
+		container-name: app-layout-workspace;
+	}
+	@container app-layout-workspace (width < 56.5rem) {
+		.\\@max-side-panel-lane\\/app-layout-workspace\\:absolute { position: absolute; }
+	}
 }
 `;
 
@@ -170,5 +178,33 @@ describe("AppLayout.Header slots", () => {
 		// row overflow instead of squeezing a control.
 		expect(rectOf("start").width).toBe(300);
 		expect(rectOf("actions").width).toBe(400);
+	});
+});
+
+/**
+ * The lane float reads the row's width through the container on
+ * `AppLayout.Workspace`, not the viewport, so the row is sized inline and the
+ * viewport never changes. Only the computed position can observe a container
+ * query; happy-dom resolves none.
+ */
+describe("AppLayout.SidePanel lane float", () => {
+	function renderRow(width: string) {
+		render(
+			<AppLayout.SidePanelRoot defaultOpen>
+				<AppLayout.Workspace style={{ width }}>
+					<AppLayout.Content />
+					<AppLayout.SidePanel aria-label="Assistant" />
+				</AppLayout.Workspace>
+			</AppLayout.SidePanelRoot>,
+		);
+		return getComputedStyle(screen.getByRole("complementary", { name: "Assistant" })).position;
+	}
+
+	test("floats the panel when the row is narrower than the lane", () => {
+		expect(renderRow("50rem")).toBe("absolute");
+	});
+
+	test("keeps the panel in the row when the row holds the lane", () => {
+		expect(renderRow("60rem")).toBe("relative");
 	});
 });

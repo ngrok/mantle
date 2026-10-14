@@ -1092,6 +1092,11 @@ custom control composes the same state from [`useSidePanel`](#usesidepanel).
   breakpoint, so the panel covers the card from gutter to gutter as soon as it floats. Two cards side by
   side in 900px are two unusable cards. Match the prop to `Sidebar.Root`'s `mobileBreakpoint`, so the rail
   and the panel change presentation at one width.
+- **When the row is too narrow**, the panel floats the same way whatever the viewport is. `AppLayout.Workspace`
+  is the container named `app-layout-workspace`, and below the `--container-side-panel-lane` theme token
+  (56.5rem: the expanded rail, the card at the panel's floor, the panel, and the three gutters) the panel
+  leaves the row. The page is never narrower than the panel beside it: an expanded rail at a tablet width
+  floats the panel instead of squeezing the page. A wider rail or panel raises the token in `@theme`.
 
 The panel keeps the card gutter on its top, end, and bottom edges and none on its start edge, so the card's
 own end margin is the gap between the two: one gutter wide, the same number as the inset from the window.
@@ -1102,9 +1107,9 @@ panel that can take focus, so a keyboard user lands back on the control that reo
 every close, whether a trigger, `setOpen`, or a controlled parent closed the panel. A trigger that CSS hides
 at the current breakpoint, or a disabled one, cannot take focus either, so a responsive header with one
 trigger per breakpoint lands on the visible one. Open the assistant from the header and close it from its
-own header. The demo narrows both breakpoints to `md`, and the tablet preset is exactly 48rem (the `md`
-boundary), so the panel keeps its lane there. Switch the preview to the mobile viewport to see it cover the
-card.
+own header. The demo narrows both breakpoints to `md`. The tablet preset is 48rem, narrower than the lane
+the panel needs beside an expanded rail, so the panel floats there. Switch the preview to the mobile
+viewport to see it cover the card.
 
 An assistant can also be a page of its own. [Assistant Across Routes](/recipes/assistant-across-routes)
 renders one conversation in `main` on the assistant's route and in this panel on every other route, with a
@@ -2354,6 +2359,8 @@ On a wide screen the row caps at `--app-layout-max-width` and centers in the fra
 [Width on wide screens](#width-on-wide-screens)). `AppLayout.Root` still paints `bg-base` edge to edge, and
 `AppLayout.Notice` still spans the full window. Merge `className="ml-0"` to pin the row to the start edge.
 It is `relative`, so a floating side panel resolves against the row and covers the card, never the notice.
+It is also the container named `app-layout-workspace`: the panel floats when the row is narrower than the
+`--container-side-panel-lane` theme token, so a page is never narrower than the panel beside it.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
@@ -2566,16 +2573,18 @@ Closed, it is `basis-0 pointer-events-none` and `inert`, with its children still
 edge and goes `invisible` the instant the slide ends (`visibility` rides the transition), so a row that
 `--app-layout-max-width` caps inside the frame has no panel strip beside it. One breakpoint lower it covers
 the card from gutter to gutter. With `"sm"` there is no lower breakpoint, so the panel covers the card from
-gutter to gutter as soon as it floats. See [Side panel](#side-panel).
+gutter to gutter as soon as it floats. It also floats, with the strip treatment, when the
+`AppLayout.Workspace` row is narrower than the `--container-side-panel-lane` theme token (56.5rem), whatever
+the viewport is, so the page is never narrower than the panel beside it. See [Side panel](#side-panel).
 
 It does not take `asChild`: the panel is a fixed two-element structure (the clip box and the inner column),
 so no single element could be swapped.
 
 All props from [aside](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/aside#attributes) except `id`, plus:
 
-| Prop                | Type                   | Default | Description                                                                                                                                                                                                                                                                                                                                                        |
-| ------------------- | ---------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `mobileBreakpoint?` | `"sm" \| "md" \| "lg"` | `"lg"`  | The viewport width below which the panel floats over the card instead of taking width beside it. One breakpoint lower it covers the card from gutter to gutter; with `"sm"` there is no lower breakpoint, so it covers the card as soon as it floats. Match it to `Sidebar.Root`'s `mobileBreakpoint`, so the rail and the panel change presentation at one width. |
+| Prop                | Type                   | Default | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ------------------- | ---------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `mobileBreakpoint?` | `"sm" \| "md" \| "lg"` | `"lg"`  | The viewport width below which the panel floats over the card instead of taking width beside it. One breakpoint lower it covers the card from gutter to gutter; with `"sm"` there is no lower breakpoint, so it covers the card as soon as it floats. Match it to `Sidebar.Root`'s `mobileBreakpoint`, so the rail and the panel change presentation at one width. The panel also floats when the row is narrower than `--container-side-panel-lane`, whatever this prop says. |
 
 | CSS Variable                    | Default                     | Description                                                                                                                                                                                                                                                                                                                                                                      |
 | ------------------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

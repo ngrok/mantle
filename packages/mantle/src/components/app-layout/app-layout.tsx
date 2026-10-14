@@ -197,7 +197,10 @@ const Notice = ({
  * the variable to `none` to let the row fill any width.
  *
  * It is `relative`, so a floating `AppLayout.SidePanel` resolves against the row
- * and covers the card, never the notice above it.
+ * and covers the card, never the notice above it. It is also the container
+ * named `app-layout-workspace`: the panel floats when the row is narrower than
+ * `--container-side-panel-lane`, so a page is never narrower than the panel
+ * beside it.
  *
  * **CSS variables (public API):**
  *
@@ -257,6 +260,9 @@ const Workspace = ({
 				// Why relative: a floating `AppLayout.SidePanel` resolves against the
 				// row, so it covers the card and never the notice above it.
 				"relative",
+				// Why a named container: `AppLayout.SidePanel` floats when this row is
+				// narrower than `--container-side-panel-lane`, whatever the viewport is.
+				"@container/app-layout-workspace",
 				// Why w-full with mx-auto: auto cross-axis margins turn a stretched
 				// flex item into a shrink-to-fit one, so the width is stated outright
 				// and the margins only center the row once the cap applies.
@@ -777,13 +783,26 @@ type AppLayoutSidePanelMobileBreakpoint = "sm" | "md" | "lg";
  * of page beside a 24rem panel is no page at all on a phone. The floating box
  * takes the card's rounding and a larger shadow itself, because its inner
  * card fills it edge to edge there. A complete `Record` (not cva) so a
- * breakpoint without its classes is a compile error.
+ * breakpoint without its classes is a compile error. The lane's `basis-0` is
+ * also gated to a row at least `--container-side-panel-lane` wide, because
+ * {@link sidePanelLaneFloatClassName} floats the box below that too.
  */
 const sidePanelFloatClassName: Record<AppLayoutSidePanelMobileBreakpoint, string> = {
-	sm: "sm:data-state-closed:basis-0 max-sm:absolute max-sm:inset-y-(--app-layout-card-gutter,0.5rem) max-sm:left-(--app-layout-card-gutter,0.5rem) max-sm:right-(--app-layout-card-gutter,0.5rem) max-sm:z-20 max-sm:my-0 max-sm:rounded-xl max-sm:shadow-lg max-sm:[--_side-panel-content-width:100%] max-sm:[--_side-panel-content-inset:0px] max-sm:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] max-sm:data-state-closed:invisible",
-	md: "md:data-state-closed:basis-0 max-md:absolute max-md:inset-y-(--app-layout-card-gutter,0.5rem) max-md:right-(--app-layout-card-gutter,0.5rem) max-md:z-20 max-md:my-0 max-md:w-[min(24rem,calc(100vw-5rem))] max-md:rounded-xl max-md:shadow-lg max-md:[--_side-panel-content-width:100%] max-md:[--_side-panel-content-inset:0px] max-md:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] max-md:data-state-closed:invisible max-sm:left-(--app-layout-card-gutter,0.5rem) max-sm:w-auto",
-	lg: "lg:data-state-closed:basis-0 max-lg:absolute max-lg:inset-y-(--app-layout-card-gutter,0.5rem) max-lg:right-(--app-layout-card-gutter,0.5rem) max-lg:z-20 max-lg:my-0 max-lg:w-[min(24rem,calc(100vw-5rem))] max-lg:rounded-xl max-lg:shadow-lg max-lg:[--_side-panel-content-width:100%] max-lg:[--_side-panel-content-inset:0px] max-lg:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] max-lg:data-state-closed:invisible max-md:left-(--app-layout-card-gutter,0.5rem) max-md:w-auto",
+	sm: "sm:@min-side-panel-lane/app-layout-workspace:data-state-closed:basis-0 max-sm:absolute max-sm:inset-y-(--app-layout-card-gutter,0.5rem) max-sm:left-(--app-layout-card-gutter,0.5rem) max-sm:right-(--app-layout-card-gutter,0.5rem) max-sm:z-20 max-sm:my-0 max-sm:rounded-xl max-sm:shadow-lg max-sm:[--_side-panel-content-width:100%] max-sm:[--_side-panel-content-inset:0px] max-sm:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] max-sm:data-state-closed:invisible",
+	md: "md:@min-side-panel-lane/app-layout-workspace:data-state-closed:basis-0 max-md:absolute max-md:inset-y-(--app-layout-card-gutter,0.5rem) max-md:right-(--app-layout-card-gutter,0.5rem) max-md:z-20 max-md:my-0 max-md:w-[min(24rem,calc(100vw-5rem))] max-md:rounded-xl max-md:shadow-lg max-md:[--_side-panel-content-width:100%] max-md:[--_side-panel-content-inset:0px] max-md:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] max-md:data-state-closed:invisible max-sm:left-(--app-layout-card-gutter,0.5rem) max-sm:w-auto",
+	lg: "lg:@min-side-panel-lane/app-layout-workspace:data-state-closed:basis-0 max-lg:absolute max-lg:inset-y-(--app-layout-card-gutter,0.5rem) max-lg:right-(--app-layout-card-gutter,0.5rem) max-lg:z-20 max-lg:my-0 max-lg:w-[min(24rem,calc(100vw-5rem))] max-lg:rounded-xl max-lg:shadow-lg max-lg:[--_side-panel-content-width:100%] max-lg:[--_side-panel-content-inset:0px] max-lg:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] max-lg:data-state-closed:invisible max-md:left-(--app-layout-card-gutter,0.5rem) max-md:w-auto",
 };
+
+/**
+ * Floats the panel when the `AppLayout.Workspace` row is narrower than
+ * `--container-side-panel-lane`, whatever the viewport is. The row is the
+ * named container, so this reads the width the rail leaves, and the page is
+ * never narrower than the panel beside it. The treatment is the strip
+ * variant of {@link sidePanelFloatClassName}; the phone cover stays with the
+ * viewport breakpoints.
+ */
+const sidePanelLaneFloatClassName =
+	"@max-side-panel-lane/app-layout-workspace:absolute @max-side-panel-lane/app-layout-workspace:inset-y-(--app-layout-card-gutter,0.5rem) @max-side-panel-lane/app-layout-workspace:right-(--app-layout-card-gutter,0.5rem) @max-side-panel-lane/app-layout-workspace:z-20 @max-side-panel-lane/app-layout-workspace:my-0 @max-side-panel-lane/app-layout-workspace:w-[min(24rem,calc(100vw-5rem))] @max-side-panel-lane/app-layout-workspace:rounded-xl @max-side-panel-lane/app-layout-workspace:shadow-lg @max-side-panel-lane/app-layout-workspace:[--_side-panel-content-width:100%] @max-side-panel-lane/app-layout-workspace:[--_side-panel-content-inset:0px] @max-side-panel-lane/app-layout-workspace:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] @max-side-panel-lane/app-layout-workspace:data-state-closed:invisible";
 
 /**
  * The state and actions shared by every part under an
@@ -1151,6 +1170,14 @@ type AppLayoutSidePanelProps = Omit<ComponentProps<"aside">, "id"> &
  * With `"sm"` there is no lower breakpoint, so the panel covers the card as
  * soon as it floats. Two cards side by side in 900px are two unusable cards.
  *
+ * The panel also floats, with the same strip treatment, whenever the
+ * `AppLayout.Workspace` row is narrower than the `--container-side-panel-lane`
+ * theme token (56.5rem: the expanded rail, the card at the panel's floor, the
+ * panel, and the three gutters), whatever the viewport is. The row is the
+ * named container `app-layout-workspace`, so an expanded rail at a tablet
+ * width floats the panel instead of squeezing the page narrower than it. A
+ * wider rail or panel raises the token in `@theme`.
+ *
  * **CSS variables (public API):**
  *
  * | CSS Variable | Default | Description |
@@ -1264,6 +1291,7 @@ const SidePanel = ({
 				// The closed `basis-0` is in `sidePanelFloatClassName`, gated to the lane.
 				"data-state-closed:pointer-events-none",
 				sidePanelFloatClassName[mobileBreakpoint],
+				sidePanelLaneFloatClassName,
 				className,
 			)}
 			onFocus={(event) => {
