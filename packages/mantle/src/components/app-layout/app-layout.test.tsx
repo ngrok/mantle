@@ -675,7 +675,7 @@ describe("AppLayout.SidePanel", () => {
 		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "closed");
 	});
 
-	test("the trigger renders a ghost neutral IconButton with its label as the tooltip", async () => {
+	test("the trigger renders a small ghost neutral IconButton with its label as the tooltip", async () => {
 		const user = userEvent.setup();
 		render(
 			<TooltipProvider>
@@ -690,6 +690,9 @@ describe("AppLayout.SidePanel", () => {
 		expect(trigger).toHaveAttribute("data-slot", "app-layout-side-panel-trigger icon-button");
 		expect(trigger).toHaveAttribute("data-appearance", "ghost");
 		expect(trigger).toHaveAttribute("data-intent", "neutral");
+		// Why "sm": the part overrides IconButton's own "md" default, so the
+		// trigger sits level with the other size="sm" controls in a header row.
+		expect(trigger).toHaveAttribute("data-size", "sm");
 		await user.hover(trigger);
 		const tooltip = await screen.findByRole("tooltip");
 		expect(tooltip).toHaveTextContent("Toggle the assistant");
@@ -738,7 +741,7 @@ describe("AppLayout.SidePanel", () => {
 		);
 	});
 
-	test("a custom icon and appearance replace the trigger's defaults", () => {
+	test("a custom icon, appearance, and size replace the trigger's defaults", () => {
 		render(
 			<TooltipProvider>
 				<AppLayout.SidePanelRoot>
@@ -746,6 +749,7 @@ describe("AppLayout.SidePanel", () => {
 						appearance="outlined"
 						icon={<svg data-testid="custom-icon" />}
 						label="Toggle the assistant"
+						size="md"
 					/>
 					<AppLayout.SidePanel>conversation</AppLayout.SidePanel>
 				</AppLayout.SidePanelRoot>
@@ -753,6 +757,7 @@ describe("AppLayout.SidePanel", () => {
 		);
 		const trigger = screen.getByRole("button", { name: "Toggle the assistant" });
 		expect(trigger).toHaveAttribute("data-appearance", "outlined");
+		expect(trigger).toHaveAttribute("data-size", "md");
 		expect(trigger).toContainElement(screen.getByTestId("custom-icon"));
 	});
 

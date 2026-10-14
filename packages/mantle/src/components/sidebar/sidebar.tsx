@@ -717,12 +717,12 @@ const Nav = ({
  * The props for `Sidebar.Trigger`. `IconButton`'s props, except the parts the
  * trigger owns: `asChild` and `children` are removed (the trigger renders
  * only its icon and `aria-label`; build custom triggers with `useSidebar`
- * instead), and `appearance`, `icon`, `intent`, and `label` become optional
- * with sidebar defaults.
+ * instead), and `appearance`, `icon`, `intent`, `label`, and `size` become
+ * optional with sidebar defaults.
  */
 type SidebarTriggerProps = Omit<
 	IconButtonProps,
-	"appearance" | "asChild" | "children" | "icon" | "intent" | "label"
+	"appearance" | "asChild" | "children" | "icon" | "intent" | "label" | "size"
 > &
 	WithDataSlot & {
 		/**
@@ -761,6 +761,13 @@ type SidebarTriggerProps = Omit<
 		 * why the chips render `aria-hidden`.
 		 */
 		shortcut?: ReactNode;
+		/**
+		 * The size of the trigger `IconButton`. Small, so it sits level with the
+		 * other `size="sm"` controls in an `AppLayout.Header` row.
+		 *
+		 * @default "sm"
+		 */
+		size?: IconButtonProps["size"];
 	};
 
 // Module-scope default so the trigger icon keeps referential equality across
@@ -809,9 +816,9 @@ const TooltipLabel = ({ label, shortcut }: { label: ReactNode; shortcut: ReactNo
 // same behavior from `useSidebar()` instead of slot-swapping this one.
 /**
  * The button that toggles the sidebar: the mobile sheet below the root's
- * `mobileBreakpoint`, the desktop expanded state otherwise. Renders a ghost
- * neutral `IconButton` with `aria-expanded` and `aria-controls` wired to the
- * sidebar's `<nav>`. Place it in your app shell's header (for example
+ * `mobileBreakpoint`, the desktop expanded state otherwise. Renders a small
+ * ghost neutral `IconButton` with `aria-expanded` and `aria-controls` wired to
+ * the sidebar's `<nav>`. Place it in your app shell's header (for example
  * `AppLayout.Header`) — it must stay visible at every breakpoint where the
  * sidebar can collapse, or users have no way to reopen it.
  *
@@ -841,7 +848,7 @@ const TooltipLabel = ({ label, shortcut }: { label: ReactNode; shortcut: ReactNo
  * | `data-slot` | `"sidebar-tooltip-shortcut"` | On the chord chips. Present only while `shortcut` holds something. Carries `translate="no"`: a chord is a key name, not prose. |
  * | `data-appearance` | `"filled"` \| `"ghost"` \| `"outlined"` | Read, not stamped: the underlying `IconButton` reflects its `appearance`, which this part defaults to `"ghost"`. |
  * | `data-intent` | `"neutral"` | Read, not stamped: the underlying `IconButton` reflects its `intent`, and it draws the neutral tone only. |
- * | `data-size` | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | Read, not stamped: the underlying `IconButton` reflects its `size` and its own `"md"` default. |
+ * | `data-size` | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | Read, not stamped: the underlying `IconButton` reflects its `size`, which this part defaults to `"sm"`. |
  *
  * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebartrigger
  *
@@ -919,6 +926,7 @@ const Trigger = ({
 	label = "Toggle Sidebar",
 	onClick,
 	shortcut,
+	size = "sm",
 	...props
 }: SidebarTriggerProps) => {
 	const { isMobile, keyboardShortcut, navId, open, openMobile, toggle } =
@@ -963,6 +971,7 @@ const Trigger = ({
 							toggle();
 						}
 					}}
+					size={size}
 					{...props}
 				/>
 			</Tooltip.Trigger>
@@ -2755,7 +2764,7 @@ const Sidebar = {
 	 * | `data-slot` | `"sidebar-tooltip-shortcut"` | On the chord chips. Present only while `shortcut` holds something. Carries `translate="no"`: a chord is a key name, not prose. |
 	 * | `data-appearance` | `"filled"` \| `"ghost"` \| `"outlined"` | Read, not stamped: the underlying `IconButton` reflects its `appearance`, which this part defaults to `"ghost"`. |
 	 * | `data-intent` | `"neutral"` | Read, not stamped: the underlying `IconButton` reflects its `intent`, and it draws the neutral tone only. |
-	 * | `data-size` | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | Read, not stamped: the underlying `IconButton` reflects its `size` and its own `"md"` default. |
+	 * | `data-size` | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | Read, not stamped: the underlying `IconButton` reflects its `size`, which this part defaults to `"sm"`. |
 	 *
 	 * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebartrigger
 	 *

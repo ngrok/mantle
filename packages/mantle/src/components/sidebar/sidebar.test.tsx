@@ -117,6 +117,33 @@ describe("Sidebar.Nav (desktop)", () => {
 		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "expanded");
 	});
 
+	test("Trigger renders a small ghost neutral IconButton by default", () => {
+		render(
+			<Sidebar.Root>
+				<Sidebar.Nav />
+				<Sidebar.Trigger />
+			</Sidebar.Root>,
+		);
+		const trigger = screen.getByRole("button", { name: "Toggle Sidebar" });
+		expect(trigger).toHaveAttribute("data-appearance", "ghost");
+		expect(trigger).toHaveAttribute("data-intent", "neutral");
+		// Why "sm": the part overrides IconButton's own "md" default, so the
+		// trigger sits level with the other size="sm" controls in a header row.
+		expect(trigger).toHaveAttribute("data-size", "sm");
+	});
+
+	test("a custom appearance and size replace the Trigger's defaults", () => {
+		render(
+			<Sidebar.Root>
+				<Sidebar.Nav />
+				<Sidebar.Trigger appearance="outlined" size="md" />
+			</Sidebar.Root>,
+		);
+		const trigger = screen.getByRole("button", { name: "Toggle Sidebar" });
+		expect(trigger).toHaveAttribute("data-appearance", "outlined");
+		expect(trigger).toHaveAttribute("data-size", "md");
+	});
+
 	test("Trigger aria-controls references the nav landmark", () => {
 		render(
 			<Sidebar.Root>

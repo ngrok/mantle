@@ -1311,8 +1311,8 @@ const SidePanel = ({
  * The props for `AppLayout.SidePanelTrigger`: `IconButton`'s props, except the
  * parts the trigger owns. The type omits `asChild` and `children` (the trigger
  * renders only its icon and `aria-label`; build a custom trigger with
- * `useSidePanel` instead). `appearance`, `icon`, `intent`, and `label` become
- * optional with side panel defaults. `onClick` runs before the toggle; call
+ * `useSidePanel` instead). `appearance`, `icon`, `intent`, `label`, and `size`
+ * become optional with side panel defaults. `onClick` runs before the toggle; call
  * `event.preventDefault()` in it to keep the panel where it is.
  *
  * @see https://mantle.ngrok.com/layouts/app-layout#applayoutsidepaneltrigger
@@ -1324,7 +1324,7 @@ const SidePanel = ({
  */
 type AppLayoutSidePanelTriggerProps = Omit<
 	IconButtonProps,
-	"appearance" | "asChild" | "children" | "icon" | "intent" | "label"
+	"appearance" | "asChild" | "children" | "icon" | "intent" | "label" | "size"
 > &
 	WithDataSlot & {
 		/**
@@ -1351,6 +1351,13 @@ type AppLayoutSidePanelTriggerProps = Omit<
 		 * @default "Toggle side panel"
 		 */
 		label?: string;
+		/**
+		 * The size of the trigger `IconButton`. Small, so it sits level with the
+		 * other `size="sm"` controls in an `AppLayout.Header` row.
+		 *
+		 * @default "sm"
+		 */
+		size?: IconButtonProps["size"];
 	};
 
 const defaultSidePanelTriggerIcon = <SidebarSimpleIcon mirrored />;
@@ -1360,7 +1367,7 @@ const defaultSidePanelTriggerIcon = <SidebarSimpleIcon mirrored />;
 // same behavior from `useSidePanel()` instead of slot-swapping this one.
 /**
  * The button that toggles `AppLayout.SidePanel`, the way `Sidebar.Trigger`
- * toggles the rail. Renders a ghost neutral `IconButton` with `aria-expanded`
+ * toggles the rail. Renders a small ghost neutral `IconButton` with `aria-expanded`
  * and `aria-controls` wired to the panel's `<aside>`. Place one in
  * `AppLayout.HeaderActions` to open the panel, and one more in
  * `AppLayout.SidePanelHeader` with a close icon to close it from inside: when
@@ -1382,7 +1389,7 @@ const defaultSidePanelTriggerIcon = <SidebarSimpleIcon mirrored />;
  * | `data-slot` | `"app-layout-side-panel-trigger-tooltip tooltip-content"` | On the tooltip surface, not the button: the styling hook for the label popup this part renders, joined ahead of `Tooltip.Content`'s own slot. |
  * | `data-appearance` | `"filled"` \| `"ghost"` \| `"outlined"` | Read, not stamped: the underlying `IconButton` reflects its `appearance`, which this part defaults to `"ghost"`. |
  * | `data-intent` | `"neutral"` | Read, not stamped: the underlying `IconButton` reflects its `intent`, which this part defaults to `"neutral"`. |
- * | `data-size` | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | Read, not stamped: the underlying `IconButton` reflects its `size` and its own `"md"` default. |
+ * | `data-size` | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | Read, not stamped: the underlying `IconButton` reflects its `size`, which this part defaults to `"sm"`. |
  * | `data-icon-button` | `"true"` | Read, not stamped: always present on the underlying `IconButton`. |
  * | `data-loading` | present when `isLoading` | Read, not stamped: the underlying `IconButton` stamps it by presence, never `"false"`. |
  * | `data-disabled` | present when disabled | Read, not stamped: the underlying `IconButton` stamps it by presence, never `"false"`, when it resolves disabled: `disabled`, `aria-disabled="true"`, or `isLoading` with no explicit `disabled`. |
@@ -1439,6 +1446,7 @@ const SidePanelTrigger = ({
 	intent = "neutral",
 	label = "Toggle side panel",
 	onClick,
+	size = "sm",
 	...props
 }: AppLayoutSidePanelTriggerProps) => {
 	const { open, panelId, toggle } = useSidePanelContext("SidePanelTrigger").state;
@@ -1464,6 +1472,7 @@ const SidePanelTrigger = ({
 							toggle();
 						}
 					}}
+					size={size}
 					{...props}
 				/>
 			</Tooltip.Trigger>
