@@ -4,6 +4,8 @@ import { XIcon } from "@phosphor-icons/react/X";
 import { type VariantProps, cva } from "class-variance-authority";
 import type { ComponentProps, HTMLAttributes } from "react";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { LayerContainer } from "../../utils/layer-container/layer-container.js";
 import {
 	IconButton,
@@ -264,14 +266,15 @@ const SheetPortal = (props: ComponentProps<typeof SheetPrimitivePortal>) => {
  * @private
  */
 const SheetOverlay = ({
+	"data-slot": dataSlot,
 	className,
 	ref,
 	...props
-}: ComponentProps<typeof SheetPrimitiveOverlay>) => {
+}: ComponentProps<typeof SheetPrimitiveOverlay> & WithDataSlot) => {
 	const sheetScope = useSheetScope();
 	return (
 		<SheetPrimitiveOverlay
-			data-slot="sheet-overlay"
+			data-slot={joinDataSlot(dataSlot, "sheet-overlay")}
 			className={cx(
 				"bg-overlay data-state-closed:animate-out data-state-closed:fade-out-0 data-state-open:animate-in data-state-open:fade-in-0 fixed inset-0 z-60 backdrop-blur-xs",
 				className,
@@ -314,7 +317,7 @@ type SheetContentProps = ComponentProps<typeof SheetPrimitiveContent> &
 		 * @default `sm:max-w-[30rem]`
 		 */
 		preferredWidth?: `sm:max-w-${string}`;
-	};
+	} & WithDataSlot;
 
 /**
  * The main container for a `Sheet`. Should be rendered as a child of the `Sheet` component.
@@ -374,6 +377,7 @@ type SheetContentProps = ComponentProps<typeof SheetPrimitiveContent> &
  * ```
  */
 const Content = ({
+	"data-slot": dataSlot,
 	children,
 	className,
 	preferredWidth = "sm:max-w-[30rem]",
@@ -394,7 +398,7 @@ const Content = ({
 			    content keeps its own fixed positioning. */}
 			<LayerContainer data-slot="sheet-positioner" className="fixed z-60">
 				<SheetPrimitiveContent
-					data-slot="sheet-content"
+					data-slot={joinDataSlot(dataSlot, "sheet-content")}
 					data-mantle-modal-content
 					className={cx(sheetVariants({ side }), preferredWidth, className)}
 					ref={ref}
@@ -427,7 +431,7 @@ type SheetCloseIconButtonProps = Partial<
 	 * @default "neutral"
 	 */
 	intent?: IconButtonIntent;
-};
+} & WithDataSlot;
 
 /**
  * An icon button that closes the `Sheet` when clicked.
@@ -483,6 +487,7 @@ type SheetCloseIconButtonProps = Partial<
  * ```
  */
 const CloseIconButton = ({
+	"data-slot": dataSlot,
 	size = "md",
 	type = "button",
 	label = "Close Sheet",
@@ -494,7 +499,7 @@ const CloseIconButton = ({
 	return (
 		<SheetPrimitiveClose asChild {...sheetScope}>
 			<IconButton
-				data-slot="sheet-close-icon-button"
+				data-slot={joinDataSlot(dataSlot, "sheet-close-icon-button")}
 				appearance={appearance}
 				icon={<XIcon />}
 				intent={intent}
@@ -557,9 +562,13 @@ const CloseIconButton = ({
  * </Sheet.Root>
  * ```
  */
-const Body = ({ className, ...props }: HTMLAttributes<HTMLDivElement>) => (
+const Body = ({
+	"data-slot": dataSlot,
+	className,
+	...props
+}: HTMLAttributes<HTMLDivElement> & WithDataSlot) => (
 	<div
-		data-slot="sheet-body"
+		data-slot={joinDataSlot(dataSlot, "sheet-body")}
 		className={cx(
 			"scrollbar scrollbar-gutter-stable text-body flex-1 overflow-y-auto p-6",
 			className,
@@ -618,9 +627,13 @@ const Body = ({ className, ...props }: HTMLAttributes<HTMLDivElement>) => (
  * </Sheet.Root>
  * ```
  */
-const Header = ({ className, ...props }: HTMLAttributes<HTMLDivElement>) => (
+const Header = ({
+	"data-slot": dataSlot,
+	className,
+	...props
+}: HTMLAttributes<HTMLDivElement> & WithDataSlot) => (
 	<div
-		data-slot="sheet-header"
+		data-slot={joinDataSlot(dataSlot, "sheet-header")}
 		className={cx(
 			"border-dialog-muted flex shrink-0 flex-col gap-2 border-b py-4 pl-6 pr-4",
 			"has-[.icon-button]:pr-4", // when there are actions in the header, shorten the padding
@@ -680,9 +693,13 @@ const Header = ({ className, ...props }: HTMLAttributes<HTMLDivElement>) => (
  * </Sheet.Root>
  * ```
  */
-const Footer = ({ className, ...props }: HTMLAttributes<HTMLDivElement>) => (
+const Footer = ({
+	"data-slot": dataSlot,
+	className,
+	...props
+}: HTMLAttributes<HTMLDivElement> & WithDataSlot) => (
 	<div
-		data-slot="sheet-footer"
+		data-slot={joinDataSlot(dataSlot, "sheet-footer")}
 		className={cx(
 			"border-dialog-muted flex shrink-0 justify-end gap-2 border-t px-6 py-2.5",
 			className,
@@ -741,11 +758,16 @@ const Footer = ({ className, ...props }: HTMLAttributes<HTMLDivElement>) => (
  * </Sheet.Root>
  * ```
  */
-const Title = ({ className, ref, ...props }: ComponentProps<typeof SheetPrimitiveTitle>) => {
+const Title = ({
+	"data-slot": dataSlot,
+	className,
+	ref,
+	...props
+}: ComponentProps<typeof SheetPrimitiveTitle> & WithDataSlot) => {
 	const sheetScope = useSheetScope();
 	return (
 		<SheetPrimitiveTitle
-			data-slot="sheet-title"
+			data-slot={joinDataSlot(dataSlot, "sheet-title")}
 			ref={ref}
 			className={cx("text-strong flex-1 truncate text-lg font-medium", className)}
 			{...props}
@@ -803,9 +825,15 @@ const Title = ({ className, ref, ...props }: ComponentProps<typeof SheetPrimitiv
  * </Sheet.Root>
  * ```
  */
-const TitleGroup = ({ children, className, ref, ...props }: ComponentProps<"div">) => (
+const TitleGroup = ({
+	"data-slot": dataSlot,
+	children,
+	className,
+	ref,
+	...props
+}: ComponentProps<"div"> & WithDataSlot) => (
 	<div
-		data-slot="sheet-title-group"
+		data-slot={joinDataSlot(dataSlot, "sheet-title-group")}
 		className={cx("flex items-center justify-between gap-2", className)}
 		{...props}
 		ref={ref}
@@ -864,14 +892,15 @@ const TitleGroup = ({ children, className, ref, ...props }: ComponentProps<"div"
  * ```
  */
 const Description = ({
+	"data-slot": dataSlot,
 	className,
 	ref,
 	...props
-}: ComponentProps<typeof SheetPrimitiveDescription>) => {
+}: ComponentProps<typeof SheetPrimitiveDescription> & WithDataSlot) => {
 	const sheetScope = useSheetScope();
 	return (
 		<SheetPrimitiveDescription
-			data-slot="sheet-description"
+			data-slot={joinDataSlot(dataSlot, "sheet-description")}
 			ref={ref}
 			className={cx("text-body text-sm", className)}
 			{...props}
@@ -929,9 +958,15 @@ const Description = ({
  * </Sheet.Root>
  * ```
  */
-const Actions = ({ children, className, ref, ...props }: ComponentProps<"div">) => (
+const Actions = ({
+	"data-slot": dataSlot,
+	children,
+	className,
+	ref,
+	...props
+}: ComponentProps<"div"> & WithDataSlot) => (
 	<div
-		data-slot="sheet-actions"
+		data-slot={joinDataSlot(dataSlot, "sheet-actions")}
 		className={cx("flex h-full items-center gap-2", className)}
 		{...props}
 		ref={ref}

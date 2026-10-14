@@ -149,7 +149,7 @@ describe("CommandPalette", () => {
 		renderPalette();
 		const input = await openPalette();
 
-		const separatorCount = document.querySelectorAll("[data-slot='command-separator']").length;
+		const separatorCount = document.querySelectorAll("[data-slot~='command-separator']").length;
 		expect(separatorCount).toBeGreaterThan(0);
 
 		fireEvent.change(input, { target: { value: " " } });
@@ -157,7 +157,7 @@ describe("CommandPalette", () => {
 		await waitFor(() => {
 			expect(screen.queryByText("Welcome")).not.toBeNull();
 		});
-		expect(document.querySelectorAll("[data-slot='command-separator']").length).toBe(
+		expect(document.querySelectorAll("[data-slot~='command-separator']").length).toBe(
 			separatorCount,
 		);
 	});

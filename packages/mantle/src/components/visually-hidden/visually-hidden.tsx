@@ -1,6 +1,8 @@
 import type { ComponentProps } from "react";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { Slot } from "../slot/index.js";
 
 /**
@@ -39,14 +41,20 @@ import { Slot } from "../slot/index.js";
  * ```
  */
 const VisuallyHidden = ({
+	"data-slot": dataSlot,
 	asChild,
 	className,
 	ref,
 	...props
-}: ComponentProps<"span"> & WithAsChild) => {
+}: ComponentProps<"span"> & WithAsChild & WithDataSlot) => {
 	const Comp = asChild ? Slot : "span";
 	return (
-		<Comp ref={ref} data-slot="visually-hidden" className={cx("sr-only", className)} {...props} />
+		<Comp
+			ref={ref}
+			data-slot={joinDataSlot(dataSlot, "visually-hidden")}
+			className={cx("sr-only", className)}
+			{...props}
+		/>
 	);
 };
 

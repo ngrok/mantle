@@ -1,9 +1,11 @@
 import type { ComponentProps } from "react";
 import type { WithAsChild } from "../../types/index.js";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { Slot } from "../slot/index.js";
 
-type WellProps = ComponentProps<"div"> & WithAsChild;
+type WellProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
 
 /**
  * A recessed, inset container used to visually group and de-emphasize content
@@ -30,13 +32,13 @@ type WellProps = ComponentProps<"div"> & WithAsChild;
  * </Well>
  * ```
  */
-const Well = ({ asChild = false, className, ref, ...props }: WellProps) => {
+const Well = ({ "data-slot": dataSlot, asChild = false, className, ref, ...props }: WellProps) => {
 	const Comp = asChild ? Slot : "div";
 
 	return (
 		<Comp
 			ref={ref}
-			data-slot="well"
+			data-slot={joinDataSlot(dataSlot, "well")}
 			className={cx("border-card-muted bg-base relative rounded-md border shadow-inner", className)}
 			{...props}
 		/>

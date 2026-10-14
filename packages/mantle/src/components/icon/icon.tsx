@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { SvgOnly } from "./svg-only.js";
 import type { SvgAttributes } from "./types.js";
 
@@ -8,7 +10,7 @@ type IconProps = Omit<SvgAttributes, "children"> & {
 	 * A single SVG icon element.
 	 */
 	svg: ReactNode;
-};
+} & WithDataSlot;
 
 /**
  * Decorates an svg icon with automatic sizing styles and a `shrink-0` class.
@@ -32,10 +34,10 @@ type IconProps = Omit<SvgAttributes, "children"> & {
  * <Icon svg={<ShrimpIcon />} role="img" aria-label="Shrimp" />
  * ```
  */
-const Icon = ({ className, style, svg, ref, ...props }: IconProps) => (
+const Icon = ({ "data-slot": dataSlot, className, style, svg, ref, ...props }: IconProps) => (
 	<SvgOnly
 		ref={ref}
-		data-slot="icon"
+		data-slot={joinDataSlot(dataSlot, "icon")}
 		className={cx("size-5", className)}
 		style={style}
 		svg={svg}

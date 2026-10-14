@@ -16,6 +16,8 @@ import { $cssProperties } from "../../types/css-properties.js";
 import type { WithAsChild } from "../../types/as-child.js";
 import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { Button, type ButtonProps } from "../button/button.js";
 import {
 	IconButton,
@@ -114,15 +116,15 @@ const alertVariants = cva(
 			 */
 			intent: {
 				danger:
-					"border-danger-500/50 bg-danger-500/10 text-danger-700 [&_code]:bg-danger-500/10 [&_code]:border-danger-500/20 [&_code]:text-danger-900 [&_a:not([data-slot=button])]:text-danger-700 [&_a:not([data-slot=button])]:underline",
+					"border-danger-500/50 bg-danger-500/10 text-danger-700 [&_code]:bg-danger-500/10 [&_code]:border-danger-500/20 [&_code]:text-danger-900 [&_a:not([data-slot~=button])]:text-danger-700 [&_a:not([data-slot~=button])]:underline",
 				important:
-					"border-important-500/50 bg-important-500/10 text-important-700 [&_code]:bg-important-500/10 [&_code]:border-important-500/20 [&_code]:text-important-900 [&_a:not([data-slot=button])]:text-important-700 [&_a:not([data-slot=button])]:underline",
-				info: "border-info-500/50 bg-info-500/10 text-info-700 [&_code]:bg-info-500/10 [&_code]:border-info-500/20 [&_code]:text-info-900 [&_a:not([data-slot=button])]:text-info-700 [&_a:not([data-slot=button])]:underline",
+					"border-important-500/50 bg-important-500/10 text-important-700 [&_code]:bg-important-500/10 [&_code]:border-important-500/20 [&_code]:text-important-900 [&_a:not([data-slot~=button])]:text-important-700 [&_a:not([data-slot~=button])]:underline",
+				info: "border-info-500/50 bg-info-500/10 text-info-700 [&_code]:bg-info-500/10 [&_code]:border-info-500/20 [&_code]:text-info-900 [&_a:not([data-slot~=button])]:text-info-700 [&_a:not([data-slot~=button])]:underline",
 				// neutral: "border-neutral-500/50 bg-neutral-500/10 text-neutral-700",
 				success:
-					"border-success-500/50 bg-success-500/10 text-success-700 [&_code]:bg-success-500/10 [&_code]:border-success-500/20 [&_code]:text-success-900 [&_a:not([data-slot=button])]:text-success-700 [&_a:not([data-slot=button])]:underline",
+					"border-success-500/50 bg-success-500/10 text-success-700 [&_code]:bg-success-500/10 [&_code]:border-success-500/20 [&_code]:text-success-900 [&_a:not([data-slot~=button])]:text-success-700 [&_a:not([data-slot~=button])]:underline",
 				warning:
-					"border-warning-500/50 bg-warning-500/10 text-warning-700 [&_code]:bg-warning-500/10 [&_code]:border-warning-500/20 [&_code]:text-warning-900 [&_a:not([data-slot=button])]:text-warning-700 [&_a:not([data-slot=button])]:underline",
+					"border-warning-500/50 bg-warning-500/10 text-warning-700 [&_code]:bg-warning-500/10 [&_code]:border-warning-500/20 [&_code]:text-warning-900 [&_a:not([data-slot~=button])]:text-warning-700 [&_a:not([data-slot~=button])]:underline",
 			} as const satisfies Record<AlertIntent, string>,
 			/**
 			 * Controls the visual style of the Alert.
@@ -154,7 +156,7 @@ type AlertProps = ComponentProps<"div"> & {
 	 * @default "default"
 	 */
 	appearance?: Appearance;
-};
+} & WithDataSlot;
 
 /**
  * Displays a callout for user attention. Root container for all Alert sub-components.
@@ -190,22 +192,30 @@ type AlertProps = ComponentProps<"div"> & {
  * </Alert.Root>
  *```
  */
-const Root = ({ appearance = "default", className, intent, ref, style, ...props }: AlertProps) => {
+const Root = ({
+	"data-slot": dataSlot,
+	appearance = "default",
+	className,
+	intent,
+	ref,
+	style,
+	...props
+}: AlertProps) => {
 	return (
 		<AlertContextProvider intent={intent}>
 			<div
 				ref={ref}
-				data-slot="alert"
+				data-slot={joinDataSlot(dataSlot, "alert")}
 				className={cx(
 					alertVariants({ appearance, intent }),
 					// Each trailing control reserves its own space: the root's right
 					// padding makes room for dismiss, and the content's padding makes
 					// room for expand. Together they compose without extra consumer work.
 					"has-data-alert-dismiss:pr-10",
-					"has-data-alert-expand:[&_[data-slot=alert-dismiss-icon-button]]:right-16",
-					"md:has-data-alert-expand:[&_[data-slot=alert-dismiss-icon-button]]:right-24",
-					"has-data-alert-expand:[&_[data-slot=alert-content]]:pr-12",
-					"md:has-data-alert-expand:[&_[data-slot=alert-content]]:pr-[5.5rem]",
+					"has-data-alert-expand:[&_[data-slot~=alert-dismiss-icon-button]]:right-16",
+					"md:has-data-alert-expand:[&_[data-slot~=alert-dismiss-icon-button]]:right-24",
+					"has-data-alert-expand:[&_[data-slot~=alert-content]]:pr-12",
+					"md:has-data-alert-expand:[&_[data-slot~=alert-content]]:pr-[5.5rem]",
 					className,
 				)}
 				style={$cssProperties({
@@ -225,7 +235,7 @@ type AlertIconProps = Omit<SvgAttributes, "children"> & {
 	 * An optional icon that renders in place of the default icon for the Alert intent.
 	 */
 	svg?: ReactNode;
-};
+} & WithDataSlot;
 
 /**
  * Default `<AlertIcon>` icons for each intent.
@@ -261,14 +271,14 @@ const defaultIcons = {
  * </Alert.Root>
  * ```
  */
-const Icon = ({ className, ref, svg, ...props }: AlertIconProps) => {
+const Icon = ({ "data-slot": dataSlot, className, ref, svg, ...props }: AlertIconProps) => {
 	const ctx = useAlertContext();
 	const defaultIcon = defaultIcons[ctx.intent];
 
 	return (
 		<SvgOnly
 			ref={ref}
-			data-slot="alert-icon"
+			data-slot={joinDataSlot(dataSlot, "alert-icon")}
 			className={cx("size-5", className)}
 			svg={svg ?? defaultIcon}
 			{...props}
@@ -297,16 +307,21 @@ const Icon = ({ className, ref, svg, ...props }: AlertIconProps) => {
  * </Alert.Root>
  *```
  */
-const Content = ({ className, ref, ...props }: ComponentProps<"div">) => (
+const Content = ({
+	"data-slot": dataSlot,
+	className,
+	ref,
+	...props
+}: ComponentProps<"div"> & WithDataSlot) => (
 	<div
 		ref={ref}
-		data-slot="alert-content"
+		data-slot={joinDataSlot(dataSlot, "alert-content")}
 		className={cx("min-w-0 flex-1 has-data-alert-dismiss:pr-6", className)}
 		{...props}
 	/>
 );
 
-type AlertTitleProps = ComponentProps<"h5"> & WithAsChild;
+type AlertTitleProps = ComponentProps<"h5"> & WithAsChild & WithDataSlot;
 
 /**
  * The title of an alert. Default renders as an h5 element, use asChild to render something else.
@@ -328,20 +343,26 @@ type AlertTitleProps = ComponentProps<"h5"> & WithAsChild;
  * </Alert.Root>
  *```
  */
-const Title = ({ asChild = false, className, ref, ...props }: AlertTitleProps) => {
+const Title = ({
+	"data-slot": dataSlot,
+	asChild = false,
+	className,
+	ref,
+	...props
+}: AlertTitleProps) => {
 	const Component = asChild ? Slot : "h5";
 
 	return (
 		<Component
 			ref={ref}
-			data-slot="alert-title"
+			data-slot={joinDataSlot(dataSlot, "alert-title")}
 			className={cx("font-medium", className)}
 			{...props}
 		/>
 	);
 };
 
-type AlertDescriptionProps = ComponentProps<"div"> & WithAsChild;
+type AlertDescriptionProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
 
 /**
  * The optional description of an alert.
@@ -365,13 +386,19 @@ type AlertDescriptionProps = ComponentProps<"div"> & WithAsChild;
  * </Alert.Root>
  * ```
  */
-const Description = ({ asChild = false, className, ref, ...props }: AlertDescriptionProps) => {
+const Description = ({
+	"data-slot": dataSlot,
+	asChild = false,
+	className,
+	ref,
+	...props
+}: AlertDescriptionProps) => {
 	const Component = asChild ? Slot : "div";
 
 	return (
 		<Component
 			ref={ref}
-			data-slot="alert-description"
+			data-slot={joinDataSlot(dataSlot, "alert-description")}
 			className={cx("text-sm", className)}
 			{...props}
 		/>
@@ -400,7 +427,7 @@ type AlertDismissIconButtonProps = Partial<
 	 * An optional icon to render inside the dismiss button. Defaults to an X icon.
 	 */
 	icon?: ReactNode;
-};
+} & WithDataSlot;
 
 /**
  * Moves keyboard focus to the alert's nearest tabbable neighbor when the
@@ -508,6 +535,7 @@ function useDismissFocusRedirect({
  * ```
  */
 const DismissIconButton = ({
+	"data-slot": dataSlot,
 	size = "sm",
 	type = "button",
 	label = "Dismiss Alert",
@@ -539,7 +567,7 @@ const DismissIconButton = ({
 			intent="neutral"
 			label={label}
 			size={size}
-			data-slot="alert-dismiss-icon-button"
+			data-slot={joinDataSlot(dataSlot, "alert-dismiss-icon-button")}
 			data-alert-dismiss
 			className={cx(
 				"right-1.5 top-1.5 absolute",
@@ -564,7 +592,7 @@ type AlertExpandButtonProps = Omit<
 	count: number;
 	/** Whether the alerts controlled by this button are currently visible. */
 	expanded: boolean;
-};
+} & WithDataSlot;
 
 /**
  * A compact, trailing control for expanding or collapsing related alerts.
@@ -589,7 +617,13 @@ type AlertExpandButtonProps = Omit<
  * </Alert.Root>
  * ```
  */
-const ExpandButton = ({ count, expanded, className, ...props }: AlertExpandButtonProps) => {
+const ExpandButton = ({
+	"data-slot": dataSlot,
+	count,
+	expanded,
+	className,
+	...props
+}: AlertExpandButtonProps) => {
 	return (
 		<Button
 			type="button"
@@ -602,7 +636,7 @@ const ExpandButton = ({ count, expanded, className, ...props }: AlertExpandButto
 					? "Collapse additional alerts"
 					: `Show ${count} more ${count === 1 ? "alert" : "alerts"}`
 			}
-			data-slot="alert-expand-button"
+			data-slot={joinDataSlot(dataSlot, "alert-expand-button")}
 			data-alert-expand
 			icon={
 				<CaretDownIcon

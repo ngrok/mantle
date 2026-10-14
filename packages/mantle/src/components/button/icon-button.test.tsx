@@ -133,7 +133,7 @@ describe("IconButton", () => {
 			const button = screen.getByRole("button", { name: "Save" });
 			expect(button).toBeDisabled();
 			expect(button).toHaveAttribute("aria-disabled", "true");
-			expect(button).toHaveAttribute("data-disabled", "true");
+			expect(button).toHaveAttribute("data-disabled", "");
 		});
 
 		test("aria-disabled={false} cannot re-enable a disabled button", () => {
@@ -150,6 +150,60 @@ describe("IconButton", () => {
 			const button = screen.getByRole("button", { name: "Save" });
 			expect(button).toBeDisabled();
 			expect(button).toHaveAttribute("aria-disabled", "true");
+		});
+
+		test("data-disabled is present while disabled and absent once enabled", () => {
+			// Why presence: the `data-disabled:` variant matches the attribute, so
+			// a `"false"` value fires it on every enabled button.
+			const { rerender } = render(
+				<IconButton
+					appearance="ghost"
+					intent="neutral"
+					disabled
+					label="Save"
+					icon={<GlobeIcon />}
+				/>,
+			);
+			const button = screen.getByRole("button", { name: "Save" });
+			expect(button).toHaveAttribute("data-disabled", "");
+
+			rerender(
+				<IconButton appearance="ghost" intent="neutral" label="Save" icon={<GlobeIcon />} />,
+			);
+			expect(button).not.toHaveAttribute("data-disabled");
+		});
+
+		test("aria-disabled=true stamps data-disabled", () => {
+			render(
+				<IconButton
+					appearance="ghost"
+					intent="neutral"
+					aria-disabled="true"
+					label="Save"
+					icon={<GlobeIcon />}
+				/>,
+			);
+			const button = screen.getByRole("button", { name: "Save" });
+			expect(button).toHaveAttribute("data-disabled", "");
+		});
+
+		test("data-loading is present while loading and absent once idle", () => {
+			const { rerender } = render(
+				<IconButton
+					appearance="ghost"
+					intent="neutral"
+					isLoading
+					label="Save"
+					icon={<GlobeIcon />}
+				/>,
+			);
+			const button = screen.getByRole("button", { name: "Save" });
+			expect(button).toHaveAttribute("data-loading", "");
+
+			rerender(
+				<IconButton appearance="ghost" intent="neutral" label="Save" icon={<GlobeIcon />} />,
+			);
+			expect(button).not.toHaveAttribute("data-loading");
 		});
 
 		test("a disabled asChild anchor drops its own onClickCapture, which Radix would run first", async () => {

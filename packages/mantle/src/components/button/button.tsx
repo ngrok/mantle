@@ -8,6 +8,8 @@ import type { WithAsChild } from "../../types/index.js";
 import type { VariantProps } from "../../types/variant-props.js";
 import { clsx } from "../../utils/cx/clsx.js";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { Icon } from "../icon/index.js";
 import { Slot } from "../slot/index.js";
 import type { ButtonIntent } from "./intents.js";
@@ -218,7 +220,7 @@ type ButtonProps = ComponentProps<"button"> &
 		 * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#type
 		 */
 		type?: ComponentProps<"button">["type"];
-	};
+	} & WithDataSlot;
 
 /**
  * Renders a button or a component that looks like a button, an interactive
@@ -261,8 +263,8 @@ type ButtonProps = ComponentProps<"button"> &
  * | `data-appearance` | `"filled"` \| `"ghost"` \| `"link"` \| `"outlined"`     | The `appearance` prop.                                                                        |
  * | `data-intent`     | `"accent"` \| `"danger"` \| `"neutral"`                 | The `intent` prop.                                                                            |
  * | `data-size`       | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"`            | The `size` prop. Omitted when `appearance` is `"link"`, which has no box to size.             |
- * | `data-loading`    | `"true"` \| `"false"`                                  | The `isLoading` prop.                                                                         |
- * | `data-disabled`   | `"true"` \| `"false"`                                  | `true` when `disabled`, `isLoading`, or `aria-disabled="true"` is set.                        |
+ * | `data-loading`    | present when `isLoading`                               | Presence-only, never `"false"`.                                                               |
+ * | `data-disabled`   | present when disabled                                  | Presence-only, never `"false"`, since the `data-disabled:` variant matches the attribute's existence. Set when the button resolves disabled: `disabled`, `aria-disabled="true"`, or `isLoading` with no explicit `disabled`. `disabled={false}` keeps a loading button enabled and omits it. |
  *
  * @see https://mantle.ngrok.com/components/actions/button
  *
@@ -292,6 +294,7 @@ type ButtonProps = ComponentProps<"button"> &
  */
 const Button = ({
 	"aria-disabled": _ariaDisabled,
+	"data-slot": dataSlot,
 	appearance,
 	asChild,
 	children,
@@ -319,7 +322,7 @@ const Button = ({
 
 	const buttonProps = {
 		"aria-disabled": disabled,
-		"data-slot": "button",
+		"data-slot": joinDataSlot(dataSlot, "button"),
 		className: cx(
 			"inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md",
 			"focus:outline-hidden focus-visible:ring-4",
@@ -333,9 +336,11 @@ const Button = ({
 			className,
 		),
 		"data-appearance": appearance,
-		"data-disabled": disabled,
+		// Why presence-only: the `data-disabled:` variant matches the attribute,
+		// so a `"false"` value fires it on every enabled button.
+		"data-disabled": disabled ? "" : undefined,
 		"data-intent": intent,
-		"data-loading": isLoading,
+		"data-loading": isLoading ? "" : undefined,
 		"data-size": appearance === "link" ? undefined : size,
 		ref,
 		...props,

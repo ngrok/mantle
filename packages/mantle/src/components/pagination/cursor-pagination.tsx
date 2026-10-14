@@ -5,6 +5,8 @@ import { CaretRightIcon } from "@phosphor-icons/react/CaretRight";
 import { type ComponentProps, createContext, useContext, useMemo, useState } from "react";
 import invariant from "tiny-invariant";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { ButtonGroup, IconButton } from "../button/index.js";
 import { Select } from "../select/select.js";
 import { Separator } from "../separator/separator.js";
@@ -55,7 +57,7 @@ type CursorPaginationProps = ComponentProps<"div"> &
 		 * changes it. Required to change a controlled `pageSize`.
 		 */
 		onChangePageSize?: (pageSize: number) => void;
-	};
+	} & WithDataSlot;
 
 /**
  * The root container for cursor-based pagination. It owns the page size that
@@ -117,6 +119,7 @@ type CursorPaginationProps = ComponentProps<"div"> &
  * ```
  */
 const Root = ({
+	"data-slot": dataSlot,
 	className,
 	children,
 	defaultPageSize,
@@ -152,7 +155,7 @@ const Root = ({
 	return (
 		<CursorPaginationContext.Provider value={contextValue}>
 			<div
-				data-slot="cursor-pagination"
+				data-slot={joinDataSlot(dataSlot, "cursor-pagination")}
 				className={cx("inline-flex items-center justify-between gap-2", className)}
 				ref={ref}
 				{...props}
@@ -198,6 +201,7 @@ type CursorButtonsProps = Omit<ComponentProps<typeof ButtonGroup>, "appearance">
  * ```
  */
 const Buttons = ({
+	"data-slot": dataSlot,
 	hasNextPage,
 	hasPreviousPage,
 	onNextPage,
@@ -208,7 +212,12 @@ const Buttons = ({
 	// TODO(cody): this _feels_ like a good spot for left and right arrow keys to navigate between pages when focused on the buttons
 
 	return (
-		<ButtonGroup data-slot="cursor-pagination-buttons" appearance="panel" ref={ref} {...props}>
+		<ButtonGroup
+			data-slot={joinDataSlot(dataSlot, "cursor-pagination-buttons")}
+			appearance="panel"
+			ref={ref}
+			{...props}
+		>
 			<IconButton
 				data-slot="cursor-pagination-previous"
 				appearance="ghost"
@@ -270,6 +279,7 @@ type CursorPageSizeSelectProps = Omit<ComponentProps<typeof Select.Trigger>, "ch
  * ```
  */
 const PageSizeSelect = ({
+	"data-slot": dataSlot,
 	className,
 	pageSizes = defaultPageSizes,
 	onChangePageSize,
@@ -307,7 +317,7 @@ const PageSizeSelect = ({
 				// Why: the trigger's only visible text is its value ("100 per page"),
 				// so without a label a screen reader has no stable name for it.
 				aria-label="Items per page"
-				data-slot="cursor-pagination-page-size-select"
+				data-slot={joinDataSlot(dataSlot, "cursor-pagination-page-size-select")}
 				className={cx("w-auto min-w-36", className)}
 				{...rest}
 			>
@@ -327,7 +337,7 @@ const PageSizeSelect = ({
 	);
 };
 
-type CursorPageSizeValueProps = Omit<ComponentProps<"span">, "children">;
+type CursorPageSizeValueProps = Omit<ComponentProps<"span">, "children"> & WithDataSlot;
 
 /**
  * Displays the current page size when using cursor-based pagination as a read-only value.
@@ -342,14 +352,14 @@ type CursorPageSizeValueProps = Omit<ComponentProps<"span">, "children">;
  * </div>
  * ```
  */
-function PageSizeValue({ className, ...props }: CursorPageSizeValueProps) {
+function PageSizeValue({ "data-slot": dataSlot, className, ...props }: CursorPageSizeValueProps) {
 	const ctx = useContext(CursorPaginationContext);
 
 	invariant(ctx, "CursorPageSizeValue must be used as a child of a CursorPagination component");
 
 	return (
 		<span
-			data-slot="cursor-pagination-page-size-value"
+			data-slot={joinDataSlot(dataSlot, "cursor-pagination-page-size-value")}
 			className={cx("text-muted text-sm font-normal", className)}
 			{...props}
 		>

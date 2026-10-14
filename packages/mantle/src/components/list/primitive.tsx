@@ -25,6 +25,8 @@ import invariant from "tiny-invariant";
 import type { WithAsChild } from "../../types/as-child.js";
 import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { isInteractiveTarget } from "../../utils/interactive-target.js";
 import { Slot } from "../slot/index.js";
 
@@ -692,7 +694,7 @@ function ListShell({
 	collectionProps,
 	gridNav,
 	listContext,
-	viewportProps,
+	viewportProps: { "data-slot": dataSlot, ...viewportProps },
 	ref,
 }: {
 	"aria-label": string | undefined;
@@ -703,7 +705,7 @@ function ListShell({
 	collectionProps: ComponentProps<"div">;
 	gridNav: GridNavContextValue;
 	listContext: ListContextValue;
-	viewportProps: ComponentProps<"div">;
+	viewportProps: ComponentProps<"div"> & WithDataSlot;
 	ref: Ref<HTMLDivElement>;
 }) {
 	return (
@@ -711,7 +713,7 @@ function ListShell({
 			<GridNavContext.Provider value={gridNav}>
 				<div
 					ref={ref}
-					data-slot="list"
+					data-slot={joinDataSlot(dataSlot, "list")}
 					className={cx(listViewportClassName, className)}
 					{...viewportProps}
 				>
@@ -755,7 +757,7 @@ type ListItemProps = Omit<ComponentProps<"div">, "role"> &
 		selected?: boolean;
 		/** Whether the row is disabled — suppresses the hover tint; grid keyboard navigation skips it and it carries `aria-disabled`. */
 		disabled?: boolean;
-	};
+	} & WithDataSlot;
 
 /**
  * A single composed row — a `<div role="listitem">` (list) or `<div role="row">`
@@ -779,6 +781,7 @@ type ListItemProps = Omit<ComponentProps<"div">, "role"> &
  * ```
  */
 const Item = ({
+	"data-slot": dataSlot,
 	asChild,
 	children,
 	className,
@@ -807,7 +810,7 @@ const Item = ({
 			// Before the spread so a wrapping component can brand its rows (e.g.
 			// SelectableItem passes "selectable-list-item"); `data-index` and the
 			// role/ARIA wiring below stay enforced.
-			data-slot="list-item"
+			data-slot={joinDataSlot(dataSlot, "list-item")}
 			{...props}
 			// Stamp the grid's default aria-activedescendant target id; when the
 			// collection doesn't own row ids (a consumer `itemId` override), keep the

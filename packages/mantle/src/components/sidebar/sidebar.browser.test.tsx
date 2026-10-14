@@ -309,7 +309,9 @@ async function renderExpandedShell({
 function recordTransitions(nav: HTMLElement): string[] {
 	const transitions: string[] = [];
 	nav.addEventListener("transitionrun", (event) => {
-		const slot = event.target instanceof HTMLElement ? event.target.dataset.slot : "";
+		// The first name in a joined chain is the sidebar part's own.
+		const slot =
+			event.target instanceof HTMLElement ? event.target.dataset.slot?.split(" ")[0] : "";
 		transitions.push(`${slot}:${event.propertyName}`);
 	});
 	return transitions;

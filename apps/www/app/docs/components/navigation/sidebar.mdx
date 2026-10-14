@@ -1654,11 +1654,11 @@ the panel surface in both presentations (the desktop collapse container and the 
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
-| Prop               | Type     | Default  | Description                                                                                                                                                   |
-| ------------------ | -------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `aria-label?`      | `string` | `"Main"` | Names the inner `<nav>` landmark, and the mobile `Sheet` dialog along with it. Override it for localization. Omitted when you pass `aria-labelledby` instead. |
-| `aria-labelledby?` | `string` | —        | Names the `<nav>` from another element's id, and names the mobile sheet dialog directly. Takes precedence over the `aria-label` default.                      |
-| `data-slot?`       | `string` | —        | An ancestor-forwarded `data-slot` chain, joined ahead of this part's own `sidebar-nav` rather than replacing it.                                              |
+| Prop               | Type     | Default  | Description                                                                                                                                                                                   |
+| ------------------ | -------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `aria-label?`      | `string` | `"Main"` | Names the inner `<nav>` landmark, and the mobile `Sheet` dialog along with it. Override it for localization. Omitted when you pass `aria-labelledby` instead.                                 |
+| `aria-labelledby?` | `string` | —        | Names the `<nav>` from another element's id, and names the mobile sheet dialog directly. Takes precedence over the `aria-label` default.                                                      |
+| `data-slot?`       | `string` | —        | An ancestor-forwarded `data-slot` chain, joined ahead of this part's own `sidebar-nav` rather than replacing it. In the mobile sheet, `Sheet.Content` joins its own `sheet-content` after it. |
 
 `Sidebar.Nav` takes no `asChild` — see [Polymorphism](#polymorphism).
 
@@ -1705,18 +1705,19 @@ after hydration reads the platform in its first render.
 
 **Data attributes**
 
-| Data Attribute    | Value                                              | Description                                                                                                                                      |
-| ----------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `data-state`      | `"expanded"` \| `"collapsed"`                      | Mirrors what the trigger toggles: the mobile sheet below the root's `mobileBreakpoint`, the desktop panel otherwise. Pairs with `aria-expanded`. |
-| `data-slot`       | `"sidebar-trigger-tooltip"`                        | On the tooltip surface, not the button: the styling hook for the label-and-chord popup this part renders.                                        |
-| `data-state`      | `"delayed-open"` \| `"instant-open"` \| `"closed"` | Read, not stamped: on the tooltip surface, from `Tooltip.Content`.                                                                               |
-| `data-side`       | `"top"` \| `"right"` \| `"bottom"` \| `"left"`     | Read, not stamped: on the tooltip surface, from `Tooltip.Content`.                                                                               |
-| `data-slot`       | `"sidebar-tooltip-row"`                            | Inside that surface, on the flex row holding the label and the optional chord chips. Always present.                                             |
-| `data-slot`       | `"sidebar-tooltip-label"`                          | On the `<span>` wrapping `label` inside that row. Always present, and `display: contents`.                                                       |
-| `data-slot`       | `"sidebar-tooltip-shortcut"`                       | On the chord chips. Present only while `shortcut` holds something. Carries `translate="no"`: a chord is a key name, not prose.                   |
-| `data-appearance` | `"filled"` \| `"ghost"` \| `"outlined"`            | Read, not stamped: the underlying `IconButton` reflects its `appearance`, which this part defaults to `"ghost"`.                                 |
-| `data-intent`     | `"neutral"`                                        | Read, not stamped: the underlying `IconButton` reflects its `intent`, and it draws the neutral tone only.                                        |
-| `data-size`       | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"`     | Read, not stamped: the underlying `IconButton` reflects its `size` and its own `"md"` default.                                                   |
+| Data Attribute    | Value                                              | Description                                                                                                                                             |
+| ----------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-state`      | `"expanded"` \| `"collapsed"`                      | Mirrors what the trigger toggles: the mobile sheet below the root's `mobileBreakpoint`, the desktop panel otherwise. Pairs with `aria-expanded`.        |
+| `data-slot`       | `"sidebar-trigger icon-button"`                    | On the button: the part's slot, joined ahead of `IconButton`'s own.                                                                                     |
+| `data-slot`       | `"sidebar-trigger-tooltip tooltip-content"`        | On the tooltip surface, not the button: the styling hook for the label-and-chord popup this part renders, joined ahead of `Tooltip.Content`'s own slot. |
+| `data-state`      | `"delayed-open"` \| `"instant-open"` \| `"closed"` | Read, not stamped: on the tooltip surface, from `Tooltip.Content`.                                                                                      |
+| `data-side`       | `"top"` \| `"right"` \| `"bottom"` \| `"left"`     | Read, not stamped: on the tooltip surface, from `Tooltip.Content`.                                                                                      |
+| `data-slot`       | `"sidebar-tooltip-row"`                            | Inside that surface, on the flex row holding the label and the optional chord chips. Always present.                                                    |
+| `data-slot`       | `"sidebar-tooltip-label"`                          | On the `<span>` wrapping `label` inside that row. Always present, and `display: contents`.                                                              |
+| `data-slot`       | `"sidebar-tooltip-shortcut"`                       | On the chord chips. Present only while `shortcut` holds something. Carries `translate="no"`: a chord is a key name, not prose.                          |
+| `data-appearance` | `"filled"` \| `"ghost"` \| `"outlined"`            | Read, not stamped: the underlying `IconButton` reflects its `appearance`, which this part defaults to `"ghost"`.                                        |
+| `data-intent`     | `"neutral"`                                        | Read, not stamped: the underlying `IconButton` reflects its `intent`, and it draws the neutral tone only.                                               |
+| `data-size`       | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"`     | Read, not stamped: the underlying `IconButton` reflects its `size` and its own `"md"` default.                                                          |
 
 ### Sidebar.Header
 
@@ -1961,21 +1962,21 @@ four in the table above are the exceptions: this part reads them itself.
 
 **Data attributes**
 
-| Data Attribute | Value                                              | Description                                                                                                                    |
-| -------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `data-slot`    | `"sidebar-tooltip"`                                | On the tooltip surface, with any forwarded chain ahead of it. Styling and test-targeting hook.                                 |
-| `data-state`   | `"delayed-open"` \| `"instant-open"` \| `"closed"` | Read, not stamped: on the tooltip surface, from `Tooltip.Content`.                                                             |
-| `data-side`    | `"top"` \| `"right"` \| `"bottom"` \| `"left"`     | Read, not stamped: on the tooltip surface, from `Tooltip.Content`. The resolved side, `"right"` by default.                    |
-| `data-align`   | `"start"` \| `"center"` \| `"end"`                 | Read, not stamped: on the tooltip surface, from `Tooltip.Content`.                                                             |
-| `data-slot`    | `"sidebar-tooltip-row"`                            | Inside that surface, on the flex row holding the label and the optional chord chips.                                           |
-| `data-slot`    | `"sidebar-tooltip-label"`                          | On the `<span>` wrapping `label` inside that row. Always present, and `display: contents`.                                     |
-| `data-slot`    | `"sidebar-tooltip-shortcut"`                       | On the chord chips. Present only while `shortcut` holds something. Carries `translate="no"`: a chord is a key name, not prose. |
-| `data-state`   | `"delayed-open"` \| `"instant-open"` \| `"closed"` | On the wrapped row, from `Tooltip.Trigger`. `"closed"` outside the collapsed rail, where this part vetoes the open state.      |
+| Data Attribute | Value                                              | Description                                                                                                                              |
+| -------------- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-slot`    | `"sidebar-tooltip tooltip-content"`                | On the tooltip surface, with any forwarded chain ahead of it and `Tooltip.Content`'s own slot after it. Styling and test-targeting hook. |
+| `data-state`   | `"delayed-open"` \| `"instant-open"` \| `"closed"` | Read, not stamped: on the tooltip surface, from `Tooltip.Content`.                                                                       |
+| `data-side`    | `"top"` \| `"right"` \| `"bottom"` \| `"left"`     | Read, not stamped: on the tooltip surface, from `Tooltip.Content`. The resolved side, `"right"` by default.                              |
+| `data-align`   | `"start"` \| `"center"` \| `"end"`                 | Read, not stamped: on the tooltip surface, from `Tooltip.Content`.                                                                       |
+| `data-slot`    | `"sidebar-tooltip-row"`                            | Inside that surface, on the flex row holding the label and the optional chord chips.                                                     |
+| `data-slot`    | `"sidebar-tooltip-label"`                          | On the `<span>` wrapping `label` inside that row. Always present, and `display: contents`.                                               |
+| `data-slot`    | `"sidebar-tooltip-shortcut"`                       | On the chord chips. Present only while `shortcut` holds something. Carries `translate="no"`: a chord is a key name, not prose.           |
+| `data-state`   | `"delayed-open"` \| `"instant-open"` \| `"closed"` | On the wrapped row, from `Tooltip.Trigger`. `"closed"` outside the collapsed rail, where this part vetoes the open state.                |
 
 That row is always mounted, so a `shortcut` that resolves later appends beside an element instead of replacing
 the label. The label span is always mounted too, so your own swap of `label` from text to an element never
 aims a removal at a text node the engine reparented. The row nests inside `Tooltip.Content`'s own
-`tooltip-label` div: `sidebar-tooltip` → `tooltip-label` (`display: contents`) → `sidebar-tooltip-row` (the
+`tooltip-label` div: `sidebar-tooltip tooltip-content` → `tooltip-label` (`display: contents`) → `sidebar-tooltip-row` (the
 flex row) → `sidebar-tooltip-label` (`display: contents`).
 [Browser translation](/browser-translation) covers why.
 

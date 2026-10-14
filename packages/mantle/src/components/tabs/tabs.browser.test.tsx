@@ -85,9 +85,9 @@ test("the label span generates no box, so an icon stays a flex child of the trig
 
 /** The separator the tree renders, or a thrown error when the slot is missing. */
 function getSeparator(container: HTMLElement): HTMLElement {
-	const separator = container.querySelector<HTMLElement>('[data-slot="tabs-separator"]');
+	const separator = container.querySelector<HTMLElement>('[data-slot~="tabs-separator"]');
 	if (separator == null) {
-		throw new Error('No element carries data-slot="tabs-separator".');
+		throw new Error("No element carries the tabs-separator slot.");
 	}
 	return separator;
 }

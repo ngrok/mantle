@@ -66,7 +66,7 @@ function getItemHost(id: string): HTMLElement {
 
 /** The bar's banner chrome — the `Alert.Root` the top item's children render inside. */
 function getBarChrome(): HTMLElement {
-	const chrome = document.querySelector<HTMLElement>('[data-slot="alert-center-bar"]');
+	const chrome = document.querySelector<HTMLElement>('[data-slot~="alert-center-bar"]');
 	if (chrome == null) {
 		throw new Error("expected the AlertCenter bar chrome to be mounted");
 	}
@@ -406,7 +406,7 @@ function ThreeAlertHarness() {
 describe("AlertCenter.Bar", () => {
 	test("surfaces the highest-severity alert's authored content inline, with its CTA", () => {
 		const { container } = render(<ThreeAlertHarness />);
-		const bar = container.querySelector('[data-slot="alert-center-bar"]');
+		const bar = container.querySelector('[data-slot~="alert-center-bar"]');
 		expect(bar).not.toBeNull();
 		expect(bar).toHaveAttribute("data-alert-id", "payment");
 		// the authored children — heading, CTA link — render inside the bar chrome
@@ -422,7 +422,7 @@ describe("AlertCenter.Bar", () => {
 				<AlertCenter.Bar />
 			</AlertCenter.Root>,
 		);
-		expect(container.querySelector('[data-slot="alert-center-bar"]')).toBeNull();
+		expect(container.querySelector('[data-slot~="alert-center-bar"]')).toBeNull();
 		// the persistent announcer stays mounted, but empty
 		expect(screen.getByRole("status")).toHaveTextContent("");
 	});
@@ -438,7 +438,7 @@ describe("AlertCenter.Bar", () => {
 					</AlertCenter.Item>
 				</AlertCenter.Root>,
 			);
-			const bar = container.querySelector('[data-slot="alert-center-bar"]');
+			const bar = container.querySelector('[data-slot~="alert-center-bar"]');
 			expect(bar).not.toBeNull();
 
 			// The item unmounts → the bar stays mounted (marked closed, inert) to
@@ -450,7 +450,7 @@ describe("AlertCenter.Bar", () => {
 					</AlertCenter.Root>,
 				);
 			});
-			const closingBar = container.querySelector('[data-slot="alert-center-bar"]');
+			const closingBar = container.querySelector('[data-slot~="alert-center-bar"]');
 			expect(closingBar).not.toBeNull();
 			const wrapper = closingBar?.closest("[data-state]");
 			expect(wrapper).toHaveAttribute("data-state", "closed");
@@ -465,7 +465,7 @@ describe("AlertCenter.Bar", () => {
 			act(() => {
 				vi.advanceTimersByTime(500);
 			});
-			expect(container.querySelector('[data-slot="alert-center-bar"]')).toBeNull();
+			expect(container.querySelector('[data-slot~="alert-center-bar"]')).toBeNull();
 		} finally {
 			vi.useRealTimers();
 		}
@@ -510,7 +510,8 @@ describe("AlertCenter.Bar", () => {
 		render(<ThreeAlertHarness />);
 		const trigger = screen.getByRole("button", { name: "Show 2 more alerts" });
 		expect(trigger).toHaveAttribute("aria-expanded", "false");
-		expect(trigger).toHaveAttribute("data-slot", "alert-expand-button");
+		// `Alert.ExpandButton` joins its slot ahead of `Button`'s own.
+		expect(trigger).toHaveAttribute("data-slot", "alert-expand-button button");
 		expect(trigger).toHaveTextContent("+2");
 
 		// the reference resolves even while collapsed — Content stays mounted
@@ -582,7 +583,7 @@ describe("AlertCenter.Bar", () => {
 
 	test("stamps the chrome with data-placement and data-alert-id", () => {
 		const { container } = render(<ThreeAlertHarness />);
-		const bar = container.querySelector('[data-slot="alert-center-bar"]');
+		const bar = container.querySelector('[data-slot~="alert-center-bar"]');
 		expect(bar).toHaveAttribute("data-placement", "bar");
 		expect(bar).toHaveAttribute("data-alert-id", "payment");
 	});
@@ -604,7 +605,7 @@ describe("AlertCenter.Bar", () => {
 				</AlertCenter.Item>
 			</AlertCenter.Root>,
 		);
-		const bar = container.querySelector('[data-slot="alert-center-bar"]');
+		const bar = container.querySelector('[data-slot~="alert-center-bar"]');
 		expect(bar).toContainElement(screen.getByText(/We couldn't charge the card ending in 4242/));
 		expect(bar).toContainElement(screen.getByRole("link", { name: "Update payment method" }));
 		// the announcer still headlines with the TITLE alone
@@ -613,7 +614,7 @@ describe("AlertCenter.Bar", () => {
 
 	test("positions the bar's trailing controls from the chrome, gated on the single-line form", () => {
 		const { container } = render(<ThreeAlertHarness />);
-		const bar = container.querySelector('[data-slot="alert-center-bar"]');
+		const bar = container.querySelector('[data-slot~="alert-center-bar"]');
 		// Why a class assertion: a cross-file spelling pin. The selector names
 		// `data-alert-dismiss`, `data-alert-expand`, and `data-slot="alert-description"`,
 		// which `Alert` emits in alert.tsx.
@@ -690,14 +691,14 @@ describe("AlertCenter.Bar", () => {
 	test("dismissing the top alert promotes the next-ranked alert into the bar", async () => {
 		const user = userEvent.setup();
 		const { container } = render(<ThreeAlertHarness />);
-		expect(container.querySelector('[data-slot="alert-center-bar"]')).toHaveAttribute(
+		expect(container.querySelector('[data-slot~="alert-center-bar"]')).toHaveAttribute(
 			"data-alert-id",
 			"payment",
 		);
 
 		await user.click(screen.getByRole("button", { name: "Dismiss Payment failed" }));
 
-		expect(container.querySelector('[data-slot="alert-center-bar"]')).toHaveAttribute(
+		expect(container.querySelector('[data-slot~="alert-center-bar"]')).toHaveAttribute(
 			"data-alert-id",
 			"transfer",
 		);
@@ -858,7 +859,7 @@ describe("AlertCenter.Bar", () => {
 		await user.click(screen.getByRole("button", { name: "Dismiss Payment failed" }));
 
 		const wrapper = container
-			.querySelector('[data-slot="alert-center-bar"]')
+			.querySelector('[data-slot~="alert-center-bar"]')
 			?.closest('[tabindex="-1"]');
 		expect(wrapper).not.toBeNull();
 		expect(wrapper).toHaveFocus();
@@ -880,7 +881,8 @@ describe("AlertCenter.Bar", () => {
 			</AlertCenter.Root>,
 		);
 		const bar = screen.getByTestId("bar");
-		expect(bar).toHaveAttribute("data-slot", "alert-center-bar");
+		// The chrome is an `Alert.Root`, which joins its own `alert` after the bar's slot.
+		expect(bar).toHaveAttribute("data-slot", "alert-center-bar alert");
 		expect(bar).toHaveClass("test-bar");
 		expect(bar).toHaveAttribute("data-analytics", "alert-bar");
 		expect(ref.current).toBe(bar);
@@ -899,7 +901,7 @@ describe("AlertCenter.Bar", () => {
 		);
 		expect(screen.getByTestId("bar")).toHaveAttribute(
 			"data-slot",
-			"app-layout-notice alert-center-bar",
+			"app-layout-notice alert-center-bar alert",
 		);
 	});
 
@@ -910,9 +912,10 @@ describe("AlertCenter.Bar", () => {
 		expect(wrapper).toHaveAttribute("data-state", "open");
 		expect(wrapper).toContainElement(getBarChrome());
 		expect(screen.getByRole("status")).toHaveAttribute("data-slot", "alert-center-announcer");
+		// The chain runs through `Alert.DismissIconButton` into `IconButton`.
 		expect(screen.getByRole("button", { name: "Dismiss Payment failed" })).toHaveAttribute(
 			"data-slot",
-			"alert-center-dismiss-icon-button",
+			"alert-center-dismiss-icon-button alert-dismiss-icon-button icon-button",
 		);
 	});
 
@@ -1008,12 +1011,12 @@ describe("AlertCenter ordering", () => {
 				</AlertCenter.Item>
 			</AlertCenter.Root>,
 		);
-		expect(container.querySelector('[data-slot="alert-center-bar"]')).toHaveAttribute(
+		expect(container.querySelector('[data-slot~="alert-center-bar"]')).toHaveAttribute(
 			"data-alert-id",
 			"first",
 		);
 		expect(
-			screen.getByTestId("content").querySelector('[data-slot="alert-center-item"]'),
+			screen.getByTestId("content").querySelector('[data-slot~="alert-center-item"]'),
 		).toHaveAttribute("data-alert-id", "second");
 	});
 
@@ -1040,7 +1043,7 @@ describe("AlertCenter ordering", () => {
 		);
 
 		// "early" arrived first, so it keeps the bar despite "late" being authored above it
-		expect(container.querySelector('[data-slot="alert-center-bar"]')).toHaveAttribute(
+		expect(container.querySelector('[data-slot~="alert-center-bar"]')).toHaveAttribute(
 			"data-alert-id",
 			"early",
 		);
@@ -1056,7 +1059,7 @@ describe("AlertCenter ordering", () => {
 				</AlertCenter.Item>
 			</AlertCenter.Root>,
 		);
-		expect(container.querySelector('[data-slot="alert-center-bar"]')).toHaveAttribute(
+		expect(container.querySelector('[data-slot~="alert-center-bar"]')).toHaveAttribute(
 			"data-alert-id",
 			"credit-exhausted",
 		);
@@ -1074,7 +1077,7 @@ describe("AlertCenter ordering", () => {
 			</AlertCenter.Root>,
 		);
 
-		expect(container.querySelector('[data-slot="alert-center-bar"]')).toHaveAttribute(
+		expect(container.querySelector('[data-slot~="alert-center-bar"]')).toHaveAttribute(
 			"data-alert-id",
 			"limit-enforced",
 		);
@@ -1102,7 +1105,7 @@ describe("AlertCenter ordering", () => {
 			</AlertCenter.Root>,
 		);
 
-		expect(container.querySelector('[data-slot="alert-center-bar"]')).toHaveAttribute(
+		expect(container.querySelector('[data-slot~="alert-center-bar"]')).toHaveAttribute(
 			"data-alert-id",
 			"ordered",
 		);
@@ -1120,7 +1123,7 @@ describe("AlertCenter ordering", () => {
 				</AlertCenter.Item>
 			</AlertCenter.Root>,
 		);
-		expect(container.querySelector('[data-slot="alert-center-bar"]')).toHaveAttribute(
+		expect(container.querySelector('[data-slot~="alert-center-bar"]')).toHaveAttribute(
 			"data-alert-id",
 			"first",
 		);
@@ -1137,7 +1140,7 @@ describe("AlertCenter ordering", () => {
 			</AlertCenter.Root>,
 		);
 
-		expect(container.querySelector('[data-slot="alert-center-bar"]')).toHaveAttribute(
+		expect(container.querySelector('[data-slot~="alert-center-bar"]')).toHaveAttribute(
 			"data-alert-id",
 			"second",
 		);
@@ -1176,10 +1179,10 @@ describe("AlertCenter.Item projection", () => {
 				</AlertCenter.Item>
 			</AlertCenter.Root>,
 		);
-		expect(container.querySelector('[data-slot="alert-center-bar"]')).toHaveClass(
+		expect(container.querySelector('[data-slot~="alert-center-bar"]')).toHaveClass(
 			"test-bar-chrome",
 		);
-		expect(container.querySelector('[data-slot="alert-center-item"]')).toHaveClass(
+		expect(container.querySelector('[data-slot~="alert-center-item"]')).toHaveClass(
 			"test-row-chrome",
 		);
 	});
@@ -1426,9 +1429,12 @@ describe("AlertCenter.DismissIconButton", () => {
 			</AlertCenter.Root>,
 		);
 		const dismiss = screen.getByRole("button", { name: "Dismiss New region available" });
-		// its own part slot replaces `Alert.DismissIconButton`'s, which is why the
-		// bar's control CSS matches on `data-alert-dismiss` instead
-		expect(dismiss).toHaveAttribute("data-slot", "alert-center-dismiss-icon-button");
+		// The chain runs through `Alert.DismissIconButton` into `IconButton`; the
+		// bar's control CSS matches on `data-alert-dismiss`, not on the slot.
+		expect(dismiss).toHaveAttribute(
+			"data-slot",
+			"alert-center-dismiss-icon-button alert-dismiss-icon-button icon-button",
+		);
 		expect(dismiss).toHaveAttribute("data-alert-dismiss");
 		await user.click(dismiss);
 		expect(onDismiss).toHaveBeenCalledTimes(1);
@@ -1448,7 +1454,7 @@ describe("AlertCenter.DismissIconButton", () => {
 		);
 		expect(screen.getByRole("button", { name: "Dismiss New region available" })).toHaveAttribute(
 			"data-slot",
-			"tour-step alert-center-dismiss-icon-button",
+			"tour-step alert-center-dismiss-icon-button alert-dismiss-icon-button icon-button",
 		);
 	});
 
@@ -1482,7 +1488,11 @@ describe("AlertCenter.DismissIconButton", () => {
 		expect(dismiss).toHaveAttribute("href", "#dismiss");
 		expect(screen.queryByRole("button", { name: /Dismiss/ })).not.toBeInTheDocument();
 		expect(dismiss).toHaveClass("test-dismiss", "test-child");
-		expect(dismiss).toHaveAttribute("data-slot", "alert-center-dismiss-icon-button");
+		// `asChild` keeps the same three-part chain on the swapped element.
+		expect(dismiss).toHaveAttribute(
+			"data-slot",
+			"alert-center-dismiss-icon-button alert-dismiss-icon-button icon-button",
+		);
 		expect(dismiss).toHaveAttribute("data-analytics", "dismiss-region");
 		expect(ref.current).toBe(dismiss);
 
@@ -1528,7 +1538,7 @@ describe("AlertCenter.Content", () => {
 		const content = screen.getByTestId("content");
 		expect(content).toHaveAttribute("data-slot", "alert-center-content");
 		expect(content).toHaveAttribute("data-state", "open");
-		const rows = content.querySelectorAll('[data-slot="alert-center-item"]');
+		const rows = content.querySelectorAll('[data-slot~="alert-center-item"]');
 		expect(rows).toHaveLength(2);
 		for (const row of rows) {
 			expect(row).toHaveAttribute("data-placement", "list");
@@ -2003,7 +2013,7 @@ describe("AlertCenter host projection", () => {
 				</ItemScopedContext.Provider>
 			</AlertCenter.Root>,
 		);
-		expect(document.querySelector('[data-slot="alert-center-bar"]')).toHaveTextContent(
+		expect(document.querySelector('[data-slot~="alert-center-bar"]')).toHaveTextContent(
 			"item-scoped value",
 		);
 	});
@@ -2061,7 +2071,7 @@ describe("AlertCenter host projection", () => {
 		// …and DEMOTED back into a row when the top alert returns
 		rerender(<Harness showTop />);
 		expect(getBarChrome()).toHaveAttribute("data-alert-id", "payment");
-		const row = document.querySelector<HTMLElement>('[data-slot="alert-center-item"]');
+		const row = document.querySelector<HTMLElement>('[data-slot~="alert-center-item"]');
 		expect(row).toHaveAttribute("data-alert-id", "tip");
 		expect(row).toContainElement(screen.getByRole("button", { name: "count 1" }));
 		expect(screen.getByRole("textbox", { name: "Note" })).toHaveValue("keep me");

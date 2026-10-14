@@ -1,6 +1,8 @@
 import { XIcon } from "@phosphor-icons/react/X";
 import type { ComponentProps } from "react";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { LayerContainer } from "../../utils/layer-container/layer-container.js";
 import {
 	IconButton,
@@ -88,8 +90,11 @@ const Root = DialogPrimitiveRoot;
  * </Dialog.Root>
  * ```
  */
-const Trigger = (props: ComponentProps<typeof DialogPrimitiveTrigger>) => (
-	<DialogPrimitiveTrigger data-slot="dialog-trigger" {...props} />
+const Trigger = ({
+	"data-slot": dataSlot,
+	...props
+}: ComponentProps<typeof DialogPrimitiveTrigger> & WithDataSlot) => (
+	<DialogPrimitiveTrigger data-slot={joinDataSlot(dataSlot, "dialog-trigger")} {...props} />
 );
 
 /**
@@ -163,8 +168,11 @@ const Portal = DialogPrimitivePortal;
  * </Dialog.Root>
  * ```
  */
-const Close = (props: ComponentProps<typeof DialogPrimitiveClose>) => (
-	<DialogPrimitiveClose data-slot="dialog-close" {...props} />
+const Close = ({
+	"data-slot": dataSlot,
+	...props
+}: ComponentProps<typeof DialogPrimitiveClose> & WithDataSlot) => (
+	<DialogPrimitiveClose data-slot={joinDataSlot(dataSlot, "dialog-close")} {...props} />
 );
 
 /**
@@ -205,10 +213,15 @@ const Close = (props: ComponentProps<typeof DialogPrimitiveClose>) => (
  * </Dialog.Root>
  * ```
  */
-const Overlay = ({ className, ref, ...props }: ComponentProps<typeof DialogPrimitiveOverlay>) => (
+const Overlay = ({
+	"data-slot": dataSlot,
+	className,
+	ref,
+	...props
+}: ComponentProps<typeof DialogPrimitiveOverlay> & WithDataSlot) => (
 	<DialogPrimitiveOverlay
 		ref={ref}
-		data-slot="dialog-overlay"
+		data-slot={joinDataSlot(dataSlot, "dialog-overlay")}
 		className={cx(
 			"bg-overlay data-state-closed:animate-out data-state-closed:fade-out-0 data-state-open:animate-in data-state-open:fade-in-0 fixed inset-0 z-60 backdrop-blur-xs",
 			className,
@@ -287,7 +300,8 @@ type ContentProps = ComponentProps<typeof DialogPrimitiveContent> &
 				 */
 				preferredWidth?: never;
 		  }
-	);
+	) &
+	WithDataSlot;
 
 /**
  * The container for the dialog content.
@@ -360,6 +374,7 @@ type ContentProps = ComponentProps<typeof DialogPrimitiveContent> &
  * ```
  */
 const Content = ({
+	"data-slot": dataSlot,
 	appearance = "centered",
 	children,
 	className,
@@ -384,7 +399,7 @@ const Content = ({
 			<DialogPrimitiveContent
 				data-appearance={appearance}
 				data-mantle-modal-content
-				data-slot="dialog-content"
+				data-slot={joinDataSlot(dataSlot, "dialog-content")}
 				className={cx(
 					"flex max-h-full w-full flex-1 flex-col",
 					"outline-hidden focus-within:outline-hidden",
@@ -433,9 +448,14 @@ const Content = ({
  * </Dialog.Root>
  * ```
  */
-const Header = ({ className, children, ...props }: ComponentProps<"div">) => (
+const Header = ({
+	"data-slot": dataSlot,
+	className,
+	children,
+	...props
+}: ComponentProps<"div"> & WithDataSlot) => (
 	<div
-		data-slot="dialog-header"
+		data-slot={joinDataSlot(dataSlot, "dialog-header")}
 		className={cx(
 			"border-dialog-muted text-strong relative flex shrink-0 items-center justify-between gap-2 border-b px-6 py-4",
 			"has-[.icon-button]:pr-4", // when there are actions in the header, shorten the padding
@@ -465,7 +485,7 @@ type CloseIconButtonProps = Partial<Omit<IconButtonProps, "appearance" | "icon" 
 	 * @default "neutral"
 	 */
 	intent?: IconButtonIntent;
-};
+} & WithDataSlot;
 
 /**
  * An icon button that closes the dialog when clicked.
@@ -498,6 +518,7 @@ type CloseIconButtonProps = Partial<Omit<IconButtonProps, "appearance" | "icon" 
  * ```
  */
 const CloseIconButton = ({
+	"data-slot": dataSlot,
 	size = "md",
 	type = "button",
 	label = "Close Dialog",
@@ -508,7 +529,7 @@ const CloseIconButton = ({
 	<DialogPrimitiveClose asChild>
 		<IconButton
 			appearance={appearance}
-			data-slot="dialog-close-icon-button"
+			data-slot={joinDataSlot(dataSlot, "dialog-close-icon-button")}
 			icon={<XIcon />}
 			intent={intent}
 			label={label}
@@ -549,9 +570,13 @@ const CloseIconButton = ({
  * </Dialog.Root>
  * ```
  */
-const Body = ({ className, ...props }: ComponentProps<"div">) => (
+const Body = ({
+	"data-slot": dataSlot,
+	className,
+	...props
+}: ComponentProps<"div"> & WithDataSlot) => (
 	<div
-		data-slot="dialog-body"
+		data-slot={joinDataSlot(dataSlot, "dialog-body")}
 		className={cx(
 			"scrollbar scrollbar-gutter-stable text-body flex-1 overflow-y-auto p-6",
 			className,
@@ -590,9 +615,13 @@ const Body = ({ className, ...props }: ComponentProps<"div">) => (
  * </Dialog.Root>
  * ```
  */
-const Footer = ({ className, ...props }: ComponentProps<"div">) => (
+const Footer = ({
+	"data-slot": dataSlot,
+	className,
+	...props
+}: ComponentProps<"div"> & WithDataSlot) => (
 	<div
-		data-slot="dialog-footer"
+		data-slot={joinDataSlot(dataSlot, "dialog-footer")}
 		className={cx(
 			"border-dialog-muted flex shrink-0 justify-end gap-2 border-t px-6 py-4",
 			className,
@@ -631,10 +660,15 @@ const Footer = ({ className, ...props }: ComponentProps<"div">) => (
  * </Dialog.Root>
  * ```
  */
-const Title = ({ className, ref, ...props }: ComponentProps<typeof DialogPrimitiveTitle>) => (
+const Title = ({
+	"data-slot": dataSlot,
+	className,
+	ref,
+	...props
+}: ComponentProps<typeof DialogPrimitiveTitle> & WithDataSlot) => (
 	<DialogPrimitiveTitle
 		ref={ref}
-		data-slot="dialog-title"
+		data-slot={joinDataSlot(dataSlot, "dialog-title")}
 		className={cx("text-strong truncate text-lg font-medium", className)}
 		{...props}
 	/>
@@ -673,13 +707,14 @@ const Title = ({ className, ref, ...props }: ComponentProps<typeof DialogPrimiti
  * ```
  */
 const Description = ({
+	"data-slot": dataSlot,
 	className,
 	ref,
 	...props
-}: ComponentProps<typeof DialogPrimitiveDescription>) => (
+}: ComponentProps<typeof DialogPrimitiveDescription> & WithDataSlot) => (
 	<DialogPrimitiveDescription
 		ref={ref}
-		data-slot="dialog-description"
+		data-slot={joinDataSlot(dataSlot, "dialog-description")}
 		className={cx("text-muted", className)}
 		{...props}
 	/>

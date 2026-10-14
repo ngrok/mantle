@@ -118,7 +118,8 @@ describe("ThemeSwitcher", () => {
 			</ThemeProvider>,
 		);
 		const trigger = screen.getByRole("button", { name: "Change Theme" });
-		expect(trigger).toHaveAttribute("data-slot", "theme-switcher-trigger");
+		// The part's slot joins ahead of the `IconButton` it renders.
+		expect(trigger).toHaveAttribute("data-slot", "theme-switcher-trigger icon-button");
 		// Why the class check: the tailwind-merge contract puts the consumer's class beside the defaults.
 		expect(trigger.className).toContain("custom-class");
 		expect(trigger).toHaveStyle({ marginTop: "4px" });
@@ -135,7 +136,7 @@ describe("ThemeSwitcher", () => {
 		);
 		expect(screen.getByRole("button", { name: "Change Theme" })).toHaveAttribute(
 			"data-slot",
-			"page-footer theme-switcher-trigger",
+			"page-footer theme-switcher-trigger icon-button",
 		);
 	});
 
@@ -232,7 +233,7 @@ describe("ThemeSwitcher", () => {
 		// The open modal menu removes the trigger from the accessibility tree,
 		// so assert the trigger ref by identity attributes instead of role.
 		expect(triggerRef.current).toBeInstanceOf(HTMLButtonElement);
-		expect(triggerRef.current).toHaveAttribute("data-slot", "theme-switcher-trigger");
+		expect(triggerRef.current).toHaveAttribute("data-slot", "theme-switcher-trigger icon-button");
 		expect(contentRef.current).toBe(screen.getByRole("menu"));
 	});
 
@@ -355,7 +356,11 @@ describe("ThemeDropdownMenuRadioGroup", () => {
 	test("has data-slot and merges custom className and style", () => {
 		renderRadioGroup({ className: "custom-radio-class", style: { marginTop: "4px" } });
 		const group = screen.getByRole("group");
-		expect(group).toHaveAttribute("data-slot", "theme-dropdown-menu-radio-group");
+		// The part's slot joins ahead of the `DropdownMenu.RadioGroup` it renders.
+		expect(group).toHaveAttribute(
+			"data-slot",
+			"theme-dropdown-menu-radio-group dropdown-menu-radio-group",
+		);
 		// Why the class check: the tailwind-merge contract puts the consumer's class beside the defaults.
 		expect(group.className).toContain("custom-radio-class");
 		expect(group).toHaveStyle({ marginTop: "4px" });

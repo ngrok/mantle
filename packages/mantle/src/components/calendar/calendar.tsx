@@ -7,6 +7,8 @@ import { useMemo } from "react";
 import type { ChevronProps, ClassNames } from "react-day-picker";
 import { DayPicker } from "react-day-picker";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { iconButtonVariants } from "../button/icon-button-variants.js";
 import { Icon } from "../icon/icon.js";
 
@@ -15,7 +17,7 @@ import { Icon } from "../icon/icon.js";
  * `false` here, and `className` lands on the calendar root alongside any
  * `classNames.root` you pass.
  */
-type CalendarProps = ComponentProps<typeof DayPicker>;
+type CalendarProps = ComponentProps<typeof DayPicker> & WithDataSlot;
 
 /**
  * Shared ghost icon-button styling for the calendar's previous/next
@@ -104,7 +106,13 @@ const calendarClassNames = {
  * />
  * ```
  */
-function Calendar({ className, classNames, showOutsideDays = false, ...props }: CalendarProps) {
+function Calendar({
+	"data-slot": dataSlot,
+	className,
+	classNames,
+	showOutsideDays = false,
+	...props
+}: CalendarProps) {
 	const mode = props.mode;
 	const mergedClassNames = useMemo(() => {
 		const { root, ...rest } = classNames ?? {};
@@ -125,7 +133,7 @@ function Calendar({ className, classNames, showOutsideDays = false, ...props }: 
 
 	return (
 		<DayPicker
-			data-slot="calendar"
+			data-slot={joinDataSlot(dataSlot, "calendar")}
 			animate={false}
 			components={calendarComponents}
 			classNames={mergedClassNames}

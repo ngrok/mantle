@@ -5,6 +5,8 @@ import invariant from "tiny-invariant";
 import type { WithAsChild } from "../../types/index.js";
 import { parseBooleanish } from "../../types/index.js";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { Icon } from "../icon/index.js";
 import { Slot } from "../slot/index.js";
 import { disabledChildProps } from "./button.js";
@@ -87,7 +89,7 @@ type IconButtonProps = Omit<ComponentProps<"button">, "aria-label"> &
 		 * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#type
 		 */
 		type?: ComponentProps<"button">["type"];
-	};
+	} & WithDataSlot;
 
 /**
  * A button that renders one icon and nothing else. Its required `label` prop
@@ -121,8 +123,8 @@ type IconButtonProps = Omit<ComponentProps<"button">, "aria-label"> &
  * | `data-appearance`  | `"filled"` \| `"ghost"` \| `"outlined"`       | The `appearance` prop.                                                 |
  * | `data-intent`      | `"neutral"`                                  | The `intent` prop.                                                     |
  * | `data-size`        | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"`  | The `size` prop.                                                       |
- * | `data-loading`     | `"true"` \| `"false"`                        | The `isLoading` prop.                                                  |
- * | `data-disabled`    | `"true"` \| `"false"`                        | `true` when `disabled`, `isLoading`, or `aria-disabled="true"` is set. |
+ * | `data-loading`     | present when `isLoading`                     | Presence-only, never `"false"`.                                        |
+ * | `data-disabled`    | present when disabled                        | Presence-only, never `"false"`, since the `data-disabled:` variant matches the attribute's existence. Set when the button resolves disabled: `disabled`, `aria-disabled="true"`, or `isLoading` with no explicit `disabled`. `disabled={false}` keeps a loading button enabled and omits it. |
  *
  * @see https://mantle.ngrok.com/components/actions/icon-button
  *
@@ -152,6 +154,7 @@ type IconButtonProps = Omit<ComponentProps<"button">, "aria-label"> &
  */
 const IconButton = ({
 	"aria-disabled": _ariaDisabled,
+	"data-slot": dataSlot,
 	appearance,
 	asChild = false,
 	children,
@@ -174,13 +177,15 @@ const IconButton = ({
 
 	const buttonProps = {
 		"aria-disabled": disabled,
-		"data-slot": "icon-button",
+		"data-slot": joinDataSlot(dataSlot, "icon-button"),
 		className: cx(iconButtonVariants({ appearance, intent, isLoading, size }), className),
 		"data-appearance": appearance,
-		"data-disabled": disabled,
+		// Why presence-only: the `data-disabled:` variant matches the attribute,
+		// so a `"false"` value fires it on every enabled button.
+		"data-disabled": disabled ? "" : undefined,
 		"data-icon-button": true,
 		"data-intent": intent,
-		"data-loading": isLoading,
+		"data-loading": isLoading ? "" : undefined,
 		"data-size": size,
 		ref,
 		...props,

@@ -3,6 +3,8 @@ import type { ComponentProps, HTMLAttributes } from "react";
 import { $cssProperties } from "../../types/index.js";
 import { clsx } from "../../utils/cx/clsx.js";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { clamp, isNumber, isValidMaxNumber, isValidValueNumber } from "./math.js";
 import type { ValueType } from "./types.js";
 
@@ -67,7 +69,7 @@ type Props = SvgAttributes & {
 	 * @default `animation-duration-[15s]`
 	 */
 	indeterminateRotationSpeed?: `animation-duration-${string}`;
-};
+} & WithDataSlot;
 
 /**
  * A simple circular progress bar which shows the completion progress of a task.
@@ -101,6 +103,7 @@ type Props = SvgAttributes & {
  * ```
  */
 const Root = ({
+	"data-slot": dataSlot,
 	children,
 	className,
 	max: _max = defaultMax,
@@ -134,7 +137,7 @@ const Root = ({
 	return (
 		<ProgressContext.Provider value={ctx}>
 			<svg
-				data-slot="progress-donut"
+				data-slot={joinDataSlot(dataSlot, "progress-donut")}
 				aria-valuemax={max}
 				aria-valuemin={0}
 				aria-valuenow={valueNow}
@@ -179,7 +182,7 @@ const Root = ({
  */
 const indeterminateTailPercent = 0.6;
 
-type ProgressDonutIndicatorProps = Omit<ComponentProps<"g">, "children">;
+type ProgressDonutIndicatorProps = Omit<ComponentProps<"g">, "children"> & WithDataSlot;
 
 /**
  * The indicator for the circular progress bar.
@@ -197,7 +200,7 @@ type ProgressDonutIndicatorProps = Omit<ComponentProps<"g">, "children">;
  * </ProgressDonut.Root>
  * ```
  */
-const Indicator = ({ className, ...props }: ProgressDonutIndicatorProps) => {
+const Indicator = ({ "data-slot": dataSlot, className, ...props }: ProgressDonutIndicatorProps) => {
 	const gradientId = useId();
 	const ctx = useContext(ProgressContext) ?? defaultContextValue;
 	const percentage =
@@ -206,7 +209,11 @@ const Indicator = ({ className, ...props }: ProgressDonutIndicatorProps) => {
 	const radius = calcRadius(strokeWidthPx);
 
 	return (
-		<g data-slot="progress-donut-indicator" className={cx("text-accent-600", className)} {...props}>
+		<g
+			data-slot={joinDataSlot(dataSlot, "progress-donut-indicator")}
+			className={cx("text-accent-600", className)}
+			{...props}
+		>
 			{ctx.value === "indeterminate" && (
 				<defs>
 					<linearGradient id={gradientId}>

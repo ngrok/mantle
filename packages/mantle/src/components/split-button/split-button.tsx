@@ -1,6 +1,8 @@
 import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
 import { createContext, useContext, useMemo, type ComponentProps, type ReactNode } from "react";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { Button } from "../button/button.js";
 import { IconButton } from "../button/icon-button.js";
 import type { ButtonSize } from "../button/sizes.js";
@@ -31,7 +33,7 @@ type RootProps = ComponentProps<typeof DropdownMenu.Root> &
 		 * composites cannot be expressed in the type system.
 		 */
 		size?: ButtonSize;
-	};
+	} & WithDataSlot;
 
 /**
  * A button group that pairs a one-click default action with a dropdown menu
@@ -68,6 +70,7 @@ type RootProps = ComponentProps<typeof DropdownMenu.Root> &
  * ```
  */
 const Root = ({
+	"data-slot": dataSlot,
 	className,
 	children,
 	dir,
@@ -91,7 +94,7 @@ const Root = ({
 		>
 			<SplitButtonContext.Provider value={context}>
 				<div
-					data-slot="split-button"
+					data-slot={joinDataSlot(dataSlot, "split-button")}
 					data-size={size}
 					className={cx(
 						"flex flex-row [&>*:first-child]:rounded-r-none [&>*:last-child]:rounded-l-none [&>*:not(:first-child):not(:last-child)]:rounded-none [&>*:not(:first-child)]:-ml-px [&>*:focus]:relative [&>*:focus]:z-10 [&>*:hover]:relative [&>*:hover]:z-10 *:active:scale-100!",

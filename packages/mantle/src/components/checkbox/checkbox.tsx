@@ -5,6 +5,8 @@ import type { ComponentProps, ComponentRef } from "react";
 import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
 import { useComposedRefs } from "../../utils/compose-refs/index.js";
 import { clsx } from "../../utils/cx/clsx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { parseValidation, useFieldValidation } from "../field/validation.js";
 import type { WithValidation } from "../field/validation.js";
 
@@ -35,7 +37,7 @@ type Props = Omit<ComponentProps<"input">, "type" | "checked" | "defaultChecked"
 		 * The checked state of the checkbox when it is initially rendered. Use when you do not need to control its checked state.
 		 */
 		defaultChecked?: CheckedState;
-	};
+	} & WithDataSlot;
 
 /**
  * A form control that allows the user to toggle between checked and not checked.
@@ -58,6 +60,7 @@ type Props = Omit<ComponentProps<"input">, "type" | "checked" | "defaultChecked"
  * ```
  */
 const Checkbox = ({
+	"data-slot": dataSlot,
 	"aria-invalid": _ariaInvalid,
 	className,
 	checked: _checked,
@@ -113,7 +116,7 @@ const Checkbox = ({
 			// click guard below is what blocks the toggle. Assistive technology
 			// needs the state announced, or the toggle fails in silence.
 			aria-readonly={readOnly || undefined}
-			data-slot="checkbox"
+			data-slot={joinDataSlot(dataSlot, "checkbox")}
 			className={clsx(
 				"border-form bg-form shrink-0 cursor-pointer select-none appearance-none rounded border disabled:cursor-default disabled:opacity-50",
 				"bg-center bg-no-repeat focus:outline-hidden",

@@ -15,6 +15,8 @@ import invariant from "tiny-invariant";
 import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import {
 	IconButton,
 	type IconButtonAppearance,
@@ -63,11 +65,16 @@ import { FieldValidationProvider, resolveValidation, type WithValidation } from 
  * </Field.Set>
  * ```
  */
-const FieldSet = ({ className, ref, ...props }: ComponentProps<"fieldset">) => {
+const FieldSet = ({
+	"data-slot": dataSlot,
+	className,
+	ref,
+	...props
+}: ComponentProps<"fieldset"> & WithDataSlot) => {
 	return (
 		<fieldset
 			ref={ref}
-			data-slot="field-set"
+			data-slot={joinDataSlot(dataSlot, "field-set")}
 			className={cx("flex w-full min-w-0 flex-col gap-4 border-0 p-0", className)}
 			{...props}
 		/>
@@ -213,13 +220,19 @@ const FieldLabel = ({ ref, ...props }: FieldLabelProps) => {
  * </Field.Item>
  * ```
  */
-const LabelText = ({ asChild, className, ref, ...props }: ComponentProps<"p"> & WithAsChild) => {
+const LabelText = ({
+	"data-slot": dataSlot,
+	asChild,
+	className,
+	ref,
+	...props
+}: ComponentProps<"p"> & WithAsChild & WithDataSlot) => {
 	const Comp = asChild ? Slot : "p";
 
 	return (
 		<Comp
 			ref={ref}
-			data-slot="field-label-text"
+			data-slot={joinDataSlot(dataSlot, "field-label-text")}
 			className={cx("text-strong text-sm font-medium font-sans", className)}
 			{...props}
 		/>
@@ -264,13 +277,19 @@ const LabelText = ({ asChild, className, ref, ...props }: ComponentProps<"p"> & 
  * </Field.Group>
  * ```
  */
-const LabelRow = ({ asChild, className, ref, ...props }: ComponentProps<"div"> & WithAsChild) => {
+const LabelRow = ({
+	"data-slot": dataSlot,
+	asChild,
+	className,
+	ref,
+	...props
+}: ComponentProps<"div"> & WithAsChild & WithDataSlot) => {
 	const Comp = asChild ? Slot : "div";
 
 	return (
 		<Comp
 			ref={ref}
-			data-slot="field-label-row"
+			data-slot={joinDataSlot(dataSlot, "field-label-row")}
 			className={cx("flex items-center gap-1", className)}
 			{...props}
 		/>
@@ -444,8 +463,12 @@ const HelpTrigger = ({
  * </Field.Group>
  * ```
  */
-const HelpContent = ({ ref, ...props }: ComponentProps<typeof Popover.Content>) => (
-	<Popover.Content ref={ref} data-slot="field-help-content" {...props} />
+const HelpContent = ({
+	"data-slot": dataSlot,
+	ref,
+	...props
+}: ComponentProps<typeof Popover.Content> & WithDataSlot) => (
+	<Popover.Content ref={ref} data-slot={joinDataSlot(dataSlot, "field-help-content")} {...props} />
 );
 
 /**
@@ -484,18 +507,19 @@ const HelpContent = ({ ref, ...props }: ComponentProps<typeof Popover.Content>) 
  * ```
  */
 const Optional = ({
+	"data-slot": dataSlot,
 	asChild,
 	children,
 	className,
 	ref,
 	...props
-}: ComponentProps<"span"> & WithAsChild) => {
+}: ComponentProps<"span"> & WithAsChild & WithDataSlot) => {
 	const Comp = asChild ? Slot : "span";
 
 	return (
 		<Comp
 			ref={ref}
-			data-slot="field-optional"
+			data-slot={joinDataSlot(dataSlot, "field-optional")}
 			className={cx("text-muted text-sm font-normal font-sans", className)}
 			{...props}
 		>
@@ -535,13 +559,19 @@ const Optional = ({
  * </Field.Group>
  * ```
  */
-const Group = ({ asChild, className, ref, ...props }: ComponentProps<"div"> & WithAsChild) => {
+const Group = ({
+	"data-slot": dataSlot,
+	asChild,
+	className,
+	ref,
+	...props
+}: ComponentProps<"div"> & WithAsChild & WithDataSlot) => {
 	const Comp = asChild ? Slot : "div";
 
 	return (
 		<Comp
 			ref={ref}
-			data-slot="field-group"
+			data-slot={joinDataSlot(dataSlot, "field-group")}
 			className={cx("flex w-full flex-col gap-4", className)}
 			{...props}
 		/>
@@ -568,7 +598,7 @@ type FieldItemProps = Omit<ComponentProps<"div">, "id"> &
 		 * generated control id used by `Field.Label`'s `htmlFor`.
 		 */
 		name: string;
-	};
+	} & WithDataSlot;
 
 /**
  * A single form field — `Label`, a control (`Input`, `Select`, `Checkbox`,
@@ -627,6 +657,7 @@ type FieldItemProps = Omit<ComponentProps<"div">, "id"> &
  * ```
  */
 const Item = ({
+	"data-slot": dataSlot,
 	asChild,
 	children,
 	className,
@@ -669,7 +700,7 @@ const Item = ({
 			<FieldValidationProvider validation={validation}>
 				<Comp
 					ref={ref}
-					data-slot="field-item"
+					data-slot={joinDataSlot(dataSlot, "field-item")}
 					data-validation={validation}
 					className={cx("flex w-full flex-col gap-1.5", className)}
 					{...props}
@@ -870,18 +901,19 @@ const Control = ({ children, ref, ...props }: FieldControlProps) => {
  * ```
  */
 const Description = ({
+	"data-slot": dataSlot,
 	asChild,
 	className,
 	ref,
 	...props
-}: Omit<ComponentProps<"p">, "id"> & WithAsChild) => {
+}: Omit<ComponentProps<"p">, "id"> & WithAsChild & WithDataSlot) => {
 	const Comp = asChild ? Slot : "p";
 	const context = useContext(FieldItemContext);
 
 	return (
 		<Comp
 			ref={ref}
-			data-slot="field-description"
+			data-slot={joinDataSlot(dataSlot, "field-description")}
 			id={context?.descriptionId}
 			className={cx(
 				"text-body text-sm leading-4",
@@ -924,7 +956,13 @@ const Description = ({
  * </Field.Group>
  * ```
  */
-const FieldErrorItem = ({ children, className, ref, ...props }: ComponentProps<"li">) => {
+const FieldErrorItem = ({
+	"data-slot": dataSlot,
+	children,
+	className,
+	ref,
+	...props
+}: ComponentProps<"li"> & WithDataSlot) => {
 	if (!isErrorItemRenderable(children)) {
 		return null;
 	}
@@ -932,7 +970,7 @@ const FieldErrorItem = ({ children, className, ref, ...props }: ComponentProps<"
 	return (
 		<li
 			ref={ref}
-			data-slot="field-error"
+			data-slot={joinDataSlot(dataSlot, "field-error")}
 			className={cx("text-danger-600 text-sm leading-4", className)}
 			{...props}
 		>
@@ -1047,12 +1085,13 @@ const FieldErrors = ({ messages, ref, ...props }: FieldErrorsProps) => (
  * ```
  */
 const FieldErrorList = ({
+	"data-slot": dataSlot,
 	asChild,
 	children,
 	className,
 	ref,
 	...props
-}: Omit<ComponentProps<"ul">, "id"> & WithAsChild) => {
+}: Omit<ComponentProps<"ul">, "id"> & WithAsChild & WithDataSlot) => {
 	const hasRenderableChildren = hasRenderableErrorListChildren({
 		children,
 		errorItemType: FieldErrorItem,
@@ -1081,7 +1120,7 @@ const FieldErrorList = ({
 	return (
 		<Comp
 			ref={ref}
-			data-slot="field-error-list"
+			data-slot={joinDataSlot(dataSlot, "field-error-list")}
 			id={context?.errorId}
 			role="list"
 			className={cx("m-0 flex w-full flex-col list-none p-0", className)}

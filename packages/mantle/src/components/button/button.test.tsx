@@ -254,7 +254,9 @@ describe("Button", () => {
 			const button = screen.getByRole("button", { name: "Save" });
 			expect(button).not.toBeDisabled();
 			expect(button).toHaveAttribute("aria-disabled", "false");
-			expect(button).toHaveAttribute("data-loading", "true");
+			expect(button).toHaveAttribute("data-loading", "");
+			// Why: `data-disabled` follows the resolved state, not `isLoading`.
+			expect(button).not.toHaveAttribute("data-disabled");
 		});
 
 		test("isLoading sets the native disabled attribute and aria-disabled", () => {
@@ -266,7 +268,7 @@ describe("Button", () => {
 			const button = screen.getByRole("button", { name: "Save" });
 			expect(button).toBeDisabled();
 			expect(button).toHaveAttribute("aria-disabled", "true");
-			expect(button).toHaveAttribute("data-disabled", "true");
+			expect(button).toHaveAttribute("data-disabled", "");
 		});
 
 		test("aria-disabled={false} cannot re-enable a disabled button", () => {
@@ -289,6 +291,52 @@ describe("Button", () => {
 			const button = screen.getByRole("button", { name: "Save" });
 			expect(button).toBeEnabled();
 			expect(button).toHaveAttribute("aria-disabled", "false");
+		});
+
+		test("data-disabled is present while disabled and absent once enabled", () => {
+			// Why presence: the `data-disabled:` variant matches the attribute, so
+			// a `"false"` value fires it on every enabled button.
+			const { rerender } = render(
+				<Button appearance="filled" intent="neutral" disabled>
+					Save
+				</Button>,
+			);
+			const button = screen.getByRole("button", { name: "Save" });
+			expect(button).toHaveAttribute("data-disabled", "");
+
+			rerender(
+				<Button appearance="filled" intent="neutral">
+					Save
+				</Button>,
+			);
+			expect(button).not.toHaveAttribute("data-disabled");
+		});
+
+		test("aria-disabled=true stamps data-disabled", () => {
+			render(
+				<Button appearance="filled" intent="neutral" aria-disabled="true">
+					Save
+				</Button>,
+			);
+			const button = screen.getByRole("button", { name: "Save" });
+			expect(button).toHaveAttribute("data-disabled", "");
+		});
+
+		test("data-loading is present while loading and absent once idle", () => {
+			const { rerender } = render(
+				<Button appearance="filled" intent="neutral" isLoading>
+					Save
+				</Button>,
+			);
+			const button = screen.getByRole("button", { name: "Save" });
+			expect(button).toHaveAttribute("data-loading", "");
+
+			rerender(
+				<Button appearance="filled" intent="neutral">
+					Save
+				</Button>,
+			);
+			expect(button).not.toHaveAttribute("data-loading");
 		});
 
 		test("a disabled asChild anchor is inert: aria-disabled, out of the tab order, click cancelled", async () => {
@@ -396,7 +444,7 @@ describe("Button", () => {
 
 		render(<Subject />);
 		await act(() => userEvent.click(screen.getByRole("button")));
-		expect(screen.getByRole("button")).toHaveAttribute("data-loading", "true");
+		expect(screen.getByRole("button")).toHaveAttribute("data-loading", "");
 		expect(screen.getByTestId("submit-state")).toHaveTextContent("idle");
 		expect(screen.getByTestId("click-state")).toHaveTextContent("idle");
 	});
@@ -417,7 +465,7 @@ describe("Button", () => {
 			);
 
 			const button = screen.getByRole("button");
-			expect(button).toHaveAttribute("data-loading", "true");
+			expect(button).toHaveAttribute("data-loading", "");
 			// The label span takes the spinner's `insertBefore`, so the translated
 			// text node stays where the translation engine put it.
 			expect(button).toHaveTextContent("[Save changes-es]");
@@ -458,7 +506,7 @@ describe("Button", () => {
 			);
 
 			const button = screen.getByRole("button");
-			expect(button).toHaveAttribute("data-loading", "true");
+			expect(button).toHaveAttribute("data-loading", "");
 			expect(button).toHaveTextContent("[Continue-es]");
 		});
 
@@ -477,7 +525,7 @@ describe("Button", () => {
 			);
 
 			const link = screen.getByRole("link");
-			expect(link).toHaveAttribute("data-loading", "true");
+			expect(link).toHaveAttribute("data-loading", "");
 			expect(link).toHaveTextContent("[Save changes-es]");
 		});
 

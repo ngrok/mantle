@@ -335,7 +335,7 @@ describe("PasswordInput", () => {
 		);
 
 		const input = screen.getByPlaceholderText("test");
-		expect(container.querySelector('[data-slot="password-input"]')).toHaveClass("custom");
+		expect(container.querySelector('[data-slot~="password-input"]')).toHaveClass("custom");
 		// Why the input: `Input` routes every unclaimed prop to the `<input>`
 		// through context, so `data-*` lands beside `name` and `placeholder`.
 		expect(input).toHaveAttribute("data-testid", "secret");
@@ -347,7 +347,10 @@ describe("PasswordInput", () => {
 		const { container } = render(<PasswordInput placeholder="test" />);
 
 		const input = screen.getByPlaceholderText("test");
-		expect(container.querySelector('[data-slot="password-input"]')).toContainElement(input);
+		const chrome = container.querySelector('[data-slot~="password-input"]');
+		// The chrome is `Input`'s, which joins its own slot after the part's.
+		expect(chrome).toHaveAttribute("data-slot", "password-input input");
+		expect(chrome).toContainElement(input);
 		expect(input).toHaveAttribute("data-slot", "input-capture");
 		expect(screen.getByRole("button", { name: "Show value" })).toHaveAttribute(
 			"data-slot",
@@ -357,7 +360,7 @@ describe("PasswordInput", () => {
 
 	test("stamps data-disabled and data-validation on the chrome, and omits them when unset", () => {
 		const { container, rerender } = render(<PasswordInput placeholder="test" />);
-		const chrome = container.querySelector('[data-slot="password-input"]');
+		const chrome = container.querySelector('[data-slot~="password-input"]');
 
 		expect(chrome).not.toHaveAttribute("data-disabled");
 		expect(chrome).not.toHaveAttribute("data-validation");

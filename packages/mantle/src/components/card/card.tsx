@@ -1,9 +1,11 @@
 import type { ComponentProps } from "react";
 import type { WithAsChild } from "../../types/index.js";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { Slot } from "../slot/index.js";
 
-type CardProps = ComponentProps<"div"> & WithAsChild;
+type CardProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
 
 /**
  * A container that displays content in a box resembling a physical card. The
@@ -32,13 +34,20 @@ type CardProps = ComponentProps<"div"> & WithAsChild;
  * </Card.Root>
  * ```
  */
-const Root = ({ asChild = false, className, children, ref, ...rest }: CardProps) => {
+const Root = ({
+	"data-slot": dataSlot,
+	asChild = false,
+	className,
+	children,
+	ref,
+	...rest
+}: CardProps) => {
 	const Component = asChild ? Slot : "div";
 
 	return (
 		<Component
 			ref={ref}
-			data-slot="card"
+			data-slot={joinDataSlot(dataSlot, "card")}
 			className={cx("border-card bg-card relative rounded-md border", className)}
 			{...rest}
 		>
@@ -73,13 +82,20 @@ const Root = ({ asChild = false, className, children, ref, ...rest }: CardProps)
  * </Card.Root>
  * ```
  */
-const Body = ({ asChild = false, className, children, ref, ...rest }: CardProps) => {
+const Body = ({
+	"data-slot": dataSlot,
+	asChild = false,
+	className,
+	children,
+	ref,
+	...rest
+}: CardProps) => {
 	const Component = asChild ? Slot : "div";
 
 	return (
 		<Component
 			ref={ref}
-			data-slot="card-body"
+			data-slot={joinDataSlot(dataSlot, "card-body")}
 			className={cx("p-6 border-t border-card-muted first:border-t-0", className)}
 			{...rest}
 		>
@@ -109,13 +125,20 @@ const Body = ({ asChild = false, className, children, ref, ...rest }: CardProps)
  * </Card.Root>
  * ```
  */
-const Footer = ({ asChild = false, className, children, ref, ...rest }: CardProps) => {
+const Footer = ({
+	"data-slot": dataSlot,
+	asChild = false,
+	className,
+	children,
+	ref,
+	...rest
+}: CardProps) => {
 	const Component = asChild ? Slot : "div";
 
 	return (
 		<Component
 			ref={ref}
-			data-slot="card-footer"
+			data-slot={joinDataSlot(dataSlot, "card-footer")}
 			className={cx("px-6 py-3 border-t border-card-muted first:border-t-0", className)}
 			{...rest}
 		>
@@ -145,13 +168,20 @@ const Footer = ({ asChild = false, className, children, ref, ...rest }: CardProp
  * </Card.Root>
  * ```
  */
-const Header = ({ asChild = false, className, children, ref, ...rest }: CardProps) => {
+const Header = ({
+	"data-slot": dataSlot,
+	asChild = false,
+	className,
+	children,
+	ref,
+	...rest
+}: CardProps) => {
 	const Component = asChild ? Slot : "div";
 
 	return (
 		<Component
 			ref={ref}
-			data-slot="card-header"
+			data-slot={joinDataSlot(dataSlot, "card-header")}
 			className={cx("px-6 py-3 border-t border-card-muted first:border-t-0", className)}
 			{...rest}
 		>
@@ -160,7 +190,7 @@ const Header = ({ asChild = false, className, children, ref, ...rest }: CardProp
 	);
 };
 
-type CardTitleProps = ComponentProps<"h3"> & WithAsChild;
+type CardTitleProps = ComponentProps<"h3"> & WithAsChild & WithDataSlot;
 
 /**
  * The heading inside `Card.Header`. Renders an `h3` by default; pass `asChild`
@@ -184,12 +214,12 @@ type CardTitleProps = ComponentProps<"h3"> & WithAsChild;
  * </Card.Root>
  * ```
  */
-const Title = ({ className, asChild, ref, ...props }: CardTitleProps) => {
+const Title = ({ "data-slot": dataSlot, className, asChild, ref, ...props }: CardTitleProps) => {
 	const Comp = asChild ? Slot : "h3";
 	return (
 		<Comp
 			ref={ref}
-			data-slot="card-title"
+			data-slot={joinDataSlot(dataSlot, "card-title")}
 			className={cx("text-strong text-base font-medium", className)}
 			{...props}
 		/>

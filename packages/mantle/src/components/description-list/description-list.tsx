@@ -62,7 +62,7 @@ const Root = ({
 /**
  * Props for `DescriptionList.Item`.
  */
-type DescriptionListItemProps = ComponentProps<"div"> & WithAsChild;
+type DescriptionListItemProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
 
 /**
  * A wrapper that groups a `DescriptionList.Label` and `DescriptionList.Value`
@@ -85,13 +85,20 @@ type DescriptionListItemProps = ComponentProps<"div"> & WithAsChild;
  * </DescriptionList.Root>
  * ```
  */
-const Item = ({ asChild = false, className, children, ref, ...rest }: DescriptionListItemProps) => {
+const Item = ({
+	"data-slot": dataSlot,
+	asChild = false,
+	className,
+	children,
+	ref,
+	...rest
+}: DescriptionListItemProps) => {
 	const Component = asChild ? Slot : "div";
 
 	return (
 		<Component
 			ref={ref}
-			data-slot="description-list-item"
+			data-slot={joinDataSlot(dataSlot, "description-list-item")}
 			className={cx("rounded-sm col-span-full grid grid-cols-subgrid items-center", className)}
 			{...rest}
 		>
@@ -103,7 +110,7 @@ const Item = ({ asChild = false, className, children, ref, ...rest }: Descriptio
 /**
  * Props for `DescriptionList.Label`.
  */
-type DescriptionListLabelProps = ComponentProps<"dt"> & WithAsChild;
+type DescriptionListLabelProps = ComponentProps<"dt"> & WithAsChild & WithDataSlot;
 
 /**
  * The label for a description list item. Renders as a `<dt>` element.
@@ -125,6 +132,7 @@ type DescriptionListLabelProps = ComponentProps<"dt"> & WithAsChild;
  * ```
  */
 const Label = ({
+	"data-slot": dataSlot,
 	asChild = false,
 	className,
 	children,
@@ -136,7 +144,7 @@ const Label = ({
 	return (
 		<Component
 			ref={ref}
-			data-slot="description-list-label"
+			data-slot={joinDataSlot(dataSlot, "description-list-label")}
 			className={cx("text-muted text-sm font-sans font-medium min-w-36 p-2", className)}
 			{...rest}
 		>
@@ -148,7 +156,7 @@ const Label = ({
 /**
  * Props for `DescriptionList.Value`.
  */
-type DescriptionListValueProps = ComponentProps<"dd"> & WithAsChild;
+type DescriptionListValueProps = ComponentProps<"dd"> & WithAsChild & WithDataSlot;
 
 /**
  * The value for a description list item. Renders as a `<dd>` element.
@@ -172,6 +180,7 @@ type DescriptionListValueProps = ComponentProps<"dd"> & WithAsChild;
  * ```
  */
 const Value = ({
+	"data-slot": dataSlot,
 	asChild = false,
 	className,
 	children,
@@ -183,7 +192,7 @@ const Value = ({
 	return (
 		<Component
 			ref={ref}
-			data-slot="description-list-value"
+			data-slot={joinDataSlot(dataSlot, "description-list-value")}
 			className={cx("text-body font-mono text-mono py-2 px-3", className)}
 			{...rest}
 		>

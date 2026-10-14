@@ -23,6 +23,23 @@ async function hoverTooltip(user: ReturnType<typeof userEvent.setup>) {
 }
 
 describe("Tooltip.Content", () => {
+	test("joins a composing part's data-slot ahead of its own", async () => {
+		// Why: a wrapper such as `Sidebar.Tooltip` names the surface, and a
+		// consumer selector on `[data-slot~="tooltip-content"]` must still reach it.
+		const user = userEvent.setup();
+		render(
+			<TooltipProvider>
+				<Tooltip.Root>
+					<Tooltip.Trigger>Copy</Tooltip.Trigger>
+					<Tooltip.Content data-slot="outer">Copy endpoint URL</Tooltip.Content>
+				</Tooltip.Root>
+			</TooltipProvider>,
+		);
+
+		const tooltip = await hoverTooltip(user);
+		expect(tooltip).toHaveAttribute("data-slot", "outer tooltip-content");
+	});
+
 	test("renders children inside the label slot, before the arrow", async () => {
 		const user = userEvent.setup();
 		render(<CopyTooltip body="Copy endpoint URL" />);

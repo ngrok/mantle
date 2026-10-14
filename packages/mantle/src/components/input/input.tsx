@@ -16,6 +16,8 @@ import { parseBooleanish } from "../../types/booleanish.js";
 import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
 import { clsx } from "../../utils/cx/clsx.js";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { parseValidation, useFieldValidation } from "../field/validation.js";
 import type { Validation, WithValidation } from "../field/validation.js";
 import { Icon } from "../icon/icon.js";
@@ -64,7 +66,9 @@ const Input = ({ children, className, ref, ...props }: InputProps) => {
 	);
 };
 
-type InputCaptureProps = Omit<ComponentProps<"input">, "autoComplete" | "type"> & BaseProps;
+type InputCaptureProps = Omit<ComponentProps<"input">, "autoComplete" | "type"> &
+	BaseProps &
+	WithDataSlot;
 
 /**
  * The actual <input /> element that captures user input.
@@ -82,6 +86,7 @@ type InputCaptureProps = Omit<ComponentProps<"input">, "autoComplete" | "type"> 
  */
 const InputCapture = ({
 	"aria-invalid": _ariaInvalid,
+	"data-slot": dataSlot,
 	className,
 	ref,
 	validation: _validation,
@@ -110,7 +115,7 @@ const InputCapture = ({
 	return (
 		<input
 			aria-invalid={ariaInvalid}
-			data-slot="input-capture"
+			data-slot={joinDataSlot(dataSlot, "input-capture")}
 			data-validation={validation}
 			className={cx(
 				"placeholder:text-placeholder min-w-0 flex-1 bg-transparent text-left autofill:shadow-[inset_0_0_0px_1000px_var(--color-blue-50)] focus:outline-hidden",
@@ -158,7 +163,7 @@ type InputContainerProps = InputHTMLAttributes<HTMLInputElement> &
 const InputContainer = ({
 	"aria-invalid": _ariaInvalid,
 	"aria-disabled": _ariaDisabled,
-	"data-slot": dataSlot = "input",
+	"data-slot": dataSlot,
 	children,
 	className,
 	disabled,
@@ -168,7 +173,7 @@ const InputContainer = ({
 	type,
 	validation: _validation,
 	...props
-}: InputContainerProps & { "data-slot"?: string }) => {
+}: InputContainerProps & WithDataSlot) => {
 	const fieldValidation = useFieldValidation();
 	const { validation } = parseValidation({
 		"aria-invalid": _ariaInvalid,
@@ -191,7 +196,7 @@ const InputContainer = ({
 		<InputContext.Provider value={contextValue}>
 			<div
 				role="none"
-				data-slot={dataSlot}
+				data-slot={joinDataSlot(dataSlot, "input")}
 				// Why parseBooleanish: `aria-disabled="false"` is a string, and the
 				// `data-disabled:` variant matches presence, so it must not stamp.
 				data-disabled={parseBooleanish(disabled ?? _ariaDisabled) || undefined}

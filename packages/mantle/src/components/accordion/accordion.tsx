@@ -18,6 +18,8 @@ import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-eff
 import type { WithAsChild } from "../../types/as-child.js";
 import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { Icon, type IconProps } from "../icon/icon.js";
 import { Slot } from "../slot/index.js";
 import { type AccordionType, isItemOpen, nextOpenValues, toOpenValues } from "./accordion-state.js";
@@ -154,7 +156,8 @@ type AccordionRootProps = (AccordionSingleProps | AccordionMultipleProps) &
 	// `defaultValue` is omitted because the discriminated union above types it per
 	// `type` (a `string` or `string[]`), narrower than the DOM's `defaultValue`.
 	Omit<ComponentProps<"div">, "defaultValue"> &
-	WithAsChild;
+	WithAsChild &
+	WithDataSlot;
 
 /**
  * A vertically stacked set of disclosure sections. The root owns the open/closed
@@ -205,6 +208,7 @@ const Root = (props: AccordionRootProps) => {
 		value,
 		defaultValue,
 		onValueChange: _onValueChange,
+		"data-slot": dataSlot,
 		asChild,
 		children,
 		className,
@@ -254,7 +258,7 @@ const Root = (props: AccordionRootProps) => {
 
 	const containerProps = {
 		...domProps,
-		"data-slot": "accordion",
+		"data-slot": joinDataSlot(dataSlot, "accordion"),
 		// Dividers live on the root via `divide-y` (one border between adjacent items,
 		// none trailing) rather than a per-item `border-b` + `last:border-b-0`. The color
 		// is the shared `separator` token so dividers match `Separator` across the system.
@@ -300,6 +304,7 @@ const Root = (props: AccordionRootProps) => {
  * </Accordion.Root>
  */
 const Item = ({
+	"data-slot": dataSlot,
 	children,
 	value,
 	ref,
@@ -307,7 +312,7 @@ const Item = ({
 }: ComponentProps<"div"> & {
 	/** The unique value identifying this item within its accordion. */
 	value: string;
-}) => {
+} & WithDataSlot) => {
 	const { openValues, setItemOpen } = useAccordionContext("Accordion.Item");
 	const open = isItemOpen(openValues, value);
 	const contentId = useId();
@@ -330,7 +335,7 @@ const Item = ({
 				ref={ref}
 				{...props}
 				role="group"
-				data-slot="accordion-item"
+				data-slot={joinDataSlot(dataSlot, "accordion-item")}
 				data-state={open ? "open" : "closed"}
 			>
 				{children}
@@ -363,12 +368,13 @@ const Item = ({
  * </Accordion.Root>
  */
 const Trigger = ({
+	"data-slot": dataSlot,
 	className,
 	children,
 	onClick,
 	ref,
 	...props
-}: Omit<ComponentProps<"button">, "type">) => {
+}: Omit<ComponentProps<"button">, "type"> & WithDataSlot) => {
 	const { open, setOpen, contentId } = useAccordionItemContext("Accordion.Trigger");
 
 	return (
@@ -376,7 +382,7 @@ const Trigger = ({
 			ref={ref}
 			type="button"
 			{...props}
-			data-slot="accordion-trigger"
+			data-slot={joinDataSlot(dataSlot, "accordion-trigger")}
 			data-state={open ? "open" : "closed"}
 			aria-expanded={open}
 			aria-controls={contentId}
@@ -452,16 +458,17 @@ const defaultTriggerIcon = <CaretDownIcon weight="bold" />;
  * </Accordion.Root>
  */
 const TriggerIcon = ({
+	"data-slot": dataSlot,
 	className,
 	svg = defaultTriggerIcon,
 	...props
 }: Omit<IconProps, "svg"> & {
 	/** The icon to render. Defaults to a downward caret that rotates open. */
 	svg?: IconProps["svg"];
-}) => (
+} & WithDataSlot) => (
 	<Icon
 		{...props}
-		data-slot="accordion-trigger-icon"
+		data-slot={joinDataSlot(dataSlot, "accordion-trigger-icon")}
 		svg={svg}
 		className={cx(
 			"size-4 shrink-0 text-muted transition-transform duration-200 group-data-state-open:rotate-180",
@@ -499,7 +506,13 @@ const TriggerIcon = ({
  *   </Accordion.Item>
  * </Accordion.Root>
  */
-const Content = ({ className, children, ref, ...props }: Omit<ComponentProps<"div">, "id">) => {
+const Content = ({
+	"data-slot": dataSlot,
+	className,
+	children,
+	ref,
+	...props
+}: Omit<ComponentProps<"div">, "id"> & WithDataSlot) => {
 	const { open, setOpen, contentId } = useAccordionItemContext("Accordion.Content");
 	// Track the node ourselves (for the find-in-page reveal effects below) while
 	// still forwarding it to any ref the consumer passes.
@@ -576,7 +589,7 @@ const Content = ({ className, children, ref, ...props }: Omit<ComponentProps<"di
 			// does that without stopping the height animation. The layout effect
 			// above removes it where `hidden="until-found"` takes over.
 			inert={!open}
-			data-slot="accordion-content"
+			data-slot={joinDataSlot(dataSlot, "accordion-content")}
 			data-state={open ? "open" : "closed"}
 			className={cx(
 				// Animate height 0 <-> auto via `interpolate-size` (Chromium only; other
@@ -626,8 +639,18 @@ const Content = ({ className, children, ref, ...props }: Omit<ComponentProps<"di
  *   </Accordion.Item>
  * </Accordion.Root>
  */
-const Body = ({ className, ref, ...props }: ComponentProps<"div">) => (
-	<div ref={ref} {...props} data-slot="accordion-body" className={cx("pt-2 pb-4", className)} />
+const Body = ({
+	"data-slot": dataSlot,
+	className,
+	ref,
+	...props
+}: ComponentProps<"div"> & WithDataSlot) => (
+	<div
+		ref={ref}
+		{...props}
+		data-slot={joinDataSlot(dataSlot, "accordion-body")}
+		className={cx("pt-2 pb-4", className)}
+	/>
 );
 
 /**

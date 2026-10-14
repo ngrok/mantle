@@ -50,6 +50,6 @@ Renders an anchor element that is visually hidden until focused. Accepts all sta
 | `targetId?` | `string`    | `"main"`                 | The `id` of the element to focus when activated. The link's `href` is set to `#${targetId}`. |
 | `children?` | `ReactNode` | `"Skip to main content"` | The label displayed when the link is focused.                                                |
 
-| Data Attribute | Value                 | Description                                                         |
-| -------------- | --------------------- | ------------------------------------------------------------------- |
-| `data-slot`    | `"skip-to-main-link"` | Names the part, joined after any chain a composing ancestor passes. |
+| Data Attribute | Value                        | Description                                                                                          |
+| -------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `data-slot`    | `"skip-to-main-link anchor"` | Names the part, joined after any chain a composing ancestor passes and ahead of `Anchor`'s own slot. |

@@ -6,6 +6,8 @@ import { type ComponentProps, type ReactNode, createContext, useContext, useMemo
 import invariant from "tiny-invariant";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { LayerContainer } from "../../utils/layer-container/layer-container.js";
 import { Button, type ButtonAppearance, type ButtonProps } from "../button/button.js";
 import type { ButtonIntent } from "../button/intents.js";
@@ -135,8 +137,16 @@ function Root({ intent, ...props }: AlertDialogProps) {
  * </AlertDialog.Root>
  * ```
  */
-const Trigger = ({ ref, ...props }: ComponentProps<typeof AlertDialogPrimitiveTrigger>) => (
-	<AlertDialogPrimitiveTrigger ref={ref} data-slot="alert-dialog-trigger" {...props} />
+const Trigger = ({
+	"data-slot": dataSlot,
+	ref,
+	...props
+}: ComponentProps<typeof AlertDialogPrimitiveTrigger> & WithDataSlot) => (
+	<AlertDialogPrimitiveTrigger
+		ref={ref}
+		data-slot={joinDataSlot(dataSlot, "alert-dialog-trigger")}
+		{...props}
+	/>
 );
 
 /**
@@ -153,12 +163,13 @@ const AlertDialogPortal = AlertDialogPrimitivePortal;
  * @private
  */
 const AlertDialogOverlay = ({
+	"data-slot": dataSlot,
 	className,
 	ref,
 	...props
-}: ComponentProps<typeof AlertDialogPrimitiveOverlay>) => (
+}: ComponentProps<typeof AlertDialogPrimitiveOverlay> & WithDataSlot) => (
 	<AlertDialogPrimitiveOverlay
-		data-slot="alert-dialog-overlay"
+		data-slot={joinDataSlot(dataSlot, "alert-dialog-overlay")}
 		className={cx(
 			"data-state-open:animate-in data-state-closed:animate-out data-state-closed:fade-out-0 data-state-open:fade-in-0 bg-overlay fixed inset-0 z-60 backdrop-blur-xs",
 			className,
@@ -178,7 +189,7 @@ type AlertDialogContentProps = ComponentProps<typeof AlertDialogPrimitiveContent
 	 * @default `max-w-md`
 	 */
 	preferredWidth?: `max-w-${string}`;
-};
+} & WithDataSlot;
 
 /**
  * The popover alert dialog container.
@@ -227,6 +238,7 @@ type AlertDialogContentProps = ComponentProps<typeof AlertDialogPrimitiveContent
  * ```
  */
 const Content = ({
+	"data-slot": dataSlot,
 	className,
 	onInteractOutside,
 	preferredWidth = "max-w-md",
@@ -246,7 +258,7 @@ const Content = ({
 		>
 			<AlertDialogPrimitiveContent
 				role="alertdialog"
-				data-slot="alert-dialog-content"
+				data-slot={joinDataSlot(dataSlot, "alert-dialog-content")}
 				data-mantle-modal-content
 				ref={ref}
 				onInteractOutside={(event) => {
@@ -306,16 +318,17 @@ const Content = ({
  * ```
  */
 const Body = ({
+	"data-slot": dataSlot,
 	asChild = false,
 	className,
 	ref,
 	...props
-}: ComponentProps<"div"> & WithAsChild) => {
+}: ComponentProps<"div"> & WithAsChild & WithDataSlot) => {
 	const Component = asChild ? Slot : "div";
 
 	return (
 		<Component
-			data-slot="alert-dialog-body"
+			data-slot={joinDataSlot(dataSlot, "alert-dialog-body")}
 			className={cx("flex-1 space-y-4", className)}
 			ref={ref}
 			{...props}
@@ -359,16 +372,17 @@ const Body = ({
  * ```
  */
 const Header = ({
+	"data-slot": dataSlot,
 	asChild = false,
 	className,
 	ref,
 	...props
-}: ComponentProps<"div"> & WithAsChild) => {
+}: ComponentProps<"div"> & WithAsChild & WithDataSlot) => {
 	const Component = asChild ? Slot : "div";
 
 	return (
 		<Component
-			data-slot="alert-dialog-header"
+			data-slot={joinDataSlot(dataSlot, "alert-dialog-header")}
 			className={cx("flex flex-col space-y-2 text-center sm:text-start", className)}
 			ref={ref}
 			{...props}
@@ -412,16 +426,17 @@ const Header = ({
  * ```
  */
 const Footer = ({
+	"data-slot": dataSlot,
 	asChild = false,
 	className,
 	ref,
 	...props
-}: ComponentProps<"div"> & WithAsChild) => {
+}: ComponentProps<"div"> & WithAsChild & WithDataSlot) => {
 	const Component = asChild ? Slot : "div";
 
 	return (
 		<Component
-			data-slot="alert-dialog-footer"
+			data-slot={joinDataSlot(dataSlot, "alert-dialog-footer")}
 			className={cx("flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2", className)}
 			ref={ref}
 			{...props}
@@ -467,10 +482,15 @@ const Footer = ({
  * </AlertDialog.Root>
  * ```
  */
-const Title = ({ className, ref, ...props }: ComponentProps<typeof AlertDialogPrimitiveTitle>) => (
+const Title = ({
+	"data-slot": dataSlot,
+	className,
+	ref,
+	...props
+}: ComponentProps<typeof AlertDialogPrimitiveTitle> & WithDataSlot) => (
 	<AlertDialogPrimitiveTitle
 		ref={ref}
-		data-slot="alert-dialog-title"
+		data-slot={joinDataSlot(dataSlot, "alert-dialog-title")}
 		className={cx("text-strong text-center text-lg font-medium sm:text-start", className)}
 		{...props}
 	/>
@@ -517,13 +537,14 @@ const Title = ({ className, ref, ...props }: ComponentProps<typeof AlertDialogPr
  * ```
  */
 const Description = ({
+	"data-slot": dataSlot,
 	className,
 	ref,
 	...props
-}: ComponentProps<typeof AlertDialogPrimitiveDescription>) => (
+}: ComponentProps<typeof AlertDialogPrimitiveDescription> & WithDataSlot) => (
 	<AlertDialogPrimitiveDescription
 		ref={ref}
-		data-slot="alert-dialog-description"
+		data-slot={joinDataSlot(dataSlot, "alert-dialog-description")}
 		className={cx("text-body text-center text-sm font-normal sm:text-start", className)}
 		{...props}
 	/>
@@ -545,7 +566,7 @@ type AlertDialogActionProps = Omit<ButtonProps, "appearance" | "intent"> & {
 	 * value always wins over the context-derived tone.
 	 */
 	intent?: ButtonIntent;
-};
+} & WithDataSlot;
 
 /**
  * Default `AlertDialog.Action` button tone for each `AlertDialog` intent.
@@ -599,6 +620,7 @@ const actionIntentByDialogIntent = {
  * ```
  */
 const Action = ({
+	"data-slot": dataSlot,
 	//,
 	appearance = "filled",
 	intent,
@@ -612,7 +634,7 @@ const Action = ({
 		<Button
 			//
 			appearance={appearance}
-			data-slot="alert-dialog-action"
+			data-slot={joinDataSlot(dataSlot, "alert-dialog-action")}
 			intent={intent ?? contextIntent}
 			ref={ref}
 			{...props}
@@ -636,7 +658,7 @@ type AlertDialogCancelProps = Omit<ButtonProps, "appearance" | "intent"> & {
 	 * @default "neutral"
 	 */
 	intent?: ButtonIntent;
-};
+} & WithDataSlot;
 
 /**
  * A button that closes the dialog and cancels the action.
@@ -679,6 +701,7 @@ type AlertDialogCancelProps = Omit<ButtonProps, "appearance" | "intent"> & {
  * ```
  */
 const Cancel = ({
+	"data-slot": dataSlot,
 	//,
 	appearance = "outlined",
 	className,
@@ -689,7 +712,7 @@ const Cancel = ({
 	<AlertDialogPrimitiveClose asChild>
 		<Button
 			appearance={appearance}
-			data-slot="alert-dialog-cancel"
+			data-slot={joinDataSlot(dataSlot, "alert-dialog-cancel")}
 			className={cx("mt-2 sm:mt-0", className)}
 			intent={intent}
 			ref={ref}
@@ -700,7 +723,7 @@ const Cancel = ({
 
 type AlertDialogIconProps = Omit<SvgAttributes, "children"> & {
 	svg?: ReactNode;
-};
+} & WithDataSlot;
 
 /**
  * Default `AlertDialog.Icon` glyphs for each `AlertDialog` intent.
@@ -758,7 +781,7 @@ const defaultIconColors = {
  * </AlertDialog.Root>
  * ```
  */
-const Icon = ({ className, ref, svg, ...props }: AlertDialogIconProps) => {
+const Icon = ({ "data-slot": dataSlot, className, ref, svg, ...props }: AlertDialogIconProps) => {
 	const ctx = useAlertDialogContext();
 	const defaultColor = defaultIconColors[ctx.intent];
 	const defaultIcon = defaultIcons[ctx.intent];
@@ -766,7 +789,7 @@ const Icon = ({ className, ref, svg, ...props }: AlertDialogIconProps) => {
 	return (
 		<SvgOnly
 			ref={ref}
-			data-slot="alert-dialog-icon"
+			data-slot={joinDataSlot(dataSlot, "alert-dialog-icon")}
 			className={cx("size-12 sm:size-7", defaultColor, className)}
 			svg={svg ?? defaultIcon}
 			{...props}
@@ -816,8 +839,16 @@ const Icon = ({ className, ref, svg, ...props }: AlertDialogIconProps) => {
  * </AlertDialog.Root>
  * ```
  */
-const Close = ({ ref, ...props }: ComponentProps<typeof AlertDialogPrimitiveClose>) => (
-	<AlertDialogPrimitiveClose ref={ref} data-slot="alert-dialog-close" {...props} />
+const Close = ({
+	"data-slot": dataSlot,
+	ref,
+	...props
+}: ComponentProps<typeof AlertDialogPrimitiveClose> & WithDataSlot) => (
+	<AlertDialogPrimitiveClose
+		ref={ref}
+		data-slot={joinDataSlot(dataSlot, "alert-dialog-close")}
+		{...props}
+	/>
 );
 
 /**

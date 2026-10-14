@@ -2,10 +2,12 @@
 
 import type { ComponentProps } from "react";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { Kbd } from "../kbd/kbd.js";
 import { useIsApplePlatform } from "../../hooks/use-is-apple-platform.js";
 
-type Props = Omit<ComponentProps<"kbd">, "children">;
+type Props = Omit<ComponentProps<"kbd">, "children"> & WithDataSlot;
 
 type Mod = "⌘" | "⌃";
 
@@ -26,7 +28,7 @@ type Mod = "⌘" | "⌃";
  * </Command.Shortcut>
  * ```
  */
-function MetaKey({ className, ...props }: Props) {
+function MetaKey({ "data-slot": dataSlot, className, ...props }: Props) {
 	const isApple = useIsApplePlatform();
 	const glyph: Mod = isApple ? "⌘" : "⌃";
 	const label = isApple ? "Command" : "Control";
@@ -35,7 +37,7 @@ function MetaKey({ className, ...props }: Props) {
 		<Kbd
 			{...props}
 			suppressHydrationWarning
-			data-slot="meta-key"
+			data-slot={joinDataSlot(dataSlot, "meta-key")}
 			className={cx(glyph === "⌃" && "font-medium", className)}
 		>
 			<span className="sr-only">{label}</span>

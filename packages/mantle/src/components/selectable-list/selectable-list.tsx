@@ -15,6 +15,8 @@ import type { ComponentProps, ReactElement, ReactNode } from "react";
 import invariant from "tiny-invariant";
 import { useCallbackRef } from "../../hooks/use-callback-ref.js";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { Checkbox, selectAllChecked } from "../checkbox/checkbox.js";
 import { Choice } from "../choice/choice.js";
 import { Input, InputCapture } from "../input/input.js";
@@ -252,7 +254,7 @@ type SelectableListRootProps = Omit<ComponentProps<"div">, "onChange"> & {
 	 * `label`).
 	 */
 	filter?: (option: SelectableListOption, query: string) => boolean;
-};
+} & WithDataSlot;
 
 const EMPTY_SELECTION: readonly string[] = [];
 
@@ -288,6 +290,7 @@ const EMPTY_SELECTION: readonly string[] = [];
  * ```
  */
 const Root = ({
+	"data-slot": dataSlot,
 	className,
 	defaultQuery,
 	defaultValue,
@@ -381,7 +384,7 @@ const Root = ({
 		<SelectableListContext.Provider value={context}>
 			<div
 				ref={ref}
-				data-slot="selectable-list"
+				data-slot={joinDataSlot(dataSlot, "selectable-list")}
 				className={cx("flex w-full flex-col gap-3", className)}
 				{...props}
 			/>
@@ -408,6 +411,7 @@ const Root = ({
  * ```
  */
 const Filter = ({
+	"data-slot": dataSlot,
 	"aria-label": ariaLabel = "Filter",
 	ref,
 	...props
@@ -416,14 +420,15 @@ const Filter = ({
 	// The input is always controlled by the list's `query`, so `defaultValue`
 	// would typecheck yet be silently ignored — omit it too.
 	"value" | "defaultValue" | "onChange" | "type" | "children"
->) => {
+> &
+	WithDataSlot) => {
 	const { query, setQuery } = useSelectableListContext("Filter");
 
 	return (
 		<Input
 			ref={ref}
 			type="text"
-			data-slot="selectable-list-filter"
+			data-slot={joinDataSlot(dataSlot, "selectable-list-filter")}
 			aria-label={ariaLabel}
 			value={query}
 			onChange={(event) => setQuery(event.target.value)}
@@ -467,11 +472,12 @@ const Filter = ({
  * ```
  */
 const SelectAll = ({
+	"data-slot": dataSlot,
 	children,
 	className,
 	ref,
 	...props
-}: Omit<ComponentProps<"label">, "htmlFor">) => {
+}: Omit<ComponentProps<"label">, "htmlFor"> & WithDataSlot) => {
 	const { filteredOptions, selectedValues, selectedSet, setSelection } =
 		useSelectableListContext("SelectAll");
 	const controlId = useId();
@@ -499,7 +505,7 @@ const SelectAll = ({
 		<label
 			ref={ref}
 			htmlFor={controlId}
-			data-slot="selectable-list-select-all"
+			data-slot={joinDataSlot(dataSlot, "selectable-list-select-all")}
 			className={cx(
 				"text-strong flex cursor-pointer items-center gap-2 text-sm font-medium font-sans",
 				className,
@@ -559,7 +565,7 @@ type SelectableListItemProps = Omit<ComponentProps<"div">, "children" | "id"> & 
 	 * content `gridcell`; nested interactive content (links, buttons) is allowed.
 	 */
 	children: ReactNode;
-};
+} & WithDataSlot;
 
 /**
  * A single selectable grid row. Renders a `role="row"` (via the `list`
@@ -592,7 +598,14 @@ type SelectableListItemProps = Omit<ComponentProps<"div">, "children" | "id"> & 
  * </SelectableList.Root>
  * ```
  */
-const Item = ({ children, className, ref, value, ...props }: SelectableListItemProps) => {
+const Item = ({
+	"data-slot": dataSlot,
+	children,
+	className,
+	ref,
+	value,
+	...props
+}: SelectableListItemProps) => {
 	const { listId, selectedSet, disabledSet, toggle } = useSelectableListContext("Item");
 	const controlId = controlIdFor(listId, value);
 	const selected = selectedSet.has(value);
@@ -615,7 +628,7 @@ const Item = ({ children, className, ref, value, ...props }: SelectableListItemP
 				className,
 			)}
 			{...props}
-			data-slot="selectable-list-item"
+			data-slot={joinDataSlot(dataSlot, "selectable-list-item")}
 			data-value={value}
 		>
 			<Choice.Root id={controlId} disabled={disabled}>
@@ -654,8 +667,11 @@ const Item = ({ children, className, ref, value, ...props }: SelectableListItemP
  * </SelectableList.Root>
  * ```
  */
-const ItemTitle = (props: ComponentProps<typeof Choice.Label>) => (
-	<Choice.Label data-slot="selectable-list-item-title" {...props} />
+const ItemTitle = ({
+	"data-slot": dataSlot,
+	...props
+}: ComponentProps<typeof Choice.Label> & WithDataSlot) => (
+	<Choice.Label data-slot={joinDataSlot(dataSlot, "selectable-list-item-title")} {...props} />
 );
 
 /**
@@ -682,8 +698,14 @@ const ItemTitle = (props: ComponentProps<typeof Choice.Label>) => (
  * </SelectableList.Root>
  * ```
  */
-const ItemDescription = (props: ComponentProps<typeof Choice.Description>) => (
-	<Choice.Description data-slot="selectable-list-item-description" {...props} />
+const ItemDescription = ({
+	"data-slot": dataSlot,
+	...props
+}: ComponentProps<typeof Choice.Description> & WithDataSlot) => (
+	<Choice.Description
+		data-slot={joinDataSlot(dataSlot, "selectable-list-item-description")}
+		{...props}
+	/>
 );
 
 /**
@@ -805,7 +827,7 @@ type SelectableListViewportProps = Omit<ComponentProps<"div">, "children"> & {
 	 * title + description row built from the option.
 	 */
 	children?: (option: SelectableListOption) => ReactElement | null;
-};
+} & WithDataSlot;
 
 /**
  * The scrollable body of a `SelectableList`: a `role="grid"` of `role="row"`
@@ -828,7 +850,12 @@ type SelectableListViewportProps = Omit<ComponentProps<"div">, "children"> & {
  * </SelectableList.Root>
  * ```
  */
-const Viewport = ({ children, ref, ...props }: SelectableListViewportProps) => {
+const Viewport = ({
+	"data-slot": dataSlot,
+	children,
+	ref,
+	...props
+}: SelectableListViewportProps) => {
 	const { isEmpty, isItemDisabled, onActivate, itemId, items } = useViewportItems(
 		"Viewport",
 		children,
@@ -841,7 +868,7 @@ const Viewport = ({ children, ref, ...props }: SelectableListViewportProps) => {
 	return (
 		<ListRoot
 			ref={ref}
-			data-slot="selectable-list-viewport"
+			data-slot={joinDataSlot(dataSlot, "selectable-list-viewport")}
 			semantics="grid"
 			{...props}
 			aria-multiselectable
@@ -870,7 +897,7 @@ type SelectableListVirtualViewportProps = SelectableListViewportProps & {
 	estimateItemHeight?: number;
 	/** Rows rendered beyond the visible window on each side. */
 	overscan?: number;
-};
+} & WithDataSlot;
 
 /**
  * The windowed counterpart to `SelectableList.Viewport`: renders only the
@@ -893,7 +920,12 @@ type SelectableListVirtualViewportProps = SelectableListViewportProps & {
  * </SelectableList.Root>
  * ```
  */
-const VirtualViewport = ({ children, ref, ...props }: SelectableListVirtualViewportProps) => {
+const VirtualViewport = ({
+	"data-slot": dataSlot,
+	children,
+	ref,
+	...props
+}: SelectableListVirtualViewportProps) => {
 	const { isEmpty, isItemDisabled, onActivate, itemId, items } = useViewportItems(
 		"VirtualViewport",
 		children,
@@ -906,7 +938,7 @@ const VirtualViewport = ({ children, ref, ...props }: SelectableListVirtualViewp
 	return (
 		<ListVirtualRoot
 			ref={ref}
-			data-slot="selectable-list-viewport"
+			data-slot={joinDataSlot(dataSlot, "selectable-list-viewport")}
 			semantics="grid"
 			{...props}
 			aria-multiselectable
@@ -951,7 +983,13 @@ const VirtualViewport = ({ children, ref, ...props }: SelectableListVirtualViewp
  * </SelectableList.Root>
  * ```
  */
-const Empty = ({ children, className, ref, ...props }: ComponentProps<"div">) => {
+const Empty = ({
+	"data-slot": dataSlot,
+	children,
+	className,
+	ref,
+	...props
+}: ComponentProps<"div"> & WithDataSlot) => {
 	const { filteredOptions } = useSelectableListContext("Empty");
 	const isEmpty = filteredOptions.length === 0;
 
@@ -961,7 +999,7 @@ const Empty = ({ children, className, ref, ...props }: ComponentProps<"div">) =>
 		// empty and `sr-only` (absolutely positioned, so it adds no layout gap).
 		<div
 			ref={ref}
-			data-slot="selectable-list-empty"
+			data-slot={joinDataSlot(dataSlot, "selectable-list-empty")}
 			role="status"
 			className={cx(
 				!isEmpty && "sr-only",

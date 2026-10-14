@@ -74,8 +74,8 @@ describe("Sandbar structure", () => {
 		expect(document.querySelector('[data-slot="sandbar"]')).toBeInTheDocument();
 		expect(document.querySelector('[data-slot="sandbar-message"]')).toBeInTheDocument();
 		expect(document.querySelector('[data-slot="sandbar-actions"]')).toBeInTheDocument();
-		expect(document.querySelector('[data-slot="sandbar-discard-button"]')).toBeInTheDocument();
-		expect(document.querySelector('[data-slot="sandbar-save-button"]')).toBeInTheDocument();
+		expect(document.querySelector('[data-slot~="sandbar-discard-button"]')).toBeInTheDocument();
+		expect(document.querySelector('[data-slot~="sandbar-save-button"]')).toBeInTheDocument();
 	});
 
 	test("the panel is an invert-theme island styled by opposite-theme surface tokens", () => {
@@ -145,9 +145,10 @@ describe("Sandbar structure", () => {
 		expect(messageRef.current?.className).toContain("message-class");
 		expect(actionsRef.current).toHaveAttribute("data-slot", "sandbar-actions");
 		expect(actionsRef.current?.className).toContain("actions-class");
-		expect(saveRef.current).toHaveAttribute("data-slot", "sandbar-save-button");
+		// Both buttons render a `Button`, which joins its own slot after the part's.
+		expect(saveRef.current).toHaveAttribute("data-slot", "sandbar-save-button button");
 		expect(saveRef.current?.className).toContain("save-class");
-		expect(discardRef.current).toHaveAttribute("data-slot", "sandbar-discard-button");
+		expect(discardRef.current).toHaveAttribute("data-slot", "sandbar-discard-button button");
 		expect(discardRef.current?.className).toContain("discard-class");
 	});
 
@@ -237,16 +238,15 @@ describe("Sandbar structure", () => {
 		// place of the button, and the tailwind-merge contract keeps both classes on it.
 		const save = screen.getByTestId("save");
 		expect(save.tagName).toBe("A");
-		// the part's slot must survive the swap and still beat `Button`'s own
-		// `data-slot="button"` — the spread order inside Button is what decides it
-		expect(save).toHaveAttribute("data-slot", "sandbar-save-button");
+		// The part's slot survives the swap and joins ahead of `Button`'s own `button`.
+		expect(save).toHaveAttribute("data-slot", "sandbar-save-button button");
 		expect(save.className).toContain("part-class");
 		expect(save.className).toContain("child-class");
 		expect(saveTarget.current).toBe(save);
 
 		const discard = screen.getByTestId("discard");
 		expect(discard.tagName).toBe("A");
-		expect(discard).toHaveAttribute("data-slot", "sandbar-discard-button");
+		expect(discard).toHaveAttribute("data-slot", "sandbar-discard-button button");
 		expect(discard.className).toContain("part-class");
 		expect(discard.className).toContain("child-class");
 		expect(discardTarget.current).toBe(discard);
@@ -261,7 +261,7 @@ describe("Sandbar structure", () => {
 		const save = screen.getByRole("button", { name: "Save" });
 		expect(save).toHaveAttribute("data-appearance", "filled");
 		expect(save).toHaveAttribute("data-intent", "neutral");
-		expect(save).toHaveAttribute("data-loading", "false");
+		expect(save).not.toHaveAttribute("data-loading");
 
 		const discard = screen.getByRole("button", { name: "Discard" });
 		expect(discard).toHaveAttribute("data-appearance", "outlined");
@@ -343,10 +343,10 @@ describe("Sandbar structure", () => {
 			document.querySelector('[data-slot="outer-actions sandbar-actions"]'),
 		).toBeInTheDocument();
 		expect(
-			document.querySelector('[data-slot="outer-discard sandbar-discard-button"]'),
+			document.querySelector('[data-slot="outer-discard sandbar-discard-button button"]'),
 		).toBeInTheDocument();
 		expect(
-			document.querySelector('[data-slot="outer-save sandbar-save-button"]'),
+			document.querySelector('[data-slot="outer-save sandbar-save-button button"]'),
 		).toBeInTheDocument();
 	});
 
@@ -803,7 +803,7 @@ describe("Sandbar interaction", () => {
 
 		const saveButton = screen.getByRole("button", { name: "Save" });
 		expect(saveButton).toBeDisabled();
-		expect(saveButton).toHaveAttribute("data-loading", "true");
+		expect(saveButton).toHaveAttribute("data-loading", "");
 		await user.click(saveButton);
 		expect(save).not.toHaveBeenCalled();
 	});

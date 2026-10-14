@@ -725,7 +725,7 @@ describe("Field", () => {
 			expect(trigger).toHaveAttribute("aria-expanded", "true");
 		});
 
-		test("HelpContent overrides the inherited data-slot with field-help-content", () => {
+		test("HelpContent joins field-help-content ahead of Popover.Content's own slot", () => {
 			render(
 				<Field.Help defaultOpen>
 					<Field.HelpTrigger label="What is this field?" />
@@ -734,7 +734,7 @@ describe("Field", () => {
 			);
 			expect(screen.getByText("Copy this from the dashboard.")).toHaveAttribute(
 				"data-slot",
-				"field-help-content",
+				"field-help-content popover-content",
 			);
 		});
 	});

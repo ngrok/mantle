@@ -84,7 +84,7 @@ describe("Alert", () => {
 					</Alert.Content>
 				</Alert.Root>,
 			);
-			expect(container.querySelector('[data-slot="alert-icon"]')).toBeInTheDocument();
+			expect(container.querySelector('[data-slot~="alert-icon"]')).toBeInTheDocument();
 		});
 
 		test("renders a custom svg in place of the default icon", () => {
@@ -427,7 +427,7 @@ describe("Alert", () => {
 				</Alert.Root>,
 			);
 
-			const button = container.querySelector('[data-slot="alert-expand-button"]');
+			const button = container.querySelector('[data-slot~="alert-expand-button"]');
 			const label = button?.querySelector('[data-slot="button-label"]');
 			const caret = button?.querySelector("svg");
 			expect(label).toHaveTextContent("+3");
@@ -452,7 +452,7 @@ describe("Alert", () => {
 			// whenever `icon` is set, and a `px-*` shorthand cannot beat that longhand:
 			// both survive the merge, and Tailwind emits `pe-*` last. Asserting the merge
 			// outcome is what catches the caret drifting 2px away from the edge.
-			const button = container.querySelector('[data-slot="alert-expand-button"]');
+			const button = container.querySelector('[data-slot~="alert-expand-button"]');
 			expect(button).toHaveClass("ps-1.5", "pe-1");
 			expect(button).not.toHaveClass("pe-2");
 		});
@@ -470,11 +470,16 @@ describe("Alert", () => {
 			// Why the markers: `Root` reserves room with `has-data-alert-dismiss:` and
 			// `has-data-alert-expand:` selectors, so a renamed marker loses the layout
 			// with every other test green.
-			expect(container.querySelector('[data-slot="alert-dismiss-icon-button"]')).toHaveAttribute(
-				"data-alert-dismiss",
-			);
-			expect(container.querySelector('[data-slot="alert-expand-button"]')).toHaveAttribute(
-				"data-alert-expand",
+			const dismiss = container.querySelector('[data-slot~="alert-dismiss-icon-button"]');
+			const expand = container.querySelector('[data-slot~="alert-expand-button"]');
+			expect(dismiss).toHaveAttribute("data-alert-dismiss");
+			expect(expand).toHaveAttribute("data-alert-expand");
+			// Cross-file spelling pin: `Root` positions the dismiss control through a
+			// `~=` slot selector, and the control's slot is a joined chain that an
+			// exact `=` match never hits.
+			expect(dismiss).toHaveAttribute("data-slot", "alert-dismiss-icon-button icon-button");
+			expect(container.firstElementChild).toHaveClass(
+				"has-data-alert-expand:[&_[data-slot~=alert-dismiss-icon-button]]:right-16",
 			);
 		});
 	});

@@ -21,6 +21,8 @@ import type {
 import type { ComponentProps } from "react";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { parseValidation, useFieldValidation } from "../field/validation.js";
 import type { WithValidation } from "../field/validation.js";
 import { Separator } from "../separator/separator.js";
@@ -61,7 +63,8 @@ type ComboboxInputProps = Omit<
 	AriakitComboboxProps,
 	"render" // we don't support a render prop for the combobox input
 > &
-	WithValidation;
+	WithValidation &
+	WithDataSlot;
 
 /**
  * Renders a combobox input element for filtering a list of items.
@@ -80,6 +83,7 @@ type ComboboxInputProps = Omit<
  * ```
  */
 const Input = ({
+	"data-slot": dataSlot,
 	"aria-invalid": _ariaInvalid,
 	autoComplete = "list",
 	autoSelect = "always",
@@ -99,7 +103,7 @@ const Input = ({
 			aria-invalid={ariaInvalid}
 			autoComplete={autoComplete}
 			autoSelect={autoSelect}
-			data-slot="combobox-input"
+			data-slot={joinDataSlot(dataSlot, "combobox-input")}
 			className={cx(
 				"pointer-coarse:text-base h-9 text-sm",
 				"bg-form relative block w-full rounded-md border px-3 py-2 border-form text-strong font-sans",
@@ -121,7 +125,9 @@ const Input = ({
 	);
 };
 
-type ComboboxContentProps = Omit<AriakitComboboxPopoverProps, "render"> & WithAsChild;
+type ComboboxContentProps = Omit<AriakitComboboxPopoverProps, "render"> &
+	WithAsChild &
+	WithDataSlot;
 
 /**
  * Renders a popover that contains combobox content, e.g. Combobox.Items, Combobox.Groups, and Combobox.Separators.
@@ -145,6 +151,7 @@ type ComboboxContentProps = Omit<AriakitComboboxPopoverProps, "render"> & WithAs
  * ```
  */
 const Content = ({
+	"data-slot": dataSlot,
 	asChild = false,
 	children,
 	className,
@@ -155,7 +162,7 @@ const Content = ({
 }: ComboboxContentProps) => {
 	return (
 		<AriakitComboboxPopover
-			data-slot="combobox-content"
+			data-slot={joinDataSlot(dataSlot, "combobox-content")}
 			className={cx(
 				"border-popover bg-popover relative z-50 max-h-96 min-w-32 scrollbar overflow-y-scroll overflow-x-hidden rounded-md border shadow-md p-1 my-2 space-y-px font-sans focus:outline-hidden",
 				className,
@@ -171,7 +178,7 @@ const Content = ({
 	);
 };
 
-type ComboboxItemProps = Omit<AriakitComboboxItemProps, "render"> & WithAsChild;
+type ComboboxItemProps = Omit<AriakitComboboxItemProps, "render"> & WithAsChild & WithDataSlot;
 
 /**
  * Renders a combobox item inside a Combobox.Content component.
@@ -191,6 +198,7 @@ type ComboboxItemProps = Omit<AriakitComboboxItemProps, "render"> & WithAsChild;
  * ```
  */
 const Item = ({
+	"data-slot": dataSlot,
 	asChild = false,
 	children,
 	className,
@@ -201,7 +209,7 @@ const Item = ({
 }: ComboboxItemProps) => {
 	return (
 		<AriakitComboboxItem
-			data-slot="combobox-item"
+			data-slot={joinDataSlot(dataSlot, "combobox-item")}
 			className={cx(
 				"cursor-pointer rounded-md px-2 py-1.5 text-strong text-sm flex min-w-0 gap-2 items-center [&>svg]:size-5 [&_svg]:shrink-0",
 				"data-active-item:bg-active-menu-item",
@@ -219,7 +227,7 @@ const Item = ({
 	);
 };
 
-type ComboboxGroupProps = Omit<AriakitComboboxGroupProps, "render"> & WithAsChild;
+type ComboboxGroupProps = Omit<AriakitComboboxGroupProps, "render"> & WithAsChild & WithDataSlot;
 
 /**
  * Renders a group for Combobox.Item elements.
@@ -244,10 +252,17 @@ type ComboboxGroupProps = Omit<AriakitComboboxGroupProps, "render"> & WithAsChil
  * </Combobox.Root>
  * ```
  */
-const Group = ({ asChild = false, children, className, ref, ...props }: ComboboxGroupProps) => {
+const Group = ({
+	"data-slot": dataSlot,
+	asChild = false,
+	children,
+	className,
+	ref,
+	...props
+}: ComboboxGroupProps) => {
 	return (
 		<AriakitComboboxGroup
-			data-slot="combobox-group"
+			data-slot={joinDataSlot(dataSlot, "combobox-group")}
 			className={cx("space-y-px", className)}
 			ref={ref}
 			render={asChild ? ({ ref, ...childProps }) => <Slot ref={ref} {...childProps} /> : undefined}
@@ -258,7 +273,9 @@ const Group = ({ asChild = false, children, className, ref, ...props }: Combobox
 	);
 };
 
-type ComboboxGroupLabelProps = Omit<AriakitComboboxGroupLabelProps, "render"> & WithAsChild;
+type ComboboxGroupLabelProps = Omit<AriakitComboboxGroupLabelProps, "render"> &
+	WithAsChild &
+	WithDataSlot;
 
 /**
  * Renders a label in a combobox group.
@@ -284,6 +301,7 @@ type ComboboxGroupLabelProps = Omit<AriakitComboboxGroupLabelProps, "render"> & 
  * ```
  */
 const GroupLabel = ({
+	"data-slot": dataSlot,
 	asChild = false,
 	children,
 	className,
@@ -292,7 +310,7 @@ const GroupLabel = ({
 }: ComboboxGroupLabelProps) => {
 	return (
 		<AriakitComboboxGroupLabel
-			data-slot="combobox-group-label"
+			data-slot={joinDataSlot(dataSlot, "combobox-group-label")}
 			className={cx("text-muted px-2 py-1 text-xs font-medium", className)}
 			ref={ref}
 			render={asChild ? ({ ref, ...childProps }) => <Slot ref={ref} {...childProps} /> : undefined}
@@ -303,7 +321,9 @@ const GroupLabel = ({
 	);
 };
 
-type ComboboxItemValueProps = Omit<AriakitComboboxItemValueProps<"span">, "render"> & WithAsChild;
+type ComboboxItemValueProps = Omit<AriakitComboboxItemValueProps<"span">, "render"> &
+	WithAsChild &
+	WithDataSlot;
 
 /**
  * Highlights the match between the current Combobox.Input value (userValue) and parent Combobox.Item value.
@@ -336,10 +356,16 @@ type ComboboxItemValueProps = Omit<AriakitComboboxItemValueProps<"span">, "rende
  * </Combobox.Root>
  * ```
  */
-const ItemValue = ({ asChild = false, className, ref, ...props }: ComboboxItemValueProps) => {
+const ItemValue = ({
+	"data-slot": dataSlot,
+	asChild = false,
+	className,
+	ref,
+	...props
+}: ComboboxItemValueProps) => {
 	return (
 		<AriakitComboboxItemValue
-			data-slot="combobox-item-value"
+			data-slot={joinDataSlot(dataSlot, "combobox-item-value")}
 			className={cx(
 				"*:data-user-value:font-medium flex-1 shrink-0 text-strong font-normal",
 				className,
@@ -374,13 +400,14 @@ const ItemValue = ({ asChild = false, className, ref, ...props }: ComboboxItemVa
  * ```
  */
 const ComboboxSeparatorComponent = ({
+	"data-slot": dataSlot,
 	className,
 	ref,
 	...props
-}: ComponentProps<typeof Separator>) => (
+}: ComponentProps<typeof Separator> & WithDataSlot) => (
 	<Separator
 		ref={ref}
-		data-slot="combobox-separator"
+		data-slot={joinDataSlot(dataSlot, "combobox-separator")}
 		className={cx("-mx-1.25 my-1 w-auto", className)}
 		{...props}
 	/>

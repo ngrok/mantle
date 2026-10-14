@@ -15,6 +15,8 @@ import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-eff
 import type { WithAsChild } from "../../types/as-child.js";
 import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { isInteractiveTarget } from "../../utils/interactive-target.js";
 import { FieldControlContext } from "../field/field-context.js";
 import { Label } from "../label/label.js";
@@ -103,7 +105,7 @@ type ChoiceRootProps = Omit<ComponentProps<"div">, "id"> & {
 	name?: string;
 	/** `Choice.Indicator`, a `Choice.Content` (with `Label` / `Title` + `Description`). */
 	children: ReactNode;
-};
+} & WithDataSlot;
 
 /**
  * Root of a `Choice`: the indicator-left / content-right layout for pairing a
@@ -131,6 +133,7 @@ type ChoiceRootProps = Omit<ComponentProps<"div">, "id"> & {
  * ```
  */
 const Root = ({
+	"data-slot": dataSlot,
 	"aria-describedby": ariaDescribedBy,
 	"aria-errormessage": ariaErrorMessage,
 	"aria-invalid": ariaInvalid,
@@ -198,7 +201,7 @@ const Root = ({
 			{/* items-start so the indicator aligns to the first line when the title wraps. */}
 			<div
 				ref={ref}
-				data-slot="choice"
+				data-slot={joinDataSlot(dataSlot, "choice")}
 				className={cx("flex w-full items-start gap-2", className)}
 				{...props}
 			>
@@ -208,7 +211,7 @@ const Root = ({
 	);
 };
 
-type ChoiceIndicatorProps = ComponentProps<"span">;
+type ChoiceIndicatorProps = ComponentProps<"span"> & WithDataSlot;
 
 /**
  * The left control slot of a `Choice`: drop the control here (a `Checkbox`, a
@@ -236,7 +239,13 @@ type ChoiceIndicatorProps = ComponentProps<"span">;
  * </Choice.Root>
  * ```
  */
-const Indicator = ({ children, className, ref, ...props }: ChoiceIndicatorProps) => {
+const Indicator = ({
+	"data-slot": dataSlot,
+	children,
+	className,
+	ref,
+	...props
+}: ChoiceIndicatorProps) => {
 	const { controlProps } = useChoiceContext("Indicator");
 	// Inject the association props onto the control. `id` and `aria-describedby`
 	// are owned by Choice and always win. `disabled` / `name` / `aria-invalid` /
@@ -257,7 +266,7 @@ const Indicator = ({ children, className, ref, ...props }: ChoiceIndicatorProps)
 	return (
 		<span
 			ref={ref}
-			data-slot="choice-indicator"
+			data-slot={joinDataSlot(dataSlot, "choice-indicator")}
 			// `h-lh` resolves to this element's own line-height, so it must share the
 			// title's `text-sm` line box (14px / 20px) — otherwise the slot would size
 			// to the inherited line-height and the control could not center on the
@@ -272,7 +281,7 @@ const Indicator = ({ children, className, ref, ...props }: ChoiceIndicatorProps)
 	);
 };
 
-type ChoiceContentProps = ComponentProps<"div"> & WithAsChild;
+type ChoiceContentProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
 
 /**
  * The right column of a `Choice` — stacks a `Choice.Label` / `Choice.Title` over
@@ -294,13 +303,19 @@ type ChoiceContentProps = ComponentProps<"div"> & WithAsChild;
  * </Choice.Root>
  * ```
  */
-const Content = ({ asChild, className, ref, ...props }: ChoiceContentProps) => {
+const Content = ({
+	"data-slot": dataSlot,
+	asChild,
+	className,
+	ref,
+	...props
+}: ChoiceContentProps) => {
 	const Comp = asChild ? Slot : "div";
 
 	return (
 		<Comp
 			ref={ref}
-			data-slot="choice-content"
+			data-slot={joinDataSlot(dataSlot, "choice-content")}
 			className={cx("flex min-w-0 flex-1 flex-col gap-0.5", className)}
 			{...props}
 		/>
@@ -313,7 +328,7 @@ const Content = ({ asChild, className, ref, ...props }: ChoiceContentProps) => {
  * disabled state) and are not part of the public surface, so consumer props can
  * never override the label-to-control wiring.
  */
-type ChoiceLabelProps = Omit<ComponentProps<typeof Label>, "htmlFor" | "disabled">;
+type ChoiceLabelProps = Omit<ComponentProps<typeof Label>, "htmlFor" | "disabled"> & WithDataSlot;
 
 /**
  * The emphasized title of a `Choice`, rendered as a real `<label>` wired to the
@@ -343,7 +358,7 @@ type ChoiceLabelProps = Omit<ComponentProps<typeof Label>, "htmlFor" | "disabled
  * </Choice.Root>
  * ```
  */
-const ChoiceLabel = ({ className, ref, ...props }: ChoiceLabelProps) => {
+const ChoiceLabel = ({ "data-slot": dataSlot, className, ref, ...props }: ChoiceLabelProps) => {
 	const { controlId, disabled, labelRef } = useChoiceContext("Label");
 	// `Choice.Description` clicks this element to reach the control.
 	const composedRef = useComposedRefs(labelRef, ref);
@@ -354,7 +369,7 @@ const ChoiceLabel = ({ className, ref, ...props }: ChoiceLabelProps) => {
 	return (
 		<Label
 			ref={composedRef}
-			data-slot="choice-label"
+			data-slot={joinDataSlot(dataSlot, "choice-label")}
 			className={cx(disabled && "opacity-50", className)}
 			{...props}
 			htmlFor={controlId}
@@ -391,7 +406,14 @@ const ChoiceLabel = ({ className, ref, ...props }: ChoiceLabelProps) => {
  * </Choice.Root>
  * ```
  */
-const Title = ({ asChild, className, id, ref, ...props }: ComponentProps<"p"> & WithAsChild) => {
+const Title = ({
+	"data-slot": dataSlot,
+	asChild,
+	className,
+	id,
+	ref,
+	...props
+}: ComponentProps<"p"> & WithAsChild & WithDataSlot) => {
 	const { disabled } = useChoiceContext("Title");
 	const radioItem = useContext(RadioItemContext);
 	const generatedId = useId();
@@ -404,7 +426,7 @@ const Title = ({ asChild, className, id, ref, ...props }: ComponentProps<"p"> & 
 	return (
 		<Comp
 			ref={ref}
-			data-slot="choice-title"
+			data-slot={joinDataSlot(dataSlot, "choice-title")}
 			className={cx(
 				"text-strong text-sm font-medium font-sans",
 				disabled && "opacity-50",
@@ -467,12 +489,13 @@ function shouldForwardDescriptionClick(event: MouseEvent<HTMLElement>): boolean 
  * ```
  */
 const Description = ({
+	"data-slot": dataSlot,
 	asChild,
 	className,
 	onClick,
 	ref,
 	...props
-}: Omit<ComponentProps<"p">, "id"> & WithAsChild) => {
+}: Omit<ComponentProps<"p">, "id"> & WithAsChild & WithDataSlot) => {
 	const { descriptionId, disabled, labelRef } = useChoiceContext("Description");
 	const radioItem = useContext(RadioItemContext);
 	useIsomorphicLayoutEffect(
@@ -484,7 +507,7 @@ const Description = ({
 	return (
 		<Comp
 			ref={ref}
-			data-slot="choice-description"
+			data-slot={joinDataSlot(dataSlot, "choice-description")}
 			className={cx(
 				"text-body text-sm leading-4",
 				// The description extends the label's click target, so it shares the

@@ -5,6 +5,8 @@ import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 
 /**
  * The `<Table.Root>` is the root container element for all `Table`s.
@@ -61,13 +63,19 @@ import { cx } from "../../utils/cx/cx.js";
  *
  * @see https://mantle.ngrok.com/components/data-display/table#tableroot
  */
-const Root = ({ children, className, ref, ...props }: ComponentProps<"div">) => {
+const Root = ({
+	"data-slot": dataSlot,
+	children,
+	className,
+	ref,
+	...props
+}: ComponentProps<"div"> & WithDataSlot) => {
 	const horizontalOverflow = useHorizontalOverflowObserver<ComponentRef<"div">>();
 	const scrollContainerRef = useComposedRefs(horizontalOverflow.ref, ref);
 
 	return (
 		<div
-			data-slot="table"
+			data-slot={joinDataSlot(dataSlot, "table")}
 			className={cx(
 				"group/table relative w-full overflow-hidden rounded-lg border border-card bg-white dark:bg-gray-100",
 				className,
@@ -166,10 +174,16 @@ const Root = ({ children, className, ref, ...props }: ComponentProps<"div">) => 
  *
  * @see https://mantle.ngrok.com/components/data-display/table#tableelement
  */
-const Element = ({ children, className, ref, ...props }: ComponentProps<"table">) => {
+const Element = ({
+	"data-slot": dataSlot,
+	children,
+	className,
+	ref,
+	...props
+}: ComponentProps<"table"> & WithDataSlot) => {
 	return (
 		<table
-			data-slot="table-element"
+			data-slot={joinDataSlot(dataSlot, "table-element")}
 			ref={ref}
 			className={cx(
 				"table-auto border-separate border-spacing-0 caption-bottom w-full min-w-full text-left",
@@ -229,9 +243,15 @@ const Element = ({ children, className, ref, ...props }: ComponentProps<"table">
  *
  * @see https://mantle.ngrok.com/components/data-display/table#tablehead
  */
-const Head = ({ children, className, ref, ...props }: ComponentProps<"thead">) => (
+const Head = ({
+	"data-slot": dataSlot,
+	children,
+	className,
+	ref,
+	...props
+}: ComponentProps<"thead"> & WithDataSlot) => (
 	<thead
-		data-slot="table-head"
+		data-slot={joinDataSlot(dataSlot, "table-head")}
 		ref={ref}
 		className={cx(
 			//,
@@ -294,9 +314,15 @@ const Head = ({ children, className, ref, ...props }: ComponentProps<"thead">) =
  *
  * @see https://mantle.ngrok.com/components/data-display/table#tablebody
  */
-const Body = ({ children, className, ref, ...props }: ComponentProps<"tbody">) => (
+const Body = ({
+	"data-slot": dataSlot,
+	children,
+	className,
+	ref,
+	...props
+}: ComponentProps<"tbody"> & WithDataSlot) => (
 	<tbody
-		data-slot="table-body"
+		data-slot={joinDataSlot(dataSlot, "table-body")}
 		className={cx(
 			//,
 			// In border-separate, <tr>/<tbody> borders don't render, so apply
@@ -363,9 +389,15 @@ const Body = ({ children, className, ref, ...props }: ComponentProps<"tbody">) =
  *
  * @see https://mantle.ngrok.com/components/data-display/table#tablefoot
  */
-const Foot = ({ children, className, ref, ...props }: ComponentProps<"tfoot">) => (
+const Foot = ({
+	"data-slot": dataSlot,
+	children,
+	className,
+	ref,
+	...props
+}: ComponentProps<"tfoot"> & WithDataSlot) => (
 	<tfoot
-		data-slot="table-foot"
+		data-slot={joinDataSlot(dataSlot, "table-foot")}
 		ref={ref}
 		className={cx(
 			//,
@@ -427,8 +459,13 @@ const Foot = ({ children, className, ref, ...props }: ComponentProps<"tfoot">) =
  *
  * @see https://mantle.ngrok.com/components/data-display/table#tablerow
  */
-const Row = ({ children, ref, ...props }: ComponentProps<"tr">) => (
-	<tr data-slot="table-row" ref={ref} {...props}>
+const Row = ({
+	"data-slot": dataSlot,
+	children,
+	ref,
+	...props
+}: ComponentProps<"tr"> & WithDataSlot) => (
+	<tr data-slot={joinDataSlot(dataSlot, "table-row")} ref={ref} {...props}>
 		{children}
 	</tr>
 );
@@ -480,9 +517,16 @@ const Row = ({ children, ref, ...props }: ComponentProps<"tr">) => (
  *
  * @see https://mantle.ngrok.com/components/data-display/table#tableheader
  */
-const Header = ({ children, className, ref, scope = "col", ...props }: ComponentProps<"th">) => (
+const Header = ({
+	"data-slot": dataSlot,
+	children,
+	className,
+	ref,
+	scope = "col",
+	...props
+}: ComponentProps<"th"> & WithDataSlot) => (
 	<th
-		data-slot="table-header"
+		data-slot={joinDataSlot(dataSlot, "table-header")}
 		ref={ref}
 		scope={scope}
 		// `px-3` must equal the horizontal padding on `Table.Cell`, or the column label
@@ -541,9 +585,15 @@ const Header = ({ children, className, ref, scope = "col", ...props }: Component
  *
  * @see https://mantle.ngrok.com/components/data-display/table#tablecell
  */
-const Cell = ({ children, className, ref, ...props }: ComponentProps<"td">) => (
+const Cell = ({
+	"data-slot": dataSlot,
+	children,
+	className,
+	ref,
+	...props
+}: ComponentProps<"td"> & WithDataSlot) => (
 	<td
-		data-slot="table-cell"
+		data-slot={joinDataSlot(dataSlot, "table-cell")}
 		ref={ref}
 		className={cx("p-3 align-middle [&:has([role=checkbox])]:pr-0 font-mono text-mono", className)}
 		{...props}
@@ -596,9 +646,15 @@ const Cell = ({ children, className, ref, ...props }: ComponentProps<"td">) => (
  *
  * @see https://mantle.ngrok.com/components/data-display/table#tablecaption
  */
-const Caption = ({ children, className, ref, ...props }: ComponentProps<"caption">) => (
+const Caption = ({
+	"data-slot": dataSlot,
+	children,
+	className,
+	ref,
+	...props
+}: ComponentProps<"caption"> & WithDataSlot) => (
 	<caption
-		data-slot="table-caption"
+		data-slot={joinDataSlot(dataSlot, "table-caption")}
 		ref={ref}
 		className={cx("py-4 text-sm text-gray-500", "border-t border-card-muted", className)}
 		{...props}

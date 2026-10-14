@@ -47,6 +47,8 @@ import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-eff
 import { getPrefersReducedMotion } from "../../hooks/use-prefers-reduced-motion.js";
 import { composeRefs } from "../../utils/compose-refs/compose-refs.js";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { useLayerContainer } from "../../utils/layer-container/layer-container.js";
 import { FieldControlContext } from "../field/field-context.js";
 import { parseValidation, useFieldValidation } from "../field/validation.js";
@@ -158,7 +160,7 @@ const Root = ({ children, defaultSelectedValue = EMPTY_ARRAY, ...props }: MultiS
 	);
 };
 
-type MultiSelectTriggerProps = ComponentProps<"div"> & WithValidation;
+type MultiSelectTriggerProps = ComponentProps<"div"> & WithValidation & WithDataSlot;
 
 /**
  * The trigger container for the multi-select. Wraps the input and selected
@@ -183,6 +185,7 @@ type MultiSelectTriggerProps = ComponentProps<"div"> & WithValidation;
  * ```
  */
 const Trigger = ({
+	"data-slot": dataSlot,
 	"aria-invalid": _ariaInvalid,
 	className,
 	children,
@@ -207,7 +210,7 @@ const Trigger = ({
 			// the container itself is not a control, and the input and the tag list
 			// carry the semantics.
 			role="presentation"
-			data-slot="multi-select-trigger"
+			data-slot={joinDataSlot(dataSlot, "multi-select-trigger")}
 			className={cx(
 				"cursor-text select-none font-sans text-sm",
 				"border-form bg-form text-strong flex min-h-9 w-full flex-wrap items-center gap-1 rounded-md border px-3 py-1 has-[[data-slot=multi-select-tag]]:px-1",
@@ -262,7 +265,7 @@ type TagProps = Omit<ComponentProps<"span">, "children"> & {
 	 * Delete/Backspace key presses are ignored while the tag is focused.
 	 */
 	locked?: boolean;
-};
+} & WithDataSlot;
 
 /**
  * The default tag rendered inside `MultiSelect.TagValues` for each selected value.
@@ -300,6 +303,7 @@ type TagProps = Omit<ComponentProps<"span">, "children"> & {
  * ```
  */
 const Tag = ({
+	"data-slot": dataSlot,
 	className,
 	value,
 	onRemove,
@@ -321,7 +325,7 @@ const Tag = ({
 			ref={composeRefs(internalRef, ref)}
 			role="listitem"
 			tabIndex={-1}
-			data-slot="multi-select-tag"
+			data-slot={joinDataSlot(dataSlot, "multi-select-tag")}
 			data-active={isActive || undefined}
 			data-locked={locked || undefined}
 			className={cx(
@@ -729,7 +733,7 @@ type MultiSelectInputProps = Omit<AriakitComboboxProps, "render"> & {
 	 * having to unwrap the DOM event. A convenience alternative to `onChange`.
 	 */
 	onValueChange?: (value: string) => void;
-};
+} & WithDataSlot;
 
 /**
  * The combobox input for filtering items. Place this inside `MultiSelect.Trigger`,
@@ -761,6 +765,7 @@ type MultiSelectInputProps = Omit<AriakitComboboxProps, "render"> & {
  * ```
  */
 const Input = ({
+	"data-slot": dataSlot,
 	className,
 	onBlur,
 	onChange,
@@ -781,7 +786,7 @@ const Input = ({
 	return (
 		<AriakitCombobox
 			autoSelect
-			data-slot="multi-select-input"
+			data-slot={joinDataSlot(dataSlot, "multi-select-input")}
 			className={cx(
 				"pointer-coarse:text-base min-w-20 flex-1 select-text border-0 bg-transparent text-sm outline-hidden",
 				"placeholder:select-none placeholder:text-placeholder",
@@ -801,7 +806,7 @@ const Input = ({
 				// open so the user can see the list while navigating tags.
 				if (
 					event.relatedTarget instanceof HTMLElement &&
-					event.relatedTarget.closest('[data-slot="multi-select-tag"]')
+					event.relatedTarget.closest('[data-slot~="multi-select-tag"]')
 				) {
 					store?.show();
 				}
@@ -830,7 +835,9 @@ const Input = ({
 	);
 };
 
-type MultiSelectContentProps = Omit<AriakitComboboxPopoverProps, "render"> & WithAsChild;
+type MultiSelectContentProps = Omit<AriakitComboboxPopoverProps, "render"> &
+	WithAsChild &
+	WithDataSlot;
 
 /**
  * Renders a popover that contains multi-select content, such as items, groups,
@@ -864,6 +871,7 @@ type MultiSelectContentProps = Omit<AriakitComboboxPopoverProps, "render"> & Wit
  * ```
  */
 const Content = ({
+	"data-slot": dataSlot,
 	asChild = false,
 	backdrop = false,
 	children,
@@ -927,7 +935,7 @@ const Content = ({
 
 	return (
 		<AriakitComboboxPopover
-			data-slot="multi-select-content"
+			data-slot={joinDataSlot(dataSlot, "multi-select-content")}
 			className={cx(
 				"border-popover bg-popover relative z-50 max-h-96 min-w-32 scrollbar overflow-y-scroll overflow-x-hidden overscroll-y-none rounded-md border shadow-md pt-1 pb-1 has-data-content-footer:pb-0 font-sans flex flex-col gap-px focus:outline-hidden",
 				className,
@@ -966,7 +974,7 @@ const renderItemLabel = (label: ReactNode) => (
 /**
  * Props for `MultiSelect.Item`.
  */
-type MultiSelectItemProps = Omit<AriakitComboboxItemProps, "render"> & WithAsChild;
+type MultiSelectItemProps = Omit<AriakitComboboxItemProps, "render"> & WithAsChild & WithDataSlot;
 
 /**
  * Renders a selectable item inside a `MultiSelect.Content` component.
@@ -1009,6 +1017,7 @@ type MultiSelectItemProps = Omit<AriakitComboboxItemProps, "render"> & WithAsChi
  * ```
  */
 const Item = ({
+	"data-slot": dataSlot,
 	asChild = false,
 	children,
 	className,
@@ -1055,7 +1064,7 @@ const Item = ({
 
 	return (
 		<AriakitComboboxItem
-			data-slot="multi-select-item"
+			data-slot={joinDataSlot(dataSlot, "multi-select-item")}
 			className={cx(
 				"relative mx-1 cursor-pointer rounded-md pl-2 pr-8 py-1.5 text-strong text-sm font-normal flex min-w-0 items-center gap-2",
 				"[[role=option]+&]:mt-px",
@@ -1085,7 +1094,7 @@ const Item = ({
 	);
 };
 
-type MultiSelectGroupProps = Omit<AriakitComboboxGroupProps, "render"> & WithAsChild;
+type MultiSelectGroupProps = Omit<AriakitComboboxGroupProps, "render"> & WithAsChild & WithDataSlot;
 
 /**
  * Renders a group for MultiSelect.Item elements.
@@ -1109,10 +1118,16 @@ type MultiSelectGroupProps = Omit<AriakitComboboxGroupProps, "render"> & WithAsC
  * </MultiSelect.Root>
  * ```
  */
-const Group = ({ asChild = false, children, ref, ...props }: MultiSelectGroupProps) => {
+const Group = ({
+	"data-slot": dataSlot,
+	asChild = false,
+	children,
+	ref,
+	...props
+}: MultiSelectGroupProps) => {
 	return (
 		<AriakitComboboxGroup
-			data-slot="multi-select-group"
+			data-slot={joinDataSlot(dataSlot, "multi-select-group")}
 			className="mx-1"
 			ref={ref}
 			render={asChild ? ({ ref, ...childProps }) => <Slot ref={ref} {...childProps} /> : undefined}
@@ -1123,7 +1138,9 @@ const Group = ({ asChild = false, children, ref, ...props }: MultiSelectGroupPro
 	);
 };
 
-type MultiSelectGroupLabelProps = Omit<AriakitComboboxGroupLabelProps, "render"> & WithAsChild;
+type MultiSelectGroupLabelProps = Omit<AriakitComboboxGroupLabelProps, "render"> &
+	WithAsChild &
+	WithDataSlot;
 
 /**
  * Renders a label in a multi-select group.
@@ -1147,6 +1164,7 @@ type MultiSelectGroupLabelProps = Omit<AriakitComboboxGroupLabelProps, "render">
  * ```
  */
 const GroupLabel = ({
+	"data-slot": dataSlot,
 	asChild = false,
 	children,
 	className,
@@ -1155,7 +1173,7 @@ const GroupLabel = ({
 }: MultiSelectGroupLabelProps) => {
 	return (
 		<AriakitComboboxGroupLabel
-			data-slot="multi-select-group-label"
+			data-slot={joinDataSlot(dataSlot, "multi-select-group-label")}
 			className={cx("text-muted px-2 py-1 text-xs font-medium", className)}
 			ref={ref}
 			render={asChild ? ({ ref, ...childProps }) => <Slot ref={ref} {...childProps} /> : undefined}
@@ -1166,7 +1184,7 @@ const GroupLabel = ({
 	);
 };
 
-type MultiSelectGroupDescriptionProps = ComponentProps<"p">;
+type MultiSelectGroupDescriptionProps = ComponentProps<"p"> & WithDataSlot;
 
 /**
  * Renders a description below a `MultiSelect.GroupLabel` inside a `MultiSelect.Group`.
@@ -1194,6 +1212,7 @@ type MultiSelectGroupDescriptionProps = ComponentProps<"p">;
  * ```
  */
 const GroupDescription = ({
+	"data-slot": dataSlot,
 	className,
 	children,
 	ref,
@@ -1201,7 +1220,7 @@ const GroupDescription = ({
 }: MultiSelectGroupDescriptionProps) => {
 	return (
 		<p
-			data-slot="multi-select-group-description"
+			data-slot={joinDataSlot(dataSlot, "multi-select-group-description")}
 			className={cx("text-muted px-2 pb-1 text-xs", className)}
 			ref={ref}
 			{...props}
@@ -1236,19 +1255,20 @@ const GroupDescription = ({
  * ```
  */
 const MultiSelectSeparatorComponent = ({
+	"data-slot": dataSlot,
 	className,
 	ref,
 	...props
-}: ComponentProps<typeof Separator>) => (
+}: ComponentProps<typeof Separator> & WithDataSlot) => (
 	<Separator
-		data-slot="multi-select-separator"
+		data-slot={joinDataSlot(dataSlot, "multi-select-separator")}
 		ref={ref}
 		className={cx("my-1 w-auto", className)}
 		{...props}
 	/>
 );
 
-type MultiSelectEmptyProps = ComponentProps<"div">;
+type MultiSelectEmptyProps = ComponentProps<"div"> & WithDataSlot;
 
 /**
  * Renders a message when no items match the current filter.
@@ -1270,10 +1290,16 @@ type MultiSelectEmptyProps = ComponentProps<"div">;
  * </MultiSelect.Root>
  * ```
  */
-const Empty = ({ className, children, ref, ...props }: MultiSelectEmptyProps) => {
+const Empty = ({
+	"data-slot": dataSlot,
+	className,
+	children,
+	ref,
+	...props
+}: MultiSelectEmptyProps) => {
 	return (
 		<div
-			data-slot="multi-select-empty"
+			data-slot={joinDataSlot(dataSlot, "multi-select-empty")}
 			className={cx("mx-1 text-muted px-2 py-6 text-center text-sm", className)}
 			ref={ref}
 			role="presentation"
@@ -1284,7 +1310,7 @@ const Empty = ({ className, children, ref, ...props }: MultiSelectEmptyProps) =>
 	);
 };
 
-type MultiSelectContentFooterProps = ComponentProps<"div">;
+type MultiSelectContentFooterProps = ComponentProps<"div"> & WithDataSlot;
 
 /**
  * Renders a sticky footer pinned to the bottom inside `MultiSelect.Content`,
@@ -1309,11 +1335,17 @@ type MultiSelectContentFooterProps = ComponentProps<"div">;
  * </MultiSelect.Root>
  * ```
  */
-const ContentFooter = ({ className, children, ref, ...props }: MultiSelectContentFooterProps) => {
+const ContentFooter = ({
+	"data-slot": dataSlot,
+	className,
+	children,
+	ref,
+	...props
+}: MultiSelectContentFooterProps) => {
 	return (
 		<div
 			ref={ref}
-			data-slot="multi-select-content-footer"
+			data-slot={joinDataSlot(dataSlot, "multi-select-content-footer")}
 			data-content-footer
 			className={cx("bg-popover sticky bottom-0 border-t border-popover", className)}
 			{...props}
