@@ -3,6 +3,8 @@ import type { ComponentProps } from "react";
 import { parseBooleanish } from "../../types/booleanish.js";
 import { clsx } from "../../utils/cx/clsx.js";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { parseValidation, useFieldValidation } from "../field/validation.js";
 import type { WithValidation } from "../field/validation.js";
 
@@ -12,7 +14,7 @@ type SwitchProps = ComponentProps<typeof SwitchPrimitiveRoot> &
 		 * Makes the switch immutable, meaning the user can not edit the control.
 		 */
 		readOnly?: boolean;
-	};
+	} & WithDataSlot;
 
 /**
  * A form control that toggles one setting on or off. Unlike `Checkbox`, it has no
@@ -35,6 +37,7 @@ type SwitchProps = ComponentProps<typeof SwitchPrimitiveRoot> &
  * ```
  */
 const Switch = ({
+	"data-slot": dataSlot,
 	"aria-invalid": _ariaInvalid,
 	"aria-readonly": _ariaReadOnly,
 	className,
@@ -55,7 +58,7 @@ const Switch = ({
 		<SwitchPrimitiveRoot
 			aria-invalid={ariaInvalid}
 			aria-readonly={readOnly}
-			data-slot="switch"
+			data-slot={joinDataSlot(dataSlot, "switch")}
 			data-validation={validation || undefined}
 			className={cx(
 				"peer inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full outline-hidden",

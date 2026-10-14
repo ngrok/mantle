@@ -27,6 +27,8 @@ import type {
 import type { WithAsChild } from "../../types/as-child.js";
 import { clsx } from "../../utils/cx/clsx.js";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { FieldControlContext } from "../field/field-context.js";
 import { isInput } from "../input/is-input.js";
 import { Slot } from "../slot/index.js";
@@ -34,7 +36,7 @@ import { RadioItemContext, type RadioItemContextValue } from "./radio-item-conte
 
 type RadioGroupProps = PropsWithChildren<Omit<HeadlessRadioGroupProps, "as" | "children">> & {
 	ref?: Ref<HTMLElement>;
-};
+} & WithDataSlot;
 
 /**
  * A group of radio items. It manages the state of the children radios. Unstyled and simple.
@@ -63,8 +65,8 @@ type RadioGroupProps = PropsWithChildren<Omit<HeadlessRadioGroupProps, "as" | "c
  * </RadioGroup.Root>
  * ```
  */
-const Root = ({ ref, ...props }: RadioGroupProps) => (
-	<HeadlessRadioGroup data-slot="radio-group" {...props} ref={ref} />
+const Root = ({ "data-slot": dataSlot, ref, ...props }: RadioGroupProps) => (
+	<HeadlessRadioGroup data-slot={joinDataSlot(dataSlot, "radio-group")} {...props} ref={ref} />
 );
 
 /**
@@ -163,7 +165,7 @@ const RadioElement = ({ children, ref, tag: Tag = "div", ...props }: RadioElemen
 type RadioItemProps = Omit<HeadlessRadioProps, "children"> &
 	PropsWithChildren & {
 		ref?: Ref<HTMLDivElement>;
-	};
+	} & WithDataSlot;
 
 /**
  * A simple radio item that can be used inside a radio group. The "conventional" use-case.
@@ -188,10 +190,17 @@ type RadioItemProps = Omit<HeadlessRadioProps, "children"> &
  * </RadioGroup.Root>
  * ```
  */
-const Item = ({ as: tag, children, className, ref, ...props }: RadioItemProps) => {
+const Item = ({
+	"data-slot": dataSlot,
+	as: tag,
+	children,
+	className,
+	ref,
+	...props
+}: RadioItemProps) => {
 	return (
 		<HeadlessRadio
-			data-slot="radio-group-item"
+			data-slot={joinDataSlot(dataSlot, "radio-group-item")}
 			className={cx(
 				"group/radio cursor-pointer aria-disabled:cursor-default [&_label]:cursor-inherit flex gap-2 py-1 text-sm focus:outline-hidden",
 				// Why the gate: the default indicator draws the focus ring on its circle.
@@ -216,7 +225,7 @@ type RadioIndicatorProps = Omit<HTMLAttributes<HTMLDivElement>, "children"> & {
 	 * control, and a `<div>` has no `name` attribute.
 	 */
 	name?: string;
-};
+} & WithDataSlot;
 
 /**
  * The circle `RadioGroup.Indicator` draws when a consumer passes no children.
@@ -256,12 +265,18 @@ const DefaultRadioIndicator = ({ checked, disabled, focus, hover }: RadioStateCo
  * </RadioGroup.Item>
  * ```
  */
-const Indicator = ({ children, className, name: _name, ...props }: RadioIndicatorProps) => {
+const Indicator = ({
+	"data-slot": dataSlot,
+	children,
+	className,
+	name: _name,
+	...props
+}: RadioIndicatorProps) => {
 	const ctx = useContext(RadioStateContext);
 
 	return (
 		<div
-			data-slot="radio-group-indicator"
+			data-slot={joinDataSlot(dataSlot, "radio-group-indicator")}
 			className={cx(
 				"radio-indicator inline-flex size-5 select-none items-center justify-center shrink-0",
 				className,
@@ -302,10 +317,10 @@ const Indicator = ({ children, className, name: _name, ...props }: RadioIndicato
  * </RadioGroup.Root>
  * ```
  */
-const List = ({ className, ref, ...props }: RadioGroupProps) => {
+const List = ({ "data-slot": dataSlot, className, ref, ...props }: RadioGroupProps) => {
 	return (
 		<Root
-			data-slot="radio-group-list"
+			data-slot={joinDataSlot(dataSlot, "radio-group-list")}
 			className={clsx("-space-y-px", className)}
 			{...props}
 			ref={ref}
@@ -313,7 +328,7 @@ const List = ({ className, ref, ...props }: RadioGroupProps) => {
 	);
 };
 
-type RadioListItemProps = RadioItemProps;
+type RadioListItemProps = RadioItemProps & WithDataSlot;
 
 /**
  * A radio list item that is used inside a `RadioGroup.List`.
@@ -347,10 +362,17 @@ type RadioListItemProps = RadioItemProps;
  * </RadioGroup.Root>
  * ```
  */
-const ListItem = ({ as: tag, children, className, ref, ...props }: RadioListItemProps) => {
+const ListItem = ({
+	"data-slot": dataSlot,
+	as: tag,
+	children,
+	className,
+	ref,
+	...props
+}: RadioListItemProps) => {
 	return (
 		<HeadlessRadio
-			data-slot="radio-group-list-item"
+			data-slot={joinDataSlot(dataSlot, "radio-group-list-item")}
 			className={cx(
 				"group/radio border-form [&_label]:cursor-inherit relative flex select-none gap-2 border px-3 py-2 text-sm",
 				"cursor-pointer aria-disabled:cursor-default focus:outline-hidden",
@@ -371,9 +393,9 @@ const ListItem = ({ as: tag, children, className, ref, ...props }: RadioListItem
 	);
 };
 
-type RadioItemContentProps = HTMLAttributes<HTMLDivElement> & WithAsChild;
+type RadioItemContentProps = HTMLAttributes<HTMLDivElement> & WithAsChild & WithDataSlot;
 
-type RadioCardProps = RadioItemProps;
+type RadioCardProps = RadioItemProps & WithDataSlot;
 
 /**
  * A radio card item. Use it as a child of `RadioGroup`
@@ -407,10 +429,17 @@ type RadioCardProps = RadioItemProps;
  * </RadioGroup.Root>
  * ```
  */
-const Card = ({ as: tag, children, className, ref, ...props }: RadioCardProps) => {
+const Card = ({
+	"data-slot": dataSlot,
+	as: tag,
+	children,
+	className,
+	ref,
+	...props
+}: RadioCardProps) => {
 	return (
 		<HeadlessRadio
-			data-slot="radio-group-card"
+			data-slot={joinDataSlot(dataSlot, "radio-group-card")}
 			className={clsx(
 				"group/radio border-card bg-card [&_label]:cursor-inherit relative rounded-md border p-4 text-sm",
 				"cursor-pointer aria-disabled:cursor-default focus:outline-hidden",
@@ -449,13 +478,19 @@ const Card = ({ as: tag, children, className, ref, ...props }: RadioCardProps) =
  * </RadioGroup.Root>
  * ```
  */
-const ItemContent = ({ asChild = false, children, className, ...props }: RadioItemContentProps) => {
+const ItemContent = ({
+	"data-slot": dataSlot,
+	asChild = false,
+	children,
+	className,
+	...props
+}: RadioItemContentProps) => {
 	const ctx = useContext(RadioStateContext);
 	const Component = asChild ? Slot : "div";
 
 	return (
 		<Component
-			data-slot="radio-group-item-content"
+			data-slot={joinDataSlot(dataSlot, "radio-group-item-content")}
 			className={clsx("min-w-0 flex-1", ctx.disabled && "opacity-50", className)}
 			{...props}
 		>
@@ -482,10 +517,10 @@ const ItemContent = ({ asChild = false, children, className, ...props }: RadioIt
  * </RadioGroup.ButtonGroup>
  * ```
  */
-const ButtonGroup = ({ className, ref, ...props }: RadioGroupProps) => {
+const ButtonGroup = ({ "data-slot": dataSlot, className, ref, ...props }: RadioGroupProps) => {
 	return (
 		<Root
-			data-slot="radio-group-button-group"
+			data-slot={joinDataSlot(dataSlot, "radio-group-button-group")}
 			className={clsx("flex flex-row flex-nowrap -space-x-px", className)}
 			{...props}
 			ref={ref}
@@ -493,7 +528,7 @@ const ButtonGroup = ({ className, ref, ...props }: RadioGroupProps) => {
 	);
 };
 
-type RadioButtonProps = RadioItemProps;
+type RadioButtonProps = RadioItemProps & WithDataSlot;
 
 /**
  * A radio button that is used inside a `RadioGroup.ButtonGroup`.
@@ -516,10 +551,17 @@ type RadioButtonProps = RadioItemProps;
  * </RadioGroup.ButtonGroup>
  * ```
  */
-const Button = ({ as: tag, children, className, ref, ...props }: RadioButtonProps) => {
+const Button = ({
+	"data-slot": dataSlot,
+	as: tag,
+	children,
+	className,
+	ref,
+	...props
+}: RadioButtonProps) => {
 	return (
 		<HeadlessRadio
-			data-slot="radio-group-button"
+			data-slot={joinDataSlot(dataSlot, "radio-group-button")}
 			className={cx(
 				"group/radio border-form [&_label]:cursor-inherit relative flex flex-1 select-none items-center justify-center gap-2 border px-3 text-sm",
 				"h-9",
@@ -541,7 +583,7 @@ const Button = ({ as: tag, children, className, ref, ...props }: RadioButtonProp
 	);
 };
 
-type RadioInputSandboxProps = HTMLAttributes<HTMLDivElement>;
+type RadioInputSandboxProps = HTMLAttributes<HTMLDivElement> & WithDataSlot;
 
 /**
  * A sandbox container for input elements composed within radio group items.
@@ -567,7 +609,13 @@ type RadioInputSandboxProps = HTMLAttributes<HTMLDivElement>;
  * </RadioGroup.Root>
  * ```
  */
-const InputSandbox = ({ children, onClick, onKeyDown, ...props }: RadioInputSandboxProps) => {
+const InputSandbox = ({
+	"data-slot": dataSlot,
+	children,
+	onClick,
+	onKeyDown,
+	...props
+}: RadioInputSandboxProps) => {
 	const ref = useRef<HTMLDivElement>(null);
 	const ctx = useContext(RadioStateContext);
 
@@ -579,7 +627,7 @@ const InputSandbox = ({ children, onClick, onKeyDown, ...props }: RadioInputSand
 	return (
 		<div
 			role="none"
-			data-slot="radio-group-input-sandbox"
+			data-slot={joinDataSlot(dataSlot, "radio-group-input-sandbox")}
 			ref={ref}
 			onKeyDown={(event) => {
 				if (ctx.disabled) {

@@ -44,7 +44,7 @@ describe("Toast", () => {
 					<Toast.Message>message</Toast.Message>
 				</Toast.Root>,
 			);
-			const icon = container.querySelector('[data-slot="toast-icon"]');
+			const icon = container.querySelector('[data-slot~="toast-icon"]');
 			expect(icon).not.toBeNull();
 			expect(icon).toHaveClass(toneClass);
 		});
@@ -59,7 +59,11 @@ describe("Toast", () => {
 						<Toast.Message>message</Toast.Message>
 					</Toast.Root>,
 				);
-				expect(screen.getByTestId("custom-icon")).toHaveAttribute("data-slot", "toast-icon");
+				// The part's slot joins ahead of the `Icon` and `SvgOnly` slots it composes.
+				expect(screen.getByTestId("custom-icon")).toHaveAttribute(
+					"data-slot",
+					"toast-icon icon svg-only",
+				);
 			},
 		);
 	});

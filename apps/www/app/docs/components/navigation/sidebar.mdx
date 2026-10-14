@@ -1654,11 +1654,11 @@ the panel surface in both presentations (the desktop collapse container and the 
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
-| Prop               | Type     | Default  | Description                                                                                                                                                   |
-| ------------------ | -------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `aria-label?`      | `string` | `"Main"` | Names the inner `<nav>` landmark, and the mobile `Sheet` dialog along with it. Override it for localization. Omitted when you pass `aria-labelledby` instead. |
-| `aria-labelledby?` | `string` | —        | Names the `<nav>` from another element's id, and names the mobile sheet dialog directly. Takes precedence over the `aria-label` default.                      |
-| `data-slot?`       | `string` | —        | An ancestor-forwarded `data-slot` chain, joined ahead of this part's own `sidebar-nav` rather than replacing it.                                              |
+| Prop               | Type     | Default  | Description                                                                                                                                                                                   |
+| ------------------ | -------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `aria-label?`      | `string` | `"Main"` | Names the inner `<nav>` landmark, and the mobile `Sheet` dialog along with it. Override it for localization. Omitted when you pass `aria-labelledby` instead.                                 |
+| `aria-labelledby?` | `string` | —        | Names the `<nav>` from another element's id, and names the mobile sheet dialog directly. Takes precedence over the `aria-label` default.                                                      |
+| `data-slot?`       | `string` | —        | An ancestor-forwarded `data-slot` chain, joined ahead of this part's own `sidebar-nav` rather than replacing it. In the mobile sheet, `Sheet.Content` joins its own `sheet-content` after it. |
 
 `Sidebar.Nav` takes no `asChild` — see [Polymorphism](#polymorphism).
 
@@ -1708,6 +1708,7 @@ after hydration reads the platform in its first render.
 | Data Attribute    | Value                                              | Description                                                                                                                                             |
 | ----------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `data-state`      | `"expanded"` \| `"collapsed"`                      | Mirrors what the trigger toggles: the mobile sheet below the root's `mobileBreakpoint`, the desktop panel otherwise. Pairs with `aria-expanded`.        |
+| `data-slot`       | `"sidebar-trigger icon-button"`                    | On the button: the part's slot, joined ahead of `IconButton`'s own.                                                                                     |
 | `data-slot`       | `"sidebar-trigger-tooltip tooltip-content"`        | On the tooltip surface, not the button: the styling hook for the label-and-chord popup this part renders, joined ahead of `Tooltip.Content`'s own slot. |
 | `data-state`      | `"delayed-open"` \| `"instant-open"` \| `"closed"` | Read, not stamped: on the tooltip surface, from `Tooltip.Content`.                                                                                      |
 | `data-side`       | `"top"` \| `"right"` \| `"bottom"` \| `"left"`     | Read, not stamped: on the tooltip surface, from `Tooltip.Content`.                                                                                      |

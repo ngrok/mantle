@@ -1,5 +1,7 @@
 import type { ComponentProps } from "react";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 
 /**
  * A square, centered keyboard "key" chip for rendering shortcut hints —
@@ -55,10 +57,15 @@ import { cx } from "../../utils/cx/cx.js";
  * </span>
  * ```
  */
-function Kbd({ children, className, ...props }: Omit<ComponentProps<"kbd">, "translate">) {
+function Kbd({
+	"data-slot": dataSlot,
+	children,
+	className,
+	...props
+}: Omit<ComponentProps<"kbd">, "translate"> & WithDataSlot) {
 	return (
 		<kbd
-			data-slot="kbd"
+			data-slot={joinDataSlot(dataSlot, "kbd")}
 			className={cx(
 				"[font-kerning:normal] [font-variant-ligatures:common-ligatures_contextual]",
 				"appearance-none tabular-nums inline-grid place-items-center size-5 bg-neutral-500/15 px-1 rounded text-mono leading-none font-mono",

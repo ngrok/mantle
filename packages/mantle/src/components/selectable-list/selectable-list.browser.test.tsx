@@ -350,7 +350,7 @@ describe("SelectableList (browser)", () => {
 			await user.keyboard("{ArrowDown}");
 		}
 
-		const viewport = grid.closest("[data-slot='selectable-list-viewport']");
+		const viewport = grid.closest("[data-slot~='selectable-list-viewport']");
 		const activeRow = document.querySelector("[role='row'][data-active]");
 		if (viewport == null || activeRow == null) {
 			throw new Error("viewport or active row not found");

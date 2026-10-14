@@ -5,6 +5,8 @@ import invariant from "tiny-invariant";
 import type { WithAsChild } from "../../types/index.js";
 import { parseBooleanish } from "../../types/index.js";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { Icon } from "../icon/index.js";
 import { Slot } from "../slot/index.js";
 import { disabledChildProps } from "./button.js";
@@ -87,7 +89,7 @@ type IconButtonProps = Omit<ComponentProps<"button">, "aria-label"> &
 		 * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#type
 		 */
 		type?: ComponentProps<"button">["type"];
-	};
+	} & WithDataSlot;
 
 /**
  * A button that renders one icon and nothing else. Its required `label` prop
@@ -152,6 +154,7 @@ type IconButtonProps = Omit<ComponentProps<"button">, "aria-label"> &
  */
 const IconButton = ({
 	"aria-disabled": _ariaDisabled,
+	"data-slot": dataSlot,
 	appearance,
 	asChild = false,
 	children,
@@ -174,7 +177,7 @@ const IconButton = ({
 
 	const buttonProps = {
 		"aria-disabled": disabled,
-		"data-slot": "icon-button",
+		"data-slot": joinDataSlot(dataSlot, "icon-button"),
 		className: cx(iconButtonVariants({ appearance, intent, isLoading, size }), className),
 		"data-appearance": appearance,
 		// Why presence-only: the `data-disabled:` variant matches the attribute,

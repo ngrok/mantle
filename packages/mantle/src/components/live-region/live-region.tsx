@@ -1,6 +1,8 @@
 import type { ComponentProps } from "react";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { Slot } from "../slot/index.js";
 
 type LiveRegionProps = ComponentProps<"span"> &
@@ -13,7 +15,7 @@ type LiveRegionProps = ComponentProps<"span"> &
 		 * @default "polite"
 		 */
 		politeness?: "polite" | "assertive";
-	};
+	} & WithDataSlot;
 
 /**
  * Announces its text to screen readers when the text changes. Renders a
@@ -68,6 +70,7 @@ type LiveRegionProps = ComponentProps<"span"> &
  * ```
  */
 const LiveRegion = ({
+	"data-slot": dataSlot,
 	asChild,
 	className,
 	politeness = "polite",
@@ -78,7 +81,7 @@ const LiveRegion = ({
 	return (
 		<Comp
 			ref={ref}
-			data-slot="live-region"
+			data-slot={joinDataSlot(dataSlot, "live-region")}
 			// Why a redundant aria-live next to role="status" only: some screen
 			// reader and browser pairs honor only one of the two, but the same
 			// pairing with role="alert" double-speaks in VoiceOver on iOS.

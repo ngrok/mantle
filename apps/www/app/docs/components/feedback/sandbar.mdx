@@ -642,14 +642,14 @@ All props from [Button](/components/actions/button), with these differences:
 | `intent?`     | `"accent" \| "danger" \| "neutral"`           | `"neutral"` | The Button intent, made optional with a default.     |
 | `children`    | `ReactNode`                                   | —           | Required — the visible action label is app voice.    |
 
-| Data Attribute    | Value                     | Description                                                                                      |
-| ----------------- | ------------------------- | ------------------------------------------------------------------------------------------------ |
-| `data-slot`       | `"sandbar-save-button"`   | Stable styling hook. Replaces `Button`'s own `data-slot="button"`, as every Button wrapper does. |
-| `data-appearance` | the resolved `appearance` | Stamped by [Button](/components/actions/button).                                                 |
-| `data-intent`     | the resolved `intent`     | Stamped by Button.                                                                               |
-| `data-size`       | the resolved `size`       | Stamped by Button; absent for `appearance="link"`.                                               |
-| `data-disabled`   | present when disabled     | Stamped by Button. Presence-only, never `"false"`.                                               |
-| `data-loading`    | present when `isLoading`  | Stamped by Button. Presence-only, never `"false"`.                                               |
+| Data Attribute    | Value                          | Description                                                   |
+| ----------------- | ------------------------------ | ------------------------------------------------------------- |
+| `data-slot`       | `"sandbar-save-button button"` | Stable styling hook, joined ahead of `Button`'s own `button`. |
+| `data-appearance` | the resolved `appearance`      | Stamped by [Button](/components/actions/button).              |
+| `data-intent`     | the resolved `intent`          | Stamped by Button.                                            |
+| `data-size`       | the resolved `size`            | Stamped by Button; absent for `appearance="link"`.            |
+| `data-disabled`   | present when disabled          | Stamped by Button. Presence-only, never `"false"`.            |
+| `data-loading`    | present when `isLoading`       | Stamped by Button. Presence-only, never `"false"`.            |
 
 ### Sandbar.DiscardButton
 
@@ -664,11 +664,11 @@ All props from [Button](/components/actions/button), with these differences:
 | `intent?`     | `"accent" \| "danger" \| "neutral"`           | `"neutral"`  | The Button intent, made optional with a default.     |
 | `children`    | `ReactNode`                                   | —            | Required — the visible action label is app voice.    |
 
-| Data Attribute    | Value                      | Description                                                                                      |
-| ----------------- | -------------------------- | ------------------------------------------------------------------------------------------------ |
-| `data-slot`       | `"sandbar-discard-button"` | Stable styling hook. Replaces `Button`'s own `data-slot="button"`, as every Button wrapper does. |
-| `data-appearance` | the resolved `appearance`  | Stamped by [Button](/components/actions/button).                                                 |
-| `data-intent`     | the resolved `intent`      | Stamped by Button.                                                                               |
-| `data-size`       | the resolved `size`        | Stamped by Button; absent for `appearance="link"`.                                               |
-| `data-disabled`   | present when disabled      | Stamped by Button. Presence-only, never `"false"`.                                               |
-| `data-loading`    | present when `isLoading`   | Stamped by Button. Presence-only, never `"false"`.                                               |
+| Data Attribute    | Value                             | Description                                                   |
+| ----------------- | --------------------------------- | ------------------------------------------------------------- |
+| `data-slot`       | `"sandbar-discard-button button"` | Stable styling hook, joined ahead of `Button`'s own `button`. |
+| `data-appearance` | the resolved `appearance`         | Stamped by [Button](/components/actions/button).              |
+| `data-intent`     | the resolved `intent`             | Stamped by Button.                                            |
+| `data-size`       | the resolved `size`               | Stamped by Button; absent for `appearance="link"`.            |
+| `data-disabled`   | present when disabled             | Stamped by Button. Presence-only, never `"false"`.            |
+| `data-loading`    | present when `isLoading`          | Stamped by Button. Presence-only, never `"false"`.            |

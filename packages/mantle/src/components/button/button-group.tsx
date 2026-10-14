@@ -3,6 +3,8 @@ import type { ComponentProps } from "react";
 import type { VariantProps } from "../../types/index.js";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { Slot } from "../slot/index.js";
 
 const buttonGroupVariants = cva("border-form inline-flex items-center rounded-md", {
@@ -21,7 +23,7 @@ const buttonGroupVariants = cva("border-form inline-flex items-center rounded-md
 
 type ButtonGroupVariants = VariantProps<typeof buttonGroupVariants>;
 
-type ButtonGroupProps = ComponentProps<"div"> & ButtonGroupVariants & WithAsChild;
+type ButtonGroupProps = ComponentProps<"div"> & ButtonGroupVariants & WithAsChild & WithDataSlot;
 
 /**
  * A contained group of related buttons.
@@ -41,6 +43,7 @@ type ButtonGroupProps = ComponentProps<"div"> & ButtonGroupVariants & WithAsChil
  * ```
  */
 const ButtonGroup = ({
+	"data-slot": dataSlot,
 	appearance,
 	asChild,
 	className,
@@ -51,7 +54,7 @@ const ButtonGroup = ({
 	const Comp = asChild ? Slot : "div";
 	return (
 		<Comp
-			data-slot="button-group"
+			data-slot={joinDataSlot(dataSlot, "button-group")}
 			className={cx(buttonGroupVariants({ appearance }), className)}
 			ref={ref}
 			{...props}

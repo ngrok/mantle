@@ -1378,14 +1378,14 @@ const defaultSidePanelTriggerIcon = <SidebarSimpleIcon mirrored />;
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
  * | `data-state` | `"open"` \| `"closed"` | Mirrors the root's open state. Pairs with `aria-expanded`. |
- * | `data-slot` | `"app-layout-side-panel-trigger"` | On the button. |
- * | `data-slot` | `"app-layout-side-panel-trigger-tooltip"` | On the tooltip surface, not the button: the styling hook for the label popup this part renders. |
+ * | `data-slot` | `"app-layout-side-panel-trigger icon-button"` | On the button: the part's slot, joined ahead of `IconButton`'s own. |
+ * | `data-slot` | `"app-layout-side-panel-trigger-tooltip tooltip-content"` | On the tooltip surface, not the button: the styling hook for the label popup this part renders, joined ahead of `Tooltip.Content`'s own slot. |
  * | `data-appearance` | `"filled"` \| `"ghost"` \| `"outlined"` | Read, not stamped: the underlying `IconButton` reflects its `appearance`, which this part defaults to `"ghost"`. |
  * | `data-intent` | `"neutral"` | Read, not stamped: the underlying `IconButton` reflects its `intent`, which this part defaults to `"neutral"`. |
  * | `data-size` | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | Read, not stamped: the underlying `IconButton` reflects its `size` and its own `"md"` default. |
  * | `data-icon-button` | `"true"` | Read, not stamped: always present on the underlying `IconButton`. |
- * | `data-loading` | `"true"` \| `"false"` | Read, not stamped: the underlying `IconButton` reflects its `isLoading` prop. |
- * | `data-disabled` | `"true"` \| `"false"` | Read, not stamped: the underlying `IconButton` sets it to `"true"` when `disabled`, `isLoading`, or `aria-disabled="true"`. |
+ * | `data-loading` | present when `isLoading` | Read, not stamped: the underlying `IconButton` stamps it by presence, never `"false"`. |
+ * | `data-disabled` | present when disabled | Read, not stamped: the underlying `IconButton` stamps it by presence, never `"false"`, when it resolves disabled: `disabled`, `aria-disabled="true"`, or `isLoading` with no explicit `disabled`. |
  *
  * @see https://mantle.ngrok.com/layouts/app-layout#applayoutsidepaneltrigger
  *

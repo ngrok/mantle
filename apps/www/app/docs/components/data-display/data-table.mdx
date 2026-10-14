@@ -1095,10 +1095,10 @@ A sticky-right `<th>` that pairs with `DataTable.ActionCell`. Use as the `header
 
 #### Data attributes
 
-| Data Attribute | Value                              | Description                          |
-| :------------- | :--------------------------------- | :----------------------------------- |
-| `data-slot`    | `"data-table-action-header"`       | On the `<th>`.                       |
-| `data-slot`    | `"data-table-action-header-label"` | On the `<span>` wrapping `children`. |
+| Data Attribute | Value                                     | Description                                               |
+| :------------- | :---------------------------------------- | :-------------------------------------------------------- |
+| `data-slot`    | `"data-table-action-header table-header"` | On the `<th>`, joined ahead of `Table.Header`'s own slot. |
+| `data-slot`    | `"data-table-action-header-label"`        | On the `<span>` wrapping `children`.                      |
 
 ### DataTable.ActionCell
 
@@ -1116,10 +1116,10 @@ A click inside the cell never reaches a clickable row: the cell stops propagatio
 
 #### Data attributes
 
-| Data Attribute | Value                            | Description                          |
-| :------------- | :------------------------------- | :----------------------------------- |
-| `data-slot`    | `"data-table-action-cell"`       | On the `<td>`.                       |
-| `data-slot`    | `"data-table-action-cell-label"` | On the `<span>` wrapping `children`. |
+| Data Attribute | Value                                 | Description                                             |
+| :------------- | :------------------------------------ | :------------------------------------------------------ |
+| `data-slot`    | `"data-table-action-cell table-cell"` | On the `<td>`, joined ahead of `Table.Cell`'s own slot. |
+| `data-slot`    | `"data-table-action-cell-label"`      | On the `<span>` wrapping `children`.                    |
 
 ### DataTable.ExpandHeader
 

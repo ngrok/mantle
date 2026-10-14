@@ -3,6 +3,8 @@
 import type { ComponentProps, MouseEvent } from "react";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { Root as ListPrimitiveRoot, Item as ListPrimitiveItem } from "./primitive.js";
 import type { ListRootProps as ListPrimitiveRootProps } from "./primitive.js";
 import { VirtualRoot as ListPrimitiveVirtualRoot } from "./virtual.js";
@@ -259,10 +261,15 @@ const Item = ({ asChild, className, current, disabled, onClick, ref, ...props }:
  * </List.Root>
  * ```
  */
-const ItemTitle = ({ className, ref, ...props }: ComponentProps<"span">) => (
+const ItemTitle = ({
+	"data-slot": dataSlot,
+	className,
+	ref,
+	...props
+}: ComponentProps<"span"> & WithDataSlot) => (
 	<span
 		ref={ref}
-		data-slot="list-item-title"
+		data-slot={joinDataSlot(dataSlot, "list-item-title")}
 		className={cx("text-strong font-medium", className)}
 		{...props}
 	/>
@@ -286,10 +293,15 @@ const ItemTitle = ({ className, ref, ...props }: ComponentProps<"span">) => (
  * </List.Root>
  * ```
  */
-const ItemDescription = ({ className, ref, ...props }: ComponentProps<"span">) => (
+const ItemDescription = ({
+	"data-slot": dataSlot,
+	className,
+	ref,
+	...props
+}: ComponentProps<"span"> & WithDataSlot) => (
 	<span
 		ref={ref}
-		data-slot="list-item-description"
+		data-slot={joinDataSlot(dataSlot, "list-item-description")}
 		className={cx("text-body leading-4", className)}
 		{...props}
 	/>

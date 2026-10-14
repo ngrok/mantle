@@ -686,14 +686,19 @@ describe("AppLayout.SidePanel", () => {
 			</TooltipProvider>,
 		);
 		const trigger = screen.getByRole("button", { name: "Toggle the assistant" });
-		expect(trigger).toHaveAttribute("data-slot", "app-layout-side-panel-trigger");
+		// The part's slot, then IconButton's own.
+		expect(trigger).toHaveAttribute("data-slot", "app-layout-side-panel-trigger icon-button");
 		expect(trigger).toHaveAttribute("data-appearance", "ghost");
 		expect(trigger).toHaveAttribute("data-intent", "neutral");
 		await user.hover(trigger);
 		const tooltip = await screen.findByRole("tooltip");
 		expect(tooltip).toHaveTextContent("Toggle the assistant");
-		// Why the slot: it is the documented styling hook for the label popup.
-		expect(tooltip).toHaveAttribute("data-slot", "app-layout-side-panel-trigger-tooltip");
+		// Why the slot: it is the documented styling hook for the label popup,
+		// joined ahead of Tooltip.Content's own.
+		expect(tooltip).toHaveAttribute(
+			"data-slot",
+			"app-layout-side-panel-trigger-tooltip tooltip-content",
+		);
 	});
 
 	test("the trigger forwards className, a ref, and arbitrary data-* to the rendered button", () => {
@@ -728,7 +733,8 @@ describe("AppLayout.SidePanel", () => {
 		);
 		expect(screen.getByRole("button", { name: "Toggle the assistant" })).toHaveAttribute(
 			"data-slot",
-			"app-shell app-layout-side-panel-trigger",
+			// The ancestor's chain, the part's slot, then IconButton's own.
+			"app-shell app-layout-side-panel-trigger icon-button",
 		);
 	});
 

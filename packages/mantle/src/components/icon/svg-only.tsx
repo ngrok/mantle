@@ -2,6 +2,8 @@ import type { ReactNode } from "react";
 import { Children, cloneElement, isValidElement } from "react";
 import invariant from "tiny-invariant";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import type { SvgAttributes } from "./types.js";
 
 type SvgOnlyProps = Omit<SvgAttributes, "children"> & {
@@ -9,7 +11,7 @@ type SvgOnlyProps = Omit<SvgAttributes, "children"> & {
 	 * A single SVG icon element.
 	 */
 	svg: ReactNode;
-};
+} & WithDataSlot;
 
 type NamedSvgProps = SvgAttributes & {
 	/**
@@ -61,7 +63,7 @@ const hasAccessibleNaming = (props: NamedSvgProps) =>
  * <SvgOnly svg={<ShrimpIcon />} role="img" aria-label="Shrimp" />
  * ```
  */
-const SvgOnly = ({ className, style, svg, ref, ...props }: SvgOnlyProps) => {
+const SvgOnly = ({ "data-slot": dataSlot, className, style, svg, ref, ...props }: SvgOnlyProps) => {
 	invariant(
 		isValidElement<NamedSvgProps>(svg) && Children.only(svg),
 		"SvgOnly must be passed a single SVG icon as a JSX tag.",
@@ -70,7 +72,7 @@ const SvgOnly = ({ className, style, svg, ref, ...props }: SvgOnlyProps) => {
 	const decorative = !hasAccessibleNaming(props) && !hasAccessibleNaming(svg.props);
 
 	return cloneElement(svg, {
-		"data-slot": "svg-only",
+		"data-slot": joinDataSlot(dataSlot, "svg-only"),
 		// Why before the spread: an explicit `aria-hidden` in props wins, and a
 		// named svg keeps its own attributes because `cloneElement` merges over them.
 		...(decorative && { "aria-hidden": true }),

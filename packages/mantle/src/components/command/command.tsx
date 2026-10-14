@@ -17,7 +17,7 @@ import { CommandDialogContext, useOptionalCommandDialog } from "./dialog-context
 import { CommandSearchTrigger } from "./search-trigger.js";
 import { useCommandShortcut } from "./use-command-shortcut.js";
 
-type CommandRootProps = ComponentProps<typeof CommandPrimitive>;
+type CommandRootProps = ComponentProps<typeof CommandPrimitive> & WithDataSlot;
 
 /**
  * The inline palette, wrapping `Command.Input` and `Command.List`. It owns the
@@ -53,9 +53,9 @@ type CommandRootProps = ComponentProps<typeof CommandPrimitive>;
  * </Command.DialogRoot>
  * ```
  */
-const CommandRoot = ({ className, ...props }: CommandRootProps) => (
+const CommandRoot = ({ "data-slot": dataSlot, className, ...props }: CommandRootProps) => (
 	<CommandPrimitive
-		data-slot="command"
+		data-slot={joinDataSlot(dataSlot, "command")}
 		className={cx("bg-popover flex h-full w-full flex-col overflow-hidden rounded-md", className)}
 		{...props}
 	/>
@@ -521,9 +521,13 @@ const CommandInput = ({
  * </Command.DialogRoot>
  * ```
  */
-const CommandList = ({ className, ...props }: ComponentProps<typeof CommandPrimitive.List>) => (
+const CommandList = ({
+	"data-slot": dataSlot,
+	className,
+	...props
+}: ComponentProps<typeof CommandPrimitive.List> & WithDataSlot) => (
 	<CommandPrimitive.List
-		data-slot="command-list"
+		data-slot={joinDataSlot(dataSlot, "command-list")}
 		className={cx("max-h-75 scroll-py-1 overflow-x-hidden overflow-y-auto scrollbar", className)}
 		{...props}
 	/>
@@ -566,7 +570,11 @@ const CommandList = ({ className, ...props }: ComponentProps<typeof CommandPrimi
  * </Command.DialogRoot>
  * ```
  */
-const CommandEmpty = ({ className, ...props }: ComponentProps<typeof CommandPrimitive.Empty>) => {
+const CommandEmpty = ({
+	"data-slot": dataSlot,
+	className,
+	...props
+}: ComponentProps<typeof CommandPrimitive.Empty> & WithDataSlot) => {
 	const isHydrated = useIsHydrated();
 	// Why: items register with cmdk in a layout effect, which never runs on the
 	// server, so the server counts zero matches and paints this above a full list.
@@ -575,7 +583,7 @@ const CommandEmpty = ({ className, ...props }: ComponentProps<typeof CommandPrim
 	}
 	return (
 		<CommandPrimitive.Empty
-			data-slot="command-empty"
+			data-slot={joinDataSlot(dataSlot, "command-empty")}
 			className={cx("py-6 text-center text-sm", className)}
 			{...props}
 		/>
@@ -614,9 +622,13 @@ const CommandEmpty = ({ className, ...props }: ComponentProps<typeof CommandPrim
  * </Command.DialogRoot>
  * ```
  */
-const CommandGroup = ({ className, ...props }: ComponentProps<typeof CommandPrimitive.Group>) => (
+const CommandGroup = ({
+	"data-slot": dataSlot,
+	className,
+	...props
+}: ComponentProps<typeof CommandPrimitive.Group> & WithDataSlot) => (
 	<CommandPrimitive.Group
-		data-slot="command-group"
+		data-slot={joinDataSlot(dataSlot, "command-group")}
 		className={cx(
 			"[&>[cmdk-group-heading]]:text-muted overflow-hidden p-1 [&>[cmdk-group-heading]]:px-2 [&>[cmdk-group-heading]]:py-1.5 [&>[cmdk-group-heading]]:text-xs [&>[cmdk-group-heading]]:font-medium",
 			className,
@@ -658,10 +670,15 @@ const CommandGroup = ({ className, ...props }: ComponentProps<typeof CommandPrim
  * ```
  */
 const CommandSeparator = ({
+	"data-slot": dataSlot,
 	className,
 	...props
-}: ComponentProps<typeof CommandPrimitive.Separator>) => (
-	<CommandPrimitive.Separator data-slot="command-separator" asChild {...props}>
+}: ComponentProps<typeof CommandPrimitive.Separator> & WithDataSlot) => (
+	<CommandPrimitive.Separator
+		data-slot={joinDataSlot(dataSlot, "command-separator")}
+		asChild
+		{...props}
+	>
 		<Separator className={cx("-mx-1 my-1 w-auto", className)} />
 	</CommandPrimitive.Separator>
 );
@@ -698,9 +715,13 @@ const CommandSeparator = ({
  * </Command.DialogRoot>
  * ```
  */
-const CommandItem = ({ className, ...props }: ComponentProps<typeof CommandPrimitive.Item>) => (
+const CommandItem = ({
+	"data-slot": dataSlot,
+	className,
+	...props
+}: ComponentProps<typeof CommandPrimitive.Item> & WithDataSlot) => (
 	<CommandPrimitive.Item
-		data-slot="command-item"
+		data-slot={joinDataSlot(dataSlot, "command-item")}
 		className={cx(
 			"data-[selected=true]:bg-active-menu-item [:where(&_svg)]:text-muted relative flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [:where(&_svg)]:size-5",
 			className,
@@ -742,9 +763,13 @@ const CommandItem = ({ className, ...props }: ComponentProps<typeof CommandPrimi
  * </Command.DialogRoot>
  * ```
  */
-const CommandShortcut = ({ className, ...props }: Omit<ComponentProps<"span">, "translate">) => (
+const CommandShortcut = ({
+	"data-slot": dataSlot,
+	className,
+	...props
+}: Omit<ComponentProps<"span">, "translate"> & WithDataSlot) => (
 	<span
-		data-slot="command-shortcut"
+		data-slot={joinDataSlot(dataSlot, "command-shortcut")}
 		className={cx("text-muted ml-auto text-xs tracking-widest", className)}
 		{...props}
 		// Why after the spread: a wider props object can still carry `translate`

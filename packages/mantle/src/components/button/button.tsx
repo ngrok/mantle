@@ -8,6 +8,8 @@ import type { WithAsChild } from "../../types/index.js";
 import type { VariantProps } from "../../types/variant-props.js";
 import { clsx } from "../../utils/cx/clsx.js";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { Icon } from "../icon/index.js";
 import { Slot } from "../slot/index.js";
 import type { ButtonIntent } from "./intents.js";
@@ -218,7 +220,7 @@ type ButtonProps = ComponentProps<"button"> &
 		 * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#type
 		 */
 		type?: ComponentProps<"button">["type"];
-	};
+	} & WithDataSlot;
 
 /**
  * Renders a button or a component that looks like a button, an interactive
@@ -292,6 +294,7 @@ type ButtonProps = ComponentProps<"button"> &
  */
 const Button = ({
 	"aria-disabled": _ariaDisabled,
+	"data-slot": dataSlot,
 	appearance,
 	asChild,
 	children,
@@ -319,7 +322,7 @@ const Button = ({
 
 	const buttonProps = {
 		"aria-disabled": disabled,
-		"data-slot": "button",
+		"data-slot": joinDataSlot(dataSlot, "button"),
 		className: cx(
 			"inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md",
 			"focus:outline-hidden focus-visible:ring-4",

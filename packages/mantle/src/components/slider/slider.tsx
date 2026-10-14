@@ -9,6 +9,8 @@ import {
 import type { ComponentProps } from "react";
 import { useContext } from "react";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { FieldControlContext } from "../field/field-context.js";
 
 type SliderBaseProps = Omit<ComponentProps<typeof SliderPrimitiveRoot>, "defaultValue" | "value">;
@@ -61,7 +63,7 @@ type SliderProps = SliderBaseProps &
 		 * @default false
 		 */
 		showTicks?: boolean;
-	};
+	} & WithDataSlot;
 
 /**
  * An input where the user selects a value from within a given range.
@@ -111,6 +113,7 @@ type SliderProps = SliderBaseProps &
  * ```
  */
 function Slider({
+	"data-slot": dataSlot,
 	"aria-describedby": ariaDescribedBy,
 	"aria-errormessage": ariaErrorMessage,
 	"aria-invalid": ariaInvalid,
@@ -142,7 +145,7 @@ function Slider({
 
 	return (
 		<SliderPrimitiveRoot
-			data-slot="slider"
+			data-slot={joinDataSlot(dataSlot, "slider")}
 			defaultValue={normalizedDefaultValue}
 			value={normalizedValue}
 			{...(fieldControl

@@ -1,6 +1,8 @@
 import type { ComponentProps, ReactNode } from "react";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { SvgOnly } from "../icon/svg-only.js";
 import type { SvgAttributes } from "../icon/types.js";
 import { Slot } from "../slot/index.js";
@@ -23,12 +25,18 @@ import { Slot } from "../slot/index.js";
  * </Empty.Root>
  * ```
  */
-const Root = ({ asChild, children, className, ...props }: ComponentProps<"div"> & WithAsChild) => {
+const Root = ({
+	"data-slot": dataSlot,
+	asChild,
+	children,
+	className,
+	...props
+}: ComponentProps<"div"> & WithAsChild & WithDataSlot) => {
 	const Comp = asChild ? Slot : "div";
 
 	return (
 		<Comp
-			data-slot="empty"
+			data-slot={joinDataSlot(dataSlot, "empty")}
 			className={cx("mx-auto flex max-w-lg flex-col items-center p-6 text-center", className)}
 			{...props}
 		>
@@ -42,7 +50,7 @@ type EmptyIconProps = Omit<SvgAttributes, "children"> & {
 	 * A single SVG icon element.
 	 */
 	svg: ReactNode;
-};
+} & WithDataSlot;
 
 /**
  * Renders a large icon for the empty state. Pass a single SVG icon element
@@ -62,10 +70,10 @@ type EmptyIconProps = Omit<SvgAttributes, "children"> & {
  * </Empty.Root>
  * ```
  */
-const Icon = ({ className, svg, ...props }: EmptyIconProps) => {
+const Icon = ({ "data-slot": dataSlot, className, svg, ...props }: EmptyIconProps) => {
 	return (
 		<SvgOnly
-			data-slot="empty-icon"
+			data-slot={joinDataSlot(dataSlot, "empty-icon")}
 			className={cx("mb-1 size-10 text-neutral-400", className)}
 			svg={svg}
 			{...props}
@@ -95,12 +103,18 @@ const Icon = ({ className, svg, ...props }: EmptyIconProps) => {
  * </Empty.Title>
  * ```
  */
-const Title = ({ asChild, children, className, ...props }: ComponentProps<"h3"> & WithAsChild) => {
+const Title = ({
+	"data-slot": dataSlot,
+	asChild,
+	children,
+	className,
+	...props
+}: ComponentProps<"h3"> & WithAsChild & WithDataSlot) => {
 	const Comp = asChild ? Slot : "h3";
 
 	return (
 		<Comp
-			data-slot="empty-title"
+			data-slot={joinDataSlot(dataSlot, "empty-title")}
 			className={cx("text-strong text-sm font-medium font-sans", className)}
 			{...props}
 		>
@@ -134,16 +148,17 @@ const Title = ({ asChild, children, className, ...props }: ComponentProps<"h3"> 
  * ```
  */
 const Description = ({
+	"data-slot": dataSlot,
 	asChild,
 	children,
 	className,
 	...props
-}: ComponentProps<"div"> & WithAsChild) => {
+}: ComponentProps<"div"> & WithAsChild & WithDataSlot) => {
 	const Comp = asChild ? Slot : "div";
 
 	return (
 		<Comp
-			data-slot="empty-description"
+			data-slot={joinDataSlot(dataSlot, "empty-description")}
 			className={cx("text-muted space-y-4 text-sm font-sans", className)}
 			{...props}
 		>
@@ -171,16 +186,17 @@ const Description = ({
  * ```
  */
 const Actions = ({
+	"data-slot": dataSlot,
 	asChild,
 	children,
 	className,
 	...props
-}: ComponentProps<"div"> & WithAsChild) => {
+}: ComponentProps<"div"> & WithAsChild & WithDataSlot) => {
 	const Comp = asChild ? Slot : "div";
 
 	return (
 		<Comp
-			data-slot="empty-actions"
+			data-slot={joinDataSlot(dataSlot, "empty-actions")}
 			className={cx("mt-4 flex items-center gap-2", className)}
 			{...props}
 		>

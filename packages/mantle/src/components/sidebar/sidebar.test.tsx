@@ -298,7 +298,8 @@ describe("Sidebar.Nav (desktop)", () => {
 		await user.hover(screen.getByRole("button", { name: "Toggle Sidebar" }));
 
 		const tooltip = await screen.findByRole("tooltip");
-		expect(tooltip).toHaveAttribute("data-slot", "sidebar-trigger-tooltip");
+		// The part's slot, then Tooltip.Content's own.
+		expect(tooltip).toHaveAttribute("data-slot", "sidebar-trigger-tooltip tooltip-content");
 		const row = tooltip.querySelector('[data-slot="sidebar-tooltip-row"]');
 		expect(row).toHaveTextContent("Toggle Sidebar");
 		expect(row).toHaveTextContent("B");
@@ -796,7 +797,8 @@ describe("Sidebar.Nav (mobile)", () => {
 
 		await user.click(screen.getByRole("button", { name: "Toggle Sidebar" }));
 		const sheet = screen.getByRole("dialog", { name: "Main" });
-		expect(sheet).toHaveAttribute("data-slot", "sidebar-nav");
+		// The sheet is `Sheet.Content`, which joins its own slot after the part's.
+		expect(sheet).toHaveAttribute("data-slot", "sidebar-nav sheet-content");
 		expect(sheet).toHaveAttribute("data-mobile");
 		// Radix owns the value: the sheet's content element is the panel, so a
 		// mantle `data-state` stamped after the spread would clobber it.
@@ -1872,7 +1874,8 @@ function expectPartForwarding({ renderPart, slot, tagName }: PartCase): void {
 	expect(element.tagName).toBe(tagName);
 	expect(element).toHaveClass("custom-class");
 	expect(element).toHaveAttribute("data-flavor", "primary");
-	// ancestors first, the part's own slot name last — a join, never a replacement
+	// Ancestors first, then the part's own name, then the slot of the mantle
+	// part it renders: a join, never a replacement.
 	expect(element).toHaveAttribute("data-slot", `outer ${slot}`);
 	expect(refTarget.current).toBe(element);
 }
@@ -1891,7 +1894,8 @@ const defaultElementCases: Array<PartCase> = [
 	},
 	{
 		name: "Trigger",
-		slot: "sidebar-trigger",
+		// The trigger is an `IconButton`, which joins its own slot after the part's.
+		slot: "sidebar-trigger icon-button",
 		tagName: "BUTTON",
 		renderPart: (probe) => (
 			<Sidebar.Root>
@@ -1997,7 +2001,8 @@ const defaultElementCases: Array<PartCase> = [
 	},
 	{
 		name: "Separator",
-		slot: "sidebar-separator",
+		// The hairline is a `Separator`, which joins its own slot after the part's.
+		slot: "sidebar-separator separator",
 		tagName: "DIV",
 		renderPart: (probe) => <Sidebar.Separator {...probe} />,
 	},
@@ -2145,7 +2150,7 @@ const asChildCases: Array<PartCase> = [
 	},
 	{
 		name: "Separator",
-		slot: "sidebar-separator",
+		slot: "sidebar-separator separator",
 		tagName: "HR",
 		renderPart: (probe) => (
 			<Sidebar.Separator asChild {...probe}>

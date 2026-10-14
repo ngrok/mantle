@@ -7,6 +7,8 @@ import {
 
 import { type ComponentProps, createContext, useContext, useMemo } from "react";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { isNumber, isValidMaxNumber, isValidValueNumber } from "./math.js";
 import type { ValueType } from "./types.js";
 
@@ -46,7 +48,7 @@ type RootProps = ComponentProps<"div"> & {
 	 * @default 0
 	 */
 	value?: ValueType | undefined;
-};
+} & WithDataSlot;
 
 /**
  * Displays an indicator showing the completion progress of a task, typically displayed as a progress bar.
@@ -84,7 +86,14 @@ type RootProps = ComponentProps<"div"> & {
  * </ProgressBar.Root>
  * ```
  */
-function Root({ className, children, max: _max = defaultMax, value: _value, ...props }: RootProps) {
+function Root({
+	"data-slot": dataSlot,
+	className,
+	children,
+	max: _max = defaultMax,
+	value: _value,
+	...props
+}: RootProps) {
 	const max = isValidMaxNumber(_max) ? _max : defaultMax;
 	const value = (
 		isValidValueNumber(_value, max) ? _value : _value == null ? 0 : "indeterminate"
@@ -103,7 +112,7 @@ function Root({ className, children, max: _max = defaultMax, value: _value, ...p
 	return (
 		<ProgressContext.Provider value={ctx}>
 			<ProgressPrimitiveRoot
-				data-slot="progress-bar"
+				data-slot={joinDataSlot(dataSlot, "progress-bar")}
 				className={cx(
 					"bg-base-hover dark:bg-base shadow-inner relative h-3 w-full overflow-hidden rounded-md",
 					className,
@@ -117,7 +126,7 @@ function Root({ className, children, max: _max = defaultMax, value: _value, ...p
 		</ProgressContext.Provider>
 	);
 }
-type IndicatorProps = ComponentProps<typeof ProgressPrimitiveIndicator>;
+type IndicatorProps = ComponentProps<typeof ProgressPrimitiveIndicator> & WithDataSlot;
 
 /**
  * Displays the progress indicator, which visually represents the completion progress of a task.
@@ -139,7 +148,7 @@ type IndicatorProps = ComponentProps<typeof ProgressPrimitiveIndicator>;
  * </ProgressBar.Root>
  * ```
  */
-function Indicator({ className, style, ...props }: IndicatorProps) {
+function Indicator({ "data-slot": dataSlot, className, style, ...props }: IndicatorProps) {
 	const ctx = useContext(ProgressContext);
 	const { max } = ctx;
 	const value = ctx.value === "indeterminate" ? 0 : ctx.value;
@@ -147,7 +156,7 @@ function Indicator({ className, style, ...props }: IndicatorProps) {
 
 	return (
 		<ProgressPrimitiveIndicator
-			data-slot="progress-bar-indicator"
+			data-slot={joinDataSlot(dataSlot, "progress-bar-indicator")}
 			className={cx("bg-accent-600 h-full w-full flex-1 transition-all", className)}
 			style={{ ...style, transform: `translateX(-${translatePercent}%)` }}
 			{...props}

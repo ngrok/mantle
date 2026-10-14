@@ -76,8 +76,14 @@ const Root = DropdownMenuPrimitiveRoot;
  * </DropdownMenu.Root>
  * ```
  */
-const Trigger = (props: ComponentProps<typeof DropdownMenuPrimitiveTrigger>) => (
-	<DropdownMenuPrimitiveTrigger data-slot="dropdown-menu-trigger" {...props} />
+const Trigger = ({
+	"data-slot": dataSlot,
+	...props
+}: ComponentProps<typeof DropdownMenuPrimitiveTrigger> & WithDataSlot) => (
+	<DropdownMenuPrimitiveTrigger
+		data-slot={joinDataSlot(dataSlot, "dropdown-menu-trigger")}
+		{...props}
+	/>
 );
 
 /**
@@ -99,9 +105,13 @@ const Trigger = (props: ComponentProps<typeof DropdownMenuPrimitiveTrigger>) => 
  * </DropdownMenu.Root>
  * ```
  */
-const Group = ({ className, ...props }: ComponentProps<typeof DropdownMenuPrimitiveGroup>) => (
+const Group = ({
+	"data-slot": dataSlot,
+	className,
+	...props
+}: ComponentProps<typeof DropdownMenuPrimitiveGroup> & WithDataSlot) => (
 	<DropdownMenuPrimitiveGroup
-		data-slot="dropdown-menu-group"
+		data-slot={joinDataSlot(dataSlot, "dropdown-menu-group")}
 		className={cx("space-y-px", className)}
 		{...props}
 	/>
@@ -159,11 +169,12 @@ const Sub = DropdownMenuPrimitiveSub;
  * ```
  */
 const RadioGroup = ({
+	"data-slot": dataSlot,
 	className,
 	...props
-}: ComponentProps<typeof DropdownMenuPrimitiveRadioGroup>) => (
+}: ComponentProps<typeof DropdownMenuPrimitiveRadioGroup> & WithDataSlot) => (
 	<DropdownMenuPrimitiveRadioGroup
-		data-slot="dropdown-menu-radio-group"
+		data-slot={joinDataSlot(dataSlot, "dropdown-menu-radio-group")}
 		className={cx("space-y-px", className)}
 		{...props}
 	/>
@@ -174,7 +185,7 @@ const RadioGroup = ({
  */
 type DropdownMenuSubTriggerProps = ComponentProps<typeof DropdownMenuPrimitiveSubTrigger> & {
 	inset?: boolean;
-};
+} & WithDataSlot;
 
 /**
  * A trigger for a dropdown menu sub-menu. It opens the submenu on hover, or on
@@ -220,9 +231,15 @@ type DropdownMenuSubTriggerProps = ComponentProps<typeof DropdownMenuPrimitiveSu
  * </DropdownMenu.Root>
  * ```
  */
-const SubTrigger = ({ className, inset, children, ...props }: DropdownMenuSubTriggerProps) => (
+const SubTrigger = ({
+	"data-slot": dataSlot,
+	className,
+	inset,
+	children,
+	...props
+}: DropdownMenuSubTriggerProps) => (
 	<DropdownMenuPrimitiveSubTrigger
-		data-slot="dropdown-menu-sub-trigger"
+		data-slot={joinDataSlot(dataSlot, "dropdown-menu-sub-trigger")}
 		className={cx(
 			"focus:bg-accent data-state-open:bg-accent relative flex select-none items-center rounded-md py-1.5 pl-2 pr-9 text-sm outline-hidden",
 			"data-highlighted:bg-active-menu-item data-state-open:bg-active-menu-item",
@@ -280,13 +297,14 @@ const SubTrigger = ({ className, inset, children, ...props }: DropdownMenuSubTri
  * ```
  */
 const SubContent = ({
+	"data-slot": dataSlot,
 	className,
 	loop = true,
 	...props
-}: ComponentProps<typeof DropdownMenuPrimitiveSubContent>) => (
+}: ComponentProps<typeof DropdownMenuPrimitiveSubContent> & WithDataSlot) => (
 	<Portal>
 		<DropdownMenuPrimitiveSubContent
-			data-slot="dropdown-menu-sub-content"
+			data-slot={joinDataSlot(dataSlot, "dropdown-menu-sub-content")}
 			className={cx(
 				"scrollbar",
 				"text-popover-foreground border-popover bg-popover p-1.25 data-state-closed:animate-out data-state-closed:fade-out-0 data-state-closed:zoom-out-95 data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95 data-side-bottom:slide-in-from-top-2 data-side-left:slide-in-from-right-2 data-side-right:slide-in-from-left-2 data-side-top:slide-in-from-bottom-2 z-50 min-w-32 overflow-hidden rounded-md border shadow-xl space-y-px font-sans",
@@ -388,14 +406,15 @@ const Content = ({
  * ```
  */
 const Item = ({
+	"data-slot": dataSlot,
 	className,
 	inset,
 	...props
 }: ComponentProps<typeof DropdownMenuPrimitiveItem> & {
 	inset?: boolean;
-}) => (
+} & WithDataSlot) => (
 	<DropdownMenuPrimitiveItem
-		data-slot="dropdown-menu-item"
+		data-slot={joinDataSlot(dataSlot, "dropdown-menu-item")}
 		className={cx(
 			"relative flex cursor-pointer select-none items-center rounded-md px-2 py-1.5 text-strong text-sm font-normal outline-hidden transition-colors",
 			"data-highlighted:bg-active-menu-item",
@@ -412,7 +431,8 @@ const Item = ({
 /**
  * Props for `DropdownMenu.CheckboxItem`.
  */
-type DropdownMenuCheckboxItemProps = ComponentProps<typeof DropdownMenuPrimitiveCheckboxItem>;
+type DropdownMenuCheckboxItemProps = ComponentProps<typeof DropdownMenuPrimitiveCheckboxItem> &
+	WithDataSlot;
 
 /**
  * A menu item with a checkbox that can be controlled or uncontrolled.
@@ -454,13 +474,14 @@ type DropdownMenuCheckboxItemProps = ComponentProps<typeof DropdownMenuPrimitive
  * ```
  */
 const CheckboxItem = ({
+	"data-slot": dataSlot,
 	className,
 	children,
 	checked,
 	...props
 }: DropdownMenuCheckboxItemProps) => (
 	<DropdownMenuPrimitiveCheckboxItem
-		data-slot="dropdown-menu-checkbox-item"
+		data-slot={joinDataSlot(dataSlot, "dropdown-menu-checkbox-item")}
 		className={cx(
 			"text-strong data-disabled:pointer-events-none data-disabled:opacity-50 relative flex cursor-pointer select-none items-center gap-2 rounded-md py-1.5 pl-2 pr-9 text-sm font-normal outline-hidden",
 			"data-highlighted:bg-active-menu-item",
@@ -499,7 +520,7 @@ const CheckboxItem = ({
 type DropdownMenuRadioItemProps = ComponentProps<typeof DropdownMenuPrimitiveRadioItem> & {
 	name?: string;
 	id?: string;
-};
+} & WithDataSlot;
 
 /**
  * A menu item with a radio button that can be controlled or uncontrolled.
@@ -543,9 +564,14 @@ type DropdownMenuRadioItemProps = ComponentProps<typeof DropdownMenuPrimitiveRad
  * </DropdownMenu.Root>
  * ```
  */
-const RadioItem = ({ className, children, ...props }: DropdownMenuRadioItemProps) => (
+const RadioItem = ({
+	"data-slot": dataSlot,
+	className,
+	children,
+	...props
+}: DropdownMenuRadioItemProps) => (
 	<DropdownMenuPrimitiveRadioItem
-		data-slot="dropdown-menu-radio-item"
+		data-slot={joinDataSlot(dataSlot, "dropdown-menu-radio-item")}
 		className={cx(
 			"group/dropdown-menu-radio-item",
 			"text-strong data-disabled:pointer-events-none data-disabled:opacity-50 relative flex cursor-pointer select-none items-center gap-2 rounded-md py-1.5 px-2 text-sm font-normal outline-none",
@@ -596,14 +622,15 @@ const RadioItem = ({ className, children, ...props }: DropdownMenuRadioItemProps
  * ```
  */
 const Label = ({
+	"data-slot": dataSlot,
 	className,
 	inset,
 	...props
 }: ComponentProps<typeof DropdownMenuPrimitiveLabel> & {
 	inset?: boolean;
-}) => (
+} & WithDataSlot) => (
 	<DropdownMenuPrimitiveLabel
-		data-slot="dropdown-menu-label"
+		data-slot={joinDataSlot(dataSlot, "dropdown-menu-label")}
 		className={cx("px-2 py-1.5 text-sm font-medium", inset && "pl-8", className)}
 		{...props}
 	/>
@@ -627,9 +654,13 @@ const Label = ({
  * </DropdownMenu.Root>
  * ```
  */
-const DropdownSeparator = ({ className, ...props }: ComponentProps<typeof Separator>) => (
+const DropdownSeparator = ({
+	"data-slot": dataSlot,
+	className,
+	...props
+}: ComponentProps<typeof Separator> & WithDataSlot) => (
 	<Separator
-		data-slot="dropdown-menu-separator"
+		data-slot={joinDataSlot(dataSlot, "dropdown-menu-separator")}
 		className={cx("-mx-1.25 my-1 w-auto", className)}
 		{...props}
 	/>
@@ -654,10 +685,14 @@ const DropdownSeparator = ({ className, ...props }: ComponentProps<typeof Separa
  * </DropdownMenu.Root>
  * ```
  */
-const Shortcut = ({ className, ...props }: Omit<ComponentProps<"span">, "translate">) => {
+const Shortcut = ({
+	"data-slot": dataSlot,
+	className,
+	...props
+}: Omit<ComponentProps<"span">, "translate"> & WithDataSlot) => {
 	return (
 		<span
-			data-slot="dropdown-menu-shortcut"
+			data-slot={joinDataSlot(dataSlot, "dropdown-menu-shortcut")}
 			className={cx("ml-auto text-xs tracking-widest opacity-60", className)}
 			{...props}
 			// Why after the spread: a wider props object can still carry `translate`

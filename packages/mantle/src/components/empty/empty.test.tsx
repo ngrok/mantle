@@ -145,7 +145,8 @@ describe("Empty", () => {
 		);
 		const icon = screen.getByTestId("icon");
 		expect(icon).toHaveAttribute("aria-hidden", "true");
-		expect(icon).toHaveAttribute("data-slot", "empty-icon");
+		// The part's slot joins ahead of the `SvgOnly` it renders.
+		expect(icon).toHaveAttribute("data-slot", "empty-icon svg-only");
 	});
 
 	test("Title forwards ref to the heading element", () => {

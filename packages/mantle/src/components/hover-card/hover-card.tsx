@@ -9,6 +9,8 @@ import {
 } from "@radix-ui/react-hover-card";
 import type { ComponentProps } from "react";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import {
 	LayerContainerContext,
 	useLayerContainer,
@@ -68,8 +70,11 @@ const Root = ({
  * </HoverCard.Root>
  * ```
  */
-const Trigger = (props: ComponentProps<typeof HoverCardPrimitiveTrigger>) => (
-	<HoverCardPrimitiveTrigger data-slot="hover-card-trigger" {...props} />
+const Trigger = ({
+	"data-slot": dataSlot,
+	...props
+}: ComponentProps<typeof HoverCardPrimitiveTrigger> & WithDataSlot) => (
+	<HoverCardPrimitiveTrigger data-slot={joinDataSlot(dataSlot, "hover-card-trigger")} {...props} />
 );
 
 /**
@@ -145,15 +150,16 @@ const Portal = ({ container, ...props }: ComponentProps<typeof HoverCardPrimitiv
  * ```
  */
 const Content = ({
+	"data-slot": dataSlot,
 	className,
 	onClick,
 	align = "center",
 	sideOffset = 4,
 	...props
-}: ComponentProps<typeof HoverCardPrimitiveContent>) => (
+}: ComponentProps<typeof HoverCardPrimitiveContent> & WithDataSlot) => (
 	<Portal>
 		<HoverCardPrimitiveContent
-			data-slot="hover-card-content"
+			data-slot={joinDataSlot(dataSlot, "hover-card-content")}
 			align={align}
 			sideOffset={sideOffset}
 			className={cx(
@@ -181,7 +187,8 @@ const Content = ({
 type HoverCardArrowProps = Omit<
 	ComponentProps<typeof HoverCardPrimitiveArrow>,
 	"asChild" | "children"
->;
+> &
+	WithDataSlot;
 
 /**
  * An optional tip that points from `HoverCard.Content` at its trigger. Render it
@@ -206,7 +213,13 @@ type HoverCardArrowProps = Omit<
  * </HoverCard.Root>
  * ```
  */
-const Arrow = ({ className, height = 7, width = 14, ...props }: HoverCardArrowProps) => (
+const Arrow = ({
+	"data-slot": dataSlot,
+	className,
+	height = 7,
+	width = 14,
+	...props
+}: HoverCardArrowProps) => (
 	// Why no asChild prop: a swapped element loses the two-layer shape — a filled
 	// polygon, plus a polyline that strokes the slanted edges only — that continues
 	// `HoverCard.Content`'s border. `HoverCardArrowProps` omits the prop, so restyle
@@ -215,7 +228,7 @@ const Arrow = ({ className, height = 7, width = 14, ...props }: HoverCardArrowPr
 	<HoverCardPrimitiveArrow
 		aria-hidden="true"
 		asChild
-		data-slot="hover-card-arrow"
+		data-slot={joinDataSlot(dataSlot, "hover-card-arrow")}
 		height={height}
 		width={width}
 		{...props}

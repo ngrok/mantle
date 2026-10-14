@@ -1058,14 +1058,14 @@ import { Tabs } from "@ngrok/mantle/tabs";
 
 ### Data attributes
 
-| Data Attribute     | Value                                                                                                                               | Description                                                                                  |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `data-slot`        | `"tabs"` \| `"tabs-list"` \| `"tabs-trigger"` \| `"tabs-trigger-label"` \| `"tabs-badge"` \| `"tabs-separator"` \| `"tabs-content"` | Names each part, plus the trigger's label wrapper.                                           |
-| `data-orientation` | `"horizontal"` \| `"vertical"`                                                                                                      | On the root, list, triggers, separator, and content. Radix sets it on all but the separator. |
-| `data-appearance`  | `"classic"` \| `"pill"`                                                                                                             | On the root. Descendant parts style against it.                                              |
-| `data-separator`   | present                                                                                                                             | Presence-only, on the separator. Set by the mantle `Separator`.                              |
-| `data-state`       | `"active"` \| `"inactive"`                                                                                                          | On each trigger and content panel. Set by Radix.                                             |
-| `data-disabled`    | present when `disabled`                                                                                                             | Presence-only, on a trigger. Set by Radix.                                                   |
+| Data Attribute     | Value                                                                                                                                         | Description                                                                                                    |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `data-slot`        | `"tabs"` \| `"tabs-list"` \| `"tabs-trigger"` \| `"tabs-trigger-label"` \| `"tabs-badge"` \| `"tabs-separator separator"` \| `"tabs-content"` | Names each part, plus the trigger's label wrapper. The separator carries `Separator`'s own slot after its own. |
+| `data-orientation` | `"horizontal"` \| `"vertical"`                                                                                                                | On the root, list, triggers, separator, and content. Radix sets it on all but the separator.                   |
+| `data-appearance`  | `"classic"` \| `"pill"`                                                                                                                       | On the root. Descendant parts style against it.                                                                |
+| `data-separator`   | present                                                                                                                                       | Presence-only, on the separator. Set by the mantle `Separator`.                                                |
+| `data-state`       | `"active"` \| `"inactive"`                                                                                                                    | On each trigger and content panel. Set by Radix.                                                               |
+| `data-disabled`    | present when `disabled`                                                                                                                       | Presence-only, on a trigger. Set by Radix.                                                                     |
 
 ## API Reference
 
@@ -1135,11 +1135,11 @@ The hairline between the list and the content, in the `separator` color. Compose
 
 #### Data attributes
 
-| Data Attribute     | Value                          | Description                                   |
-| ------------------ | ------------------------------ | --------------------------------------------- |
-| `data-slot`        | `"tabs-separator"`             | On the separator element.                     |
-| `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation.                       |
-| `data-separator`   | present                        | Presence-only. Set by the mantle `Separator`. |
+| Data Attribute     | Value                          | Description                                                       |
+| ------------------ | ------------------------------ | ----------------------------------------------------------------- |
+| `data-slot`        | `"tabs-separator separator"`   | On the separator element, joined ahead of `Separator`'s own slot. |
+| `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation.                                           |
+| `data-separator`   | present                        | Presence-only. Set by the mantle `Separator`.                     |
 
 ### Tabs.Trigger
 

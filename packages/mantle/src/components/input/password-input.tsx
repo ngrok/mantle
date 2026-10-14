@@ -10,6 +10,8 @@ import type { WithValidation } from "../field/validation.js";
 import { Icon } from "../icon/icon.js";
 import { Input, InputCapture } from "./input.js";
 import type { InputType, WithAutoComplete } from "./types.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 
 /**
  * The props for the `PasswordInput` component.
@@ -28,7 +30,7 @@ type PasswordInputProps = Omit<ComponentProps<"input">, "autoComplete" | "type">
 		 * next value. When omitted, the toggle owns the visibility and starts hidden.
 		 */
 		showValue?: boolean;
-	};
+	} & WithDataSlot;
 
 type PasswordInputType = Extract<InputType, "text" | "password">;
 
@@ -65,7 +67,7 @@ type PasswordInputType = Extract<InputType, "text" | "password">;
  *
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
- * | `data-slot` | `"password-input"` | The chrome around the input. |
+ * | `data-slot` | `"password-input input"` | The chrome around the input, joined ahead of `Input`'s own slot. |
  * | `data-slot` | `"input-capture"` | The `<input>` element. |
  * | `data-slot` | `"password-input-toggle"` | The visibility toggle button. |
  * | `data-disabled` | present when disabled | On the chrome. Style with `data-disabled:`. |
@@ -105,6 +107,7 @@ type PasswordInputType = Extract<InputType, "text" | "password">;
  * ```
  */
 const PasswordInput = ({
+	"data-slot": dataSlot,
 	disabled,
 	id: idProp,
 	onValueVisibilityChange,
@@ -147,7 +150,14 @@ const PasswordInput = ({
 	}, [showPassword]);
 
 	return (
-		<Input data-slot="password-input" disabled={disabled} id={id} type={type} ref={ref} {...props}>
+		<Input
+			data-slot={joinDataSlot(dataSlot, "password-input")}
+			disabled={disabled}
+			id={id}
+			type={type}
+			ref={ref}
+			{...props}
+		>
 			<InputCapture />
 			<button
 				type="button"

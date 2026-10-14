@@ -5,6 +5,8 @@ import { createContext, useContext, useMemo } from "react";
 import invariant from "tiny-invariant";
 import { encode } from "uqr";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import type { WithAsChild } from "../../types/as-child.js";
 import { Slot } from "../slot/index.js";
 
@@ -114,7 +116,7 @@ type QrCodeRootProps = ComponentProps<"div"> &
 		 * surrounding whitespace but can hurt scannability; avoid `0`.
 		 */
 		quietZone?: number;
-	};
+	} & WithDataSlot;
 
 /**
  * The root container of a QR code. Encodes `value` (via the dependency-free
@@ -145,6 +147,7 @@ type QrCodeRootProps = ComponentProps<"div"> &
  * ```
  */
 const Root = ({
+	"data-slot": dataSlot,
 	value,
 	ecc = "L",
 	pixelSize = 10,
@@ -175,7 +178,7 @@ const Root = ({
 			<Comp
 				ref={ref}
 				{...props}
-				data-slot="qr-code"
+				data-slot={joinDataSlot(dataSlot, "qr-code")}
 				className={cx("relative inline-flex bg-static-white text-static-black", className)}
 			>
 				{children}
@@ -188,7 +191,7 @@ const Root = ({
  * Props for `QrCode.Frame`, the fixed SVG element that sizes the encoded QR
  * pattern with its `viewBox`. `role` is locked to `"img"`.
  */
-type QrCodeFrameProps = Omit<ComponentProps<"svg">, "role">;
+type QrCodeFrameProps = Omit<ComponentProps<"svg">, "role"> & WithDataSlot;
 
 /**
  * The `svg` frame that holds the QR `Pattern`. Defaults to a square `size-48`
@@ -218,6 +221,7 @@ type QrCodeFrameProps = Omit<ComponentProps<"svg">, "role">;
  * ```
  */
 const Frame = ({
+	"data-slot": dataSlot,
 	"aria-label": ariaLabel,
 	"aria-labelledby": ariaLabelledBy,
 	className,
@@ -236,7 +240,7 @@ const Frame = ({
 			role="img"
 			aria-label={ariaLabel ?? (ariaLabelledBy == null ? "QR code" : undefined)}
 			aria-labelledby={ariaLabelledBy}
-			data-slot="qr-code-frame"
+			data-slot={joinDataSlot(dataSlot, "qr-code-frame")}
 			xmlns="http://www.w3.org/2000/svg"
 			viewBox={`0 0 ${dimension} ${dimension}`}
 			shapeRendering="crispEdges"
@@ -251,7 +255,7 @@ const Frame = ({
  * Props for `QrCode.Pattern`, the fixed SVG `path` element that renders the
  * encoded dark modules.
  */
-type QrCodePatternProps = ComponentProps<"path">;
+type QrCodePatternProps = ComponentProps<"path"> & WithDataSlot;
 
 /**
  * The encoded QR modules, rendered as a single `path` inside the `Frame`.
@@ -276,14 +280,14 @@ type QrCodePatternProps = ComponentProps<"path">;
  * </QrCode.Root>
  * ```
  */
-const Pattern = ({ className, ref, ...props }: QrCodePatternProps) => {
+const Pattern = ({ "data-slot": dataSlot, className, ref, ...props }: QrCodePatternProps) => {
 	const { path } = useQrCodeContext();
 
 	return (
 		<path
 			ref={ref}
 			{...props}
-			data-slot="qr-code-pattern"
+			data-slot={joinDataSlot(dataSlot, "qr-code-pattern")}
 			d={path}
 			className={cx("fill-static-black", className)}
 		/>
@@ -294,7 +298,7 @@ const Pattern = ({ className, ref, ...props }: QrCodePatternProps) => {
  * Props for `QrCode.Overlay`, the optional centered logo container rendered on
  * top of the QR pattern.
  */
-type QrCodeOverlayProps = ComponentProps<"div"> & WithAsChild;
+type QrCodeOverlayProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
 
 /**
  * An overlay centered on top of the QR code, typically holding a brand logo
@@ -316,14 +320,20 @@ type QrCodeOverlayProps = ComponentProps<"div"> & WithAsChild;
  * </QrCode.Root>
  * ```
  */
-const Overlay = ({ asChild, className, ref, ...props }: QrCodeOverlayProps) => {
+const Overlay = ({
+	"data-slot": dataSlot,
+	asChild,
+	className,
+	ref,
+	...props
+}: QrCodeOverlayProps) => {
 	const Comp = asChild ? Slot : "div";
 
 	return (
 		<Comp
 			ref={ref}
 			{...props}
-			data-slot="qr-code-overlay"
+			data-slot={joinDataSlot(dataSlot, "qr-code-overlay")}
 			className={cx(
 				"absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-md bg-static-white text-static-black p-1.5",
 				className,

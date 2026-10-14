@@ -11,6 +11,8 @@ import {
 } from "@radix-ui/react-popover";
 import type { ComponentProps } from "react";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { useLayerContainer } from "../../utils/layer-container/layer-container.js";
 
 /**
@@ -121,7 +123,7 @@ type PopoverContentProps = ComponentProps<typeof PopoverPrimitiveContent> & {
 	 * @default `max-w-72`
 	 */
 	preferredWidth?: `max-w-${string}`;
-};
+} & WithDataSlot;
 
 /**
  * The content to render inside the popover.
@@ -154,6 +156,7 @@ type PopoverContentProps = ComponentProps<typeof PopoverPrimitiveContent> & {
  * ```
  */
 const Content = ({
+	"data-slot": dataSlot,
 	//,
 	align = "center",
 	className,
@@ -169,7 +172,7 @@ const Content = ({
 		<PopoverPrimitivePortal container={layerContainer}>
 			<PopoverPrimitiveContent
 				align={align}
-				data-slot="popover-content"
+				data-slot={joinDataSlot(dataSlot, "popover-content")}
 				className={cx(
 					// Why relative: `Popover.Arrow`'s wrapper is absolutely positioned, and the
 					// open animation's `scale` makes this element its containing block for one
@@ -196,7 +199,11 @@ const Content = ({
 	);
 };
 
-type PopoverArrowProps = Omit<ComponentProps<typeof PopoverPrimitiveArrow>, "asChild" | "children">;
+type PopoverArrowProps = Omit<
+	ComponentProps<typeof PopoverPrimitiveArrow>,
+	"asChild" | "children"
+> &
+	WithDataSlot;
 
 /**
  * An optional tip that points from `Popover.Content` at its anchor. Render it as
@@ -223,7 +230,13 @@ type PopoverArrowProps = Omit<ComponentProps<typeof PopoverPrimitiveArrow>, "asC
  * </Popover.Root>
  * ```
  */
-const Arrow = ({ className, height = 7, width = 14, ...props }: PopoverArrowProps) => (
+const Arrow = ({
+	"data-slot": dataSlot,
+	className,
+	height = 7,
+	width = 14,
+	...props
+}: PopoverArrowProps) => (
 	// Why no asChild prop: a swapped element loses the two-layer shape — a filled
 	// polygon, plus a polyline that strokes the slanted edges only — that continues
 	// `Popover.Content`'s border. `PopoverArrowProps` omits the prop, so restyle with
@@ -232,7 +245,7 @@ const Arrow = ({ className, height = 7, width = 14, ...props }: PopoverArrowProp
 	<PopoverPrimitiveArrow
 		aria-hidden="true"
 		asChild
-		data-slot="popover-arrow"
+		data-slot={joinDataSlot(dataSlot, "popover-arrow")}
 		height={height}
 		width={width}
 		{...props}

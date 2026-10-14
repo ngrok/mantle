@@ -1,13 +1,15 @@
 import type { ComponentProps } from "react";
 import { parseBooleanish } from "../../types/booleanish.js";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 
 type LabelProps = ComponentProps<"label"> & {
 	/**
 	 * If set, the label will appear disabled.
 	 */
 	disabled?: boolean;
-};
+} & WithDataSlot;
 
 /**
  * A caption for a form control — input, checkbox, radio, switch, select.
@@ -72,6 +74,7 @@ type LabelProps = ComponentProps<"label"> & {
  * ```
  */
 const Label = ({
+	"data-slot": dataSlot,
 	"aria-disabled": _ariaDisabled,
 	children,
 	className,
@@ -84,7 +87,7 @@ const Label = ({
 		// Why data-disabled: `aria-disabled` is not valid on a `<label>`, so it
 		// conveyed nothing to assistive technology and only fed the cursor style.
 		data-disabled={parseBooleanish(disabled ?? _ariaDisabled) || undefined}
-		data-slot="label"
+		data-slot={joinDataSlot(dataSlot, "label")}
 		className={cx(
 			"text-strong cursor-pointer text-sm peer-disabled:cursor-default has-disabled:cursor-default data-disabled:cursor-default font-sans",
 			// Default to font-medium when the label isn't wrapping a form control. The

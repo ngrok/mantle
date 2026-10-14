@@ -102,8 +102,13 @@ function Root(props: ComponentProps<typeof TooltipPrimitiveRoot>) {
  * </Tooltip.Root>
  * ```
  */
-function Trigger(props: ComponentProps<typeof TooltipPrimitiveTrigger>) {
-	return <TooltipPrimitiveTrigger data-slot="tooltip-trigger" {...props} />;
+function Trigger({
+	"data-slot": dataSlot,
+	...props
+}: ComponentProps<typeof TooltipPrimitiveTrigger> & WithDataSlot) {
+	return (
+		<TooltipPrimitiveTrigger data-slot={joinDataSlot(dataSlot, "tooltip-trigger")} {...props} />
+	);
 }
 
 /**

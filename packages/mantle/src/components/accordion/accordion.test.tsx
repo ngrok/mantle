@@ -271,8 +271,9 @@ describe("Accordion", () => {
 			</Accordion.Root>,
 		);
 		const icon = screen.getByTestId("custom-trigger-icon");
-		// The override still carries the part's data-slot for styling/targeting.
-		expect(icon).toHaveAttribute("data-slot", "accordion-trigger-icon");
+		// The override still carries the part's data-slot, joined ahead of the
+		// `Icon` and `SvgOnly` slots it composes.
+		expect(icon).toHaveAttribute("data-slot", "accordion-trigger-icon icon svg-only");
 	});
 
 	test("Root forwards arbitrary DOM props to the container without leaking accordion props", () => {

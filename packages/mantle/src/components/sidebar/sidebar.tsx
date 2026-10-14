@@ -832,6 +832,7 @@ const TooltipLabel = ({ label, shortcut }: { label: ReactNode; shortcut: ReactNo
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
  * | `data-state` | `"expanded"` \| `"collapsed"` | Mirrors what the trigger toggles: the mobile sheet below the root's `mobileBreakpoint`, the desktop panel otherwise. Pairs with `aria-expanded`. |
+ * | `data-slot` | `"sidebar-trigger icon-button"` | On the button: the part's slot, joined ahead of `IconButton`'s own. |
  * | `data-slot` | `"sidebar-trigger-tooltip tooltip-content"` | On the tooltip surface, not the button: the styling hook for the label-and-chord popup this part renders, joined ahead of `Tooltip.Content`'s own slot. |
  * | `data-state` | `"delayed-open"` \| `"instant-open"` \| `"closed"` | Read, not stamped: on the tooltip surface, from `Tooltip.Content`. |
  * | `data-side` | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | Read, not stamped: on the tooltip surface, from `Tooltip.Content`. |

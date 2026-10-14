@@ -4,6 +4,8 @@ import type { ComponentProps, ComponentRef } from "react";
 import { useRef, useState } from "react";
 import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { parseValidation, useFieldValidation } from "../field/validation.js";
 import type { WithValidation } from "../field/validation.js";
 
@@ -13,7 +15,7 @@ type Props = ComponentProps<"textarea"> &
 		 * The visual style of the textarea.
 		 */
 		appearance?: "monospaced";
-	};
+	} & WithDataSlot;
 
 /**
  * A multi-line plain-text editing control, useful when you want to allow users
@@ -37,6 +39,7 @@ type Props = ComponentProps<"textarea"> &
  * ```
  */
 const TextArea = ({
+	"data-slot": dataSlot,
 	appearance,
 	"aria-invalid": _ariaInvalid,
 	className,
@@ -60,7 +63,7 @@ const TextArea = ({
 		<textarea
 			aria-invalid={ariaInvalid}
 			data-validation={validation || undefined}
-			data-slot="text-area"
+			data-slot={joinDataSlot(dataSlot, "text-area")}
 			className={cx(
 				"border-input bg-form data-drag-over:border-dashed data-drag-over:ring-4 pointer-coarse:py-[calc(theme(spacing[2.5])-1px)] pointer-coarse:text-base text-sm flex min-h-24 w-full rounded-md border px-3 py-[calc(theme(spacing[2])-1px)] focus-visible:outline-hidden focus-visible:ring-4 disabled:pointer-events-none disabled:opacity-50",
 				"placeholder:text-placeholder data-drag-over:border-dashed",

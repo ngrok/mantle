@@ -787,7 +787,7 @@ const Item = ({
  *
  * | Data Attribute | Value                | Description               |
  * | -------------- | -------------------- | ------------------------- |
- * | `data-slot`    | `"select-separator"` | On the separator element. |
+ * | `data-slot`    | `"select-separator separator"` | On the separator element, joined ahead of `Separator`'s own slot. |
  *
  * @see https://mantle.ngrok.com/components/forms/select#selectseparator
  *
@@ -1107,7 +1107,7 @@ const Select = {
 	 *
 	 * | Data Attribute | Value                | Description               |
 	 * | -------------- | -------------------- | ------------------------- |
-	 * | `data-slot`    | `"select-separator"` | On the separator element. |
+	 * | `data-slot`    | `"select-separator separator"` | On the separator element, joined ahead of `Separator`'s own slot. |
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/select#selectseparator
 	 *

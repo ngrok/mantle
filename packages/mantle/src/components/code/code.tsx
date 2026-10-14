@@ -1,6 +1,8 @@
 import type { ComponentProps } from "react";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { Slot } from "../slot/index.js";
 
 /**
@@ -44,12 +46,18 @@ import { Slot } from "../slot/index.js";
  * </Code>
  * ```
  */
-const Code = ({ asChild, className, ref, ...props }: ComponentProps<"code"> & WithAsChild) => {
+const Code = ({
+	"data-slot": dataSlot,
+	asChild,
+	className,
+	ref,
+	...props
+}: ComponentProps<"code"> & WithAsChild & WithDataSlot) => {
 	const Comp = asChild ? Slot : "code";
 	return (
 		<Comp
 			ref={ref}
-			data-slot="code"
+			data-slot={joinDataSlot(dataSlot, "code")}
 			className={cx(
 				"border-gray-500/15 rounded-md border bg-gray-500/5 px-1 font-mono text-[0.8em]",
 				className,

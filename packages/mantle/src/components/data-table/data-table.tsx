@@ -43,6 +43,8 @@ import {
 } from "react";
 import invariant from "tiny-invariant";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import type { SortingMode } from "../../utils/sorting/direction.js";
 import { Button, type ButtonAppearance } from "../button/button.js";
 import {
@@ -138,7 +140,7 @@ type DataTableProps<TFeatures extends TableFeatures, TData extends RowData> = Co
 	 * reads it through context.
 	 */
 	table: TableInstance<TFeatures, TData>;
-};
+} & WithDataSlot;
 
 /**
  * The root container for a data table. Wraps all other `DataTable`
@@ -190,6 +192,7 @@ type DataTableProps<TFeatures extends TableFeatures, TData extends RowData> = Co
  * ```
  */
 function Root<TFeatures extends TableFeatures, TData extends RowData>({
+	"data-slot": dataSlot,
 	children,
 	table,
 	...props
@@ -198,7 +201,7 @@ function Root<TFeatures extends TableFeatures, TData extends RowData>({
 
 	return (
 		<DataTableContext.Provider value={context}>
-			<Table.Root data-slot="data-table" {...props}>
+			<Table.Root data-slot={joinDataSlot(dataSlot, "data-table")} {...props}>
 				<Table.Element>{children}</Table.Element>
 			</Table.Root>
 		</DataTableContext.Provider>
@@ -257,7 +260,8 @@ type DataTableHeaderSortButtonProps<
 				 */
 				sortingMode: SortingMode;
 		  }
-	);
+	) &
+	WithDataSlot;
 
 /**
  * A sortable button toggle for a column header in a data table. Renders a sort
@@ -321,6 +325,7 @@ function HeaderSortButton<
 	TData extends RowData,
 	TValue extends CellData,
 >({
+	"data-slot": dataSlot,
 	appearance = "ghost",
 	children,
 	className,
@@ -345,7 +350,7 @@ function HeaderSortButton<
 			// for a keyboard user. `justify-*` and text classes still apply.
 			return (
 				<span
-					data-slot="data-table-header-sort-button"
+					data-slot={joinDataSlot(dataSlot, "data-table-header-sort-button")}
 					data-sort-direction="unsorted"
 					className={cx(
 						"flex w-full items-center justify-start",
@@ -366,7 +371,7 @@ function HeaderSortButton<
 		return (
 			<Button
 				appearance={appearance}
-				data-slot="data-table-header-sort-button"
+				data-slot={joinDataSlot(dataSlot, "data-table-header-sort-button")}
 				className={cx(
 					"flex justify-start w-full h-full rounded-none not-disabled:active:scale-none",
 					// Only mute the default ghost+neutral design; the consumer className is
@@ -421,7 +426,7 @@ type DataTableHeaderProps<
 	 * When the column is sorted, the cell carries `aria-sort`.
 	 */
 	column?: Column<TFeatures, TData, TValue>;
-};
+} & WithDataSlot;
 
 /**
  * The `aria-sort` value for a column's current sort state. `undefined` when the
@@ -479,6 +484,7 @@ function resolveAriaSort<
  * ```
  */
 function Header<TFeatures extends TableFeatures, TData extends RowData, TValue extends CellData>({
+	"data-slot": dataSlot,
 	children,
 	className,
 	column,
@@ -487,7 +493,7 @@ function Header<TFeatures extends TableFeatures, TData extends RowData, TValue e
 	const renderHeader = () => (
 		<Table.Header
 			aria-sort={resolveAriaSort(column)}
-			data-slot="data-table-header"
+			data-slot={joinDataSlot(dataSlot, "data-table-header")}
 			className={cx("has-data-table-header-action:px-0", className)}
 			{...props}
 		>
@@ -535,11 +541,14 @@ function Header<TFeatures extends TableFeatures, TData extends RowData, TValue e
  * </DataTable.Root>
  * ```
  */
-const Body = (props: ComponentProps<typeof Table.Body>) => (
-	<Table.Body data-slot="data-table-body" {...props} />
+const Body = ({
+	"data-slot": dataSlot,
+	...props
+}: ComponentProps<typeof Table.Body> & WithDataSlot) => (
+	<Table.Body data-slot={joinDataSlot(dataSlot, "data-table-body")} {...props} />
 );
 
-type DataTableHeadProps = Omit<ComponentProps<typeof Table.Head>, "children">;
+type DataTableHeadProps = Omit<ComponentProps<typeof Table.Head>, "children"> & WithDataSlot;
 
 /**
  * The `<thead>` container that renders column headers automatically from
@@ -563,11 +572,11 @@ type DataTableHeadProps = Omit<ComponentProps<typeof Table.Head>, "children">;
  * </DataTable.Root>
  * ```
  */
-function Head(props: DataTableHeadProps) {
+function Head({ "data-slot": dataSlot, ...props }: DataTableHeadProps) {
 	const { table } = useDataTableContext();
 
 	return (
-		<Table.Head data-slot="data-table-head" {...props}>
+		<Table.Head data-slot={joinDataSlot(dataSlot, "data-table-head")} {...props}>
 			{table.getHeaderGroups().map((headerGroup) => (
 				<Table.Row key={headerGroup.id}>
 					{headerGroup.headers.map((header) => (
@@ -604,7 +613,7 @@ type DataTableRowProps<TFeatures extends TableFeatures, TData extends RowData> =
 	 * multiple panels), omit this and render `DataTable.ExpandedRow` yourself.
 	 */
 	renderExpanded?: (row: TableRow<TFeatures, TData>) => ReactNode;
-};
+} & WithDataSlot;
 
 /**
  * Whether a click on a clickable row is a request to run its `onClick`. A
@@ -707,6 +716,7 @@ function isRowActivationClick(event: MouseEvent<HTMLTableRowElement>): boolean {
  * ```
  */
 function Row<TFeatures extends TableFeatures, TData extends RowData>({
+	"data-slot": dataSlot,
 	className,
 	onClick,
 	renderExpanded,
@@ -723,7 +733,7 @@ function Row<TFeatures extends TableFeatures, TData extends RowData>({
 
 		const dataRow = (
 			<Table.Row
-				data-slot="data-table-row"
+				data-slot={joinDataSlot(dataSlot, "data-table-row")}
 				// Styling hook for the "this row is expanded" state (e.g. to pair the
 				// parent row visually with its `DataTable.ExpandedRow`). Absent when the
 				// row is collapsed or expansion is not configured.
@@ -782,7 +792,7 @@ function Row<TFeatures extends TableFeatures, TData extends RowData>({
 	);
 }
 
-type DataTableEmptyRowProps = ComponentProps<typeof Table.Row>;
+type DataTableEmptyRowProps = ComponentProps<typeof Table.Row> & WithDataSlot;
 
 /**
  * An empty-state row that spans every column. Render this as the `else` branch
@@ -841,7 +851,7 @@ type DataTableEmptyRowProps = ComponentProps<typeof Table.Row>;
  * </DataTable.Body>
  * ```
  */
-function EmptyRow({ children, ...props }: DataTableEmptyRowProps) {
+function EmptyRow({ "data-slot": dataSlot, children, ...props }: DataTableEmptyRowProps) {
 	const { table } = useDataTableContext();
 	// Why callMemoOrStaticFn: `getVisibleLeafColumns` exists on the table only
 	// when it registers `columnVisibilityFeature`. The static function counts
@@ -853,7 +863,7 @@ function EmptyRow({ children, ...props }: DataTableEmptyRowProps) {
 	).length;
 
 	return (
-		<Table.Row data-slot="data-table-empty-row" {...props}>
+		<Table.Row data-slot={joinDataSlot(dataSlot, "data-table-empty-row")} {...props}>
 			<Table.Cell colSpan={numberOfColumns}>{children}</Table.Cell>
 		</Table.Row>
 	);
@@ -889,7 +899,7 @@ function StickyColIndicator() {
 	);
 }
 
-type DataTableActionCellProps = ComponentProps<typeof Table.Cell>;
+type DataTableActionCellProps = ComponentProps<typeof Table.Cell> & WithDataSlot;
 
 /**
  * A sticky-right `<td>` for per-row action buttons (typically an `IconButton`
@@ -911,7 +921,7 @@ type DataTableActionCellProps = ComponentProps<typeof Table.Cell>;
  *
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
- * | `data-slot` | `"data-table-action-cell"` | On the cell element. |
+ * | `data-slot` | `"data-table-action-cell table-cell"` | On the cell element, joined ahead of `Table.Cell`'s own slot. |
  * | `data-slot` | `"data-table-action-cell-label"` | On the `<span>` wrapping `children`. |
  *
  * @see https://mantle.ngrok.com/components/data-display/data-table#datatableactioncell
@@ -929,7 +939,13 @@ type DataTableActionCellProps = ComponentProps<typeof Table.Cell>;
  * });
  * ```
  */
-function ActionCell({ children, className, onClick, ...props }: DataTableActionCellProps) {
+function ActionCell({
+	"data-slot": dataSlot,
+	children,
+	className,
+	onClick,
+	...props
+}: DataTableActionCellProps) {
 	// Why only `onClick`: `sandboxedOnClickProps` also returns `role="presentation"`,
 	// which would drop this `<td>` out of the table's accessibility tree.
 	const { onClick: sandboxedOnClick } = sandboxedOnClickProps({
@@ -941,7 +957,7 @@ function ActionCell({ children, className, onClick, ...props }: DataTableActionC
 			// Marks this cell as a sticky right-edge column so Table.Root can suppress
 			// its container-level right-side scroll fade (keeping this cell opaque).
 			data-mantle-table-sticky-right
-			data-slot="data-table-action-cell"
+			data-slot={joinDataSlot(dataSlot, "data-table-action-cell")}
 			className={cx(
 				// `bg-inherit` keeps the sticky cell opaque with the row's current bg
 				// (including hover state) so scrolling cells don't show through.
@@ -963,7 +979,7 @@ function ActionCell({ children, className, onClick, ...props }: DataTableActionC
 	);
 }
 
-type DataTableActionHeaderProps = ComponentProps<typeof Table.Header>;
+type DataTableActionHeaderProps = ComponentProps<typeof Table.Header> & WithDataSlot;
 
 /**
  * A sticky header cell that pairs with `DataTable.ActionCell`. Use this as the
@@ -983,7 +999,7 @@ type DataTableActionHeaderProps = ComponentProps<typeof Table.Header>;
  *
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
- * | `data-slot` | `"data-table-action-header"` | On the cell element. |
+ * | `data-slot` | `"data-table-action-header table-header"` | On the cell element, joined ahead of `Table.Header`'s own slot. |
  * | `data-slot` | `"data-table-action-header-label"` | On the `<span>` wrapping `children`. |
  *
  * @see https://mantle.ngrok.com/components/data-display/data-table#datatableactionheader
@@ -997,7 +1013,12 @@ type DataTableActionHeaderProps = ComponentProps<typeof Table.Header>;
  * })
  * ```
  */
-function ActionHeader({ children, className, ...props }: DataTableActionHeaderProps) {
+function ActionHeader({
+	"data-slot": dataSlot,
+	children,
+	className,
+	...props
+}: DataTableActionHeaderProps) {
 	const { table } = useDataTableContext();
 	const hasRows = table.getRowModel().rows.length > 0;
 
@@ -1006,7 +1027,7 @@ function ActionHeader({ children, className, ...props }: DataTableActionHeaderPr
 			// Only mark as sticky-right when body rows exist so the empty state
 			// doesn't suppress the container's right-side scroll fade.
 			{...(hasRows ? { "data-mantle-table-sticky-right": true } : {})}
-			data-slot="data-table-action-header"
+			data-slot={joinDataSlot(dataSlot, "data-table-action-header")}
 			className={cx(
 				// `bg-inherit` keeps the sticky header opaque with the thead's current bg.
 				hasRows && "sticky z-10 right-0 bg-inherit",
@@ -1066,7 +1087,7 @@ type DataTableExpandHeaderProps = Omit<ComponentProps<typeof Table.Header>, "chi
 	 * label so the column is announced while staying visually empty.
 	 */
 	children?: ReactNode;
-};
+} & WithDataSlot;
 
 /**
  * A narrow `<th>` for the leading expand-toggle column, mirroring
@@ -1089,10 +1110,15 @@ type DataTableExpandHeaderProps = Omit<ComponentProps<typeof Table.Header>, "chi
  * });
  * ```
  */
-function ExpandHeader({ children, className, ...props }: DataTableExpandHeaderProps) {
+function ExpandHeader({
+	"data-slot": dataSlot,
+	children,
+	className,
+	...props
+}: DataTableExpandHeaderProps) {
 	return (
 		<Table.Header
-			data-slot="data-table-expand-header"
+			data-slot={joinDataSlot(dataSlot, "data-table-expand-header")}
 			// `Table.Header` carries horizontal padding; zero it (and center) so the column is
 			// actually as narrow as `w-9` and aligns with the icon toggle in the cells
 			// below it. A consumer `className` still wins via tailwind-merge.
@@ -1153,7 +1179,7 @@ type DataTableRowExpandButtonProps<
 	 * @default <MinusIcon weight="bold" />
 	 */
 	collapseIcon?: ReactNode;
-};
+} & WithDataSlot;
 
 /**
  * An accessible +/- toggle that expands or collapses a row's detail panel. Drop
@@ -1194,6 +1220,7 @@ type DataTableRowExpandButtonProps<
  * ```
  */
 function RowExpandButton<TFeatures extends ExpandableTableFeatures, TData extends RowData>({
+	"data-slot": dataSlot,
 	appearance = "ghost",
 	className,
 	collapseIcon = defaultCollapseIcon,
@@ -1216,7 +1243,7 @@ function RowExpandButton<TFeatures extends ExpandableTableFeatures, TData extend
 		return (
 			<IconButton
 				type="button"
-				data-slot="data-table-row-expand-button"
+				data-slot={joinDataSlot(dataSlot, "data-table-row-expand-button")}
 				appearance={appearance}
 				intent={intent}
 				size={size}
@@ -1269,7 +1296,7 @@ type DataTableExpandedRowProps<TFeatures extends TableFeatures, TData extends Ro
 	colSpan?: number;
 	/** The detail content rendered inside the full-width panel. */
 	children: ReactNode;
-};
+} & WithDataSlot;
 
 /**
  * The sibling `<tr>` that renders a row's expanded detail panel. For the common
@@ -1317,6 +1344,7 @@ type DataTableExpandedRowProps<TFeatures extends TableFeatures, TData extends Ro
  * ```
  */
 function ExpandedRow<TFeatures extends TableFeatures, TData extends RowData>({
+	"data-slot": dataSlot,
 	children,
 	className,
 	colSpan,
@@ -1331,7 +1359,7 @@ function ExpandedRow<TFeatures extends TableFeatures, TData extends RowData>({
 
 	const renderPanel = ({ numberOfColumns }: { numberOfColumns: number }) => (
 		<Table.Row
-			data-slot="data-table-expanded-row"
+			data-slot={joinDataSlot(dataSlot, "data-table-expanded-row")}
 			data-expanded-content
 			// Read as one block with the parent row: suppress the top divider that
 			// Table.Body paints between sibling rows.
@@ -1772,7 +1800,7 @@ const DataTable = {
 	 *
 	 * | Data Attribute | Value | Description |
 	 * | --- | --- | --- |
-	 * | `data-slot` | `"data-table-action-cell"` | On the cell element. |
+	 * | `data-slot` | `"data-table-action-cell table-cell"` | On the cell element, joined ahead of `Table.Cell`'s own slot. |
 	 * | `data-slot` | `"data-table-action-cell-label"` | On the `<span>` wrapping `children`. |
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/data-table#datatableactioncell
@@ -1809,7 +1837,7 @@ const DataTable = {
 	 *
 	 * | Data Attribute | Value | Description |
 	 * | --- | --- | --- |
-	 * | `data-slot` | `"data-table-action-header"` | On the cell element. |
+	 * | `data-slot` | `"data-table-action-header table-header"` | On the cell element, joined ahead of `Table.Header`'s own slot. |
 	 * | `data-slot` | `"data-table-action-header-label"` | On the `<span>` wrapping `children`. |
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/data-table#datatableactionheader

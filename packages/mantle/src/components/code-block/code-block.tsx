@@ -30,6 +30,8 @@ import type { SelfClosingWithAsChild, WithAsChild } from "../../types/as-child.j
 import { alternateAnnouncement } from "../../utils/alternate-announcement.js";
 import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { Icon as MantleIcon } from "../icon/icon.js";
 import type { SvgAttributes } from "../icon/types.js";
 import { TrafficPolicyFileIcon } from "../icons/traffic-policy-file.js";
@@ -78,7 +80,7 @@ type CodeBlockRootProps = Omit<ComponentProps<"div">, "align"> &
 		 * Only relevant when using `CodeBlock.TabList` / `CodeBlock.TabContent`.
 		 */
 		onActiveTabChange?: (value: string) => void;
-	};
+	} & WithDataSlot;
 
 /**
  * Shiki-powered code blocks with build-time syntax highlighting and zero browser bundle.
@@ -105,6 +107,7 @@ type CodeBlockRootProps = Omit<ComponentProps<"div">, "align"> &
  * ```
  */
 const Root = ({
+	"data-slot": dataSlot,
 	asChild = false,
 	className,
 	defaultTab,
@@ -153,7 +156,7 @@ const Root = ({
 
 	const tree = (
 		<Component
-			data-slot="code-block"
+			data-slot={joinDataSlot(dataSlot, "code-block")}
 			className={cx(
 				"text-mono w-full overflow-hidden rounded-md border border-gray-300 bg-base font-mono",
 				"[&_svg]:shrink-0",
@@ -204,15 +207,16 @@ const Root = ({
  * ```
  */
 const Body = ({
+	"data-slot": dataSlot,
 	asChild = false,
 	className,
 	ref,
 	...props
-}: ComponentProps<"div"> & WithAsChild) => {
+}: ComponentProps<"div"> & WithAsChild & WithDataSlot) => {
 	const Component = asChild ? Slot : "div";
 	return (
 		<Component
-			data-slot="code-block-body"
+			data-slot={joinDataSlot(dataSlot, "code-block-body")}
 			className={cx(
 				"relative",
 				// Why per-line breathing room: the scroll range ends at the edge of
@@ -515,15 +519,16 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
  * ```
  */
 const Header = ({
+	"data-slot": dataSlot,
 	asChild = false,
 	className,
 	ref,
 	...props
-}: ComponentProps<"div"> & WithAsChild) => {
+}: ComponentProps<"div"> & WithAsChild & WithDataSlot) => {
 	const Component = asChild ? Slot : "div";
 	return (
 		<Component
-			data-slot="code-block-header"
+			data-slot={joinDataSlot(dataSlot, "code-block-header")}
 			className={cx(
 				"flex items-center gap-1 border-b border-gray-300 bg-base px-4 py-2 text-gray-700",
 				className,
@@ -562,15 +567,16 @@ const Header = ({
  * ```
  */
 const Title = ({
+	"data-slot": dataSlot,
 	asChild = false,
 	className,
 	ref,
 	...props
-}: ComponentProps<"h3"> & { asChild?: boolean }) => {
+}: ComponentProps<"h3"> & { asChild?: boolean } & WithDataSlot) => {
 	const Component = asChild ? Slot : "h3";
 	return (
 		<Component
-			data-slot="code-block-title"
+			data-slot={joinDataSlot(dataSlot, "code-block-title")}
 			ref={ref}
 			className={cx("m-0 font-sans text-xs font-medium", className)}
 			translate="no"
@@ -710,7 +716,8 @@ const CopyButton = ({
 type CodeBlockExpanderButtonProps = Omit<
 	ComponentProps<"button">,
 	"children" | "aria-controls" | "aria-expanded"
->;
+> &
+	WithDataSlot;
 
 /**
  * The (optional) expander button of the `CodeBlock`. Toggles the expanded
@@ -737,7 +744,13 @@ type CodeBlockExpanderButtonProps = Omit<
  * </CodeBlock.Root>
  * ```
  */
-const ExpanderButton = ({ className, onClick, ref, ...props }: CodeBlockExpanderButtonProps) => {
+const ExpanderButton = ({
+	"data-slot": dataSlot,
+	className,
+	onClick,
+	ref,
+	...props
+}: CodeBlockExpanderButtonProps) => {
 	const { codeId, isCodeExpanded, setIsCodeExpanded, setHasCodeExpander } = useCodeBlockContext();
 
 	// Why a layout effect: `Code` stamps `data-state="collapsed"` from this flag,
@@ -752,7 +765,7 @@ const ExpanderButton = ({ className, onClick, ref, ...props }: CodeBlockExpander
 	return (
 		<button
 			{...props}
-			data-slot="code-block-expander-button"
+			data-slot={joinDataSlot(dataSlot, "code-block-expander-button")}
 			aria-controls={codeId}
 			aria-expanded={isCodeExpanded}
 			className={cx(
@@ -801,7 +814,8 @@ type CodeBlockIconProps = Omit<SvgAttributes, "children"> &
 				 */
 				preset: Mode;
 		  }
-	);
+	) &
+	WithDataSlot;
 
 /**
  * A small icon for the `CodeBlock` header. Pass either a custom `svg`
@@ -825,6 +839,7 @@ type CodeBlockIconProps = Omit<SvgAttributes, "children"> &
  * ```
  */
 function CodeBlockIconComponent({
+	"data-slot": dataSlot,
 	className,
 	preset,
 	svg: _svgProp,
@@ -846,7 +861,7 @@ function CodeBlockIconComponent({
 	}
 	return (
 		<MantleIcon
-			data-slot="code-block-icon"
+			data-slot={joinDataSlot(dataSlot, "code-block-icon")}
 			className={cx("size-5", className)}
 			svg={svg}
 			{...props}
@@ -854,7 +869,8 @@ function CodeBlockIconComponent({
 	);
 }
 
-type CodeBlockTabListProps = Omit<ComponentProps<typeof RadixTabsList>, "asChild" | "loop">;
+type CodeBlockTabListProps = Omit<ComponentProps<typeof RadixTabsList>, "asChild" | "loop"> &
+	WithDataSlot;
 
 /**
  * A tab list for the `CodeBlock` header. Renders pill-styled tab triggers
@@ -890,9 +906,9 @@ type CodeBlockTabListProps = Omit<ComponentProps<typeof RadixTabsList>, "asChild
  * </CodeBlock.Root>
  * ```
  */
-const TabList = ({ className, ref, ...props }: CodeBlockTabListProps) => (
+const TabList = ({ "data-slot": dataSlot, className, ref, ...props }: CodeBlockTabListProps) => (
 	<RadixTabsList
-		data-slot="code-block-tab-list"
+		data-slot={joinDataSlot(dataSlot, "code-block-tab-list")}
 		className={cx(
 			"scroll-fade-x flex min-w-0 items-center gap-1 overflow-x-auto overscroll-x-none",
 			// Reserve room inside the scroll box for each trigger's focus ring: `overflow-x-auto`
@@ -907,7 +923,8 @@ const TabList = ({ className, ref, ...props }: CodeBlockTabListProps) => (
 	/>
 );
 
-type CodeBlockTabTriggerProps = Omit<ComponentProps<typeof RadixTabsTrigger>, "asChild">;
+type CodeBlockTabTriggerProps = Omit<ComponentProps<typeof RadixTabsTrigger>, "asChild"> &
+	WithDataSlot;
 
 /**
  * A pill-styled tab trigger for the `CodeBlock` header.
@@ -923,9 +940,14 @@ type CodeBlockTabTriggerProps = Omit<ComponentProps<typeof RadixTabsTrigger>, "a
  * </CodeBlock.TabList>
  * ```
  */
-const TabTrigger = ({ className, ref, ...props }: CodeBlockTabTriggerProps) => (
+const TabTrigger = ({
+	"data-slot": dataSlot,
+	className,
+	ref,
+	...props
+}: CodeBlockTabTriggerProps) => (
 	<RadixTabsTrigger
-		data-slot="code-block-tab-trigger"
+		data-slot={joinDataSlot(dataSlot, "code-block-tab-trigger")}
 		className={cx(
 			"shrink-0 cursor-pointer rounded px-1.5 py-0.5 font-sans text-xs font-medium whitespace-nowrap",
 			"text-gray-600 outline-hidden",
@@ -942,7 +964,8 @@ const TabTrigger = ({ className, ref, ...props }: CodeBlockTabTriggerProps) => (
 type CodeBlockTabContentProps = Omit<
 	ComponentProps<typeof RadixTabsContent>,
 	"asChild" | "forceMount"
->;
+> &
+	WithDataSlot;
 
 /**
  * Conditionally renders its children when the associated tab is active.
@@ -964,8 +987,8 @@ type CodeBlockTabContentProps = Omit<
  * </CodeBlock.Body>
  * ```
  */
-const TabContent = (props: CodeBlockTabContentProps) => (
-	<RadixTabsContent data-slot="code-block-tab-content" {...props} />
+const TabContent = ({ "data-slot": dataSlot, ...props }: CodeBlockTabContentProps) => (
+	<RadixTabsContent data-slot={joinDataSlot(dataSlot, "code-block-tab-content")} {...props} />
 );
 
 /**

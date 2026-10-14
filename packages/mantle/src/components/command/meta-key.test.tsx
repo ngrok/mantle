@@ -48,7 +48,8 @@ describe("MetaKey", () => {
 
 		const kbd = screen.getByTestId("meta");
 		expect(kbd.tagName).toBe("KBD");
-		expect(kbd).toHaveAttribute("data-slot", "meta-key");
+		// The part's slot joins ahead of the `Kbd` it renders.
+		expect(kbd).toHaveAttribute("data-slot", "meta-key kbd");
 		expect(kbd).toHaveClass("custom");
 	});
 });

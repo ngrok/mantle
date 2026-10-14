@@ -16,6 +16,8 @@ import { Toaster as SonnerToaster, toast as sonnerToast } from "sonner";
 import type { WithAsChild } from "../../types/as-child.js";
 import type { WithStyleProps } from "../../types/with-style-props.js";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { Icon as IconComponent } from "../icon/icon.js";
 import type { SvgOnlyProps } from "../icon/svg-only.js";
 import { Slot } from "../slot/index.js";
@@ -190,7 +192,7 @@ type ToastProps = ComponentProps<"div"> & {
 	 * The intent of the toast: the tone or status that the toast's color communicates.
 	 */
 	intent: ToastIntent;
-};
+} & WithDataSlot;
 
 /**
  * A succinct message with an intent that appears temporarily. The intent
@@ -224,13 +226,20 @@ type ToastProps = ComponentProps<"div"> & {
  * </Toast.Root>
  * ```
  */
-const Root = ({ children, className, intent, ref, ...props }: ToastProps) => {
+const Root = ({
+	"data-slot": dataSlot,
+	children,
+	className,
+	intent,
+	ref,
+	...props
+}: ToastProps) => {
 	const contextValue = useMemo(() => ({ intent }), [intent]);
 
 	return (
 		<ToastStateContext.Provider value={contextValue}>
 			<div
-				data-slot="toast"
+				data-slot={joinDataSlot(dataSlot, "toast")}
 				className={cx(
 					"relative flex items-start gap-2 text-sm font-sans",
 					"p-3 pl-3.75",
@@ -257,7 +266,7 @@ const Root = ({ children, className, intent, ref, ...props }: ToastProps) => {
 	);
 };
 
-type ToastIconProps = Partial<SvgOnlyProps>;
+type ToastIconProps = Partial<SvgOnlyProps> & WithDataSlot;
 
 /**
  * An icon that visually represents the intent of the toast.
@@ -274,14 +283,14 @@ type ToastIconProps = Partial<SvgOnlyProps>;
  * </Toast.Root>
  * ```
  */
-const Icon = ({ className, svg, ref, ...props }: ToastIconProps) => {
+const Icon = ({ "data-slot": dataSlot, className, svg, ref, ...props }: ToastIconProps) => {
 	const ctx = useContext(ToastStateContext);
 
 	switch (ctx.intent) {
 		case "danger":
 			return (
 				<IconComponent
-					data-slot="toast-icon"
+					data-slot={joinDataSlot(dataSlot, "toast-icon")}
 					className={cx("text-danger-600", className)}
 					ref={ref}
 					svg={svg ?? <WarningIcon weight="fill" />}
@@ -291,7 +300,7 @@ const Icon = ({ className, svg, ref, ...props }: ToastIconProps) => {
 		case "warning":
 			return (
 				<IconComponent
-					data-slot="toast-icon"
+					data-slot={joinDataSlot(dataSlot, "toast-icon")}
 					className={cx("text-warning-600", className)}
 					ref={ref}
 					svg={svg ?? <WarningDiamondIcon weight="fill" />}
@@ -301,7 +310,7 @@ const Icon = ({ className, svg, ref, ...props }: ToastIconProps) => {
 		case "success":
 			return (
 				<IconComponent
-					data-slot="toast-icon"
+					data-slot={joinDataSlot(dataSlot, "toast-icon")}
 					className={cx("text-success-600", className)}
 					ref={ref}
 					svg={svg ?? <CheckCircleIcon weight="fill" />}
@@ -311,7 +320,7 @@ const Icon = ({ className, svg, ref, ...props }: ToastIconProps) => {
 		case "info":
 			return (
 				<IconComponent
-					data-slot="toast-icon"
+					data-slot={joinDataSlot(dataSlot, "toast-icon")}
 					className={cx("text-accent-600", className)}
 					ref={ref}
 					svg={svg ?? <InfoIcon weight="fill" />}
@@ -323,7 +332,7 @@ const Icon = ({ className, svg, ref, ...props }: ToastIconProps) => {
 	}
 };
 
-type ToastActionProps = ComponentProps<"button"> & WithAsChild;
+type ToastActionProps = ComponentProps<"button"> & WithAsChild & WithDataSlot;
 
 /**
  * A button that dismisses the toast when clicked.
@@ -340,14 +349,21 @@ type ToastActionProps = ComponentProps<"button"> & WithAsChild;
  * </Toast.Root>
  * ```
  */
-const Action = ({ asChild, className, onClick, ref, ...props }: ToastActionProps) => {
+const Action = ({
+	"data-slot": dataSlot,
+	asChild,
+	className,
+	onClick,
+	ref,
+	...props
+}: ToastActionProps) => {
 	const ctx = useContext(ToastIdContext);
 
 	const Component = asChild ? Slot : "button";
 
 	return (
 		<Component
-			data-slot="toast-action"
+			data-slot={joinDataSlot(dataSlot, "toast-action")}
 			className={cx(
 				//,
 				"shrink-0",
@@ -370,7 +386,7 @@ const Action = ({ asChild, className, onClick, ref, ...props }: ToastActionProps
 	);
 };
 
-type ToastMessageProps = ComponentProps<"p"> & WithAsChild;
+type ToastMessageProps = ComponentProps<"p"> & WithAsChild & WithDataSlot;
 
 /**
  * The message content of the toast.
@@ -386,13 +402,19 @@ type ToastMessageProps = ComponentProps<"p"> & WithAsChild;
  * </Toast.Root>
  * ```
  */
-const Message = ({ asChild, className, ref, ...props }: ToastMessageProps) => {
+const Message = ({
+	"data-slot": dataSlot,
+	asChild,
+	className,
+	ref,
+	...props
+}: ToastMessageProps) => {
 	const Component = asChild ? Slot : "p";
 
 	return (
 		<Component
 			//
-			data-slot="toast-message"
+			data-slot={joinDataSlot(dataSlot, "toast-message")}
 			className={cx("text-strong flex-1 text-sm font-body", className)}
 			ref={ref}
 			{...props}

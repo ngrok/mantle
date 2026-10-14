@@ -130,7 +130,7 @@ test('a bare SelectableList.Filter is named "Filter" by default, and the search 
 		</SelectableList.Root>,
 	);
 	expect(screen.getByRole("textbox", { name: "Filter" })).toBeInTheDocument();
-	const icon = container.querySelector('[data-slot="selectable-list-filter"] svg');
+	const icon = container.querySelector('[data-slot~="selectable-list-filter"] svg');
 	expect(icon).toHaveAttribute("aria-hidden", "true");
 });
 

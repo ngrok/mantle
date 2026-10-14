@@ -7,6 +7,8 @@ import { useContext } from "react";
 import type { WithAsChild } from "../../types/as-child.js";
 import { $cssProperties } from "../../types/index.js";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { FieldControlContext } from "../field/field-context.js";
 import { parseValidation, useFieldValidation } from "../field/validation.js";
 import type { Validation, WithValidation } from "../field/validation.js";
@@ -121,7 +123,7 @@ const MantleOtpBridge = ({
 type OtpInputRootProps = Omit<ComponentProps<typeof OTPInput>, "render" | "children"> &
 	WithValidation & {
 		children?: ReactNode;
-	};
+	} & WithDataSlot;
 
 /**
  * The root of the OTP input. Renders an accessible single hidden input that
@@ -166,6 +168,7 @@ type OtpInputRootProps = Omit<ComponentProps<typeof OTPInput>, "render" | "child
 // owns its hidden `<input>` and its render contract — swapping the element
 // would break input-otp's internal focus and selection management.
 const Root = ({
+	"data-slot": dataSlot,
 	"aria-invalid": ariaInvalid,
 	children,
 	className,
@@ -186,7 +189,7 @@ const Root = ({
 		<OTPInput
 			ref={ref}
 			aria-invalid={resolvedAriaInvalid}
-			data-slot="otp-input"
+			data-slot={joinDataSlot(dataSlot, "otp-input")}
 			containerClassName={cx("flex items-center gap-2 has-disabled:opacity-50", containerClassName)}
 			className={cx("disabled:cursor-not-allowed", className)}
 			{...props}
@@ -204,7 +207,7 @@ const Root = ({
 	);
 };
 
-type OtpInputGroupProps = ComponentProps<"div"> & WithAsChild;
+type OtpInputGroupProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
 
 /**
  * Groups one or more `OtpInput.Slot` parts into a visually-connected segment.
@@ -230,13 +233,20 @@ type OtpInputGroupProps = ComponentProps<"div"> & WithAsChild;
  * </OtpInput.Root>
  * ```
  */
-const Group = ({ asChild, children, className, ref, ...props }: OtpInputGroupProps) => {
+const Group = ({
+	"data-slot": dataSlot,
+	asChild,
+	children,
+	className,
+	ref,
+	...props
+}: OtpInputGroupProps) => {
 	const Comp = asChild ? AsChildSlot : "div";
 
 	return (
 		<Comp
 			ref={ref}
-			data-slot="otp-input-group"
+			data-slot={joinDataSlot(dataSlot, "otp-input-group")}
 			className={cx(
 				"relative flex items-center rounded-md",
 				// A "range" selection within this group means two or more
@@ -266,7 +276,7 @@ type OtpInputSlotProps = Omit<ComponentProps<"div">, "translate"> & {
 	 * index within the parent `OtpInput.Root`'s `maxLength`.
 	 */
 	index: number;
-};
+} & WithDataSlot;
 
 /**
  * Renders a single character slot for the OTP input. Reads its display state
@@ -306,7 +316,13 @@ type OtpInputSlotProps = Omit<ComponentProps<"div">, "translate"> & {
 // state (char, fake caret, active) from `OTPInputContext` and renders that
 // state into a fixed visual structure. Letting consumers swap the element
 // would lose the caret overlay and the active-ring focus styling.
-const OtpInputSlotImpl = ({ className, index, ref, ...props }: OtpInputSlotProps) => {
+const OtpInputSlotImpl = ({
+	"data-slot": dataSlot,
+	className,
+	index,
+	ref,
+	...props
+}: OtpInputSlotProps) => {
 	const context = useContext(OTPInputContext);
 	const slot = context.slots[index];
 	const char = slot?.char ?? null;
@@ -316,7 +332,7 @@ const OtpInputSlotImpl = ({ className, index, ref, ...props }: OtpInputSlotProps
 	return (
 		<div
 			ref={ref}
-			data-slot="otp-input-slot"
+			data-slot={joinDataSlot(dataSlot, "otp-input-slot")}
 			data-active={isActive ? "" : undefined}
 			className={cx(
 				"border-form bg-form text-strong relative flex h-10 w-10 items-center justify-center border-y border-r text-sm shadow-sm outline-hidden transition-all duration-150 ease-out",
@@ -398,7 +414,7 @@ type OtpInputSeparatorProps = ComponentProps<"div"> &
 		 * @default false
 		 */
 		semantic?: boolean;
-	};
+	} & WithDataSlot;
 
 /**
  * A visual separator between two `OtpInput.Group` segments. Renders a minus
@@ -424,6 +440,7 @@ type OtpInputSeparatorProps = ComponentProps<"div"> &
  * ```
  */
 const Separator = ({
+	"data-slot": dataSlot,
 	asChild,
 	children,
 	className,
@@ -437,7 +454,7 @@ const Separator = ({
 	return (
 		<Comp
 			ref={ref}
-			data-slot="otp-input-separator"
+			data-slot={joinDataSlot(dataSlot, "otp-input-separator")}
 			className={cx("text-separator flex items-center", className)}
 			{...semanticProps}
 			{...props}

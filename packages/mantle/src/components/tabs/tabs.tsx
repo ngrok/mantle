@@ -303,7 +303,7 @@ type TabsSeparatorProps = Omit<
  *
  * | Data Attribute     | Value                          | Description                                   |
  * | ------------------ | ------------------------------ | --------------------------------------------- |
- * | `data-slot`        | `"tabs-separator"`             | On the separator element.                     |
+ * | `data-slot`        | `"tabs-separator separator"`   | On the separator element, joined ahead of `Separator`'s own slot. |
  * | `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation.                       |
  * | `data-separator`   | present                        | Presence-only. Set by the mantle `Separator`. |
  *

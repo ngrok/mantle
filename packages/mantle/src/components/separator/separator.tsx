@@ -2,6 +2,8 @@ import type { ComponentProps } from "react";
 import { createContext, useContext } from "react";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { Slot } from "../slot/index.js";
 
 const orientations = ["horizontal", "vertical"] as const;
@@ -49,17 +51,18 @@ const horizontalSeparatorGroupContextValue: SeparatorGroupContextShape = {
  * ```
  */
 const HorizontalSeparatorGroup = ({
+	"data-slot": dataSlot,
 	className,
 	children,
 	asChild,
 	...props
-}: ComponentProps<"div"> & WithAsChild) => {
+}: ComponentProps<"div"> & WithAsChild & WithDataSlot) => {
 	const Comp = asChild ? Slot : "div";
 
 	return (
 		<SeparatorGroupContext.Provider value={horizontalSeparatorGroupContextValue}>
 			<Comp
-				data-slot="horizontal-separator-group"
+				data-slot={joinDataSlot(dataSlot, "horizontal-separator-group")}
 				data-horizontal-separator-group
 				className={cx(
 					"group flex items-center gap-2 [&>*:not([data-separator])]:shrink-0",
@@ -89,7 +92,7 @@ type SeparatorProps = ComponentProps<"div"> &
 		 * @default false
 		 */
 		semantic?: boolean;
-	};
+	} & WithDataSlot;
 
 /**
  * Visually or semantically separates content.
@@ -123,6 +126,7 @@ type SeparatorProps = ComponentProps<"div"> &
  * ```
  */
 const Separator = ({
+	"data-slot": dataSlot,
 	asChild = false,
 	children,
 	className,
@@ -144,7 +148,7 @@ const Separator = ({
 
 	return (
 		<Component
-			data-slot="separator"
+			data-slot={joinDataSlot(dataSlot, "separator")}
 			className={cx(
 				"separator",
 				"bg-separator",

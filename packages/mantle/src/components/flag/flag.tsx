@@ -1,6 +1,8 @@
 import { cva } from "class-variance-authority";
 import type { ComponentProps } from "react";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import type { CountryCode } from "./country-code.js";
 
 const cdnOrigin = "https://assets.ngrok.com";
@@ -25,7 +27,7 @@ type Props = Omit<ComponentProps<"div">, "children"> & {
 	 * @default "lazy"
 	 */
 	loading?: ComponentProps<"img">["loading"];
-};
+} & WithDataSlot;
 
 const borderRadiusVariants = cva("", {
 	variants: {
@@ -91,6 +93,7 @@ const sizingVariants = cva("", {
  * ```
  */
 function Flag({
+	"data-slot": dataSlot,
 	//,
 	className,
 	code,
@@ -103,7 +106,7 @@ function Flag({
 
 	return (
 		<div
-			data-slot="flag"
+			data-slot={joinDataSlot(dataSlot, "flag")}
 			className={cx("flag relative overflow-hidden", borderRadius, sizing, className)}
 			{...props}
 		>

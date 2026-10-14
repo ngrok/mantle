@@ -1,9 +1,11 @@
 import type { ComponentProps } from "react";
 import type { SelfClosingWithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { Slot } from "../slot/index.js";
 
-type Props = Omit<ComponentProps<"div">, "children"> & SelfClosingWithAsChild;
+type Props = Omit<ComponentProps<"div">, "children"> & SelfClosingWithAsChild & WithDataSlot;
 
 /**
  * A skeleton is a placeholder for content that is loading. By rendering a
@@ -51,12 +53,12 @@ type Props = Omit<ComponentProps<"div">, "children"> & SelfClosingWithAsChild;
  * </div>
  * ```
  */
-const Skeleton = ({ asChild = false, className, ref, ...props }: Props) => {
+const Skeleton = ({ "data-slot": dataSlot, asChild = false, className, ref, ...props }: Props) => {
 	const Component = asChild ? Slot : "div";
 
 	return (
 		<Component
-			data-slot="skeleton"
+			data-slot={joinDataSlot(dataSlot, "skeleton")}
 			// Why before the spread: a consumer `aria-hidden={false}` must win.
 			aria-hidden
 			className={cx(

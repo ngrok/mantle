@@ -3,6 +3,8 @@ import invariant from "tiny-invariant";
 import type { WithAsChild } from "../../types/as-child.js";
 import type { Color } from "../../utils/color/index.js";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { SvgOnly } from "../icon/svg-only.js";
 import { Slot } from "../slot/index.js";
 
@@ -25,7 +27,7 @@ type BadgeProps = ComponentProps<"span"> &
 		 * The visual style of the badge.
 		 */
 		appearance: Appearance;
-	};
+	} & WithDataSlot;
 
 /**
  * A non-interactive label used to highlight short, scannable information —
@@ -82,6 +84,7 @@ type BadgeProps = ComponentProps<"span"> &
  * ```
  */
 const Badge = ({
+	"data-slot": dataSlot,
 	appearance,
 	asChild = false,
 	children,
@@ -110,7 +113,7 @@ const Badge = ({
 		const grandchildren = singleChild.props?.children;
 
 		return (
-			<Slot data-slot="badge" className={badgeClasses} {...props}>
+			<Slot data-slot={joinDataSlot(dataSlot, "badge")} className={badgeClasses} {...props}>
 				{cloneElement(
 					singleChild,
 					{},
@@ -127,7 +130,7 @@ const Badge = ({
 	}
 
 	return (
-		<span data-slot="badge" className={badgeClasses} {...props}>
+		<span data-slot={joinDataSlot(dataSlot, "badge")} className={badgeClasses} {...props}>
 			{icon && <SvgOnly className="size-4" svg={icon} />}
 			{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
 			<span data-slot="badge-label" className="contents">

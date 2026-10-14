@@ -248,7 +248,11 @@ describe("Select", () => {
 			);
 			expect(screen.getByText("Fruits")).toHaveAttribute("data-slot", "select-label");
 			expect(option).toHaveAttribute("data-slot", "select-item");
-			expect(listbox.querySelector('[data-slot="select-separator"]')).toBeInTheDocument();
+			// The separator is a `Separator`, which joins its own slot after the part's.
+			expect(listbox.querySelector('[data-slot~="select-separator"]')).toHaveAttribute(
+				"data-slot",
+				"select-separator separator",
+			);
 			expect(option.querySelector('[data-slot="select-item-label"]')).toHaveTextContent("Apple");
 		});
 
@@ -349,7 +353,7 @@ describe("Select", () => {
 			);
 			expect(screen.getByText("Fruits")).toHaveAttribute("data-slot", "app-label select-label");
 			expect(
-				listbox.querySelector('[data-slot="app-separator select-separator"]'),
+				listbox.querySelector('[data-slot="app-separator select-separator separator"]'),
 			).toBeInTheDocument();
 		});
 
@@ -374,10 +378,19 @@ describe("Select", () => {
 			);
 
 			// Why the class check: the tailwind-merge contract puts each consumer class beside the part's defaults.
-			for (const part of ["trigger", "content", "group", "label", "item", "separator"]) {
+			// The separator renders a `Separator`, which joins its own slot after the part's.
+			const slots = {
+				trigger: "select-trigger",
+				content: "select-content",
+				group: "select-group",
+				label: "select-label",
+				item: "select-item",
+				separator: "select-separator separator",
+			};
+			for (const [part, slot] of Object.entries(slots)) {
 				const element = screen.getByTestId(part);
 				expect(element).toHaveClass(`app-${part}`);
-				expect(element).toHaveAttribute("data-slot", `select-${part}`);
+				expect(element).toHaveAttribute("data-slot", slot);
 			}
 		});
 

@@ -123,7 +123,7 @@ function normalizeText(text: string): string {
 
 /**
  * The plain-text form of a rendered banner's title: the
- * `[data-slot=alert-title]` descendant's text with CTA anchors and any
+ * `[data-slot~=alert-title]` descendant's text with CTA anchors and any
  * composed controls removed (mirroring how the bar treats the title and its
  * inline call-to-action as separate things), whitespace-normalized. Falls
  * back to the full title text when the title is entirely links; empty when
@@ -139,7 +139,7 @@ function normalizeText(text: string): string {
  * ```
  */
 function alertTitleText(banner: Element): string {
-	const title = banner.querySelector('[data-slot="alert-title"]');
+	const title = banner.querySelector('[data-slot~="alert-title"]');
 	if (title == null) {
 		return "";
 	}
@@ -853,7 +853,7 @@ type AlertCenterDismissIconButtonProps = ComponentProps<typeof Alert.DismissIcon
  *
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
- * | `data-slot` | `alert-center-dismiss-icon-button` | Replaces `Alert.DismissIconButton`'s own `alert-dismiss-icon-button` on the rendered button. |
+ * | `data-slot` | `alert-center-dismiss-icon-button alert-dismiss-icon-button icon-button` | On the rendered button, joined ahead of `Alert.DismissIconButton`'s own slot and `IconButton`'s. |
  * | `data-alert-dismiss` | present | Read, not stamped — `Alert` emits it, and `AlertCenter`'s bar CSS positions the control with it. |
  *
  * @see https://mantle.ngrok.com/components/feedback/alert-center#alertcenterdismissiconbutton
@@ -1191,7 +1191,7 @@ function useBarFocusRedirect({
  * banner metrics, plus a non-shrinking `Alert.Icon` so authored icons never
  * collapse in the flex row.
  */
-const chromeClassName = "gap-2 py-2 pr-2 [&_[data-slot=alert-icon]]:shrink-0";
+const chromeClassName = "gap-2 py-2 pr-2 [&_[data-slot~=alert-icon]]:shrink-0";
 
 /**
  * Vertically centers the bar's trailing controls (dismiss and expand) while the
@@ -1262,7 +1262,7 @@ const dismissClearsExpandControl =
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
  * | `data-slot` | `alert-center-bar-wrapper` | On the presence wrapper that owns the enter/exit animation. |
- * | `data-slot` | `alert-center-bar` | On the banner chrome (`Alert.Root`) the top item's children render inside. |
+ * | `data-slot` | `alert-center-bar alert` | On the banner chrome the top item's children render inside, joined ahead of `Alert.Root`'s own slot. |
  * | `data-slot` | `alert-center-bar-mount` | On the layout-transparent element the top item's host is adopted into. |
  * | `data-state` | `"open"` \| `"closed"` | On the wrapper; drives the enter/exit transition, and stays `closed` while the exit plays. |
  * | `data-placement` | `"bar"` | On the chrome — where the top item's children are currently rendering. |
@@ -1510,7 +1510,7 @@ type AlertCenterContentProps = Omit<ComponentProps<"div">, "children" | "id"> &
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
  * | `data-slot` | `alert-center-content` | On the expansion wrapper that owns the collapse animation. |
- * | `data-slot` | `alert-center-item` | On each row's banner chrome (`Alert.Root`). |
+ * | `data-slot` | `alert-center-item alert` | On each row's banner chrome, joined ahead of `Alert.Root`'s own slot. |
  * | `data-state` | `"open"` \| `"closed"` | On the wrapper; drives the collapse transition. |
  * | `data-placement` | `"list"` | On each row's chrome — where that item's children are currently rendering. |
  * | `data-alert-id` | the row item's `id` | On each row's chrome; per-alert styling and testing hook. |
@@ -1868,7 +1868,7 @@ const AlertCenter = {
 	 * | Data Attribute | Value | Description |
 	 * | --- | --- | --- |
 	 * | `data-slot` | `alert-center-bar-wrapper` | On the presence wrapper that owns the enter/exit animation. |
-	 * | `data-slot` | `alert-center-bar` | On the banner chrome (`Alert.Root`) the top item's children render inside. |
+	 * | `data-slot` | `alert-center-bar alert` | On the banner chrome the top item's children render inside, joined ahead of `Alert.Root`'s own slot. |
 	 * | `data-slot` | `alert-center-bar-mount` | On the layout-transparent element the top item's host is adopted into. |
 	 * | `data-state` | `"open"` \| `"closed"` | On the wrapper; drives the enter/exit transition, and stays `closed` while the exit plays. |
 	 * | `data-placement` | `"bar"` | On the chrome — where the top item's children are currently rendering. |
@@ -1921,7 +1921,7 @@ const AlertCenter = {
 	 * | Data Attribute | Value | Description |
 	 * | --- | --- | --- |
 	 * | `data-slot` | `alert-center-content` | On the expansion wrapper that owns the collapse animation. |
-	 * | `data-slot` | `alert-center-item` | On each row's banner chrome (`Alert.Root`). |
+	 * | `data-slot` | `alert-center-item alert` | On each row's banner chrome, joined ahead of `Alert.Root`'s own slot. |
 	 * | `data-state` | `"open"` \| `"closed"` | On the wrapper; drives the collapse transition. |
 	 * | `data-placement` | `"list"` | On each row's chrome — where that item's children are currently rendering. |
 	 * | `data-alert-id` | the row item's `id` | On each row's chrome; per-alert styling and testing hook. |
@@ -2000,7 +2000,7 @@ const AlertCenter = {
 	 *
 	 * | Data Attribute | Value | Description |
 	 * | --- | --- | --- |
-	 * | `data-slot` | `alert-center-dismiss-icon-button` | Replaces `Alert.DismissIconButton`'s own `alert-dismiss-icon-button` on the rendered button. |
+	 * | `data-slot` | `alert-center-dismiss-icon-button alert-dismiss-icon-button icon-button` | On the rendered button, joined ahead of `Alert.DismissIconButton`'s own slot and `IconButton`'s. |
 	 * | `data-alert-dismiss` | present | Read, not stamped — `Alert` emits it, and `AlertCenter`'s bar CSS positions the control with it. |
 	 *
 	 * @see https://mantle.ngrok.com/components/feedback/alert-center#alertcenterdismissiconbutton

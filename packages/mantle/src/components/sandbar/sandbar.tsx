@@ -860,7 +860,7 @@ type SandbarSaveButtonProps = Omit<ButtonProps, "appearance" | "children" | "int
  *
  * | Data Attribute    | Value                     | Description                                                                                      |
  * | ----------------- | ------------------------- | -------------------------------------------------------------------------------------------------- |
- * | `data-slot`       | `"sandbar-save-button"`   | Stable styling hook. Replaces `Button`'s own `data-slot="button"`, as every Button wrapper does. |
+ * | `data-slot`       | `"sandbar-save-button button"` | Stable styling hook, joined ahead of `Button`'s own `button`. |
  * | `data-appearance` | the resolved `appearance` | Stamped by `Button`.                                                                             |
  * | `data-intent`     | the resolved `intent`     | Stamped by `Button`.                                                                             |
  * | `data-size`       | the resolved `size`       | Stamped by `Button`; absent for `appearance="link"`.                                             |
@@ -965,7 +965,7 @@ type SandbarDiscardButtonProps = Omit<ButtonProps, "appearance" | "children" | "
  *
  * | Data Attribute    | Value                      | Description                                                                                      |
  * | ----------------- | -------------------------- | -------------------------------------------------------------------------------------------------- |
- * | `data-slot`       | `"sandbar-discard-button"` | Stable styling hook. Replaces `Button`'s own `data-slot="button"`, as every Button wrapper does. |
+ * | `data-slot`       | `"sandbar-discard-button button"` | Stable styling hook, joined ahead of `Button`'s own `button`. |
  * | `data-appearance` | the resolved `appearance`  | Stamped by `Button`.                                                                             |
  * | `data-intent`     | the resolved `intent`      | Stamped by `Button`.                                                                             |
  * | `data-size`       | the resolved `size`        | Stamped by `Button`; absent for `appearance="link"`.                                             |

@@ -220,7 +220,8 @@ describe("Tabs", () => {
 			},
 			{
 				name: "Separator",
-				slot: "tabs-separator",
+				// The part renders mantle's `Separator`, which joins its own slot last.
+				slot: "tabs-separator separator",
 				render: (probe) => (
 					<Tabs.Root defaultValue="a">
 						<Tabs.Separator {...probe} />
@@ -289,7 +290,7 @@ describe("Tabs", () => {
 					</Tabs.Root>,
 				);
 
-				const separator = container.querySelector('[data-slot="tabs-separator"]');
+				const separator = container.querySelector('[data-slot~="tabs-separator"]');
 				expect(separator).toHaveAttribute("data-orientation", orientation);
 				expect(separator).toHaveAttribute("data-separator");
 			},
@@ -301,7 +302,7 @@ describe("Tabs", () => {
 					<Tabs.Separator />
 				</Tabs.Root>,
 			);
-			expect(container.querySelector('[data-slot="tabs-separator"]')).toHaveAttribute(
+			expect(container.querySelector('[data-slot~="tabs-separator"]')).toHaveAttribute(
 				"role",
 				"none",
 			);
@@ -311,7 +312,10 @@ describe("Tabs", () => {
 					<Tabs.Separator semantic />
 				</Tabs.Root>,
 			);
-			expect(screen.getByRole("separator")).toHaveAttribute("data-slot", "tabs-separator");
+			expect(screen.getByRole("separator")).toHaveAttribute(
+				"data-slot",
+				"tabs-separator separator",
+			);
 		});
 
 		test("merges the consumer's className and ref onto the separator element", () => {
@@ -322,7 +326,7 @@ describe("Tabs", () => {
 				</Tabs.Root>,
 			);
 
-			const separator = container.querySelector('[data-slot="tabs-separator"]');
+			const separator = container.querySelector('[data-slot~="tabs-separator"]');
 			expect(separator).toHaveClass("my-2");
 			expect(refSpy).toHaveBeenCalledTimes(1);
 			expect(refSpy).toHaveBeenLastCalledWith(separator);
@@ -340,7 +344,8 @@ describe("Tabs", () => {
 
 			const rule = screen.getByTestId("rule");
 			expect(rule.tagName).toBe("HR");
-			expect(rule).toHaveAttribute("data-slot", "tabs-separator");
+			// The part's slot joins ahead of the `Separator` it renders.
+			expect(rule).toHaveAttribute("data-slot", "tabs-separator separator");
 			expect(rule).toHaveAttribute("data-orientation", "vertical");
 			expect(rule).toHaveClass("my-2");
 			expect(refSpy).toHaveBeenCalledTimes(1);

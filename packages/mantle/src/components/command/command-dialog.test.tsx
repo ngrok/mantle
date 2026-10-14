@@ -180,7 +180,7 @@ describe("Command.Dialog", () => {
 				expect(screen.getByText("Test Command Palette")).toBeInTheDocument();
 			});
 
-			expect(document.querySelector("[data-slot='command-separator']")).toBeInTheDocument();
+			expect(document.querySelector("[data-slot~='command-separator']")).toBeInTheDocument();
 		});
 
 		// Why: cmdk hides its own `Separator` on a query. This test pins the `asChild`
