@@ -21,7 +21,9 @@ import { AppLayout } from "./app-layout.js";
  * Regenerate it by compiling those class names through `tailwindcss`'s
  * `compile()`. Drop `mx-auto`, `w-full`, `ml-0`, `grow-0`, the inner card's
  * width or inset, or a `data-state-closed:` utility from a part and the
- * matching assertion fails.
+ * matching assertion fails. The ungated `data-state-closed:basis-0` rule stays
+ * loaded with no part that uses it, so an ungated utility shows up as a third
+ * transition on the floating panel.
  */
 const STYLE = `
 @layer theme, base, components, utilities;
@@ -123,6 +125,15 @@ const STYLE = `
 	}
 	.data-state-closed\\:pointer-events-none[data-state~=closed] { pointer-events: none; }
 	.data-state-closed\\:basis-0[data-state~=closed] { flex-basis: 0px; }
+	@media (width >= 40rem) {
+		.sm\\:data-state-closed\\:basis-0[data-state~=closed] { flex-basis: 0px; }
+	}
+	@media (width >= 48rem) {
+		.md\\:data-state-closed\\:basis-0[data-state~=closed] { flex-basis: 0px; }
+	}
+	@media (width >= 64rem) {
+		.lg\\:data-state-closed\\:basis-0[data-state~=closed] { flex-basis: 0px; }
+	}
 	@media (width < 64rem) {
 		.max-lg\\:data-state-closed\\:invisible[data-state~=closed] { visibility: hidden; }
 		.max-lg\\:data-state-closed\\:translate-x-\\[calc\\(100\\%\\+var\\(--app-layout-card-gutter\\,0\\.5rem\\)\\)\\][data-state~=closed] {
@@ -533,13 +544,10 @@ describe("AppLayout.SidePanel lane", () => {
 		await waitFor(() => {
 			expect(transitions).toContain("visibility");
 		});
-		// Why drop the basis: `data-state-closed:basis-0` applies at every width,
-		// and an absolutely positioned box ignores `flex-basis`, so its run moves
-		// nothing. A third property (a margin, say) moves the floating card's anchor mid-flight.
-		expect(transitions.filter((property) => property !== "flex-basis").toSorted()).toEqual([
-			"translate",
-			"visibility",
-		]);
+		// Why: a third property (a margin, or the lane's `flex-basis`, which an
+		// absolutely positioned box ignores) moves the floating card's anchor
+		// mid-flight or runs an inert transition on every toggle.
+		expect(transitions.toSorted()).toEqual(["translate", "visibility"]);
 		await waitFor(
 			() => {
 				expect(getComputedStyle(panel).visibility).toBe("hidden");

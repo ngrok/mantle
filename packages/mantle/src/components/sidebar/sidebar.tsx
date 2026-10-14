@@ -8,6 +8,7 @@ import {
 	useContext,
 	useEffect,
 	useId,
+	useLayoutEffect,
 	useMemo,
 	useRef,
 	useState,
@@ -96,7 +97,8 @@ type SidebarState = {
 	open: boolean;
 	/**
 	 * Set the desktop expanded state. Calls `onOpenChange` and, when
-	 * uncontrolled, updates the internal state.
+	 * uncontrolled, updates the internal state. Keeps one identity across
+	 * renders, so it is safe in an effect dependency list.
 	 */
 	setOpen: (open: boolean) => void;
 	/**
@@ -106,7 +108,8 @@ type SidebarState = {
 	/**
 	 * Set the mobile sheet open state. Calls `onOpenMobileChange` and, when
 	 * uncontrolled, updates the internal state. Use it to close the sheet on
-	 * navigation.
+	 * navigation. Keeps one identity across renders, so it is safe in an effect
+	 * dependency list.
 	 */
 	setOpenMobile: (open: boolean) => void;
 	/**
@@ -363,6 +366,17 @@ const Root = ({
 	const isMobile = useIsBelowBreakpoint(mobileBreakpoint);
 	const navId = useId();
 
+	// Why refs: an inline `onOpenChange` takes a new identity on every parent
+	// render, and both setters are public through `useSidebar()` as effect
+	// dependencies. Why not `useCallbackRef`: it writes in a passive effect,
+	// after a consumer's `useEffect` in the same commit has read the stale callback.
+	const onOpenChangeRef = useRef(onOpenChange);
+	const onOpenMobileChangeRef = useRef(onOpenMobileChange);
+	useLayoutEffect(() => {
+		onOpenChangeRef.current = onOpenChange;
+		onOpenMobileChangeRef.current = onOpenMobileChange;
+	});
+
 	const isOpenControlled = openProp != null;
 	const [internalOpen, setInternalOpen] = useState(defaultOpen);
 	const open = isOpenControlled ? openProp : internalOpen;
@@ -371,9 +385,9 @@ const Root = ({
 			if (!isOpenControlled) {
 				setInternalOpen(next);
 			}
-			onOpenChange?.(next);
+			onOpenChangeRef.current?.(next);
 		},
-		[isOpenControlled, onOpenChange],
+		[isOpenControlled],
 	);
 
 	const isOpenMobileControlled = openMobileProp != null;
@@ -384,9 +398,9 @@ const Root = ({
 			if (!isOpenMobileControlled) {
 				setInternalOpenMobile(next);
 			}
-			onOpenMobileChange?.(next);
+			onOpenMobileChangeRef.current?.(next);
 		},
-		[isOpenMobileControlled, onOpenMobileChange],
+		[isOpenMobileControlled],
 	);
 
 	// Crossing up over the breakpoint unmounts the sheet without closing it;
@@ -1665,6 +1679,9 @@ const rowClassName = [
 	// A row composed as a menu or dialog trigger stays highlighted while the
 	// surface it opens is open, matching Sidebar.SwitcherTrigger.
 	"data-state-open:bg-neutral-500/15 data-state-open:text-strong",
+	// Why `aria-expanded` too: inside `Sidebar.Tooltip` the tooltip trigger's
+	// own `data-state` replaces the menu trigger's, and it stamps no `aria-expanded`.
+	"aria-expanded:bg-neutral-500/15 aria-expanded:text-strong",
 	// In the collapsed icon rail the row returns to its original 28px square
 	// chip. ml-1 keeps body and footer icons aligned with their expanded
 	// position and the switcher indicators.
@@ -1731,7 +1748,7 @@ type SidebarItemButtonProps = ComponentProps<"button"> &
  * | --- | --- | --- |
  * | `data-current` | present when `current` | Presence-only, never `"false"`, since the `data-current:` variant matches the attribute's existence. Styles the current row. |
  * | `aria-current` | `"page"` when `current` | Set alongside `data-current`. The current-row styling follows *either*, so a composed child that marks itself (react-router's `NavLink`) gets the treatment without the prop. |
- * | `data-state` | `"open"` \| `"closed"` | **Read, not stamped**: supplied by a composing `DropdownMenu.Trigger` / `Dialog.Trigger`. The row styles against it so it stays highlighted while its menu is open. |
+ * | `data-state` | `"open"` \| `"closed"` | **Read, not stamped**: supplied by a composing `DropdownMenu.Trigger` / `Dialog.Trigger`. The row styles against it so it stays highlighted while its menu is open. Inside `Sidebar.Tooltip` the tooltip's own `data-state` replaces this one, so the open highlight also keys on `aria-expanded`. |
  *
  * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebaritembutton
  *
@@ -2079,7 +2096,7 @@ type SidebarSwitcherTriggerProps = ComponentProps<"button"> & WithAsChild & With
  *
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
- * | `data-state` | `"open"` \| `"closed"` | **Read, not stamped**: supplied by the composing `DropdownMenu.Trigger` / `Dialog.Trigger`. The row styles against it so it stays highlighted while its menu is open. |
+ * | `data-state` | `"open"` \| `"closed"` | **Read, not stamped**: supplied by the composing `DropdownMenu.Trigger` / `Dialog.Trigger`. The row styles against it so it stays highlighted while its menu is open. Inside `Sidebar.Tooltip` the tooltip's own `data-state` replaces this one, so the open highlight also keys on `aria-expanded`. |
  *
  * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarswitchertrigger
  *
@@ -2150,6 +2167,9 @@ const SwitcherTrigger = ({
 			className={cx(
 				"text-body hover:text-strong hover:bg-neutral-500/10 flex w-full min-w-0 items-center gap-2 rounded-[0.625rem] py-1 pr-1.5 pl-1 text-left font-medium",
 				"data-state-open:bg-neutral-500/15 data-state-open:text-strong",
+				// Why `aria-expanded` too: inside `Sidebar.Tooltip` the tooltip trigger's
+				// own `data-state` replaces the menu trigger's, and it stamps no `aria-expanded`.
+				"aria-expanded:bg-neutral-500/15 aria-expanded:text-strong",
 				"ring-focus-accent focus:outline-hidden focus-visible:ring-4",
 				// The leading account/product tile uses rounded-md (6px) and
 				// sits 4px from the edge, so the outer switcher radius is 10px.
@@ -3197,7 +3217,7 @@ const Sidebar = {
 	 * | --- | --- | --- |
 	 * | `data-current` | present when `current` | Presence-only, never `"false"`, since the `data-current:` variant matches the attribute's existence. Styles the current row. |
 	 * | `aria-current` | `"page"` when `current` | Set alongside `data-current`. The current-row styling follows *either*, so a composed child that marks itself (react-router's `NavLink`) gets the treatment without the prop. |
-	 * | `data-state` | `"open"` \| `"closed"` | **Read, not stamped**: supplied by a composing `DropdownMenu.Trigger` / `Dialog.Trigger`. The row styles against it so it stays highlighted while its menu is open. |
+	 * | `data-state` | `"open"` \| `"closed"` | **Read, not stamped**: supplied by a composing `DropdownMenu.Trigger` / `Dialog.Trigger`. The row styles against it so it stays highlighted while its menu is open. Inside `Sidebar.Tooltip` the tooltip's own `data-state` replaces this one, so the open highlight also keys on `aria-expanded`. |
 	 *
 	 * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebaritembutton
 	 *
@@ -3332,7 +3352,7 @@ const Sidebar = {
 	 *
 	 * | Data Attribute | Value | Description |
 	 * | --- | --- | --- |
-	 * | `data-state` | `"open"` \| `"closed"` | **Read, not stamped**: supplied by the composing `DropdownMenu.Trigger` / `Dialog.Trigger`. The row styles against it so it stays highlighted while its menu is open. |
+	 * | `data-state` | `"open"` \| `"closed"` | **Read, not stamped**: supplied by the composing `DropdownMenu.Trigger` / `Dialog.Trigger`. The row styles against it so it stays highlighted while its menu is open. Inside `Sidebar.Tooltip` the tooltip's own `data-state` replaces this one, so the open highlight also keys on `aria-expanded`. |
 	 *
 	 * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarswitchertrigger
 	 *

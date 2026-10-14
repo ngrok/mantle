@@ -1,7 +1,7 @@
 import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
 import { fireEvent, render as renderComponent, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { createRef, type ReactElement, type ReactNode } from "react";
+import { createRef, type ReactElement, type ReactNode, useEffect } from "react";
 import { renderToString } from "react-dom/server";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import mantleCss from "../../mantle.css?raw";
@@ -10,6 +10,7 @@ import type * as UseBreakpointModule from "../../hooks/use-breakpoint.js";
 import { Command } from "../command/command.js";
 import { DropdownMenu } from "../dropdown-menu/index.js";
 import { TooltipProvider } from "../tooltip/index.js";
+import type { SidebarState } from "./sidebar.js";
 import { Sidebar, useSidebar } from "./sidebar.js";
 
 /**
@@ -911,6 +912,104 @@ describe("useSidebar", () => {
 		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "collapsed");
 		await user.click(screen.getByRole("button", { name: "expand it" }));
 		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "expanded");
+	});
+
+	test("a parent rerender with new inline callbacks keeps the context value's identity", () => {
+		// A `useSidebar()` consumer skips a parent render only while the context
+		// value keeps its identity. The test catches a setter that lists its
+		// callback as a dependency, or a dropped `useMemo` around the value.
+		const values: SidebarState[] = [];
+		function Probe() {
+			values.push(useSidebar());
+			return null;
+		}
+		const { rerender } = render(
+			<Sidebar.Root
+				onOpenChange={vi.fn<(open: boolean) => void>()}
+				onOpenMobileChange={vi.fn<(open: boolean) => void>()}
+			>
+				<Probe />
+			</Sidebar.Root>,
+		);
+		rerender(
+			<Sidebar.Root
+				onOpenChange={vi.fn<(open: boolean) => void>()}
+				onOpenMobileChange={vi.fn<(open: boolean) => void>()}
+			>
+				<Probe />
+			</Sidebar.Root>,
+		);
+		expect(values).toHaveLength(2);
+		expect(values[1]).toBe(values[0]);
+	});
+
+	test("a rerender swaps in the latest onOpenChange before the next toggle", async () => {
+		// The test catches a ref that holds the first render's callback forever.
+		const user = userEvent.setup();
+		const first = vi.fn<(open: boolean) => void>();
+		const latest = vi.fn<(open: boolean) => void>();
+		const { rerender } = render(
+			<Sidebar.Root onOpenChange={first}>
+				<Sidebar.Trigger />
+			</Sidebar.Root>,
+		);
+		rerender(
+			<Sidebar.Root onOpenChange={latest}>
+				<Sidebar.Trigger />
+			</Sidebar.Root>,
+		);
+		await user.click(screen.getByRole("button", { name: "Toggle Sidebar" }));
+		expect(first).toHaveBeenCalledTimes(0);
+		expect(latest).toHaveBeenCalledExactlyOnceWith(false);
+	});
+
+	test("a rerender swaps in the latest onOpenMobileChange before the next toggle", async () => {
+		// The mobile setter reads its own ref, so a stale one is its own defect.
+		useIsBelowBreakpointMock.mockReturnValue(true);
+		const user = userEvent.setup();
+		const first = vi.fn<(open: boolean) => void>();
+		const latest = vi.fn<(open: boolean) => void>();
+		const { rerender } = render(
+			<Sidebar.Root onOpenMobileChange={first}>
+				<Sidebar.Trigger />
+			</Sidebar.Root>,
+		);
+		rerender(
+			<Sidebar.Root onOpenMobileChange={latest}>
+				<Sidebar.Trigger />
+			</Sidebar.Root>,
+		);
+		await user.click(screen.getByRole("button", { name: "Toggle Sidebar" }));
+		expect(first).toHaveBeenCalledTimes(0);
+		expect(latest).toHaveBeenCalledExactlyOnceWith(true);
+	});
+
+	test("a consumer effect in the rerender's own commit sees the latest onOpenChange", () => {
+		// A consumer's `useEffect` runs before the root's in the same commit, so a
+		// passive write of the callback ref hands it the previous render's callback.
+		function Collapser({ when }: { when: boolean }) {
+			const { setOpen } = useSidebar();
+			useEffect(() => {
+				if (when) {
+					setOpen(false);
+				}
+			}, [when, setOpen]);
+			return null;
+		}
+		const first = vi.fn<(open: boolean) => void>();
+		const latest = vi.fn<(open: boolean) => void>();
+		const { rerender } = render(
+			<Sidebar.Root onOpenChange={first}>
+				<Collapser when={false} />
+			</Sidebar.Root>,
+		);
+		rerender(
+			<Sidebar.Root onOpenChange={latest}>
+				<Collapser when />
+			</Sidebar.Root>,
+		);
+		expect(first).toHaveBeenCalledTimes(0);
+		expect(latest).toHaveBeenCalledExactlyOnceWith(false);
 	});
 });
 

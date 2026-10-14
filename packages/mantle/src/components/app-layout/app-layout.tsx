@@ -765,7 +765,10 @@ type AppLayoutSidePanelMobileBreakpoint = "sm" | "md" | "lg";
  * over the card below it, and to the closed treatment on each side of it.
  * Below the breakpoint the panel leaves the row, pins to the row's end edge
  * inside the card gutter, takes a fixed width that leaves a strip of the page
- * visible, and slides off the end edge when closed. Closed, it is also
+ * visible, and slides off the end edge when closed. The lane's closed
+ * `basis-0` is gated to the breakpoint and up: an absolutely positioned box
+ * ignores `flex-basis`, so an ungated one runs an inert transition on every
+ * close and open. Closed, the floating box is also
  * `invisible`: when `--app-layout-max-width` caps the row inside the frame,
  * the row's end edge sits inside the frame too, and a panel past that edge
  * would still paint beside the row. `visibility` rides the transition, so the
@@ -777,9 +780,9 @@ type AppLayoutSidePanelMobileBreakpoint = "sm" | "md" | "lg";
  * breakpoint without its classes is a compile error.
  */
 const sidePanelFloatClassName: Record<AppLayoutSidePanelMobileBreakpoint, string> = {
-	sm: "max-sm:absolute max-sm:inset-y-(--app-layout-card-gutter,0.5rem) max-sm:left-(--app-layout-card-gutter,0.5rem) max-sm:right-(--app-layout-card-gutter,0.5rem) max-sm:z-20 max-sm:my-0 max-sm:rounded-xl max-sm:shadow-lg max-sm:[--_side-panel-content-width:100%] max-sm:[--_side-panel-content-inset:0px] max-sm:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] max-sm:data-state-closed:invisible",
-	md: "max-md:absolute max-md:inset-y-(--app-layout-card-gutter,0.5rem) max-md:right-(--app-layout-card-gutter,0.5rem) max-md:z-20 max-md:my-0 max-md:w-[min(24rem,calc(100vw-5rem))] max-md:rounded-xl max-md:shadow-lg max-md:[--_side-panel-content-width:100%] max-md:[--_side-panel-content-inset:0px] max-md:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] max-md:data-state-closed:invisible max-sm:left-(--app-layout-card-gutter,0.5rem) max-sm:w-auto",
-	lg: "max-lg:absolute max-lg:inset-y-(--app-layout-card-gutter,0.5rem) max-lg:right-(--app-layout-card-gutter,0.5rem) max-lg:z-20 max-lg:my-0 max-lg:w-[min(24rem,calc(100vw-5rem))] max-lg:rounded-xl max-lg:shadow-lg max-lg:[--_side-panel-content-width:100%] max-lg:[--_side-panel-content-inset:0px] max-lg:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] max-lg:data-state-closed:invisible max-md:left-(--app-layout-card-gutter,0.5rem) max-md:w-auto",
+	sm: "sm:data-state-closed:basis-0 max-sm:absolute max-sm:inset-y-(--app-layout-card-gutter,0.5rem) max-sm:left-(--app-layout-card-gutter,0.5rem) max-sm:right-(--app-layout-card-gutter,0.5rem) max-sm:z-20 max-sm:my-0 max-sm:rounded-xl max-sm:shadow-lg max-sm:[--_side-panel-content-width:100%] max-sm:[--_side-panel-content-inset:0px] max-sm:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] max-sm:data-state-closed:invisible",
+	md: "md:data-state-closed:basis-0 max-md:absolute max-md:inset-y-(--app-layout-card-gutter,0.5rem) max-md:right-(--app-layout-card-gutter,0.5rem) max-md:z-20 max-md:my-0 max-md:w-[min(24rem,calc(100vw-5rem))] max-md:rounded-xl max-md:shadow-lg max-md:[--_side-panel-content-width:100%] max-md:[--_side-panel-content-inset:0px] max-md:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] max-md:data-state-closed:invisible max-sm:left-(--app-layout-card-gutter,0.5rem) max-sm:w-auto",
+	lg: "lg:data-state-closed:basis-0 max-lg:absolute max-lg:inset-y-(--app-layout-card-gutter,0.5rem) max-lg:right-(--app-layout-card-gutter,0.5rem) max-lg:z-20 max-lg:my-0 max-lg:w-[min(24rem,calc(100vw-5rem))] max-lg:rounded-xl max-lg:shadow-lg max-lg:[--_side-panel-content-width:100%] max-lg:[--_side-panel-content-inset:0px] max-lg:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] max-lg:data-state-closed:invisible max-md:left-(--app-layout-card-gutter,0.5rem) max-md:w-auto",
 };
 
 /**
@@ -1258,7 +1261,8 @@ const SidePanel = ({
 				// Why `visibility` too: the floating panel's closed `invisible` rides
 				// the slide; see `sidePanelFloatClassName`.
 				"transition-[flex-basis,translate,visibility] duration-200 ease-out-strong motion-reduce:transition-none not-data-hydrated:transition-none",
-				"data-state-closed:basis-0 data-state-closed:pointer-events-none",
+				// The closed `basis-0` is in `sidePanelFloatClassName`, gated to the lane.
+				"data-state-closed:pointer-events-none",
 				sidePanelFloatClassName[mobileBreakpoint],
 				className,
 			)}

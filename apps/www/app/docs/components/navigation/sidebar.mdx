@@ -1836,12 +1836,12 @@ All props from `button` plus:
 
 **Data attributes**
 
-| Data Attribute | Value                   | Description                                                                                                                                                                   |
-| -------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `data-slot`    | `"sidebar-item-button"` | Names the part, with any composing ancestor's chain ahead of it.                                                                                                              |
-| `data-current` | present when `current`  | Presence-only, never `"false"`, since the `data-current:` variant matches the attribute's existence. Styles the current row.                                                  |
-| `aria-current` | `"page"` when `current` | Set alongside `data-current`. The current-row styling follows _either_, so a composed child that marks itself (react-router's `NavLink`) gets the treatment without the prop. |
-| `data-state`   | `"open"` \| `"closed"`  | **Read, not stamped**: supplied by a composing `DropdownMenu.Trigger` / `Dialog.Trigger`. The row styles against it so it stays highlighted while its menu is open.           |
+| Data Attribute | Value                   | Description                                                                                                                                                                                                                                                                                        |
+| -------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-slot`    | `"sidebar-item-button"` | Names the part, with any composing ancestor's chain ahead of it.                                                                                                                                                                                                                                   |
+| `data-current` | present when `current`  | Presence-only, never `"false"`, since the `data-current:` variant matches the attribute's existence. Styles the current row.                                                                                                                                                                       |
+| `aria-current` | `"page"` when `current` | Set alongside `data-current`. The current-row styling follows _either_, so a composed child that marks itself (react-router's `NavLink`) gets the treatment without the prop.                                                                                                                      |
+| `data-state`   | `"open"` \| `"closed"`  | **Read, not stamped**: supplied by a composing `DropdownMenu.Trigger` / `Dialog.Trigger`. The row styles against it so it stays highlighted while its menu is open. Inside `Sidebar.Tooltip` the tooltip's own `data-state` replaces this one, so the open highlight also keys on `aria-expanded`. |
 
 ### Sidebar.SearchTrigger
 
@@ -1915,10 +1915,10 @@ All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Elemen
 
 **Data attributes**
 
-| Data Attribute | Value                        | Description                                                                                                                                                           |
-| -------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `data-slot`    | `"sidebar-switcher-trigger"` | Names the part, with any composing ancestor's chain ahead of it.                                                                                                      |
-| `data-state`   | `"open"` \| `"closed"`       | **Read, not stamped**: supplied by the composing `DropdownMenu.Trigger` / `Dialog.Trigger`. The row styles against it so it stays highlighted while its menu is open. |
+| Data Attribute | Value                        | Description                                                                                                                                                                                                                                                                                          |
+| -------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-slot`    | `"sidebar-switcher-trigger"` | Names the part, with any composing ancestor's chain ahead of it.                                                                                                                                                                                                                                     |
+| `data-state`   | `"open"` \| `"closed"`       | **Read, not stamped**: supplied by the composing `DropdownMenu.Trigger` / `Dialog.Trigger`. The row styles against it so it stays highlighted while its menu is open. Inside `Sidebar.Tooltip` the tooltip's own `data-state` replaces this one, so the open highlight also keys on `aria-expanded`. |
 
 Inside the collapsed icon rail, the row collapses to its **first child element** — the
 leading visual — and the remaining children become visually hidden while staying in the accessibility tree,
@@ -2010,9 +2010,9 @@ triggers, close-on-navigate, or a keyboard shortcut:
 | Field              | Type                      | Description                                                                                                                              |
 | ------------------ | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | `open`             | `boolean`                 | Desktop expanded state.                                                                                                                  |
-| `setOpen`          | `(open: boolean) => void` | Set the desktop expanded state.                                                                                                          |
+| `setOpen`          | `(open: boolean) => void` | Set the desktop expanded state. Keeps one identity across renders, so it is safe in an effect dependency list.                           |
 | `openMobile`       | `boolean`                 | Mobile sheet open state.                                                                                                                 |
-| `setOpenMobile`    | `(open: boolean) => void` | Set the mobile sheet state (e.g. close on navigation).                                                                                   |
+| `setOpenMobile`    | `(open: boolean) => void` | Set the mobile sheet state (e.g. close on navigation). Keeps one identity across renders, so it is safe in an effect dependency list.    |
 | `isMobile`         | `boolean`                 | Whether the viewport is below `mobileBreakpoint`.                                                                                        |
 | `mobileBreakpoint` | `"sm" \| "md" \| "lg"`    | The configured mobile breakpoint.                                                                                                        |
 | `toggle`           | `() => void`              | Toggle whichever presentation is active.                                                                                                 |

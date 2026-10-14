@@ -3,17 +3,22 @@ import { renderToString } from "react-dom/server";
 import { afterAll, afterEach, beforeAll, expect, test } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { useLocalStorage } from "../../hooks/use-local-storage.js";
+import { DropdownMenu } from "../dropdown-menu/index.js";
 import { TooltipProvider } from "../tooltip/index.js";
 import { Sidebar } from "./sidebar.js";
 
 /**
- * Real-browser cascade for `Sidebar.Nav`'s hydration gates. The visibility
- * gate is a `max-*:not-data-hydrated:` variant, so tailwind-merge keeps it
- * beside a consumer display utility and its `:not([data-hydrated])` selector
- * outranks the bare utility's class. The transition gates are negated the same
- * way, and only a running `CSSTransition` can observe whether they held or
- * released. happy-dom resolves no stylesheet and runs no transition, and
- * `prefers-reduced-motion` is a Playwright page emulation.
+ * Real-browser cascade for `Sidebar.Nav`'s hydration gates and for a row's
+ * open highlight. The visibility gate is a `max-*:not-data-hydrated:` variant,
+ * so tailwind-merge keeps it beside a consumer display utility and its
+ * `:not([data-hydrated])` selector outranks the bare utility's class. The
+ * transition gates are negated the same way, and only a running
+ * `CSSTransition` can observe whether they held or released. The open
+ * highlight is a class with no data attribute of its own, and the `data-state`
+ * a tooltip trigger writes over a menu trigger's is a Radix runtime fact, so
+ * only the computed style can observe it. happy-dom resolves no stylesheet and
+ * runs no transition, and `prefers-reduced-motion` is a Playwright page
+ * emulation.
  *
  * The stylesheet below is Tailwind 4.3.3's own output for the utilities in
  * play, keyed by the same escaped class selectors, with the theme variables
@@ -24,10 +29,13 @@ const STYLE = `
 @layer theme {
 	:root {
 		--ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+		--text-color-strong: rgb(17, 24, 39);
 	}
 }
 @layer utilities {
 	.flex { display: flex; }
+	.data-state-open\\:text-strong[data-state~=open] { color: var(--text-color-strong); }
+	.aria-expanded\\:text-strong[aria-expanded="true"] { color: var(--text-color-strong); }
 	.w-\\(--sidebar-width\\,13rem\\) { width: var(--sidebar-width, 13rem); }
 	.transition-none { transition-property: none; }
 	.w-full { width: 100%; }
@@ -375,4 +383,49 @@ test("lets a consumer transition-none replace the default transition", async () 
 	expect(getComputedStyle(separator).width).toBe("36px");
 	expect(getComputedStyle(body).paddingRight).toBe("12px");
 	expect(transitions).toEqual([]);
+});
+
+test("a row inside Sidebar.Tooltip keeps its open highlight while its menu is open", async () => {
+	// Why: `Tooltip.Trigger` writes its own `data-state` over the menu trigger's
+	// on the row, so `data-state-open:` never fires in the composition the docs
+	// recommend. The highlight keys on `aria-expanded` too, which only the menu
+	// trigger stamps.
+	await page.viewport(1280, 800);
+	render(
+		<TooltipProvider>
+			<Sidebar.Root>
+				<Sidebar.Nav>
+					<Sidebar.Body>
+						<Sidebar.List>
+							<Sidebar.Item>
+								<DropdownMenu.Root>
+									<Sidebar.Tooltip label="Help">
+										<DropdownMenu.Trigger asChild>
+											<Sidebar.ItemButton data-testid="row">Help</Sidebar.ItemButton>
+										</DropdownMenu.Trigger>
+									</Sidebar.Tooltip>
+									<DropdownMenu.Content>
+										<DropdownMenu.Item>Documentation</DropdownMenu.Item>
+									</DropdownMenu.Content>
+								</DropdownMenu.Root>
+							</Sidebar.Item>
+						</Sidebar.List>
+					</Sidebar.Body>
+				</Sidebar.Nav>
+			</Sidebar.Root>
+		</TooltipProvider>,
+	);
+	const row = screen.getByTestId("row");
+	expect(row).toHaveAttribute("aria-expanded", "false");
+	expect(getComputedStyle(row).color).toBe("rgb(0, 0, 0)");
+
+	await userEvent.click(row);
+
+	// Queried by test id: the open menu marks everything outside it `aria-hidden`.
+	await waitFor(() => {
+		expect(screen.getByTestId("row")).toHaveAttribute("aria-expanded", "true");
+	});
+	// The premise: the row carries the tooltip's `data-state`, not the menu's.
+	expect(row).toHaveAttribute("data-state", "closed");
+	expect(getComputedStyle(row).color).toBe("rgb(17, 24, 39)");
 });
