@@ -38,8 +38,11 @@ type AssistantConversation = {
 	/** True from a send until the reply has arrived in full. */
 	isReplying: boolean;
 	setDraft: (draft: string) => void;
-	/** Appends the user's message and starts the reply. A blank message is ignored. */
-	send: (text: string) => void;
+	/**
+	 * Appends the user's message and starts the reply. Returns `false`, and
+	 * changes nothing, for a blank message or while a reply is in flight.
+	 */
+	send: (text: string) => boolean;
 	/** Clears the conversation and stops a reply in flight. */
 	reset: () => void;
 };
@@ -106,10 +109,10 @@ function AssistantConversationProvider({ children }: { children: ReactNode }) {
 
 	useEffect(() => stopReply, [stopReply]);
 
-	const send = useCallback((text: string) => {
+	const send = useCallback((text: string): boolean => {
 		const trimmed = text.trim();
 		if (trimmed === "" || replyTimer.current != null) {
-			return;
+			return false;
 		}
 		const turn = replyCount.current;
 		replyCount.current += 1;
@@ -138,6 +141,7 @@ function AssistantConversationProvider({ children }: { children: ReactNode }) {
 			replyTimer.current = window.setTimeout(() => reveal(count + 1), revealIntervalMs);
 		};
 		replyTimer.current = window.setTimeout(() => reveal(1), revealIntervalMs * 8);
+		return true;
 	}, []);
 
 	const reset = useCallback(() => {
@@ -167,6 +171,23 @@ const starterPrompts = [
 ] as const;
 
 /**
+ * Scrolls the nearest scrollable ancestor to its end. The host owns the scroll
+ * region, and a composer stuck to its bottom edge covers a sentinel scrolled
+ * into view, so the transcript moves the region itself.
+ */
+function scrollHostToEnd(node: HTMLElement) {
+	let host = node.parentElement;
+	while (host != null) {
+		const { overflowY } = getComputedStyle(host);
+		if (overflowY === "auto" || overflowY === "scroll") {
+			host.scrollTop = host.scrollHeight;
+			return;
+		}
+		host = host.parentElement;
+	}
+}
+
+/**
  * The messages, or the starter deck before there are any. Sized with container
  * queries, so one component is right at full-page width and in a 336px panel.
  * Render it inside the host's scroll region: `AppLayout.Body` on the assistant
@@ -175,25 +196,36 @@ const starterPrompts = [
  * @example
  * ```tsx
  * <AppLayout.Body>
- *   <AssistantTranscript />
+ *   <AssistantTranscript onSend={() => setOpen(true)} />
  * </AppLayout.Body>
  * ```
  */
-function AssistantTranscript() {
+function AssistantTranscript({
+	onSend,
+}: {
+	/** Runs after a starter prompt is accepted. The assistant's page opens the companion here. */
+	onSend?: () => void;
+}) {
 	const { messages, isReplying, send } = useAssistantConversation();
 	const endRef = useRef<HTMLDivElement>(null);
 
 	// Why an effect: the newest text must stay in view while a reply grows. The
-	// scroll region is the host's, so the sentinel asks it to scroll.
+	// scroll region is the host's, so the sentinel finds it and scrolls it.
 	useEffect(() => {
-		if (messages.length > 0) {
-			endRef.current?.scrollIntoView({ block: "end" });
+		if (messages.length > 0 && endRef.current != null) {
+			scrollHostToEnd(endRef.current);
 		}
 	}, [messages]);
 
+	const choose = (prompt: string) => {
+		if (send(prompt)) {
+			onSend?.();
+		}
+	};
+
 	if (messages.length === 0) {
 		return (
-			<div className="@container flex min-h-full flex-col items-center justify-center gap-4 p-4 @2xl:gap-6 @2xl:p-6">
+			<div className="@container flex min-h-full flex-1 flex-col items-center justify-center gap-4 p-4 @2xl:gap-6 @2xl:p-6">
 				<span className="flex size-7 items-center justify-center rounded-lg bg-emerald-600/10 text-emerald-600 @2xl:size-9">
 					<Icon svg={<SparkleIcon />} className="size-4 @2xl:size-5" />
 				</span>
@@ -214,7 +246,7 @@ function AssistantTranscript() {
 							appearance="outlined"
 							intent="neutral"
 							className="h-auto justify-start gap-3 px-3 py-2.5 text-left whitespace-normal @2xl:py-3"
-							onClick={() => send(prompt)}
+							onClick={() => choose(prompt)}
 						>
 							<span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-emerald-600/10 text-emerald-600">
 								<Icon svg={icon} className="size-4" />
@@ -246,7 +278,10 @@ function AssistantTranscript() {
 									aria-hidden
 									className="bg-muted size-1.5 animate-pulse rounded-full motion-reduce:animate-none"
 								/>
-								Working through it…
+								{/* Why a wrapper: the dot is a permanent sibling, and a translation
+								    engine reparents bare text. The swap to the first word would then
+								    remove a node React no longer owns. */}
+								<span>Working through it…</span>
 							</p>
 						) : (
 							<p>{message.text}</p>
@@ -277,16 +312,17 @@ function AssistantComposer({
 }: {
 	/** Merged onto the frame, for the host's measure. */
 	className?: string;
-	/** Runs after a message is sent. The assistant's page opens the companion here. */
+	/** Runs after the conversation accepts a message. The assistant's page opens the companion here. */
 	onSend?: () => void;
 }) {
 	const { draft, setDraft, send } = useAssistantConversation();
 
+	// Why the guard: a send the conversation rejects, such as one during a reply,
+	// must keep the draft, or the text is gone with nothing to show for it.
 	const submit = () => {
-		if (draft.trim() === "") {
+		if (!send(draft)) {
 			return;
 		}
-		send(draft);
 		setDraft("");
 		onSend?.();
 	};
@@ -307,10 +343,13 @@ function AssistantComposer({
 				value={draft}
 				onChange={(event) => setDraft(event.target.value)}
 				onKeyDown={(event) => {
-					if (event.key === "Enter" && !event.shiftKey) {
-						event.preventDefault();
-						submit();
+					// Why isComposing: an input method editor confirms a candidate with
+					// Enter, and that Enter is not a send.
+					if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) {
+						return;
 					}
+					event.preventDefault();
+					submit();
 				}}
 			/>
 			{/* Never disabled: a greyed button on an empty box reads as broken at the

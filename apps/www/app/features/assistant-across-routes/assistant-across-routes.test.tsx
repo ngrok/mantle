@@ -2,7 +2,7 @@
 import { AppLayout } from "@ngrok/mantle/app-layout";
 import { Sidebar } from "@ngrok/mantle/sidebar";
 import { TooltipProvider } from "@ngrok/mantle/tooltip";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -11,22 +11,36 @@ import {
 	assistantViewTransitionClassName,
 	crossesAssistant,
 	isAssistantPath,
-} from "./assistant-across-routes";
+} from "~/features/assistant-across-routes/assistant-across-routes";
 import {
 	AssistantComposer,
 	AssistantConversationProvider,
 	AssistantTranscript,
-} from "./assistant-conversation";
+} from "~/features/assistant-across-routes/assistant-conversation";
 
 afterEach(() => {
 	cleanup();
 	vi.useRealTimers();
 });
 
+const composerName = "Message the assistant";
+const firstStarter = "Route and authenticate API traffic";
+
+/** A user on a fake clock, for a reply in flight. */
+function setupUserOnFakeClock() {
+	// Why shouldAdvanceTime: user-event drains its actions with a `setTimeout(0)`
+	// that a frozen vitest clock never fires, so every `user.*` call would hang.
+	vi.useFakeTimers({ shouldAdvanceTime: true });
+	return userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+}
+
 describe("isAssistantPath", () => {
 	it.each([
 		["/assistant", true],
 		["/assistant/c_123", true],
+		// The router matches case-insensitively and decodes the pathname.
+		["/Assistant/", true],
+		["/assi%73tant", true],
 		["/assistants", false],
 		["/endpoints", false],
 	])("%s → %s", (pathname, expected) => {
@@ -63,13 +77,10 @@ function Hosts({
 
 describe("AssistantConversationProvider", () => {
 	it("keeps a reply streaming while the transcript unmounts and remounts", async () => {
-		// Why shouldAdvanceTime: user-event drains its actions with a `setTimeout(0)`
-		// that a frozen vitest clock never fires, so every `user.*` call would hang.
-		vi.useFakeTimers({ shouldAdvanceTime: true });
-		const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+		const user = setupUserOnFakeClock();
 		const { rerender } = render(<Hosts showTranscript showComposer={false} />);
 
-		await user.click(screen.getByRole("button", { name: "Route and authenticate API traffic" }));
+		await user.click(screen.getByRole("button", { name: firstStarter }));
 		rerender(<Hosts showTranscript={false} showComposer={false} />);
 		await act(async () => {
 			await vi.advanceTimersByTimeAsync(10_000);
@@ -84,7 +95,7 @@ describe("AssistantConversationProvider", () => {
 		const user = userEvent.setup();
 		const { rerender } = render(<Hosts showTranscript={false} showComposer />);
 
-		await user.type(screen.getByRole("textbox", { name: "Message the assistant" }), "hello");
+		await user.type(screen.getByRole("textbox", { name: composerName }), "hello");
 		rerender(<Hosts showTranscript={false} showComposer={false} />);
 		rerender(<Hosts showTranscript={false} showComposer />);
 
@@ -92,9 +103,33 @@ describe("AssistantConversationProvider", () => {
 	});
 });
 
-describe("AssistantPage", () => {
-	it("opens the companion on the first message", async () => {
+describe("AssistantComposer", () => {
+	it("keeps the draft when a send during a reply is rejected", async () => {
+		const user = setupUserOnFakeClock();
+		render(<Hosts showTranscript showComposer />);
+
+		await user.click(screen.getByRole("button", { name: firstStarter }));
+		await user.type(screen.getByRole("textbox", { name: composerName }), "second{Enter}");
+
+		expect(screen.queryByDisplayValue("second")).not.toBeNull();
+		expect(screen.queryByText("second", { selector: "p" })).toBeNull();
+	});
+
+	it("ignores the Enter that confirms an input method editor candidate", async () => {
 		const user = userEvent.setup();
+		render(<Hosts showTranscript showComposer />);
+		const textbox = screen.getByRole("textbox", { name: composerName });
+
+		await user.type(textbox, "こんにちは");
+		fireEvent.keyDown(textbox, { key: "Enter", isComposing: true });
+
+		expect(screen.queryByDisplayValue("こんにちは")).not.toBeNull();
+		expect(screen.queryByText("こんにちは", { selector: "p" })).toBeNull();
+	});
+});
+
+describe("AssistantPage", () => {
+	function renderPage() {
 		render(
 			<TooltipProvider>
 				<AssistantConversationProvider>
@@ -107,10 +142,24 @@ describe("AssistantPage", () => {
 				</AssistantConversationProvider>
 			</TooltipProvider>,
 		);
-		const trigger = screen.getByRole("button", { name: "Toggle the assistant" });
+		return screen.getByRole("button", { name: "Toggle the assistant" });
+	}
+
+	it("opens the companion on the first typed message", async () => {
+		const user = userEvent.setup();
+		const trigger = renderPage();
 		expect(trigger.getAttribute("aria-expanded")).toBe("false");
 
-		await user.type(screen.getByRole("textbox", { name: "Message the assistant" }), "hello{Enter}");
+		await user.type(screen.getByRole("textbox", { name: composerName }), "hello{Enter}");
+
+		expect(trigger.getAttribute("aria-expanded")).toBe("true");
+	});
+
+	it("opens the companion on a starter prompt", async () => {
+		const user = userEvent.setup();
+		const trigger = renderPage();
+
+		await user.click(screen.getByRole("button", { name: firstStarter }));
 
 		expect(trigger.getAttribute("aria-expanded")).toBe("true");
 	});

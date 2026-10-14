@@ -37,7 +37,8 @@ complementary landmark and nothing in `main`. The landmark follows the route ins
 
 - On `/assistant`, `AssistantPage` renders inside the shell's `AppLayout.Content`: the toolbar, then the
   transcript and the composer inside [`AppLayout.Body`](/layouts/app-layout#applayoutbody), which is
-  `main`.
+  `main`. The body stays the only scroll region, with the composer stuck to its bottom edge, so the skip
+  link lands on the element that scrolls and Page Down moves the transcript.
 - Everywhere else, `AssistantPanel` renders `AppLayout.SidePanel` after the content card, with the same
   transcript and composer inside it.
 - The panel does not render on the assistant's route, and the page does not render anywhere else. One
@@ -47,6 +48,9 @@ What persists is the conversation, not the DOM. `AssistantConversationProvider` 
 owns the messages, the composer's draft, and the reply in flight, on a timer the provider holds. A route
 change unmounts one home and mounts the other. Both read the same store, so the transcript, the half-typed
 draft, and the streaming reply are all there in the new home, and the View Transition hides the remount.
+
+Put the provider above every shell the conversation must survive. A dashboard whose settings zone renders
+a shell of its own loses an in-memory conversation at that crossing unless the provider sits above both.
 
 ## Anatomy
 
@@ -76,10 +80,11 @@ import {
 	serializeSidePanelStateCookie,
 } from "@ngrok/mantle/app-layout";
 import { cx } from "@ngrok/mantle/cx";
-import { Sidebar } from "@ngrok/mantle/sidebar";
+import { Sidebar, useSidebar } from "@ngrok/mantle/sidebar";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { GraphIcon } from "@phosphor-icons/react/Graph";
 import { SparkleIcon } from "@phosphor-icons/react/Sparkle";
+import { useEffect } from "react";
 import { Link, Outlet, useLocation } from "react-router";
 import {
 	AssistantPanel,
@@ -100,6 +105,16 @@ export const loader = ({ request }: Route.LoaderArgs) => ({
 	sidePanelOpen: extractSidePanelStateCookie(request.headers.get("Cookie")) ?? false,
 });
 
+/** Closes the rail's mobile sheet on every navigation. A route change alone leaves it over the page. */
+function CloseMobileNavOnNavigate() {
+	const { setOpenMobile } = useSidebar();
+	const { pathname } = useLocation();
+	useEffect(() => {
+		setOpenMobile(false);
+	}, [pathname, setOpenMobile]);
+	return null;
+}
+
 export default function Layout({ loaderData }: Route.ComponentProps) {
 	const { pathname } = useLocation();
 	const onAssistantPage = isAssistantPath(pathname);
@@ -107,6 +122,7 @@ export default function Layout({ loaderData }: Route.ComponentProps) {
 	return (
 		<AssistantConversationProvider>
 			<Sidebar.Root>
+				<CloseMobileNavOnNavigate />
 				<AppLayout.Root className="fixed inset-0">
 					<SkipToMainLink />
 					<AppLayout.SidePanelRoot
@@ -172,6 +188,8 @@ Three rules keep the transition running:
 - **Name exactly one element per state.** The content card carries `assistantViewTransitionClassName`
   only on the assistant's route, and the panel carries it only while open. If two elements share a
   `view-transition-name` in one state, the browser skips the whole transition and logs nothing.
+  `isAssistantPath` reads the pathname the way the router matches it, decoded and case-insensitive, so
+  `/Assistant` never renders the page and the panel together.
 - **Do not render the panel on the assistant's route.** A closed panel is still an `<aside>` with the
   conversation mounted inside it, rendered twice for nothing. An open one would name the conversation
   twice.
@@ -201,8 +219,11 @@ A navigation between two product pages is the most frequent thing a reader does 
 times a day, and it gets no animation at all: the page swaps in one frame, as it does today. The crossing
 is occasional, so it gets the standard animation. Nothing here is rare enough to earn more.
 
-`useViewTransitionState` is not needed. The names are static, and the transition only runs when a link
-asks for it.
+`useViewTransitionState` is not needed. The names are static, and a link runs the transition only on a
+crossing. History is the one exception: React Router remembers which entries arrived with
+`viewTransition` and runs the transition again on Back and Forward to them. Between two product pages
+that is a 300ms crossfade of the page with no morph, because both states name the panel in the same
+place.
 
 ## Duration
 
@@ -294,25 +315,44 @@ import {
 	AssistantComposer,
 	AssistantTranscript,
 	useAssistantConversation,
-} from "./assistant-conversation";
+} from "~/features/assistant-across-routes/assistant-conversation";
 
 /** The assistant's own route, where the conversation is the page. */
 const assistantPath = "/assistant";
 
 /**
+ * Reads a pathname the way React Router matches one: decoded, lowercase, and
+ * with no trailing slash. A malformed escape keeps the raw pathname, which is
+ * what the router does too.
+ */
+function normalizePathname(pathname: string): string {
+	let decoded = pathname;
+	try {
+		decoded = decodeURIComponent(pathname);
+	} catch {
+		// a malformed escape: the raw pathname stands
+	}
+	return decoded.toLowerCase().replace(/\/+$/, "") || "/";
+}
+
+/**
  * Returns true on the assistant's route and on its children, such as a
  * conversation's own URL. A sibling route that shares the prefix is a
- * different page.
+ * different page. The comparison matches the router's: `/Assistant` and
+ * `/assi%73tant` are the assistant's route, so the shell never renders the
+ * page and the panel together.
  *
  * @example
  * ```ts
  * isAssistantPath("/assistant"); // true
  * isAssistantPath("/assistant/c_123"); // true
+ * isAssistantPath("/Assistant/"); // true
  * isAssistantPath("/assistants"); // false
  * ```
  */
 function isAssistantPath(pathname: string): boolean {
-	return pathname === assistantPath || pathname.startsWith(`${assistantPath}/`);
+	const normalized = normalizePathname(pathname);
+	return normalized === assistantPath || normalized.startsWith(`${assistantPath}/`);
 }
 
 /**
@@ -377,6 +417,7 @@ function NewConversationButton() {
  */
 function AssistantPage() {
 	const { setOpen } = useSidePanel();
+	const openCompanion = () => setOpen(true);
 
 	return (
 		<>
@@ -392,14 +433,12 @@ function AssistantPage() {
 				</AppLayout.HeaderActions>
 			</AppLayout.Header>
 			<AppLayout.Body>
-				{/* The composer is part of the page, so it pins inside `main`: the
-				    column fills the card and the transcript scrolls above it. */}
-				<div className="flex h-full flex-col">
-					<div className="scrollbar min-h-0 flex-1 overflow-y-auto">
-						<AssistantTranscript />
-					</div>
-					<div className="shrink-0 px-3 pb-3">
-						<AssistantComposer className="mx-auto w-full max-w-xl" onSend={() => setOpen(true)} />
+				{/* Why one scroll region: the skip link lands on `main`, so `main` must be
+				    the element that scrolls. The composer sticks to its bottom edge. */}
+				<div className="flex min-h-full flex-col">
+					<AssistantTranscript onSend={openCompanion} />
+					<div className="bg-card sticky bottom-0 mt-auto shrink-0 px-3 pt-2 pb-3">
+						<AssistantComposer className="mx-auto w-full max-w-xl" onSend={openCompanion} />
 					</div>
 				</div>
 			</AppLayout.Body>
@@ -507,8 +546,11 @@ type AssistantConversation = {
 	/** True from a send until the reply has arrived in full. */
 	isReplying: boolean;
 	setDraft: (draft: string) => void;
-	/** Appends the user's message and starts the reply. A blank message is ignored. */
-	send: (text: string) => void;
+	/**
+	 * Appends the user's message and starts the reply. Returns `false`, and
+	 * changes nothing, for a blank message or while a reply is in flight.
+	 */
+	send: (text: string) => boolean;
 	/** Clears the conversation and stops a reply in flight. */
 	reset: () => void;
 };
@@ -575,10 +617,10 @@ function AssistantConversationProvider({ children }: { children: ReactNode }) {
 
 	useEffect(() => stopReply, [stopReply]);
 
-	const send = useCallback((text: string) => {
+	const send = useCallback((text: string): boolean => {
 		const trimmed = text.trim();
 		if (trimmed === "" || replyTimer.current != null) {
-			return;
+			return false;
 		}
 		const turn = replyCount.current;
 		replyCount.current += 1;
@@ -607,6 +649,7 @@ function AssistantConversationProvider({ children }: { children: ReactNode }) {
 			replyTimer.current = window.setTimeout(() => reveal(count + 1), revealIntervalMs);
 		};
 		replyTimer.current = window.setTimeout(() => reveal(1), revealIntervalMs * 8);
+		return true;
 	}, []);
 
 	const reset = useCallback(() => {
@@ -636,6 +679,23 @@ const starterPrompts = [
 ] as const;
 
 /**
+ * Scrolls the nearest scrollable ancestor to its end. The host owns the scroll
+ * region, and a composer stuck to its bottom edge covers a sentinel scrolled
+ * into view, so the transcript moves the region itself.
+ */
+function scrollHostToEnd(node: HTMLElement) {
+	let host = node.parentElement;
+	while (host != null) {
+		const { overflowY } = getComputedStyle(host);
+		if (overflowY === "auto" || overflowY === "scroll") {
+			host.scrollTop = host.scrollHeight;
+			return;
+		}
+		host = host.parentElement;
+	}
+}
+
+/**
  * The messages, or the starter deck before there are any. Sized with container
  * queries, so one component is right at full-page width and in a 336px panel.
  * Render it inside the host's scroll region: `AppLayout.Body` on the assistant
@@ -644,25 +704,36 @@ const starterPrompts = [
  * @example
  * ```tsx
  * <AppLayout.Body>
- *   <AssistantTranscript />
+ *   <AssistantTranscript onSend={() => setOpen(true)} />
  * </AppLayout.Body>
  * ```
  */
-function AssistantTranscript() {
+function AssistantTranscript({
+	onSend,
+}: {
+	/** Runs after a starter prompt is accepted. The assistant's page opens the companion here. */
+	onSend?: () => void;
+}) {
 	const { messages, isReplying, send } = useAssistantConversation();
 	const endRef = useRef<HTMLDivElement>(null);
 
 	// Why an effect: the newest text must stay in view while a reply grows. The
-	// scroll region is the host's, so the sentinel asks it to scroll.
+	// scroll region is the host's, so the sentinel finds it and scrolls it.
 	useEffect(() => {
-		if (messages.length > 0) {
-			endRef.current?.scrollIntoView({ block: "end" });
+		if (messages.length > 0 && endRef.current != null) {
+			scrollHostToEnd(endRef.current);
 		}
 	}, [messages]);
 
+	const choose = (prompt: string) => {
+		if (send(prompt)) {
+			onSend?.();
+		}
+	};
+
 	if (messages.length === 0) {
 		return (
-			<div className="@container flex min-h-full flex-col items-center justify-center gap-4 p-4 @2xl:gap-6 @2xl:p-6">
+			<div className="@container flex min-h-full flex-1 flex-col items-center justify-center gap-4 p-4 @2xl:gap-6 @2xl:p-6">
 				<span className="flex size-7 items-center justify-center rounded-lg bg-emerald-600/10 text-emerald-600 @2xl:size-9">
 					<Icon svg={<SparkleIcon />} className="size-4 @2xl:size-5" />
 				</span>
@@ -683,7 +754,7 @@ function AssistantTranscript() {
 							appearance="outlined"
 							intent="neutral"
 							className="h-auto justify-start gap-3 px-3 py-2.5 text-left whitespace-normal @2xl:py-3"
-							onClick={() => send(prompt)}
+							onClick={() => choose(prompt)}
 						>
 							<span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-emerald-600/10 text-emerald-600">
 								<Icon svg={icon} className="size-4" />
@@ -715,7 +786,10 @@ function AssistantTranscript() {
 									aria-hidden
 									className="bg-muted size-1.5 animate-pulse rounded-full motion-reduce:animate-none"
 								/>
-								Working through it…
+								{/* Why a wrapper: the dot is a permanent sibling, and a translation
+								    engine reparents bare text. The swap to the first word would then
+								    remove a node React no longer owns. */}
+								<span>Working through it…</span>
 							</p>
 						) : (
 							<p>{message.text}</p>
@@ -746,16 +820,17 @@ function AssistantComposer({
 }: {
 	/** Merged onto the frame, for the host's measure. */
 	className?: string;
-	/** Runs after a message is sent. The assistant's page opens the companion here. */
+	/** Runs after the conversation accepts a message. The assistant's page opens the companion here. */
 	onSend?: () => void;
 }) {
 	const { draft, setDraft, send } = useAssistantConversation();
 
+	// Why the guard: a send the conversation rejects, such as one during a reply,
+	// must keep the draft, or the text is gone with nothing to show for it.
 	const submit = () => {
-		if (draft.trim() === "") {
+		if (!send(draft)) {
 			return;
 		}
-		send(draft);
 		setDraft("");
 		onSend?.();
 	};
@@ -776,10 +851,13 @@ function AssistantComposer({
 				value={draft}
 				onChange={(event) => setDraft(event.target.value)}
 				onKeyDown={(event) => {
-					if (event.key === "Enter" && !event.shiftKey) {
-						event.preventDefault();
-						submit();
+					// Why isComposing: an input method editor confirms a candidate with
+					// Enter, and that Enter is not a send.
+					if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) {
+						return;
 					}
+					event.preventDefault();
+					submit();
 				}}
 			/>
 			{/* Never disabled: a greyed button on an empty box reads as broken at the
@@ -823,7 +901,7 @@ repo:
 import { AppLayout } from "@ngrok/mantle/app-layout";
 import { Sidebar } from "@ngrok/mantle/sidebar";
 import { TooltipProvider } from "@ngrok/mantle/tooltip";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -832,22 +910,36 @@ import {
 	assistantViewTransitionClassName,
 	crossesAssistant,
 	isAssistantPath,
-} from "./assistant-across-routes";
+} from "~/features/assistant-across-routes/assistant-across-routes";
 import {
 	AssistantComposer,
 	AssistantConversationProvider,
 	AssistantTranscript,
-} from "./assistant-conversation";
+} from "~/features/assistant-across-routes/assistant-conversation";
 
 afterEach(() => {
 	cleanup();
 	vi.useRealTimers();
 });
 
+const composerName = "Message the assistant";
+const firstStarter = "Route and authenticate API traffic";
+
+/** A user on a fake clock, for a reply in flight. */
+function setupUserOnFakeClock() {
+	// Why shouldAdvanceTime: user-event drains its actions with a `setTimeout(0)`
+	// that a frozen vitest clock never fires, so every `user.*` call would hang.
+	vi.useFakeTimers({ shouldAdvanceTime: true });
+	return userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+}
+
 describe("isAssistantPath", () => {
 	it.each([
 		["/assistant", true],
 		["/assistant/c_123", true],
+		// The router matches case-insensitively and decodes the pathname.
+		["/Assistant/", true],
+		["/assi%73tant", true],
 		["/assistants", false],
 		["/endpoints", false],
 	])("%s → %s", (pathname, expected) => {
@@ -884,13 +976,10 @@ function Hosts({
 
 describe("AssistantConversationProvider", () => {
 	it("keeps a reply streaming while the transcript unmounts and remounts", async () => {
-		// Why shouldAdvanceTime: user-event drains its actions with a `setTimeout(0)`
-		// that a frozen vitest clock never fires, so every `user.*` call would hang.
-		vi.useFakeTimers({ shouldAdvanceTime: true });
-		const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+		const user = setupUserOnFakeClock();
 		const { rerender } = render(<Hosts showTranscript showComposer={false} />);
 
-		await user.click(screen.getByRole("button", { name: "Route and authenticate API traffic" }));
+		await user.click(screen.getByRole("button", { name: firstStarter }));
 		rerender(<Hosts showTranscript={false} showComposer={false} />);
 		await act(async () => {
 			await vi.advanceTimersByTimeAsync(10_000);
@@ -905,7 +994,7 @@ describe("AssistantConversationProvider", () => {
 		const user = userEvent.setup();
 		const { rerender } = render(<Hosts showTranscript={false} showComposer />);
 
-		await user.type(screen.getByRole("textbox", { name: "Message the assistant" }), "hello");
+		await user.type(screen.getByRole("textbox", { name: composerName }), "hello");
 		rerender(<Hosts showTranscript={false} showComposer={false} />);
 		rerender(<Hosts showTranscript={false} showComposer />);
 
@@ -913,9 +1002,33 @@ describe("AssistantConversationProvider", () => {
 	});
 });
 
-describe("AssistantPage", () => {
-	it("opens the companion on the first message", async () => {
+describe("AssistantComposer", () => {
+	it("keeps the draft when a send during a reply is rejected", async () => {
+		const user = setupUserOnFakeClock();
+		render(<Hosts showTranscript showComposer />);
+
+		await user.click(screen.getByRole("button", { name: firstStarter }));
+		await user.type(screen.getByRole("textbox", { name: composerName }), "second{Enter}");
+
+		expect(screen.queryByDisplayValue("second")).not.toBeNull();
+		expect(screen.queryByText("second", { selector: "p" })).toBeNull();
+	});
+
+	it("ignores the Enter that confirms an input method editor candidate", async () => {
 		const user = userEvent.setup();
+		render(<Hosts showTranscript showComposer />);
+		const textbox = screen.getByRole("textbox", { name: composerName });
+
+		await user.type(textbox, "こんにちは");
+		fireEvent.keyDown(textbox, { key: "Enter", isComposing: true });
+
+		expect(screen.queryByDisplayValue("こんにちは")).not.toBeNull();
+		expect(screen.queryByText("こんにちは", { selector: "p" })).toBeNull();
+	});
+});
+
+describe("AssistantPage", () => {
+	function renderPage() {
 		render(
 			<TooltipProvider>
 				<AssistantConversationProvider>
@@ -928,10 +1041,24 @@ describe("AssistantPage", () => {
 				</AssistantConversationProvider>
 			</TooltipProvider>,
 		);
-		const trigger = screen.getByRole("button", { name: "Toggle the assistant" });
+		return screen.getByRole("button", { name: "Toggle the assistant" });
+	}
+
+	it("opens the companion on the first typed message", async () => {
+		const user = userEvent.setup();
+		const trigger = renderPage();
 		expect(trigger.getAttribute("aria-expanded")).toBe("false");
 
-		await user.type(screen.getByRole("textbox", { name: "Message the assistant" }), "hello{Enter}");
+		await user.type(screen.getByRole("textbox", { name: composerName }), "hello{Enter}");
+
+		expect(trigger.getAttribute("aria-expanded")).toBe("true");
+	});
+
+	it("opens the companion on a starter prompt", async () => {
+		const user = userEvent.setup();
+		const trigger = renderPage();
+
+		await user.click(screen.getByRole("button", { name: firstStarter }));
 
 		expect(trigger.getAttribute("aria-expanded")).toBe("true");
 	});

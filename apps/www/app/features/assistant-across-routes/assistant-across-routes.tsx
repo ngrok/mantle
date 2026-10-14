@@ -10,25 +10,44 @@ import {
 	AssistantComposer,
 	AssistantTranscript,
 	useAssistantConversation,
-} from "./assistant-conversation";
+} from "~/features/assistant-across-routes/assistant-conversation";
 
 /** The assistant's own route, where the conversation is the page. */
 const assistantPath = "/assistant";
 
 /**
+ * Reads a pathname the way React Router matches one: decoded, lowercase, and
+ * with no trailing slash. A malformed escape keeps the raw pathname, which is
+ * what the router does too.
+ */
+function normalizePathname(pathname: string): string {
+	let decoded = pathname;
+	try {
+		decoded = decodeURIComponent(pathname);
+	} catch {
+		// a malformed escape: the raw pathname stands
+	}
+	return decoded.toLowerCase().replace(/\/+$/, "") || "/";
+}
+
+/**
  * Returns true on the assistant's route and on its children, such as a
  * conversation's own URL. A sibling route that shares the prefix is a
- * different page.
+ * different page. The comparison matches the router's: `/Assistant` and
+ * `/assi%73tant` are the assistant's route, so the shell never renders the
+ * page and the panel together.
  *
  * @example
  * ```ts
  * isAssistantPath("/assistant"); // true
  * isAssistantPath("/assistant/c_123"); // true
+ * isAssistantPath("/Assistant/"); // true
  * isAssistantPath("/assistants"); // false
  * ```
  */
 function isAssistantPath(pathname: string): boolean {
-	return pathname === assistantPath || pathname.startsWith(`${assistantPath}/`);
+	const normalized = normalizePathname(pathname);
+	return normalized === assistantPath || normalized.startsWith(`${assistantPath}/`);
 }
 
 /**
@@ -93,6 +112,7 @@ function NewConversationButton() {
  */
 function AssistantPage() {
 	const { setOpen } = useSidePanel();
+	const openCompanion = () => setOpen(true);
 
 	return (
 		<>
@@ -108,14 +128,12 @@ function AssistantPage() {
 				</AppLayout.HeaderActions>
 			</AppLayout.Header>
 			<AppLayout.Body>
-				{/* The composer is part of the page, so it pins inside `main`: the
-				    column fills the card and the transcript scrolls above it. */}
-				<div className="flex h-full flex-col">
-					<div className="scrollbar min-h-0 flex-1 overflow-y-auto">
-						<AssistantTranscript />
-					</div>
-					<div className="shrink-0 px-3 pb-3">
-						<AssistantComposer className="mx-auto w-full max-w-xl" onSend={() => setOpen(true)} />
+				{/* Why one scroll region: the skip link lands on `main`, so `main` must be
+				    the element that scrolls. The composer sticks to its bottom edge. */}
+				<div className="flex min-h-full flex-col">
+					<AssistantTranscript onSend={openCompanion} />
+					<div className="bg-card sticky bottom-0 mt-auto shrink-0 px-3 pt-2 pb-3">
+						<AssistantComposer className="mx-auto w-full max-w-xl" onSend={openCompanion} />
 					</div>
 				</div>
 			</AppLayout.Body>

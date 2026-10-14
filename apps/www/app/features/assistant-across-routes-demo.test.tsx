@@ -3,7 +3,7 @@ import { TooltipProvider } from "@ngrok/mantle/tooltip";
 import { act, cleanup, render, screen, within } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { AssistantAcrossRoutesDemo } from "./assistant-across-routes-demo";
+import { AssistantAcrossRoutesDemo } from "~/features/assistant-across-routes-demo";
 
 // Why a stub: happy-dom has no View Transitions. It runs the update at once,
 // the way react-router falls back in a browser without them, and the count is

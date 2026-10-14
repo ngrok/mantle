@@ -19,19 +19,14 @@ import {
 	assistantViewTransitionClassName,
 	crossesAssistant,
 	isAssistantPath,
-} from "./assistant-across-routes/assistant-across-routes";
-import { AssistantConversationProvider } from "./assistant-across-routes/assistant-conversation";
+} from "~/features/assistant-across-routes/assistant-across-routes";
+import { AssistantConversationProvider } from "~/features/assistant-across-routes/assistant-conversation";
 
 /*
- * Navigation in this demo is a FAKE ROUTER — do not copy it. It keeps a local
- * `pathname` in state and cancels every anchor's default, purely so the example
- * can be embedded. A real consumer renders react-router's `Link` through
- * `Sidebar.ItemButton`'s `asChild`, reads `useLocation()`, and passes
- * `viewTransition` on a crossing; React Router then wraps the commit in
- * `document.startViewTransition`, which is the one call this demo makes itself.
- *
- * Why the demo can't: it renders as its own framed-preview document *inside*
- * the docs app's router, and React Router permits exactly one router per tree.
+ * Navigation in this demo is a FAKE ROUTER, because a preview renders inside
+ * the docs app's router and React Router permits one router per tree. A real
+ * app renders react-router's `Link` through `Sidebar.ItemButton`'s `asChild`,
+ * reads `useLocation()`, and passes `viewTransition` on a crossing.
  */
 
 type DemoNavItem = {
