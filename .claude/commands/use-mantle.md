@@ -21,7 +21,7 @@ If the user is not in the mantle repo, fetch instead:
 
 ## 2. Read the components manifest
 
-If working in the repo, derive the manifest from `apps/www/app/components/navigation-data.ts` plus `packages/mantle/package.json` exports. Otherwise fetch `https://mantle.ngrok.com/api/components.json`. Keep the parsed list in mind so suggestions stay grounded in real exports.
+If working in the repo, read the committed snapshot `apps/www/app/utilities/__snapshots__/components-surface.json`, or run `pnpm -F @ngrok/mantle run agent-artifacts` and read `packages/mantle/dist/agent.json`. In a consumer, read `node_modules/@ngrok/mantle/dist/agent.json`. Otherwise fetch `https://mantle.ngrok.com/api/components.json`. Each entry carries `useWhen` and `siblings`, so pick a component from its boundary, not from its name alone.
 
 ## 3. Confirm the basics with the user
 

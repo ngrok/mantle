@@ -18,6 +18,22 @@ description: Move a DataTable from TanStack Table v8 to v9 by registering featur
 
 The rest of this page covers each step with before/after code, the mantle parts that now need a feature, and a checklist.
 
+## Codemod
+
+From a mantle checkout:
+
+```sh
+pnpm -w run migrate 0006 <path>
+```
+
+In a project that installs `@ngrok/mantle`:
+
+```sh
+npx --yes --package=@ast-grep/cli@0.45.3 ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/0006-data-table-tanstack-v9.yml --update-all <path>
+```
+
+The rules run on `.ts` and `.tsx` files that import from `@ngrok/mantle/data-table`, and leave every other file alone. They apply the rename in step 4, `sortingFn` to `sortFn`, in a column definition only: the options of a `columnHelper` call, an element of a `columns` array, or an object with a column key such as `header` or `cell`. Row data with a `sortingFn` field stays. They apply the read in step 5, `table.getState()` to `table.state`, on three shapes: the result of a `useTable` call under any name, a callback's `table` argument, and a prop whose name ends in `table`. The rules read the `useTable` result in the scope that declares it, so a sibling function's variable under the same name stays, and so does a parameter that shadows it in a nested function. The `table` suffix is a spelling heuristic, so read the dry run for a store that shares the suffix. A store the file declares under that name stays. Steps 1 to 3 and 6 stay manual, because which features and row models a table registers depends on what its columns do. Pass `--dry-run` to print the rewrites first, and run your formatter after the rewrite.
+
 ---
 
 ## Why this change

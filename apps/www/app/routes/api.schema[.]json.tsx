@@ -45,7 +45,40 @@ const ComponentEntry = {
 			description:
 				"Body of each `@example` block on the primary exported identifier, in declaration order. Omitted when the source has none.",
 		},
+		aliases: {
+			type: "array",
+			items: { type: "string" },
+			description:
+				"Search words that name the same thing in other libraries ('modal' for Dialog). Omitted when the docs page lists none.",
+		},
+		siblings: {
+			type: "array",
+			items: { $ref: "#/definitions/SiblingEntry" },
+			description:
+				"Sibling components that answer an adjacent intent, from the `@siblings` JSDoc tag. Omitted when the JSDoc carries none.",
+		},
+		useWhen: {
+			type: "string",
+			description: "The situation the component is for, from the `@useWhen` JSDoc tag.",
+		},
 	},
+} as const;
+
+const SiblingEntry = {
+	type: "object",
+	required: ["name", "boundary"],
+	additionalProperties: true,
+	properties: {
+		name: { type: "string", description: "The sibling's display name or part name." },
+		boundary: { type: "string", description: "When a consumer reaches for the sibling instead." },
+	},
+} as const;
+
+const ExampleList = {
+	type: "array",
+	items: { type: "string" },
+	description:
+		"Body of each `@example` block on the export, in declaration order. Omitted when the source has none.",
 } as const;
 
 const HookEntry = {
@@ -58,6 +91,7 @@ const HookEntry = {
 		docsUrl: { type: "string", format: "uri" },
 		markdownUrl: { type: "string", format: "uri" },
 		summary: { type: "string" },
+		examples: ExampleList,
 	},
 } as const;
 
@@ -71,6 +105,7 @@ const UtilityEntry = {
 		docsUrl: { type: "string", format: "uri" },
 		markdownUrl: { type: "string", format: "uri" },
 		summary: { type: "string" },
+		examples: ExampleList,
 	},
 } as const;
 
@@ -219,6 +254,7 @@ const SCHEMA = {
 	},
 	definitions: {
 		ComponentEntry,
+		SiblingEntry,
 		HookEntry,
 		UtilityEntry,
 		SearchEntry,

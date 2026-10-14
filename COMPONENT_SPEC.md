@@ -273,12 +273,12 @@ The nine every component ships:
 Plus the ones that are conditional or generated. These are the ones most often missed, and one of them fails
 _after_ all of [§9](#9-verification) passes:
 
-| Artifact                                                         | When                                                                                          | If omitted                                                                      |
-| ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `apps/www/app/utilities/__snapshots__/components-surface.json`   | always — any new component, or any edit to a docs `description`, JSDoc summary, or `@example` | CI's Vibe Check fails. Regenerate with `pnpm -F @app/www test -u` and commit it |
-| `doNotPublish` in `packages/mantle/tsdown.config.ts`             | adding an internal engine _directory_ (`chart/`)                                              | tsdown publishes a subpath for a directory that must have none                  |
-| `componentImportPathOverrides` in `navigation-data.ts`           | the docs slug is not also the export key ([§2.2](#22-naming))                                 | the agent manifest advertises an import path that does not resolve              |
-| `previewExamples` in `apps/www/app/features/preview-registry.ts` | the docs page uses `CodeExample.PreviewFrame`                                                 | the `example` prop fails typecheck                                              |
+| Artifact                                                             | When                                                                                          | If omitted                                                                                      |
+| -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `apps/www/app/utilities/__snapshots__/components-surface.json`       | always — any new component, or any edit to a docs `description`, JSDoc summary, or `@example` | CI's Vibe Check fails. Regenerate with `pnpm -F @app/www test -u` and commit it                 |
+| `doNotPublish` in `packages/mantle/tsdown.config.ts`                 | adding an internal engine _directory_ (`chart/`)                                              | tsdown publishes a subpath for a directory that must have none                                  |
+| `importPathOverrides` in `packages/mantle/scripts/agent-manifest.ts` | the docs slug is not also the export key ([§2.2](#22-naming))                                 | the agent manifest build fails, because the slug names a subpath `package.json` does not export |
+| `previewExamples` in `apps/www/app/features/preview-registry.ts`     | the docs page uses `CodeExample.PreviewFrame`                                                 | the `example` prop fails typecheck                                                              |
 
 ### 2.2. Naming
 
@@ -297,7 +297,7 @@ stays the family's (`./button`), the implementation is `components/<family>/<com
 `components/<family>/<component-name>.test.tsx`, and the docs slug stays `<component-name>`. A directory that
 exports several documented components may name its files after those parts (`progress/progress-bar.tsx`,
 `progress/progress-donut.tsx`) as long as `index.ts` is the single entry point. **A family-directory component
-must register in `componentImportPathOverrides`** ([§2.4](#24-nav-and-route-registration)).
+must register in `importPathOverrides`** ([§2.4](#24-nav-and-route-registration)).
 
 ### 2.3. Export map and build configuration
 
@@ -333,9 +333,9 @@ as the `<category>` URL segment. Page/viewport structure primitives are Layouts,
 - `navigation-data.ts`: add `<Display Name>` to its category array in `componentsByCategory`, and the route to
   `prodReadyComponentRouteLookup` (both alphabetical). `prodReadyComponents` is derived — never edit it.
 - If the docs slug leaf is not also the `@ngrok/mantle/*` import subpath (a family-directory component), add
-  `"/components/<category>/<component-name>": "@ngrok/mantle/<export-key>"` to `componentImportPathOverrides`.
-  Without it the manifest advertises a subpath absent from `package.json#exports`, and the JSDoc extractor
-  looks in a directory that does not exist.
+  `"components/<category>/<component-name>": "@ngrok/mantle/<export-key>"` to `importPathOverrides` in
+  `packages/mantle/scripts/agent-manifest.ts`. Without it the manifest build fails, because the slug names a
+  subpath absent from `package.json#exports`.
 
 **Preview component:** `previewComponents`, `previewComponentsRouteLookup`, and
 `previewComponentCategoryLookup`; docs at `docs/components/preview/<component-name>.mdx`; the
@@ -351,15 +351,15 @@ as the `<category>` URL segment. Page/viewport structure primitives are Layouts,
 [VERSIONING.md](./VERSIONING.md) decides the bump, and it outranks any semver habit from another repo:
 mantle is `0.x`, so there is no major, and additive changes are a `patch`. The component-shaped rows:
 
-| Change                                              | Bump                                                            |
-| --------------------------------------------------- | --------------------------------------------------------------- |
-| New top-level component                             | `minor`                                                         |
-| Preview → stable promotion                          | `minor`                                                         |
-| Breaking rename or removal                          | `minor` (and a migration note in the changeset)                 |
-| New part, prop, data attribute, or CSS variable     | `patch` — additive, so a consumer does nothing                  |
-| Bug fix, behavior fix, styling fix, JSDoc-only edit | `patch`                                                         |
-| Docs-site-only change (`apps/www/**`)               | none — `@app/*` is ignored in `.changeset/config.json`          |
-| Change to a component not yet released              | none — fold the description into that component's own changeset |
+| Change                                              | Bump                                                                         |
+| --------------------------------------------------- | ---------------------------------------------------------------------------- |
+| New top-level component                             | `minor`                                                                      |
+| Preview → stable promotion                          | `minor`                                                                      |
+| Breaking rename or removal                          | `minor`, a migration guide, and a codemod ([VERSIONING.md](./VERSIONING.md)) |
+| New part, prop, data attribute, or CSS variable     | `patch` — additive, so a consumer does nothing                               |
+| Bug fix, behavior fix, styling fix, JSDoc-only edit | `patch`                                                                      |
+| Docs-site-only change (`apps/www/**`)               | none — `@app/*` is ignored in `.changeset/config.json`                       |
+| Change to a component not yet released              | none — fold the description into that component's own changeset              |
 
 An edit to `packages/mantle-vite-plugins` needs its own changeset for that package.
 
@@ -572,7 +572,22 @@ its sentences read.
 Components, hooks, functions, and prop types each need:
 
 1. A description of the **contract** — what it is for, what it guarantees, and which sibling component answers
-   the adjacent intent ([§1.1](#11-one-component-per-user-intent)) — not implementation commentary.
+   the adjacent intent ([§1.1](#11-one-component-per-user-intent)) — not implementation commentary. On the
+   primary export (the namespace of a compound component, else the component itself), write the boundary as
+   two tags. The agent manifest (`dist/agent.json`, `/api/components.json`) extracts them into `useWhen` and
+   `siblings`, so an agent can answer "which component" from data:
+
+   ```
+    * @useWhen Divide adjacent content without a box, in a row or in a column.
+    *
+    * @siblings
+    * - `Card`: the content needs a border on every side.
+    * - `Well`: the content needs a recessed background, not a line.
+   ```
+
+   Each `@siblings` item is ``- `Name`: when a consumer reaches for it instead.`` A malformed item fails the
+   pack step.
+
 2. A `@see` link:
    - Component or compound namespace: `https://mantle.ngrok.com/components/<category>/<component-name>`.
    - A compound part: append that part's API-reference anchor —
@@ -910,7 +925,7 @@ beside it, because a wrapper makes the consumer's element a grandchild and break
 - A usage code block with nothing live above it, or written as a fragment → add a live example and rewrite the
   block to be complete, modeled on the page's existing complete examples.
 - Missing route in `routes.ts`, missing nav entry in `navigation-data.ts`, or a missing
-  `componentImportPathOverrides` entry → insert in alphabetical order.
+  `importPathOverrides` entry → insert in alphabetical order.
 - A stale generated file → regenerate ([§9](#9-verification)).
 
 **Needs author judgment — report and wait.** Anything that changes public API, runtime behavior, or
@@ -950,7 +965,8 @@ Run this against the diff before calling a component done. Each line is a defect
 
 **Surface**
 
-- [ ] Answers one user intent no existing component already answers; JSDoc names the sibling boundary.
+- [ ] Answers one user intent no existing component already answers; the primary export's JSDoc names the
+      sibling boundary in `@useWhen` and `@siblings` tags.
 - [ ] Nothing is public that could have stayed module-internal.
 - [ ] Outermost part is `Root`; every part name is the web-standards term for what it renders.
 - [ ] No unearned ARIA pattern word anywhere in the component or part names.
@@ -958,6 +974,8 @@ Run this against the diff before calling a component done. Each line is a defect
 - [ ] Namespace is one level deep, annotated if any member's type is third-party.
 - [ ] No `forwardRef`, no `React.FC`, no `displayName` assignment.
 - [ ] Mutually exclusive states are a discriminated union, not a boolean bag.
+- [ ] A breaking change ships its migration guide and codemod, or the guide says `manual:` with a reason
+      ([VERSIONING.md](./VERSIONING.md), the `write-migration` skill).
 - [ ] Nothing imports a router or app framework; router state enters through a structural type and the glue is an
       `apps/www` recipe.
 
@@ -998,7 +1016,7 @@ Run this against the diff before calling a component done. Each line is a defect
 **Wiring**
 
 - [ ] `index.ts`, `package.json` export (alphabetical), route, and nav entries all present and consistent.
-- [ ] `componentImportPathOverrides` if the slug is not the export key; `doNotPublish` if applicable.
+- [ ] `importPathOverrides` if the slug is not the export key; `doNotPublish` if applicable.
 - [ ] New tokens have values in all four theme stylesheets.
 - [ ] Changeset with the right bump and consumer-facing prose.
 
@@ -1022,7 +1040,8 @@ Run this against the diff before calling a component done. Each line is a defect
   `2026-07-08-docs-information-architecture.md` (categories),
   `2026-07-15-theme-switcher-compound-api.md` (parts over prop bags).
 - Workflows implementing this spec: `.claude/commands/scaffold-component.md`,
-  `.claude/commands/audit-component.md`, `.claude/commands/promote-preview-component.md`.
+  `.claude/commands/audit-component.md`, `.claude/commands/promote-preview-component.md`, and, for a
+  breaking `minor`, `.claude/commands/scaffold-migration.md` with the `write-migration` skill.
 - **Shapes worth copying, with their known gaps.** Copy compound-namespace JSDoc from `alert` or `card`. Copy
   docs-page structure from `list` or `selectable-list` — the pages that already match §7.2. Copy the
   CSS-variable tables from `alert` and `icon-button`. Do **not** copy: `card` and `dialog` ship no test file;

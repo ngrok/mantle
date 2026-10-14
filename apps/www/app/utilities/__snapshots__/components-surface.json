@@ -203,7 +203,22 @@
     "examples": [
       "Composition:\n```\nCard.Root\n├── Card.Header\n│   └── Card.Title\n├── Card.Body\n└── Card.Footer\n```",
       "```tsx\n<Card.Root>\n  <Card.Body>\n    <p>Laborum in aute officia adipisicing elit velit.</p>\n  </Card.Body>\n</Card.Root>\n\n<Card.Root>\n  <Card.Header>\n    <Card.Title>Card Title Here</Card.Title>\n  </Card.Header>\n  <Card.Body>\n    <p>Laborum in aute officia adipisicing elit velit.</p>\n  </Card.Body>\n  <Card.Footer>\n    <p>Card footer</p>\n  </Card.Footer>\n</Card.Root>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "Well",
+        "boundary": "the content is secondary and sits inset in the page, such as a code sample, a note, or a read-only summary."
+      },
+      {
+        "name": "Separator",
+        "boundary": "adjacent content needs a divider and no box."
+      },
+      {
+        "name": "MediaObject",
+        "boundary": "an icon or a figure sits beside a block of text, with no border."
+      }
+    ],
+    "useWhen": "Group related content in a raised box, with an optional header and footer."
   },
   {
     "name": "Centered Layout",
@@ -284,6 +299,10 @@
     "examples": [
       "Composition:\n```\nCombobox.Root\n├── Combobox.Input\n└── Combobox.Content\n    ├── Combobox.Group\n    │   ├── Combobox.GroupLabel\n    │   └── Combobox.Item\n    │       └── Combobox.ItemValue\n    └── Combobox.Separator\n```",
       "```tsx\n<Combobox.Root>\n  <Combobox.Input />\n  <Combobox.Content>\n    <Combobox.Item value=\"Apple\" />\n    <Combobox.Item value=\"Banana\" />\n  </Combobox.Content>\n</Combobox.Root>\n```"
+    ],
+    "aliases": [
+      "autocomplete",
+      "typeahead"
     ]
   },
   {
@@ -343,6 +362,9 @@
     "examples": [
       "Composition:\n```\nDialog.Root\n├── Dialog.Trigger\n└── Dialog.Content\n    ├── Dialog.Header\n    │   ├── Dialog.Title\n    │   ├── Dialog.Description\n    │   └── Dialog.CloseIconButton\n    ├── Dialog.Body\n    └── Dialog.Footer\n        └── Dialog.Close\n```",
       "```tsx\n<Dialog.Root>\n  <Dialog.Trigger asChild>\n    <Button type=\"button\" appearance=\"filled\" intent=\"neutral\">Open Dialog</Button>\n  </Dialog.Trigger>\n  <Dialog.Content>\n    <Dialog.Header>\n      <Dialog.Title>Dialog Title</Dialog.Title>\n      <Dialog.Description>This is an optional description.</Dialog.Description>\n      <Dialog.CloseIconButton />\n    </Dialog.Header>\n    <Dialog.Body>\n      <p>This is the dialog content.</p>\n    </Dialog.Body>\n    <Dialog.Footer>\n      <Dialog.Close asChild>\n        <Button type=\"button\" appearance=\"outlined\" intent=\"neutral\">Cancel</Button>\n      </Dialog.Close>\n      <Button type=\"button\" appearance=\"filled\" intent=\"neutral\">Save</Button>\n    </Dialog.Footer>\n  </Dialog.Content>\n</Dialog.Root>\n```"
+    ],
+    "aliases": [
+      "modal"
     ]
   },
   {
@@ -371,7 +393,26 @@
     "examples": [
       "Composition:\n```\nEmpty.Root\n├── Empty.Icon\n├── Empty.Title\n├── Empty.Description\n└── Empty.Actions\n```",
       "```tsx\n<Empty.Root>\n  <Empty.Icon svg={<GhostIcon />} />\n  <Empty.Title>No endpoints yet</Empty.Title>\n  <Empty.Description>\n    Create your first endpoint to get started.\n  </Empty.Description>\n  <Empty.Actions>\n    <Button appearance=\"filled\" intent=\"neutral\">Create endpoint</Button>\n  </Empty.Actions>\n</Empty.Root>\n```"
-    ]
+    ],
+    "aliases": [
+      "empty state",
+      "zero state"
+    ],
+    "siblings": [
+      {
+        "name": "Skeleton",
+        "boundary": "the region is still loading."
+      },
+      {
+        "name": "Alert",
+        "boundary": "a message sits beside content that still exists."
+      },
+      {
+        "name": "Well",
+        "boundary": "the state needs an inset panel; compose `Empty.Root` inside a `Well`."
+      }
+    ],
+    "useWhen": "A region has no data, no results, or no access to show."
   },
   {
     "name": "Field",
@@ -622,6 +663,9 @@
     "examples": [
       "Composition:\n```\nPopover.Root\n├── Popover.Trigger\n├── Popover.Anchor\n└── Popover.Content\n    ├── Popover.Arrow\n    └── Popover.Close\n```",
       "```tsx\n<Popover.Root>\n  <Popover.Trigger asChild>\n    <Button type=\"button\" appearance=\"outlined\" intent=\"neutral\">\n      Open Popover\n    </Button>\n  </Popover.Trigger>\n  <Popover.Content>\n    <p>This is the popover content.</p>\n  </Popover.Content>\n</Popover.Root>\n```"
+    ],
+    "aliases": [
+      "popup"
     ]
   },
   {
@@ -733,6 +777,9 @@
     "examples": [
       "Composition:\n```\nSelect.Root\n├── Select.Trigger\n│   └── Select.Value\n└── Select.Content\n    ├── Select.Group\n    │   ├── Select.Label\n    │   └── Select.Item\n    └── Select.Separator\n```",
       "```tsx\n<Select.Root>\n  <Select.Trigger>\n    <Select.Value placeholder=\"Select a fruit\" />\n  </Select.Trigger>\n  <Select.Content>\n    <Select.Group>\n      <Select.Label>Fruits</Select.Label>\n      <Select.Item value=\"apple\">Apple</Select.Item>\n      <Select.Item value=\"banana\">Banana</Select.Item>\n      <Select.Item value=\"cherry\">Cherry</Select.Item>\n    </Select.Group>\n    <Select.Separator />\n    <Select.Group>\n      <Select.Label>Veggies</Select.Label>\n      <Select.Item value=\"carrot\">Carrot</Select.Item>\n      <Select.Item value=\"cucumber\">Cucumber</Select.Item>\n    </Select.Group>\n  </Select.Content>\n</Select.Root>\n```"
+    ],
+    "aliases": [
+      "dropdown"
     ]
   },
   {
@@ -760,7 +807,22 @@
     "jsdoc": "Visually or semantically separates content.",
     "examples": [
       "```tsx\n<Separator className=\"my-4\" />\n\n<Separator className=\"my-4\" semantic />\n\n<div className=\"flex h-5 items-center gap-4 text-sm\">\n  Blog\n  <Separator orientation=\"vertical\" />\n  Docs\n  <Separator orientation=\"vertical\" />\n  Source\n</div>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "Card",
+        "boundary": "the content needs a border on every side."
+      },
+      {
+        "name": "Well",
+        "boundary": "the content needs a recessed background, not a line."
+      },
+      {
+        "name": "DescriptionList",
+        "boundary": "the content is key and value pairs, which carry their own rows."
+      }
+    ],
+    "useWhen": "Divide adjacent content without a box, in a row or in a column."
   },
   {
     "name": "Sheet",
@@ -775,6 +837,10 @@
       "Composition:\n```\nSheet.Root\n├── Sheet.Trigger\n└── Sheet.Content\n    ├── Sheet.Header\n    │   ├── Sheet.TitleGroup\n    │   │   ├── Sheet.Title\n    │   │   └── Sheet.Actions\n    │   └── Sheet.Description\n    ├── Sheet.Body\n    └── Sheet.Footer\n        └── Sheet.Close\n```",
       "```tsx\n// Triggering a stateful sheet\n<Sheet.Root>\n  <Sheet.Trigger asChild>\n    <Button type=\"button\" appearance=\"filled\" intent=\"neutral\">\n      Open Sheet\n    </Button>\n  </Sheet.Trigger>\n  <Sheet.Content>\n    <Sheet.Header>\n      <Sheet.TitleGroup>\n        <Sheet.Title>Are you absolutely sure?</Sheet.Title>\n        <Sheet.Actions>\n          <IconButton\n            appearance=\"ghost\"\n            intent=\"neutral\"\n            type=\"button\"\n            icon={<TrashSimple />}\n            label=\"Delete\"\n          />\n          <Separator orientation=\"vertical\" className=\"h-[80%]\" />\n          <Sheet.CloseIconButton />\n        </Sheet.Actions>\n      </Sheet.TitleGroup>\n      <Sheet.Description>\n        This action cannot be undone. This will permanently delete your account and remove your data from our servers.\n      </Sheet.Description>\n    </Sheet.Header>\n    <Sheet.Body>\n      <p>\n        Consequat do voluptate culpa fugiat consequat nostrud duis\n        aliqua minim. Tempor voluptate cillum elit velit. Voluptate\n        aliqua ipsum aliqua dolore in nisi ea fugiat aliqua velit\n        proident amet.\n      </p>\n    </Sheet.Body>\n    <Sheet.Footer>\n      <Sheet.Close asChild>\n        <Button type=\"button\" appearance=\"outlined\" intent=\"neutral\">Close</Button>\n      </Sheet.Close>\n      <Button type=\"button\" appearance=\"filled\" intent=\"neutral\">\n        Save\n      </Button>\n    </Sheet.Footer>\n  </Sheet.Content>\n</Sheet.Root>\n```",
       "```tsx\n// Sheet without a trigger (e.g. router controlled)\n<Sheet.Root open onOpenChange={() => onClose()}>\n  <Sheet.Content>\n    <Sheet.Header>\n      <Sheet.TitleGroup>\n        <Sheet.Title>Are you absolutely sure?</Sheet.Title>\n        <Sheet.Actions>\n          <IconButton\n            appearance=\"ghost\"\n            intent=\"neutral\"\n            type=\"button\"\n            icon={<TrashSimple />}\n            label=\"Delete\"\n          />\n          <Separator orientation=\"vertical\" className=\"h-[80%]\" />\n          <Sheet.CloseIconButton />\n        </Sheet.Actions>\n      </Sheet.TitleGroup>\n      <Sheet.Description>\n        This action cannot be undone. This will permanently delete your account and remove your data from our servers.\n      </Sheet.Description>\n    </Sheet.Header>\n    <Sheet.Body>\n      <p>\n        Consequat do voluptate culpa fugiat consequat nostrud duis\n        aliqua minim. Tempor voluptate cillum elit velit. Voluptate\n        aliqua ipsum aliqua dolore in nisi ea fugiat aliqua velit\n        proident amet.\n      </p>\n    </Sheet.Body>\n    <Sheet.Footer>\n      <Sheet.Close asChild>\n        <Button type=\"button\" appearance=\"outlined\" intent=\"neutral\">Close</Button>\n      </Sheet.Close>\n      <Button type=\"button\" appearance=\"filled\" intent=\"neutral\">\n        Save\n      </Button>\n    </Sheet.Footer>\n  </Sheet.Content>\n</Sheet.Root>\n```"
+    ],
+    "aliases": [
+      "drawer",
+      "side panel"
     ]
   },
   {
@@ -884,6 +950,9 @@
     "jsdoc": "A form control that toggles one setting on or off.",
     "examples": [
       "```tsx\n<form>\n  <Label htmlFor=\"airplane-mode\" className=\"flex items-center gap-2\">\n    Airplane Mode\n    <Switch name=\"airplane-mode\" id=\"airplane-mode\" />\n  </Label>\n</form>\n```"
+    ],
+    "aliases": [
+      "toggle"
     ]
   },
   {
@@ -963,6 +1032,10 @@
     "examples": [
       "Composition:\n```\nToast.Root\n├── Toast.Icon\n├── Toast.Message\n└── Toast.Action\n```",
       "```tsx\nmakeToast(\n  <Toast.Root intent=\"success\">\n    <Toast.Icon />\n    <Toast.Message>Operation completed successfully!</Toast.Message>\n    <Toast.Action>Dismiss</Toast.Action>\n  </Toast.Root>\n);\n```"
+    ],
+    "aliases": [
+      "notification",
+      "snackbar"
     ]
   },
   {
@@ -1017,6 +1090,21 @@
     "examples": [
       "```tsx\n<Well>\n  <p>Eu ad sint laborum nostrud ullamco esse.</p>\n</Well>\n```",
       "```tsx\n<Well asChild>\n  <section aria-label=\"Summary\">…</section>\n</Well>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "Card",
+        "boundary": "the content is primary and needs a raised box, a header, or a footer."
+      },
+      {
+        "name": "Empty",
+        "boundary": "the block is a zero-data state; compose `Empty.Root` inside a `Well` to inset it."
+      },
+      {
+        "name": "CodeBlock",
+        "boundary": "the content is code and needs highlighting and a copy button."
+      }
+    ],
+    "useWhen": "De-emphasize a block of content relative to the surface around it."
   }
 ]

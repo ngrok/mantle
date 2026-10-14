@@ -17,6 +17,14 @@ inset shadow and the base background, making it feel sunken into the page. Reach
 for it to frame empty states, code samples, supplementary notes, or read-only
 summaries.
 
+## When to use
+
+A `Well` de-emphasizes a block of content relative to the surface around it.
+
+- Prefer [`Card`](/components/structure/card) when the content is primary and needs a raised box, a header, or a footer.
+- Compose [`Empty`](/components/feedback/empty) inside a `Well` when a zero-data state needs an inset panel.
+- Prefer [`CodeBlock`](/components/data-display/code-block) when the content is code and needs highlighting and a copy button.
+
 <Example>
 	<Well className="w-full">
 		<Empty.Root>

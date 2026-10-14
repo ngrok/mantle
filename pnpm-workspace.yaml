@@ -75,6 +75,7 @@ overrides:
   "uuid": ">=14.0.2"
     
 allowBuilds:
+  "@ast-grep/cli": true
   "esbuild": true
   "@tailwindcss/oxide": true
 

@@ -29,10 +29,23 @@
       "cache": false
     },
     "//#test:scripts": {
-      "inputs": ["scripts/**"]
+      "inputs": [
+        "scripts/**",
+        "packages/mantle/migrations/**",
+        "apps/www/app/docs/migrations/**",
+        ".changeset/*.md"
+      ]
     },
     "test": {
       "dependsOn": ["^build", "//#install:playwright", "//#test:scripts"]
+    },
+    "@ngrok/mantle#test": {
+      "dependsOn": ["^build", "//#install:playwright", "//#test:scripts"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/apps/www/app/docs/**",
+        "$TURBO_ROOT$/apps/www/app/utilities/__snapshots__/components-surface.json"
+      ]
     },
     "test:watch": {
       "cache": false,

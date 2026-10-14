@@ -1,102 +1,75 @@
 import { describe, expect, it } from "vitest";
 
-import { buildHooksManifest, examplesFromJsDoc } from "./hooks-manifest.server";
-import { buildManifest } from "./manifest.server";
-import { buildUtilitiesManifest } from "./utils-manifest.server";
+import {
+	layoutPages,
+	previewComponentCategoryLookup,
+	previewComponents,
+	prodReadyComponents,
+} from "~/components/navigation-data";
+import { canonicalHref } from "~/utilities/canonical-origin";
+import { buildSiteAgentManifest } from "./agent-manifest.server";
+import { buildSearchEntries } from "./search-index.server";
 
-describe("agent manifests", () => {
-	it("builds hooks from bundled Mantle source", async () => {
-		const manifest = await buildHooksManifest();
-		const useBreakpoint = manifest.hooks.find((hook) => hook.name === "useBreakpoint");
-		const useComposedRefs = manifest.hooks.find((hook) => hook.name === "useComposedRefs");
-
-		expect(manifest.hooks.length).toBeGreaterThan(0);
-		expect(useBreakpoint).toMatchObject({
-			importPath: "@ngrok/mantle/hooks",
-			summary: expect.stringContaining("largest Tailwind breakpoint"),
-		});
-		expect(useComposedRefs?.summary).toContain("composes up to three refs");
-	});
-
-	// Regression: summaries previously leaked raw JSDoc syntax like
-	// "{@link ScrollBehavior}" into llms.txt and /api/hooks.json.
-	it("renders inline {@link} tags as plain text in summaries", async () => {
-		const manifest = await buildHooksManifest();
-		const useScrollBehavior = manifest.hooks.find((hook) => hook.name === "useScrollBehavior");
-
-		expect(useScrollBehavior?.summary).toContain("ScrollBehavior");
-		expect(useScrollBehavior?.summary).not.toContain("{@link");
-	});
-
-	it("builds utility summaries from bundled Mantle source", async () => {
-		const manifest = await buildUtilitiesManifest();
-		const cx = manifest.utilities.find((utility) => utility.name === "cx");
-		const highlightUtils = manifest.utilities.find((utility) => utility.name === "highlight-utils");
-
-		expect(cx?.summary).toContain("Conditionally compose class names");
-		expect(highlightUtils?.summary).toContain("React-free highlighting utilities");
-	});
-
-	it("adds component JSDoc from bundled Mantle source", async () => {
-		const manifest = await buildManifest();
+describe("the site's agent manifest", () => {
+	// The shared builder takes the origin as an input. Wiring the package's
+	// public origin in by mistake would point a preview deploy's URLs at prod.
+	it("builds every URL on the canonical origin", async () => {
+		const manifest = await buildSiteAgentManifest();
 		const button = manifest.components.find((component) => component.name === "Button");
+		const useBreakpoint = manifest.hooks.find((hook) => hook.name === "useBreakpoint");
+		const cx = manifest.utilities.find((utility) => utility.name === "cx");
+
+		expect(button).toMatchObject({
+			docsUrl: canonicalHref("/components/actions/button"),
+			markdownUrl: canonicalHref("/components/actions/button.md"),
+		});
+		expect(useBreakpoint?.docsUrl).toBe(canonicalHref("/hooks"));
+		expect(cx?.markdownUrl).toBe(canonicalHref("/utils/cx.md"));
+	});
+
+	// The manifest reads the docs tree; the sidebar lists pages by hand. A page
+	// with no sidebar entry, a sidebar entry with no page, or a frontmatter
+	// title that drifts from its sidebar label shows up here.
+	it("lists the same components as the docs sidebar, under the same names", async () => {
+		const manifest = await buildSiteAgentManifest();
+		const sidebar = [...prodReadyComponents, ...previewComponents, ...layoutPages].toSorted();
+		const listed = manifest.components.map((component) => component.name).toSorted();
+
+		expect(listed).toEqual(sidebar);
+	});
+
+	// A preview page's URL carries no category, so the page declares one in its
+	// frontmatter. The sidebar declares it a second time; the two must agree.
+	it("gives a preview component the category the sidebar declares", async () => {
+		const manifest = await buildSiteAgentManifest();
+
+		for (const name of previewComponents) {
+			const entry = manifest.components.find((component) => component.name === name);
+			expect(entry?.status).toBe("preview");
+			expect(entry?.category).toBe(previewComponentCategoryLookup[name]);
+		}
+	});
+
+	// The site feeds the builder its bundled raw source. A glob that stops
+	// matching a directory leaves components with no JSDoc and no examples.
+	it("reads every component's JSDoc through the bundled source", async () => {
+		const manifest = await buildSiteAgentManifest();
 		const componentsMissingJsdoc = manifest.components
 			.filter((component) => component.jsdoc == null)
 			.map((component) => component.name);
 
-		expect(button).toMatchObject({
-			importPath: "@ngrok/mantle/button",
-			jsdoc: expect.stringContaining("Renders a button"),
-		});
 		expect(componentsMissingJsdoc).toEqual([]);
 	});
 
-	it("extracts component @example blocks from bundled Mantle source", async () => {
-		const manifest = await buildManifest();
-		const field = manifest.components.find((component) => component.name === "Field");
+	it("puts a page's aliases into its search keywords", async () => {
+		const manifest = await buildSiteAgentManifest();
+		const entries = buildSearchEntries({
+			components: { components: manifest.components },
+			hooks: { hooks: manifest.hooks },
+			utilities: { utilities: manifest.utilities },
+		});
+		const dialog = entries.find((entry) => entry.name === "Dialog");
 
-		expect(field?.examples?.length).toBeGreaterThan(0);
-		// Canonical composition: the control wraps the input and help text
-		// sits below it — the exact shape agents should copy.
-		expect(field?.examples?.some((example) => example.includes("<Field.Control>"))).toBe(true);
-	});
-});
-
-describe("examplesFromJsDoc", () => {
-	it("returns each @example block and stops at the next real tag", () => {
-		const jsdoc = [
-			"/**",
-			" * Summary.",
-			" * @example",
-			" * ```tsx",
-			" * <Foo />",
-			" * ```",
-			" * @param x the thing",
-			" */",
-		].join("\n");
-
-		expect(examplesFromJsDoc(jsdoc)).toEqual(["```tsx\n<Foo />\n```"]);
-	});
-
-	it("does not terminate on an @-prefixed line inside a fenced code block", () => {
-		const jsdoc = [
-			"/**",
-			" * @example",
-			" * ```tsx",
-			" * @Component()",
-			" * class Widget {}",
-			" * ```",
-			" */",
-		].join("\n");
-
-		const [example] = examplesFromJsDoc(jsdoc);
-		// Without fence tracking, the parser mistakes `@Component()` for a tag, so
-		// it truncates the example at the opening fence.
-		expect(example).toContain("@Component()");
-		expect(example).toContain("class Widget {}");
-	});
-
-	it("returns an empty array when there are no @example blocks", () => {
-		expect(examplesFromJsDoc("/**\n * Just a summary.\n */")).toEqual([]);
+		expect(dialog?.keywords).toContain("modal");
 	});
 });

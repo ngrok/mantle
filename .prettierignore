@@ -13,6 +13,11 @@ public
 packages/mantle/package.json
 packages/mantle/src/utils/cx/vendor
 packages/mantle/src/utils/cx/__fixtures__
+apps/www/app/utilities/__snapshots__
 *.svg
 *.yaml
 bun.lockb
+
+# Codemod inputs keep their spelling on purpose: a rule must read a single-quoted or spaced attribute.
+packages/mantle/migrations/*/before.ts
+packages/mantle/migrations/*/before.tsx

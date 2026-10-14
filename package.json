@@ -22,9 +22,11 @@
     "prepare": "husky",
     "changeset": "changeset",
     "changeset:version": "changeset version",
-    "changeset:publish": "turbo run build --filter=@ngrok/mantle --filter=@ngrok/mantle-vite-plugins --filter=@ngrok/mantle-server-syntax-highlighter && changeset publish"
+    "changeset:publish": "turbo run build --filter=@ngrok/mantle --filter=@ngrok/mantle-vite-plugins --filter=@ngrok/mantle-server-syntax-highlighter && changeset publish",
+    "migrate": "node ./scripts/migrate.ts"
   },
   "devDependencies": {
+    "@ast-grep/cli": "0.45.3",
     "@changesets/changelog-github": "1.0.1",
     "@changesets/cli": "3.0.3",
     "@types/node": "catalog:",

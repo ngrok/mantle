@@ -88,6 +88,14 @@ limits do not.
 A `minor` also states the migration. Name the old spelling, name the new one, and say what a call site has to
 change.
 
+A breaking `minor` ships a migration guide and a codemod with the change: the guide under
+`apps/www/app/docs/migrations/`, the ast-grep rules and their fixtures under `packages/mantle/migrations/`,
+and the guide's URL in the changeset. The [`write-migration`](./.claude/skills/write-migration/SKILL.md) skill
+is the standard and `/scaffold-migration` lays the files down. A guide says `Codemod: manual: <reason>.` only
+when every step is semantic. A `minor` for a new component or a preview promotion needs no guide; its
+changeset says `No migration: <reason>.` instead. `pnpm -w run test:scripts` fails a `minor` changeset that
+does neither.
+
 ## When the bump is genuinely unclear
 
 Ask the maintainer, or pick `patch` and say so in the PR. Do not open a debate in the PR description, and do

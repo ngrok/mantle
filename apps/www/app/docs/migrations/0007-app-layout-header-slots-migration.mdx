@@ -9,6 +9,10 @@ description: Compose AppLayout.Header from its three slots, let AppLayout.Body b
 
 **TL;DR:** In every route module that renders a page, render `AppLayout.Header` (`AppLayout.HeaderStart` with `Sidebar.Trigger`, `AppLayout.HeaderContent` with `RouteBreadcrumbs`, `AppLayout.HeaderActions` with the route's actions) and `AppLayout.Body` around the page. The shell keeps only `<Outlet />` inside `AppLayout.Content`. Delete the header-actions context and its effect hook. `AppLayout.Body` now renders `Main` itself, so delete the `Main` composed onto it, and pass `asChild` with a `<div>` where the page already owns a `main`.
 
+## Codemod
+
+Codemod: manual: the header moves from the shell into every route module and the actions context goes away, so the rewrite spans files and no rule can place a route's actions.
+
 ---
 
 ## You are an agent migrating a codebase. Do this:
