@@ -1,9 +1,11 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { createRef, useState } from "react";
-import { describe, expect, test } from "vitest";
+import { createRef } from "react";
+import { renderToString } from "react-dom/server";
+import { describe, expect, test, vi } from "vitest";
 import { Sidebar } from "../sidebar/sidebar.js";
-import { AppLayout } from "./app-layout.js";
+import { TooltipProvider } from "../tooltip/index.js";
+import { AppLayout, useSidePanel } from "./app-layout.js";
 
 describe("AppLayout.Root", () => {
 	test("renders a div stamped data-slot app-layout", () => {
@@ -268,11 +270,13 @@ describe("AppLayout.Header", () => {
 						<AppLayout.Header data-testid="header">toolbar</AppLayout.Header>
 						<AppLayout.Body>page</AppLayout.Body>
 					</AppLayout.Content>
-					<AppLayout.SidePanel open>
-						<AppLayout.SidePanelHeader data-testid="panel-header">
-							assistant
-						</AppLayout.SidePanelHeader>
-					</AppLayout.SidePanel>
+					<AppLayout.SidePanelRoot defaultOpen>
+						<AppLayout.SidePanel>
+							<AppLayout.SidePanelHeader data-testid="panel-header">
+								assistant
+							</AppLayout.SidePanelHeader>
+						</AppLayout.SidePanel>
+					</AppLayout.SidePanelRoot>
 				</AppLayout.Workspace>
 			</AppLayout.Root>,
 		);
@@ -513,75 +517,230 @@ describe("AppLayout.Header slots", () => {
 });
 
 describe("AppLayout.SidePanel", () => {
-	test("renders an aside stamped data-slot app-layout-side-panel with its children", () => {
+	test("renders an aside stamped data-slot app-layout-side-panel with the root's id and its children", () => {
 		render(
-			<AppLayout.SidePanel aria-label="Assistant" open>
-				conversation
-			</AppLayout.SidePanel>,
+			<AppLayout.SidePanelRoot defaultOpen>
+				<AppLayout.SidePanel aria-label="Assistant">conversation</AppLayout.SidePanel>
+			</AppLayout.SidePanelRoot>,
 		);
 		const panel = screen.getByRole("complementary", { name: "Assistant" });
 		expect(panel.tagName).toBe("ASIDE");
 		expect(panel).toHaveAttribute("data-slot", "app-layout-side-panel");
+		expect(panel).toHaveAttribute("id");
 		expect(panel).toHaveTextContent("conversation");
 	});
 
-	test("mirrors open in data-state and inert across a real toggle", async () => {
+	test("throws outside AppLayout.SidePanelRoot", () => {
+		// Why: silence React's error log for the expected throw.
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		expect(() => render(<AppLayout.SidePanel>conversation</AppLayout.SidePanel>)).toThrow(
+			"AppLayout.SidePanel must be rendered inside AppLayout.SidePanelRoot.",
+		);
+	});
+
+	test("starts closed and inert, and the trigger opens and closes it", async () => {
 		const user = userEvent.setup();
-		function Shell() {
-			const [open, setOpen] = useState(true);
-			return (
-				<>
-					<button type="button" onClick={() => setOpen((current) => !current)}>
-						Toggle the assistant
-					</button>
-					<AppLayout.SidePanel data-testid="panel" open={open}>
-						conversation
-					</AppLayout.SidePanel>
-				</>
-			);
-		}
-		render(<Shell />);
+		render(
+			<TooltipProvider>
+				<AppLayout.SidePanelRoot>
+					<AppLayout.SidePanelTrigger />
+					<AppLayout.SidePanel data-testid="panel">conversation</AppLayout.SidePanel>
+				</AppLayout.SidePanelRoot>
+			</TooltipProvider>,
+		);
+		const trigger = screen.getByRole("button", { name: "Toggle side panel" });
 		const panel = screen.getByTestId("panel");
+		expect(trigger).toHaveAttribute("aria-expanded", "false");
+		expect(trigger).toHaveAttribute("data-state", "closed");
+		expect(panel).toHaveAttribute("data-state", "closed");
+		expect(panel).toHaveAttribute("inert");
+
+		await user.click(trigger);
+		expect(trigger).toHaveAttribute("aria-expanded", "true");
+		expect(trigger).toHaveAttribute("data-state", "open");
 		expect(panel).toHaveAttribute("data-state", "open");
 		expect(panel).not.toHaveAttribute("inert");
 
-		await user.click(screen.getByRole("button", { name: "Toggle the assistant" }));
+		await user.click(trigger);
+		expect(trigger).toHaveAttribute("aria-expanded", "false");
 		expect(panel).toHaveAttribute("data-state", "closed");
 		expect(panel).toHaveAttribute("inert");
 		// Still mounted: the closed panel keeps its children's state.
 		expect(panel).toHaveTextContent("conversation");
+	});
 
-		await user.click(screen.getByRole("button", { name: "Toggle the assistant" }));
+	test("defaultOpen starts the panel open", () => {
+		render(
+			<AppLayout.SidePanelRoot defaultOpen>
+				<AppLayout.SidePanel data-testid="panel">conversation</AppLayout.SidePanel>
+			</AppLayout.SidePanelRoot>,
+		);
+		const panel = screen.getByTestId("panel");
 		expect(panel).toHaveAttribute("data-state", "open");
 		expect(panel).not.toHaveAttribute("inert");
 	});
 
-	test("stamps data-state and inert after a wider props object", () => {
-		// Why: a consumer value for either would desync the collapse from `open`
-		// or leave a closed panel in the tab order.
-		const consumerProps = { "data-state": "open", inert: false };
+	test("the trigger's aria-controls references the panel", () => {
 		render(
-			<AppLayout.SidePanel data-testid="panel" open={false} {...consumerProps}>
-				conversation
-			</AppLayout.SidePanel>,
+			<TooltipProvider>
+				<AppLayout.SidePanelRoot>
+					<AppLayout.SidePanelTrigger />
+					<AppLayout.SidePanel data-testid="panel">conversation</AppLayout.SidePanel>
+				</AppLayout.SidePanelRoot>
+			</TooltipProvider>,
+		);
+		const trigger = screen.getByRole("button", { name: "Toggle side panel" });
+		expect(trigger).toHaveAttribute("aria-controls", screen.getByTestId("panel").id);
+	});
+
+	test("controlled open reports changes through onOpenChange without flipping itself", async () => {
+		const user = userEvent.setup();
+		const onOpenChange = vi.fn<(open: boolean) => void>();
+		render(
+			<TooltipProvider>
+				<AppLayout.SidePanelRoot open onOpenChange={onOpenChange}>
+					<AppLayout.SidePanelTrigger />
+					<AppLayout.SidePanel data-testid="panel">conversation</AppLayout.SidePanel>
+				</AppLayout.SidePanelRoot>
+			</TooltipProvider>,
+		);
+		await user.click(screen.getByRole("button", { name: "Toggle side panel" }));
+		expect(onOpenChange).toHaveBeenCalledExactlyOnceWith(false);
+		// controlled: the parent did not update `open`, so the panel stays open
+		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "open");
+	});
+
+	test("the trigger respects event.defaultPrevented from the consumer onClick", async () => {
+		const user = userEvent.setup();
+		const onOpenChange = vi.fn<(open: boolean) => void>();
+		render(
+			<TooltipProvider>
+				<AppLayout.SidePanelRoot onOpenChange={onOpenChange}>
+					<AppLayout.SidePanelTrigger onClick={(event) => event.preventDefault()} />
+					<AppLayout.SidePanel data-testid="panel">conversation</AppLayout.SidePanel>
+				</AppLayout.SidePanelRoot>
+			</TooltipProvider>,
+		);
+		await user.click(screen.getByRole("button", { name: "Toggle side panel" }));
+		expect(onOpenChange).not.toHaveBeenCalled();
+		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "closed");
+	});
+
+	test("the trigger renders a ghost neutral IconButton with its label as the tooltip", async () => {
+		const user = userEvent.setup();
+		render(
+			<TooltipProvider>
+				<AppLayout.SidePanelRoot>
+					<AppLayout.SidePanelTrigger label="Toggle the assistant" />
+					<AppLayout.SidePanel>conversation</AppLayout.SidePanel>
+				</AppLayout.SidePanelRoot>
+			</TooltipProvider>,
+		);
+		const trigger = screen.getByRole("button", { name: "Toggle the assistant" });
+		expect(trigger).toHaveAttribute("data-slot", "app-layout-side-panel-trigger");
+		expect(trigger).toHaveAttribute("data-appearance", "ghost");
+		expect(trigger).toHaveAttribute("data-intent", "neutral");
+		await user.hover(trigger);
+		expect(await screen.findByRole("tooltip")).toHaveTextContent("Toggle the assistant");
+	});
+
+	test("closing from a trigger inside the panel moves focus to the trigger outside it", async () => {
+		const user = userEvent.setup();
+		render(
+			<TooltipProvider>
+				<AppLayout.SidePanelRoot defaultOpen>
+					<AppLayout.SidePanelTrigger label="Toggle the assistant" />
+					<AppLayout.SidePanel data-testid="panel">
+						<AppLayout.SidePanelHeader>
+							<AppLayout.SidePanelTrigger label="Close the assistant" />
+						</AppLayout.SidePanelHeader>
+					</AppLayout.SidePanel>
+				</AppLayout.SidePanelRoot>
+			</TooltipProvider>,
+		);
+		// Why: a closed panel is `inert`, so focus left inside it falls to <body>.
+		await user.click(screen.getByRole("button", { name: "Close the assistant" }));
+		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "closed");
+		expect(screen.getByRole("button", { name: "Toggle the assistant" })).toHaveFocus();
+	});
+
+	test("closing from the trigger outside the panel leaves focus where it is", async () => {
+		const user = userEvent.setup();
+		render(
+			<TooltipProvider>
+				<AppLayout.SidePanelRoot defaultOpen>
+					<button type="button">before</button>
+					<AppLayout.SidePanelTrigger label="Toggle the assistant" />
+					<AppLayout.SidePanel data-testid="panel">conversation</AppLayout.SidePanel>
+				</AppLayout.SidePanelRoot>
+			</TooltipProvider>,
+		);
+		const trigger = screen.getByRole("button", { name: "Toggle the assistant" });
+		await user.click(trigger);
+		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "closed");
+		expect(trigger).toHaveFocus();
+	});
+
+	test("stamps id, data-state, and inert after a wider props object", () => {
+		// Why: a consumer value for any of these would break the trigger's
+		// `aria-controls`, desync the collapse from the root, or leave a closed
+		// panel in the tab order.
+		const consumerProps = { id: "mine", "data-state": "open", inert: false };
+		render(
+			<AppLayout.SidePanelRoot>
+				<AppLayout.SidePanel data-testid="panel" {...consumerProps}>
+					conversation
+				</AppLayout.SidePanel>
+			</AppLayout.SidePanelRoot>,
 		);
 		const panel = screen.getByTestId("panel");
+		expect(panel.id).not.toBe("mine");
 		expect(panel).toHaveAttribute("data-state", "closed");
 		expect(panel).toHaveAttribute("inert");
+	});
+
+	test("stamps data-hydrated one frame after mount, not in the mount commit", async () => {
+		// Why a frame: a persisted-state correction commits in the mount flush, and
+		// the transition gate keys off the attribute, so a same-commit stamp animates it.
+		render(
+			<AppLayout.SidePanelRoot>
+				<AppLayout.SidePanel data-testid="panel">conversation</AppLayout.SidePanel>
+			</AppLayout.SidePanelRoot>,
+		);
+		const panel = screen.getByTestId("panel");
+		expect(panel).not.toHaveAttribute("data-hydrated");
+		await waitFor(() => {
+			expect(panel).toHaveAttribute("data-hydrated", "");
+		});
+	});
+
+	test("the server render carries the cookie's state and no hydration stamp", () => {
+		// Why renderToString: the first paint is the server HTML, and a mount
+		// effect would overwrite what this asserts before a post-mount read.
+		const html = renderToString(
+			<AppLayout.SidePanelRoot defaultOpen={false}>
+				<AppLayout.SidePanel>conversation</AppLayout.SidePanel>
+			</AppLayout.SidePanelRoot>,
+		);
+		expect(html).toContain('data-state="closed"');
+		expect(html).toContain("inert");
+		// The class list names the attribute in its gate, so match the stamp itself.
+		expect(html).not.toContain('data-hydrated=""');
 	});
 
 	test("forwards className, a ref, and arbitrary data-* to the rendered root", () => {
 		const ref = createRef<HTMLElement>();
 		render(
-			<AppLayout.SidePanel
-				className="consumer-panel"
-				data-flavor="assistant"
-				data-testid="panel"
-				open
-				ref={ref}
-			>
-				conversation
-			</AppLayout.SidePanel>,
+			<AppLayout.SidePanelRoot>
+				<AppLayout.SidePanel
+					className="consumer-panel"
+					data-flavor="assistant"
+					data-testid="panel"
+					ref={ref}
+				>
+					conversation
+				</AppLayout.SidePanel>
+			</AppLayout.SidePanelRoot>,
 		);
 		const panel = screen.getByTestId("panel");
 		expect(panel.className).toContain("consumer-panel");
@@ -591,38 +750,57 @@ describe("AppLayout.SidePanel", () => {
 
 	test("joins an ancestor-provided data-slot ahead of its own", () => {
 		render(
-			<AppLayout.SidePanel data-slot="app-shell" data-testid="panel" open>
-				conversation
-			</AppLayout.SidePanel>,
+			<AppLayout.SidePanelRoot>
+				<AppLayout.SidePanel data-slot="app-shell" data-testid="panel">
+					conversation
+				</AppLayout.SidePanel>
+			</AppLayout.SidePanelRoot>,
 		);
 		expect(screen.getByTestId("panel")).toHaveAttribute(
 			"data-slot",
 			"app-shell app-layout-side-panel",
 		);
 	});
+});
 
-	test("asChild renders the child with no landmark, merging classes, data attributes, the state, and the ref", () => {
-		const ref = createRef<HTMLDivElement>();
-		render(
-			<AppLayout.SidePanel
-				asChild
-				className="consumer-panel"
-				data-flavor="details"
-				open={false}
-				ref={ref}
-			>
-				<div data-testid="panel">details</div>
-			</AppLayout.SidePanel>,
+describe("useSidePanel", () => {
+	test("throws when called outside AppLayout.SidePanelRoot", () => {
+		function Standalone() {
+			useSidePanel();
+			return null;
+		}
+		// Why: silence React's error log for the expected throw.
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		expect(() => render(<Standalone />)).toThrow(
+			"useSidePanel must be used within AppLayout.SidePanelRoot.",
 		);
-		const panel = screen.getByTestId("panel");
-		expect(panel.tagName).toBe("DIV");
-		expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
-		expect(panel).toHaveAttribute("data-slot", "app-layout-side-panel");
-		expect(panel).toHaveAttribute("data-state", "closed");
-		expect(panel).toHaveAttribute("inert");
-		expect(panel.className).toContain("consumer-panel");
-		expect(panel).toHaveAttribute("data-flavor", "details");
-		expect(ref.current).toBe(panel);
+	});
+
+	test("exposes toggle and setOpen that drive the panel", async () => {
+		const user = userEvent.setup();
+		function CustomControls() {
+			const { open, setOpen, toggle } = useSidePanel();
+			return (
+				<>
+					<button type="button" onClick={toggle}>
+						{open ? "close it" : "open it"}
+					</button>
+					<button type="button" onClick={() => setOpen(false)}>
+						dismiss
+					</button>
+				</>
+			);
+		}
+		render(
+			<AppLayout.SidePanelRoot>
+				<CustomControls />
+				<AppLayout.SidePanel data-testid="panel">conversation</AppLayout.SidePanel>
+			</AppLayout.SidePanelRoot>,
+		);
+		await user.click(screen.getByRole("button", { name: "open it" }));
+		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "open");
+		await user.click(screen.getByRole("button", { name: "dismiss" }));
+		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "closed");
 	});
 });
 

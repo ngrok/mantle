@@ -11,9 +11,24 @@
 export {
 	//,
 	AppLayout,
+	useSidePanel,
 } from "./app-layout.js";
 export type {
 	//,
 	AppLayoutSidePanelMobileBreakpoint,
 	AppLayoutSidePanelProps,
+	AppLayoutSidePanelRootProps,
+	AppLayoutSidePanelState,
+	AppLayoutSidePanelTriggerProps,
 } from "./app-layout.js";
+
+export {
+	//,
+	extractSidePanelStateCookie,
+	serializeSidePanelStateCookie,
+	SIDE_PANEL_STATE_COOKIE_NAME,
+} from "./side-panel-state-cookie.js";
+export type {
+	//,
+	SerializeSidePanelStateCookieOptions,
+} from "./side-panel-state-cookie.js";

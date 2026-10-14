@@ -485,136 +485,115 @@ const assistantStarters = [
 
 /**
  * `AppLayout.SidePanel` beside the content card: an assistant that opens from
- * the header's actions and closes from its own header. The panel keeps its
- * children mounted while closed, so a conversation survives a close and a
- * reopen. Closing moves focus back to the control that opened it, because the
- * closed panel is `inert` and would otherwise drop focus to the document. The
+ * the header's trigger and closes from its own. `AppLayout.SidePanelRoot`
+ * owns the state, so both triggers toggle one panel, and closing from inside
+ * moves focus back to the header's trigger. The panel keeps its children
+ * mounted while closed, so a conversation survives a close and a reopen. The
  * sidebar and the panel both narrow their breakpoint to `md`, so the panel is
  * a lane at the preview's desktop width and floats over the card at its
  * tablet width. Renders as an entire framed-preview document.
  */
 export function AppLayoutSidePanelDemo() {
-	const [isAssistantOpen, setIsAssistantOpen] = useState(true);
-	const openButtonRef = useRef<HTMLButtonElement>(null);
-
 	return (
 		// the framed demo narrows the mobile breakpoint; most apps keep the "lg" default
 		<Sidebar.Root mobileBreakpoint="md">
 			<AppLayout.Root className="fixed inset-0">
 				<SkipToMainLink />
-				<AppLayout.Workspace>
-					<Sidebar.Nav aria-label="Main">
-						<Sidebar.Body>
-							<Sidebar.Group>
-								<Sidebar.GroupLabel>Traffic</Sidebar.GroupLabel>
-								<Sidebar.List>
-									<Sidebar.Item>
-										<Sidebar.Tooltip label="Endpoints">
-											<Sidebar.ItemButton current>
-												<GraphIcon />
-												Endpoints
-											</Sidebar.ItemButton>
-										</Sidebar.Tooltip>
-									</Sidebar.Item>
-									<Sidebar.Item>
-										<Sidebar.Tooltip label="Domains">
-											<Sidebar.ItemButton>
-												<GlobeHemisphereWestIcon />
-												Domains
-											</Sidebar.ItemButton>
-										</Sidebar.Tooltip>
-									</Sidebar.Item>
-								</Sidebar.List>
-							</Sidebar.Group>
-						</Sidebar.Body>
-					</Sidebar.Nav>
-					<AppLayout.Content>
-						<AppLayout.Header>
-							<AppLayout.HeaderStart>
-								<Sidebar.Trigger />
-							</AppLayout.HeaderStart>
-							<AppLayout.HeaderContent>
-								<Breadcrumb.Root>
-									<Breadcrumb.List>
-										<Breadcrumb.Item>
-											<Breadcrumb.Link href="#">Endpoints</Breadcrumb.Link>
-										</Breadcrumb.Item>
-										<Breadcrumb.Separator />
-										<Breadcrumb.Item>
-											<Breadcrumb.Page>ep_gateway_api</Breadcrumb.Page>
-										</Breadcrumb.Item>
-									</Breadcrumb.List>
-								</Breadcrumb.Root>
-							</AppLayout.HeaderContent>
-							<AppLayout.HeaderActions>
-								<IconButton
-									ref={openButtonRef}
-									type="button"
-									appearance="outlined"
-									intent="neutral"
-									size="sm"
-									icon={<SparkleIcon />}
-									label="Open the assistant"
-									onClick={() => setIsAssistantOpen(true)}
+				<AppLayout.SidePanelRoot defaultOpen>
+					<AppLayout.Workspace>
+						<Sidebar.Nav aria-label="Main">
+							<Sidebar.Body>
+								<Sidebar.Group>
+									<Sidebar.GroupLabel>Traffic</Sidebar.GroupLabel>
+									<Sidebar.List>
+										<Sidebar.Item>
+											<Sidebar.Tooltip label="Endpoints">
+												<Sidebar.ItemButton current>
+													<GraphIcon />
+													Endpoints
+												</Sidebar.ItemButton>
+											</Sidebar.Tooltip>
+										</Sidebar.Item>
+										<Sidebar.Item>
+											<Sidebar.Tooltip label="Domains">
+												<Sidebar.ItemButton>
+													<GlobeHemisphereWestIcon />
+													Domains
+												</Sidebar.ItemButton>
+											</Sidebar.Tooltip>
+										</Sidebar.Item>
+									</Sidebar.List>
+								</Sidebar.Group>
+							</Sidebar.Body>
+						</Sidebar.Nav>
+						<AppLayout.Content>
+							<AppLayout.Header>
+								<AppLayout.HeaderStart>
+									<Sidebar.Trigger />
+								</AppLayout.HeaderStart>
+								<AppLayout.HeaderContent>
+									<Breadcrumb.Root>
+										<Breadcrumb.List>
+											<Breadcrumb.Item>
+												<Breadcrumb.Link href="#">Endpoints</Breadcrumb.Link>
+											</Breadcrumb.Item>
+											<Breadcrumb.Separator />
+											<Breadcrumb.Item>
+												<Breadcrumb.Page>ep_gateway_api</Breadcrumb.Page>
+											</Breadcrumb.Item>
+										</Breadcrumb.List>
+									</Breadcrumb.Root>
+								</AppLayout.HeaderContent>
+								<AppLayout.HeaderActions>
+									<AppLayout.SidePanelTrigger icon={<SparkleIcon />} label="Toggle the assistant" />
+								</AppLayout.HeaderActions>
+							</AppLayout.Header>
+							<AppLayout.Body>
+								<div className="mx-auto max-w-7xl space-y-3 p-6">
+									{Array.from({ length: 12 }, (_, index) => (
+										<div key={index} className="border-card-muted rounded-lg border p-4">
+											<p className="text-strong text-sm font-medium">Row {index + 1}</p>
+										</div>
+									))}
+								</div>
+							</AppLayout.Body>
+						</AppLayout.Content>
+						<AppLayout.SidePanel aria-label="Assistant" mobileBreakpoint="md">
+							<AppLayout.SidePanelHeader>
+								<p className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Assistant</p>
+								<AppLayout.SidePanelTrigger icon={<XIcon />} label="Close the assistant" />
+							</AppLayout.SidePanelHeader>
+							<AppLayout.SidePanelBody>
+								<div className="flex flex-col gap-3 p-4">
+									<p className="text-strong text-center text-base font-medium">
+										What should we do today?
+									</p>
+									<p className="text-muted text-center text-sm">
+										Pick a starting point and we will write the Traffic Policy.
+									</p>
+									{assistantStarters.map((starter) => (
+										<Button
+											key={starter}
+											type="button"
+											appearance="outlined"
+											intent="neutral"
+											className="justify-start"
+										>
+											{starter}
+										</Button>
+									))}
+								</div>
+							</AppLayout.SidePanelBody>
+							<AppLayout.SidePanelFooter>
+								<TextArea
+									aria-label="Message the assistant"
+									placeholder="Ask about endpoints, domains, or Traffic Policy…"
+									rows={2}
 								/>
-							</AppLayout.HeaderActions>
-						</AppLayout.Header>
-						<AppLayout.Body>
-							<div className="space-y-3 p-6">
-								{Array.from({ length: 12 }, (_, index) => (
-									<div key={index} className="border-card-muted rounded-lg border p-4">
-										<p className="text-strong text-sm font-medium">Row {index + 1}</p>
-									</div>
-								))}
-							</div>
-						</AppLayout.Body>
-					</AppLayout.Content>
-					<AppLayout.SidePanel aria-label="Assistant" mobileBreakpoint="md" open={isAssistantOpen}>
-						<AppLayout.SidePanelHeader>
-							<p className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Assistant</p>
-							<IconButton
-								type="button"
-								appearance="ghost"
-								intent="neutral"
-								size="sm"
-								icon={<XIcon />}
-								label="Close the assistant"
-								onClick={() => {
-									setIsAssistantOpen(false);
-									openButtonRef.current?.focus();
-								}}
-							/>
-						</AppLayout.SidePanelHeader>
-						<AppLayout.SidePanelBody>
-							<div className="flex flex-col gap-3 p-4">
-								<p className="text-strong text-center text-base font-medium">
-									What should we do today?
-								</p>
-								<p className="text-muted text-center text-sm">
-									Pick a starting point and we will write the Traffic Policy.
-								</p>
-								{assistantStarters.map((starter) => (
-									<Button
-										key={starter}
-										type="button"
-										appearance="outlined"
-										intent="neutral"
-										className="justify-start"
-									>
-										{starter}
-									</Button>
-								))}
-							</div>
-						</AppLayout.SidePanelBody>
-						<AppLayout.SidePanelFooter>
-							<TextArea
-								aria-label="Message the assistant"
-								placeholder="Ask about endpoints, domains, or Traffic Policy…"
-								rows={2}
-							/>
-						</AppLayout.SidePanelFooter>
-					</AppLayout.SidePanel>
-				</AppLayout.Workspace>
+							</AppLayout.SidePanelFooter>
+						</AppLayout.SidePanel>
+					</AppLayout.Workspace>
+				</AppLayout.SidePanelRoot>
 			</AppLayout.Root>
 		</Sidebar.Root>
 	);

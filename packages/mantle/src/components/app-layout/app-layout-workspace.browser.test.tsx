@@ -1,30 +1,33 @@
 import { render, screen, waitFor } from "@testing-library/react";
-import { useState } from "react";
+import { useSyncExternalStore } from "react";
+import { renderToString } from "react-dom/server";
 import { afterAll, afterEach, beforeAll, describe, expect, test } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
+import { TooltipProvider } from "../tooltip/index.js";
 import { AppLayout } from "./app-layout.js";
 
 /**
  * Real-browser geometry for the workspace row: the width cap that centers the
  * rail, the card, and the side panel on a wide screen, and the side panel lane
  * itself. The panel's contract is the layout it produces (a fixed basis beside
- * the card, nothing when closed, a floating card below its breakpoint) and the
- * transition that carries one state to the other. happy-dom lays nothing out
- * and runs no transition, and `prefers-reduced-motion` is a Playwright page
- * emulation.
+ * the card, nothing when closed, an inner column that never reflows, a
+ * floating card below its breakpoint) and the transition that carries one
+ * state to the other, gated until a frame after hydration. happy-dom lays
+ * nothing out and runs no transition, and `prefers-reduced-motion` is a
+ * Playwright page emulation.
  *
  * The stylesheet is Tailwind 4.3.3's own output for the utilities in play,
  * keyed by the same escaped class selectors, with the theme variables resolved.
  * Regenerate it by compiling those class names through `tailwindcss`'s
- * `compile()`. Drop `mx-auto`, `w-full`, `ml-0`, `grow-0`, or a
- * `data-state-closed:` utility from a part and the matching assertion fails.
+ * `compile()`. Drop `mx-auto`, `w-full`, `ml-0`, `grow-0`, the inner column's
+ * width, or a `data-state-closed:` utility from a part and the matching
+ * assertion fails.
  */
 const STYLE = `
 @layer theme, base, components, utilities;
 @layer theme {
 	:root {
 		--spacing: 0.25rem;
-		--ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
 		--default-transition-duration: 150ms;
 		--default-transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 	}
@@ -38,7 +41,10 @@ const STYLE = `
 	}
 }
 @layer utilities {
+	.absolute { position: absolute; }
 	.relative { position: relative; }
+	.inset-y-0 { inset-block: calc(var(--spacing) * 0); }
+	.right-0 { right: calc(var(--spacing) * 0); }
 	.isolate { isolation: isolate; }
 	.m-\\(--app-layout-card-gutter\\,0\\.5rem\\) { margin: var(--app-layout-card-gutter,0.5rem); }
 	.mx-auto { margin-inline: auto; }
@@ -48,25 +54,28 @@ const STYLE = `
 	.flex { display: flex; }
 	.h-full { height: 100%; }
 	.w-full { width: 100%; }
+	.w-\\(--_side-panel-content-width\\) { width: var(--_side-panel-content-width); }
 	.max-w-\\(--app-layout-max-width\\,128rem\\) { max-width: var(--app-layout-max-width,128rem); }
 	.min-w-0 { min-width: 0px; }
 	.flex-1 { flex: 1; }
 	.shrink-0 { flex-shrink: 0; }
 	.grow-0 { flex-grow: 0; }
-	.basis-\\(--app-layout-side-panel-width\\,clamp\\(21rem\\,24vw\\,27rem\\)\\) {
-		flex-basis: var(--app-layout-side-panel-width,clamp(21rem, 24vw, 27rem));
-	}
+	.basis-\\[calc\\(var\\(--_side-panel-content-width\\)\\+2px\\)\\] { flex-basis: calc(var(--_side-panel-content-width) + 2px); }
 	.flex-col { flex-direction: column; }
 	.overflow-clip { overflow: clip; }
 	.border { border-style: var(--tw-border-style); border-width: 1px; }
-	.transition-\\[flex-basis\\,opacity\\,margin\\] {
-		transition-property: flex-basis,opacity,margin;
+	.transition-\\[flex-basis\\,margin\\,translate\\] {
+		transition-property: flex-basis,margin,translate;
 		transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
 		transition-duration: var(--tw-duration, var(--default-transition-duration));
 	}
 	.transition-none { transition-property: none; }
-	.duration-\\[260ms\\] { --tw-duration: 260ms; transition-duration: 260ms; }
-	.ease-in-out { --tw-ease: var(--ease-in-out); transition-timing-function: var(--ease-in-out); }
+	.duration-200 { --tw-duration: 200ms; transition-duration: 200ms; }
+	.ease-linear { --tw-ease: linear; transition-timing-function: linear; }
+	.\\[--_side-panel-content-width\\:calc\\(var\\(--app-layout-side-panel-width\\,clamp\\(21rem\\,24vw\\,27rem\\)\\)-2px\\)\\] {
+		--_side-panel-content-width: calc(var(--app-layout-side-panel-width,clamp(21rem, 24vw, 27rem)) - 2px);
+	}
+	.not-data-hydrated\\:transition-none:not([data-hydrated]) { transition-property: none; }
 	@media (prefers-reduced-motion: reduce) {
 		.motion-reduce\\:transition-none { transition-property: none; }
 	}
@@ -77,33 +86,62 @@ const STYLE = `
 		.max-lg\\:z-20 { z-index: 20; }
 		.max-lg\\:m-0 { margin: 0px; }
 		.max-lg\\:w-\\[min\\(24rem\\,calc\\(100vw-5rem\\)\\)\\] { width: min(24rem, calc(100vw - 5rem)); }
+		.max-lg\\:\\[--_side-panel-content-width\\:100\\%\\] { --_side-panel-content-width: 100%; }
 	}
 	@media (width < 48rem) {
 		.max-md\\:absolute { position: absolute; }
 		.max-md\\:inset-y-\\(--app-layout-card-gutter\\,0\\.5rem\\) { inset-block: var(--app-layout-card-gutter,0.5rem); }
 		.max-md\\:right-\\(--app-layout-card-gutter\\,0\\.5rem\\) { right: var(--app-layout-card-gutter,0.5rem); }
+		.max-md\\:left-\\(--app-layout-card-gutter\\,0\\.5rem\\) { left: var(--app-layout-card-gutter,0.5rem); }
 		.max-md\\:z-20 { z-index: 20; }
 		.max-md\\:m-0 { margin: 0px; }
+		.max-md\\:w-auto { width: auto; }
 		.max-md\\:w-\\[min\\(24rem\\,calc\\(100vw-5rem\\)\\)\\] { width: min(24rem, calc(100vw - 5rem)); }
+		.max-md\\:\\[--_side-panel-content-width\\:100\\%\\] { --_side-panel-content-width: 100%; }
 	}
 	@media (width < 40rem) {
 		.max-sm\\:absolute { position: absolute; }
 		.max-sm\\:inset-y-\\(--app-layout-card-gutter\\,0\\.5rem\\) { inset-block: var(--app-layout-card-gutter,0.5rem); }
 		.max-sm\\:right-\\(--app-layout-card-gutter\\,0\\.5rem\\) { right: var(--app-layout-card-gutter,0.5rem); }
+		.max-sm\\:left-\\(--app-layout-card-gutter\\,0\\.5rem\\) { left: var(--app-layout-card-gutter,0.5rem); }
 		.max-sm\\:z-20 { z-index: 20; }
 		.max-sm\\:m-0 { margin: 0px; }
-		.max-sm\\:w-\\[min\\(24rem\\,calc\\(100vw-5rem\\)\\)\\] { width: min(24rem, calc(100vw - 5rem)); }
+		.max-sm\\:w-auto { width: auto; }
+		.max-sm\\:\\[--_side-panel-content-width\\:100\\%\\] { --_side-panel-content-width: 100%; }
 	}
 	.data-state-closed\\:pointer-events-none[data-state~=closed] { pointer-events: none; }
 	.data-state-closed\\:m-0[data-state~=closed] { margin: 0px; }
 	.data-state-closed\\:basis-0[data-state~=closed] { flex-basis: 0px; }
-	.data-state-closed\\:border-0[data-state~=closed] { border-style: var(--tw-border-style); border-width: 0px; }
-	.data-state-closed\\:opacity-0[data-state~=closed] { opacity: 0%; }
+	@media (width >= 40rem) {
+		.sm\\:data-state-closed\\:border-0[data-state~=closed] { border-style: var(--tw-border-style); border-width: 0px; }
+	}
+	@media (width >= 48rem) {
+		.md\\:data-state-closed\\:border-0[data-state~=closed] { border-style: var(--tw-border-style); border-width: 0px; }
+	}
+	@media (width >= 64rem) {
+		.lg\\:data-state-closed\\:border-0[data-state~=closed] { border-style: var(--tw-border-style); border-width: 0px; }
+	}
+	@media (width < 64rem) {
+		.max-lg\\:data-state-closed\\:translate-x-\\[calc\\(100\\%\\+var\\(--app-layout-card-gutter\\,0\\.5rem\\)\\)\\][data-state~=closed] {
+			--tw-translate-x: calc(100% + var(--app-layout-card-gutter,0.5rem));
+			translate: var(--tw-translate-x) var(--tw-translate-y);
+		}
+	}
 }
 @property --tw-border-style {
 	syntax: "*";
 	inherits: false;
 	initial-value: solid;
+}
+@property --tw-translate-x {
+	syntax: "*";
+	inherits: false;
+	initial-value: 0;
+}
+@property --tw-translate-y {
+	syntax: "*";
+	inherits: false;
+	initial-value: 0;
 }
 `;
 
@@ -114,6 +152,7 @@ const GUTTER = 8;
 const FLOATING_PANEL_WIDTH = 384;
 
 let styleElement: HTMLStyleElement;
+let container: HTMLDivElement | null = null;
 
 beforeAll(() => {
 	styleElement = document.createElement("style");
@@ -126,6 +165,8 @@ afterAll(() => {
 });
 
 afterEach(async () => {
+	container?.remove();
+	container = null;
 	await page.viewport(1280, 800);
 	await commands.emulateMedia({ reducedMotion: "no-preference" });
 });
@@ -146,8 +187,8 @@ type ShellOptions = {
 };
 
 /**
- * A frame, a workspace, a card, and (when asked) a side panel with a button
- * that toggles it. The variables land through the DOM API rather than a style
+ * A frame, a workspace, a card with the panel's trigger, and (when asked) a
+ * side panel. The variables land through the DOM API rather than a style
  * prop, because React's style type has no room for a custom property.
  */
 function Shell({
@@ -158,43 +199,59 @@ function Shell({
 	vars = {},
 	workspaceClassName,
 }: ShellOptions) {
-	const [open, setOpen] = useState(panel === "open");
 	return (
-		<AppLayout.Root
-			data-testid="root"
-			style={{ height: 400, width: rootWidth }}
-			ref={(node) => {
-				for (const [name, value] of Object.entries(vars)) {
-					node?.style.setProperty(name, value);
-				}
-			}}
-		>
-			<AppLayout.Workspace className={workspaceClassName} data-testid="workspace">
-				<AppLayout.Content data-testid="content">
-					<button type="button" onClick={() => setOpen((current) => !current)}>
-						Toggle the assistant
-					</button>
-				</AppLayout.Content>
-				{panel != null && (
-					<AppLayout.SidePanel
-						className={panelClassName}
-						data-testid="panel"
-						mobileBreakpoint={mobileBreakpoint}
-						open={open}
-					>
-						conversation
-					</AppLayout.SidePanel>
-				)}
-			</AppLayout.Workspace>
-		</AppLayout.Root>
+		<TooltipProvider>
+			<AppLayout.Root
+				data-testid="root"
+				style={{ height: 400, width: rootWidth }}
+				ref={(node) => {
+					for (const [name, value] of Object.entries(vars)) {
+						node?.style.setProperty(name, value);
+					}
+				}}
+			>
+				<AppLayout.SidePanelRoot defaultOpen={panel === "open"}>
+					<AppLayout.Workspace className={workspaceClassName} data-testid="workspace">
+						<AppLayout.Content data-testid="content">
+							<AppLayout.SidePanelTrigger label="Toggle the assistant" />
+						</AppLayout.Content>
+						{panel != null && (
+							<AppLayout.SidePanel
+								className={panelClassName}
+								data-testid="panel"
+								mobileBreakpoint={mobileBreakpoint}
+							>
+								conversation
+							</AppLayout.SidePanel>
+						)}
+					</AppLayout.Workspace>
+				</AppLayout.SidePanelRoot>
+			</AppLayout.Root>
+		</TooltipProvider>
 	);
 }
 
 const rectOf = (testId: string) => screen.getByTestId(testId).getBoundingClientRect();
 
+/** The panel's inner column: the element the header, the body, and the footer lay out in. */
+function innerColumnOf(panel: HTMLElement): HTMLElement {
+	const inner = panel.firstElementChild;
+	if (!(inner instanceof HTMLElement)) {
+		throw new Error("The panel renders no inner column.");
+	}
+	return inner;
+}
+
+/** Waits for the hydration stamp, so the transition rules apply to what follows. */
+async function waitForHydration(panel: HTMLElement) {
+	await waitFor(() => {
+		expect(panel).toHaveAttribute("data-hydrated", "");
+	});
+}
+
 /**
  * Records every transition that starts on the panel as its property name. A
- * 260ms transition can end before a click round-trip returns, so the event is
+ * 200ms transition can end before a click round-trip returns, so the event is
  * the stable observable, not `getAnimations()`.
  */
 function recordTransitions(panel: HTMLElement): string[] {
@@ -277,8 +334,21 @@ describe("AppLayout.SidePanel lane", () => {
 		expect(content.width).toBe(1200 - 2 * GUTTER);
 	});
 
+	test("the inner column keeps the open width while the box around it collapses", async () => {
+		// Why: the header, the body, and the footer lay out in the inner column,
+		// so the card's edge sweeps across them instead of reflowing them.
+		await page.viewport(1280, 800);
+		render(
+			<Shell panel="closed" rootWidth={1200} vars={{ "--app-layout-side-panel-width": "300px" }} />,
+		);
+		const panel = screen.getByTestId("panel");
+		const inner = innerColumnOf(panel).getBoundingClientRect();
+		// The padding box: the open width minus the two hairline borders.
+		expect(inner.width).toBe(300 - 2);
+		expect(inner.right).toBe(panel.getBoundingClientRect().right);
+	});
+
 	test.each([
-		["sm", 600],
 		["md", 700],
 		["lg", 1000],
 	] as const)(
@@ -293,10 +363,41 @@ describe("AppLayout.SidePanel lane", () => {
 			const panelRect = panel.getBoundingClientRect();
 			expect(panelRect.width).toBe(FLOATING_PANEL_WIDTH);
 			expect(panelRect.right).toBe(workspace.right - GUTTER);
+			// The inner column fills the floating box's padding box, whatever the open width is.
+			expect(innerColumnOf(panel).getBoundingClientRect().width).toBe(FLOATING_PANEL_WIDTH - 2);
 			// Out of flow: the card keeps the whole row underneath it.
 			expect(content.width).toBe(viewportWidth - 2 * GUTTER);
 		},
 	);
+
+	test.each([
+		["sm", 600],
+		["md", 600],
+		["lg", 700],
+	] as const)(
+		"covers the card from gutter to gutter one breakpoint below %s",
+		async (mobileBreakpoint, viewportWidth) => {
+			await page.viewport(viewportWidth, 800);
+			render(<Shell mobileBreakpoint={mobileBreakpoint} panel="open" />);
+			const panel = screen.getByTestId("panel");
+			const workspace = rectOf("workspace");
+			expect(getComputedStyle(panel).position).toBe("absolute");
+			const panelRect = panel.getBoundingClientRect();
+			expect(panelRect.left).toBe(workspace.left + GUTTER);
+			expect(panelRect.right).toBe(workspace.right - GUTTER);
+			expect(innerColumnOf(panel).getBoundingClientRect().width).toBe(panelRect.width - 2);
+		},
+	);
+
+	test("a closed floating panel slides off the end edge", async () => {
+		await page.viewport(1000, 800);
+		render(<Shell panel="closed" />);
+		const panel = screen.getByTestId("panel");
+		const workspace = rectOf("workspace");
+		// Why: the floating box has no basis to collapse, so it leaves by
+		// translation, gutter included, and its shadow goes with it.
+		expect(panel.getBoundingClientRect().left).toBe(workspace.right);
+	});
 
 	test.each([
 		["sm", 700],
@@ -317,19 +418,49 @@ describe("AppLayout.SidePanel lane", () => {
 		expect(rectOf("content").width).toBe(viewportWidth - 3 * GUTTER - 300);
 	});
 
-	test("animates the close the user triggers", async () => {
+	test("animates the close the user triggers after hydration", async () => {
 		await page.viewport(1280, 800);
 		render(
 			<Shell panel="open" rootWidth={1200} vars={{ "--app-layout-side-panel-width": "300px" }} />,
 		);
 		const panel = screen.getByTestId("panel");
+		await waitForHydration(panel);
 		const transitions = recordTransitions(panel);
 
 		await userEvent.click(screen.getByRole("button", { name: "Toggle the assistant" }));
 
 		expect(panel).toHaveAttribute("data-state", "closed");
 		await waitFor(() => {
-			expect(transitions).toEqual(expect.arrayContaining(["flex-basis", "opacity"]));
+			expect(transitions).toEqual(expect.arrayContaining(["flex-basis", "margin-right"]));
+		});
+	});
+
+	test("reverses mid-flight when the user toggles again", async () => {
+		// Why: a CSS transition starts from the current computed value, so a
+		// second click turns the panel around instead of waiting for the first
+		// run to finish.
+		await page.viewport(1280, 800);
+		render(
+			<Shell panel="open" rootWidth={1200} vars={{ "--app-layout-side-panel-width": "300px" }} />,
+		);
+		const panel = screen.getByTestId("panel");
+		await waitForHydration(panel);
+		const trigger = screen.getByRole("button", { name: "Toggle the assistant" });
+
+		await userEvent.click(trigger);
+		// Poll the width itself: the run starts on the next frame, not in the click.
+		await waitFor(() => {
+			expect(panel.getBoundingClientRect().width).toBeLessThan(300);
+		});
+		const midFlight = panel.getBoundingClientRect().width;
+		expect(midFlight).toBeGreaterThan(0);
+
+		await userEvent.click(trigger);
+		expect(panel).toHaveAttribute("data-state", "open");
+		// The reversal starts from where the close got to, not from zero.
+		expect(panel.getBoundingClientRect().width).toBeGreaterThan(0);
+		await waitFor(() => {
+			expect(panel.getBoundingClientRect().width).toBe(300);
 		});
 	});
 
@@ -341,6 +472,7 @@ describe("AppLayout.SidePanel lane", () => {
 			<Shell panel="open" rootWidth={1200} vars={{ "--app-layout-side-panel-width": "300px" }} />,
 		);
 		const panel = screen.getByTestId("panel");
+		await waitForHydration(panel);
 		const transitions = recordTransitions(panel);
 
 		await userEvent.click(screen.getByRole("button", { name: "Toggle the assistant" }));
@@ -364,9 +496,62 @@ describe("AppLayout.SidePanel lane", () => {
 			/>,
 		);
 		const panel = screen.getByTestId("panel");
+		await waitForHydration(panel);
 		const transitions = recordTransitions(panel);
 
 		await userEvent.click(screen.getByRole("button", { name: "Toggle the assistant" }));
+
+		expect(panel).toHaveAttribute("data-state", "closed");
+		expect(panel.getBoundingClientRect().width).toBe(0);
+		expect(transitions).toEqual([]);
+	});
+});
+
+const subscribeToNothing = () => () => {};
+
+/**
+ * A shell whose server render says open and whose client store says closed:
+ * the shape of any storage-backed persistence, where the correction lands in
+ * the hydration commit.
+ */
+function CorrectedShell() {
+	const open = useSyncExternalStore(
+		subscribeToNothing,
+		() => false,
+		() => true,
+	);
+	return (
+		<AppLayout.Root data-testid="root" style={{ height: 400, width: 1200 }}>
+			<AppLayout.SidePanelRoot open={open}>
+				<AppLayout.Workspace>
+					<AppLayout.Content data-testid="content">page</AppLayout.Content>
+					<AppLayout.SidePanel data-testid="panel">conversation</AppLayout.SidePanel>
+				</AppLayout.Workspace>
+			</AppLayout.SidePanelRoot>
+		</AppLayout.Root>
+	);
+}
+
+describe("AppLayout.SidePanel hydration gate", () => {
+	test("snaps a post-hydration correction into place with no transition", async () => {
+		await page.viewport(1280, 800);
+		container = document.createElement("div");
+		container.innerHTML = renderToString(<CorrectedShell />);
+		document.body.appendChild(container);
+		const panel = container.querySelector('[data-slot~="app-layout-side-panel"]');
+		if (!(panel instanceof HTMLElement)) {
+			throw new Error('No element carries data-slot="app-layout-side-panel".');
+		}
+		// Why read the width: a real page paints the server markup before
+		// hydration, and only a painted width can be the start value of a
+		// transition. At 1280px, 24vw is under the 21rem floor, so the default
+		// open width is 336px.
+		expect(panel).toHaveAttribute("data-state", "open");
+		expect(panel.getBoundingClientRect().width).toBe(336);
+		const transitions = recordTransitions(panel);
+
+		render(<CorrectedShell />, { container, hydrate: true });
+		await waitForHydration(panel);
 
 		expect(panel).toHaveAttribute("data-state", "closed");
 		expect(panel.getBoundingClientRect().width).toBe(0);

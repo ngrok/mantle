@@ -1,10 +1,26 @@
-import type { ComponentProps } from "react";
+import { SidebarSimpleIcon } from "@phosphor-icons/react/SidebarSimple";
+import type { ComponentProps, ReactNode } from "react";
+import {
+	createContext,
+	useCallback,
+	useContext,
+	useId,
+	useLayoutEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
+import invariant from "tiny-invariant";
+import { useIsHydratedAfterPaint } from "../../hooks/use-is-hydrated-after-paint.js";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
+import type { IconButtonProps } from "../button/icon-button.js";
+import { IconButton } from "../button/icon-button.js";
 import { Main } from "../main/main.js";
 import { Slot } from "../slot/index.js";
+import { Tooltip } from "../tooltip/index.js";
 
 /**
  * The outer frame of an application shell. Renders a `<div>` with
@@ -736,41 +752,265 @@ const Body = ({
  *
  * @example
  * ```tsx
- * <AppLayout.SidePanel aria-label="Assistant" mobileBreakpoint="md" open={isOpen}>…</AppLayout.SidePanel>
+ * <AppLayout.SidePanel aria-label="Assistant" mobileBreakpoint="md">…</AppLayout.SidePanel>
  * ```
  */
 type AppLayoutSidePanelMobileBreakpoint = "sm" | "md" | "lg";
 
 /**
  * Maps each supported `mobileBreakpoint` to the classes that float the panel
- * over the card below it. Below the breakpoint the panel leaves the row, pins
- * to the row's end edge inside the card gutter, and takes a fixed width that
- * always leaves a strip of the page visible. A complete `Record` (not cva) so a
- * breakpoint without its classes is a compile error.
+ * over the card below it, and to the closed treatment on each side of it.
+ * Below the breakpoint the panel leaves the row, pins to the row's end edge
+ * inside the card gutter, takes a fixed width that leaves a strip of the page
+ * visible, and slides off the end edge when closed. One breakpoint lower it
+ * covers the card from gutter to gutter, because a strip of page beside a
+ * 24rem panel is no page at all on a phone. At or above the breakpoint, the
+ * closed panel drops its hairline border, or a two-pixel seam stays beside the
+ * card. A complete `Record` (not cva) so a breakpoint without its classes is a
+ * compile error.
  */
 const sidePanelFloatClassName: Record<AppLayoutSidePanelMobileBreakpoint, string> = {
-	sm: "max-sm:absolute max-sm:inset-y-(--app-layout-card-gutter,0.5rem) max-sm:right-(--app-layout-card-gutter,0.5rem) max-sm:z-20 max-sm:m-0 max-sm:w-[min(24rem,calc(100vw-5rem))] max-sm:shadow-lg",
-	md: "max-md:absolute max-md:inset-y-(--app-layout-card-gutter,0.5rem) max-md:right-(--app-layout-card-gutter,0.5rem) max-md:z-20 max-md:m-0 max-md:w-[min(24rem,calc(100vw-5rem))] max-md:shadow-lg",
-	lg: "max-lg:absolute max-lg:inset-y-(--app-layout-card-gutter,0.5rem) max-lg:right-(--app-layout-card-gutter,0.5rem) max-lg:z-20 max-lg:m-0 max-lg:w-[min(24rem,calc(100vw-5rem))] max-lg:shadow-lg",
+	sm: "max-sm:absolute max-sm:inset-y-(--app-layout-card-gutter,0.5rem) max-sm:left-(--app-layout-card-gutter,0.5rem) max-sm:right-(--app-layout-card-gutter,0.5rem) max-sm:z-20 max-sm:m-0 max-sm:shadow-lg max-sm:[--_side-panel-content-width:100%] max-sm:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] sm:data-state-closed:border-0",
+	md: "max-md:absolute max-md:inset-y-(--app-layout-card-gutter,0.5rem) max-md:right-(--app-layout-card-gutter,0.5rem) max-md:z-20 max-md:m-0 max-md:w-[min(24rem,calc(100vw-5rem))] max-md:shadow-lg max-md:[--_side-panel-content-width:100%] max-md:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] md:data-state-closed:border-0 max-sm:left-(--app-layout-card-gutter,0.5rem) max-sm:w-auto",
+	lg: "max-lg:absolute max-lg:inset-y-(--app-layout-card-gutter,0.5rem) max-lg:right-(--app-layout-card-gutter,0.5rem) max-lg:z-20 max-lg:m-0 max-lg:w-[min(24rem,calc(100vw-5rem))] max-lg:shadow-lg max-lg:[--_side-panel-content-width:100%] max-lg:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] lg:data-state-closed:border-0 max-md:left-(--app-layout-card-gutter,0.5rem) max-md:w-auto",
 };
 
 /**
- * The props for `AppLayout.SidePanel`: an `<aside>`'s props, `asChild`, and
- * the two the panel owns.
+ * The state and actions shared by every part under an
+ * `AppLayout.SidePanelRoot`, returned by {@link useSidePanel}. Use it to build
+ * a custom trigger, a close control, or close-on-navigate behavior.
+ *
+ * @see https://mantle.ngrok.com/layouts/app-layout#usesidepanel
+ *
+ * @example
+ * ```tsx
+ * function CloseAssistantOnNavigate() {
+ *   const { setOpen } = useSidePanel();
+ *   const location = useLocation();
+ *   useEffect(() => {
+ *     setOpen(false);
+ *   }, [location.pathname, setOpen]);
+ *   return null;
+ * }
+ * ```
+ */
+type AppLayoutSidePanelState = {
+	/**
+	 * Whether the panel is on screen. Mirrored as `data-state="open" | "closed"`
+	 * on `AppLayout.SidePanel` and `AppLayout.SidePanelTrigger`.
+	 */
+	open: boolean;
+	/**
+	 * Set the open state. Calls `onOpenChange` and, when uncontrolled, updates
+	 * the internal state. Closing while focus is inside the panel moves focus to
+	 * the first `AppLayout.SidePanelTrigger` outside it.
+	 */
+	setOpen: (open: boolean) => void;
+	/**
+	 * Flip the open state. This is what `AppLayout.SidePanelTrigger` calls.
+	 */
+	toggle: () => void;
+	/**
+	 * The generated id of the panel's `<aside>`. `AppLayout.SidePanelTrigger`
+	 * references it with `aria-controls`; reuse it in a custom trigger.
+	 */
+	panelId: string;
+};
+
+const SidePanelContext = createContext<AppLayoutSidePanelState | null>(null);
+
+/**
+ * Read the nearest `AppLayout.SidePanelRoot` state. Throws when called
+ * outside one, so misuse fails loudly. Use it to build a custom trigger, a
+ * close control, or close-on-navigate behavior.
+ *
+ * @see https://mantle.ngrok.com/layouts/app-layout#usesidepanel
+ *
+ * @example
+ * ```tsx
+ * function CloseAssistantOnNavigate() {
+ *   const { setOpen } = useSidePanel();
+ *   const location = useLocation();
+ *   useEffect(() => {
+ *     setOpen(false);
+ *   }, [location.pathname, setOpen]);
+ *   return null;
+ * }
+ * ```
+ */
+function useSidePanel(): AppLayoutSidePanelState {
+	const context = useContext(SidePanelContext);
+	invariant(context, "useSidePanel must be used within AppLayout.SidePanelRoot.");
+	return context;
+}
+
+/**
+ * Read the nearest {@link SidePanelContext} for an internal part. Throws with
+ * a part-specific message when rendered outside `AppLayout.SidePanelRoot`.
+ */
+function useSidePanelContext(part: string): AppLayoutSidePanelState {
+	const context = useContext(SidePanelContext);
+	invariant(context, `AppLayout.${part} must be rendered inside AppLayout.SidePanelRoot.`);
+	return context;
+}
+
+/**
+ * The props for `AppLayout.SidePanelRoot`: the open state, controlled or
+ * uncontrolled, the same shape as `Sidebar.Root`.
+ *
+ * @see https://mantle.ngrok.com/layouts/app-layout#applayoutsidepanelroot
+ */
+type AppLayoutSidePanelRootProps = {
+	children?: ReactNode;
+	/**
+	 * Whether the panel starts open, when uncontrolled. Read once at mount, so
+	 * pass the value the server read from a cookie here and the first paint
+	 * carries the right state.
+	 *
+	 * @default false
+	 */
+	defaultOpen?: boolean;
+	/**
+	 * Controlled open state. Pair with `onOpenChange`.
+	 */
+	open?: boolean;
+	/**
+	 * Called with the next open state whenever it changes. Write the cookie
+	 * here with `serializeSidePanelStateCookie`.
+	 */
+	onOpenChange?: (open: boolean) => void;
+};
+
+/**
+ * The state owner for `AppLayout.SidePanel` and `AppLayout.SidePanelTrigger`.
+ * Renderless: it only holds whether the panel is open, controlled (`open` +
+ * `onOpenChange`) or uncontrolled (`defaultOpen`), and hands it to the parts
+ * below through {@link useSidePanel}. Wrap `AppLayout.Workspace` with it, or
+ * anything above both the trigger and the panel. Closed by default: a side
+ * panel is a surface the user opens.
+ *
+ * To persist the state across visits with no first-frame correction, read
+ * `extractSidePanelStateCookie` in the server loader, pass the result to
+ * `defaultOpen`, and write `serializeSidePanelStateCookie` from
+ * `onOpenChange`. The server HTML then carries the right `data-state`, the
+ * same way `Sidebar.Root` persists the rail.
+ *
+ * When the panel closes while focus is inside it, the root moves focus to the
+ * first `AppLayout.SidePanelTrigger` outside the panel. A closed panel is
+ * `inert` and cannot hold focus, so without this the browser drops focus to
+ * the document.
+ *
+ * @see https://mantle.ngrok.com/layouts/app-layout#applayoutsidepanelroot
+ *
+ * @example
+ * ```tsx
+ * <Sidebar.Root>
+ *   <AppLayout.Root className="fixed inset-0">
+ *     <SkipToMainLink />
+ *     <AppLayout.Notice>{isUnderMaintenance && <MaintenanceBanner />}</AppLayout.Notice>
+ *     <AppLayout.SidePanelRoot>
+ *       <AppLayout.Workspace>
+ *         <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
+ *         <AppLayout.Content>
+ *           <AppLayout.Header>
+ *             <AppLayout.HeaderStart>
+ *               <Sidebar.Trigger />
+ *             </AppLayout.HeaderStart>
+ *             <AppLayout.HeaderContent>
+ *               <Breadcrumbs />
+ *             </AppLayout.HeaderContent>
+ *             <AppLayout.HeaderActions>
+ *               <AppLayout.SidePanelTrigger icon={<SparkleIcon />} label="Toggle the assistant" />
+ *             </AppLayout.HeaderActions>
+ *           </AppLayout.Header>
+ *           <AppLayout.Body>
+ *             <Outlet />
+ *           </AppLayout.Body>
+ *         </AppLayout.Content>
+ *         <AppLayout.SidePanel aria-label="Assistant">
+ *           <AppLayout.SidePanelHeader>
+ *             <p className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Assistant</p>
+ *             <AppLayout.SidePanelTrigger icon={<XIcon />} label="Close the assistant" />
+ *           </AppLayout.SidePanelHeader>
+ *           <AppLayout.SidePanelBody>
+ *             <AssistantConversation />
+ *           </AppLayout.SidePanelBody>
+ *           <AppLayout.SidePanelFooter>
+ *             <AssistantComposer />
+ *           </AppLayout.SidePanelFooter>
+ *         </AppLayout.SidePanel>
+ *       </AppLayout.Workspace>
+ *     </AppLayout.SidePanelRoot>
+ *   </AppLayout.Root>
+ * </Sidebar.Root>
+ * ```
+ */
+const SidePanelRoot = ({
+	children,
+	defaultOpen = false,
+	onOpenChange,
+	open: openProp,
+}: AppLayoutSidePanelRootProps) => {
+	const panelId = useId();
+	const isControlled = openProp != null;
+	const [internalOpen, setInternalOpen] = useState(defaultOpen);
+	const open = isControlled ? openProp : internalOpen;
+
+	// Why a ref: the close handler reads where focus is before React commits
+	// `inert`, and the browser drops focus to `<body>` inside that commit.
+	const shouldReturnFocus = useRef(false);
+
+	const setOpen = useCallback(
+		(next: boolean) => {
+			if (!next) {
+				const panel = document.getElementById(panelId);
+				shouldReturnFocus.current = panel != null && panel.contains(document.activeElement);
+			}
+			if (!isControlled) {
+				setInternalOpen(next);
+			}
+			onOpenChange?.(next);
+		},
+		[isControlled, onOpenChange, panelId],
+	);
+
+	const toggle = useCallback(() => {
+		setOpen(!open);
+	}, [open, setOpen]);
+
+	// Why a layout effect: focus moves in the same commit that made the panel
+	// `inert`, so no frame paints with focus on `<body>`.
+	useLayoutEffect(() => {
+		if (open || !shouldReturnFocus.current) {
+			return;
+		}
+		shouldReturnFocus.current = false;
+		const panel = document.getElementById(panelId);
+		const triggers = document.querySelectorAll<HTMLElement>(`[aria-controls="${panelId}"]`);
+		for (const trigger of triggers) {
+			if (panel == null || !panel.contains(trigger)) {
+				trigger.focus();
+				return;
+			}
+		}
+	}, [open, panelId]);
+
+	const contextValue = useMemo<AppLayoutSidePanelState>(
+		() => ({ open, panelId, setOpen, toggle }),
+		[open, panelId, setOpen, toggle],
+	);
+
+	return <SidePanelContext.Provider value={contextValue}>{children}</SidePanelContext.Provider>;
+};
+
+/**
+ * The props for `AppLayout.SidePanel`: an `<aside>`'s props except `id`, and
+ * the breakpoint the panel owns.
  *
  * @see https://mantle.ngrok.com/layouts/app-layout#applayoutsidepanel
  */
-type AppLayoutSidePanelProps = ComponentProps<"aside"> &
-	WithAsChild &
+type AppLayoutSidePanelProps = Omit<ComponentProps<"aside">, "id"> &
 	WithDataSlot & {
-		/**
-		 * Whether the panel is on screen. `true` slides it in beside the card at
-		 * `--app-layout-side-panel-width`; `false` collapses it to nothing and
-		 * marks it `inert`, with its children still mounted so their state
-		 * survives the round trip. Required on purpose: a panel with no state
-		 * owner is a second `AppLayout.Content`.
-		 */
-		open: boolean;
 		/**
 		 * The viewport width below which the panel floats over the card instead
 		 * of taking width beside it. Match it to `Sidebar.Root`'s
@@ -782,12 +1022,18 @@ type AppLayoutSidePanelProps = ComponentProps<"aside"> &
 		mobileBreakpoint?: AppLayoutSidePanelMobileBreakpoint;
 	};
 
+// Why no `asChild`: the panel renders a fixed two-element structure (a basis
+// animator clipping an inner column at the open width), so there is no single
+// default element a Slot swap could replace. Compose a different landmark by
+// changing what the inner parts render.
 /**
  * A second card beside `AppLayout.Content`, for an assistant, a details pane, or
  * any surface that opens next to the page and closes again. Render it as the
- * **last child of `AppLayout.Workspace`**, after the card, and own its state:
- * `open` is required and controlled. Renders an `<aside>`, so it is the
- * `complementary` landmark; name it with `aria-label`.
+ * **last child of `AppLayout.Workspace`**, after the card, inside an
+ * `AppLayout.SidePanelRoot` that owns whether it is open. Renders an
+ * `<aside>`, so it is the `complementary` landmark; name it with `aria-label`.
+ * `id` is not a prop: the root generates it, and `AppLayout.SidePanelTrigger`
+ * points `aria-controls` at it.
  *
  * It takes the same card treatment as `AppLayout.Content` (`bg-card
  * border-card-muted rounded-xl border shadow-sm overflow-clip`) and reads like
@@ -800,26 +1046,30 @@ type AppLayoutSidePanelProps = ComponentProps<"aside"> &
  * start edge, so the card's own end margin is the gap between the two, one
  * gutter wide.
  *
- * It is a flex item with a fixed basis (`grow-0 shrink-0`), never a share of
- * the row, so the card beside it absorbs every change in width. Opening and
- * closing animate `flex-basis`, `opacity`, and `margin` over 260ms (`ease-in-out`),
- * and `motion-reduce:transition-none` turns the slide into a cut. The `transition-*`
- * and `duration-*` utilities are bare, so a merged `transition-none` or
- * `duration-*` replaces them through tailwind-merge.
+ * It opens and closes the way `Sidebar.Nav` collapses. The `<aside>` is a clip
+ * box whose `flex-basis` animates between the open width and zero over 200ms
+ * (`ease-linear`), and an inner column inside it stays at the open width,
+ * anchored to the end edge, so the content never reflows: the card's edge
+ * sweeps across it. A CSS transition reverses from wherever it is, so a second
+ * click mid-flight turns the panel around. `motion-reduce:transition-none`
+ * turns the slide into a cut, and `not-data-hydrated:transition-none` holds
+ * the transition until one frame after hydration, so a state the client
+ * corrects after the server render snaps instead of sliding on page load. The
+ * `transition-*` and `duration-*` utilities are bare, so a merged
+ * `transition-none` or `duration-*` replaces them through tailwind-merge.
  *
- * Closed, it is `basis-0 opacity-0 m-0 border-0 pointer-events-none` and
- * `inert`, so nothing inside it is focusable, clickable, or read by assistive
+ * Closed, the box is `basis-0 m-0 border-0 pointer-events-none` and `inert`,
+ * so nothing inside it is focusable, clickable, or read by assistive
  * technology, and its children stay mounted: a conversation keeps its scroll
  * position, its focus target, and its in-flight reply across a close and a
- * reopen. The element stays `inert` while focus is inside it, and the browser
- * then drops focus to `<body>`. Move focus to the control that closed the panel
- * in the same handler.
+ * reopen.
  *
  * Below `mobileBreakpoint` the panel floats over the card instead of taking
  * width from it: `absolute`, pinned to the row's end edge inside the card
  * gutter, `min(24rem, 100vw - 5rem)` wide, with a larger shadow and `z-20` so
- * it paints above a page's own sticky rows. Two cards side by side in 900px are
- * two unusable cards.
+ * it paints above a page's own sticky rows. Closed, it slides off the end edge
+ * instead of collapsing. Two cards side by side in 900px are two unusable
+ * cards.
  *
  * **CSS variables (public API):**
  *
@@ -832,7 +1082,8 @@ type AppLayoutSidePanelProps = ComponentProps<"aside"> &
  *
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
- * | `data-state` | `"open"` \| `"closed"` | Mirrors `open`. The collapse and the transition key off it in CSS, and consumers style against it. |
+ * | `data-state` | `"open"` \| `"closed"` | Mirrors the root's open state. The collapse and the transition key off it in CSS, and consumers style against it. |
+ * | `data-hydrated` | present one frame after hydration | Presence-only. The transition keys off its absence in CSS (`not-data-hydrated:transition-none`), so a state correction after the server render snaps instead of animating. |
  *
  * @see https://mantle.ngrok.com/layouts/app-layout#applayoutsidepanel
  *
@@ -842,105 +1093,255 @@ type AppLayoutSidePanelProps = ComponentProps<"aside"> &
  *   <AppLayout.Root className="fixed inset-0">
  *     <SkipToMainLink />
  *     <AppLayout.Notice>{isUnderMaintenance && <MaintenanceBanner />}</AppLayout.Notice>
- *     <AppLayout.Workspace>
- *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
- *       <AppLayout.Content>
- *         <AppLayout.Header>
- *           <AppLayout.HeaderStart>
- *             <Sidebar.Trigger />
- *           </AppLayout.HeaderStart>
- *           <AppLayout.HeaderContent>
- *             <Breadcrumbs />
- *           </AppLayout.HeaderContent>
- *           <AppLayout.HeaderActions>
- *             <IconButton
- *               type="button"
- *               appearance="outlined"
- *               intent="neutral"
- *               size="sm"
- *               icon={<SparkleIcon />}
- *               label="Open the assistant"
- *               onClick={() => setIsAssistantOpen(true)}
- *             />
- *           </AppLayout.HeaderActions>
- *         </AppLayout.Header>
- *         <AppLayout.Body>
- *           <Outlet />
- *         </AppLayout.Body>
- *       </AppLayout.Content>
- *       <AppLayout.SidePanel aria-label="Assistant" open={isAssistantOpen}>
- *         <AppLayout.SidePanelHeader>
- *           <p className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Assistant</p>
- *           <IconButton
- *             type="button"
- *             appearance="ghost"
- *             intent="neutral"
- *             size="sm"
- *             icon={<XIcon />}
- *             label="Close the assistant"
- *             onClick={() => setIsAssistantOpen(false)}
- *           />
- *         </AppLayout.SidePanelHeader>
- *         <AppLayout.SidePanelBody>
- *           <AssistantConversation />
- *         </AppLayout.SidePanelBody>
- *         <AppLayout.SidePanelFooter>
- *           <AssistantComposer />
- *         </AppLayout.SidePanelFooter>
- *       </AppLayout.SidePanel>
- *     </AppLayout.Workspace>
+ *     <AppLayout.SidePanelRoot>
+ *       <AppLayout.Workspace>
+ *         <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
+ *         <AppLayout.Content>
+ *           <AppLayout.Header>
+ *             <AppLayout.HeaderStart>
+ *               <Sidebar.Trigger />
+ *             </AppLayout.HeaderStart>
+ *             <AppLayout.HeaderContent>
+ *               <Breadcrumbs />
+ *             </AppLayout.HeaderContent>
+ *             <AppLayout.HeaderActions>
+ *               <AppLayout.SidePanelTrigger icon={<SparkleIcon />} label="Toggle the assistant" />
+ *             </AppLayout.HeaderActions>
+ *           </AppLayout.Header>
+ *           <AppLayout.Body>
+ *             <Outlet />
+ *           </AppLayout.Body>
+ *         </AppLayout.Content>
+ *         <AppLayout.SidePanel aria-label="Assistant">
+ *           <AppLayout.SidePanelHeader>
+ *             <p className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Assistant</p>
+ *             <AppLayout.SidePanelTrigger icon={<XIcon />} label="Close the assistant" />
+ *           </AppLayout.SidePanelHeader>
+ *           <AppLayout.SidePanelBody>
+ *             <AssistantConversation />
+ *           </AppLayout.SidePanelBody>
+ *           <AppLayout.SidePanelFooter>
+ *             <AssistantComposer />
+ *           </AppLayout.SidePanelFooter>
+ *         </AppLayout.SidePanel>
+ *       </AppLayout.Workspace>
+ *     </AppLayout.SidePanelRoot>
  *   </AppLayout.Root>
  * </Sidebar.Root>
  * ```
  */
 const SidePanel = ({
-	asChild,
 	children,
 	className,
 	"data-slot": dataSlot,
 	mobileBreakpoint = "lg",
-	open,
 	...props
 }: AppLayoutSidePanelProps) => {
-	const Comp = asChild ? Slot : "aside";
+	const { open, panelId } = useSidePanelContext("SidePanel");
+	const isHydrated = useIsHydratedAfterPaint();
 
 	return (
-		<Comp
+		<aside
 			data-slot={joinDataSlot(dataSlot, "app-layout-side-panel")}
 			className={cx(
-				"bg-card border-card-muted relative flex min-w-0 flex-col rounded-xl border shadow-sm",
+				"bg-card border-card-muted relative min-w-0 rounded-xl border shadow-sm",
 				// Why isolate: a page's sticky rows carry their own z-index, and the
 				// panel's children must stack inside the panel, not against them.
 				"isolate",
-				// clip, not hidden: the same trap AppLayout.Content avoids. It also
-				// keeps the squeezed children from painting past the card while the
-				// basis animates.
+				// clip, not hidden: the same trap AppLayout.Content avoids. It is also
+				// what hides the inner column as the basis sweeps across it.
 				"overflow-clip",
+				// The width the inner column lays out at, as one private variable: the
+				// open width minus the two hairline borders in the row, and the whole
+				// padding box once the panel floats.
+				"[--_side-panel-content-width:calc(var(--app-layout-side-panel-width,clamp(21rem,24vw,27rem))-2px)]",
 				// A fixed basis, never a share of the row: `flex-1` cannot interpolate
 				// to a width, so a lane that animates never uses it. The card beside
 				// it is the one that absorbs the change.
-				"grow-0 shrink-0 basis-(--app-layout-side-panel-width,clamp(21rem,24vw,27rem))",
+				"grow-0 shrink-0 basis-[calc(var(--_side-panel-content-width)+2px)]",
 				// The gutter on three edges: the card's own end margin is the gap on
 				// the start edge, so the inner gap and the outer inset are one number.
 				"my-(--app-layout-card-gutter,0.5rem) mr-(--app-layout-card-gutter,0.5rem) ml-0",
-				// Why bare utilities: a consumer `transition-none` or `duration-*`
-				// replaces the default through tailwind-merge.
-				"transition-[flex-basis,opacity,margin] duration-[260ms] ease-in-out motion-reduce:transition-none",
-				// Why border-0 too: the hairline border would keep the closed panel two
-				// pixels wide and paint a seam beside the card.
-				"data-state-closed:basis-0 data-state-closed:opacity-0 data-state-closed:m-0 data-state-closed:border-0 data-state-closed:pointer-events-none",
+				// Why one negated gate: a state the client corrects after the server
+				// render must snap, not slide, on page load. Why bare utilities: a
+				// consumer `transition-none` or `duration-*` replaces the default
+				// through tailwind-merge.
+				"transition-[flex-basis,margin,translate] duration-200 ease-linear motion-reduce:transition-none not-data-hydrated:transition-none",
+				"data-state-closed:basis-0 data-state-closed:m-0 data-state-closed:pointer-events-none",
 				sidePanelFloatClassName[mobileBreakpoint],
 				className,
 			)}
 			{...props}
-			// Why after the spread: a wider props object can carry `data-state` or
-			// `inert` past the type, and a consumer value would desync the collapse
-			// from `open` or leave a closed panel in the tab order.
+			// Why after the spread: a wider props object can carry `id`,
+			// `data-state`, `data-hydrated`, or `inert` past the type, and a consumer
+			// value would break the trigger's `aria-controls`, desync the collapse
+			// from the root, release the transition gate, or leave a closed panel in
+			// the tab order.
+			id={panelId}
 			data-state={open ? "open" : "closed"}
+			data-hydrated={isHydrated ? "" : undefined}
 			inert={!open}
 		>
-			{children}
-		</Comp>
+			{/* The inner column holds the open width while the box around it
+			    animates, so the header, the body, and the footer keep their layout
+			    and the card's edge sweeps across them instead of reflowing them. */}
+			<div className="absolute inset-y-0 right-0 flex w-(--_side-panel-content-width) flex-col">
+				{children}
+			</div>
+		</aside>
+	);
+};
+
+/**
+ * The props for `AppLayout.SidePanelTrigger`. `IconButton`'s props, except the
+ * parts the trigger owns: `asChild` and `children` are removed (the trigger
+ * renders only its icon and `aria-label`; build a custom trigger with
+ * `useSidePanel` instead), and `appearance`, `icon`, `intent`, and `label`
+ * become optional with side panel defaults.
+ *
+ * @see https://mantle.ngrok.com/layouts/app-layout#applayoutsidepaneltrigger
+ */
+type AppLayoutSidePanelTriggerProps = Omit<
+	IconButtonProps,
+	"appearance" | "asChild" | "children" | "icon" | "intent" | "label"
+> &
+	WithDataSlot & {
+		/**
+		 * The visual style of the trigger `IconButton`.
+		 *
+		 * @default "ghost"
+		 */
+		appearance?: IconButtonProps["appearance"];
+		/**
+		 * The icon rendered inside the trigger.
+		 *
+		 * @default <SidebarSimpleIcon mirrored />
+		 */
+		icon?: ReactNode;
+		/**
+		 * The color intent of the trigger `IconButton`.
+		 *
+		 * @default "neutral"
+		 */
+		intent?: IconButtonProps["intent"];
+		/**
+		 * The accessible name of the trigger, also shown in its tooltip.
+		 *
+		 * @default "Toggle side panel"
+		 */
+		label?: string;
+	};
+
+const defaultSidePanelTriggerIcon = <SidebarSimpleIcon mirrored />;
+
+// Why no `asChild`: the trigger renders a fully wired mantle IconButton (icon +
+// aria-label + aria-expanded/aria-controls); a custom trigger composes the
+// same behavior from `useSidePanel()` instead of slot-swapping this one.
+/**
+ * The button that toggles `AppLayout.SidePanel`, the way `Sidebar.Trigger`
+ * toggles the rail. Renders a ghost neutral `IconButton` with `aria-expanded`
+ * and `aria-controls` wired to the panel's `<aside>`. Place one in
+ * `AppLayout.HeaderActions` to open the panel, and one more in
+ * `AppLayout.SidePanelHeader` with a close icon to close it from inside: when
+ * that one closes the panel, the root moves focus to the one outside.
+ *
+ * The button is icon-only, so it always renders a tooltip showing `label`.
+ * **That means it requires a `TooltipProvider` ancestor, like any
+ * `Tooltip.Root`, and throws without one.** Mount a single provider at your app
+ * root.
+ *
+ * **Data attributes (public API):**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-state` | `"open"` \| `"closed"` | Mirrors the root's open state. Pairs with `aria-expanded`. |
+ * | `data-slot` | `"app-layout-side-panel-trigger-tooltip"` | On the tooltip surface, not the button: the styling hook for the label popup this part renders. |
+ * | `data-appearance` | `"filled"` \| `"ghost"` \| `"outlined"` | Read, not stamped: the underlying `IconButton` reflects its `appearance`, which this part defaults to `"ghost"`. |
+ * | `data-intent` | `"neutral"` | Read, not stamped: the underlying `IconButton` reflects its `intent`, which this part defaults to `"neutral"`. |
+ * | `data-size` | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | Read, not stamped: the underlying `IconButton` reflects its `size` and its own `"md"` default. |
+ *
+ * @see https://mantle.ngrok.com/layouts/app-layout#applayoutsidepaneltrigger
+ *
+ * @example
+ * ```tsx
+ * <Sidebar.Root>
+ *   <AppLayout.Root className="fixed inset-0">
+ *     <SkipToMainLink />
+ *     <AppLayout.Notice>{isUnderMaintenance && <MaintenanceBanner />}</AppLayout.Notice>
+ *     <AppLayout.SidePanelRoot>
+ *       <AppLayout.Workspace>
+ *         <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
+ *         <AppLayout.Content>
+ *           <AppLayout.Header>
+ *             <AppLayout.HeaderStart>
+ *               <Sidebar.Trigger />
+ *             </AppLayout.HeaderStart>
+ *             <AppLayout.HeaderContent>
+ *               <Breadcrumbs />
+ *             </AppLayout.HeaderContent>
+ *             <AppLayout.HeaderActions>
+ *               <AppLayout.SidePanelTrigger icon={<SparkleIcon />} label="Toggle the assistant" />
+ *             </AppLayout.HeaderActions>
+ *           </AppLayout.Header>
+ *           <AppLayout.Body>
+ *             <Outlet />
+ *           </AppLayout.Body>
+ *         </AppLayout.Content>
+ *         <AppLayout.SidePanel aria-label="Assistant">
+ *           <AppLayout.SidePanelHeader>
+ *             <p className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Assistant</p>
+ *             <AppLayout.SidePanelTrigger icon={<XIcon />} label="Close the assistant" />
+ *           </AppLayout.SidePanelHeader>
+ *           <AppLayout.SidePanelBody>
+ *             <AssistantConversation />
+ *           </AppLayout.SidePanelBody>
+ *           <AppLayout.SidePanelFooter>
+ *             <AssistantComposer />
+ *           </AppLayout.SidePanelFooter>
+ *         </AppLayout.SidePanel>
+ *       </AppLayout.Workspace>
+ *     </AppLayout.SidePanelRoot>
+ *   </AppLayout.Root>
+ * </Sidebar.Root>
+ * ```
+ */
+const SidePanelTrigger = ({
+	appearance = "ghost",
+	"data-slot": dataSlot,
+	icon = defaultSidePanelTriggerIcon,
+	intent = "neutral",
+	label = "Toggle side panel",
+	onClick,
+	...props
+}: AppLayoutSidePanelTriggerProps) => {
+	const { open, panelId, toggle } = useSidePanelContext("SidePanelTrigger");
+
+	return (
+		// The label is not gated on the panel state: the trigger is an icon-only
+		// button, so a pointer user has nothing else to read. Requires a
+		// `TooltipProvider` ancestor, like any `Tooltip.Root`.
+		<Tooltip.Root>
+			<Tooltip.Trigger asChild>
+				<IconButton
+					appearance={appearance}
+					aria-controls={panelId}
+					aria-expanded={open}
+					data-slot={joinDataSlot(dataSlot, "app-layout-side-panel-trigger")}
+					data-state={open ? "open" : "closed"}
+					icon={icon}
+					intent={intent}
+					label={label}
+					onClick={(event) => {
+						onClick?.(event);
+						if (!event.defaultPrevented) {
+							toggle();
+						}
+					}}
+					{...props}
+				/>
+			</Tooltip.Trigger>
+			<Tooltip.Content data-slot="app-layout-side-panel-trigger-tooltip">{label}</Tooltip.Content>
+		</Tooltip.Root>
 	);
 };
 
@@ -975,53 +1376,39 @@ const SidePanel = ({
  *   <AppLayout.Root className="fixed inset-0">
  *     <SkipToMainLink />
  *     <AppLayout.Notice>{isUnderMaintenance && <MaintenanceBanner />}</AppLayout.Notice>
- *     <AppLayout.Workspace>
- *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
- *       <AppLayout.Content>
- *         <AppLayout.Header>
- *           <AppLayout.HeaderStart>
- *             <Sidebar.Trigger />
- *           </AppLayout.HeaderStart>
- *           <AppLayout.HeaderContent>
- *             <Breadcrumbs />
- *           </AppLayout.HeaderContent>
- *           <AppLayout.HeaderActions>
- *             <IconButton
- *               type="button"
- *               appearance="outlined"
- *               intent="neutral"
- *               size="sm"
- *               icon={<SparkleIcon />}
- *               label="Open the assistant"
- *               onClick={() => setIsAssistantOpen(true)}
- *             />
- *           </AppLayout.HeaderActions>
- *         </AppLayout.Header>
- *         <AppLayout.Body>
- *           <Outlet />
- *         </AppLayout.Body>
- *       </AppLayout.Content>
- *       <AppLayout.SidePanel aria-label="Assistant" open={isAssistantOpen}>
- *         <AppLayout.SidePanelHeader>
- *           <p className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Assistant</p>
- *           <IconButton
- *             type="button"
- *             appearance="ghost"
- *             intent="neutral"
- *             size="sm"
- *             icon={<XIcon />}
- *             label="Close the assistant"
- *             onClick={() => setIsAssistantOpen(false)}
- *           />
- *         </AppLayout.SidePanelHeader>
- *         <AppLayout.SidePanelBody>
- *           <AssistantConversation />
- *         </AppLayout.SidePanelBody>
- *         <AppLayout.SidePanelFooter>
- *           <AssistantComposer />
- *         </AppLayout.SidePanelFooter>
- *       </AppLayout.SidePanel>
- *     </AppLayout.Workspace>
+ *     <AppLayout.SidePanelRoot>
+ *       <AppLayout.Workspace>
+ *         <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
+ *         <AppLayout.Content>
+ *           <AppLayout.Header>
+ *             <AppLayout.HeaderStart>
+ *               <Sidebar.Trigger />
+ *             </AppLayout.HeaderStart>
+ *             <AppLayout.HeaderContent>
+ *               <Breadcrumbs />
+ *             </AppLayout.HeaderContent>
+ *             <AppLayout.HeaderActions>
+ *               <AppLayout.SidePanelTrigger icon={<SparkleIcon />} label="Toggle the assistant" />
+ *             </AppLayout.HeaderActions>
+ *           </AppLayout.Header>
+ *           <AppLayout.Body>
+ *             <Outlet />
+ *           </AppLayout.Body>
+ *         </AppLayout.Content>
+ *         <AppLayout.SidePanel aria-label="Assistant">
+ *           <AppLayout.SidePanelHeader>
+ *             <p className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Assistant</p>
+ *             <AppLayout.SidePanelTrigger icon={<XIcon />} label="Close the assistant" />
+ *           </AppLayout.SidePanelHeader>
+ *           <AppLayout.SidePanelBody>
+ *             <AssistantConversation />
+ *           </AppLayout.SidePanelBody>
+ *           <AppLayout.SidePanelFooter>
+ *             <AssistantComposer />
+ *           </AppLayout.SidePanelFooter>
+ *         </AppLayout.SidePanel>
+ *       </AppLayout.Workspace>
+ *     </AppLayout.SidePanelRoot>
  *   </AppLayout.Root>
  * </Sidebar.Root>
  * ```
@@ -1067,53 +1454,39 @@ const SidePanelHeader = ({
  *   <AppLayout.Root className="fixed inset-0">
  *     <SkipToMainLink />
  *     <AppLayout.Notice>{isUnderMaintenance && <MaintenanceBanner />}</AppLayout.Notice>
- *     <AppLayout.Workspace>
- *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
- *       <AppLayout.Content>
- *         <AppLayout.Header>
- *           <AppLayout.HeaderStart>
- *             <Sidebar.Trigger />
- *           </AppLayout.HeaderStart>
- *           <AppLayout.HeaderContent>
- *             <Breadcrumbs />
- *           </AppLayout.HeaderContent>
- *           <AppLayout.HeaderActions>
- *             <IconButton
- *               type="button"
- *               appearance="outlined"
- *               intent="neutral"
- *               size="sm"
- *               icon={<SparkleIcon />}
- *               label="Open the assistant"
- *               onClick={() => setIsAssistantOpen(true)}
- *             />
- *           </AppLayout.HeaderActions>
- *         </AppLayout.Header>
- *         <AppLayout.Body>
- *           <Outlet />
- *         </AppLayout.Body>
- *       </AppLayout.Content>
- *       <AppLayout.SidePanel aria-label="Assistant" open={isAssistantOpen}>
- *         <AppLayout.SidePanelHeader>
- *           <p className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Assistant</p>
- *           <IconButton
- *             type="button"
- *             appearance="ghost"
- *             intent="neutral"
- *             size="sm"
- *             icon={<XIcon />}
- *             label="Close the assistant"
- *             onClick={() => setIsAssistantOpen(false)}
- *           />
- *         </AppLayout.SidePanelHeader>
- *         <AppLayout.SidePanelBody>
- *           <AssistantConversation />
- *         </AppLayout.SidePanelBody>
- *         <AppLayout.SidePanelFooter>
- *           <AssistantComposer />
- *         </AppLayout.SidePanelFooter>
- *       </AppLayout.SidePanel>
- *     </AppLayout.Workspace>
+ *     <AppLayout.SidePanelRoot>
+ *       <AppLayout.Workspace>
+ *         <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
+ *         <AppLayout.Content>
+ *           <AppLayout.Header>
+ *             <AppLayout.HeaderStart>
+ *               <Sidebar.Trigger />
+ *             </AppLayout.HeaderStart>
+ *             <AppLayout.HeaderContent>
+ *               <Breadcrumbs />
+ *             </AppLayout.HeaderContent>
+ *             <AppLayout.HeaderActions>
+ *               <AppLayout.SidePanelTrigger icon={<SparkleIcon />} label="Toggle the assistant" />
+ *             </AppLayout.HeaderActions>
+ *           </AppLayout.Header>
+ *           <AppLayout.Body>
+ *             <Outlet />
+ *           </AppLayout.Body>
+ *         </AppLayout.Content>
+ *         <AppLayout.SidePanel aria-label="Assistant">
+ *           <AppLayout.SidePanelHeader>
+ *             <p className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Assistant</p>
+ *             <AppLayout.SidePanelTrigger icon={<XIcon />} label="Close the assistant" />
+ *           </AppLayout.SidePanelHeader>
+ *           <AppLayout.SidePanelBody>
+ *             <AssistantConversation />
+ *           </AppLayout.SidePanelBody>
+ *           <AppLayout.SidePanelFooter>
+ *             <AssistantComposer />
+ *           </AppLayout.SidePanelFooter>
+ *         </AppLayout.SidePanel>
+ *       </AppLayout.Workspace>
+ *     </AppLayout.SidePanelRoot>
  *   </AppLayout.Root>
  * </Sidebar.Root>
  * ```
@@ -1161,53 +1534,39 @@ const SidePanelBody = ({
  *   <AppLayout.Root className="fixed inset-0">
  *     <SkipToMainLink />
  *     <AppLayout.Notice>{isUnderMaintenance && <MaintenanceBanner />}</AppLayout.Notice>
- *     <AppLayout.Workspace>
- *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
- *       <AppLayout.Content>
- *         <AppLayout.Header>
- *           <AppLayout.HeaderStart>
- *             <Sidebar.Trigger />
- *           </AppLayout.HeaderStart>
- *           <AppLayout.HeaderContent>
- *             <Breadcrumbs />
- *           </AppLayout.HeaderContent>
- *           <AppLayout.HeaderActions>
- *             <IconButton
- *               type="button"
- *               appearance="outlined"
- *               intent="neutral"
- *               size="sm"
- *               icon={<SparkleIcon />}
- *               label="Open the assistant"
- *               onClick={() => setIsAssistantOpen(true)}
- *             />
- *           </AppLayout.HeaderActions>
- *         </AppLayout.Header>
- *         <AppLayout.Body>
- *           <Outlet />
- *         </AppLayout.Body>
- *       </AppLayout.Content>
- *       <AppLayout.SidePanel aria-label="Assistant" open={isAssistantOpen}>
- *         <AppLayout.SidePanelHeader>
- *           <p className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Assistant</p>
- *           <IconButton
- *             type="button"
- *             appearance="ghost"
- *             intent="neutral"
- *             size="sm"
- *             icon={<XIcon />}
- *             label="Close the assistant"
- *             onClick={() => setIsAssistantOpen(false)}
- *           />
- *         </AppLayout.SidePanelHeader>
- *         <AppLayout.SidePanelBody>
- *           <AssistantConversation />
- *         </AppLayout.SidePanelBody>
- *         <AppLayout.SidePanelFooter>
- *           <AssistantComposer />
- *         </AppLayout.SidePanelFooter>
- *       </AppLayout.SidePanel>
- *     </AppLayout.Workspace>
+ *     <AppLayout.SidePanelRoot>
+ *       <AppLayout.Workspace>
+ *         <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
+ *         <AppLayout.Content>
+ *           <AppLayout.Header>
+ *             <AppLayout.HeaderStart>
+ *               <Sidebar.Trigger />
+ *             </AppLayout.HeaderStart>
+ *             <AppLayout.HeaderContent>
+ *               <Breadcrumbs />
+ *             </AppLayout.HeaderContent>
+ *             <AppLayout.HeaderActions>
+ *               <AppLayout.SidePanelTrigger icon={<SparkleIcon />} label="Toggle the assistant" />
+ *             </AppLayout.HeaderActions>
+ *           </AppLayout.Header>
+ *           <AppLayout.Body>
+ *             <Outlet />
+ *           </AppLayout.Body>
+ *         </AppLayout.Content>
+ *         <AppLayout.SidePanel aria-label="Assistant">
+ *           <AppLayout.SidePanelHeader>
+ *             <p className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Assistant</p>
+ *             <AppLayout.SidePanelTrigger icon={<XIcon />} label="Close the assistant" />
+ *           </AppLayout.SidePanelHeader>
+ *           <AppLayout.SidePanelBody>
+ *             <AssistantConversation />
+ *           </AppLayout.SidePanelBody>
+ *           <AppLayout.SidePanelFooter>
+ *             <AssistantComposer />
+ *           </AppLayout.SidePanelFooter>
+ *         </AppLayout.SidePanel>
+ *       </AppLayout.Workspace>
+ *     </AppLayout.SidePanelRoot>
  *   </AppLayout.Root>
  * </Sidebar.Root>
  * ```
@@ -1224,7 +1583,7 @@ const SidePanelFooter = ({
 	return (
 		<Comp
 			data-slot={joinDataSlot(dataSlot, "app-layout-side-panel-footer")}
-			className={cx("border-card-muted flex shrink-0 flex-col gap-2 border-t p-4", className)}
+			className={cx("flex shrink-0 flex-col gap-2 px-3 pb-3", className)}
 			{...props}
 		>
 			{children}
@@ -1262,17 +1621,19 @@ const SidePanelFooter = ({
  * ```
  * AppLayout.Root
  * ├── AppLayout.Notice
- * └── AppLayout.Workspace
- *     ├── AppLayout.Content
- *     │   ├── AppLayout.Header
- *     │   │   ├── AppLayout.HeaderStart
- *     │   │   ├── AppLayout.HeaderContent
- *     │   │   └── AppLayout.HeaderActions
- *     │   └── AppLayout.Body
- *     └── AppLayout.SidePanel
- *         ├── AppLayout.SidePanelHeader
- *         ├── AppLayout.SidePanelBody
- *         └── AppLayout.SidePanelFooter
+ * └── AppLayout.SidePanelRoot
+ *     └── AppLayout.Workspace
+ *         ├── AppLayout.Content
+ *         │   ├── AppLayout.Header
+ *         │   │   ├── AppLayout.HeaderStart
+ *         │   │   ├── AppLayout.HeaderContent
+ *         │   │   └── AppLayout.HeaderActions
+ *         │   │       └── AppLayout.SidePanelTrigger
+ *         │   └── AppLayout.Body
+ *         └── AppLayout.SidePanel
+ *             ├── AppLayout.SidePanelHeader
+ *             ├── AppLayout.SidePanelBody
+ *             └── AppLayout.SidePanelFooter
  * ```
  *
  * @example
@@ -1635,6 +1996,56 @@ const AppLayout = {
 	 */
 	Body,
 	/**
+	 * The renderless state owner for the side panel: `open`, `defaultOpen`,
+	 * `onOpenChange`. Wrap `AppLayout.Workspace` with it.
+	 *
+	 * @see https://mantle.ngrok.com/layouts/app-layout#applayoutsidepanelroot
+	 *
+	 * @example
+	 * ```tsx
+	 * <Sidebar.Root>
+	 *   <AppLayout.Root className="fixed inset-0">
+	 *     <SkipToMainLink />
+	 *     <AppLayout.Notice>{isUnderMaintenance && <MaintenanceBanner />}</AppLayout.Notice>
+	 *     <AppLayout.SidePanelRoot>
+	 *       <AppLayout.Workspace>
+	 *         <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
+	 *         <AppLayout.Content>
+	 *           <AppLayout.Header>
+	 *             <AppLayout.HeaderStart>
+	 *               <Sidebar.Trigger />
+	 *             </AppLayout.HeaderStart>
+	 *             <AppLayout.HeaderContent>
+	 *               <Breadcrumbs />
+	 *             </AppLayout.HeaderContent>
+	 *             <AppLayout.HeaderActions>
+	 *               <AppLayout.SidePanelTrigger icon={<SparkleIcon />} label="Toggle the assistant" />
+	 *             </AppLayout.HeaderActions>
+	 *           </AppLayout.Header>
+	 *           <AppLayout.Body>
+	 *             <Outlet />
+	 *           </AppLayout.Body>
+	 *         </AppLayout.Content>
+	 *         <AppLayout.SidePanel aria-label="Assistant">
+	 *           <AppLayout.SidePanelHeader>
+	 *             <p className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Assistant</p>
+	 *             <AppLayout.SidePanelTrigger icon={<XIcon />} label="Close the assistant" />
+	 *           </AppLayout.SidePanelHeader>
+	 *           <AppLayout.SidePanelBody>
+	 *             <AssistantConversation />
+	 *           </AppLayout.SidePanelBody>
+	 *           <AppLayout.SidePanelFooter>
+	 *             <AssistantComposer />
+	 *           </AppLayout.SidePanelFooter>
+	 *         </AppLayout.SidePanel>
+	 *       </AppLayout.Workspace>
+	 *     </AppLayout.SidePanelRoot>
+	 *   </AppLayout.Root>
+	 * </Sidebar.Root>
+	 * ```
+	 */
+	SidePanelRoot,
+	/**
 	 * A second card after `AppLayout.Content`, for an assistant or a details
 	 * pane. Controlled by a required `open`: it slides in at
 	 * `--app-layout-side-panel-width`, collapses to nothing and goes `inert`
@@ -1648,58 +2059,94 @@ const AppLayout = {
 	 *   <AppLayout.Root className="fixed inset-0">
 	 *     <SkipToMainLink />
 	 *     <AppLayout.Notice>{isUnderMaintenance && <MaintenanceBanner />}</AppLayout.Notice>
-	 *     <AppLayout.Workspace>
-	 *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
-	 *       <AppLayout.Content>
-	 *         <AppLayout.Header>
-	 *           <AppLayout.HeaderStart>
-	 *             <Sidebar.Trigger />
-	 *           </AppLayout.HeaderStart>
-	 *           <AppLayout.HeaderContent>
-	 *             <Breadcrumbs />
-	 *           </AppLayout.HeaderContent>
-	 *           <AppLayout.HeaderActions>
-	 *             <IconButton
-	 *               type="button"
-	 *               appearance="outlined"
-	 *               intent="neutral"
-	 *               size="sm"
-	 *               icon={<SparkleIcon />}
-	 *               label="Open the assistant"
-	 *               onClick={() => setIsAssistantOpen(true)}
-	 *             />
-	 *           </AppLayout.HeaderActions>
-	 *         </AppLayout.Header>
-	 *         <AppLayout.Body>
-	 *           <Outlet />
-	 *         </AppLayout.Body>
-	 *       </AppLayout.Content>
-	 *       <AppLayout.SidePanel aria-label="Assistant" open={isAssistantOpen}>
-	 *         <AppLayout.SidePanelHeader>
-	 *           <p className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Assistant</p>
-	 *           <IconButton
-	 *             type="button"
-	 *             appearance="ghost"
-	 *             intent="neutral"
-	 *             size="sm"
-	 *             icon={<XIcon />}
-	 *             label="Close the assistant"
-	 *             onClick={() => setIsAssistantOpen(false)}
-	 *           />
-	 *         </AppLayout.SidePanelHeader>
-	 *         <AppLayout.SidePanelBody>
-	 *           <AssistantConversation />
-	 *         </AppLayout.SidePanelBody>
-	 *         <AppLayout.SidePanelFooter>
-	 *           <AssistantComposer />
-	 *         </AppLayout.SidePanelFooter>
-	 *       </AppLayout.SidePanel>
-	 *     </AppLayout.Workspace>
+	 *     <AppLayout.SidePanelRoot>
+	 *       <AppLayout.Workspace>
+	 *         <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
+	 *         <AppLayout.Content>
+	 *           <AppLayout.Header>
+	 *             <AppLayout.HeaderStart>
+	 *               <Sidebar.Trigger />
+	 *             </AppLayout.HeaderStart>
+	 *             <AppLayout.HeaderContent>
+	 *               <Breadcrumbs />
+	 *             </AppLayout.HeaderContent>
+	 *             <AppLayout.HeaderActions>
+	 *               <AppLayout.SidePanelTrigger icon={<SparkleIcon />} label="Toggle the assistant" />
+	 *             </AppLayout.HeaderActions>
+	 *           </AppLayout.Header>
+	 *           <AppLayout.Body>
+	 *             <Outlet />
+	 *           </AppLayout.Body>
+	 *         </AppLayout.Content>
+	 *         <AppLayout.SidePanel aria-label="Assistant">
+	 *           <AppLayout.SidePanelHeader>
+	 *             <p className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Assistant</p>
+	 *             <AppLayout.SidePanelTrigger icon={<XIcon />} label="Close the assistant" />
+	 *           </AppLayout.SidePanelHeader>
+	 *           <AppLayout.SidePanelBody>
+	 *             <AssistantConversation />
+	 *           </AppLayout.SidePanelBody>
+	 *           <AppLayout.SidePanelFooter>
+	 *             <AssistantComposer />
+	 *           </AppLayout.SidePanelFooter>
+	 *         </AppLayout.SidePanel>
+	 *       </AppLayout.Workspace>
+	 *     </AppLayout.SidePanelRoot>
 	 *   </AppLayout.Root>
 	 * </Sidebar.Root>
 	 * ```
 	 */
 	SidePanel,
+	/**
+	 * The ghost `IconButton` that toggles the panel, with `aria-expanded` and
+	 * `aria-controls` wired to it. Needs a `TooltipProvider` ancestor.
+	 *
+	 * @see https://mantle.ngrok.com/layouts/app-layout#applayoutsidepaneltrigger
+	 *
+	 * @example
+	 * ```tsx
+	 * <Sidebar.Root>
+	 *   <AppLayout.Root className="fixed inset-0">
+	 *     <SkipToMainLink />
+	 *     <AppLayout.Notice>{isUnderMaintenance && <MaintenanceBanner />}</AppLayout.Notice>
+	 *     <AppLayout.SidePanelRoot>
+	 *       <AppLayout.Workspace>
+	 *         <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
+	 *         <AppLayout.Content>
+	 *           <AppLayout.Header>
+	 *             <AppLayout.HeaderStart>
+	 *               <Sidebar.Trigger />
+	 *             </AppLayout.HeaderStart>
+	 *             <AppLayout.HeaderContent>
+	 *               <Breadcrumbs />
+	 *             </AppLayout.HeaderContent>
+	 *             <AppLayout.HeaderActions>
+	 *               <AppLayout.SidePanelTrigger icon={<SparkleIcon />} label="Toggle the assistant" />
+	 *             </AppLayout.HeaderActions>
+	 *           </AppLayout.Header>
+	 *           <AppLayout.Body>
+	 *             <Outlet />
+	 *           </AppLayout.Body>
+	 *         </AppLayout.Content>
+	 *         <AppLayout.SidePanel aria-label="Assistant">
+	 *           <AppLayout.SidePanelHeader>
+	 *             <p className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Assistant</p>
+	 *             <AppLayout.SidePanelTrigger icon={<XIcon />} label="Close the assistant" />
+	 *           </AppLayout.SidePanelHeader>
+	 *           <AppLayout.SidePanelBody>
+	 *             <AssistantConversation />
+	 *           </AppLayout.SidePanelBody>
+	 *           <AppLayout.SidePanelFooter>
+	 *             <AssistantComposer />
+	 *           </AppLayout.SidePanelFooter>
+	 *         </AppLayout.SidePanel>
+	 *       </AppLayout.Workspace>
+	 *     </AppLayout.SidePanelRoot>
+	 *   </AppLayout.Root>
+	 * </Sidebar.Root>
+	 * ```
+	 */
+	SidePanelTrigger,
 	/**
 	 * The panel's toolbar row, its first child: the title at the start, the
 	 * close control at the end, on the same band as `AppLayout.Header`.
@@ -1712,53 +2159,39 @@ const AppLayout = {
 	 *   <AppLayout.Root className="fixed inset-0">
 	 *     <SkipToMainLink />
 	 *     <AppLayout.Notice>{isUnderMaintenance && <MaintenanceBanner />}</AppLayout.Notice>
-	 *     <AppLayout.Workspace>
-	 *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
-	 *       <AppLayout.Content>
-	 *         <AppLayout.Header>
-	 *           <AppLayout.HeaderStart>
-	 *             <Sidebar.Trigger />
-	 *           </AppLayout.HeaderStart>
-	 *           <AppLayout.HeaderContent>
-	 *             <Breadcrumbs />
-	 *           </AppLayout.HeaderContent>
-	 *           <AppLayout.HeaderActions>
-	 *             <IconButton
-	 *               type="button"
-	 *               appearance="outlined"
-	 *               intent="neutral"
-	 *               size="sm"
-	 *               icon={<SparkleIcon />}
-	 *               label="Open the assistant"
-	 *               onClick={() => setIsAssistantOpen(true)}
-	 *             />
-	 *           </AppLayout.HeaderActions>
-	 *         </AppLayout.Header>
-	 *         <AppLayout.Body>
-	 *           <Outlet />
-	 *         </AppLayout.Body>
-	 *       </AppLayout.Content>
-	 *       <AppLayout.SidePanel aria-label="Assistant" open={isAssistantOpen}>
-	 *         <AppLayout.SidePanelHeader>
-	 *           <p className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Assistant</p>
-	 *           <IconButton
-	 *             type="button"
-	 *             appearance="ghost"
-	 *             intent="neutral"
-	 *             size="sm"
-	 *             icon={<XIcon />}
-	 *             label="Close the assistant"
-	 *             onClick={() => setIsAssistantOpen(false)}
-	 *           />
-	 *         </AppLayout.SidePanelHeader>
-	 *         <AppLayout.SidePanelBody>
-	 *           <AssistantConversation />
-	 *         </AppLayout.SidePanelBody>
-	 *         <AppLayout.SidePanelFooter>
-	 *           <AssistantComposer />
-	 *         </AppLayout.SidePanelFooter>
-	 *       </AppLayout.SidePanel>
-	 *     </AppLayout.Workspace>
+	 *     <AppLayout.SidePanelRoot>
+	 *       <AppLayout.Workspace>
+	 *         <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
+	 *         <AppLayout.Content>
+	 *           <AppLayout.Header>
+	 *             <AppLayout.HeaderStart>
+	 *               <Sidebar.Trigger />
+	 *             </AppLayout.HeaderStart>
+	 *             <AppLayout.HeaderContent>
+	 *               <Breadcrumbs />
+	 *             </AppLayout.HeaderContent>
+	 *             <AppLayout.HeaderActions>
+	 *               <AppLayout.SidePanelTrigger icon={<SparkleIcon />} label="Toggle the assistant" />
+	 *             </AppLayout.HeaderActions>
+	 *           </AppLayout.Header>
+	 *           <AppLayout.Body>
+	 *             <Outlet />
+	 *           </AppLayout.Body>
+	 *         </AppLayout.Content>
+	 *         <AppLayout.SidePanel aria-label="Assistant">
+	 *           <AppLayout.SidePanelHeader>
+	 *             <p className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Assistant</p>
+	 *             <AppLayout.SidePanelTrigger icon={<XIcon />} label="Close the assistant" />
+	 *           </AppLayout.SidePanelHeader>
+	 *           <AppLayout.SidePanelBody>
+	 *             <AssistantConversation />
+	 *           </AppLayout.SidePanelBody>
+	 *           <AppLayout.SidePanelFooter>
+	 *             <AssistantComposer />
+	 *           </AppLayout.SidePanelFooter>
+	 *         </AppLayout.SidePanel>
+	 *       </AppLayout.Workspace>
+	 *     </AppLayout.SidePanelRoot>
 	 *   </AppLayout.Root>
 	 * </Sidebar.Root>
 	 * ```
@@ -1776,53 +2209,39 @@ const AppLayout = {
 	 *   <AppLayout.Root className="fixed inset-0">
 	 *     <SkipToMainLink />
 	 *     <AppLayout.Notice>{isUnderMaintenance && <MaintenanceBanner />}</AppLayout.Notice>
-	 *     <AppLayout.Workspace>
-	 *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
-	 *       <AppLayout.Content>
-	 *         <AppLayout.Header>
-	 *           <AppLayout.HeaderStart>
-	 *             <Sidebar.Trigger />
-	 *           </AppLayout.HeaderStart>
-	 *           <AppLayout.HeaderContent>
-	 *             <Breadcrumbs />
-	 *           </AppLayout.HeaderContent>
-	 *           <AppLayout.HeaderActions>
-	 *             <IconButton
-	 *               type="button"
-	 *               appearance="outlined"
-	 *               intent="neutral"
-	 *               size="sm"
-	 *               icon={<SparkleIcon />}
-	 *               label="Open the assistant"
-	 *               onClick={() => setIsAssistantOpen(true)}
-	 *             />
-	 *           </AppLayout.HeaderActions>
-	 *         </AppLayout.Header>
-	 *         <AppLayout.Body>
-	 *           <Outlet />
-	 *         </AppLayout.Body>
-	 *       </AppLayout.Content>
-	 *       <AppLayout.SidePanel aria-label="Assistant" open={isAssistantOpen}>
-	 *         <AppLayout.SidePanelHeader>
-	 *           <p className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Assistant</p>
-	 *           <IconButton
-	 *             type="button"
-	 *             appearance="ghost"
-	 *             intent="neutral"
-	 *             size="sm"
-	 *             icon={<XIcon />}
-	 *             label="Close the assistant"
-	 *             onClick={() => setIsAssistantOpen(false)}
-	 *           />
-	 *         </AppLayout.SidePanelHeader>
-	 *         <AppLayout.SidePanelBody>
-	 *           <AssistantConversation />
-	 *         </AppLayout.SidePanelBody>
-	 *         <AppLayout.SidePanelFooter>
-	 *           <AssistantComposer />
-	 *         </AppLayout.SidePanelFooter>
-	 *       </AppLayout.SidePanel>
-	 *     </AppLayout.Workspace>
+	 *     <AppLayout.SidePanelRoot>
+	 *       <AppLayout.Workspace>
+	 *         <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
+	 *         <AppLayout.Content>
+	 *           <AppLayout.Header>
+	 *             <AppLayout.HeaderStart>
+	 *               <Sidebar.Trigger />
+	 *             </AppLayout.HeaderStart>
+	 *             <AppLayout.HeaderContent>
+	 *               <Breadcrumbs />
+	 *             </AppLayout.HeaderContent>
+	 *             <AppLayout.HeaderActions>
+	 *               <AppLayout.SidePanelTrigger icon={<SparkleIcon />} label="Toggle the assistant" />
+	 *             </AppLayout.HeaderActions>
+	 *           </AppLayout.Header>
+	 *           <AppLayout.Body>
+	 *             <Outlet />
+	 *           </AppLayout.Body>
+	 *         </AppLayout.Content>
+	 *         <AppLayout.SidePanel aria-label="Assistant">
+	 *           <AppLayout.SidePanelHeader>
+	 *             <p className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Assistant</p>
+	 *             <AppLayout.SidePanelTrigger icon={<XIcon />} label="Close the assistant" />
+	 *           </AppLayout.SidePanelHeader>
+	 *           <AppLayout.SidePanelBody>
+	 *             <AssistantConversation />
+	 *           </AppLayout.SidePanelBody>
+	 *           <AppLayout.SidePanelFooter>
+	 *             <AssistantComposer />
+	 *           </AppLayout.SidePanelFooter>
+	 *         </AppLayout.SidePanel>
+	 *       </AppLayout.Workspace>
+	 *     </AppLayout.SidePanelRoot>
 	 *   </AppLayout.Root>
 	 * </Sidebar.Root>
 	 * ```
@@ -1840,53 +2259,39 @@ const AppLayout = {
 	 *   <AppLayout.Root className="fixed inset-0">
 	 *     <SkipToMainLink />
 	 *     <AppLayout.Notice>{isUnderMaintenance && <MaintenanceBanner />}</AppLayout.Notice>
-	 *     <AppLayout.Workspace>
-	 *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
-	 *       <AppLayout.Content>
-	 *         <AppLayout.Header>
-	 *           <AppLayout.HeaderStart>
-	 *             <Sidebar.Trigger />
-	 *           </AppLayout.HeaderStart>
-	 *           <AppLayout.HeaderContent>
-	 *             <Breadcrumbs />
-	 *           </AppLayout.HeaderContent>
-	 *           <AppLayout.HeaderActions>
-	 *             <IconButton
-	 *               type="button"
-	 *               appearance="outlined"
-	 *               intent="neutral"
-	 *               size="sm"
-	 *               icon={<SparkleIcon />}
-	 *               label="Open the assistant"
-	 *               onClick={() => setIsAssistantOpen(true)}
-	 *             />
-	 *           </AppLayout.HeaderActions>
-	 *         </AppLayout.Header>
-	 *         <AppLayout.Body>
-	 *           <Outlet />
-	 *         </AppLayout.Body>
-	 *       </AppLayout.Content>
-	 *       <AppLayout.SidePanel aria-label="Assistant" open={isAssistantOpen}>
-	 *         <AppLayout.SidePanelHeader>
-	 *           <p className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Assistant</p>
-	 *           <IconButton
-	 *             type="button"
-	 *             appearance="ghost"
-	 *             intent="neutral"
-	 *             size="sm"
-	 *             icon={<XIcon />}
-	 *             label="Close the assistant"
-	 *             onClick={() => setIsAssistantOpen(false)}
-	 *           />
-	 *         </AppLayout.SidePanelHeader>
-	 *         <AppLayout.SidePanelBody>
-	 *           <AssistantConversation />
-	 *         </AppLayout.SidePanelBody>
-	 *         <AppLayout.SidePanelFooter>
-	 *           <AssistantComposer />
-	 *         </AppLayout.SidePanelFooter>
-	 *       </AppLayout.SidePanel>
-	 *     </AppLayout.Workspace>
+	 *     <AppLayout.SidePanelRoot>
+	 *       <AppLayout.Workspace>
+	 *         <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
+	 *         <AppLayout.Content>
+	 *           <AppLayout.Header>
+	 *             <AppLayout.HeaderStart>
+	 *               <Sidebar.Trigger />
+	 *             </AppLayout.HeaderStart>
+	 *             <AppLayout.HeaderContent>
+	 *               <Breadcrumbs />
+	 *             </AppLayout.HeaderContent>
+	 *             <AppLayout.HeaderActions>
+	 *               <AppLayout.SidePanelTrigger icon={<SparkleIcon />} label="Toggle the assistant" />
+	 *             </AppLayout.HeaderActions>
+	 *           </AppLayout.Header>
+	 *           <AppLayout.Body>
+	 *             <Outlet />
+	 *           </AppLayout.Body>
+	 *         </AppLayout.Content>
+	 *         <AppLayout.SidePanel aria-label="Assistant">
+	 *           <AppLayout.SidePanelHeader>
+	 *             <p className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Assistant</p>
+	 *             <AppLayout.SidePanelTrigger icon={<XIcon />} label="Close the assistant" />
+	 *           </AppLayout.SidePanelHeader>
+	 *           <AppLayout.SidePanelBody>
+	 *             <AssistantConversation />
+	 *           </AppLayout.SidePanelBody>
+	 *           <AppLayout.SidePanelFooter>
+	 *             <AssistantComposer />
+	 *           </AppLayout.SidePanelFooter>
+	 *         </AppLayout.SidePanel>
+	 *       </AppLayout.Workspace>
+	 *     </AppLayout.SidePanelRoot>
 	 *   </AppLayout.Root>
 	 * </Sidebar.Root>
 	 * ```
@@ -1897,9 +2302,13 @@ const AppLayout = {
 export {
 	//,
 	AppLayout,
+	useSidePanel,
 };
 export type {
 	//,
 	AppLayoutSidePanelMobileBreakpoint,
 	AppLayoutSidePanelProps,
+	AppLayoutSidePanelRootProps,
+	AppLayoutSidePanelState,
+	AppLayoutSidePanelTriggerProps,
 };
