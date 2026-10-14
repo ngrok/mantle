@@ -1,34 +1,683 @@
+# Every rule binds the local name of each part's import from its
+# `@ngrok/mantle/<subpath>`, so an aliased import matches and another
+# library's `Button` does not.
 id: priority-default-to-accent
 language: tsx
 message: Button priority="default" becomes intent="accent"
+utils:
+  alert-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/alert["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^Alert$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $ALERT
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $ALERT
+  alertdialog-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/alert-dialog["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^AlertDialog$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $ALERT_DIALOG
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $ALERT_DIALOG
+  button-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/button["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^Button$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $BUTTON
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $BUTTON
+  datatable-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/data-table["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^DataTable$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $DT
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $DT
+  iconbutton-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/button["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^IconButton$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $ICON_BUTTON
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $ICON_BUTTON
+  toast-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/toast["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^Toast$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $TOAST
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $TOAST
+  button-element:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    # Why all: the name binds the metavariable, and the import must read it.
+    all:
+      - has:
+          field: name
+          kind: identifier
+          pattern: $BUTTON
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: button-import
+  icon-button-element:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    # Why all: the name binds the metavariable, and the import must read it.
+    all:
+      - has:
+          field: name
+          kind: identifier
+          pattern: $ICON_BUTTON
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: iconbutton-import
+  alert-root-element:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    # Why all: the name binds the metavariable, and the import must read it.
+    all:
+      - has:
+          field: name
+          kind: member_expression
+          all:
+            - has:
+                field: object
+                pattern: $ALERT
+            - has:
+                field: property
+                regex: ^Root$
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: alert-import
+  alert-dialog-root-element:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    # Why all: the name binds the metavariable, and the import must read it.
+    all:
+      - has:
+          field: name
+          kind: member_expression
+          all:
+            - has:
+                field: object
+                pattern: $ALERT_DIALOG
+            - has:
+                field: property
+                regex: ^Root$
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: alertdialog-import
+  alert-dialog-action-element:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    # Why all: the name binds the metavariable, and the import must read it.
+    all:
+      - has:
+          field: name
+          kind: member_expression
+          all:
+            - has:
+                field: object
+                pattern: $ALERT_DIALOG
+            - has:
+                field: property
+                regex: ^Action$
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: alertdialog-import
+  alert-dialog-cancel-element:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    # Why all: the name binds the metavariable, and the import must read it.
+    all:
+      - has:
+          field: name
+          kind: member_expression
+          all:
+            - has:
+                field: object
+                pattern: $ALERT_DIALOG
+            - has:
+                field: property
+                regex: ^Cancel$
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: alertdialog-import
+  toast-root-element:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    # Why all: the name binds the metavariable, and the import must read it.
+    all:
+      - has:
+          field: name
+          kind: member_expression
+          all:
+            - has:
+                field: object
+                pattern: $TOAST
+            - has:
+                field: property
+                regex: ^Root$
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: toast-import
+  header-sort-button-element:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    # Why all: the name binds the metavariable, and the import must read it.
+    all:
+      - has:
+          field: name
+          kind: member_expression
+          all:
+            - has:
+                field: object
+                pattern: $DT
+            - has:
+                field: property
+                regex: ^HeaderSortButton$
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: datatable-import
 rule:
   kind: jsx_attribute
-  regex: ^priority="default"$
+  has:
+    kind: property_identifier
+    regex: ^priority$
+  any:
+    - kind: jsx_attribute
+      has:
+        kind: string
+        regex: ^["']default["']$
+    - kind: jsx_attribute
+      has:
+        kind: jsx_expression
+        has:
+          kind: string
+          regex: ^["']default["']$
   inside:
     any:
-      - kind: jsx_self_closing_element
-      - kind: jsx_opening_element
-    has:
-      field: name
-      regex: ^(Button|AlertDialog\.Action|DataTable\.HeaderSortButton)$
+      - matches: button-element
+      - matches: alert-dialog-action-element
+      - matches: header-sort-button-element
 fix: intent="accent"
 ---
 id: priority-to-intent
 language: tsx
 message: rename priority to intent
+utils:
+  alert-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/alert["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^Alert$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $ALERT
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $ALERT
+  alertdialog-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/alert-dialog["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^AlertDialog$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $ALERT_DIALOG
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $ALERT_DIALOG
+  button-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/button["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^Button$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $BUTTON
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $BUTTON
+  datatable-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/data-table["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^DataTable$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $DT
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $DT
+  iconbutton-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/button["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^IconButton$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $ICON_BUTTON
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $ICON_BUTTON
+  toast-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/toast["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^Toast$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $TOAST
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $TOAST
+  button-element:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    # Why all: the name binds the metavariable, and the import must read it.
+    all:
+      - has:
+          field: name
+          kind: identifier
+          pattern: $BUTTON
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: button-import
+  icon-button-element:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    # Why all: the name binds the metavariable, and the import must read it.
+    all:
+      - has:
+          field: name
+          kind: identifier
+          pattern: $ICON_BUTTON
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: iconbutton-import
+  alert-root-element:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    # Why all: the name binds the metavariable, and the import must read it.
+    all:
+      - has:
+          field: name
+          kind: member_expression
+          all:
+            - has:
+                field: object
+                pattern: $ALERT
+            - has:
+                field: property
+                regex: ^Root$
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: alert-import
+  alert-dialog-root-element:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    # Why all: the name binds the metavariable, and the import must read it.
+    all:
+      - has:
+          field: name
+          kind: member_expression
+          all:
+            - has:
+                field: object
+                pattern: $ALERT_DIALOG
+            - has:
+                field: property
+                regex: ^Root$
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: alertdialog-import
+  alert-dialog-action-element:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    # Why all: the name binds the metavariable, and the import must read it.
+    all:
+      - has:
+          field: name
+          kind: member_expression
+          all:
+            - has:
+                field: object
+                pattern: $ALERT_DIALOG
+            - has:
+                field: property
+                regex: ^Action$
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: alertdialog-import
+  alert-dialog-cancel-element:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    # Why all: the name binds the metavariable, and the import must read it.
+    all:
+      - has:
+          field: name
+          kind: member_expression
+          all:
+            - has:
+                field: object
+                pattern: $ALERT_DIALOG
+            - has:
+                field: property
+                regex: ^Cancel$
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: alertdialog-import
+  toast-root-element:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    # Why all: the name binds the metavariable, and the import must read it.
+    all:
+      - has:
+          field: name
+          kind: member_expression
+          all:
+            - has:
+                field: object
+                pattern: $TOAST
+            - has:
+                field: property
+                regex: ^Root$
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: toast-import
+  header-sort-button-element:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    # Why all: the name binds the metavariable, and the import must read it.
+    all:
+      - has:
+          field: name
+          kind: member_expression
+          all:
+            - has:
+                field: object
+                pattern: $DT
+            - has:
+                field: property
+                regex: ^HeaderSortButton$
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: datatable-import
+  priority-default:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^priority$
+    any:
+      - kind: jsx_attribute
+        has:
+          kind: string
+          regex: ^["']default["']$
+      - kind: jsx_attribute
+        has:
+          kind: jsx_expression
+          has:
+            kind: string
+            regex: ^["']default["']$
 rule:
   kind: jsx_attribute
   pattern: $ATTR
-  regex: ^priority\b
+  has:
+    kind: property_identifier
+    regex: ^priority$
   not:
-    regex: ^priority="default"$
+    matches: priority-default
   inside:
     any:
-      - kind: jsx_self_closing_element
-      - kind: jsx_opening_element
-    has:
-      field: name
-      regex: ^(Button|IconButton|Alert\.Root|AlertDialog\.Root|AlertDialog\.Action|AlertDialog\.Cancel|Toast\.Root|DataTable\.HeaderSortButton)$
+      - matches: button-element
+      - matches: icon-button-element
+      - matches: alert-root-element
+      - matches: alert-dialog-root-element
+      - matches: alert-dialog-action-element
+      - matches: alert-dialog-cancel-element
+      - matches: toast-root-element
+      - matches: header-sort-button-element
 transform:
   RENAMED:
     replace:
@@ -41,167 +690,987 @@ id: button-bare
 language: tsx
 message: a bare Button keeps its old implicit outlined accent rendering
 utils:
-  element:
+  button-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/button["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^Button$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $BUTTON
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $BUTTON
+  iconbutton-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/button["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^IconButton$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $ICON_BUTTON
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $ICON_BUTTON
+  button-element:
     any:
-      - kind: jsx_self_closing_element
       - kind: jsx_opening_element
-  has-appearance:
-    has:
-      kind: jsx_attribute
-      regex: ^appearance\b
+      - kind: jsx_self_closing_element
+    # Why all: the name binds the metavariable, and the import must read it.
+    all:
+      - has:
+          field: name
+          kind: identifier
+          pattern: $BUTTON
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: button-import
+  icon-button-element:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    # Why all: the name binds the metavariable, and the import must read it.
+    all:
+      - has:
+          field: name
+          kind: identifier
+          pattern: $ICON_BUTTON
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: iconbutton-import
   has-tone:
+    kind: jsx_attribute
     has:
-      kind: jsx_attribute
-      regex: ^(priority|intent)\b
+      kind: property_identifier
+      regex: ^(priority|intent)$
+  has-appearance:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^appearance$
+  appearance-filled:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^appearance$
+    any:
+      - kind: jsx_attribute
+        has:
+          kind: string
+          regex: ^["']filled["']$
+      - kind: jsx_attribute
+        has:
+          kind: jsx_expression
+          has:
+            kind: string
+            regex: ^["']filled["']$
+  # A static appearance other than filled. A dynamic one stays manual, because
+  # the old implicit intent depended on the value.
+  appearance-static-not-filled:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^appearance$
+    any:
+      - kind: jsx_attribute
+        has:
+          kind: string
+      - kind: jsx_attribute
+        has:
+          kind: jsx_expression
+          has:
+            kind: string
+    not:
+      matches: appearance-filled
 rule:
   kind: identifier
-  regex: ^Button$
+  pattern: $BUTTON
   inside:
-    matches: element
+    matches: button-element
     all:
       - not:
-          matches: has-appearance
+          has:
+            matches: has-appearance
       - not:
-          matches: has-tone
-fix: Button appearance="outlined" intent="accent"
+          has:
+            matches: has-tone
+fix: $BUTTON appearance="outlined" intent="accent"
 ---
 id: button-tone-only
 language: tsx
 message: a Button with a tone and no appearance was outlined
 utils:
-  element:
+  button-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/button["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^Button$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $BUTTON
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $BUTTON
+  iconbutton-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/button["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^IconButton$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $ICON_BUTTON
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $ICON_BUTTON
+  button-element:
     any:
-      - kind: jsx_self_closing_element
       - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    # Why all: the name binds the metavariable, and the import must read it.
+    all:
+      - has:
+          field: name
+          kind: identifier
+          pattern: $BUTTON
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: button-import
+  icon-button-element:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    # Why all: the name binds the metavariable, and the import must read it.
+    all:
+      - has:
+          field: name
+          kind: identifier
+          pattern: $ICON_BUTTON
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: iconbutton-import
+  has-tone:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^(priority|intent)$
+  has-appearance:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^appearance$
+  appearance-filled:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^appearance$
+    any:
+      - kind: jsx_attribute
+        has:
+          kind: string
+          regex: ^["']filled["']$
+      - kind: jsx_attribute
+        has:
+          kind: jsx_expression
+          has:
+            kind: string
+            regex: ^["']filled["']$
+  # A static appearance other than filled. A dynamic one stays manual, because
+  # the old implicit intent depended on the value.
+  appearance-static-not-filled:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^appearance$
+    any:
+      - kind: jsx_attribute
+        has:
+          kind: string
+      - kind: jsx_attribute
+        has:
+          kind: jsx_expression
+          has:
+            kind: string
+    not:
+      matches: appearance-filled
 rule:
   kind: identifier
-  regex: ^Button$
+  pattern: $BUTTON
   inside:
-    matches: element
+    matches: button-element
     all:
       - not:
           has:
-            kind: jsx_attribute
-            regex: ^appearance\b
+            matches: has-appearance
       - has:
-          kind: jsx_attribute
-          regex: ^(priority|intent)\b
-fix: Button appearance="outlined"
+          matches: has-tone
+fix: $BUTTON appearance="outlined"
 ---
 id: button-filled-no-tone
 language: tsx
 message: a filled Button without a tone adopts the default primary action
 utils:
-  element:
-    any:
-      - kind: jsx_self_closing_element
-      - kind: jsx_opening_element
-rule:
-  kind: identifier
-  regex: ^Button$
-  inside:
-    matches: element
+  button-import:
+    kind: import_statement
     all:
       - has:
-          kind: jsx_attribute
-          regex: ^appearance="filled"$
+          field: source
+          regex: ^["']@ngrok/mantle/button["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^Button$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $BUTTON
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $BUTTON
+  iconbutton-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/button["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^IconButton$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $ICON_BUTTON
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $ICON_BUTTON
+  button-element:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    # Why all: the name binds the metavariable, and the import must read it.
+    all:
+      - has:
+          field: name
+          kind: identifier
+          pattern: $BUTTON
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: button-import
+  icon-button-element:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    # Why all: the name binds the metavariable, and the import must read it.
+    all:
+      - has:
+          field: name
+          kind: identifier
+          pattern: $ICON_BUTTON
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: iconbutton-import
+  has-tone:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^(priority|intent)$
+  has-appearance:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^appearance$
+  appearance-filled:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^appearance$
+    any:
+      - kind: jsx_attribute
+        has:
+          kind: string
+          regex: ^["']filled["']$
+      - kind: jsx_attribute
+        has:
+          kind: jsx_expression
+          has:
+            kind: string
+            regex: ^["']filled["']$
+  # A static appearance other than filled. A dynamic one stays manual, because
+  # the old implicit intent depended on the value.
+  appearance-static-not-filled:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^appearance$
+    any:
+      - kind: jsx_attribute
+        has:
+          kind: string
+      - kind: jsx_attribute
+        has:
+          kind: jsx_expression
+          has:
+            kind: string
+    not:
+      matches: appearance-filled
+rule:
+  kind: identifier
+  pattern: $BUTTON
+  inside:
+    matches: button-element
+    all:
+      - has:
+          matches: appearance-filled
       - not:
           has:
-            kind: jsx_attribute
-            regex: ^(priority|intent)\b
-fix: Button intent="neutral"
+            matches: has-tone
+fix: $BUTTON intent="neutral"
 ---
 id: button-appearance-no-tone
 language: tsx
 message: a Button with an appearance and no tone was accent
 utils:
-  element:
-    any:
-      - kind: jsx_self_closing_element
-      - kind: jsx_opening_element
-rule:
-  kind: identifier
-  regex: ^Button$
-  inside:
-    matches: element
+  button-import:
+    kind: import_statement
     all:
       - has:
-          kind: jsx_attribute
-          regex: ^appearance\b
-          not:
-            regex: ^appearance="filled"$
+          field: source
+          regex: ^["']@ngrok/mantle/button["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^Button$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $BUTTON
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $BUTTON
+  iconbutton-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/button["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^IconButton$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $ICON_BUTTON
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $ICON_BUTTON
+  button-element:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    # Why all: the name binds the metavariable, and the import must read it.
+    all:
+      - has:
+          field: name
+          kind: identifier
+          pattern: $BUTTON
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: button-import
+  icon-button-element:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    # Why all: the name binds the metavariable, and the import must read it.
+    all:
+      - has:
+          field: name
+          kind: identifier
+          pattern: $ICON_BUTTON
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: iconbutton-import
+  has-tone:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^(priority|intent)$
+  has-appearance:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^appearance$
+  appearance-filled:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^appearance$
+    any:
+      - kind: jsx_attribute
+        has:
+          kind: string
+          regex: ^["']filled["']$
+      - kind: jsx_attribute
+        has:
+          kind: jsx_expression
+          has:
+            kind: string
+            regex: ^["']filled["']$
+  # A static appearance other than filled. A dynamic one stays manual, because
+  # the old implicit intent depended on the value.
+  appearance-static-not-filled:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^appearance$
+    any:
+      - kind: jsx_attribute
+        has:
+          kind: string
+      - kind: jsx_attribute
+        has:
+          kind: jsx_expression
+          has:
+            kind: string
+    not:
+      matches: appearance-filled
+rule:
+  kind: identifier
+  pattern: $BUTTON
+  inside:
+    matches: button-element
+    all:
+      - has:
+          matches: appearance-static-not-filled
       - not:
           has:
-            kind: jsx_attribute
-            regex: ^(priority|intent)\b
-fix: Button intent="accent"
+            matches: has-tone
+fix: $BUTTON intent="accent"
 ---
 id: icon-button-bare
 language: tsx
 message: a bare IconButton was outlined and neutral
 utils:
-  element:
+  button-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/button["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^Button$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $BUTTON
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $BUTTON
+  iconbutton-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/button["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^IconButton$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $ICON_BUTTON
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $ICON_BUTTON
+  button-element:
     any:
-      - kind: jsx_self_closing_element
       - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    # Why all: the name binds the metavariable, and the import must read it.
+    all:
+      - has:
+          field: name
+          kind: identifier
+          pattern: $BUTTON
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: button-import
+  icon-button-element:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    # Why all: the name binds the metavariable, and the import must read it.
+    all:
+      - has:
+          field: name
+          kind: identifier
+          pattern: $ICON_BUTTON
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: iconbutton-import
+  has-tone:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^(priority|intent)$
+  has-appearance:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^appearance$
+  appearance-filled:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^appearance$
+    any:
+      - kind: jsx_attribute
+        has:
+          kind: string
+          regex: ^["']filled["']$
+      - kind: jsx_attribute
+        has:
+          kind: jsx_expression
+          has:
+            kind: string
+            regex: ^["']filled["']$
+  # A static appearance other than filled. A dynamic one stays manual, because
+  # the old implicit intent depended on the value.
+  appearance-static-not-filled:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^appearance$
+    any:
+      - kind: jsx_attribute
+        has:
+          kind: string
+      - kind: jsx_attribute
+        has:
+          kind: jsx_expression
+          has:
+            kind: string
+    not:
+      matches: appearance-filled
 rule:
   kind: identifier
-  regex: ^IconButton$
+  pattern: $ICON_BUTTON
   inside:
-    matches: element
+    matches: icon-button-element
     all:
       - not:
           has:
-            kind: jsx_attribute
-            regex: ^appearance\b
+            matches: has-appearance
       - not:
           has:
-            kind: jsx_attribute
-            regex: ^(priority|intent)\b
-fix: IconButton appearance="outlined" intent="neutral"
+            matches: has-tone
+fix: $ICON_BUTTON appearance="outlined" intent="neutral"
 ---
 id: icon-button-tone-only
 language: tsx
 message: an IconButton with a tone and no appearance was outlined
 utils:
-  element:
+  button-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/button["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^Button$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $BUTTON
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $BUTTON
+  iconbutton-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/button["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^IconButton$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $ICON_BUTTON
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $ICON_BUTTON
+  button-element:
     any:
-      - kind: jsx_self_closing_element
       - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    # Why all: the name binds the metavariable, and the import must read it.
+    all:
+      - has:
+          field: name
+          kind: identifier
+          pattern: $BUTTON
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: button-import
+  icon-button-element:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    # Why all: the name binds the metavariable, and the import must read it.
+    all:
+      - has:
+          field: name
+          kind: identifier
+          pattern: $ICON_BUTTON
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: iconbutton-import
+  has-tone:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^(priority|intent)$
+  has-appearance:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^appearance$
+  appearance-filled:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^appearance$
+    any:
+      - kind: jsx_attribute
+        has:
+          kind: string
+          regex: ^["']filled["']$
+      - kind: jsx_attribute
+        has:
+          kind: jsx_expression
+          has:
+            kind: string
+            regex: ^["']filled["']$
+  # A static appearance other than filled. A dynamic one stays manual, because
+  # the old implicit intent depended on the value.
+  appearance-static-not-filled:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^appearance$
+    any:
+      - kind: jsx_attribute
+        has:
+          kind: string
+      - kind: jsx_attribute
+        has:
+          kind: jsx_expression
+          has:
+            kind: string
+    not:
+      matches: appearance-filled
 rule:
   kind: identifier
-  regex: ^IconButton$
+  pattern: $ICON_BUTTON
   inside:
-    matches: element
+    matches: icon-button-element
     all:
       - not:
           has:
-            kind: jsx_attribute
-            regex: ^appearance\b
+            matches: has-appearance
       - has:
-          kind: jsx_attribute
-          regex: ^(priority|intent)\b
-fix: IconButton appearance="outlined"
+          matches: has-tone
+fix: $ICON_BUTTON appearance="outlined"
 ---
 id: icon-button-appearance-no-tone
 language: tsx
 message: an IconButton with an appearance and no tone was neutral
 utils:
-  element:
-    any:
-      - kind: jsx_self_closing_element
-      - kind: jsx_opening_element
-rule:
-  kind: identifier
-  regex: ^IconButton$
-  inside:
-    matches: element
+  button-import:
+    kind: import_statement
     all:
       - has:
-          kind: jsx_attribute
-          regex: ^appearance\b
+          field: source
+          regex: ^["']@ngrok/mantle/button["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^Button$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $BUTTON
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $BUTTON
+  iconbutton-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/button["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^IconButton$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $ICON_BUTTON
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $ICON_BUTTON
+  button-element:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    # Why all: the name binds the metavariable, and the import must read it.
+    all:
+      - has:
+          field: name
+          kind: identifier
+          pattern: $BUTTON
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: button-import
+  icon-button-element:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    # Why all: the name binds the metavariable, and the import must read it.
+    all:
+      - has:
+          field: name
+          kind: identifier
+          pattern: $ICON_BUTTON
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: iconbutton-import
+  has-tone:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^(priority|intent)$
+  has-appearance:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^appearance$
+  appearance-filled:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^appearance$
+    any:
+      - kind: jsx_attribute
+        has:
+          kind: string
+          regex: ^["']filled["']$
+      - kind: jsx_attribute
+        has:
+          kind: jsx_expression
+          has:
+            kind: string
+            regex: ^["']filled["']$
+  # A static appearance other than filled. A dynamic one stays manual, because
+  # the old implicit intent depended on the value.
+  appearance-static-not-filled:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^appearance$
+    any:
+      - kind: jsx_attribute
+        has:
+          kind: string
+      - kind: jsx_attribute
+        has:
+          kind: jsx_expression
+          has:
+            kind: string
+    not:
+      matches: appearance-filled
+rule:
+  kind: identifier
+  pattern: $ICON_BUTTON
+  inside:
+    matches: icon-button-element
+    all:
+      - has:
+          matches: has-appearance
       - not:
           has:
-            kind: jsx_attribute
-            regex: ^(priority|intent)\b
-fix: IconButton intent="neutral"
+            matches: has-tone
+fix: $ICON_BUTTON intent="neutral"

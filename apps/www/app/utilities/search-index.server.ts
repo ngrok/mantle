@@ -115,26 +115,36 @@ export function buildSearchEntries({
 	return entries.toSorted((a, b) => a.name.localeCompare(b.name));
 }
 
-let cached: SearchIndex | null = null;
-/**
- * Flatten the components, hooks, and utilities manifests into a single
- * sorted array, with keyword tokens derived for each entry. Cached for
- * the process lifetime — every input manifest is process-cached itself.
- */
-export async function buildSearchIndex(): Promise<SearchIndex> {
-	if (cached) {
-		return cached;
-	}
+async function build(): Promise<SearchIndex> {
 	const [components, hooks, utilities] = await Promise.all([
 		buildManifest(),
 		buildHooksManifest(),
 		buildUtilitiesManifest(),
 	]);
 
-	cached = {
+	return {
 		version: mantlePackageJson.version,
 		origin: canonicalOrigin,
 		entries: buildSearchEntries({ components, hooks, utilities }),
 	};
+}
+
+let cached: Promise<SearchIndex> | null = null;
+
+/**
+ * Flatten the components, hooks, and utilities manifests into a single
+ * sorted array, with keyword tokens derived for each entry.
+ *
+ * In prod the inputs are fixed at build time, so one build serves the process.
+ * In dev every call rebuilds, so an alias or summary edit shows on the next
+ * request, as the agent manifest it reads does.
+ */
+export function buildSearchIndex(): Promise<SearchIndex> {
+	if (!import.meta.env.PROD) {
+		return build();
+	}
+	if (cached == null) {
+		cached = build();
+	}
 	return cached;
 }

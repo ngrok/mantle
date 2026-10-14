@@ -7,7 +7,7 @@ Ship the migration guides as ast-grep codemods. Every migration under `/migratio
 Run one against your source from a `@ngrok/mantle` install:
 
 ```sh
-npx ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/0008-tabs-separator.yml --update-all src
+npx --yes --package=@ast-grep/cli@0.45.3 ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/0008-tabs-separator.yml --update-all src
 ```
 
 From a mantle checkout, `pnpm -w run migrate 0008 <path>` runs the same rules, and `--dry-run` prints the rewrites first. Run your formatter after either command: a codemod keeps the surrounding layout as it found it.

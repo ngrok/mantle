@@ -15,18 +15,20 @@ files. `/scaffold-migration` lays the files down in order; this file holds the r
 
 ## The deliverable
 
-| Artifact                                                           | Required                                                                                   |
-| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
-| `apps/www/app/docs/migrations/<NNNN>-<slug>-migration.mdx`         | Always. The sections below, in order.                                                      |
-| `packages/mantle/migrations/<NNNN>-<slug>/rules.yml`               | Always, unless every step is semantic (see [What stays manual](#what-stays-manual)).       |
-| `packages/mantle/migrations/<NNNN>-<slug>/before.tsx`              | With the rules. One case per rule, plus one negative case per guard.                       |
-| `packages/mantle/migrations/<NNNN>-<slug>/after.tsx`               | With the rules. The real output of the rules on `before.tsx`, then formatted with oxfmt.   |
-| `migrations` entry in `apps/www/app/components/navigation-data.ts` | Always. Number, slug, title, description, route.                                           |
-| `migrationsPages` entry in `apps/www/app/routes.ts`                | Always.                                                                                    |
-| A `minor` changeset that links the guide                           | Always. The changeset names `https://mantle.ngrok.com/migrations/<NNNN>-<slug>-migration`. |
+| Artifact                                                            | Required                                                                                   |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `apps/www/app/docs/migrations/<NNNN>-<slug>-migration.mdx`          | Always. The sections below, in order.                                                      |
+| `packages/mantle/migrations/<NNNN>-<slug>/rules.yml`                | Always, unless every step is semantic (see [What stays manual](#what-stays-manual)).       |
+| `packages/mantle/migrations/<NNNN>-<slug>/before.tsx`               | With the rules. One case per rule, plus one negative case per guard.                       |
+| `packages/mantle/migrations/<NNNN>-<slug>/after.tsx`                | With the rules. The real output of the rules on `before.tsx`, then formatted with oxfmt.   |
+| `packages/mantle/migrations/<NNNN>-<slug>/before.ts` and `after.ts` | With a `language: typescript` rule. The same pair for a `.ts` module.                      |
+| `migrations` entry in `apps/www/app/components/navigation-data.ts`  | Always. Number, slug, title, description, route.                                           |
+| `migrationsPages` entry in `apps/www/app/routes.ts`                 | Always.                                                                                    |
+| A `minor` changeset that links the guide                            | Always. The changeset names `https://mantle.ngrok.com/migrations/<NNNN>-<slug>-migration`. |
 
 `pnpm -w run test:scripts` pins the pair: every guide carries a `## Codemod` section that names
-`pnpm -w run migrate <NNNN>` or says `manual:` with a reason, every rules directory has a guide and both
+`pnpm -w run migrate <NNNN>` and the consumer command with the `@ast-grep/cli` version the root `package.json`
+pins, or says `manual:` with a reason, every rules directory has a guide and both
 fixtures, every codemod rewrites `before.tsx` into `after.tsx`, and every `minor` changeset links a guide or
 says `No migration:` with a reason.
 
@@ -46,7 +48,7 @@ file on [0008](../../../apps/www/app/docs/migrations/0008-tabs-separator-migrati
 2. **`# Mantle <Title> Migration Guide`**, then one paragraph: what changed, what is gone, and what replaces it.
 3. **`**TL;DR:**`** One paragraph an agent can act on without reading further.
 4. **`## Codemod`.** With rules: the two invocations (from a mantle checkout, `pnpm -w run migrate <NNNN> <path>`;
-   in a consumer, `npx ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/<NNNN>-<slug>.yml --update-all <path>`),
+   in a consumer, `npx --yes --package=@ast-grep/cli@0.45.3 ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/<NNNN>-<slug>.yml --update-all <path>`),
    which numbered steps the rules apply, which steps stay manual and why, whether the codemod runs once, and
    a reminder to pass `--dry-run` first and run the formatter after. Without rules: one line,
    `Codemod: manual: <reason>.`
@@ -62,17 +64,41 @@ file on [0008](../../../apps/www/app/docs/migrations/0008-tabs-separator-migrati
 ## The codemod
 
 The rules live in one `rules.yml`, one YAML document per rule, separated by `---`. Each document has `id`,
-`language: tsx`, `message`, `rule`, and `fix`. The runner is the root `node_modules/.bin/ast-grep`
-(`@ast-grep/cli`); the rule syntax is at https://ast-grep.github.io/guide/rule-config.html. Model a file on
+`language: tsx`, `message`, `rule`, and `fix`. A rule with no JSX in it (an object key, a method call) ships
+a second copy with `language: typescript`, because a rule reaches only its own language. The runner is the
+root `node_modules/.bin/ast-grep` (`@ast-grep/cli`), and the consumer command names the same package with
+`npx --package`, because the bare `ast-grep` npm name is an unrelated package. The rule syntax is at
+https://ast-grep.github.io/guide/rule-config.html. Model a file on
 [0009](../../../packages/mantle/migrations/0009-chart-root-mode/rules.yml) for attributes and on
 [0008](../../../packages/mantle/migrations/0008-tabs-separator/rules.yml) for an inserted sibling.
 
 - **Match the smallest node that changes.** A prop rename or removal matches a `jsx_attribute` (`fix: ""`
   deletes it). An inserted sibling matches the `jsx_closing_element` and writes it back with the new line.
   An object key rename matches the `pair`; a method call matches the `member_expression`.
-- **Scope every rule to the mantle part.** `inside:` an opening or self-closing element whose `name` field
-  matches `^Tabs\.List$`. Use `any:` over `jsx_opening_element` and `jsx_self_closing_element`. Add
-  `stopBy: end` when the element is not the direct parent.
+- **Scope every rule to the part's import, not its spelling.** A `<part>-import` util binds the local name of
+  the part's import from its `@ngrok/mantle/<subpath>` to a metavariable (`$TABS`), and the JSX name matches
+  that metavariable, so `MantleTabs.List` matches and another library's `Tabs.List` does not. Model the util
+  on [0008](../../../packages/mantle/migrations/0008-tabs-separator/rules.yml). Match the element with `any:`
+  over `jsx_opening_element` and `jsx_self_closing_element`, and add `stopBy: end` when the element is not
+  the direct parent.
+- **Bind the name before the import.** ast-grep evaluates `inside` before `has` in one object, so put the
+  name `has` and the import `inside` in an `all:` in that order. A file that imports the part twice (`Tabs,
+  Tabs as MantleTabs`) binds the wrong name otherwise.
+- **Give every `any` branch, and every `has` or `not`, a positive matcher** (`kind`, `pattern`, or
+  `matches`), or the file fails to parse. A util that names an undefined util fails at match time with no
+  error, so every rule needs a fixture case.
+- **Read a literal through the tree, not the text.** `priority="default"` also reads `priority='default'`,
+  `priority = "default"`, and `priority={"default"}`, so match the attribute's own `string` child (or the
+  `string` inside its `jsx_expression`) and never a regex over the attribute text. Keep the child search at
+  the default `stopBy`, so a `"default"` inside a ternary does not count.
+- **Parenthesize a captured expression when the fix wraps it.** `!$CONDITION` and `$FLAG ? a : b` need
+  parentheses around a compound capture. Split the rule in two on the capture's `kind` (the formatter strips
+  parentheses the simple kinds do not need), as 0008 and 0009 do.
+- **Insert a sibling only where one can go.** A list inside `{show && <Tabs.List />}` has no enclosing tag,
+  so a second element there breaks the parse. Require the element's parent to be a `jsx_element`, and leave
+  the removed prop in place where the rule cannot reach, so the type checker names the call site.
+- **Resolve the nearest root.** `inside:` with `stopBy: end` walks past the root that matters. Stop at the
+  nearest ancestor of the root's shape (`stopBy: { matches: tabs-root }`) and test that one.
 - **Capture a dynamic value with a pattern.** `pattern: { context: <Root decorative={$FLAG} />, selector: jsx_attribute }`
   binds `$FLAG` for the `fix`.
 - **Guard with `not:` so a rule never matches its own output.** The fixture test runs every codemod twice and
@@ -81,6 +107,9 @@ The rules live in one `rules.yml`, one YAML document per rule, separated by `---
   number to `oneShotMigrations` in `scripts/migrate.test.ts`, with the reason in that comment.
 - **Never match an unrelated library's identifier.** A bare `decorative` or `getState()` without the part
   scope rewrites someone else's code.
+- **Cover the negative cases in `before.tsx`:** the aliased import, another library's part under the same
+  name, a literal in a second spelling, and every shape a guard rejects. `.prettierignore` exempts
+  `before.ts*`, so a single-quoted or spaced attribute survives `pnpm -w run fmt`.
 - **Iterate on the fixture.** `pnpm -w run migrate <NNNN> --dry-run packages/mantle/migrations/<NNNN>-<slug>/before.tsx`
   prints the rewrites; `pnpm -w run test:scripts` runs the pair. `after.tsx` is what the rules emit, then
   `pnpm -w run fmt`; the test compares whitespace-normalized tokens, so the formatter's layout does not matter.

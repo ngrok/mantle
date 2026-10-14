@@ -1,33 +1,553 @@
+# Every rule binds the local name of a chart Root's import from its
+# `@ngrok/mantle/<chart>` subpath, so an aliased import matches and another
+# library's `decorative` prop does not.
 id: chart-decorative-flag
 language: tsx
 message: the chart Roots take mode="decorative" in place of the decorative flag
-rule:
-  kind: jsx_attribute
-  regex: ^decorative(=\{true\})?$
-  inside:
+utils:
+  linechart-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/line-chart["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^LineChart$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $LINE
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $LINE
+  barchart-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/bar-chart["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^BarChart$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $BAR
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $BAR
+  areachart-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/area-chart["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^AreaChart$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $AREA
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $AREA
+  scatterplot-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/scatter-plot["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^ScatterPlot$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $SCATTER
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $SCATTER
+  chart-root:
     any:
       - kind: jsx_opening_element
       - kind: jsx_self_closing_element
     has:
       field: name
-      regex: ^(LineChart|BarChart|AreaChart|ScatterPlot)\.Root$
+      kind: member_expression
+      any:
+        - all:
+            - has:
+                field: object
+                pattern: $LINE
+            - has:
+                field: property
+                regex: ^Root$
+            - inside:
+                stopBy: end
+                kind: program
+                has:
+                  matches: linechart-import
+        - all:
+            - has:
+                field: object
+                pattern: $BAR
+            - has:
+                field: property
+                regex: ^Root$
+            - inside:
+                stopBy: end
+                kind: program
+                has:
+                  matches: barchart-import
+        - all:
+            - has:
+                field: object
+                pattern: $AREA
+            - has:
+                field: property
+                regex: ^Root$
+            - inside:
+                stopBy: end
+                kind: program
+                has:
+                  matches: areachart-import
+        - all:
+            - has:
+                field: object
+                pattern: $SCATTER
+            - has:
+                field: property
+                regex: ^Root$
+            - inside:
+                stopBy: end
+                kind: program
+                has:
+                  matches: scatterplot-import
+rule:
+  kind: jsx_attribute
+  has:
+    kind: property_identifier
+    regex: ^decorative$
+  any:
+    - kind: jsx_attribute
+      not:
+        has:
+          kind: jsx_expression
+    - kind: jsx_attribute
+      has:
+        kind: jsx_expression
+        has:
+          kind: "true"
+  inside:
+    matches: chart-root
 fix: mode="decorative"
 ---
 id: chart-decorative-expression
 language: tsx
 message: a dynamic decorative flag picks between the decorative and interactive modes
-rule:
-  kind: jsx_attribute
-  pattern:
-    context: <Root decorative={$FLAG} />
-    selector: jsx_attribute
-  not:
-    regex: ^decorative=\{true\}$
-  inside:
+utils:
+  linechart-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/line-chart["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^LineChart$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $LINE
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $LINE
+  barchart-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/bar-chart["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^BarChart$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $BAR
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $BAR
+  areachart-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/area-chart["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^AreaChart$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $AREA
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $AREA
+  scatterplot-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/scatter-plot["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^ScatterPlot$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $SCATTER
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $SCATTER
+  chart-root:
     any:
       - kind: jsx_opening_element
       - kind: jsx_self_closing_element
     has:
       field: name
-      regex: ^(LineChart|BarChart|AreaChart|ScatterPlot)\.Root$
+      kind: member_expression
+      any:
+        - all:
+            - has:
+                field: object
+                pattern: $LINE
+            - has:
+                field: property
+                regex: ^Root$
+            - inside:
+                stopBy: end
+                kind: program
+                has:
+                  matches: linechart-import
+        - all:
+            - has:
+                field: object
+                pattern: $BAR
+            - has:
+                field: property
+                regex: ^Root$
+            - inside:
+                stopBy: end
+                kind: program
+                has:
+                  matches: barchart-import
+        - all:
+            - has:
+                field: object
+                pattern: $AREA
+            - has:
+                field: property
+                regex: ^Root$
+            - inside:
+                stopBy: end
+                kind: program
+                has:
+                  matches: areachart-import
+        - all:
+            - has:
+                field: object
+                pattern: $SCATTER
+            - has:
+                field: property
+                regex: ^Root$
+            - inside:
+                stopBy: end
+                kind: program
+                has:
+                  matches: scatterplot-import
+rule:
+  kind: jsx_attribute
+  pattern:
+    context: <Root decorative={$FLAG} />
+    selector: jsx_attribute
+  inside:
+    matches: chart-root
+# Why a kind list: a ternary needs parentheses as the test of another ternary,
+# and so do `??`, `as`, and `await`. The formatter strips them from the rest.
+constraints:
+  FLAG:
+    not:
+      any:
+        - kind: ternary_expression
+        - kind: as_expression
+        - kind: satisfies_expression
+        - kind: assignment_expression
+        - kind: augmented_assignment_expression
+        - kind: await_expression
+        - kind: sequence_expression
+        - kind: arrow_function
+        - kind: function_expression
+        - kind: yield_expression
+        - kind: "true"
+        - kind: binary_expression
+          regex: \?\?
 fix: 'mode={$FLAG ? "decorative" : "interactive"}'
+---
+id: chart-decorative-compound-expression
+language: tsx
+message: a dynamic decorative flag picks between the decorative and interactive modes
+utils:
+  linechart-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/line-chart["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^LineChart$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $LINE
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $LINE
+  barchart-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/bar-chart["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^BarChart$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $BAR
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $BAR
+  areachart-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/area-chart["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^AreaChart$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $AREA
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $AREA
+  scatterplot-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/scatter-plot["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^ScatterPlot$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $SCATTER
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $SCATTER
+  chart-root:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    has:
+      field: name
+      kind: member_expression
+      any:
+        - all:
+            - has:
+                field: object
+                pattern: $LINE
+            - has:
+                field: property
+                regex: ^Root$
+            - inside:
+                stopBy: end
+                kind: program
+                has:
+                  matches: linechart-import
+        - all:
+            - has:
+                field: object
+                pattern: $BAR
+            - has:
+                field: property
+                regex: ^Root$
+            - inside:
+                stopBy: end
+                kind: program
+                has:
+                  matches: barchart-import
+        - all:
+            - has:
+                field: object
+                pattern: $AREA
+            - has:
+                field: property
+                regex: ^Root$
+            - inside:
+                stopBy: end
+                kind: program
+                has:
+                  matches: areachart-import
+        - all:
+            - has:
+                field: object
+                pattern: $SCATTER
+            - has:
+                field: property
+                regex: ^Root$
+            - inside:
+                stopBy: end
+                kind: program
+                has:
+                  matches: scatterplot-import
+rule:
+  kind: jsx_attribute
+  pattern:
+    context: <Root decorative={$FLAG} />
+    selector: jsx_attribute
+  inside:
+    matches: chart-root
+constraints:
+  FLAG:
+    any:
+      - kind: ternary_expression
+      - kind: as_expression
+      - kind: satisfies_expression
+      - kind: assignment_expression
+      - kind: augmented_assignment_expression
+      - kind: await_expression
+      - kind: sequence_expression
+      - kind: arrow_function
+      - kind: function_expression
+      - kind: yield_expression
+      - kind: binary_expression
+        regex: \?\?
+fix: 'mode={($FLAG) ? "decorative" : "interactive"}'

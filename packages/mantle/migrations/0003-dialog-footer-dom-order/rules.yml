@@ -1,15 +1,48 @@
+# The rule binds $DIALOG to the local name of the `Dialog` import from
+# `@ngrok/mantle/dialog`, so an aliased import matches and another library's
+# `Dialog` does not.
 id: dialog-footer-swap-two
 language: tsx
 message: swap the two children of Dialog.Footer
 utils:
+  dialog-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/dialog["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^Dialog$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $DIALOG
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $DIALOG
   child:
     any:
       - kind: jsx_element
       - kind: jsx_self_closing_element
       - kind: jsx_expression
 rule:
-  pattern: <Dialog.Footer $$$ATTRS>$$$CHILDREN</Dialog.Footer>
+  pattern: <$DIALOG.Footer $$$ATTRS>$$$CHILDREN</$DIALOG.Footer>
   all:
+    - inside:
+        stopBy: end
+        kind: program
+        has:
+          matches: dialog-import
     - has:
         pattern: $FIRST
         nthChild:
@@ -28,8 +61,14 @@ rule:
             position: 3
             ofRule:
               matches: child
+    # Why: the fix writes the two elements back and nothing else, so a footer
+    # with its own text between them would lose it.
+    - not:
+        has:
+          kind: jsx_text
+          regex: \S
 fix: |-
-  <Dialog.Footer $$$ATTRS>
+  <$DIALOG.Footer $$$ATTRS>
   	$SECOND
   	$FIRST
-  </Dialog.Footer>
+  </$DIALOG.Footer>

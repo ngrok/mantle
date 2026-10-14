@@ -1,6 +1,13 @@
 import { IconButton } from "@ngrok/mantle/button";
-import { DataTable, createColumnHelper, tableFeatures, useTable } from "@ngrok/mantle/data-table";
+import {
+	DataTable,
+	DataTable as Grid,
+	createColumnHelper,
+	tableFeatures,
+	useTable,
+} from "@ngrok/mantle/data-table";
 import { Table } from "@ngrok/mantle/table";
+import { Table as PlainTable } from "@acme/ui";
 import { DotsThreeIcon } from "@phosphor-icons/react/DotsThree";
 
 type Payment = { id: string; amount: number };
@@ -39,6 +46,12 @@ export const columns = columnHelper.columns([
 		header: () => <DataTable.ActionHeader />,
 		cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
 	}),
+	// The aliased import is the same part.
+	columnHelper.display({
+		id: "aliased-actions",
+		header: () => <Grid.ActionHeader />,
+		cell: () => <Grid.ActionCell>{null}</Grid.ActionCell>,
+	}),
 	// Negative cases: a column without an action cell keeps its header.
 	columnHelper.display({
 		id: "spacer",
@@ -49,6 +62,28 @@ export const columns = columnHelper.columns([
 		id: "amount",
 		header: () => <Table.Header>Amount</Table.Header>,
 		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+	// Negative case: a table the action cell renders keeps its own headers.
+	columnHelper.display({
+		id: "nested-actions",
+		header: () => <DataTable.ActionHeader />,
+		cell: () => (
+			<DataTable.ActionCell>
+				<Table.Root>
+					<Table.Head>
+						<Table.Row>
+							<Table.Header>Nested</Table.Header>
+						</Table.Row>
+					</Table.Head>
+				</Table.Root>
+			</DataTable.ActionCell>
+		),
+	}),
+	// Negative case: another library's Table.Header is not the part.
+	columnHelper.display({
+		id: "foreign-actions",
+		header: () => <PlainTable.Header>Actions</PlainTable.Header>,
+		cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
 	}),
 ]);
 

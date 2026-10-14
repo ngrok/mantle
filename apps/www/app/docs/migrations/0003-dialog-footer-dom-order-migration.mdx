@@ -27,10 +27,10 @@ pnpm -w run migrate 0003 <path>
 In a project that installs `@ngrok/mantle`:
 
 ```sh
-npx ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/0003-dialog-footer-dom-order.yml --update-all <path>
+npx --yes --package=@ast-grep/cli@0.45.3 ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/0003-dialog-footer-dom-order.yml --update-all <path>
 ```
 
-The rules apply step 2 to a `Dialog.Footer` with exactly two direct children: they swap the two. A footer with three or more direct children stays manual, because a rule cannot reverse a list of any length. A mapped list counts as one child, so reverse its array by hand. Run the codemod once: a swapped footer is still a two-child footer, so a second run swaps it back. Pass `--dry-run` to print the rewrites first, and run your formatter after the rewrite.
+The rules apply step 2 to a `Dialog.Footer` with exactly two direct children: they swap the two. A footer with three or more direct children stays manual, because a rule cannot reverse a list of any length. A mapped list counts as one child, so reverse its array by hand. A footer with its own text beside the two children stays manual, because the swap writes back the two children only. The rules read a part through its import from `@ngrok/mantle/dialog`, under its own name or an alias. A part that reaches the file through a local re-export or a destructured namespace stays manual. Run the codemod once: a swapped footer is still a two-child footer, so a second run swaps it back. Pass `--dry-run` to print the rewrites first, and run your formatter after the rewrite.
 
 ---
 

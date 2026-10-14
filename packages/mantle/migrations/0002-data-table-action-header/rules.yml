@@ -1,54 +1,311 @@
+# Every rule binds $DT to the local name of the `DataTable` import from
+# `@ngrok/mantle/data-table` (and $TABLE to `Table`), so an aliased import
+# matches and another library's `Table` does not.
 id: action-column-header
 language: tsx
 message: the action column header becomes DataTable.ActionHeader
 utils:
+  datatable-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/data-table["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^DataTable$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $DT
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $DT
+  table-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/table["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^Table$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $TABLE
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $TABLE
+  action-cell-name:
+    kind: member_expression
+    all:
+      - has:
+          field: object
+          pattern: $DT
+      - has:
+          field: property
+          regex: ^ActionCell$
+  # The nearest object literal is the column, and it holds an action cell.
   action-column:
     kind: object
     has:
       stopBy: end
-      pattern: <DataTable.ActionCell $$$>$$$</DataTable.ActionCell>
+      any:
+        - kind: jsx_opening_element
+        - kind: jsx_self_closing_element
+      has:
+        field: name
+        matches: action-cell-name
+  # The nearest property is the column's `header`, so a table a `cell` renders
+  # keeps its own headers.
+  header-property:
+    kind: pair
+    has:
+      field: key
+      regex: ^header$
 rule:
   any:
-    - pattern: <DataTable.Header $$$ATTRS>$$$CHILDREN</DataTable.Header>
-    - pattern: <Table.Header $$$ATTRS>$$$CHILDREN</Table.Header>
-  inside:
-    matches: action-column
-    stopBy:
-      kind: object
-fix: <DataTable.ActionHeader $$$ATTRS>$$$CHILDREN</DataTable.ActionHeader>
+    - pattern: <$DT.Header $$$ATTRS>$$$CHILDREN</$DT.Header>
+    - pattern: <$TABLE.Header $$$ATTRS>$$$CHILDREN</$TABLE.Header>
+      inside:
+        stopBy: end
+        kind: program
+        has:
+          matches: table-import
+  all:
+    - inside:
+        stopBy:
+          kind: pair
+        matches: header-property
+    - inside:
+        stopBy:
+          kind: object
+        matches: action-column
+    - inside:
+        stopBy: end
+        kind: program
+        has:
+          matches: datatable-import
+fix: <$DT.ActionHeader $$$ATTRS>$$$CHILDREN</$DT.ActionHeader>
 ---
 id: action-column-header-self-closing
 language: tsx
 message: the action column header becomes DataTable.ActionHeader
 utils:
+  datatable-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/data-table["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^DataTable$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $DT
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $DT
+  table-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/table["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^Table$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $TABLE
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $TABLE
+  action-cell-name:
+    kind: member_expression
+    all:
+      - has:
+          field: object
+          pattern: $DT
+      - has:
+          field: property
+          regex: ^ActionCell$
+  # The nearest object literal is the column, and it holds an action cell.
   action-column:
     kind: object
     has:
       stopBy: end
-      pattern: <DataTable.ActionCell $$$>$$$</DataTable.ActionCell>
+      any:
+        - kind: jsx_opening_element
+        - kind: jsx_self_closing_element
+      has:
+        field: name
+        matches: action-cell-name
+  # The nearest property is the column's `header`, so a table a `cell` renders
+  # keeps its own headers.
+  header-property:
+    kind: pair
+    has:
+      field: key
+      regex: ^header$
 rule:
   any:
-    - pattern: <DataTable.Header $$$ATTRS />
-    - pattern: <Table.Header $$$ATTRS />
-  inside:
-    matches: action-column
-    stopBy:
-      kind: object
-fix: <DataTable.ActionHeader $$$ATTRS />
+    - pattern: <$DT.Header $$$ATTRS />
+    - pattern: <$TABLE.Header $$$ATTRS />
+      inside:
+        stopBy: end
+        kind: program
+        has:
+          matches: table-import
+  all:
+    - inside:
+        stopBy:
+          kind: pair
+        matches: header-property
+    - inside:
+        stopBy:
+          kind: object
+        matches: action-column
+    - inside:
+        stopBy: end
+        kind: program
+        has:
+          matches: datatable-import
+fix: <$DT.ActionHeader $$$ATTRS />
 ---
 id: action-column-null-header
 language: tsx
 message: the action column needs a sticky header even when it has no label
 utils:
+  datatable-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/data-table["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^DataTable$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $DT
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $DT
+  table-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/table["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^Table$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $TABLE
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $TABLE
+  action-cell-name:
+    kind: member_expression
+    all:
+      - has:
+          field: object
+          pattern: $DT
+      - has:
+          field: property
+          regex: ^ActionCell$
+  # The nearest object literal is the column, and it holds an action cell.
   action-column:
     kind: object
     has:
       stopBy: end
-      pattern: <DataTable.ActionCell $$$>$$$</DataTable.ActionCell>
+      any:
+        - kind: jsx_opening_element
+        - kind: jsx_self_closing_element
+      has:
+        field: name
+        matches: action-cell-name
+  # The nearest property is the column's `header`, so a table a `cell` renders
+  # keeps its own headers.
+  header-property:
+    kind: pair
+    has:
+      field: key
+      regex: ^header$
 rule:
   pattern:
     context: "({ header: () => null })"
     selector: pair
-  inside:
-    matches: action-column
-fix: "header: () => <DataTable.ActionHeader />"
+  all:
+    - inside:
+        stopBy:
+          kind: object
+        matches: action-column
+    - inside:
+        stopBy: end
+        kind: program
+        has:
+          matches: datatable-import
+fix: "header: () => <$DT.ActionHeader />"

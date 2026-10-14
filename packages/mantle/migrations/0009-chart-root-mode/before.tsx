@@ -1,12 +1,15 @@
 import { AreaChart } from "@ngrok/mantle/area-chart";
 import { BarChart } from "@ngrok/mantle/bar-chart";
-import { LineChart } from "@ngrok/mantle/line-chart";
+import { LineChart, LineChart as Trend } from "@ngrok/mantle/line-chart";
 import { ScatterPlot } from "@ngrok/mantle/scatter-plot";
+import { Sparkline } from "@acme/charts";
 
 type Point = { day: string; value: number };
 
 declare const rows: Point[];
 declare const isPlaceholder: boolean;
+declare const isLoading: boolean;
+declare const setting: boolean | undefined;
 declare function Divider(props: { decorative?: boolean }): null;
 
 export const Placeholder = (
@@ -27,7 +30,27 @@ export const Explicit = (
 	</AreaChart.Root>
 );
 
-// Negative cases: an interactive chart and a non-chart `decorative` prop stay.
+// A ternary or `??` needs parentheses as the test of the new ternary; a
+// negation or `||` does not. The aliased import is the same part.
+export const Compound = (
+	<>
+		<Trend.Root data={rows} xKey="day" decorative={isLoading ? isPlaceholder : setting}>
+			<Trend.Line dataKey="value" />
+		</Trend.Root>
+		<Trend.Root data={rows} xKey="day" decorative={setting ?? isPlaceholder}>
+			<Trend.Line dataKey="value" />
+		</Trend.Root>
+		<Trend.Root data={rows} xKey="day" decorative={isLoading || isPlaceholder}>
+			<Trend.Line dataKey="value" />
+		</Trend.Root>
+		<Trend.Root data={rows} xKey="day" decorative={!isLoading}>
+			<Trend.Line dataKey="value" />
+		</Trend.Root>
+	</>
+);
+
+// Negative cases: an interactive chart, a non-chart `decorative` prop, and
+// another library's chart stay.
 export const Interactive = (
 	<ScatterPlot.Root data={rows} xKey="day" yKey="value" aria-label="Latency">
 		<ScatterPlot.Points dataKey="value" />
@@ -35,3 +58,5 @@ export const Interactive = (
 );
 
 export const Rule = <Divider decorative />;
+
+export const Foreign = <Sparkline.Root data={rows} decorative />;

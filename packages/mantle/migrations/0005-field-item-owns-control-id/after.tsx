@@ -1,8 +1,9 @@
 import { useId } from "react";
 import { Checkbox } from "@ngrok/mantle/checkbox";
-import { Field } from "@ngrok/mantle/field";
+import { Field, Field as FormField } from "@ngrok/mantle/field";
 import { Input, PasswordInput } from "@ngrok/mantle/input";
 import { Label } from "@ngrok/mantle/label";
+import { Field as FormikField } from "formik";
 
 export const PasswordField = (
 	<Field.Item name="password">
@@ -25,7 +26,19 @@ export function TermsField() {
 	);
 }
 
-// Negative cases: a bare Label keeps htmlFor, and Field.Item keeps its id.
+// A self-closing label and the aliased import are the same part.
+export const AliasedField = (
+	<FormField.Item name="name">
+		{/* oxlint-disable-next-line react/no-children-prop -- a self-closing part is the shape under test */}
+		<FormField.Label children="Name" />
+		<FormField.Control>
+			<Input />
+		</FormField.Control>
+	</FormField.Item>
+);
+
+// Negative cases: a bare Label keeps htmlFor, Field.Item keeps its id, and
+// another library's Field.Label is not the part.
 export const Untouched = (
 	<>
 		<Label htmlFor="search">Search</Label>
@@ -36,5 +49,6 @@ export const Untouched = (
 				<Input type="email" />
 			</Field.Control>
 		</Field.Item>
+		<FormikField.Label htmlFor="other">Other</FormikField.Label>
 	</>
 );

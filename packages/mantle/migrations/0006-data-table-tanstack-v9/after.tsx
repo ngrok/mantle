@@ -1,10 +1,16 @@
-import { createColumnHelper, sortFn_basic, tableFeatures } from "@ngrok/mantle/data-table";
+import {
+	createColumnHelper,
+	sortFn_basic,
+	tableFeatures,
+	useTable,
+} from "@ngrok/mantle/data-table";
+import { create } from "zustand";
 
 type Invoice = { createdAt: Date; amount: number };
 
-declare const table: { getState(): { sorting: unknown } };
-declare const usersTable: { getState(): { pagination: unknown } };
+declare const data: Invoice[];
 declare const machine: { getState(): string };
+declare const useTableStore: { getState(): { page: number } };
 
 const features = tableFeatures({});
 const columnHelper = createColumnHelper<typeof features, Invoice>();
@@ -20,9 +26,24 @@ export const columns = columnHelper.columns([
 	}),
 ]);
 
-export const { sorting } = table.state;
-export const page = usersTable.state.pagination;
+// A `useTable` result under any name, and the `table` a column callback receives.
+export function useInvoices() {
+	const invoices = useTable({ features, data, columns });
+	const { sorting } = invoices.state;
+	return {
+		sorting,
+		pagination: columnHelper.display({ cell: ({ table }) => table.state.pagination }),
+	};
+}
 
-// Negative cases: a state machine's getState and the sortFns registry stay.
+// A name that ends in `table` reads as the instance when the file imports the data table.
+export function readPage(usersTable: ReturnType<typeof useTable>) {
+	return usersTable.state.pagination;
+}
+
+// Negative cases: a state machine, a store, and the sortFns registry stay.
 export const state = machine.getState();
+export const useStore = create(() => ({ page: 1 }));
+export const page = useStore.getState().page;
+export const storePage = useTableStore.getState().page;
 export const registry = { sortFns: { basic: sortFn_basic } };

@@ -1,54 +1,264 @@
+# Every rule binds $TABS to the local name of the `Tabs` import from
+# `@ngrok/mantle/tabs`, so an aliased import matches and another library's
+# `Tabs` does not. The nearest `Tabs.Root` decides whether a list is classic.
 id: tabs-list-add-separator
 language: tsx
 message: a classic Tabs.List needs Tabs.Separator after it
+utils:
+  tabs-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/tabs["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^Tabs$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $TABS
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $TABS
+  tabs-list-name:
+    kind: member_expression
+    all:
+      - has:
+          field: object
+          pattern: $TABS
+      - has:
+          field: property
+          regex: ^List$
+  tabs-separator:
+    kind: jsx_self_closing_element
+    has:
+      field: name
+      kind: member_expression
+      all:
+        - has:
+            field: object
+            pattern: $TABS
+        - has:
+            field: property
+            regex: ^Separator$
+  tabs-root:
+    kind: jsx_element
+    has:
+      field: open_tag
+      has:
+        field: name
+        kind: member_expression
+        all:
+          - has:
+              field: object
+              pattern: $TABS
+          - has:
+              field: property
+              regex: ^Root$
+  pill-root:
+    matches: tabs-root
+    has:
+      field: open_tag
+      has:
+        kind: jsx_attribute
+        has:
+          kind: property_identifier
+          regex: ^appearance$
+        any:
+          - kind: jsx_attribute
+            has:
+              kind: string
+              regex: ^["']pill["']$
+          - kind: jsx_attribute
+            has:
+              kind: jsx_expression
+              has:
+                kind: string
+                regex: ^["']pill["']$
+  classic-root:
+    matches: tabs-root
+    not:
+      matches: pill-root
+  hide-border:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^hideBorder$
+  # A list that a rule can give a sibling: it sits in a file that imports
+  # `Tabs`, its parent is an element (a fragment is one too, while the
+  # `{show && <Tabs.List />}` shape has no enclosing tag), and the nearest
+  # `Tabs.Root` is classic.
+  list-that-takes-separator:
+    kind: jsx_element
+    all:
+      - has:
+          field: open_tag
+          has:
+            field: name
+            matches: tabs-list-name
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: tabs-import
+      - inside:
+          kind: jsx_element
+      - inside:
+          stopBy:
+            matches: tabs-root
+          matches: classic-root
 rule:
   kind: jsx_closing_element
-  has:
-    field: name
-    regex: ^Tabs\.List$
   inside:
-    kind: jsx_element
+    matches: list-that-takes-separator
     all:
       - not:
           has:
             field: open_tag
             has:
-              kind: jsx_attribute
-              regex: ^hideBorder\b
+              matches: hide-border
       - not:
           precedes:
             any:
-              - pattern: <Tabs.Separator />
+              - matches: tabs-separator
               - kind: jsx_expression
                 has:
                   stopBy: end
-                  pattern: <Tabs.Separator />
-      - inside:
-          kind: jsx_element
-          stopBy: end
-          has:
-            field: open_tag
-            has:
-              field: name
-              regex: ^Tabs\.Root$
-            not:
-              has:
-                kind: jsx_attribute
-                regex: ^appearance="pill"$
+                  matches: tabs-separator
 fix: |-
-  </Tabs.List>
-  <Tabs.Separator />
+  </$TABS.List>
+  <$TABS.Separator />
 ---
 id: tabs-list-dynamic-hide-border
 language: tsx
 message: a dynamic hideBorder becomes a conditional Tabs.Separator
+utils:
+  tabs-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/tabs["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^Tabs$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $TABS
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $TABS
+  tabs-list-name:
+    kind: member_expression
+    all:
+      - has:
+          field: object
+          pattern: $TABS
+      - has:
+          field: property
+          regex: ^List$
+  tabs-separator:
+    kind: jsx_self_closing_element
+    has:
+      field: name
+      kind: member_expression
+      all:
+        - has:
+            field: object
+            pattern: $TABS
+        - has:
+            field: property
+            regex: ^Separator$
+  tabs-root:
+    kind: jsx_element
+    has:
+      field: open_tag
+      has:
+        field: name
+        kind: member_expression
+        all:
+          - has:
+              field: object
+              pattern: $TABS
+          - has:
+              field: property
+              regex: ^Root$
+  pill-root:
+    matches: tabs-root
+    has:
+      field: open_tag
+      has:
+        kind: jsx_attribute
+        has:
+          kind: property_identifier
+          regex: ^appearance$
+        any:
+          - kind: jsx_attribute
+            has:
+              kind: string
+              regex: ^["']pill["']$
+          - kind: jsx_attribute
+            has:
+              kind: jsx_expression
+              has:
+                kind: string
+                regex: ^["']pill["']$
+  classic-root:
+    matches: tabs-root
+    not:
+      matches: pill-root
+  hide-border:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^hideBorder$
+  # A list that a rule can give a sibling: it sits in a file that imports
+  # `Tabs`, its parent is an element (a fragment is one too, while the
+  # `{show && <Tabs.List />}` shape has no enclosing tag), and the nearest
+  # `Tabs.Root` is classic.
+  list-that-takes-separator:
+    kind: jsx_element
+    all:
+      - has:
+          field: open_tag
+          has:
+            field: name
+            matches: tabs-list-name
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: tabs-import
+      - inside:
+          kind: jsx_element
+      - inside:
+          stopBy:
+            matches: tabs-root
+          matches: classic-root
 rule:
   kind: jsx_closing_element
-  has:
-    field: name
-    regex: ^Tabs\.List$
   inside:
-    kind: jsx_element
+    matches: list-that-takes-separator
     has:
       field: open_tag
       has:
@@ -56,40 +266,458 @@ rule:
         pattern:
           context: <List hideBorder={$CONDITION} />
           selector: jsx_attribute
-        not:
-          regex: ^hideBorder=\{(true|false)\}$
+# Why a kind list: `!` binds tighter than `||`, so a compound condition needs
+# parentheses. These kinds do not, and the formatter would strip them.
+constraints:
+  CONDITION:
+    any:
+      - kind: identifier
+      - kind: member_expression
+      - kind: call_expression
+      - kind: subscript_expression
+      - kind: non_null_expression
+      - kind: parenthesized_expression
+      - kind: unary_expression
+      - kind: this
+      - kind: string
+      - kind: number
+      - kind: template_string
 fix: |-
-  </Tabs.List>
-  {!$CONDITION && <Tabs.Separator />}
+  </$TABS.List>
+  {!$CONDITION && <$TABS.Separator />}
 ---
-id: tabs-list-false-hide-border
+id: tabs-list-compound-hide-border
 language: tsx
-message: hideBorder={false} drew the border, so the list needs Tabs.Separator
-rule:
-  kind: jsx_closing_element
-  has:
-    field: name
-    regex: ^Tabs\.List$
-  inside:
+message: a compound hideBorder expression becomes a conditional Tabs.Separator
+utils:
+  tabs-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/tabs["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^Tabs$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $TABS
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $TABS
+  tabs-list-name:
+    kind: member_expression
+    all:
+      - has:
+          field: object
+          pattern: $TABS
+      - has:
+          field: property
+          regex: ^List$
+  tabs-separator:
+    kind: jsx_self_closing_element
+    has:
+      field: name
+      kind: member_expression
+      all:
+        - has:
+            field: object
+            pattern: $TABS
+        - has:
+            field: property
+            regex: ^Separator$
+  tabs-root:
     kind: jsx_element
     has:
       field: open_tag
       has:
+        field: name
+        kind: member_expression
+        all:
+          - has:
+              field: object
+              pattern: $TABS
+          - has:
+              field: property
+              regex: ^Root$
+  pill-root:
+    matches: tabs-root
+    has:
+      field: open_tag
+      has:
         kind: jsx_attribute
-        regex: ^hideBorder=\{false\}$
+        has:
+          kind: property_identifier
+          regex: ^appearance$
+        any:
+          - kind: jsx_attribute
+            has:
+              kind: string
+              regex: ^["']pill["']$
+          - kind: jsx_attribute
+            has:
+              kind: jsx_expression
+              has:
+                kind: string
+                regex: ^["']pill["']$
+  classic-root:
+    matches: tabs-root
+    not:
+      matches: pill-root
+  hide-border:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^hideBorder$
+  # A list that a rule can give a sibling: it sits in a file that imports
+  # `Tabs`, its parent is an element (a fragment is one too, while the
+  # `{show && <Tabs.List />}` shape has no enclosing tag), and the nearest
+  # `Tabs.Root` is classic.
+  list-that-takes-separator:
+    kind: jsx_element
+    all:
+      - has:
+          field: open_tag
+          has:
+            field: name
+            matches: tabs-list-name
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: tabs-import
+      - inside:
+          kind: jsx_element
+      - inside:
+          stopBy:
+            matches: tabs-root
+          matches: classic-root
+rule:
+  kind: jsx_closing_element
+  inside:
+    matches: list-that-takes-separator
+    has:
+      field: open_tag
+      has:
+        kind: jsx_attribute
+        pattern:
+          context: <List hideBorder={$CONDITION} />
+          selector: jsx_attribute
+constraints:
+  CONDITION:
+    not:
+      any:
+        - kind: identifier
+        - kind: member_expression
+        - kind: call_expression
+        - kind: subscript_expression
+        - kind: non_null_expression
+        - kind: parenthesized_expression
+        - kind: unary_expression
+        - kind: this
+        - kind: string
+        - kind: number
+        - kind: template_string
+        - kind: "true"
+        - kind: "false"
 fix: |-
-  </Tabs.List>
-  <Tabs.Separator />
+  </$TABS.List>
+  {!($CONDITION) && <$TABS.Separator />}
+---
+id: tabs-list-false-hide-border
+language: tsx
+message: hideBorder={false} drew the border, so the list needs Tabs.Separator
+utils:
+  tabs-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/tabs["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^Tabs$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $TABS
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $TABS
+  tabs-list-name:
+    kind: member_expression
+    all:
+      - has:
+          field: object
+          pattern: $TABS
+      - has:
+          field: property
+          regex: ^List$
+  tabs-separator:
+    kind: jsx_self_closing_element
+    has:
+      field: name
+      kind: member_expression
+      all:
+        - has:
+            field: object
+            pattern: $TABS
+        - has:
+            field: property
+            regex: ^Separator$
+  tabs-root:
+    kind: jsx_element
+    has:
+      field: open_tag
+      has:
+        field: name
+        kind: member_expression
+        all:
+          - has:
+              field: object
+              pattern: $TABS
+          - has:
+              field: property
+              regex: ^Root$
+  pill-root:
+    matches: tabs-root
+    has:
+      field: open_tag
+      has:
+        kind: jsx_attribute
+        has:
+          kind: property_identifier
+          regex: ^appearance$
+        any:
+          - kind: jsx_attribute
+            has:
+              kind: string
+              regex: ^["']pill["']$
+          - kind: jsx_attribute
+            has:
+              kind: jsx_expression
+              has:
+                kind: string
+                regex: ^["']pill["']$
+  classic-root:
+    matches: tabs-root
+    not:
+      matches: pill-root
+  hide-border:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^hideBorder$
+  # A list that a rule can give a sibling: it sits in a file that imports
+  # `Tabs`, its parent is an element (a fragment is one too, while the
+  # `{show && <Tabs.List />}` shape has no enclosing tag), and the nearest
+  # `Tabs.Root` is classic.
+  list-that-takes-separator:
+    kind: jsx_element
+    all:
+      - has:
+          field: open_tag
+          has:
+            field: name
+            matches: tabs-list-name
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: tabs-import
+      - inside:
+          kind: jsx_element
+      - inside:
+          stopBy:
+            matches: tabs-root
+          matches: classic-root
+rule:
+  kind: jsx_closing_element
+  inside:
+    matches: list-that-takes-separator
+    has:
+      field: open_tag
+      has:
+        matches: hide-border
+        has:
+          kind: jsx_expression
+          has:
+            kind: "false"
+fix: |-
+  </$TABS.List>
+  <$TABS.Separator />
 ---
 id: tabs-list-drop-hide-border
 language: tsx
 message: Tabs.List no longer takes hideBorder
-rule:
-  kind: jsx_attribute
-  regex: ^hideBorder\b
-  inside:
-    kind: jsx_opening_element
+utils:
+  tabs-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/tabs["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^Tabs$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $TABS
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $TABS
+  tabs-list-name:
+    kind: member_expression
+    all:
+      - has:
+          field: object
+          pattern: $TABS
+      - has:
+          field: property
+          regex: ^List$
+  tabs-separator:
+    kind: jsx_self_closing_element
     has:
       field: name
-      regex: ^Tabs\.List$
+      kind: member_expression
+      all:
+        - has:
+            field: object
+            pattern: $TABS
+        - has:
+            field: property
+            regex: ^Separator$
+  tabs-root:
+    kind: jsx_element
+    has:
+      field: open_tag
+      has:
+        field: name
+        kind: member_expression
+        all:
+          - has:
+              field: object
+              pattern: $TABS
+          - has:
+              field: property
+              regex: ^Root$
+  pill-root:
+    matches: tabs-root
+    has:
+      field: open_tag
+      has:
+        kind: jsx_attribute
+        has:
+          kind: property_identifier
+          regex: ^appearance$
+        any:
+          - kind: jsx_attribute
+            has:
+              kind: string
+              regex: ^["']pill["']$
+          - kind: jsx_attribute
+            has:
+              kind: jsx_expression
+              has:
+                kind: string
+                regex: ^["']pill["']$
+  classic-root:
+    matches: tabs-root
+    not:
+      matches: pill-root
+  hide-border:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^hideBorder$
+  # A list that a rule can give a sibling: it sits in a file that imports
+  # `Tabs`, its parent is an element (a fragment is one too, while the
+  # `{show && <Tabs.List />}` shape has no enclosing tag), and the nearest
+  # `Tabs.Root` is classic.
+  list-that-takes-separator:
+    kind: jsx_element
+    all:
+      - has:
+          field: open_tag
+          has:
+            field: name
+            matches: tabs-list-name
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: tabs-import
+      - inside:
+          kind: jsx_element
+      - inside:
+          stopBy:
+            matches: tabs-root
+          matches: classic-root
+rule:
+  matches: hide-border
+  inside:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    all:
+      - has:
+          field: name
+          matches: tabs-list-name
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: tabs-import
+  # Why four shapes: a true flag never needs a separator, and a pill root never
+  # drew one. A false or dynamic flag stays unless a rule above gave the list
+  # a separator, so the type checker flags the list a rule cannot reach.
+  any:
+    - kind: jsx_attribute
+      not:
+        has:
+          kind: jsx_expression
+    - kind: jsx_attribute
+      has:
+        kind: jsx_expression
+        has:
+          kind: "true"
+    - kind: jsx_attribute
+      inside:
+        stopBy:
+          matches: tabs-root
+        matches: pill-root
+    - kind: jsx_attribute
+      inside:
+        kind: jsx_opening_element
+        inside:
+          matches: list-that-takes-separator
 fix: ""

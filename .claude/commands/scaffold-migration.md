@@ -37,27 +37,32 @@ agreement.
 
 ## 2. Write the codemod first
 
-1. Create `packages/mantle/migrations/<NNNN>-<slug>/before.tsx` with one case per `rule` line and one
-   negative case per guard (a pill root, an aliased import, an unrelated component with the same prop name).
-2. Create `rules.yml` beside it, one YAML document per rule, per the skill's [The codemod](../skills/write-migration/SKILL.md#the-codemod).
-3. Run `pnpm -w run migrate <NNNN> --dry-run packages/mantle/migrations/<NNNN>-<slug>/before.tsx` and read
+1. Create `apps/www/app/docs/migrations/<NNNN>-<slug>-migration.mdx` with the frontmatter and the title only.
+   The runner resolves a number from that filename, so the file must exist before step 4 here. Step 3 fills
+   it in.
+2. Create `packages/mantle/migrations/<NNNN>-<slug>/before.tsx` with one case per `rule` line and one
+   negative case per guard (a pill root, an aliased import, another library's part under the same name, a
+   literal in a second spelling).
+3. Create `rules.yml` beside it, one YAML document per rule, per the skill's [The codemod](../skills/write-migration/SKILL.md#the-codemod).
+4. Run `pnpm -w run migrate <NNNN> --dry-run packages/mantle/migrations/<NNNN>-<slug>/before.tsx` and read
    every rewrite. Fix the rules until the negative cases survive untouched.
-4. Copy `before.tsx` to `after.tsx`, run `pnpm -w run migrate <NNNN> packages/mantle/migrations/<NNNN>-<slug>/after.tsx`,
+5. Copy `before.tsx` to `after.tsx`, run `pnpm -w run migrate <NNNN> packages/mantle/migrations/<NNNN>-<slug>/after.tsx`,
    then `pnpm -w run fmt`. Read `after.tsx`: it is the contract.
-5. Run `pnpm -w run test:scripts`. When the second run changes `after.tsx`, make the rule idempotent with a
+6. Run `pnpm -w run test:scripts`. When the second run changes `after.tsx`, make the rule idempotent with a
    `not:` guard, or add the number to `oneShotMigrations` in `scripts/migrate.test.ts` with the reason.
-6. Run `pnpm -w run migrate <NNNN> --dry-run local/frontend/apps` and note the match count and any false
+7. Run `pnpm -w run migrate <NNNN> --dry-run local/frontend/apps` and note the match count and any false
    positive. The clone is read-only; a dry run writes nothing.
 
 Skip this step only for an all-manual migration from step 1.
 
 ## 3. Write the guide
 
-Create `apps/www/app/docs/migrations/<NNNN>-<slug>-migration.mdx` with the sections in the skill's
+Fill in `apps/www/app/docs/migrations/<NNNN>-<slug>-migration.mdx` with the sections in the skill's
 [The guide, section by section](../skills/write-migration/SKILL.md#the-guide-section-by-section), in order.
 Copy the structure of [0008](../../apps/www/app/docs/migrations/0008-tabs-separator-migration.mdx). The
-`## Codemod` section names `pnpm -w run migrate <NNNN>`, the `dist/migrations/<NNNN>-<slug>.yml` path, the
-steps the rules apply, and the manual steps. An all-manual guide writes `Codemod: manual: <reason>.` instead.
+`## Codemod` section names `pnpm -w run migrate <NNNN>`, the consumer command with the `@ast-grep/cli` version
+the root `package.json` pins and the `dist/migrations/<NNNN>-<slug>.yml` path, the steps the rules apply, and
+the manual steps. An all-manual guide writes `Codemod: manual: <reason>.` instead.
 
 Load the `simplified-technical-english` skill before you write the prose.
 

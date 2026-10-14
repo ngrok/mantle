@@ -17,18 +17,30 @@ const codemodDirs = fs
 // saw. A second run undoes 0003 and adds a separator in 0008. Both docs say to
 // run once, and the negative cases in each before.tsx pin the guards.
 const oneShotMigrations = new Set(["0003", "0008"]);
-const idempotentDirs = codemodDirs.filter((dir) => !oneShotMigrations.has(dir.slice(0, 4)));
+
+type Fixture = { dir: string; ext: "tsx" | "ts" };
+
+// A migration ships a `.ts` pair as well when a rule carries
+// `language: typescript`, because a rule reaches only its own language.
+const fixtures: Fixture[] = codemodDirs.flatMap((dir) =>
+	(["tsx", "ts"] as const)
+		.filter((ext) => fs.existsSync(path.join(defaultPaths.rulesDir, dir, `before.${ext}`)))
+		.map((ext) => ({ dir, ext })),
+);
+const idempotentFixtures = fixtures.filter(({ dir }) => !oneShotMigrations.has(dir.slice(0, 4)));
 
 /**
- * Collapse the whitespace a codemod leaves behind, so the comparison reads
- * tokens and not the formatter's layout. A rewrite that drops an attribute
- * leaves a double space, an inserted line starts at column zero, and the
- * formatter moves a child onto its own line.
+ * Collapse the whitespace and the quote style a codemod leaves behind, so the
+ * comparison reads tokens and not the formatter's layout. A rewrite that drops
+ * an attribute leaves a double space, an inserted line starts at column zero,
+ * the formatter moves a child onto its own line, and a single-quoted attribute
+ * the rules only read keeps its quotes until the formatter runs.
  */
 function normalize(source: string): string {
 	return source
 		.replace(/\s+/g, " ")
 		.replace(/\s*([<>{}();,])\s*/g, "$1")
+		.replace(/'/g, '"')
 		.trim();
 }
 
@@ -36,11 +48,11 @@ function runMigrate(args: readonly string[]) {
 	return spawnSync(process.execPath, [scriptPath, ...args], { encoding: "utf8" });
 }
 
-function copyFixture(dir: string): { file: string; before: string; after: string } {
+function copyFixture({ dir, ext }: Fixture): { file: string; before: string; after: string } {
 	const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "mantle-migrate-"));
-	const file = path.join(tempDir, "fixture.tsx");
-	const before = fs.readFileSync(path.join(defaultPaths.rulesDir, dir, "before.tsx"), "utf8");
-	const after = fs.readFileSync(path.join(defaultPaths.rulesDir, dir, "after.tsx"), "utf8");
+	const file = path.join(tempDir, `fixture.${ext}`);
+	const before = fs.readFileSync(path.join(defaultPaths.rulesDir, dir, `before.${ext}`), "utf8");
+	const after = fs.readFileSync(path.join(defaultPaths.rulesDir, dir, `after.${ext}`), "utf8");
 	fs.writeFileSync(file, before);
 	return { file, before, after };
 }
@@ -48,9 +60,9 @@ function copyFixture(dir: string): { file: string; before: string; after: string
 describe("codemod fixtures", () => {
 	// Catches: a rule whose pattern no longer matches, a permuted fix, and a
 	// guard that lets a negative case through.
-	it.each(codemodDirs)("%s rewrites before.tsx into after.tsx", (dir) => {
-		const { file, before, after } = copyFixture(dir);
-		const result = runMigrate([dir.slice(0, 4), file]);
+	it.each(fixtures)("$dir rewrites before.$ext into after.$ext", (fixture) => {
+		const { file, before, after } = copyFixture(fixture);
+		const result = runMigrate([fixture.dir.slice(0, 4), file]);
 
 		expect(result.status).toBe(0);
 		const rewritten = fs.readFileSync(file, "utf8");
@@ -60,10 +72,10 @@ describe("codemod fixtures", () => {
 
 	// Catches: a rule that matches its own output, such as a rename whose fix
 	// still matches the renamed attribute.
-	it.each(idempotentDirs)("%s leaves after.tsx unchanged on a second run", (dir) => {
-		const { file, after } = copyFixture(dir);
+	it.each(idempotentFixtures)("$dir leaves after.$ext unchanged on a second run", (fixture) => {
+		const { file, after } = copyFixture(fixture);
 		fs.writeFileSync(file, after);
-		const result = runMigrate([dir.slice(0, 4), file]);
+		const result = runMigrate([fixture.dir.slice(0, 4), file]);
 
 		expect(result.status).toBe(0);
 		expect(fs.readFileSync(file, "utf8")).toBe(after);
@@ -111,7 +123,7 @@ describe("migrate command line", () => {
 	});
 
 	it("prints the rewrites without applying them on --dry-run", () => {
-		const { file, before } = copyFixture("0008-tabs-separator");
+		const { file, before } = copyFixture({ dir: "0008-tabs-separator", ext: "tsx" });
 		const result = runMigrate(["0008", "--dry-run", file]);
 
 		expect(result.status).toBe(0);
@@ -148,4 +160,34 @@ describe("migration docs", () => {
 		expect(fs.existsSync(path.join(defaultPaths.rulesDir, dir, "before.tsx"))).toBe(true);
 		expect(fs.existsSync(path.join(defaultPaths.rulesDir, dir, "after.tsx"))).toBe(true);
 	});
+
+	// Cross-file contract: the fixture tests above run the `@ast-grep/cli`
+	// version the root package.json pins, and the bare `ast-grep` npm name is
+	// an unrelated package, so the consumer command must name this one.
+	it.each(codemodDirs)("%s names the tested ast-grep version in its consumer command", (dir) => {
+		const slug = docSlugs.find((candidate) => candidate.startsWith(dir.slice(0, 4)));
+		const section = slug == null ? "" : (codemodSection(slug) ?? "");
+
+		expect(section).toContain(
+			`npx --yes --package=@ast-grep/cli@${astGrepVersion()} ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/${dir}.yml`,
+		);
+	});
 });
+
+function astGrepVersion(): string {
+	const packageJson: unknown = JSON.parse(
+		fs.readFileSync(path.join(import.meta.dirname, "../package.json"), "utf8"),
+	);
+	if (
+		typeof packageJson !== "object" ||
+		packageJson == null ||
+		!("devDependencies" in packageJson) ||
+		typeof packageJson.devDependencies !== "object" ||
+		packageJson.devDependencies == null ||
+		!("@ast-grep/cli" in packageJson.devDependencies) ||
+		typeof packageJson.devDependencies["@ast-grep/cli"] !== "string"
+	) {
+		throw new Error("root package.json pins no @ast-grep/cli version");
+	}
+	return packageJson.devDependencies["@ast-grep/cli"];
+}

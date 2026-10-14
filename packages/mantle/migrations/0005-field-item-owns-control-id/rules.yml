@@ -1,27 +1,118 @@
+# Every rule binds $FIELD to the local name of the `Field` import from
+# `@ngrok/mantle/field`, so an aliased import matches and another library's
+# `Field` does not.
 id: field-label-drop-html-for
 language: tsx
 message: Field.Label no longer takes htmlFor; Field.Item owns the control id
+utils:
+  field-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/field["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^Field$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $FIELD
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $FIELD
+  label-name:
+    kind: member_expression
+    all:
+      - has:
+          field: object
+          pattern: $FIELD
+      - has:
+          field: property
+          regex: ^Label$
 rule:
   kind: jsx_attribute
-  regex: ^htmlFor\b
+  has:
+    kind: property_identifier
+    regex: ^htmlFor$
   inside:
-    kind: jsx_opening_element
-    has:
-      field: name
-      regex: ^Field\.Label$
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    all:
+      - has:
+          field: name
+          matches: label-name
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: field-import
 fix: ""
 ---
 id: field-control-drop-id
 language: tsx
 message: Field.Control no longer takes id; Field.Item owns the control id
+utils:
+  field-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/field["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^Field$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $FIELD
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $FIELD
+  control-name:
+    kind: member_expression
+    all:
+      - has:
+          field: object
+          pattern: $FIELD
+      - has:
+          field: property
+          regex: ^Control$
 rule:
   kind: jsx_attribute
-  regex: ^id\b
+  has:
+    kind: property_identifier
+    regex: ^id$
   inside:
     any:
       - kind: jsx_opening_element
       - kind: jsx_self_closing_element
-    has:
-      field: name
-      regex: ^Field\.Control$
+    all:
+      - has:
+          field: name
+          matches: control-name
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: field-import
 fix: ""
