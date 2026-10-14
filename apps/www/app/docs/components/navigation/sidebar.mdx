@@ -1683,16 +1683,17 @@ common ancestor of the sidebar and the app-layout header rather than on the pane
 
 ### Sidebar.Trigger
 
-An [IconButton](/components/actions/icon-button) wired to toggle the sidebar. All `IconButton` props except
-`asChild` and `children`, with sidebar defaults:
+A small ghost [IconButton](/components/actions/icon-button) wired to toggle the sidebar. All `IconButton` props
+except `asChild` and `children`, with sidebar defaults:
 
-| Prop          | Type                                | Default                 | Description                                                                                                                                                                                                                     |
-| ------------- | ----------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `appearance?` | `"filled" \| "ghost" \| "outlined"` | `"ghost"`               | The visual style of the trigger.                                                                                                                                                                                                |
-| `icon?`       | `ReactNode`                         | `<SidebarSimpleIcon />` | The icon rendered inside the trigger.                                                                                                                                                                                           |
-| `intent?`     | `"neutral"`                         | `"neutral"`             | The color intent of the trigger. `IconButton` draws the neutral tone only.                                                                                                                                                      |
-| `label?`      | `string`                            | `"Toggle Sidebar"`      | Accessible name, and what the tooltip says; override for localization.                                                                                                                                                          |
-| `shortcut?`   | `ReactNode`                         | —                       | Chord chips rendered after the label in the tooltip — usually `<><MetaKey /><Kbd>B</Kbd></>`. Dropped under `Sidebar.Root keyboardShortcut={false}`, and `aria-hidden` because `aria-keyshortcuts` already announces the chord. |
+| Prop          | Type                                   | Default                 | Description                                                                                                                                                                                                                     |
+| ------------- | -------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `appearance?` | `"filled" \| "ghost" \| "outlined"`    | `"ghost"`               | The visual style of the trigger.                                                                                                                                                                                                |
+| `icon?`       | `ReactNode`                            | `<SidebarSimpleIcon />` | The icon rendered inside the trigger.                                                                                                                                                                                           |
+| `intent?`     | `"neutral"`                            | `"neutral"`             | The color intent of the trigger. `IconButton` draws the neutral tone only.                                                                                                                                                      |
+| `label?`      | `string`                               | `"Toggle Sidebar"`      | Accessible name, and what the tooltip says; override for localization.                                                                                                                                                          |
+| `shortcut?`   | `ReactNode`                            | —                       | Chord chips rendered after the label in the tooltip — usually `<><MetaKey /><Kbd>B</Kbd></>`. Dropped under `Sidebar.Root keyboardShortcut={false}`, and `aria-hidden` because `aria-keyshortcuts` already announces the chord. |
+| `size?`       | `"xs" \| "sm" \| "md" \| "lg" \| "xl"` | `"sm"`                  | The size of the trigger. Small, so it sits level with the other `size="sm"` controls in an `AppLayout.Header` row.                                                                                                              |
 
 The button is icon-only at every breakpoint, so it always renders a tooltip showing `label`. **That means it
 requires a [`TooltipProvider`](/components/overlays/tooltip#tooltipprovider) ancestor, like any
@@ -1717,7 +1718,7 @@ after hydration reads the platform in its first render.
 | `data-slot`       | `"sidebar-tooltip-shortcut"`                       | On the chord chips. Present only while `shortcut` holds something. Carries `translate="no"`: a chord is a key name, not prose.                          |
 | `data-appearance` | `"filled"` \| `"ghost"` \| `"outlined"`            | Read, not stamped: the underlying `IconButton` reflects its `appearance`, which this part defaults to `"ghost"`.                                        |
 | `data-intent`     | `"neutral"`                                        | Read, not stamped: the underlying `IconButton` reflects its `intent`, and it draws the neutral tone only.                                               |
-| `data-size`       | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"`     | Read, not stamped: the underlying `IconButton` reflects its `size` and its own `"md"` default.                                                          |
+| `data-size`       | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"`     | Read, not stamped: the underlying `IconButton` reflects its `size`, which this part defaults to `"sm"`.                                                 |
 
 ### Sidebar.Header
 

@@ -2586,7 +2586,7 @@ All props from [aside](https://developer.mozilla.org/en-US/docs/Web/HTML/Element
 ### AppLayout.SidePanelTrigger
 
 The button that toggles the side panel, the way [`Sidebar.Trigger`](/components/navigation/sidebar#sidebartrigger)
-toggles the rail. Renders a ghost neutral [`IconButton`](/components/actions/icon-button) with
+toggles the rail. Renders a small ghost neutral [`IconButton`](/components/actions/icon-button) with
 `aria-expanded` and `aria-controls` wired to the panel's `<aside>`. Place one in `AppLayout.HeaderActions`
 to open the panel, and one more in `AppLayout.SidePanelHeader` with a close icon to close it from inside:
 when that one closes the panel, the root moves focus to the one outside.
@@ -2598,13 +2598,14 @@ your app root. It does not take `asChild`; a custom trigger composes the same st
 
 All props from [`IconButton`](/components/actions/icon-button#api-reference) except `asChild` and `children`, with these defaults:
 
-| Prop          | Type                                   | Default                          | Description                                                                          |
-| ------------- | -------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------ |
-| `appearance?` | `"filled" \| "ghost" \| "outlined"`    | `"ghost"`                        | The visual style of the trigger.                                                     |
-| `icon?`       | `ReactNode`                            | `<SidebarSimpleIcon mirrored />` | The icon rendered inside the trigger.                                                |
-| `intent?`     | `"neutral"`                            | `"neutral"`                      | The color intent of the trigger.                                                     |
-| `label?`      | `string`                               | `"Toggle side panel"`            | The accessible name, also shown in the tooltip.                                      |
-| `onClick?`    | `MouseEventHandler<HTMLButtonElement>` | —                                | Runs before the toggle. Call `event.preventDefault()` to keep the panel where it is. |
+| Prop          | Type                                   | Default                          | Description                                                                                                        |
+| ------------- | -------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `appearance?` | `"filled" \| "ghost" \| "outlined"`    | `"ghost"`                        | The visual style of the trigger.                                                                                   |
+| `icon?`       | `ReactNode`                            | `<SidebarSimpleIcon mirrored />` | The icon rendered inside the trigger.                                                                              |
+| `intent?`     | `"neutral"`                            | `"neutral"`                      | The color intent of the trigger.                                                                                   |
+| `label?`      | `string`                               | `"Toggle side panel"`            | The accessible name, also shown in the tooltip.                                                                    |
+| `onClick?`    | `MouseEventHandler<HTMLButtonElement>` | —                                | Runs before the toggle. Call `event.preventDefault()` to keep the panel where it is.                               |
+| `size?`       | `"xs" \| "sm" \| "md" \| "lg" \| "xl"` | `"sm"`                           | The size of the trigger. Small, so it sits level with the other `size="sm"` controls in an `AppLayout.Header` row. |
 
 | Data Attribute     | Value                                                     | Description                                                                                                                                                                                       |
 | ------------------ | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -2613,7 +2614,7 @@ All props from [`IconButton`](/components/actions/icon-button#api-reference) exc
 | `data-slot`        | `"app-layout-side-panel-trigger-tooltip tooltip-content"` | On the tooltip surface, not the button: the styling hook for the label popup this part renders, joined ahead of `Tooltip.Content`'s own slot.                                                     |
 | `data-appearance`  | `"filled"` \| `"ghost"` \| `"outlined"`                   | Read, not stamped: the underlying `IconButton` reflects its `appearance`, which this part defaults to `"ghost"`.                                                                                  |
 | `data-intent`      | `"neutral"`                                               | Read, not stamped: the underlying `IconButton` reflects its `intent`, which this part defaults to `"neutral"`.                                                                                    |
-| `data-size`        | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"`            | Read, not stamped: the underlying `IconButton` reflects its `size` and its own `"md"` default.                                                                                                    |
+| `data-size`        | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"`            | Read, not stamped: the underlying `IconButton` reflects its `size`, which this part defaults to `"sm"`.                                                                                           |
 | `data-icon-button` | `"true"`                                                  | Read, not stamped: always present on the underlying `IconButton`.                                                                                                                                 |
 | `data-loading`     | present when `isLoading`                                  | Read, not stamped: the underlying `IconButton` stamps it by presence, never `"false"`.                                                                                                            |
 | `data-disabled`    | present when disabled                                     | Read, not stamped: the underlying `IconButton` stamps it by presence, never `"false"`, when it resolves disabled: `disabled`, `aria-disabled="true"`, or `isLoading` with no explicit `disabled`. |
