@@ -60,6 +60,12 @@ describe("cx", () => {
 	test("w-4 can be overridden by w-em", () => {
 		expect(cx("w-4 w-em")).toBe("w-em");
 	});
+
+	test("ease-out-strong can be overridden by ease-linear", () => {
+		// Why: `ease-out-strong` is mantle's own theme token, so the vendored
+		// config must list it or `cx` keeps both classes and the stylesheet order wins.
+		expect(cx("ease-out-strong ease-linear")).toBe("ease-linear");
+	});
 });
 
 describe("cx — value shapes (clsx parity)", () => {

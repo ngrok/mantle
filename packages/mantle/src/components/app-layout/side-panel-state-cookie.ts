@@ -53,7 +53,7 @@ const SIDE_PANEL_STATE_COOKIE_VALUES = {
  * });
  * ```
  *
- * @param cookieHeader - The raw `Cookie` header string from the request, or null/undefined.
+ * @param cookieHeader - The request's raw `Cookie` header.
  * @returns `true` when open, `false` when closed, `undefined` when unset, undecodable, or unparseable.
  */
 function extractSidePanelStateCookie(cookieHeader: string | null | undefined): boolean | undefined {
@@ -111,7 +111,7 @@ type SerializeSidePanelStateCookieOptions = {
 	/**
 	 * Whether to add the `Secure` attribute. Omitted by default so the same call
 	 * works on `http://localhost`, where a `Secure` cookie is silently rejected.
-	 * Set it to `true` in production if your policy requires it; this cookie
+	 * If your policy requires it, set it to `true` in production; this cookie
 	 * holds no secret, only whether a panel is open.
 	 *
 	 * @default false
@@ -140,7 +140,6 @@ type SerializeSidePanelStateCookieOptions = {
  * >
  * ```
  *
- * @param open - Whether the panel is open.
  * @param options - Cookie attributes; see {@link SerializeSidePanelStateCookieOptions}.
  * @returns A cookie string such as `mantle-side-panel-state=closed; Max-Age=31536000; Path=/; SameSite=Lax`.
  */

@@ -539,7 +539,7 @@ export function AppLayoutSidePanelDemo() {
 											</Breadcrumb.Item>
 											<Breadcrumb.Separator />
 											<Breadcrumb.Item>
-												<Breadcrumb.Page>ep_gateway_api</Breadcrumb.Page>
+												<Breadcrumb.Page translate="no">ep_gateway_api</Breadcrumb.Page>
 											</Breadcrumb.Item>
 										</Breadcrumb.List>
 									</Breadcrumb.Root>

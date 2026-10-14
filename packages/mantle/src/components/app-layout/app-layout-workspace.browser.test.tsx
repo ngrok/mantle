@@ -66,8 +66,8 @@ const STYLE = `
 	.overflow-clip { overflow: clip; }
 	.overflow-x-clip { overflow-x: clip; }
 	.border { border-style: var(--tw-border-style); border-width: 1px; }
-	.transition-\\[flex-basis\\,translate\\] {
-		transition-property: flex-basis,translate;
+	.transition-\\[flex-basis\\,translate\\,visibility\\] {
+		transition-property: flex-basis,translate,visibility;
 		transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
 		transition-duration: var(--tw-duration, var(--default-transition-duration));
 	}
@@ -124,6 +124,7 @@ const STYLE = `
 	.data-state-closed\\:pointer-events-none[data-state~=closed] { pointer-events: none; }
 	.data-state-closed\\:basis-0[data-state~=closed] { flex-basis: 0px; }
 	@media (width < 64rem) {
+		.max-lg\\:data-state-closed\\:invisible[data-state~=closed] { visibility: hidden; }
 		.max-lg\\:data-state-closed\\:translate-x-\\[calc\\(100\\%\\+var\\(--app-layout-card-gutter\\,0\\.5rem\\)\\)\\][data-state~=closed] {
 			--tw-translate-x: calc(100% + var(--app-layout-card-gutter,0.5rem));
 			translate: var(--tw-translate-x) var(--tw-translate-y);
@@ -282,6 +283,44 @@ function recordTransitions(panel: HTMLElement): string[] {
 	return transitions;
 }
 
+/**
+ * The transition in flight on the panel's box. Throws when the panel is at
+ * rest: a 200ms run ends before a click round-trip returns, so only a run a
+ * consumer `duration-*` slowed is there to catch.
+ */
+function transitionOf(panel: HTMLElement): Animation {
+	const [transition] = panel.getAnimations();
+	if (transition == null) {
+		throw new Error("No transition is in flight on the panel.");
+	}
+	return transition;
+}
+
+const subscribeToNothing = () => () => {};
+
+/**
+ * A shell whose server render says open and whose client store says closed:
+ * the shape of any storage-backed persistence, where the correction lands in
+ * the hydration commit.
+ */
+function CorrectedShell() {
+	const open = useSyncExternalStore(
+		subscribeToNothing,
+		() => false,
+		() => true,
+	);
+	return (
+		<AppLayout.Root data-testid="root" style={{ height: 400, width: 1200 }}>
+			<AppLayout.SidePanelRoot open={open}>
+				<AppLayout.Workspace>
+					<AppLayout.Content data-testid="content">page</AppLayout.Content>
+					<AppLayout.SidePanel data-testid="panel">conversation</AppLayout.SidePanel>
+				</AppLayout.Workspace>
+			</AppLayout.SidePanelRoot>
+		</AppLayout.Root>
+	);
+}
+
 describe("AppLayout.Workspace width cap", () => {
 	test("caps the row at --app-layout-max-width and centers it in the frame", async () => {
 		await page.viewport(1280, 800);
@@ -337,6 +376,33 @@ describe("AppLayout.SidePanel lane", () => {
 		// is the whole gap; a box `ml-*` would double it.
 		expect(card.left - content.right).toBe(GUTTER);
 		expect(content.width).toBe(1200 - 3 * GUTTER - OPEN_WIDTH);
+	});
+
+	test("a wider --app-layout-card-gutter widens the box, the card's end inset, and the gap to the content card", async () => {
+		// Why: the box width, the card's inset, and the panel's vertical margins
+		// each read the variable on their own, so a `0.5rem` hard-coded in any
+		// one of them passes at the default gutter.
+		await page.viewport(1280, 800);
+		const gutter = 16;
+		render(
+			<Shell
+				panel="open"
+				rootWidth={1200}
+				vars={{
+					"--app-layout-card-gutter": `${gutter}px`,
+					"--app-layout-side-panel-width": `${OPEN_WIDTH}px`,
+				}}
+			/>,
+		);
+		const panel = screen.getByTestId("panel");
+		const root = rectOf("root");
+		const content = rectOf("content");
+		const box = panel.getBoundingClientRect();
+		const card = cardOf(panel).getBoundingClientRect();
+		expect(box.width).toBe(OPEN_WIDTH + gutter);
+		expect(card.right).toBe(root.right - gutter);
+		expect(card.left - content.right).toBe(gutter);
+		expect(box.top).toBe(content.top);
 	});
 
 	test("a closed panel collapses to nothing and the content card takes the row", async () => {
@@ -423,6 +489,65 @@ describe("AppLayout.SidePanel lane", () => {
 		expect(panel.getBoundingClientRect().left).toBe(workspace.right);
 	});
 
+	test("a closed floating panel is hidden, so a capped row has no panel strip beside it", async () => {
+		// Why: the closed translation is the panel's own width past the row's end
+		// edge, and a cap narrower than the frame puts that edge inside the frame.
+		await page.viewport(900, 800);
+		render(<Shell panel="closed" vars={{ "--app-layout-max-width": "600px" }} />);
+		const panel = screen.getByTestId("panel");
+		// The premise: the slid-out panel lands inside the frame, past the reach of the frame's clip.
+		expect(panel.getBoundingClientRect().left).toBeLessThan(rectOf("root").right);
+		expect(getComputedStyle(panel).visibility).toBe("hidden");
+	});
+
+	test("a floating panel stays visible through the close slide and hides when it ends", async () => {
+		// Why: `visibility` snaps to `hidden` on the first frame unless it rides
+		// the transition, and a panel that vanishes mid-slide reads as a cut. A
+		// consumer `duration-*` slows the run, so the sample lands mid-flight.
+		await page.viewport(900, 800);
+		render(
+			<Shell
+				panel="open"
+				panelClassName="duration-[2000ms]"
+				vars={{ "--app-layout-max-width": "600px" }}
+			/>,
+		);
+		const panel = screen.getByTestId("panel");
+		await waitForHydration(panel);
+		const openLeft = panel.getBoundingClientRect().left;
+		expect(getComputedStyle(panel).visibility).toBe("visible");
+		const transitions = recordTransitions(panel);
+
+		// Why a position: the trigger stretches across the card in this bare flex
+		// column, and the open floating panel covers its center.
+		await userEvent.click(screen.getByRole("button", { name: "Toggle the assistant" }), {
+			position: { x: 8, y: 8 },
+		});
+
+		expect(panel).toHaveAttribute("data-state", "closed");
+		// Poll the position itself: the run starts on the next frame, not in the click.
+		await waitFor(() => {
+			expect(panel.getBoundingClientRect().left).toBeGreaterThan(openLeft);
+		});
+		expect(getComputedStyle(panel).visibility).toBe("visible");
+		await waitFor(() => {
+			expect(transitions).toContain("visibility");
+		});
+		// Why drop the basis: `data-state-closed:basis-0` applies at every width,
+		// and an absolutely positioned box ignores `flex-basis`, so its run moves
+		// nothing. A third property (a margin, say) moves the floating card's anchor mid-flight.
+		expect(transitions.filter((property) => property !== "flex-basis").toSorted()).toEqual([
+			"translate",
+			"visibility",
+		]);
+		await waitFor(
+			() => {
+				expect(getComputedStyle(panel).visibility).toBe("hidden");
+			},
+			{ timeout: 3000 },
+		);
+	});
+
 	test.each([
 		["sm", 700],
 		["md", 800],
@@ -463,36 +588,38 @@ describe("AppLayout.SidePanel lane", () => {
 	test("reverses mid-flight when the user toggles again", async () => {
 		// Why: a CSS transition starts from the current computed value, so a
 		// second click turns the panel around instead of waiting for the first
-		// run to finish. A consumer `duration-*` slows the run, so the sample
-		// lands mid-flight instead of racing a 200ms transition.
+		// run to finish. The Web Animations API holds the close at one width and
+		// scrubs the reversal back to its first frame, so no read depends on how
+		// long a click round-trip takes.
 		await page.viewport(1280, 800);
 		const panel = renderLane("open", "duration-[2000ms]");
 		await waitForHydration(panel);
 		const trigger = screen.getByRole("button", { name: "Toggle the assistant" });
 
 		await userEvent.click(trigger);
-		// Poll the width itself: the run starts on the next frame, not in the click.
-		await waitFor(() => {
-			expect(panel.getBoundingClientRect().width).toBeLessThan(OPEN_WIDTH + GUTTER);
-		});
+		expect(panel).toHaveAttribute("data-state", "closed");
+		const close = transitionOf(panel);
+		close.pause();
+		// Why a quarter in: a reversal runs for the share of the duration the
+		// close eased through, so a later hold leaves more of it to catch after
+		// the second click returns.
+		close.currentTime = 500;
 		const midFlight = panel.getBoundingClientRect().width;
 		expect(midFlight).toBeGreaterThan(0);
+		expect(midFlight).toBeLessThan(OPEN_WIDTH + GUTTER);
 
-		// Why the keyboard: the trigger moves while the card resizes, and a pointer
-		// click waits for it to hold still, which is after the run. The click left
-		// focus on the trigger, so Enter toggles it mid-flight.
-		expect(trigger).toHaveFocus();
-		await userEvent.keyboard("{Enter}");
+		// The held run keeps the trigger still, so a pointer click lands mid-flight.
+		await userEvent.click(trigger);
 		expect(panel).toHaveAttribute("data-state", "open");
-		// The reversal starts from where the close got to, not from zero: the
-		// keypress's own latency lets the run move a few pixels, nothing more.
-		expect(panel.getBoundingClientRect().width).toBeGreaterThan(midFlight - 40);
-		await waitFor(
-			() => {
-				expect(panel.getBoundingClientRect().width).toBe(OPEN_WIDTH + GUTTER);
-			},
-			{ timeout: 3000 },
-		);
+		// The reversal starts from where the close got to, not from zero: its
+		// first frame is the held width, wherever the round-trip left it since.
+		const reversal = transitionOf(panel);
+		reversal.pause();
+		reversal.currentTime = 0;
+		expect(panel.getBoundingClientRect().width).toBe(midFlight);
+
+		reversal.finish();
+		expect(panel.getBoundingClientRect().width).toBe(OPEN_WIDTH + GUTTER);
 	});
 
 	test("snaps the close under reduced motion", async () => {
@@ -525,34 +652,7 @@ describe("AppLayout.SidePanel lane", () => {
 		expect(panel.getBoundingClientRect().width).toBe(0);
 		expect(transitions).toEqual([]);
 	});
-});
 
-const subscribeToNothing = () => () => {};
-
-/**
- * A shell whose server render says open and whose client store says closed:
- * the shape of any storage-backed persistence, where the correction lands in
- * the hydration commit.
- */
-function CorrectedShell() {
-	const open = useSyncExternalStore(
-		subscribeToNothing,
-		() => false,
-		() => true,
-	);
-	return (
-		<AppLayout.Root data-testid="root" style={{ height: 400, width: 1200 }}>
-			<AppLayout.SidePanelRoot open={open}>
-				<AppLayout.Workspace>
-					<AppLayout.Content data-testid="content">page</AppLayout.Content>
-					<AppLayout.SidePanel data-testid="panel">conversation</AppLayout.SidePanel>
-				</AppLayout.Workspace>
-			</AppLayout.SidePanelRoot>
-		</AppLayout.Root>
-	);
-}
-
-describe("AppLayout.SidePanel hydration gate", () => {
 	test("snaps a post-hydration correction into place with no transition", async () => {
 		await page.viewport(1280, 800);
 		container = document.createElement("div");

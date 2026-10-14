@@ -64,6 +64,19 @@ describe("Sidebar.Nav (desktop)", () => {
 		expect(screen.queryByRole("navigation", { name: "Main" })).not.toBeInTheDocument();
 	});
 
+	test("aria-labelledby names the nav and drops the default aria-label", () => {
+		// Why the attribute: accname lets `aria-labelledby` win, so the resolved
+		// name alone cannot see a stale "Main" left on the element.
+		render(
+			<Sidebar.Root>
+				<span id="sidebar-name">Product areas</span>
+				<Sidebar.Nav aria-labelledby="sidebar-name" />
+			</Sidebar.Root>,
+		);
+		const nav = screen.getByRole("navigation", { name: "Product areas" });
+		expect(nav).not.toHaveAttribute("aria-label");
+	});
+
 	test("renders the panel expanded by default", () => {
 		render(
 			<Sidebar.Root>
@@ -139,6 +152,26 @@ describe("Sidebar.Nav (desktop)", () => {
 		expect(trigger).toHaveAttribute("aria-controls", nav.id);
 	});
 
+	test("Trigger's aria-expanded and data-state mirror the mobile sheet, not the desktop panel", async () => {
+		// The desktop `open` stays true throughout, so a trigger that read it
+		// would announce an expanded sheet that is closed.
+		const user = userEvent.setup();
+		useIsBelowBreakpointMock.mockReturnValue(true);
+		render(
+			<Sidebar.Root defaultOpen>
+				<Sidebar.Nav />
+				<Sidebar.Trigger />
+			</Sidebar.Root>,
+		);
+		const trigger = screen.getByRole("button", { name: "Toggle Sidebar" });
+		expect(trigger).toHaveAttribute("aria-expanded", "false");
+		expect(trigger).toHaveAttribute("data-state", "collapsed");
+
+		await user.click(trigger);
+		expect(trigger).toHaveAttribute("aria-expanded", "true");
+		expect(trigger).toHaveAttribute("data-state", "expanded");
+	});
+
 	test("controlled open reports changes through onOpenChange without flipping itself", async () => {
 		const user = userEvent.setup();
 		const onOpenChange = vi.fn<(open: boolean) => void>();
@@ -152,6 +185,22 @@ describe("Sidebar.Nav (desktop)", () => {
 		expect(onOpenChange).toHaveBeenCalledExactlyOnceWith(false);
 		// controlled: the parent did not update `open`, so the panel stays expanded
 		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "expanded");
+	});
+
+	test("uncontrolled defaultOpen reports a toggle through onOpenChange and flips itself", async () => {
+		// The cookie recipe pairs `defaultOpen` with `onOpenChange`, so a toggle
+		// that skipped the callback while uncontrolled would stop persisting.
+		const user = userEvent.setup();
+		const onOpenChange = vi.fn<(open: boolean) => void>();
+		render(
+			<Sidebar.Root defaultOpen onOpenChange={onOpenChange}>
+				<Sidebar.Nav data-testid="nav" />
+				<Sidebar.Trigger />
+			</Sidebar.Root>,
+		);
+		await user.click(screen.getByRole("button", { name: "Toggle Sidebar" }));
+		expect(onOpenChange).toHaveBeenCalledExactlyOnceWith(false);
+		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "collapsed");
 	});
 
 	test("Trigger respects event.defaultPrevented from the consumer onClick", async () => {
@@ -168,7 +217,7 @@ describe("Sidebar.Nav (desktop)", () => {
 		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "expanded");
 	});
 
-	test("Ctrl+B toggles the sidebar and Ctrl+Shift+B passes through", async () => {
+	test("Ctrl+B toggles the sidebar; Ctrl+Shift+B and Ctrl+Alt+B pass through", async () => {
 		const user = userEvent.setup();
 		render(
 			<Sidebar.Root>
@@ -183,6 +232,10 @@ describe("Sidebar.Nav (desktop)", () => {
 
 		// Shift combinations (e.g. the browser's own Ctrl+Shift+B) are left alone
 		await user.keyboard("{Control>}{Shift>}b{/Shift}{/Control}");
+		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "expanded");
+
+		// The handler passes Alt combinations through too: Ctrl+Alt is AltGr on many layouts.
+		await user.keyboard("{Control>}{Alt>}b{/Alt}{/Control}");
 		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "expanded");
 	});
 
@@ -244,8 +297,30 @@ describe("Sidebar.Nav (desktop)", () => {
 		await user.hover(screen.getByRole("button", { name: "Toggle Sidebar" }));
 
 		const tooltip = await screen.findByRole("tooltip");
-		expect(tooltip).toHaveTextContent("Toggle Sidebar");
-		expect(tooltip).toHaveTextContent("B");
+		expect(tooltip).toHaveAttribute("data-slot", "sidebar-trigger-tooltip");
+		const row = tooltip.querySelector('[data-slot="sidebar-tooltip-row"]');
+		expect(row).toHaveTextContent("Toggle Sidebar");
+		expect(row).toHaveTextContent("B");
+	});
+
+	test("Trigger's tooltip marks the chord untranslatable", async () => {
+		// A raw `<kbd>` carries no `translate` of its own, so a translated chord
+		// names the wrong key.
+		const user = userEvent.setup();
+		render(
+			<Sidebar.Root>
+				<Sidebar.Nav />
+				<Sidebar.Trigger shortcut={<kbd>B</kbd>} />
+			</Sidebar.Root>,
+		);
+
+		await user.hover(screen.getByRole("button", { name: "Toggle Sidebar" }));
+
+		const tooltip = await screen.findByRole("tooltip");
+		expect(tooltip.querySelector('[data-slot~="sidebar-tooltip-shortcut"]')).toHaveAttribute(
+			"translate",
+			"no",
+		);
 	});
 
 	test("Trigger's tooltip drops the shortcut when the root does not own it", async () => {
@@ -722,6 +797,9 @@ describe("Sidebar.Nav (mobile)", () => {
 		const sheet = screen.getByRole("dialog", { name: "Main" });
 		expect(sheet).toHaveAttribute("data-slot", "sidebar-nav");
 		expect(sheet).toHaveAttribute("data-mobile");
+		// Radix owns the value: the sheet's content element is the panel, so a
+		// mantle `data-state` stamped after the spread would clobber it.
+		expect(sheet).toHaveAttribute("data-state", "open");
 		expect(screen.getByRole("navigation", { name: "Main" })).toHaveTextContent("content");
 	});
 
@@ -1027,6 +1105,22 @@ describe("Sidebar.SearchTrigger", () => {
 		const hint = button.querySelector('[data-slot="sidebar-search-trigger-shortcut"]');
 		expect(hint).toHaveAttribute("aria-hidden", "true");
 		expect(hint).toHaveTextContent("K");
+	});
+
+	test("marks the chord hint untranslatable", () => {
+		// A raw `<kbd>` carries no `translate` of its own, so a translated chord
+		// names the wrong key.
+		render(
+			<Sidebar.SearchTrigger shortcut={<kbd>K</kbd>}>
+				<MagnifyingGlassIcon />
+				<span>Search</span>
+			</Sidebar.SearchTrigger>,
+		);
+		expect(
+			screen
+				.getByRole("button", { name: "Search" })
+				.querySelector('[data-slot~="sidebar-search-trigger-shortcut"]'),
+		).toHaveAttribute("translate", "no");
 	});
 
 	test("keeps the hint span mounted and empty when no shortcut is passed", () => {
@@ -1524,6 +1618,9 @@ describe("Sidebar.Tooltip", () => {
 		expect(tooltip).toHaveAttribute("data-flavor", "primary");
 		// ancestors first, this row's slot name last
 		expect(tooltip).toHaveAttribute("data-slot", "outer sidebar-tooltip");
+		expect(tooltip.querySelector('[data-slot="sidebar-tooltip-row"]')).toHaveTextContent(
+			"Endpoints",
+		);
 		expect(ref.current).toBe(tooltip);
 	});
 
@@ -1620,6 +1717,8 @@ describe("Sidebar.Tooltip", () => {
 void (<Sidebar.Tooltip label="Endpoints" />);
 // @ts-expect-error -- children must be a single element, not text
 void (<Sidebar.Tooltip label="Endpoints">Endpoints</Sidebar.Tooltip>);
+// @ts-expect-error -- asChild needs a child to clone
+void (<Sidebar.Separator asChild />);
 
 /**
  * The props every part is probed with: a `className` that must land on the
@@ -1808,11 +1907,10 @@ const defaultElementCases: Array<PartCase> = [
 /**
  * Every part that takes `asChild`, each swapping in a tag its default is not, so
  * the assertion proves the child rendered rather than the part's own element.
- * `Sidebar.Nav` and `Sidebar.Trigger` are absent on purpose — both document why
- * they take no `asChild` — and `Sidebar.Tooltip` forwards `asChild` to Radix's
- * `Tooltip.Content` rather than mantle's `Slot`.
- */
-/**
+ * `Sidebar.Nav` and `Sidebar.Trigger` are absent on purpose: both document why
+ * they take no `asChild`. `Sidebar.Tooltip` is absent too: its props are
+ * `Tooltip.Content`'s, which omit `asChild`.
+ *
  * Every slotted child carries `child-class`, so the `asChild` row can prove the
  * merge keeps the child's class beside the consumer's. Conflicting classes are
  * `Slot`'s own test.

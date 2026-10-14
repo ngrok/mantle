@@ -31,8 +31,13 @@ const STYLE = `
 	.w-\\(--sidebar-width\\,13rem\\) { width: var(--sidebar-width, 13rem); }
 	.transition-none { transition-property: none; }
 	.w-full { width: 100%; }
+	.my-3 { margin-block: 0.75rem; }
+	.h-px { height: 1px; }
 	.px-2 { padding-inline: 0.5rem; }
+	.px-3 { padding-inline: 0.75rem; }
 	.py-1 { padding-block: 0.25rem; }
+	.pr-1\\.5 { padding-right: 0.375rem; }
+	.pl-1 { padding-left: 0.25rem; }
 	.transition-\\[width\\,padding\\,margin\\] {
 		transition-property: width,padding,margin;
 		transition-timing-function: var(--tw-ease, cubic-bezier(0.4, 0, 0.2, 1));
@@ -40,6 +45,16 @@ const STYLE = `
 	}
 	.transition-\\[width\\] {
 		transition-property: width;
+		transition-timing-function: var(--tw-ease, cubic-bezier(0.4, 0, 0.2, 1));
+		transition-duration: var(--tw-duration, 150ms);
+	}
+	.transition-\\[width\\,padding\\] {
+		transition-property: width,padding;
+		transition-timing-function: var(--tw-ease, cubic-bezier(0.4, 0, 0.2, 1));
+		transition-duration: var(--tw-duration, 150ms);
+	}
+	.transition-\\[padding\\] {
+		transition-property: padding;
 		transition-timing-function: var(--tw-ease, cubic-bezier(0.4, 0, 0.2, 1));
 		transition-duration: var(--tw-duration, 150ms);
 	}
@@ -66,8 +81,14 @@ const STYLE = `
 	.group-data-\\[state\\=collapsed\\]\\/sidebar-nav\\:w-7:is(:where(.group\\/sidebar-nav)[data-state="collapsed"] *) {
 		width: 1.75rem;
 	}
+	.group-data-\\[state\\=collapsed\\]\\/sidebar-nav\\:w-9:is(:where(.group\\/sidebar-nav)[data-state="collapsed"] *) {
+		width: 2.25rem;
+	}
 	.group-data-\\[state\\=collapsed\\]\\/sidebar-nav\\:p-1:is(:where(.group\\/sidebar-nav)[data-state="collapsed"] *) {
 		padding: 0.25rem;
+	}
+	.group-data-\\[state\\=expanded\\]\\/sidebar-nav\\:pr-1:is(:where(.group\\/sidebar-nav)[data-state="expanded"] *) {
+		padding-right: 0.25rem;
 	}
 	@media (width < 64rem) {
 		.max-lg\\:not-data-hydrated\\:hidden:not([data-hydrated]) { display: none; }
@@ -192,30 +213,51 @@ test("snaps a persisted-collapsed correction into place with no transition", asy
 });
 
 type ShellOptions = {
-	/** A consumer `className` for `Sidebar.Nav`. */
-	navClassName?: string;
+	/** A consumer `className` for `Sidebar.Body`. */
+	bodyClassName?: string;
 	/** A consumer `className` for `Sidebar.GroupLabel`. */
 	labelClassName?: string;
+	/** A consumer `className` for `Sidebar.Nav`. */
+	navClassName?: string;
 	/** A consumer `className` for `Sidebar.ItemButton`. */
 	rowClassName?: string;
+	/** A consumer `className` for `Sidebar.Separator`. */
+	separatorClassName?: string;
+	/** A consumer `className` for `Sidebar.SwitcherTrigger`. */
+	switcherClassName?: string;
 };
 
-/** Renders the panel, a group label, a row, and the trigger, then waits for the gates to release. */
+/**
+ * Renders the panel, a switcher, a group label, a row, a separator, and the
+ * trigger, then waits for the gates to release. `Sidebar.SearchTrigger` shares
+ * the row's class string, so the row stands in for it.
+ */
 async function renderExpandedShell({
+	bodyClassName,
 	labelClassName,
 	navClassName,
 	rowClassName,
+	separatorClassName,
+	switcherClassName,
 }: ShellOptions = {}): Promise<{
+	body: HTMLElement;
 	label: HTMLElement;
 	nav: HTMLElement;
 	row: HTMLElement;
+	separator: HTMLElement;
+	switcher: HTMLElement;
 }> {
 	await page.viewport(1280, 800);
 	render(
 		<TooltipProvider>
 			<Sidebar.Root>
 				<Sidebar.Nav className={navClassName} data-testid="nav">
-					<Sidebar.Body>
+					<Sidebar.Header>
+						<Sidebar.SwitcherTrigger className={switcherClassName} data-testid="switcher">
+							Acme Corp
+						</Sidebar.SwitcherTrigger>
+					</Sidebar.Header>
+					<Sidebar.Body className={bodyClassName} data-testid="body">
 						<Sidebar.Group>
 							<Sidebar.GroupLabel className={labelClassName} data-testid="label">
 								Traffic
@@ -228,6 +270,7 @@ async function renderExpandedShell({
 								</Sidebar.Item>
 							</Sidebar.List>
 						</Sidebar.Group>
+						<Sidebar.Separator className={separatorClassName} data-testid="separator" />
 					</Sidebar.Body>
 				</Sidebar.Nav>
 				<Sidebar.Trigger />
@@ -240,7 +283,14 @@ async function renderExpandedShell({
 	});
 	// Why read the width: only a painted width can be the start value of a transition.
 	expect(getComputedStyle(nav).width).toBe("208px");
-	return { label: screen.getByTestId("label"), nav, row: screen.getByTestId("row") };
+	return {
+		body: screen.getByTestId("body"),
+		label: screen.getByTestId("label"),
+		nav,
+		row: screen.getByTestId("row"),
+		separator: screen.getByTestId("separator"),
+		switcher: screen.getByTestId("switcher"),
+	};
 }
 
 /**
@@ -264,8 +314,8 @@ test("animates a collapse the user triggers after hydration", async () => {
 	await userEvent.click(screen.getByRole("button", { name: "Toggle Sidebar" }));
 
 	expect(nav).toHaveAttribute("data-state", "collapsed");
-	// Why the row: it trades the row shape for the chip on the rail's clock, or
-	// it takes the chip shape on the first frame and the rail catches up to it.
+	// Why every part: each trades its expanded shape for the rail's on the rail's
+	// clock, or it takes the rail shape on the first frame and the rail catches up.
 	await waitFor(() => {
 		expect(transitions).toEqual(
 			expect.arrayContaining([
@@ -274,6 +324,11 @@ test("animates a collapse the user triggers after hydration", async () => {
 				"sidebar-item-button:width",
 				"sidebar-item-button:padding-left",
 				"sidebar-item-button:margin-left",
+				"sidebar-switcher-trigger:width",
+				// The switcher's `pl-1` and its collapsed `p-1` agree, so only the trailing side moves.
+				"sidebar-switcher-trigger:padding-right",
+				"sidebar-separator:width",
+				"sidebar-body:padding-right",
 			]),
 		);
 	});
@@ -282,7 +337,7 @@ test("animates a collapse the user triggers after hydration", async () => {
 test("snaps a collapse the user triggers under reduced motion", async () => {
 	await commands.emulateMedia({ reducedMotion: "reduce" });
 	expect(window.matchMedia("(prefers-reduced-motion: reduce)").matches).toBe(true);
-	const { label, nav, row } = await renderExpandedShell();
+	const { body, label, nav, row, separator, switcher } = await renderExpandedShell();
 	const transitions = recordTransitions(nav);
 
 	await userEvent.click(screen.getByRole("button", { name: "Toggle Sidebar" }));
@@ -291,16 +346,22 @@ test("snaps a collapse the user triggers under reduced motion", async () => {
 	expect(getComputedStyle(nav).width).toBe("52px");
 	expect(getComputedStyle(label).opacity).toBe("0");
 	expect(getComputedStyle(row).width).toBe("28px");
+	expect(getComputedStyle(switcher).width).toBe("36px");
+	expect(getComputedStyle(separator).width).toBe("36px");
+	expect(getComputedStyle(body).paddingRight).toBe("12px");
 	expect(transitions).toEqual([]);
 });
 
 test("lets a consumer transition-none replace the default transition", async () => {
 	// Why: the default and the consumer utility share one tailwind-merge group, so
 	// only the last one in `cx` reaches the element and the cascade never decides.
-	const { label, nav, row } = await renderExpandedShell({
+	const { body, label, nav, row, separator, switcher } = await renderExpandedShell({
+		bodyClassName: "transition-none",
 		labelClassName: "transition-none",
 		navClassName: "transition-none",
 		rowClassName: "transition-none",
+		separatorClassName: "transition-none",
+		switcherClassName: "transition-none",
 	});
 	const transitions = recordTransitions(nav);
 
@@ -310,5 +371,8 @@ test("lets a consumer transition-none replace the default transition", async () 
 	expect(getComputedStyle(nav).width).toBe("52px");
 	expect(getComputedStyle(label).opacity).toBe("0");
 	expect(getComputedStyle(row).width).toBe("28px");
+	expect(getComputedStyle(switcher).width).toBe("36px");
+	expect(getComputedStyle(separator).width).toBe("36px");
+	expect(getComputedStyle(body).paddingRight).toBe("12px");
 	expect(transitions).toEqual([]);
 });

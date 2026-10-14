@@ -1,5 +1,5 @@
 /**
- * Re-exports for the Sidebar compound component — a composable, collapsible
+ * Re-exports for the Sidebar compound component: a composable, collapsible
  * app-navigation sidebar with a desktop panel that collapses to an icon rail,
  * a mobile `Sheet` presentation, and a toggle trigger that composes into any
  * app shell.

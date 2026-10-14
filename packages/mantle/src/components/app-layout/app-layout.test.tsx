@@ -1,10 +1,12 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { createRef } from "react";
+import type { ComponentProps, FocusEventHandler } from "react";
+import { createRef, useEffect, useState } from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
 import { Sidebar } from "../sidebar/sidebar.js";
 import { TooltipProvider } from "../tooltip/index.js";
+import type { AppLayoutSidePanelState } from "./app-layout.js";
 import { AppLayout, useSidePanel } from "./app-layout.js";
 
 describe("AppLayout.Root", () => {
@@ -517,6 +519,22 @@ describe("AppLayout.Header slots", () => {
 });
 
 describe("AppLayout.SidePanel", () => {
+	/**
+	 * A controlled shell with one control inside the panel and two outside it, so
+	 * a test can place focus on either side and then close from the parent.
+	 */
+	const controlledShell = (open: boolean) => (
+		<TooltipProvider>
+			<AppLayout.SidePanelRoot open={open}>
+				<button type="button">search</button>
+				<AppLayout.SidePanelTrigger label="Toggle the assistant" />
+				<AppLayout.SidePanel data-testid="panel">
+					<button type="button">send</button>
+				</AppLayout.SidePanel>
+			</AppLayout.SidePanelRoot>
+		</TooltipProvider>
+	);
+
 	test("renders an aside stamped data-slot app-layout-side-panel with the root's id and its children", () => {
 		render(
 			<AppLayout.SidePanelRoot defaultOpen>
@@ -538,11 +556,12 @@ describe("AppLayout.SidePanel", () => {
 		);
 	});
 
-	test("starts closed and inert, and the trigger opens and closes it", async () => {
+	test("starts closed and inert, and the trigger opens and closes it and reports each state to onOpenChange", async () => {
 		const user = userEvent.setup();
+		const onOpenChange = vi.fn<(open: boolean) => void>();
 		render(
 			<TooltipProvider>
-				<AppLayout.SidePanelRoot>
+				<AppLayout.SidePanelRoot onOpenChange={onOpenChange}>
 					<AppLayout.SidePanelTrigger />
 					<AppLayout.SidePanel data-testid="panel">conversation</AppLayout.SidePanel>
 				</AppLayout.SidePanelRoot>
@@ -560,11 +579,15 @@ describe("AppLayout.SidePanel", () => {
 		expect(trigger).toHaveAttribute("data-state", "open");
 		expect(panel).toHaveAttribute("data-state", "open");
 		expect(panel).not.toHaveAttribute("inert");
+		// Why assert the uncontrolled call: the cookie recipe writes from it.
+		expect(onOpenChange).toHaveBeenNthCalledWith(1, true);
 
 		await user.click(trigger);
 		expect(trigger).toHaveAttribute("aria-expanded", "false");
 		expect(panel).toHaveAttribute("data-state", "closed");
 		expect(panel).toHaveAttribute("inert");
+		expect(onOpenChange).toHaveBeenNthCalledWith(2, false);
+		expect(onOpenChange).toHaveBeenCalledTimes(2);
 		// Still mounted: the closed panel keeps its children's state.
 		expect(panel).toHaveTextContent("conversation");
 	});
@@ -641,14 +664,121 @@ describe("AppLayout.SidePanel", () => {
 		expect(trigger).toHaveAttribute("data-appearance", "ghost");
 		expect(trigger).toHaveAttribute("data-intent", "neutral");
 		await user.hover(trigger);
-		expect(await screen.findByRole("tooltip")).toHaveTextContent("Toggle the assistant");
+		const tooltip = await screen.findByRole("tooltip");
+		expect(tooltip).toHaveTextContent("Toggle the assistant");
+		// Why the slot: it is the documented styling hook for the label popup.
+		expect(tooltip).toHaveAttribute("data-slot", "app-layout-side-panel-trigger-tooltip");
+	});
+
+	test("the trigger forwards className, a ref, and arbitrary data-* to the rendered button", () => {
+		const ref = createRef<HTMLButtonElement>();
+		render(
+			<TooltipProvider>
+				<AppLayout.SidePanelRoot>
+					<AppLayout.SidePanelTrigger
+						className="consumer-trigger"
+						data-flavor="assistant"
+						label="Toggle the assistant"
+						ref={ref}
+					/>
+					<AppLayout.SidePanel>conversation</AppLayout.SidePanel>
+				</AppLayout.SidePanelRoot>
+			</TooltipProvider>,
+		);
+		const trigger = screen.getByRole("button", { name: "Toggle the assistant" });
+		expect(trigger.className).toContain("consumer-trigger");
+		expect(trigger).toHaveAttribute("data-flavor", "assistant");
+		expect(ref.current).toBe(trigger);
+	});
+
+	test("the trigger joins an ancestor-provided data-slot ahead of its own", () => {
+		render(
+			<TooltipProvider>
+				<AppLayout.SidePanelRoot>
+					<AppLayout.SidePanelTrigger data-slot="app-shell" label="Toggle the assistant" />
+					<AppLayout.SidePanel>conversation</AppLayout.SidePanel>
+				</AppLayout.SidePanelRoot>
+			</TooltipProvider>,
+		);
+		expect(screen.getByRole("button", { name: "Toggle the assistant" })).toHaveAttribute(
+			"data-slot",
+			"app-shell app-layout-side-panel-trigger",
+		);
+	});
+
+	test("a custom icon and appearance replace the trigger's defaults", () => {
+		render(
+			<TooltipProvider>
+				<AppLayout.SidePanelRoot>
+					<AppLayout.SidePanelTrigger
+						appearance="outlined"
+						icon={<svg data-testid="custom-icon" />}
+						label="Toggle the assistant"
+					/>
+					<AppLayout.SidePanel>conversation</AppLayout.SidePanel>
+				</AppLayout.SidePanelRoot>
+			</TooltipProvider>,
+		);
+		const trigger = screen.getByRole("button", { name: "Toggle the assistant" });
+		expect(trigger).toHaveAttribute("data-appearance", "outlined");
+		expect(trigger).toContainElement(screen.getByTestId("custom-icon"));
 	});
 
 	test("closing from a trigger inside the panel moves focus to the trigger outside it", async () => {
 		const user = userEvent.setup();
+		// Why the panel first: document order puts the inside trigger ahead, so
+		// only the inside-the-panel guard reaches the outside one.
 		render(
 			<TooltipProvider>
 				<AppLayout.SidePanelRoot defaultOpen>
+					<AppLayout.SidePanel data-testid="panel">
+						<AppLayout.SidePanelHeader>
+							<AppLayout.SidePanelTrigger label="Close the assistant" />
+						</AppLayout.SidePanelHeader>
+					</AppLayout.SidePanel>
+					<AppLayout.SidePanelTrigger label="Toggle the assistant" />
+				</AppLayout.SidePanelRoot>
+			</TooltipProvider>,
+		);
+		// Why: a closed panel is `inert`, so focus left inside it falls to <body>.
+		await user.click(screen.getByRole("button", { name: "Close the assistant" }));
+		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "closed");
+		expect(screen.getByRole("button", { name: "Toggle the assistant" })).toHaveFocus();
+		expect(screen.getByRole("button", { name: "Close the assistant" })).not.toHaveFocus();
+	});
+
+	test("skips a trigger outside the panel that cannot take focus and lands on the next one", async () => {
+		// Why the `hidden` attribute: a responsive header hides the desktop trigger
+		// at a narrow width. No test loads Tailwind, so a `hidden` class hides nothing here.
+		const user = userEvent.setup();
+		render(
+			<TooltipProvider>
+				<AppLayout.SidePanelRoot defaultOpen>
+					<div hidden>
+						<AppLayout.SidePanelTrigger label="Desktop toggle" />
+					</div>
+					<AppLayout.SidePanelTrigger label="Mobile toggle" />
+					<AppLayout.SidePanel data-testid="panel">
+						<AppLayout.SidePanelHeader>
+							<AppLayout.SidePanelTrigger label="Close the assistant" />
+						</AppLayout.SidePanelHeader>
+					</AppLayout.SidePanel>
+				</AppLayout.SidePanelRoot>
+			</TooltipProvider>,
+		);
+		await user.click(screen.getByRole("button", { name: "Close the assistant" }));
+		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "closed");
+		expect(screen.getByRole("button", { name: "Mobile toggle" })).toHaveFocus();
+	});
+
+	test("tries the next trigger outside the panel when the engine refuses to focus the first", async () => {
+		// Why a spy: a real engine refuses `focus()` on a `display: none` control, and
+		// happy-dom does not. The spy simulates the refusal on a visible trigger.
+		const user = userEvent.setup();
+		render(
+			<TooltipProvider>
+				<AppLayout.SidePanelRoot defaultOpen>
+					<AppLayout.SidePanelTrigger label="Refuses focus" />
 					<AppLayout.SidePanelTrigger label="Toggle the assistant" />
 					<AppLayout.SidePanel data-testid="panel">
 						<AppLayout.SidePanelHeader>
@@ -658,27 +788,103 @@ describe("AppLayout.SidePanel", () => {
 				</AppLayout.SidePanelRoot>
 			</TooltipProvider>,
 		);
-		// Why: a closed panel is `inert`, so focus left inside it falls to <body>.
+		const refusing = screen.getByRole("button", { name: "Refuses focus" });
+		const refusedFocus = vi.spyOn(refusing, "focus").mockImplementation(() => {});
 		await user.click(screen.getByRole("button", { name: "Close the assistant" }));
-		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "closed");
+		expect(refusedFocus).toHaveBeenCalledTimes(1);
 		expect(screen.getByRole("button", { name: "Toggle the assistant" })).toHaveFocus();
 	});
 
-	test("closing from the trigger outside the panel leaves focus where it is", async () => {
+	test("closing with no focus history inside the panel leaves focus where it is", async () => {
 		const user = userEvent.setup();
+		// Why not a trigger: the trigger is the element a focus return lands on,
+		// so closing from it cannot tell a return from no move at all.
+		// Why blur: a shortcut or a toolbar action can close the panel while
+		// nothing holds focus, and focus that was never inside must not move.
+		function Dismiss() {
+			const { setOpen } = useSidePanel();
+			return (
+				<button
+					type="button"
+					onClick={(event) => {
+						event.currentTarget.blur();
+						setOpen(false);
+					}}
+				>
+					dismiss
+				</button>
+			);
+		}
 		render(
 			<TooltipProvider>
 				<AppLayout.SidePanelRoot defaultOpen>
-					<button type="button">before</button>
+					<Dismiss />
 					<AppLayout.SidePanelTrigger label="Toggle the assistant" />
 					<AppLayout.SidePanel data-testid="panel">conversation</AppLayout.SidePanel>
 				</AppLayout.SidePanelRoot>
 			</TooltipProvider>,
 		);
-		const trigger = screen.getByRole("button", { name: "Toggle the assistant" });
-		await user.click(trigger);
+		await user.click(screen.getByRole("button", { name: "dismiss" }));
 		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "closed");
-		expect(trigger).toHaveFocus();
+		expect(document.body).toHaveFocus();
+		expect(screen.getByRole("button", { name: "Toggle the assistant" })).not.toHaveFocus();
+	});
+
+	test("a controlled close with focus inside the panel moves focus to the trigger outside it", async () => {
+		const user = userEvent.setup();
+		const { rerender } = render(controlledShell(true));
+		await user.click(screen.getByRole("button", { name: "send" }));
+		// Why rerender: the parent flips `open` itself (a shortcut, a route effect,
+		// a cross-tab sync), so no trigger click and no `setOpen` call precedes the close.
+		rerender(controlledShell(false));
+		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "closed");
+		expect(screen.getByRole("button", { name: "Toggle the assistant" })).toHaveFocus();
+	});
+
+	test("a controlled close after focus fell from the panel to the document moves focus to the trigger outside it", async () => {
+		const user = userEvent.setup();
+		const { rerender } = render(controlledShell(true));
+		const send = screen.getByRole("button", { name: "send" });
+		await user.click(send);
+		// Why blur: a control the panel loses (disabled mid-save, removed, the
+		// `inert` fixup) drops focus to `<body>` with no `relatedTarget`. happy-dom
+		// applies no `inert` fixup, so the test drops it by hand.
+		send.blur();
+		expect(document.body).toHaveFocus();
+		rerender(controlledShell(false));
+		expect(screen.getByRole("button", { name: "Toggle the assistant" })).toHaveFocus();
+	});
+
+	test("a controlled close after focus landed outside the panel leaves it there", async () => {
+		const user = userEvent.setup();
+		const { rerender } = render(controlledShell(true));
+		const send = screen.getByRole("button", { name: "send" });
+		await user.click(send);
+		send.blur();
+		// Why blur first: focus returns from `<body>` to the page with no `focusout`
+		// from the panel, so the tracker still names "send" when the panel closes.
+		const search = screen.getByRole("button", { name: "search" });
+		await user.click(search);
+		rerender(controlledShell(false));
+		expect(search).toHaveFocus();
+	});
+
+	test("composes a consumer onFocus and onBlur on the panel", async () => {
+		const user = userEvent.setup();
+		const onFocus = vi.fn<FocusEventHandler<HTMLElement>>();
+		const onBlur = vi.fn<FocusEventHandler<HTMLElement>>();
+		render(
+			<AppLayout.SidePanelRoot defaultOpen>
+				<button type="button">search</button>
+				<AppLayout.SidePanel onBlur={onBlur} onFocus={onFocus}>
+					<button type="button">send</button>
+				</AppLayout.SidePanel>
+			</AppLayout.SidePanelRoot>,
+		);
+		await user.click(screen.getByRole("button", { name: "send" }));
+		expect(onFocus).toHaveBeenCalledTimes(1);
+		await user.click(screen.getByRole("button", { name: "search" }));
+		expect(onBlur).toHaveBeenCalledTimes(1);
 	});
 
 	test("stamps id, data-state, and inert after a wider props object", () => {
@@ -801,6 +1007,106 @@ describe("useSidePanel", () => {
 		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "open");
 		await user.click(screen.getByRole("button", { name: "dismiss" }));
 		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "closed");
+	});
+
+	/** The trigger and the panel under the `TooltipProvider` the trigger needs. */
+	function Panel({ children, ...props }: ComponentProps<typeof AppLayout.SidePanelRoot>) {
+		return (
+			<TooltipProvider>
+				<AppLayout.SidePanelRoot {...props}>
+					{children}
+					<AppLayout.SidePanelTrigger />
+					<AppLayout.SidePanel data-testid="panel">conversation</AppLayout.SidePanel>
+				</AppLayout.SidePanelRoot>
+			</TooltipProvider>
+		);
+	}
+
+	test("a controlled panel stays open when a consumer effect lists setOpen as a dependency", async () => {
+		// Why an inline `onOpenChange`: the parent re-renders with a new callback
+		// after every open. If `setOpen` changes identity with it, the effect
+		// re-runs and closes the panel in the same flush.
+		const user = userEvent.setup();
+		function CloseOnNavigate({ pathname }: { pathname: string }) {
+			const { setOpen } = useSidePanel();
+			useEffect(() => {
+				setOpen(false);
+			}, [pathname, setOpen]);
+			return null;
+		}
+		function Page() {
+			const [open, setOpen] = useState(false);
+			return (
+				<Panel open={open} onOpenChange={(next) => setOpen(next)}>
+					<CloseOnNavigate pathname="/endpoints" />
+				</Panel>
+			);
+		}
+		render(<Page />);
+		await user.click(screen.getByRole("button", { name: "Toggle side panel" }));
+		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "open");
+	});
+
+	test("a parent rerender with a new inline onOpenChange keeps the context value's identity", () => {
+		// A `useSidePanel()` consumer skips a parent render only while the context
+		// value keeps its identity. The test catches a dropped `useMemo` around that value.
+		const values: AppLayoutSidePanelState[] = [];
+		function Probe() {
+			values.push(useSidePanel());
+			return null;
+		}
+		const { rerender } = render(
+			<AppLayout.SidePanelRoot onOpenChange={vi.fn<(open: boolean) => void>()}>
+				<Probe />
+			</AppLayout.SidePanelRoot>,
+		);
+		rerender(
+			<AppLayout.SidePanelRoot onOpenChange={vi.fn<(open: boolean) => void>()}>
+				<Probe />
+			</AppLayout.SidePanelRoot>,
+		);
+		expect(values).toHaveLength(2);
+		expect(values[1]).toBe(values[0]);
+	});
+
+	test("a rerender swaps in the latest onOpenChange before the next toggle", async () => {
+		// The test catches a ref that holds the first render's callback forever.
+		const user = userEvent.setup();
+		const first = vi.fn<(open: boolean) => void>();
+		const latest = vi.fn<(open: boolean) => void>();
+		const { rerender } = render(<Panel onOpenChange={first} />);
+		rerender(<Panel onOpenChange={latest} />);
+		await user.click(screen.getByRole("button", { name: "Toggle side panel" }));
+		expect(first).toHaveBeenCalledTimes(0);
+		expect(latest).toHaveBeenCalledExactlyOnceWith(true);
+	});
+
+	test("a consumer effect in the rerender's own commit sees the latest onOpenChange", () => {
+		// A consumer's `useEffect` runs before the root's in the same commit, so a
+		// passive write of the callback ref hands it the previous render's callback.
+		function Opener({ when }: { when: boolean }) {
+			const { setOpen } = useSidePanel();
+			useEffect(() => {
+				if (when) {
+					setOpen(true);
+				}
+			}, [when, setOpen]);
+			return null;
+		}
+		const first = vi.fn<(open: boolean) => void>();
+		const latest = vi.fn<(open: boolean) => void>();
+		const { rerender } = render(
+			<AppLayout.SidePanelRoot onOpenChange={first}>
+				<Opener when={false} />
+			</AppLayout.SidePanelRoot>,
+		);
+		rerender(
+			<AppLayout.SidePanelRoot onOpenChange={latest}>
+				<Opener when />
+			</AppLayout.SidePanelRoot>,
+		);
+		expect(first).toHaveBeenCalledTimes(0);
+		expect(latest).toHaveBeenCalledExactlyOnceWith(true);
 	});
 });
 
