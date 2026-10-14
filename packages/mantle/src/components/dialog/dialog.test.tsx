@@ -189,6 +189,34 @@ describe("Dialog.Content", () => {
 			expect(content).toHaveAccessibleDescription("Every request from the last hour.");
 		});
 	});
+
+	describe("data-slot", () => {
+		it("stamps every header part, joined where the close button wraps IconButton", async () => {
+			render(
+				<Dialog.Root defaultOpen>
+					<Dialog.Content>
+						<Dialog.Header>
+							<Dialog.Title>Request log</Dialog.Title>
+							<Dialog.Description>Every request from the last hour.</Dialog.Description>
+							<Dialog.CloseIconButton />
+						</Dialog.Header>
+					</Dialog.Content>
+				</Dialog.Root>,
+			);
+
+			const title = await screen.findByRole("heading", { name: "Request log" });
+			// `Dialog.Header` lays out its direct children by these slots, so a rename
+			// here also breaks the stack the browser test measures.
+			expect(title.dataset.slot).toBe("dialog-title");
+			expect(title.parentElement?.dataset.slot).toBe("dialog-header");
+			expect(screen.getByText("Every request from the last hour.").dataset.slot).toBe(
+				"dialog-description",
+			);
+			expect(screen.getByRole("button", { name: "Close Dialog" }).dataset.slot).toBe(
+				"dialog-close-icon-button icon-button",
+			);
+		});
+	});
 });
 
 /**

@@ -4,6 +4,7 @@ description: A window overlaid on either the primary window or another dialog wi
 ---
 
 import { Button, IconButton } from "@ngrok/mantle/button";
+import { Code } from "@ngrok/mantle/code";
 import { Dialog } from "@ngrok/mantle/dialog";
 import { Sheet } from "@ngrok/mantle/sheet";
 import { Tooltip } from "@ngrok/mantle/tooltip";
@@ -129,6 +130,159 @@ Dialog.Root
     ├── Dialog.Body
     └── Dialog.Footer
         └── Dialog.Close
+```
+
+## Header with a description
+
+`Dialog.Title` and `Dialog.Description` stack in a column inside `Dialog.Header`. Every other child shares the title's row. A long title truncates beside `Dialog.CloseIconButton`, and the description wraps under both.
+
+The first dialog pairs a short title with a long description. The second pairs a long title with a one-line description in a wider dialog. In both, the title keeps its width and the description sits under it.
+
+<Example className="flex-wrap gap-4">
+	<Dialog.Root>
+		<Dialog.Trigger asChild>
+			<Button type="button" appearance="filled" intent="neutral">
+				Decommission a runner
+			</Button>
+		</Dialog.Trigger>
+		<Dialog.Content>
+			<Dialog.Header>
+				<Dialog.Title>Request decommission?</Dialog.Title>
+				<Dialog.Description>
+					<Code>runner-ecs-us-east-1-7f3a9c</Code> drains before it leaves the pool. It keeps its
+					assigned replicas until it acknowledges the request, then the scheduler removes it.
+				</Dialog.Description>
+				<Dialog.CloseIconButton />
+			</Dialog.Header>
+			<Dialog.Body>
+				<p>
+					Queued work on this runner finishes first. New work goes to the other runners in the pool.
+				</p>
+			</Dialog.Body>
+			<Dialog.Footer>
+				<Dialog.Close asChild>
+					<Button type="button" appearance="outlined" intent="neutral">
+						Cancel
+					</Button>
+				</Dialog.Close>
+				<Dialog.Close asChild>
+					<Button type="button" appearance="filled" intent="danger">
+						Request decommission
+					</Button>
+				</Dialog.Close>
+			</Dialog.Footer>
+		</Dialog.Content>
+	</Dialog.Root>
+	<Dialog.Root>
+		<Dialog.Trigger asChild>
+			<Button type="button" appearance="outlined" intent="neutral">
+				Rotate a signing key
+			</Button>
+		</Dialog.Trigger>
+		<Dialog.Content preferredWidth="max-w-3xl">
+			<Dialog.Header>
+				<Dialog.Title>
+					Rotate the signing key for every endpoint on the staging cluster and revoke the current
+					key after the next deploy?
+				</Dialog.Title>
+				<Dialog.Description>
+					Connected clients re-authenticate on their next request.
+				</Dialog.Description>
+				<Dialog.CloseIconButton />
+			</Dialog.Header>
+			<Dialog.Body>
+				<p>The current key stays valid for one hour after the rotation.</p>
+			</Dialog.Body>
+			<Dialog.Footer>
+				<Dialog.Close asChild>
+					<Button type="button" appearance="outlined" intent="neutral">
+						Cancel
+					</Button>
+				</Dialog.Close>
+				<Dialog.Close asChild>
+					<Button type="button" appearance="filled" intent="neutral">
+						Rotate key
+					</Button>
+				</Dialog.Close>
+			</Dialog.Footer>
+		</Dialog.Content>
+	</Dialog.Root>
+</Example>
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { Code } from "@ngrok/mantle/code";
+import { Dialog } from "@ngrok/mantle/dialog";
+
+<Dialog.Root>
+	<Dialog.Trigger asChild>
+		<Button type="button" appearance="filled" intent="neutral">
+			Decommission a runner
+		</Button>
+	</Dialog.Trigger>
+	<Dialog.Content>
+		<Dialog.Header>
+			<Dialog.Title>Request decommission?</Dialog.Title>
+			<Dialog.Description>
+				<Code>runner-ecs-us-east-1-7f3a9c</Code> drains before it leaves the pool. It keeps its
+				assigned replicas until it acknowledges the request, then the scheduler removes it.
+			</Dialog.Description>
+			<Dialog.CloseIconButton />
+		</Dialog.Header>
+		<Dialog.Body>
+			<p>
+				Queued work on this runner finishes first. New work goes to the other runners in the pool.
+			</p>
+		</Dialog.Body>
+		<Dialog.Footer>
+			<Dialog.Close asChild>
+				<Button type="button" appearance="outlined" intent="neutral">
+					Cancel
+				</Button>
+			</Dialog.Close>
+			<Dialog.Close asChild>
+				<Button type="button" appearance="filled" intent="danger">
+					Request decommission
+				</Button>
+			</Dialog.Close>
+		</Dialog.Footer>
+	</Dialog.Content>
+</Dialog.Root>;
+
+<Dialog.Root>
+	<Dialog.Trigger asChild>
+		<Button type="button" appearance="outlined" intent="neutral">
+			Rotate a signing key
+		</Button>
+	</Dialog.Trigger>
+	<Dialog.Content preferredWidth="max-w-3xl">
+		<Dialog.Header>
+			<Dialog.Title>
+				Rotate the signing key for every endpoint on the staging cluster and revoke the current key
+				after the next deploy?
+			</Dialog.Title>
+			<Dialog.Description>
+				Connected clients re-authenticate on their next request.
+			</Dialog.Description>
+			<Dialog.CloseIconButton />
+		</Dialog.Header>
+		<Dialog.Body>
+			<p>The current key stays valid for one hour after the rotation.</p>
+		</Dialog.Body>
+		<Dialog.Footer>
+			<Dialog.Close asChild>
+				<Button type="button" appearance="outlined" intent="neutral">
+					Cancel
+				</Button>
+			</Dialog.Close>
+			<Dialog.Close asChild>
+				<Button type="button" appearance="filled" intent="neutral">
+					Rotate key
+				</Button>
+			</Dialog.Close>
+		</Dialog.Footer>
+	</Dialog.Content>
+</Dialog.Root>;
 ```
 
 ## Full-page dialog
@@ -643,7 +797,7 @@ The container for the dialog content. Renders on top of the overlay and is cente
 
 ### Dialog.Header
 
-Contains the header content of the dialog, including the title and close button.
+Contains the title, the description, and the close button of the dialog. `Dialog.Title` and `Dialog.Description` stack in a column. Every other child shares the title's row, so a long title truncates beside `Dialog.CloseIconButton`. See [Header with a description](#header-with-a-description).
 
 | Prop       | Type        | Default | Description                                     |
 | ---------- | ----------- | ------- | ----------------------------------------------- |

@@ -419,7 +419,13 @@ const Content = ({
 );
 
 /**
- * Contains the header content of the dialog, including the title and close button.
+ * Contains the title, the description, and the close button of the dialog.
+ * `Dialog.Title` and `Dialog.Description` stack in a column. Every other child
+ * shares the title's row, so a long title truncates beside
+ * `Dialog.CloseIconButton`.
+ *
+ * The stack keys on the `data-slot` of each direct child. If a wrapper holds
+ * the title and the description, the wrapper owns their layout.
  *
  * @see https://mantle.ngrok.com/components/overlays/dialog#dialogheader
  *
@@ -457,7 +463,11 @@ const Header = ({
 	<div
 		data-slot={joinDataSlot(dataSlot, "dialog-header")}
 		className={cx(
-			"border-dialog-muted text-strong relative flex shrink-0 items-center justify-between gap-2 border-b px-6 py-4",
+			"border-dialog-muted text-strong relative flex shrink-0 flex-wrap items-center justify-between gap-2 border-b px-6 py-4",
+			// Why `flex-1` and `order-last`: a zero flex basis keeps a long title on
+			// the close button's row. The description orders last so it wraps under both.
+			"[&>[data-slot~=dialog-title]]:flex-1",
+			"[&>[data-slot~=dialog-description]]:order-last [&>[data-slot~=dialog-description]]:basis-full",
 			"has-[.icon-button]:pr-4", // when there are actions in the header, shorten the padding
 			className,
 		)}
@@ -1044,7 +1054,13 @@ const Dialog = {
 	 */
 	Footer,
 	/**
-	 * Contains the header content of the dialog, including the title and close button.
+	 * Contains the title, the description, and the close button of the dialog.
+	 * `Dialog.Title` and `Dialog.Description` stack in a column. Every other child
+	 * shares the title's row, so a long title truncates beside
+	 * `Dialog.CloseIconButton`.
+	 *
+	 * The stack keys on the `data-slot` of each direct child. If a wrapper holds
+	 * the title and the description, the wrapper owns their layout.
 	 *
 	 * @see https://mantle.ngrok.com/components/overlays/dialog#dialogheader
 	 *
