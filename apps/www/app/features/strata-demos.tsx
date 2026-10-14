@@ -30,6 +30,7 @@ export function StrataExample() {
 					</Strata.Header>
 					<Strata.Body>
 						<RadioGroup.Root
+							aria-label="Provider scope"
 							className="grid grid-cols-1 gap-2 sm:grid-cols-2"
 							value={providerScope}
 							onChange={setProviderScope}
