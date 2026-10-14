@@ -58,7 +58,7 @@ When a candidate changeset bumps `@ngrok/mantle` `minor` and its body describes 
 - The diff must add `apps/www/app/docs/migrations/<NNNN>-<slug>-migration.mdx` and, unless that guide says `Codemod: manual:`, `packages/mantle/migrations/<NNNN>-<slug>/rules.yml` with `before.tsx` and `after.tsx`.
 - The changeset body must link `https://mantle.ngrok.com/migrations/<NNNN>-<slug>-migration`.
 
-If either is missing: **FAIL**, and point at `/scaffold-migration` and the `write-migration` skill. A `minor` for a new component or a preview promotion needs no guide; its body says `No migration: <reason>.`
+If either is missing: **FAIL**, and point at `/scaffold-migration` and the `write-migration` skill. A `minor` for a new component or a preview promotion needs no guide.
 
 ## 6. Report
 

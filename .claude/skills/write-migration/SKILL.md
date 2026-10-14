@@ -29,8 +29,7 @@ files. `/scaffold-migration` lays the files down in order; this file holds the r
 `pnpm -w run test:scripts` pins the pair: every guide carries a `## Codemod` section that names
 `pnpm -w run migrate <NNNN>` and the consumer command with the `@ast-grep/cli` version the root `package.json`
 pins, or says `manual:` with a reason, every rules directory has a guide and both
-fixtures, every codemod rewrites `before.tsx` into `after.tsx`, and every `minor` changeset links a guide or
-says `No migration:` with a reason.
+fixtures, every codemod rewrites `before.tsx` into `after.tsx`, and every guide a changeset links exists.
 
 ## Numbering
 

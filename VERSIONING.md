@@ -92,9 +92,8 @@ A breaking `minor` ships a migration guide and a codemod with the change: the gu
 `apps/www/app/docs/migrations/`, the ast-grep rules and their fixtures under `packages/mantle/migrations/`,
 and the guide's URL in the changeset. The [`write-migration`](./.claude/skills/write-migration/SKILL.md) skill
 is the standard and `/scaffold-migration` lays the files down. A guide says `Codemod: manual: <reason>.` only
-when every step is semantic. A `minor` for a new component or a preview promotion needs no guide; its
-changeset says `No migration: <reason>.` instead. `pnpm -w run test:scripts` fails a `minor` changeset that
-does neither.
+when every step is semantic. A `minor` for a new component or a preview promotion needs no guide.
+`pnpm -w run test:scripts` fails a changeset that links a guide that does not exist.
 
 ## When the bump is genuinely unclear
 
