@@ -1,7 +1,0 @@
----
-"@ngrok/mantle": minor
----
-
-`Button` and `IconButton` now stamp `data-disabled` and `data-loading` by presence alone: `data-disabled=""` while the button resolves disabled (`disabled`, `aria-disabled="true"`, or `isLoading` with no explicit `disabled`), and `data-loading=""` while `isLoading`. An enabled, idle button carries neither attribute, and `disabled={false}` keeps a loading button enabled with `data-loading` alone. Before, every button carried both with a `"true"` or `"false"` value, and mantle's `data-disabled:` variant matches the attribute's presence, so a consumer's `data-disabled:` style fired on every button.
-
-Migration: a selector on a value no longer matches: `[data-disabled="true"]`, `[data-disabled="false"]`, `[data-loading="true"]`, and `[data-loading="false"]`. Match presence instead: `[data-disabled]` and `[data-loading]`, or the `data-disabled:` variant, and `:not([data-disabled])` for the enabled state. `Sandbar.SaveButton` and `Sandbar.DiscardButton` reflect the same two attributes from the `Button` they render.
