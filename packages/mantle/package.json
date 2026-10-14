@@ -370,6 +370,11 @@
 			"types": "./dist/split-button.d.ts",
 			"import": "./dist/split-button.js"
 		},
+		"./strata": {
+			"@ngrok/src-live-types": "./src/components/strata/index.ts",
+			"types": "./dist/strata.d.ts",
+			"import": "./dist/strata.js"
+		},
 		"./switch": {
 			"@ngrok/src-live-types": "./src/components/switch/index.ts",
 			"types": "./dist/switch.d.ts",
@@ -440,7 +445,8 @@
 		"build": "NODE_OPTIONS='--max-old-space-size=16384' tsdown",
 		"clean": "rm -rf dist",
 		"prebuild": "pnpm run clean",
-		"prepack": "node ../../scripts/clean-publish-manifest.js clean",
+		"agent-artifacts": "node ./scripts/write-agent-artifacts.ts",
+		"prepack": "pnpm run agent-artifacts && node ../../scripts/clean-publish-manifest.js clean",
 		"postpack": "node ../../scripts/clean-publish-manifest.js restore",
 		"test:watch": "vitest watch",
 		"test": "vitest run",

@@ -13,12 +13,12 @@ If the user passes no argument, ask what they are looking for.
 
 The manifest lives in two places. Prefer the local one when working in this repo, fall back to the public one otherwise.
 
-- **Local (this repo):** Generate it on demand by reading `apps/www/app/components/navigation-data.ts` (the `componentsByCategory` map and `previewComponents` array plus their route lookups).
+- **Local (this repo):** Read the committed snapshot `apps/www/app/utilities/__snapshots__/components-surface.json`, or run `pnpm -F @ngrok/mantle run agent-artifacts` and read `packages/mantle/dist/agent.json` (components, hooks, and utilities in one file).
 - **Public:** `https://mantle.ngrok.com/api/components.json` — fetch with `WebFetch` if a network is available.
 
 Each manifest entry has:
 
-```jsonc
+````jsonc
 {
   "name": "Data Table",
   "slug": "components/data-display/data-table",
@@ -28,15 +28,20 @@ Each manifest entry has:
   "importPath": "@ngrok/mantle/data-table",
   "docsUrl": "https://mantle.ngrok.com/components/data-display/data-table",
   "markdownUrl": "https://mantle.ngrok.com/components/data-display/data-table.md",
-  "summary": "..."
+  "summary": "...",
+  "jsdoc": "...",
+  "examples": ["```tsx\n…\n```"],
+  "aliases": ["grid"],
+  "useWhen": "...",
+  "siblings": [{ "name": "Table", "boundary": "..." }]
 }
-```
+````
 
 ## 2. Match against the query
 
-Run a case-insensitive substring match against `name`, `slug`, and `summary`. Return up to 5 matches, ranked by:
+Run a case-insensitive substring match against `name`, `slug`, `aliases`, and `summary`. Return up to 5 matches, ranked by:
 
-1. Exact name match (e.g. query "button" matches "Button" first).
+1. Exact name or alias match (e.g. query "button" matches "Button" first, and "modal" matches "Dialog").
 2. Word-prefix name match (e.g. "data" matches "Data Table").
 3. Substring in `summary`.
 
@@ -54,7 +59,7 @@ For each match, output a concise block:
   <summary>
 ```
 
-End with a one-line suggestion if a related component is likely a better fit (e.g. for "modal" → suggest both `Dialog` and `Sheet`).
+End with the match's `useWhen` line and its `siblings`, so the user sees the boundary (e.g. `Dialog` lists `Sheet` and `AlertDialog`).
 
 ## 4. Do not fabricate
 

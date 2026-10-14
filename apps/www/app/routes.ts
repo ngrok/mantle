@@ -125,6 +125,7 @@ const docsPages = [
 	"components/structure/card",
 	"components/structure/media-object",
 	"components/structure/separator",
+	"components/structure/strata",
 	"components/structure/well",
 
 	// hooks 🪝
