@@ -490,8 +490,9 @@ const assistantStarters = [
  * moves focus back to the header's trigger. The panel keeps its children
  * mounted while closed, so a conversation survives a close and a reopen. The
  * sidebar and the panel both narrow their breakpoint to `md`, so the panel is
- * a lane at the preview's desktop width and floats over the card at its
- * tablet width. Renders as an entire framed-preview document.
+ * a lane at the preview's desktop and tablet widths (the tablet preset is
+ * exactly 48rem, the `md` boundary) and covers the card at its mobile width.
+ * Renders as an entire framed-preview document.
  */
 export function AppLayoutSidePanelDemo() {
 	return (

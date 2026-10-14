@@ -1374,6 +1374,7 @@ const defaultSidePanelTriggerIcon = <SidebarSimpleIcon mirrored />;
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
  * | `data-state` | `"open"` \| `"closed"` | Mirrors the root's open state. Pairs with `aria-expanded`. |
+ * | `data-slot` | `"app-layout-side-panel-trigger"` | On the button. |
  * | `data-slot` | `"app-layout-side-panel-trigger-tooltip"` | On the tooltip surface, not the button: the styling hook for the label popup this part renders. |
  * | `data-appearance` | `"filled"` \| `"ghost"` \| `"outlined"` | Read, not stamped: the underlying `IconButton` reflects its `appearance`, which this part defaults to `"ghost"`. |
  * | `data-intent` | `"neutral"` | Read, not stamped: the underlying `IconButton` reflects its `intent`, which this part defaults to `"neutral"`. |

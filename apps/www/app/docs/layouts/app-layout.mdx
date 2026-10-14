@@ -1101,8 +1101,10 @@ inside it (the close trigger in its header, say), the root moves focus to the fi
 panel that can take focus, so a keyboard user lands back on the control that reopens it. The return runs on
 every close, whether a trigger, `setOpen`, or a controlled parent closed the panel. A trigger that CSS hides
 at the current breakpoint, or a disabled one, cannot take focus either, so a responsive header with one
-trigger per breakpoint lands on the visible one. Open the assistant from the header, close it from its own
-header, and switch the preview to the tablet viewport to see it float over the card.
+trigger per breakpoint lands on the visible one. Open the assistant from the header and close it from its
+own header. The demo narrows both breakpoints to `md`, and the tablet preset is exactly 48rem (the `md`
+boundary), so the panel keeps its lane there. Switch the preview to the mobile viewport to see it cover the
+card.
 
 <CodeExample.Root>
 	<CodeExample.PreviewFrame example="app-layout-side-panel" title="Side panel demo" />
@@ -2293,7 +2295,9 @@ export function Shell() {
 
 Every part that renders an element accepts a `ref` prop that lands on that element and merges `className`
 through `cx` (tailwind-merge-backed, so consumer classes win). `AppLayout.SidePanelRoot` renders nothing and
-takes neither.
+takes neither. Every rendering part stamps `data-slot`: `app-layout` on the root and `app-layout-<part>` in
+kebab-case on the rest (`app-layout-side-panel-header`, `app-layout-side-panel-trigger`), joined after any
+ancestor's chain. The tables below list only the attributes a part stamps beyond that.
 
 ### AppLayout.Root
 
@@ -2605,6 +2609,7 @@ All props from [`IconButton`](/components/actions/icon-button#api-reference) exc
 | Data Attribute     | Value                                          | Description                                                                                                                 |
 | ------------------ | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
 | `data-state`       | `"open"` \| `"closed"`                         | Mirrors the root's open state. Pairs with `aria-expanded`.                                                                  |
+| `data-slot`        | `"app-layout-side-panel-trigger"`              | On the button.                                                                                                              |
 | `data-slot`        | `"app-layout-side-panel-trigger-tooltip"`      | On the tooltip surface, not the button: the styling hook for the label popup this part renders.                             |
 | `data-appearance`  | `"filled"` \| `"ghost"` \| `"outlined"`        | Read, not stamped: the underlying `IconButton` reflects its `appearance`, which this part defaults to `"ghost"`.            |
 | `data-intent`      | `"neutral"`                                    | Read, not stamped: the underlying `IconButton` reflects its `intent`, which this part defaults to `"neutral"`.              |

@@ -592,6 +592,32 @@ describe("AppLayout.SidePanel", () => {
 		expect(panel).toHaveTextContent("conversation");
 	});
 
+	test("keeps a child's state across a close and a reopen", async () => {
+		// Why an input: text content survives a remount with identical output,
+		// and a typed value does not. Catches a `{open && children}` or a key on `open`.
+		const user = userEvent.setup();
+		render(
+			<TooltipProvider>
+				<AppLayout.SidePanelRoot defaultOpen>
+					<AppLayout.SidePanelTrigger />
+					<AppLayout.SidePanel data-testid="panel">
+						<label>
+							Draft
+							<input type="text" />
+						</label>
+					</AppLayout.SidePanel>
+				</AppLayout.SidePanelRoot>
+			</TooltipProvider>,
+		);
+		await user.type(screen.getByRole("textbox", { name: "Draft" }), "hello");
+		const trigger = screen.getByRole("button", { name: "Toggle side panel" });
+		await user.click(trigger);
+		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "closed");
+		await user.click(trigger);
+		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "open");
+		expect(screen.getByRole("textbox", { name: "Draft" })).toHaveValue("hello");
+	});
+
 	test("defaultOpen starts the panel open", () => {
 		render(
 			<AppLayout.SidePanelRoot defaultOpen>
