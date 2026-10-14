@@ -16,6 +16,13 @@ type WellProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
  * or your own component, forwarding all class names, `data-*` attributes, and
  * the ref onto that child.
  *
+ * @useWhen De-emphasize a block of content relative to the surface around it.
+ *
+ * @siblings
+ * - `Card`: the content is primary and needs a raised box, a header, or a footer.
+ * - `Empty`: the block is a zero-data state; compose `Empty.Root` inside a `Well` to inset it.
+ * - `CodeBlock`: the content is code and needs highlighting and a copy button.
+ *
  * @see https://mantle.ngrok.com/components/structure/well
  *
  * @example

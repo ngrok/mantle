@@ -572,7 +572,22 @@ its sentences read.
 Components, hooks, functions, and prop types each need:
 
 1. A description of the **contract** — what it is for, what it guarantees, and which sibling component answers
-   the adjacent intent ([§1.1](#11-one-component-per-user-intent)) — not implementation commentary.
+   the adjacent intent ([§1.1](#11-one-component-per-user-intent)) — not implementation commentary. On the
+   primary export (the namespace of a compound component, else the component itself), write the boundary as
+   two tags. The agent manifest (`dist/agent.json`, `/api/components.json`) extracts them into `useWhen` and
+   `siblings`, so an agent can answer "which component" from data:
+
+   ```
+    * @useWhen Divide adjacent content without a box, in a row or in a column.
+    *
+    * @siblings
+    * - `Card`: the content needs a border on every side.
+    * - `Well`: the content needs a recessed background, not a line.
+   ```
+
+   Each `@siblings` item is ``- `Name`: when a consumer reaches for it instead.`` A malformed item fails the
+   pack step.
+
 2. A `@see` link:
    - Component or compound namespace: `https://mantle.ngrok.com/components/<category>/<component-name>`.
    - A compound part: append that part's API-reference anchor —
@@ -950,7 +965,8 @@ Run this against the diff before calling a component done. Each line is a defect
 
 **Surface**
 
-- [ ] Answers one user intent no existing component already answers; JSDoc names the sibling boundary.
+- [ ] Answers one user intent no existing component already answers; the primary export's JSDoc names the
+      sibling boundary in `@useWhen` and `@siblings` tags.
 - [ ] Nothing is public that could have stayed module-internal.
 - [ ] Outermost part is `Root`; every part name is the web-standards term for what it renders.
 - [ ] No unearned ARIA pattern word anywhere in the component or part names.

@@ -488,20 +488,3 @@ export const migrations = [
 export const migrationsNewestFirst: readonly Migration[] = migrations.toSorted(
 	(a, b) => b.number - a.number,
 );
-
-/**
- * Override map for components whose docs URL slug does not match their
- * package import subpath. For example, "Icon Button" is documented at
- * /components/actions/icon-button but is exported from `@ngrok/mantle/button`
- * (alongside `Button`). Used by the manifest builder to emit correct
- * `importPath` values in /api/components.json.
- *
- * Keys are docs routes (with leading slash). Values are the canonical
- * `@ngrok/mantle/*` import subpath where the component is actually exported.
- */
-export const componentImportPathOverrides = {
-	"/components/actions/icon-button": "@ngrok/mantle/button",
-	"/components/forms/password-input": "@ngrok/mantle/input",
-	"/components/feedback/progress-bar": "@ngrok/mantle/progress",
-	"/components/feedback/progress-donut": "@ngrok/mantle/progress",
-} as const satisfies Record<string, string>;

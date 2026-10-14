@@ -10,6 +10,14 @@ import { Example } from "~/components/example";
 
 A container used to display content in a box, resembling a physical card. Composed of several sub-components.
 
+## When to use
+
+A `Card` groups related content in a raised box, with an optional header and footer.
+
+- Prefer [`Well`](/components/structure/well) when the content is secondary and sits inset in the page, such as a code sample, a note, or a read-only summary.
+- Prefer [`Separator`](/components/structure/separator) when adjacent content needs a divider and no box.
+- Prefer [`MediaObject`](/components/structure/media-object) when an icon or a figure sits beside a block of text, with no border.
+
 <Example className="flex-col gap-4">
 	<Card.Root>
 		<Card.Body>

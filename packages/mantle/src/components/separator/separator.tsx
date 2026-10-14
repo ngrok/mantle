@@ -108,6 +108,13 @@ type SeparatorProps = ComponentProps<"div"> &
  * | `data-orientation` | `"horizontal"` \| `"vertical"` | The resolved orientation, after a `HorizontalSeparatorGroup` wins. |
  * | `data-separator`   | present                        | Presence-only. Lets a group exempt separators from `shrink-0`.     |
  *
+ * @useWhen Divide adjacent content without a box, in a row or in a column.
+ *
+ * @siblings
+ * - `Card`: the content needs a border on every side.
+ * - `Well`: the content needs a recessed background, not a line.
+ * - `DescriptionList`: the content is key and value pairs, which carry their own rows.
+ *
  * @see https://mantle.ngrok.com/components/structure/separator
  *
  * @example

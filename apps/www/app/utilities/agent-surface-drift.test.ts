@@ -4,13 +4,15 @@ import { buildManifest, type ManifestComponent } from "./manifest.server";
 
 /**
  * Drift guard for the agent-facing component surface served at
- * `/api/components.json`.
+ * `/api/components.json` and shipped as `dist/agent.json`.
  *
  * The committed `__snapshots__/components-surface.json` file is *generated*
- * from each component's docs frontmatter and source JSDoc (summary + every
- * `@example` block) — never hand-edited. It is the source-of-truth shape of
- * the structured surface agents consume, so a change to a component's docs,
- * summary, or examples that isn't reflected here means the two have drifted.
+ * from each component's docs frontmatter and source JSDoc (summary, every
+ * `@example` block, the `@siblings` and `@useWhen` tags), never hand-edited.
+ * It is the source-of-truth shape of the structured surface agents consume,
+ * so a change to a component's docs, summary, or tags that isn't reflected
+ * here means the two have drifted. The package's own test pins the pack-time
+ * build against the same file, so the site and the tarball cannot diverge.
  *
  * Regenerate after intentional changes:
  *
@@ -26,7 +28,18 @@ import { buildManifest, type ManifestComponent } from "./manifest.server";
 /** The stable, content-bearing projection we guard against drift. */
 type SurfaceEntry = Pick<
 	ManifestComponent,
-	"name" | "slug" | "kind" | "category" | "status" | "importPath" | "summary" | "jsdoc" | "examples"
+	| "name"
+	| "slug"
+	| "kind"
+	| "category"
+	| "status"
+	| "importPath"
+	| "summary"
+	| "jsdoc"
+	| "examples"
+	| "aliases"
+	| "siblings"
+	| "useWhen"
 >;
 
 /** Project a manifest component down to the drift-guarded {@link SurfaceEntry}. */
@@ -41,6 +54,9 @@ function toSurface(component: ManifestComponent): SurfaceEntry {
 		summary: component.summary,
 		jsdoc: component.jsdoc,
 		examples: component.examples,
+		aliases: component.aliases,
+		siblings: component.siblings,
+		useWhen: component.useWhen,
 	};
 }
 
@@ -48,8 +64,8 @@ it("component manifest matches the committed snapshot (regenerate with `pnpm -F 
 	const manifest = await buildManifest();
 	const surface = manifest.components.map(toSurface);
 
-	// 2-space JSON + trailing newline matches oxfmt's formatting, so the
-	// committed snapshot satisfies both this drift check and `fmt:check`.
+	// Why the oxfmt ignore (`.prettierignore`): the check compares the exact
+	// string, and oxfmt would collapse a short `aliases` array onto one line.
 	await expect(`${JSON.stringify(surface, null, 2)}\n`).toMatchFileSnapshot(
 		"./__snapshots__/components-surface.json",
 	);

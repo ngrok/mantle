@@ -23,7 +23,7 @@ export type SearchEntry = {
 	status?: "stable" | "preview";
 	/** Docs sidebar category (e.g. "Data Display"). Components only. */
 	category?: string;
-	/** Lower-cased tokens derived from name + slug + summary, deduplicated. */
+	/** Lower-cased tokens derived from name, slug, summary, and aliases, deduplicated. */
 	keywords: string[];
 };
 
@@ -83,6 +83,7 @@ export function buildSearchEntries({
 				component.category,
 				component.summary,
 				component.jsdoc,
+				...(component.aliases ?? []),
 			),
 		});
 	}
