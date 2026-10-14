@@ -3,6 +3,7 @@
 import { render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { page } from "vitest/browser";
 import { AppLayout } from "./app-layout.js";
 
 /**
@@ -51,6 +52,20 @@ const STYLE = `
 	}
 	@container app-layout-workspace (width < 56.5rem) {
 		.\\@max-side-panel-lane\\/app-layout-workspace\\:absolute { position: absolute; }
+		.\\@max-side-panel-lane\\/app-layout-workspace\\:right-\\(--app-layout-card-gutter\\,0\\.5rem\\) {
+			right: var(--app-layout-card-gutter, 0.5rem);
+		}
+	}
+	@media (width >= 40rem) {
+		@container app-layout-workspace (width < 56.5rem) {
+			.sm\\:\\@max-side-panel-lane\\/app-layout-workspace\\:w-\\[min\\(24rem\\,calc\\(100vw-5rem\\)\\)\\] {
+				width: min(24rem, calc(100vw - 5rem));
+			}
+		}
+	}
+	@media (width < 40rem) {
+		.max-sm\\:left-\\(--app-layout-card-gutter\\,0\\.5rem\\) { left: var(--app-layout-card-gutter, 0.5rem); }
+		.max-sm\\:w-auto { width: auto; }
 	}
 }
 `;
@@ -206,5 +221,31 @@ describe("AppLayout.SidePanel lane float", () => {
 
 	test("keeps the panel in the row when the row holds the lane", () => {
 		expect(renderRow("60rem")).toBe("relative");
+	});
+
+	/** The floating panel's width, with the `md` breakpoint's cover tier below `sm`. */
+	function renderFloatingWidth(rowWidth: string) {
+		render(
+			<AppLayout.SidePanelRoot defaultOpen>
+				<AppLayout.Workspace style={{ width: rowWidth }}>
+					<AppLayout.Content />
+					<AppLayout.SidePanel aria-label="Assistant" mobileBreakpoint="md" />
+				</AppLayout.Workspace>
+			</AppLayout.SidePanelRoot>,
+		);
+		return screen.getByRole("complementary", { name: "Assistant" }).getBoundingClientRect().width;
+	}
+
+	test("takes the strip width above the cover tier", async () => {
+		await page.viewport(800, 600);
+		// Why: 50rem is under the lane, and 24rem is under 800px minus 5rem.
+		expect(renderFloatingWidth("50rem")).toBe(384);
+	});
+
+	test("covers the row from gutter to gutter on a phone", async () => {
+		await page.viewport(375, 700);
+		// Why: the cover pins both edges inside the 8px gutter, and a strip
+		// width from the row rule would pull the panel off the end edge.
+		expect(renderFloatingWidth("20rem")).toBe(320 - 16);
 	});
 });

@@ -797,12 +797,25 @@ const sidePanelFloatClassName: Record<AppLayoutSidePanelMobileBreakpoint, string
  * Floats the panel when the `AppLayout.Workspace` row is narrower than
  * `--container-side-panel-lane`, whatever the viewport is. The row is the
  * named container, so this reads the width the rail leaves, and the page is
- * never narrower than the panel beside it. The treatment is the strip
- * variant of {@link sidePanelFloatClassName}; the phone cover stays with the
- * viewport breakpoints.
+ * never narrower than the panel beside it. Everything the strip and the
+ * cover share lives here; the strip's width is in
+ * {@link sidePanelLaneStripWidthClassName}, because the phone cover sets no
+ * width and a width from this rule would outrank it.
  */
 const sidePanelLaneFloatClassName =
-	"@max-side-panel-lane/app-layout-workspace:absolute @max-side-panel-lane/app-layout-workspace:inset-y-(--app-layout-card-gutter,0.5rem) @max-side-panel-lane/app-layout-workspace:right-(--app-layout-card-gutter,0.5rem) @max-side-panel-lane/app-layout-workspace:z-20 @max-side-panel-lane/app-layout-workspace:my-0 @max-side-panel-lane/app-layout-workspace:w-[min(24rem,calc(100vw-5rem))] @max-side-panel-lane/app-layout-workspace:rounded-xl @max-side-panel-lane/app-layout-workspace:shadow-lg @max-side-panel-lane/app-layout-workspace:[--_side-panel-content-width:100%] @max-side-panel-lane/app-layout-workspace:[--_side-panel-content-inset:0px] @max-side-panel-lane/app-layout-workspace:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] @max-side-panel-lane/app-layout-workspace:data-state-closed:invisible";
+	"@max-side-panel-lane/app-layout-workspace:absolute @max-side-panel-lane/app-layout-workspace:inset-y-(--app-layout-card-gutter,0.5rem) @max-side-panel-lane/app-layout-workspace:right-(--app-layout-card-gutter,0.5rem) @max-side-panel-lane/app-layout-workspace:z-20 @max-side-panel-lane/app-layout-workspace:my-0 @max-side-panel-lane/app-layout-workspace:rounded-xl @max-side-panel-lane/app-layout-workspace:shadow-lg @max-side-panel-lane/app-layout-workspace:[--_side-panel-content-width:100%] @max-side-panel-lane/app-layout-workspace:[--_side-panel-content-inset:0px] @max-side-panel-lane/app-layout-workspace:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] @max-side-panel-lane/app-layout-workspace:data-state-closed:invisible";
+
+/**
+ * The strip width for the row-driven float, gated to the viewports above the
+ * cover tier of each `mobileBreakpoint`: `md` and up for `lg`, `sm` and up
+ * for the other two. Below that tier {@link sidePanelFloatClassName} pins
+ * both edges and sets `w-auto`, and this width must not apply over it.
+ */
+const sidePanelLaneStripWidthClassName: Record<AppLayoutSidePanelMobileBreakpoint, string> = {
+	sm: "sm:@max-side-panel-lane/app-layout-workspace:w-[min(24rem,calc(100vw-5rem))]",
+	md: "sm:@max-side-panel-lane/app-layout-workspace:w-[min(24rem,calc(100vw-5rem))]",
+	lg: "md:@max-side-panel-lane/app-layout-workspace:w-[min(24rem,calc(100vw-5rem))]",
+};
 
 /**
  * The state and actions shared by every part under an
@@ -1292,6 +1305,7 @@ const SidePanel = ({
 				"data-state-closed:pointer-events-none",
 				sidePanelFloatClassName[mobileBreakpoint],
 				sidePanelLaneFloatClassName,
+				sidePanelLaneStripWidthClassName[mobileBreakpoint],
 				className,
 			)}
 			onFocus={(event) => {
