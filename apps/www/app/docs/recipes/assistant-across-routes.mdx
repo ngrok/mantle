@@ -1,0 +1,973 @@
+---
+title: Assistant Across Routes
+description: Render an assistant in main on its own route and in the AppLayout side panel on every other route, with one conversation above both and a 300ms View Transition that morphs the page into the panel.
+---
+
+import { CodeExample } from "~/components/code-example";
+
+# Assistant Across Routes
+
+An assistant has two homes. On its own route the conversation is the page: it fills the content card, and
+its transcript is the `main` landmark. On every other route it is a companion beside the page, in
+[`AppLayout.SidePanel`](/layouts/app-layout#side-panel), the `complementary` landmark. This recipe renders
+one conversation in both, keeps it in one store above the shell, and runs a View Transition when a
+navigation crosses between them, so the page folds into the panel with the reply still streaming.
+
+Start a conversation, then click Endpoints. Click Assistant to bring it back.
+
+<CodeExample.Root>
+	<CodeExample.PreviewFrame
+		example="assistant-across-routes"
+		title="Assistant across routes demo"
+	/>
+</CodeExample.Root>
+
+> [!NOTE]
+> The demo fakes its router, because a preview is a document inside this site's own router and React
+> Router permits one router per tree. It keeps a pathname in state and calls
+> `document.startViewTransition` itself on a crossing, which is the one call React Router's
+> `viewTransition` makes for you. The pieces below are the real ones; only the shell's links differ.
+
+## Why the aside never becomes the page
+
+The tempting shape is one panel that grows to fill the row on the assistant's route. Avoid it. An
+`<aside>` is the `complementary` landmark, and [ARIA in HTML](https://www.w3.org/TR/html-aria/) does not
+let it take `role="main"`. A screen reader user on the assistant's route would find the page in the
+complementary landmark and nothing in `main`. The landmark follows the route instead:
+
+- On `/assistant`, `AssistantPage` renders inside the shell's `AppLayout.Content`: the toolbar, then the
+  transcript and the composer inside [`AppLayout.Body`](/layouts/app-layout#applayoutbody), which is
+  `main`.
+- Everywhere else, `AssistantPanel` renders `AppLayout.SidePanel` after the content card, with the same
+  transcript and composer inside it.
+- The panel does not render on the assistant's route, and the page does not render anywhere else. One
+  instance of the conversation is on screen at a time.
+
+What persists is the conversation, not the DOM. `AssistantConversationProvider` sits above the shell and
+owns the messages, the composer's draft, and the reply in flight, on a timer the provider holds. A route
+change unmounts one home and mounts the other. Both read the same store, so the transcript, the half-typed
+draft, and the streaming reply are all there in the new home, and the View Transition hides the remount.
+
+## Anatomy
+
+```text showLineNumbers=false
+app/routes/layouts/app.tsx                     the layout route that owns the shell
+├── AssistantConversationProvider              the one store: messages, draft, the reply in flight
+└── AppLayout.SidePanelRoot                    open state, read from the cookie in the loader
+    └── AppLayout.Workspace
+        ├── Sidebar.Nav                        <Link viewTransition={crossesAssistant(pathname, to)}>
+        ├── AppLayout.Content                  named on /assistant
+        │   └── <Outlet />
+        │       └── AssistantPage              /assistant: the toolbar, main, the composer
+        └── AssistantPanel                     every other route: the aside, named while open
+```
+
+## The route decides
+
+The shell reads the pathname once and makes three decisions from it: whether the content card is named,
+whether the panel renders, and which links run the transition. Here is a react-router 7 layout route,
+complete as written:
+
+```tsx
+// app/routes/layouts/app.tsx
+import {
+	AppLayout,
+	extractSidePanelStateCookie,
+	serializeSidePanelStateCookie,
+} from "@ngrok/mantle/app-layout";
+import { cx } from "@ngrok/mantle/cx";
+import { Sidebar } from "@ngrok/mantle/sidebar";
+import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
+import { GraphIcon } from "@phosphor-icons/react/Graph";
+import { SparkleIcon } from "@phosphor-icons/react/Sparkle";
+import { Link, Outlet, useLocation } from "react-router";
+import {
+	AssistantPanel,
+	assistantPath,
+	assistantViewTransitionClassName,
+	crossesAssistant,
+	isAssistantPath,
+} from "~/features/assistant-across-routes/assistant-across-routes";
+import { AssistantConversationProvider } from "~/features/assistant-across-routes/assistant-conversation";
+import type { Route } from "./+types/app";
+
+const navItems = [
+	{ label: "Assistant", icon: <SparkleIcon />, path: assistantPath },
+	{ label: "Endpoints", icon: <GraphIcon />, path: "/endpoints" },
+];
+
+export const loader = ({ request }: Route.LoaderArgs) => ({
+	sidePanelOpen: extractSidePanelStateCookie(request.headers.get("Cookie")) ?? false,
+});
+
+export default function Layout({ loaderData }: Route.ComponentProps) {
+	const { pathname } = useLocation();
+	const onAssistantPage = isAssistantPath(pathname);
+
+	return (
+		<AssistantConversationProvider>
+			<Sidebar.Root>
+				<AppLayout.Root className="fixed inset-0">
+					<SkipToMainLink />
+					<AppLayout.SidePanelRoot
+						defaultOpen={loaderData.sidePanelOpen}
+						onOpenChange={(open) => {
+							document.cookie = serializeSidePanelStateCookie(open);
+						}}
+					>
+						<AppLayout.Workspace>
+							<Sidebar.Nav aria-label="Main">
+								<Sidebar.Body>
+									<Sidebar.Group>
+										<Sidebar.List>
+											{navItems.map((item) => (
+												<Sidebar.Item key={item.path}>
+													<Sidebar.Tooltip label={item.label}>
+														<Sidebar.ItemButton asChild current={pathname === item.path}>
+															<Link
+																to={item.path}
+																viewTransition={crossesAssistant(pathname, item.path)}
+															>
+																{item.icon}
+																{item.label}
+															</Link>
+														</Sidebar.ItemButton>
+													</Sidebar.Tooltip>
+												</Sidebar.Item>
+											))}
+										</Sidebar.List>
+									</Sidebar.Group>
+								</Sidebar.Body>
+							</Sidebar.Nav>
+							<AppLayout.Content
+								className={cx(onAssistantPage && assistantViewTransitionClassName)}
+							>
+								<Outlet />
+							</AppLayout.Content>
+							{!onAssistantPage && <AssistantPanel />}
+						</AppLayout.Workspace>
+					</AppLayout.SidePanelRoot>
+				</AppLayout.Root>
+			</Sidebar.Root>
+		</AssistantConversationProvider>
+	);
+}
+```
+
+The assistant's route module renders the page and nothing else. A product page renders
+`AppLayout.SidePanelTrigger` in its `AppLayout.HeaderActions`, the way the
+[side panel demo](/layouts/app-layout#side-panel) does:
+
+```tsx
+// app/routes/assistant.tsx
+import { AssistantPage } from "~/features/assistant-across-routes/assistant-across-routes";
+
+export default function AssistantRoute() {
+	return <AssistantPage />;
+}
+```
+
+Three rules keep the transition running:
+
+- **Name exactly one element per state.** The content card carries `assistantViewTransitionClassName`
+  only on the assistant's route, and the panel carries it only while open. If two elements share a
+  `view-transition-name` in one state, the browser skips the whole transition and logs nothing.
+- **Do not render the panel on the assistant's route.** A closed panel is still an `<aside>` with the
+  conversation mounted inside it, rendered twice for nothing. An open one would name the conversation
+  twice.
+- **Keep `AppLayout.SidePanelRoot` above both.** It is renderless, and `AssistantPage` calls
+  [`useSidePanel`](/layouts/app-layout#usesidepanel) to open the companion on the first message, so the
+  conversation comes along when the reader leaves.
+
+The panel mounts open when the reader leaves the assistant's route, so its own 200ms slide never runs:
+there is no closed state to slide from. The morph is the only animation. The same holds in reverse: the
+panel unmounts, and the page is named. Nothing merges `transition-none`.
+
+## The link
+
+Pass `viewTransition` on a crossing and on nothing else:
+
+```tsx
+<Sidebar.ItemButton asChild current={pathname === item.path}>
+	<Link to={item.path} viewTransition={crossesAssistant(pathname, item.path)}>
+		{item.icon}
+		{item.label}
+	</Link>
+</Sidebar.ItemButton>
+```
+
+`crossesAssistant` is true when one side of the navigation is the assistant's route and the other is not.
+A navigation between two product pages is the most frequent thing a reader does in a dashboard, many
+times a day, and it gets no animation at all: the page swaps in one frame, as it does today. The crossing
+is occasional, so it gets the standard animation. Nothing here is rare enough to earn more.
+
+`useViewTransitionState` is not needed. The names are static, and the transition only runs when a link
+asks for it.
+
+## Duration
+
+The crossing is a page transition, so it runs for 300ms: the floor of the band for page transitions in
+the duration guidelines Emil Kowalski publishes for interface motion, and the ceiling those guidelines
+set for any UI animation.
+
+| Element type                      | Duration  |
+| --------------------------------- | --------- |
+| Micro-interactions                | 100–150ms |
+| Standard UI (tooltips, dropdowns) | 150–250ms |
+| Modals, drawers                   | 200–300ms |
+| Page transitions                  | 300–400ms |
+
+The browser's default is 250ms with `ease`. The stylesheet below sets the group named `assistant` and the
+`root` crossfade to 300ms on mantle's `--ease-out-strong`, the curve the panel's own slide uses. Under
+`prefers-reduced-motion: reduce` every View Transition is a cut, the same as every `motion-reduce:` rule
+in mantle. Import it from your app's stylesheet:
+
+```css
+/*
+ * The assistant's view transition is a page transition, so it runs for 300ms:
+ * the floor of the 300–400ms band for page transitions, and the ceiling for a
+ * UI animation. The group is the element named `assistant`; `root` is the rest
+ * of the page, which crossfades underneath it on the same clock.
+ */
+::view-transition-group(assistant),
+::view-transition-old(assistant),
+::view-transition-new(assistant),
+::view-transition-old(root),
+::view-transition-new(root) {
+	animation-duration: 300ms;
+	animation-timing-function: var(--ease-out-strong);
+}
+
+/* A cut, the same as every `motion-reduce:` rule in mantle. */
+@media (prefers-reduced-motion: reduce) {
+	::view-transition-group(*),
+	::view-transition-old(*),
+	::view-transition-new(*) {
+		animation: none;
+	}
+}
+```
+
+## Server rendering
+
+Both halves of the state are available on the server, so the first paint is right and nothing corrects
+it:
+
+- **Which home.** The URL. `isAssistantPath(pathname)` is the same on the server and the client.
+- **Whether the panel is open.** The side panel cookie. Read it in the loader with
+  `extractSidePanelStateCookie`, pass it to `defaultOpen`, and write it back from `onOpenChange` with
+  `serializeSidePanelStateCookie`, as
+  [Persisting the side panel to a cookie](/layouts/app-layout#persisting-the-side-panel-to-a-cookie-ssr)
+  shows.
+
+A document load runs no View Transition; the browser only snapshots a same-document navigation. The
+panel's hydration gate covers the one case left: a cookie the client reads differently from the server
+snaps instead of sliding.
+
+The conversation itself is data, and the demo's store is in memory. A real assistant keeps the active
+conversation on the server and puts its id in the URL or a cookie, so a reload hydrates the same
+transcript.
+
+## Mobile
+
+Below `mobileBreakpoint` the panel floats over the card instead of taking width from it. The crossing
+still morphs: the page shrinks into the floating card. Match the prop to `Sidebar.Root`'s, so the rail and
+the panel change presentation at one width. The demo narrows both to `md`; most apps keep the `lg`
+default.
+
+## The files
+
+Two files to copy, and the stylesheet above. `assistant-across-routes.tsx` is the two homes and the two
+path helpers; nothing in it touches the router. `assistant-conversation.tsx` is the store and the two
+pieces of chat UI; nothing in it knows where it renders.
+
+````tsx
+import { AppLayout, useSidePanel } from "@ngrok/mantle/app-layout";
+import { IconButton } from "@ngrok/mantle/button";
+import { cx } from "@ngrok/mantle/cx";
+import { Sidebar } from "@ngrok/mantle/sidebar";
+import { Tooltip } from "@ngrok/mantle/tooltip";
+import { PencilSimpleLineIcon } from "@phosphor-icons/react/PencilSimpleLine";
+import { XIcon } from "@phosphor-icons/react/X";
+import type { ComponentProps } from "react";
+import {
+	AssistantComposer,
+	AssistantTranscript,
+	useAssistantConversation,
+} from "./assistant-conversation";
+
+/** The assistant's own route, where the conversation is the page. */
+const assistantPath = "/assistant";
+
+/**
+ * Returns true on the assistant's route and on its children, such as a
+ * conversation's own URL. A sibling route that shares the prefix is a
+ * different page.
+ *
+ * @example
+ * ```ts
+ * isAssistantPath("/assistant"); // true
+ * isAssistantPath("/assistant/c_123"); // true
+ * isAssistantPath("/assistants"); // false
+ * ```
+ */
+function isAssistantPath(pathname: string): boolean {
+	return pathname === assistantPath || pathname.startsWith(`${assistantPath}/`);
+}
+
+/**
+ * Returns true when a navigation enters or leaves the assistant's route. Those
+ * are the only navigations that move the conversation between `main` and the
+ * panel, so they are the only ones that run the view transition.
+ *
+ * @example
+ * ```ts
+ * crossesAssistant("/assistant", "/endpoints"); // true
+ * crossesAssistant("/endpoints", "/domains"); // false
+ * ```
+ */
+function crossesAssistant(from: string, to: string): boolean {
+	return isAssistantPath(from) !== isAssistantPath(to);
+}
+
+/**
+ * The `view-transition-name` the assistant's two homes share, as a class.
+ * `AppLayout.Content` carries it on the assistant route and the open panel
+ * carries it on every other route, so each state names exactly one element.
+ * A name on two elements at once makes the browser skip the whole transition.
+ * `assistant-view-transition.css` times the group by this name.
+ */
+const assistantViewTransitionClassName = "[view-transition-name:assistant]";
+
+/** The control that starts a new conversation, in both headers. */
+function NewConversationButton() {
+	const { reset } = useAssistantConversation();
+
+	return (
+		<Tooltip.Root>
+			<Tooltip.Trigger asChild>
+				<IconButton
+					type="button"
+					appearance="ghost"
+					intent="neutral"
+					size="sm"
+					icon={<PencilSimpleLineIcon />}
+					label="New conversation"
+					onClick={reset}
+				/>
+			</Tooltip.Trigger>
+			<Tooltip.Content>New conversation</Tooltip.Content>
+		</Tooltip.Root>
+	);
+}
+
+/**
+ * The assistant's route: the conversation as the page. Renders the toolbar,
+ * the `main` body, and the composer pinned below it, inside the shell's
+ * `AppLayout.Content`. The first message opens the companion, so the
+ * conversation comes along when the reader leaves.
+ *
+ * @example
+ * ```tsx
+ * // app/routes/assistant.tsx
+ * export default function AssistantRoute() {
+ *   return <AssistantPage />;
+ * }
+ * ```
+ */
+function AssistantPage() {
+	const { setOpen } = useSidePanel();
+
+	return (
+		<>
+			<AppLayout.Header>
+				<AppLayout.HeaderStart>
+					<Sidebar.Trigger />
+				</AppLayout.HeaderStart>
+				<AppLayout.HeaderContent>
+					<h1 className="text-strong text-sm font-medium">Assistant</h1>
+				</AppLayout.HeaderContent>
+				<AppLayout.HeaderActions>
+					<NewConversationButton />
+				</AppLayout.HeaderActions>
+			</AppLayout.Header>
+			<AppLayout.Body>
+				{/* The composer is part of the page, so it pins inside `main`: the
+				    column fills the card and the transcript scrolls above it. */}
+				<div className="flex h-full flex-col">
+					<div className="scrollbar min-h-0 flex-1 overflow-y-auto">
+						<AssistantTranscript />
+					</div>
+					<div className="shrink-0 px-3 pb-3">
+						<AssistantComposer className="mx-auto w-full max-w-xl" onSend={() => setOpen(true)} />
+					</div>
+				</div>
+			</AppLayout.Body>
+		</>
+	);
+}
+
+/**
+ * The assistant's panel: the same conversation beside a page. Render it as the
+ * last child of `AppLayout.Workspace` on every route but the assistant's. On
+ * that route the page is the home, and an `<aside>` beside it would name the
+ * conversation twice.
+ *
+ * @example
+ * ```tsx
+ * <AppLayout.Workspace>
+ *   <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
+ *   <AppLayout.Content className={cx(onAssistantPage && assistantViewTransitionClassName)}>
+ *     <Outlet />
+ *   </AppLayout.Content>
+ *   {!onAssistantPage && <AssistantPanel />}
+ * </AppLayout.Workspace>
+ * ```
+ */
+function AssistantPanel({
+	mobileBreakpoint,
+}: {
+	/** Forwarded to `AppLayout.SidePanel`. Match it to `Sidebar.Root`'s. */
+	mobileBreakpoint?: ComponentProps<typeof AppLayout.SidePanel>["mobileBreakpoint"];
+}) {
+	const { open } = useSidePanel();
+
+	return (
+		<AppLayout.SidePanel
+			aria-label="Assistant"
+			mobileBreakpoint={mobileBreakpoint}
+			// Why only when open: a closed panel is a zero-width box, and a morph
+			// from the page into it reads as the conversation folding into nothing.
+			className={cx(open && assistantViewTransitionClassName)}
+		>
+			<AppLayout.SidePanelHeader>
+				<h2 className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Assistant</h2>
+				<NewConversationButton />
+				<AppLayout.SidePanelTrigger icon={<XIcon />} label="Close the assistant" />
+			</AppLayout.SidePanelHeader>
+			<AppLayout.SidePanelBody>
+				<AssistantTranscript />
+			</AppLayout.SidePanelBody>
+			<AppLayout.SidePanelFooter>
+				<AssistantComposer />
+			</AppLayout.SidePanelFooter>
+		</AppLayout.SidePanel>
+	);
+}
+
+export {
+	//,
+	AssistantPage,
+	AssistantPanel,
+	assistantPath,
+	assistantViewTransitionClassName,
+	crossesAssistant,
+	isAssistantPath,
+};
+````
+
+````tsx
+import { Button, IconButton } from "@ngrok/mantle/button";
+import { cx } from "@ngrok/mantle/cx";
+import { Icon } from "@ngrok/mantle/icon";
+import { TextArea } from "@ngrok/mantle/text-area";
+import { ArrowUpIcon } from "@phosphor-icons/react/ArrowUp";
+import { BroadcastIcon } from "@phosphor-icons/react/Broadcast";
+import { GaugeIcon } from "@phosphor-icons/react/Gauge";
+import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
+import { ShieldCheckIcon } from "@phosphor-icons/react/ShieldCheck";
+import { SparkleIcon } from "@phosphor-icons/react/Sparkle";
+import {
+	createContext,
+	useCallback,
+	useContext,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+	type ReactNode,
+} from "react";
+
+/** One turn of the conversation. */
+type AssistantMessage = {
+	id: string;
+	role: "user" | "assistant";
+	text: string;
+};
+
+/**
+ * The conversation the assistant's two homes share. The page on the assistant
+ * route and the side panel on every other route both render it, so it lives
+ * above both and nothing in it belongs to one host.
+ */
+type AssistantConversation = {
+	messages: ReadonlyArray<AssistantMessage>;
+	/** The composer's unsent text. Held here so a route change keeps it. */
+	draft: string;
+	/** True from a send until the reply has arrived in full. */
+	isReplying: boolean;
+	setDraft: (draft: string) => void;
+	/** Appends the user's message and starts the reply. A blank message is ignored. */
+	send: (text: string) => void;
+	/** Clears the conversation and stops a reply in flight. */
+	reset: () => void;
+};
+
+const AssistantConversationContext = createContext<AssistantConversation | null>(null);
+
+/**
+ * Reads the conversation. Throws outside `AssistantConversationProvider`.
+ *
+ * @example
+ * ```tsx
+ * const { messages, send } = useAssistantConversation();
+ * ```
+ */
+function useAssistantConversation(): AssistantConversation {
+	const conversation = useContext(AssistantConversationContext);
+	if (conversation == null) {
+		throw new Error("useAssistantConversation must be used inside AssistantConversationProvider.");
+	}
+	return conversation;
+}
+
+/** The canned replies this demo streams. A real assistant streams from a server. */
+const scriptedReplies = [
+	"Here is the shape. A Traffic Policy on the inbound phase with an oauth action in front of your API, scoped to the endpoint you named. Every request then carries a verified identity before it reaches your upstream, and the policy is the only thing you deploy.",
+	"That endpoint already has a policy with one rule. Adding a rate-limit action after the oauth action keeps the identity check first, so an anonymous burst is rejected before it counts against anyone's quota.",
+	"You can apply it from the endpoint's Traffic Policy tab. The editor validates the YAML as you type, and the apply is atomic: the old policy serves until the new one is live.",
+] as const;
+
+/** The gap between two revealed words, in milliseconds. */
+const revealIntervalMs = 45;
+
+/**
+ * Owns the conversation: the messages, the composer's draft, and the reply in
+ * flight. Render it once, above the shell, so the assistant's page and its side
+ * panel read one conversation and a route change never restarts a reply.
+ *
+ * The reply streams word by word on a timer this provider holds. Nothing in a
+ * host component owns the timer, which is what lets the host unmount mid-reply.
+ *
+ * @example
+ * ```tsx
+ * <AssistantConversationProvider>
+ *   <Sidebar.Root>
+ *     <AppLayout.Root className="fixed inset-0">…</AppLayout.Root>
+ *   </Sidebar.Root>
+ * </AssistantConversationProvider>
+ * ```
+ */
+function AssistantConversationProvider({ children }: { children: ReactNode }) {
+	const [messages, setMessages] = useState<ReadonlyArray<AssistantMessage>>([]);
+	const [draft, setDraft] = useState("");
+	const [isReplying, setIsReplying] = useState(false);
+	const replyTimer = useRef<number | null>(null);
+	const replyCount = useRef(0);
+
+	const stopReply = useCallback(() => {
+		if (replyTimer.current != null) {
+			window.clearTimeout(replyTimer.current);
+			replyTimer.current = null;
+		}
+		setIsReplying(false);
+	}, []);
+
+	useEffect(() => stopReply, [stopReply]);
+
+	const send = useCallback((text: string) => {
+		const trimmed = text.trim();
+		if (trimmed === "" || replyTimer.current != null) {
+			return;
+		}
+		const turn = replyCount.current;
+		replyCount.current += 1;
+		const replyId = `assistant-${turn}`;
+		const reply = scriptedReplies[turn % scriptedReplies.length] ?? scriptedReplies[0];
+		const words = reply.split(" ");
+		setMessages((current) => [
+			...current,
+			{ id: `user-${turn}`, role: "user", text: trimmed },
+			{ id: replyId, role: "assistant", text: "" },
+		]);
+		setIsReplying(true);
+
+		const reveal = (count: number) => {
+			const revealed = words.slice(0, count).join(" ");
+			setMessages((current) =>
+				current.map((message) =>
+					message.id === replyId ? { ...message, text: revealed } : message,
+				),
+			);
+			if (count === words.length) {
+				replyTimer.current = null;
+				setIsReplying(false);
+				return;
+			}
+			replyTimer.current = window.setTimeout(() => reveal(count + 1), revealIntervalMs);
+		};
+		replyTimer.current = window.setTimeout(() => reveal(1), revealIntervalMs * 8);
+	}, []);
+
+	const reset = useCallback(() => {
+		stopReply();
+		setMessages([]);
+		setDraft("");
+	}, [stopReply]);
+
+	const conversation = useMemo<AssistantConversation>(
+		() => ({ messages, draft, isReplying, setDraft, send, reset }),
+		[messages, draft, isReplying, send, reset],
+	);
+
+	return (
+		<AssistantConversationContext.Provider value={conversation}>
+			{children}
+		</AssistantConversationContext.Provider>
+	);
+}
+
+/** The prompts the empty state offers, each with the icon on its card. */
+const starterPrompts = [
+	{ prompt: "Route and authenticate API traffic", icon: <ShieldCheckIcon /> },
+	{ prompt: "Rate limit an endpoint by caller", icon: <GaugeIcon /> },
+	{ prompt: "Add a custom domain to an endpoint", icon: <GlobeHemisphereWestIcon /> },
+	{ prompt: "Share a local API without deploying", icon: <BroadcastIcon /> },
+] as const;
+
+/**
+ * The messages, or the starter deck before there are any. Sized with container
+ * queries, so one component is right at full-page width and in a 336px panel.
+ * Render it inside the host's scroll region: `AppLayout.Body` on the assistant
+ * route, `AppLayout.SidePanelBody` in the panel.
+ *
+ * @example
+ * ```tsx
+ * <AppLayout.Body>
+ *   <AssistantTranscript />
+ * </AppLayout.Body>
+ * ```
+ */
+function AssistantTranscript() {
+	const { messages, isReplying, send } = useAssistantConversation();
+	const endRef = useRef<HTMLDivElement>(null);
+
+	// Why an effect: the newest text must stay in view while a reply grows. The
+	// scroll region is the host's, so the sentinel asks it to scroll.
+	useEffect(() => {
+		if (messages.length > 0) {
+			endRef.current?.scrollIntoView({ block: "end" });
+		}
+	}, [messages]);
+
+	if (messages.length === 0) {
+		return (
+			<div className="@container flex min-h-full flex-col items-center justify-center gap-4 p-4 @2xl:gap-6 @2xl:p-6">
+				<span className="flex size-7 items-center justify-center rounded-lg bg-emerald-600/10 text-emerald-600 @2xl:size-9">
+					<Icon svg={<SparkleIcon />} className="size-4 @2xl:size-5" />
+				</span>
+				<div className="flex flex-col items-center gap-2 text-center">
+					<h2 className="text-strong text-lg font-medium text-balance @2xl:text-2xl">
+						What should we do today?
+					</h2>
+					<p className="text-body max-w-lg text-xs text-pretty @2xl:text-sm">
+						Pick a starting point and the assistant writes the Traffic Policy and gets your
+						endpoints running.
+					</p>
+				</div>
+				<div className="grid w-full max-w-md gap-2 @2xl:max-w-2xl @2xl:grid-cols-2 @2xl:gap-3">
+					{starterPrompts.map(({ prompt, icon }) => (
+						<Button
+							key={prompt}
+							type="button"
+							appearance="outlined"
+							intent="neutral"
+							className="h-auto justify-start gap-3 px-3 py-2.5 text-left whitespace-normal @2xl:py-3"
+							onClick={() => send(prompt)}
+						>
+							<span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-emerald-600/10 text-emerald-600">
+								<Icon svg={icon} className="size-4" />
+							</span>
+							{prompt}
+						</Button>
+					))}
+				</div>
+			</div>
+		);
+	}
+
+	const lastMessage = messages[messages.length - 1];
+
+	return (
+		<div className="@container mx-auto flex w-full max-w-3xl flex-col gap-4 p-4 @2xl:p-6">
+			{messages.map((message) =>
+				message.role === "user" ? (
+					<div key={message.id} className="flex justify-end">
+						<p className="bg-neutral-500/8 text-strong max-w-[85%] rounded-2xl px-3.5 py-2 text-sm wrap-break-word whitespace-pre-wrap">
+							{message.text}
+						</p>
+					</div>
+				) : (
+					<div key={message.id} className="text-body flex flex-col gap-2 text-sm">
+						{message.text === "" && isReplying && lastMessage?.id === message.id ? (
+							<p role="status" className="text-muted flex items-center gap-2">
+								<span
+									aria-hidden
+									className="bg-muted size-1.5 animate-pulse rounded-full motion-reduce:animate-none"
+								/>
+								Working through it…
+							</p>
+						) : (
+							<p>{message.text}</p>
+						)}
+					</div>
+				),
+			)}
+			<div ref={endRef} />
+		</div>
+	);
+}
+
+/**
+ * The message box. Enter sends and Shift+Enter adds a line, which is what a chat
+ * does and a bare textarea does not. The draft lives in the conversation, so
+ * the box a route change unmounts and the box it mounts show the same text.
+ *
+ * @example
+ * ```tsx
+ * <AppLayout.SidePanelFooter>
+ *   <AssistantComposer />
+ * </AppLayout.SidePanelFooter>
+ * ```
+ */
+function AssistantComposer({
+	className,
+	onSend,
+}: {
+	/** Merged onto the frame, for the host's measure. */
+	className?: string;
+	/** Runs after a message is sent. The assistant's page opens the companion here. */
+	onSend?: () => void;
+}) {
+	const { draft, setDraft, send } = useAssistantConversation();
+
+	const submit = () => {
+		if (draft.trim() === "") {
+			return;
+		}
+		send(draft);
+		setDraft("");
+		onSend?.();
+	};
+
+	return (
+		<div
+			className={cx(
+				"border-form bg-form flex items-end gap-2 rounded-[1.25rem] border p-2 shadow-sm",
+				"focus-within:border-accent-600 focus-within:ring-focus-accent focus-within:ring-4",
+				className,
+			)}
+		>
+			<TextArea
+				aria-label="Message the assistant"
+				className="min-h-20 resize-none border-0 bg-transparent px-2 py-1.5 shadow-none focus-visible:ring-0"
+				placeholder="Ask about endpoints, domains, or Traffic Policy…"
+				rows={3}
+				value={draft}
+				onChange={(event) => setDraft(event.target.value)}
+				onKeyDown={(event) => {
+					if (event.key === "Enter" && !event.shiftKey) {
+						event.preventDefault();
+						submit();
+					}
+				}}
+			/>
+			{/* Never disabled: a greyed button on an empty box reads as broken at the
+			    moment the box invites a first message. `submit` ignores a blank draft. */}
+			<IconButton
+				type="button"
+				appearance="filled"
+				intent="neutral"
+				size="sm"
+				className="size-8 shrink-0 rounded-full"
+				icon={<ArrowUpIcon />}
+				label="Send message"
+				onClick={submit}
+			/>
+		</div>
+	);
+}
+
+export {
+	//,
+	AssistantComposer,
+	AssistantConversationProvider,
+	AssistantTranscript,
+	useAssistantConversation,
+};
+export type {
+	//,
+	AssistantConversation,
+	AssistantMessage,
+};
+````
+
+## Testing it
+
+The branches that matter need no router: the path helpers are pure, the store is a provider, and each
+home renders under `AppLayout.SidePanelRoot` alone. This is the file's test, verbatim. It runs in this
+repo:
+
+```tsx
+// @vitest-environment happy-dom
+import { AppLayout } from "@ngrok/mantle/app-layout";
+import { Sidebar } from "@ngrok/mantle/sidebar";
+import { TooltipProvider } from "@ngrok/mantle/tooltip";
+import { act, cleanup, render, screen } from "@testing-library/react";
+import { userEvent } from "@testing-library/user-event";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+	AssistantPage,
+	AssistantPanel,
+	assistantViewTransitionClassName,
+	crossesAssistant,
+	isAssistantPath,
+} from "./assistant-across-routes";
+import {
+	AssistantComposer,
+	AssistantConversationProvider,
+	AssistantTranscript,
+} from "./assistant-conversation";
+
+afterEach(() => {
+	cleanup();
+	vi.useRealTimers();
+});
+
+describe("isAssistantPath", () => {
+	it.each([
+		["/assistant", true],
+		["/assistant/c_123", true],
+		["/assistants", false],
+		["/endpoints", false],
+	])("%s → %s", (pathname, expected) => {
+		expect(isAssistantPath(pathname)).toBe(expected);
+	});
+});
+
+describe("crossesAssistant", () => {
+	it.each([
+		["/assistant", "/endpoints", true],
+		["/endpoints", "/assistant", true],
+		["/endpoints", "/domains", false],
+		["/assistant", "/assistant/c_123", false],
+	])("%s → %s crosses: %s", (from, to, expected) => {
+		expect(crossesAssistant(from, to)).toBe(expected);
+	});
+});
+
+/** One conversation with the transcript and the composer as removable hosts. */
+function Hosts({
+	showTranscript,
+	showComposer,
+}: {
+	showTranscript: boolean;
+	showComposer: boolean;
+}) {
+	return (
+		<AssistantConversationProvider>
+			{showTranscript && <AssistantTranscript />}
+			{showComposer && <AssistantComposer />}
+		</AssistantConversationProvider>
+	);
+}
+
+describe("AssistantConversationProvider", () => {
+	it("keeps a reply streaming while the transcript unmounts and remounts", async () => {
+		// Why shouldAdvanceTime: user-event drains its actions with a `setTimeout(0)`
+		// that a frozen vitest clock never fires, so every `user.*` call would hang.
+		vi.useFakeTimers({ shouldAdvanceTime: true });
+		const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+		const { rerender } = render(<Hosts showTranscript showComposer={false} />);
+
+		await user.click(screen.getByRole("button", { name: "Route and authenticate API traffic" }));
+		rerender(<Hosts showTranscript={false} showComposer={false} />);
+		await act(async () => {
+			await vi.advanceTimersByTimeAsync(10_000);
+		});
+		rerender(<Hosts showTranscript showComposer={false} />);
+
+		expect(screen.queryByText(/the only thing you deploy\.$/)).not.toBeNull();
+		expect(screen.queryByRole("status")).toBeNull();
+	});
+
+	it("keeps the draft while the composer unmounts and remounts", async () => {
+		const user = userEvent.setup();
+		const { rerender } = render(<Hosts showTranscript={false} showComposer />);
+
+		await user.type(screen.getByRole("textbox", { name: "Message the assistant" }), "hello");
+		rerender(<Hosts showTranscript={false} showComposer={false} />);
+		rerender(<Hosts showTranscript={false} showComposer />);
+
+		expect(screen.queryByDisplayValue("hello")).not.toBeNull();
+	});
+});
+
+describe("AssistantPage", () => {
+	it("opens the companion on the first message", async () => {
+		const user = userEvent.setup();
+		render(
+			<TooltipProvider>
+				<AssistantConversationProvider>
+					<Sidebar.Root>
+						<AppLayout.SidePanelRoot>
+							<AppLayout.SidePanelTrigger label="Toggle the assistant" />
+							<AssistantPage />
+						</AppLayout.SidePanelRoot>
+					</Sidebar.Root>
+				</AssistantConversationProvider>
+			</TooltipProvider>,
+		);
+		const trigger = screen.getByRole("button", { name: "Toggle the assistant" });
+		expect(trigger.getAttribute("aria-expanded")).toBe("false");
+
+		await user.type(screen.getByRole("textbox", { name: "Message the assistant" }), "hello{Enter}");
+
+		expect(trigger.getAttribute("aria-expanded")).toBe("true");
+	});
+});
+
+describe("AssistantPanel", () => {
+	function renderPanel({ open }: { open: boolean }) {
+		render(
+			<TooltipProvider>
+				<AssistantConversationProvider>
+					<AppLayout.SidePanelRoot defaultOpen={open}>
+						<AssistantPanel />
+					</AppLayout.SidePanelRoot>
+				</AssistantConversationProvider>
+			</TooltipProvider>,
+		);
+		return screen.getByRole("complementary", { name: "Assistant" });
+	}
+
+	// Why a class assertion: the name is a contract that crosses files. The
+	// assistant route puts the same class on `AppLayout.Content`, and
+	// `assistant-view-transition.css` times `::view-transition-group(assistant)`.
+	it("names the open panel for the view transition", () => {
+		const panel = renderPanel({ open: true });
+		expect(panel.classList.contains(assistantViewTransitionClassName)).toBe(true);
+	});
+
+	// Why assert the absence: a named closed panel beside a named page is the
+	// one duplicate that makes the browser skip the transition.
+	it("leaves the closed panel unnamed", () => {
+		const panel = renderPanel({ open: false });
+		expect(panel.classList.contains(assistantViewTransitionClassName)).toBe(false);
+	});
+});
+```
+
+The demo's own test adds the two things only a shell can show: the conversation is in `main` on the
+assistant's route and in the `complementary` landmark everywhere else, and `startViewTransition` runs
+once per crossing and never between two product pages.

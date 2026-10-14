@@ -335,6 +335,7 @@ export const layoutDescriptions = {
  */
 export const recipePages = [
 	//,
+	"Assistant Across Routes",
 	"Breadcrumbs from Routes",
 	"Header Actions from Routes",
 	"List Page Loading States",
@@ -345,6 +346,7 @@ export const recipePages = [
 
 /** Route lookup for recipe pages. */
 export const recipeRoutes = {
+	"Assistant Across Routes": "/recipes/assistant-across-routes",
 	"Breadcrumbs from Routes": "/recipes/breadcrumbs-from-routes",
 	"Header Actions from Routes": "/recipes/header-actions-from-routes",
 	"List Page Loading States": "/recipes/list-page-loading-states",
@@ -355,6 +357,8 @@ export const recipeRoutes = {
 
 /** Short descriptions for recipe index pages. */
 export const recipeDescriptions = {
+	"Assistant Across Routes":
+		"Render an assistant in main on its own route and in the AppLayout side panel on every other route, with one conversation above both and a 300ms View Transition that morphs the page into the panel.",
 	"Breadcrumbs from Routes":
 		"Derive a breadcrumb trail from the matched route chain with React Router route handles \u2014 derived state, so it is correct on the server and on the first frame, with no context and no effects.",
 	"Header Actions from Routes":
