@@ -37,6 +37,30 @@ export const fullWidthProseMeasure = [
 ];
 
 /**
+ * Returns true when the matched doc asks for the full-width canvas with
+ * `layout: full` in its frontmatter, which the docs pipeline puts on the leaf
+ * route's `handle`. A section layout reads it to pass `fullWidthProseMeasure`
+ * for one page without widening the rest of the section.
+ *
+ * @example
+ * ```tsx
+ * const fullWidth = isFullWidthDoc(useMatches());
+ * <PageLayout className={cx(fullWidth && ["max-w-full", fullWidthProseMeasure])} sidebar={…}>
+ * ```
+ */
+export function isFullWidthDoc(matches: ReadonlyArray<{ handle?: unknown }>): boolean {
+	const handle = matches[matches.length - 1]?.handle;
+	if (typeof handle !== "object" || handle == null || !("frontmatter" in handle)) {
+		return false;
+	}
+	const { frontmatter } = handle;
+	if (typeof frontmatter !== "object" || frontmatter == null || !("layout" in frontmatter)) {
+		return false;
+	}
+	return frontmatter.layout === "full";
+}
+
+/**
  * Shared layout for doc pages. Renders the doc actions button, the
  * `MdxProvider` context, and the MDX content. The content is the matched MDX
  * route module, so it renders synchronously. No `Suspense` boundary sits

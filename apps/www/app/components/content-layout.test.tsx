@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderToString } from "react-dom/server";
 import { MemoryRouter } from "react-router";
 import { expect, test } from "vitest";
-import { ContentLayout } from "./content-layout";
+import { ContentLayout, isFullWidthDoc } from "./content-layout";
 
 /**
  * Pins the server-render contract of `ContentLayout`: children pass through
@@ -27,4 +27,18 @@ test("server render contains the doc content synchronously", () => {
 	);
 
 	expect(html).toContain("The full doc content is part of the initial document.");
+});
+
+/**
+ * `isFullWidthDoc` reads the leaf match's frontmatter, so a section layout can
+ * widen one page. An ancestor's frontmatter must not reach the leaf, and a doc
+ * with no `layout` keeps the standard container.
+ */
+test("isFullWidthDoc reads layout: full from the leaf match only", () => {
+	const full = { handle: { frontmatter: { layout: "full" }, toc: [] } };
+	const standard = { handle: { frontmatter: { title: "Route Announcer" }, toc: [] } };
+
+	expect(isFullWidthDoc([{ handle: undefined }, full])).toBe(true);
+	expect(isFullWidthDoc([full, standard])).toBe(false);
+	expect(isFullWidthDoc([{ handle: undefined }])).toBe(false);
 });
