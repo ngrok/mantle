@@ -1075,7 +1075,7 @@ custom control composes the same state from [`useSidePanel`](#usesidepanel).
   or read by assistive technology. Its children stay mounted: a conversation keeps its scroll position and
   its in-flight reply across a close and a reopen.
 - **Between the two**, the panel moves the way the rail collapses: `flex-basis` alone animates over 200ms
-  (`ease-linear`): the `<aside>` is a clip box, and the card is an inner column pinned to the row's end
+  (`ease-out-strong`): the `<aside>` is a clip box, and the card is an inner column pinned to the row's end
   inset at the open width, so the header, the body, and the footer never reflow or move; the box's start
   edge sweeps across them. A CSS transition reverses from
   wherever it is, so a second click mid-flight turns the panel around. `motion-reduce:` turns the slide
@@ -2518,7 +2518,7 @@ ever animates.
 
 The box is a fixed basis (`grow-0 shrink-0`, the open width plus the end inset), never a share of the row,
 so the card absorbs every change in width. Opening and closing animate `flex-basis` alone over 200ms
-(`ease-linear`), the way the rail collapses: the inner card never moves, and the box's start edge sweeps
+(`ease-out-strong`), the way the rail collapses: the inner card never moves, and the box's start edge sweeps
 across it; a second click mid-flight reverses the run. `motion-reduce:transition-none` turns the slide into a cut,
 `not-data-hydrated:transition-none` holds it until one frame after hydration, and a merged
 `transition-none` or `duration-*` replaces the default through tailwind-merge. Closed, it is

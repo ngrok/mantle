@@ -61,7 +61,7 @@ type SidebarMobileBreakpoint = "sm" | "md" | "lg";
  * specificity.
  */
 const collapseTransitionClassName =
-	"duration-200 ease-linear motion-reduce:transition-none group-not-data-hydrated/sidebar-nav:transition-none";
+	"duration-200 ease-out-strong motion-reduce:transition-none group-not-data-hydrated/sidebar-nav:transition-none";
 
 const navVisibilityClassName: Record<SidebarMobileBreakpoint, string> = {
 	sm: "max-sm:not-data-hydrated:hidden",
@@ -672,7 +672,7 @@ const Nav = ({
 				// Why one negated gate: an SSR state correction must snap, not animate
 				// shut on page load, and bare utilities let a consumer `transition-none`
 				// or `duration-*` override the default through tailwind-merge.
-				"transition-[width] duration-200 ease-linear motion-reduce:transition-none not-data-hydrated:transition-none",
+				"transition-[width] duration-200 ease-out-strong motion-reduce:transition-none not-data-hydrated:transition-none",
 				className,
 			)}
 			{...props}

@@ -21,6 +21,11 @@ import { Sidebar } from "./sidebar.js";
  * `tailwindcss`'s `compile()`.
  */
 const STYLE = `
+@layer theme {
+	:root {
+		--ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+	}
+}
 @layer utilities {
 	.flex { display: flex; }
 	.w-\\(--sidebar-width\\,13rem\\) { width: var(--sidebar-width, 13rem); }
@@ -44,7 +49,7 @@ const STYLE = `
 		transition-duration: var(--tw-duration, 150ms);
 	}
 	.duration-200 { --tw-duration: 200ms; transition-duration: 200ms; }
-	.ease-linear { --tw-ease: linear; transition-timing-function: linear; }
+	.ease-out-strong { --tw-ease: var(--ease-out-strong); transition-timing-function: var(--ease-out-strong); }
 	.not-data-hydrated\\:transition-none:not([data-hydrated]) { transition-property: none; }
 	.group-not-data-hydrated\\/sidebar-nav\\:transition-none:is(:where(.group\\/sidebar-nav):not([data-hydrated]) *) {
 		transition-property: none;

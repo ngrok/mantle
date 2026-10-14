@@ -30,6 +30,7 @@ const STYLE = `
 		--spacing: 0.25rem;
 		--default-transition-duration: 150ms;
 		--default-transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+		--ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
 	}
 }
 @layer base {
@@ -73,7 +74,7 @@ const STYLE = `
 	.transition-none { transition-property: none; }
 	.duration-200 { --tw-duration: 200ms; transition-duration: 200ms; }
 	.duration-\\[2000ms\\] { --tw-duration: 2000ms; transition-duration: 2000ms; }
-	.ease-linear { --tw-ease: linear; transition-timing-function: linear; }
+	.ease-out-strong { --tw-ease: var(--ease-out-strong); transition-timing-function: var(--ease-out-strong); }
 	.\\[--_side-panel-content-width\\:var\\(--app-layout-side-panel-width\\,clamp\\(21rem\\,24vw\\,27rem\\)\\)\\] {
 		--_side-panel-content-width: var(--app-layout-side-panel-width,clamp(21rem, 24vw, 27rem));
 	}

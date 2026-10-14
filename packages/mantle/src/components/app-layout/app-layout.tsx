@@ -1048,7 +1048,7 @@ type AppLayoutSidePanelProps = Omit<ComponentProps<"aside">, "id"> &
  *
  * It opens and closes the way `Sidebar.Nav` collapses. The `<aside>` is a clip
  * box whose `flex-basis` animates between the open width plus the end inset
- * and zero over 200ms (`ease-linear`), and nothing else moves: the card is an
+ * and zero over 200ms (`ease-out-strong`), and nothing else moves: the card is an
  * inner column pinned to the box's end inset at the open width, so the content
  * never reflows or shifts, and the box's start edge sweeps across it. A CSS
  * transition reverses from wherever it is, so a second click mid-flight turns
@@ -1174,7 +1174,7 @@ const SidePanel = ({
 				// render must snap, not slide, on page load. Why bare utilities: a
 				// consumer `transition-none` or `duration-*` replaces the default
 				// through tailwind-merge.
-				"transition-[flex-basis,translate] duration-200 ease-linear motion-reduce:transition-none not-data-hydrated:transition-none",
+				"transition-[flex-basis,translate] duration-200 ease-out-strong motion-reduce:transition-none not-data-hydrated:transition-none",
 				"data-state-closed:basis-0 data-state-closed:pointer-events-none",
 				sidePanelFloatClassName[mobileBreakpoint],
 				className,

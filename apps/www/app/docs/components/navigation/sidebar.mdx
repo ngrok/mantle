@@ -945,7 +945,7 @@ separate chrome. The rail width is the `--sidebar-width-icon` CSS variable (defa
 [Width](#width).
 
 The rail, its rows, the switchers, the separators, and the body's trailing padding all move on one 200ms
-linear clock: a row trades its full-width shape for the chip as the rail narrows, so nothing snaps to its
+ease-out clock: a row trades its full-width shape for the chip as the rail narrows, so nothing snaps to its
 new shape on the first frame, and a second toggle mid-flight reverses from where the first one got to.
 `motion-reduce:` turns the whole move into a cut, and every transition holds until one frame after
 hydration, so a persisted state the client corrects snaps into place on page load.

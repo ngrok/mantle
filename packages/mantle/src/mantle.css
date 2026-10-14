@@ -171,6 +171,9 @@ MARK: THEME
 
 @theme inline {
 	/* Static values that never change across themes */
+	/* A strong ease-out for UI that enters, exits, or changes shape in under 300ms.
+	   Tailwind's `--ease-out` is too shallow to read as a settle at 200ms. */
+	--ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
 	--font-sans: "Roobert", ui-sans-serif, system-ui, sans-serif;
 	--font-mono:
 		"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono,
