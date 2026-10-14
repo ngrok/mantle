@@ -22,6 +22,11 @@ import {
 } from "~/features/sandbar-demos";
 import { SidebarPersistenceDemo } from "~/features/sidebar-demos";
 import { SparklinesInAListDemo } from "~/features/sparklines-in-a-list-demo";
+import {
+	StrataColumnsExample,
+	StrataExample,
+	StrataPolymorphismExample,
+} from "~/features/strata-demos";
 
 type PreviewExample = {
 	/**
@@ -151,6 +156,21 @@ export const previewExamples = {
 		title: "Sparklines in a list demo",
 		Component: SparklinesInAListDemo,
 		sourceFile: "sparklines-in-a-list-demo.tsx",
+	},
+	strata: {
+		title: "Strata demo",
+		Component: StrataExample,
+		sourceFile: "strata-demos.tsx",
+	},
+	"strata-columns": {
+		title: "Strata column split demo",
+		Component: StrataColumnsExample,
+		sourceFile: "strata-demos.tsx",
+	},
+	"strata-polymorphism": {
+		title: "Strata polymorphism demo",
+		Component: StrataPolymorphismExample,
+		sourceFile: "strata-demos.tsx",
 	},
 } as const satisfies Record<string, PreviewExample>;
 
