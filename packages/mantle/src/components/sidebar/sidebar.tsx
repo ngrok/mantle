@@ -51,6 +51,18 @@ type SidebarMobileBreakpoint = "sm" | "md" | "lg";
  * presentation on its own (see `Sidebar.Nav`). A complete `Record` (not cva) so
  * adding a breakpoint without its class is a compile error.
  */
+/**
+ * The clock and the gates every collapse transition under `Sidebar.Nav`
+ * shares, so the rail, its rows, and its labels move together. The nav's own
+ * width transition keys its gate on itself (`not-data-hydrated:`); everything
+ * inside keys on the nav's group. Bare utilities, so a consumer
+ * `transition-none` or `duration-*` replaces the default through
+ * tailwind-merge, and the `motion-reduce` rule wins on order at equal
+ * specificity.
+ */
+const collapseTransitionClassName =
+	"duration-200 ease-linear motion-reduce:transition-none group-not-data-hydrated/sidebar-nav:transition-none";
+
 const navVisibilityClassName: Record<SidebarMobileBreakpoint, string> = {
 	sm: "max-sm:not-data-hydrated:hidden",
 	md: "max-md:not-data-hydrated:hidden",
@@ -1142,8 +1154,11 @@ const Body = ({
 				// scroll-fade-y mask's 1.5rem fade zones, so a keyboard user's
 				// focus ring is never faded out mid-list.
 				"scrollbar scrollbar-gutter-stable scroll-fade-y flex-1 scroll-py-6 space-y-2 overflow-y-auto overflow-x-hidden px-3 pt-1.5 pb-4",
-				// Match Header/Footer trailing geometry when expanded.
+				// Match Header/Footer trailing geometry when expanded. The padding moves
+				// on the rail's clock, so the rows' available width never jumps.
 				"group-data-[state=expanded]/sidebar-nav:pr-1",
+				"transition-[padding]",
+				collapseTransitionClassName,
 				// The icon rail is too narrow for a scrollbar: hide it (and drop
 				// the reserved gutter, which would off-center the icons) and let
 				// the scroll fade signal the overflow instead.
@@ -1457,10 +1472,8 @@ const GroupLabel = ({
 				// snaps instead of animating on page load.
 				"group-data-[state=collapsed]/sidebar-nav:opacity-0",
 				"group-data-[state=collapsed]/sidebar-nav:pointer-events-none",
-				// Why one negated gate: bare utilities let a consumer `transition-none`
-				// or `duration-*` override the default through tailwind-merge, and the
-				// `motion-reduce` rule wins on order at equal specificity.
-				"transition-opacity duration-200 ease-linear motion-reduce:transition-none group-not-data-hydrated/sidebar-nav:transition-none",
+				"transition-opacity",
+				collapseTransitionClassName,
 				className,
 			)}
 			{...props}
@@ -1646,17 +1659,24 @@ const Item = ({
  * fresh class string on every row render.
  */
 const rowClassName = [
-	"ring-focus-accent flex w-full min-w-0 items-center gap-2 truncate rounded-md px-2 py-1 text-left font-normal transition-none focus:outline-hidden focus-visible:ring-4",
+	"ring-focus-accent flex w-full min-w-0 items-center gap-2 truncate rounded-md px-2 py-1 text-left font-normal focus:outline-hidden focus-visible:ring-4",
 	"text-body hover:text-strong hover:bg-neutral-500/10",
 	// A row composed as a menu or dialog trigger stays highlighted while the
 	// surface it opens is open, matching Sidebar.SwitcherTrigger.
 	"data-state-open:bg-neutral-500/15 data-state-open:text-strong",
 	// In the collapsed icon rail the row returns to its original 28px square
 	// chip. ml-1 keeps body and footer icons aligned with their expanded
-	// position and the switcher indicators.
+	// position and the switcher indicators. The label clips with no ellipsis
+	// there, so a collapse shows no shimmer of dots as the row narrows.
 	"group-data-[state=collapsed]/sidebar-nav:ml-1",
 	"group-data-[state=collapsed]/sidebar-nav:w-7",
 	"group-data-[state=collapsed]/sidebar-nav:p-1",
+	"group-data-[state=collapsed]/sidebar-nav:text-clip",
+	// Why these three properties: the chip and the row trade width, padding,
+	// and margin, and the rail's width runs on the same clock, so the row grows
+	// with the rail instead of taking the row shape on the first frame. Colors
+	// stay instant.
+	`transition-[width,padding,margin] ${collapseTransitionClassName}`,
 ].join(" ");
 
 type SidebarItemButtonProps = ComponentProps<"button"> &
@@ -2126,7 +2146,7 @@ const SwitcherTrigger = ({
 			data-slot={joinDataSlot(dataSlot, "sidebar-switcher-trigger")}
 			type={asChild ? type : (type ?? "button")}
 			className={cx(
-				"text-body hover:text-strong hover:bg-neutral-500/10 flex w-full min-w-0 items-center gap-2 rounded-[0.625rem] py-1 pr-1.5 pl-1 text-left font-medium transition-none",
+				"text-body hover:text-strong hover:bg-neutral-500/10 flex w-full min-w-0 items-center gap-2 rounded-[0.625rem] py-1 pr-1.5 pl-1 text-left font-medium",
 				"data-state-open:bg-neutral-500/15 data-state-open:text-strong",
 				"ring-focus-accent focus:outline-hidden focus-visible:ring-4",
 				// The leading account/product tile uses rounded-md (6px) and
@@ -2144,6 +2164,10 @@ const SwitcherTrigger = ({
 				"group-data-[state=collapsed]/sidebar-nav:w-9",
 				"group-data-[state=collapsed]/sidebar-nav:p-1",
 				"group-data-[state=collapsed]/sidebar-nav:[&>:not(:first-child)]:sr-only",
+				// The chip and the row trade width and padding on the rail's clock, so
+				// the switcher grows with the rail instead of snapping to the row shape.
+				"transition-[width,padding]",
+				collapseTransitionClassName,
 				className,
 			)}
 			{...props}
@@ -2430,7 +2454,14 @@ const SidebarSeparator = ({
 }: SidebarSeparatorProps) => (
 	<Separator
 		data-slot={joinDataSlot(dataSlot, "sidebar-separator")}
-		className={cx("my-3", "group-data-[state=collapsed]/sidebar-nav:w-9", className)}
+		className={cx(
+			"my-3",
+			"group-data-[state=collapsed]/sidebar-nav:w-9",
+			// The rule shortens to the chip's width on the rail's clock, with the rows.
+			"transition-[width]",
+			collapseTransitionClassName,
+			className,
+		)}
 		{...props}
 	/>
 );

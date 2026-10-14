@@ -25,6 +25,14 @@ const STYLE = `
 	.flex { display: flex; }
 	.w-\\(--sidebar-width\\,13rem\\) { width: var(--sidebar-width, 13rem); }
 	.transition-none { transition-property: none; }
+	.w-full { width: 100%; }
+	.px-2 { padding-inline: 0.5rem; }
+	.py-1 { padding-block: 0.25rem; }
+	.transition-\\[width\\,padding\\,margin\\] {
+		transition-property: width,padding,margin;
+		transition-timing-function: var(--tw-ease, cubic-bezier(0.4, 0, 0.2, 1));
+		transition-duration: var(--tw-duration, 150ms);
+	}
 	.transition-\\[width\\] {
 		transition-property: width;
 		transition-timing-function: var(--tw-ease, cubic-bezier(0.4, 0, 0.2, 1));
@@ -46,6 +54,15 @@ const STYLE = `
 	}
 	.data-\\[state\\=collapsed\\]\\:w-\\(--sidebar-width-icon\\,3\\.25rem\\)[data-state="collapsed"] {
 		width: var(--sidebar-width-icon, 3.25rem);
+	}
+	.group-data-\\[state\\=collapsed\\]\\/sidebar-nav\\:ml-1:is(:where(.group\\/sidebar-nav)[data-state="collapsed"] *) {
+		margin-left: 0.25rem;
+	}
+	.group-data-\\[state\\=collapsed\\]\\/sidebar-nav\\:w-7:is(:where(.group\\/sidebar-nav)[data-state="collapsed"] *) {
+		width: 1.75rem;
+	}
+	.group-data-\\[state\\=collapsed\\]\\/sidebar-nav\\:p-1:is(:where(.group\\/sidebar-nav)[data-state="collapsed"] *) {
+		padding: 0.25rem;
 	}
 	@media (width < 64rem) {
 		.max-lg\\:not-data-hydrated\\:hidden:not([data-hydrated]) { display: none; }
@@ -174,12 +191,19 @@ type ShellOptions = {
 	navClassName?: string;
 	/** A consumer `className` for `Sidebar.GroupLabel`. */
 	labelClassName?: string;
+	/** A consumer `className` for `Sidebar.ItemButton`. */
+	rowClassName?: string;
 };
 
-/** Renders the panel, a group label, and the trigger, then waits for the gates to release. */
-async function renderExpandedShell({ labelClassName, navClassName }: ShellOptions = {}): Promise<{
+/** Renders the panel, a group label, a row, and the trigger, then waits for the gates to release. */
+async function renderExpandedShell({
+	labelClassName,
+	navClassName,
+	rowClassName,
+}: ShellOptions = {}): Promise<{
 	label: HTMLElement;
 	nav: HTMLElement;
+	row: HTMLElement;
 }> {
 	await page.viewport(1280, 800);
 	render(
@@ -191,6 +215,13 @@ async function renderExpandedShell({ labelClassName, navClassName }: ShellOption
 							<Sidebar.GroupLabel className={labelClassName} data-testid="label">
 								Traffic
 							</Sidebar.GroupLabel>
+							<Sidebar.List>
+								<Sidebar.Item>
+									<Sidebar.ItemButton className={rowClassName} data-testid="row">
+										Endpoints
+									</Sidebar.ItemButton>
+								</Sidebar.Item>
+							</Sidebar.List>
 						</Sidebar.Group>
 					</Sidebar.Body>
 				</Sidebar.Nav>
@@ -204,7 +235,7 @@ async function renderExpandedShell({ labelClassName, navClassName }: ShellOption
 	});
 	// Why read the width: only a painted width can be the start value of a transition.
 	expect(getComputedStyle(nav).width).toBe("208px");
-	return { label: screen.getByTestId("label"), nav };
+	return { label: screen.getByTestId("label"), nav, row: screen.getByTestId("row") };
 }
 
 /**
@@ -228,9 +259,17 @@ test("animates a collapse the user triggers after hydration", async () => {
 	await userEvent.click(screen.getByRole("button", { name: "Toggle Sidebar" }));
 
 	expect(nav).toHaveAttribute("data-state", "collapsed");
+	// Why the row: it trades the row shape for the chip on the rail's clock, or
+	// it takes the chip shape on the first frame and the rail catches up to it.
 	await waitFor(() => {
 		expect(transitions).toEqual(
-			expect.arrayContaining(["sidebar-nav:width", "sidebar-group-label:opacity"]),
+			expect.arrayContaining([
+				"sidebar-nav:width",
+				"sidebar-group-label:opacity",
+				"sidebar-item-button:width",
+				"sidebar-item-button:padding-left",
+				"sidebar-item-button:margin-left",
+			]),
 		);
 	});
 });
@@ -238,7 +277,7 @@ test("animates a collapse the user triggers after hydration", async () => {
 test("snaps a collapse the user triggers under reduced motion", async () => {
 	await commands.emulateMedia({ reducedMotion: "reduce" });
 	expect(window.matchMedia("(prefers-reduced-motion: reduce)").matches).toBe(true);
-	const { label, nav } = await renderExpandedShell();
+	const { label, nav, row } = await renderExpandedShell();
 	const transitions = recordTransitions(nav);
 
 	await userEvent.click(screen.getByRole("button", { name: "Toggle Sidebar" }));
@@ -246,15 +285,17 @@ test("snaps a collapse the user triggers under reduced motion", async () => {
 	expect(nav).toHaveAttribute("data-state", "collapsed");
 	expect(getComputedStyle(nav).width).toBe("52px");
 	expect(getComputedStyle(label).opacity).toBe("0");
+	expect(getComputedStyle(row).width).toBe("28px");
 	expect(transitions).toEqual([]);
 });
 
 test("lets a consumer transition-none replace the default transition", async () => {
 	// Why: the default and the consumer utility share one tailwind-merge group, so
 	// only the last one in `cx` reaches the element and the cascade never decides.
-	const { label, nav } = await renderExpandedShell({
+	const { label, nav, row } = await renderExpandedShell({
 		labelClassName: "transition-none",
 		navClassName: "transition-none",
+		rowClassName: "transition-none",
 	});
 	const transitions = recordTransitions(nav);
 
@@ -263,5 +304,6 @@ test("lets a consumer transition-none replace the default transition", async () 
 	expect(nav).toHaveAttribute("data-state", "collapsed");
 	expect(getComputedStyle(nav).width).toBe("52px");
 	expect(getComputedStyle(label).opacity).toBe("0");
+	expect(getComputedStyle(row).width).toBe("28px");
 	expect(transitions).toEqual([]);
 });

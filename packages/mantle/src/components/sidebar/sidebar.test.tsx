@@ -553,16 +553,27 @@ describe("Sidebar collapse", () => {
 		});
 	});
 
-	test("the group label's fade gate matches the nav's group name and data-hydrated", async () => {
-		// Why cross-part pin: the label's negated variant matches only the nav's
+	test("every collapse transition's gate matches the nav's group name and data-hydrated", async () => {
+		// Why cross-part pin: each part's negated variant matches only the nav's
 		// group name and the absence of the attribute the nav stamps a frame later.
+		// A part that moves on the collapse and misses the gate animates an SSR
+		// state correction on page load.
 		render(
 			<Sidebar.Root>
 				<Sidebar.Nav data-testid="nav">
-					<Sidebar.Body>
+					<Sidebar.Header>
+						<Sidebar.SwitcherTrigger data-testid="switcher">Acme</Sidebar.SwitcherTrigger>
+					</Sidebar.Header>
+					<Sidebar.Body data-testid="body">
 						<Sidebar.Group>
 							<Sidebar.GroupLabel data-testid="label">Traffic</Sidebar.GroupLabel>
+							<Sidebar.List>
+								<Sidebar.Item>
+									<Sidebar.ItemButton data-testid="row">Endpoints</Sidebar.ItemButton>
+								</Sidebar.Item>
+							</Sidebar.List>
 						</Sidebar.Group>
+						<Sidebar.Separator data-testid="separator" />
 					</Sidebar.Body>
 				</Sidebar.Nav>
 			</Sidebar.Root>,
@@ -572,9 +583,11 @@ describe("Sidebar collapse", () => {
 		await waitFor(() => {
 			expect(nav).toHaveAttribute("data-hydrated", "");
 		});
-		expect(screen.getByTestId("label")).toHaveClass(
-			"group-not-data-hydrated/sidebar-nav:transition-none",
-		);
+		for (const testId of ["label", "row", "switcher", "separator", "body"]) {
+			expect(screen.getByTestId(testId)).toHaveClass(
+				"group-not-data-hydrated/sidebar-nav:transition-none",
+			);
+		}
 	});
 });
 
