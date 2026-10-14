@@ -131,12 +131,13 @@ The component that pops out when the tooltip is open.
 | `align?`           | `"start" \| "center" \| "end"`           | `"center"` | The preferred alignment against the trigger. May change when collisions occur.                                                          |
 | `alignOffset?`     | `number`                                 | `0`        | An offset in pixels from the `start` or `end` alignment options.                                                                        |
 | `avoidCollisions?` | `boolean`                                | `true`     | When `true`, overrides the `side` and `align` preferences to prevent collisions with boundary edges.                                    |
+| `data-slot?`       | `string`                                 | —          | A composing part's `data-slot` chain, joined ahead of this part's own `tooltip-content` rather than replacing it.                       |
 
 #### Data attributes
 
-| Data Attribute | Value                                              | Description                                        |
-| -------------- | -------------------------------------------------- | -------------------------------------------------- |
-| `data-slot`    | `"tooltip-content"`                                | On the tooltip surface.                            |
-| `data-slot`    | `"tooltip-label"`                                  | On the `<div>` wrapping `children`.                |
-| `data-state`   | `"delayed-open"` \| `"instant-open"` \| `"closed"` | The open state Radix stamps on the surface.        |
-| `data-side`    | `"top"` \| `"right"` \| `"bottom"` \| `"left"`     | Which side of the trigger the surface resolved to. |
+| Data Attribute | Value                                              | Description                                                          |
+| -------------- | -------------------------------------------------- | -------------------------------------------------------------------- |
+| `data-slot`    | `"tooltip-content"`                                | On the tooltip surface, with any composing part's chain ahead of it. |
+| `data-slot`    | `"tooltip-label"`                                  | On the `<div>` wrapping `children`.                                  |
+| `data-state`   | `"delayed-open"` \| `"instant-open"` \| `"closed"` | The open state Radix stamps on the surface.                          |
+| `data-side`    | `"top"` \| `"right"` \| `"bottom"` \| `"left"`     | Which side of the trigger the surface resolved to.                   |

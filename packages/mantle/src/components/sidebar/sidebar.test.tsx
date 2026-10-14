@@ -1715,8 +1715,8 @@ describe("Sidebar.Tooltip", () => {
 		);
 		expect(tooltip).toHaveClass("custom-class");
 		expect(tooltip).toHaveAttribute("data-flavor", "primary");
-		// ancestors first, this row's slot name last
-		expect(tooltip).toHaveAttribute("data-slot", "outer sidebar-tooltip");
+		// ancestors first, this row's slot name, then Tooltip.Content's own
+		expect(tooltip).toHaveAttribute("data-slot", "outer sidebar-tooltip tooltip-content");
 		expect(tooltip.querySelector('[data-slot="sidebar-tooltip-row"]')).toHaveTextContent(
 			"Endpoints",
 		);

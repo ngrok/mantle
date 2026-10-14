@@ -10,6 +10,8 @@ import {
 } from "@radix-ui/react-tooltip";
 import type { ComponentProps, ComponentPropsWithoutRef } from "react";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { useLayerContainer } from "../../utils/layer-container/layer-container.js";
 
 /**
@@ -107,9 +109,10 @@ function Trigger(props: ComponentProps<typeof TooltipPrimitiveTrigger>) {
 /**
  * Props for `Tooltip.Content`. `asChild` is omitted: the content renders its own
  * arrow next to `children`, so a slot would receive more than one element and
- * throw.
+ * throw. A `data-slot` from a composing part joins ahead of `tooltip-content`.
  */
-type TooltipContentProps = Omit<ComponentProps<typeof TooltipPrimitiveContent>, "asChild">;
+type TooltipContentProps = Omit<ComponentProps<typeof TooltipPrimitiveContent>, "asChild"> &
+	WithDataSlot;
 
 /**
  * The content to render inside the tooltip.
@@ -134,7 +137,7 @@ type TooltipContentProps = Omit<ComponentProps<typeof TooltipPrimitiveContent>, 
  *
  * | Data Attribute   | Value                                              | Description                                       |
  * | ---------------- | -------------------------------------------------- | ------------------------------------------------- |
- * | `data-slot`      | `"tooltip-content"`                                | On the tooltip surface.                           |
+ * | `data-slot`      | `"tooltip-content"`                                | On the tooltip surface, with any composing part's chain ahead of it. |
  * | `data-slot`      | `"tooltip-label"`                                  | On the `<div>` wrapping `children`.               |
  * | `data-state`     | `"delayed-open"` \| `"instant-open"` \| `"closed"` | The open state Radix stamps on the surface.       |
  * | `data-side`      | `"top"` \| `"right"` \| `"bottom"` \| `"left"`     | Which side of the trigger the surface resolved to. |
@@ -155,7 +158,14 @@ type TooltipContentProps = Omit<ComponentProps<typeof TooltipPrimitiveContent>, 
  * </Tooltip.Root>
  * ```
  */
-const Content = ({ children, className, ref, sideOffset = 4, ...props }: TooltipContentProps) => {
+const Content = ({
+	children,
+	className,
+	"data-slot": dataSlot,
+	ref,
+	sideOffset = 4,
+	...props
+}: TooltipContentProps) => {
 	const layerContainer = useLayerContainer();
 
 	return (
@@ -165,7 +175,7 @@ const Content = ({ children, className, ref, sideOffset = 4, ...props }: Tooltip
 					"bg-tooltip text-tooltip animate-in fade-in-0 zoom-in-95 data-side-bottom:slide-in-from-top-2 data-side-left:slide-in-from-right-2 data-side-right:slide-in-from-left-2 data-side-top:slide-in-from-bottom-2 data-state-closed:animate-out data-state-closed:fade-out-0 data-state-closed:zoom-out-95 z-50 max-w-72 overflow-visible wrap-break-word rounded-md px-3 py-1.5 text-sm font-sans shadow",
 					className,
 				)}
-				data-slot="tooltip-content"
+				data-slot={joinDataSlot(dataSlot, "tooltip-content")}
 				ref={ref}
 				sideOffset={sideOffset}
 				{...props}
@@ -285,7 +295,7 @@ const Tooltip = {
 	 *
 	 * | Data Attribute   | Value                                              | Description                                       |
 	 * | ---------------- | -------------------------------------------------- | ------------------------------------------------- |
-	 * | `data-slot`      | `"tooltip-content"`                                | On the tooltip surface.                           |
+	 * | `data-slot`      | `"tooltip-content"`                                | On the tooltip surface, with any composing part's chain ahead of it. |
 	 * | `data-slot`      | `"tooltip-label"`                                  | On the `<div>` wrapping `children`.               |
 	 * | `data-state`     | `"delayed-open"` \| `"instant-open"` \| `"closed"` | The open state Radix stamps on the surface.       |
 	 * | `data-side`      | `"top"` \| `"right"` \| `"bottom"` \| `"left"`     | Which side of the trigger the surface resolved to. |

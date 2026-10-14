@@ -261,7 +261,7 @@ describe("Sandbar structure", () => {
 		const save = screen.getByRole("button", { name: "Save" });
 		expect(save).toHaveAttribute("data-appearance", "filled");
 		expect(save).toHaveAttribute("data-intent", "neutral");
-		expect(save).toHaveAttribute("data-loading", "false");
+		expect(save).not.toHaveAttribute("data-loading");
 
 		const discard = screen.getByRole("button", { name: "Discard" });
 		expect(discard).toHaveAttribute("data-appearance", "outlined");
@@ -803,7 +803,7 @@ describe("Sandbar interaction", () => {
 
 		const saveButton = screen.getByRole("button", { name: "Save" });
 		expect(saveButton).toBeDisabled();
-		expect(saveButton).toHaveAttribute("data-loading", "true");
+		expect(saveButton).toHaveAttribute("data-loading", "");
 		await user.click(saveButton);
 		expect(save).not.toHaveBeenCalled();
 	});

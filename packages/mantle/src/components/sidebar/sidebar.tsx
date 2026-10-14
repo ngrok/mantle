@@ -832,7 +832,7 @@ const TooltipLabel = ({ label, shortcut }: { label: ReactNode; shortcut: ReactNo
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
  * | `data-state` | `"expanded"` \| `"collapsed"` | Mirrors what the trigger toggles: the mobile sheet below the root's `mobileBreakpoint`, the desktop panel otherwise. Pairs with `aria-expanded`. |
- * | `data-slot` | `"sidebar-trigger-tooltip"` | On the tooltip surface, not the button: the styling hook for the label-and-chord popup this part renders. |
+ * | `data-slot` | `"sidebar-trigger-tooltip tooltip-content"` | On the tooltip surface, not the button: the styling hook for the label-and-chord popup this part renders, joined ahead of `Tooltip.Content`'s own slot. |
  * | `data-state` | `"delayed-open"` \| `"instant-open"` \| `"closed"` | Read, not stamped: on the tooltip surface, from `Tooltip.Content`. |
  * | `data-side` | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | Read, not stamped: on the tooltip surface, from `Tooltip.Content`. |
  * | `data-slot` | `"sidebar-tooltip-row"` | Inside that surface, on the flex row holding the label and the optional chord chips. Nested inside `Tooltip.Content`'s own `tooltip-label` div. Always present. |
@@ -2286,7 +2286,7 @@ type SidebarTooltipProps = Omit<ComponentProps<typeof Tooltip.Content>, "childre
  *
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
- * | `data-slot` | `"sidebar-tooltip"` | On the tooltip surface. |
+ * | `data-slot` | `"sidebar-tooltip tooltip-content"` | On the tooltip surface, with any forwarded chain ahead of it and `Tooltip.Content`'s own slot after it. |
  * | `data-state` | `"delayed-open"` \| `"instant-open"` \| `"closed"` | Read, not stamped: on the tooltip surface, from `Tooltip.Content`. |
  * | `data-side` | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | Read, not stamped: on the tooltip surface, from `Tooltip.Content`. The resolved side, `"right"` by default. |
  * | `data-align` | `"start"` \| `"center"` \| `"end"` | Read, not stamped: on the tooltip surface, from `Tooltip.Content`. |
@@ -3417,7 +3417,7 @@ const Sidebar = {
 	 *
 	 * | Data Attribute | Value | Description |
 	 * | --- | --- | --- |
-	 * | `data-slot` | `"sidebar-tooltip"` | On the tooltip surface. |
+	 * | `data-slot` | `"sidebar-tooltip tooltip-content"` | On the tooltip surface, with any forwarded chain ahead of it and `Tooltip.Content`'s own slot after it. |
 	 * | `data-state` | `"delayed-open"` \| `"instant-open"` \| `"closed"` | Read, not stamped: on the tooltip surface, from `Tooltip.Content`. |
 	 * | `data-side` | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | Read, not stamped: on the tooltip surface, from `Tooltip.Content`. The resolved side, `"right"` by default. |
 	 * | `data-align` | `"start"` \| `"center"` \| `"end"` | Read, not stamped: on the tooltip surface, from `Tooltip.Content`. |

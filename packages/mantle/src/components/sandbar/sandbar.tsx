@@ -864,8 +864,8 @@ type SandbarSaveButtonProps = Omit<ButtonProps, "appearance" | "children" | "int
  * | `data-appearance` | the resolved `appearance` | Stamped by `Button`.                                                                             |
  * | `data-intent`     | the resolved `intent`     | Stamped by `Button`.                                                                             |
  * | `data-size`       | the resolved `size`       | Stamped by `Button`; absent for `appearance="link"`.                                             |
- * | `data-disabled`   | `"true"` \| `"false"`     | Stamped by `Button`. Value-based, not presence-based — match on the value.                       |
- * | `data-loading`    | `"true"` \| `"false"`     | Stamped by `Button`, tracking `isLoading`. Value-based, not presence-based.                      |
+ * | `data-disabled`   | present when disabled     | Stamped by `Button`. Presence-only, never `"false"`.                                             |
+ * | `data-loading`    | present when `isLoading`  | Stamped by `Button`. Presence-only, never `"false"`.                                             |
  *
  * @see https://mantle.ngrok.com/components/feedback/sandbar#sandbarsavebutton
  *
@@ -969,8 +969,8 @@ type SandbarDiscardButtonProps = Omit<ButtonProps, "appearance" | "children" | "
  * | `data-appearance` | the resolved `appearance`  | Stamped by `Button`.                                                                             |
  * | `data-intent`     | the resolved `intent`      | Stamped by `Button`.                                                                             |
  * | `data-size`       | the resolved `size`        | Stamped by `Button`; absent for `appearance="link"`.                                             |
- * | `data-disabled`   | `"true"` \| `"false"`      | Stamped by `Button`. Value-based, not presence-based — match on the value.                       |
- * | `data-loading`    | `"true"` \| `"false"`      | Stamped by `Button`, tracking `isLoading`. Value-based, not presence-based.                      |
+ * | `data-disabled`   | present when disabled      | Stamped by `Button`. Presence-only, never `"false"`.                                             |
+ * | `data-loading`    | present when `isLoading`   | Stamped by `Button`. Presence-only, never `"false"`.                                             |
  *
  * @see https://mantle.ngrok.com/components/feedback/sandbar#sandbardiscardbutton
  *

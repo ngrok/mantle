@@ -121,8 +121,8 @@ type IconButtonProps = Omit<ComponentProps<"button">, "aria-label"> &
  * | `data-appearance`  | `"filled"` \| `"ghost"` \| `"outlined"`       | The `appearance` prop.                                                 |
  * | `data-intent`      | `"neutral"`                                  | The `intent` prop.                                                     |
  * | `data-size`        | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"`  | The `size` prop.                                                       |
- * | `data-loading`     | `"true"` \| `"false"`                        | The `isLoading` prop.                                                  |
- * | `data-disabled`    | `"true"` \| `"false"`                        | `true` when `disabled`, `isLoading`, or `aria-disabled="true"` is set. |
+ * | `data-loading`     | present when `isLoading`                     | Presence-only, never `"false"`.                                        |
+ * | `data-disabled`    | present when disabled                        | Presence-only, never `"false"`, since the `data-disabled:` variant matches the attribute's existence. Set when `disabled`, `isLoading`, or `aria-disabled="true"` is set. |
  *
  * @see https://mantle.ngrok.com/components/actions/icon-button
  *
@@ -177,10 +177,12 @@ const IconButton = ({
 		"data-slot": "icon-button",
 		className: cx(iconButtonVariants({ appearance, intent, isLoading, size }), className),
 		"data-appearance": appearance,
-		"data-disabled": disabled,
+		// Why presence-only: the `data-disabled:` variant matches the attribute,
+		// so a `"false"` value fires it on every enabled button.
+		"data-disabled": disabled ? "" : undefined,
 		"data-icon-button": true,
 		"data-intent": intent,
-		"data-loading": isLoading,
+		"data-loading": isLoading ? "" : undefined,
 		"data-size": size,
 		ref,
 		...props,
