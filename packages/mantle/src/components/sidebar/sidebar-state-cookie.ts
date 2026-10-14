@@ -33,10 +33,10 @@ const SIDEBAR_STATE_COOKIE_VALUES = {
  * This is the server half of cookie-backed persistence: unlike storage-backed
  * persistence, a cookie is available *before* the server renders, so the
  * server-rendered HTML already carries the right `data-state` and there is no
- * first-frame correction to hide. Pass the result straight to `defaultOpen` —
+ * first-frame correction to hide. Pass the result straight to `defaultOpen`;
  * controlled `open` is not required.
  *
- * Returns `undefined` — not `false` — when the cookie is absent or holds a
+ * Returns `undefined`, not `false`, when the cookie is absent or holds a
  * value this helper does not recognize, so a first-time visitor is
  * distinguishable from one who deliberately collapsed the sidebar. Collapse the
  * state into your own default at the call site with `?? true`.
@@ -104,7 +104,7 @@ type SerializeSidebarStateCookieOptions = {
 	 */
 	domain?: string;
 	/**
-	 * `SameSite` policy. `"Lax"` is right for a UI preference — it survives
+	 * `SameSite` policy. `"Lax"` is right for a UI preference: it survives
 	 * top-level navigations back to your app without riding along on
 	 * cross-site subrequests.
 	 *
@@ -113,10 +113,10 @@ type SerializeSidebarStateCookieOptions = {
 	sameSite?: "Lax" | "Strict" | "None";
 	/**
 	 * Whether to add the `Secure` attribute. Omitted by default so the same call
-	 * works on `http://localhost` — a `Secure` cookie is silently rejected over
-	 * http, which would make the preference appear not to persist in local
-	 * development. Set it to `true` in production if your CSP or policy requires
-	 * it; this cookie holds no secret, only whether a rail is open.
+	 * works on `http://localhost`: the browser silently rejects a `Secure` cookie
+	 * over http, which would make the preference appear not to persist in local
+	 * development. If your CSP or policy requires it, set it to `true` in
+	 * production; this cookie holds no secret, only whether a rail is open.
 	 *
 	 * @default false
 	 */
@@ -153,7 +153,7 @@ type SerializeSidebarStateCookieOptions = {
  * ```
  *
  * @param open - Whether the sidebar is expanded.
- * @param options - Cookie attributes; see {@link SerializeSidebarStateCookieOptions}.
+ * @param options - Defaults to one year, `Path=/`, `SameSite=Lax`, and no `Secure`.
  * @returns A cookie string such as `mantle-sidebar-state=collapsed; Max-Age=31536000; Path=/; SameSite=Lax`.
  */
 function serializeSidebarStateCookie(

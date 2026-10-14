@@ -246,7 +246,9 @@ export const getDefaultConfig = () => {
       color: [isAny],
       container: [isTshirtSize],
       "drop-shadow": [isTshirtSize],
-      ease: ["in", "out", "in-out"],
+      // --- mantle override --- : `ease-out-strong` is mantle's own `--ease-out-strong` theme
+      // token (packages/mantle/src/mantle.css), so a consumer `ease-*` replaces it through `cx`.
+      ease: ["in", "out", "in-out", "out-strong"],
       font: [isAnyNonArbitrary],
       "font-weight": [
         "thin",

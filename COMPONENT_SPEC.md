@@ -752,7 +752,11 @@ controlled/uncontrolled, polymorphism):
   `~/features/<component-name>-demos` (what `code-block` does, for demos that need build-time transforms); or
   `CodeExample.Root` → `CodeExample.PreviewFrame example="<key>"` for shell-scale demos that own a whole
   document — that key must be registered in `apps/www/app/features/preview-registry.ts`, and the fence lives
-  inside `CodeExample.Code`. Never ship a usage block with nothing rendering it.
+  inside `CodeExample.Code`. Never ship a usage block with nothing rendering it, outside the one exception
+  below.
+- **Server-render exception.** A fence that needs a router or a request loader (a `useMatches()` consumer, a
+  cookie read in a loader) may ship with nothing rendering it. The paragraph above it must state why, and
+  must link the recipe or the page that renders it for real.
 - **Complete and self-contained.** Full component or render — never a fragment, never `…` placeholders, never
   a "only this line changes" diff, never a reference to an identifier that appears nowhere on the page. Data,
   handlers, and state are defined inline or in the page's module scope (a page-level `const fruits = […]` is

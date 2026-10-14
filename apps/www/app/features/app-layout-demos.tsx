@@ -1,12 +1,19 @@
 import { AppLayout } from "@ngrok/mantle/app-layout";
 import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
 import { Button, IconButton } from "@ngrok/mantle/button";
+import { cx } from "@ngrok/mantle/cx";
+import { Sidebar } from "@ngrok/mantle/sidebar";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
+import { TextArea } from "@ngrok/mantle/text-area";
 import { ArrowLeftIcon } from "@phosphor-icons/react/ArrowLeft";
 import { CheckCircleIcon } from "@phosphor-icons/react/CheckCircle";
 import { CopyIcon } from "@phosphor-icons/react/Copy";
+import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
+import { GraphIcon } from "@phosphor-icons/react/Graph";
+import { SparkleIcon } from "@phosphor-icons/react/Sparkle";
 import { TrashIcon } from "@phosphor-icons/react/Trash";
 import { WarningCircleIcon } from "@phosphor-icons/react/WarningCircle";
+import { XIcon } from "@phosphor-icons/react/X";
 import { Fragment, useLayoutEffect, useRef, useState } from "react";
 
 /**
@@ -466,5 +473,177 @@ export function AppLayoutPolymorphismDemo() {
 				</AppLayout.Workspace>
 			</AppLayout.Root>
 		</div>
+	);
+}
+
+/** The jobs the assistant offers on an empty conversation. */
+const assistantStarters = [
+	"Test webhooks from Stripe or GitHub",
+	"Share a local API without deploying",
+	"Route and authenticate API traffic",
+] as const;
+
+/**
+ * `AppLayout.SidePanel` beside the content card: an assistant that opens from
+ * the header's trigger and closes from its own. `AppLayout.SidePanelRoot`
+ * owns the state, so both triggers toggle one panel, and closing from inside
+ * moves focus back to the header's trigger. The panel keeps its children
+ * mounted while closed, so a conversation survives a close and a reopen. The
+ * sidebar and the panel both narrow their breakpoint to `md`, so the panel is
+ * a lane at the preview's desktop and tablet widths (the tablet preset is
+ * exactly 48rem, the `md` boundary) and covers the card at its mobile width.
+ * Renders as an entire framed-preview document.
+ */
+export function AppLayoutSidePanelDemo() {
+	return (
+		// the framed demo narrows the mobile breakpoint; most apps keep the "lg" default
+		<Sidebar.Root mobileBreakpoint="md">
+			<AppLayout.Root className="fixed inset-0">
+				<SkipToMainLink />
+				<AppLayout.SidePanelRoot defaultOpen>
+					<AppLayout.Workspace>
+						<Sidebar.Nav aria-label="Main">
+							<Sidebar.Body>
+								<Sidebar.Group>
+									<Sidebar.GroupLabel>Traffic</Sidebar.GroupLabel>
+									<Sidebar.List>
+										<Sidebar.Item>
+											<Sidebar.Tooltip label="Endpoints">
+												<Sidebar.ItemButton current>
+													<GraphIcon />
+													Endpoints
+												</Sidebar.ItemButton>
+											</Sidebar.Tooltip>
+										</Sidebar.Item>
+										<Sidebar.Item>
+											<Sidebar.Tooltip label="Domains">
+												<Sidebar.ItemButton>
+													<GlobeHemisphereWestIcon />
+													Domains
+												</Sidebar.ItemButton>
+											</Sidebar.Tooltip>
+										</Sidebar.Item>
+									</Sidebar.List>
+								</Sidebar.Group>
+							</Sidebar.Body>
+						</Sidebar.Nav>
+						<AppLayout.Content>
+							<AppLayout.Header>
+								<AppLayout.HeaderStart>
+									<Sidebar.Trigger />
+								</AppLayout.HeaderStart>
+								<AppLayout.HeaderContent>
+									<Breadcrumb.Root>
+										<Breadcrumb.List>
+											<Breadcrumb.Item>
+												<Breadcrumb.Link href="#">Endpoints</Breadcrumb.Link>
+											</Breadcrumb.Item>
+											<Breadcrumb.Separator />
+											<Breadcrumb.Item>
+												<Breadcrumb.Page translate="no">ep_gateway_api</Breadcrumb.Page>
+											</Breadcrumb.Item>
+										</Breadcrumb.List>
+									</Breadcrumb.Root>
+								</AppLayout.HeaderContent>
+								<AppLayout.HeaderActions>
+									<AppLayout.SidePanelTrigger icon={<SparkleIcon />} label="Toggle the assistant" />
+								</AppLayout.HeaderActions>
+							</AppLayout.Header>
+							<AppLayout.Body>
+								<div className="mx-auto max-w-7xl space-y-3 p-6">
+									{Array.from({ length: 12 }, (_, index) => (
+										<div key={index} className="border-card-muted rounded-lg border p-4">
+											<p className="text-strong text-sm font-medium">Row {index + 1}</p>
+										</div>
+									))}
+								</div>
+							</AppLayout.Body>
+						</AppLayout.Content>
+						<AppLayout.SidePanel aria-label="Assistant" mobileBreakpoint="md">
+							<AppLayout.SidePanelHeader>
+								<p className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Assistant</p>
+								<AppLayout.SidePanelTrigger icon={<XIcon />} label="Close the assistant" />
+							</AppLayout.SidePanelHeader>
+							<AppLayout.SidePanelBody>
+								<div className="flex flex-col gap-3 p-4">
+									<p className="text-strong text-center text-base font-medium">
+										What should we do today?
+									</p>
+									<p className="text-muted text-center text-sm">
+										Pick a starting point and we will write the Traffic Policy.
+									</p>
+									{assistantStarters.map((starter) => (
+										<Button
+											key={starter}
+											type="button"
+											appearance="outlined"
+											intent="neutral"
+											className="justify-start"
+										>
+											{starter}
+										</Button>
+									))}
+								</div>
+							</AppLayout.SidePanelBody>
+							<AppLayout.SidePanelFooter>
+								<TextArea
+									aria-label="Message the assistant"
+									placeholder="Ask about endpoints, domains, or Traffic Policy…"
+									rows={2}
+								/>
+							</AppLayout.SidePanelFooter>
+						</AppLayout.SidePanel>
+					</AppLayout.Workspace>
+				</AppLayout.SidePanelRoot>
+			</AppLayout.Root>
+		</Sidebar.Root>
+	);
+}
+
+/**
+ * The workspace row under a cap narrower than the frame, so the centering is
+ * visible at preview scale: the default `--app-layout-max-width` is `128rem`,
+ * and this frame sets `40rem`. The header's button swaps the row's alignment
+ * between the centered default and a merged `ml-0`. Renders as an entire
+ * framed-preview document.
+ */
+export function AppLayoutMaxWidthDemo() {
+	const [alignment, setAlignment] = useState<"center" | "start">("center");
+
+	return (
+		<AppLayout.Root className="fixed inset-0 [--app-layout-max-width:40rem]">
+			<SkipToMainLink />
+			<AppLayout.Workspace className={cx(alignment === "start" && "ml-0")}>
+				<AppLayout.Content>
+					<AppLayout.Header>
+						<AppLayout.HeaderContent>
+							<p className="text-strong text-sm font-medium">Endpoints</p>
+						</AppLayout.HeaderContent>
+						<AppLayout.HeaderActions>
+							<Button
+								type="button"
+								appearance="outlined"
+								intent="neutral"
+								size="sm"
+								onClick={() =>
+									setAlignment((current) => (current === "center" ? "start" : "center"))
+								}
+							>
+								{alignment === "center" ? "Pin to the start edge" : "Center the row"}
+							</Button>
+						</AppLayout.HeaderActions>
+					</AppLayout.Header>
+					<AppLayout.Body>
+						<div className="space-y-3 p-6">
+							{Array.from({ length: 8 }, (_, index) => (
+								<div key={index} className="border-card-muted rounded-lg border p-4">
+									<p className="text-strong text-sm font-medium">Row {index + 1}</p>
+								</div>
+							))}
+						</div>
+					</AppLayout.Body>
+				</AppLayout.Content>
+			</AppLayout.Workspace>
+		</AppLayout.Root>
 	);
 }
