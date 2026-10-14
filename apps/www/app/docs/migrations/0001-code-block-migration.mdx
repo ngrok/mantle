@@ -17,6 +17,10 @@ Key design principle: **syntax highlighting never runs in the browser**. It happ
 
 > **Security note:** `preHtml` is rendered via `dangerouslySetInnerHTML`. Only pass HTML produced by Shiki (via the Vite plugin, server highlighter, or highlight server). Never pass unsanitized user input as `preHtml`.
 
+## Codemod
+
+Codemod: manual: the move from PrismJS to `CodeBlock` swaps one library's API for another, so no rewrite rule can name the target shape.
+
 ---
 
 ## Migrating from PrismJS (before → after)

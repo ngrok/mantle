@@ -27,6 +27,22 @@ migration.
 `intent="accent"`, IconButton `intent="neutral"`) onto every button that omitted them, except a
 filled Button that omitted `priority`, which becomes `intent="neutral"`.
 
+## Codemod
+
+From a mantle checkout:
+
+```sh
+pnpm -w run migrate 0004 <path>
+```
+
+In a project that installs `@ngrok/mantle`:
+
+```sh
+npx ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/0004-priority-to-intent.yml --update-all <path>
+```
+
+The rules apply steps 2 to 4. They rename `priority` to `intent` on the listed components, map Button's `"default"` to `"accent"`, and stamp the old implicit `appearance` and `intent` onto every `Button` and `IconButton` that omits them, with the filled-Button exception. A dynamic `priority={value}` renames too, but a value that can produce `"default"` keeps that string: map it by hand (step 5). Steps 6 and 7 stay manual, because a type import and a `[data-priority]` selector are not JSX attributes. Pass `--dry-run` to print the rewrites first, and run your formatter after the rewrite.
+
 ---
 
 ## You are an agent migrating a codebase. Do this:

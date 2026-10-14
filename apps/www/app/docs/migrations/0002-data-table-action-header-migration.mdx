@@ -9,6 +9,22 @@ This document describes how to migrate existing `DataTable` usages to take advan
 
 **TL;DR:** If your data table has an action column whose cells use `DataTable.ActionCell`, change that column's header from `DataTable.Header` (or `<Table.Header />`, or an empty cell) to `DataTable.ActionHeader`. That's it.
 
+## Codemod
+
+From a mantle checkout:
+
+```sh
+pnpm -w run migrate 0002 <path>
+```
+
+In a project that installs `@ngrok/mantle`:
+
+```sh
+npx ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/0002-data-table-action-header.yml --update-all <path>
+```
+
+The rules apply the whole find/replace recipe. In a column whose `cell` renders `DataTable.ActionCell`, they rewrite `DataTable.Header`, `Table.Header`, and `header: () => null` to `DataTable.ActionHeader`. A header that returns `undefined` or a fragment stays manual. Pass `--dry-run` to print the rewrites first, and run your formatter after the rewrite.
+
 ---
 
 ## Why this change

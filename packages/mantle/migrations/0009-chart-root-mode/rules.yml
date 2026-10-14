@@ -1,0 +1,33 @@
+id: chart-decorative-flag
+language: tsx
+message: the chart Roots take mode="decorative" in place of the decorative flag
+rule:
+  kind: jsx_attribute
+  regex: ^decorative(=\{true\})?$
+  inside:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    has:
+      field: name
+      regex: ^(LineChart|BarChart|AreaChart|ScatterPlot)\.Root$
+fix: mode="decorative"
+---
+id: chart-decorative-expression
+language: tsx
+message: a dynamic decorative flag picks between the decorative and interactive modes
+rule:
+  kind: jsx_attribute
+  pattern:
+    context: <Root decorative={$FLAG} />
+    selector: jsx_attribute
+  not:
+    regex: ^decorative=\{true\}$
+  inside:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    has:
+      field: name
+      regex: ^(LineChart|BarChart|AreaChart|ScatterPlot)\.Root$
+fix: 'mode={$FLAG ? "decorative" : "interactive"}'

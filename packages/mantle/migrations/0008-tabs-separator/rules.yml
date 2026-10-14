@@ -1,0 +1,95 @@
+id: tabs-list-add-separator
+language: tsx
+message: a classic Tabs.List needs Tabs.Separator after it
+rule:
+  kind: jsx_closing_element
+  has:
+    field: name
+    regex: ^Tabs\.List$
+  inside:
+    kind: jsx_element
+    all:
+      - not:
+          has:
+            field: open_tag
+            has:
+              kind: jsx_attribute
+              regex: ^hideBorder\b
+      - not:
+          precedes:
+            any:
+              - pattern: <Tabs.Separator />
+              - kind: jsx_expression
+                has:
+                  stopBy: end
+                  pattern: <Tabs.Separator />
+      - inside:
+          kind: jsx_element
+          stopBy: end
+          has:
+            field: open_tag
+            has:
+              field: name
+              regex: ^Tabs\.Root$
+            not:
+              has:
+                kind: jsx_attribute
+                regex: ^appearance="pill"$
+fix: |-
+  </Tabs.List>
+  <Tabs.Separator />
+---
+id: tabs-list-dynamic-hide-border
+language: tsx
+message: a dynamic hideBorder becomes a conditional Tabs.Separator
+rule:
+  kind: jsx_closing_element
+  has:
+    field: name
+    regex: ^Tabs\.List$
+  inside:
+    kind: jsx_element
+    has:
+      field: open_tag
+      has:
+        kind: jsx_attribute
+        pattern:
+          context: <List hideBorder={$CONDITION} />
+          selector: jsx_attribute
+        not:
+          regex: ^hideBorder=\{(true|false)\}$
+fix: |-
+  </Tabs.List>
+  {!$CONDITION && <Tabs.Separator />}
+---
+id: tabs-list-false-hide-border
+language: tsx
+message: hideBorder={false} drew the border, so the list needs Tabs.Separator
+rule:
+  kind: jsx_closing_element
+  has:
+    field: name
+    regex: ^Tabs\.List$
+  inside:
+    kind: jsx_element
+    has:
+      field: open_tag
+      has:
+        kind: jsx_attribute
+        regex: ^hideBorder=\{false\}$
+fix: |-
+  </Tabs.List>
+  <Tabs.Separator />
+---
+id: tabs-list-drop-hide-border
+language: tsx
+message: Tabs.List no longer takes hideBorder
+rule:
+  kind: jsx_attribute
+  regex: ^hideBorder\b
+  inside:
+    kind: jsx_opening_element
+    has:
+      field: name
+      regex: ^Tabs\.List$
+fix: ""

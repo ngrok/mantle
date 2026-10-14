@@ -29,7 +29,7 @@
       "cache": false
     },
     "//#test:scripts": {
-      "inputs": ["scripts/**"]
+      "inputs": ["scripts/**", "packages/mantle/migrations/**", "apps/www/app/docs/migrations/**"]
     },
     "test": {
       "dependsOn": ["^build", "//#install:playwright", "//#test:scripts"]

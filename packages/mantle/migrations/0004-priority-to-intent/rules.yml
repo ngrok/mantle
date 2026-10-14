@@ -1,0 +1,207 @@
+id: priority-default-to-accent
+language: tsx
+message: Button priority="default" becomes intent="accent"
+rule:
+  kind: jsx_attribute
+  regex: ^priority="default"$
+  inside:
+    any:
+      - kind: jsx_self_closing_element
+      - kind: jsx_opening_element
+    has:
+      field: name
+      regex: ^(Button|AlertDialog\.Action|DataTable\.HeaderSortButton)$
+fix: intent="accent"
+---
+id: priority-to-intent
+language: tsx
+message: rename priority to intent
+rule:
+  kind: jsx_attribute
+  pattern: $ATTR
+  regex: ^priority\b
+  not:
+    regex: ^priority="default"$
+  inside:
+    any:
+      - kind: jsx_self_closing_element
+      - kind: jsx_opening_element
+    has:
+      field: name
+      regex: ^(Button|IconButton|Alert\.Root|AlertDialog\.Root|AlertDialog\.Action|AlertDialog\.Cancel|Toast\.Root|DataTable\.HeaderSortButton)$
+transform:
+  RENAMED:
+    replace:
+      source: $ATTR
+      replace: ^priority
+      by: intent
+fix: $RENAMED
+---
+id: button-bare
+language: tsx
+message: a bare Button keeps its old implicit outlined accent rendering
+utils:
+  element:
+    any:
+      - kind: jsx_self_closing_element
+      - kind: jsx_opening_element
+  has-appearance:
+    has:
+      kind: jsx_attribute
+      regex: ^appearance\b
+  has-tone:
+    has:
+      kind: jsx_attribute
+      regex: ^(priority|intent)\b
+rule:
+  kind: identifier
+  regex: ^Button$
+  inside:
+    matches: element
+    all:
+      - not:
+          matches: has-appearance
+      - not:
+          matches: has-tone
+fix: Button appearance="outlined" intent="accent"
+---
+id: button-tone-only
+language: tsx
+message: a Button with a tone and no appearance was outlined
+utils:
+  element:
+    any:
+      - kind: jsx_self_closing_element
+      - kind: jsx_opening_element
+rule:
+  kind: identifier
+  regex: ^Button$
+  inside:
+    matches: element
+    all:
+      - not:
+          has:
+            kind: jsx_attribute
+            regex: ^appearance\b
+      - has:
+          kind: jsx_attribute
+          regex: ^(priority|intent)\b
+fix: Button appearance="outlined"
+---
+id: button-filled-no-tone
+language: tsx
+message: a filled Button without a tone adopts the default primary action
+utils:
+  element:
+    any:
+      - kind: jsx_self_closing_element
+      - kind: jsx_opening_element
+rule:
+  kind: identifier
+  regex: ^Button$
+  inside:
+    matches: element
+    all:
+      - has:
+          kind: jsx_attribute
+          regex: ^appearance="filled"$
+      - not:
+          has:
+            kind: jsx_attribute
+            regex: ^(priority|intent)\b
+fix: Button intent="neutral"
+---
+id: button-appearance-no-tone
+language: tsx
+message: a Button with an appearance and no tone was accent
+utils:
+  element:
+    any:
+      - kind: jsx_self_closing_element
+      - kind: jsx_opening_element
+rule:
+  kind: identifier
+  regex: ^Button$
+  inside:
+    matches: element
+    all:
+      - has:
+          kind: jsx_attribute
+          regex: ^appearance\b
+          not:
+            regex: ^appearance="filled"$
+      - not:
+          has:
+            kind: jsx_attribute
+            regex: ^(priority|intent)\b
+fix: Button intent="accent"
+---
+id: icon-button-bare
+language: tsx
+message: a bare IconButton was outlined and neutral
+utils:
+  element:
+    any:
+      - kind: jsx_self_closing_element
+      - kind: jsx_opening_element
+rule:
+  kind: identifier
+  regex: ^IconButton$
+  inside:
+    matches: element
+    all:
+      - not:
+          has:
+            kind: jsx_attribute
+            regex: ^appearance\b
+      - not:
+          has:
+            kind: jsx_attribute
+            regex: ^(priority|intent)\b
+fix: IconButton appearance="outlined" intent="neutral"
+---
+id: icon-button-tone-only
+language: tsx
+message: an IconButton with a tone and no appearance was outlined
+utils:
+  element:
+    any:
+      - kind: jsx_self_closing_element
+      - kind: jsx_opening_element
+rule:
+  kind: identifier
+  regex: ^IconButton$
+  inside:
+    matches: element
+    all:
+      - not:
+          has:
+            kind: jsx_attribute
+            regex: ^appearance\b
+      - has:
+          kind: jsx_attribute
+          regex: ^(priority|intent)\b
+fix: IconButton appearance="outlined"
+---
+id: icon-button-appearance-no-tone
+language: tsx
+message: an IconButton with an appearance and no tone was neutral
+utils:
+  element:
+    any:
+      - kind: jsx_self_closing_element
+      - kind: jsx_opening_element
+rule:
+  kind: identifier
+  regex: ^IconButton$
+  inside:
+    matches: element
+    all:
+      - has:
+          kind: jsx_attribute
+          regex: ^appearance\b
+      - not:
+          has:
+            kind: jsx_attribute
+            regex: ^(priority|intent)\b
+fix: IconButton intent="neutral"

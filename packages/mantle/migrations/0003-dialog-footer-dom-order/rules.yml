@@ -1,0 +1,35 @@
+id: dialog-footer-swap-two
+language: tsx
+message: swap the two children of Dialog.Footer
+utils:
+  child:
+    any:
+      - kind: jsx_element
+      - kind: jsx_self_closing_element
+      - kind: jsx_expression
+rule:
+  pattern: <Dialog.Footer $$$ATTRS>$$$CHILDREN</Dialog.Footer>
+  all:
+    - has:
+        pattern: $FIRST
+        nthChild:
+          position: 1
+          ofRule:
+            matches: child
+    - has:
+        pattern: $SECOND
+        nthChild:
+          position: 2
+          ofRule:
+            matches: child
+    - not:
+        has:
+          nthChild:
+            position: 3
+            ofRule:
+              matches: child
+fix: |-
+  <Dialog.Footer $$$ATTRS>
+  	$SECOND
+  	$FIRST
+  </Dialog.Footer>

@@ -9,6 +9,22 @@ description: Tabs.List no longer draws a border. Compose Tabs.Separator after th
 
 **TL;DR:** Add `<Tabs.Separator />` directly after every classic `Tabs.List` that relied on the default border. Delete `hideBorder` from every `Tabs.List`; a list that had it needs no separator. On a `Tabs.Root` that holds the separator as a direct child, replace a `gap-*` class with `[--tabs-gap:…]`.
 
+## Codemod
+
+From a mantle checkout:
+
+```sh
+pnpm -w run migrate 0008 <path>
+```
+
+In a project that installs `@ngrok/mantle`:
+
+```sh
+npx ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/0008-tabs-separator.yml --update-all <path>
+```
+
+The rules apply steps 2 and 3. They add `<Tabs.Separator />` after a classic `Tabs.List` without `hideBorder`, delete `hideBorder`, and turn `hideBorder={condition}` into `{!condition && <Tabs.Separator />}`. Steps 4 to 6 stay manual, because a `data-hide-border` selector, a `gap-*` class, and a `border-*` class are strings, not JSX syntax. Run the codemod once: a migrated list that had `hideBorder` reads the same as an unmigrated one, so a second run adds a separator to it. Pass `--dry-run` to print the rewrites first, and run your formatter after the rewrite.
+
 ---
 
 ## You are an agent migrating a codebase. Do this:

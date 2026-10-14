@@ -1,0 +1,54 @@
+id: action-column-header
+language: tsx
+message: the action column header becomes DataTable.ActionHeader
+utils:
+  action-column:
+    kind: object
+    has:
+      stopBy: end
+      pattern: <DataTable.ActionCell $$$>$$$</DataTable.ActionCell>
+rule:
+  any:
+    - pattern: <DataTable.Header $$$ATTRS>$$$CHILDREN</DataTable.Header>
+    - pattern: <Table.Header $$$ATTRS>$$$CHILDREN</Table.Header>
+  inside:
+    matches: action-column
+    stopBy:
+      kind: object
+fix: <DataTable.ActionHeader $$$ATTRS>$$$CHILDREN</DataTable.ActionHeader>
+---
+id: action-column-header-self-closing
+language: tsx
+message: the action column header becomes DataTable.ActionHeader
+utils:
+  action-column:
+    kind: object
+    has:
+      stopBy: end
+      pattern: <DataTable.ActionCell $$$>$$$</DataTable.ActionCell>
+rule:
+  any:
+    - pattern: <DataTable.Header $$$ATTRS />
+    - pattern: <Table.Header $$$ATTRS />
+  inside:
+    matches: action-column
+    stopBy:
+      kind: object
+fix: <DataTable.ActionHeader $$$ATTRS />
+---
+id: action-column-null-header
+language: tsx
+message: the action column needs a sticky header even when it has no label
+utils:
+  action-column:
+    kind: object
+    has:
+      stopBy: end
+      pattern: <DataTable.ActionCell $$$>$$$</DataTable.ActionCell>
+rule:
+  pattern:
+    context: "({ header: () => null })"
+    selector: pair
+  inside:
+    matches: action-column
+fix: "header: () => <DataTable.ActionHeader />"

@@ -9,6 +9,22 @@ description: The chart Roots take a mode prop in place of the decorative boolean
 
 **TL;DR:** Replace `decorative` with `mode="decorative"` on every chart Root. Then set `mode="static"` on every chart a reader glances at while its values sit beside it as text, such as a sparkline in a table row: drop its `Tooltip` part, keep its name, and leave `animate` off.
 
+## Codemod
+
+From a mantle checkout:
+
+```sh
+pnpm -w run migrate 0009 <path>
+```
+
+In a project that installs `@ngrok/mantle`:
+
+```sh
+npx ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/0009-chart-root-mode.yml --update-all <path>
+```
+
+The rules apply step 2. On the four chart Roots, `decorative` becomes `mode="decorative"`, and `decorative={flag}` becomes `mode={flag ? "decorative" : "interactive"}`. Steps 3 to 5 stay manual, because whether a chart is a sparkline is a design call that no rule can read off the JSX. Pass `--dry-run` to print the rewrites first, and run your formatter after the rewrite.
+
 ---
 
 ## You are an agent migrating a codebase. Do this:

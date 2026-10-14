@@ -1,0 +1,18 @@
+id: column-sorting-fn
+language: tsx
+message: a column's sortingFn option is sortFn in TanStack Table v9
+rule:
+  pattern:
+    context: "({ sortingFn: $VALUE })"
+    selector: pair
+fix: "sortFn: $VALUE"
+---
+id: table-get-state
+language: tsx
+message: table.getState() is the table.state property in TanStack Table v9
+rule:
+  pattern: $TABLE.getState()
+constraints:
+  TABLE:
+    regex: (?i)table$
+fix: $TABLE.state

@@ -1,0 +1,27 @@
+id: field-label-drop-html-for
+language: tsx
+message: Field.Label no longer takes htmlFor; Field.Item owns the control id
+rule:
+  kind: jsx_attribute
+  regex: ^htmlFor\b
+  inside:
+    kind: jsx_opening_element
+    has:
+      field: name
+      regex: ^Field\.Label$
+fix: ""
+---
+id: field-control-drop-id
+language: tsx
+message: Field.Control no longer takes id; Field.Item owns the control id
+rule:
+  kind: jsx_attribute
+  regex: ^id\b
+  inside:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    has:
+      field: name
+      regex: ^Field\.Control$
+fix: ""

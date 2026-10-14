@@ -18,6 +18,22 @@ description: Move a DataTable from TanStack Table v8 to v9 by registering featur
 
 The rest of this page covers each step with before/after code, the mantle parts that now need a feature, and a checklist.
 
+## Codemod
+
+From a mantle checkout:
+
+```sh
+pnpm -w run migrate 0006 <path>
+```
+
+In a project that installs `@ngrok/mantle`:
+
+```sh
+npx ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/0006-data-table-tanstack-v9.yml --update-all <path>
+```
+
+The rules apply the rename in step 4, `sortingFn` to `sortFn` on a column, and the read in step 5, `table.getState()` to `table.state` on an identifier that ends in `table`. Steps 1 to 3 and 6 stay manual, because which features and row models a table registers depends on what its columns do. Pass `--dry-run` to print the rewrites first, and run your formatter after the rewrite.
+
 ---
 
 ## Why this change
