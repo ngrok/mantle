@@ -1,9 +1,0 @@
----
-"@ngrok/mantle": patch
----
-
-`Sidebar` rows now move with the rail. A `Sidebar.ItemButton`, a `Sidebar.SearchTrigger`, a `Sidebar.SwitcherTrigger`, a `Sidebar.Separator`, and `Sidebar.Body`'s trailing padding used to take their collapsed or expanded shape on the first frame of a toggle, so the current row snapped to full width while the rail was still 52px wide and then grew with it. Each now transitions its width, padding, and margin on the rail's own 200ms ease-out clock, so the row and the rail grow and shrink together, and a second toggle mid-flight reverses from where the first one got to. A collapsing row clips its label with no ellipsis, so the narrowing shows no shimmer of dots. The rail's own width transition moves from `ease-linear` to the same curve. `Sidebar.GroupLabel`'s fade moves from `ease-linear` to the same curve. That curve is a new theme token, `--ease-out-strong` (`cubic-bezier(0.23, 1, 0.32, 1)`), a strong ease-out for UI that enters, exits, or changes shape, also available as the `ease-out-strong` utility. The transitions honor `motion-reduce:` and hold until one frame after hydration, the way the rail's width transition does, and a merged `transition-none` or `duration-*` replaces them through tailwind-merge.
-
-A `Sidebar.ItemButton` or a `Sidebar.SwitcherTrigger` composed as a `DropdownMenu.Trigger` or a `Dialog.Trigger` inside `Sidebar.Tooltip` now keeps its open highlight. The tooltip trigger's own `data-state` replaces the menu trigger's on the row, so the highlight also keys on `aria-expanded`, which the menu trigger stamps and the tooltip trigger does not.
-
-`useSidebar()`'s `setOpen` and `setOpenMobile` now keep one identity across renders, the same contract `useSidePanel()`'s `setOpen` has, so either is safe in an effect dependency list beside an inline `onOpenChange` or `onOpenMobileChange`.
