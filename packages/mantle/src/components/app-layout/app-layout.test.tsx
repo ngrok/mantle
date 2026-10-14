@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
-import { createRef } from "react";
+import { userEvent } from "@testing-library/user-event";
+import { createRef, useState } from "react";
 import { describe, expect, test } from "vitest";
 import { Sidebar } from "../sidebar/sidebar.js";
 import { AppLayout } from "./app-layout.js";
@@ -500,5 +501,119 @@ describe("AppLayout.Header slots", () => {
 		const actions = screen.getByTestId("actions");
 		expect(actions).toHaveClass("ml-0");
 		expect(actions).not.toHaveClass("ml-auto");
+	});
+});
+
+describe("AppLayout.SidePanel", () => {
+	test("renders an aside stamped data-slot app-layout-side-panel with its children", () => {
+		render(
+			<AppLayout.SidePanel aria-label="Assistant" open>
+				conversation
+			</AppLayout.SidePanel>,
+		);
+		const panel = screen.getByRole("complementary", { name: "Assistant" });
+		expect(panel.tagName).toBe("ASIDE");
+		expect(panel).toHaveAttribute("data-slot", "app-layout-side-panel");
+		expect(panel).toHaveTextContent("conversation");
+	});
+
+	test("mirrors open in data-state and inert across a real toggle", async () => {
+		const user = userEvent.setup();
+		function Shell() {
+			const [open, setOpen] = useState(true);
+			return (
+				<>
+					<button type="button" onClick={() => setOpen((current) => !current)}>
+						Toggle the assistant
+					</button>
+					<AppLayout.SidePanel data-testid="panel" open={open}>
+						conversation
+					</AppLayout.SidePanel>
+				</>
+			);
+		}
+		render(<Shell />);
+		const panel = screen.getByTestId("panel");
+		expect(panel).toHaveAttribute("data-state", "open");
+		expect(panel).not.toHaveAttribute("inert");
+
+		await user.click(screen.getByRole("button", { name: "Toggle the assistant" }));
+		expect(panel).toHaveAttribute("data-state", "closed");
+		expect(panel).toHaveAttribute("inert");
+		// Still mounted: the closed panel keeps its children's state.
+		expect(panel).toHaveTextContent("conversation");
+
+		await user.click(screen.getByRole("button", { name: "Toggle the assistant" }));
+		expect(panel).toHaveAttribute("data-state", "open");
+		expect(panel).not.toHaveAttribute("inert");
+	});
+
+	test("stamps data-state and inert after a wider props object", () => {
+		// Why: a consumer value for either would desync the collapse from `open`
+		// or leave a closed panel in the tab order.
+		const consumerProps = { "data-state": "open", inert: false };
+		render(
+			<AppLayout.SidePanel data-testid="panel" open={false} {...consumerProps}>
+				conversation
+			</AppLayout.SidePanel>,
+		);
+		const panel = screen.getByTestId("panel");
+		expect(panel).toHaveAttribute("data-state", "closed");
+		expect(panel).toHaveAttribute("inert");
+	});
+
+	test("forwards className, a ref, and arbitrary data-* to the rendered root", () => {
+		const ref = createRef<HTMLElement>();
+		render(
+			<AppLayout.SidePanel
+				className="consumer-panel"
+				data-flavor="assistant"
+				data-testid="panel"
+				open
+				ref={ref}
+			>
+				conversation
+			</AppLayout.SidePanel>,
+		);
+		const panel = screen.getByTestId("panel");
+		expect(panel.className).toContain("consumer-panel");
+		expect(panel).toHaveAttribute("data-flavor", "assistant");
+		expect(ref.current).toBe(panel);
+	});
+
+	test("joins an ancestor-provided data-slot ahead of its own", () => {
+		render(
+			<AppLayout.SidePanel data-slot="app-shell" data-testid="panel" open>
+				conversation
+			</AppLayout.SidePanel>,
+		);
+		expect(screen.getByTestId("panel")).toHaveAttribute(
+			"data-slot",
+			"app-shell app-layout-side-panel",
+		);
+	});
+
+	test("asChild renders the child with no landmark, merging classes, data attributes, the state, and the ref", () => {
+		const ref = createRef<HTMLDivElement>();
+		render(
+			<AppLayout.SidePanel
+				asChild
+				className="consumer-panel"
+				data-flavor="details"
+				open={false}
+				ref={ref}
+			>
+				<div data-testid="panel">details</div>
+			</AppLayout.SidePanel>,
+		);
+		const panel = screen.getByTestId("panel");
+		expect(panel.tagName).toBe("DIV");
+		expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
+		expect(panel).toHaveAttribute("data-slot", "app-layout-side-panel");
+		expect(panel).toHaveAttribute("data-state", "closed");
+		expect(panel).toHaveAttribute("inert");
+		expect(panel.className).toContain("consumer-panel");
+		expect(panel).toHaveAttribute("data-flavor", "details");
+		expect(ref.current).toBe(panel);
 	});
 });

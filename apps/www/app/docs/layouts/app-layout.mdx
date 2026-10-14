@@ -21,8 +21,10 @@ in the whole shell and its `main` landmark, with `overscroll-none` so long pages
 `AppLayout.Header` is a toolbar row with three slots: the sidebar trigger, the breadcrumb trail, and the
 page's actions. It sits beside the scroll container, so it stays pinned without `sticky`. `AppLayout.Notice` is a full-window composition slot for
 app-wide messaging that pushes everything (including any sidebar) down. It can stack a rare maintenance or
-environment banner with a persistent account-alert bar. It is a **layout**: it owns _where things go_, and
-app state (routing, sessions, data) never enters it.
+environment banner with a persistent account-alert bar. `AppLayout.SidePanel` is a second card that opens
+beside the page for an assistant or a details pane, and the whole row caps at `--app-layout-max-width` so
+an ultrawide monitor gets a centered shell instead of a card stretched across it. It is a **layout**: it
+owns _where things go_, and app state (routing, sessions, data) never enters it.
 
 The card reads the same way as every other mantle surface (`Content` wrapping `Header` + `Body`), which is
 exactly the shape of the column beside it (`Sidebar.Nav`) and of
@@ -738,12 +740,13 @@ export function Shell() {
 AppLayout.Root
 ├── AppLayout.Notice
 └── AppLayout.Workspace
-    └── AppLayout.Content
-        ├── AppLayout.Header
-        │   ├── AppLayout.HeaderStart
-        │   ├── AppLayout.HeaderContent
-        │   └── AppLayout.HeaderActions
-        └── AppLayout.Body
+    ├── AppLayout.Content
+    │   ├── AppLayout.Header
+    │   │   ├── AppLayout.HeaderStart
+    │   │   ├── AppLayout.HeaderContent
+    │   │   └── AppLayout.HeaderActions
+    │   └── AppLayout.Body
+    └── AppLayout.SidePanel
 ```
 
 - **`Root`** is the outer frame (`bg-base relative isolate flex h-full w-full flex-col overflow-clip`).
@@ -757,10 +760,12 @@ AppLayout.Root
   here; each brings its own colors while the slot pushes the whole shell down. Collapses to nothing when
   empty. Optional.
 - **`Workspace`** is the region where the user works: everything below the notice, laid out as a flex row of
-  columns (`flex min-h-0 flex-1`). Place a [`Sidebar.Nav`](/components/navigation/sidebar) (or any other
-  rail, on either side) beside the `Content` card. The `min-h-0` is what lets `Body` scroll instead of the
-  page. It owns **no gutter**, deliberately, so a rail stays flush against the window edge and a collapsed
-  icon rail keeps its flush geometry.
+  columns (`relative mx-auto flex min-h-0 w-full min-w-0 flex-1 max-w-(--app-layout-max-width,128rem)`).
+  Place a [`Sidebar.Nav`](/components/navigation/sidebar) (or any other rail, on either side) beside the
+  `Content` card, and a `SidePanel` after it. The `min-h-0` is what lets `Body` scroll instead of the page.
+  It owns **no gutter**, deliberately, so a rail stays flush against the window edge and a collapsed icon
+  rail keeps its flush geometry. On a wide screen it caps at `--app-layout-max-width` and centers; see
+  [Width on wide screens](#width-on-wide-screens).
 - **`Content`** is the card surface: `bg-card border-card-muted relative m-(--app-layout-card-gutter,0.5rem) flex min-w-0 flex-1 flex-col
 overflow-clip rounded-xl border shadow-sm`. It insets **itself** with its own margin
   (`--app-layout-card-gutter`), because the gutter has to belong to the card rather than to a wrapper: the
@@ -788,13 +793,18 @@ overflow-clip rounded-xl border shadow-sm`. It insets **itself** with its own ma
   `Body` could never reach a shell-level footer anyway, because it would be a sibling of the region the route
   renders into. Pin it inside `Body` instead:
   [Pinning a footer to the card](#pinning-a-footer-to-the-card).
+- **`SidePanel`** is a second card after `Content`, for an assistant or a details pane. It renders an
+  `<aside>` with the card treatment, a required controlled `open`, the same `Header` as its first child, and
+  a `Body` (`asChild` with a `<div>`) for its scroll region. Open, it takes `--app-layout-side-panel-width`
+  beside the card; closed, it collapses to nothing and goes `inert` with its children still mounted; below
+  `mobileBreakpoint` it floats over the card. See [Side panel](#side-panel). Optional.
 
 ## Polymorphism
 
 Every part accepts an `asChild` prop. When `true`, the part renders its single child instead of its default
 element, forwarding all class names, `data-*` attributes, and the ref onto that child.
 
-All nine parts support it, and each has a reason a consumer would reach for it:
+All ten parts support it, and each has a reason a consumer would reach for it:
 
 - **`AppLayout.Root`**: a `<form>` when the whole shell is one submission surface, or your own themed frame.
 - **`AppLayout.Notice`**: an `<aside>` or a live region when the strip's content needs its own semantics.
@@ -810,6 +820,8 @@ All nine parts support it, and each has a reason a consumer would reach for it:
 - **`AppLayout.HeaderActions`**: a `<form>` when every action submits the same form.
 - **`AppLayout.Body`**: a plain `<div>` when the document already owns the `main` landmark: a docs demo, a
   test, a shell embedded in a page (see [Landmarks](#landmarks)).
+- **`AppLayout.SidePanel`**: a plain `<div>` when the panel is not complementary content, or a `<section>`
+  when it is a labelled region of the page rather than a landmark of its own.
 
 <CodeExample.Root>
 	<CodeExample.Preview className="p-0 md:p-0">
@@ -999,6 +1011,265 @@ Each route renders its own header, and [One header per page](#one-header-per-pag
 Collapse the actions into one menu below the sidebar's mobile breakpoint. The
 [app shell demo](#app-layout) at the top of this page shows the collapse: switch its preview to the mobile
 viewport and the three icon buttons become one menu.
+
+## Side panel
+
+`AppLayout.SidePanel` is a second card after `AppLayout.Content`: an assistant, a details pane, or any
+surface that opens beside the page and closes again. It renders an `<aside>`, so it is the `complementary`
+landmark; name it with `aria-label`. It takes the same card treatment as the content card, the same
+`AppLayout.Header` as its first child, and an `AppLayout.Body` for its scroll region. Pass `asChild` to that
+body and render a `<div>`, because the page's body already owns the `main` landmark.
+
+The panel owns no state. `open` is required and controlled, so the shell decides when the assistant is on
+screen and the panel only draws it:
+
+- **Open**, the panel takes `--app-layout-side-panel-width` beside the card (`clamp(21rem, 24vw, 27rem)`:
+  a quarter of the viewport, never narrower than 336px and never wider than 432px) and the card absorbs the
+  difference. The panel is a fixed basis, never a share of the row, because `flex-1` cannot interpolate to a
+  width.
+- **Closed**, the panel collapses to nothing and goes `inert`, so nothing inside it is focusable, clickable,
+  or read by assistive technology. Its children stay mounted: a conversation keeps its scroll position and
+  its in-flight reply across a close and a reopen.
+- **Between the two**, `flex-basis`, `opacity`, and `margin` animate over 260ms. `motion-reduce:` turns the
+  slide into a cut, and a merged `transition-none` or `duration-*` replaces the default.
+- **Below `mobileBreakpoint`** (`lg` by default), the panel floats over the card instead of taking width from
+  it: pinned to the row's end edge inside the card gutter, `min(24rem, 100vw - 5rem)` wide, with a larger
+  shadow. Two cards side by side in 900px are two unusable cards. Match the prop to `Sidebar.Root`'s
+  `mobileBreakpoint`, so the rail and the panel change presentation at one width.
+
+The panel keeps the card gutter on its top, end, and bottom edges and none on its start edge, so the card's
+own end margin is the gap between the two: one gutter wide, the same number as the inset from the window.
+
+Closing the panel while focus is inside it drops focus to the document, because an `inert` element cannot
+hold it. Move focus to the control that closed the panel in the same handler, the way the demo returns it to
+the header's **Open the assistant** button. Open the assistant from the header, close it from its own
+header, and switch the preview to the tablet viewport to see it float over the card.
+
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="app-layout-side-panel" title="Side panel demo" />
+	<CodeExample.Code>
+
+```tsx
+import { AppLayout } from "@ngrok/mantle/app-layout";
+import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
+import { Button, IconButton } from "@ngrok/mantle/button";
+import { Sidebar } from "@ngrok/mantle/sidebar";
+import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
+import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
+import { GraphIcon } from "@phosphor-icons/react/Graph";
+import { SparkleIcon } from "@phosphor-icons/react/Sparkle";
+import { XIcon } from "@phosphor-icons/react/X";
+import { useRef, useState } from "react";
+
+/** The jobs the assistant offers on an empty conversation. */
+const assistantStarters = [
+	"Test webhooks from Stripe or GitHub",
+	"Share a local API without deploying",
+	"Route and authenticate API traffic",
+] as const;
+
+export function Shell() {
+	const [isAssistantOpen, setIsAssistantOpen] = useState(true);
+	const openButtonRef = useRef<HTMLButtonElement>(null);
+
+	return (
+		// the framed demo narrows the mobile breakpoint; most apps keep the "lg" default
+		<Sidebar.Root mobileBreakpoint="md">
+			<AppLayout.Root className="fixed inset-0">
+				<SkipToMainLink />
+				<AppLayout.Workspace>
+					<Sidebar.Nav aria-label="Main">
+						<Sidebar.Body>
+							<Sidebar.Group>
+								<Sidebar.GroupLabel>Traffic</Sidebar.GroupLabel>
+								<Sidebar.List>
+									<Sidebar.Item>
+										<Sidebar.Tooltip label="Endpoints">
+											<Sidebar.ItemButton current>
+												<GraphIcon />
+												Endpoints
+											</Sidebar.ItemButton>
+										</Sidebar.Tooltip>
+									</Sidebar.Item>
+									<Sidebar.Item>
+										<Sidebar.Tooltip label="Domains">
+											<Sidebar.ItemButton>
+												<GlobeHemisphereWestIcon />
+												Domains
+											</Sidebar.ItemButton>
+										</Sidebar.Tooltip>
+									</Sidebar.Item>
+								</Sidebar.List>
+							</Sidebar.Group>
+						</Sidebar.Body>
+					</Sidebar.Nav>
+					<AppLayout.Content>
+						<AppLayout.Header>
+							<AppLayout.HeaderStart>
+								<Sidebar.Trigger />
+							</AppLayout.HeaderStart>
+							<AppLayout.HeaderContent>
+								<Breadcrumb.Root>
+									<Breadcrumb.List>
+										<Breadcrumb.Item>
+											<Breadcrumb.Link href="#">Endpoints</Breadcrumb.Link>
+										</Breadcrumb.Item>
+										<Breadcrumb.Separator />
+										<Breadcrumb.Item>
+											<Breadcrumb.Page>ep_gateway_api</Breadcrumb.Page>
+										</Breadcrumb.Item>
+									</Breadcrumb.List>
+								</Breadcrumb.Root>
+							</AppLayout.HeaderContent>
+							<AppLayout.HeaderActions>
+								<IconButton
+									ref={openButtonRef}
+									type="button"
+									appearance="outlined"
+									intent="neutral"
+									size="sm"
+									icon={<SparkleIcon />}
+									label="Open the assistant"
+									onClick={() => setIsAssistantOpen(true)}
+								/>
+							</AppLayout.HeaderActions>
+						</AppLayout.Header>
+						<AppLayout.Body>
+							<div className="space-y-3 p-6">
+								{Array.from({ length: 12 }, (_, index) => (
+									<div key={index} className="border-card-muted rounded-lg border p-4">
+										<p className="text-strong text-sm font-medium">Row {index + 1}</p>
+									</div>
+								))}
+							</div>
+						</AppLayout.Body>
+					</AppLayout.Content>
+					<AppLayout.SidePanel aria-label="Assistant" mobileBreakpoint="md" open={isAssistantOpen}>
+						<AppLayout.Header>
+							<AppLayout.HeaderContent>
+								<p className="text-strong text-sm font-medium">Assistant</p>
+							</AppLayout.HeaderContent>
+							<AppLayout.HeaderActions>
+								<IconButton
+									type="button"
+									appearance="ghost"
+									intent="neutral"
+									size="sm"
+									icon={<XIcon />}
+									label="Close the assistant"
+									onClick={() => {
+										setIsAssistantOpen(false);
+										openButtonRef.current?.focus();
+									}}
+								/>
+							</AppLayout.HeaderActions>
+						</AppLayout.Header>
+						{/* Why asChild: the page's body already owns the main landmark. */}
+						<AppLayout.Body asChild>
+							<div>
+								<div className="flex flex-col gap-3 p-4">
+									<p className="text-strong text-center text-base font-medium">
+										What should we do today?
+									</p>
+									<p className="text-muted text-center text-sm">
+										Pick a starting point and we will write the Traffic Policy.
+									</p>
+									{assistantStarters.map((starter) => (
+										<Button
+											key={starter}
+											type="button"
+											appearance="outlined"
+											intent="neutral"
+											className="justify-start"
+										>
+											{starter}
+										</Button>
+									))}
+								</div>
+							</div>
+						</AppLayout.Body>
+					</AppLayout.SidePanel>
+				</AppLayout.Workspace>
+			</AppLayout.Root>
+		</Sidebar.Root>
+	);
+}
+```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
+## Width on wide screens
+
+`AppLayout.Workspace` caps at `--app-layout-max-width` (`128rem`, 2048px) and centers in the frame, so on an
+ultrawide monitor the rail, the card, and the side panel stay one group instead of a card that stretches
+across the whole screen with the panel a long way from the page. The cap is the width at which every part
+is at its own full size with nothing stretched: a 13rem rail, a `max-w-7xl` page with its padding, and an
+open side panel at its 27rem cap. `AppLayout.Root` still paints `bg-base` edge to edge, and
+`AppLayout.Notice` still spans the full window above the row.
+
+Set the variable on `AppLayout.Root` to move the cap, and set it to `none` to let the row fill any width.
+Merge `className="ml-0"` on the workspace to pin the group to the start edge instead of centering it. The
+demo sets a `40rem` cap so the centering is visible at preview scale; the header's button swaps the
+alignment.
+
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="app-layout-max-width" title="Workspace width cap demo" />
+	<CodeExample.Code>
+
+```tsx
+import { AppLayout } from "@ngrok/mantle/app-layout";
+import { Button } from "@ngrok/mantle/button";
+import { cx } from "@ngrok/mantle/cx";
+import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
+import { useState } from "react";
+
+export function Shell() {
+	const [alignment, setAlignment] = useState<"center" | "start">("center");
+
+	return (
+		<AppLayout.Root className="fixed inset-0 [--app-layout-max-width:40rem]">
+			<SkipToMainLink />
+			<AppLayout.Workspace className={cx(alignment === "start" && "ml-0")}>
+				<AppLayout.Content>
+					<AppLayout.Header>
+						<AppLayout.HeaderContent>
+							<p className="text-strong text-sm font-medium">Endpoints</p>
+						</AppLayout.HeaderContent>
+						<AppLayout.HeaderActions>
+							<Button
+								type="button"
+								appearance="outlined"
+								intent="neutral"
+								size="sm"
+								onClick={() =>
+									setAlignment((current) => (current === "center" ? "start" : "center"))
+								}
+							>
+								{alignment === "center" ? "Pin to the start edge" : "Center the row"}
+							</Button>
+						</AppLayout.HeaderActions>
+					</AppLayout.Header>
+					<AppLayout.Body>
+						<div className="space-y-3 p-6">
+							{Array.from({ length: 8 }, (_, index) => (
+								<div key={index} className="border-card-muted rounded-lg border p-4">
+									<p className="text-strong text-sm font-medium">Row {index + 1}</p>
+								</div>
+							))}
+						</div>
+					</AppLayout.Body>
+				</AppLayout.Content>
+			</AppLayout.Workspace>
+		</AppLayout.Root>
+	);
+}
+```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## One header per page
 
@@ -1869,6 +2140,10 @@ export function Shell() {
   `Sidebar.Trigger` is the only way back from a collapsed rail or a closed mobile sheet. A page with a
   collapsible sidebar and no visible trigger is unrecoverable. [One header per page](#one-header-per-page)
   is the canonical shell that meets it.
+- `AppLayout.SidePanel` renders an `<aside>`, the `complementary` landmark. Name it with `aria-label`, so a
+  landmark list reads "Assistant" and not "complementary". Closed, it is `inert`: nothing inside it is
+  focusable or read, and its children stay mounted. An `inert` element cannot hold focus, so close the
+  panel and move focus to the control that closed it in the same handler (see [Side panel](#side-panel)).
 
 ## API Reference
 
@@ -1913,19 +2188,29 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 ### AppLayout.Workspace
 
 The region where the user works — everything below the notice, laid out as a flex row of columns
-(`flex min-h-0 flex-1`). Place a [`Sidebar.Nav`](/components/navigation/sidebar) (or any other rail, on
-either side) beside the `AppLayout.Content` card. The `min-h-0` is what lets `AppLayout.Body` scroll instead
-of the page.
+(`relative mx-auto flex min-h-0 w-full min-w-0 flex-1 max-w-(--app-layout-max-width,128rem)`). Place a
+[`Sidebar.Nav`](/components/navigation/sidebar) (or any other rail, on either side) beside the
+`AppLayout.Content` card, and an [`AppLayout.SidePanel`](#applayoutsidepanel) after the card. The `min-h-0`
+is what lets `AppLayout.Body` scroll instead of the page.
 
 It owns **no gutter**, deliberately: the card insets itself with its own margin, so a rail stays flush
 against the window edge and a [collapsed icon rail](/components/navigation/sidebar#collapsing-to-the-icon-rail)
 keeps its flush geometry.
+
+On a wide screen the row caps at `--app-layout-max-width` and centers in the frame (see
+[Width on wide screens](#width-on-wide-screens)). `AppLayout.Root` still paints `bg-base` edge to edge, and
+`AppLayout.Notice` still spans the full window. Merge `className="ml-0"` to pin the row to the start edge.
+It is `relative`, so a floating side panel resolves against the row and covers the card, never the notice.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
 | Prop       | Type      | Default | Description                                                                                                                |
 | ---------- | --------- | ------- | -------------------------------------------------------------------------------------------------------------------------- |
 | `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `AppLayout.Workspace` styling onto alternative element types or your own components. |
+
+| CSS Variable             | Default  | Description                                                                                                                                                                                                                                 |
+| ------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--app-layout-max-width` | `128rem` | The widest the row gets (2048px): a 13rem rail, a `max-w-7xl` page with its padding, and an open side panel at its 27rem cap, each at full size with nothing stretched. Set it on `AppLayout.Root` or on this part. `none` removes the cap. |
 
 ### AppLayout.Content
 
@@ -2071,6 +2356,44 @@ All props from [main](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/
 | Prop       | Type      | Default | Description                                                                                                                                                                                         |
 | ---------- | --------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `AppLayout.Body` styling onto alternative element types (a `<div>` when the document already owns the `main` landmark, a `<section>`) or your own components. |
+
+### AppLayout.SidePanel
+
+A second card after `AppLayout.Content`, for an assistant, a details pane, or any surface that opens beside
+the page and closes again. Render it as `AppLayout.Workspace`'s **last child**, and own its state: `open` is
+required and controlled. It renders an `<aside>`, the `complementary` landmark; name it with `aria-label`.
+
+It takes the card treatment
+(`bg-card border-card-muted relative isolate flex min-w-0 flex-col overflow-clip rounded-xl border shadow-sm`),
+the same [`AppLayout.Header`](#applayoutheader) as its first child, and an [`AppLayout.Body`](#applayoutbody)
+for its scroll region. Pass `asChild` to that body and render a `<div>`: the page's body already owns the
+`main` landmark. It keeps `--app-layout-card-gutter` on its top, end, and bottom edges and none on its start
+edge, so the card's own end margin is the gap between the two.
+
+It is a fixed basis (`grow-0 shrink-0 basis-(--app-layout-side-panel-width,clamp(21rem,24vw,27rem))`), never
+a share of the row, so the card absorbs every change in width. Opening and closing animate `flex-basis`,
+`opacity`, and `margin` over 260ms (`ease-in-out`); `motion-reduce:transition-none` turns the slide into a
+cut, and a merged `transition-none` or `duration-*` replaces the default through tailwind-merge. Closed, it
+is `basis-0 opacity-0 m-0 border-0 pointer-events-none` and `inert`, with its children still mounted. Below
+`mobileBreakpoint` it floats over the card: `absolute`, pinned to the row's end edge inside the card gutter,
+`min(24rem, 100vw - 5rem)` wide, with `shadow-lg` and `z-20`. See [Side panel](#side-panel).
+
+All props from [aside](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/aside#attributes), plus:
+
+| Prop                | Type                   | Default | Description                                                                                                                                                                        |
+| ------------------- | ---------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `open`              | `boolean`              | —       | Required. Whether the panel is on screen. `true` slides it in beside the card; `false` collapses it to nothing and marks it `inert`, with its children still mounted.              |
+| `mobileBreakpoint?` | `"sm" \| "md" \| "lg"` | `"lg"`  | The viewport width below which the panel floats over the card instead of taking width beside it. Match it to `Sidebar.Root`'s `mobileBreakpoint`.                                  |
+| `asChild?`          | `boolean`              | `false` | Use the `asChild` prop to compose the `AppLayout.SidePanel` styling onto alternative element types (a `<div>` when the panel is not complementary content) or your own components. |
+
+| CSS Variable                    | Default                     | Description                                                                                                                                                                |
+| ------------------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--app-layout-side-panel-width` | `clamp(21rem, 24vw, 27rem)` | The panel's width beside the card: a quarter of the viewport, never narrower than 336px and never wider than 432px. Set it on `AppLayout.Root` or on this part.            |
+| `--app-layout-card-gutter`      | `0.5rem`                    | Read (not set) by `AppLayout.SidePanel`; owned by [`AppLayout.Content`](#applayoutcontent). The panel keeps it on three edges, and the floating panel insets itself by it. |
+
+| Data Attribute | Value                  | Description                                                                                        |
+| -------------- | ---------------------- | -------------------------------------------------------------------------------------------------- |
+| `data-state`   | `"open"` \| `"closed"` | Mirrors `open`. The collapse and the transition key off it in CSS, and consumers style against it. |
 
 ### There is no AppLayout.Footer
 

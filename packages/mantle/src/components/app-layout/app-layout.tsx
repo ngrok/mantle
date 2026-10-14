@@ -161,13 +161,30 @@ const Notice = ({
 /**
  * The region where the user actually works: everything below
  * `AppLayout.Notice`, laid out as a row of columns. Place a `Sidebar.Nav` (or
- * any other rail, on either side) beside an `AppLayout.Content` card. A flex row
- * (`flex min-h-0 flex-1`) whose `min-h-0` is what lets `AppLayout.Body` scroll
- * instead of the page.
+ * any other rail, on either side) beside an `AppLayout.Content` card, and an
+ * `AppLayout.SidePanel` after the card. A flex row
+ * (`relative mx-auto flex min-h-0 w-full min-w-0 flex-1`) whose `min-h-0` is
+ * what lets `AppLayout.Body` scroll instead of the page.
  *
  * It owns no gutter, deliberately: the card insets itself with its own margin,
  * so a rail stays flush against the window edge and a collapsed icon rail keeps
  * its flush geometry.
+ *
+ * On a wide screen the row caps at `--app-layout-max-width` and centers in the
+ * frame, so the rail, the card, and the side panel stay one group instead of a
+ * card that stretches across an ultrawide monitor. `AppLayout.Root` still paints
+ * `bg-base` edge to edge, and `AppLayout.Notice` still spans the full window.
+ * Merge `className="ml-0"` to pin the group to the start edge instead, and set
+ * the variable to `none` to let the row fill any width.
+ *
+ * It is `relative`, so a floating `AppLayout.SidePanel` resolves against the row
+ * and covers the card, never the notice above it.
+ *
+ * **CSS variables (public API):**
+ *
+ * | CSS Variable | Default | Description |
+ * | --- | --- | --- |
+ * | `--app-layout-max-width` | `128rem` | The widest the row gets (2048px): a 13rem rail, a `max-w-7xl` page with its padding, and an open side panel at its 27rem cap, each at full size with nothing stretched. Set it on `AppLayout.Root` or on this part. `none` removes the cap. |
  *
  * @see https://mantle.ngrok.com/layouts/app-layout#applayoutworkspace
  *
@@ -212,7 +229,21 @@ const Workspace = ({
 	return (
 		<Comp
 			data-slot={joinDataSlot(dataSlot, "app-layout-workspace")}
-			className={cx("flex min-h-0 flex-1", className)}
+			className={cx(
+				"flex min-h-0 flex-1",
+				// Why min-w-0: when a consumer nests the row inside another flex row,
+				// `min-width: auto` would add the panel's full basis and the page's
+				// content width together and push the panel off the window edge.
+				"min-w-0",
+				// Why relative: a floating `AppLayout.SidePanel` resolves against the
+				// row, so it covers the card and never the notice above it.
+				"relative",
+				// Why w-full with mx-auto: auto cross-axis margins turn a stretched
+				// flex item into a shrink-to-fit one, so the width is stated outright
+				// and the margins only center the row once the cap applies.
+				"mx-auto w-full max-w-(--app-layout-max-width,128rem)",
+				className,
+			)}
 			{...props}
 		>
 			{children}
@@ -311,7 +342,8 @@ const Content = ({
 
 /**
  * The toolbar row at the top of the content card. Render it as the **first
- * child of `AppLayout.Content`**, and compose its three slots in order:
+ * child of `AppLayout.Content`** (or of `AppLayout.SidePanel`, which takes the
+ * same header), and compose its three slots in order:
  * `AppLayout.HeaderStart` for the `Sidebar.Trigger`, `AppLayout.HeaderContent`
  * for the `Breadcrumb` trail, and `AppLayout.HeaderActions` for the page's
  * actions. The slots carry the flex (`shrink-0`, `min-w-0 flex-1`, and
@@ -691,10 +723,228 @@ const Body = ({
 };
 
 /**
+ * The viewport width below which `AppLayout.SidePanel` floats over the card
+ * instead of taking width beside it. Tailwind's `sm` (40rem), `md` (48rem), and
+ * `lg` (64rem) breakpoints, the same set `Sidebar.Root` accepts.
+ *
+ * @see https://mantle.ngrok.com/layouts/app-layout#applayoutsidepanel
+ *
+ * @example
+ * ```tsx
+ * <AppLayout.SidePanel aria-label="Assistant" mobileBreakpoint="md" open={isOpen}>…</AppLayout.SidePanel>
+ * ```
+ */
+type AppLayoutSidePanelMobileBreakpoint = "sm" | "md" | "lg";
+
+/**
+ * Maps each supported `mobileBreakpoint` to the classes that float the panel
+ * over the card below it. Below the breakpoint the panel leaves the row, pins
+ * to the row's end edge inside the card gutter, and takes a fixed width that
+ * always leaves a strip of the page visible. A complete `Record` (not cva) so a
+ * breakpoint without its classes is a compile error.
+ */
+const sidePanelFloatClassName: Record<AppLayoutSidePanelMobileBreakpoint, string> = {
+	sm: "max-sm:absolute max-sm:inset-y-(--app-layout-card-gutter,0.5rem) max-sm:right-(--app-layout-card-gutter,0.5rem) max-sm:z-20 max-sm:m-0 max-sm:w-[min(24rem,calc(100vw-5rem))] max-sm:shadow-lg",
+	md: "max-md:absolute max-md:inset-y-(--app-layout-card-gutter,0.5rem) max-md:right-(--app-layout-card-gutter,0.5rem) max-md:z-20 max-md:m-0 max-md:w-[min(24rem,calc(100vw-5rem))] max-md:shadow-lg",
+	lg: "max-lg:absolute max-lg:inset-y-(--app-layout-card-gutter,0.5rem) max-lg:right-(--app-layout-card-gutter,0.5rem) max-lg:z-20 max-lg:m-0 max-lg:w-[min(24rem,calc(100vw-5rem))] max-lg:shadow-lg",
+};
+
+/**
+ * The props for `AppLayout.SidePanel`: an `<aside>`'s props, `asChild`, and
+ * the two the panel owns.
+ *
+ * @see https://mantle.ngrok.com/layouts/app-layout#applayoutsidepanel
+ */
+type AppLayoutSidePanelProps = ComponentProps<"aside"> &
+	WithAsChild &
+	WithDataSlot & {
+		/**
+		 * Whether the panel is on screen. `true` slides it in beside the card at
+		 * `--app-layout-side-panel-width`; `false` collapses it to nothing and
+		 * marks it `inert`, with its children still mounted so their state
+		 * survives the round trip. Required on purpose: a panel with no state
+		 * owner is a second `AppLayout.Content`.
+		 */
+		open: boolean;
+		/**
+		 * The viewport width below which the panel floats over the card instead
+		 * of taking width beside it. Match it to `Sidebar.Root`'s
+		 * `mobileBreakpoint`, so the rail and the panel change presentation at
+		 * one width.
+		 *
+		 * @default "lg"
+		 */
+		mobileBreakpoint?: AppLayoutSidePanelMobileBreakpoint;
+	};
+
+/**
+ * A second card beside `AppLayout.Content`, for an assistant, a details pane, or
+ * any surface that opens next to the page and closes again. Render it as the
+ * **last child of `AppLayout.Workspace`**, after the card, and own its state:
+ * `open` is required and controlled. Renders an `<aside>`, so it is the
+ * `complementary` landmark; name it with `aria-label`.
+ *
+ * It takes the same card treatment as `AppLayout.Content` (`bg-card
+ * border-card-muted rounded-xl border shadow-sm overflow-clip`), the same
+ * `AppLayout.Header` as its first child, and an `AppLayout.Body` for its scroll
+ * region. Pass `asChild` to that body and render a `<div>`: the page's body
+ * already owns the `main` landmark. It keeps the card gutter on its top, end,
+ * and bottom edges and none on its start edge, so the card's own end margin is
+ * the gap between the two, one gutter wide.
+ *
+ * It is a flex item with a fixed basis (`grow-0 shrink-0`), never a share of
+ * the row, so the card beside it absorbs every change in width. Opening and
+ * closing animate `flex-basis`, `opacity`, and `margin` over 260ms (`ease-in-out`),
+ * and `motion-reduce:transition-none` turns the slide into a cut. The `transition-*`
+ * and `duration-*` utilities are bare, so a merged `transition-none` or
+ * `duration-*` replaces them through tailwind-merge.
+ *
+ * Closed, it is `basis-0 opacity-0 m-0 border-0 pointer-events-none` and
+ * `inert`, so nothing inside it is focusable, clickable, or read by assistive
+ * technology, and its children stay mounted: a conversation keeps its scroll
+ * position, its focus target, and its in-flight reply across a close and a
+ * reopen. The element stays `inert` while focus is inside it, and the browser
+ * then drops focus to `<body>`. Move focus to the control that closed the panel
+ * in the same handler.
+ *
+ * Below `mobileBreakpoint` the panel floats over the card instead of taking
+ * width from it: `absolute`, pinned to the row's end edge inside the card
+ * gutter, `min(24rem, 100vw - 5rem)` wide, with a larger shadow and `z-20` so
+ * it paints above a page's own sticky rows. Two cards side by side in 900px are
+ * two unusable cards.
+ *
+ * **CSS variables (public API):**
+ *
+ * | CSS Variable | Default | Description |
+ * | --- | --- | --- |
+ * | `--app-layout-side-panel-width` | `clamp(21rem, 24vw, 27rem)` | The panel's width beside the card: a quarter of the viewport, never narrower than 336px and never wider than 432px. Set it on `AppLayout.Root` or on this part. |
+ * | `--app-layout-card-gutter` | `0.5rem` | Read, not owned: `AppLayout.Content` owns this token. The panel keeps it on its top, end, and bottom edges, and the floating panel insets itself by it. |
+ *
+ * **Data attributes (public API):**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-state` | `"open"` \| `"closed"` | Mirrors `open`. The collapse and the transition key off it in CSS, and consumers style against it. |
+ *
+ * @see https://mantle.ngrok.com/layouts/app-layout#applayoutsidepanel
+ *
+ * @example
+ * ```tsx
+ * <Sidebar.Root>
+ *   <AppLayout.Root className="fixed inset-0">
+ *     <SkipToMainLink />
+ *     <AppLayout.Notice>{isUnderMaintenance && <MaintenanceBanner />}</AppLayout.Notice>
+ *     <AppLayout.Workspace>
+ *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
+ *       <AppLayout.Content>
+ *         <AppLayout.Header>
+ *           <AppLayout.HeaderStart>
+ *             <Sidebar.Trigger />
+ *           </AppLayout.HeaderStart>
+ *           <AppLayout.HeaderContent>
+ *             <Breadcrumbs />
+ *           </AppLayout.HeaderContent>
+ *           <AppLayout.HeaderActions>
+ *             <IconButton
+ *               type="button"
+ *               appearance="outlined"
+ *               intent="neutral"
+ *               size="sm"
+ *               icon={<SparkleIcon />}
+ *               label="Open the assistant"
+ *               onClick={() => setIsAssistantOpen(true)}
+ *             />
+ *           </AppLayout.HeaderActions>
+ *         </AppLayout.Header>
+ *         <AppLayout.Body>
+ *           <Outlet />
+ *         </AppLayout.Body>
+ *       </AppLayout.Content>
+ *       <AppLayout.SidePanel aria-label="Assistant" open={isAssistantOpen}>
+ *         <AppLayout.Header>
+ *           <AppLayout.HeaderContent>
+ *             <p className="text-strong text-sm font-medium">Assistant</p>
+ *           </AppLayout.HeaderContent>
+ *           <AppLayout.HeaderActions>
+ *             <IconButton
+ *               type="button"
+ *               appearance="ghost"
+ *               intent="neutral"
+ *               size="sm"
+ *               icon={<XIcon />}
+ *               label="Close the assistant"
+ *               onClick={() => setIsAssistantOpen(false)}
+ *             />
+ *           </AppLayout.HeaderActions>
+ *         </AppLayout.Header>
+ *         <AppLayout.Body asChild>
+ *           <div>
+ *             <AssistantConversation />
+ *           </div>
+ *         </AppLayout.Body>
+ *       </AppLayout.SidePanel>
+ *     </AppLayout.Workspace>
+ *   </AppLayout.Root>
+ * </Sidebar.Root>
+ * ```
+ */
+const SidePanel = ({
+	asChild,
+	children,
+	className,
+	"data-slot": dataSlot,
+	mobileBreakpoint = "lg",
+	open,
+	...props
+}: AppLayoutSidePanelProps) => {
+	const Comp = asChild ? Slot : "aside";
+
+	return (
+		<Comp
+			data-slot={joinDataSlot(dataSlot, "app-layout-side-panel")}
+			className={cx(
+				"bg-card border-card-muted relative flex min-w-0 flex-col rounded-xl border shadow-sm",
+				// Why isolate: a page's sticky rows carry their own z-index, and the
+				// panel's children must stack inside the panel, not against them.
+				"isolate",
+				// clip, not hidden: the same trap AppLayout.Content avoids. It also
+				// keeps the squeezed children from painting past the card while the
+				// basis animates.
+				"overflow-clip",
+				// A fixed basis, never a share of the row: `flex-1` cannot interpolate
+				// to a width, so a lane that animates never uses it. The card beside
+				// it is the one that absorbs the change.
+				"grow-0 shrink-0 basis-(--app-layout-side-panel-width,clamp(21rem,24vw,27rem))",
+				// The gutter on three edges: the card's own end margin is the gap on
+				// the start edge, so the inner gap and the outer inset are one number.
+				"my-(--app-layout-card-gutter,0.5rem) mr-(--app-layout-card-gutter,0.5rem) ml-0",
+				// Why bare utilities: a consumer `transition-none` or `duration-*`
+				// replaces the default through tailwind-merge.
+				"transition-[flex-basis,opacity,margin] duration-[260ms] ease-in-out motion-reduce:transition-none",
+				// Why border-0 too: the hairline border would keep the closed panel two
+				// pixels wide and paint a seam beside the card.
+				"data-state-closed:basis-0 data-state-closed:opacity-0 data-state-closed:m-0 data-state-closed:border-0 data-state-closed:pointer-events-none",
+				sidePanelFloatClassName[mobileBreakpoint],
+				className,
+			)}
+			{...props}
+			// Why after the spread: a wider props object can carry `data-state` or
+			// `inert` past the type, and a consumer value would desync the collapse
+			// from `open` or leave a closed panel in the tab order.
+			data-state={open ? "open" : "closed"}
+			inert={!open}
+		>
+			{children}
+		</Comp>
+	);
+};
+
+/**
  * A viewport-locked application shell: an optional full-width
  * `AppLayout.Notice` strip on top, then an `AppLayout.Workspace` row holding the
- * app's columns — typically a `Sidebar.Nav` beside an `AppLayout.Content` card
- * whose `AppLayout.Body` is the only thing that scrolls. It owns structure only
+ * app's columns, typically a `Sidebar.Nav` beside an `AppLayout.Content` card
+ * whose `AppLayout.Body` is the only thing that scrolls, and an optional
+ * `AppLayout.SidePanel` that opens beside the card. It owns structure only
  * and is deliberately unaware of any sidebar: compose `Sidebar.Root` around it
  * and place `Sidebar.Trigger` in `AppLayout.Header` to connect the two.
  *
@@ -720,12 +970,13 @@ const Body = ({
  * AppLayout.Root
  * ├── AppLayout.Notice
  * └── AppLayout.Workspace
- *     └── AppLayout.Content
- *         ├── AppLayout.Header
- *         │   ├── AppLayout.HeaderStart
- *         │   ├── AppLayout.HeaderContent
- *         │   └── AppLayout.HeaderActions
- *         └── AppLayout.Body
+ *     ├── AppLayout.Content
+ *     │   ├── AppLayout.Header
+ *     │   │   ├── AppLayout.HeaderStart
+ *     │   │   ├── AppLayout.HeaderContent
+ *     │   │   └── AppLayout.HeaderActions
+ *     │   └── AppLayout.Body
+ *     └── AppLayout.SidePanel
  * ```
  *
  * @example
@@ -1087,9 +1338,83 @@ const AppLayout = {
 	 * ```
 	 */
 	Body,
+	/**
+	 * A second card after `AppLayout.Content`, for an assistant or a details
+	 * pane. Controlled by a required `open`: it slides in at
+	 * `--app-layout-side-panel-width`, collapses to nothing and goes `inert`
+	 * when closed, and floats over the card below `mobileBreakpoint`.
+	 *
+	 * @see https://mantle.ngrok.com/layouts/app-layout#applayoutsidepanel
+	 *
+	 * @example
+	 * ```tsx
+	 * <Sidebar.Root>
+	 *   <AppLayout.Root className="fixed inset-0">
+	 *     <SkipToMainLink />
+	 *     <AppLayout.Notice>{isUnderMaintenance && <MaintenanceBanner />}</AppLayout.Notice>
+	 *     <AppLayout.Workspace>
+	 *       <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
+	 *       <AppLayout.Content>
+	 *         <AppLayout.Header>
+	 *           <AppLayout.HeaderStart>
+	 *             <Sidebar.Trigger />
+	 *           </AppLayout.HeaderStart>
+	 *           <AppLayout.HeaderContent>
+	 *             <Breadcrumbs />
+	 *           </AppLayout.HeaderContent>
+	 *           <AppLayout.HeaderActions>
+	 *             <IconButton
+	 *               type="button"
+	 *               appearance="outlined"
+	 *               intent="neutral"
+	 *               size="sm"
+	 *               icon={<SparkleIcon />}
+	 *               label="Open the assistant"
+	 *               onClick={() => setIsAssistantOpen(true)}
+	 *             />
+	 *           </AppLayout.HeaderActions>
+	 *         </AppLayout.Header>
+	 *         <AppLayout.Body>
+	 *           <Outlet />
+	 *         </AppLayout.Body>
+	 *       </AppLayout.Content>
+	 *       <AppLayout.SidePanel aria-label="Assistant" open={isAssistantOpen}>
+	 *         <AppLayout.Header>
+	 *           <AppLayout.HeaderContent>
+	 *             <p className="text-strong text-sm font-medium">Assistant</p>
+	 *           </AppLayout.HeaderContent>
+	 *           <AppLayout.HeaderActions>
+	 *             <IconButton
+	 *               type="button"
+	 *               appearance="ghost"
+	 *               intent="neutral"
+	 *               size="sm"
+	 *               icon={<XIcon />}
+	 *               label="Close the assistant"
+	 *               onClick={() => setIsAssistantOpen(false)}
+	 *             />
+	 *           </AppLayout.HeaderActions>
+	 *         </AppLayout.Header>
+	 *         <AppLayout.Body asChild>
+	 *           <div>
+	 *             <AssistantConversation />
+	 *           </div>
+	 *         </AppLayout.Body>
+	 *       </AppLayout.SidePanel>
+	 *     </AppLayout.Workspace>
+	 *   </AppLayout.Root>
+	 * </Sidebar.Root>
+	 * ```
+	 */
+	SidePanel,
 } as const;
 
 export {
 	//,
 	AppLayout,
+};
+export type {
+	//,
+	AppLayoutSidePanelMobileBreakpoint,
+	AppLayoutSidePanelProps,
 };
