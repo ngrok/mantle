@@ -255,6 +255,8 @@ describe("Button", () => {
 			expect(button).not.toBeDisabled();
 			expect(button).toHaveAttribute("aria-disabled", "false");
 			expect(button).toHaveAttribute("data-loading", "");
+			// Why: `data-disabled` follows the resolved state, not `isLoading`.
+			expect(button).not.toHaveAttribute("data-disabled");
 		});
 
 		test("isLoading sets the native disabled attribute and aria-disabled", () => {

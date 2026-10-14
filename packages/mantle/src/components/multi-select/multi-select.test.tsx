@@ -239,6 +239,34 @@ describe("MultiSelect", () => {
 			expect(getTagOption("cherry")).toHaveFocus();
 		});
 
+		test("moving focus to a tag keeps the popover open and still reports the blur", async () => {
+			// Why: the blur handler reads the tag through a `closest` selector, and a
+			// selector that throws skips `store.show()` and the consumer's `onBlur`.
+			const user = userEvent.setup();
+			const handleBlur = vi.fn<() => void>();
+			render(
+				<MultiSelect.Root selectedValue={["apple", "banana"]} setSelectedValue={() => {}}>
+					<MultiSelect.Trigger>
+						<MultiSelect.TagValues />
+						<MultiSelect.Input placeholder="Select items..." onBlur={handleBlur} />
+					</MultiSelect.Trigger>
+					<MultiSelect.Content>
+						<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
+						<MultiSelect.Item value="banana">Banana</MultiSelect.Item>
+					</MultiSelect.Content>
+				</MultiSelect.Root>,
+			);
+			await user.click(screen.getByRole("combobox"));
+			await user.keyboard("{Escape}");
+			expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+
+			await user.keyboard("{ArrowLeft}");
+
+			expect(getTagOption("banana")).toHaveFocus();
+			expect(handleBlur).toHaveBeenCalledTimes(1);
+			expect(await screen.findByRole("listbox")).toBeInTheDocument();
+		});
+
 		test("the focused tag is marked data-active, never aria-current, and drops it on blur", async () => {
 			const user = userEvent.setup();
 			render(<Subject />);

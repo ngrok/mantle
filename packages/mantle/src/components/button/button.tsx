@@ -264,7 +264,7 @@ type ButtonProps = ComponentProps<"button"> &
  * | `data-intent`     | `"accent"` \| `"danger"` \| `"neutral"`                 | The `intent` prop.                                                                            |
  * | `data-size`       | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"`            | The `size` prop. Omitted when `appearance` is `"link"`, which has no box to size.             |
  * | `data-loading`    | present when `isLoading`                               | Presence-only, never `"false"`.                                                               |
- * | `data-disabled`   | present when disabled                                  | Presence-only, never `"false"`, since the `data-disabled:` variant matches the attribute's existence. Set when `disabled`, `isLoading`, or `aria-disabled="true"` is set. |
+ * | `data-disabled`   | present when disabled                                  | Presence-only, never `"false"`, since the `data-disabled:` variant matches the attribute's existence. Set when the button resolves disabled: `disabled`, `aria-disabled="true"`, or `isLoading` with no explicit `disabled`. `disabled={false}` keeps a loading button enabled and omits it. |
  *
  * @see https://mantle.ngrok.com/components/actions/button
  *

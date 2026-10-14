@@ -730,7 +730,7 @@ const Description = ({
  *
  * `Dialog` renders its floating layer at Tailwind `z-60`, Mantle's overlay
  * tier, above every float (`z-50`). Floats composed inside the content portal
- * into the positioner (`data-slot={joinDataSlot(dataSlot, "dialog-positioner")}`) and paint above the
+ * into the positioner (`data-slot="dialog-positioner"`) and paint above the
  * content. When multiple overlays are open, the most recently mounted overlay
  * renders on top.
  *

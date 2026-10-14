@@ -806,7 +806,7 @@ const Input = ({
 				// open so the user can see the list while navigating tags.
 				if (
 					event.relatedTarget instanceof HTMLElement &&
-					event.relatedTarget.closest('[data-slot={joinDataSlot(dataSlot, "multi-select-tag")}]')
+					event.relatedTarget.closest('[data-slot~="multi-select-tag"]')
 				) {
 					store?.show();
 				}
