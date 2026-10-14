@@ -84,6 +84,13 @@ https://ast-grep.github.io/guide/rule-config.html. Model a file on
 - **Bind the name before the import.** ast-grep evaluates `inside` before `has` in one object, so put the
   name `has` and the import `inside` in an `all:` in that order. A file that imports the part twice (`Tabs,
   Tabs as MantleTabs`) binds the wrong name otherwise.
+- **Skip a shadowed name.** A parameter or a local under the import's name shadows it, and a rule cannot
+  tell which binding an element reads. Every import gate carries the `scope`, `binding-name`, and
+  `function-declaration` utils and a `not: inside:` guard that walks the enclosing scopes for a binding of
+  the metavariable. Copy the three utils and the guard from
+  [0005](../../../packages/mantle/migrations/0005-field-item-owns-control-id/rules.yml), and cover the
+  shadow in `before.tsx`. A `has` with `stopBy: { matches: scope }` tests the nested scope node and never
+  its children. That is why a function declaration's name needs its own branch.
 - **Give every `any` branch, and every `has` or `not`, a positive matcher** (`kind`, `pattern`, or
   `matches`), or the file fails to parse. A util that names an undefined util fails at match time with no
   error, so every rule needs a fixture case.
@@ -106,7 +113,12 @@ https://ast-grep.github.io/guide/rule-config.html. Model a file on
   cannot tell a migrated list from an unmigrated one), say "run once" in the `## Codemod` section and add the
   number to `oneShotMigrations` in `scripts/migrate.test.ts`, with the reason in that comment.
 - **Never match an unrelated library's identifier.** A bare `decorative` or `getState()` without the part
-  scope rewrites someone else's code.
+  scope rewrites someone else's code. An object key such as `sortingFn` needs the shape that owns it (a
+  column helper call, a `columns` array, a sibling column key), or row data with that field changes too.
+- **Swap siblings in place.** When a rule reorders two siblings, write two rules that each replace one
+  sibling with the other's text, as 0003 does. `--update-all` applies both in one run, and a comment
+  between the siblings stays where it is. A comment-only `{/* … */}` is a `jsx_expression` whose only child
+  is a `comment`, so a child count excludes it with `has: { pattern: $_EXPRESSION, not: { kind: comment } }`.
 - **Cover the negative cases in `before.tsx`:** the aliased import, another library's part under the same
   name, a literal in a second spelling, and every shape a guard rejects. `.prettierignore` exempts
   `before.ts*`, so a single-quoted or spaced attribute survives `pnpm -w run fmt`.

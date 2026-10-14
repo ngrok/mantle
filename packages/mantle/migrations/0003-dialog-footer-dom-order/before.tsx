@@ -4,6 +4,7 @@ import { Sheet } from "@ngrok/mantle/sheet";
 import { Dialog as LegacyDialog } from "@acme/ui";
 
 declare const canDelete: boolean;
+declare function secondaryAction(): null;
 
 export const TwoActions = (
 	<Dialog.Footer className="gap-3">
@@ -109,3 +110,48 @@ export const ForeignActions = (
 		</Button>
 	</LegacyDialog.Footer>
 );
+
+// Two expressions are two actions.
+export const ExpressionActions = (
+	<Dialog.Footer>
+		{canDelete ? (
+			<Button type="button" appearance="filled" intent="danger">
+				Delete
+			</Button>
+		) : (
+			<Button type="button" appearance="filled" intent="neutral">
+				Save
+			</Button>
+		)}
+		{secondaryAction()}
+	</Dialog.Footer>
+);
+
+// A comment between the actions stays where it is.
+export const CommentedActions = (
+	<Dialog.Footer>
+		{/* Footer actions */}
+		<Button type="button" appearance="filled" intent="neutral">
+			Save
+		</Button>
+		<Dialog.Close asChild>
+			<Button type="button" appearance="outlined" intent="neutral">
+				Cancel
+			</Button>
+		</Dialog.Close>
+	</Dialog.Footer>
+);
+
+// Negative case: a parameter under the import's name shadows it.
+export function ShadowedActions({ Dialog }: { Dialog: typeof LegacyDialog }) {
+	return (
+		<Dialog.Footer>
+			<Button type="button" appearance="filled" intent="neutral">
+				Save
+			</Button>
+			<Button type="button" appearance="outlined" intent="neutral">
+				Cancel
+			</Button>
+		</Dialog.Footer>
+	);
+}

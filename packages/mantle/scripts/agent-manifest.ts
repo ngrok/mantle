@@ -242,12 +242,12 @@ function parseFrontmatter(source: string): Record<string, unknown> {
 			throw new Error(`Cannot parse the frontmatter line "${line}".`);
 		}
 		const key = keyMatch[1] ?? "";
-		const rawValue = (keyMatch[2] ?? "").trim();
+		const rawValue = stripComment(keyMatch[2] ?? "");
 		if (rawValue === "") {
 			const items: string[] = [];
 			while (index + 1 < lines.length && /^\s+-\s+/.test(lines[index + 1] ?? "")) {
 				index += 1;
-				items.push(parseScalar((lines[index] ?? "").replace(/^\s+-\s+/, "")));
+				items.push(parseScalar(stripComment((lines[index] ?? "").replace(/^\s+-\s+/, ""))));
 			}
 			result[key] = items;
 			continue;
@@ -257,12 +257,88 @@ function parseFrontmatter(source: string): Record<string, unknown> {
 				throw new Error(`Cannot parse the frontmatter list "${line}".`);
 			}
 			const inner = rawValue.slice(1, -1).trim();
-			result[key] = inner === "" ? [] : inner.split(",").map((item) => parseScalar(item.trim()));
+			result[key] =
+				inner === "" ? [] : splitInlineList(inner).map((item) => parseScalar(item.trim()));
 			continue;
 		}
 		result[key] = parseScalar(rawValue);
 	}
 	return result;
+}
+
+/**
+ * Walk a YAML value and report whether each index sits inside a quoted span,
+ * so a comment marker or a list comma inside quotes is not read as syntax.
+ * A double-quoted span honors a backslash escape; a single-quoted span honors
+ * a doubled quote.
+ */
+function quotedSpans(value: string): boolean[] {
+	const inside: boolean[] = [];
+	let quote: '"' | "'" | null = null;
+	for (let index = 0; index < value.length; index += 1) {
+		const character = value[index];
+		inside.push(quote != null);
+		if (quote == null) {
+			if (character === '"' || character === "'") {
+				quote = character;
+				inside[index] = true;
+			}
+			continue;
+		}
+		if (quote === '"' && character === "\\") {
+			index += 1;
+			inside.push(true);
+			continue;
+		}
+		if (character === quote) {
+			if (quote === "'" && value[index + 1] === "'") {
+				index += 1;
+				inside.push(true);
+				continue;
+			}
+			quote = null;
+		}
+	}
+	return inside;
+}
+
+/**
+ * Cut a YAML inline comment: a `#` at the start of the value or after
+ * whitespace, outside a quoted span. Returns the value trimmed.
+ *
+ * @example
+ * stripComment('"a # b" # c'); // '"a # b"'
+ */
+function stripComment(value: string): string {
+	const inside = quotedSpans(value);
+	for (let index = 0; index < value.length; index += 1) {
+		if (
+			value[index] === "#" &&
+			!inside[index] &&
+			(index === 0 || /\s/.test(value[index - 1] ?? ""))
+		) {
+			return value.slice(0, index).trim();
+		}
+	}
+	return value.trim();
+}
+
+/**
+ * Split the inside of a YAML inline list on the commas outside quoted spans,
+ * so `"a, b", c` reads as two items.
+ */
+function splitInlineList(inner: string): string[] {
+	const inside = quotedSpans(inner);
+	const items: string[] = [];
+	let start = 0;
+	for (let index = 0; index < inner.length; index += 1) {
+		if (inner[index] === "," && !inside[index]) {
+			items.push(inner.slice(start, index));
+			start = index + 1;
+		}
+	}
+	items.push(inner.slice(start));
+	return items;
 }
 
 /** Read one YAML scalar: a double-quoted, single-quoted, or plain string. */

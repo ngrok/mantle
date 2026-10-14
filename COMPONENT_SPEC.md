@@ -273,12 +273,12 @@ The nine every component ships:
 Plus the ones that are conditional or generated. These are the ones most often missed, and one of them fails
 _after_ all of [§9](#9-verification) passes:
 
-| Artifact                                                         | When                                                                                          | If omitted                                                                      |
-| ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `apps/www/app/utilities/__snapshots__/components-surface.json`   | always — any new component, or any edit to a docs `description`, JSDoc summary, or `@example` | CI's Vibe Check fails. Regenerate with `pnpm -F @app/www test -u` and commit it |
-| `doNotPublish` in `packages/mantle/tsdown.config.ts`             | adding an internal engine _directory_ (`chart/`)                                              | tsdown publishes a subpath for a directory that must have none                  |
-| `componentImportPathOverrides` in `navigation-data.ts`           | the docs slug is not also the export key ([§2.2](#22-naming))                                 | the agent manifest advertises an import path that does not resolve              |
-| `previewExamples` in `apps/www/app/features/preview-registry.ts` | the docs page uses `CodeExample.PreviewFrame`                                                 | the `example` prop fails typecheck                                              |
+| Artifact                                                             | When                                                                                          | If omitted                                                                                      |
+| -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `apps/www/app/utilities/__snapshots__/components-surface.json`       | always — any new component, or any edit to a docs `description`, JSDoc summary, or `@example` | CI's Vibe Check fails. Regenerate with `pnpm -F @app/www test -u` and commit it                 |
+| `doNotPublish` in `packages/mantle/tsdown.config.ts`                 | adding an internal engine _directory_ (`chart/`)                                              | tsdown publishes a subpath for a directory that must have none                                  |
+| `importPathOverrides` in `packages/mantle/scripts/agent-manifest.ts` | the docs slug is not also the export key ([§2.2](#22-naming))                                 | the agent manifest build fails, because the slug names a subpath `package.json` does not export |
+| `previewExamples` in `apps/www/app/features/preview-registry.ts`     | the docs page uses `CodeExample.PreviewFrame`                                                 | the `example` prop fails typecheck                                                              |
 
 ### 2.2. Naming
 
@@ -297,7 +297,7 @@ stays the family's (`./button`), the implementation is `components/<family>/<com
 `components/<family>/<component-name>.test.tsx`, and the docs slug stays `<component-name>`. A directory that
 exports several documented components may name its files after those parts (`progress/progress-bar.tsx`,
 `progress/progress-donut.tsx`) as long as `index.ts` is the single entry point. **A family-directory component
-must register in `componentImportPathOverrides`** ([§2.4](#24-nav-and-route-registration)).
+must register in `importPathOverrides`** ([§2.4](#24-nav-and-route-registration)).
 
 ### 2.3. Export map and build configuration
 
@@ -333,9 +333,9 @@ as the `<category>` URL segment. Page/viewport structure primitives are Layouts,
 - `navigation-data.ts`: add `<Display Name>` to its category array in `componentsByCategory`, and the route to
   `prodReadyComponentRouteLookup` (both alphabetical). `prodReadyComponents` is derived — never edit it.
 - If the docs slug leaf is not also the `@ngrok/mantle/*` import subpath (a family-directory component), add
-  `"/components/<category>/<component-name>": "@ngrok/mantle/<export-key>"` to `componentImportPathOverrides`.
-  Without it the manifest advertises a subpath absent from `package.json#exports`, and the JSDoc extractor
-  looks in a directory that does not exist.
+  `"components/<category>/<component-name>": "@ngrok/mantle/<export-key>"` to `importPathOverrides` in
+  `packages/mantle/scripts/agent-manifest.ts`. Without it the manifest build fails, because the slug names a
+  subpath absent from `package.json#exports`.
 
 **Preview component:** `previewComponents`, `previewComponentsRouteLookup`, and
 `previewComponentCategoryLookup`; docs at `docs/components/preview/<component-name>.mdx`; the
@@ -925,7 +925,7 @@ beside it, because a wrapper makes the consumer's element a grandchild and break
 - A usage code block with nothing live above it, or written as a fragment → add a live example and rewrite the
   block to be complete, modeled on the page's existing complete examples.
 - Missing route in `routes.ts`, missing nav entry in `navigation-data.ts`, or a missing
-  `componentImportPathOverrides` entry → insert in alphabetical order.
+  `importPathOverrides` entry → insert in alphabetical order.
 - A stale generated file → regenerate ([§9](#9-verification)).
 
 **Needs author judgment — report and wait.** Anything that changes public API, runtime behavior, or
@@ -1016,7 +1016,7 @@ Run this against the diff before calling a component done. Each line is a defect
 **Wiring**
 
 - [ ] `index.ts`, `package.json` export (alphabetical), route, and nav entries all present and consistent.
-- [ ] `componentImportPathOverrides` if the slug is not the export key; `doNotPublish` if applicable.
+- [ ] `importPathOverrides` if the slug is not the export key; `doNotPublish` if applicable.
 - [ ] New tokens have values in all four theme stylesheets.
 - [ ] Changeset with the right bump and consumer-facing prose.
 

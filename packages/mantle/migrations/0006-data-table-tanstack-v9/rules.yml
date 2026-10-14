@@ -13,13 +13,59 @@ utils:
     kind: program
     has:
       matches: data-table-import
+  # A column helper call: `columnHelper.accessor(…)`, `.display(…)`, or
+  # `.group(…)`.
+  column-helper-call:
+    kind: call_expression
+    has:
+      field: function
+      kind: member_expression
+      has:
+        field: property
+        regex: ^(accessor|display|group)$
+  # An object literal that is a column definition: the options of a column
+  # helper call, an element of a `columns` array, or an object with a column
+  # key. Row data with a `sortingFn` field is none of these.
+  column-options:
+    kind: object
+    any:
+      - inside:
+          kind: arguments
+          inside:
+            matches: column-helper-call
+      - inside:
+          kind: array
+          any:
+            - inside:
+                kind: arguments
+                inside:
+                  kind: call_expression
+                  has:
+                    field: function
+                    kind: member_expression
+                    has:
+                      field: property
+                      regex: ^columns$
+            - inside:
+                kind: pair
+                has:
+                  field: key
+                  regex: ^columns$
+      - has:
+          kind: pair
+          has:
+            field: key
+            regex: ^(accessorKey|accessorFn|header|cell)$
 rule:
   pattern:
     context: "({ sortingFn: $VALUE })"
     selector: pair
-  inside:
-    stopBy: end
-    matches: in-data-table-file
+  all:
+    - inside:
+        matches: column-options
+    - inside:
+        stopBy: end
+        matches: in-data-table-file
 fix: "sortFn: $VALUE"
 ---
 id: table-get-state
@@ -35,6 +81,52 @@ utils:
     kind: program
     has:
       matches: data-table-import
+  # A node that opens a lexical scope. The binding searches below stop at a
+  # nested one, so a sibling function's local name does not count.
+  scope:
+    any:
+      - kind: statement_block
+      - kind: function_declaration
+      - kind: generator_function_declaration
+      - kind: function_expression
+      - kind: generator_function
+      - kind: arrow_function
+      - kind: method_definition
+      - kind: class_body
+      - kind: for_statement
+      - kind: for_in_statement
+      - kind: catch_clause
+  scope-or-program:
+    any:
+      - matches: scope
+      - kind: program
+  # An identifier in a binding position: a parameter, a destructured name, a
+  # local variable, a function name, or a class name.
+  binding-name:
+    any:
+      - kind: shorthand_property_identifier_pattern
+      - kind: identifier
+        any:
+          - inside: { kind: variable_declarator, field: name }
+          - inside: { kind: function_declaration, field: name }
+          - inside: { kind: generator_function_declaration, field: name }
+          - inside: { kind: function_expression, field: name }
+          - inside: { kind: required_parameter, field: pattern }
+          - inside: { kind: optional_parameter, field: pattern }
+          - inside: { kind: assignment_pattern, field: left }
+          - inside: { kind: pair_pattern, field: value }
+          - inside: { kind: array_pattern }
+          - inside: { kind: rest_pattern }
+          - inside: { kind: arrow_function, field: parameter }
+          - inside: { kind: catch_clause, field: parameter }
+      - kind: type_identifier
+        inside: { kind: class_declaration, field: name }
+  # A function declaration opens a scope, so the search above stops at it and
+  # never reads its name. This matches the declaration itself instead.
+  function-declaration:
+    any:
+      - kind: function_declaration
+      - kind: generator_function_declaration
   # The instance a `useTable` call returns, under whatever name it is bound to.
   table-binding:
     kind: variable_declarator
@@ -44,7 +136,23 @@ utils:
           pattern: $TABLE
       - has:
           field: value
-          pattern: $HOOK($$$)
+          pattern: useTable($$$)
+  # A variable under the table's name whose value is not a `useTable` call:
+  # a store, a state machine, or any other object with a `getState` method.
+  other-declarator:
+    kind: variable_declarator
+    has:
+      field: name
+      pattern: $TABLE
+    not:
+      matches: table-binding
+  # The nearest enclosing scope that declares the table with `useTable`.
+  table-scope:
+    matches: scope-or-program
+    has:
+      stopBy:
+        matches: scope
+      matches: table-binding
 rule:
   pattern: $TABLE.getState()
   inside:
@@ -55,22 +163,52 @@ rule:
   # in the file to bind to. The dry run is the check on that last one.
   any:
     - pattern: table.getState()
+      not:
+        inside:
+          stopBy: end
+          matches: scope-or-program
+          has:
+            stopBy:
+              matches: scope
+            matches: other-declarator
     - pattern: $TABLE.getState()
       has:
         field: function
         has:
           field: object
           regex: (?i)table$
+      not:
+        inside:
+          stopBy: end
+          matches: scope-or-program
+          has:
+            stopBy:
+              matches: scope
+            matches: other-declarator
     - pattern: $TABLE.getState()
       inside:
         stopBy: end
-        kind: program
-        has:
-          stopBy: end
-          matches: table-binding
-constraints:
-  HOOK:
-    regex: ^useTable$
+        matches: table-scope
+      # Why: a parameter or a local under the table's name, between the read
+      # and the `useTable` call, shadows the table.
+      not:
+        inside:
+          stopBy:
+            matches: table-scope
+          matches: scope-or-program
+          has:
+            stopBy:
+              matches: scope
+            any:
+              - matches: binding-name
+                pattern: $TABLE
+                not:
+                  inside:
+                    matches: table-binding
+              - matches: function-declaration
+                has:
+                  field: name
+                  pattern: $TABLE
 fix: $TABLE.state
 ---
 id: column-sorting-fn
@@ -86,13 +224,59 @@ utils:
     kind: program
     has:
       matches: data-table-import
+  # A column helper call: `columnHelper.accessor(…)`, `.display(…)`, or
+  # `.group(…)`.
+  column-helper-call:
+    kind: call_expression
+    has:
+      field: function
+      kind: member_expression
+      has:
+        field: property
+        regex: ^(accessor|display|group)$
+  # An object literal that is a column definition: the options of a column
+  # helper call, an element of a `columns` array, or an object with a column
+  # key. Row data with a `sortingFn` field is none of these.
+  column-options:
+    kind: object
+    any:
+      - inside:
+          kind: arguments
+          inside:
+            matches: column-helper-call
+      - inside:
+          kind: array
+          any:
+            - inside:
+                kind: arguments
+                inside:
+                  kind: call_expression
+                  has:
+                    field: function
+                    kind: member_expression
+                    has:
+                      field: property
+                      regex: ^columns$
+            - inside:
+                kind: pair
+                has:
+                  field: key
+                  regex: ^columns$
+      - has:
+          kind: pair
+          has:
+            field: key
+            regex: ^(accessorKey|accessorFn|header|cell)$
 rule:
   pattern:
     context: "({ sortingFn: $VALUE })"
     selector: pair
-  inside:
-    stopBy: end
-    matches: in-data-table-file
+  all:
+    - inside:
+        matches: column-options
+    - inside:
+        stopBy: end
+        matches: in-data-table-file
 fix: "sortFn: $VALUE"
 ---
 id: table-get-state
@@ -108,6 +292,52 @@ utils:
     kind: program
     has:
       matches: data-table-import
+  # A node that opens a lexical scope. The binding searches below stop at a
+  # nested one, so a sibling function's local name does not count.
+  scope:
+    any:
+      - kind: statement_block
+      - kind: function_declaration
+      - kind: generator_function_declaration
+      - kind: function_expression
+      - kind: generator_function
+      - kind: arrow_function
+      - kind: method_definition
+      - kind: class_body
+      - kind: for_statement
+      - kind: for_in_statement
+      - kind: catch_clause
+  scope-or-program:
+    any:
+      - matches: scope
+      - kind: program
+  # An identifier in a binding position: a parameter, a destructured name, a
+  # local variable, a function name, or a class name.
+  binding-name:
+    any:
+      - kind: shorthand_property_identifier_pattern
+      - kind: identifier
+        any:
+          - inside: { kind: variable_declarator, field: name }
+          - inside: { kind: function_declaration, field: name }
+          - inside: { kind: generator_function_declaration, field: name }
+          - inside: { kind: function_expression, field: name }
+          - inside: { kind: required_parameter, field: pattern }
+          - inside: { kind: optional_parameter, field: pattern }
+          - inside: { kind: assignment_pattern, field: left }
+          - inside: { kind: pair_pattern, field: value }
+          - inside: { kind: array_pattern }
+          - inside: { kind: rest_pattern }
+          - inside: { kind: arrow_function, field: parameter }
+          - inside: { kind: catch_clause, field: parameter }
+      - kind: type_identifier
+        inside: { kind: class_declaration, field: name }
+  # A function declaration opens a scope, so the search above stops at it and
+  # never reads its name. This matches the declaration itself instead.
+  function-declaration:
+    any:
+      - kind: function_declaration
+      - kind: generator_function_declaration
   # The instance a `useTable` call returns, under whatever name it is bound to.
   table-binding:
     kind: variable_declarator
@@ -117,7 +347,23 @@ utils:
           pattern: $TABLE
       - has:
           field: value
-          pattern: $HOOK($$$)
+          pattern: useTable($$$)
+  # A variable under the table's name whose value is not a `useTable` call:
+  # a store, a state machine, or any other object with a `getState` method.
+  other-declarator:
+    kind: variable_declarator
+    has:
+      field: name
+      pattern: $TABLE
+    not:
+      matches: table-binding
+  # The nearest enclosing scope that declares the table with `useTable`.
+  table-scope:
+    matches: scope-or-program
+    has:
+      stopBy:
+        matches: scope
+      matches: table-binding
 rule:
   pattern: $TABLE.getState()
   inside:
@@ -128,20 +374,50 @@ rule:
   # in the file to bind to. The dry run is the check on that last one.
   any:
     - pattern: table.getState()
+      not:
+        inside:
+          stopBy: end
+          matches: scope-or-program
+          has:
+            stopBy:
+              matches: scope
+            matches: other-declarator
     - pattern: $TABLE.getState()
       has:
         field: function
         has:
           field: object
           regex: (?i)table$
+      not:
+        inside:
+          stopBy: end
+          matches: scope-or-program
+          has:
+            stopBy:
+              matches: scope
+            matches: other-declarator
     - pattern: $TABLE.getState()
       inside:
         stopBy: end
-        kind: program
-        has:
-          stopBy: end
-          matches: table-binding
-constraints:
-  HOOK:
-    regex: ^useTable$
+        matches: table-scope
+      # Why: a parameter or a local under the table's name, between the read
+      # and the `useTable` call, shadows the table.
+      not:
+        inside:
+          stopBy:
+            matches: table-scope
+          matches: scope-or-program
+          has:
+            stopBy:
+              matches: scope
+            any:
+              - matches: binding-name
+                pattern: $TABLE
+                not:
+                  inside:
+                    matches: table-binding
+              - matches: function-declaration
+                has:
+                  field: name
+                  pattern: $TABLE
 fix: $TABLE.state

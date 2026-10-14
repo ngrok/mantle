@@ -60,3 +60,8 @@ export const Interactive = (
 export const Rule = <Divider decorative />;
 
 export const Foreign = <Sparkline.Root data={rows} decorative />;
+
+// Negative case: a parameter under the import's name shadows it.
+export function Shadowed({ BarChart }: { BarChart: typeof Sparkline }) {
+	return <BarChart.Root data={rows} decorative />;
+}

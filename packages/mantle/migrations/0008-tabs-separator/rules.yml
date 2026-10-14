@@ -5,6 +5,48 @@ id: tabs-list-add-separator
 language: tsx
 message: a classic Tabs.List needs Tabs.Separator after it
 utils:
+  # A node that opens a lexical scope. The shadow search below stops at a
+  # nested one, so a sibling function's local name does not count.
+  scope:
+    any:
+      - kind: statement_block
+      - kind: function_declaration
+      - kind: generator_function_declaration
+      - kind: function_expression
+      - kind: generator_function
+      - kind: arrow_function
+      - kind: method_definition
+      - kind: class_body
+      - kind: for_statement
+      - kind: for_in_statement
+      - kind: catch_clause
+  # An identifier in a binding position: a parameter, a destructured name, a
+  # local variable, a function name, or a class name.
+  binding-name:
+    any:
+      - kind: shorthand_property_identifier_pattern
+      - kind: identifier
+        any:
+          - inside: { kind: variable_declarator, field: name }
+          - inside: { kind: function_declaration, field: name }
+          - inside: { kind: generator_function_declaration, field: name }
+          - inside: { kind: function_expression, field: name }
+          - inside: { kind: required_parameter, field: pattern }
+          - inside: { kind: optional_parameter, field: pattern }
+          - inside: { kind: assignment_pattern, field: left }
+          - inside: { kind: pair_pattern, field: value }
+          - inside: { kind: array_pattern }
+          - inside: { kind: rest_pattern }
+          - inside: { kind: arrow_function, field: parameter }
+          - inside: { kind: catch_clause, field: parameter }
+      - kind: type_identifier
+        inside: { kind: class_declaration, field: name }
+  # A function declaration opens a scope, so the search above stops at it and
+  # never reads its name. This matches the declaration itself instead.
+  function-declaration:
+    any:
+      - kind: function_declaration
+      - kind: generator_function_declaration
   tabs-import:
     kind: import_statement
     all:
@@ -85,10 +127,46 @@ utils:
               has:
                 kind: string
                 regex: ^["']pill["']$
+  appearance-attribute:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^appearance$
+  # A root with no appearance, or a literal appearance other than pill. A
+  # dynamic appearance stays manual, because a separator shows on pill tabs.
   classic-root:
     matches: tabs-root
     not:
       matches: pill-root
+    any:
+      - not:
+          has:
+            field: open_tag
+            has:
+              matches: appearance-attribute
+      - has:
+          field: open_tag
+          has:
+            matches: appearance-attribute
+            any:
+              - kind: jsx_attribute
+                has:
+                  kind: string
+              - kind: jsx_attribute
+                has:
+                  kind: jsx_expression
+                  has:
+                    kind: string
+  # A list that already has its separator, with or without a condition.
+  separator-follows:
+    kind: jsx_element
+    precedes:
+      any:
+        - matches: tabs-separator
+        - kind: jsx_expression
+          has:
+            stopBy: end
+            matches: tabs-separator
   hide-border:
     kind: jsx_attribute
     has:
@@ -111,6 +189,22 @@ utils:
           kind: program
           has:
             matches: tabs-import
+      # Why: a parameter or a local under the import's name shadows it, and the
+      # rules cannot tell which binding the element reads.
+      - not:
+          inside:
+            stopBy: end
+            matches: scope
+            has:
+              stopBy:
+                matches: scope
+              any:
+                - matches: binding-name
+                  pattern: $TABS
+                - matches: function-declaration
+                  has:
+                    field: name
+                    pattern: $TABS
       - inside:
           kind: jsx_element
       - inside:
@@ -128,13 +222,7 @@ rule:
             has:
               matches: hide-border
       - not:
-          precedes:
-            any:
-              - matches: tabs-separator
-              - kind: jsx_expression
-                has:
-                  stopBy: end
-                  matches: tabs-separator
+          matches: separator-follows
 fix: |-
   </$TABS.List>
   <$TABS.Separator />
@@ -143,6 +231,48 @@ id: tabs-list-dynamic-hide-border
 language: tsx
 message: a dynamic hideBorder becomes a conditional Tabs.Separator
 utils:
+  # A node that opens a lexical scope. The shadow search below stops at a
+  # nested one, so a sibling function's local name does not count.
+  scope:
+    any:
+      - kind: statement_block
+      - kind: function_declaration
+      - kind: generator_function_declaration
+      - kind: function_expression
+      - kind: generator_function
+      - kind: arrow_function
+      - kind: method_definition
+      - kind: class_body
+      - kind: for_statement
+      - kind: for_in_statement
+      - kind: catch_clause
+  # An identifier in a binding position: a parameter, a destructured name, a
+  # local variable, a function name, or a class name.
+  binding-name:
+    any:
+      - kind: shorthand_property_identifier_pattern
+      - kind: identifier
+        any:
+          - inside: { kind: variable_declarator, field: name }
+          - inside: { kind: function_declaration, field: name }
+          - inside: { kind: generator_function_declaration, field: name }
+          - inside: { kind: function_expression, field: name }
+          - inside: { kind: required_parameter, field: pattern }
+          - inside: { kind: optional_parameter, field: pattern }
+          - inside: { kind: assignment_pattern, field: left }
+          - inside: { kind: pair_pattern, field: value }
+          - inside: { kind: array_pattern }
+          - inside: { kind: rest_pattern }
+          - inside: { kind: arrow_function, field: parameter }
+          - inside: { kind: catch_clause, field: parameter }
+      - kind: type_identifier
+        inside: { kind: class_declaration, field: name }
+  # A function declaration opens a scope, so the search above stops at it and
+  # never reads its name. This matches the declaration itself instead.
+  function-declaration:
+    any:
+      - kind: function_declaration
+      - kind: generator_function_declaration
   tabs-import:
     kind: import_statement
     all:
@@ -223,10 +353,46 @@ utils:
               has:
                 kind: string
                 regex: ^["']pill["']$
+  appearance-attribute:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^appearance$
+  # A root with no appearance, or a literal appearance other than pill. A
+  # dynamic appearance stays manual, because a separator shows on pill tabs.
   classic-root:
     matches: tabs-root
     not:
       matches: pill-root
+    any:
+      - not:
+          has:
+            field: open_tag
+            has:
+              matches: appearance-attribute
+      - has:
+          field: open_tag
+          has:
+            matches: appearance-attribute
+            any:
+              - kind: jsx_attribute
+                has:
+                  kind: string
+              - kind: jsx_attribute
+                has:
+                  kind: jsx_expression
+                  has:
+                    kind: string
+  # A list that already has its separator, with or without a condition.
+  separator-follows:
+    kind: jsx_element
+    precedes:
+      any:
+        - matches: tabs-separator
+        - kind: jsx_expression
+          has:
+            stopBy: end
+            matches: tabs-separator
   hide-border:
     kind: jsx_attribute
     has:
@@ -249,6 +415,22 @@ utils:
           kind: program
           has:
             matches: tabs-import
+      # Why: a parameter or a local under the import's name shadows it, and the
+      # rules cannot tell which binding the element reads.
+      - not:
+          inside:
+            stopBy: end
+            matches: scope
+            has:
+              stopBy:
+                matches: scope
+              any:
+                - matches: binding-name
+                  pattern: $TABS
+                - matches: function-declaration
+                  has:
+                    field: name
+                    pattern: $TABS
       - inside:
           kind: jsx_element
       - inside:
@@ -259,13 +441,16 @@ rule:
   kind: jsx_closing_element
   inside:
     matches: list-that-takes-separator
-    has:
-      field: open_tag
-      has:
-        kind: jsx_attribute
-        pattern:
-          context: <List hideBorder={$CONDITION} />
-          selector: jsx_attribute
+    all:
+      - has:
+          field: open_tag
+          has:
+            kind: jsx_attribute
+            pattern:
+              context: <List hideBorder={$CONDITION} />
+              selector: jsx_attribute
+      - not:
+          matches: separator-follows
 # Why a kind list: `!` binds tighter than `||`, so a compound condition needs
 # parentheses. These kinds do not, and the formatter would strip them.
 constraints:
@@ -290,6 +475,48 @@ id: tabs-list-compound-hide-border
 language: tsx
 message: a compound hideBorder expression becomes a conditional Tabs.Separator
 utils:
+  # A node that opens a lexical scope. The shadow search below stops at a
+  # nested one, so a sibling function's local name does not count.
+  scope:
+    any:
+      - kind: statement_block
+      - kind: function_declaration
+      - kind: generator_function_declaration
+      - kind: function_expression
+      - kind: generator_function
+      - kind: arrow_function
+      - kind: method_definition
+      - kind: class_body
+      - kind: for_statement
+      - kind: for_in_statement
+      - kind: catch_clause
+  # An identifier in a binding position: a parameter, a destructured name, a
+  # local variable, a function name, or a class name.
+  binding-name:
+    any:
+      - kind: shorthand_property_identifier_pattern
+      - kind: identifier
+        any:
+          - inside: { kind: variable_declarator, field: name }
+          - inside: { kind: function_declaration, field: name }
+          - inside: { kind: generator_function_declaration, field: name }
+          - inside: { kind: function_expression, field: name }
+          - inside: { kind: required_parameter, field: pattern }
+          - inside: { kind: optional_parameter, field: pattern }
+          - inside: { kind: assignment_pattern, field: left }
+          - inside: { kind: pair_pattern, field: value }
+          - inside: { kind: array_pattern }
+          - inside: { kind: rest_pattern }
+          - inside: { kind: arrow_function, field: parameter }
+          - inside: { kind: catch_clause, field: parameter }
+      - kind: type_identifier
+        inside: { kind: class_declaration, field: name }
+  # A function declaration opens a scope, so the search above stops at it and
+  # never reads its name. This matches the declaration itself instead.
+  function-declaration:
+    any:
+      - kind: function_declaration
+      - kind: generator_function_declaration
   tabs-import:
     kind: import_statement
     all:
@@ -370,10 +597,46 @@ utils:
               has:
                 kind: string
                 regex: ^["']pill["']$
+  appearance-attribute:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^appearance$
+  # A root with no appearance, or a literal appearance other than pill. A
+  # dynamic appearance stays manual, because a separator shows on pill tabs.
   classic-root:
     matches: tabs-root
     not:
       matches: pill-root
+    any:
+      - not:
+          has:
+            field: open_tag
+            has:
+              matches: appearance-attribute
+      - has:
+          field: open_tag
+          has:
+            matches: appearance-attribute
+            any:
+              - kind: jsx_attribute
+                has:
+                  kind: string
+              - kind: jsx_attribute
+                has:
+                  kind: jsx_expression
+                  has:
+                    kind: string
+  # A list that already has its separator, with or without a condition.
+  separator-follows:
+    kind: jsx_element
+    precedes:
+      any:
+        - matches: tabs-separator
+        - kind: jsx_expression
+          has:
+            stopBy: end
+            matches: tabs-separator
   hide-border:
     kind: jsx_attribute
     has:
@@ -396,6 +659,22 @@ utils:
           kind: program
           has:
             matches: tabs-import
+      # Why: a parameter or a local under the import's name shadows it, and the
+      # rules cannot tell which binding the element reads.
+      - not:
+          inside:
+            stopBy: end
+            matches: scope
+            has:
+              stopBy:
+                matches: scope
+              any:
+                - matches: binding-name
+                  pattern: $TABS
+                - matches: function-declaration
+                  has:
+                    field: name
+                    pattern: $TABS
       - inside:
           kind: jsx_element
       - inside:
@@ -406,13 +685,16 @@ rule:
   kind: jsx_closing_element
   inside:
     matches: list-that-takes-separator
-    has:
-      field: open_tag
-      has:
-        kind: jsx_attribute
-        pattern:
-          context: <List hideBorder={$CONDITION} />
-          selector: jsx_attribute
+    all:
+      - has:
+          field: open_tag
+          has:
+            kind: jsx_attribute
+            pattern:
+              context: <List hideBorder={$CONDITION} />
+              selector: jsx_attribute
+      - not:
+          matches: separator-follows
 constraints:
   CONDITION:
     not:
@@ -438,6 +720,48 @@ id: tabs-list-false-hide-border
 language: tsx
 message: hideBorder={false} drew the border, so the list needs Tabs.Separator
 utils:
+  # A node that opens a lexical scope. The shadow search below stops at a
+  # nested one, so a sibling function's local name does not count.
+  scope:
+    any:
+      - kind: statement_block
+      - kind: function_declaration
+      - kind: generator_function_declaration
+      - kind: function_expression
+      - kind: generator_function
+      - kind: arrow_function
+      - kind: method_definition
+      - kind: class_body
+      - kind: for_statement
+      - kind: for_in_statement
+      - kind: catch_clause
+  # An identifier in a binding position: a parameter, a destructured name, a
+  # local variable, a function name, or a class name.
+  binding-name:
+    any:
+      - kind: shorthand_property_identifier_pattern
+      - kind: identifier
+        any:
+          - inside: { kind: variable_declarator, field: name }
+          - inside: { kind: function_declaration, field: name }
+          - inside: { kind: generator_function_declaration, field: name }
+          - inside: { kind: function_expression, field: name }
+          - inside: { kind: required_parameter, field: pattern }
+          - inside: { kind: optional_parameter, field: pattern }
+          - inside: { kind: assignment_pattern, field: left }
+          - inside: { kind: pair_pattern, field: value }
+          - inside: { kind: array_pattern }
+          - inside: { kind: rest_pattern }
+          - inside: { kind: arrow_function, field: parameter }
+          - inside: { kind: catch_clause, field: parameter }
+      - kind: type_identifier
+        inside: { kind: class_declaration, field: name }
+  # A function declaration opens a scope, so the search above stops at it and
+  # never reads its name. This matches the declaration itself instead.
+  function-declaration:
+    any:
+      - kind: function_declaration
+      - kind: generator_function_declaration
   tabs-import:
     kind: import_statement
     all:
@@ -518,10 +842,46 @@ utils:
               has:
                 kind: string
                 regex: ^["']pill["']$
+  appearance-attribute:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^appearance$
+  # A root with no appearance, or a literal appearance other than pill. A
+  # dynamic appearance stays manual, because a separator shows on pill tabs.
   classic-root:
     matches: tabs-root
     not:
       matches: pill-root
+    any:
+      - not:
+          has:
+            field: open_tag
+            has:
+              matches: appearance-attribute
+      - has:
+          field: open_tag
+          has:
+            matches: appearance-attribute
+            any:
+              - kind: jsx_attribute
+                has:
+                  kind: string
+              - kind: jsx_attribute
+                has:
+                  kind: jsx_expression
+                  has:
+                    kind: string
+  # A list that already has its separator, with or without a condition.
+  separator-follows:
+    kind: jsx_element
+    precedes:
+      any:
+        - matches: tabs-separator
+        - kind: jsx_expression
+          has:
+            stopBy: end
+            matches: tabs-separator
   hide-border:
     kind: jsx_attribute
     has:
@@ -544,6 +904,22 @@ utils:
           kind: program
           has:
             matches: tabs-import
+      # Why: a parameter or a local under the import's name shadows it, and the
+      # rules cannot tell which binding the element reads.
+      - not:
+          inside:
+            stopBy: end
+            matches: scope
+            has:
+              stopBy:
+                matches: scope
+              any:
+                - matches: binding-name
+                  pattern: $TABS
+                - matches: function-declaration
+                  has:
+                    field: name
+                    pattern: $TABS
       - inside:
           kind: jsx_element
       - inside:
@@ -554,14 +930,17 @@ rule:
   kind: jsx_closing_element
   inside:
     matches: list-that-takes-separator
-    has:
-      field: open_tag
-      has:
-        matches: hide-border
-        has:
-          kind: jsx_expression
+    all:
+      - has:
+          field: open_tag
           has:
-            kind: "false"
+            matches: hide-border
+            has:
+              kind: jsx_expression
+              has:
+                kind: "false"
+      - not:
+          matches: separator-follows
 fix: |-
   </$TABS.List>
   <$TABS.Separator />
@@ -570,6 +949,48 @@ id: tabs-list-drop-hide-border
 language: tsx
 message: Tabs.List no longer takes hideBorder
 utils:
+  # A node that opens a lexical scope. The shadow search below stops at a
+  # nested one, so a sibling function's local name does not count.
+  scope:
+    any:
+      - kind: statement_block
+      - kind: function_declaration
+      - kind: generator_function_declaration
+      - kind: function_expression
+      - kind: generator_function
+      - kind: arrow_function
+      - kind: method_definition
+      - kind: class_body
+      - kind: for_statement
+      - kind: for_in_statement
+      - kind: catch_clause
+  # An identifier in a binding position: a parameter, a destructured name, a
+  # local variable, a function name, or a class name.
+  binding-name:
+    any:
+      - kind: shorthand_property_identifier_pattern
+      - kind: identifier
+        any:
+          - inside: { kind: variable_declarator, field: name }
+          - inside: { kind: function_declaration, field: name }
+          - inside: { kind: generator_function_declaration, field: name }
+          - inside: { kind: function_expression, field: name }
+          - inside: { kind: required_parameter, field: pattern }
+          - inside: { kind: optional_parameter, field: pattern }
+          - inside: { kind: assignment_pattern, field: left }
+          - inside: { kind: pair_pattern, field: value }
+          - inside: { kind: array_pattern }
+          - inside: { kind: rest_pattern }
+          - inside: { kind: arrow_function, field: parameter }
+          - inside: { kind: catch_clause, field: parameter }
+      - kind: type_identifier
+        inside: { kind: class_declaration, field: name }
+  # A function declaration opens a scope, so the search above stops at it and
+  # never reads its name. This matches the declaration itself instead.
+  function-declaration:
+    any:
+      - kind: function_declaration
+      - kind: generator_function_declaration
   tabs-import:
     kind: import_statement
     all:
@@ -650,10 +1071,46 @@ utils:
               has:
                 kind: string
                 regex: ^["']pill["']$
+  appearance-attribute:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^appearance$
+  # A root with no appearance, or a literal appearance other than pill. A
+  # dynamic appearance stays manual, because a separator shows on pill tabs.
   classic-root:
     matches: tabs-root
     not:
       matches: pill-root
+    any:
+      - not:
+          has:
+            field: open_tag
+            has:
+              matches: appearance-attribute
+      - has:
+          field: open_tag
+          has:
+            matches: appearance-attribute
+            any:
+              - kind: jsx_attribute
+                has:
+                  kind: string
+              - kind: jsx_attribute
+                has:
+                  kind: jsx_expression
+                  has:
+                    kind: string
+  # A list that already has its separator, with or without a condition.
+  separator-follows:
+    kind: jsx_element
+    precedes:
+      any:
+        - matches: tabs-separator
+        - kind: jsx_expression
+          has:
+            stopBy: end
+            matches: tabs-separator
   hide-border:
     kind: jsx_attribute
     has:
@@ -676,6 +1133,22 @@ utils:
           kind: program
           has:
             matches: tabs-import
+      # Why: a parameter or a local under the import's name shadows it, and the
+      # rules cannot tell which binding the element reads.
+      - not:
+          inside:
+            stopBy: end
+            matches: scope
+            has:
+              stopBy:
+                matches: scope
+              any:
+                - matches: binding-name
+                  pattern: $TABS
+                - matches: function-declaration
+                  has:
+                    field: name
+                    pattern: $TABS
       - inside:
           kind: jsx_element
       - inside:
@@ -697,6 +1170,22 @@ rule:
           kind: program
           has:
             matches: tabs-import
+      # Why: a parameter or a local under the import's name shadows it, and the
+      # rules cannot tell which binding the element reads.
+      - not:
+          inside:
+            stopBy: end
+            matches: scope
+            has:
+              stopBy:
+                matches: scope
+              any:
+                - matches: binding-name
+                  pattern: $TABS
+                - matches: function-declaration
+                  has:
+                    field: name
+                    pattern: $TABS
   # Why four shapes: a true flag never needs a separator, and a pill root never
   # drew one. A false or dynamic flag stays unless a rule above gave the list
   # a separator, so the type checker flags the list a rule cannot reach.

@@ -74,6 +74,7 @@ export const Feedback = (
 		<Toast.Root intent="success">…</Toast.Root>
 		<AlertDialog.Root intent="danger">…</AlertDialog.Root>
 		<AlertDialog.Action intent="accent">Continue</AlertDialog.Action>
+		<AlertDialog.Cancel intent="accent">Cancel</AlertDialog.Cancel>
 	</>
 );
 
@@ -97,3 +98,14 @@ export const Untouched = (
 		</Button>
 	</>
 );
+
+// Negative case: a parameter under the import's name shadows it, so neither
+// the rename nor the stamp reaches the element.
+export function Shadowed({ Button }: { Button: typeof AntButton }) {
+	return (
+		<>
+			<Button priority="danger">Shadowed</Button>
+			<Button>Shadowed bare</Button>
+		</>
+	);
+}

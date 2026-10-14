@@ -107,3 +107,34 @@ export function useInlineTable(data: Payment[]) {
 		]),
 	});
 }
+
+declare function NestedTable(props: { columns: unknown[] }): null;
+
+// Negative case: a column whose cell renders a table with its own action
+// column keeps its header. Only the nested action column's header changes.
+export const nestedColumns = columnHelper.columns([
+	columnHelper.accessor("amount", {
+		id: "amount-with-nested-table",
+		header: () => <DataTable.Header>Amount</DataTable.Header>,
+		cell: () => (
+			<NestedTable
+				columns={[
+					{
+						id: "actions",
+						header: () => <DataTable.Header />,
+						cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
+					},
+				]}
+			/>
+		),
+	}),
+]);
+
+// Negative case: a parameter under the import's name shadows it.
+export function shadowedColumn(DataTable: typeof Grid) {
+	return columnHelper.display({
+		id: "actions",
+		header: () => <DataTable.Header />,
+		cell: () => <DataTable.ActionCell>{null}</DataTable.ActionCell>,
+	});
+}

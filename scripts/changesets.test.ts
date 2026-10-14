@@ -3,6 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const changesetDir = path.resolve(import.meta.dirname, "../.changeset");
+const migrationDocsDir = path.resolve(import.meta.dirname, "../apps/www/app/docs/migrations");
 
 /** The pending changesets, by file name. */
 function pendingChangesets(): string[] {
@@ -12,10 +13,21 @@ function pendingChangesets(): string[] {
 		.toSorted();
 }
 
-/** The bump a changeset gives `@ngrok/mantle`, or `null` when it names another package. */
+/**
+ * The bump a changeset gives `@ngrok/mantle`, or `null` when it names another
+ * package. The key and the value read with either quote or none, as YAML does.
+ */
 function mantleBump(source: string): string | null {
-	const match = source.match(/^"@ngrok\/mantle":\s*(\w+)\s*$/m);
-	return match?.[1] ?? null;
+	const match = source.match(/^(["']?)@ngrok\/mantle\1:\s*(["']?)(\w+)\2\s*$/m);
+	return match?.[3] ?? null;
+}
+
+/** The migration guide slugs a changeset may link. */
+function migrationSlugs(): string[] {
+	return fs
+		.readdirSync(migrationDocsDir)
+		.filter((entry) => entry.endsWith(".mdx"))
+		.map((entry) => entry.replace(/\.mdx$/, ""));
 }
 
 describe("pending changesets", () => {
@@ -37,6 +49,23 @@ describe("pending changesets", () => {
 			}
 
 			expect(source).toMatch(/mantle\.ngrok\.com\/migrations\/\d{4}-[a-z0-9-]+|No migration: \S/);
+		},
+	);
+
+	// Why: a link to a guide that does not exist reads as a migration in the
+	// changelog and sends the consumer to a missing page. Catches a typo in a slug.
+	it.each(names.length > 0 ? names : ["(none)"])(
+		"%s links a migration guide that exists",
+		(name) => {
+			if (name === "(none)") {
+				return;
+			}
+			const source = fs.readFileSync(path.join(changesetDir, name), "utf8");
+			const links = source.matchAll(/mantle\.ngrok\.com\/migrations\/(\d{4}-[a-z0-9-]+)/g);
+
+			for (const [, slug] of links) {
+				expect(migrationSlugs()).toContain(slug);
+			}
 		},
 	);
 

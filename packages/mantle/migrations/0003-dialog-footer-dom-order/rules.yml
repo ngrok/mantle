@@ -1,10 +1,53 @@
-# The rule binds $DIALOG to the local name of the `Dialog` import from
+# Both rules bind $DIALOG to the local name of the `Dialog` import from
 # `@ngrok/mantle/dialog`, so an aliased import matches and another library's
-# `Dialog` does not.
-id: dialog-footer-swap-two
+# `Dialog` does not. They swap the two actions in place: each rule writes the
+# other action's text over its own, so a comment between them stays where it is.
+id: dialog-footer-first-action
 language: tsx
-message: swap the two children of Dialog.Footer
+message: the first of two Dialog.Footer actions moves second
 utils:
+  # A node that opens a lexical scope. The shadow search below stops at a
+  # nested one, so a sibling function's local name does not count.
+  scope:
+    any:
+      - kind: statement_block
+      - kind: function_declaration
+      - kind: generator_function_declaration
+      - kind: function_expression
+      - kind: generator_function
+      - kind: arrow_function
+      - kind: method_definition
+      - kind: class_body
+      - kind: for_statement
+      - kind: for_in_statement
+      - kind: catch_clause
+  # An identifier in a binding position: a parameter, a destructured name, a
+  # local variable, a function name, or a class name.
+  binding-name:
+    any:
+      - kind: shorthand_property_identifier_pattern
+      - kind: identifier
+        any:
+          - inside: { kind: variable_declarator, field: name }
+          - inside: { kind: function_declaration, field: name }
+          - inside: { kind: generator_function_declaration, field: name }
+          - inside: { kind: function_expression, field: name }
+          - inside: { kind: required_parameter, field: pattern }
+          - inside: { kind: optional_parameter, field: pattern }
+          - inside: { kind: assignment_pattern, field: left }
+          - inside: { kind: pair_pattern, field: value }
+          - inside: { kind: array_pattern }
+          - inside: { kind: rest_pattern }
+          - inside: { kind: arrow_function, field: parameter }
+          - inside: { kind: catch_clause, field: parameter }
+      - kind: type_identifier
+        inside: { kind: class_declaration, field: name }
+  # A function declaration opens a scope, so the search above stops at it and
+  # never reads its name. This matches the declaration itself instead.
+  function-declaration:
+    any:
+      - kind: function_declaration
+      - kind: generator_function_declaration
   dialog-import:
     kind: import_statement
     all:
@@ -30,45 +73,199 @@ utils:
               has:
                 field: name
                 pattern: $DIALOG
-  child:
+  # An action the swap moves. A comment-only expression is not one, so it
+  # neither counts toward the two nor moves.
+  action:
     any:
       - kind: jsx_element
       - kind: jsx_self_closing_element
       - kind: jsx_expression
+        has:
+          pattern: $_EXPRESSION
+          not:
+            kind: comment
+  two-action-footer:
+    pattern: <$DIALOG.Footer $$$ATTRS>$$$CHILDREN</$DIALOG.Footer>
+    all:
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: dialog-import
+      # Why: a parameter or a local under the import's name shadows it, and the
+      # rules cannot tell which binding the element reads.
+      - not:
+          inside:
+            stopBy: end
+            matches: scope
+            has:
+              stopBy:
+                matches: scope
+              any:
+                - matches: binding-name
+                  pattern: $DIALOG
+                - matches: function-declaration
+                  has:
+                    field: name
+                    pattern: $DIALOG
+      - not:
+          has:
+            nthChild:
+              position: 3
+              ofRule:
+                matches: action
+      # Why: the swap moves the two actions only, so a footer with its own text
+      # between them would read in the wrong order.
+      - not:
+          has:
+            kind: jsx_text
+            regex: \S
 rule:
-  pattern: <$DIALOG.Footer $$$ATTRS>$$$CHILDREN</$DIALOG.Footer>
-  all:
-    - inside:
-        stopBy: end
-        kind: program
+  matches: action
+  nthChild:
+    position: 1
+    ofRule:
+      matches: action
+  inside:
+    matches: two-action-footer
+    has:
+      pattern: $SECOND
+      nthChild:
+        position: 2
+        ofRule:
+          matches: action
+fix: $SECOND
+---
+id: dialog-footer-second-action
+language: tsx
+message: the second of two Dialog.Footer actions moves first
+utils:
+  # A node that opens a lexical scope. The shadow search below stops at a
+  # nested one, so a sibling function's local name does not count.
+  scope:
+    any:
+      - kind: statement_block
+      - kind: function_declaration
+      - kind: generator_function_declaration
+      - kind: function_expression
+      - kind: generator_function
+      - kind: arrow_function
+      - kind: method_definition
+      - kind: class_body
+      - kind: for_statement
+      - kind: for_in_statement
+      - kind: catch_clause
+  # An identifier in a binding position: a parameter, a destructured name, a
+  # local variable, a function name, or a class name.
+  binding-name:
+    any:
+      - kind: shorthand_property_identifier_pattern
+      - kind: identifier
+        any:
+          - inside: { kind: variable_declarator, field: name }
+          - inside: { kind: function_declaration, field: name }
+          - inside: { kind: generator_function_declaration, field: name }
+          - inside: { kind: function_expression, field: name }
+          - inside: { kind: required_parameter, field: pattern }
+          - inside: { kind: optional_parameter, field: pattern }
+          - inside: { kind: assignment_pattern, field: left }
+          - inside: { kind: pair_pattern, field: value }
+          - inside: { kind: array_pattern }
+          - inside: { kind: rest_pattern }
+          - inside: { kind: arrow_function, field: parameter }
+          - inside: { kind: catch_clause, field: parameter }
+      - kind: type_identifier
+        inside: { kind: class_declaration, field: name }
+  # A function declaration opens a scope, so the search above stops at it and
+  # never reads its name. This matches the declaration itself instead.
+  function-declaration:
+    any:
+      - kind: function_declaration
+      - kind: generator_function_declaration
+  dialog-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/dialog["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^Dialog$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $DIALOG
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $DIALOG
+  # An action the swap moves. A comment-only expression is not one, so it
+  # neither counts toward the two nor moves.
+  action:
+    any:
+      - kind: jsx_element
+      - kind: jsx_self_closing_element
+      - kind: jsx_expression
         has:
-          matches: dialog-import
-    - has:
-        pattern: $FIRST
-        nthChild:
-          position: 1
-          ofRule:
-            matches: child
-    - has:
-        pattern: $SECOND
-        nthChild:
-          position: 2
-          ofRule:
-            matches: child
-    - not:
-        has:
-          nthChild:
-            position: 3
-            ofRule:
-              matches: child
-    # Why: the fix writes the two elements back and nothing else, so a footer
-    # with its own text between them would lose it.
-    - not:
-        has:
-          kind: jsx_text
-          regex: \S
-fix: |-
-  <$DIALOG.Footer $$$ATTRS>
-  	$SECOND
-  	$FIRST
-  </$DIALOG.Footer>
+          pattern: $_EXPRESSION
+          not:
+            kind: comment
+  two-action-footer:
+    pattern: <$DIALOG.Footer $$$ATTRS>$$$CHILDREN</$DIALOG.Footer>
+    all:
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: dialog-import
+      # Why: a parameter or a local under the import's name shadows it, and the
+      # rules cannot tell which binding the element reads.
+      - not:
+          inside:
+            stopBy: end
+            matches: scope
+            has:
+              stopBy:
+                matches: scope
+              any:
+                - matches: binding-name
+                  pattern: $DIALOG
+                - matches: function-declaration
+                  has:
+                    field: name
+                    pattern: $DIALOG
+      - not:
+          has:
+            nthChild:
+              position: 3
+              ofRule:
+                matches: action
+      # Why: the swap moves the two actions only, so a footer with its own text
+      # between them would read in the wrong order.
+      - not:
+          has:
+            kind: jsx_text
+            regex: \S
+rule:
+  matches: action
+  nthChild:
+    position: 2
+    ofRule:
+      matches: action
+  inside:
+    matches: two-action-footer
+    has:
+      pattern: $FIRST
+      nthChild:
+        position: 1
+        ofRule:
+          matches: action
+fix: $FIRST

@@ -4,6 +4,7 @@ import { Tabs as OtherTabs } from "@acme/ui";
 declare const compact: boolean;
 declare const hidden: boolean;
 declare const show: boolean;
+declare const appearance: "classic" | "pill";
 
 export const Classic = (
 	<Tabs.Root defaultValue="account">
@@ -150,3 +151,54 @@ export const Foreign = (
 		</OtherTabs.List>
 	</OtherTabs.Root>
 );
+
+// A literal classic appearance is classic.
+export const LiteralClassic = (
+	<Tabs.Root defaultValue="account" appearance="classic">
+		<Tabs.List>
+			<Tabs.Trigger value="account">Account</Tabs.Trigger>
+		</Tabs.List>
+		<Tabs.Content value="account">…</Tabs.Content>
+	</Tabs.Root>
+);
+
+// A list with a false or dynamic flag that already has its separator loses
+// the flag and gets no second separator.
+export const MigratedWithFlag = (
+	<Tabs.Root defaultValue="account">
+		<Tabs.List hideBorder={false}>
+			<Tabs.Trigger value="account">Account</Tabs.Trigger>
+		</Tabs.List>
+		<Tabs.Separator />
+		<Tabs.List hideBorder={compact}>
+			<Tabs.Trigger value="password">Password</Tabs.Trigger>
+		</Tabs.List>
+		{!compact && <Tabs.Separator />}
+		<Tabs.Content value="account">…</Tabs.Content>
+	</Tabs.Root>
+);
+
+// Negative case: a dynamic appearance can be pill, so a list under it gets no
+// separator and keeps its flag for a human.
+export const DynamicAppearance = (
+	<Tabs.Root defaultValue="account" appearance={appearance}>
+		<Tabs.List>
+			<Tabs.Trigger value="account">Account</Tabs.Trigger>
+		</Tabs.List>
+		<Tabs.List hideBorder={compact}>
+			<Tabs.Trigger value="password">Password</Tabs.Trigger>
+		</Tabs.List>
+		<Tabs.Content value="account">…</Tabs.Content>
+	</Tabs.Root>
+);
+
+// Negative case: a parameter under the import's name shadows it.
+export function Shadowed({ Tabs }: { Tabs: typeof OtherTabs }) {
+	return (
+		<Tabs.Root defaultValue="account">
+			<Tabs.List hideBorder>
+				<Tabs.Trigger value="account">Account</Tabs.Trigger>
+			</Tabs.List>
+		</Tabs.Root>
+	);
+}

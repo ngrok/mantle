@@ -177,6 +177,33 @@ describe("parseFrontmatter", () => {
 		});
 	});
 
+	// Catches: a comment cut that reads a `#` inside quotes, or none at all.
+	it("cuts an inline comment outside a quoted span", () => {
+		const source = [
+			"---",
+			"title: Sheet # the drawer",
+			'description: "A # inside" # outside',
+			"aliases: [drawer, panel] # two",
+			"tags:",
+			"  - one # first",
+			"---",
+		].join("\n");
+
+		expect(parseFrontmatter(source)).toEqual({
+			title: "Sheet",
+			description: "A # inside",
+			aliases: ["drawer", "panel"],
+			tags: ["one"],
+		});
+	});
+
+	// Catches: an inline list split on every comma.
+	it("keeps a comma inside a quoted inline list item", () => {
+		const source = "---\naliases: [\"side, panel\", 'a, b', drawer]\n---\n";
+
+		expect(parseFrontmatter(source)).toEqual({ aliases: ["side, panel", "a, b", "drawer"] });
+	});
+
 	it("returns an empty object when the file has no frontmatter", () => {
 		expect(parseFrontmatter("# Title\n")).toEqual({});
 	});

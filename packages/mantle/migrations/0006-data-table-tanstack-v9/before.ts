@@ -21,3 +21,12 @@ export function useInvoices(data: Invoice[]) {
 // Negative case: a store's getState stays.
 export const useStore = create(() => ({ page: 1 }));
 export const page = useStore.getState().page;
+
+// Negative case: row data with a `sortingFn` field is not a column.
+export const rows = [{ sortingFn: "alphanumeric", createdAt: new Date(), amount: 1 }];
+
+// Negative case: a store under the name another function binds to a table.
+export function useInvoiceStore() {
+	const table = create(() => ({ page: 1 }));
+	return table.getState().page;
+}

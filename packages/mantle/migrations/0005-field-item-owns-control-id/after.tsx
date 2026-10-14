@@ -52,3 +52,15 @@ export const Untouched = (
 		<FormikField.Label htmlFor="other">Other</FormikField.Label>
 	</>
 );
+
+// Negative case: a parameter under the import's name shadows it.
+export function ShadowedField({ Field }: { Field: typeof FormikField }) {
+	return (
+		<Field.Item name="shadowed">
+			<Field.Label htmlFor="shadowed">Shadowed</Field.Label>
+			<Field.Control id="shadowed">
+				<Input />
+			</Field.Control>
+		</Field.Item>
+	);
+}
