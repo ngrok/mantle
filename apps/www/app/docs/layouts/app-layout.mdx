@@ -1074,7 +1074,7 @@ custom control composes the same state from [`useSidePanel`](#usesidepanel).
 - **Closed**, the panel collapses to nothing and goes `inert`, so nothing inside it is focusable, clickable,
   or read by assistive technology. Its children stay mounted: a conversation keeps its scroll position and
   its in-flight reply across a close and a reopen.
-- **Between the two**, the panel moves the way the rail collapses: `flex-basis` and `margin` animate over
+- **Between the two**, the panel moves the way the rail collapses: `flex-basis` and the end margin animate over
   200ms (`ease-linear`), and an inner column inside the clip box holds the open width, so the header, the
   body, and the footer never reflow; the card's edge sweeps across them. A CSS transition reverses from
   wherever it is, so a second click mid-flight turns the panel around. `motion-reduce:` turns the slide
@@ -2519,7 +2519,7 @@ the rail collapses, and the inner column holds the open width so nothing inside 
 mid-flight reverses the run. `motion-reduce:transition-none` turns the slide into a cut,
 `not-data-hydrated:transition-none` holds it until one frame after hydration, and a merged
 `transition-none` or `duration-*` replaces the default through tailwind-merge. Closed, it is
-`basis-0 m-0 border-0 pointer-events-none` and `inert`, with its children still mounted. Below
+`basis-0 mr-0 border-0 pointer-events-none` and `inert`, with its children still mounted. Below
 `mobileBreakpoint` it floats over the card: `absolute`, pinned to the row's end edge inside the card gutter,
 `min(24rem, 100vw - 5rem)` wide, with `shadow-lg` and `z-20`, and it slides off the end edge when closed;
 one breakpoint lower it covers the card from gutter to gutter. See [Side panel](#side-panel).

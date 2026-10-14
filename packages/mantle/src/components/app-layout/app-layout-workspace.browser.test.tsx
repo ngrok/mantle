@@ -110,7 +110,7 @@ const STYLE = `
 		.max-sm\\:\\[--_side-panel-content-width\\:100\\%\\] { --_side-panel-content-width: 100%; }
 	}
 	.data-state-closed\\:pointer-events-none[data-state~=closed] { pointer-events: none; }
-	.data-state-closed\\:m-0[data-state~=closed] { margin: 0px; }
+	.data-state-closed\\:mr-0[data-state~=closed] { margin-right: 0px; }
 	.data-state-closed\\:basis-0[data-state~=closed] { flex-basis: 0px; }
 	@media (width >= 40rem) {
 		.sm\\:data-state-closed\\:border-0[data-state~=closed] { border-style: var(--tw-border-style); border-width: 0px; }
@@ -332,6 +332,20 @@ describe("AppLayout.SidePanel lane", () => {
 		expect(panel.width).toBe(0);
 		expect(content.right).toBe(root.right - GUTTER);
 		expect(content.width).toBe(1200 - 2 * GUTTER);
+	});
+
+	test("a closed panel keeps the card's height, so opening changes width alone", async () => {
+		// Why: only the end margin closes with the basis. Zeroing the vertical
+		// margins too would start the open a gutter taller than the card and
+		// shrink the box into place.
+		await page.viewport(1280, 800);
+		render(
+			<Shell panel="closed" rootWidth={1200} vars={{ "--app-layout-side-panel-width": "300px" }} />,
+		);
+		const content = rectOf("content");
+		const panel = rectOf("panel");
+		expect(panel.top).toBe(content.top);
+		expect(panel.height).toBe(content.height);
 	});
 
 	test("the inner column keeps the open width while the box around it collapses", async () => {

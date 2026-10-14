@@ -1047,8 +1047,8 @@ type AppLayoutSidePanelProps = Omit<ComponentProps<"aside">, "id"> &
  * gutter wide.
  *
  * It opens and closes the way `Sidebar.Nav` collapses. The `<aside>` is a clip
- * box whose `flex-basis` animates between the open width and zero over 200ms
- * (`ease-linear`), and an inner column inside it stays at the open width,
+ * box whose `flex-basis` and end margin animate between the open width and
+ * zero over 200ms (`ease-linear`), and an inner column inside it stays at the open width,
  * anchored to the end edge, so the content never reflows: the card's edge
  * sweeps across it. A CSS transition reverses from wherever it is, so a second
  * click mid-flight turns the panel around. `motion-reduce:transition-none`
@@ -1058,7 +1058,7 @@ type AppLayoutSidePanelProps = Omit<ComponentProps<"aside">, "id"> &
  * `transition-*` and `duration-*` utilities are bare, so a merged
  * `transition-none` or `duration-*` replaces them through tailwind-merge.
  *
- * Closed, the box is `basis-0 m-0 border-0 pointer-events-none` and `inert`,
+ * Closed, the box is `basis-0 mr-0 border-0 pointer-events-none` and `inert`,
  * so nothing inside it is focusable, clickable, or read by assistive
  * technology, and its children stay mounted: a conversation keeps its scroll
  * position, its focus target, and its in-flight reply across a close and a
@@ -1167,7 +1167,9 @@ const SidePanel = ({
 				// consumer `transition-none` or `duration-*` replaces the default
 				// through tailwind-merge.
 				"transition-[flex-basis,margin,translate] duration-200 ease-linear motion-reduce:transition-none not-data-hydrated:transition-none",
-				"data-state-closed:basis-0 data-state-closed:m-0 data-state-closed:pointer-events-none",
+				// Why mr-0 and not m-0: the vertical margins stay, or the box starts a
+				// gutter taller than the card on open and shrinks into place.
+				"data-state-closed:basis-0 data-state-closed:mr-0 data-state-closed:pointer-events-none",
 				sidePanelFloatClassName[mobileBreakpoint],
 				className,
 			)}
