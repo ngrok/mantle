@@ -1074,9 +1074,10 @@ custom control composes the same state from [`useSidePanel`](#usesidepanel).
 - **Closed**, the panel collapses to nothing and goes `inert`, so nothing inside it is focusable, clickable,
   or read by assistive technology. Its children stay mounted: a conversation keeps its scroll position and
   its in-flight reply across a close and a reopen.
-- **Between the two**, the panel moves the way the rail collapses: `flex-basis` and the end margin animate over
-  200ms (`ease-linear`), and an inner column inside the clip box holds the open width, so the header, the
-  body, and the footer never reflow; the card's edge sweeps across them. A CSS transition reverses from
+- **Between the two**, the panel moves the way the rail collapses: `flex-basis` alone animates over 200ms
+  (`ease-linear`): the `<aside>` is a clip box, and the card is an inner column pinned to the row's end
+  inset at the open width, so the header, the body, and the footer never reflow or move; the box's start
+  edge sweeps across them. A CSS transition reverses from
   wherever it is, so a second click mid-flight turns the panel around. `motion-reduce:` turns the slide
   into a cut, a merged `transition-none` or `duration-*` replaces the default, and the transition holds
   until one frame after hydration, so a state the client corrects after the server render snaps instead of
@@ -2505,21 +2506,23 @@ the page and closes again. Render it as `AppLayout.Workspace`'s **last child**, 
 the `complementary` landmark; name it with `aria-label`. `id` is not a prop: the root generates it, and
 `AppLayout.SidePanelTrigger` points `aria-controls` at it.
 
-It takes the card treatment
-(`bg-card border-card-muted relative isolate min-w-0 overflow-clip rounded-xl border shadow-sm`) and holds
+The `<aside>` is a clip box (`relative isolate min-w-0 overflow-x-clip`), and the card is an inner column
+pinned to the box's end inset at the open width, carrying the card treatment
+(`bg-card border-card-muted rounded-xl border shadow-sm overflow-clip`) and holding
 [`AppLayout.SidePanelHeader`](#applayoutsidepanelheader),
 [`AppLayout.SidePanelBody`](#applayoutsidepanelbody), and an optional
-[`AppLayout.SidePanelFooter`](#applayoutsidepanelfooter), in that order, inside an inner column that stays
-at the open width. It keeps `--app-layout-card-gutter` on its top, end, and bottom edges and none on its
-start edge, so the card's own end margin is the gap between the two.
+[`AppLayout.SidePanelFooter`](#applayoutsidepanelfooter), in that order. `className` lands on the clip box,
+not the card. The box keeps `--app-layout-card-gutter` on its top and bottom edges, none on its start edge,
+and holds the end inset inside itself, so the card's own end margin is the gap between the two and no margin
+ever animates.
 
-It is a fixed basis (`grow-0 shrink-0`, the open width), never a share of the row, so the card absorbs every
-change in width. Opening and closing animate `flex-basis` and `margin` over 200ms (`ease-linear`), the way
-the rail collapses, and the inner column holds the open width so nothing inside reflows; a second click
-mid-flight reverses the run. `motion-reduce:transition-none` turns the slide into a cut,
+The box is a fixed basis (`grow-0 shrink-0`, the open width plus the end inset), never a share of the row,
+so the card absorbs every change in width. Opening and closing animate `flex-basis` alone over 200ms
+(`ease-linear`), the way the rail collapses: the inner card never moves, and the box's start edge sweeps
+across it; a second click mid-flight reverses the run. `motion-reduce:transition-none` turns the slide into a cut,
 `not-data-hydrated:transition-none` holds it until one frame after hydration, and a merged
 `transition-none` or `duration-*` replaces the default through tailwind-merge. Closed, it is
-`basis-0 mr-0 border-0 pointer-events-none` and `inert`, with its children still mounted. Below
+`basis-0 pointer-events-none` and `inert`, with its children still mounted. Below
 `mobileBreakpoint` it floats over the card: `absolute`, pinned to the row's end edge inside the card gutter,
 `min(24rem, 100vw - 5rem)` wide, with `shadow-lg` and `z-20`, and it slides off the end edge when closed;
 one breakpoint lower it covers the card from gutter to gutter. See [Side panel](#side-panel).

@@ -9,19 +9,19 @@ import { AppLayout } from "./app-layout.js";
 /**
  * Real-browser geometry for the workspace row: the width cap that centers the
  * rail, the card, and the side panel on a wide screen, and the side panel lane
- * itself. The panel's contract is the layout it produces (a fixed basis beside
- * the card, nothing when closed, an inner column that never reflows, a
- * floating card below its breakpoint) and the transition that carries one
- * state to the other, gated until a frame after hydration. happy-dom lays
+ * itself. The panel's contract is the layout it produces (a clip box with a
+ * fixed basis beside the card, nothing when closed, an inner card that never
+ * moves, a floating card below its breakpoint) and the transition that carries
+ * one state to the other, gated until a frame after hydration. happy-dom lays
  * nothing out and runs no transition, and `prefers-reduced-motion` is a
  * Playwright page emulation.
  *
  * The stylesheet is Tailwind 4.3.3's own output for the utilities in play,
  * keyed by the same escaped class selectors, with the theme variables resolved.
  * Regenerate it by compiling those class names through `tailwindcss`'s
- * `compile()`. Drop `mx-auto`, `w-full`, `ml-0`, `grow-0`, the inner column's
- * width, or a `data-state-closed:` utility from a part and the matching
- * assertion fails.
+ * `compile()`. Drop `mx-auto`, `w-full`, `ml-0`, `grow-0`, the inner card's
+ * width or inset, or a `data-state-closed:` utility from a part and the
+ * matching assertion fails.
  */
 const STYLE = `
 @layer theme, base, components, utilities;
@@ -44,12 +44,12 @@ const STYLE = `
 	.absolute { position: absolute; }
 	.relative { position: relative; }
 	.inset-y-0 { inset-block: calc(var(--spacing) * 0); }
-	.right-0 { right: calc(var(--spacing) * 0); }
+	.right-\\(--_side-panel-content-inset\\) { right: var(--_side-panel-content-inset); }
 	.isolate { isolation: isolate; }
 	.m-\\(--app-layout-card-gutter\\,0\\.5rem\\) { margin: var(--app-layout-card-gutter,0.5rem); }
 	.mx-auto { margin-inline: auto; }
 	.my-\\(--app-layout-card-gutter\\,0\\.5rem\\) { margin-block: var(--app-layout-card-gutter,0.5rem); }
-	.mr-\\(--app-layout-card-gutter\\,0\\.5rem\\) { margin-right: var(--app-layout-card-gutter,0.5rem); }
+	.mr-0 { margin-right: 0px; }
 	.ml-0 { margin-left: 0px; }
 	.flex { display: flex; }
 	.h-full { height: 100%; }
@@ -60,20 +60,28 @@ const STYLE = `
 	.flex-1 { flex: 1; }
 	.shrink-0 { flex-shrink: 0; }
 	.grow-0 { flex-grow: 0; }
-	.basis-\\[calc\\(var\\(--_side-panel-content-width\\)\\+2px\\)\\] { flex-basis: calc(var(--_side-panel-content-width) + 2px); }
+	.basis-\\(--_side-panel-box-width\\) { flex-basis: var(--_side-panel-box-width); }
 	.flex-col { flex-direction: column; }
 	.overflow-clip { overflow: clip; }
+	.overflow-x-clip { overflow-x: clip; }
 	.border { border-style: var(--tw-border-style); border-width: 1px; }
-	.transition-\\[flex-basis\\,margin\\,translate\\] {
-		transition-property: flex-basis,margin,translate;
+	.transition-\\[flex-basis\\,translate\\] {
+		transition-property: flex-basis,translate;
 		transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
 		transition-duration: var(--tw-duration, var(--default-transition-duration));
 	}
 	.transition-none { transition-property: none; }
 	.duration-200 { --tw-duration: 200ms; transition-duration: 200ms; }
+	.duration-\\[2000ms\\] { --tw-duration: 2000ms; transition-duration: 2000ms; }
 	.ease-linear { --tw-ease: linear; transition-timing-function: linear; }
-	.\\[--_side-panel-content-width\\:calc\\(var\\(--app-layout-side-panel-width\\,clamp\\(21rem\\,24vw\\,27rem\\)\\)-2px\\)\\] {
-		--_side-panel-content-width: calc(var(--app-layout-side-panel-width,clamp(21rem, 24vw, 27rem)) - 2px);
+	.\\[--_side-panel-content-width\\:var\\(--app-layout-side-panel-width\\,clamp\\(21rem\\,24vw\\,27rem\\)\\)\\] {
+		--_side-panel-content-width: var(--app-layout-side-panel-width,clamp(21rem, 24vw, 27rem));
+	}
+	.\\[--_side-panel-content-inset\\:var\\(--app-layout-card-gutter\\,0\\.5rem\\)\\] {
+		--_side-panel-content-inset: var(--app-layout-card-gutter,0.5rem);
+	}
+	.\\[--_side-panel-box-width\\:calc\\(var\\(--app-layout-side-panel-width\\,clamp\\(21rem\\,24vw\\,27rem\\)\\)\\+var\\(--app-layout-card-gutter\\,0\\.5rem\\)\\)\\] {
+		--_side-panel-box-width: calc(var(--app-layout-side-panel-width,clamp(21rem, 24vw, 27rem)) + var(--app-layout-card-gutter,0.5rem));
 	}
 	.not-data-hydrated\\:transition-none:not([data-hydrated]) { transition-property: none; }
 	@media (prefers-reduced-motion: reduce) {
@@ -84,9 +92,10 @@ const STYLE = `
 		.max-lg\\:inset-y-\\(--app-layout-card-gutter\\,0\\.5rem\\) { inset-block: var(--app-layout-card-gutter,0.5rem); }
 		.max-lg\\:right-\\(--app-layout-card-gutter\\,0\\.5rem\\) { right: var(--app-layout-card-gutter,0.5rem); }
 		.max-lg\\:z-20 { z-index: 20; }
-		.max-lg\\:m-0 { margin: 0px; }
+		.max-lg\\:my-0 { margin-block: 0px; }
 		.max-lg\\:w-\\[min\\(24rem\\,calc\\(100vw-5rem\\)\\)\\] { width: min(24rem, calc(100vw - 5rem)); }
 		.max-lg\\:\\[--_side-panel-content-width\\:100\\%\\] { --_side-panel-content-width: 100%; }
+		.max-lg\\:\\[--_side-panel-content-inset\\:0px\\] { --_side-panel-content-inset: 0px; }
 	}
 	@media (width < 48rem) {
 		.max-md\\:absolute { position: absolute; }
@@ -94,10 +103,11 @@ const STYLE = `
 		.max-md\\:right-\\(--app-layout-card-gutter\\,0\\.5rem\\) { right: var(--app-layout-card-gutter,0.5rem); }
 		.max-md\\:left-\\(--app-layout-card-gutter\\,0\\.5rem\\) { left: var(--app-layout-card-gutter,0.5rem); }
 		.max-md\\:z-20 { z-index: 20; }
-		.max-md\\:m-0 { margin: 0px; }
+		.max-md\\:my-0 { margin-block: 0px; }
 		.max-md\\:w-auto { width: auto; }
 		.max-md\\:w-\\[min\\(24rem\\,calc\\(100vw-5rem\\)\\)\\] { width: min(24rem, calc(100vw - 5rem)); }
 		.max-md\\:\\[--_side-panel-content-width\\:100\\%\\] { --_side-panel-content-width: 100%; }
+		.max-md\\:\\[--_side-panel-content-inset\\:0px\\] { --_side-panel-content-inset: 0px; }
 	}
 	@media (width < 40rem) {
 		.max-sm\\:absolute { position: absolute; }
@@ -105,22 +115,13 @@ const STYLE = `
 		.max-sm\\:right-\\(--app-layout-card-gutter\\,0\\.5rem\\) { right: var(--app-layout-card-gutter,0.5rem); }
 		.max-sm\\:left-\\(--app-layout-card-gutter\\,0\\.5rem\\) { left: var(--app-layout-card-gutter,0.5rem); }
 		.max-sm\\:z-20 { z-index: 20; }
-		.max-sm\\:m-0 { margin: 0px; }
+		.max-sm\\:my-0 { margin-block: 0px; }
 		.max-sm\\:w-auto { width: auto; }
 		.max-sm\\:\\[--_side-panel-content-width\\:100\\%\\] { --_side-panel-content-width: 100%; }
+		.max-sm\\:\\[--_side-panel-content-inset\\:0px\\] { --_side-panel-content-inset: 0px; }
 	}
 	.data-state-closed\\:pointer-events-none[data-state~=closed] { pointer-events: none; }
-	.data-state-closed\\:mr-0[data-state~=closed] { margin-right: 0px; }
 	.data-state-closed\\:basis-0[data-state~=closed] { flex-basis: 0px; }
-	@media (width >= 40rem) {
-		.sm\\:data-state-closed\\:border-0[data-state~=closed] { border-style: var(--tw-border-style); border-width: 0px; }
-	}
-	@media (width >= 48rem) {
-		.md\\:data-state-closed\\:border-0[data-state~=closed] { border-style: var(--tw-border-style); border-width: 0px; }
-	}
-	@media (width >= 64rem) {
-		.lg\\:data-state-closed\\:border-0[data-state~=closed] { border-style: var(--tw-border-style); border-width: 0px; }
-	}
 	@media (width < 64rem) {
 		.max-lg\\:data-state-closed\\:translate-x-\\[calc\\(100\\%\\+var\\(--app-layout-card-gutter\\,0\\.5rem\\)\\)\\][data-state~=closed] {
 			--tw-translate-x: calc(100% + var(--app-layout-card-gutter,0.5rem));
@@ -147,6 +148,9 @@ const STYLE = `
 
 /** The card gutter at its default, in pixels. */
 const GUTTER = 8;
+
+/** The open width the tests set, in pixels. The box adds the gutter to it. */
+const OPEN_WIDTH = 300;
 
 /** The floating panel's width at every viewport these tests use: 24rem beats `100vw - 5rem`. */
 const FLOATING_PANEL_WIDTH = 384;
@@ -233,13 +237,26 @@ function Shell({
 
 const rectOf = (testId: string) => screen.getByTestId(testId).getBoundingClientRect();
 
-/** The panel's inner column: the element the header, the body, and the footer lay out in. */
-function innerColumnOf(panel: HTMLElement): HTMLElement {
-	const inner = panel.firstElementChild;
-	if (!(inner instanceof HTMLElement)) {
-		throw new Error("The panel renders no inner column.");
+/** The panel's inner card: the element that carries the chrome and lays out the header, the body, and the footer. */
+function cardOf(panel: HTMLElement): HTMLElement {
+	const card = panel.firstElementChild;
+	if (!(card instanceof HTMLElement)) {
+		throw new Error("The panel renders no inner card.");
 	}
-	return inner;
+	return card;
+}
+
+/** Renders a shell with an open-width panel and returns the box, for the lane tests. */
+function renderLane(panel: "open" | "closed", panelClassName?: string): HTMLElement {
+	render(
+		<Shell
+			panel={panel}
+			panelClassName={panelClassName}
+			rootWidth={1200}
+			vars={{ "--app-layout-side-panel-width": `${OPEN_WIDTH}px` }}
+		/>,
+	);
+	return screen.getByTestId("panel");
 }
 
 /** Waits for the hydration stamp, so the transition rules apply to what follows. */
@@ -303,63 +320,55 @@ describe("AppLayout.Workspace width cap", () => {
 });
 
 describe("AppLayout.SidePanel lane", () => {
-	test("an open panel takes its width beside the card, one gutter apart", async () => {
+	test("an open panel's card sits at its width beside the content card, one gutter apart", async () => {
 		await page.viewport(1280, 800);
-		render(
-			<Shell panel="open" rootWidth={1200} vars={{ "--app-layout-side-panel-width": "300px" }} />,
-		);
+		const panel = renderLane("open");
 		const root = rectOf("root");
 		const content = rectOf("content");
-		const panel = rectOf("panel");
-		expect(panel.width).toBe(300);
-		expect(panel.right).toBe(root.right - GUTTER);
-		// Why: the panel has no start margin, so the card's own end margin is the
-		// whole gap; a panel `ml-*` would double it.
-		expect(panel.left - content.right).toBe(GUTTER);
-		expect(content.width).toBe(1200 - 3 * GUTTER - 300);
+		const box = panel.getBoundingClientRect();
+		const card = cardOf(panel).getBoundingClientRect();
+		// The box runs to the row's end edge and holds the card plus its end inset.
+		expect(box.width).toBe(OPEN_WIDTH + GUTTER);
+		expect(box.right).toBe(root.right);
+		expect(card.width).toBe(OPEN_WIDTH);
+		expect(card.right).toBe(root.right - GUTTER);
+		// Why: the box has no start margin, so the content card's own end margin
+		// is the whole gap; a box `ml-*` would double it.
+		expect(card.left - content.right).toBe(GUTTER);
+		expect(content.width).toBe(1200 - 3 * GUTTER - OPEN_WIDTH);
 	});
 
-	test("a closed panel collapses to nothing and the card takes the row", async () => {
+	test("a closed panel collapses to nothing and the content card takes the row", async () => {
 		await page.viewport(1280, 800);
-		render(
-			<Shell panel="closed" rootWidth={1200} vars={{ "--app-layout-side-panel-width": "300px" }} />,
-		);
+		const panel = renderLane("closed");
 		const root = rectOf("root");
 		const content = rectOf("content");
-		const panel = rectOf("panel");
-		// Why: the basis, the margins, and the hairline border all go to zero, or
-		// the closed panel keeps a seam beside the card.
-		expect(panel.width).toBe(0);
+		// Why: the basis alone goes to zero. The card inside keeps its width and
+		// its border, and the clip hides all of it.
+		expect(panel.getBoundingClientRect().width).toBe(0);
 		expect(content.right).toBe(root.right - GUTTER);
 		expect(content.width).toBe(1200 - 2 * GUTTER);
 	});
 
-	test("a closed panel keeps the card's height, so opening changes width alone", async () => {
-		// Why: only the end margin closes with the basis. Zeroing the vertical
-		// margins too would start the open a gutter taller than the card and
-		// shrink the box into place.
+	test("a closed panel keeps the content card's height, so opening changes width alone", async () => {
+		// Why: no margin animates. A vertical margin that closed with the basis
+		// would start the open a gutter taller than the card and shrink it into place.
 		await page.viewport(1280, 800);
-		render(
-			<Shell panel="closed" rootWidth={1200} vars={{ "--app-layout-side-panel-width": "300px" }} />,
-		);
+		const panel = renderLane("closed");
 		const content = rectOf("content");
-		const panel = rectOf("panel");
-		expect(panel.top).toBe(content.top);
-		expect(panel.height).toBe(content.height);
+		const box = panel.getBoundingClientRect();
+		expect(box.top).toBe(content.top);
+		expect(box.height).toBe(content.height);
 	});
 
-	test("the inner column keeps the open width while the box around it collapses", async () => {
-		// Why: the header, the body, and the footer lay out in the inner column,
-		// so the card's edge sweeps across them instead of reflowing them.
+	test("the inner card keeps the open width and its place while the box around it collapses", async () => {
+		// Why: the header, the body, and the footer lay out in the inner card, so
+		// the box's start edge sweeps across them instead of reflowing or moving them.
 		await page.viewport(1280, 800);
-		render(
-			<Shell panel="closed" rootWidth={1200} vars={{ "--app-layout-side-panel-width": "300px" }} />,
-		);
-		const panel = screen.getByTestId("panel");
-		const inner = innerColumnOf(panel).getBoundingClientRect();
-		// The padding box: the open width minus the two hairline borders.
-		expect(inner.width).toBe(300 - 2);
-		expect(inner.right).toBe(panel.getBoundingClientRect().right);
+		const panel = renderLane("closed");
+		const card = cardOf(panel).getBoundingClientRect();
+		expect(card.width).toBe(OPEN_WIDTH);
+		expect(card.right).toBe(panel.getBoundingClientRect().right - GUTTER);
 	});
 
 	test.each([
@@ -374,12 +383,12 @@ describe("AppLayout.SidePanel lane", () => {
 			const content = rectOf("content");
 			const workspace = rectOf("workspace");
 			expect(getComputedStyle(panel).position).toBe("absolute");
-			const panelRect = panel.getBoundingClientRect();
-			expect(panelRect.width).toBe(FLOATING_PANEL_WIDTH);
-			expect(panelRect.right).toBe(workspace.right - GUTTER);
-			// The inner column fills the floating box's padding box, whatever the open width is.
-			expect(innerColumnOf(panel).getBoundingClientRect().width).toBe(FLOATING_PANEL_WIDTH - 2);
-			// Out of flow: the card keeps the whole row underneath it.
+			const box = panel.getBoundingClientRect();
+			expect(box.width).toBe(FLOATING_PANEL_WIDTH);
+			expect(box.right).toBe(workspace.right - GUTTER);
+			// The inner card fills the floating box edge to edge, whatever the open width is.
+			expect(cardOf(panel).getBoundingClientRect().width).toBe(FLOATING_PANEL_WIDTH);
+			// Out of flow: the content card keeps the whole row underneath it.
 			expect(content.width).toBe(viewportWidth - 2 * GUTTER);
 		},
 	);
@@ -396,10 +405,10 @@ describe("AppLayout.SidePanel lane", () => {
 			const panel = screen.getByTestId("panel");
 			const workspace = rectOf("workspace");
 			expect(getComputedStyle(panel).position).toBe("absolute");
-			const panelRect = panel.getBoundingClientRect();
-			expect(panelRect.left).toBe(workspace.left + GUTTER);
-			expect(panelRect.right).toBe(workspace.right - GUTTER);
-			expect(innerColumnOf(panel).getBoundingClientRect().width).toBe(panelRect.width - 2);
+			const box = panel.getBoundingClientRect();
+			expect(box.left).toBe(workspace.left + GUTTER);
+			expect(box.right).toBe(workspace.right - GUTTER);
+			expect(cardOf(panel).getBoundingClientRect().width).toBe(box.width);
 		},
 	);
 
@@ -423,21 +432,19 @@ describe("AppLayout.SidePanel lane", () => {
 			<Shell
 				mobileBreakpoint={mobileBreakpoint}
 				panel="open"
-				vars={{ "--app-layout-side-panel-width": "300px" }}
+				vars={{ "--app-layout-side-panel-width": `${OPEN_WIDTH}px` }}
 			/>,
 		);
 		const panel = screen.getByTestId("panel");
 		expect(getComputedStyle(panel).position).toBe("relative");
-		expect(panel.getBoundingClientRect().width).toBe(300);
-		expect(rectOf("content").width).toBe(viewportWidth - 3 * GUTTER - 300);
+		expect(panel.getBoundingClientRect().width).toBe(OPEN_WIDTH + GUTTER);
+		expect(cardOf(panel).getBoundingClientRect().width).toBe(OPEN_WIDTH);
+		expect(rectOf("content").width).toBe(viewportWidth - 3 * GUTTER - OPEN_WIDTH);
 	});
 
-	test("animates the close the user triggers after hydration", async () => {
+	test("animates the basis, and nothing else, on a close the user triggers after hydration", async () => {
 		await page.viewport(1280, 800);
-		render(
-			<Shell panel="open" rootWidth={1200} vars={{ "--app-layout-side-panel-width": "300px" }} />,
-		);
-		const panel = screen.getByTestId("panel");
+		const panel = renderLane("open");
 		await waitForHydration(panel);
 		const transitions = recordTransitions(panel);
 
@@ -445,47 +452,53 @@ describe("AppLayout.SidePanel lane", () => {
 
 		expect(panel).toHaveAttribute("data-state", "closed");
 		await waitFor(() => {
-			expect(transitions).toEqual(expect.arrayContaining(["flex-basis", "margin-right"]));
+			expect(transitions).toContain("flex-basis");
 		});
+		// Why: a second animated property (a margin, say) moves the card's anchor
+		// mid-flight, and a property that snaps jolts it at either end.
+		expect(transitions).toEqual(["flex-basis"]);
 	});
 
 	test("reverses mid-flight when the user toggles again", async () => {
 		// Why: a CSS transition starts from the current computed value, so a
 		// second click turns the panel around instead of waiting for the first
-		// run to finish.
+		// run to finish. A consumer `duration-*` slows the run, so the sample
+		// lands mid-flight instead of racing a 200ms transition.
 		await page.viewport(1280, 800);
-		render(
-			<Shell panel="open" rootWidth={1200} vars={{ "--app-layout-side-panel-width": "300px" }} />,
-		);
-		const panel = screen.getByTestId("panel");
+		const panel = renderLane("open", "duration-[2000ms]");
 		await waitForHydration(panel);
 		const trigger = screen.getByRole("button", { name: "Toggle the assistant" });
 
 		await userEvent.click(trigger);
 		// Poll the width itself: the run starts on the next frame, not in the click.
 		await waitFor(() => {
-			expect(panel.getBoundingClientRect().width).toBeLessThan(300);
+			expect(panel.getBoundingClientRect().width).toBeLessThan(OPEN_WIDTH + GUTTER);
 		});
 		const midFlight = panel.getBoundingClientRect().width;
 		expect(midFlight).toBeGreaterThan(0);
 
-		await userEvent.click(trigger);
+		// Why the keyboard: the trigger moves while the card resizes, and a pointer
+		// click waits for it to hold still, which is after the run. The click left
+		// focus on the trigger, so Enter toggles it mid-flight.
+		expect(trigger).toHaveFocus();
+		await userEvent.keyboard("{Enter}");
 		expect(panel).toHaveAttribute("data-state", "open");
-		// The reversal starts from where the close got to, not from zero.
-		expect(panel.getBoundingClientRect().width).toBeGreaterThan(0);
-		await waitFor(() => {
-			expect(panel.getBoundingClientRect().width).toBe(300);
-		});
+		// The reversal starts from where the close got to, not from zero: the
+		// keypress's own latency lets the run move a few pixels, nothing more.
+		expect(panel.getBoundingClientRect().width).toBeGreaterThan(midFlight - 40);
+		await waitFor(
+			() => {
+				expect(panel.getBoundingClientRect().width).toBe(OPEN_WIDTH + GUTTER);
+			},
+			{ timeout: 3000 },
+		);
 	});
 
 	test("snaps the close under reduced motion", async () => {
 		await page.viewport(1280, 800);
 		await commands.emulateMedia({ reducedMotion: "reduce" });
 		expect(window.matchMedia("(prefers-reduced-motion: reduce)").matches).toBe(true);
-		render(
-			<Shell panel="open" rootWidth={1200} vars={{ "--app-layout-side-panel-width": "300px" }} />,
-		);
-		const panel = screen.getByTestId("panel");
+		const panel = renderLane("open");
 		await waitForHydration(panel);
 		const transitions = recordTransitions(panel);
 
@@ -501,15 +514,7 @@ describe("AppLayout.SidePanel lane", () => {
 		// Why: the default and the consumer utility share one tailwind-merge group,
 		// so only the last one in `cx` reaches the element and the cascade never decides.
 		await page.viewport(1280, 800);
-		render(
-			<Shell
-				panel="open"
-				panelClassName="transition-none"
-				rootWidth={1200}
-				vars={{ "--app-layout-side-panel-width": "300px" }}
-			/>,
-		);
-		const panel = screen.getByTestId("panel");
+		const panel = renderLane("open", "transition-none");
 		await waitForHydration(panel);
 		const transitions = recordTransitions(panel);
 
@@ -559,9 +564,9 @@ describe("AppLayout.SidePanel hydration gate", () => {
 		// Why read the width: a real page paints the server markup before
 		// hydration, and only a painted width can be the start value of a
 		// transition. At 1280px, 24vw is under the 21rem floor, so the default
-		// open width is 336px.
+		// open width is 336px, and the box adds the end inset.
 		expect(panel).toHaveAttribute("data-state", "open");
-		expect(panel.getBoundingClientRect().width).toBe(336);
+		expect(panel.getBoundingClientRect().width).toBe(336 + GUTTER);
 		const transitions = recordTransitions(panel);
 
 		render(<CorrectedShell />, { container, hydrate: true });

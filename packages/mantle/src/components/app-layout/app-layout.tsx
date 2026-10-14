@@ -764,15 +764,15 @@ type AppLayoutSidePanelMobileBreakpoint = "sm" | "md" | "lg";
  * inside the card gutter, takes a fixed width that leaves a strip of the page
  * visible, and slides off the end edge when closed. One breakpoint lower it
  * covers the card from gutter to gutter, because a strip of page beside a
- * 24rem panel is no page at all on a phone. At or above the breakpoint, the
- * closed panel drops its hairline border, or a two-pixel seam stays beside the
- * card. A complete `Record` (not cva) so a breakpoint without its classes is a
+ * 24rem panel is no page at all on a phone. The floating box takes the card's
+ * rounding and a larger shadow itself, because its inner card fills it edge
+ * to edge there. A complete `Record` (not cva) so a breakpoint without its classes is a
  * compile error.
  */
 const sidePanelFloatClassName: Record<AppLayoutSidePanelMobileBreakpoint, string> = {
-	sm: "max-sm:absolute max-sm:inset-y-(--app-layout-card-gutter,0.5rem) max-sm:left-(--app-layout-card-gutter,0.5rem) max-sm:right-(--app-layout-card-gutter,0.5rem) max-sm:z-20 max-sm:m-0 max-sm:shadow-lg max-sm:[--_side-panel-content-width:100%] max-sm:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] sm:data-state-closed:border-0",
-	md: "max-md:absolute max-md:inset-y-(--app-layout-card-gutter,0.5rem) max-md:right-(--app-layout-card-gutter,0.5rem) max-md:z-20 max-md:m-0 max-md:w-[min(24rem,calc(100vw-5rem))] max-md:shadow-lg max-md:[--_side-panel-content-width:100%] max-md:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] md:data-state-closed:border-0 max-sm:left-(--app-layout-card-gutter,0.5rem) max-sm:w-auto",
-	lg: "max-lg:absolute max-lg:inset-y-(--app-layout-card-gutter,0.5rem) max-lg:right-(--app-layout-card-gutter,0.5rem) max-lg:z-20 max-lg:m-0 max-lg:w-[min(24rem,calc(100vw-5rem))] max-lg:shadow-lg max-lg:[--_side-panel-content-width:100%] max-lg:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] lg:data-state-closed:border-0 max-md:left-(--app-layout-card-gutter,0.5rem) max-md:w-auto",
+	sm: "max-sm:absolute max-sm:inset-y-(--app-layout-card-gutter,0.5rem) max-sm:left-(--app-layout-card-gutter,0.5rem) max-sm:right-(--app-layout-card-gutter,0.5rem) max-sm:z-20 max-sm:my-0 max-sm:rounded-xl max-sm:shadow-lg max-sm:[--_side-panel-content-width:100%] max-sm:[--_side-panel-content-inset:0px] max-sm:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))]",
+	md: "max-md:absolute max-md:inset-y-(--app-layout-card-gutter,0.5rem) max-md:right-(--app-layout-card-gutter,0.5rem) max-md:z-20 max-md:my-0 max-md:w-[min(24rem,calc(100vw-5rem))] max-md:rounded-xl max-md:shadow-lg max-md:[--_side-panel-content-width:100%] max-md:[--_side-panel-content-inset:0px] max-md:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] max-sm:left-(--app-layout-card-gutter,0.5rem) max-sm:w-auto",
+	lg: "max-lg:absolute max-lg:inset-y-(--app-layout-card-gutter,0.5rem) max-lg:right-(--app-layout-card-gutter,0.5rem) max-lg:z-20 max-lg:my-0 max-lg:w-[min(24rem,calc(100vw-5rem))] max-lg:rounded-xl max-lg:shadow-lg max-lg:[--_side-panel-content-width:100%] max-lg:[--_side-panel-content-inset:0px] max-lg:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] max-md:left-(--app-layout-card-gutter,0.5rem) max-md:w-auto",
 };
 
 /**
@@ -1047,18 +1047,19 @@ type AppLayoutSidePanelProps = Omit<ComponentProps<"aside">, "id"> &
  * gutter wide.
  *
  * It opens and closes the way `Sidebar.Nav` collapses. The `<aside>` is a clip
- * box whose `flex-basis` and end margin animate between the open width and
- * zero over 200ms (`ease-linear`), and an inner column inside it stays at the open width,
- * anchored to the end edge, so the content never reflows: the card's edge
- * sweeps across it. A CSS transition reverses from wherever it is, so a second
- * click mid-flight turns the panel around. `motion-reduce:transition-none`
+ * box whose `flex-basis` animates between the open width plus the end inset
+ * and zero over 200ms (`ease-linear`), and nothing else moves: the card is an
+ * inner column pinned to the box's end inset at the open width, so the content
+ * never reflows or shifts, and the box's start edge sweeps across it. A CSS
+ * transition reverses from wherever it is, so a second click mid-flight turns
+ * the panel around. `motion-reduce:transition-none`
  * turns the slide into a cut, and `not-data-hydrated:transition-none` holds
  * the transition until one frame after hydration, so a state the client
  * corrects after the server render snaps instead of sliding on page load. The
  * `transition-*` and `duration-*` utilities are bare, so a merged
  * `transition-none` or `duration-*` replaces them through tailwind-merge.
  *
- * Closed, the box is `basis-0 mr-0 border-0 pointer-events-none` and `inert`,
+ * Closed, the box is `basis-0 pointer-events-none` and `inert`,
  * so nothing inside it is focusable, clickable, or read by assistive
  * technology, and its children stay mounted: a conversation keeps its scroll
  * position, its focus target, and its in-flight reply across a close and a
@@ -1144,32 +1145,37 @@ const SidePanel = ({
 		<aside
 			data-slot={joinDataSlot(dataSlot, "app-layout-side-panel")}
 			className={cx(
-				"bg-card border-card-muted relative min-w-0 rounded-xl border shadow-sm",
+				// The box is a clip, not the card: the card is the inner column below,
+				// pinned to the row's end inset, so the only thing that moves is this
+				// box's start edge. `className` lands here, on the clip box.
+				"relative min-w-0",
 				// Why isolate: a page's sticky rows carry their own z-index, and the
 				// panel's children must stack inside the panel, not against them.
 				"isolate",
-				// clip, not hidden: the same trap AppLayout.Content avoids. It is also
-				// what hides the inner column as the basis sweeps across it.
-				"overflow-clip",
-				// The width the inner column lays out at, as one private variable: the
-				// open width minus the two hairline borders in the row, and the whole
-				// padding box once the panel floats.
-				"[--_side-panel-content-width:calc(var(--app-layout-side-panel-width,clamp(21rem,24vw,27rem))-2px)]",
+				// Why clip on the inline axis only: the sweep is horizontal, and a
+				// clip on both axes would cut the card's shadow at the top and bottom.
+				"overflow-x-clip",
+				// The card's width, its inset from the box's end edge, and the box width
+				// that sums them, as three private variables: the open width and the
+				// gutter in the row, the whole box and no inset once the panel floats.
+				// Why no private name inside a value: Tailwind reads the `_` of a private
+				// name inside an arbitrary value as a space, so each value names public
+				// variables only and the utilities read the private ones by name.
+				"[--_side-panel-content-width:var(--app-layout-side-panel-width,clamp(21rem,24vw,27rem))] [--_side-panel-content-inset:var(--app-layout-card-gutter,0.5rem)] [--_side-panel-box-width:calc(var(--app-layout-side-panel-width,clamp(21rem,24vw,27rem))+var(--app-layout-card-gutter,0.5rem))]",
 				// A fixed basis, never a share of the row: `flex-1` cannot interpolate
-				// to a width, so a lane that animates never uses it. The card beside
-				// it is the one that absorbs the change.
-				"grow-0 shrink-0 basis-[calc(var(--_side-panel-content-width)+2px)]",
-				// The gutter on three edges: the card's own end margin is the gap on
-				// the start edge, so the inner gap and the outer inset are one number.
-				"my-(--app-layout-card-gutter,0.5rem) mr-(--app-layout-card-gutter,0.5rem) ml-0",
+				// to a width, so a lane that animates never uses it. The basis is the
+				// card plus its end inset; the card beside it absorbs the change.
+				"grow-0 shrink-0 basis-(--_side-panel-box-width)",
+				// The gutter on the top and bottom edges only: the card's own end
+				// margin is the gap at the start edge, and the inset at the end edge is
+				// inside the box, so no margin ever animates and the height never changes.
+				"my-(--app-layout-card-gutter,0.5rem) mr-0 ml-0",
 				// Why one negated gate: a state the client corrects after the server
 				// render must snap, not slide, on page load. Why bare utilities: a
 				// consumer `transition-none` or `duration-*` replaces the default
 				// through tailwind-merge.
-				"transition-[flex-basis,margin,translate] duration-200 ease-linear motion-reduce:transition-none not-data-hydrated:transition-none",
-				// Why mr-0 and not m-0: the vertical margins stay, or the box starts a
-				// gutter taller than the card on open and shrinks into place.
-				"data-state-closed:basis-0 data-state-closed:mr-0 data-state-closed:pointer-events-none",
+				"transition-[flex-basis,translate] duration-200 ease-linear motion-reduce:transition-none not-data-hydrated:transition-none",
+				"data-state-closed:basis-0 data-state-closed:pointer-events-none",
 				sidePanelFloatClassName[mobileBreakpoint],
 				className,
 			)}
@@ -1184,10 +1190,17 @@ const SidePanel = ({
 			data-hydrated={isHydrated ? "" : undefined}
 			inert={!open}
 		>
-			{/* The inner column holds the open width while the box around it
-			    animates, so the header, the body, and the footer keep their layout
-			    and the card's edge sweeps across them instead of reflowing them. */}
-			<div className="absolute inset-y-0 right-0 flex w-(--_side-panel-content-width) flex-col">
+			{/* The card: pinned to the box's end inset at the open width, so the
+			    header, the body, and the footer keep their layout and the box's start
+			    edge sweeps across them instead of reflowing or moving them. */}
+			<div
+				className={cx(
+					"bg-card border-card-muted absolute inset-y-0 flex flex-col rounded-xl border shadow-sm",
+					"right-(--_side-panel-content-inset) w-(--_side-panel-content-width)",
+					// clip, not hidden: the same trap AppLayout.Content avoids.
+					"overflow-clip",
+				)}
+			>
 				{children}
 			</div>
 		</aside>
