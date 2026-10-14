@@ -4,6 +4,7 @@ import { Button, IconButton } from "@ngrok/mantle/button";
 import { cx } from "@ngrok/mantle/cx";
 import { Sidebar } from "@ngrok/mantle/sidebar";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
+import { TextArea } from "@ngrok/mantle/text-area";
 import { ArrowLeftIcon } from "@phosphor-icons/react/ArrowLeft";
 import { CheckCircleIcon } from "@phosphor-icons/react/CheckCircle";
 import { CopyIcon } from "@phosphor-icons/react/Copy";
@@ -569,49 +570,49 @@ export function AppLayoutSidePanelDemo() {
 						</AppLayout.Body>
 					</AppLayout.Content>
 					<AppLayout.SidePanel aria-label="Assistant" mobileBreakpoint="md" open={isAssistantOpen}>
-						<AppLayout.Header>
-							<AppLayout.HeaderContent>
-								<p className="text-strong text-sm font-medium">Assistant</p>
-							</AppLayout.HeaderContent>
-							<AppLayout.HeaderActions>
-								<IconButton
-									type="button"
-									appearance="ghost"
-									intent="neutral"
-									size="sm"
-									icon={<XIcon />}
-									label="Close the assistant"
-									onClick={() => {
-										setIsAssistantOpen(false);
-										openButtonRef.current?.focus();
-									}}
-								/>
-							</AppLayout.HeaderActions>
-						</AppLayout.Header>
-						{/* Why asChild: the page's body already owns the main landmark. */}
-						<AppLayout.Body asChild>
-							<div>
-								<div className="flex flex-col gap-3 p-4">
-									<p className="text-strong text-center text-base font-medium">
-										What should we do today?
-									</p>
-									<p className="text-muted text-center text-sm">
-										Pick a starting point and we will write the Traffic Policy.
-									</p>
-									{assistantStarters.map((starter) => (
-										<Button
-											key={starter}
-											type="button"
-											appearance="outlined"
-											intent="neutral"
-											className="justify-start"
-										>
-											{starter}
-										</Button>
-									))}
-								</div>
+						<AppLayout.SidePanelHeader>
+							<p className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Assistant</p>
+							<IconButton
+								type="button"
+								appearance="ghost"
+								intent="neutral"
+								size="sm"
+								icon={<XIcon />}
+								label="Close the assistant"
+								onClick={() => {
+									setIsAssistantOpen(false);
+									openButtonRef.current?.focus();
+								}}
+							/>
+						</AppLayout.SidePanelHeader>
+						<AppLayout.SidePanelBody>
+							<div className="flex flex-col gap-3 p-4">
+								<p className="text-strong text-center text-base font-medium">
+									What should we do today?
+								</p>
+								<p className="text-muted text-center text-sm">
+									Pick a starting point and we will write the Traffic Policy.
+								</p>
+								{assistantStarters.map((starter) => (
+									<Button
+										key={starter}
+										type="button"
+										appearance="outlined"
+										intent="neutral"
+										className="justify-start"
+									>
+										{starter}
+									</Button>
+								))}
 							</div>
-						</AppLayout.Body>
+						</AppLayout.SidePanelBody>
+						<AppLayout.SidePanelFooter>
+							<TextArea
+								aria-label="Message the assistant"
+								placeholder="Ask about endpoints, domains, or Traffic Policy…"
+								rows={2}
+							/>
+						</AppLayout.SidePanelFooter>
 					</AppLayout.SidePanel>
 				</AppLayout.Workspace>
 			</AppLayout.Root>

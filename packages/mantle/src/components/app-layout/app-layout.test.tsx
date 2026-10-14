@@ -268,15 +268,23 @@ describe("AppLayout.Header", () => {
 						<AppLayout.Header data-testid="header">toolbar</AppLayout.Header>
 						<AppLayout.Body>page</AppLayout.Body>
 					</AppLayout.Content>
+					<AppLayout.SidePanel open>
+						<AppLayout.SidePanelHeader data-testid="panel-header">
+							assistant
+						</AppLayout.SidePanelHeader>
+					</AppLayout.SidePanel>
 				</AppLayout.Workspace>
 			</AppLayout.Root>,
 		);
 		const root = screen.getByTestId("root");
 		expect([...root.classList]).toContain("group/app-layout");
 		expect(root.querySelector('[data-slot~="sidebar-header"]')).not.toBeNull();
-		expect(screen.getByTestId("header").className).toContain(
-			"group-has-data-[slot~=sidebar-header]/app-layout:h-[calc(var(--sidebar-header-height,4.5rem)-2*var(--app-layout-card-gutter,0.5rem)-2px)]",
-		);
+		const derivedHeight =
+			"group-has-data-[slot~=sidebar-header]/app-layout:h-[calc(var(--sidebar-header-height,4.5rem)-2*var(--app-layout-card-gutter,0.5rem)-2px)]";
+		expect(screen.getByTestId("header").className).toContain(derivedHeight);
+		// The panel header sits on the same band, so a derivation that reaches one
+		// row and not the other unaligns the two cards.
+		expect(screen.getByTestId("panel-header").className).toContain(derivedHeight);
 		// The other half of the token contract: the sidebar header spends the same
 		// variable, with the same fallback, on the grid track its first row sits in.
 		// Two files spelling one token, so they are pinned in one test — rename it on
@@ -615,5 +623,59 @@ describe("AppLayout.SidePanel", () => {
 		expect(panel.className).toContain("consumer-panel");
 		expect(panel).toHaveAttribute("data-flavor", "details");
 		expect(ref.current).toBe(panel);
+	});
+});
+
+describe.each([
+	["SidePanelHeader", AppLayout.SidePanelHeader, "app-layout-side-panel-header"],
+	["SidePanelBody", AppLayout.SidePanelBody, "app-layout-side-panel-body"],
+	["SidePanelFooter", AppLayout.SidePanelFooter, "app-layout-side-panel-footer"],
+] as const)("AppLayout.%s", (_name, Part, slot) => {
+	test(`renders a div stamped data-slot ${slot} with its children and no landmark`, () => {
+		render(<Part data-testid="part">conversation</Part>);
+		const element = screen.getByTestId("part");
+		expect(element.tagName).toBe("DIV");
+		expect(element).toHaveAttribute("data-slot", slot);
+		expect(element).toHaveTextContent("conversation");
+		// Why: the page's body owns `main`, and a second landmark in the panel
+		// would read as a second page.
+		expect(screen.queryByRole("main")).not.toBeInTheDocument();
+	});
+
+	test("forwards className, a ref, and arbitrary data-* to the rendered root", () => {
+		const ref = createRef<HTMLDivElement>();
+		render(
+			<Part className="consumer-part" data-flavor="assistant" data-testid="part" ref={ref}>
+				conversation
+			</Part>,
+		);
+		const element = screen.getByTestId("part");
+		expect(element.className).toContain("consumer-part");
+		expect(element).toHaveAttribute("data-flavor", "assistant");
+		expect(ref.current).toBe(element);
+	});
+
+	test("joins an ancestor's data-slot ahead of its own", () => {
+		render(
+			<Part data-slot="app-shell" data-testid="part">
+				conversation
+			</Part>,
+		);
+		expect(screen.getByTestId("part")).toHaveAttribute("data-slot", `app-shell ${slot}`);
+	});
+
+	test("asChild renders the child, merging classes, data attributes, and the ref", () => {
+		const ref = createRef<HTMLDivElement>();
+		render(
+			<Part asChild className="consumer-part" data-flavor="assistant" ref={ref}>
+				<section data-testid="part">conversation</section>
+			</Part>,
+		);
+		const element = screen.getByTestId("part");
+		expect(element.tagName).toBe("SECTION");
+		expect(element).toHaveAttribute("data-slot", slot);
+		expect(element.className).toContain("consumer-part");
+		expect(element).toHaveAttribute("data-flavor", "assistant");
+		expect(ref.current).toBe(element);
 	});
 });

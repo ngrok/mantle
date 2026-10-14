@@ -747,6 +747,9 @@ AppLayout.Root
     │   │   └── AppLayout.HeaderActions
     │   └── AppLayout.Body
     └── AppLayout.SidePanel
+        ├── AppLayout.SidePanelHeader
+        ├── AppLayout.SidePanelBody
+        └── AppLayout.SidePanelFooter
 ```
 
 - **`Root`** is the outer frame (`bg-base relative isolate flex h-full w-full flex-col overflow-clip`).
@@ -794,17 +797,28 @@ overflow-clip rounded-xl border shadow-sm`. It insets **itself** with its own ma
   renders into. Pin it inside `Body` instead:
   [Pinning a footer to the card](#pinning-a-footer-to-the-card).
 - **`SidePanel`** is a second card after `Content`, for an assistant or a details pane. It renders an
-  `<aside>` with the card treatment, a required controlled `open`, the same `Header` as its first child, and
-  a `Body` (`asChild` with a `<div>`) for its scroll region. Open, it takes `--app-layout-side-panel-width`
-  beside the card; closed, it collapses to nothing and goes `inert` with its children still mounted; below
-  `mobileBreakpoint` it floats over the card. See [Side panel](#side-panel). Optional.
+  `<aside>` with the card treatment and a required controlled `open`. Open, it takes
+  `--app-layout-side-panel-width` beside the card; closed, it collapses to nothing and goes `inert` with its
+  children still mounted; below `mobileBreakpoint` it floats over the card. See [Side panel](#side-panel).
+  Optional.
+- **`SidePanelHeader`** is the panel's toolbar row and its **first child**
+  (`flex shrink-0 items-center gap-2 border-b px-4`): the title at the start, the close control at the end.
+  It sits on the same band as `Header`, by the same derivation, so the two rows and the sidebar header's
+  switcher row center on one line.
+- **`SidePanelBody`** is the panel's scroll region
+  (`scrollbar relative min-h-0 w-full flex-1 overflow-y-auto overscroll-none`): the same box as `Body` with
+  no landmark, because the page's body already owns `main`.
+- **`SidePanelFooter`** is the bar pinned to the panel's bottom edge
+  (`flex shrink-0 flex-col gap-2 border-t p-4`), outside the scroll region: a composer, a save row, a status
+  line. The panel has a footer where `Content` has none, because the panel's author owns its whole subtree
+  and no route renders through an `<Outlet />` inside it. Optional.
 
 ## Polymorphism
 
 Every part accepts an `asChild` prop. When `true`, the part renders its single child instead of its default
 element, forwarding all class names, `data-*` attributes, and the ref onto that child.
 
-All ten parts support it, and each has a reason a consumer would reach for it:
+All thirteen parts support it, and each has a reason a consumer would reach for it:
 
 - **`AppLayout.Root`**: a `<form>` when the whole shell is one submission surface, or your own themed frame.
 - **`AppLayout.Notice`**: an `<aside>` or a live region when the strip's content needs its own semantics.
@@ -822,6 +836,12 @@ All ten parts support it, and each has a reason a consumer would reach for it:
   test, a shell embedded in a page (see [Landmarks](#landmarks)).
 - **`AppLayout.SidePanel`**: a plain `<div>` when the panel is not complementary content, or a `<section>`
   when it is a labelled region of the page rather than a landmark of its own.
+- **`AppLayout.SidePanelHeader`**: a `<header>`, since the panel is an `<aside>` and a header inside it
+  scopes to the panel; or a `<form>` when the row is a search field and its submit control.
+- **`AppLayout.SidePanelBody`**: an `<ol>` when the panel is one list, such as a session history, so the
+  scroll region is the list itself.
+- **`AppLayout.SidePanelFooter`**: a `<form>` when the bar is a composer, so the submit key and the send
+  control share one submission.
 
 <CodeExample.Root>
 	<CodeExample.Preview className="p-0 md:p-0">
@@ -1016,9 +1036,18 @@ viewport and the three icon buttons become one menu.
 
 `AppLayout.SidePanel` is a second card after `AppLayout.Content`: an assistant, a details pane, or any
 surface that opens beside the page and closes again. It renders an `<aside>`, so it is the `complementary`
-landmark; name it with `aria-label`. It takes the same card treatment as the content card, the same
-`AppLayout.Header` as its first child, and an `AppLayout.Body` for its scroll region. Pass `asChild` to that
-body and render a `<div>`, because the page's body already owns the `main` landmark.
+landmark; name it with `aria-label`. It takes the same card treatment as the content card and reads like a
+[Sheet](/components/overlays/sheet) with no focus trap and no backdrop, because the page beside it stays
+usable:
+
+- **`AppLayout.SidePanelHeader`** is the toolbar row and the panel's first child: the title at the start
+  (`min-w-0 flex-1 truncate`, so it gives up width before a control does) and the controls at the end, with
+  the close control last. It sits on the same band as `AppLayout.Header`, by the same derivation from the
+  sidebar header's token, so the two rows and the switcher row center on one line.
+- **`AppLayout.SidePanelBody`** is the scroll region: the same box as `AppLayout.Body` with no landmark,
+  because the page's body already owns `main`.
+- **`AppLayout.SidePanelFooter`** is the bar pinned to the bottom edge, outside the scroll region: a
+  composer, a save row, a status line. Optional.
 
 The panel owns no state. `open` is required and controlled, so the shell decides when the assistant is on
 screen and the panel only draws it:
@@ -1055,6 +1084,7 @@ import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
 import { Button, IconButton } from "@ngrok/mantle/button";
 import { Sidebar } from "@ngrok/mantle/sidebar";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
+import { TextArea } from "@ngrok/mantle/text-area";
 import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
 import { GraphIcon } from "@phosphor-icons/react/Graph";
 import { SparkleIcon } from "@phosphor-icons/react/Sparkle";
@@ -1145,49 +1175,49 @@ export function Shell() {
 						</AppLayout.Body>
 					</AppLayout.Content>
 					<AppLayout.SidePanel aria-label="Assistant" mobileBreakpoint="md" open={isAssistantOpen}>
-						<AppLayout.Header>
-							<AppLayout.HeaderContent>
-								<p className="text-strong text-sm font-medium">Assistant</p>
-							</AppLayout.HeaderContent>
-							<AppLayout.HeaderActions>
-								<IconButton
-									type="button"
-									appearance="ghost"
-									intent="neutral"
-									size="sm"
-									icon={<XIcon />}
-									label="Close the assistant"
-									onClick={() => {
-										setIsAssistantOpen(false);
-										openButtonRef.current?.focus();
-									}}
-								/>
-							</AppLayout.HeaderActions>
-						</AppLayout.Header>
-						{/* Why asChild: the page's body already owns the main landmark. */}
-						<AppLayout.Body asChild>
-							<div>
-								<div className="flex flex-col gap-3 p-4">
-									<p className="text-strong text-center text-base font-medium">
-										What should we do today?
-									</p>
-									<p className="text-muted text-center text-sm">
-										Pick a starting point and we will write the Traffic Policy.
-									</p>
-									{assistantStarters.map((starter) => (
-										<Button
-											key={starter}
-											type="button"
-											appearance="outlined"
-											intent="neutral"
-											className="justify-start"
-										>
-											{starter}
-										</Button>
-									))}
-								</div>
+						<AppLayout.SidePanelHeader>
+							<p className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Assistant</p>
+							<IconButton
+								type="button"
+								appearance="ghost"
+								intent="neutral"
+								size="sm"
+								icon={<XIcon />}
+								label="Close the assistant"
+								onClick={() => {
+									setIsAssistantOpen(false);
+									openButtonRef.current?.focus();
+								}}
+							/>
+						</AppLayout.SidePanelHeader>
+						<AppLayout.SidePanelBody>
+							<div className="flex flex-col gap-3 p-4">
+								<p className="text-strong text-center text-base font-medium">
+									What should we do today?
+								</p>
+								<p className="text-muted text-center text-sm">
+									Pick a starting point and we will write the Traffic Policy.
+								</p>
+								{assistantStarters.map((starter) => (
+									<Button
+										key={starter}
+										type="button"
+										appearance="outlined"
+										intent="neutral"
+										className="justify-start"
+									>
+										{starter}
+									</Button>
+								))}
 							</div>
-						</AppLayout.Body>
+						</AppLayout.SidePanelBody>
+						<AppLayout.SidePanelFooter>
+							<TextArea
+								aria-label="Message the assistant"
+								placeholder="Ask about endpoints, domains, or Traffic Policy…"
+								rows={2}
+							/>
+						</AppLayout.SidePanelFooter>
 					</AppLayout.SidePanel>
 				</AppLayout.Workspace>
 			</AppLayout.Root>
@@ -2364,11 +2394,12 @@ the page and closes again. Render it as `AppLayout.Workspace`'s **last child**, 
 required and controlled. It renders an `<aside>`, the `complementary` landmark; name it with `aria-label`.
 
 It takes the card treatment
-(`bg-card border-card-muted relative isolate flex min-w-0 flex-col overflow-clip rounded-xl border shadow-sm`),
-the same [`AppLayout.Header`](#applayoutheader) as its first child, and an [`AppLayout.Body`](#applayoutbody)
-for its scroll region. Pass `asChild` to that body and render a `<div>`: the page's body already owns the
-`main` landmark. It keeps `--app-layout-card-gutter` on its top, end, and bottom edges and none on its start
-edge, so the card's own end margin is the gap between the two.
+(`bg-card border-card-muted relative isolate flex min-w-0 flex-col overflow-clip rounded-xl border shadow-sm`)
+and holds [`AppLayout.SidePanelHeader`](#applayoutsidepanelheader),
+[`AppLayout.SidePanelBody`](#applayoutsidepanelbody), and an optional
+[`AppLayout.SidePanelFooter`](#applayoutsidepanelfooter), in that order. It keeps `--app-layout-card-gutter`
+on its top, end, and bottom edges and none on its start edge, so the card's own end margin is the gap between
+the two.
 
 It is a fixed basis (`grow-0 shrink-0 basis-(--app-layout-side-panel-width,clamp(21rem,24vw,27rem))`), never
 a share of the row, so the card absorbs every change in width. Opening and closing animate `flex-basis`,
@@ -2395,6 +2426,59 @@ All props from [aside](https://developer.mozilla.org/en-US/docs/Web/HTML/Element
 | -------------- | ---------------------- | -------------------------------------------------------------------------------------------------- |
 | `data-state`   | `"open"` \| `"closed"` | Mirrors `open`. The collapse and the transition key off it in CSS, and consumers style against it. |
 
+### AppLayout.SidePanelHeader
+
+The toolbar row at the top of the side panel, its **first child**:
+`border-card-muted flex shrink-0 items-center gap-2 border-b px-4`, on the same band as
+[`AppLayout.Header`](#applayoutheader). Standalone the band is `h-14`; with a `Sidebar.Header` in the shell
+it derives its height from `--sidebar-header-height` by the same formula, so the toolbar, this row, and the
+switcher row center on one line. Put the title first with `min-w-0 flex-1 truncate`, and the close control
+last. Merge `border-b-0` for a header with no rule under it.
+
+Renders a `<div>`, not a `<header>`. Compose your own element with `asChild` if you need one.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                                      |
+| ---------- | --------- | ------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `AppLayout.SidePanelHeader` styling onto alternative element types or your own components. |
+
+| CSS Variable               | Default  | Description                                                                                                                                                                     |
+| -------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--sidebar-header-height`  | `4.5rem` | Read (not set) by `AppLayout.SidePanelHeader` when the shell contains a [`Sidebar.Header`](/components/navigation/sidebar#sidebarheader), the same way `AppLayout.Header` does. |
+| `--app-layout-card-gutter` | `0.5rem` | Read (not set) by `AppLayout.SidePanelHeader`; owned by [`AppLayout.Content`](#applayoutcontent). The derived height subtracts twice its value.                                 |
+
+### AppLayout.SidePanelBody
+
+The side panel's scroll region, after the header:
+`scrollbar relative min-h-0 w-full flex-1 overflow-y-auto overscroll-none`. The same box as
+[`AppLayout.Body`](#applayoutbody) with no landmark, because the page's body already owns `main`. It is
+block inside, so a child that asks for `h-full` fills the panel between the header and the footer, and
+`mx-auto max-w-*` still centers.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                                    |
+| ---------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `AppLayout.SidePanelBody` styling onto alternative element types or your own components. |
+
+### AppLayout.SidePanelFooter
+
+The bar pinned to the side panel's bottom edge, after the body:
+`border-card-muted flex shrink-0 flex-col gap-2 border-t p-4`. It sits outside the scroll region, so the
+body scrolls under it and it never scrolls away. Merge `flex-row justify-end` for an action row, and
+`border-t-0` for a bar with no rule above it. Optional.
+
+The panel has a footer part where `AppLayout.Content` has none (see below), because the panel's author owns
+its whole subtree: no route renders through an `<Outlet />` inside it, so a bar here is always the panel's
+own.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                                      |
+| ---------- | --------- | ------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `AppLayout.SidePanelFooter` styling onto alternative element types or your own components. |
+
 ### There is no AppLayout.Footer
 
 Deliberately. A bar pinned to the bottom of the card is almost always a **page's** bar — an editor's validity
@@ -2402,4 +2486,6 @@ line, a save bar, a selection count — and a route rendering through an `<Outle
 could never reach a shell-level part, because it would be a sibling of the region the route renders into.
 
 Pin it inside `AppLayout.Body` instead:
-[Pinning a footer to the card](#pinning-a-footer-to-the-card).
+[Pinning a footer to the card](#pinning-a-footer-to-the-card). The side panel is the exception:
+[`AppLayout.SidePanelFooter`](#applayoutsidepanelfooter) exists because the panel's author owns its whole
+subtree.
