@@ -55,6 +55,11 @@ function useTabsState(partName: string): TabsStateContextValue {
  * The outermost part; it owns `orientation` and `appearance`. It stamps both as
  * `data-orientation` and `data-appearance` for the parts below to style against.
  *
+ * `onValueChange` fires once per activation. Radix activates a trigger on
+ * mousedown and again on the focus it moves there, before a controlled root
+ * re-renders, so the root passes the second call through only when its value
+ * differs from the first.
+ *
  * **Data attributes:**
  *
  * | Data Attribute     | Value                          | Description                                               |
@@ -92,6 +97,7 @@ const Root = ({
 	className,
 	children,
 	"data-slot": dataSlot,
+	onValueChange,
 	orientation = "horizontal",
 	appearance = "classic",
 	...props
@@ -105,6 +111,20 @@ const Root = ({
 		appearance?: "classic" | "pill";
 	}) => {
 	const contextValue = useMemo(() => ({ orientation, appearance }), [orientation, appearance]);
+	// Why a ref and a microtask: the trigger's mousedown and the focus it moves
+	// both activate the same value inside one dispatch, and the microtask runs
+	// after that dispatch, so a later press on the same trigger fires again.
+	const requestedValue = useRef<string | null>(null);
+	const handleValueChange = (value: string) => {
+		if (value === requestedValue.current) {
+			return;
+		}
+		requestedValue.current = value;
+		queueMicrotask(() => {
+			requestedValue.current = null;
+		});
+		onValueChange?.(value);
+	};
 	// Why the provider wraps the Radix root: with `asChild` Radix clones its only
 	// child, so a provider in that position takes the root's attributes and ref
 	// and the consumer's element gets none of them.
@@ -121,6 +141,7 @@ const Root = ({
 					className,
 				)}
 				orientation={orientation}
+				onValueChange={handleValueChange}
 				{...props}
 			>
 				{children}

@@ -1075,15 +1075,15 @@ The `Tabs` components accept the following props.
 
 Layered sections of content, called tab panels, that show one at a time. The outermost part; it owns `orientation` and `appearance`. It stamps both as `data-orientation` and `data-appearance` for the parts below to style against. Based on [Radix Tabs Root](https://www.radix-ui.com/primitives/docs/components/tabs#root).
 
-| Prop             | Type                           | Default        | Description                                                                                                                    |
-| ---------------- | ------------------------------ | -------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `defaultValue?`  | `string`                       |                | The value of the tab that should be active when initially rendered. Use when you do not need to control the state of the tabs. |
-| `value?`         | `string`                       |                | The controlled value of the tab to activate. Should be used in conjunction with `onValueChange`.                               |
-| `onValueChange?` | `(value: string) => void`      |                | Event handler called when the value changes.                                                                                   |
-| `orientation?`   | `"horizontal"` \| `"vertical"` | `"horizontal"` | The orientation of the tabs.                                                                                                   |
-| `appearance?`    | `"classic"` \| `"pill"`        | `"classic"`    | The appearance of the tabs. Classic appearance shows the tab list with an underline; pill appearance shows each tab as a pill. |
-| `asChild?`       | `boolean`                      | `false`        | When `true`, renders the single child instead of its own `<div>` and forwards the root's attributes and behavior onto it.      |
-| `className?`     | `string`                       |                | Additional CSS classes to apply to the tabs root element.                                                                      |
+| Prop             | Type                           | Default        | Description                                                                                                                                              |
+| ---------------- | ------------------------------ | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `defaultValue?`  | `string`                       |                | The value of the tab that should be active when initially rendered. Use when you do not need to control the state of the tabs.                           |
+| `value?`         | `string`                       |                | The controlled value of the tab to activate. Should be used in conjunction with `onValueChange`.                                                         |
+| `onValueChange?` | `(value: string) => void`      |                | Event handler called when the value changes. Fires once per activation, although Radix activates a trigger on mousedown and again on the focus it moves. |
+| `orientation?`   | `"horizontal"` \| `"vertical"` | `"horizontal"` | The orientation of the tabs.                                                                                                                             |
+| `appearance?`    | `"classic"` \| `"pill"`        | `"classic"`    | The appearance of the tabs. Classic appearance shows the tab list with an underline; pill appearance shows each tab as a pill.                           |
+| `asChild?`       | `boolean`                      | `false`        | When `true`, renders the single child instead of its own `<div>` and forwards the root's attributes and behavior onto it.                                |
+| `className?`     | `string`                       |                | Additional CSS classes to apply to the tabs root element.                                                                                                |
 
 #### CSS variables
 

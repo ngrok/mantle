@@ -108,6 +108,21 @@ function measure(root: HTMLElement, head: HTMLElement, tail: HTMLElement): Measu
 	return { tailWidth, truncated };
 }
 
+/**
+ * The elements that take focus or a click of their own. A root inside one of
+ * them is content of that control, so it takes no tab stop and no tooltip.
+ */
+const controlSelector =
+	'a[href], button, input, select, textarea, summary, [contenteditable=""], [contenteditable="true"], [role="button"], [role="link"], [role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="option"], [role="tab"]';
+
+/**
+ * Whether an element sits inside a control. Starts from the parent, so a root
+ * that `asChild` renders as a control is not inside one.
+ */
+function isInsideControl(element: HTMLElement): boolean {
+	return element.parentElement?.closest(controlSelector) != null;
+}
+
 // Why inline-block and not flex: a flex item is a block, and Chromium and WebKit
 // serialize a selection with a newline between blocks, so a copy pastes the
 // value as two lines.
@@ -224,6 +239,14 @@ const TruncatedTextRoot = ({
  * reader announces the whole value, and the tooltip opens. A value that fits is
  * not a tab stop. A `tabIndex` prop wins in both states.
  *
+ * Inside a control (a `<button>`, an `<a href>`, a menu item, a tab) the root
+ * takes no tab stop and opens no tooltip, because a control cannot hold a
+ * second one. The segments still clip, `data-truncated` still lands, and the
+ * hidden copy gives the control's accessible name the whole value. Wrap the
+ * control in `Tooltip` when a sighted reader needs the full value. The server
+ * render and the first client render assume no control, like they assume no
+ * overflow.
+ *
  * **Accessibility.** The two visible segments are `aria-hidden`, because
  * Chromium puts a space between two inline-block boxes in an accessible name.
  * A visually hidden `<span data-slot="truncated-text-value">` holds the whole
@@ -248,7 +271,7 @@ const TruncatedTextRoot = ({
  * | `data-slot`      | `"truncated-text-tail"`                            | On the `<span>` that stays visible. Holds the last `tail` graphemes.               |
  * | `data-slot`      | `"truncated-text-value"`                           | On the visually hidden `<span>` that holds the whole value for assistive technology. |
  * | `data-truncated` | present while the value overflows                  | Presence-only. Style with `data-truncated:`. Absent on the server render.          |
- * | `data-state`     | `"closed"` \| `"delayed-open"` \| `"instant-open"` | The tooltip state Radix stamps on the root.                                        |
+ * | `data-state`     | `"closed"` \| `"delayed-open"` \| `"instant-open"` | The tooltip state Radix stamps on the root. Absent inside a control.               |
  *
  * @see https://mantle.ngrok.com/components/data-display/truncated-text
  *
@@ -296,7 +319,14 @@ const TruncatedText = ({
 	const composedRef = useComposedRefs(ref, setRootNode);
 	const [measurement, setMeasurement] = useState<Measurement | null>(null);
 	const [open, setOpen] = useState(false);
+	const [insideControl, setInsideControl] = useState(false);
 	const isTruncated = measurement?.truncated === true;
+
+	useIsomorphicLayoutEffect(() => {
+		if (rootNode != null) {
+			setInsideControl(isInsideControl(rootNode));
+		}
+	}, [rootNode]);
 
 	useIsomorphicLayoutEffect(() => {
 		const headElement = headRef.current;
@@ -367,9 +397,10 @@ const TruncatedText = ({
 		dir: "ltr",
 		className: cx(rootClassName, className),
 		style: $cssProperties({ "--_tail-width": tailReserve, ...style }),
-		// Why only while truncated: a value that fits hides nothing, so it earns
-		// no tab stop. A clipped one needs focus, because the tooltip opens on it.
-		tabIndex: isTruncated ? (tabIndex ?? 0) : tabIndex,
+		// Why only while truncated and outside a control: a value that fits hides
+		// nothing, and a control already owns the focus, so neither earns a tab
+		// stop. A clipped one on its own needs focus, because the tooltip opens on it.
+		tabIndex: isTruncated && !insideControl ? (tabIndex ?? 0) : tabIndex,
 		// Why preventDefault: Radix runs its global open path before it reads
 		// `open`, and that path closes every other tooltip on the page. A value
 		// that fits has no tooltip to open, so it must not run.
@@ -411,6 +442,10 @@ const TruncatedText = ({
 				{segments}
 			</TruncatedTextRoot>
 		);
+	}
+
+	if (insideControl) {
+		return root;
 	}
 
 	return (

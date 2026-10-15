@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import type { ComponentProps, ReactNode } from "react";
 import { describe, expect, test, vi } from "vitest";
@@ -72,6 +72,44 @@ describe("Tabs", () => {
 			expect(root).toContainElement(screen.getByRole("tablist"));
 			expect(refSpy).toHaveBeenCalledTimes(1);
 			expect(refSpy).toHaveBeenLastCalledWith(root);
+		});
+	});
+
+	describe("Root onValueChange", () => {
+		function ControlledTabs({ onValueChange }: { onValueChange: (value: string) => void }) {
+			return (
+				<Tabs.Root value="a" onValueChange={onValueChange}>
+					<Tabs.List>
+						<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
+						<Tabs.Trigger value="b">Tab B</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>
+			);
+		}
+
+		// Why mousedown: Radix activates a trigger on mousedown and moves focus to it
+		// in the same handler, and the focus activates it again. A controlled root
+		// re-renders after both, so the second call carries the same value.
+		test("fires once per activation on a controlled root", () => {
+			const onValueChange = vi.fn<(value: string) => void>();
+			render(<ControlledTabs onValueChange={onValueChange} />);
+
+			fireEvent.mouseDown(screen.getByRole("tab", { name: "Tab B" }));
+
+			expect(onValueChange).toHaveBeenCalledTimes(1);
+			expect(onValueChange).toHaveBeenLastCalledWith("b");
+		});
+
+		test("fires again for the same value on a later activation", async () => {
+			const onValueChange = vi.fn<(value: string) => void>();
+			render(<ControlledTabs onValueChange={onValueChange} />);
+
+			fireEvent.mouseDown(screen.getByRole("tab", { name: "Tab B" }));
+			// A consumer that keeps the old value sees the next press as a new request.
+			await act(async () => {});
+			fireEvent.mouseDown(screen.getByRole("tab", { name: "Tab B" }));
+
+			expect(onValueChange).toHaveBeenCalledTimes(2);
 		});
 	});
 

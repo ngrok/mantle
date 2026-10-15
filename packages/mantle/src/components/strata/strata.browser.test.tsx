@@ -11,8 +11,9 @@ import { Strata } from "./strata.js";
  *
  * The stylesheet is Tailwind 4.3.3's own output for the utilities these parts
  * emit, keyed by the same escaped class selectors. Keyed that way on purpose:
- * misspell `--strata-columns` in `Section`, or move `divide-y` off `Root`, and
- * the rule stops matching and these assertions fail.
+ * misspell `--strata-columns` in `Section`, put a bare `1fr` back in its
+ * fallback, or move `divide-y` off `Root`, and the rule stops matching and
+ * these assertions fail.
  *
  * The `md:` rule is copied **without** its `@media (width >= 48rem)` wrapper.
  * The subject is the custom property's name and fallback, not the breakpoint, and
@@ -36,7 +37,11 @@ const STYLE = `
 .grid { display: grid; }
 .py-8 { padding-block: calc(var(--spacing) * 8); }
 .first\\:pt-0:first-child { padding-top: 0px; }
-.md\\:grid-cols-\\(--strata-columns\\,1fr_2fr\\) { grid-template-columns: var(--strata-columns,1fr 2fr); }
+.md\\:grid-cols-\\(--strata-columns\\,minmax\\(0\\,1fr\\)_minmax\\(0\\,2fr\\)\\) { grid-template-columns: var(--strata-columns,minmax(0,1fr) minmax(0,2fr)); }
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.block { display: block; }
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 :where(.divide-y > :not(:last-child)) {
 	border-bottom-style: var(--tw-border-style);
 	border-bottom-width: calc(1px * calc(1 - var(--tw-divide-y-reverse)));
@@ -130,6 +135,31 @@ describe("Strata.Section column split", () => {
 
 		expect(columnRatio(screen.getByTestId("providers"))).toBeCloseTo(1, 2);
 		expect(columnRatio(screen.getByTestId("rules"))).toBeCloseTo(2, 2);
+	});
+});
+
+describe("Strata.Section tracks", () => {
+	test("a truncating value in Body clips inside the section instead of widening it", () => {
+		render(
+			<Strata.Root style={{ width: 600 }}>
+				<Strata.Section data-testid="section">
+					<Strata.Header>
+						<Strata.Title>Gateway URL</Strata.Title>
+					</Strata.Header>
+					<Strata.Body>
+						<span data-testid="text" className="block truncate">
+							https://example.ngrok.app/api/items?filter=%7B%22name%22%3A%22very-long-value%22%7D&limit=200&offset=0
+						</span>
+					</Strata.Body>
+				</Strata.Section>
+			</Strata.Root>,
+		);
+		const section = screen.getByTestId("section");
+		const text = screen.getByTestId("text");
+		// The section has nothing to scroll: the body track shrank to the room left beside the header.
+		expect(section.scrollWidth).toBe(section.clientWidth);
+		// The span clips its own text, which is what paints the ellipsis.
+		expect(text.scrollWidth).toBeGreaterThan(text.clientWidth);
 	});
 });
 

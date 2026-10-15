@@ -235,6 +235,29 @@ describe("TruncatedText", () => {
 			expect(await screen.findByRole("tooltip")).toHaveTextContent(url);
 		});
 
+		test("inside a control, keeps the whole value in its name and adds no tab stop or tooltip", async () => {
+			const user = userEvent.setup();
+			stubGeometry(overflows);
+			render(
+				<TooltipProvider>
+					<button type="button">
+						<TruncatedText data-testid="value" value={url} />
+					</button>
+				</TooltipProvider>,
+			);
+			const root = screen.getByTestId("value");
+			expect(root).toHaveAttribute("data-truncated", "");
+			expect(root).not.toHaveAttribute("tabindex");
+			// Radix stamps `data-state` on every trigger it renders, so its absence
+			// pins that the root is no tooltip trigger here.
+			expect(root).not.toHaveAttribute("data-state");
+			expect(screen.getByRole("button", { name: url })).toBeInTheDocument();
+
+			await user.hover(root);
+
+			expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+		});
+
 		test("lets a consumer's tabIndex win", () => {
 			stubGeometry(overflows);
 			renderValue({ tabIndex: -1 });

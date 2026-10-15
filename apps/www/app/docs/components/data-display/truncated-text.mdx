@@ -164,6 +164,8 @@ A screen reader reads the whole value as one string. The two visible segments ar
 
 The tooltip opens on hover only while the value overflows. It needs a [`TooltipProvider`](/components/overlays/tooltip#tooltipprovider) ancestor, like every mantle tooltip, and throws without one. While the value overflows, the root is focusable, so Tab reaches it, a screen reader announces the whole value, and the tooltip opens. A value that fits isn't a tab stop. A `tabIndex` prop wins in both states.
 
+Inside a control (a `<button>`, an `<a href>`, a menu item, a tab) the root takes no tab stop and opens no tooltip, because a control cannot hold a second one. The segments still clip, `data-truncated` still lands, and the hidden copy gives the control's accessible name the whole value. Wrap the control in [`Tooltip`](/components/overlays/tooltip) when a sighted reader needs the full value. The server render and the first client render assume no control, like they assume no overflow.
+
 ## Translation
 
 The root and the tooltip carry [`translate="no"`](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/translate) by default, so a browser translation engine skips the value. A translated URL or ID is wrong, and the reader copies it anyway. When the value is prose, pass `translate="yes"`. [Browser translation](/browser-translation) covers what an engine does to a React DOM.
@@ -192,4 +194,4 @@ All props from [span](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/
 | `data-slot`      | `"truncated-text-tail"`                            | On the `<span>` that stays visible. Holds the last `tail` graphemes.                 |
 | `data-slot`      | `"truncated-text-value"`                           | On the visually hidden `<span>` that holds the whole value for assistive technology. |
 | `data-truncated` | present while the value overflows                  | Presence-only. Style with `data-truncated:`. Absent on the server render.            |
-| `data-state`     | `"closed"` \| `"delayed-open"` \| `"instant-open"` | The tooltip state Radix stamps on the root.                                          |
+| `data-state`     | `"closed"` \| `"delayed-open"` \| `"instant-open"` | The tooltip state Radix stamps on the root. Absent inside a control.                 |
