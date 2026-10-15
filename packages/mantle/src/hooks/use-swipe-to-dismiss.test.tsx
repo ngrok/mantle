@@ -2,30 +2,28 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import type { RefObject } from "react";
 import { useRef } from "react";
 import { describe, expect, test, vi } from "vitest";
-import type { SwipeDirection, SwipeProperty } from "./use-swipe-to-dismiss.js";
+import type { SwipeProperty } from "./use-swipe-to-dismiss.js";
 import { rubberBand, shouldDismissSwipe, useSwipeToDismiss } from "./use-swipe-to-dismiss.js";
-
-const thresholds = { threshold: 0.25, flickVelocity: 0.4 };
 
 describe("shouldDismissSwipe", () => {
 	test("an offset at the threshold dismisses", () => {
-		expect(shouldDismissSwipe({ offset: 75, size: 300, velocity: 0, ...thresholds })).toBe(true);
+		expect(shouldDismissSwipe({ offset: 75, size: 300, velocity: 0 })).toBe(true);
 	});
 
 	test("an offset under the threshold does not dismiss", () => {
-		expect(shouldDismissSwipe({ offset: 74, size: 300, velocity: 0, ...thresholds })).toBe(false);
+		expect(shouldDismissSwipe({ offset: 74, size: 300, velocity: 0 })).toBe(false);
 	});
 
 	test("a flick dismisses a short drag", () => {
-		expect(shouldDismissSwipe({ offset: 20, size: 300, velocity: 0.4, ...thresholds })).toBe(true);
+		expect(shouldDismissSwipe({ offset: 20, size: 300, velocity: 0.4 })).toBe(true);
 	});
 
 	test("a drag that ends at the resting position never dismisses, whatever the size", () => {
-		expect(shouldDismissSwipe({ offset: 0, size: 0, velocity: 0, ...thresholds })).toBe(false);
+		expect(shouldDismissSwipe({ offset: 0, size: 0, velocity: 0 })).toBe(false);
 	});
 
 	test("a flick back to the resting position after a drag the wrong way never dismisses", () => {
-		expect(shouldDismissSwipe({ offset: 0, size: 300, velocity: 8, ...thresholds })).toBe(false);
+		expect(shouldDismissSwipe({ offset: 0, size: 300, velocity: 8 })).toBe(false);
 	});
 });
 
@@ -46,22 +44,20 @@ describe("rubberBand", () => {
 
 /**
  * A handle inside a panel. happy-dom lays nothing out, so the panel's rect is
- * stubbed to 300px square: the threshold is then 75px either way.
+ * stubbed to 300px wide: the threshold is then 75px.
  */
 function Panel({
 	onDismiss,
 	active,
-	direction,
 	property,
 }: {
 	onDismiss: () => void;
-	active?: boolean | (() => boolean);
-	direction?: SwipeDirection;
+	active?: boolean;
 	property?: SwipeProperty | (() => SwipeProperty);
 }) {
 	const panelRef = useRef<HTMLDivElement>(null);
 	const handleRef = useRef<HTMLDivElement>(null);
-	useSwipeToDismiss(handleRef, { target: panelRef, onDismiss, active, direction, property });
+	useSwipeToDismiss(handleRef, { target: panelRef, onDismiss, active, property });
 	return (
 		<div ref={panelRef} data-testid="panel">
 			<div ref={handleRef} data-testid="handle">
@@ -207,7 +203,7 @@ describe("useSwipeToDismiss", () => {
 		expect(panel.style.flexBasis).toBe("240px");
 	});
 
-	test("a drag toward the start edge meets rubber-band resistance and never dismisses", () => {
+	test("a drag to the left meets rubber-band resistance and never dismisses", () => {
 		const { onDismiss, panel, handle } = renderPanel();
 		act(() => {
 			fireEvent(handle, pointerEvent("pointerdown", { x: 200, at: 0 }));
@@ -223,7 +219,7 @@ describe("useSwipeToDismiss", () => {
 		expect(onDismiss).not.toHaveBeenCalled();
 	});
 
-	test("a gesture that travels further across the direction never starts a drag", () => {
+	test("a gesture that travels further vertically never starts a drag", () => {
 		const { onDismiss, panel, handle } = renderPanel();
 		swipe(handle, [
 			{ x: 10, y: 10, at: 0 },
@@ -308,17 +304,6 @@ describe("useSwipeToDismiss", () => {
 		expect(onDismiss).not.toHaveBeenCalled();
 	});
 
-	test("a function active is asked at pointer down", () => {
-		const active = vi.fn<() => boolean>(() => true);
-		const { onDismiss, handle } = renderPanel({ active });
-		swipe(handle, [
-			{ x: 10, at: 0 },
-			{ x: 200, at: 1000 },
-		]);
-		expect(active).toHaveBeenCalledTimes(1);
-		expect(onDismiss).toHaveBeenCalledTimes(1);
-	});
-
 	test("a secondary button starts no drag", () => {
 		const { onDismiss, panel, handle } = renderPanel();
 		act(() => {
@@ -327,21 +312,5 @@ describe("useSwipeToDismiss", () => {
 		});
 		expect(panel.style.translate).toBe("");
 		expect(onDismiss).not.toHaveBeenCalled();
-	});
-
-	test.each<[SwipeDirection, { x: number; y: number }, string]>([
-		["left", { x: -60, y: 0 }, "-60px"],
-		["down", { x: 0, y: 60 }, "0 60px"],
-		["up", { x: 0, y: -60 }, "0 -60px"],
-	])("direction %s moves the target along its own axis", (direction, delta, translate) => {
-		const { panel, handle } = renderPanel({ direction });
-		act(() => {
-			fireEvent(handle, pointerEvent("pointerdown", { x: 100, y: 100, at: 0 }));
-			fireEvent(
-				document,
-				pointerEvent("pointermove", { x: 100 + delta.x, y: 100 + delta.y, at: 16 }),
-			);
-		});
-		expect(panel.style.translate).toBe(translate);
 	});
 });

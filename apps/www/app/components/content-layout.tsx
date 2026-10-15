@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { z } from "zod";
 import { DocActions } from "~/components/doc-actions";
 import { MdxProvider } from "~/components/mdx-provider";
 
@@ -36,6 +37,8 @@ export const fullWidthProseMeasure = [
 	"[&_[data-mdx-content]>:is(h1,h2,h3,h4,h5,h6)]:w-auto",
 ];
 
+const fullWidthHandleSchema = z.object({ frontmatter: z.object({ layout: z.literal("full") }) });
+
 /**
  * Returns true when the matched doc asks for the full-width canvas with
  * `layout: full` in its frontmatter, which the docs pipeline puts on the leaf
@@ -49,15 +52,7 @@ export const fullWidthProseMeasure = [
  * ```
  */
 export function isFullWidthDoc(matches: ReadonlyArray<{ handle?: unknown }>): boolean {
-	const handle = matches[matches.length - 1]?.handle;
-	if (typeof handle !== "object" || handle == null || !("frontmatter" in handle)) {
-		return false;
-	}
-	const { frontmatter } = handle;
-	if (typeof frontmatter !== "object" || frontmatter == null || !("layout" in frontmatter)) {
-		return false;
-	}
-	return frontmatter.layout === "full";
+	return fullWidthHandleSchema.safeParse(matches[matches.length - 1]?.handle).success;
 }
 
 /**

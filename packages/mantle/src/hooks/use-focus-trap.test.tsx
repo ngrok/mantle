@@ -119,28 +119,6 @@ describe("useFocusTrap", () => {
 		expect(editor).toHaveFocus();
 	});
 
-	test("wraps in sequential focus order when a positive tabIndex reorders the stops", async () => {
-		const user = userEvent.setup();
-		render(
-			<Trapped>
-				{/* oxlint-disable jsx-a11y/tabindex-no-positive -- the test pins the order a positive tabIndex creates */}
-				<button type="button" tabIndex={2}>
-					second
-				</button>
-				<button type="button" tabIndex={1}>
-					first
-				</button>
-				{/* oxlint-enable jsx-a11y/tabindex-no-positive */}
-				<button type="button">last</button>
-			</Trapped>,
-		);
-		expect(screen.getByRole("button", { name: "first" })).toHaveFocus();
-		await user.tab({ shift: true });
-		expect(screen.getByRole("button", { name: "last" })).toHaveFocus();
-		await user.tab();
-		expect(screen.getByRole("button", { name: "first" })).toHaveFocus();
-	});
-
 	test("gives a region with no tabindex one for the trap's lifetime, so it can hold focus", () => {
 		function Plain({ active }: { active: boolean }) {
 			const ref = useRef<HTMLDivElement>(null);

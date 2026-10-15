@@ -27,22 +27,9 @@ type UseFocusTrapOptions = {
 const focusRetryFrames = 60;
 
 /**
- * The container's tab stops in sequential focus order: a positive `tabIndex`
- * first, ascending, then the rest in document order. That is the order the
- * browser walks, so a wrap lands where a Tab from the last stop would have
- * left the container.
- */
-function findTabStops(container: Element): HTMLElement[] {
-	const stops = findTabbableDescendants(container);
-	const rank = (stop: HTMLElement) =>
-		stop.tabIndex > 0 ? stop.tabIndex : Number.POSITIVE_INFINITY;
-	return stops.toSorted((a, b) => rank(a) - rank(b));
-}
-
-/**
  * The element a Tab press should land on when the browser's default move would
  * leave the container, or `null` when the default move stays inside it. The
- * caller passes at least one tab stop, in sequential focus order.
+ * caller passes at least one tab stop, in document order.
  *
  * When `current` is not a tab stop (the container itself, or a child with a
  * negative `tabIndex`), the next stop is the first one after it in document
@@ -88,10 +75,9 @@ function findWrappedTabStop(
  * opens with a transition can hold nothing focusable in the commit that
  * activates the trap, so the move retries for up to a second of frames until
  * focus lands. While active, Tab on the last tab stop wraps to the first and
- * Shift+Tab on the first wraps to the last, in the browser's sequential order:
- * a positive `tabIndex` first, then document order. A child that prevents the
- * default on `Tab` keeps it. On release the trap leaves focus where it is, so
- * the caller decides where focus returns.
+ * Shift+Tab on the first wraps to the last, in document order. A child that
+ * prevents the default on `Tab` keeps it. On release the trap leaves focus
+ * where it is, so the caller decides where focus returns.
  *
  * It traps the keyboard only. Focus that a pointer or a script moves out of
  * the element stays out, so a menu, a popover, or a dialog that portals out of
@@ -144,7 +130,7 @@ function useFocusTrap(
 			if (container.contains(document.activeElement)) {
 				return;
 			}
-			const [firstTabStop] = findTabStops(container);
+			const [firstTabStop] = findTabbableDescendants(container);
 			(firstTabStop ?? container).focus();
 			framesLeft -= 1;
 			if (!container.contains(document.activeElement) && framesLeft > 0) {
@@ -162,7 +148,7 @@ function useFocusTrap(
 			) {
 				return;
 			}
-			const tabStops = findTabStops(container);
+			const tabStops = findTabbableDescendants(container);
 			if (tabStops.length === 0) {
 				// Why prevent the move: with nothing inside to land on, the browser
 				// would take focus out of the container.
