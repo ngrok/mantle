@@ -26,7 +26,7 @@
     "migrate": "node ./scripts/migrate.ts"
   },
   "devDependencies": {
-    "@ast-grep/cli": "0.45.3",
+    "@ast-grep/cli": "0.50.0",
     "@changesets/changelog-github": "1.0.1",
     "@changesets/cli": "3.0.3",
     "@types/node": "catalog:",
@@ -35,11 +35,11 @@
     "oxfmt": "catalog:",
     "oxlint": "1.88.0",
     "tsx": "catalog:",
-    "turbo": "2.11.7",
+    "turbo": "2.11.8",
     "vitest": "5.0.4"
   },
   "engines": {
     "node": "^24.0.0"
   },
-  "packageManager": "pnpm@12.12.1"
+  "packageManager": "pnpm@12.13.0"
 }
