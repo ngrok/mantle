@@ -21,6 +21,8 @@ Custom React hooks exported from `@ngrok/mantle/hooks`.
 | `useCopyToClipboard`        | Copies a string to the clipboard.                                                       |
 | `useDebounce`               | Returns a debounced copy of a value that updates after changes pause.                   |
 | `useDebouncedCallback`      | Creates a debounced version of a callback function.                                     |
+| `useFocusTrap`              | Keeps keyboard focus inside an element while active: `Tab` wraps at both ends.          |
+| `useInertSiblings`          | Sets `inert` on every other child of an element's parent while active.                  |
 | `useIsHydrated`             | Returns whether the component tree has been hydrated on the client.                     |
 | `useIsHydratedAfterPaint`   | `true` from the first animation frame after hydration, for CSS transition gates.        |
 | `useIsomorphicLayoutEffect` | Uses `useLayoutEffect` on the client and `useEffect` on the server.                     |
@@ -29,6 +31,7 @@ Custom React hooks exported from `@ngrok/mantle/hooks`.
 | `useMatchesMediaQuery`      | Subscribes to and returns the result of a CSS media query.                              |
 | `usePrefersReducedMotion`   | Returns `true` when the user prefers reduced motion.                                    |
 | `useScrollBehavior`         | Returns a `ScrollBehavior` that respects the user's reduced motion preference.          |
+| `useSwipeToDismiss`         | Makes an element a swipe handle that drags a target toward one edge and dismisses it.   |
 | `useInView`                 | Returns `true` when a DOM element is visible within the viewport.                       |
 | `useUndoRedo`               | Generic undo/redo history stacks for snapshotting state.                                |
 
@@ -171,6 +174,70 @@ function SearchInput() {
 	return <input onChange={(event) => debouncedSearch(event.target.value)} />;
 }
 ```
+
+## useFocusTrap
+
+```tsx
+useFocusTrap(panelRef, { active: open && coversThePage });
+```
+
+Keeps keyboard focus inside the element `ref` points at while `active` is `true` (the default). On
+activation, when focus is outside the element, it moves focus to the element's first tab stop, else to the
+element itself, which gets `tabindex="-1"` for the trap's lifetime when it has none. An element that opens
+with a transition can hold nothing focusable in the commit that activates the trap, so the move retries for
+up to a second of frames until focus lands. While active, `Tab` on the last tab stop wraps to the first and
+`Shift+Tab` on the first wraps to the last, in the browser's sequential order: a positive `tabIndex` first,
+then document order. A child that prevents the default on `Tab` keeps it. On release the trap leaves focus
+where it is, so the caller decides where focus returns.
+
+It traps the keyboard only. Focus that a pointer or a script moves out of the element stays out, so a menu,
+a popover, or a dialog that portals out of the element keeps working. Pair it with
+[`useInertSiblings`](#useinertsiblings) to block pointer focus, the way
+[`AppLayout.SidePanel`](/layouts/app-layout#applayoutsidepanel) does when it covers the page. Flip `active`
+to engage and release the trap on one mounted element: a panel that covers the page at one viewport width
+and sits beside it at another keeps its DOM.
+
+```tsx
+import { useFocusTrap, useInertSiblings, useMatchesMediaQuery } from "@ngrok/mantle/hooks";
+import { useRef, type ReactNode } from "react";
+
+function CoverPanel({ open, children }: { open: boolean; children: ReactNode }) {
+	const panelRef = useRef<HTMLDivElement>(null);
+	const coversThePage = useMatchesMediaQuery("(width < 48rem)");
+	useInertSiblings(panelRef, { active: open && coversThePage });
+	useFocusTrap(panelRef, { active: open && coversThePage });
+
+	return (
+		<div ref={panelRef} role="region" aria-label="Assistant" inert={!open}>
+			{children}
+		</div>
+	);
+}
+```
+
+| Option    | Type      | Default | Description                                                                                  |
+| --------- | --------- | ------- | -------------------------------------------------------------------------------------------- |
+| `active?` | `boolean` | `true`  | Whether the trap holds focus. Flip it to engage and release the trap on one mounted element. |
+
+## useInertSiblings
+
+```tsx
+useInertSiblings(panelRef, { active: open && coversThePage });
+```
+
+Sets `inert` on every other child of the element's parent while `active` is `true` (the default), so
+nothing beside the element is clickable, focusable, or read by assistive technology. A sibling that mounts
+while the hook is active goes inert too. On release it clears `inert` from the siblings it set and leaves
+alone one that was inert already.
+
+It reaches siblings only, not the rest of the document, so it fits a surface that covers one row of a
+layout in place: a panel that covers the card and the rail beside it, with a notice above the row still
+usable. Pair it with [`useFocusTrap`](#usefocustrap) to keep keyboard focus inside the element; the example
+above does both.
+
+| Option    | Type      | Default | Description                                                                        |
+| --------- | --------- | ------- | ---------------------------------------------------------------------------------- |
+| `active?` | `boolean` | `true`  | Whether the siblings are inert. Flip it to make them inert and release them again. |
 
 ## useIsHydrated
 
@@ -364,6 +431,74 @@ function ScrollToTop() {
 	return <button onClick={() => window.scrollTo({ top: 0, behavior })}>Back to top</button>;
 }
 ```
+
+## useSwipeToDismiss
+
+```tsx
+useSwipeToDismiss(headerRef, { target: panelRef, onDismiss: () => setOpen(false) });
+```
+
+Makes the element `handle` points at a swipe handle that drags `target` toward one edge and calls
+`onDismiss` when the drag crosses `threshold` of the target's size or ends in a flick. A shorter drag
+springs back, and a drag the wrong way meets rubber-band resistance. The target's own transition on the
+property animates both the spring back and the slide the caller runs after `onDismiss`, so a
+`motion-reduce:` rule on the target turns them into cuts.
+
+The target follows the pointer one to one: while the pointer is down the hook writes the property and
+`transition: none` on the target's inline style, and clears both on release. `translate` slides the target;
+`flex-basis` shrinks a flex item from its size toward nothing, the way a lane collapses. A tap on a control
+inside the handle stays a tap: the drag starts after 8px of travel along the direction, a gesture that
+travels further across it never starts, and a release after a drag swallows the click that follows it. Give
+the handle `touch-action: pan-y` (`touch-pan-y`) for a horizontal swipe, or `pan-x` for a vertical one, so
+the other axis still scrolls. [`AppLayout.SidePanelHeader`](/layouts/app-layout#applayoutsidepanelheader)
+is the handle for the side panel, with `property` picked at pointer down: `translate` while the panel
+floats and `flex-basis` while it sits in the lane.
+
+```tsx
+import { useSwipeToDismiss } from "@ngrok/mantle/hooks";
+import { useRef, type ReactNode } from "react";
+
+function FloatingPanel({
+	open,
+	setOpen,
+	children,
+}: {
+	open: boolean;
+	setOpen: (open: boolean) => void;
+	children: ReactNode;
+}) {
+	const panelRef = useRef<HTMLElement>(null);
+	const headerRef = useRef<HTMLDivElement>(null);
+	useSwipeToDismiss(headerRef, {
+		target: panelRef,
+		onDismiss: () => setOpen(false),
+	});
+
+	return (
+		<aside
+			ref={panelRef}
+			aria-label="Assistant"
+			data-state={open ? "open" : "closed"}
+			className="transition-[translate] duration-200 ease-out-strong motion-reduce:transition-none data-state-closed:translate-x-full"
+		>
+			<div ref={headerRef} className="touch-pan-y">
+				Assistant
+			</div>
+			{children}
+		</aside>
+	);
+}
+```
+
+| Option           | Type                                                                 | Default       | Description                                                                                                                                                         |
+| ---------------- | -------------------------------------------------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `onDismiss`      | `() => void`                                                         | —             | Called once when a released drag crosses the threshold or ends in a flick. The caller hides the target.                                                             |
+| `target?`        | `RefObject<HTMLElement \| null>`                                     | the handle    | The element the drag moves and measures. Pass the panel when a header row is the handle.                                                                            |
+| `direction?`     | `"left" \| "right" \| "up" \| "down"`                                | `"right"`     | The edge the target slides off. A drag the other way meets rubber-band resistance and never dismisses.                                                              |
+| `property?`      | `"translate" \| "flex-basis" \| (() => "translate" \| "flex-basis")` | `"translate"` | The CSS property the drag writes on the target. A function runs at pointer down, for a target that slides in one layout and collapses in another.                   |
+| `active?`        | `boolean \| (() => boolean)`                                         | `true`        | Whether a drag can start. A function runs at pointer down, for a condition CSS owns.                                                                                |
+| `threshold?`     | `number`                                                             | `0.25`        | The share of the target's size along the direction a drag must cross to dismiss, between `0` and `1`.                                                               |
+| `flickVelocity?` | `number`                                                             | `0.4`         | The speed toward the edge, in CSS pixels per millisecond, that dismisses a shorter drag as a flick. A pointer that rests for 100ms before the release has no speed. |
 
 ## useInView
 

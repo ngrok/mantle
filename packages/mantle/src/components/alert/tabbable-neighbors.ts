@@ -102,8 +102,23 @@ function findTabbableNeighbors(anchor: Element): HTMLElement[] {
 	return [...following, ...preceding];
 }
 
+/**
+ * The tabbable elements inside `container`, in document order. Returns an
+ * empty array when nothing inside it can take a Tab.
+ *
+ * @example
+ * ```ts
+ * // <div id="panel"><button>Close</button><input /></div>
+ * findTabbableDescendants(panel); // → [closeButton, input]
+ * ```
+ */
+function findTabbableDescendants(container: Element): HTMLElement[] {
+	return Array.from(container.querySelectorAll(TABBABLE_CANDIDATE_SELECTOR)).filter(isTabbable);
+}
+
 export {
 	//,
+	findTabbableDescendants,
 	findTabbableNeighbors,
 	isTabbable,
 };

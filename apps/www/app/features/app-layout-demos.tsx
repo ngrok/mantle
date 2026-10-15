@@ -317,11 +317,14 @@ export function AppLayoutPageShapesExample() {
 }
 
 /**
- * The three flex rules that pin a bar to the bottom of the card, live and at
- * small scale: a `shrink-0` toolbar, a `min-h-0 flex-1` region that absorbs the
- * slack and scrolls, and a `shrink-0` bar. Grow the policy with **Add rules** —
- * the bar holds the card's bottom edge however tall the content gets, and the
- * page owns the bar, which is why the shell ships no `Footer` part.
+ * The shape that pins a bar to the bottom of the card, live and at small
+ * scale: a `min-h-full` column inside the body, a toolbar stuck to its top
+ * edge, and a bar that `mt-auto` pushes to the bottom edge and `sticky`
+ * keeps there once the body scrolls. Nothing scrolls but the body, so the
+ * skip link still lands on the element that scrolls. Grow the policy with
+ * **Add rules**: the bar holds the card's bottom edge however tall the content
+ * gets, and the page owns the bar, which is why the shell ships no `Footer`
+ * part.
  *
  * @example
  * ```tsx
@@ -341,11 +344,10 @@ export function AppLayoutPinnedFooterExample() {
 						{/* Why asChild: the docs page already owns the main landmark. */}
 						<AppLayout.Body asChild>
 							<div>
-								{/* the page's own root — this is what "pinned to the bottom of the
-							    card" means, and it is all three rules at once */}
-								<div className="flex h-full flex-col">
-									{/* anything that must keep its height: shrink-0 */}
-									<div className="border-card-muted flex shrink-0 items-center gap-3 border-b px-6 py-3">
+								{/* the page's own root: a column at least as tall as the card's interior */}
+								<div className="flex min-h-full flex-col">
+									{/* the toolbar sticks to the top edge while the body scrolls under it */}
+									<div className="bg-card border-card-muted sticky top-0 flex shrink-0 items-center gap-3 border-b px-6 py-3">
 										<p className="text-strong text-sm font-medium">Traffic policy</p>
 										<Button
 											type="button"
@@ -358,14 +360,13 @@ export function AppLayoutPinnedFooterExample() {
 											{ruleCount >= 16 ? "Reset policy" : "Add rules"}
 										</Button>
 									</div>
-									{/* the region that absorbs the slack and scrolls: min-h-0 flex-1 */}
-									<div className="relative min-h-0 flex-1 overflow-y-auto">
-										<div className="space-y-3 p-6">
-											<DemoRows count={ruleCount} label="Rule" />
-										</div>
+									{/* the content scrolls in the body, with no scroll region of its own */}
+									<div className="space-y-3 p-6">
+										<DemoRows count={ruleCount} label="Rule" />
 									</div>
-									{/* the footer, on the card's bottom edge: shrink-0 */}
-									<div className="border-card-muted text-muted flex shrink-0 items-center gap-2 border-t px-6 py-2 text-xs">
+									{/* the footer: mt-auto puts it on the bottom edge of a short page,
+									    sticky keeps it there once the page scrolls */}
+									<div className="bg-card border-card-muted text-muted sticky bottom-0 mt-auto flex shrink-0 items-center gap-2 border-t px-6 py-2 text-xs">
 										<CheckCircleIcon weight="fill" className="fill-success-600 shrink-0" />
 										Traffic policy is valid — {ruleCount} rules
 									</div>

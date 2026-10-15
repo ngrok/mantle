@@ -3,7 +3,9 @@
 import { render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { page } from "vitest/browser";
+import { page, userEvent } from "vitest/browser";
+import { Combobox } from "../combobox/index.js";
+import { Sidebar } from "../sidebar/sidebar.js";
 import { AppLayout } from "./app-layout.js";
 
 /**
@@ -50,15 +52,28 @@ const STYLE = `
 		container-type: inline-size;
 		container-name: app-layout-workspace;
 	}
+	@container app-layout-workspace (width < 46.75rem) {
+		.\\@max-side-panel-lane-icon-rail\\/app-layout-workspace\\:absolute { position: absolute; }
+		.\\@max-side-panel-lane-icon-rail\\/app-layout-workspace\\:right-\\(--app-layout-card-gutter\\,0\\.5rem\\) {
+			right: var(--app-layout-card-gutter, 0.5rem);
+		}
+	}
 	@container app-layout-workspace (width < 56.5rem) {
-		.\\@max-side-panel-lane\\/app-layout-workspace\\:absolute { position: absolute; }
-		.\\@max-side-panel-lane\\/app-layout-workspace\\:right-\\(--app-layout-card-gutter\\,0\\.5rem\\) {
+		[data-slot~=app-layout-workspace]:has(> [data-slot~=sidebar-nav]:not([data-state~=collapsed])) .\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:has\\(\\>\\[data-slot\\~\\=sidebar-nav\\]\\:not\\(\\[data-state\\~\\=collapsed\\]\\)\\)_\\&\\]\\:\\@max-side-panel-lane\\/app-layout-workspace\\:absolute {
+			position: absolute;
+		}
+		[data-slot~=app-layout-workspace]:has(> [data-slot~=sidebar-nav]:not([data-state~=collapsed])) .\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:has\\(\\>\\[data-slot\\~\\=sidebar-nav\\]\\:not\\(\\[data-state\\~\\=collapsed\\]\\)\\)_\\&\\]\\:\\@max-side-panel-lane\\/app-layout-workspace\\:right-\\(--app-layout-card-gutter\\,0\\.5rem\\) {
 			right: var(--app-layout-card-gutter, 0.5rem);
 		}
 	}
 	@media (width >= 40rem) {
+		@container app-layout-workspace (width < 46.75rem) {
+			.sm\\:\\@max-side-panel-lane-icon-rail\\/app-layout-workspace\\:w-\\[min\\(24rem\\,calc\\(100vw-5rem\\)\\)\\] {
+				width: min(24rem, calc(100vw - 5rem));
+			}
+		}
 		@container app-layout-workspace (width < 56.5rem) {
-			.sm\\:\\@max-side-panel-lane\\/app-layout-workspace\\:w-\\[min\\(24rem\\,calc\\(100vw-5rem\\)\\)\\] {
+			[data-slot~=app-layout-workspace]:has(> [data-slot~=sidebar-nav]:not([data-state~=collapsed])) .sm\\:\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:has\\(\\>\\[data-slot\\~\\=sidebar-nav\\]\\:not\\(\\[data-state\\~\\=collapsed\\]\\)\\)_\\&\\]\\:\\@max-side-panel-lane\\/app-layout-workspace\\:w-\\[min\\(24rem\\,calc\\(100vw-5rem\\)\\)\\] {
 				width: min(24rem, calc(100vw - 5rem));
 			}
 		}
@@ -215,12 +230,46 @@ describe("AppLayout.SidePanel lane float", () => {
 		return getComputedStyle(screen.getByRole("complementary", { name: "Assistant" })).position;
 	}
 
-	test("floats the panel when the row is narrower than the lane", () => {
-		expect(renderRow("50rem")).toBe("absolute");
+	test("floats the panel when a row with no rail is narrower than the icon-rail lane", () => {
+		expect(renderRow("45rem")).toBe("absolute");
 	});
 
-	test("keeps the panel in the row when the row holds the lane", () => {
-		expect(renderRow("60rem")).toBe("relative");
+	test("keeps the panel in a row with no rail that holds the icon-rail lane", () => {
+		expect(renderRow("48rem")).toBe("relative");
+	});
+
+	/**
+	 * The row with a real `Sidebar.Nav` beside the card, so the `:has()` on the
+	 * rail's `data-slot` and `data-state` matches what the rail emits. The
+	 * viewport is desktop width, so the rail renders in the row and not as a
+	 * sheet.
+	 */
+	async function renderRowWithRail(width: string, { railOpen }: { railOpen: boolean }) {
+		await page.viewport(1280, 800);
+		render(
+			<Sidebar.Root defaultOpen={railOpen}>
+				<AppLayout.SidePanelRoot defaultOpen>
+					<AppLayout.Workspace style={{ width }}>
+						<Sidebar.Nav aria-label="Main" />
+						<AppLayout.Content />
+						<AppLayout.SidePanel aria-label="Assistant" />
+					</AppLayout.Workspace>
+				</AppLayout.SidePanelRoot>
+			</Sidebar.Root>,
+		);
+		return getComputedStyle(screen.getByRole("complementary", { name: "Assistant" })).position;
+	}
+
+	test("floats the panel beside an expanded rail when the row is narrower than the lane", async () => {
+		expect(await renderRowWithRail("48rem", { railOpen: true })).toBe("absolute");
+	});
+
+	test("keeps the panel in the same row beside a collapsed rail", async () => {
+		expect(await renderRowWithRail("48rem", { railOpen: false })).toBe("relative");
+	});
+
+	test("keeps the panel beside an expanded rail once the row holds the lane", async () => {
+		expect(await renderRowWithRail("60rem", { railOpen: true })).toBe("relative");
 	});
 
 	/** The floating panel's width, with the `md` breakpoint's cover tier below `sm`. */
@@ -238,8 +287,8 @@ describe("AppLayout.SidePanel lane float", () => {
 
 	test("takes the strip width above the cover tier", async () => {
 		await page.viewport(800, 600);
-		// Why: 50rem is under the lane, and 24rem is under 800px minus 5rem.
-		expect(renderFloatingWidth("50rem")).toBe(384);
+		// Why: 45rem is under the icon-rail lane, and 24rem is under 800px minus 5rem.
+		expect(renderFloatingWidth("45rem")).toBe(384);
 	});
 
 	test("covers the row from gutter to gutter on a phone", async () => {
@@ -247,5 +296,122 @@ describe("AppLayout.SidePanel lane float", () => {
 		// Why: the cover pins both edges inside the 8px gutter, and a strip
 		// width from the row rule would pull the panel off the end edge.
 		expect(renderFloatingWidth("20rem")).toBe(320 - 16);
+	});
+});
+
+/**
+ * A combobox closes its listbox from a document listener on the same Escape,
+ * and the listbox is gone before the event reaches the panel. Only a real
+ * engine orders the listeners and flushes the update that way, so the
+ * happy-dom case cannot see it.
+ */
+describe("AppLayout.SidePanel Escape with a nested popup", () => {
+	test("Escape inside an open combobox closes the listbox and keeps the floating panel open", async () => {
+		await page.viewport(800, 600);
+		render(
+			<AppLayout.SidePanelRoot defaultOpen>
+				<AppLayout.Workspace style={{ width: "45rem" }}>
+					<AppLayout.Content />
+					<AppLayout.SidePanel aria-label="Assistant" mobileBreakpoint="md">
+						<Combobox.Root>
+							<Combobox.Input aria-label="Fruit" />
+							<Combobox.Content>
+								<Combobox.Item value="Apple" />
+								<Combobox.Item value="Banana" />
+							</Combobox.Content>
+						</Combobox.Root>
+					</AppLayout.SidePanel>
+				</AppLayout.Workspace>
+			</AppLayout.SidePanelRoot>,
+		);
+		const panel = screen.getByRole("complementary", { name: "Assistant" });
+		expect(getComputedStyle(panel).position).toBe("absolute");
+		await userEvent.click(screen.getByRole("combobox", { name: "Fruit" }));
+		await screen.findByRole("option", { name: "Apple" });
+		await userEvent.keyboard("{Escape}");
+		await expect.poll(() => screen.queryByRole("option", { name: "Apple" })).toBeNull();
+		expect(panel).toHaveAttribute("data-state", "open");
+		await userEvent.keyboard("{Escape}");
+		await expect.poll(() => panel.getAttribute("data-state")).toBe("closed");
+	});
+});
+
+/**
+ * The swipe reads the panel's computed position at pointer down and its
+ * laid-out width at release, so the float and the width come from the real
+ * container query above. The `md` breakpoint keeps the strip
+ * width rule above the cover tier at an 800px viewport. The pointer is synthetic: a `PointerEvent` with
+ * coordinates, dispatched on the header and then on the document, the way a
+ * real pointer's events bubble.
+ */
+describe("AppLayout.SidePanelHeader swipe", () => {
+	function renderShell(rowWidth: string) {
+		render(
+			<AppLayout.SidePanelRoot defaultOpen>
+				<AppLayout.Workspace style={{ width: rowWidth }}>
+					<AppLayout.Content />
+					<AppLayout.SidePanel aria-label="Assistant" mobileBreakpoint="md">
+						<AppLayout.SidePanelHeader data-testid="header">Assistant</AppLayout.SidePanelHeader>
+					</AppLayout.SidePanel>
+				</AppLayout.Workspace>
+			</AppLayout.SidePanelRoot>,
+		);
+		return {
+			header: screen.getByTestId("header"),
+			panel: screen.getByRole("complementary", { name: "Assistant" }),
+		};
+	}
+
+	const pointer = { pointerId: 1, isPrimary: true, button: 0, bubbles: true } as const;
+
+	function press(header: HTMLElement, clientX: number) {
+		header.dispatchEvent(new PointerEvent("pointerdown", { ...pointer, clientX }));
+	}
+
+	function move(clientX: number) {
+		document.dispatchEvent(new PointerEvent("pointermove", { ...pointer, clientX }));
+	}
+
+	function release(clientX: number) {
+		document.dispatchEvent(new PointerEvent("pointerup", { ...pointer, clientX }));
+	}
+
+	test("a drag past 25% of the floating panel's width slides it and closes it", async () => {
+		await page.viewport(800, 600);
+		const { header, panel } = renderShell("45rem");
+		// Why 384: the strip width, so the threshold is 96px.
+		expect(panel.getBoundingClientRect().width).toBe(384);
+		press(header, 100);
+		move(150);
+		expect(panel.style.translate).toBe("50px");
+		move(200);
+		release(200);
+		await expect.poll(() => panel.getAttribute("data-state")).toBe("closed");
+		expect(panel.style.translate).toBe("");
+	});
+
+	test("a drag under the threshold springs the floating panel back", async () => {
+		await page.viewport(800, 600);
+		const { header, panel } = renderShell("45rem");
+		press(header, 100);
+		move(150);
+		release(150);
+		expect(panel).toHaveAttribute("data-state", "open");
+		expect(panel.style.translate).toBe("");
+	});
+
+	test("the same drag on a panel in the lane shrinks its basis and closes it", async () => {
+		await page.viewport(800, 600);
+		const { header, panel } = renderShell("60rem");
+		const width = panel.getBoundingClientRect().width;
+		press(header, 100);
+		move(150);
+		// Why toBeCloseTo: the engine serializes the inline length at a few decimals.
+		expect(Number.parseFloat(panel.style.flexBasis)).toBeCloseTo(width - 50, 2);
+		expect(panel.style.translate).toBe("");
+		move(100 + Math.ceil(width * 0.25));
+		release(100 + Math.ceil(width * 0.25));
+		await expect.poll(() => panel.getAttribute("data-state")).toBe("closed");
+		expect(panel.style.flexBasis).toBe("");
 	});
 });

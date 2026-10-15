@@ -59,12 +59,13 @@ a shell of its own loses an in-memory conversation at that crossing unless the p
 app/routes/layouts/app.tsx                     the layout route that owns the shell
 ├── AssistantConversationProvider              the one store: messages, draft, the reply in flight
 └── AppLayout.SidePanelRoot                    open state, read from the cookie in the loader
-    └── AppLayout.Workspace
-        ├── Sidebar.Nav                        <Link viewTransition={crossesAssistant(pathname, to)}>
-        ├── AppLayout.Content                  named on /assistant
-        │   └── <Outlet />
-        │       └── AssistantPage              /assistant: the toolbar, main, the composer
-        └── AssistantPanel                     every other route: the aside, named while open
+    └── AssistantSidebarRoot                   Sidebar.Root that prefers the icon rail while the panel needs the lane
+        └── AppLayout.Workspace
+            ├── Sidebar.Nav                    <Link viewTransition={crossesAssistant(pathname, to)}>
+            ├── AppLayout.Content              named on /assistant
+            │   └── <Outlet />
+            │       └── AssistantPage          /assistant: the toolbar, main, the composer
+            └── AssistantPanel                 every other route: the aside, named while open
 ```
 
 ## The route decides
@@ -81,7 +82,12 @@ import {
 	serializeSidePanelStateCookie,
 } from "@ngrok/mantle/app-layout";
 import { cx } from "@ngrok/mantle/cx";
-import { Sidebar, useSidebar } from "@ngrok/mantle/sidebar";
+import {
+	extractSidebarStateCookie,
+	serializeSidebarStateCookie,
+	Sidebar,
+	useSidebar,
+} from "@ngrok/mantle/sidebar";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { GraphIcon } from "@phosphor-icons/react/Graph";
 import { SparkleIcon } from "@phosphor-icons/react/Sparkle";
@@ -89,6 +95,7 @@ import { useEffect } from "react";
 import { Link, Outlet, useLocation } from "react-router";
 import {
 	AssistantPanel,
+	AssistantSidebarRoot,
 	assistantPath,
 	assistantViewTransitionClassName,
 	crossesAssistant,
@@ -102,9 +109,13 @@ const navItems = [
 	{ label: "Endpoints", icon: <GraphIcon />, path: "/endpoints" },
 ];
 
-export const loader = ({ request }: Route.LoaderArgs) => ({
-	sidePanelOpen: extractSidePanelStateCookie(request.headers.get("Cookie")) ?? false,
-});
+export const loader = ({ request }: Route.LoaderArgs) => {
+	const cookie = request.headers.get("Cookie");
+	return {
+		sidebarOpen: extractSidebarStateCookie(cookie) ?? true,
+		sidePanelOpen: extractSidePanelStateCookie(cookie) ?? false,
+	};
+};
 
 /** Closes the rail's mobile sheet on every navigation. A route change alone leaves it over the page. */
 function CloseMobileNavOnNavigate() {
@@ -122,16 +133,22 @@ export default function Layout({ loaderData }: Route.ComponentProps) {
 
 	return (
 		<AssistantConversationProvider>
-			<Sidebar.Root>
-				<CloseMobileNavOnNavigate />
-				<AppLayout.Root className="fixed inset-0">
-					<SkipToMainLink />
-					<AppLayout.SidePanelRoot
-						defaultOpen={loaderData.sidePanelOpen}
-						onOpenChange={(open) => {
-							document.cookie = serializeSidePanelStateCookie(open);
-						}}
-					>
+			<AppLayout.SidePanelRoot
+				defaultOpen={loaderData.sidePanelOpen}
+				onOpenChange={(open) => {
+					document.cookie = serializeSidePanelStateCookie(open);
+				}}
+			>
+				<AssistantSidebarRoot
+					panelMounted={!onAssistantPage}
+					defaultOpen={loaderData.sidebarOpen}
+					onOpenChange={(open) => {
+						document.cookie = serializeSidebarStateCookie(open);
+					}}
+				>
+					<CloseMobileNavOnNavigate />
+					<AppLayout.Root className="fixed inset-0">
+						<SkipToMainLink />
 						<AppLayout.Workspace>
 							<Sidebar.Nav aria-label="Main">
 								<Sidebar.Body>
@@ -163,9 +180,9 @@ export default function Layout({ loaderData }: Route.ComponentProps) {
 							</AppLayout.Content>
 							{!onAssistantPage && <AssistantPanel />}
 						</AppLayout.Workspace>
-					</AppLayout.SidePanelRoot>
-				</AppLayout.Root>
-			</Sidebar.Root>
+					</AppLayout.Root>
+				</AssistantSidebarRoot>
+			</AppLayout.SidePanelRoot>
 		</AssistantConversationProvider>
 	);
 }
@@ -194,9 +211,11 @@ Three rules keep the transition running:
 - **Do not render the panel on the assistant's route.** A closed panel is still an `<aside>` with the
   conversation mounted inside it, rendered twice for nothing. An open one would name the conversation
   twice.
-- **Keep `AppLayout.SidePanelRoot` above both.** It is renderless, and `AssistantPage` calls
-  [`useSidePanel`](/layouts/app-layout#usesidepanel) to open the companion on the first message, so the
-  conversation comes along when the reader leaves.
+- **Keep `AppLayout.SidePanelRoot` above both, and above the rail.** It is renderless, and `AssistantPage`
+  calls [`useSidePanel`](/layouts/app-layout#usesidepanel) to open the companion on the first message, so
+  the conversation comes along when the reader leaves. `AssistantSidebarRoot` reads the same state to yield
+  the rail's width to the panel (see [Tablet and phone](#tablet-and-phone)), so it sits below the root and
+  above the shell.
 
 The panel mounts open when the reader leaves the assistant's route, so its own 200ms slide never runs:
 there is no closed state to slide from. The morph is the only animation. The same holds in reverse: the
@@ -290,28 +309,46 @@ The conversation itself is data, and the demo's store is in memory. A real assis
 conversation on the server and puts its id in the URL or a cookie, so a reload hydrates the same
 transcript.
 
-## Mobile
+## Tablet and phone
 
-Below `mobileBreakpoint` the panel floats over the card instead of taking width from it. The crossing
-still morphs: the page shrinks into the floating card. Match the prop to `Sidebar.Root`'s, so the rail and
-the panel change presentation at one width. The demo narrows both to `md`; most apps keep the `lg`
-default.
+Three widths, one `<aside>`. The panel keeps its DOM across all of them, so the conversation never
+remounts, and the crossing still morphs: the page shrinks into whichever shape the panel takes.
+
+- **Beside the page, with the rail yielding.** Between the lane an icon rail needs (46.75rem) and the lane
+  an expanded rail needs (56.5rem), an expanded rail leaves the row too narrow for the panel, and the panel
+  floats over the page. `AssistantSidebarRoot` prefers the icon rail there: when the panel opens, or the
+  window narrows below the lane while it is open, the rail collapses and the panel sits beside the page.
+  The reader can expand the rail again with `Sidebar.Trigger`, and the panel floats. When the panel closes
+  or the window widens, a rail the panel collapsed expands again, and a rail the reader toggled keeps their
+  choice. `onOpenChange` reports the reader's toggles only, so the sidebar cookie keeps their preference.
+- **Floating, below `mobileBreakpoint`.** The panel is an overlay the reader can also dismiss with
+  `Escape` while focus is inside. The page beneath stays usable. A drag on the panel's header toward the
+  end edge swipes it away at every width, beside the page too.
+- **Covering, one breakpoint lower.** The panel spans the row from gutter to gutter and turns modal: the
+  card and the rail go `inert`, a focus trap wraps `Tab` inside it, and `Escape` closes it. Nothing beneath
+  it is clickable or read.
+
+Match `mobileBreakpoint` to `Sidebar.Root`'s, so the rail and the panel change presentation at one width.
+The demo narrows both to `md`; most apps keep the `lg` default.
 
 ## The files
 
-Two files to copy, and the stylesheet above. `assistant-across-routes.tsx` is the two homes and the two
-path helpers; nothing in it touches the router. `assistant-conversation.tsx` is the store and the two
-pieces of chat UI; nothing in it knows where it renders.
+Two files to copy, and the stylesheet above. `assistant-across-routes.tsx` is the two homes, the rail
+that yields to the panel, and the two path helpers; nothing in it touches the router.
+`assistant-conversation.tsx` is the store and the two pieces of chat UI; nothing in it knows where it
+renders.
 
 ````tsx
 import { AppLayout, useSidePanel } from "@ngrok/mantle/app-layout";
 import { IconButton } from "@ngrok/mantle/button";
 import { cx } from "@ngrok/mantle/cx";
+import { useMatchesMediaQuery } from "@ngrok/mantle/hooks";
 import { Sidebar } from "@ngrok/mantle/sidebar";
 import { Tooltip } from "@ngrok/mantle/tooltip";
 import { PencilSimpleLineIcon } from "@phosphor-icons/react/PencilSimpleLine";
 import { XIcon } from "@phosphor-icons/react/X";
 import type { ComponentProps } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
 	AssistantComposer,
 	AssistantTranscript,
@@ -495,10 +532,91 @@ function AssistantPanel({
 	);
 }
 
+/**
+ * The props of `AssistantSidebarRoot`: `Sidebar.Root`'s, except `open`, which
+ * the part derives.
+ */
+type AssistantSidebarRootProps = Omit<ComponentProps<typeof Sidebar.Root>, "open"> & {
+	/**
+	 * Whether `AssistantPanel` is in the row. On the assistant's route it is
+	 * not, and the rail keeps its width.
+	 */
+	panelMounted: boolean;
+};
+
+/**
+ * The `Sidebar.Root` of a shell with the assistant beside the page. The rail
+ * prefers its icon rail while the panel needs the width: when the panel opens,
+ * or the window narrows below the lane an expanded rail needs while the panel
+ * is open, the rail collapses, so the panel sits beside the page instead of
+ * floating over it. The reader can expand it again with `Sidebar.Trigger`, and
+ * the panel floats. When the panel closes or the window widens, a rail the
+ * panel collapsed expands again, and a rail the reader toggled keeps their
+ * choice. `onOpenChange` reports the reader's toggles only, so the sidebar
+ * cookie keeps their preference.
+ *
+ * @example
+ * ```tsx
+ * <AppLayout.SidePanelRoot defaultOpen={loaderData.sidePanelOpen}>
+ *   <AssistantSidebarRoot panelMounted={!onAssistantPage} defaultOpen={loaderData.sidebarOpen}>
+ *     <AppLayout.Root className="fixed inset-0">…</AppLayout.Root>
+ *   </AssistantSidebarRoot>
+ * </AppLayout.SidePanelRoot>
+ * ```
+ */
+function AssistantSidebarRoot({
+	children,
+	defaultOpen = true,
+	onOpenChange,
+	panelMounted,
+	...props
+}: AssistantSidebarRootProps) {
+	const [railOpen, setRailOpen] = useState(defaultOpen);
+	const { open: panelOpen } = useSidePanel();
+	// Why 56.5rem: it is `--container-side-panel-lane`, the narrowest row that
+	// holds the expanded rail, the page, and the panel. Below it the row is the
+	// viewport's width, so the viewport query is the row's.
+	const panelNeedsTheLane = useMatchesMediaQuery("(width < 56.5rem)");
+	const panelNeedsTheRail = panelMounted && panelOpen && panelNeedsTheLane;
+	const panelNeededTheRail = useRef(false);
+	// Why a ref: only a collapse the panel caused expands again, and a toggle
+	// by the reader in between cancels that.
+	const collapsedByPanel = useRef(false);
+
+	useEffect(() => {
+		const panelTookTheWidth = panelNeedsTheRail && !panelNeededTheRail.current;
+		const panelGaveItBack = !panelNeedsTheRail && panelNeededTheRail.current;
+		panelNeededTheRail.current = panelNeedsTheRail;
+		if (panelTookTheWidth && railOpen) {
+			collapsedByPanel.current = true;
+			setRailOpen(false);
+		}
+		if (panelGaveItBack && collapsedByPanel.current) {
+			collapsedByPanel.current = false;
+			setRailOpen(true);
+		}
+	}, [panelNeedsTheRail, railOpen]);
+
+	return (
+		<Sidebar.Root
+			{...props}
+			open={railOpen}
+			onOpenChange={(open) => {
+				collapsedByPanel.current = false;
+				setRailOpen(open);
+				onOpenChange?.(open);
+			}}
+		>
+			{children}
+		</Sidebar.Root>
+	);
+}
+
 export {
 	//,
 	AssistantPage,
 	AssistantPanel,
+	AssistantSidebarRoot,
 	assistantPath,
 	assistantViewTransitionClassName,
 	crossesAssistant,

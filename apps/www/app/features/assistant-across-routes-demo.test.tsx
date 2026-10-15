@@ -34,6 +34,30 @@ afterEach(() => {
 
 const composerName = "Message the assistant";
 
+/**
+ * The query `AssistantSidebarRoot` reads: the viewport is narrower than the
+ * lane an expanded rail needs.
+ */
+const belowTheLane = "(width < 56.5rem)";
+
+/**
+ * Stubs `window.matchMedia` so each listed query matches and every other one
+ * (the rail's own `md` breakpoint included) does not. happy-dom has no viewport
+ * to lay out, so the query is the only environment to mock.
+ */
+function stubMatchMedia(matching: ReadonlyArray<string>) {
+	vi.spyOn(window, "matchMedia").mockImplementation((query: string) => ({
+		matches: matching.includes(query),
+		media: query,
+		onchange: null,
+		addListener: () => {},
+		removeListener: () => {},
+		addEventListener: () => {},
+		removeEventListener: () => {},
+		dispatchEvent: () => false,
+	}));
+}
+
 /** The docs site mounts a `TooltipProvider` in `root.tsx`; the sidebar rows need it. */
 function renderDemo() {
 	return render(
@@ -43,7 +67,65 @@ function renderDemo() {
 	);
 }
 
+/** The desktop rail's `data-state`, which `Sidebar.Nav` stamps around the `nav`. */
+function railState() {
+	return screen
+		.getByRole("navigation", { name: "Main" })
+		.closest("[data-state]")
+		?.getAttribute("data-state");
+}
+
 describe("AssistantAcrossRoutesDemo", () => {
+	it("collapses the rail when the panel opens below the lane and expands it again on close", async () => {
+		stubMatchMedia([belowTheLane]);
+		const user = userEvent.setup();
+		renderDemo();
+
+		// Why expanded here: the assistant route renders no panel beside the page.
+		expect(railState()).toBe("expanded");
+
+		await user.click(screen.getByRole("link", { name: "Endpoints" }));
+		expect(railState()).toBe("collapsed");
+
+		await user.click(screen.getByRole("button", { name: "Close the assistant" }));
+		expect(railState()).toBe("expanded");
+	});
+
+	it("lets the reader expand the rail again beside the open panel, and keeps that choice on close", async () => {
+		stubMatchMedia([belowTheLane]);
+		const user = userEvent.setup();
+		renderDemo();
+
+		await user.click(screen.getByRole("link", { name: "Endpoints" }));
+		await user.click(screen.getByRole("button", { name: "Toggle Sidebar" }));
+		expect(railState()).toBe("expanded");
+
+		await user.click(screen.getByRole("button", { name: "Close the assistant" }));
+		expect(railState()).toBe("expanded");
+	});
+
+	it("leaves a rail the reader collapsed alone when the panel closes", async () => {
+		stubMatchMedia([belowTheLane]);
+		const user = userEvent.setup();
+		renderDemo();
+
+		await user.click(screen.getByRole("button", { name: "Toggle Sidebar" }));
+		await user.click(screen.getByRole("link", { name: "Endpoints" }));
+		expect(railState()).toBe("collapsed");
+
+		await user.click(screen.getByRole("button", { name: "Close the assistant" }));
+		expect(railState()).toBe("collapsed");
+	});
+
+	it("keeps the rail expanded beside the open panel when the viewport holds the lane", async () => {
+		stubMatchMedia([]);
+		const user = userEvent.setup();
+		renderDemo();
+
+		await user.click(screen.getByRole("link", { name: "Endpoints" }));
+		expect(railState()).toBe("expanded");
+	});
+
 	it("renders the conversation in main on the assistant route and in the panel elsewhere", async () => {
 		const user = userEvent.setup();
 		renderDemo();

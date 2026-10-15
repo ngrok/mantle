@@ -1093,10 +1093,25 @@ custom control composes the same state from [`useSidePanel`](#usesidepanel).
   side in 900px are two unusable cards. Match the prop to `Sidebar.Root`'s `mobileBreakpoint`, so the rail
   and the panel change presentation at one width.
 - **When the row is too narrow**, the panel floats the same way whatever the viewport is. `AppLayout.Workspace`
-  is the container named `app-layout-workspace`, and below the `--container-side-panel-lane` theme token
-  (56.5rem: the expanded rail, the card at the panel's floor, the panel, and the three gutters) the panel
-  leaves the row. The page is never narrower than the panel beside it: an expanded rail at a tablet width
-  floats the panel instead of squeezing the page. A wider rail or panel raises the token in `@theme`.
+  is the container named `app-layout-workspace`, and the panel leaves the row below the lane it needs. The
+  lane depends on the rail beside the card. While a direct child of the row is an expanded `Sidebar.Nav`,
+  it is the `--container-side-panel-lane` theme token (56.5rem: the expanded rail, the card at the panel's
+  floor, the panel, and the three gutters). With a collapsed rail, no rail, or a rail that is a sheet, it is
+  `--container-side-panel-lane-icon-rail` (46.75rem: the same row with the icon rail). The page is never
+  narrower than the panel beside it: an expanded rail at a tablet width floats the panel instead of
+  squeezing the page, and collapsing the rail returns the panel to the lane. A wider rail or panel raises
+  the tokens in `@theme`.
+- **A swipe closes it in every presentation.** A drag on `AppLayout.SidePanelHeader` toward the end edge
+  follows the pointer one to one: a floating panel slides, and a panel in the lane shrinks the way its
+  close animation does, so the page grows under the finger. A release past 25% of the panel's width, or a
+  flick, closes it; a shorter drag springs back, and a drag the wrong way meets rubber-band resistance.
+- **Floating, the panel is an overlay** the reader can also dismiss with `Escape` while focus is inside.
+  An open combobox or popover inside the panel takes the first `Escape`, and the next one closes the panel.
+  The page beneath stays usable. A panel in the lane is a docked pane and ignores `Escape`.
+- **Covering, the panel is modal.** The row's other children, the card and the rail, go `inert` while it
+  is open, so nothing beneath it is clickable or read, and [`useFocusTrap`](/hooks#usefocustrap) wraps
+  `Tab` inside it and moves focus into it on open. The one `<aside>` stays mounted across the lane, the
+  float, and the cover, so a conversation keeps its DOM and the trap turns on and off with the viewport.
 
 The panel keeps the card gutter on its top, end, and bottom edges and none on its start edge, so the card's
 own end margin is the gap between the two: one gutter wide, the same number as the inset from the window.
@@ -1108,8 +1123,9 @@ every close, whether a trigger, `setOpen`, or a controlled parent closed the pan
 at the current breakpoint, or a disabled one, cannot take focus either, so a responsive header with one
 trigger per breakpoint lands on the visible one. Open the assistant from the header and close it from its
 own header. The demo narrows both breakpoints to `md`. The tablet preset is 48rem, narrower than the lane
-the panel needs beside an expanded rail, so the panel floats there. Switch the preview to the mobile
-viewport to see it cover the card.
+the panel needs beside an expanded rail, so the panel floats there; collapse the rail with its trigger and
+the panel returns to the lane beside the page. Switch the preview to the mobile viewport to see it cover the
+card.
 
 An assistant can also be a page of its own. [Assistant Across Routes](/recipes/assistant-across-routes)
 renders one conversation in `main` on the assistant's route and in this panel on every other route, with a
@@ -1922,8 +1938,8 @@ function fakePolicy(ruleCount: number): string {
 
 The status bar in the example above is **route-owned**, and that is the only home it can have: a route
 renders through an `<Outlet />` inside `AppLayout.Body`, so it can only ever add descendants of the page
-region. There is no `AppLayout.Footer` for it to reach, and it does not need one. Three flex rules do the
-whole job:
+region. There is no `AppLayout.Footer` for it to reach, and it does not need one. A flex column and a
+sticky bar do the whole job, and the body stays the one scroll region:
 
 <CodeExample.Root>
 	<CodeExample.Preview className="p-0 md:p-0">
@@ -1947,11 +1963,10 @@ export function PolicyPage() {
 					{/* Why asChild: the docs page already owns the main landmark. */}
 					<AppLayout.Body asChild>
 						<div>
-							{/* the page's own root — this is what "pinned to the bottom of the
-							    card" means, and it is all three rules at once */}
-							<div className="flex h-full flex-col">
-								{/* anything that must keep its height: shrink-0 */}
-								<div className="border-card-muted flex shrink-0 items-center gap-3 border-b px-6 py-3">
+							{/* the page's own root: a column at least as tall as the card's interior */}
+							<div className="flex min-h-full flex-col">
+								{/* the toolbar sticks to the top edge while the body scrolls under it */}
+								<div className="bg-card border-card-muted sticky top-0 flex shrink-0 items-center gap-3 border-b px-6 py-3">
 									<p className="text-strong text-sm font-medium">Traffic policy</p>
 									<Button
 										type="button"
@@ -1965,19 +1980,18 @@ export function PolicyPage() {
 									</Button>
 								</div>
 
-								{/* the region that absorbs the slack and scrolls: min-h-0 flex-1 */}
-								<div className="relative min-h-0 flex-1 overflow-y-auto">
-									<div className="space-y-3 p-6">
-										{Array.from({ length: ruleCount }, (_, index) => (
-											<div key={index} className="border-card-muted rounded-lg border p-4">
-												<p className="text-strong text-sm font-medium">Rule {index + 1}</p>
-											</div>
-										))}
-									</div>
+								{/* the content scrolls in the body, with no scroll region of its own */}
+								<div className="space-y-3 p-6">
+									{Array.from({ length: ruleCount }, (_, index) => (
+										<div key={index} className="border-card-muted rounded-lg border p-4">
+											<p className="text-strong text-sm font-medium">Rule {index + 1}</p>
+										</div>
+									))}
 								</div>
 
-								{/* the footer, on the card's bottom edge: shrink-0 */}
-								<div className="border-card-muted text-muted flex shrink-0 items-center gap-2 border-t px-6 py-2 text-xs">
+								{/* the footer: mt-auto puts it on the bottom edge of a short page,
+								    sticky keeps it there once the page scrolls */}
+								<div className="bg-card border-card-muted text-muted sticky bottom-0 mt-auto flex shrink-0 items-center gap-2 border-t px-6 py-2 text-xs">
 									<CheckCircleIcon weight="fill" className="fill-success-600 shrink-0" />
 									Traffic policy is valid — {ruleCount} rules
 								</div>
@@ -1995,20 +2009,22 @@ export function PolicyPage() {
 
 </CodeExample.Root>
 
-- **`h-full` on the page root** makes it exactly as tall as the card's interior. This is the part that only
-  works because `AppLayout.Body` is a flex item with `min-h-0 flex-1`: a definite height for `100%` to
-  resolve against.
-- **`shrink-0` on the bar** stops flexbox taking height back from it when the middle region is tall. Without
-  it, a long page squeezes the bar toward zero instead of scrolling.
-- **`min-h-0 flex-1` on the middle region** is what actually scrolls. `min-h-0` is the non-obvious half: a
-  flex item's default `min-height: auto` refuses to shrink below its content, so without it the middle region
-  grows past the card and pushes the bar below the fold: the bar is still "pinned", just pinned somewhere
-  you cannot see.
+- **`min-h-full` on the page root** makes it at least as tall as the card's interior, so a short page still
+  reaches the bottom edge. This is the part that only works because `AppLayout.Body` is a flex item with
+  `min-h-0 flex-1`: a definite height for `100%` to resolve against.
+- **`mt-auto` on the bar** pushes it to the bottom of that column on a short page.
+- **`sticky bottom-0` on the bar** keeps it on the card's bottom edge once the page is taller than the card
+  and the body scrolls. Give the bar a background: the page scrolls under it.
 
-This composes to any depth, and nesting is where it usually goes wrong. A route that owns a page header and
-tabs above a child route that owns an editor and its validity bar (ngrok's endpoint detail route) is the
-same three rules applied twice. Grow the policy with **Add rules**: the title, tabs, and toolbar hold their
-positions, the editor scrolls, and the validity bar stays on the card's bottom edge.
+Nothing here scrolls but `AppLayout.Body`. The skip link lands on `main`, which is the body, so Page Down
+after the jump scrolls the page. A page that nests its own `overflow-y-auto` region inside the body leaves
+`main` with nothing to scroll, and the jump strands a keyboard user on a landmark that does not move.
+
+This composes to any depth. A route that owns a page header and tabs above a child route that owns an
+editor and its validity bar (ngrok's endpoint detail route) is the same shape twice: each level is a flex
+column that grows, and the bar at the leaf carries `mt-auto` and `sticky bottom-0`. Grow the policy with
+**Add rules**: the title and tabs stick to the top edge, the editor scrolls with the body, and the validity
+bar stays on the card's bottom edge.
 
 <CodeExample.Root>
 	<CodeExample.PreviewFrame example="app-layout-pinned-footer" title="Pinned footer demo" />
@@ -2042,8 +2058,9 @@ const policy = [
 	"          rate: 60s",
 ].join("\n");
 
-// route: /endpoints/:type/:id — owns the title + tabs. h-full fills the card;
-// gap-0 because the rows below manage their own spacing.
+// route: /endpoints/:type/:id — owns the title + tabs. min-h-full reaches the
+// card's bottom edge on a short page; gap-0 because the rows below manage
+// their own spacing.
 export function EndpointDetailRoute() {
 	return (
 		<>
@@ -2053,8 +2070,9 @@ export function EndpointDetailRoute() {
 				</AppLayout.HeaderStart>
 			</AppLayout.Header>
 			<AppLayout.Body>
-				<Tabs.Root defaultValue="traffic-policy" className="h-full gap-0">
-					<div className="shrink-0 px-6 pt-4">
+				<Tabs.Root defaultValue="traffic-policy" className="min-h-full gap-0">
+					{/* the title and tabs stick to the top edge while the body scrolls */}
+					<div className="bg-card sticky top-0 shrink-0 px-6 pt-4">
 						<h1 className="text-strong text-xl font-medium break-all">{endpoint.url}</h1>
 						<div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1">
 							<Badge appearance="muted" color="info">
@@ -2073,8 +2091,8 @@ export function EndpointDetailRoute() {
 						<Tabs.Separator />
 					</div>
 
-					{/* hands the child route a definite height */}
-					<Tabs.Content value="traffic-policy" className="min-h-0 flex-1">
+					{/* grows to the bottom edge, and hands the child route the same column */}
+					<Tabs.Content value="traffic-policy" className="flex flex-1 flex-col">
 						<Outlet />
 					</Tabs.Content>
 				</Tabs.Root>
@@ -2086,7 +2104,7 @@ export function EndpointDetailRoute() {
 // child route: /endpoints/:type/:id/traffic-policy/editor — owns the toolbar + validity bar
 export function TrafficPolicyEditorRoute() {
 	return (
-		<div className="flex h-full flex-col">
+		<div className="flex flex-1 flex-col">
 			<div className="border-card-muted flex shrink-0 items-center gap-3 border-y px-6 py-3">
 				<Badge appearance="muted" color="neutral">
 					YAML
@@ -2095,12 +2113,10 @@ export function TrafficPolicyEditorRoute() {
 					Save
 				</Button>
 			</div>
-			<div className="min-h-0 flex-1 overflow-y-auto">
-				<pre translate="no" className="text-body p-6 font-mono text-xs leading-6">
-					{policy}
-				</pre>
-			</div>
-			<div className="border-card-muted text-muted flex shrink-0 items-center gap-2 border-t px-6 py-2 text-xs">
+			<pre translate="no" className="text-body p-6 font-mono text-xs leading-6">
+				{policy}
+			</pre>
+			<div className="bg-card border-card-muted text-muted sticky bottom-0 mt-auto flex shrink-0 items-center gap-2 border-t px-6 py-2 text-xs">
 				<CheckCircleIcon weight="fill" className="fill-success-600 shrink-0" />
 				Traffic policy is valid
 			</div>
@@ -2113,11 +2129,11 @@ export function TrafficPolicyEditorRoute() {
 
 </CodeExample.Root>
 
-The nested `min-h-0 flex-1` is what lets the child route's `h-full` resolve: each level hands the next a
-definite height. Miss `min-h-0` at any one level and everything below it overflows the card instead of
-scrolling: the bar is still "pinned" in the markup, it is just pinned somewhere past the fold. That is the
-single most common way this shape goes wrong, and it fails silently, which is why it is worth checking at
-every level rather than only at the leaf.
+Each level hands the next `flex-1`, never a height: `Tabs.Content` grows inside `Tabs.Root`, and the child
+route's root grows inside it, so `mt-auto` on the bar pushes it to the card's bottom edge on a short policy.
+Miss `flex-1` at one level and the bar sits under the last line of content instead of on the edge. That is
+the way this shape goes wrong now, and it shows at once, because nothing overflows and nothing but the body
+scrolls.
 
 ## Scroll restoration
 
@@ -2295,7 +2311,9 @@ export function Shell() {
   `AppLayout.SidePanelTrigger` outside the panel that can take focus. The return runs on every close,
   whether a trigger, `setOpen`, or a controlled parent closed the panel. A trigger that CSS hides at the
   current breakpoint, or a disabled one, cannot take focus either, so a responsive header with one trigger
-  per breakpoint lands on the visible one (see [Side panel](#side-panel)).
+  per breakpoint lands on the visible one (see [Side panel](#side-panel)). Floating, the panel closes on
+  `Escape`. Covering the card, it is modal: the card and the rail go `inert`, and a focus trap wraps `Tab`
+  inside it; the landmark keeps its name.
 - `AppLayout.SidePanelTrigger` carries `aria-expanded` and `aria-controls` for the panel, and a tooltip
   with its label, since it is icon-only. Keep one outside the panel at every breakpoint, or a closed panel
   has no way back open.
@@ -2360,7 +2378,9 @@ On a wide screen the row caps at `--app-layout-max-width` and centers in the fra
 `AppLayout.Notice` still spans the full window. Merge `className="ml-0"` to pin the row to the start edge.
 It is `relative`, so a floating side panel resolves against the row and covers the card, never the notice.
 It is also the container named `app-layout-workspace`: the panel floats when the row is narrower than the
-`--container-side-panel-lane` theme token, so a page is never narrower than the panel beside it.
+lane it needs, so a page is never narrower than the panel beside it. The lane is the
+`--container-side-panel-lane` theme token while a direct child of the row is an expanded `Sidebar.Nav`, and
+`--container-side-panel-lane-icon-rail` with a collapsed rail or none.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
@@ -2574,22 +2594,33 @@ edge and goes `invisible` the instant the slide ends (`visibility` rides the tra
 `--app-layout-max-width` caps inside the frame has no panel strip beside it. One breakpoint lower it covers
 the card from gutter to gutter. With `"sm"` there is no lower breakpoint, so the panel covers the card from
 gutter to gutter as soon as it floats. It also floats, with the strip treatment, when the
-`AppLayout.Workspace` row is narrower than the `--container-side-panel-lane` theme token (56.5rem), whatever
-the viewport is, so the page is never narrower than the panel beside it. See [Side panel](#side-panel).
+`AppLayout.Workspace` row is narrower than the lane it needs, whatever the viewport is, so the page is never
+narrower than the panel beside it: `--container-side-panel-lane` (56.5rem) while a direct child of the row
+is an expanded `Sidebar.Nav`, and `--container-side-panel-lane-icon-rail` (46.75rem) with a collapsed rail
+or none. See [Side panel](#side-panel).
+
+A drag on [`AppLayout.SidePanelHeader`](#applayoutsidepanelheader) toward the end edge swipes the panel
+away in every presentation: a floating panel slides, and a panel in the lane shrinks the way its close
+animation does. A floating panel is also an overlay: `Escape` closes it while focus is inside. A panel in
+the lane is a docked pane and ignores `Escape`. A covering panel is modal: the row's other children go
+`inert` while it is open, and [`useFocusTrap`](/hooks#usefocustrap) wraps `Tab` inside it and moves focus
+into it on open. The one `<aside>` stays mounted across the lane, the float, and the cover.
 
 It does not take `asChild`: the panel is a fixed two-element structure (the clip box and the inner column),
 so no single element could be swapped.
 
 All props from [aside](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/aside#attributes) except `id`, plus:
 
-| Prop                | Type                   | Default | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| ------------------- | ---------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `mobileBreakpoint?` | `"sm" \| "md" \| "lg"` | `"lg"`  | The viewport width below which the panel floats over the card instead of taking width beside it. One breakpoint lower it covers the card from gutter to gutter; with `"sm"` there is no lower breakpoint, so it covers the card as soon as it floats. Match it to `Sidebar.Root`'s `mobileBreakpoint`, so the rail and the panel change presentation at one width. The panel also floats when the row is narrower than `--container-side-panel-lane`, whatever this prop says. |
+| Prop                | Type                   | Default | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ------------------- | ---------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `mobileBreakpoint?` | `"sm" \| "md" \| "lg"` | `"lg"`  | The viewport width below which the panel floats over the card instead of taking width beside it. One breakpoint lower it covers the card from gutter to gutter and turns modal; with `"sm"` there is no lower breakpoint, so it covers the card as soon as it floats by viewport. Match it to `Sidebar.Root`'s `mobileBreakpoint`, so the rail and the panel change presentation at one width. The panel also floats when the row is narrower than the lane it needs (`--container-side-panel-lane` or `--container-side-panel-lane-icon-rail`), whatever this prop says. |
 
-| CSS Variable                    | Default                     | Description                                                                                                                                                                                                                                                                                                                                                                      |
-| ------------------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--app-layout-side-panel-width` | `clamp(21rem, 24vw, 27rem)` | The panel's width beside the card: a quarter of the viewport, never narrower than 336px and never wider than 432px. Set it on `AppLayout.Root` or on this part.                                                                                                                                                                                                                  |
-| `--app-layout-card-gutter`      | `0.5rem`                    | Read (not set) by `AppLayout.SidePanel`; owned by [`AppLayout.Content`](#applayoutcontent). The panel keeps it on three edges, and the floating panel insets itself by it. Set it on `AppLayout.Root` or another common ancestor of the card and the panel, not on `AppLayout.Content`: custom properties inherit downward only, so a value on the card never reaches the panel. |
+| CSS Variable                            | Default                     | Description                                                                                                                                                                                                                                                                                                                                                                      |
+| --------------------------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--app-layout-side-panel-width`         | `clamp(21rem, 24vw, 27rem)` | The panel's width beside the card: a quarter of the viewport, never narrower than 336px and never wider than 432px. Set it on `AppLayout.Root` or on this part.                                                                                                                                                                                                                  |
+| `--app-layout-card-gutter`              | `0.5rem`                    | Read (not set) by `AppLayout.SidePanel`; owned by [`AppLayout.Content`](#applayoutcontent). The panel keeps it on three edges, and the floating panel insets itself by it. Set it on `AppLayout.Root` or another common ancestor of the card and the panel, not on `AppLayout.Content`: custom properties inherit downward only, so a value on the card never reaches the panel. |
+| `--container-side-panel-lane`           | `56.5rem`                   | A theme token the row's container query reads: the narrowest `AppLayout.Workspace` row that holds an expanded `Sidebar.Nav` (13rem), the card at the panel's floor (21rem), the panel (21rem), and the three gutters. Below it the panel floats while a direct child of the row is an expanded rail. Set it in `@theme`, not on an element.                                      |
+| `--container-side-panel-lane-icon-rail` | `46.75rem`                  | The same row with the icon rail (3.25rem) in place of the expanded one, or with no rail. Below it the panel floats whatever the rail is. Set it in `@theme`, not on an element.                                                                                                                                                                                                  |
 
 | Data Attribute  | Value                             | Description                                                                                                                                                                |
 | --------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -2644,6 +2675,14 @@ last. Merge `border-b-0` for a header with no rule under it.
 Renders a `<div>`, not a `<header>`: the row is a toolbar, not the panel's introduction, and it keeps one
 element shape with `AppLayout.Header`. A `<header>` inside the `<aside>` scopes to the panel and claims no
 landmark, so if the row introduces the panel, compose a `<header>` with `asChild`.
+
+The row is the panel's swipe handle, through [`useSwipeToDismiss`](/hooks#useswipetodismiss), in every
+presentation. A drag toward the end edge follows the pointer one to one: a floating panel slides, and a
+panel in the lane shrinks its basis the way its own close animation does, so the page grows under the
+finger. A release past 25% of the panel's width, or a flick, closes it; a shorter drag springs back on the
+panel's own 200ms ease-out, so `motion-reduce:` turns it into a cut, and a drag the wrong way meets
+rubber-band resistance. The row is `touch-pan-y`, so a vertical swipe still scrolls, and a tap on a control
+in the row stays a tap.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 

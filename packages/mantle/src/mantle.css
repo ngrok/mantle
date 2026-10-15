@@ -179,6 +179,9 @@ MARK: THEME
 	   Below it `AppLayout.SidePanel` floats over the card, so the page is never narrower than
 	   the panel beside it. */
 	--container-side-panel-lane: 56.5rem;
+	/* The same row with the icon rail (3.25rem) in place of the expanded one, or with no rail.
+	   `AppLayout.SidePanel` reads this threshold when the row holds no expanded `Sidebar.Nav`. */
+	--container-side-panel-lane-icon-rail: 46.75rem;
 	--font-sans: "Roobert", ui-sans-serif, system-ui, sans-serif;
 	--font-mono:
 		"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono,

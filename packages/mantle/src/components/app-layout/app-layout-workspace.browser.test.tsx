@@ -125,14 +125,33 @@ const STYLE = `
 	}
 	.data-state-closed\\:pointer-events-none[data-state~=closed] { pointer-events: none; }
 	.data-state-closed\\:basis-0[data-state~=closed] { flex-basis: 0px; }
+	.\\@container\\/app-layout-workspace {
+		container-type: inline-size;
+		container-name: app-layout-workspace;
+	}
 	@media (width >= 40rem) {
-		.sm\\:data-state-closed\\:basis-0[data-state~=closed] { flex-basis: 0px; }
+		@container app-layout-workspace (width >= 56.5rem) {
+			.sm\\:\\@min-side-panel-lane\\/app-layout-workspace\\:data-state-closed\\:basis-0[data-state~=closed] { flex-basis: 0px; }
+		}
+		@container app-layout-workspace (width >= 46.75rem) {
+			[data-slot~=app-layout-workspace]:not(:has(> [data-slot~=sidebar-nav]:not([data-state~=collapsed]))) .sm\\:\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:not\\(\\:has\\(\\>\\[data-slot\\~\\=sidebar-nav\\]\\:not\\(\\[data-state\\~\\=collapsed\\]\\)\\)\\)_\\&\\]\\:\\@min-side-panel-lane-icon-rail\\/app-layout-workspace\\:data-state-closed\\:basis-0[data-state~=closed] { flex-basis: 0px; }
+		}
 	}
 	@media (width >= 48rem) {
-		.md\\:data-state-closed\\:basis-0[data-state~=closed] { flex-basis: 0px; }
+		@container app-layout-workspace (width >= 56.5rem) {
+			.md\\:\\@min-side-panel-lane\\/app-layout-workspace\\:data-state-closed\\:basis-0[data-state~=closed] { flex-basis: 0px; }
+		}
+		@container app-layout-workspace (width >= 46.75rem) {
+			[data-slot~=app-layout-workspace]:not(:has(> [data-slot~=sidebar-nav]:not([data-state~=collapsed]))) .md\\:\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:not\\(\\:has\\(\\>\\[data-slot\\~\\=sidebar-nav\\]\\:not\\(\\[data-state\\~\\=collapsed\\]\\)\\)\\)_\\&\\]\\:\\@min-side-panel-lane-icon-rail\\/app-layout-workspace\\:data-state-closed\\:basis-0[data-state~=closed] { flex-basis: 0px; }
+		}
 	}
 	@media (width >= 64rem) {
-		.lg\\:data-state-closed\\:basis-0[data-state~=closed] { flex-basis: 0px; }
+		@container app-layout-workspace (width >= 56.5rem) {
+			.lg\\:\\@min-side-panel-lane\\/app-layout-workspace\\:data-state-closed\\:basis-0[data-state~=closed] { flex-basis: 0px; }
+		}
+		@container app-layout-workspace (width >= 46.75rem) {
+			[data-slot~=app-layout-workspace]:not(:has(> [data-slot~=sidebar-nav]:not([data-state~=collapsed]))) .lg\\:\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:not\\(\\:has\\(\\>\\[data-slot\\~\\=sidebar-nav\\]\\:not\\(\\[data-state\\~\\=collapsed\\]\\)\\)\\)_\\&\\]\\:\\@min-side-panel-lane-icon-rail\\/app-layout-workspace\\:data-state-closed\\:basis-0[data-state~=closed] { flex-basis: 0px; }
+		}
 	}
 	@media (width < 64rem) {
 		.max-lg\\:data-state-closed\\:invisible[data-state~=closed] { visibility: hidden; }

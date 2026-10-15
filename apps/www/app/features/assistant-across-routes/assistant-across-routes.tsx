@@ -1,11 +1,13 @@
 import { AppLayout, useSidePanel } from "@ngrok/mantle/app-layout";
 import { IconButton } from "@ngrok/mantle/button";
 import { cx } from "@ngrok/mantle/cx";
+import { useMatchesMediaQuery } from "@ngrok/mantle/hooks";
 import { Sidebar } from "@ngrok/mantle/sidebar";
 import { Tooltip } from "@ngrok/mantle/tooltip";
 import { PencilSimpleLineIcon } from "@phosphor-icons/react/PencilSimpleLine";
 import { XIcon } from "@phosphor-icons/react/X";
 import type { ComponentProps } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
 	AssistantComposer,
 	AssistantTranscript,
@@ -189,10 +191,91 @@ function AssistantPanel({
 	);
 }
 
+/**
+ * The props of `AssistantSidebarRoot`: `Sidebar.Root`'s, except `open`, which
+ * the part derives.
+ */
+type AssistantSidebarRootProps = Omit<ComponentProps<typeof Sidebar.Root>, "open"> & {
+	/**
+	 * Whether `AssistantPanel` is in the row. On the assistant's route it is
+	 * not, and the rail keeps its width.
+	 */
+	panelMounted: boolean;
+};
+
+/**
+ * The `Sidebar.Root` of a shell with the assistant beside the page. The rail
+ * prefers its icon rail while the panel needs the width: when the panel opens,
+ * or the window narrows below the lane an expanded rail needs while the panel
+ * is open, the rail collapses, so the panel sits beside the page instead of
+ * floating over it. The reader can expand it again with `Sidebar.Trigger`, and
+ * the panel floats. When the panel closes or the window widens, a rail the
+ * panel collapsed expands again, and a rail the reader toggled keeps their
+ * choice. `onOpenChange` reports the reader's toggles only, so the sidebar
+ * cookie keeps their preference.
+ *
+ * @example
+ * ```tsx
+ * <AppLayout.SidePanelRoot defaultOpen={loaderData.sidePanelOpen}>
+ *   <AssistantSidebarRoot panelMounted={!onAssistantPage} defaultOpen={loaderData.sidebarOpen}>
+ *     <AppLayout.Root className="fixed inset-0">…</AppLayout.Root>
+ *   </AssistantSidebarRoot>
+ * </AppLayout.SidePanelRoot>
+ * ```
+ */
+function AssistantSidebarRoot({
+	children,
+	defaultOpen = true,
+	onOpenChange,
+	panelMounted,
+	...props
+}: AssistantSidebarRootProps) {
+	const [railOpen, setRailOpen] = useState(defaultOpen);
+	const { open: panelOpen } = useSidePanel();
+	// Why 56.5rem: it is `--container-side-panel-lane`, the narrowest row that
+	// holds the expanded rail, the page, and the panel. Below it the row is the
+	// viewport's width, so the viewport query is the row's.
+	const panelNeedsTheLane = useMatchesMediaQuery("(width < 56.5rem)");
+	const panelNeedsTheRail = panelMounted && panelOpen && panelNeedsTheLane;
+	const panelNeededTheRail = useRef(false);
+	// Why a ref: only a collapse the panel caused expands again, and a toggle
+	// by the reader in between cancels that.
+	const collapsedByPanel = useRef(false);
+
+	useEffect(() => {
+		const panelTookTheWidth = panelNeedsTheRail && !panelNeededTheRail.current;
+		const panelGaveItBack = !panelNeedsTheRail && panelNeededTheRail.current;
+		panelNeededTheRail.current = panelNeedsTheRail;
+		if (panelTookTheWidth && railOpen) {
+			collapsedByPanel.current = true;
+			setRailOpen(false);
+		}
+		if (panelGaveItBack && collapsedByPanel.current) {
+			collapsedByPanel.current = false;
+			setRailOpen(true);
+		}
+	}, [panelNeedsTheRail, railOpen]);
+
+	return (
+		<Sidebar.Root
+			{...props}
+			open={railOpen}
+			onOpenChange={(open) => {
+				collapsedByPanel.current = false;
+				setRailOpen(open);
+				onOpenChange?.(open);
+			}}
+		>
+			{children}
+		</Sidebar.Root>
+	);
+}
+
 export {
 	//,
 	AssistantPage,
 	AssistantPanel,
+	AssistantSidebarRoot,
 	assistantPath,
 	assistantViewTransitionClassName,
 	crossesAssistant,

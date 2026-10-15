@@ -15,6 +15,7 @@ import { flushSync } from "react-dom";
 import {
 	AssistantPage,
 	AssistantPanel,
+	AssistantSidebarRoot,
 	assistantPath,
 	assistantViewTransitionClassName,
 	crossesAssistant,
@@ -280,13 +281,13 @@ export function AssistantAcrossRoutesDemo() {
 
 	return (
 		<AssistantConversationProvider>
-			{/* the framed demo narrows the mobile breakpoints; most apps keep the "lg" default */}
-			<Sidebar.Root mobileBreakpoint="md">
-				<AppLayout.Root className="fixed inset-0">
-					<SkipToMainLink />
-					{/* Open by default so the first crossing shows the morph. An app reads
-					    the preference from the side panel cookie in its loader instead. */}
-					<AppLayout.SidePanelRoot defaultOpen>
+			{/* Open by default so the first crossing shows the morph. An app reads
+			    the preference from the side panel cookie in its loader instead. */}
+			<AppLayout.SidePanelRoot defaultOpen>
+				{/* the framed demo narrows the mobile breakpoints; most apps keep the "lg" default */}
+				<AssistantSidebarRoot panelMounted={!onAssistantPage} mobileBreakpoint="md">
+					<AppLayout.Root className="fixed inset-0">
+						<SkipToMainLink />
 						<AppLayout.Workspace>
 							<DemoNav pathname={pathname} onNavigate={navigate} />
 							<AppLayout.Content
@@ -298,9 +299,9 @@ export function AssistantAcrossRoutesDemo() {
 							</AppLayout.Content>
 							{!onAssistantPage && <AssistantPanel mobileBreakpoint="md" />}
 						</AppLayout.Workspace>
-					</AppLayout.SidePanelRoot>
-				</AppLayout.Root>
-			</Sidebar.Root>
+					</AppLayout.Root>
+				</AssistantSidebarRoot>
+			</AppLayout.SidePanelRoot>
 		</AssistantConversationProvider>
 	);
 }
