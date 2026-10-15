@@ -38,6 +38,33 @@ function renderTable({ rootWidth, tableWidth }: { rootWidth: number; tableWidth:
 	);
 }
 
+/** A table whose width grows with its column count, so a re-render can append content. */
+function ColumnsTable({ columns }: { columns: number }) {
+	return (
+		<Table.Root data-testid="root" style={{ width: 200 }}>
+			<Table.Element>
+				<Table.Body>
+					<Table.Row>
+						{Array.from({ length: columns }, (_, index) => (
+							<Table.Cell key={index} style={{ minWidth: 240 }}>
+								Value {index + 1}
+							</Table.Cell>
+						))}
+					</Table.Row>
+				</Table.Body>
+			</Table.Element>
+		</Table.Root>
+	);
+}
+
+function requireScroller(): HTMLElement {
+	const scroller = screen.getByRole("table").parentElement;
+	if (scroller == null) {
+		throw new Error("the table has no scroller");
+	}
+	return scroller;
+}
+
 describe("Table.Root overflow observer", () => {
 	test("the first layout read waits for the browser, not React's commit", async () => {
 		// Why the getter spy: a `scrollWidth` read forces a layout. The regression
@@ -95,6 +122,82 @@ describe("Table.Root overflow observer", () => {
 		});
 		expect(root).toHaveAttribute("data-x-overflow", "true");
 		expect(root).not.toHaveAttribute("data-sticky-active");
+	});
+
+	test("stopping short of the right edge is not the end: the tolerance stays sub-pixel", async () => {
+		renderTable({ rootWidth: 200, tableWidth: 800 });
+		const root = screen.getByTestId("root");
+		const scroller = requireScroller();
+
+		await waitFor(() => {
+			expect(root).toHaveAttribute("data-sticky-active", "true");
+		});
+		scroller.scrollLeft = scroller.scrollWidth;
+		await waitFor(() => {
+			expect(root).toHaveAttribute("data-x-scroll-end", "true");
+		});
+
+		// 3px of unscrolled content: 2px outside the 1px tolerance in
+		// `useHorizontalOverflowObserver`. The fixture's geometry is whole-pixel, so
+		// the gap is exactly 3. A larger gap would stay green for any tolerance
+		// under it, and a "fix the flaky scrollLeft" widening would strand the fade off.
+		scroller.scrollLeft = scroller.scrollWidth - scroller.clientWidth - 3;
+
+		await waitFor(() => {
+			expect(root).toHaveAttribute("data-x-scroll-end", "false");
+		});
+		expect(root).toHaveAttribute("data-sticky-active", "true");
+	});
+
+	test("a column appended while parked at the right edge re-evaluates the scroll position", async () => {
+		// The scroller is already overflowing and `scrollLeft` does not move, so the
+		// scroll listener cannot cover this. Only the MutationObserver notices the
+		// wider content; without it the pinned column's fade stays off with content
+		// still to scroll under it.
+		const { rerender } = render(<ColumnsTable columns={3} />);
+		const root = screen.getByTestId("root");
+		const scroller = requireScroller();
+
+		await waitFor(() => {
+			expect(root).toHaveAttribute("data-sticky-active", "true");
+		});
+		scroller.scrollLeft = scroller.scrollWidth;
+		await waitFor(() => {
+			expect(root).toHaveAttribute("data-x-scroll-end", "true");
+		});
+		const scrollLeftAtEdge = scroller.scrollLeft;
+
+		rerender(<ColumnsTable columns={4} />);
+
+		await waitFor(() => {
+			expect(root).toHaveAttribute("data-x-scroll-end", "false");
+		});
+		expect(root).toHaveAttribute("data-sticky-active", "true");
+		// The premise: the appended column grew the scrollable width without moving
+		// the scroll position.
+		expect(scroller.scrollLeft).toBe(scrollLeftAtEdge);
+		expect(scroller.scrollWidth - scroller.clientWidth).toBeGreaterThan(scrollLeftAtEdge);
+	});
+
+	test("shrinking the container re-evaluates overflow", async () => {
+		const scrollWidth = vi.spyOn(Element.prototype, "scrollWidth", "get");
+		renderTable({ rootWidth: 800, tableWidth: 400 });
+		const root = screen.getByTestId("root");
+
+		await waitFor(() => {
+			expect(scrollWidth).toHaveBeenCalled();
+		});
+		expect(root).toHaveAttribute("data-x-overflow", "false");
+
+		// Resized outside React, as an attribute mutation on an ancestor: invisible
+		// to the `{ childList, subtree }` MutationObserver on the scroller, so only
+		// the ResizeObserver can catch it.
+		root.style.width = "200px";
+
+		await waitFor(() => {
+			expect(root).toHaveAttribute("data-x-overflow", "true");
+		});
+		expect(root).toHaveAttribute("data-sticky-active", "true");
 	});
 
 	test("a table that fits reports no overflow after the first read", async () => {

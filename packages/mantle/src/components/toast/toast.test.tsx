@@ -1,9 +1,10 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import type { MouseEvent, ReactNode } from "react";
 import { toast as sonnerToast } from "sonner";
 import { describe, expect, test, vi } from "vitest";
 import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
+import { preventCloseOnPromptInteraction } from "./prevent-close-on-prompt-interaction.js";
 import { makeToast, resolveToastDuration, Toast, Toaster } from "./toast.js";
 
 function getToastRoot(container: HTMLElement) {
@@ -66,6 +67,38 @@ describe("Toast", () => {
 				);
 			},
 		);
+	});
+
+	describe("makeToast", () => {
+		const toastNode = (
+			<Toast.Root intent="info">
+				<Toast.Message>message</Toast.Message>
+			</Toast.Root>
+		);
+
+		test("omits the `id` key when no custom id is given", () => {
+			const custom = vi.spyOn(sonnerToast, "custom").mockReturnValue("stub-toast");
+
+			expect(makeToast(toastNode)).toBe("stub-toast");
+
+			expect(custom).toHaveBeenCalledTimes(1);
+			// Why `toStrictEqual`: an explicit `id: undefined` breaks sonner's toast
+			// identity, so the key must be absent rather than undefined.
+			expect(custom.mock.lastCall?.[1]).toStrictEqual({ duration: undefined, unstyled: true });
+		});
+
+		test("forwards a custom id", () => {
+			const custom = vi.spyOn(sonnerToast, "custom").mockReturnValue("billing-warning");
+
+			makeToast(toastNode, { id: "billing-warning" });
+
+			expect(custom).toHaveBeenCalledTimes(1);
+			expect(custom.mock.lastCall?.[1]).toStrictEqual({
+				duration: undefined,
+				id: "billing-warning",
+				unstyled: true,
+			});
+		});
 	});
 
 	describe("resolveToastDuration", () => {
@@ -157,6 +190,20 @@ describe("Toast.Action", () => {
 		});
 	});
 
+	test("runs a consumer `onClick` and still dismisses the toast", async () => {
+		const user = userEvent.setup();
+		const handleClick = vi.fn<(event: MouseEvent<HTMLButtonElement>) => void>();
+		renderToast("Changes saved", <Toast.Action onClick={handleClick}>Undo</Toast.Action>);
+
+		await user.click(await screen.findByRole("button", { name: "Undo" }));
+
+		expect(handleClick).toHaveBeenCalledTimes(1);
+		// Why `waitFor`: sonner unmounts a dismissed toast on a timer.
+		await waitFor(() => {
+			expect(screen.queryByText("Changes saved")).toBeNull();
+		});
+	});
+
 	test("keeps the toast when `onClick` calls `preventDefault`", async () => {
 		const user = userEvent.setup();
 		// Why the spy: a dismissed toast stays in the DOM until sonner's unmount
@@ -171,6 +218,35 @@ describe("Toast.Action", () => {
 
 		expect(handleClick).toHaveBeenCalledTimes(1);
 		expect(dismiss).toHaveBeenCalledTimes(0);
+	});
+});
+
+describe("Toaster", () => {
+	test("marks its list as an overlay prompt, so a toast interaction cannot close a modal", async () => {
+		render(<Toaster />);
+		// sonner renders the list only once a toast exists, so create a real one
+		act(() => {
+			makeToast(
+				<Toast.Root intent="info">
+					<Toast.Message>File uploaded</Toast.Message>
+					<Toast.Action>View file</Toast.Action>
+				</Toast.Root>,
+			);
+		});
+		const action = await screen.findByRole("button", { name: "View file" });
+
+		const list = document.querySelector("[data-sonner-toaster]");
+		expect(list).not.toBeNull();
+		expect(list).toContainElement(action);
+
+		// Why both halves: every mantle modal routes its outside-interaction
+		// events through this guard, and only the class `Toaster` stamps makes it
+		// match. Asserting one side leaves the pair one rename from a dialog that
+		// closes under a toast action.
+		const pointerDown = new MouseEvent("pointerdown", { bubbles: true, cancelable: true });
+		action.dispatchEvent(pointerDown);
+		preventCloseOnPromptInteraction(pointerDown);
+		expect(pointerDown.defaultPrevented).toBe(true);
 	});
 });
 

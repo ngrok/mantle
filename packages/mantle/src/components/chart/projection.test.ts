@@ -1,5 +1,12 @@
 import { describe, expect, test } from "vitest";
-import { clampPitch, normalizeToCube, projectionMatrix, projectPoint } from "./projection.js";
+import {
+	clampPitch,
+	CUBE_CORNERS,
+	CUBE_EDGES,
+	normalizeToCube,
+	projectionMatrix,
+	projectPoint,
+} from "./projection.js";
 
 describe("projectPoint", () => {
 	test("the identity camera maps x/y through unchanged (up to perspective)", () => {
@@ -64,5 +71,22 @@ describe("normalizeToCube", () => {
 
 	test("a degenerate domain maps to the cube center", () => {
 		expect(normalizeToCube(5, [5, 5])).toBe(0);
+	});
+});
+
+describe("cube wireframe", () => {
+	test("every edge joins two corners that differ on exactly one axis", () => {
+		// A face diagonal differs on two axes, and a corner off the ±1 lattice
+		// differs from a neighbor on two. `drawCubeFrame`'s test owns the edge
+		// count and the degree at each corner.
+		for (const [from, to] of CUBE_EDGES) {
+			const start = CUBE_CORNERS[from];
+			const end = CUBE_CORNERS[to];
+			if (start == null || end == null) {
+				throw new Error(`edge [${from}, ${to}] names a corner that does not exist`);
+			}
+			const differing = start.filter((value, axis) => value !== end[axis]);
+			expect(differing).toHaveLength(1);
+		}
 	});
 });

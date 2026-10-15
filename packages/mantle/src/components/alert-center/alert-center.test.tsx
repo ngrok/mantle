@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { createContext, createRef, useContext, useState } from "react";
 import { renderToString } from "react-dom/server";
@@ -543,6 +543,45 @@ describe("AlertCenter.Bar", () => {
 		);
 		expect(screen.getByRole("button", { name: "Dismiss Payment failed" })).toBeInTheDocument();
 		expect(screen.getByRole("status")).toHaveTextContent(/^Payment failed$/);
+	});
+
+	test("republishes the headline when the title copy changes without re-rendering the Bar", async () => {
+		// The authored children live in the item's tree, so item-local state updates
+		// the title without re-rendering the Bar. Only the MutationObserver on the bar
+		// wrapper keeps the live region and the derived dismiss name in step with the copy.
+		const user = userEvent.setup();
+		function MaintenanceAlert() {
+			const [minutes, setMinutes] = useState(30);
+			return (
+				<Alert.Content>
+					<Alert.Title>Maintenance in {minutes} minutes</Alert.Title>
+					<Alert.Description>
+						<button type="button" onClick={() => setMinutes(5)}>
+							refresh estimate
+						</button>
+					</Alert.Description>
+					<AlertCenter.DismissIconButton onClick={() => {}} />
+				</Alert.Content>
+			);
+		}
+		render(
+			<AlertCenter.Root>
+				<AlertCenter.Bar />
+				<AlertCenter.Item id="maintenance" intent="warning">
+					<MaintenanceAlert />
+				</AlertCenter.Item>
+			</AlertCenter.Root>,
+		);
+		expect(screen.getByRole("status")).toHaveTextContent(/^Maintenance in 30 minutes$/);
+
+		await user.click(screen.getByRole("button", { name: "refresh estimate" }));
+
+		await waitFor(() => {
+			expect(screen.getByRole("status")).toHaveTextContent(/^Maintenance in 5 minutes$/);
+		});
+		expect(
+			screen.getByRole("button", { name: "Dismiss Maintenance in 5 minutes" }),
+		).toBeInTheDocument();
 	});
 
 	test("clears the announcer headline when the Bar unmounts", () => {
@@ -1764,15 +1803,22 @@ describe("AlertCenter.Content", () => {
 		// observe focus in its own alert without hearing about any other. The
 		// center's internal focus tracking uses native focusin/focusout on the
 		// chrome, so consumer handlers never collide with it.
-		const onAuthorFocus = vi.fn<() => void>();
+		const onRegionFocus = vi.fn<() => void>();
+		const onPaymentFocus = vi.fn<() => void>();
 		render(
 			<AlertCenter.Root defaultOpen>
 				<AlertCenter.Bar />
 				<AlertCenter.Content />
-				<AlertCenter.Item id="payment" intent="danger">
-					<AlertBody title="Payment failed" />
-				</AlertCenter.Item>
-				<div onFocus={onAuthorFocus}>
+				<div onFocus={onPaymentFocus}>
+					<AlertCenter.Item id="payment" intent="danger">
+						<Alert.Icon />
+						<Alert.Content>
+							<Alert.Title>Payment failed</Alert.Title>
+							<AlertCenter.DismissIconButton onClick={() => {}} />
+						</Alert.Content>
+					</AlertCenter.Item>
+				</div>
+				<div onFocus={onRegionFocus}>
 					<AlertCenter.Item id="region" intent="info">
 						<Alert.Icon />
 						<Alert.Content>
@@ -1783,8 +1829,14 @@ describe("AlertCenter.Content", () => {
 				</div>
 			</AlertCenter.Root>,
 		);
-		screen.getByRole("button", { name: "Dismiss New region available" }).focus();
-		expect(onAuthorFocus).toHaveBeenCalledTimes(1);
+		const regionDismiss = screen.getByRole("button", { name: "Dismiss New region available" });
+		regionDismiss.focus();
+
+		expect(regionDismiss).toHaveFocus();
+		expect(onRegionFocus).toHaveBeenCalledTimes(1);
+		// The region row's DOM sits in the expansion beside the payment banner, so a
+		// handler that heard its neighbor's focus would only show up as a stray call.
+		expect(onPaymentFocus).not.toHaveBeenCalled();
 	});
 
 	test("focuses the bar's control when the last row is dismissed, and main when nothing remains", async () => {

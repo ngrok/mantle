@@ -419,6 +419,23 @@ const drawDecimatedArea = (
 type PathTraceContext = Pick<CanvasRenderingContext2D, "arc" | "moveTo" | "lineTo" | "closePath">;
 
 /**
+ * The subset of the 2D context {@link drawCubeFrame} strokes with. It is
+ * structural, so unit tests can record calls without type assertions.
+ */
+type CubeFrameContext = Pick<
+	CanvasRenderingContext2D,
+	| "save"
+	| "restore"
+	| "beginPath"
+	| "moveTo"
+	| "lineTo"
+	| "stroke"
+	| "globalAlpha"
+	| "strokeStyle"
+	| "lineWidth"
+>;
+
+/**
  * A closed outline as unit offsets from the glyph's center, in the winding
  * order the path traces. A tracer multiplies each offset by one length, so the
  * shape's whole size lives in that single constant.
@@ -737,7 +754,7 @@ const drawDepthSortedPoints = (
  * labeled.
  */
 const drawCubeFrame = (
-	ctx: CanvasRenderingContext2D,
+	ctx: CubeFrameContext,
 	options: {
 		gridColor: string;
 		axisColor: string;

@@ -8,6 +8,31 @@ import { Switch } from "../switch/switch.js";
 import { Choice } from "./choice.js";
 
 describe("Choice", () => {
+	// `data-slot` is public API that consumer CSS selects on, so a renamed or
+	// moved slot is a breaking change.
+	test.each([
+		["choice", "DIV"],
+		["choice-indicator", "SPAN"],
+		["choice-content", "DIV"],
+		["choice-label", "LABEL"],
+		["choice-title", "P"],
+		["choice-description", "P"],
+	])("data-slot=%s lands on a <%s>", (slot, tagName) => {
+		const { container } = render(
+			<Choice.Root>
+				<Choice.Indicator>
+					<input type="checkbox" aria-label="control" />
+				</Choice.Indicator>
+				<Choice.Content>
+					<Choice.Label>Email</Choice.Label>
+					<Choice.Title>Onboarding Key</Choice.Title>
+					<Choice.Description>Get notified by email.</Choice.Description>
+				</Choice.Content>
+			</Choice.Root>,
+		);
+		expect(container.querySelector(`[data-slot~="${slot}"]`)?.tagName).toBe(tagName);
+	});
+
 	test("Indicator injects an id onto its control child", () => {
 		render(
 			<Choice.Root>
@@ -141,7 +166,7 @@ describe("Choice", () => {
 		expect(control).toHaveAttribute("name", "custom");
 	});
 
-	test("forwards aria-errormessage from Root onto the control (standalone, not the wrapper)", () => {
+	test("forwards aria-invalid and aria-errormessage from Root onto the control (standalone, not the wrapper)", () => {
 		render(
 			<Choice.Root aria-errormessage="error-1" aria-invalid="true">
 				<Choice.Indicator>
@@ -153,15 +178,113 @@ describe("Choice", () => {
 			</Choice.Root>,
 		);
 		const control = screen.getByRole("checkbox");
+		expect(control).toHaveAttribute("aria-invalid", "true");
 		expect(control).toHaveAttribute("aria-errormessage", "error-1");
-		// It must land on the control, not leak onto the layout wrapper.
-		expect(control.closest('[data-slot="choice"]')).not.toHaveAttribute("aria-errormessage");
+		// They must land on the control, not leak onto the layout wrapper.
+		const wrapper = control.closest('[data-slot="choice"]');
+		expect(wrapper).not.toHaveAttribute("aria-invalid");
+		expect(wrapper).not.toHaveAttribute("aria-errormessage");
+	});
+
+	test("an explicit id on Root becomes the control id and the Label's htmlFor target", () => {
+		render(
+			<Choice.Root id="notify-email">
+				<Choice.Indicator>
+					<input type="checkbox" aria-label="control" />
+				</Choice.Indicator>
+				<Choice.Content>
+					<Choice.Label>Email</Choice.Label>
+				</Choice.Content>
+			</Choice.Root>,
+		);
+		expect(screen.getByRole("checkbox")).toHaveAttribute("id", "notify-email");
+		expect(screen.getByText("Email")).toHaveAttribute("for", "notify-email");
+	});
+
+	test("Indicator renders a non-element child untouched", () => {
+		render(
+			<Choice.Root>
+				<Choice.Indicator>–</Choice.Indicator>
+				<Choice.Content>
+					<Choice.Title>Onboarding Key</Choice.Title>
+				</Choice.Content>
+			</Choice.Root>,
+		);
+		// There is no element to clone the association props onto, so the child
+		// passes through instead of crashing `cloneElement`.
+		expect(screen.getByText("–")).toHaveAttribute("data-slot", "choice-indicator");
 	});
 
 	test("a part rendered outside Root throws", () => {
 		expect(() => render(<Choice.Label>orphan</Choice.Label>)).toThrow(
 			/Choice\.Label must be rendered inside Choice\.Root/,
 		);
+	});
+});
+
+describe("Choice asChild", () => {
+	test("Description asChild keeps the description id, data-slot, and the aria-describedby association", () => {
+		render(
+			<Choice.Root>
+				<Choice.Indicator>
+					<input type="checkbox" aria-label="control" />
+				</Choice.Indicator>
+				<Choice.Content>
+					<Choice.Label>Email</Choice.Label>
+					<Choice.Description asChild className="italic">
+						<a href="/docs/email">Read the docs</a>
+					</Choice.Description>
+				</Choice.Content>
+			</Choice.Root>,
+		);
+
+		const description = screen.getByRole("link", { name: "Read the docs" });
+		expect(description.tagName).toBe("A");
+		expect(description).toHaveAttribute("href", "/docs/email");
+		expect(description).toHaveAttribute("data-slot", "choice-description");
+		// The tailwind-merge contract: the consumer's class survives the merge.
+		expect(description).toHaveClass("italic");
+		expect(screen.getByRole("checkbox").getAttribute("aria-describedby")?.split(" ")).toContain(
+			description.id,
+		);
+	});
+
+	test("Title asChild renders the supplied element, keeping data-slot", () => {
+		render(
+			<Choice.Root>
+				<Choice.Indicator>
+					<input type="checkbox" aria-label="control" />
+				</Choice.Indicator>
+				<Choice.Content>
+					<Choice.Title asChild>
+						<h3>Onboarding Key</h3>
+					</Choice.Title>
+				</Choice.Content>
+			</Choice.Root>,
+		);
+
+		const title = screen.getByRole("heading", { name: "Onboarding Key" });
+		expect(title.tagName).toBe("H3");
+		expect(title).toHaveAttribute("data-slot", "choice-title");
+	});
+
+	test("Content asChild renders the supplied element, keeping data-slot", () => {
+		render(
+			<Choice.Root>
+				<Choice.Indicator>
+					<input type="checkbox" aria-label="control" />
+				</Choice.Indicator>
+				<Choice.Content asChild>
+					<section data-testid="content">
+						<Choice.Label>Email</Choice.Label>
+					</section>
+				</Choice.Content>
+			</Choice.Root>,
+		);
+
+		const content = screen.getByTestId("content");
+		expect(content.tagName).toBe("SECTION");
+		expect(content).toHaveAttribute("data-slot", "choice-content");
 	});
 });
 
@@ -454,6 +577,32 @@ describe("Choice + Field interop", () => {
 		expect(screen.getByLabelText("Email")).toBe(control);
 		expect(choiceLabel).toHaveAttribute("for", control.id);
 		expect(control).toHaveAttribute("name", "notify");
+	});
+
+	test("the field's id wins over an explicit id on Choice.Root", () => {
+		render(
+			<Field.Item name="notify">
+				<Field.Label>Notifications</Field.Label>
+				<Field.Control>
+					<Choice.Root id="ignored-choice-id">
+						<Choice.Indicator>
+							<input type="checkbox" aria-label="control" />
+						</Choice.Indicator>
+						<Choice.Content>
+							<Choice.Label>Email</Choice.Label>
+						</Choice.Content>
+					</Choice.Root>
+				</Field.Control>
+			</Field.Item>,
+		);
+		// Field wins so `Field.Label` and `Choice.Label` resolve to the same control;
+		// the reverse precedence would split them.
+		const control = screen.getByRole("checkbox");
+		// Non-empty, or the two `for` assertions below would pass on `for=""`.
+		expect(control.id).toMatch(/.+/);
+		expect(control.id).not.toBe("ignored-choice-id");
+		expect(screen.getByText("Notifications")).toHaveAttribute("for", control.id);
+		expect(screen.getByText("Email")).toHaveAttribute("for", control.id);
 	});
 
 	test("aria-describedby merges the field's description with the choice's own", () => {

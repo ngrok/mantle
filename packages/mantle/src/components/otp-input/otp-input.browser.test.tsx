@@ -3,6 +3,7 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
+import { Field } from "../field/field.js";
 import { OtpInput, REGEXP_ONLY_DIGITS } from "./otp-input.js";
 
 /**
@@ -39,7 +40,7 @@ function renderOtp(props: RenderOtpProps = {}) {
 		</OtpInput.Root>,
 	);
 
-	const input = screen.getByRole("textbox", { name: "otp" });
+	const input = screen.getByRole<HTMLInputElement>("textbox", { name: "otp" });
 	const slots = screen.getAllByText("", { selector: '[data-slot="otp-input-slot"]' });
 
 	return { ...result, input, slots };
@@ -220,4 +221,95 @@ describe("OtpInput (browser)", () => {
 		expect(slots[0]).not.toHaveAttribute("data-active");
 		expect(slots[1]).not.toHaveAttribute("data-active");
 	});
+
+	// `data-otp-state` is what every conditional slot/group style keys off, and it
+	// is derived from the count of active slots. Needs real selection APIs, so it
+	// lives in browser mode.
+	describe("data-otp-state", () => {
+		test("goes idle → caret when the input is focused with a single caret slot", async () => {
+			const user = userEvent.setup();
+			const { input } = renderOtp();
+
+			expect(otpState()).toBe("idle");
+
+			await user.click(input);
+			expect(otpState()).toBe("caret");
+
+			await user.keyboard("12");
+			expect(otpState()).toBe("caret");
+		});
+
+		test("goes back to idle when the input is blurred", async () => {
+			const user = userEvent.setup();
+			const { input } = renderOtp();
+
+			await user.click(input);
+			expect(otpState()).toBe("caret");
+
+			input.blur();
+			await expect.poll(otpState).toBe("idle");
+		});
+
+		test("reports `all` when every slot is selected and `range` for a partial selection", async () => {
+			const user = userEvent.setup();
+			const { input } = renderOtp();
+
+			await user.click(input);
+			await user.keyboard("123456");
+			await user.keyboard("{Control>}a{/Control}");
+			await expect.poll(otpState).toBe("all");
+
+			// Every assertion below asserts a state *different* from the previous
+			// one, so a stale read can't satisfy it. One slot short of the whole
+			// input is still a range — never `all`.
+			input.setSelectionRange(0, 5);
+			await expect.poll(otpState).toBe("range");
+
+			input.setSelectionRange(0, 6);
+			await expect.poll(otpState).toBe("all");
+
+			// A two-slot selection in the middle is a range, not a caret.
+			input.setSelectionRange(2, 4);
+			await expect.poll(otpState).toBe("range");
+		});
+	});
+
+	describe("Field integration", () => {
+		test("the typed code submits under the field's name", async () => {
+			const user = userEvent.setup();
+			render(
+				<form aria-label="verify form">
+					<Field.Item name="code">
+						<Field.Label>Code</Field.Label>
+						<Field.Control>
+							<OtpInput.Root maxLength={3} data-testid="otp">
+								<OtpInput.Group>
+									<OtpInput.Slot index={0} />
+									<OtpInput.Slot index={1} />
+									<OtpInput.Slot index={2} />
+								</OtpInput.Group>
+							</OtpInput.Root>
+						</Field.Control>
+					</Field.Item>
+				</form>,
+			);
+
+			// Clicking the field's label must focus the OTP input — that only works
+			// if `htmlFor` and the input's `id` agree.
+			await user.click(screen.getByText("Code"));
+			await user.keyboard("428");
+
+			expect(screen.getByTestId("otp")).toHaveFocus();
+			expect(
+				new FormData(screen.getByRole<HTMLFormElement>("form", { name: "verify form" })).get(
+					"code",
+				),
+			).toBe("428");
+		});
+	});
 });
+
+/** The current `data-otp-state` published by the bridge, or `null` when unmounted. */
+function otpState() {
+	return document.querySelector("[data-otp-state]")?.getAttribute("data-otp-state") ?? null;
+}

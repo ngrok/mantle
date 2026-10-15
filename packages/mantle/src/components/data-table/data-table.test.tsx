@@ -13,6 +13,8 @@ import {
 import invariant from "tiny-invariant";
 import { describe, expect, test, vi } from "vitest";
 import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
+import type { SortingMode } from "../../utils/sorting/direction.js";
+import type { SortDirection } from "./types.js";
 import type { ButtonAppearance, ButtonIntent, IconButtonAppearance } from "../button/index.js";
 import { Table } from "../table/table.js";
 import {
@@ -396,6 +398,19 @@ describe("DataTable.ActionCell", () => {
 		const label = cell.querySelector('[data-slot="data-table-action-cell-label"]');
 		expect(label).toContainElement(screen.getByRole("button", { name: "Open actions" }));
 	});
+
+	test("the sticky indicator's fade variant resolves against Table.Root's group name", () => {
+		// Cross-file spelling pin, both halves in one render: the indicator strip
+		// (data-table.tsx) fades in with `group-data-sticky-active/table:`, which
+		// resolves only while the root (table.tsx) keeps the `group/table` name.
+		const { container } = render(<ActionCellHarness />);
+
+		expect(container.querySelector('[data-slot~="data-table"]')).toHaveClass("group/table");
+		const cell = screen.getByRole("cell", { name: "Open actions" });
+		expect(cell.querySelector("[aria-hidden]")).toHaveClass(
+			"group-data-sticky-active/table:opacity-100",
+		);
+	});
 });
 
 type SortableHarnessProps = {
@@ -405,6 +420,10 @@ type SortableHarnessProps = {
 	/** The ref the `disableSorting` branch passes to `DataTable.HeaderSortButton`. */
 	disabledHeaderRef?: Ref<HTMLButtonElement>;
 	enableSorting?: boolean;
+	/** Consumer `onClick`, which runs before the toggle and can veto it. */
+	onHeaderClick?: (event: MouseEvent<HTMLButtonElement>) => void;
+	sortIcon?: (sortDirection: SortDirection) => ReactNode;
+	sortingMode?: SortingMode;
 };
 
 /**
@@ -417,6 +436,9 @@ function SortableHarness({
 	disableSorting = false,
 	disabledHeaderRef,
 	enableSorting = true,
+	onHeaderClick,
+	sortIcon,
+	sortingMode = "alphanumeric",
 }: SortableHarnessProps) {
 	const sortableColumns = useMemo(
 		() =>
@@ -439,9 +461,11 @@ function SortableHarness({
 							) : (
 								<DataTable.HeaderSortButton
 									column={props.column}
-									sortingMode="alphanumeric"
+									sortingMode={sortingMode}
 									appearance={appearance}
 									intent={intent}
+									onClick={onHeaderClick}
+									sortIcon={sortIcon}
 								>
 									Name
 								</DataTable.HeaderSortButton>
@@ -451,7 +475,16 @@ function SortableHarness({
 					cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
 				}),
 			]),
-		[appearance, disableSorting, disabledHeaderRef, enableSorting, intent],
+		[
+			appearance,
+			disableSorting,
+			disabledHeaderRef,
+			enableSorting,
+			intent,
+			onHeaderClick,
+			sortIcon,
+			sortingMode,
+		],
 	);
 	const table = useTable({
 		features: sortableFeatures,
@@ -530,6 +563,77 @@ describe("DataTable.HeaderSortButton", () => {
 
 		await user.click(button);
 		expect(names()).toEqual(["web-10", "web-1", "web-2"]);
+	});
+
+	test("time sorting leads with descending (newest first), then ascending, then unsorted", async () => {
+		const user = userEvent.setup();
+		render(<SortableHarness sortingMode="time" />);
+		const button = screen.getByRole("button", { name: "Name" });
+		const header = screen.getByRole("columnheader", { name: "Name" });
+		const names = () => screen.getAllByRole("cell").map((cell) => cell.textContent);
+		expect(button).toHaveAttribute("data-sort-direction", "unsorted");
+
+		await user.click(button);
+		expect(button).toHaveAttribute("data-sort-direction", "desc");
+		expect(header).toHaveAttribute("aria-sort", "descending");
+		expect(names()).toEqual(["web-10", "web-2", "web-1"]);
+
+		await user.click(button);
+		expect(button).toHaveAttribute("data-sort-direction", "asc");
+		expect(header).toHaveAttribute("aria-sort", "ascending");
+		expect(names()).toEqual(["web-1", "web-2", "web-10"]);
+
+		await user.click(button);
+		expect(button).toHaveAttribute("data-sort-direction", "unsorted");
+		expect(header).not.toHaveAttribute("aria-sort");
+		expect(names()).toEqual(["web-10", "web-1", "web-2"]);
+	});
+
+	test("invokes a consumer `onClick` and still toggles the sort", async () => {
+		const user = userEvent.setup();
+		const handleClick = vi.fn<(event: MouseEvent<HTMLButtonElement>) => void>();
+		render(<SortableHarness onHeaderClick={handleClick} />);
+
+		await user.click(screen.getByRole("button", { name: "Name" }));
+
+		expect(handleClick).toHaveBeenCalledTimes(1);
+		expect(screen.getByRole("button", { name: "Name" })).toHaveAttribute(
+			"data-sort-direction",
+			"asc",
+		);
+	});
+
+	test("lets a consumer `onClick` veto the toggle via preventDefault", async () => {
+		const user = userEvent.setup();
+		const handleClick = vi.fn<(event: MouseEvent<HTMLButtonElement>) => void>((event) => {
+			event.preventDefault();
+		});
+		render(<SortableHarness onHeaderClick={handleClick} />);
+
+		await user.click(screen.getByRole("button", { name: "Name" }));
+
+		expect(handleClick).toHaveBeenCalledTimes(1);
+		expect(screen.getByRole("button", { name: "Name" })).toHaveAttribute(
+			"data-sort-direction",
+			"unsorted",
+		);
+		expect(screen.getByRole("columnheader", { name: "Name" })).not.toHaveAttribute("aria-sort");
+	});
+
+	test("passes the current sort direction to a `sortIcon` render prop", async () => {
+		const user = userEvent.setup();
+		const sortIcon = vi.fn<(sortDirection: SortDirection) => ReactNode>((sortDirection) => (
+			<svg data-testid="sort-icon" data-direction={sortDirection} />
+		));
+		render(<SortableHarness sortIcon={sortIcon} />);
+
+		expect(screen.getByTestId("sort-icon")).toHaveAttribute("data-direction", "unsorted");
+		expect(sortIcon).toHaveBeenLastCalledWith("unsorted");
+
+		await user.click(screen.getByRole("button", { name: "Name" }));
+
+		expect(screen.getByTestId("sort-icon")).toHaveAttribute("data-direction", "asc");
+		expect(sortIcon).toHaveBeenLastCalledWith("asc");
 	});
 
 	test("disableSorting renders the label as plain text with no button and forwards the other props", () => {
@@ -630,6 +734,19 @@ describe("DataTable.ActionHeader", () => {
 		);
 		const scroller = screen.getByRole("table").parentElement;
 		expect(scroller?.className).toContain("has-data-mantle-table-sticky-right:");
+	});
+
+	test("drops the sticky marker and indicator while the table has no rows", () => {
+		// Without rows there is nothing to pin, so the container's scroll fade
+		// must not be suppressed.
+		const { rerender } = render(<ActionHeaderHarness rows={[]} />);
+		const header = screen.getByRole("columnheader", { name: "Actions" });
+		expect(header).not.toHaveAttribute("data-mantle-table-sticky-right");
+		expect(header.querySelector("[aria-hidden]")).toBeNull();
+
+		rerender(<ActionHeaderHarness rows={data} />);
+		expect(header).toHaveAttribute("data-mantle-table-sticky-right");
+		expect(header.querySelector("[aria-hidden]")).not.toBeNull();
 	});
 
 	test("keeps rendering when the first page of rows arrives on a browser-translated page", () => {
@@ -813,6 +930,15 @@ describe("DataTable.ExpandedRow", () => {
 		expect(detailCell).toHaveAttribute("id", "data-table-expanded-row-row-1");
 	});
 
+	test("stamps `data-expanded-content` so consumer CSS can target the detail row", async () => {
+		const user = userEvent.setup();
+		render(<ExpandableHarness />);
+
+		await user.click(screen.getByRole("button", { name: "Show details for Alice" }));
+
+		expect(screen.getByTestId("detail-row-1")).toHaveAttribute("data-expanded-content");
+	});
+
 	test("honors a `colSpan` override", async () => {
 		const user = userEvent.setup();
 		render(<ExpandableHarness detailColSpan={1} />);
@@ -938,15 +1064,26 @@ describe("DataTable.Row renderExpanded", () => {
 		await user.click(screen.getByRole("button", { name: "Show details for Alice" }));
 
 		expect(renderSpy).toHaveBeenLastCalledWith(expect.objectContaining({ id: "row-1" }));
+		expect(screen.getByTestId("panel-row-1")).toHaveTextContent("Panel for Alice");
 		const panelCell = screen.getByTestId("panel-row-1").closest("td");
 		expect(panelCell).toHaveAttribute("colspan", "2");
 		expect(panelCell).toHaveAttribute("id", "data-table-expanded-row-row-1");
 	});
 
-	test("renders a single `<tr>` (no detail row) when `renderExpanded` is omitted", () => {
-		render(<Harness />);
-		// The base Row harness renders exactly one body row and no expanded detail.
-		expect(screen.getAllByRole("row")).toHaveLength(1);
+	test("injects no extra `<tr>` when `renderExpanded` is omitted, even while expanded", async () => {
+		const user = userEvent.setup();
+		// `ExpandableHarness` renders its own `ExpandedRow`, so an unconditional
+		// detail row from `Row` would show up as a third body row.
+		render(<ExpandableHarness />);
+
+		await user.click(screen.getByRole("button", { name: "Show details for Alice" }));
+
+		const body = screen.getByTestId("row-row-1").parentElement;
+		if (body == null) {
+			throw new Error("expected the row to sit inside a body");
+		}
+		expect(within(body).getAllByRole("row")).toHaveLength(2);
+		expect(screen.getAllByText("Detail for Alice")).toHaveLength(1);
 	});
 });
 

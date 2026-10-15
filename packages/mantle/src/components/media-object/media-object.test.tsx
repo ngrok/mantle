@@ -56,15 +56,36 @@ describe("MediaObject", () => {
 		},
 	);
 
-	test("asChild renders the child element with the slot and the forwarded props", () => {
+	test.each([
+		["Root", MediaObject.Root, "media-object"],
+		["Media", MediaObject.Media, "media-object-media"],
+		["Content", MediaObject.Content, "media-object-content"],
+	] as const)(
+		"%s asChild renders the child element with the slot and the forwarded props",
+		(_name, Part, slot) => {
+			render(
+				<Part asChild id="row" aria-label="Row">
+					<a href="/comments/1">row</a>
+				</Part>,
+			);
+
+			const link = screen.getByRole("link", { name: "Row" });
+			expect(link).toHaveAttribute("data-slot", slot);
+			expect(link).toHaveAttribute("id", "row");
+		},
+	);
+
+	test("a consumer's gap-* class replaces the default gap on Root", () => {
+		// Why a class assertion: a tailwind-merge override contract. The JSDoc tells
+		// consumers to override the spacing with their own `gap-*` class.
 		render(
-			<MediaObject.Root asChild id="row" aria-label="Row">
-				<a href="/comments/1">row</a>
+			<MediaObject.Root className="gap-8" data-testid="root">
+				content
 			</MediaObject.Root>,
 		);
 
-		const link = screen.getByRole("link", { name: "Row" });
-		expect(link).toHaveAttribute("data-slot", "media-object");
-		expect(link).toHaveAttribute("id", "row");
+		const root = screen.getByTestId("root");
+		expect(root).toHaveClass("gap-8");
+		expect(root).not.toHaveClass("gap-4");
 	});
 });

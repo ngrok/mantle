@@ -1,6 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { createRef, useContext } from "react";
+import { createRef, useContext, useState } from "react";
 import type { ReactElement } from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
@@ -9,6 +9,13 @@ import { Input } from "../input/input.js";
 import { Select } from "../select/select.js";
 import { FieldItemContext, type FieldControlAriaProps } from "./field-context.js";
 import { Field } from "./field.js";
+
+/**
+ * `aria-describedby` is a space-separated IDREF list, so assert against the
+ * parsed tokens. A substring match would pass for an empty or partial id.
+ */
+const describedByTokens = (element: HTMLElement) =>
+	element.getAttribute("aria-describedby")?.split(" ") ?? [];
 
 describe("Field", () => {
 	test("Field.Label outside a Field.Item renders a label with no for attribute", () => {
@@ -51,10 +58,8 @@ describe("Field", () => {
 			</Field.Item>,
 		);
 
-		const label = screen.getByText("Email");
-		const input = label.parentElement?.querySelector("input");
-		expect(input).not.toBeNull();
-		expect(label).toHaveAttribute("for", input?.getAttribute("id") ?? "");
+		// The association resolves end to end: the label names the control.
+		expect(screen.getByLabelText("Email")).toBe(screen.getByRole("textbox"));
 	});
 
 	describe("refs", () => {
@@ -178,9 +183,14 @@ describe("Field", () => {
 			expect(screen.getByTestId("root")).toHaveAttribute("data-slot", "field-item");
 		});
 
-		test("a consumer className lands on the item", () => {
-			render(<Field.Item className="custom-class" data-testid="root" name="example" />);
-			expect(screen.getByTestId("root")).toHaveClass("custom-class");
+		test("a consumer className lands on the item and its gap replaces the default", () => {
+			render(<Field.Item className="custom-class gap-0" data-testid="root" name="example" />);
+			const root = screen.getByTestId("root");
+			expect(root).toHaveClass("custom-class");
+			// tailwind-merge override contract: a consumer `gap-*` replaces the default
+			// `gap-1.5`, so the assertion reads the merge outcome.
+			expect(root).toHaveClass("gap-0");
+			expect(root).not.toHaveClass("gap-1.5");
 		});
 
 		test("forwards arbitrary data-* attributes", () => {
@@ -212,10 +222,10 @@ describe("Field", () => {
 
 			const input = screen.getByRole("textbox", { name: "Email" });
 			const description = screen.getByText("We'll never share your email.");
-			expect(description).toHaveAttribute("id");
-			expect(input.getAttribute("aria-describedby")).toContain(description.id);
+			expect(describedByTokens(input)).toContain(description.id);
+			// The IDREF resolves, so the description is announced.
+			expect(input).toHaveAccessibleDescription("We'll never share your email.");
 			expect(input).toHaveAttribute("name", "email");
-			expect(input).toHaveAttribute("id");
 		});
 
 		test("drops child-supplied aria-describedby and aria-errormessage in favor of Field-owned IDs", () => {
@@ -235,10 +245,11 @@ describe("Field", () => {
 			);
 
 			const input = screen.getByRole("textbox", { name: "Email" });
-			const errors = screen.getByText("Required.").closest("ul");
-			expect(errors).not.toBeNull();
-			expect(input.getAttribute("aria-describedby")).toContain(errors?.id);
-			expect(input).toHaveAttribute("aria-errormessage", errors?.id);
+			const errors = screen.getByRole("list");
+			expect(describedByTokens(input)).toContain(errors.id);
+			expect(describedByTokens(input)).not.toContain("child-help");
+			expect(input).toHaveAttribute("aria-errormessage", errors.id);
+			expect(input).toHaveAccessibleDescription("Required.");
 		});
 
 		test("Field.Control wires rendered Field.ErrorList to the control and infers invalid state", () => {
@@ -255,10 +266,10 @@ describe("Field", () => {
 
 			const input = screen.getByRole("textbox", { name: "Email" });
 			const errorList = screen.getByTestId("errors");
-			expect(errorList).toHaveAttribute("id");
-			expect(input.getAttribute("aria-describedby")).toContain(errorList.id);
+			expect(describedByTokens(input)).toContain(errorList.id);
 			expect(input).toHaveAttribute("aria-errormessage", errorList.id);
 			expect(input).toHaveAttribute("aria-invalid", "true");
+			expect(input).toHaveAccessibleDescription("Email is required.");
 		});
 
 		test("does not mark a control invalid when Field.ErrorItem children are empty", () => {
@@ -290,10 +301,10 @@ describe("Field", () => {
 
 			const input = screen.getByRole("textbox", { name: "Email" });
 			const errors = screen.getByTestId("errors");
-			expect(errors).toHaveAttribute("id");
-			expect(input.getAttribute("aria-describedby")).toContain(errors.id);
+			expect(describedByTokens(input)).toContain(errors.id);
 			expect(input).toHaveAttribute("aria-errormessage", errors.id);
 			expect(input).toHaveAttribute("aria-invalid", "true");
+			expect(input).toHaveAccessibleDescription("Email is required.");
 		});
 
 		test("ignores child-supplied aria-invalid — Field.Item owns the contract", () => {
@@ -332,6 +343,106 @@ describe("Field", () => {
 			expect(input).not.toHaveAttribute("aria-errormessage");
 		});
 
+		describe("inferred invalid state over time", () => {
+			// The error list registers with `Field.Item` on mount and unregisters on
+			// unmount, so the control must follow the list through each transition.
+			test("clears when the rendered error messages are emptied", async () => {
+				const user = userEvent.setup();
+				const Subject = () => {
+					const [messages, setMessages] = useState<string[]>(["Email is required."]);
+					return (
+						<Field.Item name="example">
+							<Field.Label>Email</Field.Label>
+							<Field.Control>
+								<Input />
+							</Field.Control>
+							<Field.Errors data-testid="errors" messages={messages} />
+							<button type="button" onClick={() => setMessages([])}>
+								Fix it
+							</button>
+						</Field.Item>
+					);
+				};
+				render(<Subject />);
+
+				const input = screen.getByRole("textbox", { name: "Email" });
+				expect(input).toHaveAttribute("aria-invalid", "true");
+				expect(input).toHaveAttribute("aria-errormessage", screen.getByTestId("errors").id);
+				expect(input).toHaveAttribute("data-validation", "error");
+
+				await user.click(screen.getByRole("button", { name: "Fix it" }));
+
+				expect(screen.queryByTestId("errors")).toBeNull();
+				expect(input).not.toHaveAttribute("aria-errormessage");
+				expect(input).toHaveAttribute("aria-invalid", "false");
+				expect(input).not.toHaveAttribute("data-validation");
+			});
+
+			test("clears when the Field.ErrorList unmounts", async () => {
+				const user = userEvent.setup();
+				const Subject = () => {
+					const [hasError, setHasError] = useState(true);
+					return (
+						<Field.Item name="example">
+							<Field.Label>Email</Field.Label>
+							<Field.Control>
+								<Input />
+							</Field.Control>
+							{hasError && (
+								<Field.ErrorList data-testid="errors">
+									<Field.ErrorItem>Email is required.</Field.ErrorItem>
+								</Field.ErrorList>
+							)}
+							<button type="button" onClick={() => setHasError(false)}>
+								Fix it
+							</button>
+						</Field.Item>
+					);
+				};
+				render(<Subject />);
+
+				const input = screen.getByRole("textbox", { name: "Email" });
+				expect(input).toHaveAttribute("aria-invalid", "true");
+				expect(input).toHaveAttribute("data-validation", "error");
+
+				await user.click(screen.getByRole("button", { name: "Fix it" }));
+
+				expect(screen.queryByTestId("errors")).toBeNull();
+				expect(input).not.toHaveAttribute("aria-errormessage");
+				expect(input).toHaveAttribute("aria-invalid", "false");
+				expect(input).not.toHaveAttribute("data-validation");
+			});
+
+			test("returns when errors come back after being cleared", async () => {
+				const user = userEvent.setup();
+				const Subject = () => {
+					const [messages, setMessages] = useState<string[]>([]);
+					return (
+						<Field.Item name="example">
+							<Field.Label>Email</Field.Label>
+							<Field.Control>
+								<Input />
+							</Field.Control>
+							<Field.Errors data-testid="errors" messages={messages} />
+							<button type="button" onClick={() => setMessages(["Email is required."])}>
+								Validate
+							</button>
+						</Field.Item>
+					);
+				};
+				render(<Subject />);
+
+				const input = screen.getByRole("textbox", { name: "Email" });
+				expect(input).toHaveAttribute("aria-invalid", "false");
+
+				await user.click(screen.getByRole("button", { name: "Validate" }));
+
+				expect(input).toHaveAttribute("aria-invalid", "true");
+				expect(input).toHaveAttribute("aria-errormessage", screen.getByTestId("errors").id);
+				expect(input).toHaveAttribute("data-validation", "error");
+			});
+		});
+
 		test("supports render props for controls that need manual prop placement", () => {
 			render(
 				<Field.Item name="example">
@@ -350,7 +461,9 @@ describe("Field", () => {
 
 			const checkbox = screen.getByRole("checkbox", { name: "Accept terms" });
 			const description = screen.getByText("Required to continue.");
-			expect(checkbox.getAttribute("aria-describedby")).toContain(description.id);
+			expect(describedByTokens(checkbox)).toContain(description.id);
+			expect(checkbox).toHaveAccessibleDescription("Required to continue.");
+			expect(checkbox).toHaveAttribute("name", "example");
 		});
 
 		test("splats Field.Item name and generated id onto the control, overriding child-supplied values", () => {
@@ -462,13 +575,16 @@ describe("Field", () => {
 			expect(input).toHaveAttribute("name", "email");
 		});
 
-		test("forwards Slot props from the element form onto the child", () => {
+		test("forwards Slot props from the element form onto the child and keeps the child's own", () => {
 			render(
 				<Field.Control className="ok-on-element-form">
-					<input aria-label="Email" />
+					<input aria-label="Email" className="caller-class" />
 				</Field.Control>,
 			);
-			expect(screen.getByRole("textbox", { name: "Email" })).toHaveClass("ok-on-element-form");
+			expect(screen.getByRole("textbox", { name: "Email" })).toHaveClass(
+				"ok-on-element-form",
+				"caller-class",
+			);
 		});
 
 		test("throws a descriptive error when children is not a valid element or function", () => {
@@ -496,9 +612,14 @@ describe("Field", () => {
 			expect(group).toHaveAttribute("data-slot", "field-group");
 		});
 
-		test("merges custom className", () => {
-			render(<Field.Group className="custom-group" data-testid="group" />);
-			expect(screen.getByTestId("group").className).toContain("custom-group");
+		test("merges custom className and lets a consumer gap replace the default", () => {
+			render(<Field.Group className="custom-group gap-0" data-testid="group" />);
+			const group = screen.getByTestId("group");
+			expect(group).toHaveClass("custom-group");
+			// tailwind-merge override contract: a consumer `gap-*` replaces the default
+			// `gap-4`, so the assertion reads the merge outcome.
+			expect(group).toHaveClass("gap-0");
+			expect(group).not.toHaveClass("gap-4");
 		});
 
 		test("renders as child element when asChild is true", () => {
@@ -709,10 +830,11 @@ describe("Field", () => {
 			expect(trigger).not.toHaveClass("-my-0.5");
 		});
 
-		test("clicking Field.HelpTrigger opens the Field.Help popover", async () => {
+		test("clicking Field.HelpTrigger opens the Field.Help popover and Escape closes it", async () => {
 			const user = userEvent.setup();
+			const onOpenChange = vi.fn<(open: boolean) => void>();
 			render(
-				<Field.Help>
+				<Field.Help onOpenChange={onOpenChange}>
 					<Field.HelpTrigger label="What is this field?" />
 					<Field.HelpContent>Copy this from the dashboard.</Field.HelpContent>
 				</Field.Help>,
@@ -720,9 +842,20 @@ describe("Field", () => {
 			const trigger = screen.getByRole("button", { name: "What is this field?" });
 			expect(trigger).toHaveAttribute("aria-expanded", "false");
 			expect(screen.queryByText("Copy this from the dashboard.")).not.toBeInTheDocument();
+
 			await user.click(trigger);
 			expect(await screen.findByText("Copy this from the dashboard.")).toBeInTheDocument();
 			expect(trigger).toHaveAttribute("aria-expanded", "true");
+			expect(onOpenChange).toHaveBeenCalledTimes(1);
+			expect(onOpenChange).toHaveBeenLastCalledWith(true);
+
+			await user.keyboard("{Escape}");
+			await waitFor(() => {
+				expect(screen.queryByText("Copy this from the dashboard.")).not.toBeInTheDocument();
+			});
+			expect(trigger).toHaveAttribute("aria-expanded", "false");
+			expect(onOpenChange).toHaveBeenCalledTimes(2);
+			expect(onOpenChange).toHaveBeenLastCalledWith(false);
 		});
 
 		test("HelpContent joins field-help-content ahead of Popover.Content's own slot", () => {

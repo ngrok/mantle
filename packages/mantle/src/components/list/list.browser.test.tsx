@@ -32,11 +32,15 @@ function Harness() {
 }
 
 // Why inline CSS: the browser project loads no Tailwind. This block mirrors the
-// two focus utilities the file asserts, in Tailwind's selector form.
+// three utilities the file asserts, in Tailwind's selector form. They are a
+// spelling pin on `list.tsx` / `primitive.tsx`: rename a utility there and
+// this shim must follow.
+const TINT = "rgb(10, 20, 30)";
 const FOCUS_STYLE = `
 @layer utilities {
 	.focus-visible\\:outline-hidden:focus-visible { outline-style: none; }
-	.has-\\[\\:focus-visible\\]\\:bg-active-menu-item:has(:focus-visible) { background-color: rgb(10, 20, 30); }
+	.has-\\[\\:focus-visible\\]\\:bg-active-menu-item:has(:focus-visible) { background-color: ${TINT}; }
+	.aria-disabled\\:pointer-events-none[aria-disabled="true"] { pointer-events: none; }
 }
 `;
 let focusStyleElement: HTMLStyleElement;
@@ -48,6 +52,15 @@ beforeAll(() => {
 afterAll(() => {
 	focusStyleElement.remove();
 });
+
+/** The `role="listitem"` pill wrapping an item's control. */
+function pillOf(control: HTMLElement): HTMLElement {
+	const pill = control.closest("[data-slot='list-item']");
+	if (!(pill instanceof HTMLElement)) {
+		throw new Error("list item pill not found");
+	}
+	return pill;
+}
 
 describe("List (browser)", () => {
 	test("renders a labeled list of clickable items", async () => {
@@ -197,7 +210,10 @@ describe("List (browser)", () => {
 		);
 
 		const link = await screen.findByRole("link", { name: "Disabled provider" });
-		// Dispatch directly (assistive tech / .click() bypass pointer-events hit testing).
+		// Hit-tested pointer input is blocked outright...
+		expect(getComputedStyle(link).pointerEvents).toBe("none");
+		// ...and a directly-dispatched click (assistive tech / `.click()`, which
+		// bypasses hit testing) is swallowed too.
 		link.click();
 		expect(activated).toBe(0);
 	});
@@ -211,19 +227,25 @@ describe("List (browser)", () => {
 			</List.Root>,
 		);
 
-		screen.getByRole("button", { name: "Item 0" }).focus();
+		const first = screen.getByRole("button", { name: "Item 0" });
+		const second = screen.getByRole("button", { name: "Item 1" });
+		first.focus();
 		await user.keyboard("{ArrowDown}");
 
-		const focused = screen.getByRole("button", { name: "Item 1" });
-		expect(focused).toHaveFocus();
-		const pill = focused.closest("[data-slot='list-item']");
-		if (pill == null) {
-			throw new Error("list item pill not found");
-		}
+		expect(second).toHaveFocus();
 		// The pill tints through `:has(:focus-visible)`. The control hides its own outline instead of a ring.
-		expect(pill.matches(":has(:focus-visible)")).toBe(true);
-		expect(getComputedStyle(focused).outlineStyle).toBe("none");
-		expect(getComputedStyle(pill).backgroundColor).toBe("rgb(10, 20, 30)");
+		expect(getComputedStyle(second).outlineStyle).toBe("none");
+		expect(pillOf(second).matches(":has(:focus-visible)")).toBe(true);
+		expect(getComputedStyle(pillOf(second)).backgroundColor).toBe(TINT);
+		// Only the focused row's pill tints.
+		expect(pillOf(first).matches(":has(:focus-visible)")).toBe(false);
+		expect(getComputedStyle(pillOf(first)).backgroundColor).not.toBe(TINT);
+
+		// The tint follows focus back up rather than sticking to the row it left.
+		await user.keyboard("{ArrowUp}");
+		expect(first).toHaveFocus();
+		expect(getComputedStyle(pillOf(first)).backgroundColor).toBe(TINT);
+		expect(getComputedStyle(pillOf(second)).backgroundColor).not.toBe(TINT);
 	});
 
 	test("arrow navigation crosses the virtual window (End mounts and focuses the last item)", async () => {

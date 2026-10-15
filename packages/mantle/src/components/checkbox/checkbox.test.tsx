@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { useLayoutEffect, useRef } from "react";
+import type { MouseEvent as ReactMouseEvent } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { Field } from "../field/field.js";
 import { Checkbox, selectAllChecked } from "./checkbox.js";
@@ -129,9 +130,12 @@ describe("Checkbox", () => {
 	});
 
 	describe("readOnly", () => {
-		test("exposes aria-readonly and does not toggle on click", async () => {
+		// The native `readOnly` attribute does not stop a checkbox from toggling, so the
+		// guard lives in `onClick`. Only a real click can observe it.
+		test("exposes aria-readonly, does not toggle on click, and keeps the click from the caller's onClick", async () => {
 			const user = userEvent.setup();
-			render(<Checkbox aria-label="Static" defaultChecked readOnly />);
+			const handleClick = vi.fn<(event: ReactMouseEvent<HTMLInputElement>) => void>();
+			render(<Checkbox aria-label="Static" defaultChecked readOnly onClick={handleClick} />);
 
 			const checkbox = screen.getByRole("checkbox", { name: "Static" });
 			expect(checkbox).toHaveAttribute("aria-readonly", "true");
@@ -140,17 +144,21 @@ describe("Checkbox", () => {
 			// state is the contract.
 			await user.click(checkbox);
 			expect(checkbox).toBeChecked();
+			expect(handleClick).toHaveBeenCalledTimes(0);
 		});
 
-		test("omits aria-readonly when the checkbox is editable", async () => {
+		test("omits aria-readonly when the checkbox is editable and forwards the click to onClick", async () => {
 			const user = userEvent.setup();
-			render(<Checkbox aria-label="Editable" />);
+			const handleClick = vi.fn<(event: ReactMouseEvent<HTMLInputElement>) => void>();
+			render(<Checkbox aria-label="Editable" onClick={handleClick} />);
 
 			const checkbox = screen.getByRole("checkbox", { name: "Editable" });
 			expect(checkbox).not.toHaveAttribute("aria-readonly");
 
 			await user.click(checkbox);
 			expect(checkbox).toBeChecked();
+			expect(handleClick).toHaveBeenCalledTimes(1);
+			expect(handleClick.mock.lastCall?.[0].target).toBe(checkbox);
 		});
 	});
 });

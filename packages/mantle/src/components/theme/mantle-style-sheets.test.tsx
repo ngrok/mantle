@@ -1,6 +1,6 @@
 import { renderToString } from "react-dom/server";
 import { describe, expect, test } from "vitest";
-import { MantleStyleSheets } from "./mantle-style-sheets.js";
+import { fixMediaScriptContent, MantleStyleSheets } from "./mantle-style-sheets.js";
 
 const DARK_LINK_ID = "mantle-dark-styles";
 const LIGHT_HC_LINK_ID = "mantle-light-high-contrast-styles";
@@ -39,6 +39,20 @@ function mediaOf(fragment: DocumentFragment, id: string): string | null {
 }
 
 describe("MantleStyleSheets server render", () => {
+	test("wires each link to its own stylesheet URL", () => {
+		const fragment = parseServerHtml(renderToString(<MantleStyleSheets {...TEST_URLS} />));
+
+		expect(linkOf(fragment, DARK_LINK_ID)).toHaveAttribute("href", TEST_URLS.darkCssUrl);
+		expect(linkOf(fragment, LIGHT_HC_LINK_ID)).toHaveAttribute(
+			"href",
+			TEST_URLS.lightHighContrastCssUrl,
+		);
+		expect(linkOf(fragment, DARK_HC_LINK_ID)).toHaveAttribute(
+			"href",
+			TEST_URLS.darkHighContrastCssUrl,
+		);
+	});
+
 	test("ssrCookie=dark applies the dark sheet and omits the fix script", () => {
 		const fragment = parseServerHtml(
 			renderToString(<MantleStyleSheets {...TEST_URLS} ssrCookie="mantle-ui-theme=dark" />),
@@ -79,6 +93,8 @@ describe("MantleStyleSheets server render", () => {
 		const fragment = parseServerHtml(html);
 
 		expect(html).toContain('<script nonce="n1">');
+		// Why the generator: an empty or half-built inline script is a silent no-op in production.
+		expect(fragment.querySelector("script")?.textContent).toBe(fixMediaScriptContent());
 		expect(mediaOf(fragment, DARK_LINK_ID)).toBe(MEDIA_DARK);
 		expect(mediaOf(fragment, LIGHT_HC_LINK_ID)).toBe(MEDIA_LIGHT_HC);
 		expect(mediaOf(fragment, DARK_HC_LINK_ID)).toBe(MEDIA_DARK_HC);

@@ -1,3 +1,4 @@
+import { CheckCircleIcon } from "@phosphor-icons/react/CheckCircle";
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import type { ReactNode } from "react";
@@ -135,6 +136,7 @@ describe("Select", () => {
 		// (which Select.Root does not forward).
 		render(
 			<Field.Item name="example">
+				<Field.Label data-testid="label">Fruit</Field.Label>
 				<Field.Control>
 					<Select.Root>
 						<Select.Trigger
@@ -160,7 +162,11 @@ describe("Select", () => {
 		expect(trigger.getAttribute("aria-describedby")).toContain(description.id);
 		expect(trigger.getAttribute("aria-describedby")).not.toContain("ignored-description");
 		expect(trigger).toHaveAttribute("aria-errormessage", errors.id);
-		expect(trigger).not.toHaveAttribute("id", "ignored-trigger");
+		// The field owns the id, so `Field.Label`'s `htmlFor` resolves to the
+		// trigger — the caller-supplied id loses.
+		expect(trigger.id).not.toBe("");
+		expect(trigger.id).not.toBe("ignored-trigger");
+		expect(screen.getByTestId("label")).toHaveAttribute("for", trigger.id);
 	});
 
 	test("Field.Control outside Field.Item does not override Select props", () => {
@@ -965,6 +971,66 @@ describe("Select", () => {
 
 			expect(trigger.querySelector("font")).toBeNull();
 			expect(trigger.querySelector("strong")).toHaveTextContent("Pick a fruit");
+		});
+	});
+
+	describe("selecting a value", () => {
+		test("picking an item notifies the deprecated onChange alias and submits the value under name", async () => {
+			const user = userEvent.setup();
+			const onChange = vi.fn<(value: string) => void>();
+			const onValueChange = vi.fn<(value: string) => void>();
+			render(
+				<form aria-label="fruit form">
+					<Select.Root name="fruit" onChange={onChange} onValueChange={onValueChange}>
+						<Select.Trigger>
+							<Select.Value placeholder="Pick a fruit" />
+						</Select.Trigger>
+						<Select.Content>
+							<Select.Item value="apple">Apple</Select.Item>
+							<Select.Item value="banana">Banana</Select.Item>
+						</Select.Content>
+					</Select.Root>
+				</form>,
+			);
+
+			const trigger = screen.getByRole("combobox");
+			await user.click(trigger);
+			await user.click(await screen.findByRole("option", { name: "Banana" }));
+
+			// `onChange` is the deprecated alias; consumers still on it must keep working.
+			expect(onChange).toHaveBeenCalledTimes(1);
+			expect(onChange).toHaveBeenLastCalledWith("banana");
+			expect(onValueChange).toHaveBeenCalledTimes(1);
+			expect(onValueChange).toHaveBeenLastCalledWith("banana");
+			expect(trigger).toHaveTextContent("Banana");
+			const form = screen.getByRole<HTMLFormElement>("form", { name: "fruit form" });
+			expect(new FormData(form).get("fruit")).toBe("banana");
+		});
+
+		test("Select.Item renders its leading icon", async () => {
+			const user = userEvent.setup();
+			render(
+				<Select.Root>
+					<Select.Trigger>
+						<Select.Value placeholder="Pick a fruit" />
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Item icon={<CheckCircleIcon />} value="apple">
+							Apple
+						</Select.Item>
+						<Select.Item value="banana">Banana</Select.Item>
+					</Select.Content>
+				</Select.Root>,
+			);
+
+			await user.click(screen.getByRole("combobox"));
+
+			expect(
+				(await screen.findByRole("option", { name: "Apple" })).querySelector('[data-slot~="icon"]'),
+			).toBeInTheDocument();
+			expect(
+				screen.getByRole("option", { name: "Banana" }).querySelector('[data-slot~="icon"]'),
+			).toBeNull();
 		});
 	});
 });

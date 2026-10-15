@@ -182,7 +182,7 @@ describe("QrCode", () => {
 		expect(sizeOf(viewBoxWith(1))).toBeLessThan(sizeOf(viewBoxWith()));
 	});
 
-	test.each([0, Number.POSITIVE_INFINITY])(
+	test.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY])(
 		"throws a helpful error for invalid pixelSize %s",
 		(pixelSize) => {
 			vi.spyOn(console, "error").mockImplementation(() => {});
@@ -190,7 +190,7 @@ describe("QrCode", () => {
 		},
 	);
 
-	test.each([-1, 1.5, Number.POSITIVE_INFINITY])(
+	test.each([-1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])(
 		"throws a helpful error for invalid quietZone %s",
 		(quietZone) => {
 			vi.spyOn(console, "error").mockImplementation(() => {});

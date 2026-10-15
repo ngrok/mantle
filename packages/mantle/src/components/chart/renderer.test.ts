@@ -1,7 +1,8 @@
 import { describe, expect, test } from "vitest";
 import type { PointShape } from "./types.js";
 import { POINT_SHAPE_CLIP_PATHS } from "./engine.js";
-import { tracePointShape } from "./renderer.js";
+import { CUBE_CORNERS, CUBE_EDGES, projectionMatrix, projectPoint } from "./projection.js";
+import { drawCubeFrame, tracePointShape } from "./renderer.js";
 
 /** Record path-trace calls without a real canvas context. */
 const makeRecorder = () => {
@@ -284,6 +285,97 @@ describe("point glyphs across the canvas and the CSS clip", () => {
 			"1.000,1.000",
 		]);
 		expect(POINT_SHAPE_CLIP_PATHS.square).toMatch(/^inset\(/);
+	});
+});
+
+describe("drawCubeFrame", () => {
+	type Segment = { from: Vertex; to: Vertex; style: string; alpha: number };
+
+	/** Record each stroked segment with the current style and alpha. */
+	const makeFrameRecorder = () => {
+		const segments: Segment[] = [];
+		let pending: Vertex | null = null;
+		const recorder = {
+			segments,
+			globalAlpha: 1,
+			strokeStyle: "",
+			lineWidth: 0,
+			save: () => {},
+			restore: () => {},
+			beginPath: () => {},
+			stroke: () => {},
+			moveTo: (x: number, y: number) => {
+				pending = { x, y };
+			},
+			lineTo: (x: number, y: number) => {
+				if (pending != null) {
+					segments.push({
+						from: pending,
+						to: { x, y },
+						style: recorder.strokeStyle,
+						alpha: recorder.globalAlpha,
+					});
+				}
+				pending = { x, y };
+			},
+		};
+		return recorder;
+	};
+
+	/** The cube's corners on screen, projected the way the 3D scatter projects them. */
+	const projectedCorners = () => {
+		const matrix = projectionMatrix({ yaw: 0.6, pitch: 0.35 });
+		return CUBE_CORNERS.map(([cornerX, cornerY, cornerZ]) => {
+			const projected = projectPoint(cornerX, cornerY, cornerZ, matrix);
+			return { x: 100 + projected.x * 40, y: 100 - projected.y * 40 };
+		});
+	};
+
+	const vertexKey = (vertex: Vertex) => `${vertex.x.toFixed(6)},${vertex.y.toFixed(6)}`;
+
+	test("strokes twelve edges that meet three at each of eight projected corners", () => {
+		// A duplicated corner folds two endpoints into one; an edge that names
+		// the wrong corner leaves one corner with two edges and another with four.
+		const recorder = makeFrameRecorder();
+		drawCubeFrame(recorder, {
+			gridColor: "grid",
+			axisColor: "axis",
+			corners: projectedCorners(),
+			edges: CUBE_EDGES,
+			cubeAlpha: 0.75,
+			axes: [],
+		});
+
+		expect(recorder.segments).toHaveLength(12);
+		const degrees = new Map<string, number>();
+		for (const { from, to } of recorder.segments) {
+			degrees.set(vertexKey(from), (degrees.get(vertexKey(from)) ?? 0) + 1);
+			degrees.set(vertexKey(to), (degrees.get(vertexKey(to)) ?? 0) + 1);
+		}
+		expect([...degrees.values()]).toEqual(Array.from({ length: 8 }, () => 3));
+		for (const segment of recorder.segments) {
+			expect(segment.style).toBe("grid");
+			expect(segment.alpha).toBe(0.75);
+		}
+	});
+
+	test("a collapsed third dimension skips the cube and the faded axes", () => {
+		const recorder = makeFrameRecorder();
+		const from = { x: 10, y: 90 };
+		const to = { x: 90, y: 90 };
+		drawCubeFrame(recorder, {
+			gridColor: "grid",
+			axisColor: "axis",
+			corners: projectedCorners(),
+			edges: CUBE_EDGES,
+			cubeAlpha: 0,
+			axes: [
+				{ label: "x", alpha: 1, from, to },
+				{ label: "z", alpha: 0, from, to: { x: 10, y: 10 } },
+			],
+		});
+
+		expect(recorder.segments).toEqual([{ from, to, style: "axis", alpha: 1 }]);
 	});
 });
 

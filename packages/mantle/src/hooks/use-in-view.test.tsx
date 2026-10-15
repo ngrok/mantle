@@ -6,6 +6,9 @@ import { useInView } from "./use-in-view.js";
 
 describe("useInView", () => {
 	let dispatchEntries: (entries: IntersectionObserverEntry[]) => void;
+	// Why a holder: the constructor records the instance it built, and oxlint forbids
+	// assigning `this` to a bare variable.
+	const built: { observer: IntersectionObserver | undefined } = { observer: undefined };
 	let mockObserve: Mock<(target: Element) => void>;
 	let mockUnobserve: Mock<(target: Element) => void>;
 	let mockDisconnect: Mock<() => void>;
@@ -14,21 +17,30 @@ describe("useInView", () => {
 		mockObserve = vi.fn<(target: Element) => void>();
 		mockUnobserve = vi.fn<(target: Element) => void>();
 		mockDisconnect = vi.fn<() => void>();
+		built.observer = undefined;
 
 		// vi.fn() produces an arrow function which cannot be used as a constructor with `new`,
 		// so we use a class to create a proper constructor mock.
 		class MockIntersectionObserver implements IntersectionObserver {
-			root = null;
-			rootMargin = "";
+			// Why these mirror the real read-only properties: a test reads the
+			// options through the instance, so an assertion on `root` or
+			// `thresholds` fails when no observer was built at all.
+			root: Element | Document | null;
+			rootMargin: string;
 			scrollMargin = "";
-			thresholds: number[] = [];
+			thresholds: number[];
 			observe = mockObserve;
 			unobserve = mockUnobserve;
 			disconnect = mockDisconnect;
 			takeRecords = () => [];
 
-			constructor(callback: IntersectionObserverCallback) {
+			constructor(callback: IntersectionObserverCallback, options?: IntersectionObserverInit) {
+				this.root = options?.root ?? null;
+				this.rootMargin = options?.rootMargin ?? "";
+				const threshold = options?.threshold ?? 0;
+				this.thresholds = Array.isArray(threshold) ? threshold : [threshold];
 				dispatchEntries = (entries) => callback(entries, this);
+				built.observer = this;
 			}
 		}
 
@@ -83,13 +95,21 @@ describe("useInView", () => {
 		triggerIntersection(element, true);
 		triggerIntersection(element, false);
 		expect(result.current).toBe(false);
+
+		// the element stays observed, so a second entry is tracked too
+		triggerIntersection(element, true);
+		expect(result.current).toBe(true);
+		expect(mockUnobserve).not.toHaveBeenCalled();
 	});
 
-	test("with once=true, stays true after the element leaves the viewport", () => {
+	test("with once=true, unobserves on the first entry and stays true after the element leaves", () => {
 		const element = document.createElement("div");
 		const { result } = renderHook(() => useInView(useRef(element), { once: true }));
 
 		triggerIntersection(element, true);
+		expect(result.current).toBe(true);
+		expect(mockUnobserve).toHaveBeenCalledExactlyOnceWith(element);
+
 		// Why a leave entry: with `once` the hook stores no leave handler, so the entry changes nothing.
 		triggerIntersection(element, false);
 		expect(result.current).toBe(true);
@@ -120,5 +140,52 @@ describe("useInView", () => {
 		unmount();
 		expect(mockUnobserve).toHaveBeenCalledExactlyOnceWith(element);
 		expect(mockDisconnect).toHaveBeenCalledTimes(1);
+	});
+
+	describe("observer options", () => {
+		test("observes the viewport at a threshold of 0 with no margin by default", () => {
+			const element = document.createElement("div");
+			renderHook(() => useInView(useRef(element)));
+
+			// `null` is the real observer's viewport root, so an unbuilt observer
+			// (`undefined`) fails here instead of passing by absence.
+			expect(built.observer?.root).toBeNull();
+			expect(built.observer?.rootMargin).toBe("");
+			expect(built.observer?.thresholds).toEqual([0]);
+		});
+
+		test.each([
+			["some", 0],
+			["all", 1],
+			[0.5, 0.5],
+		] as const)("amount=%s observes at a threshold of %s", (amount, threshold) => {
+			const element = document.createElement("div");
+			renderHook(() => useInView(useRef(element), { amount }));
+
+			expect(built.observer?.thresholds).toEqual([threshold]);
+		});
+
+		test("passes margin through as the root margin", () => {
+			const element = document.createElement("div");
+			renderHook(() => useInView(useRef(element), { margin: "10px 20px" }));
+
+			expect(built.observer?.rootMargin).toBe("10px 20px");
+		});
+
+		test("a root ref resolves to the referenced element, not the ref object", () => {
+			const element = document.createElement("div");
+			const container = document.createElement("section");
+			renderHook(() => useInView(useRef(element), { root: useRef(container) }));
+
+			expect(built.observer?.root).toBe(container);
+		});
+
+		test("an unattached root ref falls back to the viewport", () => {
+			const element = document.createElement("div");
+			renderHook(() => useInView(useRef(element), { root: useRef<Element | null>(null) }));
+
+			expect(mockObserve).toHaveBeenCalledExactlyOnceWith(element);
+			expect(built.observer?.root).toBeNull();
+		});
 	});
 });

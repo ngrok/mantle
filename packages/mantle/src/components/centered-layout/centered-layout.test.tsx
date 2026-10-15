@@ -12,13 +12,19 @@ describe("CenteredLayout", () => {
 		expect(root).toHaveTextContent("content");
 	});
 
-	test("Root merges custom className", () => {
+	test("Root's min-height default loses to a consumer min-h-* utility", () => {
 		render(
-			<CenteredLayout.Root className="custom-class" data-testid="root">
+			<CenteredLayout.Root className="min-h-screen custom-class" data-testid="root">
 				content
 			</CenteredLayout.Root>,
 		);
 		const root = screen.getByTestId("root");
+		// Why the class assertion: a tailwind-merge override contract. The JSDoc promises
+		// a host can set its own height through className, so only one `min-h-*` survives.
+		const minHeightClasses = Array.from(root.classList).filter((token) =>
+			token.startsWith("min-h-"),
+		);
+		expect(minHeightClasses).toEqual(["min-h-screen"]);
 		expect(root).toHaveClass("custom-class");
 	});
 
@@ -132,14 +138,17 @@ describe("CenteredLayout", () => {
 		expect(footer).toHaveTextContent("legal");
 	});
 
-	test("Footer merges custom className", () => {
+	test("Footer's inline padding default loses to a consumer px-* utility", () => {
 		render(
-			<CenteredLayout.Footer className="justify-center" data-testid="footer">
+			<CenteredLayout.Footer className="justify-center px-8" data-testid="footer">
 				legal
 			</CenteredLayout.Footer>,
 		);
 		const footer = screen.getByTestId("footer");
-		// The tailwind-merge contract: the consumer's class survives the merge.
+		// Why the class assertion: a tailwind-merge override contract. Only one `px-*`
+		// survives the merge, and a non-conflicting utility lands beside the defaults.
+		const paddingClasses = Array.from(footer.classList).filter((token) => token.startsWith("px-"));
+		expect(paddingClasses).toEqual(["px-8"]);
 		expect(footer).toHaveClass("justify-center");
 	});
 
@@ -174,15 +183,18 @@ describe("CenteredLayout", () => {
 		expect(screen.getByRole("banner")).toBe(header);
 	});
 
-	test("Header merges custom className", () => {
+	test("Header keeps the documented sticky recipe and its padding default loses to a consumer px-* utility", () => {
 		render(
-			<CenteredLayout.Header className="sticky top-0 justify-end" data-testid="header">
+			<CenteredLayout.Header className="sticky top-0 justify-end px-8" data-testid="header">
 				account
 			</CenteredLayout.Header>,
 		);
 		const header = screen.getByTestId("header");
-		// The tailwind-merge contract: the consumer's class survives the merge.
-		expect(header).toHaveClass("sticky");
+		// Why the class assertion: a tailwind-merge override contract. The JSDoc's pinning
+		// recipe is `sticky top-0` plus a `justify-*`, so those survive, and only one `px-*` does.
+		expect(header).toHaveClass("sticky", "top-0", "justify-end");
+		const paddingClasses = Array.from(header.classList).filter((token) => token.startsWith("px-"));
+		expect(paddingClasses).toEqual(["px-8"]);
 	});
 
 	test("Header renders as child element when asChild is true, keeping data-slot", () => {

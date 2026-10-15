@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
 import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
@@ -25,6 +25,28 @@ describe("Tabs", () => {
 					"data-appearance",
 					appearance,
 				);
+			},
+		);
+
+		// Why: `orientation` reaches the tablist through mantle's context, not
+		// Radix, and `aria-orientation` is what tells assistive tech and Radix's
+		// roving focus which arrow keys move between tabs.
+		test.each(["horizontal", "vertical"] as const)(
+			"flows orientation=%s to the root element and the tablist",
+			(orientation) => {
+				const { container } = render(
+					<Tabs.Root orientation={orientation} defaultValue="a">
+						<Tabs.List>
+							<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
+						</Tabs.List>
+					</Tabs.Root>,
+				);
+
+				expect(container.querySelector('[data-slot="tabs"]')).toHaveAttribute(
+					"data-orientation",
+					orientation,
+				);
+				expect(screen.getByRole("tablist")).toHaveAttribute("aria-orientation", orientation);
 			},
 		);
 
@@ -74,6 +96,22 @@ describe("Tabs", () => {
 			expect(badge).toHaveClass("ml-2");
 			expect(refSpy).toHaveBeenCalledTimes(1);
 			expect(refSpy).toHaveBeenLastCalledWith(badge);
+		});
+
+		test("joins the trigger's accessible name", () => {
+			render(
+				<Tabs.Root defaultValue="a">
+					<Tabs.List>
+						<Tabs.Trigger value="a">
+							Notifications <Tabs.Badge>5</Tabs.Badge>
+						</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>,
+			);
+
+			// Why the name: a badge announced as a bare "Notifications" tab loses the
+			// count it exists to convey.
+			expect(screen.getByRole("tab", { name: "Notifications 5" })).toBeInTheDocument();
 		});
 	});
 
@@ -169,6 +207,28 @@ describe("Tabs", () => {
 			expect(screen.getByRole("tab", { name: "Tab B" })).toHaveFocus();
 			expect(screen.getByRole("tab", { name: "Tab B" })).toHaveAttribute("aria-selected", "true");
 			expect(scrollIntoView).toHaveBeenCalledTimes(2);
+		});
+
+		test("keyboard focus in a vertical tablist does not scroll the trigger into view", async () => {
+			const user = userEvent.setup();
+			// Why a spy: happy-dom lays out nothing, so the `scrollIntoView` call is the
+			// only observable of the scroll.
+			const scrollIntoView = vi.spyOn(HTMLElement.prototype, "scrollIntoView");
+			render(
+				<Tabs.Root orientation="vertical" defaultValue="a">
+					<Tabs.List>
+						<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
+						<Tabs.Trigger value="b">Tab B</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>,
+			);
+
+			await user.tab();
+
+			// A vertical tablist is not a scroll container, so the listener is never
+			// registered and focusing a trigger must not scroll the page.
+			expect(screen.getByRole("tab", { name: "Tab A" })).toHaveFocus();
+			expect(scrollIntoView).not.toHaveBeenCalled();
 		});
 
 		test("given prefers-reduced-motion, keyboard focus scrolls without animation", async () => {
@@ -418,6 +478,7 @@ describe("Tabs", () => {
 
 			const link = screen.getByTestId("link");
 			expect(link.tagName).toBe("A");
+			expect(link).toHaveAttribute("href", "/a");
 			expect(link).toHaveAttribute("role", "tab");
 			expect(link).toHaveAttribute("data-slot", "tabs-trigger");
 			expect(link).toHaveClass("tracking-wide");
@@ -440,12 +501,74 @@ describe("Tabs", () => {
 			);
 
 			const tabB = screen.getByRole("tab", { name: "Tab B" });
+			// Why a button: `<a>` ignores `disabled`, so the part swaps the child for
+			// a real `<button>` to keep a disabled routing tab non-navigable.
+			expect(tabB.tagName).toBe("BUTTON");
+			expect(tabB).toBeDisabled();
 			expect(tabB).not.toHaveAttribute("href");
 			expect(tabB).toHaveAttribute("aria-disabled", "true");
 			await user.click(tabB);
 			expect(onClick).not.toHaveBeenCalled();
 			expect(tabB).toHaveAttribute("aria-selected", "false");
 		});
+
+		// `disabled` derives from `parseBooleanish(ariaDisabled ?? disabled)`, so an
+		// explicit `aria-disabled` wins, and `aria-disabled={false}` keeps the tab
+		// enabled beside `disabled`.
+		test.each([
+			{ name: "disabled", props: { disabled: true }, disabled: true, ariaDisabled: "true" },
+			{
+				name: "aria-disabled={true}",
+				props: { "aria-disabled": true },
+				disabled: true,
+				ariaDisabled: "true",
+			},
+			{
+				name: 'aria-disabled="true"',
+				props: { "aria-disabled": "true" },
+				disabled: true,
+				ariaDisabled: "true",
+			},
+			{
+				name: 'aria-disabled="false"',
+				props: { "aria-disabled": "false" },
+				disabled: false,
+				ariaDisabled: "false",
+			},
+			{
+				name: "aria-disabled={false} beside disabled",
+				props: { "aria-disabled": false, disabled: true },
+				disabled: false,
+				ariaDisabled: "false",
+			},
+			{ name: "neither", props: {}, disabled: false, ariaDisabled: null },
+		] as const satisfies ReadonlyArray<{
+			name: string;
+			props: Pick<ComponentProps<typeof Tabs.Trigger>, "aria-disabled" | "disabled">;
+			disabled: boolean;
+			ariaDisabled: string | null;
+		}>)("coerces the disabled state from $name", ({ props, disabled, ariaDisabled }) => {
+			render(
+				<Tabs.Root defaultValue="a">
+					<Tabs.List>
+						<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
+						<Tabs.Trigger value="b" {...props}>
+							Tab B
+						</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>,
+			);
+
+			const trigger = screen.getByRole("tab", { name: "Tab B" });
+			if (!(trigger instanceof HTMLButtonElement)) {
+				throw new Error("expected the trigger to render a <button>");
+			}
+			expect(trigger.disabled).toBe(disabled);
+			// `null` means the attribute is absent: the trigger only forwards
+			// `aria-disabled` when the consumer supplied one of the two props.
+			expect(trigger.getAttribute("aria-disabled")).toBe(ariaDisabled);
+		});
+
 		test.each([{ asChild: false }, { asChild: true }])(
 			"wraps children in the label slot (asChild: $asChild)",
 			({ asChild }) => {

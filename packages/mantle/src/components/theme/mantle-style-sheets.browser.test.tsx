@@ -225,6 +225,23 @@ describe("MantleStyleSheets — MutationObserver: runtime theme changes", () => 
 		expect(getDarkHcLink().media).toBe(MEDIA_DARK_HC);
 	});
 
+	test("forceTheme wins over the applied theme on mount and through the observer", async () => {
+		document.documentElement.dataset.appliedTheme = "light-high-contrast";
+		render(<MantleStyleSheets {...TEST_URLS} forceTheme="dark" />);
+
+		// Why no `waitFor`: `render` flushes the mount effect, and the applied
+		// theme alone would have put the dark link back on its OS media query.
+		expect(getDarkLink().media).toBe("all");
+		expect(document.getElementById(LIGHT_HC_LINK_ID)).toBeNull();
+
+		document.documentElement.dataset.appliedTheme = "dark-high-contrast";
+		// Why the microtask: MutationObserver delivers records in a microtask, so
+		// the observer has run by the time this resumes.
+		await Promise.resolve();
+
+		expect(getDarkLink().media).toBe("all");
+	});
+
 	test("switching from dark to light-high-contrast updates media attributes correctly", async () => {
 		document.documentElement.dataset.appliedTheme = "dark";
 		render(<MantleStyleSheets {...TEST_URLS} />);

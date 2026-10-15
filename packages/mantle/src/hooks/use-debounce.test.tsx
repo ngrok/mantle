@@ -58,6 +58,48 @@ describe("useDebounce", () => {
 		expect(result.current).toBe("abc");
 	});
 
+	test("a re-render with an unchanged value does not restart the timer", () => {
+		const { result, rerender } = renderHook(({ value }) => useDebounce(value, { waitMs: 300 }), {
+			initialProps: { value: "first" },
+		});
+
+		rerender({ value: "second" });
+		act(() => {
+			vi.advanceTimersByTime(200);
+		});
+		// Why the second rerender: it hands the hook a fresh `options` object with
+		// the same `waitMs`, which must not restart the pending timer.
+		rerender({ value: "second" });
+		act(() => {
+			vi.advanceTimersByTime(100);
+		});
+
+		expect(result.current).toBe("second");
+	});
+
+	test("changing waitMs mid-flight restarts the timer with the new delay", () => {
+		const { result, rerender } = renderHook(({ value, waitMs }) => useDebounce(value, { waitMs }), {
+			initialProps: { value: "first", waitMs: 300 },
+		});
+
+		rerender({ value: "second", waitMs: 300 });
+		act(() => {
+			vi.advanceTimersByTime(200);
+		});
+
+		rerender({ value: "second", waitMs: 1_000 });
+		act(() => {
+			vi.advanceTimersByTime(300);
+		});
+		// the original 300ms timer was cancelled, so 500ms in nothing has landed
+		expect(result.current).toBe("first");
+
+		act(() => {
+			vi.advanceTimersByTime(700);
+		});
+		expect(result.current).toBe("second");
+	});
+
 	test("unmounting cancels the pending update", () => {
 		const { rerender, unmount } = renderHook(({ value }) => useDebounce(value, { waitMs: 300 }), {
 			initialProps: { value: "kept" },

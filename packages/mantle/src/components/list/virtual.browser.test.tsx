@@ -53,6 +53,30 @@ afterAll(() => {
 	shimStyle.remove();
 });
 
+/** Every windowed row currently mounted (each `Item` stamps `data-index`). */
+function mountedRowCount(): number {
+	return document.querySelectorAll("[data-slot='list'] [data-index]").length;
+}
+
+/**
+ * Resolve once the virtualizer has measured its scroll viewport and committed a
+ * first window. react-virtual renders no rows until the viewport has a size.
+ */
+async function windowMounted(): Promise<void> {
+	await waitFor(() => {
+		expect(mountedRowCount()).toBeGreaterThan(0);
+	});
+}
+
+/** The rendered height of the collection element: the virtualizer's total scroll size. */
+function collectionHeight(): number {
+	const collection = document.querySelector("[data-slot='list-collection']");
+	if (!(collection instanceof HTMLElement)) {
+		throw new Error("collection not found");
+	}
+	return collection.getBoundingClientRect().height;
+}
+
 /**
  * Geometry of the first two rendered rows relative to their scroll viewport:
  * the row pitch (top-to-top) and the left/right inset of a row within the
@@ -121,6 +145,72 @@ const gridRows = Array.from({ length: 40 }, (_, index) => ({
 	id: `g-${index}`,
 	name: `Grid row ${index}`,
 }));
+
+describe("List virtualization windowing knobs", () => {
+	test("estimateItemHeight sizes the rows the virtualizer has not measured", async () => {
+		// Rows are ~37px tall here, so a 200px seed is unmistakably the estimate at
+		// work rather than a measured size.
+		const estimateItemHeight = 200;
+		render(
+			<ListVirtualRoot
+				semantics="list"
+				aria-label="seeded"
+				style={{ maxHeight: 200 }}
+				estimateItemHeight={estimateItemHeight}
+			>
+				{gridRows.map((row) => (
+					<ListItem key={row.id}>
+						<button type="button">{row.name}</button>
+					</ListItem>
+				))}
+			</ListVirtualRoot>,
+		);
+		await windowMounted();
+
+		// Only the window (plus overscan) is ever measured; the seed sizes the rest
+		// of the collection, which is what gives the scrollbar its range. A lower
+		// bound holds whether or not measurement has landed, but fails outright if
+		// the seed is ignored.
+		const mounted = mountedRowCount();
+		expect(mounted).toBeLessThan(gridRows.length / 2);
+		expect(collectionHeight()).toBeGreaterThanOrEqual(
+			estimateItemHeight * (gridRows.length - mounted),
+		);
+	});
+
+	test("overscan controls how many rows stay mounted beyond the visible window", async () => {
+		function Windowed({ overscan }: { overscan: number }) {
+			return (
+				<ListVirtualRoot
+					semantics="list"
+					aria-label="overscan"
+					style={{ maxHeight: 200 }}
+					overscan={overscan}
+				>
+					{gridRows.map((row) => (
+						<ListItem key={row.id}>
+							<button type="button">{row.name}</button>
+						</ListItem>
+					))}
+				</ListVirtualRoot>
+			);
+		}
+
+		const tight = render(<Windowed overscan={0} />);
+		await windowMounted();
+		const tightCount = mountedRowCount();
+		// A no-buffer window mounts only what fits the 200px viewport, well short of
+		// the full collection; otherwise the comparison below proves nothing.
+		expect(tightCount).toBeLessThan(gridRows.length / 2);
+		tight.unmount();
+
+		render(<Windowed overscan={20} />);
+		// The buffer keeps a grid's active row mounted for `aria-activedescendant`,
+		// so it has to reach the virtualizer. Dropping the prop (library default 1)
+		// leaves the two counts a row apart.
+		await expect.poll(mountedRowCount).toBeGreaterThan(tightCount + 10);
+	});
+});
 
 test("row identity follows consumer keys across a reorder, matching the plain Root", async () => {
 	// Regression: windowed rows used to be keyed by the virtualizer's default
@@ -243,6 +333,12 @@ describe("List grid navigation", () => {
 		// otherwise the control is keyboard-unreachable and forward-Tab is trapped.
 		// (The row's own tabIndex=-1 controls are still reclaimed; see the click test.)
 		link.focus();
+		expect(link).toHaveFocus();
+		// The pull-back would run from the grid's focus handler, so give React a
+		// commit before trusting that focus stayed.
+		await waitFor(() => {
+			expect(screen.getByRole("grid")).toHaveAttribute("aria-activedescendant");
+		});
 		expect(link).toHaveFocus();
 	});
 

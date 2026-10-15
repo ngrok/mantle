@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { SkipToMainLink } from "./skip-to-main-link.js";
@@ -28,6 +28,26 @@ describe("SkipToMainLink", () => {
 		expect(link).toHaveAttribute("href", "#content");
 	});
 
+	test("cancels the click so the browser neither scrolls nor adds a history entry", () => {
+		// The anchor keeps `href="#main"` for copy-link and no-JS semantics, so only
+		// `preventDefault()` stops the browser's own hash navigation. A spy on
+		// `pushState` cannot observe that default, so assert the cancellation itself.
+		render(
+			<>
+				<SkipToMainLink />
+				<main id="main" tabIndex={-1}>
+					main content
+				</main>
+			</>,
+		);
+		const link = screen.getByRole("link", { name: "Skip to main content" });
+		const click = new MouseEvent("click", { bubbles: true, cancelable: true });
+
+		fireEvent(link, click);
+
+		expect(click.defaultPrevented).toBe(true);
+	});
+
 	test("on click, focuses the target element and lets the browser scroll it into view", async () => {
 		const user = userEvent.setup();
 		render(
@@ -48,6 +68,40 @@ describe("SkipToMainLink", () => {
 		expect(focusSpy).toHaveBeenCalledTimes(1);
 		expect(focusSpy).toHaveBeenCalledWith();
 		expect(main).toHaveFocus();
+	});
+
+	test("on click, focuses the element matching a custom `targetId`", async () => {
+		const user = userEvent.setup();
+		render(
+			<>
+				<SkipToMainLink targetId="content" />
+				{/* a decoy with the default id: the lookup must follow targetId,
+				    not the hard-coded "main" */}
+				<div id="main" tabIndex={-1} data-testid="decoy" />
+				<main id="content" tabIndex={-1}>
+					main content
+				</main>
+			</>,
+		);
+
+		await user.click(screen.getByRole("link", { name: "Skip to main content" }));
+
+		expect(screen.getByRole("main")).toHaveFocus();
+		expect(screen.getByTestId("decoy")).not.toHaveFocus();
+		expect(window.location.hash).toBe("#content");
+	});
+
+	test("on click, still updates the hash when no element matches `targetId`", async () => {
+		const user = userEvent.setup();
+		render(<SkipToMainLink targetId="not-in-the-document" />);
+		const link = screen.getByRole("link", { name: "Skip to main content" });
+
+		await user.click(link);
+
+		// the optional-chained lookup must not throw, and the hash update runs
+		// before it, so a broken landmark id still leaves a shareable URL
+		expect(window.location.hash).toBe("#not-in-the-document");
+		expect(link).toHaveFocus();
 	});
 
 	test("on click, updates the URL hash via history.replaceState (no new history entry)", async () => {

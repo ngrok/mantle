@@ -120,11 +120,14 @@ type NonSolidTexture = BarTexturePatternOptions["texture"];
 
 /**
  * The red channel of one 8×8 pattern tile, indexed `[y][x]`: black ink darkens
- * the rgb(62, …) ground, and untouched ground reads exactly 62.
+ * the rgb(62, …) ground, and untouched ground reads exactly 62. The context is
+ * unscaled, so a `devicePixelRatio` above 1 reads the tile through the
+ * pattern's own inverse transform, in CSS pixels.
  */
 const tileReds = (
 	texture: NonSolidTexture,
 	orientation: BarOrientation = "vertical",
+	devicePixelRatio = 1,
 ): number[][] => {
 	const size = TEXTURE_TILE_SIZE;
 	const context = makeContext(size * 4);
@@ -132,7 +135,7 @@ const tileReds = (
 		texture,
 		color: "rgb(62, 111, 244)",
 		ink: "rgb(0, 0, 0)",
-		devicePixelRatio: 1,
+		devicePixelRatio,
 		orientation,
 	});
 	context.fillStyle = pattern ?? "white";
@@ -301,6 +304,26 @@ describe("createBarTexturePattern", () => {
 		// Both families ink either way, so a runtime orientation change leaves the
 		// tile alone. Threading orientation into the lattice would turn it.
 		expect(tileReds("grid", "horizontal")).toEqual(tileReds("grid", "vertical"));
+	});
+
+	test("a retina tile keeps the same CSS-pixel period (the inverse pattern transform)", () => {
+		// The tile rasterizes at device resolution but keeps the same 8px CSS
+		// period, so lines land crisply on the device grid instead of doubling in
+		// size. Dropping `pattern.setTransform` doubles every period on retina.
+		const retina = (texture: NonSolidTexture) => tileReds(texture, "vertical", 2);
+		const hatch = retina("hatch");
+		expect(hatch[6]?.[1] ?? 255).toBeLessThan(40);
+		expect(hatch[6]?.[6]).toBe(62);
+		expect(retina("hatch-reverse")[6]?.[6] ?? 255).toBeLessThan(40);
+		// The perpendicular rung stays in the same tile band, at the same width.
+		const perpendicular = retina("perpendicular");
+		expect(perpendicular[3]?.[3] ?? 255).toBeLessThan(40);
+		expect(perpendicular[0]?.[3]).toBe(62);
+		expect(perpendicular[6]?.[3]).toBe(62);
+		// Dots keep their quarter-grid positions rather than growing to fill the tile.
+		const dots = retina("dots");
+		expect(dots[2]?.[2] ?? 255).toBeLessThan(40);
+		expect(dots[2]?.[5]).toBe(62);
 	});
 
 	test("the new textures ink inside the loudness band the shipped ones set", () => {

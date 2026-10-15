@@ -111,19 +111,22 @@ describe("Button", () => {
 			},
 		);
 
-		test.each([
-			["filled", "h-6"],
-			["ghost", "h-6"],
-		] as const)(`sizes appearance="%s" buttons`, (appearance, heightClass) => {
-			render(
-				<Button appearance={appearance} intent="accent" size="xs">
-					click me
-				</Button>,
-			);
-			// Why the class assertion: the compound variant lists each appearance by name. The
-			// box class is the only observable of that membership.
-			expect(screen.getByRole("button")).toHaveClass(heightClass);
-		});
+		test.each(["filled", "ghost", "outlined"] as const)(
+			`sizes appearance="%s" buttons and stamps data-appearance`,
+			(appearance) => {
+				render(
+					<Button appearance={appearance} intent="accent" size="xs">
+						click me
+					</Button>,
+				);
+				const button = screen.getByRole("button");
+				expect(button).toHaveAttribute("data-appearance", appearance);
+				expect(button).toHaveAttribute("data-size", "xs");
+				// Why the class assertion: the compound variant lists each appearance by name. The
+				// box class is the only observable of that membership.
+				expect(button).toHaveClass("h-6");
+			},
+		);
 
 		test(`omits data-size when appearance="link"`, () => {
 			render(
@@ -131,7 +134,9 @@ describe("Button", () => {
 					click me
 				</Button>,
 			);
-			expect(screen.getByRole("button")).not.toHaveAttribute("data-size");
+			const button = screen.getByRole("button");
+			expect(button).toHaveAttribute("data-appearance", "link");
+			expect(button).not.toHaveAttribute("data-size");
 		});
 
 		test("reduces the icon-side padding for the size when an icon is present", () => {
@@ -173,6 +178,19 @@ describe("Button", () => {
 			expect(screen.getByRole("button")).toHaveClass("pe-3.5");
 		});
 
+		test(`applies no icon padding when appearance="link"`, () => {
+			render(
+				<Button appearance="link" intent="accent" icon={<svg aria-hidden data-testid="icon" />}>
+					click me
+				</Button>,
+			);
+			const button = screen.getByRole("button");
+			// Why the class assertion: the link appearance has no box, so the icon padding
+			// lookup skips it, and the class is that lookup's only observable.
+			expect(button).not.toHaveClass("ps-2.5");
+			expect(button).toContainElement(screen.getByTestId("icon"));
+		});
+
 		test("a consumer className height override still beats the size classes", () => {
 			render(
 				<Button appearance="outlined" intent="accent" className="h-14">
@@ -184,6 +202,65 @@ describe("Button", () => {
 			// `className` height replaces the size default.
 			expect(button).toHaveClass("h-14");
 			expect(button).not.toHaveClass("h-9");
+		});
+
+		test("forwards data-slot, data-size, and data-appearance to an `asChild` anchor", () => {
+			render(
+				<Button appearance="outlined" intent="accent" asChild size="lg">
+					<a href="#yolo">click me</a>
+				</Button>,
+			);
+			const link = screen.getByRole("link", { name: "click me" });
+			expect(link).toHaveAttribute("data-slot", "button");
+			expect(link).toHaveAttribute("data-size", "lg");
+			expect(link).toHaveAttribute("data-appearance", "outlined");
+			expect(link).toHaveAttribute("href", "#yolo");
+		});
+	});
+
+	describe("icon", () => {
+		test("renders the icon through Icon, first in the DOM, ahead of the label", () => {
+			render(
+				<Button appearance="outlined" intent="accent" icon={<svg data-testid="icon" />}>
+					click me
+				</Button>,
+			);
+			const button = screen.getByRole("button");
+			const icon = screen.getByTestId("icon");
+			expect(button.firstChild).toBe(icon);
+			expect(icon).toHaveAttribute("data-slot", "icon svg-only");
+			expect(icon).not.toHaveClass("order-last");
+			expect(button).toHaveTextContent("click me");
+		});
+
+		test(`iconPlacement="end" keeps the icon first in the DOM and paints it last`, () => {
+			render(
+				<Button
+					appearance="outlined"
+					intent="accent"
+					icon={<svg data-testid="icon" />}
+					iconPlacement="end"
+				>
+					click me
+				</Button>,
+			);
+			const icon = screen.getByTestId("icon");
+			// The icon stays first in the DOM, so assistive technology reads it first.
+			expect(screen.getByRole("button").firstChild).toBe(icon);
+			// Why the class assertion: `iconPlacement` emits no data attribute, so `order-last`
+			// is the only observable of the end placement.
+			expect(icon).toHaveClass("order-last");
+		});
+
+		test("injects the icon into an `asChild` child ahead of its own children", () => {
+			render(
+				<Button appearance="outlined" intent="accent" asChild icon={<svg data-testid="icon" />}>
+					<a href="#yolo">click me</a>
+				</Button>,
+			);
+			const link = screen.getByRole("link", { name: "click me" });
+			expect(link.firstChild).toBe(screen.getByTestId("icon"));
+			expect(link).toHaveTextContent("click me");
 		});
 	});
 
@@ -322,6 +399,31 @@ describe("Button", () => {
 			expect(button).toHaveAttribute("data-disabled", "");
 		});
 
+		test.each([
+			["aria-disabled", { "aria-disabled": true }],
+			[`aria-disabled="true"`, { "aria-disabled": "true" }],
+		] as const)(
+			"`%s` alone disables the button natively and suppresses clicks",
+			async (_name, disablingProps) => {
+				const user = userEvent.setup();
+				const handleClick = vi.fn<() => void>();
+				render(
+					<Button appearance="filled" intent="neutral" onClick={handleClick} {...disablingProps}>
+						Save
+					</Button>,
+				);
+				const button = screen.getByRole("button", { name: "Save" });
+				// The ARIA state alone would leave the button clickable, so it resolves to the
+				// native attribute as well.
+				expect(button).toBeDisabled();
+				expect(button).toHaveAttribute("aria-disabled", "true");
+				expect(button).toHaveAttribute("data-disabled", "");
+
+				await user.click(button);
+				expect(handleClick).toHaveBeenCalledTimes(0);
+			},
+		);
+
 		test("data-loading is present while loading and absent once idle", () => {
 			const { rerender } = render(
 				<Button appearance="filled" intent="neutral" isLoading>
@@ -374,6 +476,27 @@ describe("Button", () => {
 			await user.click(screen.getByRole("link", { name: "Open" }));
 
 			expect(handleClickCapture).toHaveBeenCalledTimes(0);
+			expect(window.location.hash).toBe("");
+		});
+
+		test("a loading asChild anchor is inert: aria-disabled, out of the tab order, click cancelled", async () => {
+			const user = userEvent.setup();
+			const handleClick = vi.fn<() => void>();
+			render(
+				<Button appearance="filled" intent="neutral" asChild isLoading>
+					<a href="#yolo" onClick={handleClick}>
+						Open
+					</a>
+				</Button>,
+			);
+			const link = screen.getByRole("link", { name: "Open" });
+			expect(link).toHaveAttribute("aria-disabled", "true");
+			expect(link).toHaveAttribute("data-disabled", "");
+			expect(link).toHaveAttribute("data-loading", "");
+			expect(link).toHaveAttribute("tabindex", "-1");
+
+			await user.click(link);
+			expect(handleClick).toHaveBeenCalledTimes(0);
 			expect(window.location.hash).toBe("");
 		});
 
@@ -447,6 +570,49 @@ describe("Button", () => {
 		expect(screen.getByRole("button")).toHaveAttribute("data-loading", "");
 		expect(screen.getByTestId("submit-state")).toHaveTextContent("idle");
 		expect(screen.getByTestId("click-state")).toHaveTextContent("idle");
+	});
+
+	test("isLoading swaps the consumer's icon for a single spinner, and back once idle", () => {
+		const { rerender } = render(
+			<Button appearance="outlined" intent="accent" icon={<svg data-testid="icon" />} isLoading>
+				submit
+			</Button>,
+		);
+		const button = screen.getByRole("button");
+		expect(button).toHaveAttribute("data-loading", "");
+		// The consumer's icon is gone and exactly one svg remains, so that one is the spinner.
+		expect(screen.queryByTestId("icon")).not.toBeInTheDocument();
+		expect(button.querySelectorAll("svg")).toHaveLength(1);
+		expect(button).toHaveTextContent("submit");
+
+		rerender(
+			<Button appearance="outlined" intent="accent" icon={<svg data-testid="icon" />}>
+				submit
+			</Button>,
+		);
+		expect(button).not.toHaveAttribute("data-loading");
+		const icons = button.querySelectorAll("svg");
+		expect(icons).toHaveLength(1);
+		expect(icons[0]).toBe(screen.getByTestId("icon"));
+	});
+
+	test("isLoading with `asChild` swaps the consumer's icon for a single spinner in the child", () => {
+		render(
+			<Button
+				appearance="outlined"
+				intent="accent"
+				asChild
+				isLoading
+				icon={<svg data-testid="icon" />}
+			>
+				<a href="#yolo">continue</a>
+			</Button>,
+		);
+		const link = screen.getByRole("link");
+		expect(link).toHaveAttribute("data-loading", "");
+		expect(screen.queryByTestId("icon")).not.toBeInTheDocument();
+		expect(link.querySelectorAll("svg")).toHaveLength(1);
+		expect(link).toHaveTextContent("continue");
 	});
 
 	describe("on a browser-translated page", () => {
@@ -572,14 +738,16 @@ describe("Button", () => {
 		});
 	});
 
-	test(`wraps children in a span carrying data-slot="button-label"`, () => {
+	test(`stamps data-slot="button" on the button and wraps children in a span carrying data-slot="button-label"`, () => {
 		render(
 			<Button appearance="filled" intent="neutral">
 				Save changes
 			</Button>,
 		);
 
-		const label = screen.getByRole("button").querySelector("[data-slot='button-label']");
+		const button = screen.getByRole("button");
+		expect(button).toHaveAttribute("data-slot", "button");
+		const label = button.querySelector("[data-slot='button-label']");
 		// Why tagName: the JSDoc documents the label slot as a <span>, so the element is API.
 		expect(label?.tagName).toBe("SPAN");
 		expect(label).toHaveTextContent("Save changes");

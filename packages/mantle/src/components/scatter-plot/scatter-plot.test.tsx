@@ -79,6 +79,7 @@ describe("ScatterPlot.Root", () => {
 		const root = container.querySelector('[data-slot="scatter-plot"]');
 		expect(root).toBeInTheDocument();
 		expect(ref.current).toBe(root);
+		// The consumer's className survives the merge onto the root.
 		expect(root?.className).toContain("custom-class");
 		expect(root?.getAttribute("data-testid")).toBe("chart-root");
 	});
@@ -409,7 +410,7 @@ describe("ScatterPlot keyboard interaction", () => {
 		);
 	});
 
-	test("onActiveIndexChange reports keyboard movement", async () => {
+	test("onActiveIndexChange reports keyboard movement once per step", async () => {
 		const user = userEvent.setup();
 		const onActiveIndexChange = vi.fn<(index: number | null) => void>();
 		renderChart({ onActiveIndexChange });

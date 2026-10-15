@@ -1,10 +1,22 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { act, useEffect, useRef, useState } from "react";
 import type { ComponentRef } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { Field } from "../field/field.js";
 import { Input, InputCapture } from "./input.js";
+
+/**
+ * The `data-slot="input"` chrome `Input` renders around the capture element.
+ * Narrowing instead of casting also pins the slot: a rename throws here.
+ */
+const getInputContainer = () => {
+	const container = document.querySelector('[data-slot="input"]');
+	if (!(container instanceof HTMLElement)) {
+		throw new Error('expected an element with data-slot="input"');
+	}
+	return container;
+};
 
 describe("Input", () => {
 	test("keyboard activation of an adornment button keeps focus on the button", async () => {
@@ -329,12 +341,10 @@ describe("Input", () => {
 	});
 
 	describe("data-disabled", () => {
-		test("stamps data-disabled when disabled", () => {
-			const { container } = render(<Input disabled placeholder="test" />);
-			expect(container.querySelector('[data-slot="input"]')).toHaveAttribute(
-				"data-disabled",
-				"true",
-			);
+		test("stamps data-disabled when disabled and disables the input", () => {
+			render(<Input disabled placeholder="test" />);
+			expect(getInputContainer()).toHaveAttribute("data-disabled", "true");
+			expect(screen.getByRole("textbox")).toBeDisabled();
 		});
 
 		// The `data-disabled:` variant matches attribute presence, so a stamped
@@ -351,5 +361,71 @@ describe("Input", () => {
 				"true",
 			);
 		});
+	});
+
+	describe("container", () => {
+		test("wraps the capture element in the data-slot=input chrome", () => {
+			render(
+				<Input>
+					<InputCapture aria-label="Search" />
+				</Input>,
+			);
+
+			const capture = screen.getByRole("textbox", { name: "Search" });
+			expect(capture).toHaveAttribute("data-slot", "input-capture");
+			expect(getInputContainer()).toContainElement(capture);
+		});
+
+		test("prevents mousedown on non-input children so the input never blurs", () => {
+			render(
+				<Input>
+					<InputCapture aria-label="Search" />
+					<span data-testid="trailing">icon</span>
+				</Input>,
+			);
+
+			// `fireEvent` returns false when a handler called `preventDefault`.
+			expect(fireEvent.mouseDown(screen.getByTestId("trailing"))).toBe(false);
+			expect(fireEvent.mouseDown(getInputContainer())).toBe(false);
+			// The input keeps its native mousedown, which places the caret.
+			expect(fireEvent.mouseDown(screen.getByRole("textbox", { name: "Search" }))).toBe(true);
+		});
+
+		test("omits data-validation and renders no feedback icon when neutral", () => {
+			render(<Input aria-label="Email" />);
+
+			expect(getInputContainer()).not.toHaveAttribute("data-validation");
+			expect(document.querySelectorAll('[data-slot~="icon"]')).toHaveLength(0);
+		});
+
+		test('validation="error" announces the failure and names the field', () => {
+			render(<Input aria-label="Email" name="email" validation="error" />);
+
+			expect(getInputContainer()).toHaveAttribute("data-validation", "error");
+			expect(
+				screen.getByText("The value entered for the email input has failed validation."),
+			).toBeInTheDocument();
+		});
+
+		test('validation="error" without a name still announces the failure', () => {
+			render(<Input aria-label="Email" validation="error" />);
+
+			expect(
+				screen.getByText("The value entered for the input has failed validation."),
+			).toBeInTheDocument();
+		});
+
+		test.each(["success", "warning"] as const)(
+			'validation="%s" renders one decorative icon and announces nothing',
+			(validation) => {
+				render(<Input aria-label="Email" name="email" validation={validation} />);
+
+				expect(getInputContainer()).toHaveAttribute("data-validation", validation);
+				expect(screen.queryByText(/has failed validation/)).toBeNull();
+				const icons = document.querySelectorAll('[data-slot~="icon"]');
+				expect(icons).toHaveLength(1);
+				expect(icons[0]).toHaveAttribute("aria-hidden", "true");
+			},
+		);
 	});
 });

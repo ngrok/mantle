@@ -92,9 +92,61 @@ describe("DescriptionList", () => {
 		expect(root).toHaveClass("custom-class");
 	});
 
+	test.each([
+		{
+			part: "Item",
+			slot: "description-list-item",
+			tagName: "A",
+			element: (
+				<DescriptionList.Root>
+					<DescriptionList.Item asChild>
+						<a href="/keys/1" data-testid="part">
+							row
+						</a>
+					</DescriptionList.Item>
+				</DescriptionList.Root>
+			),
+		},
+		{
+			part: "Label",
+			slot: "description-list-label",
+			tagName: "SPAN",
+			element: (
+				<DescriptionList.Root>
+					<DescriptionList.Item>
+						<DescriptionList.Label asChild>
+							<span data-testid="part">Name</span>
+						</DescriptionList.Label>
+						<DescriptionList.Value>foo</DescriptionList.Value>
+					</DescriptionList.Item>
+				</DescriptionList.Root>
+			),
+		},
+		{
+			part: "Value",
+			slot: "description-list-value",
+			tagName: "CODE",
+			element: (
+				<DescriptionList.Root>
+					<DescriptionList.Item>
+						<DescriptionList.Label>Name</DescriptionList.Label>
+						<DescriptionList.Value asChild>
+							<code data-testid="part">my-api-key</code>
+						</DescriptionList.Value>
+					</DescriptionList.Item>
+				</DescriptionList.Root>
+			),
+		},
+	])("$part asChild renders the child element with the slot", ({ slot, tagName, element }) => {
+		render(element);
+		const part = screen.getByTestId("part");
+		expect(part.tagName).toBe(tagName);
+		expect(part).toHaveAttribute("data-slot", slot);
+	});
+
 	test("custom className merges with defaults on Root", () => {
 		render(
-			<DescriptionList.Root className="custom-class" data-testid="dl">
+			<DescriptionList.Root className="custom-class rounded-none" data-testid="dl">
 				<DescriptionList.Item>
 					<DescriptionList.Label>Name</DescriptionList.Label>
 					<DescriptionList.Value>foo</DescriptionList.Value>
@@ -102,7 +154,24 @@ describe("DescriptionList", () => {
 			</DescriptionList.Root>,
 		);
 		const dl = screen.getByTestId("dl");
-		expect(dl.className).toContain("custom-class");
+		// The tailwind-merge contract: the consumer's radius replaces the default.
+		expect(dl).toHaveClass("custom-class", "rounded-none");
+		expect(dl).not.toHaveClass("rounded-lg");
+	});
+
+	test("custom className merges with defaults on Item", () => {
+		render(
+			<DescriptionList.Root>
+				<DescriptionList.Item className="custom-class items-start" data-testid="item">
+					<DescriptionList.Label>Name</DescriptionList.Label>
+					<DescriptionList.Value>foo</DescriptionList.Value>
+				</DescriptionList.Item>
+			</DescriptionList.Root>,
+		);
+		const item = screen.getByTestId("item");
+		// The tailwind-merge contract: the consumer's alignment replaces the default.
+		expect(item).toHaveClass("custom-class", "items-start");
+		expect(item).not.toHaveClass("items-center");
 	});
 
 	test("custom className merges with defaults on Label", () => {
@@ -117,8 +186,9 @@ describe("DescriptionList", () => {
 			</DescriptionList.Root>,
 		);
 		const dt = screen.getByTestId("label");
-		// The tailwind-merge contract: the consumer's class survives the merge.
-		expect(dt.className).toContain("font-bold");
+		// The tailwind-merge contract: the consumer's weight replaces the default.
+		expect(dt).toHaveClass("font-bold");
+		expect(dt).not.toHaveClass("font-medium");
 	});
 
 	test("custom className merges with defaults on Value", () => {
@@ -126,13 +196,15 @@ describe("DescriptionList", () => {
 			<DescriptionList.Root>
 				<DescriptionList.Item>
 					<DescriptionList.Label>Name</DescriptionList.Label>
-					<DescriptionList.Value className="custom-class" data-testid="value">
+					<DescriptionList.Value className="custom-class px-0" data-testid="value">
 						foo
 					</DescriptionList.Value>
 				</DescriptionList.Item>
 			</DescriptionList.Root>,
 		);
 		const dd = screen.getByTestId("value");
-		expect(dd).toHaveClass("custom-class");
+		// The tailwind-merge contract: the consumer's padding replaces the default.
+		expect(dd).toHaveClass("custom-class", "px-0");
+		expect(dd).not.toHaveClass("px-3");
 	});
 });

@@ -40,10 +40,13 @@ describe("Well", () => {
 		expect(screen.getByTestId("well")).toHaveAttribute("data-analytics-id", "empty-state");
 	});
 
-	test("asChild renders its child, merging classes and data-slot onto it", () => {
+	test("asChild renders its child, merging classes, ref, and data-slot onto it", () => {
+		const ref = createRef<HTMLDivElement>();
 		render(
-			<Well asChild className="custom-class">
-				<section data-testid="well">content</section>
+			<Well asChild className="custom-class" ref={ref}>
+				<section className="child-class" data-testid="well">
+					content
+				</section>
 			</Well>,
 		);
 		const well = screen.getByTestId("well");
@@ -51,6 +54,8 @@ describe("Well", () => {
 		// place of the div, and the tailwind-merge contract puts the consumer's class on it.
 		expect(well.tagName).toBe("SECTION");
 		expect(well).toHaveAttribute("data-slot", "well");
-		expect(well.className).toContain("custom-class");
+		// Both the consumer's Well className and the child's own className survive the merge.
+		expect(well).toHaveClass("custom-class", "child-class");
+		expect(ref.current).toBe(well);
 	});
 });
