@@ -1,5 +1,25 @@
 # @ngrok/mantle
 
+## 0.90.1
+
+### Patch Changes
+
+- [#1572](https://github.com/ngrok/mantle/pull/1572) [`869cd53`](https://github.com/ngrok/mantle/commit/869cd53923afbffb7facbe35047fabd3280c4c67) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Strata.Section` sizes its columns `minmax(0, 1fr) minmax(0, 2fr)` instead of `1fr 2fr`, and below `md` it sizes its one stacked track `minmax(0, 1fr)` instead of the implicit `auto`. A bare `1fr` track and an implicit track both have an `auto` minimum that resolves to the content's min-content width, so one nowrap value in `Strata.Body` (a URL, an ID, a token) widened the section past its container and the page scrolled sideways. Each call site patched both columns with `min-w-0`.
+
+  The tracks now shrink to the room the section has, at every width. A `truncate` child clips with an ellipsis, and `wrap-anywhere` or `break-all` wraps, with no `min-w-0` on `Strata.Header` or `Strata.Body`. Remove a `min-w-0` you set on either part for this reason; it is now redundant. The split is still one to two, and `--strata-columns` still re-splits it. Keep the `minmax(0, …)` form in an override: `--strata-columns: 1fr 1fr` brings the overflow back.
+
+  Docs: https://mantle.ngrok.com/components/structure/strata#column-split
+
+- [#1572](https://github.com/ngrok/mantle/pull/1572) [`869cd53`](https://github.com/ngrok/mantle/commit/869cd53923afbffb7facbe35047fabd3280c4c67) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Tabs.Root` calls `onValueChange` once per activation. Radix activates a trigger on mousedown and moves focus to it in the same handler, and the focus activates it again before a controlled root re-renders, so a controlled `Tabs.Root` heard the same value twice in one dispatch. A tab strip that navigates in `onValueChange` then navigated twice, and a strip that writes a URL param wrote it twice.
+
+  The root now passes a repeated value through only when the dispatch has ended: a later press on the same trigger, which a consumer that kept the old value sees as a new request, still fires. Remove a guard you added for this in `onValueChange`; it is now redundant.
+
+- [#1572](https://github.com/ngrok/mantle/pull/1572) [`869cd53`](https://github.com/ngrok/mantle/commit/869cd53923afbffb7facbe35047fabd3280c4c67) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `TruncatedText` stands down inside a control. While its value overflowed, the root became a tab stop and a tooltip trigger wherever it rendered, so a value inside a `<button>`, an `<a href>`, an `Accordion.Trigger`, a `RadioGroup` item, a menu item, or a tab nested a second focusable element in the control, which is invalid HTML and a second Tab stop for the same thing.
+
+  Inside a control the root now takes no `tabIndex` and renders no tooltip, so it stamps no `data-state`. The segments still clip, `data-truncated` still lands, and the visually hidden copy still gives the control's accessible name the whole value. A `tabIndex` prop still wins. Wrap the control in `Tooltip` when a sighted reader needs the full value; the root no longer stops that tooltip from opening while its value fits. The server render and the first client render assume no control, like they assume no overflow. After that, every commit checks again from the root's parent, so a root that `asChild` renders as a control is not inside one, and a control that gains or loses its `href` or role around a mounted root takes effect without a remount.
+
+  Docs: https://mantle.ngrok.com/components/data-display/truncated-text#accessibility
+
 ## 0.90.0
 
 ### Minor Changes
