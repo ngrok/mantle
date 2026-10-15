@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { prodReadyComponentRouteLookup } from "~/components/navigation-data";
 import { legacyRedirectFor } from "./legacy-redirects";
 
 describe("legacyRedirectFor", () => {
@@ -8,6 +9,21 @@ describe("legacyRedirectFor", () => {
 		expect(legacyRedirectFor("/components/alert-dialog")).toBe("/components/overlays/alert-dialog");
 		expect(legacyRedirectFor("/components/theme")).toBe("/components/primitives/theme");
 		expect(legacyRedirectFor("/components/data-table")).toBe("/components/data-display/data-table");
+	});
+
+	// The derivation destructures exactly four segments out of each route, so an
+	// entry of any other shape silently loses its legacy URL. Driving the whole
+	// lookup makes that visible the day someone adds a 3- or 5-segment entry.
+	it("covers every categorized component, including multi-segment leaves", () => {
+		const routes = Object.values(prodReadyComponentRouteLookup);
+		expect(routes.length).toBeGreaterThan(0);
+
+		for (const route of routes) {
+			const segments = route.split("/");
+			expect(segments).toHaveLength(4);
+			expect(legacyRedirectFor(`/components/${segments[3]}`)).toBe(route);
+			expect(legacyRedirectFor(`/components/${segments[3]}.md`)).toBe(`${route}.md`);
+		}
 	});
 
 	it("preserves the .md suffix so raw-markdown URLs keep serving markdown", () => {

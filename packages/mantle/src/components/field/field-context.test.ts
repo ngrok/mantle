@@ -60,6 +60,25 @@ describe("field context helpers", () => {
 			});
 		});
 
+		test("passes a non-error validation state through and leaves aria-invalid unset", () => {
+			// `defaultAriaInvalid: false`: a control that resolves its own `aria-invalid`
+			// must not receive a stamped "false" from the field.
+			const result = resolveFieldControlAriaProps({
+				context: createFieldItemContext({ validation: "warning" }),
+			});
+
+			expect(result).toEqual({
+				ariaProps: {
+					"aria-describedby": "description error",
+					"aria-errormessage": undefined,
+					"aria-invalid": undefined,
+					id: "control",
+					name: "field",
+				},
+				validation: "warning",
+			});
+		});
+
 		test("omits aria-describedby entirely when not inside a Field.Item", () => {
 			const result = resolveFieldControlAriaProps({ context: null });
 

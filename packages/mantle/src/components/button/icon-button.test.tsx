@@ -30,6 +30,36 @@ describe("IconButton", () => {
 		});
 	});
 
+	test("stamps the slot and the hooks other components select on", () => {
+		render(
+			<IconButton appearance="outlined" intent="neutral" label="globe" icon={<GlobeIcon />} />,
+		);
+		const button = screen.getByRole("button", { name: "globe" });
+		expect(button).toHaveAttribute("data-slot", "icon-button");
+		// toast.tsx keys its `data-icon-button:` variants on this attribute.
+		expect(button).toHaveAttribute("data-icon-button", "true");
+		// Cross-file spelling pins: dialog.tsx and sheet.tsx select `has-[.icon-button]`,
+		// and button-group.tsx sets `--icon-button-border-radius` for its panel appearance.
+		expect(button).toHaveClass("icon-button");
+		expect(button).toHaveClass("rounded-[var(--icon-button-border-radius,0.375rem)]");
+	});
+
+	test("renders the icon through Icon as the button's only child", () => {
+		render(
+			<IconButton
+				appearance="outlined"
+				intent="neutral"
+				label="globe"
+				icon={<svg data-testid="icon" />}
+			/>,
+		);
+		const button = screen.getByRole("button", { name: "globe" });
+		const icon = screen.getByTestId("icon");
+		expect(button.childNodes).toHaveLength(1);
+		expect(button.firstChild).toBe(icon);
+		expect(icon).toHaveAttribute("data-slot", "icon svg-only");
+	});
+
 	describe("appearance", () => {
 		// Parity pin: each class below is the one `Button` draws for the same
 		// appearance at the neutral tone, so a permuted lookup table on either
@@ -102,7 +132,7 @@ describe("IconButton", () => {
 			expect(button).toHaveClass(sizeClass);
 		});
 
-		test("forwards data-size to an `asChild` anchor", () => {
+		test("forwards data-slot, data-size, and data-appearance to an `asChild` anchor", () => {
 			render(
 				<IconButton
 					appearance="outlined"
@@ -115,7 +145,11 @@ describe("IconButton", () => {
 					<a href="#yolo" />
 				</IconButton>,
 			);
-			expect(screen.getByRole("link")).toHaveAttribute("data-size", "xl");
+			const link = screen.getByRole("link", { name: "home" });
+			expect(link).toHaveAttribute("data-slot", "icon-button");
+			expect(link).toHaveAttribute("data-size", "xl");
+			expect(link).toHaveAttribute("data-appearance", "outlined");
+			expect(link).toHaveAttribute("href", "#yolo");
 		});
 	});
 
@@ -186,6 +220,36 @@ describe("IconButton", () => {
 			const button = screen.getByRole("button", { name: "Save" });
 			expect(button).toHaveAttribute("data-disabled", "");
 		});
+
+		test.each([
+			["aria-disabled", { "aria-disabled": true }],
+			[`aria-disabled="true"`, { "aria-disabled": "true" }],
+		] as const)(
+			"`%s` alone disables the button natively and suppresses clicks",
+			async (_name, disablingProps) => {
+				const user = userEvent.setup();
+				const handleClick = vi.fn<() => void>();
+				render(
+					<IconButton
+						appearance="ghost"
+						intent="neutral"
+						label="Save"
+						icon={<GlobeIcon />}
+						onClick={handleClick}
+						{...disablingProps}
+					/>,
+				);
+				const button = screen.getByRole("button", { name: "Save" });
+				// The ARIA state alone would leave the button clickable, so it resolves to the
+				// native attribute as well.
+				expect(button).toBeDisabled();
+				expect(button).toHaveAttribute("aria-disabled", "true");
+				expect(button).toHaveAttribute("data-disabled", "");
+
+				await user.click(button);
+				expect(handleClick).toHaveBeenCalledTimes(0);
+			},
+		);
 
 		test("data-loading is present while loading and absent once idle", () => {
 			const { rerender } = render(
@@ -267,6 +331,61 @@ describe("IconButton", () => {
 			);
 			const spinner = screen.getByRole("button").querySelector("svg");
 			expect(spinner).toHaveAttribute("aria-hidden", "true");
+		});
+	});
+
+	describe("isLoading", () => {
+		test("swaps the consumer's icon for a single spinner, keeps the label, and swaps back once idle", () => {
+			const { rerender } = render(
+				<IconButton
+					appearance="ghost"
+					intent="neutral"
+					label="save"
+					icon={<svg data-testid="icon" />}
+					isLoading
+				/>,
+			);
+			const button = screen.getByRole("button", { name: "save" });
+			expect(button).toHaveAttribute("data-loading", "");
+			// The consumer's icon is gone and exactly one svg remains, so that one is the spinner.
+			expect(screen.queryByTestId("icon")).not.toBeInTheDocument();
+			expect(button.querySelectorAll("svg")).toHaveLength(1);
+
+			rerender(
+				<IconButton
+					appearance="ghost"
+					intent="neutral"
+					label="save"
+					icon={<svg data-testid="icon" />}
+					isLoading={false}
+				/>,
+			);
+			expect(button).not.toHaveAttribute("data-loading");
+			expect(button).toBeEnabled();
+			const icons = button.querySelectorAll("svg");
+			expect(icons).toHaveLength(1);
+			expect(icons[0]).toBe(screen.getByTestId("icon"));
+		});
+
+		test("forwards the loading state and the spinner to an `asChild` child", () => {
+			render(
+				<IconButton
+					appearance="ghost"
+					intent="neutral"
+					asChild
+					label="save"
+					icon={<svg data-testid="icon" />}
+					isLoading
+				>
+					<a href="#yolo" />
+				</IconButton>,
+			);
+			const link = screen.getByRole("link", { name: "save" });
+			expect(link).toHaveAttribute("data-loading", "");
+			expect(link).toHaveAttribute("aria-disabled", "true");
+			expect(link).toHaveAttribute("tabindex", "-1");
+			expect(screen.queryByTestId("icon")).not.toBeInTheDocument();
+			expect(link.querySelectorAll("svg")).toHaveLength(1);
 		});
 	});
 

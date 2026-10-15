@@ -3,6 +3,7 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { describe, expect, test } from "vitest";
+import mantleCss from "../../mantle.css?raw";
 import { CodeBlock } from "./code-block.js";
 import { computeJsonFoldRanges, type FoldableRange } from "./compute-json-fold-ranges.js";
 import { decorateHighlightedHtml } from "./decorate-highlighted-html.js";
@@ -334,6 +335,26 @@ describe("CodeBlock JSON folding", () => {
 		expect(document.querySelector('[data-line-number="2"]')).toHaveAttribute(
 			"data-fold-hidden",
 			"true",
+		);
+	});
+});
+
+// The runtime writes only attributes: `data-fold-hidden` on a line and
+// `aria-expanded` on its toggle. The visible half of a fold lives in
+// `mantle.css`, and happy-dom loads no stylesheet, so pin the two declarations
+// those attributes drive. An edit to either selector there rotates the caret
+// while nothing collapses.
+describe("mantle.css fold rules", () => {
+	test("a line marked data-fold-hidden is display: none", () => {
+		expect(mantleCss).toMatch(
+			/\.mantle-code-line\[data-fold-hidden="true"\]\s*\{\s*display:\s*none/,
+		);
+	});
+
+	test("the fold ellipsis shows only while its own toggle is collapsed", () => {
+		expect(mantleCss).toMatch(/\.mantle-code-fold-ellipsis\s*\{\s*display:\s*none/);
+		expect(mantleCss).toMatch(
+			/\.mantle-code-line:has\(>\s*\.mantle-code-fold-toggle\[aria-expanded="false"\]\)\s*\.mantle-code-fold-ellipsis\s*\{\s*display:\s*inline/,
 		);
 	});
 });

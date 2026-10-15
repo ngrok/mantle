@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
+import type { MouseEvent as ReactMouseEvent } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { Field } from "../field/field.js";
 import { Switch } from "./switch.js";
@@ -41,11 +42,20 @@ describe("Switch", () => {
 	});
 
 	describe("readOnly", () => {
-		test("exposes aria-readonly and does not toggle on click", async () => {
+		// Radix's Switch has no read-only mode, so the `aria-readonly` announcement
+		// and the click guard behind it are both mantle's own.
+		test("exposes aria-readonly and does not toggle on click, and the click skips the caller's onClick", async () => {
 			const user = userEvent.setup();
 			const onCheckedChange = vi.fn<(checked: boolean) => void>();
+			const handleClick = vi.fn<(event: ReactMouseEvent<HTMLButtonElement>) => void>();
 			render(
-				<Switch aria-label="Static" defaultChecked readOnly onCheckedChange={onCheckedChange} />,
+				<Switch
+					aria-label="Static"
+					defaultChecked
+					readOnly
+					onCheckedChange={onCheckedChange}
+					onClick={handleClick}
+				/>,
 			);
 
 			const toggle = screen.getByRole("switch", { name: "Static" });
@@ -54,6 +64,45 @@ describe("Switch", () => {
 			await user.click(toggle);
 			expect(toggle).toHaveAttribute("aria-checked", "true");
 			expect(onCheckedChange).toHaveBeenCalledTimes(0);
+			expect(handleClick).toHaveBeenCalledTimes(0);
+		});
+
+		test('aria-readonly="true" alone engages the click guard', async () => {
+			// `readOnly` parses `readOnly ?? aria-readonly`, so the booleanish string
+			// form of the ARIA attribute guards too.
+			const user = userEvent.setup();
+			const onCheckedChange = vi.fn<(checked: boolean) => void>();
+			render(
+				<Switch
+					aria-label="Airplane mode"
+					aria-readonly="true"
+					onCheckedChange={onCheckedChange}
+				/>,
+			);
+
+			const toggle = screen.getByRole("switch", { name: "Airplane mode" });
+			await user.click(toggle);
+
+			expect(toggle).toHaveAttribute("aria-checked", "false");
+			expect(onCheckedChange).toHaveBeenCalledTimes(0);
+		});
+
+		test('aria-readonly="false" parses as editable', async () => {
+			const user = userEvent.setup();
+			const onCheckedChange = vi.fn<(checked: boolean) => void>();
+			render(
+				<Switch
+					aria-label="Airplane mode"
+					aria-readonly="false"
+					onCheckedChange={onCheckedChange}
+				/>,
+			);
+
+			const toggle = screen.getByRole("switch", { name: "Airplane mode" });
+			await user.click(toggle);
+
+			expect(toggle).toHaveAttribute("aria-checked", "true");
+			expect(onCheckedChange).toHaveBeenCalledExactlyOnceWith(true);
 		});
 
 		// Regression: the readOnly guard once called `stopPropagation`, so a
@@ -71,15 +120,18 @@ describe("Switch", () => {
 			expect(onRowClick).toHaveBeenCalledTimes(1);
 		});
 
-		test("toggles on click when editable", async () => {
+		test("toggles on click when editable and forwards the click to onClick", async () => {
 			const user = userEvent.setup();
-			render(<Switch aria-label="Editable" />);
+			const handleClick = vi.fn<(event: ReactMouseEvent<HTMLButtonElement>) => void>();
+			render(<Switch aria-label="Editable" onClick={handleClick} />);
 
 			const toggle = screen.getByRole("switch", { name: "Editable" });
 			expect(toggle).toHaveAttribute("aria-readonly", "false");
 
 			await user.click(toggle);
 			expect(toggle).toHaveAttribute("aria-checked", "true");
+			expect(handleClick).toHaveBeenCalledTimes(1);
+			expect(handleClick.mock.lastCall?.[0].target).toBe(toggle);
 		});
 	});
 });

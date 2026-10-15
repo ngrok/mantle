@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { renderToString } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
@@ -41,13 +41,22 @@ describe("CursorPagination", () => {
 	});
 
 	test("Buttons name the previous and next controls and mirror the page availability", () => {
-		render(
+		const { rerender } = render(
 			<CursorPagination.Root defaultPageSize={10}>
 				<CursorPagination.Buttons hasNextPage hasPreviousPage={false} />
 			</CursorPagination.Root>,
 		);
 		expect(screen.getByRole("button", { name: "Previous page" })).toBeDisabled();
 		expect(screen.getByRole("button", { name: "Next page" })).toBeEnabled();
+
+		// The last page flips both: each button follows its own flag.
+		rerender(
+			<CursorPagination.Root defaultPageSize={10}>
+				<CursorPagination.Buttons hasNextPage={false} hasPreviousPage />
+			</CursorPagination.Root>,
+		);
+		expect(screen.getByRole("button", { name: "Previous page" })).toBeEnabled();
+		expect(screen.getByRole("button", { name: "Next page" })).toBeDisabled();
 	});
 
 	test("Buttons call the page callbacks on click", async () => {
@@ -66,8 +75,51 @@ describe("CursorPagination", () => {
 		);
 		await user.click(screen.getByRole("button", { name: "Next page" }));
 		expect(onNextPage).toHaveBeenCalledTimes(1);
+		expect(onPreviousPage).not.toHaveBeenCalled();
 		await user.click(screen.getByRole("button", { name: "Previous page" }));
 		expect(onPreviousPage).toHaveBeenCalledTimes(1);
+		expect(onNextPage).toHaveBeenCalledTimes(1);
+	});
+
+	test("PageSizeSelect renders exactly the provided pageSizes as options", async () => {
+		const user = userEvent.setup();
+		render(
+			<CursorPagination.Root defaultPageSize={10}>
+				<CursorPagination.PageSizeSelect pageSizes={[10, 25]} />
+			</CursorPagination.Root>,
+		);
+
+		await user.click(screen.getByRole("combobox", { name: "Items per page" }));
+
+		const listbox = await screen.findByRole("listbox");
+		expect(
+			within(listbox)
+				.getAllByRole("option")
+				.map((option) => option.textContent),
+		).toEqual(["10 per page", "25 per page"]);
+	});
+
+	test("PageSizeSelect throws when the page size is not one of the pageSizes", () => {
+		// silence React's own error logging for the intentional render throw
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		expect(() =>
+			render(
+				<CursorPagination.Root defaultPageSize={11}>
+					<CursorPagination.PageSizeSelect pageSizes={[10, 25]} />
+				</CursorPagination.Root>,
+			),
+		).toThrow(/pageSize must be included in CursorPageSizeSelect\.pageSizes/);
+	});
+
+	test("PageSizeSelect and PageSizeValue throw when rendered outside Root", () => {
+		// silence React's own error logging for the intentional render throws
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		expect(() => render(<CursorPagination.PageSizeSelect />)).toThrow(
+			/must be used as a child of a CursorPagination component/,
+		);
+		expect(() => render(<CursorPagination.PageSizeValue />)).toThrow(
+			/must be used as a child of a CursorPagination component/,
+		);
 	});
 
 	test("uncontrolled: picking a size updates the select, the value, and both callbacks", async () => {

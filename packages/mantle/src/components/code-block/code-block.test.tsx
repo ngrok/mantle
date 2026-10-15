@@ -16,6 +16,46 @@ function makeValue(code: string, preHtml?: string) {
 	});
 }
 
+const typescriptTabCode = "const a = 1;";
+const jsonTabCode = '{ "b": 2 }';
+
+/** A two-tab code block, so the tab tests can drive the uncontrolled and the controlled wiring. */
+function TabbedCodeBlock({
+	activeTab,
+	defaultTab,
+	onActiveTabChange,
+	onCopy,
+}: {
+	activeTab?: string;
+	defaultTab?: string;
+	onActiveTabChange?: (value: string) => void;
+	onCopy?: () => void;
+}) {
+	return (
+		<CodeBlock.Root
+			activeTab={activeTab}
+			defaultTab={defaultTab}
+			onActiveTabChange={onActiveTabChange}
+		>
+			<CodeBlock.Header>
+				<CodeBlock.TabList>
+					<CodeBlock.TabTrigger value="a">example.ts</CodeBlock.TabTrigger>
+					<CodeBlock.TabTrigger value="b">example.json</CodeBlock.TabTrigger>
+				</CodeBlock.TabList>
+			</CodeBlock.Header>
+			<CodeBlock.Body>
+				<CodeBlock.CopyButton onCopy={onCopy} />
+				<CodeBlock.TabContent value="a">
+					<CodeBlock.Code value={makeValue(typescriptTabCode)} />
+				</CodeBlock.TabContent>
+				<CodeBlock.TabContent value="b">
+					<CodeBlock.Code value={makeValue(jsonTabCode)} />
+				</CodeBlock.TabContent>
+			</CodeBlock.Body>
+		</CodeBlock.Root>
+	);
+}
+
 describe("CodeBlock", () => {
 	describe("Code", () => {
 		test("renders plain text fallback when preHtml is missing", () => {
@@ -186,7 +226,7 @@ describe("CodeBlock", () => {
 				</CodeBlock.Root>,
 			);
 
-			expect(screen.getByRole("heading", { name: "example.ts" })).toHaveAttribute(
+			expect(screen.getByRole("heading", { level: 3, name: "example.ts" })).toHaveAttribute(
 				"translate",
 				"no",
 			);
@@ -346,7 +386,9 @@ describe("CodeBlock", () => {
 			// Why after setup: when this test runs first, `userEvent.setup()` swaps in
 			// its own clipboard stub and drops a patch installed before it.
 			const user = userEvent.setup();
-			vi.spyOn(navigator.clipboard, "writeText").mockRejectedValue(new Error("clipboard denied"));
+			const writeText = vi
+				.spyOn(navigator.clipboard, "writeText")
+				.mockRejectedValue(new Error("clipboard denied"));
 			const onCopyError = vi.fn<(error: unknown) => void>();
 
 			render(
@@ -361,8 +403,12 @@ describe("CodeBlock", () => {
 			const button = screen.getByRole("button", { name: /copy code/i });
 			await user.click(button);
 
-			expect(onCopyError).toHaveBeenCalledOnce();
-			expect(onCopyError.mock.calls[0]?.[0]).toBeInstanceOf(Error);
+			// The rejection reaches the caller as is, not swallowed or replaced
+			// by a synthesized error.
+			expect(writeText).toHaveBeenCalledTimes(1);
+			expect(writeText).toHaveBeenLastCalledWith("code");
+			expect(onCopyError).toHaveBeenCalledTimes(1);
+			expect(onCopyError).toHaveBeenLastCalledWith(new Error("clipboard denied"));
 		});
 
 		test("routes a throw from onClick into onCopyError and skips onCopy", async () => {
@@ -470,6 +516,78 @@ describe("CodeBlock", () => {
 			expect(document.querySelectorAll("pre")).toHaveLength(1);
 			expect(document.querySelector("code")).toHaveTextContent("const b = 2;");
 		});
+
+		test("CopyButton copies the active tab's code after a switch", async () => {
+			const user = userEvent.setup();
+			const onCopy = vi.fn<() => void>();
+
+			render(<TabbedCodeBlock defaultTab="a" onCopy={onCopy} />);
+
+			await user.click(screen.getByRole("tab", { name: "example.json" }));
+			await user.click(screen.getByRole("button", { name: /copy code/i }));
+
+			// Why: each `Code` writes its text into the root on mount, so a switch
+			// that skipped the write would copy the first tab.
+			expect(onCopy).toHaveBeenCalledTimes(1);
+			expect(onCopy).toHaveBeenLastCalledWith(jsonTabCode);
+		});
+	});
+
+	describe("Root", () => {
+		test("a controlled activeTab switches only when the consumer updates the prop", async () => {
+			const user = userEvent.setup();
+			const onActiveTabChange = vi.fn<(value: string) => void>();
+
+			const { rerender } = render(
+				<TabbedCodeBlock activeTab="a" onActiveTabChange={onActiveTabChange} />,
+			);
+
+			// Why the keyboard: a click fires Radix's mousedown and focus activation
+			// both, so one controlled click reports "b" twice.
+			screen.getByRole("tab", { name: "example.ts" }).focus();
+			await user.keyboard("{ArrowRight}");
+
+			expect(onActiveTabChange).toHaveBeenCalledTimes(1);
+			expect(onActiveTabChange).toHaveBeenLastCalledWith("b");
+			expect(screen.getByRole("tab", { name: "example.ts" })).toHaveAttribute(
+				"aria-selected",
+				"true",
+			);
+			expect(document.querySelector("code")).toHaveTextContent(typescriptTabCode);
+
+			rerender(<TabbedCodeBlock activeTab="b" onActiveTabChange={onActiveTabChange} />);
+
+			expect(screen.getByRole("tab", { name: "example.json" })).toHaveAttribute(
+				"aria-selected",
+				"true",
+			);
+			expect(document.querySelector("code")).toHaveTextContent(jsonTabCode);
+		});
+
+		test("asChild on Root, Header, and Body renders the consumer's element with the part's slot", () => {
+			render(
+				<CodeBlock.Root asChild className="custom-root">
+					<figure>
+						<CodeBlock.Header asChild>
+							<hgroup>
+								<CodeBlock.Title>example.ts</CodeBlock.Title>
+							</hgroup>
+						</CodeBlock.Header>
+						<CodeBlock.Body asChild>
+							<section>
+								<CodeBlock.Code value={makeValue("const x = 1;")} />
+							</section>
+						</CodeBlock.Body>
+					</figure>
+				</CodeBlock.Root>,
+			);
+
+			const root = document.querySelector("[data-slot='code-block']");
+			expect(root?.tagName).toBe("FIGURE");
+			expect(root).toHaveClass("custom-root");
+			expect(document.querySelector("[data-slot='code-block-header']")?.tagName).toBe("HGROUP");
+			expect(document.querySelector("[data-slot='code-block-body']")?.tagName).toBe("SECTION");
+		});
 	});
 
 	describe("ExpanderButton", () => {
@@ -513,6 +631,25 @@ describe("CodeBlock", () => {
 			);
 
 			expect(document.querySelector("pre")).not.toHaveAttribute("data-state");
+		});
+
+		test("runs a consumer's onClick and still toggles", async () => {
+			const user = userEvent.setup();
+			const onClick = vi.fn<() => void>();
+
+			render(
+				<CodeBlock.Root>
+					<CodeBlock.Body>
+						<CodeBlock.Code value={makeValue("const x = 1;")} />
+					</CodeBlock.Body>
+					<CodeBlock.ExpanderButton onClick={onClick} />
+				</CodeBlock.Root>,
+			);
+
+			await user.click(screen.getByRole("button", { name: "Show more" }));
+
+			expect(onClick).toHaveBeenCalledTimes(1);
+			expect(document.querySelector("pre")).toHaveAttribute("data-state", "expanded");
 		});
 
 		test("points aria-controls at the <pre> id in the server HTML", () => {

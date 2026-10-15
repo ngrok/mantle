@@ -44,11 +44,33 @@ describe("PreviewFrame", () => {
 
 		fireEvent.click(screen.getByRole("radio", { name: "Tablet viewport" }));
 		// Why a class-token check: the wrapper emits no data attribute, so the width class is the
-		// only observable of the `viewportWidthClasses` lookup.
+		// only observable of the `viewportWidthClasses` lookup. The previous preset must also be
+		// gone, or a component that appends classes instead of swapping them would pass.
 		expect(getIframe().parentElement?.classList.contains("w-192")).toBe(true);
+		expect(getIframe().parentElement?.classList.contains("w-full")).toBe(false);
 
 		fireEvent.click(screen.getByRole("radio", { name: "Mobile viewport" }));
 		expect(getIframe().parentElement?.classList.contains("w-[375px]")).toBe(true);
+		expect(getIframe().parentElement?.classList.contains("w-192")).toBe(false);
+
+		fireEvent.click(screen.getByRole("radio", { name: "Desktop viewport" }));
+		expect(getIframe().parentElement?.classList.contains("w-full")).toBe(true);
+		expect(getIframe().parentElement?.classList.contains("w-[375px]")).toBe(false);
+	});
+
+	// Why a class assertion: the tailwind-merge override contract. `className` is documented as
+	// merged onto the outer frame so a caller can replace the default `h-160` canvas height.
+	it("merges className onto the outer frame, overriding the default height", () => {
+		const { container } = render(
+			<PreviewFrame example="centered-layout" title="Centered layout demo" className="h-96" />,
+		);
+
+		const frame = container.firstElementChild;
+		if (!(frame instanceof HTMLElement)) {
+			throw new Error("expected the preview frame to render an outer frame element");
+		}
+		expect(frame.classList.contains("h-96")).toBe(true);
+		expect(frame.classList.contains("h-160")).toBe(false);
 	});
 
 	it("reloads the preview by remounting the iframe", () => {

@@ -1,6 +1,7 @@
 "use client";
 
 import { render, screen, waitFor } from "@testing-library/react";
+import { userEvent } from "@testing-library/user-event";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { Accordion } from "./accordion.js";
 
@@ -95,6 +96,36 @@ describe("Accordion (browser)", () => {
 		// the open state. The browser highlights the match right after this event, so a
 		// box still at `h-0` clips the highlight away.
 		expect(region).not.toHaveAttribute("hidden");
+		// React has not re-rendered yet, so the layout below can only come from the
+		// handler's inline height.
+		expect(region).toHaveAttribute("data-state", "closed");
+		expect(region.style.height).toBe("auto");
 		expect(region.offsetHeight).toBeGreaterThan(0);
+	});
+
+	test('closing a "beforematch"-revealed section clears the inline height', async () => {
+		const user = userEvent.setup();
+		render(
+			<Accordion.Root type="single" defaultValue="">
+				{items}
+			</Accordion.Root>,
+		);
+
+		const region = regionFor("Body of section A");
+		if (!(region instanceof HTMLElement)) {
+			throw new Error("expected the content region to be an HTMLElement");
+		}
+
+		region.dispatchEvent(new Event("beforematch", { bubbles: true }));
+		await waitFor(() => expect(region).toHaveAttribute("data-state", "open"));
+		expect(region.style.height).toBe("auto");
+
+		await user.click(screen.getByRole("button", { name: /Trigger A/ }));
+
+		// The reveal's inline `height: auto` is a one-shot escape hatch. The close branch
+		// must clear it so the class-driven `h-0 ↔ h-auto` slide takes over again.
+		await waitFor(() => expect(region).toHaveAttribute("data-state", "closed"));
+		await waitFor(() => expect(region.style.height).toBe(""));
+		expect(region).toHaveAttribute("hidden", "until-found");
 	});
 });

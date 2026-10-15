@@ -1,6 +1,6 @@
 import { WarningIcon } from "@phosphor-icons/react/Warning";
 import { render, screen } from "@testing-library/react";
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { SvgOnly } from "./svg-only.js";
 
 describe("SvgOnly", () => {
@@ -30,6 +30,35 @@ describe("SvgOnly", () => {
 		// Why the exact attribute: this is a tailwind-merge override contract.
 		// `toHaveClass` ignores extra classes, so only the full value pins the merge.
 		expect(container.firstChild).toHaveAttribute("class", "shrink");
+	});
+
+	test("stamps the svg-only slot on the cloned svg", () => {
+		const { container } = render(<SvgOnly svg={<svg />} />);
+		expect(container.firstChild).toHaveAttribute("data-slot", "svg-only");
+	});
+
+	test("a data-slot from props joins ahead of the svg-only slot", () => {
+		// Wrappers such as `Icon` name their own slot this way.
+		const { container } = render(<SvgOnly data-slot="alert-icon" svg={<svg />} />);
+		expect(container.firstChild).toHaveAttribute("data-slot", "alert-icon svg-only");
+	});
+
+	test("merges styles, with the svg's own style winning on conflicts", () => {
+		const { container } = render(
+			<SvgOnly style={{ color: "blue", opacity: 0.5 }} svg={<svg style={{ color: "red" }} />} />,
+		);
+		expect(container.firstChild).toHaveStyle({ color: "red", opacity: "0.5" });
+	});
+
+	test.each([
+		["null", null],
+		["two icons", [<svg key="a" />, <svg key="b" />]],
+	])("throws when `svg` is %s", (_name, svg) => {
+		// React logs the render error itself; silence it so the run output stays readable.
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		expect(() => render(<SvgOnly svg={svg} />)).toThrow(
+			"SvgOnly must be passed a single SVG icon as a JSX tag.",
+		);
 	});
 
 	describe("decorative by default", () => {

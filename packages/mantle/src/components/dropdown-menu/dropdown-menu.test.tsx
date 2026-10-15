@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
+import { userEvent } from "@testing-library/user-event";
 import { createRef, type ReactNode } from "react";
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import { DropdownMenu } from "./dropdown-menu.js";
 
@@ -55,6 +56,244 @@ describe("DropdownMenu", () => {
 			expect(item).toHaveAttribute("data-slot", "dropdown-menu-item");
 			expect(ref.current).toBe(item);
 		});
+	});
+
+	describe("data-slot", () => {
+		/**
+		 * Every part, with the menu and its submenu open so the structural
+		 * assertions need no hover-intent timing. A modal menu hides the rest of
+		 * the page behind `aria-hidden`, so the trigger is queried with `hidden`.
+		 */
+		function renderFullMenu() {
+			return render(
+				<DropdownMenu.Root defaultOpen>
+					<DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+					<DropdownMenu.Content>
+						<DropdownMenu.Group>
+							<DropdownMenu.Label>Account</DropdownMenu.Label>
+							<DropdownMenu.Item>
+								Profile
+								<DropdownMenu.Shortcut>⌘P</DropdownMenu.Shortcut>
+							</DropdownMenu.Item>
+							<DropdownMenu.CheckboxItem checked>Notifications</DropdownMenu.CheckboxItem>
+							<DropdownMenu.RadioGroup value="small">
+								<DropdownMenu.RadioItem value="small">Small</DropdownMenu.RadioItem>
+							</DropdownMenu.RadioGroup>
+						</DropdownMenu.Group>
+						<DropdownMenu.Separator />
+						<DropdownMenu.Sub open>
+							<DropdownMenu.SubTrigger>Share</DropdownMenu.SubTrigger>
+							<DropdownMenu.SubContent>
+								<DropdownMenu.Label>Destinations</DropdownMenu.Label>
+							</DropdownMenu.SubContent>
+						</DropdownMenu.Sub>
+					</DropdownMenu.Content>
+				</DropdownMenu.Root>,
+			);
+		}
+
+		test.each([
+			{ slot: "dropdown-menu-content", role: "menu" },
+			{ slot: "dropdown-menu-group", role: "group" },
+			{ slot: "dropdown-menu-item", role: "menuitem" },
+			{ slot: "dropdown-menu-checkbox-item", role: "menuitemcheckbox" },
+			{ slot: "dropdown-menu-radio-group", role: "group" },
+			{ slot: "dropdown-menu-radio-item", role: "menuitemradio" },
+			{ slot: "dropdown-menu-separator", role: "none" },
+			{ slot: "dropdown-menu-sub-trigger", role: "menuitem" },
+			{ slot: "dropdown-menu-sub-content", role: "menu" },
+		])("$slot lands on the element with role $role", ({ slot, role }) => {
+			renderFullMenu();
+
+			// Why `~=`: `Separator` joins its own slot after the part's, so the value is a chain.
+			const elements = document.querySelectorAll(`[data-slot~="${slot}"]`);
+			expect(elements).toHaveLength(1);
+			expect(elements[0]).toHaveAttribute("role", role);
+		});
+
+		test.each([
+			{ slot: "dropdown-menu-label", text: "Account" },
+			{ slot: "dropdown-menu-label", text: "Destinations" },
+			{ slot: "dropdown-menu-shortcut", text: "⌘P" },
+		])("$slot lands on the element rendering $text", ({ slot, text }) => {
+			renderFullMenu();
+
+			expect(screen.getByText(text)).toHaveAttribute("data-slot", slot);
+		});
+
+		test("dropdown-menu-trigger lands on the trigger button", () => {
+			renderFullMenu();
+
+			expect(screen.getByRole("button", { name: "Open", hidden: true })).toHaveAttribute(
+				"data-slot",
+				"dropdown-menu-trigger",
+			);
+		});
+
+		test("Content joins an incoming data-slot chain ahead of its own slot name", () => {
+			render(
+				<DropdownMenu.Root defaultOpen>
+					<DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+					<DropdownMenu.Content data-slot="row-actions">
+						<DropdownMenu.Item>Profile</DropdownMenu.Item>
+					</DropdownMenu.Content>
+				</DropdownMenu.Root>,
+			);
+
+			expect(screen.getByRole("menu")).toHaveAttribute(
+				"data-slot",
+				"row-actions dropdown-menu-content",
+			);
+		});
+	});
+
+	describe("click propagation guard", () => {
+		test("a click inside the menu does not reach an ancestor onClick", async () => {
+			// React routes portaled events through the React tree, so without
+			// Content's `stopPropagation` an item click would also fire the
+			// row or card handler the menu is rendered inside.
+			const onAncestorClick = vi.fn<() => void>();
+			const user = userEvent.setup();
+			render(
+				<div role="button" tabIndex={0} onClick={onAncestorClick} onKeyDown={onAncestorClick}>
+					<DropdownMenu.Root defaultOpen>
+						<DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+						<DropdownMenu.Content>
+							<DropdownMenu.Item>Profile</DropdownMenu.Item>
+						</DropdownMenu.Content>
+					</DropdownMenu.Root>
+				</div>,
+			);
+
+			await user.click(screen.getByRole("menuitem", { name: "Profile" }));
+
+			expect(onAncestorClick).toHaveBeenCalledTimes(0);
+		});
+
+		test("Content still runs a consumer onClick after stopping propagation", async () => {
+			const onContentClick = vi.fn<(event: { target: EventTarget | null }) => void>();
+			const user = userEvent.setup();
+			render(
+				<DropdownMenu.Root defaultOpen>
+					<DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+					<DropdownMenu.Content onClick={onContentClick}>
+						<DropdownMenu.Item>Profile</DropdownMenu.Item>
+					</DropdownMenu.Content>
+				</DropdownMenu.Root>,
+			);
+
+			const item = screen.getByRole("menuitem", { name: "Profile" });
+			await user.click(item);
+
+			expect(onContentClick).toHaveBeenCalledTimes(1);
+			expect(onContentClick.mock.calls[0]?.[0].target).toBe(item);
+		});
+	});
+
+	describe("loop", () => {
+		// Radix defaults `loop` to false; the wrap-around is mantle's default.
+		test("ArrowDown from the last item wraps to the first", async () => {
+			const user = userEvent.setup();
+			render(
+				<DropdownMenu.Root defaultOpen>
+					<DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+					<DropdownMenu.Content>
+						<DropdownMenu.Item>First</DropdownMenu.Item>
+						<DropdownMenu.Item>Last</DropdownMenu.Item>
+					</DropdownMenu.Content>
+				</DropdownMenu.Root>,
+			);
+
+			await user.keyboard("{ArrowDown}{ArrowDown}");
+			expect(screen.getByRole("menuitem", { name: "Last" })).toHaveFocus();
+
+			await user.keyboard("{ArrowDown}");
+			expect(screen.getByRole("menuitem", { name: "First" })).toHaveFocus();
+		});
+
+		test("ArrowDown wraps inside a submenu too", async () => {
+			const user = userEvent.setup();
+			render(
+				<DropdownMenu.Root defaultOpen>
+					<DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+					<DropdownMenu.Content>
+						<DropdownMenu.Sub>
+							<DropdownMenu.SubTrigger>Share</DropdownMenu.SubTrigger>
+							<DropdownMenu.SubContent>
+								<DropdownMenu.Item>Email</DropdownMenu.Item>
+								<DropdownMenu.Item>Copy link</DropdownMenu.Item>
+							</DropdownMenu.SubContent>
+						</DropdownMenu.Sub>
+					</DropdownMenu.Content>
+				</DropdownMenu.Root>,
+			);
+
+			await user.keyboard("{ArrowDown}");
+			expect(screen.getByRole("menuitem", { name: "Share" })).toHaveFocus();
+
+			// ArrowRight opens the submenu and focuses its first item.
+			await user.keyboard("{ArrowRight}");
+			expect(await screen.findByRole("menuitem", { name: "Email" })).toHaveFocus();
+
+			await user.keyboard("{ArrowDown}");
+			expect(screen.getByRole("menuitem", { name: "Copy link" })).toHaveFocus();
+
+			await user.keyboard("{ArrowDown}");
+			expect(screen.getByRole("menuitem", { name: "Email" })).toHaveFocus();
+		});
+
+		test("an explicit loop={false} on Content wins over the default", async () => {
+			const user = userEvent.setup();
+			render(
+				<DropdownMenu.Root defaultOpen>
+					<DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+					<DropdownMenu.Content loop={false}>
+						<DropdownMenu.Item>First</DropdownMenu.Item>
+						<DropdownMenu.Item>Last</DropdownMenu.Item>
+					</DropdownMenu.Content>
+				</DropdownMenu.Root>,
+			);
+
+			await user.keyboard("{ArrowDown}{ArrowDown}{ArrowDown}");
+
+			expect(screen.getByRole("menuitem", { name: "Last" })).toHaveFocus();
+		});
+	});
+
+	describe("width", () => {
+		// Why the class assertion: `width="trigger"` emits no data attribute. Its only
+		// observable is the utility that reads the `--radix-dropdown-menu-trigger-width`
+		// variable Radix publishes on the positioner.
+		const triggerWidthClass = "w-(--radix-dropdown-menu-trigger-width)";
+
+		test('width="trigger" sizes the content from the trigger width variable', () => {
+			render(
+				<DropdownMenu.Root defaultOpen>
+					<DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+					<DropdownMenu.Content width="trigger">
+						<DropdownMenu.Item>Profile</DropdownMenu.Item>
+					</DropdownMenu.Content>
+				</DropdownMenu.Root>,
+			);
+
+			expect(screen.getByRole("menu")).toHaveClass(triggerWidthClass);
+		});
+
+		test.each(["content", undefined] as const)(
+			"width=%s leaves the content at its intrinsic width",
+			(width) => {
+				render(
+					<DropdownMenu.Root defaultOpen>
+						<DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+						<DropdownMenu.Content width={width}>
+							<DropdownMenu.Item>Profile</DropdownMenu.Item>
+						</DropdownMenu.Content>
+					</DropdownMenu.Root>,
+				);
+
+				expect(screen.getByRole("menu")).not.toHaveClass(triggerWidthClass);
+			},
+		);
 	});
 });
 

@@ -87,6 +87,20 @@ describe("Sidebar.Nav (desktop)", () => {
 		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "expanded");
 	});
 
+	test("a consumer bg-* class replaces the panel's default background", () => {
+		// Why the class assertion: a tailwind-merge override contract. The background
+		// lives on the panel surface so a consumer `bg-*` replaces it instead of
+		// painting under it.
+		render(
+			<Sidebar.Root>
+				<Sidebar.Nav className="bg-card" data-testid="nav" />
+			</Sidebar.Root>,
+		);
+		const nav = screen.getByTestId("nav");
+		expect(nav).toHaveClass("bg-card");
+		expect(nav).not.toHaveClass("bg-base");
+	});
+
 	test("defaultOpen={false} renders the panel collapsed", () => {
 		render(
 			<Sidebar.Root defaultOpen={false}>
@@ -858,6 +872,8 @@ describe("Sidebar.Nav (mobile)", () => {
 
 		await user.keyboard("{Escape}");
 		expect(onOpenMobileChange).toHaveBeenCalledExactlyOnceWith(false);
+		// Controlled: the parent kept `openMobile`, so the sheet stays mounted.
+		expect(screen.getByRole("dialog", { name: "Main" })).toBeInTheDocument();
 	});
 
 	test("opens the sheet when the viewport is below the root mobileBreakpoint", () => {

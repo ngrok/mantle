@@ -393,6 +393,22 @@ describe("Alert", () => {
 			);
 		});
 
+		test("forwards onClick to the rendered button", async () => {
+			const onToggle = vi.fn<() => void>();
+			render(
+				<Alert.Root intent="warning">
+					<Alert.Content>
+						<Alert.Title>Usage limit approaching</Alert.Title>
+						<Alert.ExpandButton count={2} expanded={false} onClick={onToggle} />
+					</Alert.Content>
+				</Alert.Root>,
+			);
+
+			await userEvent.click(screen.getByRole("button", { name: "Show 2 more alerts" }));
+
+			expect(onToggle).toHaveBeenCalledTimes(1);
+		});
+
 		test("names the hidden count in the plural", () => {
 			render(
 				<Alert.Root intent="warning">
@@ -538,6 +554,9 @@ describe("Alert", () => {
 			// Why the class: `Root` emits no `data-appearance`, so `rounded-none` is the
 			// only observable of the banner appearance.
 			expect(getAlertRoot(container)).toHaveClass("rounded-none");
+			// `toHaveClass` ignores extras, so the merge outcome is the proof: the base
+			// `rounded-md` must lose to the variant's `rounded-none`.
+			expect(getAlertRoot(container)).not.toHaveClass("rounded-md");
 		});
 	});
 });

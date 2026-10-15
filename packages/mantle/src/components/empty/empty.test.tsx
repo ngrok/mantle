@@ -6,12 +6,15 @@ import { Empty } from "./empty.js";
 describe("Empty", () => {
 	test("Root merges custom className", () => {
 		render(
-			<Empty.Root className="custom-class" data-testid="root">
+			<Empty.Root className="custom-class p-0" data-testid="root">
 				content
 			</Empty.Root>,
 		);
 		const root = screen.getByTestId("root");
-		expect(root.className).toContain("custom-class");
+		// The tailwind-merge contract: the consumer's padding replaces the default
+		// instead of sitting next to it.
+		expect(root).toHaveClass("custom-class", "p-0");
+		expect(root).not.toHaveClass("p-6");
 	});
 
 	test("Title renders an h3 element by default", () => {
@@ -33,8 +36,9 @@ describe("Empty", () => {
 			</Empty.Root>,
 		);
 		const title = screen.getByTestId("title");
-		// The tailwind-merge contract: the consumer's class survives the merge.
-		expect(title.className).toContain("text-2xl");
+		// The tailwind-merge contract: the consumer's size replaces the default.
+		expect(title).toHaveClass("text-2xl");
+		expect(title).not.toHaveClass("text-sm");
 	});
 
 	test("Title renders as child element when asChild is true", () => {
@@ -60,8 +64,9 @@ describe("Empty", () => {
 			</Empty.Root>,
 		);
 		const description = screen.getByTestId("desc");
-		// The tailwind-merge contract: the consumer's class survives the merge.
-		expect(description.className).toContain("text-xs");
+		// The tailwind-merge contract: the consumer's size replaces the default.
+		expect(description).toHaveClass("text-xs");
+		expect(description).not.toHaveClass("text-sm");
 		expect(description).toHaveAttribute("data-slot", "empty-description");
 	});
 
@@ -132,8 +137,9 @@ describe("Empty", () => {
 			</Empty.Root>,
 		);
 		const actions = screen.getByTestId("actions");
-		// The tailwind-merge contract: the consumer's class survives the merge.
-		expect(actions.className).toContain("gap-4");
+		// The tailwind-merge contract: the consumer's gap replaces the default.
+		expect(actions).toHaveClass("gap-4");
+		expect(actions).not.toHaveClass("gap-2");
 	});
 
 	test("Icon is hidden from assistive technology and stamps its slot", () => {
@@ -147,6 +153,18 @@ describe("Empty", () => {
 		expect(icon).toHaveAttribute("aria-hidden", "true");
 		// The part's slot joins ahead of the `SvgOnly` it renders.
 		expect(icon).toHaveAttribute("data-slot", "empty-icon svg-only");
+	});
+
+	test("Icon merges custom className", () => {
+		render(
+			<Empty.Root>
+				<Empty.Icon className="size-16" svg={<svg data-testid="icon" />} />
+			</Empty.Root>,
+		);
+		const icon = screen.getByTestId("icon");
+		// The tailwind-merge contract: the consumer's size replaces the default.
+		expect(icon).toHaveClass("size-16");
+		expect(icon).not.toHaveClass("size-10");
 	});
 
 	test("Title forwards ref to the heading element", () => {

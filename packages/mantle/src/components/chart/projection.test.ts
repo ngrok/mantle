@@ -1,5 +1,12 @@
 import { describe, expect, test } from "vitest";
-import { clampPitch, normalizeToCube, projectionMatrix, projectPoint } from "./projection.js";
+import {
+	clampPitch,
+	CUBE_CORNERS,
+	CUBE_EDGES,
+	normalizeToCube,
+	projectionMatrix,
+	projectPoint,
+} from "./projection.js";
 
 describe("projectPoint", () => {
 	test("the identity camera maps x/y through unchanged (up to perspective)", () => {
@@ -64,5 +71,54 @@ describe("normalizeToCube", () => {
 
 	test("a degenerate domain maps to the cube center", () => {
 		expect(normalizeToCube(5, [5, 5])).toBe(0);
+	});
+});
+
+describe("cube wireframe", () => {
+	test("the eight corners are every ±1 combination, each once", () => {
+		expect(CUBE_CORNERS.map((corner) => corner.join(",")).toSorted()).toEqual([
+			"-1,-1,-1",
+			"-1,-1,1",
+			"-1,1,-1",
+			"-1,1,1",
+			"1,-1,-1",
+			"1,-1,1",
+			"1,1,-1",
+			"1,1,1",
+		]);
+	});
+
+	test("twelve distinct edges meet three at every corner", () => {
+		// A typo in one endpoint keeps the edge count. The degree check sees the
+		// corner it leaves with two edges and the one it lands on with four.
+		const undirected = new Set(
+			CUBE_EDGES.map(([from, to]) =>
+				[from, to].toSorted((first, second) => first - second).join("-"),
+			),
+		);
+		expect(undirected.size).toBe(12);
+		const degrees = new Map<number, number>();
+		for (const [from, to] of CUBE_EDGES) {
+			expect(from).not.toBe(to);
+			degrees.set(from, (degrees.get(from) ?? 0) + 1);
+			degrees.set(to, (degrees.get(to) ?? 0) + 1);
+		}
+		expect([...degrees.entries()].toSorted(([first], [second]) => first - second)).toEqual(
+			CUBE_CORNERS.map((_corner, index) => [index, 3]),
+		);
+	});
+
+	test("every edge joins two corners that differ on exactly one axis", () => {
+		// A face diagonal differs on two axes. The wireframe would still draw
+		// twelve lines, but not a cube.
+		for (const [from, to] of CUBE_EDGES) {
+			const start = CUBE_CORNERS[from];
+			const end = CUBE_CORNERS[to];
+			if (start == null || end == null) {
+				throw new Error(`edge [${from}, ${to}] names a corner that does not exist`);
+			}
+			const differing = start.filter((value, axis) => value !== end[axis]);
+			expect(differing).toHaveLength(1);
+		}
 	});
 });

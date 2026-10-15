@@ -175,6 +175,37 @@ describe("OtpInput", () => {
 			expect(bridge).toHaveAttribute("data-validation", "error");
 			expect(input).toHaveAttribute("aria-invalid", "true");
 		});
+
+		test.each(["success", "warning"] as const)(
+			"validation=%s does not mark the input aria-invalid",
+			(validation) => {
+				const { input } = renderOtp({ validation });
+
+				expect(input).not.toHaveAttribute("aria-invalid");
+			},
+		);
+
+		test("validation inherited from Field.Item reaches the bridge and the input", () => {
+			const { container } = render(
+				<Field.Item name="code" validation="warning">
+					<Field.Control>
+						<OtpInput.Root maxLength={1} data-testid="otp">
+							<OtpInput.Group>
+								<OtpInput.Slot index={0} />
+							</OtpInput.Group>
+						</OtpInput.Root>
+					</Field.Control>
+				</Field.Item>,
+			);
+
+			expect(container.querySelector("[data-otp-state]")).toHaveAttribute(
+				"data-validation",
+				"warning",
+			);
+			// A warning is not an invalid state, and `OtpInput` opts out of the
+			// default `aria-invalid="false"`, so the attribute stays off entirely.
+			expect(screen.getByTestId("otp")).not.toHaveAttribute("aria-invalid");
+		});
 	});
 
 	describe("translation", () => {

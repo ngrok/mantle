@@ -2,6 +2,7 @@
 
 import { render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
+import type { ComponentProps } from "react";
 import { useState } from "react";
 import { describe, expect, test } from "vitest";
 import { Command } from "./command.js";
@@ -46,13 +47,15 @@ describe("Command.Dialog", () => {
 			render(<CommandDialogSubject initialOpen />);
 
 			await waitFor(() => {
-				expect(screen.getByText("Test Command Palette")).toBeInTheDocument();
+				expect(screen.getByRole("dialog", { name: "Test Command Palette" })).toBeInTheDocument();
 			});
 
 			await user.keyboard("{Escape}");
 
 			await waitFor(() => {
-				expect(screen.queryByText("Test Command Palette")).not.toBeInTheDocument();
+				expect(
+					screen.queryByRole("dialog", { name: "Test Command Palette" }),
+				).not.toBeInTheDocument();
 			});
 		});
 
@@ -70,12 +73,14 @@ describe("Command.Dialog", () => {
 				</Command.DialogRoot>,
 			);
 
-			expect(screen.queryByText("Test Command Palette")).not.toBeInTheDocument();
+			expect(
+				screen.queryByRole("dialog", { name: "Test Command Palette" }),
+			).not.toBeInTheDocument();
 
 			await user.click(screen.getByRole("button", { name: "Open" }));
 
 			await waitFor(() => {
-				expect(screen.getByText("Test Command Palette")).toBeInTheDocument();
+				expect(screen.getByRole("dialog", { name: "Test Command Palette" })).toBeInTheDocument();
 			});
 		});
 
@@ -84,13 +89,15 @@ describe("Command.Dialog", () => {
 			render(<CommandDialogSubject initialOpen />);
 
 			await waitFor(() => {
-				expect(screen.getByText("Test Command Palette")).toBeInTheDocument();
+				expect(screen.getByRole("dialog", { name: "Test Command Palette" })).toBeInTheDocument();
 			});
 
 			await user.click(screen.getByRole("button", { name: "Close Dialog" }));
 
 			await waitFor(() => {
-				expect(screen.queryByText("Test Command Palette")).not.toBeInTheDocument();
+				expect(
+					screen.queryByRole("dialog", { name: "Test Command Palette" }),
+				).not.toBeInTheDocument();
 			});
 		});
 	});
@@ -172,12 +179,71 @@ describe("Command.Dialog", () => {
 		});
 	});
 
+	describe("Command.DialogContent", () => {
+		/** An always-open palette, so only the content props under test vary. */
+		const DialogContentSubject = (
+			props: Omit<ComponentProps<typeof Command.DialogContent>, "children">,
+		) => (
+			<Command.DialogRoot open>
+				<Command.DialogContent {...props}>
+					<Command.Input placeholder="Type a command or search..." />
+					<Command.List>
+						<Command.Empty>No results found.</Command.Empty>
+						<Command.Item value="calendar">Calendar</Command.Item>
+						<Command.Item value="profile">Profile</Command.Item>
+					</Command.List>
+				</Command.DialogContent>
+			</Command.DialogRoot>
+		);
+
+		test("names and describes the dialog with the default title and description", () => {
+			render(<DialogContentSubject />);
+
+			const dialog = screen.getByRole("dialog", { name: "Command Palette" });
+			expect(dialog).toHaveAccessibleDescription("Search for a command to run...");
+		});
+
+		test("title and description become the dialog's accessible name and description", () => {
+			render(<DialogContentSubject title="Jump to" description="Search the docs" />);
+
+			const dialog = screen.getByRole("dialog", { name: "Jump to" });
+			expect(dialog).toHaveAccessibleDescription("Search the docs");
+		});
+
+		test("showCloseButton={false} omits the close button", () => {
+			render(<DialogContentSubject showCloseButton={false} />);
+
+			expect(screen.queryByRole("button", { name: "Close Dialog" })).not.toBeInTheDocument();
+		});
+
+		test("shouldFilter={false} keeps every item for a query that matches nothing", async () => {
+			const user = userEvent.setup();
+			render(<DialogContentSubject shouldFilter={false} />);
+
+			await user.type(screen.getByPlaceholderText("Type a command or search..."), "zzz");
+
+			expect(screen.getByRole("option", { name: "Calendar" })).toBeInTheDocument();
+			expect(screen.getByRole("option", { name: "Profile" })).toBeInTheDocument();
+		});
+
+		test("filter decides which items survive a query", async () => {
+			const user = userEvent.setup();
+			// Scores only "profile", for a query the default scorer drops entirely.
+			render(<DialogContentSubject filter={(value) => (value === "profile" ? 1 : 0)} />);
+
+			await user.type(screen.getByPlaceholderText("Type a command or search..."), "zzz");
+
+			expect(screen.getByRole("option", { name: "Profile" })).toBeInTheDocument();
+			expect(screen.queryByRole("option", { name: "Calendar" })).not.toBeInTheDocument();
+		});
+	});
+
 	describe("Command.Separator auto-hide", () => {
 		test("separator renders when there is no active search query", async () => {
 			render(<CommandDialogSubject initialOpen />);
 
 			await waitFor(() => {
-				expect(screen.getByText("Test Command Palette")).toBeInTheDocument();
+				expect(screen.getByRole("dialog", { name: "Test Command Palette" })).toBeInTheDocument();
 			});
 
 			expect(document.querySelector("[data-slot~='command-separator']")).toBeInTheDocument();
@@ -191,7 +257,7 @@ describe("Command.Dialog", () => {
 			render(<CommandDialogSubject initialOpen />);
 
 			await waitFor(() => {
-				expect(screen.getByText("Test Command Palette")).toBeInTheDocument();
+				expect(screen.getByRole("dialog", { name: "Test Command Palette" })).toBeInTheDocument();
 			});
 
 			await user.type(screen.getByPlaceholderText("Type a command or search..."), "cal");

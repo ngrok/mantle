@@ -181,11 +181,34 @@ describe("CodeBlock (browser)", () => {
 		}
 	`;
 
+	/**
+	 * Mirrors the Tailwind utilities that make the tab row of `CodeBlock.Header`
+	 * scroll instead of wrap. Keyed to the class names `CodeBlock.Header`,
+	 * `CodeBlock.TabList`, and `CodeBlock.TabTrigger` emit, so dropping one of
+	 * `min-w-0`, `overflow-x-auto`, `shrink-0`, or `whitespace-nowrap` changes the
+	 * measured geometry. `.flex-wrap` is declared so a trigger row that gains it
+	 * can wrap here and fail.
+	 */
+	const TAB_LAYOUT_STYLE = `
+		.flex { display: flex; }
+		.flex-wrap { flex-wrap: wrap; }
+		.items-center { align-items: center; }
+		.gap-1 { gap: 0.25rem; }
+		.min-w-0 { min-width: 0; }
+		.overflow-x-auto { overflow-x: auto; }
+		.px-4 { padding-inline: 1rem; }
+		.py-2 { padding-block: 0.5rem; }
+		.p-1 { padding: 0.25rem; }
+		.-m-1 { margin: -0.25rem; }
+		.shrink-0 { flex-shrink: 0; }
+		.whitespace-nowrap { white-space: nowrap; }
+	`;
+
 	let styleElement: HTMLStyleElement;
 
 	beforeAll(() => {
 		styleElement = document.createElement("style");
-		styleElement.textContent = LAYOUT_STYLE;
+		styleElement.textContent = LAYOUT_STYLE + TAB_LAYOUT_STYLE;
 		document.head.appendChild(styleElement);
 	});
 
@@ -373,6 +396,35 @@ describe("CodeBlock (browser)", () => {
 
 			// Why 48px: the 2rem number column plus its 1rem gap.
 			expect(toggle.getBoundingClientRect().left - preLeft).toBe(48);
+		});
+	});
+
+	describe("tab row overflow", () => {
+		test("the tab list scrolls instead of wrapping when the tabs exceed the header", () => {
+			render(
+				<div style={{ width: 220 }}>
+					<CodeBlock.Root defaultTab="a">
+						<CodeBlock.Header>
+							<CodeBlock.TabList>
+								<CodeBlock.TabTrigger value="a">traffic-policy.yml</CodeBlock.TabTrigger>
+								<CodeBlock.TabTrigger value="b">traffic-policy.json</CodeBlock.TabTrigger>
+								<CodeBlock.TabTrigger value="c">traffic-policy.tf</CodeBlock.TabTrigger>
+							</CodeBlock.TabList>
+						</CodeBlock.Header>
+					</CodeBlock.Root>
+				</div>,
+			);
+
+			const tabList = screen.getByRole("tablist");
+			const tabs = screen.getAllByRole("tab");
+
+			// The row overflows its box...
+			expect(tabList.scrollWidth).toBeGreaterThan(tabList.clientWidth);
+			// ...into a scroll range, not a second line: every tab shares one
+			// offsetTop, and the list accepts a scroll offset.
+			expect(new Set(tabs.map((tab) => tab.offsetTop)).size).toBe(1);
+			tabList.scrollLeft = 40;
+			expect(tabList.scrollLeft).toBe(40);
 		});
 	});
 });

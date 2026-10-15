@@ -71,6 +71,34 @@ describe("composeRefs", () => {
 		expect(objectRef.current).toBeNull();
 	});
 
+	test("invokes every inner cleanup on unmount, not just the first", () => {
+		const firstCleanup = vi.fn<() => void>();
+		const secondCleanup = vi.fn<() => void>();
+		const firstCleanupRef = vi.fn<(node: HTMLDivElement | null) => () => void>(() => firstCleanup);
+		const secondCleanupRef = vi.fn<(node: HTMLDivElement | null) => () => void>(
+			() => secondCleanup,
+		);
+		// Sits between the two cleanup refs so an index-misaligned cleanup loop is visible here too.
+		const plainCallbackRef = vi.fn<(node: HTMLDivElement | null) => void>();
+
+		const { unmount } = render(
+			<div
+				ref={composeRefs<HTMLDivElement>(firstCleanupRef, plainCallbackRef, secondCleanupRef)}
+			/>,
+		);
+
+		expect(firstCleanup).not.toHaveBeenCalled();
+		expect(secondCleanup).not.toHaveBeenCalled();
+
+		unmount();
+
+		expect(firstCleanup).toHaveBeenCalledTimes(1);
+		expect(secondCleanup).toHaveBeenCalledTimes(1);
+		expect(firstCleanupRef).not.toHaveBeenCalledWith(null);
+		expect(secondCleanupRef).not.toHaveBeenCalledWith(null);
+		expect(plainCallbackRef).toHaveBeenLastCalledWith(null);
+	});
+
 	test("legacy path: calls callback refs with null on unmount when no inner ref returns a cleanup", () => {
 		const callbackRef = vi.fn<(node: HTMLDivElement | null) => void>();
 		const objectRef = createRef<HTMLDivElement>();

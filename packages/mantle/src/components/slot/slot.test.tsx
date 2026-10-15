@@ -1,6 +1,13 @@
 import { createSlot } from "@radix-ui/react-slot";
 import { render } from "@testing-library/react";
-import { type ComponentProps, type CSSProperties, createRef, type ReactNode } from "react";
+import { userEvent } from "@testing-library/user-event";
+import {
+	type ComponentProps,
+	type CSSProperties,
+	createRef,
+	type MouseEvent,
+	type ReactNode,
+} from "react";
 import { describe, expect, it, vi } from "vitest";
 import { Slot } from "./slot.js";
 
@@ -8,7 +15,7 @@ import { Slot } from "./slot.js";
 // asserts the tailwind-merge outcome (the class that wins and the classes that stay).
 describe("Slot", () => {
 	it("renders the child element unchanged when no Slot props are provided", () => {
-		const { container } = render(
+		const { getByRole } = render(
 			<Slot>
 				<button className="child-class" type="button">
 					Click me
@@ -16,13 +23,8 @@ describe("Slot", () => {
 			</Slot>,
 		);
 
-		const button = container.querySelector("button");
+		const button = getByRole("button", { name: "Click me" });
 
-		if (button == null) {
-			throw new Error("Expected a <button> to be rendered");
-		}
-
-		expect(button).toBeInTheDocument();
 		expect(button).toHaveClass("child-class");
 		expect(button).toHaveAttribute("type", "button");
 	});
@@ -100,6 +102,23 @@ describe("Slot", () => {
 		expect(ref.current).toBe(button);
 	});
 
+	// Slot is the mechanism behind every `asChild` in the library, so its only
+	// non-happy branch has to fail loudly: silently rendering the children would
+	// drop the composing component's className, data-slot, and ref.
+	it("throws on a non-element or multi-element child instead of silently dropping Slot props", () => {
+		expect(() => render(<Slot className="slot-class">plain text</Slot>)).toThrow(
+			/single React element/,
+		);
+		expect(() =>
+			render(
+				<Slot className="slot-class">
+					<button type="button">One</button>
+					<button type="button">Two</button>
+				</Slot>,
+			),
+		).toThrow(/single React element/);
+	});
+
 	it("concatenates data-slot values in DOM order — the Slot's chain first, then the child's own", () => {
 		const { container } = render(
 			<Slot data-slot="parent-part">
@@ -123,9 +142,10 @@ describe("Slot", () => {
 		expect(container.querySelector("div")).toHaveAttribute("data-slot", "part");
 	});
 
-	it("handles event handlers passed via Slot and child (both are called)", () => {
-		const slotOnClick = vi.fn<() => void>();
-		const childOnClick = vi.fn<() => void>();
+	it("handles event handlers passed via Slot and child (both are called)", async () => {
+		const user = userEvent.setup();
+		const slotOnClick = vi.fn<(event: MouseEvent<HTMLButtonElement>) => void>();
+		const childOnClick = vi.fn<(event: MouseEvent<HTMLButtonElement>) => void>();
 
 		const { getByRole } = render(
 			<Slot onClick={slotOnClick}>
@@ -135,13 +155,20 @@ describe("Slot", () => {
 			</Slot>,
 		);
 
-		const button = getByRole("button");
+		const button = getByRole("button", { name: "Click me" });
 
-		button.click();
+		await user.click(button);
 
-		// Radix Slot semantics: both handlers should run
+		// Radix Slot semantics: both handlers run, and neither is invoked twice by
+		// the composition — a double-fire here would break every `asChild` consumer.
 		expect(slotOnClick).toHaveBeenCalledTimes(1);
 		expect(childOnClick).toHaveBeenCalledTimes(1);
+		expect(slotOnClick).toHaveBeenLastCalledWith(
+			expect.objectContaining({ type: "click", target: button }),
+		);
+		expect(childOnClick).toHaveBeenLastCalledWith(
+			expect.objectContaining({ type: "click", target: button }),
+		);
 	});
 });
 

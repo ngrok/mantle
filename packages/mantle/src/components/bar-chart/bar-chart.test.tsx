@@ -6,6 +6,10 @@ import { describe, expect, test, vi } from "vitest";
 import { engageChart } from "../../test-utils/engage-chart.js";
 import { BarChart } from "./bar-chart.js";
 
+// Keep the shared fixture under 4 rows: happy-dom never delivers a plot size,
+// and a zero-width plot decimates 4+ rows, which widens the keyboard arrow
+// stride to the whole set (a single ArrowRight would jump to the last datum).
+// The paging fixture below opts into that regime deliberately.
 const data = [
 	{ month: "January", desktop: 186, mobile: 80 },
 	{ month: "February", desktop: 305, mobile: 200 },
@@ -50,6 +54,8 @@ describe("BarChart.Root", () => {
 				</BarChart.Root>
 			</>,
 		);
+		// The reference also names the overlay, so the heading is not duplicated.
+		expect(screen.getByRole("application", { name: "Visitors by month" })).toBeInTheDocument();
 		engageChart();
 		await vi.waitFor(() => {
 			expect(
@@ -305,6 +311,48 @@ describe("BarChart keyboard interaction", () => {
 		expect(tooltip?.textContent).toContain("January");
 	});
 
+	test("ArrowLeft enters at the last datum and clamps at the first", async () => {
+		const user = userEvent.setup();
+		const onActiveIndexChange = vi.fn<(index: number | null) => void>();
+		renderChart({ onActiveIndexChange });
+		await user.tab();
+		// Stepping backwards into an unpositioned cursor enters from the end — the
+		// mirror of ArrowRight entering at the first datum.
+		await user.keyboard("{ArrowLeft}");
+		const tooltip = document.querySelector('[data-slot="bar-chart-tooltip"]');
+		expect(tooltip?.textContent).toContain("March");
+		expect(onActiveIndexChange).toHaveBeenLastCalledWith(2);
+		await user.keyboard("{ArrowLeft}");
+		expect(tooltip?.textContent).toContain("February");
+		expect(onActiveIndexChange).toHaveBeenLastCalledWith(1);
+		// The cursor clamps at the first datum: it never wraps or goes negative.
+		await user.keyboard("{ArrowLeft}{ArrowLeft}");
+		expect(tooltip?.textContent).toContain("January");
+		expect(onActiveIndexChange).toHaveBeenLastCalledWith(0);
+		expect(onActiveIndexChange).toHaveBeenCalledTimes(3);
+	});
+
+	test("the tooltip surface is revealed while a datum is active and hidden again on Escape", async () => {
+		// React renders the readout's text, but the engine writes its visibility
+		// as an inline opacity on every commit. Without this assertion the whole
+		// hover UI could ship invisible while every textContent check stays green.
+		const user = userEvent.setup();
+		renderChart();
+		await user.tab();
+		await user.keyboard("{ArrowRight}");
+		// The surface mounts on the first activation and reveals on the engine's
+		// next animation frame.
+		const tooltip = document.querySelector('[data-slot="bar-chart-tooltip"]');
+		invariant(tooltip instanceof HTMLElement, "the tooltip surface renders");
+		await vi.waitFor(() => {
+			expect(tooltip.style.opacity).toBe("1");
+		});
+		await user.keyboard("{Escape}");
+		await vi.waitFor(() => {
+			expect(tooltip.style.opacity).toBe("0");
+		});
+	});
+
 	test("keyboard stepping announces the datum politely", async () => {
 		const user = userEvent.setup();
 		renderChart();
@@ -345,7 +393,25 @@ describe("BarChart keyboard interaction", () => {
 		);
 	});
 
-	test("onActiveIndexChange reports keyboard movement", async () => {
+	test("Space activates the current datum with the same payload as Enter", async () => {
+		const user = userEvent.setup();
+		const onDatumActivate = vi.fn<(event: object) => void>();
+		renderChart({ onDatumActivate });
+		await user.tab();
+		await user.keyboard("{ArrowRight}");
+		await user.keyboard(" ");
+		expect(onDatumActivate).toHaveBeenCalledTimes(1);
+		expect(onDatumActivate).toHaveBeenLastCalledWith(
+			expect.objectContaining({
+				index: 0,
+				xValue: "January",
+				datum: data[0],
+				dataKey: null,
+			}),
+		);
+	});
+
+	test("onActiveIndexChange reports keyboard movement once per step", async () => {
 		const user = userEvent.setup();
 		const onActiveIndexChange = vi.fn<(index: number | null) => void>();
 		renderChart({ onActiveIndexChange });
@@ -356,6 +422,88 @@ describe("BarChart keyboard interaction", () => {
 		await user.keyboard("{ArrowRight}");
 		expect(onActiveIndexChange).toHaveBeenCalledTimes(2);
 		expect(onActiveIndexChange).toHaveBeenLastCalledWith(1);
+	});
+});
+
+describe("BarChart paging keys", () => {
+	// PageUp and PageDown step by a tenth of the series, so the stride is only
+	// visible on a fixture of at least 10 rows. The page stride comes from the
+	// row count alone, so happy-dom's zero-width plot does not widen it.
+	const weeks = Array.from({ length: 20 }, (_, index) => ({
+		week: `Week ${index}`,
+		visits: index * 10,
+	}));
+
+	const renderWeeks = (onActiveIndexChange: (index: number | null) => void) =>
+		render(
+			<BarChart.Root
+				data={weeks}
+				xKey="week"
+				aria-label="Visitors by week"
+				onActiveIndexChange={onActiveIndexChange}
+			>
+				<BarChart.Bar dataKey="visits" label="Visits" />
+				<BarChart.Tooltip />
+			</BarChart.Root>,
+		);
+
+	test("PageUp and PageDown move a tenth of the series at a time", async () => {
+		const user = userEvent.setup();
+		const onActiveIndexChange = vi.fn<(index: number | null) => void>();
+		renderWeeks(onActiveIndexChange);
+		await user.tab();
+		await user.keyboard("{PageUp}");
+		expect(onActiveIndexChange).toHaveBeenLastCalledWith(2);
+		const tooltip = document.querySelector('[data-slot="bar-chart-tooltip"]');
+		expect(tooltip?.textContent).toContain("Week 2");
+		await user.keyboard("{PageUp}");
+		expect(onActiveIndexChange).toHaveBeenLastCalledWith(4);
+		expect(tooltip?.textContent).toContain("Week 4");
+		await user.keyboard("{PageDown}");
+		expect(onActiveIndexChange).toHaveBeenLastCalledWith(2);
+		expect(tooltip?.textContent).toContain("Week 2");
+		expect(onActiveIndexChange).toHaveBeenCalledTimes(3);
+	});
+
+	test("PageDown with no active datum enters a page in from the end", async () => {
+		const user = userEvent.setup();
+		const onActiveIndexChange = vi.fn<(index: number | null) => void>();
+		renderWeeks(onActiveIndexChange);
+		await user.tab();
+		await user.keyboard("{PageDown}");
+		// The last row (19) minus the page stride (2).
+		expect(onActiveIndexChange).toHaveBeenCalledTimes(1);
+		expect(onActiveIndexChange).toHaveBeenLastCalledWith(17);
+		const tooltip = document.querySelector('[data-slot="bar-chart-tooltip"]');
+		expect(tooltip?.textContent).toContain("Week 17");
+	});
+});
+
+describe("BarChart pending", () => {
+	test("pending holds the previous render instead of swapping in a skeleton", async () => {
+		// The dimming is a plain opacity utility with no data attribute behind it,
+		// so the assertable contract is that the canvas, the data-table twin, and
+		// keyboard inspection all stay while fresh data loads.
+		const user = userEvent.setup();
+		const { container, rerender } = render(
+			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
+				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Tooltip />
+			</BarChart.Root>,
+		);
+		rerender(
+			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month" pending>
+				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Tooltip />
+			</BarChart.Root>,
+		);
+		expect(container.querySelector("canvas")).toBeInTheDocument();
+		await user.tab();
+		expect(screen.getByRole("cell", { name: "305" })).toBeInTheDocument();
+		await user.keyboard("{ArrowRight}");
+		const tooltip = document.querySelector('[data-slot="bar-chart-tooltip"]');
+		expect(tooltip?.textContent).toContain("January");
+		expect(tooltip?.textContent).toContain("186");
 	});
 });
 

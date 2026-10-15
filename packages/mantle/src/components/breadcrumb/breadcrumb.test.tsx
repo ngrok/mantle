@@ -137,6 +137,23 @@ describe("Breadcrumb", () => {
 		expect(list.className).not.toContain("gap-1.5");
 	});
 
+	// tailwind-merge override contract: a consumer's gap replaces Item's default one
+	// instead of landing beside it.
+	test("Item's gap default loses to a consumer gap utility", () => {
+		render(
+			<Breadcrumb.Root>
+				<Breadcrumb.List>
+					<Breadcrumb.Item className="gap-4">
+						<Breadcrumb.Link href="/">Home</Breadcrumb.Link>
+					</Breadcrumb.Item>
+				</Breadcrumb.List>
+			</Breadcrumb.Root>,
+		);
+		const item = screen.getByRole("listitem");
+		expect(item.className).toContain("gap-4");
+		expect(item.className).not.toContain("gap-1.5");
+	});
+
 	// Cross-file spelling pin: `scroll-fade-x` is the @utility declared in
 	// packages/mantle/src/mantle.css that masks the scrolled edges, so renaming
 	// the class here without renaming it there silently drops the fade.
@@ -364,7 +381,7 @@ describe("Breadcrumb", () => {
 		expect(separator).toHaveAttribute("aria-hidden", "true");
 		expect(separator).toHaveAttribute("role", "presentation");
 		expect(separator).toHaveAttribute("data-slot", "breadcrumb-separator");
-		expect(separator.querySelector("svg")).not.toBeNull();
+		expect(separator.querySelectorAll("svg")).toHaveLength(1);
 	});
 
 	test("Separator forwards a consumer className", () => {
@@ -391,7 +408,7 @@ describe("Breadcrumb", () => {
 		);
 		const separator = screen.getByTestId("separator");
 		expect(separator).toHaveTextContent("/");
-		expect(separator.querySelector("svg")).toBeNull();
+		expect(separator.querySelectorAll("svg")).toHaveLength(0);
 	});
 
 	test("Skeleton renders one crumb-shaped placeholder with a status announcement", () => {
