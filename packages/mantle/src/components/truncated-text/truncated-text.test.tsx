@@ -1,9 +1,10 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { createRef } from "react";
+import { createRef, useState } from "react";
 import { renderToString } from "react-dom/server";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
+import { RadioGroup } from "../radio-group/index.js";
 import { Tooltip, TooltipProvider } from "../tooltip/index.js";
 import { TruncatedText, type TruncatedTextProps } from "./truncated-text.js";
 
@@ -235,6 +236,68 @@ describe("TruncatedText", () => {
 			expect(await screen.findByRole("tooltip")).toHaveTextContent(url);
 		});
 
+		test("inside a control, keeps the whole value in its name and adds no tab stop or tooltip", () => {
+			stubGeometry(overflows);
+			render(
+				<TooltipProvider>
+					<button type="button">
+						<TruncatedText data-testid="value" value={url} />
+					</button>
+				</TooltipProvider>,
+			);
+			const root = screen.getByTestId("value");
+			expect(root).toHaveAttribute("data-truncated", "");
+			expect(root).not.toHaveAttribute("tabindex");
+			// Radix stamps `data-state` on every trigger it renders, so its absence
+			// pins that the root is no tooltip trigger here.
+			expect(root).not.toHaveAttribute("data-state");
+			expect(screen.getByRole("button", { name: url })).toBeInTheDocument();
+		});
+
+		test("inside a radio, a control by role alone, adds no tab stop or tooltip", () => {
+			stubGeometry(overflows);
+			render(
+				<TooltipProvider>
+					<RadioGroup.Root>
+						<RadioGroup.Item value="primary">
+							<TruncatedText data-testid="value" value={url} />
+						</RadioGroup.Item>
+					</RadioGroup.Root>
+				</TooltipProvider>,
+			);
+			const root = screen.getByTestId("value");
+			expect(root).toHaveAttribute("data-truncated", "");
+			expect(root).not.toHaveAttribute("tabindex");
+			expect(root).not.toHaveAttribute("data-state");
+		});
+
+		test("takes its tab stop and tooltip back when the element above it stops being a control", async () => {
+			const user = userEvent.setup();
+			stubGeometry(overflows);
+			function Link() {
+				const [href, setHref] = useState<string | undefined>("/endpoints");
+				return (
+					<TooltipProvider>
+						<a href={href}>
+							<TruncatedText data-testid="value" value={url} />
+						</a>
+						<button type="button" onClick={() => setHref(undefined)}>
+							Unlink
+						</button>
+					</TooltipProvider>
+				);
+			}
+			render(<Link />);
+			expect(screen.getByTestId("value")).not.toHaveAttribute("tabindex");
+
+			await user.click(screen.getByRole("button", { name: "Unlink" }));
+
+			// Why a fresh query: the root remounts when it leaves the control.
+			const root = screen.getByTestId("value");
+			expect(root).toHaveAttribute("tabindex", "0");
+			expect(root).toHaveAttribute("data-state", "closed");
+		});
+
 		test("lets a consumer's tabIndex win", () => {
 			stubGeometry(overflows);
 			renderValue({ tabIndex: -1 });
@@ -341,6 +404,27 @@ describe("TruncatedText", () => {
 	});
 
 	describe("while the value fits", () => {
+		test("lets a tooltip around the control open on hover", async () => {
+			const user = userEvent.setup();
+			stubGeometry(fits);
+			render(
+				<TooltipProvider>
+					<Tooltip.Root>
+						<Tooltip.Trigger asChild>
+							<button type="button">
+								<TruncatedText data-testid="value" value={url} />
+							</button>
+						</Tooltip.Trigger>
+						<Tooltip.Content>Copy the endpoint URL</Tooltip.Content>
+					</Tooltip.Root>
+				</TooltipProvider>,
+			);
+
+			await user.hover(screen.getByTestId("value"));
+
+			expect(await screen.findByRole("tooltip")).toHaveTextContent("Copy the endpoint URL");
+		});
+
 		test("leaves data-truncated off and adds no tab stop", () => {
 			stubGeometry(fits);
 			renderValue();

@@ -107,7 +107,7 @@ Strata.Root
 ```
 
 - **`Root`** is the stack. It rules a hairline between adjacent `Section` children — never above the first or below the last — and it is the place to set `--strata-columns` for every section at once.
-- **`Section`** is one titled band. It owns its own vertical rhythm (`py-8 first:pt-0`) rather than taking it from `Root`, so a single section reads correctly on a page with nothing else on it. Below `md` it stacks `Header` above `Body`; at `md` and up it splits them into a `1fr 2fr` grid.
+- **`Section`** is one titled band. It owns its own vertical rhythm (`py-8 first:pt-0`) rather than taking it from `Root`, so a single section reads correctly on a page with nothing else on it. Below `md` it stacks `Header` above `Body`; at `md` and up it splits them one to two.
 - **`Header`** is the introductory column — `Title` and `Description`, spaced by `gap-2`. It renders a semantic `<header>`, which groups the introductory content of its own `<section>`; see [Accessibility](#accessibility) for why that is not a second `banner` landmark.
 - **`Title`** renders an `<h2>`, one level below the page's `<h1>`. Compose `asChild` when a page nests its sections deeper.
 - **`Description`** is the sentence that says what the section's controls do. Optional — a section whose title says everything may omit it.
@@ -161,7 +161,7 @@ export function AdvancedSettings() {
 
 ## Column split
 
-At `md` and up, `Section` reads its `grid-template-columns` from `--strata-columns`, defaulting to `1fr 2fr`. Set the variable on `Root` to re-split every section at once, or on a single `Section` to move only that one — custom properties inherit, so the nearest declaration wins. Below `md` the variable goes quiet, because the two parts stack.
+At `md` and up, `Section` reads its `grid-template-columns` from `--strata-columns`, defaulting to `minmax(0, 1fr) minmax(0, 2fr)`: a one-to-two split whose tracks shrink below their content, so a long single-line value in `Body` truncates or wraps instead of widening the page. Set the variable on `Root` to re-split every section at once, or on a single `Section` to move only that one — custom properties inherit, so the nearest declaration wins. Keep the `minmax(0, …)` form in an override: a bare `1fr` track grows to its content. Below `md` the variable goes quiet, because the two parts stack in one `minmax(0, 1fr)` track.
 
 The default suits a short label beside a wide set of controls. When the explanation carries as much weight as the controls, an even split reads better — switch the frame to mobile to watch both splits collapse to the same stack:
 
@@ -177,7 +177,7 @@ export function ModelSettings() {
 	return (
 		<Main className="mx-auto min-h-full max-w-5xl px-6 py-8">
 			<h1 className="text-strong mb-4 text-2xl font-medium">Model access</h1>
-			<Strata.Root className="[--strata-columns:1fr_1fr]">
+			<Strata.Root className="[--strata-columns:minmax(0,1fr)_minmax(0,1fr)]">
 				<Strata.Section>
 					<Strata.Header>
 						<Strata.Title>Models</Strata.Title>
@@ -251,9 +251,9 @@ All props from [section](https://developer.mozilla.org/en-US/docs/Web/HTML/Eleme
 | ---------- | --------- | ------- | --------------------------------------------------------------------------------------------------------------------- |
 | `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Strata.Section` styling onto alternative element types or your own components. |
 
-| CSS Variable       | Default   | Description                                                                                                                          |
-| ------------------ | --------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `--strata-columns` | `1fr 2fr` | The `grid-template-columns` value at `md` and up. Set it on `Strata.Root` to re-split every section, or here for this section alone. |
+| CSS Variable       | Default                         | Description                                                                                                                                                                                                |
+| ------------------ | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--strata-columns` | `minmax(0, 1fr) minmax(0, 2fr)` | The `grid-template-columns` value at `md` and up. Set it on `Strata.Root` to re-split every section, or here for this section alone. A bare `1fr` track keeps the `auto` minimum and grows to its content. |
 
 | Data Attribute | Value              | Description                                                        |
 | -------------- | ------------------ | ------------------------------------------------------------------ |

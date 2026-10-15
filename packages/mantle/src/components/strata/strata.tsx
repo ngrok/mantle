@@ -67,9 +67,11 @@ const Root = ({
 /**
  * One titled band of the page. Renders a `<section>` that stacks
  * `Strata.Header` above `Strata.Body` below the `md` breakpoint, then splits
- * the two into a `1fr 2fr` grid at `md` and up. It carries its own vertical
+ * the two into a one-to-two grid at `md` and up. It carries its own vertical
  * rhythm (`py-8 first:pt-0`), so it reads correctly as the only child of a
- * `Root` and as one of many.
+ * `Root` and as one of many. Both layouts size their tracks `minmax(0, …)`,
+ * so a nowrap value in `Strata.Body` clips or wraps instead of widening the
+ * section.
  *
  * The `<section>` takes no accessible name, which keeps it generic in the
  * accessibility tree instead of adding one `region` landmark per band — the
@@ -83,7 +85,7 @@ const Root = ({
  *
  * | CSS Variable        | Default   | Description                                                                                                                 |
  * | ------------------- | --------- | --------------------------------------------------------------------------------------------------------------------------- |
- * | `--strata-columns` | `1fr 2fr` | The `grid-template-columns` value at `md` and up. Set it on `Strata.Root` to re-split every section, or here for this section alone. |
+ * | `--strata-columns` | `minmax(0, 1fr) minmax(0, 2fr)` | The `grid-template-columns` value at `md` and up. Set it on `Strata.Root` to re-split every section, or here for this section alone. |
  *
  * | Data Attribute | Value               | Description                                                        |
  * | -------------- | ------------------- | ------------------------------------------------------------------ |
@@ -128,8 +130,11 @@ const Section = ({
 		<Comp
 			data-slot={joinDataSlot(dataSlot, "strata-section")}
 			className={cx(
-				"grid gap-6 py-8 first:pt-0",
-				"md:grid-cols-(--strata-columns,1fr_2fr) md:gap-12",
+				// Why minmax in both layouts: a bare `1fr` track and an implicit track
+				// keep the `auto` minimum, so one nowrap value in the body would widen
+				// the section past its container.
+				"grid grid-cols-1 gap-6 py-8 first:pt-0",
+				"md:grid-cols-(--strata-columns,minmax(0,1fr)_minmax(0,2fr)) md:gap-12",
 				className,
 			)}
 			{...props}
@@ -466,9 +471,11 @@ const Strata = {
 	/**
 	 * One titled band of the page. Renders a `<section>` that stacks `Header`
 	 * above `Body` below the `md` breakpoint, then splits the two into a
-	 * `1fr 2fr` grid at `md` and up, and carries its own vertical rhythm
-	 * (`py-8 first:pt-0`). It takes no accessible name, which keeps it generic in
-	 * the accessibility tree instead of adding one `region` landmark per band —
+	 * one-to-two grid at `md` and up, and carries its own vertical rhythm
+	 * (`py-8 first:pt-0`). Both layouts size their tracks `minmax(0, …)`, so a
+	 * nowrap value in `Body` clips or wraps instead of widening the section. It
+	 * takes no accessible name, which keeps it generic in the accessibility tree
+	 * instead of adding one `region` landmark per band —
 	 * the `Title` headings already carry the page outline. Set `aria-labelledby`
 	 * to the `Title`'s `id` only when the section is a destination a reader jumps
 	 * back to, not merely a division of the page. To tell apart controls that read
@@ -477,7 +484,7 @@ const Strata = {
 	 *
 	 * | CSS Variable        | Default   | Description                                                                                                            |
 	 * | ------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------- |
-	 * | `--strata-columns` | `1fr 2fr` | The `grid-template-columns` value at `md` and up. Set it on `Root` to re-split every section, or here for this section alone. |
+	 * | `--strata-columns` | `minmax(0, 1fr) minmax(0, 2fr)` | The `grid-template-columns` value at `md` and up. Set it on `Root` to re-split every section, or here for this section alone. |
 	 *
 	 * | Data Attribute | Value               | Description                                                        |
 	 * | -------------- | ------------------- | ------------------------------------------------------------------ |

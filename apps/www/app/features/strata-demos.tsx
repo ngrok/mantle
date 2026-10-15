@@ -129,7 +129,7 @@ export function StrataColumnsExample() {
 	return (
 		<Main className="mx-auto min-h-full max-w-5xl px-6 py-8">
 			<h1 className="text-strong mb-4 text-2xl font-medium">Model access</h1>
-			<Strata.Root className="[--strata-columns:1fr_1fr]">
+			<Strata.Root className="[--strata-columns:minmax(0,1fr)_minmax(0,1fr)]">
 				<Strata.Section>
 					<Strata.Header>
 						<Strata.Title>Models</Strata.Title>
