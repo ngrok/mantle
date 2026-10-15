@@ -2,10 +2,17 @@ import type { RefObject } from "react";
 import { useEffect, useLayoutEffect, useRef } from "react";
 
 /**
+ * The direction a swipe travels to dismiss the target: the edge it slides
+ * off. A panel on the right edge of the page dismisses to the `"right"`.
+ *
+ * @see https://mantle.ngrok.com/hooks#useswipetodismiss
+ */
+type SwipeDirection = "left" | "right" | "up" | "down";
+
+/**
  * The CSS property a drag writes on the target. `translate` slides the target
- * toward the right edge. `flex-basis` shrinks the target from its current
- * width toward nothing, for a flex item that collapses in a lane when
- * dismissed.
+ * toward the edge. `flex-basis` shrinks the target from its current size
+ * toward nothing, for a flex item that collapses in a lane when dismissed.
  *
  * @see https://mantle.ngrok.com/hooks#useswipetodismiss
  */
@@ -20,6 +27,7 @@ type SwipeProperty = "translate" | "flex-basis";
  * ```tsx
  * useSwipeToDismiss(headerRef, {
  *   target: panelRef,
+ *   direction: "right",
  *   property: () => (getComputedStyle(panel).position === "absolute" ? "translate" : "flex-basis"),
  *   onDismiss: () => setOpen(false),
  * });
@@ -38,6 +46,13 @@ type UseSwipeToDismissOptions = {
 	 */
 	target?: RefObject<HTMLElement | null>;
 	/**
+	 * The edge the target slides off. A drag the other way meets rubber-band
+	 * resistance and never dismisses.
+	 *
+	 * @default "right"
+	 */
+	direction?: SwipeDirection;
+	/**
 	 * The CSS property the drag writes on the target. A function runs at
 	 * pointer down, for a target that slides in one layout and collapses in
 	 * another.
@@ -46,53 +61,67 @@ type UseSwipeToDismissOptions = {
 	 */
 	property?: SwipeProperty | (() => SwipeProperty);
 	/**
-	 * Whether a drag can start.
+	 * Whether a drag can start. A function runs at pointer down, for a
+	 * condition CSS owns.
 	 *
 	 * @default true
 	 */
-	active?: boolean;
+	active?: boolean | (() => boolean);
+	/**
+	 * The share of the target's size along the direction a drag must cross to
+	 * dismiss, between `0` and `1`.
+	 *
+	 * @default 0.25
+	 */
+	threshold?: number;
+	/**
+	 * The speed toward the edge, in CSS pixels per millisecond, that dismisses
+	 * a shorter drag as a flick. A pointer that rests for 100ms before the
+	 * release has no speed.
+	 *
+	 * @default 0.4
+	 */
+	flickVelocity?: number;
 };
 
 /** The pointer travel, in CSS pixels, that turns a press on the handle into a drag. */
 const swipeSlop = 8;
-
-/** The share of the target's width a released drag must cross to dismiss. */
-const swipeThreshold = 0.25;
-
-/** The speed toward the edge, in CSS pixels per millisecond, that dismisses a shorter drag as a flick. */
-const flickVelocity = 0.4;
 
 /** The pause before a release, in milliseconds, after which the last move's speed no longer counts. */
 const flickRestMs = 100;
 
 /**
  * Whether a released swipe dismisses its target: the target moved toward the
- * edge, and the offset crossed a quarter of the target's width or the pointer
- * was moving toward the edge at 0.4 CSS pixels per millisecond or faster when
+ * edge, and the offset crossed `threshold` of the target's size or the
+ * pointer was moving toward the edge faster than `flickVelocity` when
  * released. An offset of zero never dismisses, so a drag the wrong way is a
  * spring back even when it ends in a flick back to the resting position.
  *
  * @example
  * ```ts
- * shouldDismissSwipe({ offset: 100, size: 384, velocity: 0 }); // true
- * shouldDismissSwipe({ offset: 40, size: 384, velocity: 0.8 }); // true
- * shouldDismissSwipe({ offset: 40, size: 384, velocity: 0.1 }); // false
- * shouldDismissSwipe({ offset: 0, size: 384, velocity: 8 }); // false
+ * shouldDismissSwipe({ offset: 100, size: 384, velocity: 0, threshold: 0.25, flickVelocity: 0.4 }); // true
+ * shouldDismissSwipe({ offset: 40, size: 384, velocity: 0.8, threshold: 0.25, flickVelocity: 0.4 }); // true
+ * shouldDismissSwipe({ offset: 40, size: 384, velocity: 0.1, threshold: 0.25, flickVelocity: 0.4 }); // false
+ * shouldDismissSwipe({ offset: 0, size: 384, velocity: 8, threshold: 0.25, flickVelocity: 0.4 }); // false
  * ```
  */
 function shouldDismissSwipe({
 	offset,
 	size,
 	velocity,
+	threshold,
+	flickVelocity,
 }: {
 	/** How far the target moved toward the edge, in CSS pixels, never negative. */
 	offset: number;
-	/** The target's width, in CSS pixels. */
+	/** The target's width or height along the direction, in CSS pixels. */
 	size: number;
 	/** The pointer's speed toward the edge, in CSS pixels per millisecond. */
 	velocity: number;
+	threshold: number;
+	flickVelocity: number;
 }): boolean {
-	return offset > 0 && (offset >= size * swipeThreshold || velocity >= flickVelocity);
+	return offset > 0 && (offset >= size * threshold || velocity >= flickVelocity);
 }
 
 /**
@@ -117,38 +146,70 @@ function rubberBand(distance: number, size: number): number {
 
 /**
  * One drag, from the pointer going down on the handle to its release.
- * `dragging` turns on once the pointer has moved past {@link swipeSlop} to
- * the right or the left, so a tap on a control inside the handle stays a tap.
+ * `dragging` turns on once the pointer has moved past {@link swipeSlop} along
+ * the direction, so a tap on a control inside the handle stays a tap.
  */
 type SwipeSession = {
 	target: HTMLElement;
 	property: SwipeProperty;
 	pointerId: number;
-	/** The pointer's `clientX` at pointer down. */
-	startX: number;
-	/** The pointer's `clientY` at pointer down. */
-	startY: number;
-	/** The target's width at pointer down, in CSS pixels. */
+	/** The pointer's position along the direction at pointer down, signed toward the edge. */
+	start: number;
+	/** The pointer's position across the direction at pointer down. */
+	crossStart: number;
 	size: number;
 	dragging: boolean;
-	lastX: number;
+	last: number;
 	lastTime: number;
 	velocity: number;
 	/** How far the target has moved toward the edge, never negative. */
 	offset: number;
 };
 
+/** The pointer coordinate along the direction's axis, with the sign that grows toward the edge. */
+function readPosition(event: PointerEvent, direction: SwipeDirection): number {
+	switch (direction) {
+		case "right":
+			return event.clientX;
+		case "left":
+			return -event.clientX;
+		case "down":
+			return event.clientY;
+		case "up":
+			return -event.clientY;
+	}
+}
+
+/** The pointer coordinate across the direction's axis. */
+function readCrossPosition(event: PointerEvent, direction: SwipeDirection): number {
+	return direction === "left" || direction === "right" ? event.clientY : event.clientX;
+}
+
+/** The inline `translate` that moves the target `displacement` pixels toward the edge, or away when negative. */
+function translateFor(displacement: number, direction: SwipeDirection): string {
+	switch (direction) {
+		case "right":
+			return `${displacement}px`;
+		case "left":
+			return `${-displacement}px`;
+		case "down":
+			return `0 ${displacement}px`;
+		case "up":
+			return `0 ${-displacement}px`;
+	}
+}
+
 /**
- * Writes the drag's displacement to the target: a `translate` toward the
- * right edge, or a `flex-basis` shrunk by it. A negative displacement is the
- * rubber band past the resting position.
+ * Writes the drag's displacement to the target: a `translate` toward the edge,
+ * or a `flex-basis` shrunk by it. A negative displacement is the rubber band
+ * past the resting position.
  */
-function writeDisplacement(session: SwipeSession, displacement: number) {
+function writeDisplacement(session: SwipeSession, displacement: number, direction: SwipeDirection) {
 	if (session.property === "flex-basis") {
 		session.target.style.flexBasis = `${session.size - displacement}px`;
 		return;
 	}
-	session.target.style.translate = `${displacement}px`;
+	session.target.style.translate = translateFor(displacement, direction);
 }
 
 /** Clears what {@link writeDisplacement} wrote, so the target's own styles take over. */
@@ -161,9 +222,9 @@ function clearDisplacement(session: SwipeSession) {
 
 /**
  * Makes the element `handle` points at a swipe handle that drags `target`
- * toward the right edge and calls `onDismiss` when the drag crosses a quarter
- * of the target's width or ends in a flick. A shorter drag springs back, and
- * a drag to the left meets rubber-band resistance. The target's own
+ * toward one edge and calls `onDismiss` when the drag crosses `threshold` of
+ * the target's size or ends in a flick. A shorter drag springs back, and a
+ * drag the wrong way meets rubber-band resistance. The target's own
  * transition on the property animates both the spring back and the slide the
  * caller runs after `onDismiss`, so a `motion-reduce:` rule on the target
  * turns them into cuts.
@@ -171,12 +232,13 @@ function clearDisplacement(session: SwipeSession) {
  * The target follows the pointer one to one: while the pointer is down the
  * hook writes the property and `transition: none` on the target's inline
  * style, and clears both on release. `translate` slides the target;
- * `flex-basis` shrinks a flex item from its width toward nothing, the way a
+ * `flex-basis` shrinks a flex item from its size toward nothing, the way a
  * lane collapses. A tap on a control inside the handle stays a tap: the drag
- * starts after 8px of horizontal travel, a gesture that travels further
- * vertically never starts, and a release after a drag swallows the click that
- * follows it. Give the handle `touch-action: pan-y` (`touch-pan-y`), so a
- * vertical swipe on it still scrolls.
+ * starts after 8px of travel along the direction, a gesture that travels
+ * further across it never starts, and a release after a drag swallows the
+ * click that follows it. Give the handle `touch-action: pan-y`
+ * (`touch-pan-y`) for a horizontal swipe, or `pan-x` for a vertical one, so
+ * the other axis still scrolls.
  *
  * Only the primary pointer with its main button drags, and only one drag runs
  * at a time. The handle must be mounted when the hook runs; it reads the ref
@@ -215,7 +277,7 @@ function useSwipeToDismiss(
 	options: UseSwipeToDismissOptions,
 ): void {
 	// Why a ref: the listeners attach once per mount, and an inline `onDismiss`
-	// or `property` takes a new identity on every render.
+	// or `active` takes a new identity on every render.
 	const optionsRef = useRef(options);
 	useLayoutEffect(() => {
 		optionsRef.current = options;
@@ -237,14 +299,16 @@ function useSwipeToDismiss(
 		};
 
 		const handleMove = (event: PointerEvent) => {
+			const { direction = "right" } = optionsRef.current;
 			if (session == null || event.pointerId !== session.pointerId) {
 				return;
 			}
-			const travel = event.clientX - session.startX;
+			const position = readPosition(event, direction);
+			const travel = position - session.start;
 			if (!session.dragging) {
-				const crossTravel = Math.abs(event.clientY - session.startY);
-				// Why the lock: a vertical gesture is a scroll or a selection, not a
-				// swipe, and must never move the target.
+				const crossTravel = Math.abs(readCrossPosition(event, direction) - session.crossStart);
+				// Why the lock: a mouse gesture that runs across the direction is a
+				// scroll or a selection, not a swipe, and must never move the target.
 				if (crossTravel >= swipeSlop && crossTravel > Math.abs(travel)) {
 					end();
 					return;
@@ -259,16 +323,17 @@ function useSwipeToDismiss(
 			}
 			const elapsed = event.timeStamp - session.lastTime;
 			if (elapsed > 0) {
-				session.velocity = (event.clientX - session.lastX) / elapsed;
+				session.velocity = (position - session.last) / elapsed;
 			}
-			session.lastX = event.clientX;
+			session.last = position;
 			session.lastTime = event.timeStamp;
 			session.offset = Math.max(0, travel);
 			const displacement = travel >= 0 ? travel : -rubberBand(-travel, session.size);
-			writeDisplacement(session, displacement);
+			writeDisplacement(session, displacement, direction);
 		};
 
 		const handleRelease = (event: PointerEvent) => {
+			const { onDismiss, threshold = 0.25, flickVelocity = 0.4 } = optionsRef.current;
 			if (session == null || event.pointerId !== session.pointerId) {
 				return;
 			}
@@ -292,26 +357,34 @@ function useSwipeToDismiss(
 			}
 			const rested = event.timeStamp - finished.lastTime > flickRestMs;
 			const velocity = rested ? 0 : finished.velocity;
-			if (shouldDismissSwipe({ offset: finished.offset, size: finished.size, velocity })) {
-				optionsRef.current.onDismiss();
+			if (shouldDismissSwipe({ ...finished, velocity, threshold, flickVelocity })) {
+				onDismiss();
 			}
 		};
 
 		const handleDown = (event: PointerEvent) => {
-			const { active = true, property = "translate", target } = optionsRef.current;
-			if (!active || !event.isPrimary || event.button !== 0 || session != null) {
+			const {
+				active = true,
+				direction = "right",
+				property = "translate",
+				target,
+			} = optionsRef.current;
+			const canStart = typeof active === "function" ? active() : active;
+			if (!canStart || !event.isPrimary || event.button !== 0 || session != null) {
 				return;
 			}
 			const targetElement = target?.current ?? element;
+			const rect = targetElement.getBoundingClientRect();
+			const position = readPosition(event, direction);
 			session = {
 				target: targetElement,
 				property: typeof property === "function" ? property() : property,
 				pointerId: event.pointerId,
-				startX: event.clientX,
-				startY: event.clientY,
-				size: targetElement.getBoundingClientRect().width,
+				start: position,
+				crossStart: readCrossPosition(event, direction),
+				size: direction === "left" || direction === "right" ? rect.width : rect.height,
 				dragging: false,
-				lastX: event.clientX,
+				last: position,
 				lastTime: event.timeStamp,
 				velocity: 0,
 				offset: 0,
@@ -356,6 +429,7 @@ export {
 
 export type {
 	//,
+	SwipeDirection,
 	SwipeProperty,
 	UseSwipeToDismissOptions,
 };

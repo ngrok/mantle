@@ -29,7 +29,11 @@ export { useSessionStorage } from "./use-session-storage.js";
 export { getPrefersReducedMotion, usePrefersReducedMotion } from "./use-prefers-reduced-motion.js";
 export { useScrollBehavior } from "./use-scroll-behavior.js";
 export { useSwipeToDismiss } from "./use-swipe-to-dismiss.js";
-export type { SwipeProperty, UseSwipeToDismissOptions } from "./use-swipe-to-dismiss.js";
+export type {
+	SwipeDirection,
+	SwipeProperty,
+	UseSwipeToDismissOptions,
+} from "./use-swipe-to-dismiss.js";
 export { useComposedRefs } from "../utils/compose-refs/compose-refs.js";
 export { useInView } from "./use-in-view.js";
 export type { UseInViewOptions } from "./use-in-view.js";
