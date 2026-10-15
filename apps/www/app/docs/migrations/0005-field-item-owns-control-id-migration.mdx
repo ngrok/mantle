@@ -22,7 +22,7 @@ pnpm -w run migrate 0005 <path>
 In a project that installs `@ngrok/mantle`:
 
 ```sh
-npx --yes --package=@ast-grep/cli@0.45.3 ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/0005-field-item-owns-control-id.yml --update-all <path>
+npx --yes --package=@ast-grep/cli@0.50.0 ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/0005-field-item-owns-control-id.yml --update-all <path>
 ```
 
 The rules apply the deletions in steps 1 and 2: `htmlFor` leaves `Field.Label`, and `id` leaves `Field.Control`. Steps 3 to 6 stay manual. A control's `id` moves up to `Field.Item` only when a test or an anchor depends on it, and a `useId()` call or a test selector is not a JSX attribute a rule can judge. The rules read a part through its import from `@ngrok/mantle/field`, under its own name or an alias. A part that reaches the file through a local re-export or a destructured namespace stays manual. A function that binds `Field` to a parameter or a local shadows the import, so the rules leave that function alone. Pass `--dry-run` to print the rewrites first, and run your formatter after the rewrite.
