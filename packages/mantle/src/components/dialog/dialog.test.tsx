@@ -626,15 +626,24 @@ describe("outside interaction with a floating prompt", () => {
 
 	it("runs consumer outside-interaction handlers after the prompt guard", async () => {
 		const user = userEvent.setup();
-		const onInteractOutside = vi.fn<(event: Event) => void>();
-		const onPointerDownOutside = vi.fn<(event: Event) => void>();
+		// Read the flag inside each handler. The event is one mutable object, so a
+		// read after the dispatch sees the guard's `preventDefault()` whichever
+		// side of the handler it ran on.
+		const preventedWhenCalled: { pointerDown: boolean[]; interact: boolean[] } = {
+			pointerDown: [],
+			interact: [],
+		};
 		render(
 			<>
 				<PromptViewport />
 				<Dialog.Root defaultOpen>
 					<Dialog.Content
-						onInteractOutside={onInteractOutside}
-						onPointerDownOutside={onPointerDownOutside}
+						onInteractOutside={(event) => {
+							preventedWhenCalled.interact.push(event.defaultPrevented);
+						}}
+						onPointerDownOutside={(event) => {
+							preventedWhenCalled.pointerDown.push(event.defaultPrevented);
+						}}
 					>
 						<Dialog.Title>Request log</Dialog.Title>
 					</Dialog.Content>
@@ -645,11 +654,8 @@ describe("outside interaction with a floating prompt", () => {
 
 		await user.click(screen.getByRole("button", { name: "Undo", hidden: true }));
 
-		// Both handlers run, and both see the event the guard already prevented.
-		expect(onPointerDownOutside).toHaveBeenCalledTimes(1);
-		expect(onPointerDownOutside.mock.lastCall?.[0].defaultPrevented).toBe(true);
-		expect(onInteractOutside).toHaveBeenCalledTimes(1);
-		expect(onInteractOutside.mock.lastCall?.[0].defaultPrevented).toBe(true);
+		// Both handlers run once, and both see the event the guard already prevented.
+		expect(preventedWhenCalled).toEqual({ pointerDown: [true], interact: [true] });
 	});
 });
 

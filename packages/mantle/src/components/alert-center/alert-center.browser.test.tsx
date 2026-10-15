@@ -17,18 +17,21 @@ import { AlertCenter } from "./alert-center.js";
  */
 describe("AlertCenter host projection (browser)", () => {
 	/**
-	 * A stateful control lives inside the lower-ranked alert; resolving the top
-	 * alert from that control promotes its own item into the bar, moving its host
-	 * while the control is focused.
+	 * A control and a scrollable region live in the only alert, so in the bar.
+	 * Raising a danger alert from that control demotes its own item into the
+	 * expansion. `Content` precedes `Bar`, so its layout effect adopts the demoted
+	 * host while the bar still holds it: both nodes are connected, the one shape
+	 * `moveBefore` accepts. A promotion cannot reach it: the row that held the
+	 * host unmounts in the same commit, so the host is detached by the time the
+	 * bar adopts it.
 	 */
-	function PromotionHarness() {
-		const [showPayment, setShowPayment] = useState(true);
-		const [count, setCount] = useState(0);
+	function DemotionHarness() {
+		const [showPayment, setShowPayment] = useState(false);
 
 		return (
 			<AlertCenter.Root defaultOpen>
-				<AlertCenter.Bar />
 				<AlertCenter.Content />
+				<AlertCenter.Bar />
 				{showPayment && (
 					<AlertCenter.Item id="payment" intent="danger">
 						<Alert.Icon />
@@ -42,15 +45,17 @@ describe("AlertCenter host projection (browser)", () => {
 					<Alert.Content>
 						<Alert.Title>Usage tip</Alert.Title>
 						<Alert.Description>
-							<button
-								type="button"
-								onClick={() => {
-									setCount((current) => current + 1);
-									setShowPayment(false);
-								}}
-							>
-								resolve payment ({count})
+							<button type="button" onClick={() => setShowPayment(true)}>
+								flag payment
 							</button>
+							{/* Browser tests load no stylesheet, so the scrollport is inline. */}
+							<div
+								role="region"
+								aria-label="Release notes"
+								style={{ height: 20, overflow: "auto" }}
+							>
+								<div style={{ height: 200 }}>Every change since the last visit.</div>
+							</div>
 						</Alert.Description>
 					</Alert.Content>
 				</AlertCenter.Item>
@@ -58,35 +63,36 @@ describe("AlertCenter host projection (browser)", () => {
 		);
 	}
 
-	test("promoting an alert moves its host, keeping its children stateful and focused", async () => {
+	test("demoting an alert moves its host in place, so a scrolled region inside it keeps its offset", async () => {
 		const user = userEvent.setup();
 		// the branch under test only exists here: assert the API is present so
 		// this file can never silently degrade into the fallback path
 		expect("moveBefore" in Element.prototype).toBe(true);
-		render(<PromotionHarness />);
+		render(<DemotionHarness />);
 
 		// the first adoption of each host happens while it is still parentless,
-		// which `moveBefore` is spec'd to reject — the placements below only hold
-		// because `adoptHost` recovers from that
-		const resolve = screen.getByRole("button", { name: "resolve payment (0)" });
-		expect(resolve.closest("[data-placement]")).toHaveAttribute("data-placement", "list");
-		expect(document.querySelector('[data-slot~="alert-center-bar"]')).toHaveTextContent(
-			"Payment failed",
-		);
+		// which `moveBefore` is spec'd to reject. The placement below only holds
+		// because `adoptHost` recovers from that.
+		const flag = screen.getByRole("button", { name: "flag payment" });
+		expect(flag.closest("[data-placement]")).toHaveAttribute("data-placement", "bar");
+		const notes = screen.getByRole("region", { name: "Release notes" });
+		notes.scrollTop = 50;
+		expect(notes.scrollTop).toBe(50);
 
-		await user.click(resolve);
+		await user.click(flag);
 
-		// the tip promoted into the bar, carrying the very same button element
+		// the tip demoted into a row, carrying the very same elements
 		await waitFor(() => {
-			expect(resolve.closest("[data-placement]")).toHaveAttribute("data-placement", "bar");
+			expect(flag.closest("[data-placement]")).toHaveAttribute("data-placement", "list");
 		});
 		expect(document.querySelector('[data-slot~="alert-center-bar"]')).toHaveAttribute(
 			"data-alert-id",
-			"tip",
+			"payment",
 		);
-		// state survives the move, and the keyboard user is left on the same live
-		// control rather than on <body>
-		expect(resolve).toHaveTextContent("resolve payment (1)");
-		expect(resolve).toHaveFocus();
+		// The scroll offset lives on the layout box. The `appendChild` fallback
+		// drops the box with the removal, so the region comes back at 0 and no
+		// focus redirect can restore it; the move keeps the box.
+		expect(notes.scrollTop).toBe(50);
+		expect(flag).toHaveFocus();
 	});
 });
