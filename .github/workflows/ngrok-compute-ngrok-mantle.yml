@@ -1,3 +1,9 @@
+# ngrok-ship: pipeline-updates disabled
+#
+# The line above turns off ngrok ship pipeline updates for this file. Ship opens
+# no pull request to rewrite it, so dependabot's action version bumps stay.
+# Remove the line to let ship manage the file again.
+
 name: "Build and Push Container (ngrok-mantle / app_3FsBBr2ai9ocPOzjWWaBDBf9Pna)"
 
 on:
