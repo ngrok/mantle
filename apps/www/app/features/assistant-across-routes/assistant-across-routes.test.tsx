@@ -87,8 +87,29 @@ describe("AssistantConversationProvider", () => {
 		});
 		rerender(<Hosts showTranscript showComposer={false} />);
 
-		expect(screen.queryByText(/the only thing you deploy\.$/)).not.toBeNull();
-		expect(screen.queryByRole("status")).toBeNull();
+		expect(screen.queryByText(/the only thing you deploy\.$/, { selector: "p" })).not.toBeNull();
+		expect(screen.queryByText("Working through it…")).toBeNull();
+	});
+
+	it("announces the whole reply once it lands, not each streamed word", async () => {
+		const user = setupUserOnFakeClock();
+		render(<Hosts showTranscript showComposer={false} />);
+		const status = screen.getByRole("status");
+
+		await user.click(screen.getByRole("button", { name: firstStarter }));
+		expect(status.textContent).toBe("Working through it…");
+		// Why 600ms: the first word lands at 360ms and the rest follow every 45ms,
+		// so the visible reply has several words while the region still says to wait.
+		await act(async () => {
+			await vi.advanceTimersByTimeAsync(600);
+		});
+		expect(screen.queryByText(/^Here is the shape\./, { selector: "p" })).not.toBeNull();
+		expect(status.textContent).toBe("Working through it…");
+
+		await act(async () => {
+			await vi.advanceTimersByTimeAsync(10_000);
+		});
+		expect(status.textContent).toMatch(/the only thing you deploy\.$/);
 	});
 
 	it("keeps the draft while the composer unmounts and remounts", async () => {

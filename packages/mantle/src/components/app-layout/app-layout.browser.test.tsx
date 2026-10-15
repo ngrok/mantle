@@ -68,13 +68,13 @@ const STYLE = `
 	}
 	@media (width >= 40rem) {
 		@container app-layout-workspace (width < 46.75rem) {
-			.sm\\:\\@max-side-panel-lane-icon-rail\\/app-layout-workspace\\:w-\\[min\\(24rem\\,calc\\(100vw-5rem\\)\\)\\] {
-				width: min(24rem, calc(100vw - 5rem));
+			.sm\\:\\@max-side-panel-lane-icon-rail\\/app-layout-workspace\\:w-\\[min\\(24rem\\,calc\\(100cqw-5rem\\)\\)\\] {
+				width: min(24rem, calc(100cqw - 5rem));
 			}
 		}
 		@container app-layout-workspace (width < 56.5rem) {
-			[data-slot~=app-layout-workspace]:has(> [data-slot~=sidebar-nav]:not([data-state~=collapsed])) .sm\\:\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:has\\(\\>\\[data-slot\\~\\=sidebar-nav\\]\\:not\\(\\[data-state\\~\\=collapsed\\]\\)\\)_\\&\\]\\:\\@max-side-panel-lane\\/app-layout-workspace\\:w-\\[min\\(24rem\\,calc\\(100vw-5rem\\)\\)\\] {
-				width: min(24rem, calc(100vw - 5rem));
+			[data-slot~=app-layout-workspace]:has(> [data-slot~=sidebar-nav]:not([data-state~=collapsed])) .sm\\:\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:has\\(\\>\\[data-slot\\~\\=sidebar-nav\\]\\:not\\(\\[data-state\\~\\=collapsed\\]\\)\\)_\\&\\]\\:\\@max-side-panel-lane\\/app-layout-workspace\\:w-\\[min\\(24rem\\,calc\\(100cqw-5rem\\)\\)\\] {
+				width: min(24rem, calc(100cqw - 5rem));
 			}
 		}
 	}
@@ -289,6 +289,13 @@ describe("AppLayout.SidePanel lane float", () => {
 		await page.viewport(800, 600);
 		// Why: 45rem is under the icon-rail lane, and 24rem is under 800px minus 5rem.
 		expect(renderFloatingWidth("45rem")).toBe(384);
+	});
+
+	test("sizes the strip from the row, not the viewport, when the row is narrower than the strip", async () => {
+		await page.viewport(1440, 800);
+		// Why: a 24rem strip in a 20rem row would hang 72px past the row's start
+		// edge, so the strip leaves 5rem of the row instead of 5rem of the viewport.
+		expect(renderFloatingWidth("20rem")).toBe(320 - 80);
 	});
 
 	test("covers the row from gutter to gutter on a phone", async () => {

@@ -1,6 +1,7 @@
 import { Button, IconButton } from "@ngrok/mantle/button";
 import { cx } from "@ngrok/mantle/cx";
 import { Icon } from "@ngrok/mantle/icon";
+import { LiveRegion } from "@ngrok/mantle/live-region";
 import { TextArea } from "@ngrok/mantle/text-area";
 import { ArrowUpIcon } from "@phosphor-icons/react/ArrowUp";
 import { BroadcastIcon } from "@phosphor-icons/react/Broadcast";
@@ -74,6 +75,27 @@ const scriptedReplies = [
 
 /** The gap between two revealed words, in milliseconds. */
 const revealIntervalMs = 45;
+
+/** The visible wait beside the pulsing dot, and the first thing the live region announces after a send. */
+const pendingLabel = "Working through it…";
+
+/**
+ * The text the transcript's live region carries: the wait while a reply
+ * streams, then the whole reply once it has landed, and nothing between turns.
+ * The region reads the reply once, not a word at a time: a live region
+ * re-announces on every change, and a stream of single words would interrupt
+ * the reader fifty times.
+ */
+function announcementFor(messages: ReadonlyArray<AssistantMessage>, isReplying: boolean): string {
+	if (isReplying) {
+		return pendingLabel;
+	}
+	const lastMessage = messages[messages.length - 1];
+	if (lastMessage?.role === "assistant") {
+		return lastMessage.text;
+	}
+	return "";
+}
 
 /**
  * Owns the conversation: the messages, the composer's draft, and the reply in
@@ -193,6 +215,11 @@ function scrollHostToEnd(node: HTMLElement) {
  * Render it inside the host's scroll region: `AppLayout.Body` on the assistant
  * route, `AppLayout.SidePanelBody` in the panel.
  *
+ * A live region mounted beside the transcript announces the wait on a send
+ * and the whole reply once it lands, so a reader who stays in the composer
+ * hears the answer. The visible paragraph that streams the reply is not a live
+ * region: it would re-announce on every word.
+ *
  * @example
  * ```tsx
  * <AppLayout.Body>
@@ -223,74 +250,86 @@ function AssistantTranscript({
 		}
 	};
 
+	// Why mounted before the first send: a live region announces a change, not
+	// its first text, so the region that announces the wait must already be there.
+	// Both branches put it first in a fragment, so the first send swaps the deck
+	// for the list and keeps the region.
+	const announcer = <LiveRegion>{announcementFor(messages, isReplying)}</LiveRegion>;
+
 	if (messages.length === 0) {
 		return (
-			<div className="@container flex min-h-full flex-1 flex-col items-center justify-center gap-4 p-4 @2xl:gap-6 @2xl:p-6">
-				<span className="flex size-7 items-center justify-center rounded-lg bg-emerald-600/10 text-emerald-600 @2xl:size-9">
-					<Icon svg={<SparkleIcon />} className="size-4 @2xl:size-5" />
-				</span>
-				<div className="flex flex-col items-center gap-2 text-center">
-					<h2 className="text-strong text-lg font-medium text-balance @2xl:text-2xl">
-						What should we do today?
-					</h2>
-					<p className="text-body max-w-lg text-xs text-pretty @2xl:text-sm">
-						Pick a starting point and the assistant writes the Traffic Policy and gets your
-						endpoints running.
-					</p>
+			<>
+				{announcer}
+				<div className="@container flex min-h-full flex-1 flex-col items-center justify-center gap-4 p-4 @2xl:gap-6 @2xl:p-6">
+					<span className="flex size-7 items-center justify-center rounded-lg bg-emerald-600/10 text-emerald-600 @2xl:size-9">
+						<Icon svg={<SparkleIcon />} className="size-4 @2xl:size-5" />
+					</span>
+					<div className="flex flex-col items-center gap-2 text-center">
+						<h2 className="text-strong text-lg font-medium text-balance @2xl:text-2xl">
+							What should we do today?
+						</h2>
+						<p className="text-body max-w-lg text-xs text-pretty @2xl:text-sm">
+							Pick a starting point and the assistant writes the Traffic Policy and gets your
+							endpoints running.
+						</p>
+					</div>
+					<div className="grid w-full max-w-md gap-2 @2xl:max-w-2xl @2xl:grid-cols-2 @2xl:gap-3">
+						{starterPrompts.map(({ prompt, icon }) => (
+							<Button
+								key={prompt}
+								type="button"
+								appearance="outlined"
+								intent="neutral"
+								className="h-auto justify-start gap-3 px-3 py-2.5 text-left whitespace-normal @2xl:py-3"
+								onClick={() => choose(prompt)}
+							>
+								<span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-emerald-600/10 text-emerald-600">
+									<Icon svg={icon} className="size-4" />
+								</span>
+								{prompt}
+							</Button>
+						))}
+					</div>
 				</div>
-				<div className="grid w-full max-w-md gap-2 @2xl:max-w-2xl @2xl:grid-cols-2 @2xl:gap-3">
-					{starterPrompts.map(({ prompt, icon }) => (
-						<Button
-							key={prompt}
-							type="button"
-							appearance="outlined"
-							intent="neutral"
-							className="h-auto justify-start gap-3 px-3 py-2.5 text-left whitespace-normal @2xl:py-3"
-							onClick={() => choose(prompt)}
-						>
-							<span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-emerald-600/10 text-emerald-600">
-								<Icon svg={icon} className="size-4" />
-							</span>
-							{prompt}
-						</Button>
-					))}
-				</div>
-			</div>
+			</>
 		);
 	}
 
 	const lastMessage = messages[messages.length - 1];
 
 	return (
-		<div className="@container mx-auto flex w-full max-w-3xl flex-col gap-4 p-4 @2xl:p-6">
-			{messages.map((message) =>
-				message.role === "user" ? (
-					<div key={message.id} className="flex justify-end">
-						<p className="bg-neutral-500/8 text-strong max-w-[85%] rounded-2xl px-3.5 py-2 text-sm wrap-break-word whitespace-pre-wrap">
-							{message.text}
-						</p>
-					</div>
-				) : (
-					<div key={message.id} className="text-body flex flex-col gap-2 text-sm">
-						{message.text === "" && isReplying && lastMessage?.id === message.id ? (
-							<p role="status" className="text-muted flex items-center gap-2">
-								<span
-									aria-hidden
-									className="bg-muted size-1.5 animate-pulse rounded-full motion-reduce:animate-none"
-								/>
-								{/* Why a wrapper: the dot is a permanent sibling, and a translation
+		<>
+			{announcer}
+			<div className="@container mx-auto flex w-full max-w-3xl flex-col gap-4 p-4 @2xl:p-6">
+				{messages.map((message) =>
+					message.role === "user" ? (
+						<div key={message.id} className="flex justify-end">
+							<p className="bg-neutral-500/8 text-strong max-w-[85%] rounded-2xl px-3.5 py-2 text-sm wrap-break-word whitespace-pre-wrap">
+								{message.text}
+							</p>
+						</div>
+					) : (
+						<div key={message.id} className="text-body flex flex-col gap-2 text-sm">
+							{message.text === "" && isReplying && lastMessage?.id === message.id ? (
+								<p className="text-muted flex items-center gap-2">
+									<span
+										aria-hidden
+										className="bg-muted size-1.5 animate-pulse rounded-full motion-reduce:animate-none"
+									/>
+									{/* Why a wrapper: the dot is a permanent sibling, and a translation
 								    engine reparents bare text. The swap to the first word would then
 								    remove a node React no longer owns. */}
-								<span>Working through it…</span>
-							</p>
-						) : (
-							<p>{message.text}</p>
-						)}
-					</div>
-				),
-			)}
-			<div ref={endRef} />
-		</div>
+									<span>{pendingLabel}</span>
+								</p>
+							) : (
+								<p>{message.text}</p>
+							)}
+						</div>
+					),
+				)}
+				<div ref={endRef} />
+			</div>
+		</>
 	);
 }
 

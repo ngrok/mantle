@@ -1068,10 +1068,11 @@ toggles it, with `aria-expanded` and `aria-controls` wired to the panel, the sam
 open the panel, and one more in `AppLayout.SidePanelHeader` with a close icon to close it from inside. A
 custom control composes the same state from [`useSidePanel`](#usesidepanel).
 
-- **Open**, the panel takes `--app-layout-side-panel-width` beside the card (`clamp(21rem, 24vw, 27rem)`:
-  a quarter of the viewport, never narrower than 336px and never wider than 432px) and the card absorbs the
-  difference. The panel is a fixed basis, never a share of the row, because `flex-1` cannot interpolate to a
-  width.
+- **Open**, the panel takes `--app-layout-side-panel-width` beside the card (`clamp(21rem, 24cqw, 27rem)`:
+  a quarter of the row, never narrower than 336px and never wider than 432px) and the card absorbs the
+  difference. The width reads the `AppLayout.Workspace` row, not the viewport, so a row that
+  `--app-layout-max-width` caps on a wide screen holds the panel at its floor and the page keeps the rest.
+  The panel is a fixed basis, never a share of the row, because `flex-1` cannot interpolate to a width.
 - **Closed**, the panel collapses to nothing and goes `inert`, so nothing inside it is focusable, clickable,
   or read by assistive technology. Its children stay mounted: a conversation keeps its scroll position and
   its in-flight reply across a close and a reopen.
@@ -1085,8 +1086,8 @@ custom control composes the same state from [`useSidePanel`](#usesidepanel).
   - The transition holds until one frame after hydration, so a state the client corrects after the server
     render snaps instead of sliding on page load.
 - **Below `mobileBreakpoint`** (`lg` by default), the panel floats over the card instead of taking width from
-  it: pinned to the row's end edge inside the card gutter, `min(24rem, 100vw - 5rem)` wide, with a larger
-  shadow. Closed, it slides off the end edge and goes `invisible` the instant the slide ends (`visibility`
+  it: pinned to the row's end edge inside the card gutter, `min(24rem, 100cqw - 5rem)` wide (24rem, or the
+  row less a 5rem strip of page when the row is narrower), with a larger shadow. Closed, it slides off the end edge and goes `invisible` the instant the slide ends (`visibility`
   rides the transition), so a row that `--app-layout-max-width` caps inside the frame has no panel strip
   beside it. One breakpoint lower it covers the card from gutter to gutter. With `"sm"` there is no lower
   breakpoint, so the panel covers the card from gutter to gutter as soon as it floats. Two cards side by
@@ -2589,7 +2590,8 @@ across it; a second click mid-flight reverses the run.
 
 Closed, it is `basis-0 pointer-events-none` and `inert`, with its children still mounted. Below
 `mobileBreakpoint` it floats over the card: `absolute`, pinned to the row's end edge inside the card gutter,
-`min(24rem, 100vw - 5rem)` wide, with `shadow-lg` and `z-20`. A closed floating panel slides off the end
+`min(24rem, 100cqw - 5rem)` wide (24rem, or the row less a 5rem strip of page when the row is narrower),
+with `shadow-lg` and `z-20`. A closed floating panel slides off the end
 edge and goes `invisible` the instant the slide ends (`visibility` rides the transition), so a row that
 `--app-layout-max-width` caps inside the frame has no panel strip beside it. One breakpoint lower it covers
 the card from gutter to gutter. With `"sm"` there is no lower breakpoint, so the panel covers the card from
@@ -2615,12 +2617,12 @@ All props from [aside](https://developer.mozilla.org/en-US/docs/Web/HTML/Element
 | ------------------- | ---------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `mobileBreakpoint?` | `"sm" \| "md" \| "lg"` | `"lg"`  | The viewport width below which the panel floats over the card instead of taking width beside it. One breakpoint lower it covers the card from gutter to gutter and turns modal; with `"sm"` there is no lower breakpoint, so it covers the card as soon as it floats by viewport. Match it to `Sidebar.Root`'s `mobileBreakpoint`, so the rail and the panel change presentation at one width. The panel also floats when the row is narrower than the lane it needs (`--container-side-panel-lane` or `--container-side-panel-lane-icon-rail`), whatever this prop says. |
 
-| CSS Variable                            | Default                     | Description                                                                                                                                                                                                                                                                                                                                                                      |
-| --------------------------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--app-layout-side-panel-width`         | `clamp(21rem, 24vw, 27rem)` | The panel's width beside the card: a quarter of the viewport, never narrower than 336px and never wider than 432px. Set it on `AppLayout.Root` or on this part.                                                                                                                                                                                                                  |
-| `--app-layout-card-gutter`              | `0.5rem`                    | Read (not set) by `AppLayout.SidePanel`; owned by [`AppLayout.Content`](#applayoutcontent). The panel keeps it on three edges, and the floating panel insets itself by it. Set it on `AppLayout.Root` or another common ancestor of the card and the panel, not on `AppLayout.Content`: custom properties inherit downward only, so a value on the card never reaches the panel. |
-| `--container-side-panel-lane`           | `56.5rem`                   | A theme token the row's container query reads: the narrowest `AppLayout.Workspace` row that holds an expanded `Sidebar.Nav` (13rem), the card at the panel's floor (21rem), the panel (21rem), and the three gutters. Below it the panel floats while a direct child of the row is an expanded rail. Set it in `@theme`, not on an element.                                      |
-| `--container-side-panel-lane-icon-rail` | `46.75rem`                  | The same row with the icon rail (3.25rem) in place of the expanded one, or with no rail. Below it the panel floats whatever the rail is. Set it in `@theme`, not on an element.                                                                                                                                                                                                  |
+| CSS Variable                            | Default                      | Description                                                                                                                                                                                                                                                                                                                                                                      |
+| --------------------------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--app-layout-side-panel-width`         | `clamp(21rem, 24cqw, 27rem)` | The panel's width beside the card: a quarter of the `AppLayout.Workspace` row, never narrower than 336px and never wider than 432px. It reads the row, not the viewport, so a row that `--app-layout-max-width` caps on a wide screen holds the panel at its floor and the page keeps the rest. Set it on `AppLayout.Root` or on this part.                                      |
+| `--app-layout-card-gutter`              | `0.5rem`                     | Read (not set) by `AppLayout.SidePanel`; owned by [`AppLayout.Content`](#applayoutcontent). The panel keeps it on three edges, and the floating panel insets itself by it. Set it on `AppLayout.Root` or another common ancestor of the card and the panel, not on `AppLayout.Content`: custom properties inherit downward only, so a value on the card never reaches the panel. |
+| `--container-side-panel-lane`           | `56.5rem`                    | A theme token the row's container query reads: the narrowest `AppLayout.Workspace` row that holds an expanded `Sidebar.Nav` (13rem), the card at the panel's floor (21rem), the panel (21rem), and the three gutters. Below it the panel floats while a direct child of the row is an expanded rail. Set it in `@theme`, not on an element.                                      |
+| `--container-side-panel-lane-icon-rail` | `46.75rem`                   | The same row with the icon rail (3.25rem) in place of the expanded one, or with no rail. Below it the panel floats whatever the rail is. Set it in `@theme`, not on an element.                                                                                                                                                                                                  |
 
 | Data Attribute  | Value                             | Description                                                                                                                                                                |
 | --------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

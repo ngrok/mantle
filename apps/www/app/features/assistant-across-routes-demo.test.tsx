@@ -175,7 +175,9 @@ describe("AssistantAcrossRoutesDemo", () => {
 		});
 
 		const panel = screen.getByRole("complementary", { name: "Assistant" });
-		expect(within(panel).queryByText(/the only thing you deploy\.$/)).not.toBeNull();
+		expect(
+			within(panel).queryByText(/the only thing you deploy\.$/, { selector: "p" }),
+		).not.toBeNull();
 	});
 
 	it("carries the draft across the crossing", async () => {

@@ -10,3 +10,5 @@
 - `--container-side-panel-lane-icon-rail` (`46.75rem`: the same row with the icon rail at 3.25rem) with a collapsed rail, no rail, or a rail that is a sheet.
 
 So collapsing the rail at a tablet width returns the panel to the lane beside the page. Raise either token in `@theme` for a wider rail or panel.
+
+The panel's widths now read the row, not the viewport. The default `--app-layout-side-panel-width` is `clamp(21rem, 24cqw, 27rem)`, a quarter of the row, so a row that `--app-layout-max-width` caps on a wide screen holds the panel at its 21rem floor and the page keeps the rest. Before, `24vw` of a 1920px viewport put a 27rem panel beside a page narrower than the panel. The floating strip is `min(24rem, 100cqw - 5rem)`, so a row narrower than the strip never holds a panel wider than itself.

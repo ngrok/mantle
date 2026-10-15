@@ -177,7 +177,8 @@ MARK: THEME
 	/* The narrowest workspace row that holds the expanded rail (13rem), the content card at
 	   the side panel's floor (21rem), the panel itself (21rem), and the three gutters (1.5rem).
 	   Below it `AppLayout.SidePanel` floats over the card, so the page is never narrower than
-	   the panel beside it. */
+	   the panel beside it. The budget holds whatever the viewport is: the panel's default width
+	   reads the row (`24cqw`), so it sits at the floor in every row up to 87.5rem. */
 	--container-side-panel-lane: 56.5rem;
 	/* The same row with the icon rail (3.25rem) in place of the expanded one, or with no rail.
 	   `AppLayout.SidePanel` reads this threshold when the row holds no expanded `Sidebar.Nav`. */

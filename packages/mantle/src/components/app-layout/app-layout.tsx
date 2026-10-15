@@ -805,8 +805,8 @@ type AppLayoutSidePanelMobileBreakpoint = "sm" | "md" | "lg";
  */
 const sidePanelFloatClassName: Record<AppLayoutSidePanelMobileBreakpoint, string> = {
 	sm: "sm:@min-side-panel-lane/app-layout-workspace:data-state-closed:basis-0 sm:[[data-slot~=app-layout-workspace]:not(:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed])))_&]:@min-side-panel-lane-icon-rail/app-layout-workspace:data-state-closed:basis-0 max-sm:absolute max-sm:inset-y-(--app-layout-card-gutter,0.5rem) max-sm:left-(--app-layout-card-gutter,0.5rem) max-sm:right-(--app-layout-card-gutter,0.5rem) max-sm:z-20 max-sm:my-0 max-sm:rounded-xl max-sm:shadow-lg max-sm:[--_side-panel-content-width:100%] max-sm:[--_side-panel-content-inset:0px] max-sm:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] max-sm:data-state-closed:invisible",
-	md: "md:@min-side-panel-lane/app-layout-workspace:data-state-closed:basis-0 md:[[data-slot~=app-layout-workspace]:not(:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed])))_&]:@min-side-panel-lane-icon-rail/app-layout-workspace:data-state-closed:basis-0 max-md:absolute max-md:inset-y-(--app-layout-card-gutter,0.5rem) max-md:right-(--app-layout-card-gutter,0.5rem) max-md:z-20 max-md:my-0 max-md:w-[min(24rem,calc(100vw-5rem))] max-md:rounded-xl max-md:shadow-lg max-md:[--_side-panel-content-width:100%] max-md:[--_side-panel-content-inset:0px] max-md:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] max-md:data-state-closed:invisible max-sm:left-(--app-layout-card-gutter,0.5rem) max-sm:w-auto",
-	lg: "lg:@min-side-panel-lane/app-layout-workspace:data-state-closed:basis-0 lg:[[data-slot~=app-layout-workspace]:not(:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed])))_&]:@min-side-panel-lane-icon-rail/app-layout-workspace:data-state-closed:basis-0 max-lg:absolute max-lg:inset-y-(--app-layout-card-gutter,0.5rem) max-lg:right-(--app-layout-card-gutter,0.5rem) max-lg:z-20 max-lg:my-0 max-lg:w-[min(24rem,calc(100vw-5rem))] max-lg:rounded-xl max-lg:shadow-lg max-lg:[--_side-panel-content-width:100%] max-lg:[--_side-panel-content-inset:0px] max-lg:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] max-lg:data-state-closed:invisible max-md:left-(--app-layout-card-gutter,0.5rem) max-md:w-auto",
+	md: "md:@min-side-panel-lane/app-layout-workspace:data-state-closed:basis-0 md:[[data-slot~=app-layout-workspace]:not(:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed])))_&]:@min-side-panel-lane-icon-rail/app-layout-workspace:data-state-closed:basis-0 max-md:absolute max-md:inset-y-(--app-layout-card-gutter,0.5rem) max-md:right-(--app-layout-card-gutter,0.5rem) max-md:z-20 max-md:my-0 max-md:w-[min(24rem,calc(100cqw-5rem))] max-md:rounded-xl max-md:shadow-lg max-md:[--_side-panel-content-width:100%] max-md:[--_side-panel-content-inset:0px] max-md:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] max-md:data-state-closed:invisible max-sm:left-(--app-layout-card-gutter,0.5rem) max-sm:w-auto",
+	lg: "lg:@min-side-panel-lane/app-layout-workspace:data-state-closed:basis-0 lg:[[data-slot~=app-layout-workspace]:not(:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed])))_&]:@min-side-panel-lane-icon-rail/app-layout-workspace:data-state-closed:basis-0 max-lg:absolute max-lg:inset-y-(--app-layout-card-gutter,0.5rem) max-lg:right-(--app-layout-card-gutter,0.5rem) max-lg:z-20 max-lg:my-0 max-lg:w-[min(24rem,calc(100cqw-5rem))] max-lg:rounded-xl max-lg:shadow-lg max-lg:[--_side-panel-content-width:100%] max-lg:[--_side-panel-content-inset:0px] max-lg:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] max-lg:data-state-closed:invisible max-md:left-(--app-layout-card-gutter,0.5rem) max-md:w-auto",
 };
 
 /**
@@ -837,12 +837,14 @@ const sidePanelExpandedRailLaneFloatClassName =
  * for the other two. Below that tier {@link sidePanelFloatClassName} pins
  * both edges and sets `w-auto`, and this width must not apply over it. Each
  * string carries the width twice: below the icon-rail threshold for every
- * row, and below the lane threshold for a row with an expanded rail.
+ * row, and below the lane threshold for a row with an expanded rail. The
+ * width reads the row through `cqw`, not the viewport, so a row narrower
+ * than 24rem plus the strip never holds a panel wider than itself.
  */
 const sidePanelLaneStripWidthClassName: Record<AppLayoutSidePanelMobileBreakpoint, string> = {
-	sm: "sm:@max-side-panel-lane-icon-rail/app-layout-workspace:w-[min(24rem,calc(100vw-5rem))] sm:[[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed]))_&]:@max-side-panel-lane/app-layout-workspace:w-[min(24rem,calc(100vw-5rem))]",
-	md: "sm:@max-side-panel-lane-icon-rail/app-layout-workspace:w-[min(24rem,calc(100vw-5rem))] sm:[[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed]))_&]:@max-side-panel-lane/app-layout-workspace:w-[min(24rem,calc(100vw-5rem))]",
-	lg: "md:@max-side-panel-lane-icon-rail/app-layout-workspace:w-[min(24rem,calc(100vw-5rem))] md:[[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed]))_&]:@max-side-panel-lane/app-layout-workspace:w-[min(24rem,calc(100vw-5rem))]",
+	sm: "sm:@max-side-panel-lane-icon-rail/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))] sm:[[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed]))_&]:@max-side-panel-lane/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))]",
+	md: "sm:@max-side-panel-lane-icon-rail/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))] sm:[[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed]))_&]:@max-side-panel-lane/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))]",
+	lg: "md:@max-side-panel-lane-icon-rail/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))] md:[[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed]))_&]:@max-side-panel-lane/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))]",
 };
 
 /**
@@ -1230,7 +1232,8 @@ type AppLayoutSidePanelProps = Omit<ComponentProps<"aside">, "id"> &
  *
  * Below `mobileBreakpoint` the panel floats over the card instead of taking
  * width from it: `absolute`, pinned to the row's end edge inside the card
- * gutter, `min(24rem, 100vw - 5rem)` wide, with a larger shadow and `z-20` so
+ * gutter, `min(24rem, 100cqw - 5rem)` wide (24rem, or the row less a 5rem
+ * strip of page when the row is narrower), with a larger shadow and `z-20` so
  * it paints above a page's own sticky rows. Closed, it slides off the end edge
  * instead of collapsing and goes `invisible` the instant the slide ends, so a
  * row that `--app-layout-max-width` caps inside the frame has no panel strip
@@ -1270,7 +1273,7 @@ type AppLayoutSidePanelProps = Omit<ComponentProps<"aside">, "id"> &
  *
  * | CSS Variable | Default | Description |
  * | --- | --- | --- |
- * | `--app-layout-side-panel-width` | `clamp(21rem, 24vw, 27rem)` | The panel's width beside the card: a quarter of the viewport, never narrower than 336px and never wider than 432px. Set it on `AppLayout.Root` or on this part. |
+ * | `--app-layout-side-panel-width` | `clamp(21rem, 24cqw, 27rem)` | The panel's width beside the card: a quarter of the `AppLayout.Workspace` row, never narrower than 336px and never wider than 432px. It reads the row, not the viewport, so a row that `--app-layout-max-width` caps on a wide screen holds the panel at its floor and the page keeps the rest. Set it on `AppLayout.Root` or on this part. |
  * | `--app-layout-card-gutter` | `0.5rem` | Read, not owned: `AppLayout.Content` owns this token. The panel keeps it on its top, end, and bottom edges, and the floating panel insets itself by it. Set it on `AppLayout.Root` or another common ancestor of the card and the panel, not on `AppLayout.Content`: custom properties inherit downward only, so a value on the card never reaches the panel. |
  * | `--container-side-panel-lane` | `56.5rem` | A theme token the row's container query reads: the narrowest `AppLayout.Workspace` row that holds an expanded `Sidebar.Nav` (13rem), the card at the panel's floor (21rem), the panel (21rem), and the three gutters. Below it the panel floats while a direct child of the row is an expanded rail. Set it in `@theme`, not on an element. |
  * | `--container-side-panel-lane-icon-rail` | `46.75rem` | The same row with the icon rail (3.25rem) in place of the expanded one, or with no rail. Below it the panel floats whatever the rail is. Set it in `@theme`, not on an element. |
@@ -1401,7 +1404,9 @@ const SidePanel = ({
 				// Why no private name inside a value: Tailwind reads the `_` of a private
 				// name inside an arbitrary value as a space, so each value names public
 				// variables only and the utilities read the private ones by name.
-				"[--_side-panel-content-width:var(--app-layout-side-panel-width,clamp(21rem,24vw,27rem))] [--_side-panel-content-inset:var(--app-layout-card-gutter,0.5rem)] [--_side-panel-box-width:calc(var(--app-layout-side-panel-width,clamp(21rem,24vw,27rem))+var(--app-layout-card-gutter,0.5rem))]",
+				// Why cqw: the lane tokens budget the panel at its 21rem floor, and a
+				// width that read the viewport outgrew that budget in a capped row.
+				"[--_side-panel-content-width:var(--app-layout-side-panel-width,clamp(21rem,24cqw,27rem))] [--_side-panel-content-inset:var(--app-layout-card-gutter,0.5rem)] [--_side-panel-box-width:calc(var(--app-layout-side-panel-width,clamp(21rem,24cqw,27rem))+var(--app-layout-card-gutter,0.5rem))]",
 				// A fixed basis, never a share of the row: `flex-1` cannot interpolate
 				// to a width, so a lane that animates never uses it. The basis is the
 				// card plus its end inset; the card beside it absorbs the change.

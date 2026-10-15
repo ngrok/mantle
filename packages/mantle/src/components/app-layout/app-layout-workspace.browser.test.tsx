@@ -23,7 +23,9 @@ import { AppLayout } from "./app-layout.js";
  * width or inset, or a `data-state-closed:` utility from a part and the
  * matching assertion fails. The ungated `data-state-closed:basis-0` rule stays
  * loaded with no part that uses it, so an ungated utility shows up as a third
- * transition on the floating panel.
+ * transition on the floating panel. The row-driven float is loaded for a row
+ * with no rail, the only row this file renders, so a lane expectation at a row
+ * under the icon-rail threshold fails here the way it does in a real page.
  */
 const STYLE = `
 @layer theme, base, components, utilities;
@@ -77,14 +79,14 @@ const STYLE = `
 	.duration-200 { --tw-duration: 200ms; transition-duration: 200ms; }
 	.duration-\\[2000ms\\] { --tw-duration: 2000ms; transition-duration: 2000ms; }
 	.ease-out-strong { --tw-ease: var(--ease-out-strong); transition-timing-function: var(--ease-out-strong); }
-	.\\[--_side-panel-content-width\\:var\\(--app-layout-side-panel-width\\,clamp\\(21rem\\,24vw\\,27rem\\)\\)\\] {
-		--_side-panel-content-width: var(--app-layout-side-panel-width,clamp(21rem, 24vw, 27rem));
+	.\\[--_side-panel-content-width\\:var\\(--app-layout-side-panel-width\\,clamp\\(21rem\\,24cqw\\,27rem\\)\\)\\] {
+		--_side-panel-content-width: var(--app-layout-side-panel-width,clamp(21rem, 24cqw, 27rem));
 	}
 	.\\[--_side-panel-content-inset\\:var\\(--app-layout-card-gutter\\,0\\.5rem\\)\\] {
 		--_side-panel-content-inset: var(--app-layout-card-gutter,0.5rem);
 	}
-	.\\[--_side-panel-box-width\\:calc\\(var\\(--app-layout-side-panel-width\\,clamp\\(21rem\\,24vw\\,27rem\\)\\)\\+var\\(--app-layout-card-gutter\\,0\\.5rem\\)\\)\\] {
-		--_side-panel-box-width: calc(var(--app-layout-side-panel-width,clamp(21rem, 24vw, 27rem)) + var(--app-layout-card-gutter,0.5rem));
+	.\\[--_side-panel-box-width\\:calc\\(var\\(--app-layout-side-panel-width\\,clamp\\(21rem\\,24cqw\\,27rem\\)\\)\\+var\\(--app-layout-card-gutter\\,0\\.5rem\\)\\)\\] {
+		--_side-panel-box-width: calc(var(--app-layout-side-panel-width,clamp(21rem, 24cqw, 27rem)) + var(--app-layout-card-gutter,0.5rem));
 	}
 	.not-data-hydrated\\:transition-none:not([data-hydrated]) { transition-property: none; }
 	@media (prefers-reduced-motion: reduce) {
@@ -96,7 +98,7 @@ const STYLE = `
 		.max-lg\\:right-\\(--app-layout-card-gutter\\,0\\.5rem\\) { right: var(--app-layout-card-gutter,0.5rem); }
 		.max-lg\\:z-20 { z-index: 20; }
 		.max-lg\\:my-0 { margin-block: 0px; }
-		.max-lg\\:w-\\[min\\(24rem\\,calc\\(100vw-5rem\\)\\)\\] { width: min(24rem, calc(100vw - 5rem)); }
+		.max-lg\\:w-\\[min\\(24rem\\,calc\\(100cqw-5rem\\)\\)\\] { width: min(24rem, calc(100cqw - 5rem)); }
 		.max-lg\\:\\[--_side-panel-content-width\\:100\\%\\] { --_side-panel-content-width: 100%; }
 		.max-lg\\:\\[--_side-panel-content-inset\\:0px\\] { --_side-panel-content-inset: 0px; }
 	}
@@ -108,7 +110,7 @@ const STYLE = `
 		.max-md\\:z-20 { z-index: 20; }
 		.max-md\\:my-0 { margin-block: 0px; }
 		.max-md\\:w-auto { width: auto; }
-		.max-md\\:w-\\[min\\(24rem\\,calc\\(100vw-5rem\\)\\)\\] { width: min(24rem, calc(100vw - 5rem)); }
+		.max-md\\:w-\\[min\\(24rem\\,calc\\(100cqw-5rem\\)\\)\\] { width: min(24rem, calc(100cqw - 5rem)); }
 		.max-md\\:\\[--_side-panel-content-width\\:100\\%\\] { --_side-panel-content-width: 100%; }
 		.max-md\\:\\[--_side-panel-content-inset\\:0px\\] { --_side-panel-content-inset: 0px; }
 	}
@@ -128,6 +130,30 @@ const STYLE = `
 	.\\@container\\/app-layout-workspace {
 		container-type: inline-size;
 		container-name: app-layout-workspace;
+	}
+	@container app-layout-workspace (width < 46.75rem) {
+		.\\@max-side-panel-lane-icon-rail\\/app-layout-workspace\\:absolute { position: absolute; }
+		.\\@max-side-panel-lane-icon-rail\\/app-layout-workspace\\:inset-y-\\(--app-layout-card-gutter\\,0\\.5rem\\) { inset-block: var(--app-layout-card-gutter,0.5rem); }
+		.\\@max-side-panel-lane-icon-rail\\/app-layout-workspace\\:right-\\(--app-layout-card-gutter\\,0\\.5rem\\) { right: var(--app-layout-card-gutter,0.5rem); }
+		.\\@max-side-panel-lane-icon-rail\\/app-layout-workspace\\:z-20 { z-index: 20; }
+		.\\@max-side-panel-lane-icon-rail\\/app-layout-workspace\\:my-0 { margin-block: 0px; }
+		.\\@max-side-panel-lane-icon-rail\\/app-layout-workspace\\:\\[--_side-panel-content-width\\:100\\%\\] { --_side-panel-content-width: 100%; }
+		.\\@max-side-panel-lane-icon-rail\\/app-layout-workspace\\:\\[--_side-panel-content-inset\\:0px\\] { --_side-panel-content-inset: 0px; }
+		.\\@max-side-panel-lane-icon-rail\\/app-layout-workspace\\:data-state-closed\\:invisible[data-state~=closed] { visibility: hidden; }
+		.\\@max-side-panel-lane-icon-rail\\/app-layout-workspace\\:data-state-closed\\:translate-x-\\[calc\\(100\\%\\+var\\(--app-layout-card-gutter\\,0\\.5rem\\)\\)\\][data-state~=closed] {
+			--tw-translate-x: calc(100% + var(--app-layout-card-gutter,0.5rem));
+			translate: var(--tw-translate-x) var(--tw-translate-y);
+		}
+	}
+	@media (width >= 40rem) {
+		@container app-layout-workspace (width < 46.75rem) {
+			.sm\\:\\@max-side-panel-lane-icon-rail\\/app-layout-workspace\\:w-\\[min\\(24rem\\,calc\\(100cqw-5rem\\)\\)\\] { width: min(24rem, calc(100cqw - 5rem)); }
+		}
+	}
+	@media (width >= 48rem) {
+		@container app-layout-workspace (width < 46.75rem) {
+			.md\\:\\@max-side-panel-lane-icon-rail\\/app-layout-workspace\\:w-\\[min\\(24rem\\,calc\\(100cqw-5rem\\)\\)\\] { width: min(24rem, calc(100cqw - 5rem)); }
+		}
 	}
 	@media (width >= 40rem) {
 		@container app-layout-workspace (width >= 56.5rem) {
@@ -184,7 +210,7 @@ const GUTTER = 8;
 /** The open width the tests set, in pixels. The box adds the gutter to it. */
 const OPEN_WIDTH = 300;
 
-/** The floating panel's width at every viewport these tests use: 24rem beats `100vw - 5rem`. */
+/** The floating panel's width at every row these tests use: 24rem beats `100cqw - 5rem`. */
 const FLOATING_PANEL_WIDTH = 384;
 
 let styleElement: HTMLStyleElement;
@@ -435,6 +461,17 @@ describe("AppLayout.SidePanel lane", () => {
 		expect(box.top).toBe(content.top);
 	});
 
+	test("sizes the default open width from the row, not the viewport", async () => {
+		// Why: the lane tokens budget the panel at its 21rem floor. A 24vw default
+		// on a 1920px viewport is 27rem, and in a 60rem row beside an expanded
+		// rail that leaves the page narrower than the panel.
+		await page.viewport(1920, 800);
+		render(<Shell panel="open" rootWidth={1200} vars={{ "--app-layout-max-width": "60rem" }} />);
+		const panel = screen.getByTestId("panel");
+		expect(cardOf(panel).getBoundingClientRect().width).toBe(336);
+		expect(rectOf("content").width).toBe(960 - 3 * GUTTER - 336);
+	});
+
 	test("a closed panel collapses to nothing and the content card takes the row", async () => {
 		await page.viewport(1280, 800);
 		const panel = renderLane("closed");
@@ -576,7 +613,9 @@ describe("AppLayout.SidePanel lane", () => {
 	});
 
 	test.each([
-		["sm", 700],
+		// Why 760 for sm: the row is the viewport here, and a 700px row is under
+		// the icon-rail lane (46.75rem), so the row rule would float the panel.
+		["sm", 760],
 		["md", 800],
 		["lg", 1100],
 	] as const)("stays in the row at the %s breakpoint", async (mobileBreakpoint, viewportWidth) => {
@@ -691,8 +730,8 @@ describe("AppLayout.SidePanel lane", () => {
 		}
 		// Why read the width: a real page paints the server markup before
 		// hydration, and only a painted width can be the start value of a
-		// transition. At 1280px, 24vw is under the 21rem floor, so the default
-		// open width is 336px, and the box adds the end inset.
+		// transition. In a 1200px row, 24cqw is under the 21rem floor, so the
+		// default open width is 336px, and the box adds the end inset.
 		expect(panel).toHaveAttribute("data-state", "open");
 		expect(panel.getBoundingClientRect().width).toBe(336 + GUTTER);
 		const transitions = recordTransitions(panel);
