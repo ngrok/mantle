@@ -174,6 +174,15 @@ MARK: THEME
 	/* A strong ease-out for UI that enters, exits, or changes shape in under 300ms.
 	   Tailwind's `--ease-out` is too shallow to read as a settle at 200ms. */
 	--ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+	/* The narrowest workspace row that holds the expanded rail (13rem), the content card at
+	   the side panel's floor (21rem), the panel itself (21rem), and the three gutters (1.5rem).
+	   Below it `AppLayout.SidePanel` floats over the card, so the page is never narrower than
+	   the panel beside it. The budget holds whatever the viewport is: the panel's default width
+	   reads the row (`24cqw`), so it sits at the floor in every row up to 87.5rem. */
+	--container-side-panel-lane: 56.5rem;
+	/* The same row with the icon rail (3.25rem) in place of the expanded one, or with no rail.
+	   `AppLayout.SidePanel` reads this threshold when the row holds no expanded `Sidebar.Nav`. */
+	--container-side-panel-lane-icon-rail: 46.75rem;
 	--font-sans: "Roobert", ui-sans-serif, system-ui, sans-serif;
 	--font-mono:
 		"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono,

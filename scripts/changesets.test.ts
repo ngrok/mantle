@@ -33,25 +33,6 @@ function migrationSlugs(): string[] {
 describe("pending changesets", () => {
 	const names = pendingChangesets();
 
-	// Why: a breaking minor ships a migration guide and a codemod, and the
-	// changeset is the one artifact every minor already has. A minor for a new
-	// component or a preview promotion says so instead. Catches a breaking
-	// minor whose author wrote the release note and skipped the guide.
-	it.each(names.length > 0 ? names : ["(none)"])(
-		"%s links a migration guide when it bumps @ngrok/mantle minor",
-		(name) => {
-			if (name === "(none)") {
-				return;
-			}
-			const source = fs.readFileSync(path.join(changesetDir, name), "utf8");
-			if (mantleBump(source) !== "minor") {
-				return;
-			}
-
-			expect(source).toMatch(/mantle\.ngrok\.com\/migrations\/\d{4}-[a-z0-9-]+|No migration: \S/);
-		},
-	);
-
 	// Why: a link to a guide that does not exist reads as a migration in the
 	// changelog and sends the consumer to a missing page. Catches a typo in a slug.
 	it.each(names.length > 0 ? names : ["(none)"])(

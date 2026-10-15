@@ -6,6 +6,7 @@ import {
 	createContext,
 	useCallback,
 	useContext,
+	useEffect,
 	useId,
 	useLayoutEffect,
 	useMemo,
@@ -13,13 +14,19 @@ import {
 	useState,
 } from "react";
 import invariant from "tiny-invariant";
+import { useFocusTrap } from "../../hooks/use-focus-trap.js";
+import { useInertSiblings } from "../../hooks/use-inert-siblings.js";
 import { useIsHydratedAfterPaint } from "../../hooks/use-is-hydrated-after-paint.js";
+import { useMatchesMediaQuery } from "../../hooks/use-matches-media-query.js";
+import { useSwipeToDismiss } from "../../hooks/use-swipe-to-dismiss.js";
 import type { WithAsChild } from "../../types/as-child.js";
+import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import { isTabbable } from "../alert/tabbable-neighbors.js";
 import type { IconButtonProps } from "../button/icon-button.js";
+import { escapeBelongsToNestedPopup } from "../dialog/primitive.js";
 import { IconButton } from "../button/icon-button.js";
 import { Main } from "../main/main.js";
 import { Slot } from "../slot/index.js";
@@ -197,7 +204,12 @@ const Notice = ({
  * the variable to `none` to let the row fill any width.
  *
  * It is `relative`, so a floating `AppLayout.SidePanel` resolves against the row
- * and covers the card, never the notice above it.
+ * and covers the card, never the notice above it. It is also the container
+ * named `app-layout-workspace`: the panel floats when the row is narrower than
+ * the lane it needs, so a page is never narrower than the panel beside it. The
+ * lane is `--container-side-panel-lane` while a direct child of the row is an
+ * expanded `Sidebar.Nav`, and `--container-side-panel-lane-icon-rail` with a
+ * collapsed rail or none.
  *
  * **CSS variables (public API):**
  *
@@ -257,6 +269,9 @@ const Workspace = ({
 				// Why relative: a floating `AppLayout.SidePanel` resolves against the
 				// row, so it covers the card and never the notice above it.
 				"relative",
+				// Why a named container: `AppLayout.SidePanel` floats when this row is
+				// narrower than the lane it needs, whatever the viewport is.
+				"@container/app-layout-workspace",
 				// Why w-full with mx-auto: auto cross-axis margins turn a stretched
 				// flex item into a shrink-to-fit one, so the width is stated outright
 				// and the margins only center the row once the cap applies.
@@ -778,12 +793,81 @@ type AppLayoutSidePanelMobileBreakpoint = "sm" | "md" | "lg";
  * takes the card's rounding and a larger shadow itself, because its inner
  * card fills it edge to edge there. A complete `Record` (not cva) so a
  * breakpoint without its classes is a compile error.
+ *
+ * The lane's `basis-0` is also gated to a row that holds the lane, because
+ * {@link sidePanelLaneFloatClassName} and
+ * {@link sidePanelExpandedRailLaneFloatClassName} float the box below that
+ * too. A row holds the lane at `--container-side-panel-lane` and up, or at
+ * `--container-side-panel-lane-icon-rail` and up when no direct child is an
+ * expanded `Sidebar.Nav`. The second gate is the arbitrary variant written
+ * out in each string: Tailwind reads class names from the source, so no
+ * constant can hold the prefix.
  */
 const sidePanelFloatClassName: Record<AppLayoutSidePanelMobileBreakpoint, string> = {
-	sm: "sm:data-state-closed:basis-0 max-sm:absolute max-sm:inset-y-(--app-layout-card-gutter,0.5rem) max-sm:left-(--app-layout-card-gutter,0.5rem) max-sm:right-(--app-layout-card-gutter,0.5rem) max-sm:z-20 max-sm:my-0 max-sm:rounded-xl max-sm:shadow-lg max-sm:[--_side-panel-content-width:100%] max-sm:[--_side-panel-content-inset:0px] max-sm:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] max-sm:data-state-closed:invisible",
-	md: "md:data-state-closed:basis-0 max-md:absolute max-md:inset-y-(--app-layout-card-gutter,0.5rem) max-md:right-(--app-layout-card-gutter,0.5rem) max-md:z-20 max-md:my-0 max-md:w-[min(24rem,calc(100vw-5rem))] max-md:rounded-xl max-md:shadow-lg max-md:[--_side-panel-content-width:100%] max-md:[--_side-panel-content-inset:0px] max-md:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] max-md:data-state-closed:invisible max-sm:left-(--app-layout-card-gutter,0.5rem) max-sm:w-auto",
-	lg: "lg:data-state-closed:basis-0 max-lg:absolute max-lg:inset-y-(--app-layout-card-gutter,0.5rem) max-lg:right-(--app-layout-card-gutter,0.5rem) max-lg:z-20 max-lg:my-0 max-lg:w-[min(24rem,calc(100vw-5rem))] max-lg:rounded-xl max-lg:shadow-lg max-lg:[--_side-panel-content-width:100%] max-lg:[--_side-panel-content-inset:0px] max-lg:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] max-lg:data-state-closed:invisible max-md:left-(--app-layout-card-gutter,0.5rem) max-md:w-auto",
+	sm: "sm:@min-side-panel-lane/app-layout-workspace:data-state-closed:basis-0 sm:[[data-slot~=app-layout-workspace]:not(:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed])))_&]:@min-side-panel-lane-icon-rail/app-layout-workspace:data-state-closed:basis-0 max-sm:absolute max-sm:inset-y-(--app-layout-card-gutter,0.5rem) max-sm:left-(--app-layout-card-gutter,0.5rem) max-sm:right-(--app-layout-card-gutter,0.5rem) max-sm:z-20 max-sm:my-0 max-sm:rounded-xl max-sm:shadow-lg max-sm:[--_side-panel-content-width:100%] max-sm:[--_side-panel-content-inset:0px] max-sm:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] max-sm:data-state-closed:invisible",
+	md: "md:@min-side-panel-lane/app-layout-workspace:data-state-closed:basis-0 md:[[data-slot~=app-layout-workspace]:not(:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed])))_&]:@min-side-panel-lane-icon-rail/app-layout-workspace:data-state-closed:basis-0 max-md:absolute max-md:inset-y-(--app-layout-card-gutter,0.5rem) max-md:right-(--app-layout-card-gutter,0.5rem) max-md:z-20 max-md:my-0 max-md:w-[min(24rem,calc(100cqw-5rem))] max-md:rounded-xl max-md:shadow-lg max-md:[--_side-panel-content-width:100%] max-md:[--_side-panel-content-inset:0px] max-md:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] max-md:data-state-closed:invisible max-sm:left-(--app-layout-card-gutter,0.5rem) max-sm:w-auto",
+	lg: "lg:@min-side-panel-lane/app-layout-workspace:data-state-closed:basis-0 lg:[[data-slot~=app-layout-workspace]:not(:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed])))_&]:@min-side-panel-lane-icon-rail/app-layout-workspace:data-state-closed:basis-0 max-lg:absolute max-lg:inset-y-(--app-layout-card-gutter,0.5rem) max-lg:right-(--app-layout-card-gutter,0.5rem) max-lg:z-20 max-lg:my-0 max-lg:w-[min(24rem,calc(100cqw-5rem))] max-lg:rounded-xl max-lg:shadow-lg max-lg:[--_side-panel-content-width:100%] max-lg:[--_side-panel-content-inset:0px] max-lg:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] max-lg:data-state-closed:invisible max-md:left-(--app-layout-card-gutter,0.5rem) max-md:w-auto",
 };
+
+/**
+ * Floats the panel when the `AppLayout.Workspace` row is narrower than
+ * `--container-side-panel-lane-icon-rail`, whatever the viewport and the rail
+ * are. The row is the named container, so this reads the width the rail
+ * leaves, and the page is never narrower than the panel beside it. Everything
+ * the strip and the cover share lives here; the strip's width is in
+ * {@link sidePanelLaneStripWidthClassName}, because the phone cover sets no
+ * width and a width from this rule would outrank it.
+ */
+const sidePanelLaneFloatClassName =
+	"@max-side-panel-lane-icon-rail/app-layout-workspace:absolute @max-side-panel-lane-icon-rail/app-layout-workspace:inset-y-(--app-layout-card-gutter,0.5rem) @max-side-panel-lane-icon-rail/app-layout-workspace:right-(--app-layout-card-gutter,0.5rem) @max-side-panel-lane-icon-rail/app-layout-workspace:z-20 @max-side-panel-lane-icon-rail/app-layout-workspace:my-0 @max-side-panel-lane-icon-rail/app-layout-workspace:rounded-xl @max-side-panel-lane-icon-rail/app-layout-workspace:shadow-lg @max-side-panel-lane-icon-rail/app-layout-workspace:[--_side-panel-content-width:100%] @max-side-panel-lane-icon-rail/app-layout-workspace:[--_side-panel-content-inset:0px] @max-side-panel-lane-icon-rail/app-layout-workspace:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] @max-side-panel-lane-icon-rail/app-layout-workspace:data-state-closed:invisible";
+
+/**
+ * The same float as {@link sidePanelLaneFloatClassName}, up to
+ * `--container-side-panel-lane`, while a direct child of the row is an
+ * expanded `Sidebar.Nav`. The arbitrary variant keys the row through `:has()`
+ * on the rail's `data-slot` and `data-state`, so collapsing the rail returns
+ * the panel to the lane at the narrower threshold.
+ */
+const sidePanelExpandedRailLaneFloatClassName =
+	"[[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed]))_&]:@max-side-panel-lane/app-layout-workspace:absolute [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed]))_&]:@max-side-panel-lane/app-layout-workspace:inset-y-(--app-layout-card-gutter,0.5rem) [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed]))_&]:@max-side-panel-lane/app-layout-workspace:right-(--app-layout-card-gutter,0.5rem) [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed]))_&]:@max-side-panel-lane/app-layout-workspace:z-20 [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed]))_&]:@max-side-panel-lane/app-layout-workspace:my-0 [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed]))_&]:@max-side-panel-lane/app-layout-workspace:rounded-xl [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed]))_&]:@max-side-panel-lane/app-layout-workspace:shadow-lg [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed]))_&]:@max-side-panel-lane/app-layout-workspace:[--_side-panel-content-width:100%] [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed]))_&]:@max-side-panel-lane/app-layout-workspace:[--_side-panel-content-inset:0px] [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed]))_&]:@max-side-panel-lane/app-layout-workspace:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed]))_&]:@max-side-panel-lane/app-layout-workspace:data-state-closed:invisible";
+
+/**
+ * The strip width for the row-driven float, gated to the viewports above the
+ * cover tier of each `mobileBreakpoint`: `md` and up for `lg`, `sm` and up
+ * for the other two. Below that tier {@link sidePanelFloatClassName} pins
+ * both edges and sets `w-auto`, and this width must not apply over it. Each
+ * string carries the width twice: below the icon-rail threshold for every
+ * row, and below the lane threshold for a row with an expanded rail. The
+ * width reads the row through `cqw`, not the viewport, so a row narrower
+ * than 24rem plus the strip never holds a panel wider than itself.
+ */
+const sidePanelLaneStripWidthClassName: Record<AppLayoutSidePanelMobileBreakpoint, string> = {
+	sm: "sm:@max-side-panel-lane-icon-rail/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))] sm:[[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed]))_&]:@max-side-panel-lane/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))]",
+	md: "sm:@max-side-panel-lane-icon-rail/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))] sm:[[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed]))_&]:@max-side-panel-lane/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))]",
+	lg: "md:@max-side-panel-lane-icon-rail/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))] md:[[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed]))_&]:@max-side-panel-lane/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))]",
+};
+
+/**
+ * The viewport range in which the panel covers the row from gutter to gutter,
+ * per `mobileBreakpoint`: the range Tailwind compiles the cover tier's `max-*`
+ * variant to, so the modal behavior starts on the width the cover does. With
+ * `"sm"` the cover is the float itself, so the range is the float's.
+ */
+const sidePanelCoverQuery: Record<AppLayoutSidePanelMobileBreakpoint, string> = {
+	sm: "(width < 40rem)",
+	md: "(width < 40rem)",
+	lg: "(width < 48rem)",
+};
+
+/**
+ * Whether `panel` floats over the card right now. The float is CSS, decided
+ * by the viewport, the row, and the rail together, so the computed position
+ * is the one truth. A panel in the lane is a docked pane: it ignores `Escape`,
+ * and a swipe shrinks it instead of sliding it.
+ */
+function isSidePanelFloating(panel: HTMLElement | null): boolean {
+	return panel != null && getComputedStyle(panel).position === "absolute";
+}
 
 /**
  * The state and actions shared by every part under an
@@ -838,6 +922,11 @@ type SidePanelContextValue = {
 	 * outside it. The panel writes it; the root reads it on close.
 	 */
 	lastFocusedInsideRef: RefObject<Element | null>;
+	/**
+	 * The panel's `<aside>`. The panel fills it; the header reads it as the
+	 * element a swipe moves.
+	 */
+	panelRef: RefObject<HTMLElement | null>;
 };
 
 const SidePanelContext = createContext<SidePanelContextValue | null>(null);
@@ -1012,6 +1101,7 @@ const SidePanelRoot = ({
 	// `<body>` on its own schedule, so `document.activeElement` alone cannot say
 	// whether focus was inside. The panel writes the ref from its own focus events.
 	const lastFocusedInsideRef = useRef<Element | null>(null);
+	const panelRef = useRef<HTMLElement | null>(null);
 
 	const setOpen = useCallback(
 		(next: boolean) => {
@@ -1063,7 +1153,7 @@ const SidePanelRoot = ({
 	}, [open, panelId]);
 
 	const contextValue = useMemo<SidePanelContextValue>(
-		() => ({ lastFocusedInsideRef, state: { open, panelId, setOpen, toggle } }),
+		() => ({ lastFocusedInsideRef, panelRef, state: { open, panelId, setOpen, toggle } }),
 		[open, panelId, setOpen, toggle],
 	);
 
@@ -1142,7 +1232,8 @@ type AppLayoutSidePanelProps = Omit<ComponentProps<"aside">, "id"> &
  *
  * Below `mobileBreakpoint` the panel floats over the card instead of taking
  * width from it: `absolute`, pinned to the row's end edge inside the card
- * gutter, `min(24rem, 100vw - 5rem)` wide, with a larger shadow and `z-20` so
+ * gutter, `min(24rem, 100cqw - 5rem)` wide (24rem, or the row less a 5rem
+ * strip of page when the row is narrower), with a larger shadow and `z-20` so
  * it paints above a page's own sticky rows. Closed, it slides off the end edge
  * instead of collapsing and goes `invisible` the instant the slide ends, so a
  * row that `--app-layout-max-width` caps inside the frame has no panel strip
@@ -1151,12 +1242,41 @@ type AppLayoutSidePanelProps = Omit<ComponentProps<"aside">, "id"> &
  * With `"sm"` there is no lower breakpoint, so the panel covers the card as
  * soon as it floats. Two cards side by side in 900px are two unusable cards.
  *
+ * The panel also floats, with the same strip treatment, whenever the
+ * `AppLayout.Workspace` row is narrower than the lane it needs, whatever the
+ * viewport is. The row is the named container `app-layout-workspace`, and
+ * the lane depends on the rail beside the card: `--container-side-panel-lane`
+ * (56.5rem: the expanded rail, the card at the panel's floor, the panel, and
+ * the three gutters) while a direct child of the row is an expanded
+ * `Sidebar.Nav`, and `--container-side-panel-lane-icon-rail` (46.75rem: the
+ * same row with the icon rail) with a collapsed rail, no rail, or a rail that
+ * is a sheet. An expanded rail at a tablet width floats the panel instead of
+ * squeezing the page narrower than it, and collapsing the rail returns the
+ * panel to the lane. A wider rail or panel raises the tokens in `@theme`.
+ *
+ * A drag on `AppLayout.SidePanelHeader` toward the end edge swipes the panel
+ * away in every presentation: a floating panel slides, and a panel in the
+ * lane shrinks the way its close animation does. A floating panel is also an
+ * overlay: `Escape` closes it while focus is inside, after an open combobox
+ * or popover inside it has taken its own `Escape`. A panel in the lane is a
+ * docked pane and ignores `Escape`. The root returns focus to the trigger
+ * outside on every close.
+ *
+ * When the panel covers the row, it is modal. The row's other children (the
+ * card and the rail) go `inert` while it is open, so nothing beneath it is
+ * clickable or read; `useFocusTrap` wraps `Tab` inside it and moves focus
+ * into it on open. The one `<aside>` stays mounted across the lane, the
+ * float, and the cover, so a conversation keeps its DOM and the trap turns
+ * on and off with the viewport.
+ *
  * **CSS variables (public API):**
  *
  * | CSS Variable | Default | Description |
  * | --- | --- | --- |
- * | `--app-layout-side-panel-width` | `clamp(21rem, 24vw, 27rem)` | The panel's width beside the card: a quarter of the viewport, never narrower than 336px and never wider than 432px. Set it on `AppLayout.Root` or on this part. |
+ * | `--app-layout-side-panel-width` | `clamp(21rem, 24cqw, 27rem)` | The panel's width beside the card: a quarter of the `AppLayout.Workspace` row, never narrower than 336px and never wider than 432px. It reads the row, not the viewport, so a row that `--app-layout-max-width` caps on a wide screen holds the panel at its floor and the page keeps the rest. Set it on `AppLayout.Root` or on this part. |
  * | `--app-layout-card-gutter` | `0.5rem` | Read, not owned: `AppLayout.Content` owns this token. The panel keeps it on its top, end, and bottom edges, and the floating panel insets itself by it. Set it on `AppLayout.Root` or another common ancestor of the card and the panel, not on `AppLayout.Content`: custom properties inherit downward only, so a value on the card never reaches the panel. |
+ * | `--container-side-panel-lane` | `56.5rem` | A theme token the row's container query reads: the narrowest `AppLayout.Workspace` row that holds an expanded `Sidebar.Nav` (13rem), the card at the panel's floor (21rem), the panel (21rem), and the three gutters. Below it the panel floats while a direct child of the row is an expanded rail. Set it in `@theme`, not on an element. |
+ * | `--container-side-panel-lane-icon-rail` | `46.75rem` | The same row with the icon rail (3.25rem) in place of the expanded one, or with no rail. Below it the panel floats whatever the rail is. Set it in `@theme`, not on an element. |
  *
  * **Data attributes (public API):**
  *
@@ -1217,16 +1337,55 @@ const SidePanel = ({
 	mobileBreakpoint = "lg",
 	onBlur,
 	onFocus,
+	onKeyDown,
+	ref,
 	...props
 }: AppLayoutSidePanelProps) => {
 	const {
 		lastFocusedInsideRef,
-		state: { open, panelId },
+		panelRef,
+		state: { open, panelId, setOpen },
 	} = useSidePanelContext("SidePanel");
 	const isHydrated = useIsHydratedAfterPaint();
+	const composedRef = useComposedRefs(ref, panelRef);
+
+	// Why a viewport query and not the computed position: the cover is the one
+	// presentation the viewport alone decides, and this is the range Tailwind
+	// compiles the cover tier to.
+	const covers = useMatchesMediaQuery(sidePanelCoverQuery[mobileBreakpoint]);
+	const isModal = open && covers;
+
+	// Why siblings: the card and the rail are the panel's siblings in the row,
+	// and `AppLayout` knows nothing about the rail.
+	useInertSiblings(panelRef, { active: isModal });
+	useFocusTrap(panelRef, { active: isModal });
+
+	// Why a document capture listener, registered at mount: a combobox or a
+	// popover inside the panel closes on the same Escape from a document
+	// listener it registers when it opens, and by the time the event reaches
+	// the panel the DOM no longer shows it open. Registered first, this one
+	// reads the ownership before that listener runs.
+	const escapeBelongsToNestedPopupRef = useRef(false);
+	useEffect(() => {
+		const panel = panelRef.current;
+		if (panel == null) {
+			return;
+		}
+		const recordOwner = (event: KeyboardEvent) => {
+			if (event.key !== "Escape") {
+				return;
+			}
+			escapeBelongsToNestedPopupRef.current = escapeBelongsToNestedPopup(panel, event.target);
+		};
+		document.addEventListener("keydown", recordOwner, true);
+		return () => {
+			document.removeEventListener("keydown", recordOwner, true);
+		};
+	}, [panelRef]);
 
 	return (
 		<aside
+			ref={composedRef}
 			data-slot={joinDataSlot(dataSlot, "app-layout-side-panel")}
 			className={cx(
 				// The box is a clip, not the card: the card is the inner column below,
@@ -1245,7 +1404,9 @@ const SidePanel = ({
 				// Why no private name inside a value: Tailwind reads the `_` of a private
 				// name inside an arbitrary value as a space, so each value names public
 				// variables only and the utilities read the private ones by name.
-				"[--_side-panel-content-width:var(--app-layout-side-panel-width,clamp(21rem,24vw,27rem))] [--_side-panel-content-inset:var(--app-layout-card-gutter,0.5rem)] [--_side-panel-box-width:calc(var(--app-layout-side-panel-width,clamp(21rem,24vw,27rem))+var(--app-layout-card-gutter,0.5rem))]",
+				// Why cqw: the lane tokens budget the panel at its 21rem floor, and a
+				// width that read the viewport outgrew that budget in a capped row.
+				"[--_side-panel-content-width:var(--app-layout-side-panel-width,clamp(21rem,24cqw,27rem))] [--_side-panel-content-inset:var(--app-layout-card-gutter,0.5rem)] [--_side-panel-box-width:calc(var(--app-layout-side-panel-width,clamp(21rem,24cqw,27rem))+var(--app-layout-card-gutter,0.5rem))]",
 				// A fixed basis, never a share of the row: `flex-1` cannot interpolate
 				// to a width, so a lane that animates never uses it. The basis is the
 				// card plus its end inset; the card beside it absorbs the change.
@@ -1264,6 +1425,9 @@ const SidePanel = ({
 				// The closed `basis-0` is in `sidePanelFloatClassName`, gated to the lane.
 				"data-state-closed:pointer-events-none",
 				sidePanelFloatClassName[mobileBreakpoint],
+				sidePanelLaneFloatClassName,
+				sidePanelExpandedRailLaneFloatClassName,
+				sidePanelLaneStripWidthClassName[mobileBreakpoint],
 				className,
 			)}
 			onFocus={(event) => {
@@ -1278,6 +1442,23 @@ const SidePanel = ({
 				if (event.relatedTarget != null && !event.currentTarget.contains(event.relatedTarget)) {
 					lastFocusedInsideRef.current = null;
 				}
+			}}
+			onKeyDown={(event) => {
+				onKeyDown?.(event);
+				if (event.defaultPrevented || event.key !== "Escape") {
+					return;
+				}
+				if (!isSidePanelFloating(event.currentTarget)) {
+					return;
+				}
+				// Why the guard: one press must close one surface, and the popup
+				// that owned this Escape is gone by now.
+				if (escapeBelongsToNestedPopupRef.current) {
+					escapeBelongsToNestedPopupRef.current = false;
+					return;
+				}
+				event.preventDefault();
+				setOpen(false);
 			}}
 			{...props}
 			// Why after the spread: a wider props object can carry `id`,
@@ -1497,6 +1678,16 @@ const SidePanelTrigger = ({
  * `<header>` inside the `<aside>` scopes to the panel and claims no landmark,
  * so if the row introduces the panel, compose a `<header>` with `asChild`.
  *
+ * The row is the panel's swipe handle, through `useSwipeToDismiss`, in every
+ * presentation. A drag toward the end edge follows the pointer one to one: a
+ * floating panel slides, and a panel in the lane shrinks its basis the way
+ * its own close animation does, so the page grows under the finger. A
+ * release past 25% of the panel's width, or a flick, closes it; a shorter
+ * drag springs back on the panel's own 200ms ease-out, so `motion-reduce:`
+ * turns it into a cut, and a drag the wrong way meets rubber-band
+ * resistance. The row is `touch-pan-y`, so a vertical swipe still scrolls,
+ * and a tap on a control in the row stays a tap.
+ *
  * **CSS variables (public API):**
  *
  * | CSS Variable | Default | Description |
@@ -1554,15 +1745,39 @@ const SidePanelHeader = ({
 	children,
 	className,
 	"data-slot": dataSlot,
+	ref,
 	...props
 }: ComponentProps<"div"> & WithAsChild & WithDataSlot) => {
 	const Comp = asChild ? Slot : "div";
+	// Why nullable: the header renders outside `AppLayout.SidePanelRoot` too,
+	// and only the swipe needs the root.
+	const context = useContext(SidePanelContext);
+	const headerRef = useRef<HTMLDivElement>(null);
+	const composedRef = useComposedRefs(ref, headerRef);
+	const panelRef = context?.panelRef;
+	const setOpen = context?.state.setOpen;
+
+	useSwipeToDismiss(headerRef, {
+		target: panelRef,
+		active: context != null,
+		// Why decide at pointer down: the float is CSS. A floating panel slides
+		// off the end edge; a panel in the lane shrinks its basis, the way its
+		// own close animation does.
+		property: () => (isSidePanelFloating(panelRef?.current ?? null) ? "translate" : "flex-basis"),
+		onDismiss: () => {
+			setOpen?.(false);
+		},
+	});
 
 	return (
 		<Comp
+			ref={composedRef}
 			data-slot={joinDataSlot(dataSlot, "app-layout-side-panel-header")}
 			className={cx(
 				"border-card-muted flex shrink-0 items-center gap-2 border-b px-4",
+				// Why pan-y: the row is the swipe handle on a floating panel, and a
+				// vertical swipe on it must still scroll.
+				"touch-pan-y",
 				headerBandClassName,
 				className,
 			)}
@@ -2200,7 +2415,9 @@ const AppLayout = {
 	 * A second card after `AppLayout.Content`, for an assistant or a details
 	 * pane. Reads its open state from `AppLayout.SidePanelRoot`: it slides in at
 	 * `--app-layout-side-panel-width`, collapses to nothing and goes `inert`
-	 * when closed, and floats over the card below `mobileBreakpoint`.
+	 * when closed, floats over the card below `mobileBreakpoint` or when the
+	 * row is too narrow for the rail beside it, and covers the card as a modal
+	 * on a phone.
 	 *
 	 * @see https://mantle.ngrok.com/layouts/app-layout#applayoutsidepanel
 	 *
@@ -2300,7 +2517,8 @@ const AppLayout = {
 	SidePanelTrigger,
 	/**
 	 * The panel's toolbar row, its first child: the title at the start, the
-	 * close control at the end, on the same band as `AppLayout.Header`.
+	 * close control at the end, on the same band as `AppLayout.Header`. It is
+	 * the panel's swipe handle.
 	 *
 	 * @see https://mantle.ngrok.com/layouts/app-layout#applayoutsidepanelheader
 	 *

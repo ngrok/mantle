@@ -1,9 +1,11 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import type { ComponentProps, FocusEventHandler } from "react";
 import { createRef, useEffect, useState } from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
+import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
+import { Combobox } from "../combobox/index.js";
 import { Sidebar } from "../sidebar/sidebar.js";
 import { TooltipProvider } from "../tooltip/index.js";
 import type { AppLayoutSidePanelState } from "./app-layout.js";
@@ -1003,6 +1005,187 @@ describe("AppLayout.SidePanel", () => {
 			"data-slot",
 			"app-shell app-layout-side-panel",
 		);
+	});
+});
+
+/**
+ * The floating panel is an overlay and the covering panel is modal. happy-dom
+ * resolves no stylesheet, so the float is an inline `position: absolute` on
+ * the panel, the one fact `AppLayout.SidePanel` reads for it, and the cover
+ * is the viewport query the panel subscribes to.
+ */
+describe("AppLayout.SidePanel as an overlay", () => {
+	const coverQuery = "(width < 48rem)";
+
+	/** A row with a rail, a card holding the outside trigger, and the open panel. */
+	const coveringShell = (
+		mobileBreakpoint?: ComponentProps<typeof AppLayout.SidePanel>["mobileBreakpoint"],
+	) => (
+		<TooltipProvider>
+			<AppLayout.SidePanelRoot defaultOpen>
+				<AppLayout.Workspace>
+					<div data-testid="rail">
+						<button type="button">rail</button>
+					</div>
+					<AppLayout.Content data-testid="card">
+						<AppLayout.SidePanelTrigger label="Toggle the assistant" />
+					</AppLayout.Content>
+					<AppLayout.SidePanel
+						aria-label="Assistant"
+						data-testid="panel"
+						mobileBreakpoint={mobileBreakpoint}
+					>
+						<AppLayout.SidePanelHeader>
+							<AppLayout.SidePanelTrigger label="Close the assistant" />
+						</AppLayout.SidePanelHeader>
+						<button type="button">send</button>
+					</AppLayout.SidePanel>
+				</AppLayout.Workspace>
+			</AppLayout.SidePanelRoot>
+		</TooltipProvider>
+	);
+
+	test("Escape inside a floating panel closes it and returns focus to the trigger outside", async () => {
+		const user = userEvent.setup();
+		render(
+			<TooltipProvider>
+				<AppLayout.SidePanelRoot defaultOpen>
+					<AppLayout.SidePanelTrigger label="Toggle the assistant" />
+					<AppLayout.SidePanel data-testid="panel" style={{ position: "absolute" }}>
+						<button type="button">send</button>
+					</AppLayout.SidePanel>
+				</AppLayout.SidePanelRoot>
+			</TooltipProvider>,
+		);
+		screen.getByRole("button", { name: "send" }).focus();
+		await user.keyboard("{Escape}");
+		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "closed");
+		expect(screen.getByRole("button", { name: "Toggle the assistant" })).toHaveFocus();
+	});
+
+	test("Escape inside a panel in the lane leaves it open", async () => {
+		const user = userEvent.setup();
+		render(
+			<AppLayout.SidePanelRoot defaultOpen>
+				<AppLayout.SidePanel data-testid="panel">
+					<button type="button">send</button>
+				</AppLayout.SidePanel>
+			</AppLayout.SidePanelRoot>,
+		);
+		screen.getByRole("button", { name: "send" }).focus();
+		await user.keyboard("{Escape}");
+		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "open");
+	});
+
+	test("Escape inside an open combobox in a floating panel closes the popup only", async () => {
+		const user = userEvent.setup();
+		render(
+			<AppLayout.SidePanelRoot defaultOpen>
+				<AppLayout.SidePanel data-testid="panel" style={{ position: "absolute" }}>
+					<Combobox.Root>
+						<Combobox.Input aria-label="Fruit" />
+						<Combobox.Content>
+							<Combobox.Item value="Apple" />
+							<Combobox.Item value="Banana" />
+						</Combobox.Content>
+					</Combobox.Root>
+				</AppLayout.SidePanel>
+			</AppLayout.SidePanelRoot>,
+		);
+		await user.click(screen.getByRole("combobox", { name: "Fruit" }));
+		await screen.findByRole("option", { name: "Apple" });
+		await user.keyboard("{Escape}");
+		expect(screen.queryByRole("option", { name: "Apple" })).not.toBeInTheDocument();
+		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "open");
+		await user.keyboard("{Escape}");
+		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "closed");
+	});
+
+	test("a consumer onKeyDown that prevents the default keeps Escape from closing the panel", async () => {
+		const user = userEvent.setup();
+		render(
+			<AppLayout.SidePanelRoot defaultOpen>
+				<AppLayout.SidePanel
+					data-testid="panel"
+					style={{ position: "absolute" }}
+					onKeyDown={(event) => {
+						event.preventDefault();
+					}}
+				>
+					<button type="button">send</button>
+				</AppLayout.SidePanel>
+			</AppLayout.SidePanelRoot>,
+		);
+		screen.getByRole("button", { name: "send" }).focus();
+		await user.keyboard("{Escape}");
+		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "open");
+	});
+
+	test("a covering panel makes the row's other children inert and moves focus inside", () => {
+		mockMatchMedia({ [coverQuery]: true });
+		render(coveringShell());
+		expect(screen.getByTestId("rail")).toHaveAttribute("inert");
+		expect(screen.getByTestId("card")).toHaveAttribute("inert");
+		expect(screen.getByTestId("panel")).not.toHaveAttribute("inert");
+		expect(screen.getByRole("button", { name: "Close the assistant" })).toHaveFocus();
+	});
+
+	test("Tab wraps inside a covering panel", async () => {
+		const user = userEvent.setup();
+		mockMatchMedia({ [coverQuery]: true });
+		render(coveringShell());
+		screen.getByRole("button", { name: "send" }).focus();
+		await user.tab();
+		expect(screen.getByRole("button", { name: "Close the assistant" })).toHaveFocus();
+		await user.tab({ shift: true });
+		expect(screen.getByRole("button", { name: "send" })).toHaveFocus();
+	});
+
+	test("a panel that stops covering releases the row and the trap without a remount", async () => {
+		const user = userEvent.setup();
+		const media = mockMatchMedia({ [coverQuery]: true });
+		render(coveringShell());
+		const send = screen.getByRole("button", { name: "send" });
+		act(() => {
+			media.setMatches(coverQuery, false);
+		});
+		expect(screen.getByTestId("card")).not.toHaveAttribute("inert");
+		// Why the same node: the aside stays mounted across the cover and the lane.
+		expect(screen.getByRole("button", { name: "send" })).toBe(send);
+		send.focus();
+		await user.tab();
+		expect(send).not.toHaveFocus();
+	});
+
+	test("a panel in the lane leaves the row alone and moves no focus", () => {
+		mockMatchMedia({ [coverQuery]: false });
+		render(coveringShell());
+		expect(screen.getByTestId("card")).not.toHaveAttribute("inert");
+		expect(document.body).toHaveFocus();
+	});
+
+	test("closing a covering panel from inside releases the trigger outside and focuses it", async () => {
+		const user = userEvent.setup();
+		mockMatchMedia({ [coverQuery]: true });
+		render(coveringShell());
+		await user.click(screen.getByRole("button", { name: "Close the assistant" }));
+		const trigger = screen.getByRole("button", { name: "Toggle the assistant" });
+		expect(screen.getByTestId("card")).not.toHaveAttribute("inert");
+		expect(trigger).toHaveFocus();
+	});
+
+	test.each([
+		["sm", "(width < 40rem)"],
+		["md", "(width < 40rem)"],
+		["lg", "(width < 48rem)"],
+	] as const)("mobileBreakpoint %s covers below %s", (mobileBreakpoint, query) => {
+		const media = mockMatchMedia({ [query]: true });
+		render(coveringShell(mobileBreakpoint));
+		expect(screen.getByTestId("card")).toHaveAttribute("inert");
+		act(() => {
+			media.setMatches(query, false);
+		});
+		expect(screen.getByTestId("card")).not.toHaveAttribute("inert");
 	});
 });
 

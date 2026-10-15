@@ -16,6 +16,10 @@ export { useCallbackRef } from "./use-callback-ref.js";
 export { useCopyToClipboard } from "./use-copy-to-clipboard.js";
 export { useDebounce } from "./use-debounce.js";
 export { useDebouncedCallback } from "./use-debounced-callback.js";
+export { useFocusTrap } from "./use-focus-trap.js";
+export type { UseFocusTrapOptions } from "./use-focus-trap.js";
+export { useInertSiblings } from "./use-inert-siblings.js";
+export type { UseInertSiblingsOptions } from "./use-inert-siblings.js";
 export { useIsHydrated } from "./use-is-hydrated.js";
 export { useIsHydratedAfterPaint } from "./use-is-hydrated-after-paint.js";
 export { useIsomorphicLayoutEffect } from "./use-isomorphic-layout-effect.js";
@@ -24,6 +28,12 @@ export { useMatchesMediaQuery } from "./use-matches-media-query.js";
 export { useSessionStorage } from "./use-session-storage.js";
 export { getPrefersReducedMotion, usePrefersReducedMotion } from "./use-prefers-reduced-motion.js";
 export { useScrollBehavior } from "./use-scroll-behavior.js";
+export { useSwipeToDismiss } from "./use-swipe-to-dismiss.js";
+export type {
+	SwipeDirection,
+	SwipeProperty,
+	UseSwipeToDismissOptions,
+} from "./use-swipe-to-dismiss.js";
 export { useComposedRefs } from "../utils/compose-refs/compose-refs.js";
 export { useInView } from "./use-in-view.js";
 export type { UseInViewOptions } from "./use-in-view.js";

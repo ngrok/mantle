@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { z } from "zod";
 import { DocActions } from "~/components/doc-actions";
 import { MdxProvider } from "~/components/mdx-provider";
 
@@ -35,6 +36,24 @@ export const fullWidthProseMeasure = [
 	// within the measure instead of left-aligning them with the prose
 	"[&_[data-mdx-content]>:is(h1,h2,h3,h4,h5,h6)]:w-auto",
 ];
+
+const fullWidthHandleSchema = z.object({ frontmatter: z.object({ layout: z.literal("full") }) });
+
+/**
+ * Returns true when the matched doc asks for the full-width canvas with
+ * `layout: full` in its frontmatter, which the docs pipeline puts on the leaf
+ * route's `handle`. A section layout reads it to pass `fullWidthProseMeasure`
+ * for one page without widening the rest of the section.
+ *
+ * @example
+ * ```tsx
+ * const fullWidth = isFullWidthDoc(useMatches());
+ * <PageLayout className={cx(fullWidth && ["max-w-full", fullWidthProseMeasure])} sidebar={…}>
+ * ```
+ */
+export function isFullWidthDoc(matches: ReadonlyArray<{ handle?: unknown }>): boolean {
+	return fullWidthHandleSchema.safeParse(matches[matches.length - 1]?.handle).success;
+}
 
 /**
  * Shared layout for doc pages. Renders the doc actions button, the

@@ -1,0 +1,23 @@
+/*
+ * The assistant's view transition is a page transition, so it runs for 300ms:
+ * the floor of the 300–400ms band for page transitions, and the ceiling for a
+ * UI animation. The group is the element named `assistant`; `root` is the rest
+ * of the page, which crossfades underneath it on the same clock.
+ */
+::view-transition-group(assistant),
+::view-transition-old(assistant),
+::view-transition-new(assistant),
+::view-transition-old(root),
+::view-transition-new(root) {
+	animation-duration: 300ms;
+	animation-timing-function: var(--ease-out-strong);
+}
+
+/* A cut, the same as every `motion-reduce:` rule in mantle. */
+@media (prefers-reduced-motion: reduce) {
+	::view-transition-group(*),
+	::view-transition-old(*),
+	::view-transition-new(*) {
+		animation: none;
+	}
+}

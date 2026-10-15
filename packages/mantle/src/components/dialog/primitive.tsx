@@ -132,6 +132,7 @@ export {
 	Content,
 	Description,
 	Title,
+	escapeBelongsToNestedPopup,
 	isDialogOverlayTarget,
 };
 
@@ -151,32 +152,46 @@ function preventCloseOnNestedPopupEscape(
 	if (!isParentNode(event.currentTarget)) {
 		return;
 	}
+	if (escapeBelongsToNestedPopup(event.currentTarget, event.target)) {
+		event.preventDefault();
+	}
+}
 
-	const currentTarget = event.currentTarget;
+/**
+ * Whether an Escape pressed at `target` belongs to a popup open inside
+ * `container`, so the surface that owns `container` must stay open. The popup
+ * owner is the nearest ancestor of `target`, else of the focused element, with
+ * `aria-expanded="true"` and `aria-controls`; its popup must sit inside
+ * `container` and be open (Ariakit's `data-open="true"`, Radix's
+ * `data-state="open"`). An always-visible list such as cmdk carries neither
+ * attribute and never claims the Escape.
+ *
+ * @example
+ * ```ts
+ * // a combobox inside the panel is open: this Escape closes the combobox only
+ * escapeBelongsToNestedPopup(panel, comboboxInput); // true
+ * ```
+ */
+function escapeBelongsToNestedPopup(
+	container: ParentNode & Node,
+	target: EventTarget | null,
+): boolean {
 	const activeElement =
-		currentTarget instanceof Document
-			? currentTarget.activeElement
-			: (currentTarget.ownerDocument?.activeElement ?? null);
+		container instanceof Document
+			? container.activeElement
+			: (container.ownerDocument?.activeElement ?? null);
 
-	const owner = getExpandedPopupOwner(event.target) ?? getExpandedPopupOwner(activeElement);
-
+	const owner = getExpandedPopupOwner(target) ?? getExpandedPopupOwner(activeElement);
 	const popup = owner ? getControlledPopup(owner) : null;
 
-	if (
+	return (
 		owner != null &&
 		parseBooleanish(owner.getAttribute("aria-expanded")) &&
 		popup != null &&
-		currentTarget.contains(owner) &&
-		currentTarget.contains(popup) &&
-		// Only block closing if the popup is actively open. Always-visible lists
-		// without open/close state (e.g. cmdk) carry neither attribute and should
-		// never block the dialog from closing.
-		// - Ariakit sets `data-open="true"` when its popover is open.
-		// - Radix sets `data-state="open"` when its popup is open.
+		container.contains(owner) &&
+		container.contains(popup) &&
 		(popup.getAttribute("data-open") === "true" || popup.getAttribute("data-state") === "open")
-	) {
-		event.preventDefault();
-	}
+	);
 }
 
 /**

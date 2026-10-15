@@ -15,6 +15,8 @@ import type { Route } from "./+types/doc-page";
 const frontmatterSchema = z.object({
 	title: z.string().trim().min(1, "Frontmatter title is required"),
 	description: z.string().trim().min(1, "Frontmatter description is required"),
+	// `full` renders the page on the full-width canvas; see `isFullWidthDoc`.
+	layout: z.enum(["full"]).optional(),
 });
 
 const indexTitle = "@ngrok/mantle";

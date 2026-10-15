@@ -160,15 +160,14 @@ export function AppLayoutEditorDemo() {
 }
 
 /**
- * The same bottom-pinned bar, but two route levels deep — the shape of ngrok's
+ * The same bottom-pinned bar, but two route levels deep: the shape of ngrok's
  * endpoint detail route, where a parent route owns the title and tabs and a
  * child route owns an editor with a validity bar beneath it.
  *
- * This is the case worth having live, because the invariant has to hold at
- * *every* level: each ancestor hands the next a definite height via
- * `min-h-0 flex-1`, and a single missing `min-h-0` makes everything below it
- * overflow the card instead of scrolling — pushing the pinned bar below the fold
- * while still looking "pinned" in the markup.
+ * This is the case worth having live, because the shape has to hold at every
+ * level: each ancestor hands the next `flex-1`, never a height, and the bar at
+ * the leaf carries `mt-auto` and `sticky bottom-0`. The body stays the one
+ * scroll region, so the skip link still lands on the element that scrolls.
  *
  * @example
  * ```tsx
@@ -220,12 +219,13 @@ export function AppLayoutPinnedFooterDemo() {
 						</AppLayout.Header>
 						<AppLayout.Body>
 							{/*
-							 * Level 1 — the "parent route": owns the endpoint title, its
-							 * badges, and the tab row. h-full fills the card; gap-0 because
-							 * the rows below manage their own spacing.
+							 * Level 1, the "parent route": owns the endpoint title, its
+							 * badges, and the tab row. min-h-full reaches the card's bottom
+							 * edge on a short page; gap-0 because the rows below manage
+							 * their own spacing. The title block sticks to the top edge.
 							 */}
-							<Tabs.Root defaultValue="traffic-policy" className="h-full gap-0">
-								<div className="shrink-0 px-6 pt-4">
+							<Tabs.Root defaultValue="traffic-policy" className="min-h-full gap-0">
+								<div className="bg-card sticky top-0 shrink-0 px-6 pt-4">
 									<div className="mb-1 flex flex-wrap items-center gap-1">
 										<h1 className="text-strong text-xl font-medium break-all">
 											https://forward-labels.test
@@ -255,13 +255,13 @@ export function AppLayoutPinnedFooterDemo() {
 								</div>
 
 								{/*
-								 * min-h-0 flex-1 is what hands the child route a definite
-								 * height. Drop the min-h-0 and the editor below stops
-								 * scrolling and shoves the validity bar past the card's edge.
+								 * flex-1 is what hands the child route the rest of the column.
+								 * Drop it and the validity bar sits under the last line of the
+								 * policy instead of on the card's bottom edge.
 								 */}
-								<Tabs.Content value="traffic-policy" className="min-h-0 flex-1">
-									{/* Level 2 — the "child route": toolbar, editor, validity bar */}
-									<div className="flex h-full flex-col">
+								<Tabs.Content value="traffic-policy" className="flex flex-1 flex-col">
+									{/* Level 2, the "child route": toolbar, editor, validity bar */}
+									<div className="flex flex-1 flex-col">
 										<div className="border-card-muted flex shrink-0 items-center gap-3 border-y px-6 py-3">
 											<Badge appearance="muted" color="neutral">
 												YAML
@@ -280,25 +280,23 @@ export function AppLayoutPinnedFooterDemo() {
 												Save
 											</Button>
 										</div>
-										<div className="min-h-0 flex-1 overflow-y-auto">
-											<pre translate="no" className="text-body p-6 font-mono text-xs leading-6">
-												{fakePolicy(ruleCount)}
-											</pre>
-										</div>
-										<div className="border-card-muted text-muted flex shrink-0 items-center gap-2 border-t px-6 py-2 text-xs">
+										<pre translate="no" className="text-body p-6 font-mono text-xs leading-6">
+											{fakePolicy(ruleCount)}
+										</pre>
+										<div className="bg-card border-card-muted text-muted sticky bottom-0 mt-auto flex shrink-0 items-center gap-2 border-t px-6 py-2 text-xs">
 											<CheckCircleIcon weight="fill" className="fill-success-600 shrink-0" />
 											Traffic policy is valid
 										</div>
 									</div>
 								</Tabs.Content>
 
-								<Tabs.Content value="overview" className="min-h-0 flex-1">
+								<Tabs.Content value="overview" className="flex-1">
 									<p className="text-muted p-6 text-sm">
 										Switch back to <strong>Traffic Policy</strong> — the validity bar stays on the
 										card&rsquo;s bottom edge however tall the policy gets.
 									</p>
 								</Tabs.Content>
-								<Tabs.Content value="settings" className="min-h-0 flex-1">
+								<Tabs.Content value="settings" className="flex-1">
 									<p className="text-muted p-6 text-sm">Settings would render here.</p>
 								</Tabs.Content>
 							</Tabs.Root>

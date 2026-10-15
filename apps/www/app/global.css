@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "@ngrok/mantle/mantle.css";
 @import "@ngrok/mantle/source-all.css";
+@import "./features/assistant-across-routes/assistant-view-transition.css";
 
 @source "../../../packages/mantle/src";
 

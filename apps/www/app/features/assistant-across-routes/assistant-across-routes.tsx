@@ -1,0 +1,283 @@
+import { AppLayout, useSidePanel } from "@ngrok/mantle/app-layout";
+import { IconButton } from "@ngrok/mantle/button";
+import { cx } from "@ngrok/mantle/cx";
+import { useMatchesMediaQuery } from "@ngrok/mantle/hooks";
+import { Sidebar } from "@ngrok/mantle/sidebar";
+import { Tooltip } from "@ngrok/mantle/tooltip";
+import { PencilSimpleLineIcon } from "@phosphor-icons/react/PencilSimpleLine";
+import { XIcon } from "@phosphor-icons/react/X";
+import type { ComponentProps } from "react";
+import { useEffect, useRef, useState } from "react";
+import {
+	AssistantComposer,
+	AssistantTranscript,
+	useAssistantConversation,
+} from "~/features/assistant-across-routes/assistant-conversation";
+
+/** The assistant's own route, where the conversation is the page. */
+const assistantPath = "/assistant";
+
+/**
+ * Reads a pathname the way React Router matches one: decoded, lowercase, and
+ * with no trailing slash. A malformed escape keeps the raw pathname, which is
+ * what the router does too.
+ */
+function normalizePathname(pathname: string): string {
+	let decoded = pathname;
+	try {
+		decoded = decodeURIComponent(pathname);
+	} catch {
+		// a malformed escape: the raw pathname stands
+	}
+	return decoded.toLowerCase().replace(/\/+$/, "") || "/";
+}
+
+/**
+ * Returns true on the assistant's route and on its children, such as a
+ * conversation's own URL. A sibling route that shares the prefix is a
+ * different page. The comparison matches the router's: `/Assistant` and
+ * `/assi%73tant` are the assistant's route, so the shell never renders the
+ * page and the panel together.
+ *
+ * @example
+ * ```ts
+ * isAssistantPath("/assistant"); // true
+ * isAssistantPath("/assistant/c_123"); // true
+ * isAssistantPath("/Assistant/"); // true
+ * isAssistantPath("/assistants"); // false
+ * ```
+ */
+function isAssistantPath(pathname: string): boolean {
+	const normalized = normalizePathname(pathname);
+	return normalized === assistantPath || normalized.startsWith(`${assistantPath}/`);
+}
+
+/**
+ * Returns true when a navigation enters or leaves the assistant's route. Those
+ * are the only navigations that move the conversation between `main` and the
+ * panel, so they are the only ones that run the view transition.
+ *
+ * @example
+ * ```ts
+ * crossesAssistant("/assistant", "/endpoints"); // true
+ * crossesAssistant("/endpoints", "/domains"); // false
+ * ```
+ */
+function crossesAssistant(from: string, to: string): boolean {
+	return isAssistantPath(from) !== isAssistantPath(to);
+}
+
+/**
+ * The `view-transition-name` the assistant's two homes share, as a class.
+ * `AppLayout.Content` carries it on the assistant route and the open panel
+ * carries it on every other route, so each state names exactly one element.
+ * A name on two elements at once makes the browser skip the whole transition.
+ * `assistant-view-transition.css` times the group by this name.
+ */
+const assistantViewTransitionClassName = "[view-transition-name:assistant]";
+
+/** The control that starts a new conversation, in both headers. */
+function NewConversationButton() {
+	const { reset } = useAssistantConversation();
+
+	return (
+		<Tooltip.Root>
+			<Tooltip.Trigger asChild>
+				<IconButton
+					type="button"
+					appearance="ghost"
+					intent="neutral"
+					size="sm"
+					icon={<PencilSimpleLineIcon />}
+					label="New conversation"
+					onClick={reset}
+				/>
+			</Tooltip.Trigger>
+			<Tooltip.Content>New conversation</Tooltip.Content>
+		</Tooltip.Root>
+	);
+}
+
+/**
+ * The assistant's route: the conversation as the page. Renders the toolbar,
+ * the `main` body, and the composer pinned below it, inside the shell's
+ * `AppLayout.Content`. The first message opens the companion, so the
+ * conversation comes along when the reader leaves.
+ *
+ * @example
+ * ```tsx
+ * // app/routes/assistant.tsx
+ * export default function AssistantRoute() {
+ *   return <AssistantPage />;
+ * }
+ * ```
+ */
+function AssistantPage() {
+	const { setOpen } = useSidePanel();
+	const openCompanion = () => setOpen(true);
+
+	return (
+		<>
+			<AppLayout.Header>
+				<AppLayout.HeaderStart>
+					<Sidebar.Trigger />
+				</AppLayout.HeaderStart>
+				<AppLayout.HeaderContent>
+					<h1 className="text-strong text-sm font-medium">Assistant</h1>
+				</AppLayout.HeaderContent>
+				<AppLayout.HeaderActions>
+					<NewConversationButton />
+				</AppLayout.HeaderActions>
+			</AppLayout.Header>
+			<AppLayout.Body>
+				{/* Why one scroll region: the skip link lands on `main`, so `main` must be
+				    the element that scrolls. The composer sticks to its bottom edge. */}
+				<div className="flex min-h-full flex-col">
+					<AssistantTranscript onSend={openCompanion} />
+					<div className="bg-card sticky bottom-0 mt-auto shrink-0 px-3 pt-2 pb-3">
+						<AssistantComposer className="mx-auto w-full max-w-xl" onSend={openCompanion} />
+					</div>
+				</div>
+			</AppLayout.Body>
+		</>
+	);
+}
+
+/**
+ * The assistant's panel: the same conversation beside a page. Render it as the
+ * last child of `AppLayout.Workspace` on every route but the assistant's. On
+ * that route the page is the home, and an `<aside>` beside it would name the
+ * conversation twice.
+ *
+ * @example
+ * ```tsx
+ * <AppLayout.Workspace>
+ *   <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
+ *   <AppLayout.Content className={cx(onAssistantPage && assistantViewTransitionClassName)}>
+ *     <Outlet />
+ *   </AppLayout.Content>
+ *   {!onAssistantPage && <AssistantPanel />}
+ * </AppLayout.Workspace>
+ * ```
+ */
+function AssistantPanel({
+	mobileBreakpoint,
+}: {
+	/** Forwarded to `AppLayout.SidePanel`. Match it to `Sidebar.Root`'s. */
+	mobileBreakpoint?: ComponentProps<typeof AppLayout.SidePanel>["mobileBreakpoint"];
+}) {
+	const { open } = useSidePanel();
+
+	return (
+		<AppLayout.SidePanel
+			aria-label="Assistant"
+			mobileBreakpoint={mobileBreakpoint}
+			// Why only when open: a closed panel is a zero-width box, and a morph
+			// from the page into it reads as the conversation folding into nothing.
+			className={cx(open && assistantViewTransitionClassName)}
+		>
+			<AppLayout.SidePanelHeader>
+				<h2 className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Assistant</h2>
+				<NewConversationButton />
+				<AppLayout.SidePanelTrigger icon={<XIcon />} label="Close the assistant" />
+			</AppLayout.SidePanelHeader>
+			<AppLayout.SidePanelBody>
+				<AssistantTranscript />
+			</AppLayout.SidePanelBody>
+			<AppLayout.SidePanelFooter>
+				<AssistantComposer />
+			</AppLayout.SidePanelFooter>
+		</AppLayout.SidePanel>
+	);
+}
+
+/**
+ * The props of `AssistantSidebarRoot`: `Sidebar.Root`'s, except `open`, which
+ * the part derives.
+ */
+type AssistantSidebarRootProps = Omit<ComponentProps<typeof Sidebar.Root>, "open"> & {
+	/**
+	 * Whether `AssistantPanel` is in the row. On the assistant's route it is
+	 * not, and the rail keeps its width.
+	 */
+	panelMounted: boolean;
+};
+
+/**
+ * The `Sidebar.Root` of a shell with the assistant beside the page. The rail
+ * prefers its icon rail while the panel needs the width: when the panel opens,
+ * or the window narrows below the lane an expanded rail needs while the panel
+ * is open, the rail collapses, so the panel sits beside the page instead of
+ * floating over it. The reader can expand it again with `Sidebar.Trigger`, and
+ * the panel floats. When the panel closes or the window widens, a rail the
+ * panel collapsed expands again, and a rail the reader toggled keeps their
+ * choice. `onOpenChange` reports the reader's toggles only, so the sidebar
+ * cookie keeps their preference.
+ *
+ * @example
+ * ```tsx
+ * <AppLayout.SidePanelRoot defaultOpen={loaderData.sidePanelOpen}>
+ *   <AssistantSidebarRoot panelMounted={!onAssistantPage} defaultOpen={loaderData.sidebarOpen}>
+ *     <AppLayout.Root className="fixed inset-0">…</AppLayout.Root>
+ *   </AssistantSidebarRoot>
+ * </AppLayout.SidePanelRoot>
+ * ```
+ */
+function AssistantSidebarRoot({
+	children,
+	defaultOpen = true,
+	onOpenChange,
+	panelMounted,
+	...props
+}: AssistantSidebarRootProps) {
+	const [railOpen, setRailOpen] = useState(defaultOpen);
+	const { open: panelOpen } = useSidePanel();
+	// Why 56.5rem: it is `--container-side-panel-lane`, the narrowest row that
+	// holds the expanded rail, the page, and the panel. Below it the row is the
+	// viewport's width, so the viewport query is the row's.
+	const panelNeedsTheLane = useMatchesMediaQuery("(width < 56.5rem)");
+	const panelNeedsTheRail = panelMounted && panelOpen && panelNeedsTheLane;
+	const panelNeededTheRail = useRef(false);
+	// Why a ref: only a collapse the panel caused expands again, and a toggle
+	// by the reader in between cancels that.
+	const collapsedByPanel = useRef(false);
+
+	useEffect(() => {
+		const panelTookTheWidth = panelNeedsTheRail && !panelNeededTheRail.current;
+		const panelGaveItBack = !panelNeedsTheRail && panelNeededTheRail.current;
+		panelNeededTheRail.current = panelNeedsTheRail;
+		if (panelTookTheWidth && railOpen) {
+			collapsedByPanel.current = true;
+			setRailOpen(false);
+		}
+		if (panelGaveItBack && collapsedByPanel.current) {
+			collapsedByPanel.current = false;
+			setRailOpen(true);
+		}
+	}, [panelNeedsTheRail, railOpen]);
+
+	return (
+		<Sidebar.Root
+			{...props}
+			open={railOpen}
+			onOpenChange={(open) => {
+				collapsedByPanel.current = false;
+				setRailOpen(open);
+				onOpenChange?.(open);
+			}}
+		>
+			{children}
+		</Sidebar.Root>
+	);
+}
+
+export {
+	//,
+	AssistantPage,
+	AssistantPanel,
+	AssistantSidebarRoot,
+	assistantPath,
+	assistantViewTransitionClassName,
+	crossesAssistant,
+	isAssistantPath,
+};

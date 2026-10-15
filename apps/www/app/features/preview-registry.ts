@@ -7,6 +7,7 @@ import {
 } from "~/features/app-layout-demos";
 import { AppLayoutEditorDemo, AppLayoutPinnedFooterDemo } from "~/features/app-layout-editor-demo";
 import { AppShellDemo } from "~/features/app-shell-demo";
+import { AssistantAcrossRoutesDemo } from "~/features/assistant-across-routes-demo";
 import { CommandSearchShellDemo } from "~/features/command-demos";
 import { ListPageLoadingDemo } from "~/features/list-page-loading-demo";
 import {
@@ -106,6 +107,11 @@ export const previewExamples = {
 		title: "Side panel demo",
 		Component: AppLayoutSidePanelDemo,
 		sourceFile: "app-layout-demos.tsx",
+	},
+	"assistant-across-routes": {
+		title: "Assistant across routes demo",
+		Component: AssistantAcrossRoutesDemo,
+		sourceFile: "assistant-across-routes-demo.tsx",
 	},
 	"centered-layout": {
 		title: "Centered layout demo",
