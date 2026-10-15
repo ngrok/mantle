@@ -1,5 +1,118 @@
 # @ngrok/mantle
 
+## 0.90.0
+
+### Minor Changes
+
+- [#1404](https://github.com/ngrok/mantle/pull/1404) [`2e5a336`](https://github.com/ngrok/mantle/commit/2e5a336cb3b83f8dc47e5be6361b46dd9c0fa7ee) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add `Strata`, a page of titled sections where each one's title and description sit beside its content. It is
+  the shape of a settings page, a resource configuration editor, and any form long enough that each group needs
+  its own sentence — see [the docs](https://mantle.ngrok.com/components/structure/strata).
+
+  ```tsx
+  import { Strata } from "@ngrok/mantle/strata";
+
+  <Strata.Root>
+  	<Strata.Section>
+  		<Strata.Header>
+  			<Strata.Title>Providers</Strata.Title>
+  			<Strata.Description>What providers keys may call.</Strata.Description>
+  		</Strata.Header>
+  		<Strata.Body>
+  			<ProviderScopePicker />
+  		</Strata.Body>
+  	</Strata.Section>
+  	<Strata.Section>
+  		<Strata.Header>
+  			<Strata.Title>Routing rules</Strata.Title>
+  			<Strata.Description>Define how requests are authenticated.</Strata.Description>
+  		</Strata.Header>
+  		<Strata.Body>
+  			<RoutingRuleList />
+  		</Strata.Body>
+  	</Strata.Section>
+  </Strata.Root>;
+  ```
+
+  The parts:
+
+  - **`Root`** is the stack. It rules a hairline between adjacent `Section` children — never above the first or
+    below the last — and it scopes `--strata-columns` for all of them.
+  - **`Section`** is one titled band, and it owns its own vertical rhythm (`py-8 first:pt-0`) rather than taking
+    it from `Root`, so a lone section reads correctly. Below the `md` breakpoint it stacks `Header` above `Body`;
+    at `md` and up it splits the two into a `1fr 2fr` grid.
+  - **`Header`** is the introductory column — `Title` and `Description`, spaced by `gap-2`. It renders a semantic
+    `<header>`, which is generic rather than a second `banner` landmark because it sits inside `Section`'s
+    `<section>`.
+  - **`Title`** renders an `<h2>`, one level below the page's `<h1>`. Compose `asChild` with the right element
+    when the sections sit deeper in the outline.
+  - **`Description`** renders a `<p>` in muted body text. Optional.
+  - **`Body`** is the content column, and its `gap-4` spaces stacked controls.
+
+  `Section` takes no accessible name, so a page of sections adds no `region` landmarks — the `Title` headings
+  already carry the outline, and a landmark list only stays useful while `main` and `nav` are easy to find in it.
+  Set `aria-labelledby` to the `Title`'s `id` only when a section is a destination a reader jumps back to. To tell
+  apart controls that read alike across two sections, reach for `Field.Set` and `Field.Legend` instead —
+  assistive technology announces a landmark on entry, never per control.
+
+  Public CSS variable:
+
+  | CSS Variable       | Default   | Description                                                                                                                              |
+  | ------------------ | --------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+  | `--strata-columns` | `1fr 2fr` | The `grid-template-columns` value at `md` and up. Set it on `Root` to re-split every section, or on one `Section` to move only that one. |
+
+  Every part stamps a `data-slot` (`strata`, `strata-section`, `strata-header`, `strata-title`,
+  `strata-description`, `strata-body`) and accepts `asChild`.
+
+### Patch Changes
+
+- [#1367](https://github.com/ngrok/mantle/pull/1367) [`4a976be`](https://github.com/ngrok/mantle/commit/4a976be1f5a812002d7818060b80852563b8e012) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `countryCodes` no longer lists `"016"` twice. The list had 739 entries for 738 distinct codes.
+
+- [#1563](https://github.com/ngrok/mantle/pull/1563) [`79ca242`](https://github.com/ngrok/mantle/commit/79ca242f9b3198d2dc05fce458a701189bcaa6ef) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add three hooks to `@ngrok/mantle/hooks` for a surface that turns modal or dismissible in place, with no portal and no remount. `AppLayout.SidePanel` composes all three; see [the hooks page](https://mantle.ngrok.com/hooks).
+
+  - **`useFocusTrap(ref, { active })`** keeps keyboard focus inside an element: on activation it moves focus to the first tab stop inside, else to the element itself (which gets `tabindex="-1"` for the trap's lifetime when it has none), and retries over frames when the element opens with a transition and holds nothing focusable yet. While active, `Tab` on the last tab stop wraps to the first and `Shift+Tab` on the first wraps to the last, in document order, and a child that prevents the default on `Tab` keeps it. It traps the keyboard only, so a menu or popover that portals out of the element keeps working; pair it with `useInertSiblings` to block pointer focus. Flip `active` to engage and release the trap on one mounted element.
+  - **`useInertSiblings(ref, { active })`** sets `inert` on every other child of the element's parent while active, including a sibling that mounts later, and clears what it set on release. It reaches siblings only, so a notice above the row stays usable.
+  - **`useSwipeToDismiss(handleRef, { target, direction, property, threshold, flickVelocity, active, onDismiss })`** makes an element a swipe handle that drags `target` toward one edge and calls `onDismiss` past 25% of its size or on a flick faster than 0.4 CSS pixels per millisecond. The target follows the pointer one to one, a shorter drag springs back on the target's own transition, a drag the wrong way meets rubber-band resistance, and a gesture that runs across the direction never starts. `property` picks what the drag writes: `translate` slides the target, and `flex-basis` shrinks a flex item the way a lane collapses. `property` and `active` take a function for a condition CSS owns, such as a panel that floats under one media query and sits in a lane under another.
+
+- [#1564](https://github.com/ngrok/mantle/pull/1564) [`2cfa2d3`](https://github.com/ngrok/mantle/commit/2cfa2d3feff259912aea8182796f32eb87f6b2e3) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Bump the runtime dependencies to their latest patch release:
+
+  - `@ariakit/react` from 0.4.41 to 0.4.42
+  - `@tanstack/react-virtual` from 3.14.18 to 3.14.19
+
+  No API change.
+
+- [#1562](https://github.com/ngrok/mantle/pull/1562) [`4915582`](https://github.com/ngrok/mantle/commit/49155820cad909fa40c5432d184a7a38fe66555c) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Ship the migration guides as ast-grep codemods. Every migration under `/migrations` that has a syntactic rewrite now ships its rules in the package at `dist/migrations/<NNNN>-<slug>.yml`, and each guide opens with a `Codemod` section that names what the rules apply and what stays manual.
+
+  Run one against your source from a `@ngrok/mantle` install:
+
+  ```sh
+  npx --yes --package=@ast-grep/cli@0.50.0 ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/0008-tabs-separator.yml --update-all src
+  ```
+
+  From a mantle checkout, `pnpm -w run migrate 0008 <path>` runs the same rules, and `--dry-run` prints the rewrites first. Run your formatter after either command: a codemod keeps the surrounding layout as it found it.
+
+- [#1562](https://github.com/ngrok/mantle/pull/1562) [`4915582`](https://github.com/ngrok/mantle/commit/49155820cad909fa40c5432d184a7a38fe66555c) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `dist/agent.json` now carries the full agent manifest: every component with its import path, status, summary, JSDoc summary, `@example` blocks, search aliases, and sibling boundaries, plus the hooks and utilities with their examples. `dist/llms.txt` lists every module on one line with its import path and summary. Both match what `https://mantle.ngrok.com/api/components.json` serves, so an agent with no network reads the same records from `node_modules`.
+
+  Card, Well, Separator, and Empty now state their sibling boundaries in `@useWhen` and `@siblings` JSDoc tags. The manifest exposes them as `useWhen` and `siblings`, and the docs pages carry a matching "When to use" section.
+
+- [#1563](https://github.com/ngrok/mantle/pull/1563) [`79ca242`](https://github.com/ngrok/mantle/commit/79ca242f9b3198d2dc05fce458a701189bcaa6ef) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `AppLayout.SidePanel` now floats over the card whenever the `AppLayout.Workspace` row is too narrow to hold the rail, the card, and the panel at full width, whatever the viewport is. Before, only `mobileBreakpoint` decided, so an expanded rail at a tablet width squeezed the page narrower than the panel beside it.
+
+  `AppLayout.Workspace` is the container named `app-layout-workspace`, and the threshold follows the rail beside the card, read through `:has()` on `Sidebar.Nav`'s `data-slot` and `data-state`:
+
+  - `--container-side-panel-lane` (`56.5rem`: the expanded rail at 13rem, the card at the panel's floor of 21rem, the panel at 21rem, and the three gutters) while a direct child of the row is an expanded `Sidebar.Nav`.
+  - `--container-side-panel-lane-icon-rail` (`46.75rem`: the same row with the icon rail at 3.25rem) with a collapsed rail, no rail, or a rail that is a sheet.
+
+  So collapsing the rail at a tablet width returns the panel to the lane beside the page. Raise either token in `@theme` for a wider rail or panel.
+
+  The panel's widths now read the row, not the viewport. The default `--app-layout-side-panel-width` is `clamp(21rem, 24cqw, 27rem)`, a quarter of the row, so a row that `--app-layout-max-width` caps on a wide screen holds the panel at its 21rem floor and the page keeps the rest. Before, `24vw` of a 1920px viewport put a 27rem panel beside a page narrower than the panel. The floating strip is `min(24rem, 100cqw - 5rem)`, so a row narrower than the strip never holds a panel wider than itself.
+
+- [#1563](https://github.com/ngrok/mantle/pull/1563) [`79ca242`](https://github.com/ngrok/mantle/commit/79ca242f9b3198d2dc05fce458a701189bcaa6ef) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `AppLayout.SidePanel` can now be swiped away in every presentation, a floating one is an overlay the reader can dismiss, and a covering one is modal.
+
+  - **`AppLayout.SidePanelHeader` is a swipe handle**, through the new `useSwipeToDismiss` hook. A drag toward the end edge follows the pointer one to one: a floating panel slides, and a panel in the lane shrinks the way its close animation does, so the page grows under the finger. A release past 25% of the panel's width, or a flick, closes it. A shorter drag springs back on the panel's own 200ms ease-out, so `motion-reduce:` turns it into a cut, and a drag the wrong way meets rubber-band resistance. The row is `touch-pan-y`, so a vertical swipe still scrolls, and a tap on a control in the row stays a tap.
+  - **`Escape` closes a floating panel** while focus is inside it. An open combobox or popover inside the panel takes the first `Escape`, and the next one closes the panel. The root then returns focus to the trigger outside, as on every close. A panel in the lane is a docked pane and ignores `Escape`.
+  - **A covering panel is modal.** When the panel covers the row from gutter to gutter (one breakpoint below `mobileBreakpoint`), the row's other children, the card and the rail, go `inert` while it is open, and a focus trap wraps `Tab` inside it and moves focus into it on open. The one `<aside>` stays mounted across the lane, the float, and the cover, so a conversation keeps its DOM and the trap turns on and off with the viewport. The `complementary` landmark keeps its name.
+
+- [#1560](https://github.com/ngrok/mantle/pull/1560) [`bd24dff`](https://github.com/ngrok/mantle/commit/bd24dffbb0fc18d7e27bc2548e854f2329407d6b) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Sidebar.Trigger` and `AppLayout.SidePanelTrigger` now default to `size="sm"`, so they sit level with the other `size="sm"` ghost icon buttons in an `AppLayout.Header` row. Both parts take a `size` prop to change it, and `IconButton`'s `data-size` reflects the value. Pass `size="md"` to keep the old height.
+
 ## 0.89.0
 
 ### Minor Changes
