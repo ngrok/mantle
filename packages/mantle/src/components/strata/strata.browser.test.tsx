@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "vitest";
 import { Strata } from "./strata.js";
 
 /**
@@ -12,14 +12,18 @@ import { Strata } from "./strata.js";
  * The stylesheet is Tailwind 4.3.3's own output for the utilities these parts
  * emit, keyed by the same escaped class selectors. Keyed that way on purpose:
  * misspell `--strata-columns` in `Section`, put a bare `1fr` back in its
- * fallback, or move `divide-y` off `Root`, and the rule stops matching and
- * these assertions fail.
+ * fallback, drop `grid-cols-1` from its stacked layout, or move `divide-y` off
+ * `Root`, and the rule stops matching and these assertions fail.
  *
  * The `md:` rule is copied **without** its `@media (width >= 48rem)` wrapper.
  * The subject is the custom property's name and fallback, not the breakpoint, and
  * the runner's iframe is narrower than 48rem — keeping the wrapper would make
  * every assertion here pass for the wrong reason.
  */
+/** The `md:` rule alone, so the stacked tests can leave it out. */
+const MD_RULE =
+	".md\\:grid-cols-\\(--strata-columns\\,minmax\\(0\\,1fr\\)_minmax\\(0\\,2fr\\)\\) { grid-template-columns: var(--strata-columns,minmax(0,1fr) minmax(0,2fr)); }";
+
 const STYLE = `
 :root {
 	--spacing: 0.25rem;
@@ -35,9 +39,10 @@ const STYLE = `
 	initial-value: 0;
 }
 .grid { display: grid; }
+.grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
 .py-8 { padding-block: calc(var(--spacing) * 8); }
 .first\\:pt-0:first-child { padding-top: 0px; }
-.md\\:grid-cols-\\(--strata-columns\\,minmax\\(0\\,1fr\\)_minmax\\(0\\,2fr\\)\\) { grid-template-columns: var(--strata-columns,minmax(0,1fr) minmax(0,2fr)); }
+${MD_RULE}
 .flex { display: flex; }
 .flex-col { flex-direction: column; }
 .block { display: block; }
@@ -138,28 +143,52 @@ describe("Strata.Section column split", () => {
 	});
 });
 
+/** A section whose body holds one nowrap value wider than the 600px root. */
+function LongValueSection() {
+	return (
+		<Strata.Root style={{ width: 600 }}>
+			<Strata.Section data-testid="section">
+				<Strata.Header>
+					<Strata.Title>Gateway URL</Strata.Title>
+				</Strata.Header>
+				<Strata.Body>
+					<span data-testid="text" className="block truncate">
+						https://example.ngrok.app/api/items?filter=%7B%22name%22%3A%22very-long-value%22%7D&limit=200&offset=0&cursor=ep_2abcdEFGhijKL123456
+					</span>
+				</Strata.Body>
+			</Strata.Section>
+		</Strata.Root>
+	);
+}
+
 describe("Strata.Section tracks", () => {
-	test("a truncating value in Body clips inside the section instead of widening it", () => {
-		render(
-			<Strata.Root style={{ width: 600 }}>
-				<Strata.Section data-testid="section">
-					<Strata.Header>
-						<Strata.Title>Gateway URL</Strata.Title>
-					</Strata.Header>
-					<Strata.Body>
-						<span data-testid="text" className="block truncate">
-							https://example.ngrok.app/api/items?filter=%7B%22name%22%3A%22very-long-value%22%7D&limit=200&offset=0
-						</span>
-					</Strata.Body>
-				</Strata.Section>
-			</Strata.Root>,
-		);
+	test("a truncating value in Body clips inside the split section instead of widening it", () => {
+		render(<LongValueSection />);
 		const section = screen.getByTestId("section");
 		const text = screen.getByTestId("text");
 		// The section has nothing to scroll: the body track shrank to the room left beside the header.
 		expect(section.scrollWidth).toBe(section.clientWidth);
 		// The span clips its own text, which is what paints the ellipsis.
 		expect(text.scrollWidth).toBeGreaterThan(text.clientWidth);
+	});
+
+	describe("below md", () => {
+		beforeEach(() => {
+			styleElement.textContent = STYLE.replace(MD_RULE, "");
+		});
+
+		afterEach(() => {
+			styleElement.textContent = STYLE;
+		});
+
+		test("a truncating value in Body clips inside the stacked section instead of widening it", () => {
+			render(<LongValueSection />);
+			const section = screen.getByTestId("section");
+			const text = screen.getByTestId("text");
+			// Without `grid-cols-1` the implicit track takes the value's min-content width.
+			expect(section.scrollWidth).toBe(section.clientWidth);
+			expect(text.scrollWidth).toBeGreaterThan(text.clientWidth);
+		});
 	});
 });
 

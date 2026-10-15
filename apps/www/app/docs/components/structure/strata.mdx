@@ -161,7 +161,7 @@ export function AdvancedSettings() {
 
 ## Column split
 
-At `md` and up, `Section` reads its `grid-template-columns` from `--strata-columns`, defaulting to `minmax(0, 1fr) minmax(0, 2fr)`: a one-to-two split whose tracks shrink below their content, so a long single-line value in `Body` truncates or wraps instead of widening the page. Set the variable on `Root` to re-split every section at once, or on a single `Section` to move only that one — custom properties inherit, so the nearest declaration wins. Below `md` the variable goes quiet, because the two parts stack.
+At `md` and up, `Section` reads its `grid-template-columns` from `--strata-columns`, defaulting to `minmax(0, 1fr) minmax(0, 2fr)`: a one-to-two split whose tracks shrink below their content, so a long single-line value in `Body` truncates or wraps instead of widening the page. Set the variable on `Root` to re-split every section at once, or on a single `Section` to move only that one — custom properties inherit, so the nearest declaration wins. Keep the `minmax(0, …)` form in an override: a bare `1fr` track grows to its content. Below `md` the variable goes quiet, because the two parts stack in one `minmax(0, 1fr)` track.
 
 The default suits a short label beside a wide set of controls. When the explanation carries as much weight as the controls, an even split reads better — switch the frame to mobile to watch both splits collapse to the same stack:
 
@@ -177,7 +177,7 @@ export function ModelSettings() {
 	return (
 		<Main className="mx-auto min-h-full max-w-5xl px-6 py-8">
 			<h1 className="text-strong mb-4 text-2xl font-medium">Model access</h1>
-			<Strata.Root className="[--strata-columns:1fr_1fr]">
+			<Strata.Root className="[--strata-columns:minmax(0,1fr)_minmax(0,1fr)]">
 				<Strata.Section>
 					<Strata.Header>
 						<Strata.Title>Models</Strata.Title>

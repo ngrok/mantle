@@ -113,7 +113,7 @@ function measure(root: HTMLElement, head: HTMLElement, tail: HTMLElement): Measu
  * them is content of that control, so it takes no tab stop and no tooltip.
  */
 const controlSelector =
-	'a[href], button, input, select, textarea, summary, [contenteditable=""], [contenteditable="true"], [role="button"], [role="link"], [role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="option"], [role="tab"]';
+	'a[href], button, input, select, textarea, summary, [contenteditable=""], [contenteditable="true"], [role="button"], [role="checkbox"], [role="link"], [role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="option"], [role="radio"], [role="switch"], [role="tab"], [role="treeitem"]';
 
 /**
  * Whether an element sits inside a control. Starts from the parent, so a root
@@ -239,13 +239,13 @@ const TruncatedTextRoot = ({
  * reader announces the whole value, and the tooltip opens. A value that fits is
  * not a tab stop. A `tabIndex` prop wins in both states.
  *
- * Inside a control (a `<button>`, an `<a href>`, a menu item, a tab) the root
- * takes no tab stop and opens no tooltip, because a control cannot hold a
- * second one. The segments still clip, `data-truncated` still lands, and the
- * hidden copy gives the control's accessible name the whole value. Wrap the
- * control in `Tooltip` when a sighted reader needs the full value. The server
- * render and the first client render assume no control, like they assume no
- * overflow.
+ * Inside a control (a `<button>`, an `<a href>`, a radio, a menu item, a tab)
+ * the root takes no tab stop and opens no tooltip, because a control cannot
+ * hold a second one. The segments still clip, `data-truncated` still lands,
+ * and the hidden copy gives the control's accessible name the whole value.
+ * Wrap the control in `Tooltip` when a sighted reader needs the full value.
+ * The server render and the first client render assume no control, like they
+ * assume no overflow; each commit after that reads the DOM again.
  *
  * **Accessibility.** The two visible segments are `aria-hidden`, because
  * Chromium puts a space between two inline-block boxes in an accessible name.
@@ -322,11 +322,15 @@ const TruncatedText = ({
 	const [insideControl, setInsideControl] = useState(false);
 	const isTruncated = measurement?.truncated === true;
 
+	// Why no dependency list: a control above the root can gain or lose its
+	// `href` or role without remounting the root, so each commit reads the DOM again.
+	// Why `isConnected`: the commit that swaps the root still holds the old node,
+	// and a detached node reads as outside every control.
 	useIsomorphicLayoutEffect(() => {
-		if (rootNode != null) {
+		if (rootNode?.isConnected) {
 			setInsideControl(isInsideControl(rootNode));
 		}
-	}, [rootNode]);
+	});
 
 	useIsomorphicLayoutEffect(() => {
 		const headElement = headRef.current;
@@ -404,15 +408,17 @@ const TruncatedText = ({
 		// Why preventDefault: Radix runs its global open path before it reads
 		// `open`, and that path closes every other tooltip on the page. A value
 		// that fits has no tooltip to open, so it must not run.
+		// Why not inside a control: the root is no trigger there, and a prevented
+		// event also stops the tooltip a consumer wraps around the control.
 		onPointerMove: (event: PointerEvent<HTMLSpanElement>) => {
 			onPointerMove?.(event);
-			if (!isTruncated) {
+			if (!isTruncated && !insideControl) {
 				event.preventDefault();
 			}
 		},
 		onFocus: (event: FocusEvent<HTMLSpanElement>) => {
 			onFocus?.(event);
-			if (!isTruncated) {
+			if (!isTruncated && !insideControl) {
 				event.preventDefault();
 			}
 		},
@@ -444,6 +450,11 @@ const TruncatedText = ({
 		);
 	}
 
+	// Why a bare root and not a gated trigger: a gated trigger needs its pointer
+	// events prevented, and a prevented event also stops a tooltip wrapped
+	// around the control.
+	// Why the root remounts once inside a control: the first render assumes no
+	// control, and this swap changes the element type above the root.
 	if (insideControl) {
 		return root;
 	}

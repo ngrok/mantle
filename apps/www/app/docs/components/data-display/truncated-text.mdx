@@ -164,7 +164,7 @@ A screen reader reads the whole value as one string. The two visible segments ar
 
 The tooltip opens on hover only while the value overflows. It needs a [`TooltipProvider`](/components/overlays/tooltip#tooltipprovider) ancestor, like every mantle tooltip, and throws without one. While the value overflows, the root is focusable, so Tab reaches it, a screen reader announces the whole value, and the tooltip opens. A value that fits isn't a tab stop. A `tabIndex` prop wins in both states.
 
-Inside a control (a `<button>`, an `<a href>`, a menu item, a tab) the root takes no tab stop and opens no tooltip, because a control cannot hold a second one. The segments still clip, `data-truncated` still lands, and the hidden copy gives the control's accessible name the whole value. Wrap the control in [`Tooltip`](/components/overlays/tooltip) when a sighted reader needs the full value. The server render and the first client render assume no control, like they assume no overflow.
+Inside a control (a `<button>`, an `<a href>`, a radio, a menu item, a tab) the root takes no tab stop and opens no tooltip, because a control cannot hold a second one. The segments still clip, `data-truncated` still lands, and the hidden copy gives the control's accessible name the whole value. Wrap the control in [`Tooltip`](/components/overlays/tooltip) when a sighted reader needs the full value. The server render and the first client render assume no control, like they assume no overflow; each commit after that reads the DOM again.
 
 ## Translation
 

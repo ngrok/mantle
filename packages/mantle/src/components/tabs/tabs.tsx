@@ -669,6 +669,11 @@ const Tabs = {
 	 * The outermost part; it owns `orientation` and `appearance`. It stamps both as
 	 * `data-orientation` and `data-appearance` for the parts below to style against.
 	 *
+	 * `onValueChange` fires once per activation. Radix activates a trigger on
+	 * mousedown and again on the focus it moves there, before a controlled root
+	 * re-renders, so the root passes the second call through only when its value
+	 * differs from the first.
+	 *
 	 * **Data attributes:**
 	 *
 	 * | Data Attribute     | Value                          | Description                                               |

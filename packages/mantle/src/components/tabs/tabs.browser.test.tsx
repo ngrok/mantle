@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
-import { afterAll, beforeAll, expect, test } from "vitest";
+import { afterAll, beforeAll, expect, test, vi } from "vitest";
+import { userEvent } from "vitest/browser";
 import { Tabs } from "./tabs.js";
 
 /**
@@ -221,4 +222,44 @@ test("a horizontal list's triggers line up with the separator at both scroll end
 	expect(first.getBoundingClientRect().left).toBe(separator.left);
 	list.scrollLeft = list.scrollWidth;
 	expect(last.getBoundingClientRect().right).toBe(separator.right);
+});
+
+/**
+ * A controlled root that never takes the value it is handed. Radix focuses the
+ * trigger inside its own mousedown handler, and that focus activates the
+ * trigger again before any state flushes, so the dedupe depends on the order
+ * a real mousedown, its focus, and the microtask after them run in. A
+ * synthetic mousedown shares one stack with the focus by construction, so
+ * only Chromium pins that order.
+ */
+function ControlledTabs({ onValueChange }: { onValueChange: (value: string) => void }) {
+	return (
+		<Tabs.Root value="a" onValueChange={onValueChange}>
+			<Tabs.List>
+				<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
+				<Tabs.Trigger value="b">Tab B</Tabs.Trigger>
+			</Tabs.List>
+		</Tabs.Root>
+	);
+}
+
+test("a real click on a controlled root fires onValueChange once", async () => {
+	const onValueChange = vi.fn<(value: string) => void>();
+	render(<ControlledTabs onValueChange={onValueChange} />);
+
+	await userEvent.click(screen.getByRole("tab", { name: "Tab B" }));
+
+	expect(onValueChange).toHaveBeenCalledTimes(1);
+	expect(onValueChange).toHaveBeenLastCalledWith("b");
+});
+
+test("a second real click on the same trigger fires again when the root kept its value", async () => {
+	const onValueChange = vi.fn<(value: string) => void>();
+	render(<ControlledTabs onValueChange={onValueChange} />);
+	const tab = screen.getByRole("tab", { name: "Tab B" });
+
+	await userEvent.click(tab);
+	await userEvent.click(tab);
+
+	expect(onValueChange).toHaveBeenCalledTimes(2);
 });
