@@ -20,6 +20,7 @@
     "array-callback-return": "error",
     "control-has-associated-label": "off",
     "curly": "error",
+    "eslint/no-nested-ternary": "error",
     "eqeqeq": ["error", "always", { "null": "never" }],
     "eslint/no-shadow": "off",
     "eslint/no-underscore-dangle": "off",

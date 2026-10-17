@@ -16,6 +16,14 @@ import routes from "~/routes";
  * extension.
  */
 
+/** Joins a route's own path onto its parent's URL path; a pathless route keeps the parent's. */
+function joinRoutePath(parentPath: string, routePath: string | undefined): string {
+	if (!routePath) {
+		return parentPath;
+	}
+	return parentPath ? `${parentPath}/${routePath}` : routePath;
+}
+
 /** Every MDX route module in the config, with the URL path the router serves it at. */
 function collectMdxRoutes(
 	entries: Array<RouteConfigEntry>,
@@ -23,7 +31,7 @@ function collectMdxRoutes(
 ): Array<{ url: string; file: string }> {
 	const collected: Array<{ url: string; file: string }> = [];
 	for (const entry of entries) {
-		const url = entry.path ? (parentPath ? `${parentPath}/${entry.path}` : entry.path) : parentPath;
+		const url = joinRoutePath(parentPath, entry.path);
 		if (entry.file.endsWith(".mdx")) {
 			collected.push({ url, file: entry.file });
 		}

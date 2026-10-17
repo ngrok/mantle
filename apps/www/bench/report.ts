@@ -238,18 +238,24 @@ const table = (section: Section, columns: Column[]): string => {
 	return lines.join("\n");
 };
 
+/** The section heading's description of what one run renders. */
+const describeShape = (section: { mode: string; n: number; points: number }): string => {
+	if (section.mode === "dense") {
+		return `1 chart × ${section.points.toLocaleString()} rows`;
+	}
+	if (section.mode === "table") {
+		return `${section.n} rows × 2 sparklines × ${section.points} bars`;
+	}
+	return `${section.n} charts × ${section.points} rows`;
+};
+
 const out: string[] = [];
 out.push(`# Chart benchmark results\n`);
 out.push(
 	`Sources: ${files.join(", ")}. Each cell is the median over runs, with the min–max spread in parentheses.\n`,
 );
 for (const section of sortedSections) {
-	const shape =
-		section.mode === "dense"
-			? `1 chart × ${section.points.toLocaleString()} rows`
-			: section.mode === "table"
-				? `${section.n} rows × 2 sparklines × ${section.points} bars`
-				: `${section.n} charts × ${section.points} rows`;
+	const shape = describeShape(section);
 	const gate =
 		section.gate === "none"
 			? ""

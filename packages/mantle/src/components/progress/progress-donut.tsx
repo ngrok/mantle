@@ -71,6 +71,14 @@ type Props = SvgAttributes & {
 	indeterminateRotationSpeed?: `animation-duration-${string}`;
 } & WithDataSlot;
 
+/** Resolves the `value` prop: a number in [0, `max`] stays, a nullish value is 0, and anything else is indeterminate. */
+function resolveValue(value: ValueType | undefined, max: number): ValueType {
+	if (isValidValueNumber(value, max)) {
+		return value;
+	}
+	return value == null ? 0 : "indeterminate";
+}
+
 /**
  * A simple circular progress bar which shows the completion progress of a task.
  *
@@ -113,9 +121,7 @@ const Root = ({
 	...props
 }: Props) => {
 	const max = isValidMaxNumber(_max) ? _max : defaultMax;
-	const value = (
-		isValidValueNumber(_value, max) ? _value : _value == null ? 0 : "indeterminate"
-	) satisfies ValueType;
+	const value = resolveValue(_value, max);
 	const strokeWidthPx = deriveStrokeWidthPx(_strokeWidth ?? defaultContextValue.strokeWidth);
 	const valueNow = isNumber(value) ? value : undefined;
 	const radius = calcRadius(strokeWidthPx);

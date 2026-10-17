@@ -61,19 +61,24 @@ const buildItems = (config: Config, seedOffset: number): Item[] =>
 		};
 	});
 
+/** The x one step past `x`: a minute later, the next integer, or the category with a `+` suffix. */
+const nextX = (x: Row["x"]): Row["x"] => {
+	if (x instanceof Date) {
+		return new Date(x.getTime() + 60_000);
+	}
+	if (typeof x === "number") {
+		return x + 1;
+	}
+	return `${x}+`;
+};
+
 /** Drops the oldest row and appends one: the streaming window slide. An empty series keeps its identity. */
 const slide = (rows: readonly Row[]): readonly Row[] => {
 	const last = rows[rows.length - 1];
 	if (last == null) {
 		return rows;
 	}
-	const nextX =
-		last.x instanceof Date
-			? new Date(last.x.getTime() + 60_000)
-			: typeof last.x === "number"
-				? last.x + 1
-				: `${last.x}+`;
-	return [...rows.slice(1), { x: nextX, a: last.a * 1.05, b: last.b * 0.95 }];
+	return [...rows.slice(1), { x: nextX(last.x), a: last.a * 1.05, b: last.b * 0.95 }];
 };
 
 /** The point-cloud slide: drops the oldest point and appends one. An empty cloud keeps its identity. */

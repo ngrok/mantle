@@ -50,6 +50,14 @@ type RootProps = ComponentProps<"div"> & {
 	value?: ValueType | undefined;
 } & WithDataSlot;
 
+/** Resolves the `value` prop: a number in [0, `max`] stays, a nullish value is 0, and anything else is indeterminate. */
+function resolveValue(value: ValueType | undefined, max: number): ValueType {
+	if (isValidValueNumber(value, max)) {
+		return value;
+	}
+	return value == null ? 0 : "indeterminate";
+}
+
 /**
  * Displays an indicator showing the completion progress of a task, typically displayed as a progress bar.
  *
@@ -95,9 +103,7 @@ function Root({
 	...props
 }: RootProps) {
 	const max = isValidMaxNumber(_max) ? _max : defaultMax;
-	const value = (
-		isValidValueNumber(_value, max) ? _value : _value == null ? 0 : "indeterminate"
-	) satisfies ValueType;
+	const value = resolveValue(_value, max);
 
 	const valueNow = isNumber(value) ? value : undefined;
 

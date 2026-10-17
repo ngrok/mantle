@@ -115,6 +115,20 @@ function hasMetaFlag(meta: string | undefined, key: string): boolean {
 	return tokens.includes(key);
 }
 
+/**
+ * Resolves a boolean fence option: a string or boolean `<pre>` prop wins, then a bare meta flag
+ * (`true`), then a `key=value` meta token.
+ */
+function resolveBooleanOption(propValue: unknown, meta: string | undefined, key: string): boolean {
+	if (typeof propValue === "string" || typeof propValue === "boolean") {
+		return parseBooleanish(propValue);
+	}
+	if (hasMetaFlag(meta, key)) {
+		return true;
+	}
+	return parseBooleanish(getMetaValue(meta, key));
+}
+
 /** Recursively extracts the concatenated text content of a HAST subtree. */
 function extractText(node: HastNode): string {
 	if (node.type === "text") {
@@ -171,20 +185,16 @@ function mantleCodeRehypePlugin() {
 					parseCodeBlockHighlightLines(preNode.properties?.highlight) ??
 					parseCodeBlockHighlightLines(getMetaValue(meta, "highlightLines")) ??
 					parseCodeBlockHighlightLines(getMetaValue(meta, "highlight"));
-				const collapsible =
-					typeof preNode.properties?.collapsible === "string" ||
-					typeof preNode.properties?.collapsible === "boolean"
-						? parseBooleanish(preNode.properties.collapsible)
-						: hasMetaFlag(meta, "collapsible")
-							? true
-							: (parseBooleanish(getMetaValue(meta, "collapsible")) ?? undefined);
-				const disableCopy =
-					typeof preNode.properties?.disableCopy === "string" ||
-					typeof preNode.properties?.disableCopy === "boolean"
-						? parseBooleanish(preNode.properties.disableCopy)
-						: hasMetaFlag(meta, "disableCopy")
-							? true
-							: (parseBooleanish(getMetaValue(meta, "disableCopy")) ?? undefined);
+				const collapsible = resolveBooleanOption(
+					preNode.properties?.collapsible,
+					meta,
+					"collapsible",
+				);
+				const disableCopy = resolveBooleanOption(
+					preNode.properties?.disableCopy,
+					meta,
+					"disableCopy",
+				);
 				const mode =
 					parseCodeBlockMode(preNode.properties?.mode) ??
 					parseCodeBlockMode(getMetaValue(meta, "mode"));

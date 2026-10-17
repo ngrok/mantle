@@ -193,6 +193,24 @@ type ResolvePreRenderedCodeBlockPropsResult<T extends Record<string, unknown>> =
 	props: Omit<T, PreRenderedCodeBlockPropKey>;
 };
 
+/** Parses a string or boolean prop as a booleanish value; any other type is `undefined`. */
+function parseBooleanishProp(value: unknown): boolean | undefined {
+	if (typeof value === "string" || typeof value === "boolean") {
+		return parseBooleanish(value);
+	}
+	return undefined;
+}
+
+/** Returns the prop when it names a code block mode, else `undefined`. */
+function parseMode(value: unknown): Mode | undefined {
+	return isMode(value) ? value : undefined;
+}
+
+/** Trims a string prop; any other type is `undefined`. */
+function trimString(value: unknown): string | undefined {
+	return typeof value === "string" ? value.trim() : undefined;
+}
+
 /**
  * Extracts and normalizes `mantle*` props from a `<pre>` element's attributes,
  * separating them from pass-through props. Returns `undefined` for the Mantle
@@ -241,35 +259,19 @@ function resolvePreRenderedCodeBlockProps<
 	return {
 		mantleCode: {
 			code: typeof mantleCode === "string" ? mantleCode : undefined,
-			collapsible:
-				(typeof mantleCollapsible === "string" || typeof mantleCollapsible === "boolean"
-					? parseBooleanish(mantleCollapsible)
-					: undefined) ??
-				(typeof collapsible === "string" || typeof collapsible === "boolean"
-					? parseBooleanish(collapsible)
-					: undefined),
-			disableCopy:
-				typeof mantleDisableCopy === "string" || typeof mantleDisableCopy === "boolean"
-					? parseBooleanish(mantleDisableCopy)
-					: typeof disableCopy === "string" || typeof disableCopy === "boolean"
-						? parseBooleanish(disableCopy)
-						: undefined,
+			collapsible: parseBooleanishProp(mantleCollapsible) ?? parseBooleanishProp(collapsible),
+			disableCopy: parseBooleanishProp(mantleDisableCopy) ?? parseBooleanishProp(disableCopy),
 			highlightLines: parseCodeBlockHighlightLines(mantleHighlightLines),
 			language:
 				typeof mantleLanguage === "string" && isSupportedLanguage(mantleLanguage)
 					? mantleLanguage
 					: undefined,
 			lineNumberStart: parseCodeBlockLineNumberStart(mantleLineNumberStart),
-			mode: isMode(mantleMode) ? mantleMode : isMode(mode) ? mode : undefined,
+			mode: parseMode(mantleMode) ?? parseMode(mode),
 			preHtml: typeof mantlePreHtml === "string" ? mantlePreHtml : undefined,
 			rawLanguage: mantleLanguage,
 			showLineNumbers: parseCodeBlockShowLineNumbers(mantleShowLineNumbers),
-			title:
-				typeof mantleTitle === "string"
-					? mantleTitle.trim()
-					: typeof title === "string"
-						? title.trim()
-						: undefined,
+			title: trimString(mantleTitle) ?? trimString(title),
 		},
 		props,
 	};

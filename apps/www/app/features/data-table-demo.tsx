@@ -515,6 +515,45 @@ const filterableColumns = filterableColumnHelper.columns([
 	}),
 ]);
 
+/** The empty row for the payments table: a clear-filter prompt while filtered, else the no-data state. */
+function PaymentsEmptyRow({
+	isFiltered,
+	onClearFilter,
+}: {
+	isFiltered: boolean;
+	onClearFilter: () => void;
+}) {
+	if (isFiltered) {
+		return (
+			<DataTable.EmptyRow>
+				<Empty.Root>
+					<Empty.Icon svg={<MagnifyingGlassIcon />} />
+					<Empty.Title>No payments match your filter</Empty.Title>
+					<Empty.Description>
+						<p>Try a different search, or clear the filter to see everything.</p>
+					</Empty.Description>
+					<Empty.Actions>
+						<Button type="button" appearance="outlined" intent="neutral" onClick={onClearFilter}>
+							Clear filters
+						</Button>
+					</Empty.Actions>
+				</Empty.Root>
+			</DataTable.EmptyRow>
+		);
+	}
+	return (
+		<DataTable.EmptyRow>
+			<Empty.Root>
+				<Empty.Icon svg={<TrayIcon />} />
+				<Empty.Title>No payments yet</Empty.Title>
+				<Empty.Description>
+					<p>Payments you receive will appear here.</p>
+				</Empty.Description>
+			</Empty.Root>
+		</DataTable.EmptyRow>
+	);
+}
+
 /**
  * Demo of the "no results for the active filter" empty state. Typing a query
  * that matches nothing swaps in a filtered `Empty` whose `Clear filters` action
@@ -544,36 +583,8 @@ export function FilteredEmptyStateDemo() {
 				<DataTable.Body>
 					{rows.length > 0 ? (
 						rows.map((row) => <DataTable.Row key={row.id} row={row} />)
-					) : isFiltered ? (
-						<DataTable.EmptyRow>
-							<Empty.Root>
-								<Empty.Icon svg={<MagnifyingGlassIcon />} />
-								<Empty.Title>No payments match your filter</Empty.Title>
-								<Empty.Description>
-									<p>Try a different search, or clear the filter to see everything.</p>
-								</Empty.Description>
-								<Empty.Actions>
-									<Button
-										type="button"
-										appearance="outlined"
-										intent="neutral"
-										onClick={() => setGlobalFilter("")}
-									>
-										Clear filters
-									</Button>
-								</Empty.Actions>
-							</Empty.Root>
-						</DataTable.EmptyRow>
 					) : (
-						<DataTable.EmptyRow>
-							<Empty.Root>
-								<Empty.Icon svg={<TrayIcon />} />
-								<Empty.Title>No payments yet</Empty.Title>
-								<Empty.Description>
-									<p>Payments you receive will appear here.</p>
-								</Empty.Description>
-							</Empty.Root>
-						</DataTable.EmptyRow>
+						<PaymentsEmptyRow isFiltered={isFiltered} onClearFilter={() => setGlobalFilter("")} />
 					)}
 				</DataTable.Body>
 			</DataTable.Root>
