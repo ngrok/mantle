@@ -397,7 +397,7 @@ function preventThemeFlash(args: {
 	} = args;
 
 	function isTheme(value: unknown): value is Theme {
-		return typeof value === "string" && themes.includes(value as Theme);
+		return typeof value === "string" && themes.some((item) => item === value);
 	}
 
 	// Nested helpers below must stay inside `preventThemeFlash` so they are

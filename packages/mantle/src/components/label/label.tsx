@@ -101,8 +101,10 @@ const Label = ({
 		)}
 		onMouseDown={(event) => {
 			// only prevent text selection if clicking inside the label itself
-			const target = event.target as HTMLElement;
-			if (target.closest("button, input, select, textarea")) {
+			if (
+				event.target instanceof Element &&
+				event.target.closest("button, input, select, textarea")
+			) {
 				return;
 			}
 

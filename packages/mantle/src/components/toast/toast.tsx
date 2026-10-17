@@ -93,7 +93,8 @@ const Toaster = ({
 			gap={12}
 			position={position ?? "top-center"}
 			style={style}
-			theme={theme as ToasterPrimitiveTheme} // we have additional themes that are not in the sonner types, so we need to cast for now
+			// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Why: sonner's `theme` type omits the high-contrast themes it passes through.
+			theme={theme as ToasterPrimitiveTheme}
 			toastOptions={{
 				unstyled: true,
 			}}

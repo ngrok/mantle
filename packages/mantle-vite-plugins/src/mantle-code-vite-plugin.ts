@@ -95,7 +95,7 @@ type OxcTaggedTemplateExpression = OxcNode & {
 };
 
 type MantleCodeTaggedTemplateExpression = OxcTaggedTemplateExpression & {
-	tag: OxcCallExpression;
+	tag: OxcCallExpression & { callee: OxcIdentifier };
 };
 
 type OxcMemberExpression = OxcNode & {
@@ -230,6 +230,15 @@ function isTaggedTemplateExpression(
 	return node?.type === "TaggedTemplateExpression";
 }
 
+/** Type predicate: checks if a node is a tagged template whose tag calls a bare identifier, as in `` mantleCode("tsx")`…` ``. */
+function isMantleCodeTaggedTemplateExpression(
+	node: OxcNode | null | undefined,
+): node is MantleCodeTaggedTemplateExpression {
+	return (
+		isTaggedTemplateExpression(node) && isCallExpression(node.tag) && isIdentifier(node.tag.callee)
+	);
+}
+
 /** Type predicate: checks if a node is a `MemberExpression`. */
 function isMemberExpression(node: OxcNode | null | undefined): node is OxcMemberExpression {
 	return node?.type === "MemberExpression";
@@ -291,7 +300,7 @@ function walk(node: unknown, visit: (node: OxcNode) => void) {
 }
 
 /** Type predicate: checks if a node is a `Literal` with a string value. */
-function isStringLiteral(node: OxcNode | null | undefined): node is OxcLiteral {
+function isStringLiteral(node: OxcNode | null | undefined): node is OxcLiteral & { value: string } {
 	return isLiteral(node) && typeof node.value === "string";
 }
 
@@ -319,6 +328,11 @@ function readStaticIndentation(node: OxcNode | null | undefined): Indentation | 
 	return node.value;
 }
 
+/** Type predicate: checks if a string is a `"start-end"` range of decimal digits. */
+function isLineRangeString(value: string): value is `${number}-${number}` {
+	return /^\d+-\d+$/.test(value);
+}
+
 /** Parses a static AST array expression into a list of highlight line numbers and ranges. */
 function parseHighlightLinesArray(
 	input: OxcNode | null | undefined,
@@ -335,8 +349,8 @@ function parseHighlightLinesArray(
 			if (typeof item.value === "number") {
 				return Number.isFinite(item.value) && item.value > 0 ? Math.floor(item.value) : undefined;
 			}
-			if (typeof item.value === "string" && /^\d+-\d+$/.test(item.value)) {
-				return item.value as `${number}-${number}`;
+			if (typeof item.value === "string" && isLineRangeString(item.value)) {
+				return item.value;
 			}
 			return undefined;
 		})
@@ -359,7 +373,7 @@ function getObjectPropertyName(property: OxcObjectProperty): string | undefined 
 	if (isIdentifier(property.key)) {
 		return property.key.name;
 	}
-	return isStringLiteral(property.key) ? (property.key.value as string) : undefined;
+	return isStringLiteral(property.key) ? property.key.value : undefined;
 }
 
 /** Extracts static `MantleCodeOptions` from the second argument of a `mantleCode()` call. */
@@ -998,17 +1012,13 @@ function mantleCodeVitePlugin(): Plugin {
 					candidateJsxOpeningElements.push(node);
 					return;
 				}
-				if (
-					isTaggedTemplateExpression(node) &&
-					isCallExpression(node.tag) &&
-					isIdentifier(node.tag.callee)
-				) {
-					candidateTaggedTemplates.push(node as MantleCodeTaggedTemplateExpression);
+				if (isMantleCodeTaggedTemplateExpression(node)) {
+					candidateTaggedTemplates.push(node);
 				}
 			});
 
 			const taggedTemplates = candidateTaggedTemplates.filter((node) =>
-				mantleCodeNames.has((node.tag.callee as OxcIdentifier).name),
+				mantleCodeNames.has(node.tag.callee.name),
 			);
 			const jsxPropsByTaggedTemplateStart = new Map<number, ParsedJsxCodePropsResult>();
 			for (const element of candidateJsxOpeningElements) {
@@ -1087,7 +1097,7 @@ function mantleCodeVitePlugin(): Plugin {
 					const language = languageArg.value;
 					if (!isSupportedLanguage(language)) {
 						this.warn(
-							`mantleCodeVitePlugin: unsupported language "${String(language)}" in ${id} - skipping`,
+							`mantleCodeVitePlugin: unsupported language "${language}" in ${id} - skipping`,
 						);
 						return null;
 					}

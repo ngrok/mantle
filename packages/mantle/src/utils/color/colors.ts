@@ -31,7 +31,7 @@ type NamedColor = (typeof namedColors)[number];
  * Check if a value is a color from the color palette
  */
 const isNamedColor = (value: unknown): value is NamedColor =>
-	typeof value === "string" && namedColors.includes(value as NamedColor);
+	typeof value === "string" && namedColors.some((item) => item === value);
 
 /**
  * Functional named colors
@@ -55,7 +55,7 @@ type FunctionalColor = (typeof functionalColors)[number];
  * Check if a value is a color from the functional colors
  */
 const isFunctionalColor = (value: unknown): value is FunctionalColor =>
-	typeof value === "string" && functionalColors.includes(value as FunctionalColor);
+	typeof value === "string" && functionalColors.some((item) => item === value);
 
 /**
  * All named mantle colors
@@ -71,7 +71,7 @@ type Color = (typeof colors)[number];
  * Check if a value is a named mantle color
  */
 const isColor = (value: unknown): value is Color =>
-	typeof value === "string" && colors.includes(value as Color);
+	typeof value === "string" && colors.some((item) => item === value);
 
 // MARK: - Exports
 

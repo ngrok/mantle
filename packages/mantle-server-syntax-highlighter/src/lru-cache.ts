@@ -12,28 +12,29 @@ function createLruCache<K, V>(maxEntries: number): LruCache<K, V> {
 		throw new Error("LRU cache maxEntries must be a positive integer.");
 	}
 
-	const map = new Map<K, V>();
+	// Why the `{ value }` box: `get` can tell a stored `undefined` from a missing key.
+	const map = new Map<K, { value: V }>();
 
 	return {
 		delete(key) {
 			return map.delete(key);
 		},
 		get(key) {
-			if (!map.has(key)) {
+			const entry = map.get(key);
+			if (entry == null) {
 				return undefined;
 			}
 
-			const value = map.get(key) as V;
 			map.delete(key);
-			map.set(key, value);
-			return value;
+			map.set(key, entry);
+			return entry.value;
 		},
 		set(key, value) {
 			if (map.has(key)) {
 				map.delete(key);
 			}
 
-			map.set(key, value);
+			map.set(key, { value });
 			if (map.size <= maxEntries) {
 				return;
 			}

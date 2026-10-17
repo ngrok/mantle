@@ -114,6 +114,7 @@
     "typescript/no-unnecessary-type-arguments": "error",
     "typescript/no-unnecessary-type-assertion": "error",
     "typescript/no-unnecessary-type-conversion": "error",
+    "typescript/no-unsafe-type-assertion": "error",
     "unicorn/filename-case": ["error", { "case": "kebabCase", "ignore": ["[\\[\\$]"] }]
   },
   "overrides": [
@@ -163,6 +164,8 @@
         "unicorn/consistent-function-scoping": "off",
         // Why: docs/testing.md has tests evaluate an inline <script> string with `new Function`.
         "typescript/no-implied-eval": "off",
+        // Why: test fixtures still cast to build partial objects; moving them to `satisfies` is its own sweep.
+        "typescript/no-unsafe-type-assertion": "off",
         "mantle/no-absent-class-assertion": "error",
         "mantle/no-bare-to-have-been-called": "error",
         "mantle/no-presence-matcher-on-get-by": "error",
