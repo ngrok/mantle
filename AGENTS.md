@@ -65,12 +65,9 @@ You do not need to run checks after each edit. Run them when a coherent chunk of
 
 1. Read `git diff --name-only` and `git diff` for your files.
 2. Check each file against the docs your task routed you to, and fix the drift.
-3. Run from the repo root, and make each one pass:
-   - `pnpm -w run lint`
-   - `pnpm -w run fmt:check` (`pnpm -w run fmt` fixes it)
-   - `pnpm -w run typecheck`
-   - `pnpm -w run test`, if you changed `packages/mantle`. Component work adds the commands in [COMPONENT_SPEC.md §9](./COMPONENT_SPEC.md#9-verification).
-   - `pnpm -w run check:agent-docs`, if you changed an agent doc.
+3. Run `pnpm -w run check:changed` from the repo root, and make it pass. It formats and lints the changed files, checks the agent-doc budgets, then typechecks and tests each package that changed since `origin/main`. Set `CHECK_BASE` for another base.
+   - Component work also runs the commands in [COMPONENT_SPEC.md §9](./COMPONENT_SPEC.md#9-verification), with the unscoped `pnpm -w run test`.
+   - In Claude Code, a hook lints each file you edit and reports the errors in the same turn. It skips format, typecheck, and tests; `check:changed` runs them.
 4. Every published package that the diff touches has a changeset with the bump from VERSIONING.md.
 5. End with a `Conventions pass:` note that says what you checked. If you did not run a check, say why.
 

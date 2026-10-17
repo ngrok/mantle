@@ -6,6 +6,7 @@
   "scripts": {
     "build": "turbo run build",
     "check:agent-docs": "node ./scripts/check-agent-docs.ts",
+    "check:changed": "node ./scripts/check-changed.ts",
     "start": "turbo run start",
     "serve": "turbo run serve",
     "clean": "turbo run clean",
