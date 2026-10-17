@@ -3,7 +3,7 @@
 **Date:** 2026-07-04
 **Status:** Accepted
 **Applies to:** `@ngrok/mantle/list`, `@ngrok/mantle/selectable-list`, `packages/mantle/src/components/list/primitive.tsx`
-**Distilled rules:** [CONVENTIONS.md → Component API Design](../CONVENTIONS.md#component-api-design)
+**Distilled rules:** [COMPONENT_SPEC.md §1 → Before you scaffold](../COMPONENT_SPEC.md#1-before-you-scaffold)
 
 ## Context
 
@@ -111,5 +111,5 @@ alias prop later).
   `useListShell`) may change freely; only `List` and `SelectableList` are
   contracts.
 - These conclusions are encoded as active rules in
-  [CONVENTIONS.md → Component API Design](../CONVENTIONS.md#component-api-design)
+  [COMPONENT_SPEC.md §1 → Before you scaffold](../COMPONENT_SPEC.md#1-before-you-scaffold)
   and gate new-component scaffolding.

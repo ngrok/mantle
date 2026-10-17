@@ -5,16 +5,15 @@ The single normative standard for authoring a component in `@ngrok/mantle`. It a
 **what its docs must contain**, and **how to audit an existing component against all of it**.
 
 This file is self-contained on purpose. Everything a component author or auditor needs — the principles from
-the [Philosophy page](./apps/www/app/docs/philosophy.mdx), the component rules that used to live only in
-[CONVENTIONS.md](./CONVENTIONS.md), and the full validation procedure the `/scaffold-component` and
-`/audit-component` workflows run — is stated here so there is one place to read and one place to change.
+the [Philosophy page](./apps/www/app/docs/philosophy.mdx), the component rules, and the full validation
+procedure the `/scaffold-component` and `/audit-component` workflows run — is stated here so there is one place to read and one place to change.
 
 ## Scope and status
 
 **This is the bar for new components, and for the parts of a component you are changing.** Much of the
-library predates parts of this spec: 20 of the 67 component directories ship no test file, 20 stamp no
-`asChild`, 4 stamp no `data-slot`, exactly one docs page carries a data-attribute table, and most docs pages
-predate §7.2's structure. That is expected and it is not a crisis.
+library predates parts of this spec: some component directories ship no test file or stamp no `asChild`, few
+docs pages carry a data-attribute table, and most docs pages predate §7.2's structure. That is expected and it
+is not a crisis.
 
 The migration rule is deliberate and narrow:
 
@@ -215,18 +214,18 @@ Avoid optional-property-heavy "bag of props" types where states are mutually exc
 
 ### 1.7. Forbidden API shapes
 
-| Never                                                              | Instead                                                                                                                                                                                             |
-| ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Nested namespace (`Command.Dialog.Root`)                           | Flatten into member names (`Command.DialogRoot`)                                                                                                                                                    |
-| Prop-bag passthrough (`contentProps`, `triggerProps`, `slotProps`) | Expose the internal element as a compound part                                                                                                                                                      |
-| Re-exporting another mantle namespace under yours                  | Let consumers import that primitive directly                                                                                                                                                        |
-| `Component.displayName = "…"`                                      | Nothing — React DevTools infers the name from the function                                                                                                                                          |
-| `forwardRef`                                                       | `ref` is a regular prop (React 19+)                                                                                                                                                                 |
-| `React.FC` / `FC`                                                  | Inline function types                                                                                                                                                                               |
-| Boolean-bag prop types where states are mutually exclusive         | Discriminated unions that make invalid states unrepresentable                                                                                                                                       |
-| Reading collection facts off children (`cloneElement`, prop-sniff) | A data prop or index-based callbacks                                                                                                                                                                |
-| A deprecated API from a dependency                                 | The current replacement (or a `// Why:` comment naming the constraint)                                                                                                                              |
-| An import from a router or app framework (`react-router`, `next`)  | A structural type for the fields you read, `asChild` for the framework's element, and the glue in an `apps/www` recipe ([CONVENTIONS.md § Framework Boundary](./CONVENTIONS.md#framework-boundary)) |
+| Never                                                              | Instead                                                                                                                                                                             |
+| ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Nested namespace (`Command.Dialog.Root`)                           | Flatten into member names (`Command.DialogRoot`)                                                                                                                                    |
+| Prop-bag passthrough (`contentProps`, `triggerProps`, `slotProps`) | Expose the internal element as a compound part                                                                                                                                      |
+| Re-exporting another mantle namespace under yours                  | Let consumers import that primitive directly                                                                                                                                        |
+| `Component.displayName = "…"`                                      | Nothing — React DevTools infers the name from the function                                                                                                                          |
+| `forwardRef`                                                       | `ref` is a regular prop (React 19+)                                                                                                                                                 |
+| `React.FC` / `FC`                                                  | Inline function types                                                                                                                                                               |
+| Boolean-bag prop types where states are mutually exclusive         | Discriminated unions that make invalid states unrepresentable                                                                                                                       |
+| Reading collection facts off children (`cloneElement`, prop-sniff) | A data prop or index-based callbacks                                                                                                                                                |
+| A deprecated API from a dependency                                 | The current replacement (or a `// Why:` comment naming the constraint)                                                                                                              |
+| An import from a router or app framework (`react-router`, `next`)  | A structural type for the fields you read, `asChild` for the framework's element, and the glue in an `apps/www` recipe ([docs/framework-boundary.md](./docs/framework-boundary.md)) |
 
 Two of these are non-obvious enough to justify:
 
@@ -500,7 +499,7 @@ Errors are control flow. `console.error` is not error handling.
 A translation engine wraps each text node in a `<font>` and reparents the original node. React later names that
 node in an `insertBefore` or a `removeChild`, and its parent no longer owns it. The DOM raises `NotFoundError`,
 React re-throws the raw `DOMException`, and the root tears down. The page goes blank.
-[CONVENTIONS.md → Browser Translation](./CONVENTIONS.md#browser-translation) owns the mechanism and the three
+[docs/browser-translation.md](./docs/browser-translation.md) owns the mechanism and the three
 rules that bind every file in the monorepo. A part carries more, because it renders elements beside children a
 consumer wrote. The call site cannot see those elements.
 
@@ -799,7 +798,7 @@ Sentence-level style — voice, tense, sentence length, noun stacks, banned fill
 
 Colocated with the source. Default to happy-dom (`<component-name>.test.tsx`); use browser mode
 (`<component-name>.browser.test.tsx`) only when the test depends on a real-browser API happy-dom does not
-implement — see [CONVENTIONS.md → When to reach for browser mode](./CONVENTIONS.md#when-to-reach-for-browser-mode).
+implement — see [docs/testing.md → When to reach for browser mode](./docs/testing.md#when-to-reach-for-browser-mode).
 
 Minimums:
 
@@ -833,10 +832,10 @@ Every test must be able to fail: name the one-line implementation change it woul
 wrong behavior, not an edit to a constant the test copies. Add a case only when it reaches a branch, a
 boundary, or a lookup entry no sibling reaches. Mock the environment (`matchMedia`, `ResizeObserver`, the
 clipboard), never a mantle part; a module wrapper that is the one observable trace needs a `// Why:`
-comment. See [CONVENTIONS.md → Testing](./CONVENTIONS.md#testing) for the full rules on that, on
-[tautological and change-detector tests](./CONVENTIONS.md#no-tautological-tests-no-change-detector-tests),
-on [one test per branch](./CONVENTIONS.md#one-test-per-branch), on
-[mocking](./CONVENTIONS.md#mock-the-environment-not-the-tree), on why Tailwind utility-string assertions are
+comment. See [docs/testing.md](./docs/testing.md) for the full rules on that, on
+[tautological and change-detector tests](./docs/testing.md#no-tautological-tests-no-change-detector-tests),
+on [one test per branch](./docs/testing.md#one-test-per-branch), on
+[mocking](./docs/testing.md#mock-the-environment-not-the-tree), on why Tailwind utility-string assertions are
 not coverage, and on determinism.
 
 Never: rendered-HTML snapshots (`toMatchInlineSnapshot` is fine for serialized data shapes), `*.test.*` files
@@ -1031,8 +1030,9 @@ Run this against the diff before calling a component done. Each line is a defect
 
 ## Reference
 
-- [CONVENTIONS.md](./CONVENTIONS.md) — general code style, TypeScript, testing tooling, package management.
-- [AGENTS.md](./AGENTS.md) — the agent contract that requires this spec.
+- [CONVENTIONS.md](./CONVENTIONS.md) — general code style, TypeScript, prose, package management.
+- [docs/testing.md](./docs/testing.md) — the test rules and tooling for every package.
+- [AGENTS.md](./AGENTS.md) — the task router that sends component work here.
 - [Philosophy](./apps/www/app/docs/philosophy.mdx) — the long-form rationale §0 distills.
 - `decisions/` — the argued-over decisions, including
   `2025-07-16-compound-component-named-exports.md` (POJO namespaces),

@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "turbo run build",
+    "check:agent-docs": "node ./scripts/check-agent-docs.ts",
     "start": "turbo run start",
     "serve": "turbo run serve",
     "clean": "turbo run clean",

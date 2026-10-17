@@ -129,7 +129,7 @@ export default defineConfig(({ command }) => ({
 	// runs after it, turning an unrelated failure into a cascade and making results order-dependent.
 	// Restoring centrally means an inline `mockRestore()` is never load-bearing — a test that throws
 	// before reaching its cleanup line still leaves the environment pristine. Mirrors
-	// `packages/mantle/vitest.config.ts`, which CONVENTIONS.md § Testing documents repo-wide.
+	// `packages/mantle/vitest.config.ts`, which docs/testing.md § Determinism documents repo-wide.
 	test: {
 		restoreMocks: true,
 		unstubEnvs: true,

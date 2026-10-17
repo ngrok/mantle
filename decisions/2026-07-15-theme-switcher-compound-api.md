@@ -3,7 +3,7 @@
 **Date:** 2026-07-15
 **Status:** Accepted
 **Applies to:** `@ngrok/mantle/theme-switcher`, and API design for every component that renders another component internally
-**Distilled rules:** [CONVENTIONS.md → Component API Design](../CONVENTIONS.md#component-api-design)
+**Distilled rules:** [COMPONENT_SPEC.md §1 → Before you scaffold](../COMPONENT_SPEC.md#1-before-you-scaffold)
 
 ## Context
 
@@ -51,7 +51,7 @@ If a consumer needs to reach an element a component renders internally, the
 component is a compound — expose that element as a part. Prop bags
 (`contentProps`, `triggerProps`, `slotProps`, MUI-style `componentsProps`) are
 forbidden in mantle component APIs. This is now a Component API Design rule in
-[CONVENTIONS.md](../CONVENTIONS.md#component-api-design) and part of the
+[CONVENTIONS.md](../COMPONENT_SPEC.md#1-before-you-scaffold) and part of the
 diff-audit checklist in [AGENTS.md](../AGENTS.md).
 
 ### 3. Parts own what makes them _this_ component; everything else forwards

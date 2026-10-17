@@ -64,6 +64,9 @@ jobs:
       - name: Lint Check 🔍
         run: pnpm run lint
 
+      - name: Agent Docs Budget 📏
+        run: pnpm run check:agent-docs
+
   mise-lock-check:
     name: Mise Lockfile
     runs-on: ubuntu-latest

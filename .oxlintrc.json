@@ -61,7 +61,7 @@
       "error",
       {
         "name": "location",
-        "message": "Use react-router's useLocation hook instead"
+        "message": "Read the location from a prop or an argument. In apps/www, use the router's location hook (docs/framework-boundary.md)."
       }
     ],
     "no-shadow": "off",
