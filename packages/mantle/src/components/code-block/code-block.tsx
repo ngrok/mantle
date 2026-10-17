@@ -800,14 +800,14 @@ type CodeBlockIconProps = Omit<SvgAttributes, "children"> &
 				 * A preset icon to display in the code block header.
 				 * (Pass only one of `svg` or `preset`.)
 				 */
-				preset?: undefined | never;
+				preset?: undefined;
 		  }
 		| {
 				/**
 				 * A custom icon SVG to display in the code block header.
 				 * (Pass only one of `svg` or `preset`.)
 				 */
-				svg?: undefined | never;
+				svg?: undefined;
 				/**
 				 * A preset icon to display in the code block header.
 				 * (Pass only one of `svg` or `preset`.)

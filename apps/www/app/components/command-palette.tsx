@@ -78,7 +78,7 @@ function PaletteCommandItem({
 				<Command.Item
 					value={command.id}
 					onSelect={() => {
-						navigate(command.to);
+						void navigate(command.to);
 						onDone();
 					}}
 					asChild

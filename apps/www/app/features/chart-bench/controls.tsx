@@ -71,10 +71,10 @@ const Pick = ({
 export const Controls = ({ config }: { config: Config }) => {
 	const submit = (event: FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
-		const entries = [...new FormData(event.currentTarget).entries()].map(([key, value]) => [
-			key,
-			String(value),
-		]);
+		// Why the filter: the form holds no file inputs, so every entry is a string.
+		const entries = [...new FormData(event.currentTarget).entries()].flatMap(([key, value]) =>
+			typeof value === "string" ? [[key, value]] : [],
+		);
 		load(writeConfig(readConfig(`?${new URLSearchParams(entries).toString()}`)));
 	};
 	return (

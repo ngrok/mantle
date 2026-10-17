@@ -132,6 +132,15 @@ const activationKeys = new Set([" ", "Enter"]);
  * </button>
  * ```
  */
+// Why graphemes: a skin-tone emoji or a decomposed accent is one character on screen but two code points.
+const graphemeSegmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+
+/** Whether a `KeyboardEvent.key` value is one character a user can see, not a named key. */
+function isSingleGrapheme(key: string): boolean {
+	const segments = graphemeSegmenter.segment(key)[Symbol.iterator]();
+	return !segments.next().done && segments.next().done === true;
+}
+
 function searchActionFromKeyDown(event: SearchKeyDownEvent): SearchAction {
 	if (event.isComposing || event.key === "Process" || event.keyCode === 229) {
 		return { type: "open" };
@@ -145,7 +154,7 @@ function searchActionFromKeyDown(event: SearchKeyDownEvent): SearchAction {
 		return { type: "ignore" };
 	}
 
-	if ([...event.key].length === 1) {
+	if (isSingleGrapheme(event.key)) {
 		return { type: "seed", query: event.key };
 	}
 

@@ -354,7 +354,7 @@ const print = (analysis: Analysis): void => {
 	const { marks, tasks, profile } = analysis;
 	const libLoaded = marks["lib-loaded"] ?? 0;
 	const painted = marks["charts-painted"] ?? libLoaded;
-	const rel = (ts: number) => `${ms(ts - libLoaded).padStart(7)}`;
+	const rel = (ts: number) => ms(ts - libLoaded).padStart(7);
 	console.log(
 		`marks (ms from lib-loaded): app-start ${rel(marks["app-start"] ?? libLoaded)}, charts-mounted ${rel(marks["charts-mounted"] ?? libLoaded)}, charts-painted ${rel(painted)}`,
 	);
@@ -445,7 +445,7 @@ const traceOnce = async (browser: Browser, base: string): Promise<Analysis> => {
 			transferMode: "ReportEvents",
 		});
 		await page.goto(`${base}${BENCH_PATH.slice(1)}${query}`, { waitUntil: "commit" });
-		await page.waitForFunction(() => window.__bench?.ready === true, undefined, {
+		await page.waitForFunction(() => window.__bench?.ready, undefined, {
 			timeout: 240_000,
 			polling: 50,
 		});

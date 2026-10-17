@@ -48,7 +48,12 @@ describe("planChecks", () => {
 			{
 				name: "lint",
 				command: "pnpm",
-				args: ["exec", "oxlint", "packages/mantle/src/components/button/button.tsx"],
+				args: [
+					"exec",
+					"oxlint",
+					"--type-aware",
+					"packages/mantle/src/components/button/button.tsx",
+				],
 			},
 			{
 				name: "typecheck",

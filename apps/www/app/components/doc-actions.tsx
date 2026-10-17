@@ -35,7 +35,7 @@ export function DocActions({ markdownPath }: Props) {
 				staleTime: 5 * 60 * 1000, // 5 minutes
 			});
 
-			copyToClipboard(markdown);
+			await copyToClipboard(markdown);
 			makeToast(
 				<Toast.Root intent="success">
 					<Toast.Icon />

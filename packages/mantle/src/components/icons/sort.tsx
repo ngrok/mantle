@@ -52,7 +52,7 @@ const SortIcon = ({ mode, direction, ...props }: Props) => {
 				case "desc":
 					return <SortDescendingIcon {...props} />;
 				default:
-					throw new Error(`Invalid alphanumeric sorting direction given: "${direction}"`);
+					throw new Error(`Invalid alphanumeric sorting direction given: "${String(direction)}"`);
 			}
 		}
 		case "time": {

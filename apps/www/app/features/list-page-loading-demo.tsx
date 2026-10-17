@@ -236,7 +236,7 @@ type UseDomainsQueryOptions = {
 function useDomainsQuery({
 	filters,
 	scenario,
-}: UseDomainsQueryOptions): UseQueryResult<DomainsPage, Error> {
+}: UseDomainsQueryOptions): UseQueryResult<DomainsPage> {
 	return useQuery({
 		queryKey: [...DOMAINS_QUERY_KEY_ROOT, scenario, filters],
 		queryFn: ({ signal }) => fetchDomains({ filters, scenario, signal }),
@@ -265,7 +265,7 @@ type ListBodyState =
 /** Options for deriving the table body state. */
 type ResolveListBodyStateOptions = {
 	/** The domains list query. */
-	query: UseQueryResult<DomainsPage, Error>;
+	query: UseQueryResult<DomainsPage>;
 	/** Whether a filter narrows the list. */
 	isFiltered: boolean;
 };
@@ -579,7 +579,7 @@ function DomainCount({ state }: DomainCountProps) {
 /** Props for the domains table. */
 type DomainsTableProps = {
 	/** The domains list query. */
-	query: UseQueryResult<DomainsPage, Error>;
+	query: UseQueryResult<DomainsPage>;
 	/** Whether a filter narrows the list. */
 	isFiltered: boolean;
 	/** Resets every filter to its default. */

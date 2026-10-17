@@ -234,7 +234,7 @@ function resolvePreRenderedCodeBlockProps<
 	if (!hasPayload) {
 		return {
 			mantleCode: undefined,
-			props: props as Omit<T, PreRenderedCodeBlockPropKey>,
+			props,
 		};
 	}
 
@@ -271,7 +271,7 @@ function resolvePreRenderedCodeBlockProps<
 						? title.trim()
 						: undefined,
 		},
-		props: props as Omit<T, PreRenderedCodeBlockPropKey>,
+		props,
 	};
 }
 

@@ -18,6 +18,7 @@
     "array-callback-return": "error",
     "control-has-associated-label": "off",
     "curly": "error",
+    "eqeqeq": ["error", "always", { "null": "never" }],
     "eslint/no-shadow": "off",
     "eslint/no-underscore-dangle": "off",
     "jsdoc/check-property-names": "error",
@@ -50,7 +51,7 @@
     "jsdoc/require-property": "off",
     "jsdoc/require-throws-description": "warn",
     "jsdoc/require-yields": "off",
-    "no-explicit-any": "warn",
+    "no-explicit-any": "error",
     "no-fallthrough": "error",
     // Why skipComments: zero-width spaces in JSDoc keep literal `*/` examples
     // from closing the comment block (parse-theme-css.ts, compute-css-fold-ranges.ts).
@@ -105,6 +106,11 @@
     "typescript/no-import-type-side-effects": "error",
     "typescript/no-invalid-void-type": "error",
     "typescript/no-non-null-assertion": "error",
+    "typescript/no-unnecessary-boolean-literal-compare": "error",
+    "typescript/no-unnecessary-template-expression": "error",
+    "typescript/no-unnecessary-type-arguments": "error",
+    "typescript/no-unnecessary-type-assertion": "error",
+    "typescript/no-unnecessary-type-conversion": "error",
     "unicorn/filename-case": ["error", { "case": "kebabCase", "ignore": ["[\\[\\$]"] }]
   },
   "overrides": [
@@ -113,7 +119,7 @@
       // its source becomes a peer every consumer installs, pinned to that
       // framework's major (the `AutoScrollToHash` lesson). The glue that reads
       // router state lives in the app, as a recipe under `apps/www`.
-      // See CONVENTIONS.md § Framework Boundary.
+      // See docs/framework-boundary.md.
       "files": ["packages/mantle/src/**"],
       "rules": {
         "no-restricted-imports": [
@@ -131,7 +137,7 @@
                   "next",
                   "next/*"
                 ],
-                "message": "@ngrok/mantle depends on React alone. Type the seam structurally and put the router glue in an apps/www recipe (CONVENTIONS.md § Framework Boundary)."
+                "message": "@ngrok/mantle depends on React alone. Type the seam structurally and put the router glue in an apps/www recipe (docs/framework-boundary.md)."
               }
             ]
           }
@@ -143,6 +149,8 @@
       "rules": {
         "react/no-object-type-as-default-prop": "off",
         "unicorn/consistent-function-scoping": "off",
+        // Why: docs/testing.md has tests evaluate an inline <script> string with `new Function`.
+        "typescript/no-implied-eval": "off",
         "vitest/expect-expect": ["error", { "assertFunctionNames": ["expect", "expect*"] }]
       }
     }

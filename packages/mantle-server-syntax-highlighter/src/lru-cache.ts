@@ -38,7 +38,7 @@ function createLruCache<K, V>(maxEntries: number): LruCache<K, V> {
 				return;
 			}
 
-			const oldestKey = map.keys().next().value as K | undefined;
+			const oldestKey = map.keys().next().value;
 			if (oldestKey != null) {
 				map.delete(oldestKey);
 			}

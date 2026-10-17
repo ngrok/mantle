@@ -359,7 +359,7 @@ const measure = async (
 		}
 		const navStart = Date.now();
 		await page.goto(url, { waitUntil: "commit" });
-		await page.waitForFunction(() => window.__bench?.ready === true, undefined, {
+		await page.waitForFunction(() => window.__bench?.ready, undefined, {
 			timeout: 240_000,
 			polling: 250,
 		});

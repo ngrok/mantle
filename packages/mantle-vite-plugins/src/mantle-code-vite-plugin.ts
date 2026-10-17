@@ -1087,7 +1087,7 @@ function mantleCodeVitePlugin(): Plugin {
 					const language = languageArg.value;
 					if (!isSupportedLanguage(language)) {
 						this.warn(
-							`mantleCodeVitePlugin: unsupported language "${language}" in ${id} - skipping`,
+							`mantleCodeVitePlugin: unsupported language "${String(language)}" in ${id} - skipping`,
 						);
 						return null;
 					}
@@ -1160,7 +1160,7 @@ function mantleCodeVitePlugin(): Plugin {
 			for (const result of results) {
 				if ("error" in result) {
 					this.warn(
-						`mantleCodeVitePlugin: Shiki failed for language "${result.language}" in ${id}: ${result.error}`,
+						`mantleCodeVitePlugin: Shiki failed for language "${result.language}" in ${id}: ${result.error instanceof Error ? result.error.message : String(result.error)}`,
 					);
 					continue;
 				}

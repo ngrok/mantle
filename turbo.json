@@ -52,9 +52,12 @@
       "persistent": true
     },
     "typecheck": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["^build", "//#typecheck:scripts"],
       "cache": false,
       "outputs": ["**/.react-router/**"]
+    },
+    "//#typecheck:scripts": {
+      "inputs": ["scripts/**", ".claude/hooks/**"]
     }
   },
   "remoteCache": {

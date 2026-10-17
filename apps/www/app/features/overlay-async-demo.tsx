@@ -193,8 +193,8 @@ type UseUserQueryOptions = {
 };
 
 /** Fetches user details for the overlay with TanStack Query and an explicit retry policy. */
-function useUserQuery({ scenario, userId }: UseUserQueryOptions): UseQueryResult<User, Error> {
-	return useQuery<User, Error>({
+function useUserQuery({ scenario, userId }: UseUserQueryOptions): UseQueryResult<User> {
+	return useQuery<User>({
 		queryKey: [...USER_QUERY_KEY_ROOT, userId, scenario],
 		queryFn: ({ signal }) => fetchUser({ userId, scenario, signal }),
 		retry: (failureCount, error) => shouldRetryUserQuery({ error, failureCount }),
@@ -383,7 +383,7 @@ function UserAlertDialog({ onClose, scenario, userId }: UserOverlayProps) {
 /** Props for selecting which body state to render. */
 type UserDetailsBodyProps = {
 	/** TanStack Query result that drives the body state. */
-	query: UseQueryResult<User, Error>;
+	query: UseQueryResult<User>;
 };
 
 /** Keeps the overlay chrome stable while only the body content changes. */

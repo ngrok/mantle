@@ -68,7 +68,7 @@ function ListItem({ item }: { item: IconData }) {
 			<button
 				type="button"
 				onClick={() => {
-					copyToClipboard(copyText);
+					void copyToClipboard(copyText);
 					setWasCopied(true);
 
 					if (timeoutHandle.current != null) {

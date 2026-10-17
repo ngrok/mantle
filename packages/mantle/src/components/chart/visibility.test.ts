@@ -96,7 +96,9 @@ const observerFor = (margin: string, root: Element | null): FakeIntersectionObse
 			instance.rootMargin === margin && instance.root === root && !instance.disconnected,
 	);
 	if (observer == null) {
-		throw new Error(`expected an observer with a ${margin} root margin at ${String(root)}`);
+		throw new Error(
+			`expected an observer with a ${margin} root margin at ${root?.nodeName ?? "the viewport"}`,
+		);
 	}
 	return observer;
 };

@@ -896,7 +896,7 @@ const SaveButton = ({
 	// Layout effect so Root can park focus before paint — Chromium moves focus
 	// off a disabled button synchronously, so timing matters.
 	useIsomorphicLayoutEffect(() => {
-		reportSaving({ button: buttonRef.current, isSaving: Boolean(isLoading) });
+		reportSaving({ button: buttonRef.current, isSaving: isLoading });
 	}, [isLoading, reportSaving]);
 
 	useIsomorphicLayoutEffect(() => {

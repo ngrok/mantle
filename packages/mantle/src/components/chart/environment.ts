@@ -23,10 +23,12 @@ const prefersReducedMotion = (view: Window): boolean => {
 	if (typeof view.matchMedia !== "function") {
 		return false;
 	}
-	let query = reducedMotionQueries.get(view.matchMedia);
+	// oxlint-disable-next-line typescript/unbound-method -- Why: the method is a cache key and is never called unbound.
+	const cacheKey = view.matchMedia;
+	let query = reducedMotionQueries.get(cacheKey);
 	if (query == null) {
 		query = view.matchMedia("(prefers-reduced-motion: reduce)");
-		reducedMotionQueries.set(view.matchMedia, query);
+		reducedMotionQueries.set(cacheKey, query);
 	}
 	return query.matches;
 };

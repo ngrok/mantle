@@ -328,7 +328,7 @@ const Icon = ({ "data-slot": dataSlot, className, svg, ref, ...props }: ToastIco
 				/>
 			);
 		default:
-			throw new Error(`Unreachable Case: ${ctx.intent}`);
+			throw new Error(`Unreachable Case: ${String(ctx.intent)}`);
 	}
 };
 

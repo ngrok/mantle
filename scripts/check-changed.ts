@@ -46,7 +46,11 @@ export function planChecks({
 		});
 	}
 	if (lintable.length > 0) {
-		steps.push({ name: "lint", command: "pnpm", args: ["exec", "oxlint", ...lintable] });
+		steps.push({
+			name: "lint",
+			command: "pnpm",
+			args: ["exec", "oxlint", "--type-aware", ...lintable],
+		});
 	}
 	if (files.some((file) => agentDocFile.test(file))) {
 		steps.push({ name: "agent docs", command: "node", args: ["./scripts/check-agent-docs.ts"] });
