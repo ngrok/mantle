@@ -542,7 +542,7 @@ describe("Escape with a nested popup open", () => {
 						>
 							Region
 						</button>
-						{expanded ? <div data-state="open" id="nested-popup" role="listbox" /> : null}
+						{expanded && <div data-state="open" id="nested-popup" role="listbox" />}
 					</Dialog.Content>
 				</Dialog.Root>
 			);

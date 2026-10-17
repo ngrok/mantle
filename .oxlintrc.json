@@ -10,6 +10,8 @@
     "unicorn",
     "vitest"
   ],
+  // Why a local plugin: these conventions have no built-in rule. See scripts/oxlint-plugin-mantle.js.
+  "jsPlugins": ["./scripts/oxlint-plugin-mantle.js"],
   "categories": {
     "correctness": "error",
     "suspicious": "warn"
@@ -22,6 +24,7 @@
     "eslint/no-shadow": "off",
     "eslint/no-underscore-dangle": "off",
     "jsdoc/check-property-names": "error",
+    "mantle/no-jsx-null-ternary": "error",
     "jsx-a11y/anchor-has-content": "off",
     "jsx-a11y/no-noninteractive-element-interactions": "off",
     "jsx-a11y/prefer-tag-over-role": "off",
@@ -122,9 +125,18 @@
       // See docs/framework-boundary.md.
       "files": ["packages/mantle/src/**"],
       "rules": {
+        "mantle/no-default-export": "error",
+        "mantle/no-display-name": "error",
         "no-restricted-imports": [
           "error",
           {
+            "paths": [
+              {
+                "name": "react",
+                "importNames": ["forwardRef", "FC", "FunctionComponent"],
+                "message": "React 19 passes `ref` as a regular prop, and a component takes an inline function type (CONVENTIONS.md § Readability & Maintainability)."
+              }
+            ],
             "patterns": [
               {
                 "group": [
@@ -151,6 +163,10 @@
         "unicorn/consistent-function-scoping": "off",
         // Why: docs/testing.md has tests evaluate an inline <script> string with `new Function`.
         "typescript/no-implied-eval": "off",
+        "mantle/no-absent-class-assertion": "error",
+        "mantle/no-bare-to-have-been-called": "error",
+        "mantle/no-presence-matcher-on-get-by": "error",
+        "mantle/no-sleep-in-tests": "error",
         "vitest/expect-expect": ["error", { "assertFunctionNames": ["expect", "expect*"] }]
       }
     }

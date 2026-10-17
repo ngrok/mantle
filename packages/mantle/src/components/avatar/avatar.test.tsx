@@ -82,8 +82,9 @@ describe("Avatar.Root", () => {
 		);
 		const avatar = screen.getByTestId("avatar");
 		// A tailwind-merge override contract: the consumer's size beats the default.
-		expect(avatar).toHaveClass("size-10");
-		expect(avatar).not.toHaveClass("size-7");
+		expect(Array.from(avatar.classList).filter((name) => name.startsWith("size-"))).toEqual([
+			"size-10",
+		]);
 		expect(avatar).toHaveAttribute("data-flavor", "primary");
 		expect(avatar).toHaveAttribute("data-slot", "avatar");
 		expect(ref.current).toBe(avatar);

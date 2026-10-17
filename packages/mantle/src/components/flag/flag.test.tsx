@@ -123,8 +123,8 @@ describe("Flag", () => {
 	test("a consumer className overrides the default sizing", () => {
 		render(<Flag code="US" className="w-12" />);
 		const { wrapper } = getFlag("US");
-		expect(wrapper).toHaveClass("w-12");
-		expect(wrapper).not.toHaveClass("w-8");
+		// Why: tailwind-merge override contract; a consumer class replaces the default.
+		expect(Array.from(wrapper.classList).filter((name) => name.startsWith("w-"))).toEqual(["w-12"]);
 	});
 });
 

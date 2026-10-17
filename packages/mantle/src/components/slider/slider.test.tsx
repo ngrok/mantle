@@ -159,10 +159,10 @@ describe("Slider", () => {
 		test("a custom color replaces the default rather than landing beside it", () => {
 			render(<Slider defaultValue={50} max={100} step={1} color="bg-blue-500" />);
 			const range = document.querySelector("[data-slot='slider-range']");
-			expect(range).toHaveClass("bg-blue-500");
 			// Two `bg-*` utilities on one element would leave source order to pick
-			// the winner, so the default has to be gone, not merely outranked.
-			expect(range).not.toHaveClass("bg-accent-600");
+			// the winner, so the custom color must be the only one.
+			const colors = Array.from(range?.classList ?? []).filter((name) => name.startsWith("bg-"));
+			expect(colors).toEqual(["bg-blue-500"]);
 		});
 	});
 });

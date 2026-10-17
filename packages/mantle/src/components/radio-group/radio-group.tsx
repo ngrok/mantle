@@ -660,12 +660,11 @@ const InputSandbox = ({
 			}}
 			{...props}
 		>
-			{isValidElement<HTMLInputElement>(singleChild)
-				? cloneElement(singleChild, {
-						disabled: ctx.disabled || singleChild.props.disabled,
-						tabIndex: shouldPreventTabIndex ? -1 : singleChild.props.tabIndex,
-					})
-				: null}
+			{isValidElement<HTMLInputElement>(singleChild) &&
+				cloneElement(singleChild, {
+					disabled: ctx.disabled || singleChild.props.disabled,
+					tabIndex: shouldPreventTabIndex ? -1 : singleChild.props.tabIndex,
+				})}
 		</div>
 	);
 };

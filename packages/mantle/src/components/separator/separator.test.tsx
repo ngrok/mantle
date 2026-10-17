@@ -58,8 +58,9 @@ describe("Separator", () => {
 	test("lets a caller className win the separator color", () => {
 		render(<Separator className="bg-card" data-testid="separator" />);
 		const separator = screen.getByTestId("separator");
-		expect(separator).toHaveClass("bg-card");
-		expect(separator).not.toHaveClass("bg-separator");
+		expect(Array.from(separator.classList).filter((name) => name.startsWith("bg-"))).toEqual([
+			"bg-card",
+		]);
 	});
 
 	// Why a class assertion: a cross-file spelling pin. ButtonGroup's panel appearance spaces

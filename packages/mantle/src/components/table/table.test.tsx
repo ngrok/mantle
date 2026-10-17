@@ -212,15 +212,16 @@ describe("Table", () => {
 		);
 
 		const root = screen.getByTestId("root");
-		expect(root).toHaveClass("rounded-none");
-		expect(root).not.toHaveClass("rounded-lg");
+		expect(Array.from(root.classList).filter((name) => name.startsWith("rounded"))).toEqual([
+			"rounded-none",
+		]);
 
 		const header = screen.getByRole("columnheader", { name: "Invoice" });
-		expect(header).toHaveClass("h-20");
-		expect(header).not.toHaveClass("h-11");
+		expect(Array.from(header.classList).filter((name) => name.startsWith("h-"))).toEqual(["h-20"]);
 
 		const cell = container.querySelector('[data-slot="table-cell"]');
-		expect(cell).toHaveClass("p-6");
-		expect(cell).not.toHaveClass("p-3");
+		expect(Array.from(cell?.classList ?? []).filter((name) => name.startsWith("p-"))).toEqual([
+			"p-6",
+		]);
 	});
 });

@@ -228,8 +228,9 @@ describe("DataTable.Row", () => {
 		const row = screen.getByTestId("row");
 		// Why a class assertion: tailwind-merge override contract. The consumer's
 		// cursor class must beat the default `cursor-pointer`.
-		expect(row).toHaveClass("cursor-wait");
-		expect(row).not.toHaveClass("cursor-pointer");
+		expect(Array.from(row.classList).filter((name) => name.startsWith("cursor-"))).toEqual([
+			"cursor-wait",
+		]);
 	});
 
 	test("stamps `data-clickable` only when `onClick` is set", () => {

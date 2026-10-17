@@ -469,8 +469,10 @@ describe("Alert", () => {
 			// both survive the merge, and Tailwind emits `pe-*` last. Asserting the merge
 			// outcome is what catches the caret drifting 2px away from the edge.
 			const button = container.querySelector('[data-slot~="alert-expand-button"]');
-			expect(button).toHaveClass("ps-1.5", "pe-1");
-			expect(button).not.toHaveClass("pe-2");
+			expect(button).toHaveClass("ps-1.5");
+			expect(Array.from(button?.classList ?? []).filter((name) => name.startsWith("pe-"))).toEqual([
+				"pe-1",
+			]);
 		});
 
 		test("stamps the marker attribute Root's selectors read on each trailing control", () => {
@@ -553,10 +555,12 @@ describe("Alert", () => {
 			);
 			// Why the class: `Root` emits no `data-appearance`, so `rounded-none` is the
 			// only observable of the banner appearance.
-			expect(getAlertRoot(container)).toHaveClass("rounded-none");
-			// `toHaveClass` ignores extras, so the merge outcome is the proof: the base
-			// `rounded-md` must lose to the variant's `rounded-none`.
-			expect(getAlertRoot(container)).not.toHaveClass("rounded-md");
+			// `toHaveClass` ignores extras, so the radius list is the proof: the base
+			// `rounded-md` must lose the merge to the variant's `rounded-none`.
+			const radius = Array.from(getAlertRoot(container)?.classList ?? []).filter((name) =>
+				name.startsWith("rounded"),
+			);
+			expect(radius).toEqual(["rounded-none"]);
 		});
 	});
 });

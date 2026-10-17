@@ -390,8 +390,7 @@ describe("Accordion", () => {
 		expect(body).toHaveAttribute("data-slot", "accordion-body");
 		// Why: a tailwind-merge override contract. The consumer's `pb-6` replaces the
 		// default `pb-4` instead of landing beside it.
-		expect(body).toHaveClass("pb-6");
-		expect(body).not.toHaveClass("pb-4");
+		expect(Array.from(body.classList).filter((name) => name.startsWith("pb-"))).toEqual(["pb-6"]);
 	});
 
 	test("defaults to multiple mode when `type` is omitted (sections open independently)", () => {

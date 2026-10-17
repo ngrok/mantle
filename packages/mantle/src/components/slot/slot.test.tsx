@@ -56,16 +56,8 @@ describe("Slot", () => {
 			throw new Error("Expected a <div> to be rendered");
 		}
 
-		// Child's text color should win over parent's
-		expect(div).toHaveClass("text-blue-500");
-		expect(div).not.toHaveClass("text-red-500");
-
-		// Child's px should win over parent's (Tailwind merge behavior)
-		expect(div).toHaveClass("px-2");
-		expect(div).not.toHaveClass("px-4");
-
-		// Non-conflicting classes from both sides should be preserved
-		expect(div).toHaveClass("py-2");
+		// The child's `text-*` and `px-*` win the merge, so neither Slot class survives.
+		expect(div).toHaveClass("text-blue-500 px-2 py-2", { exact: true });
 	});
 
 	it("applies Slot className when the child has no className", () => {
@@ -265,9 +257,7 @@ describe("Slot render-prop className and style", () => {
 			</Slot>,
 		);
 
-		expect(getByRole("link")).toHaveClass("is-active");
-		expect(getByRole("link")).not.toHaveClass("is-inactive");
-		expect(getByRole("link")).toHaveClass("slot-class");
+		expect(getByRole("link")).toHaveClass("slot-class is-active", { exact: true });
 	});
 
 	it("keeps child-wins precedence for a function className, merging conflicting Tailwind classes", () => {
@@ -278,10 +268,8 @@ describe("Slot render-prop className and style", () => {
 		);
 
 		const link = getByRole("link");
-		expect(link).toHaveClass("text-blue-500");
-		expect(link).not.toHaveClass("text-red-500");
-		expect(link).toHaveClass("px-4");
-		expect(link).toHaveClass("py-2");
+		// The child's `text-blue-500` beats the Slot's `text-red-500`, and the Slot's `px-4` survives.
+		expect(link).toHaveClass("text-blue-500 px-4 py-2", { exact: true });
 	});
 
 	it("composes a function style with the Slot's style, letting the child win per property", () => {

@@ -2,6 +2,17 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, test } from "vitest";
 import { DescriptionList } from "./description-list.js";
 
+/** The Tailwind `font-weight` utilities. */
+const FONT_WEIGHT = /^font-(?:thin|extralight|light|normal|medium|semibold|bold|extrabold|black)$/;
+
+/**
+ * Returns the element's classes that match one utility group, so a
+ * tailwind-merge override test can assert the group holds only the winner.
+ */
+function utilityClasses(element: Element, group: RegExp): string[] {
+	return Array.from(element.classList).filter((name) => group.test(name));
+}
+
 describe("DescriptionList", () => {
 	test("Label renders its children", () => {
 		render(
@@ -155,8 +166,8 @@ describe("DescriptionList", () => {
 		);
 		const dl = screen.getByTestId("dl");
 		// The tailwind-merge contract: the consumer's radius replaces the default.
-		expect(dl).toHaveClass("custom-class", "rounded-none");
-		expect(dl).not.toHaveClass("rounded-lg");
+		expect(dl).toHaveClass("custom-class");
+		expect(utilityClasses(dl, /^rounded/)).toEqual(["rounded-none"]);
 	});
 
 	test("custom className merges with defaults on Item", () => {
@@ -170,8 +181,8 @@ describe("DescriptionList", () => {
 		);
 		const item = screen.getByTestId("item");
 		// The tailwind-merge contract: the consumer's alignment replaces the default.
-		expect(item).toHaveClass("custom-class", "items-start");
-		expect(item).not.toHaveClass("items-center");
+		expect(item).toHaveClass("custom-class");
+		expect(utilityClasses(item, /^items-/)).toEqual(["items-start"]);
 	});
 
 	test("custom className merges with defaults on Label", () => {
@@ -187,8 +198,7 @@ describe("DescriptionList", () => {
 		);
 		const dt = screen.getByTestId("label");
 		// The tailwind-merge contract: the consumer's weight replaces the default.
-		expect(dt).toHaveClass("font-bold");
-		expect(dt).not.toHaveClass("font-medium");
+		expect(utilityClasses(dt, FONT_WEIGHT)).toEqual(["font-bold"]);
 	});
 
 	test("custom className merges with defaults on Value", () => {
@@ -204,7 +214,7 @@ describe("DescriptionList", () => {
 		);
 		const dd = screen.getByTestId("value");
 		// The tailwind-merge contract: the consumer's padding replaces the default.
-		expect(dd).toHaveClass("custom-class", "px-0");
-		expect(dd).not.toHaveClass("px-3");
+		expect(dd).toHaveClass("custom-class");
+		expect(utilityClasses(dd, /^px-/)).toEqual(["px-0"]);
 	});
 });

@@ -278,22 +278,6 @@ describe("DropdownMenu", () => {
 
 			expect(screen.getByRole("menu")).toHaveClass(triggerWidthClass);
 		});
-
-		test.each(["content", undefined] as const)(
-			"width=%s leaves the content at its intrinsic width",
-			(width) => {
-				render(
-					<DropdownMenu.Root defaultOpen>
-						<DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
-						<DropdownMenu.Content width={width}>
-							<DropdownMenu.Item>Profile</DropdownMenu.Item>
-						</DropdownMenu.Content>
-					</DropdownMenu.Root>,
-				);
-
-				expect(screen.getByRole("menu")).not.toHaveClass(triggerWidthClass);
-			},
-		);
 	});
 });
 

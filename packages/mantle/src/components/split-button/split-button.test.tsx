@@ -224,8 +224,9 @@ describe("SplitButton", () => {
 
 		// Why the class check: the tailwind-merge contract drops the part's `gap-2` for the consumer's `gap-4`.
 		const menuItem = screen.getByRole("menuitem", { name: "Save as draft" });
-		expect(menuItem).toHaveClass("gap-4");
-		expect(menuItem).not.toHaveClass("gap-2");
+		expect(Array.from(menuItem.classList).filter((name) => name.startsWith("gap-"))).toEqual([
+			"gap-4",
+		]);
 	});
 
 	test("a custom `icon` on MenuTrigger replaces the default caret", () => {

@@ -26,7 +26,7 @@ Before a test is done, answer: **what single-line change to the implementation w
 - A validator or a parser that returns a message is asserted on the message. `toBeDefined()` alone passes a wrong or swapped message.
 - `@ts-expect-error` is owned by `pnpm typecheck`. Do not pair it with a placeholder runtime `expect` — that reads as coverage the vitest run does not have.
 - Spies assert count and arguments: `toHaveBeenCalledTimes(n)` plus `toHaveBeenLastCalledWith(…)`, not a bare `toHaveBeenCalled()`. A call-count-blind spy cannot see a debounce that stopped debouncing.
-- `oxlint`'s `vitest(expect-expect)` rule catches the assertion-free case only. Everything above is on you.
+- Lint catches four shapes: a test with no assertion (`vitest/expect-expect`), a `setTimeout` sleep, a `getBy*` query in a presence matcher, and a bare `toHaveBeenCalled()`. The last three live in `scripts/oxlint-plugin-mantle.js`. Everything else above is on you.
 
 ## No tautological tests, no change-detector tests
 

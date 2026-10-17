@@ -3,6 +3,9 @@ import { userEvent } from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
 import { List } from "./list.js";
 
+/** The Tailwind `font-weight` utilities. */
+const FONT_WEIGHT = /^font-(?:thin|extralight|light|normal|medium|semibold|bold|extrabold|black)$/;
+
 describe("List.Item", () => {
 	test("renders a type=button by default", () => {
 		render(
@@ -141,13 +144,15 @@ describe("List.ItemTitle / List.ItemDescription", () => {
 		// tailwind-merge override contract: the consumer's weight replaces the
 		// part's `font-medium` default instead of landing beside it, where source
 		// order would decide the winner.
-		expect(title).toHaveClass("font-normal");
-		expect(title).not.toHaveClass("font-medium");
+		expect(Array.from(title.classList).filter((name) => FONT_WEIGHT.test(name))).toEqual([
+			"font-normal",
+		]);
 
 		const description = screen.getByText("Pay-as-you-go");
 		expect(description).toHaveAttribute("data-slot", "list-item-description");
 		expect(description.tagName).toBe("SPAN");
-		expect(description).toHaveClass("leading-6");
-		expect(description).not.toHaveClass("leading-4");
+		expect(Array.from(description.classList).filter((name) => name.startsWith("leading-"))).toEqual(
+			["leading-6"],
+		);
 	});
 });

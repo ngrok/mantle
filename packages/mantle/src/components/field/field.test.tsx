@@ -10,6 +10,20 @@ import { Select } from "../select/select.js";
 import { FieldItemContext, type FieldControlAriaProps } from "./field-context.js";
 import { Field } from "./field.js";
 
+/** The Tailwind `font-size` utilities. */
+const FONT_SIZE = /^text-(?:xs|sm|base|lg|\d?xl)$/;
+
+/** The `text-*` utilities that set a color, not a font size. */
+const TEXT_COLOR = /^text-(?!(?:xs|sm|base|lg|\d?xl)$)/;
+
+/**
+ * Returns the element's classes that match one utility group, so a
+ * tailwind-merge override test can assert the group holds only the winner.
+ */
+function utilityClasses(element: Element, group: RegExp): string[] {
+	return Array.from(element.classList).filter((name) => group.test(name));
+}
+
 /**
  * `aria-describedby` is a space-separated IDREF list, so assert against the
  * parsed tokens. A substring match would pass for an empty or partial id.
@@ -189,8 +203,7 @@ describe("Field", () => {
 			expect(root).toHaveClass("custom-class");
 			// tailwind-merge override contract: a consumer `gap-*` replaces the default
 			// `gap-1.5`, so the assertion reads the merge outcome.
-			expect(root).toHaveClass("gap-0");
-			expect(root).not.toHaveClass("gap-1.5");
+			expect(utilityClasses(root, /^gap-/)).toEqual(["gap-0"]);
 		});
 
 		test("forwards arbitrary data-* attributes", () => {
@@ -618,8 +631,7 @@ describe("Field", () => {
 			expect(group).toHaveClass("custom-group");
 			// tailwind-merge override contract: a consumer `gap-*` replaces the default
 			// `gap-4`, so the assertion reads the merge outcome.
-			expect(group).toHaveClass("gap-0");
-			expect(group).not.toHaveClass("gap-4");
+			expect(utilityClasses(group, /^gap-/)).toEqual(["gap-0"]);
 		});
 
 		test("renders as child element when asChild is true", () => {
@@ -666,8 +678,7 @@ describe("Field", () => {
 				</Field.Set>,
 			);
 			const legend = screen.getByTestId("legend");
-			expect(legend).toHaveClass("text-base");
-			expect(legend).not.toHaveClass("text-sm");
+			expect(utilityClasses(legend, FONT_SIZE)).toEqual(["text-base"]);
 		});
 
 		test("user-supplied mb-* overrides the default mb-1.5", () => {
@@ -681,8 +692,7 @@ describe("Field", () => {
 				</Field.Set>,
 			);
 			const legend = screen.getByTestId("legend");
-			expect(legend).toHaveClass("mb-0");
-			expect(legend).not.toHaveClass("mb-1.5");
+			expect(utilityClasses(legend, /^mb-/)).toEqual(["mb-0"]);
 		});
 	});
 
@@ -703,8 +713,7 @@ describe("Field", () => {
 				</Field.Description>,
 			);
 			const description = screen.getByTestId("desc");
-			expect(description).toHaveClass("text-xs");
-			expect(description).not.toHaveClass("text-sm");
+			expect(utilityClasses(description, FONT_SIZE)).toEqual(["text-xs"]);
 		});
 
 		test("renders as child element when asChild is true", () => {
@@ -801,8 +810,7 @@ describe("Field", () => {
 			expect(trigger).toHaveAttribute("data-appearance", "ghost");
 			// tailwind-merge override contract: HelpTrigger's `text-body` replaces the ghost
 			// IconButton's `text-strong` rest color, so the assertion reads the merge outcome.
-			expect(trigger).toHaveClass("text-body");
-			expect(trigger).not.toHaveClass("text-strong");
+			expect(utilityClasses(trigger, TEXT_COLOR)).toEqual(["text-body"]);
 		});
 
 		test("HelpTrigger forwards a custom label and merges className", () => {
@@ -826,8 +834,7 @@ describe("Field", () => {
 				</Field.Help>,
 			);
 			const trigger = screen.getByRole("button", { name: "What is this?" });
-			expect(trigger).toHaveClass("my-0");
-			expect(trigger).not.toHaveClass("-my-0.5");
+			expect(utilityClasses(trigger, /^-?my-/)).toEqual(["my-0"]);
 		});
 
 		test("clicking Field.HelpTrigger opens the Field.Help popover and Escape closes it", async () => {
