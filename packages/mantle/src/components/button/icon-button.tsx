@@ -122,7 +122,7 @@ type IconButtonProps = Omit<ComponentProps<"button">, "aria-label"> &
  * | `data-icon-button` | `"true"`                                     | Always present. Lets a wrapper style every icon button it contains.    |
  * | `data-appearance`  | `"filled"` \| `"ghost"` \| `"outlined"`       | The `appearance` prop.                                                 |
  * | `data-intent`      | `"neutral"`                                  | The `intent` prop.                                                     |
- * | `data-size`        | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"`  | The `size` prop.                                                       |
+ * | `data-size`        | `"2xs"` \| `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | The `size` prop.                                          |
  * | `data-loading`     | present when `isLoading`                     | Presence-only, never `"false"`.                                        |
  * | `data-disabled`    | present when disabled                        | Presence-only, never `"false"`, since the `data-disabled:` variant matches the attribute's existence. Set when the button resolves disabled: `disabled`, `aria-disabled="true"`, or `isLoading` with no explicit `disabled`. `disabled={false}` keeps a loading button enabled and omits it. |
  *

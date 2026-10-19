@@ -23,6 +23,13 @@ type IconButtonAppearance = "filled" | "ghost" | "outlined";
  */
 type IconButtonIntent = "neutral";
 
+/**
+ * The size of an `IconButton`: the shared `ButtonSize` scale plus `2xs`, a
+ * 1.25rem (20px) box that shrinks the icon to 1rem (16px). Only `IconButton`
+ * has `2xs`, because a `Button` that small has no room for its label.
+ */
+type IconButtonSize = "2xs" | ButtonSize;
+
 const baseIconButtonClasses = cx(
 	"icon-button",
 	"inline-flex shrink-0 items-center justify-center rounded-[var(--icon-button-border-radius,0.375rem)] border",
@@ -76,15 +83,17 @@ const iconButtonVariants = cva(baseIconButtonClasses, {
 		},
 		/**
 		 * The size of the IconButton, default `"md"`. Shared scale with
-		 * `Button` — same size name, same box height.
+		 * `Button` (same size name, same box height), plus `2xs`, which also
+		 * shrinks the icon.
 		 */
 		size: {
+			"2xs": "size-5 [&_svg]:size-4",
 			xs: "size-6",
 			sm: "size-7",
 			md: "size-9",
 			lg: "size-10",
 			xl: "size-12",
-		} satisfies Record<ButtonSize, string>,
+		} satisfies Record<IconButtonSize, string>,
 	},
 	defaultVariants: {
 		intent: "neutral",

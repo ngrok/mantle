@@ -3,7 +3,9 @@ title: Description List
 description: A semantically correct description list built on the HTML dl element. Renders a list of label/value pairs, commonly used in detail views to display metadata about a resource.
 ---
 
+import { IconButton } from "@ngrok/mantle/button";
 import { DescriptionList } from "@ngrok/mantle/description-list";
+import { CopyIcon } from "@phosphor-icons/react/Copy";
 import { Example } from "~/components/example";
 
 # Description List
@@ -114,6 +116,64 @@ import { DescriptionList } from "@ngrok/mantle/description-list";
 		<DescriptionList.Label>Docs</DescriptionList.Label>
 		<DescriptionList.Value asChild>
 			<a href="https://mantle.ngrok.com">mantle.ngrok.com</a>
+		</DescriptionList.Value>
+	</DescriptionList.Item>
+</DescriptionList.Root>;
+```
+
+## Actions in a row
+
+To put a copy button or another action beside a value, use an [`IconButton`](/components/actions/icon-button#size) with `size="2xs"`. Its 20px box fits inside the line of text, so a row with an action is the same height as a row without one. Wrap the value text in its own element beside the button.
+
+<Example>
+	<div className="w-full max-w-lg">
+		<DescriptionList.Root>
+			<DescriptionList.Item>
+				<DescriptionList.Label>Name</DescriptionList.Label>
+				<DescriptionList.Value>my-api-key</DescriptionList.Value>
+			</DescriptionList.Item>
+			<DescriptionList.Item>
+				<DescriptionList.Label>ID</DescriptionList.Label>
+				<DescriptionList.Value className="flex items-center gap-2">
+					<span translate="no" className="truncate">
+						aigk_2fKm9x8Hn3QpYT7zKlR0vW5
+					</span>
+					<IconButton
+						appearance="ghost"
+						intent="neutral"
+						size="2xs"
+						label="Copy ID"
+						icon={<CopyIcon />}
+					/>
+				</DescriptionList.Value>
+			</DescriptionList.Item>
+		</DescriptionList.Root>
+	</div>
+</Example>
+
+```tsx
+import { IconButton } from "@ngrok/mantle/button";
+import { DescriptionList } from "@ngrok/mantle/description-list";
+import { CopyIcon } from "@phosphor-icons/react/Copy";
+
+<DescriptionList.Root>
+	<DescriptionList.Item>
+		<DescriptionList.Label>Name</DescriptionList.Label>
+		<DescriptionList.Value>my-api-key</DescriptionList.Value>
+	</DescriptionList.Item>
+	<DescriptionList.Item>
+		<DescriptionList.Label>ID</DescriptionList.Label>
+		<DescriptionList.Value className="flex items-center gap-2">
+			<span translate="no" className="truncate">
+				aigk_2fKm9x8Hn3QpYT7zKlR0vW5
+			</span>
+			<IconButton
+				appearance="ghost"
+				intent="neutral"
+				size="2xs"
+				label="Copy ID"
+				icon={<CopyIcon />}
+			/>
 		</DescriptionList.Value>
 	</DescriptionList.Item>
 </DescriptionList.Root>;

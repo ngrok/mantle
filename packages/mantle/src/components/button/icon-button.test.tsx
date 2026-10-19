@@ -113,6 +113,7 @@ describe("IconButton", () => {
 		});
 
 		test.each([
+			["2xs", "size-5"],
 			["xs", "size-6"],
 			["sm", "size-7"],
 			["lg", "size-10"],
