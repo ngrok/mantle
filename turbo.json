@@ -57,7 +57,7 @@
       "outputs": ["**/.react-router/**"]
     },
     "//#typecheck:scripts": {
-      "inputs": ["scripts/**", ".claude/hooks/**"]
+      "inputs": ["scripts/**", ".claude/hooks/**", "config/tsconfig/**"]
     }
   },
   "remoteCache": {

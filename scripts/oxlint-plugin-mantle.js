@@ -41,6 +41,24 @@ function readMatcherCall(node) {
 	return { subject: object.arguments[0], negated, matcher };
 }
 
+/** Whether a timer callback is the promise resolver, or a function that calls it: `resolve` or `() => resolve()`. */
+function isResolveCallback(callback, resolveName) {
+	if (callback == null) {
+		return false;
+	}
+	if (callback.type === "Identifier") {
+		return callback.name === resolveName;
+	}
+	if (!callback.type.endsWith("FunctionExpression")) {
+		return false;
+	}
+	const statements = callback.body.type === "BlockStatement" ? callback.body.body : [callback.body];
+	return statements.some((statement) => {
+		const expression = statement.type === "ExpressionStatement" ? statement.expression : statement;
+		return expression.type === "CallExpression" && propertyName(expression.callee) === resolveName;
+	});
+}
+
 const noJsxNullTernary = {
 	meta: {
 		type: "suggestion",
@@ -56,7 +74,7 @@ const noJsxNullTernary = {
 				const container = node.parent;
 				const isChild =
 					container?.type === "JSXExpressionContainer" && container.parent?.type !== "JSXAttribute";
-				if (isChild && isNullLiteral(node.alternate)) {
+				if (isChild && (isNullLiteral(node.consequent) || isNullLiteral(node.alternate))) {
 					context.report({ node, messageId: "nullArm" });
 				}
 			},
@@ -85,15 +103,16 @@ const noSleepInTests = {
 				}
 				const resolve = executor.params[0];
 				const body = executor.body.type === "BlockStatement" ? executor.body.body : [executor.body];
+				if (resolve?.type !== "Identifier") {
+					return;
+				}
 				const callsSetTimeoutWithResolve = body.some((statement) => {
 					const expression =
 						statement.type === "ExpressionStatement" ? statement.expression : statement;
 					return (
 						expression.type === "CallExpression" &&
 						propertyName(expression.callee) === "setTimeout" &&
-						resolve?.type === "Identifier" &&
-						expression.arguments[0]?.type === "Identifier" &&
-						expression.arguments[0].name === resolve.name
+						isResolveCallback(expression.arguments[0], resolve.name)
 					);
 				});
 				if (callsSetTimeoutWithResolve) {

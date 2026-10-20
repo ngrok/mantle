@@ -1447,7 +1447,7 @@ const ChartTooltipReadout = ({
 			<div className="mt-1 grid gap-1">
 				{hover.points.map((point) => (
 					<div key={point.dataKey} className="flex items-center gap-1.5">
-						{config?.indicator === "none" ? null : (
+						{config?.indicator !== "none" && (
 							<span
 								aria-hidden
 								className="h-2.5 w-0.5 shrink-0 rounded-full"
@@ -1461,7 +1461,7 @@ const ChartTooltipReadout = ({
 					</div>
 				))}
 			</div>
-			{hover.zValue === undefined ? null : (
+			{hover.zValue !== undefined && (
 				<div className="mt-1 flex items-center gap-1.5">
 					<span className="text-muted">z</span>
 					<span className="text-strong ml-auto pl-3 font-medium tabular-nums">
@@ -1469,7 +1469,7 @@ const ChartTooltipReadout = ({
 					</span>
 				</div>
 			)}
-			{footer == null ? null : (
+			{footer != null && (
 				<div className="text-muted mt-1">
 					{typeof footer === "function" ? footer(hover) : footer}
 				</div>
@@ -1991,7 +1991,7 @@ const ChartDataTable = ({
 								{column.label}
 							</th>
 						))}
-						{zKey == null ? null : <th scope="col">{zKey}</th>}
+						{zKey != null && <th scope="col">{zKey}</th>}
 					</tr>
 				</thead>
 				<tbody>
@@ -2024,17 +2024,16 @@ const ChartDataTable = ({
 										</td>
 									);
 								})}
-								{zKey == null
-									? null
-									: (() => {
-											const zRaw = datumValue(row, zKey);
-											const zIsFinite = typeof zRaw === "number" && Number.isFinite(zRaw);
-											return (
-												<td data-value={zIsFinite ? zRaw : undefined}>
-													{zIsFinite ? formatNumber(zRaw) : "—"}
-												</td>
-											);
-										})()}
+								{zKey != null &&
+									(() => {
+										const zRaw = datumValue(row, zKey);
+										const zIsFinite = typeof zRaw === "number" && Number.isFinite(zRaw);
+										return (
+											<td data-value={zIsFinite ? zRaw : undefined}>
+												{zIsFinite ? formatNumber(zRaw) : "—"}
+											</td>
+										);
+									})()}
 							</tr>
 						);
 					})}

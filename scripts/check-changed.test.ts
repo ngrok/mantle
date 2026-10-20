@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import { planChecks, tailLines } from "./check-changed.ts";
 
-const stepNames = (files: string[]) =>
-	planChecks({ files, base: "origin/main" }).map((step) => step.name);
+const stepNames = (files: string[], deleted: string[] = []) =>
+	planChecks({ files, deleted, base: "origin/main" }).map((step) => step.name);
 
 describe("planChecks", () => {
 	it("plans nothing for files no check reads", () => {
@@ -26,9 +26,29 @@ describe("planChecks", () => {
 		]);
 	});
 
+	it.each([
+		"packages/mantle/src/mantle.css",
+		"packages/mantle/package.json",
+		"config/tsconfig/tsconfig.client-package.json",
+		"pnpm-lock.yaml",
+	])("typechecks and tests a change to %s, which compilation or a test reads", (file) => {
+		expect(stepNames([file])).toEqual(["fmt", "typecheck", "test"]);
+	});
+
+	it("typechecks and tests a deleted source file, and formats and lints none", () => {
+		const file = "packages/mantle/src/components/button/button.tsx";
+
+		expect(stepNames([file], [file])).toEqual(["typecheck", "test"]);
+	});
+
+	it("checks the budget when an agent doc is deleted", () => {
+		expect(stepNames(["packages/AGENTS.md"], ["packages/AGENTS.md"])).toEqual(["agent docs"]);
+	});
+
 	it("lints only the code files and scopes turbo to packages changed since the base", () => {
 		const steps = planChecks({
 			files: ["packages/mantle/src/components/button/button.tsx", "README.md"],
+			deleted: [],
 			base: "origin/release",
 		});
 

@@ -31,7 +31,7 @@ const filePath = editedFilePath(JSON.parse(input));
 if (filePath != null && fs.existsSync(filePath)) {
 	const projectDir = process.env.CLAUDE_PROJECT_DIR ?? process.cwd();
 	const oxlint = path.join(projectDir, "node_modules", ".bin", "oxlint");
-	const result = spawnSync(oxlint, ["--format=unix", "--quiet", filePath], {
+	const result = spawnSync(oxlint, ["--type-aware", "--format=unix", "--quiet", filePath], {
 		cwd: projectDir,
 		encoding: "utf8",
 	});

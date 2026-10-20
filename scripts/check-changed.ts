@@ -15,27 +15,35 @@ export type CheckStep = {
 const lintableFile = /\.(?:[cm]?[jt]sx?)$/;
 const formattableFile = /\.(?:[cm]?[jt]sx?|json|jsonc|css|md|mdx|ya?ml)$/;
 const agentDocFile = /(?:^|\/)(?:AGENTS|CONVENTIONS)\.md$/;
+// Why styles, JSON, and YAML: stylesheets, package manifests, tsconfigs, and the lockfile change what compiles and what tests read.
+const packageInputFile = /\.(?:[cm]?[jt]sx?|mdx|css|jsonc?|ya?ml)$/;
 
 /**
  * Plan the checks for a set of changed files, cheapest first.
  *
- * Format and lint read only the changed files. Typecheck and tests run through turbo for each package that
- * changed since `base`, plus the packages that depend on it.
+ * Format and lint read only the changed files that still exist. Typecheck and tests run through turbo for each
+ * package that changed since `base`, plus the packages that depend on it. A deleted file still schedules them,
+ * because a deletion can break an import.
  *
  * @example
- * planChecks({ files: ["packages/mantle/src/components/button/button.tsx"], base: "origin/main" });
+ * planChecks({ files: ["packages/mantle/src/components/button/button.tsx"], deleted: [], base: "origin/main" });
  * // => fmt, lint, typecheck, and test steps
  */
 export function planChecks({
 	files,
+	deleted,
 	base,
 }: {
+	/** Every changed path, deleted ones included. */
 	files: readonly string[];
+	/** The changed paths that no longer exist. */
+	deleted: readonly string[];
 	base: string;
 }): CheckStep[] {
-	const formattable = files.filter((file) => formattableFile.test(file));
-	const lintable = files.filter((file) => lintableFile.test(file));
-	const touchesCode = files.some((file) => lintableFile.test(file) || file.endsWith(".mdx"));
+	const existing = files.filter((file) => !deleted.includes(file));
+	const formattable = existing.filter((file) => formattableFile.test(file));
+	const lintable = existing.filter((file) => lintableFile.test(file));
+	const touchesPackage = files.some((file) => packageInputFile.test(file));
 	const steps: CheckStep[] = [];
 
 	if (formattable.length > 0) {
@@ -55,7 +63,7 @@ export function planChecks({
 	if (files.some((file) => agentDocFile.test(file))) {
 		steps.push({ name: "agent docs", command: "node", args: ["./scripts/check-agent-docs.ts"] });
 	}
-	if (touchesCode) {
+	if (touchesPackage) {
 		const filter = `--filter=...[${base}]`;
 		steps.push({
 			name: "typecheck",
@@ -86,20 +94,21 @@ function gitLines(args: string[]): string[] {
 	return result.stdout.split("\n").filter((line) => line.length > 0);
 }
 
-/** The files that differ from `base`: committed, staged, unstaged, and untracked. */
+/** The paths that differ from `base`: committed, staged, unstaged, untracked, and deleted. */
 function changedFiles(base: string): string[] {
 	const files = new Set([
-		...gitLines(["diff", "--name-only", "--diff-filter=d", `${base}...HEAD`]),
-		...gitLines(["diff", "--name-only", "--diff-filter=d", "HEAD"]),
+		...gitLines(["diff", "--name-only", `${base}...HEAD`]),
+		...gitLines(["diff", "--name-only", "HEAD"]),
 		...gitLines(["ls-files", "--others", "--exclude-standard"]),
 	]);
-	return [...files].filter((file) => fs.existsSync(file)).toSorted();
+	return [...files].toSorted();
 }
 
 function cli(): void {
 	const base = process.env.CHECK_BASE ?? "origin/main";
 	const files = changedFiles(base);
-	const steps = planChecks({ files, base });
+	const deleted = files.filter((file) => !fs.existsSync(file));
+	const steps = planChecks({ files, deleted, base });
 	if (steps.length === 0) {
 		console.log(`No changed files to check against ${base}.`);
 		return;

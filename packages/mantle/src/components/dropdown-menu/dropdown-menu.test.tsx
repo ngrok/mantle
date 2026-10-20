@@ -278,6 +278,27 @@ describe("DropdownMenu", () => {
 
 			expect(screen.getByRole("menu")).toHaveClass(triggerWidthClass);
 		});
+
+		test.each(["content", undefined] as const)(
+			"width=%s leaves the content at its intrinsic width",
+			(width) => {
+				render(
+					<DropdownMenu.Root defaultOpen>
+						<DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+						<DropdownMenu.Content width={width}>
+							<DropdownMenu.Item>Profile</DropdownMenu.Item>
+						</DropdownMenu.Content>
+					</DropdownMenu.Root>,
+				);
+
+				// Why every width utility: a negated match on one class passes when the
+				// regression returns under another width class.
+				const widthClasses = Array.from(screen.getByRole("menu").classList).filter((name) =>
+					name.startsWith("w-"),
+				);
+				expect(widthClasses).toEqual([]);
+			},
+		);
 	});
 });
 

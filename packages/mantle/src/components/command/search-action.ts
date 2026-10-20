@@ -83,6 +83,17 @@ type SearchPasteEvent = {
  */
 const activationKeys = new Set([" ", "Enter"]);
 
+// Why graphemes: a skin-tone emoji or a decomposed accent is one character on screen but two code points.
+// Why lazy: an import must not build a segmenter that no keystroke uses.
+let graphemeSegmenter: Intl.Segmenter | undefined;
+
+/** Whether a `KeyboardEvent.key` value is one character a user can see, not a named key. */
+function isSingleGrapheme(key: string): boolean {
+	graphemeSegmenter ??= new Intl.Segmenter(undefined, { granularity: "grapheme" });
+	const segments = graphemeSegmenter.segment(key)[Symbol.iterator]();
+	return !segments.next().done && segments.next().done === true;
+}
+
 /**
  * Classifies a `keydown` on a search trigger. Pure, so the whole policy is
  * testable without a DOM: see the {@link SearchAction} cases for what each
@@ -105,9 +116,10 @@ const activationKeys = new Set([" ", "Enter"]);
  *   Windows `Alt` accelerators (`Alt+D`, `Alt+Home`) — the worse trade.
  *   `Shift` is not a modifier here; it is already reflected in `key`.
  * - **`Enter` / `Space` → `"ignore"`.** The button's own activation keys.
- * - **A single code point → `"seed"`.** Counted by spreading rather than
- *   `.length`, so astral characters (emoji, less common CJK) count as one
- *   instead of two and are not dropped. Every named key (`"Tab"`,
+ * - **A single grapheme → `"seed"`.** Counted as the characters a user sees,
+ *   not as `.length` or code points, so an astral character (emoji, less
+ *   common CJK), a skin-tone emoji, or a decomposed accent counts as one and
+ *   is not dropped. Every named key (`"Tab"`,
  *   `"ArrowDown"`, `"Dead"`, `"Unidentified"`) is longer and falls through —
  *   except when the engine also flags it as IME processing, which the case
  *   above claims first.
@@ -132,15 +144,6 @@ const activationKeys = new Set([" ", "Enter"]);
  * </button>
  * ```
  */
-// Why graphemes: a skin-tone emoji or a decomposed accent is one character on screen but two code points.
-const graphemeSegmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
-
-/** Whether a `KeyboardEvent.key` value is one character a user can see, not a named key. */
-function isSingleGrapheme(key: string): boolean {
-	const segments = graphemeSegmenter.segment(key)[Symbol.iterator]();
-	return !segments.next().done && segments.next().done === true;
-}
-
 function searchActionFromKeyDown(event: SearchKeyDownEvent): SearchAction {
 	if (event.isComposing || event.key === "Process" || event.keyCode === 229) {
 		return { type: "open" };

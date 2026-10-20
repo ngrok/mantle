@@ -178,6 +178,20 @@ describe("Button", () => {
 			expect(screen.getByRole("button")).toHaveClass("pe-3.5");
 		});
 
+		test(`applies no icon padding when appearance="link"`, () => {
+			render(
+				<Button appearance="link" intent="accent" icon={<svg aria-hidden data-testid="icon" />}>
+					click me
+				</Button>,
+			);
+			const button = screen.getByRole("button");
+			// Why the class assertion: the link appearance has no box, so the icon padding
+			// lookup skips it, and the class is that lookup's only observable. Every
+			// padding-start and padding-end utility is checked, not one class name.
+			expect(Array.from(button.classList).filter((name) => /^p[se]-/.test(name))).toEqual([]);
+			expect(button).toContainElement(screen.getByTestId("icon"));
+		});
+
 		test("a consumer className height override still beats the size classes", () => {
 			render(
 				<Button appearance="outlined" intent="accent" className="h-14">

@@ -52,6 +52,15 @@ describe("no-jsx-null-ternary", () => {
 		]);
 	});
 
+	it("reports a ternary with a null first arm inside JSX", () => {
+		const source =
+			"export const A = ({ off }: { off: boolean }) => <div>{off ? null : <b />}</div>;\n";
+
+		expect(lint({ rule: "no-jsx-null-ternary", fileName: "a.tsx", source })).toEqual([
+			"no-jsx-null-ternary",
+		]);
+	});
+
 	it("leaves a ternary in a JSX attribute alone", () => {
 		const source =
 			"export const A = ({ on }: { on: boolean }) => <div title={on ? 'on' : null} />;\n";
@@ -71,6 +80,19 @@ describe("no-sleep-in-tests", () => {
 		const source = "await new Promise((resolve) => setTimeout(resolve, 100));\n";
 
 		expect(lint({ rule: "no-sleep-in-tests", fileName: "a.test.ts", source })).toEqual([
+			"no-sleep-in-tests",
+		]);
+	});
+
+	it("reports a timer callback that calls the resolver", () => {
+		const source = [
+			"await new Promise((resolve) => setTimeout(() => resolve(), 100));",
+			"await new Promise((resolve) => { setTimeout(() => { resolve(undefined); }, 100); });",
+			"",
+		].join("\n");
+
+		expect(lint({ rule: "no-sleep-in-tests", fileName: "a.test.ts", source })).toEqual([
+			"no-sleep-in-tests",
 			"no-sleep-in-tests",
 		]);
 	});
