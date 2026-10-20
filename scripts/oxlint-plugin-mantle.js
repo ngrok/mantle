@@ -49,7 +49,11 @@ function isResolveCallback(callback, resolveName) {
 	if (callback.type === "Identifier") {
 		return callback.name === resolveName;
 	}
-	if (!callback.type.endsWith("FunctionExpression")) {
+	// Why the parameter check: a callback parameter with the resolver's name shadows the resolver.
+	if (
+		!callback.type.endsWith("FunctionExpression") ||
+		callback.params.some((param) => param.type === "Identifier" && param.name === resolveName)
+	) {
 		return false;
 	}
 	const statements = callback.body.type === "BlockStatement" ? callback.body.body : [callback.body];

@@ -17,13 +17,19 @@ const formattableFile = /\.(?:[cm]?[jt]sx?|json|jsonc|css|md|mdx|ya?ml)$/;
 const agentDocFile = /(?:^|\/)(?:AGENTS|CONVENTIONS)\.md$/;
 // Why styles, JSON, and YAML: stylesheets, package manifests, tsconfigs, and the lockfile change what compiles and what tests read.
 const packageInputFile = /\.(?:[cm]?[jt]sx?|mdx|css|jsonc?|ya?ml)$/;
+// Why the whole repo: a new rule or a plugin change can fail a file that did not change.
+const lintConfigFile = /^(?:\.oxlintrc\.json|scripts\/oxlint-plugin-mantle\.js)$/;
+// Why: turbo selects only the root package for these paths, and the root has no `typecheck` or `test` task.
+const rootTaskInputFile =
+	/^(?:scripts\/|\.claude\/hooks\/|config\/tsconfig\/|packages\/mantle\/migrations\/|apps\/www\/app\/docs\/migrations\/|\.changeset\/[^/]+\.md$)/;
 
 /**
  * Plan the checks for a set of changed files, cheapest first.
  *
  * Format and lint read only the changed files that still exist. Typecheck and tests run through turbo for each
  * package that changed since `base`, plus the packages that depend on it. A deleted file still schedules them,
- * because a deletion can break an import.
+ * because a deletion can break an import. A lint config change lints the whole repo, and a change to a
+ * script, a hook, a migration, or a changeset runs the root `typecheck:scripts` and `test:scripts` tasks.
  *
  * @example
  * planChecks({ files: ["packages/mantle/src/components/button/button.tsx"], deleted: [], base: "origin/main" });
@@ -53,7 +59,9 @@ export function planChecks({
 			args: ["exec", "oxfmt", "--check", "--no-error-on-unmatched-pattern", ...formattable],
 		});
 	}
-	if (lintable.length > 0) {
+	if (files.some((file) => lintConfigFile.test(file))) {
+		steps.push({ name: "lint", command: "pnpm", args: ["run", "lint"] });
+	} else if (lintable.length > 0) {
 		steps.push({
 			name: "lint",
 			command: "pnpm",
@@ -71,6 +79,13 @@ export function planChecks({
 			args: ["exec", "turbo", "run", "typecheck", filter],
 		});
 		steps.push({ name: "test", command: "pnpm", args: ["exec", "turbo", "run", "test", filter] });
+	}
+	if (files.some((file) => rootTaskInputFile.test(file))) {
+		steps.push({
+			name: "scripts",
+			command: "pnpm",
+			args: ["exec", "turbo", "run", "typecheck:scripts", "test:scripts", "--filter=//"],
+		});
 	}
 	return steps;
 }

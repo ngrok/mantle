@@ -98,7 +98,11 @@ describe("no-sleep-in-tests", () => {
 	});
 
 	it("leaves a timer that does not resolve the promise alone", () => {
-		const source = "await new Promise((resolve) => { setTimeout(() => {}, 100); resolve(1); });\n";
+		const source = [
+			"await new Promise((resolve) => { setTimeout(() => {}, 100); resolve(1); });",
+			"await new Promise((resolve) => { setTimeout((resolve) => resolve(), 100); resolve(1); });",
+			"",
+		].join("\n");
 
 		expect(lint({ rule: "no-sleep-in-tests", fileName: "a.test.ts", source })).toEqual([]);
 	});
