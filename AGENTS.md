@@ -58,6 +58,8 @@ Each one has a file in [docs/principles/](./docs/principles/README.md). When you
 
 - Search before you create a helper, hook, part, parser, formatter, or dependency. Look in `packages/mantle/src` first, then the owning app.
 - Nothing under `packages/mantle/src` imports a router or an app framework.
+- Other sessions can work in the same checkout. Run `git status` before you stage, and stage by path. Never `git add -A`.
+- Do not revert a working-tree change you did not make. Ask first.
 
 ## Before you finish
 
@@ -76,6 +78,8 @@ You do not need to run checks after each edit. Run them when a coherent chunk of
 From a fresh clone, run `./scripts/setup`. It installs [mise](https://mise.jdx.dev/), the pinned Node and pnpm, and the dependencies. Without shell activation, prefix a command with `mise x --`. `mise run doctor` checks the toolchain against the pins.
 
 Run every command from the repo root with `pnpm -w run <script>`; the root `package.json` lists the scripts. Scope a package with `-F`, as in `pnpm -w run test -F @ngrok/mantle`.
+
+Do not pipe a check through `tail` or `head`. The pipe returns the exit code of the last command, so a failed check looks green. Redirect to a file instead.
 
 ## Read-only directories
 
