@@ -8,6 +8,20 @@ const e10 = Math.sqrt(50);
 const e5 = Math.sqrt(10);
 const e2 = Math.sqrt(2);
 
+/** The 1/2/5/10 multiplier that rounds a step's mantissa (`error`, in [1, 10)) to a nice step. */
+const niceFactor = (error: number): number => {
+	if (error >= e10) {
+		return 10;
+	}
+	if (error >= e5) {
+		return 5;
+	}
+	if (error >= e2) {
+		return 2;
+	}
+	return 1;
+};
+
 /**
  * Options for tick generation.
  */
@@ -39,7 +53,7 @@ const tickSpec = (
 	const step = options?.integer ? Math.max(1, rawStep) : rawStep;
 	const power = Math.floor(Math.log10(step));
 	const error = step / Math.pow(10, power);
-	const factor = error >= e10 ? 10 : error >= e5 ? 5 : error >= e2 ? 2 : 1;
+	const factor = niceFactor(error);
 	let i1;
 	let i2;
 	let inc;

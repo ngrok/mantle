@@ -35,6 +35,7 @@ import { onPrint } from "./environment.js";
 import { formatNumber, formatXValue } from "./format.js";
 import { serializeChartMarkdown } from "./serialize.js";
 import { ChartStore } from "./store.js";
+import type { TooltipConfig } from "./store.js";
 import { textureInkColor } from "./texture.js";
 import { observeChartVisibility } from "./visibility.js";
 import type {
@@ -919,6 +920,7 @@ const ChartRootPrimitive = ({
 		validatedRef.current = { data, signature };
 	});
 
+	const latchState = engaged ? "engaged" : "dormant";
 	return (
 		<div
 			data-slot={joinDataSlot(dataSlot, slotName)}
@@ -978,7 +980,7 @@ const ChartRootPrimitive = ({
 			// Why after the spread: the latch is the Root's own state, and a wider
 			// props object must not carry a stale value past it. Only an interactive
 			// chart has an overlay to focus, so only it carries the latch.
-			data-state={interactive ? (engaged ? "engaged" : "dormant") : undefined}
+			data-state={interactive ? latchState : undefined}
 		>
 			<ChartContext.Provider value={context}>
 				<div
@@ -1391,7 +1393,6 @@ const ChartTooltipSurface = ({
 			}
 		};
 	}, [consumerRef]);
-	const footer = config?.footer;
 	return (
 		<div
 			data-slot={`${slotName}-tooltip`}
@@ -1403,51 +1404,77 @@ const ChartTooltipSurface = ({
 			style={{ opacity: 0, ...style } satisfies CSSProperties}
 			{...divProps}
 		>
-			{hover == null ? null : config?.children != null ? (
-				// Why the label div: decisions/2026-08-04-translation-safe-label-wrappers.md
-				<div data-slot={`${slotName}-tooltip-label`} className="contents">
-					{config.children(hover)}
-				</div>
-			) : (
-				<>
-					<div className="text-muted font-medium">
-						{config?.labelFormat == null
-							? formatXValue(hover.xValue, { datasetHasTimeOfDay: xHasTimeOfDay })
-							: config.labelFormat(hover.xValue)}
-					</div>
-					<div className="mt-1 grid gap-1">
-						{hover.points.map((point) => (
-							<div key={point.dataKey} className="flex items-center gap-1.5">
-								{config?.indicator === "none" ? null : (
-									<span
-										aria-hidden
-										className="h-2.5 w-0.5 shrink-0 rounded-full"
-										style={{ backgroundColor: point.color }}
-									/>
-								)}
-								<span className="text-muted">{point.label}</span>
-								<span className="text-strong ml-auto pl-3 font-medium tabular-nums">
-									{formatTooltipValue(point.value, point.dataKey, config?.valueFormat)}
-								</span>
-							</div>
-						))}
-					</div>
-					{hover.zValue === undefined ? null : (
-						<div className="mt-1 flex items-center gap-1.5">
-							<span className="text-muted">z</span>
-							<span className="text-strong ml-auto pl-3 font-medium tabular-nums">
-								{hover.zValue == null ? "—" : formatNumber(hover.zValue)}
-							</span>
-						</div>
-					)}
-					{footer == null ? null : (
-						<div className="text-muted mt-1">
-							{typeof footer === "function" ? footer(hover) : footer}
-						</div>
-					)}
-				</>
+			{hover != null && (
+				<ChartTooltipReadout
+					slotName={slotName}
+					config={config}
+					hover={hover}
+					xHasTimeOfDay={xHasTimeOfDay}
+				/>
 			)}
 		</div>
+	);
+};
+
+/** The tooltip content for one hover: the consumer's `children` readout when set, else the default rows. */
+const ChartTooltipReadout = ({
+	slotName,
+	config,
+	hover,
+	xHasTimeOfDay,
+}: {
+	slotName: string;
+	config: TooltipConfig | null;
+	hover: HoverSnapshot;
+	xHasTimeOfDay: boolean;
+}) => {
+	if (config?.children != null) {
+		return (
+			// Why the label div: decisions/2026-08-04-translation-safe-label-wrappers.md
+			<div data-slot={`${slotName}-tooltip-label`} className="contents">
+				{config.children(hover)}
+			</div>
+		);
+	}
+	const footer = config?.footer;
+	return (
+		<>
+			<div className="text-muted font-medium">
+				{config?.labelFormat == null
+					? formatXValue(hover.xValue, { datasetHasTimeOfDay: xHasTimeOfDay })
+					: config.labelFormat(hover.xValue)}
+			</div>
+			<div className="mt-1 grid gap-1">
+				{hover.points.map((point) => (
+					<div key={point.dataKey} className="flex items-center gap-1.5">
+						{config?.indicator !== "none" && (
+							<span
+								aria-hidden
+								className="h-2.5 w-0.5 shrink-0 rounded-full"
+								style={{ backgroundColor: point.color }}
+							/>
+						)}
+						<span className="text-muted">{point.label}</span>
+						<span className="text-strong ml-auto pl-3 font-medium tabular-nums">
+							{formatTooltipValue(point.value, point.dataKey, config?.valueFormat)}
+						</span>
+					</div>
+				))}
+			</div>
+			{hover.zValue !== undefined && (
+				<div className="mt-1 flex items-center gap-1.5">
+					<span className="text-muted">z</span>
+					<span className="text-strong ml-auto pl-3 font-medium tabular-nums">
+						{hover.zValue == null ? "—" : formatNumber(hover.zValue)}
+					</span>
+				</div>
+			)}
+			{footer != null && (
+				<div className="text-muted mt-1">
+					{typeof footer === "function" ? footer(hover) : footer}
+				</div>
+			)}
+		</>
 	);
 };
 
@@ -1964,7 +1991,7 @@ const ChartDataTable = ({
 								{column.label}
 							</th>
 						))}
-						{zKey == null ? null : <th scope="col">{zKey}</th>}
+						{zKey != null && <th scope="col">{zKey}</th>}
 					</tr>
 				</thead>
 				<tbody>
@@ -1997,17 +2024,16 @@ const ChartDataTable = ({
 										</td>
 									);
 								})}
-								{zKey == null
-									? null
-									: (() => {
-											const zRaw = datumValue(row, zKey);
-											const zIsFinite = typeof zRaw === "number" && Number.isFinite(zRaw);
-											return (
-												<td data-value={zIsFinite ? zRaw : undefined}>
-													{zIsFinite ? formatNumber(zRaw) : "—"}
-												</td>
-											);
-										})()}
+								{zKey != null &&
+									(() => {
+										const zRaw = datumValue(row, zKey);
+										const zIsFinite = typeof zRaw === "number" && Number.isFinite(zRaw);
+										return (
+											<td data-value={zIsFinite ? zRaw : undefined}>
+												{zIsFinite ? formatNumber(zRaw) : "—"}
+											</td>
+										);
+									})()}
 							</tr>
 						);
 					})}

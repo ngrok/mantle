@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "@cfg/tsconfig/tsconfig.client-package.json",
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "composite": true,
+    "emitDeclarationOnly": true,
+    "noEmit": false,
+    "outDir": "node_modules/.cache/tsconfig.node",
+    "tsBuildInfoFile": "node_modules/.cache/tsconfig.node/tsbuildinfo",
+    "types": ["node"]
+  },
+  // Why a second config: the build tooling runs in Node, and `node` types in tsconfig.json would hide a stray `process` in browser source.
+  // Why the emit: a referenced project may not disable emit, so it writes declarations to a cache directory.
+  "include": ["*.config.ts", "scripts/**/*"]
+}

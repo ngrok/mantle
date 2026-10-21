@@ -1,0 +1,6 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "./tsconfig.client-package.json",
+  // Why: type-aware lint needs a tsconfig that owns each linted file, and these ambient declarations have no other owner.
+  "include": ["*.d.ts"]
+}

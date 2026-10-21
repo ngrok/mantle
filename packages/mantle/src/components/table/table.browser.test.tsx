@@ -185,6 +185,7 @@ describe("Table.Root overflow observer", () => {
 		const root = screen.getByTestId("root");
 
 		await waitFor(() => {
+			// oxlint-disable-next-line mantle/no-bare-to-have-been-called -- Why: the first read is a readiness signal, so the count does not matter.
 			expect(scrollWidth).toHaveBeenCalled();
 		});
 		expect(root).toHaveAttribute("data-x-overflow", "false");
@@ -208,6 +209,7 @@ describe("Table.Root overflow observer", () => {
 		// The observer's first notification is the readiness signal; the
 		// assertions below are about the values it produced.
 		await waitFor(() => {
+			// oxlint-disable-next-line mantle/no-bare-to-have-been-called -- Why: the same readiness signal as above.
 			expect(scrollWidth).toHaveBeenCalled();
 		});
 		expect(root).toHaveAttribute("data-x-overflow", "false");

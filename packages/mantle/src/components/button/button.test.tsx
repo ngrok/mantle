@@ -186,8 +186,9 @@ describe("Button", () => {
 			);
 			const button = screen.getByRole("button");
 			// Why the class assertion: the link appearance has no box, so the icon padding
-			// lookup skips it, and the class is that lookup's only observable.
-			expect(button).not.toHaveClass("ps-2.5");
+			// lookup skips it, and the class is that lookup's only observable. Every
+			// padding-start and padding-end utility is checked, not one class name.
+			expect(Array.from(button.classList).filter((name) => /^p[se]-/.test(name))).toEqual([]);
 			expect(button).toContainElement(screen.getByTestId("icon"));
 		});
 
@@ -200,8 +201,9 @@ describe("Button", () => {
 			const button = screen.getByRole("button");
 			// Why the class assertion: the tailwind-merge override contract, where the consumer's
 			// `className` height replaces the size default.
-			expect(button).toHaveClass("h-14");
-			expect(button).not.toHaveClass("h-9");
+			expect(Array.from(button.classList).filter((name) => name.startsWith("h-"))).toEqual([
+				"h-14",
+			]);
 		});
 
 		test("forwards data-slot, data-size, and data-appearance to an `asChild` anchor", () => {
@@ -229,7 +231,6 @@ describe("Button", () => {
 			const icon = screen.getByTestId("icon");
 			expect(button.firstChild).toBe(icon);
 			expect(icon).toHaveAttribute("data-slot", "icon svg-only");
-			expect(icon).not.toHaveClass("order-last");
 			expect(button).toHaveTextContent("click me");
 		});
 

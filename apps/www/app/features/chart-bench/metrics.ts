@@ -100,7 +100,7 @@ export const startMetrics = (): void => {
 	}
 	started = true;
 	window.addEventListener("error", (event) => {
-		errors.push(String(event.message));
+		errors.push(event.message);
 	});
 	window.addEventListener("unhandledrejection", (event) => {
 		errors.push(String(event.reason));

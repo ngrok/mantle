@@ -34,8 +34,9 @@ describe("Anchor", () => {
 			</Anchor>,
 		);
 		const link = screen.getByRole("link");
-		expect(link).toHaveClass("text-red-500");
-		expect(link).not.toHaveClass("text-accent-600");
+		expect(Array.from(link.classList).filter((name) => name.startsWith("text-"))).toEqual([
+			"text-red-500",
+		]);
 	});
 
 	describe("icon placement", () => {
@@ -139,8 +140,10 @@ describe("Anchor", () => {
 			expect(link).toHaveAttribute("data-slot", "anchor");
 			// tailwind-merge override contract: the child's class survives the merge and
 			// the consumer's color replaces the default.
-			expect(link).toHaveClass("underline", "text-red-500");
-			expect(link).not.toHaveClass("text-accent-600");
+			expect(link).toHaveClass("underline");
+			expect(Array.from(link.classList).filter((name) => name.startsWith("text-"))).toEqual([
+				"text-red-500",
+			]);
 		});
 
 		test("injects the icon before the child's label by default", () => {

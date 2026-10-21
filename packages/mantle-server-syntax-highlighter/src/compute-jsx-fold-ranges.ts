@@ -43,6 +43,7 @@ function createOxcParserLoader(load: () => OxcParser): () => OxcParser | undefin
 }
 
 /** Returns the lazily-resolved `oxc-parser` module, or undefined after a cached load failure. */
+// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Why: `require` returns `any`, and the type-only import names its shape.
 const loadOxcParser = createOxcParserLoader(() => requireOxc("oxc-parser") as OxcParser);
 
 /**
@@ -144,14 +145,13 @@ function jsxOpeningElement(node: AstNode): AstNode | undefined {
 	if (node.type !== "JSXElement") {
 		return undefined;
 	}
-	const opening = (node as { openingElement?: unknown }).openingElement;
+	const opening = node.openingElement;
 	return isAstNode(opening) ? opening : undefined;
 }
 
 /** Returns true when a `JSXOpeningElement` is self-closing (`<Foo/>`). */
 function isSelfClosingOpening(opening: AstNode): boolean {
-	const selfClosing = (opening as { selfClosing?: unknown }).selfClosing;
-	return selfClosing === true;
+	return opening.selfClosing === true;
 }
 
 /**

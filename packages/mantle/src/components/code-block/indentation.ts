@@ -7,7 +7,7 @@ type Indentation = (typeof indentations)[number];
  * Type Predicate: checks if the given value is a valid indentation type.
  */
 function isIndentation(input: unknown): input is Indentation {
-	return indentations.includes(input as Indentation);
+	return indentations.some((item) => item === input);
 }
 
 /**

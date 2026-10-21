@@ -28,6 +28,22 @@ type XSummary = {
 const asXValue = (raw: unknown): XValue =>
 	typeof raw === "string" || typeof raw === "number" || raw instanceof Date ? raw : String(raw);
 
+/** The date whose time of day an x carries: a `Date` itself, its `epoch` on a time scale, else `null`. */
+const timeOfDayDate = ({
+	raw,
+	epoch,
+	isTime,
+}: {
+	raw: unknown;
+	epoch: number;
+	isTime: boolean;
+}): Date | null => {
+	if (raw instanceof Date) {
+		return raw;
+	}
+	return isTime ? new Date(epoch) : null;
+};
+
 /**
  * Summarize the x column in one pass. Category scales keep data order; a
  * continuous scale drops rows whose x is not a finite number or date, as
@@ -67,7 +83,7 @@ const scanX = (data: readonly ChartDatum[], xKey: string, xScale: XScaleKind): X
 		// A time scale also takes an epoch number or a parseable string, and their
 		// time of day sets the label granularity the same as a `Date`'s.
 		if (!timeOfDay) {
-			const date = raw instanceof Date ? raw : isTime ? new Date(epoch) : null;
+			const date = timeOfDayDate({ raw, epoch, isTime });
 			if (date != null && hasTimeOfDay(date)) {
 				timeOfDay = true;
 			}

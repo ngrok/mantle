@@ -18,7 +18,7 @@ function getNextSortDirection(currentSortDirection: SortDirection, sortingMode: 
  * Get the next item in a circular list.
  * If the current item is not found in the list (or it's empty), return the fallback value.
  */
-function getNextInCircularList<T>(list: T[], currentItem: T, fallback?: T | undefined) {
+function getNextInCircularList<T>(list: T[], currentItem: T, fallback?: T) {
 	if (list.length === 0) {
 		return fallback;
 	}

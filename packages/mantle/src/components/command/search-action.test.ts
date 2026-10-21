@@ -37,10 +37,12 @@ describe("searchActionFromKeyDown", () => {
 	describe("seeds printable text", () => {
 		test.for([
 			["a letter", "e", "e"],
-			// Spread-counting instead of `.length`: an emoji is a surrogate pair, so
-			// a `key.length === 1` check would classify it as a named key and drop
+			// Why grapheme counting: an emoji is a surrogate pair, so a
+			// `key.length === 1` check would classify it as a named key and drop
 			// the character entirely.
 			["an astral character", "😀", "😀"],
+			// Why: a skin-tone emoji is two code points that render as one character.
+			["a multi-code-point character", "👍🏽", "👍🏽"],
 		] as const)("%s", ([, key, query]) => {
 			expect(searchActionFromKeyDown(keyDown({ key }))).toEqual({ type: "seed", query });
 		});
@@ -52,8 +54,8 @@ describe("searchActionFromKeyDown", () => {
 			// palette on its own. Seeding " " would put a stray space in the query.
 			["Space", " "],
 			["Enter", "Enter"],
-			// Why `F1`: a two-code-point name is the boundary just past the
-			// single-code-point seed check.
+			// Why `F1`: a two-character name is the boundary just past the
+			// single-character seed check.
 			["F1", "F1"],
 		] as const)("%s", ([, key]) => {
 			expect(searchActionFromKeyDown(keyDown({ key }))).toEqual({ type: "ignore" });

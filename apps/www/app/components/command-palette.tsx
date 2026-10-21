@@ -78,7 +78,7 @@ function PaletteCommandItem({
 				<Command.Item
 					value={command.id}
 					onSelect={() => {
-						navigate(command.to);
+						void navigate(command.to);
 						onDone();
 					}}
 					asChild
@@ -129,7 +129,7 @@ function PaletteCommandItem({
 				>
 					{themeIcons[command.theme]}
 					{command.title}
-					{currentTheme === command.theme ? <CheckIcon /> : null}
+					{currentTheme === command.theme && <CheckIcon />}
 				</Command.Item>
 			);
 	}
@@ -222,7 +222,7 @@ export function CommandPalette() {
 									{/* alwaysRender: this browse branch already owns separator
 									    visibility; without it cmdk hides separators as soon as its
 									    search state is non-empty, e.g. a whitespace-only query */}
-									{index > 0 ? <Command.Separator alwaysRender /> : null}
+									{index > 0 && <Command.Separator alwaysRender />}
 									<Command.Group
 										heading={
 											group === previewComponentsGroup ? (

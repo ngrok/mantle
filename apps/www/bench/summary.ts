@@ -49,7 +49,7 @@ const get = (row: Row, dotted: string): number | undefined => {
 		if (value == null || typeof value !== "object") {
 			return undefined;
 		}
-		value = (value as Record<string, unknown>)[key];
+		value = Reflect.get(value, key);
 	}
 	return typeof value === "number" ? value : undefined;
 };

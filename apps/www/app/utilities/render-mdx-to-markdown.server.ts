@@ -24,7 +24,7 @@ export function renderMdxToMarkdown(rawMdx: string): string {
 		.use(remarkFrontmatter, ["yaml", "toml"])
 		.use(remarkGfm)
 		.use(remarkMdx)
-		.parse(rawMdx) as Root;
+		.parse(rawMdx);
 
 	transform(tree);
 
@@ -39,7 +39,7 @@ export function renderMdxToMarkdown(rawMdx: string): string {
 		.use(remarkGfm)
 		.stringify(tree);
 
-	return String(output);
+	return output;
 }
 
 type MdxJsxAttribute = {
@@ -187,6 +187,6 @@ function walk(parent: { children?: unknown }): void {
 			}
 		}
 
-		walk(node as { children?: unknown });
+		walk(node);
 	}
 }

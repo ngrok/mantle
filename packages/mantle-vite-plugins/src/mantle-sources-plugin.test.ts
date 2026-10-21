@@ -118,7 +118,9 @@ function captureLogger(): { logger: ReturnType<typeof createLogger>; logs: Captu
 		}
 		logs.warn.push(message);
 	};
+	// oxlint-disable-next-line typescript/unbound-method -- Why: Vite types the logger in method syntax, and this fixture never reads `this`.
 	logger.warnOnce = logger.warn;
+	// oxlint-disable-next-line typescript/unbound-method -- Why: the same fixture method as above.
 	logger.error = logger.warn;
 	return { logger, logs };
 }

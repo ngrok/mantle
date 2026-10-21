@@ -235,7 +235,7 @@ export function ServerRenderedHighlightingDemo() {
 
 	const form = useForm({
 		defaultValues: {
-			language: "typescript" as string,
+			language: "typescript",
 			code: defaultServerCode,
 			showLineNumbers: true,
 			highlightLines: "2-3",

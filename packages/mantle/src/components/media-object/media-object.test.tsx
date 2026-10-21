@@ -85,7 +85,6 @@ describe("MediaObject", () => {
 		);
 
 		const root = screen.getByTestId("root");
-		expect(root).toHaveClass("gap-8");
-		expect(root).not.toHaveClass("gap-4");
+		expect(Array.from(root.classList).filter((name) => name.startsWith("gap-"))).toEqual(["gap-8"]);
 	});
 });

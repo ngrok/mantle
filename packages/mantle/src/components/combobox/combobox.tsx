@@ -321,7 +321,7 @@ const GroupLabel = ({
 	);
 };
 
-type ComboboxItemValueProps = Omit<AriakitComboboxItemValueProps<"span">, "render"> &
+type ComboboxItemValueProps = Omit<AriakitComboboxItemValueProps, "render"> &
 	WithAsChild &
 	WithDataSlot;
 

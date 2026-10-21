@@ -311,6 +311,7 @@ function hasHeaderActions<TMatch extends HeaderActionsMatch>(
 	if (typeof handle !== "object" || handle == null || !("headerActions" in handle)) {
 		return false;
 	}
+	// oxlint-disable-next-line eqeqeq -- Why: `null` opts a route out of header actions; `undefined` is not a valid handle.
 	return handle.headerActions === null || isValidElement(handle.headerActions);
 }
 

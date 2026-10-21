@@ -40,6 +40,8 @@ export const supportedLanguages = [
  */
 type SupportedLanguage = (typeof supportedLanguages)[number];
 const supportedLanguageSet = new Set<SupportedLanguage>(supportedLanguages);
+// Why a `string` view: `has` then accepts any string, so the guard needs no cast.
+const supportedLanguageLookup: ReadonlySet<string> = supportedLanguageSet;
 const defaultLanguage = "text" satisfies SupportedLanguage;
 
 /**
@@ -67,7 +69,7 @@ function parseLanguage(
  * Type Predicate: checks if an arbitrary value is a supported syntax highlighting language.
  */
 const isSupportedLanguage = (value: unknown): value is SupportedLanguage => {
-	return typeof value === "string" && supportedLanguageSet.has(value as SupportedLanguage);
+	return typeof value === "string" && supportedLanguageLookup.has(value);
 };
 
 export {

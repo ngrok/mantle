@@ -182,6 +182,7 @@ const Root = ({
 	id,
 	validation,
 	onBlur,
+	// oxlint-disable-next-line typescript/unbound-method -- Why: Radix types the callback in method syntax, and it never reads `this`.
 	onValueChange,
 	onChange,
 	ref,

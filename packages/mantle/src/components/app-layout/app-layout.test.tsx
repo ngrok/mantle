@@ -28,8 +28,11 @@ describe("AppLayout.Root", () => {
 		const root = screen.getByTestId("root");
 		// tailwind-merge override contract: the consumer's position utility replaces
 		// the default `relative` instead of sitting next to it.
-		expect(root).toHaveClass("fixed", "inset-0");
-		expect(root).not.toHaveClass("relative");
+		expect(root).toHaveClass("inset-0");
+		const position = Array.from(root.classList).filter((name) =>
+			/^(?:static|fixed|absolute|relative|sticky)$/.test(name),
+		);
+		expect(position).toEqual(["fixed"]);
 	});
 
 	test("forwards className, a ref, and arbitrary data-* to the rendered root", () => {
@@ -515,8 +518,9 @@ describe("AppLayout.Header slots", () => {
 			</AppLayout.HeaderActions>,
 		);
 		const actions = screen.getByTestId("actions");
-		expect(actions).toHaveClass("ml-0");
-		expect(actions).not.toHaveClass("ml-auto");
+		expect(Array.from(actions.classList).filter((name) => name.startsWith("ml-"))).toEqual([
+			"ml-0",
+		]);
 	});
 });
 

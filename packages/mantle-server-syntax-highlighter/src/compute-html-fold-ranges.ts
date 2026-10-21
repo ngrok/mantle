@@ -49,14 +49,14 @@ const SVG_NAMESPACE = html.NS.SVG;
  * matters for the foreign-content tokenizer mode; the rest of the fields
  * satisfy parse5's tree-adapter shape.
  */
-const xmlFragmentContext = {
+const xmlFragmentContext: Element = {
 	nodeName: "svg",
 	tagName: "svg",
 	namespaceURI: SVG_NAMESPACE,
 	attrs: [],
 	childNodes: [],
 	parentNode: null,
-} as unknown as DefaultTreeAdapterMap["parentNode"];
+};
 
 /**
  * Returns true when a parse5 tree node has element-style `tagName` and child
@@ -107,18 +107,15 @@ function collectRanges(root: Node, ranges: FoldableRange[]): void {
 }
 
 /** Pushes parse5 child nodes onto the DFS stack in source order. */
-function pushChildNodes(parent: unknown, stack: Node[]): void {
-	if (typeof parent !== "object" || parent == null || !("childNodes" in parent)) {
+function pushChildNodes(parent: Node, stack: Node[]): void {
+	if (!("childNodes" in parent)) {
 		return;
 	}
 	const childNodes = parent.childNodes;
-	if (!Array.isArray(childNodes)) {
-		return;
-	}
 	for (let index = childNodes.length - 1; index >= 0; index -= 1) {
 		const child = childNodes[index];
 		if (child != null) {
-			stack.push(child as Node);
+			stack.push(child);
 		}
 	}
 }

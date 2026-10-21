@@ -181,5 +181,5 @@ export {
 };
 
 function isOrientation(value: unknown): value is Orientation {
-	return typeof value === "string" && orientations.includes(value as Orientation);
+	return typeof value === "string" && orientations.some((item) => item === value);
 }

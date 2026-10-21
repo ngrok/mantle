@@ -32,7 +32,7 @@ const useBaseUrl = () => useContext(BaseUrlContext);
  * // Server (local): "/"
  * const baseUrl = getBaseUrl();
  */
-function getBaseUrl(requestUrl?: string | null | undefined): string {
+function getBaseUrl(requestUrl?: string | null): string {
 	// Client-side: use window origin
 	if (canUseDOM()) {
 		return window.location.origin;

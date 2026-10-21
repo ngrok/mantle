@@ -49,6 +49,13 @@ const kindLabels: Record<ServiceKind, string> = {
 	static: "Static",
 };
 
+/** The exclusive upper bound on a running service's weekly deploy count, by kind. */
+const deployCadences: Record<ServiceKind, number> = {
+	container: 9,
+	function: 6,
+	static: 3,
+};
+
 const serviceStatuses = ["online", "degraded", "paused"] as const;
 
 /** Whether a service serves traffic right now. */
@@ -219,8 +226,7 @@ function weeklyCount(seed: ServiceSeed, weeksAgo: number, random: () => number):
 	if (seed.status === "paused") {
 		return weeksAgo >= 6 ? Math.floor(random() * 3) : 0;
 	}
-	const cadence = seed.kind === "static" ? 3 : seed.kind === "function" ? 6 : 9;
-	return Math.floor(random() * cadence);
+	return Math.floor(random() * deployCadences[seed.kind]);
 }
 
 /** Builds one service from its seed. The series arrays are built once here and never rebuilt, so each chart keeps one `data` identity. */

@@ -5,7 +5,7 @@ description: 'Find the JSX shapes that crash a page a browser translation engine
 
 # Browser translation hazards
 
-[CONVENTIONS.md § Browser Translation](../../../CONVENTIONS.md#browser-translation) holds the three rules,
+[docs/browser-translation.md](../../../docs/browser-translation.md) holds the three rules,
 [COMPONENT_SPEC.md §3.8](../../../COMPONENT_SPEC.md#38-browser-translation) holds what they mean for a part, and
 [the docs page](../../../apps/www/app/docs/browser-translation.mdx) holds the mechanism table. This file is only
 how an auditor applies them: what to flag, what to leave, and what no tool can see.

@@ -133,13 +133,8 @@ function Slider({
 	...props
 }: SliderProps) {
 	const fieldControl = useContext(FieldControlContext);
-	const normalizedValue = value != null ? (Array.isArray(value) ? value : [value]) : undefined;
-	const normalizedDefaultValue =
-		defaultValue != null
-			? Array.isArray(defaultValue)
-				? defaultValue
-				: [defaultValue]
-			: undefined;
+	const normalizedValue = toValueArray(value);
+	const normalizedDefaultValue = toValueArray(defaultValue);
 	const values = normalizedValue ?? normalizedDefaultValue ?? [min];
 	const tickCount = computeTickCount(showTicks, min, max, step);
 
@@ -231,6 +226,14 @@ export { Slider };
 export type { SliderProps };
 
 // MARK: - Private
+
+/** Wraps a single slider value in an array; an array passes through, and a nullish value stays `undefined`. */
+function toValueArray(value: number | number[] | undefined): number[] | undefined {
+	if (value == null) {
+		return undefined;
+	}
+	return Array.isArray(value) ? value : [value];
+}
 
 /**
  * Compute the number of tick marks to render based on the slider's range and step.

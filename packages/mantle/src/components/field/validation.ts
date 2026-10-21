@@ -123,6 +123,20 @@ const isAriaInvalid = (ariaInvalid: AriaInvalid | undefined) =>
 const resolveValidation = (validation: ValidationProp | undefined) =>
 	(typeof validation === "function" ? validation() : validation) || undefined;
 
+/** The `aria-invalid` value for a control without an explicit one: `true` on error, else `false` or unset. */
+const fallbackAriaInvalid = ({
+	validation,
+	defaultAriaInvalid,
+}: {
+	validation: ValidationState | undefined;
+	defaultAriaInvalid: boolean;
+}): boolean | undefined => {
+	if (validation === "error") {
+		return true;
+	}
+	return defaultAriaInvalid ? false : undefined;
+};
+
 /**
  * Resolves the shared Mantle validation contract for form controls.
  *
@@ -138,7 +152,7 @@ const parseValidation = ({
 	const explicitInvalid = isAriaInvalid(ariaInvalid);
 	const validation = explicitInvalid ? "error" : resolveValidation(validationProp);
 	const resolvedAriaInvalid =
-		ariaInvalid ?? (validation === "error" ? true : defaultAriaInvalid ? false : undefined);
+		ariaInvalid ?? fallbackAriaInvalid({ validation, defaultAriaInvalid });
 
 	return {
 		isInvalid: isAriaInvalid(resolvedAriaInvalid),

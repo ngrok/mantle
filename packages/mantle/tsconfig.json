@@ -4,5 +4,6 @@
     "types": ["@cfg/tsconfig/css.d.ts", "@cfg/tsconfig/reset.d.ts", "@cfg/tsconfig/svg.d.ts"]
   },
   "include": ["src/**/*", "vitest.setup.ts"],
-  "exclude": ["src/**/README.*"]
+  "exclude": ["src/**/README.*"],
+  "references": [{ "path": "./tsconfig.node.json" }]
 }

@@ -156,7 +156,9 @@ const categoryPositions = (positions: Map<string, { x: number; y: number }>) => 
 	const a = positions.get("A");
 	const b = positions.get("B");
 	if (a == null || b == null) {
-		throw new Error(`expected both category labels to paint, got ${[...positions.keys()]}`);
+		throw new Error(
+			`expected both category labels to paint, got ${[...positions.keys()].join(", ")}`,
+		);
 	}
 	return [a, b];
 };

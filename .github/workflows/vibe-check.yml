@@ -61,8 +61,16 @@ jobs:
       - name: Format Check 🧹
         run: pnpm run fmt:check
 
+      # Why: type-aware lint walks up past the repo root for a file that no tsconfig owns.
+      # An invalid tsconfig above the checkout turns a new orphan file into a lint error.
+      - name: Plant an invalid tsconfig above the checkout 🪤
+        run: echo '{ invalid' > "${GITHUB_WORKSPACE}/../tsconfig.json"
+
       - name: Lint Check 🔍
         run: pnpm run lint
+
+      - name: Agent Docs Budget 📏
+        run: pnpm run check:agent-docs
 
   mise-lock-check:
     name: Mise Lockfile

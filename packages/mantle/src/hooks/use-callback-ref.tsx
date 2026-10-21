@@ -38,6 +38,7 @@ function useCallbackRef<T extends (...args: never[]) => unknown>(callback: T | u
 		callbackRef.current = callback;
 	});
 
+	// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Why: TypeScript cannot type a forwarding wrapper as the generic `T`.
 	return useMemo(() => ((...args) => callbackRef.current?.(...args)) as T, []);
 }
 

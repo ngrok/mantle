@@ -196,6 +196,17 @@ const EDGE_FADE_WIDTH = 40;
 /** How long after the last window slide the left-edge fade lingers before decaying. */
 const EDGE_FADE_LINGER_MS = 1000;
 
+/** The pixel gap between bars in one band: `BAR_GAP` when roomy, 1 when tight, 0 when cramped. */
+const barGap = ({ bandwidth, groupCount }: { bandwidth: number; groupCount: number }): number => {
+	if (bandwidth >= 8 * groupCount) {
+		return BAR_GAP;
+	}
+	if (bandwidth >= 3 * groupCount) {
+		return 1;
+	}
+	return 0;
+};
+
 class ChartEngine {
 	#kind: SeriesMark;
 	#elements: EngineElements;
@@ -2289,8 +2300,7 @@ class ChartEngine {
 		}
 		const stacked = this.#stack != null;
 		const groupCount = stacked ? 1 : specs.length;
-		const gap =
-			layout.bandwidth >= 8 * groupCount ? BAR_GAP : layout.bandwidth >= 3 * groupCount ? 1 : 0;
+		const gap = barGap({ bandwidth: layout.bandwidth, groupCount });
 		const slotWidth = (layout.bandwidth - gap * (groupCount - 1)) / groupCount;
 		const barWidth = barThickness({ step: layout.step, slot: slotWidth });
 		const toPixel = (value: number): number => value * yCo.k + yCo.b;
@@ -2356,8 +2366,7 @@ class ChartEngine {
 		const valueCo = this.#valueCoefficients();
 		const stacked = this.#stack != null;
 		const groupCount = stacked ? 1 : specs.length;
-		const gap =
-			layout.bandwidth >= 8 * groupCount ? BAR_GAP : layout.bandwidth >= 3 * groupCount ? 1 : 0;
+		const gap = barGap({ bandwidth: layout.bandwidth, groupCount });
 		const slotHeight = (layout.bandwidth - gap * (groupCount - 1)) / groupCount;
 		const barHeight = barThickness({ step: layout.step, slot: slotHeight });
 		const toPixel = (value: number): number => value * valueCo.k + valueCo.b;

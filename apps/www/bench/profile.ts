@@ -38,7 +38,7 @@ try {
 	await cdp.send("Profiler.setSamplingInterval", { interval: 100 });
 	await cdp.send("Profiler.start");
 	await page.goto(`${base}${BENCH_PATH.slice(1)}${query}`, { waitUntil: "commit" });
-	await page.waitForFunction(() => window.__bench?.ready === true, undefined, {
+	await page.waitForFunction(() => window.__bench?.ready, undefined, {
 		timeout: 240_000,
 		polling: 250,
 	});

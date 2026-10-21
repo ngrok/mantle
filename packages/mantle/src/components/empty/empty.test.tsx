@@ -3,6 +3,17 @@ import { createRef } from "react";
 import { describe, expect, test } from "vitest";
 import { Empty } from "./empty.js";
 
+/** The Tailwind `font-size` utilities. */
+const FONT_SIZE = /^text-(?:xs|sm|base|lg|\d?xl)$/;
+
+/**
+ * Returns the element's classes that match one utility group, so a
+ * tailwind-merge override test can assert the group holds only the winner.
+ */
+function utilityClasses(element: Element, group: RegExp): string[] {
+	return Array.from(element.classList).filter((name) => group.test(name));
+}
+
 describe("Empty", () => {
 	test("Root merges custom className", () => {
 		render(
@@ -13,8 +24,8 @@ describe("Empty", () => {
 		const root = screen.getByTestId("root");
 		// The tailwind-merge contract: the consumer's padding replaces the default
 		// instead of sitting next to it.
-		expect(root).toHaveClass("custom-class", "p-0");
-		expect(root).not.toHaveClass("p-6");
+		expect(root).toHaveClass("custom-class");
+		expect(utilityClasses(root, /^p-/)).toEqual(["p-0"]);
 	});
 
 	test("Title renders an h3 element by default", () => {
@@ -37,8 +48,7 @@ describe("Empty", () => {
 		);
 		const title = screen.getByTestId("title");
 		// The tailwind-merge contract: the consumer's size replaces the default.
-		expect(title).toHaveClass("text-2xl");
-		expect(title).not.toHaveClass("text-sm");
+		expect(utilityClasses(title, FONT_SIZE)).toEqual(["text-2xl"]);
 	});
 
 	test("Title renders as child element when asChild is true", () => {
@@ -65,8 +75,7 @@ describe("Empty", () => {
 		);
 		const description = screen.getByTestId("desc");
 		// The tailwind-merge contract: the consumer's size replaces the default.
-		expect(description).toHaveClass("text-xs");
-		expect(description).not.toHaveClass("text-sm");
+		expect(utilityClasses(description, FONT_SIZE)).toEqual(["text-xs"]);
 		expect(description).toHaveAttribute("data-slot", "empty-description");
 	});
 
@@ -138,8 +147,7 @@ describe("Empty", () => {
 		);
 		const actions = screen.getByTestId("actions");
 		// The tailwind-merge contract: the consumer's gap replaces the default.
-		expect(actions).toHaveClass("gap-4");
-		expect(actions).not.toHaveClass("gap-2");
+		expect(utilityClasses(actions, /^gap-/)).toEqual(["gap-4"]);
 	});
 
 	test("Icon is hidden from assistive technology and stamps its slot", () => {
@@ -163,8 +171,7 @@ describe("Empty", () => {
 		);
 		const icon = screen.getByTestId("icon");
 		// The tailwind-merge contract: the consumer's size replaces the default.
-		expect(icon).toHaveClass("size-16");
-		expect(icon).not.toHaveClass("size-10");
+		expect(utilityClasses(icon, /^size-/)).toEqual(["size-16"]);
 	});
 
 	test("Title forwards ref to the heading element", () => {

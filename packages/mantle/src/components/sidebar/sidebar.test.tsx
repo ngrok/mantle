@@ -97,8 +97,7 @@ describe("Sidebar.Nav (desktop)", () => {
 			</Sidebar.Root>,
 		);
 		const nav = screen.getByTestId("nav");
-		expect(nav).toHaveClass("bg-card");
-		expect(nav).not.toHaveClass("bg-base");
+		expect(Array.from(nav.classList).filter((name) => name.startsWith("bg-"))).toEqual(["bg-card"]);
 	});
 
 	test("defaultOpen={false} renders the panel collapsed", () => {

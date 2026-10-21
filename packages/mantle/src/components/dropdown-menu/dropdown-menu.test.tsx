@@ -291,7 +291,12 @@ describe("DropdownMenu", () => {
 					</DropdownMenu.Root>,
 				);
 
-				expect(screen.getByRole("menu")).not.toHaveClass(triggerWidthClass);
+				// Why every width utility: a negated match on one class passes when the
+				// regression returns under another width class.
+				const widthClasses = Array.from(screen.getByRole("menu").classList).filter((name) =>
+					name.startsWith("w-"),
+				);
+				expect(widthClasses).toEqual([]);
 			},
 		);
 	});

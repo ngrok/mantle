@@ -10,6 +10,8 @@
     "unicorn",
     "vitest"
   ],
+  // Why a local plugin: these conventions have no built-in rule. See scripts/oxlint-plugin-mantle.js.
+  "jsPlugins": ["./scripts/oxlint-plugin-mantle.js"],
   "categories": {
     "correctness": "error",
     "suspicious": "warn"
@@ -18,9 +20,12 @@
     "array-callback-return": "error",
     "control-has-associated-label": "off",
     "curly": "error",
+    "eslint/no-nested-ternary": "error",
+    "eqeqeq": ["error", "always", { "null": "never" }],
     "eslint/no-shadow": "off",
     "eslint/no-underscore-dangle": "off",
     "jsdoc/check-property-names": "error",
+    "mantle/no-jsx-null-ternary": "error",
     "jsx-a11y/anchor-has-content": "off",
     "jsx-a11y/no-noninteractive-element-interactions": "off",
     "jsx-a11y/prefer-tag-over-role": "off",
@@ -50,7 +55,7 @@
     "jsdoc/require-property": "off",
     "jsdoc/require-throws-description": "warn",
     "jsdoc/require-yields": "off",
-    "no-explicit-any": "warn",
+    "no-explicit-any": "error",
     "no-fallthrough": "error",
     // Why skipComments: zero-width spaces in JSDoc keep literal `*/` examples
     // from closing the comment block (parse-theme-css.ts, compute-css-fold-ranges.ts).
@@ -61,7 +66,7 @@
       "error",
       {
         "name": "location",
-        "message": "Use react-router's useLocation hook instead"
+        "message": "Read the location from a prop or an argument. In apps/www, use the router's location hook (docs/framework-boundary.md)."
       }
     ],
     "no-shadow": "off",
@@ -105,6 +110,12 @@
     "typescript/no-import-type-side-effects": "error",
     "typescript/no-invalid-void-type": "error",
     "typescript/no-non-null-assertion": "error",
+    "typescript/no-unnecessary-boolean-literal-compare": "error",
+    "typescript/no-unnecessary-template-expression": "error",
+    "typescript/no-unnecessary-type-arguments": "error",
+    "typescript/no-unnecessary-type-assertion": "error",
+    "typescript/no-unnecessary-type-conversion": "error",
+    "typescript/no-unsafe-type-assertion": "error",
     "unicorn/filename-case": ["error", { "case": "kebabCase", "ignore": ["[\\[\\$]"] }]
   },
   "overrides": [
@@ -113,12 +124,21 @@
       // its source becomes a peer every consumer installs, pinned to that
       // framework's major (the `AutoScrollToHash` lesson). The glue that reads
       // router state lives in the app, as a recipe under `apps/www`.
-      // See CONVENTIONS.md § Framework Boundary.
+      // See docs/framework-boundary.md.
       "files": ["packages/mantle/src/**"],
       "rules": {
+        "mantle/no-default-export": "error",
+        "mantle/no-display-name": "error",
         "no-restricted-imports": [
           "error",
           {
+            "paths": [
+              {
+                "name": "react",
+                "importNames": ["forwardRef", "FC", "FunctionComponent"],
+                "message": "React 19 passes `ref` as a regular prop, and a component takes an inline function type (CONVENTIONS.md § Readability & Maintainability)."
+              }
+            ],
             "patterns": [
               {
                 "group": [
@@ -131,7 +151,7 @@
                   "next",
                   "next/*"
                 ],
-                "message": "@ngrok/mantle depends on React alone. Type the seam structurally and put the router glue in an apps/www recipe (CONVENTIONS.md § Framework Boundary)."
+                "message": "@ngrok/mantle depends on React alone. Type the seam structurally and put the router glue in an apps/www recipe (docs/framework-boundary.md)."
               }
             ]
           }
@@ -143,6 +163,14 @@
       "rules": {
         "react/no-object-type-as-default-prop": "off",
         "unicorn/consistent-function-scoping": "off",
+        // Why: docs/testing.md has tests evaluate an inline <script> string with `new Function`.
+        "typescript/no-implied-eval": "off",
+        // Why: test fixtures still cast to build partial objects; moving them to `satisfies` is its own sweep.
+        "typescript/no-unsafe-type-assertion": "off",
+        "mantle/no-absent-class-assertion": "error",
+        "mantle/no-bare-to-have-been-called": "error",
+        "mantle/no-presence-matcher-on-get-by": "error",
+        "mantle/no-sleep-in-tests": "error",
         "vitest/expect-expect": ["error", { "assertFunctionNames": ["expect", "expect*"] }]
       }
     }

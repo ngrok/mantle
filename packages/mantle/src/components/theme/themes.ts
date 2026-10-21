@@ -43,7 +43,7 @@ function isTheme(value: unknown): value is Theme {
 		return false;
 	}
 
-	return themes.includes(value as Theme);
+	return themes.some((item) => item === value);
 }
 
 /**
@@ -63,7 +63,7 @@ function isResolvedTheme(value: unknown): value is ResolvedTheme {
 		return false;
 	}
 
-	return resolvedThemes.includes(value as ResolvedTheme);
+	return resolvedThemes.some((item) => item === value);
 }
 
 export {

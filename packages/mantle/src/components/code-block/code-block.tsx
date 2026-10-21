@@ -447,6 +447,7 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 	// `{ __html }` literal each render re-applies `innerHTML`, wiping any
 	// runtime-managed DOM state on the children (e.g. fold attributes).
 	const innerHtmlProp = useMemo(() => ({ __html: displayHtml }), [displayHtml]);
+	const expanderState = isCodeExpanded ? "expanded" : "collapsed";
 
 	return (
 		<pre
@@ -454,7 +455,7 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 			// Why data-state and not aria-expanded: `aria-expanded` is not a global
 			// attribute and `<pre>` has no role that supports it. The expander
 			// button owns the ARIA state; this attribute only drives the styling.
-			data-state={hasCodeExpander ? (isCodeExpanded ? "expanded" : "collapsed") : undefined}
+			data-state={hasCodeExpander ? expanderState : undefined}
 			className={cx(
 				"scrollbar overflow-x-auto overscroll-x-none overflow-y-hidden py-4",
 				!isPreRendered && "pr-14",
@@ -800,14 +801,14 @@ type CodeBlockIconProps = Omit<SvgAttributes, "children"> &
 				 * A preset icon to display in the code block header.
 				 * (Pass only one of `svg` or `preset`.)
 				 */
-				preset?: undefined | never;
+				preset?: undefined;
 		  }
 		| {
 				/**
 				 * A custom icon SVG to display in the code block header.
 				 * (Pass only one of `svg` or `preset`.)
 				 */
-				svg?: undefined | never;
+				svg?: undefined;
 				/**
 				 * A preset icon to display in the code block header.
 				 * (Pass only one of `svg` or `preset`.)

@@ -78,7 +78,7 @@ function HashLinkHeading({ id, className, children, ...props }: Props) {
 							wasCopied ? "text-success-600" : "text-muted hover:text-strong",
 						)}
 						onClick={() => {
-							copyToClipboard(`${window.location.origin}${window.location.pathname}#${id}`);
+							void copyToClipboard(`${window.location.origin}${window.location.pathname}#${id}`);
 							setWasCopied(true);
 							if (timeoutHandle.current != null) {
 								clearTimeout(timeoutHandle.current);

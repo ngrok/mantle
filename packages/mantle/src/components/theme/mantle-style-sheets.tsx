@@ -209,17 +209,17 @@ function fixMediaAttributes(args: {
 	const standardPair = theme === "light" || theme === "dark";
 	const highContrastPair = theme === "light-high-contrast" || theme === "dark-high-contrast";
 
-	const darkLink = document.getElementById(darkLinkId) as HTMLLinkElement | null;
-	const lightHcLink = document.getElementById(lightHcLinkId) as HTMLLinkElement | null;
-	const darkHcLink = document.getElementById(darkHcLinkId) as HTMLLinkElement | null;
+	const darkLink = document.getElementById(darkLinkId);
+	const lightHcLink = document.getElementById(lightHcLinkId);
+	const darkHcLink = document.getElementById(darkHcLinkId);
 
-	if (darkLink) {
+	if (darkLink instanceof HTMLLinkElement) {
 		darkLink.media = standardPair ? "all" : mediaDark;
 	}
-	if (lightHcLink) {
+	if (lightHcLink instanceof HTMLLinkElement) {
 		lightHcLink.media = highContrastPair ? "all" : mediaLightHc;
 	}
-	if (darkHcLink) {
+	if (darkHcLink instanceof HTMLLinkElement) {
 		darkHcLink.media = highContrastPair ? "all" : mediaDarkHc;
 	}
 }
@@ -325,21 +325,17 @@ function MantleStyleSheets({
 				forceTheme,
 			);
 
-			const darkLink = document.getElementById(DARK_LINK_ID) as HTMLLinkElement | null;
-			const lightHighContrastLink = document.getElementById(
-				LIGHT_HIGH_CONTRAST_LINK_ID,
-			) as HTMLLinkElement | null;
-			const darkHighContrastLink = document.getElementById(
-				DARK_HIGH_CONTRAST_LINK_ID,
-			) as HTMLLinkElement | null;
+			const darkLink = document.getElementById(DARK_LINK_ID);
+			const lightHighContrastLink = document.getElementById(LIGHT_HIGH_CONTRAST_LINK_ID);
+			const darkHighContrastLink = document.getElementById(DARK_HIGH_CONTRAST_LINK_ID);
 
-			if (darkLink) {
+			if (darkLink instanceof HTMLLinkElement) {
 				darkLink.media = dark;
 			}
-			if (lightHighContrastLink) {
+			if (lightHighContrastLink instanceof HTMLLinkElement) {
 				lightHighContrastLink.media = lightHighContrast;
 			}
-			if (darkHighContrastLink) {
+			if (darkHighContrastLink instanceof HTMLLinkElement) {
 				darkHighContrastLink.media = darkHighContrast;
 			}
 		}

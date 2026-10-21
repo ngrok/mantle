@@ -273,6 +273,7 @@ const Indicator = ({
 	...props
 }: RadioIndicatorProps) => {
 	const ctx = useContext(RadioStateContext);
+	const indicator = typeof children === "function" ? children(ctx) : children;
 
 	return (
 		<div
@@ -283,13 +284,7 @@ const Indicator = ({
 			)}
 			{...props}
 		>
-			{children == null ? (
-				<DefaultRadioIndicator {...ctx} />
-			) : typeof children === "function" ? (
-				children(ctx)
-			) : (
-				children
-			)}
+			{children == null ? <DefaultRadioIndicator {...ctx} /> : indicator}
 		</div>
 	);
 };
@@ -660,12 +655,11 @@ const InputSandbox = ({
 			}}
 			{...props}
 		>
-			{isValidElement<HTMLInputElement>(singleChild)
-				? cloneElement(singleChild, {
-						disabled: ctx.disabled || singleChild.props.disabled,
-						tabIndex: shouldPreventTabIndex ? -1 : singleChild.props.tabIndex,
-					})
-				: null}
+			{isValidElement<HTMLInputElement>(singleChild) &&
+				cloneElement(singleChild, {
+					disabled: ctx.disabled || singleChild.props.disabled,
+					tabIndex: shouldPreventTabIndex ? -1 : singleChild.props.tabIndex,
+				})}
 		</div>
 	);
 };

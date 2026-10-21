@@ -141,6 +141,7 @@ const mountEngine = (config: {
 	const options: ChartOptions = { ...baseOptions, ...config.options };
 	engine.setOptions(options);
 	engine.setRows(config.rows);
+	// oxlint-disable-next-line eqeqeq -- Why: `null` skips the resize; `undefined` takes the default size.
 	if (config.size !== null) {
 		deliverResize({ elements }, config.size ?? { width: 400, height: 200 });
 	}

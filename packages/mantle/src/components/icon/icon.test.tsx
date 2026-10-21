@@ -16,15 +16,19 @@ describe("Icon", () => {
 
 	test("a consumer className overrides the automatic sizing", () => {
 		const { container } = render(<Icon className="size-8" svg={<svg />} />);
-		expect(container.firstChild).toHaveClass("size-8");
-		expect(container.firstChild).not.toHaveClass("size-5");
+		const icon = container.querySelector('[data-slot~="icon"]');
+		// Why: tailwind-merge override contract; a consumer class replaces the default.
+		expect(Array.from(icon?.classList ?? []).filter((name) => name.startsWith("size-"))).toEqual([
+			"size-8",
+		]);
 	});
 
 	test("the svg's own className wins over the consumer className", () => {
 		const { container } = render(<Icon className="size-8" svg={<svg className="size-3" />} />);
-		expect(container.firstChild).toHaveClass("size-3");
-		expect(container.firstChild).not.toHaveClass("size-8");
-		expect(container.firstChild).not.toHaveClass("size-5");
+		const icon = container.querySelector('[data-slot~="icon"]');
+		expect(Array.from(icon?.classList ?? []).filter((name) => name.startsWith("size-"))).toEqual([
+			"size-3",
+		]);
 	});
 
 	test("forwards `style` to the svg", () => {

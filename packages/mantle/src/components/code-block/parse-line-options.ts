@@ -28,6 +28,11 @@ function parseCodeBlockLineNumberStart(value: unknown): number | undefined {
 	return undefined;
 }
 
+/** Type predicate: checks if a string is a `"start-end"` range of decimal digits. */
+function isLineRangeString(value: string): value is LineRange {
+	return /^\d+-\d+$/.test(value);
+}
+
 /**
  * Parses a single highlight-line entry into either a positive integer line
  * number or a `"start-end"` {@link LineRange} string. Accepts a number, a
@@ -51,12 +56,12 @@ function parseSingle(item: unknown): LineRange | number | undefined {
 			const parsed = Number.parseInt(trimmed, 10);
 			return parsed > 0 ? parsed : undefined;
 		}
-		if (/^\d+-\d+$/.test(trimmed)) {
+		if (isLineRangeString(trimmed)) {
 			const [startStr, endStr] = trimmed.split("-");
 			const start = Number.parseInt(startStr ?? "", 10);
 			const end = Number.parseInt(endStr ?? "", 10);
 			if (start > 0 && end > 0) {
-				return trimmed as LineRange;
+				return trimmed;
 			}
 			return undefined;
 		}

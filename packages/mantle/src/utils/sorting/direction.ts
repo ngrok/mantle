@@ -22,7 +22,7 @@ type SortingMode = (typeof sortingModes)[number];
  * @example isSortingMode("foo") // false
  */
 const isSortingMode = (value: unknown): value is SortingMode =>
-	typeof value === "string" && sortingModes.includes(value as SortingMode);
+	typeof value === "string" && sortingModes.some((item) => item === value);
 
 /**
  * Runtime type-to-value helper for sorting modes
@@ -58,7 +58,7 @@ type SortingDirection = (typeof sortingDirections)[number];
  * @example isSortingDirection("foo") // false
  */
 const isSortingDirection = (value: unknown): value is SortingDirection =>
-	typeof value === "string" && sortingDirections.includes(value as SortingDirection);
+	typeof value === "string" && sortingDirections.some((item) => item === value);
 
 /**
  * Runtime type-to-value helper for sorting directions
@@ -94,8 +94,7 @@ type AlphanumericSortingDirection = (typeof alphanumericSortingDirections)[numbe
  * @example isAlphanumericSortingDirection("foo") // false
  */
 const isAlphanumericSortingDirection = (value: unknown): value is AlphanumericSortingDirection =>
-	typeof value === "string" &&
-	alphanumericSortingDirections.includes(value as AlphanumericSortingDirection);
+	typeof value === "string" && alphanumericSortingDirections.some((item) => item === value);
 
 /**
  * Runtime type-to-value helper for alphanumeric sorting directions
@@ -137,7 +136,7 @@ type TimeSortingDirection = (typeof timeSortingDirections)[number];
  * @example isTimeSortingDirection("desc") // false
  */
 const isTimeSortingDirection = (value: unknown): value is TimeSortingDirection =>
-	typeof value === "string" && timeSortingDirections.includes(value as TimeSortingDirection);
+	typeof value === "string" && timeSortingDirections.some((item) => item === value);
 
 /**
  * Converts a sorting direction to a time sorting direction
