@@ -47,7 +47,7 @@ file on [0008](../../../apps/www/app/docs/migrations/0008-tabs-separator-migrati
 2. **`# Mantle <Title> Migration Guide`**, then one paragraph: what changed, what is gone, and what replaces it.
 3. **`**TL;DR:**`** One paragraph an agent can act on without reading further.
 4. **`## Codemod`.** With rules: the two invocations (from a mantle checkout, `pnpm -w run migrate <NNNN> <path>`;
-   in a consumer, `npx --yes --package=@ast-grep/cli@0.45.3 ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/<NNNN>-<slug>.yml --update-all <path>`),
+   in a consumer, `npx --yes --package=@ast-grep/cli@0.51.0 ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/<NNNN>-<slug>.yml --update-all <path>`),
    which numbered steps the rules apply, which steps stay manual and why, whether the codemod runs once, and
    a reminder to pass `--dry-run` first and run the formatter after. Without rules: one line,
    `Codemod: manual: <reason>.`
