@@ -1,5 +1,13 @@
 # @ngrok/mantle-server-syntax-highlighter
 
+## 1.1.18
+
+### Patch Changes
+
+- [#1580](https://github.com/ngrok/mantle/pull/1580) [`49e26df`](https://github.com/ngrok/mantle/commit/49e26df00af0f5f0b730269b8ba7d4ab70a2a866) Thanks [@dependabot](https://github.com/apps/dependabot)! - Bump `oxc-parser` from 0.154.0 to 0.155.0.
+
+- [#1576](https://github.com/ngrok/mantle/pull/1576) [`a3546a4`](https://github.com/ngrok/mantle/commit/a3546a4e2013625a23e79a087ed0b3edde441b03) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Remove unsafe type casts from the fold-range parsers and the LRU cache. Behavior is the same; a cached `undefined` value still reads as a hit.
+
 ## 1.1.17
 
 ### Patch Changes
