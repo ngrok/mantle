@@ -3,7 +3,7 @@
 
 set -euo pipefail
 
-MISE_VERSION="${MISE_VERSION:-v2026.9.3}"
+MISE_VERSION="${MISE_VERSION:-v2026.10.17}"
 MISE_EXPECTED_VERSION="${MISE_VERSION#v}"
 
 require_command() {
@@ -66,19 +66,6 @@ mise_version() {
   ' || true
 }
 
-is_musl_linux() {
-  local ldd_output
-
-  if command -v ldd >/dev/null 2>&1; then
-    ldd_output="$(ldd --version 2>&1 || true)"
-    case "${ldd_output}" in
-      *musl*|*Musl*) return 0 ;;
-    esac
-  fi
-
-  compgen -G "/lib/ld-musl-*.so.*" >/dev/null || compgen -G "/usr/lib/ld-musl-*.so.*" >/dev/null
-}
-
 detect_mise_platform() {
   local os arch
 
@@ -86,12 +73,7 @@ detect_mise_platform() {
   arch="$(uname -m)"
 
   case "${os}" in
-    Linux)
-      os="linux"
-      if is_musl_linux; then
-        os="linux-musl"
-      fi
-      ;;
+    Linux) os="linux" ;;
     Darwin) os="macos" ;;
     MINGW*|MSYS*|CYGWIN*)
       echo "mantle: automatic mise install is not supported from Windows Git Bash/MSYS/Cygwin." >&2
@@ -113,11 +95,7 @@ detect_mise_platform() {
       ;;
   esac
 
-  if [ "${os}" = "linux-musl" ]; then
-    printf 'linux-%s-musl' "${arch}"
-  else
-    printf '%s-%s' "${os}" "${arch}"
-  fi
+  printf '%s-%s' "${os}" "${arch}"
 }
 
 install_pinned_mise() {
