@@ -55,7 +55,6 @@ catalog:
 
 overrides:
   "@types/node": "catalog:"
-  "@mjackson/node-fetch-server": "npm:@remix-run/node-fetch-server@0.10.0"
   "ajv": ">=8.20.0"
   "cookie": ">=1.1.1"
   "esbuild": ">=0.28.2"
