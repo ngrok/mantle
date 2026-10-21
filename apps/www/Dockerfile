@@ -1,5 +1,7 @@
-# Use Node.js 24 LTS (Debian Slim)
-FROM node:24-slim AS base
+# CI passes the Node version from `.nvmrc`. With no default, a build without
+# it fails.
+ARG NODE_VERSION
+FROM node:${NODE_VERSION}-slim AS base
 
 # Base dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -71,6 +73,9 @@ RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
 
 # Copy full pruned source
 COPY --from=pruner /app/out/full/ ./
+# `.nvmrc` is a turbo global dependency. Without it, a Node bump keeps the build
+# hash, and the build can restore output from the previous Node.
+COPY .nvmrc ./
 
 # The build writes to the turbo remote cache, so the CI token needs the write host.
 ARG TURBO_API
@@ -98,7 +103,14 @@ RUN RR_SERVE_VERSION=$(node -e "process.stdout.write(require('./apps/www/node_mo
 # App deps are bundled into the server build (ssr.noExternal: true).
 # Only @react-router/serve + its runtime deps (express, etc.) are copied in.
 # ---------------------------------------------------------------------------
-FROM gcr.io/distroless/nodejs24-debian12 AS runner
+# Distroless has no image per Node patch release, so copy the base stage Node.
+# `cc-debian13` has the libraries Node needs and the CA bundle.
+# `--use-openssl-ca` makes TLS verify against that bundle, not the roots built
+# into Node.
+FROM gcr.io/distroless/cc-debian13 AS runner
+
+COPY --from=base /usr/local/bin/node /nodejs/bin/node
+ENTRYPOINT ["/nodejs/bin/node", "--use-openssl-ca"]
 
 WORKDIR /app
 

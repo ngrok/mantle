@@ -58,7 +58,6 @@ mise.local.toml
 mise.toml
 .node_repl_history
 .npm
-.nvmrc
 .nyc_output
 .oxcfmtrc.json
 .oxlintrc.json
