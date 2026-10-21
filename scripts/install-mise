@@ -73,7 +73,16 @@ detect_mise_platform() {
   arch="$(uname -m)"
 
   case "${os}" in
-    Linux) os="linux" ;;
+    Linux)
+      # Stop before the download: the glibc binary cannot run on musl, and
+      # installing it overwrites a working ~/.local/bin/mise.
+      if compgen -G "/lib/ld-musl-*.so.*" >/dev/null || compgen -G "/usr/lib/ld-musl-*.so.*" >/dev/null; then
+        echo "mantle: automatic mise install is not supported on musl Linux (Alpine)." >&2
+        echo "        Install mise ${MISE_VERSION} manually and re-run ./scripts/setup." >&2
+        return 1
+      fi
+      os="linux"
+      ;;
     Darwin) os="macos" ;;
     MINGW*|MSYS*|CYGWIN*)
       echo "mantle: automatic mise install is not supported from Windows Git Bash/MSYS/Cygwin." >&2
