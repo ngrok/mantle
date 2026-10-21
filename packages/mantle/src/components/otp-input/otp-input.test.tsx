@@ -72,6 +72,31 @@ describe("OtpInput", () => {
 		expect(input).toHaveAttribute("aria-errormessage", errors.id);
 	});
 
+	describe("password managers", () => {
+		test("the hidden input asks for a one-time code and tells each password manager to skip it", () => {
+			const { input } = renderOtp();
+
+			expect(input).toHaveAttribute("autocomplete", "one-time-code");
+			expect(input).toHaveAttribute("data-1p-ignore");
+			expect(input).toHaveAttribute("data-bwignore");
+			expect(input).toHaveAttribute("data-form-type", "other");
+			expect(input).toHaveAttribute("data-lpignore", "true");
+			expect(input).toHaveAttribute("data-protonpass-ignore");
+		});
+
+		test("a call site can remove an ignore attribute", () => {
+			render(
+				<OtpInput.Root maxLength={1} aria-label="otp" data-1p-ignore={undefined}>
+					<OtpInput.Group>
+						<OtpInput.Slot index={0} />
+					</OtpInput.Group>
+				</OtpInput.Root>,
+			);
+
+			expect(screen.getByRole("textbox", { name: "otp" })).not.toHaveAttribute("data-1p-ignore");
+		});
+	});
+
 	describe("compound parts", () => {
 		test("Group asChild renders the child element instead of a div", () => {
 			render(

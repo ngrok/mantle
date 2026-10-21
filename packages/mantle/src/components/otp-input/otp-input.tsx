@@ -116,6 +116,20 @@ const MantleOtpBridge = ({
 	);
 };
 
+/**
+ * Attributes that tell each major password manager to skip the OTP input.
+ * Without them, a password manager puts its badge in the last slot and offers
+ * to fill a saved password. `autocomplete="one-time-code"` does not stop this;
+ * input-otp sets it by default.
+ */
+const passwordManagerIgnoreProps = {
+	"data-1p-ignore": true, // 1Password
+	"data-bwignore": true, // Bitwarden
+	"data-form-type": "other", // Dashlane
+	"data-lpignore": "true", // LastPass
+	"data-protonpass-ignore": true, // Proton Pass
+} as const;
+
 // Drop the `render` / `children?: never` branch of input-otp's discriminated
 // union — `OtpInput.Root` always wraps its children in `MantleOtpBridge`,
 // so consumers compose with `OtpInput.Group` / `OtpInput.Slot` children
@@ -144,6 +158,11 @@ type OtpInputRootProps = Omit<ComponentProps<typeof OTPInput>, "render" | "child
  *
  * **Accessibility.** The hidden input needs an accessible name. Inside a
  * `Field.Item`, `Field.Label` supplies it. On its own, pass `aria-label`.
+ *
+ * **Password managers.** The hidden input carries the ignore attributes for
+ * 1Password, Bitwarden, Dashlane, LastPass, and Proton Pass, so their badges
+ * and fill prompts stay off the slots. To let one fill the code, pass its
+ * attribute as `undefined`, as in `data-1p-ignore={undefined}`.
  *
  * @see https://mantle.ngrok.com/components/forms/otp-input
  *
@@ -192,6 +211,7 @@ const Root = ({
 			data-slot={joinDataSlot(dataSlot, "otp-input")}
 			containerClassName={cx("flex items-center gap-2 has-disabled:opacity-50", containerClassName)}
 			className={cx("disabled:cursor-not-allowed", className)}
+			{...passwordManagerIgnoreProps}
 			{...props}
 			{...(fieldControl
 				? {
