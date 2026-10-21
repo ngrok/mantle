@@ -29,22 +29,22 @@
     "migrate": "node ./scripts/migrate.ts"
   },
   "devDependencies": {
-    "@ast-grep/cli": "0.50.0",
+    "@ast-grep/cli": "0.51.0",
     "@changesets/changelog-github": "1.0.1",
     "@changesets/cli": "3.0.3",
     "@types/node": "catalog:",
     "husky": "9.1.7",
     "lint-staged": "17.6.0",
     "oxfmt": "catalog:",
-    "oxlint": "1.88.0",
-    "oxlint-tsgolint": "7.0.2003",
+    "oxlint": "1.89.0",
+    "oxlint-tsgolint": "7.0.2004",
     "tsx": "catalog:",
-    "turbo": "2.11.8",
+    "turbo": "2.11.10",
     "typescript": "catalog:",
-    "vitest": "5.0.4"
+    "vitest": "5.0.5"
   },
   "engines": {
     "node": "^24.0.0"
   },
-  "packageManager": "pnpm@12.13.0"
+  "packageManager": "pnpm@12.14.0"
 }

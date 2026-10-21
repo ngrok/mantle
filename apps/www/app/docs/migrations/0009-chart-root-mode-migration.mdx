@@ -20,7 +20,7 @@ pnpm -w run migrate 0009 <path>
 In a project that installs `@ngrok/mantle`:
 
 ```sh
-npx --yes --package=@ast-grep/cli@0.50.0 ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/0009-chart-root-mode.yml --update-all <path>
+npx --yes --package=@ast-grep/cli@0.51.0 ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/0009-chart-root-mode.yml --update-all <path>
 ```
 
 The rules apply step 2. On the four chart Roots, `decorative` becomes `mode="decorative"`, and `decorative={flag}` becomes `mode={flag ? "decorative" : "interactive"}`. Steps 3 to 5 stay manual, because whether a chart is a sparkline is a design call that no rule can read off the JSX. The rules read a part through its import from `@ngrok/mantle/<chart>`, under its own name or an alias. A part that reaches the file through a local re-export or a destructured namespace stays manual. A function that binds a chart's name to a parameter or a local shadows the import, so the rules leave that function alone. Pass `--dry-run` to print the rewrites first, and run your formatter after the rewrite.

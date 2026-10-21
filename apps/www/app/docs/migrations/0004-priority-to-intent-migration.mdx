@@ -38,7 +38,7 @@ pnpm -w run migrate 0004 <path>
 In a project that installs `@ngrok/mantle`:
 
 ```sh
-npx --yes --package=@ast-grep/cli@0.50.0 ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/0004-priority-to-intent.yml --update-all <path>
+npx --yes --package=@ast-grep/cli@0.51.0 ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/0004-priority-to-intent.yml --update-all <path>
 ```
 
 The rules apply steps 2 to 4. They rename `priority` to `intent` on the listed components, map Button's `"default"` to `"accent"`, and stamp the old implicit `appearance` and `intent` onto every `Button` and `IconButton` that omits them, with the filled-Button exception. A dynamic `priority={value}` renames too, but a value that can produce `"default"` keeps that string: map it by hand (step 5). A `Button` with a dynamic `appearance` and no tone also stays manual, because its old implicit intent depended on the value. Steps 6 and 7 stay manual, because a type import and a `[data-priority]` selector are not JSX attributes. The rules read a part through its import from `@ngrok/mantle/button`, under its own name or an alias. A part that reaches the file through a local re-export or a destructured namespace stays manual. The same holds for `Alert`, `AlertDialog`, `Toast`, and `DataTable` from their own subpaths. A function that binds one of those names to a parameter or a local shadows the import, so the rules leave that function alone. Pass `--dry-run` to print the rewrites first, and run your formatter after the rewrite.
