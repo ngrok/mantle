@@ -20,7 +20,7 @@ pnpm -w run migrate 0002 <path>
 In a project that installs `@ngrok/mantle`:
 
 ```sh
-npx --yes --package=@ast-grep/cli@0.50.0 ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/0002-data-table-action-header.yml --update-all <path>
+npx --yes --package=@ast-grep/cli@0.51.0 ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/0002-data-table-action-header.yml --update-all <path>
 ```
 
 The rules apply the whole find/replace recipe. In a column whose `cell` renders `DataTable.ActionCell`, they rewrite `DataTable.Header`, `Table.Header`, and `header: () => null` to `DataTable.ActionHeader`. A header that returns `undefined` or a fragment stays manual. The rules read a part through its import from `@ngrok/mantle/data-table` and `@ngrok/mantle/table`, under its own name or an alias. A part that reaches the file through a local re-export or a destructured namespace stays manual. A function that binds `DataTable` or `Table` to a parameter or a local shadows the import, so the rules leave that function alone. A table that a cell renders keeps its own headers, and only its own action column changes. Pass `--dry-run` to print the rewrites first, and run your formatter after the rewrite.
