@@ -1,5 +1,17 @@
 # @ngrok/mantle
 
+## 0.90.2
+
+### Patch Changes
+
+- [#1581](https://github.com/ngrok/mantle/pull/1581) [`d781768`](https://github.com/ngrok/mantle/commit/d781768e511f5172c34a5b5adbaf48105c598426) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add a `2xs` size to `IconButton`: a 20px box with a 16px icon. Use it for a copy button or another action inside a `DescriptionList` row, so the row keeps the same height as a row without an action. `2xs` is for `IconButton` only; `Button` and `SplitButton` keep the shared `xs` to `xl` scale.
+
+- [#1580](https://github.com/ngrok/mantle/pull/1580) [`49e26df`](https://github.com/ngrok/mantle/commit/49e26df00af0f5f0b730269b8ba7d4ab70a2a866) Thanks [@dependabot](https://github.com/apps/dependabot)! - Bump `@tanstack/react-virtual` from 3.14.19 to 3.14.21.
+
+- [#1585](https://github.com/ngrok/mantle/pull/1585) [`d5ce63a`](https://github.com/ngrok/mantle/commit/d5ce63a656ba0d46dfd8f7a423b826d486735921) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `OtpInput.Root`: stop password managers from taking over the OTP input. The hidden input now carries the ignore attributes for 1Password, Bitwarden, Dashlane, LastPass, and Proton Pass, so their badges and fill prompts stay off the slots. To let one fill the code, pass its attribute as `undefined`.
+
+- [#1576](https://github.com/ngrok/mantle/pull/1576) [`a3546a4`](https://github.com/ngrok/mantle/commit/a3546a4e2013625a23e79a087ed0b3edde441b03) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Command.SearchTrigger` now seeds the palette query with a typed character that is more than one code point, such as a skin-tone emoji or a decomposed accent. Before, `searchActionFromKeyDown` counted code points, so it read such a key as a named key and dropped the character.
+
 ## 0.90.1
 
 ### Patch Changes

@@ -1,5 +1,15 @@
 # @ngrok/mantle-vite-plugins
 
+## 1.2.5
+
+### Patch Changes
+
+- [#1580](https://github.com/ngrok/mantle/pull/1580) [`49e26df`](https://github.com/ngrok/mantle/commit/49e26df00af0f5f0b730269b8ba7d4ab70a2a866) Thanks [@dependabot](https://github.com/apps/dependabot)! - Bump `oxc-parser` from 0.154.0 to 0.155.0.
+
+- [#1576](https://github.com/ngrok/mantle/pull/1576) [`a3546a4`](https://github.com/ngrok/mantle/commit/a3546a4e2013625a23e79a087ed0b3edde441b03) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - When Shiki fails to highlight a `mantleCode` block, the `mantleCodeVitePlugin` warning now prints the error's message instead of the default string form of the error.
+- Updated dependencies [[`49e26df`](https://github.com/ngrok/mantle/commit/49e26df00af0f5f0b730269b8ba7d4ab70a2a866), [`a3546a4`](https://github.com/ngrok/mantle/commit/a3546a4e2013625a23e79a087ed0b3edde441b03)]:
+  - @ngrok/mantle-server-syntax-highlighter@1.1.18
+
 ## 1.2.4
 
 ### Patch Changes
