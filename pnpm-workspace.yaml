@@ -38,7 +38,7 @@ catalog:
   "@testing-library/user-event": "14.6.8"
   "@tsdown/css": "0.23.1"
   "@types/node": "24.19.2"
-  "@vitest/browser-playwright": "5.0.4"
+  "@vitest/browser-playwright": "5.0.5"
   "happy-dom": "21.0.1"
   "oxc-parser": "0.154.0"
   "oxc-transform-react": "0.154.0"
