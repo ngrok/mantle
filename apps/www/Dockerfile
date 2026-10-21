@@ -98,18 +98,37 @@ RUN RR_SERVE_VERSION=$(node -e "process.stdout.write(require('./apps/www/node_mo
     && npm install --omit=dev --no-fund --no-audit "@react-router/serve@${RR_SERVE_VERSION}" \
     && rm -rf package.json package-lock.json
 
+# Node runtime stage — stages the Node files the runner copies, so `binutils`
+# never reaches the runner.
+# - `strip` removes the ELF symbol table, about 18 MB on amd64. Native frames
+#   in core dumps, `perf`, and `--report` lose their names. JS stacks,
+#   `--cpu-prof`, and heap snapshots do not change.
+# - Node 25 and later link `libatomic.so.1`, which `cc-debian13` does not ship.
+FROM base AS node-runtime
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    binutils \
+    libatomic1 \
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /node-runtime/nodejs/bin \
+    && strip -o /node-runtime/nodejs/bin/node /usr/local/bin/node \
+    && lib=$(dirname /usr/lib/*-linux-gnu/libatomic.so.1) \
+    && mkdir -p "/node-runtime$lib" \
+    && cp -a "$lib"/libatomic.so.1* "/node-runtime$lib/" \
+    && /node-runtime/nodejs/bin/node -p process.version
+
 # ---------------------------------------------------------------------------
 # Runner stage — Distroless, no shell/npm/package manager.
 # App deps are bundled into the server build (ssr.noExternal: true).
 # Only @react-router/serve + its runtime deps (express, etc.) are copied in.
 # ---------------------------------------------------------------------------
-# Distroless has no image per Node patch release, so copy the base stage Node.
-# `cc-debian13` has the libraries Node needs and the CA bundle.
+# Distroless has no image per Node patch release, so copy Node from the
+# node-runtime stage. `cc-debian13` has the CA bundle.
 # `--use-openssl-ca` makes TLS verify against that bundle, not the roots built
 # into Node.
 FROM gcr.io/distroless/cc-debian13 AS runner
 
-COPY --from=base /usr/local/bin/node /nodejs/bin/node
+COPY --from=node-runtime /node-runtime/ /
 ENTRYPOINT ["/nodejs/bin/node", "--use-openssl-ca"]
 
 WORKDIR /app
