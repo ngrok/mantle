@@ -776,8 +776,9 @@ type DataTableHeaderProps<
  * minimum, so `w-px` shrinks the column to its min-content width, and
  * `whitespace-nowrap` makes that width the full content width.
  */
-const columnWidthClassName =
-	"data-[column-width=fit]:w-px data-[column-width=fit]:whitespace-nowrap";
+// Why plain utilities, not `data-[column-width=fit]:` variants: `cx` merges a
+// plain utility with the consumer's `className`, so a consumer class still wins.
+const fitColumnClassName = "w-px whitespace-nowrap";
 
 /**
  * The `aria-sort` value for a column's current sort state. `undefined` when the
@@ -849,17 +850,24 @@ function Header<TFeatures extends TableFeatures, TData extends RowData, TValue e
 	column,
 	...props
 }: DataTableHeaderProps<TFeatures, TData, TValue>) {
-	const renderHeader = () => (
-		<Table.Header
-			aria-sort={resolveAriaSort(column)}
-			data-column-width={resolveColumnWidth(column?.columnDef.meta)}
-			data-slot={joinDataSlot(dataSlot, "data-table-header")}
-			className={cx("has-data-table-header-action:px-0", columnWidthClassName, className)}
-			{...props}
-		>
-			{children}
-		</Table.Header>
-	);
+	const renderHeader = () => {
+		const width = resolveColumnWidth(column?.columnDef.meta);
+		return (
+			<Table.Header
+				aria-sort={resolveAriaSort(column)}
+				data-column-width={width}
+				data-slot={joinDataSlot(dataSlot, "data-table-header")}
+				className={cx(
+					"has-data-table-header-action:px-0",
+					width === "fit" && fitColumnClassName,
+					className,
+				)}
+				{...props}
+			>
+				{children}
+			</Table.Header>
+		);
+	};
 
 	const options = useTableOptions();
 
@@ -924,11 +932,12 @@ function Cell<TFeatures extends TableFeatures, TData extends RowData, TValue ext
 	column,
 	...props
 }: DataTableCellProps<TFeatures, TData, TValue>) {
+	const width = resolveColumnWidth(column?.columnDef.meta);
 	return (
 		<Table.Cell
-			data-column-width={resolveColumnWidth(column?.columnDef.meta)}
+			data-column-width={width}
 			data-slot={joinDataSlot(dataSlot, "data-table-cell")}
-			className={cx(columnWidthClassName, className)}
+			className={cx(width === "fit" && fitColumnClassName, className)}
 			{...props}
 		/>
 	);

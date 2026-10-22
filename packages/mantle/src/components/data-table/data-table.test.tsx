@@ -359,29 +359,40 @@ function ActionCellHarness({ onRowClick, onCellClick, onButtonClick }: ActionCel
 	);
 }
 
-const fitColumns = columnHelper.columns([
-	columnHelper.accessor("id", {
-		id: "id",
-		meta: { width: "fit" },
-		header: (props) => <DataTable.Header column={props.column}>ID</DataTable.Header>,
-		cell: (props) => <DataTable.Cell column={props.column}>{props.getValue()}</DataTable.Cell>,
-	}),
-	columnHelper.accessor("name", {
-		id: "name",
-		header: (props) => <DataTable.Header column={props.column}>Name</DataTable.Header>,
-		cell: (props) => <DataTable.Cell column={props.column}>{props.getValue()}</DataTable.Cell>,
-	}),
-]);
+/** Columns for `FitColumnHarness`. `className` goes on every part of the fit column. */
+const fitColumns = (className?: string) =>
+	columnHelper.columns([
+		columnHelper.accessor("id", {
+			id: "id",
+			meta: { width: "fit" },
+			header: (props) => (
+				<DataTable.Header className={className} column={props.column}>
+					ID
+				</DataTable.Header>
+			),
+			cell: (props) => (
+				<DataTable.Cell className={className} column={props.column}>
+					{props.getValue()}
+				</DataTable.Cell>
+			),
+		}),
+		columnHelper.accessor("name", {
+			id: "name",
+			header: (props) => <DataTable.Header column={props.column}>Name</DataTable.Header>,
+			cell: (props) => <DataTable.Cell column={props.column}>{props.getValue()}</DataTable.Cell>,
+		}),
+	]);
 
 /**
  * A table whose `id` column sets `meta.width` to `"fit"` through the
  * global `ColumnMeta` interface, beside a `name` column with no width.
  */
-function FitColumnHarness() {
+function FitColumnHarness({ className }: { className?: string }) {
+	const columns = useMemo(() => fitColumns(className), [className]);
 	const table = useTable({
 		features,
 		data: sortableData,
-		columns: fitColumns,
+		columns,
 		getRowId: (row) => row.id,
 	});
 	return (
@@ -411,6 +422,23 @@ describe("DataTable column width", () => {
 			"data-column-width",
 		);
 		expect(screen.getByRole("cell", { name: "web-10" })).not.toHaveAttribute("data-column-width");
+	});
+
+	// Why a class assertion: this is the tailwind-merge override contract. A
+	// consumer's width and wrap classes must beat the fit defaults.
+	test("lets a consumer className override the fit width and wrap", () => {
+		render(<FitColumnHarness className="w-64 whitespace-normal" />);
+
+		for (const element of [
+			screen.getByRole("columnheader", { name: "ID" }),
+			screen.getByRole("cell", { name: "row-1" }),
+		]) {
+			const sizing = Array.from(element.classList).filter((name) => {
+				const utility = name.split(":").at(-1) ?? "";
+				return utility.startsWith("w-") || utility.startsWith("whitespace-");
+			});
+			expect(sizing).toEqual(["w-64", "whitespace-normal"]);
+		}
 	});
 });
 
