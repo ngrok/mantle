@@ -616,6 +616,13 @@ type DataTableRowProps<TFeatures extends TableFeatures, TData extends RowData> =
 } & WithDataSlot;
 
 /**
+ * Whether the enclosing `DataTable.Row` renders a detail panel through
+ * `renderExpanded`. `DataTable.RowExpandButton` reads it to point
+ * `aria-controls` at the panel of a row that also has sub-rows.
+ */
+const DetailPanelContext = createContext(false);
+
+/**
  * Whether a click on a clickable row is a request to run its `onClick`. A
  * modified click (`⌘`, `Ctrl`, `Shift`, `Alt`) or a non-primary button asks the
  * browser for a new tab or a context menu. The link inside the row answers
@@ -660,8 +667,9 @@ function isRowActivationClick(event: MouseEvent<HTMLTableRowElement>): boolean {
  * Never reach for `role="grid"`, because it commits the table to roving focus
  * and arrow-key navigation. Wrap the link in
  * `<SandboxedOnClick asChild allowClickEventDefault>` so its click does not
- * also run the row handler. `DataTable.ActionCell` and
- * `DataTable.RowExpandButton` stop their own clicks.
+ * also run the row handler. `DataTable.ActionCell`, `DataTable.ControlCell`,
+ * and `DataTable.RowExpandButton` stop their own clicks. Put a selection
+ * checkbox in a `DataTable.ControlCell`.
  *
  * Pass `renderExpanded` to give the row an inline detail panel: when the row is
  * expanded the row renders its data `<tr>` plus a sibling `DataTable.ExpandedRow`
@@ -752,15 +760,17 @@ function Row<TFeatures extends TableFeatures, TData extends RowData>({
 				}
 				{...props}
 			>
-				{cells.map((cell) => (
-					// Why flexRender, not FlexRender: the column's `cell` definition owns
-					// the `<td>`. `FlexRender` renders `null` for a grouped row's
-					// placeholder cells, which would drop their `<td>` and shift every cell
-					// after them one column to the left.
-					<Fragment key={cell.id}>
-						{flexRender(cell.column.columnDef.cell, cell.getContext())}
-					</Fragment>
-				))}
+				<DetailPanelContext.Provider value={renderExpanded != null}>
+					{cells.map((cell) => (
+						// Why flexRender, not FlexRender: the column's `cell` definition owns
+						// the `<td>`. `FlexRender` renders `null` for a grouped row's
+						// placeholder cells, which would drop their `<td>` and shift every
+						// cell after them one column to the left.
+						<Fragment key={cell.id}>
+							{flexRender(cell.column.columnDef.cell, cell.getContext())}
+						</Fragment>
+					))}
+				</DetailPanelContext.Provider>
 			</Table.Row>
 		);
 
@@ -1048,6 +1058,107 @@ function ActionHeader({
 	);
 }
 
+type DataTableControlCellProps = ComponentProps<typeof Table.Cell> & WithDataSlot;
+
+/**
+ * The controls that a click on a `DataTable.ControlCell`'s padding activates.
+ */
+const controlCellControlSelector = "button, input";
+
+/**
+ * Whether an event target is a DOM node. Why not `instanceof Node`: a row in
+ * a framed preview has another realm's `Node`.
+ */
+function isNode(target: EventTarget | null): target is Node {
+	return target != null && "nodeType" in target;
+}
+
+/**
+ * A `<td>` for a row's own control: a `DataTable.RowExpandButton` or a
+ * selection `Checkbox`. The whole cell is the control's pointer target, and a
+ * click anywhere in it never runs a clickable row's `onClick`.
+ *
+ * - A click on the cell's padding focuses and clicks the control, so a click
+ *   that misses a small control still toggles it instead of navigating.
+ * - When the cell holds no control (a leaf row's `RowExpandButton` renders
+ *   nothing), the click reaches the row as usual.
+ * - The control aligns with the first line of text, so it stays beside a
+ *   two-line primary cell. On a one-line row, it is centered.
+ *
+ * The padding click is a pointer convenience only. The cell keeps its
+ * `role="cell"` and gets no `tabIndex`, so keyboard and screen-reader users
+ * reach the control itself. Never add a role or `tabIndex` to the cell.
+ *
+ * Your own `onClick` runs first. Call `event.preventDefault()` in it to stop
+ * the padding click from reaching the control.
+ *
+ * **Structure.** `children` render inside a
+ * `<span data-slot="data-table-control-cell-label">` that is one line of text
+ * tall and centers the control in it.
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"data-table-control-cell table-cell"` | On the cell element, joined ahead of `Table.Cell`'s own slot. |
+ * | `data-slot` | `"data-table-control-cell-label"` | On the `<span>` wrapping `children`. |
+ *
+ * @see https://mantle.ngrok.com/components/data-display/data-table#datatablecontrolcell
+ *
+ * @example
+ * ```tsx
+ * columnHelper.display({
+ *   id: "expander",
+ *   header: () => <DataTable.ExpandHeader />,
+ *   cell: (props) => (
+ *     <DataTable.ControlCell>
+ *       <DataTable.RowExpandButton row={props.row} label={props.row.original.name} />
+ *     </DataTable.ControlCell>
+ *   ),
+ * });
+ * ```
+ */
+function ControlCell({
+	"data-slot": dataSlot,
+	children,
+	className,
+	onClick,
+	...props
+}: DataTableControlCellProps) {
+	return (
+		<Table.Cell
+			data-slot={joinDataSlot(dataSlot, "data-table-control-cell")}
+			// `align-top` and the one-line label below put the control beside the
+			// first line of a multi-line row. `px-0` lets `w-9` fit the toggle.
+			className={cx("w-9 px-0 align-top", className)}
+			onClick={(event) => {
+				onClick?.(event);
+				const control = event.currentTarget.querySelector<HTMLElement>(controlCellControlSelector);
+				if (control == null) {
+					return;
+				}
+				event.stopPropagation();
+				// The forwarded click bubbles back here with the control as its
+				// target, so the `contains` check also ends the round trip.
+				if (!event.defaultPrevented && isNode(event.target) && !control.contains(event.target)) {
+					// Focus first, as a native `<label>` click does, so the next Tab
+					// starts from the control the user acted on.
+					control.focus({ preventScroll: true });
+					control.click();
+				}
+			}}
+			{...props}
+		>
+			<span
+				data-slot="data-table-control-cell-label"
+				className="flex h-lh items-center justify-center"
+			>
+				{children}
+			</span>
+		</Table.Cell>
+	);
+}
+
 /**
  * Compute the stable DOM `id` for a row's expanded detail row. Shared by
  * `DataTable.RowExpandButton` (as its `aria-controls` target) and
@@ -1103,9 +1214,9 @@ type DataTableExpandHeaderProps = Omit<ComponentProps<typeof Table.Header>, "chi
  *   id: "expander",
  *   header: () => <DataTable.ExpandHeader />,
  *   cell: (props) => (
- *     <DataTable.Cell className="w-9 px-0 text-center">
+ *     <DataTable.ControlCell>
  *       <DataTable.RowExpandButton row={props.row} label={props.row.original.name} />
- *     </DataTable.Cell>
+ *     </DataTable.ControlCell>
  *   ),
  * });
  * ```
@@ -1184,7 +1295,7 @@ type DataTableRowExpandButtonProps<
 
 /**
  * An accessible +/- toggle that expands or collapses a row's detail panel or
- * its sub-rows. Drop it inside a `DataTable.Cell` in a leading
+ * its sub-rows. Drop it inside a `DataTable.ControlCell` in a leading
  * `columnHelper.display` column. For a detail panel, pair it with
  * `DataTable.ExpandedRow`. For sub-rows (`getSubRows` on `useTable`), the
  * expanded row model puts each child in `table.getRowModel().rows` after its
@@ -1217,9 +1328,9 @@ type DataTableRowExpandButtonProps<
  *   id: "expander",
  *   header: () => <DataTable.ExpandHeader />,
  *   cell: (props) => (
- *     <DataTable.Cell className="w-9 px-0 text-center">
+ *     <DataTable.ControlCell>
  *       <DataTable.RowExpandButton row={props.row} label={props.row.original.name} />
- *     </DataTable.Cell>
+ *     </DataTable.ControlCell>
  *   ),
  * });
  * ```
@@ -1244,9 +1355,10 @@ function RowExpandButton<TFeatures extends ExpandableTableFeatures, TData extend
 
 		const isExpanded = row.getIsExpanded();
 		const toggleExpanded = row.getToggleExpandedHandler();
-		// A row with sub-rows expands into sibling data rows, not a detail panel, so
-		// no `DataTable.ExpandedRow` exists for `aria-controls` to point at.
+		// A row with sub-rows expands into sibling data rows. It has a detail panel
+		// only when its `DataTable.Row` also passes `renderExpanded`.
 		const hasSubRows = row.subRows.length > 0;
+		const controlsPanel = hasDetailPanel || !hasSubRows;
 
 		return (
 			<IconButton
@@ -1259,7 +1371,7 @@ function RowExpandButton<TFeatures extends ExpandableTableFeatures, TData extend
 				aria-expanded={isExpanded}
 				// Reference the detail row only while it actually exists in the DOM — a
 				// dangling `aria-controls` IDREF is an accessibility validity violation.
-				aria-controls={isExpanded && !hasSubRows ? expandedRowId(row) : undefined}
+				aria-controls={isExpanded && controlsPanel ? expandedRowId(row) : undefined}
 				icon={isExpanded ? collapseIcon : expandIcon}
 				label={
 					hasSubRows
@@ -1285,10 +1397,11 @@ function RowExpandButton<TFeatures extends ExpandableTableFeatures, TData extend
 	// re-renders when its own row expands or collapses, or when the consumer passes new
 	// options (`getRowCanExpand` decides whether it renders at all).
 	const options = useTableOptions();
+	const hasDetailPanel = useContext(DetailPanelContext);
 	return (
 		<Subscribe
 			source={row.table.store}
-			selector={() => ({ isExpanded: row.getIsExpanded(), options })}
+			selector={() => ({ isExpanded: row.getIsExpanded(), hasDetailPanel, options })}
 		>
 			{renderToggle}
 		</Subscribe>
@@ -1436,8 +1549,9 @@ function ExpandedRow<TFeatures extends TableFeatures, TData extends RowData>({
  * │       └── DataTable.ActionHeader
  * └── DataTable.Body
  *     ├── DataTable.Row
- *     │   ├── DataTable.Cell
+ *     │   ├── DataTable.ControlCell
  *     │   │   └── DataTable.RowExpandButton
+ *     │   ├── DataTable.Cell
  *     │   └── DataTable.ActionCell
  *     ├── DataTable.ExpandedRow
  *     └── DataTable.EmptyRow
@@ -2076,20 +2190,44 @@ const DataTable = {
 	 *   id: "expander",
 	 *   header: () => <DataTable.ExpandHeader />,
 	 *   cell: (props) => (
-	 *     <DataTable.Cell className="w-9 px-0 text-center">
+	 *     <DataTable.ControlCell>
 	 *       <DataTable.RowExpandButton row={props.row} label={props.row.original.name} />
-	 *     </DataTable.Cell>
+	 *     </DataTable.ControlCell>
 	 *   ),
 	 * });
 	 * ```
 	 */
 	ExpandHeader,
 	/**
-	 * An accessible +/- toggle that expands or collapses a row's detail panel.
-	 * Place it inside a `DataTable.Cell` in a leading `columnHelper.display`
-	 * column and pair it with `DataTable.ExpandedRow`. Sets `aria-expanded` and
-	 * (while expanded) `aria-controls`, stops click propagation so it never fires
-	 * a row-level `onClick`, and renders nothing when `row.getCanExpand()` is
+	 * A `<td>` for a row's own control: a `DataTable.RowExpandButton` or a
+	 * selection `Checkbox`. A click on its padding focuses and clicks the
+	 * control, a click anywhere in it never runs a clickable row's `onClick`,
+	 * and the control aligns with the first line of text. The cell keeps its
+	 * `role="cell"`; keyboard users reach the control itself.
+	 *
+	 * @see https://mantle.ngrok.com/components/data-display/data-table#datatablecontrolcell
+	 *
+	 * @example
+	 * ```tsx
+	 * columnHelper.display({
+	 *   id: "expander",
+	 *   header: () => <DataTable.ExpandHeader />,
+	 *   cell: (props) => (
+	 *     <DataTable.ControlCell>
+	 *       <DataTable.RowExpandButton row={props.row} label={props.row.original.name} />
+	 *     </DataTable.ControlCell>
+	 *   ),
+	 * });
+	 * ```
+	 */
+	ControlCell,
+	/**
+	 * An accessible +/- toggle that expands or collapses a row's detail panel or
+	 * its sub-rows. Place it inside a `DataTable.ControlCell` in a leading
+	 * `columnHelper.display` column. Sets `aria-expanded`, and `aria-controls`
+	 * while a detail panel is open. A row with only sub-rows has no panel, so it
+	 * gets no `aria-controls`. Stops click propagation so it never fires a
+	 * row-level `onClick`, and renders nothing when `row.getCanExpand()` is
 	 * false. The table must register `rowExpandingFeature`; the `row` prop's
 	 * type rejects a row from a table without it.
 	 *
@@ -2097,9 +2235,9 @@ const DataTable = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <DataTable.Cell className="w-9 px-0 text-center">
+	 * <DataTable.ControlCell>
 	 *   <DataTable.RowExpandButton row={props.row} label={props.row.original.name} />
-	 * </DataTable.Cell>
+	 * </DataTable.ControlCell>
 	 * ```
 	 */
 	RowExpandButton,

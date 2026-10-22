@@ -284,8 +284,9 @@ DataTable.Root
 │       └── DataTable.ActionHeader
 └── DataTable.Body
     ├── DataTable.Row
-    │   ├── DataTable.Cell
+    │   ├── DataTable.ControlCell
     │   │   └── DataTable.RowExpandButton
+    │   ├── DataTable.Cell
     │   └── DataTable.ActionCell
     ├── DataTable.ExpandedRow
     └── DataTable.EmptyRow
@@ -477,7 +478,7 @@ const isFiltered = globalFilter.trim() !== ""; // or table.state.columnFilters.l
 
 ### Navigating on row click
 
-Pass `onClick` to `DataTable.Row` and navigate with React Router's `href()` + `useNavigate()`. Render a `<Link>` inside the primary cell for keyboard and screen-reader users; the row `onClick` is a larger pointer target on top. Wrap the link in [`SandboxedOnClick`](/components/primitives/sandboxed-on-click) with `asChild` and `allowClickEventDefault`, so a click on the link navigates once and doesn't also run the row handler.
+Pass `onClick` to `DataTable.Row` and navigate with React Router's `href()` + `useNavigate()`. Render a `<Link>` inside the primary cell for keyboard and screen-reader users; the row `onClick` is a larger pointer target on top. Wrap the link in [`SandboxedOnClick`](/components/primitives/sandboxed-on-click) with `asChild` and `allowClickEventDefault`, so a click on the link navigates once and doesn't also run the row handler. Put a row's own controls, such as a selection checkbox or an expand toggle, in a [`DataTable.ControlCell`](#datatablecontrolcell). No click in that cell reaches the row handler.
 
 The row runs `onClick` only for a plain primary click. A modified click (`⌘`, `Ctrl`, `Shift`, `Alt`), a non-primary button, and a click that ends a text selection inside the row all skip it. The link answers a modified click with a new tab, and a selection copies text, so neither is a request to navigate. The row keeps its structural `role="row"`, which is what makes a `<tr onClick>` around a link safe: the row has no widget role, so the link isn't nested interactive content. Don't add `tabIndex` or `role="button"` to the row, and don't reach for `role="grid"`, which commits the table to roving focus and arrow-key navigation.
 
@@ -761,6 +762,8 @@ function PaginatedTable({ data }: { data: Payment[] }) {
 
 Add a `columnHelper.display` checkbox column: the header checkbox toggles every row (and goes indeterminate when only some are selected), each cell checkbox toggles its row. Register `rowSelectionFeature`, drive `rowSelection` through `useTable`, and read it back from the table instance. mantle's [`Checkbox`](/components/forms/checkbox) is a native input, so handle changes with `onChange` + `event.target.checked` (not `onCheckedChange`), and resolve the header's tri-state with the exported [`selectAllChecked`](/components/forms/checkbox#select-all-helper) helper.
 
+Put each row checkbox in a `DataTable.ControlCell`. A click on the cell's padding toggles the checkbox, so the whole cell is the target. No click in the cell reaches a clickable row, so a click that misses the checkbox doesn't navigate. Give each checkbox a label that names its row, such as `Select payment 3u1reuv4`. A screen reader reads the label out of the row's context, so `Select row` alone doesn't say which row.
+
 <Example>
 	<SelectablePaymentsDemo />
 </Example>
@@ -799,11 +802,12 @@ const columnHelper = createColumnHelper<typeof features, Payment>();
 const columns = columnHelper.columns([
 	columnHelper.display({
 		id: "select",
-		// `<th>` defaults to more horizontal padding (`px-4`) than `<td>` (`p-3`);
-		// match the cell's padding so the header checkbox lines up with the rows.
+		// Match `DataTable.ControlCell`'s width, and center the checkbox (a
+		// block element) so it lines up with the row checkboxes.
 		header: ({ table }) => (
-			<DataTable.Header className="w-10 px-3">
+			<DataTable.Header className="w-9 px-0">
 				<Checkbox
+					className="mx-auto"
 					aria-label="Select all rows"
 					checked={selectAllChecked({
 						allSelected: table.getIsAllRowsSelected(),
@@ -813,14 +817,16 @@ const columns = columnHelper.columns([
 				/>
 			</DataTable.Header>
 		),
+		// A click on the cell's padding toggles the checkbox, and no click in the
+		// cell reaches a clickable row.
 		cell: ({ row }) => (
-			<DataTable.Cell className="w-10">
+			<DataTable.ControlCell>
 				<Checkbox
-					aria-label="Select row"
+					aria-label={`Select payment ${row.original.id}`}
 					checked={row.getIsSelected()}
 					onChange={(event) => row.toggleSelected(event.target.checked)}
 				/>
-			</DataTable.Cell>
+			</DataTable.ControlCell>
 		),
 	}),
 	// ... data columns
@@ -860,7 +866,7 @@ function SelectableTable({ data }: { data: Payment[] }) {
 
 Expand a row into an inline detail panel with a `+`/`−` toggle, ideal for inspecting a row's underlying record without leaving the table. Expansion is driven entirely by [TanStack Table's expansion state](https://tanstack.com/table/latest/docs/guide/expanding) (mantle does not invent its own). Register `rowExpandingFeature` with `expandedRowModel: createExpandedRowModel()`, and pass `getRowCanExpand: () => true` to `useTable` (required: without sub-rows, no row is expandable by default). A stable `getRowId` keeps both the expansion keys and the toggle's `aria-controls` association stable.
 
-Two parts cover the toggle: `DataTable.ExpandHeader` (the toggle column header) and `DataTable.RowExpandButton` (the accessible `+`/`−` toggle, dropped into a leading `columnHelper.display` cell). For the detail panel itself, pass `renderExpanded` to `DataTable.Row`: when the row is expanded it renders its data row plus a sibling detail row holding the returned content, so you never hand-write the extra `<tr>` or the expand conditional. `renderExpanded` is called lazily (only while the row is open), so collapsed rows never build their panel. The detail row spans every visible column and sits on an opaque surface, so it coexists with a sticky [action column](#action-column-with-a-dropdown-menu).
+Three parts cover the toggle: `DataTable.ExpandHeader` (the toggle column header), `DataTable.ControlCell` (the toggle's cell), and `DataTable.RowExpandButton` (the accessible `+`/`−` toggle). A click on the cell's padding toggles the row, and no click in the cell reaches a clickable row. For the detail panel itself, pass `renderExpanded` to `DataTable.Row`: when the row is expanded it renders its data row plus a sibling detail row holding the returned content, so you never hand-write the extra `<tr>` or the expand conditional. `renderExpanded` is called lazily (only while the row is open), so collapsed rows never build their panel. The detail row spans every visible column and sits on an opaque surface, so it coexists with a sticky [action column](#action-column-with-a-dropdown-menu).
 
 The detail panel below renders each row's object as JSON via [`CodeBlock`](/components/data-display/code-block), highlighted with [`jsonCodeBlockValue`](/components/data-display/code-block). It runs entirely on the client, with no Shiki runtime shipped to the browser, no build-time plugin, and no server roundtrip. Multi-line objects and arrays are collapsible by default, just like every other JSON code block (pass `{ foldable: false }` for a flat panel).
 
@@ -909,9 +915,9 @@ const columns = columnHelper.columns([
 		id: "expander",
 		header: () => <DataTable.ExpandHeader />,
 		cell: (props) => (
-			<DataTable.Cell className="w-9 px-0 text-center">
+			<DataTable.ControlCell>
 				<DataTable.RowExpandButton row={props.row} label={props.row.original.email} />
-			</DataTable.Cell>
+			</DataTable.ControlCell>
 		),
 	}),
 	// ... your data columns (and an optional sticky action column)
@@ -979,13 +985,22 @@ import { Fragment } from "react";
 
 Show child rows below a parent row, such as the replicas of a deployment. Pass `getSubRows` to `useTable` to tell TanStack where each row's children are. The expanded row model puts each child of an expanded row in `table.getRowModel().rows`, directly after its parent, so `DataTable.Row` renders it with no extra markup. A row with sub-rows can expand by default, so you don't need `getRowCanExpand`.
 
-`DataTable.RowExpandButton` renders nothing for a row without sub-rows. For a row with sub-rows, its accessible label is `Expand …` / `Collapse …`, and it sets no `aria-controls` because there is no detail row. Pass `expandIcon` and `collapseIcon` to show a caret. Use `row.depth` in a cell to indent nested rows.
+Each row has two actions: the caret expands it, and a click anywhere else opens its page.
+
+- Put the caret in a `DataTable.ControlCell`. A click on the cell's padding expands the row, and no click in the cell reaches the row's `onClick`. A click that misses the caret expands the row instead of navigating. The caret aligns with the first line of a two-line cell.
+- Pass `onClick` to `DataTable.Row` to open the row's page, as in [Navigating on row click](#navigating-on-row-click). Render a `Link` in the primary cell, wrapped in `SandboxedOnClick`, for keyboard and screen-reader users.
+- A leaf row's `DataTable.RowExpandButton` renders nothing, and its empty `DataTable.ControlCell` passes clicks to the row, so the leaf row opens its own page.
+
+For a row with sub-rows, the toggle's accessible label is `Expand …` / `Collapse …`, and it sets `aria-expanded`. It sets `aria-controls` only when the row also renders a detail panel through `renderExpanded`. Pass `size="xs"` with `expandIcon` and `collapseIcon` for a caret. The `xs` button is 24 × 24 px, the WCAG 2.2 minimum target size.
 
 <Example>
 	<SubRowsDemo />
 </Example>
 
+The demo puts the row's id in the query string instead of opening a page.
+
 ```tsx
+import { Badge } from "@ngrok/mantle/badge";
 import {
 	DataTable,
 	type ExpandedState,
@@ -995,16 +1010,24 @@ import {
 	tableFeatures,
 	useTable,
 } from "@ngrok/mantle/data-table";
+import { SandboxedOnClick } from "@ngrok/mantle/sandboxed-on-click";
 import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
 import { CaretRightIcon } from "@phosphor-icons/react/CaretRight";
 import { useState } from "react";
+import { Link, href, useNavigate } from "react-router";
 
 type Workload = {
 	id: string;
 	name: string;
+	host: string;
 	status: string;
+	age: string;
 	subRows?: Workload[];
 };
+
+function workloadHref(workload: Workload) {
+	return href("/workloads/:id", { id: workload.id });
+}
 
 const features = tableFeatures({
 	rowExpandingFeature,
@@ -1018,20 +1041,56 @@ const columns = columnHelper.columns([
 		id: "expander",
 		header: () => <DataTable.ExpandHeader />,
 		cell: (props) => (
-			<DataTable.Cell className="w-9 px-0 text-center">
+			<DataTable.ControlCell>
 				<DataTable.RowExpandButton
 					row={props.row}
 					label={props.row.original.name}
-					expandIcon={<CaretRightIcon className="size-3.5" />}
-					collapseIcon={<CaretDownIcon className="size-3.5" />}
+					size="xs"
+					expandIcon={<CaretRightIcon className="size-4" />}
+					collapseIcon={<CaretDownIcon className="size-4" />}
 				/>
+			</DataTable.ControlCell>
+		),
+	}),
+	columnHelper.accessor("name", {
+		id: "name",
+		header: () => <DataTable.Header className="px-0">Deployment</DataTable.Header>,
+		cell: (props) => (
+			<DataTable.Cell className="pl-0">
+				<SandboxedOnClick asChild allowClickEventDefault>
+					<Link
+						className="font-sans text-strong hover:underline"
+						to={workloadHref(props.row.original)}
+					>
+						{props.getValue()}
+					</Link>
+				</SandboxedOnClick>
+				<p className="text-muted">{props.row.original.host}</p>
 			</DataTable.Cell>
 		),
 	}),
-	// ... your data columns
+	columnHelper.accessor("status", {
+		id: "status",
+		header: () => <DataTable.Header>Status</DataTable.Header>,
+		cell: (props) => (
+			<DataTable.Cell className="align-top">
+				<Badge color="green" appearance="muted">
+					{props.getValue()}
+				</Badge>
+			</DataTable.Cell>
+		),
+	}),
+	columnHelper.accessor("age", {
+		id: "age",
+		header: () => <DataTable.Header className="text-right">Age</DataTable.Header>,
+		cell: (props) => (
+			<DataTable.Cell className="align-top text-right">{props.getValue()}</DataTable.Cell>
+		),
+	}),
 ]);
 
-function DeploymentsTable({ data }: { data: Workload[] }) {
+function WorkloadsTable({ data }: { data: Workload[] }) {
+	const navigate = useNavigate();
 	const [expanded, setExpanded] = useState<ExpandedState>({});
 
 	const table = useTable({
@@ -1049,7 +1108,13 @@ function DeploymentsTable({ data }: { data: Workload[] }) {
 			<DataTable.Head />
 			<DataTable.Body>
 				{table.getRowModel().rows.map((row) => (
-					<DataTable.Row key={row.id} row={row} />
+					<DataTable.Row
+						key={row.id}
+						row={row}
+						onClick={() => {
+							void navigate(workloadHref(row.original));
+						}}
+					/>
 				))}
 			</DataTable.Body>
 		</DataTable.Root>
@@ -1204,6 +1269,29 @@ A click inside the cell never reaches a clickable row: the cell stops propagatio
 | `data-slot`    | `"data-table-action-cell table-cell"` | On the `<td>`, joined ahead of `Table.Cell`'s own slot. |
 | `data-slot`    | `"data-table-action-cell-label"`      | On the `<span>` wrapping `children`.                    |
 
+### DataTable.ControlCell
+
+A `<td>` for a row's own control: a `DataTable.RowExpandButton` or a selection `Checkbox`. The whole cell is the control's pointer target, and no click in the cell runs a clickable row's `onClick`.
+
+- A click on the cell's padding focuses and clicks the control. A click that misses a small control toggles it instead of navigating.
+- When the cell holds no control (a leaf row's `RowExpandButton` renders nothing), the click reaches the row.
+- The control aligns with the first line of text, so it stays beside a two-line primary cell. On a one-line row, it is centered.
+
+The padding click is for pointer users only. The cell keeps its `role="cell"` and gets no `tabIndex`, so keyboard and screen-reader users reach the control itself. Don't add a role or `tabIndex` to the cell.
+
+| Prop         | Type                                                | Default | Description                                                                                                     |
+| :----------- | :-------------------------------------------------- | :------ | :-------------------------------------------------------------------------------------------------------------- |
+| `children`   | `ReactNode`                                         |         | The row's control: a `DataTable.RowExpandButton` or a `Checkbox`.                                               |
+| `onClick?`   | `(event: MouseEvent<HTMLTableCellElement>) => void` |         | Runs first. Call `event.preventDefault()` to stop a padding click from reaching the control.                    |
+| `className?` | `string`                                            |         | Extra classes merged onto the `<td>`, which defaults to `w-9 px-0`. Remaining props forward to the HTML `<td>`. |
+
+#### Data attributes
+
+| Data Attribute | Value                                  | Description                                             |
+| :------------- | :------------------------------------- | :------------------------------------------------------ |
+| `data-slot`    | `"data-table-control-cell table-cell"` | On the `<td>`, joined ahead of `Table.Cell`'s own slot. |
+| `data-slot`    | `"data-table-control-cell-label"`      | On the `<span>` wrapping `children`.                    |
+
 ### DataTable.ExpandHeader
 
 A narrow `<th>` for the leading expand-toggle column, mirroring `DataTable.ActionHeader`. Renders a screen-reader-only label by default so the column is announced while staying visually empty.
@@ -1215,7 +1303,7 @@ A narrow `<th>` for the leading expand-toggle column, mirroring `DataTable.Actio
 
 ### DataTable.RowExpandButton
 
-An accessible `+`/`−` toggle that expands or collapses a row's detail panel or its [sub-rows](#sub-rows). Place it inside a `DataTable.Cell` in a leading `columnHelper.display` column and pair it with `DataTable.ExpandedRow`. Renders a real `<button>` that sets `aria-expanded` and (while a detail panel is open) `aria-controls`, stops click propagation so it never fires a row-level `onClick`, and renders nothing when `row.getCanExpand()` is `false`. Forwards [`IconButton`](/components/actions/icon-button) props — unlike `IconButton` itself, `appearance` and `intent` are optional here, defaulting to `"ghost"` and `"neutral"`.
+An accessible `+`/`−` toggle that expands or collapses a row's detail panel or its [sub-rows](#sub-rows). Place it inside a `DataTable.ControlCell` in a leading `columnHelper.display` column. For a detail panel, pair it with `DataTable.ExpandedRow`. Renders a real `<button>` that sets `aria-expanded` and (while a detail panel is open) `aria-controls`, stops click propagation so it never fires a row-level `onClick`, and renders nothing when `row.getCanExpand()` is `false`. Forwards [`IconButton`](/components/actions/icon-button) props — unlike `IconButton` itself, `appearance` and `intent` are optional here, defaulting to `"ghost"` and `"neutral"`.
 
 The table must register `rowExpandingFeature`; the `row` prop rejects a row from a table without it at compile time. Add `expandedRowModel: createExpandedRowModel()` when rows have sub-rows; a detail panel expands without it.
 

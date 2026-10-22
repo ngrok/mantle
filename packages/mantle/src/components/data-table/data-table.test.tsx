@@ -924,9 +924,9 @@ const treeColumns = treeColumnHelper.columns([
 		id: "expander",
 		header: () => <DataTable.ExpandHeader />,
 		cell: (props) => (
-			<DataTable.Cell>
+			<DataTable.ControlCell data-testid={`control-${props.row.id}`}>
 				<DataTable.RowExpandButton row={props.row} label={props.row.original.name} />
-			</DataTable.Cell>
+			</DataTable.ControlCell>
 		),
 	}),
 	treeColumnHelper.accessor("name", {
@@ -946,7 +946,12 @@ const treeData: TreeRow[] = [
 	},
 ];
 
-function SubRowsHarness() {
+type SubRowsHarnessProps = {
+	onRowClick?: (row: TableRow<typeof expandableFeatures, TreeRow>) => void;
+	renderExpanded?: (row: TableRow<typeof expandableFeatures, TreeRow>) => ReactNode;
+};
+
+function SubRowsHarness({ onRowClick, renderExpanded }: SubRowsHarnessProps) {
 	const table = useTable({
 		features: expandableFeatures,
 		data: treeData,
@@ -959,7 +964,12 @@ function SubRowsHarness() {
 			<DataTable.Head />
 			<DataTable.Body>
 				{table.getRowModel().rows.map((row) => (
-					<DataTable.Row key={row.id} row={row} />
+					<DataTable.Row
+						key={row.id}
+						row={row}
+						onClick={onRowClick && (() => onRowClick(row))}
+						renderExpanded={renderExpanded}
+					/>
 				))}
 			</DataTable.Body>
 		</DataTable.Root>
@@ -996,6 +1006,109 @@ describe("DataTable sub-rows", () => {
 		expect(button).not.toHaveAttribute("aria-controls");
 		// A leaf sub-row cannot expand, so it gets no toggle.
 		expect(screen.getAllByRole("button")).toHaveLength(1);
+	});
+
+	test("links aria-controls to the detail panel of a row that also has sub-rows", async () => {
+		const user = userEvent.setup();
+		render(<SubRowsHarness renderExpanded={(row) => <span>Panel for {row.original.name}</span>} />);
+
+		await user.click(screen.getByRole("button", { name: "Expand deployment-1" }));
+
+		const button = screen.getByRole("button", { name: "Collapse deployment-1" });
+		const panelCell = screen.getByText("Panel for deployment-1").closest("td");
+		invariant(panelCell, "the detail panel renders in a cell");
+		expect(button).toHaveAttribute("aria-controls", panelCell.id);
+	});
+});
+
+describe("DataTable.ControlCell", () => {
+	test("toggles its control on a padding click without running the row's onClick", async () => {
+		const user = userEvent.setup();
+		const handleRowClick = vi.fn<() => void>();
+		render(<SubRowsHarness onRowClick={handleRowClick} />);
+
+		await user.click(screen.getByTestId("control-deployment-1"));
+
+		const button = screen.getByRole("button", { name: "Collapse deployment-1" });
+		expect(button).toHaveFocus();
+		expect(screen.getByText("replica-1")).toBeInTheDocument();
+		expect(handleRowClick).not.toHaveBeenCalled();
+	});
+
+	test("keeps a click on its control from running the row's onClick", async () => {
+		const user = userEvent.setup();
+		const handleRowClick = vi.fn<() => void>();
+		render(<SubRowsHarness onRowClick={handleRowClick} />);
+
+		await user.click(screen.getByRole("button", { name: "Expand deployment-1" }));
+
+		expect(screen.getByText("replica-1")).toBeInTheDocument();
+		expect(handleRowClick).not.toHaveBeenCalled();
+	});
+
+	test("lets a click reach the row when the cell holds no control", async () => {
+		const user = userEvent.setup();
+		const handleRowClick = vi.fn<(row: TableRow<typeof expandableFeatures, TreeRow>) => void>();
+		render(<SubRowsHarness onRowClick={handleRowClick} />);
+		await user.click(screen.getByRole("button", { name: "Expand deployment-1" }));
+
+		await user.click(screen.getByTestId("control-replica-1"));
+
+		expect(handleRowClick).toHaveBeenCalledTimes(1);
+		expect(handleRowClick.mock.calls[0]?.[0].original.name).toBe("replica-1");
+	});
+
+	test("toggles a selection checkbox on a padding click", async () => {
+		const user = userEvent.setup();
+		const handleChange = vi.fn<() => void>();
+		const handleRowClick = vi.fn<() => void>();
+		render(
+			<Table.Root>
+				<Table.Element>
+					<Table.Body>
+						<Table.Row onClick={handleRowClick}>
+							<DataTable.ControlCell data-testid="select-cell">
+								<input type="checkbox" aria-label="Select row" onChange={handleChange} />
+							</DataTable.ControlCell>
+						</Table.Row>
+					</Table.Body>
+				</Table.Element>
+			</Table.Root>,
+		);
+
+		await user.click(screen.getByTestId("select-cell"));
+
+		const checkbox = screen.getByRole("checkbox", { name: "Select row" });
+		expect(checkbox).toBeChecked();
+		expect(checkbox).toHaveFocus();
+		expect(handleChange).toHaveBeenCalledTimes(1);
+		expect(handleRowClick).not.toHaveBeenCalled();
+	});
+
+	test("skips the forwarded click when its own onClick calls preventDefault", async () => {
+		const user = userEvent.setup();
+		const handleRowClick = vi.fn<() => void>();
+		render(
+			<Table.Root>
+				<Table.Element>
+					<Table.Body>
+						<Table.Row onClick={handleRowClick}>
+							<DataTable.ControlCell
+								data-testid="select-cell"
+								onClick={(event) => event.preventDefault()}
+							>
+								<input type="checkbox" aria-label="Select row" />
+							</DataTable.ControlCell>
+						</Table.Row>
+					</Table.Body>
+				</Table.Element>
+			</Table.Root>,
+		);
+
+		await user.click(screen.getByTestId("select-cell"));
+
+		expect(screen.getByRole("checkbox", { name: "Select row" })).not.toBeChecked();
+		expect(handleRowClick).not.toHaveBeenCalled();
 	});
 });
 

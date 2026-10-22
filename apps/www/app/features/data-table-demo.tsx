@@ -35,7 +35,9 @@ import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
 import { PencilSimpleIcon } from "@phosphor-icons/react/PencilSimple";
 import { TrashIcon } from "@phosphor-icons/react/Trash";
 import { TrayIcon } from "@phosphor-icons/react/Tray";
+import { SandboxedOnClick } from "@ngrok/mantle/sandboxed-on-click";
 import { useMemo, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router";
 
 type Payment = {
 	id: string;
@@ -754,12 +756,12 @@ const selectableColumnHelper = createColumnHelper<typeof selectableFeatures, Pay
 const selectableColumns = selectableColumnHelper.columns([
 	selectableColumnHelper.display({
 		id: "select",
-		// `<th>` defaults to more horizontal padding (`px-4`) than `<td>` (`p-3`);
-		// match the cell's padding so the header checkbox lines up with the column
-		// of row checkboxes.
+		// Match `DataTable.ControlCell`'s width, and center the checkbox (a
+		// block element) so it lines up with the row checkboxes.
 		header: ({ table }) => (
-			<DataTable.Header className="w-10 px-3">
+			<DataTable.Header className="w-9 px-0">
 				<Checkbox
+					className="mx-auto"
 					aria-label="Select all rows"
 					checked={selectAllChecked({
 						allSelected: table.getIsAllRowsSelected(),
@@ -769,14 +771,16 @@ const selectableColumns = selectableColumnHelper.columns([
 				/>
 			</DataTable.Header>
 		),
+		// A click on the cell's padding toggles the checkbox, and no click in the
+		// cell reaches a clickable row.
 		cell: ({ row }) => (
-			<DataTable.Cell className="w-10">
+			<DataTable.ControlCell>
 				<Checkbox
-					aria-label="Select row"
+					aria-label={`Select payment ${row.original.id}`}
 					checked={row.getIsSelected()}
 					onChange={(event) => row.toggleSelected(event.target.checked)}
 				/>
-			</DataTable.Cell>
+			</DataTable.ControlCell>
 		),
 	}),
 	selectableColumnHelper.accessor("id", {
@@ -896,9 +900,9 @@ const expandableColumns = expandableColumnHelper.columns([
 		id: "expander",
 		header: () => <DataTable.ExpandHeader />,
 		cell: (props) => (
-			<DataTable.Cell className="w-9 px-0 text-center">
+			<DataTable.ControlCell>
 				<DataTable.RowExpandButton row={props.row} label={props.row.original.email} />
-			</DataTable.Cell>
+			</DataTable.ControlCell>
 		),
 	}),
 	expandableColumnHelper.accessor("id", {
@@ -1068,6 +1072,15 @@ const exampleDeployments: Workload[] = [
 	},
 ];
 
+/**
+ * Where a workload row navigates. A real app links to the deployment or
+ * replica page. The docs demo has no such page, so it puts the id in the
+ * query string and shows it below the table.
+ */
+function workloadHref(workload: Workload) {
+	return `?workload=${encodeURIComponent(workload.id)}`;
+}
+
 const subRowFeatures = tableFeatures({
 	rowExpandingFeature,
 	expandedRowModel: createExpandedRowModel(),
@@ -1080,22 +1093,33 @@ const subRowColumns = subRowColumnHelper.columns([
 		id: "expander",
 		header: () => <DataTable.ExpandHeader />,
 		cell: (props) => (
-			<DataTable.Cell className="w-9 px-0 text-center">
+			<DataTable.ControlCell>
 				<DataTable.RowExpandButton
 					row={props.row}
 					label={props.row.original.name}
-					expandIcon={<CaretRightIcon className="size-3.5" />}
-					collapseIcon={<CaretDownIcon className="size-3.5" />}
+					size="xs"
+					expandIcon={<CaretRightIcon className="size-4" />}
+					collapseIcon={<CaretDownIcon className="size-4" />}
 				/>
-			</DataTable.Cell>
+			</DataTable.ControlCell>
 		),
 	}),
 	subRowColumnHelper.accessor("name", {
 		id: "name",
-		header: () => <DataTable.Header>Deployment</DataTable.Header>,
+		header: () => <DataTable.Header className="px-0">Deployment</DataTable.Header>,
+		// The link is the keyboard and screen-reader path to the page that a
+		// row click opens.
 		cell: (props) => (
-			<DataTable.Cell>
-				<p className="font-sans text-strong">{props.getValue()}</p>
+			<DataTable.Cell className="pl-0">
+				<SandboxedOnClick asChild allowClickEventDefault>
+					<Link
+						className="font-sans text-strong hover:underline"
+						to={workloadHref(props.row.original)}
+						preventScrollReset
+					>
+						{props.getValue()}
+					</Link>
+				</SandboxedOnClick>
 				<p className="text-muted">{props.row.original.host}</p>
 			</DataTable.Cell>
 		),
@@ -1104,7 +1128,7 @@ const subRowColumns = subRowColumnHelper.columns([
 		id: "status",
 		header: () => <DataTable.Header>Status</DataTable.Header>,
 		cell: (props) => (
-			<DataTable.Cell>
+			<DataTable.Cell className="align-top">
 				<Badge color="green" appearance="muted">
 					{props.getValue()}
 				</Badge>
@@ -1114,16 +1138,20 @@ const subRowColumns = subRowColumnHelper.columns([
 	subRowColumnHelper.accessor("age", {
 		id: "age",
 		header: () => <DataTable.Header className="text-right">Age</DataTable.Header>,
-		cell: (props) => <DataTable.Cell className="text-right">{props.getValue()}</DataTable.Cell>,
+		cell: (props) => (
+			<DataTable.Cell className="align-top text-right">{props.getValue()}</DataTable.Cell>
+		),
 	}),
 ]);
 
 /**
- * Demo of sub-rows. Each deployment expands into its replicas. `getSubRows`
- * tells TanStack where the children are, and the expanded row model puts each
- * child in `getRowModel().rows` directly after its parent.
+ * Demo of sub-rows. Each deployment expands into its replicas. The caret only
+ * expands; a click anywhere else on a row opens that deployment or replica.
  */
 export function SubRowsDemo() {
+	const navigate = useNavigate();
+	const [searchParams] = useSearchParams();
+	const openedWorkload = searchParams.get("workload");
 	const [expanded, setExpanded] = useState<ExpandedState>({});
 	const table = useTable({
 		features: subRowFeatures,
@@ -1135,13 +1163,24 @@ export function SubRowsDemo() {
 		getRowId: (row) => row.id,
 	});
 	return (
-		<DataTable.Root table={table}>
-			<DataTable.Head />
-			<DataTable.Body>
-				{table.getRowModel().rows.map((row) => (
-					<DataTable.Row key={row.id} row={row} />
-				))}
-			</DataTable.Body>
-		</DataTable.Root>
+		<div className="w-full space-y-3">
+			<DataTable.Root table={table}>
+				<DataTable.Head />
+				<DataTable.Body>
+					{table.getRowModel().rows.map((row) => (
+						<DataTable.Row
+							key={row.id}
+							row={row}
+							onClick={() => {
+								void navigate(workloadHref(row.original), { preventScrollReset: true });
+							}}
+						/>
+					))}
+				</DataTable.Body>
+			</DataTable.Root>
+			<p className="text-muted text-sm" aria-live="polite">
+				{openedWorkload ? `Opened ${openedWorkload}` : "Click a row to open it."}
+			</p>
+		</div>
 	);
 }
