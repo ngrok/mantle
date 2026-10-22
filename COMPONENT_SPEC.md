@@ -483,6 +483,8 @@ Errors are control flow. `console.error` is not error handling.
   server and in the hydration render, so nothing animates before the real preference is known) or a
   `motion-reduce:` variant. The library publishes this promise on the Accessibility page; it is untested
   unless you test it ([§8](#8-tests)).
+- Any animation or transition follows [docs/motion.md](./docs/motion.md): a strong ease-out, a still control, an
+  exit that mirrors its enter, and motion that a second input can interrupt.
 - Interactive state is styled through the custom Tailwind variants that match the DOM the headless layer
   actually emits (`data-state-*`, `aria-*`), not through JS-toggled classes.
 
