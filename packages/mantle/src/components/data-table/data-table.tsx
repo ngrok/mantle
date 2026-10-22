@@ -1166,7 +1166,8 @@ type DataTableRowExpandButtonProps<
 	row: ExpandableRow<TFeatures, TData>;
 	/**
 	 * A human-readable name for the row, woven into the accessible label:
-	 * `Show details for {label}` / `Hide details for {label}`.
+	 * `Show details for {label}` / `Hide details for {label}` for a detail panel,
+	 * and `Expand {label}` / `Collapse {label}` for a row with sub-rows.
 	 */
 	label: string;
 	/**
@@ -1182,17 +1183,21 @@ type DataTableRowExpandButtonProps<
 } & WithDataSlot;
 
 /**
- * An accessible +/- toggle that expands or collapses a row's detail panel. Drop
- * it inside a `DataTable.Cell` in a leading `columnHelper.display` column and
- * pair it with `DataTable.ExpandedRow`.
+ * An accessible +/- toggle that expands or collapses a row's detail panel or
+ * its sub-rows. Drop it inside a `DataTable.Cell` in a leading
+ * `columnHelper.display` column. For a detail panel, pair it with
+ * `DataTable.ExpandedRow`. For sub-rows (`getSubRows` on `useTable`), the
+ * expanded row model puts each child in `table.getRowModel().rows` after its
+ * parent, so `DataTable.Row` renders it.
  *
  * Renders a real `<button>` (keyboard operable) that sets `aria-expanded` and,
- * while expanded, `aria-controls` pointing at the `DataTable.ExpandedRow`. It
- * stops click propagation so it never triggers a row-level `onClick` (e.g. row
- * navigation), and renders nothing when `row.getCanExpand()` is false so a
- * `getRowCanExpand` predicate cleanly hides it. Forwards `IconButton` props, so
- * pass `onClick` to run side effects before the toggle (call
- * `event.preventDefault()` to veto it).
+ * while a detail panel is open, `aria-controls` pointing at the
+ * `DataTable.ExpandedRow`. A row with sub-rows has no panel, so it gets no
+ * `aria-controls`. It stops click propagation so it never triggers a row-level
+ * `onClick` (e.g. row navigation), and renders nothing when
+ * `row.getCanExpand()` is false so a `getRowCanExpand` predicate cleanly hides
+ * it. Forwards `IconButton` props, so pass `onClick` to run side effects before
+ * the toggle (call `event.preventDefault()` to veto it).
  *
  * The table must register `rowExpandingFeature`; the `row` prop's type rejects a row
  * from a table without it. Add `expandedRowModel: createExpandedRowModel()` when rows
@@ -1239,6 +1244,9 @@ function RowExpandButton<TFeatures extends ExpandableTableFeatures, TData extend
 
 		const isExpanded = row.getIsExpanded();
 		const toggleExpanded = row.getToggleExpandedHandler();
+		// A row with sub-rows expands into sibling data rows, not a detail panel, so
+		// no `DataTable.ExpandedRow` exists for `aria-controls` to point at.
+		const hasSubRows = row.subRows.length > 0;
 
 		return (
 			<IconButton
@@ -1251,9 +1259,13 @@ function RowExpandButton<TFeatures extends ExpandableTableFeatures, TData extend
 				aria-expanded={isExpanded}
 				// Reference the detail row only while it actually exists in the DOM — a
 				// dangling `aria-controls` IDREF is an accessibility validity violation.
-				aria-controls={isExpanded ? expandedRowId(row) : undefined}
+				aria-controls={isExpanded && !hasSubRows ? expandedRowId(row) : undefined}
 				icon={isExpanded ? collapseIcon : expandIcon}
-				label={`${isExpanded ? "Hide" : "Show"} details for ${label}`}
+				label={
+					hasSubRows
+						? `${isExpanded ? "Collapse" : "Expand"} ${label}`
+						: `${isExpanded ? "Hide" : "Show"} details for ${label}`
+				}
 				onClick={(event) => {
 					// Always keep the toggle click from bubbling to a row-level onClick
 					// (e.g. navigation) — even when a consumer vetoes the toggle below.

@@ -12,6 +12,7 @@ import {
 	PaginatedPaymentsDemo,
 	PaymentsDemo,
 	SelectablePaymentsDemo,
+	SubRowsDemo,
 } from "~/features/data-table-demo";
 
 # Data Table
@@ -302,7 +303,7 @@ The `DataTable` parts read only what the table registers:
 | Part or behavior                                              | Register in `tableFeatures({ … })`                                                                                                                                                                           |
 | :------------------------------------------------------------ | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `DataTable.HeaderSortButton`                                  | `rowSortingFeature`, `sortedRowModel: createSortedRowModel()`, a `sortFns` registry                                                                                                                          |
-| Row expansion (`DataTable.RowExpandButton`, `renderExpanded`) | `rowExpandingFeature`, plus `getRowCanExpand` on `useTable`; add `expandedRowModel: createExpandedRowModel()` for sub-rows                                                                                   |
+| Row expansion (`DataTable.RowExpandButton`, `renderExpanded`) | `rowExpandingFeature`, plus `getRowCanExpand` on `useTable`; for sub-rows, `getSubRows` and `expandedRowModel: createExpandedRowModel()`                                                                     |
 | Column hiding (`columnVisibility` state)                      | `columnVisibilityFeature`                                                                                                                                                                                    |
 | Row selection (`rowSelection` state)                          | `rowSelectionFeature`                                                                                                                                                                                        |
 | Pagination                                                    | `rowPaginationFeature`, `paginatedRowModel: createPaginatedRowModel()`                                                                                                                                       |
@@ -974,6 +975,88 @@ import { Fragment } from "react";
 }
 ```
 
+### Sub-rows
+
+Show child rows below a parent row, such as the replicas of a deployment. Pass `getSubRows` to `useTable` to tell TanStack where each row's children are. The expanded row model puts each child of an expanded row in `table.getRowModel().rows`, directly after its parent, so `DataTable.Row` renders it with no extra markup. A row with sub-rows can expand by default, so you don't need `getRowCanExpand`.
+
+`DataTable.RowExpandButton` renders nothing for a row without sub-rows. For a row with sub-rows, its accessible label is `Expand …` / `Collapse …`, and it sets no `aria-controls` because there is no detail row. Pass `expandIcon` and `collapseIcon` to show a caret. Use `row.depth` in a cell to indent nested rows.
+
+<Example>
+	<SubRowsDemo />
+</Example>
+
+```tsx
+import {
+	DataTable,
+	type ExpandedState,
+	createColumnHelper,
+	createExpandedRowModel,
+	rowExpandingFeature,
+	tableFeatures,
+	useTable,
+} from "@ngrok/mantle/data-table";
+import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
+import { CaretRightIcon } from "@phosphor-icons/react/CaretRight";
+import { useState } from "react";
+
+type Workload = {
+	id: string;
+	name: string;
+	status: string;
+	subRows?: Workload[];
+};
+
+const features = tableFeatures({
+	rowExpandingFeature,
+	expandedRowModel: createExpandedRowModel(), // required: puts sub-rows in `getRowModel()`
+});
+
+const columnHelper = createColumnHelper<typeof features, Workload>();
+
+const columns = columnHelper.columns([
+	columnHelper.display({
+		id: "expander",
+		header: () => <DataTable.ExpandHeader />,
+		cell: (props) => (
+			<DataTable.Cell className="w-9 px-0 text-center">
+				<DataTable.RowExpandButton
+					row={props.row}
+					label={props.row.original.name}
+					expandIcon={<CaretRightIcon className="size-3.5" />}
+					collapseIcon={<CaretDownIcon className="size-3.5" />}
+				/>
+			</DataTable.Cell>
+		),
+	}),
+	// ... your data columns
+]);
+
+function DeploymentsTable({ data }: { data: Workload[] }) {
+	const [expanded, setExpanded] = useState<ExpandedState>({});
+
+	const table = useTable({
+		features,
+		data,
+		columns,
+		state: { expanded },
+		onExpandedChange: setExpanded,
+		getSubRows: (row) => row.subRows,
+		getRowId: (row) => row.id, // stable expansion keys
+	});
+
+	return (
+		<DataTable.Root table={table}>
+			<DataTable.Head />
+			<DataTable.Body>
+				{table.getRowModel().rows.map((row) => (
+					<DataTable.Row key={row.id} row={row} />
+				))}
+			</DataTable.Body>
+		</DataTable.Root>
+	);
+}
+```
+
 ## API Reference
 
 The `DataTable` components are built on top of [TanStack Table](https://tanstack.com/table/latest/docs/introduction). `@ngrok/mantle/data-table` re-exports every TanStack Table export (`useTable`, `tableFeatures`, `createColumnHelper`, the `*Feature` objects, the `create*RowModel` factories, the `sortFn_*`, `filterFn_*`, and `aggregationFn_*` functions, and the types). The parts that take a `table`, `column`, or `row` prop are generic over `TFeatures`, the type of the `tableFeatures` object the table registers. The props infer it from the instance you pass, so you never write it by hand.
@@ -1132,14 +1215,14 @@ A narrow `<th>` for the leading expand-toggle column, mirroring `DataTable.Actio
 
 ### DataTable.RowExpandButton
 
-An accessible `+`/`−` toggle that expands or collapses a row's detail panel. Place it inside a `DataTable.Cell` in a leading `columnHelper.display` column and pair it with `DataTable.ExpandedRow`. Renders a real `<button>` that sets `aria-expanded` and (while expanded) `aria-controls`, stops click propagation so it never fires a row-level `onClick`, and renders nothing when `row.getCanExpand()` is `false`. Forwards [`IconButton`](/components/actions/icon-button) props — unlike `IconButton` itself, `appearance` and `intent` are optional here, defaulting to `"ghost"` and `"neutral"`.
+An accessible `+`/`−` toggle that expands or collapses a row's detail panel or its [sub-rows](#sub-rows). Place it inside a `DataTable.Cell` in a leading `columnHelper.display` column and pair it with `DataTable.ExpandedRow`. Renders a real `<button>` that sets `aria-expanded` and (while a detail panel is open) `aria-controls`, stops click propagation so it never fires a row-level `onClick`, and renders nothing when `row.getCanExpand()` is `false`. Forwards [`IconButton`](/components/actions/icon-button) props — unlike `IconButton` itself, `appearance` and `intent` are optional here, defaulting to `"ghost"` and `"neutral"`.
 
 The table must register `rowExpandingFeature`; the `row` prop rejects a row from a table without it at compile time. Add `expandedRowModel: createExpandedRowModel()` when rows have sub-rows; a detail panel expands without it.
 
 | Prop            | Type                                | Default                      | Description                                                                                                                                                                          |
 | :-------------- | :---------------------------------- | :--------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `row`           | `Row<TFeatures, TData>`             |                              | The TanStack Table row this button toggles. `TFeatures` must include `rowExpandingFeature`. **Required.**                                                                            |
-| `label`         | `string`                            |                              | A human-readable row name, woven into the accessible label (`Show details for …` / `Hide details …`). **Required.**                                                                  |
+| `label`         | `string`                            |                              | A human-readable row name, woven into the accessible label: `Show details for …` / `Hide details for …`, or `Expand …` / `Collapse …` for a row with sub-rows. **Required.**         |
 | `expandIcon?`   | `ReactNode`                         | `<PlusIcon weight="bold"/>`  | Icon shown while the row is collapsed.                                                                                                                                               |
 | `collapseIcon?` | `ReactNode`                         | `<MinusIcon weight="bold"/>` | Icon shown while the row is expanded.                                                                                                                                                |
 | `appearance?`   | `"filled" \| "ghost" \| "outlined"` | `"ghost"`                    | The visual style of the underlying [`IconButton`](/components/actions/icon-button). Optional here — the expand toggle's design is a ghost button, so the wrapper defaults it.        |

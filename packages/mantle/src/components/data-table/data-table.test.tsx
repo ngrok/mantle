@@ -916,6 +916,89 @@ describe("DataTable.RowExpandButton", () => {
 	});
 });
 
+type TreeRow = Row & { subRows?: TreeRow[] };
+
+const treeColumnHelper = createColumnHelper<typeof expandableFeatures, TreeRow>();
+const treeColumns = treeColumnHelper.columns([
+	treeColumnHelper.display({
+		id: "expander",
+		header: () => <DataTable.ExpandHeader />,
+		cell: (props) => (
+			<DataTable.Cell>
+				<DataTable.RowExpandButton row={props.row} label={props.row.original.name} />
+			</DataTable.Cell>
+		),
+	}),
+	treeColumnHelper.accessor("name", {
+		id: "name",
+		header: () => <DataTable.Header>Name</DataTable.Header>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+]);
+const treeData: TreeRow[] = [
+	{
+		id: "deployment-1",
+		name: "deployment-1",
+		subRows: [
+			{ id: "replica-1", name: "replica-1" },
+			{ id: "replica-2", name: "replica-2" },
+		],
+	},
+];
+
+function SubRowsHarness() {
+	const table = useTable({
+		features: expandableFeatures,
+		data: treeData,
+		columns: treeColumns,
+		getSubRows: (row) => row.subRows,
+		getRowId: (row) => row.id,
+	});
+	return (
+		<DataTable.Root table={table}>
+			<DataTable.Head />
+			<DataTable.Body>
+				{table.getRowModel().rows.map((row) => (
+					<DataTable.Row key={row.id} row={row} />
+				))}
+			</DataTable.Body>
+		</DataTable.Root>
+	);
+}
+
+describe("DataTable sub-rows", () => {
+	test("shows the sub-rows below their parent while the parent is expanded", async () => {
+		const user = userEvent.setup();
+		render(<SubRowsHarness />);
+		expect(screen.queryByText("replica-1")).not.toBeInTheDocument();
+
+		await user.click(screen.getByRole("button", { name: "Expand deployment-1" }));
+
+		const names = screen
+			.getAllByRole("row")
+			.slice(1)
+			.map((row) => row.textContent);
+		expect(names).toEqual(["deployment-1", "replica-1", "replica-2"]);
+
+		await user.click(screen.getByRole("button", { name: "Collapse deployment-1" }));
+		expect(screen.queryByText("replica-1")).not.toBeInTheDocument();
+	});
+
+	test("labels the toggle for its sub-rows and sets no aria-controls", async () => {
+		const user = userEvent.setup();
+		render(<SubRowsHarness />);
+
+		await user.click(screen.getByRole("button", { name: "Expand deployment-1" }));
+
+		const button = screen.getByRole("button", { name: "Collapse deployment-1" });
+		expect(button).toHaveAttribute("aria-expanded", "true");
+		// No `DataTable.ExpandedRow` exists, so an IDREF would dangle.
+		expect(button).not.toHaveAttribute("aria-controls");
+		// A leaf sub-row cannot expand, so it gets no toggle.
+		expect(screen.getAllByRole("button")).toHaveLength(1);
+	});
+});
+
 describe("DataTable.ExpandedRow", () => {
 	test("spans every visible column and carries the aria-controls target id", async () => {
 		const user = userEvent.setup();

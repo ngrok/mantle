@@ -1,3 +1,4 @@
+import { Badge } from "@ngrok/mantle/badge";
 import { Button, IconButton } from "@ngrok/mantle/button";
 import { Checkbox, selectAllChecked } from "@ngrok/mantle/checkbox";
 import { CodeBlock, jsonCodeBlockValue } from "@ngrok/mantle/code-block";
@@ -27,6 +28,8 @@ import { Empty } from "@ngrok/mantle/empty";
 import { Icon } from "@ngrok/mantle/icon";
 import { Input } from "@ngrok/mantle/input";
 import { CursorPagination } from "@ngrok/mantle/pagination";
+import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
+import { CaretRightIcon } from "@phosphor-icons/react/CaretRight";
 import { DotsThreeIcon } from "@phosphor-icons/react/DotsThree";
 import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
 import { PencilSimpleIcon } from "@phosphor-icons/react/PencilSimple";
@@ -1009,6 +1012,135 @@ export function ExpandableRowsDemo() {
 						</Empty.Root>
 					</DataTable.EmptyRow>
 				)}
+			</DataTable.Body>
+		</DataTable.Root>
+	);
+}
+
+type Workload = {
+	id: string;
+	name: string;
+	host: string;
+	status: string;
+	age: string;
+	subRows?: Workload[];
+};
+
+const exampleDeployments: Workload[] = [
+	{
+		id: "dep_api_prod_1",
+		name: "dep_api_prod_1",
+		host: "api.acme.dev",
+		status: "2 running",
+		age: "2d",
+		subRows: [
+			{
+				id: "rep_api_prod_1_0",
+				name: "rep_api_prod_1_0",
+				host: "rnr_prod_a",
+				status: "Running",
+				age: "2d",
+			},
+			{
+				id: "rep_api_prod_1_1",
+				name: "rep_api_prod_1_1",
+				host: "rnr_prod_b",
+				status: "Running",
+				age: "2d",
+			},
+		],
+	},
+	{
+		id: "dep_api_prod_0",
+		name: "dep_api_prod_0",
+		host: "api.acme.dev",
+		status: "1 running",
+		age: "9d",
+		subRows: [
+			{
+				id: "rep_api_prod_0_0",
+				name: "rep_api_prod_0_0",
+				host: "rnr_prod_a",
+				status: "Running",
+				age: "9d",
+			},
+		],
+	},
+];
+
+const subRowFeatures = tableFeatures({
+	rowExpandingFeature,
+	expandedRowModel: createExpandedRowModel(),
+});
+
+const subRowColumnHelper = createColumnHelper<typeof subRowFeatures, Workload>();
+
+const subRowColumns = subRowColumnHelper.columns([
+	subRowColumnHelper.display({
+		id: "expander",
+		header: () => <DataTable.ExpandHeader />,
+		cell: (props) => (
+			<DataTable.Cell className="w-9 px-0 text-center">
+				<DataTable.RowExpandButton
+					row={props.row}
+					label={props.row.original.name}
+					expandIcon={<CaretRightIcon className="size-3.5" />}
+					collapseIcon={<CaretDownIcon className="size-3.5" />}
+				/>
+			</DataTable.Cell>
+		),
+	}),
+	subRowColumnHelper.accessor("name", {
+		id: "name",
+		header: () => <DataTable.Header>Deployment</DataTable.Header>,
+		cell: (props) => (
+			<DataTable.Cell>
+				<p className="font-sans text-strong">{props.getValue()}</p>
+				<p className="text-muted">{props.row.original.host}</p>
+			</DataTable.Cell>
+		),
+	}),
+	subRowColumnHelper.accessor("status", {
+		id: "status",
+		header: () => <DataTable.Header>Status</DataTable.Header>,
+		cell: (props) => (
+			<DataTable.Cell>
+				<Badge color="green" appearance="muted">
+					{props.getValue()}
+				</Badge>
+			</DataTable.Cell>
+		),
+	}),
+	subRowColumnHelper.accessor("age", {
+		id: "age",
+		header: () => <DataTable.Header className="text-right">Age</DataTable.Header>,
+		cell: (props) => <DataTable.Cell className="text-right">{props.getValue()}</DataTable.Cell>,
+	}),
+]);
+
+/**
+ * Demo of sub-rows. Each deployment expands into its replicas. `getSubRows`
+ * tells TanStack where the children are, and the expanded row model puts each
+ * child in `getRowModel().rows` directly after its parent.
+ */
+export function SubRowsDemo() {
+	const [expanded, setExpanded] = useState<ExpandedState>({});
+	const table = useTable({
+		features: subRowFeatures,
+		data: exampleDeployments,
+		columns: subRowColumns,
+		state: { expanded },
+		onExpandedChange: setExpanded,
+		getSubRows: (row) => row.subRows,
+		getRowId: (row) => row.id,
+	});
+	return (
+		<DataTable.Root table={table}>
+			<DataTable.Head />
+			<DataTable.Body>
+				{table.getRowModel().rows.map((row) => (
+					<DataTable.Row key={row.id} row={row} />
+				))}
 			</DataTable.Body>
 		</DataTable.Root>
 	);
