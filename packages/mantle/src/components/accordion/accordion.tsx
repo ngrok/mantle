@@ -392,16 +392,10 @@ const Trigger = ({
 				// without shifting the trigger's content — the negative margin cancels the padding,
 				// the same trick the tabs trigger uses. `rounded-md` matches Button/IconButton.
 				"-mx-2 rounded-md px-2",
-				// When open, hand 8px of the trigger's bottom padding to `Accordion.Body`'s `pt-2`.
-				// The gap below the trigger text stays a uniform 16px (8px here + 8px there), but
-				// 8px of it now sits *outside* the button box, giving the `ring-4` focus ring the
-				// vertical clearance it needs so it stops painting over the body's first line. The
-				// split is invisible without a ring, and only applies when open — the collapsed
-				// trigger keeps its symmetric `py-4`, so the trigger-to-divider rhythm is untouched.
-				// Transition the padding on the same 200ms/ease-out curve as `Accordion.Content`'s
-				// height so the bottom padding (and the ring's bottom edge) eases in step with the
-				// open/close slide instead of snapping.
-				"transition-[padding] duration-200 ease-out data-state-open:pb-2 motion-reduce:transition-none",
+				// Why the padding never changes with the open state: the trigger keeps one size,
+				// so its label, its focus ring, and the gap to the content stay still while only
+				// `Accordion.Content` moves. `Accordion.Body`'s `pt-1` keeps the `ring-4` focus
+				// ring off the body's first line.
 				"focus:outline-hidden focus-visible:ring-4 focus-visible:ring-focus-accent",
 				className,
 			)}
@@ -471,7 +465,7 @@ const TriggerIcon = ({
 		data-slot={joinDataSlot(dataSlot, "accordion-trigger-icon")}
 		svg={svg}
 		className={cx(
-			"size-4 shrink-0 text-muted transition-transform duration-200 group-data-state-open:rotate-180",
+			"size-4 shrink-0 text-muted transition-transform duration-200 ease-out-strong group-data-state-open:rotate-180 motion-reduce:transition-none",
 			className,
 		)}
 	/>
@@ -594,13 +588,16 @@ const Content = ({
 			className={cx(
 				// Animate height 0 <-> auto via `interpolate-size` (Chromium only; other
 				// engines snap, which is fine — the slide is a progressive enhancement and
-				// find-in-page works regardless). `content-visibility` transitions with
+				// find-in-page works regardless). The strong ease-out moves most of the
+				// distance early and then settles, so the section answers the click at
+				// once. The content fades with the height, so it never shows clipped at
+				// full opacity. `content-visibility` transitions with
 				// `allow-discrete` so the content stays rendered through the close slide
 				// before `hidden="until-found"` skips it; `overflow-hidden` clips. Padding
 				// lives on `Accordion.Body`, never here: a padded `h-0` border-box can't
 				// collapse below its padding, so the closed section would stop short of
 				// zero height instead of fully collapsing.
-				"h-0 overflow-hidden transition-[height,content-visibility] duration-200 ease-out [interpolate-size:allow-keywords] transition-discrete data-state-open:h-auto motion-reduce:transition-none",
+				"h-0 overflow-hidden opacity-0 transition-[height,opacity,content-visibility] duration-200 ease-out-strong [interpolate-size:allow-keywords] transition-discrete data-state-open:h-auto data-state-open:opacity-100 motion-reduce:transition-none",
 				className,
 			)}
 		>
@@ -614,10 +611,9 @@ const Content = ({
  * section's body content lives. Owns the body's padding so {@link Content} can
  * stay a zero-padding animation viewport: a padded `h-0` border-box can't
  * collapse below its padding, so keeping the padding here lets the closed slide
- * reach zero height. The `pt-2` doubles as the focus ring's vertical clearance —
- * it pairs with the trigger's open-state `pb-2` so the gap below the trigger
- * stays a uniform 16px while 8px of it sits outside the button box, keeping the
- * ring off the body's first line (see {@link Trigger}). Text inherits the ambient
+ * reach zero height. The `pt-1` is the focus ring's vertical clearance: the
+ * trigger keeps its `py-4` when open, and its `ring-4` paints 4px below the
+ * button, so the ring stays off the body's first line (see {@link Trigger}). Text inherits the ambient
  * size — it isn't forced — so set a size on the content where you need one.
  * Override `className` to retune the padding (e.g. `pb-0`, `px-6`); `cx` resolves
  * last-wins.
@@ -649,7 +645,7 @@ const Body = ({
 		ref={ref}
 		{...props}
 		data-slot={joinDataSlot(dataSlot, "accordion-body")}
-		className={cx("pt-2 pb-4", className)}
+		className={cx("pt-1 pb-4", className)}
 	/>
 );
 

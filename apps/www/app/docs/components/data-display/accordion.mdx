@@ -381,9 +381,7 @@ each header. Because the `Item` is a plain `<div>` and the `Trigger` is a real `
 row holding the `Trigger`, a divider, and the action button as **siblings**: a clean composition with no overlay and
 no absolute positioning. The `Trigger` toggles its section; the **Add Rule** button is an independent sibling that
 never toggles it; and the `Content` spans full-width below. Override the defaults (`space-y-*` and `divide-y-0` on
-`Root` to swap the dividers for spacing; `w-auto` on `Trigger` so it sizes to its label; and `data-state-open:pb-4` on
-`Trigger` to keep its padding symmetric so the header row doesn't shift up when the section opens) for the spaced-card
-look.
+`Root` to swap the dividers for spacing; and `w-auto` on `Trigger` so it sizes to its label) for the spaced-card look.
 
 <Example className="flex-col gap-6">
 	<Accordion.Root
@@ -393,7 +391,7 @@ look.
 	>
 		<Accordion.Item value="on_tcp_connect">
 			<div className="mx-4 flex items-center gap-2">
-				<Accordion.Trigger className="w-auto gap-1.5 data-state-open:pb-4">
+				<Accordion.Trigger className="w-auto gap-1.5">
 					<span className="font-mono text-sm font-medium">on_tcp_connect</span>
 					<Badge appearance="muted" color="neutral" className="rounded-full">
 						3
@@ -415,7 +413,7 @@ look.
 		</Accordion.Item>
 		<Accordion.Item value="on_http_request">
 			<div className="mx-4 flex items-center gap-2">
-				<Accordion.Trigger className="w-auto gap-1.5 data-state-open:pb-4">
+				<Accordion.Trigger className="w-auto gap-1.5">
 					<span className="font-mono text-sm font-medium">on_http_request</span>
 					<Badge appearance="muted" color="neutral" className="rounded-full">
 						2
@@ -437,7 +435,7 @@ look.
 		</Accordion.Item>
 		<Accordion.Item value="on_http_response">
 			<div className="mx-4 flex items-center gap-2">
-				<Accordion.Trigger className="w-auto gap-1.5 data-state-open:pb-4">
+				<Accordion.Trigger className="w-auto gap-1.5">
 					<span className="font-mono text-sm font-medium">on_http_response</span>
 					<Badge appearance="muted" color="neutral" className="rounded-full">
 						0
@@ -476,7 +474,7 @@ import { PlusIcon } from "@phosphor-icons/react/Plus";
 >
 	<Accordion.Item value="on_tcp_connect">
 		<div className="mx-4 flex items-center gap-2">
-			<Accordion.Trigger className="w-auto gap-1.5 data-state-open:pb-4">
+			<Accordion.Trigger className="w-auto gap-1.5">
 				<span className="font-mono text-sm font-medium">on_tcp_connect</span>
 				<Badge appearance="muted" color="neutral" className="rounded-full">
 					3
@@ -498,7 +496,7 @@ import { PlusIcon } from "@phosphor-icons/react/Plus";
 	</Accordion.Item>
 	<Accordion.Item value="on_http_request">
 		<div className="mx-4 flex items-center gap-2">
-			<Accordion.Trigger className="w-auto gap-1.5 data-state-open:pb-4">
+			<Accordion.Trigger className="w-auto gap-1.5">
 				<span className="font-mono text-sm font-medium">on_http_request</span>
 				<Badge appearance="muted" color="neutral" className="rounded-full">
 					2
@@ -520,7 +518,7 @@ import { PlusIcon } from "@phosphor-icons/react/Plus";
 	</Accordion.Item>
 	<Accordion.Item value="on_http_response">
 		<div className="mx-4 flex items-center gap-2">
-			<Accordion.Trigger className="w-auto gap-1.5 data-state-open:pb-4">
+			<Accordion.Trigger className="w-auto gap-1.5">
 				<span className="font-mono text-sm font-medium">on_http_response</span>
 				<Badge appearance="muted" color="neutral" className="rounded-full">
 					0
@@ -621,6 +619,10 @@ Collapsed content stays in the DOM but leaves the accessibility tree and the tab
 browsers that support `hidden="until-found"`, the content carries that attribute, so the browser's find-in-page can
 still match and reveal it. In other browsers, and in the server HTML, the content carries `inert` instead. The
 open/close slide respects `prefers-reduced-motion`.
+
+The trigger keeps the same size when its section opens, so the header never moves. Only the content moves: its height
+and opacity ease open over 200 ms with a strong ease-out (in browsers that support `interpolate-size`; others open at
+once), and the caret turns with the same curve.
 
 ## Composition
 
