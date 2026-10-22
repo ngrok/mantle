@@ -23,16 +23,7 @@ decision a declaration on the route module, the same way
 > [One header per page](/layouts/app-layout#one-header-per-page). Use this recipe only when an app keeps the
 > header in its shell and no route needs page state in its actions. Never mix the two in one app.
 
-Pick a URL. The actions follow the deepest route that declares any:
-
-<Example className="md:p-8">
-	<RouteHeaderActionsDemo />
-</Example>
-
-> [!NOTE]
-> The demo does not navigate. It swaps between **fixture** match arrays, because a demo embedded in this page
-> cannot mount a second router. The real `findHeaderActions` reads them, unmodified. Narrow the window below
-> `md` to watch the actions collapse into one menu.
+Try it in the [live demo](#the-file), directly above the file that renders it.
 
 ## Why not a context provider
 
@@ -68,7 +59,7 @@ Four pieces, each with one job:
 2. **`findHeaderActions`**: picks the deepest match that declares one. Pure and router-agnostic, so a test
    asserts it over a fixture.
 3. **`RouteHeaderActions`**: the one component that calls `useMatches()`. The hook stays at the edge, so the
-   demo above runs the same function with no router.
+   demo runs the same function with no router.
 4. **`PageActions`**: renders a list of actions as icon buttons at desktop widths and as one menu below the
    mobile breakpoint. A route composes its own element instead whenever an action is not a plain button.
 
@@ -255,7 +246,18 @@ hydration inside its own component, never in the handle.
 ## The file
 
 The one file to copy. `RouteHeaderActions` is the only piece that touches the router. `findHeaderActions`
-and `PageActions` are pure, so a fixture tests them and the demo above uses them unmodified.
+and `PageActions` are pure, so a fixture tests them and the demo below uses them unmodified.
+
+Pick a URL. The actions follow the deepest route that declares any:
+
+> [!NOTE]
+> The demo does not navigate. It swaps between **fixture** match arrays, because a demo embedded in this page
+> cannot mount a second router. The real `findHeaderActions` reads them, unmodified. Narrow the window below
+> `md` to watch the actions collapse into one menu.
+
+<Example className="md:p-8">
+	<RouteHeaderActionsDemo />
+</Example>
 
 ````tsx
 import { IconButton } from "@ngrok/mantle/button";

@@ -768,6 +768,10 @@ controlled/uncontrolled, polymorphism):
   document — that key must be registered in `apps/www/app/features/preview-registry.ts`, and the fence lives
   inside `CodeExample.Code`. Never ship a usage block with nothing rendering it, outside the one exception
   below.
+- **Code directly below.** Each `<Example>` is followed at once by the code block that renders it: no paragraph,
+  note, or heading between them. Put a note about the demo above the `<Example>`. A demo whose code lives in a
+  later section moves down to sit above that code. `apps/www/app/utilities/docs-example-fences.test.ts` checks
+  every docs page.
 - **Server-render exception.** A fence that needs a router or a request loader (a `useMatches()` consumer, a
   cookie read in a loader) may ship with nothing rendering it. The paragraph above it must state why, and
   must link the recipe or the page that renders it for real.
