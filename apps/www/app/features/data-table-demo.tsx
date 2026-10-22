@@ -1184,3 +1184,62 @@ export function SubRowsDemo() {
 		</div>
 	);
 }
+
+type Connection = {
+	id: string;
+	timestamp: string;
+	clientIp: string;
+	duration: string;
+};
+
+const exampleConnections: Connection[] = [
+	{ id: "c1", timestamp: "Oct 22, 2026 14:03:11.482", clientIp: "203.0.113.24", duration: "1.2s" },
+	{ id: "c2", timestamp: "Oct 22, 2026 14:02:57.109", clientIp: "198.51.100.7", duration: "48ms" },
+	{ id: "c3", timestamp: "Oct 22, 2026 14:02:40.936", clientIp: "192.0.2.180", duration: "3.9s" },
+];
+
+const fitColumnFeatures = tableFeatures({});
+
+const fitColumnHelper = createColumnHelper<typeof fitColumnFeatures, Connection>();
+
+const fitColumns = fitColumnHelper.columns([
+	fitColumnHelper.accessor("timestamp", {
+		id: "timestamp",
+		meta: { width: "fit" },
+		header: (props) => <DataTable.Header column={props.column}>Timestamp</DataTable.Header>,
+		cell: (props) => <DataTable.Cell column={props.column}>{props.getValue()}</DataTable.Cell>,
+	}),
+	fitColumnHelper.accessor("clientIp", {
+		id: "clientIp",
+		header: () => <DataTable.Header>Client IP</DataTable.Header>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+	fitColumnHelper.accessor("duration", {
+		id: "duration",
+		header: () => <DataTable.Header>Duration</DataTable.Header>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+]);
+
+/**
+ * Demo of a column sized to its content: the timestamp column sets
+ * `meta.width` to `"fit"`, so the spare width goes to the other columns.
+ */
+export function FitColumnDemo() {
+	const table = useTable({
+		features: fitColumnFeatures,
+		data: exampleConnections,
+		columns: fitColumns,
+		getRowId: (row) => row.id,
+	});
+	return (
+		<DataTable.Root table={table}>
+			<DataTable.Head />
+			<DataTable.Body>
+				{table.getRowModel().rows.map((row) => (
+					<DataTable.Row key={row.id} row={row} />
+				))}
+			</DataTable.Body>
+		</DataTable.Root>
+	);
+}

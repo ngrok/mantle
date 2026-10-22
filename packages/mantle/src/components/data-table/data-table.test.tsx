@@ -359,6 +359,111 @@ function ActionCellHarness({ onRowClick, onCellClick, onButtonClick }: ActionCel
 	);
 }
 
+/** Columns for `FitColumnHarness`. `className` goes on every part of the fit column. */
+const fitColumns = (className?: string) =>
+	columnHelper.columns([
+		columnHelper.accessor("id", {
+			id: "id",
+			meta: { width: "fit" },
+			header: (props) => (
+				<DataTable.Header className={className} column={props.column}>
+					ID
+				</DataTable.Header>
+			),
+			cell: (props) => (
+				<DataTable.Cell className={className} column={props.column}>
+					{props.getValue()}
+				</DataTable.Cell>
+			),
+		}),
+		columnHelper.accessor("name", {
+			id: "name",
+			header: (props) => <DataTable.Header column={props.column}>Name</DataTable.Header>,
+			cell: (props) => <DataTable.Cell column={props.column}>{props.getValue()}</DataTable.Cell>,
+		}),
+	]);
+
+/**
+ * A table whose `id` column sets `meta.width` to `"fit"` through the
+ * global `ColumnMeta` interface, beside a `name` column with no width.
+ */
+function FitColumnHarness({ className }: { className?: string }) {
+	const columns = useMemo(() => fitColumns(className), [className]);
+	const table = useTable({
+		features,
+		data: sortableData,
+		columns,
+		getRowId: (row) => row.id,
+	});
+	return (
+		<DataTable.Root table={table}>
+			<DataTable.Head />
+			<DataTable.Body>
+				{table.getRowModel().rows.map((row) => (
+					<DataTable.Row key={row.id} row={row} />
+				))}
+			</DataTable.Body>
+		</DataTable.Root>
+	);
+}
+
+describe("DataTable column width", () => {
+	test("marks the header and every cell of a fit column, and no other column", () => {
+		render(<FitColumnHarness />);
+
+		expect(screen.getByRole("columnheader", { name: "ID" })).toHaveAttribute(
+			"data-column-width",
+			"fit",
+		);
+		for (const id of ["row-1", "row-2", "row-3"]) {
+			expect(screen.getByRole("cell", { name: id })).toHaveAttribute("data-column-width", "fit");
+		}
+		expect(screen.getByRole("columnheader", { name: "Name" })).not.toHaveAttribute(
+			"data-column-width",
+		);
+		expect(screen.getByRole("cell", { name: "web-10" })).not.toHaveAttribute("data-column-width");
+	});
+
+	// Why a class assertion: this is the tailwind-merge override contract. A
+	// consumer's width and wrap classes must beat the fit defaults.
+	test("lets a consumer className override the fit width and wrap", () => {
+		render(<FitColumnHarness className="w-64 whitespace-normal" />);
+
+		for (const element of [
+			screen.getByRole("columnheader", { name: "ID" }),
+			screen.getByRole("cell", { name: "row-1" }),
+		]) {
+			const sizing = Array.from(element.classList).filter((name) => {
+				const utility = name.split(":").at(-1) ?? "";
+				return utility.startsWith("w-") || utility.startsWith("whitespace-");
+			});
+			expect(sizing).toEqual(["w-64", "whitespace-normal"]);
+		}
+	});
+});
+
+describe("DataTable.Cell", () => {
+	test("forwards className, ref, and data attributes, and joins its data-slot", () => {
+		const ref = createRef<HTMLTableCellElement>();
+		render(
+			<table>
+				<tbody>
+					<tr>
+						<DataTable.Cell ref={ref} className="text-right" data-slot="custom" data-testid="cell">
+							42
+						</DataTable.Cell>
+					</tr>
+				</tbody>
+			</table>,
+		);
+
+		const cell = screen.getByTestId("cell");
+		expect(ref.current).toBe(cell);
+		expect(cell).toHaveClass("text-right");
+		expect(cell).toHaveAttribute("data-slot", "custom data-table-cell table-cell");
+	});
+});
+
 describe("DataTable.ActionCell", () => {
 	test("a click on an action control never reaches a clickable row", async () => {
 		const user = userEvent.setup();

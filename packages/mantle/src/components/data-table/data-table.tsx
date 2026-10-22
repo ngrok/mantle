@@ -62,7 +62,7 @@ import type { SvgAttributes } from "../icon/types.js";
 import { SortIcon } from "../icons/sort.js";
 import { sandboxedOnClickProps } from "../sandboxed-on-click/sandboxed-on-click.js";
 import { Table } from "../table/table.js";
-import { getNextSortDirection } from "./helpers.js";
+import { getNextSortDirection, resolveColumnWidth } from "./helpers.js";
 import type { SortDirection } from "./types.js";
 
 /**
@@ -765,10 +765,20 @@ type DataTableHeaderProps<
 > = ComponentProps<typeof Table.Header> & {
 	/**
 	 * The TanStack Table column this cell heads (`props.column` in `header`).
-	 * When the column is sorted, the cell carries `aria-sort`.
+	 * When the column is sorted, the cell carries `aria-sort`. When the
+	 * column's `meta.width` is `"fit"`, the cell carries `data-column-width="fit"`.
 	 */
 	column?: Column<TFeatures, TData, TValue>;
 } & WithDataSlot;
+
+/**
+ * Sizes a `"fit"` column to its content. In `table-auto`, a cell width is a
+ * minimum, so `w-px` shrinks the column to its min-content width, and
+ * `whitespace-nowrap` makes that width the full content width.
+ */
+// Why plain utilities, not `data-[column-width=fit]:` variants: `cx` merges a
+// plain utility with the consumer's `className`, so a consumer class still wins.
+const fitColumnClassName = "w-px whitespace-nowrap";
 
 /**
  * The `aria-sort` value for a column's current sort state. `undefined` when the
@@ -806,7 +816,15 @@ function resolveAriaSort<
  * A `<th>` optimized for header actions. Wrap each column's header content in
  * this; for sortable columns, nest a `DataTable.HeaderSortButton` inside and
  * pass the same `column` here, so the cell carries `aria-sort` while the column
- * is sorted. Non-sortable columns can render plain text.
+ * is sorted. Non-sortable columns can render plain text. The `column` prop
+ * also applies the column's `meta.width`.
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"data-table-header table-header"` | On the `<th>`, joined ahead of `Table.Header`'s own slot. |
+ * | `data-column-width` | `"fit"` | Present when the `column` prop's `meta.width` is `"fit"`. The header does not wrap its content, and the column shrinks to fit it. |
  *
  * @see https://mantle.ngrok.com/components/data-display/data-table#datatableheader
  *
@@ -832,16 +850,24 @@ function Header<TFeatures extends TableFeatures, TData extends RowData, TValue e
 	column,
 	...props
 }: DataTableHeaderProps<TFeatures, TData, TValue>) {
-	const renderHeader = () => (
-		<Table.Header
-			aria-sort={resolveAriaSort(column)}
-			data-slot={joinDataSlot(dataSlot, "data-table-header")}
-			className={cx("has-data-table-header-action:px-0", className)}
-			{...props}
-		>
-			{children}
-		</Table.Header>
-	);
+	const renderHeader = () => {
+		const width = resolveColumnWidth(column?.columnDef.meta);
+		return (
+			<Table.Header
+				aria-sort={resolveAriaSort(column)}
+				data-column-width={width}
+				data-slot={joinDataSlot(dataSlot, "data-table-header")}
+				className={cx(
+					"has-data-table-header-action:px-0",
+					width === "fit" && fitColumnClassName,
+					className,
+				)}
+				{...props}
+			>
+				{children}
+			</Table.Header>
+		);
+	};
 
 	const options = useTableOptions();
 
@@ -859,6 +885,61 @@ function Header<TFeatures extends TableFeatures, TData extends RowData, TValue e
 		>
 			{renderHeader}
 		</Subscribe>
+	);
+}
+
+type DataTableCellProps<
+	TFeatures extends TableFeatures,
+	TData extends RowData,
+	TValue extends CellData,
+> = ComponentProps<typeof Table.Cell> & {
+	/**
+	 * The TanStack Table column this cell belongs to (`props.column` in `cell`).
+	 * When the column's `meta.width` is `"fit"`, the cell carries
+	 * `data-column-width="fit"`.
+	 */
+	column?: Column<TFeatures, TData, TValue>;
+} & WithDataSlot;
+
+/**
+ * A `<td>` for one data cell. Wrap the output of each column's `cell`
+ * function in this; a raw `<td>` skips mantle typography and padding. Pass
+ * `column` to apply the column's `meta.width`, and pass the same `column` to
+ * the column's `DataTable.Header`, so the header and every cell agree.
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"data-table-cell table-cell"` | On the `<td>`, joined ahead of `Table.Cell`'s own slot. |
+ * | `data-column-width` | `"fit"` | Present when the `column` prop's `meta.width` is `"fit"`. The cell does not wrap its content, and the column shrinks to fit it. |
+ *
+ * @see https://mantle.ngrok.com/components/data-display/data-table#datatablecell
+ *
+ * @example
+ * ```tsx
+ * columnHelper.accessor("createdAt", {
+ *   id: "createdAt",
+ *   meta: { width: "fit" },
+ *   header: (props) => <DataTable.Header column={props.column}>Created</DataTable.Header>,
+ *   cell: (props) => <DataTable.Cell column={props.column}>{props.getValue()}</DataTable.Cell>,
+ * });
+ * ```
+ */
+function Cell<TFeatures extends TableFeatures, TData extends RowData, TValue extends CellData>({
+	"data-slot": dataSlot,
+	className,
+	column,
+	...props
+}: DataTableCellProps<TFeatures, TData, TValue>) {
+	const width = resolveColumnWidth(column?.columnDef.meta);
+	return (
+		<Table.Cell
+			data-column-width={width}
+			data-slot={joinDataSlot(dataSlot, "data-table-cell")}
+			className={cx(width === "fit" && fitColumnClassName, className)}
+			{...props}
+		/>
 	);
 }
 
@@ -2416,22 +2497,31 @@ const DataTable = {
 	 */
 	ActionHeader,
 	/**
-	 * A `<td>` for rendering an individual data cell. Re-exported from
-	 * `Table.Cell`. Every cell rendered by a column's `cell` function should
-	 * be wrapped in this — a raw `<td>` skips mantle typography and padding.
+	 * A `<td>` for one data cell. Wrap the output of each column's `cell`
+	 * function in this; a raw `<td>` skips mantle typography and padding. Pass
+	 * `column` to apply the column's `meta.width`, and pass the same `column` to
+	 * the column's `DataTable.Header`, so the header and every cell agree.
+	 *
+	 * **Data attributes:**
+	 *
+	 * | Data Attribute | Value | Description |
+	 * | --- | --- | --- |
+	 * | `data-slot` | `"data-table-cell table-cell"` | On the `<td>`, joined ahead of `Table.Cell`'s own slot. |
+	 * | `data-column-width` | `"fit"` | Present when the `column` prop's `meta.width` is `"fit"`. The cell does not wrap its content, and the column shrinks to fit it. |
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/data-table#datatablecell
 	 *
 	 * @example
 	 * ```tsx
-	 * columnHelper.accessor("name", {
-	 *   id: "name",
-	 *   header: (props) => <DataTable.Header>Name</DataTable.Header>,
-	 *   cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	 * columnHelper.accessor("createdAt", {
+	 *   id: "createdAt",
+	 *   meta: { width: "fit" },
+	 *   header: (props) => <DataTable.Header column={props.column}>Created</DataTable.Header>,
+	 *   cell: (props) => <DataTable.Cell column={props.column}>{props.getValue()}</DataTable.Cell>,
 	 * });
 	 * ```
 	 */
-	Cell: Table.Cell,
+	Cell,
 	/**
 	 * The `<tbody>` container for rows of data. Typically wraps a map of
 	 * `DataTable.Row`, with a `DataTable.EmptyRow` fallback when there is
@@ -2496,7 +2586,15 @@ const DataTable = {
 	 * A `<th>` optimized for header actions. Wrap each column's header content in
 	 * this; for sortable columns, nest a `DataTable.HeaderSortButton` inside and
 	 * pass the same `column` here, so the cell carries `aria-sort` while the column
-	 * is sorted. Non-sortable columns can render plain text.
+	 * is sorted. Non-sortable columns can render plain text. The `column` prop
+	 * also applies the column's `meta.width`.
+	 *
+	 * **Data attributes:**
+	 *
+	 * | Data Attribute | Value | Description |
+	 * | --- | --- | --- |
+	 * | `data-slot` | `"data-table-header table-header"` | On the `<th>`, joined ahead of `Table.Header`'s own slot. |
+	 * | `data-column-width` | `"fit"` | Present when the `column` prop's `meta.width` is `"fit"`. The header does not wrap its content, and the column shrinks to fit it. |
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/data-table#datatableheader
 	 *

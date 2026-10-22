@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import type { SortingMode } from "../../utils/sorting/direction.js";
-import { getNextInCircularList, getNextSortDirection } from "./helpers.js";
+import { getNextInCircularList, getNextSortDirection, resolveColumnWidth } from "./helpers.js";
 import type { SortDirection } from "./types.js";
 
 describe("getNextInCircularList", () => {
@@ -64,5 +64,23 @@ describe("getNextSortDirection", () => {
 
 		currentSortDirection = getNextSortDirection(currentSortDirection, sortingMode);
 		expect(currentSortDirection).toBe("desc");
+	});
+});
+
+describe("resolveColumnWidth", () => {
+	test("given meta with a fit width, returns fit", () => {
+		expect(resolveColumnWidth({ width: "fit" })).toBe("fit");
+	});
+
+	test("given meta with an unknown width, returns undefined", () => {
+		expect(resolveColumnWidth({ width: 120 })).toBeUndefined();
+	});
+
+	test("given meta with no width, returns undefined", () => {
+		expect(resolveColumnWidth({ align: "end" })).toBeUndefined();
+	});
+
+	test("given no meta, returns undefined", () => {
+		expect(resolveColumnWidth(undefined)).toBeUndefined();
 	});
 });
