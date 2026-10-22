@@ -1085,6 +1085,8 @@ custom control composes the same state from [`useSidePanel`](#usesidepanel).
   - A merged `transition-none` or `duration-*` replaces the default.
   - The transition holds until one frame after hydration, so a state the client corrects after the server
     render snaps instead of sliding on page load.
+  - When a close ends, the transition stays off until the next open. A closed panel snaps when the viewport
+    crosses `mobileBreakpoint` or the rail changes.
 - **Below `mobileBreakpoint`** (`lg` by default), the panel floats over the card instead of taking width from
   it: pinned to the row's end edge inside the card gutter, `min(24rem, 100cqw - 5rem)` wide (24rem, or the
   row less a 5rem strip of page when the row is narrower), with a larger shadow. Closed, it slides off the end edge and goes `invisible` the instant the slide ends (`visibility`
