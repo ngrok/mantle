@@ -1102,6 +1102,8 @@ function isNode(target: EventTarget | null): target is Node {
  *   that misses a small control still toggles it instead of navigating.
  * - When the cell holds no control (a leaf row's `RowExpandButton` renders
  *   nothing), the click reaches the row as usual.
+ * - The cell shows a pointer cursor only while it holds an enabled control.
+ *   An empty cell keeps the row's cursor.
  * - The control aligns with the first line of text, so it stays beside a
  *   two-line primary cell. On a one-line row, it is centered.
  *
@@ -1149,8 +1151,13 @@ function ControlCell({
 		<Table.Cell
 			data-slot={joinDataSlot(dataSlot, "data-table-control-cell")}
 			// `align-top` and the one-line label below put the control beside the
-			// first line of a multi-line row. `px-0` lets `w-9` fit the toggle.
-			className={cx("w-9 px-0 align-top", className)}
+			// first line of a multi-line row. `px-0` lets `w-9` fit the toggle. The
+			// pointer cursor shows only while a padding click has an enabled control
+			// to click; an empty cell keeps the row's cursor.
+			className={cx(
+				"w-9 px-0 align-top has-[button:enabled,input:enabled]:cursor-pointer",
+				className,
+			)}
 			onClick={(event) => {
 				onClick?.(event);
 				const control = event.currentTarget.querySelector<HTMLElement>(controlCellControlSelector);

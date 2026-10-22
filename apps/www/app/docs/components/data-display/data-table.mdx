@@ -1275,15 +1275,16 @@ A `<td>` for a row's own control: a `DataTable.RowExpandButton` or a selection `
 
 - A click on the cell's padding focuses and clicks the control. A click that misses a small control toggles it instead of navigating.
 - When the cell holds no control (a leaf row's `RowExpandButton` renders nothing), the click reaches the row.
+- The cell shows a pointer cursor only while it holds an enabled control. An empty cell keeps the row's cursor.
 - The control aligns with the first line of text, so it stays beside a two-line primary cell. On a one-line row, it is centered.
 
 The padding click is for pointer users only. The cell keeps its `role="cell"` and gets no `tabIndex`, so keyboard and screen-reader users reach the control itself. Don't add a role or `tabIndex` to the cell.
 
-| Prop         | Type                                                | Default | Description                                                                                                     |
-| :----------- | :-------------------------------------------------- | :------ | :-------------------------------------------------------------------------------------------------------------- |
-| `children`   | `ReactNode`                                         |         | The row's control: a `DataTable.RowExpandButton` or a `Checkbox`.                                               |
-| `onClick?`   | `(event: MouseEvent<HTMLTableCellElement>) => void` |         | Runs first. Call `event.preventDefault()` to stop a padding click from reaching the control.                    |
-| `className?` | `string`                                            |         | Extra classes merged onto the `<td>`, which defaults to `w-9 px-0`. Remaining props forward to the HTML `<td>`. |
+| Prop         | Type                                                | Default | Description                                                                                                                       |
+| :----------- | :-------------------------------------------------- | :------ | :-------------------------------------------------------------------------------------------------------------------------------- |
+| `children`   | `ReactNode`                                         |         | The row's control: a `DataTable.RowExpandButton` or a `Checkbox`.                                                                 |
+| `onClick?`   | `(event: MouseEvent<HTMLTableCellElement>) => void` |         | Runs first. Call `event.preventDefault()` to stop a padding click from reaching the control.                                      |
+| `className?` | `string`                                            |         | Extra classes merged onto the `<td>`. Pass a `cursor-*` class to override the cursor. Remaining props forward to the HTML `<td>`. |
 
 #### Data attributes
 
