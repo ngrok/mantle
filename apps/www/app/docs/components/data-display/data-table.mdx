@@ -9,6 +9,7 @@ import {
 	EndpointsDemo,
 	ExpandableRowsDemo,
 	FilteredEmptyStateDemo,
+	FitColumnDemo,
 	PaginatedPaymentsDemo,
 	PaymentsDemo,
 	SelectablePaymentsDemo,
@@ -704,6 +705,83 @@ columnHelper.accessor("url", {
 }),
 ```
 
+### Sizing a column to its content
+
+The table uses the browser's automatic layout, so every column gets a share of the spare width. A short value such as a timestamp then sits in a wide column, far from the next value. Set `meta: { width: "fit" }` on the column, and pass `column` to its `DataTable.Header` and to every `DataTable.Cell`. The column is then only as wide as its widest value, on one line, and the spare width goes to the other columns.
+
+<Example>
+	<FitColumnDemo />
+</Example>
+
+```tsx
+import { DataTable, createColumnHelper, tableFeatures, useTable } from "@ngrok/mantle/data-table";
+
+type Connection = {
+	id: string;
+	timestamp: string;
+	clientIp: string;
+	duration: string;
+};
+
+const connections: Connection[] = [
+	{ id: "c1", timestamp: "Oct 22, 2026 14:03:11.482", clientIp: "203.0.113.24", duration: "1.2s" },
+	{ id: "c2", timestamp: "Oct 22, 2026 14:02:57.109", clientIp: "198.51.100.7", duration: "48ms" },
+	{ id: "c3", timestamp: "Oct 22, 2026 14:02:40.936", clientIp: "192.0.2.180", duration: "3.9s" },
+];
+
+const features = tableFeatures({});
+
+const columnHelper = createColumnHelper<typeof features, Connection>();
+
+const columns = columnHelper.columns([
+	columnHelper.accessor("timestamp", {
+		id: "timestamp",
+		meta: { width: "fit" },
+		header: (props) => <DataTable.Header column={props.column}>Timestamp</DataTable.Header>,
+		cell: (props) => <DataTable.Cell column={props.column}>{props.getValue()}</DataTable.Cell>,
+	}),
+	columnHelper.accessor("clientIp", {
+		id: "clientIp",
+		header: () => <DataTable.Header>Client IP</DataTable.Header>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+	columnHelper.accessor("duration", {
+		id: "duration",
+		header: () => <DataTable.Header>Duration</DataTable.Header>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+]);
+
+function ConnectionsTable() {
+	const table = useTable({ features, data: connections, columns, getRowId: (row) => row.id });
+
+	return (
+		<DataTable.Root table={table}>
+			<DataTable.Head />
+			<DataTable.Body>
+				{table.getRowModel().rows.map((row) => (
+					<DataTable.Row key={row.id} row={row} />
+				))}
+			</DataTable.Body>
+		</DataTable.Root>
+	);
+}
+```
+
+Pass `column` to the header and to each cell of the column. A part with no `column` cannot read `meta`, so a header without it keeps its share of the spare width, and a cell without it can wrap.
+
+TanStack Table types `meta` through the global `ColumnMeta` interface, and mantle adds `width` to it. A `columnMeta` slot on `tableFeatures` replaces that interface for its table. If your table has a slot, add `DataTableColumnMeta` to the slot type:
+
+```tsx
+import { type DataTableColumnMeta, metaHelper, tableFeatures } from "@ngrok/mantle/data-table";
+
+type ConnectionsColumnMeta = DataTableColumnMeta & { align?: "start" | "end" };
+
+const features = tableFeatures({
+	columnMeta: metaHelper<ConnectionsColumnMeta>(),
+});
+```
+
 ### Pagination controls
 
 Register `rowPaginationFeature` with `paginatedRowModel: createPaginatedRowModel()`, then wire [`CursorPagination`](/components/navigation/pagination) to the table instance for a page-size dropdown plus previous/next buttons: no hand-rolled `Button`s or `Page X of Y` span needed.
@@ -1226,11 +1304,18 @@ An empty-state row that spans every visible column. Render this as the `else` br
 
 A `<th>` cell optimized for header actions. Wrap sortable headers' contents in `DataTable.HeaderSortButton` and pass the same `column` here, so the cell carries `aria-sort` while the column is sorted.
 
-| Prop         | Type                               | Default | Description                                                                                         |
-| :----------- | :--------------------------------- | :------ | :-------------------------------------------------------------------------------------------------- |
-| `children`   | `ReactNode`                        |         | Usually a `DataTable.HeaderSortButton`. For non-sortable columns, plain text is fine.               |
-| `column?`    | `Column<TFeatures, TData, TValue>` |         | The TanStack Table column this cell heads. When the column is sorted, the cell carries `aria-sort`. |
-| `className?` | `string`                           |         | Extra classes merged onto the `<th>`. Remaining props forward to the HTML `<th>` element.           |
+| Prop         | Type                               | Default | Description                                                                                                                                                                                                        |
+| :----------- | :--------------------------------- | :------ | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `children`   | `ReactNode`                        |         | Usually a `DataTable.HeaderSortButton`. For non-sortable columns, plain text is fine.                                                                                                                              |
+| `column?`    | `Column<TFeatures, TData, TValue>` |         | The TanStack Table column this cell heads. When the column is sorted, the cell carries `aria-sort`. When the column's `meta.width` is `"fit"`, the column [sizes to its content](#sizing-a-column-to-its-content). |
+| `className?` | `string`                           |         | Extra classes merged onto the `<th>`. Remaining props forward to the HTML `<th>` element.                                                                                                                          |
+
+#### Data attributes
+
+| Data Attribute      | Value                              | Description                                                                                                                       |
+| :------------------ | :--------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------- |
+| `data-slot`         | `"data-table-header table-header"` | On the `<th>`, joined ahead of `Table.Header`'s own slot.                                                                         |
+| `data-column-width` | `"fit"`                            | Present when the `column` prop's `meta.width` is `"fit"`. The header does not wrap its content, and the column shrinks to fit it. |
 
 ### DataTable.HeaderSortButton
 
@@ -1259,12 +1344,20 @@ All additional props from [`Button`](/components/actions/button). Unlike `Button
 
 ### DataTable.Cell
 
-A `<td>` for rendering individual data cells. Applies mantle typography, padding, and alignment. Re-exported from [`Table.Cell`](/components/data-display/table#tablecell).
+A `<td>` for one data cell. Applies mantle typography, padding, and alignment from [`Table.Cell`](/components/data-display/table#tablecell). Pass `column` to apply the column's `meta.width`, and pass the same `column` to the column's `DataTable.Header`.
 
-| Prop         | Type        | Default | Description                                                                               |
-| :----------- | :---------- | :------ | :---------------------------------------------------------------------------------------- |
-| `children`   | `ReactNode` |         | The cell's rendered value. Any React node is allowed.                                     |
-| `className?` | `string`    |         | Extra classes merged onto the `<td>`. Remaining props forward to the HTML `<td>` element. |
+| Prop         | Type                               | Default | Description                                                                                                                                                    |
+| :----------- | :--------------------------------- | :------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `children`   | `ReactNode`                        |         | The cell's rendered value. Any React node is allowed.                                                                                                          |
+| `column?`    | `Column<TFeatures, TData, TValue>` |         | The TanStack Table column this cell belongs to. When the column's `meta.width` is `"fit"`, the column [sizes to its content](#sizing-a-column-to-its-content). |
+| `className?` | `string`                           |         | Extra classes merged onto the `<td>`. Remaining props forward to the HTML `<td>` element.                                                                      |
+
+#### Data attributes
+
+| Data Attribute      | Value                          | Description                                                                                                                     |
+| :------------------ | :----------------------------- | :------------------------------------------------------------------------------------------------------------------------------ |
+| `data-slot`         | `"data-table-cell table-cell"` | On the `<td>`, joined ahead of `Table.Cell`'s own slot.                                                                         |
+| `data-column-width` | `"fit"`                        | Present when the `column` prop's `meta.width` is `"fit"`. The cell does not wrap its content, and the column shrinks to fit it. |
 
 ### DataTable.ActionHeader
 

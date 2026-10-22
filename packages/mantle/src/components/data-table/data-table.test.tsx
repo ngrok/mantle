@@ -359,6 +359,83 @@ function ActionCellHarness({ onRowClick, onCellClick, onButtonClick }: ActionCel
 	);
 }
 
+const fitColumns = columnHelper.columns([
+	columnHelper.accessor("id", {
+		id: "id",
+		meta: { width: "fit" },
+		header: (props) => <DataTable.Header column={props.column}>ID</DataTable.Header>,
+		cell: (props) => <DataTable.Cell column={props.column}>{props.getValue()}</DataTable.Cell>,
+	}),
+	columnHelper.accessor("name", {
+		id: "name",
+		header: (props) => <DataTable.Header column={props.column}>Name</DataTable.Header>,
+		cell: (props) => <DataTable.Cell column={props.column}>{props.getValue()}</DataTable.Cell>,
+	}),
+]);
+
+/**
+ * A table whose `id` column sets `meta.width` to `"fit"` through the
+ * global `ColumnMeta` interface, beside a `name` column with no width.
+ */
+function FitColumnHarness() {
+	const table = useTable({
+		features,
+		data: sortableData,
+		columns: fitColumns,
+		getRowId: (row) => row.id,
+	});
+	return (
+		<DataTable.Root table={table}>
+			<DataTable.Head />
+			<DataTable.Body>
+				{table.getRowModel().rows.map((row) => (
+					<DataTable.Row key={row.id} row={row} />
+				))}
+			</DataTable.Body>
+		</DataTable.Root>
+	);
+}
+
+describe("DataTable column width", () => {
+	test("marks the header and every cell of a fit column, and no other column", () => {
+		render(<FitColumnHarness />);
+
+		expect(screen.getByRole("columnheader", { name: "ID" })).toHaveAttribute(
+			"data-column-width",
+			"fit",
+		);
+		for (const id of ["row-1", "row-2", "row-3"]) {
+			expect(screen.getByRole("cell", { name: id })).toHaveAttribute("data-column-width", "fit");
+		}
+		expect(screen.getByRole("columnheader", { name: "Name" })).not.toHaveAttribute(
+			"data-column-width",
+		);
+		expect(screen.getByRole("cell", { name: "web-10" })).not.toHaveAttribute("data-column-width");
+	});
+});
+
+describe("DataTable.Cell", () => {
+	test("forwards className, ref, and data attributes, and joins its data-slot", () => {
+		const ref = createRef<HTMLTableCellElement>();
+		render(
+			<table>
+				<tbody>
+					<tr>
+						<DataTable.Cell ref={ref} className="text-right" data-slot="custom" data-testid="cell">
+							42
+						</DataTable.Cell>
+					</tr>
+				</tbody>
+			</table>,
+		);
+
+		const cell = screen.getByTestId("cell");
+		expect(ref.current).toBe(cell);
+		expect(cell).toHaveClass("text-right");
+		expect(cell).toHaveAttribute("data-slot", "custom data-table-cell table-cell");
+	});
+});
+
 describe("DataTable.ActionCell", () => {
 	test("a click on an action control never reaches a clickable row", async () => {
 		const user = userEvent.setup();

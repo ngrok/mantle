@@ -1,5 +1,5 @@
 import type { SortingMode } from "../../utils/sorting/direction.js";
-import type { SortDirection } from "./types.js";
+import type { ColumnWidth, SortDirection } from "./types.js";
 
 const alphanumericSortingOrder = ["unsorted", "asc", "desc"] as const satisfies SortDirection[];
 
@@ -32,8 +32,28 @@ function getNextInCircularList<T>(list: T[], currentItem: T, fallback?: T) {
 	return list.at(nextIndex) ?? fallback;
 }
 
+/**
+ * Reads the `width` from a column's `meta`. Returns `undefined` when `meta`
+ * has no known `width`. The argument is `unknown` because a table's
+ * `columnMeta` slot can give `meta` any shape.
+ *
+ * @example
+ * ```ts
+ * resolveColumnWidth({ width: "fit" }); // => "fit"
+ * resolveColumnWidth({ align: "end" }); // => undefined
+ * resolveColumnWidth(undefined); // => undefined
+ * ```
+ */
+function resolveColumnWidth(meta: unknown): ColumnWidth | undefined {
+	if (typeof meta !== "object" || meta == null || !("width" in meta)) {
+		return undefined;
+	}
+	return meta.width === "fit" ? "fit" : undefined;
+}
+
 export {
 	//,
 	getNextSortDirection,
+	resolveColumnWidth,
 	getNextInCircularList,
 };

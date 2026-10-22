@@ -11,3 +11,8 @@ export {
 	DataTable,
 	expandedRowId,
 } from "./data-table.js";
+
+export type {
+	//,
+	DataTableColumnMeta,
+} from "./types.js";
