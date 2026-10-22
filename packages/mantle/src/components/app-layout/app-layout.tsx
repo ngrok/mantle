@@ -871,14 +871,22 @@ function isSidePanelFloating(panel: HTMLElement | null): boolean {
 
 /**
  * The milliseconds until every transition on `panel` ends: the longest
- * `transition-duration` plus the longest `transition-delay`. It reads the
- * computed style, so a consumer `duration-*` sets the wait.
+ * duration plus delay of one `transition-property` entry. The duration and
+ * delay lists repeat to the length of the property list, as CSS repeats them.
+ * It reads the computed style, so a consumer `duration-*` sets the wait.
  */
 function readSidePanelTransitionMs(panel: HTMLElement): number {
 	const style = getComputedStyle(panel);
-	const longestSeconds = (times: string) =>
-		Math.max(0, ...times.split(",").map((time) => Number.parseFloat(time) || 0));
-	return (longestSeconds(style.transitionDuration) + longestSeconds(style.transitionDelay)) * 1000;
+	const toSeconds = (times: string) => times.split(",").map((time) => Number.parseFloat(time) || 0);
+	const durations = toSeconds(style.transitionDuration);
+	const delays = toSeconds(style.transitionDelay);
+	const ends = style.transitionProperty
+		.split(",")
+		.map(
+			(_, index) =>
+				(durations[index % durations.length] ?? 0) + (delays[index % delays.length] ?? 0),
+		);
+	return Math.max(0, ...ends) * 1000;
 }
 
 /**
@@ -1368,15 +1376,18 @@ const SidePanel = ({
 	// stays off from the end of a close to the next open.
 	const [closeEnded, setCloseEnded] = useState(!open);
 	useEffect(() => {
+		// Why reset on open and not in the cleanup: `StrictMode` replays the
+		// cleanup on mount, and a closed panel must keep the gate shut.
+		if (open) {
+			setCloseEnded(false);
+			return;
+		}
 		const panel = panelRef.current;
-		if (open || panel == null) {
+		if (panel == null) {
 			return;
 		}
 		const timer = setTimeout(() => setCloseEnded(true), readSidePanelTransitionMs(panel));
-		return () => {
-			clearTimeout(timer);
-			setCloseEnded(false);
-		};
+		return () => clearTimeout(timer);
 	}, [open, panelRef]);
 
 	// Why a viewport query and not the computed position: the cover is the one

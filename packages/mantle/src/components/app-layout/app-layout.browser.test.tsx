@@ -1,7 +1,7 @@
 "use client";
 
 import { render, screen } from "@testing-library/react";
-import type { ReactNode } from "react";
+import { StrictMode, type CSSProperties, type ReactNode } from "react";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { Combobox } from "../combobox/index.js";
@@ -319,21 +319,24 @@ describe("AppLayout.SidePanel lane float", () => {
  * The viewport crosses the default `"lg"` breakpoint, so the closed panel
  * changes from the lane to the float and its `translate` changes. The row
  * keeps one width, so only the media query changes. A running CSS transition
- * shows in `getAnimations()`.
+ * shows in `getAnimations()`. `StrictMode` replays each mount effect, the way
+ * an app's root does in development.
  */
 describe("AppLayout.SidePanel motion across mobileBreakpoint", () => {
-	function renderShell({ defaultOpen }: { defaultOpen: boolean }) {
+	function renderShell({ defaultOpen, style }: { defaultOpen: boolean; style?: CSSProperties }) {
 		render(
-			<TooltipProvider>
-				<AppLayout.SidePanelRoot defaultOpen={defaultOpen}>
-					<AppLayout.Workspace style={{ width: "60rem" }}>
-						<AppLayout.Content>
-							<AppLayout.SidePanelTrigger label="Toggle the assistant" />
-						</AppLayout.Content>
-						<AppLayout.SidePanel aria-label="Assistant" />
-					</AppLayout.Workspace>
-				</AppLayout.SidePanelRoot>
-			</TooltipProvider>,
+			<StrictMode>
+				<TooltipProvider>
+					<AppLayout.SidePanelRoot defaultOpen={defaultOpen}>
+						<AppLayout.Workspace style={{ width: "60rem" }}>
+							<AppLayout.Content>
+								<AppLayout.SidePanelTrigger label="Toggle the assistant" />
+							</AppLayout.Content>
+							<AppLayout.SidePanel aria-label="Assistant" style={style} />
+						</AppLayout.Workspace>
+					</AppLayout.SidePanelRoot>
+				</TooltipProvider>
+			</StrictMode>,
 		);
 		return screen.getByRole("complementary", { hidden: true });
 	}
@@ -349,13 +352,30 @@ describe("AppLayout.SidePanel motion across mobileBreakpoint", () => {
 	test("a close still slides, and the closed panel snaps after the slide ends", async () => {
 		await page.viewport(800, 600);
 		const panel = renderShell({ defaultOpen: true });
+		// Why a listener: under load, the click can return after the 200ms slide ends.
+		const slid: string[] = [];
+		panel.addEventListener("transitionrun", (event) => slid.push(event.propertyName));
 		await userEvent.click(screen.getByRole("button", { name: "Toggle the assistant" }));
 		expect(panel).toHaveAttribute("data-state", "closed");
-		expect(panel.getAnimations().length).toBeGreaterThan(0);
+		await expect.poll(() => slid).toContain("translate");
 		await expect.poll(() => getComputedStyle(panel).transitionProperty).toBe("none");
 		await page.viewport(1280, 800);
 		await expect.poll(() => getComputedStyle(panel).translate).toBe("none");
 		expect(panel.getAnimations()).toHaveLength(0);
+	});
+
+	test("the gate shuts when the longest transition ends, with each delay paired to its duration", async () => {
+		await page.viewport(800, 600);
+		// Why these lists: the longest entry ends at 1000ms. The longest duration
+		// plus the longest delay is 1500ms, from two different entries.
+		const panel = renderShell({
+			defaultOpen: true,
+			style: { transitionDuration: "200ms, 1000ms, 200ms", transitionDelay: "500ms, 0ms, 0ms" },
+		});
+		await userEvent.click(screen.getByRole("button", { name: "Toggle the assistant" }));
+		await expect
+			.poll(() => getComputedStyle(panel).transitionProperty, { timeout: 1300 })
+			.toBe("none");
 	});
 });
 
