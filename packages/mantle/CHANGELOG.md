@@ -1,5 +1,19 @@
 # @ngrok/mantle
 
+## 0.90.3
+
+### Patch Changes
+
+- [#1591](https://github.com/ngrok/mantle/pull/1591) [`5ba2ca6`](https://github.com/ngrok/mantle/commit/5ba2ca6e036e036e59e7eb9c8c4ac20ec23121a6) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Keep `Accordion.Trigger` the same size when its section opens. The trigger no longer moves 8px of its bottom padding to `Accordion.Body`, so the header and the gap to the content stay still while only `Accordion.Content` moves. `Accordion.Body` now has `pt-1`, which keeps the focus ring off the first line. The content height and opacity, and the caret, ease with the strong ease-out curve. The caret no longer turns when the user prefers reduced motion. Remove a `data-state-open:pb-4` override from `Accordion.Trigger`; it is now the default.
+
+- [#1591](https://github.com/ngrok/mantle/pull/1591) [`5ba2ca6`](https://github.com/ngrok/mantle/commit/5ba2ca6e036e036e59e7eb9c8c4ac20ec23121a6) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add `DataTable.ControlCell`, a `<td>` for a row's expand toggle or selection checkbox. A click on its padding focuses and clicks the control, and no click in it reaches a clickable row. The control aligns with the first line of a multi-line row. The cell shows a pointer cursor while it holds an enabled control. When its control is disabled, a click reaches the row.
+
+  Support sub-rows in `DataTable.RowExpandButton`. For a row with sub-rows, the accessible label is `Expand …` / `Collapse …`. The button sets `aria-controls` only when the row also renders a detail panel through `renderExpanded`. Previously it pointed `aria-controls` at a missing element.
+
+  When `DataTable.RowExpandButton` expands a row, its sub-rows and `DataTable.ExpandedRow` fade in and the rows below slide down, with a 200 ms strong ease-out. When it collapses a row, that content fades out while the rows below slide up over it, and a click during the collapse reverses it. The motion is off when the user prefers reduced motion.
+
+- [#1594](https://github.com/ngrok/mantle/pull/1594) [`c2c9c6e`](https://github.com/ngrok/mantle/commit/c2c9c6ee80d0e6d08e2d16d8e1bffa58dba84dfe) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Stop a closed `AppLayout.SidePanel` from sliding when the viewport crosses `mobileBreakpoint` or the rail changes. When a close ends, the transition stays off until the next open, so the closed panel changes presentation at once. An open and a close still slide, and a merged `duration-*` still sets how long a close runs.
+
 ## 0.90.2
 
 ### Patch Changes
