@@ -616,6 +616,18 @@ type DataTableRowProps<TFeatures extends TableFeatures, TData extends RowData> =
 } & WithDataSlot;
 
 /**
+ * The enter motion for a row that appears when its parent expands: a sub-row
+ * or a detail panel. It fades in and settles 4px down with a strong ease-out.
+ * `@starting-style` (the `starting:` variant) gives the state before
+ * insertion, so the motion runs on mount with no JavaScript. Without the
+ * transition, the starting style has no effect, so `motion-safe:` alone turns
+ * the motion off for reduced-motion users. Collapse has no exit motion: the
+ * expanded row model removes the rows at once.
+ */
+const expandEnterClassName =
+	"starting:-translate-y-1 starting:opacity-0 motion-safe:transition-[opacity,translate] motion-safe:duration-200 motion-safe:ease-out-strong";
+
+/**
  * Whether the enclosing `DataTable.Row` renders a detail panel through
  * `renderExpanded`. `DataTable.RowExpandButton` reads it to point
  * `aria-controls` at the panel of a row that also has sub-rows.
@@ -673,8 +685,12 @@ function isRowActivationClick(event: MouseEvent<HTMLTableRowElement>): boolean {
  *
  * Pass `renderExpanded` to give the row an inline detail panel: when the row is
  * expanded the row renders its data `<tr>` plus a sibling `DataTable.ExpandedRow`
- * holding the returned content. Pair it with a `DataTable.RowExpandButton` toggle
- * and register `rowExpandingFeature` and `getRowCanExpand` on the table.
+ * holding the returned content. Pair it with a `DataTable.RowExpandButton`
+ * toggle and register `rowExpandingFeature` and `getRowCanExpand` on the
+ * table.
+ *
+ * A sub-row (`row.depth > 0`) fades in when its parent expands, unless the
+ * user prefers reduced motion.
  *
  * The row subscribes to the whole table state and to the table options. It
  * re-renders its cells when any state slice changes or when `useTable` receives
@@ -749,7 +765,11 @@ function Row<TFeatures extends TableFeatures, TData extends RowData>({
 				// Styling and test hook for "this row runs a handler on click", so a
 				// consumer never has to read `cursor-pointer` off the class list.
 				data-clickable={onClick != null ? "" : undefined}
-				className={cx(onClick != null && "cursor-pointer", className)}
+				className={cx(
+					row.depth > 0 && expandEnterClassName,
+					onClick != null && "cursor-pointer",
+					className,
+				)}
 				onClick={
 					onClick &&
 					((event) => {
@@ -1437,8 +1457,8 @@ type DataTableExpandedRowProps<TFeatures extends TableFeatures, TData extends Ro
  * sits on an opaque card surface so horizontally-scrolled content never shows
  * through a sticky action column. Its top divider is suppressed so it reads as
  * one block with its parent row; the panel itself does not change on hover (only
- * the parent data row reacts to hover). Exposes `data-expanded-content` for
- * styling hooks.
+ * the parent data row reacts to hover). It fades in on mount, unless the user
+ * prefers reduced motion. Exposes `data-expanded-content` for styling hooks.
  *
  * @see https://mantle.ngrok.com/components/data-display/data-table#datatableexpandedrow
  *
@@ -1488,7 +1508,7 @@ function ExpandedRow<TFeatures extends TableFeatures, TData extends RowData>({
 			data-expanded-content
 			// Read as one block with the parent row: suppress the top divider that
 			// Table.Body paints between sibling rows.
-			className={cx("[&>td]:border-t-0", className)}
+			className={cx("[&>td]:border-t-0", expandEnterClassName, className)}
 			{...props}
 		>
 			<Table.Cell
