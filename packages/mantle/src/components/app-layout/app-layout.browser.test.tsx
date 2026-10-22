@@ -1,11 +1,12 @@
 "use client";
 
 import { render, screen } from "@testing-library/react";
-import type { ReactNode } from "react";
+import { StrictMode, type CSSProperties, type ReactNode } from "react";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { Combobox } from "../combobox/index.js";
 import { Sidebar } from "../sidebar/sidebar.js";
+import { TooltipProvider } from "../tooltip/index.js";
 import { AppLayout } from "./app-layout.js";
 
 /**
@@ -81,6 +82,14 @@ const STYLE = `
 	@media (width < 40rem) {
 		.max-sm\\:left-\\(--app-layout-card-gutter\\,0\\.5rem\\) { left: var(--app-layout-card-gutter, 0.5rem); }
 		.max-sm\\:w-auto { width: auto; }
+	}
+	.transition-\\[flex-basis\\,translate\\,visibility\\] { transition-property: flex-basis, translate, visibility; }
+	.duration-200 { transition-duration: 200ms; }
+	.transition-none { transition-property: none; }
+	@media (width < 64rem) {
+		.max-lg\\:data-state-closed\\:translate-x-\\[calc\\(100\\%\\+var\\(--app-layout-card-gutter\\,0\\.5rem\\)\\)\\][data-state~=closed] {
+			translate: calc(100% + var(--app-layout-card-gutter, 0.5rem)) 0;
+		}
 	}
 }
 `;
@@ -303,6 +312,70 @@ describe("AppLayout.SidePanel lane float", () => {
 		// Why: the cover pins both edges inside the 8px gutter, and a strip
 		// width from the row rule would pull the panel off the end edge.
 		expect(renderFloatingWidth("20rem")).toBe(320 - 16);
+	});
+});
+
+/**
+ * The viewport crosses the default `"lg"` breakpoint, so the closed panel
+ * changes from the lane to the float and its `translate` changes. The row
+ * keeps one width, so only the media query changes. A running CSS transition
+ * shows in `getAnimations()`. `StrictMode` replays each mount effect, the way
+ * an app's root does in development.
+ */
+describe("AppLayout.SidePanel motion across mobileBreakpoint", () => {
+	function renderShell({ defaultOpen, style }: { defaultOpen: boolean; style?: CSSProperties }) {
+		render(
+			<StrictMode>
+				<TooltipProvider>
+					<AppLayout.SidePanelRoot defaultOpen={defaultOpen}>
+						<AppLayout.Workspace style={{ width: "60rem" }}>
+							<AppLayout.Content>
+								<AppLayout.SidePanelTrigger label="Toggle the assistant" />
+							</AppLayout.Content>
+							<AppLayout.SidePanel aria-label="Assistant" style={style} />
+						</AppLayout.Workspace>
+					</AppLayout.SidePanelRoot>
+				</TooltipProvider>
+			</StrictMode>,
+		);
+		return screen.getByRole("complementary", { hidden: true });
+	}
+
+	test("a closed panel snaps when the viewport crosses the breakpoint", async () => {
+		await page.viewport(1280, 800);
+		const panel = renderShell({ defaultOpen: false });
+		await page.viewport(800, 600);
+		await expect.poll(() => getComputedStyle(panel).translate).not.toBe("none");
+		expect(panel.getAnimations()).toHaveLength(0);
+	});
+
+	test("a close still slides, and the closed panel snaps after the slide ends", async () => {
+		await page.viewport(800, 600);
+		const panel = renderShell({ defaultOpen: true });
+		// Why a listener: under load, the click can return after the 200ms slide ends.
+		const slid: string[] = [];
+		panel.addEventListener("transitionrun", (event) => slid.push(event.propertyName));
+		await userEvent.click(screen.getByRole("button", { name: "Toggle the assistant" }));
+		expect(panel).toHaveAttribute("data-state", "closed");
+		await expect.poll(() => slid).toContain("translate");
+		await expect.poll(() => getComputedStyle(panel).transitionProperty).toBe("none");
+		await page.viewport(1280, 800);
+		await expect.poll(() => getComputedStyle(panel).translate).toBe("none");
+		expect(panel.getAnimations()).toHaveLength(0);
+	});
+
+	test("the gate shuts when the longest transition ends, with each delay paired to its duration", async () => {
+		await page.viewport(800, 600);
+		// Why these lists: the longest entry ends at 1000ms. The longest duration
+		// plus the longest delay is 1500ms, from two different entries.
+		const panel = renderShell({
+			defaultOpen: true,
+			style: { transitionDuration: "200ms, 1000ms, 200ms", transitionDelay: "500ms, 0ms, 0ms" },
+		});
+		await userEvent.click(screen.getByRole("button", { name: "Toggle the assistant" }));
+		await expect
+			.poll(() => getComputedStyle(panel).transitionProperty, { timeout: 1300 })
+			.toBe("none");
 	});
 });
 

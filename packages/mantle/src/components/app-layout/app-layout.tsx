@@ -870,6 +870,26 @@ function isSidePanelFloating(panel: HTMLElement | null): boolean {
 }
 
 /**
+ * The milliseconds until every transition on `panel` ends: the longest
+ * duration plus delay of one `transition-property` entry. The duration and
+ * delay lists repeat to the length of the property list, as CSS repeats them.
+ * It reads the computed style, so a consumer `duration-*` sets the wait.
+ */
+function readSidePanelTransitionMs(panel: HTMLElement): number {
+	const style = getComputedStyle(panel);
+	const toSeconds = (times: string) => times.split(",").map((time) => Number.parseFloat(time) || 0);
+	const durations = toSeconds(style.transitionDuration);
+	const delays = toSeconds(style.transitionDelay);
+	const ends = style.transitionProperty
+		.split(",")
+		.map(
+			(_, index) =>
+				(durations[index % durations.length] ?? 0) + (delays[index % delays.length] ?? 0),
+		);
+	return Math.max(0, ...ends) * 1000;
+}
+
+/**
  * The state and actions shared by every part under an
  * `AppLayout.SidePanelRoot`, returned by {@link useSidePanel}. Use it to build
  * a custom trigger, a close control, or close-on-navigate behavior.
@@ -1220,7 +1240,9 @@ type AppLayoutSidePanelProps = Omit<ComponentProps<"aside">, "id"> &
  * turns the panel around. `motion-reduce:transition-none` turns the slide into
  * a cut. `not-data-hydrated:transition-none` holds the transition until one
  * frame after hydration, so a state the client corrects after the server
- * render snaps instead of sliding on page load. The `transition-*` and
+ * render snaps instead of sliding on page load. When a close ends, the
+ * transition stays off until the next open, so a closed panel snaps when the
+ * viewport crosses `mobileBreakpoint` or the rail changes. The `transition-*` and
  * `duration-*` utilities are bare, so a merged `transition-none` or
  * `duration-*` replaces them through tailwind-merge.
  *
@@ -1349,6 +1371,25 @@ const SidePanel = ({
 	const isHydrated = useIsHydratedAfterPaint();
 	const composedRef = useComposedRefs(ref, panelRef);
 
+	// Why: only an open or a close may animate, and a closed panel also changes
+	// presentation at `mobileBreakpoint` or when the rail changes. The transition
+	// stays off from the end of a close to the next open.
+	const [closeEnded, setCloseEnded] = useState(!open);
+	useEffect(() => {
+		// Why reset on open and not in the cleanup: `StrictMode` replays the
+		// cleanup on mount, and a closed panel must keep the gate shut.
+		if (open) {
+			setCloseEnded(false);
+			return;
+		}
+		const panel = panelRef.current;
+		if (panel == null) {
+			return;
+		}
+		const timer = setTimeout(() => setCloseEnded(true), readSidePanelTransitionMs(panel));
+		return () => clearTimeout(timer);
+	}, [open, panelRef]);
+
 	// Why a viewport query and not the computed position: the cover is the one
 	// presentation the viewport alone decides, and this is the range Tailwind
 	// compiles the cover tier to.
@@ -1422,6 +1463,7 @@ const SidePanel = ({
 				// Why `visibility` too: the floating panel's closed `invisible` rides
 				// the slide; see `sidePanelFloatClassName`.
 				"transition-[flex-basis,translate,visibility] duration-200 ease-out-strong motion-reduce:transition-none not-data-hydrated:transition-none",
+				!open && closeEnded && "transition-none",
 				// The closed `basis-0` is in `sidePanelFloatClassName`, gated to the lane.
 				"data-state-closed:pointer-events-none",
 				sidePanelFloatClassName[mobileBreakpoint],
