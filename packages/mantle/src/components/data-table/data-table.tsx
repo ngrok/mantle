@@ -38,10 +38,16 @@ import {
 	type MouseEvent,
 	type ReactNode,
 	createContext,
+	useCallback,
 	useContext,
+	useEffect,
 	useMemo,
+	useRef,
+	useState,
 } from "react";
 import invariant from "tiny-invariant";
+import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
+import { getPrefersReducedMotion } from "../../hooks/use-prefers-reduced-motion.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
@@ -132,6 +138,161 @@ function useDataTableContext<
 	return context as DataTableContextShape<TFeatures, TData>;
 }
 
+/**
+ * How long the exit motion of a collapsing row's sub-rows and detail panel
+ * runs before the row collapses. Keep it equal to `duration-150` in
+ * `expandMotionClassName`.
+ */
+const collapseExitMs = 150;
+
+/**
+ * The easing of the rows that slide aside when a row expands or collapses.
+ * Keep it equal to mantle's `--ease-out-strong` theme value; `@theme inline`
+ * emits no CSS variable to read it from.
+ */
+const easeOutStrong = "cubic-bezier(0.23, 1, 0.32, 1)";
+
+/**
+ * How long the rows below an expanding or collapsing row slide. Keep it equal
+ * to `duration-200` in `expandMotionClassName`.
+ */
+const rowSlideMs = 200;
+
+type RowCollapse = {
+	/** The ids of expanded rows whose sub-rows and detail panel fade out. */
+	closingRowIds: ReadonlySet<string>;
+	/**
+	 * Expand the row: run `expand`, and slide the rows of `body` that it
+	 * pushes down.
+	 */
+	startExpand: (body: Element | null, expand: () => void) => void;
+	/**
+	 * Fade out the row's sub-rows and detail panel, then run `collapse` and
+	 * slide the rows of `body` that move up. Runs `collapse` at once when the
+	 * user prefers reduced motion.
+	 */
+	startCollapse: (rowId: string, body: Element | null, collapse: () => void) => void;
+	/** Stop a pending collapse, so the faded content returns. */
+	cancelCollapse: (rowId: string) => void;
+};
+
+const RowCollapseContext = createContext<RowCollapse | null>(null);
+
+const noClosingRowIds: ReadonlySet<string> = new Set();
+
+/**
+ * The expand and collapse motion state for `DataTable.Root`.
+ *
+ * - A collapse waits for the exit motion, so the rows stay mounted while they
+ *   fade out. A timer, not `transitionend`, ends the wait: a hidden tab or an
+ *   interrupted transition never fires the event.
+ * - A `<tr>` cannot animate its height, so the rows below slide instead
+ *   (FLIP). Before the change, record the offset of each row in the body.
+ *   After the commit, move each row that shifted back to its old offset and
+ *   animate it to its new one.
+ */
+function useRowCollapse(): RowCollapse {
+	const [closingRowIds, setClosingRowIds] = useState(noClosingRowIds);
+	const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+	const recordedOffsets = useRef<Map<HTMLTableRowElement, number> | null>(null);
+
+	const recordOffsets = useCallback((body: Element | null) => {
+		if (body == null || getPrefersReducedMotion()) {
+			return;
+		}
+		const offsets = new Map<HTMLTableRowElement, number>();
+		for (const tr of body.querySelectorAll<HTMLTableRowElement>(":scope > tr")) {
+			offsets.set(tr, tr.offsetTop);
+		}
+		recordedOffsets.current = offsets;
+		// A change that never commits (a vetoed toggle) must not leave offsets
+		// for a later, unrelated render to animate from.
+		requestAnimationFrame(() => {
+			if (recordedOffsets.current === offsets) {
+				recordedOffsets.current = null;
+			}
+		});
+	}, []);
+
+	// No dependency list: the change commits in whichever render follows it.
+	useIsomorphicLayoutEffect(() => {
+		const offsets = recordedOffsets.current;
+		if (offsets == null) {
+			return;
+		}
+		recordedOffsets.current = null;
+		for (const [tr, offsetTop] of offsets) {
+			const shift = offsetTop - tr.offsetTop;
+			if (tr.isConnected && shift !== 0) {
+				tr.animate([{ translate: `0 ${shift}px` }, { translate: "0 0" }], {
+					duration: rowSlideMs,
+					easing: easeOutStrong,
+				});
+			}
+		}
+	});
+
+	const startExpand = useCallback(
+		(body: Element | null, expand: () => void) => {
+			recordOffsets(body);
+			expand();
+		},
+		[recordOffsets],
+	);
+
+	useEffect(() => {
+		const pending = timers.current;
+		return () => {
+			for (const timer of pending.values()) {
+				clearTimeout(timer);
+			}
+		};
+	}, []);
+
+	const removeRowId = useCallback((rowId: string) => {
+		const timer = timers.current.get(rowId);
+		if (timer != null) {
+			clearTimeout(timer);
+			timers.current.delete(rowId);
+		}
+		setClosingRowIds((ids) => {
+			if (!ids.has(rowId)) {
+				return ids;
+			}
+			const next = new Set(ids);
+			next.delete(rowId);
+			return next;
+		});
+	}, []);
+
+	const startCollapse = useCallback(
+		(rowId: string, body: Element | null, collapse: () => void) => {
+			if (getPrefersReducedMotion()) {
+				collapse();
+				return;
+			}
+			removeRowId(rowId);
+			setClosingRowIds((ids) => new Set(ids).add(rowId));
+			timers.current.set(
+				rowId,
+				setTimeout(() => {
+					// Both updates land in one render, so the rows unmount without a
+					// frame at full opacity.
+					recordOffsets(body);
+					removeRowId(rowId);
+					collapse();
+				}, collapseExitMs),
+			);
+		},
+		[recordOffsets, removeRowId],
+	);
+
+	return useMemo(
+		() => ({ closingRowIds, startExpand, startCollapse, cancelCollapse: removeRowId }),
+		[closingRowIds, startExpand, startCollapse, removeRowId],
+	);
+}
+
 type DataTableProps<TFeatures extends TableFeatures, TData extends RowData> = ComponentProps<
 	typeof Table.Root
 > & {
@@ -198,12 +359,15 @@ function Root<TFeatures extends TableFeatures, TData extends RowData>({
 	...props
 }: DataTableProps<TFeatures, TData>) {
 	const context: DataTableContextShape<TFeatures, TData> = useMemo(() => ({ table }), [table]);
+	const rowCollapse = useRowCollapse();
 
 	return (
 		<DataTableContext.Provider value={context}>
-			<Table.Root data-slot={joinDataSlot(dataSlot, "data-table")} {...props}>
-				<Table.Element>{children}</Table.Element>
-			</Table.Root>
+			<RowCollapseContext.Provider value={rowCollapse}>
+				<Table.Root data-slot={joinDataSlot(dataSlot, "data-table")} {...props}>
+					<Table.Element>{children}</Table.Element>
+				</Table.Root>
+			</RowCollapseContext.Provider>
 		</DataTableContext.Provider>
 	);
 }
@@ -616,16 +780,38 @@ type DataTableRowProps<TFeatures extends TableFeatures, TData extends RowData> =
 } & WithDataSlot;
 
 /**
- * The enter motion for a row that appears when its parent expands: a sub-row
- * or a detail panel. It fades in and settles 4px down with a strong ease-out.
- * `@starting-style` (the `starting:` variant) gives the state before
- * insertion, so the motion runs on mount with no JavaScript. Without the
- * transition, the starting style has no effect, so `motion-safe:` alone turns
- * the motion off for reduced-motion users. Collapse has no exit motion: the
- * expanded row model removes the rows at once.
+ * The motion for a row that appears when its parent expands and goes when it
+ * collapses: a sub-row or a detail panel.
+ *
+ * - Enter: it fades in and settles 4px down over 200ms. `@starting-style`
+ *   (the `starting:` variant) gives the state before insertion, so the motion
+ *   runs on mount with no JavaScript.
+ * - Exit: `data-closing` fades it out and lifts it 4px over a shorter 150ms,
+ *   then the parent collapses (see `useRowCollapse`).
+ *
+ * Both use a strong ease-out, and a CSS transition, so a click during the exit
+ * reverses it from where it is. Without the transition, the starting style has
+ * no effect, so `motion-safe:` alone turns the motion off for reduced-motion
+ * users.
  */
-const expandEnterClassName =
-	"starting:-translate-y-1 starting:opacity-0 motion-safe:transition-[opacity,translate] motion-safe:duration-200 motion-safe:ease-out-strong";
+const expandMotionClassName = cx(
+	"starting:-translate-y-1 starting:opacity-0",
+	"motion-safe:transition-[opacity,translate] motion-safe:duration-200 motion-safe:ease-out-strong",
+	"data-closing:pointer-events-none data-closing:-translate-y-1 data-closing:opacity-0 motion-safe:data-closing:duration-150",
+);
+
+/**
+ * Whether a sub-row's ancestor is collapsing, so the sub-row fades out.
+ */
+function isRowClosing<TFeatures extends TableFeatures, TData extends RowData>(
+	row: TableRow<TFeatures, TData>,
+	closingRowIds: ReadonlySet<string>,
+): boolean {
+	if (closingRowIds.size === 0 || row.depth === 0) {
+		return false;
+	}
+	return row.getParentRows().some((parent) => closingRowIds.has(parent.id));
+}
 
 /**
  * Whether the enclosing `DataTable.Row` renders a detail panel through
@@ -689,8 +875,9 @@ function isRowActivationClick(event: MouseEvent<HTMLTableRowElement>): boolean {
  * toggle and register `rowExpandingFeature` and `getRowCanExpand` on the
  * table.
  *
- * A sub-row (`row.depth > 0`) fades in when its parent expands, unless the
- * user prefers reduced motion.
+ * A sub-row (`row.depth > 0`) fades in when `DataTable.RowExpandButton`
+ * expands its parent and fades out when it collapses it, unless the user
+ * prefers reduced motion.
  *
  * The row subscribes to the whole table state and to the table options. It
  * re-renders its cells when any state slice changes or when `useTable` receives
@@ -747,7 +934,9 @@ function Row<TFeatures extends TableFeatures, TData extends RowData>({
 	row,
 	...props
 }: DataTableRowProps<TFeatures, TData>) {
+	const closingRowIds = useContext(RowCollapseContext)?.closingRowIds ?? noClosingRowIds;
 	const renderRow = () => {
+		const isClosing = isRowClosing(row, closingRowIds);
 		// Why callMemoOrStaticFn: `getIsExpanded` and `getVisibleCells` exist on the
 		// row only when the table registers `rowExpandingFeature` and
 		// `columnVisibilityFeature`. The static functions read the same state, so a
@@ -762,11 +951,15 @@ function Row<TFeatures extends TableFeatures, TData extends RowData>({
 				// parent row visually with its `DataTable.ExpandedRow`). Absent when the
 				// row is collapsed or expansion is not configured.
 				data-expanded={isExpanded || undefined}
+				// A fading sub-row leaves the tab order and the accessibility tree at
+				// once; it is gone for the user before it is gone from the DOM.
+				data-closing={isClosing || undefined}
+				inert={isClosing || undefined}
 				// Styling and test hook for "this row runs a handler on click", so a
 				// consumer never has to read `cursor-pointer` off the class list.
 				data-clickable={onClick != null ? "" : undefined}
 				className={cx(
-					row.depth > 0 && expandEnterClassName,
+					row.depth > 0 && expandMotionClassName,
 					onClick != null && "cursor-pointer",
 					className,
 				)}
@@ -1380,7 +1573,9 @@ function RowExpandButton<TFeatures extends ExpandableTableFeatures, TData extend
 			return null;
 		}
 
-		const isExpanded = row.getIsExpanded();
+		// A collapsing row reads as collapsed while its content fades out, so the
+		// label, icon, and `aria-expanded` change on the click, not after the fade.
+		const isExpanded = row.getIsExpanded() && !isClosing;
 		const toggleExpanded = row.getToggleExpandedHandler();
 		// A row with sub-rows expands into sibling data rows. It has a detail panel
 		// only when its `DataTable.Row` also passes `renderExpanded`.
@@ -1413,7 +1608,16 @@ function RowExpandButton<TFeatures extends ExpandableTableFeatures, TData extend
 					if (event.defaultPrevented) {
 						return;
 					}
-					toggleExpanded();
+					const body = event.currentTarget.closest("tbody");
+					if (rowCollapse == null) {
+						toggleExpanded();
+					} else if (isClosing) {
+						rowCollapse.cancelCollapse(row.id);
+					} else if (isExpanded) {
+						rowCollapse.startCollapse(row.id, body, () => row.toggleExpanded(false));
+					} else {
+						rowCollapse.startExpand(body, toggleExpanded);
+					}
 				}}
 				{...props}
 			/>
@@ -1425,10 +1629,12 @@ function RowExpandButton<TFeatures extends ExpandableTableFeatures, TData extend
 	// options (`getRowCanExpand` decides whether it renders at all).
 	const options = useTableOptions();
 	const hasDetailPanel = useContext(DetailPanelContext);
+	const rowCollapse = useContext(RowCollapseContext);
+	const isClosing = rowCollapse?.closingRowIds.has(row.id) ?? false;
 	return (
 		<Subscribe
 			source={row.table.store}
-			selector={() => ({ isExpanded: row.getIsExpanded(), hasDetailPanel, options })}
+			selector={() => ({ isExpanded: row.getIsExpanded(), hasDetailPanel, isClosing, options })}
 		>
 			{renderToggle}
 		</Subscribe>
@@ -1464,8 +1670,9 @@ type DataTableExpandedRowProps<TFeatures extends TableFeatures, TData extends Ro
  * sits on an opaque card surface so horizontally-scrolled content never shows
  * through a sticky action column. Its top divider is suppressed so it reads as
  * one block with its parent row; the panel itself does not change on hover (only
- * the parent data row reacts to hover). It fades in on mount, unless the user
- * prefers reduced motion. Exposes `data-expanded-content` for styling hooks.
+ * the parent data row reacts to hover). It fades in on mount and fades out
+ * when `DataTable.RowExpandButton` collapses its row, unless the user prefers
+ * reduced motion. Exposes `data-expanded-content` for styling hooks.
  *
  * @see https://mantle.ngrok.com/components/data-display/data-table#datatableexpandedrow
  *
@@ -1509,13 +1716,18 @@ function ExpandedRow<TFeatures extends TableFeatures, TData extends RowData>({
 	const countVisibleCells = () =>
 		callMemoOrStaticFn(row, "getVisibleCells", row_getVisibleCells).length;
 
+	const isClosing = useContext(RowCollapseContext)?.closingRowIds.has(row.id) ?? false;
+
 	const renderPanel = ({ numberOfColumns }: { numberOfColumns: number }) => (
 		<Table.Row
 			data-slot={joinDataSlot(dataSlot, "data-table-expanded-row")}
 			data-expanded-content
+			// A fading panel leaves the tab order and the accessibility tree at once.
+			data-closing={isClosing || undefined}
+			inert={isClosing || undefined}
 			// Read as one block with the parent row: suppress the top divider that
 			// Table.Body paints between sibling rows.
-			className={cx("[&>td]:border-t-0", expandEnterClassName, className)}
+			className={cx("[&>td]:border-t-0", expandMotionClassName, className)}
 			{...props}
 		>
 			<Table.Cell

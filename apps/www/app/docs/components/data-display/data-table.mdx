@@ -26,18 +26,6 @@ A `DataTable` is for **dynamic, application data**: anywhere users need to sort,
 - Prefer [`Table`](/components/data-display/table) for **static, presentational** tabular content (pricing matrices, reference tables, invoice summaries).
 - `@ngrok/mantle/data-table` re-exports every TanStack Table export: `useTable`, `tableFeatures`, `createColumnHelper`, the `*Feature` objects (`rowSortingFeature`, `rowSelectionFeature`, `rowExpandingFeature`, and the rest), the `create*RowModel` factories, and the `sortFn_*`, `filterFn_*`, and `aggregationFn_*` functions. You don't need to add `@tanstack/react-table` as a separate dependency.
 
-<Example className="flex-col gap-6">
-	<div className="w-full">
-		<PaymentsDemo />
-	</div>
-	<div className="w-full">
-		<EndpointsDemo />
-	</div>
-	<div className="w-full">
-		<EmptyPaymentsDemo />
-	</div>
-</Example>
-
 ## Quick start
 
 The minimum viable `DataTable`. Copy, paste, replace the type and data:
@@ -104,7 +92,11 @@ function MyTable({ data }: { data: Row[] }) {
 }
 ```
 
-A fuller example in the shape of the first demo above, with sortable columns, row-click navigation, and a sticky action column:
+A fuller example, with sortable columns, row-click navigation, and a sticky action column:
+
+<Example>
+	<PaymentsDemo />
+</Example>
 
 ```tsx
 import { IconButton } from "@ngrok/mantle/button";
@@ -476,6 +468,48 @@ const isFiltered = globalFilter.trim() !== ""; // or table.state.columnFilters.l
 </DataTable.Body>;
 ```
 
+With no data at all, the table shows the first branch:
+
+<Example>
+	<EmptyPaymentsDemo />
+</Example>
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { DataTable, useTable } from "@ngrok/mantle/data-table";
+import { Empty } from "@ngrok/mantle/empty";
+import { TrayIcon } from "@phosphor-icons/react/Tray";
+
+const noPayments: Payment[] = [];
+
+function EmptyPaymentsTable() {
+	// `features` and `columns` are the ones in the example above.
+	const table = useTable({ features, data: noPayments, columns });
+
+	return (
+		<DataTable.Root table={table}>
+			<DataTable.Head />
+			<DataTable.Body>
+				<DataTable.EmptyRow>
+					<Empty.Root>
+						<Empty.Icon svg={<TrayIcon />} />
+						<Empty.Title>No payments yet</Empty.Title>
+						<Empty.Description>
+							<p>Payments you receive will appear here.</p>
+						</Empty.Description>
+						<Empty.Actions>
+							<Button type="button" appearance="filled" intent="neutral">
+								Create payment
+							</Button>
+						</Empty.Actions>
+					</Empty.Root>
+				</DataTable.EmptyRow>
+			</DataTable.Body>
+		</DataTable.Root>
+	);
+}
+```
+
 ### Navigating on row click
 
 Pass `onClick` to `DataTable.Row` and navigate with React Router's `href()` + `useNavigate()`. Render a `<Link>` inside the primary cell for keyboard and screen-reader users; the row `onClick` is a larger pointer target on top. Wrap the link in [`SandboxedOnClick`](/components/primitives/sandboxed-on-click) with `asChild` and `allowClickEventDefault`, so a click on the link navigates once and doesn't also run the row handler. Put a row's own controls, such as a selection checkbox or an expand toggle, in a [`DataTable.ControlCell`](#datatablecontrolcell). No click in that cell reaches the row handler.
@@ -556,7 +590,11 @@ function PaymentsTable({ data }: { data: Payment[] }) {
 
 ### Action column with a dropdown menu
 
-Define the action column with `columnHelper.display` and pair `DataTable.ActionHeader` with `DataTable.ActionCell`. The cell stops its own clicks, so the menu opens without a clickable row navigating.
+Define the action column with `columnHelper.display` and pair `DataTable.ActionHeader` with `DataTable.ActionCell`. The cell stops its own clicks, so the menu opens without a clickable row navigating. The table below is wider than the page, so it scrolls; the action column stays on the right edge.
+
+<Example>
+	<EndpointsDemo />
+</Example>
 
 ```tsx
 import { IconButton } from "@ngrok/mantle/button";
@@ -866,7 +904,7 @@ function SelectableTable({ data }: { data: Payment[] }) {
 
 Expand a row into an inline detail panel with a `+`/`−` toggle, ideal for inspecting a row's underlying record without leaving the table. Expansion is driven entirely by [TanStack Table's expansion state](https://tanstack.com/table/latest/docs/guide/expanding) (mantle does not invent its own). Register `rowExpandingFeature` with `expandedRowModel: createExpandedRowModel()`, and pass `getRowCanExpand: () => true` to `useTable` (required: without sub-rows, no row is expandable by default). A stable `getRowId` keeps both the expansion keys and the toggle's `aria-controls` association stable.
 
-Three parts cover the toggle: `DataTable.ExpandHeader` (the toggle column header), `DataTable.ControlCell` (the toggle's cell), and `DataTable.RowExpandButton` (the accessible `+`/`−` toggle). A click on the cell's padding toggles the row, and no click in the cell reaches a clickable row. For the detail panel itself, pass `renderExpanded` to `DataTable.Row`: when the row is expanded it renders its data row plus a sibling detail row holding the returned content, so you never hand-write the extra `<tr>` or the expand conditional. `renderExpanded` is called lazily (only while the row is open), so collapsed rows never build their panel. The detail row spans every visible column and sits on an opaque surface, so it coexists with a sticky [action column](#action-column-with-a-dropdown-menu). The detail row fades in over 200 ms with a strong ease-out. When the user prefers reduced motion, it appears at once.
+Three parts cover the toggle: `DataTable.ExpandHeader` (the toggle column header), `DataTable.ControlCell` (the toggle's cell), and `DataTable.RowExpandButton` (the accessible `+`/`−` toggle). A click on the cell's padding toggles the row, and no click in the cell reaches a clickable row. For the detail panel itself, pass `renderExpanded` to `DataTable.Row`: when the row is expanded it renders its data row plus a sibling detail row holding the returned content, so you never hand-write the extra `<tr>` or the expand conditional. `renderExpanded` is called lazily (only while the row is open), so collapsed rows never build their panel. The detail row spans every visible column and sits on an opaque surface, so it coexists with a sticky [action column](#action-column-with-a-dropdown-menu). When `DataTable.RowExpandButton` opens a row, its new rows fade in and the rows below slide down over 200 ms with a strong ease-out. When it closes a row, those rows fade out over 150 ms, then the rows below slide up. A click during the fade reverses it. When the user prefers reduced motion, rows open and close at once. A change that doesn't go through the button, such as `table.toggleAllRowsExpanded()`, has no motion.
 
 The detail panel below renders each row's object as JSON via [`CodeBlock`](/components/data-display/code-block), highlighted with [`jsonCodeBlockValue`](/components/data-display/code-block). It runs entirely on the client, with no Shiki runtime shipped to the browser, no build-time plugin, and no server roundtrip. Multi-line objects and arrays are collapsible by default, just like every other JSON code block (pass `{ foldable: false }` for a flat panel).
 
@@ -991,13 +1029,11 @@ Each row has two actions: the caret expands it, and a click anywhere else opens 
 - Pass `onClick` to `DataTable.Row` to open the row's page, as in [Navigating on row click](#navigating-on-row-click). Render a `Link` in the primary cell, wrapped in `SandboxedOnClick`, for keyboard and screen-reader users.
 - A leaf row's `DataTable.RowExpandButton` renders nothing, and its empty `DataTable.ControlCell` passes clicks to the row, so the leaf row opens its own page.
 
-For a row with sub-rows, the toggle's accessible label is `Expand …` / `Collapse …`, and it sets `aria-expanded`. It sets `aria-controls` only when the row also renders a detail panel through `renderExpanded`. New sub-rows fade in over 200 ms with a strong ease-out, and appear at once when the user prefers reduced motion. Pass `size="xs"` with `expandIcon` and `collapseIcon` for a caret. The `xs` button is 24 × 24 px, the WCAG 2.2 minimum target size.
+For a row with sub-rows, the toggle's accessible label is `Expand …` / `Collapse …`, and it sets `aria-expanded`. It sets `aria-controls` only when the row also renders a detail panel through `renderExpanded`. The sub-rows open and close with the same motion as a [detail panel](#expandable-rows). Pass `size="xs"` with `expandIcon` and `collapseIcon` for a caret. The `xs` button is 24 × 24 px, the WCAG 2.2 minimum target size. The demo puts the row's id in the query string instead of opening a page.
 
 <Example>
 	<SubRowsDemo />
 </Example>
-
-The demo puts the row's id in the query string instead of opening a page.
 
 ```tsx
 import { Badge } from "@ngrok/mantle/badge";

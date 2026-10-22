@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import {
 	type ComponentProps,
@@ -11,7 +11,8 @@ import {
 	useState,
 } from "react";
 import invariant from "tiny-invariant";
-import { describe, expect, test, vi } from "vitest";
+import { describe, expect, onTestFinished, test, vi } from "vitest";
+import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
 import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import type { SortingMode } from "../../utils/sorting/direction.js";
 import type { SortDirection } from "./types.js";
@@ -298,7 +299,10 @@ describe("DataTable.Row", () => {
 		expect(screen.getByTestId("row-row-1")).toHaveAttribute("data-expanded");
 
 		await user.click(screen.getByRole("button", { name: "Hide details for Alice" }));
-		expect(screen.getByTestId("row-row-1")).not.toHaveAttribute("data-expanded");
+		// The row collapses after its detail panel fades out.
+		await waitFor(() => {
+			expect(screen.getByTestId("row-row-1")).not.toHaveAttribute("data-expanded");
+		});
 	});
 });
 
@@ -991,6 +995,62 @@ describe("DataTable sub-rows", () => {
 		expect(names).toEqual(["deployment-1", "replica-1", "replica-2"]);
 
 		await user.click(screen.getByRole("button", { name: "Collapse deployment-1" }));
+		await waitFor(() => {
+			expect(screen.queryByText("replica-1")).not.toBeInTheDocument();
+		});
+	});
+
+	test("fades the sub-rows out before the parent collapses", async () => {
+		const user = userEvent.setup();
+		render(<SubRowsHarness />);
+		await user.click(screen.getByRole("button", { name: "Expand deployment-1" }));
+
+		await user.click(screen.getByRole("button", { name: "Collapse deployment-1" }));
+
+		// The toggle reads as collapsed at once, and the fading rows leave the
+		// tab order and the accessibility tree.
+		expect(screen.getByRole("button", { name: "Expand deployment-1" })).toHaveAttribute(
+			"aria-expanded",
+			"false",
+		);
+		const fadingRow = screen.getByText("replica-1").closest("tr");
+		expect(fadingRow).toHaveAttribute("data-closing");
+		expect(fadingRow).toHaveAttribute("inert");
+
+		await waitFor(() => {
+			expect(screen.queryByText("replica-1")).not.toBeInTheDocument();
+		});
+	});
+
+	test("keeps the sub-rows when the toggle is clicked again during the exit", async () => {
+		vi.useFakeTimers({ shouldAdvanceTime: true });
+		onTestFinished(() => {
+			vi.useRealTimers();
+		});
+		const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+		render(<SubRowsHarness />);
+		await user.click(screen.getByRole("button", { name: "Expand deployment-1" }));
+		await user.click(screen.getByRole("button", { name: "Collapse deployment-1" }));
+
+		await user.click(screen.getByRole("button", { name: "Expand deployment-1" }));
+		// Run past the exit's 150ms, where a collapse that was not cancelled lands.
+		await act(() => vi.advanceTimersByTimeAsync(200));
+
+		expect(screen.getByRole("button", { name: "Collapse deployment-1" })).toHaveAttribute(
+			"aria-expanded",
+			"true",
+		);
+		expect(screen.getByText("replica-1").closest("tr")).not.toHaveAttribute("data-closing");
+	});
+
+	test("collapses at once when the user prefers reduced motion", async () => {
+		mockMatchMedia({ "(prefers-reduced-motion: no-preference)": false });
+		const user = userEvent.setup();
+		render(<SubRowsHarness />);
+		await user.click(screen.getByRole("button", { name: "Expand deployment-1" }));
+
+		await user.click(screen.getByRole("button", { name: "Collapse deployment-1" }));
+
 		expect(screen.queryByText("replica-1")).not.toBeInTheDocument();
 	});
 
@@ -1403,7 +1463,10 @@ test("DataTable.Row renderExpanded on a table with only `rowExpandingFeature` op
 		"aria-expanded",
 		"false",
 	);
-	expect(screen.queryByTestId("panel")).not.toBeInTheDocument();
+	expect(screen.getByTestId("panel").closest("tr")).toHaveAttribute("data-closing");
+	await waitFor(() => {
+		expect(screen.queryByTestId("panel")).not.toBeInTheDocument();
+	});
 });
 
 const selectionFeatures = tableFeatures({ rowSelectionFeature });
