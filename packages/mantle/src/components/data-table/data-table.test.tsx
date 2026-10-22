@@ -951,32 +951,53 @@ const treeData: TreeRow[] = [
 ];
 
 type SubRowsHarnessProps = {
+	getRowCanExpand?: (row: TableRow<typeof expandableFeatures, TreeRow>) => boolean;
 	onRowClick?: (row: TableRow<typeof expandableFeatures, TreeRow>) => void;
 	renderExpanded?: (row: TableRow<typeof expandableFeatures, TreeRow>) => ReactNode;
+	/** Render buttons that change the expanded state outside the table. */
+	withOutsideControls?: boolean;
 };
 
-function SubRowsHarness({ onRowClick, renderExpanded }: SubRowsHarnessProps) {
+function SubRowsHarness({
+	getRowCanExpand,
+	onRowClick,
+	renderExpanded,
+	withOutsideControls,
+}: SubRowsHarnessProps) {
 	const table = useTable({
 		features: expandableFeatures,
 		data: treeData,
 		columns: treeColumns,
+		getRowCanExpand,
 		getSubRows: (row) => row.subRows,
 		getRowId: (row) => row.id,
 	});
 	return (
-		<DataTable.Root table={table}>
-			<DataTable.Head />
-			<DataTable.Body>
-				{table.getRowModel().rows.map((row) => (
-					<DataTable.Row
-						key={row.id}
-						row={row}
-						onClick={onRowClick && (() => onRowClick(row))}
-						renderExpanded={renderExpanded}
-					/>
-				))}
-			</DataTable.Body>
-		</DataTable.Root>
+		<>
+			{withOutsideControls && (
+				<>
+					<button type="button" onClick={() => table.toggleAllRowsExpanded(false)}>
+						Collapse all
+					</button>
+					<button type="button" onClick={() => table.toggleAllRowsExpanded(true)}>
+						Expand all
+					</button>
+				</>
+			)}
+			<DataTable.Root table={table}>
+				<DataTable.Head />
+				<DataTable.Body>
+					{table.getRowModel().rows.map((row) => (
+						<DataTable.Row
+							key={row.id}
+							row={row}
+							onClick={onRowClick && (() => onRowClick(row))}
+							renderExpanded={renderExpanded}
+						/>
+					))}
+				</DataTable.Body>
+			</DataTable.Root>
+		</>
 	);
 }
 
@@ -1079,6 +1100,46 @@ describe("DataTable sub-rows", () => {
 		invariant(panelCell, "the detail panel renders in a cell");
 		expect(button).toHaveAttribute("aria-controls", panelCell.id);
 	});
+
+	test("fades out a sub-row's detail panel when the parent collapses", async () => {
+		const user = userEvent.setup();
+		render(
+			<SubRowsHarness
+				getRowCanExpand={() => true}
+				renderExpanded={(row) => <span>Panel for {row.original.name}</span>}
+			/>,
+		);
+		await user.click(screen.getByRole("button", { name: "Expand deployment-1" }));
+		await user.click(screen.getByRole("button", { name: "Show details for replica-1" }));
+
+		await user.click(screen.getByRole("button", { name: "Collapse deployment-1" }));
+
+		const fadingPanel = screen.getByText("Panel for replica-1").closest("tr");
+		expect(fadingPanel).toHaveAttribute("data-closing");
+		expect(fadingPanel).toHaveAttribute("inert");
+	});
+
+	test("keeps the sub-rows that an outside change opens again during the exit", async () => {
+		vi.useFakeTimers({ shouldAdvanceTime: true });
+		onTestFinished(() => {
+			vi.useRealTimers();
+		});
+		const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+		render(<SubRowsHarness withOutsideControls />);
+		await user.click(screen.getByRole("button", { name: "Expand deployment-1" }));
+		await user.click(screen.getByRole("button", { name: "Collapse deployment-1" }));
+
+		await user.click(screen.getByRole("button", { name: "Collapse all" }));
+		await user.click(screen.getByRole("button", { name: "Expand all" }));
+		// Run past the exit, where the first collapse would land.
+		await act(() => vi.advanceTimersByTimeAsync(200));
+
+		expect(screen.getByRole("button", { name: "Collapse deployment-1" })).toHaveAttribute(
+			"aria-expanded",
+			"true",
+		);
+		expect(screen.getByText("replica-1").closest("tr")).not.toHaveAttribute("data-closing");
+	});
 });
 
 describe("DataTable.ControlCell", () => {
@@ -1143,6 +1204,51 @@ describe("DataTable.ControlCell", () => {
 		expect(checkbox).toHaveFocus();
 		expect(handleChange).toHaveBeenCalledTimes(1);
 		expect(handleRowClick).not.toHaveBeenCalled();
+	});
+
+	test("runs its own onClick once for a padding click", async () => {
+		const user = userEvent.setup();
+		const handleCellClick = vi.fn<() => void>();
+		render(
+			<Table.Root>
+				<Table.Element>
+					<Table.Body>
+						<Table.Row>
+							<DataTable.ControlCell data-testid="select-cell" onClick={handleCellClick}>
+								<input type="checkbox" aria-label="Select row" />
+							</DataTable.ControlCell>
+						</Table.Row>
+					</Table.Body>
+				</Table.Element>
+			</Table.Root>,
+		);
+
+		await user.click(screen.getByTestId("select-cell"));
+
+		expect(screen.getByRole("checkbox", { name: "Select row" })).toBeChecked();
+		expect(handleCellClick).toHaveBeenCalledTimes(1);
+	});
+
+	test("lets a padding click reach the row when its control is disabled", async () => {
+		const user = userEvent.setup();
+		const handleRowClick = vi.fn<() => void>();
+		render(
+			<Table.Root>
+				<Table.Element>
+					<Table.Body>
+						<Table.Row onClick={handleRowClick}>
+							<DataTable.ControlCell data-testid="select-cell">
+								<input type="checkbox" aria-label="Select row" disabled />
+							</DataTable.ControlCell>
+						</Table.Row>
+					</Table.Body>
+				</Table.Element>
+			</Table.Root>,
+		);
+
+		await user.click(screen.getByTestId("select-cell"));
+
+		expect(handleRowClick).toHaveBeenCalledTimes(1);
 	});
 
 	test("skips the forwarded click when its own onClick calls preventDefault", async () => {

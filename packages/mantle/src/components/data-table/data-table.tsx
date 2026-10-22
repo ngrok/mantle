@@ -46,7 +46,6 @@ import {
 	useState,
 } from "react";
 import invariant from "tiny-invariant";
-import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
 import { getPrefersReducedMotion } from "../../hooks/use-prefers-reduced-motion.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
@@ -152,8 +151,27 @@ const easeOutStrong = "cubic-bezier(0.23, 1, 0.32, 1)";
  */
 const rowSlideMs = 200;
 
-/** A row that slides, and the animation that moves it. */
-type RowSlide = { row: HTMLTableRowElement; animation: Animation };
+/** A row's slide, and the offset it moves the row to. */
+type RowSlide = { animation: Animation; to: number };
+
+/** A collapse that waits for its content to fade out. */
+type PendingCollapse = {
+	body: Element;
+	timer: ReturnType<typeof setTimeout>;
+	/** The rows that fade out. Empty until the closing state commits. */
+	rows: Set<Element>;
+};
+
+/** The motion state of one `<tbody>`, while a change in it is pending. */
+type BodyMotion = {
+	observer: MutationObserver;
+	/** The offset each row showed at before a change that this hook made. */
+	before: ReadonlyMap<HTMLTableRowElement, number> | null;
+	/** The offset each row rests at after its slide. */
+	rest: ReadonlyMap<HTMLTableRowElement, number>;
+	/** The collapse that owns the rows that the next commit marks as closing. */
+	awaiting: string | null;
+};
 
 type RowCollapse = {
 	/** The ids of expanded rows whose sub-rows and detail panel fade out. */
@@ -182,132 +200,111 @@ function bodyRows(body: Element): ReadonlyArray<HTMLTableRowElement> {
 	return [...body.querySelectorAll<HTMLTableRowElement>(":scope > tr")];
 }
 
-/** Slide a row from its current offset to `to`, from wherever it is now. */
-function slideRow(row: HTMLTableRowElement, to: string, fill: FillMode): Animation {
-	const from = getComputedStyle(row).translate;
-	for (const animation of row.getAnimations()) {
-		animation.cancel();
+/**
+ * The offset a row shows at: its layout offset plus its current `translate`,
+ * mid-slide included.
+ */
+function visualOffset(row: HTMLTableRowElement): number {
+	const [, y = "0px"] = getComputedStyle(row).translate.split(" ");
+	return row.offsetTop + (Number.parseFloat(y) || 0);
+}
+
+/**
+ * Slide each row of `body` from the offset it showed at in `before` to its
+ * target, and return the offset each row rests at.
+ *
+ * A closing row keeps its place while it fades. Each other row moves up by
+ * the height of the closing rows above it, so it covers them. A row that is
+ * not in `before` is new: it starts at its target and does not slide.
+ */
+function slideRows(
+	body: Element,
+	before: ReadonlyMap<HTMLTableRowElement, number>,
+	slides: WeakMap<HTMLTableRowElement, RowSlide>,
+): ReadonlyMap<HTMLTableRowElement, number> {
+	const rest = new Map<HTMLTableRowElement, number>();
+	// The height of the closing runs above the row, and of the run it is in.
+	let coveredHeight = 0;
+	let runHeight = 0;
+	for (const row of bodyRows(body)) {
+		if (row.hasAttribute("data-closing")) {
+			runHeight += row.offsetHeight;
+		} else {
+			coveredHeight += runHeight;
+			runHeight = 0;
+		}
+		const to = -coveredHeight;
+		const shown = before.get(row);
+		// Under half a pixel is rounding in the layout, not a move.
+		const from =
+			shown == null || Math.abs(shown - row.offsetTop - to) < 0.5 ? to : shown - row.offsetTop;
+		rest.set(row, row.offsetTop + to);
+
+		const current = slides.get(row);
+		if (from === to && (current?.to ?? 0) === to) {
+			continue;
+		}
+		slides.delete(row);
+		if (from !== to || to !== 0) {
+			// Start from where the row shows now, not by reversing a slide: a
+			// reversed ease-out plays as a slow ease-in. A row that covers a
+			// closing row holds its offset until the closing row is gone.
+			const animation = row.animate([{ translate: `0 ${from}px` }, { translate: `0 ${to}px` }], {
+				duration: from === to ? 0 : rowSlideMs,
+				easing: easeOutStrong,
+				fill: to === 0 ? "none" : "forwards",
+			});
+			slides.set(row, { animation, to });
+		}
+		current?.animation.cancel();
 	}
-	return row.animate([{ translate: from === "none" ? "0 0" : from }, { translate: to }], {
-		duration: rowSlideMs,
-		easing: easeOutStrong,
-		fill,
-	});
+	return rest;
 }
 
 /**
  * The expand and collapse motion for `DataTable.Root`. A `<tr>` cannot
  * animate its height, so the rows below move with `translate` instead.
  *
- * - Expand: record the offset of each row, expand, then slide each row that
- *   moved from its old offset to its new one (FLIP). The new rows fade in
+ * - Expand: record the offset each row shows at, expand, then slide each row
+ *   that moved from that offset to its new one (FLIP). The new rows fade in
  *   under the rows that slide away.
  * - Collapse: mark the row as closing, so its sub-rows and detail panel fade
  *   out, and slide the rows below up over them by the height they leave. When
  *   the slide ends, collapse. The rows below hold their place with
  *   `fill: "forwards"` until the commit, so the layout change shows nothing.
  *
+ * A `MutationObserver` on the `<tbody>` runs each slide after the commit that
+ * changes the rows, before the paint. The rows can commit without a render of
+ * `DataTable.Root` (a `useTable` selector that leaves out the expanded state),
+ * so a layout effect in the root can miss the commit. Each slide starts from
+ * the offset the row shows at, so a second expand or collapse during a slide
+ * continues from there. A collapse whose content an outside change removes (a
+ * controlled `expanded` state) ends at once, and does not collapse the row
+ * later.
+ *
  * Both mirror each other on the same curve and duration. A timer, not an
  * `animationend` event, ends the wait: a hidden tab never fires it.
  */
 function useRowCollapse(): RowCollapse {
 	const [closingRowIds, setClosingRowIds] = useState(noClosingRowIds);
-	const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
-	const recordedOffsets = useRef<Map<HTMLTableRowElement, number> | null>(null);
-	const closingBodies = useRef(new Map<string, Element>());
-	const slides = useRef(new Map<string, ReadonlyArray<RowSlide>>());
-	const committedSlides = useRef<Array<Animation>>([]);
+	const collapses = useRef(new Map<string, PendingCollapse>());
+	const bodies = useRef(new Map<Element, BodyMotion>());
+	const slides = useRef(new WeakMap<HTMLTableRowElement, RowSlide>());
 
 	useEffect(() => {
-		const pendingTimers = timers.current;
-		const pendingSlides = slides.current;
+		const pendingCollapses = collapses.current;
+		const observedBodies = bodies.current;
 		return () => {
-			for (const timer of pendingTimers.values()) {
+			for (const { timer } of pendingCollapses.values()) {
 				clearTimeout(timer);
 			}
-			for (const rowSlides of pendingSlides.values()) {
-				for (const { animation } of rowSlides) {
-					animation.cancel();
-				}
+			for (const { observer } of observedBodies.values()) {
+				observer.disconnect();
 			}
 		};
 	}, []);
 
-	const recordOffsets = useCallback((body: Element | null) => {
-		if (body == null || getPrefersReducedMotion()) {
-			return;
-		}
-		const offsets = new Map(bodyRows(body).map((row) => [row, row.offsetTop]));
-		recordedOffsets.current = offsets;
-		// A change that never commits (a vetoed toggle) must not leave offsets
-		// for a later, unrelated render to animate from.
-		requestAnimationFrame(() => {
-			if (recordedOffsets.current === offsets) {
-				recordedOffsets.current = null;
-			}
-		});
-	}, []);
-
-	// No dependency list: each change commits in whichever render follows it.
-	useIsomorphicLayoutEffect(() => {
-		// A collapse committed: its rows are gone, so the rows below sit where
-		// their slide put them. Drop the held slides before the paint.
-		for (const animation of committedSlides.current) {
-			animation.cancel();
-		}
-		committedSlides.current = [];
-
-		// An expand committed: slide each moved row from its old offset.
-		const offsets = recordedOffsets.current;
-		recordedOffsets.current = null;
-		for (const [row, offsetTop] of offsets ?? []) {
-			const shift = offsetTop - row.offsetTop;
-			if (row.isConnected && shift !== 0) {
-				row.animate([{ translate: `0 ${shift}px` }, { translate: "0 0" }], {
-					duration: rowSlideMs,
-					easing: easeOutStrong,
-				});
-			}
-		}
-
-		// A collapse started: its rows now carry `data-closing`. Slide every row
-		// below them up by the height they leave.
-		for (const [rowId, body] of closingBodies.current) {
-			closingBodies.current.delete(rowId);
-			let closingHeight = 0;
-			const rowSlides: Array<RowSlide> = [];
-			for (const row of bodyRows(body)) {
-				if (row.hasAttribute("data-closing")) {
-					closingHeight += row.offsetHeight;
-				} else if (closingHeight > 0) {
-					rowSlides.push({ row, animation: slideRow(row, `0 ${-closingHeight}px`, "forwards") });
-				}
-			}
-			slides.current.set(rowId, rowSlides);
-		}
-	});
-
-	const startExpand = useCallback(
-		(body: Element | null, expand: () => void) => {
-			recordOffsets(body);
-			expand();
-		},
-		[recordOffsets],
-	);
-
-	const cancelCollapse = useCallback((rowId: string) => {
-		const timer = timers.current.get(rowId);
-		if (timer != null) {
-			clearTimeout(timer);
-			timers.current.delete(rowId);
-		}
-		closingBodies.current.delete(rowId);
-		// Slide back from wherever the rows are, not by reversing the slide:
-		// a reversed ease-out plays as a slow ease-in.
-		for (const { row } of slides.current.get(rowId) ?? []) {
-			slideRow(row, "0 0", "none");
-		}
-		slides.current.delete(rowId);
+	const removeClosingRowId = useCallback((rowId: string) => {
 		setClosingRowIds((ids) => {
 			if (!ids.has(rowId)) {
 				return ids;
@@ -318,6 +315,131 @@ function useRowCollapse(): RowCollapse {
 		});
 	}, []);
 
+	/** Stop observing a body when no change in it is pending. */
+	const releaseBody = useCallback((body: Element) => {
+		const motion = bodies.current.get(body);
+		if (motion == null || motion.before != null) {
+			return;
+		}
+		for (const collapse of collapses.current.values()) {
+			if (collapse.body === body) {
+				return;
+			}
+		}
+		motion.observer.disconnect();
+		bodies.current.delete(body);
+	}, []);
+
+	const handleMutations = useCallback(
+		(body: Element, records: ReadonlyArray<MutationRecord>) => {
+			const motion = bodies.current.get(body);
+			// Only a change to the body's own rows moves them; ignore cell content.
+			const rowRecords = records.filter((record) =>
+				record.type === "childList" ? record.target === body : record.target.parentNode === body,
+			);
+			if (motion == null || rowRecords.length === 0) {
+				return;
+			}
+
+			const awaiting = motion.awaiting == null ? null : collapses.current.get(motion.awaiting);
+			for (const record of rowRecords) {
+				const { target } = record;
+				if (
+					awaiting != null &&
+					record.type === "attributes" &&
+					target instanceof Element &&
+					target.hasAttribute("data-closing")
+				) {
+					awaiting.rows.add(target);
+				}
+			}
+			if (awaiting != null && awaiting.rows.size > 0) {
+				motion.awaiting = null;
+			}
+
+			// An outside change removed a collapse's content before its timer: the
+			// row is collapsed already. Never collapse it again later, because the
+			// change can have opened it since.
+			for (const [rowId, collapse] of collapses.current) {
+				if (
+					collapse.body === body &&
+					collapse.rows.size > 0 &&
+					![...collapse.rows].some((row) => row.isConnected)
+				) {
+					clearTimeout(collapse.timer);
+					collapses.current.delete(rowId);
+					removeClosingRowId(rowId);
+				}
+			}
+
+			// A change that this hook did not start (an outside collapse) has no
+			// recorded offsets, so the rows start from where they rest.
+			const before = motion.before ?? motion.rest;
+			motion.before = null;
+			motion.rest = slideRows(body, before, slides.current);
+			releaseBody(body);
+		},
+		[releaseBody, removeClosingRowId],
+	);
+
+	/**
+	 * Record the offset each row of `body` shows at, before a change that
+	 * moves them, and observe the commit of that change.
+	 */
+	const recordOffsets = useCallback(
+		(body: Element): BodyMotion => {
+			let motion = bodies.current.get(body);
+			if (motion == null) {
+				const observer = new MutationObserver((records) => handleMutations(body, records));
+				observer.observe(body, {
+					attributeFilter: ["data-closing"],
+					childList: true,
+					subtree: true,
+				});
+				motion = { observer, before: null, rest: new Map(), awaiting: null };
+				bodies.current.set(body, motion);
+			}
+			if (motion.before == null) {
+				const before = new Map(bodyRows(body).map((row) => [row, visualOffset(row)]));
+				motion.before = before;
+				// A change that never commits (a vetoed toggle) must not leave offsets
+				// for a later, unrelated commit to slide from.
+				const pending = motion;
+				requestAnimationFrame(() => {
+					if (pending.before === before) {
+						pending.before = null;
+						releaseBody(body);
+					}
+				});
+			}
+			return motion;
+		},
+		[handleMutations, releaseBody],
+	);
+
+	const startExpand = useCallback(
+		(body: Element | null, expand: () => void) => {
+			if (body != null && !getPrefersReducedMotion()) {
+				recordOffsets(body);
+			}
+			expand();
+		},
+		[recordOffsets],
+	);
+
+	const cancelCollapse = useCallback(
+		(rowId: string) => {
+			const collapse = collapses.current.get(rowId);
+			if (collapse != null) {
+				clearTimeout(collapse.timer);
+				collapses.current.delete(rowId);
+				recordOffsets(collapse.body);
+			}
+			removeClosingRowId(rowId);
+		},
+		[recordOffsets, removeClosingRowId],
+	);
+
 	const startCollapse = useCallback(
 		(rowId: string, body: Element | null, collapse: () => void) => {
 			if (body == null || getPrefersReducedMotion()) {
@@ -325,28 +447,22 @@ function useRowCollapse(): RowCollapse {
 				return;
 			}
 			cancelCollapse(rowId);
-			closingBodies.current.set(rowId, body);
-			setClosingRowIds((ids) => new Set(ids).add(rowId));
-			timers.current.set(
-				rowId,
-				setTimeout(() => {
-					timers.current.delete(rowId);
-					for (const { animation } of slides.current.get(rowId) ?? []) {
-						committedSlides.current.push(animation);
-					}
-					slides.current.delete(rowId);
+			recordOffsets(body).awaiting = rowId;
+			collapses.current.set(rowId, {
+				body,
+				rows: new Set(),
+				timer: setTimeout(() => {
+					collapses.current.delete(rowId);
+					recordOffsets(body);
 					// Both updates land in one render, so the rows unmount in the
 					// same commit that drops their closing state.
-					setClosingRowIds((ids) => {
-						const next = new Set(ids);
-						next.delete(rowId);
-						return next;
-					});
+					removeClosingRowId(rowId);
 					collapse();
 				}, rowSlideMs),
-			);
+			});
+			setClosingRowIds((ids) => new Set(ids).add(rowId));
 		},
-		[cancelCollapse],
+		[cancelCollapse, recordOffsets, removeClosingRowId],
 	);
 
 	return useMemo(
@@ -1337,8 +1453,10 @@ type DataTableControlCellProps = ComponentProps<typeof Table.Cell> & WithDataSlo
 
 /**
  * The controls that a click on a `DataTable.ControlCell`'s padding activates.
+ * A disabled control cannot take the click, so the click goes to the row.
+ * Why `:not(:disabled)`, not `:enabled`: happy-dom does not match `:enabled`.
  */
-const controlCellControlSelector = "button, input";
+const controlCellControlSelector = "button:not(:disabled), input:not(:disabled)";
 
 /**
  * Whether an event target is a DOM node. Why not `instanceof Node`: a row in
@@ -1355,8 +1473,9 @@ function isNode(target: EventTarget | null): target is Node {
  *
  * - A click on the cell's padding focuses and clicks the control, so a click
  *   that misses a small control still toggles it instead of navigating.
- * - When the cell holds no control (a leaf row's `RowExpandButton` renders
- *   nothing), the click reaches the row as usual.
+ * - When the cell holds no enabled control (a leaf row's `RowExpandButton`
+ *   renders nothing, or the checkbox is disabled), the click reaches the row
+ *   as usual.
  * - The cell shows a pointer cursor only while it holds an enabled control.
  *   An empty cell keeps the row's cursor.
  * - The control aligns with the first line of text, so it stays beside a
@@ -1366,8 +1485,9 @@ function isNode(target: EventTarget | null): target is Node {
  * `role="cell"` and gets no `tabIndex`, so keyboard and screen-reader users
  * reach the control itself. Never add a role or `tabIndex` to the cell.
  *
- * Your own `onClick` runs first. Call `event.preventDefault()` in it to stop
- * the padding click from reaching the control.
+ * Your own `onClick` runs first, once for each click. Call
+ * `event.preventDefault()` in it to stop the padding click from reaching the
+ * control.
  *
  * **Structure.** `children` render inside a
  * `<span data-slot="data-table-control-cell-label">` that is one line of text
@@ -1402,6 +1522,9 @@ function ControlCell({
 	onClick,
 	...props
 }: DataTableControlCellProps) {
+	// The forwarded click bubbles back to this cell. It is the same click, so
+	// `onClick` already ran for it.
+	const isForwarding = useRef(false);
 	return (
 		<Table.Cell
 			data-slot={joinDataSlot(dataSlot, "data-table-control-cell")}
@@ -1414,19 +1537,26 @@ function ControlCell({
 				className,
 			)}
 			onClick={(event) => {
+				if (isForwarding.current) {
+					event.stopPropagation();
+					return;
+				}
 				onClick?.(event);
 				const control = event.currentTarget.querySelector<HTMLElement>(controlCellControlSelector);
 				if (control == null) {
 					return;
 				}
 				event.stopPropagation();
-				// The forwarded click bubbles back here with the control as its
-				// target, so the `contains` check also ends the round trip.
 				if (!event.defaultPrevented && isNode(event.target) && !control.contains(event.target)) {
 					// Focus first, as a native `<label>` click does, so the next Tab
 					// starts from the control the user acted on.
 					control.focus({ preventScroll: true });
-					control.click();
+					isForwarding.current = true;
+					try {
+						control.click();
+					} finally {
+						isForwarding.current = false;
+					}
 				}
 			}}
 			{...props}
@@ -1778,7 +1908,9 @@ function ExpandedRow<TFeatures extends TableFeatures, TData extends RowData>({
 	const countVisibleCells = () =>
 		callMemoOrStaticFn(row, "getVisibleCells", row_getVisibleCells).length;
 
-	const isClosing = useContext(RowCollapseContext)?.closingRowIds.has(row.id) ?? false;
+	// A sub-row's panel also fades out when an ancestor of the row collapses.
+	const closingRowIds = useContext(RowCollapseContext)?.closingRowIds ?? noClosingRowIds;
+	const isClosing = closingRowIds.has(row.id) || isRowClosing(row, closingRowIds);
 
 	const renderPanel = ({ numberOfColumns }: { numberOfColumns: number }) => (
 		<Table.Row

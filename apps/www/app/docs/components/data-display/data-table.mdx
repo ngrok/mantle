@@ -1310,7 +1310,7 @@ A click inside the cell never reaches a clickable row: the cell stops propagatio
 A `<td>` for a row's own control: a `DataTable.RowExpandButton` or a selection `Checkbox`. The whole cell is the control's pointer target, and no click in the cell runs a clickable row's `onClick`.
 
 - A click on the cell's padding focuses and clicks the control. A click that misses a small control toggles it instead of navigating.
-- When the cell holds no control (a leaf row's `RowExpandButton` renders nothing), the click reaches the row.
+- When the cell holds no enabled control (a leaf row's `RowExpandButton` renders nothing, or the checkbox is disabled), the click reaches the row.
 - The cell shows a pointer cursor only while it holds an enabled control. An empty cell keeps the row's cursor.
 - The control aligns with the first line of text, so it stays beside a two-line primary cell. On a one-line row, it is centered.
 

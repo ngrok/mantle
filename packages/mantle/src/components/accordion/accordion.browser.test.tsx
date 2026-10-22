@@ -12,9 +12,10 @@ import { Accordion } from "./accordion.js";
  * that the reveal handler un-clips the region.
  */
 
-// Why inline CSS: the browser project loads no Tailwind, so `h-0` is a bare class here.
-// The reveal handler's inline `height: auto` must beat this rule for the match to lay out.
-const STYLE = `.h-0 { height: 0; }`;
+// Why inline CSS: the browser project loads no Tailwind, so `h-0` and `opacity-0` are bare
+// classes here. The reveal handler's inline `height: auto` and `opacity: 1` must beat these
+// rules for the match to lay out and show.
+const STYLE = `.h-0 { height: 0; } .opacity-0 { opacity: 0; }`;
 
 let styleElement: HTMLStyleElement;
 
@@ -89,6 +90,7 @@ describe("Accordion (browser)", () => {
 		}
 		// Collapsed: the injected `h-0` clips the box to zero height.
 		expect(region.offsetHeight).toBe(0);
+		expect(getComputedStyle(region).opacity).toBe("0");
 
 		region.dispatchEvent(new Event("beforematch", { bubbles: true }));
 
@@ -101,6 +103,9 @@ describe("Accordion (browser)", () => {
 		expect(region).toHaveAttribute("data-state", "closed");
 		expect(region.style.height).toBe("auto");
 		expect(region.offsetHeight).toBeGreaterThan(0);
+		// The closed state is transparent, so a match the browser highlights now
+		// must not paint at zero opacity.
+		expect(getComputedStyle(region).opacity).toBe("1");
 	});
 
 	test('closing a "beforematch"-revealed section clears the inline height', async () => {
@@ -126,6 +131,7 @@ describe("Accordion (browser)", () => {
 		// must clear it so the class-driven `h-0 ↔ h-auto` slide takes over again.
 		await waitFor(() => expect(region).toHaveAttribute("data-state", "closed"));
 		await waitFor(() => expect(region.style.height).toBe(""));
+		expect(region.style.opacity).toBe("");
 		expect(region).toHaveAttribute("hidden", "until-found");
 	});
 });

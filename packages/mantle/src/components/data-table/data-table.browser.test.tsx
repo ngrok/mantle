@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { type ComponentProps, useMemo } from "react";
 import invariant from "tiny-invariant";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
@@ -7,7 +7,9 @@ import type { ButtonAppearance, ButtonIntent } from "../button/index.js";
 import {
 	DataTable,
 	createColumnHelper,
+	createExpandedRowModel,
 	createSortedRowModel,
+	rowExpandingFeature,
 	rowSortingFeature,
 	sortFn_alphanumeric,
 	tableFeatures,
@@ -173,5 +175,205 @@ describe("DataTable.HeaderSortButton (browser) — muted header text", () => {
 		render(<SortableHeaderHarness appearance="outlined" intent="danger" />);
 		const button = screen.getByRole("button", { name: "Name" });
 		expect(getComputedStyle(button).color).toBe("rgb(4, 5, 6)");
+	});
+});
+
+type TreeRow = { id: string; name: string; subRows?: TreeRow[] };
+
+const treeFeatures = tableFeatures({
+	rowExpandingFeature,
+	expandedRowModel: createExpandedRowModel(),
+});
+const treeColumnHelper = createColumnHelper<typeof treeFeatures, TreeRow>();
+const treeColumns = treeColumnHelper.columns([
+	treeColumnHelper.display({
+		id: "expander",
+		cell: (props) => (
+			<DataTable.ControlCell>
+				<DataTable.RowExpandButton row={props.row} label={props.row.original.name} />
+			</DataTable.ControlCell>
+		),
+	}),
+	treeColumnHelper.accessor("name", {
+		id: "name",
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+]);
+const twoParents: TreeRow[] = [
+	{
+		id: "a",
+		name: "a",
+		subRows: [
+			{ id: "a-1", name: "a-1" },
+			{ id: "a-2", name: "a-2" },
+		],
+	},
+	{
+		id: "b",
+		name: "b",
+		subRows: [
+			{ id: "b-1", name: "b-1" },
+			{ id: "b-2", name: "b-2" },
+		],
+	},
+	{ id: "tail", name: "tail" },
+];
+
+type TreeHarnessProps = {
+	data: TreeRow[];
+	/** Render a detail panel for each row, and select no state in `useTable`. */
+	withPanelsAndNoState?: boolean;
+};
+
+function TreeHarness({ data, withPanelsAndNoState = false }: TreeHarnessProps) {
+	const table = useTable(
+		{
+			features: treeFeatures,
+			data,
+			columns: treeColumns,
+			getRowCanExpand: withPanelsAndNoState ? () => true : undefined,
+			getSubRows: (row) => row.subRows,
+			getRowId: (row) => row.id,
+		},
+		// A selector that leaves out the expanded state: `DataTable.Root` and this
+		// component do not render again when a row expands.
+		withPanelsAndNoState ? () => null : undefined,
+	);
+	return (
+		<DataTable.Root table={table}>
+			<DataTable.Body>
+				{table.getRowModel().rows.map((row) => (
+					<DataTable.Row
+						key={row.id}
+						row={row}
+						renderExpanded={withPanelsAndNoState ? () => <span>Panel</span> : undefined}
+					/>
+				))}
+			</DataTable.Body>
+		</DataTable.Root>
+	);
+}
+
+// Why inline CSS: the browser project loads no Tailwind. A tall panel gives its
+// slide a long distance.
+const ROW_STYLE = `[data-expanded-content] > td { height: 40px; }`;
+
+function rowOf(text: string): HTMLTableRowElement {
+	const row = screen.getByText(text).closest("tr");
+	invariant(row, `expected a row for ${text}`);
+	return row;
+}
+
+/** The offset the row that holds `text` shows at, `translate` included. */
+function shownTop(text: string): number {
+	return rowOf(text).getBoundingClientRect().top;
+}
+
+/** Whether the row that holds `text` has stopped sliding. */
+function isSettled(text: string): boolean {
+	return rowOf(text).getAnimations().length === 0;
+}
+
+/** Stop each slide where it is, so a read before and after a commit compares one instant. */
+function pauseSlides(): void {
+	for (const animation of document.getAnimations()) {
+		animation.pause();
+	}
+}
+
+/** Run each slide to its end. */
+function finishSlides(): void {
+	for (const animation of document.getAnimations()) {
+		animation.finish();
+	}
+}
+
+/** Click a toggle and run the commit and its slide setup, but no frame. */
+async function clickToggle(name: string): Promise<void> {
+	const button = screen.getByRole("button", { name });
+	await act(async () => {
+		button.click();
+	});
+}
+
+describe("DataTable row motion (browser)", () => {
+	let styleElement: HTMLStyleElement;
+
+	beforeAll(() => {
+		styleElement = document.createElement("style");
+		styleElement.textContent = ROW_STYLE;
+		document.head.appendChild(styleElement);
+	});
+
+	afterAll(() => {
+		styleElement.remove();
+	});
+
+	test("slides the rows below a detail panel when no render of the root follows the expand", async () => {
+		render(
+			<TreeHarness
+				data={[
+					{ id: "a", name: "a" },
+					{ id: "tail", name: "tail" },
+				]}
+				withPanelsAndNoState
+			/>,
+		);
+		const startTop = shownTop("tail");
+
+		await clickToggle("Show details for a");
+
+		// The panel is in the layout, but the row below starts where it was.
+		expect(screen.getByText("Panel")).toBeInTheDocument();
+		expect(shownTop("tail")).toBeCloseTo(startTop, 0);
+		finishSlides();
+		expect(isSettled("tail")).toBe(true);
+		expect(shownTop("tail")).toBeGreaterThan(startTop + 40);
+	});
+
+	test("continues a slide from where the row shows when a second row expands", async () => {
+		render(<TreeHarness data={twoParents} />);
+		const startTop = shownTop("tail");
+		await clickToggle("Expand a");
+		pauseSlides();
+		for (const animation of rowOf("tail").getAnimations()) {
+			animation.currentTime = 30;
+		}
+		const midTop = shownTop("tail");
+		expect(midTop).toBeGreaterThan(startTop);
+
+		await clickToggle("Expand b");
+
+		expect(shownTop("tail")).toBeCloseTo(midTop, 0);
+		finishSlides();
+		expect(isSettled("tail")).toBe(true);
+	});
+
+	test("keeps the rows below in place when a collapse commits during another", async () => {
+		vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+		render(<TreeHarness data={twoParents} />);
+		const endTop = shownTop("tail");
+		await clickToggle("Expand a");
+		await clickToggle("Expand b");
+		finishSlides();
+
+		await clickToggle("Collapse a");
+		await act(() => vi.advanceTimersByTimeAsync(100));
+		await clickToggle("Collapse b");
+		pauseSlides();
+		const shownBefore = { b: shownTop("b"), tail: shownTop("tail") };
+		// Run to the first collapse's commit only.
+		await act(() => vi.advanceTimersByTimeAsync(100));
+
+		expect(screen.queryByText("a-1")).not.toBeInTheDocument();
+		expect(screen.getByText("b-1")).toBeInTheDocument();
+		expect(shownTop("b")).toBeCloseTo(shownBefore.b, 0);
+		expect(shownTop("tail")).toBeCloseTo(shownBefore.tail, 0);
+
+		await act(() => vi.advanceTimersByTimeAsync(100));
+		finishSlides();
+		expect(screen.queryByText("b-1")).not.toBeInTheDocument();
+		expect(isSettled("tail")).toBe(true);
+		expect(shownTop("tail")).toBeCloseTo(endTop, 0);
 	});
 });

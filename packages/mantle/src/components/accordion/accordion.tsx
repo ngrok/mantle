@@ -527,10 +527,13 @@ const Content = ({
 			// `h-0 overflow-hidden` when the browser paints its find highlight, so the
 			// match opens but its highlight is clipped to zero height and lost. Removing
 			// `hidden` restores `content-visibility`, so setting `height: auto` lays the
-			// text out at full height before the highlight paints. The close branch of
-			// the effect below clears this inline height so the slide animation resumes.
+			// text out at full height before the highlight paints. The closed state is
+			// also transparent, so show the content at full opacity for the same paint.
+			// The close branch of the effect below clears both inline values so the
+			// slide and the fade resume.
 			node.removeAttribute("hidden");
 			node.style.height = "auto";
+			node.style.opacity = "1";
 			setOpen(true);
 		};
 
@@ -565,9 +568,10 @@ const Content = ({
 			node.removeAttribute("hidden");
 		} else {
 			node.setAttribute("hidden", "until-found");
-			// Drop any inline height a find-in-page reveal set so the class-driven
-			// `h-0 ↔ h-auto` open/close slide takes over again.
+			// Drop the inline height and opacity a find-in-page reveal set so the
+			// class-driven `h-0 ↔ h-auto` slide and fade take over again.
 			node.style.height = "";
+			node.style.opacity = "";
 		}
 	}, [open]);
 
