@@ -38,10 +38,15 @@ import {
 	type MouseEvent,
 	type ReactNode,
 	createContext,
+	useCallback,
 	useContext,
+	useEffect,
 	useMemo,
+	useRef,
+	useState,
 } from "react";
 import invariant from "tiny-invariant";
+import { getPrefersReducedMotion } from "../../hooks/use-prefers-reduced-motion.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
@@ -132,6 +137,340 @@ function useDataTableContext<
 	return context as DataTableContextShape<TFeatures, TData>;
 }
 
+/**
+ * The easing of the rows that slide when a row expands or collapses. Keep it
+ * equal to mantle's `--ease-out-strong` theme value; `@theme inline` emits no
+ * CSS variable to read it from.
+ */
+const easeOutStrong = "cubic-bezier(0.23, 1, 0.32, 1)";
+
+/**
+ * How long the rows below an expanding or collapsing row slide. A collapse
+ * commits when its slide ends. Keep it equal to `duration-200` in
+ * `expandMotionClassName`.
+ */
+const rowSlideMs = 200;
+
+/** A row's slide, and the offset it moves the row to. */
+type RowSlide = { animation: Animation; to: number };
+
+/** A collapse that waits for its content to fade out. */
+type PendingCollapse = {
+	body: Element;
+	timer: ReturnType<typeof setTimeout>;
+	/** The rows that fade out. Empty until the closing state commits. */
+	rows: Set<Element>;
+};
+
+/** The motion state of one `<tbody>`, while a change in it is pending. */
+type BodyMotion = {
+	observer: MutationObserver;
+	/** The offset each row showed at before a change that this hook made. */
+	before: ReadonlyMap<HTMLTableRowElement, number> | null;
+	/** The offset each row rests at after its slide. */
+	rest: ReadonlyMap<HTMLTableRowElement, number>;
+	/** The collapse that owns the rows that the next commit marks as closing. */
+	awaiting: string | null;
+};
+
+type RowCollapse = {
+	/** The ids of expanded rows whose sub-rows and detail panel fade out. */
+	closingRowIds: ReadonlySet<string>;
+	/**
+	 * Expand the row: run `expand`, and slide the rows of `body` that it
+	 * pushes down.
+	 */
+	startExpand: (body: Element | null, expand: () => void) => void;
+	/**
+	 * Fade out the row's sub-rows and detail panel while the rows below slide
+	 * up over them, then run `collapse`. Runs `collapse` at once when the user
+	 * prefers reduced motion.
+	 */
+	startCollapse: (rowId: string, body: Element | null, collapse: () => void) => void;
+	/** Stop a pending collapse: the content fades back and the rows slide back. */
+	cancelCollapse: (rowId: string) => void;
+};
+
+const RowCollapseContext = createContext<RowCollapse | null>(null);
+
+const noClosingRowIds: ReadonlySet<string> = new Set();
+
+/** The body rows of a `<tbody>`, in order. */
+function bodyRows(body: Element): ReadonlyArray<HTMLTableRowElement> {
+	return [...body.querySelectorAll<HTMLTableRowElement>(":scope > tr")];
+}
+
+/**
+ * The offset a row shows at: its layout offset plus its current `translate`,
+ * mid-slide included.
+ */
+function visualOffset(row: HTMLTableRowElement): number {
+	const [, y = "0px"] = getComputedStyle(row).translate.split(" ");
+	return row.offsetTop + (Number.parseFloat(y) || 0);
+}
+
+/**
+ * Slide each row of `body` from the offset it showed at in `before` to its
+ * target, and return the offset each row rests at.
+ *
+ * A closing row keeps its place while it fades. Each other row moves up by
+ * the height of the closing rows above it, so it covers them. A row that is
+ * not in `before` is new: it starts at its target and does not slide.
+ */
+function slideRows(
+	body: Element,
+	before: ReadonlyMap<HTMLTableRowElement, number>,
+	slides: WeakMap<HTMLTableRowElement, RowSlide>,
+): ReadonlyMap<HTMLTableRowElement, number> {
+	const rest = new Map<HTMLTableRowElement, number>();
+	// The height of the closing runs above the row, and of the run it is in.
+	let coveredHeight = 0;
+	let runHeight = 0;
+	for (const row of bodyRows(body)) {
+		if (row.hasAttribute("data-closing")) {
+			runHeight += row.offsetHeight;
+		} else {
+			coveredHeight += runHeight;
+			runHeight = 0;
+		}
+		const to = -coveredHeight;
+		const shown = before.get(row);
+		// Under half a pixel is rounding in the layout, not a move.
+		const from =
+			shown == null || Math.abs(shown - row.offsetTop - to) < 0.5 ? to : shown - row.offsetTop;
+		rest.set(row, row.offsetTop + to);
+
+		const current = slides.get(row);
+		if (from === to && (current?.to ?? 0) === to) {
+			continue;
+		}
+		slides.delete(row);
+		if (from !== to || to !== 0) {
+			// Start from where the row shows now, not by reversing a slide: a
+			// reversed ease-out plays as a slow ease-in. A row that covers a
+			// closing row holds its offset until the closing row is gone.
+			const animation = row.animate([{ translate: `0 ${from}px` }, { translate: `0 ${to}px` }], {
+				duration: from === to ? 0 : rowSlideMs,
+				easing: easeOutStrong,
+				fill: to === 0 ? "none" : "forwards",
+			});
+			slides.set(row, { animation, to });
+		}
+		current?.animation.cancel();
+	}
+	return rest;
+}
+
+/**
+ * The expand and collapse motion for `DataTable.Root`. A `<tr>` cannot
+ * animate its height, so the rows below move with `translate` instead.
+ *
+ * - Expand: record the offset each row shows at, expand, then slide each row
+ *   that moved from that offset to its new one (FLIP). The new rows fade in
+ *   under the rows that slide away.
+ * - Collapse: mark the row as closing, so its sub-rows and detail panel fade
+ *   out, and slide the rows below up over them by the height they leave. When
+ *   the slide ends, collapse. The rows below hold their place with
+ *   `fill: "forwards"` until the commit, so the layout change shows nothing.
+ *
+ * A `MutationObserver` on the `<tbody>` runs each slide after the commit that
+ * changes the rows, before the paint. The rows can commit without a render of
+ * `DataTable.Root` (a `useTable` selector that leaves out the expanded state),
+ * so a layout effect in the root can miss the commit. Each slide starts from
+ * the offset the row shows at, so a second expand or collapse during a slide
+ * continues from there. A collapse whose content an outside change removes (a
+ * controlled `expanded` state) ends at once, and does not collapse the row
+ * later.
+ *
+ * Both mirror each other on the same curve and duration. A timer, not an
+ * `animationend` event, ends the wait: a hidden tab never fires it.
+ */
+function useRowCollapse(): RowCollapse {
+	const [closingRowIds, setClosingRowIds] = useState(noClosingRowIds);
+	const collapses = useRef(new Map<string, PendingCollapse>());
+	const bodies = useRef(new Map<Element, BodyMotion>());
+	const slides = useRef(new WeakMap<HTMLTableRowElement, RowSlide>());
+
+	useEffect(() => {
+		const pendingCollapses = collapses.current;
+		const observedBodies = bodies.current;
+		return () => {
+			for (const { timer } of pendingCollapses.values()) {
+				clearTimeout(timer);
+			}
+			for (const { observer } of observedBodies.values()) {
+				observer.disconnect();
+			}
+		};
+	}, []);
+
+	const removeClosingRowId = useCallback((rowId: string) => {
+		setClosingRowIds((ids) => {
+			if (!ids.has(rowId)) {
+				return ids;
+			}
+			const next = new Set(ids);
+			next.delete(rowId);
+			return next;
+		});
+	}, []);
+
+	/** Stop observing a body when no change in it is pending. */
+	const releaseBody = useCallback((body: Element) => {
+		const motion = bodies.current.get(body);
+		if (motion == null || motion.before != null) {
+			return;
+		}
+		for (const collapse of collapses.current.values()) {
+			if (collapse.body === body) {
+				return;
+			}
+		}
+		motion.observer.disconnect();
+		bodies.current.delete(body);
+	}, []);
+
+	const handleMutations = useCallback(
+		(body: Element, records: ReadonlyArray<MutationRecord>) => {
+			const motion = bodies.current.get(body);
+			// Only a change to the body's own rows moves them; ignore cell content.
+			const rowRecords = records.filter((record) =>
+				record.type === "childList" ? record.target === body : record.target.parentNode === body,
+			);
+			if (motion == null || rowRecords.length === 0) {
+				return;
+			}
+
+			const awaiting = motion.awaiting == null ? null : collapses.current.get(motion.awaiting);
+			for (const record of rowRecords) {
+				const { target } = record;
+				if (
+					awaiting != null &&
+					record.type === "attributes" &&
+					target instanceof Element &&
+					target.hasAttribute("data-closing")
+				) {
+					awaiting.rows.add(target);
+				}
+			}
+			if (awaiting != null && awaiting.rows.size > 0) {
+				motion.awaiting = null;
+			}
+
+			// An outside change removed a collapse's content before its timer: the
+			// row is collapsed already. Never collapse it again later, because the
+			// change can have opened it since.
+			for (const [rowId, collapse] of collapses.current) {
+				if (
+					collapse.body === body &&
+					collapse.rows.size > 0 &&
+					![...collapse.rows].some((row) => row.isConnected)
+				) {
+					clearTimeout(collapse.timer);
+					collapses.current.delete(rowId);
+					removeClosingRowId(rowId);
+				}
+			}
+
+			// A change that this hook did not start (an outside collapse) has no
+			// recorded offsets, so the rows start from where they rest.
+			const before = motion.before ?? motion.rest;
+			motion.before = null;
+			motion.rest = slideRows(body, before, slides.current);
+			releaseBody(body);
+		},
+		[releaseBody, removeClosingRowId],
+	);
+
+	/**
+	 * Record the offset each row of `body` shows at, before a change that
+	 * moves them, and observe the commit of that change.
+	 */
+	const recordOffsets = useCallback(
+		(body: Element): BodyMotion => {
+			let motion = bodies.current.get(body);
+			if (motion == null) {
+				const observer = new MutationObserver((records) => handleMutations(body, records));
+				observer.observe(body, {
+					attributeFilter: ["data-closing"],
+					childList: true,
+					subtree: true,
+				});
+				motion = { observer, before: null, rest: new Map(), awaiting: null };
+				bodies.current.set(body, motion);
+			}
+			if (motion.before == null) {
+				const before = new Map(bodyRows(body).map((row) => [row, visualOffset(row)]));
+				motion.before = before;
+				// A change that never commits (a vetoed toggle) must not leave offsets
+				// for a later, unrelated commit to slide from.
+				const pending = motion;
+				requestAnimationFrame(() => {
+					if (pending.before === before) {
+						pending.before = null;
+						releaseBody(body);
+					}
+				});
+			}
+			return motion;
+		},
+		[handleMutations, releaseBody],
+	);
+
+	const startExpand = useCallback(
+		(body: Element | null, expand: () => void) => {
+			if (body != null && !getPrefersReducedMotion()) {
+				recordOffsets(body);
+			}
+			expand();
+		},
+		[recordOffsets],
+	);
+
+	const cancelCollapse = useCallback(
+		(rowId: string) => {
+			const collapse = collapses.current.get(rowId);
+			if (collapse != null) {
+				clearTimeout(collapse.timer);
+				collapses.current.delete(rowId);
+				recordOffsets(collapse.body);
+			}
+			removeClosingRowId(rowId);
+		},
+		[recordOffsets, removeClosingRowId],
+	);
+
+	const startCollapse = useCallback(
+		(rowId: string, body: Element | null, collapse: () => void) => {
+			if (body == null || getPrefersReducedMotion()) {
+				collapse();
+				return;
+			}
+			cancelCollapse(rowId);
+			recordOffsets(body).awaiting = rowId;
+			collapses.current.set(rowId, {
+				body,
+				rows: new Set(),
+				timer: setTimeout(() => {
+					collapses.current.delete(rowId);
+					recordOffsets(body);
+					// Both updates land in one render, so the rows unmount in the
+					// same commit that drops their closing state.
+					removeClosingRowId(rowId);
+					collapse();
+				}, rowSlideMs),
+			});
+			setClosingRowIds((ids) => new Set(ids).add(rowId));
+		},
+		[cancelCollapse, recordOffsets, removeClosingRowId],
+	);
+
+	return useMemo(
+		() => ({ closingRowIds, startExpand, startCollapse, cancelCollapse }),
+		[closingRowIds, startExpand, startCollapse, cancelCollapse],
+	);
+}
+
 type DataTableProps<TFeatures extends TableFeatures, TData extends RowData> = ComponentProps<
 	typeof Table.Root
 > & {
@@ -198,12 +537,15 @@ function Root<TFeatures extends TableFeatures, TData extends RowData>({
 	...props
 }: DataTableProps<TFeatures, TData>) {
 	const context: DataTableContextShape<TFeatures, TData> = useMemo(() => ({ table }), [table]);
+	const rowCollapse = useRowCollapse();
 
 	return (
 		<DataTableContext.Provider value={context}>
-			<Table.Root data-slot={joinDataSlot(dataSlot, "data-table")} {...props}>
-				<Table.Element>{children}</Table.Element>
-			</Table.Root>
+			<RowCollapseContext.Provider value={rowCollapse}>
+				<Table.Root data-slot={joinDataSlot(dataSlot, "data-table")} {...props}>
+					<Table.Element>{children}</Table.Element>
+				</Table.Root>
+			</RowCollapseContext.Provider>
 		</DataTableContext.Provider>
 	);
 }
@@ -616,6 +958,47 @@ type DataTableRowProps<TFeatures extends TableFeatures, TData extends RowData> =
 } & WithDataSlot;
 
 /**
+ * The motion for a row that appears when its parent expands and goes when it
+ * collapses: a sub-row or a detail panel.
+ *
+ * - Enter: it fades in and settles 4px down over 200ms. `@starting-style`
+ *   (the `starting:` variant) gives the state before insertion, so the motion
+ *   runs on mount with no JavaScript.
+ * - Exit: `data-closing` fades it out over a shorter 150ms while the rows
+ *   below slide up over it, then the parent collapses (see `useRowCollapse`).
+ *
+ * Both use a strong ease-out, and a CSS transition, so a click during the exit
+ * reverses it from where it is. Without the transition, the starting style has
+ * no effect, so `motion-safe:` alone turns the motion off for reduced-motion
+ * users.
+ */
+const expandMotionClassName = cx(
+	"starting:-translate-y-1 starting:opacity-0",
+	"motion-safe:transition-[opacity,translate] motion-safe:duration-200 motion-safe:ease-out-strong",
+	"data-closing:pointer-events-none data-closing:opacity-0 motion-safe:data-closing:duration-150",
+);
+
+/**
+ * Whether a sub-row's ancestor is collapsing, so the sub-row fades out.
+ */
+function isRowClosing<TFeatures extends TableFeatures, TData extends RowData>(
+	row: TableRow<TFeatures, TData>,
+	closingRowIds: ReadonlySet<string>,
+): boolean {
+	if (closingRowIds.size === 0 || row.depth === 0) {
+		return false;
+	}
+	return row.getParentRows().some((parent) => closingRowIds.has(parent.id));
+}
+
+/**
+ * Whether the enclosing `DataTable.Row` renders a detail panel through
+ * `renderExpanded`. `DataTable.RowExpandButton` reads it to point
+ * `aria-controls` at the panel of a row that also has sub-rows.
+ */
+const DetailPanelContext = createContext(false);
+
+/**
  * Whether a click on a clickable row is a request to run its `onClick`. A
  * modified click (`⌘`, `Ctrl`, `Shift`, `Alt`) or a non-primary button asks the
  * browser for a new tab or a context menu. The link inside the row answers
@@ -660,13 +1043,19 @@ function isRowActivationClick(event: MouseEvent<HTMLTableRowElement>): boolean {
  * Never reach for `role="grid"`, because it commits the table to roving focus
  * and arrow-key navigation. Wrap the link in
  * `<SandboxedOnClick asChild allowClickEventDefault>` so its click does not
- * also run the row handler. `DataTable.ActionCell` and
- * `DataTable.RowExpandButton` stop their own clicks.
+ * also run the row handler. `DataTable.ActionCell`, `DataTable.ControlCell`,
+ * and `DataTable.RowExpandButton` stop their own clicks. Put a selection
+ * checkbox in a `DataTable.ControlCell`.
  *
  * Pass `renderExpanded` to give the row an inline detail panel: when the row is
  * expanded the row renders its data `<tr>` plus a sibling `DataTable.ExpandedRow`
- * holding the returned content. Pair it with a `DataTable.RowExpandButton` toggle
- * and register `rowExpandingFeature` and `getRowCanExpand` on the table.
+ * holding the returned content. Pair it with a `DataTable.RowExpandButton`
+ * toggle and register `rowExpandingFeature` and `getRowCanExpand` on the
+ * table.
+ *
+ * A sub-row (`row.depth > 0`) fades in when `DataTable.RowExpandButton`
+ * expands its parent and fades out when it collapses it, unless the user
+ * prefers reduced motion.
  *
  * The row subscribes to the whole table state and to the table options. It
  * re-renders its cells when any state slice changes or when `useTable` receives
@@ -723,7 +1112,9 @@ function Row<TFeatures extends TableFeatures, TData extends RowData>({
 	row,
 	...props
 }: DataTableRowProps<TFeatures, TData>) {
+	const closingRowIds = useContext(RowCollapseContext)?.closingRowIds ?? noClosingRowIds;
 	const renderRow = () => {
+		const isClosing = isRowClosing(row, closingRowIds);
 		// Why callMemoOrStaticFn: `getIsExpanded` and `getVisibleCells` exist on the
 		// row only when the table registers `rowExpandingFeature` and
 		// `columnVisibilityFeature`. The static functions read the same state, so a
@@ -738,10 +1129,18 @@ function Row<TFeatures extends TableFeatures, TData extends RowData>({
 				// parent row visually with its `DataTable.ExpandedRow`). Absent when the
 				// row is collapsed or expansion is not configured.
 				data-expanded={isExpanded || undefined}
+				// A fading sub-row leaves the tab order and the accessibility tree at
+				// once; it is gone for the user before it is gone from the DOM.
+				data-closing={isClosing || undefined}
+				inert={isClosing || undefined}
 				// Styling and test hook for "this row runs a handler on click", so a
 				// consumer never has to read `cursor-pointer` off the class list.
 				data-clickable={onClick != null ? "" : undefined}
-				className={cx(onClick != null && "cursor-pointer", className)}
+				className={cx(
+					row.depth > 0 && expandMotionClassName,
+					onClick != null && "cursor-pointer",
+					className,
+				)}
 				onClick={
 					onClick &&
 					((event) => {
@@ -752,15 +1151,17 @@ function Row<TFeatures extends TableFeatures, TData extends RowData>({
 				}
 				{...props}
 			>
-				{cells.map((cell) => (
-					// Why flexRender, not FlexRender: the column's `cell` definition owns
-					// the `<td>`. `FlexRender` renders `null` for a grouped row's
-					// placeholder cells, which would drop their `<td>` and shift every cell
-					// after them one column to the left.
-					<Fragment key={cell.id}>
-						{flexRender(cell.column.columnDef.cell, cell.getContext())}
-					</Fragment>
-				))}
+				<DetailPanelContext.Provider value={renderExpanded != null}>
+					{cells.map((cell) => (
+						// Why flexRender, not FlexRender: the column's `cell` definition owns
+						// the `<td>`. `FlexRender` renders `null` for a grouped row's
+						// placeholder cells, which would drop their `<td>` and shift every
+						// cell after them one column to the left.
+						<Fragment key={cell.id}>
+							{flexRender(cell.column.columnDef.cell, cell.getContext())}
+						</Fragment>
+					))}
+				</DetailPanelContext.Provider>
 			</Table.Row>
 		);
 
@@ -1048,6 +1449,128 @@ function ActionHeader({
 	);
 }
 
+type DataTableControlCellProps = ComponentProps<typeof Table.Cell> & WithDataSlot;
+
+/**
+ * The controls that a click on a `DataTable.ControlCell`'s padding activates.
+ * A disabled control cannot take the click, so the click goes to the row.
+ * Why `:not(:disabled)`, not `:enabled`: happy-dom does not match `:enabled`.
+ */
+const controlCellControlSelector = "button:not(:disabled), input:not(:disabled)";
+
+/**
+ * Whether an event target is a DOM node. Why not `instanceof Node`: a row in
+ * a framed preview has another realm's `Node`.
+ */
+function isNode(target: EventTarget | null): target is Node {
+	return target != null && "nodeType" in target;
+}
+
+/**
+ * A `<td>` for a row's own control: a `DataTable.RowExpandButton` or a
+ * selection `Checkbox`. The whole cell is the control's pointer target, and a
+ * click anywhere in it never runs a clickable row's `onClick`.
+ *
+ * - A click on the cell's padding focuses and clicks the control, so a click
+ *   that misses a small control still toggles it instead of navigating.
+ * - When the cell holds no enabled control (a leaf row's `RowExpandButton`
+ *   renders nothing, or the checkbox is disabled), the click reaches the row
+ *   as usual.
+ * - The cell shows a pointer cursor only while it holds an enabled control.
+ *   An empty cell keeps the row's cursor.
+ * - The control aligns with the first line of text, so it stays beside a
+ *   two-line primary cell. On a one-line row, it is centered.
+ *
+ * The padding click is a pointer convenience only. The cell keeps its
+ * `role="cell"` and gets no `tabIndex`, so keyboard and screen-reader users
+ * reach the control itself. Never add a role or `tabIndex` to the cell.
+ *
+ * Your own `onClick` runs first, once for each click. Call
+ * `event.preventDefault()` in it to stop the padding click from reaching the
+ * control.
+ *
+ * **Structure.** `children` render inside a
+ * `<span data-slot="data-table-control-cell-label">` that is one line of text
+ * tall and centers the control in it.
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"data-table-control-cell table-cell"` | On the cell element, joined ahead of `Table.Cell`'s own slot. |
+ * | `data-slot` | `"data-table-control-cell-label"` | On the `<span>` wrapping `children`. |
+ *
+ * @see https://mantle.ngrok.com/components/data-display/data-table#datatablecontrolcell
+ *
+ * @example
+ * ```tsx
+ * columnHelper.display({
+ *   id: "expander",
+ *   header: () => <DataTable.ExpandHeader />,
+ *   cell: (props) => (
+ *     <DataTable.ControlCell>
+ *       <DataTable.RowExpandButton row={props.row} label={props.row.original.name} />
+ *     </DataTable.ControlCell>
+ *   ),
+ * });
+ * ```
+ */
+function ControlCell({
+	"data-slot": dataSlot,
+	children,
+	className,
+	onClick,
+	...props
+}: DataTableControlCellProps) {
+	// The forwarded click bubbles back to this cell. It is the same click, so
+	// `onClick` already ran for it.
+	const isForwarding = useRef(false);
+	return (
+		<Table.Cell
+			data-slot={joinDataSlot(dataSlot, "data-table-control-cell")}
+			// `align-top` and the one-line label below put the control beside the
+			// first line of a multi-line row. `px-0` lets `w-9` fit the toggle. The
+			// pointer cursor shows only while a padding click has an enabled control
+			// to click; an empty cell keeps the row's cursor.
+			className={cx(
+				"w-9 px-0 align-top has-[button:enabled,input:enabled]:cursor-pointer",
+				className,
+			)}
+			onClick={(event) => {
+				if (isForwarding.current) {
+					event.stopPropagation();
+					return;
+				}
+				onClick?.(event);
+				const control = event.currentTarget.querySelector<HTMLElement>(controlCellControlSelector);
+				if (control == null) {
+					return;
+				}
+				event.stopPropagation();
+				if (!event.defaultPrevented && isNode(event.target) && !control.contains(event.target)) {
+					// Focus first, as a native `<label>` click does, so the next Tab
+					// starts from the control the user acted on.
+					control.focus({ preventScroll: true });
+					isForwarding.current = true;
+					try {
+						control.click();
+					} finally {
+						isForwarding.current = false;
+					}
+				}
+			}}
+			{...props}
+		>
+			<span
+				data-slot="data-table-control-cell-label"
+				className="flex h-lh items-center justify-center"
+			>
+				{children}
+			</span>
+		</Table.Cell>
+	);
+}
+
 /**
  * Compute the stable DOM `id` for a row's expanded detail row. Shared by
  * `DataTable.RowExpandButton` (as its `aria-controls` target) and
@@ -1103,9 +1626,9 @@ type DataTableExpandHeaderProps = Omit<ComponentProps<typeof Table.Header>, "chi
  *   id: "expander",
  *   header: () => <DataTable.ExpandHeader />,
  *   cell: (props) => (
- *     <DataTable.Cell className="w-9 px-0 text-center">
+ *     <DataTable.ControlCell>
  *       <DataTable.RowExpandButton row={props.row} label={props.row.original.name} />
- *     </DataTable.Cell>
+ *     </DataTable.ControlCell>
  *   ),
  * });
  * ```
@@ -1166,7 +1689,8 @@ type DataTableRowExpandButtonProps<
 	row: ExpandableRow<TFeatures, TData>;
 	/**
 	 * A human-readable name for the row, woven into the accessible label:
-	 * `Show details for {label}` / `Hide details for {label}`.
+	 * `Show details for {label}` / `Hide details for {label}` for a detail panel,
+	 * and `Expand {label}` / `Collapse {label}` for a row with sub-rows.
 	 */
 	label: string;
 	/**
@@ -1182,17 +1706,21 @@ type DataTableRowExpandButtonProps<
 } & WithDataSlot;
 
 /**
- * An accessible +/- toggle that expands or collapses a row's detail panel. Drop
- * it inside a `DataTable.Cell` in a leading `columnHelper.display` column and
- * pair it with `DataTable.ExpandedRow`.
+ * An accessible +/- toggle that expands or collapses a row's detail panel or
+ * its sub-rows. Drop it inside a `DataTable.ControlCell` in a leading
+ * `columnHelper.display` column. For a detail panel, pair it with
+ * `DataTable.ExpandedRow`. For sub-rows (`getSubRows` on `useTable`), the
+ * expanded row model puts each child in `table.getRowModel().rows` after its
+ * parent, so `DataTable.Row` renders it.
  *
  * Renders a real `<button>` (keyboard operable) that sets `aria-expanded` and,
- * while expanded, `aria-controls` pointing at the `DataTable.ExpandedRow`. It
- * stops click propagation so it never triggers a row-level `onClick` (e.g. row
- * navigation), and renders nothing when `row.getCanExpand()` is false so a
- * `getRowCanExpand` predicate cleanly hides it. Forwards `IconButton` props, so
- * pass `onClick` to run side effects before the toggle (call
- * `event.preventDefault()` to veto it).
+ * while a detail panel is open, `aria-controls` pointing at the
+ * `DataTable.ExpandedRow`. A row with sub-rows has no panel, so it gets no
+ * `aria-controls`. It stops click propagation so it never triggers a row-level
+ * `onClick` (e.g. row navigation), and renders nothing when
+ * `row.getCanExpand()` is false so a `getRowCanExpand` predicate cleanly hides
+ * it. Forwards `IconButton` props, so pass `onClick` to run side effects before
+ * the toggle (call `event.preventDefault()` to veto it).
  *
  * The table must register `rowExpandingFeature`; the `row` prop's type rejects a row
  * from a table without it. Add `expandedRowModel: createExpandedRowModel()` when rows
@@ -1212,9 +1740,9 @@ type DataTableRowExpandButtonProps<
  *   id: "expander",
  *   header: () => <DataTable.ExpandHeader />,
  *   cell: (props) => (
- *     <DataTable.Cell className="w-9 px-0 text-center">
+ *     <DataTable.ControlCell>
  *       <DataTable.RowExpandButton row={props.row} label={props.row.original.name} />
- *     </DataTable.Cell>
+ *     </DataTable.ControlCell>
  *   ),
  * });
  * ```
@@ -1237,8 +1765,14 @@ function RowExpandButton<TFeatures extends ExpandableTableFeatures, TData extend
 			return null;
 		}
 
-		const isExpanded = row.getIsExpanded();
+		// A collapsing row reads as collapsed while its content fades out, so the
+		// label, icon, and `aria-expanded` change on the click, not after the fade.
+		const isExpanded = row.getIsExpanded() && !isClosing;
 		const toggleExpanded = row.getToggleExpandedHandler();
+		// A row with sub-rows expands into sibling data rows. It has a detail panel
+		// only when its `DataTable.Row` also passes `renderExpanded`.
+		const hasSubRows = row.subRows.length > 0;
+		const controlsPanel = hasDetailPanel || !hasSubRows;
 
 		return (
 			<IconButton
@@ -1251,9 +1785,13 @@ function RowExpandButton<TFeatures extends ExpandableTableFeatures, TData extend
 				aria-expanded={isExpanded}
 				// Reference the detail row only while it actually exists in the DOM — a
 				// dangling `aria-controls` IDREF is an accessibility validity violation.
-				aria-controls={isExpanded ? expandedRowId(row) : undefined}
+				aria-controls={isExpanded && controlsPanel ? expandedRowId(row) : undefined}
 				icon={isExpanded ? collapseIcon : expandIcon}
-				label={`${isExpanded ? "Hide" : "Show"} details for ${label}`}
+				label={
+					hasSubRows
+						? `${isExpanded ? "Collapse" : "Expand"} ${label}`
+						: `${isExpanded ? "Hide" : "Show"} details for ${label}`
+				}
 				onClick={(event) => {
 					// Always keep the toggle click from bubbling to a row-level onClick
 					// (e.g. navigation) — even when a consumer vetoes the toggle below.
@@ -1262,7 +1800,16 @@ function RowExpandButton<TFeatures extends ExpandableTableFeatures, TData extend
 					if (event.defaultPrevented) {
 						return;
 					}
-					toggleExpanded();
+					const body = event.currentTarget.closest("tbody");
+					if (rowCollapse == null) {
+						toggleExpanded();
+					} else if (isClosing) {
+						rowCollapse.cancelCollapse(row.id);
+					} else if (isExpanded) {
+						rowCollapse.startCollapse(row.id, body, () => row.toggleExpanded(false));
+					} else {
+						rowCollapse.startExpand(body, toggleExpanded);
+					}
 				}}
 				{...props}
 			/>
@@ -1273,10 +1820,13 @@ function RowExpandButton<TFeatures extends ExpandableTableFeatures, TData extend
 	// re-renders when its own row expands or collapses, or when the consumer passes new
 	// options (`getRowCanExpand` decides whether it renders at all).
 	const options = useTableOptions();
+	const hasDetailPanel = useContext(DetailPanelContext);
+	const rowCollapse = useContext(RowCollapseContext);
+	const isClosing = rowCollapse?.closingRowIds.has(row.id) ?? false;
 	return (
 		<Subscribe
 			source={row.table.store}
-			selector={() => ({ isExpanded: row.getIsExpanded(), options })}
+			selector={() => ({ isExpanded: row.getIsExpanded(), hasDetailPanel, isClosing, options })}
 		>
 			{renderToggle}
 		</Subscribe>
@@ -1312,8 +1862,9 @@ type DataTableExpandedRowProps<TFeatures extends TableFeatures, TData extends Ro
  * sits on an opaque card surface so horizontally-scrolled content never shows
  * through a sticky action column. Its top divider is suppressed so it reads as
  * one block with its parent row; the panel itself does not change on hover (only
- * the parent data row reacts to hover). Exposes `data-expanded-content` for
- * styling hooks.
+ * the parent data row reacts to hover). It fades in on mount and fades out
+ * when `DataTable.RowExpandButton` collapses its row, unless the user prefers
+ * reduced motion. Exposes `data-expanded-content` for styling hooks.
  *
  * @see https://mantle.ngrok.com/components/data-display/data-table#datatableexpandedrow
  *
@@ -1357,13 +1908,20 @@ function ExpandedRow<TFeatures extends TableFeatures, TData extends RowData>({
 	const countVisibleCells = () =>
 		callMemoOrStaticFn(row, "getVisibleCells", row_getVisibleCells).length;
 
+	// A sub-row's panel also fades out when an ancestor of the row collapses.
+	const closingRowIds = useContext(RowCollapseContext)?.closingRowIds ?? noClosingRowIds;
+	const isClosing = closingRowIds.has(row.id) || isRowClosing(row, closingRowIds);
+
 	const renderPanel = ({ numberOfColumns }: { numberOfColumns: number }) => (
 		<Table.Row
 			data-slot={joinDataSlot(dataSlot, "data-table-expanded-row")}
 			data-expanded-content
+			// A fading panel leaves the tab order and the accessibility tree at once.
+			data-closing={isClosing || undefined}
+			inert={isClosing || undefined}
 			// Read as one block with the parent row: suppress the top divider that
 			// Table.Body paints between sibling rows.
-			className={cx("[&>td]:border-t-0", className)}
+			className={cx("[&>td]:border-t-0", expandMotionClassName, className)}
 			{...props}
 		>
 			<Table.Cell
@@ -1424,8 +1982,9 @@ function ExpandedRow<TFeatures extends TableFeatures, TData extends RowData>({
  * │       └── DataTable.ActionHeader
  * └── DataTable.Body
  *     ├── DataTable.Row
- *     │   ├── DataTable.Cell
+ *     │   ├── DataTable.ControlCell
  *     │   │   └── DataTable.RowExpandButton
+ *     │   ├── DataTable.Cell
  *     │   └── DataTable.ActionCell
  *     ├── DataTable.ExpandedRow
  *     └── DataTable.EmptyRow
@@ -2064,20 +2623,44 @@ const DataTable = {
 	 *   id: "expander",
 	 *   header: () => <DataTable.ExpandHeader />,
 	 *   cell: (props) => (
-	 *     <DataTable.Cell className="w-9 px-0 text-center">
+	 *     <DataTable.ControlCell>
 	 *       <DataTable.RowExpandButton row={props.row} label={props.row.original.name} />
-	 *     </DataTable.Cell>
+	 *     </DataTable.ControlCell>
 	 *   ),
 	 * });
 	 * ```
 	 */
 	ExpandHeader,
 	/**
-	 * An accessible +/- toggle that expands or collapses a row's detail panel.
-	 * Place it inside a `DataTable.Cell` in a leading `columnHelper.display`
-	 * column and pair it with `DataTable.ExpandedRow`. Sets `aria-expanded` and
-	 * (while expanded) `aria-controls`, stops click propagation so it never fires
-	 * a row-level `onClick`, and renders nothing when `row.getCanExpand()` is
+	 * A `<td>` for a row's own control: a `DataTable.RowExpandButton` or a
+	 * selection `Checkbox`. A click on its padding focuses and clicks the
+	 * control, a click anywhere in it never runs a clickable row's `onClick`,
+	 * and the control aligns with the first line of text. The cell keeps its
+	 * `role="cell"`; keyboard users reach the control itself.
+	 *
+	 * @see https://mantle.ngrok.com/components/data-display/data-table#datatablecontrolcell
+	 *
+	 * @example
+	 * ```tsx
+	 * columnHelper.display({
+	 *   id: "expander",
+	 *   header: () => <DataTable.ExpandHeader />,
+	 *   cell: (props) => (
+	 *     <DataTable.ControlCell>
+	 *       <DataTable.RowExpandButton row={props.row} label={props.row.original.name} />
+	 *     </DataTable.ControlCell>
+	 *   ),
+	 * });
+	 * ```
+	 */
+	ControlCell,
+	/**
+	 * An accessible +/- toggle that expands or collapses a row's detail panel or
+	 * its sub-rows. Place it inside a `DataTable.ControlCell` in a leading
+	 * `columnHelper.display` column. Sets `aria-expanded`, and `aria-controls`
+	 * while a detail panel is open. A row with only sub-rows has no panel, so it
+	 * gets no `aria-controls`. Stops click propagation so it never fires a
+	 * row-level `onClick`, and renders nothing when `row.getCanExpand()` is
 	 * false. The table must register `rowExpandingFeature`; the `row` prop's
 	 * type rejects a row from a table without it.
 	 *
@@ -2085,9 +2668,9 @@ const DataTable = {
 	 *
 	 * @example
 	 * ```tsx
-	 * <DataTable.Cell className="w-9 px-0 text-center">
+	 * <DataTable.ControlCell>
 	 *   <DataTable.RowExpandButton row={props.row} label={props.row.original.name} />
-	 * </DataTable.Cell>
+	 * </DataTable.ControlCell>
 	 * ```
 	 */
 	RowExpandButton,

@@ -14,17 +14,7 @@ sync. This recipe wires [Breadcrumb](/components/navigation/breadcrumb) to React
 [route handles](https://reactrouter.com/start/framework/route-module#handle) and reads the trail out of
 `useMatches()`.
 
-Pick a URL. The trail grows, the leaf becomes the current page, and its ancestors become links:
-
-<Example>
-	<RouteBreadcrumbsDemo />
-</Example>
-
-> [!NOTE]
-> The demo above switches between **fixture** match arrays rather than really navigating: a demo embedded in
-> this page cannot mount a second router (React Router allows exactly one per tree). That is why the render
-> half takes `crumbs` as a prop: the same component runs against real `useMatches()` output in your app, and
-> against a fixture here and in your tests.
+Try it in the [live demo](#building-and-rendering-the-trail), directly above the file that renders it.
 
 ## Why not a context provider
 
@@ -270,8 +260,20 @@ call site hand-writes one.
 
 The one file this recipe asks you to copy. `RouteBreadcrumbs` is the only thing that touches the router;
 `Breadcrumbs` is pure rendering, which is what makes it testable with a fixture, and what lets the demo
-above use it unmodified. It stays in your app rather than in mantle because it owns the one decision mantle
+below use it unmodified. It stays in your app rather than in mantle because it owns the one decision mantle
 cannot make: which `Link` component your router uses.
+
+Pick a URL. The trail grows, the leaf becomes the current page, and its ancestors become links:
+
+> [!NOTE]
+> The demo switches between **fixture** match arrays rather than really navigating: a demo embedded in
+> this page cannot mount a second router (React Router allows exactly one per tree). That is why the render
+> half takes `crumbs` as a prop: the same component runs against real `useMatches()` output in your app, and
+> against a fixture here and in your tests.
+
+<Example>
+	<RouteBreadcrumbsDemo />
+</Example>
 
 ````tsx
 import type { ResolvedCrumb } from "@ngrok/mantle/breadcrumb";

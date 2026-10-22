@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import {
 	type ComponentProps,
@@ -11,7 +11,8 @@ import {
 	useState,
 } from "react";
 import invariant from "tiny-invariant";
-import { describe, expect, test, vi } from "vitest";
+import { describe, expect, onTestFinished, test, vi } from "vitest";
+import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
 import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import type { SortingMode } from "../../utils/sorting/direction.js";
 import type { SortDirection } from "./types.js";
@@ -298,7 +299,10 @@ describe("DataTable.Row", () => {
 		expect(screen.getByTestId("row-row-1")).toHaveAttribute("data-expanded");
 
 		await user.click(screen.getByRole("button", { name: "Hide details for Alice" }));
-		expect(screen.getByTestId("row-row-1")).not.toHaveAttribute("data-expanded");
+		// The row collapses after its detail panel fades out.
+		await waitFor(() => {
+			expect(screen.getByTestId("row-row-1")).not.toHaveAttribute("data-expanded");
+		});
 	});
 });
 
@@ -916,6 +920,364 @@ describe("DataTable.RowExpandButton", () => {
 	});
 });
 
+type TreeRow = Row & { subRows?: TreeRow[] };
+
+const treeColumnHelper = createColumnHelper<typeof expandableFeatures, TreeRow>();
+const treeColumns = treeColumnHelper.columns([
+	treeColumnHelper.display({
+		id: "expander",
+		header: () => <DataTable.ExpandHeader />,
+		cell: (props) => (
+			<DataTable.ControlCell data-testid={`control-${props.row.id}`}>
+				<DataTable.RowExpandButton row={props.row} label={props.row.original.name} />
+			</DataTable.ControlCell>
+		),
+	}),
+	treeColumnHelper.accessor("name", {
+		id: "name",
+		header: () => <DataTable.Header>Name</DataTable.Header>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+]);
+const treeData: TreeRow[] = [
+	{
+		id: "deployment-1",
+		name: "deployment-1",
+		subRows: [
+			{ id: "replica-1", name: "replica-1" },
+			{ id: "replica-2", name: "replica-2" },
+		],
+	},
+];
+
+type SubRowsHarnessProps = {
+	getRowCanExpand?: (row: TableRow<typeof expandableFeatures, TreeRow>) => boolean;
+	onRowClick?: (row: TableRow<typeof expandableFeatures, TreeRow>) => void;
+	renderExpanded?: (row: TableRow<typeof expandableFeatures, TreeRow>) => ReactNode;
+	/** Render buttons that change the expanded state outside the table. */
+	withOutsideControls?: boolean;
+};
+
+function SubRowsHarness({
+	getRowCanExpand,
+	onRowClick,
+	renderExpanded,
+	withOutsideControls,
+}: SubRowsHarnessProps) {
+	const table = useTable({
+		features: expandableFeatures,
+		data: treeData,
+		columns: treeColumns,
+		getRowCanExpand,
+		getSubRows: (row) => row.subRows,
+		getRowId: (row) => row.id,
+	});
+	return (
+		<>
+			{withOutsideControls && (
+				<>
+					<button type="button" onClick={() => table.toggleAllRowsExpanded(false)}>
+						Collapse all
+					</button>
+					<button type="button" onClick={() => table.toggleAllRowsExpanded(true)}>
+						Expand all
+					</button>
+				</>
+			)}
+			<DataTable.Root table={table}>
+				<DataTable.Head />
+				<DataTable.Body>
+					{table.getRowModel().rows.map((row) => (
+						<DataTable.Row
+							key={row.id}
+							row={row}
+							onClick={onRowClick && (() => onRowClick(row))}
+							renderExpanded={renderExpanded}
+						/>
+					))}
+				</DataTable.Body>
+			</DataTable.Root>
+		</>
+	);
+}
+
+describe("DataTable sub-rows", () => {
+	test("shows the sub-rows below their parent while the parent is expanded", async () => {
+		const user = userEvent.setup();
+		render(<SubRowsHarness />);
+		expect(screen.queryByText("replica-1")).not.toBeInTheDocument();
+
+		await user.click(screen.getByRole("button", { name: "Expand deployment-1" }));
+
+		const names = screen
+			.getAllByRole("row")
+			.slice(1)
+			.map((row) => row.textContent);
+		expect(names).toEqual(["deployment-1", "replica-1", "replica-2"]);
+
+		await user.click(screen.getByRole("button", { name: "Collapse deployment-1" }));
+		await waitFor(() => {
+			expect(screen.queryByText("replica-1")).not.toBeInTheDocument();
+		});
+	});
+
+	test("fades the sub-rows out before the parent collapses", async () => {
+		const user = userEvent.setup();
+		render(<SubRowsHarness />);
+		await user.click(screen.getByRole("button", { name: "Expand deployment-1" }));
+
+		await user.click(screen.getByRole("button", { name: "Collapse deployment-1" }));
+
+		// The toggle reads as collapsed at once, and the fading rows leave the
+		// tab order and the accessibility tree.
+		expect(screen.getByRole("button", { name: "Expand deployment-1" })).toHaveAttribute(
+			"aria-expanded",
+			"false",
+		);
+		const fadingRow = screen.getByText("replica-1").closest("tr");
+		expect(fadingRow).toHaveAttribute("data-closing");
+		expect(fadingRow).toHaveAttribute("inert");
+
+		await waitFor(() => {
+			expect(screen.queryByText("replica-1")).not.toBeInTheDocument();
+		});
+	});
+
+	test("keeps the sub-rows when the toggle is clicked again during the exit", async () => {
+		vi.useFakeTimers({ shouldAdvanceTime: true });
+		onTestFinished(() => {
+			vi.useRealTimers();
+		});
+		const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+		render(<SubRowsHarness />);
+		await user.click(screen.getByRole("button", { name: "Expand deployment-1" }));
+		await user.click(screen.getByRole("button", { name: "Collapse deployment-1" }));
+
+		await user.click(screen.getByRole("button", { name: "Expand deployment-1" }));
+		// Run past the exit's 150ms, where a collapse that was not cancelled lands.
+		await act(() => vi.advanceTimersByTimeAsync(200));
+
+		expect(screen.getByRole("button", { name: "Collapse deployment-1" })).toHaveAttribute(
+			"aria-expanded",
+			"true",
+		);
+		expect(screen.getByText("replica-1").closest("tr")).not.toHaveAttribute("data-closing");
+	});
+
+	test("collapses at once when the user prefers reduced motion", async () => {
+		mockMatchMedia({ "(prefers-reduced-motion: no-preference)": false });
+		const user = userEvent.setup();
+		render(<SubRowsHarness />);
+		await user.click(screen.getByRole("button", { name: "Expand deployment-1" }));
+
+		await user.click(screen.getByRole("button", { name: "Collapse deployment-1" }));
+
+		expect(screen.queryByText("replica-1")).not.toBeInTheDocument();
+	});
+
+	test("labels the toggle for its sub-rows and sets no aria-controls", async () => {
+		const user = userEvent.setup();
+		render(<SubRowsHarness />);
+
+		await user.click(screen.getByRole("button", { name: "Expand deployment-1" }));
+
+		const button = screen.getByRole("button", { name: "Collapse deployment-1" });
+		expect(button).toHaveAttribute("aria-expanded", "true");
+		// No `DataTable.ExpandedRow` exists, so an IDREF would dangle.
+		expect(button).not.toHaveAttribute("aria-controls");
+		// A leaf sub-row cannot expand, so it gets no toggle.
+		expect(screen.getAllByRole("button")).toHaveLength(1);
+	});
+
+	test("links aria-controls to the detail panel of a row that also has sub-rows", async () => {
+		const user = userEvent.setup();
+		render(<SubRowsHarness renderExpanded={(row) => <span>Panel for {row.original.name}</span>} />);
+
+		await user.click(screen.getByRole("button", { name: "Expand deployment-1" }));
+
+		const button = screen.getByRole("button", { name: "Collapse deployment-1" });
+		const panelCell = screen.getByText("Panel for deployment-1").closest("td");
+		invariant(panelCell, "the detail panel renders in a cell");
+		expect(button).toHaveAttribute("aria-controls", panelCell.id);
+	});
+
+	test("fades out a sub-row's detail panel when the parent collapses", async () => {
+		const user = userEvent.setup();
+		render(
+			<SubRowsHarness
+				getRowCanExpand={() => true}
+				renderExpanded={(row) => <span>Panel for {row.original.name}</span>}
+			/>,
+		);
+		await user.click(screen.getByRole("button", { name: "Expand deployment-1" }));
+		await user.click(screen.getByRole("button", { name: "Show details for replica-1" }));
+
+		await user.click(screen.getByRole("button", { name: "Collapse deployment-1" }));
+
+		const fadingPanel = screen.getByText("Panel for replica-1").closest("tr");
+		expect(fadingPanel).toHaveAttribute("data-closing");
+		expect(fadingPanel).toHaveAttribute("inert");
+	});
+
+	test("keeps the sub-rows that an outside change opens again during the exit", async () => {
+		vi.useFakeTimers({ shouldAdvanceTime: true });
+		onTestFinished(() => {
+			vi.useRealTimers();
+		});
+		const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+		render(<SubRowsHarness withOutsideControls />);
+		await user.click(screen.getByRole("button", { name: "Expand deployment-1" }));
+		await user.click(screen.getByRole("button", { name: "Collapse deployment-1" }));
+
+		await user.click(screen.getByRole("button", { name: "Collapse all" }));
+		await user.click(screen.getByRole("button", { name: "Expand all" }));
+		// Run past the exit, where the first collapse would land.
+		await act(() => vi.advanceTimersByTimeAsync(200));
+
+		expect(screen.getByRole("button", { name: "Collapse deployment-1" })).toHaveAttribute(
+			"aria-expanded",
+			"true",
+		);
+		expect(screen.getByText("replica-1").closest("tr")).not.toHaveAttribute("data-closing");
+	});
+});
+
+describe("DataTable.ControlCell", () => {
+	test("toggles its control on a padding click without running the row's onClick", async () => {
+		const user = userEvent.setup();
+		const handleRowClick = vi.fn<() => void>();
+		render(<SubRowsHarness onRowClick={handleRowClick} />);
+
+		await user.click(screen.getByTestId("control-deployment-1"));
+
+		const button = screen.getByRole("button", { name: "Collapse deployment-1" });
+		expect(button).toHaveFocus();
+		expect(screen.getByText("replica-1")).toBeInTheDocument();
+		expect(handleRowClick).not.toHaveBeenCalled();
+	});
+
+	test("keeps a click on its control from running the row's onClick", async () => {
+		const user = userEvent.setup();
+		const handleRowClick = vi.fn<() => void>();
+		render(<SubRowsHarness onRowClick={handleRowClick} />);
+
+		await user.click(screen.getByRole("button", { name: "Expand deployment-1" }));
+
+		expect(screen.getByText("replica-1")).toBeInTheDocument();
+		expect(handleRowClick).not.toHaveBeenCalled();
+	});
+
+	test("lets a click reach the row when the cell holds no control", async () => {
+		const user = userEvent.setup();
+		const handleRowClick = vi.fn<(row: TableRow<typeof expandableFeatures, TreeRow>) => void>();
+		render(<SubRowsHarness onRowClick={handleRowClick} />);
+		await user.click(screen.getByRole("button", { name: "Expand deployment-1" }));
+
+		await user.click(screen.getByTestId("control-replica-1"));
+
+		expect(handleRowClick).toHaveBeenCalledTimes(1);
+		expect(handleRowClick.mock.calls[0]?.[0].original.name).toBe("replica-1");
+	});
+
+	test("toggles a selection checkbox on a padding click", async () => {
+		const user = userEvent.setup();
+		const handleChange = vi.fn<() => void>();
+		const handleRowClick = vi.fn<() => void>();
+		render(
+			<Table.Root>
+				<Table.Element>
+					<Table.Body>
+						<Table.Row onClick={handleRowClick}>
+							<DataTable.ControlCell data-testid="select-cell">
+								<input type="checkbox" aria-label="Select row" onChange={handleChange} />
+							</DataTable.ControlCell>
+						</Table.Row>
+					</Table.Body>
+				</Table.Element>
+			</Table.Root>,
+		);
+
+		await user.click(screen.getByTestId("select-cell"));
+
+		const checkbox = screen.getByRole("checkbox", { name: "Select row" });
+		expect(checkbox).toBeChecked();
+		expect(checkbox).toHaveFocus();
+		expect(handleChange).toHaveBeenCalledTimes(1);
+		expect(handleRowClick).not.toHaveBeenCalled();
+	});
+
+	test("runs its own onClick once for a padding click", async () => {
+		const user = userEvent.setup();
+		const handleCellClick = vi.fn<() => void>();
+		render(
+			<Table.Root>
+				<Table.Element>
+					<Table.Body>
+						<Table.Row>
+							<DataTable.ControlCell data-testid="select-cell" onClick={handleCellClick}>
+								<input type="checkbox" aria-label="Select row" />
+							</DataTable.ControlCell>
+						</Table.Row>
+					</Table.Body>
+				</Table.Element>
+			</Table.Root>,
+		);
+
+		await user.click(screen.getByTestId("select-cell"));
+
+		expect(screen.getByRole("checkbox", { name: "Select row" })).toBeChecked();
+		expect(handleCellClick).toHaveBeenCalledTimes(1);
+	});
+
+	test("lets a padding click reach the row when its control is disabled", async () => {
+		const user = userEvent.setup();
+		const handleRowClick = vi.fn<() => void>();
+		render(
+			<Table.Root>
+				<Table.Element>
+					<Table.Body>
+						<Table.Row onClick={handleRowClick}>
+							<DataTable.ControlCell data-testid="select-cell">
+								<input type="checkbox" aria-label="Select row" disabled />
+							</DataTable.ControlCell>
+						</Table.Row>
+					</Table.Body>
+				</Table.Element>
+			</Table.Root>,
+		);
+
+		await user.click(screen.getByTestId("select-cell"));
+
+		expect(handleRowClick).toHaveBeenCalledTimes(1);
+	});
+
+	test("skips the forwarded click when its own onClick calls preventDefault", async () => {
+		const user = userEvent.setup();
+		const handleRowClick = vi.fn<() => void>();
+		render(
+			<Table.Root>
+				<Table.Element>
+					<Table.Body>
+						<Table.Row onClick={handleRowClick}>
+							<DataTable.ControlCell
+								data-testid="select-cell"
+								onClick={(event) => event.preventDefault()}
+							>
+								<input type="checkbox" aria-label="Select row" />
+							</DataTable.ControlCell>
+						</Table.Row>
+					</Table.Body>
+				</Table.Element>
+			</Table.Root>,
+		);
+
+		await user.click(screen.getByTestId("select-cell"));
+
+		expect(screen.getByRole("checkbox", { name: "Select row" })).not.toBeChecked();
+		expect(handleRowClick).not.toHaveBeenCalled();
+	});
+});
+
 describe("DataTable.ExpandedRow", () => {
 	test("spans every visible column and carries the aria-controls target id", async () => {
 		const user = userEvent.setup();
@@ -1207,7 +1569,10 @@ test("DataTable.Row renderExpanded on a table with only `rowExpandingFeature` op
 		"aria-expanded",
 		"false",
 	);
-	expect(screen.queryByTestId("panel")).not.toBeInTheDocument();
+	expect(screen.getByTestId("panel").closest("tr")).toHaveAttribute("data-closing");
+	await waitFor(() => {
+		expect(screen.queryByTestId("panel")).not.toBeInTheDocument();
+	});
 });
 
 const selectionFeatures = tableFeatures({ rowSelectionFeature });

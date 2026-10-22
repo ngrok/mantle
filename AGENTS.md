@@ -15,6 +15,7 @@ Read the files for your task before the first edit.
 - **Hooks, utilities, and other public API:** the [Philosophy page](./apps/www/app/docs/philosophy.mdx) for the design rationale. Its JSDoc feeds `llms.txt`, so follow [CONVENTIONS.md § JSDoc](./CONVENTIONS.md#jsdoc).
 - **An import in `packages/mantle/src`, or a part that reads router state:** [docs/framework-boundary.md](./docs/framework-boundary.md).
 - **JSX that renders text beside an element:** [docs/browser-translation.md](./docs/browser-translation.md).
+- **Any animation or transition:** [docs/motion.md](./docs/motion.md). Load the `motion` skill.
 - **Tests:** [docs/testing.md](./docs/testing.md).
 - **Docs site and recipes** under `apps/www`: [COMPONENT_SPEC.md §7](./COMPONENT_SPEC.md#7-the-docs-page) and the `ngrok-style` skill. The recipe-fence tests pin each recipe file.
 - **Changesets and releases:** [VERSIONING.md](./VERSIONING.md) decides the bump. Mantle is `0.x`: a breaking change is a `minor`, an additive change is a `patch`, and `major` is never correct. Never correct a bump that a maintainer set by hand.
