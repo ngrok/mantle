@@ -139,24 +139,21 @@ function useDataTableContext<
 }
 
 /**
- * How long the exit motion of a collapsing row's sub-rows and detail panel
- * runs before the row collapses. Keep it equal to `duration-150` in
- * `expandMotionClassName`.
- */
-const collapseExitMs = 150;
-
-/**
- * The easing of the rows that slide aside when a row expands or collapses.
- * Keep it equal to mantle's `--ease-out-strong` theme value; `@theme inline`
- * emits no CSS variable to read it from.
+ * The easing of the rows that slide when a row expands or collapses. Keep it
+ * equal to mantle's `--ease-out-strong` theme value; `@theme inline` emits no
+ * CSS variable to read it from.
  */
 const easeOutStrong = "cubic-bezier(0.23, 1, 0.32, 1)";
 
 /**
- * How long the rows below an expanding or collapsing row slide. Keep it equal
- * to `duration-200` in `expandMotionClassName`.
+ * How long the rows below an expanding or collapsing row slide. A collapse
+ * commits when its slide ends. Keep it equal to `duration-200` in
+ * `expandMotionClassName`.
  */
 const rowSlideMs = 200;
+
+/** A row that slides, and the animation that moves it. */
+type RowSlide = { row: HTMLTableRowElement; animation: Animation };
 
 type RowCollapse = {
 	/** The ids of expanded rows whose sub-rows and detail panel fade out. */
@@ -167,12 +164,12 @@ type RowCollapse = {
 	 */
 	startExpand: (body: Element | null, expand: () => void) => void;
 	/**
-	 * Fade out the row's sub-rows and detail panel, then run `collapse` and
-	 * slide the rows of `body` that move up. Runs `collapse` at once when the
-	 * user prefers reduced motion.
+	 * Fade out the row's sub-rows and detail panel while the rows below slide
+	 * up over them, then run `collapse`. Runs `collapse` at once when the user
+	 * prefers reduced motion.
 	 */
 	startCollapse: (rowId: string, body: Element | null, collapse: () => void) => void;
-	/** Stop a pending collapse, so the faded content returns. */
+	/** Stop a pending collapse: the content fades back and the rows slide back. */
 	cancelCollapse: (rowId: string) => void;
 };
 
@@ -180,30 +177,67 @@ const RowCollapseContext = createContext<RowCollapse | null>(null);
 
 const noClosingRowIds: ReadonlySet<string> = new Set();
 
+/** The body rows of a `<tbody>`, in order. */
+function bodyRows(body: Element): ReadonlyArray<HTMLTableRowElement> {
+	return [...body.querySelectorAll<HTMLTableRowElement>(":scope > tr")];
+}
+
+/** Slide a row from its current offset to `to`, from wherever it is now. */
+function slideRow(row: HTMLTableRowElement, to: string, fill: FillMode): Animation {
+	const from = getComputedStyle(row).translate;
+	for (const animation of row.getAnimations()) {
+		animation.cancel();
+	}
+	return row.animate([{ translate: from === "none" ? "0 0" : from }, { translate: to }], {
+		duration: rowSlideMs,
+		easing: easeOutStrong,
+		fill,
+	});
+}
+
 /**
- * The expand and collapse motion state for `DataTable.Root`.
+ * The expand and collapse motion for `DataTable.Root`. A `<tr>` cannot
+ * animate its height, so the rows below move with `translate` instead.
  *
- * - A collapse waits for the exit motion, so the rows stay mounted while they
- *   fade out. A timer, not `transitionend`, ends the wait: a hidden tab or an
- *   interrupted transition never fires the event.
- * - A `<tr>` cannot animate its height, so the rows below slide instead
- *   (FLIP). Before the change, record the offset of each row in the body.
- *   After the commit, move each row that shifted back to its old offset and
- *   animate it to its new one.
+ * - Expand: record the offset of each row, expand, then slide each row that
+ *   moved from its old offset to its new one (FLIP). The new rows fade in
+ *   under the rows that slide away.
+ * - Collapse: mark the row as closing, so its sub-rows and detail panel fade
+ *   out, and slide the rows below up over them by the height they leave. When
+ *   the slide ends, collapse. The rows below hold their place with
+ *   `fill: "forwards"` until the commit, so the layout change shows nothing.
+ *
+ * Both mirror each other on the same curve and duration. A timer, not an
+ * `animationend` event, ends the wait: a hidden tab never fires it.
  */
 function useRowCollapse(): RowCollapse {
 	const [closingRowIds, setClosingRowIds] = useState(noClosingRowIds);
 	const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
 	const recordedOffsets = useRef<Map<HTMLTableRowElement, number> | null>(null);
+	const closingBodies = useRef(new Map<string, Element>());
+	const slides = useRef(new Map<string, ReadonlyArray<RowSlide>>());
+	const committedSlides = useRef<Array<Animation>>([]);
+
+	useEffect(() => {
+		const pendingTimers = timers.current;
+		const pendingSlides = slides.current;
+		return () => {
+			for (const timer of pendingTimers.values()) {
+				clearTimeout(timer);
+			}
+			for (const rowSlides of pendingSlides.values()) {
+				for (const { animation } of rowSlides) {
+					animation.cancel();
+				}
+			}
+		};
+	}, []);
 
 	const recordOffsets = useCallback((body: Element | null) => {
 		if (body == null || getPrefersReducedMotion()) {
 			return;
 		}
-		const offsets = new Map<HTMLTableRowElement, number>();
-		for (const tr of body.querySelectorAll<HTMLTableRowElement>(":scope > tr")) {
-			offsets.set(tr, tr.offsetTop);
-		}
+		const offsets = new Map(bodyRows(body).map((row) => [row, row.offsetTop]));
 		recordedOffsets.current = offsets;
 		// A change that never commits (a vetoed toggle) must not leave offsets
 		// for a later, unrelated render to animate from.
@@ -214,21 +248,42 @@ function useRowCollapse(): RowCollapse {
 		});
 	}, []);
 
-	// No dependency list: the change commits in whichever render follows it.
+	// No dependency list: each change commits in whichever render follows it.
 	useIsomorphicLayoutEffect(() => {
-		const offsets = recordedOffsets.current;
-		if (offsets == null) {
-			return;
+		// A collapse committed: its rows are gone, so the rows below sit where
+		// their slide put them. Drop the held slides before the paint.
+		for (const animation of committedSlides.current) {
+			animation.cancel();
 		}
+		committedSlides.current = [];
+
+		// An expand committed: slide each moved row from its old offset.
+		const offsets = recordedOffsets.current;
 		recordedOffsets.current = null;
-		for (const [tr, offsetTop] of offsets) {
-			const shift = offsetTop - tr.offsetTop;
-			if (tr.isConnected && shift !== 0) {
-				tr.animate([{ translate: `0 ${shift}px` }, { translate: "0 0" }], {
+		for (const [row, offsetTop] of offsets ?? []) {
+			const shift = offsetTop - row.offsetTop;
+			if (row.isConnected && shift !== 0) {
+				row.animate([{ translate: `0 ${shift}px` }, { translate: "0 0" }], {
 					duration: rowSlideMs,
 					easing: easeOutStrong,
 				});
 			}
+		}
+
+		// A collapse started: its rows now carry `data-closing`. Slide every row
+		// below them up by the height they leave.
+		for (const [rowId, body] of closingBodies.current) {
+			closingBodies.current.delete(rowId);
+			let closingHeight = 0;
+			const rowSlides: Array<RowSlide> = [];
+			for (const row of bodyRows(body)) {
+				if (row.hasAttribute("data-closing")) {
+					closingHeight += row.offsetHeight;
+				} else if (closingHeight > 0) {
+					rowSlides.push({ row, animation: slideRow(row, `0 ${-closingHeight}px`, "forwards") });
+				}
+			}
+			slides.current.set(rowId, rowSlides);
 		}
 	});
 
@@ -240,21 +295,19 @@ function useRowCollapse(): RowCollapse {
 		[recordOffsets],
 	);
 
-	useEffect(() => {
-		const pending = timers.current;
-		return () => {
-			for (const timer of pending.values()) {
-				clearTimeout(timer);
-			}
-		};
-	}, []);
-
-	const removeRowId = useCallback((rowId: string) => {
+	const cancelCollapse = useCallback((rowId: string) => {
 		const timer = timers.current.get(rowId);
 		if (timer != null) {
 			clearTimeout(timer);
 			timers.current.delete(rowId);
 		}
+		closingBodies.current.delete(rowId);
+		// Slide back from wherever the rows are, not by reversing the slide:
+		// a reversed ease-out plays as a slow ease-in.
+		for (const { row } of slides.current.get(rowId) ?? []) {
+			slideRow(row, "0 0", "none");
+		}
+		slides.current.delete(rowId);
 		setClosingRowIds((ids) => {
 			if (!ids.has(rowId)) {
 				return ids;
@@ -267,29 +320,38 @@ function useRowCollapse(): RowCollapse {
 
 	const startCollapse = useCallback(
 		(rowId: string, body: Element | null, collapse: () => void) => {
-			if (getPrefersReducedMotion()) {
+			if (body == null || getPrefersReducedMotion()) {
 				collapse();
 				return;
 			}
-			removeRowId(rowId);
+			cancelCollapse(rowId);
+			closingBodies.current.set(rowId, body);
 			setClosingRowIds((ids) => new Set(ids).add(rowId));
 			timers.current.set(
 				rowId,
 				setTimeout(() => {
-					// Both updates land in one render, so the rows unmount without a
-					// frame at full opacity.
-					recordOffsets(body);
-					removeRowId(rowId);
+					timers.current.delete(rowId);
+					for (const { animation } of slides.current.get(rowId) ?? []) {
+						committedSlides.current.push(animation);
+					}
+					slides.current.delete(rowId);
+					// Both updates land in one render, so the rows unmount in the
+					// same commit that drops their closing state.
+					setClosingRowIds((ids) => {
+						const next = new Set(ids);
+						next.delete(rowId);
+						return next;
+					});
 					collapse();
-				}, collapseExitMs),
+				}, rowSlideMs),
 			);
 		},
-		[recordOffsets, removeRowId],
+		[cancelCollapse],
 	);
 
 	return useMemo(
-		() => ({ closingRowIds, startExpand, startCollapse, cancelCollapse: removeRowId }),
-		[closingRowIds, startExpand, startCollapse, removeRowId],
+		() => ({ closingRowIds, startExpand, startCollapse, cancelCollapse }),
+		[closingRowIds, startExpand, startCollapse, cancelCollapse],
 	);
 }
 
@@ -786,8 +848,8 @@ type DataTableRowProps<TFeatures extends TableFeatures, TData extends RowData> =
  * - Enter: it fades in and settles 4px down over 200ms. `@starting-style`
  *   (the `starting:` variant) gives the state before insertion, so the motion
  *   runs on mount with no JavaScript.
- * - Exit: `data-closing` fades it out and lifts it 4px over a shorter 150ms,
- *   then the parent collapses (see `useRowCollapse`).
+ * - Exit: `data-closing` fades it out over a shorter 150ms while the rows
+ *   below slide up over it, then the parent collapses (see `useRowCollapse`).
  *
  * Both use a strong ease-out, and a CSS transition, so a click during the exit
  * reverses it from where it is. Without the transition, the starting style has
@@ -797,7 +859,7 @@ type DataTableRowProps<TFeatures extends TableFeatures, TData extends RowData> =
 const expandMotionClassName = cx(
 	"starting:-translate-y-1 starting:opacity-0",
 	"motion-safe:transition-[opacity,translate] motion-safe:duration-200 motion-safe:ease-out-strong",
-	"data-closing:pointer-events-none data-closing:-translate-y-1 data-closing:opacity-0 motion-safe:data-closing:duration-150",
+	"data-closing:pointer-events-none data-closing:opacity-0 motion-safe:data-closing:duration-150",
 );
 
 /**
