@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createRef } from "react";
 import type { ComponentProps, ReactElement } from "react";
 import { renderToString } from "react-dom/server";
@@ -288,16 +288,27 @@ describe("ThemeSwitcher", () => {
 
 /**
  * Stubs `document.startViewTransition` the way a browser runs it: the update
- * runs at once, and `finished` settles when the test calls `finish`.
+ * runs at once, and `finished` settles when the test calls `finish`. With
+ * `deferUpdate`, each update waits until the test calls `runUpdates`, as it
+ * does in a browser until the next frame.
  */
-function stubViewTransition() {
+function stubViewTransition({ deferUpdate = false }: { deferUpdate?: boolean } = {}) {
+	const updates: Array<() => void> = [];
+	const runUpdates = () => {
+		for (const update of updates.splice(0)) {
+			update();
+		}
+	};
 	let finish = () => {};
 	const finished = new Promise<undefined>((resolve) => {
 		finish = () => resolve(undefined);
 	});
 	const skipTransition = vi.fn<() => void>();
 	const startViewTransition = vi.fn<(update: () => void) => object>((update) => {
-		update();
+		updates.push(update);
+		if (!deferUpdate) {
+			runUpdates();
+		}
 		return {
 			finished,
 			ready: Promise.resolve(undefined),
@@ -311,7 +322,7 @@ function stubViewTransition() {
 		value: startViewTransition,
 	});
 	vi.spyOn(document.documentElement, "animate").mockImplementation(() => new Animation());
-	return { finish, skipTransition, startViewTransition };
+	return { finish, runUpdates, skipTransition, startViewTransition };
 }
 
 /**
@@ -368,6 +379,23 @@ describe("ThemeSwitcher theme swap", () => {
 		const { left, top } = button.getBoundingClientRect();
 		fireEvent.click(document.documentElement, { clientX: left, clientY: top });
 		expect(skipTransition).toHaveBeenCalledTimes(1);
+		expect(screen.getByTestId("current-theme")).toHaveTextContent("system");
+
+		finish();
+		await waitFor(() =>
+			expect(document.documentElement).not.toHaveAttribute("data-theme-transition"),
+		);
+	});
+
+	test("two clicks before the browser runs the first update toggle twice", async () => {
+		stubMotionAllowed();
+		const { finish, runUpdates } = stubViewTransition({ deferUpdate: true });
+		renderSwitcher();
+		const button = screen.getByRole("button", { name: "Switch to dark theme" });
+
+		fireEvent.click(button);
+		fireEvent.click(button);
+		act(runUpdates);
 		expect(screen.getByTestId("current-theme")).toHaveTextContent("system");
 
 		finish();

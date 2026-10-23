@@ -21,7 +21,7 @@ import { ThemeIcon } from "../icons/theme.js";
 import { Skeleton } from "../skeleton/index.js";
 import { useAppliedTheme, useForcedTheme, useTheme } from "../theme/theme-provider.js";
 import type { ResolvedTheme, Theme } from "../theme/themes.js";
-import { $theme, getToggledTheme, isTheme, themes } from "../theme/themes.js";
+import { $theme, getToggledTheme, isResolvedTheme, isTheme, themes } from "../theme/themes.js";
 
 /**
  * Menu item labels for each mantle theme. Typed as a complete
@@ -237,7 +237,19 @@ function ThemeSwitcher({
 			onClick={(event) => {
 				onClick?.(event);
 				if (!event.defaultPrevented) {
-					swapTheme(() => setTheme(nextTheme), { origin: event.currentTarget });
+					swapTheme(
+						() => {
+							// Why read `<html>`: the browser runs the update in a later frame, so a
+							// second click can come first. `setTheme` writes the applied theme at once.
+							const applied = document.documentElement.dataset.appliedTheme;
+							setTheme(
+								isResolvedTheme(applied)
+									? getToggledTheme({ theme: applied, prefersDarkMode })
+									: nextTheme,
+							);
+						},
+						{ origin: event.currentTarget },
+					);
 				}
 			}}
 			{...props}
