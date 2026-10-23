@@ -25,6 +25,9 @@ const STYLE = `
 		.motion-safe\\:not-focus-within\\:data-validation-error\\:animate-shake:not(:focus-within)[data-validation="error"] {
 			animation: shake 300ms ease-in-out;
 		}
+		.motion-safe\\:not-focus-within\\:not-has-aria-expanded\\:data-validation-error\\:animate-shake:not(:focus-within):not(:has([aria-expanded="true"]))[data-validation="error"] {
+			animation: shake 300ms ease-in-out;
+		}
 		.motion-safe\\:not-focus\\:data-validation-error\\:animate-shake:not(:focus)[data-validation="error"] {
 			animation: shake 300ms ease-in-out;
 		}
@@ -205,6 +208,40 @@ describe("error shake", () => {
 
 		rerender(<Subject />);
 		input.focus();
+		rerender(<Subject validation="error" />);
+		expect(shakesOf(trigger)).toHaveLength(0);
+	});
+
+	test("a MultiSelect.Trigger does not shake while focus is in its open list", async () => {
+		const Subject = ({ validation }: { validation?: Validation }) => (
+			<MultiSelect.Root>
+				<MultiSelect.Trigger validation={validation}>
+					<MultiSelect.TagValues />
+					<MultiSelect.Input aria-label="Fruits" />
+				</MultiSelect.Trigger>
+				<MultiSelect.Content>
+					<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
+					<MultiSelect.ContentFooter>
+						<button type="button">Add fruit</button>
+					</MultiSelect.ContentFooter>
+				</MultiSelect.Content>
+			</MultiSelect.Root>
+		);
+		const { rerender } = render(<Subject />);
+		const input = screen.getByRole("combobox", { name: "Fruits" });
+		const trigger = input.closest("[data-slot~='multi-select-trigger']");
+		if (trigger == null) {
+			throw new Error("No element carries data-slot~='multi-select-trigger'.");
+		}
+
+		await userEvent.click(input);
+		const footerButton = await screen.findByRole("button", { name: "Add fruit" });
+		footerButton.focus();
+		// Why: the list is portaled, so focus in it leaves the trigger. Only the
+		// `aria-expanded` guard holds.
+		expect(trigger).not.toContainElement(document.activeElement as HTMLElement);
+		expect(input).toHaveAttribute("aria-expanded", "true");
+
 		rerender(<Subject validation="error" />);
 		expect(shakesOf(trigger)).toHaveLength(0);
 	});

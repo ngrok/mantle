@@ -218,7 +218,7 @@ const Trigger = ({
 				"has-focus-within:border-accent-600 has-focus-within:ring-focus-accent has-aria-expanded:border-accent-600 has-aria-expanded:ring-focus-accent",
 				"data-validation-success:border-success-600 data-validation-success:has-focus-within:border-success-600 data-validation-success:has-focus-within:ring-focus-success data-validation-success:has-aria-expanded:border-success-600 data-validation-success:has-aria-expanded:ring-focus-success",
 				"data-validation-warning:border-warning-600 data-validation-warning:has-focus-within:border-warning-600 data-validation-warning:has-focus-within:ring-focus-warning data-validation-warning:has-aria-expanded:border-warning-600 data-validation-warning:has-aria-expanded:ring-focus-warning",
-				"data-validation-error:border-danger-600 data-validation-error:has-focus-within:border-danger-600 data-validation-error:has-focus-within:ring-focus-danger data-validation-error:has-aria-expanded:border-danger-600 data-validation-error:has-aria-expanded:ring-focus-danger motion-safe:not-focus-within:data-validation-error:animate-shake",
+				"data-validation-error:border-danger-600 data-validation-error:has-focus-within:border-danger-600 data-validation-error:has-focus-within:ring-focus-danger data-validation-error:has-aria-expanded:border-danger-600 data-validation-error:has-aria-expanded:ring-focus-danger motion-safe:not-focus-within:not-has-aria-expanded:data-validation-error:animate-shake",
 				className,
 			)}
 			data-validation={validation || undefined}
