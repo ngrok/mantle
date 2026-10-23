@@ -2,7 +2,7 @@
 "@ngrok/mantle": patch
 ---
 
-Fix chart y-axis labels that overlap at short plot heights, and fix three chart papercuts.
+Fix chart y-axis labels that overlap at short plot heights, and fix other chart papercuts.
 
 - **`YAxis` fits its ticks to the plot height.** A vertical value axis keeps about 28px for each tick, and it skips a label that would overlap its neighbor. A 64px chart over a `[0, 200]` domain now paints `0` and `200`, not five stacked labels.
 - **`YAxis` `tickCount` is a maximum.** The axis selects a larger step when the human-friendly step gives more ticks than you asked for: `tickCount={3}` over `[0, 200]` paints `0, 100, 200`, not `0, 50, 100, 150, 200`. When you omit `tickCount`, the axis still aims for about 5 ticks.
