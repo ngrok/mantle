@@ -48,6 +48,19 @@ import { ThemeSwitcher } from "@ngrok/mantle/theme-switcher";
 <ThemeSwitcher />;
 ```
 
+## Choosing a control
+
+Give each surface one theme control. Two controls for one preference in one view make the user ask which one wins.
+
+| Surface                            | Control                                                                                      |
+| ---------------------------------- | -------------------------------------------------------------------------------------------- |
+| A site header or a toolbar         | `ThemeSwitcher`                                                                              |
+| A signed-out page, such as sign-in | `ThemeSwitcher` in the layout footer                                                         |
+| An app account menu                | A `Theme` submenu that holds [`ThemeDropdownMenuRadioGroup`](#embedding-in-an-existing-menu) |
+| An app settings page               | Your own radio group over [`useTheme`](/components/primitives/theme#usage)                   |
+
+In a signed-in app, put the control in the account menu, and leave `ThemeSwitcher` out of the app chrome.
+
 ## How the toggle works
 
 The stored preference has three values: `"system"`, `"light"`, and `"dark"`. A user who opens the page and finds it too bright (or too dark) has one goal, which is to flip it, so the toggle shows two states and stores all three. It follows the model in [Lea Verou's post on dark mode toggles](https://lea.verou.me/blog/2026/dark-mode-toggles/):
