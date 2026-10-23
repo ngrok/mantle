@@ -558,7 +558,7 @@ function LinkedChartsExample() {
 
 ## Live data
 
-For streaming data, append points to the end of a sliding window and let the chart supply the motion. The x domain does not play a fixed-duration tween per append: it exponentially chases its target, so a new point arriving mid-glide redirects the motion and back-to-back appends read as one continuous scroll, never ease-stop-jump ticks. As the window slides, tick labels fade in and out per label (gridlines share their labels' fade) instead of popping between tick sets. `prefers-reduced-motion` snaps everything: appends land instantly, with no glide and no fades.
+For streaming data, append points to the end of a sliding window and let the chart supply the motion. When appends arrive at a steady rate, the x domain scrolls at one constant speed. The chart measures the time between appends and glides the domain to each new target over that interval, so back-to-back appends read as one continuous scroll, never ease-stop-jump ticks. A point that arrives early or late changes the speed from the current position, with no jump. As the window slides, tick labels fade in and out per label (gridlines share their labels' fade) instead of popping between tick sets. `prefers-reduced-motion` snaps everything: appends land instantly, with no glide and no fades.
 
 This demo appends one point every 150ms to a sliding 240-point window, dropping the oldest point each time. Both series derive from pure sine compositions over a tick counter and a fixed epoch (a slow drift plus faster waves), so the demo renders deterministically; a real chart would append measurements as they arrive.
 

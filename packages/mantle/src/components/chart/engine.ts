@@ -199,6 +199,11 @@ const TEXT_WIDTH_CACHE_LIMIT = 512;
 
 /** Width of the left-edge scroll-mask fade band, in CSS pixels. */
 const EDGE_FADE_WIDTH = 40;
+/**
+ * The longest gap between two window slides that still counts as one stream.
+ * A slower feed reads as separate updates, so its x domain chases.
+ */
+const STREAM_MAX_INTERVAL_MS = 2000;
 /** How long after the last window slide the left-edge fade lingers before decaying. */
 const EDGE_FADE_LINGER_MS = 1000;
 
@@ -293,9 +298,9 @@ class ChartEngine {
 	#xsAllIntegers = true;
 	#stack: StackBoundaries | null = null;
 
-	// Domains chase their targets (liveline-style exponential glide) so regular
-	// retargets — streaming appends — read as continuous motion, never
-	// ease-stop-jump ticks. Per-datum morphs and reveals stay fixed-duration.
+	// Domains chase their targets, so a retarget mid-motion never jumps. A
+	// stream's x domain glides in a straight line instead (see `#streamInterval`).
+	// Per-datum morphs and reveals stay fixed-duration.
 	#yTween = new ChaseTween({ speed: 0.16 });
 	#xTween = new ChaseTween({ speed: 0.2 });
 	#valueTweens = new Map<string, ValueTween>();
@@ -331,11 +336,18 @@ class ChartEngine {
 	#decimationCache = new Map<string, { key: string; columns: DecimatedColumns }>();
 
 	// Liveline-style left-edge scroll mask: streaming appends that drop the
-	// oldest row hard-clip exiting marks at the plot edge while the chasing
-	// domain opens a pulsing wedge there. While the window slides, marks fade
+	// oldest row hard-clip exiting marks at the plot edge while the moving
+	// domain opens a wedge there. While the window slides, marks fade
 	// out through a band at the left edge so exits dissolve instead of popping.
 	#edgeFade = { alpha: 0, target: 0 };
-	#lastSlideAt = 0;
+	#lastSlideAt = Number.NEGATIVE_INFINITY;
+	/** Whether the last ingest slid the window forward. */
+	#sliding = false;
+	/**
+	 * The smoothed time between window slides, in ms. `null` until two slides
+	 * arrive within {@link STREAM_MAX_INTERVAL_MS} of each other.
+	 */
+	#streamInterval: number | null = null;
 	#edgeFadeDecayTimer: ReturnType<typeof setTimeout> | null = null;
 
 	#colors: ResolvedColors | null = null;
@@ -1200,9 +1212,25 @@ class ChartEngine {
 			last >= previousLast
 		) {
 			this.#edgeFade.target = 1;
-			this.#lastSlideAt = performance.now();
+			const now = performance.now();
+			const sinceLastSlide = now - this.#lastSlideAt;
+			// Why a smoothed interval: timer jitter of a few ms per append would
+			// otherwise change the scroll speed on every append.
+			if (sinceLastSlide > STREAM_MAX_INTERVAL_MS) {
+				this.#streamInterval = null;
+			} else if (this.#streamInterval == null) {
+				this.#streamInterval = sinceLastSlide;
+			} else {
+				this.#streamInterval = this.#streamInterval * 0.7 + sinceLastSlide * 0.3;
+			}
+			this.#lastSlideAt = now;
+			this.#sliding = true;
 		} else if (first !== previousFirst || last !== previousLast) {
 			this.#edgeFade.target = 0;
+			this.#streamInterval = null;
+			this.#sliding = false;
+		} else {
+			this.#sliding = false;
 		}
 		const count = this.#rowCount;
 
@@ -1360,7 +1388,14 @@ class ChartEngine {
 			this.#xTween.jump(this.#targetXDomain());
 		} else {
 			this.#yTween.aim(this.#targetYDomain(), now);
-			this.#xTween.aim(this.#targetXDomain(), now);
+			if (this.#sliding && this.#streamInterval != null) {
+				// Why a straight line: a stream's x axis is time passing, so it
+				// scrolls at one speed. A chase covers most of each step in the first
+				// frames after an append and then stalls before the next one.
+				this.#xTween.glide(this.#targetXDomain(), { now, duration: this.#streamInterval });
+			} else {
+				this.#xTween.aim(this.#targetXDomain(), now);
+			}
 		}
 
 		// Per-datum tweens: only below the limit and only when the x vector is

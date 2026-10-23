@@ -304,3 +304,49 @@ describe("ChaseTween", () => {
 		expect(chase.values()[0]).toBe(100);
 	});
 });
+
+describe("ChaseTween glide", () => {
+	test("moves the same distance in each equal step of time", () => {
+		const chase = new ChaseTween();
+		chase.jump([0, 100]);
+		chase.glide([200, 300], { now: 0, duration: 200 });
+		const steps = [50, 100, 150].map((now) => {
+			chase.tick(now);
+			return chase.values()[0];
+		});
+		expect(steps).toStrictEqual([50, 100, 150]);
+		expect(chase.tick(200)).toBe(false);
+		expect([...chase.values()]).toStrictEqual([200, 300]);
+	});
+
+	test("a new target mid-glide starts from the current position", () => {
+		const chase = new ChaseTween();
+		chase.jump([0]);
+		chase.glide([100], { now: 0, duration: 100 });
+		chase.tick(40);
+		chase.glide([200], { now: 50, duration: 100 });
+		// The second line starts at 50 (the first line's value at 50 ms) and ends at 200.
+		chase.tick(100);
+		expect(chase.values()[0]).toBe(125);
+	});
+
+	test("aim after a glide chases from the current position", () => {
+		const chase = new ChaseTween();
+		chase.jump([0]);
+		chase.glide([100], { now: 0, duration: 100 });
+		chase.aim([100], 50);
+		expect(chase.values()[0]).toBe(50);
+		expect(chase.tick(66.67)).toBe(true);
+		const value = chase.values()[0] ?? 0;
+		expect(value).toBeGreaterThan(50);
+		expect(value).toBeLessThan(100);
+	});
+
+	test("a zero duration lands on the target at once", () => {
+		const chase = new ChaseTween();
+		chase.jump([0]);
+		chase.glide([10], { now: 0, duration: 0 });
+		expect(chase.active).toBe(false);
+		expect(chase.values()[0]).toBe(10);
+	});
+});

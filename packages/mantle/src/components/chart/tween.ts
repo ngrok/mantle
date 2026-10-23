@@ -151,6 +151,10 @@ class ValueTween {
  * constant smooth motion instead of ease-stop-jump ticks. A snap epsilon
  * terminates the chase so an idle chart stops burning frames.
  *
+ * `glide` moves to a target in a straight line over a set duration. A stream
+ * uses it to scroll at a constant speed between appends; `aim` and `jump`
+ * return to the chase.
+ *
  * @example
  * ```ts
  * const chase = new ChaseTween();
@@ -170,6 +174,8 @@ class ChaseTween {
 	#epsilon: number;
 	/** The largest per-component distance when the chase was (re)aimed. */
 	#journey = 0;
+	/** The straight-line glide in flight, or `null` while the value chases. */
+	#glide: { from: Float64Array; start: number; duration: number } | null = null;
 
 	constructor(options: { speed?: number; epsilon?: number } = {}) {
 		this.#speed = options.speed ?? 0.14;
@@ -186,6 +192,7 @@ class ChaseTween {
 
 	/** Set the value instantly (first data, reduced motion, animate=false). */
 	jump(target: ArrayLike<number>): void {
+		this.#glide = null;
 		if (this.#current.length !== target.length) {
 			this.#target = new Float64Array(target.length);
 			this.#current = new Float64Array(target.length);
@@ -204,6 +211,13 @@ class ChaseTween {
 	 * original journey bookkeeping and a settled chase stays settled.
 	 */
 	aim(target: ArrayLike<number>, now: number): void {
+		if (this.#glide != null) {
+			// Continue from where the glide is now, at the chase's own pace.
+			this.#advanceGlide(now);
+			this.#glide = null;
+			this.#active = false;
+			this.#target.set(this.#current);
+		}
 		if (this.#current.length !== target.length) {
 			this.jump(target);
 			return;
@@ -254,9 +268,55 @@ class ChaseTween {
 	 * progress snaps to the target, so rounding can never wedge the chase into
 	 * ticking forever.
 	 */
+	/**
+	 * Move to `target` in a straight line that ends `duration` ms after `now`.
+	 * The line starts at the value the motion holds at `now`, so a new target
+	 * mid-glide never jumps.
+	 */
+	glide(target: ArrayLike<number>, options: { now: number; duration: number }): void {
+		const { now, duration } = options;
+		if (this.#current.length !== target.length || duration <= 0) {
+			this.jump(target);
+			return;
+		}
+		if (this.#glide != null) {
+			this.#advanceGlide(now);
+		}
+		for (let index = 0; index < target.length; index++) {
+			this.#target[index] = target[index] ?? Number.NaN;
+		}
+		this.#glide = { from: Float64Array.from(this.#current), start: now, duration };
+		this.#active = true;
+		this.#lastTime = now;
+	}
+
+	/** Set `#current` to the glide's position at `now`; end the glide once it arrives. */
+	#advanceGlide(now: number): void {
+		const glide = this.#glide;
+		if (glide == null) {
+			return;
+		}
+		const progress = Math.min(1, Math.max(0, (now - glide.start) / glide.duration));
+		for (let index = 0; index < this.#current.length; index++) {
+			const from = glide.from[index] ?? Number.NaN;
+			const to = this.#target[index] ?? Number.NaN;
+			this.#current[index] =
+				Number.isNaN(from) || Number.isNaN(to) ? to : from + (to - from) * progress;
+		}
+		if (progress >= 1) {
+			this.#glide = null;
+			this.#active = false;
+		}
+	}
+
 	tick(now: number): boolean {
 		if (!this.#active) {
 			return false;
+		}
+		if (this.#glide != null) {
+			this.#lastTime = now;
+			this.#advanceGlide(now);
+			return this.#active;
 		}
 		// Clamp dt so a background-tab hiccup can't teleport the chase.
 		const dt = Math.min(50, Math.max(0, now - this.#lastTime));
