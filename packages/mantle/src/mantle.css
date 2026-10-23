@@ -199,6 +199,14 @@ MARK: THEME
 			translate: 0;
 		}
 	}
+	/* Keeps a portal positioner mounted while its content plays the exit. Radix waits for an
+	   animation on the portal child itself, and these keyframes change nothing on screen. */
+	--animate-exit-hold: exit-hold 150ms;
+	@keyframes exit-hold {
+		to {
+			opacity: 1;
+		}
+	}
 	/* The narrowest workspace row that holds the expanded rail (13rem), the content card at
 	   the side panel's floor (21rem), the panel itself (21rem), and the three gutters (1.5rem).
 	   Below it `AppLayout.SidePanel` floats over the card, so the page is never narrower than

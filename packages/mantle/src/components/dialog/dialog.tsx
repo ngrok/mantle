@@ -223,7 +223,7 @@ const Overlay = ({
 		ref={ref}
 		data-slot={joinDataSlot(dataSlot, "dialog-overlay")}
 		className={cx(
-			"bg-overlay data-state-closed:animate-out data-state-closed:fade-out-0 data-state-open:animate-in data-state-open:fade-in-0 fixed inset-0 z-60 backdrop-blur-xs",
+			"bg-overlay data-state-closed:animate-out data-state-closed:fade-out-0 data-state-open:animate-in data-state-open:fade-in-0 duration-200 ease-out-strong data-state-closed:duration-150 fixed inset-0 z-60 backdrop-blur-xs",
 			className,
 		)}
 		{...props}
@@ -394,7 +394,10 @@ const Content = ({
 		    float's `position: fixed` still resolves against the viewport. */}
 		<LayerContainer
 			data-slot="dialog-positioner"
-			className={cx("fixed z-60 flex items-center justify-center", wrapperClassName[appearance])}
+			className={cx(
+				"fixed z-60 flex items-center justify-center motion-safe:has-[>[data-state=closed]]:animate-exit-hold",
+				wrapperClassName[appearance],
+			)}
 		>
 			<DialogPrimitiveContent
 				data-appearance={appearance}
@@ -403,7 +406,7 @@ const Content = ({
 				className={cx(
 					"flex max-h-full w-full flex-1 flex-col",
 					"outline-hidden focus-within:outline-hidden",
-					"bg-dialog shadow-lg transition-transform duration-200",
+					"bg-dialog shadow-lg duration-200 ease-out-strong data-state-closed:duration-150 motion-reduce:animate-none!",
 					"data-state-closed:animate-out data-state-closed:fade-out-0 data-state-closed:zoom-out-95 data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95",
 					contentClassName[appearance],
 					appearance === "centered" && (preferredWidth ?? "max-w-lg"),

@@ -143,9 +143,10 @@ const PasswordInput = ({
 		// Why no cancel: every visibility change swaps `EyeIcon` for
 		// `EyeClosedIcon`, so the previous animation runs on a detached `<svg>`
 		// and cannot block or stack with this one.
-		icon.animate([{ transform: "scaleY(0)" }, { transform: "scaleY(1)" }], {
+		// Why the literal curve: `@theme inline` emits no CSS variable for `--ease-out-strong`.
+		icon.animate([{ scale: "1 0.5" }, { scale: "1" }], {
 			duration: 200,
-			easing: "ease-out",
+			easing: "cubic-bezier(0.23, 1, 0.32, 1)",
 		});
 	}, [showPassword]);
 

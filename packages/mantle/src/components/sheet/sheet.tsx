@@ -276,7 +276,7 @@ const SheetOverlay = ({
 		<SheetPrimitiveOverlay
 			data-slot={joinDataSlot(dataSlot, "sheet-overlay")}
 			className={cx(
-				"bg-overlay data-state-closed:animate-out data-state-closed:fade-out-0 data-state-open:animate-in data-state-open:fade-in-0 fixed inset-0 z-60 backdrop-blur-xs",
+				"bg-overlay data-state-closed:animate-out data-state-closed:fade-out-0 data-state-open:animate-in data-state-open:fade-in-0 duration-200 ease-out-strong data-state-closed:duration-150 fixed inset-0 z-60 backdrop-blur-xs",
 				className,
 			)}
 			{...props}
@@ -287,7 +287,7 @@ const SheetOverlay = ({
 };
 
 const sheetVariants = cva(
-	"bg-dialog border-dialog inset-y-0 h-full w-full fixed flex flex-col shadow-lg outline-hidden transition ease-in-out focus-within:outline-hidden data-state-closed:duration-100 data-state-closed:animate-out data-state-open:duration-100 data-state-open:animate-in",
+	"bg-dialog border-dialog inset-y-0 h-full w-full fixed flex flex-col shadow-lg outline-hidden focus-within:outline-hidden data-state-closed:animate-out data-state-open:animate-in duration-200 ease-out-strong data-state-closed:duration-150 motion-reduce:animate-none!",
 	{
 		variants: {
 			/**
@@ -396,7 +396,10 @@ const Content = ({
 			    would turn a portaled float's `position: fixed` into a position
 			    relative to the content. The positioner has no box of its own; the
 			    content keeps its own fixed positioning. */}
-			<LayerContainer data-slot="sheet-positioner" className="fixed z-60">
+			<LayerContainer
+				data-slot="sheet-positioner"
+				className="fixed z-60 motion-safe:has-[>[data-state=closed]]:animate-exit-hold"
+			>
 				<SheetPrimitiveContent
 					data-slot={joinDataSlot(dataSlot, "sheet-content")}
 					data-mantle-modal-content

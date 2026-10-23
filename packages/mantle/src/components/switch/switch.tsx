@@ -84,7 +84,7 @@ const Switch = ({
 		>
 			<SwitchPrimitiveThumb
 				className={clsx(
-					"pointer-events-none block size-4 rounded-full bg-[#fff] shadow-md ring-0 transition-transform",
+					"pointer-events-none block size-4 rounded-full bg-[#fff] shadow-md ring-0 transition-transform duration-200 ease-out-strong motion-reduce:transition-none",
 					"data-state-checked:translate-x-4.5 data-state-unchecked:translate-x-0.5",
 				)}
 			/>

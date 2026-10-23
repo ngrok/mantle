@@ -59,24 +59,20 @@ const ANNOUNCEMENT_CLEAR_DELAY_MS = 1_000;
 /**
  * Fallback for closing → closed when the exit transition never fires (e.g.
  * `transition-none` overrides or animations globally disabled). Must exceed
- * the 200ms exit duration.
+ * the 150ms exit duration.
  */
 const EXIT_TRANSITION_TIMEOUT_MS = 400;
 
 /**
- * The panel's blocked-navigation wiggle: the origin implementation's ±8px /
- * 400ms with one extra ±3px decay step so the motion settles instead of
- * stopping abruptly. Symmetric oscillation wants symmetric easing, hence
- * ease-in-out rather than the panel's ease-out.
+ * The panel's blocked-navigation wiggle. Keep it equal to the `shake` keyframes
+ * in `mantle.css`: the first swing eases out, and the smaller swings settle it.
  */
 const shakeKeyframes: Keyframe[] = [
-	{ transform: "translateX(0)" },
-	{ transform: "translateX(-8px)" },
-	{ transform: "translateX(8px)" },
-	{ transform: "translateX(-6px)" },
-	{ transform: "translateX(6px)" },
-	{ transform: "translateX(-3px)" },
+	{ transform: "translateX(0)", easing: "ease-out" },
+	{ transform: "translateX(-4px)" },
 	{ transform: "translateX(3px)" },
+	{ transform: "translateX(-2px)" },
+	{ transform: "translateX(1px)" },
 	{ transform: "translateX(0)" },
 ];
 
@@ -338,7 +334,7 @@ const Root = ({
 				shakeAnimationRef.current.cancel();
 				shakeAnimationRef.current = null;
 			}
-			const animation = panel.animate(shakeKeyframes, { duration: 400, easing: "ease-in-out" });
+			const animation = panel.animate(shakeKeyframes, { duration: 300, easing: "ease-in-out" });
 			// Why: `cancel()` rejects `finished` with an `AbortError`. Browsers
 			// suppress the report when nobody read `finished`, but happy-dom
 			// surfaces it as an unhandled rejection and fails the test run.
@@ -634,21 +630,13 @@ const Root = ({
 						// retargetable, so a reopen mid-exit rises back from wherever the
 						// panel currently is instead of restarting. The closed pose sits a
 						// full panel height plus the largest bottom offset (2.5rem, from
-						// sm:bottom-10) below rest, fully clearing the viewport edge — the
-						// enter rises from offscreen over 400ms; the exit answers a click,
-						// so it drops away faster (200ms, sonner's own user-initiated
-						// swipe-dismissal timing). The exit is motion-led: the per-property
-						// easing list pairs positionally with transition-property, giving
-						// opacity an accelerate curve (the bar stays solid while it travels,
-						// evaporating only at the end to clean up the shadow at the edge)
-						// while translate leads with ease-out. Reduced motion keeps only
-						// the fades (motion-safe gates the translate).
+						// sm:bottom-10) below rest, fully clearing the viewport edge. The
+						// exit mirrors the enter on the same curve, and reduced motion keeps
+						// only the fades (motion-safe gates the translate).
 						// `translate-y-*` writes the standalone `translate` property in
 						// Tailwind v4 — transitioning `transform` instead silently snaps
-						"transition-[opacity,translate] ease-out",
-						"data-state-open:duration-400",
-						"data-state-closed:pointer-events-none data-state-closed:opacity-0 data-state-closed:duration-200 motion-safe:data-state-closed:translate-y-[calc(100%+2.5rem)]",
-						"data-state-closed:ease-[cubic-bezier(0.4,0,1,1),cubic-bezier(0,0,0.2,1)]",
+						"transition-[opacity,translate] duration-200 ease-out-strong",
+						"data-state-closed:pointer-events-none data-state-closed:opacity-0 data-state-closed:duration-150 motion-safe:data-state-closed:translate-y-[calc(100%+2.5rem)]",
 						className,
 					)}
 					{...props}

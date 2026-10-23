@@ -789,7 +789,11 @@ const ExpanderButton = ({
 			{isCodeExpanded ? "Show less" : "Show more"}{" "}
 			<MantleIcon
 				svg={<CaretDownIcon weight="bold" />}
-				className={cx("size-4", isCodeExpanded && "rotate-180", "transition-all duration-150")}
+				className={cx(
+					"size-4",
+					isCodeExpanded && "rotate-180",
+					"transition-transform duration-200 ease-out-strong motion-reduce:transition-none",
+				)}
 			/>
 		</button>
 	);

@@ -642,7 +642,7 @@ const ExpandButton = ({
 				<CaretDownIcon
 					weight="bold"
 					className={cx(
-						"size-4 transition-transform ease-out duration-150",
+						"size-4 transition-transform duration-200 ease-out-strong motion-reduce:transition-none",
 						expanded && "-rotate-180",
 					)}
 				/>

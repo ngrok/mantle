@@ -1781,12 +1781,13 @@ function shakeElement(element: HTMLElement): void {
 	}
 
 	element.animate(
+		// Why these values: they match the `shake` keyframes in `mantle.css`.
 		[
-			{ transform: "translateX(0)" },
+			{ transform: "translateX(0)", easing: "ease-out" },
 			{ transform: "translateX(-4px)" },
-			{ transform: "translateX(4px)" },
-			{ transform: "translateX(-4px)" },
-			{ transform: "translateX(4px)" },
+			{ transform: "translateX(3px)" },
+			{ transform: "translateX(-2px)" },
+			{ transform: "translateX(1px)" },
 			{ transform: "translateX(0)" },
 		],
 		{ duration: 300, easing: "ease-in-out" },
