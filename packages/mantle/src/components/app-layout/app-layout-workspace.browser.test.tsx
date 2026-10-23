@@ -7,21 +7,24 @@ import { TooltipProvider } from "../tooltip/index.js";
 import { AppLayout } from "./app-layout.js";
 
 /**
- * Real-browser geometry for the workspace row and the side panel lane in it. The panel's contract is the layout it produces (a clip box with a
- * fixed basis beside the card, nothing when closed, an inner card that never
- * moves, a floating card below its breakpoint) and the transition that carries
- * one state to the other, gated until a frame after hydration. happy-dom lays
- * nothing out and runs no transition, and `prefers-reduced-motion` is a
- * Playwright page emulation.
+ * Real-browser geometry for the workspace row and the side panel lane in it.
+ * The panel's contract is the layout it produces (a clip box with a fixed basis
+ * beside the card, nothing when closed, an inner card that never moves, a
+ * floating card below its breakpoint) and the transition that carries one state
+ * to the other, gated until a frame after hydration. happy-dom lays nothing out
+ * and runs no transition, and `prefers-reduced-motion` is a Playwright page
+ * emulation.
  *
  * The stylesheet is Tailwind 4.3.3's own output for the utilities in play,
  * keyed by the same escaped class selectors, with the theme variables resolved.
  * Regenerate it by compiling those class names through `tailwindcss`'s
- * `compile()`. Drop `grow-0`, the inner card's
- * width or inset, or a `data-state-closed:` utility from a part and the
- * matching assertion fails. The ungated `data-state-closed:basis-0` rule stays
- * loaded with no part that uses it, so an ungated utility shows up as a third
- * transition on the floating panel. The row-driven float is loaded for a row
+ * `compile()`. Drop `grow-0`, the inner card's width or inset, or a
+ * `data-state-closed:` utility from a part and the matching assertion fails.
+ * The removed `mx-auto` and `--app-layout-max-width` cap rules stay loaded with
+ * no part that uses them, so a cap that comes back fails the ultrawide test.
+ * The ungated `data-state-closed:basis-0` rule stays loaded with no part that
+ * uses it, so an ungated utility shows up as a third transition on the floating
+ * panel. The row-driven float is loaded for a row
  * with no rail, the only row this file renders, so a lane expectation at a row
  * under the icon-rail threshold fails here the way it does in a real page.
  */
@@ -50,6 +53,7 @@ const STYLE = `
 	.right-\\(--_side-panel-content-inset\\) { right: var(--_side-panel-content-inset); }
 	.isolate { isolation: isolate; }
 	.m-\\(--app-layout-card-gutter\\,0\\.5rem\\) { margin: var(--app-layout-card-gutter,0.5rem); }
+	.mx-auto { margin-inline: auto; }
 	.my-\\(--app-layout-card-gutter\\,0\\.5rem\\) { margin-block: var(--app-layout-card-gutter,0.5rem); }
 	.mr-0 { margin-right: 0px; }
 	.ml-0 { margin-left: 0px; }
@@ -57,6 +61,7 @@ const STYLE = `
 	.h-full { height: 100%; }
 	.w-full { width: 100%; }
 	.w-\\(--_side-panel-content-width\\) { width: var(--_side-panel-content-width); }
+	.max-w-\\(--app-layout-max-width\\,128rem\\) { max-width: var(--app-layout-max-width,128rem); }
 	.max-w-\\[600px\\] { max-width: 600px; }
 	.min-w-0 { min-width: 0px; }
 	.flex-1 { flex: 1; }
