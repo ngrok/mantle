@@ -2,7 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, describe, expect, test } from "vitest";
 import { commands, userEvent } from "vitest/browser";
 import { Combobox } from "../combobox/index.js";
-import { Input, PasswordInput } from "../input/index.js";
+import { Input, InputCapture, PasswordInput } from "../input/index.js";
 import { MultiSelect } from "../multi-select/index.js";
 import { Select } from "../select/index.js";
 import { TextArea } from "../text-area/index.js";
@@ -15,13 +15,24 @@ import type { Validation } from "./validation.js";
  * whether the guards hold. happy-dom runs no animation, and
  * `prefers-reduced-motion` is a Playwright page emulation.
  *
- * The stylesheet below is Tailwind 4.3.3's output for the three class lists
+ * The stylesheet below is Tailwind 4.3.3's output for the class lists
  * the controls use, with the `shake` keyframes from `mantle.css`. Regenerate it
  * by compiling those class names through `@tailwindcss/node`'s `compile()`.
  */
 const STYLE = `
+@layer theme {
+	:root {
+		--color-danger-600: rgb(220, 38, 38);
+	}
+}
 @layer utilities {
+	.has-\\[\\>\\[data-validation\\=error\\]\\]\\:border-danger-600:has( > [data-validation=error]) {
+		border-color: var(--color-danger-600);
+	}
 	@media (prefers-reduced-motion: no-preference) {
+		.motion-safe\\:not-focus-within\\:has-\\[\\>\\[data-validation\\=error\\]\\]\\:animate-shake:not(:focus-within):has( > [data-validation=error]) {
+			animation: shake 300ms ease-in-out;
+		}
 		.motion-safe\\:not-focus-within\\:data-validation-error\\:animate-shake:not(:focus-within)[data-validation="error"] {
 			animation: shake 300ms ease-in-out;
 		}
@@ -108,6 +119,22 @@ describe("error shake", () => {
 
 		input.focus();
 		expect(shakesOf(inputChrome())).toHaveLength(0);
+	});
+
+	test("an Input chrome turns red and shakes when only its InputCapture shows an error", () => {
+		const Subject = ({ validation }: { validation?: Validation }) => (
+			<Input>
+				<InputCapture aria-label="Email" validation={validation} />
+			</Input>
+		);
+		const { rerender } = render(<Subject />);
+		expect(shakesOf(inputChrome())).toHaveLength(0);
+
+		rerender(<Subject validation="error" />);
+		expect(inputChrome()).not.toHaveAttribute("data-validation");
+		expect(getComputedStyle(inputChrome()).borderColor).toBe("rgb(220, 38, 38)");
+		expect(shakesOf(inputChrome())).toHaveLength(1);
+		expect(shakesOf(screen.getByRole("textbox"))).toHaveLength(0);
 	});
 
 	test("a PasswordInput does not shake while its visibility toggle has focus", async () => {

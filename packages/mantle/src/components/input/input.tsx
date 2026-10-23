@@ -210,6 +210,8 @@ const InputContainer = ({
 					"data-validation-success:border-success-600 focus-within:data-validation-success:border-success-600 focus-within:data-validation-success:ring-focus-success",
 					"data-validation-warning:border-warning-600 focus-within:data-validation-warning:border-warning-600 focus-within:data-validation-warning:ring-focus-warning",
 					"data-validation-error:border-danger-600 focus-within:data-validation-error:border-danger-600 focus-within:data-validation-error:ring-focus-danger motion-safe:not-focus-within:data-validation-error:animate-shake",
+					// Why `has-`: an `InputCapture` can take its own `validation`, and only the capture then carries `data-validation`.
+					"has-[>[data-validation=error]]:border-danger-600 focus-within:has-[>[data-validation=error]]:border-danger-600 focus-within:has-[>[data-validation=error]]:ring-focus-danger motion-safe:not-focus-within:has-[>[data-validation=error]]:animate-shake",
 					"autofill:shadow-[inset_0_0_0px_1000px_var(--color-blue-50)] has-autofill:bg-blue-50 has-autofill:[-webkit-text-fill-color:var(--text-color-strong)]", // Autofill styling on the input itself and any children with autofill styling
 					className,
 				)}
