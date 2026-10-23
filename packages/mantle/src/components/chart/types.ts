@@ -219,12 +219,30 @@ type SeriesMeta = {
 type GridLines = "horizontal" | "vertical" | "both";
 
 /**
+ * What an x-axis `tickFormat` receives beside the value.
+ */
+type XTickContext = {
+	/** The label the axis paints when `tickFormat` is not set. */
+	defaultLabel: string;
+};
+
+/**
+ * What a y-axis `tickFormat` receives beside the value.
+ */
+type YTickContext = {
+	/** The label the axis paints when `tickFormat` is not set. Its precision follows `step`. */
+	defaultLabel: string;
+	/** The distance between adjacent ticks, or `0` when the axis has one tick. */
+	step: number;
+};
+
+/**
  * Registered x-axis configuration. The formatter receives the chart's x
  * values: the category value on band/point scales, a `Date` on time scales,
  * and a number on linear scales.
  */
 type XAxisSpec = {
-	tickFormat: ((value: XValue) => string) | undefined;
+	tickFormat: ((value: XValue, context: XTickContext) => string) | undefined;
 	tickCount: number | undefined;
 };
 
@@ -232,7 +250,7 @@ type XAxisSpec = {
  * Registered y-axis configuration.
  */
 type YAxisSpec = {
-	tickFormat: ((value: number) => string) | undefined;
+	tickFormat: ((value: number, context: YTickContext) => string) | undefined;
 	tickCount: number | undefined;
 };
 
@@ -344,7 +362,9 @@ export type {
 	SeriesSpec,
 	XAxisSpec,
 	XScaleKind,
+	XTickContext,
 	XValue,
 	YAxisSpec,
 	YDomain,
+	YTickContext,
 };

@@ -1005,19 +1005,19 @@ Horizontal hairline gridlines behind the areas. Renderless — painted on canvas
 
 Tick labels along the bottom of the plot. Renderless — painted on canvas. Labels that would collide are skipped, never rotated.
 
-| Prop         | Type                                          | Default         | Description                                                                                                                                  |
-| ------------ | --------------------------------------------- | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `tickFormat` | `(value: string \| number \| Date) => string` |                 | Format a tick label. Receives the row's x value: the category value on point scales, a `Date` on time scales, and a number on linear scales. |
-| `tickCount`  | `number`                                      | density-derived | Target tick count (continuous scales only). Approximate: a linear axis over integer-only x values never renders fractional ticks.            |
+| Prop         | Type                                                                             | Default         | Description                                                                                                                                                                                                                            |
+| ------------ | -------------------------------------------------------------------------------- | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tickFormat` | `(value: string \| number \| Date, context: { defaultLabel: string }) => string` |                 | Format a tick label. Receives the row's x value: the category value on point scales, a `Date` on time scales, and a number on linear scales. The second argument is `{ defaultLabel }`: the label the axis paints without a formatter. |
+| `tickCount`  | `number`                                                                         | density-derived | Target tick count (continuous scales only). Approximate: a linear axis over integer-only x values never renders fractional ticks.                                                                                                      |
 
 ### AreaChart.YAxis
 
 Value tick labels along the left of the plot. Renderless — painted on canvas. Ticks land on clean thousands-separated numbers.
 
-| Prop         | Type                        | Default             | Description                                                                                             |
-| ------------ | --------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------- |
-| `tickFormat` | `(value: number) => string` | thousands-separated | Format a tick label.                                                                                    |
-| `tickCount`  | `number`                    | `5`                 | Target tick count. Approximate: integer-valued data never renders fractional ticks, whatever the count. |
+| Prop         | Type                                                                         | Default             | Description                                                                                                                                                                                                                                                                                   |
+| ------------ | ---------------------------------------------------------------------------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tickFormat` | `(value: number, context: { defaultLabel: string; step: number }) => string` | thousands-separated | Format a tick label. The second argument carries the tick `step` and the `defaultLabel` the axis paints without a formatter, so a formatter can add a unit to `defaultLabel` and keep its precision.                                                                                          |
+| `tickCount`  | `number`                                                                     | `5`                 | Maximum tick count. When omitted, the axis aims for about 5 ticks. The axis can render fewer: ticks land on human-friendly steps, a vertical axis keeps about 28px for each tick, and a label that would overlap its neighbor is skipped. Integer-valued data never renders fractional ticks. |
 
 ### AreaChart.ReferenceLine
 
@@ -1055,7 +1055,7 @@ The `HoverSnapshot` passed to `footer` and `children` describes the active x pos
 
 ### AreaChart.Legend
 
-The legend: series names keyed by swatches carrying each series' color and glyph, rendered as real DOM in flow below the plot. Always compose it on multi-series charts — identity must never rely on color-matching alone. It renders nothing for a single series (the chart's title already names it).
+The legend: series names keyed by swatches carrying each series' color and glyph, rendered as real DOM in flow below the plot. Always compose it on multi-series charts — identity must never rely on color-matching alone. It renders nothing for a single series (the chart's title already names it). The legend is at most 64px tall (`max-h-16`) and scrolls past that, so many series never take the plot's height in a fixed-height Root. Set a `max-h-*` class in `className` to change the bound.
 
 A `children` render prop renders inside a `<div data-slot="area-chart-legend-label">`. When it goes away, React removes that div instead of your own text nodes: a browser translation engine reparents text nodes, and a removal aimed at one throws. The div is `display: contents`, so it adds no box and your content stays a direct layout child of the parent. To style it as a box, set a display of your own on it first. [Browser translation](/browser-translation) covers the mechanism and the rules your own components need.
 

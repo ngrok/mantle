@@ -304,6 +304,35 @@ const linearTicks = (
 ): number[] => ticks(domain[0], domain[1], count, options);
 
 /**
+ * {@link linearTicks} that never returns more than `max` ticks. The 1/2/5
+ * stepper can return almost twice the `count` it is asked for, so this lowers
+ * the count until the result fits, which selects a larger step. `count` is the
+ * first count it tries, and defaults to `max`.
+ *
+ * @example
+ * ```ts
+ * linearTicks([0, 200], 3); // [0, 50, 100, 150, 200]
+ * linearTicksAtMost([0, 200], 3); // [0, 100, 200]
+ * linearTicksAtMost([0, 1000], 9, { count: 5 }); // [0, 200, 400, 600, 800, 1000]
+ * ```
+ */
+const linearTicksAtMost = (
+	domain: readonly [number, number],
+	max: number,
+	options?: TickOptions & { count?: number },
+): number[] => {
+	let result: number[] = [];
+	for (let count = Math.floor(Math.min(options?.count ?? max, max)); count >= 1; count -= 1) {
+		result = linearTicks(domain, count, options);
+		if (result.length <= max) {
+			return result;
+		}
+	}
+	// A count of 1 can still produce two ticks, which a `max` below 2 cannot hold.
+	return result.slice(0, Math.max(0, Math.floor(max)));
+};
+
+/**
  * Calendar-aware ticks (epoch milliseconds) for a time domain — the reason
  * d3-scale is a dependency: correct month/DST/year boundaries are the hardest
  * axis math to hand-roll.
@@ -443,6 +472,7 @@ export {
 	invertBand,
 	linearCoefficients,
 	linearTicks,
+	linearTicksAtMost,
 	niceDomain,
 	niceZeroAnchoredDomain,
 	timeTickFormatter,

@@ -53,8 +53,10 @@ import type {
 	SeriesMark,
 	SeriesMeta,
 	XScaleKind,
+	XTickContext,
 	XValue,
 	YDomain,
+	YTickContext,
 } from "./types.js";
 
 /**
@@ -1226,8 +1228,10 @@ type XAxisPrimitiveProps = {
 	/**
 	 * Format a tick label. Receives the chart's x values: the category value on
 	 * band/point scales, a `Date` on time scales, and a number on linear scales.
+	 * The second argument carries the `defaultLabel` the axis paints without a
+	 * formatter, so a formatter can decorate it.
 	 */
-	tickFormat?: (value: XValue) => string;
+	tickFormat?: (value: XValue, context: XTickContext) => string;
 	/**
 	 * Target tick count (continuous scales only; a density-derived default
 	 * otherwise). Approximate: ticks land on human-friendly steps, and a linear
@@ -1248,12 +1252,20 @@ const useXAxisPrimitive = (partName: string, props: XAxisPrimitiveProps): null =
 };
 
 type YAxisPrimitiveProps = {
-	/** Format a tick label. Defaults to thousands-separated numbers. */
-	tickFormat?: (value: number) => string;
 	/**
-	 * Target tick count. Approximate: ticks land on human-friendly steps, and
-	 * when every series value is an integer (counts) the axis never renders
-	 * fractional ticks — the integer step wins over the requested count.
+	 * Format a tick label. Defaults to thousands-separated numbers. The second
+	 * argument carries the tick `step` and the `defaultLabel`, whose precision
+	 * follows the step. A formatter that adds a unit can decorate
+	 * `defaultLabel` and needs no precision of its own.
+	 */
+	tickFormat?: (value: number, context: YTickContext) => string;
+	/**
+	 * Maximum tick count. When omitted, the axis aims for about 5 ticks. Ticks
+	 * land on human-friendly steps, so the axis can render fewer. The plot
+	 * height also limits the count: a vertical axis keeps about 28px for each
+	 * tick, and it drops a label that would overlap its neighbor. When every
+	 * series value is an integer (counts), the axis never renders fractional
+	 * ticks.
 	 */
 	tickCount?: number;
 };
@@ -1640,7 +1652,8 @@ const LegendSwatch = ({
  * a single series — one color needs no legend box; the chart's title already
  * names it. Swatches mirror the mark and its glyph: the shape riding a short
  * stroke for lines, the shape itself for scatter points and areas, a filled
- * square for bars.
+ * square for bars. The legend never shrinks the plot by more than its
+ * `max-h-16` bound: past that, it scrolls.
  *
  * No `asChild`: `children` is a render prop (the series list), which is
  * incompatible with Slot's single-element-child contract; use `className`
@@ -1664,7 +1677,9 @@ const ChartLegendPrimitive = ({
 		<div
 			data-slot={`${slotName}-legend`}
 			className={cx(
-				"text-muted flex flex-wrap items-center gap-x-4 gap-y-1 pt-3 text-xs",
+				// Why the height bound: the plot is the only part of a fixed-height Root that
+				// shrinks, so a legend with many series can take all of its height.
+				"text-muted flex max-h-16 shrink-0 flex-wrap items-center gap-x-4 gap-y-1 overflow-y-auto pt-3 text-xs",
 				className,
 			)}
 			{...props}

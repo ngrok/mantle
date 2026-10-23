@@ -52,6 +52,7 @@ import {
 	invertBand,
 	linearCoefficients,
 	linearTicks,
+	linearTicksAtMost,
 	niceDomain,
 	niceZeroAnchoredDomain,
 	timeTickFormatter,
@@ -187,6 +188,8 @@ const SCATTER_HIT_RADIUS = 24;
 const DRAG_THRESHOLD = 3;
 
 const Y_TICK_COUNT = 5;
+/** The vertical space, in CSS pixels, that one y-axis tick label needs. */
+const Y_TICK_SPACING = 28;
 const PLOT_PADDING = 8;
 const X_AXIS_BAND = 24;
 const FALLBACK_AXIS_GUTTER = 40;
@@ -1814,29 +1817,35 @@ class ChartEngine {
 	#yTicks(): Array<{ value: number; text: string }> {
 		const snapshot = this.#store.getSnapshot();
 		const domain = this.#yTween.values();
+		const tickCount = snapshot.yAxis?.tickCount;
+		// Why a height limit: the labels stack in the left gutter, so a short plot
+		// holds fewer of them. The horizontal value axis thins by measured width.
+		const fit = this.#horizontalBars()
+			? Number.POSITIVE_INFINITY
+			: Math.max(2, Math.floor(this.#plot.height / Y_TICK_SPACING));
 		// Integer data keeps integer ticks even mid-glide (tweened fractional
 		// domain bounds) and under a fractional yDomain override — integrality is
-		// a fact about the data, not the domain. `tickCount` stays a hint: the
-		// integer clamp wins when the domain span is smaller than the request.
-		const ticks = linearTicks(
+		// a fact about the data, not the domain.
+		const ticks = linearTicksAtMost(
 			[domain[0] ?? 0, domain[1] ?? 1],
-			snapshot.yAxis?.tickCount ?? Y_TICK_COUNT,
-			{ integer: this.#valuesAllIntegers },
+			Math.min(tickCount ?? Number.POSITIVE_INFINITY, fit),
+			{ count: tickCount ?? Y_TICK_COUNT, integer: this.#valuesAllIntegers },
 		);
 		const format = snapshot.yAxis?.tickFormat;
+		const step = ticks.length > 1 ? Math.abs((ticks[1] ?? 0) - (ticks[0] ?? 0)) : 0;
 		// Precision follows the tick step, so small-magnitude domains (error
 		// rates) never collapse neighboring labels into identical "0"s.
-		const digits =
-			ticks.length > 1
-				? tickFractionDigits(Math.abs((ticks[1] ?? 0) - (ticks[0] ?? 0)))
-				: undefined;
-		return ticks.map((value) => ({
-			value,
-			text:
-				format == null
-					? formatNumber(value, digits == null ? undefined : { maximumFractionDigits: digits })
-					: format(value),
-		}));
+		const digits = ticks.length > 1 ? tickFractionDigits(step) : undefined;
+		return ticks.map((value) => {
+			const defaultLabel = formatNumber(
+				value,
+				digits == null ? undefined : { maximumFractionDigits: digits },
+			);
+			return {
+				value,
+				text: format == null ? defaultLabel : format(value, { defaultLabel, step }),
+			};
+		});
 	}
 
 	#xTicks(): Array<{ index: number | null; value: number; text: string }> {
@@ -1858,13 +1867,11 @@ class ChartEngine {
 			const ticks: Array<{ index: number | null; value: number; text: string }> = [];
 			for (let index = 0; index < this.#rowCount; index += stride) {
 				const value = this.#xValues[index] ?? "";
+				const defaultLabel = formatXValue(value, { datasetHasTimeOfDay: this.#xHasTimeOfDay });
 				ticks.push({
 					index,
 					value: index,
-					text:
-						format == null
-							? formatXValue(value, { datasetHasTimeOfDay: this.#xHasTimeOfDay })
-							: format(value),
+					text: format == null ? defaultLabel : format(value, { defaultLabel }),
 				});
 			}
 			return ticks;
@@ -1874,11 +1881,14 @@ class ChartEngine {
 		const count = snapshot.xAxis?.tickCount ?? Math.max(2, Math.floor(this.#plot.width / 90));
 		if (this.#options.xScale === "time") {
 			const defaultFormat = timeTickFormatter(range);
-			return timeTicks(range, count).map((epoch) => ({
-				index: null,
-				value: epoch,
-				text: format == null ? defaultFormat(epoch) : format(new Date(epoch)),
-			}));
+			return timeTicks(range, count).map((epoch) => {
+				const defaultLabel = defaultFormat(epoch);
+				return {
+					index: null,
+					value: epoch,
+					text: format == null ? defaultLabel : format(new Date(epoch), { defaultLabel }),
+				};
+			});
 		}
 		// Same whole-step clamp as the value axis: a linear x over integer data
 		// (attempt number, batch index) never grows fractional ticks.
@@ -1887,14 +1897,17 @@ class ChartEngine {
 			ticks.length > 1
 				? tickFractionDigits(Math.abs((ticks[1] ?? 0) - (ticks[0] ?? 0)))
 				: undefined;
-		return ticks.map((value) => ({
-			index: null,
-			value,
-			text:
-				format == null
-					? formatNumber(value, digits == null ? undefined : { maximumFractionDigits: digits })
-					: format(value),
-		}));
+		return ticks.map((value) => {
+			const defaultLabel = formatNumber(
+				value,
+				digits == null ? undefined : { maximumFractionDigits: digits },
+			);
+			return {
+				index: null,
+				value,
+				text: format == null ? defaultLabel : format(value, { defaultLabel }),
+			};
+		});
 	}
 
 	#paint(now: number): boolean {
@@ -2182,22 +2195,31 @@ class ChartEngine {
 	}
 
 	/**
-	 * The value ticks that SHOULD be visible this frame. Vertical charts stack
-	 * them in the left gutter (a handful of {@link Y_TICK_COUNT} labels that don't
-	 * collide), so they pass through unthinned. Horizontal charts place them along
-	 * the x axis where — like the category axis when vertical — they collide by
-	 * measured width, so thin them by width there (skip, never rotate).
+	 * The value ticks that SHOULD be visible this frame, thinned so no two labels
+	 * overlap (skip, never rotate). Vertical charts stack them in the left gutter,
+	 * where they collide by line height. Horizontal charts place them along the x
+	 * axis, where they collide by measured width.
 	 */
 	#desiredValueTicks(
 		ctx: CanvasRenderingContext2D,
 		fontFamily: string,
 	): Array<{ key: number; text: string }> {
 		const ticks = this.#yTicks();
+		const valueCo = this.#valueCoefficients();
 		if (!this.#horizontalBars()) {
-			return ticks.map((tick) => ({ key: tick.value, text: tick.text }));
+			const desired: Array<{ key: number; text: string }> = [];
+			let previous = Number.NaN;
+			for (const tick of ticks) {
+				const position = tick.value * valueCo.k + valueCo.b;
+				if (Math.abs(position - previous) < AXIS_FONT_SIZE + 2) {
+					continue;
+				}
+				previous = position;
+				desired.push({ key: tick.value, text: tick.text });
+			}
+			return desired;
 		}
 		ctx.font = `${AXIS_FONT_SIZE}px ${fontFamily}`;
-		const valueCo = this.#valueCoefficients();
 		const desired: Array<{ key: number; text: string }> = [];
 		let previousEnd = Number.NEGATIVE_INFINITY;
 		for (const tick of ticks) {
