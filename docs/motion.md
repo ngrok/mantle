@@ -43,6 +43,10 @@ explains nothing is noise. Leave it out.
 - **A full-page reveal** (the `ThemeSwitcher` circle) runs 400ms on CSS `ease-out`. The covered area grows with
   the square of the radius, so `ease-out-strong` in 300ms changes most of the screen in about 40ms, like a flash.
   The control's own state still changes on the input.
+- **An error shake** (`animate-shake`) is a keyframe animation, not a transition: it starts and ends at rest, so
+  it has no end value to retarget to. It moves 4px and settles in 300ms. The first swing eases out, and the other
+  swings ease in and out, like a damped spring. Form controls run it only when they show an error and do not
+  have focus, so a control never moves while the user types in it.
 
 ## Tokens
 
