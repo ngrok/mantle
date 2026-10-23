@@ -10,3 +10,4 @@ Fix chart y-axis labels that overlap at short plot heights, and fix three chart 
 - **`Legend` no longer takes the plot's height.** The legend is at most 64px tall (`max-h-16`) and scrolls past that, so a chart with many series keeps its plot in a fixed-height `Root`. Set a `max-h-*` class in `className` to change the bound.
 - **A `dataKey`, `xKey`, or `zKey` typo error lists the keys of every row.** It listed only the keys of the first row, so a key that only later rows carry was missing from the list.
 - **`dist/llms.txt` says that it is an index.** It points agents at the bundled `.d.ts` files for props.
+- **A streaming chart paints faster.** The left-edge fade no longer copies the whole canvas each frame. It paints the grid beneath the faded marks, so the chart keeps one canvas, not two.

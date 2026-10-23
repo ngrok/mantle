@@ -312,7 +312,6 @@ class ChartEngine {
 	#edgeFade = { alpha: 0, target: 0 };
 	#lastSlideAt = 0;
 	#edgeFadeDecayTimer: ReturnType<typeof setTimeout> | null = null;
-	#marksLayerCanvas: HTMLCanvasElement | null = null;
 
 	#colors: ResolvedColors | null = null;
 
@@ -532,11 +531,6 @@ class ChartEngine {
 		if (canvas.width !== 0 || canvas.height !== 0) {
 			canvas.width = 0;
 			canvas.height = 0;
-		}
-		const marksLayer = this.#marksLayerCanvas;
-		if (marksLayer != null && (marksLayer.width !== 0 || marksLayer.height !== 0)) {
-			marksLayer.width = 0;
-			marksLayer.height = 0;
 		}
 		this.#needsPaint = true;
 	}
@@ -1025,7 +1019,9 @@ class ChartEngine {
 						: String(raw);
 				xs[index] = index;
 			}
-			invariant(count === 0 || foundX, missingKeyMessage(this.#rootName(), "xKey", xKey, rows));
+			invariant(count === 0 || foundX, () =>
+				missingKeyMessage(this.#rootName(), "xKey", xKey, rows),
+			);
 			this.#order = null;
 			this.#orderInverse = null;
 			this.#rowCount = count;
@@ -1062,8 +1058,7 @@ class ChartEngine {
 					sawCoercible = true;
 				}
 			}
-			invariant(
-				rows.length === 0 || sawXKey,
+			invariant(rows.length === 0 || sawXKey, () =>
 				missingKeyMessage(this.#rootName(), "xKey", xKey, rows),
 			);
 			invariant(
@@ -1211,8 +1206,7 @@ class ChartEngine {
 					}
 				}
 			}
-			invariant(
-				count === 0 || found,
+			invariant(count === 0 || found, () =>
 				missingKeyMessage(PART_NAME[spec.mark], "dataKey", spec.dataKey, rows),
 			);
 			this.#columns.set(spec.dataKey, values);
@@ -1246,7 +1240,9 @@ class ChartEngine {
 					}
 				}
 			}
-			invariant(count === 0 || zFound, missingKeyMessage("ScatterPlot.Root", "zKey", zKey, rows));
+			invariant(count === 0 || zFound, () =>
+				missingKeyMessage("ScatterPlot.Root", "zKey", zKey, rows),
+			);
 			this.#zs = zs;
 			this.#zDomain =
 				zMin === Number.POSITIVE_INFINITY ? [0, 1] : niceDomain([zMin, zMax], Y_TICK_COUNT);
@@ -1485,33 +1481,6 @@ class ChartEngine {
 	/** The public Root part name for error messages, e.g. `"BarChart.Root"`. */
 	#rootName(): string {
 		return `${PART_NAME[this.#kind].split(".")[0] ?? "Chart"}.Root`;
-	}
-
-	/**
-	 * The offscreen layer marks paint through while the left-edge fade is
-	 * active — a destination-out erase on the main canvas would punch out the
-	 * gridlines beneath the marks. Returns `null` when a 2D context is
-	 * unavailable (test DOMs); callers fall back to painting directly,
-	 * unmasked.
-	 */
-	#marksLayer(
-		deviceWidth: number,
-		deviceHeight: number,
-	): { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D } | null {
-		let canvas = this.#marksLayerCanvas;
-		if (canvas == null) {
-			canvas = this.#elements.canvas.ownerDocument.createElement("canvas");
-			this.#marksLayerCanvas = canvas;
-		}
-		if (canvas.width !== deviceWidth || canvas.height !== deviceHeight) {
-			canvas.width = deviceWidth;
-			canvas.height = deviceHeight;
-		}
-		const ctx = canvas.getContext("2d");
-		if (ctx == null) {
-			return null;
-		}
-		return { canvas, ctx };
 	}
 
 	// ---- scheduling + paint ---------------------------------------------------
@@ -2007,7 +1976,10 @@ class ChartEngine {
 		// grid (2D only — the 3D frame is the cube wireframe). `lines` is physical:
 		// "horizontal" draws horizontal lines, "vertical" vertical ones. Category
 		// and value each supply whichever direction their axis currently occupies.
-		if (snapshot.grid != null && !is3d) {
+		const paintGrid = (): void => {
+			if (snapshot.grid == null || is3d) {
+				return;
+			}
 			// An unset direction (the store publishes `undefined` for "author left
 			// it to the chart") defaults to VALUE gridlines — perpendicular to the
 			// bars: horizontal for vertical bars / line / area, vertical for
@@ -2021,51 +1993,47 @@ class ChartEngine {
 				xLines: lines === "horizontal" ? [] : verticalLines,
 				yLines: lines === "vertical" ? [] : horizontalLines,
 			});
-		}
+		};
 
-		// marks — through an offscreen layer while the left-edge fade is active,
-		// so the destination-out erase touches only marks, never the grid
-		// painted beneath them.
+		// While the left-edge fade is active, the marks paint first so the
+		// destination-out erase touches only marks. The grid then paints beneath
+		// them with destination-over, which gives the same pixels with no
+		// offscreen canvas.
 		const fadeWidth = Math.min(EDGE_FADE_WIDTH, plot.width * 0.25);
-		let marksCtx = ctx;
-		let marksLayer: { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D } | null = null;
-		if (edgeFade.alpha > 0.01 && fadeWidth > 1) {
-			marksLayer = this.#marksLayer(deviceWidth, deviceHeight);
-			if (marksLayer != null) {
-				marksLayer.ctx.setTransform(this.#dpr, 0, 0, this.#dpr, 0, 0);
-				marksLayer.ctx.clearRect(0, 0, this.#cssWidth, this.#cssHeight);
-				marksCtx = marksLayer.ctx;
-			}
+		const fading = edgeFade.alpha > 0.01 && fadeWidth > 1;
+		if (!fading) {
+			paintGrid();
 		}
-		marksCtx.save();
-		marksCtx.beginPath();
-		marksCtx.rect(plot.left, plot.top, plot.width, plot.height + 1);
-		marksCtx.clip();
+		ctx.save();
+		ctx.beginPath();
+		ctx.rect(plot.left, plot.top, plot.width, plot.height + 1);
+		ctx.clip();
 		let frameLabels: FrameLabels | null = null;
 		if (this.#kind === "bar") {
 			if (horizontal) {
-				this.#paintHorizontalBars(marksCtx, specs);
+				this.#paintHorizontalBars(ctx, specs);
 			} else {
-				this.#paintBars(marksCtx, specs, yCo);
+				this.#paintBars(ctx, specs, yCo);
 			}
 		} else if (this.#kind === "scatter") {
-			frameLabels = this.#paintScatter(marksCtx, specs, yCo);
+			frameLabels = this.#paintScatter(ctx, specs, yCo);
 		} else {
-			this.#paintLinesOrAreas(marksCtx, specs, yCo);
+			this.#paintLinesOrAreas(ctx, specs, yCo);
 		}
-		marksCtx.restore();
-		if (marksLayer != null) {
-			// Liveline's scroll mask: erase the layer through a horizontal alpha
-			// ramp at the plot's left edge, then composite it over the grid.
-			marksCtx.save();
-			marksCtx.globalCompositeOperation = "destination-out";
-			const eraseGradient = marksCtx.createLinearGradient(plot.left, 0, plot.left + fadeWidth, 0);
+		ctx.restore();
+		if (fading) {
+			// Liveline's scroll mask: erase the marks through a horizontal alpha
+			// ramp at the plot's left edge, then paint the grid beneath them.
+			ctx.save();
+			ctx.globalCompositeOperation = "destination-out";
+			const eraseGradient = ctx.createLinearGradient(plot.left, 0, plot.left + fadeWidth, 0);
 			eraseGradient.addColorStop(0, `rgba(0, 0, 0, ${edgeFade.alpha})`);
 			eraseGradient.addColorStop(1, "rgba(0, 0, 0, 0)");
-			marksCtx.fillStyle = eraseGradient;
-			marksCtx.fillRect(plot.left, plot.top, fadeWidth, plot.height + 1);
-			marksCtx.restore();
-			ctx.drawImage(marksLayer.canvas, 0, 0, this.#cssWidth, this.#cssHeight);
+			ctx.fillStyle = eraseGradient;
+			ctx.fillRect(plot.left, plot.top, fadeWidth, plot.height + 1);
+			ctx.globalCompositeOperation = "destination-over";
+			paintGrid();
+			ctx.restore();
 		}
 
 		// 3D frame labels: after the clip so edge-adjacent labels stay whole.

@@ -9,7 +9,8 @@ import { LineChart } from "../line-chart/index.js";
 /**
  * Real-browser canvas-pixel tests for the liveline-style left-edge scroll
  * mask: streaming window slides fade the marks out through a band at the
- * plot's left edge (a destination-out gradient on an offscreen layer).
+ * plot's left edge (a destination-out gradient, with the grid painted beneath
+ * afterward).
  * happy-dom cannot exercise this — it has no real 2D context or paint.
  */
 const STYLE = `
@@ -327,9 +328,8 @@ describe("left-edge scroll mask", () => {
 	});
 
 	test("the erase spares the grid painted beneath the marks", async () => {
-		// The marks go through an offscreen layer for exactly this reason: running
-		// the destination-out gradient on the main context would erase the
-		// gridlines in the fade band along with the series, for the whole linger.
+		// The grid paints after the erase for this reason: an erase after the grid
+		// would remove the gridlines in the fade band, for the whole linger.
 		const { container, rerender } = render(<GriddedChart data={windowAt(0)} />);
 		const canvas = await findChartCanvas(container);
 		await waitFor(() => {
