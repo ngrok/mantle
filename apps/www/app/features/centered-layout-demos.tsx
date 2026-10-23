@@ -171,10 +171,7 @@ export function CenteredLayoutDemo() {
 				</Main>
 			</CenteredLayout.Body>
 			<CenteredLayout.Footer>
-				<ThemeSwitcher.Root>
-					<ThemeSwitcher.Trigger />
-					<ThemeSwitcher.Content />
-				</ThemeSwitcher.Root>
+				<ThemeSwitcher />
 			</CenteredLayout.Footer>
 		</CenteredLayout.Root>
 	);
@@ -207,10 +204,7 @@ export function CenteredLayoutHeaderDemo() {
 				</Main>
 			</CenteredLayout.Body>
 			<CenteredLayout.Footer>
-				<ThemeSwitcher.Root>
-					<ThemeSwitcher.Trigger />
-					<ThemeSwitcher.Content />
-				</ThemeSwitcher.Root>
+				<ThemeSwitcher />
 			</CenteredLayout.Footer>
 		</CenteredLayout.Root>
 	);

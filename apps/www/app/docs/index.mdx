@@ -86,7 +86,8 @@ section below says where the file lives.
 @import "@ngrok/mantle/source-all.css";
 ```
 
-`mantle.css` imports Tailwind, the theme tokens, and the light theme. `source-all.css` holds one
+`mantle.css` imports Tailwind, the theme tokens, and the light theme. The dark theme ships in
+`mantle-dark.css`; each framework section below shows how to load it. `source-all.css` holds one
 `@source` directive that points Tailwind at mantle's `dist/` directory. Tailwind 4 skips
 `node_modules` when it scans for class names, so without that directive it generates none of the
 classes mantle's components use. The components then render without their styles: an open
@@ -139,6 +140,8 @@ export default defineConfig({
 In your app's `app/root.tsx`, import `app.css` (created in [Stylesheet](#stylesheet), here at
 `app/app.css`) and set up the [Theme Provider](/components/primitives/theme),
 [Toaster](/components/feedback/toast), and [Tooltip Provider](/components/overlays/tooltip).
+`mantle.css` holds only the light theme. `MantleStyleSheets` loads the dark theme from
+`mantle-dark.css`; without it, nothing renders dark.
 
 > [!WARNING]
 > It is critical to include `PreventWrongThemeFlashScript` early in the `<head>` of your app to
@@ -163,7 +166,10 @@ responseHeaders.set(
 
 ```tsx
 // app/root.tsx
+import darkCssUrl from "@ngrok/mantle/mantle-dark.css?url";
 import {
+	mantleStyleSheetUrls,
+	MantleStyleSheets,
 	PreventWrongThemeFlashScript,
 	ThemeProvider,
 	useInitialHtmlThemeProps,
@@ -183,6 +189,8 @@ import {
 import type { Route } from "./+types/root";
 import "./app.css";
 
+const themeUrls = mantleStyleSheetUrls({ darkCssUrl });
+
 export function Layout({ children }: PropsWithChildren) {
 	const initialHtmlThemeProps = useInitialHtmlThemeProps({
 		className: "h-full",
@@ -197,6 +205,8 @@ export function Layout({ children }: PropsWithChildren) {
 				<meta name="viewport" content="width=device-width, initial-scale=1" />
 				{/* PreventWrongThemeFlashScript must be as early as possible in <head> */}
 				<PreventWrongThemeFlashScript />
+				{/* MantleStyleSheets loads the dark theme */}
+				<MantleStyleSheets {...themeUrls} />
 				<Meta />
 				<Links />
 			</head>
@@ -247,7 +257,8 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
 ```
 
 You are now ready to use mantle components in your application! Start with the
-[Button](/components/actions/button).
+[Button](/components/actions/button). To let users change the theme, add the ready-made
+[`ThemeSwitcher`](/components/forms/theme-switcher) to your header.
 
 #### SSR theme cookie (optional)
 
@@ -310,9 +321,20 @@ export default defineConfig({
 });
 ```
 
-In your app's `src/main.tsx`, import `app.css` (created in [Stylesheet](#stylesheet), here at
-`src/app.css`) and set up the [Theme Provider](/components/primitives/theme),
-[Toaster](/components/feedback/toast), and [Tooltip Provider](/components/overlays/tooltip):
+Add the dark theme to `app.css` (created in [Stylesheet](#stylesheet), here at `src/app.css`).
+`mantle.css` holds only the light theme, so without this import nothing renders dark. Each rule in
+`mantle-dark.css` is scoped to the dark theme, so it changes nothing on a light page.
+
+```css
+/* src/app.css */
+@import "@ngrok/mantle/mantle.css";
+@import "@ngrok/mantle/mantle-dark.css";
+@import "@ngrok/mantle/source-all.css";
+```
+
+In your app's `src/main.tsx`, import `app.css` and set up the
+[Theme Provider](/components/primitives/theme), [Toaster](/components/feedback/toast), and
+[Tooltip Provider](/components/overlays/tooltip):
 
 ```tsx
 // src/main.tsx
@@ -339,9 +361,9 @@ createRoot(document.getElementById("root")!).render(
 To prevent a flash of unstyled content (FOUC), add the theme script to the `<head>` of your
 `index.html`. The `<script>` below holds the output of `preventWrongThemeFlashScriptContent()`
 from `@ngrok/mantle/theme`, generated from the version of mantle this page was built with.
-Generate it again after you upgrade mantle. For the theme stylesheet `<link>` tags and the media
-fix script that complete a non-React `<head>`, see
-[Non-React head](/components/primitives/theme#non-react-head) on the Theme page.
+Generate it again after you upgrade mantle. For a `<head>` that loads the dark theme with a
+`<link>` tag instead, see [Non-React head](/components/primitives/theme#non-react-head) on the
+Theme page.
 
 > [!WARNING]
 > While mantle supports any type of React application, Vite is not the primary target. For now,
@@ -369,7 +391,8 @@ fix script that complete a non-React `<head>`, see
 ```
 
 You are now ready to use mantle components in your application! Start with the
-[Button](/components/actions/button).
+[Button](/components/actions/button). To let users change the theme, add the ready-made
+[`ThemeSwitcher`](/components/forms/theme-switcher) to your header.
 
 ### Next.js
 
@@ -379,8 +402,18 @@ You are now ready to use mantle components in your application! Start with the
 
 ### React SPA
 
-In your app's entry/root file, import `app.css` (created in [Stylesheet](#stylesheet)) and set
-up the [Theme Provider](/components/primitives/theme), [Toaster](/components/feedback/toast), and
+Add the dark theme to `app.css` (created in [Stylesheet](#stylesheet)). `mantle.css` holds only
+the light theme, so without this import nothing renders dark.
+
+```css
+/* app.css */
+@import "@ngrok/mantle/mantle.css";
+@import "@ngrok/mantle/mantle-dark.css";
+@import "@ngrok/mantle/source-all.css";
+```
+
+In your app's entry/root file, import `app.css` and set up the
+[Theme Provider](/components/primitives/theme), [Toaster](/components/feedback/toast), and
 [Tooltip Provider](/components/overlays/tooltip):
 
 ```tsx
@@ -418,9 +451,9 @@ root.render(
 To prevent a flash of unstyled content (FOUC), add the theme script to the `<head>` of your
 `index.html`. The `<script>` below holds the output of `preventWrongThemeFlashScriptContent()`
 from `@ngrok/mantle/theme`, generated from the version of mantle this page was built with.
-Generate it again after you upgrade mantle. For the full `<head>` (this script, the theme
-stylesheet `<link>` tags, and the media fix script), see
-[Non-React head](/components/primitives/theme#non-react-head) on the Theme page.
+Generate it again after you upgrade mantle. For a `<head>` that loads the dark theme with a
+`<link>` tag instead, see [Non-React head](/components/primitives/theme#non-react-head) on the
+Theme page.
 
 > [!WARNING]
 > While mantle supports any type of React application, arbitrary React SPA apps are not the
@@ -434,4 +467,5 @@ stylesheet `<link>` tags, and the media fix script), see
 ```
 
 You are now ready to use mantle components in your application! Start with the
-[Button](/components/actions/button).
+[Button](/components/actions/button). To let users change the theme, add the ready-made
+[`ThemeSwitcher`](/components/forms/theme-switcher) to your header.

@@ -67,8 +67,7 @@ describe("traceDiagonalLines", () => {
 describe("textureInkColor", () => {
 	test("steps the series' own fill down a fixed perceptual amount", () => {
 		// A fixed OKLCH lightness step, not a proportional mix — proportional
-		// darkening goes near-invisible on the already-dark fills of the light
-		// high-contrast theme.
+		// darkening goes near-invisible on already-dark fills.
 		expect(textureInkColor("oklch(0.623 0.188 259.813)")).toBe(
 			"oklch(from oklch(0.623 0.188 259.813) calc(l - 0.18) c h)",
 		);

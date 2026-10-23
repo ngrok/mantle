@@ -98,7 +98,7 @@ type SeparatorProps = ComponentProps<"div"> &
  * Visually or semantically separates content.
  *
  * Rendered in the shared `separator` color token (`gray-500/20` in light,
- * `gray-600/20` in dark, `black` in high contrast). Reuse that exact color on
+ * `gray-600/20` in dark). Reuse that exact color on
  * your own dividers with `bg-separator` / `border-separator` / `divide-separator`
  * so they stay consistent with separators across the system.
  *

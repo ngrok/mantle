@@ -18,15 +18,9 @@ describe("rankIcons", () => {
 	test("ranks a name the query starts with above a name that only contains it", () => {
 		const names = namesFor("theme");
 
-		expect(names.slice(0, 5)).toEqual([
-			"ThemeIcon",
-			"ThemeIcon",
-			"ThemeIcon",
-			"ThemeIcon",
-			"ThemeIcon",
-		]);
-		expect(names[5]).toBe("AutoThemeIcon");
-		expect(names).toHaveLength(6);
+		expect(names.slice(0, 3)).toEqual(["ThemeIcon", "ThemeIcon", "ThemeIcon"]);
+		expect(names[3]).toBe("AutoThemeIcon");
+		expect(names).toHaveLength(4);
 	});
 
 	test("breaks a rank tie toward the shorter name", () => {

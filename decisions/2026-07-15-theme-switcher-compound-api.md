@@ -1,7 +1,7 @@
 # ThemeSwitcher compound API: no prop-bag passthrough props
 
 **Date:** 2026-07-15
-**Status:** Accepted
+**Status:** Accepted; decision 1 superseded by [2026-10-22-two-themes-and-a-two-state-toggle.md](./2026-10-22-two-themes-and-a-two-state-toggle.md)
 **Applies to:** `@ngrok/mantle/theme-switcher`, and API design for every component that renders another component internally
 **Distilled rules:** [COMPONENT_SPEC.md §1 → Before you scaffold](../COMPONENT_SPEC.md#1-before-you-scaffold)
 

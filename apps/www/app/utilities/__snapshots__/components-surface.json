@@ -230,7 +230,7 @@
     "jsdoc": "A viewport-filling centered page flow for sign-in, sign-up, onboarding, 404, checkout, and other focused full-page states.",
     "examples": [
       "Composition:\n```\nCenteredLayout.Root\n├── CenteredLayout.Notice\n├── CenteredLayout.Header\n├── CenteredLayout.Body\n└── CenteredLayout.Footer\n```",
-      "```tsx\n<CenteredLayout.Root>\n  <SkipToMainLink />\n  <CenteredLayout.Body>\n    <a href=\"https://ngrok.com\">\n      <NgrokWordmarkIcon className=\"h-auto w-24\" />\n    </a>\n    <Main>\n      <SignInCard />\n    </Main>\n  </CenteredLayout.Body>\n  <CenteredLayout.Footer>\n    <ThemeSwitcher.Root>\n      <ThemeSwitcher.Trigger />\n      <ThemeSwitcher.Content />\n    </ThemeSwitcher.Root>\n  </CenteredLayout.Footer>\n</CenteredLayout.Root>\n```"
+      "```tsx\n<CenteredLayout.Root>\n  <SkipToMainLink />\n  <CenteredLayout.Body>\n    <a href=\"https://ngrok.com\">\n      <NgrokWordmarkIcon className=\"h-auto w-24\" />\n    </a>\n    <Main>\n      <SignInCard />\n    </Main>\n  </CenteredLayout.Body>\n  <CenteredLayout.Footer>\n    <ThemeSwitcher />\n  </CenteredLayout.Footer>\n</CenteredLayout.Root>\n```"
     ]
   },
   {
@@ -1003,7 +1003,7 @@
     "category": "Primitives",
     "status": "stable",
     "importPath": "@ngrok/mantle/theme",
-    "summary": "Theme primitives (ThemeProvider, MantleStyleSheets, and FOUC prevention) for light, dark, and high-contrast modes.",
+    "summary": "Theme primitives (ThemeProvider, MantleStyleSheets, and FOUC prevention) for light and dark modes that follow the OS by default.",
     "jsdoc": "Re-exports for the Theme component — the provider and hooks that carry the applied theme, plus the document tags that stop a wrong-theme flash."
   },
   {
@@ -1013,11 +1013,11 @@
     "category": "Forms",
     "status": "stable",
     "importPath": "@ngrok/mantle/theme-switcher",
-    "summary": "The canonical picker for mantle's five themes (a compact dropdown switcher), plus a radio group that embeds theme selection in any dropdown menu.",
-    "jsdoc": "The canonical picker for mantle's theme system: a compact `IconButton` trigger (ghost by default) that opens a `DropdownMenu` hosting `ThemeDropdownMenuRadioGroup`, the theme-selection radio group.",
+    "summary": "The canonical light/dark toggle for headers and toolbars, plus a three-option radio group for settings and account menus.",
+    "jsdoc": "The canonical theme control for headers and toolbars: an `IconButton` (ghost by default) that shows the applied theme and flips between light and dark on each click.",
     "examples": [
-      "Composition:\n```\nThemeSwitcher.Root\n├── ThemeSwitcher.Trigger\n└── ThemeSwitcher.Content\n```",
-      "```tsx\n<ThemeProvider>\n  <header>\n    <ThemeSwitcher.Root>\n      <ThemeSwitcher.Trigger />\n      <ThemeSwitcher.Content />\n    </ThemeSwitcher.Root>\n  </header>\n</ThemeProvider>\n```"
+      "```tsx\n<ThemeProvider>\n  <header>\n    <ThemeSwitcher />\n  </header>\n</ThemeProvider>\n```",
+      "```tsx\n<ThemeSwitcher appearance=\"outlined\" label=\"Cambiar tema\" />\n```"
     ]
   },
   {

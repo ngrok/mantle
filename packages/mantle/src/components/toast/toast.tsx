@@ -24,7 +24,6 @@ import { Slot } from "../slot/index.js";
 import { useAppliedTheme } from "../theme/theme-provider.js";
 
 type ToasterPrimitiveProps = ComponentProps<typeof SonnerToaster>;
-type ToasterPrimitiveTheme = ToasterPrimitiveProps["theme"];
 
 type ToasterProps = WithStyleProps &
 	Pick<ToasterPrimitiveProps, "containerAriaLabel" | "dir" | "position"> & {
@@ -93,8 +92,7 @@ const Toaster = ({
 			gap={12}
 			position={position ?? "top-center"}
 			style={style}
-			// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Why: sonner's `theme` type omits the high-contrast themes it passes through.
-			theme={theme as ToasterPrimitiveTheme}
+			theme={theme}
 			toastOptions={{
 				unstyled: true,
 			}}
@@ -244,7 +242,7 @@ const Root = ({
 				className={cx(
 					"relative flex items-start gap-2 text-sm font-sans",
 					"p-3 pl-3.75",
-					"bg-popover high-contrast:border-popover rounded rounded-r-[0.3125rem] border border-gray-500/35 shadow-lg",
+					"bg-popover rounded rounded-r-[0.3125rem] border border-gray-500/35 shadow-lg",
 					/**
 					 * Do not apply overflow-hidden because we want the intent bar accent
 					 * to overlap the toast border, else the border flows over the

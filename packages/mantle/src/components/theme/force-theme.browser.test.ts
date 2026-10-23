@@ -1,8 +1,6 @@
 import twThemeCss from "tailwindcss/theme.css?raw";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import darkHcCss from "../../mantle-dark-high-contrast.css?raw";
 import darkCss from "../../mantle-dark.css?raw";
-import lightHcCss from "../../mantle-light-high-contrast.css?raw";
 import mantleCss from "../../mantle.css?raw";
 import {
 	extractTopLevelRules,
@@ -14,8 +12,8 @@ import {
  * Regression proof for a forced page whose stored preference disagrees with it.
  *
  * `forceTheme` pins the class and `data-applied-theme` to the forced theme while
- * `data-theme` keeps the stored preference, so a theme switcher still works. Pair
- * loading then applies the partner stylesheet with `media="all"`. Those two facts
+ * `data-theme` keeps the stored preference, so a theme switcher still works. The
+ * dark stylesheet is applied on every page. Those two facts
  * together used to hand the page to the preference: every theme block listed a
  * bare `[data-theme="…"]`, so `:root[data-theme="dark"]` matched a
  * `forceTheme="light"` page and the later sheet won the cascade at equal
@@ -28,14 +26,12 @@ import {
  * is exactly what missed it.
  */
 
-const THEMES = ["light", "dark", "light-high-contrast", "dark-high-contrast"] as const;
+const THEMES = ["light", "dark"] as const;
 type Theme = (typeof THEMES)[number];
 
 const OPPOSITE: Record<Theme, Theme> = {
 	light: "dark",
 	dark: "light",
-	"light-high-contrast": "dark-high-contrast",
-	"dark-high-contrast": "light-high-contrast",
 };
 
 function serializeRule(selector: string, declarations: Map<string, string>): string {
@@ -68,8 +64,8 @@ beforeAll(() => {
 			property.startsWith("--color-"),
 		),
 	);
-	// Every sheet applied at once — that is what pair loading produces, and the
-	// bug needs the partner sheet live to appear at all.
+	// Both sheets applied at once, as on every real page. The bug needs the dark
+	// sheet live to appear at all.
 	styleElement = document.createElement("style");
 	styleElement.textContent = [
 		serializeRule(":root", rootColorVariables),
@@ -82,8 +78,6 @@ beforeAll(() => {
 			),
 		),
 		serializeThemeRules(darkCss),
-		serializeThemeRules(lightHcCss),
-		serializeThemeRules(darkHcCss),
 	].join("\n");
 	document.head.appendChild(styleElement);
 
@@ -111,7 +105,7 @@ function resetHtml() {
 	html.removeAttribute("data-applied-theme");
 }
 
-/** The exact `<html>` state the four forced writers produce. */
+/** The exact `<html>` state the three forced writers produce. */
 function applyForced({ forced, preference }: { forced: Theme; preference: Theme }) {
 	resetHtml();
 	const html = document.documentElement;
@@ -137,12 +131,11 @@ describe("forceTheme wins over a disagreeing stored preference", () => {
 		resetHtml();
 	});
 
-	test("light and dark surfaces differ within each contrast tier, so the assertions below can fail", () => {
+	test("light and dark surfaces differ, so the assertions below can fail", () => {
 		const values = THEMES.map((theme) => expected.get(theme));
 		expect(values.every((value) => value != null && value !== "")).toBe(true);
 		// light vs dark must differ, else a wrong-theme page would assert clean
 		expect(expected.get("light")).not.toBe(expected.get("dark"));
-		expect(expected.get("light-high-contrast")).not.toBe(expected.get("dark-high-contrast"));
 	});
 
 	// every forced theme against every preference that disagrees with it

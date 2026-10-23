@@ -9,8 +9,6 @@ import type { Theme } from "../theme/themes.js";
  * An icon that automatically adapts to the current applied theme.
  * - `light`: SunIcon
  * - `dark`: MoonIcon
- * - `light-high-contrast`: SunIcon (fill)
- * - `dark-high-contrast`: MoonIcon (fill)
  *
  * @see https://mantle.ngrok.com/components/data-display/icons
  *
@@ -32,8 +30,6 @@ type ThemeIconProps = SvgAttributes & { theme: Theme };
  * - `system`: DesktopIcon
  * - `light`: SunIcon
  * - `dark`: MoonIcon
- * - `light-high-contrast`: SunIcon (fill)
- * - `dark-high-contrast`: MoonIcon (fill)
  *
  * @see https://mantle.ngrok.com/components/data-display/icons
  *
@@ -50,10 +46,6 @@ function ThemeIcon({ theme, ...props }: ThemeIconProps) {
 			return <SunIcon {...props} />;
 		case "dark":
 			return <MoonIcon {...props} />;
-		case "light-high-contrast":
-			return <SunIcon {...props} weight="fill" />;
-		case "dark-high-contrast":
-			return <MoonIcon {...props} weight="fill" />;
 	}
 }
 export {

@@ -187,9 +187,8 @@ type SandbarRootProps = ComponentProps<"div"> &
  * `aria-labelledby` (a consumer `aria-label` wins when passed).
  *
  * The panel is an `invert-theme` island: it renders in the opposite theme of
- * the page (light ⇄ dark, light-high-contrast ⇄ dark-high-contrast), and so
- * does everything composed inside it — the blessed buttons and any custom
- * children.
+ * the page (light ⇄ dark), and so does everything composed inside it — the
+ * blessed buttons and any custom children.
  *
  * `ref`, `className`, and all other props target the panel. Render it in
  * place at the end of the form it saves — `position: fixed` changes paint
@@ -606,8 +605,7 @@ const Root = ({
 				<div
 					className={cx(
 						// island surface — `invert-theme` renders the whole panel subtree in
-						// the opposite theme (light ⇄ dark, and between the high-contrast
-						// pair), so the surface AND everything composed inside it — buttons,
+						// the opposite theme (light ⇄ dark), so the surface AND everything composed inside it — buttons,
 						// alerts, links — read inverted from the page. bg-base/text-strong
 						// resolve against the inverted theme. border-transparent is the
 						// forced-colors technique: invisible normally, but forced-colors mode

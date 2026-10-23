@@ -30,18 +30,6 @@
 			"import": "./dist/mantle-dark.css",
 			"default": "./dist/mantle-dark.css"
 		},
-		"./mantle-light-high-contrast.css": {
-			"@ngrok/src-live-types": "./src/mantle-light-high-contrast.css",
-			"style": "./dist/mantle-light-high-contrast.css",
-			"import": "./dist/mantle-light-high-contrast.css",
-			"default": "./dist/mantle-light-high-contrast.css"
-		},
-		"./mantle-dark-high-contrast.css": {
-			"@ngrok/src-live-types": "./src/mantle-dark-high-contrast.css",
-			"style": "./dist/mantle-dark-high-contrast.css",
-			"import": "./dist/mantle-dark-high-contrast.css",
-			"default": "./dist/mantle-dark-high-contrast.css"
-		},
 		"./source-all.css": {
 			"style": "./dist/source-all.css",
 			"import": "./dist/source-all.css",

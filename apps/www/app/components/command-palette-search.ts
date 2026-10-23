@@ -84,8 +84,6 @@ const themeCommandTitles = {
 	system: "Use System theme",
 	light: "Use Light theme",
 	dark: "Use Dark theme",
-	"light-high-contrast": "Use Light High Contrast theme",
-	"dark-high-contrast": "Use Dark High Contrast theme",
 } as const satisfies Record<Theme, string>;
 
 type RouteCommandOptions = {

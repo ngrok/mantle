@@ -120,7 +120,7 @@ describe("searchPaletteCommands", () => {
 		const results = titles("dark");
 
 		expect(results).toContain("Use Dark theme");
-		expect(results).toContain("Use Dark High Contrast theme");
+		expect(results).not.toContain("Use Light theme");
 	});
 
 	test("matches route-path substrings so URL fragments find their pages", () => {

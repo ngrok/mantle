@@ -11,7 +11,11 @@ import {
 	ThemeIcon,
 	TrafficPolicyFileIcon,
 } from "@ngrok/mantle/icons";
+import { CheckCircleIcon } from "@phosphor-icons/react/CheckCircle";
+import { WarningIcon } from "@phosphor-icons/react/Warning";
+import { XCircleIcon } from "@phosphor-icons/react/XCircle";
 import { Example } from "~/components/example";
+import { Icon } from "@ngrok/mantle/icon";
 import { IconsExplorer } from "~/features/icons-explorer";
 
 # Icons
@@ -53,6 +57,52 @@ function IconGallery() {
 }
 ```
 
+## Color-coded icons
+
+Icons inherit the text color, so most icons stay neutral. Tint an icon only when its color carries a status: success, warning, danger, or info. Leave decorative icons, navigation icons, and icons inside buttons in the text color.
+
+- **Pair the color with a second cue.** A tinted icon always sits beside a text label, or its shape already states the status (a check, a warning triangle, an X). Color alone fails [WCAG 1.4.1](https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html): some readers cannot tell red from green.
+- **Use the semantic tokens.** Write `text-success-600`, `text-warning-600`, `text-danger-600`, or `text-info-600`, not a raw hue such as `text-green-600`. The semantic tokens keep their meaning in light and dark mode.
+- **Use one meaning for each color.** Danger red means an error or a destructive result. Do not use it for an icon that is only important.
+- **Keep the label in the body color.** Tint the icon, not the text beside it, so the label stays readable.
+
+<Example className="flex-col items-start gap-2">
+	<p className="flex items-center gap-2">
+		<Icon svg={<CheckCircleIcon weight="fill" />} className="text-success-600" />
+		Online
+	</p>
+	<p className="flex items-center gap-2">
+		<Icon svg={<WarningIcon weight="fill" />} className="text-warning-600" />
+		Degraded
+	</p>
+	<p className="flex items-center gap-2">
+		<Icon svg={<XCircleIcon weight="fill" />} className="text-danger-600" />
+		Offline
+	</p>
+</Example>
+
+```tsx
+import { Icon } from "@ngrok/mantle/icon";
+import { CheckCircleIcon } from "@phosphor-icons/react/CheckCircle";
+import { WarningIcon } from "@phosphor-icons/react/Warning";
+import { XCircleIcon } from "@phosphor-icons/react/XCircle";
+
+<>
+	<p className="flex items-center gap-2">
+		<Icon svg={<CheckCircleIcon weight="fill" />} className="text-success-600" />
+		Online
+	</p>
+	<p className="flex items-center gap-2">
+		<Icon svg={<WarningIcon weight="fill" />} className="text-warning-600" />
+		Degraded
+	</p>
+	<p className="flex items-center gap-2">
+		<Icon svg={<XCircleIcon weight="fill" />} className="text-danger-600" />
+		Offline
+	</p>
+</>;
+```
+
 ## API Reference
 
 All custom icons are exported from `@ngrok/mantle/icons`.
@@ -82,9 +132,9 @@ An icon that automatically adapts to the current applied theme.
 
 An icon for a specific theme.
 
-| Prop    | Type                                                                             | Default | Description           |
-| :------ | :------------------------------------------------------------------------------- | :------ | :-------------------- |
-| `theme` | `"system" \| "light" \| "dark" \| "light-high-contrast" \| "dark-high-contrast"` |         | The theme to display. |
+| Prop    | Type                            | Default | Description           |
+| :------ | :------------------------------ | :------ | :-------------------- |
+| `theme` | `"system" \| "light" \| "dark"` |         | The theme to display. |
 
 ### NgrokWordmarkIcon
 
@@ -98,11 +148,11 @@ An inline SVG of the ngrok lettermark "n" logo; fill color follows the `color` C
 
 This table is intentionally duplicated in plain markdown so readers (and AI agents) consuming the raw `.mdx` source can get full icon context without JSX rendering.
 
-| Icon                    | Description                                                                                         |
-| :---------------------- | :-------------------------------------------------------------------------------------------------- |
-| `SortIcon`              | Sort direction indicator icon with `mode` (`"alphanumeric"` or `"time"`) and `direction` variants.  |
-| `TrafficPolicyFileIcon` | The ngrok traffic policy file icon.                                                                 |
-| `AutoThemeIcon`         | Icon that automatically adapts to the currently applied theme.                                      |
-| `ThemeIcon`             | Theme-specific icon controlled by the `theme` prop (`"system"`, `"light"`, `"dark"`, and HC modes). |
-| `NgrokWordmarkIcon`     | An inline SVG of the ngrok wordmark logo; fill color follows the `color` CSS property.              |
-| `NgrokLettermarkIcon`   | An inline SVG of the ngrok lettermark "n" logo; fill color follows the `color` CSS property.        |
+| Icon                    | Description                                                                                        |
+| :---------------------- | :------------------------------------------------------------------------------------------------- |
+| `SortIcon`              | Sort direction indicator icon with `mode` (`"alphanumeric"` or `"time"`) and `direction` variants. |
+| `TrafficPolicyFileIcon` | The ngrok traffic policy file icon.                                                                |
+| `AutoThemeIcon`         | Icon that automatically adapts to the currently applied theme.                                     |
+| `ThemeIcon`             | Theme-specific icon controlled by the `theme` prop (`"system"`, `"light"`, or `"dark"`).           |
+| `NgrokWordmarkIcon`     | An inline SVG of the ngrok wordmark logo; fill color follows the `color` CSS property.             |
+| `NgrokLettermarkIcon`   | An inline SVG of the ngrok lettermark "n" logo; fill color follows the `color` CSS property.       |

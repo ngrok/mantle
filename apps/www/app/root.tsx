@@ -9,8 +9,6 @@ import {
 	useInitialHtmlThemeProps,
 } from "@ngrok/mantle/theme";
 import darkCssUrl from "@ngrok/mantle/mantle-dark.css?url";
-import darkHighContrastCssUrl from "@ngrok/mantle/mantle-dark-high-contrast.css?url";
-import lightHighContrastCssUrl from "@ngrok/mantle/mantle-light-high-contrast.css?url";
 import { Toaster } from "@ngrok/mantle/toast";
 import { TooltipProvider } from "@ngrok/mantle/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -41,11 +39,7 @@ import { parseMantleVersion } from "./utilities/mantle-version.server";
 import invariant from "tiny-invariant";
 import { MantleVersionProvider } from "./components/mantle-version-provider";
 
-const themeUrls = mantleStyleSheetUrls({
-	darkCssUrl,
-	lightHighContrastCssUrl,
-	darkHighContrastCssUrl,
-});
+const themeUrls = mantleStyleSheetUrls({ darkCssUrl });
 
 const title = "@ngrok/mantle";
 const description = "mantle is ngrok's UI library and design system";
@@ -187,7 +181,7 @@ export function Layout({ children }: PropsWithChildren) {
 				<meta name="og:image" property="og:image" content="/og-image.png" />
 				<meta name="twitter:image" property="twitter:image" content="/og-image.png" />
 				<PreventWrongThemeFlashScript nonce={nonce} />
-				<MantleStyleSheets {...themeUrls} nonce={nonce} ssrCookie={loaderData?.ssrCookie} />
+				<MantleStyleSheets {...themeUrls} />
 				<meta name="author" content="ngrok" />
 				<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 				<meta name="commit-sha" content={loaderData?.commitSha} />

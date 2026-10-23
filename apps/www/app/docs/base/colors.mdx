@@ -1,6 +1,6 @@
 ---
 title: Colors
-description: Color system for the mantle design system with automatic dark and high contrast mode support
+description: Color system for the mantle design system with automatic dark mode support
 ---
 
 import { Palette, Swatch } from "~/components/palette";
@@ -10,15 +10,15 @@ import { BlackWhiteDemo } from "~/features/colors-demo";
 
 Colors are a key component of any design system. They convey meaning, attract
 attention, and give feedback. Mantle's color system is accessible and flexible,
-with dark and high contrast modes.
+with a dark mode.
 
 ## Tailwind
 
 Mantle uses Tailwind under the hood for all its CSS styling. However, we differ from
-Tailwind when it comes to colors. Mantle ships a full color library with automatic
-dark and high contrast modes. This is different from standard Tailwind usage
+Tailwind when it comes to colors. Mantle ships a full color library with an automatic
+dark mode. This is different from standard Tailwind usage
 that _requires_ dark class variations. Specify Mantle's light colors and you get
-dark and high contrast modes for free. If you require additional customization,
+dark mode for free. If you require additional customization,
 you can add dark variant classes as an override.
 
 ## Variables
@@ -29,7 +29,7 @@ Mantle's colors are delivered as CSS variables via Tailwind's API e.g.
 ## Black and white color variables
 
 Mantle overrides what "black" and "white" mean depending on the theme. They are
-semantic colors, not literal ones. For dark modes, we swap them
+semantic colors, not literal ones. In dark mode, we swap them
 so that white is actually black and vice versa. Pay attention to the example below when
 swapping between our themes!
 
@@ -37,11 +37,9 @@ swapping between our themes!
 
 ## Overrides
 
-Most colors should appropriately swap for sensible values in dark and high contrast modes.
+Most colors should appropriately swap for sensible values in dark mode.
 However, there are often cases where you'll need to specify an override. The
 `dark:` variant is well-documented on [Tailwind's website](https://tailwindcss.com/docs/dark-mode).
-Mantle adds variants for high contrast and dark high contrast mode with
-`high-contrast:` and `dark-high-contrast:` respectively.
 
 ## Functional colors
 

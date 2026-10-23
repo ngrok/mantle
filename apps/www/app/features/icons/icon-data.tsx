@@ -164,8 +164,6 @@ const iconData = [
 			"auto",
 			"light",
 			"dark",
-			"light-high-contrast",
-			"dark-high-contrast",
 		],
 	},
 	{
@@ -199,28 +197,6 @@ const iconData = [
 			//,
 			"theme",
 			"dark",
-		],
-	},
-	{
-		id: "Theme-Icon-Light-High-Contrast",
-		name: "ThemeIcon",
-		description: <p>An icon that adapts to a specific theme (light-high-contrast)</p>,
-		Icon: <ThemeIcon theme="light-high-contrast" />,
-		tags: [
-			//,
-			"theme",
-			"light-high-contrast",
-		],
-	},
-	{
-		id: "Theme-Icon-Dark-High-Contrast",
-		name: "ThemeIcon",
-		description: <p>An icon that adapts to a specific theme (dark-high-contrast)</p>,
-		Icon: <ThemeIcon theme="dark-high-contrast" />,
-		tags: [
-			//,
-			"theme",
-			"dark-high-contrast",
 		],
 	},
 ] as const satisfies IconData[];

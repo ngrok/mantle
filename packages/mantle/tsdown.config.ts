@@ -4,8 +4,6 @@ import { defineConfig } from "tsdown";
 
 const MANTLE_CSS_SRC = new URL("./src/mantle.css", import.meta.url);
 const MANTLE_DARK_CSS_SRC = new URL("./src/mantle-dark.css", import.meta.url);
-const MANTLE_LIGHT_HC_CSS_SRC = new URL("./src/mantle-light-high-contrast.css", import.meta.url);
-const MANTLE_DARK_HC_CSS_SRC = new URL("./src/mantle-dark-high-contrast.css", import.meta.url);
 const SOURCE_ALL_CSS_SRC = new URL("./src/source-all.css", import.meta.url);
 
 /**
@@ -177,8 +175,6 @@ export default defineConfig((options) => [
 				await Promise.all([
 					fs.promises.copyFile(MANTLE_CSS_SRC, "./dist/mantle.css"),
 					fs.promises.copyFile(MANTLE_DARK_CSS_SRC, "./dist/mantle-dark.css"),
-					fs.promises.copyFile(MANTLE_LIGHT_HC_CSS_SRC, "./dist/mantle-light-high-contrast.css"),
-					fs.promises.copyFile(MANTLE_DARK_HC_CSS_SRC, "./dist/mantle-dark-high-contrast.css"),
 					fs.promises.copyFile(SOURCE_ALL_CSS_SRC, "./dist/source-all.css"),
 				]);
 			} catch (error) {

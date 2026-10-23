@@ -1,8 +1,6 @@
 import { describe, expect, test } from "vitest";
 import twThemeCss from "tailwindcss/theme.css?raw";
-import darkHighContrastCss from "../../mantle-dark-high-contrast.css?raw";
 import darkCss from "../../mantle-dark.css?raw";
-import lightHighContrastCss from "../../mantle-light-high-contrast.css?raw";
 import lightCss from "../../mantle.css?raw";
 import { CHART_DECORATIVE_COLOR } from "./colors.js";
 import {
@@ -142,8 +140,6 @@ const resolveTheme = (name: ThemeName, themeCss: string, themeFile: string): The
 const THEMES: Theme[] = [
 	resolveTheme("light", lightCss, "mantle.css"),
 	resolveTheme("dark", darkCss, "mantle-dark.css"),
-	resolveTheme("light-high-contrast", lightHighContrastCss, "mantle-light-high-contrast.css"),
-	resolveTheme("dark-high-contrast", darkHighContrastCss, "mantle-dark-high-contrast.css"),
 ];
 
 describe("empty-state text over a decorative chart", () => {

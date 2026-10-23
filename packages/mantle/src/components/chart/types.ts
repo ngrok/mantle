@@ -69,13 +69,13 @@ type ChartSeriesSlot = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | "other";
 
 /**
  * A series color: one of the validated chart tokens (preferred — they adapt to
- * light/dark/high-contrast themes) or any CSS color string as an escape hatch.
+ * the light and dark themes) or any CSS color string as an escape hatch.
  *
  * `color` overrides only the color channel. It does not select or reserve a
  * series slot. When sibling series can mount or unmount, use `seriesSlot` on a
  * series part to keep its visual identity fixed.
  *
- * A static color (raw hex) cannot follow the four themes, so prefer a
+ * A static color (raw hex) cannot follow the two themes, so prefer a
  * `var(--your-token)` a consumer declares per theme. A series that carries
  * good/bad meaning (error rate, pass/fail) should wear the semantic status
  * colors, never a categorical chart slot.

@@ -29,10 +29,7 @@ import { Slot } from "../slot/index.js";
  *     </Main>
  *   </CenteredLayout.Body>
  *   <CenteredLayout.Footer>
- *     <ThemeSwitcher.Root>
- *       <ThemeSwitcher.Trigger />
- *       <ThemeSwitcher.Content />
- *     </ThemeSwitcher.Root>
+ *     <ThemeSwitcher />
  *   </CenteredLayout.Footer>
  * </CenteredLayout.Root>
  * ```
@@ -191,10 +188,7 @@ const Header = ({
  *     </Main>
  *   </CenteredLayout.Body>
  *   <CenteredLayout.Footer>
- *     <ThemeSwitcher.Root>
- *       <ThemeSwitcher.Trigger />
- *       <ThemeSwitcher.Content />
- *     </ThemeSwitcher.Root>
+ *     <ThemeSwitcher />
  *   </CenteredLayout.Footer>
  * </CenteredLayout.Root>
  * ```
@@ -242,10 +236,7 @@ const Body = ({
  *     </Main>
  *   </CenteredLayout.Body>
  *   <CenteredLayout.Footer>
- *     <ThemeSwitcher.Root>
- *       <ThemeSwitcher.Trigger />
- *       <ThemeSwitcher.Content />
- *     </ThemeSwitcher.Root>
+ *     <ThemeSwitcher />
  *   </CenteredLayout.Footer>
  * </CenteredLayout.Root>
  * ```
@@ -302,10 +293,7 @@ const Footer = ({
  *     </Main>
  *   </CenteredLayout.Body>
  *   <CenteredLayout.Footer>
- *     <ThemeSwitcher.Root>
- *       <ThemeSwitcher.Trigger />
- *       <ThemeSwitcher.Content />
- *     </ThemeSwitcher.Root>
+ *     <ThemeSwitcher />
  *   </CenteredLayout.Footer>
  * </CenteredLayout.Root>
  * ```
@@ -332,10 +320,7 @@ const CenteredLayout = {
 	 *     </Main>
 	 *   </CenteredLayout.Body>
 	 *   <CenteredLayout.Footer>
-	 *     <ThemeSwitcher.Root>
-	 *       <ThemeSwitcher.Trigger />
-	 *       <ThemeSwitcher.Content />
-	 *     </ThemeSwitcher.Root>
+	 *     <ThemeSwitcher />
 	 *   </CenteredLayout.Footer>
 	 * </CenteredLayout.Root>
 	 * ```
@@ -415,10 +400,7 @@ const CenteredLayout = {
 	 *     </Main>
 	 *   </CenteredLayout.Body>
 	 *   <CenteredLayout.Footer>
-	 *     <ThemeSwitcher.Root>
-	 *       <ThemeSwitcher.Trigger />
-	 *       <ThemeSwitcher.Content />
-	 *     </ThemeSwitcher.Root>
+	 *     <ThemeSwitcher />
 	 *   </CenteredLayout.Footer>
 	 * </CenteredLayout.Root>
 	 * ```
@@ -444,10 +426,7 @@ const CenteredLayout = {
 	 *     </Main>
 	 *   </CenteredLayout.Body>
 	 *   <CenteredLayout.Footer>
-	 *     <ThemeSwitcher.Root>
-	 *       <ThemeSwitcher.Trigger />
-	 *       <ThemeSwitcher.Content />
-	 *     </ThemeSwitcher.Root>
+	 *     <ThemeSwitcher />
 	 *   </CenteredLayout.Footer>
 	 * </CenteredLayout.Root>
 	 * ```

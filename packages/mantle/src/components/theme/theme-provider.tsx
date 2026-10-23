@@ -13,7 +13,6 @@ import {
 	isResolvedTheme,
 	isTheme,
 	resolvedThemes,
-	themes,
 } from "./themes.js";
 
 /**
@@ -22,20 +21,27 @@ import {
 const prefersDarkModeMediaQuery = "(prefers-color-scheme: dark)";
 
 /**
- * The media query for the OS high-contrast preference.
- */
-const prefersHighContrastMediaQuery = "(prefers-contrast: more)";
-
-/**
  * The cookie name the theme persists under.
  */
 const THEME_STORAGE_KEY = "mantle-ui-theme";
 
 /**
  * The theme to apply when storage holds no value.
- * {@link themes}
  */
 const DEFAULT_THEME = "system" satisfies Theme;
+
+/**
+ * Maps each cookie value mantle reads to the theme it stores. The retired
+ * high-contrast values map to their base theme, so a user who picked one keeps
+ * a light or dark page. Read it with `Object.hasOwn`, never a bare index.
+ */
+const themeByCookieValue: Readonly<Record<string, Theme>> = {
+	system: "system",
+	light: "light",
+	dark: "dark",
+	"light-high-contrast": "light",
+	"dark-high-contrast": "dark",
+};
 
 type ThemeProviderState = [theme: Theme, setTheme: (theme: Theme) => void];
 
@@ -45,23 +51,32 @@ type ThemeProviderState = [theme: Theme, setTheme: (theme: Theme) => void];
  */
 const ThemeProviderContext = createContext<ThemeProviderState | null>(null);
 
+/**
+ * The `forceTheme` of the nearest {@link ThemeProvider}, or `undefined` when
+ * the page is not pinned. A separate context keeps the public `useTheme` tuple
+ * unchanged.
+ */
+const ForcedThemeContext = createContext<ResolvedTheme | undefined>(undefined);
+
 type ThemeProviderProps = PropsWithChildren<{
 	/**
 	 * Pin the theme that renders, ignoring the stored preference and the OS. Pass
-	 * the same value you pass `MantleStyleSheets` and `PreventWrongThemeFlashScript`
-	 * — those force which stylesheets are *applied*, and this forces the `<html>`
-	 * class they key off. Leaving them out of sync is what makes a page paint in a
-	 * theme nobody asked for: the pair partner's stylesheet is applied, so a stale
-	 * `.dark` on the root would take over a `forceTheme="light"` page.
+	 * the same value you pass `PreventWrongThemeFlashScript` and
+	 * `useInitialHtmlThemeProps`: each one writes the `<html>` class. Leaving them
+	 * out of sync makes a page paint in a theme nobody asked for, because the dark
+	 * stylesheet is always applied and a stale `.dark` on the root takes over a
+	 * `forceTheme="light"` page.
 	 *
-	 * The stored preference is still read and still written by `setTheme`, so a
-	 * theme switcher keeps working and unforced pages honor the user's choice.
+	 * The stored preference is still read and still written by `setTheme`, so
+	 * unforced pages honor the user's choice. `useAppliedTheme` returns the forced
+	 * theme, and `ThemeSwitcher` is disabled, because a click cannot change what
+	 * this page shows.
 	 */
 	forceTheme?: ResolvedTheme;
 	/**
 	 * The theme cookie pair from the incoming request, read on the server only.
 	 * Pass the value `extractThemeCookie` returns. Pass the same value to
-	 * `MantleStyleSheets` and `useInitialHtmlThemeProps`. The server then seeds
+	 * `useInitialHtmlThemeProps`. The server then seeds
 	 * the context with the stored theme, so the hydrated client agrees with the
 	 * server HTML. When omitted, the server renders `"system"`. A client with a
 	 * stored theme then reports a hydration mismatch. The client always reads
@@ -109,8 +124,8 @@ function ThemeProvider({ children, forceTheme, ssrCookie }: ThemeProviderProps) 
 	const broadcastChannelRef = useRef<BroadcastChannel | null>(null);
 
 	useEffect(() => {
-		function syncThemeFromCookie(next?: Theme) {
-			const newTheme = next ?? getStoredTheme({ cookie: document.cookie });
+		function syncThemeFromCookie() {
+			const newTheme = getStoredTheme({ cookie: document.cookie });
 			setTheme(newTheme);
 			applyThemeToHtml(newTheme, { forceTheme });
 		}
@@ -118,17 +133,24 @@ function ThemeProvider({ children, forceTheme, ssrCookie }: ThemeProviderProps) 
 		// Re-sync on mount: the cookie can change between the first render and this effect.
 		syncThemeFromCookie();
 
+		// Why rewrite: a retired high-contrast cookie reads as its base theme, and the
+		// rewrite stores that theme so every app on the cookie domain agrees.
+		const storedValue = readCookie(document.cookie, THEME_STORAGE_KEY);
+		if (
+			storedValue != null &&
+			!isTheme(storedValue) &&
+			Object.hasOwn(themeByCookieValue, storedValue)
+		) {
+			setCookie(getStoredTheme({ cookie: document.cookie }));
+		}
+
 		// Why the feature test and the catch: Safari before 15.4 ships no
 		// `BroadcastChannel`, and the constructor throws in a sandboxed iframe.
 		try {
 			if ("BroadcastChannel" in window) {
 				broadcastChannelRef.current = new BroadcastChannel(THEME_STORAGE_KEY);
-				broadcastChannelRef.current.addEventListener("message", (event) => {
-					const value: unknown = event?.data?.theme;
-					if (isTheme(value)) {
-						syncThemeFromCookie(value);
-					}
-				});
+				// Why re-read the cookie: a tab on an older mantle can post a retired theme.
+				broadcastChannelRef.current.addEventListener("message", syncThemeFromCookie);
 			}
 		} catch {
 			// silently swallow errors
@@ -145,7 +167,6 @@ function ThemeProvider({ children, forceTheme, ssrCookie }: ThemeProviderProps) 
 		window.addEventListener("storage", onStorage);
 
 		const prefersDarkMql = window.matchMedia(prefersDarkModeMediaQuery);
-		const prefersHighContrastMql = window.matchMedia(prefersHighContrastMediaQuery);
 
 		function onChange() {
 			syncThemeFromCookie();
@@ -158,7 +179,6 @@ function ThemeProvider({ children, forceTheme, ssrCookie }: ThemeProviderProps) 
 		}
 
 		prefersDarkMql.addEventListener("change", onChange);
-		prefersHighContrastMql.addEventListener("change", onChange);
 
 		// pageshow fires on bfcache restore (event.persisted === true) and some restore-from-freeze cases.
 		window.addEventListener("pageshow", onChange);
@@ -168,7 +188,6 @@ function ThemeProvider({ children, forceTheme, ssrCookie }: ThemeProviderProps) 
 		return () => {
 			window.removeEventListener("storage", onStorage);
 			prefersDarkMql.removeEventListener("change", onChange);
-			prefersHighContrastMql.removeEventListener("change", onChange);
 			window.removeEventListener("pageshow", onChange);
 			document.removeEventListener("visibilitychange", onVisibilityChange);
 
@@ -193,7 +212,11 @@ function ThemeProvider({ children, forceTheme, ssrCookie }: ThemeProviderProps) 
 		[forceTheme, theme],
 	);
 
-	return <ThemeProviderContext.Provider value={value}>{children}</ThemeProviderContext.Provider>;
+	return (
+		<ForcedThemeContext.Provider value={forceTheme}>
+			<ThemeProviderContext.Provider value={value}>{children}</ThemeProviderContext.Provider>
+		</ForcedThemeContext.Provider>
+	);
 }
 /**
  * useTheme returns the current theme and a function to set the theme.
@@ -225,14 +248,7 @@ function applyThemeToHtml(theme: Theme, { forceTheme }: { forceTheme?: ResolvedT
 	const html = window.document.documentElement;
 
 	const prefersDarkMode = window.matchMedia(prefersDarkModeMediaQuery).matches;
-	const prefersHighContrast = window.matchMedia(prefersHighContrastMediaQuery).matches;
-
-	const resolvedTheme =
-		forceTheme ??
-		resolveTheme(theme, {
-			prefersDarkMode,
-			prefersHighContrast,
-		});
+	const resolvedTheme = forceTheme ?? resolveTheme(theme, { prefersDarkMode });
 
 	const htmlTheme = html.dataset.theme;
 	const htmlAppliedTheme = html.dataset.appliedTheme;
@@ -277,256 +293,96 @@ function readThemeFromHtmlElement() {
 }
 
 /**
- * Resolves `"system"` against the user's media query preferences, and returns any other theme unchanged.
+ * Resolves `"system"` against the OS dark-mode preference, and returns any other theme unchanged.
  * The result mirrors what lands on the `<html>` element.
  */
 function resolveTheme(
 	theme: Theme,
-	{
-		prefersDarkMode,
-		prefersHighContrast,
-	}: { prefersDarkMode: boolean; prefersHighContrast: boolean },
-) {
+	{ prefersDarkMode }: { prefersDarkMode: boolean },
+): ResolvedTheme {
 	if (theme === "system") {
-		return determineThemeFromMediaQuery({
-			prefersDarkMode,
-			prefersHighContrast,
-		});
+		return prefersDarkMode ? "dark" : "light";
 	}
 
 	return theme;
 }
 
 /**
- * Resolves `"system"` against the user's media query preferences, and returns any other theme unchanged.
- * The result mirrors what lands on the `<html>` element.
+ * Returns the theme the page paints in: the provider's `forceTheme` when it
+ * has one, else the stored theme with `"system"` resolved against the OS
+ * dark-mode preference. The result mirrors what lands on the `<html>` element.
  *
  * @see https://mantle.ngrok.com/components/primitives/theme
  */
 function useAppliedTheme() {
 	const themeContext = useContext(ThemeProviderContext);
+	const forcedTheme = useForcedTheme();
 	const theme = themeContext != null ? themeContext[0] : "system";
 
 	const prefersDarkMode = useMatchesMediaQuery(prefersDarkModeMediaQuery);
-	const prefersHighContrast = useMatchesMediaQuery(prefersHighContrastMediaQuery);
 
-	return resolveTheme(theme, { prefersDarkMode, prefersHighContrast });
+	return forcedTheme ?? resolveTheme(theme, { prefersDarkMode });
 }
 
 /**
- * determineThemeFromMediaQuery returns the theme that should be used based on the user's media query preferences.
- * @private
- *
- * @example
- * ```tsx
- * const theme = determineThemeFromMediaQuery({
- *   prefersDarkMode: true,
- *   prefersHighContrast: false
- * });
- * // Returns: "dark"
- *
- * const themeWithContrast = determineThemeFromMediaQuery({
- *   prefersDarkMode: false,
- *   prefersHighContrast: true
- * });
- * // Returns: "light-high-contrast"
- * ```
+ * Returns the `forceTheme` of the nearest {@link ThemeProvider}, or
+ * `undefined` when the page is not pinned. Internal: `ThemeSwitcher` reads it
+ * to disable itself on a pinned page.
  */
-export function determineThemeFromMediaQuery({
-	prefersDarkMode,
-	prefersHighContrast,
+function useForcedTheme() {
+	return useContext(ForcedThemeContext);
+}
+
+/**
+ * The FOUC-prevention bootstrap. `preventWrongThemeFlashScriptContent` inlines
+ * this function into a blocking `<script>` in `<head>`. It puts the resolved
+ * theme class on `<html>` before first paint, so the page never flashes the
+ * wrong theme.
+ *
+ * It reads the theme cookie, resolves `"system"` against `prefers-color-scheme`,
+ * and writes the class, `data-theme`, and `data-applied-theme`. It writes no
+ * cookie: `ThemeProvider` owns the cookie.
+ *
+ * Why the arguments carry the constants: the inlined source is this function's
+ * own text, so an imported helper or module constant is `undefined` at runtime.
+ */
+function preventThemeFlash({
+	storageKey,
+	themeByCookieValue,
+	forceTheme,
 }: {
-	prefersDarkMode: boolean;
-	prefersHighContrast: boolean;
-}): ResolvedTheme {
-	if (prefersHighContrast) {
-		return prefersDarkMode ? "dark-high-contrast" : "light-high-contrast";
-	}
-
-	return prefersDarkMode ? "dark" : "light";
-}
-
-/**
- * The FOUC-prevention bootstrap. This entire function is stringified and inlined
- * into a blocking `<script>` in the document head; it runs synchronously before
- * React mounts (and before first paint) so the resolved theme class is on
- * `<html>` by the time the browser paints, avoiding a light→dark (or vice-versa)
- * flash.
- *
- * Resolution order:
- *  1. Read the stored preference: cookie first, then `localStorage` (legacy fallback).
- *  2. Validate it against the configured `themes`; fall back to `defaultTheme` otherwise.
- *  3. If the preference is `"system"`, resolve against the OS media queries
- *     (`prefers-color-scheme`, `prefers-contrast`).
- *  4. Apply the resolved class to `<html>`. When no valid cookie is stored yet,
- *     seed it so subsequent SSRs see the same value.
- *
- * Why nested helpers: `preventWrongThemeFlashScriptContent` serializes this
- * function verbatim, so it must be hermetic — every helper it calls has to
- * travel with it.
- * Hoisting them to module scope would leave dangling references in the inlined
- * source. All catches are intentionally swallowing to keep the script crash-free
- * in environments where cookies / `localStorage` / `matchMedia` throw (sandboxed
- * iframes, privacy modes, SSR-style polyfills).
- *
- * @param args.storageKey                    Cookie + localStorage key for the persisted theme.
- * @param args.defaultTheme                  Theme to use when no valid preference is stored.
- * @param args.themes                        Allowed `Theme` values (used to validate stored input).
- * @param args.resolvedThemes                Allowed `ResolvedTheme` class names applied to `<html>`.
- * @param args.prefersDarkModeMediaQuery     Media query string for OS dark-mode detection.
- * @param args.prefersHighContrastMediaQuery Media query string for OS high-contrast detection.
- * @param args.forceTheme                    Pins the applied theme, bypassing steps 1–3 above.
- */
-function preventThemeFlash(args: {
 	storageKey: string;
-	defaultTheme: Theme;
-	themes: readonly Theme[];
-	resolvedThemes: readonly ResolvedTheme[];
-	prefersDarkModeMediaQuery: string;
-	prefersHighContrastMediaQuery: string;
+	themeByCookieValue: Readonly<Record<string, Theme>>;
 	forceTheme: ResolvedTheme | undefined;
 }) {
-	const {
-		storageKey,
-		defaultTheme,
-		themes,
-		resolvedThemes,
-		prefersDarkModeMediaQuery,
-		prefersHighContrastMediaQuery,
-		forceTheme,
-	} = args;
-
-	function isTheme(value: unknown): value is Theme {
-		return typeof value === "string" && themes.some((item) => item === value);
-	}
-
-	// Nested helpers below must stay inside `preventThemeFlash` so they are
-	// included when the function is stringified into the inlined FOUC-prevention
-	// script. Hoisting them would leave dangling references at runtime.
-	//
-	// This is also why `getThemeFromCookie` re-implements what
-	// `utils/cookie.ts`'s `readCookie` does everywhere else in the library:
-	// `Function.prototype.toString()` captures only this function's own body, so
-	// an imported helper would be `undefined` in the inlined script. The
-	// duplication is a runtime constraint — do not "de-duplicate" it.
-	// oxlint-disable-next-line unicorn/consistent-function-scoping
-	function getThemeFromCookie(name: string): string | null {
-		const cookie = document.cookie;
-		if (!cookie) {
-			return null;
-		}
-
-		try {
-			const cookies = cookie.split(";");
-			const themeCookie = cookies.find((c) => c.trim().startsWith(`${name}=`));
-			// Slice past the first "=" rather than split("=")[1], which would
-			// truncate a value that itself contains "=" — matching `readCookie`.
-			const cookieValue = themeCookie?.trim().slice(name.length + 1);
-			const storedTheme = cookieValue ? decodeURIComponent(cookieValue) : null;
-			return storedTheme;
-		} catch {
-			return null;
-		}
-	}
-
-	// oxlint-disable-next-line unicorn/consistent-function-scoping -- stringified into the inlined FOUC script; see note above.
-	function buildCookie(name: string, val: string): string {
-		const expires = new Date();
-		expires.setFullYear(expires.getFullYear() + 1);
-		const hostname = window.location.hostname;
-		const protocol = window.location.protocol;
-		const domainAttribute =
-			hostname === "ngrok.com" || hostname.endsWith(".ngrok.com") ? "; domain=.ngrok.com" : "";
-		const secureAttribute = protocol === "https:" ? "; Secure" : "";
-		return `${name}=${encodeURIComponent(val)}; expires=${expires.toUTCString()}; path=/${domainAttribute}; SameSite=Lax${secureAttribute}`;
-	}
-
-	function writeCookie(name: string, val: string): void {
-		try {
-			document.cookie = buildCookie(name, val);
-		} catch {
-			// silently swallow errors
-		}
-	}
-
-	// oxlint-disable-next-line unicorn/consistent-function-scoping -- stringified into the inlined FOUC script; see note above.
-	function resolveThemeValue(
-		theme: Theme,
-		isDark: boolean,
-		isHighContrast: boolean,
-	): ResolvedTheme {
-		if (theme === "system") {
-			if (isHighContrast) {
-				return isDark ? "dark-high-contrast" : "light-high-contrast";
-			}
-			return isDark ? "dark" : "light";
-		}
-		return theme;
-	}
-
-	// 1) Read preference: cookie first, fallback to localStorage (migration support)
-	let cookieTheme: string | null = null;
-	let lsTheme: string | null = null;
-	let storedTheme: Theme | null = null;
-
+	let theme: Theme = "system";
 	try {
-		cookieTheme = getThemeFromCookie(storageKey);
+		const pair = document.cookie
+			.split(";")
+			.map((cookie) => cookie.trim())
+			.find((cookie) => cookie.startsWith(`${storageKey}=`));
+		const value = decodeURIComponent(pair?.slice(storageKey.length + 1) ?? "");
+		if (Object.hasOwn(themeByCookieValue, value)) {
+			theme = themeByCookieValue[value] ?? "system";
+		}
 	} catch {
-		// silently swallow errors
+		// A blocked or malformed cookie falls back to "system".
 	}
 
-	if (isTheme(cookieTheme)) {
-		storedTheme = cookieTheme;
-	} else {
-		try {
-			lsTheme = window.localStorage?.getItem(storageKey) ?? null;
-		} catch {
-			// silently swallow errors
-		}
-		if (isTheme(lsTheme)) {
-			storedTheme = lsTheme;
-		}
+	let appliedTheme: ResolvedTheme = matchMedia("(prefers-color-scheme: dark)").matches
+		? "dark"
+		: "light";
+	if (forceTheme != null) {
+		appliedTheme = forceTheme;
+	} else if (theme !== "system") {
+		appliedTheme = theme;
 	}
-
-	const preference = isTheme(storedTheme) ? storedTheme : defaultTheme;
-
-	// 2) Resolve theme based on media queries — unless the page pins one. A forced
-	// page still records the stored preference in `data-theme`, so a theme switcher
-	// and the cookie keep working; only what paints is pinned.
-	const isDark = matchMedia(prefersDarkModeMediaQuery).matches;
-	const isHighContrast = matchMedia(prefersHighContrastMediaQuery).matches;
-	const resolvedTheme = forceTheme ?? resolveThemeValue(preference, isDark, isHighContrast);
 
 	const html = document.documentElement;
-	// 3) Apply theme to DOM (same remove-before-add order as `applyThemeToHtml`)
-	if (html.dataset.appliedTheme !== resolvedTheme || html.dataset.theme !== preference) {
-		for (const themeClass of resolvedThemes as readonly string[]) {
-			html.classList.remove(themeClass);
-		}
-		html.classList.add(resolvedTheme);
-		html.dataset.theme = preference;
-		html.dataset.appliedTheme = resolvedTheme;
-	}
-
-	// 4) Handle persistence/migration synchronously to prevent FOUC
-	const hadValidCookie = isTheme(cookieTheme);
-	try {
-		if (isTheme(lsTheme) && !hadValidCookie) {
-			// Migrate the pre-cookie `localStorage` theme, then delete it so this
-			// branch runs at most once per browser.
-			writeCookie(storageKey, lsTheme);
-			try {
-				window.localStorage.removeItem(storageKey);
-			} catch {
-				// silently swallow errors
-			}
-		} else if (!hadValidCookie) {
-			// No stored theme at all: seed the cookie so the next SSR resolves it.
-			writeCookie(storageKey, preference);
-		}
-	} catch {
-		// silently swallow errors
-	}
+	html.classList.remove("light", "dark");
+	html.classList.add(appliedTheme);
+	html.dataset.theme = theme;
+	html.dataset.appliedTheme = appliedTheme;
 }
 
 /**
@@ -537,7 +393,7 @@ function preventThemeFlash(args: {
  * @see https://mantle.ngrok.com/components/primitives/theme
  *
  * @param forceTheme - Pin the applied theme, bypassing the stored preference and
- * the OS. Mirror the value passed to `MantleStyleSheets` and `ThemeProvider`.
+ * the OS. Mirror the value passed to `ThemeProvider` and `useInitialHtmlThemeProps`.
  *
  * @example
  * ```ts
@@ -548,13 +404,9 @@ function preventThemeFlash(args: {
 function preventWrongThemeFlashScriptContent(forceTheme?: ResolvedTheme) {
 	const args = {
 		storageKey: THEME_STORAGE_KEY,
-		defaultTheme: DEFAULT_THEME,
-		themes,
-		resolvedThemes,
-		prefersDarkModeMediaQuery,
-		prefersHighContrastMediaQuery,
+		themeByCookieValue,
 		forceTheme,
-	} as const satisfies Parameters<typeof preventThemeFlash>[0];
+	} satisfies Parameters<typeof preventThemeFlash>[0];
 
 	return `(${preventThemeFlash.toString()})(${JSON.stringify(args)})`;
 }
@@ -562,9 +414,9 @@ function preventWrongThemeFlashScriptContent(forceTheme?: ResolvedTheme) {
 export type PreventWrongThemeFlashScriptProps = {
 	/**
 	 * Pin the theme this page paints in, bypassing the stored preference and the
-	 * OS. Mirror the same value you pass `MantleStyleSheets` and `ThemeProvider`:
-	 * those force which stylesheets are *applied*, and this forces the `<html>`
-	 * class they key off, before first paint.
+	 * OS. Mirror the same value you pass `ThemeProvider` and
+	 * `useInitialHtmlThemeProps`. This one writes the `<html>` class before first
+	 * paint.
 	 */
 	forceTheme?: ResolvedTheme;
 	/**
@@ -605,7 +457,7 @@ export type PreventWrongThemeFlashScriptProps = {
  * </head>
  * ```
  *
- * @param forceTheme - Optional theme to pin, mirroring `MantleStyleSheets` and `ThemeProvider`.
+ * @param forceTheme - Optional theme to pin, mirroring `ThemeProvider` and `useInitialHtmlThemeProps`.
  * @param nonce - Optional CSP nonce to allowlist the inline script under a strict CSP.
  * @returns {JSX.Element} A script tag injected before first paint.
  * @see preloadFontLink
@@ -631,8 +483,8 @@ type UseInitialHtmlThemePropsOptions = {
 	className?: string;
 	/**
 	 * Pin the resolved theme in the returned props, bypassing the cookie and the
-	 * OS. Mirror the same value you pass `MantleStyleSheets`,
-	 * `PreventWrongThemeFlashScript`, and `ThemeProvider`.
+	 * OS. Mirror the same value you pass `PreventWrongThemeFlashScript` and
+	 * `ThemeProvider`.
 	 */
 	forceTheme?: ResolvedTheme;
 	/**
@@ -657,20 +509,13 @@ function useInitialHtmlThemeProps(props: UseInitialHtmlThemePropsOptions = {}): 
 
 		if (!canUseDOM()) {
 			initialTheme = getStoredTheme({ cookie: ssrCookie });
-			resolvedTheme = resolveTheme(initialTheme, {
-				// During SSR we can't detect media queries, so assume light/no high contrast.
-				// The inline script will correct this before paint for "system" theme users.
-				prefersDarkMode: false,
-				prefersHighContrast: false,
-			});
+			// Why assume light: the server cannot read media queries. The inline script
+			// corrects a "system" page before paint.
+			resolvedTheme = resolveTheme(initialTheme, { prefersDarkMode: false });
 		} else {
 			const prefersDarkMode = window.matchMedia(prefersDarkModeMediaQuery).matches;
-			const prefersHighContrast = window.matchMedia(prefersHighContrastMediaQuery).matches;
 			initialTheme = getStoredTheme({ cookie: document.cookie });
-			resolvedTheme = resolveTheme(initialTheme, {
-				prefersDarkMode,
-				prefersHighContrast,
-			});
+			resolvedTheme = resolveTheme(initialTheme, { prefersDarkMode });
 		}
 
 		const appliedTheme = forceTheme ?? resolvedTheme;
@@ -693,15 +538,17 @@ type GetStoredThemeOptions = {
 /**
  * Returns the persisted UI theme from a Cookie header string.
  *
- * Looks for a cookie named by {@link THEME_STORAGE_KEY} and returns its value **iff**
- * it’s a valid `Theme` per `isTheme`. Otherwise, falls back to
- * {@link DEFAULT_THEME}. This function never throws; malformed encodings or
- * missing cookies quietly return the default.
+ * Looks for a cookie named by {@link THEME_STORAGE_KEY}. A retired
+ * high-contrast value returns its base theme (`"light"` or `"dark"`). Any other
+ * value that is not a `Theme` returns {@link DEFAULT_THEME}. This function never
+ * throws.
  *
  * @see https://mantle.ngrok.com/components/primitives/theme
  *
  * @example
  * getStoredTheme({ cookie: `${THEME_STORAGE_KEY}=dark; session=abc` }) // "dark"
+ * @example
+ * getStoredTheme({ cookie: `${THEME_STORAGE_KEY}=dark-high-contrast` }) // "dark"
  * @example
  * getStoredTheme({ cookie: "" }) // DEFAULT_THEME
  */
@@ -710,16 +557,19 @@ function getStoredTheme({ cookie }: GetStoredThemeOptions): Theme {
 		return DEFAULT_THEME;
 	}
 
-	const storedTheme = readCookie(cookie, THEME_STORAGE_KEY);
+	const storedValue = readCookie(cookie, THEME_STORAGE_KEY);
+	if (storedValue == null || !Object.hasOwn(themeByCookieValue, storedValue)) {
+		return DEFAULT_THEME;
+	}
 
-	return isTheme(storedTheme) ? storedTheme : DEFAULT_THEME;
+	return themeByCookieValue[storedValue] ?? DEFAULT_THEME;
 }
 
 /**
  * Extract only the mantle theme cookie from a raw `Cookie` header string.
  *
- * Use this in SSR loaders to pass the theme cookie to {@link ThemeProvider},
- * `MantleStyleSheets`, and {@link useInitialHtmlThemeProps} without exposing
+ * Use this in SSR loaders to pass the theme cookie to {@link ThemeProvider}
+ * and {@link useInitialHtmlThemeProps} without exposing
  * the full `Cookie` header (which may contain HttpOnly/session cookies) in
  * serialized loader data.
  *
@@ -750,6 +600,7 @@ export {
 	preventWrongThemeFlashScriptContent,
 	readThemeFromHtmlElement,
 	useAppliedTheme,
+	useForcedTheme,
 	useInitialHtmlThemeProps,
 	useTheme,
 };

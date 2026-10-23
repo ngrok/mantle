@@ -495,6 +495,14 @@ export const migrations = [
 			"The Button and IconButton icon now sits inside a span. Replace a [&>svg] selector on the button with [&_svg], or size the icon element itself.",
 		route: "/migrations/0010-button-icon-swap-migration",
 	},
+	{
+		number: 11,
+		slug: "eliminate-high-contrast-migration",
+		title: "Eliminate High Contrast",
+		description:
+			"The high-contrast themes, stylesheets, and variants are gone, MantleStyleSheets takes only darkCssUrl, and ThemeSwitcher is one light/dark toggle.",
+		route: "/migrations/0011-eliminate-high-contrast-migration",
+	},
 ] as const satisfies readonly Migration[];
 
 /** Migration guides, newest first: the order the index page and the sidebar show. */

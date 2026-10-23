@@ -374,7 +374,7 @@ const ListItem = ({
 				"focus-visible:ring-focus-accent not-aria-disabled:focus-visible:border-accent-600 focus-visible:ring-4",
 				"first-of-type:rounded-tl-md first-of-type:rounded-tr-md last-of-type:rounded-bl-md last-of-type:rounded-br-md",
 				"aria-disabled:border-form/50 not-aria-disabled:hover:z-1 not-aria-disabled:hover:border-accent-600",
-				"aria-checked:z-1 aria-checked:border-accent-500/40 aria-checked:bg-accent-500/10 dark-high-contrast:aria-checked:border-accent-400 high-contrast:aria-checked:border-accent-400 not-aria-disabled:hover:aria-checked:border-accent-600",
+				"aria-checked:z-1 aria-checked:border-accent-500/40 aria-checked:bg-accent-500/10 not-aria-disabled:hover:aria-checked:border-accent-600",
 				"has-[.radio-indicator:first-child]:pl-2 has-[.radio-indicator:last-child]:pr-2",
 				className,
 			)}
@@ -441,7 +441,7 @@ const Card = ({
 				"focus-visible:ring-focus-accent not-aria-disabled:focus-visible:border-accent-600 focus-visible:ring-4",
 				"first-of-type:rounded-tl-md first-of-type:rounded-tr-md last-of-type:rounded-bl-md last-of-type:rounded-br-md",
 				"aria-disabled:border-form/50 not-aria-disabled:hover:z-1 not-aria-disabled:hover:border-accent-600",
-				"aria-checked:z-1 aria-checked:border-accent-600/50 aria-checked:bg-accent-500/10 not-aria-disabled:hover:aria-checked:border-accent-600 dark-high-contrast:aria-checked:border-accent-600 high-contrast:aria-checked:border-accent-600",
+				"aria-checked:z-1 aria-checked:border-accent-600/50 aria-checked:bg-accent-500/10 not-aria-disabled:hover:aria-checked:border-accent-600",
 				className,
 			)}
 			{...props}
@@ -559,7 +559,8 @@ const Button = ({
 			data-slot={joinDataSlot(dataSlot, "radio-group-button")}
 			className={cx(
 				"group/radio border-form [&_label]:cursor-inherit relative flex flex-1 select-none items-center justify-center gap-2 border px-3 text-sm",
-				"h-9",
+				// Why nowrap: the segment has a fixed height, so a wrapped label spills out of it.
+				"h-9 whitespace-nowrap",
 				"focus-visible:ring-focus-accent not-aria-disabled:focus-visible:border-accent-600 focus-visible:ring-4",
 				"cursor-pointer aria-disabled:cursor-default focus:outline-hidden",
 				"first-of-type:rounded-bl-md first-of-type:rounded-tl-md last-of-type:rounded-br-md last-of-type:rounded-tr-md",
