@@ -31,7 +31,7 @@ import { cancelActivation, promoteActivation, queueActivation } from "./activati
 import { describeChartParts, describeSeries, scanX } from "./describe.js";
 import type { HoverLayers } from "./engine.js";
 import { ChartEngine, POINT_SHAPE_CLIP_PATHS } from "./engine.js";
-import { onPrint } from "./environment.js";
+import { observeResize, onPrint } from "./environment.js";
 import { formatNumber, formatXValue } from "./format.js";
 import { serializeChartMarkdown } from "./serialize.js";
 import { ChartStore } from "./store.js";
@@ -1676,24 +1676,43 @@ const ChartLegendPrimitive = ({
 	slotName,
 	className,
 	children,
+	ref,
 	...props
 }: LegendPrimitiveProps & { partName: string; slotName: string }) => {
 	const context = useChartContext(partName);
 	// Selector subscriptions: a hover publish must not re-render the legend.
 	const series = useStoreSeries(context.store);
 	const orientation = useStoreOrientation(context.store);
+	const legendRef = useRef<HTMLDivElement>(null);
+	const composedRef = useComposedRefs(legendRef, ref);
+	const [scrollable, setScrollable] = useState(false);
+	useEffect(() => {
+		const element = legendRef.current;
+		if (element == null) {
+			return;
+		}
+		// Why the series dependency: a legend at its height bound does not resize
+		// when it gets more entries. Each new `observe()` reads once after layout.
+		return observeResize(element, () => {
+			setScrollable(element.scrollHeight > element.clientHeight);
+		});
+	}, [series]);
 	if (series.length < 2) {
 		return null;
 	}
 	return (
 		<div
+			ref={composedRef}
 			data-slot={`${slotName}-legend`}
 			className={cx(
 				// Why the height bound: the plot is the only part of a fixed-height Root that
 				// shrinks, so a legend with many series can take all of its height.
-				"text-muted flex max-h-16 shrink-0 flex-wrap items-center gap-x-4 gap-y-1 overflow-y-auto pt-3 text-xs",
+				"text-muted focus-visible:ring-focus-accent flex max-h-16 shrink-0 flex-wrap items-center gap-x-4 gap-y-1 overflow-y-auto rounded-sm pt-3 text-xs outline-none focus-visible:ring-2",
 				className,
 			)}
+			// Why: Safari does not put a scroll container in the Tab order, so keyboard
+			// users could not reach the clipped entries.
+			{...(scrollable && { role: "group", "aria-label": "Legend", tabIndex: 0 })}
 			{...props}
 		>
 			{children != null ? (

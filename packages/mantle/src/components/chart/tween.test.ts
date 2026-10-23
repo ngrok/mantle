@@ -330,16 +330,42 @@ describe("ChaseTween glide", () => {
 		expect(chase.values()[0]).toBe(125);
 	});
 
-	test("aim after a glide chases from the current position", () => {
+	test("aim at a new target after a glide chases from the current position", () => {
 		const chase = new ChaseTween();
 		chase.jump([0]);
 		chase.glide([100], { now: 0, duration: 100 });
-		chase.aim([100], 50);
+		chase.aim([200], 50);
 		expect(chase.values()[0]).toBe(50);
 		expect(chase.tick(66.67)).toBe(true);
 		const value = chase.values()[0] ?? 0;
 		expect(value).toBeGreaterThan(50);
-		expect(value).toBeLessThan(100);
+		expect(value).toBeLessThan(200);
+	});
+
+	test("aim at the glide's own target keeps the constant speed", () => {
+		const chase = new ChaseTween();
+		chase.jump([0]);
+		chase.glide([100], { now: 0, duration: 100 });
+		chase.aim([100], 50);
+		chase.tick(75);
+		expect(chase.values()[0]).toBe(75);
+	});
+
+	test("a glide to the settled target stays settled", () => {
+		const chase = new ChaseTween();
+		chase.jump([1, 2]);
+		chase.glide([1, 2], { now: 0, duration: 100 });
+		expect(chase.active).toBe(false);
+		expect(chase.tick(16)).toBe(false);
+	});
+
+	test("a glide to its own target keeps its line", () => {
+		const chase = new ChaseTween();
+		chase.jump([0]);
+		chase.glide([100], { now: 0, duration: 100 });
+		chase.glide([100], { now: 50, duration: 100 });
+		chase.tick(75);
+		expect(chase.values()[0]).toBe(75);
 	});
 
 	test("a zero duration lands on the target at once", () => {

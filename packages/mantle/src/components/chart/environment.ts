@@ -1,7 +1,8 @@
 /**
  * Per-window state the chart engines share. A page of 100 charts holds one
- * reduced-motion query, one device-pixel-ratio watcher, and one pair of print
- * listeners per window instead of one of each per chart.
+ * reduced-motion query, one device-pixel-ratio watcher, one pair of print
+ * listeners, and one font-load listener per window instead of one of each per
+ * chart.
  *
  * This module is internal shared implementation — not exported from the package.
  */
@@ -149,6 +150,55 @@ const onPrint = (view: Window, listeners: PrintListeners): (() => void) => {
 	};
 };
 
+type FontWatch = {
+	listeners: Set<() => void>;
+	onLoad: () => void;
+};
+
+const fontWatches = new WeakMap<FontFaceSet, FontWatch>();
+
+/**
+ * Call `onLoad` each time the document finishes loading a web font. A chart
+ * measures its labels with the font it has at that time, so a font that
+ * swaps in later makes those measurements stale. Every chart in a document
+ * shares one `loadingdone` listener. Returns the function that stops
+ * listening.
+ *
+ * @example
+ * ```ts
+ * const stop = onFontsLoaded(document, () => engine.remeasureLabels());
+ * ```
+ */
+const onFontsLoaded = (document: Document, onLoad: () => void): (() => void) => {
+	const fonts = document.fonts;
+	// Why the guard: a test DOM can have no `FontFaceSet`.
+	if (fonts == null || typeof fonts.addEventListener !== "function") {
+		return () => {};
+	}
+	let watch = fontWatches.get(fonts);
+	if (watch == null) {
+		const created: FontWatch = {
+			listeners: new Set(),
+			onLoad: () => {
+				for (const listener of created.listeners) {
+					listener();
+				}
+			},
+		};
+		fonts.addEventListener("loadingdone", created.onLoad);
+		fontWatches.set(fonts, created);
+		watch = created;
+	}
+	watch.listeners.add(onLoad);
+	return () => {
+		watch.listeners.delete(onLoad);
+		if (watch.listeners.size === 0) {
+			fonts.removeEventListener("loadingdone", watch.onLoad);
+			fontWatches.delete(fonts);
+		}
+	};
+};
+
 type ResizeHandler = (entry: ResizeObserverEntry) => void;
 
 type ResizeWatch = {
@@ -214,6 +264,7 @@ export type {
 export {
 	//,
 	observeResize,
+	onFontsLoaded,
 	onPrint,
 	prefersReducedMotion,
 	watchDevicePixelRatio,

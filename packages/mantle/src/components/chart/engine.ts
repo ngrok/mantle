@@ -28,6 +28,7 @@ import { createBarTexturePattern, textureInkColor } from "./texture.js";
 import { datumValue, missingKeyMessage, toEpochOrNumber, uncoercibleXMessage } from "./datum.js";
 import {
 	observeResize,
+	onFontsLoaded,
 	onPrint,
 	prefersReducedMotion,
 	watchDevicePixelRatio,
@@ -242,6 +243,7 @@ class ChartEngine {
 	#tooltipResizeObserver: ResizeObserver | null = null;
 	#dprCleanup: (() => void) | null = null;
 	#printCleanup: (() => void) | null = null;
+	#fontsCleanup: (() => void) | null = null;
 	/** The owning window, or `null` in a detached document. */
 	#view: Window | null = null;
 
@@ -501,6 +503,10 @@ class ChartEngine {
 			this.#colors = null;
 			this.#schedule();
 		});
+		this.#fontsCleanup = onFontsLoaded(options.elements.root.ownerDocument, () => {
+			this.#textWidths.clear();
+			this.#schedule();
+		});
 		this.#view = options.elements.root.ownerDocument.defaultView;
 		if (this.#view != null) {
 			this.#printCleanup = onPrint(this.#view, {
@@ -523,6 +529,7 @@ class ChartEngine {
 		this.#themeDisconnect?.();
 		this.#dprCleanup?.();
 		this.#printCleanup?.();
+		this.#fontsCleanup?.();
 		this.#store.onSeriesChange = null;
 		this.#store.onPresentationChange = null;
 		if (this.#edgeFadeDecayTimer != null) {
