@@ -25,10 +25,10 @@ npx --yes --package=@ast-grep/cli@0.51.0 ast-grep scan --rule node_modules/@ngro
 
 The rules apply steps 1, 2, and 4:
 
-- They delete each JavaScript import of the two high-contrast stylesheets, with or without `?url`.
+- They delete each JavaScript import of the two high-contrast stylesheets, with or without `?url`. An import whose name other code still reads stays, and its missing module marks that code for manual work.
 - They delete the `lightHighContrastCssUrl` and `darkHighContrastCssUrl` entries from a `mantleStyleSheetUrls` call.
 - They delete `lightHighContrastCssUrl`, `darkHighContrastCssUrl`, `forceTheme`, `ssrCookie`, and `nonce` from `MantleStyleSheets`.
-- They replace a `ThemeSwitcher.Root` with no props, one `ThemeSwitcher.Trigger`, and one self-closing `ThemeSwitcher.Content` with `<ThemeSwitcher />`, which keeps the trigger's props and drops the content's props.
+- They replace a `ThemeSwitcher.Root` with no props, one `ThemeSwitcher.Trigger`, and one self-closing `ThemeSwitcher.Content` that has no `children` prop and no spread. The replacement is `<ThemeSwitcher />`, which keeps the trigger's props and drops the content's props.
 
 Steps 3 and 5 to 8 stay manual, because a class string, a CSS `@import`, a theme string literal, a test query, and a menu that holds more than the theme options are not syntax a rule can read. The rules read a part through its import from `@ngrok/mantle/theme` or `@ngrok/mantle/theme-switcher`, under its own name or an alias. A function that binds the part's name to a parameter or a local shadows the import, so the rules leave that function alone. The codemod is safe to run twice. Pass `--dry-run` to print the rewrites first, and run your formatter after the rewrite.
 

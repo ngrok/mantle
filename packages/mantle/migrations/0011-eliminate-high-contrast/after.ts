@@ -1,5 +1,6 @@
 import darkCssUrl from "@ngrok/mantle/mantle-dark.css?url";
-
+// negative: a binding that other code still reads keeps its import
+import lightHighContrastCssUrl from "@ngrok/mantle/mantle-light-high-contrast.css?url";
 import { mantleStyleSheetUrls } from "@ngrok/mantle/theme";
 import { otherUrls } from "./other";
 

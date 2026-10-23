@@ -1,5 +1,7 @@
+// oxlint-disable react/no-children-prop -- a negative fixture passes menu items through `children`
 import darkCssUrl from "@ngrok/mantle/mantle-dark.css?url";
-
+// negative: a binding that other code still reads keeps its import
+import lightHighContrastCssUrl from "@ngrok/mantle/mantle-light-high-contrast.css?url";
 import {
 	MantleStyleSheets,
 	mantleStyleSheetUrls,
@@ -82,5 +84,32 @@ export function Shadowed({ ThemeSwitcher }: { ThemeSwitcher: typeof MantleThemeS
 			<ThemeSwitcher.Trigger />
 			<ThemeSwitcher.Content />
 		</ThemeSwitcher.Root>
+	);
+}
+
+// negative: a second Trigger stays manual
+export function TwoTriggers() {
+	return (
+		<ThemeSwitcher.Root>
+			<ThemeSwitcher.Trigger label="Theme" />
+			<ThemeSwitcher.Trigger appearance="outlined" />
+			<ThemeSwitcher.Content />
+		</ThemeSwitcher.Root>
+	);
+}
+
+// negative: Content that can pass menu items stays manual
+export function PassedItems({ items, contentProps }: ControlledProps) {
+	return (
+		<>
+			<ThemeSwitcher.Root>
+				<ThemeSwitcher.Trigger />
+				<ThemeSwitcher.Content children={items} />
+			</ThemeSwitcher.Root>
+			<ThemeSwitcher.Root>
+				<ThemeSwitcher.Trigger />
+				<ThemeSwitcher.Content {...contentProps} />
+			</ThemeSwitcher.Root>
+		</>
 	);
 }
