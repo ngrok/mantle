@@ -395,7 +395,7 @@ const Content = ({
 		<LayerContainer
 			data-slot="dialog-positioner"
 			className={cx(
-				"fixed z-60 flex items-center justify-center motion-safe:has-[>[data-state=closed]]:animate-exit-hold",
+				"fixed z-60 flex items-center justify-center motion-safe:has-[>[data-mantle-modal-content][data-state=closed]]:animate-exit-hold",
 				wrapperClassName[appearance],
 			)}
 		>
