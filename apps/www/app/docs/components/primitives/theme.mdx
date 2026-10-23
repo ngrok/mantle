@@ -41,7 +41,7 @@ export function ThemeSelectExample() {
 
 Mantle has two themes, light and dark. The stored preference is one of three values: `"system"` (the default, which follows the OS `prefers-color-scheme` setting), `"light"`, or `"dark"`. The theme system has three parts:
 
-- `ThemeProvider` holds the preference, saves it in a cookie, and keeps it in sync across tabs.
+- `ThemeProvider` holds the preference, saves it in a cookie, and keeps it in sync across tabs. On an `ngrok.com` or `ngrok.ai` host, the cookie covers every subdomain of that site.
 - `PreventWrongThemeFlashScript` puts the right theme class on `<html>` before first paint, so the page never flashes the wrong theme.
 - `MantleStyleSheets` loads `mantle-dark.css`. Without it, nothing renders dark.
 

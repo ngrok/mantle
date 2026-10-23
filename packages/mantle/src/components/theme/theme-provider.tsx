@@ -599,6 +599,7 @@ export {
 	getStoredTheme,
 	preventWrongThemeFlashScriptContent,
 	readThemeFromHtmlElement,
+	themeCookieDomain,
 	useAppliedTheme,
 	useForcedTheme,
 	useInitialHtmlThemeProps,
@@ -668,14 +669,40 @@ function notifyOtherTabs(
 	}
 }
 
+/**
+ * The ngrok sites that share one theme cookie. A cookie cannot span two
+ * registrable domains, so each one keeps its own.
+ */
+const themeCookieDomains = ["ngrok.com", "ngrok.ai"] as const;
+
+/**
+ * Returns the `domain` attribute for the theme cookie on `hostname`: the ngrok
+ * site that `hostname` is on or under, with a leading dot. Returns `undefined`
+ * on every other host, so the cookie stays host-only there.
+ *
+ * Why a domain: the theme must follow the user across the subdomains of one
+ * ngrok site, such as `ngrok.ai` and `app.ngrok.ai`.
+ *
+ * @example
+ * themeCookieDomain("app.ngrok.ai"); // ".ngrok.ai"
+ * themeCookieDomain("dashboard.ngrok.com"); // ".ngrok.com"
+ * themeCookieDomain("localhost"); // undefined
+ */
+function themeCookieDomain(hostname: string) {
+	const site = themeCookieDomains.find(
+		(domain) => hostname === domain || hostname.endsWith(`.${domain}`),
+	);
+
+	return site == null ? undefined : `.${site}`;
+}
+
 function buildThemeCookie(value: string) {
 	const expires = new Date();
 	expires.setFullYear(expires.getFullYear() + 1);
 
-	// Why the `.ngrok.com` domain: the theme must follow the user across ngrok subdomains.
 	const { hostname, protocol } = window.location;
-	const domainAttribute =
-		hostname === "ngrok.com" || hostname.endsWith(".ngrok.com") ? "; domain=.ngrok.com" : "";
+	const domain = themeCookieDomain(hostname);
+	const domainAttribute = domain == null ? "" : `; domain=${domain}`;
 	const secureAttribute = protocol === "https:" ? "; Secure" : "";
 
 	return `${THEME_STORAGE_KEY}=${encodeURIComponent(value)}; expires=${expires.toUTCString()}; path=/${domainAttribute}; SameSite=Lax${secureAttribute}` as const;

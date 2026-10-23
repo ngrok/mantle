@@ -41,9 +41,9 @@ The `Theme` submenu is four lines of `DropdownMenu` composition at the call site
 
 The `SubTrigger` icon can follow the theme. Radix mounts menu content only while the menu is open, which is after hydration, so a theme-aware icon there cannot cause a hydration mismatch.
 
-### 3. One stored preference
+### 3. One stored preference for each site
 
-Every control reads and writes the same `ThemeProvider` cookie through `useTheme`. On a `ngrok.com` host the cookie domain is `.ngrok.com`, so a choice in the dashboard also applies to corp and to the `ngrok.com` sites. On any other host the cookie is host-only. The ngrok AI dashboard runs on `app.ngrok.ai`, so it does not share its choice with `ngrok.ai`. A follow-up can set `domain=.ngrok.ai` on `ngrok.ai` hosts. A cookie cannot span `ngrok.com` and `ngrok.ai`.
+Every control reads and writes the same `ThemeProvider` cookie through `useTheme`. On an `ngrok.com` host the cookie domain is `.ngrok.com`, so a choice in the dashboard also applies to corp and to the `ngrok.com` sites. On an `ngrok.ai` host the cookie domain is `.ngrok.ai`, so a choice in the ngrok AI dashboard on `app.ngrok.ai` also applies to `ngrok.ai`. On any other host the cookie is host-only. A cookie cannot span `ngrok.com` and `ngrok.ai`, so each site keeps its own choice.
 
 ### 4. Frontend adoption
 

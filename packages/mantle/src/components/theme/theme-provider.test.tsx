@@ -12,6 +12,7 @@ import {
 	PreventWrongThemeFlashScript,
 	preventWrongThemeFlashScriptContent,
 	ThemeProvider,
+	themeCookieDomain,
 	useAppliedTheme,
 	useInitialHtmlThemeProps,
 	useTheme,
@@ -207,6 +208,21 @@ describe("extractThemeCookie", () => {
 		{ header: undefined, expected: undefined },
 	])("given header $header returns $expected", ({ header, expected }) => {
 		expect(extractThemeCookie(header)).toBe(expected);
+	});
+});
+
+describe("themeCookieDomain", () => {
+	test.each([
+		{ hostname: "ngrok.com", expected: ".ngrok.com" },
+		{ hostname: "dashboard.ngrok.com", expected: ".ngrok.com" },
+		{ hostname: "ngrok.ai", expected: ".ngrok.ai" },
+		{ hostname: "app.ngrok.ai", expected: ".ngrok.ai" },
+		// a lookalike host must not get a cookie scoped to an ngrok site
+		{ hostname: "notngrok.ai", expected: undefined },
+		{ hostname: "ngrok.ai.example.com", expected: undefined },
+		{ hostname: "localhost", expected: undefined },
+	])("given $hostname returns $expected", ({ hostname, expected }) => {
+		expect(themeCookieDomain(hostname)).toBe(expected);
 	});
 });
 
