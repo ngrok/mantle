@@ -853,6 +853,14 @@ function isSidePanelFloating(panel: HTMLElement | null): boolean {
 }
 
 /**
+ * Parses a computed `transition-duration` or `transition-delay` list into
+ * seconds, one entry per comma. An entry that does not parse is `0`.
+ */
+function toSeconds(times: string): number[] {
+	return times.split(",").map((time) => Number.parseFloat(time) || 0);
+}
+
+/**
  * The milliseconds until every transition on `panel` ends: the longest
  * duration plus delay of one `transition-property` entry. The duration and
  * delay lists repeat to the length of the property list, as CSS repeats them.
@@ -860,7 +868,6 @@ function isSidePanelFloating(panel: HTMLElement | null): boolean {
  */
 function readSidePanelTransitionMs(panel: HTMLElement): number {
 	const style = getComputedStyle(panel);
-	const toSeconds = (times: string) => times.split(",").map((time) => Number.parseFloat(time) || 0);
 	const durations = toSeconds(style.transitionDuration);
 	const delays = toSeconds(style.transitionDelay);
 	const ends = style.transitionProperty
