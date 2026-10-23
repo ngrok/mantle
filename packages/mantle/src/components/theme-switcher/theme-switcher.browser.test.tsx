@@ -128,7 +128,7 @@ describe("ThemeSwitcher theme swap in Chromium", () => {
 		const button = renderSwitcher();
 		const startViewTransition = vi.spyOn(document, "startViewTransition");
 		await userEvent.click(button);
-		await revealAnimation();
+		const reveal = await revealAnimation();
 
 		// While a view transition runs, Chromium targets <html> with each click.
 		const { left, top, width, height } = button.getBoundingClientRect();
@@ -145,6 +145,8 @@ describe("ThemeSwitcher theme swap in Chromium", () => {
 		);
 		expect(document.documentElement).toHaveClass("dark");
 		expect(startViewTransition).toHaveBeenCalledOnce();
+		// The skip stops the reveal; it does not run on to its end.
+		expect(reveal.playState).toBe("idle");
 	});
 
 	test("with reduced motion, the theme swaps at once with no reveal", async () => {
