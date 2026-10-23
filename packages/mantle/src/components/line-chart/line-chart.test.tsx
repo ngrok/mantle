@@ -514,6 +514,34 @@ describe("LineChart keyboard interaction", () => {
 		expect(tooltip?.textContent).toContain("222");
 	});
 
+	test("unsorted rows with a tied x keep their data order, and a row with no x drops", async () => {
+		const user = userEvent.setup();
+		const unsorted = [
+			{ time: new Date("2026-07-18T10:01:00Z"), p50: 222 },
+			{ time: new Date("2026-07-18T10:00:00Z"), p50: 111 },
+			{ time: null, p50: 999 },
+			{ time: new Date("2026-07-18T10:00:00Z"), p50: 112 },
+		];
+		render(
+			<LineChart.Root data={unsorted} xKey="time" aria-label="Unsorted latency">
+				<LineChart.Line dataKey="p50" label="p50" />
+			</LineChart.Root>,
+		);
+		await user.tab();
+		await user.keyboard("{ArrowRight}");
+		// The tooltip mounts on the first step.
+		const tooltip = document.querySelector('[data-slot="line-chart-tooltip"]');
+		expect(tooltip?.textContent).toContain("111");
+		await user.keyboard("{ArrowRight}");
+		expect(tooltip?.textContent).toContain("112");
+		await user.keyboard("{ArrowRight}");
+		expect(tooltip?.textContent).toContain("222");
+		// The last step stays on the last row: the row with no x has no position.
+		await user.keyboard("{ArrowRight}");
+		expect(tooltip?.textContent).toContain("222");
+		expect(tooltip?.textContent).not.toContain("999");
+	});
+
 	test("Escape clears the active datum", async () => {
 		const user = userEvent.setup();
 		renderChart();

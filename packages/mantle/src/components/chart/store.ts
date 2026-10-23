@@ -205,6 +205,8 @@ class ChartStore {
 	};
 
 	#seriesByKey = new Map<string, { spec: SeriesSpec; sequence: number }>();
+	/** The sorted specs, rebuilt only when a series registers or unregisters. */
+	#specs: readonly SeriesSpec[] | null = null;
 	#sequenceByKey = new Map<string, number>();
 	#nextSequence = 0;
 
@@ -241,11 +243,16 @@ class ChartStore {
 
 	getSnapshot = (): StoreSnapshot => this.#snapshot;
 
-	/** The registered series specs in paint order (engine-side read). */
-	seriesSpecs(): SeriesSpec[] {
-		return [...this.#seriesByKey.values()]
+	/**
+	 * The registered series specs in paint order (engine-side read). The engine
+	 * reads them on every frame and every pointer move, so the store keeps the
+	 * sorted list until the registrations change.
+	 */
+	seriesSpecs(): readonly SeriesSpec[] {
+		this.#specs ??= [...this.#seriesByKey.values()]
 			.toSorted((a, b) => a.sequence - b.sequence)
 			.map((entry) => entry.spec);
+		return this.#specs;
 	}
 
 	/**
@@ -274,11 +281,13 @@ class ChartStore {
 		const sequence = this.#sequenceByKey.get(spec.dataKey) ?? this.#nextSequence++;
 		this.#sequenceByKey.set(spec.dataKey, sequence);
 		this.#seriesByKey.set(spec.dataKey, { spec, sequence });
+		this.#specs = null;
 		this.#publishRegistrations({ seriesChanged: true });
 		return () => {
 			const current = this.#seriesByKey.get(spec.dataKey);
 			if (current?.spec === spec) {
 				this.#seriesByKey.delete(spec.dataKey);
+				this.#specs = null;
 				this.#publishRegistrations({ seriesChanged: true });
 			}
 		};
@@ -414,7 +423,10 @@ class ChartStore {
 
 	#publishRegistrations(options: { seriesChanged: boolean } = { seriesChanged: false }): void {
 		this.#snapshot = {
-			series: this.seriesMeta(),
+			// Why keep the old list on other changes: the legend and the data table
+			// subscribe to `series` by identity, so an axis or tooltip registration
+			// must not re-render them.
+			series: options.seriesChanged ? this.seriesMeta() : this.#snapshot.series,
 			hover: this.#hover,
 			grid: this.#grid,
 			xAxis: this.#xAxis,

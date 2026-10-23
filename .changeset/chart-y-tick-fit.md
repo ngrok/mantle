@@ -11,3 +11,13 @@ Fix chart y-axis labels that overlap at short plot heights, and fix other chart 
 - **A `dataKey`, `xKey`, or `zKey` typo error lists the keys of every row.** It listed only the keys of the first row, so a key that only later rows carry was missing from the list.
 - **`dist/llms.txt` says that it is an index.** It points agents at the bundled `.d.ts` files for props.
 - **A streaming chart paints faster.** The left-edge fade no longer copies the whole canvas each frame. It paints the grid beneath the faded marks, so the chart keeps one canvas, not two.
+- **Charts paint and ingest with less CPU and less garbage.** Axis labels are formatted and measured once, not on every frame. Bars reuse their geometry objects across frames. Same-alpha gridlines share one stroke. A continuous-x ingest uses typed arrays, not one object per row. A pointer hover no longer rewrites unchanged hover-dot styles, and it no longer re-renders the screen-reader announcer. An axis, grid, or tooltip registration no longer re-renders the legend or the data table. Measured in headless Chromium with React's production build (mean of 3 runs):
+
+  | Scenario                                   | Metric                                | Before | After |
+  | ------------------------------------------ | ------------------------------------- | -----: | ----: |
+  | 800-category × 3-series bar chart, tween   | main-thread ms per frame              |   0.69 |  0.29 |
+  |                                            | chart-code KB allocated per frame     |    236 |    29 |
+  |                                            | `measureText` calls per frame         |     25 |     0 |
+  | 20k-point area chart, window slides        | ms per data update (React + ingest)   |   5.40 |  2.65 |
+  |                                            | chart-code KB allocated per frame     |    840 |   253 |
+  | 4-series line chart, pointer sweep         | `setAttribute` calls per pointer move |    4.1 |  0.13 |

@@ -280,7 +280,8 @@ const useChartContext = (partName: string): ChartContextValue => {
 	const context = useContext(ChartContext);
 	invariant(
 		context,
-		`${partName} must be composed inside ${partName.split(".")[0]}.Root — it registers into the chart it belongs to and renders nothing on its own.`,
+		() =>
+			`${partName} must be composed inside ${partName.split(".")[0]}.Root — it registers into the chart it belongs to and renders nothing on its own.`,
 	);
 	return context;
 };
@@ -300,15 +301,24 @@ const useStoreSeries = (store: ChartStore): SeriesMeta[] =>
 		() => store.getSnapshot().series,
 	);
 
-/** Subscribe to the registered bar direction only (see {@link useStoreSeries}). */
-/** The hover snapshot alone, so a registration never re-renders the announcer. */
-const useStoreHover = (store: ChartStore): HoverSnapshot | null =>
+/**
+ * The hover snapshot of a keyboard step alone, else `null`. Only a keyboard
+ * step is announced, so a registration or a pointer hover never re-renders
+ * the announcer.
+ */
+const useStoreKeyboardHover = (store: ChartStore): HoverSnapshot | null =>
 	useSyncExternalStore(
 		store.subscribe,
-		() => store.getSnapshot().hover,
-		() => store.getSnapshot().hover,
+		() => keyboardHover(store),
+		() => keyboardHover(store),
 	);
 
+const keyboardHover = (store: ChartStore): HoverSnapshot | null => {
+	const hover = store.getSnapshot().hover;
+	return hover?.viaKeyboard === true ? hover : null;
+};
+
+/** Subscribe to the registered bar direction only (see {@link useStoreSeries}). */
 const useStoreOrientation = (store: ChartStore): BarOrientation =>
 	useSyncExternalStore(
 		store.subscribe,
@@ -619,7 +629,8 @@ const ChartRootPrimitive = ({
 	// evenly-spaced categorical positions misaligned against the value axis.
 	invariant(
 		kind !== "scatter" || data.length === 0 || resolvedXScale !== "point",
-		`${componentName}.Root requires numeric or Date x values — the "${xKey}" values are not numbers or dates, so they have no position on a continuous scatter axis.`,
+		() =>
+			`${componentName}.Root requires numeric or Date x values — the "${xKey}" values are not numbers or dates, so they have no position on a continuous scatter axis.`,
 	);
 	const [yDomainMin, yDomainMax] = yDomain;
 
@@ -1163,7 +1174,8 @@ const useSeriesPrimitive = (
 	const context = useChartContext(partName);
 	invariant(
 		context.kind === mark,
-		`${partName} cannot be composed inside ${context.componentName}.Root — compose ${context.componentName} series parts instead.`,
+		() =>
+			`${partName} cannot be composed inside ${context.componentName}.Root — compose ${context.componentName} series parts instead.`,
 	);
 	const {
 		dataKey,
@@ -1889,10 +1901,10 @@ const ChartAnnouncer = ({
 	/** Whether the dataset's x dates carry a time-of-day component (label granularity). */
 	xHasTimeOfDay: boolean;
 }) => {
-	const hover = useStoreHover(store);
+	const hover = useStoreKeyboardHover(store);
 	const [announcement, setAnnouncement] = useState("");
 	useEffect(() => {
-		if (hover == null || !hover.viaKeyboard) {
+		if (hover == null) {
 			// Why sync setState: the clear must be a real DOM change before the
 			// debounced write, because AT does not re-announce identical text.
 			// Derived state flashes the previous datum's text first.

@@ -111,6 +111,23 @@ describe("assignSeriesSlots", () => {
 });
 
 describe("ChartStore series presentation", () => {
+	test("a non-series registration keeps the published series list", () => {
+		const store = new ChartStore();
+		store.registerSeries(makeSeries("requests"));
+		const series = store.getSnapshot().series;
+		const specs = store.seriesSpecs();
+		store.registerXAxis({ tickFormat: undefined, tickCount: 4 });
+		store.registerGrid("horizontal");
+		expect(store.getSnapshot().series).toBe(series);
+		expect(store.seriesSpecs()).toBe(specs);
+		store.registerSeries(makeSeries("errors"));
+		expect(store.getSnapshot().series.map((meta) => meta.dataKey)).toStrictEqual([
+			"requests",
+			"errors",
+		]);
+		expect(store.seriesSpecs().map((spec) => spec.dataKey)).toStrictEqual(["requests", "errors"]);
+	});
+
 	test("removing an automatic series closes the gap in the current assignments", () => {
 		const store = new ChartStore();
 		const unregisterRequests = store.registerSeries(makeSeries("requests"));

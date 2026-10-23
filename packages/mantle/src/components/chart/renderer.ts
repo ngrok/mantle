@@ -56,6 +56,8 @@ const hairline = (position: number): number => Math.round(position) + 0.5;
 /**
  * Draw solid hairline gridlines. Each line carries its own alpha — gridlines
  * share the axis labels' fade state so tick churn slides instead of popping.
+ * Neighboring lines at one alpha share one stroke, so a settled grid costs one
+ * stroke per direction.
  */
 const drawGrid = (
 	ctx: CanvasRenderingContext2D,
@@ -70,21 +72,38 @@ const drawGrid = (
 	ctx.save();
 	ctx.strokeStyle = color;
 	ctx.lineWidth = 1;
-	for (const line of xLines) {
-		ctx.globalAlpha = line.alpha;
-		ctx.beginPath();
-		ctx.moveTo(hairline(line.position), plot.top);
-		ctx.lineTo(hairline(line.position), plot.top + plot.height);
-		ctx.stroke();
-	}
-	for (const line of yLines) {
-		ctx.globalAlpha = line.alpha;
-		ctx.beginPath();
-		ctx.moveTo(plot.left, hairline(line.position));
-		ctx.lineTo(plot.left + plot.width, hairline(line.position));
-		ctx.stroke();
-	}
+	strokeGridLines(ctx, xLines, (position) => {
+		ctx.moveTo(hairline(position), plot.top);
+		ctx.lineTo(hairline(position), plot.top + plot.height);
+	});
+	strokeGridLines(ctx, yLines, (position) => {
+		ctx.moveTo(plot.left, hairline(position));
+		ctx.lineTo(plot.left + plot.width, hairline(position));
+	});
 	ctx.restore();
+};
+
+/** Stroke each run of same-alpha lines as one path. */
+const strokeGridLines = (
+	ctx: CanvasRenderingContext2D,
+	lines: ReadonlyArray<{ position: number; alpha: number }>,
+	trace: (position: number) => void,
+): void => {
+	let alpha = Number.NaN;
+	for (const line of lines) {
+		if (line.alpha !== alpha) {
+			if (!Number.isNaN(alpha)) {
+				ctx.stroke();
+			}
+			alpha = line.alpha;
+			ctx.globalAlpha = alpha;
+			ctx.beginPath();
+		}
+		trace(line.position);
+	}
+	if (!Number.isNaN(alpha)) {
+		ctx.stroke();
+	}
 };
 
 /**
@@ -143,12 +162,21 @@ type BarRect = {
  */
 const drawBars = (
 	ctx: CanvasRenderingContext2D,
-	options: { fill: string | CanvasPattern; rects: readonly BarRect[] },
+	options: {
+		fill: string | CanvasPattern;
+		rects: readonly BarRect[];
+		/** How many leading `rects` to draw, so a caller can reuse one longer list. Defaults to all. */
+		count?: number;
+	},
 ): void => {
-	const { fill, rects } = options;
+	const { fill, rects, count = rects.length } = options;
 	ctx.fillStyle = fill;
 	ctx.beginPath();
-	for (const rect of rects) {
+	for (let slot = 0; slot < count; slot++) {
+		const rect = rects[slot];
+		if (rect == null) {
+			continue;
+		}
 		const width = Math.max(0.5, rect.width);
 		const top = Math.min(rect.valueY, rect.baselineY);
 		const height = Math.abs(rect.baselineY - rect.valueY);
@@ -193,12 +221,21 @@ type HorizontalBarRect = {
  */
 const drawHorizontalBars = (
 	ctx: CanvasRenderingContext2D,
-	options: { fill: string | CanvasPattern; rects: readonly HorizontalBarRect[] },
+	options: {
+		fill: string | CanvasPattern;
+		rects: readonly HorizontalBarRect[];
+		/** How many leading `rects` to draw, so a caller can reuse one longer list. Defaults to all. */
+		count?: number;
+	},
 ): void => {
-	const { fill, rects } = options;
+	const { fill, rects, count = rects.length } = options;
 	ctx.fillStyle = fill;
 	ctx.beginPath();
-	for (const rect of rects) {
+	for (let slot = 0; slot < count; slot++) {
+		const rect = rects[slot];
+		if (rect == null) {
+			continue;
+		}
 		const height = Math.max(0.5, rect.height);
 		const left = Math.min(rect.valueX, rect.baselineX);
 		const width = Math.abs(rect.valueX - rect.baselineX);

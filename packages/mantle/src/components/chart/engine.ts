@@ -194,6 +194,9 @@ const PLOT_PADDING = 8;
 const X_AXIS_BAND = 24;
 const FALLBACK_AXIS_GUTTER = 40;
 
+/** The most axis label widths one engine holds before it measures again from empty. */
+const TEXT_WIDTH_CACHE_LIMIT = 512;
+
 /** Width of the left-edge scroll-mask fade band, in CSS pixels. */
 const EDGE_FADE_WIDTH = 40;
 /** How long after the last window slide the left-edge fade lingers before decaying. */
@@ -301,6 +304,28 @@ class ChartEngine {
 	#xLabelFade = new Map<number, { alpha: number; target: number; text: string }>();
 	#yLabelFade = new Map<number, { alpha: number; target: number; text: string }>();
 	#lastPaintTime = 0;
+	/**
+	 * The last tick list of each axis and the inputs it came from. Each frame
+	 * builds each list twice (gutter layout, then paint). A value tween keeps
+	 * the category ticks for the whole glide.
+	 */
+	#yTickMemo: {
+		key: string;
+		format: unknown;
+		ticks: Array<{ value: number; text: string }>;
+	} | null = null;
+	#xTickMemo: {
+		key: string;
+		format: unknown;
+		xValues: readonly XValue[];
+		ticks: Array<{ index: number | null; value: number; text: string }>;
+	} | null = null;
+	/**
+	 * Axis label widths at the resolved axis font. Labels repeat across frames,
+	 * so the engine measures each text once. A color resolution clears it,
+	 * because the font family resolves with the colors.
+	 */
+	#textWidths = new Map<string, number>();
 
 	#decimated = false;
 	#decimationCache = new Map<string, { key: string; columns: DecimatedColumns }>();
@@ -344,6 +369,23 @@ class ChartEngine {
 		depths: Float64Array;
 		count: number;
 	} | null = null;
+	/**
+	 * Bar rects reused across series and frames. A tween repaints every bar on
+	 * every frame, and a fresh object per bar is garbage at frame rate.
+	 */
+	#barRects: BarRect[] = [];
+	#horizontalBarRects: HorizontalBarRect[] = [];
+	/** `0..rowCount-1`, the index list of a line or area that does not connect nulls. */
+	#allIndexes: number[] = [];
+	/** The defined indexes of each scatter series, kept until the next ingest. */
+	#scatterIndexes: {
+		columns: Map<string, Float64Array>;
+		specs: readonly SeriesSpec[];
+		indexes: number[][];
+		total: number;
+	} | null = null;
+	/** The zero lower envelope of an unstacked decimated area, per column count. */
+	#zeroColumns: DecimatedColumns | null = null;
 	/** Reusable back-to-front paint order for the 3D projection (see #paintScatter3d). */
 	#depthOrder: Int32Array = new Int32Array(0);
 	/** Reference-line colors resolved once per color signature (see #resolveReferenceColor). */
@@ -1032,7 +1074,13 @@ class ChartEngine {
 			// on the same engine never reads a stale flag.
 			this.#xsAllIntegers = true;
 		} else {
-			const entries: Array<{ source: number; x: number }> = [];
+			// Why typed arrays: a stream ingests on every append, and an object per
+			// row is garbage at that rate. `xsAll` and `sources` hold the coercible
+			// rows in row order; a sort, when needed, permutes them.
+			const xsAll = new Float64Array(rows.length);
+			const sources = new Int32Array(rows.length);
+			let kept = 0;
+			let sortedAscending = true;
 			// `undefined` = key absent (an all-rows absence is a typo, below);
 			// `null` = an explicit per-row gap that drops silently; a present but
 			// uncoercible value that leaves NO coercible rows at all means the
@@ -1040,7 +1088,6 @@ class ChartEngine {
 			// with zero diagnostics.
 			let sawXKey = false;
 			let sawNonNullish = false;
-			let sawCoercible = false;
 			for (let index = 0; index < rows.length; index++) {
 				const row = rows[index];
 				const raw = row == null ? undefined : datumValue(row, xKey);
@@ -1054,46 +1101,49 @@ class ChartEngine {
 				// no position and would poison the domain into NaN, blanking the chart.
 				const x = toEpochOrNumber(raw, xScale === "time");
 				if (Number.isFinite(x)) {
-					entries.push({ source: index, x });
-					sawCoercible = true;
+					if (kept > 0 && x < (xsAll[kept - 1] ?? 0)) {
+						sortedAscending = false;
+					}
+					xsAll[kept] = x;
+					sources[kept] = index;
+					kept += 1;
 				}
 			}
 			invariant(rows.length === 0 || sawXKey, () =>
 				missingKeyMessage(this.#rootName(), "xKey", xKey, rows),
 			);
-			invariant(
-				!sawNonNullish || sawCoercible,
+			invariant(!sawNonNullish || kept > 0, () =>
 				uncoercibleXMessage(this.#rootName(), xKey, xScale),
 			);
 			// Sorting once at ingest keeps decimation and hit-testing correct for
 			// out-of-order API responses; the sorted view is the engine's contract.
-			let sortedAscending = true;
-			for (let index = 1; index < entries.length; index++) {
-				if ((entries[index]?.x ?? 0) < (entries[index - 1]?.x ?? 0)) {
-					sortedAscending = false;
+			// A tie keeps row order.
+			const count = kept;
+			let xs = count === rows.length ? xsAll : xsAll.slice(0, count);
+			let order = count === rows.length ? sources : sources.slice(0, count);
+			if (!sortedAscending) {
+				const unsortedXs = xs;
+				const unsortedSources = order;
+				const permutation = Array.from({ length: count }, (_unused, slot) => slot).toSorted(
+					(a, b) => (unsortedXs[a] ?? 0) - (unsortedXs[b] ?? 0) || a - b,
+				);
+				xs = new Float64Array(count);
+				order = new Int32Array(count);
+				for (let slot = 0; slot < count; slot++) {
+					const from = permutation[slot] ?? slot;
+					xs[slot] = unsortedXs[from] ?? 0;
+					order[slot] = unsortedSources[from] ?? 0;
+				}
+			}
+			let xsAllIntegers = true;
+			for (let index = 0; index < count; index++) {
+				if (!Number.isInteger(xs[index])) {
+					xsAllIntegers = false;
 					break;
 				}
 			}
-			const ordered = sortedAscending ? entries : entries.toSorted((a, b) => a.x - b.x);
-			const count = ordered.length;
-			const xs = new Float64Array(count);
-			let identityOrder = count === rows.length;
-			let xsAllIntegers = true;
-			const order = new Int32Array(count);
-			for (let index = 0; index < count; index++) {
-				const entry = ordered[index];
-				if (entry == null) {
-					continue;
-				}
-				xs[index] = entry.x;
-				if (!Number.isInteger(entry.x)) {
-					xsAllIntegers = false;
-				}
-				order[index] = entry.source;
-				if (entry.source !== index) {
-					identityOrder = false;
-				}
-			}
+			// Every row kept, in row order: the view is the data array itself.
+			const identityOrder = count === rows.length && sortedAscending;
 			if (identityOrder) {
 				this.#order = null;
 				this.#orderInverse = null;
@@ -1483,6 +1533,23 @@ class ChartEngine {
 		return `${PART_NAME[this.#kind].split(".")[0] ?? "Chart"}.Root`;
 	}
 
+	/**
+	 * The width of one axis label. The caller has set `ctx.font` to the axis
+	 * font.
+	 */
+	#textWidth(ctx: CanvasRenderingContext2D, text: string): number {
+		let width = this.#textWidths.get(text);
+		if (width == null) {
+			// Why the bound: a streaming time axis makes new labels without end.
+			if (this.#textWidths.size >= TEXT_WIDTH_CACHE_LIMIT) {
+				this.#textWidths.clear();
+			}
+			width = ctx.measureText(text).width;
+			this.#textWidths.set(text, width);
+		}
+		return width;
+	}
+
 	// ---- scheduling + paint ---------------------------------------------------
 
 	/** Schedule a full canvas repaint (plus overlay sync) on the next frame. */
@@ -1601,6 +1668,7 @@ class ChartEngine {
 				}
 			}
 		}
+		this.#textWidths.clear();
 		this.#colors = {
 			signature,
 			resolver,
@@ -1697,7 +1765,7 @@ class ChartEngine {
 					? this.#xTicks().map((tick) => tick.text)
 					: this.#yTicks().map((tick) => tick.text);
 				for (const text of labels) {
-					const width = ctx.measureText(text).width;
+					const width = this.#textWidth(ctx, text);
 					if (width > widest) {
 						widest = width;
 					}
@@ -1795,17 +1863,23 @@ class ChartEngine {
 		// Integer data keeps integer ticks even mid-glide (tweened fractional
 		// domain bounds) and under a fractional yDomain override — integrality is
 		// a fact about the data, not the domain.
-		const ticks = linearTicksAtMost(
-			[domain[0] ?? 0, domain[1] ?? 1],
-			Math.min(tickCount ?? Number.POSITIVE_INFINITY, fit),
-			{ count: tickCount ?? Y_TICK_COUNT, integer: this.#valuesAllIntegers },
-		);
+		const limit = Math.min(tickCount ?? Number.POSITIVE_INFINITY, fit);
+		const count = tickCount ?? Y_TICK_COUNT;
 		const format = snapshot.yAxis?.tickFormat;
+		const key = `${domain[0]}|${domain[1]}|${limit}|${count}|${this.#valuesAllIntegers}`;
+		const memo = this.#yTickMemo;
+		if (memo != null && memo.key === key && memo.format === format) {
+			return memo.ticks;
+		}
+		const ticks = linearTicksAtMost([domain[0] ?? 0, domain[1] ?? 1], limit, {
+			count,
+			integer: this.#valuesAllIntegers,
+		});
 		const step = ticks.length > 1 ? Math.abs((ticks[1] ?? 0) - (ticks[0] ?? 0)) : 0;
 		// Precision follows the tick step, so small-magnitude domains (error
 		// rates) never collapse neighboring labels into identical "0"s.
 		const digits = ticks.length > 1 ? tickFractionDigits(step) : undefined;
-		return ticks.map((value) => {
+		const labeled = ticks.map((value) => {
 			const defaultLabel = formatNumber(
 				value,
 				digits == null ? undefined : { maximumFractionDigits: digits },
@@ -1815,9 +1889,43 @@ class ChartEngine {
 				text: format == null ? defaultLabel : format(value, { defaultLabel, step }),
 			};
 		});
+		this.#yTickMemo = { key, format, ticks: labeled };
+		return labeled;
 	}
 
 	#xTicks(): Array<{ index: number | null; value: number; text: string }> {
+		const format = this.#store.getSnapshot().xAxis?.tickFormat;
+		const key = this.#xTickKey();
+		const memo = this.#xTickMemo;
+		if (
+			memo != null &&
+			memo.key === key &&
+			memo.format === format &&
+			memo.xValues === this.#xValues
+		) {
+			return memo.ticks;
+		}
+		const ticks = this.#buildXTicks();
+		this.#xTickMemo = { key, format, xValues: this.#xValues, ticks };
+		return ticks;
+	}
+
+	/**
+	 * Every input of {@link #buildXTicks} except the formatter and the category
+	 * values, which the memo compares by identity.
+	 */
+	#xTickKey(): string {
+		if (this.#bandLayout != null) {
+			const horizontal = this.#horizontalBars();
+			const axisExtent = horizontal ? this.#plot.height : this.#plot.width;
+			return `band|${horizontal}|${axisExtent}|${this.#rowCount}|${this.#xHasTimeOfDay}`;
+		}
+		const domain = this.#xTween.values();
+		const tickCount = this.#store.getSnapshot().xAxis?.tickCount;
+		return `${this.#options.xScale}|${domain[0]}|${domain[1]}|${tickCount}|${this.#plot.width}|${this.#xsAllIntegers}`;
+	}
+
+	#buildXTicks(): Array<{ index: number | null; value: number; text: string }> {
 		const snapshot = this.#store.getSnapshot();
 		const format = snapshot.xAxis?.tickFormat;
 		if (this.#bandLayout != null) {
@@ -2151,7 +2259,7 @@ class ChartEngine {
 					: tick.value * xCo.k + xCo.b;
 			// Horizontal labels stack vertically, so they collide by line height,
 			// not text width.
-			const half = horizontal ? (AXIS_FONT_SIZE + 4) / 2 : ctx.measureText(tick.text).width / 2;
+			const half = horizontal ? (AXIS_FONT_SIZE + 4) / 2 : this.#textWidth(ctx, tick.text) / 2;
 			const gap = horizontal ? 2 : 8;
 			if (position - half < previousEnd + gap) {
 				continue;
@@ -2192,7 +2300,7 @@ class ChartEngine {
 		let previousEnd = Number.NEGATIVE_INFINITY;
 		for (const tick of ticks) {
 			const position = tick.value * valueCo.k + valueCo.b;
-			const half = ctx.measureText(tick.text).width / 2;
+			const half = this.#textWidth(ctx, tick.text) / 2;
 			if (position - half < previousEnd + 8) {
 				continue;
 			}
@@ -2229,6 +2337,25 @@ class ChartEngine {
 		}
 		const rows = boundary === "lower" ? this.#stack?.lower : this.#stack?.upper;
 		return rows?.[seriesIndex] ?? new Float64Array(0);
+	}
+
+	/** The indexes below `#rowCount` where `values` holds a number. */
+	#definedIndexes(values: Float64Array): number[] {
+		const indexes: number[] = [];
+		for (let index = 0; index < this.#rowCount; index++) {
+			if (!Number.isNaN(values[index] ?? Number.NaN)) {
+				indexes.push(index);
+			}
+		}
+		return indexes;
+	}
+
+	/** `0..count-1`, built once per row count and shared by every series and frame. */
+	#allIndexesUpTo(count: number): readonly number[] {
+		if (this.#allIndexes.length !== count) {
+			this.#allIndexes = Array.from({ length: count }, (_unused, index) => index);
+		}
+		return this.#allIndexes;
 	}
 
 	#reveal(dataKey: string): number {
@@ -2295,9 +2422,10 @@ class ChartEngine {
 		const barWidth = barThickness({ step: layout.step, slot: slotWidth });
 		const toPixel = (value: number): number => value * yCo.k + yCo.b;
 
+		const rects = this.#barRects;
 		specs.forEach((spec, seriesIndex) => {
 			const reveal = this.#reveal(spec.dataKey);
-			const rects: BarRect[] = [];
+			let count = 0;
 			const lower = stacked ? this.#paintedValues(spec, "lower", seriesIndex) : null;
 			const upper = stacked
 				? this.#paintedValues(spec, "upper", seriesIndex)
@@ -2321,13 +2449,14 @@ class ChartEngine {
 					reveal,
 					gap: stacked ? gap : 0,
 				});
-				rects.push({
-					x: slotStart,
-					width: barWidth,
-					baselineY: edges.baseline,
-					valueY: edges.value,
-					rounded: this.#isDataEnd(seriesIndex, index, toPixel),
-				});
+				const rect = rects[count] ?? emptyBarRect();
+				rects[count] = rect;
+				count += 1;
+				rect.x = slotStart;
+				rect.width = barWidth;
+				rect.baselineY = edges.baseline;
+				rect.valueY = edges.value;
+				rect.rounded = this.#isDataEnd(seriesIndex, index, toPixel);
 			}
 			// Textured series paint with their cached pattern; a missing pattern
 			// (solid texture, or tile rasterization unavailable) falls back to the
@@ -2336,6 +2465,7 @@ class ChartEngine {
 				fill:
 					colors.barTextures.get(spec.dataKey) ?? colors.series.get(spec.dataKey) ?? "currentColor",
 				rects,
+				count,
 			});
 		});
 	}
@@ -2361,9 +2491,10 @@ class ChartEngine {
 		const barHeight = barThickness({ step: layout.step, slot: slotHeight });
 		const toPixel = (value: number): number => value * valueCo.k + valueCo.b;
 
+		const rects = this.#horizontalBarRects;
 		specs.forEach((spec, seriesIndex) => {
 			const reveal = this.#reveal(spec.dataKey);
-			const rects: HorizontalBarRect[] = [];
+			let count = 0;
 			const lower = stacked ? this.#paintedValues(spec, "lower", seriesIndex) : null;
 			const upper = stacked
 				? this.#paintedValues(spec, "upper", seriesIndex)
@@ -2387,18 +2518,20 @@ class ChartEngine {
 					reveal,
 					gap: stacked ? gap : 0,
 				});
-				rects.push({
-					y: slotStart,
-					height: barHeight,
-					baselineX: edges.baseline,
-					valueX: edges.value,
-					rounded: this.#isDataEnd(seriesIndex, index, toPixel),
-				});
+				const rect = rects[count] ?? emptyHorizontalBarRect();
+				rects[count] = rect;
+				count += 1;
+				rect.y = slotStart;
+				rect.height = barHeight;
+				rect.baselineX = edges.baseline;
+				rect.valueX = edges.value;
+				rect.rounded = this.#isDataEnd(seriesIndex, index, toPixel);
 			}
 			drawHorizontalBars(ctx, {
 				fill:
 					colors.barTextures.get(spec.dataKey) ?? colors.series.get(spec.dataKey) ?? "currentColor",
 				rects,
+				count,
 			});
 		});
 	}
@@ -2437,12 +2570,9 @@ class ChartEngine {
 			const definedAt = (index: number): boolean => !Number.isNaN(upper[index] ?? Number.NaN);
 			// connectNulls joins across gaps by drawing only the finite indexes;
 			// without it, NaN indexes stay in the list and defined() breaks the path.
-			const indexes: number[] = [];
-			for (let index = 0; index < this.#rowCount; index++) {
-				if (!spec.connectNulls || definedAt(index)) {
-					indexes.push(index);
-				}
-			}
+			const indexes = spec.connectNulls
+				? this.#definedIndexes(upper)
+				: this.#allIndexesUpTo(this.#rowCount);
 			const yAt = (index: number): number => (upper[index] ?? 0) * yCo.k + yCo.b;
 			if (isArea) {
 				const y0At =
@@ -2500,9 +2630,14 @@ class ChartEngine {
 						)
 					: null;
 			if (lower == null) {
+				let zero = this.#zeroColumns;
+				if (zero?.columnCount !== columnCount) {
+					zero = zeroColumns(columnCount);
+					this.#zeroColumns = zero;
+				}
 				drawDecimatedArea(ctx, {
 					color,
-					lowerColumns: zeroColumns(upper, 0),
+					lowerColumns: zero,
 					upperColumns: upper,
 					columnToX,
 					valueK: yCo.k,
@@ -2814,17 +2949,24 @@ class ChartEngine {
 		const xCo = this.#xCoefficients();
 		// Degradation tiers count PAINTED points: sparse all-pairs data (each row
 		// populating one series) must not inflate the count by the series factor.
-		const seriesIndexes = specs.map((spec, seriesIndex) => {
-			const values = this.#paintedValues(spec, "value", seriesIndex);
-			const indexes: number[] = [];
-			for (let index = 0; index < this.#rowCount; index++) {
-				if (!Number.isNaN(values[index] ?? Number.NaN)) {
-					indexes.push(index);
-				}
-			}
-			return indexes;
-		});
-		const totalPointCount = seriesIndexes.reduce((sum, indexes) => sum + indexes.length, 0);
+		// Why a cache: a value tween keeps a gap a gap (`ValueTween` paints a NaN
+		// end as NaN), so the defined indexes follow the columns, which change only
+		// at ingest.
+		let cached = this.#scatterIndexes;
+		if (cached == null || cached.columns !== this.#columns || cached.specs !== specs) {
+			const indexes = specs.map((spec) =>
+				this.#definedIndexes(this.#columns.get(spec.dataKey) ?? new Float64Array(0)),
+			);
+			cached = {
+				columns: this.#columns,
+				specs,
+				indexes,
+				total: indexes.reduce((sum, list) => sum + list.length, 0),
+			};
+			this.#scatterIndexes = cached;
+		}
+		const seriesIndexes = cached.indexes;
+		const totalPointCount = cached.total;
 		specs.forEach((spec, seriesIndex) => {
 			const values = this.#paintedValues(spec, "value", seriesIndex);
 			const indexes = seriesIndexes[seriesIndex] ?? [];
@@ -3367,11 +3509,20 @@ const createMarkerDot = (ownerDocument: Document): HTMLElement => {
 	return dot;
 };
 
+/** The glyph and color each hover dot last wore, so an unchanged sync writes nothing. */
+const markerDotStyles = new WeakMap<HTMLElement, { shape: PointShape; color: string }>();
+
 /**
- * Sync a hover dot's glyph and fill color. Style writes are idempotent, so
- * calling on every overlay sync is safe.
+ * Sync a hover dot's glyph and fill color. The overlay syncs on every hover
+ * frame, and the glyph and color rarely change, so a sync that matches the
+ * last one skips the attribute and style writes.
  */
 const styleMarkerDot = (dot: HTMLElement, shape: PointShape, color: string): void => {
+	const last = markerDotStyles.get(dot);
+	if (last?.shape === shape && last.color === color) {
+		return;
+	}
+	markerDotStyles.set(dot, { shape, color });
 	const clip = POINT_SHAPE_CLIP_PATHS[shape];
 	dot.setAttribute("data-shape", shape);
 	const [ring, fill] = dot.children;
@@ -3384,17 +3535,30 @@ const styleMarkerDot = (dot: HTMLElement, shape: PointShape, color: string): voi
 	}
 };
 
+const emptyBarRect = (): BarRect => ({ x: 0, width: 0, baselineY: 0, valueY: 0, rounded: false });
+
+const emptyHorizontalBarRect = (): HorizontalBarRect => ({
+	y: 0,
+	height: 0,
+	baselineX: 0,
+	valueX: 0,
+	rounded: false,
+});
+
 /**
  * A zero-baseline stand-in for the lower boundary of an unstacked area.
  */
-const zeroColumns = (template: DecimatedColumns, baseline: number): DecimatedColumns => ({
-	columnCount: template.columnCount,
-	hasData: template.hasData,
-	minValue: new Float64Array(template.columnCount).fill(baseline),
-	maxValue: new Float64Array(template.columnCount).fill(baseline),
-	inValue: new Float64Array(template.columnCount).fill(baseline),
-	outValue: new Float64Array(template.columnCount).fill(baseline),
-});
+const zeroColumns = (columnCount: number): DecimatedColumns => {
+	const zeros = new Float64Array(columnCount);
+	return {
+		columnCount,
+		hasData: new Uint8Array(columnCount).fill(1),
+		minValue: zeros,
+		maxValue: zeros,
+		inValue: zeros,
+		outValue: zeros,
+	};
+};
 
 export type {
 	//,
