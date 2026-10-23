@@ -1,11 +1,7 @@
 "use client";
 
-import {
-	RadioGroup as DropdownMenuPrimitiveRadioGroup,
-	RadioItem as DropdownMenuPrimitiveRadioItem,
-} from "@radix-ui/react-dropdown-menu";
 import type { ReactNode } from "react";
-import { useId } from "react";
+import { useRef } from "react";
 import { flushSync } from "react-dom";
 import { useIsHydrated } from "../../hooks/use-is-hydrated.js";
 import { useMatchesMediaQuery } from "../../hooks/use-matches-media-query.js";
@@ -20,29 +16,13 @@ import {
 	type IconButtonAppearance,
 	type IconButtonProps,
 } from "../button/icon-button.js";
-import { Icon } from "../icon/icon.js";
+import { DropdownMenu } from "../dropdown-menu/index.js";
 import { IconSwap } from "../icon/icon-swap.js";
 import { ThemeIcon } from "../icons/theme.js";
 import { Skeleton } from "../skeleton/index.js";
 import { useAppliedTheme, useForcedTheme, useTheme } from "../theme/theme-provider.js";
 import type { ResolvedTheme, Theme } from "../theme/themes.js";
-import {
-	$resolvedTheme,
-	getThemeToStore,
-	getToggledTheme,
-	isResolvedTheme,
-	resolvedThemes,
-} from "../theme/themes.js";
-
-/**
- * The accessible name of each theme segment. Typed as a complete
- * `Record<ResolvedTheme, string>` so adding a new theme to the
- * `resolvedThemes` tuple without a name is a compile error here.
- */
-const themeNames: Record<ResolvedTheme, string> = {
-	light: "Light",
-	dark: "Dark",
-};
+import { getToggledTheme, isResolvedTheme } from "../theme/themes.js";
 
 /**
  * The switcher icon for each applied theme. The switcher keeps each icon
@@ -54,14 +34,14 @@ const appliedThemeIcons = {
 } satisfies Record<ResolvedTheme, ReactNode>;
 
 /**
- * The props for the `ThemeDropdownMenuRadioGroup` component.
+ * The props for the `ThemeDropdownMenuItem` component.
  */
-type ThemeDropdownMenuRadioGroupProps = WithStyleProps & {
+type ThemeDropdownMenuItemProps = WithStyleProps & {
 	/**
-	 * The visible label of the row, which also names the radio group. Set it
-	 * for localization.
-	 *
-	 * @default "Theme"
+	 * The visible label of the item. When set, it is also the accessible
+	 * name. When omitted, the label is "Theme", and the accessible name also
+	 * says which theme the next press shows, such as "Theme: Switch to dark
+	 * theme". Set it for localization.
 	 */
 	label?: string;
 };
@@ -71,25 +51,24 @@ type ThemeDropdownMenuRadioGroupProps = WithStyleProps & {
  * the type system cannot express this constraint, so it is on you to uphold it.
  *
  * The light/dark toggle for an existing menu, such as an account menu: one
- * "Theme" row with a Light and a Dark segment. It is the menu form of
- * `ThemeSwitcher`. Each segment is a `role="menuitemradio"`, and the applied
- * theme is `aria-checked`. A choice that matches the OS preference stores
- * `"system"` instead of a pin, as a `ThemeSwitcher` click does. The menu stays
- * open, and the new theme grows in a circle from the chosen segment.
+ * "Theme" row that ends in the `ThemeSwitcher` icon. It is the menu form of
+ * `ThemeSwitcher`. A press flips the theme the same way a `ThemeSwitcher`
+ * click does, and the icon swaps between the sun and the moon. The menu stays
+ * open, and the new theme grows in a circle from the icon.
  *
  * Reads and writes the theme via `useTheme`, so it must render inside a
- * `ThemeProvider`. Under a provider with `forceTheme`, it checks the forced
- * theme and both segments are disabled. For a control in a header or
- * toolbar, use `ThemeSwitcher` instead.
+ * `ThemeProvider`. Under a provider with `forceTheme`, it shows the forced
+ * theme and is disabled. For a control in a header or toolbar, use
+ * `ThemeSwitcher` instead.
  *
  * **Data attributes:**
  *
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
- * | `data-slot` | `"theme-dropdown-menu-radio-group"` | On the row, which is the radio group. |
- * | `data-slot` | `"theme-dropdown-menu-radio-group-label"` | On the `<span>` that holds the `label`. |
+ * | `data-slot` | `"theme-dropdown-menu-item"` | On the item element. |
+ * | `data-slot` | `"theme-dropdown-menu-item-label"` | On the `<span>` that holds the `label`. |
  *
- * @see https://mantle.ngrok.com/components/forms/theme-switcher#themedropdownmenuradiogroup
+ * @see https://mantle.ngrok.com/components/forms/theme-switcher#themedropdownmenuitem
  *
  * @example
  * ```tsx
@@ -99,72 +78,50 @@ type ThemeDropdownMenuRadioGroupProps = WithStyleProps & {
  *   </DropdownMenu.Trigger>
  *   <DropdownMenu.Content>
  *     <DropdownMenu.Item>Profile</DropdownMenu.Item>
- *     <ThemeDropdownMenuRadioGroup />
+ *     <ThemeDropdownMenuItem />
  *   </DropdownMenu.Content>
  * </DropdownMenu.Root>
  * ```
  */
-function ThemeDropdownMenuRadioGroup({
-	className,
-	label = "Theme",
-	style,
-}: ThemeDropdownMenuRadioGroupProps) {
-	const [, setTheme] = useTheme();
+function ThemeDropdownMenuItem({ className, label, style }: ThemeDropdownMenuItemProps) {
+	const [theme, setTheme] = useTheme();
 	const appliedTheme = useAppliedTheme();
 	const forcedTheme = useForcedTheme();
 	const prefersDarkMode = useMatchesMediaQuery("(prefers-color-scheme: dark)");
-	const labelId = useId();
+	const iconRef = useRef<HTMLSpanElement>(null);
+	const nextTheme = getToggledTheme({ theme, prefersDarkMode });
 
 	return (
-		<DropdownMenuPrimitiveRadioGroup
-			aria-labelledby={labelId}
-			data-slot="theme-dropdown-menu-radio-group"
-			className={cx("flex items-center gap-2 py-1 pl-2 pr-1", className)}
+		<DropdownMenu.Item
+			// Why no hydration guard, unlike `ThemeSwitcher`: menu content mounts only
+			// on the client, so the OS preference is always known here.
+			aria-label={
+				label == null ? `Theme: ${toggleLabel(nextTheme, { prefersDarkMode })}` : undefined
+			}
+			data-slot="theme-dropdown-menu-item"
+			className={cx("gap-2", className)}
+			disabled={forcedTheme != null}
 			style={style}
-			value={appliedTheme}
+			onSelect={(event) => {
+				// Why keep the menu open: the user sees the icon swap under the reveal.
+				event.preventDefault();
+				const origin = iconRef.current;
+				if (origin != null) {
+					toggleTheme({ origin, prefersDarkMode, setTheme, theme });
+				}
+			}}
 		>
+			<span data-slot="theme-dropdown-menu-item-label" className="flex-1">
+				{label ?? "Theme"}
+			</span>
 			<span
-				id={labelId}
-				data-slot="theme-dropdown-menu-radio-group-label"
-				className="flex-1 text-sm text-strong"
+				ref={iconRef}
+				aria-hidden
+				className="flex size-7 shrink-0 items-center justify-center text-muted [&_svg]:size-5"
 			>
-				{label}
+				<IconSwap active={appliedTheme} icons={appliedThemeIcons} />
 			</span>
-			<span className="flex gap-0.5 rounded-md border border-form p-0.5">
-				{resolvedThemes.map((theme) => (
-					<DropdownMenuPrimitiveRadioItem
-						key={theme}
-						aria-label={themeNames[theme]}
-						textValue={themeNames[theme]}
-						value={$resolvedTheme(theme)}
-						disabled={forcedTheme != null}
-						className={cx(
-							"flex size-7 cursor-pointer items-center justify-center rounded text-muted outline-hidden",
-							"data-highlighted:bg-active-menu-item data-highlighted:text-strong",
-							"aria-checked:bg-accent-500/10 aria-checked:text-accent-600",
-							"data-disabled:cursor-default data-disabled:opacity-50",
-						)}
-						onSelect={(event) => {
-							// Why keep the menu open: the user sees the segment change under the reveal.
-							event.preventDefault();
-							if (theme === appliedTheme) {
-								return;
-							}
-							const update = () =>
-								setTheme(getThemeToStore({ appliedTheme: theme, prefersDarkMode }));
-							const origin = event.currentTarget;
-							if (origin instanceof Element) {
-								swapTheme(update, { origin });
-							} else {
-								update();
-							}
-						}}
-					>
-						<Icon svg={<ThemeIcon theme={theme} />} className="size-4" />
-					</DropdownMenuPrimitiveRadioItem>
-				))}
-			</span>
-		</DropdownMenuPrimitiveRadioGroup>
+		</DropdownMenu.Item>
 	);
 }
 
@@ -211,7 +168,7 @@ type ThemeSwitcherProps = Omit<
  * `ThemeProvider`. Under a provider with `forceTheme`, it shows the forced
  * theme and is disabled, because a click cannot change what the page shows. The icon is SSR-safe: a `Skeleton` renders until
  * hydration, then the icon of the applied theme. To put the same control in
- * an existing menu, use `ThemeDropdownMenuRadioGroup`.
+ * an existing menu, use `ThemeDropdownMenuItem`.
  *
  * @see https://mantle.ngrok.com/components/forms/theme-switcher
  * @see https://lea.verou.me/blog/2026/dark-mode-toggles/
@@ -271,23 +228,40 @@ function ThemeSwitcher({
 			onClick={(event) => {
 				onClick?.(event);
 				if (!event.defaultPrevented) {
-					swapTheme(
-						() => {
-							// Why read `<html>`: the browser runs the update in a later frame, so a
-							// second click can come first. `setTheme` writes the applied theme at once.
-							const applied = document.documentElement.dataset.appliedTheme;
-							setTheme(
-								isResolvedTheme(applied)
-									? getToggledTheme({ theme: applied, prefersDarkMode })
-									: nextTheme,
-							);
-						},
-						{ origin: event.currentTarget },
-					);
+					toggleTheme({ origin: event.currentTarget, prefersDarkMode, setTheme, theme });
 				}
 			}}
 			{...props}
 		/>
+	);
+}
+
+/**
+ * Shows the opposite of the applied theme in a swap that grows from `origin`.
+ * When that opposite matches the OS preference, it stores `"system"`.
+ *
+ * Why read `<html>`: the browser runs the update in a later frame, so a
+ * second press can come first. `setTheme` writes the applied theme at once.
+ */
+function toggleTheme({
+	origin,
+	prefersDarkMode,
+	setTheme,
+	theme,
+}: {
+	origin: Element;
+	prefersDarkMode: boolean;
+	setTheme: (theme: Theme) => void;
+	theme: Theme;
+}) {
+	swapTheme(
+		() => {
+			const applied = document.documentElement.dataset.appliedTheme;
+			setTheme(
+				getToggledTheme({ theme: isResolvedTheme(applied) ? applied : theme, prefersDarkMode }),
+			);
+		},
+		{ origin },
 	);
 }
 
@@ -404,12 +378,12 @@ function toggleLabel(nextTheme: Theme, { prefersDarkMode }: { prefersDarkMode: b
 export {
 	//,
 	revealCircle,
-	ThemeDropdownMenuRadioGroup,
+	ThemeDropdownMenuItem,
 	ThemeSwitcher,
 };
 
 export type {
 	//,
-	ThemeDropdownMenuRadioGroupProps,
+	ThemeDropdownMenuItemProps,
 	ThemeSwitcherProps,
 };
