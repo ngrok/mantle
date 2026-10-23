@@ -259,9 +259,10 @@ describe("ThemeSwitcher", () => {
 
 /**
  * Stubs `document.startViewTransition` the way a browser runs it: the update
- * runs at once, and `finished` settles when the test calls `finish`. With
- * `deferUpdate`, each update waits until the test calls `runUpdates`, as it
- * does in a browser until the next frame.
+ * runs at once, `updateCallbackDone` settles after the update, and `finished`
+ * settles when the test calls `finish`. With `deferUpdate`, each update waits
+ * until the test calls `runUpdates`, as it does in a browser until the next
+ * frame.
  */
 function stubViewTransition({ deferUpdate = false }: { deferUpdate?: boolean } = {}) {
 	const updates: Array<() => void> = [];
@@ -276,7 +277,11 @@ function stubViewTransition({ deferUpdate = false }: { deferUpdate?: boolean } =
 	});
 	const skipTransition = vi.fn<() => void>();
 	const startViewTransition = vi.fn<(update: () => void) => object>((update) => {
-		updates.push(update);
+		const { promise: updateCallbackDone, resolve } = Promise.withResolvers<undefined>();
+		updates.push(() => {
+			update();
+			resolve(undefined);
+		});
 		if (!deferUpdate) {
 			runUpdates();
 		}
@@ -285,7 +290,7 @@ function stubViewTransition({ deferUpdate = false }: { deferUpdate?: boolean } =
 			ready: Promise.resolve(undefined),
 			skipTransition,
 			types: new Set<string>(),
-			updateCallbackDone: Promise.resolve(undefined),
+			updateCallbackDone,
 		};
 	});
 	Object.defineProperty(document, "startViewTransition", {
@@ -333,8 +338,9 @@ describe("ThemeSwitcher theme swap", () => {
 		// After the skip, the button is under the pointer again.
 		vi.spyOn(document, "elementFromPoint").mockReturnValue(button);
 		fireEvent.click(document.documentElement);
-		expect(skipTransition).toHaveBeenCalledTimes(1);
-		expect(screen.getByTestId("current-theme")).toHaveTextContent("system");
+		// The click on <html> skips, then the click it sends to the switcher skips again.
+		expect(skipTransition).toHaveBeenCalledTimes(2);
+		await waitFor(() => expect(screen.getByTestId("current-theme")).toHaveTextContent("system"));
 
 		finish();
 		await waitFor(() =>
@@ -368,16 +374,43 @@ describe("ThemeSwitcher theme swap", () => {
 		);
 	});
 
-	test("two clicks before the browser runs the first update toggle twice", async () => {
+	test("two presses before the browser runs the first update toggle twice in order", async () => {
 		mockMatchMedia({ "(prefers-reduced-motion: no-preference)": true });
-		const { finish, runUpdates } = stubViewTransition({ deferUpdate: true });
+		const { finish, runUpdates, startViewTransition } = stubViewTransition({ deferUpdate: true });
 		renderSwitcher();
 		const button = screen.getByRole("button", { name: "Switch to dark theme" });
 
+		// A key press targets the focused button, not <html>, as this click does.
 		fireEvent.click(button);
 		fireEvent.click(button);
+		expect(startViewTransition).toHaveBeenCalledOnce();
 		act(runUpdates);
-		expect(screen.getByTestId("current-theme")).toHaveTextContent("system");
+		await waitFor(() => expect(screen.getByTestId("current-theme")).toHaveTextContent("system"));
+
+		finish();
+		await waitFor(() =>
+			expect(document.documentElement).not.toHaveAttribute("data-theme-transition"),
+		);
+	});
+
+	test("fast clicks during the swap start no second view transition, and each click toggles", async () => {
+		mockMatchMedia({ "(prefers-reduced-motion: no-preference)": true });
+		const { finish, runUpdates, startViewTransition } = stubViewTransition({ deferUpdate: true });
+		renderSwitcher();
+		const button = screen.getByRole("button", { name: "Switch to dark theme" });
+		fireEvent.click(button);
+
+		vi.spyOn(document, "elementFromPoint").mockReturnValue(button);
+		for (let i = 0; i < 4; i++) {
+			fireEvent.click(document.documentElement);
+		}
+		expect(startViewTransition).toHaveBeenCalledOnce();
+
+		// Five toggles from system: dark, system, dark, system, dark. The update
+		// of the skipped transition runs first, so it cannot restore an old theme.
+		act(runUpdates);
+		await waitFor(() => expect(screen.getByTestId("current-theme")).toHaveTextContent("dark"));
+		expect(document.documentElement).toHaveAttribute("data-applied-theme", "dark");
 
 		finish();
 		await waitFor(() =>

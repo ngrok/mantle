@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { afterAll, afterEach, beforeAll, describe, expect, test } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 import { commands } from "vitest/browser";
 import mantleCss from "../../mantle.css?raw";
 import { DropdownMenu } from "../dropdown-menu/index.js";
@@ -124,20 +124,27 @@ describe("ThemeSwitcher theme swap in Chromium", () => {
 		expect(getComputedStyle(probe).transitionDuration).toBe("1s");
 	});
 
-	test("a click on the switcher during the reveal starts a new reveal back", async () => {
+	test("fast clicks on the switcher during the reveal toggle each time and start no second reveal", async () => {
 		const button = renderSwitcher();
+		const startViewTransition = vi.spyOn(document, "startViewTransition");
 		await userEvent.click(button);
-		const reveal = await revealAnimation();
+		await revealAnimation();
 
 		// While a view transition runs, Chromium targets <html> with each click.
 		const { left, top, width, height } = button.getBoundingClientRect();
-		fireEvent.click(document.documentElement, {
-			clientX: left + width / 2,
-			clientY: top + height / 2,
-		});
+		for (let i = 0; i < 4; i++) {
+			fireEvent.click(document.documentElement, {
+				clientX: left + width / 2,
+				clientY: top + height / 2,
+			});
+		}
 
-		await waitFor(() => expect(document.documentElement).toHaveClass("light"));
-		await revealAnimation({ except: reveal });
+		// Five toggles from light: dark, light, dark, light, dark.
+		await waitFor(() =>
+			expect(document.documentElement).not.toHaveAttribute("data-theme-transition"),
+		);
+		expect(document.documentElement).toHaveClass("dark");
+		expect(startViewTransition).toHaveBeenCalledOnce();
 	});
 
 	test("with reduced motion, the theme swaps at once with no reveal", async () => {
