@@ -6,6 +6,7 @@ import { Combobox } from "../combobox/index.js";
 import { Input, InputCapture } from "../input/index.js";
 import { MultiSelect } from "../multi-select/index.js";
 import { Select } from "../select/index.js";
+import { shakesOf } from "../../test-utils/shake-style.js";
 import { TextArea } from "../text-area/index.js";
 import type { Validation } from "./validation.js";
 
@@ -64,15 +65,6 @@ afterAll(() => {
 afterEach(async () => {
 	await commands.emulateMedia({ reducedMotion: "no-preference" });
 });
-
-/** The running `shake` animations on an element. */
-function shakesOf(element: Element) {
-	return element
-		.getAnimations()
-		.filter(
-			(animation) => animation instanceof CSSAnimation && animation.animationName === "shake",
-		);
-}
 
 /** Waits until each running shake on an element ends. */
 async function settle(element: Element) {

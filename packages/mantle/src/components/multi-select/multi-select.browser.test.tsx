@@ -3,6 +3,7 @@ import { PointerEventsCheckLevel, userEvent } from "@testing-library/user-event"
 import { type ReactNode, useState } from "react";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
+import { installShakeStyle } from "../../test-utils/shake-style.js";
 import { AlertDialog } from "../alert-dialog/alert-dialog.js";
 import { Dialog } from "../dialog/dialog.js";
 import { Sheet } from "../sheet/sheet.js";
@@ -31,6 +32,8 @@ const setupUser = () => userEvent.setup({ pointerEventsCheck: PointerEventsCheck
 const stubPrefersReducedMotion = ({ reduced }: { reduced: boolean }) => {
 	mockMatchMedia({ "(prefers-reduced-motion: no-preference)": !reduced });
 };
+
+installShakeStyle();
 
 describe("MultiSelect (browser)", () => {
 	/** Stateful subject. `lockedValues` marks the tags that cannot be removed. */

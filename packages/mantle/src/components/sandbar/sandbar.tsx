@@ -14,13 +14,13 @@ import {
 } from "react";
 import invariant from "tiny-invariant";
 import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
-import { getPrefersReducedMotion } from "../../hooks/use-prefers-reduced-motion.js";
 import type { WithAsChild } from "../../types/as-child.js";
 import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
 import { alternateAnnouncement } from "../../utils/alternate-announcement.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
+import { shakeElement } from "../../utils/shake.js";
 import type { ButtonProps } from "../button/button.js";
 import { Button } from "../button/button.js";
 import { Slot } from "../slot/index.js";
@@ -62,21 +62,6 @@ const ANNOUNCEMENT_CLEAR_DELAY_MS = 1_000;
  * the 150ms exit duration.
  */
 const EXIT_TRANSITION_TIMEOUT_MS = 400;
-
-/**
- * The panel's blocked-navigation wiggle. Keep it equal to the `shake` keyframes
- * in `mantle.css`: the first swing eases out, and the smaller swings settle it.
- * Each keyframe holds its own easing, as in CSS. An `easing` on the animation
- * options would ease the whole timeline instead.
- */
-const shakeKeyframes: Keyframe[] = [
-	{ transform: "translateX(0)", easing: "ease-out" },
-	{ transform: "translateX(-4px)", easing: "ease-in-out" },
-	{ transform: "translateX(3px)", easing: "ease-in-out" },
-	{ transform: "translateX(-2px)", easing: "ease-in-out" },
-	{ transform: "translateX(1px)", easing: "ease-in-out" },
-	{ transform: "translateX(0)" },
-];
 
 /**
  * The imperative surface of a {@link Sandbar}, exposed via `Sandbar.Root`'s
@@ -236,7 +221,6 @@ const Root = ({
 	const panelRef = useRef<HTMLDivElement>(null);
 	const composedPanelRef = useComposedRefs(panelRef, ref);
 
-	const shakeAnimationRef = useRef<Animation | null>(null);
 	const politeClearTimerRef = useRef<number | undefined>(undefined);
 	const assertiveClearTimerRef = useRef<number | undefined>(undefined);
 	const focusOutFrameRef = useRef<number | undefined>(undefined);
@@ -324,27 +308,11 @@ const Root = ({
 		(options?: { announcement?: string }) => {
 			announceAssertive(options?.announcement ?? DEFAULT_BLOCKED_NAVIGATION_ANNOUNCEMENT);
 
-			const panel = panelRef.current;
-			// The announcement above is the load-bearing feedback; the wiggle is
-			// skipped under reduced motion and in environments without the Web
-			// Animations API (e.g. happy-dom).
-			if (panel == null || getPrefersReducedMotion() || typeof panel.animate !== "function") {
-				return;
+			// Why the announcement comes first: it is the feedback every user gets.
+			// The shake is skipped under reduced motion.
+			if (panelRef.current != null) {
+				shakeElement(panelRef.current);
 			}
-			// Cancel any in-flight wiggle so rapid blocked attempts never dead-zone.
-			if (shakeAnimationRef.current != null) {
-				shakeAnimationRef.current.cancel();
-				shakeAnimationRef.current = null;
-			}
-			const animation = panel.animate(shakeKeyframes, { duration: 300 });
-			// Why: `cancel()` rejects `finished` with an `AbortError`. Browsers
-			// suppress the report when nobody read `finished`, but happy-dom
-			// surfaces it as an unhandled rejection and fails the test run.
-			animation.finished.catch(() => {});
-			animation.onfinish = () => {
-				shakeAnimationRef.current = null;
-			};
-			shakeAnimationRef.current = animation;
 		},
 		[announceAssertive],
 	);
@@ -482,7 +450,7 @@ const Root = ({
 		candidate.focus();
 	}, [presence]);
 
-	// Clean up timers, frames, and any in-flight shake on unmount.
+	// Clean up timers and frames on unmount.
 	useEffect(() => {
 		return () => {
 			window.clearTimeout(politeClearTimerRef.current);
@@ -490,7 +458,6 @@ const Root = ({
 			if (focusOutFrameRef.current != null) {
 				window.cancelAnimationFrame(focusOutFrameRef.current);
 			}
-			shakeAnimationRef.current?.cancel();
 		};
 	}, []);
 
@@ -628,6 +595,7 @@ const Root = ({
 						// specificity, different selector text — and the browser test injects this
 						// one verbatim, so keep the two spellings in step if you ever switch.
 						"[&[hidden]]:hidden",
+						"motion-safe:data-shake:animate-shake",
 						// state-driven transitions (the sonner approach): interruptible and
 						// retargetable, so a reopen mid-exit rises back from wherever the
 						// panel currently is instead of restarting. The closed pose sits a
