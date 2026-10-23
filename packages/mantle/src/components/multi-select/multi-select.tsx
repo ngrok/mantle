@@ -44,12 +44,12 @@ import {
 } from "react";
 import type { WithAsChild } from "../../types/as-child.js";
 import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
-import { getPrefersReducedMotion } from "../../hooks/use-prefers-reduced-motion.js";
 import { composeRefs } from "../../utils/compose-refs/compose-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import { useLayerContainer } from "../../utils/layer-container/layer-container.js";
+import { shakeElement } from "../../utils/shake.js";
 import { FieldControlContext } from "../field/field-context.js";
 import { parseValidation, useFieldValidation } from "../field/validation.js";
 import type { AriaInvalid, WithValidation } from "../field/validation.js";
@@ -337,7 +337,7 @@ const Tag = ({
 			data-active={isActive || undefined}
 			data-locked={locked || undefined}
 			className={cx(
-				"cursor-default bg-neutral-500/10 border border-neutral-500/20 rounded-xs text-strong inline-flex items-center gap-1 pl-2 pr-0.5 py-0.5 text-sm font-normal",
+				"cursor-default bg-neutral-500/10 border border-neutral-500/20 rounded-xs text-strong inline-flex items-center gap-1 pl-2 pr-0.5 py-0.5 text-sm font-normal motion-safe:data-shake:animate-shake",
 				"focus-visible:outline-hidden focus-visible:border-accent-600/50 focus-visible:ring-3 focus-visible:ring-focus-accent",
 				className,
 			)}
@@ -1766,29 +1766,3 @@ export {
 	//,
 	MultiSelect,
 };
-
-/**
- * Shakes an element left-right to signal that an action was blocked
- * (e.g. pressing Backspace/Delete on a locked tag). No-ops when the user
- * has enabled reduced motion in their OS/browser accessibility settings.
- */
-function shakeElement(element: HTMLElement): void {
-	// Skip the animation when the user has opted into reduced motion.
-	// Called from event handlers only, so reading the media query imperatively
-	// is safe and gives the freshest value without any hook plumbing.
-	if (getPrefersReducedMotion()) {
-		return;
-	}
-
-	element.animate(
-		[
-			{ transform: "translateX(0)" },
-			{ transform: "translateX(-4px)" },
-			{ transform: "translateX(4px)" },
-			{ transform: "translateX(-4px)" },
-			{ transform: "translateX(4px)" },
-			{ transform: "translateX(0)" },
-		],
-		{ duration: 300, easing: "ease-in-out" },
-	);
-}

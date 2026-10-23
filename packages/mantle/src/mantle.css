@@ -199,6 +199,14 @@ MARK: THEME
 			translate: 0;
 		}
 	}
+	/* Keeps a portal positioner mounted while its content plays the exit. Radix waits for an
+	   animation on the portal child itself, and these keyframes change nothing on screen. */
+	--animate-exit-hold: exit-hold 150ms;
+	@keyframes exit-hold {
+		to {
+			opacity: 1;
+		}
+	}
 	/* The narrowest workspace row that holds the expanded rail (13rem), the content card at
 	   the side panel's floor (21rem), the panel itself (21rem), and the three gutters (1.5rem).
 	   Below it `AppLayout.SidePanel` floats over the card, so the page is never narrower than
@@ -1485,15 +1493,18 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
 }
 
 /*
- * A dialog overlay or a menu that closes as the swap starts, such as the
- * backdrop of a command palette, would freeze in the old snapshot outside the
- * circle. Without an exit animation it unmounts before the snapshot.
+ * A dialog or a menu that closes as the swap starts, such as a command
+ * palette, would freeze in the old snapshot outside the circle. Without an
+ * exit animation it unmounts before the snapshot. The dialog positioner
+ * animates only to hold the exit, so it stops too.
  */
 :root[data-theme-transition]
 	:is(
 		[data-slot~="dialog-overlay"],
+		[data-slot~="dialog-content"],
 		[data-slot~="dropdown-menu-content"],
 		[data-slot~="dropdown-menu-sub-content"]
-	)[data-state="closed"] {
+	)[data-state="closed"],
+:root[data-theme-transition] [data-slot~="dialog-positioner"] {
 	animation: none !important;
 }

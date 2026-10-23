@@ -2,6 +2,7 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import { createRef } from "react";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
+import { installShakeStyle, shakesOf } from "../../test-utils/shake-style.js";
 import type { SandbarHandle } from "./sandbar.js";
 import { Sandbar } from "./sandbar.js";
 
@@ -23,8 +24,11 @@ function getAlertRegion(): HTMLElement {
 	return region;
 }
 
+installShakeStyle();
+
 describe("Sandbar (browser)", () => {
-	test("shake wiggles the panel horizontally and settles at rest", () => {
+	test("shake wiggles the panel horizontally and settles at rest", async () => {
+		mockMatchMedia({ "(prefers-reduced-motion: no-preference)": true });
 		const handle = createRef<SandbarHandle>();
 		render(
 			<Sandbar.Root handleRef={handle} open>
@@ -34,23 +38,25 @@ describe("Sandbar (browser)", () => {
 
 		handle.current?.shake();
 
-		const [animation] = getPanel().getAnimations();
+		const [animation] = shakesOf(getPanel());
 		if (animation == null) {
 			throw new Error("expected the shake to run as an animation on the panel");
 		}
 		// Why sample mid-flight: the keyframe table is the implementation. The
 		// contract is a horizontal offset that is zero again at rest.
 		animation.pause();
-		animation.currentTime = 100;
-		const midFlight = new DOMMatrix(getComputedStyle(getPanel()).transform);
-		expect(midFlight.m41).not.toBe(0);
-		expect(midFlight.m42).toBe(0);
+		animation.currentTime = 60;
+		const [x = "", y = "0px"] = getComputedStyle(getPanel()).translate.split(" ");
+		expect(Number.parseFloat(x)).toBeLessThan(0);
+		expect(y).toBe("0px");
 
 		animation.finish();
-		expect(getComputedStyle(getPanel()).transform).toBe("none");
+		await animation.finished;
+		expect(getComputedStyle(getPanel()).translate).toBe("none");
 	});
 
-	test("a re-triggered shake cancels the in-flight animation", () => {
+	test("a re-triggered shake restarts the running one", () => {
+		mockMatchMedia({ "(prefers-reduced-motion: no-preference)": true });
 		const handle = createRef<SandbarHandle>();
 		render(
 			<Sandbar.Root handleRef={handle} open>
@@ -59,13 +65,16 @@ describe("Sandbar (browser)", () => {
 		);
 
 		handle.current?.shake();
-		const [first] = getPanel().getAnimations();
-		expect(first).toBeDefined();
+		const [first] = shakesOf(getPanel());
+		if (first == null) {
+			throw new Error("expected the shake to run as an animation on the panel");
+		}
+		first.currentTime = 200;
 
 		handle.current?.shake();
-		// cancel() drops the first animation to the idle state
-		expect(first?.playState).toBe("idle");
-		expect(getPanel().getAnimations().length).toBe(1);
+
+		expect(shakesOf(getPanel())).toEqual([first]);
+		expect(first.currentTime).toBe(0);
 	});
 
 	test("shake under prefers-reduced-motion skips the animation but still announces", async () => {

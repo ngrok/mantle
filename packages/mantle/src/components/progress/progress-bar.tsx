@@ -163,7 +163,10 @@ function Indicator({ "data-slot": dataSlot, className, style, ...props }: Indica
 	return (
 		<ProgressPrimitiveIndicator
 			data-slot={joinDataSlot(dataSlot, "progress-bar-indicator")}
-			className={cx("bg-accent-600 h-full w-full flex-1 transition-all", className)}
+			className={cx(
+				"bg-accent-600 h-full w-full flex-1 transition-transform duration-200 ease-out-strong motion-reduce:transition-none",
+				className,
+			)}
 			style={{ ...style, transform: `translateX(-${translatePercent}%)` }}
 			{...props}
 		/>

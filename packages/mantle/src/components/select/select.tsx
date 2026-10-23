@@ -602,7 +602,7 @@ const Content = ({
 				ref={ref}
 				data-slot={joinDataSlot(dataSlot, "select-content")}
 				className={cx(
-					"border-popover data-side-bottom:slide-in-from-top-2 data-side-left:slide-in-from-right-2 data-side-right:slide-in-from-left-2 data-side-top:slide-in-from-bottom-2 data-state-closed:animate-out data-state-closed:fade-out-0 data-state-closed:zoom-out-95 data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95 motion-reduce:animate-none relative z-50 max-h-96 min-w-32 overflow-hidden rounded-md border shadow-md",
+					"border-popover data-side-bottom:slide-in-from-top-1 data-side-left:slide-in-from-right-1 data-side-right:slide-in-from-left-1 data-side-top:slide-in-from-bottom-1 data-side-bottom:slide-out-to-top-1 data-side-left:slide-out-to-right-1 data-side-right:slide-out-to-left-1 data-side-top:slide-out-to-bottom-1 duration-200 ease-out-strong data-state-closed:duration-150 data-state-closed:animate-out data-state-closed:fade-out-0 data-state-closed:zoom-out-95 data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95 motion-reduce:animate-none! relative z-50 max-h-96 min-w-32 overflow-hidden rounded-md border shadow-md",
 					"bg-popover font-sans",
 					position === "popper" &&
 						"data-side-bottom:translate-y-2 data-side-left:-translate-x-2 data-side-right:translate-x-2 data-side-top:-translate-y-2 max-h-(--radix-select-content-available-height)",

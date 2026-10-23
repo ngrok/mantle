@@ -48,7 +48,13 @@ explains nothing is noise. Leave it out.
   swings ease in and out, like a damped spring. A form control runs it once when it enters the error state. The
   animation starts when the `data-validation-error:` rule starts to match, so it does not run again while the
   error stays, on focus, or on blur. The shake is never the only error signal: the border, `aria-invalid`, and
-  the error message stay.
+  the error message stay. A blocked action calls `shakeElement` (`utils/shake.ts`) on an element that
+  composes `motion-safe:data-shake:animate-shake`; no component keeps its own shake keyframes.
+- **A Radix overlay** keeps keyframes (`animate-in`, `animate-out`): Radix unmounts on `animationend` and ignores
+  transitions, and a transition needs `forceMount`, which keeps each closed overlay in the DOM. A positioner
+  around the content holds `animate-exit-hold` so Radix waits for the exit. The hold matches while no open
+  content is inside it, not while closed content is, so a shorter content exit cannot cancel it.
+- **An edge panel** (`Sheet`, `Sandbar`) slides its full size from the screen edge.
 
 ## Tokens
 

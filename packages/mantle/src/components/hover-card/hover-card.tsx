@@ -169,7 +169,7 @@ const Content = ({
 				// keeps that containing block the same before, during, and after.
 				"relative",
 				"bg-popover border-popover z-50 w-64 rounded-md border p-4 shadow-md outline-hidden",
-				"data-state-open:animate-in data-state-closed:animate-out data-state-closed:fade-out-0 data-state-open:fade-in-0 data-state-closed:zoom-out-95 data-state-open:zoom-in-95 data-side-bottom:slide-in-from-top-2 data-side-left:slide-in-from-right-2 data-side-right:slide-in-from-left-2 data-side-top:slide-in-from-bottom-2",
+				"data-state-open:animate-in data-state-closed:animate-out data-state-closed:fade-out-0 data-state-open:fade-in-0 data-state-closed:zoom-out-95 data-state-open:zoom-in-95 data-side-bottom:slide-in-from-top-1 data-side-left:slide-in-from-right-1 data-side-right:slide-in-from-left-1 data-side-top:slide-in-from-bottom-1 data-side-bottom:slide-out-to-top-1 data-side-left:slide-out-to-right-1 data-side-right:slide-out-to-left-1 data-side-top:slide-out-to-bottom-1 duration-200 ease-out-strong data-state-closed:duration-150 motion-reduce:animate-none!",
 				className,
 			)}
 			onClick={(event) => {

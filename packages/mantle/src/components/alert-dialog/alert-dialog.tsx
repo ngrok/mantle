@@ -171,7 +171,7 @@ const AlertDialogOverlay = ({
 	<AlertDialogPrimitiveOverlay
 		data-slot={joinDataSlot(dataSlot, "alert-dialog-overlay")}
 		className={cx(
-			"data-state-open:animate-in data-state-closed:animate-out data-state-closed:fade-out-0 data-state-open:fade-in-0 bg-overlay fixed inset-0 z-60 backdrop-blur-xs",
+			"data-state-open:animate-in data-state-closed:animate-out data-state-closed:fade-out-0 data-state-open:fade-in-0 duration-200 ease-out-strong data-state-closed:duration-150 bg-overlay fixed inset-0 z-60 backdrop-blur-xs",
 			className,
 		)}
 		{...props}
@@ -254,7 +254,7 @@ const Content = ({
 		    portaled float's `position: fixed` still resolves against the viewport. */}
 		<LayerContainer
 			data-slot="alert-dialog-positioner"
-			className="fixed inset-4 z-60 flex items-center justify-center"
+			className="fixed inset-4 z-60 flex items-center justify-center motion-safe:not-has-[>[data-mantle-modal-content][data-state=open]]:animate-exit-hold"
 		>
 			<AlertDialogPrimitiveContent
 				role="alertdialog"
@@ -271,7 +271,7 @@ const Content = ({
 					"flex w-full flex-1 flex-col items-center gap-4 sm:flex-row sm:items-start",
 					"outline-hidden focus-within:outline-hidden",
 					"p-6",
-					"border-dialog bg-dialog rounded-xl border shadow-lg transition-transform duration-200",
+					"border-dialog bg-dialog rounded-xl border shadow-lg duration-200 ease-out-strong data-state-closed:duration-150 motion-reduce:animate-none!",
 					"data-state-closed:animate-out data-state-closed:fade-out-0 data-state-closed:zoom-out-95 data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95",
 					preferredWidth,
 					className,
