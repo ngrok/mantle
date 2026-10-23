@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+import { ThemeProvider } from "@ngrok/mantle/theme";
 import { TooltipProvider } from "@ngrok/mantle/tooltip";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import type { ComponentType } from "react";
@@ -10,17 +11,20 @@ afterEach(() => {
 });
 
 /**
- * Renders a shell demo the way the app does. The `TooltipProvider` is not
- * optional scaffolding: every sidebar row is wrapped in `Sidebar.Tooltip`,
- * which composes `Tooltip.Root` and throws without a provider ancestor. The docs
- * site mounts one in `root.tsx`, so a bare `render()` here would be testing a
- * composition no page actually ships.
+ * Renders a shell demo the way the app does. The providers are not optional
+ * scaffolding: every sidebar row is wrapped in `Sidebar.Tooltip`, which
+ * composes `Tooltip.Root` and throws without a `TooltipProvider` ancestor, and
+ * the account menu's `ThemeDropdownMenuItem` throws without a `ThemeProvider`.
+ * The docs site mounts both in `root.tsx`, so a bare `render()` here would be
+ * testing a composition no page actually ships.
  */
 function renderShell(Demo: ComponentType) {
 	return render(
-		<TooltipProvider>
-			<Demo />
-		</TooltipProvider>,
+		<ThemeProvider>
+			<TooltipProvider>
+				<Demo />
+			</TooltipProvider>
+		</ThemeProvider>,
 	);
 }
 

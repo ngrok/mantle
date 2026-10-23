@@ -90,39 +90,13 @@ function getToggledTheme({
 }): Theme {
 	const systemTheme: ResolvedTheme = prefersDarkMode ? "dark" : "light";
 	const appliedTheme = theme === "system" ? systemTheme : theme;
+	const nextTheme: ResolvedTheme = appliedTheme === "dark" ? "light" : "dark";
 
-	return getThemeToStore({
-		appliedTheme: appliedTheme === "dark" ? "light" : "dark",
-		prefersDarkMode,
-	});
-}
-
-/**
- * Returns the theme to store so that the page shows `appliedTheme`. When
- * `appliedTheme` matches the OS preference, it returns `"system"` instead of a
- * pin, so the page keeps following the OS.
- *
- * @example
- * ```ts
- * getThemeToStore({ appliedTheme: "dark", prefersDarkMode: false }); // "dark"
- * getThemeToStore({ appliedTheme: "dark", prefersDarkMode: true }); // "system"
- * ```
- */
-function getThemeToStore({
-	appliedTheme,
-	prefersDarkMode,
-}: {
-	appliedTheme: ResolvedTheme;
-	prefersDarkMode: boolean;
-}): Theme {
-	const systemTheme: ResolvedTheme = prefersDarkMode ? "dark" : "light";
-
-	return appliedTheme === systemTheme ? "system" : appliedTheme;
+	return nextTheme === systemTheme ? "system" : nextTheme;
 }
 
 export {
 	//,
-	getThemeToStore,
 	getToggledTheme,
 	themes,
 	resolvedThemes,

@@ -1448,20 +1448,13 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
 /*
  * The new snapshot is live, so a color transition would fade inside the circle
  * while the rest of the page shows the new theme. Stop transitions during the
- * swap. The switcher's icon keeps its own swap.
+ * swap. The switcher's icon and the menu item's switch keep their own motion.
  */
-:root[data-theme-transition] :not([data-slot~="theme-switcher"] *),
-:root[data-theme-transition] :not([data-slot~="theme-switcher"] *)::before,
-:root[data-theme-transition] :not([data-slot~="theme-switcher"] *)::after {
+:root[data-theme-transition]
+	:not([data-slot~="theme-switcher"] *, [data-slot~="theme-dropdown-menu-item"] *),
+:root[data-theme-transition]
+	:not([data-slot~="theme-switcher"] *, [data-slot~="theme-dropdown-menu-item"] *)::before,
+:root[data-theme-transition]
+	:not([data-slot~="theme-switcher"] *, [data-slot~="theme-dropdown-menu-item"] *)::after {
 	transition: none !important;
-}
-
-/*
- * A choice in `ThemeDropdownMenuRadioGroup` closes its menu as the swap starts.
- * Without an exit animation the menu unmounts at once, so the old snapshot does
- * not freeze it open outside the circle.
- */
-:root[data-theme-transition] [data-slot~="dropdown-menu-content"][data-state="closed"],
-:root[data-theme-transition] [data-slot~="dropdown-menu-sub-content"][data-state="closed"] {
-	animation: none !important;
 }

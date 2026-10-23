@@ -25,37 +25,36 @@ Each surface already uses a mantle part or `useTheme`. Nothing written says whic
 
 ### 1. Each surface gets one control
 
-| Surface                                        | Control                                                    | Why                                                    |
-| ---------------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------ |
-| Public site header                             | `<ThemeSwitcher />`                                        | The user wants to flip the page, in one click.         |
-| App signed-out and centered pages              | `<ThemeSwitcher />` in the layout footer                   | No account menu exists before sign-in.                 |
-| App account menu                               | A `Theme` submenu that holds `ThemeDropdownMenuRadioGroup` | The menu holds the control, so the chrome stays clear. |
-| App sidebar footer with no account menu (corp) | A `Theme` row that opens `ThemeDropdownMenuRadioGroup`     | Same reason as the account menu.                       |
-| App settings page                              | An app-owned `RadioGroup` over `useTheme`                  | The preview art belongs to the app.                    |
-| App command palette                            | One action for each theme, over `useTheme`                 | The keyboard path.                                     |
+| Surface                                        | Control                                                      | Why                                                    |
+| ---------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------ |
+| Public site header                             | `<ThemeSwitcher />`                                          | The user wants to flip the page, in one click.         |
+| App signed-out and centered pages              | `<ThemeSwitcher />` in the layout footer                     | No account menu exists before sign-in.                 |
+| App account menu                               | `ThemeDropdownMenuItem` at the top level of the menu         | The menu holds the control, so the chrome stays clear. |
+| App sidebar footer with no account menu (corp) | A `Theme` row that opens a menu with `ThemeDropdownMenuItem` | Same reason as the account menu.                       |
+| App settings page                              | An app-owned `RadioGroup` over `useTheme`                    | The preview art belongs to the app.                    |
+| App command palette                            | One action for each theme, over `useTheme`                   | The keyboard path.                                     |
 
 A signed-in app shell shows the theme control in the account menu only. It does not also put a `ThemeSwitcher` in the shell chrome. Two controls for one preference in one view make the user ask which one wins.
 
-### 2. Mantle adds no submenu part
+### 2. The menu control is one row, not a submenu
 
-The `Theme` submenu is four lines of `DropdownMenu` composition at the call site. Two call sites use that shape (the dashboard and the ngrok AI dashboard). Corp opens the radio group from a top-level menu, so its shape is different. [CONVENTIONS.md § Abstractions & Duplication](../CONVENTIONS.md#abstractions--duplication) asks for three uses with the same shape before an extraction. Make a part only when a third app shell adds the same submenu.
+`ThemeDropdownMenuItem` is the toggle in menu form: one "Dark mode" row with a switch. It is a `role="menuitemcheckbox"`, checked when the applied theme is dark. A choice flips the theme the same way a `ThemeSwitcher` click does, so it stores `"system"` when the new theme matches the OS preference. The menu and the toggle store the same values, and no surface shows a "System" item. `toggleTheme` in `theme-switcher.tsx` is the one code path for both.
 
-The `SubTrigger` icon can follow the theme. Radix mounts menu content only while the menu is open, which is after hydration, so a theme-aware icon there cannot cause a hydration mismatch.
+A row goes at the top level of the menu. A submenu takes a second hover or key press, and its flyout opens beside a menu that is already narrow when the sidebar is a collapsed icon rail. One row fits the narrowest menu. It replaces `ThemeDropdownMenuRadioGroup`. The high-contrast minor already changes that export, so the same minor carries the replacement.
 
-### 3. The menu control is the toggle in menu form
+The menu stays open after a choice, and the new theme grows in a circle from the switch, with the same view transition as `ThemeSwitcher`. Because the menu stays open, both snapshots show it, and nothing freezes outside the circle. The switch thumb slides in 200ms. `mantle.css` exempts `[data-slot~="theme-dropdown-menu-item"]` from the rule that stops transitions during the swap, as it exempts the switcher icon.
 
-`ThemeDropdownMenuRadioGroup` shows two items, Light and Dark, and checks the applied theme. A choice that matches the OS preference stores `"system"`, as a `ThemeSwitcher` click does. So the menu and the toggle store the same values, and no surface shows a "System" item. `getThemeToStore` in `themes.ts` is the pure core that both controls share.
+### 3. The swap stays a view transition in `flushSync`
 
-A choice grows the new theme in a circle from the chosen item, with the same view transition as `ThemeSwitcher`. Radix closes the menu in the same event, so the closing menu would freeze in the old snapshot outside the circle. While `data-theme-transition` is set, `mantle.css` turns off the exit animation of a closed `DropdownMenu.Content` and `DropdownMenu.SubContent`, so Radix unmounts the menu before the old snapshot.
+React `startTransition` does not fit here, because it can commit after the browser takes the new snapshot. We measured one full swap in headless Chromium on a page of 5,000 rows with a color transition: set `data-theme-transition`, change the theme class, then remove the attribute. Each value is the median of five rounds of 20 swaps, with the rules interleaved:
 
-The swap stays as it is: a view transition whose update runs in `flushSync`. React `startTransition` does not fit here, because it can commit after the browser takes the new snapshot. We measured the swap in headless Chromium on a page of 5,000 rows, with a mean of 20 swaps:
+| Rule that stops transitions                       | Median swap |
+| ------------------------------------------------- | ----------- |
+| No rule                                           | 22.9ms      |
+| Exempts the switcher icon                         | 23.3ms      |
+| Exempts the switcher icon and the menu item (now) | 25.2ms      |
 
-| `data-theme-transition` rule | Set the attribute | Change the theme class | Remove the attribute |
-| ---------------------------- | ----------------- | ---------------------- | -------------------- |
-| The current rule             | 17ms              | 19ms                   | 12ms                 |
-| No rule                      | 0ms               | 63ms                   | 0ms                  |
-
-The rule that stops transitions costs less than the transitions it stops, and a plain `*` selector measured the same. Setting the attribute inside the view-transition update did not shorten the time to the reveal: the median time from `startViewTransition` to `ready` was 38.8ms before and 39.5ms after. The cookie write, the `localStorage` ping, and the `BroadcastChannel` message took less than 0.3ms together.
+The rounds spread about 2ms, as wide as the gaps, so the rule costs about the same as the transitions it stops. It exists so that colors inside the circle do not fade while the rest of the page shows the new theme. Setting the attribute inside the view-transition update did not shorten the time to the reveal: the median time from `startViewTransition` to `ready` was 38.8ms before and 39.5ms after. The cookie write, the `localStorage` ping, and the `BroadcastChannel` message took less than 0.3ms together.
 
 ### 4. One stored preference for each site
 
@@ -68,4 +67,5 @@ When the frontend takes the minor that removes high contrast:
 1. Run the codemod from `/migrations/0011-eliminate-high-contrast-migration`. It rewrites each `ThemeSwitcher.Root` compound in the centered layouts to `<ThemeSwitcher />`.
 2. Remove the two high-contrast options from the dashboard `Display` section.
 3. Add `<ThemeSwitcher />` to the footer of the ngrok AI signed-out layout, to match the dashboard sign-in page.
-4. Keep the account-menu submenus, the corp footer row, and the command palette actions. Update the comments that say "five-theme radio group", and update the tests that count three `menuitemradio` items.
+4. Replace each `Theme` submenu in the dashboard and ngrok AI account menus with `<ThemeDropdownMenuItem />` at the top level. In the corp footer menu, replace `ThemeDropdownMenuRadioGroup` with `ThemeDropdownMenuItem`. Update the tests that query `menuitemradio` theme items.
+5. Keep the command palette actions.

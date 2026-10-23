@@ -8,11 +8,10 @@ import { Command, MetaKey } from "@ngrok/mantle/command";
 import { cx } from "@ngrok/mantle/cx";
 import { Dialog } from "@ngrok/mantle/dialog";
 import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
-import { AutoThemeIcon } from "@ngrok/mantle/icons";
 import { Kbd } from "@ngrok/mantle/kbd";
 import { Sidebar, useSidebar } from "@ngrok/mantle/sidebar";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
-import { ThemeDropdownMenuRadioGroup } from "@ngrok/mantle/theme-switcher";
+import { ThemeDropdownMenuItem } from "@ngrok/mantle/theme-switcher";
 import { Tooltip } from "@ngrok/mantle/tooltip";
 import { ArrowLeftIcon } from "@phosphor-icons/react/ArrowLeft";
 import { ArrowRightIcon } from "@phosphor-icons/react/ArrowRight";
@@ -843,16 +842,7 @@ function AppShellAccountSwitcher({
 						<UserCircleIcon className="text-muted" />
 						User settings
 					</DropdownMenu.Item>
-					<DropdownMenu.Sub>
-						<DropdownMenu.SubTrigger className="gap-2">
-							<AutoThemeIcon className="text-muted size-5" />
-							Theme
-						</DropdownMenu.SubTrigger>
-						<DropdownMenu.SubContent>
-							{/* mantle ships the five-theme radio group for exactly this spot */}
-							<ThemeDropdownMenuRadioGroup />
-						</DropdownMenu.SubContent>
-					</DropdownMenu.Sub>
+					<ThemeDropdownMenuItem />
 				</DropdownMenu.Group>
 				<DropdownMenu.Separator />
 				<DropdownMenu.Item className="gap-2">
