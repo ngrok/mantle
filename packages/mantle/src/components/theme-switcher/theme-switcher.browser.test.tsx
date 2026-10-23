@@ -24,7 +24,7 @@ ${mantleCss.match(/:root\[data-theme-transition\][^{]*\{[^}]*\}/g)?.join("\n") ?
 @keyframes slow-exit { to { opacity: 0; } }
 [data-slot~="dialog-overlay"][data-state="closed"] { animation: slow-exit 1s; }
 [data-slot~="dialog-content"][data-state="closed"] { animation: slow-exit 1s; }
-[data-slot~="dialog-positioner"]:has(> [data-mantle-modal-content][data-state="closed"]) { animation: slow-exit 1s; }
+[data-slot~="dialog-positioner"]:not(:has(> [data-mantle-modal-content][data-state="open"])) { animation: slow-exit 1s; }
 `;
 
 let styleElement: HTMLStyleElement;

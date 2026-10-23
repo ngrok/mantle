@@ -254,7 +254,7 @@ const Content = ({
 		    portaled float's `position: fixed` still resolves against the viewport. */}
 		<LayerContainer
 			data-slot="alert-dialog-positioner"
-			className="fixed inset-4 z-60 flex items-center justify-center motion-safe:has-[>[data-mantle-modal-content][data-state=closed]]:animate-exit-hold"
+			className="fixed inset-4 z-60 flex items-center justify-center motion-safe:not-has-[>[data-mantle-modal-content][data-state=open]]:animate-exit-hold"
 		>
 			<AlertDialogPrimitiveContent
 				role="alertdialog"

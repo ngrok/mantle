@@ -1,6 +1,6 @@
 "use client";
 
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { Dialog } from "./dialog.js";
@@ -164,5 +164,47 @@ describe("Dialog.Header", () => {
 		expect(title.scrollWidth).toBeGreaterThan(title.clientWidth);
 		expect(centerY(closeButton)).toBeCloseTo(centerY(title), 1);
 		expect(gapBetween(title, closeButton)).toBeCloseTo(8, 1);
+	});
+});
+
+/**
+ * The exit hold from Tailwind 4.3.3's output for the positioner's class, and a
+ * content exit shorter than the hold, as a consumer `duration-*` makes it.
+ */
+const EXIT_STYLE = `
+@keyframes exit-hold { to { opacity: 1; } }
+@keyframes quick-exit { to { opacity: 0; } }
+.motion-safe\\:not-has-\\[\\>\\[data-mantle-modal-content\\]\\[data-state\\=open\\]\\]\\:animate-exit-hold:not(:has( > [data-mantle-modal-content][data-state=open])) {
+	animation: exit-hold 150ms;
+}
+[data-slot~="dialog-content"][data-state="closed"] { animation: quick-exit 50ms; }
+`;
+
+describe("Dialog exit", () => {
+	test("unmounts the positioner when the content exit ends before the hold", async () => {
+		// Regression: the hold matched only while the closed content was in the DOM.
+		// The content left first, the browser cancelled the hold, and Radix kept the
+		// empty positioner mounted over the page.
+		const exitStyle = document.createElement("style");
+		exitStyle.textContent = EXIT_STYLE;
+		document.head.appendChild(exitStyle);
+		try {
+			render(
+				<Dialog.Root defaultOpen>
+					<Dialog.Content>
+						<Dialog.Title>Exit</Dialog.Title>
+						<Dialog.Close>Close</Dialog.Close>
+					</Dialog.Content>
+				</Dialog.Root>,
+			);
+			screen.getByRole("button", { name: "Close" }).click();
+
+			expect(document.querySelector('[data-slot="dialog-positioner"]')).not.toBeNull();
+			await waitFor(() => {
+				expect(document.querySelector('[data-slot="dialog-positioner"]')).toBeNull();
+			});
+		} finally {
+			exitStyle.remove();
+		}
 	});
 });

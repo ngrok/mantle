@@ -398,7 +398,7 @@ const Content = ({
 			    content keeps its own fixed positioning. */}
 			<LayerContainer
 				data-slot="sheet-positioner"
-				className="fixed z-60 motion-safe:has-[>[data-mantle-modal-content][data-state=closed]]:animate-exit-hold"
+				className="fixed z-60 motion-safe:not-has-[>[data-mantle-modal-content][data-state=open]]:animate-exit-hold"
 			>
 				<SheetPrimitiveContent
 					data-slot={joinDataSlot(dataSlot, "sheet-content")}
