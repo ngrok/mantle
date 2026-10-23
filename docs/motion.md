@@ -38,6 +38,12 @@ explains nothing is noise. Leave it out.
     JavaScript, check `getPrefersReducedMotion()` and apply the end state at once. A color change may stay.
 12. **Measure it.** Prove motion in a real browser, not by reading the classes. See the `motion` skill.
 
+## Exceptions
+
+- **A full-page reveal** (the `ThemeSwitcher` circle) runs 400ms on CSS `ease-out`. The covered area grows with
+  the square of the radius, so `ease-out-strong` in 300ms changes most of the screen in about 40ms, like a flash.
+  The control's own state still changes on the input.
+
 ## Tokens
 
 | Token             | Value                            | Use                            |
@@ -55,3 +61,6 @@ value with a comment that names the token.
 - `DataTable` expand and collapse: `starting:` for the enter, a FLIP slide of the rows below, and an exit that
   fades the rows while the rows below slide over them.
 - `Sidebar`: a width transition on `ease-out-strong`.
+- `ThemeSwitcher`: a view transition that animates `clip-path` on `::view-transition-new(root)` with the Web
+  Animations API. While a view transition runs, the browser sends each click to `<html>`, so the switcher
+  ends the transition on a click and sends the click to the element under the pointer.

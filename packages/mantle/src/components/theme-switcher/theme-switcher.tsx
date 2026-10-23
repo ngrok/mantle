@@ -1,8 +1,10 @@
 "use client";
 
 import type { ComponentProps, ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { useIsHydrated } from "../../hooks/use-is-hydrated.js";
 import { useMatchesMediaQuery } from "../../hooks/use-matches-media-query.js";
+import { getPrefersReducedMotion } from "../../hooks/use-prefers-reduced-motion.js";
 import type { WithStyleProps } from "../../types/with-style-props.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
@@ -19,7 +21,7 @@ import { ThemeIcon } from "../icons/theme.js";
 import { Skeleton } from "../skeleton/index.js";
 import { useAppliedTheme, useForcedTheme, useTheme } from "../theme/theme-provider.js";
 import type { ResolvedTheme, Theme } from "../theme/themes.js";
-import { $theme, getToggledTheme, isTheme, themes } from "../theme/themes.js";
+import { $theme, getToggledTheme, isResolvedTheme, isTheme, themes } from "../theme/themes.js";
 
 /**
  * Menu item labels for each mantle theme. Typed as a complete
@@ -164,7 +166,9 @@ type ThemeSwitcherProps = Omit<
 /**
  * The canonical theme control for headers and toolbars: an `IconButton`
  * (ghost by default) that shows the applied theme and flips between light and
- * dark on each click. It stores three states with two visible ones. A click
+ * dark on each click. The new theme grows in a circle from the button in a
+ * view transition, and swaps at once under reduced motion. It stores three
+ * states with two visible ones. A click
  * shows the opposite of the applied theme, and stores `"system"` instead of a
  * pin when that opposite matches the OS preference. So a second click always
  * returns the user to the OS default.
@@ -233,12 +237,119 @@ function ThemeSwitcher({
 			onClick={(event) => {
 				onClick?.(event);
 				if (!event.defaultPrevented) {
-					setTheme(nextTheme);
+					swapTheme(
+						() => {
+							// Why read `<html>`: the browser runs the update in a later frame, so a
+							// second click can come first. `setTheme` writes the applied theme at once.
+							const applied = document.documentElement.dataset.appliedTheme;
+							setTheme(
+								isResolvedTheme(applied)
+									? getToggledTheme({ theme: applied, prefersDarkMode })
+									: nextTheme,
+							);
+						},
+						{ origin: event.currentTarget },
+					);
 				}
 			}}
 			{...props}
 		/>
 	);
+}
+
+/**
+ * Counts theme swaps. A newer swap replaces a running one, so only the newest
+ * one clears the `<html>` attribute.
+ */
+let themeTransitionCount = 0;
+
+/**
+ * Runs `update` inside a view transition, and grows the new theme in a circle
+ * from `origin` over the old one. It runs `update` at once when the browser has
+ * no view transitions, when the user prefers reduced motion, or when the page
+ * is hidden.
+ *
+ * Why `flushSync`: React must commit the new icon and label before the browser
+ * takes the snapshot of the new theme.
+ *
+ * Why the click listener: while a view transition runs, the browser sends each
+ * pointer event to `<html>`, so a click on the page would be lost. A click ends
+ * the transition at once, then goes to the element under the pointer.
+ */
+function swapTheme(update: () => void, { origin }: { origin: HTMLElement }) {
+	if (
+		typeof document.startViewTransition !== "function" ||
+		getPrefersReducedMotion() ||
+		document.visibilityState !== "visible"
+	) {
+		update();
+		return;
+	}
+
+	const html = document.documentElement;
+	const circle = revealCircle(origin.getBoundingClientRect(), {
+		width: window.innerWidth,
+		height: window.innerHeight,
+	});
+
+	html.dataset.themeTransition = "";
+	const transition = document.startViewTransition(() => flushSync(update));
+	const transitionNumber = ++themeTransitionCount;
+
+	function onClick(event: MouseEvent) {
+		if (event.target !== html) {
+			return;
+		}
+		transition.skipTransition();
+		const target = document.elementFromPoint(event.clientX, event.clientY);
+		if (target != null && target !== html) {
+			target.dispatchEvent(new MouseEvent("click", event));
+		}
+	}
+	document.addEventListener("click", onClick, { capture: true });
+
+	transition.ready.then(
+		() =>
+			html.animate(
+				{ clipPath: [circle.from, circle.to] },
+				// Why not `ease-out-strong` in 300ms: the covered area grows with the
+				// square of the radius, so that curve flips most of the screen in about
+				// 40ms, like a flash. See `docs/motion.md` § Exceptions.
+				{ duration: 400, easing: "ease-out", pseudoElement: "::view-transition-new(root)" },
+			),
+		// A skipped transition rejects `ready`; the theme is already applied.
+		() => {},
+	);
+
+	void transition.finished.finally(() => {
+		document.removeEventListener("click", onClick, { capture: true });
+		if (transitionNumber === themeTransitionCount) {
+			delete html.dataset.themeTransition;
+		}
+	});
+}
+
+/**
+ * Returns the start and end `clip-path` of the reveal: a circle centered on
+ * `origin` that grows until it covers the farthest corner of the viewport.
+ *
+ * @example
+ * revealCircle({ left: 0, top: 0, width: 20, height: 20 }, { width: 100, height: 100 })
+ * // { from: "circle(0px at 10px 10px)", to: "circle(127.28px at 10px 10px)" }
+ */
+function revealCircle(
+	origin: Pick<DOMRect, "left" | "top" | "width" | "height">,
+	viewport: { width: number; height: number },
+) {
+	const x = origin.left + origin.width / 2;
+	const y = origin.top + origin.height / 2;
+	const radius = Math.hypot(Math.max(x, viewport.width - x), Math.max(y, viewport.height - y));
+	const at = `at ${x}px ${y}px`;
+
+	return {
+		from: `circle(0px ${at})`,
+		to: `circle(${Math.round(radius * 100) / 100}px ${at})`,
+	};
 }
 
 /**
@@ -258,6 +369,7 @@ function toggleLabel(nextTheme: Theme, { prefersDarkMode }: { prefersDarkMode: b
 
 export {
 	//,
+	revealCircle,
 	ThemeDropdownMenuRadioGroup,
 	ThemeSwitcher,
 };
