@@ -4,6 +4,7 @@ import { render, waitFor } from "@testing-library/react";
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import type { MockInstance } from "vitest";
 import { BarChart } from "../bar-chart/index.js";
+import { LineChart } from "../line-chart/index.js";
 import type { YTickContext } from "./types.js";
 
 /**
@@ -31,7 +32,8 @@ const STYLE = `
 }
 /* Browser tests load no Tailwind build; mirror the chart's structural layout so
    the plot geometry is realistic. */
-[data-slot="bar-chart"] {
+[data-slot="bar-chart"],
+[data-slot="line-chart"] {
 	position: relative;
 	display: flex;
 	flex-direction: column;
@@ -117,6 +119,30 @@ describe("the y axis fits its labels to the plot height (MNTL-97)", () => {
 			expect(paintedValueLabels()).toContain("200");
 		});
 		expect(paintedValueLabels()).toEqual(["0", "100", "200"]);
+	});
+
+	test("a single tick keeps the precision of the domain", async () => {
+		render(
+			<div style={{ width: 600, height: 64 }}>
+				<LineChart.Root
+					data={[
+						{ day: 1, ratio: 1.0002 },
+						{ day: 2, ratio: 1.0002 },
+					]}
+					xKey="day"
+					yDomain={[1.0001, 1.0003]}
+					animate={false}
+					aria-label="Ratio"
+				>
+					<LineChart.YAxis />
+					<LineChart.Line dataKey="ratio" label="Ratio" color="chart-1" />
+				</LineChart.Root>
+			</div>,
+		);
+		await waitFor(() => {
+			expect(paintedValueLabels()).toContain("1.0002");
+		});
+		expect(paintedValueLabels()).not.toContain("1");
 	});
 
 	test("tickFormat receives the default label and the step", async () => {

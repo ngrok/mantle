@@ -230,7 +230,10 @@ type XTickContext = {
  * What a y-axis `tickFormat` receives beside the value.
  */
 type YTickContext = {
-	/** The label the axis paints when `tickFormat` is not set. Its precision follows `step`. */
+	/**
+	 * The label the axis paints when `tickFormat` is not set. Its precision
+	 * follows `step`, or the domain span when the axis has one tick.
+	 */
 	defaultLabel: string;
 	/** The distance between adjacent ticks, or `0` when the axis has one tick. */
 	step: number;

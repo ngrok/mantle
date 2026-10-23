@@ -327,6 +327,35 @@ describe("left-edge scroll mask", () => {
 		);
 	});
 
+	test("a forward jump past the window clears the mask immediately", async () => {
+		// A swap to a later date range advances both ends, as a slide does, but
+		// its window does not overlap the previous one.
+		const { container, rerender } = render(<Chart data={windowAt(50)} />);
+		const canvas = await findChartCanvas(container);
+		await waitFor(() => {
+			expect(canvas.width).toBeGreaterThan(0);
+		});
+		const LEFT_X = 12;
+		const RIGHT_X = 108;
+		const SAMPLE_Y = 150;
+		rerender(<Chart data={windowAt(51)} />);
+		rerender(<Chart data={windowAt(52)} />);
+		await waitFor(() => {
+			const left = alphaAt(canvas, LEFT_X, SAMPLE_Y);
+			expect(left).toBeLessThan(alphaAt(canvas, RIGHT_X, SAMPLE_Y) * 0.5);
+		});
+		rerender(<Chart data={windowAt(52 + WINDOW_SIZE)} />);
+		await waitFor(
+			() => {
+				const left = alphaAt(canvas, LEFT_X, SAMPLE_Y);
+				const right = alphaAt(canvas, RIGHT_X, SAMPLE_Y);
+				expect(left).toBeGreaterThan(0);
+				expect(Math.abs(left - right)).toBeLessThanOrEqual(8);
+			},
+			{ timeout: 400, interval: 16 },
+		);
+	});
+
 	test("the erase spares the grid painted beneath the marks", async () => {
 		// The grid paints after the erase for this reason: an erase after the grid
 		// would remove the gridlines in the fade band, for the whole linger.

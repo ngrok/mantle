@@ -1201,8 +1201,9 @@ class ChartEngine {
 		this.#xHasTimeOfDay = xHasTime;
 
 		// Left-edge scroll mask activation. The streaming signature is a window
-		// slide: the first x advanced while the last kept up. A jump backward or
-		// an unrelated data swap deactivates immediately; an unchanged x vector
+		// slide: the first x advanced into the previous window while the last kept
+		// up. A jump backward or forward past the previous window, or an unrelated
+		// data swap, deactivates immediately; an unchanged x vector
 		// (a series toggle mid-stream) leaves the fade to the paint-side linger.
 		const first = this.#xs[0];
 		const last = this.#xs[this.#rowCount - 1];
@@ -1216,6 +1217,7 @@ class ChartEngine {
 			previousFirst != null &&
 			previousLast != null &&
 			first > previousFirst &&
+			first <= previousLast &&
 			last >= previousLast
 		) {
 			this.#edgeFade.target = 1;
@@ -1919,8 +1921,12 @@ class ChartEngine {
 		});
 		const step = ticks.length > 1 ? Math.abs((ticks[1] ?? 0) - (ticks[0] ?? 0)) : 0;
 		// Precision follows the tick step, so small-magnitude domains (error
-		// rates) never collapse neighboring labels into identical "0"s.
-		const digits = ticks.length > 1 ? tickFractionDigits(step) : undefined;
+		// rates) never collapse neighboring labels into identical "0"s. A single
+		// tick has no step, so the domain span sets its precision: `1.0002` in
+		// `[1.0001, 1.0003]` must not round to `1`.
+		const span = Math.abs((domain[1] ?? 1) - (domain[0] ?? 0));
+		const precision = ticks.length > 1 ? step : span;
+		const digits = precision > 0 ? tickFractionDigits(precision) : undefined;
 		const labeled = ticks.map((value) => {
 			const defaultLabel = formatNumber(
 				value,

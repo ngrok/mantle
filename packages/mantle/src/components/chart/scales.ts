@@ -126,6 +126,19 @@ const ticks = (start: number, stop: number, count: number, options?: TickOptions
 	return result;
 };
 
+/** The length of the array {@link ticks} returns, without building it. */
+const tickTotal = (start: number, stop: number, count: number, options?: TickOptions): number => {
+	if (!(count > 0)) {
+		return 0;
+	}
+	if (start === stop) {
+		return options?.integer && !Number.isInteger(start) ? 0 : 1;
+	}
+	const [i1, i2] =
+		stop < start ? tickSpec(stop, start, count, options) : tickSpec(start, stop, count, options);
+	return i2 >= i1 ? i2 - i1 + 1 : 0;
+};
+
 /**
  * The tick increment for `[start, stop]`: a positive result is the step size; a
  * negative `-inc` encodes a sub-integer step of `1 / inc`. Callers snap outward
@@ -321,15 +334,14 @@ const linearTicksAtMost = (
 	max: number,
 	options?: TickOptions & { count?: number },
 ): number[] => {
-	let result: number[] = [];
-	for (let count = Math.floor(Math.min(options?.count ?? max, max)); count >= 1; count -= 1) {
-		result = linearTicks(domain, count, options);
-		if (result.length <= max) {
-			return result;
-		}
+	// Why count first: a large `max` can try many counts, and each one would
+	// build a full tick array only to drop it.
+	let count = Math.floor(Math.min(options?.count ?? max, max));
+	while (count > 1 && tickTotal(domain[0], domain[1], count, options) > max) {
+		count -= 1;
 	}
 	// A count of 1 can still produce two ticks, which a `max` below 2 cannot hold.
-	return result.slice(0, Math.max(0, Math.floor(max)));
+	return linearTicks(domain, count, options).slice(0, Math.max(0, Math.floor(max)));
 };
 
 /**

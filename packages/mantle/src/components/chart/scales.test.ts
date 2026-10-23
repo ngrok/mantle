@@ -270,6 +270,34 @@ describe("linearTicksAtMost", () => {
 			}
 		}
 	});
+
+	test("returns what a count-by-count search over linearTicks returns", () => {
+		const search = (domain: [number, number], max: number, integer: boolean): number[] => {
+			let result: number[] = [];
+			for (let count = max; count >= 1; count -= 1) {
+				result = linearTicks(domain, count, { integer });
+				if (result.length <= max) {
+					return result;
+				}
+			}
+			return result.slice(0, max);
+		};
+		const domains: Array<[number, number]> = [
+			[0, 200],
+			[200, 0],
+			[-0.003, 0.0071],
+			[1.0001, 1.0003],
+			[2.5, 2.5],
+			[0, 3],
+		];
+		for (const domain of domains) {
+			for (const max of [1, 2, 3, 5, 8, 40, 400]) {
+				for (const integer of [false, true]) {
+					expect(linearTicksAtMost(domain, max, { integer })).toEqual(search(domain, max, integer));
+				}
+			}
+		}
+	});
 });
 
 describe("timeTicks", () => {
