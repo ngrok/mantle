@@ -733,6 +733,29 @@ describe("MultiSelect", () => {
 		expect(screen.getByTestId("trigger")).toHaveAttribute("data-validation", "error");
 	});
 
+	test.each([
+		{ props: { validation: "error" as const }, expected: "true" },
+		{ props: { "aria-invalid": true as const }, expected: "true" },
+		{ props: { validation: "success" as const }, expected: "false" },
+		{ props: {}, expected: "false" },
+	])(
+		"given $props on the trigger, the input reports aria-invalid=$expected",
+		({ props, expected }) => {
+			render(
+				<MultiSelect.Root>
+					<MultiSelect.Trigger {...props}>
+						<MultiSelect.TagValues />
+						<MultiSelect.Input aria-label="Fruits" />
+					</MultiSelect.Trigger>
+				</MultiSelect.Root>,
+			);
+			expect(screen.getByRole("combobox", { name: "Fruits" })).toHaveAttribute(
+				"aria-invalid",
+				expected,
+			);
+		},
+	);
+
 	test("inherits validation from Field.Item through Field.Control", () => {
 		render(
 			<Field.Item name="example" validation="warning">

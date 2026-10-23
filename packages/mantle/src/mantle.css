@@ -174,6 +174,31 @@ MARK: THEME
 	/* A strong ease-out for UI that enters, exits, or changes shape in under 300ms.
 	   Tailwind's `--ease-out` is too shallow to read as a settle at 200ms. */
 	--ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+	/* One damped shake when a form control enters the error state.
+	   The first swing eases out, so the control answers at once. The other swings
+	   ease in and out, so the control settles like a spring and not in steps. */
+	--animate-shake: shake 300ms ease-in-out;
+	@keyframes shake {
+		0% {
+			translate: 0;
+			animation-timing-function: ease-out;
+		}
+		20% {
+			translate: -4px;
+		}
+		40% {
+			translate: 3px;
+		}
+		60% {
+			translate: -2px;
+		}
+		80% {
+			translate: 1px;
+		}
+		100% {
+			translate: 0;
+		}
+	}
 	/* The narrowest workspace row that holds the expanded rail (13rem), the content card at
 	   the side panel's floor (21rem), the panel itself (21rem), and the three gutters (1.5rem).
 	   Below it `AppLayout.SidePanel` floats over the card, so the page is never narrower than
