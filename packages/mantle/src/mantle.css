@@ -1433,3 +1433,14 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
 	min-width: 0;
 	flex: 1 1 auto;
 }
+
+/*
+ * The theme swap that `ThemeSwitcher` starts. The new theme grows in a circle
+ * from the button over the old one, so neither snapshot fades or blends: the
+ * default crossfade adds the two images together inside the circle.
+ */
+:root[data-theme-transition]::view-transition-old(root),
+:root[data-theme-transition]::view-transition-new(root) {
+	animation: none;
+	mix-blend-mode: normal;
+}

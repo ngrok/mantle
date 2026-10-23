@@ -64,6 +64,14 @@ The stored preference has three values: `"system"`, `"light"`, and `"dark"`. A u
 | `"light"`    | dark       | light      | `"system"`     |
 | `"dark"`     | dark       | dark       | `"light"`      |
 
+## The theme swap
+
+A click grows the new theme in a circle from the button over the old one, in 300ms on mantle's `ease-out-strong` curve. The swap runs in a [view transition](https://developer.mozilla.org/en-US/docs/Web/API/View_Transition_API), so every color on the page changes in the same frame. The theme, the icon, and the accessible name change on the click; only the reveal runs after it.
+
+- With `prefers-reduced-motion: reduce`, the swap happens at once.
+- In a browser without view transitions, the swap happens at once.
+- A click during the swap ends it at once. A second click on the button toggles again, so a quick double click returns to the first theme.
+
 ## Customizing
 
 `ThemeSwitcher` forwards [`IconButton`](/components/actions/icon-button)'s props, so `appearance`, `className`, `disabled`, `onClick`, and `ref` work as you'd expect. An `onClick` that calls `event.preventDefault()` cancels the theme change. Pass `label` to set the accessible name, for example to localize it:
@@ -119,6 +127,7 @@ import { ThemeDropdownMenuRadioGroup } from "@ngrok/mantle/theme-switcher";
 ## Accessibility
 
 - When `label` is omitted, the accessible name says which theme the next click shows: "Switch to dark theme", "Switch to light theme", or "Switch to light theme (system default)" when the click returns to the OS setting. The server can't read the OS setting, so the name is "Toggle theme" until hydration.
+- The circular reveal is movement, so it does not run under `prefers-reduced-motion: reduce`.
 - The icon mirrors the applied theme (a sun or a moon). It's SSR-safe: a `Skeleton` placeholder renders until hydration, then the icon appears.
 - The `ThemeDropdownMenuRadioGroup` options are `role="menuitemradio"` items: the active theme is announced as checked (`aria-checked`). The group is named "Theme" by default; pass `aria-label` to rename it or `aria-labelledby` to point at a visible heading.
 

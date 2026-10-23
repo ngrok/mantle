@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createRef } from "react";
 import type { ComponentProps, ReactElement } from "react";
 import { renderToString } from "react-dom/server";
@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { DropdownMenu } from "../dropdown-menu/index.js";
 import { ThemeIcon } from "../icons/theme.js";
 import { ThemeProvider, useTheme } from "../theme/theme-provider.js";
-import { ThemeDropdownMenuRadioGroup, ThemeSwitcher } from "./theme-switcher.js";
+import { revealCircle, ThemeDropdownMenuRadioGroup, ThemeSwitcher } from "./theme-switcher.js";
 
 /**
  * The one icon the switcher shows. A hidden icon is in a `data-state="inactive"` span.
@@ -283,6 +283,117 @@ describe("ThemeSwitcher", () => {
 		for (const svg of hiddenIcons) {
 			expect(svg.closest("[data-state='inactive']")).not.toBeNull();
 		}
+	});
+});
+
+/**
+ * Stubs `document.startViewTransition` the way a browser runs it: the update
+ * runs at once, and `finished` settles when the test calls `finish`.
+ */
+function stubViewTransition() {
+	let finish = () => {};
+	const finished = new Promise<undefined>((resolve) => {
+		finish = () => resolve(undefined);
+	});
+	const skipTransition = vi.fn<() => void>();
+	const startViewTransition = vi.fn<(update: () => void) => object>((update) => {
+		update();
+		return {
+			finished,
+			ready: Promise.resolve(undefined),
+			skipTransition,
+			types: new Set<string>(),
+			updateCallbackDone: Promise.resolve(undefined),
+		};
+	});
+	Object.defineProperty(document, "startViewTransition", {
+		configurable: true,
+		value: startViewTransition,
+	});
+	vi.spyOn(document.documentElement, "animate").mockImplementation(() => new Animation());
+	return { finish, skipTransition, startViewTransition };
+}
+
+/**
+ * Stubs a light OS that allows motion. `stubPrefersDarkMode` reports reduced
+ * motion, because it matches no motion query.
+ */
+function stubMotionAllowed() {
+	vi.spyOn(window, "matchMedia").mockImplementation((query: string) => ({
+		matches: query === "(prefers-reduced-motion: no-preference)",
+		media: query,
+		onchange: null,
+		addEventListener: () => {},
+		removeEventListener: () => {},
+		addListener: () => {},
+		removeListener: () => {},
+		dispatchEvent: () => false,
+	}));
+}
+
+describe("ThemeSwitcher theme swap", () => {
+	afterEach(() => {
+		vi.restoreAllMocks();
+		Reflect.deleteProperty(document, "startViewTransition");
+	});
+
+	test("with motion allowed, the swap runs in a view transition and marks <html> until it ends", async () => {
+		stubMotionAllowed();
+		const { finish, startViewTransition } = stubViewTransition();
+		renderSwitcher();
+		const button = screen.getByRole("button", { name: "Switch to dark theme" });
+
+		fireEvent.click(button);
+		expect(startViewTransition).toHaveBeenCalledOnce();
+		// The theme and the name change on the click, not when the motion ends.
+		expect(screen.getByTestId("current-theme")).toHaveTextContent("dark");
+		expect(button).toHaveAccessibleName("Switch to light theme (system default)");
+		expect(document.documentElement).toHaveAttribute("data-theme-transition");
+
+		finish();
+		await waitFor(() =>
+			expect(document.documentElement).not.toHaveAttribute("data-theme-transition"),
+		);
+	});
+
+	test("a click during the swap ends it, and a click over the switcher toggles again", async () => {
+		stubMotionAllowed();
+		const { finish, skipTransition } = stubViewTransition();
+		renderSwitcher();
+		const button = screen.getByRole("button", { name: "Switch to dark theme" });
+		fireEvent.click(button);
+		expect(screen.getByTestId("current-theme")).toHaveTextContent("dark");
+
+		// While a view transition runs, the browser targets <html> with each click.
+		const { left, top } = button.getBoundingClientRect();
+		fireEvent.click(document.documentElement, { clientX: left, clientY: top });
+		expect(skipTransition).toHaveBeenCalledTimes(1);
+		expect(screen.getByTestId("current-theme")).toHaveTextContent("system");
+
+		finish();
+		await waitFor(() =>
+			expect(document.documentElement).not.toHaveAttribute("data-theme-transition"),
+		);
+	});
+
+	test("with reduced motion, the swap is immediate", () => {
+		stubPrefersDarkMode(false);
+		const { startViewTransition } = stubViewTransition();
+		renderSwitcher();
+
+		fireEvent.click(screen.getByRole("button", { name: "Switch to dark theme" }));
+		expect(startViewTransition).not.toHaveBeenCalled();
+		expect(screen.getByTestId("current-theme")).toHaveTextContent("dark");
+		expect(document.documentElement).not.toHaveAttribute("data-theme-transition");
+	});
+
+	test("the reveal circle grows from the button to the farthest viewport corner", () => {
+		expect(
+			revealCircle({ left: 0, top: 0, width: 20, height: 20 }, { width: 100, height: 100 }),
+		).toEqual({ from: "circle(0px at 10px 10px)", to: "circle(127.28px at 10px 10px)" });
+		expect(
+			revealCircle({ left: 90, top: 40, width: 20, height: 20 }, { width: 200, height: 100 }),
+		).toEqual({ from: "circle(0px at 100px 50px)", to: "circle(111.8px at 100px 50px)" });
 	});
 });
 
