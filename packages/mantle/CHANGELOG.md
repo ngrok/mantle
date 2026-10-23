@@ -1,5 +1,25 @@
 # @ngrok/mantle
 
+## 0.91.1
+
+### Patch Changes
+
+- [#1609](https://github.com/ngrok/mantle/pull/1609) [`b26cff1`](https://github.com/ngrok/mantle/commit/b26cff129c79cadcd9cb21d0c2eb33c79e4b30a8) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `AppLayout.Workspace` fills the frame at every width again. It no longer caps at `--app-layout-max-width` or centers with `mx-auto`, so on an ultrawide monitor the rail, the card, and the side panel span the whole window and leave no empty bands at the sides. The `--app-layout-max-width` variable is gone and has no effect.
+
+  See https://mantle.ngrok.com/layouts/app-layout#applayoutworkspace.
+
+- [#1608](https://github.com/ngrok/mantle/pull/1608) [`258e10f`](https://github.com/ngrok/mantle/commit/258e10fc48fb5d5c5c1ae027b4a061c6a126debb) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Align component motion with the mantle motion rules.
+
+  - `Popover`, `Tooltip`, `HoverCard`, `DropdownMenu`, `Select`, `Dialog`, `AlertDialog`, and `Sheet` now enter in 200ms and exit in 150ms on the `ease-out-strong` curve. Under `prefers-reduced-motion`, they open and close without animation.
+  - `Dialog`, `AlertDialog`, and `Sheet` play their exit animation again. Since 0.83.8, they unmounted at once on close.
+  - Floating content (`Popover`, `Tooltip`, `HoverCard`, `DropdownMenu`, and `Select`) now slides 4px instead of 8px. It slides back on exit, so the exit mirrors the enter.
+  - `Sandbar` now enters in 200ms instead of 400ms and exits in 150ms on `ease-out-strong`.
+  - The `Sandbar` blocked-navigation shake and the `MultiSelect` locked-tag shake now play the form-control error shake: 4px, settling in 300ms. A shake that repeats while one runs restarts it.
+  - The `Switch` thumb, the `ProgressBar` indicator, and the `Alert`, `CodeBlock`, and `SplitButton` carets now move in 200ms on `ease-out-strong`, and stay still under `prefers-reduced-motion`.
+  - The `PasswordInput` visibility icon now opens from half height on `ease-out-strong`.
+
+- [#1606](https://github.com/ngrok/mantle/pull/1606) [`d9444ef`](https://github.com/ngrok/mantle/commit/d9444ef60c705ffeccff6eb1c7c2199c818f1421) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Run one theme view transition at a time. A theme change during a reveal now ends the reveal and applies the theme without motion. Fast clicks on `ThemeSwitcher` no longer start a new view transition inside the click handler of a skipped one, which can crash the Chrome renderer.
+
 ## 0.91.0
 
 ### Minor Changes
