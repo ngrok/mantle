@@ -1,0 +1,199 @@
+---
+title: Eliminate High Contrast Migration
+description: The high-contrast themes, stylesheets, and Tailwind variants are gone, MantleStyleSheets takes only darkCssUrl, and ThemeSwitcher is one light/dark toggle. Drop the high-contrast imports and props, and replace the ThemeSwitcher parts with <ThemeSwitcher />.
+---
+
+# Mantle Eliminate High Contrast Migration Guide
+
+`@ngrok/mantle` has two themes, light and dark. The `light-high-contrast` and `dark-high-contrast` themes are gone, with their stylesheets (`@ngrok/mantle/mantle-light-high-contrast.css` and `@ngrok/mantle/mantle-dark-high-contrast.css`) and their Tailwind variants (`high-contrast:` and `dark-high-contrast:`). `Theme` is `"system" | "light" | "dark"`, and `ResolvedTheme` is `"light" | "dark"`. `MantleStyleSheets` takes only `darkCssUrl` and renders one `<link>` with no `media` gate and no inline script, so `fixMediaScriptContent` is gone too. `ThemeSwitcher` is one component, a light/dark toggle, in place of `ThemeSwitcher.Root`, `ThemeSwitcher.Trigger`, and `ThemeSwitcher.Content`.
+
+**TL;DR:** Delete every import of the two high-contrast stylesheets and every `high-contrast:` or `dark-high-contrast:` class. Pass only `darkCssUrl` to `mantleStyleSheetUrls` and `MantleStyleSheets`. Delete `fixMediaScriptContent` and the high-contrast `<link>` tags from a non-React `<head>`. Replace `<ThemeSwitcher.Root><ThemeSwitcher.Trigger {...props} /><ThemeSwitcher.Content /></ThemeSwitcher.Root>` with `<ThemeSwitcher {...props} />`. Users who stored a high-contrast theme need nothing: mantle reads it as light or dark.
+
+## Codemod
+
+From a mantle checkout:
+
+```sh
+pnpm -w run migrate 0011 <path>
+```
+
+In a project that installs `@ngrok/mantle`:
+
+```sh
+npx --yes --package=@ast-grep/cli@0.51.0 ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/0011-eliminate-high-contrast.yml --update-all <path>
+```
+
+The rules apply steps 1, 2, and 4:
+
+- They delete each JavaScript import of the two high-contrast stylesheets, with or without `?url`.
+- They delete the `lightHighContrastCssUrl` and `darkHighContrastCssUrl` entries from a `mantleStyleSheetUrls` call.
+- They delete `lightHighContrastCssUrl`, `darkHighContrastCssUrl`, `forceTheme`, `ssrCookie`, and `nonce` from `MantleStyleSheets`.
+- They replace a `ThemeSwitcher.Root` with no props, one `ThemeSwitcher.Trigger`, and one self-closing `ThemeSwitcher.Content` with `<ThemeSwitcher />`, which keeps the trigger's props and drops the content's props.
+
+Steps 3 and 5 to 8 stay manual, because a class string, a CSS `@import`, a theme string literal, a test query, and a menu that holds more than the theme options are not syntax a rule can read. The rules read a part through its import from `@ngrok/mantle/theme` or `@ngrok/mantle/theme-switcher`, under its own name or an alias. A function that binds the part's name to a parameter or a local shadows the import, so the rules leave that function alone. The codemod is safe to run twice. Pass `--dry-run` to print the rewrites first, and run your formatter after the rewrite.
+
+---
+
+## You are an agent migrating a codebase. Do this:
+
+1. Find every import of `@ngrok/mantle/mantle-light-high-contrast.css` or `@ngrok/mantle/mantle-dark-high-contrast.css`: a JavaScript import (often with `?url`) and a CSS `@import`. Delete each one. Keep `@ngrok/mantle/mantle-dark.css`.
+2. Find every `mantleStyleSheetUrls` call and every `MantleStyleSheets` element from `@ngrok/mantle/theme`, under its own name or an alias. Delete the `lightHighContrastCssUrl` and `darkHighContrastCssUrl` keys from the call. Delete `lightHighContrastCssUrl`, `darkHighContrastCssUrl`, `forceTheme`, `ssrCookie`, and `nonce` from the element. Keep `forceTheme`, `ssrCookie`, and `nonce` on `PreventWrongThemeFlashScript`, `ThemeProvider`, and `useInitialHtmlThemeProps`; those props did not change.
+3. Find every `fixMediaScriptContent` call. Delete it and the `<script>` that holds its output. In a non-React `<head>`, also delete the two high-contrast `<link>` tags, and delete the `media` attribute from the `mantle-dark-styles` link: the dark stylesheet now applies on every page.
+4. Find every `ThemeSwitcher.Root` from `@ngrok/mantle/theme-switcher`. Replace the three parts with `<ThemeSwitcher />`, and move the props of `ThemeSwitcher.Trigger` (`appearance`, `label`, `className`, `disabled`, `data-slot`, `ref`) onto it. Drop the props of `ThemeSwitcher.Content` (`align`, `collisionPadding`, `className`); the toggle has no menu. When `ThemeSwitcher.Root` has props (`open`, `onOpenChange`) or `ThemeSwitcher.Content` has children, the app needs a menu: build it with `DropdownMenu` and put `ThemeDropdownMenuRadioGroup` in its `DropdownMenu.Content`. Rename the types `ThemeSwitcherRootProps`, `ThemeSwitcherTriggerProps`, and `ThemeSwitcherContentProps` to `ThemeSwitcherProps`, or delete them.
+5. Find every class that starts with `high-contrast:` or `dark-high-contrast:` (`high-contrast:bg-black/30`, `dark-high-contrast:aria-checked:border-accent-400`). Delete each one. The variants are gone, so Tailwind no longer generates the class.
+6. Find every `"light-high-contrast"` and `"dark-high-contrast"` string in code: `$theme(...)` and `$resolvedTheme(...)` calls, `Select.Item` values, `switch` cases, and the keys of a `Record<Theme, …>` or a `Record<ResolvedTheme, …>`. Delete each one. `Theme` and `ResolvedTheme` reject them now, so the type checker names every site.
+7. Find every test that queries the old switcher or the old theme list: `getByRole("button", { name: "Change Theme" })`, a count of five `menuitemradio` items, and `data-slot="theme-switcher-trigger"`. The default accessible name of `ThemeSwitcher` now names the theme the next click shows ("Switch to dark theme", "Switch to light theme", or "Switch to light theme (system default)"), the radio group has three items, and the `data-slot` is `theme-switcher`. Pass a `label` to `ThemeSwitcher` when a test needs a fixed name.
+8. After editing, run the project's formatter, linter, type checker, and tests.
+
+> **Why two themes?** Each high-contrast theme was a second hand-tuned palette for its mode, so every token, component, and chart had to be tuned and tested four times. With two themes, the theme switcher can also be one button: Lea Verou's [post on dark mode toggles](https://lea.verou.me/blog/2026/dark-mode-toggles/) shows how two visible states can still store `"system"`, `"light"`, and `"dark"`.
+
+---
+
+## Before → after
+
+### The root stylesheets
+
+```tsx
+// BEFORE
+import darkCssUrl from "@ngrok/mantle/mantle-dark.css?url";
+import darkHighContrastCssUrl from "@ngrok/mantle/mantle-dark-high-contrast.css?url";
+import lightHighContrastCssUrl from "@ngrok/mantle/mantle-light-high-contrast.css?url";
+import { mantleStyleSheetUrls, MantleStyleSheets } from "@ngrok/mantle/theme";
+
+const themeUrls = mantleStyleSheetUrls({
+	darkCssUrl,
+	lightHighContrastCssUrl,
+	darkHighContrastCssUrl,
+});
+
+<MantleStyleSheets {...themeUrls} nonce={nonce} ssrCookie={loaderData?.ssrCookie} />;
+```
+
+```tsx
+// AFTER
+import darkCssUrl from "@ngrok/mantle/mantle-dark.css?url";
+import { mantleStyleSheetUrls, MantleStyleSheets } from "@ngrok/mantle/theme";
+
+const themeUrls = mantleStyleSheetUrls({ darkCssUrl });
+
+<MantleStyleSheets {...themeUrls} />;
+```
+
+### The theme switcher
+
+```tsx
+// BEFORE
+import { ThemeSwitcher } from "@ngrok/mantle/theme-switcher";
+
+<ThemeSwitcher.Root>
+	<ThemeSwitcher.Trigger appearance="outlined" />
+	<ThemeSwitcher.Content align="end" collisionPadding={{ right: 16 }} />
+</ThemeSwitcher.Root>;
+```
+
+```tsx
+// AFTER
+import { ThemeSwitcher } from "@ngrok/mantle/theme-switcher";
+
+<ThemeSwitcher appearance="outlined" />;
+```
+
+### A theme menu with extra items
+
+```tsx
+// BEFORE
+<ThemeSwitcher.Root>
+	<ThemeSwitcher.Trigger />
+	<ThemeSwitcher.Content>
+		<ThemeDropdownMenuRadioGroup />
+		<DropdownMenu.Separator />
+		<DropdownMenu.Item>Appearance settings</DropdownMenu.Item>
+	</ThemeSwitcher.Content>
+</ThemeSwitcher.Root>
+```
+
+```tsx
+// AFTER
+<DropdownMenu.Root>
+	<DropdownMenu.Trigger asChild>
+		<IconButton
+			type="button"
+			appearance="ghost"
+			intent="neutral"
+			label="Theme"
+			icon={<AutoThemeIcon />}
+		/>
+	</DropdownMenu.Trigger>
+	<DropdownMenu.Content>
+		<ThemeDropdownMenuRadioGroup />
+		<DropdownMenu.Separator />
+		<DropdownMenu.Item>Appearance settings</DropdownMenu.Item>
+	</DropdownMenu.Content>
+</DropdownMenu.Root>
+```
+
+### A high-contrast class
+
+```tsx
+// BEFORE
+<div className="bg-gray-300/25 dark:bg-gray-950/10 high-contrast:bg-black/30 dark-high-contrast:bg-black/30" />
+```
+
+```tsx
+// AFTER
+<div className="bg-gray-300/25 dark:bg-gray-950/10" />
+```
+
+### A non-React head
+
+```html
+<!-- BEFORE -->
+<script nonce="...">
+	/* preventWrongThemeFlashScriptContent() */
+</script>
+<link
+	id="mantle-dark-styles"
+	rel="stylesheet"
+	href="/mantle-dark.css"
+	media="(prefers-color-scheme: dark)"
+/>
+<link
+	id="mantle-light-high-contrast-styles"
+	rel="stylesheet"
+	href="/mantle-light-high-contrast.css"
+	media="(prefers-contrast: more) and (prefers-color-scheme: light)"
+/>
+<link
+	id="mantle-dark-high-contrast-styles"
+	rel="stylesheet"
+	href="/mantle-dark-high-contrast.css"
+	media="(prefers-contrast: more) and (prefers-color-scheme: dark)"
+/>
+<script nonce="...">
+	/* fixMediaScriptContent() */
+</script>
+```
+
+```html
+<!-- AFTER -->
+<script nonce="...">
+	/* preventWrongThemeFlashScriptContent() */
+</script>
+<link id="mantle-dark-styles" rel="stylesheet" href="/mantle-dark.css" />
+```
+
+## Edge cases & gotchas
+
+- **Stored preferences.** A user whose cookie holds `light-high-contrast` or `dark-high-contrast` gets `light` or `dark`. `PreventWrongThemeFlashScript` reads the old value that way before first paint, and `ThemeProvider` rewrites the cookie on mount, so every app on the cookie's domain agrees. An app on an older mantle reads the rewritten cookie as it always did.
+- **The OS contrast setting.** `"system"` follows `prefers-color-scheme` alone. A `prefers-contrast: more` setting no longer picks a theme.
+- **The flash script writes no cookie.** It no longer seeds a `"system"` cookie when none is stored, and it no longer migrates a theme from `localStorage`. A missing cookie reads as `"system"`.
+- **A forced page.** `MantleStyleSheets` has no `forceTheme`. Keep passing the forced theme to `PreventWrongThemeFlashScript`, `ThemeProvider`, and `useInitialHtmlThemeProps`; those three write the `<html>` class.
+- **A `forced-colors` setting** (Windows High Contrast) is an OS feature, not a mantle theme, and keeps working as before.
+
+## How to verify
+
+```sh
+rg -n "high-contrast|HighContrast|fixMediaScriptContent|ThemeSwitcher\.(Root|Trigger|Content)" src
+```
+
+The search finds nothing after the migration. Then run the type checker: it names every `Theme` literal and every `MantleStyleSheets` prop the search missed. Run the tests and update the queries step 7 lists.

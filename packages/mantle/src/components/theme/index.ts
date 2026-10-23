@@ -7,7 +7,6 @@
 
 export {
 	//,
-	fixMediaScriptContent,
 	mantleStyleSheetUrls,
 	MantleStyleSheets,
 } from "./mantle-style-sheets.js";

@@ -736,26 +736,26 @@ MARK: COMPONENT GEOMETRY
 MARK: INVERT THEME
 
 The `invert-theme` class renders a DOM subtree in the opposite theme of the
-page: light ⇄ dark and light-high-contrast ⇄ dark-high-contrast.
+page: light ⇄ dark.
 
 Mechanism: every mantle color utility resolves a CSS custom property at the
 element that uses it, and custom properties inherit — so re-declaring the
 theme variables on one element re-themes its entire subtree. Each theme
-block's selector list therefore also matches `.invert-theme` subtrees on its
-pair partner's pages (see the LIGHT DEFS selector above and the equivalent
-extensions in the three theme stylesheets); the island is styled by the
-opposite theme's own single-source-of-truth declarations, never by a copy.
+block's selector list therefore also matches `.invert-theme` subtrees on the
+opposite theme's pages (see the LIGHT DEFS selector above and the equivalent
+extension in mantle-dark.css); the island is styled by the opposite theme's
+own single-source-of-truth declarations, never by a copy.
 
 Requirements and limitations:
-- The opposite theme's stylesheet must be applied. `MantleStyleSheets` loads
-  theme pairs together (the active theme's partner also gets `media="all"`),
-  so this holds automatically for apps using mantle's theme infrastructure.
+- The opposite theme's stylesheet must be applied. `MantleStyleSheets` applies
+  the dark stylesheet on every page, so this holds automatically for apps using
+  mantle's theme infrastructure.
 - Portaled floating content (dropdown menus, tooltips, dialogs, …) escapes
   the island's DOM subtree and renders in the page theme. Pass `invert-theme`
   in the floating part's `className` to invert it too.
-- Theme variant utilities (`dark:*`, `light:*`, `high-contrast:*`,
-  `dark-high-contrast:*`) key off the page theme classes on `:root`, not the
-  inversion scope, so they do not flip inside an island. This includes the six
+- Theme variant utilities (`dark:*`, `light:*`) key off the page theme
+  classes on `:root`, not the inversion scope, so they do not flip inside an
+  island. This includes the six
   mantle internals that still carry variant-gated tweaks — Progress Bar,
   Progress Donut, RadioGroup, Skeleton, Table, and Toast — so composing those
   inside an island mixes page-variant selection with island-resolved variables
@@ -862,8 +862,6 @@ MARK: CUSTOM VARIANTS
 */
 @custom-variant light (&:where(.light, .light *, [data-theme="light"]:not([data-applied-theme]), [data-applied-theme="light"]));
 @custom-variant dark (&:where(.dark, .dark *, [data-theme="dark"]:not([data-applied-theme]), [data-applied-theme="dark"]));
-@custom-variant high-contrast (&:where(.light-high-contrast, .light-high-contrast *, [data-theme="light-high-contrast"]:not([data-applied-theme]), [data-applied-theme="light-high-contrast"]));
-@custom-variant dark-high-contrast (&:where(.dark-high-contrast, .dark-high-contrast *, [data-theme="dark-high-contrast"]:not([data-applied-theme]), [data-applied-theme="dark-high-contrast"]));
 
 @custom-variant aria-collapsed (&[aria-expanded="false"]);
 @custom-variant aria-invalid (&[aria-invalid="true"]);

@@ -1,0 +1,502 @@
+# Every JSX rule binds the local name of the part's import from its
+# `@ngrok/mantle/<subpath>`, so an aliased import matches and another
+# library's part of the same name does not.
+id: theme-switcher-compound
+language: tsx
+message: ThemeSwitcher is one component; Root, Trigger, and Content are gone
+utils:
+  # A node that opens a lexical scope. The shadow search below stops at a
+  # nested one, so a sibling function's local name does not count.
+  scope:
+    any:
+      - kind: statement_block
+      - kind: function_declaration
+      - kind: generator_function_declaration
+      - kind: function_expression
+      - kind: generator_function
+      - kind: arrow_function
+      - kind: method_definition
+      - kind: class_body
+      - kind: for_statement
+      - kind: for_in_statement
+      - kind: catch_clause
+  # An identifier in a binding position: a parameter, a destructured name, a
+  # local variable, a function name, or a class name.
+  binding-name:
+    any:
+      - kind: shorthand_property_identifier_pattern
+      - kind: identifier
+        any:
+          - inside: { kind: variable_declarator, field: name }
+          - inside: { kind: function_declaration, field: name }
+          - inside: { kind: generator_function_declaration, field: name }
+          - inside: { kind: function_expression, field: name }
+          - inside: { kind: required_parameter, field: pattern }
+          - inside: { kind: optional_parameter, field: pattern }
+          - inside: { kind: assignment_pattern, field: left }
+          - inside: { kind: pair_pattern, field: value }
+          - inside: { kind: array_pattern }
+          - inside: { kind: rest_pattern }
+          - inside: { kind: arrow_function, field: parameter }
+          - inside: { kind: catch_clause, field: parameter }
+      - kind: type_identifier
+        inside: { kind: class_declaration, field: name }
+  # A function declaration opens a scope, so the search above stops at it and
+  # never reads its name. This matches the declaration itself instead.
+  function-declaration:
+    any:
+      - kind: function_declaration
+      - kind: generator_function_declaration
+  theme-switcher-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/theme-switcher["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^ThemeSwitcher$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $TS
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $TS
+rule:
+  kind: jsx_element
+  all:
+    # Why bind the name first: `inside` runs before `has` in one object, so the
+    # import gate must read a name that is already bound.
+    - has:
+        field: open_tag
+        kind: jsx_opening_element
+        has:
+          field: name
+          kind: member_expression
+          all:
+            - has: { field: object, pattern: $TS }
+            - has: { field: property, regex: ^Root$ }
+        # Why no attributes: a controlled Root (`open`, `onOpenChange`) needs a
+        # menu, which the toggle does not have. That case stays manual.
+        not:
+          has:
+            any:
+              - kind: jsx_attribute
+              - kind: jsx_expression
+    - has:
+        pattern: <$TS.Trigger $$$ATTRS />
+    - has:
+        kind: jsx_self_closing_element
+        has:
+          field: name
+          kind: member_expression
+          all:
+            - has: { field: object, pattern: $TS }
+            - has: { field: property, regex: ^Content$ }
+    # Why only Trigger and Content: Content with children or any other child
+    # carries menu items the toggle cannot hold. That case stays manual.
+    - not:
+        has:
+          any:
+            - kind: jsx_element
+            - kind: jsx_expression
+            - kind: jsx_text
+              regex: \S
+            - kind: jsx_self_closing_element
+              not:
+                has:
+                  field: name
+                  kind: member_expression
+                  all:
+                    - has: { field: object, pattern: $TS }
+                    - has: { field: property, regex: ^(Trigger|Content)$ }
+    - inside:
+        stopBy: end
+        kind: program
+        has:
+          matches: theme-switcher-import
+    # Why: a parameter or a local under the import's name shadows it, and the
+    # rules cannot tell which binding the element reads.
+    - not:
+        inside:
+          stopBy: end
+          matches: scope
+          has:
+            stopBy:
+              matches: scope
+            any:
+              - matches: binding-name
+                pattern: $TS
+              - matches: function-declaration
+                has:
+                  field: name
+                  pattern: $TS
+fix: <$TS $$$ATTRS />
+---
+id: mantle-style-sheets-removed-props
+language: tsx
+message: MantleStyleSheets takes only darkCssUrl
+utils:
+  # A node that opens a lexical scope. The shadow search below stops at a
+  # nested one, so a sibling function's local name does not count.
+  scope:
+    any:
+      - kind: statement_block
+      - kind: function_declaration
+      - kind: generator_function_declaration
+      - kind: function_expression
+      - kind: generator_function
+      - kind: arrow_function
+      - kind: method_definition
+      - kind: class_body
+      - kind: for_statement
+      - kind: for_in_statement
+      - kind: catch_clause
+  # An identifier in a binding position: a parameter, a destructured name, a
+  # local variable, a function name, or a class name.
+  binding-name:
+    any:
+      - kind: shorthand_property_identifier_pattern
+      - kind: identifier
+        any:
+          - inside: { kind: variable_declarator, field: name }
+          - inside: { kind: function_declaration, field: name }
+          - inside: { kind: generator_function_declaration, field: name }
+          - inside: { kind: function_expression, field: name }
+          - inside: { kind: required_parameter, field: pattern }
+          - inside: { kind: optional_parameter, field: pattern }
+          - inside: { kind: assignment_pattern, field: left }
+          - inside: { kind: pair_pattern, field: value }
+          - inside: { kind: array_pattern }
+          - inside: { kind: rest_pattern }
+          - inside: { kind: arrow_function, field: parameter }
+          - inside: { kind: catch_clause, field: parameter }
+      - kind: type_identifier
+        inside: { kind: class_declaration, field: name }
+  # A function declaration opens a scope, so the search above stops at it and
+  # never reads its name. This matches the declaration itself instead.
+  function-declaration:
+    any:
+      - kind: function_declaration
+      - kind: generator_function_declaration
+  mantle-style-sheets-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/theme["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^MantleStyleSheets$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $SHEETS
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $SHEETS
+rule:
+  kind: jsx_attribute
+  has:
+    kind: property_identifier
+    regex: ^(lightHighContrastCssUrl|darkHighContrastCssUrl|forceTheme|ssrCookie|nonce)$
+  inside:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    all:
+      - has:
+          field: name
+          kind: identifier
+          pattern: $SHEETS
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: mantle-style-sheets-import
+      # Why: a parameter or a local under the import's name shadows it, and the
+      # rules cannot tell which binding the element reads.
+      - not:
+          inside:
+            stopBy: end
+            matches: scope
+            has:
+              stopBy:
+                matches: scope
+              any:
+                - matches: binding-name
+                  pattern: $SHEETS
+                - matches: function-declaration
+                  has:
+                    field: name
+                    pattern: $SHEETS
+fix: ""
+---
+id: mantle-style-sheet-urls-high-contrast-keys
+language: tsx
+message: mantleStyleSheetUrls takes only darkCssUrl
+utils:
+  # A node that opens a lexical scope. The shadow search below stops at a
+  # nested one, so a sibling function's local name does not count.
+  scope:
+    any:
+      - kind: statement_block
+      - kind: function_declaration
+      - kind: generator_function_declaration
+      - kind: function_expression
+      - kind: generator_function
+      - kind: arrow_function
+      - kind: method_definition
+      - kind: class_body
+      - kind: for_statement
+      - kind: for_in_statement
+      - kind: catch_clause
+  # An identifier in a binding position: a parameter, a destructured name, a
+  # local variable, a function name, or a class name.
+  binding-name:
+    any:
+      - kind: shorthand_property_identifier_pattern
+      - kind: identifier
+        any:
+          - inside: { kind: variable_declarator, field: name }
+          - inside: { kind: function_declaration, field: name }
+          - inside: { kind: generator_function_declaration, field: name }
+          - inside: { kind: function_expression, field: name }
+          - inside: { kind: required_parameter, field: pattern }
+          - inside: { kind: optional_parameter, field: pattern }
+          - inside: { kind: assignment_pattern, field: left }
+          - inside: { kind: pair_pattern, field: value }
+          - inside: { kind: array_pattern }
+          - inside: { kind: rest_pattern }
+          - inside: { kind: arrow_function, field: parameter }
+          - inside: { kind: catch_clause, field: parameter }
+      - kind: type_identifier
+        inside: { kind: class_declaration, field: name }
+  # A function declaration opens a scope, so the search above stops at it and
+  # never reads its name. This matches the declaration itself instead.
+  function-declaration:
+    any:
+      - kind: function_declaration
+      - kind: generator_function_declaration
+  style-sheet-urls-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/theme["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^mantleStyleSheetUrls$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $URLS
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $URLS
+rule:
+  any:
+    - kind: shorthand_property_identifier
+      regex: ^(lightHighContrastCssUrl|darkHighContrastCssUrl)$
+    - kind: pair
+      has:
+        field: key
+        regex: ^["']?(lightHighContrastCssUrl|darkHighContrastCssUrl)["']?$
+  inside:
+    kind: object
+    inside:
+      kind: arguments
+      inside:
+        kind: call_expression
+        all:
+          - has:
+              field: function
+              kind: identifier
+              pattern: $URLS
+          - inside:
+              stopBy: end
+              kind: program
+              has:
+                matches: style-sheet-urls-import
+          # Why: a parameter or a local under the import's name shadows it, and the
+          # rules cannot tell which binding the element reads.
+          - not:
+              inside:
+                stopBy: end
+                matches: scope
+                has:
+                  stopBy:
+                    matches: scope
+                  any:
+                    - matches: binding-name
+                      pattern: $URLS
+                    - matches: function-declaration
+                      has:
+                        field: name
+                        pattern: $URLS
+fix:
+  template: ""
+  expandEnd: { regex: "^,$" }
+---
+id: high-contrast-stylesheet-import
+language: tsx
+message: the high-contrast stylesheets are gone
+rule:
+  kind: import_statement
+  has:
+    field: source
+    regex: ^["']@ngrok/mantle/mantle-(light|dark)-high-contrast\.css(\?url)?["']$
+fix: ""
+---
+id: mantle-style-sheet-urls-high-contrast-keys
+language: typescript
+message: mantleStyleSheetUrls takes only darkCssUrl
+utils:
+  # A node that opens a lexical scope. The shadow search below stops at a
+  # nested one, so a sibling function's local name does not count.
+  scope:
+    any:
+      - kind: statement_block
+      - kind: function_declaration
+      - kind: generator_function_declaration
+      - kind: function_expression
+      - kind: generator_function
+      - kind: arrow_function
+      - kind: method_definition
+      - kind: class_body
+      - kind: for_statement
+      - kind: for_in_statement
+      - kind: catch_clause
+  # An identifier in a binding position: a parameter, a destructured name, a
+  # local variable, a function name, or a class name.
+  binding-name:
+    any:
+      - kind: shorthand_property_identifier_pattern
+      - kind: identifier
+        any:
+          - inside: { kind: variable_declarator, field: name }
+          - inside: { kind: function_declaration, field: name }
+          - inside: { kind: generator_function_declaration, field: name }
+          - inside: { kind: function_expression, field: name }
+          - inside: { kind: required_parameter, field: pattern }
+          - inside: { kind: optional_parameter, field: pattern }
+          - inside: { kind: assignment_pattern, field: left }
+          - inside: { kind: pair_pattern, field: value }
+          - inside: { kind: array_pattern }
+          - inside: { kind: rest_pattern }
+          - inside: { kind: arrow_function, field: parameter }
+          - inside: { kind: catch_clause, field: parameter }
+      - kind: type_identifier
+        inside: { kind: class_declaration, field: name }
+  # A function declaration opens a scope, so the search above stops at it and
+  # never reads its name. This matches the declaration itself instead.
+  function-declaration:
+    any:
+      - kind: function_declaration
+      - kind: generator_function_declaration
+  style-sheet-urls-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/theme["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^mantleStyleSheetUrls$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $URLS
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $URLS
+rule:
+  any:
+    - kind: shorthand_property_identifier
+      regex: ^(lightHighContrastCssUrl|darkHighContrastCssUrl)$
+    - kind: pair
+      has:
+        field: key
+        regex: ^["']?(lightHighContrastCssUrl|darkHighContrastCssUrl)["']?$
+  inside:
+    kind: object
+    inside:
+      kind: arguments
+      inside:
+        kind: call_expression
+        all:
+          - has:
+              field: function
+              kind: identifier
+              pattern: $URLS
+          - inside:
+              stopBy: end
+              kind: program
+              has:
+                matches: style-sheet-urls-import
+          # Why: a parameter or a local under the import's name shadows it, and the
+          # rules cannot tell which binding the element reads.
+          - not:
+              inside:
+                stopBy: end
+                matches: scope
+                has:
+                  stopBy:
+                    matches: scope
+                  any:
+                    - matches: binding-name
+                      pattern: $URLS
+                    - matches: function-declaration
+                      has:
+                        field: name
+                        pattern: $URLS
+fix:
+  template: ""
+  expandEnd: { regex: "^,$" }
+---
+id: high-contrast-stylesheet-import
+language: typescript
+message: the high-contrast stylesheets are gone
+rule:
+  kind: import_statement
+  has:
+    field: source
+    regex: ^["']@ngrok/mantle/mantle-(light|dark)-high-contrast\.css(\?url)?["']$
+fix: ""

@@ -61,10 +61,7 @@ const Skeleton = ({ "data-slot": dataSlot, asChild = false, className, ref, ...p
 			data-slot={joinDataSlot(dataSlot, "skeleton")}
 			// Why before the spread: a consumer `aria-hidden={false}` must win.
 			aria-hidden
-			className={cx(
-				"dark-high-contrast:bg-black/30 high-contrast:bg-black/30 h-4 animate-pulse rounded-md bg-gray-300/25 dark:bg-gray-950/10",
-				className,
-			)}
+			className={cx("h-4 animate-pulse rounded-md bg-gray-300/25 dark:bg-gray-950/10", className)}
 			ref={ref}
 			{...props}
 		/>

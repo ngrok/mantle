@@ -46,8 +46,8 @@ const DOT_RADIUS = 1.6;
  * The tone-on-tone ink for a texture's marks: the series' resolved fill
  * stepped down a fixed perceptual amount in OKLCH — the next darker step of
  * its own ramp. A fixed lightness step (not a proportional mix toward black)
- * keeps the ink equally loud over the dark fills of the light high-contrast
- * theme and the bright fills of the dark themes alike.
+ * keeps the ink equally loud over the darkest and the brightest fills of both
+ * themes.
  *
  * @example
  * ```ts

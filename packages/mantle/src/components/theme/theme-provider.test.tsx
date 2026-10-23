@@ -7,7 +7,6 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
 import {
-	determineThemeFromMediaQuery,
 	extractThemeCookie,
 	getStoredTheme,
 	PreventWrongThemeFlashScript,
@@ -21,11 +20,10 @@ import { resolvedThemes, themes, type Theme } from "./themes.js";
 
 const THEME_COOKIE = "mantle-ui-theme";
 const PREFERS_DARK = "(prefers-color-scheme: dark)";
-const PREFERS_HIGH_CONTRAST = "(prefers-contrast: more)";
 
 /**
- * The theme layer writes onto the shared `<html>` element, the document
- * cookie, and the legacy `localStorage` key, so every test undoes all three.
+ * The theme layer writes onto the shared `<html>` element and the document
+ * cookie, so every test undoes both.
  * `resolvedThemes` rather than a local list: a new theme must be cleaned up
  * too, or it leaks into the next test.
  */
@@ -35,7 +33,6 @@ function resetRootTheme() {
 	html.removeAttribute("data-theme");
 	html.removeAttribute("data-applied-theme");
 	document.cookie = `${THEME_COOKIE}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
-	window.localStorage.removeItem(THEME_COOKIE);
 }
 
 afterEach(() => {
@@ -165,51 +162,15 @@ describe("useTheme", () => {
 	});
 });
 
-describe("determineThemeFromMediaQuery", () => {
-	test("given prefersDarkMode=true and prefersHighContrast=false, returns dark", () => {
-		expect(
-			determineThemeFromMediaQuery({
-				prefersDarkMode: true,
-				prefersHighContrast: false,
-			}),
-		).toBe("dark");
-	});
-
-	test("given prefersDarkMode=false and prefersHighContrast=false, returns light", () => {
-		expect(
-			determineThemeFromMediaQuery({
-				prefersDarkMode: false,
-				prefersHighContrast: false,
-			}),
-		).toBe("light");
-	});
-
-	test("given prefersDarkMode=true and prefersHighContrast=true, returns dark-high-contrast", () => {
-		expect(
-			determineThemeFromMediaQuery({
-				prefersDarkMode: true,
-				prefersHighContrast: true,
-			}),
-		).toBe("dark-high-contrast");
-	});
-
-	test("given prefersDarkMode=false and prefersHighContrast=true, returns light-high-contrast", () => {
-		expect(
-			determineThemeFromMediaQuery({
-				prefersDarkMode: false,
-				prefersHighContrast: true,
-			}),
-		).toBe("light-high-contrast");
-	});
-});
-
 describe("getStoredTheme", () => {
 	test.each([
 		{ cookie: `${THEME_COOKIE}=dark`, expected: "dark" },
-		{
-			cookie: `session=abc; ${THEME_COOKIE}=light-high-contrast; other=1`,
-			expected: "light-high-contrast",
-		},
+		{ cookie: `session=abc; ${THEME_COOKIE}=light; other=1`, expected: "light" },
+		// a retired high-contrast value keeps its base theme
+		{ cookie: `${THEME_COOKIE}=light-high-contrast`, expected: "light" },
+		{ cookie: `${THEME_COOKIE}=dark-high-contrast`, expected: "dark" },
+		// an inherited object member is not a theme
+		{ cookie: `${THEME_COOKIE}=constructor`, expected: "system" },
 		// percent-encoded values are decoded before validation
 		{ cookie: `${THEME_COOKIE}=%64ark`, expected: "dark" },
 		// a cookie whose name merely ends with the key must not be mistaken for it
@@ -347,16 +308,16 @@ describe("ThemeProvider applies and persists a selection", () => {
 		);
 
 		await user.click(screen.getByRole("button", { name: "dark" }));
-		await user.click(screen.getByRole("button", { name: "light-high-contrast" }));
+		await user.click(screen.getByRole("button", { name: "light" }));
 
-		// Exactly one theme class may be present, or two stylesheets fight over `<html>`.
-		expect(appliedThemeClasses()).toEqual(["light-high-contrast"]);
-		expect(document.documentElement.dataset.appliedTheme).toBe("light-high-contrast");
-		expect(readThemeCookie()).toBe(`${THEME_COOKIE}=light-high-contrast`);
+		// Exactly one theme class may be present, or two theme blocks fight over `<html>`.
+		expect(appliedThemeClasses()).toEqual(["light"]);
+		expect(document.documentElement.dataset.appliedTheme).toBe("light");
+		expect(readThemeCookie()).toBe(`${THEME_COOKIE}=light`);
 	});
 
 	test("resolves a system selection against the OS media queries", async () => {
-		mockMatchMedia({ [PREFERS_DARK]: true, [PREFERS_HIGH_CONTRAST]: true });
+		mockMatchMedia({ [PREFERS_DARK]: true });
 		const user = userEvent.setup();
 		render(
 			<ThemeProvider>
@@ -370,9 +331,9 @@ describe("ThemeProvider applies and persists a selection", () => {
 		await user.click(screen.getByRole("button", { name: "system" }));
 
 		expect(screen.getByTestId("current-theme")).toHaveTextContent("system");
-		expect(appliedThemeClasses()).toEqual(["dark-high-contrast"]);
+		expect(appliedThemeClasses()).toEqual(["dark"]);
 		expect(document.documentElement.dataset.theme).toBe("system");
-		expect(document.documentElement.dataset.appliedTheme).toBe("dark-high-contrast");
+		expect(document.documentElement.dataset.appliedTheme).toBe("dark");
 		// The stored preference stays "system"; only the applied theme is resolved.
 		expect(readThemeCookie()).toBe(`${THEME_COOKIE}=system`);
 	});
@@ -436,7 +397,7 @@ describe("ThemeProvider syncs across tabs and restores", () => {
 		expect(appliedThemeClasses()).toEqual(["light"]);
 	});
 
-	test("applies the theme carried by a broadcast message", () => {
+	test("a broadcast message re-reads the theme from the cookie, not the payload", () => {
 		render(
 			<ThemeProvider>
 				<ThemeControls />
@@ -444,6 +405,8 @@ describe("ThemeProvider syncs across tabs and restores", () => {
 		);
 		const otherTab = new BroadcastChannel(THEME_COOKIE);
 
+		// An older mantle in another tab stored and posted a retired theme.
+		document.cookie = `${THEME_COOKIE}=dark-high-contrast; path=/`;
 		act(() => {
 			// BroadcastChannel.postMessage takes no targetOrigin (unlike Window.postMessage).
 			// oxlint-disable-next-line unicorn/require-post-message-target-origin
@@ -451,11 +414,11 @@ describe("ThemeProvider syncs across tabs and restores", () => {
 		});
 		otherTab.close();
 
-		expect(screen.getByTestId("current-theme")).toHaveTextContent("dark-high-contrast");
-		expect(appliedThemeClasses()).toEqual(["dark-high-contrast"]);
+		expect(screen.getByTestId("current-theme")).toHaveTextContent("dark");
+		expect(appliedThemeClasses()).toEqual(["dark"]);
 	});
 
-	test("ignores a broadcast message whose payload is not a theme", () => {
+	test("a broadcast message with no stored theme keeps the default", () => {
 		render(
 			<ThemeProvider>
 				<ThemeControls />
@@ -500,11 +463,11 @@ describe("ThemeProvider syncs across tabs and restores", () => {
 			</ThemeProvider>,
 		);
 
-		document.cookie = `${THEME_COOKIE}=light-high-contrast; path=/`;
+		document.cookie = `${THEME_COOKIE}=dark; path=/`;
 		fireEvent(window, new Event("pageshow"));
 
-		expect(screen.getByTestId("current-theme")).toHaveTextContent("light-high-contrast");
-		expect(appliedThemeClasses()).toEqual(["light-high-contrast"]);
+		expect(screen.getByTestId("current-theme")).toHaveTextContent("dark");
+		expect(appliedThemeClasses()).toEqual(["dark"]);
 	});
 
 	test("returning to the tab re-reads the theme from the cookie", () => {
@@ -519,6 +482,40 @@ describe("ThemeProvider syncs across tabs and restores", () => {
 
 		expect(screen.getByTestId("current-theme")).toHaveTextContent("dark");
 		expect(appliedThemeClasses()).toEqual(["dark"]);
+	});
+});
+
+describe("ThemeProvider degrades a retired high-contrast cookie", () => {
+	test.each([
+		{ stored: "light-high-contrast", expected: "light" },
+		{ stored: "dark-high-contrast", expected: "dark" },
+	])("reads $stored as $expected and rewrites the cookie on mount", ({ stored, expected }) => {
+		mockMatchMedia({});
+		document.cookie = `${THEME_COOKIE}=${stored}; path=/`;
+
+		render(
+			<ThemeProvider>
+				<ThemeControls />
+			</ThemeProvider>,
+		);
+
+		expect(screen.getByTestId("current-theme")).toHaveTextContent(expected);
+		expect(appliedThemeClasses()).toEqual([expected]);
+		expect(readThemeCookie()).toBe(`${THEME_COOKIE}=${expected}`);
+	});
+
+	test("leaves an unknown cookie value alone", () => {
+		mockMatchMedia({});
+		document.cookie = `${THEME_COOKIE}=purple; path=/`;
+
+		render(
+			<ThemeProvider>
+				<ThemeControls />
+			</ThemeProvider>,
+		);
+
+		expect(screen.getByTestId("current-theme")).toHaveTextContent("system");
+		expect(readThemeCookie()).toBe(`${THEME_COOKIE}=purple`);
 	});
 });
 
@@ -587,79 +584,60 @@ describe("the inline FOUC script resolves and persists the preference", () => {
 		expect(readThemeCookie()).toBe(`${THEME_COOKIE}=dark`);
 	});
 
-	test("resolves a stored system preference against the OS high-contrast query", () => {
-		mockMatchMedia({ [PREFERS_HIGH_CONTRAST]: true });
+	test.each([
+		{ stored: "light-high-contrast", expected: "light" },
+		{ stored: "dark-high-contrast", expected: "dark" },
+	])("applies $expected for a retired $stored cookie", ({ stored, expected }) => {
+		// Why the opposite OS preference: it proves the stored theme wins, not "system".
+		mockMatchMedia({ [PREFERS_DARK]: expected === "light" });
+		document.cookie = `${THEME_COOKIE}=${stored}; path=/`;
+
+		runPreventThemeFlashScript();
+
+		expect(appliedThemeClasses()).toEqual([expected]);
+		expect(document.documentElement.dataset.theme).toBe(expected);
+		// The script writes no cookie; `ThemeProvider` rewrites it on mount.
+		expect(readThemeCookie()).toBe(`${THEME_COOKIE}=${stored}`);
+	});
+
+	test("resolves a stored system preference against the OS dark-mode query", () => {
+		mockMatchMedia({ [PREFERS_DARK]: true });
 		document.cookie = `${THEME_COOKIE}=system; path=/`;
 
 		runPreventThemeFlashScript();
 
-		expect(appliedThemeClasses()).toEqual(["light-high-contrast"]);
-		expect(document.documentElement.dataset.theme).toBe("system");
-		expect(document.documentElement.dataset.appliedTheme).toBe("light-high-contrast");
-	});
-
-	test("falls back to the default theme and persists it when the cookie value is invalid", () => {
-		mockMatchMedia({ [PREFERS_DARK]: true });
-		document.cookie = `${THEME_COOKIE}=purple; path=/`;
-
-		runPreventThemeFlashScript();
-
 		expect(appliedThemeClasses()).toEqual(["dark"]);
 		expect(document.documentElement.dataset.theme).toBe("system");
-		expect(readThemeCookie()).toBe(`${THEME_COOKIE}=system`);
+		expect(document.documentElement.dataset.appliedTheme).toBe("dark");
 	});
 
-	test("seeds the default cookie when nothing is stored", () => {
-		mockMatchMedia({ [PREFERS_DARK]: true, [PREFERS_HIGH_CONTRAST]: true });
+	test.each(["purple", "constructor"])(
+		"falls back to system for the invalid cookie value %s and writes no cookie",
+		(value) => {
+			mockMatchMedia({ [PREFERS_DARK]: true });
+			document.cookie = `${THEME_COOKIE}=${value}; path=/`;
 
-		runPreventThemeFlashScript();
+			runPreventThemeFlashScript();
 
-		expect(appliedThemeClasses()).toEqual(["dark-high-contrast"]);
-		expect(document.documentElement.dataset.theme).toBe("system");
-		expect(readThemeCookie()).toBe(`${THEME_COOKIE}=system`);
-	});
+			expect(appliedThemeClasses()).toEqual(["dark"]);
+			expect(document.documentElement.dataset.theme).toBe("system");
+			expect(readThemeCookie()).toBe(`${THEME_COOKIE}=${value}`);
+		},
+	);
 
-	test("migrates a legacy localStorage preference into the cookie", () => {
+	test("resolves system when nothing is stored", () => {
 		mockMatchMedia({});
-		// Why: the runtime reader never looks at localStorage, so this script is
-		// the only migration path for a preference that predates the cookie.
-		window.localStorage.setItem(THEME_COOKIE, "light-high-contrast");
-
-		runPreventThemeFlashScript();
-
-		expect(appliedThemeClasses()).toEqual(["light-high-contrast"]);
-		expect(document.documentElement.dataset.theme).toBe("light-high-contrast");
-		expect(readThemeCookie()).toBe(`${THEME_COOKIE}=light-high-contrast`);
-		expect(window.localStorage.getItem(THEME_COOKIE)).toBeNull();
-	});
-
-	test("prefers the cookie over a legacy localStorage value and leaves it untouched", () => {
-		mockMatchMedia({});
-		document.cookie = `${THEME_COOKIE}=dark; path=/`;
-		window.localStorage.setItem(THEME_COOKIE, "light-high-contrast");
-
-		runPreventThemeFlashScript();
-
-		expect(appliedThemeClasses()).toEqual(["dark"]);
-		expect(document.documentElement.dataset.theme).toBe("dark");
-		expect(window.localStorage.getItem(THEME_COOKIE)).toBe("light-high-contrast");
-	});
-
-	test("ignores an invalid localStorage value and keeps the default", () => {
-		mockMatchMedia({});
-		window.localStorage.setItem(THEME_COOKIE, "purple");
 
 		runPreventThemeFlashScript();
 
 		expect(appliedThemeClasses()).toEqual(["light"]);
 		expect(document.documentElement.dataset.theme).toBe("system");
-		expect(readThemeCookie()).toBe(`${THEME_COOKIE}=system`);
+		expect(readThemeCookie()).toBeUndefined();
 	});
 });
 
 describe("forceTheme pins what lands on <html>", () => {
-	// `MantleStyleSheets`' `forceTheme` applies a theme's stylesheet *pair*, so the
-	// partner sheet is live on every forced page. Which block wins is then decided
+	// The dark stylesheet is live on every page, light pages included. Which block wins is then decided
 	// by the class and `data-applied-theme` on `<html>` — and these three writers
 	// are what put them there. If any of them resolves the stored preference
 	// instead of the forced theme, a user whose cookie says dark gets
@@ -755,21 +733,21 @@ describe("forceTheme pins what lands on <html>", () => {
 
 describe("useInitialHtmlThemeProps resolves a system preference", () => {
 	test("against the OS media queries on the client", () => {
-		mockMatchMedia({ [PREFERS_DARK]: true, [PREFERS_HIGH_CONTRAST]: true });
+		mockMatchMedia({ [PREFERS_DARK]: true });
 		document.cookie = `${THEME_COOKIE}=system; path=/`;
 
 		const { result } = renderHook(() => useInitialHtmlThemeProps());
 
 		expect(result.current).toEqual({
-			className: "dark-high-contrast",
-			"data-applied-theme": "dark-high-contrast",
+			className: "dark",
+			"data-applied-theme": "dark",
 			"data-theme": "system",
 		});
 	});
 
 	test("from ssrCookie, never document.cookie, during server rendering", () => {
 		// Why a different client cookie: it proves the server render reads only `ssrCookie`.
-		document.cookie = `${THEME_COOKIE}=dark-high-contrast; path=/`;
+		document.cookie = `${THEME_COOKIE}=light; path=/`;
 		const ssrProps = renderHtmlThemePropsOnServer({
 			className: "app",
 			ssrCookie: `${THEME_COOKIE}=dark`,
@@ -782,7 +760,7 @@ describe("useInitialHtmlThemeProps resolves a system preference", () => {
 		});
 	});
 
-	test("as light without high contrast during server rendering", () => {
+	test("as light during server rendering", () => {
 		// Why light: media queries are unknowable on the server, and the inline
 		// script corrects the class before paint. Resolving dark here would
 		// hydrate-mismatch every system user.

@@ -39,8 +39,6 @@ const themeIcons: Record<Theme, ReactNode> = {
 	system: <MonitorIcon />,
 	light: <SunIcon />,
 	dark: <MoonIcon />,
-	"light-high-contrast": <SunIcon weight="fill" />,
-	"dark-high-contrast": <MoonIcon weight="fill" />,
 };
 
 /**

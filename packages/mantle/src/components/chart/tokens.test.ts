@@ -1,14 +1,11 @@
 import { describe, expect, test } from "vitest";
 import twThemeCss from "tailwindcss/theme.css?raw";
-import darkHighContrastCss from "../../mantle-dark-high-contrast.css?raw";
 import darkCss from "../../mantle-dark.css?raw";
-import lightHighContrastCss from "../../mantle-light-high-contrast.css?raw";
 import lightCss from "../../mantle.css?raw";
 import {
 	CHROMA_FLOOR,
 	CONTRAST_FLOOR_BY_THEME,
 	CVD_TARGET,
-	LIGHTNESS_BAND,
 	NORMAL_VISION_FLOOR,
 	contrastRatio,
 	deltaE,
@@ -46,12 +43,10 @@ import type { PaletteMode, ThemeName, WorstPair } from "./palette-gates.js";
  * **When this test fails, re-step a slot. Never widen a threshold and never
  * update an expectation to match.** The thresholds are the contract; the palette
  * is what moves. The all-pairs margins are the thin ones: over the normal-vision
- * floor of 15, light clears by 0.475, light-high-contrast by 0.145, dark by
- * 0.072, and dark-high-contrast by 0.054. Two other gates run as close — one
- * dark-high-contrast slot clears the chroma floor by 0.0007, and dark's
- * brightest slot sits 0.0005 under its band ceiling. Re-measure every gate in
- * every theme after any re-step, because a change that looks cosmetic lands
- * here.
+ * floor of 15, light clears by 0.475 and dark by 0.072. One other gate runs as
+ * close: dark's brightest slot sits 0.0005 under its band ceiling. Re-measure
+ * every gate in every theme after any re-step, because a change that looks
+ * cosmetic lands here.
  *
  * @see decisions/2026-07-18-canvas-chart-family.md — the recorded baseline
  */
@@ -108,37 +103,7 @@ const resolvePalette = (
 const THEMES: ThemePalette[] = [
 	resolvePalette("light", "light", lightCss, "mantle.css"),
 	resolvePalette("dark", "dark", darkCss, "mantle-dark.css"),
-	resolvePalette(
-		"light-high-contrast",
-		"light",
-		lightHighContrastCss,
-		"mantle-light-high-contrast.css",
-	),
-	resolvePalette(
-		"dark-high-contrast",
-		"dark",
-		darkHighContrastCss,
-		"mantle-dark-high-contrast.css",
-	),
 ];
-
-/**
- * `dark-high-contrast` sits above the dark lightness band on purpose. At the
- * band ceiling of L 0.67, only a narrow green window — hue 141 to 151 — reaches
- * the 6.76:1 this theme holds on its `#121212` surface. All eight hues below
- * fall outside that window, so each one caps under the floor at the ceiling, the
- * magenta lowest at 6.27:1. Deliberately brighter marks are the recorded
- * trade-off.
- *
- * This pins the fact, not a permission. All eight slots must sit above the
- * ceiling, none may fall below the floor, and none may drift past `0.9`. Re-step
- * a slot back into the band and this goes red — delete it from the waiver rather
- * than widening anything. Every other gate still runs on this theme unwaived,
- * which matters: its worst pair over all 28 clears a hard 15.0 by 0.054.
- *
- * @see decisions/2026-07-18-canvas-chart-family.md
- */
-const DARK_HIGH_CONTRAST_BAND_WAIVER = { slots: [1, 2, 3, 4, 5, 6, 7, 8], driftCeiling: 0.9 };
 
 /**
  * The literal each slot resolves to, and the file that declares it.
@@ -176,52 +141,6 @@ const PROVENANCE: Record<ThemeName, Array<{ slot: string; value: string; source:
 		{ slot: "chart-8", value: "oklch(0.668 0.137 83.5)", source: "mantle-dark.css" },
 		{ slot: "chart-other", value: "oklch(55.6% 0 0)", source: "mantle-dark.css" },
 	],
-	"light-high-contrast": [
-		{
-			slot: "chart-1",
-			value: "oklch(0.464 0.174 259.5)",
-			source: "mantle-light-high-contrast.css",
-		},
-		{
-			slot: "chart-2",
-			value: "oklch(0.468 0.102 160.5)",
-			source: "mantle-light-high-contrast.css",
-		},
-		{ slot: "chart-3", value: "oklch(0.649 0.252 1.6)", source: "mantle-light-high-contrast.css" },
-		{
-			slot: "chart-4",
-			value: "oklch(0.512 0.196 31.5)",
-			source: "mantle-light-high-contrast.css",
-		},
-		{
-			slot: "chart-5",
-			value: "oklch(0.598 0.101 203.3)",
-			source: "mantle-light-high-contrast.css",
-		},
-		{
-			slot: "chart-6",
-			value: "oklch(0.468 0.208 333.4)",
-			source: "mantle-light-high-contrast.css",
-		},
-		{
-			slot: "chart-7",
-			value: "oklch(0.633 0.193 288.5)",
-			source: "mantle-light-high-contrast.css",
-		},
-		{ slot: "chart-8", value: "oklch(0.621 0.128 78)", source: "mantle-light-high-contrast.css" },
-		{ slot: "chart-other", value: "oklch(38.18% 0 0)", source: "mantle-light-high-contrast.css" },
-	],
-	"dark-high-contrast": [
-		{ slot: "chart-1", value: "oklch(0.689 0.171 248.8)", source: "mantle-dark-high-contrast.css" },
-		{ slot: "chart-2", value: "oklch(0.673 0.163 155.7)", source: "mantle-dark-high-contrast.css" },
-		{ slot: "chart-3", value: "oklch(0.813 0.107 12.6)", source: "mantle-dark-high-contrast.css" },
-		{ slot: "chart-4", value: "oklch(0.71 0.19 42.7)", source: "mantle-dark-high-contrast.css" },
-		{ slot: "chart-5", value: "oklch(0.898 0.107 195.2)", source: "mantle-dark-high-contrast.css" },
-		{ slot: "chart-6", value: "oklch(0.717 0.198 344.4)", source: "mantle-dark-high-contrast.css" },
-		{ slot: "chart-7", value: "oklch(0.803 0.1 279.4)", source: "mantle-dark-high-contrast.css" },
-		{ slot: "chart-8", value: "oklch(0.835 0.133 88.5)", source: "mantle-dark-high-contrast.css" },
-		{ slot: "chart-other", value: "oklch(79.79% 0 0)", source: "mantle-dark-high-contrast.css" },
-	],
 };
 
 /**
@@ -238,16 +157,11 @@ const WCAG_NON_TEXT_CONTRAST = 3;
 const describePair = (pair: WorstPair) =>
 	`chart-${pair.first.slot} ${pair.first.hex} <-> chart-${pair.second.slot} ${pair.second.hex} (${pair.kind}) ΔE ${pair.deltaE.toFixed(2)}`;
 
-/** The lightness-band slots each theme is recorded as sitting outside, by design. */
-const BAND_WAIVERS: Partial<Record<ThemeName, typeof DARK_HIGH_CONTRAST_BAND_WAIVER>> = {
-	"dark-high-contrast": DARK_HIGH_CONTRAST_BAND_WAIVER,
-};
-
 /**
  * The closest a categorical slot may come to the overflow gray under simulated
  * protanopia or deuteranopia, per theme, rounded down to two places.
  *
- * A ratchet, not a threshold: `dark` and `dark-high-contrast` sit under
+ * A ratchet, not a threshold: `dark` sits under
  * `CVD_FLOOR`, and no palette lifts them. `chart-other` has to be achromatic so
  * it reads as "not a category", the dichromacy simulations strip chroma, and a
  * gray therefore lands near any mark of its own lightness. The separation gates
@@ -256,8 +170,6 @@ const BAND_WAIVERS: Partial<Record<ThemeName, typeof DARK_HIGH_CONTRAST_BAND_WAI
 const OVERFLOW_SEPARATION_FLOOR: Record<ThemeName, number> = {
 	light: 6.23,
 	dark: 3.8,
-	"light-high-contrast": 8.72,
-	"dark-high-contrast": 3.12,
 };
 
 /** The categorical slot nearest the overflow gray, under either dichromacy. */
@@ -291,44 +203,15 @@ describe.each(THEMES)("chart palette gates — $name", (theme) => {
 
 	test("the overflow slot reads as gray, so it does no identity work", () => {
 		// The inverse of the chroma floor. `chart-other` is excluded from the
-		// separation gates by construction, and it has to be: its lightness sits
-		// outside both bands in the high-contrast themes.
+		// separation gates by construction, so only its lack of chroma keeps it
+		// from reading as a category.
 		expect(oklchOf(theme.overflow).chroma).toBeLessThan(CHROMA_FLOOR);
 	});
 
 	test("every slot sits inside the mode's lightness band", () => {
-		const waiver = BAND_WAIVERS[theme.name];
-		const [, ceiling] = LIGHTNESS_BAND[theme.mode];
-		const offBand = offBandSlots(theme.slots, theme.mode);
-		const waived = waiver?.slots ?? [];
-		const violations = [
-			...offBand
-				.filter(({ slot }) => !waived.includes(slot))
-				.map(({ slot, lightness }) =>
-					violation(theme, `chart-${slot} left the lightness band at L ${lightness.toFixed(3)}`),
-				),
-			// A waived slot coming back into band is also a failure: re-record the
-			// fact by deleting it from the waiver rather than leaving a stale entry.
-			...waived
-				.filter((slot) => !offBand.some((entry) => entry.slot === slot))
-				.map((slot) =>
-					violation(theme, `chart-${slot} is inside the band now — delete it from the waiver`),
-				),
-			// And the waiver only permits drifting UP, and only so far.
-			...offBand
-				.filter(({ slot, lightness }) => waived.includes(slot) && lightness <= ceiling)
-				.map(({ slot }) =>
-					violation(theme, `waived chart-${slot} drifted below the band, not above`),
-				),
-			...offBand
-				.filter(
-					({ slot, lightness }) =>
-						waived.includes(slot) && lightness >= (waiver?.driftCeiling ?? 1),
-				)
-				.map(({ slot, lightness }) =>
-					violation(theme, `waived chart-${slot} drifted to L ${lightness.toFixed(3)}, too bright`),
-				),
-		];
+		const violations = offBandSlots(theme.slots, theme.mode).map(({ slot, lightness }) =>
+			violation(theme, `chart-${slot} left the lightness band at L ${lightness.toFixed(3)}`),
+		);
 		expect(violations).toEqual([]);
 	});
 
@@ -361,7 +244,7 @@ describe.each(THEMES)("chart palette gates — $name", (theme) => {
 	});
 
 	test("every pair of slots stays apart for full-color readers", () => {
-		// The thinnest ΔE margin in the suite: dark-high-contrast clears it by 0.054.
+		// The thinnest ΔE margin in the suite: dark clears it by 0.072.
 		const worst = worstNormalPair(theme.slots, "all");
 		const violations =
 			worst.deltaE < NORMAL_VISION_FLOOR
@@ -392,7 +275,7 @@ describe.each(THEMES)("chart palette gates — $name", (theme) => {
 
 	test("every slot clears this theme's own contrast floor", () => {
 		// Why the theme's own floor: a flat WCAG 3:1 gate would let a re-step drop a
-		// high-contrast theme to the floor a standard theme sits on. The overflow
+		// theme's contrast toward 3:1 unseen. The overflow
 		// runs through the same floor below under its own name, because
 		// `lowContrastSlots` numbers by position and a ninth entry here would report
 		// a `chart-9` that does not exist.

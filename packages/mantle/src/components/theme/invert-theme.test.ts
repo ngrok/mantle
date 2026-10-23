@@ -1,8 +1,6 @@
 import twThemeCss from "tailwindcss/theme.css?raw";
 import { describe, expect, test } from "vitest";
-import darkHighContrastCss from "../../mantle-dark-high-contrast.css?raw";
 import darkCss from "../../mantle-dark.css?raw";
-import lightHighContrastCss from "../../mantle-light-high-contrast.css?raw";
 import mantleCss from "../../mantle.css?raw";
 import {
 	extractTopLevelRules,
@@ -44,12 +42,6 @@ const lightIslandBlock = parseDeclarationBlock(
  */
 const lightBlock = new Map([...lightIslandBlock, ...lightPageBlock]);
 const darkBlock = parseDeclarationBlock(darkCss, (selector) => selector.includes(":root.dark"));
-const lightHcBlock = parseDeclarationBlock(lightHighContrastCss, (selector) =>
-	selector.includes(":root.light-high-contrast"),
-);
-const darkHcBlock = parseDeclarationBlock(darkHighContrastCss, (selector) =>
-	selector.includes(":root.dark-high-contrast"),
-);
 const tailwindDefaults = parseDeclarationBlock(twThemeCss, (selector) =>
 	selector.includes("@theme default"),
 );
@@ -66,8 +58,6 @@ describe("cardinality floors", () => {
 		expect(lightIslandBlock.size).toBeGreaterThan(200);
 		expect(lightBlock.size).toBeGreaterThan(250);
 		expect(darkBlock.size).toBeGreaterThan(250);
-		expect(lightHcBlock.size).toBeGreaterThan(240);
-		expect(darkHcBlock.size).toBeGreaterThan(240);
 		expect(tailwindDefaults.size).toBeGreaterThan(250);
 		expect(mantleThemeBlock.size).toBeGreaterThan(60);
 	});
@@ -90,48 +80,26 @@ describe("theme block selector extensions", () => {
 		);
 	});
 
-	test("the dark block also targets .invert-theme on light pages (no other theme active)", () => {
+	test("the dark block also targets .invert-theme on light pages (any page that is not dark)", () => {
 		const rule = extractTopLevelRules(darkCss).find(({ selector }) =>
 			selector.includes(":root.dark"),
 		);
-		expect(rule?.selector).toContain(".invert-theme");
-		// the guard must exclude every non-light theme so scopes stay mutually exclusive
-		for (const theme of ["dark", "light-high-contrast", "dark-high-contrast"]) {
-			expect(rule?.selector).toContain(`.${theme},`);
-			expect(rule?.selector).toContain(`[data-theme="${theme}"]`);
-			expect(rule?.selector).toContain(`[data-applied-theme="${theme}"]`);
-		}
-	});
-
-	test("each high-contrast block also targets .invert-theme on its pair partner's pages", () => {
-		const lightHcRule = extractTopLevelRules(lightHighContrastCss).find(({ selector }) =>
-			selector.includes(":root.light-high-contrast"),
-		);
-		expect(normalizeSelector(lightHcRule?.selector)).toContain(
-			':root:is(.dark-high-contrast, [data-theme="dark-high-contrast"]:not([data-applied-theme]), [data-applied-theme="dark-high-contrast"]) .invert-theme',
-		);
-
-		const darkHcRule = extractTopLevelRules(darkHighContrastCss).find(({ selector }) =>
-			selector.includes(":root.dark-high-contrast"),
-		);
-		expect(normalizeSelector(darkHcRule?.selector)).toContain(
-			':root:is(.light-high-contrast, [data-theme="light-high-contrast"]:not([data-applied-theme]), [data-applied-theme="light-high-contrast"]) .invert-theme',
+		expect(normalizeSelector(rule?.selector)).toContain(
+			':root:not(.dark, [data-theme="dark"]:not([data-applied-theme]), [data-applied-theme="dark"]) .invert-theme',
 		);
 	});
 
 	test("every data-theme selector is guarded against an applied theme", () => {
 		// `data-theme` carries the stored *preference*, which `forceTheme` leaves
-		// disagreeing with the theme actually applied. Pair loading then keeps the
-		// partner stylesheet live, so a bare `[data-theme="dark"]` matches a
+		// disagreeing with the theme actually applied. The dark stylesheet is
+		// always live, so a bare `[data-theme="dark"]` matches a
 		// `forceTheme="light"` page and the later sheet wins the cascade — the page
 		// paints dark. The guard is what makes the applied theme authoritative.
 		// force-theme.browser.test.ts proves the computed outcome; this pins the
-		// spelling in all four sheets so a new selector cannot reintroduce it.
+		// spelling in both sheets so a new selector cannot reintroduce it.
 		const sheets = {
 			"mantle.css": mantleCss,
 			"mantle-dark.css": darkCss,
-			"mantle-light-high-contrast.css": lightHighContrastCss,
-			"mantle-dark-high-contrast.css": darkHighContrastCss,
 		};
 		const unguarded: string[] = [];
 		let guarded = 0;
@@ -153,23 +121,17 @@ describe("theme block selector extensions", () => {
 });
 
 describe("theme block completeness", () => {
-	// Every variable the light base declares must be declared by every theme
-	// block. Because each block styles inverted islands on its pair partner's
-	// pages, a missing variable would silently inherit the *page* theme's value
-	// into the island (this is how the dark block came to declare the focus
-	// ring and menu-item tokens, and light-high-contrast the checkbox glyphs).
-	for (const [name, block] of [
-		["dark", darkBlock],
-		["light-high-contrast", lightHcBlock],
-		["dark-high-contrast", darkHcBlock],
-	] as const) {
-		test(`the ${name} block declares every variable the light base declares`, () => {
-			const missing = [...lightBlock.keys()].filter(
-				(property) => !block.has(property) && !property.startsWith("--color-"),
-			);
-			expect(missing).toEqual([]);
-		});
-	}
+	// Every variable the light base declares must be declared by the dark
+	// block. Because the dark block styles inverted islands on light pages, a
+	// missing variable would silently inherit the *page* theme's value into the
+	// island (this is how the dark block came to declare the focus ring and
+	// menu-item tokens).
+	test("the dark block declares every variable the light base declares", () => {
+		const missing = [...lightBlock.keys()].filter(
+			(property) => !darkBlock.has(property) && !property.startsWith("--color-"),
+		);
+		expect(missing).toEqual([]);
+	});
 
 	test("the light and dark blocks declare identical variable sets", () => {
 		// each stylesheet encodes only its own theme's values, so the pair must
@@ -178,58 +140,13 @@ describe("theme block completeness", () => {
 		expect([...lightBlock.keys()].toSorted()).toEqual([...darkBlock.keys()].toSorted());
 	});
 
-	test("no theme block declares a color the light base omits", () => {
-		// The light base is what islands on every non-light page restore, so a ramp
-		// or stop that only a *theme* block declares has no light counterpart: the
-		// island would inherit the page theme's value for it through `:root`. The
-		// light⇄dark equality below covers that pair; this covers the other two,
-		// where the sets legitimately differ from light's.
-		const lightColors = new Set(
-			[...lightBlock.keys()].filter((property) => property.startsWith("--color-")),
-		);
-		const orphans = [darkBlock, lightHcBlock, darkHcBlock].flatMap((block) =>
-			[...block.keys()].filter(
-				(property) => property.startsWith("--color-") && !lightColors.has(property),
-			),
-		);
-		expect([...new Set(orphans)]).toEqual([]);
-	});
-
 	test("each theme stylesheet holds nothing outside its theme-gated rule", () => {
-		// Pair loading means a theme stylesheet is now applied (`media="all"`) on
-		// its partner's pages, so any rule in these files that is NOT gated on a
-		// `:root` theme match would leak globally — onto light pages, from the dark
-		// sheet. Neither the browser sweep nor the rule-count check above can see
+		// The dark stylesheet is applied on every page, so any rule in it that is
+		// NOT gated on a `:root` theme match would leak onto light pages. Neither the browser sweep nor the rule-count check above can see
 		// such a rule: the sweep re-serializes only `:root`-prefixed rules.
-		for (const [name, css] of [
-			["mantle-dark.css", darkCss],
-			["mantle-light-high-contrast.css", lightHighContrastCss],
-			["mantle-dark-high-contrast.css", darkHighContrastCss],
-		] as const) {
-			const rules = extractTopLevelRules(css);
-			expect(rules.length, `${name} top-level rule count`).toBe(1);
-			expect(rules[0]?.selector, `${name} selector`).toMatch(/^:root/);
-		}
-	});
-
-	test("the high-contrast pair declares identical variable sets", () => {
-		const lightHcKeys = [...lightHcBlock.keys()].toSorted();
-		const darkHcKeys = [...darkHcBlock.keys()].toSorted();
-		expect(lightHcKeys).toEqual(darkHcKeys);
-	});
-
-	test("light colors the high-contrast pair omits are omitted by both members", () => {
-		// a ramp neither high-contrast theme overrides (slate/zinc/stone) falls
-		// back to the light base at :root on both pages, so islands inherit the
-		// correct value without re-declaration — but a ramp only ONE member
-		// declares would leak page-theme values into the other's islands
-		const lightColorKeys = [...lightBlock.keys()].filter((property) =>
-			property.startsWith("--color-"),
-		);
-		const leaks = lightColorKeys.filter(
-			(property) => lightHcBlock.has(property) !== darkHcBlock.has(property),
-		);
-		expect(leaks).toEqual([]);
+		const rules = extractTopLevelRules(darkCss);
+		expect(rules.length, "mantle-dark.css top-level rule count").toBe(1);
+		expect(rules[0]?.selector, "mantle-dark.css selector").toMatch(/^:root/);
 	});
 
 	test("the dark block's focus ring and menu tokens match the light base expressions", () => {
@@ -262,7 +179,7 @@ describe("the materialized default palette (mantle.css light base)", () => {
 	 * The eight chart slots, which no default can match. Each theme authors its
 	 * own `oklch()` literal. `@theme inline` registers the name alone.
 	 * `components/chart/tokens.test.ts` gates those values: it pins every slot's
-	 * literal and its declaring file in all four themes.
+	 * literal and its declaring file in both themes.
 	 */
 	const isChartSlot = (property: string) => /^--color-chart-[1-8]$/.test(property);
 
@@ -372,12 +289,7 @@ describe("the @theme inline resolution premise", () => {
 			mantleCss,
 			(selector) => selector === "@theme inline",
 		);
-		const themeDeclared = new Set([
-			...lightBlock.keys(),
-			...darkBlock.keys(),
-			...lightHcBlock.keys(),
-			...darkHcBlock.keys(),
-		]);
+		const themeDeclared = new Set([...lightBlock.keys(), ...darkBlock.keys()]);
 		const covered = [...inlineBlock].filter(([property]) => themeDeclared.has(property));
 		expect(covered.length).toBeGreaterThan(40);
 		const offenders = covered

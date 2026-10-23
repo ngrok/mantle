@@ -108,7 +108,7 @@ type ScatterPlotPointProps = {
 	 * not change the series slot or its paired point shape. When omitted, the
 	 * series paints the color from its slot.
 	 *
-	 * A static color (raw hex) cannot follow the four themes, so prefer a
+	 * A static color (raw hex) cannot follow the two themes, so prefer a
 	 * `var(--your-token)` declared per theme. A series that carries good/bad
 	 * meaning should wear the semantic status colors, never a categorical slot.
 	 */

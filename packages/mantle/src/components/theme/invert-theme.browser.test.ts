@@ -1,8 +1,6 @@
 import twThemeCss from "tailwindcss/theme.css?raw";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import darkHcCss from "../../mantle-dark-high-contrast.css?raw";
 import darkCss from "../../mantle-dark.css?raw";
-import lightHcCss from "../../mantle-light-high-contrast.css?raw";
 import mantleCss from "../../mantle.css?raw";
 import {
 	extractTopLevelRules,
@@ -14,8 +12,7 @@ import {
  * End-to-end proof of the `invert-theme` contract in a real browser: for
  * every theme-controlled custom property, its computed value inside an
  * `.invert-theme` subtree under theme T equals its computed value on a plain
- * page under T's pair partner — in all four directions (light ⇄ dark,
- * light-high-contrast ⇄ dark-high-contrast).
+ * page under T's pair partner, in both directions (light ⇄ dark).
  *
  * The real stylesheets are injected with two mechanical normalizations that
  * the consumer build pipeline performs (Tailwind's `--alpha()` compiled to
@@ -23,14 +20,12 @@ import {
  * so the assertions run against the shipped selectors and declarations.
  */
 
-const THEME_CLASSES = ["light", "dark", "light-high-contrast", "dark-high-contrast"] as const;
+const THEME_CLASSES = ["light", "dark"] as const;
 type ThemeClass = (typeof THEME_CLASSES)[number];
 
 const OPPOSITE: Record<ThemeClass, ThemeClass> = {
 	light: "dark",
 	dark: "light",
-	"light-high-contrast": "dark-high-contrast",
-	"dark-high-contrast": "light-high-contrast",
 };
 
 function serializeRule(selector: string, declarations: Map<string, string>): string {
@@ -65,12 +60,6 @@ const lightBlock = new Map([
 	),
 ]);
 const darkBlock = parseDeclarationBlock(darkCss, (selector) => selector.includes(":root.dark"));
-const lightHcBlock = parseDeclarationBlock(lightHcCss, (selector) =>
-	selector.includes(":root.light-high-contrast"),
-);
-const darkHcBlock = parseDeclarationBlock(darkHcCss, (selector) =>
-	selector.includes(":root.dark-high-contrast"),
-);
 const mantleThemeBlock = parseDeclarationBlock(mantleCss, (selector) => selector === "@theme");
 // the Shiki/code-block tokens are declared on `:root, .invert-theme` so their
 // theme-dependent var() references re-resolve inside islands
@@ -88,7 +77,7 @@ const tailwindDefaults = parseDeclarationBlock(twThemeCss, (selector) =>
  */
 const sweepProperties = [
 	...new Set(
-		[lightBlock, darkBlock, lightHcBlock, darkHcBlock, shikiBlock]
+		[lightBlock, darkBlock, shikiBlock]
 			.flatMap((block) => [...block.keys()])
 			.concat([...mantleThemeBlock.keys()].filter((property) => property.startsWith("--color-"))),
 	),
@@ -121,8 +110,6 @@ beforeAll(() => {
 			),
 		),
 		serializeThemeRules(darkCss),
-		serializeThemeRules(lightHcCss),
-		serializeThemeRules(darkHcCss),
 	].join("\n");
 	document.head.appendChild(styleElement);
 

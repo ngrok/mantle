@@ -14,10 +14,6 @@ const defaultGeneratedCodeSources: Record<string, GeneratedCodeSource> = {
 		const { preventWrongThemeFlashScriptContent } = await import("@ngrok/mantle/theme");
 		return preventWrongThemeFlashScriptContent();
 	},
-	fixMediaScriptContent: async () => {
-		const { fixMediaScriptContent } = await import("@ngrok/mantle/theme");
-		return fixMediaScriptContent();
-	},
 };
 
 /**
@@ -64,7 +60,7 @@ function indentLines(code: string, indent: string): string {
  *
  * @example
  * ```ts
- * await fillGeneratedCode("<script>\n\t// @mantle-generated fixMediaScriptContent()\n</script>");
+ * await fillGeneratedCode("<script>\n\t// @mantle-generated preventWrongThemeFlashScriptContent()\n</script>");
  * // "<script>\n\t(function O(e) {\n\t\t…\n\t})({ … });\n</script>"
  * ```
  */

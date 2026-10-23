@@ -319,8 +319,8 @@ type ThemeWatch = {
 const themeWatches = new WeakMap<HTMLElement, ThemeWatch>();
 
 /**
- * Watch the documentElement for theme changes (the same channel mantle's
- * ThemeProvider writes and `MantleStyleSheets` observes). Every chart in a
+ * Watch the documentElement for theme changes (the channel mantle's
+ * ThemeProvider writes). Every chart in a
  * document shares one observer, and listeners run only when the signature
  * changed, so a same-value attribute rewrite re-resolves nothing. The callback
  * invalidates caches and schedules a commit; it never resolves synchronously.

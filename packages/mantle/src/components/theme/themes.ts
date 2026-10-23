@@ -1,9 +1,9 @@
 /**
- * The four concrete themes `"system"` resolves to.
+ * The two concrete themes `"system"` resolves to.
  *
  * @see https://mantle.ngrok.com/components/primitives/theme
  */
-const resolvedThemes = ["light", "dark", "light-high-contrast", "dark-high-contrast"] as const;
+const resolvedThemes = ["light", "dark"] as const;
 
 /**
  * One concrete theme, never `"system"`.
@@ -66,8 +66,38 @@ function isResolvedTheme(value: unknown): value is ResolvedTheme {
 	return resolvedThemes.some((item) => item === value);
 }
 
+/**
+ * Returns the theme a light/dark toggle stores when pressed. The press shows
+ * the opposite of the applied theme. When that opposite matches the OS
+ * preference, the press returns `"system"` instead of a pin, so a second
+ * press always gets the user back to the OS default.
+ *
+ * @see https://lea.verou.me/blog/2026/dark-mode-toggles/
+ *
+ * @example
+ * ```ts
+ * getToggledTheme({ theme: "system", prefersDarkMode: false }); // "dark"
+ * getToggledTheme({ theme: "dark", prefersDarkMode: false }); // "system"
+ * getToggledTheme({ theme: "system", prefersDarkMode: true }); // "light"
+ * ```
+ */
+function getToggledTheme({
+	theme,
+	prefersDarkMode,
+}: {
+	theme: Theme;
+	prefersDarkMode: boolean;
+}): Theme {
+	const systemTheme: ResolvedTheme = prefersDarkMode ? "dark" : "light";
+	const appliedTheme = theme === "system" ? systemTheme : theme;
+	const nextTheme: ResolvedTheme = appliedTheme === "dark" ? "light" : "dark";
+
+	return nextTheme === systemTheme ? "system" : nextTheme;
+}
+
 export {
 	//,
+	getToggledTheme,
 	themes,
 	resolvedThemes,
 	$resolvedTheme,

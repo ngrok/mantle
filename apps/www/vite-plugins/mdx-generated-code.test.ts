@@ -55,15 +55,11 @@ test("throws when a marker names an inherited object member", async () => {
 	);
 });
 
-test("fills the theme scripts from @ngrok/mantle/theme by default", async () => {
-	const source = [
-		"// @mantle-generated preventWrongThemeFlashScriptContent()",
-		"// @mantle-generated fixMediaScriptContent()",
-	].join("\n");
+test("fills the theme script from @ngrok/mantle/theme by default", async () => {
+	const source = "// @mantle-generated preventWrongThemeFlashScriptContent()";
 
 	const result = await fillGeneratedCode(source);
 
 	expect(result).toContain('storageKey: "mantle-ui-theme"');
-	expect(result).toContain('darkLinkId: "mantle-dark-styles"');
 	expect(result).not.toContain("@mantle-generated");
 });

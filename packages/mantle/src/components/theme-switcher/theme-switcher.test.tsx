@@ -2,23 +2,23 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { createRef } from "react";
 import type { ComponentProps, ReactElement } from "react";
 import { renderToString } from "react-dom/server";
-import { beforeEach, describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { DropdownMenu } from "../dropdown-menu/index.js";
 import { ThemeIcon } from "../icons/theme.js";
 import { ThemeProvider, useTheme } from "../theme/theme-provider.js";
 import { ThemeDropdownMenuRadioGroup, ThemeSwitcher } from "./theme-switcher.js";
 
 /**
- * The one icon the trigger shows. A hidden icon is in a `data-state="inactive"` span.
+ * The one icon the switcher shows. A hidden icon is in a `data-state="inactive"` span.
  */
-function shownIcon(trigger: HTMLElement): SVGElement {
-	const icons = [...trigger.querySelectorAll("svg")].filter(
+function shownIcon(button: HTMLElement): SVGElement {
+	const icons = [...button.querySelectorAll("svg")].filter(
 		(svg) => svg.closest("[data-state='inactive']") == null,
 	);
 	expect(icons).toHaveLength(1);
 	const [icon] = icons;
 	if (icon == null) {
-		throw new Error("The trigger shows no icon.");
+		throw new Error("The switcher shows no icon.");
 	}
 	return icon;
 }
@@ -46,13 +46,7 @@ function CurrentThemeProbe() {
 	return <output data-testid="current-theme">{theme}</output>;
 }
 
-const themeLabels = [
-	"System Preference",
-	"Light Mode",
-	"Dark Mode",
-	"Light High Contrast",
-	"Dark High Contrast",
-];
+const themeLabels = ["System Preference", "Light Mode", "Dark Mode"];
 
 /**
  * Mount the radio group inside a controlled-open dropdown menu so the
@@ -107,14 +101,40 @@ describe("ThemeDropdownMenuRadioGroup naming", () => {
 	});
 });
 
+/**
+ * Stubs `prefers-color-scheme` so a test can pick the OS preference the
+ * switcher resolves `"system"` against.
+ */
+function stubPrefersDarkMode(prefersDarkMode: boolean) {
+	vi.spyOn(window, "matchMedia").mockImplementation((query: string) => ({
+		matches: query === "(prefers-color-scheme: dark)" && prefersDarkMode,
+		media: query,
+		onchange: null,
+		addEventListener: () => {},
+		removeEventListener: () => {},
+		addListener: () => {},
+		removeListener: () => {},
+		dispatchEvent: () => false,
+	}));
+}
+
+const renderSwitcher = (props: ComponentProps<typeof ThemeSwitcher> = {}) =>
+	render(
+		<ThemeProvider>
+			<CurrentThemeProbe />
+			<ThemeSwitcher {...props} />
+		</ThemeProvider>,
+	);
+
 describe("ThemeSwitcher", () => {
-	test("the server render puts a <span> skeleton inside the trigger button, never a <div>", () => {
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	test("the server render puts a <span> skeleton inside the button, never a <div>", () => {
 		const html = renderToString(
 			<ThemeProvider>
-				<ThemeSwitcher.Root>
-					<ThemeSwitcher.Trigger />
-					<ThemeSwitcher.Content />
-				</ThemeSwitcher.Root>
+				<ThemeSwitcher />
 			</ThemeProvider>,
 		);
 		const template = document.createElement("template");
@@ -123,255 +143,129 @@ describe("ThemeSwitcher", () => {
 		const skeleton = button?.querySelector('[data-slot="skeleton"]');
 		expect(skeleton?.tagName).toBe("SPAN");
 		expect(button?.querySelector("div")).toBeNull();
-	});
-
-	test("custom label overrides the trigger's accessible name", () => {
-		render(
-			<ThemeProvider>
-				<ThemeSwitcher.Root>
-					<ThemeSwitcher.Trigger label="Pick a theme" />
-					<ThemeSwitcher.Content />
-				</ThemeSwitcher.Root>
-			</ThemeProvider>,
-		);
-		expect(screen.getByRole("button", { name: "Pick a theme" })).toBeInTheDocument();
-		expect(screen.queryByRole("button", { name: "Change Theme" })).not.toBeInTheDocument();
-	});
-
-	test("trigger has data-slot and merges custom className and style", () => {
-		render(
-			<ThemeProvider>
-				<ThemeSwitcher.Root>
-					<ThemeSwitcher.Trigger className="custom-class" style={{ marginTop: "4px" }} />
-					<ThemeSwitcher.Content />
-				</ThemeSwitcher.Root>
-			</ThemeProvider>,
-		);
-		const trigger = screen.getByRole("button", { name: "Change Theme" });
-		// The part's slot joins ahead of the `IconButton` it renders.
-		expect(trigger).toHaveAttribute("data-slot", "theme-switcher-trigger icon-button");
-		// Why the class check: the tailwind-merge contract puts the consumer's class beside the defaults.
-		expect(trigger.className).toContain("custom-class");
-		expect(trigger).toHaveStyle({ marginTop: "4px" });
-	});
-
-	test("trigger joins an incoming data-slot chain ahead of its own slot name", () => {
-		render(
-			<ThemeProvider>
-				<ThemeSwitcher.Root>
-					<ThemeSwitcher.Trigger data-slot="page-footer" />
-					<ThemeSwitcher.Content />
-				</ThemeSwitcher.Root>
-			</ThemeProvider>,
-		);
-		expect(screen.getByRole("button", { name: "Change Theme" })).toHaveAttribute(
-			"data-slot",
-			"page-footer theme-switcher-trigger icon-button",
-		);
-	});
-
-	test("trigger appearance defaults to ghost", () => {
-		render(
-			<ThemeProvider>
-				<ThemeSwitcher.Root>
-					<ThemeSwitcher.Trigger />
-					<ThemeSwitcher.Content />
-				</ThemeSwitcher.Root>
-			</ThemeProvider>,
-		);
-		expect(screen.getByRole("button", { name: "Change Theme" })).toHaveAttribute(
-			"data-appearance",
-			"ghost",
-		);
-	});
-
-	test("trigger appearance prop overrides the ghost default", () => {
-		render(
-			<ThemeProvider>
-				<ThemeSwitcher.Root>
-					<ThemeSwitcher.Trigger appearance="outlined" />
-					<ThemeSwitcher.Content />
-				</ThemeSwitcher.Root>
-			</ThemeProvider>,
-		);
-		expect(screen.getByRole("button", { name: "Change Theme" })).toHaveAttribute(
-			"data-appearance",
-			"outlined",
-		);
-	});
-
-	test("opening the trigger shows the theme menu with content props forwarded", () => {
-		render(
-			<ThemeProvider>
-				<ThemeSwitcher.Root>
-					<ThemeSwitcher.Trigger />
-					<ThemeSwitcher.Content className="shadow-2xl" />
-				</ThemeSwitcher.Root>
-			</ThemeProvider>,
-		);
-		fireEvent.pointerDown(screen.getByRole("button", { name: "Change Theme" }));
-		const menu = screen.getByRole("menu");
-		// Why the class check: the tailwind-merge contract puts the consumer's class beside the defaults.
-		expect(menu.className).toContain("shadow-2xl");
-		// The menu keeps its dropdown-menu-content identity — the part's slot
-		// name joins the chain rather than clobbering the wrapped primitive's.
-		expect(menu).toHaveAttribute("data-slot", "theme-switcher-content dropdown-menu-content");
-		expect(screen.getAllByRole("menuitemradio")).toHaveLength(5);
-	});
-
-	test("a disabled trigger does not open the menu", () => {
-		render(
-			<ThemeProvider>
-				<ThemeSwitcher.Root>
-					<ThemeSwitcher.Trigger disabled />
-					<ThemeSwitcher.Content />
-				</ThemeSwitcher.Root>
-			</ThemeProvider>,
-		);
-		const trigger = screen.getByRole("button", { name: "Change Theme" });
-		expect(trigger).toBeDisabled();
-		fireEvent.pointerDown(trigger);
-		expect(screen.queryByRole("menu")).not.toBeInTheDocument();
-	});
-
-	test("content joins an incoming data-slot chain ahead of its own slot name", () => {
-		render(
-			<ThemeProvider>
-				<ThemeSwitcher.Root open>
-					<ThemeSwitcher.Trigger />
-					<ThemeSwitcher.Content data-slot="page-footer" />
-				</ThemeSwitcher.Root>
-			</ThemeProvider>,
-		);
-		expect(screen.getByRole("menu")).toHaveAttribute(
-			"data-slot",
-			"page-footer theme-switcher-content dropdown-menu-content",
-		);
-	});
-
-	test("trigger and content forward refs to their rendered elements", () => {
-		const triggerRef = createRef<HTMLButtonElement>();
-		const contentRef = createRef<HTMLDivElement>();
-		render(
-			<ThemeProvider>
-				<ThemeSwitcher.Root open>
-					<ThemeSwitcher.Trigger ref={triggerRef} />
-					<ThemeSwitcher.Content ref={contentRef} />
-				</ThemeSwitcher.Root>
-			</ThemeProvider>,
-		);
-		// The open modal menu removes the trigger from the accessibility tree,
-		// so assert the trigger ref by identity attributes instead of role.
-		expect(triggerRef.current).toBeInstanceOf(HTMLButtonElement);
-		expect(triggerRef.current).toHaveAttribute("data-slot", "theme-switcher-trigger icon-button");
-		expect(contentRef.current).toBe(screen.getByRole("menu"));
-	});
-
-	test("content renders the theme radio group when no children are given", () => {
-		render(
-			<ThemeProvider>
-				<ThemeSwitcher.Root open>
-					<ThemeSwitcher.Trigger />
-					<ThemeSwitcher.Content />
-				</ThemeSwitcher.Root>
-			</ThemeProvider>,
-		);
-		expect(screen.getByRole("group", { name: "Theme" })).toBeInTheDocument();
-	});
-
-	test("a lone conditional-false child suppresses the default radio group", () => {
-		// Pins the `children ?? default` contract: `false` is passed content
-		// (renders nothing), not absence — only null/undefined restore the
-		// default. A refactor to `||` or a `"children" in props` check would
-		// change this behavior and must fail here.
-		const showExtras = false;
-		render(
-			<ThemeProvider>
-				<ThemeSwitcher.Root open>
-					<ThemeSwitcher.Trigger />
-					<ThemeSwitcher.Content>
-						{showExtras && <DropdownMenu.Item>Extras</DropdownMenu.Item>}
-					</ThemeSwitcher.Content>
-				</ThemeSwitcher.Root>
-			</ThemeProvider>,
-		);
-		expect(screen.getByRole("menu")).toBeInTheDocument();
-		expect(screen.queryAllByRole("menuitemradio")).toHaveLength(0);
-	});
-
-	test("content children replace the default radio group", () => {
-		render(
-			<ThemeProvider>
-				<ThemeSwitcher.Root open>
-					<ThemeSwitcher.Trigger />
-					<ThemeSwitcher.Content>
-						<ThemeDropdownMenuRadioGroup />
-						<DropdownMenu.Separator />
-						<DropdownMenu.Item>Appearance settings</DropdownMenu.Item>
-					</ThemeSwitcher.Content>
-				</ThemeSwitcher.Root>
-			</ThemeProvider>,
-		);
-		expect(screen.getAllByRole("menuitemradio")).toHaveLength(5);
-		expect(screen.getByRole("menuitem", { name: "Appearance settings" })).toBeInTheDocument();
-	});
-
-	test("trigger swaps its icon to the chosen theme and keeps the previous icon mounted", () => {
-		render(
-			<ThemeProvider>
-				<ThemeSwitcher.Root>
-					<ThemeSwitcher.Trigger />
-					<ThemeSwitcher.Content />
-				</ThemeSwitcher.Root>
-			</ThemeProvider>,
-		);
-		const trigger = screen.getByRole("button", { name: "Change Theme" });
-		expect(trigger.querySelector('[data-slot="skeleton"]')).toBeNull();
-		const sunIcon = shownIcon(trigger);
-		expect(glyphOf(sunIcon)).toBe(glyphOf(<ThemeIcon theme="light" />));
-
-		fireEvent.pointerDown(trigger);
-		fireEvent.click(screen.getByRole("menuitemradio", { name: "Dark Mode" }));
-
-		expect(glyphOf(shownIcon(trigger))).toBe(glyphOf(<ThemeIcon theme="dark" />));
-		expect(trigger).toContainElement(sunIcon);
-		expect(sunIcon.parentElement).toHaveAttribute("data-state", "inactive");
-	});
-
-	test("a loading trigger hides its theme icon behind the spinner", () => {
-		render(
-			<ThemeProvider>
-				<ThemeSwitcher.Root>
-					<ThemeSwitcher.Trigger isLoading />
-					<ThemeSwitcher.Content />
-				</ThemeSwitcher.Root>
-			</ThemeProvider>,
-		);
-		const trigger = screen.getByRole("button", { name: "Change Theme" });
-		const spinner = shownIcon(trigger);
-		expect(glyphOf(spinner)).not.toBe(glyphOf(<ThemeIcon theme="light" />));
-		const hiddenIcons = [...trigger.querySelectorAll("svg")].filter((svg) => svg !== spinner);
-		for (const svg of hiddenIcons) {
+		// Why only inactive: the button keeps its hidden loading spinner mounted.
+		for (const svg of template.content.querySelectorAll("svg")) {
 			expect(svg.closest("[data-state='inactive']")).not.toBeNull();
 		}
 	});
 
-	test("trigger renders the skeleton fallback during server rendering", () => {
-		// The applied theme is unknowable server-side, so the SSR markup must
-		// contain the Skeleton placeholder instead of a themed icon.
+	test("the server render uses a generic name, because the OS preference is unknown", () => {
 		const html = renderToString(
 			<ThemeProvider>
-				<ThemeSwitcher.Root>
-					<ThemeSwitcher.Trigger />
-					<ThemeSwitcher.Content />
-				</ThemeSwitcher.Root>
+				<ThemeSwitcher />
 			</ThemeProvider>,
 		);
-		const template = document.createElement("template");
-		template.innerHTML = html;
-		expect(template.content.querySelector("[data-slot='skeleton']")).not.toBeNull();
-		// Why only inactive: the trigger keeps its hidden loading spinner mounted.
-		for (const svg of template.content.querySelectorAll("svg")) {
+		expect(html).toContain('aria-label="Toggle theme"');
+	});
+
+	test("on a light OS, a click from system pins dark, and a second click returns to system", () => {
+		stubPrefersDarkMode(false);
+		renderSwitcher();
+		const button = screen.getByRole("button", { name: "Switch to dark theme" });
+
+		fireEvent.click(button);
+		expect(screen.getByTestId("current-theme")).toHaveTextContent("dark");
+		expect(button).toHaveAccessibleName("Switch to light theme (system default)");
+
+		fireEvent.click(button);
+		expect(screen.getByTestId("current-theme")).toHaveTextContent("system");
+		expect(button).toHaveAccessibleName("Switch to dark theme");
+	});
+
+	test("on a dark OS, a click from system pins light", () => {
+		stubPrefersDarkMode(true);
+		renderSwitcher();
+
+		fireEvent.click(screen.getByRole("button", { name: "Switch to light theme" }));
+		expect(screen.getByTestId("current-theme")).toHaveTextContent("light");
+	});
+
+	test("a stored override that matches the OS stays pinned until a click", () => {
+		document.cookie = "mantle-ui-theme=dark; path=/";
+		stubPrefersDarkMode(true);
+		renderSwitcher();
+		expect(screen.getByTestId("current-theme")).toHaveTextContent("dark");
+
+		fireEvent.click(screen.getByRole("button", { name: "Switch to light theme" }));
+		expect(screen.getByTestId("current-theme")).toHaveTextContent("light");
+	});
+
+	test("an onClick that calls preventDefault keeps the theme", () => {
+		stubPrefersDarkMode(false);
+		renderSwitcher({ onClick: (event) => event.preventDefault() });
+
+		fireEvent.click(screen.getByRole("button", { name: "Switch to dark theme" }));
+		expect(screen.getByTestId("current-theme")).toHaveTextContent("system");
+	});
+
+	test("custom label overrides the accessible name", () => {
+		renderSwitcher({ label: "Pick a theme" });
+		expect(screen.getByRole("button", { name: "Pick a theme" })).toBeInTheDocument();
+	});
+
+	test("has data-slot and merges custom className and style", () => {
+		renderSwitcher({ className: "custom-class", style: { marginTop: "4px" } });
+		const button = screen.getByRole("button");
+		// The part's slot joins ahead of the `IconButton` it renders.
+		expect(button).toHaveAttribute("data-slot", "theme-switcher icon-button");
+		// Why the class check: the tailwind-merge contract puts the consumer's class beside the defaults.
+		expect(button.className).toContain("custom-class");
+		expect(button).toHaveStyle({ marginTop: "4px" });
+	});
+
+	test("joins an incoming data-slot chain ahead of its own slot name", () => {
+		renderSwitcher({ "data-slot": "page-footer" });
+		expect(screen.getByRole("button")).toHaveAttribute(
+			"data-slot",
+			"page-footer theme-switcher icon-button",
+		);
+	});
+
+	test("appearance defaults to ghost, and the prop overrides it", () => {
+		const { unmount } = renderSwitcher();
+		expect(screen.getByRole("button")).toHaveAttribute("data-appearance", "ghost");
+		unmount();
+
+		renderSwitcher({ appearance: "outlined" });
+		expect(screen.getByRole("button")).toHaveAttribute("data-appearance", "outlined");
+	});
+
+	test("a disabled switcher does not change the theme", () => {
+		renderSwitcher({ disabled: true });
+		const button = screen.getByRole("button");
+		expect(button).toBeDisabled();
+		fireEvent.click(button);
+		expect(screen.getByTestId("current-theme")).toHaveTextContent("system");
+	});
+
+	test("forwards its ref to the button", () => {
+		const ref = createRef<HTMLButtonElement>();
+		renderSwitcher({ ref });
+		expect(ref.current).toBe(screen.getByRole("button"));
+	});
+
+	test("swaps its icon to the applied theme and keeps the previous icon mounted", () => {
+		stubPrefersDarkMode(false);
+		renderSwitcher();
+		const button = screen.getByRole("button");
+		expect(button.querySelector('[data-slot="skeleton"]')).toBeNull();
+		const sunIcon = shownIcon(button);
+		expect(glyphOf(sunIcon)).toBe(glyphOf(<ThemeIcon theme="light" />));
+
+		fireEvent.click(button);
+
+		expect(glyphOf(shownIcon(button))).toBe(glyphOf(<ThemeIcon theme="dark" />));
+		expect(button).toContainElement(sunIcon);
+		expect(sunIcon.parentElement).toHaveAttribute("data-state", "inactive");
+	});
+
+	test("a loading switcher hides its theme icon behind the spinner", () => {
+		renderSwitcher({ isLoading: true });
+		const button = screen.getByRole("button");
+		const spinner = shownIcon(button);
+		expect(glyphOf(spinner)).not.toBe(glyphOf(<ThemeIcon theme="light" />));
+		const hiddenIcons = [...button.querySelectorAll("svg")].filter((svg) => svg !== spinner);
+		for (const svg of hiddenIcons) {
 			expect(svg.closest("[data-state='inactive']")).not.toBeNull();
 		}
 	});
@@ -381,7 +275,7 @@ describe("ThemeDropdownMenuRadioGroup", () => {
 	test("renders one menuitemradio per theme with the expected labels", () => {
 		renderRadioGroup();
 		const items = screen.getAllByRole("menuitemradio");
-		expect(items).toHaveLength(5);
+		expect(items).toHaveLength(3);
 		for (const label of themeLabels) {
 			expect(screen.getByRole("menuitemradio", { name: label })).toBeInTheDocument();
 		}

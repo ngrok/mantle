@@ -12,8 +12,7 @@ export function NavLink({ className, to, onClick, ...props }: NavLinkProps) {
 			className={(args) =>
 				cx(
 					"text-muted hover:text-strong block py-1 cursor-pointer focus:outline-hidden focus-visible:ring-3 focus-visible:ring-focus-accent rounded",
-					(args.isActive || args.isPending) &&
-						"text-accent-600 hover:text-accent-600 font-medium high-contrast:bg-filled-accent high-contrast:text-on-filled high-contrast:hover:text-on-filled high-contrast:rounded-md high-contrast:px-2 high-contrast:-ml-2",
+					(args.isActive || args.isPending) && "text-accent-600 hover:text-accent-600 font-medium",
 					typeof className === "function" ? className(args) : className,
 				)
 			}

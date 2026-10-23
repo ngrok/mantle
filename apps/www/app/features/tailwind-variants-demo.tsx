@@ -65,28 +65,6 @@ export function TailwindVariantsPills() {
 					svg={<XIcon weight="bold" />}
 				/>
 			</li>
-			<li className="dark-high-contrast:border-green-600 dark-high-contrast:bg-green-600/10 flex items-center justify-between gap-1 rounded-lg border border-red-600 bg-red-600/10 p-4">
-				dark-high-contrast:{" "}
-				<Icon
-					className="text-success-700 dark-high-contrast:block hidden size-4"
-					svg={<CheckIcon weight="bold" />}
-				/>
-				<Icon
-					className="text-danger-700 dark-high-contrast:hidden block size-4"
-					svg={<XIcon weight="bold" />}
-				/>
-			</li>
-			<li className="high-contrast:border-green-600 high-contrast:bg-green-600/10 flex items-center justify-between gap-1 rounded-lg border border-red-600 bg-red-600/10 p-4">
-				high-contrast:{" "}
-				<Icon
-					className="text-success-700 high-contrast:block hidden size-4"
-					svg={<CheckIcon weight="bold" />}
-				/>
-				<Icon
-					className="text-danger-700 high-contrast:hidden block size-4"
-					svg={<XIcon weight="bold" />}
-				/>
-			</li>
 		</ul>
 	);
 }

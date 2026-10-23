@@ -382,8 +382,7 @@ export function EndpointName() {
 ## Theming
 
 The panel is an [inverted theme island](/components/primitives/theme#inverted-theme-islands): it
-renders in the opposite theme of the page: dark on light pages, light on dark pages, and the
-same flip between the high-contrast pair. The inversion covers the entire subtree, so the blessed
+renders in the opposite theme of the page: dark on light pages, and light on dark pages. The inversion covers the entire subtree, so the blessed
 buttons and any custom children you compose inside `Sandbar.Actions` all read as
 the opposite theme without extra styling. The panel's own surface uses the inverted theme's
 `bg-base` and `text-strong` tokens; style overrides passed via `className` resolve against the

@@ -124,10 +124,7 @@ export function Header({ className, ...props }: Omit<ComponentProps<"header">, "
 							</DropdownMenu.Content>
 						</DropdownMenu.Root>
 
-						<ThemeSwitcher.Root>
-							<ThemeSwitcher.Trigger />
-							<ThemeSwitcher.Content className="shadow-2xl" collisionPadding={{ right: 16 }} />
-						</ThemeSwitcher.Root>
+						<ThemeSwitcher />
 					</div>
 
 					<Separator orientation="vertical" className="mx-3 h-5 hidden md:block" />

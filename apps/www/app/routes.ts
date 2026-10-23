@@ -171,6 +171,7 @@ const migrationsPages = [
 	"0008-tabs-separator-migration",
 	"0009-chart-root-mode-migration",
 	"0010-button-icon-swap-migration",
+	"0011-eliminate-high-contrast-migration",
 ];
 
 export default [

@@ -101,10 +101,9 @@ export function DivergingBarChartExample() {
 			<BarChart.Bar dataKey="added" label="Added" />
 			<BarChart.Bar dataKey="churned" label="Churned" color="var(--color-danger-500)" />
 			{/*
-			 * Both negative series stack below zero, so they always touch. In
-			 * light-high-contrast the two semantic reds sit 14.05 ΔE apart for
-			 * full-color vision, under the 15 the palette holds its own slots to, so
-			 * the texture carries a difference hue alone does not.
+			 * Both negative series stack below zero, so they always touch. The two
+			 * semantic colors are not gated apart the way the palette's own slots
+			 * are, so the texture carries a difference hue alone may not.
 			 */}
 			<BarChart.Bar
 				dataKey="suspended"
@@ -1010,10 +1009,9 @@ function DivergingBarChartExample() {
 			<BarChart.Bar dataKey="added" label="Added" />
 			<BarChart.Bar dataKey="churned" label="Churned" color="var(--color-danger-500)" />
 			{/*
-			 * Both negative series stack below zero, so they always touch. In
-			 * light-high-contrast the two semantic reds sit 14.05 ΔE apart for
-			 * full-color vision, under the 15 the palette holds its own slots to, so
-			 * the texture carries a difference hue alone does not.
+			 * Both negative series stack below zero, so they always touch. The two
+			 * semantic colors are not gated apart the way the palette's own slots
+			 * are, so the texture carries a difference hue alone may not.
 			 */}
 			<BarChart.Bar
 				dataKey="suspended"
@@ -1170,7 +1168,7 @@ the matching series. The canvas resolves them from the Root's computed style, in
 stroke emit the same `var()`, so one declaration set covers all three surfaces.
 
 Use `var(--your-token)` rather than a raw hex. A hex freezes: the same value paints on white and on near-black.
-Neither high-contrast theme can adjust it. A custom property lets you give each theme its own value, and mantle
+The dark theme cannot adjust it. A custom property lets you give each theme its own value, and mantle
 re-resolves it whenever the theme changes.
 
 The `color` prop changes only paint. It does not reserve a slot or change the default point shape. The example
@@ -1179,11 +1177,11 @@ both an app-defined color and a fixed identity position, use this combination.
 
 **So check your own palette against the eight slots, and against itself.** Series order decides whether a
 collision bites, because a stacked chart only ever puts consecutive series against each other. The example below
-runs OpenAI, Claude, Gemini, which clears both hard floors in all four themes: 23.45 ΔE at worst for full-color
+runs OpenAI, Claude, Gemini, which clears both hard floors in both themes: 23.45 ΔE at worst for full-color
 vision, and 6.85 under simulated color vision deficiency (CVD). That 6.85 clears the CVD floor of 6 and misses the
 target of 8, which mantle's own palette treats as legal only with a second encoding, so the example gives Claude a
-`texture`. Swap Claude and Gemini and Claude lands against `chart-4` at 11.42 ΔE in dark and 7.17 in
-dark-high-contrast, under the full-color floor of 15. When a pair does collide, reorder the series, change the
+`texture`. Swap Claude and Gemini and Claude lands against `chart-4` at 11.42 ΔE in dark, under the
+full-color floor of 15. When a pair does collide, reorder the series, change the
 color, or add a `texture`. When several entities belong to one family (zones of a region, tiers of one plan),
 give them the same `seriesSlot` on purpose and keep them apart by `texture`. See
 [Sharing one color slot](#sharing-one-color-slot).
@@ -1872,7 +1870,7 @@ Set `mode="decorative"` to render the chart as a placeholder backdrop instead of
 
 A decorative chart also drops the categorical palette. Every series paints `--color-chart-decorative`, one neutral fill that outranks a series' `color` and `seriesSlot`. A backdrop carries no series identity, and a hue on values that are not information invites a reader to decode it.
 
-**That fill is what keeps an overlaid message readable.** `Empty.Description` sits on `text-muted`, which measures 4.88:1 on a bare light card (0.38 over the 4.5:1 floor for 14px text), so any tint under that copy spends the headroom. `--color-chart-decorative` is the darkest neutral step that still clears the floor in every theme: 4.56:1 in light, 4.93:1 in dark, 9.08:1 and 8.14:1 in the high-contrast pair. The message needs no scrim behind it, no dimming, and no blur. Redeclare the token on the Root to retune the fill (`className="[--color-chart-decorative:var(--color-neutral-100)]"`) and re-measure the copy against the value you pick.
+**That fill is what keeps an overlaid message readable.** `Empty.Description` sits on `text-muted`, which measures 4.88:1 on a bare light card (0.38 over the 4.5:1 floor for 14px text), so any tint under that copy spends the headroom. `--color-chart-decorative` is the darkest neutral step that still clears the floor in both themes: 4.56:1 in light and 4.93:1 in dark. The message needs no scrim behind it, no dimming, and no blur. Redeclare the token on the Root to retune the fill (`className="[--color-chart-decorative:var(--color-neutral-100)]"`) and re-measure the copy against the value you pick.
 
 Reach for `mode="decorative"` over hand-rolled `inert` + CSS: it removes the interaction overlay at the source, so consumers never target chart internals to neutralize it. Keep the real empty-state message as a sibling of the chart (not inside it) so screen readers still announce it; the decorative chart itself is silent.
 
@@ -2102,7 +2100,7 @@ While a copy is fresh, an always-mounted `role="status"` element beside the butt
 
 ### Chart color tokens
 
-Series colors default to the ordered `--color-chart-1` through `--color-chart-8` tokens. Each of the four themes (light, dark, and both high-contrast variants) authors its own eight `oklch()` literals, measured against mantle's palette validation gates: all 28 pairs hold 15 ΔE apart for full-color vision and 8 ΔE under simulated protanopia or deuteranopia, and every slot clears 3:1 against that theme's card surface.
+Series colors default to the ordered `--color-chart-1` through `--color-chart-8` tokens. Each of the two themes (light and dark) authors its own eight `oklch()` literals, measured against mantle's palette validation gates: all 28 pairs hold 15 ΔE apart for full-color vision and 8 ΔE under simulated protanopia or deuteranopia, and every slot clears 3:1 against that theme's card surface.
 
 Series receive unreserved slots in composition order. Set `seriesSlot` to give a series a fixed visual identity. Mantle reserves fixed slots before automatic series take the remaining slots. Several related series may share one. `seriesSlot="other"` selects the neutral tail treatment without reserving a categorical slot. Removing an automatic series closes the gap. The `color` and `shape` props override only their own channels and never change slot assignment. When the chart runs out of unreserved categorical slots, later automatic series paint with `--color-chart-other`. Prefer folding the long tail into a single "Other" series over plotting nine-plus indistinguishable ones.
 
@@ -2121,12 +2119,10 @@ Series receive unreserved slots in composition order. Set `seriesSlot` to give a
 
 What each theme measures across its eight slots:
 
-| Theme                 | Closest pair, full-color vision | Closest pair, simulated CVD | Lowest contrast on the card |
-| --------------------- | ------------------------------- | --------------------------- | --------------------------- |
-| `light`               | 15.475 ΔE                       | 9.580 ΔE                    | 3.610:1                     |
-| `dark`                | 15.072 ΔE                       | 9.551 ΔE                    | 3.652:1                     |
-| `light-high-contrast` | 15.145 ΔE                       | 9.617 ΔE                    | 3.696:1                     |
-| `dark-high-contrast`  | 15.054 ΔE                       | 9.572 ΔE                    | 6.763:1                     |
+| Theme   | Closest pair, full-color vision | Closest pair, simulated CVD | Lowest contrast on the card |
+| ------- | ------------------------------- | --------------------------- | --------------------------- |
+| `light` | 15.475 ΔE                       | 9.580 ΔE                    | 3.610:1                     |
+| `dark`  | 15.072 ΔE                       | 9.551 ΔE                    | 3.652:1                     |
 
 The `color` prop on `BarChart.Bar` accepts any CSS color string as an escape hatch, but a static color (raw hex) does not adapt across themes — custom palettes must be theme-aware, and validated for surface contrast and for colorblind-safe separation from every other color on the chart, just like the built-in tokens. A series that _means_ good or bad — error rate, pass/fail — should wear the semantic status colors (e.g. `var(--color-danger-500)`), never a categorical slot.
 
@@ -2140,7 +2136,7 @@ Three public paths control a series identity or color.
 
 The chart resolves every token from `Root`'s computed style in one read, inside that Root's own cascade, so a declaration scoped to one Root wins for that chart alone. Sibling charts on the page keep the theme value. A bare `currentColor` resolves from `Root`'s computed `color`. A value the canvas cannot parse by itself, such as `light-dark()` or a `currentColor` nested inside `color-mix()`, resolves through a hidden element inside `Root` instead. Declare the same custom property higher up (on a dashboard wrapper, or at `:root`) to retheme a whole subtree.
 
-Both paths want a `var()` reference rather than a raw hex, for the reason [Fixed colors for known entities](#fixed-colors-for-known-entities) gives. An overridden slot leaves mantle's gates behind, so the measurement is yours. Grouped bars compare every series to every other, so measure your color against every slot the chart hands out — not only the two beside it. The `#d07c00` below clears 8 ΔE from `chart-2` under simulated protanopia and deuteranopia in all four themes, and 3.19:1 on the white card surface.
+Both paths want a `var()` reference rather than a raw hex, for the reason [Fixed colors for known entities](#fixed-colors-for-known-entities) gives. An overridden slot leaves mantle's gates behind, so the measurement is yours. Grouped bars compare every series to every other, so measure your color against every slot the chart hands out — not only the two beside it. The `#d07c00` below clears 8 ΔE from `chart-2` under simulated protanopia and deuteranopia in both themes, and 3.19:1 on the white card surface.
 
 <Example>
 	<SeriesIdentityBarChartExample />

@@ -57,18 +57,14 @@ const CONTRAST_MIN = 3;
  * ratchet the gate into that noise.
  *
  * Raise an entry whenever a re-step lifts a theme's minimum. The shipped
- * measurements are light 3.6102:1, dark 3.6520:1, light-high-contrast 3.6960:1,
- * and dark-high-contrast 6.7630:1.
+ * measurements are light 3.6102:1 and dark 3.6520:1.
  *
  * `CONTRAST_MIN` is the absolute floor the standard sets, and no entry may sit
- * under it. The high-contrast themes earn far more than 3:1, and a flat gate
- * would let them regress to the same floor as the standard themes.
+ * under it.
  */
 const CONTRAST_FLOOR_BY_THEME = {
 	light: 3.61,
 	dark: 3.65,
-	"light-high-contrast": 3.69,
-	"dark-high-contrast": 6.76,
 } as const;
 
 /** Machado, Oliveira & Fernandes (2009) at severity 1.0, for linear sRGB. */
@@ -96,7 +92,7 @@ type CvdKind = keyof typeof CVD_MATRICES;
 /** A light-mode or dark-mode theme, which picks the lightness band. */
 type PaletteMode = keyof typeof LIGHTNESS_BAND;
 
-/** One of the four theme entry points mantle ships a chart palette for. */
+/** One of the two theme entry points mantle ships a chart palette for. */
 type ThemeName = keyof typeof CONTRAST_FLOOR_BY_THEME;
 
 type Rgb = readonly [number, number, number];
