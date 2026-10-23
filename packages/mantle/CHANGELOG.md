@@ -1,5 +1,68 @@
 # @ngrok/mantle
 
+## 0.91.0
+
+### Minor Changes
+
+- [#1600](https://github.com/ngrok/mantle/pull/1600) [`8ef6e80`](https://github.com/ngrok/mantle/commit/8ef6e80cef3e424ffcddc6d3fbff6c78490df249) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Animate icon swaps. The outgoing icon fades, shrinks, and blurs out while the next icon comes into focus. A second swap during the motion reverses it from its current value. With reduced motion, the swap is instant.
+
+  - `Button` and `IconButton`: the `isLoading` spinner swaps with the `icon`.
+  - `CodeBlock.CopyButton` and the `Chart` copy buttons: the copy icon swaps with the check icon.
+  - `ThemeSwitcher.Trigger`: the icon swaps when the applied theme changes.
+
+  Each icon stays mounted, so the `Button` and `IconButton` icon is now inside a `<span data-slot="icon-swap">`, in a `<span data-slot="icon-swap-item">`. The item that shows has `data-state="active"`. The hidden items have `data-state="inactive"` and `aria-hidden="true"`. A `[&>svg]` selector on a button no longer reaches its icon; use `[&_svg]` instead. See the migration guide: https://mantle.ngrok.com/migrations/0010-button-icon-swap-migration
+
+- [#1599](https://github.com/ngrok/mantle/pull/1599) [`a913c10`](https://github.com/ngrok/mantle/commit/a913c1006e81002e7bd4acd4be936d70632cb1f5) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Remove the high-contrast themes, simplify the theme script, and make `ThemeSwitcher` a light/dark toggle. See the [migration guide](https://mantle.ngrok.com/migrations/0011-eliminate-high-contrast-migration); its codemod rewrites most call sites.
+
+  - **Two themes.** `Theme` is `"system" | "light" | "dark"`, and `ResolvedTheme` is `"light" | "dark"`. The `@ngrok/mantle/mantle-light-high-contrast.css` and `@ngrok/mantle/mantle-dark-high-contrast.css` exports and the `high-contrast:` and `dark-high-contrast:` variants are gone. `"system"` follows `prefers-color-scheme` only; `prefers-contrast` no longer changes the theme.
+  - **A stored high-contrast preference degrades.** A `light-high-contrast` cookie reads as `light` and a `dark-high-contrast` cookie reads as `dark`. `ThemeProvider` rewrites the cookie on mount.
+  - **Smaller theme script.** `PreventWrongThemeFlashScript` reads the cookie and sets the theme class. It no longer writes a cookie or reads the legacy `localStorage` key.
+  - **`MantleStyleSheets` renders one `<link>`.** It takes `darkCssUrl` only, and `mantleStyleSheetUrls` takes `{ darkCssUrl }`. The `lightHighContrastCssUrl`, `darkHighContrastCssUrl`, `forceTheme`, `ssrCookie`, and `nonce` props and the `fixMediaScriptContent` export are gone.
+  - **`ThemeSwitcher` is a toggle.** `<ThemeSwitcher />` replaces `ThemeSwitcher.Root`, `ThemeSwitcher.Trigger`, and `ThemeSwitcher.Content`. A click flips between light and dark. A click back to the OS setting stores `"system"`, so a second click always returns to the OS default. Its accessible name says which theme the click shows. `ThemeSwitcherProps` replaces the three part prop types.
+  - **`ThemeDropdownMenuItem` replaces `ThemeDropdownMenuRadioGroup`.** It is the toggle in menu form: one "Theme" row that ends in the `ThemeSwitcher` icon. Put it at the top level of an account menu, with no submenu. A press flips light and dark the same way a `ThemeSwitcher` click does, and the "System Preference" option is gone. The menu stays open, and the new theme grows in a circle from the icon. Under `forceTheme`, the item is disabled. `ThemeDropdownMenuItemProps` replaces `ThemeDropdownMenuRadioGroupProps`, and a `label` prop replaces `aria-label` and `aria-labelledby`.
+  - **A forced page disables the toggle.** Under a `ThemeProvider` with `forceTheme`, `useAppliedTheme` returns the forced theme, and `ThemeSwitcher` shows that theme and is disabled. A click there changed only a preference the page did not show.
+
+### Patch Changes
+
+- [#1602](https://github.com/ngrok/mantle/pull/1602) [`b304302`](https://github.com/ngrok/mantle/commit/b30430223dad22e25bf56b8e2ff85c2f92f4891a) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Fix chart y-axis labels that overlap at short plot heights, and fix other chart papercuts.
+
+  - **`YAxis` fits its ticks to the plot height.** A vertical value axis keeps about 28px for each tick, and it skips a label that would overlap its neighbor. A 64px chart over a `[0, 200]` domain now paints `0` and `200`, not five stacked labels.
+  - **`YAxis` `tickCount` is a maximum.** The axis selects a larger step when the human-friendly step gives more ticks than you asked for: `tickCount={3}` over `[0, 200]` paints `0, 100, 200`, not `0, 50, 100, 150, 200`. When you omit `tickCount`, the axis still aims for about 5 ticks.
+  - **`tickFormat` receives a second argument.** On `YAxis` it is `{ defaultLabel, step }`. On `XAxis` it is `{ defaultLabel }`. `defaultLabel` is the label the axis paints without a formatter, and its precision follows the step, so a formatter that adds a unit no longer has to guess the precision: ``tickFormat={(value, { defaultLabel }) => `$${defaultLabel}`}``. Formatters that take one argument keep working.
+  - **`Legend` no longer takes the plot's height.** The legend is at most 64px tall (`max-h-16`) and scrolls past that, so a chart with many series keeps its plot in a fixed-height `Root`. Set a `max-h-*` class in `className` to change the bound. When the legend scrolls, it is in the Tab order, so a keyboard user can scroll it.
+  - **A `dataKey`, `xKey`, or `zKey` typo error lists the keys of every row.** It listed only the keys of the first row, so a key that only later rows carry was missing from the list.
+  - **`dist/llms.txt` says that it is an index.** It points agents at the bundled `.d.ts` files for props.
+  - **A streaming chart paints faster.** The left-edge fade no longer copies the whole canvas each frame. It paints the grid beneath the faded marks, so the chart keeps one canvas, not two.
+  - **A live line or area chart scrolls at one constant speed.** When appends arrive at a steady rate, the chart measures the time between them and glides the x domain to each new target over that interval. The domain chased each target, so the chart surged right after an append and nearly stopped before the next one. In a 60-point stream with an append every 200ms, the fastest frame scrolled 11.6 times as far as the slowest, and 8.4% of frames stalled. The fastest frame now scrolls 1.05 times as far as the slowest, and no frame stalls. When an append does not move the x domain, the chart does not paint. A data swap, reduced motion, and `animate={false}` keep their behavior.
+  - **Charts paint and ingest with less CPU and less garbage.** Axis labels are formatted and measured once, not on every frame, and measured again when a web font loads. Bars reuse their geometry objects across frames. Same-alpha gridlines share one stroke. A continuous-x ingest uses typed arrays, not one object per row. A pointer hover no longer rewrites unchanged hover-dot styles, and it no longer re-renders the screen-reader announcer. An axis, grid, or tooltip registration no longer re-renders the legend or the data table. Measured in headless Chromium with React's production build (mean of 3 runs):
+
+    | Scenario                                 | Metric                                | Before | After |
+    | ---------------------------------------- | ------------------------------------- | -----: | ----: |
+    | 800-category × 3-series bar chart, tween | main-thread ms per frame              |   0.69 |  0.29 |
+    |                                          | chart-code KB allocated per frame     |    236 |    29 |
+    |                                          | `measureText` calls per frame         |     25 |     0 |
+    | 20k-point area chart, window slides      | ms per data update (React + ingest)   |   5.40 |  2.65 |
+    |                                          | chart-code KB allocated per frame     |    840 |   253 |
+    | 4-series line chart, pointer sweep       | `setAttribute` calls per pointer move |    4.1 |  0.13 |
+
+- [#1605](https://github.com/ngrok/mantle/pull/1605) [`6ff2f24`](https://github.com/ngrok/mantle/commit/6ff2f2415cdff40af5dcdf3c32cb4df8a5717ecb) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Shake a form control once when it enters the error state. The control moves 4px and settles in 300ms. It does not shake again while the error stays, on focus, or on blur. It shakes again only after the error clears and comes back. With reduced motion, the control does not move.
+
+  - `Input`, `PasswordInput`, `TextArea`, `Combobox.Input`, `MultiSelect.Trigger`, and `Select.Trigger` shake when `validation` becomes `"error"`.
+  - An `Input` whose `InputCapture` alone has `validation="error"` now shows the red border and shakes. Before, the outer chrome stayed gray.
+  - `MultiSelect.Input` now gets `aria-invalid` from the `validation` and `aria-invalid` props on `MultiSelect.Trigger`. Before, a trigger outside a `Field.Item` showed the error but did not report it to assistive technology.
+  - `Checkbox` and `Switch` do not shake.
+  - The new `animate-shake` utility applies the same motion to your own control.
+
+- [#1597](https://github.com/ngrok/mantle/pull/1597) [`f6fc775`](https://github.com/ngrok/mantle/commit/f6fc7750da01f71e2a9723a6d32ff51a226aec52) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Bump `@tanstack/react-virtual` from 3.14.21 to 3.14.22.
+
+- [#1599](https://github.com/ngrok/mantle/pull/1599) [`a913c10`](https://github.com/ngrok/mantle/commit/a913c1006e81002e7bd4acd4be936d70632cb1f5) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `RadioGroup.Button` keeps its label on one line. A long label no longer wraps and spills out of the fixed-height segment; the segment grows to fit the label instead.
+
+- [#1603](https://github.com/ngrok/mantle/pull/1603) [`e0aec73`](https://github.com/ngrok/mantle/commit/e0aec73bbf1b6dd56cc0ea870f79ada589d13e4b) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `ThemeProvider` shares the theme cookie across `ngrok.ai` and its subdomains, such as `app.ngrok.ai`. It sets `domain=.ngrok.ai` on those hosts, as it sets `domain=.ngrok.com` on `ngrok.com` hosts. A theme choice on `app.ngrok.ai` now also applies on `ngrok.ai`. One cookie cannot span `ngrok.com` and `ngrok.ai`, so each site keeps its own choice.
+
+- [#1601](https://github.com/ngrok/mantle/pull/1601) [`1592f2e`](https://github.com/ngrok/mantle/commit/1592f2e15f4809ab8d540c850ea55fe8ee31312c) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `ThemeSwitcher` animates the theme swap. The new theme grows in a circle from the button in a 400ms view transition, so every color changes in the same frame. Color transitions stop until the swap ends. Under `prefers-reduced-motion: reduce`, or in a browser without view transitions, the swap happens at once.
+
+  The reveal is part of `setTheme` from `useTheme`, so every theme change in an app runs it, such as a command palette action or a settings page. `setTheme` takes a second argument, `{ origin }`, the element the circle grows from. When it is omitted, the circle grows from the focused element, else from the center of the viewport. `setTheme` also takes an updater, `(theme) => next`, that reads the latest theme when two presses come before the first swap runs. A dialog overlay or a dropdown menu that closes as the swap starts leaves at once, so it does not freeze outside the circle. The new `SetThemeOptions` type describes the options.
+
 ## 0.90.4
 
 ### Patch Changes
