@@ -1,10 +1,6 @@
 import type { ComponentType } from "react";
 import { AlertCenterShellDemo } from "~/features/alert-center-demos";
-import {
-	AppLayoutDemo,
-	AppLayoutMaxWidthDemo,
-	AppLayoutSidePanelDemo,
-} from "~/features/app-layout-demos";
+import { AppLayoutDemo, AppLayoutSidePanelDemo } from "~/features/app-layout-demos";
 import { AppLayoutEditorDemo, AppLayoutPinnedFooterDemo } from "~/features/app-layout-editor-demo";
 import { AppShellDemo } from "~/features/app-shell-demo";
 import { AssistantAcrossRoutesDemo } from "~/features/assistant-across-routes-demo";
@@ -97,11 +93,6 @@ export const previewExamples = {
 		title: "Pinned footer demo",
 		Component: AppLayoutPinnedFooterDemo,
 		sourceFile: "app-layout-editor-demo.tsx",
-	},
-	"app-layout-max-width": {
-		title: "Workspace width cap demo",
-		Component: AppLayoutMaxWidthDemo,
-		sourceFile: "app-layout-demos.tsx",
 	},
 	"app-layout-side-panel": {
 		title: "Side panel demo",

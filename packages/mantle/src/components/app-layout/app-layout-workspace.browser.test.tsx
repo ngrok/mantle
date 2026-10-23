@@ -7,23 +7,24 @@ import { TooltipProvider } from "../tooltip/index.js";
 import { AppLayout } from "./app-layout.js";
 
 /**
- * Real-browser geometry for the workspace row: the width cap that centers the
- * rail, the card, and the side panel on a wide screen, and the side panel lane
- * itself. The panel's contract is the layout it produces (a clip box with a
- * fixed basis beside the card, nothing when closed, an inner card that never
- * moves, a floating card below its breakpoint) and the transition that carries
- * one state to the other, gated until a frame after hydration. happy-dom lays
- * nothing out and runs no transition, and `prefers-reduced-motion` is a
- * Playwright page emulation.
+ * Real-browser geometry for the workspace row and the side panel lane in it.
+ * The panel's contract is the layout it produces (a clip box with a fixed basis
+ * beside the card, nothing when closed, an inner card that never moves, a
+ * floating card below its breakpoint) and the transition that carries one state
+ * to the other, gated until a frame after hydration. happy-dom lays nothing out
+ * and runs no transition, and `prefers-reduced-motion` is a Playwright page
+ * emulation.
  *
  * The stylesheet is Tailwind 4.3.3's own output for the utilities in play,
  * keyed by the same escaped class selectors, with the theme variables resolved.
  * Regenerate it by compiling those class names through `tailwindcss`'s
- * `compile()`. Drop `mx-auto`, `w-full`, `ml-0`, `grow-0`, the inner card's
- * width or inset, or a `data-state-closed:` utility from a part and the
- * matching assertion fails. The ungated `data-state-closed:basis-0` rule stays
- * loaded with no part that uses it, so an ungated utility shows up as a third
- * transition on the floating panel. The row-driven float is loaded for a row
+ * `compile()`. Drop `grow-0`, the inner card's width or inset, or a
+ * `data-state-closed:` utility from a part and the matching assertion fails.
+ * The removed `mx-auto` and `--app-layout-max-width` cap rules stay loaded with
+ * no part that uses them, so a cap that comes back fails the ultrawide test.
+ * The ungated `data-state-closed:basis-0` rule stays loaded with no part that
+ * uses it, so an ungated utility shows up as a third transition on the floating
+ * panel. The row-driven float is loaded for a row
  * with no rail, the only row this file renders, so a lane expectation at a row
  * under the icon-rail threshold fails here the way it does in a real page.
  */
@@ -61,6 +62,7 @@ const STYLE = `
 	.w-full { width: 100%; }
 	.w-\\(--_side-panel-content-width\\) { width: var(--_side-panel-content-width); }
 	.max-w-\\(--app-layout-max-width\\,128rem\\) { max-width: var(--app-layout-max-width,128rem); }
+	.max-w-\\[600px\\] { max-width: 600px; }
 	.min-w-0 { min-width: 0px; }
 	.flex-1 { flex: 1; }
 	.shrink-0 { flex-shrink: 0; }
@@ -377,40 +379,13 @@ function CorrectedShell() {
 	);
 }
 
-describe("AppLayout.Workspace width cap", () => {
-	test("caps the row at --app-layout-max-width and centers it in the frame", async () => {
-		await page.viewport(1280, 800);
-		render(<Shell rootWidth={1200} vars={{ "--app-layout-max-width": "600px" }} />);
+describe("AppLayout.Workspace width", () => {
+	test("fills the frame at any width", async () => {
+		await page.viewport(3840, 800);
+		render(<Shell rootWidth={3840} />);
 		const root = rectOf("root");
 		const workspace = rectOf("workspace");
-		expect(workspace.width).toBe(600);
-		expect(workspace.left - root.left).toBe(300);
-	});
-
-	test("fills the frame when the cap is wider than it", async () => {
-		await page.viewport(1280, 800);
-		render(<Shell rootWidth={1200} />);
-		// Why: auto cross-axis margins turn a stretched flex item into a
-		// shrink-to-fit one, so only a stated `w-full` keeps the row at the
-		// frame's width under the default 128rem cap.
-		expect(rectOf("workspace").width).toBe(1200);
-	});
-
-	test("pins the row to the start edge under a merged ml-0", async () => {
-		// Why: tailwind-merge keeps `ml-0` beside `mx-auto`, and Tailwind emits
-		// `margin-left` after `margin-inline`, so the consumer's utility decides
-		// the start margin and the cap only trims the end.
-		await page.viewport(1280, 800);
-		render(
-			<Shell
-				rootWidth={1200}
-				vars={{ "--app-layout-max-width": "600px" }}
-				workspaceClassName="ml-0"
-			/>,
-		);
-		const root = rectOf("root");
-		const workspace = rectOf("workspace");
-		expect(workspace.width).toBe(600);
+		expect(workspace.width).toBe(3840);
 		expect(workspace.left).toBe(root.left);
 	});
 });
@@ -466,7 +441,7 @@ describe("AppLayout.SidePanel lane", () => {
 		// on a 1920px viewport is 27rem, and in a 60rem row beside an expanded
 		// rail that leaves the page narrower than the panel.
 		await page.viewport(1920, 800);
-		render(<Shell panel="open" rootWidth={1200} vars={{ "--app-layout-max-width": "60rem" }} />);
+		render(<Shell panel="open" rootWidth={960} />);
 		const panel = screen.getByTestId("panel");
 		expect(cardOf(panel).getBoundingClientRect().width).toBe(336);
 		expect(rectOf("content").width).toBe(960 - 3 * GUTTER - 336);
@@ -556,11 +531,11 @@ describe("AppLayout.SidePanel lane", () => {
 		expect(panel.getBoundingClientRect().left).toBe(workspace.right);
 	});
 
-	test("a closed floating panel is hidden, so a capped row has no panel strip beside it", async () => {
+	test("a closed floating panel is hidden, so a narrow row has no panel strip beside it", async () => {
 		// Why: the closed translation is the panel's own width past the row's end
-		// edge, and a cap narrower than the frame puts that edge inside the frame.
+		// edge, and a row narrower than the frame puts that edge inside the frame.
 		await page.viewport(900, 800);
-		render(<Shell panel="closed" vars={{ "--app-layout-max-width": "600px" }} />);
+		render(<Shell panel="closed" workspaceClassName="max-w-[600px]" />);
 		const panel = screen.getByTestId("panel");
 		// The premise: the slid-out panel lands inside the frame, past the reach of the frame's clip.
 		expect(panel.getBoundingClientRect().left).toBeLessThan(rectOf("root").right);
@@ -573,11 +548,7 @@ describe("AppLayout.SidePanel lane", () => {
 		// consumer `duration-*` slows the run, so the sample lands mid-flight.
 		await page.viewport(900, 800);
 		render(
-			<Shell
-				panel="open"
-				panelClassName="duration-[2000ms]"
-				vars={{ "--app-layout-max-width": "600px" }}
-			/>,
+			<Shell panel="open" panelClassName="duration-[2000ms]" workspaceClassName="max-w-[600px]" />,
 		);
 		const panel = screen.getByTestId("panel");
 		await waitForHydration(panel);

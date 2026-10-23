@@ -1,7 +1,6 @@
 import { AppLayout } from "@ngrok/mantle/app-layout";
 import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
 import { Button, IconButton } from "@ngrok/mantle/button";
-import { cx } from "@ngrok/mantle/cx";
 import { Sidebar } from "@ngrok/mantle/sidebar";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { TextArea } from "@ngrok/mantle/text-area";
@@ -598,53 +597,5 @@ export function AppLayoutSidePanelDemo() {
 				</AppLayout.SidePanelRoot>
 			</AppLayout.Root>
 		</Sidebar.Root>
-	);
-}
-
-/**
- * The workspace row under a cap narrower than the frame, so the centering is
- * visible at preview scale: the default `--app-layout-max-width` is `128rem`,
- * and this frame sets `40rem`. The header's button swaps the row's alignment
- * between the centered default and a merged `ml-0`. Renders as an entire
- * framed-preview document.
- */
-export function AppLayoutMaxWidthDemo() {
-	const [alignment, setAlignment] = useState<"center" | "start">("center");
-
-	return (
-		<AppLayout.Root className="fixed inset-0 [--app-layout-max-width:40rem]">
-			<SkipToMainLink />
-			<AppLayout.Workspace className={cx(alignment === "start" && "ml-0")}>
-				<AppLayout.Content>
-					<AppLayout.Header>
-						<AppLayout.HeaderContent>
-							<p className="text-strong text-sm font-medium">Endpoints</p>
-						</AppLayout.HeaderContent>
-						<AppLayout.HeaderActions>
-							<Button
-								type="button"
-								appearance="outlined"
-								intent="neutral"
-								size="sm"
-								onClick={() =>
-									setAlignment((current) => (current === "center" ? "start" : "center"))
-								}
-							>
-								{alignment === "center" ? "Pin to the start edge" : "Center the row"}
-							</Button>
-						</AppLayout.HeaderActions>
-					</AppLayout.Header>
-					<AppLayout.Body>
-						<div className="space-y-3 p-6">
-							{Array.from({ length: 8 }, (_, index) => (
-								<div key={index} className="border-card-muted rounded-lg border p-4">
-									<p className="text-strong text-sm font-medium">Row {index + 1}</p>
-								</div>
-							))}
-						</div>
-					</AppLayout.Body>
-				</AppLayout.Content>
-			</AppLayout.Workspace>
-		</AppLayout.Root>
 	);
 }

@@ -189,19 +189,12 @@ const Notice = ({
  * `AppLayout.Notice`, laid out as a row of columns. Place a `Sidebar.Nav` (or
  * any other rail, on either side) beside an `AppLayout.Content` card, and an
  * `AppLayout.SidePanel` after the card. A flex row
- * (`relative mx-auto flex min-h-0 w-full min-w-0 flex-1`) whose `min-h-0` is
+ * (`relative flex min-h-0 min-w-0 flex-1`) whose `min-h-0` is
  * what lets `AppLayout.Body` scroll instead of the page.
  *
  * It owns no gutter, deliberately: the card insets itself with its own margin,
  * so a rail stays flush against the window edge and a collapsed icon rail keeps
  * its flush geometry.
- *
- * On a wide screen the row caps at `--app-layout-max-width` and centers in the
- * frame, so the rail, the card, and the side panel stay one group instead of a
- * card that stretches across an ultrawide monitor. `AppLayout.Root` still paints
- * `bg-base` edge to edge, and `AppLayout.Notice` still spans the full window.
- * Merge `className="ml-0"` to pin the group to the start edge instead, and set
- * the variable to `none` to let the row fill any width.
  *
  * It is `relative`, so a floating `AppLayout.SidePanel` resolves against the row
  * and covers the card, never the notice above it. It is also the container
@@ -210,12 +203,6 @@ const Notice = ({
  * lane is `--container-side-panel-lane` while a direct child of the row is an
  * expanded `Sidebar.Nav`, and `--container-side-panel-lane-icon-rail` with a
  * collapsed rail or none.
- *
- * **CSS variables (public API):**
- *
- * | CSS Variable | Default | Description |
- * | --- | --- | --- |
- * | `--app-layout-max-width` | `128rem` | The widest the row gets (2048px): a 13rem rail, a `max-w-7xl` page with its padding, and an open side panel at its 27rem cap, each at full size with nothing stretched. Set it on `AppLayout.Root` or on this part. `none` removes the cap. |
  *
  * @see https://mantle.ngrok.com/layouts/app-layout#applayoutworkspace
  *
@@ -272,10 +259,6 @@ const Workspace = ({
 				// Why a named container: `AppLayout.SidePanel` floats when this row is
 				// narrower than the lane it needs, whatever the viewport is.
 				"@container/app-layout-workspace",
-				// Why w-full with mx-auto: auto cross-axis margins turn a stretched
-				// flex item into a shrink-to-fit one, so the width is stated outright
-				// and the margins only center the row once the cap applies.
-				"mx-auto w-full max-w-(--app-layout-max-width,128rem)",
 				className,
 			)}
 			{...props}
@@ -784,9 +767,9 @@ type AppLayoutSidePanelMobileBreakpoint = "sm" | "md" | "lg";
  * `basis-0` is gated to the breakpoint and up: an absolutely positioned box
  * ignores `flex-basis`, so an ungated one runs an inert transition on every
  * close and open. Closed, the floating box is also
- * `invisible`: when `--app-layout-max-width` caps the row inside the frame,
- * the row's end edge sits inside the frame too, and a panel past that edge
- * would still paint beside the row. `visibility` rides the transition, so the
+ * `invisible`: when a consumer narrows the row inside the frame, the row's
+ * end edge sits inside the frame too, and a panel past that edge would still
+ * paint beside the row. `visibility` rides the transition, so the
  * panel stays visible through the slide and hides the instant it ends. One
  * breakpoint lower it covers the card from gutter to gutter, because a strip
  * of page beside a 24rem panel is no page at all on a phone. The floating box
@@ -870,6 +853,14 @@ function isSidePanelFloating(panel: HTMLElement | null): boolean {
 }
 
 /**
+ * Parses a computed `transition-duration` or `transition-delay` list into
+ * seconds, one entry per comma. An entry that does not parse is `0`.
+ */
+function toSeconds(times: string): number[] {
+	return times.split(",").map((time) => Number.parseFloat(time) || 0);
+}
+
+/**
  * The milliseconds until every transition on `panel` ends: the longest
  * duration plus delay of one `transition-property` entry. The duration and
  * delay lists repeat to the length of the property list, as CSS repeats them.
@@ -877,7 +868,6 @@ function isSidePanelFloating(panel: HTMLElement | null): boolean {
  */
 function readSidePanelTransitionMs(panel: HTMLElement): number {
 	const style = getComputedStyle(panel);
-	const toSeconds = (times: string) => times.split(",").map((time) => Number.parseFloat(time) || 0);
 	const durations = toSeconds(style.transitionDuration);
 	const delays = toSeconds(style.transitionDelay);
 	const ends = style.transitionProperty
@@ -1258,9 +1248,9 @@ type AppLayoutSidePanelProps = Omit<ComponentProps<"aside">, "id"> &
  * strip of page when the row is narrower), with a larger shadow and `z-20` so
  * it paints above a page's own sticky rows. Closed, it slides off the end edge
  * instead of collapsing and goes `invisible` the instant the slide ends, so a
- * row that `--app-layout-max-width` caps inside the frame has no panel strip
- * beside it. One breakpoint lower it covers the card from gutter to gutter,
- * because a strip of page beside a 24rem panel is no page at all on a phone.
+ * row narrower than the frame has no panel strip beside it. One breakpoint
+ * lower it covers the card from gutter to gutter, because a strip of page
+ * beside a 24rem panel is no page at all on a phone.
  * With `"sm"` there is no lower breakpoint, so the panel covers the card as
  * soon as it floats. Two cards side by side in 900px are two unusable cards.
  *
@@ -1295,7 +1285,7 @@ type AppLayoutSidePanelProps = Omit<ComponentProps<"aside">, "id"> &
  *
  * | CSS Variable | Default | Description |
  * | --- | --- | --- |
- * | `--app-layout-side-panel-width` | `clamp(21rem, 24cqw, 27rem)` | The panel's width beside the card: a quarter of the `AppLayout.Workspace` row, never narrower than 336px and never wider than 432px. It reads the row, not the viewport, so a row that `--app-layout-max-width` caps on a wide screen holds the panel at its floor and the page keeps the rest. Set it on `AppLayout.Root` or on this part. |
+ * | `--app-layout-side-panel-width` | `clamp(21rem, 24cqw, 27rem)` | The panel's width beside the card: a quarter of the `AppLayout.Workspace` row, never narrower than 336px and never wider than 432px. It reads the row, not the viewport, so a row narrower than the viewport holds the panel at its floor and the page keeps the rest. Set it on `AppLayout.Root` or on this part. |
  * | `--app-layout-card-gutter` | `0.5rem` | Read, not owned: `AppLayout.Content` owns this token. The panel keeps it on its top, end, and bottom edges, and the floating panel insets itself by it. Set it on `AppLayout.Root` or another common ancestor of the card and the panel, not on `AppLayout.Content`: custom properties inherit downward only, so a value on the card never reaches the panel. |
  * | `--container-side-panel-lane` | `56.5rem` | A theme token the row's container query reads: the narrowest `AppLayout.Workspace` row that holds an expanded `Sidebar.Nav` (13rem), the card at the panel's floor (21rem), the panel (21rem), and the three gutters. Below it the panel floats while a direct child of the row is an expanded rail. Set it in `@theme`, not on an element. |
  * | `--container-side-panel-lane-icon-rail` | `46.75rem` | The same row with the icon rail (3.25rem) in place of the expanded one, or with no rail. Below it the panel floats whatever the rail is. Set it in `@theme`, not on an element. |
@@ -1446,7 +1436,7 @@ const SidePanel = ({
 				// name inside an arbitrary value as a space, so each value names public
 				// variables only and the utilities read the private ones by name.
 				// Why cqw: the lane tokens budget the panel at its 21rem floor, and a
-				// width that read the viewport outgrew that budget in a capped row.
+				// width that read the viewport outgrew that budget in a narrow row.
 				"[--_side-panel-content-width:var(--app-layout-side-panel-width,clamp(21rem,24cqw,27rem))] [--_side-panel-content-inset:var(--app-layout-card-gutter,0.5rem)] [--_side-panel-box-width:calc(var(--app-layout-side-panel-width,clamp(21rem,24cqw,27rem))+var(--app-layout-card-gutter,0.5rem))]",
 				// A fixed basis, never a share of the row: `flex-1` cannot interpolate
 				// to a width, so a lane that animates never uses it. The basis is the
@@ -2147,8 +2137,7 @@ const AppLayout = {
 	Notice,
 	/**
 	 * The row below the notice where the user works: a `Sidebar.Nav` beside an
-	 * `AppLayout.Content` card, and an `AppLayout.SidePanel` after it. Caps at
-	 * `--app-layout-max-width` and centers on a wide screen.
+	 * `AppLayout.Content` card, and an `AppLayout.SidePanel` after it.
 	 *
 	 * @see https://mantle.ngrok.com/layouts/app-layout#applayoutworkspace
 	 *
