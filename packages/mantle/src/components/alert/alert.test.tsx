@@ -445,7 +445,7 @@ describe("Alert", () => {
 
 			const button = container.querySelector('[data-slot~="alert-expand-button"]');
 			const label = button?.querySelector('[data-slot="button-label"]');
-			const caret = button?.querySelector("svg[data-state='active']");
+			const caret = button?.querySelector("[data-state='active'] > svg");
 			expect(label).toHaveTextContent("+3");
 			// The caret's icon slot is the label's sibling, not its descendant, so the
 			// button's `gap` falls between the two and `iconPlacement="end"` orders the

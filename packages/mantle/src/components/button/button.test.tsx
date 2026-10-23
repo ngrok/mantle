@@ -231,7 +231,7 @@ describe("Button", () => {
 			const icon = screen.getByTestId("icon");
 			expect(button.firstChild).toContainElement(icon);
 			expect(icon).toHaveAttribute("data-slot", "icon svg-only");
-			expect(icon).toHaveAttribute("data-state", "active");
+			expect(icon.parentElement).toHaveAttribute("data-state", "active");
 			expect(button).toHaveTextContent("click me");
 		});
 
@@ -584,9 +584,9 @@ describe("Button", () => {
 		const icon = screen.getByTestId("icon");
 		expect(button).toHaveAttribute("data-loading", "");
 		// The consumer's icon stays mounted for the transition, hidden behind the spinner.
-		expect(icon).toHaveAttribute("data-state", "inactive");
-		expect(icon).toHaveAttribute("aria-hidden", "true");
-		const spinner = button.querySelector("svg[data-state='active']");
+		expect(icon.parentElement).toHaveAttribute("data-state", "inactive");
+		expect(icon.parentElement).toHaveAttribute("aria-hidden", "true");
+		const spinner = button.querySelector("[data-state='active'] > svg");
 		expect(spinner).toBeInTheDocument();
 		expect(spinner).not.toBe(icon);
 		expect(button).toHaveTextContent("submit");
@@ -599,8 +599,8 @@ describe("Button", () => {
 		expect(button).not.toHaveAttribute("data-loading");
 		// The same nodes swap state, so a CSS transition can carry the swap.
 		expect(screen.getByTestId("icon")).toBe(icon);
-		expect(icon).toHaveAttribute("data-state", "active");
-		expect(spinner).toHaveAttribute("data-state", "inactive");
+		expect(icon.parentElement).toHaveAttribute("data-state", "active");
+		expect(spinner?.parentElement).toHaveAttribute("data-state", "inactive");
 	});
 
 	test("isLoading with `asChild` swaps the consumer's icon for a spinner in the child", () => {
@@ -617,8 +617,8 @@ describe("Button", () => {
 		);
 		const link = screen.getByRole("link");
 		expect(link).toHaveAttribute("data-loading", "");
-		expect(screen.getByTestId("icon")).toHaveAttribute("data-state", "inactive");
-		const spinner = link.querySelector("svg[data-state='active']");
+		expect(screen.getByTestId("icon").parentElement).toHaveAttribute("data-state", "inactive");
+		const spinner = link.querySelector("[data-state='active'] > svg");
 		expect(spinner).toBeInTheDocument();
 		expect(spinner).not.toBe(screen.getByTestId("icon"));
 		expect(link).toHaveTextContent("continue");

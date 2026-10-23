@@ -22,8 +22,9 @@ type IconSwapProps<Key extends string> = Omit<ComponentProps<"span">, "children"
  *
  * Each icon stays mounted, so a CSS transition carries the swap, and a second
  * swap during the motion reverses it from its current value. Under reduced
- * motion, the swap is instant. The active icon has `data-state="active"`; the
- * others have `data-state="inactive"` and `aria-hidden`.
+ * motion, the swap is instant. Each icon is in a `data-slot="icon-swap-item"`
+ * span. The span of the active icon has `data-state="active"`; the others have
+ * `data-state="inactive"` and `aria-hidden`.
  *
  * @example
  * ```tsx
@@ -48,22 +49,25 @@ const IconSwap = <Key extends string>({
 		{Object.entries<ReactNode>(icons).map(([key, svg]) => {
 			const isActive = key === active;
 
+			// Why a wrapper per icon: the swap owns the wrapper's `transition`, so
+			// an icon keeps its own (a rotating caret), and a non-host icon such as
+			// `BrowserOnly` still swaps.
 			return (
-				<Icon
+				<span
 					key={key}
-					svg={svg}
-					// Why a conditional spread: an explicit `undefined` would replace the
-					// decorative `aria-hidden` that `Icon` sets on an unnamed svg.
-					{...(!isActive && { "aria-hidden": true })}
+					data-slot="icon-swap-item"
 					data-state={isActive ? "active" : "inactive"}
+					aria-hidden={isActive ? undefined : true}
 					className={cx(
-						"col-start-1 row-start-1",
+						"col-start-1 row-start-1 grid place-items-center",
 						"motion-safe:transition-[opacity,scale,filter] motion-safe:duration-200 motion-safe:ease-out-strong",
 						"data-state-inactive:opacity-0 motion-safe:data-state-inactive:scale-50 motion-safe:data-state-inactive:blur-[2px] motion-safe:data-state-inactive:duration-150",
 						// Why paused: a spinner that is not shown must not keep a running animation.
-						"data-state-inactive:[animation-play-state:paused]",
+						"data-state-inactive:*:[animation-play-state:paused]",
 					)}
-				/>
+				>
+					<Icon svg={svg} />
+				</span>
 			);
 		})}
 	</span>
