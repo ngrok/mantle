@@ -32,6 +32,7 @@ export function Head({ nonce, ssrCookie }: { nonce: string; ssrCookie?: string }
 			<PreventWrongThemeFlashScript nonce={nonce} forceTheme="dark" />
 			<MantleStyleSheets {...themeUrls} />
 			<Sheets {...keyedUrls} />
+			<MantleStyleSheets darkCssUrl={darkCssUrl} />
 			{/* negative: another library's component keeps its props */}
 			<OtherSheets nonce={nonce} ssrCookie={ssrCookie} />
 		</head>

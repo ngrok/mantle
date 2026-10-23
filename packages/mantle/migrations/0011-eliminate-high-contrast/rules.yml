@@ -460,6 +460,60 @@ utils:
               has:
                 field: name
                 pattern: $URLS
+  mantle-style-sheets-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/theme["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^MantleStyleSheets$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $SHEETS
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $SHEETS
+  # An element of mantle's `MantleStyleSheets`.
+  mantle-style-sheets-element:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    all:
+      - has:
+          field: name
+          kind: identifier
+          pattern: $SHEETS
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: mantle-style-sheets-import
+      - not:
+          inside:
+            stopBy: end
+            matches: scope
+            has:
+              stopBy:
+                matches: scope
+              any:
+                - matches: binding-name
+                  pattern: $SHEETS
+                - matches: function-declaration
+                  has:
+                    field: name
+                    pattern: $SHEETS
   # The object passed to a mantle `mantleStyleSheetUrls` call.
   style-sheet-urls-object:
     kind: object
@@ -508,6 +562,16 @@ utils:
                 field: key
                 regex: ^["']?(lightHighContrastCssUrl|darkHighContrastCssUrl)["']?$
             - inside: { matches: style-sheet-urls-object }
+      - kind: identifier
+        inside:
+          kind: jsx_expression
+          inside:
+            kind: jsx_attribute
+            all:
+              - has:
+                  kind: property_identifier
+                  regex: ^(lightHighContrastCssUrl|darkHighContrastCssUrl)$
+              - inside: { matches: mantle-style-sheets-element }
 rule:
   kind: import_statement
   all:
