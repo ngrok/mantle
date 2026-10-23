@@ -23,6 +23,8 @@ ${mantleCss.match(/:root\[data-theme-transition\][^{]*\{[^}]*\}/g)?.join("\n") ?
 .dark [data-testid="probe"] { color: rgb(255, 255, 255); }
 @keyframes slow-exit { to { opacity: 0; } }
 [data-slot~="dialog-overlay"][data-state="closed"] { animation: slow-exit 1s; }
+[data-slot~="dialog-content"][data-state="closed"] { animation: slow-exit 1s; }
+[data-slot~="dialog-positioner"]:has(> [data-mantle-modal-content][data-state="closed"]) { animation: slow-exit 1s; }
 `;
 
 let styleElement: HTMLStyleElement;
@@ -234,8 +236,9 @@ describe("setTheme theme swap in Chromium", () => {
 		expect(from.x).toBeCloseTo(left + width / 2);
 		expect(from.y).toBeCloseTo(top + height / 2);
 		expect(document.documentElement).toHaveClass("dark");
-		// The exit animation would leave the overlay in the old snapshot.
+		// An exit animation or the exit hold would leave the dialog in the old snapshot.
 		expect(document.querySelector('[data-slot~="dialog-overlay"]')).toBeNull();
+		expect(document.querySelector('[data-slot~="dialog-positioner"]')).toBeNull();
 
 		await reveal.finished;
 	});

@@ -66,13 +66,15 @@ const EXIT_TRANSITION_TIMEOUT_MS = 400;
 /**
  * The panel's blocked-navigation wiggle. Keep it equal to the `shake` keyframes
  * in `mantle.css`: the first swing eases out, and the smaller swings settle it.
+ * Each keyframe holds its own easing, as in CSS. An `easing` on the animation
+ * options would ease the whole timeline instead.
  */
 const shakeKeyframes: Keyframe[] = [
 	{ transform: "translateX(0)", easing: "ease-out" },
-	{ transform: "translateX(-4px)" },
-	{ transform: "translateX(3px)" },
-	{ transform: "translateX(-2px)" },
-	{ transform: "translateX(1px)" },
+	{ transform: "translateX(-4px)", easing: "ease-in-out" },
+	{ transform: "translateX(3px)", easing: "ease-in-out" },
+	{ transform: "translateX(-2px)", easing: "ease-in-out" },
+	{ transform: "translateX(1px)", easing: "ease-in-out" },
 	{ transform: "translateX(0)" },
 ];
 
@@ -334,7 +336,7 @@ const Root = ({
 				shakeAnimationRef.current.cancel();
 				shakeAnimationRef.current = null;
 			}
-			const animation = panel.animate(shakeKeyframes, { duration: 300, easing: "ease-in-out" });
+			const animation = panel.animate(shakeKeyframes, { duration: 300 });
 			// Why: `cancel()` rejects `finished` with an `AbortError`. Browsers
 			// suppress the report when nobody read `finished`, but happy-dom
 			// surfaces it as an unhandled rejection and fails the test run.

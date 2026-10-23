@@ -1493,15 +1493,18 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
 }
 
 /*
- * A dialog overlay or a menu that closes as the swap starts, such as the
- * backdrop of a command palette, would freeze in the old snapshot outside the
- * circle. Without an exit animation it unmounts before the snapshot.
+ * A dialog or a menu that closes as the swap starts, such as a command
+ * palette, would freeze in the old snapshot outside the circle. Without an
+ * exit animation it unmounts before the snapshot. The dialog positioner
+ * animates only to hold the exit, so it stops too.
  */
 :root[data-theme-transition]
 	:is(
 		[data-slot~="dialog-overlay"],
+		[data-slot~="dialog-content"],
 		[data-slot~="dropdown-menu-content"],
 		[data-slot~="dropdown-menu-sub-content"]
-	)[data-state="closed"] {
+	)[data-state="closed"],
+:root[data-theme-transition] [data-slot~="dialog-positioner"] {
 	animation: none !important;
 }

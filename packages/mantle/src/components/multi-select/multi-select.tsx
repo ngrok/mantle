@@ -1781,15 +1781,16 @@ function shakeElement(element: HTMLElement): void {
 	}
 
 	element.animate(
-		// Why these values: they match the `shake` keyframes in `mantle.css`.
+		// Why these values: they match the `shake` keyframes in `mantle.css`. CSS eases each
+		// interval; an `easing` on the options would ease the whole timeline instead.
 		[
 			{ transform: "translateX(0)", easing: "ease-out" },
-			{ transform: "translateX(-4px)" },
-			{ transform: "translateX(3px)" },
-			{ transform: "translateX(-2px)" },
-			{ transform: "translateX(1px)" },
+			{ transform: "translateX(-4px)", easing: "ease-in-out" },
+			{ transform: "translateX(3px)", easing: "ease-in-out" },
+			{ transform: "translateX(-2px)", easing: "ease-in-out" },
+			{ transform: "translateX(1px)", easing: "ease-in-out" },
 			{ transform: "translateX(0)" },
 		],
-		{ duration: 300, easing: "ease-in-out" },
+		{ duration: 300 },
 	);
 }
