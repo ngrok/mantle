@@ -33,6 +33,7 @@ import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import { Icon as MantleIcon } from "../icon/icon.js";
+import { IconSwap } from "../icon/icon-swap.js";
 import type { SvgAttributes } from "../icon/types.js";
 import { TrafficPolicyFileIcon } from "../icons/traffic-policy-file.js";
 import { IconButton } from "../button/icon-button.js";
@@ -676,7 +677,12 @@ const CopyButton = ({
 				intent="neutral"
 				size="sm"
 				label={label}
-				icon={wasCopied ? <CheckIcon /> : <CopyIcon />}
+				icon={
+					<IconSwap
+						active={wasCopied ? "check" : "copy"}
+						icons={{ check: <CheckIcon />, copy: <CopyIcon /> }}
+					/>
+				}
 				className={cx("bg-base not-disabled:hover:bg-neutral-500/15", className)}
 				ref={ref}
 				onClick={async (event) => {

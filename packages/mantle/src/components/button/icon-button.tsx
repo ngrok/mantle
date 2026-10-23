@@ -7,7 +7,7 @@ import { parseBooleanish } from "../../types/index.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
-import { Icon } from "../icon/index.js";
+import { IconSwap } from "../icon/icon-swap.js";
 import { Slot } from "../slot/index.js";
 import { disabledChildProps } from "./button.js";
 import type {
@@ -173,7 +173,6 @@ const IconButton = ({
 	// `disabled={false}` keeps a loading button enabled and focused (`Sandbar`
 	// relies on it), and `aria-disabled={false}` cannot re-enable a disabled button.
 	const disabled = parseBooleanish(_disabled ?? isLoading) || parseBooleanish(_ariaDisabled);
-	const icon = isLoading ? <CircleNotchIcon className="animate-spin" /> : propIcon;
 
 	const buttonProps = {
 		"aria-disabled": disabled,
@@ -194,7 +193,12 @@ const IconButton = ({
 		"aria-label": label,
 	};
 
-	const innerChildren = <Icon svg={icon} />;
+	const innerChildren = (
+		<IconSwap
+			active={isLoading ? "loading" : "idle"}
+			icons={{ idle: propIcon, loading: <CircleNotchIcon className="animate-spin" /> }}
+		/>
+	);
 
 	if (asChild) {
 		invariant(

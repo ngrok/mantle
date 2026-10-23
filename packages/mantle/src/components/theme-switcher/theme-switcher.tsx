@@ -1,6 +1,6 @@
 "use client";
 
-import type { ComponentProps } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import type { WithStyleProps } from "../../types/with-style-props.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
@@ -12,10 +12,11 @@ import {
 } from "../button/icon-button.js";
 import { DropdownMenu } from "../dropdown-menu/index.js";
 import { Icon } from "../icon/icon.js";
-import { AutoThemeIcon, ThemeIcon } from "../icons/theme.js";
+import { IconSwap } from "../icon/icon-swap.js";
+import { ThemeIcon } from "../icons/theme.js";
 import { Skeleton } from "../skeleton/index.js";
-import { useTheme } from "../theme/theme-provider.js";
-import type { Theme } from "../theme/themes.js";
+import { useAppliedTheme, useTheme } from "../theme/theme-provider.js";
+import type { ResolvedTheme, Theme } from "../theme/themes.js";
 import { $theme, isTheme, themes } from "../theme/themes.js";
 
 /**
@@ -30,6 +31,17 @@ const themeLabels: Record<Theme, string> = {
 	"light-high-contrast": "Light High Contrast",
 	"dark-high-contrast": "Dark High Contrast",
 };
+
+/**
+ * The trigger icon for each applied theme. The trigger keeps each icon mounted,
+ * so a theme change swaps the icon with a transition.
+ */
+const appliedThemeIcons = {
+	light: <ThemeIcon theme="light" />,
+	dark: <ThemeIcon theme="dark" />,
+	"light-high-contrast": <ThemeIcon theme="light-high-contrast" />,
+	"dark-high-contrast": <ThemeIcon theme="dark-high-contrast" />,
+} satisfies Record<ResolvedTheme, ReactNode>;
 
 /**
  * The props for the `ThemeDropdownMenuRadioGroup` component.
@@ -200,35 +212,39 @@ const Trigger = ({
 	label = "Change Theme",
 	ref,
 	...props
-}: ThemeSwitcherTriggerProps) => (
-	// `disabled` must reach DropdownMenu.Trigger too: Radix owns the open
-	// behavior, and a disabled trigger that only disables the button DOM
-	// node would still open the menu on synthesized pointer events.
-	<DropdownMenu.Trigger asChild disabled={disabled}>
-		<IconButton
-			ref={ref}
-			appearance={appearance}
-			disabled={disabled}
-			data-slot={joinDataSlot(dataSlot, "theme-switcher-trigger")}
-			intent="neutral"
-			icon={
-				<BrowserOnly
-					fallback={
-						// Why a span: the fallback renders inside a <button>, whose content
-						// model forbids a <div>.
-						<Skeleton asChild className="rounded-full size-5">
-							<span />
-						</Skeleton>
-					}
-				>
-					{() => <AutoThemeIcon className="size-5" />}
-				</BrowserOnly>
-			}
-			label={label}
-			{...props}
-		/>
-	</DropdownMenu.Trigger>
-);
+}: ThemeSwitcherTriggerProps) => {
+	const appliedTheme = useAppliedTheme();
+
+	return (
+		// `disabled` must reach DropdownMenu.Trigger too: Radix owns the open
+		// behavior, and a disabled trigger that only disables the button DOM
+		// node would still open the menu on synthesized pointer events.
+		<DropdownMenu.Trigger asChild disabled={disabled}>
+			<IconButton
+				ref={ref}
+				appearance={appearance}
+				disabled={disabled}
+				data-slot={joinDataSlot(dataSlot, "theme-switcher-trigger")}
+				intent="neutral"
+				icon={
+					<BrowserOnly
+						fallback={
+							// Why a span: the fallback renders inside a <button>, whose content
+							// model forbids a <div>.
+							<Skeleton asChild className="rounded-full size-5">
+								<span />
+							</Skeleton>
+						}
+					>
+						{() => <IconSwap active={appliedTheme} icons={appliedThemeIcons} />}
+					</BrowserOnly>
+				}
+				label={label}
+				{...props}
+			/>
+		</DropdownMenu.Trigger>
+	);
+};
 
 /**
  * The props for the `ThemeSwitcher.Content` component. Identical to

@@ -24,6 +24,7 @@ import { cx } from "../../utils/cx/cx.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { IconButton } from "../button/icon-button.js";
+import { IconSwap } from "../icon/icon-swap.js";
 import { LiveRegion } from "../live-region/live-region.js";
 import { assertChartKeys, datumValue } from "./datum.js";
 import type { XSummary } from "./describe.js";
@@ -1768,7 +1769,12 @@ const ChartCopyButtonPrimitive = ({
 				size="sm"
 				data-slot={`${slotName}-copy-button`}
 				label={label}
-				icon={wasCopied ? <CheckIcon /> : <CopyIcon />}
+				icon={
+					<IconSwap
+						active={wasCopied ? "check" : "copy"}
+						icons={{ check: <CheckIcon />, copy: <CopyIcon /> }}
+					/>
+				}
 				ref={ref}
 				onClick={async (event) => {
 					try {

@@ -229,8 +229,9 @@ describe("Button", () => {
 			);
 			const button = screen.getByRole("button");
 			const icon = screen.getByTestId("icon");
-			expect(button.firstChild).toBe(icon);
+			expect(button.firstChild).toContainElement(icon);
 			expect(icon).toHaveAttribute("data-slot", "icon svg-only");
+			expect(icon).toHaveAttribute("data-state", "active");
 			expect(button).toHaveTextContent("click me");
 		});
 
@@ -245,12 +246,12 @@ describe("Button", () => {
 					click me
 				</Button>,
 			);
-			const icon = screen.getByTestId("icon");
+			const iconSlot = screen.getByRole("button").firstChild;
 			// The icon stays first in the DOM, so assistive technology reads it first.
-			expect(screen.getByRole("button").firstChild).toBe(icon);
+			expect(iconSlot).toContainElement(screen.getByTestId("icon"));
 			// Why the class assertion: `iconPlacement` emits no data attribute, so `order-last`
 			// is the only observable of the end placement.
-			expect(icon).toHaveClass("order-last");
+			expect(iconSlot).toHaveClass("order-last");
 		});
 
 		test("injects the icon into an `asChild` child ahead of its own children", () => {
@@ -260,7 +261,7 @@ describe("Button", () => {
 				</Button>,
 			);
 			const link = screen.getByRole("link", { name: "click me" });
-			expect(link.firstChild).toBe(screen.getByTestId("icon"));
+			expect(link.firstChild).toContainElement(screen.getByTestId("icon"));
 			expect(link).toHaveTextContent("click me");
 		});
 	});
@@ -573,17 +574,21 @@ describe("Button", () => {
 		expect(screen.getByTestId("click-state")).toHaveTextContent("idle");
 	});
 
-	test("isLoading swaps the consumer's icon for a single spinner, and back once idle", () => {
+	test("isLoading swaps the consumer's icon for a spinner, and back once idle", () => {
 		const { rerender } = render(
 			<Button appearance="outlined" intent="accent" icon={<svg data-testid="icon" />} isLoading>
 				submit
 			</Button>,
 		);
 		const button = screen.getByRole("button");
+		const icon = screen.getByTestId("icon");
 		expect(button).toHaveAttribute("data-loading", "");
-		// The consumer's icon is gone and exactly one svg remains, so that one is the spinner.
-		expect(screen.queryByTestId("icon")).not.toBeInTheDocument();
-		expect(button.querySelectorAll("svg")).toHaveLength(1);
+		// The consumer's icon stays mounted for the transition, hidden behind the spinner.
+		expect(icon).toHaveAttribute("data-state", "inactive");
+		expect(icon).toHaveAttribute("aria-hidden", "true");
+		const spinner = button.querySelector("svg[data-state='active']");
+		expect(spinner).toBeInTheDocument();
+		expect(spinner).not.toBe(icon);
 		expect(button).toHaveTextContent("submit");
 
 		rerender(
@@ -592,12 +597,13 @@ describe("Button", () => {
 			</Button>,
 		);
 		expect(button).not.toHaveAttribute("data-loading");
-		const icons = button.querySelectorAll("svg");
-		expect(icons).toHaveLength(1);
-		expect(icons[0]).toBe(screen.getByTestId("icon"));
+		// The same nodes swap state, so a CSS transition can carry the swap.
+		expect(screen.getByTestId("icon")).toBe(icon);
+		expect(icon).toHaveAttribute("data-state", "active");
+		expect(spinner).toHaveAttribute("data-state", "inactive");
 	});
 
-	test("isLoading with `asChild` swaps the consumer's icon for a single spinner in the child", () => {
+	test("isLoading with `asChild` swaps the consumer's icon for a spinner in the child", () => {
 		render(
 			<Button
 				appearance="outlined"
@@ -611,8 +617,10 @@ describe("Button", () => {
 		);
 		const link = screen.getByRole("link");
 		expect(link).toHaveAttribute("data-loading", "");
-		expect(screen.queryByTestId("icon")).not.toBeInTheDocument();
-		expect(link.querySelectorAll("svg")).toHaveLength(1);
+		expect(screen.getByTestId("icon")).toHaveAttribute("data-state", "inactive");
+		const spinner = link.querySelector("svg[data-state='active']");
+		expect(spinner).toBeInTheDocument();
+		expect(spinner).not.toBe(screen.getByTestId("icon"));
 		expect(link).toHaveTextContent("continue");
 	});
 

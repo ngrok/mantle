@@ -20,6 +20,10 @@ const STYLE = `
 @layer utilities {
 	.contents { display: contents; }
 	.inline-flex { display: inline-flex; }
+	.inline-grid { display: inline-grid; }
+	.place-items-center { place-items: center; }
+	.col-start-1 { grid-column-start: 1; }
+	.row-start-1 { grid-row-start: 1; }
 	.items-center { align-items: center; }
 	.gap-1\\.5 { gap: 6px; }
 	.order-last { order: 9999; }
