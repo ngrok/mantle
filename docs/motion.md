@@ -38,6 +38,12 @@ explains nothing is noise. Leave it out.
     JavaScript, check `getPrefersReducedMotion()` and apply the end state at once. A color change may stay.
 12. **Measure it.** Prove motion in a real browser, not by reading the classes. See the `motion` skill.
 
+## Exceptions
+
+- **A full-page reveal** (the `ThemeSwitcher` circle) runs 400ms on CSS `ease-out`. The covered area grows with
+  the square of the radius, so `ease-out-strong` in 300ms changes most of the screen in about 40ms, like a flash.
+  The control's own state still changes on the input.
+
 ## Tokens
 
 | Token             | Value                            | Use                            |

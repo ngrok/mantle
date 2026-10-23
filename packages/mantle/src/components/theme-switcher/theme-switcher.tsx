@@ -258,12 +258,6 @@ function ThemeSwitcher({
 }
 
 /**
- * The `ease-out-strong` token. `@theme inline` emits no CSS variable for it,
- * so this copy must match `mantle.css`.
- */
-const easeOutStrong = "cubic-bezier(0.23, 1, 0.32, 1)";
-
-/**
  * Counts theme swaps. A newer swap replaces a running one, so only the newest
  * one clears the `<html>` attribute.
  */
@@ -318,7 +312,10 @@ function swapTheme(update: () => void, { origin }: { origin: HTMLElement }) {
 		() =>
 			html.animate(
 				{ clipPath: [circle.from, circle.to] },
-				{ duration: 300, easing: easeOutStrong, pseudoElement: "::view-transition-new(root)" },
+				// Why not `ease-out-strong` in 300ms: the covered area grows with the
+				// square of the radius, so that curve flips most of the screen in about
+				// 40ms, like a flash. See `docs/motion.md` § Exceptions.
+				{ duration: 400, easing: "ease-out", pseudoElement: "::view-transition-new(root)" },
 			),
 		// A skipped transition rejects `ready`; the theme is already applied.
 		() => {},

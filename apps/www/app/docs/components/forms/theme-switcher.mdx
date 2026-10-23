@@ -66,7 +66,7 @@ The stored preference has three values: `"system"`, `"light"`, and `"dark"`. A u
 
 ## The theme swap
 
-A click grows the new theme in a circle from the button over the old one, in 300ms on mantle's `ease-out-strong` curve. The swap runs in a [view transition](https://developer.mozilla.org/en-US/docs/Web/API/View_Transition_API), so every color on the page changes in the same frame. The theme, the icon, and the accessible name change on the click; only the reveal runs after it.
+A click grows the new theme in a circle from the button over the old one, in 400ms on an `ease-out` curve. The swap runs in a [view transition](https://developer.mozilla.org/en-US/docs/Web/API/View_Transition_API), so every color on the page changes in the same frame. The theme, the icon, and the accessible name change on the click; only the reveal runs after it.
 
 - With `prefers-reduced-motion: reduce`, the swap happens at once.
 - In a browser without view transitions, the swap happens at once.
