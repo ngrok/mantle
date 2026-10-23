@@ -991,7 +991,7 @@ function renderLlmsTxt(manifest: AgentManifest): string {
 	return [
 		`# ${manifest.name} (${manifest.version})`,
 		"",
-		`> Offline index shipped inside the ${manifest.name} npm package. The full records, with examples and sibling boundaries, are in agent.json beside this file. Live docs: ${endpoints.forAiAgents}.`,
+		`> Offline index shipped inside the ${manifest.name} npm package. The full records, with examples and sibling boundaries, are in agent.json beside this file. Neither file lists props: read the bundled type declarations (\`<subpath>.d.ts\` beside this file) for every prop and its JSDoc. Live docs: ${endpoints.forAiAgents}.`,
 		"",
 		`Docs: ${endpoints.docs}`,
 		`Agent guide: ${endpoints.forAiAgents}`,

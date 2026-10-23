@@ -432,6 +432,13 @@ describe("renderLlmsTxt", () => {
 		);
 		expect(text).toContain("- **useBreakpoint** (`@ngrok/mantle/hooks`): Reads the breakpoint.");
 	});
+
+	it("points agents at the bundled type declarations for props", () => {
+		const text = renderLlmsTxt(buildAgentManifest(inputs()));
+
+		expect(text).toContain("Neither file lists props");
+		expect(text).toContain("`<subpath>.d.ts`");
+	});
 });
 
 describe("buildAgentManifestFromFilesystem", () => {

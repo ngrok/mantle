@@ -446,6 +446,25 @@ describe("activation outside React", () => {
 		);
 	});
 
+	test("a dataKey typo lists the keys of every row, not only the first", () => {
+		const stub = createIntersectionObserverStub({ intersecting: false });
+		vi.stubGlobal("IntersectionObserver", stub.Observer);
+		expect(() =>
+			render(
+				<BarChart.Root
+					data={[
+						{ x: "1", a: 1 },
+						{ x: "2", a: 2, b: 9 },
+					]}
+					xKey="x"
+					aria-label="Demo"
+				>
+					<BarChart.Bar dataKey="typo" />
+				</BarChart.Root>,
+			),
+		).toThrow("Available keys: x, a, b.");
+	});
+
 	test("a dormant chart with no plottable row renders empty instead of throwing on a series key", () => {
 		const stub = createIntersectionObserverStub({ intersecting: false });
 		vi.stubGlobal("IntersectionObserver", stub.Observer);

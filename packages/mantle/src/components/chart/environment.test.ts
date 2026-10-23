@@ -1,6 +1,7 @@
 import { expect, test, vi } from "vitest";
 import {
 	observeResize,
+	onFontsLoaded,
 	onPrint,
 	prefersReducedMotion,
 	watchDevicePixelRatio,
@@ -104,6 +105,29 @@ test("onPrint shares one listener pair per window and removes it after the last 
 	expect(remove).toHaveBeenCalledTimes(2);
 	window.dispatchEvent(new Event("beforeprint"));
 	expect(second.before).toHaveBeenCalledTimes(1);
+});
+
+test("onFontsLoaded shares one listener per document and removes it after the last unsubscribe", () => {
+	const fonts = new EventTarget();
+	const fakeDocument = { fonts } as unknown as Document;
+	const add = vi.spyOn(fonts, "addEventListener");
+	const remove = vi.spyOn(fonts, "removeEventListener");
+	const first = vi.fn<() => void>();
+	const second = vi.fn<() => void>();
+	const stopFirst = onFontsLoaded(fakeDocument, first);
+	const stopSecond = onFontsLoaded(fakeDocument, second);
+	// A listener per subscriber would register two.
+	expect(add).toHaveBeenCalledTimes(1);
+
+	fonts.dispatchEvent(new Event("loadingdone"));
+	expect(first).toHaveBeenCalledTimes(1);
+	expect(second).toHaveBeenCalledTimes(1);
+
+	stopFirst();
+	stopSecond();
+	expect(remove).toHaveBeenCalledTimes(1);
+	fonts.dispatchEvent(new Event("loadingdone"));
+	expect(second).toHaveBeenCalledTimes(1);
 });
 
 /** A fake `ResizeObserver` that counts constructions and lets a test deliver entries. */

@@ -126,6 +126,19 @@ const ticks = (start: number, stop: number, count: number, options?: TickOptions
 	return result;
 };
 
+/** The length of the array {@link ticks} returns, without building it. */
+const tickTotal = (start: number, stop: number, count: number, options?: TickOptions): number => {
+	if (!(count > 0)) {
+		return 0;
+	}
+	if (start === stop) {
+		return options?.integer && !Number.isInteger(start) ? 0 : 1;
+	}
+	const [i1, i2] =
+		stop < start ? tickSpec(stop, start, count, options) : tickSpec(start, stop, count, options);
+	return i2 >= i1 ? i2 - i1 + 1 : 0;
+};
+
 /**
  * The tick increment for `[start, stop]`: a positive result is the step size; a
  * negative `-inc` encodes a sub-integer step of `1 / inc`. Callers snap outward
@@ -304,6 +317,34 @@ const linearTicks = (
 ): number[] => ticks(domain[0], domain[1], count, options);
 
 /**
+ * {@link linearTicks} that never returns more than `max` ticks. The 1/2/5
+ * stepper can return almost twice the `count` it is asked for, so this lowers
+ * the count until the result fits, which selects a larger step. `count` is the
+ * first count it tries, and defaults to `max`.
+ *
+ * @example
+ * ```ts
+ * linearTicks([0, 200], 3); // [0, 50, 100, 150, 200]
+ * linearTicksAtMost([0, 200], 3); // [0, 100, 200]
+ * linearTicksAtMost([0, 1000], 9, { count: 5 }); // [0, 200, 400, 600, 800, 1000]
+ * ```
+ */
+const linearTicksAtMost = (
+	domain: readonly [number, number],
+	max: number,
+	options?: TickOptions & { count?: number },
+): number[] => {
+	// Why count first: a large `max` can try many counts, and each one would
+	// build a full tick array only to drop it.
+	let count = Math.floor(Math.min(options?.count ?? max, max));
+	while (count > 1 && tickTotal(domain[0], domain[1], count, options) > max) {
+		count -= 1;
+	}
+	// A count of 1 can still produce two ticks, which a `max` below 2 cannot hold.
+	return linearTicks(domain, count, options).slice(0, Math.max(0, Math.floor(max)));
+};
+
+/**
  * Calendar-aware ticks (epoch milliseconds) for a time domain — the reason
  * d3-scale is a dependency: correct month/DST/year boundaries are the hardest
  * axis math to hand-roll.
@@ -443,6 +484,7 @@ export {
 	invertBand,
 	linearCoefficients,
 	linearTicks,
+	linearTicksAtMost,
 	niceDomain,
 	niceZeroAnchoredDomain,
 	timeTickFormatter,

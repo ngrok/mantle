@@ -45,7 +45,8 @@ const toEpochOrNumber = (raw: unknown, isTime: boolean): number => {
 
 /**
  * The message for a key that no row carries, the way the engine's ingest
- * reports it.
+ * reports it. It lists the keys of every row, because a key that only some
+ * rows carry is valid.
  *
  * @example
  * ```ts
@@ -58,8 +59,15 @@ const missingKeyMessage = (
 	keyName: "xKey" | "dataKey" | "zKey",
 	key: string,
 	rows: readonly object[],
-): string =>
-	`${owner} ${keyName} "${key}" does not match any key in the provided data. Available keys: ${Object.keys(rows[0] ?? {}).join(", ")}.`;
+): string => {
+	const available = new Set<string>();
+	for (const row of rows) {
+		for (const rowKey of Object.keys(row)) {
+			available.add(rowKey);
+		}
+	}
+	return `${owner} ${keyName} "${key}" does not match any key in the provided data. Available keys: ${[...available].join(", ")}.`;
+};
 
 /** The message for x values none of which read as the scale's type. */
 const uncoercibleXMessage = (rootName: string, xKey: string, xScale: string): string =>

@@ -32,7 +32,7 @@ import { cancelActivation, promoteActivation, queueActivation } from "./activati
 import { describeChartParts, describeSeries, scanX } from "./describe.js";
 import type { HoverLayers } from "./engine.js";
 import { ChartEngine, POINT_SHAPE_CLIP_PATHS } from "./engine.js";
-import { onPrint } from "./environment.js";
+import { observeResize, onPrint } from "./environment.js";
 import { formatNumber, formatXValue } from "./format.js";
 import { serializeChartMarkdown } from "./serialize.js";
 import { ChartStore } from "./store.js";
@@ -54,8 +54,10 @@ import type {
 	SeriesMark,
 	SeriesMeta,
 	XScaleKind,
+	XTickContext,
 	XValue,
 	YDomain,
+	YTickContext,
 } from "./types.js";
 
 /**
@@ -279,7 +281,8 @@ const useChartContext = (partName: string): ChartContextValue => {
 	const context = useContext(ChartContext);
 	invariant(
 		context,
-		`${partName} must be composed inside ${partName.split(".")[0]}.Root — it registers into the chart it belongs to and renders nothing on its own.`,
+		() =>
+			`${partName} must be composed inside ${partName.split(".")[0]}.Root — it registers into the chart it belongs to and renders nothing on its own.`,
 	);
 	return context;
 };
@@ -299,15 +302,24 @@ const useStoreSeries = (store: ChartStore): SeriesMeta[] =>
 		() => store.getSnapshot().series,
 	);
 
-/** Subscribe to the registered bar direction only (see {@link useStoreSeries}). */
-/** The hover snapshot alone, so a registration never re-renders the announcer. */
-const useStoreHover = (store: ChartStore): HoverSnapshot | null =>
+/**
+ * The hover snapshot of a keyboard step alone, else `null`. Only a keyboard
+ * step is announced, so a registration or a pointer hover never re-renders
+ * the announcer.
+ */
+const useStoreKeyboardHover = (store: ChartStore): HoverSnapshot | null =>
 	useSyncExternalStore(
 		store.subscribe,
-		() => store.getSnapshot().hover,
-		() => store.getSnapshot().hover,
+		() => keyboardHover(store),
+		() => keyboardHover(store),
 	);
 
+const keyboardHover = (store: ChartStore): HoverSnapshot | null => {
+	const hover = store.getSnapshot().hover;
+	return hover?.viaKeyboard === true ? hover : null;
+};
+
+/** Subscribe to the registered bar direction only (see {@link useStoreSeries}). */
 const useStoreOrientation = (store: ChartStore): BarOrientation =>
 	useSyncExternalStore(
 		store.subscribe,
@@ -618,7 +630,8 @@ const ChartRootPrimitive = ({
 	// evenly-spaced categorical positions misaligned against the value axis.
 	invariant(
 		kind !== "scatter" || data.length === 0 || resolvedXScale !== "point",
-		`${componentName}.Root requires numeric or Date x values — the "${xKey}" values are not numbers or dates, so they have no position on a continuous scatter axis.`,
+		() =>
+			`${componentName}.Root requires numeric or Date x values — the "${xKey}" values are not numbers or dates, so they have no position on a continuous scatter axis.`,
 	);
 	const [yDomainMin, yDomainMax] = yDomain;
 
@@ -1162,7 +1175,8 @@ const useSeriesPrimitive = (
 	const context = useChartContext(partName);
 	invariant(
 		context.kind === mark,
-		`${partName} cannot be composed inside ${context.componentName}.Root — compose ${context.componentName} series parts instead.`,
+		() =>
+			`${partName} cannot be composed inside ${context.componentName}.Root — compose ${context.componentName} series parts instead.`,
 	);
 	const {
 		dataKey,
@@ -1227,8 +1241,10 @@ type XAxisPrimitiveProps = {
 	/**
 	 * Format a tick label. Receives the chart's x values: the category value on
 	 * band/point scales, a `Date` on time scales, and a number on linear scales.
+	 * The second argument carries the `defaultLabel` the axis paints without a
+	 * formatter, so a formatter can decorate it.
 	 */
-	tickFormat?: (value: XValue) => string;
+	tickFormat?: (value: XValue, context: XTickContext) => string;
 	/**
 	 * Target tick count (continuous scales only; a density-derived default
 	 * otherwise). Approximate: ticks land on human-friendly steps, and a linear
@@ -1249,12 +1265,20 @@ const useXAxisPrimitive = (partName: string, props: XAxisPrimitiveProps): null =
 };
 
 type YAxisPrimitiveProps = {
-	/** Format a tick label. Defaults to thousands-separated numbers. */
-	tickFormat?: (value: number) => string;
 	/**
-	 * Target tick count. Approximate: ticks land on human-friendly steps, and
-	 * when every series value is an integer (counts) the axis never renders
-	 * fractional ticks — the integer step wins over the requested count.
+	 * Format a tick label. Defaults to thousands-separated numbers. The second
+	 * argument carries the tick `step` and the `defaultLabel`, whose precision
+	 * follows the step. A formatter that adds a unit can decorate
+	 * `defaultLabel` and needs no precision of its own.
+	 */
+	tickFormat?: (value: number, context: YTickContext) => string;
+	/**
+	 * Maximum tick count. When omitted, the axis aims for about 5 ticks. Ticks
+	 * land on human-friendly steps, so the axis can render fewer. The plot
+	 * height also limits the count: a vertical axis keeps about 28px for each
+	 * tick, and it drops a label that would overlap its neighbor. When every
+	 * series value is an integer (counts), the axis never renders fractional
+	 * ticks.
 	 */
 	tickCount?: number;
 };
@@ -1641,7 +1665,8 @@ const LegendSwatch = ({
  * a single series — one color needs no legend box; the chart's title already
  * names it. Swatches mirror the mark and its glyph: the shape riding a short
  * stroke for lines, the shape itself for scatter points and areas, a filled
- * square for bars.
+ * square for bars. The legend never shrinks the plot by more than its
+ * `max-h-16` bound: past that, it scrolls.
  *
  * No `asChild`: `children` is a render prop (the series list), which is
  * incompatible with Slot's single-element-child contract; use `className`
@@ -1652,22 +1677,43 @@ const ChartLegendPrimitive = ({
 	slotName,
 	className,
 	children,
+	ref,
 	...props
 }: LegendPrimitiveProps & { partName: string; slotName: string }) => {
 	const context = useChartContext(partName);
 	// Selector subscriptions: a hover publish must not re-render the legend.
 	const series = useStoreSeries(context.store);
 	const orientation = useStoreOrientation(context.store);
+	const legendRef = useRef<HTMLDivElement>(null);
+	const composedRef = useComposedRefs(legendRef, ref);
+	const [scrollable, setScrollable] = useState(false);
+	useEffect(() => {
+		const element = legendRef.current;
+		if (element == null) {
+			return;
+		}
+		// Why the series dependency: a legend at its height bound does not resize
+		// when it gets more entries. Each new `observe()` reads once after layout.
+		return observeResize(element, () => {
+			setScrollable(element.scrollHeight > element.clientHeight);
+		});
+	}, [series]);
 	if (series.length < 2) {
 		return null;
 	}
 	return (
 		<div
+			ref={composedRef}
 			data-slot={`${slotName}-legend`}
 			className={cx(
-				"text-muted flex flex-wrap items-center gap-x-4 gap-y-1 pt-3 text-xs",
+				// Why the height bound: the plot is the only part of a fixed-height Root that
+				// shrinks, so a legend with many series can take all of its height.
+				"text-muted focus-visible:ring-focus-accent flex max-h-16 shrink-0 flex-wrap items-center gap-x-4 gap-y-1 overflow-y-auto rounded-sm pt-3 text-xs outline-none focus-visible:ring-2",
 				className,
 			)}
+			// Why: Safari does not put a scroll container in the Tab order, so keyboard
+			// users could not reach the clipped entries.
+			{...(scrollable && { role: "group", "aria-label": "Legend", tabIndex: 0 })}
 			{...props}
 		>
 			{children != null ? (
@@ -1880,10 +1926,10 @@ const ChartAnnouncer = ({
 	/** Whether the dataset's x dates carry a time-of-day component (label granularity). */
 	xHasTimeOfDay: boolean;
 }) => {
-	const hover = useStoreHover(store);
+	const hover = useStoreKeyboardHover(store);
 	const [announcement, setAnnouncement] = useState("");
 	useEffect(() => {
-		if (hover == null || !hover.viaKeyboard) {
+		if (hover == null) {
 			// Why sync setState: the clear must be a real DOM change before the
 			// debounced write, because AT does not re-announce identical text.
 			// Derived state flashes the previous datum's text first.

@@ -28,6 +28,7 @@ import { createBarTexturePattern, textureInkColor } from "./texture.js";
 import { datumValue, missingKeyMessage, toEpochOrNumber, uncoercibleXMessage } from "./datum.js";
 import {
 	observeResize,
+	onFontsLoaded,
 	onPrint,
 	prefersReducedMotion,
 	watchDevicePixelRatio,
@@ -52,6 +53,7 @@ import {
 	invertBand,
 	linearCoefficients,
 	linearTicks,
+	linearTicksAtMost,
 	niceDomain,
 	niceZeroAnchoredDomain,
 	timeTickFormatter,
@@ -187,12 +189,22 @@ const SCATTER_HIT_RADIUS = 24;
 const DRAG_THRESHOLD = 3;
 
 const Y_TICK_COUNT = 5;
+/** The vertical space, in CSS pixels, that one y-axis tick label needs. */
+const Y_TICK_SPACING = 28;
 const PLOT_PADDING = 8;
 const X_AXIS_BAND = 24;
 const FALLBACK_AXIS_GUTTER = 40;
 
+/** The most axis label widths one engine holds before it measures again from empty. */
+const TEXT_WIDTH_CACHE_LIMIT = 512;
+
 /** Width of the left-edge scroll-mask fade band, in CSS pixels. */
 const EDGE_FADE_WIDTH = 40;
+/**
+ * The longest gap between two window slides that still counts as one stream.
+ * A slower feed reads as separate updates, so its x domain chases.
+ */
+const STREAM_MAX_INTERVAL_MS = 2000;
 /** How long after the last window slide the left-edge fade lingers before decaying. */
 const EDGE_FADE_LINGER_MS = 1000;
 
@@ -231,6 +243,7 @@ class ChartEngine {
 	#tooltipResizeObserver: ResizeObserver | null = null;
 	#dprCleanup: (() => void) | null = null;
 	#printCleanup: (() => void) | null = null;
+	#fontsCleanup: (() => void) | null = null;
 	/** The owning window, or `null` in a detached document. */
 	#view: Window | null = null;
 
@@ -287,9 +300,9 @@ class ChartEngine {
 	#xsAllIntegers = true;
 	#stack: StackBoundaries | null = null;
 
-	// Domains chase their targets (liveline-style exponential glide) so regular
-	// retargets — streaming appends — read as continuous motion, never
-	// ease-stop-jump ticks. Per-datum morphs and reveals stay fixed-duration.
+	// Domains chase their targets, so a retarget mid-motion never jumps. A
+	// stream's x domain glides in a straight line instead (see `#streamInterval`).
+	// Per-datum morphs and reveals stay fixed-duration.
 	#yTween = new ChaseTween({ speed: 0.16 });
 	#xTween = new ChaseTween({ speed: 0.2 });
 	#valueTweens = new Map<string, ValueTween>();
@@ -298,18 +311,46 @@ class ChartEngine {
 	#xLabelFade = new Map<number, { alpha: number; target: number; text: string }>();
 	#yLabelFade = new Map<number, { alpha: number; target: number; text: string }>();
 	#lastPaintTime = 0;
+	/**
+	 * The last tick list of each axis and the inputs it came from. Each frame
+	 * builds each list twice (gutter layout, then paint). A value tween keeps
+	 * the category ticks for the whole glide.
+	 */
+	#yTickMemo: {
+		key: string;
+		format: unknown;
+		ticks: Array<{ value: number; text: string }>;
+	} | null = null;
+	#xTickMemo: {
+		key: string;
+		format: unknown;
+		xValues: readonly XValue[];
+		ticks: Array<{ index: number | null; value: number; text: string }>;
+	} | null = null;
+	/**
+	 * Axis label widths at the resolved axis font. Labels repeat across frames,
+	 * so the engine measures each text once. A color resolution clears it,
+	 * because the font family resolves with the colors.
+	 */
+	#textWidths = new Map<string, number>();
 
 	#decimated = false;
 	#decimationCache = new Map<string, { key: string; columns: DecimatedColumns }>();
 
 	// Liveline-style left-edge scroll mask: streaming appends that drop the
-	// oldest row hard-clip exiting marks at the plot edge while the chasing
-	// domain opens a pulsing wedge there. While the window slides, marks fade
+	// oldest row hard-clip exiting marks at the plot edge while the moving
+	// domain opens a wedge there. While the window slides, marks fade
 	// out through a band at the left edge so exits dissolve instead of popping.
 	#edgeFade = { alpha: 0, target: 0 };
-	#lastSlideAt = 0;
+	#lastSlideAt = Number.NEGATIVE_INFINITY;
+	/** Whether the last ingest slid the window forward. */
+	#sliding = false;
+	/**
+	 * The smoothed time between window slides, in ms. `null` until two slides
+	 * arrive within {@link STREAM_MAX_INTERVAL_MS} of each other.
+	 */
+	#streamInterval: number | null = null;
 	#edgeFadeDecayTimer: ReturnType<typeof setTimeout> | null = null;
-	#marksLayerCanvas: HTMLCanvasElement | null = null;
 
 	#colors: ResolvedColors | null = null;
 
@@ -342,6 +383,23 @@ class ChartEngine {
 		depths: Float64Array;
 		count: number;
 	} | null = null;
+	/**
+	 * Bar rects reused across series and frames. A tween repaints every bar on
+	 * every frame, and a fresh object per bar is garbage at frame rate.
+	 */
+	#barRects: BarRect[] = [];
+	#horizontalBarRects: HorizontalBarRect[] = [];
+	/** `0..rowCount-1`, the index list of a line or area that does not connect nulls. */
+	#allIndexes: number[] = [];
+	/** The defined indexes of each scatter series, kept until the next ingest. */
+	#scatterIndexes: {
+		columns: Map<string, Float64Array>;
+		specs: readonly SeriesSpec[];
+		indexes: number[][];
+		total: number;
+	} | null = null;
+	/** The zero lower envelope of an unstacked decimated area, per column count. */
+	#zeroColumns: DecimatedColumns | null = null;
 	/** Reusable back-to-front paint order for the 3D projection (see #paintScatter3d). */
 	#depthOrder: Int32Array = new Int32Array(0);
 	/** Reference-line colors resolved once per color signature (see #resolveReferenceColor). */
@@ -445,6 +503,10 @@ class ChartEngine {
 			this.#colors = null;
 			this.#schedule();
 		});
+		this.#fontsCleanup = onFontsLoaded(options.elements.root.ownerDocument, () => {
+			this.#textWidths.clear();
+			this.#schedule();
+		});
 		this.#view = options.elements.root.ownerDocument.defaultView;
 		if (this.#view != null) {
 			this.#printCleanup = onPrint(this.#view, {
@@ -467,6 +529,7 @@ class ChartEngine {
 		this.#themeDisconnect?.();
 		this.#dprCleanup?.();
 		this.#printCleanup?.();
+		this.#fontsCleanup?.();
 		this.#store.onSeriesChange = null;
 		this.#store.onPresentationChange = null;
 		if (this.#edgeFadeDecayTimer != null) {
@@ -529,11 +592,6 @@ class ChartEngine {
 		if (canvas.width !== 0 || canvas.height !== 0) {
 			canvas.width = 0;
 			canvas.height = 0;
-		}
-		const marksLayer = this.#marksLayerCanvas;
-		if (marksLayer != null && (marksLayer.width !== 0 || marksLayer.height !== 0)) {
-			marksLayer.width = 0;
-			marksLayer.height = 0;
 		}
 		this.#needsPaint = true;
 	}
@@ -1022,7 +1080,9 @@ class ChartEngine {
 						: String(raw);
 				xs[index] = index;
 			}
-			invariant(count === 0 || foundX, missingKeyMessage(this.#rootName(), "xKey", xKey, rows));
+			invariant(count === 0 || foundX, () =>
+				missingKeyMessage(this.#rootName(), "xKey", xKey, rows),
+			);
 			this.#order = null;
 			this.#orderInverse = null;
 			this.#rowCount = count;
@@ -1033,7 +1093,13 @@ class ChartEngine {
 			// on the same engine never reads a stale flag.
 			this.#xsAllIntegers = true;
 		} else {
-			const entries: Array<{ source: number; x: number }> = [];
+			// Why typed arrays: a stream ingests on every append, and an object per
+			// row is garbage at that rate. `xsAll` and `sources` hold the coercible
+			// rows in row order; a sort, when needed, permutes them.
+			const xsAll = new Float64Array(rows.length);
+			const sources = new Int32Array(rows.length);
+			let kept = 0;
+			let sortedAscending = true;
 			// `undefined` = key absent (an all-rows absence is a typo, below);
 			// `null` = an explicit per-row gap that drops silently; a present but
 			// uncoercible value that leaves NO coercible rows at all means the
@@ -1041,7 +1107,6 @@ class ChartEngine {
 			// with zero diagnostics.
 			let sawXKey = false;
 			let sawNonNullish = false;
-			let sawCoercible = false;
 			for (let index = 0; index < rows.length; index++) {
 				const row = rows[index];
 				const raw = row == null ? undefined : datumValue(row, xKey);
@@ -1055,47 +1120,49 @@ class ChartEngine {
 				// no position and would poison the domain into NaN, blanking the chart.
 				const x = toEpochOrNumber(raw, xScale === "time");
 				if (Number.isFinite(x)) {
-					entries.push({ source: index, x });
-					sawCoercible = true;
+					if (kept > 0 && x < (xsAll[kept - 1] ?? 0)) {
+						sortedAscending = false;
+					}
+					xsAll[kept] = x;
+					sources[kept] = index;
+					kept += 1;
 				}
 			}
-			invariant(
-				rows.length === 0 || sawXKey,
+			invariant(rows.length === 0 || sawXKey, () =>
 				missingKeyMessage(this.#rootName(), "xKey", xKey, rows),
 			);
-			invariant(
-				!sawNonNullish || sawCoercible,
+			invariant(!sawNonNullish || kept > 0, () =>
 				uncoercibleXMessage(this.#rootName(), xKey, xScale),
 			);
 			// Sorting once at ingest keeps decimation and hit-testing correct for
 			// out-of-order API responses; the sorted view is the engine's contract.
-			let sortedAscending = true;
-			for (let index = 1; index < entries.length; index++) {
-				if ((entries[index]?.x ?? 0) < (entries[index - 1]?.x ?? 0)) {
-					sortedAscending = false;
+			// A tie keeps row order.
+			const count = kept;
+			let xs = count === rows.length ? xsAll : xsAll.slice(0, count);
+			let order = count === rows.length ? sources : sources.slice(0, count);
+			if (!sortedAscending) {
+				const unsortedXs = xs;
+				const unsortedSources = order;
+				const permutation = Array.from({ length: count }, (_unused, slot) => slot).toSorted(
+					(a, b) => (unsortedXs[a] ?? 0) - (unsortedXs[b] ?? 0) || a - b,
+				);
+				xs = new Float64Array(count);
+				order = new Int32Array(count);
+				for (let slot = 0; slot < count; slot++) {
+					const from = permutation[slot] ?? slot;
+					xs[slot] = unsortedXs[from] ?? 0;
+					order[slot] = unsortedSources[from] ?? 0;
+				}
+			}
+			let xsAllIntegers = true;
+			for (let index = 0; index < count; index++) {
+				if (!Number.isInteger(xs[index])) {
+					xsAllIntegers = false;
 					break;
 				}
 			}
-			const ordered = sortedAscending ? entries : entries.toSorted((a, b) => a.x - b.x);
-			const count = ordered.length;
-			const xs = new Float64Array(count);
-			let identityOrder = count === rows.length;
-			let xsAllIntegers = true;
-			const order = new Int32Array(count);
-			for (let index = 0; index < count; index++) {
-				const entry = ordered[index];
-				if (entry == null) {
-					continue;
-				}
-				xs[index] = entry.x;
-				if (!Number.isInteger(entry.x)) {
-					xsAllIntegers = false;
-				}
-				order[index] = entry.source;
-				if (entry.source !== index) {
-					identityOrder = false;
-				}
-			}
+			// Every row kept, in row order: the view is the data array itself.
+			const identityOrder = count === rows.length && sortedAscending;
 			if (identityOrder) {
 				this.#order = null;
 				this.#orderInverse = null;
@@ -1134,8 +1201,9 @@ class ChartEngine {
 		this.#xHasTimeOfDay = xHasTime;
 
 		// Left-edge scroll mask activation. The streaming signature is a window
-		// slide: the first x advanced while the last kept up. A jump backward or
-		// an unrelated data swap deactivates immediately; an unchanged x vector
+		// slide: the first x advanced into the previous window while the last kept
+		// up. A jump backward or forward past the previous window, or an unrelated
+		// data swap, deactivates immediately; an unchanged x vector
 		// (a series toggle mid-stream) leaves the fade to the paint-side linger.
 		const first = this.#xs[0];
 		const last = this.#xs[this.#rowCount - 1];
@@ -1149,12 +1217,29 @@ class ChartEngine {
 			previousFirst != null &&
 			previousLast != null &&
 			first > previousFirst &&
+			first <= previousLast &&
 			last >= previousLast
 		) {
 			this.#edgeFade.target = 1;
-			this.#lastSlideAt = performance.now();
+			const now = performance.now();
+			const sinceLastSlide = now - this.#lastSlideAt;
+			// Why a smoothed interval: timer jitter of a few ms per append would
+			// otherwise change the scroll speed on every append.
+			if (sinceLastSlide > STREAM_MAX_INTERVAL_MS) {
+				this.#streamInterval = null;
+			} else if (this.#streamInterval == null) {
+				this.#streamInterval = sinceLastSlide;
+			} else {
+				this.#streamInterval = this.#streamInterval * 0.7 + sinceLastSlide * 0.3;
+			}
+			this.#lastSlideAt = now;
+			this.#sliding = true;
 		} else if (first !== previousFirst || last !== previousLast) {
 			this.#edgeFade.target = 0;
+			this.#streamInterval = null;
+			this.#sliding = false;
+		} else {
+			this.#sliding = false;
 		}
 		const count = this.#rowCount;
 
@@ -1208,8 +1293,7 @@ class ChartEngine {
 					}
 				}
 			}
-			invariant(
-				count === 0 || found,
+			invariant(count === 0 || found, () =>
 				missingKeyMessage(PART_NAME[spec.mark], "dataKey", spec.dataKey, rows),
 			);
 			this.#columns.set(spec.dataKey, values);
@@ -1243,7 +1327,9 @@ class ChartEngine {
 					}
 				}
 			}
-			invariant(count === 0 || zFound, missingKeyMessage("ScatterPlot.Root", "zKey", zKey, rows));
+			invariant(count === 0 || zFound, () =>
+				missingKeyMessage("ScatterPlot.Root", "zKey", zKey, rows),
+			);
 			this.#zs = zs;
 			this.#zDomain =
 				zMin === Number.POSITIVE_INFINITY ? [0, 1] : niceDomain([zMin, zMax], Y_TICK_COUNT);
@@ -1311,7 +1397,14 @@ class ChartEngine {
 			this.#xTween.jump(this.#targetXDomain());
 		} else {
 			this.#yTween.aim(this.#targetYDomain(), now);
-			this.#xTween.aim(this.#targetXDomain(), now);
+			if (this.#sliding && this.#streamInterval != null) {
+				// Why a straight line: a stream's x axis is time passing, so it
+				// scrolls at one speed. A chase covers most of each step in the first
+				// frames after an append and then stalls before the next one.
+				this.#xTween.glide(this.#targetXDomain(), { now, duration: this.#streamInterval });
+			} else {
+				this.#xTween.aim(this.#targetXDomain(), now);
+			}
 		}
 
 		// Per-datum tweens: only below the limit and only when the x vector is
@@ -1485,30 +1578,20 @@ class ChartEngine {
 	}
 
 	/**
-	 * The offscreen layer marks paint through while the left-edge fade is
-	 * active — a destination-out erase on the main canvas would punch out the
-	 * gridlines beneath the marks. Returns `null` when a 2D context is
-	 * unavailable (test DOMs); callers fall back to painting directly,
-	 * unmasked.
+	 * The width of one axis label. The caller has set `ctx.font` to the axis
+	 * font.
 	 */
-	#marksLayer(
-		deviceWidth: number,
-		deviceHeight: number,
-	): { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D } | null {
-		let canvas = this.#marksLayerCanvas;
-		if (canvas == null) {
-			canvas = this.#elements.canvas.ownerDocument.createElement("canvas");
-			this.#marksLayerCanvas = canvas;
+	#textWidth(ctx: CanvasRenderingContext2D, text: string): number {
+		let width = this.#textWidths.get(text);
+		if (width == null) {
+			// Why the bound: a streaming time axis makes new labels without end.
+			if (this.#textWidths.size >= TEXT_WIDTH_CACHE_LIMIT) {
+				this.#textWidths.clear();
+			}
+			width = ctx.measureText(text).width;
+			this.#textWidths.set(text, width);
 		}
-		if (canvas.width !== deviceWidth || canvas.height !== deviceHeight) {
-			canvas.width = deviceWidth;
-			canvas.height = deviceHeight;
-		}
-		const ctx = canvas.getContext("2d");
-		if (ctx == null) {
-			return null;
-		}
-		return { canvas, ctx };
+		return width;
 	}
 
 	// ---- scheduling + paint ---------------------------------------------------
@@ -1629,6 +1712,7 @@ class ChartEngine {
 				}
 			}
 		}
+		this.#textWidths.clear();
 		this.#colors = {
 			signature,
 			resolver,
@@ -1725,7 +1809,7 @@ class ChartEngine {
 					? this.#xTicks().map((tick) => tick.text)
 					: this.#yTicks().map((tick) => tick.text);
 				for (const text of labels) {
-					const width = ctx.measureText(text).width;
+					const width = this.#textWidth(ctx, text);
 					if (width > widest) {
 						widest = width;
 					}
@@ -1814,32 +1898,82 @@ class ChartEngine {
 	#yTicks(): Array<{ value: number; text: string }> {
 		const snapshot = this.#store.getSnapshot();
 		const domain = this.#yTween.values();
+		const tickCount = snapshot.yAxis?.tickCount;
+		// Why a height limit: the labels stack in the left gutter, so a short plot
+		// holds fewer of them. The horizontal value axis thins by measured width.
+		const fit = this.#horizontalBars()
+			? Number.POSITIVE_INFINITY
+			: Math.max(2, Math.floor(this.#plot.height / Y_TICK_SPACING));
 		// Integer data keeps integer ticks even mid-glide (tweened fractional
 		// domain bounds) and under a fractional yDomain override — integrality is
-		// a fact about the data, not the domain. `tickCount` stays a hint: the
-		// integer clamp wins when the domain span is smaller than the request.
-		const ticks = linearTicks(
-			[domain[0] ?? 0, domain[1] ?? 1],
-			snapshot.yAxis?.tickCount ?? Y_TICK_COUNT,
-			{ integer: this.#valuesAllIntegers },
-		);
+		// a fact about the data, not the domain.
+		const limit = Math.min(tickCount ?? Number.POSITIVE_INFINITY, fit);
+		const count = tickCount ?? Y_TICK_COUNT;
 		const format = snapshot.yAxis?.tickFormat;
+		const key = `${domain[0]}|${domain[1]}|${limit}|${count}|${this.#valuesAllIntegers}`;
+		const memo = this.#yTickMemo;
+		if (memo != null && memo.key === key && memo.format === format) {
+			return memo.ticks;
+		}
+		const ticks = linearTicksAtMost([domain[0] ?? 0, domain[1] ?? 1], limit, {
+			count,
+			integer: this.#valuesAllIntegers,
+		});
+		const step = ticks.length > 1 ? Math.abs((ticks[1] ?? 0) - (ticks[0] ?? 0)) : 0;
 		// Precision follows the tick step, so small-magnitude domains (error
-		// rates) never collapse neighboring labels into identical "0"s.
-		const digits =
-			ticks.length > 1
-				? tickFractionDigits(Math.abs((ticks[1] ?? 0) - (ticks[0] ?? 0)))
-				: undefined;
-		return ticks.map((value) => ({
-			value,
-			text:
-				format == null
-					? formatNumber(value, digits == null ? undefined : { maximumFractionDigits: digits })
-					: format(value),
-		}));
+		// rates) never collapse neighboring labels into identical "0"s. A single
+		// tick has no step, so the domain span sets its precision: `1.0002` in
+		// `[1.0001, 1.0003]` must not round to `1`.
+		const span = Math.abs((domain[1] ?? 1) - (domain[0] ?? 0));
+		const precision = ticks.length > 1 ? step : span;
+		const digits = precision > 0 ? tickFractionDigits(precision) : undefined;
+		const labeled = ticks.map((value) => {
+			const defaultLabel = formatNumber(
+				value,
+				digits == null ? undefined : { maximumFractionDigits: digits },
+			);
+			return {
+				value,
+				text: format == null ? defaultLabel : format(value, { defaultLabel, step }),
+			};
+		});
+		this.#yTickMemo = { key, format, ticks: labeled };
+		return labeled;
 	}
 
 	#xTicks(): Array<{ index: number | null; value: number; text: string }> {
+		const format = this.#store.getSnapshot().xAxis?.tickFormat;
+		const key = this.#xTickKey();
+		const memo = this.#xTickMemo;
+		if (
+			memo != null &&
+			memo.key === key &&
+			memo.format === format &&
+			memo.xValues === this.#xValues
+		) {
+			return memo.ticks;
+		}
+		const ticks = this.#buildXTicks();
+		this.#xTickMemo = { key, format, xValues: this.#xValues, ticks };
+		return ticks;
+	}
+
+	/**
+	 * Every input of {@link #buildXTicks} except the formatter and the category
+	 * values, which the memo compares by identity.
+	 */
+	#xTickKey(): string {
+		if (this.#bandLayout != null) {
+			const horizontal = this.#horizontalBars();
+			const axisExtent = horizontal ? this.#plot.height : this.#plot.width;
+			return `band|${horizontal}|${axisExtent}|${this.#rowCount}|${this.#xHasTimeOfDay}`;
+		}
+		const domain = this.#xTween.values();
+		const tickCount = this.#store.getSnapshot().xAxis?.tickCount;
+		return `${this.#options.xScale}|${domain[0]}|${domain[1]}|${tickCount}|${this.#plot.width}|${this.#xsAllIntegers}`;
+	}
+
+	#buildXTicks(): Array<{ index: number | null; value: number; text: string }> {
 		const snapshot = this.#store.getSnapshot();
 		const format = snapshot.xAxis?.tickFormat;
 		if (this.#bandLayout != null) {
@@ -1858,13 +1992,11 @@ class ChartEngine {
 			const ticks: Array<{ index: number | null; value: number; text: string }> = [];
 			for (let index = 0; index < this.#rowCount; index += stride) {
 				const value = this.#xValues[index] ?? "";
+				const defaultLabel = formatXValue(value, { datasetHasTimeOfDay: this.#xHasTimeOfDay });
 				ticks.push({
 					index,
 					value: index,
-					text:
-						format == null
-							? formatXValue(value, { datasetHasTimeOfDay: this.#xHasTimeOfDay })
-							: format(value),
+					text: format == null ? defaultLabel : format(value, { defaultLabel }),
 				});
 			}
 			return ticks;
@@ -1874,11 +2006,14 @@ class ChartEngine {
 		const count = snapshot.xAxis?.tickCount ?? Math.max(2, Math.floor(this.#plot.width / 90));
 		if (this.#options.xScale === "time") {
 			const defaultFormat = timeTickFormatter(range);
-			return timeTicks(range, count).map((epoch) => ({
-				index: null,
-				value: epoch,
-				text: format == null ? defaultFormat(epoch) : format(new Date(epoch)),
-			}));
+			return timeTicks(range, count).map((epoch) => {
+				const defaultLabel = defaultFormat(epoch);
+				return {
+					index: null,
+					value: epoch,
+					text: format == null ? defaultLabel : format(new Date(epoch), { defaultLabel }),
+				};
+			});
 		}
 		// Same whole-step clamp as the value axis: a linear x over integer data
 		// (attempt number, batch index) never grows fractional ticks.
@@ -1887,14 +2022,17 @@ class ChartEngine {
 			ticks.length > 1
 				? tickFractionDigits(Math.abs((ticks[1] ?? 0) - (ticks[0] ?? 0)))
 				: undefined;
-		return ticks.map((value) => ({
-			index: null,
-			value,
-			text:
-				format == null
-					? formatNumber(value, digits == null ? undefined : { maximumFractionDigits: digits })
-					: format(value),
-		}));
+		return ticks.map((value) => {
+			const defaultLabel = formatNumber(
+				value,
+				digits == null ? undefined : { maximumFractionDigits: digits },
+			);
+			return {
+				index: null,
+				value,
+				text: format == null ? defaultLabel : format(value, { defaultLabel }),
+			};
+		});
 	}
 
 	#paint(now: number): boolean {
@@ -1994,7 +2132,10 @@ class ChartEngine {
 		// grid (2D only — the 3D frame is the cube wireframe). `lines` is physical:
 		// "horizontal" draws horizontal lines, "vertical" vertical ones. Category
 		// and value each supply whichever direction their axis currently occupies.
-		if (snapshot.grid != null && !is3d) {
+		const paintGrid = (): void => {
+			if (snapshot.grid == null || is3d) {
+				return;
+			}
 			// An unset direction (the store publishes `undefined` for "author left
 			// it to the chart") defaults to VALUE gridlines — perpendicular to the
 			// bars: horizontal for vertical bars / line / area, vertical for
@@ -2008,51 +2149,47 @@ class ChartEngine {
 				xLines: lines === "horizontal" ? [] : verticalLines,
 				yLines: lines === "vertical" ? [] : horizontalLines,
 			});
-		}
+		};
 
-		// marks — through an offscreen layer while the left-edge fade is active,
-		// so the destination-out erase touches only marks, never the grid
-		// painted beneath them.
+		// While the left-edge fade is active, the marks paint first so the
+		// destination-out erase touches only marks. The grid then paints beneath
+		// them with destination-over, which gives the same pixels with no
+		// offscreen canvas.
 		const fadeWidth = Math.min(EDGE_FADE_WIDTH, plot.width * 0.25);
-		let marksCtx = ctx;
-		let marksLayer: { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D } | null = null;
-		if (edgeFade.alpha > 0.01 && fadeWidth > 1) {
-			marksLayer = this.#marksLayer(deviceWidth, deviceHeight);
-			if (marksLayer != null) {
-				marksLayer.ctx.setTransform(this.#dpr, 0, 0, this.#dpr, 0, 0);
-				marksLayer.ctx.clearRect(0, 0, this.#cssWidth, this.#cssHeight);
-				marksCtx = marksLayer.ctx;
-			}
+		const fading = edgeFade.alpha > 0.01 && fadeWidth > 1;
+		if (!fading) {
+			paintGrid();
 		}
-		marksCtx.save();
-		marksCtx.beginPath();
-		marksCtx.rect(plot.left, plot.top, plot.width, plot.height + 1);
-		marksCtx.clip();
+		ctx.save();
+		ctx.beginPath();
+		ctx.rect(plot.left, plot.top, plot.width, plot.height + 1);
+		ctx.clip();
 		let frameLabels: FrameLabels | null = null;
 		if (this.#kind === "bar") {
 			if (horizontal) {
-				this.#paintHorizontalBars(marksCtx, specs);
+				this.#paintHorizontalBars(ctx, specs);
 			} else {
-				this.#paintBars(marksCtx, specs, yCo);
+				this.#paintBars(ctx, specs, yCo);
 			}
 		} else if (this.#kind === "scatter") {
-			frameLabels = this.#paintScatter(marksCtx, specs, yCo);
+			frameLabels = this.#paintScatter(ctx, specs, yCo);
 		} else {
-			this.#paintLinesOrAreas(marksCtx, specs, yCo);
+			this.#paintLinesOrAreas(ctx, specs, yCo);
 		}
-		marksCtx.restore();
-		if (marksLayer != null) {
-			// Liveline's scroll mask: erase the layer through a horizontal alpha
-			// ramp at the plot's left edge, then composite it over the grid.
-			marksCtx.save();
-			marksCtx.globalCompositeOperation = "destination-out";
-			const eraseGradient = marksCtx.createLinearGradient(plot.left, 0, plot.left + fadeWidth, 0);
+		ctx.restore();
+		if (fading) {
+			// Liveline's scroll mask: erase the marks through a horizontal alpha
+			// ramp at the plot's left edge, then paint the grid beneath them.
+			ctx.save();
+			ctx.globalCompositeOperation = "destination-out";
+			const eraseGradient = ctx.createLinearGradient(plot.left, 0, plot.left + fadeWidth, 0);
 			eraseGradient.addColorStop(0, `rgba(0, 0, 0, ${edgeFade.alpha})`);
 			eraseGradient.addColorStop(1, "rgba(0, 0, 0, 0)");
-			marksCtx.fillStyle = eraseGradient;
-			marksCtx.fillRect(plot.left, plot.top, fadeWidth, plot.height + 1);
-			marksCtx.restore();
-			ctx.drawImage(marksLayer.canvas, 0, 0, this.#cssWidth, this.#cssHeight);
+			ctx.fillStyle = eraseGradient;
+			ctx.fillRect(plot.left, plot.top, fadeWidth, plot.height + 1);
+			ctx.globalCompositeOperation = "destination-over";
+			paintGrid();
+			ctx.restore();
 		}
 
 		// 3D frame labels: after the clip so edge-adjacent labels stay whole.
@@ -2170,7 +2307,7 @@ class ChartEngine {
 					: tick.value * xCo.k + xCo.b;
 			// Horizontal labels stack vertically, so they collide by line height,
 			// not text width.
-			const half = horizontal ? (AXIS_FONT_SIZE + 4) / 2 : ctx.measureText(tick.text).width / 2;
+			const half = horizontal ? (AXIS_FONT_SIZE + 4) / 2 : this.#textWidth(ctx, tick.text) / 2;
 			const gap = horizontal ? 2 : 8;
 			if (position - half < previousEnd + gap) {
 				continue;
@@ -2182,27 +2319,36 @@ class ChartEngine {
 	}
 
 	/**
-	 * The value ticks that SHOULD be visible this frame. Vertical charts stack
-	 * them in the left gutter (a handful of {@link Y_TICK_COUNT} labels that don't
-	 * collide), so they pass through unthinned. Horizontal charts place them along
-	 * the x axis where — like the category axis when vertical — they collide by
-	 * measured width, so thin them by width there (skip, never rotate).
+	 * The value ticks that SHOULD be visible this frame, thinned so no two labels
+	 * overlap (skip, never rotate). Vertical charts stack them in the left gutter,
+	 * where they collide by line height. Horizontal charts place them along the x
+	 * axis, where they collide by measured width.
 	 */
 	#desiredValueTicks(
 		ctx: CanvasRenderingContext2D,
 		fontFamily: string,
 	): Array<{ key: number; text: string }> {
 		const ticks = this.#yTicks();
+		const valueCo = this.#valueCoefficients();
 		if (!this.#horizontalBars()) {
-			return ticks.map((tick) => ({ key: tick.value, text: tick.text }));
+			const desired: Array<{ key: number; text: string }> = [];
+			let previous = Number.NaN;
+			for (const tick of ticks) {
+				const position = tick.value * valueCo.k + valueCo.b;
+				if (Math.abs(position - previous) < AXIS_FONT_SIZE + 2) {
+					continue;
+				}
+				previous = position;
+				desired.push({ key: tick.value, text: tick.text });
+			}
+			return desired;
 		}
 		ctx.font = `${AXIS_FONT_SIZE}px ${fontFamily}`;
-		const valueCo = this.#valueCoefficients();
 		const desired: Array<{ key: number; text: string }> = [];
 		let previousEnd = Number.NEGATIVE_INFINITY;
 		for (const tick of ticks) {
 			const position = tick.value * valueCo.k + valueCo.b;
-			const half = ctx.measureText(tick.text).width / 2;
+			const half = this.#textWidth(ctx, tick.text) / 2;
 			if (position - half < previousEnd + 8) {
 				continue;
 			}
@@ -2239,6 +2385,25 @@ class ChartEngine {
 		}
 		const rows = boundary === "lower" ? this.#stack?.lower : this.#stack?.upper;
 		return rows?.[seriesIndex] ?? new Float64Array(0);
+	}
+
+	/** The indexes below `#rowCount` where `values` holds a number. */
+	#definedIndexes(values: Float64Array): number[] {
+		const indexes: number[] = [];
+		for (let index = 0; index < this.#rowCount; index++) {
+			if (!Number.isNaN(values[index] ?? Number.NaN)) {
+				indexes.push(index);
+			}
+		}
+		return indexes;
+	}
+
+	/** `0..count-1`, built once per row count and shared by every series and frame. */
+	#allIndexesUpTo(count: number): readonly number[] {
+		if (this.#allIndexes.length !== count) {
+			this.#allIndexes = Array.from({ length: count }, (_unused, index) => index);
+		}
+		return this.#allIndexes;
 	}
 
 	#reveal(dataKey: string): number {
@@ -2305,9 +2470,10 @@ class ChartEngine {
 		const barWidth = barThickness({ step: layout.step, slot: slotWidth });
 		const toPixel = (value: number): number => value * yCo.k + yCo.b;
 
+		const rects = this.#barRects;
 		specs.forEach((spec, seriesIndex) => {
 			const reveal = this.#reveal(spec.dataKey);
-			const rects: BarRect[] = [];
+			let count = 0;
 			const lower = stacked ? this.#paintedValues(spec, "lower", seriesIndex) : null;
 			const upper = stacked
 				? this.#paintedValues(spec, "upper", seriesIndex)
@@ -2331,13 +2497,14 @@ class ChartEngine {
 					reveal,
 					gap: stacked ? gap : 0,
 				});
-				rects.push({
-					x: slotStart,
-					width: barWidth,
-					baselineY: edges.baseline,
-					valueY: edges.value,
-					rounded: this.#isDataEnd(seriesIndex, index, toPixel),
-				});
+				const rect = rects[count] ?? emptyBarRect();
+				rects[count] = rect;
+				count += 1;
+				rect.x = slotStart;
+				rect.width = barWidth;
+				rect.baselineY = edges.baseline;
+				rect.valueY = edges.value;
+				rect.rounded = this.#isDataEnd(seriesIndex, index, toPixel);
 			}
 			// Textured series paint with their cached pattern; a missing pattern
 			// (solid texture, or tile rasterization unavailable) falls back to the
@@ -2346,6 +2513,7 @@ class ChartEngine {
 				fill:
 					colors.barTextures.get(spec.dataKey) ?? colors.series.get(spec.dataKey) ?? "currentColor",
 				rects,
+				count,
 			});
 		});
 	}
@@ -2371,9 +2539,10 @@ class ChartEngine {
 		const barHeight = barThickness({ step: layout.step, slot: slotHeight });
 		const toPixel = (value: number): number => value * valueCo.k + valueCo.b;
 
+		const rects = this.#horizontalBarRects;
 		specs.forEach((spec, seriesIndex) => {
 			const reveal = this.#reveal(spec.dataKey);
-			const rects: HorizontalBarRect[] = [];
+			let count = 0;
 			const lower = stacked ? this.#paintedValues(spec, "lower", seriesIndex) : null;
 			const upper = stacked
 				? this.#paintedValues(spec, "upper", seriesIndex)
@@ -2397,18 +2566,20 @@ class ChartEngine {
 					reveal,
 					gap: stacked ? gap : 0,
 				});
-				rects.push({
-					y: slotStart,
-					height: barHeight,
-					baselineX: edges.baseline,
-					valueX: edges.value,
-					rounded: this.#isDataEnd(seriesIndex, index, toPixel),
-				});
+				const rect = rects[count] ?? emptyHorizontalBarRect();
+				rects[count] = rect;
+				count += 1;
+				rect.y = slotStart;
+				rect.height = barHeight;
+				rect.baselineX = edges.baseline;
+				rect.valueX = edges.value;
+				rect.rounded = this.#isDataEnd(seriesIndex, index, toPixel);
 			}
 			drawHorizontalBars(ctx, {
 				fill:
 					colors.barTextures.get(spec.dataKey) ?? colors.series.get(spec.dataKey) ?? "currentColor",
 				rects,
+				count,
 			});
 		});
 	}
@@ -2447,12 +2618,9 @@ class ChartEngine {
 			const definedAt = (index: number): boolean => !Number.isNaN(upper[index] ?? Number.NaN);
 			// connectNulls joins across gaps by drawing only the finite indexes;
 			// without it, NaN indexes stay in the list and defined() breaks the path.
-			const indexes: number[] = [];
-			for (let index = 0; index < this.#rowCount; index++) {
-				if (!spec.connectNulls || definedAt(index)) {
-					indexes.push(index);
-				}
-			}
+			const indexes = spec.connectNulls
+				? this.#definedIndexes(upper)
+				: this.#allIndexesUpTo(this.#rowCount);
 			const yAt = (index: number): number => (upper[index] ?? 0) * yCo.k + yCo.b;
 			if (isArea) {
 				const y0At =
@@ -2510,9 +2678,14 @@ class ChartEngine {
 						)
 					: null;
 			if (lower == null) {
+				let zero = this.#zeroColumns;
+				if (zero?.columnCount !== columnCount) {
+					zero = zeroColumns(columnCount);
+					this.#zeroColumns = zero;
+				}
 				drawDecimatedArea(ctx, {
 					color,
-					lowerColumns: zeroColumns(upper, 0),
+					lowerColumns: zero,
 					upperColumns: upper,
 					columnToX,
 					valueK: yCo.k,
@@ -2824,17 +2997,24 @@ class ChartEngine {
 		const xCo = this.#xCoefficients();
 		// Degradation tiers count PAINTED points: sparse all-pairs data (each row
 		// populating one series) must not inflate the count by the series factor.
-		const seriesIndexes = specs.map((spec, seriesIndex) => {
-			const values = this.#paintedValues(spec, "value", seriesIndex);
-			const indexes: number[] = [];
-			for (let index = 0; index < this.#rowCount; index++) {
-				if (!Number.isNaN(values[index] ?? Number.NaN)) {
-					indexes.push(index);
-				}
-			}
-			return indexes;
-		});
-		const totalPointCount = seriesIndexes.reduce((sum, indexes) => sum + indexes.length, 0);
+		// Why a cache: a value tween keeps a gap a gap (`ValueTween` paints a NaN
+		// end as NaN), so the defined indexes follow the columns, which change only
+		// at ingest.
+		let cached = this.#scatterIndexes;
+		if (cached == null || cached.columns !== this.#columns || cached.specs !== specs) {
+			const indexes = specs.map((spec) =>
+				this.#definedIndexes(this.#columns.get(spec.dataKey) ?? new Float64Array(0)),
+			);
+			cached = {
+				columns: this.#columns,
+				specs,
+				indexes,
+				total: indexes.reduce((sum, list) => sum + list.length, 0),
+			};
+			this.#scatterIndexes = cached;
+		}
+		const seriesIndexes = cached.indexes;
+		const totalPointCount = cached.total;
 		specs.forEach((spec, seriesIndex) => {
 			const values = this.#paintedValues(spec, "value", seriesIndex);
 			const indexes = seriesIndexes[seriesIndex] ?? [];
@@ -3377,11 +3557,20 @@ const createMarkerDot = (ownerDocument: Document): HTMLElement => {
 	return dot;
 };
 
+/** The glyph and color each hover dot last wore, so an unchanged sync writes nothing. */
+const markerDotStyles = new WeakMap<HTMLElement, { shape: PointShape; color: string }>();
+
 /**
- * Sync a hover dot's glyph and fill color. Style writes are idempotent, so
- * calling on every overlay sync is safe.
+ * Sync a hover dot's glyph and fill color. The overlay syncs on every hover
+ * frame, and the glyph and color rarely change, so a sync that matches the
+ * last one skips the attribute and style writes.
  */
 const styleMarkerDot = (dot: HTMLElement, shape: PointShape, color: string): void => {
+	const last = markerDotStyles.get(dot);
+	if (last?.shape === shape && last.color === color) {
+		return;
+	}
+	markerDotStyles.set(dot, { shape, color });
 	const clip = POINT_SHAPE_CLIP_PATHS[shape];
 	dot.setAttribute("data-shape", shape);
 	const [ring, fill] = dot.children;
@@ -3394,17 +3583,30 @@ const styleMarkerDot = (dot: HTMLElement, shape: PointShape, color: string): voi
 	}
 };
 
+const emptyBarRect = (): BarRect => ({ x: 0, width: 0, baselineY: 0, valueY: 0, rounded: false });
+
+const emptyHorizontalBarRect = (): HorizontalBarRect => ({
+	y: 0,
+	height: 0,
+	baselineX: 0,
+	valueX: 0,
+	rounded: false,
+});
+
 /**
  * A zero-baseline stand-in for the lower boundary of an unstacked area.
  */
-const zeroColumns = (template: DecimatedColumns, baseline: number): DecimatedColumns => ({
-	columnCount: template.columnCount,
-	hasData: template.hasData,
-	minValue: new Float64Array(template.columnCount).fill(baseline),
-	maxValue: new Float64Array(template.columnCount).fill(baseline),
-	inValue: new Float64Array(template.columnCount).fill(baseline),
-	outValue: new Float64Array(template.columnCount).fill(baseline),
-});
+const zeroColumns = (columnCount: number): DecimatedColumns => {
+	const zeros = new Float64Array(columnCount);
+	return {
+		columnCount,
+		hasData: new Uint8Array(columnCount).fill(1),
+		minValue: zeros,
+		maxValue: zeros,
+		inValue: zeros,
+		outValue: zeros,
+	};
+};
 
 export type {
 	//,

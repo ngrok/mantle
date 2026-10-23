@@ -7,6 +7,7 @@ import {
 	invertBand,
 	linearCoefficients,
 	linearTicks,
+	linearTicksAtMost,
 	niceDomain,
 	niceZeroAnchoredDomain,
 	timeTicks,
@@ -235,6 +236,67 @@ describe("linearTicks with the integer option", () => {
 
 	test("omitting the option preserves sub-integer stepping", () => {
 		expect(linearTicks([0, 3], 5)).toEqual([0, 0.5, 1, 1.5, 2, 2.5, 3]);
+	});
+});
+
+describe("linearTicksAtMost", () => {
+	// Regression: MNTL-97. A count of 3 over [0, 200] stepped by 50 and put five
+	// labels in a 64px plot.
+	test("selects a larger step when the stepper overshoots the count", () => {
+		expect(linearTicks([0, 200], 3)).toHaveLength(5);
+		expect(linearTicksAtMost([0, 200], 3)).toEqual([0, 100, 200]);
+		expect(linearTicksAtMost([0, 200], 2)).toEqual([0, 200]);
+	});
+
+	test("keeps the stepper's ticks when they already fit", () => {
+		expect(linearTicksAtMost([0, 1000], 6)).toEqual([0, 200, 400, 600, 800, 1000]);
+		expect(linearTicksAtMost([0, 1750], 4)).toEqual([0, 500, 1000, 1500]);
+	});
+
+	test("starts from count and stays below max", () => {
+		expect(linearTicksAtMost([0, 1000], 9, { count: 5 })).toEqual([0, 200, 400, 600, 800, 1000]);
+		expect(linearTicksAtMost([0, 1000], 4, { count: 5 })).toEqual([0, 500, 1000]);
+	});
+
+	test("keeps whole steps in integer mode", () => {
+		expect(linearTicksAtMost([0, 3], 2, { integer: true })).toEqual([0, 2]);
+	});
+
+	test("never returns more ticks than the count", () => {
+		for (const max of [1, 2, 3, 4, 5, 6, 7]) {
+			for (const top of [1, 7, 13, 170, 200, 350, 999, 1750]) {
+				expect(linearTicksAtMost([0, top], max).length).toBeLessThanOrEqual(max);
+				expect(linearTicksAtMost([-top, top], max).length).toBeLessThanOrEqual(max);
+			}
+		}
+	});
+
+	test("returns what a count-by-count search over linearTicks returns", () => {
+		const search = (domain: [number, number], max: number, integer: boolean): number[] => {
+			let result: number[] = [];
+			for (let count = max; count >= 1; count -= 1) {
+				result = linearTicks(domain, count, { integer });
+				if (result.length <= max) {
+					return result;
+				}
+			}
+			return result.slice(0, max);
+		};
+		const domains: Array<[number, number]> = [
+			[0, 200],
+			[200, 0],
+			[-0.003, 0.0071],
+			[1.0001, 1.0003],
+			[2.5, 2.5],
+			[0, 3],
+		];
+		for (const domain of domains) {
+			for (const max of [1, 2, 3, 5, 8, 40, 400]) {
+				for (const integer of [false, true]) {
+					expect(linearTicksAtMost(domain, max, { integer })).toEqual(search(domain, max, integer));
+				}
+			}
+		}
 	});
 });
 
