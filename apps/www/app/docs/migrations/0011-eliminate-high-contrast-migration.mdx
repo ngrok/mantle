@@ -187,7 +187,7 @@ import { ThemeSwitcher } from "@ngrok/mantle/theme-switcher";
 - **Stored preferences.** A user whose cookie holds `light-high-contrast` or `dark-high-contrast` gets `light` or `dark`. `PreventWrongThemeFlashScript` reads the old value that way before first paint, and `ThemeProvider` rewrites the cookie on mount, so every app on the cookie's domain agrees. An app on an older mantle reads the rewritten cookie as it always did.
 - **The OS contrast setting.** `"system"` follows `prefers-color-scheme` alone. A `prefers-contrast: more` setting no longer picks a theme.
 - **The flash script writes no cookie.** It no longer seeds a `"system"` cookie when none is stored, and it no longer migrates a theme from `localStorage`. A missing cookie reads as `"system"`.
-- **A forced page.** `MantleStyleSheets` has no `forceTheme`. Keep passing the forced theme to `PreventWrongThemeFlashScript`, `ThemeProvider`, and `useInitialHtmlThemeProps`; those three write the `<html>` class.
+- **A forced page.** `MantleStyleSheets` has no `forceTheme`. Keep passing the forced theme to `PreventWrongThemeFlashScript`, `ThemeProvider`, and `useInitialHtmlThemeProps`; those three write the `<html>` class. On that page, `ThemeSwitcher` shows the forced theme and is disabled, because a click cannot change what the page paints.
 - **A `forced-colors` setting** (Windows High Contrast) is an OS feature, not a mantle theme, and keeps working as before.
 
 ## How to verify
