@@ -1444,3 +1444,14 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
 	animation: none;
 	mix-blend-mode: normal;
 }
+
+/*
+ * The new snapshot is live, so a color transition would fade inside the circle
+ * while the rest of the page shows the new theme. Stop transitions during the
+ * swap. The switcher's icon keeps its own swap.
+ */
+:root[data-theme-transition] :not([data-slot~="theme-switcher"] *),
+:root[data-theme-transition] :not([data-slot~="theme-switcher"] *)::before,
+:root[data-theme-transition] :not([data-slot~="theme-switcher"] *)::after {
+	transition: none !important;
+}
