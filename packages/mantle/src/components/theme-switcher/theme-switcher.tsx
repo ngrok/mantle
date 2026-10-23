@@ -280,7 +280,7 @@ let themeTransitionCount = 0;
  *
  * Why the click listener: while a view transition runs, the browser sends each
  * pointer event to `<html>`, so a click on the page would be lost. A click ends
- * the transition at once, and a click over `origin` clicks it again.
+ * the transition at once, then goes to the element under the pointer.
  */
 function swapTheme(update: () => void, { origin }: { origin: HTMLElement }) {
 	if (
@@ -307,10 +307,9 @@ function swapTheme(update: () => void, { origin }: { origin: HTMLElement }) {
 			return;
 		}
 		transition.skipTransition();
-		const { left, right, top, bottom } = origin.getBoundingClientRect();
-		const { clientX: x, clientY: y } = event;
-		if (x >= left && x <= right && y >= top && y <= bottom) {
-			origin.click();
+		const target = document.elementFromPoint(event.clientX, event.clientY);
+		if (target != null && target !== html) {
+			target.dispatchEvent(new MouseEvent("click", event));
 		}
 	}
 	document.addEventListener("click", onClick, { capture: true });

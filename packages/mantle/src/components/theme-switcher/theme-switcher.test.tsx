@@ -3,6 +3,7 @@ import { createRef } from "react";
 import type { ComponentProps, ReactElement } from "react";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
 import { DropdownMenu } from "../dropdown-menu/index.js";
 import { ThemeIcon } from "../icons/theme.js";
 import { ThemeProvider, useTheme } from "../theme/theme-provider.js";
@@ -325,23 +326,6 @@ function stubViewTransition({ deferUpdate = false }: { deferUpdate?: boolean } =
 	return { finish, runUpdates, skipTransition, startViewTransition };
 }
 
-/**
- * Stubs a light OS that allows motion. `stubPrefersDarkMode` reports reduced
- * motion, because it matches no motion query.
- */
-function stubMotionAllowed() {
-	vi.spyOn(window, "matchMedia").mockImplementation((query: string) => ({
-		matches: query === "(prefers-reduced-motion: no-preference)",
-		media: query,
-		onchange: null,
-		addEventListener: () => {},
-		removeEventListener: () => {},
-		addListener: () => {},
-		removeListener: () => {},
-		dispatchEvent: () => false,
-	}));
-}
-
 describe("ThemeSwitcher theme swap", () => {
 	afterEach(() => {
 		vi.restoreAllMocks();
@@ -349,7 +333,7 @@ describe("ThemeSwitcher theme swap", () => {
 	});
 
 	test("with motion allowed, the swap runs in a view transition and marks <html> until it ends", async () => {
-		stubMotionAllowed();
+		mockMatchMedia({ "(prefers-reduced-motion: no-preference)": true });
 		const { finish, startViewTransition } = stubViewTransition();
 		renderSwitcher();
 		const button = screen.getByRole("button", { name: "Switch to dark theme" });
@@ -368,7 +352,7 @@ describe("ThemeSwitcher theme swap", () => {
 	});
 
 	test("a click during the swap ends it, and a click over the switcher toggles again", async () => {
-		stubMotionAllowed();
+		mockMatchMedia({ "(prefers-reduced-motion: no-preference)": true });
 		const { finish, skipTransition } = stubViewTransition();
 		renderSwitcher();
 		const button = screen.getByRole("button", { name: "Switch to dark theme" });
@@ -376,8 +360,9 @@ describe("ThemeSwitcher theme swap", () => {
 		expect(screen.getByTestId("current-theme")).toHaveTextContent("dark");
 
 		// While a view transition runs, the browser targets <html> with each click.
-		const { left, top } = button.getBoundingClientRect();
-		fireEvent.click(document.documentElement, { clientX: left, clientY: top });
+		// After the skip, the button is under the pointer again.
+		vi.spyOn(document, "elementFromPoint").mockReturnValue(button);
+		fireEvent.click(document.documentElement);
 		expect(skipTransition).toHaveBeenCalledTimes(1);
 		expect(screen.getByTestId("current-theme")).toHaveTextContent("system");
 
@@ -387,8 +372,34 @@ describe("ThemeSwitcher theme swap", () => {
 		);
 	});
 
+	test("a click during the swap reaches another control under the pointer", async () => {
+		mockMatchMedia({ "(prefers-reduced-motion: no-preference)": true });
+		const { finish } = stubViewTransition();
+		const onOtherClick = vi.fn<() => void>();
+		render(
+			<ThemeProvider>
+				<ThemeSwitcher />
+				<button type="button" onClick={onOtherClick}>
+					Other
+				</button>
+			</ThemeProvider>,
+		);
+		fireEvent.click(screen.getByRole("button", { name: "Switch to dark theme" }));
+
+		vi.spyOn(document, "elementFromPoint").mockReturnValue(
+			screen.getByRole("button", { name: "Other" }),
+		);
+		fireEvent.click(document.documentElement);
+		expect(onOtherClick).toHaveBeenCalledOnce();
+
+		finish();
+		await waitFor(() =>
+			expect(document.documentElement).not.toHaveAttribute("data-theme-transition"),
+		);
+	});
+
 	test("two clicks before the browser runs the first update toggle twice", async () => {
-		stubMotionAllowed();
+		mockMatchMedia({ "(prefers-reduced-motion: no-preference)": true });
 		const { finish, runUpdates } = stubViewTransition({ deferUpdate: true });
 		renderSwitcher();
 		const button = screen.getByRole("button", { name: "Switch to dark theme" });
@@ -405,7 +416,7 @@ describe("ThemeSwitcher theme swap", () => {
 	});
 
 	test("with reduced motion, the swap is immediate", () => {
-		stubPrefersDarkMode(false);
+		mockMatchMedia({ "(prefers-reduced-motion: no-preference)": false });
 		const { startViewTransition } = stubViewTransition();
 		renderSwitcher();
 
