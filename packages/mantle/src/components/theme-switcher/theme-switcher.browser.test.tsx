@@ -1,23 +1,28 @@
 "use client";
 
+import { useState } from "react";
+
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { afterAll, afterEach, beforeAll, describe, expect, test } from "vitest";
 import { commands } from "vitest/browser";
 import mantleCss from "../../mantle.css?raw";
 import { DropdownMenu } from "../dropdown-menu/index.js";
-import { ThemeProvider } from "../theme/theme-provider.js";
+import { Dialog } from "../dialog/index.js";
+import { ThemeProvider, useTheme } from "../theme/theme-provider.js";
 import { ThemeDropdownMenuItem, ThemeSwitcher } from "./theme-switcher.js";
 
 /**
- * The theme-swap rules from `mantle.css`, plus a probe whose color follows the
- * theme through a slow transition. Browser tests load no Tailwind, so only
+ * The theme-swap rules from `mantle.css`, a probe whose color follows the
+ * theme through a slow transition, and a slow dialog overlay exit animation. Browser tests load no Tailwind, so only
  * these rules apply.
  */
 const STYLE = `
 ${mantleCss.match(/:root\[data-theme-transition\][^{]*\{[^}]*\}/g)?.join("\n") ?? ""}
 [data-testid="probe"] { color: rgb(0, 0, 0); transition: color 1s linear; }
 .dark [data-testid="probe"] { color: rgb(255, 255, 255); }
+@keyframes slow-exit { to { opacity: 0; } }
+[data-slot~="dialog-overlay"][data-state="closed"] { animation: slow-exit 1s; }
 `;
 
 let styleElement: HTMLStyleElement;
@@ -182,6 +187,55 @@ describe("ThemeDropdownMenuItem theme swap in Chromium", () => {
 		expect(document.documentElement).toHaveClass("dark");
 		expect(item).toHaveAccessibleName("Theme: Switch to light theme (system default)");
 		expect(screen.getByRole("menu")).toBeInTheDocument();
+
+		await reveal.finished;
+	});
+});
+
+/**
+ * A palette-like dialog with one button that sets the dark theme and closes
+ * the dialog in the same press, with no `origin`.
+ */
+function DarkThemeDialog() {
+	const [, setTheme] = useTheme();
+	const [open, setOpen] = useState(true);
+	return (
+		<Dialog.Root open={open} onOpenChange={setOpen}>
+			<Dialog.Content>
+				<Dialog.Title>Palette</Dialog.Title>
+				<button
+					type="button"
+					onClick={() => {
+						setTheme("dark");
+						setOpen(false);
+					}}
+				>
+					Use Dark theme
+				</button>
+			</Dialog.Content>
+		</Dialog.Root>
+	);
+}
+
+describe("setTheme theme swap in Chromium", () => {
+	test("with no origin, the new theme grows from the focused element, and a closing dialog overlay leaves at once", async () => {
+		render(
+			<ThemeProvider>
+				<DarkThemeDialog />
+			</ThemeProvider>,
+		);
+		const button = await screen.findByRole("button", { name: "Use Dark theme" });
+		button.focus();
+		const { left, top, width, height } = button.getBoundingClientRect();
+		await userEvent.click(button);
+
+		const reveal = await revealAnimation();
+		const from = parseCircle((reveal.effect as KeyframeEffect).getKeyframes()[0]?.clipPath);
+		expect(from.x).toBeCloseTo(left + width / 2);
+		expect(from.y).toBeCloseTo(top + height / 2);
+		expect(document.documentElement).toHaveClass("dark");
+		// The exit animation would leave the overlay in the old snapshot.
+		expect(document.querySelector('[data-slot~="dialog-overlay"]')).toBeNull();
 
 		await reveal.finished;
 	});

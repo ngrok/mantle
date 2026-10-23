@@ -78,6 +78,8 @@ The stored preference has three values: `"system"`, `"light"`, and `"dark"`. A u
 
 A click grows the new theme in a circle from the button over the old one, in 400ms on an `ease-out` curve. The swap runs in a [view transition](https://developer.mozilla.org/en-US/docs/Web/API/View_Transition_API), so every color on the page changes in the same frame. The theme, the icon, and the accessible name change on the click; only the reveal runs after it.
 
+The swap is part of `setTheme` from [`useTheme`](/components/primitives/theme#the-theme-swap), so your own theme controls, such as a command palette action, get the same reveal.
+
 - With `prefers-reduced-motion: reduce`, the swap happens at once.
 - In a browser without view transitions, the swap happens at once.
 - A click during the swap ends it at once, and the click still reaches the element under the pointer. A second click on the button toggles again, so a quick double click returns to the first theme.

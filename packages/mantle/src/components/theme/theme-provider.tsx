@@ -7,6 +7,7 @@ import { useMatchesMediaQuery } from "../../hooks/use-matches-media-query.js";
 import { findCookiePair, readCookie } from "../../utils/cookie.js";
 import { cx } from "../../utils/cx/cx.js";
 import { canUseDOM } from "../browser-only/browser-only.js";
+import { swapTheme } from "./swap-theme.js";
 import {
 	type ResolvedTheme,
 	type Theme,
@@ -43,7 +44,22 @@ const themeByCookieValue: Readonly<Record<string, Theme>> = {
 	"dark-high-contrast": "dark",
 };
 
-type ThemeProviderState = [theme: Theme, setTheme: (theme: Theme) => void];
+/**
+ * The options for the `setTheme` function that `useTheme` returns.
+ */
+type SetThemeOptions = {
+	/**
+	 * The element the new theme grows from in the reveal, such as the control
+	 * the user pressed. When omitted, the reveal grows from the focused
+	 * element, else from the center of the viewport.
+	 */
+	origin?: Element | null;
+};
+
+type ThemeProviderState = [
+	theme: Theme,
+	setTheme: (theme: Theme | ((theme: Theme) => Theme), options?: SetThemeOptions) => void,
+];
 
 /**
  * The `[theme, setTheme]` tuple {@link ThemeProvider} provides. Read it with
@@ -199,14 +215,34 @@ function ThemeProvider({ children, forceTheme, ssrCookie }: ThemeProviderProps) 
 	const value: ThemeProviderState = useMemo(
 		() => [
 			theme,
-			(next: Theme) => {
-				setCookie(next);
-				setTheme(next);
-				applyThemeToHtml(next, { forceTheme });
-				notifyOtherTabs(next, {
-					broadcastChannel: broadcastChannelRef.current,
-					pingKey: `${THEME_STORAGE_KEY}__ping`,
-				});
+			(next: Theme | ((theme: Theme) => Theme), { origin }: SetThemeOptions = {}) => {
+				// Why read `<html>` for an updater: the swap runs `update` in a later
+				// frame, so a second call can come first. `update` writes `<html>` at once.
+				const resolveNext = () => {
+					if (typeof next !== "function") {
+						return next;
+					}
+					const stored = document.documentElement.dataset.theme;
+					return next(isTheme(stored) ? stored : theme);
+				};
+				const update = () => {
+					const resolved = resolveNext();
+					setCookie(resolved);
+					setTheme(resolved);
+					applyThemeToHtml(resolved, { forceTheme });
+					notifyOtherTabs(resolved, {
+						broadcastChannel: broadcastChannelRef.current,
+						pingKey: `${THEME_STORAGE_KEY}__ping`,
+					});
+				};
+				const prefersDarkMode = window.matchMedia(prefersDarkModeMediaQuery).matches;
+				const nextAppliedTheme = forceTheme ?? resolveTheme(resolveNext(), { prefersDarkMode });
+				// Why compare: a change the page does not show needs no reveal.
+				if (nextAppliedTheme === document.documentElement.dataset.appliedTheme) {
+					update();
+				} else {
+					swapTheme(update, { origin });
+				}
 			},
 		],
 		[forceTheme, theme],
@@ -219,7 +255,21 @@ function ThemeProvider({ children, forceTheme, ssrCookie }: ThemeProviderProps) 
 	);
 }
 /**
- * useTheme returns the current theme and a function to set the theme.
+ * Returns the stored theme and a function to set it. A `setTheme` call that
+ * changes the applied theme grows the new theme in a circle from
+ * `options.origin` in a view transition. It swaps at once under reduced
+ * motion, or when the browser has no view transitions. Pass an updater, such
+ * as `(theme) => next`, when the next theme depends on the current one: it
+ * reads the latest theme, even when a second call comes before the first
+ * swap runs.
+ *
+ * @example
+ * ```tsx
+ * const [theme, setTheme] = useTheme();
+ * <Button type="button" onClick={(event) => setTheme("dark", { origin: event.currentTarget })}>
+ *   Dark
+ * </Button>;
+ * ```
  *
  * @see https://mantle.ngrok.com/components/primitives/theme
  *
@@ -604,6 +654,11 @@ export {
 	useForcedTheme,
 	useInitialHtmlThemeProps,
 	useTheme,
+};
+
+export type {
+	//,
+	SetThemeOptions,
 };
 
 /**

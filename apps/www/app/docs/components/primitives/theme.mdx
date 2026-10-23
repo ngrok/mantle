@@ -222,6 +222,20 @@ function App() {
 }
 ```
 
+### The theme swap
+
+Every `setTheme` call that changes the applied theme runs the same swap as `ThemeSwitcher`: the new theme grows in a circle over the old one in a view transition. Pass `origin` to grow the circle from the control the user pressed. When you omit it, the circle grows from the focused element, else from the center of the viewport. Under `prefers-reduced-motion: reduce`, or in a browser without view transitions, the theme changes at once.
+
+```tsx
+const [, setTheme] = useTheme();
+
+<Button type="button" onClick={(event) => setTheme("dark", { origin: event.currentTarget })}>
+	Use Dark theme
+</Button>;
+```
+
+When the next theme depends on the current one, pass an updater, such as `(theme) => (theme === "dark" ? "light" : "dark")`. It reads the latest theme, even when a second press comes before the first swap runs. A dialog overlay or a dropdown menu that closes in the same press leaves at once, so it does not freeze under the circle.
+
 ## High contrast
 
 Mantle no longer ships high-contrast themes. A user who picked one in an earlier version keeps the base theme it was built on: a stored `light-high-contrast` reads as `light`, and `dark-high-contrast` reads as `dark`. `ThemeProvider` rewrites the old cookie value on mount, so every app on the cookie's domain agrees. An OS high-contrast setting (`prefers-contrast: more`) no longer changes the theme; `"system"` follows `prefers-color-scheme` alone.

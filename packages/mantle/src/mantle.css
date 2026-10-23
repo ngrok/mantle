@@ -1458,3 +1458,17 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
 	:not([data-slot~="theme-switcher"] *, [data-slot~="theme-dropdown-menu-item"] *)::after {
 	transition: none !important;
 }
+
+/*
+ * A dialog overlay or a menu that closes as the swap starts, such as the
+ * backdrop of a command palette, would freeze in the old snapshot outside the
+ * circle. Without an exit animation it unmounts before the snapshot.
+ */
+:root[data-theme-transition]
+	:is(
+		[data-slot~="dialog-overlay"],
+		[data-slot~="dropdown-menu-content"],
+		[data-slot~="dropdown-menu-sub-content"]
+	)[data-state="closed"] {
+	animation: none !important;
+}

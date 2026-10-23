@@ -7,7 +7,7 @@ import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
 import { DropdownMenu } from "../dropdown-menu/index.js";
 import { ThemeIcon } from "../icons/theme.js";
 import { ThemeProvider, useTheme } from "../theme/theme-provider.js";
-import { revealCircle, ThemeDropdownMenuItem, ThemeSwitcher } from "./theme-switcher.js";
+import { ThemeDropdownMenuItem, ThemeSwitcher } from "./theme-switcher.js";
 
 /**
  * The one icon the switcher shows. A hidden icon is in a `data-state="inactive"` span.
@@ -394,15 +394,6 @@ describe("ThemeSwitcher theme swap", () => {
 		expect(startViewTransition).not.toHaveBeenCalled();
 		expect(screen.getByTestId("current-theme")).toHaveTextContent("dark");
 		expect(document.documentElement).not.toHaveAttribute("data-theme-transition");
-	});
-
-	test("the reveal circle grows from the button to the farthest viewport corner", () => {
-		expect(
-			revealCircle({ left: 0, top: 0, width: 20, height: 20 }, { width: 100, height: 100 }),
-		).toEqual({ from: "circle(0px at 10px 10px)", to: "circle(127.28px at 10px 10px)" });
-		expect(
-			revealCircle({ left: 90, top: 40, width: 20, height: 20 }, { width: 200, height: 100 }),
-		).toEqual({ from: "circle(0px at 100px 50px)", to: "circle(111.8px at 100px 50px)" });
 	});
 });
 

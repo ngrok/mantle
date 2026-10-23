@@ -48,6 +48,8 @@ The menu stays open after a press, and the new theme grows in a circle from the 
 
 ### 3. The swap stays a view transition in `flushSync`
 
+The swap is part of `setTheme` from `useTheme`, not of one control. Every theme change in every app runs the same reveal with no extra code: `ThemeSwitcher`, `ThemeDropdownMenuItem`, a command palette action, or a settings page. `setTheme(theme, { origin })` names the element the circle grows from. When `origin` is omitted, the circle grows from the focused element, else from the center of the viewport. A change that does not change the applied theme, such as `"system"` to `"light"` on a light OS, runs no reveal.
+
 React `startTransition` does not fit here, because it can commit after the browser takes the new snapshot. We measured one full swap in headless Chromium on a page of 5,000 rows with a color transition: set `data-theme-transition`, change the theme class, then remove the attribute. Each value is the median of five rounds of 20 swaps, with the rules interleaved:
 
 | Rule that stops transitions                  | Median swap |
