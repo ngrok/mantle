@@ -17,7 +17,7 @@ import { Icon } from "../icon/icon.js";
 import { IconSwap } from "../icon/icon-swap.js";
 import { ThemeIcon } from "../icons/theme.js";
 import { Skeleton } from "../skeleton/index.js";
-import { useAppliedTheme, useTheme } from "../theme/theme-provider.js";
+import { useAppliedTheme, useForcedTheme, useTheme } from "../theme/theme-provider.js";
 import type { ResolvedTheme, Theme } from "../theme/themes.js";
 import { $theme, getToggledTheme, isTheme, themes } from "../theme/themes.js";
 
@@ -170,7 +170,8 @@ type ThemeSwitcherProps = Omit<
  * returns the user to the OS default.
  *
  * Reads and writes the theme via `useTheme`, so it must render inside a
- * `ThemeProvider`. The icon is SSR-safe: a `Skeleton` renders until
+ * `ThemeProvider`. Under a provider with `forceTheme`, it shows the forced
+ * theme and is disabled, because a click cannot change what the page shows. The icon is SSR-safe: a `Skeleton` renders until
  * hydration, then the icon of the applied theme. To offer all three themes in
  * an existing menu or a settings panel, use `ThemeDropdownMenuRadioGroup`.
  *
@@ -194,12 +195,14 @@ type ThemeSwitcherProps = Omit<
 function ThemeSwitcher({
 	appearance = "ghost",
 	"data-slot": dataSlot,
+	disabled,
 	label,
 	onClick,
 	...props
 }: ThemeSwitcherProps) {
 	const [theme, setTheme] = useTheme();
 	const appliedTheme = useAppliedTheme();
+	const forcedTheme = useForcedTheme();
 	const prefersDarkMode = useMatchesMediaQuery("(prefers-color-scheme: dark)");
 	// Why gate on hydration: the server cannot read the OS preference, so the
 	// default name stays generic until the client knows which theme comes next.
@@ -211,6 +214,7 @@ function ThemeSwitcher({
 		<IconButton
 			appearance={appearance}
 			data-slot={joinDataSlot(dataSlot, "theme-switcher")}
+			disabled={forcedTheme != null || disabled}
 			intent="neutral"
 			icon={
 				<BrowserOnly
@@ -225,7 +229,7 @@ function ThemeSwitcher({
 					{() => <IconSwap active={appliedTheme} icons={appliedThemeIcons} />}
 				</BrowserOnly>
 			}
-			label={label ?? defaultLabel}
+			label={label ?? (forcedTheme != null ? "Theme set by this page" : defaultLabel)}
 			onClick={(event) => {
 				onClick?.(event);
 				if (!event.defaultPrevented) {

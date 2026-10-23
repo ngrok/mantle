@@ -707,6 +707,19 @@ describe("forceTheme pins what lands on <html>", () => {
 		expect(document.documentElement.dataset.appliedTheme).toBe("dark");
 	});
 
+	test("useAppliedTheme returns the forced theme, and useTheme keeps the preference", () => {
+		mockMatchMedia({ [PREFERS_DARK]: true });
+		document.cookie = `${THEME_COOKIE}=dark; path=/`;
+
+		render(
+			<ThemeProvider forceTheme="light">
+				<ThemeProbe />
+			</ThemeProvider>,
+		);
+
+		expect(screen.getByText("theme=dark applied=light")).toBeInTheDocument();
+	});
+
 	test("useInitialHtmlThemeProps forces the applied theme and keeps the preference", () => {
 		mockMatchMedia({ [PREFERS_DARK]: true });
 		document.cookie = `${THEME_COOKIE}=dark; path=/`;

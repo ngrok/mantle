@@ -51,6 +51,13 @@ type ThemeProviderState = [theme: Theme, setTheme: (theme: Theme) => void];
  */
 const ThemeProviderContext = createContext<ThemeProviderState | null>(null);
 
+/**
+ * The `forceTheme` of the nearest {@link ThemeProvider}, or `undefined` when
+ * the page is not pinned. A separate context keeps the public `useTheme` tuple
+ * unchanged.
+ */
+const ForcedThemeContext = createContext<ResolvedTheme | undefined>(undefined);
+
 type ThemeProviderProps = PropsWithChildren<{
 	/**
 	 * Pin the theme that renders, ignoring the stored preference and the OS. Pass
@@ -60,8 +67,10 @@ type ThemeProviderProps = PropsWithChildren<{
 	 * stylesheet is always applied and a stale `.dark` on the root takes over a
 	 * `forceTheme="light"` page.
 	 *
-	 * The stored preference is still read and still written by `setTheme`, so a
-	 * theme switcher keeps working and unforced pages honor the user's choice.
+	 * The stored preference is still read and still written by `setTheme`, so
+	 * unforced pages honor the user's choice. `useAppliedTheme` returns the forced
+	 * theme, and `ThemeSwitcher` is disabled, because a click cannot change what
+	 * this page shows.
 	 */
 	forceTheme?: ResolvedTheme;
 	/**
@@ -203,7 +212,11 @@ function ThemeProvider({ children, forceTheme, ssrCookie }: ThemeProviderProps) 
 		[forceTheme, theme],
 	);
 
-	return <ThemeProviderContext.Provider value={value}>{children}</ThemeProviderContext.Provider>;
+	return (
+		<ForcedThemeContext.Provider value={forceTheme}>
+			<ThemeProviderContext.Provider value={value}>{children}</ThemeProviderContext.Provider>
+		</ForcedThemeContext.Provider>
+	);
 }
 /**
  * useTheme returns the current theme and a function to set the theme.
@@ -295,18 +308,29 @@ function resolveTheme(
 }
 
 /**
- * Resolves `"system"` against the OS dark-mode preference, and returns any other theme unchanged.
- * The result mirrors what lands on the `<html>` element.
+ * Returns the theme the page paints in: the provider's `forceTheme` when it
+ * has one, else the stored theme with `"system"` resolved against the OS
+ * dark-mode preference. The result mirrors what lands on the `<html>` element.
  *
  * @see https://mantle.ngrok.com/components/primitives/theme
  */
 function useAppliedTheme() {
 	const themeContext = useContext(ThemeProviderContext);
+	const forcedTheme = useForcedTheme();
 	const theme = themeContext != null ? themeContext[0] : "system";
 
 	const prefersDarkMode = useMatchesMediaQuery(prefersDarkModeMediaQuery);
 
-	return resolveTheme(theme, { prefersDarkMode });
+	return forcedTheme ?? resolveTheme(theme, { prefersDarkMode });
+}
+
+/**
+ * Returns the `forceTheme` of the nearest {@link ThemeProvider}, or
+ * `undefined` when the page is not pinned. Internal: `ThemeSwitcher` reads it
+ * to disable itself on a pinned page.
+ */
+function useForcedTheme() {
+	return useContext(ForcedThemeContext);
 }
 
 /**
@@ -576,6 +600,7 @@ export {
 	preventWrongThemeFlashScriptContent,
 	readThemeFromHtmlElement,
 	useAppliedTheme,
+	useForcedTheme,
 	useInitialHtmlThemeProps,
 	useTheme,
 };

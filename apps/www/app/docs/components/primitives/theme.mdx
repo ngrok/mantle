@@ -315,9 +315,11 @@ export default function Root() {
 }
 ```
 
-The stored preference is still read, and `setTheme` still writes it, so a theme switcher keeps
-working and other pages honor the user's choice. Only what this page paints is pinned:
-`data-applied-theme` and the class are the forced theme, while `data-theme` remains the preference.
+The stored preference is still read, and `setTheme` still writes it, so other pages honor the
+user's choice. Only what this page paints is pinned: `data-applied-theme` and the class are the
+forced theme, while `data-theme` remains the preference. `useAppliedTheme` returns the forced theme,
+and [`ThemeSwitcher`](/components/forms/theme-switcher) is disabled, because a click cannot change
+what this page paints.
 
 That divergence is safe by construction. Every theme block guards its `data-theme` selector with
 `:not([data-applied-theme])`, so once anything applies a theme, the preference stops selecting one.

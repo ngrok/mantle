@@ -36,7 +36,7 @@ export function EmbeddedSubmenuExample() {
 
 <PageHeader id="theme-switcher">Theme Switcher</PageHeader>
 
-Mantle owns the theme system ([`ThemeProvider`, `useTheme`, and the light and dark themes](/components/primitives/theme)), so it also ships the canonical theme control. `ThemeSwitcher` is a ghost [`IconButton`](/components/actions/icon-button) that shows the applied theme and flips between light and dark on each click. It reads and writes the theme via `useTheme`, so it needs a [`ThemeProvider`](/components/primitives/theme) ancestor.
+Mantle owns the theme system ([`ThemeProvider`, `useTheme`, and the light and dark themes](/components/primitives/theme)), so it also ships the canonical theme control. `ThemeSwitcher` is a ghost [`IconButton`](/components/actions/icon-button) that shows the applied theme and flips between light and dark on each click. It reads and writes the theme via `useTheme`, so it needs a [`ThemeProvider`](/components/primitives/theme) ancestor. On a page that [locks the theme](/components/primitives/theme#locking-a-page-to-one-theme) with `forceTheme`, it shows the locked theme and is disabled, because a click cannot change what the page paints.
 
 <Example>
 	<ThemeSwitcher />

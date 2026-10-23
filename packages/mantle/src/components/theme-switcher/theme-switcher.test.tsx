@@ -238,6 +238,21 @@ describe("ThemeSwitcher", () => {
 		expect(screen.getByTestId("current-theme")).toHaveTextContent("system");
 	});
 
+	test("under a forced theme, the switcher is disabled and keeps the stored preference", () => {
+		stubPrefersDarkMode(false);
+		render(
+			<ThemeProvider forceTheme="dark">
+				<CurrentThemeProbe />
+				<ThemeSwitcher />
+			</ThemeProvider>,
+		);
+		const button = screen.getByRole("button", { name: "Theme set by this page" });
+		expect(button).toBeDisabled();
+
+		fireEvent.click(button);
+		expect(screen.getByTestId("current-theme")).toHaveTextContent("system");
+	});
+
 	test("forwards its ref to the button", () => {
 		const ref = createRef<HTMLButtonElement>();
 		renderSwitcher({ ref });
