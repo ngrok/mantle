@@ -21,15 +21,20 @@ import { ThemeIcon } from "../icons/theme.js";
 import { Skeleton } from "../skeleton/index.js";
 import { useAppliedTheme, useForcedTheme, useTheme } from "../theme/theme-provider.js";
 import type { ResolvedTheme, Theme } from "../theme/themes.js";
-import { $theme, getToggledTheme, isResolvedTheme, isTheme, themes } from "../theme/themes.js";
+import {
+	$resolvedTheme,
+	getThemeToStore,
+	getToggledTheme,
+	isResolvedTheme,
+	resolvedThemes,
+} from "../theme/themes.js";
 
 /**
- * Menu item labels for each mantle theme. Typed as a complete
- * `Record<Theme, string>` so adding a new theme to the `themes` tuple without
- * a label is a compile error here.
+ * Menu item labels for each applied theme. Typed as a complete
+ * `Record<ResolvedTheme, string>` so adding a new theme to the
+ * `resolvedThemes` tuple without a label is a compile error here.
  */
-const themeLabels: Record<Theme, string> = {
-	system: "System Preference",
+const themeLabels: Record<ResolvedTheme, string> = {
 	light: "Light Mode",
 	dark: "Dark Mode",
 };
@@ -53,14 +58,17 @@ type ThemeDropdownMenuRadioGroupProps = WithStyleProps &
  * Must render inside a `DropdownMenu.Content` or `DropdownMenu.SubContent` —
  * the type system cannot express this constraint, so it is on you to uphold it.
  *
- * The theme-selection radio group for mantle's theme system. Renders one
- * `role="menuitemradio"` item per mantle theme via `DropdownMenu.RadioGroup`;
- * the active theme is `aria-checked` and choosing an item persists the new
- * theme through `useTheme`, so a `ThemeProvider` ancestor is required
- * (`useTheme` throws outside of one). Use it to embed theme selection in an
- * existing menu or a settings panel, where the user expects to configure a
- * preference. For a one-click control in a header or toolbar, use
- * `ThemeSwitcher` instead.
+ * The light/dark theme control for an existing menu, such as an account menu.
+ * It is the menu form of `ThemeSwitcher`: it renders a "Light Mode" and a
+ * "Dark Mode" `role="menuitemradio"` item, and the applied theme is
+ * `aria-checked`. A choice that matches the OS preference stores `"system"`
+ * instead of a pin, so the page follows the OS again. The new theme grows in a
+ * circle from the chosen item, as it does from `ThemeSwitcher`.
+ *
+ * Reads and writes the theme via `useTheme`, so it must render inside a
+ * `ThemeProvider`. Under a provider with `forceTheme`, it checks the forced
+ * theme and both items are disabled. For a one-click control in a header or
+ * toolbar, use `ThemeSwitcher` instead.
  *
  * The group is named "Theme" by default. Pass `aria-label` to rename it, or
  * `aria-labelledby` to point at a visible heading such as a
@@ -106,7 +114,10 @@ const ThemeDropdownMenuRadioGroup = ({
 	className,
 	style,
 }: ThemeDropdownMenuRadioGroupProps) => {
-	const [currentTheme, setTheme] = useTheme();
+	const [, setTheme] = useTheme();
+	const appliedTheme = useAppliedTheme();
+	const forcedTheme = useForcedTheme();
+	const prefersDarkMode = useMatchesMediaQuery("(prefers-color-scheme: dark)");
 
 	return (
 		<DropdownMenu.RadioGroup
@@ -117,15 +128,27 @@ const ThemeDropdownMenuRadioGroup = ({
 			data-slot="theme-dropdown-menu-radio-group"
 			className={className}
 			style={style}
-			value={currentTheme}
-			onValueChange={(value) => {
-				if (isTheme(value)) {
-					setTheme(value);
-				}
-			}}
+			value={appliedTheme}
 		>
-			{themes.map((theme) => (
-				<DropdownMenu.RadioItem key={theme} value={$theme(theme)}>
+			{resolvedThemes.map((theme) => (
+				<DropdownMenu.RadioItem
+					key={theme}
+					value={$resolvedTheme(theme)}
+					disabled={forcedTheme != null}
+					onSelect={(event) => {
+						if (theme === appliedTheme) {
+							return;
+						}
+						const update = () =>
+							setTheme(getThemeToStore({ appliedTheme: theme, prefersDarkMode }));
+						const origin = event.currentTarget;
+						if (origin instanceof Element) {
+							swapTheme(update, { origin });
+						} else {
+							update();
+						}
+					}}
+				>
 					<Icon svg={<ThemeIcon theme={theme} />} />
 					{themeLabels[theme]}
 				</DropdownMenu.RadioItem>
@@ -176,8 +199,8 @@ type ThemeSwitcherProps = Omit<
  * Reads and writes the theme via `useTheme`, so it must render inside a
  * `ThemeProvider`. Under a provider with `forceTheme`, it shows the forced
  * theme and is disabled, because a click cannot change what the page shows. The icon is SSR-safe: a `Skeleton` renders until
- * hydration, then the icon of the applied theme. To offer all three themes in
- * an existing menu or a settings panel, use `ThemeDropdownMenuRadioGroup`.
+ * hydration, then the icon of the applied theme. To put the same control in
+ * an existing menu, use `ThemeDropdownMenuRadioGroup`.
  *
  * @see https://mantle.ngrok.com/components/forms/theme-switcher
  * @see https://lea.verou.me/blog/2026/dark-mode-toggles/
@@ -276,7 +299,7 @@ let themeTransitionCount = 0;
  * pointer event to `<html>`, so a click on the page would be lost. A click ends
  * the transition at once, then goes to the element under the pointer.
  */
-function swapTheme(update: () => void, { origin }: { origin: HTMLElement }) {
+function swapTheme(update: () => void, { origin }: { origin: Element }) {
 	if (
 		typeof document.startViewTransition !== "function" ||
 		getPrefersReducedMotion() ||

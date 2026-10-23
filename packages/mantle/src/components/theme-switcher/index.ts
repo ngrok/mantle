@@ -1,6 +1,6 @@
 /**
  * Re-exports for ThemeSwitcher, the canonical light/dark toggle for headers
- * and toolbars, and ThemeDropdownMenuRadioGroup, the three-theme radio group
+ * and toolbars, and ThemeDropdownMenuRadioGroup, the same light/dark control as a radio group
  * for any `DropdownMenu.Content` or `DropdownMenu.SubContent`.
  *
  * @see https://mantle.ngrok.com/components/forms/theme-switcher

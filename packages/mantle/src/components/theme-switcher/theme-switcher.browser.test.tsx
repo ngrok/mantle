@@ -5,18 +5,21 @@ import { userEvent } from "@testing-library/user-event";
 import { afterAll, afterEach, beforeAll, describe, expect, test } from "vitest";
 import { commands } from "vitest/browser";
 import mantleCss from "../../mantle.css?raw";
+import { DropdownMenu } from "../dropdown-menu/index.js";
 import { ThemeProvider } from "../theme/theme-provider.js";
-import { ThemeSwitcher } from "./theme-switcher.js";
+import { ThemeDropdownMenuRadioGroup, ThemeSwitcher } from "./theme-switcher.js";
 
 /**
- * The theme-swap rules from `mantle.css`, plus a probe whose color follows the
- * theme through a slow transition. Browser tests load no Tailwind, so only
+ * The theme-swap rules from `mantle.css`, a probe whose color follows the
+ * theme through a slow transition, and a slow menu exit animation. Browser tests load no Tailwind, so only
  * these rules apply.
  */
 const STYLE = `
 ${mantleCss.match(/:root\[data-theme-transition\][^{]*\{[^}]*\}/g)?.join("\n") ?? ""}
 [data-testid="probe"] { color: rgb(0, 0, 0); transition: color 1s linear; }
 .dark [data-testid="probe"] { color: rgb(255, 255, 255); }
+@keyframes menu-exit { to { opacity: 0; } }
+[data-slot~="dropdown-menu-content"][data-state="closed"] { animation: menu-exit 1s; }
 `;
 
 let styleElement: HTMLStyleElement;
@@ -150,5 +153,35 @@ describe("ThemeSwitcher theme swap in Chromium", () => {
 						animation.effect.pseudoElement === "::view-transition-new(root)",
 				),
 		).toBe(false);
+	});
+});
+
+describe("ThemeDropdownMenuRadioGroup theme swap in Chromium", () => {
+	test("the new theme grows in a circle from the chosen item, and the menu closes at once", async () => {
+		render(
+			<ThemeProvider>
+				<DropdownMenu.Root>
+					<DropdownMenu.Trigger>Account</DropdownMenu.Trigger>
+					<DropdownMenu.Content>
+						<ThemeDropdownMenuRadioGroup />
+					</DropdownMenu.Content>
+				</DropdownMenu.Root>
+			</ThemeProvider>,
+		);
+		await userEvent.click(screen.getByRole("button", { name: "Account" }));
+		const item = await screen.findByRole("menuitemradio", { name: "Dark Mode" });
+		// Why measure first: the item unmounts with its menu.
+		const { left, top, width, height } = item.getBoundingClientRect();
+		await userEvent.click(item);
+
+		const reveal = await revealAnimation();
+		const from = parseCircle((reveal.effect as KeyframeEffect).getKeyframes()[0]?.clipPath);
+		expect(from.x).toBeCloseTo(left + width / 2);
+		expect(from.y).toBeCloseTo(top + height / 2);
+		expect(document.documentElement).toHaveClass("dark");
+		// The exit animation would leave the menu in the old snapshot.
+		expect(document.querySelector('[data-slot~="dropdown-menu-content"]')).toBeNull();
+
+		await reveal.finished;
 	});
 });

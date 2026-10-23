@@ -1,6 +1,6 @@
 ---
 title: Theme Switcher
-description: The canonical light/dark toggle for headers and toolbars, plus a three-option radio group for settings and account menus.
+description: The canonical light/dark toggle for headers and toolbars, plus the same toggle as a radio group for account menus.
 ---
 
 import { Button } from "@ngrok/mantle/button";
@@ -101,7 +101,7 @@ import { ThemeSwitcher } from "@ngrok/mantle/theme-switcher";
 
 ## Embedding in an existing menu
 
-A settings page or an account menu is a place where users expect to configure a preference, so it can show all three options. `ThemeDropdownMenuRadioGroup` drops a System, Light, and Dark radio group into any dropdown menu, here inside a `Theme` submenu:
+`ThemeDropdownMenuRadioGroup` is the toggle in menu form. It drops a Light and a Dark radio item into any dropdown menu, here inside a `Theme` submenu. The applied theme is checked, and a choice works like a toggle click: when the choice matches the OS setting, it stores `"system"`. The new theme grows in a circle from the chosen item, and the menu closes at once, so it does not freeze in place under the reveal.
 
 <Example>
 	<EmbeddedSubmenuExample />
@@ -142,7 +142,7 @@ import { ThemeDropdownMenuRadioGroup } from "@ngrok/mantle/theme-switcher";
 - When `label` is omitted, the accessible name says which theme the next click shows: "Switch to dark theme", "Switch to light theme", or "Switch to light theme (system default)" when the click returns to the OS setting. The server can't read the OS setting, so the name is "Toggle theme" until hydration.
 - The circular reveal is movement, so it does not run under `prefers-reduced-motion: reduce`.
 - The icon mirrors the applied theme (a sun or a moon). It's SSR-safe: a `Skeleton` placeholder renders until hydration, then the icon appears.
-- The `ThemeDropdownMenuRadioGroup` options are `role="menuitemradio"` items: the active theme is announced as checked (`aria-checked`). The group is named "Theme" by default; pass `aria-label` to rename it or `aria-labelledby` to point at a visible heading.
+- The `ThemeDropdownMenuRadioGroup` options are `role="menuitemradio"` items: the applied theme is announced as checked (`aria-checked`). Under `forceTheme`, both items are disabled. The group is named "Theme" by default; pass `aria-label` to rename it or `aria-labelledby` to point at a visible heading.
 
 ## API Reference
 
@@ -159,7 +159,7 @@ All props from [`IconButton`](/components/actions/icon-button) except `icon`, `i
 
 ### ThemeDropdownMenuRadioGroup
 
-The theme-selection radio group: one `menuitemradio` item per theme, with the active theme checked. It must render inside a `DropdownMenu.Content` or `DropdownMenu.SubContent`, and requires a [`ThemeProvider`](/components/primitives/theme) ancestor.
+The light/dark toggle in menu form: a Light and a Dark `menuitemradio` item, with the applied theme checked. It must render inside a `DropdownMenu.Content` or `DropdownMenu.SubContent`, and requires a [`ThemeProvider`](/components/primitives/theme) ancestor.
 
 | Prop               | Type            | Default   | Description                                                                              |
 | ------------------ | --------------- | --------- | ---------------------------------------------------------------------------------------- |

@@ -1013,7 +1013,7 @@
     "category": "Forms",
     "status": "stable",
     "importPath": "@ngrok/mantle/theme-switcher",
-    "summary": "The canonical light/dark toggle for headers and toolbars, plus a three-option radio group for settings and account menus.",
+    "summary": "The canonical light/dark toggle for headers and toolbars, plus the same toggle as a radio group for account menus.",
     "jsdoc": "The canonical theme control for headers and toolbars: an `IconButton` (ghost by default) that shows the applied theme and flips between light and dark on each click.",
     "examples": [
       "```tsx\n<ThemeProvider>\n  <header>\n    <ThemeSwitcher />\n  </header>\n</ThemeProvider>\n```",

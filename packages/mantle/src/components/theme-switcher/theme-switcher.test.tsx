@@ -47,7 +47,7 @@ function CurrentThemeProbe() {
 	return <output data-testid="current-theme">{theme}</output>;
 }
 
-const themeLabels = ["System Preference", "Light Mode", "Dark Mode"];
+const themeLabels = ["Light Mode", "Dark Mode"];
 
 /**
  * Mount the radio group inside a controlled-open dropdown menu so the
@@ -437,40 +437,80 @@ describe("ThemeSwitcher theme swap", () => {
 });
 
 describe("ThemeDropdownMenuRadioGroup", () => {
-	test("renders one menuitemradio per theme with the expected labels", () => {
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	test("renders a light and a dark menuitemradio", () => {
 		renderRadioGroup();
 		const items = screen.getAllByRole("menuitemradio");
-		expect(items).toHaveLength(3);
+		expect(items).toHaveLength(2);
 		for (const label of themeLabels) {
 			expect(screen.getByRole("menuitemradio", { name: label })).toBeInTheDocument();
 		}
 	});
 
-	test("the item matching the current theme is checked", () => {
-		document.cookie = "mantle-ui-theme=dark; path=/";
+	test.each([
+		{ stored: "dark", prefersDarkMode: false, checked: "Dark Mode" },
+		{ stored: "system", prefersDarkMode: false, checked: "Light Mode" },
+		{ stored: "system", prefersDarkMode: true, checked: "Dark Mode" },
+	])(
+		"with $stored stored and prefersDarkMode $prefersDarkMode, $checked is checked",
+		({ stored, prefersDarkMode, checked }) => {
+			stubPrefersDarkMode(prefersDarkMode);
+			document.cookie = `mantle-ui-theme=${stored}; path=/`;
+			renderRadioGroup();
+			const item = screen.getByRole("menuitemradio", { name: checked });
+			expect(item).toHaveAttribute("aria-checked", "true");
+			expect(item).toHaveAttribute("data-state", "checked");
+		},
+	);
+
+	test.each([
+		{ stored: "system", prefersDarkMode: false, choose: "Dark Mode", expected: "dark" },
+		{ stored: "dark", prefersDarkMode: false, choose: "Light Mode", expected: "system" },
+		{ stored: "system", prefersDarkMode: true, choose: "Light Mode", expected: "light" },
+		{ stored: "light", prefersDarkMode: true, choose: "Dark Mode", expected: "system" },
+	])(
+		"with $stored stored and prefersDarkMode $prefersDarkMode, choosing $choose stores $expected",
+		({ stored, prefersDarkMode, choose, expected }) => {
+			stubPrefersDarkMode(prefersDarkMode);
+			document.cookie = `mantle-ui-theme=${stored}; path=/`;
+			renderRadioGroup();
+			fireEvent.click(screen.getByRole("menuitemradio", { name: choose }));
+			expect(screen.getByTestId("current-theme")).toHaveTextContent(expected);
+			expect(screen.getByRole("menuitemradio", { name: choose })).toHaveAttribute(
+				"aria-checked",
+				"true",
+			);
+		},
+	);
+
+	test("choosing the checked item keeps the stored theme", () => {
+		stubPrefersDarkMode(false);
 		renderRadioGroup();
-		const darkItem = screen.getByRole("menuitemradio", { name: "Dark Mode" });
-		expect(darkItem).toHaveAttribute("aria-checked", "true");
-		expect(darkItem).toHaveAttribute("data-state", "checked");
-		expect(screen.getByRole("menuitemradio", { name: "Light Mode" })).toHaveAttribute(
-			"aria-checked",
-			"false",
-		);
+		fireEvent.click(screen.getByRole("menuitemradio", { name: "Light Mode" }));
+		expect(screen.getByTestId("current-theme")).toHaveTextContent("system");
 	});
 
-	test("selecting a different item updates the theme", () => {
-		renderRadioGroup();
-		expect(screen.getByTestId("current-theme")).toHaveTextContent("system");
-		fireEvent.click(screen.getByRole("menuitemradio", { name: "Dark Mode" }));
-		expect(screen.getByTestId("current-theme")).toHaveTextContent("dark");
+	test("under forceTheme, the forced theme is checked and both items are disabled", () => {
+		render(
+			<ThemeProvider forceTheme="dark">
+				<DropdownMenu.Root open>
+					<DropdownMenu.Trigger>t</DropdownMenu.Trigger>
+					<DropdownMenu.Content>
+						<ThemeDropdownMenuRadioGroup />
+					</DropdownMenu.Content>
+				</DropdownMenu.Root>
+			</ThemeProvider>,
+		);
 		expect(screen.getByRole("menuitemradio", { name: "Dark Mode" })).toHaveAttribute(
 			"aria-checked",
 			"true",
 		);
-		expect(screen.getByRole("menuitemradio", { name: "System Preference" })).toHaveAttribute(
-			"aria-checked",
-			"false",
-		);
+		for (const item of screen.getAllByRole("menuitemradio")) {
+			expect(item).toHaveAttribute("aria-disabled", "true");
+		}
 	});
 
 	test("has data-slot and merges custom className and style", () => {
