@@ -7,7 +7,7 @@ import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
 import { DropdownMenu } from "../dropdown-menu/index.js";
 import { ThemeIcon } from "../icons/theme.js";
 import { ThemeProvider, useTheme } from "../theme/theme-provider.js";
-import { revealCircle, ThemeDropdownMenuRadioGroup, ThemeSwitcher } from "./theme-switcher.js";
+import { ThemeDropdownMenuItem, ThemeSwitcher } from "./theme-switcher.js";
 
 /**
  * The one icon the switcher shows. A hidden icon is in a `data-state="inactive"` span.
@@ -47,20 +47,18 @@ function CurrentThemeProbe() {
 	return <output data-testid="current-theme">{theme}</output>;
 }
 
-const themeLabels = ["System Preference", "Light Mode", "Dark Mode"];
-
 /**
- * Mount the radio group inside a controlled-open dropdown menu so the
- * portaled content is present without simulating trigger interaction.
+ * Mount the item inside a controlled-open dropdown menu so the portaled
+ * content is present without simulating trigger interaction.
  */
-const renderRadioGroup = (props: ComponentProps<typeof ThemeDropdownMenuRadioGroup> = {}) =>
+const renderMenuItem = (props: ComponentProps<typeof ThemeDropdownMenuItem> = {}) =>
 	render(
 		<ThemeProvider>
 			<CurrentThemeProbe />
 			<DropdownMenu.Root open>
 				<DropdownMenu.Trigger>t</DropdownMenu.Trigger>
 				<DropdownMenu.Content>
-					<ThemeDropdownMenuRadioGroup {...props} />
+					<ThemeDropdownMenuItem {...props} />
 				</DropdownMenu.Content>
 			</DropdownMenu.Root>
 		</ThemeProvider>,
@@ -72,34 +70,6 @@ beforeEach(() => {
 	// The provider writes its cookie with `path=/`, and happy-dom keys cookies
 	// by name + path, so the reset must use the same path to overwrite it.
 	document.cookie = "mantle-ui-theme=system; path=/";
-});
-
-describe("ThemeDropdownMenuRadioGroup naming", () => {
-	test('the radio group is named "Theme" by default', () => {
-		renderRadioGroup();
-		expect(screen.getByRole("group", { name: "Theme" })).toBeInTheDocument();
-	});
-
-	test("aria-label renames the group", () => {
-		renderRadioGroup({ "aria-label": "Appearance" });
-		expect(screen.getByRole("group", { name: "Appearance" })).toBeInTheDocument();
-	});
-
-	test("aria-labelledby names the group from a visible heading and drops the default aria-label", () => {
-		render(
-			<ThemeProvider>
-				<DropdownMenu.Root open>
-					<DropdownMenu.Trigger>t</DropdownMenu.Trigger>
-					<DropdownMenu.Content>
-						<DropdownMenu.Label id="appearance-heading">Appearance</DropdownMenu.Label>
-						<ThemeDropdownMenuRadioGroup aria-labelledby="appearance-heading" />
-					</DropdownMenu.Content>
-				</DropdownMenu.Root>
-			</ThemeProvider>,
-		);
-		const group = screen.getByRole("group", { name: "Appearance" });
-		expect(group).not.toHaveAttribute("aria-label");
-	});
 });
 
 /**
@@ -425,64 +395,104 @@ describe("ThemeSwitcher theme swap", () => {
 		expect(screen.getByTestId("current-theme")).toHaveTextContent("dark");
 		expect(document.documentElement).not.toHaveAttribute("data-theme-transition");
 	});
-
-	test("the reveal circle grows from the button to the farthest viewport corner", () => {
-		expect(
-			revealCircle({ left: 0, top: 0, width: 20, height: 20 }, { width: 100, height: 100 }),
-		).toEqual({ from: "circle(0px at 10px 10px)", to: "circle(127.28px at 10px 10px)" });
-		expect(
-			revealCircle({ left: 90, top: 40, width: 20, height: 20 }, { width: 200, height: 100 }),
-		).toEqual({ from: "circle(0px at 100px 50px)", to: "circle(111.8px at 100px 50px)" });
-	});
 });
 
-describe("ThemeDropdownMenuRadioGroup", () => {
-	test("renders one menuitemradio per theme with the expected labels", () => {
-		renderRadioGroup();
-		const items = screen.getAllByRole("menuitemradio");
-		expect(items).toHaveLength(3);
-		for (const label of themeLabels) {
-			expect(screen.getByRole("menuitemradio", { name: label })).toBeInTheDocument();
-		}
+describe("ThemeDropdownMenuItem", () => {
+	afterEach(() => {
+		vi.restoreAllMocks();
 	});
 
-	test("the item matching the current theme is checked", () => {
+	test.each([
+		{ stored: "system", prefersDarkMode: false, name: "Theme: Switch to dark theme" },
+		{
+			stored: "dark",
+			prefersDarkMode: false,
+			name: "Theme: Switch to light theme (system default)",
+		},
+		{ stored: "system", prefersDarkMode: true, name: "Theme: Switch to light theme" },
+	])(
+		"with $stored stored and prefersDarkMode $prefersDarkMode, the item is named $name",
+		({ stored, prefersDarkMode, name }) => {
+			stubPrefersDarkMode(prefersDarkMode);
+			document.cookie = `mantle-ui-theme=${stored}; path=/`;
+			renderMenuItem();
+			expect(screen.getByRole("menuitem", { name })).toHaveTextContent("Theme");
+		},
+	);
+
+	test("label sets the visible label and the accessible name", () => {
+		renderMenuItem({ label: "Tema" });
+		const item = screen.getByRole("menuitem", { name: "Tema" });
+		expect(item.querySelector('[data-slot="theme-dropdown-menu-item-label"]')).toHaveTextContent(
+			"Tema",
+		);
+	});
+
+	test("the icon shows the applied theme", () => {
+		stubPrefersDarkMode(false);
 		document.cookie = "mantle-ui-theme=dark; path=/";
-		renderRadioGroup();
-		const darkItem = screen.getByRole("menuitemradio", { name: "Dark Mode" });
-		expect(darkItem).toHaveAttribute("aria-checked", "true");
-		expect(darkItem).toHaveAttribute("data-state", "checked");
-		expect(screen.getByRole("menuitemradio", { name: "Light Mode" })).toHaveAttribute(
-			"aria-checked",
-			"false",
+		renderMenuItem();
+		expect(glyphOf(shownIcon(screen.getByRole("menuitem")))).toBe(
+			glyphOf(<ThemeIcon theme="dark" />),
 		);
 	});
 
-	test("selecting a different item updates the theme", () => {
-		renderRadioGroup();
-		expect(screen.getByTestId("current-theme")).toHaveTextContent("system");
-		fireEvent.click(screen.getByRole("menuitemradio", { name: "Dark Mode" }));
-		expect(screen.getByTestId("current-theme")).toHaveTextContent("dark");
-		expect(screen.getByRole("menuitemradio", { name: "Dark Mode" })).toHaveAttribute(
-			"aria-checked",
-			"true",
+	test.each([
+		{ stored: "system", prefersDarkMode: false, expected: "dark" },
+		{ stored: "dark", prefersDarkMode: false, expected: "system" },
+		{ stored: "system", prefersDarkMode: true, expected: "light" },
+		{ stored: "light", prefersDarkMode: true, expected: "system" },
+	])(
+		"with $stored stored and prefersDarkMode $prefersDarkMode, a press stores $expected",
+		({ stored, prefersDarkMode, expected }) => {
+			stubPrefersDarkMode(prefersDarkMode);
+			document.cookie = `mantle-ui-theme=${stored}; path=/`;
+			renderMenuItem();
+			fireEvent.click(screen.getByRole("menuitem"));
+			expect(screen.getByTestId("current-theme")).toHaveTextContent(expected);
+		},
+	);
+
+	test("a press keeps the menu open", () => {
+		const onOpenChange = vi.fn<(open: boolean) => void>();
+		render(
+			<ThemeProvider>
+				<DropdownMenu.Root open onOpenChange={onOpenChange}>
+					<DropdownMenu.Trigger>t</DropdownMenu.Trigger>
+					<DropdownMenu.Content>
+						<ThemeDropdownMenuItem />
+					</DropdownMenu.Content>
+				</DropdownMenu.Root>
+			</ThemeProvider>,
 		);
-		expect(screen.getByRole("menuitemradio", { name: "System Preference" })).toHaveAttribute(
-			"aria-checked",
-			"false",
-		);
+		fireEvent.click(screen.getByRole("menuitem"));
+		expect(onOpenChange).not.toHaveBeenCalled();
+		expect(screen.getByRole("menuitem")).toBeInTheDocument();
 	});
 
-	test("has data-slot and merges custom className and style", () => {
-		renderRadioGroup({ className: "custom-radio-class", style: { marginTop: "4px" } });
-		const group = screen.getByRole("group");
-		// The part's slot joins ahead of the `DropdownMenu.RadioGroup` it renders.
-		expect(group).toHaveAttribute(
-			"data-slot",
-			"theme-dropdown-menu-radio-group dropdown-menu-radio-group",
+	test("under forceTheme, the item shows the forced theme and is disabled", () => {
+		render(
+			<ThemeProvider forceTheme="dark">
+				<DropdownMenu.Root open>
+					<DropdownMenu.Trigger>t</DropdownMenu.Trigger>
+					<DropdownMenu.Content>
+						<ThemeDropdownMenuItem />
+					</DropdownMenu.Content>
+				</DropdownMenu.Root>
+			</ThemeProvider>,
 		);
+		const item = screen.getByRole("menuitem");
+		expect(item).toHaveAttribute("aria-disabled", "true");
+		expect(glyphOf(shownIcon(item))).toBe(glyphOf(<ThemeIcon theme="dark" />));
+	});
+
+	test("has data-slot and merges className and style", () => {
+		renderMenuItem({ className: "custom-item-class", style: { marginTop: "4px" } });
+		const item = screen.getByRole("menuitem");
+		// The part's slot joins ahead of the `DropdownMenu.Item` it renders.
+		expect(item).toHaveAttribute("data-slot", "theme-dropdown-menu-item dropdown-menu-item");
 		// Why the class check: the tailwind-merge contract puts the consumer's class beside the defaults.
-		expect(group.className).toContain("custom-radio-class");
-		expect(group).toHaveStyle({ marginTop: "4px" });
+		expect(item.className).toContain("custom-item-class");
+		expect(item).toHaveStyle({ marginTop: "4px" });
 	});
 });

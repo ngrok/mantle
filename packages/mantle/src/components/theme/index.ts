@@ -58,3 +58,8 @@ export type {
 	Theme,
 	ResolvedTheme,
 } from "./themes.js";
+
+export type {
+	//,
+	SetThemeOptions,
+} from "./theme-provider.js";

@@ -41,12 +41,12 @@ export function ThemeSelectExample() {
 
 Mantle has two themes, light and dark. The stored preference is one of three values: `"system"` (the default, which follows the OS `prefers-color-scheme` setting), `"light"`, or `"dark"`. The theme system has three parts:
 
-- `ThemeProvider` holds the preference, saves it in a cookie, and keeps it in sync across tabs.
+- `ThemeProvider` holds the preference, saves it in a cookie, and keeps it in sync across tabs. On an `ngrok.com` or `ngrok.ai` host, the cookie covers every subdomain of that site.
 - `PreventWrongThemeFlashScript` puts the right theme class on `<html>` before first paint, so the page never flashes the wrong theme.
 - `MantleStyleSheets` loads `mantle-dark.css`. Without it, nothing renders dark.
 
 > [!TIP]
-> To let users change the theme, use [`ThemeSwitcher`](/components/forms/theme-switcher). It's a ready-made light/dark toggle for headers and toolbars. For a settings page or an account menu, use `ThemeDropdownMenuRadioGroup` from the same entrypoint.
+> To let users change the theme, use [`ThemeSwitcher`](/components/forms/theme-switcher). It's a ready-made light/dark toggle for headers and toolbars. For an account menu, use `ThemeDropdownMenuItem` from the same entrypoint. It is the same light/dark toggle as one menu row.
 
 ## Setup
 
@@ -221,6 +221,20 @@ function App() {
 	);
 }
 ```
+
+### The theme swap
+
+Every `setTheme` call that changes the applied theme runs the same swap as `ThemeSwitcher`: the new theme grows in a circle over the old one in a view transition. Pass `origin` to grow the circle from the control the user pressed. When you omit it, the circle grows from the focused element, else from the center of the viewport. Under `prefers-reduced-motion: reduce`, or in a browser without view transitions, the theme changes at once.
+
+```tsx
+const [, setTheme] = useTheme();
+
+<Button type="button" onClick={(event) => setTheme("dark", { origin: event.currentTarget })}>
+	Use Dark theme
+</Button>;
+```
+
+When the next theme depends on the current one, pass an updater, such as `(theme) => (theme === "dark" ? "light" : "dark")`. It reads the latest theme, even when a second press comes before the first swap runs. A dialog overlay or a dropdown menu that closes in the same press leaves at once, so it does not freeze under the circle.
 
 ## High contrast
 

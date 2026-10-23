@@ -1,14 +1,13 @@
 import { Button, IconButton } from "@ngrok/mantle/button";
 import { Command, MetaKey } from "@ngrok/mantle/command";
 import { Kbd } from "@ngrok/mantle/kbd";
-import type { Theme } from "@ngrok/mantle/theme";
-import { useTheme } from "@ngrok/mantle/theme";
+import type { ResolvedTheme } from "@ngrok/mantle/theme";
+import { useAppliedTheme, useTheme } from "@ngrok/mantle/theme";
 import {
 	ArrowRightIcon,
 	ArrowSquareOutIcon,
 	CheckIcon,
 	MagnifyingGlassIcon,
-	MonitorIcon,
 	MoonIcon,
 	SunIcon,
 } from "@phosphor-icons/react";
@@ -35,8 +34,7 @@ function ItemName({ children }: PropsWithChildren) {
 }
 
 /** The leading icon for each theme-switching command. */
-const themeIcons: Record<Theme, ReactNode> = {
-	system: <MonitorIcon />,
+const themeIcons: Record<ResolvedTheme, ReactNode> = {
 	light: <SunIcon />,
 	dark: <MoonIcon />,
 };
@@ -45,7 +43,7 @@ const themeIcons: Record<Theme, ReactNode> = {
  * Renders one palette command as a `Command.Item`, switching on its kind:
  * internal routes render an intent-prefetched `Link` (keyboard selection
  * mirrors the click), external links open in a new tab on selection, and
- * theme commands apply their theme and show a check when active.
+ * theme commands apply their theme and show a check on the applied theme.
  *
  * @example
  * ```tsx
@@ -68,7 +66,8 @@ function PaletteCommandItem({
 	onDone: () => void;
 }) {
 	const navigate = useNavigate();
-	const [currentTheme, setTheme] = useTheme();
+	const [, setTheme] = useTheme();
+	const appliedTheme = useAppliedTheme();
 
 	switch (command.kind) {
 		case "route":
@@ -127,7 +126,7 @@ function PaletteCommandItem({
 				>
 					{themeIcons[command.theme]}
 					{command.title}
-					{currentTheme === command.theme && <CheckIcon />}
+					{appliedTheme === command.theme && <CheckIcon />}
 				</Command.Item>
 			);
 	}

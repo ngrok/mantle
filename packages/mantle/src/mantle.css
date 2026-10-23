@@ -1448,10 +1448,27 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
 /*
  * The new snapshot is live, so a color transition would fade inside the circle
  * while the rest of the page shows the new theme. Stop transitions during the
- * swap. The switcher's icon keeps its own swap.
+ * swap. The icon of the switcher and of the menu item keeps its own swap.
  */
-:root[data-theme-transition] :not([data-slot~="theme-switcher"] *),
-:root[data-theme-transition] :not([data-slot~="theme-switcher"] *)::before,
-:root[data-theme-transition] :not([data-slot~="theme-switcher"] *)::after {
+:root[data-theme-transition]
+	:not([data-slot~="theme-switcher"] *, [data-slot~="theme-dropdown-menu-item"] *),
+:root[data-theme-transition]
+	:not([data-slot~="theme-switcher"] *, [data-slot~="theme-dropdown-menu-item"] *)::before,
+:root[data-theme-transition]
+	:not([data-slot~="theme-switcher"] *, [data-slot~="theme-dropdown-menu-item"] *)::after {
 	transition: none !important;
+}
+
+/*
+ * A dialog overlay or a menu that closes as the swap starts, such as the
+ * backdrop of a command palette, would freeze in the old snapshot outside the
+ * circle. Without an exit animation it unmounts before the snapshot.
+ */
+:root[data-theme-transition]
+	:is(
+		[data-slot~="dialog-overlay"],
+		[data-slot~="dropdown-menu-content"],
+		[data-slot~="dropdown-menu-sub-content"]
+	)[data-state="closed"] {
+	animation: none !important;
 }

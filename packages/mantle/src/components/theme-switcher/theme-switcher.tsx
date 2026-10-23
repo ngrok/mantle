@@ -1,12 +1,12 @@
 "use client";
 
-import type { ComponentProps, ReactNode } from "react";
-import { flushSync } from "react-dom";
+import type { ReactNode } from "react";
+import { useRef } from "react";
 import { useIsHydrated } from "../../hooks/use-is-hydrated.js";
 import { useMatchesMediaQuery } from "../../hooks/use-matches-media-query.js";
-import { getPrefersReducedMotion } from "../../hooks/use-prefers-reduced-motion.js";
 import type { WithStyleProps } from "../../types/with-style-props.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
+import { cx } from "../../utils/cx/cx.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import { BrowserOnly } from "../browser-only/browser-only.js";
 import {
@@ -15,24 +15,12 @@ import {
 	type IconButtonProps,
 } from "../button/icon-button.js";
 import { DropdownMenu } from "../dropdown-menu/index.js";
-import { Icon } from "../icon/icon.js";
 import { IconSwap } from "../icon/icon-swap.js";
 import { ThemeIcon } from "../icons/theme.js";
 import { Skeleton } from "../skeleton/index.js";
 import { useAppliedTheme, useForcedTheme, useTheme } from "../theme/theme-provider.js";
 import type { ResolvedTheme, Theme } from "../theme/themes.js";
-import { $theme, getToggledTheme, isResolvedTheme, isTheme, themes } from "../theme/themes.js";
-
-/**
- * Menu item labels for each mantle theme. Typed as a complete
- * `Record<Theme, string>` so adding a new theme to the `themes` tuple without
- * a label is a compile error here.
- */
-const themeLabels: Record<Theme, string> = {
-	system: "System Preference",
-	light: "Light Mode",
-	dark: "Dark Mode",
-};
+import { getToggledTheme } from "../theme/themes.js";
 
 /**
  * The switcher icon for each applied theme. The switcher keeps each icon
@@ -44,45 +32,43 @@ const appliedThemeIcons = {
 } satisfies Record<ResolvedTheme, ReactNode>;
 
 /**
- * The props for the `ThemeDropdownMenuRadioGroup` component.
+ * The props for the `ThemeDropdownMenuItem` component.
  */
-type ThemeDropdownMenuRadioGroupProps = WithStyleProps &
-	Pick<ComponentProps<"div">, "aria-label" | "aria-labelledby">;
+type ThemeDropdownMenuItemProps = WithStyleProps & {
+	/**
+	 * The visible label of the item. When set, it is also the accessible
+	 * name. When omitted, the label is "Theme", and the accessible name also
+	 * says which theme the next press shows, such as "Theme: Switch to dark
+	 * theme". Set it for localization.
+	 */
+	label?: string;
+};
 
 /**
  * Must render inside a `DropdownMenu.Content` or `DropdownMenu.SubContent` —
  * the type system cannot express this constraint, so it is on you to uphold it.
  *
- * The theme-selection radio group for mantle's theme system. Renders one
- * `role="menuitemradio"` item per mantle theme via `DropdownMenu.RadioGroup`;
- * the active theme is `aria-checked` and choosing an item persists the new
- * theme through `useTheme`, so a `ThemeProvider` ancestor is required
- * (`useTheme` throws outside of one). Use it to embed theme selection in an
- * existing menu or a settings panel, where the user expects to configure a
- * preference. For a one-click control in a header or toolbar, use
+ * The light/dark toggle for an existing menu, such as an account menu: one
+ * "Theme" row that ends in the `ThemeSwitcher` icon. It is the menu form of
+ * `ThemeSwitcher`. A press flips the theme the same way a `ThemeSwitcher`
+ * click does, and the icon swaps between the sun and the moon. The menu stays
+ * open, and the new theme grows in a circle from the icon.
+ *
+ * Reads and writes the theme via `useTheme`, so it must render inside a
+ * `ThemeProvider`. Under a provider with `forceTheme`, it shows the forced
+ * theme and is disabled. For a control in a header or toolbar, use
  * `ThemeSwitcher` instead.
  *
- * The group is named "Theme" by default. Pass `aria-label` to rename it, or
- * `aria-labelledby` to point at a visible heading such as a
- * `DropdownMenu.Label`.
+ * **Data attributes:**
  *
- * @see https://mantle.ngrok.com/components/forms/theme-switcher
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"theme-dropdown-menu-item"` | On the item element. |
+ * | `data-slot` | `"theme-dropdown-menu-item-label"` | On the `<span>` that holds the `label`. |
  *
- * @example
- * Standalone inside a `DropdownMenu.Content`:
- * ```tsx
- * <DropdownMenu.Root>
- *   <DropdownMenu.Trigger asChild>
- *     <Button type="button" appearance="outlined" intent="neutral">Theme</Button>
- *   </DropdownMenu.Trigger>
- *   <DropdownMenu.Content>
- *     <ThemeDropdownMenuRadioGroup />
- *   </DropdownMenu.Content>
- * </DropdownMenu.Root>
- * ```
+ * @see https://mantle.ngrok.com/components/forms/theme-switcher#themedropdownmenuitem
  *
  * @example
- * Embedded in a submenu of an existing menu (e.g. an account menu):
  * ```tsx
  * <DropdownMenu.Root>
  *   <DropdownMenu.Trigger asChild>
@@ -90,49 +76,51 @@ type ThemeDropdownMenuRadioGroupProps = WithStyleProps &
  *   </DropdownMenu.Trigger>
  *   <DropdownMenu.Content>
  *     <DropdownMenu.Item>Profile</DropdownMenu.Item>
- *     <DropdownMenu.Sub>
- *       <DropdownMenu.SubTrigger>Theme</DropdownMenu.SubTrigger>
- *       <DropdownMenu.SubContent>
- *         <ThemeDropdownMenuRadioGroup />
- *       </DropdownMenu.SubContent>
- *     </DropdownMenu.Sub>
+ *     <ThemeDropdownMenuItem />
  *   </DropdownMenu.Content>
  * </DropdownMenu.Root>
  * ```
  */
-const ThemeDropdownMenuRadioGroup = ({
-	"aria-label": ariaLabel,
-	"aria-labelledby": ariaLabelledBy,
-	className,
-	style,
-}: ThemeDropdownMenuRadioGroupProps) => {
-	const [currentTheme, setTheme] = useTheme();
+function ThemeDropdownMenuItem({ className, label, style }: ThemeDropdownMenuItemProps) {
+	const [theme, setTheme] = useTheme();
+	const appliedTheme = useAppliedTheme();
+	const forcedTheme = useForcedTheme();
+	const prefersDarkMode = useMatchesMediaQuery("(prefers-color-scheme: dark)");
+	const iconRef = useRef<HTMLSpanElement>(null);
+	const nextTheme = getToggledTheme({ theme, prefersDarkMode });
 
 	return (
-		<DropdownMenu.RadioGroup
-			// Why a default name: Radix renders the group as `role="group"`, and a
-			// group with no name is announced as nothing.
-			aria-label={ariaLabelledBy == null ? (ariaLabel ?? "Theme") : ariaLabel}
-			aria-labelledby={ariaLabelledBy}
-			data-slot="theme-dropdown-menu-radio-group"
-			className={className}
+		<DropdownMenu.Item
+			// Why no hydration guard, unlike `ThemeSwitcher`: menu content mounts only
+			// on the client, so the OS preference is always known here.
+			aria-label={
+				label == null ? `Theme: ${toggleLabel(nextTheme, { prefersDarkMode })}` : undefined
+			}
+			data-slot="theme-dropdown-menu-item"
+			className={cx("gap-2", className)}
+			disabled={forcedTheme != null}
 			style={style}
-			value={currentTheme}
-			onValueChange={(value) => {
-				if (isTheme(value)) {
-					setTheme(value);
-				}
+			onSelect={(event) => {
+				// Why keep the menu open: the user sees the icon swap under the reveal.
+				event.preventDefault();
+				setTheme((current) => getToggledTheme({ theme: current, prefersDarkMode }), {
+					origin: iconRef.current,
+				});
 			}}
 		>
-			{themes.map((theme) => (
-				<DropdownMenu.RadioItem key={theme} value={$theme(theme)}>
-					<Icon svg={<ThemeIcon theme={theme} />} />
-					{themeLabels[theme]}
-				</DropdownMenu.RadioItem>
-			))}
-		</DropdownMenu.RadioGroup>
+			<span data-slot="theme-dropdown-menu-item-label" className="flex-1">
+				{label ?? "Theme"}
+			</span>
+			<span
+				ref={iconRef}
+				aria-hidden
+				className="flex size-7 shrink-0 items-center justify-center text-muted [&_svg]:size-5"
+			>
+				<IconSwap active={appliedTheme} icons={appliedThemeIcons} />
+			</span>
+		</DropdownMenu.Item>
 	);
-};
+}
 
 /**
  * The props for the `ThemeSwitcher` component. Forwards `IconButton`'s props,
@@ -176,8 +164,8 @@ type ThemeSwitcherProps = Omit<
  * Reads and writes the theme via `useTheme`, so it must render inside a
  * `ThemeProvider`. Under a provider with `forceTheme`, it shows the forced
  * theme and is disabled, because a click cannot change what the page shows. The icon is SSR-safe: a `Skeleton` renders until
- * hydration, then the icon of the applied theme. To offer all three themes in
- * an existing menu or a settings panel, use `ThemeDropdownMenuRadioGroup`.
+ * hydration, then the icon of the applied theme. To put the same control in
+ * an existing menu, use `ThemeDropdownMenuItem`.
  *
  * @see https://mantle.ngrok.com/components/forms/theme-switcher
  * @see https://lea.verou.me/blog/2026/dark-mode-toggles/
@@ -237,119 +225,14 @@ function ThemeSwitcher({
 			onClick={(event) => {
 				onClick?.(event);
 				if (!event.defaultPrevented) {
-					swapTheme(
-						() => {
-							// Why read `<html>`: the browser runs the update in a later frame, so a
-							// second click can come first. `setTheme` writes the applied theme at once.
-							const applied = document.documentElement.dataset.appliedTheme;
-							setTheme(
-								isResolvedTheme(applied)
-									? getToggledTheme({ theme: applied, prefersDarkMode })
-									: nextTheme,
-							);
-						},
-						{ origin: event.currentTarget },
-					);
+					setTheme((current) => getToggledTheme({ theme: current, prefersDarkMode }), {
+						origin: event.currentTarget,
+					});
 				}
 			}}
 			{...props}
 		/>
 	);
-}
-
-/**
- * Counts theme swaps. A newer swap replaces a running one, so only the newest
- * one clears the `<html>` attribute.
- */
-let themeTransitionCount = 0;
-
-/**
- * Runs `update` inside a view transition, and grows the new theme in a circle
- * from `origin` over the old one. It runs `update` at once when the browser has
- * no view transitions, when the user prefers reduced motion, or when the page
- * is hidden.
- *
- * Why `flushSync`: React must commit the new icon and label before the browser
- * takes the snapshot of the new theme.
- *
- * Why the click listener: while a view transition runs, the browser sends each
- * pointer event to `<html>`, so a click on the page would be lost. A click ends
- * the transition at once, then goes to the element under the pointer.
- */
-function swapTheme(update: () => void, { origin }: { origin: HTMLElement }) {
-	if (
-		typeof document.startViewTransition !== "function" ||
-		getPrefersReducedMotion() ||
-		document.visibilityState !== "visible"
-	) {
-		update();
-		return;
-	}
-
-	const html = document.documentElement;
-	const circle = revealCircle(origin.getBoundingClientRect(), {
-		width: window.innerWidth,
-		height: window.innerHeight,
-	});
-
-	html.dataset.themeTransition = "";
-	const transition = document.startViewTransition(() => flushSync(update));
-	const transitionNumber = ++themeTransitionCount;
-
-	function onClick(event: MouseEvent) {
-		if (event.target !== html) {
-			return;
-		}
-		transition.skipTransition();
-		const target = document.elementFromPoint(event.clientX, event.clientY);
-		if (target != null && target !== html) {
-			target.dispatchEvent(new MouseEvent("click", event));
-		}
-	}
-	document.addEventListener("click", onClick, { capture: true });
-
-	transition.ready.then(
-		() =>
-			html.animate(
-				{ clipPath: [circle.from, circle.to] },
-				// Why not `ease-out-strong` in 300ms: the covered area grows with the
-				// square of the radius, so that curve flips most of the screen in about
-				// 40ms, like a flash. See `docs/motion.md` § Exceptions.
-				{ duration: 400, easing: "ease-out", pseudoElement: "::view-transition-new(root)" },
-			),
-		// A skipped transition rejects `ready`; the theme is already applied.
-		() => {},
-	);
-
-	void transition.finished.finally(() => {
-		document.removeEventListener("click", onClick, { capture: true });
-		if (transitionNumber === themeTransitionCount) {
-			delete html.dataset.themeTransition;
-		}
-	});
-}
-
-/**
- * Returns the start and end `clip-path` of the reveal: a circle centered on
- * `origin` that grows until it covers the farthest corner of the viewport.
- *
- * @example
- * revealCircle({ left: 0, top: 0, width: 20, height: 20 }, { width: 100, height: 100 })
- * // { from: "circle(0px at 10px 10px)", to: "circle(127.28px at 10px 10px)" }
- */
-function revealCircle(
-	origin: Pick<DOMRect, "left" | "top" | "width" | "height">,
-	viewport: { width: number; height: number },
-) {
-	const x = origin.left + origin.width / 2;
-	const y = origin.top + origin.height / 2;
-	const radius = Math.hypot(Math.max(x, viewport.width - x), Math.max(y, viewport.height - y));
-	const at = `at ${x}px ${y}px`;
-
-	return {
-		from: `circle(0px ${at})`,
-		to: `circle(${Math.round(radius * 100) / 100}px ${at})`,
-	};
 }
 
 /**
@@ -369,13 +252,12 @@ function toggleLabel(nextTheme: Theme, { prefersDarkMode }: { prefersDarkMode: b
 
 export {
 	//,
-	revealCircle,
-	ThemeDropdownMenuRadioGroup,
+	ThemeDropdownMenuItem,
 	ThemeSwitcher,
 };
 
 export type {
 	//,
-	ThemeDropdownMenuRadioGroupProps,
+	ThemeDropdownMenuItemProps,
 	ThemeSwitcherProps,
 };
