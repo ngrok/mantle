@@ -174,7 +174,7 @@ MARK: THEME
 	/* A strong ease-out for UI that enters, exits, or changes shape in under 300ms.
 	   Tailwind's `--ease-out` is too shallow to read as a settle at 200ms. */
 	--ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
-	/* One damped shake when a form control shows an error and the user is not in it.
+	/* One damped shake when a form control enters the error state.
 	   The first swing eases out, so the control answers at once. The other swings
 	   ease in and out, so the control settles like a spring and not in steps. */
 	--animate-shake: shake 300ms ease-in-out;

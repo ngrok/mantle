@@ -52,7 +52,7 @@ import { joinDataSlot } from "../../utils/data-slot.js";
 import { useLayerContainer } from "../../utils/layer-container/layer-container.js";
 import { FieldControlContext } from "../field/field-context.js";
 import { parseValidation, useFieldValidation } from "../field/validation.js";
-import type { WithValidation } from "../field/validation.js";
+import type { AriaInvalid, WithValidation } from "../field/validation.js";
 import { Icon } from "../icon/icon.js";
 import { Separator } from "../separator/separator.js";
 import { Slot } from "../slot/index.js";
@@ -70,6 +70,12 @@ const haveSameItems = (first: readonly string[], second: readonly string[]): boo
 	first.length === second.length && first.every((item, index) => item === second[index]);
 
 const TriggerRefContext = createContext<RefObject<HTMLDivElement | null>>({ current: null });
+
+/**
+ * The `aria-invalid` that `Trigger` resolves from its `validation` and `aria-invalid` props.
+ * The trigger is presentational, so `Input` carries the state for assistive technology.
+ */
+const TriggerAriaInvalidContext = createContext<AriaInvalid>(undefined);
 
 /**
  * The `lockedValues` that `TagValues` publishes, read by `Item` to keep a locked value
@@ -199,54 +205,56 @@ const Trigger = ({
 	const { inputRef } = useContext(TagBridgeContext);
 	const store = useAriakitComboboxContext();
 	const fieldValidation = useFieldValidation();
-	const { validation } = parseValidation({
+	const { ariaInvalid, validation } = parseValidation({
 		"aria-invalid": _ariaInvalid,
 		validation: _validation ?? fieldValidation,
 	});
 
 	return (
-		<div
-			// Why presentation: the handlers below only forward focus to the input;
-			// the container itself is not a control, and the input and the tag list
-			// carry the semantics.
-			role="presentation"
-			data-slot={joinDataSlot(dataSlot, "multi-select-trigger")}
-			className={cx(
-				"cursor-text select-none font-sans text-sm",
-				"border-form bg-form text-strong flex min-h-9 w-full flex-wrap items-center gap-1 rounded-md border px-3 py-1 has-[[data-slot=multi-select-tag]]:px-1",
-				"has-focus:outline-hidden has-focus-within:ring-4 has-aria-expanded:ring-4",
-				"has-focus-within:border-accent-600 has-focus-within:ring-focus-accent has-aria-expanded:border-accent-600 has-aria-expanded:ring-focus-accent",
-				"data-validation-success:border-success-600 data-validation-success:has-focus-within:border-success-600 data-validation-success:has-focus-within:ring-focus-success data-validation-success:has-aria-expanded:border-success-600 data-validation-success:has-aria-expanded:ring-focus-success",
-				"data-validation-warning:border-warning-600 data-validation-warning:has-focus-within:border-warning-600 data-validation-warning:has-focus-within:ring-focus-warning data-validation-warning:has-aria-expanded:border-warning-600 data-validation-warning:has-aria-expanded:ring-focus-warning",
-				"data-validation-error:border-danger-600 data-validation-error:has-focus-within:border-danger-600 data-validation-error:has-focus-within:ring-focus-danger data-validation-error:has-aria-expanded:border-danger-600 data-validation-error:has-aria-expanded:ring-focus-danger motion-safe:not-focus-within:not-has-aria-expanded:data-validation-error:animate-shake",
-				className,
-			)}
-			data-validation={validation || undefined}
-			onKeyDown={(event) => {
-				if (event.key === "Escape" && store?.getState().open) {
-					event.preventDefault();
-					store.hide();
-				}
-				onKeyDown?.(event);
-			}}
-			onMouseDown={(event) => {
-				// When clicking on non-interactive areas (padding, flex gaps between tags), prevent the
-				// default mousedown behavior (which would cause text selection) and explicitly focus the
-				// input. Clicks on buttons, the input itself, or tag spans are handled by those elements.
-				if (
-					event.target instanceof HTMLElement &&
-					!event.target.closest("button, input, [data-slot='multi-select-tag']")
-				) {
-					event.preventDefault();
-					inputRef.current?.focus();
-				}
-				onMouseDown?.(event);
-			}}
-			ref={composeRefs(triggerRef, ref)}
-			{...props}
-		>
-			{children}
-		</div>
+		<TriggerAriaInvalidContext.Provider value={ariaInvalid}>
+			<div
+				// Why presentation: the handlers below only forward focus to the input;
+				// the container itself is not a control, and the input and the tag list
+				// carry the semantics.
+				role="presentation"
+				data-slot={joinDataSlot(dataSlot, "multi-select-trigger")}
+				className={cx(
+					"cursor-text select-none font-sans text-sm",
+					"border-form bg-form text-strong flex min-h-9 w-full flex-wrap items-center gap-1 rounded-md border px-3 py-1 has-[[data-slot=multi-select-tag]]:px-1",
+					"has-focus:outline-hidden has-focus-within:ring-4 has-aria-expanded:ring-4",
+					"has-focus-within:border-accent-600 has-focus-within:ring-focus-accent has-aria-expanded:border-accent-600 has-aria-expanded:ring-focus-accent",
+					"data-validation-success:border-success-600 data-validation-success:has-focus-within:border-success-600 data-validation-success:has-focus-within:ring-focus-success data-validation-success:has-aria-expanded:border-success-600 data-validation-success:has-aria-expanded:ring-focus-success",
+					"data-validation-warning:border-warning-600 data-validation-warning:has-focus-within:border-warning-600 data-validation-warning:has-focus-within:ring-focus-warning data-validation-warning:has-aria-expanded:border-warning-600 data-validation-warning:has-aria-expanded:ring-focus-warning",
+					"data-validation-error:border-danger-600 data-validation-error:has-focus-within:border-danger-600 data-validation-error:has-focus-within:ring-focus-danger data-validation-error:has-aria-expanded:border-danger-600 data-validation-error:has-aria-expanded:ring-focus-danger motion-safe:data-validation-error:animate-shake",
+					className,
+				)}
+				data-validation={validation || undefined}
+				onKeyDown={(event) => {
+					if (event.key === "Escape" && store?.getState().open) {
+						event.preventDefault();
+						store.hide();
+					}
+					onKeyDown?.(event);
+				}}
+				onMouseDown={(event) => {
+					// When clicking on non-interactive areas (padding, flex gaps between tags), prevent the
+					// default mousedown behavior (which would cause text selection) and explicitly focus the
+					// input. Clicks on buttons, the input itself, or tag spans are handled by those elements.
+					if (
+						event.target instanceof HTMLElement &&
+						!event.target.closest("button, input, [data-slot='multi-select-tag']")
+					) {
+						event.preventDefault();
+						inputRef.current?.focus();
+					}
+					onMouseDown?.(event);
+				}}
+				ref={composeRefs(triggerRef, ref)}
+				{...props}
+			>
+				{children}
+			</div>
+		</TriggerAriaInvalidContext.Provider>
 	);
 };
 
@@ -779,6 +787,7 @@ const Input = ({
 	const store = useAriakitComboboxContext();
 	const { onInputKeyDownRef, inputRef } = useContext(TagBridgeContext);
 	const fieldControl = useContext(FieldControlContext);
+	const triggerAriaInvalid = useContext(TriggerAriaInvalidContext);
 	const rawSelectedValue = useAriakitStoreState(store, "selectedValue");
 	const selectedValues = isStringArray(rawSelectedValue) ? rawSelectedValue : undefined;
 	const hasSelectedValues = (selectedValues?.length ?? 0) > 0;
@@ -786,6 +795,7 @@ const Input = ({
 	return (
 		<AriakitCombobox
 			autoSelect
+			aria-invalid={triggerAriaInvalid}
 			data-slot={joinDataSlot(dataSlot, "multi-select-input")}
 			className={cx(
 				"pointer-coarse:text-base min-w-20 flex-1 select-text border-0 bg-transparent text-sm outline-hidden",

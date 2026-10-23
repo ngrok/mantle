@@ -45,8 +45,10 @@ explains nothing is noise. Leave it out.
   The control's own state still changes on the input.
 - **An error shake** (`animate-shake`) is a keyframe animation, not a transition: it starts and ends at rest, so
   it has no end value to retarget to. It moves 4px and settles in 300ms. The first swing eases out, and the other
-  swings ease in and out, like a damped spring. Form controls run it only when they show an error and do not
-  have focus, so a control never moves while the user types in it.
+  swings ease in and out, like a damped spring. A form control runs it once when it enters the error state. The
+  animation starts when the `data-validation-error:` rule starts to match, so it does not run again while the
+  error stays, on focus, or on blur. The shake is never the only error signal: the border, `aria-invalid`, and
+  the error message stay.
 
 ## Tokens
 
