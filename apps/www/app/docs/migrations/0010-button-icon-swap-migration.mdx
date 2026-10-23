@@ -1,0 +1,109 @@
+---
+title: Button Icon Swap Migration
+description: The Button and IconButton icon now sits inside a span. Replace a [&>svg] selector on the button with [&_svg], or size the icon element itself.
+---
+
+# Mantle Button Icon Swap Migration Guide
+
+`@ngrok/mantle`'s `Button` and `IconButton` swap the `icon` and the `isLoading` spinner with a blur and fade. Both icons stay mounted, so the icon is no longer a direct child of the `<button>`. It is inside a `<span data-slot="icon-swap">`, in a `<span data-slot="icon-swap-item">`. A child selector such as `[&>svg]:size-3.5` on the button no longer reaches the icon, and the icon keeps mantle's default size. This guide moves those selectors to a form that reaches the icon.
+
+**TL;DR:** On a `Button` with an `icon` prop, and on every `IconButton`, replace each `[&>svg]` variant in `className` with `[&_svg]`. Better: delete the variant and put the class on the icon element (`icon={<PlusIcon className="size-3.5" />}`). Leave `[&>svg]` on every other part alone.
+
+## Codemod
+
+Codemod: manual: the change is a Tailwind variant inside a class string, and a rule cannot tell which `[&>svg]` targets the button's own icon.
+
+---
+
+## You are an agent migrating a codebase. Do this:
+
+1. Find every `Button` and `IconButton` from `@ngrok/mantle/button`. Include an aliased import (`import { Button as MantleButton }`) and a local wrapper that forwards `className` to one of them.
+2. Keep only the ones that render a mantle icon: a `Button` with an `icon` prop, and every `IconButton`. A `Button` without `icon` that is `isLoading` still renders the spinner as a direct child, so its `[&>svg]` selector still works.
+3. In the `className` of each one, find a `[&>svg]` variant (`[&>svg]:size-3.5`, `[&>svg]:shrink-0`, `[&>svg]:text-muted`). Also find the spelled-out form `[&_>_svg]`, and a `> svg` selector in CSS that targets a button.
+4. Replace `[&>svg]` with `[&_svg]`. When the variant only sets the icon's size or color, you can instead delete it and pass the class to the icon element: `icon={<PlusIcon className="size-3.5" />}`, or `<IconButton icon={<TrashIcon className="size-3.5" />} />`.
+5. Leave `[&>svg]` on every other part alone: `Select.Trigger`, `Tabs.Trigger`, `DropdownMenu.Item`, and plain elements did not change.
+6. Find a test that reads the button's icon as a direct child (`button.querySelector(":scope > svg")`, `button.firstElementChild`). Query `svg` as a descendant instead, or query `[data-slot="icon-swap-item"][data-state="active"] svg` for the icon that shows.
+7. After editing, run the project's formatter, linter, type checker, and tests.
+
+> **Why a wrapper?** A swap that mounts one icon and unmounts the other is a hard cut: the new icon pops in. To blur and fade between them, both icons must stay mounted in one grid cell while a CSS transition runs. Each icon gets its own wrapper, so the swap owns the wrapper's `transition` and the icon keeps its own (a rotating caret, for example).
+
+---
+
+## Before → after
+
+### A Button that sized its icon with a child selector
+
+```tsx
+// BEFORE: [&>svg] reached the icon, a direct child of the <button>
+<Button
+	type="button"
+	appearance="ghost"
+	icon={<PlusIcon />}
+	className="h-7 gap-1.5 px-2 text-xs [&>svg]:size-3.5"
+>
+	Add message
+</Button>
+```
+
+```tsx
+// AFTER: the descendant selector reaches the icon inside the swap
+<Button
+	type="button"
+	appearance="ghost"
+	icon={<PlusIcon />}
+	className="h-7 gap-1.5 px-2 text-xs [&_svg]:size-3.5"
+>
+	Add message
+</Button>
+```
+
+### An IconButton that sized its icon with a child selector
+
+```tsx
+// BEFORE
+<IconButton
+	type="button"
+	appearance="ghost"
+	label="Remove message"
+	icon={<TrashIcon />}
+	className="text-muted size-7 shrink-0 [&>svg]:size-3.5"
+/>
+```
+
+```tsx
+// AFTER: the class is on the icon, so no selector is necessary
+<IconButton
+	type="button"
+	appearance="ghost"
+	label="Remove message"
+	icon={<TrashIcon className="size-3.5" />}
+	className="text-muted size-7 shrink-0"
+/>
+```
+
+### A part that did not change
+
+```tsx
+// BEFORE and AFTER: Select.Trigger renders its caret as a direct child
+<Select.Trigger className="h-7 gap-2 px-2 text-xs [&>svg]:size-3">
+	<Select.Value />
+</Select.Trigger>
+```
+
+---
+
+## Edge cases & gotchas
+
+- **The hidden spinner.** Every `IconButton`, and every `Button` with an `icon`, now renders the spinner SVG too, hidden with `aria-hidden="true"` and `opacity: 0`. `[&_svg]` sizes both, so the swap keeps one size. A test that counts the SVGs in a button finds one more.
+- **An SVG in the children.** `[&_svg]` also reaches an SVG that you pass as a child of a `Button`, not only the `icon`. When the two need different sizes, put the class on each icon element.
+- **`asChild`.** An `IconButton` with `asChild` puts the swap inside your child element. The same selector change applies to the child's `className`.
+- **A loading `Button` with no `icon`.** It renders the spinner directly, with no swap. A `[&>svg]` variant still reaches it, and `[&_svg]` does too.
+
+---
+
+## How to verify
+
+1. Search each `Button` with an `icon` prop and each `IconButton` for `[&>svg]`. Zero hits.
+2. Load a page with a button that had a custom icon size. The icon has that size, not mantle's default `size-5`.
+3. Set `isLoading` on that button. The spinner has the same size as the icon, and the button does not change size.
+4. Run the project's formatter, linter, type checker, and tests.

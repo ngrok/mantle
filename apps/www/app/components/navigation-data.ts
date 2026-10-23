@@ -487,6 +487,14 @@ export const migrations = [
 			'The chart Roots take mode in place of the decorative boolean: rewrite decorative to mode="decorative", and move sparklines to mode="static".',
 		route: "/migrations/0009-chart-root-mode-migration",
 	},
+	{
+		number: 10,
+		slug: "button-icon-swap-migration",
+		title: "Button Icon Swap",
+		description:
+			"The Button and IconButton icon now sits inside a span. Replace a [&>svg] selector on the button with [&_svg], or size the icon element itself.",
+		route: "/migrations/0010-button-icon-swap-migration",
+	},
 ] as const satisfies readonly Migration[];
 
 /** Migration guides, newest first: the order the index page and the sidebar show. */

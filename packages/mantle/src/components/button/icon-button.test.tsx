@@ -44,7 +44,7 @@ describe("IconButton", () => {
 		expect(button).toHaveClass("rounded-[var(--icon-button-border-radius,0.375rem)]");
 	});
 
-	test("renders the icon through Icon as the button's only child", () => {
+	test("renders the icon through Icon in the button's only child", () => {
 		render(
 			<IconButton
 				appearance="outlined"
@@ -56,8 +56,9 @@ describe("IconButton", () => {
 		const button = screen.getByRole("button", { name: "globe" });
 		const icon = screen.getByTestId("icon");
 		expect(button.childNodes).toHaveLength(1);
-		expect(button.firstChild).toBe(icon);
+		expect(button.firstChild).toContainElement(icon);
 		expect(icon).toHaveAttribute("data-slot", "icon svg-only");
+		expect(icon.parentElement).toHaveAttribute("data-state", "active");
 	});
 
 	describe("appearance", () => {
@@ -330,13 +331,13 @@ describe("IconButton", () => {
 					icon={<GlobeIcon />}
 				/>,
 			);
-			const spinner = screen.getByRole("button").querySelector("svg");
+			const spinner = screen.getByRole("button").querySelector("[data-state='active'] > svg");
 			expect(spinner).toHaveAttribute("aria-hidden", "true");
 		});
 	});
 
 	describe("isLoading", () => {
-		test("swaps the consumer's icon for a single spinner, keeps the label, and swaps back once idle", () => {
+		test("swaps the consumer's icon for a spinner, keeps the label, and swaps back once idle", () => {
 			const { rerender } = render(
 				<IconButton
 					appearance="ghost"
@@ -347,10 +348,14 @@ describe("IconButton", () => {
 				/>,
 			);
 			const button = screen.getByRole("button", { name: "save" });
+			const icon = screen.getByTestId("icon");
 			expect(button).toHaveAttribute("data-loading", "");
-			// The consumer's icon is gone and exactly one svg remains, so that one is the spinner.
-			expect(screen.queryByTestId("icon")).not.toBeInTheDocument();
-			expect(button.querySelectorAll("svg")).toHaveLength(1);
+			// The consumer's icon stays mounted for the transition, hidden behind the spinner.
+			expect(icon.parentElement).toHaveAttribute("data-state", "inactive");
+			expect(icon.parentElement).toHaveAttribute("aria-hidden", "true");
+			const spinner = button.querySelector("[data-state='active'] > svg");
+			expect(spinner).toBeInTheDocument();
+			expect(spinner).not.toBe(icon);
 
 			rerender(
 				<IconButton
@@ -363,9 +368,10 @@ describe("IconButton", () => {
 			);
 			expect(button).not.toHaveAttribute("data-loading");
 			expect(button).toBeEnabled();
-			const icons = button.querySelectorAll("svg");
-			expect(icons).toHaveLength(1);
-			expect(icons[0]).toBe(screen.getByTestId("icon"));
+			// The same nodes swap state, so a CSS transition can carry the swap.
+			expect(screen.getByTestId("icon")).toBe(icon);
+			expect(icon.parentElement).toHaveAttribute("data-state", "active");
+			expect(spinner?.parentElement).toHaveAttribute("data-state", "inactive");
 		});
 
 		test("forwards the loading state and the spinner to an `asChild` child", () => {
@@ -385,8 +391,10 @@ describe("IconButton", () => {
 			expect(link).toHaveAttribute("data-loading", "");
 			expect(link).toHaveAttribute("aria-disabled", "true");
 			expect(link).toHaveAttribute("tabindex", "-1");
-			expect(screen.queryByTestId("icon")).not.toBeInTheDocument();
-			expect(link.querySelectorAll("svg")).toHaveLength(1);
+			expect(screen.getByTestId("icon").parentElement).toHaveAttribute("data-state", "inactive");
+			const spinner = link.querySelector("[data-state='active'] > svg");
+			expect(spinner).toBeInTheDocument();
+			expect(spinner).not.toBe(screen.getByTestId("icon"));
 		});
 	});
 

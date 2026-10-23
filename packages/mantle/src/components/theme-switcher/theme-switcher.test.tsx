@@ -1,11 +1,41 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { createRef } from "react";
-import type { ComponentProps } from "react";
+import type { ComponentProps, ReactElement } from "react";
 import { renderToString } from "react-dom/server";
 import { beforeEach, describe, expect, test } from "vitest";
 import { DropdownMenu } from "../dropdown-menu/index.js";
+import { ThemeIcon } from "../icons/theme.js";
 import { ThemeProvider, useTheme } from "../theme/theme-provider.js";
 import { ThemeDropdownMenuRadioGroup, ThemeSwitcher } from "./theme-switcher.js";
+
+/**
+ * The one icon the trigger shows. A hidden icon is in a `data-state="inactive"` span.
+ */
+function shownIcon(trigger: HTMLElement): SVGElement {
+	const icons = [...trigger.querySelectorAll("svg")].filter(
+		(svg) => svg.closest("[data-state='inactive']") == null,
+	);
+	expect(icons).toHaveLength(1);
+	const [icon] = icons;
+	if (icon == null) {
+		throw new Error("The trigger shows no icon.");
+	}
+	return icon;
+}
+
+/**
+ * The glyph of the first `<path>` in an icon. Each phosphor theme glyph is a
+ * single path, so `d` identifies the icon.
+ */
+function glyphOf(icon: Element | ReactElement): string | null {
+	const container = document.createElement("div");
+	if (icon instanceof Element) {
+		container.append(icon.cloneNode(true));
+	} else {
+		container.innerHTML = renderToString(icon);
+	}
+	return container.querySelector("path")?.getAttribute("d") ?? null;
+}
 
 /**
  * Renders the current theme from `useTheme` so tests can observe theme
@@ -286,7 +316,7 @@ describe("ThemeSwitcher", () => {
 		expect(screen.getByRole("menuitem", { name: "Appearance settings" })).toBeInTheDocument();
 	});
 
-	test("trigger renders the themed icon after hydration", () => {
+	test("trigger swaps its icon to the chosen theme and keeps the previous icon mounted", () => {
 		render(
 			<ThemeProvider>
 				<ThemeSwitcher.Root>
@@ -296,8 +326,34 @@ describe("ThemeSwitcher", () => {
 			</ThemeProvider>,
 		);
 		const trigger = screen.getByRole("button", { name: "Change Theme" });
-		expect(trigger.querySelector("svg")).not.toBeNull();
 		expect(trigger.querySelector('[data-slot="skeleton"]')).toBeNull();
+		const sunIcon = shownIcon(trigger);
+		expect(glyphOf(sunIcon)).toBe(glyphOf(<ThemeIcon theme="light" />));
+
+		fireEvent.pointerDown(trigger);
+		fireEvent.click(screen.getByRole("menuitemradio", { name: "Dark Mode" }));
+
+		expect(glyphOf(shownIcon(trigger))).toBe(glyphOf(<ThemeIcon theme="dark" />));
+		expect(trigger).toContainElement(sunIcon);
+		expect(sunIcon.parentElement).toHaveAttribute("data-state", "inactive");
+	});
+
+	test("a loading trigger hides its theme icon behind the spinner", () => {
+		render(
+			<ThemeProvider>
+				<ThemeSwitcher.Root>
+					<ThemeSwitcher.Trigger isLoading />
+					<ThemeSwitcher.Content />
+				</ThemeSwitcher.Root>
+			</ThemeProvider>,
+		);
+		const trigger = screen.getByRole("button", { name: "Change Theme" });
+		const spinner = shownIcon(trigger);
+		expect(glyphOf(spinner)).not.toBe(glyphOf(<ThemeIcon theme="light" />));
+		const hiddenIcons = [...trigger.querySelectorAll("svg")].filter((svg) => svg !== spinner);
+		for (const svg of hiddenIcons) {
+			expect(svg.closest("[data-state='inactive']")).not.toBeNull();
+		}
 	});
 
 	test("trigger renders the skeleton fallback during server rendering", () => {
@@ -311,8 +367,13 @@ describe("ThemeSwitcher", () => {
 				</ThemeSwitcher.Root>
 			</ThemeProvider>,
 		);
-		expect(html).toContain('data-slot="skeleton"');
-		expect(html).not.toContain("<svg");
+		const template = document.createElement("template");
+		template.innerHTML = html;
+		expect(template.content.querySelector("[data-slot='skeleton']")).not.toBeNull();
+		// Why only inactive: the trigger keeps its hidden loading spinner mounted.
+		for (const svg of template.content.querySelectorAll("svg")) {
+			expect(svg.closest("[data-state='inactive']")).not.toBeNull();
+		}
 	});
 });
 

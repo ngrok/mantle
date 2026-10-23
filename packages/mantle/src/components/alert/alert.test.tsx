@@ -445,12 +445,12 @@ describe("Alert", () => {
 
 			const button = container.querySelector('[data-slot~="alert-expand-button"]');
 			const label = button?.querySelector('[data-slot="button-label"]');
-			const caret = button?.querySelector("svg");
+			const caret = button?.querySelector("[data-state='active'] > svg");
 			expect(label).toHaveTextContent("+3");
-			// The caret is the label's sibling, not its descendant, so the button's
-			// `gap` falls between the two and `iconPlacement="end"` orders the caret
-			// last. Passing it as a child puts it inside the label instead.
-			expect(caret?.parentElement).toBe(button);
+			// The caret's icon slot is the label's sibling, not its descendant, so the
+			// button's `gap` falls between the two and `iconPlacement="end"` orders the
+			// caret last. Passing it as a child puts it inside the label instead.
+			expect(caret?.closest("[data-slot~='icon-swap']")?.parentElement).toBe(button);
 			expect(label?.contains(caret ?? null)).toBe(false);
 		});
 

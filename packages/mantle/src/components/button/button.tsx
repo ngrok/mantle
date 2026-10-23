@@ -11,6 +11,7 @@ import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import { Icon } from "../icon/index.js";
+import { IconSwap } from "../icon/icon-swap.js";
 import { Slot } from "../slot/index.js";
 import type { ButtonIntent } from "./intents.js";
 import type { ButtonSize } from "./sizes.js";
@@ -313,7 +314,19 @@ const Button = ({
 	// `disabled={false}` keeps a loading button enabled and focused (`Sandbar`
 	// relies on it), and `aria-disabled={false}` cannot re-enable a disabled button.
 	const disabled = parseBooleanish(_disabled ?? isLoading) || parseBooleanish(_ariaDisabled);
-	const icon = isLoading ? <CircleNotchIcon className="animate-spin" /> : propIcon;
+	const loadingIcon = <CircleNotchIcon className="animate-spin" />;
+	const iconClassName = clsx(iconPlacement === "end" && "order-last");
+	// Why a swap only with an icon: a button without one has no icon slot to
+	// keep mounted, so the spinner mounts and unmounts with `isLoading`.
+	const icon = propIcon ? (
+		<IconSwap
+			active={isLoading ? "loading" : "idle"}
+			icons={{ idle: propIcon, loading: loadingIcon }}
+			className={iconClassName}
+		/>
+	) : (
+		isLoading && <Icon svg={loadingIcon} className={iconClassName} />
+	);
 
 	/**
 	 * If the button has an icon and is not a link, add padding-start or padding-end to the button depending on the icon placement.
@@ -359,7 +372,7 @@ const Button = ({
 					children,
 					disabled ? disabledChildProps : {},
 					<>
-						{icon && <Icon svg={icon} className={clsx(iconPlacement === "end" && "order-last")} />}
+						{icon}
 						{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
 						<span data-slot="button-label" className="contents">
 							{children.props.children}
@@ -373,7 +386,7 @@ const Button = ({
 	return (
 		// oxlint-disable-next-line react/button-has-type -- `type` defaults to "button" at runtime via the `?? "button"` fallback; the static analyzer can't resolve that expression.
 		<button {...buttonProps} disabled={disabled} type={type ?? "button"}>
-			{icon && <Icon svg={icon} className={clsx(iconPlacement === "end" && "order-last")} />}
+			{icon}
 			{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
 			<span data-slot="button-label" className="contents">
 				{children}

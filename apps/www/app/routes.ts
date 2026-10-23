@@ -170,6 +170,7 @@ const migrationsPages = [
 	"0007-app-layout-header-slots-migration",
 	"0008-tabs-separator-migration",
 	"0009-chart-root-mode-migration",
+	"0010-button-icon-swap-migration",
 ];
 
 export default [

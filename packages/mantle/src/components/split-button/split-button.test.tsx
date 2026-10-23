@@ -244,8 +244,8 @@ describe("SplitButton", () => {
 		);
 
 		const menuTrigger = screen.getByRole("button", { name: "More save options" });
-		const icons = menuTrigger.querySelectorAll("svg");
-		expect(icons).toHaveLength(1);
-		expect(icons[0]).toBe(screen.getByTestId("custom-icon"));
+		const shownIcons = menuTrigger.querySelectorAll("[data-state='active'] > svg");
+		expect(shownIcons).toHaveLength(1);
+		expect(shownIcons[0]).toBe(screen.getByTestId("custom-icon"));
 	});
 });
