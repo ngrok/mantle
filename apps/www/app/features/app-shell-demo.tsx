@@ -11,7 +11,7 @@ import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
 import { Kbd } from "@ngrok/mantle/kbd";
 import { Sidebar, useSidebar } from "@ngrok/mantle/sidebar";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
-import { ThemeDropdownMenuItem } from "@ngrok/mantle/theme-switcher";
+import { ThemeDropdownMenuRadioGroup } from "@ngrok/mantle/theme-switcher";
 import { Tooltip } from "@ngrok/mantle/tooltip";
 import { ArrowLeftIcon } from "@phosphor-icons/react/ArrowLeft";
 import { ArrowRightIcon } from "@phosphor-icons/react/ArrowRight";
@@ -842,7 +842,7 @@ function AppShellAccountSwitcher({
 						<UserCircleIcon className="text-muted" />
 						User settings
 					</DropdownMenu.Item>
-					<ThemeDropdownMenuItem />
+					<ThemeDropdownMenuRadioGroup />
 				</DropdownMenu.Group>
 				<DropdownMenu.Separator />
 				<DropdownMenu.Item className="gap-2">

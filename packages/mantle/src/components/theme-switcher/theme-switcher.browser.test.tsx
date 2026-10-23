@@ -7,7 +7,7 @@ import { commands } from "vitest/browser";
 import mantleCss from "../../mantle.css?raw";
 import { DropdownMenu } from "../dropdown-menu/index.js";
 import { ThemeProvider } from "../theme/theme-provider.js";
-import { ThemeDropdownMenuItem, ThemeSwitcher } from "./theme-switcher.js";
+import { ThemeDropdownMenuRadioGroup, ThemeSwitcher } from "./theme-switcher.js";
 
 /**
  * The theme-swap rules from `mantle.css`, plus a probe whose color follows the
@@ -154,33 +154,29 @@ describe("ThemeSwitcher theme swap in Chromium", () => {
 	});
 });
 
-describe("ThemeDropdownMenuItem theme swap in Chromium", () => {
-	test("the new theme grows in a circle from the switch, and the menu stays open", async () => {
+describe("ThemeDropdownMenuRadioGroup theme swap in Chromium", () => {
+	test("the new theme grows in a circle from the chosen segment, and the menu stays open", async () => {
 		render(
 			<ThemeProvider>
 				<DropdownMenu.Root>
 					<DropdownMenu.Trigger>Account</DropdownMenu.Trigger>
 					<DropdownMenu.Content>
-						<ThemeDropdownMenuItem />
+						<ThemeDropdownMenuRadioGroup />
 					</DropdownMenu.Content>
 				</DropdownMenu.Root>
 			</ThemeProvider>,
 		);
 		await userEvent.click(screen.getByRole("button", { name: "Account" }));
-		const item = await screen.findByRole("menuitemcheckbox", { name: "Dark mode" });
-		const track = item.lastElementChild;
-		if (track == null) {
-			throw new Error("the item renders no switch");
-		}
-		await userEvent.click(item);
+		const segment = await screen.findByRole("menuitemradio", { name: "Dark" });
+		await userEvent.click(segment);
 
 		const reveal = await revealAnimation();
 		const from = parseCircle((reveal.effect as KeyframeEffect).getKeyframes()[0]?.clipPath);
-		const { left, top, width, height } = track.getBoundingClientRect();
+		const { left, top, width, height } = segment.getBoundingClientRect();
 		expect(from.x).toBeCloseTo(left + width / 2);
 		expect(from.y).toBeCloseTo(top + height / 2);
 		expect(document.documentElement).toHaveClass("dark");
-		expect(item).toHaveAttribute("aria-checked", "true");
+		expect(segment).toHaveAttribute("aria-checked", "true");
 		expect(screen.getByRole("menu")).toBeInTheDocument();
 
 		await reveal.finished;

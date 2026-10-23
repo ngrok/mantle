@@ -5,7 +5,7 @@ description: The canonical light/dark toggle for headers and toolbars, plus the 
 
 import { Button } from "@ngrok/mantle/button";
 import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
-import { ThemeDropdownMenuItem, ThemeSwitcher } from "@ngrok/mantle/theme-switcher";
+import { ThemeDropdownMenuRadioGroup, ThemeSwitcher } from "@ngrok/mantle/theme-switcher";
 import { Example } from "~/components/example";
 import { PageHeader } from "~/components/page-header";
 
@@ -23,7 +23,7 @@ export function EmbeddedMenuExample() {
 			</DropdownMenu.Trigger>
 			<DropdownMenu.Content>
 				<DropdownMenu.Item>Profile</DropdownMenu.Item>
-				<ThemeDropdownMenuItem />
+				<ThemeDropdownMenuRadioGroup />
 				<DropdownMenu.Separator />
 				<DropdownMenu.Item>Log out</DropdownMenu.Item>
 			</DropdownMenu.Content>
@@ -49,12 +49,12 @@ import { ThemeSwitcher } from "@ngrok/mantle/theme-switcher";
 
 Give each surface one theme control. Two controls for one preference in one view make the user ask which one wins.
 
-| Surface                            | Control                                                                                |
-| ---------------------------------- | -------------------------------------------------------------------------------------- |
-| A site header or a toolbar         | `ThemeSwitcher`                                                                        |
-| A signed-out page, such as sign-in | `ThemeSwitcher` in the layout footer                                                   |
-| An app account menu                | [`ThemeDropdownMenuItem`](#embedding-in-an-existing-menu) at the top level of the menu |
-| An app settings page               | Your own radio group over [`useTheme`](/components/primitives/theme#usage)             |
+| Surface                            | Control                                                                                      |
+| ---------------------------------- | -------------------------------------------------------------------------------------------- |
+| A site header or a toolbar         | `ThemeSwitcher`                                                                              |
+| A signed-out page, such as sign-in | `ThemeSwitcher` in the layout footer                                                         |
+| An app account menu                | [`ThemeDropdownMenuRadioGroup`](#embedding-in-an-existing-menu) at the top level of the menu |
+| An app settings page               | Your own radio group over [`useTheme`](/components/primitives/theme#usage)                   |
 
 In a signed-in app, put the control in the account menu, and leave `ThemeSwitcher` out of the app chrome.
 
@@ -98,7 +98,7 @@ import { ThemeSwitcher } from "@ngrok/mantle/theme-switcher";
 
 ## Embedding in an existing menu
 
-`ThemeDropdownMenuItem` is the toggle in menu form: one **Dark mode** row with a switch, for an account menu or any other dropdown menu. One row fits a narrow menu, such as the one beside a collapsed sidebar, with no submenu to open. A choice flips the theme the same way a `ThemeSwitcher` click does, and the menu stays open. The new theme grows in a circle from the switch.
+`ThemeDropdownMenuRadioGroup` is the toggle in menu form: one **Theme** row with a Light and a Dark segment, for an account menu or any other dropdown menu. One row fits a narrow menu, such as the one beside a collapsed sidebar, with no submenu to open. The applied theme is checked. A choice works like a `ThemeSwitcher` click: when the choice matches the OS setting, it stores `"system"`. The menu stays open, and the new theme grows in a circle from the chosen segment.
 
 <Example>
 	<EmbeddedMenuExample />
@@ -107,7 +107,7 @@ import { ThemeSwitcher } from "@ngrok/mantle/theme-switcher";
 ```tsx
 import { Button } from "@ngrok/mantle/button";
 import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
-import { ThemeDropdownMenuItem } from "@ngrok/mantle/theme-switcher";
+import { ThemeDropdownMenuRadioGroup } from "@ngrok/mantle/theme-switcher";
 
 <DropdownMenu.Root>
 	<DropdownMenu.Trigger asChild>
@@ -117,7 +117,7 @@ import { ThemeDropdownMenuItem } from "@ngrok/mantle/theme-switcher";
 	</DropdownMenu.Trigger>
 	<DropdownMenu.Content>
 		<DropdownMenu.Item>Profile</DropdownMenu.Item>
-		<ThemeDropdownMenuItem />
+		<ThemeDropdownMenuRadioGroup />
 		<DropdownMenu.Separator />
 		<DropdownMenu.Item>Log out</DropdownMenu.Item>
 	</DropdownMenu.Content>
@@ -125,19 +125,18 @@ import { ThemeDropdownMenuItem } from "@ngrok/mantle/theme-switcher";
 ```
 
 > [!IMPORTANT]
-> `ThemeDropdownMenuItem` must render inside a `DropdownMenu.Content` or `DropdownMenu.SubContent`. It renders a `DropdownMenu.Item`, which only works within an open dropdown menu. The type system cannot express this constraint, so it is on you to uphold it.
+> `ThemeDropdownMenuRadioGroup` must render inside a `DropdownMenu.Content` or `DropdownMenu.SubContent`. It renders menu items (`DropdownMenu.RadioGroup` and `DropdownMenu.RadioItem` from Radix), which only work within an open dropdown menu. The type system cannot express this constraint, so it is on you to uphold it.
 
 ## Polymorphism
 
-`ThemeSwitcher` and `ThemeDropdownMenuItem` don't accept `asChild`. Each owns what it renders: the switcher renders only its icon, and the item renders its icon, label, and switch. To use your own control, call [`useTheme`](/components/primitives/theme#usage).
+`ThemeSwitcher` and `ThemeDropdownMenuRadioGroup` don't accept `asChild`. Each owns what it renders: the switcher renders only its icon, and the radio group renders its label and two segments. To use your own control, call [`useTheme`](/components/primitives/theme#usage).
 
 ## Accessibility
 
 - When `label` is omitted, the accessible name says which theme the next click shows: "Switch to dark theme", "Switch to light theme", or "Switch to light theme (system default)" when the click returns to the OS setting. The server can't read the OS setting, so the name is "Toggle theme" until hydration.
 - The circular reveal is movement, so it does not run under `prefers-reduced-motion: reduce`.
 - The icon mirrors the applied theme (a sun or a moon). It's SSR-safe: a `Skeleton` placeholder renders until hydration, then the icon appears.
-- `ThemeDropdownMenuItem` is a `role="menuitemcheckbox"` named by its `label`. It is announced as checked (`aria-checked`) when the applied theme is dark. The switch is decorative and hidden from assistive technology. Under `forceTheme`, the item is disabled.
-- The switch thumb slides in 200ms, and does not move under `prefers-reduced-motion: reduce`.
+- `ThemeDropdownMenuRadioGroup` is a group named by its visible `label`. Its segments are `role="menuitemradio"` items named "Light" and "Dark", and the applied theme is announced as checked (`aria-checked`). The arrow keys move between the segments like any other menu items. Under `forceTheme`, both segments are disabled.
 
 ## API Reference
 
@@ -152,17 +151,17 @@ All props from [`IconButton`](/components/actions/icon-button) except `icon`, `i
 | `appearance?` | `"filled" \| "ghost" \| "outlined"` | `"ghost"`                       | The visual style of the `IconButton`.                                       |
 | `label?`      | `string`                            | Names the theme the click shows | The accessible name, rendered as its `aria-label`. Set it for localization. |
 
-### ThemeDropdownMenuItem
+### ThemeDropdownMenuRadioGroup
 
-The light/dark toggle in menu form: a **Dark mode** `menuitemcheckbox` with a switch, checked when the applied theme is dark. It must render inside a `DropdownMenu.Content` or `DropdownMenu.SubContent`, and requires a [`ThemeProvider`](/components/primitives/theme) ancestor.
+The light/dark toggle in menu form: a **Theme** row with a Light and a Dark `menuitemradio` segment, with the applied theme checked. It must render inside a `DropdownMenu.Content` or `DropdownMenu.SubContent`, and requires a [`ThemeProvider`](/components/primitives/theme) ancestor.
 
-| Prop         | Type            | Default       | Description                                                         |
-| ------------ | --------------- | ------------- | ------------------------------------------------------------------- |
-| `label?`     | `string`        | `"Dark mode"` | The visible label and the accessible name. Set it for localization. |
-| `className?` | `string`        |               | CSS class name applied to the item.                                 |
-| `style?`     | `CSSProperties` |               | Inline styles applied to the item.                                  |
+| Prop         | Type            | Default   | Description                                                                        |
+| ------------ | --------------- | --------- | ---------------------------------------------------------------------------------- |
+| `label?`     | `string`        | `"Theme"` | The visible label of the row, which also names the group. Set it for localization. |
+| `className?` | `string`        |           | CSS class name applied to the row.                                                 |
+| `style?`     | `CSSProperties` |           | Inline styles applied to the row.                                                  |
 
-| Data Attribute | Value                              | Description                             |
-| -------------- | ---------------------------------- | --------------------------------------- |
-| `data-slot`    | `"theme-dropdown-menu-item"`       | On the item element.                    |
-| `data-slot`    | `"theme-dropdown-menu-item-label"` | On the `<span>` that holds the `label`. |
+| Data Attribute | Value                                     | Description                             |
+| -------------- | ----------------------------------------- | --------------------------------------- |
+| `data-slot`    | `"theme-dropdown-menu-radio-group"`       | On the row, which is the radio group.   |
+| `data-slot`    | `"theme-dropdown-menu-radio-group-label"` | On the `<span>` that holds the `label`. |

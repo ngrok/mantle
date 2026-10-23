@@ -1,5 +1,5 @@
-import type { Theme } from "@ngrok/mantle/theme";
-import { themes } from "@ngrok/mantle/theme";
+import type { ResolvedTheme } from "@ngrok/mantle/theme";
+import { resolvedThemes } from "@ngrok/mantle/theme";
 import { matchSorter, rankings } from "match-sorter";
 import type { href } from "react-router";
 import {
@@ -70,7 +70,7 @@ export type ExternalPaletteCommand = PaletteCommandBase & {
 export type ThemePaletteCommand = PaletteCommandBase & {
 	kind: "theme";
 	/** The theme the command applies. */
-	theme: Theme;
+	theme: ResolvedTheme;
 };
 
 /**
@@ -81,10 +81,9 @@ export type PaletteCommand = RoutePaletteCommand | ExternalPaletteCommand | Them
 
 /** The visible title for each theme-switching command. */
 const themeCommandTitles = {
-	system: "Use System theme",
 	light: "Use Light theme",
 	dark: "Use Dark theme",
-} as const satisfies Record<Theme, string>;
+} as const satisfies Record<ResolvedTheme, string>;
 
 type RouteCommandOptions = {
 	title: string;
@@ -217,7 +216,7 @@ export function buildPaletteCommands(mantleVersion: string): PaletteCommand[] {
 				preview: true,
 			}),
 		),
-		...themes.map((theme): ThemePaletteCommand => ({
+		...resolvedThemes.map((theme): ThemePaletteCommand => ({
 			kind: "theme",
 			id: `theme-${theme}`,
 			title: themeCommandTitles[theme],

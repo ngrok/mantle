@@ -123,6 +123,11 @@ describe("searchPaletteCommands", () => {
 		expect(results).not.toContain("Use Light theme");
 	});
 
+	test("offers a Light and a Dark theme command, and no System command", () => {
+		expect(titles("use")).toEqual(expect.arrayContaining(["Use Light theme", "Use Dark theme"]));
+		expect(titles("system")).not.toContain("Use System theme");
+	});
+
 	test("matches route-path substrings so URL fragments find their pages", () => {
 		const results = titles("navigation");
 
