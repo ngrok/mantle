@@ -81,9 +81,9 @@ const DECLARATION_MODULE_RE = /\.d\.[cm]?ts$/;
  *
  * Why `panicThreshold: "all_errors"`: with the default, the compiler skips a
  * function it cannot compile and gives no warning, so that component ships
- * without memoization. This setting fails the build instead. To keep a
- * function uncompiled on purpose, add the `"use no memo"` directive to it.
- * The vitest and docs-site configs use the same setting.
+ * without memoization. This setting fails the build instead. The vitest and
+ * docs-site configs use the same setting. CONVENTIONS.md § React Compiler
+ * says how to fix a failure.
  */
 const reactCompiler = () => ({
 	name: "react-compiler",

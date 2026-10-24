@@ -50,6 +50,13 @@ Task-scoped rules live in their own files, and [AGENTS.md](./AGENTS.md) says whi
 - Prefer derived state over synchronized state. Avoid storing values that can be computed from existing state, props, or the URL.
 - Keep data flow directional and explicit. Avoid hidden coupling between components, hooks, modules, or mutable shared state.
 
+### React Compiler
+
+- The React Compiler runs in strict mode by default. The tsdown build, the vitest suite, and the docs site set `panicThreshold: "all_errors"`, so a function that the compiler cannot compile fails the build.
+- Write code that the compiler can compile. When the build fails, rewrite the function to the [Rules of React](https://react.dev/reference/rules). Do not opt it out.
+- `"use no memo"` is a last resort, for a library that the compiler cannot model (`list/virtual.tsx` and `@tanstack/react-virtual`). Add a `Why` comment that names the library.
+- oxlint enforces the compiler rules `react/immutability`, `react/incompatible-library`, `react/preserve-manual-memoization`, and `react/refs`. Fix a finding; do not suppress it.
+
 ### Abstractions & Duplication
 
 - DRY follows YAGNI: do not introduce abstractions solely because two pieces of code look similar.
