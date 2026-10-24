@@ -246,9 +246,7 @@ function hasBreadcrumb<TMatch extends BreadcrumbMatch>(
  * // [{ kind: "link", key: "endpoints:0", label: "Endpoints", to: "/endpoints" }, …]
  * ```
  */
-function buildCrumbs<TMatch extends BreadcrumbMatch>(
-	matches: ReadonlyArray<TMatch>,
-): ReadonlyArray<ResolvedCrumb> {
+function buildCrumbs(matches: ReadonlyArray<BreadcrumbMatch>): ReadonlyArray<ResolvedCrumb> {
 	return matches.filter(hasBreadcrumb).flatMap((match) => {
 		const { breadcrumb } = match.handle;
 		const crumbs =

@@ -267,7 +267,7 @@ function visibleGlyphs(element: HTMLElement): string {
 		}
 	}
 	return glyphs
-		.sort((a, b) => a.left - b.left)
+		.toSorted((a, b) => a.left - b.left)
 		.map(({ glyph }) => glyph)
 		.join("");
 }

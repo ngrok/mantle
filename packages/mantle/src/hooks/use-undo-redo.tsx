@@ -92,7 +92,7 @@ type StackLengths = {
  *   </div>
  * );
  */
-function useUndoRedo<T extends NonNullable<unknown>>(): UseUndoRedoReturn<T> {
+function useUndoRedo<T extends {}>(): UseUndoRedoReturn<T> {
 	/**
 	 * Why refs instead of reducer state: `undo`/`redo` must both mutate the
 	 * history *and* return the popped snapshot. With reducer state, the

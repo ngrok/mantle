@@ -195,6 +195,21 @@ function toggleFoldFromButton(button: HTMLButtonElement): boolean {
 }
 
 /**
+ * Toggles the fold when a click lands on a fold toggle button. Other clicks do nothing.
+ */
+const handleFoldClick = (event: Event) => {
+	const target = event.target;
+	if (!(target instanceof Element)) {
+		return;
+	}
+	const button = target.closest(".mantle-code-fold-toggle");
+	if (!(button instanceof HTMLButtonElement)) {
+		return;
+	}
+	toggleFoldFromButton(button);
+};
+
+/**
  * Attaches a single delegated `click` listener to the given `<pre>` element.
  * Returns a teardown function suitable for `useEffect` cleanup.
  *
@@ -202,21 +217,9 @@ function toggleFoldFromButton(button: HTMLButtonElement): boolean {
  * is safe to attach unconditionally (e.g. for non-foldable code blocks).
  */
 function attachFoldHandler(preElement: HTMLElement): () => void {
-	const handleClick = (event: Event) => {
-		const target = event.target;
-		if (!(target instanceof Element)) {
-			return;
-		}
-		const button = target.closest(".mantle-code-fold-toggle");
-		if (!(button instanceof HTMLButtonElement)) {
-			return;
-		}
-		toggleFoldFromButton(button);
-	};
-
-	preElement.addEventListener("click", handleClick);
+	preElement.addEventListener("click", handleFoldClick);
 	return () => {
-		preElement.removeEventListener("click", handleClick);
+		preElement.removeEventListener("click", handleFoldClick);
 	};
 }
 

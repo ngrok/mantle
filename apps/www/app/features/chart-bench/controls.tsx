@@ -4,7 +4,6 @@ import { Field } from "@ngrok/mantle/field";
 import { Input } from "@ngrok/mantle/input";
 import { Label } from "@ngrok/mantle/label";
 import { Select } from "@ngrok/mantle/select";
-import type { FormEvent } from "react";
 import type { Config } from "./config";
 import { GATES, KINDS, MODES, readConfig, writeConfig } from "./config";
 
@@ -69,17 +68,16 @@ const Pick = ({
  * ```
  */
 export const Controls = ({ config }: { config: Config }) => {
-	const submit = (event: FormEvent<HTMLFormElement>) => {
-		event.preventDefault();
-		// Why the filter: the form holds no file inputs, so every entry is a string.
-		const entries = [...new FormData(event.currentTarget).entries()].flatMap(([key, value]) =>
-			typeof value === "string" ? [[key, value]] : [],
-		);
-		load(writeConfig(readConfig(`?${new URLSearchParams(entries).toString()}`)));
-	};
 	return (
 		<form
-			onSubmit={submit}
+			onSubmit={(event) => {
+				event.preventDefault();
+				// Why the filter: the form holds no file inputs, so every entry is a string.
+				const entries = [...new FormData(event.currentTarget).entries()].flatMap(([key, value]) =>
+					typeof value === "string" ? [[key, value]] : [],
+				);
+				load(writeConfig(readConfig(`?${new URLSearchParams(entries).toString()}`)));
+			}}
 			className="mx-auto flex w-[1100px] flex-wrap items-end gap-3 px-6 pt-4"
 			aria-label="Benchmark scenario"
 		>
