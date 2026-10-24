@@ -62,30 +62,44 @@ function useInertSiblings(
 	// element, so no frame paints with a clickable page beneath it.
 	useLayoutEffect(() => {
 		const element = ref.current;
-		const parent = element?.parentElement;
-		if (!active || element == null || parent == null) {
+		if (!active || element == null) {
 			return;
 		}
-		const madeInert = new Set<HTMLElement>();
-		const inertSiblings = () => {
-			for (const child of parent.children) {
-				if (child === element || !(child instanceof HTMLElement) || child.inert) {
-					continue;
-				}
-				child.inert = true;
-				madeInert.add(child);
-			}
-		};
-		inertSiblings();
-		const observer = new MutationObserver(inertSiblings);
-		observer.observe(parent, { childList: true });
-		return () => {
-			observer.disconnect();
-			for (const child of madeInert) {
-				child.inert = false;
-			}
-		};
+		return makeSiblingsInert(element);
 	}, [active, ref]);
+}
+
+/**
+ * Sets `inert` on the siblings of `element`, and on each sibling that mounts
+ * later. Returns the cleanup that releases them.
+ *
+ * Why outside the hook: the React Compiler treats a value read from a hook
+ * argument as immutable, so it rejects the DOM writes inside the hook body.
+ */
+function makeSiblingsInert(element: HTMLElement): (() => void) | undefined {
+	const parent = element.parentElement;
+	if (parent == null) {
+		return;
+	}
+	const madeInert = new Set<HTMLElement>();
+	const inertSiblings = () => {
+		for (const child of parent.children) {
+			if (child === element || !(child instanceof HTMLElement) || child.inert) {
+				continue;
+			}
+			child.inert = true;
+			madeInert.add(child);
+		}
+	};
+	inertSiblings();
+	const observer = new MutationObserver(inertSiblings);
+	observer.observe(parent, { childList: true });
+	return () => {
+		observer.disconnect();
+		for (const child of madeInert) {
+			child.inert = false;
+		}
+	};
 }
 
 export {

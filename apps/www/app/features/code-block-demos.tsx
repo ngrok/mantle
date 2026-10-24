@@ -270,7 +270,9 @@ export function ServerRenderedHighlightingDemo() {
 				});
 
 				if (!response.ok) {
-					throw new Error(`Highlight request failed with status ${response.status}`);
+					setStatus("error");
+					setErrorMessage(`Highlight request failed with status ${response.status}`);
+					return;
 				}
 
 				const data = shikiHighlightResponseSchema.parse(await response.json());
