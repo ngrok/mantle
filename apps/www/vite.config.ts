@@ -12,6 +12,7 @@ import { defineConfig, type Plugin } from "vite";
 import devtoolsJson from "vite-plugin-devtools-json";
 
 import { remarkMdxNoParagraphWrap } from "@ngrok/remark-mdx-no-paragraph-wrap";
+import { reactCompilerOptions } from "../../packages/mantle/react-compiler.config.ts";
 import { mantleChangelogMdx } from "./vite-plugins/mantle-changelog-mdx.ts";
 import { mdxDocComponentImports } from "./vite-plugins/mdx-doc-component-imports.ts";
 import { mdxGeneratedCode } from "./vite-plugins/mdx-generated-code.ts";
@@ -49,7 +50,7 @@ const reactCompiler = (): Plugin => ({
 			const result = await transform(id, code, {
 				jsx: "preserve",
 				sourcemap: true,
-				reactCompiler: { target: "19", panicThreshold: "all_errors" },
+				reactCompiler: reactCompilerOptions,
 			});
 			if (result.fatal) {
 				const messages = result.errors.map((error) => error.message).join("\n");

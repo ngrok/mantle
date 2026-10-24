@@ -429,9 +429,10 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 	// not pay the cost of N React re-renders or N event handlers — see the
 	// performance rationale in `fold-runtime.ts`. Re-attaches when the
 	// rendered HTML changes since `<code>` gets a new dangerouslySetInnerHTML.
+	// Only highlighted HTML has fold toggles, so plain text gets no handler.
 	useEffect(() => {
 		const pre = preRef.current;
-		if (pre == null) {
+		if (pre == null || renderedHtml == null) {
 			return undefined;
 		}
 		const codeElement = pre.querySelector("code");

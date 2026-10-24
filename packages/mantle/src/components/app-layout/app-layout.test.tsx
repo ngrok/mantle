@@ -1251,18 +1251,18 @@ describe("useSidePanel", () => {
 		// after every open. If `setOpen` changes identity with it, the effect
 		// re-runs and closes the panel in the same flush.
 		const user = userEvent.setup();
-		function CloseOnNavigate({ pathname }: { pathname: string }) {
+		function CloseOnNavigate() {
 			const { setOpen } = useSidePanel();
 			useEffect(() => {
 				setOpen(false);
-			}, [pathname, setOpen]);
+			}, [setOpen]);
 			return null;
 		}
 		function Page() {
 			const [open, setOpen] = useState(false);
 			return (
 				<Panel open={open} onOpenChange={(next) => setOpen(next)}>
-					<CloseOnNavigate pathname="/endpoints" />
+					<CloseOnNavigate />
 				</Panel>
 			);
 		}

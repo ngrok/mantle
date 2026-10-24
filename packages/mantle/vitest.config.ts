@@ -3,6 +3,8 @@ import { transform } from "oxc-transform-react";
 import { configDefaults, defineConfig } from "vitest/config";
 import type { BrowserCommand } from "vitest/node";
 
+import { reactCompilerOptions } from "./react-compiler.config.ts";
+
 type ContextOptions = Pick<PlaywrightProviderOptions, "contextOptions">["contextOptions"];
 
 // Grant clipboard permissions so browser tests can read/write the real clipboard, and pin the
@@ -42,7 +44,7 @@ const reactCompiler = () => ({
 			const result = await transform(id, code, {
 				jsx: "preserve",
 				sourcemap: true,
-				reactCompiler: { target: "19", panicThreshold: "all_errors" },
+				reactCompiler: reactCompilerOptions,
 			});
 			if (result.fatal) {
 				const messages = result.errors.map((error) => error.message).join("\n");

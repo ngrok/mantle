@@ -409,9 +409,15 @@ export function AppLayoutScrollResetExample() {
 	const current =
 		scrollResetRoutes.find((route) => route.path === pathname) ?? scrollResetRoutes[0];
 
-	// Reset the card's scroll on every navigation. A real shell depends on
-	// `useLocation().key` here rather than on this demo's local pathname.
+	// Reset the card's scroll on every navigation. A real shell compares
+	// `useLocation().key` here rather than this demo's local pathname, so a
+	// back/forward entry is a distinct navigation too.
+	const resetForPathnameRef = useRef(pathname);
 	useLayoutEffect(() => {
+		if (resetForPathnameRef.current === pathname) {
+			return;
+		}
+		resetForPathnameRef.current = pathname;
 		scrollportRef.current?.scrollTo({ top: 0 });
 	}, [pathname]);
 
