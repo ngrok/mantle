@@ -145,6 +145,12 @@ describe("Accordion (browser)", () => {
 
 	const verticalCenter = (rect: DOMRect) => rect.top + rect.height / 2;
 
+	// Why 1px: glyph boxes round differently per platform font, up to 0.5px from the
+	// line box center on Linux. A misaligned icon is off by 2px or more.
+	const expectCentersAligned = (a: DOMRect, b: DOMRect) => {
+		expect(Math.abs(verticalCenter(a) - verticalCenter(b))).toBeLessThanOrEqual(1);
+	};
+
 	const iconRect = () => {
 		const icon = document.querySelector('[data-slot~="accordion-trigger-icon"]');
 		if (!icon) {
@@ -181,7 +187,7 @@ describe("Accordion (browser)", () => {
 			throw new Error("expected the label to render a line box");
 		}
 		expect(lines.length).toBeGreaterThan(1);
-		expect(verticalCenter(iconRect())).toBeCloseTo(verticalCenter(firstLine), 0);
+		expectCentersAligned(iconRect(), firstLine);
 	});
 
 	test("TriggerIcon centers with children shorter than one trigger line", () => {
@@ -199,6 +205,6 @@ describe("Accordion (browser)", () => {
 		);
 
 		const labelRect = screen.getByText("on_tcp_connect").getBoundingClientRect();
-		expect(verticalCenter(iconRect())).toBeCloseTo(verticalCenter(labelRect), 0);
+		expectCentersAligned(iconRect(), labelRect);
 	});
 });
