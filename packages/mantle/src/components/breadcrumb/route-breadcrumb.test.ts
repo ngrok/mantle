@@ -138,4 +138,16 @@ describe("buildCrumbs", () => {
 			"ep_1",
 		]);
 	});
+
+	test("accepts an inline match with more router fields", () => {
+		const crumbs = buildCrumbs([
+			{
+				id: "item",
+				pathname: "/items/42",
+				handle: { breadcrumb: "Item" },
+				params: { id: "42" },
+			},
+		]);
+		expect(crumbs).toEqual([{ kind: "link", key: "item:0", label: "Item", to: "/items/42" }]);
+	});
 });
