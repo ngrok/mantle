@@ -10,7 +10,7 @@
     "start": "react-router dev --host",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest watch",
-    "typecheck": "react-router typegen && tsc",
+    "typecheck": "react-router typegen && tsrs",
     "bench": "tsx bench/run.ts",
     "bench:trace": "tsx bench/trace.ts",
     "bench:profile": "tsx bench/profile.ts",
