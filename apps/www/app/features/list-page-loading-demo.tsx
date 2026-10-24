@@ -10,6 +10,7 @@ import {
 	useTable,
 } from "@ngrok/mantle/data-table";
 import { Empty } from "@ngrok/mantle/empty";
+import { useIsHydratedAfterPaint } from "@ngrok/mantle/hooks";
 import { Input } from "@ngrok/mantle/input";
 import { LiveRegion } from "@ngrok/mantle/live-region";
 import { Select } from "@ngrok/mantle/select";
@@ -25,7 +26,7 @@ import {
 	useQueryClient,
 	type UseQueryResult,
 } from "@tanstack/react-query";
-import { type ReactNode, useDeferredValue, useEffect, useState } from "react";
+import { type ReactNode, useDeferredValue, useState } from "react";
 
 const SIMULATED_API_LATENCY_MS = 1_500;
 const PAGE_SIZE = 8;
@@ -696,13 +697,10 @@ export function DomainsListPage({ scenario }: DomainsListPageProps) {
 	const state = resolveListBodyState({ query, isFiltered });
 	const message = describeListState({ state, isRefetching: query.isFetching && !query.isPending });
 
-	// Why an effect: a live region announces changes, not the text it mounts
-	// with. The region mounts empty, in the server HTML too, and the first
-	// message is published after mount so a screen reader hears it.
-	const [announcement, setAnnouncement] = useState("");
-	useEffect(() => {
-		setAnnouncement(message);
-	}, [message]);
+	// Why gate on hydration: a live region announces changes, not the text it
+	// mounts with. The region mounts empty, in the server HTML too, and the
+	// first message lands one frame after mount so a screen reader hears it.
+	const announcement = useIsHydratedAfterPaint() ? message : "";
 
 	return (
 		<div className="mx-auto flex w-full max-w-6xl flex-col gap-4 p-6">

@@ -31,18 +31,19 @@ function useActiveHeading(entries: Array<TocEntry>): string | undefined {
 	// scroll frame.
 	const tocIsVisible = !useIsBelowBreakpoint("xl");
 
-	useEffect(() => {
-		if (entries.length === 0) {
-			return;
-		}
-		// Depend on `location.hash` so ToC link clicks update the highlight
-		// immediately — otherwise scroll-based detection lags the smooth-scroll
-		// animation and briefly highlights the predecessor heading.
-		const hash = location.hash.slice(1);
+	// Read `location.hash` so ToC link clicks update the highlight
+	// immediately — otherwise scroll-based detection lags the smooth-scroll
+	// animation and briefly highlights the predecessor heading.
+	// Why during render: React runs this render again with the new `activeId`
+	// before it commits, so the highlight needs no extra commit.
+	const hash = location.hash.slice(1);
+	const [appliedHash, setAppliedHash] = useState<{ hash: string; entries: Array<TocEntry> }>();
+	if (appliedHash?.hash !== hash || appliedHash.entries !== entries) {
+		setAppliedHash({ hash, entries });
 		if (hash && entries.some((entry) => entry.id === hash)) {
 			setActiveId(hash);
 		}
-	}, [entries, location.hash]);
+	}
 
 	useEffect(() => {
 		if (entries.length === 0 || !tocIsVisible) {

@@ -2,6 +2,8 @@ import fs from "node:fs";
 import { transform } from "oxc-transform-react";
 import { defineConfig } from "tsdown";
 
+import { reactCompilerOptions } from "./react-compiler.config.ts";
+
 const MANTLE_CSS_SRC = new URL("./src/mantle.css", import.meta.url);
 const MANTLE_DARK_CSS_SRC = new URL("./src/mantle-dark.css", import.meta.url);
 const SOURCE_ALL_CSS_SRC = new URL("./src/source-all.css", import.meta.url);
@@ -77,13 +79,8 @@ const DECLARATION_MODULE_RE = /\.d\.[cm]?ts$/;
  * Why `oxc-transform-react`: the Rust port of the compiler runs far faster
  * than the Babel plugin and strips TypeScript in the same pass. JSX stays in
  * the output (`jsx: "preserve"`), so rolldown's own JSX transform still runs
- * with the tsconfig settings.
- *
- * Why `panicThreshold: "all_errors"`: with the default, the compiler skips a
- * function it cannot compile and gives no warning, so that component ships
- * without memoization. This setting fails the build instead. The vitest and
- * docs-site configs use the same setting. CONVENTIONS.md § React Compiler
- * says how to fix a failure.
+ * with the tsconfig settings. `reactCompilerOptions` holds the strict
+ * settings that all three compiler passes share.
  */
 const reactCompiler = () => ({
 	name: "react-compiler",
@@ -93,7 +90,7 @@ const reactCompiler = () => ({
 			const result = await transform(id, code, {
 				jsx: "preserve",
 				sourcemap: true,
-				reactCompiler: { target: "19", panicThreshold: "all_errors" },
+				reactCompiler: reactCompilerOptions,
 			});
 			if (result.fatal) {
 				const messages = result.errors.map((error) => error.message).join("\n");

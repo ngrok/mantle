@@ -122,6 +122,31 @@ function useSandbarContext(part: string): SandbarContextValue {
 type SandbarPresence = "closed" | "closing" | "open" | "opening";
 
 /**
+ * Returns the presence that the controlled `open` prop asks for. It returns
+ * `current` when `current` already moves toward `open`.
+ *
+ * @example
+ * ```ts
+ * nextPresenceForOpen("closed", true); // "opening"
+ * nextPresenceForOpen("closing", true); // "open"
+ * nextPresenceForOpen("opening", false); // "closed"
+ * ```
+ */
+function nextPresenceForOpen(current: SandbarPresence, open: boolean): SandbarPresence {
+	if (open) {
+		if (current === "open" || current === "opening") {
+			return current;
+		}
+		return current === "closing" ? "open" : "opening";
+	}
+	if (current === "closed") {
+		return current;
+	}
+	// Why straight to closed: the pre-paint frame of an open has no transition to reverse.
+	return current === "opening" ? "closed" : "closing";
+}
+
+/**
  * Props for `Sandbar.Root`. Extends `<div>` props — which target the visible
  * panel, not the fixed-position wrapper — with the controlled `open` flag and
  * the imperative `handleRef`. Deliberately no `asChild`: Root renders four
@@ -333,27 +358,13 @@ const Root = ({
 	// the transition retarget smoothly from the panel's current position
 	// (never restarting from the bottom — the sonner behavior).
 	//
-	// Why an effect: the machine steps on commits, not renders. Each step reads
-	// the committed `presence` and lands one pose per commit. The double-rAF
-	// below counts painted frames from that committed `"opening"` pose.
-	useEffect(() => {
-		if (open) {
-			setPresence((current) => {
-				if (current === "open" || current === "opening") {
-					return current;
-				}
-				return current === "closing" ? "open" : "opening";
-			});
-		} else {
-			setPresence((current) => {
-				if (current === "closed") {
-					return current;
-				}
-				// closing from the pre-paint frame has nothing to transition — hide now
-				return current === "opening" ? "closed" : "closing";
-			});
-		}
-	}, [open]);
+	// Why during render: React runs this render again with the new `presence`
+	// before it commits, so the `"opening"` pose commits in the same commit
+	// as `open`. The double-rAF below counts painted frames from that commit.
+	const presenceForOpen = nextPresenceForOpen(presence, open);
+	if (presenceForOpen !== presence) {
+		setPresence(presenceForOpen);
+	}
 
 	// One painted frame in the closed pose, then flip to open. Double-rAF
 	// guarantees the closed pose actually painted before the destination

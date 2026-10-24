@@ -875,7 +875,7 @@ const ChartRootPrimitive = ({
 	// A new value re-resolves them; an equal inline `style` object does not.
 	const stableStyle = useShallowStable(style ?? NO_STYLE);
 	useLayoutEffect(() => {
-		engineRef.current?.invalidateColors();
+		engineRef.current?.setColorScope(className, stableStyle);
 	}, [className, stableStyle]);
 
 	// Must stay the LAST effect: rows, options, and series registrations from
@@ -887,11 +887,11 @@ const ChartRootPrimitive = ({
 	// rendered: the parts register after the Root's first render, and a
 	// re-render for it would change the text after the first layout. The
 	// subscription also follows a part that registers without a Root render.
-	// Why `decorative` in the deps: the span mounts with the plot's named
+	// Why the `decorative` check: the span mounts with the plot's named
 	// surface, so the writer rebinds when a Root stops being decorative.
 	useLayoutEffect(() => {
 		const target = descriptionSeriesRef.current;
-		if (target == null) {
+		if (decorative || target == null) {
 			return;
 		}
 		let last: string | null = null;
@@ -1689,11 +1689,11 @@ const ChartLegendPrimitive = ({
 	const [scrollable, setScrollable] = useState(false);
 	useEffect(() => {
 		const element = legendRef.current;
-		if (element == null) {
+		// Why `series` here: a legend at its height bound does not resize when it
+		// gets more entries. Each new `observe()` reads once after layout.
+		if (element == null || series.length < 2) {
 			return;
 		}
-		// Why the series dependency: a legend at its height bound does not resize
-		// when it gets more entries. Each new `observe()` reads once after layout.
 		return observeResize(element, () => {
 			setScrollable(element.scrollHeight > element.clientHeight);
 		});
@@ -1928,12 +1928,14 @@ const ChartAnnouncer = ({
 }) => {
 	const hover = useStoreKeyboardHover(store);
 	const [announcement, setAnnouncement] = useState("");
+	// Why clear the state and not derive "": the clear must be a real DOM change
+	// before the debounced write, because AT does not re-announce identical text.
+	// Derived state flashes the previous datum's text first.
+	if (hover == null && announcement !== "") {
+		setAnnouncement("");
+	}
 	useEffect(() => {
 		if (hover == null) {
-			// Why sync setState: the clear must be a real DOM change before the
-			// debounced write, because AT does not re-announce identical text.
-			// Derived state flashes the previous datum's text first.
-			setAnnouncement("");
 			return;
 		}
 		const values = hover.points
@@ -1960,27 +1962,49 @@ const ChartAnnouncer = ({
 };
 
 /**
+ * The referenced text never announces a change, so there is nothing to
+ * subscribe to. React still reads the snapshot again after the mount commit.
+ */
+function subscribeToNothing(): () => void {
+	return () => {
+		// Why: intentionally empty. The snapshot changes only with `labelledBy`.
+	};
+}
+
+/**
  * Resolves the chart's name for the data-table caption: the `aria-label` when
  * set, else the text of the `aria-labelledby` element once it is in the DOM.
  * The server render falls back to "Chart data" because the referenced element
  * is not reachable there.
+ *
+ * Why `useSyncExternalStore`: the text lives in the DOM, outside React. React
+ * reads the snapshot again after the mount commit, so a referenced element
+ * that mounts in the same commit still resolves.
  */
 const useResolvedChartLabel = (label: string | undefined, labelledBy: string | undefined) => {
-	const [referencedText, setReferencedText] = useState<string | undefined>(undefined);
-	useEffect(() => {
-		if (labelledBy == null) {
-			setReferencedText(undefined);
-			return;
-		}
-		const text = labelledBy
-			.split(/\s+/)
-			.map((id) => document.getElementById(id)?.textContent?.trim() ?? "")
-			.filter(Boolean)
-			.join(" ");
-		setReferencedText(text || undefined);
-	}, [labelledBy]);
+	const referencedText = useSyncExternalStore(
+		subscribeToNothing,
+		() => readReferencedText(labelledBy),
+		() => undefined,
+	);
 	return label ?? referencedText;
 };
+
+/**
+ * Joins the trimmed text of each element that `labelledBy` names, in order.
+ * Returns `undefined` when no element has text.
+ */
+function readReferencedText(labelledBy: string | undefined): string | undefined {
+	if (labelledBy == null) {
+		return undefined;
+	}
+	const text = labelledBy
+		.split(/\s+/)
+		.map((id) => document.getElementById(id)?.textContent?.trim() ?? "")
+		.filter(Boolean)
+		.join(" ");
+	return text || undefined;
+}
 
 /**
  * The chart's structural twin: an sr-only table of the data, bounded to

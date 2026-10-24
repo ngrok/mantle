@@ -77,7 +77,7 @@ afterEach(() => {
 });
 
 describe("DomainsListPage", () => {
-	it("renders the shell and one skeleton row per page row before the first response", () => {
+	it("renders the shell and one skeleton row per page row before the first response", async () => {
 		renderPage();
 
 		expect(screen.queryByRole("heading", { level: 1, name: "Domains" })).not.toBeNull();
@@ -97,6 +97,11 @@ describe("DomainsListPage", () => {
 		// Pending wins over empty: no empty state and no `0` count before the response.
 		expect(screen.queryByText("No domains yet")).toBeNull();
 		expect(screen.queryByText(/Showing 0 of 0/)).toBeNull();
+		// The region mounts empty and gets its first message one frame later.
+		expect(screen.getByRole("status").textContent).toBe("");
+		await act(async () => {
+			vi.advanceTimersToNextFrame();
+		});
 		expect(screen.getByRole("status").textContent).toBe("Loading domains");
 	});
 

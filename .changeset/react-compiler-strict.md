@@ -9,5 +9,5 @@ The mantle build now fails when the compiler cannot compile a function, so a ski
 What changes for you:
 
 - `useInertSiblings` and `DataTable.ControlCell` get the same memoization as the rest of mantle.
-- All other output is the same. A build of this release and a build of the previous source differ in 3 of 257 JavaScript files. Two of the 3 differ only in the file name of a shared chunk.
+- This change alone touches little output. A build with it and a build of the previous source differ in 3 of 257 JavaScript files, and 2 of the 3 differ only in the file name of a shared chunk.
 - You do not need to change your code.

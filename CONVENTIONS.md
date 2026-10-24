@@ -52,10 +52,14 @@ Task-scoped rules live in their own files, and [AGENTS.md](./AGENTS.md) says whi
 
 ### React Compiler
 
-- The React Compiler runs in strict mode by default. The tsdown build, the vitest suite, and the docs site set `panicThreshold: "all_errors"`, so a function that the compiler cannot compile fails the build.
+- The React Compiler runs in strict mode by default. The tsdown build, the vitest suite, and the docs site share `packages/mantle/react-compiler.config.ts`. It sets `panicThreshold: "all_errors"` and turns on every compiler validation, so a function that the compiler cannot compile or validate fails the build.
 - Write code that the compiler can compile. When the build fails, rewrite the function to the [Rules of React](https://react.dev/reference/rules). Do not opt it out.
 - `"use no memo"` is a last resort, for a library that the compiler cannot model (`list/virtual.tsx` and `@tanstack/react-virtual`). Add a `Why` comment that names the library.
-- oxlint enforces the compiler rules `react/immutability`, `react/incompatible-library`, `react/preserve-manual-memoization`, and `react/refs`. Fix a finding; do not suppress it.
+- oxlint turns on every rule that ports a compiler diagnostic, so the editor shows what the build rejects. Fix a finding; do not suppress it.
+- The usual fixes:
+  - State that follows a prop: set it during render behind a condition, not in an effect.
+  - A value that lives outside React, such as DOM text: read it with `useSyncExternalStore`.
+  - An effect that runs when a value changes: read the value in the effect. To skip the mount, compare it with a ref of the last value.
 
 ### Abstractions & Duplication
 
