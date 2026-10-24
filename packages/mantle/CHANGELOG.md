@@ -1,5 +1,17 @@
 # @ngrok/mantle
 
+## 0.91.2
+
+### Patch Changes
+
+- [#1615](https://github.com/ngrok/mantle/pull/1615) [`1d37d30`](https://github.com/ngrok/mantle/commit/1d37d30f1988400fc010fb57799c50c903bf709b) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Accordion.TriggerIcon` now stays centered on the first line of the trigger label when the label wraps. Before, it was centered on the full trigger height.
+
+- [#1610](https://github.com/ngrok/mantle/pull/1610) [`81ee570`](https://github.com/ngrok/mantle/commit/81ee570d604be04daf75e55ad5fb52c850aed52b) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `$cssProperties` from `@ngrok/mantle/types` now checks each key of an object literal. A key that starts with `--` is still a valid CSS variable, and the return type is still React's `CSSProperties`, so `style={$cssProperties({ "--gap": 8, ...style })}` compiles as before. A misspelled key that does not start with `--`, such as `displya`, now fails to compile. Before, it compiled and had no effect. Fix the spelling at that call site.
+
+- [#1610](https://github.com/ngrok/mantle/pull/1610) [`81ee570`](https://github.com/ngrok/mantle/commit/81ee570d604be04daf75e55ad5fb52c850aed52b) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `useUndoRedo` spells its constraint `T extends {}`, the type that `NonNullable<unknown>` resolves to. Calls compile as before.
+
+- [#1612](https://github.com/ngrok/mantle/pull/1612) [`895815b`](https://github.com/ngrok/mantle/commit/895815b6de614d9de7fe48a9efc9d833c80b1887) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - The React Compiler now compiles `useInertSiblings` and the click handler of `DataTable.ControlCell`. Before this release, the compiler skipped them, so they had no memoization. The build now fails when the compiler cannot compile a function, so every component and hook in `dist` ships compiled. Behavior does not change.
+
 ## 0.91.1
 
 ### Patch Changes
