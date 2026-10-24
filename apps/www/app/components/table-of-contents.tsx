@@ -1,5 +1,5 @@
 import { cx } from "@ngrok/mantle/cx";
-import { useIsBelowBreakpoint } from "@ngrok/mantle/hooks";
+import { useIsBelowBreakpoint, useIsHydrated } from "@ngrok/mantle/hooks";
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
 import type { TocEntry } from "~/utilities/docs";
@@ -36,7 +36,10 @@ function useActiveHeading(entries: Array<TocEntry>): string | undefined {
 	// animation and briefly highlights the predecessor heading.
 	// Why during render: React runs this render again with the new `activeId`
 	// before it commits, so the highlight needs no extra commit.
-	const hash = location.hash.slice(1);
+	// Why gate on hydration: the server never gets the hash, so the hydration
+	// render must keep the server's first entry.
+	const isHydrated = useIsHydrated();
+	const hash = isHydrated ? location.hash.slice(1) : "";
 	const [appliedHash, setAppliedHash] = useState<{ hash: string; entries: Array<TocEntry> }>();
 	if (appliedHash?.hash !== hash || appliedHash.entries !== entries) {
 		setAppliedHash({ hash, entries });

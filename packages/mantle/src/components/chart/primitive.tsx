@@ -1991,8 +1991,16 @@ const useResolvedChartLabel = (label: string | undefined, labelledBy: string | u
 };
 
 /**
- * Joins the trimmed text of each element that `labelledBy` names, in order.
- * Returns `undefined` when no element has text.
+ * Matches every chart data table. The label skips their text: a referenced
+ * ancestor of the chart holds the caption, and a caption that feeds its own
+ * snapshot renders forever.
+ */
+const CHART_DATA_TABLE_SELECTOR = '[data-slot$="-chart-data-table"]';
+
+/**
+ * Joins the trimmed text of each element that `labelledBy` names, in order,
+ * without the text of a chart data table. Returns `undefined` when no element
+ * has text.
  */
 function readReferencedText(labelledBy: string | undefined): string | undefined {
 	if (labelledBy == null) {
@@ -2000,10 +2008,42 @@ function readReferencedText(labelledBy: string | undefined): string | undefined 
 	}
 	const text = labelledBy
 		.split(/\s+/)
-		.map((id) => document.getElementById(id)?.textContent?.trim() ?? "")
+		.map((id) => textOutsideChartTables(document.getElementById(id)))
 		.filter(Boolean)
 		.join(" ");
 	return text || undefined;
+}
+
+/**
+ * Returns the trimmed text of `element` without the text of a chart data table
+ * inside it.
+ */
+function textOutsideChartTables(element: HTMLElement | null): string {
+	if (element == null) {
+		return "";
+	}
+	if (element.querySelector(CHART_DATA_TABLE_SELECTOR) == null) {
+		return element.textContent?.trim() ?? "";
+	}
+	const walker = document.createTreeWalker(
+		element,
+		NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT,
+		{
+			acceptNode: (node) => {
+				if (node instanceof Element) {
+					return node.matches(CHART_DATA_TABLE_SELECTOR)
+						? NodeFilter.FILTER_REJECT
+						: NodeFilter.FILTER_SKIP;
+				}
+				return NodeFilter.FILTER_ACCEPT;
+			},
+		},
+	);
+	let text = "";
+	for (let node = walker.nextNode(); node != null; node = walker.nextNode()) {
+		text += node.textContent ?? "";
+	}
+	return text.trim();
 }
 
 /**
