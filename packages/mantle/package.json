@@ -438,7 +438,7 @@
 		"postpack": "node ../../scripts/clean-publish-manifest.js restore",
 		"test:watch": "vitest watch",
 		"test": "vitest run",
-		"typecheck": "tsc && tsc -p tsconfig.node.json"
+		"typecheck": "tsrs && tsrs -p tsconfig.node.json"
 	},
 	"dependencies": {
 		"@ariakit/react": "0.4.42",

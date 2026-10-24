@@ -28,7 +28,7 @@
     "postpack": "node ../../scripts/clean-publish-manifest.js restore",
     "test": "vitest run",
     "test:watch": "vitest watch",
-    "typecheck": "tsc"
+    "typecheck": "tsrs"
   },
   "dependencies": {
     "@ngrok/mantle-server-syntax-highlighter": "workspace:*",
