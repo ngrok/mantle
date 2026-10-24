@@ -118,6 +118,7 @@ function mdxDocComponentImports(docsDir: string): Plugin {
 			if (id === virtualModuleId) {
 				return resolvedId;
 			}
+			return null;
 		},
 		load(id) {
 			if (id !== resolvedId) {

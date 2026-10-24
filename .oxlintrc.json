@@ -106,6 +106,12 @@
     "react/react-in-jsx-scope": "off",
     "react/rules-of-hooks": "error",
     "react/self-closing-comp": "error",
+    // Why off: the `noImplicitReturns` compiler option already fails a path
+    // that falls off the end of a function that returns a value. This rule
+    // also flags the bare `return;` in an effect and a function that ends in
+    // an exhaustive `switch`, and its fix hides a new union member from the
+    // compiler.
+    "typescript/consistent-return": "off",
     "typescript/consistent-type-imports": "error",
     "typescript/no-import-type-side-effects": "error",
     "typescript/no-invalid-void-type": "error",
