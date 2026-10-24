@@ -539,6 +539,58 @@ import { PlusIcon } from "@phosphor-icons/react/Plus";
 </Accordion.Root>;
 ```
 
+### Multi-line trigger labels
+
+When a trigger label wraps, `Accordion.TriggerIcon` stays centered on the first line of the label.
+
+<Example className="flex-col gap-6">
+	<Accordion.Root className="max-w-xs">
+		<Accordion.Item value="hobbyist">
+			<Accordion.Trigger>
+				What happens when I run out of usage credit on Hobbyist?
+				<Accordion.TriggerIcon />
+			</Accordion.Trigger>
+			<Accordion.Content>
+				<Accordion.Body>Your billing page lists the limits for each plan.</Accordion.Body>
+			</Accordion.Content>
+		</Accordion.Item>
+		<Accordion.Item value="rollover">
+			<Accordion.Trigger>
+				Does unused usage credit roll over?
+				<Accordion.TriggerIcon />
+			</Accordion.Trigger>
+			<Accordion.Content>
+				<Accordion.Body>Your billing page shows when your credit resets.</Accordion.Body>
+			</Accordion.Content>
+		</Accordion.Item>
+	</Accordion.Root>
+</Example>
+
+```tsx
+import { Accordion } from "@ngrok/mantle/accordion";
+
+<Accordion.Root className="max-w-xs">
+	<Accordion.Item value="hobbyist">
+		<Accordion.Trigger>
+			What happens when I run out of usage credit on Hobbyist?
+			<Accordion.TriggerIcon />
+		</Accordion.Trigger>
+		<Accordion.Content>
+			<Accordion.Body>Your billing page lists the limits for each plan.</Accordion.Body>
+		</Accordion.Content>
+	</Accordion.Item>
+	<Accordion.Item value="rollover">
+		<Accordion.Trigger>
+			Does unused usage credit roll over?
+			<Accordion.TriggerIcon />
+		</Accordion.Trigger>
+		<Accordion.Content>
+			<Accordion.Body>Your billing page shows when your credit resets.</Accordion.Body>
+		</Accordion.Content>
+	</Accordion.Item>
+</Accordion.Root>;
+```
+
 ### Custom indicator icon
 
 Pass `svg` to `Accordion.TriggerIcon` to replace the default caret. The indicator still rotates 180° on open; override

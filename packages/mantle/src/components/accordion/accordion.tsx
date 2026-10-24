@@ -464,8 +464,13 @@ const TriggerIcon = ({
 		{...props}
 		data-slot={joinDataSlot(dataSlot, "accordion-trigger-icon")}
 		svg={svg}
+		// Why `self-start h-lh w-4`: the svg is one line tall at the top of the
+		// trigger, and its default `preserveAspectRatio` centers the 16px glyph in
+		// that line. When the label wraps, the icon stays on the first line. When the
+		// label is one line, the row is one line tall, so the trigger's `items-center`
+		// keeps the icon centered with shorter children, such as a `text-sm` label.
 		className={cx(
-			"size-4 shrink-0 text-muted transition-transform duration-200 ease-out-strong group-data-state-open:rotate-180 motion-reduce:transition-none",
+			"h-lh w-4 shrink-0 self-start text-muted transition-transform duration-200 ease-out-strong group-data-state-open:rotate-180 motion-reduce:transition-none",
 			className,
 		)}
 	/>
