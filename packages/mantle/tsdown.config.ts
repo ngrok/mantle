@@ -78,6 +78,12 @@ const DECLARATION_MODULE_RE = /\.d\.[cm]?ts$/;
  * than the Babel plugin and strips TypeScript in the same pass. JSX stays in
  * the output (`jsx: "preserve"`), so rolldown's own JSX transform still runs
  * with the tsconfig settings.
+ *
+ * Why `panicThreshold: "all_errors"`: with the default, the compiler skips a
+ * function it cannot compile and gives no warning, so that component ships
+ * without memoization. This setting fails the build instead. To keep a
+ * function uncompiled on purpose, add the `"use no memo"` directive to it.
+ * The vitest and docs-site configs use the same setting.
  */
 const reactCompiler = () => ({
 	name: "react-compiler",
@@ -87,7 +93,7 @@ const reactCompiler = () => ({
 			const result = await transform(id, code, {
 				jsx: "preserve",
 				sourcemap: true,
-				reactCompiler: { target: "19" },
+				reactCompiler: { target: "19", panicThreshold: "all_errors" },
 			});
 			if (result.fatal) {
 				const messages = result.errors.map((error) => error.message).join("\n");

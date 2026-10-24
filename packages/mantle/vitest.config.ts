@@ -42,7 +42,7 @@ const reactCompiler = () => ({
 			const result = await transform(id, code, {
 				jsx: "preserve",
 				sourcemap: true,
-				reactCompiler: { target: "19" },
+				reactCompiler: { target: "19", panicThreshold: "all_errors" },
 			});
 			if (result.fatal) {
 				const messages = result.errors.map((error) => error.message).join("\n");

@@ -1632,12 +1632,12 @@ function ControlCell({
 					// Focus first, as a native `<label>` click does, so the next Tab
 					// starts from the control the user acted on.
 					control.focus({ preventScroll: true });
+					// Why no `try`/`finally`: `click()` reports a listener error and does
+					// not throw it, so the reset always runs. The React Compiler also
+					// cannot compile `finally`.
 					isForwarding.current = true;
-					try {
-						control.click();
-					} finally {
-						isForwarding.current = false;
-					}
+					control.click();
+					isForwarding.current = false;
 				}
 			}}
 			{...props}

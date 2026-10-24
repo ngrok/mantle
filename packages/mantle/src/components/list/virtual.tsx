@@ -135,6 +135,7 @@ function useVirtualWindow({
 	scrollRef: RefObject<HTMLDivElement | null>;
 }): VirtualWindow {
 	"use no memo";
+	// oxlint-disable-next-line react/incompatible-library -- Why: `"use no memo"` above keeps this hook uncompiled.
 	const virtualizer = useVirtualizer({
 		count,
 		getScrollElement: () => scrollRef.current,
