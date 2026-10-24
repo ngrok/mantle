@@ -12,10 +12,18 @@ import { Accordion } from "./accordion.js";
  * that the reveal handler un-clips the region.
  */
 
-// Why inline CSS: the browser project loads no Tailwind, so `h-0` and `opacity-0` are bare
-// classes here. The reveal handler's inline `height: auto` and `opacity: 1` must beat these
-// rules for the match to lay out and show.
-const STYLE = `.h-0 { height: 0; } .opacity-0 { opacity: 0; }`;
+// Why inline CSS: the browser project loads no Tailwind, so its classes are bare here. The
+// reveal handler's inline `height: auto` and `opacity: 1` must beat the `h-0` and `opacity-0`
+// rules for the match to lay out and show. The trigger row rules give the icon its layout, and
+// `font: inherit` is the Tailwind preflight rule that gives the button the line height of its parent.
+const STYLE = `
+	button { font: inherit; }
+	.h-0 { height: 0; } .opacity-0 { opacity: 0; }
+	.flex { display: flex; } .items-center { align-items: center; }
+	.items-start { align-items: flex-start; } .gap-4 { gap: 1rem; }
+	.self-start { align-self: flex-start; } .shrink-0 { flex-shrink: 0; }
+	.h-lh { height: 1lh; } .w-4 { width: 1rem; } .text-sm { font-size: 14px; line-height: 20px; }
+`;
 
 let styleElement: HTMLStyleElement;
 
@@ -133,5 +141,64 @@ describe("Accordion (browser)", () => {
 		await waitFor(() => expect(region.style.height).toBe(""));
 		expect(region.style.opacity).toBe("");
 		expect(region).toHaveAttribute("hidden", "until-found");
+	});
+
+	const verticalCenter = (rect: DOMRect) => rect.top + rect.height / 2;
+
+	const iconRect = () => {
+		const icon = document.querySelector('[data-slot~="accordion-trigger-icon"]');
+		if (!icon) {
+			throw new Error("expected the trigger icon");
+		}
+		return icon.getBoundingClientRect();
+	};
+
+	test("TriggerIcon centers on the first line of a wrapped label", () => {
+		const label = "What happens when I run out of usage credit on Hobbyist?";
+		render(
+			<div style={{ width: 200, font: "16px/24px sans-serif" }}>
+				<Accordion.Root>
+					<Accordion.Item value="a">
+						<Accordion.Trigger>
+							{label}
+							<Accordion.TriggerIcon />
+						</Accordion.Trigger>
+					</Accordion.Item>
+				</Accordion.Root>
+			</div>,
+		);
+
+		const range = document.createRange();
+		// The text node alone, so the icon box is not one of the rects.
+		const text = screen.getByRole("button", { name: label }).firstChild;
+		if (!text) {
+			throw new Error("expected the label text node");
+		}
+		range.selectNodeContents(text);
+		const lines = [...range.getClientRects()];
+		const firstLine = lines[0];
+		if (!firstLine) {
+			throw new Error("expected the label to render a line box");
+		}
+		expect(lines.length).toBeGreaterThan(1);
+		expect(verticalCenter(iconRect())).toBeCloseTo(verticalCenter(firstLine), 0);
+	});
+
+	test("TriggerIcon centers with children shorter than one trigger line", () => {
+		render(
+			<div style={{ font: "16px/24px sans-serif" }}>
+				<Accordion.Root>
+					<Accordion.Item value="a">
+						<Accordion.Trigger>
+							<span className="text-sm">on_tcp_connect</span>
+							<Accordion.TriggerIcon />
+						</Accordion.Trigger>
+					</Accordion.Item>
+				</Accordion.Root>
+			</div>,
+		);
+
+		const labelRect = screen.getByText("on_tcp_connect").getBoundingClientRect();
+		expect(verticalCenter(iconRect())).toBeCloseTo(verticalCenter(labelRect), 0);
 	});
 });

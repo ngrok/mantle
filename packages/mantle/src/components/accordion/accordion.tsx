@@ -387,9 +387,7 @@ const Trigger = ({
 			aria-expanded={open}
 			aria-controls={contentId}
 			className={cx(
-				// Why `items-start`: when the label wraps, `TriggerIcon` stays on the first
-				// line. Its `h-lh` box centers the glyph on that line.
-				"group flex w-full cursor-pointer items-start justify-between gap-4 py-4 text-left font-medium outline-none",
+				"group flex w-full cursor-pointer items-center justify-between gap-4 py-4 text-left font-medium outline-none",
 				// `-mx-2 px-2` gives the focus ring (and tap target) horizontal breathing room
 				// without shifting the trigger's content — the negative margin cancels the padding,
 				// the same trick the tabs trigger uses. `rounded-md` matches Button/IconButton.
@@ -466,11 +464,13 @@ const TriggerIcon = ({
 		{...props}
 		data-slot={joinDataSlot(dataSlot, "accordion-trigger-icon")}
 		svg={svg}
-		// Why `h-lh w-4`: the svg is one line of the trigger label tall, and its
-		// default `preserveAspectRatio` centers the 16px glyph in that line. The
-		// trigger's `items-start` keeps it on the first line when the label wraps.
+		// Why `self-start h-lh w-4`: the svg is one line tall at the top of the
+		// trigger, and its default `preserveAspectRatio` centers the 16px glyph in
+		// that line. When the label wraps, the icon stays on the first line. When the
+		// label is one line, the row is one line tall, so the trigger's `items-center`
+		// keeps the icon centered with shorter children, such as a `text-sm` label.
 		className={cx(
-			"h-lh w-4 shrink-0 text-muted transition-transform duration-200 ease-out-strong group-data-state-open:rotate-180 motion-reduce:transition-none",
+			"h-lh w-4 shrink-0 self-start text-muted transition-transform duration-200 ease-out-strong group-data-state-open:rotate-180 motion-reduce:transition-none",
 			className,
 		)}
 	/>
