@@ -22,19 +22,18 @@ type CssVariableName = `--${string}`;
 type CssProperties = ReactCSSProperties & Record<CssVariableName, string | number>;
 
 /**
- * Helper to type-check a style object while preserving its exact inferred type.
+ * Type-checks a style object that can hold CSS variables, and returns it as
+ * React's `CSSProperties`, the type the `style` prop expects.
  *
- * Why not just annotate with `CssProperties`?
- * - Annotating forces the value to be treated as the *wider* `CssProperties` type,
- *   which can lose useful inference (literal values, narrow unions, etc.).
- *
- * This function validates that `input` conforms to `CssProperties` (including
- * CSS variables like `--foo`) and returns it unchanged, keeping inference intact.
+ * Use it when you pass a CSS variable such as `--gap` to `style`. React's
+ * `CSSProperties` rejects any key that starts with `--`. This function accepts
+ * every key that starts with `--`, checks the other keys against React's
+ * `CSSProperties`, and erases the CSS variable keys from the return type. An
+ * unknown key that does not start with `--`, such as `displya`, does not compile.
  *
  * @example
- * style={$cssProperties({ display: "block", "--gap": 8 })}
+ * style={$cssProperties({ display: "block", "--gap": 8, ...style })}
  */
-const $cssProperties = <T extends CssProperties = CssProperties>(input: T): ReactCSSProperties =>
-	input;
+const $cssProperties = (input: CssProperties): ReactCSSProperties => input;
 
 export { type CssProperties, $cssProperties };

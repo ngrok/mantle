@@ -65,7 +65,7 @@ export function planChecks({
 		steps.push({
 			name: "lint",
 			command: "pnpm",
-			args: ["exec", "oxlint", "--type-aware", ...lintable],
+			args: ["exec", "oxlint", "--type-aware", "--deny-warnings", ...lintable],
 		});
 	}
 	if (files.some((file) => agentDocFile.test(file))) {

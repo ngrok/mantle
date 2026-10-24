@@ -210,6 +210,19 @@ const oklchOf = (hex: string): { lightness: number; chroma: number } => {
 };
 
 /**
+ * The WCAG 2.1 relative luminance of a hex color, from 0 (black) to 1 (white).
+ *
+ * @example
+ * ```ts
+ * luminance("#ffffff"); // 1
+ * ```
+ */
+const luminance = (hex: string): number => {
+	const [red, green, blue] = linearFromHex(hex);
+	return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+};
+
+/**
  * The WCAG 2.1 contrast ratio between two hex colors, lighter over darker.
  *
  * @example
@@ -218,10 +231,6 @@ const oklchOf = (hex: string): { lightness: number; chroma: number } => {
  * ```
  */
 const contrastRatio = (first: string, second: string): number => {
-	const luminance = (hex: string) => {
-		const [red, green, blue] = linearFromHex(hex);
-		return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
-	};
 	const [high, low] = [luminance(first), luminance(second)].toSorted((a, b) => b - a);
 	if (high == null || low == null) {
 		throw new Error("contrastRatio needs two colors");

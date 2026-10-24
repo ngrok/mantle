@@ -19,6 +19,7 @@ function rawMdxDocs(docsDir: string): Plugin {
 			if (id === virtualModuleId) {
 				return resolvedId;
 			}
+			return null;
 		},
 		async load(id) {
 			if (id !== resolvedId) {

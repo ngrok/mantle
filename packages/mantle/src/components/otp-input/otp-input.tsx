@@ -30,11 +30,9 @@ const validationHues = {
 	warning: "warning",
 } as const satisfies Record<Exclude<Validation, false>, ValidationHue>;
 
-const validationBorderColor = <T extends ValidationHue = ValidationHue>(hue: T) =>
-	`var(--color-${hue}-600)`;
+const validationBorderColor = (hue: ValidationHue) => `var(--color-${hue}-600)`;
 
-const validationRingColor = <T extends ValidationHue = ValidationHue>(hue: T) =>
-	`var(--ring-color-focus-${hue})`;
+const validationRingColor = (hue: ValidationHue) => `var(--ring-color-focus-${hue})`;
 
 /**
  * Map the count of active slots to a discrete `data-otp-state` value used by

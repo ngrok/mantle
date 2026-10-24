@@ -104,6 +104,7 @@ describe("planChecks", () => {
 					"exec",
 					"oxlint",
 					"--type-aware",
+					"--deny-warnings",
 					"packages/mantle/src/components/button/button.tsx",
 				],
 			},

@@ -14,7 +14,7 @@
   "jsPlugins": ["./scripts/oxlint-plugin-mantle.js"],
   "categories": {
     "correctness": "error",
-    "suspicious": "warn"
+    "suspicious": "error"
   },
   "rules": {
     "array-callback-return": "error",
@@ -47,13 +47,13 @@
       }
     ],
     "jsdoc/empty-tags": "off",
-    "jsdoc/no-defaults": "warn",
+    "jsdoc/no-defaults": "error",
     "jsdoc/require-param-name": "error",
-    "jsdoc/require-property-description": "warn",
+    "jsdoc/require-property-description": "error",
     "jsdoc/require-property-name": "error",
     "jsdoc/require-property-type": "off",
     "jsdoc/require-property": "off",
-    "jsdoc/require-throws-description": "warn",
+    "jsdoc/require-throws-description": "error",
     "jsdoc/require-yields": "off",
     "no-explicit-any": "error",
     "no-fallthrough": "error",
@@ -78,7 +78,7 @@
     "promise/no-return-wrap": "error",
     "react/button-has-type": "error",
     "react/checked-requires-onchange-or-readonly": "error",
-    "react/display-name": "warn",
+    "react/display-name": "error",
     "react/exhaustive-deps": "error",
     // Why off: these six port React Compiler diagnostics and assume
     // compiler-managed memoization, which mantle has not adopted. They flag
@@ -97,15 +97,21 @@
     "react/jsx-no-script-url": "error",
     "react/jsx-no-target-blank": ["error", { "allowReferrer": true }],
     "react/jsx-no-useless-fragment": "error",
-    "react/no-array-index-key": "warn",
+    "react/no-array-index-key": "error",
     "react/no-danger": "off",
     "react/no-object-type-as-default-prop": "error",
     "react/no-unescaped-entities": "error",
     "react/no-unknown-property": "error",
-    "react/no-unstable-nested-components": ["warn", { "allowAsProps": true }],
+    "react/no-unstable-nested-components": ["error", { "allowAsProps": true }],
     "react/react-in-jsx-scope": "off",
     "react/rules-of-hooks": "error",
     "react/self-closing-comp": "error",
+    // Why off: the `noImplicitReturns` compiler option already fails a path
+    // that falls off the end of a function that returns a value. This rule
+    // also flags the bare `return;` in an effect and a function that ends in
+    // an exhaustive `switch`, and its fix hides a new union member from the
+    // compiler.
+    "typescript/consistent-return": "off",
     "typescript/consistent-type-imports": "error",
     "typescript/no-import-type-side-effects": "error",
     "typescript/no-invalid-void-type": "error",

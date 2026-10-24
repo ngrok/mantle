@@ -35,6 +35,7 @@ export function mantleChangelogMdx(absoluteChangelogPath: string): Plugin {
 			if (id === virtualId) {
 				return resolvedId;
 			}
+			return null;
 		},
 		load(id) {
 			if (id !== resolvedId) {
@@ -51,6 +52,7 @@ export function mantleChangelogMdx(absoluteChangelogPath: string): Plugin {
 					return [mod];
 				}
 			}
+			return undefined;
 		},
 	};
 }
