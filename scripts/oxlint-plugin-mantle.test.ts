@@ -42,6 +42,32 @@ function lint({
 	);
 }
 
+/** Run `oxlint --fix` on one fixture with one plugin rule turned on, and return the fixed source. */
+function fix({ rule, source }: { rule: string; source: string }): string {
+	lint({ rule, fileName: "a.ts", source });
+	spawnSync(oxlintPath, ["--fix", "a.ts"], { cwd: rootDir, encoding: "utf8" });
+	return fs.readFileSync(path.join(rootDir, "a.ts"), "utf8");
+}
+
+describe("multiline-exports", () => {
+	it("keeps a string export name and a type modifier when it expands the list", () => {
+		const source = 'const a = 1;\nexport { a as "a-b", type T };\n';
+
+		expect(fix({ rule: "multiline-exports", source })).toBe(
+			'const a = 1;\nexport {\n\t//,\n\ta as "a-b",\n\ttype T,\n};\n',
+		);
+	});
+
+	it("reports a list that holds a comment but does not fix it", () => {
+		const source = "const a = 1;\nexport { a, /* keep */ a as b };\n";
+
+		expect(lint({ rule: "multiline-exports", fileName: "a.ts", source })).toEqual([
+			"multiline-exports",
+		]);
+		expect(fix({ rule: "multiline-exports", source })).toBe(source);
+	});
+});
+
 describe("no-jsx-null-ternary", () => {
 	it("reports a ternary with a null arm inside JSX", () => {
 		const source =

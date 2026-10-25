@@ -78,14 +78,8 @@ const multilineExports = {
 					0,
 				);
 				const exportKindPrefix = node.exportKind === "type" ? "type " : "";
-				const specTexts = node.specifiers.map((spec) => {
-					let text = spec.exportKind === "type" ? "type " : "";
-					text +=
-						spec.local.name === spec.exported.name
-							? spec.local.name
-							: `${spec.local.name} as ${spec.exported.name}`;
-					return text;
-				});
+				// Why source text: an exported name can be a string literal, which has no `name`.
+				const specTexts = node.specifiers.map((spec) => sourceCode.getText(spec));
 				const fromClause = node.source ? ` from "${node.source.value}"` : "";
 				const singleLineWidth =
 					indentVisualWidth +
@@ -94,9 +88,15 @@ const multilineExports = {
 					return;
 				}
 
+				const message =
+					'Named exports with multiple specifiers must use multi-line format with a "//," marker to prevent formatter collapse.';
+				// Why no fix: the fix rebuilds the list from its specifiers, so it would drop a comment.
+				if (sourceCode.commentsExistBetween(openBrace, closeBrace)) {
+					context.report({ message, node });
+					return;
+				}
 				context.report({
-					message:
-						'Named exports with multiple specifiers must use multi-line format with a "//," marker to prevent formatter collapse.',
+					message,
 					node,
 					fix(fixer) {
 						const specIndent = `${baseIndent}\t`;

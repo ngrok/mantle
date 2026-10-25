@@ -603,14 +603,12 @@ const Root = ({
 						// papers over this with `[hidden] { display: none !important }`, but a
 						// consumer importing only `tailwindcss/theme` + `tailwindcss/utilities`
 						// (a documented v4 setup) has no Preflight. This attribute-qualified
-						// variant compiles to `.…[hidden] { display: none }` — author-origin
+						// variant compiles to `.…:is([hidden]) { display: none }` — author-origin
 						// and specificity (0,2,0), so it outranks `flex` and any consumer
 						// display utility on its own, with or without Preflight.
 						//
-						// Why the explicit `&`: editors suggest the `[[hidden]]:hidden` shorthand,
-						// but Tailwind 4.3.3 compiles that to `.…:is([hidden])` instead. Same
-						// specificity, different selector text — and the browser test injects this
-						// one verbatim, so keep the two spellings in step if you ever switch.
+						// Why keep the test in step: the browser test injects this selector
+						// verbatim, so a new spelling must also change its `DISPLAY_STYLE`.
 						"[[hidden]]:hidden",
 						"motion-safe:data-shake:animate-shake",
 						// state-driven transitions (the sonner approach): interruptible and
