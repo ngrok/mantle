@@ -58,8 +58,9 @@ describe("isApplePlatform", () => {
 		expect(isApplePlatform()).toBe(true);
 	});
 
-	test("is false when navigator is unavailable (SSR)", () => {
-		vi.stubGlobal("navigator", undefined);
+	test("is false outside a browser, even where Node defines navigator (SSR)", () => {
+		vi.stubGlobal("window", undefined);
+		vi.stubGlobal("navigator", { platform: "MacIntel", userAgent: "Node.js/24" });
 		expect(isApplePlatform()).toBe(false);
 	});
 });

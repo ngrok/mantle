@@ -224,6 +224,7 @@ function attachFoldHandler(preElement: HTMLElement): () => void {
 }
 
 export {
+	//,
 	attachFoldHandler,
 	clearRegionLinesCache,
 	getFoldGeometry,

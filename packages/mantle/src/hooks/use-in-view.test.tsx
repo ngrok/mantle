@@ -47,7 +47,13 @@ describe("useInView", () => {
 		vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
 	});
 
-	function triggerIntersection(element: Element, isIntersecting: boolean) {
+	function triggerIntersection({
+		element,
+		isIntersecting,
+	}: {
+		element: Element;
+		isIntersecting: boolean;
+	}) {
 		const entry: IntersectionObserverEntry = {
 			target: element,
 			isIntersecting,
@@ -84,7 +90,7 @@ describe("useInView", () => {
 		const element = document.createElement("div");
 		const { result } = renderHook(() => useInView(useRef(element)));
 
-		triggerIntersection(element, true);
+		triggerIntersection({ element, isIntersecting: true });
 		expect(result.current).toBe(true);
 	});
 
@@ -92,12 +98,12 @@ describe("useInView", () => {
 		const element = document.createElement("div");
 		const { result } = renderHook(() => useInView(useRef(element)));
 
-		triggerIntersection(element, true);
-		triggerIntersection(element, false);
+		triggerIntersection({ element, isIntersecting: true });
+		triggerIntersection({ element, isIntersecting: false });
 		expect(result.current).toBe(false);
 
 		// the element stays observed, so a second entry is tracked too
-		triggerIntersection(element, true);
+		triggerIntersection({ element, isIntersecting: true });
 		expect(result.current).toBe(true);
 		expect(mockUnobserve).not.toHaveBeenCalled();
 	});
@@ -106,12 +112,12 @@ describe("useInView", () => {
 		const element = document.createElement("div");
 		const { result } = renderHook(() => useInView(useRef(element), { once: true }));
 
-		triggerIntersection(element, true);
+		triggerIntersection({ element, isIntersecting: true });
 		expect(result.current).toBe(true);
 		expect(mockUnobserve).toHaveBeenCalledExactlyOnceWith(element);
 
 		// Why a leave entry: with `once` the hook stores no leave handler, so the entry changes nothing.
-		triggerIntersection(element, false);
+		triggerIntersection({ element, isIntersecting: false });
 		expect(result.current).toBe(true);
 	});
 
@@ -123,7 +129,7 @@ describe("useInView", () => {
 			({ amount }: { amount: number }) => useInView(useRef(element), { once: true, amount }),
 			{ initialProps: { amount: 0.5 } },
 		);
-		triggerIntersection(element, true);
+		triggerIntersection({ element, isIntersecting: true });
 		expect(result.current).toBe(true);
 		expect(mockObserve).toHaveBeenCalledTimes(1);
 

@@ -3,7 +3,7 @@ import { userEvent } from "@testing-library/user-event";
 import type { MouseEvent, ReactNode } from "react";
 import { toast as sonnerToast } from "sonner";
 import { describe, expect, test, vi } from "vitest";
-import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
+import { findTranslatedFont, translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import { preventCloseOnPromptInteraction } from "./prevent-close-on-prompt-interaction.js";
 import { makeToast, resolveToastDuration, Toast, Toaster } from "./toast.js";
 
@@ -148,7 +148,7 @@ describe("Toast.Root label slot", () => {
 			</Harness>,
 		);
 
-		expect(root.querySelector("font")).toBeNull();
+		expect(findTranslatedFont(root)).toBeNull();
 		expect(root).toHaveTextContent("Saved");
 	});
 

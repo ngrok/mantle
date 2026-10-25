@@ -86,7 +86,13 @@ const pendingLabel = "Working through it…";
  * re-announces on every change, and a stream of single words would interrupt
  * the reader fifty times.
  */
-function announcementFor(messages: ReadonlyArray<AssistantMessage>, isReplying: boolean): string {
+function announcementFor({
+	messages,
+	isReplying,
+}: {
+	messages: ReadonlyArray<AssistantMessage>;
+	isReplying: boolean;
+}): string {
 	if (isReplying) {
 		return pendingLabel;
 	}
@@ -254,7 +260,7 @@ function AssistantTranscript({
 	// its first text, so the region that announces the wait must already be there.
 	// Both branches put it first in a fragment, so the first send swaps the deck
 	// for the list and keeps the region.
-	const announcer = <LiveRegion>{announcementFor(messages, isReplying)}</LiveRegion>;
+	const announcer = <LiveRegion>{announcementFor({ messages, isReplying })}</LiveRegion>;
 
 	if (messages.length === 0) {
 		return (

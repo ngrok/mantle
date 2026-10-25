@@ -171,7 +171,7 @@ describe("OtpInput (browser)", () => {
 		test("pasteTransformer rewrites the pasted value before it is consumed", async () => {
 			const user = userEvent.setup();
 			// e.g. strip dashes/spaces from "123-456" → "123456"
-			// oxlint-disable-next-line consistent-function-scoping
+			// oxlint-disable-next-line consistent-function-scoping -- Why: the transformer reads best beside the test that passes it.
 			const pasteTransformer = (pasted: string) => pasted.replace(/[\s-]/g, "");
 			const { input } = renderOtp({ pasteTransformer });
 

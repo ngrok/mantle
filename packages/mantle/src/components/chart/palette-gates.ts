@@ -510,6 +510,7 @@ const resolveProperty = (chain: readonly StyleSheetLayer[], property: string): R
 };
 
 export type {
+	//,
 	CvdKind,
 	OffBandSlot,
 	PairScope,

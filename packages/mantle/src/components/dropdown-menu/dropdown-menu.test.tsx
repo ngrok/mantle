@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { createRef, type ReactNode } from "react";
 import { describe, expect, test, vi } from "vitest";
-import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
+import { findTranslatedFont, translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import { DropdownMenu } from "./dropdown-menu.js";
 
 describe("DropdownMenu", () => {
@@ -421,7 +421,7 @@ describe.each([{ asChild: false }, { asChild: true }])(
 					/>,
 				);
 
-				expect(item.querySelector("font")).toBeNull();
+				expect(findTranslatedFont(item)).toBeNull();
 				expect(screen.getByTestId("count")).toHaveTextContent("12");
 			},
 		);

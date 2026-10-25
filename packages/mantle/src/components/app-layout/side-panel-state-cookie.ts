@@ -144,6 +144,7 @@ type SerializeSidePanelStateCookieOptions = {
  * @returns A cookie string such as `mantle-side-panel-state=closed; Max-Age=31536000; Path=/; SameSite=Lax`.
  */
 function serializeSidePanelStateCookie(
+	// oxlint-disable-next-line mantle/no-boolean-positional-param -- Why: this is public API; an options object is a breaking change for a later minor.
 	open: boolean,
 	options: SerializeSidePanelStateCookieOptions = {},
 ): string {

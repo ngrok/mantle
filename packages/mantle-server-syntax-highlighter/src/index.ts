@@ -8,6 +8,7 @@ export {
 } from "./engine.js";
 
 export type {
+	//,
 	MantleHighlightInput,
 	MantleHighlightResult,
 	MantleServerHighlighter,

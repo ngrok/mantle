@@ -703,8 +703,7 @@ function notifyOtherTabs(
 
 	try {
 		if (broadcastChannel) {
-			// BroadcastChannel.postMessage has no `targetOrigin` parameter (unlike Window.postMessage); the rule can't distinguish the two.
-			// oxlint-disable unicorn/require-post-message-target-origin
+			// oxlint-disable unicorn/require-post-message-target-origin -- Why: BroadcastChannel.postMessage has no `targetOrigin` parameter, unlike Window.postMessage. A block, because the rule reports the closing line of the call.
 			broadcastChannel.postMessage({
 				theme,
 				timestamp: Date.now(),

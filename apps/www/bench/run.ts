@@ -325,12 +325,17 @@ const scrollSweep = async (page: Page): Promise<void> => {
 	await page.waitForTimeout(200);
 };
 
-const measure = async (
-	browser: Browser,
-	base: string,
-	item: Case,
-	run: number,
-): Promise<Result> => {
+const measure = async ({
+	browser,
+	base,
+	item,
+	run,
+}: {
+	browser: Browser;
+	base: string;
+	item: Case;
+	run: number;
+}): Promise<Result> => {
 	const url = caseUrl(base, item);
 	const pageErrors: string[] = [];
 	const context = await browser.newContext({
@@ -493,7 +498,7 @@ const main = async (): Promise<void> => {
 	// Why a warm-up: the first page of a fresh browser pays cold caches no later case pays.
 	const first = cases[0];
 	if (first != null) {
-		await measure(browser, base, first, -1);
+		await measure({ browser, base, item: first, run: -1 });
 	}
 	let done = 0;
 	const total = cases.length * runs;
@@ -501,7 +506,7 @@ const main = async (): Promise<void> => {
 	try {
 		for (let run = 0; run < runs; run += 1) {
 			for (const item of cases) {
-				const result = await measure(browser, base, item, run);
+				const result = await measure({ browser, base, item, run });
 				await appendFile(outFile, `${JSON.stringify(result)}\n`);
 				done += 1;
 				const elapsed = (Date.now() - started) / 1000;

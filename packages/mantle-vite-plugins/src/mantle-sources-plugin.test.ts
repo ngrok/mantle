@@ -1088,7 +1088,7 @@ describe("mantleSourcesPlugin bundle check", () => {
 		// Why this guard: the test only means something if the bundler parsed the module.
 		expect(parsedIds.some((id) => id.endsWith("dist/tooltip.js"))).toBe(true);
 		expect(result.logs.warn).toEqual([]);
-		expect(result.fileNames.some((name) => /tooltip/.test(name))).toBe(false);
+		expect(result.fileNames.some((name) => name.includes("tooltip"))).toBe(false);
 	});
 
 	test("stops waiting after the idle limit and reports the stall next to the miss", async () => {

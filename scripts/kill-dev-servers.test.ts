@@ -110,7 +110,7 @@ describe("parseCliOptions", () => {
 	});
 
 	it("throws on an unknown argument", () => {
-		expect(() => parseCliOptions(["node", "kill-dev-servers.ts", "--force"])).toThrowError(
+		expect(() => parseCliOptions(["node", "kill-dev-servers.ts", "--force"])).toThrow(
 			/Unknown argument: --force/,
 		);
 	});

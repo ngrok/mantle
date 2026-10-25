@@ -132,6 +132,8 @@ export default defineConfig(({ command }) => ({
 	// before reaching its cleanup line still leaves the environment pristine. Mirrors
 	// `packages/mantle/vitest.config.ts`, which docs/testing.md § Determinism documents repo-wide.
 	test: {
+		setupFiles: "./app/test-utils/vitest-setup.ts",
+		clearMocks: true,
 		restoreMocks: true,
 		unstubEnvs: true,
 		unstubGlobals: true,

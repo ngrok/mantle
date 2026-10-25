@@ -1,3 +1,4 @@
+import { cx } from "@ngrok/mantle/cx";
 import { Code } from "@ngrok/mantle/code";
 import { useAppliedTheme } from "@ngrok/mantle/theme";
 
@@ -336,7 +337,7 @@ const ColorPalette = ({ color }: { color: string }) => {
 		<div className="mt-2 flex flex-col gap-2 overflow-hidden text-xs md:flex-row">
 			{shades.map((shade) => (
 				<div key={shade} className="flex grow flex-col gap-1 font-mono">
-					<div className={`h-10 w-full rounded ${classes[shade]}`} />
+					<div className={cx("h-10 w-full rounded", classes[shade])} />
 					{shade}
 				</div>
 			))}
@@ -426,4 +427,10 @@ const ExtendedPalette = () => (
 	</>
 );
 
-export { BlackWhiteDemo, ColorPalette, ExtendedPalette, FunctionalColors };
+export {
+	//,
+	BlackWhiteDemo,
+	ColorPalette,
+	ExtendedPalette,
+	FunctionalColors,
+};

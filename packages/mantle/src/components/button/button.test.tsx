@@ -21,7 +21,7 @@ describe("Button", () => {
 	test("renders a button, with `asChild`", () => {
 		render(
 			<Button appearance="outlined" intent="accent" asChild type="button">
-				{/* oxlint-disable-next-line button-has-type */}
+				{/* oxlint-disable-next-line button-has-type -- Why: the test checks that `type` on Button reaches the slotted child. */}
 				<button>click me</button>
 			</Button>,
 		);

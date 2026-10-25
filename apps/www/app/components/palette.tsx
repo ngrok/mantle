@@ -34,4 +34,8 @@ function Swatch({ children, className, ...rest }: SwatchProps) {
 	);
 }
 
-export { Palette, Swatch };
+export {
+	//,
+	Palette,
+	Swatch,
+};

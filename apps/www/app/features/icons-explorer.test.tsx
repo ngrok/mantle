@@ -1,13 +1,9 @@
 // @vitest-environment happy-dom
-import { cleanup, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, test } from "vitest";
+import { describe, expect, test } from "vitest";
 import { IconsExplorer } from "./icons-explorer";
 import { iconData } from "./icons/icon-data";
-
-afterEach(() => {
-	cleanup();
-});
 
 describe("IconsExplorer", () => {
 	test("shows every icon before a search", () => {

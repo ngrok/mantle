@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { fetchUser, UserOverlayDemo } from "./overlay-async-demo";
 
@@ -32,7 +32,6 @@ const SETTLE_MS = 10_000;
 const FIRST_ATTEMPT_MS = 1_600;
 
 afterEach(() => {
-	cleanup();
 	vi.useRealTimers();
 });
 

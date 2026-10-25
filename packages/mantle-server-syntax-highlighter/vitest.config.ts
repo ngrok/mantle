@@ -6,6 +6,7 @@ export default defineConfig({
 		// See `packages/mantle/vitest.config.ts` — an un-torn-down spy leaks into every later
 		// test in the file, so restoring centrally means no test depends on an inline `mockRestore()`.
 		// docs/testing.md § Determinism documents this as repo-wide.
+		clearMocks: true,
 		restoreMocks: true,
 		unstubEnvs: true,
 		unstubGlobals: true,

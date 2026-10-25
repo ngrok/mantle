@@ -7,7 +7,7 @@ describe("clsx", () => {
 	});
 
 	test("ignores falsy values", () => {
-		// oxlint-disable-next-line no-constant-binary-expression
+		// oxlint-disable-next-line no-constant-binary-expression -- Why: the test passes the literal falsy values a caller can pass.
 		expect(clsx("a", false, null, undefined, 0, "", true && "b")).toBe("a b");
 	});
 

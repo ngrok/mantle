@@ -190,7 +190,17 @@ function cycle<T>(items: ReadonlyArray<T>, index: number): T {
 }
 
 /** One day's request count for a traffic shape. Weekends dip, and a new service has no traffic before its first deploy. */
-function dailyCount(shape: TrafficShape, day: Date, daysAgo: number, random: () => number): number {
+function dailyCount({
+	shape,
+	day,
+	daysAgo,
+	random,
+}: {
+	shape: TrafficShape;
+	day: Date;
+	daysAgo: number;
+	random: () => number;
+}): number {
 	const weekend = day.getDay() === 0 || day.getDay() === 6 ? 0.55 : 1;
 	switch (shape) {
 		case "zero": {
@@ -235,7 +245,7 @@ function createService(seed: ServiceSeed, index: number): Service {
 	const requests = Array.from({ length: REQUEST_DAYS }, (_, position) => {
 		const daysAgo = REQUEST_DAYS - 1 - position;
 		const day = daysBefore(daysAgo);
-		return { day, count: dailyCount(seed.shape, day, daysAgo, random) };
+		return { day, count: dailyCount({ shape: seed.shape, day, daysAgo, random }) };
 	});
 	const deploys = Array.from({ length: DEPLOY_WEEKS }, (_, position) => {
 		const weeksAgo = DEPLOY_WEEKS - 1 - position;

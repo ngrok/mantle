@@ -4,7 +4,7 @@ import { Separator } from "@ngrok/mantle/separator";
 import type { SvgAttributes } from "@ngrok/mantle/icon";
 import { NgrokLettermarkIcon } from "@ngrok/mantle/icons";
 import { ThemeSwitcher } from "@ngrok/mantle/theme-switcher";
-import { ArrowSquareOutIcon } from "@phosphor-icons/react";
+import { ArrowSquareOutIcon } from "@phosphor-icons/react/ArrowSquareOut";
 import { ListIcon } from "@phosphor-icons/react/List";
 import { XIcon } from "@phosphor-icons/react/X";
 import type { ComponentProps, PropsWithChildren } from "react";

@@ -1,11 +1,7 @@
 // @vitest-environment happy-dom
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { SandbarReducedMotionDemo } from "./sandbar-demos";
-
-afterEach(() => {
-	cleanup();
-});
 
 function getPanel(): HTMLElement {
 	const panel = document.querySelector('[data-slot="sandbar"]');

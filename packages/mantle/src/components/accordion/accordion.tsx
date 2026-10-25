@@ -23,6 +23,7 @@ import { joinDataSlot } from "../../utils/data-slot.js";
 import { Icon, type IconProps } from "../icon/icon.js";
 import { Slot } from "../slot/index.js";
 import { type AccordionType, isItemOpen, nextOpenValues, toOpenValues } from "./accordion-state.js";
+import { canUseDOM } from "../browser-only/browser-only.js";
 
 /**
  * Invokes the consumer's `onValueChange` with the correctly-typed value for the
@@ -51,15 +52,13 @@ function emitValueChange(props: AccordionRootProps, next: readonly string[]): vo
  * if (supportsBeforeMatch()) { node.setAttribute("hidden", "until-found"); }
  */
 function supportsBeforeMatch(): boolean {
-	return (
-		typeof document !== "undefined" && document.body != null && "onbeforematch" in document.body
-	);
+	return canUseDOM() && document.body != null && "onbeforematch" in document.body;
 }
 
 type AccordionContextValue = {
 	type: AccordionType;
 	openValues: readonly string[];
-	setItemOpen: (value: string, open: boolean) => void;
+	setItemOpen: (options: { itemValue: string; open: boolean }) => void;
 };
 
 const AccordionContext = createContext<AccordionContextValue | null>(null);
@@ -243,8 +242,8 @@ const Root = (props: AccordionRootProps) => {
 	});
 
 	const context = useMemo<AccordionContextValue>(() => {
-		const setItemOpen = (itemValue: string, open: boolean) => {
-			const next = nextOpenValues(openValues, itemValue, open, type);
+		const setItemOpen = ({ itemValue, open }: { itemValue: string; open: boolean }) => {
+			const next = nextOpenValues({ openValues, value: itemValue, open, type });
 			if (next === openValues) {
 				return;
 			}
@@ -319,7 +318,7 @@ const Item = ({
 
 	const setOpen = useCallback(
 		(next: boolean) => {
-			setItemOpen(value, next);
+			setItemOpen({ itemValue: value, open: next });
 		},
 		[setItemOpen, value],
 	);

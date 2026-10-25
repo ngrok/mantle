@@ -20,12 +20,26 @@
     "array-callback-return": "error",
     "control-has-associated-label": "off",
     "curly": "error",
+    // Why 3: CONVENTIONS.md § Readability & Maintainability asks for a named options object at 3 or more params.
+    "eslint/max-params": ["error", { "max": 3 }],
     "eslint/no-nested-ternary": "error",
     "eqeqeq": ["error", "always", { "null": "never" }],
     "eslint/no-shadow": "off",
     "eslint/no-underscore-dangle": "off",
     "jsdoc/check-property-names": "error",
+    "mantle/descriptive-names": "error",
+    "mantle/img-dimensions": "error",
+    "mantle/multiline-exports": "error",
+    "mantle/no-barrel-imports": "error",
+    "mantle/no-boolean-positional-param": "error",
+    "mantle/no-classname-construction": "error",
+    "mantle/no-clsx-classnames": "error",
     "mantle/no-jsx-null-ternary": "error",
+    "mantle/no-react-hooks-suppression": "error",
+    "mantle/prefer-can-use-dom": "error",
+    "mantle/prefer-type-alias": "error",
+    "mantle/require-suppression-reason": "error",
+    "mantle/tailwind-quarter-step-spacing": "error",
     "jsx-a11y/anchor-has-content": "off",
     "jsx-a11y/no-noninteractive-element-interactions": "off",
     "jsx-a11y/prefer-tag-over-role": "off",
@@ -125,16 +139,41 @@
     // an exhaustive `switch`, and its fix hides a new union member from the
     // compiler.
     "typescript/consistent-return": "off",
+    "typescript/await-thenable": "error",
+    "typescript/consistent-type-exports": "error",
     "typescript/consistent-type-imports": "error",
+    "typescript/no-base-to-string": "error",
+    "typescript/no-deprecated": "error",
+    "typescript/no-duplicate-type-constituents": "error",
+    "typescript/no-floating-promises": "error",
+    "typescript/no-generated-empty-object-type": "error",
     "typescript/no-import-type-side-effects": "error",
     "typescript/no-invalid-void-type": "error",
+    "typescript/no-misused-promises": ["error", { "checksVoidReturn": { "attributes": false } }],
+    "typescript/no-misused-spread": "error",
+    "typescript/no-mixed-enums": "error",
     "typescript/no-non-null-assertion": "error",
+    "typescript/no-redundant-type-constituents": "error",
     "typescript/no-unnecessary-boolean-literal-compare": "error",
     "typescript/no-unnecessary-template-expression": "error",
     "typescript/no-unnecessary-type-arguments": "error",
     "typescript/no-unnecessary-type-assertion": "error",
     "typescript/no-unnecessary-type-conversion": "error",
+    "typescript/no-unsafe-enum-comparison": "error",
     "typescript/no-unsafe-type-assertion": "error",
+    "typescript/no-useless-default-assignment": "error",
+    "typescript/prefer-find": "error",
+    "typescript/prefer-includes": "error",
+    "typescript/prefer-reduce-type-parameter": "error",
+    "typescript/prefer-string-starts-ends-with": "error",
+    "typescript/require-array-sort-compare": "error",
+    "typescript/restrict-template-expressions": "error",
+    "typescript/switch-exhaustiveness-check": [
+      "error",
+      { "considerDefaultExhaustiveForUnions": true }
+    ],
+    "typescript/unbound-method": "error",
+    "typescript/use-unknown-in-catch-callback-variable": "error",
     "unicorn/filename-case": ["error", { "case": "kebabCase", "ignore": ["[\\[\\$]"] }]
   },
   "overrides": [
@@ -189,10 +228,53 @@
         // Why: test fixtures still cast to build partial objects; moving them to `satisfies` is its own sweep.
         "typescript/no-unsafe-type-assertion": "off",
         "mantle/no-absent-class-assertion": "error",
+        "mantle/no-config-teardown": "error",
+        "mantle/no-happy-dom-to-be-visible": "error",
+        "mantle/no-only-to-be-defined": "error",
         "mantle/no-bare-to-have-been-called": "error",
         "mantle/no-presence-matcher-on-get-by": "error",
         "mantle/no-sleep-in-tests": "error",
         "vitest/expect-expect": ["error", { "assertFunctionNames": ["expect", "expect*"] }]
+      }
+    },
+    {
+      // Why: Chromium loads the CSS in a browser test, so `toBeVisible()` checks real visibility there.
+      "files": ["**/*.browser.test.{ts,tsx}"],
+      "rules": {
+        "mantle/no-happy-dom-to-be-visible": "off"
+      }
+    },
+    {
+      // Why: the chart paint path mirrors the canvas API, as in `(ctx, x, y, radius)`, and runs
+      // once per point per frame. An options object there allocates in the hot loop.
+      "files": [
+        "packages/mantle/src/components/chart/**",
+        "packages/mantle/src/components/bar-chart/**",
+        "packages/mantle/src/components/scatter-plot/**"
+      ],
+      "rules": {
+        "eslint/max-params": "off",
+        "mantle/no-boolean-positional-param": "off"
+      }
+    },
+    {
+      // Why: a recipe page shows these tests to readers, whose projects may not run `cleanup()`
+      // in a setup file. The recipe-fence tests pin each file to its page.
+      "files": [
+        "apps/www/app/features/assistant-across-routes/assistant-across-routes.test.tsx",
+        "apps/www/app/features/breadcrumbs/breadcrumbs.test.tsx",
+        "apps/www/app/features/header-actions/header-actions.test.tsx",
+        "apps/www/app/features/route-announcer.test.tsx"
+      ],
+      "rules": {
+        "mantle/no-config-teardown": "off"
+      }
+    },
+    {
+      // Why: React Router calls `handleRequest` with five positional arguments.
+      "files": ["apps/www/app/entry.server.tsx"],
+      "rules": {
+        "eslint/max-params": "off"
       }
     }
   ],

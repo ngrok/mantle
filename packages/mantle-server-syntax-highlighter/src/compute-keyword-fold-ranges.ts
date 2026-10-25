@@ -128,7 +128,18 @@ function endTrimmedIndex(text: string): number {
 }
 
 /** Returns true if `word` appears at `index` with word boundaries. */
-function isWordAt(text: string, index: number, word: string, end = text.length): boolean {
+function isWordAt({
+	text,
+	index,
+	word,
+	end = text.length,
+}: {
+	text: string;
+	index: number;
+	word: string;
+	/** The exclusive end of the text to match against. Defaults to `text.length`. */
+	end?: number;
+}): boolean {
 	if (index < 0 || index + word.length > end) {
 		return false;
 	}
@@ -145,7 +156,7 @@ function isWordAt(text: string, index: number, word: string, end = text.length):
 function startsWithAnyWordAfterWhitespace(text: string, words: readonly string[]): boolean {
 	const index = firstNonWhitespaceIndex(text);
 	for (const word of words) {
-		if (isWordAt(text, index, word)) {
+		if (isWordAt({ text, index, word })) {
 			return true;
 		}
 	}
@@ -182,7 +193,7 @@ function hasShellSameLineEndKeyword(text: string): boolean {
 			continue;
 		}
 		for (const word of BASH_END_KEYWORDS) {
-			if (isWordAt(text, index, word) && isShellCommandBoundary(text, index)) {
+			if (isWordAt({ text, index, word }) && isShellCommandBoundary(text, index)) {
 				return true;
 			}
 		}
@@ -201,7 +212,7 @@ function hasShellSameLineEndKeyword(text: string): boolean {
 function startsWithShellEndKeyword(text: string): boolean {
 	const index = firstNonWhitespaceIndex(text);
 	for (const word of BASH_END_KEYWORDS) {
-		if (!isWordAt(text, index, word)) {
+		if (!isWordAt({ text, index, word })) {
 			continue;
 		}
 		const next = text.charCodeAt(index + word.length);
@@ -215,7 +226,7 @@ function startsWithShellEndKeyword(text: string): boolean {
 /** Returns true when a line ends with `word`, ignoring trailing whitespace. */
 function endsWithWord(text: string, word: string): boolean {
 	const end = endTrimmedIndex(text);
-	return isWordAt(text, end - word.length, word, end);
+	return isWordAt({ text, index: end - word.length, word, end });
 }
 
 /** Returns true for trailing Ruby `do` / `do |args|` block openers. */
@@ -234,7 +245,7 @@ function endsWithRubyDoBlock(text: string): boolean {
 			end -= 1;
 		}
 	}
-	return isWordAt(text, end - 2, "do", end);
+	return isWordAt({ text, index: end - 2, word: "do", end });
 }
 
 /** Returns true when a Ruby line opens a keyword-paired block. */

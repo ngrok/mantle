@@ -41,6 +41,7 @@ function copyToClipboardPolyfill(text: string) {
 	document.body.appendChild(tempTextArea);
 	try {
 		tempTextArea.select();
+		// oxlint-disable-next-line typescript/no-deprecated -- Why: this fallback exists for browsers that lack the Clipboard API.
 		const copied = document.execCommand("copy");
 		if (!copied) {
 			throw new Error('document.execCommand("copy") failed');

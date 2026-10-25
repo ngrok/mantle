@@ -136,7 +136,7 @@ function Slider({
 	const normalizedValue = toValueArray(value);
 	const normalizedDefaultValue = toValueArray(defaultValue);
 	const values = normalizedValue ?? normalizedDefaultValue ?? [min];
-	const tickCount = computeTickCount(showTicks, min, max, step);
+	const tickCount = computeTickCount({ showTicks, min, max, step });
 
 	return (
 		<SliderPrimitiveRoot
@@ -239,7 +239,17 @@ function toValueArray(value: number | number[] | undefined): number[] | undefine
  * Compute the number of tick marks to render based on the slider's range and step.
  * Returns 0 if ticks are disabled or if the step/range is invalid.
  */
-function computeTickCount(showTicks: boolean, min: number, max: number, step: number): number {
+function computeTickCount({
+	showTicks,
+	min,
+	max,
+	step,
+}: {
+	showTicks: boolean;
+	min: number;
+	max: number;
+	step: number;
+}): number {
 	const range = max - min;
 	if (!showTicks || !Number.isFinite(range) || !Number.isFinite(step) || step <= 0 || range <= 0) {
 		return 0;

@@ -10,7 +10,7 @@
 import { render } from "@testing-library/react";
 import { Fragment } from "react";
 import { describe, expect, test } from "vitest";
-import { translateTextNodes } from "./translate-text-nodes.js";
+import { findTranslatedFont, translateTextNodes } from "./translate-text-nodes.js";
 
 /**
  * Flatten a commit error into one string. React batches a placement error as an
@@ -157,11 +157,11 @@ describe("translateTextNodes", () => {
 		] as const) {
 			const { container, rerender, unmount } = render(<p>{before}</p>);
 			translateTextNodes(container);
-			expect(container.querySelector("font")).not.toBeNull();
+			expect(findTranslatedFont(container)).not.toBeNull();
 
 			rerender(<p>{after}</p>);
 
-			expect(container.querySelector("font")).toBeNull();
+			expect(findTranslatedFont(container)).toBeNull();
 			expect(container.querySelector("strong")).toHaveTextContent("Bravo");
 			unmount();
 		}

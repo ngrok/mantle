@@ -36,4 +36,8 @@ type CssProperties = ReactCSSProperties & Record<CssVariableName, string | numbe
  */
 const $cssProperties = (input: CssProperties): ReactCSSProperties => input;
 
-export { type CssProperties, $cssProperties };
+export {
+	//,
+	type CssProperties,
+	$cssProperties,
+};

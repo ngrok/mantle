@@ -2,7 +2,8 @@ import { useCopyToClipboard } from "@ngrok/mantle/hooks";
 import { Icon } from "@ngrok/mantle/icon";
 import { SplitButton } from "@ngrok/mantle/split-button";
 import { Toast, makeToast } from "@ngrok/mantle/toast";
-import { CopyIcon, FileTextIcon } from "@phosphor-icons/react";
+import { CopyIcon } from "@phosphor-icons/react/Copy";
+import { FileTextIcon } from "@phosphor-icons/react/FileText";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "react-router";
 
@@ -22,8 +23,8 @@ export function DocActions({ markdownPath }: Props) {
 
 	async function copyMarkdownPage() {
 		try {
-			// fetchQuery respects cache and stale time - only refetches if stale
-			const markdown = await queryClient.fetchQuery({
+			// query() respects the cache and stale time; it refetches only stale data
+			const markdown = await queryClient.query({
 				queryKey: ["markdown", markdownUrl],
 				queryFn: async () => {
 					const response = await fetch(markdownUrl);

@@ -7,10 +7,11 @@ import { categoryRows, pointRows, sampleRows, sparseRows, timeRows } from "./dat
 import { MantleChart, MantleSparkline } from "./mantle-charts";
 import type { UpdateMode } from "./metrics";
 import { startMetrics } from "./metrics";
+import { canUseDOM } from "@ngrok/mantle/browser-only";
 
 // Why at module scope: the chart modules above load with this one, so this
 // mark is the moment the chart code is on the client and the mount can start.
-if (typeof window !== "undefined") {
+if (canUseDOM()) {
 	startMetrics();
 	performance.mark("lib-loaded");
 }

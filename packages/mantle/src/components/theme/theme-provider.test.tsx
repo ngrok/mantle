@@ -424,8 +424,7 @@ describe("ThemeProvider syncs across tabs and restores", () => {
 		// An older mantle in another tab stored and posted a retired theme.
 		document.cookie = `${THEME_COOKIE}=dark-high-contrast; path=/`;
 		act(() => {
-			// BroadcastChannel.postMessage takes no targetOrigin (unlike Window.postMessage).
-			// oxlint-disable-next-line unicorn/require-post-message-target-origin
+			// oxlint-disable-next-line unicorn/require-post-message-target-origin -- Why: BroadcastChannel.postMessage takes no targetOrigin, unlike Window.postMessage.
 			otherTab.postMessage({ theme: "dark-high-contrast", timestamp: 1 });
 		});
 		otherTab.close();
@@ -443,7 +442,7 @@ describe("ThemeProvider syncs across tabs and restores", () => {
 		const otherTab = new BroadcastChannel(THEME_COOKIE);
 
 		act(() => {
-			// oxlint-disable-next-line unicorn/require-post-message-target-origin
+			// oxlint-disable-next-line unicorn/require-post-message-target-origin -- Why: BroadcastChannel.postMessage takes no targetOrigin, unlike Window.postMessage.
 			otherTab.postMessage({ theme: "purple", timestamp: 1 });
 		});
 		otherTab.close();

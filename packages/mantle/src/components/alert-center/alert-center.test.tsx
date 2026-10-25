@@ -3,7 +3,7 @@ import { userEvent } from "@testing-library/user-event";
 import { createContext, createRef, useContext, useState } from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
-import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
+import { findTranslatedFont, translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import { Alert } from "../alert/alert.js";
 import {
 	AlertCenter,
@@ -1422,7 +1422,7 @@ describe("AlertCenter.Item after browser translation", () => {
 
 		// A lone child of the wrapper goes through React's textContent path, which
 		// wipes the engine's <font> instead of removing a node React lost.
-		expect(host.querySelector("font")).toBeNull();
+		expect(findTranslatedFont(host)).toBeNull();
 		expect(host.querySelector("strong")).toHaveTextContent("Payment failed");
 	});
 

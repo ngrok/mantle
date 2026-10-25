@@ -86,4 +86,9 @@ function workspacePluginCacheKey(specifiers: readonly string[]): Plugin {
 	};
 }
 
-export { digestFiles, resolvePackageEntry, workspacePluginCacheKey };
+export {
+	//,
+	digestFiles,
+	resolvePackageEntry,
+	workspacePluginCacheKey,
+};

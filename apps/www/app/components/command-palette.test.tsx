@@ -1,8 +1,8 @@
 // @vitest-environment happy-dom
 import { ThemeProvider } from "@ngrok/mantle/theme";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createRoutesStub } from "react-router";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { CommandPalette } from "./command-palette";
 import { MantleVersionProvider } from "./mantle-version-provider";
 
@@ -34,10 +34,6 @@ async function openPalette() {
 	fireEvent.click(trigger);
 	return await waitFor(() => screen.getByPlaceholderText("Search Mantle..."));
 }
-
-afterEach(() => {
-	cleanup();
-});
 
 describe("CommandPalette", () => {
 	it("browses all commands grouped by section when the query is empty", async () => {

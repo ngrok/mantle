@@ -1,5 +1,20 @@
 // Custom oxlint rules for the conventions that no built-in rule checks.
 // Each rule names the doc section it enforces, so the message can point there.
+// Why one file per rule under oxlint-rules/: the rules ported from the frontend repo stay diffable against their source.
+
+import descriptiveNames from "./oxlint-rules/descriptive-names.js";
+import imgDimensions from "./oxlint-rules/img-dimensions.js";
+import multilineExports from "./oxlint-rules/multiline-exports.js";
+import noBarrelImports from "./oxlint-rules/no-barrel-imports.js";
+import noBooleanPositionalParam from "./oxlint-rules/no-boolean-positional-param.js";
+import noClassnameConstruction from "./oxlint-rules/no-classname-construction.js";
+import noClsxClassnames from "./oxlint-rules/no-clsx-classnames.js";
+import noReactHooksSuppression from "./oxlint-rules/no-react-hooks-suppression.js";
+import preferCanUseDom from "./oxlint-rules/prefer-can-use-dom.js";
+import preferTypeAlias from "./oxlint-rules/prefer-type-alias.js";
+import requireSuppressionReason from "./oxlint-rules/require-suppression-reason.js";
+import tailwindQuarterStepSpacing from "./oxlint-rules/tailwind-quarter-step-spacing.js";
+import testAssertions from "./oxlint-rules/test-assertions.js";
 
 /** Whether a node is the literal `null`. */
 function isNullLiteral(node) {
@@ -244,5 +259,18 @@ export default {
 		"no-jsx-null-ternary": noJsxNullTernary,
 		"no-presence-matcher-on-get-by": noPresenceMatcherOnGetBy,
 		"no-sleep-in-tests": noSleepInTests,
+		...descriptiveNames.rules,
+		...imgDimensions.rules,
+		...multilineExports.rules,
+		...noBarrelImports.rules,
+		...noBooleanPositionalParam.rules,
+		...noClassnameConstruction.rules,
+		...noClsxClassnames.rules,
+		...noReactHooksSuppression.rules,
+		...preferCanUseDom.rules,
+		...preferTypeAlias.rules,
+		...requireSuppressionReason.rules,
+		...tailwindQuarterStepSpacing.rules,
+		...testAssertions.rules,
 	},
 };

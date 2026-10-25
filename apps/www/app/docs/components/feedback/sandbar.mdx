@@ -411,6 +411,7 @@ the real preference live, because `usePrefersReducedMotion` subscribes to the qu
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
+import { cx } from "@ngrok/mantle/cx";
 import { Field } from "@ngrok/mantle/field";
 import { usePrefersReducedMotion } from "@ngrok/mantle/hooks";
 import { Sandbar, type SandbarHandle } from "@ngrok/mantle/sandbar";
@@ -476,11 +477,7 @@ export function ReducedMotionExample() {
 				Continue to dashboard →
 			</Button>
 
-			<Sandbar.Root
-				className={isStill ? STILLNESS : undefined}
-				handleRef={sandbarHandle}
-				open={isDirty}
-			>
+			<Sandbar.Root className={cx(isStill && STILLNESS)} handleRef={sandbarHandle} open={isDirty}>
 				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
 				<Sandbar.Actions>
 					<Sandbar.DiscardButton onClick={() => setIsDirty(false)}>Discard</Sandbar.DiscardButton>

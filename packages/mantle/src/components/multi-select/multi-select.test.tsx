@@ -3,7 +3,7 @@ import { userEvent } from "@testing-library/user-event";
 import type { ChangeEvent, ReactNode } from "react";
 import { createRef, useState } from "react";
 import { describe, expect, test, vi } from "vitest";
-import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
+import { findTranslatedFont, translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import { Field } from "../field/field.js";
 import { Sheet } from "../sheet/sheet.js";
 import { MultiSelect } from "./multi-select.js";
@@ -907,7 +907,7 @@ describe("MultiSelect.Item label slot", () => {
 
 		rerender(<Options label={<strong>Apple</strong>} />);
 
-		expect(item.querySelector("font")).toBeNull();
+		expect(findTranslatedFont(item)).toBeNull();
 		expect(item.querySelector("strong")).toHaveTextContent("Apple");
 	});
 });
@@ -988,7 +988,7 @@ describe("MultiSelect.Item asChild", () => {
 
 		rerender(<Options label={<strong>Apple</strong>} />);
 
-		expect(item.querySelector("font")).toBeNull();
+		expect(findTranslatedFont(item)).toBeNull();
 		expect(item.querySelector("strong")).toHaveTextContent("Apple");
 	});
 

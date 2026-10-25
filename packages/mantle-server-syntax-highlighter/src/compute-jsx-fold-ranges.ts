@@ -194,12 +194,17 @@ const SYNTHETIC_FILENAME = "__mantle_fold__";
  * (inclusive) when it crosses a line boundary. Single-line spans contribute
  * nothing — there's nothing to fold.
  */
-function pushRange(
-	ranges: FoldableRange[],
-	lineOffsets: readonly number[],
-	startOffset: number,
-	endOffset: number,
-): void {
+function pushRange({
+	ranges,
+	lineOffsets,
+	startOffset,
+	endOffset,
+}: {
+	ranges: FoldableRange[];
+	lineOffsets: readonly number[];
+	startOffset: number;
+	endOffset: number;
+}): void {
 	const startLine = offsetToLine(lineOffsets, startOffset);
 	const endLine = offsetToLine(lineOffsets, endOffset);
 	if (endLine > startLine) {
@@ -256,7 +261,12 @@ function computeJsxFoldRanges({
 				// fold these at all, but matches what JSX authors actually want
 				// for long attribute lists across multiple lines.
 				if (opening != null) {
-					pushRange(ranges, lineOffsets, opening.start, opening.end - 1);
+					pushRange({
+						ranges,
+						lineOffsets,
+						startOffset: opening.start,
+						endOffset: opening.end - 1,
+					});
 				}
 				return;
 			}
@@ -264,20 +274,24 @@ function computeJsxFoldRanges({
 			// opening tag's attribute list. After dedup, when both share an
 			// opener line, the larger element fold wins — but the open-tag
 			// fold survives when it has its own opener line offset.
-			pushRange(ranges, lineOffsets, node.start, node.end - 1);
+			pushRange({ ranges, lineOffsets, startOffset: node.start, endOffset: node.end - 1 });
 			if (opening != null) {
-				pushRange(ranges, lineOffsets, opening.start, opening.end - 1);
+				pushRange({ ranges, lineOffsets, startOffset: opening.start, endOffset: opening.end - 1 });
 			}
 			return;
 		}
 		if (!FOLDABLE_NODE_TYPES.has(node.type)) {
 			return;
 		}
-		pushRange(ranges, lineOffsets, node.start, node.end - 1);
+		pushRange({ ranges, lineOffsets, startOffset: node.start, endOffset: node.end - 1 });
 	});
 
 	return finalizeFoldRanges(ranges);
 }
 
-export { computeJsxFoldRanges, createOxcParserLoader };
+export {
+	//,
+	computeJsxFoldRanges,
+	createOxcParserLoader,
+};
 export type { JsxFoldLanguage };

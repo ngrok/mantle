@@ -10,6 +10,7 @@ export {
 } from "./avatar.js";
 
 export type {
+	//,
 	AvatarAppearance,
 	AvatarFallbackProps,
 	AvatarImageProps,

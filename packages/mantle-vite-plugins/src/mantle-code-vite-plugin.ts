@@ -792,12 +792,17 @@ function collectModuleSymbols(program: unknown): Omit<ModuleFragmentContext, "re
  * exact string that `fragment.code` produces at runtime, or `null` if any interpolation is not
  * itself a statically resolvable fragment reference.
  */
-async function resolveFragmentTemplate(
-	fragmentNode: OxcTaggedTemplateExpression,
-	context: ModuleFragmentContext,
-	loadModuleContext: LoadModuleContext,
-	seen: Set<string>,
-): Promise<string | null> {
+async function resolveFragmentTemplate({
+	fragmentNode,
+	context,
+	loadModuleContext,
+	seen,
+}: {
+	fragmentNode: OxcTaggedTemplateExpression;
+	context: ModuleFragmentContext;
+	loadModuleContext: LoadModuleContext;
+	seen: Set<string>;
+}): Promise<string | null> {
 	const { quasis, expressions } = fragmentNode.quasi;
 	let result = quasis[0]?.value.cooked ?? quasis[0]?.value.raw ?? "";
 	for (let index = 0; index < expressions.length; index += 1) {
@@ -805,7 +810,7 @@ async function resolveFragmentTemplate(
 		const inlined =
 			expression == null
 				? null
-				: await resolveFragmentReference(expression, context, loadModuleContext, seen);
+				: await resolveFragmentReference({ expression, context, loadModuleContext, seen });
 		if (inlined == null) {
 			return null;
 		}
@@ -831,14 +836,19 @@ async function resolveFragmentTemplate(
  * @example
  * // import { oauthPolicy } from "./policies";
  * // …inside mantleCode("java")`String tp = """${oauthPolicy.code}""";`
- * // resolveFragmentReference(<oauthPolicy.code>, …) === "on_http_request:"
+ * // resolveFragmentReference({ expression: <oauthPolicy.code>, … }) === "on_http_request:"
  */
-async function resolveFragmentReference(
-	expression: OxcExpression,
-	context: ModuleFragmentContext,
-	loadModuleContext: LoadModuleContext,
-	seen: Set<string>,
-): Promise<string | null> {
+async function resolveFragmentReference({
+	expression,
+	context,
+	loadModuleContext,
+	seen,
+}: {
+	expression: OxcExpression;
+	context: ModuleFragmentContext;
+	loadModuleContext: LoadModuleContext;
+	seen: Set<string>;
+}): Promise<string | null> {
 	if (!isMemberExpression(expression) || expression.computed || expression.optional) {
 		return null;
 	}
@@ -861,12 +871,12 @@ async function resolveFragmentReference(
 		if (seen.has(key)) {
 			return null;
 		}
-		return resolveFragmentTemplate(
-			localFragment,
+		return resolveFragmentTemplate({
+			fragmentNode: localFragment,
 			context,
 			loadModuleContext,
-			new Set(seen).add(key),
-		);
+			seen: new Set(seen).add(key),
+		});
 	}
 
 	const imported = context.importsByLocal.get(name);
@@ -885,12 +895,12 @@ async function resolveFragmentReference(
 		if (seen.has(key)) {
 			return null;
 		}
-		return resolveFragmentTemplate(
-			exportedFragment,
-			target,
+		return resolveFragmentTemplate({
+			fragmentNode: exportedFragment,
+			context: target,
 			loadModuleContext,
-			new Set(seen).add(key),
-		);
+			seen: new Set(seen).add(key),
+		});
 	}
 
 	return null;
@@ -945,7 +955,12 @@ async function buildPlaceholderCode({
 		const inlined =
 			expression == null
 				? null
-				: await resolveFragmentReference(expression, context, loadModuleContext, new Set());
+				: await resolveFragmentReference({
+						expression,
+						context,
+						loadModuleContext,
+						seen: new Set(),
+					});
 		if (inlined != null) {
 			placeholderCode += inlined;
 		} else if (expression != null) {

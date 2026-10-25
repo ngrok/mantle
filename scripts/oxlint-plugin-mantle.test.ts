@@ -182,3 +182,49 @@ describe("no-default-export", () => {
 		expect(lint({ rule: "no-default-export", fileName: "a.d.ts", source })).toEqual([]);
 	});
 });
+
+// One case each way for the rules ported from the frontend repo. The cases pin the mantle changes:
+// the render-prop exemption in `no-classname-construction` and the reason clause.
+describe.each([
+	{
+		rule: "require-suppression-reason",
+		fileName: "a.ts",
+		reported: "// oxlint-disable-next-line no-var\nvar a = 1;\nexport { a };\n",
+		allowed:
+			"// oxlint-disable-next-line no-var -- Why: the test needs a var.\nvar a = 1;\nexport { a };\n",
+	},
+	{
+		rule: "no-classname-construction",
+		fileName: "a.tsx",
+		reported: 'export const A = ({ on }: { on: boolean }) => <div className={on ? "a" : "b"} />;\n',
+		allowed:
+			'export const A = ({ className }: { className: string | ((on: boolean) => string) }) => (\n\t<a className={typeof className === "function" ? className(true) : className} />\n);\n',
+	},
+	{
+		rule: "no-boolean-positional-param",
+		fileName: "a.ts",
+		reported: "export function f(name: string, open: boolean) {\n\treturn open ? name : '';\n}\n",
+		allowed:
+			"export function f({ name, open }: { name: string; open: boolean }) {\n\treturn open ? name : '';\n}\n",
+	},
+	{
+		rule: "prefer-can-use-dom",
+		fileName: "a.ts",
+		reported: 'export const browser = typeof window !== "undefined";\n',
+		allowed: "export const browser = canUseDOM();\n",
+	},
+	{
+		rule: "no-config-teardown",
+		fileName: "a.test.ts",
+		reported: "afterEach(() => {\n\tvi.restoreAllMocks();\n});\n",
+		allowed: "afterEach(() => {\n\tvi.useRealTimers();\n});\n",
+	},
+])("$rule", ({ rule, fileName, reported, allowed }) => {
+	it("reports the bad shape", () => {
+		expect(lint({ rule, fileName, source: reported })).toEqual([rule]);
+	});
+
+	it("allows the good shape", () => {
+		expect(lint({ rule, fileName, source: allowed })).toEqual([]);
+	});
+});

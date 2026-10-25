@@ -1,13 +1,13 @@
 // @vitest-environment happy-dom
 import { TooltipProvider } from "@ngrok/mantle/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import type { ReactElement } from "react";
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { PageActions } from "~/features/header-actions/header-actions";
 import { DomainsListPage } from "~/features/list-page-loading-demo";
-import { translateTextNodes } from "~/test-utils/translate-text-nodes";
+import { findTranslatedFont, translateTextNodes } from "~/test-utils/translate-text-nodes";
 
 /**
  * A live docs demo runs in a reader's browser, and a reader who translates the
@@ -19,10 +19,6 @@ import { translateTextNodes } from "~/test-utils/translate-text-nodes";
 const selectableListDemos = import.meta.glob<{
 	ControlledQueryExample: () => ReactElement;
 }>("../docs/components/data-display/selectable-list.mdx", { eager: true });
-
-afterEach(() => {
-	cleanup();
-});
 
 describe("SelectableList controlled-query demo on a translated page", () => {
 	it("clears the filter without removing a reparented text node", async () => {
@@ -44,7 +40,7 @@ describe("SelectableList controlled-query demo on a translated page", () => {
 		// `<font>`. `getByText` returns the text's owner, so a surviving `<font>` is the match.
 		const echo = screen.getByText("“”");
 		expect(echo.tagName).not.toBe("FONT");
-		expect(echo.querySelector("font")).toBeNull();
+		expect(findTranslatedFont(echo)).toBeNull();
 	});
 });
 

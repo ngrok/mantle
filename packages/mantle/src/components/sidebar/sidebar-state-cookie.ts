@@ -157,6 +157,7 @@ type SerializeSidebarStateCookieOptions = {
  * @returns A cookie string such as `mantle-sidebar-state=collapsed; Max-Age=31536000; Path=/; SameSite=Lax`.
  */
 function serializeSidebarStateCookie(
+	// oxlint-disable-next-line mantle/no-boolean-positional-param -- Why: this is public API; an options object is a breaking change for a later minor.
 	open: boolean,
 	options: SerializeSidebarStateCookieOptions = {},
 ): string {

@@ -4,7 +4,7 @@ import { userEvent } from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { createRef, useState } from "react";
 import { describe, expect, test, vi } from "vitest";
-import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
+import { findTranslatedFont, translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import { Field } from "../field/field.js";
 import { Select } from "./select.js";
 
@@ -625,7 +625,7 @@ describe("Select", () => {
 			// `textContent` path and wiped the `<font>` instead of removing a node
 			// the trigger no longer owned.
 			expect(screen.getByTestId("selected")).toHaveTextContent("OpenAI");
-			expect(trigger.querySelector("font")).toBeNull();
+			expect(findTranslatedFont(trigger)).toBeNull();
 			expect(trigger).not.toHaveTextContent("Select");
 		});
 
@@ -933,9 +933,9 @@ describe("Select", () => {
 
 			rerender(<SlottedPicker label={<strong>Apple</strong>} />);
 
-			expect(option.querySelector("font")).toBeNull();
+			expect(findTranslatedFont(option)).toBeNull();
 			expect(option.querySelector("strong")).toHaveTextContent("Apple");
-			expect(trigger.querySelector("font")).toBeNull();
+			expect(findTranslatedFont(trigger)).toBeNull();
 			expect(trigger.querySelector("strong")).toHaveTextContent("Apple");
 		});
 
@@ -944,9 +944,9 @@ describe("Select", () => {
 
 			rerender(<SlottedPicker label={null} />);
 
-			expect(option.querySelector("font")).toBeNull();
+			expect(findTranslatedFont(option)).toBeNull();
 			expect(option.querySelector('[data-slot="select-item-label"]')).toHaveTextContent("");
-			expect(trigger.querySelector("font")).toBeNull();
+			expect(findTranslatedFont(trigger)).toBeNull();
 		});
 
 		test("Select.Trigger asChild keeps rendering when a translated bare string child swaps to an element", () => {
@@ -969,7 +969,7 @@ describe("Select", () => {
 
 			rerender(<Picker label={<strong>Pick a fruit</strong>} />);
 
-			expect(trigger.querySelector("font")).toBeNull();
+			expect(findTranslatedFont(trigger)).toBeNull();
 			expect(trigger.querySelector("strong")).toHaveTextContent("Pick a fruit");
 		});
 	});
@@ -981,6 +981,7 @@ describe("Select", () => {
 			const onValueChange = vi.fn<(value: string) => void>();
 			render(
 				<form aria-label="fruit form">
+					{/* oxlint-disable-next-line typescript/no-deprecated -- Why: this test pins the deprecated alias. */}
 					<Select.Root name="fruit" onChange={onChange} onValueChange={onValueChange}>
 						<Select.Trigger>
 							<Select.Value placeholder="Pick a fruit" />

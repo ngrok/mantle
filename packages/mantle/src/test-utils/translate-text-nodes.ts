@@ -60,6 +60,7 @@ function translateTextNodes(root: Node): void {
 			continue;
 		}
 
+		// oxlint-disable-next-line typescript/no-deprecated -- Why: a translation engine wraps text in `<font>`, so the stand-in must too.
 		const font = document.createElement("font");
 		font.setAttribute("style", "vertical-align: inherit;");
 		parentNode.insertBefore(font, node);
@@ -68,7 +69,19 @@ function translateTextNodes(root: Node): void {
 	}
 }
 
+/**
+ * The first `<font>` wrapper under `root`, or `null` when no text there was translated.
+ *
+ * @example
+ * expect(findTranslatedFont(button)).toBeNull();
+ */
+function findTranslatedFont(root: ParentNode): Element | null {
+	// oxlint-disable-next-line typescript/no-deprecated -- Why: a translation engine wraps text in `<font>`, so the tests must find that tag.
+	return root.querySelector("font");
+}
+
 export {
 	//,
+	findTranslatedFont,
 	translateTextNodes,
 };

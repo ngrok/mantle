@@ -1,4 +1,5 @@
 import { onCLS, onFCP, onINP, onLCP } from "web-vitals";
+import { canUseDOM } from "@ngrok/mantle/browser-only";
 
 /**
  * Page-side instrumentation the Playwright driver in `bench/` reads through
@@ -95,7 +96,7 @@ let started = false;
  * ```
  */
 export const startMetrics = (): void => {
-	if (started || typeof window === "undefined") {
+	if (started || !canUseDOM()) {
 		return;
 	}
 	started = true;

@@ -74,13 +74,16 @@ function swapTheme(update: () => void, { origin }: { origin?: Element | null } =
 		() => undefined,
 	);
 
-	void transition.finished.finally(async () => {
+	const finish = async () => {
 		// Why cancel: a skip ends the transition, not the animation. The animation
 		// would then clip the new root of the next transition.
 		(await reveal)?.cancel();
 		document.removeEventListener("click", onClick, { capture: true });
 		activeTransition = null;
 		delete html.dataset.themeTransition;
+	};
+	void transition.finished.finally(() => {
+		void finish();
 	});
 }
 

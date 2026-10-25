@@ -13,7 +13,7 @@ import {
 import invariant from "tiny-invariant";
 import { describe, expect, onTestFinished, test, vi } from "vitest";
 import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
-import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
+import { findTranslatedFont, translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import type { SortingMode } from "../../utils/sorting/direction.js";
 import type { SortDirection } from "./types.js";
 import type { ButtonAppearance, ButtonIntent, IconButtonAppearance } from "../button/index.js";
@@ -2021,7 +2021,7 @@ describe("DataTable action cells after browser translation", () => {
 		// text fiber, and `removeChild` names a node the engine reparented.
 		rerender(<ActionCellSwapHarness rows={[{ id: "row-1", name: "Alice", actionable: true }]} />);
 
-		expect(cell.querySelector("font")).toBeNull();
+		expect(findTranslatedFont(cell)).toBeNull();
 		expect(cell.querySelector("button")).toHaveTextContent("Open actions");
 	});
 
@@ -2072,7 +2072,7 @@ describe("DataTable action cells after browser translation", () => {
 		// the text fiber, and `removeChild` names a node the engine reparented.
 		rerender(<ActionHeaderSwapHarness label={<span data-testid="header-label">Actions</span>} />);
 
-		expect(header.querySelector("font")).toBeNull();
+		expect(findTranslatedFont(header)).toBeNull();
 		expect(screen.getByTestId("header-label")).toHaveTextContent("Actions");
 	});
 
@@ -2088,7 +2088,7 @@ describe("DataTable action cells after browser translation", () => {
 		// the engine reparented.
 		rerender(<ActionHeaderSwapHarness label={undefined} />);
 
-		expect(header.querySelector("font")).toBeNull();
+		expect(findTranslatedFont(header)).toBeNull();
 		expect(header).toHaveTextContent("Actions");
 	});
 });

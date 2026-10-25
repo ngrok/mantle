@@ -3,6 +3,7 @@ import type { TestingLibraryMatchers } from "@testing-library/jest-dom/matchers"
 import { cleanup } from "@testing-library/react";
 import { afterEach } from "vitest";
 import { createIntersectionObserverStub } from "./src/test-utils/mock-intersection-observer.js";
+import { canUseDOM } from "./src/components/browser-only/browser-only.js";
 
 // Why: `@testing-library/jest-dom/vitest` extends `expect` at runtime, but it types its matchers
 // onto `Assertion<T>`, and Vitest 5 declares `Assertion<R, T>`, so that declaration no longer
@@ -26,7 +27,7 @@ declare module "vitest/browser" {
 // Why a direct assignment: `unstubGlobals` runs before each test and undoes a `vi.stubGlobal`
 // here. happy-dom's observer never calls back, so this stub reports every observed element in
 // view inside `observe()`, and the guard keeps Chromium's observer in the browser project.
-if (typeof window !== "undefined" && "happyDOM" in window) {
+if (canUseDOM() && "happyDOM" in window) {
 	globalThis.IntersectionObserver = createIntersectionObserverStub({ intersecting: true }).Observer;
 }
 
