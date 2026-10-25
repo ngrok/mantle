@@ -254,7 +254,7 @@ function UserSheet({ onClose, scenario, userId }: UserOverlayProps) {
 				}
 			}}
 		>
-			<Sheet.Content preferredWidth="sm:max-w-[34rem]">
+			<Sheet.Content preferredWidth="sm:max-w-136">
 				<Sheet.Header>
 					<Sheet.TitleGroup>
 						<Sheet.Title>User details</Sheet.Title>

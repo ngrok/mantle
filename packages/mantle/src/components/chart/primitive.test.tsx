@@ -7,7 +7,7 @@ import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
 import { createIntersectionObserverStub } from "../../test-utils/mock-intersection-observer.js";
-import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
+import { findTranslatedFont, translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import { BarChart } from "../bar-chart/index.js";
 import { LineChart } from "../line-chart/index.js";
 import { datumValue } from "./datum.js";
@@ -341,7 +341,10 @@ describe("Tooltip and Legend after browser translation", () => {
 
 		expect(container.querySelector('[data-slot="bar-chart-legend-label"]')).not.toBeInTheDocument();
 		expect(legend).toHaveTextContent("Desktop");
-		expect(legend?.querySelector("font")).toBeNull();
+		if (legend == null) {
+			throw new Error("expected the legend element");
+		}
+		expect(findTranslatedFont(legend)).toBeNull();
 	});
 });
 

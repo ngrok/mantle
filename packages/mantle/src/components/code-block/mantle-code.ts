@@ -187,6 +187,14 @@ function mantleCode(
 	};
 }
 
-export { defaultShowLineNumbers, mantleCode };
+export {
+	//,
+	defaultShowLineNumbers,
+	mantleCode,
+};
 export { createMantleCodeBlockValue };
-export type { MantleCodeBlockValue, MantleCodeOptions };
+export type {
+	//,
+	MantleCodeBlockValue,
+	MantleCodeOptions,
+};

@@ -42,6 +42,32 @@ function lint({
 	);
 }
 
+/** Run `oxlint --fix` on one fixture with one plugin rule turned on, and return the fixed source. */
+function fix({ rule, source }: { rule: string; source: string }): string {
+	lint({ rule, fileName: "a.ts", source });
+	spawnSync(oxlintPath, ["--fix", "a.ts"], { cwd: rootDir, encoding: "utf8" });
+	return fs.readFileSync(path.join(rootDir, "a.ts"), "utf8");
+}
+
+describe("multiline-exports", () => {
+	it("keeps a string export name and a type modifier when it expands the list", () => {
+		const source = 'const a = 1;\nexport { a as "a-b", type T };\n';
+
+		expect(fix({ rule: "multiline-exports", source })).toBe(
+			'const a = 1;\nexport {\n\t//,\n\ta as "a-b",\n\ttype T,\n};\n',
+		);
+	});
+
+	it("reports a list that holds a comment but does not fix it", () => {
+		const source = "const a = 1;\nexport { a, /* keep */ a as b };\n";
+
+		expect(lint({ rule: "multiline-exports", fileName: "a.ts", source })).toEqual([
+			"multiline-exports",
+		]);
+		expect(fix({ rule: "multiline-exports", source })).toBe(source);
+	});
+});
+
 describe("no-jsx-null-ternary", () => {
 	it("reports a ternary with a null arm inside JSX", () => {
 		const source =
@@ -180,5 +206,51 @@ describe("no-default-export", () => {
 		const source = 'declare module "*.css" {\n\tconst css: string;\n\texport default css;\n}\n';
 
 		expect(lint({ rule: "no-default-export", fileName: "a.d.ts", source })).toEqual([]);
+	});
+});
+
+// One case each way for the rules ported from the frontend repo. The cases pin the mantle changes:
+// the render-prop exemption in `no-classname-construction` and the reason clause.
+describe.each([
+	{
+		rule: "require-suppression-reason",
+		fileName: "a.ts",
+		reported: "// oxlint-disable-next-line no-var\nvar a = 1;\nexport { a };\n",
+		allowed:
+			"// oxlint-disable-next-line no-var -- Why: the test needs a var.\nvar a = 1;\nexport { a };\n",
+	},
+	{
+		rule: "no-classname-construction",
+		fileName: "a.tsx",
+		reported: 'export const A = ({ on }: { on: boolean }) => <div className={on ? "a" : "b"} />;\n',
+		allowed:
+			'export const A = ({ className }: { className: string | ((on: boolean) => string) }) => (\n\t<a className={typeof className === "function" ? className(true) : className} />\n);\n',
+	},
+	{
+		rule: "no-boolean-positional-param",
+		fileName: "a.ts",
+		reported: "export function f(name: string, open: boolean) {\n\treturn open ? name : '';\n}\n",
+		allowed:
+			"export function f({ name, open }: { name: string; open: boolean }) {\n\treturn open ? name : '';\n}\n",
+	},
+	{
+		rule: "prefer-can-use-dom",
+		fileName: "a.ts",
+		reported: 'export const browser = typeof window !== "undefined";\n',
+		allowed: "export const browser = canUseDOM();\n",
+	},
+	{
+		rule: "no-config-teardown",
+		fileName: "a.test.ts",
+		reported: "afterEach(() => {\n\tvi.restoreAllMocks();\n});\n",
+		allowed: "afterEach(() => {\n\tvi.useRealTimers();\n});\n",
+	},
+])("$rule", ({ rule, fileName, reported, allowed }) => {
+	it("reports the bad shape", () => {
+		expect(lint({ rule, fileName, source: reported })).toEqual([rule]);
+	});
+
+	it("allows the good shape", () => {
+		expect(lint({ rule, fileName, source: allowed })).toEqual([]);
 	});
 });

@@ -457,7 +457,9 @@ describe("ChartEngine reduced motion", () => {
 			onchange: null,
 			addEventListener: () => {},
 			removeEventListener: () => {},
+			// oxlint-disable-next-line typescript/no-deprecated -- Why: the `MediaQueryList` type still requires it.
 			addListener: () => {},
+			// oxlint-disable-next-line typescript/no-deprecated -- Why: the `MediaQueryList` type still requires it.
 			removeListener: () => {},
 			dispatchEvent: () => false,
 		}));

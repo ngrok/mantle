@@ -16,7 +16,17 @@ const createRandom = (seed: number) => {
 	};
 };
 
-const walk = (count: number, random: () => number, start: number, step: number) => {
+const walk = ({
+	count,
+	random,
+	start,
+	step,
+}: {
+	count: number;
+	random: () => number;
+	start: number;
+	step: number;
+}) => {
 	const values: number[] = [];
 	let value = start;
 	for (let index = 0; index < count; index += 1) {
@@ -29,8 +39,8 @@ const walk = (count: number, random: () => number, start: number, step: number) 
 /** Rows with a `Date` x one minute apart: the dashboard time-series shape. */
 export const timeRows = (count: number, seed: number): Row[] => {
 	const random = createRandom(seed);
-	const a = walk(count, random, 400, 60);
-	const b = walk(count, random, 40, 12);
+	const a = walk({ count, random, start: 400, step: 60 });
+	const b = walk({ count, random, start: 40, step: 12 });
 	return a.map((value, index) => ({
 		x: new Date(START_MS + index * 60_000),
 		a: value,
@@ -41,8 +51,8 @@ export const timeRows = (count: number, seed: number): Row[] => {
 /** Rows with a numeric sample index x: the dense signal shape. */
 export const sampleRows = (count: number, seed: number): Row[] => {
 	const random = createRandom(seed);
-	const a = walk(count, random, 250, 8);
-	const b = walk(count, random, 120, 6);
+	const a = walk({ count, random, start: 250, step: 8 });
+	const b = walk({ count, random, start: 120, step: 6 });
 	return a.map((value, index) => ({ x: index, a: value, b: b[index] ?? 0 }));
 };
 

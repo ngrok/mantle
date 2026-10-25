@@ -141,7 +141,7 @@ const rootClassName =
 // is that first glyph, and generated content never enters a selection.
 // Why String.raw: Tailwind reads this file's text, so the class must hold one
 // backslash, and a plain string literal spells that with two.
-const headClassName = String.raw`inline-block overflow-hidden text-ellipsis whitespace-nowrap align-bottom before:content-['\200B'] max-w-[calc(100%_-_var(--_tail-width)_+_0.5px)] [[data-truncated]>&]:max-w-[max(1ch_+_0.5px,calc(round(down,100%_-_var(--_tail-width),1ch)_+_0.5px))]`;
+const headClassName = String.raw`inline-block overflow-hidden text-ellipsis whitespace-nowrap align-bottom before:content-['\200B'] max-w-[calc(100%-var(--_tail-width)+0.5px)] [[data-truncated]>&]:max-w-[max(1ch+0.5px,calc(round(down,100%-var(--_tail-width),1ch)+0.5px))]`;
 
 // Why min-w: while the reserve is still the `ch` estimate, the tail holds the
 // width the head subtracts, so a value that fits never clips its head.
@@ -155,7 +155,7 @@ const headClassName = String.raw`inline-block overflow-hidden text-ellipsis whit
 // Why `:empty+&`: a value no longer than `tail` has no head to draw the
 // ellipsis, so the tail draws its own and takes the head's cell back.
 const tailClassName =
-	"inline-block overflow-hidden whitespace-nowrap text-left align-bottom min-w-(--_tail-width) [[data-truncated]>&]:min-w-0 [[data-truncated]>&]:max-w-[calc(round(down,100%_-_1ch_-_var(--_tail-width),1ch)_+_var(--_tail-width))] [[data-truncated]>:empty+&]:max-w-[calc(round(down,100%_-_var(--_tail-width),1ch)_+_var(--_tail-width)_+_0.5px)] [[data-truncated]>:empty+&]:text-ellipsis";
+	"inline-block overflow-hidden whitespace-nowrap text-left align-bottom min-w-(--_tail-width) [[data-truncated]>&]:min-w-0 [[data-truncated]>&]:max-w-[calc(round(down,100%-1ch-var(--_tail-width),1ch)+var(--_tail-width))] [[data-truncated]>:empty+&]:max-w-[calc(round(down,100%-var(--_tail-width),1ch)+var(--_tail-width)+0.5px)] [[data-truncated]>:empty+&]:text-ellipsis";
 
 type TruncatedTextRootProps = ComponentProps<"span"> & {
 	/** Whether to render through `Slot` onto the consumer's element. */

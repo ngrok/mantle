@@ -1,3 +1,5 @@
+import { canUseDOM } from "../components/browser-only/browser-only.js";
+
 /**
  * Type guard for `navigator.userAgentData` existence — the modern UA-hints
  * surface, where `platform` is a plain token like `"macOS"`.
@@ -16,8 +18,9 @@ function hasUserAgentData(
  * macOS's native `Ctrl+B` / `Ctrl+A` / `Ctrl+E` emacs-style caret bindings,
  * which every macOS text field implements.
  *
- * SSR-safe: returns `false` when `navigator` is unavailable, matching the
- * non-Apple default. Call it from an event handler, an effect, or through
+ * SSR-safe: returns `false` outside a browser, matching the non-Apple default.
+ * Node 21 and later define `navigator` too, so the check is for a DOM, not for
+ * `navigator`. Call it from an event handler, an effect, or through
  * `useIsApplePlatform`, which reads it as a `useSyncExternalStore` snapshot.
  * A bare render-time call disagrees with the server on Apple platforms and
  * produces a hydration mismatch.
@@ -33,7 +36,7 @@ function hasUserAgentData(
  * ```
  */
 function isApplePlatform(): boolean {
-	if (typeof navigator === "undefined") {
+	if (!canUseDOM()) {
 		return false;
 	}
 

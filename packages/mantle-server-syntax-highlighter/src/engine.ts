@@ -175,7 +175,7 @@ function getMantleShikiHighlighter(): Promise<ShikiHighlighter> {
 			themes: [cssVarsTheme],
 			langs: [...mantleShikiLanguageGrammarIds],
 		});
-	})().catch((error) => {
+	})().catch((error: unknown) => {
 		highlighterPromise = undefined;
 		throw error;
 	});
@@ -269,7 +269,7 @@ async function highlightWithMantleShiki(
 			highlightLines,
 			lineNumberStart,
 		};
-	})().catch((error) => {
+	})().catch((error: unknown) => {
 		mantleHighlightCache.delete(cacheKey);
 		throw error;
 	});
@@ -296,4 +296,9 @@ export {
 	mantleShikiLanguageGrammarIds,
 	mantleShikiThemeName,
 };
-export type { MantleHighlightInput, MantleHighlightResult, MantleServerHighlighter };
+export type {
+	//,
+	MantleHighlightInput,
+	MantleHighlightResult,
+	MantleServerHighlighter,
+};

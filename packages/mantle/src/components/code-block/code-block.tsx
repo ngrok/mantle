@@ -280,12 +280,17 @@ function getTemplateValPattern(preValToken: string | undefined): RegExp {
  * `mapValue` to each substituted value. Returns the input unchanged when
  * no placeholders are present.
  */
-function substituteTemplateVals(
-	input: string,
-	vals: unknown[],
-	preValToken: string | undefined,
-	mapValue: (value: unknown) => string,
-): string {
+function substituteTemplateVals({
+	input,
+	vals,
+	preValToken,
+	mapValue,
+}: {
+	input: string;
+	vals: unknown[];
+	preValToken: string | undefined;
+	mapValue: (value: unknown) => string;
+}): string {
 	if (preValToken == null) {
 		if (!input.includes("SHIKI_VAL_")) {
 			return input;
@@ -305,7 +310,12 @@ function substituteTemplateVals(
 
 /** Substitutes placeholder tokens in pre-rendered HTML, HTML-escaping each interpolated value. */
 function substitutePreVals(html: string, vals: unknown[], preValToken: string | undefined): string {
-	return substituteTemplateVals(html, vals, preValToken, (value) => escapeHtml(String(value)));
+	return substituteTemplateVals({
+		input: html,
+		vals,
+		preValToken,
+		mapValue: (value) => escapeHtml(String(value)),
+	});
 }
 
 /** Substitutes placeholder tokens in plain text (for the copy button), without HTML escaping. */
@@ -314,7 +324,12 @@ function substitutePreValsPlainText(
 	vals: unknown[],
 	preValToken: string | undefined,
 ): string {
-	return substituteTemplateVals(text, vals, preValToken, (value) => String(value));
+	return substituteTemplateVals({
+		input: text,
+		vals,
+		preValToken,
+		mapValue: (value) => String(value),
+	});
 }
 
 type CodeBlockCodeProps = Omit<ComponentProps<"pre">, "children" | "translate"> & {
@@ -665,7 +680,7 @@ const CopyButton = ({
 	return (
 		<span
 			data-slot="code-block-copy-button"
-			className="absolute right-3 top-3 z-10 inline-flex size-7 items-center justify-center rounded-[var(--icon-button-border-radius,0.375rem)] bg-base"
+			className="absolute right-3 top-3 z-10 inline-flex size-7 items-center justify-center rounded-(--icon-button-border-radius,0.375rem) bg-base"
 		>
 			{/* Why always mounted: the icon swap is silent to a screen reader. A
 			    lone text child is written with textContent, which is safe under a

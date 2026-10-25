@@ -1,12 +1,8 @@
 // @vitest-environment happy-dom
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
-import { afterEach, expect, it } from "vitest";
+import { expect, it } from "vitest";
 import { DocIndexList } from "./doc-index-list";
-
-afterEach(() => {
-	cleanup();
-});
 
 it("links each item in the given order, with the title and description in the row", () => {
 	render(

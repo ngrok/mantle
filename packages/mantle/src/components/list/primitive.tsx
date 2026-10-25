@@ -169,7 +169,7 @@ const listCollectionClassName = "relative flex w-full flex-col gap-px outline-hi
  * selector, so it wins over the plain selected tint by specificity.
  */
 const listItemClassName =
-	"rounded-md data-[state=selected]:bg-selected-menu-item data-[active]:bg-active-menu-item data-[active]:data-[state=selected]:bg-active-selected-menu-item";
+	"rounded-md data-[state=selected]:bg-selected-menu-item data-active:bg-active-menu-item data-active:data-[state=selected]:bg-active-selected-menu-item";
 
 /**
  * Props for {@link Root} / `VirtualRoot`. Standard `<div>` props (on the scroll
@@ -841,7 +841,7 @@ const Item = ({
 				// the control suppresses its own outline and the row lights up instead.
 				!isGrid &&
 					!disabled &&
-					"has-[:focus-visible]:bg-active-menu-item has-[:focus-visible]:data-[state=selected]:bg-active-selected-menu-item",
+					"has-focus-visible:bg-active-menu-item has-focus-visible:data-[state=selected]:bg-active-selected-menu-item",
 				className,
 			)}
 			style={placement ? { ...style, ...placement.style } : style}

@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect } from "react";
+import { canUseDOM } from "../components/browser-only/browser-only.js";
 
 /**
  * A drop-in replacement for `useLayoutEffect` that does not warn during
@@ -32,5 +33,4 @@ import { useEffect, useLayoutEffect } from "react";
  *
  * return <div ref={ref}>Width: {width}</div>;
  */
-export const useIsomorphicLayoutEffect =
-	typeof window !== "undefined" ? useLayoutEffect : useEffect;
+export const useIsomorphicLayoutEffect = canUseDOM() ? useLayoutEffect : useEffect;

@@ -36,36 +36,50 @@ describe("toOpenValues", () => {
 describe("nextOpenValues", () => {
 	describe("single", () => {
 		test("opening a different item replaces the open one", () => {
-			expect(nextOpenValues(["a"], "b", true, "single")).toEqual(["b"]);
+			expect(nextOpenValues({ openValues: ["a"], value: "b", open: true, type: "single" })).toEqual(
+				["b"],
+			);
 		});
 
 		test("opening an item that is open beside another keeps only it", () => {
-			expect(nextOpenValues(["a", "b"], "a", true, "single")).toEqual(["a"]);
+			expect(
+				nextOpenValues({ openValues: ["a", "b"], value: "a", open: true, type: "single" }),
+			).toEqual(["a"]);
 		});
 
 		test("opening the already-open item is a no-op (same reference)", () => {
 			const open = ["a"];
-			expect(nextOpenValues(open, "a", true, "single")).toBe(open);
+			expect(nextOpenValues({ openValues: open, value: "a", open: true, type: "single" })).toBe(
+				open,
+			);
 		});
 	});
 
 	describe("multiple", () => {
 		test("opening adds the item", () => {
-			expect(nextOpenValues(["a"], "b", true, "multiple")).toEqual(["a", "b"]);
+			expect(
+				nextOpenValues({ openValues: ["a"], value: "b", open: true, type: "multiple" }),
+			).toEqual(["a", "b"]);
 		});
 
 		test("opening an already-open item is a no-op (same reference)", () => {
 			const open = ["a", "b"];
-			expect(nextOpenValues(open, "a", true, "multiple")).toBe(open);
+			expect(nextOpenValues({ openValues: open, value: "a", open: true, type: "multiple" })).toBe(
+				open,
+			);
 		});
 
 		test("closing removes only that item", () => {
-			expect(nextOpenValues(["a", "b"], "a", false, "multiple")).toEqual(["b"]);
+			expect(
+				nextOpenValues({ openValues: ["a", "b"], value: "a", open: false, type: "multiple" }),
+			).toEqual(["b"]);
 		});
 
 		test("closing an item that is not open is a no-op (same reference)", () => {
 			const open = ["a", "b"];
-			expect(nextOpenValues(open, "c", false, "multiple")).toBe(open);
+			expect(nextOpenValues({ openValues: open, value: "c", open: false, type: "multiple" })).toBe(
+				open,
+			);
 		});
 	});
 });

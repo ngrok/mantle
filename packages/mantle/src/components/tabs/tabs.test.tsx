@@ -3,7 +3,7 @@ import { userEvent } from "@testing-library/user-event";
 import type { ComponentProps, ReactNode } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
-import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
+import { findTranslatedFont, translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import { Tabs } from "./tabs.js";
 
 describe("Tabs", () => {
@@ -641,7 +641,7 @@ describe("Tabs", () => {
 
 			rerender(renderTree(<strong>Tab A</strong>));
 
-			expect(trigger.querySelector("font")).toBeNull();
+			expect(findTranslatedFont(trigger)).toBeNull();
 			expect(trigger.querySelector("strong")).toHaveTextContent("Tab A");
 		});
 
@@ -662,7 +662,7 @@ describe("Tabs", () => {
 
 			rerender(renderTree(<strong>Tab A</strong>));
 
-			expect(trigger.querySelector("font")).toBeNull();
+			expect(findTranslatedFont(trigger)).toBeNull();
 			expect(trigger.querySelector("strong")).toHaveTextContent("Tab A");
 		});
 

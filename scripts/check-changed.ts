@@ -15,10 +15,14 @@ export type CheckStep = {
 const lintableFile = /\.(?:[cm]?[jt]sx?)$/;
 const formattableFile = /\.(?:[cm]?[jt]sx?|json|jsonc|css|md|mdx|ya?ml)$/;
 const agentDocFile = /(?:^|\/)(?:AGENTS|CONVENTIONS)\.md$/;
+const tailwindSourceFile = /^(?:apps|packages)\/.+\.tsx?$/;
+// Why every source file: a new theme, Tailwind version, or fixer rule can change the canonical form of any class.
+const tailwindRulesFile = /\.css$|^pnpm-lock\.yaml$|^scripts\/tailwind-canonical/;
 // Why styles, JSON, and YAML: stylesheets, package manifests, tsconfigs, and the lockfile change what compiles and what tests read.
 const packageInputFile = /\.(?:[cm]?[jt]sx?|mdx|css|jsonc?|ya?ml)$/;
 // Why the whole repo: a new rule or a plugin change can fail a file that did not change.
-const lintConfigFile = /^(?:\.oxlintrc\.json|scripts\/oxlint-plugin-mantle\.js)$/;
+const lintConfigFile =
+	/^(?:\.oxlintrc\.json|scripts\/oxlint-plugin-mantle\.js|scripts\/oxlint-rules\/[^/]+\.js)$/;
 // Why: turbo selects only the root package for these paths, and the root has no `typecheck` or `test` task.
 const rootTaskInputFile =
 	/^(?:scripts\/|\.claude\/hooks\/|config\/tsconfig\/|packages\/mantle\/migrations\/|apps\/www\/app\/docs\/migrations\/|\.changeset\/[^/]+\.md$)/;
@@ -26,14 +30,15 @@ const rootTaskInputFile =
 /**
  * Plan the checks for a set of changed files, cheapest first.
  *
- * Format and lint read only the changed files that still exist. Typecheck and tests run through turbo for each
- * package that changed since `base`, plus the packages that depend on it. A deleted file still schedules them,
- * because a deletion can break an import. A lint config change lints the whole repo, and a change to a
+ * Format, the Tailwind class check, lint, and the markdown link check read only the changed files that still
+ * exist. A change to a stylesheet, the lockfile, or the Tailwind fixer checks the classes in every file.
+ * Typecheck and tests run through turbo for each package that changed since `base`, plus the packages that depend on
+ * it. A deleted file still schedules them, because a deletion can break an import. A lint config change lints the whole repo, and a change to a
  * script, a hook, a migration, or a changeset runs the root `typecheck:scripts` and `test:scripts` tasks.
  *
  * @example
  * planChecks({ files: ["packages/mantle/src/components/button/button.tsx"], deleted: [], base: "origin/main" });
- * // => fmt, lint, typecheck, and test steps
+ * // => fmt, tailwind, lint, typecheck, and test steps
  */
 export function planChecks({
 	files,
@@ -49,6 +54,8 @@ export function planChecks({
 	const existing = files.filter((file) => !deleted.includes(file));
 	const formattable = existing.filter((file) => formattableFile.test(file));
 	const lintable = existing.filter((file) => lintableFile.test(file));
+	const tailwindSources = existing.filter((file) => tailwindSourceFile.test(file));
+	const markdown = existing.filter((file) => file.endsWith(".md"));
 	const touchesPackage = files.some((file) => packageInputFile.test(file));
 	const steps: CheckStep[] = [];
 
@@ -57,6 +64,15 @@ export function planChecks({
 			name: "fmt",
 			command: "pnpm",
 			args: ["exec", "oxfmt", "--check", "--no-error-on-unmatched-pattern", ...formattable],
+		});
+	}
+	if (files.some((file) => tailwindRulesFile.test(file))) {
+		steps.push({ name: "tailwind", command: "node", args: ["./scripts/tailwind-canonical.ts"] });
+	} else if (tailwindSources.length > 0) {
+		steps.push({
+			name: "tailwind",
+			command: "node",
+			args: ["./scripts/tailwind-canonical.ts", ...tailwindSources],
 		});
 	}
 	if (files.some((file) => lintConfigFile.test(file))) {
@@ -70,6 +86,13 @@ export function planChecks({
 	}
 	if (files.some((file) => agentDocFile.test(file))) {
 		steps.push({ name: "agent docs", command: "node", args: ["./scripts/check-agent-docs.ts"] });
+	}
+	if (markdown.length > 0) {
+		steps.push({
+			name: "doc links",
+			command: "node",
+			args: ["./scripts/check-doc-links.ts", ...markdown],
+		});
 	}
 	if (touchesPackage) {
 		const filter = `--filter=...[${base}]`;

@@ -1,13 +1,9 @@
 // @vitest-environment happy-dom
 import { Button } from "@ngrok/mantle/button";
 import { Sidebar } from "@ngrok/mantle/sidebar";
-import { cleanup, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { MemoryRouter, NavLink } from "react-router";
-import { afterEach, describe, expect, it } from "vitest";
-
-afterEach(() => {
-	cleanup();
-});
+import { describe, expect, it } from "vitest";
 
 /**
  * The composition mantle's `Slot` exists for, against the real library it used to

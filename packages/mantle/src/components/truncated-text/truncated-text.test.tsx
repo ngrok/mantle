@@ -3,7 +3,7 @@ import { userEvent } from "@testing-library/user-event";
 import { createRef, useState } from "react";
 import { renderToString } from "react-dom/server";
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
+import { findTranslatedFont, translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import { RadioGroup } from "../radio-group/index.js";
 import { Tooltip, TooltipProvider } from "../tooltip/index.js";
 import { TruncatedText, type TruncatedTextProps } from "./truncated-text.js";
@@ -492,7 +492,7 @@ describe("TruncatedText", () => {
 			</TooltipProvider>,
 		);
 
-		expect(root.querySelector("font")).toBeNull();
+		expect(findTranslatedFont(root)).toBeNull();
 		expect(root.querySelector('[data-slot="truncated-text-value"]')).toHaveTextContent("ep_2abcd");
 		expect(root.querySelector('[data-slot="truncated-text-head"]')).toHaveTextContent("");
 		expect(root.querySelector('[data-slot="truncated-text-tail"]')).toHaveTextContent("ep_2abcd");

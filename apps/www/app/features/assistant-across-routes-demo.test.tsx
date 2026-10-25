@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { TooltipProvider } from "@ngrok/mantle/tooltip";
-import { act, cleanup, render, screen, within } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AssistantAcrossRoutesDemo } from "~/features/assistant-across-routes-demo";
@@ -27,7 +27,6 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-	cleanup();
 	vi.useRealTimers();
 	Reflect.deleteProperty(document, "startViewTransition");
 });
@@ -50,7 +49,9 @@ function stubMatchMedia(matching: ReadonlyArray<string>) {
 		matches: matching.includes(query),
 		media: query,
 		onchange: null,
+		// oxlint-disable-next-line typescript/no-deprecated -- Why: the `MediaQueryList` type still requires it.
 		addListener: () => {},
+		// oxlint-disable-next-line typescript/no-deprecated -- Why: the `MediaQueryList` type still requires it.
 		removeListener: () => {},
 		addEventListener: () => {},
 		removeEventListener: () => {},

@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { describe, expect, test } from "vitest";
-import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
+import { findTranslatedFont, translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import { Tooltip, TooltipProvider } from "./tooltip.js";
 
 function CopyTooltip({ body }: { body: ReactNode }) {
@@ -59,11 +59,11 @@ describe("Tooltip.Content", () => {
 			const { rerender } = render(<CopyTooltip body="Copy endpoint URL" />);
 			const tooltip = await hoverTooltip(user);
 			translateTextNodes(tooltip);
-			expect(tooltip.querySelector("font")).toHaveTextContent("[Copy endpoint URL-es]");
+			expect(findTranslatedFont(tooltip)).toHaveTextContent("[Copy endpoint URL-es]");
 
 			rerender(<CopyTooltip body={<strong>Copy endpoint URL</strong>} />);
 
-			expect(tooltip.querySelector("font")).toBeNull();
+			expect(findTranslatedFont(tooltip)).toBeNull();
 			expect(tooltip.querySelector("strong")).toHaveTextContent("Copy endpoint URL");
 		});
 

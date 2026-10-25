@@ -54,7 +54,9 @@ function mockMatchMedia(initialMatches: Record<string, boolean> = {}): MatchMedi
 		},
 		media: query,
 		onchange: null,
+		// oxlint-disable-next-line typescript/no-deprecated -- Why: the `MediaQueryList` type still requires it.
 		addListener: () => {},
+		// oxlint-disable-next-line typescript/no-deprecated -- Why: the `MediaQueryList` type still requires it.
 		removeListener: () => {},
 		addEventListener: (_type: string, listener: EventListenerOrEventListenerObject | null) => {
 			if (listener != null) {

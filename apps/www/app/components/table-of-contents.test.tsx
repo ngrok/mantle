@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router";
 import { hydrationErrorsOf } from "~/test-utils/hydration";
 import type { TocEntry } from "~/utilities/docs";
 import { TableOfContents } from "./table-of-contents";
+import { canUseDOM } from "@ngrok/mantle/browser-only";
 
 const entries: Array<TocEntry> = [
 	{ id: "first", text: "First", level: 2 },
@@ -12,7 +13,7 @@ const entries: Array<TocEntry> = [
 
 /** The server never gets the URL fragment, so only the client sees `#second`. */
 function DirectLoadWithHash() {
-	const url = typeof window === "undefined" ? "/page" : "/page#second";
+	const url = canUseDOM() ? "/page#second" : "/page";
 	return (
 		<MemoryRouter initialEntries={[url]}>
 			<TableOfContents entries={entries} />

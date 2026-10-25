@@ -66,4 +66,8 @@ function offsetToLine(lineOffsets: readonly number[], offset: number): number {
 	return low + 1;
 }
 
-export { buildLineOffsets, offsetToLine };
+export {
+	//,
+	buildLineOffsets,
+	offsetToLine,
+};

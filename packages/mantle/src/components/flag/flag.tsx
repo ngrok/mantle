@@ -111,6 +111,7 @@ function Flag({
 			{...props}
 		>
 			<div aria-hidden className={cx("absolute inset-0 border border-[#000]/10", borderRadius)} />
+			{/* oxlint-disable-next-line mantle/img-dimensions -- Why: the sized wrapper reserves the box, and the image fills it. */}
 			<img
 				className="h-full w-full block object-cover"
 				src={`${cdnOrigin}/flags/${size}/${code}.svg`}

@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { describe, expect, test, vi } from "vitest";
-import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
+import { findTranslatedFont, translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import { Field } from "../field/field.js";
 import { OtpInput } from "./otp-input.js";
 
@@ -255,7 +255,11 @@ describe("OtpInput", () => {
 			expect(screen.getByText("[Enter your code-es]")).toBeInTheDocument();
 			// ...and it left every slot alone, because each one carries translate="no".
 			const slots = container.querySelectorAll('[data-slot="otp-input-slot"]');
-			expect(slots[1]?.querySelector("font")).toBeNull();
+			const slot = slots[1];
+			if (slot == null) {
+				throw new Error("expected a second OTP slot");
+			}
+			expect(findTranslatedFont(slot)).toBeNull();
 			expect(slots[1]).toHaveTextContent("2");
 
 			// A backspace removes the character React holds. The slot renders that

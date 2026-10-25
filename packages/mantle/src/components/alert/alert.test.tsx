@@ -497,7 +497,7 @@ describe("Alert", () => {
 			// exact `=` match never hits.
 			expect(dismiss).toHaveAttribute("data-slot", "alert-dismiss-icon-button icon-button");
 			expect(container.firstElementChild).toHaveClass(
-				"has-data-alert-expand:[&_[data-slot~=alert-dismiss-icon-button]]:right-16",
+				"has-data-alert-expand:**:data-[slot~=alert-dismiss-icon-button]:right-16",
 			);
 		});
 	});

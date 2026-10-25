@@ -1,15 +1,11 @@
 // @vitest-environment happy-dom
-import { cleanup, render, screen, within } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { render, screen, within } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { ServicesListPage, SparklinesInAListDemo } from "./sparklines-in-a-list-demo";
 
 /** The cells of one row, in column order: name, kind, status, requests, deploys, owners, created. */
 const REQUESTS_CELL = 3;
 const CREATED_CELL = 6;
-
-afterEach(() => {
-	cleanup();
-});
 
 /** The table body's rows. The sr-only chart tables mount only on focus, so no test here sees a second table. */
 function getBodyRows(): HTMLElement[] {

@@ -7,7 +7,13 @@ type IntersectionObserverStub = {
 	leave: (...targets: Element[]) => void;
 };
 
-const entryFor = (target: Element, isIntersecting: boolean): IntersectionObserverEntry => ({
+const entryFor = ({
+	target,
+	isIntersecting,
+}: {
+	target: Element;
+	isIntersecting: boolean;
+}): IntersectionObserverEntry => ({
 	target,
 	isIntersecting,
 	intersectionRatio: isIntersecting ? 1 : 0,
@@ -83,13 +89,19 @@ const createIntersectionObserverStub = ({
 				return;
 			}
 			this.#callback(
-				held.map((target) => entryFor(target, isIntersecting)),
+				held.map((target) => entryFor({ target, isIntersecting })),
 				this,
 			);
 		}
 	}
 
-	const dispatch = (targets: readonly Element[], isIntersecting: boolean): void => {
+	const dispatch = ({
+		targets,
+		isIntersecting,
+	}: {
+		targets: readonly Element[];
+		isIntersecting: boolean;
+	}): void => {
 		for (const observer of observers) {
 			observer.deliver(targets, isIntersecting);
 		}
@@ -97,8 +109,8 @@ const createIntersectionObserverStub = ({
 
 	return {
 		Observer: StubObserver,
-		enter: (...targets) => dispatch(targets, true),
-		leave: (...targets) => dispatch(targets, false),
+		enter: (...targets) => dispatch({ targets, isIntersecting: true }),
+		leave: (...targets) => dispatch({ targets, isIntersecting: false }),
 	};
 };
 

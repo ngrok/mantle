@@ -238,7 +238,7 @@ const Arrow = ({
 				// `HoverCard.Content` is the wrapper's containing block, so Radix's own
 				// `0` offset resolves to that content's padding box — the base lands 1px
 				// inside the border box, and the fill covers the border it sits on.
-				"fill-[var(--background-color-popover)]",
+				"fill-(--background-color-popover)",
 				// Why filter and clip-path: `HoverCard.Content`'s `shadow-md` stops at
 				// its own border, so an unshadowed tip reads as pasted on. The filter
 				// casts the tip's own shadow, and the clip trims it at the base, because
@@ -248,13 +248,13 @@ const Arrow = ({
 				// a tighter layer muddies a shape this small. The offsets stay symmetric,
 				// since Radix rotates the wrapper per side and would swing an offset.
 				"[clip-path:inset(0_-200%_-200%_-200%)]",
-				"[filter:drop-shadow(0_0_4px_color-mix(in_oklab,var(--shadow-color)_var(--shadow-first-opacity),transparent))]",
+				"filter-[drop-shadow(0_0_4px_color-mix(in_oklab,var(--shadow-color)_var(--shadow-first-opacity),transparent))]",
 				className,
 			)}
 		>
 			<polygon points="0,0 30,0 15,10" />
 			<polyline
-				className="stroke-[color:var(--border-color-popover)]"
+				className="stroke-(--border-color-popover)"
 				fill="none"
 				points="0,0 15,10 30,0"
 				// Why 1.5 against the content's 1px border: antialiasing spreads a

@@ -45,7 +45,7 @@ describe("cx", () => {
 	});
 
 	test("conditional font color applies correctly", () => {
-		// oxlint-disable-next-line no-constant-binary-expression
+		// oxlint-disable-next-line no-constant-binary-expression -- Why: the test passes the literal falsy values a caller can pass.
 		expect(cx("text-red", false && "text-blue", true && "text-gold")).toBe("text-gold");
 	});
 

@@ -41,7 +41,7 @@ describe("IconButton", () => {
 		// Cross-file spelling pins: dialog.tsx and sheet.tsx select `has-[.icon-button]`,
 		// and button-group.tsx sets `--icon-button-border-radius` for its panel appearance.
 		expect(button).toHaveClass("icon-button");
-		expect(button).toHaveClass("rounded-[var(--icon-button-border-radius,0.375rem)]");
+		expect(button).toHaveClass("rounded-(--icon-button-border-radius,0.375rem)");
 	});
 
 	test("renders the icon through Icon in the button's only child", () => {

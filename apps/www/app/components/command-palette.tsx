@@ -3,14 +3,12 @@ import { Command, MetaKey } from "@ngrok/mantle/command";
 import { Kbd } from "@ngrok/mantle/kbd";
 import type { ResolvedTheme } from "@ngrok/mantle/theme";
 import { useAppliedTheme, useTheme } from "@ngrok/mantle/theme";
-import {
-	ArrowRightIcon,
-	ArrowSquareOutIcon,
-	CheckIcon,
-	MagnifyingGlassIcon,
-	MoonIcon,
-	SunIcon,
-} from "@phosphor-icons/react";
+import { ArrowRightIcon } from "@phosphor-icons/react/ArrowRight";
+import { ArrowSquareOutIcon } from "@phosphor-icons/react/ArrowSquareOut";
+import { CheckIcon } from "@phosphor-icons/react/Check";
+import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
+import { MoonIcon } from "@phosphor-icons/react/Moon";
+import { SunIcon } from "@phosphor-icons/react/Sun";
 import type { PropsWithChildren, ReactNode } from "react";
 import { Fragment, useMemo, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";

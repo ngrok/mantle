@@ -1,14 +1,10 @@
 // @vitest-environment happy-dom
 import { ThemeProvider } from "@ngrok/mantle/theme";
 import { TooltipProvider } from "@ngrok/mantle/tooltip";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import type { ComponentType } from "react";
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { AppShellDemo } from "./app-shell-demo";
-
-afterEach(() => {
-	cleanup();
-});
 
 /**
  * Renders a shell demo the way the app does. The providers are not optional

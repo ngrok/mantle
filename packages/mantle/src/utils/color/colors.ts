@@ -75,6 +75,19 @@ const isColor = (value: unknown): value is Color =>
 
 // MARK: - Exports
 
-export { colors, functionalColors, isColor, isFunctionalColor, isNamedColor, namedColors };
+export {
+	//,
+	colors,
+	functionalColors,
+	isColor,
+	isFunctionalColor,
+	isNamedColor,
+	namedColors,
+};
 
-export type { Color, FunctionalColor, NamedColor };
+export type {
+	//,
+	Color,
+	FunctionalColor,
+	NamedColor,
+};

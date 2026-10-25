@@ -1,18 +1,14 @@
 // @vitest-environment happy-dom
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
 	type Migration,
 	formatMigrationNumber,
 	migrationsNewestFirst,
 } from "~/components/navigation-data";
 import { MigrationsList, filterMigrations } from "./migrations-list";
-
-afterEach(() => {
-	cleanup();
-});
 
 const fixtures: readonly Migration[] = [
 	{

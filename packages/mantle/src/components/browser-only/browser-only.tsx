@@ -60,6 +60,7 @@ function BrowserOnly({ children, fallback = null }: Props) {
  * }
  */
 function canUseDOM(): boolean {
+	// oxlint-disable-next-line mantle/prefer-can-use-dom -- Why: this is the check the rule asks for.
 	return typeof window !== "undefined" && typeof document !== "undefined";
 }
 

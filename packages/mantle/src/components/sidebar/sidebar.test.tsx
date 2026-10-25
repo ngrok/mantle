@@ -5,7 +5,7 @@ import { createRef, type ReactElement, type ReactNode, useEffect } from "react";
 import { renderToString } from "react-dom/server";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import mantleCss from "../../mantle.css?raw";
-import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
+import { findTranslatedFont, translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import type * as UseBreakpointModule from "../../hooks/use-breakpoint.js";
 import { Command } from "../command/command.js";
 import { DropdownMenu } from "../dropdown-menu/index.js";
@@ -1297,7 +1297,7 @@ describe("Sidebar.SearchTrigger", () => {
 
 		rerender(<Row label={<strong>Search</strong>} />);
 
-		expect(button.querySelector("font")).toBeNull();
+		expect(findTranslatedFont(button)).toBeNull();
 		expect(button.querySelector("strong")).toHaveTextContent("Search");
 	});
 
@@ -1585,7 +1585,10 @@ describe("Sidebar.Tooltip", () => {
 		rerender(<Page label={<strong>Endpoints</strong>} />);
 
 		const label = tooltip.querySelector('[data-slot="sidebar-tooltip-label"]');
-		expect(label?.querySelector("font")).toBeNull();
+		if (label == null) {
+			throw new Error("expected the label element");
+		}
+		expect(findTranslatedFont(label)).toBeNull();
 		expect(label?.querySelector("strong")).toHaveTextContent("Endpoints");
 		expect(tooltip.querySelector('[data-slot="sidebar-tooltip-shortcut"]')).toHaveTextContent("E");
 	});

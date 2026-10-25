@@ -532,7 +532,7 @@ const Header = ({
 		// `px-3` must equal the horizontal padding on `Table.Cell`, or the column label
 		// sits outboard of the body text.
 		className={cx(
-			"h-11 px-3 text-left align-middle text-sm font-medium [&:has([role=checkbox])]:pr-0",
+			"h-11 px-3 text-left align-middle text-sm font-medium has-[[role=checkbox]]:pr-0",
 			className,
 		)}
 		{...props}
@@ -595,7 +595,7 @@ const Cell = ({
 	<td
 		data-slot={joinDataSlot(dataSlot, "table-cell")}
 		ref={ref}
-		className={cx("p-3 align-middle [&:has([role=checkbox])]:pr-0 font-mono text-mono", className)}
+		className={cx("p-3 align-middle has-[[role=checkbox]]:pr-0 font-mono text-mono", className)}
 		{...props}
 	>
 		{children}

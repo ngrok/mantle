@@ -1,5 +1,10 @@
 {
-  "*.{js,jsx,ts,tsx,mjs,cjs}": [
+  "*.{ts,tsx}": [
+    "node ./scripts/tailwind-canonical.ts --write",
+    "oxfmt --write --no-error-on-unmatched-pattern",
+    "oxlint --fix --deny-warnings"
+  ],
+  "*.{js,jsx,mjs,cjs}": [
     "oxfmt --write --no-error-on-unmatched-pattern",
     "oxlint --fix --deny-warnings"
   ],

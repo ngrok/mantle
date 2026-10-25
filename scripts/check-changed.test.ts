@@ -10,12 +10,15 @@ describe("planChecks", () => {
 		expect(stepNames(["apps/www/public/logo.png"])).toEqual([]);
 	});
 
-	it("formats prose and skips lint, typecheck, and tests", () => {
-		expect(stepNames(["decisions/2026-07-04-list-family-api-design.md"])).toEqual(["fmt"]);
+	it("formats prose and checks its links, and skips lint, typecheck, and tests", () => {
+		expect(stepNames(["decisions/2026-07-04-list-family-api-design.md"])).toEqual([
+			"fmt",
+			"doc links",
+		]);
 	});
 
 	it("checks the budget when an agent doc changes", () => {
-		expect(stepNames(["packages/AGENTS.md"])).toEqual(["fmt", "agent docs"]);
+		expect(stepNames(["packages/AGENTS.md"])).toEqual(["fmt", "agent docs", "doc links"]);
 	});
 
 	it("typechecks and tests a changed docs page, which the www suite reads", () => {
@@ -26,10 +29,18 @@ describe("planChecks", () => {
 		]);
 	});
 
-	it.each(["packages/mantle/src/mantle.css", "packages/mantle/package.json", "pnpm-lock.yaml"])(
-		"typechecks and tests a change to %s, which compilation or a test reads",
+	it("typechecks and tests a change to a package manifest, which compilation reads", () => {
+		expect(stepNames(["packages/mantle/package.json"])).toEqual(["fmt", "typecheck", "test"]);
+	});
+
+	it.each(["packages/mantle/src/mantle.css", "pnpm-lock.yaml", "scripts/tailwind-canonical.ts"])(
+		"checks the Tailwind classes of every file when %s changes",
 		(file) => {
-			expect(stepNames([file])).toEqual(["fmt", "typecheck", "test"]);
+			const tailwind = planChecks({ files: [file], deleted: [], base: "origin/main" }).find(
+				(step) => step.name === "tailwind",
+			);
+
+			expect(tailwind?.args).toEqual(["./scripts/tailwind-canonical.ts"]);
 		},
 	);
 
@@ -52,19 +63,20 @@ describe("planChecks", () => {
 		expect(stepNames(["packages/AGENTS.md"], ["packages/AGENTS.md"])).toEqual(["agent docs"]);
 	});
 
-	it.each([".oxlintrc.json", "scripts/oxlint-plugin-mantle.js"])(
-		"lints the whole repo when %s changes",
-		(file) => {
-			const lint = planChecks({ files: [file], deleted: [], base: "origin/main" }).find(
-				(step) => step.name === "lint",
-			);
+	it.each([
+		".oxlintrc.json",
+		"scripts/oxlint-plugin-mantle.js",
+		"scripts/oxlint-rules/prefer-type-alias.js",
+	])("lints the whole repo when %s changes", (file) => {
+		const lint = planChecks({ files: [file], deleted: [], base: "origin/main" }).find(
+			(step) => step.name === "lint",
+		);
 
-			expect(lint?.args).toEqual(["run", "lint"]);
-		},
-	);
+		expect(lint?.args).toEqual(["run", "lint"]);
+	});
 
 	it("runs the root script tasks for a changeset-only change", () => {
-		expect(stepNames([".changeset/new-feature.md"])).toEqual(["fmt", "scripts"]);
+		expect(stepNames([".changeset/new-feature.md"])).toEqual(["fmt", "doc links", "scripts"]);
 	});
 
 	it("runs the root script tasks beside the package checks for a script change", () => {
@@ -77,7 +89,7 @@ describe("planChecks", () => {
 		]);
 	});
 
-	it("lints only the code files and scopes turbo to packages changed since the base", () => {
+	it("lints only the code files, checks only the markdown links, and scopes turbo to packages changed since the base", () => {
 		const steps = planChecks({
 			files: ["packages/mantle/src/components/button/button.tsx", "README.md"],
 			deleted: [],
@@ -98,6 +110,14 @@ describe("planChecks", () => {
 				],
 			},
 			{
+				name: "tailwind",
+				command: "node",
+				args: [
+					"./scripts/tailwind-canonical.ts",
+					"packages/mantle/src/components/button/button.tsx",
+				],
+			},
+			{
 				name: "lint",
 				command: "pnpm",
 				args: [
@@ -107,6 +127,11 @@ describe("planChecks", () => {
 					"--deny-warnings",
 					"packages/mantle/src/components/button/button.tsx",
 				],
+			},
+			{
+				name: "doc links",
+				command: "node",
+				args: ["./scripts/check-doc-links.ts", "README.md"],
 			},
 			{
 				name: "typecheck",

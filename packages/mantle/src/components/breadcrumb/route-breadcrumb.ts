@@ -246,10 +246,7 @@ function hasBreadcrumb<TMatch extends BreadcrumbMatch>(
  * // [{ kind: "link", key: "endpoints:0", label: "Endpoints", to: "/endpoints" }, …]
  * ```
  */
-// Why the type parameter: it infers the caller's match type, so an inline
-// match with more router fields, such as `params`, skips the excess-property
-// check that a plain `BreadcrumbMatch` parameter applies.
-// oxlint-disable-next-line typescript/no-unnecessary-type-parameters
+// oxlint-disable-next-line typescript/no-unnecessary-type-parameters -- Why: it infers the caller's match type, so an inline match with more router fields, such as `params`, skips the excess-property check that a plain `BreadcrumbMatch` parameter applies.
 function buildCrumbs<TMatch extends BreadcrumbMatch>(
 	matches: ReadonlyArray<TMatch>,
 ): ReadonlyArray<ResolvedCrumb> {

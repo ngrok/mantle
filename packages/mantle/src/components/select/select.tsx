@@ -184,6 +184,7 @@ const Root = ({
 	onBlur,
 	// oxlint-disable-next-line typescript/unbound-method -- Why: Radix types the callback in method syntax, and it never reads `this`.
 	onValueChange,
+	// oxlint-disable-next-line typescript/no-deprecated -- Why: Root still honors the deprecated `onChange` alias until a breaking release removes it.
 	onChange,
 	ref,
 	...props

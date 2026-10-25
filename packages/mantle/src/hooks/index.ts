@@ -10,7 +10,11 @@ export {
 	useBreakpoint,
 	useIsBelowBreakpoint,
 } from "./use-breakpoint.js";
-export type { Breakpoint, TailwindBreakpoint } from "./use-breakpoint.js";
+export type {
+	//,
+	Breakpoint,
+	TailwindBreakpoint,
+} from "./use-breakpoint.js";
 
 export { useCallbackRef } from "./use-callback-ref.js";
 export { useCopyToClipboard } from "./use-copy-to-clipboard.js";
@@ -26,10 +30,15 @@ export { useIsomorphicLayoutEffect } from "./use-isomorphic-layout-effect.js";
 export { useLocalStorage } from "./use-local-storage.js";
 export { useMatchesMediaQuery } from "./use-matches-media-query.js";
 export { useSessionStorage } from "./use-session-storage.js";
-export { getPrefersReducedMotion, usePrefersReducedMotion } from "./use-prefers-reduced-motion.js";
+export {
+	//,
+	getPrefersReducedMotion,
+	usePrefersReducedMotion,
+} from "./use-prefers-reduced-motion.js";
 export { useScrollBehavior } from "./use-scroll-behavior.js";
 export { useSwipeToDismiss } from "./use-swipe-to-dismiss.js";
 export type {
+	//,
 	SwipeDirection,
 	SwipeProperty,
 	UseSwipeToDismissOptions,

@@ -130,4 +130,9 @@ if (import.meta.main) {
 	await writeAgentArtifacts(path.join(packageDir, "dist"));
 }
 
-export { buildAgentManifestFromFilesystem, DOCS_ORIGIN, writeAgentArtifacts };
+export {
+	//,
+	buildAgentManifestFromFilesystem,
+	DOCS_ORIGIN,
+	writeAgentArtifacts,
+};

@@ -1,3 +1,4 @@
+import { cx } from "@ngrok/mantle/cx";
 import { Alert } from "@ngrok/mantle/alert";
 import { Button } from "@ngrok/mantle/button";
 import { Card } from "@ngrok/mantle/card";
@@ -387,11 +388,7 @@ export function SandbarReducedMotionDemo() {
 				</Card.Body>
 			</Card.Root>
 
-			<Sandbar.Root
-				className={isStill ? STILLNESS : undefined}
-				handleRef={sandbarHandle}
-				open={isDirty}
-			>
+			<Sandbar.Root className={cx(isStill && STILLNESS)} handleRef={sandbarHandle} open={isDirty}>
 				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
 				<Sandbar.Actions>
 					<Sandbar.DiscardButton onClick={() => setIsDirty(false)}>Discard</Sandbar.DiscardButton>

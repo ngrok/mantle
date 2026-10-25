@@ -89,7 +89,7 @@ export const Untouched = (
 		<Badge appearance="muted" color="green">
 			ok
 		</Badge>
-		<img src="/hero.png" alt="" fetchPriority="high" />
+		<img src="/hero.png" alt="" width={1200} height={630} fetchPriority="high" />
 		<AntButton priority="danger">Foreign</AntButton>
 		<AntButton>Foreign bare</AntButton>
 		<Button appearance={look}>Dynamic appearance</Button>

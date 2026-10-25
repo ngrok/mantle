@@ -4,7 +4,7 @@ import type { ComponentProps, ReactNode } from "react";
 import { useState } from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
-import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
+import { findTranslatedFont, translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import type * as CheckboxModule from "../checkbox/checkbox.js";
 import {
 	filterSelectableOptions,
@@ -290,7 +290,7 @@ describe("SelectableList.SelectAll after browser translation", () => {
 			/>,
 		);
 
-		expect(header.querySelector("font")).toBeNull();
+		expect(findTranslatedFont(header)).toBeNull();
 		expect(screen.getByTestId("count")).toHaveTextContent("3");
 	});
 });

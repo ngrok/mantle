@@ -30,17 +30,22 @@ export function isItemOpen(openValues: readonly string[], value: string): boolea
  * cheaply skip redundant state updates.
  *
  * @example
- * nextOpenValues(["a"], "b", true, "single");   // => ["b"]
- * nextOpenValues(["a"], "b", true, "multiple"); // => ["a", "b"]
- * nextOpenValues(["a"], "a", false, "single");  // => []
- * nextOpenValues(["a"], "b", false, "single");  // => ["a"] (same ref, no change)
+ * nextOpenValues({ openValues: ["a"], value: "b", open: true, type: "single" });   // => ["b"]
+ * nextOpenValues({ openValues: ["a"], value: "b", open: true, type: "multiple" }); // => ["a", "b"]
+ * nextOpenValues({ openValues: ["a"], value: "a", open: false, type: "single" });  // => []
+ * nextOpenValues({ openValues: ["a"], value: "b", open: false, type: "single" });  // => ["a"] (same ref, no change)
  */
-export function nextOpenValues(
-	openValues: readonly string[],
-	value: string,
-	open: boolean,
-	type: AccordionType,
-): readonly string[] {
+export function nextOpenValues({
+	openValues,
+	value,
+	open,
+	type,
+}: {
+	openValues: readonly string[];
+	value: string;
+	open: boolean;
+	type: AccordionType;
+}): readonly string[] {
 	const alreadyOpen = openValues.includes(value);
 
 	if (open) {

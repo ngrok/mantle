@@ -79,7 +79,7 @@ const STYLE = `
 	}
 	.transition-none { transition-property: none; }
 	.duration-200 { --tw-duration: 200ms; transition-duration: 200ms; }
-	.duration-\\[2000ms\\] { --tw-duration: 2000ms; transition-duration: 2000ms; }
+	.duration-2000 { --tw-duration: 2000ms; transition-duration: 2000ms; }
 	.ease-out-strong { --tw-ease: var(--ease-out-strong); transition-timing-function: var(--ease-out-strong); }
 	.\\[--_side-panel-content-width\\:var\\(--app-layout-side-panel-width\\,clamp\\(21rem\\,24cqw\\,27rem\\)\\)\\] {
 		--_side-panel-content-width: var(--app-layout-side-panel-width,clamp(21rem, 24cqw, 27rem));
@@ -548,7 +548,7 @@ describe("AppLayout.SidePanel lane", () => {
 		// consumer `duration-*` slows the run, so the sample lands mid-flight.
 		await page.viewport(900, 800);
 		render(
-			<Shell panel="open" panelClassName="duration-[2000ms]" workspaceClassName="max-w-[600px]" />,
+			<Shell panel="open" panelClassName="duration-2000" workspaceClassName="max-w-[600px]" />,
 		);
 		const panel = screen.getByTestId("panel");
 		await waitForHydration(panel);
@@ -629,7 +629,7 @@ describe("AppLayout.SidePanel lane", () => {
 		// scrubs the reversal back to its first frame, so no read depends on how
 		// long a click round-trip takes.
 		await page.viewport(1280, 800);
-		const panel = renderLane("open", "duration-[2000ms]");
+		const panel = renderLane("open", "duration-2000");
 		await waitForHydration(panel);
 		const trigger = screen.getByRole("button", { name: "Toggle the assistant" });
 

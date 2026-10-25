@@ -2,13 +2,9 @@
 // @vitest-environment-options {"settings": {"disableIframePageLoading": true}}
 // (happy-dom otherwise fetches iframe src documents for real — these tests
 // only assert attributes and remounting, never framed content)
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { PreviewFrame } from "./preview-frame";
-
-afterEach(() => {
-	cleanup();
-});
 
 function getIframe(): HTMLIFrameElement {
 	const iframe = document.querySelector("iframe");

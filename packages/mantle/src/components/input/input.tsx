@@ -7,9 +7,9 @@ import type {
 	ComponentProps,
 	ComponentRef,
 	InputHTMLAttributes,
-	MutableRefObject,
 	PropsWithChildren,
 	Ref,
+	RefObject,
 } from "react";
 import { createContext, useContext, useMemo, useRef } from "react";
 import { parseBooleanish } from "../../types/booleanish.js";
@@ -132,7 +132,7 @@ type InputContextType = Omit<InputHTMLAttributes<HTMLInputElement>, "autoComplet
 		/**
 		 * inner ref for the input element, controlled by `Input`
 		 */
-		innerRef: MutableRefObject<HTMLInputElement | null>;
+		innerRef: RefObject<HTMLInputElement | null>;
 		/**
 		 * ref to the input element, passed from `Input` to `InputCapture`
 		 */
@@ -149,7 +149,7 @@ type InputContainerProps = InputHTMLAttributes<HTMLInputElement> &
 		/**
 		 * @private inner ref for the input element, controlled by `Input`
 		 */
-		innerRef: MutableRefObject<HTMLInputElement | null>;
+		innerRef: RefObject<HTMLInputElement | null>;
 		/**
 		 * @private ref to the input element, passed from `Input` to `InputCapture`
 		 */
@@ -247,8 +247,16 @@ const InputContainer = ({
 	);
 };
 
-export { Input, InputCapture };
-export type { InputProps, InputCaptureProps };
+export {
+	//,
+	Input,
+	InputCapture,
+};
+export type {
+	//,
+	InputProps,
+	InputCaptureProps,
+};
 
 const ValidationFeedback = ({
 	name,

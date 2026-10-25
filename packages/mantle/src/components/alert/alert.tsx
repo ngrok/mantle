@@ -212,10 +212,10 @@ const Root = ({
 					// padding makes room for dismiss, and the content's padding makes
 					// room for expand. Together they compose without extra consumer work.
 					"has-data-alert-dismiss:pr-10",
-					"has-data-alert-expand:[&_[data-slot~=alert-dismiss-icon-button]]:right-16",
-					"md:has-data-alert-expand:[&_[data-slot~=alert-dismiss-icon-button]]:right-24",
-					"has-data-alert-expand:[&_[data-slot~=alert-content]]:pr-12",
-					"md:has-data-alert-expand:[&_[data-slot~=alert-content]]:pr-[5.5rem]",
+					"has-data-alert-expand:**:data-[slot~=alert-dismiss-icon-button]:right-16",
+					"md:has-data-alert-expand:**:data-[slot~=alert-dismiss-icon-button]:right-24",
+					"has-data-alert-expand:**:data-[slot~=alert-content]:pr-12",
+					"md:has-data-alert-expand:**:data-[slot~=alert-content]:pr-22",
 					className,
 				)}
 				style={$cssProperties({
@@ -571,8 +571,8 @@ const DismissIconButton = ({
 			data-alert-dismiss
 			className={cx(
 				"right-1.5 top-1.5 absolute",
-				"text-[var(--alert-control-color,currentColor)]",
-				"not-disabled:hover:bg-[var(--alert-control-hover-bg,transparent)] not-disabled:hover:text-[var(--alert-control-hover-color,currentColor)]",
+				"text-(--alert-control-color,currentColor)",
+				"not-disabled:hover:bg-(--alert-control-hover-bg,transparent) not-disabled:hover:text-(--alert-control-hover-color,currentColor)",
 				className,
 			)}
 			type={type}
@@ -656,8 +656,8 @@ const ExpandButton = ({
 				// leave the caret side looser than the text side. `pe-1` is `ps-1.5` less
 				// that same 0.125rem, and it replaces `pe-2` outright.
 				"right-1.5 top-1.5 absolute gap-1 ps-1.5 pe-1",
-				"text-[var(--alert-control-color,currentColor)]",
-				"not-disabled:hover:bg-[var(--alert-control-hover-bg,transparent)] not-disabled:hover:text-[var(--alert-control-hover-color,currentColor)]",
+				"text-(--alert-control-color,currentColor)",
+				"not-disabled:hover:bg-(--alert-control-hover-bg,transparent) not-disabled:hover:text-(--alert-control-hover-color,currentColor)",
 				className,
 			)}
 			{...props}

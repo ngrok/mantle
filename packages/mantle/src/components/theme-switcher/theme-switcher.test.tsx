@@ -83,7 +83,9 @@ function stubPrefersDarkMode(prefersDarkMode: boolean) {
 		onchange: null,
 		addEventListener: () => {},
 		removeEventListener: () => {},
+		// oxlint-disable-next-line typescript/no-deprecated -- Why: the `MediaQueryList` type still requires it.
 		addListener: () => {},
+		// oxlint-disable-next-line typescript/no-deprecated -- Why: the `MediaQueryList` type still requires it.
 		removeListener: () => {},
 		dispatchEvent: () => false,
 	}));
@@ -98,10 +100,6 @@ const renderSwitcher = (props: ComponentProps<typeof ThemeSwitcher> = {}) =>
 	);
 
 describe("ThemeSwitcher", () => {
-	afterEach(() => {
-		vi.restoreAllMocks();
-	});
-
 	test("the server render puts a <span> skeleton inside the button, never a <div>", () => {
 		const html = renderToString(
 			<ThemeProvider>
@@ -303,7 +301,6 @@ function stubViewTransition({ deferUpdate = false }: { deferUpdate?: boolean } =
 
 describe("ThemeSwitcher theme swap", () => {
 	afterEach(() => {
-		vi.restoreAllMocks();
 		Reflect.deleteProperty(document, "startViewTransition");
 	});
 
@@ -431,10 +428,6 @@ describe("ThemeSwitcher theme swap", () => {
 });
 
 describe("ThemeDropdownMenuItem", () => {
-	afterEach(() => {
-		vi.restoreAllMocks();
-	});
-
 	test.each([
 		{ stored: "system", prefersDarkMode: false, name: "Theme: Switch to dark theme" },
 		{

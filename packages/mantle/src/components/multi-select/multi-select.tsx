@@ -220,7 +220,7 @@ const Trigger = ({
 				data-slot={joinDataSlot(dataSlot, "multi-select-trigger")}
 				className={cx(
 					"cursor-text select-none font-sans text-sm",
-					"border-form bg-form text-strong flex min-h-9 w-full flex-wrap items-center gap-1 rounded-md border px-3 py-1 has-[[data-slot=multi-select-tag]]:px-1",
+					"border-form bg-form text-strong flex min-h-9 w-full flex-wrap items-center gap-1 rounded-md border px-3 py-1 has-data-[slot=multi-select-tag]:px-1",
 					"has-focus:outline-hidden has-focus-within:ring-4 has-aria-expanded:ring-4",
 					"has-focus-within:border-accent-600 has-focus-within:ring-focus-accent has-aria-expanded:border-accent-600 has-aria-expanded:ring-focus-accent",
 					"data-validation-success:border-success-600 data-validation-success:has-focus-within:border-success-600 data-validation-success:has-focus-within:ring-focus-success data-validation-success:has-aria-expanded:border-success-600 data-validation-success:has-aria-expanded:ring-focus-success",

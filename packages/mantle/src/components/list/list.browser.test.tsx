@@ -39,7 +39,7 @@ const TINT = "rgb(10, 20, 30)";
 const FOCUS_STYLE = `
 @layer utilities {
 	.focus-visible\\:outline-hidden:focus-visible { outline-style: none; }
-	.has-\\[\\:focus-visible\\]\\:bg-active-menu-item:has(:focus-visible) { background-color: ${TINT}; }
+	.has-focus-visible\\:bg-active-menu-item:has(:focus-visible) { background-color: ${TINT}; }
 	.aria-disabled\\:pointer-events-none[aria-disabled="true"] { pointer-events: none; }
 }
 `;

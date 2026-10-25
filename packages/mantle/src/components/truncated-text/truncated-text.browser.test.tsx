@@ -6,15 +6,15 @@ import { TooltipProvider } from "../tooltip/index.js";
 import { TruncatedText } from "./truncated-text.js";
 
 const headBefore = "before:content-['\\200B']";
-const headMaxWidth = "max-w-[calc(100%_-_var(--_tail-width)_+_0.5px)]";
+const headMaxWidth = "max-w-[calc(100%-var(--_tail-width)+0.5px)]";
 const headTruncatedMaxWidth =
-	"[[data-truncated]>&]:max-w-[max(1ch_+_0.5px,calc(round(down,100%_-_var(--_tail-width),1ch)_+_0.5px))]";
+	"[[data-truncated]>&]:max-w-[max(1ch+0.5px,calc(round(down,100%-var(--_tail-width),1ch)+0.5px))]";
 const tailMinWidth = "min-w-(--_tail-width)";
 const tailTruncatedMinWidth = "[[data-truncated]>&]:min-w-0";
 const tailTruncatedMaxWidth =
-	"[[data-truncated]>&]:max-w-[calc(round(down,100%_-_1ch_-_var(--_tail-width),1ch)_+_var(--_tail-width))]";
+	"[[data-truncated]>&]:max-w-[calc(round(down,100%-1ch-var(--_tail-width),1ch)+var(--_tail-width))]";
 const tailHeadlessMaxWidth =
-	"[[data-truncated]>:empty+&]:max-w-[calc(round(down,100%_-_var(--_tail-width),1ch)_+_var(--_tail-width)_+_0.5px)]";
+	"[[data-truncated]>:empty+&]:max-w-[calc(round(down,100%-var(--_tail-width),1ch)+var(--_tail-width)+0.5px)]";
 const tailHeadlessEllipsis = "[[data-truncated]>:empty+&]:text-ellipsis";
 
 /**

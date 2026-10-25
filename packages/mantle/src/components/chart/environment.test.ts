@@ -29,7 +29,9 @@ const fakeMatchMedia = (preference: { reduced: boolean }) => {
 			removeEventListener: () => {
 				listeners.clear();
 			},
+			// oxlint-disable-next-line typescript/no-deprecated -- Why: the `MediaQueryList` type still requires it.
 			addListener: () => {},
+			// oxlint-disable-next-line typescript/no-deprecated -- Why: the `MediaQueryList` type still requires it.
 			removeListener: () => {},
 			dispatchEvent: () => false,
 		};

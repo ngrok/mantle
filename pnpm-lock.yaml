@@ -9,6 +9,9 @@ catalogs:
     '@phosphor-icons/react':
       specifier: 2.1.10
       version: 2.1.10
+    '@tailwindcss/node':
+      specifier: 4.3.3
+      version: 4.3.3
     '@tailwindcss/oxide':
       specifier: 4.3.3
       version: 4.3.3
@@ -98,6 +101,12 @@ importers:
       '@changesets/cli':
         specifier: 3.0.3
         version: 3.0.3
+      '@tailwindcss/node':
+        specifier: 'catalog:'
+        version: 4.3.3
+      '@tailwindcss/oxide':
+        specifier: 'catalog:'
+        version: 4.3.3
       '@types/node':
         specifier: 24.19.2
         version: 24.19.2
@@ -107,6 +116,9 @@ importers:
       lint-staged:
         specifier: 17.6.0
         version: 17.6.0
+      oxc-parser:
+        specifier: 'catalog:'
+        version: 0.155.0
       oxfmt:
         specifier: 'catalog:'
         version: 0.74.0

@@ -67,6 +67,7 @@ export default defineConfig({
 		// that runs after it, which turns an unrelated failure into a cascade and makes results depend
 		// on order. Restoring centrally means an inline `mockRestore()` is never load-bearing: a test
 		// that throws before it reaches its cleanup line still leaves the environment pristine.
+		clearMocks: true,
 		restoreMocks: true,
 		unstubEnvs: true,
 		unstubGlobals: true,

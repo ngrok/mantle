@@ -66,11 +66,26 @@ jobs:
       - name: Plant an invalid tsconfig above the checkout 🪤
         run: echo '{ invalid' > "${GITHUB_WORKSPACE}/../tsconfig.json"
 
+      # The fixer checks each cache file against the lockfile and the CSS it loads,
+      # so a stale restore only costs a recompute.
+      - name: Restore Tailwind Canonical Cache 💾
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/tailwind-canonical
+          key: tailwind-canonical-${{ hashFiles('pnpm-lock.yaml', 'packages/mantle/src/*.css') }}
+          restore-keys: tailwind-canonical-
+
+      - name: Tailwind Canonical Classes 🎨
+        run: pnpm run tailwind:check
+
       - name: Lint Check 🔍
         run: pnpm run lint
 
       - name: Agent Docs Budget 📏
         run: pnpm run check:agent-docs
+
+      - name: Doc Links 🔗
+        run: pnpm run check:doc-links
 
   mise-lock-check:
     name: Mise Lockfile

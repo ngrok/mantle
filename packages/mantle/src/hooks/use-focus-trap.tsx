@@ -35,11 +35,15 @@ const focusRetryFrames = 60;
  * negative `tabIndex`), the next stop is the first one after it in document
  * order, and the previous stop is the last one before it.
  */
-function findWrappedTabStop(
-	tabStops: ReadonlyArray<HTMLElement>,
-	current: Element | null,
-	backwards: boolean,
-): HTMLElement | null {
+function findWrappedTabStop({
+	tabStops,
+	current,
+	backwards,
+}: {
+	tabStops: ReadonlyArray<HTMLElement>;
+	current: Element | null;
+	backwards: boolean;
+}): HTMLElement | null {
 	const first = tabStops[0];
 	const last = tabStops[tabStops.length - 1];
 	if (first == null || last == null) {
@@ -155,7 +159,11 @@ function useFocusTrap(
 				event.preventDefault();
 				return;
 			}
-			const target = findWrappedTabStop(tabStops, document.activeElement, event.shiftKey);
+			const target = findWrappedTabStop({
+				tabStops,
+				current: document.activeElement,
+				backwards: event.shiftKey,
+			});
 			if (target != null) {
 				event.preventDefault();
 				target.focus();

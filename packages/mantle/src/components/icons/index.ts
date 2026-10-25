@@ -12,5 +12,9 @@ export {
 	AutoThemeIcon,
 	ThemeIcon,
 } from "./theme.js";
-export { NgrokWordmarkIcon, NgrokLettermarkIcon } from "./ngrok.js";
+export {
+	//,
+	NgrokWordmarkIcon,
+	NgrokLettermarkIcon,
+} from "./ngrok.js";
 export type { InlineIconProps } from "./types.js";
