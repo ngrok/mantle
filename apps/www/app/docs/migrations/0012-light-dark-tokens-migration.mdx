@@ -39,11 +39,11 @@ Steps 3 to 6 stay manual, because a CSS `@import`, an HTML template, a `getPrope
 ## You are an agent migrating a codebase. Do this:
 
 1. Find every `MantleStyleSheets` element and every `mantleStyleSheetUrls` call from `@ngrok/mantle/theme`, under its own name or an alias. Delete each one, the `const` that holds the call, and the imports. Delete the `MantleStyleSheetsProps` and `MantleThemeCssUrls` types, or replace them with your own. Keep `PreventWrongThemeFlashScript` in `<head>`; it did not change.
-2. Find every JavaScript import of `@ngrok/mantle/mantle-dark.css`, usually `import darkCssUrl from "@ngrok/mantle/mantle-dark.css?url"`. Delete it and every use of its name.
+2. Find every JavaScript import of `@ngrok/mantle/mantle-dark.css`, usually `import darkCssUrl from "@ngrok/mantle/mantle-dark.css?url"`. Delete it and every use of its name, such as a `Link` preload header in a server entry.
 3. Find every CSS `@import "@ngrok/mantle/mantle-dark.css";`. Delete it. `@import "@ngrok/mantle/mantle.css";` holds both themes.
 4. In a `<head>` that a non-React server writes, such as a Go template, delete `<link id="mantle-dark-styles" rel="stylesheet" href="…/mantle-dark.css" />`. Keep the inline theme script.
 5. Find every place that reads a mantle color token from JavaScript: `getComputedStyle(element).getPropertyValue("--color-…")`, `--background-color-…`, `--text-color-…`, `--border-color-…`, and the other semantic tokens. The value is now the `light-dark(…)` text, the same in both themes. Set the token as the `color` of an element in place, then read `getComputedStyle(element).color`: the browser resolves the pair against the `color-scheme` there. Tokens that are not colors (`--shadow-first-opacity`, `--bg-checked-icon`) read as before.
-6. Find every CSS rule that sets a palette stop (`--color-<ramp>-<stop>`) on a bare `:root`, or in your own `@theme`. That value now applies in both themes. To keep the themes apart, write it as `light-dark(<light>, <dark>)`, or set the dark value under `:root.dark`. A semantic token (`--background-color-card`) or a palette stop set under `:root.dark` or `.dark` works as before.
+6. Find every CSS rule that sets a mantle token (`--color-<ramp>-<stop>`, `--background-color-card`, and the other semantic tokens) on a bare `:root`, under `:root.dark` or `.dark`, or in your own `@theme`. Write each one as one `light-dark(<light>, <dark>)` declaration at `:root`. A plain value on a bare `:root` now applies in both themes. A value under `:root.dark` still paints a dark page, but an `invert-theme` island on that page inherits it, because an island declares no token of its own.
 7. After editing, run the project's formatter, linter, type checker, and tests.
 
 > **Why `light-dark()`?** One declaration per token holds both themes, so a token cannot have a light value and lose its dark one. An `invert-theme` island flips `color-scheme`, and every token in it resolves to the other theme: mantle no longer copies the palette onto islands. With one stylesheet, a page loads no second `<link>`, and Tailwind emits only the palette stops a build uses.
@@ -165,6 +165,7 @@ editor.setTheme({ cursor: accent });
 - **Browser support.** `light-dark()` needs Safari 17.5, Chrome 123, or Firefox 120. In an older browser, a color token paints no color: backgrounds go transparent, and text takes the browser default.
 - **An island reads its own scheme.** A probe inside an `invert-theme` island resolves to the island's theme, so put the probe inside the element whose colors you need.
 - **A re-read after a theme change.** A resolved color does not follow a later theme change. Read it again when `<html>` changes its `class`, `data-theme`, or `data-applied-theme`.
+- **A theme-scoped override inside an island.** A token set under `:root.dark` reaches a light island on a dark page. Step 6 moves it into a `light-dark()` pair, which the island resolves to its own theme.
 - **`dark:` classes inside an island.** They still key off the page theme, not the island. This did not change.
 - **Tailwind's newer ramps.** `mauve`, `mist`, `olive`, and `taupe` have no dark values: they paint their light values in both themes. This did not change.
 
