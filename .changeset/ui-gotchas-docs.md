@@ -10,7 +10,7 @@ Fix three behaviors that surprised consumers, and document the others in JSDoc a
 
 New JSDoc notes:
 
-- `Button`: the `icon` gets `size-5` unless the icon sets its own size, `asChild` wraps a plain `<a>` and not `Anchor`, and the `disabled={!isReady || isPending}` pattern.
+- `Button`: pass an icon through the `icon` prop, never as a child. The `icon` gets `size-5` unless the icon sets its own size, `asChild` wraps a plain `<a>` and not `Anchor`, and the `disabled={!isReady || isPending}` pattern.
 - `Combobox.Input`: Enter never submits a parent form while the combobox is open, with a free-text example. `Combobox.Root`: control `open` when you render `Combobox.Content` conditionally. `Combobox.Content`: children must be items, groups, or separators.
 - Charts: a `xKey`, `dataKey`, or `zKey` that no row has throws. The Root is `aspect-video` by default, the legend scrolls past `max-h-16`, and a `mode="decorative"` chart hides its children from assistive technology.
 - `ThemeProvider`: the `mantle-ui-theme` cookie and the events that apply it again. Set the cookie and reload in browser automation.
