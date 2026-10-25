@@ -548,7 +548,7 @@ describe("AppLayout.SidePanel lane", () => {
 		// consumer `duration-*` slows the run, so the sample lands mid-flight.
 		await page.viewport(900, 800);
 		render(
-			<Shell panel="open" panelClassName="duration-[2000ms]" workspaceClassName="max-w-[600px]" />,
+			<Shell panel="open" panelClassName="duration-2000" workspaceClassName="max-w-[600px]" />,
 		);
 		const panel = screen.getByTestId("panel");
 		await waitForHydration(panel);

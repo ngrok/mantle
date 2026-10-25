@@ -469,8 +469,8 @@ const Header = ({
 			"border-dialog-muted text-strong relative flex shrink-0 flex-wrap items-center justify-between gap-2 border-b px-6 py-4",
 			// Why `flex-1` and `order-last`: a zero flex basis keeps a long title on
 			// the close button's row. The description orders last so it wraps under both.
-			"[&>[data-slot~=dialog-title]]:flex-1",
-			"[&>[data-slot~=dialog-description]]:order-last [&>[data-slot~=dialog-description]]:basis-full",
+			"*:data-[slot~=dialog-title]:flex-1",
+			"*:data-[slot~=dialog-description]:order-last *:data-[slot~=dialog-description]:basis-full",
 			"has-[.icon-button]:pr-4", // when there are actions in the header, shorten the padding
 			className,
 		)}

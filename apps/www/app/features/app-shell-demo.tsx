@@ -302,9 +302,9 @@ const demoProducts = [
 			"An all-in-one cloud networking platform that secures, transforms, and routes traffic to all your services no matter where they run.",
 		textClassName: "text-emerald-600 dark:text-emerald-600",
 		cardHoverClassName:
-			"hover:border-emerald-600 hover:bg-emerald-600/[0.03] focus-visible:border-emerald-600 focus-visible:bg-emerald-600/[0.03] focus-visible:ring-emerald-600/20 dark:hover:border-emerald-600 dark:focus-visible:border-emerald-600",
+			"hover:border-emerald-600 hover:bg-emerald-600/3 focus-visible:border-emerald-600 focus-visible:bg-emerald-600/3 focus-visible:ring-emerald-600/20 dark:hover:border-emerald-600 dark:focus-visible:border-emerald-600",
 		cardCurrentClassName:
-			"border-emerald-600 bg-emerald-600/[0.03] ring-4 ring-emerald-600/15 dark:border-emerald-600",
+			"border-emerald-600 bg-emerald-600/3 ring-4 ring-emerald-600/15 dark:border-emerald-600",
 		arrowHoverClassName:
 			"group-hover:text-emerald-600 group-focus-visible:text-emerald-600 dark:group-hover:text-emerald-600 dark:group-focus-visible:text-emerald-600",
 	},
@@ -317,9 +317,8 @@ const demoProducts = [
 		description: "Deploy services close to your users with managed compute, domains, and secrets.",
 		textClassName: "text-sky-600 dark:text-sky-600",
 		cardHoverClassName:
-			"hover:border-sky-600 hover:bg-sky-600/[0.03] focus-visible:border-sky-600 focus-visible:bg-sky-600/[0.03] focus-visible:ring-sky-600/20 dark:hover:border-sky-600 dark:focus-visible:border-sky-600",
-		cardCurrentClassName:
-			"border-sky-600 bg-sky-600/[0.03] ring-4 ring-sky-600/15 dark:border-sky-600",
+			"hover:border-sky-600 hover:bg-sky-600/3 focus-visible:border-sky-600 focus-visible:bg-sky-600/3 focus-visible:ring-sky-600/20 dark:hover:border-sky-600 dark:focus-visible:border-sky-600",
+		cardCurrentClassName: "border-sky-600 bg-sky-600/3 ring-4 ring-sky-600/15 dark:border-sky-600",
 		arrowHoverClassName:
 			"group-hover:text-sky-600 group-focus-visible:text-sky-600 dark:group-hover:text-sky-600 dark:group-focus-visible:text-sky-600",
 	},
@@ -333,9 +332,9 @@ const demoProducts = [
 			"Change one URL to route between hosted or self-hosted models, with failover and observability built in.",
 		textClassName: "text-amber-600 dark:text-amber-600",
 		cardHoverClassName:
-			"hover:border-amber-600 hover:bg-amber-600/[0.03] focus-visible:border-amber-600 focus-visible:bg-amber-600/[0.03] focus-visible:ring-amber-600/20 dark:hover:border-amber-600 dark:focus-visible:border-amber-600",
+			"hover:border-amber-600 hover:bg-amber-600/3 focus-visible:border-amber-600 focus-visible:bg-amber-600/3 focus-visible:ring-amber-600/20 dark:hover:border-amber-600 dark:focus-visible:border-amber-600",
 		cardCurrentClassName:
-			"border-amber-600 bg-amber-600/[0.03] ring-4 ring-amber-600/15 dark:border-amber-600",
+			"border-amber-600 bg-amber-600/3 ring-4 ring-amber-600/15 dark:border-amber-600",
 		arrowHoverClassName:
 			"group-hover:text-amber-600 group-focus-visible:text-amber-600 dark:group-hover:text-amber-600 dark:group-focus-visible:text-amber-600",
 	},

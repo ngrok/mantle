@@ -63,7 +63,7 @@ const IconSwap = <Key extends string>({
 						"motion-safe:transition-[opacity,scale,filter] motion-safe:duration-200 motion-safe:ease-out-strong",
 						"data-state-inactive:opacity-0 motion-safe:data-state-inactive:scale-50 motion-safe:data-state-inactive:blur-[2px] motion-safe:data-state-inactive:duration-150",
 						// Why paused: a spinner that is not shown must not keep a running animation.
-						"data-state-inactive:*:[animation-play-state:paused]",
+						"data-state-inactive:*:paused",
 					)}
 				>
 					<Icon svg={svg} />

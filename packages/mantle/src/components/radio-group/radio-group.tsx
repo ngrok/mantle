@@ -205,7 +205,7 @@ const Item = ({
 				"group/radio cursor-pointer aria-disabled:cursor-default [&_label]:cursor-inherit flex gap-2 py-1 text-sm focus:outline-hidden",
 				// Why the gate: the default indicator draws the focus ring on its circle.
 				// An item with a custom indicator, or none, has no other focus treatment.
-				"not-has-data-[radio-default-indicator]:focus-visible:ring-focus-accent not-has-data-[radio-default-indicator]:focus-visible:ring-4 not-has-data-[radio-default-indicator]:focus-visible:rounded-md",
+				"not-has-data-radio-default-indicator:focus-visible:ring-focus-accent not-has-data-radio-default-indicator:focus-visible:ring-4 not-has-data-radio-default-indicator:focus-visible:rounded-md",
 				className,
 			)}
 			{...props}

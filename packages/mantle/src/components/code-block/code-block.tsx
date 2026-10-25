@@ -680,7 +680,7 @@ const CopyButton = ({
 	return (
 		<span
 			data-slot="code-block-copy-button"
-			className="absolute right-3 top-3 z-10 inline-flex size-7 items-center justify-center rounded-[var(--icon-button-border-radius,0.375rem)] bg-base"
+			className="absolute right-3 top-3 z-10 inline-flex size-7 items-center justify-center rounded-(--icon-button-border-radius,0.375rem) bg-base"
 		>
 			{/* Why always mounted: the icon swap is silent to a screen reader. A
 			    lone text child is written with textContent, which is safe under a

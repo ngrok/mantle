@@ -611,7 +611,7 @@ const Root = ({
 						// but Tailwind 4.3.3 compiles that to `.…:is([hidden])` instead. Same
 						// specificity, different selector text — and the browser test injects this
 						// one verbatim, so keep the two spellings in step if you ever switch.
-						"[&[hidden]]:hidden",
+						"[[hidden]]:hidden",
 						"motion-safe:data-shake:animate-shake",
 						// state-driven transitions (the sonner approach): interruptible and
 						// retargetable, so a reopen mid-exit rises back from wherever the

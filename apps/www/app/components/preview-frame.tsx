@@ -115,7 +115,7 @@ export function PreviewFrame({ example, title, className }: PreviewFrameProps) {
 					</IconButton>
 				</div>
 			</div>
-			<div className="bg-base bg-[radial-gradient(var(--color-gray-300)_1px,transparent_1px)] [background-size:16px_16px]">
+			<div className="bg-base bg-[radial-gradient(var(--color-gray-300)_1px,transparent_1px)] bg-size-[16px_16px]">
 				<div
 					className={cx(
 						"mx-auto h-full transition-[width] duration-200 motion-reduce:transition-none",

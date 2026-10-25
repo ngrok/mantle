@@ -60,9 +60,9 @@ const STYLE = `
 	.text-lg { font-size: var(--text-lg); line-height: var(--tw-leading, var(--text-lg--line-height)); }
 	.font-medium { font-weight: var(--font-weight-medium); }
 	.has-\\[\\.icon-button\\]\\:pr-4:has(:is(.icon-button)) { padding-right: calc(var(--spacing) * 4); }
-	.\\[\\&\\>\\[data-slot\\~\\=dialog-description\\]\\]\\:order-last > [data-slot~=dialog-description] { order: 9999; }
-	.\\[\\&\\>\\[data-slot\\~\\=dialog-description\\]\\]\\:basis-full > [data-slot~=dialog-description] { flex-basis: 100%; }
-	.\\[\\&\\>\\[data-slot\\~\\=dialog-title\\]\\]\\:flex-1 > [data-slot~=dialog-title] { flex: 1; }
+	.\\*\\:data-\\[slot\\~\\=dialog-description\\]\\:order-last > [data-slot~=dialog-description] { order: 9999; }
+	.\\*\\:data-\\[slot\\~\\=dialog-description\\]\\:basis-full > [data-slot~=dialog-description] { flex-basis: 100%; }
+	.\\*\\:data-\\[slot\\~\\=dialog-title\\]\\:flex-1 > [data-slot~=dialog-title] { flex: 1; }
 }
 `;
 

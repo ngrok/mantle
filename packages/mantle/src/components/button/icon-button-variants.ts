@@ -32,7 +32,7 @@ type IconButtonSize = "2xs" | ButtonSize;
 
 const baseIconButtonClasses = cx(
 	"icon-button",
-	"inline-flex shrink-0 items-center justify-center rounded-[var(--icon-button-border-radius,0.375rem)] border",
+	"inline-flex shrink-0 items-center justify-center rounded-(--icon-button-border-radius,0.375rem) border",
 	"focus:outline-hidden focus-visible:ring-4",
 	"disabled:cursor-default disabled:opacity-50",
 	"aria-disabled:cursor-default aria-disabled:opacity-50",

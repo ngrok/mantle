@@ -349,7 +349,7 @@ describe("Sandbar (browser)", () => {
 const DISPLAY_STYLE = `
 @layer utilities {
 	.flex { display: flex; }
-	.\\[\\&\\[hidden\\]\\]\\:hidden[hidden] { display: none; }
+	.\\[\\[hidden\\]\\]\\:hidden[hidden] { display: none; }
 }
 `;
 

@@ -1191,7 +1191,7 @@ function useBarFocusRedirect({
  * banner metrics, plus a non-shrinking `Alert.Icon` so authored icons never
  * collapse in the flex row.
  */
-const chromeClassName = "gap-2 py-2 pr-2 [&_[data-slot~=alert-icon]]:shrink-0";
+const chromeClassName = "gap-2 py-2 pr-2 **:data-[slot~=alert-icon]:shrink-0";
 
 /**
  * Vertically centers the bar's trailing controls (dismiss and expand) while the
@@ -1226,7 +1226,7 @@ const singleLineBarControls =
  * Only the bar composes both controls, so rows need nothing equivalent.
  */
 const dismissClearsExpandControl =
-	"has-data-alert-expand:[&_[data-alert-dismiss]]:right-16 md:has-data-alert-expand:[&_[data-alert-dismiss]]:right-24";
+	"has-data-alert-expand:**:data-alert-dismiss:right-16 md:has-data-alert-expand:**:data-alert-dismiss:right-24";
 
 // Why no `asChild`: Bar renders a fixed two-element structure — a presence
 // wrapper that owns the exit animation (`data-state`, `inert`, `tabIndex`, and

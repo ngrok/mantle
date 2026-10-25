@@ -314,7 +314,7 @@ type SheetContentProps = ComponentProps<typeof SheetPrimitiveContent> &
 		 * preferred width: the maximum width of the `Sheet.Content` when the window
 		 * viewport is larger than the mobile breakpoint (`sm`).
 		 *
-		 * @default `sm:max-w-[30rem]`
+		 * @default `sm:max-w-120`
 		 */
 		preferredWidth?: `sm:max-w-${string}`;
 	} & WithDataSlot;
@@ -380,7 +380,7 @@ const Content = ({
 	"data-slot": dataSlot,
 	children,
 	className,
-	preferredWidth = "sm:max-w-[30rem]",
+	preferredWidth = "sm:max-w-120",
 	side = "right",
 	ref,
 	...props

@@ -131,7 +131,7 @@ function Code({ className, children, ...props }: CodeExamplePanelProps) {
 	return (
 		<Tabs.Content
 			value="code"
-			className={cx("[&_[data-slot=code-block]]:mb-0", className)}
+			className={cx("**:data-[slot=code-block]:mb-0", className)}
 			{...props}
 		>
 			{children}
