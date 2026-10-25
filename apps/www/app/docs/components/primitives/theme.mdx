@@ -224,9 +224,8 @@ Mantle no longer ships high-contrast themes. A user who picked one in an earlier
 ## Inverted theme islands
 
 Add the `invert-theme` class to any element to render that subtree in the opposite theme of the
-page: light ⇄ dark. The island is styled by the
-opposite theme's own definitions, so every mantle component and color token inside it just works:
-no conditional rendering, no per-component overrides.
+page: light ⇄ dark. The island sets the opposite `color-scheme`, so every mantle component and
+color token inside it just works: no conditional rendering, no per-component overrides.
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";

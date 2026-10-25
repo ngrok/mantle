@@ -326,7 +326,7 @@ describe("ThemeProvider applies and persists a selection", () => {
 		await user.click(screen.getByRole("button", { name: "dark" }));
 		await user.click(screen.getByRole("button", { name: "light" }));
 
-		// Exactly one theme class may be present, or two theme blocks fight over `<html>`.
+		// Exactly one theme class may be present, or two theme rules fight over `<html>`.
 		expect(appliedThemeClasses()).toEqual(["light"]);
 		expect(document.documentElement.dataset.appliedTheme).toBe("light");
 		expect(readThemeCookie()).toBe(`${THEME_COOKIE}=light`);
