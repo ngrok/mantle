@@ -2,6 +2,10 @@
 import darkCssUrl from "@ngrok/mantle/mantle-dark.css?url";
 import islandCssUrl from '@ngrok/mantle/mantle-dark.css?url';
 import "@ngrok/mantle/mantle-dark.css";
+// negative: a binding read only by a declaration that stays keeps its import
+import liveCssUrl from "@ngrok/mantle/mantle-dark.css?url";
+// negative: a binding read only by a shadowed element's declaration keeps its import
+import shadowedCssUrl from "@ngrok/mantle/mantle-dark.css?url";
 import {
 	MantleStyleSheets,
 	mantleStyleSheetUrls,
@@ -24,6 +28,13 @@ export const exportedUrls = mantleStyleSheetUrls({ darkCssUrl });
 // negative: a const that other code reads stays
 const loggedUrls = mantleStyleSheetUrls({ darkCssUrl });
 console.log(loggedUrls);
+
+// negative: a const that other code reads stays, and so does the import it reads
+const liveUrls = mantleStyleSheetUrls({ darkCssUrl: liveCssUrl });
+console.log(liveUrls);
+
+// negative: a const that a shadowed element reads stays
+const shadowedUrls = mantleStyleSheetUrls({ darkCssUrl: shadowedCssUrl });
 
 // negative: a type annotation keeps its import
 export const typedUrls: MantleThemeCssUrls = { darkCssUrl: "/dark.css" };
@@ -48,10 +59,10 @@ export function Head({ nonce, show }: { nonce: string; show: boolean }) {
 }
 
 // negative: a local binding shadows the import
-export function Shadowed({ MantleStyleSheets }: { MantleStyleSheets: () => null }) {
+export function Shadowed({ MantleStyleSheets }: { MantleStyleSheets: (props: object) => null }) {
 	return (
 		<head>
-			<MantleStyleSheets />
+			<MantleStyleSheets {...shadowedUrls} />
 		</head>
 	);
 }

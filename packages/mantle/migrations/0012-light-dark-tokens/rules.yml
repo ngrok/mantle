@@ -179,40 +179,64 @@ utils:
               has:
                 field: name
                 pattern: $URLS
-  # A `const` the declaration rule deletes: not exported, with a call to
-  # mantle's `mantleStyleSheetUrls` as its value.
+  # A `const` the declaration rule deletes: not exported, one declarator, a
+  # call to mantle's `mantleStyleSheetUrls` as its value, and a name that only
+  # a deleted `<MantleStyleSheets />` reads.
   deleted-declaration:
     kind: lexical_declaration
     not:
       inside: { kind: export_statement }
-    has:
-      kind: variable_declarator
-      has:
-        field: value
-        kind: call_expression
-        all:
-          - has: { field: function, kind: identifier, pattern: $URLS }
-          - inside:
-              stopBy: end
-              kind: program
-              has:
-                matches: style-sheet-urls-import
-          # Why: a parameter or a local under the import's name shadows it, and the
-          # rules cannot tell which binding the code reads.
-          - not:
-              inside:
-                stopBy: end
-                matches: scope
-                has:
-                  stopBy:
-                    matches: scope
-                  any:
-                    - matches: binding-name
-                      pattern: $URLS
-                    - matches: function-declaration
+    all:
+      - has:
+          kind: variable_declarator
+          all:
+            - has: { field: name, kind: identifier, pattern: $DECL }
+            - has:
+                field: value
+                kind: call_expression
+                all:
+                  - has: { field: function, kind: identifier, pattern: $URLS }
+                  - inside:
+                      stopBy: end
+                      kind: program
                       has:
-                        field: name
-                        pattern: $URLS
+                        matches: style-sheet-urls-import
+                  # Why: a parameter or a local under the import's name shadows it, and the
+                  # rules cannot tell which binding the code reads.
+                  - not:
+                      inside:
+                        stopBy: end
+                        matches: scope
+                        has:
+                          stopBy:
+                            matches: scope
+                          any:
+                            - matches: binding-name
+                              pattern: $URLS
+                            - matches: function-declaration
+                              has:
+                                field: name
+                                pattern: $URLS
+      # Why one declarator: a deletion would take its siblings with it.
+      - not:
+          has:
+            kind: variable_declarator
+            follows: { stopBy: end, kind: variable_declarator }
+      # Why: a name that other code still reads keeps its declaration.
+      - not:
+          inside:
+            stopBy: end
+            kind: program
+            has:
+              stopBy: end
+              any:
+                - kind: identifier
+                - kind: shorthand_property_identifier
+              pattern: $DECL
+              not:
+                any:
+                  - inside: { kind: variable_declarator, field: name }
+                  - inside: { stopBy: end, matches: deleted-element }
   mantle-style-sheets-import:
     kind: import_statement
     all:
@@ -253,65 +277,24 @@ utils:
           kind: program
           has:
             matches: mantle-style-sheets-import
-rule:
-  kind: lexical_declaration
-  # Why not an exported one: another module can read it. That case stays manual.
-  not:
-    inside: { kind: export_statement }
-  all:
-    - has:
-        kind: variable_declarator
-        all:
-          - has: { field: name, kind: identifier, pattern: $NAME }
-          - has:
-              field: value
-              kind: call_expression
-              has: { field: function, kind: identifier, pattern: $URLS }
-    # Why one declarator: a deletion would take its siblings with it.
-    - not:
-        has:
-          kind: variable_declarator
-          follows: { stopBy: end, kind: variable_declarator }
-    - inside:
-        stopBy: end
-        kind: program
-        has:
-          matches: style-sheet-urls-import
-    # Why: a parameter or a local under the import's name shadows it, and the
-    # rules cannot tell which binding the code reads.
-    - not:
-        inside:
-          stopBy: end
-          matches: scope
-          has:
-            stopBy:
-              matches: scope
-            any:
-              - matches: binding-name
-                pattern: $URLS
-              - matches: function-declaration
-                has:
-                  field: name
-                  pattern: $URLS
-    # Why: deleting a binding that other code still reads leaves an undefined
-    # name. That code stays, and the type checker names the manual work.
-    - not:
-        inside:
-          stopBy: end
-          kind: program
-          has:
+      # Why: a parameter or a local under the import's name shadows it, and the
+      # rules cannot tell which binding the code reads.
+      - not:
+          inside:
             stopBy: end
-            any:
-              - kind: identifier
-              - kind: shorthand_property_identifier
-              - kind: type_identifier
-            pattern: $NAME
-            not:
+            matches: scope
+            has:
+              stopBy:
+                matches: scope
               any:
-                - inside: { stopBy: end, kind: import_statement }
-                - inside: { stopBy: end, matches: deleted-element }
-                - inside: { stopBy: end, matches: deleted-declaration }
-                - inside: { kind: variable_declarator, field: name }
+                - matches: binding-name
+                  pattern: $SHEETS
+                - matches: function-declaration
+                  has:
+                    field: name
+                    pattern: $SHEETS
+rule:
+  matches: deleted-declaration
 fix: ""
 ---
 id: mantle-dark-stylesheet-import
@@ -385,40 +368,64 @@ utils:
               has:
                 field: name
                 pattern: $URLS
-  # A `const` the declaration rule deletes: not exported, with a call to
-  # mantle's `mantleStyleSheetUrls` as its value.
+  # A `const` the declaration rule deletes: not exported, one declarator, a
+  # call to mantle's `mantleStyleSheetUrls` as its value, and a name that only
+  # a deleted `<MantleStyleSheets />` reads.
   deleted-declaration:
     kind: lexical_declaration
     not:
       inside: { kind: export_statement }
-    has:
-      kind: variable_declarator
-      has:
-        field: value
-        kind: call_expression
-        all:
-          - has: { field: function, kind: identifier, pattern: $URLS }
-          - inside:
-              stopBy: end
-              kind: program
-              has:
-                matches: style-sheet-urls-import
-          # Why: a parameter or a local under the import's name shadows it, and the
-          # rules cannot tell which binding the code reads.
-          - not:
-              inside:
-                stopBy: end
-                matches: scope
-                has:
-                  stopBy:
-                    matches: scope
-                  any:
-                    - matches: binding-name
-                      pattern: $URLS
-                    - matches: function-declaration
+    all:
+      - has:
+          kind: variable_declarator
+          all:
+            - has: { field: name, kind: identifier, pattern: $DECL }
+            - has:
+                field: value
+                kind: call_expression
+                all:
+                  - has: { field: function, kind: identifier, pattern: $URLS }
+                  - inside:
+                      stopBy: end
+                      kind: program
                       has:
-                        field: name
-                        pattern: $URLS
+                        matches: style-sheet-urls-import
+                  # Why: a parameter or a local under the import's name shadows it, and the
+                  # rules cannot tell which binding the code reads.
+                  - not:
+                      inside:
+                        stopBy: end
+                        matches: scope
+                        has:
+                          stopBy:
+                            matches: scope
+                          any:
+                            - matches: binding-name
+                              pattern: $URLS
+                            - matches: function-declaration
+                              has:
+                                field: name
+                                pattern: $URLS
+      # Why one declarator: a deletion would take its siblings with it.
+      - not:
+          has:
+            kind: variable_declarator
+            follows: { stopBy: end, kind: variable_declarator }
+      # Why: a name that other code still reads keeps its declaration.
+      - not:
+          inside:
+            stopBy: end
+            kind: program
+            has:
+              stopBy: end
+              any:
+                - kind: identifier
+                - kind: shorthand_property_identifier
+              pattern: $DECL
+              not:
+                any:
+                  - inside: { kind: variable_declarator, field: name }
+                  - inside: { stopBy: end, matches: deleted-element }
   mantle-style-sheets-import:
     kind: import_statement
     all:
@@ -459,6 +466,22 @@ utils:
           kind: program
           has:
             matches: mantle-style-sheets-import
+      # Why: a parameter or a local under the import's name shadows it, and the
+      # rules cannot tell which binding the code reads.
+      - not:
+          inside:
+            stopBy: end
+            matches: scope
+            has:
+              stopBy:
+                matches: scope
+              any:
+                - matches: binding-name
+                  pattern: $SHEETS
+                - matches: function-declaration
+                  has:
+                    field: name
+                    pattern: $SHEETS
 rule:
   kind: import_statement
   all:
@@ -563,40 +586,64 @@ utils:
               has:
                 field: name
                 pattern: $URLS
-  # A `const` the declaration rule deletes: not exported, with a call to
-  # mantle's `mantleStyleSheetUrls` as its value.
+  # A `const` the declaration rule deletes: not exported, one declarator, a
+  # call to mantle's `mantleStyleSheetUrls` as its value, and a name that only
+  # a deleted `<MantleStyleSheets />` reads.
   deleted-declaration:
     kind: lexical_declaration
     not:
       inside: { kind: export_statement }
-    has:
-      kind: variable_declarator
-      has:
-        field: value
-        kind: call_expression
-        all:
-          - has: { field: function, kind: identifier, pattern: $URLS }
-          - inside:
-              stopBy: end
-              kind: program
-              has:
-                matches: style-sheet-urls-import
-          # Why: a parameter or a local under the import's name shadows it, and the
-          # rules cannot tell which binding the code reads.
-          - not:
-              inside:
-                stopBy: end
-                matches: scope
-                has:
-                  stopBy:
-                    matches: scope
-                  any:
-                    - matches: binding-name
-                      pattern: $URLS
-                    - matches: function-declaration
+    all:
+      - has:
+          kind: variable_declarator
+          all:
+            - has: { field: name, kind: identifier, pattern: $DECL }
+            - has:
+                field: value
+                kind: call_expression
+                all:
+                  - has: { field: function, kind: identifier, pattern: $URLS }
+                  - inside:
+                      stopBy: end
+                      kind: program
                       has:
-                        field: name
-                        pattern: $URLS
+                        matches: style-sheet-urls-import
+                  # Why: a parameter or a local under the import's name shadows it, and the
+                  # rules cannot tell which binding the code reads.
+                  - not:
+                      inside:
+                        stopBy: end
+                        matches: scope
+                        has:
+                          stopBy:
+                            matches: scope
+                          any:
+                            - matches: binding-name
+                              pattern: $URLS
+                            - matches: function-declaration
+                              has:
+                                field: name
+                                pattern: $URLS
+      # Why one declarator: a deletion would take its siblings with it.
+      - not:
+          has:
+            kind: variable_declarator
+            follows: { stopBy: end, kind: variable_declarator }
+      # Why: a name that other code still reads keeps its declaration.
+      - not:
+          inside:
+            stopBy: end
+            kind: program
+            has:
+              stopBy: end
+              any:
+                - kind: identifier
+                - kind: shorthand_property_identifier
+              pattern: $DECL
+              not:
+                any:
+                  - inside: { kind: variable_declarator, field: name }
+                  - inside: { stopBy: end, matches: deleted-element }
   mantle-style-sheets-import:
     kind: import_statement
     all:
@@ -637,6 +684,22 @@ utils:
           kind: program
           has:
             matches: mantle-style-sheets-import
+      # Why: a parameter or a local under the import's name shadows it, and the
+      # rules cannot tell which binding the code reads.
+      - not:
+          inside:
+            stopBy: end
+            matches: scope
+            has:
+              stopBy:
+                matches: scope
+              any:
+                - matches: binding-name
+                  pattern: $SHEETS
+                - matches: function-declaration
+                  has:
+                    field: name
+                    pattern: $SHEETS
 rule:
   kind: import_specifier
   all:
@@ -764,40 +827,64 @@ utils:
               has:
                 field: name
                 pattern: $URLS
-  # A `const` the declaration rule deletes: not exported, with a call to
-  # mantle's `mantleStyleSheetUrls` as its value.
+  # A `const` the declaration rule deletes: not exported, one declarator, a
+  # call to mantle's `mantleStyleSheetUrls` as its value, and a name that only
+  # a deleted `<MantleStyleSheets />` reads.
   deleted-declaration:
     kind: lexical_declaration
     not:
       inside: { kind: export_statement }
-    has:
-      kind: variable_declarator
-      has:
-        field: value
-        kind: call_expression
-        all:
-          - has: { field: function, kind: identifier, pattern: $URLS }
-          - inside:
-              stopBy: end
-              kind: program
-              has:
-                matches: style-sheet-urls-import
-          # Why: a parameter or a local under the import's name shadows it, and the
-          # rules cannot tell which binding the code reads.
-          - not:
-              inside:
-                stopBy: end
-                matches: scope
-                has:
-                  stopBy:
-                    matches: scope
-                  any:
-                    - matches: binding-name
-                      pattern: $URLS
-                    - matches: function-declaration
+    all:
+      - has:
+          kind: variable_declarator
+          all:
+            - has: { field: name, kind: identifier, pattern: $DECL }
+            - has:
+                field: value
+                kind: call_expression
+                all:
+                  - has: { field: function, kind: identifier, pattern: $URLS }
+                  - inside:
+                      stopBy: end
+                      kind: program
                       has:
-                        field: name
-                        pattern: $URLS
+                        matches: style-sheet-urls-import
+                  # Why: a parameter or a local under the import's name shadows it, and the
+                  # rules cannot tell which binding the code reads.
+                  - not:
+                      inside:
+                        stopBy: end
+                        matches: scope
+                        has:
+                          stopBy:
+                            matches: scope
+                          any:
+                            - matches: binding-name
+                              pattern: $URLS
+                            - matches: function-declaration
+                              has:
+                                field: name
+                                pattern: $URLS
+      # Why one declarator: a deletion would take its siblings with it.
+      - not:
+          has:
+            kind: variable_declarator
+            follows: { stopBy: end, kind: variable_declarator }
+      # Why: a name that other code still reads keeps its declaration.
+      - not:
+          inside:
+            stopBy: end
+            kind: program
+            has:
+              stopBy: end
+              any:
+                - kind: identifier
+                - kind: shorthand_property_identifier
+              pattern: $DECL
+              not:
+                any:
+                  - inside: { kind: variable_declarator, field: name }
+                  - inside: { stopBy: end, matches: deleted-element }
   mantle-style-sheets-import:
     kind: import_statement
     all:
@@ -838,6 +925,22 @@ utils:
           kind: program
           has:
             matches: mantle-style-sheets-import
+      # Why: a parameter or a local under the import's name shadows it, and the
+      # rules cannot tell which binding the code reads.
+      - not:
+          inside:
+            stopBy: end
+            matches: scope
+            has:
+              stopBy:
+                matches: scope
+              any:
+                - matches: binding-name
+                  pattern: $SHEETS
+                - matches: function-declaration
+                  has:
+                    field: name
+                    pattern: $SHEETS
 rule:
   kind: import_statement
   all:
@@ -963,98 +1066,65 @@ utils:
               has:
                 field: name
                 pattern: $URLS
-  # A `const` the declaration rule deletes: not exported, with a call to
-  # mantle's `mantleStyleSheetUrls` as its value.
+  # A `const` the declaration rule deletes: not exported, one declarator, a
+  # call to mantle's `mantleStyleSheetUrls` as its value, and a name that only
+  # a deleted `<MantleStyleSheets />` reads.
   deleted-declaration:
     kind: lexical_declaration
     not:
       inside: { kind: export_statement }
-    has:
-      kind: variable_declarator
-      has:
-        field: value
-        kind: call_expression
-        all:
-          - has: { field: function, kind: identifier, pattern: $URLS }
-          - inside:
-              stopBy: end
-              kind: program
-              has:
-                matches: style-sheet-urls-import
-          # Why: a parameter or a local under the import's name shadows it, and the
-          # rules cannot tell which binding the code reads.
-          - not:
-              inside:
-                stopBy: end
-                matches: scope
-                has:
-                  stopBy:
-                    matches: scope
-                  any:
-                    - matches: binding-name
-                      pattern: $URLS
-                    - matches: function-declaration
-                      has:
-                        field: name
-                        pattern: $URLS
-rule:
-  kind: lexical_declaration
-  # Why not an exported one: another module can read it. That case stays manual.
-  not:
-    inside: { kind: export_statement }
-  all:
-    - has:
-        kind: variable_declarator
-        all:
-          - has: { field: name, kind: identifier, pattern: $NAME }
-          - has:
-              field: value
-              kind: call_expression
-              has: { field: function, kind: identifier, pattern: $URLS }
-    # Why one declarator: a deletion would take its siblings with it.
-    - not:
-        has:
+    all:
+      - has:
           kind: variable_declarator
-          follows: { stopBy: end, kind: variable_declarator }
-    - inside:
-        stopBy: end
-        kind: program
-        has:
-          matches: style-sheet-urls-import
-    # Why: a parameter or a local under the import's name shadows it, and the
-    # rules cannot tell which binding the code reads.
-    - not:
-        inside:
-          stopBy: end
-          matches: scope
+          all:
+            - has: { field: name, kind: identifier, pattern: $DECL }
+            - has:
+                field: value
+                kind: call_expression
+                all:
+                  - has: { field: function, kind: identifier, pattern: $URLS }
+                  - inside:
+                      stopBy: end
+                      kind: program
+                      has:
+                        matches: style-sheet-urls-import
+                  # Why: a parameter or a local under the import's name shadows it, and the
+                  # rules cannot tell which binding the code reads.
+                  - not:
+                      inside:
+                        stopBy: end
+                        matches: scope
+                        has:
+                          stopBy:
+                            matches: scope
+                          any:
+                            - matches: binding-name
+                              pattern: $URLS
+                            - matches: function-declaration
+                              has:
+                                field: name
+                                pattern: $URLS
+      # Why one declarator: a deletion would take its siblings with it.
+      - not:
           has:
-            stopBy:
-              matches: scope
-            any:
-              - matches: binding-name
-                pattern: $URLS
-              - matches: function-declaration
-                has:
-                  field: name
-                  pattern: $URLS
-    # Why: deleting a binding that other code still reads leaves an undefined
-    # name. That code stays, and the type checker names the manual work.
-    - not:
-        inside:
-          stopBy: end
-          kind: program
-          has:
+            kind: variable_declarator
+            follows: { stopBy: end, kind: variable_declarator }
+      # Why: a name that other code still reads keeps its declaration.
+      - not:
+          inside:
             stopBy: end
-            any:
-              - kind: identifier
-              - kind: shorthand_property_identifier
-              - kind: type_identifier
-            pattern: $NAME
-            not:
+            kind: program
+            has:
+              stopBy: end
               any:
-                - inside: { stopBy: end, kind: import_statement }
-                - inside: { stopBy: end, matches: deleted-declaration }
-                - inside: { kind: variable_declarator, field: name }
+                - kind: identifier
+                - kind: shorthand_property_identifier
+              pattern: $DECL
+              not:
+                any:
+                  - inside: { kind: variable_declarator, field: name }
+rule:
+  matches: deleted-declaration
 fix: ""
 ---
 id: mantle-dark-stylesheet-import
@@ -1128,40 +1198,63 @@ utils:
               has:
                 field: name
                 pattern: $URLS
-  # A `const` the declaration rule deletes: not exported, with a call to
-  # mantle's `mantleStyleSheetUrls` as its value.
+  # A `const` the declaration rule deletes: not exported, one declarator, a
+  # call to mantle's `mantleStyleSheetUrls` as its value, and a name that only
+  # a deleted `<MantleStyleSheets />` reads.
   deleted-declaration:
     kind: lexical_declaration
     not:
       inside: { kind: export_statement }
-    has:
-      kind: variable_declarator
-      has:
-        field: value
-        kind: call_expression
-        all:
-          - has: { field: function, kind: identifier, pattern: $URLS }
-          - inside:
-              stopBy: end
-              kind: program
-              has:
-                matches: style-sheet-urls-import
-          # Why: a parameter or a local under the import's name shadows it, and the
-          # rules cannot tell which binding the code reads.
-          - not:
-              inside:
-                stopBy: end
-                matches: scope
-                has:
-                  stopBy:
-                    matches: scope
-                  any:
-                    - matches: binding-name
-                      pattern: $URLS
-                    - matches: function-declaration
+    all:
+      - has:
+          kind: variable_declarator
+          all:
+            - has: { field: name, kind: identifier, pattern: $DECL }
+            - has:
+                field: value
+                kind: call_expression
+                all:
+                  - has: { field: function, kind: identifier, pattern: $URLS }
+                  - inside:
+                      stopBy: end
+                      kind: program
                       has:
-                        field: name
-                        pattern: $URLS
+                        matches: style-sheet-urls-import
+                  # Why: a parameter or a local under the import's name shadows it, and the
+                  # rules cannot tell which binding the code reads.
+                  - not:
+                      inside:
+                        stopBy: end
+                        matches: scope
+                        has:
+                          stopBy:
+                            matches: scope
+                          any:
+                            - matches: binding-name
+                              pattern: $URLS
+                            - matches: function-declaration
+                              has:
+                                field: name
+                                pattern: $URLS
+      # Why one declarator: a deletion would take its siblings with it.
+      - not:
+          has:
+            kind: variable_declarator
+            follows: { stopBy: end, kind: variable_declarator }
+      # Why: a name that other code still reads keeps its declaration.
+      - not:
+          inside:
+            stopBy: end
+            kind: program
+            has:
+              stopBy: end
+              any:
+                - kind: identifier
+                - kind: shorthand_property_identifier
+              pattern: $DECL
+              not:
+                any:
+                  - inside: { kind: variable_declarator, field: name }
 rule:
   kind: import_statement
   all:
@@ -1265,40 +1358,63 @@ utils:
               has:
                 field: name
                 pattern: $URLS
-  # A `const` the declaration rule deletes: not exported, with a call to
-  # mantle's `mantleStyleSheetUrls` as its value.
+  # A `const` the declaration rule deletes: not exported, one declarator, a
+  # call to mantle's `mantleStyleSheetUrls` as its value, and a name that only
+  # a deleted `<MantleStyleSheets />` reads.
   deleted-declaration:
     kind: lexical_declaration
     not:
       inside: { kind: export_statement }
-    has:
-      kind: variable_declarator
-      has:
-        field: value
-        kind: call_expression
-        all:
-          - has: { field: function, kind: identifier, pattern: $URLS }
-          - inside:
-              stopBy: end
-              kind: program
-              has:
-                matches: style-sheet-urls-import
-          # Why: a parameter or a local under the import's name shadows it, and the
-          # rules cannot tell which binding the code reads.
-          - not:
-              inside:
-                stopBy: end
-                matches: scope
-                has:
-                  stopBy:
-                    matches: scope
-                  any:
-                    - matches: binding-name
-                      pattern: $URLS
-                    - matches: function-declaration
+    all:
+      - has:
+          kind: variable_declarator
+          all:
+            - has: { field: name, kind: identifier, pattern: $DECL }
+            - has:
+                field: value
+                kind: call_expression
+                all:
+                  - has: { field: function, kind: identifier, pattern: $URLS }
+                  - inside:
+                      stopBy: end
+                      kind: program
                       has:
-                        field: name
-                        pattern: $URLS
+                        matches: style-sheet-urls-import
+                  # Why: a parameter or a local under the import's name shadows it, and the
+                  # rules cannot tell which binding the code reads.
+                  - not:
+                      inside:
+                        stopBy: end
+                        matches: scope
+                        has:
+                          stopBy:
+                            matches: scope
+                          any:
+                            - matches: binding-name
+                              pattern: $URLS
+                            - matches: function-declaration
+                              has:
+                                field: name
+                                pattern: $URLS
+      # Why one declarator: a deletion would take its siblings with it.
+      - not:
+          has:
+            kind: variable_declarator
+            follows: { stopBy: end, kind: variable_declarator }
+      # Why: a name that other code still reads keeps its declaration.
+      - not:
+          inside:
+            stopBy: end
+            kind: program
+            has:
+              stopBy: end
+              any:
+                - kind: identifier
+                - kind: shorthand_property_identifier
+              pattern: $DECL
+              not:
+                any:
+                  - inside: { kind: variable_declarator, field: name }
 rule:
   kind: import_specifier
   all:
@@ -1425,40 +1541,63 @@ utils:
               has:
                 field: name
                 pattern: $URLS
-  # A `const` the declaration rule deletes: not exported, with a call to
-  # mantle's `mantleStyleSheetUrls` as its value.
+  # A `const` the declaration rule deletes: not exported, one declarator, a
+  # call to mantle's `mantleStyleSheetUrls` as its value, and a name that only
+  # a deleted `<MantleStyleSheets />` reads.
   deleted-declaration:
     kind: lexical_declaration
     not:
       inside: { kind: export_statement }
-    has:
-      kind: variable_declarator
-      has:
-        field: value
-        kind: call_expression
-        all:
-          - has: { field: function, kind: identifier, pattern: $URLS }
-          - inside:
-              stopBy: end
-              kind: program
-              has:
-                matches: style-sheet-urls-import
-          # Why: a parameter or a local under the import's name shadows it, and the
-          # rules cannot tell which binding the code reads.
-          - not:
-              inside:
-                stopBy: end
-                matches: scope
-                has:
-                  stopBy:
-                    matches: scope
-                  any:
-                    - matches: binding-name
-                      pattern: $URLS
-                    - matches: function-declaration
+    all:
+      - has:
+          kind: variable_declarator
+          all:
+            - has: { field: name, kind: identifier, pattern: $DECL }
+            - has:
+                field: value
+                kind: call_expression
+                all:
+                  - has: { field: function, kind: identifier, pattern: $URLS }
+                  - inside:
+                      stopBy: end
+                      kind: program
                       has:
-                        field: name
-                        pattern: $URLS
+                        matches: style-sheet-urls-import
+                  # Why: a parameter or a local under the import's name shadows it, and the
+                  # rules cannot tell which binding the code reads.
+                  - not:
+                      inside:
+                        stopBy: end
+                        matches: scope
+                        has:
+                          stopBy:
+                            matches: scope
+                          any:
+                            - matches: binding-name
+                              pattern: $URLS
+                            - matches: function-declaration
+                              has:
+                                field: name
+                                pattern: $URLS
+      # Why one declarator: a deletion would take its siblings with it.
+      - not:
+          has:
+            kind: variable_declarator
+            follows: { stopBy: end, kind: variable_declarator }
+      # Why: a name that other code still reads keeps its declaration.
+      - not:
+          inside:
+            stopBy: end
+            kind: program
+            has:
+              stopBy: end
+              any:
+                - kind: identifier
+                - kind: shorthand_property_identifier
+              pattern: $DECL
+              not:
+                any:
+                  - inside: { kind: variable_declarator, field: name }
 rule:
   kind: import_statement
   all:
