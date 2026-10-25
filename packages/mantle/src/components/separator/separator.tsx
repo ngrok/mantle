@@ -102,6 +102,10 @@ type SeparatorProps = ComponentProps<"div"> &
  * your own dividers with `bg-separator` / `border-separator` / `divide-separator`
  * so they stay consistent with separators across the system.
  *
+ * The separator does not shrink (`shrink-0`), so it keeps its 1px in a flex
+ * container that overflows, such as a scrolling `Dialog.Body`. Inside a
+ * `HorizontalSeparatorGroup`, a horizontal separator grows to fill the row.
+ *
  * | Data Attribute     | Value                          | Description                                                        |
  * | ------------------ | ------------------------------ | ------------------------------------------------------------------ |
  * | `data-slot`        | `"separator"`                  | Names the part.                                                    |
@@ -158,7 +162,9 @@ const Separator = ({
 			data-slot={joinDataSlot(dataSlot, "separator")}
 			className={cx(
 				"separator",
-				"bg-separator",
+				// Why shrink-0: in a flex container that overflows, a 1px separator
+				// otherwise shrinks to 0px and disappears.
+				"bg-separator shrink-0",
 				orientation === "horizontal"
 					? "h-px w-full group-data-horizontal-separator-group:flex-1"
 					: "h-full w-px",

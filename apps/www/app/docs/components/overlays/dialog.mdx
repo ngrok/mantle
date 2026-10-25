@@ -95,6 +95,16 @@ import { Button } from "@ngrok/mantle/button";
 
 `Dialog`, `Sheet`, and `AlertDialog` each render their own backdrop, so stacking modal layers compounds the dim and blur effect on the layers underneath.
 
+## UI above an open dialog
+
+UI that must stay usable above an open dialog, such as a consent banner, carries the `overlay-prompt` class. A click inside it does not count as an outside click. Add `pointer-events-auto` too, because the open dialog sets `pointer-events: none` on `<body>`. mantle's `Toaster` does both.
+
+```tsx
+<div className="overlay-prompt pointer-events-auto fixed inset-x-0 bottom-0 z-max">
+	<ConsentBanner />
+</div>
+```
+
 ## Handling autofill overlays
 
 When a dialog contains form inputs, browser autofill or password-manager plugins (e.g. 1Password) may render overlays as siblings to the dialog content. By default, clicking these overlays triggers `onPointerDownOutside`, which closes the dialog. Use `isDialogOverlayTarget` to prevent this:

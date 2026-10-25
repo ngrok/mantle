@@ -339,6 +339,19 @@ That divergence is safe by construction. Every theme block guards its `data-them
 `:not([data-applied-theme])`, so once anything applies a theme, the preference stops selecting one.
 Set `data-theme` on its own and it still picks the theme, exactly as before.
 
+## Testing and automation
+
+The theme preference lives in the `mantle-ui-theme` cookie. `ThemeProvider` reads the cookie again and applies its theme to `<html>` on mount, when the tab becomes visible, on `pageshow`, when another tab changes the theme, and when the OS color scheme changes. A direct edit to the `<html>` class does not stay.
+
+To test a theme in a browser automation script, set the cookie, then reload:
+
+```ts
+await context.addCookies([
+	{ name: "mantle-ui-theme", value: "dark", url: "http://localhost:3000" },
+]);
+await page.reload();
+```
+
 ## API Reference
 
 ### ThemeProvider

@@ -10,3 +10,15 @@ import { ShadowSwatches } from "~/features/shadow-swatches";
 Tokens for defining elevations.
 
 <ShadowSwatches />
+
+## Shadows in plain CSS
+
+The shadow tokens are CSS custom properties on `:root`, so a stylesheet that Tailwind does not process can read them. Use them to match a third-party widget to mantle:
+
+```css
+.StripeElement {
+	box-shadow: var(--shadow-sm);
+}
+```
+
+The variables resolve against the page theme. Inside an [inverted theme island](/components/primitives/theme#inverted-theme-islands), use a `shadow-*` utility instead.

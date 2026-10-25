@@ -42,6 +42,10 @@ type ComboboxProps = AriakitComboboxProviderProps;
  * an overlay it paints with the overlay's content. Outside one, an open overlay
  * (`z-60`) covers it.
  *
+ * The store opens on each keystroke. While it is open, Enter in `Combobox.Input`
+ * never submits a parent form. If you render `Combobox.Content` conditionally, control `open`
+ * and `setOpen` with the same condition, so the store state matches what the user sees.
+ *
  * @see https://mantle.ngrok.com/components/forms/combobox#comboboxroot
  *
  * @example
@@ -69,6 +73,12 @@ type ComboboxInputProps = Omit<
 /**
  * Renders a combobox input element for filtering a list of items.
  *
+ * When the combobox is open, Enter selects the active option or does nothing. It
+ * never submits a parent form. `autoSelect` defaults to `"always"`, so the first
+ * matching option is active and Enter replaces the typed text with it. For free-text
+ * entry with suggestions, set `autoSelect={false}` and submit in `onKeyDown` when
+ * `aria-activedescendant` is not set.
+ *
  * @see https://mantle.ngrok.com/components/forms/combobox#comboboxinput
  *
  * @example
@@ -80,6 +90,29 @@ type ComboboxInputProps = Omit<
  *     <Combobox.Item value="Banana" />
  *   </Combobox.Content>
  * </Combobox.Root>
+ * ```
+ *
+ * @example
+ * Free-text entry: Enter submits the typed text unless the user moved to a suggestion.
+ * ```tsx
+ * <form onSubmit={handleSubmit}>
+ *   <Combobox.Root inputValue={name} setInputValue={setName}>
+ *     <Combobox.Input
+ *       autoSelect={false}
+ *       onKeyDown={(event) => {
+ *         const hasActiveOption = event.currentTarget.getAttribute("aria-activedescendant") != null;
+ *         if (event.key === "Enter" && !hasActiveOption) {
+ *           event.preventDefault();
+ *           event.currentTarget.form?.requestSubmit();
+ *         }
+ *       }}
+ *     />
+ *     <Combobox.Content>
+ *       <Combobox.Item value="GitHub" />
+ *       <Combobox.Item value="Stripe" />
+ *     </Combobox.Content>
+ *   </Combobox.Root>
+ * </form>
  * ```
  */
 const Input = ({
@@ -136,6 +169,11 @@ type ComboboxContentProps = Omit<AriakitComboboxPopoverProps, "render"> &
  * it does not portal, so the dialog primitive's Escape guard can see it. Inside
  * an overlay it paints with the overlay's content. Outside one, an open overlay
  * (`z-60`) covers it.
+ *
+ * The popover has `role="listbox"`, so its children must be `Combobox.Item`,
+ * `Combobox.Group`, or `Combobox.Separator`. Render an empty-state or "create" row as a
+ * `Combobox.Item`: arrow keys skip any other element, and assistive technology
+ * does not expect it in a listbox.
  *
  * @see https://mantle.ngrok.com/components/forms/combobox#comboboxcontent
  *
@@ -469,6 +507,10 @@ const Combobox = {
 	 * Inside an overlay it paints with the overlay's content. Outside one, an open
 	 * overlay (`z-60`) covers it.
 	 *
+	 * The store opens on each keystroke. While it is open, Enter in `Combobox.Input`
+	 * never submits a parent form. If you render `Combobox.Content` conditionally, control `open`
+	 * and `setOpen` with the same condition, so the store state matches what the user sees.
+	 *
 	 * @see https://mantle.ngrok.com/components/forms/combobox#comboboxroot
 	 *
 	 * @example
@@ -490,6 +532,11 @@ const Combobox = {
 	 * — it does not portal, so the dialog primitive's Escape guard can see it.
 	 * Inside an overlay it paints with the overlay's content. Outside one, an open
 	 * overlay (`z-60`) covers it.
+	 *
+	 * The popover has `role="listbox"`, so its children must be `Combobox.Item`,
+	 * `Combobox.Group`, or `Combobox.Separator`. Render an empty-state or "create" row as a
+	 * `Combobox.Item`: arrow keys skip any other element, and assistive technology
+	 * does not expect it in a listbox.
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/combobox#comboboxcontent
 	 *
@@ -556,6 +603,12 @@ const Combobox = {
 	/**
 	 * Renders a combobox input element for filtering a list of items.
 	 *
+	 * When the combobox is open, Enter selects the active option or does nothing. It
+	 * never submits a parent form. `autoSelect` defaults to `"always"`, so the first
+	 * matching option is active and Enter replaces the typed text with it. For free-text
+	 * entry with suggestions, set `autoSelect={false}` and submit in `onKeyDown` when
+	 * `aria-activedescendant` is not set.
+	 *
 	 * @see https://mantle.ngrok.com/components/forms/combobox#comboboxinput
 	 *
 	 * @example
@@ -567,6 +620,29 @@ const Combobox = {
 	 *     <Combobox.Item value="Banana" />
 	 *   </Combobox.Content>
 	 * </Combobox.Root>
+	 * ```
+	 *
+	 * @example
+	 * Free-text entry: Enter submits the typed text unless the user moved to a suggestion.
+	 * ```tsx
+	 * <form onSubmit={handleSubmit}>
+	 *   <Combobox.Root inputValue={name} setInputValue={setName}>
+	 *     <Combobox.Input
+	 *       autoSelect={false}
+	 *       onKeyDown={(event) => {
+	 *         const hasActiveOption = event.currentTarget.getAttribute("aria-activedescendant") != null;
+	 *         if (event.key === "Enter" && !hasActiveOption) {
+	 *           event.preventDefault();
+	 *           event.currentTarget.form?.requestSubmit();
+	 *         }
+	 *       }}
+	 *     />
+	 *     <Combobox.Content>
+	 *       <Combobox.Item value="GitHub" />
+	 *       <Combobox.Item value="Stripe" />
+	 *     </Combobox.Content>
+	 *   </Combobox.Root>
+	 * </form>
 	 * ```
 	 */
 	Input,

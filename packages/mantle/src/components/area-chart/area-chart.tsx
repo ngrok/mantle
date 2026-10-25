@@ -45,7 +45,9 @@ type AreaChartRootProps<
 	ChartAccessibilityProps<TMode> & {
 		/** Rows of data; each `AreaChart.Area` reads one numeric key per row. */
 		data: readonly TDatum[];
-		/** The key of each row's x value. */
+		/**
+		 * The key of each row's x value. If no row has the key, the Root throws.
+		 */
 		xKey: Extract<keyof TDatum, string>;
 		/**
 		 * Override the auto-detected x scale (`Date` values → `"time"`, numbers →
@@ -60,7 +62,11 @@ type AreaChartRootProps<
  * Props for {@link AreaChart.Area}.
  */
 type AreaChartAreaProps = {
-	/** The row key this series reads its numeric values from. */
+	/**
+	 * The row key this series reads its numeric values from.
+	 * If no row has the key, the chart throws, so put the key in every row, with
+	 * `null` for no value. A row with no value renders a gap.
+	 */
 	dataKey: string;
 	/** Display name for the legend, tooltip, and data table. Defaults to `dataKey`. */
 	label?: string;

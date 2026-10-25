@@ -229,6 +229,16 @@ import { TrashSimpleIcon } from "@phosphor-icons/react/TrashSimple";
 
 `Sheet`, `Dialog`, and `AlertDialog` each render their own backdrop, so stacking modal layers compounds the dim and blur effect on the layers underneath.
 
+## UI above an open sheet
+
+UI that must stay usable above an open sheet, such as a consent banner, carries the `overlay-prompt` class. A click inside it does not count as an outside click. Add `pointer-events-auto` too, because the open sheet sets `pointer-events: none` on `<body>`. mantle's `Toaster` does both.
+
+```tsx
+<div className="overlay-prompt pointer-events-auto fixed inset-x-0 bottom-0 z-max">
+	<ConsentBanner />
+</div>
+```
+
 ## Examples
 
 ### Router or state management controlled Sheet

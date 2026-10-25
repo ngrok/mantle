@@ -192,6 +192,9 @@ type ButtonProps = ComponentProps<"button"> &
 		 * An icon to render inside the button, beside the button's text
 		 * children. When `isLoading` is `true`, a spinner replaces the icon.
 		 *
+		 * The icon gets `size-5`. A size class on the icon element wins, as in
+		 * `icon={<GearIcon className="size-4" />}`.
+		 *
 		 * For an icon-only button, do not use `Button` — use `IconButton`
 		 * instead: it requires an accessible `label` and renders a square box
 		 * on the same shared size scale.
@@ -256,6 +259,12 @@ type ButtonProps = ComponentProps<"button"> &
  * with `tabIndex={-1}`, and a click on it is cancelled before any handler runs.
  * An explicit `disabled` wins over `isLoading`, so `disabled={false}` keeps a
  * loading button enabled. `aria-disabled={false}` cannot re-enable the button.
+ * To gate a button on readiness and on a pending action, put both in
+ * `disabled`: `disabled={!isReady || isPending}`.
+ *
+ * **`asChild`.** Wrap a plain `<a>` or a router `Link`. Do not wrap `Anchor`:
+ * `Anchor` puts its children in its own label `<span>`, so a button `icon`
+ * stacks above the text.
  *
  * | Data Attribute    | Value                                                  | Description                                                                                   |
  * | ----------------- | ------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
@@ -282,6 +291,31 @@ type ButtonProps = ComponentProps<"button"> &
  * ```tsx
  * <Button type="submit" appearance="filled" intent="neutral">
  *   Save
+ * </Button>
+ * ```
+ *
+ * @example
+ * Gate the button on readiness and on a pending action. An explicit `disabled`
+ * wins over `isLoading`, so `disabled` must cover both:
+ * ```tsx
+ * <Button
+ *   type="submit"
+ *   appearance="filled"
+ *   intent="neutral"
+ *   isLoading={isPending}
+ *   disabled={!isReady || isPending}
+ * >
+ *   Save
+ * </Button>
+ * ```
+ *
+ * @example
+ * A button-styled link wraps a plain `<a>`, not `Anchor`:
+ * ```tsx
+ * <Button asChild appearance="outlined" intent="neutral" icon={<ArrowSquareOutIcon />} iconPlacement="end">
+ *   <a href="https://ngrok.com/docs" target="_blank" rel="noreferrer">
+ *     Read the docs
+ *   </a>
  * </Button>
  * ```
  *

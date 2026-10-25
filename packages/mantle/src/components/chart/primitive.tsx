@@ -198,6 +198,10 @@ type ChartAccessibilityProps<TMode extends ChartMode = ChartMode> = {
 	 * `className` (`[--color-chart-decorative:var(--color-neutral-100)]`) and
 	 * re-measure the message against the new value.
 	 *
+	 * A decorative chart sets `aria-hidden` on the Root, so assistive technology
+	 * does not read its children either. Render an empty-state message as a
+	 * sibling of the Root, not as a child.
+	 *
 	 * @default "interactive"
 	 *
 	 * @example
@@ -378,6 +382,11 @@ const CHART_TABLE_ROW_LIMIT = 150;
  */
 type ChartRootBaseProps = Omit<ComponentProps<"div">, "aria-label" | "aria-labelledby"> &
 	WithDataSlot & {
+		/**
+		 * Classes for the Root. The Root is `aspect-video` by default. To size it
+		 * another way, set `aspect-auto` and a height: `className="aspect-auto h-52"`.
+		 */
+		className?: string;
 		/** Override the automatic y domain. */
 		yDomain?: YDomain;
 		/** Stack the series in registration order, from the baseline out (bar/area charts). */
@@ -395,7 +404,9 @@ type ChartRootPrimitiveProps = ChartRootBaseProps &
 	ChartAccessibilityProps & {
 		/** Rows of data; series parts read one numeric key per row. */
 		data: readonly ChartDatum[];
-		/** The key of each row's x value. */
+		/**
+		 * The key of each row's x value. If no row has the key, the Root throws.
+		 */
 		xKey: string;
 		/**
 		 * Override the auto-detected x scale (`Date` values → `"time"`, numbers →
@@ -1506,6 +1517,11 @@ const ChartTooltipReadout = ({
 // ---- legend -----------------------------------------------------------------
 
 type LegendPrimitiveProps = Omit<ComponentProps<"div">, "children"> & {
+	/**
+	 * Classes for the legend. The legend wraps its items and does not shrink.
+	 * Past `max-h-16` it scrolls; set another `max-h-*` to change the bound.
+	 */
+	className?: string;
 	/** Replace the default legend items; receives the registered series. */
 	children?: (series: SeriesMeta[]) => ReactNode;
 };

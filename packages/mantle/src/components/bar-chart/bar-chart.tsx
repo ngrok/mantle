@@ -44,7 +44,9 @@ type BarChartRootProps<
 	ChartAccessibilityProps<TMode> & {
 		/** Rows of data; each `BarChart.Bar` reads one numeric key per row. */
 		data: readonly TDatum[];
-		/** The key of each row's category (x) value. */
+		/**
+		 * The key of each row's category (x) value. If no row has the key, the Root throws.
+		 */
 		xKey: Extract<keyof TDatum, string>;
 		/** Override the automatic y maximum. The minimum is always the zero baseline. */
 		yDomain?: [0, number | "auto"];
@@ -64,7 +66,11 @@ type BarChartRootProps<
  * Props for {@link BarChart.Bar}.
  */
 type BarChartBarProps = {
-	/** The row key this series reads its numeric values from. */
+	/**
+	 * The row key this series reads its numeric values from.
+	 * If no row has the key, the chart throws, so put the key in every row, with
+	 * `null` for no value. A row with no value renders a gap.
+	 */
 	dataKey: string;
 	/** Display name for the legend, tooltip, and data table. Defaults to `dataKey`. */
 	label?: string;

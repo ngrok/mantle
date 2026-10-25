@@ -32,12 +32,18 @@ type UseInViewOptions = {
 	 * If `true`, stop observing once the element enters the viewport for the
 	 * first time. Useful for one-shot entrance animations.
 	 * Defaults to `false`.
+	 *
+	 * Do not combine with `initial: true`: with both set, the hook reports in
+	 * view on mount and never observes the element.
 	 */
 	once?: boolean;
 
 	/**
 	 * The initial visibility state returned before the observer has attached.
 	 * Defaults to `false`.
+	 *
+	 * Do not combine `true` with `once: true`: with both set, the hook reports
+	 * in view on mount and never observes the element.
 	 */
 	initial?: boolean;
 };

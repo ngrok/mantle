@@ -141,7 +141,17 @@ MARK: THEME
 	--color-important-900: var(--color-purple-900);
 	--color-important-950: var(--color-purple-950);
 
-	/* Shadow tokens - reference theme-specific shadow color and opacity values */
+	--spacing-em: 1em;
+
+	--z-index-max: 2147483647;
+}
+
+/*
+Why static: Tailwind emits a `@theme` variable only when generated CSS reads it,
+and the shadow utilities inline their values. Without `static`, `var(--shadow-md)`
+in a plain stylesheet (a third-party widget override) resolves to nothing.
+*/
+@theme static {
 	--shadow-sm: 0px 1px 2px 0 --alpha(var(--shadow-color) / var(--shadow-first-opacity));
 	--shadow:
 		0px 1px 2px -1px --alpha(var(--shadow-color) / var(--shadow-second-opacity)),
@@ -163,10 +173,6 @@ MARK: THEME
 		0px 11px 10px 0px --alpha(var(--shadow-color) / var(--shadow-first-opacity)),
 		0px 17px 25px 2px --alpha(var(--shadow-color) / var(--shadow-second-opacity));
 	--shadow-inner: inset 0px 2px 4px 0px --alpha(var(--shadow-color) / var(--shadow-first-opacity));
-
-	--spacing-em: 1em;
-
-	--z-index-max: 2147483647;
 }
 
 @theme inline {
@@ -235,6 +241,7 @@ MARK: THEME
 	--text-8xl: clamp(4.8rem, 5.4rem + 0.75vw, 6rem);
 	--text-9xl: clamp(6.4rem, 7.4rem + 0.75vw, 8rem);
 
+	/* `xs` (480px) is wider than most phones, so a class with only an `xs:` value applies nothing on a phone. */
 	--breakpoint-2xs: 22.5rem;
 	--breakpoint-xs: 30rem;
 

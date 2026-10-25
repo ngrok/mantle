@@ -175,6 +175,8 @@
     "examples": [
       "The default primary action — filled + neutral:\n```tsx\n<Button appearance=\"filled\" intent=\"neutral\" onClick={handleClick}>\n  Click me\n</Button>\n```",
       "Submit a form — opt in with `type=\"submit\"` (the default `\"button\"` does not submit):\n```tsx\n<Button type=\"submit\" appearance=\"filled\" intent=\"neutral\">\n  Save\n</Button>\n```",
+      "Gate the button on readiness and on a pending action. An explicit `disabled`\nwins over `isLoading`, so `disabled` must cover both:\n```tsx\n<Button\n  type=\"submit\"\n  appearance=\"filled\"\n  intent=\"neutral\"\n  isLoading={isPending}\n  disabled={!isReady || isPending}\n>\n  Save\n</Button>\n```",
+      "A button-styled link wraps a plain `<a>`, not `Anchor`:\n```tsx\n<Button asChild appearance=\"outlined\" intent=\"neutral\" icon={<ArrowSquareOutIcon />} iconPlacement=\"end\">\n  <a href=\"https://ngrok.com/docs\" target=\"_blank\" rel=\"noreferrer\">\n    Read the docs\n  </a>\n</Button>\n```",
       "Icon-only buttons are not `Button`s — use `IconButton` instead (an icon-only\n`Button` has no accessible name and keeps its text-box padding):\n```tsx\n// ❌ <Button appearance=\"outlined\" intent=\"neutral\" icon={<CopyIcon />} onClick={copyPage} />\n<IconButton appearance=\"outlined\" intent=\"neutral\" icon={<CopyIcon />} label=\"Copy page\" onClick={copyPage} />\n```"
     ]
   },

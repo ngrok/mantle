@@ -99,6 +99,10 @@ type CommandDialogRootProps = Omit<
 	 * deliberately still fires from a plain `<input>`, including the palette's
 	 * own `Command.Input` — so the chord closes what it opened.
 	 *
+	 * An earlier `keydown` listener that calls `preventDefault()` (on `document`,
+	 * or on an element) stops the shortcut. Do not bind `⌘K` in your app as
+	 * well: delete the local binding, or set `false`.
+	 *
 	 * Exactly one root per window owns the shortcut: the first mounted root that
 	 * wants it. Additional roots queue and take over when the owner unmounts, so
 	 * a second palette never opens alongside the first.

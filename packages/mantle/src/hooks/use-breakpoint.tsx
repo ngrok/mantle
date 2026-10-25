@@ -42,6 +42,10 @@ type TailwindBreakpoint = (typeof tailwindBreakpoints)[number];
  * `"default"` represents the base (0px and up) viewport,
  * useful for defining fallbacks or mobile-first styles.
  *
+ * `xs` (480px) is wider than most phones, so a class with only an `xs:` value
+ * applies nothing on a phone. Give an unprefixed base value first, as in
+ * `flex-col xs:flex-row`.
+ *
  * @example
  * "default" // ≥0rem (0px)
  * "2xs"     // ≥22.5rem (360px)
@@ -58,6 +62,10 @@ const breakpoints = ["default", ...tailwindBreakpoints] as const;
  * A valid Mantle breakpoint identifier.
  *
  * Includes Tailwind’s standard breakpoints plus `"default"` for 0px+.
+ *
+ * `xs` (480px) is wider than most phones, so a class with only an `xs:` value
+ * applies nothing on a phone. Give an unprefixed base value first, as in
+ * `flex-col xs:flex-row`.
  *
  * @example
  * const bp: Breakpoint = "default"; // ≥0px
