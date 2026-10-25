@@ -802,3 +802,22 @@ describe("description series sentence", () => {
 		).toHaveAccessibleDescription(/Series: Desktop\. Use/);
 	});
 });
+
+describe("data-table caption", () => {
+	test("an aria-labelledby that names an ancestor of the chart resolves without the table text", async () => {
+		const user = userEvent.setup();
+		render(
+			<section id="visitors-card">
+				<h2>Visitors</h2>
+				<BarChart.Root data={data} xKey="month" aria-labelledby="visitors-card">
+					<BarChart.Bar dataKey="desktop" label="Desktop" />
+				</BarChart.Root>
+			</section>,
+		);
+		// Focus mounts the table, whose caption sits inside the named ancestor.
+		await user.tab();
+		const caption = document.querySelector('[data-slot="bar-chart-data-table"] caption');
+		expect(caption?.textContent).toMatch(/^Visitors/);
+		expect(caption?.textContent).not.toContain("chart data — chart data");
+	});
+});

@@ -6,7 +6,6 @@ import {
 	isValidElement,
 	useCallback,
 	useContext,
-	useEffect,
 	useId,
 	useMemo,
 	useRef,
@@ -432,11 +431,11 @@ function useGridNavigation({
 	// Write the clamp back so a stale, out-of-range index can't resurface if the
 	// collection grows again (filter cleared) and silently re-target a row the
 	// user never navigated to in the current view.
-	useEffect(() => {
-		if (activeIndex >= count) {
-			setActiveIndex(count - 1);
-		}
-	}, [activeIndex, count]);
+	// Why during render: React discards this render and runs it again with the
+	// new state before it commits, so no extra commit happens.
+	if (activeIndex >= count) {
+		setActiveIndex(count - 1);
+	}
 
 	if (!enabled) {
 		return { activeIndex: -1, collectionProps: {} };

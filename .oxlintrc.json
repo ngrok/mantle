@@ -80,19 +80,31 @@
     "react/checked-requires-onchange-or-readonly": "error",
     "react/display-name": "error",
     "react/exhaustive-deps": "error",
-    // These rules port React Compiler diagnostics. The build compiler pass
-    // uses `panicThreshold: "all_errors"`, so a bailout also fails the build.
+    // Every rule that ports a React Compiler diagnostic. The compiler passes
+    // use the same checks (packages/mantle/react-compiler.config.ts), so lint
+    // reports in the editor what the build would reject.
+    "react/capitalized-calls": "error",
+    "react/error-boundaries": "error",
+    "react/exhaustive-effect-dependencies": "error",
+    "react/globals": "error",
+    "react/hooks": "error",
     "react/immutability": "error",
     "react/incompatible-library": "error",
+    "react/invariant": "error",
+    "react/memo-dependencies": "error",
+    "react/no-deriving-state-in-effects": "error",
     "react/preserve-manual-memoization": "error",
+    "react/purity": "error",
     "react/refs": "error",
-    // Why off: they flag deliberate patterns in shipped components: setState
-    // that syncs an external system, and effects keyed on an external trigger.
-    // Each site needs its own reviewed refactor, not a lint sweep. The
-    // compiler compiles these sites, and `react/exhaustive-deps` above still
-    // catches missing deps.
-    "react/exhaustive-effect-dependencies": "off",
-    "react/set-state-in-effect": "off",
+    "react/rule-suppression": "error",
+    "react/set-state-in-effect": "error",
+    "react/set-state-in-render": "error",
+    "react/static-components": "error",
+    "react/syntax": "error",
+    "react/todo": "error",
+    "react/unsupported-syntax": "error",
+    "react/use-memo": "error",
+    "react/void-use-memo": "error",
     "react/iframe-missing-sandbox": "error",
     "react/jsx-no-constructed-context-values": "error",
     "react/jsx-no-script-url": "error",

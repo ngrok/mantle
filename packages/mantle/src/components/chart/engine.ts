@@ -353,6 +353,7 @@ class ChartEngine {
 	#edgeFadeDecayTimer: ReturnType<typeof setTimeout> | null = null;
 
 	#colors: ResolvedColors | null = null;
+	#colorScope: { className: string | undefined; style: object } | null = null;
 
 	#plot: PlotRect = { left: 0, top: 0, width: 0, height: 0 };
 	#bandLayout: BandLayout | null = null;
@@ -1022,6 +1023,20 @@ class ChartEngine {
 		// reference-line cache keyed on it needs an explicit clear.
 		this.#referenceColorCache.clear();
 		this.#schedule();
+	}
+
+	/**
+	 * Records the Root's `className` and `style`, where a `--color-chart-N` or
+	 * `color` override lives. A changed value drops the resolved colors.
+	 * Compare `style` by reference, so pass a shallow-stable object.
+	 */
+	setColorScope(className: string | undefined, style: object): void {
+		const scope = this.#colorScope;
+		if (scope != null && scope.className === className && scope.style === style) {
+			return;
+		}
+		this.#colorScope = { className, style };
+		this.invalidateColors();
 	}
 
 	/**

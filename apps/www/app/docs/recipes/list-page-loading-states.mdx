@@ -31,6 +31,7 @@ import {
 	useTable,
 } from "@ngrok/mantle/data-table";
 import { Empty } from "@ngrok/mantle/empty";
+import { useIsHydratedAfterPaint } from "@ngrok/mantle/hooks";
 import { Input } from "@ngrok/mantle/input";
 import { LiveRegion } from "@ngrok/mantle/live-region";
 import { Select } from "@ngrok/mantle/select";
@@ -46,7 +47,7 @@ import {
 	useQueryClient,
 	type UseQueryResult,
 } from "@tanstack/react-query";
-import { type ReactNode, useDeferredValue, useEffect, useState } from "react";
+import { type ReactNode, useDeferredValue, useState } from "react";
 
 const SIMULATED_API_LATENCY_MS = 1_500;
 const PAGE_SIZE = 8;
@@ -717,13 +718,10 @@ export function DomainsListPage({ scenario }: DomainsListPageProps) {
 	const state = resolveListBodyState({ query, isFiltered });
 	const message = describeListState({ state, isRefetching: query.isFetching && !query.isPending });
 
-	// Why an effect: a live region announces changes, not the text it mounts
-	// with. The region mounts empty, in the server HTML too, and the first
-	// message is published after mount so a screen reader hears it.
-	const [announcement, setAnnouncement] = useState("");
-	useEffect(() => {
-		setAnnouncement(message);
-	}, [message]);
+	// Why gate on hydration: a live region announces changes, not the text it
+	// mounts with. The region mounts empty, in the server HTML too, and the
+	// first message lands one frame after mount so a screen reader hears it.
+	const announcement = useIsHydratedAfterPaint() ? message : "";
 
 	return (
 		<div className="mx-auto flex w-full max-w-6xl flex-col gap-4 p-6">
@@ -901,7 +899,7 @@ The rules below keep the code consistent with the intent above.
 6. **Pin the column widths.** Set a width class on every `DataTable.Header` but one, and `[&_table]:table-fixed` on `DataTable.Root`. The header widths hold from skeleton to rows on their own, as long as no cell is wider than its column. `table-fixed` covers the case where one is: under auto layout that column grows and every header after it moves, and `truncate` only clips text under fixed layout. The unsized column absorbs the remaining width.
 7. **Mount the count line in every state.** `DomainCount` is a fixed-height `<p>` aligned to the right edge, so a wider number moves nothing beside it. It shows a skeleton while pending and the count when loaded. It never shows `0` before the first response, because a count that appears with the data pushes the table down.
 8. **Keep the loaded rows through a refetch.** `placeholderData: keepPreviousData` keeps the previous page while a new key loads. The wrapper sets `aria-busy` and dims, and `isRefetching` (fetching with data present) drives both. If your list filters on the client instead, run the filter in the query's `select` and pass the filter value through `useDeferredValue`. The query never re-enters pending.
-9. **Announce every state once.** One `LiveRegion` renders from the first frame, empty, and an effect publishes the message after mount: `Loading domains`, `Updating domains`, `Showing 8 of 1,284 domains`, and the empty and error messages. A live region announces changes, not the text it mounts with, so an empty mount is what makes the first message audible. Skeleton rows are `aria-hidden`, so the region is the loading signal.
+9. **Announce every state once.** One `LiveRegion` renders from the first frame, empty, and `useIsHydratedAfterPaint` publishes the message one frame after mount: `Loading domains`, `Updating domains`, `Showing 8 of 1,284 domains`, and the empty and error messages. A live region announces changes, not the text it mounts with, so an empty mount is what makes the first message audible. Skeleton rows are `aria-hidden`, so the region is the loading signal.
 10. **Keep errors inside the frame.** An error renders an `Empty` in `DataTable.EmptyRow` with a **Retry** button that calls `query.refetch()`. The frame, the header, and the filters stay where they are. Put the retry policy in the hook, as the [Overlays + Async Data](/recipes/overlay-async) recipe does.
 11. **Cache the page for the return trip.** A `staleTime` long enough to cover a detail-and-back navigation renders the list from cache, so the reader sees the skeleton once per session instead of once per visit.
 

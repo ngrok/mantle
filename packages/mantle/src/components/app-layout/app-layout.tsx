@@ -1365,11 +1365,13 @@ const SidePanel = ({
 	// presentation at `mobileBreakpoint` or when the rail changes. The transition
 	// stays off from the end of a close to the next open.
 	const [closeEnded, setCloseEnded] = useState(!open);
+	// Why reset during render and not in the effect cleanup: `StrictMode`
+	// replays the cleanup on mount, and a closed panel must keep the gate shut.
+	if (open && closeEnded) {
+		setCloseEnded(false);
+	}
 	useEffect(() => {
-		// Why reset on open and not in the cleanup: `StrictMode` replays the
-		// cleanup on mount, and a closed panel must keep the gate shut.
 		if (open) {
-			setCloseEnded(false);
 			return;
 		}
 		const panel = panelRef.current;
