@@ -116,8 +116,9 @@ type ThemeProviderProps = PropsWithChildren<{
  * - a theme change in another tab (`BroadcastChannel` or `storage`)
  * - an OS color-scheme change
  *
- * So a direct edit to the `<html>` class does not stay. In browser automation,
- * set the cookie (`mantle-ui-theme=dark`) and reload.
+ * The provider does not read the `<html>` class. The next theme change replaces
+ * a direct edit to it. In browser automation, set the cookie
+ * (`mantle-ui-theme=dark`) and reload.
  *
  * @see https://mantle.ngrok.com/components/primitives/theme#themeprovider
  *

@@ -341,7 +341,7 @@ Set `data-theme` on its own and it still picks the theme, exactly as before.
 
 ## Testing and automation
 
-The theme preference lives in the `mantle-ui-theme` cookie. `ThemeProvider` reads the cookie again and applies its theme to `<html>` on mount, when the tab becomes visible, on `pageshow`, when another tab changes the theme, and when the OS color scheme changes. A direct edit to the `<html>` class does not stay.
+The theme preference lives in the `mantle-ui-theme` cookie. `ThemeProvider` reads the cookie again and applies its theme to `<html>` on mount, when the tab becomes visible, on `pageshow`, when another tab changes the theme, and when the OS color scheme changes. `ThemeProvider` does not read the `<html>` class, so the next theme change replaces a direct edit to it.
 
 To test a theme in a browser automation script, set the cookie, then reload:
 

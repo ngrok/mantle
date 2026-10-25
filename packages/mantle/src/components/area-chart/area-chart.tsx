@@ -65,7 +65,8 @@ type AreaChartAreaProps = {
 	/**
 	 * The row key this series reads its numeric values from.
 	 * If no row has the key, the chart throws, so put the key in every row, with
-	 * `null` for no value. A row with no value renders a gap.
+	 * `null` for no value. A row with no value renders a gap, unless `connectNulls`
+	 * joins across it.
 	 */
 	dataKey: string;
 	/** Display name for the legend, tooltip, and data table. Defaults to `dataKey`. */

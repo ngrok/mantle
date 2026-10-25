@@ -173,7 +173,8 @@ type ComboboxContentProps = Omit<AriakitComboboxPopoverProps, "render"> &
  * The popover has `role="listbox"`, so its children must be `Combobox.Item`,
  * `Combobox.Group`, or `Combobox.Separator`. Render an empty-state or "create" row as a
  * `Combobox.Item`: arrow keys skip any other element, and assistive technology
- * does not expect it in a listbox.
+ * does not expect it in a listbox. Give an empty-state row `disabled`, so Enter or a
+ * click cannot pick its text. Keep a "create" row enabled.
  *
  * @see https://mantle.ngrok.com/components/forms/combobox#comboboxcontent
  *
@@ -536,7 +537,8 @@ const Combobox = {
 	 * The popover has `role="listbox"`, so its children must be `Combobox.Item`,
 	 * `Combobox.Group`, or `Combobox.Separator`. Render an empty-state or "create" row as a
 	 * `Combobox.Item`: arrow keys skip any other element, and assistive technology
-	 * does not expect it in a listbox.
+	 * does not expect it in a listbox. Give an empty-state row `disabled`, so Enter or a
+	 * click cannot pick its text. Keep a "create" row enabled.
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/combobox#comboboxcontent
 	 *
