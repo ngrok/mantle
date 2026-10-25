@@ -4,58 +4,60 @@ The code and prose rules for every file in the monorepo. Read this file in full 
 
 Task-scoped rules live in their own files, and [AGENTS.md](./AGENTS.md) says which task reads which: [COMPONENT_SPEC.md](./COMPONENT_SPEC.md) for components, [docs/testing.md](./docs/testing.md) for tests, [docs/browser-translation.md](./docs/browser-translation.md), and [docs/framework-boundary.md](./docs/framework-boundary.md).
 
+A rule tagged `(lint: name)` has an oxlint check, and the lint message says why and how to fix it. Custom rules are `mantle/<name>` in [scripts/oxlint-plugin-mantle.js](./scripts/oxlint-plugin-mantle.js). An untagged rule has no check, so you and the reviewer enforce it.
+
 ## Files & Modules
 
-- File naming: kebab-case (except framework-required filenames like `entry.server.tsx`, `react-router.config.ts`)
-- ESM only: `import`/`export`, `const`, `async/await`, arrow functions
-- Prefer named exports; use `import type` for type-only imports
-- Imports: relative paths in `/packages`, `~/path/to/thing` aliases in `/apps`
+- kebab-case file names, except names a framework requires, such as `entry.server.tsx`. (lint: `unicorn/filename-case`)
+- ESM only: `import`/`export`, `const`, `async`/`await`, arrow functions.
+- Prefer named exports. Use `import type` for type-only imports.
+- Relative imports in `/packages`, `~/` aliases in `/apps`.
+- Import one phosphor icon per module: `@phosphor-icons/react/Check`, never the barrel or the `ssr` variants. (lint: `mantle/no-barrel-imports`)
 
 ## Formatting & Linting
 
 - Formatter: oxfmt (tabs, tabWidth 2, double quotes). Run `pnpm -w run fmt`; never hand-format.
 - oxfmt reads its indentation from `.editorconfig` and its ignore list from `.gitignore` and `.prettierignore`.
 - oxfmt does not read `.oxcfmtrc.json`, because it looks for `.oxfmtrc.json`. Its settings are not in force, and a rename reformats about 720 files, so that rename is its own change.
-- A `//,` line comment as the first entry of an import, export, or array list keeps oxfmt from joining the list onto one line. Keep it.
-- Linter: oxlint — see `.oxlintrc.json`
-- Never biome, prettier, or eslint
+- A `//,` line comment as the first entry of an import, export, or array list keeps oxfmt from joining the list onto one line, so each add or remove is a one-line diff. Write a multi-specifier named export multi-line with a `//,` first. Never delete one. (lint: `mantle/multiline-exports`)
+- oxlint lints (`.oxlintrc.json`). Never biome, prettier, or eslint.
+- Suppress a lint rule on the line only, with a `-- <reason>` clause that names the constraint. (lint: `mantle/require-suppression-reason`)
 
 ## Code Quality
 
 ### Readability & Maintainability
 
-- Optimize for readability and changeability over terseness or cleverness. Code is read far more often than it is written.
-- Always brace control flow — no single-line `if`/`for` bodies.
-- Descriptive names — `error` not `e`, `event` not `evt`, `element` not `el`. Widely-known initialisms (`URL`, `CSS`, `SSR`) are fine.
+- Optimize for readability and changeability, not terseness or cleverness.
+- Brace all control flow: no single-line `if` or `for` bodies. (lint: `curly`)
+- Name bindings in full: `error`, not `e`; `event`, not `evt`; `element`, not `el`. Widely known initialisms (`URL`, `CSS`, `SSR`) are fine. (lint: `mantle/descriptive-names`)
 - Comments explain _why_, not _what_. Do not restate the code. Describe the code as it is now. Never refer to a previous state or a dropped design that exists only in your context window. A comment stops at two sentences and uses plain words. [Writing](#writing) governs how the sentence itself reads.
-- Prefer inline single-use event handlers when they improve locality and readability. Hoist handlers only when reused, memoized, or meaningfully simplifying the render body.
-- Avoid nested ternaries. Prefer early returns or component-based branching. A single ternary is fine; nesting harms readability.
-- Render conditional JSX with `{condition && <Thing />}`, not `{condition ? <Thing /> : null}`. React drops `false` children the same way it drops `null`, so the `: null` arm is noise. Guard non-boolean conditions first (`items.length > 0 && …`) so a `0` or `""` never renders. Use a ternary only when both branches render something.
-- Never use `React.FC` / `FC` — use inline function types.
-- Never use `forwardRef` — mantle targets React 19+, where `ref` is a regular prop. Base props on `ComponentProps<…>` (which includes `ref`) and destructure `ref` from props when the implementation needs it.
-- Prefer named options objects over positional params: any boolean param, 3+ params, or 2 params when call sites would not be self-evident (`fn({ enabled: true })`, not `fn(true)`).
-- Optimize APIs for readability at the call site. Shared abstractions should make common usage simpler and more obvious, not merely reduce implementation duplication.
-- Do not use deprecated APIs or features — pick the current replacement. Only reach for a deprecated path when it is genuinely unavoidable (no working substitute, or a framework/runtime constraint forces it) and leave a short `// Why:` comment naming the constraint.
+- Write a single-use event handler inline. Hoist it only when it is reused, memoized, or simplifies the render body.
+- No nested ternaries; use early returns or component branching. One ternary is fine. (lint: `no-nested-ternary`)
+- Prefer `const` to `let`. When a value depends on a condition, use a ternary or an early return, not a `let` that each branch assigns. (lint: `prefer-const`, for the never-reassigned case)
+- Render conditional JSX with `{condition && <Thing />}`, not `{condition ? <Thing /> : null}`. Guard a non-boolean first (`items.length > 0 && …`) so `0` or `""` never renders. A ternary is for two rendered branches. (lint: `mantle/no-jsx-null-ternary`)
+- Never use `React.FC` or `FC`; type the function inline. Never use `forwardRef`: in React 19, `ref` is a regular prop. Base props on `ComponentProps<…>`, which includes `ref`. (lint: `no-restricted-imports` in `packages/mantle/src`)
+- Use a named options object, not positional params, for any boolean param, for 3 or more params, and for 2 params when the call site is not self-evident: `fn({ enabled: true })`, not `fn(true)`. (lint: `max-params` flags 4 or more params, `mantle/no-boolean-positional-param` flags a boolean next to other params)
+- Design an API for the call site: a shared abstraction makes common use simpler and clearer, not only shorter.
+- Never use a deprecated API; use its replacement. When a deprecated path is unavoidable, suppress the line with a `-- Why:` clause that names the constraint. (lint: `typescript/no-deprecated`)
 
 ### Error Handling
 
-- Errors are control flow — `console.error` is not handling. Every error path must recover, propagate, or terminate intentionally.
-- Prefer explicit failure handling over silent fallbacks or partial state updates.
-- Fail fast when invariants are violated rather than letting invalid state propagate deeper into the system.
+- Errors are control flow; `console.error` is not handling. Every error path recovers, propagates, or terminates on purpose.
+- Fail explicitly, not with silent fallbacks or partial state updates.
+- Fail fast on a violated invariant; do not let invalid state travel deeper.
+- Await, return, or `void` every promise. A floating promise drops its rejection. (lint: `typescript/no-floating-promises`)
 
 ### State & Business Logic
 
-- Prefer composing small pure functions for transformations, parsing/formatting, validation, state derivation, and other business logic.
-- Keep I/O, framework state, and rendering at the edges so the core logic stays reusable, deterministic, and easy to unit test.
-- Prefer derived state over synchronized state. Avoid storing values that can be computed from existing state, props, or the URL.
-- Keep data flow directional and explicit. Avoid hidden coupling between components, hooks, modules, or mutable shared state.
+- [Pure core, effects at the edges](./docs/principles/pure-core-effects-at-the-edges.md) and [derive, don't sync](./docs/principles/derive-dont-sync.md) are the rules.
+- Keep data flow directional and explicit. No hidden coupling between components, hooks, modules, or mutable shared state.
 
 ### React Compiler
 
 - The React Compiler runs in strict mode by default. The tsdown build, the vitest suite, and the docs site share `packages/mantle/react-compiler.config.ts`. It sets `panicThreshold: "all_errors"` and turns on every compiler validation, so a function that the compiler cannot compile or validate fails the build.
 - Write code that the compiler can compile. When the build fails, rewrite the function to the [Rules of React](https://react.dev/reference/rules). Do not opt it out.
 - `"use no memo"` is a last resort, for a library that the compiler cannot model (`list/virtual.tsx` and `@tanstack/react-virtual`). Add a `Why` comment that names the library.
-- oxlint turns on every rule that ports a compiler diagnostic, so the editor shows what the build rejects. Fix a finding; do not suppress it.
+- oxlint turns on every rule that ports a compiler diagnostic, so the editor shows what the build rejects. Never disable a React hooks or React Compiler rule; restructure the code. (lint: `mantle/no-react-hooks-suppression`)
 - The usual fixes:
   - State that follows a prop: set it during render behind a condition, not in an effect.
   - A value that lives outside React, such as DOM text: read it with `useSyncExternalStore`.
@@ -63,14 +65,11 @@ Task-scoped rules live in their own files, and [AGENTS.md](./AGENTS.md) says whi
 
 ### Abstractions & Duplication
 
-- DRY follows YAGNI: do not introduce abstractions solely because two pieces of code look similar.
-- Prefer duplication over the wrong abstraction. A small amount of repeated code is cheaper than shared code that accumulates flags, conditionals, mode parameters, or caller-specific behavior. See Sandi Metz, [The Wrong Abstraction](https://sandimetz.com/blog/2016/1/20/the-wrong-abstraction).
-- Do not extract shared code until there are at least 3 uses with the same behavior, shape, and reason to change.
-- Prefer composition over generalization: small pure functions, focused components, hooks, slots/children, and explicit options objects.
-- Avoid inheritance, base components, broad wrappers, and “one helper to rule them all” APIs.
-- If an abstraction starts accumulating special cases for callers, inline it back into the call sites and let the real abstraction emerge naturally.
-- Prefer deleting unused abstractions, indirection, and dead code over preserving speculative flexibility.
-- Every layer of indirection must continuously justify its existence.
+- Write the least code that does the task ([write less code](./docs/principles/write-less-code.md)). Leave out helpers, options, and follow-ups the task does not need.
+- Delete unused abstractions, indirection, and dead code; do not keep speculative flexibility. Every layer of indirection must justify its existence.
+- DRY follows YAGNI: do not add an abstraction because two pieces of code look similar.
+- Prefer duplication over the wrong abstraction ([The Wrong Abstraction](https://sandimetz.com/blog/2016/1/20/the-wrong-abstraction)). Extract shared code only when 3 or more uses share the same behavior, shape, and reason to change.
+- Compose small pure functions, focused components, hooks, slots, and options objects. No inheritance, base components, broad wrappers, or "one helper to rule them all" APIs. When an abstraction gathers caller-specific special cases, inline it back into the call sites.
 
 ### JSDoc
 
@@ -84,16 +83,13 @@ Task-scoped rules live in their own files, and [AGENTS.md](./AGENTS.md) says whi
 ### TypeScript
 
 - Strict mode enabled. Shared configs from `@cfg/tsconfig`.
-- No `any` — use `unknown` and narrow it intentionally.
-- Prefer `type` over `interface`. `type` handles unions, primitives, tuples, and mapped types consistently, avoids declaration merging, and expands more clearly in IntelliSense.
-- No non-null assertions. The postfix `!` operator (`value!`) is forbidden. Use proper null checks, early returns, assertions, or restructure the code to narrow the type safely.
-- Prefer `value == null` / `value != null` for nullish checks. They intentionally cover both `null` and `undefined`, which is safer for runtime absence checks. Use `=== null` / `=== undefined` only when those states have distinct meanings.
-- No type assertions in application code. Do not use `value as Type`. The only allowed exceptions are:
-  - `as const` for literal type narrowing
-  - assertions inside dedicated type guard implementations
-  - framework/runtime boundaries where external typing is impossible to model correctly
-- Type assertions must never be used to silence TypeScript errors or bypass proper type modeling.
-- Prefer discriminated unions, narrowing, and explicit state modeling over optional-property-heavy “bag of props” types.
+- No `any`; use `unknown` and narrow it. (lint: `no-explicit-any`)
+- Use `type`, not `interface`, outside `declare global` and `declare module`. A `type` cannot merge by accident. (lint: `mantle/prefer-type-alias`)
+- No non-null assertions (`value!`). Narrow with null checks, early returns, assertion functions, or a restructure. (lint: `typescript/no-non-null-assertion`)
+- Use `value == null` and `value != null` to cover `null` and `undefined`. Use `=== undefined` only when `undefined` and `null` mean different things. (lint: `eqeqeq` rejects `=== null`)
+- No type assertions (`value as Type`) in application code. Exceptions: `as const`, assertions inside a dedicated type guard, and framework or runtime boundaries that cannot be typed. Never assert to silence an error. (lint: `typescript/no-unsafe-type-assertion`, for unsafe ones)
+- A `switch` on a union covers every member or has a `default`. (lint: `typescript/switch-exhaustiveness-check`)
+- Model state with discriminated unions and narrowing, not optional-property bags.
 
 ## Writing
 
@@ -207,7 +203,16 @@ Before you return text or report a diff complete, read what you wrote for:
 
 Fix what you find. Report it in the `Conventions pass:` note [AGENTS.md](./AGENTS.md) requires.
 
+## Browser code
+
+- Gate browser-only code with `canUseDOM()` from `@ngrok/mantle/browser-only`, never `typeof window`, `typeof document`, or `typeof navigator`. Node has a `navigator` global. (lint: `mantle/prefer-can-use-dom`)
+- Set `width` and `height` on every `<img>`, so the layout does not shift when it loads. (lint: `mantle/img-dimensions`)
+
 ## className Composition
+
+Compose `className` with `cx` from `@ngrok/mantle/cx`, never `clsx` or `classnames`. (lint: `mantle/no-classname-construction`, `mantle/no-clsx-classnames`)
+
+Write each Tailwind class in its canonical form, such as `p-4!`, not `!p-4`. A hook and lint-staged rewrite it on edit and on commit; `pnpm -w run tailwind:check` reports it. A spacing step is a multiple of 0.25. (lint: `mantle/tailwind-quarter-step-spacing`)
 
 ```tsx
 import { cx } from "@ngrok/mantle/cx";

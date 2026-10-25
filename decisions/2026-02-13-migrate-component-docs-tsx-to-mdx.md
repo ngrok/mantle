@@ -139,7 +139,7 @@ pnpm -w run start        # manually verify the page renders correctly
 - Props table types: wrap in backticks (`` `string` ``), use `\|` for union types in table cells.
 - Mark optional props with `?` suffix on the prop name (e.g., `` `side?` ``).
 - If a prop has no default, leave the Default column empty.
-- "All props from [element](...)" links go to MDN.
+- `All props from [element](...)` links go to MDN.
 
 ## Gotchas
 
