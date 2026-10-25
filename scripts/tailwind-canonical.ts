@@ -137,11 +137,22 @@ const CLASS_FUNCTIONS = new Set([
 ]);
 
 /**
- * Where a literal sits: a place a class can go, the argument of a class
- * function, or a place no class goes, such as the argument of another call or
- * an object key.
+ * Where a literal sits: a place a class can go, the value of a class
+ * attribute, the argument of a class function, or a place no class goes, such
+ * as the argument of another call or an object key.
  */
-type LiteralPosition = "open" | "class-function" | "closed";
+type LiteralPosition = "open" | "class-attribute" | "class-function" | "closed";
+
+/**
+ * Whether a literal is one bare word, such as `flex-shrink`, with no variant,
+ * arbitrary value, or modifier.
+ *
+ * Why: in an open position, such a word is as likely a CSS property name as a
+ * class. A class attribute or a class function marks it as a class.
+ */
+function isBareWord(text: string): boolean {
+	return /^\s*[\w-]+\s*$/.test(text);
+}
 
 /** Nodes that hold classes again inside a closed position, such as a callback passed to `map`. */
 const OPEN_SCOPES = new Set([
@@ -183,15 +194,23 @@ function calleeName(callee: Node): string | undefined {
  * to a function other than a class function, an object or member key, an operand of a
  * comparison, a `case` test, a JSX child, or the value of a JSX attribute that
  * takes no class is data: `setProperty("flex-shrink", "0")` must keep its
- * property name. A function body holds classes again. The text is raw source,
+ * property name. Outside a class attribute or a class function, one bare word
+ * is data too. A function body holds classes again. The text is raw source,
  * not the cooked value, so an offset into it is an offset into the file.
  *
  * @example
- * literals('const a = "flex"; // flex-shrink', "x.ts"); // => [{ start: 11, text: "flex" }]
+ * literals('const a = "flex p-2"; // flex-shrink', "x.ts"); // => [{ start: 11, text: "flex p-2" }]
  * literals('el.style.setProperty("flex-shrink", "0")', "x.ts"); // => []
+ * literals('const property = "flex-shrink"', "x.ts"); // => []
  */
 export function literals(content: string, fileName: string): Literal[] {
 	const found: Literal[] = [];
+	const add = (start: number, end: number, position: LiteralPosition): void => {
+		const text = content.slice(start, end);
+		if (position !== "open" || !isBareWord(text)) {
+			found.push({ start, text });
+		}
+	};
 	const visit = (value: unknown, position: LiteralPosition): void => {
 		if (Array.isArray(value)) {
 			for (const item of value) {
@@ -206,15 +225,14 @@ export function literals(content: string, fileName: string): Literal[] {
 		switch (node.type) {
 			case "Literal":
 				if (position !== "closed" && typeof node.value === "string") {
-					found.push({ start: node.start + 1, text: content.slice(node.start + 1, node.end - 1) });
+					add(node.start + 1, node.end - 1, position);
 				}
 				return;
 			// A template element spans its delimiters: `` ` `` or `}` before the text, `` ` `` or `${` after it.
 			// Why: the text comes from the source, because oxc normalizes CRLF to LF in `value.raw`.
 			case "TemplateElement":
 				if (position !== "closed") {
-					const end = node.end - (content[node.end - 1] === "`" ? 1 : 2);
-					found.push({ start: node.start + 1, text: content.slice(node.start + 1, end) });
+					add(node.start + 1, node.end - (content[node.end - 1] === "`" ? 1 : 2), position);
 				}
 				return;
 			case "CallExpression":
@@ -245,7 +263,7 @@ export function literals(content: string, fileName: string): Literal[] {
 				return;
 			case "JSXAttribute": {
 				const name = node.name.type === "JSXIdentifier" ? node.name.name : node.name.name.name;
-				visit(node.value, isClassAttribute(name) ? "open" : "closed");
+				visit(node.value, isClassAttribute(name) ? "class-attribute" : "closed");
 				return;
 			}
 			case "JSXElement":

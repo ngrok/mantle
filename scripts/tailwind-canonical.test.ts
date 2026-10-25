@@ -81,11 +81,22 @@ describe("literals", () => {
 		expect(literals(content, "x.tsx").map(({ text }) => text)).toEqual(["border-1", "grow"]);
 	});
 
+	it("skips one bare word outside a class attribute or a class function", () => {
+		const content =
+			'const property = "flex-shrink";\nconst a = "flex p-2";\ncx("grow");\n<div className="shrink" />;';
+
+		expect(literals(content, "x.tsx").map(({ text }) => text)).toEqual([
+			"flex p-2",
+			"grow",
+			"shrink",
+		]);
+	});
+
 	it("skips the name of a class field, an interface member, and an enum member", () => {
 		const content =
-			'class S { "flex-shrink" = "grow"; }\ninterface T { "flex-shrink": number }\nenum U { "flex-shrink" = 1 }';
+			'class S { "flex-shrink" = "grow p-2"; }\ninterface T { "flex-shrink": number }\nenum U { "flex-shrink" = 1 }';
 
-		expect(literals(content, "x.ts").map(({ text }) => text)).toEqual(["grow"]);
+		expect(literals(content, "x.ts").map(({ text }) => text)).toEqual(["grow p-2"]);
 	});
 
 	it("covers a class function's arguments and object keys, and JSX inside another call", () => {
