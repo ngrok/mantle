@@ -652,15 +652,14 @@ describe("the inline FOUC script resolves and persists the preference", () => {
 });
 
 describe("forceTheme pins what lands on <html>", () => {
-	// The dark stylesheet is live on every page, light pages included. Which block wins is then decided
+	// `mantle.css` holds both themes on every page. Which rule wins is then decided
 	// by the class and `data-applied-theme` on `<html>` — and these three writers
 	// are what put them there. If any of them resolves the stored preference
 	// instead of the forced theme, a user whose cookie says dark gets
-	// `<html class="dark">` with the dark sheet applied, and a `forceTheme="light"`
-	// page paints dark.
+	// `<html class="dark">`, and a `forceTheme="light"` page paints dark.
 	//
 	// `data-theme` is deliberately NOT one of the deciders, even though every theme
-	// block lists it: it holds the preference, which a forced page leaves
+	// rule lists it: it holds the preference, which a forced page leaves
 	// disagreeing, so each of those selectors carries `:not([data-applied-theme])`.
 	// force-theme.browser.test.ts proves the computed result; these tests only pin
 	// the attributes, which is why they cannot see a cascade regression.

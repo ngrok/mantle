@@ -1003,7 +1003,7 @@
     "category": "Primitives",
     "status": "stable",
     "importPath": "@ngrok/mantle/theme",
-    "summary": "Theme primitives (ThemeProvider, MantleStyleSheets, and FOUC prevention) for light and dark modes that follow the OS by default.",
+    "summary": "Theme primitives (ThemeProvider and FOUC prevention) for light and dark modes that follow the OS by default.",
     "jsdoc": "Re-exports for the Theme component — the provider and hooks that carry the applied theme, plus the document tags that stop a wrong-theme flash."
   },
   {

@@ -1,7 +1,7 @@
 # Two themes, and a theme toggle with two visible states
 
 **Date:** 2026-10-22
-**Status:** Accepted; decision 6 superseded by [2026-10-23-theme-controls-by-surface.md](./2026-10-23-theme-controls-by-surface.md)
+**Status:** Accepted; decision 6 superseded by [2026-10-23-theme-controls-by-surface.md](./2026-10-23-theme-controls-by-surface.md); the follow-up in decision 4 shipped in [2026-10-25-light-dark-tokens.md](./2026-10-25-light-dark-tokens.md)
 **Supersedes:** decision 1 of [2026-07-15-theme-switcher-compound-api.md](./2026-07-15-theme-switcher-compound-api.md) (`ThemeSwitcher` is a `Root`/`Trigger`/`Content` compound). Its rule against prop-bag passthrough props stays in force.
 **Tracks:** MNTL-59
 

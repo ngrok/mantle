@@ -172,6 +172,7 @@ const migrationsPages = [
 	"0009-chart-root-mode-migration",
 	"0010-button-icon-swap-migration",
 	"0011-eliminate-high-contrast-migration",
+	"0012-light-dark-tokens-migration",
 ];
 
 export default [

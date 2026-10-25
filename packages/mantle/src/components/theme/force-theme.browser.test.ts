@@ -1,22 +1,17 @@
 import twThemeCss from "tailwindcss/theme.css?raw";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import darkCss from "../../mantle-dark.css?raw";
 import mantleCss from "../../mantle.css?raw";
-import {
-	extractTopLevelRules,
-	parseDeclarationBlock,
-	parseDeclarations,
-} from "../../test-utils/parse-theme-css.js";
+import { readResolvedTokens, themeTestCss } from "../../test-utils/parse-theme-css.js";
 
 /**
  * Regression proof for a forced page whose stored preference disagrees with it.
  *
  * `forceTheme` pins the class and `data-applied-theme` to the forced theme while
  * `data-theme` keeps the stored preference, so a theme switcher still works. The
- * dark stylesheet is applied on every page. Those two facts
- * together used to hand the page to the preference: every theme block listed a
- * bare `[data-theme="…"]`, so `:root[data-theme="dark"]` matched a
- * `forceTheme="light"` page and the later sheet won the cascade at equal
+ * dark color-scheme rule is in the same stylesheet as the light one. Those two
+ * facts together used to hand the page to the preference: every theme rule
+ * listed a bare `[data-theme="…"]`, so `:root[data-theme="dark"]` matched a
+ * `forceTheme="light"` page and the later rule won the cascade at equal
  * specificity — a light-locked page painted fully dark, from the first byte.
  *
  * The guard is `[data-theme="…"]:not([data-applied-theme])`: the preference
@@ -34,23 +29,6 @@ const OPPOSITE: Record<Theme, Theme> = {
 	dark: "light",
 };
 
-function serializeRule(selector: string, declarations: Map<string, string>): string {
-	const body = [...declarations].map(([property, value]) => `${property}: ${value};`).join("\n");
-	return `${selector} {\n${body}\n}`;
-}
-
-function serializeThemeRules(css: string): string {
-	return extractTopLevelRules(css)
-		.filter(({ selector }) => selector.startsWith(":root"))
-		.map(({ selector, body }) => serializeRule(selector, parseDeclarations(body)))
-		.join("\n");
-}
-
-const mantleThemeBlock = parseDeclarationBlock(mantleCss, (selector) => selector === "@theme");
-const tailwindDefaults = parseDeclarationBlock(twThemeCss, (selector) =>
-	selector.includes("@theme default"),
-);
-
 /** The token that decides the surface, and so the whole ramp behind it. */
 const PROBE_PROPERTY = "--color-neutral-50";
 
@@ -59,26 +37,10 @@ let pageProbe: HTMLDivElement;
 let islandProbe: HTMLDivElement;
 
 beforeAll(() => {
-	const rootColorVariables = new Map(
-		[...tailwindDefaults, ...mantleThemeBlock].filter(([property]) =>
-			property.startsWith("--color-"),
-		),
-	);
-	// Both sheets applied at once, as on every real page. The bug needs the dark
-	// sheet live to appear at all.
+	// One stylesheet holds both themes, as on every real page. The bug needs the
+	// dark rule live to appear at all.
 	styleElement = document.createElement("style");
-	styleElement.textContent = [
-		serializeRule(":root", rootColorVariables),
-		serializeThemeRules(mantleCss),
-		serializeRule(
-			".invert-theme",
-			parseDeclarations(
-				extractTopLevelRules(mantleCss).find(({ selector }) => selector === ".invert-theme")
-					?.body ?? "",
-			),
-		),
-		serializeThemeRules(darkCss),
-	].join("\n");
+	styleElement.textContent = themeTestCss({ mantleCss, tailwindThemeCss: twThemeCss });
 	document.head.appendChild(styleElement);
 
 	pageProbe = document.createElement("div");
@@ -114,8 +76,8 @@ function applyForced({ forced, preference }: { forced: Theme; preference: Theme 
 	html.setAttribute("data-theme", preference);
 }
 
-function read(element: Element): string {
-	return getComputedStyle(element).getPropertyValue(PROBE_PROPERTY).trim();
+function read(element: HTMLElement): string {
+	return readResolvedTokens(element, [PROBE_PROPERTY]).get(PROBE_PROPERTY) ?? "";
 }
 
 /** What each theme computes to on a plain, unforced page. */

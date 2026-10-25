@@ -83,6 +83,24 @@ test("a chart token resolves from the root's cascade with no probe", () => {
 	expect(host.childElementCount).toBe(0);
 });
 
+test("a light-dark() token resolves with no probe in the root's color-scheme, an island's included", () => {
+	const host = mountHost();
+	host.style.setProperty("--color-chart-1", "light-dark(rgb(1 2 3), rgb(4 5 6))");
+	host.style.colorScheme = "light";
+	expect(resolveSeriesColor(resolverFor(host), "chart-1")).toBe("rgb(1 2 3)");
+	host.style.colorScheme = "dark";
+	expect(resolveSeriesColor(resolverFor(host), "chart-1")).toBe("rgb(4 5 6)");
+
+	// An island sets the scheme on an ancestor; the token inherits unresolved.
+	const island = mountHost();
+	island.style.setProperty("--color-chart-1", "light-dark(rgb(1 2 3), rgb(4 5 6))");
+	island.style.colorScheme = "dark";
+	const root = document.createElement("div");
+	island.append(root);
+	expect(resolveSeriesColor(resolverFor(root), "chart-1")).toBe("rgb(4 5 6)");
+	expect(host.childElementCount + root.childElementCount).toBe(0);
+});
+
 test("a custom property set on the root wins over the document's", () => {
 	const host = mountHost();
 	host.style.setProperty("--color-chart-1", "rgb(1 2 3)");

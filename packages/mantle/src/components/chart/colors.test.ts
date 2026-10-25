@@ -6,6 +6,7 @@ import {
 	createColorResolver,
 	isChartColorToken,
 	observeThemeChanges,
+	pickLightDark,
 	resolveSeriesColor,
 } from "./colors.js";
 
@@ -30,10 +31,16 @@ const createParseContext = (accepted: readonly string[]): ColorParseContext => {
 
 /** The computed-style reads the resolver makes, with no cascade behind them. */
 const createComputed = (
-	source: { properties?: Record<string, string>; color?: string; fontFamily?: string } = {},
+	source: {
+		properties?: Record<string, string>;
+		color?: string;
+		colorScheme?: string;
+		fontFamily?: string;
+	} = {},
 ): ComputedColorSource => ({
 	getPropertyValue: (name) => source.properties?.[name] ?? "",
 	color: source.color ?? "rgb(0, 0, 0)",
+	colorScheme: source.colorScheme ?? "light",
 	fontFamily: source.fontFamily ?? "monospace",
 });
 
@@ -127,12 +134,69 @@ describe("createColorResolver", () => {
 		expect(host.childElementCount).toBe(0);
 	});
 
+	test("a light-dark() token resolves to the root's color-scheme argument with no probe", () => {
+		const host = mountHost();
+		const properties = { "--color-chart-1": "light-dark(#2d81fe, #5492fa)" };
+		const light = createColorResolver(host, {
+			computed: createComputed({ properties, colorScheme: "light" }),
+			parseContext: createParseContext([]),
+		});
+		const dark = createColorResolver(host, {
+			computed: createComputed({ properties, colorScheme: "dark" }),
+			parseContext: createParseContext([]),
+		});
+		expect(resolveSeriesColor(light, "chart-1")).toBe("#2d81fe");
+		expect(resolveSeriesColor(dark, "chart-1")).toBe("#5492fa");
+		expect(host.childElementCount).toBe(0);
+	});
+
+	test("a light-dark() token under a scheme the browser picks resolves through the probe", () => {
+		const host = mountHost();
+		const resolver = createColorResolver(host, {
+			computed: createComputed({
+				properties: { "--color-chart-1": "light-dark(#2d81fe, #5492fa)" },
+				colorScheme: "light dark",
+			}),
+			parseContext: createParseContext([]),
+		});
+		// A resolver that guesses an argument returns one of the two hex colors.
+		expect(resolveSeriesColor(resolver, "chart-1")).toBe(HOST_COLOR);
+		expect(host.childElementCount).toBe(1);
+	});
+
 	test("an empty computed font family falls back to sans-serif", () => {
 		const resolver = createColorResolver(mountHost(), {
 			computed: createComputed({ fontFamily: "" }),
 			parseContext: null,
 		});
 		expect(resolver.fontFamily).toBe("sans-serif");
+	});
+});
+
+describe("pickLightDark", () => {
+	test("picks the argument for the scheme", () => {
+		const value = "light-dark(oklch(1 0 0), oklch(0 0 0))";
+		expect(pickLightDark(value, "light")).toBe("oklch(1 0 0)");
+		expect(pickLightDark(value, "dark")).toBe("oklch(0 0 0)");
+	});
+
+	test("picks inside other functions and inside a picked argument", () => {
+		const value =
+			"color-mix(in oklab, light-dark(light-dark(#111111, #222222), #333333) 50%, light-dark(#444444, #555555))";
+		expect(pickLightDark(value, "light")).toBe("color-mix(in oklab, #111111 50%, #444444)");
+		expect(pickLightDark(value, "dark")).toBe("color-mix(in oklab, #333333 50%, #555555)");
+	});
+
+	test("a comma inside an argument does not split it", () => {
+		expect(pickLightDark("light-dark(rgb(1, 2, 3), rgb(4, 5, 6))", "dark")).toBe("rgb(4, 5, 6)");
+	});
+
+	test("a value with no light-dark() or a malformed one stays as it is", () => {
+		expect(pickLightDark("#3e6ff4", "dark")).toBe("#3e6ff4");
+		expect(pickLightDark("light-dark(#3e6ff4)", "dark")).toBe("light-dark(#3e6ff4)");
+		expect(pickLightDark("light-dark(#3e6ff4, #000000", "dark")).toBe(
+			"light-dark(#3e6ff4, #000000",
+		);
 	});
 });
 

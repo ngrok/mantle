@@ -686,9 +686,9 @@ class strings are only render-safety.
 ### 5.4. Design tokens
 
 A token the component _paints_ with (not a consumer-settable knob) is not a CSS-variable API entry — it is a
-design token, and it needs a value in **both** theme entry points or it resolves to nothing outside light
-mode: `packages/mantle/src/mantle.css` and `mantle-dark.css`. No §9 command catches a missing one. Pin the mapping with a `?raw` test, as
-`components/chart/tokens.test.ts` does.
+design token, and it needs a value for **both** themes in `packages/mantle/src/mantle.css`: a `light-dark()` pair,
+or an expression over tokens that already have one. A single plain color paints the light value in dark. No §9
+command catches a missing pair. Pin the mapping with a `?raw` test, as `components/chart/tokens.test.ts` does.
 
 ---
 
@@ -1021,7 +1021,7 @@ Run this against the diff before calling a component done. Each line is a defect
 
 - [ ] `index.ts`, `package.json` export (alphabetical), route, and nav entries all present and consistent.
 - [ ] `importPathOverrides` if the slug is not the export key; `doNotPublish` if applicable.
-- [ ] New tokens have values in both theme stylesheets.
+- [ ] New color tokens are `light-dark()` pairs, or read tokens that are.
 - [ ] Changeset with the right bump and consumer-facing prose.
 
 **Proof**

@@ -27,6 +27,8 @@
  * @see https://www.w3.org/TR/WCAG21/#dfn-relative-luminance — WCAG 2.1 SC 1.4.3
  */
 
+import { pickLightDark } from "./colors.js";
+
 /** The OKLCH lightness band a categorical mark must sit inside, per mode. */
 const LIGHTNESS_BAND = {
 	light: [0.43, 0.77],
@@ -446,17 +448,24 @@ const collectDeclarations = (css: string): Map<string, string> => {
 };
 
 /**
- * Name one stylesheet for a lookup chain.
+ * Name one stylesheet for a lookup chain. With a `scheme`, each
+ * `light-dark()` value keeps only that theme's argument, so one stylesheet
+ * reads as the light or the dark theme.
  *
  * @example
  * ```ts
- * layer("mantle.css", mantleCss);
+ * layer("mantle.css", mantleCss, "dark");
  * ```
  */
-const layer = (name: string, css: string): StyleSheetLayer => ({
-	name,
-	declarations: collectDeclarations(css),
-});
+const layer = (name: string, css: string, scheme?: "light" | "dark"): StyleSheetLayer => {
+	const declarations = collectDeclarations(css);
+	if (scheme != null) {
+		for (const [property, value] of declarations) {
+			declarations.set(property, pickLightDark(value, scheme));
+		}
+	}
+	return { name, declarations };
+};
 
 const ALIAS_ONLY = /^var\(\s*(--[a-zA-Z0-9_-]+)\s*\)$/;
 
