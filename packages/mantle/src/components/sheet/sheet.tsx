@@ -330,10 +330,14 @@ type SheetContentProps = ComponentProps<typeof SheetPrimitiveContent> &
  * the content. When multiple overlays are open, the most recently mounted
  * overlay renders on top.
  *
- * UI that must stay usable above the open sheet, such as a consent banner,
+ * UI that must take clicks above the open sheet, such as a consent banner,
  * carries the `overlay-prompt` class: a click inside it does not count as an
  * outside click. Add `pointer-events-auto` too, because the open sheet sets
  * `pointer-events: none` on `<body>`. mantle's `Toaster` does both.
+ *
+ * The class reaches pointer input only. The open sheet traps keyboard
+ * focus and hides outside content from assistive technology. Put a control that
+ * every user must reach inside the content.
  *
  * @see https://mantle.ngrok.com/components/overlays/sheet#sheetcontent
  *
@@ -1330,10 +1334,14 @@ const Sheet = {
 	 * the content. When multiple overlays are open, the most recently mounted
 	 * overlay renders on top.
 	 *
-	 * UI that must stay usable above the open sheet, such as a consent banner,
+	 * UI that must take clicks above the open sheet, such as a consent banner,
 	 * carries the `overlay-prompt` class: a click inside it does not count as an
 	 * outside click. Add `pointer-events-auto` too, because the open sheet sets
 	 * `pointer-events: none` on `<body>`. mantle's `Toaster` does both.
+	 *
+	 * The class reaches pointer input only. The open sheet traps keyboard
+	 * focus and hides outside content from assistive technology. Put a control that
+	 * every user must reach inside the content.
 	 *
 	 * @see https://mantle.ngrok.com/components/overlays/sheet#sheetcontent
 	 *

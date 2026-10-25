@@ -93,7 +93,7 @@ type ComboboxInputProps = Omit<
  * ```
  *
  * @example
- * Free-text entry: Enter submits the typed text unless the user moved to a suggestion.
+ * Free-text entry: Enter submits the typed text unless the user moved to a suggestion or an input method is still composing text.
  * ```tsx
  * <form onSubmit={handleSubmit}>
  *   <Combobox.Root inputValue={name} setInputValue={setName}>
@@ -101,7 +101,7 @@ type ComboboxInputProps = Omit<
  *       autoSelect={false}
  *       onKeyDown={(event) => {
  *         const hasActiveOption = event.currentTarget.getAttribute("aria-activedescendant") != null;
- *         if (event.key === "Enter" && !hasActiveOption) {
+ *         if (event.key === "Enter" && !event.nativeEvent.isComposing && !hasActiveOption) {
  *           event.preventDefault();
  *           event.currentTarget.form?.requestSubmit();
  *         }
@@ -623,7 +623,7 @@ const Combobox = {
 	 * ```
 	 *
 	 * @example
-	 * Free-text entry: Enter submits the typed text unless the user moved to a suggestion.
+	 * Free-text entry: Enter submits the typed text unless the user moved to a suggestion or an input method is still composing text.
 	 * ```tsx
 	 * <form onSubmit={handleSubmit}>
 	 *   <Combobox.Root inputValue={name} setInputValue={setName}>
@@ -631,7 +631,7 @@ const Combobox = {
 	 *       autoSelect={false}
 	 *       onKeyDown={(event) => {
 	 *         const hasActiveOption = event.currentTarget.getAttribute("aria-activedescendant") != null;
-	 *         if (event.key === "Enter" && !hasActiveOption) {
+	 *         if (event.key === "Enter" && !event.nativeEvent.isComposing && !hasActiveOption) {
 	 *           event.preventDefault();
 	 *           event.currentTarget.form?.requestSubmit();
 	 *         }

@@ -99,13 +99,15 @@ import { Button } from "@ngrok/mantle/button";
 
 ## UI above an open alert dialog
 
-UI that must stay usable above an open alert dialog, such as a consent banner, carries the `overlay-prompt` class. A click inside it does not count as an outside click. Add `pointer-events-auto` too, because the open alert dialog sets `pointer-events: none` on `<body>`. mantle's `Toaster` does both.
+UI that must take clicks above an open alert dialog, such as a consent banner, carries the `overlay-prompt` class. A click inside it does not count as an outside click. Add `pointer-events-auto` too, because the open alert dialog sets `pointer-events: none` on `<body>`. mantle's `Toaster` does both.
 
 ```tsx
 <div className="overlay-prompt pointer-events-auto fixed inset-x-0 bottom-0 z-max">
 	<ConsentBanner />
 </div>
 ```
+
+The class reaches pointer input only. The open alert dialog traps keyboard focus and hides outside content from assistive technology with `aria-hidden`, so a keyboard or screen reader user cannot reach the banner. Put a control that every user must reach inside the alert dialog content.
 
 ## Composition
 

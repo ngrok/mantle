@@ -14,7 +14,7 @@ New JSDoc notes:
 - `Combobox.Input`: Enter never submits a parent form while the combobox is open, with a free-text example. `Combobox.Root`: control `open` when you render `Combobox.Content` conditionally. `Combobox.Content`: children must be items, groups, or separators.
 - Charts: a `xKey`, `dataKey`, or `zKey` that no row has throws. The Root is `aspect-video` by default, the legend scrolls past `max-h-16`, and a `mode="decorative"` chart hides its children from assistive technology.
 - `ThemeProvider`: the `mantle-ui-theme` cookie and the events that apply it again. Set the cookie and reload in browser automation.
-- `Dialog.Content`, `Sheet.Content`, and `AlertDialog.Content`: the `overlay-prompt` class keeps UI such as a consent banner usable above an open overlay.
+- `Dialog.Content`, `Sheet.Content`, and `AlertDialog.Content`: the `overlay-prompt` class lets UI such as a consent banner take clicks above an open overlay. It does not reach the keyboard or assistive technology.
 - `useInView`: do not combine `once: true` with `initial: true`.
 - `Breakpoint`: `xs` (480px) is wider than most phones, so give each `xs:` class an unprefixed base.
 - The docs site lists the reserved `⌘K` and `⌘B` chords at https://mantle.ngrok.com/accessibility#reserved-keyboard-shortcuts.
