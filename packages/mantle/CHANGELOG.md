@@ -1,5 +1,11 @@
 # @ngrok/mantle
 
+## 0.92.1
+
+### Patch Changes
+
+- [#1620](https://github.com/ngrok/mantle/pull/1620) [`694c2dd`](https://github.com/ngrok/mantle/commit/694c2dd26042c070407482c16acbc38c9e05e93a) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `TruncatedText` clips its head and keeps its tail again. In 0.92.0, Tailwind compiled the head and tail `max-width` rules to invalid CSS, and the browser dropped them. A long value overflowed its box, so a sibling such as the `IdTag` copy button painted over the text.
+
 ## 0.92.0
 
 ### Minor Changes
