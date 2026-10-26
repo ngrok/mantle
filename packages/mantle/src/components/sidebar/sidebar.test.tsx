@@ -324,6 +324,23 @@ describe("Sidebar.Nav (desktop)", () => {
 		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "collapsed");
 	});
 
+	test("Ctrl+B does not toggle when an earlier listener prevented it", () => {
+		// An app hotkey on `document` runs before the sidebar's `window` listener.
+		render(
+			<Sidebar.Root>
+				<Sidebar.Nav data-testid="nav" />
+			</Sidebar.Root>,
+		);
+		const preventChord = (event: KeyboardEvent) => {
+			event.preventDefault();
+		};
+		document.addEventListener("keydown", preventChord);
+		fireEvent.keyDown(document, { key: "b", ctrlKey: true });
+		document.removeEventListener("keydown", preventChord);
+
+		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "expanded");
+	});
+
 	test("Trigger's tooltip shows its label and shortcut to pointer users", async () => {
 		// Not gated on the rail state the way `Sidebar.Tooltip` is: the trigger is
 		// icon-only at every breakpoint, so a pointer user has nothing else to read.

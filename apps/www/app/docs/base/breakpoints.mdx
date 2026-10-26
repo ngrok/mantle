@@ -28,6 +28,8 @@ There are seven breakpoints by default, inspired by common device resolutions:
 | `xl`              | 80rem (1280px)  | `@media (width >= 80rem) { ... }`   |
 | `2xl`             | 96rem (1536px)  | `@media (width >= 96rem) { ... }`   |
 
+`xs` (480px) is wider than most phones, so a class with only an `xs:` value applies nothing on a phone. Give an unprefixed base value first, then override it at the breakpoint: `flex-col xs:flex-row`.
+
 ## useBreakpoint hook
 
 The `useBreakpoint` hook returns the current breakpoint based on the viewport width. It efficiently tracks all breakpoints and returns the largest one that currently matches.

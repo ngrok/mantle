@@ -48,7 +48,9 @@ type ScatterPlotRootProps<
 	ChartAccessibilityProps<TMode> & {
 		/** Rows of data; each row is one point per composed `ScatterPlot.Point` series. */
 		data: readonly TDatum[];
-		/** The key of each row's x value (number or `Date`). */
+		/**
+		 * The key of each row's x value (number or `Date`). If no row has the key, the Root throws.
+		 */
 		xKey: Extract<keyof TDatum, string>;
 		/** Override the auto-detected x scale (`Date` values → `"time"`, numbers → `"linear"`). */
 		xScale?: "linear" | "time";
@@ -65,7 +67,7 @@ type ScatterPlotDepthProps<TDatum extends ChartDatum = ChartDatum> =
 			 * The key of each row's depth value. When set, the scatter renders in
 			 * 3D: drag the plot to rotate the cube. Axis parts and reference lines
 			 * apply to the 2D projection only and are ignored in 3D (the cube frame
-			 * carries orientation).
+			 * carries orientation). If no row has the key, the Root throws.
 			 */
 			zKey: Extract<keyof TDatum, string>;
 			/**
@@ -86,7 +88,11 @@ type ScatterPlotDepthProps<TDatum extends ChartDatum = ChartDatum> =
  * Props for {@link ScatterPlot.Point}.
  */
 type ScatterPlotPointProps = {
-	/** The row key this series reads its y values from. */
+	/**
+	 * The row key this series reads its y values from.
+	 * If no row has the key, the chart throws, so put the key in every row, with
+	 * `null` for no value. A row with no value renders a gap.
+	 */
 	dataKey: string;
 	/** Display name for the legend, tooltip, and data table. Defaults to `dataKey`. */
 	label?: string;

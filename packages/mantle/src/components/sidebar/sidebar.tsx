@@ -228,6 +228,10 @@ type SidebarRootProps = {
 	 * embedded editors like Monaco and CodeMirror, which attach to exactly those
 	 * elements. Set `false` to opt out entirely.
 	 *
+	 * An earlier `keydown` listener that calls `preventDefault()` (on `document`,
+	 * or on an element) stops the shortcut. Do not bind `⌘B` in your app as
+	 * well: delete the local binding, or set `false`.
+	 *
 	 * The shortcut has exactly one owner per window: the first mounted root
 	 * with the shortcut enabled. Additional roots (nested or siblings) queue
 	 * and take ownership only when the owner unmounts, so composing a second
@@ -452,6 +456,11 @@ const Root = ({
 		const isApple = isApplePlatform();
 		const handleKeyDown = (event: KeyboardEvent) => {
 			if (!claim.isOwner()) {
+				return;
+			}
+			// Yield to a listener that already handled the chord, such as an app
+			// hotkey on `document`, which runs before this `window` listener.
+			if (event.defaultPrevented) {
 				return;
 			}
 			// Never steal the chord from a text-editing context. This listener is

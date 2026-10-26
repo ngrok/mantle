@@ -108,6 +108,18 @@ type ThemeProviderProps = PropsWithChildren<{
  * On the server, pass `ssrCookie` so the context starts at the stored theme.
  * The hydrated client then agrees with the server HTML.
  *
+ * The preference lives in the `mantle-ui-theme` cookie. The provider reads the
+ * cookie again and applies its theme to `<html>` on these events:
+ *
+ * - mount
+ * - `visibilitychange` to visible, and `pageshow`
+ * - a theme change in another tab (`BroadcastChannel` or `storage`)
+ * - an OS color-scheme change
+ *
+ * The provider does not read the `<html>` class. The next theme change replaces
+ * a direct edit to it. In browser automation, set the cookie
+ * (`mantle-ui-theme=dark`) and reload.
+ *
  * @see https://mantle.ngrok.com/components/primitives/theme#themeprovider
  *
  * @example

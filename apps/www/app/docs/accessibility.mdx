@@ -69,6 +69,17 @@ The table below summarizes the keyboard contract for the most common interactive
 | [DataTable](/components/data-display/data-table)                                                                            | Row click handlers respond to `Enter` when used with `asChild` rendering of an `<a>` or `<button>`. Header sort buttons follow Button keys above. |
 | [Toast](/components/feedback/toast)                                                                                         | Auto-dismissing toasts respect `prefers-reduced-motion`; `F8` (browser default) cycles to the toast region.                                       |
 
+## Reserved keyboard shortcuts
+
+mantle binds two global chords on `window`. Each listener calls `preventDefault()` when it handles the chord.
+
+| Chord                  | Owner                                                                    | Turn it off                |
+| ---------------------- | ------------------------------------------------------------------------ | -------------------------- |
+| `⌘K` (macOS), `Ctrl+K` | [`Command.DialogRoot`](/components/navigation/command) opens the palette | `keyboardShortcut={false}` |
+| `⌘B` (macOS), `Ctrl+B` | [`Sidebar.Root`](/components/navigation/sidebar) toggles the sidebar     | `keyboardShortcut={false}` |
+
+Do not bind these chords in your app as well. A listener on `document` or on an element runs before mantle's `window` listener, so both handlers run. If your handler calls `preventDefault()`, mantle's handler does nothing. To own a chord, set `keyboardShortcut={false}` and bind it yourself.
+
 ## Focus management
 
 - **Trap on modal surfaces.** `Dialog`, `AlertDialog`, and `Sheet` trap focus while open and restore it to the trigger on close.

@@ -192,6 +192,13 @@ type ButtonProps = ComponentProps<"button"> &
 		 * An icon to render inside the button, beside the button's text
 		 * children. When `isLoading` is `true`, a spinner replaces the icon.
 		 *
+		 * Pass the icon here, never as a child. A child icon is an anti-pattern:
+		 * it gets no `size-5` and no `shrink-0`, the padding on its side does not
+		 * tighten, and `isLoading` adds a spinner beside it instead of in its place.
+		 *
+		 * The icon gets `size-5`. A size class on the icon element wins, as in
+		 * `icon={<GearIcon className="size-4" />}`.
+		 *
 		 * For an icon-only button, do not use `Button` — use `IconButton`
 		 * instead: it requires an accessible `label` and renders a square box
 		 * on the same shared size scale.
@@ -241,6 +248,10 @@ type ButtonProps = ComponentProps<"button"> &
  * while `IconButton` requires a screen-reader `label` and renders a square
  * box on the same shared size scale.
  *
+ * **Icons.** Pass the icon through the `icon` prop, never as a child. A child
+ * icon is an anti-pattern: it gets no size, no `shrink-0`, and no padding
+ * adjustment, and `isLoading` adds a spinner beside it.
+ *
  * **Structure.** `children` render inside a `<span data-slot="button-label">`,
  * beside the `icon` slot. The span carries `display: contents`, so it lays out
  * nothing of its own — every child stays a flex item of the button, and the
@@ -256,6 +267,12 @@ type ButtonProps = ComponentProps<"button"> &
  * with `tabIndex={-1}`, and a click on it is cancelled before any handler runs.
  * An explicit `disabled` wins over `isLoading`, so `disabled={false}` keeps a
  * loading button enabled. `aria-disabled={false}` cannot re-enable the button.
+ * To gate a button on readiness and on a pending action, put both in
+ * `disabled`: `disabled={!isReady || isPending}`.
+ *
+ * **`asChild`.** Wrap a plain `<a>` or a router `Link`. Do not wrap `Anchor`:
+ * `Anchor` puts its children in its own label `<span>`, so a button `icon`
+ * stacks above the text.
  *
  * | Data Attribute    | Value                                                  | Description                                                                                   |
  * | ----------------- | ------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
@@ -282,6 +299,40 @@ type ButtonProps = ComponentProps<"button"> &
  * ```tsx
  * <Button type="submit" appearance="filled" intent="neutral">
  *   Save
+ * </Button>
+ * ```
+ *
+ * @example
+ * Pass the icon through `icon`, never as a child:
+ * ```tsx
+ * // ❌ <Button appearance="filled" intent="neutral"><PlusIcon />Create endpoint</Button>
+ * <Button appearance="filled" intent="neutral" icon={<PlusIcon />}>
+ *   Create endpoint
+ * </Button>
+ * ```
+ *
+ * @example
+ * Gate the button on readiness and on a pending action. An explicit `disabled`
+ * wins over `isLoading`, so `disabled` must cover both:
+ * ```tsx
+ * <Button
+ *   type="submit"
+ *   appearance="filled"
+ *   intent="neutral"
+ *   isLoading={isPending}
+ *   disabled={!isReady || isPending}
+ * >
+ *   Save
+ * </Button>
+ * ```
+ *
+ * @example
+ * A button-styled link wraps a plain `<a>`, not `Anchor`:
+ * ```tsx
+ * <Button asChild appearance="outlined" intent="neutral" icon={<ArrowSquareOutIcon />} iconPlacement="end">
+ *   <a href="https://ngrok.com/docs" target="_blank" rel="noreferrer">
+ *     Read the docs
+ *   </a>
  * </Button>
  * ```
  *
