@@ -79,8 +79,8 @@ type ThemeProviderProps = PropsWithChildren<{
 	 * Pin the theme that renders, ignoring the stored preference and the OS. Pass
 	 * the same value you pass `PreventWrongThemeFlashScript` and
 	 * `useInitialHtmlThemeProps`: each one writes the `<html>` class. Leaving them
-	 * out of sync makes a page paint in a theme nobody asked for, because the dark
-	 * stylesheet is always applied and a stale `.dark` on the root takes over a
+	 * out of sync makes a page paint in a theme nobody asked for, because `mantle.css`
+	 * holds both themes and a stale `.dark` on the root takes over a
 	 * `forceTheme="light"` page.
 	 *
 	 * The stored preference is still read and still written by `setTheme`, so

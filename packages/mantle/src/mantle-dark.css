@@ -1,5 +1,0 @@
-/**
-Deprecated: mantle.css holds both themes, so this file is empty. It stays so
-that an existing `@ngrok/mantle/mantle-dark.css` import still resolves. Delete
-the import; a future minor release removes this file.
-*/

@@ -330,10 +330,6 @@ The `ThemeProvider` accepts the following props in addition to the [PropsWithChi
 
 The `ThemeProvider` uses a hardcoded storage key of `mantle-ui-theme` and defaults to `system` theme. The provider manages both values internally, so they need no configuration.
 
-### MantleStyleSheets (deprecated)
-
-`MantleStyleSheets` renders nothing, and `mantleStyleSheetUrls` returns the URLs you pass it. `mantle.css` holds both themes, and `@ngrok/mantle/mantle-dark.css` is an empty file. Delete the component, the call, and every `mantle-dark.css` import or `<link>`. A future minor release removes them.
-
 ### PreventWrongThemeFlashScript
 
 The `PreventWrongThemeFlashScript` component renders the inline script to prevent FOUC. Place it as early as possible in `<head>`. It accepts the following props:

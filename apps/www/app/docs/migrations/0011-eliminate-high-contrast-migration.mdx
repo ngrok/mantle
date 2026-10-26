@@ -10,7 +10,7 @@ description: The high-contrast themes, stylesheets, and Tailwind variants are go
 **TL;DR:** Delete every import of the two high-contrast stylesheets and every `high-contrast:` or `dark-high-contrast:` class. Pass only `darkCssUrl` to `mantleStyleSheetUrls` and `MantleStyleSheets`. Delete `fixMediaScriptContent` and the high-contrast `<link>` tags from a non-React `<head>`. Replace `<ThemeSwitcher.Root><ThemeSwitcher.Trigger {...props} /><ThemeSwitcher.Content /></ThemeSwitcher.Root>` with `<ThemeSwitcher {...props} />`. Replace a `Theme` submenu that holds `ThemeDropdownMenuRadioGroup` with one `ThemeDropdownMenuItem` at the top level of the menu. Users who stored a high-contrast theme need nothing: mantle reads it as light or dark.
 
 > [!NOTE]
-> A later patch release moves the dark theme into `mantle.css`. If you upgrade to that release, delete `mantle-dark.css`, `mantleStyleSheetUrls`, and `MantleStyleSheets` in place of the steps below that keep them.
+> [Migration 0012](/migrations/0012-single-stylesheet-migration) removes `mantle-dark.css`, `mantleStyleSheetUrls`, and `MantleStyleSheets`. If you upgrade past it, run 0012 after this guide.
 
 ## Codemod
 
