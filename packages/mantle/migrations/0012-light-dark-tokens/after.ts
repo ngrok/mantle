@@ -28,3 +28,13 @@ export function build(toUrls: (urls: object) => object) {
 	const urls = toUrls({ url: shadowCssUrl });
 	return urls;
 }
+
+/* oxlint-disable no-var, block-scoped-var -- a hoisted `var` is the shape under test */
+// negative: a `var` in a nested block shadows the import in the whole function
+export function buildHoisted() {
+	if (otherUrls) {
+		var toUrls = otherUrls;
+	}
+	const hoistedUrls = toUrls({ url: shadowCssUrl });
+}
+/* oxlint-enable no-var, block-scoped-var */

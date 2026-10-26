@@ -66,3 +66,30 @@ export function Shadowed({ MantleStyleSheets }: { MantleStyleSheets: (props: obj
 		</head>
 	);
 }
+
+/* oxlint-disable no-var, block-scoped-var -- a hoisted `var` is the shape under test */
+// negative: a `var` in a nested block shadows the import in the whole function
+// Why lowercase: React Compiler does not compile a `var`.
+export function hoistedShadow() {
+	if (OtherSheets) {
+		var Sheets = OtherSheets;
+	}
+	return (
+		<head>
+			<Sheets />
+		</head>
+	);
+}
+/* oxlint-enable no-var, block-scoped-var */
+
+// negative: a loop variable shadows the import
+export function LoopShadow({ sheets }: { sheets: Array<typeof OtherSheets> }) {
+	for (const MantleStyleSheets of sheets) {
+		return (
+			<head>
+				<MantleStyleSheets />
+			</head>
+		);
+	}
+	return null;
+}
