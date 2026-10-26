@@ -337,7 +337,8 @@ This block comes before LIGHT DEFS. Keep that order: where a light and a dark
 selector have the same specificity (a `.dark` class with
 `data-applied-theme="light"`), the light one wins. That is the order an app got
 when this block was `mantle-dark.css` and `<MantleStyleSheets />` came before
-the app stylesheet in `<head>`.
+the app stylesheet in `<head>`. An app that `@import`ed `mantle-dark.css` after
+`mantle.css` got the other order; no single position matches both.
 */
 :root.dark,
 :root[data-theme="dark"]:not([data-applied-theme]),
