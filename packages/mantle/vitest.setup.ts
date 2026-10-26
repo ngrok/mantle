@@ -21,6 +21,12 @@ declare module "vitest/browser" {
 		 * project only; the config registers the command.
 		 */
 		emulateMedia: (options: { reducedMotion: "reduce" | "no-preference" }) => Promise<void>;
+		/**
+		 * Compiles the Tailwind utilities that a source file uses, with the path
+		 * relative to the test file. Browser project only; the config registers
+		 * the command.
+		 */
+		tailwindCss: (sourceFile: string) => Promise<string>;
 	}
 }
 

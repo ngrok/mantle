@@ -1,65 +1,17 @@
 import { render, screen } from "@testing-library/react";
 import { renderToString } from "react-dom/server";
 import { afterAll, beforeAll, expect, test } from "vitest";
-import { userEvent } from "vitest/browser";
+import { commands, userEvent } from "vitest/browser";
 import { TooltipProvider } from "../tooltip/index.js";
 import { TruncatedText } from "./truncated-text.js";
 
-const headBefore = "before:content-['\\200B']";
-const headMaxWidth = "max-w-[calc(100%-var(--_tail-width)+0.5px)]";
-const headTruncatedMaxWidth =
-	"[[data-truncated]>&]:max-w-[max(1ch+0.5px,calc(round(down,100%-var(--_tail-width),1ch)+0.5px))]";
-const tailMinWidth = "min-w-(--_tail-width)";
-const tailTruncatedMinWidth = "[[data-truncated]>&]:min-w-0";
-const tailTruncatedMaxWidth =
-	"[[data-truncated]>&]:max-w-[calc(round(down,100%-1ch-var(--_tail-width),1ch)+var(--_tail-width))]";
-const tailHeadlessMaxWidth =
-	"[[data-truncated]>:empty+&]:max-w-[calc(round(down,100%-var(--_tail-width),1ch)+var(--_tail-width)+0.5px)]";
-const tailHeadlessEllipsis = "[[data-truncated]>:empty+&]:text-ellipsis";
-
-/**
- * Mirrors the CSS Tailwind 4 emits for the utilities the component composes.
- * The browser project loads no stylesheet, so without it the segments lay out
- * as plain inline text and every geometry assertion passes for the wrong
- * reason. The arbitrary classes match the component's spelling, so a change
- * there fails here.
- */
-const LAYOUT_STYLE = `
-@layer utilities {
-	.inline-block { display: inline-block; }
-	.min-w-0 { min-width: 0px; }
-	.max-w-full { max-width: 100%; }
-	.whitespace-nowrap { white-space: nowrap; }
-	.select-all { -webkit-user-select: all; user-select: all; }
-	.select-none { -webkit-user-select: none; user-select: none; }
-	.${CSS.escape("[font-variant-ligatures:none]")} { font-variant-ligatures: none; }
-	.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0; }
-	.overflow-hidden { overflow: hidden; }
-	.text-ellipsis { text-overflow: ellipsis; }
-	.text-left { text-align: left; }
-	.align-bottom { vertical-align: bottom; }
-	.${CSS.escape(headBefore)}::before { content: "\\200B"; }
-	.${CSS.escape(headMaxWidth)} { max-width: calc(100% - var(--_tail-width) + 0.5px); }
-	[data-truncated] > .${CSS.escape(headTruncatedMaxWidth)} {
-		max-width: max(1ch + 0.5px, calc(round(down, 100% - var(--_tail-width), 1ch) + 0.5px));
-	}
-	.${CSS.escape(tailMinWidth)} { min-width: var(--_tail-width); }
-	[data-truncated] > .${CSS.escape(tailTruncatedMinWidth)} { min-width: 0px; }
-	[data-truncated] > .${CSS.escape(tailTruncatedMaxWidth)} {
-		max-width: calc(round(down, 100% - 1ch - var(--_tail-width), 1ch) + var(--_tail-width));
-	}
-	[data-truncated] > :empty + .${CSS.escape(tailHeadlessMaxWidth)} {
-		max-width: calc(round(down, 100% - var(--_tail-width), 1ch) + var(--_tail-width) + 0.5px);
-	}
-	[data-truncated] > :empty + .${CSS.escape(tailHeadlessEllipsis)} { text-overflow: ellipsis; }
-}
-`;
-
 let styleElement: HTMLStyleElement;
 
-beforeAll(() => {
+// Why the compiled CSS: the browser project loads no stylesheet. Without the
+// component's real utilities, the segments lay out as plain inline text.
+beforeAll(async () => {
 	styleElement = document.createElement("style");
-	styleElement.textContent = LAYOUT_STYLE;
+	styleElement.textContent = await commands.tailwindCss("./truncated-text.tsx");
 	document.head.appendChild(styleElement);
 });
 

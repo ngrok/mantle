@@ -200,6 +200,13 @@ describe("canonicalForms", () => {
 		]);
 	});
 
+	// Why: Tailwind compiles `100%-var(--_x)` to `var(-- x)`, so the canonical form drops `--_x`.
+	it("keeps a calc whose canonical form drops a variable", () => {
+		expect(canonicalForms(designSystem, ["max-w-[calc(100%_-_var(--_x))]"])).toEqual([
+			["max-w-[calc(100%_-_var(--_x))]", "max-w-[calc(100%_-_var(--_x))]"],
+		]);
+	});
+
 	it("still rewrites a scale step, a variable the source names, a renamed utility, and a renamed variant", () => {
 		expect(
 			canonicalForms(designSystem, [

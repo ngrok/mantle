@@ -31,8 +31,8 @@ export const SOURCE_EXTENSIONS = [".ts", ".tsx"] as const;
 /** Where each CSS entry's canonical forms persist between runs. Gitignored with the rest of `.cache/`. */
 export const CACHE_DIRECTORY = ".cache/tailwind-canonical";
 
-/** Bump when {@link isTokenRewrite} changes, so every cache file recomputes under the new rule. */
-const CACHE_RULES_VERSION = 4;
+/** Bump when a rule in {@link canonicalForms} changes, so every cache file recomputes under the new rule. */
+const CACHE_RULES_VERSION = 5;
 
 /**
  * Below this many files the run stays on one thread.
@@ -469,7 +469,7 @@ function literalVariants(variants: readonly Variant[]): string[] {
 /**
  * The canonical form of each candidate, as `[candidate, canonical]` pairs. A
  * candidate keeps its form when the canonical one reads a literal as a theme
- * token ({@link isTokenRewrite}).
+ * token ({@link isTokenRewrite}), or drops a variable ({@link dropsVariable}).
  *
  * Why: one candidate per call. A batch call returns a de-duplicated set, not a
  * positional map, so its result cannot be matched back to its input. A token
@@ -486,11 +486,35 @@ export function canonicalForms(
 		}
 		const canonical = designSystem.canonicalizeCandidates([candidate])[0] ?? candidate;
 		const [target] = designSystem.parseCandidate(canonical);
-		if (target == null || isTokenRewrite(source, target)) {
+		if (
+			target == null ||
+			isTokenRewrite(source, target) ||
+			dropsVariable(designSystem, candidate, canonical)
+		) {
 			return [candidate, candidate];
 		}
 		return [candidate, canonical];
 	});
+}
+
+/**
+ * Whether the canonical form's CSS no longer reads a variable that the
+ * candidate's CSS reads.
+ *
+ * Why: Tailwind 4.3.3 canonicalizes `calc(100%_-_var(--_x))` to
+ * `calc(100%-var(--_x))`, and then compiles that form to `var(-- x)`, which is
+ * invalid CSS. The check compares variables and not whole declarations, because
+ * a scale step such as `w-56` adds `var(--spacing)` on purpose.
+ */
+function dropsVariable(designSystem: DesignSystem, candidate: string, canonical: string): boolean {
+	const [sourceCss, targetCss] = designSystem.candidatesToCss([candidate, canonical]);
+	const targetVariables = new Set(cssVariables(targetCss ?? ""));
+	return cssVariables(sourceCss ?? "").some((variable) => !targetVariables.has(variable));
+}
+
+/** The custom properties that `var()` reads in a CSS string. */
+function cssVariables(css: string): string[] {
+	return Array.from(css.matchAll(/var\((--[\w-]*)/g), (match) => match[1] ?? "");
 }
 
 type CacheFile = { key: string; forms: Record<string, string> };
