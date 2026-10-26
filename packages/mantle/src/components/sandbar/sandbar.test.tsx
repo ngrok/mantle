@@ -86,10 +86,9 @@ describe("Sandbar structure", () => {
 		);
 
 		// Cross-file spelling pin, asserting BOTH sides together: the panel emits
-		// the class, and mantle.css is what gives it meaning — the theme blocks'
-		// selector extensions (`:root:is(.dark, …) .invert-theme`) plus the
-		// palette-alias rule. Renaming either side alone silently un-themes every
-		// Sandbar. The computed inversion itself is proven end-to-end by
+		// the class, and mantle.css is what gives it meaning — the color-scheme
+		// rules' island selectors (`:root:is(.dark, …) .invert-theme`). Renaming
+		// either side alone silently un-themes every Sandbar. The computed inversion itself is proven end-to-end by
 		// theme/invert-theme.browser.test.ts.
 		//
 		// Whitespace-normalized because oxfmt wraps these selector lists once they
@@ -97,7 +96,6 @@ describe("Sandbar structure", () => {
 		// the formatter chose to break the line.
 		const normalizedCss = mantleCss.replace(/\s+/g, " ");
 		expect(getPanel().classList.contains("invert-theme")).toBe(true);
-		expect(normalizedCss).toContain(".invert-theme {");
 		expect(normalizedCss).toContain(") .invert-theme {");
 	});
 

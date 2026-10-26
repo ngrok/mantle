@@ -184,10 +184,9 @@ Mantle assumes a server, and if it renders wrong for one frame, that's a bug. Th
 [theme](/components/primitives/theme) preference persists in a cookie, not just localStorage, so SSR
 renders the correct `<html>` class; a blocking inline script (written as a plain
 TypeScript function and stringified into the `<head>`) resolves the cookie and OS
-preferences before first paint, and theme changes sync across open tabs. The three
-non-light theme stylesheets load as media-gated `<link>`s so they never block rendering,
-and font preloads can ship as HTTP `Link` headers so fetches start before the HTML
-parses.
+preferences before first paint, and theme changes sync across open tabs. One stylesheet
+holds both themes as `light-dark()` tokens, so a theme change loads nothing, and font
+preloads can ship as HTTP `Link` headers so fetches start before the HTML parses.
 
 Hydration safety is a shipped primitive, not an app-side hack.
 [BrowserOnly](/components/primitives/browser-only) takes children as a render function so
@@ -225,7 +224,7 @@ time, so no highlighter JavaScript ships to the browser. Its React-free core is
 published as [highlight-utils](/utils/highlight-utils) so servers, workers, and build
 tools can produce the same HTML. The Tailwind source plugin scopes the utility scan to
 the Mantle components an app actually imports, so unused components cost no CSS, and
-non-active theme stylesheets never block rendering.
+Tailwind emits only the palette stops a build uses.
 
 The runtime work that remains gets moved to the platform or measured down.
 [Tabs](/components/navigation/tabs)' edge fade and the [scroll fade](/base/scroll-fade) utilities

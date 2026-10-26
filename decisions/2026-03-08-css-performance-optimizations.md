@@ -7,6 +7,8 @@
 - [x] Implemented 2026-03-08
 - [ ] Superseded
 
+Decision 6 (split the themes into lazy `<link>` stylesheets) is amended by [2026-10-25-light-dark-tokens.md](./2026-10-25-light-dark-tokens.md): one stylesheet holds both themes.
+
 ## Context
 
 A PageSpeed Insights audit of ngrok.com identified `root.css` (the compiled Tailwind v4 output of `mantle.css`) as a render-blocking resource accounting for ~1,040 ms of savings on mobile. The audit also noted ~880+ CSS custom property definitions being parsed unconditionally.

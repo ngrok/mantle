@@ -1,0 +1,177 @@
+---
+title: Light Dark Tokens Migration
+description: mantle.css holds both themes as light-dark() tokens, so mantle-dark.css, MantleStyleSheets, and mantleStyleSheetUrls are gone. Delete them, and read a token from JavaScript through a color property.
+---
+
+# Mantle Light Dark Tokens Migration Guide
+
+`@ngrok/mantle/mantle.css` holds the light theme and the dark theme. Each color token is one [`light-dark()`](https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/light-dark) pair, and the `color-scheme` of the page selects the theme. `@ngrok/mantle/mantle-dark.css` is gone, with `MantleStyleSheets`, `mantleStyleSheetUrls`, and the types `MantleStyleSheetsProps` and `MantleThemeCssUrls`. `invert-theme` islands, the `dark:` and `light:` variants, `ThemeProvider`, and `PreventWrongThemeFlashScript` work as before.
+
+**TL;DR:** Delete every import of `@ngrok/mantle/mantle-dark.css`, every `<MantleStyleSheets />`, and every `mantleStyleSheetUrls` call. In a non-React `<head>`, delete the `mantle-dark-styles` `<link>`. Code that reads a color token with `getPropertyValue` now gets `light-dark(…)` text: read the token as a `color` instead. Mantle now needs Safari 17.5, Chrome 123, or Firefox 120.
+
+## Codemod
+
+From a mantle checkout:
+
+```sh
+pnpm -w run migrate 0012 <path>
+```
+
+In a project that installs `@ngrok/mantle`:
+
+```sh
+npx --yes --package=@ast-grep/cli@0.51.0 ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/0012-light-dark-tokens.yml --update-all <path>
+```
+
+The rules apply steps 1 and 2:
+
+- They delete each `<MantleStyleSheets />` that is a direct child of a JSX element.
+- They delete each `const` whose value is a `mantleStyleSheetUrls` call, when only a deleted `<MantleStyleSheets />` reads it.
+- They delete each JavaScript import of `@ngrok/mantle/mantle-dark.css`, with or without `?url`, when only deleted code reads its name.
+- They delete the `MantleStyleSheets`, `mantleStyleSheetUrls`, `MantleStyleSheetsProps`, and `MantleThemeCssUrls` imports from `@ngrok/mantle/theme` when only deleted code reads them, and they delete an import statement that holds nothing else.
+
+Code that other code still reads stays: an exported `const`, a `<MantleStyleSheets />` inside an expression such as `{show && …}`, and a type annotation. The removed export then makes the type checker name that code for manual work. The rules read a part through its import from `@ngrok/mantle/theme`, under its own name or an alias. A function that binds the part's name to a parameter or a local shadows the import, so the rules leave that function alone.
+
+Steps 3 to 6 stay manual, because a CSS `@import`, an HTML template, a `getPropertyValue` call, and a CSS override are not syntax a rule can read. The codemod is safe to run twice. Pass `--dry-run` to print the rewrites first, and run your formatter after the rewrite.
+
+---
+
+## You are an agent migrating a codebase. Do this:
+
+1. Find every `MantleStyleSheets` element and every `mantleStyleSheetUrls` call from `@ngrok/mantle/theme`, under its own name or an alias. Delete each one, the `const` that holds the call, and the imports. Delete the `MantleStyleSheetsProps` and `MantleThemeCssUrls` types, or replace them with your own. Keep `PreventWrongThemeFlashScript` in `<head>`; it did not change.
+2. Find every JavaScript import of `@ngrok/mantle/mantle-dark.css`, usually `import darkCssUrl from "@ngrok/mantle/mantle-dark.css?url"`. Delete it and every use of its name, such as a `Link` preload header in a server entry.
+3. Find every CSS `@import "@ngrok/mantle/mantle-dark.css";`. Delete it. `@import "@ngrok/mantle/mantle.css";` holds both themes.
+4. In a `<head>` that a non-React server writes, such as a Go template, delete `<link id="mantle-dark-styles" rel="stylesheet" href="…/mantle-dark.css" />`. Keep the inline theme script.
+5. Find every place that reads a mantle color token from JavaScript: `getComputedStyle(element).getPropertyValue("--color-…")`, `--background-color-…`, `--text-color-…`, `--border-color-…`, and the other semantic tokens. The value is now the `light-dark(…)` text, the same in both themes. Set the token as the `color` of an element in place, then read `getComputedStyle(element).color`: the browser resolves the pair against the `color-scheme` there. Tokens that are not colors (`--shadow-first-opacity`, `--bg-checked-icon`) read as before.
+6. Find every CSS rule that sets a mantle token (`--color-<ramp>-<stop>`, `--background-color-card`, and the other semantic tokens) on a bare `:root`, under `:root.dark` or `.dark`, or in your own `@theme`. Write each one as one `light-dark(<light>, <dark>)` declaration at `:root`. A plain value on a bare `:root` now applies in both themes. A value under `:root.dark` still paints a dark page, but an `invert-theme` island on that page inherits it, because an island declares no token of its own.
+7. After editing, run the project's formatter, linter, type checker, and tests.
+
+> **Why `light-dark()`?** One declaration per token holds both themes, so a token cannot have a light value and lose its dark one. An `invert-theme` island flips `color-scheme`, and every token in it resolves to the other theme: mantle no longer copies the palette onto islands. With one stylesheet, a page loads no second `<link>`, and Tailwind emits only the palette stops a build uses.
+
+---
+
+## Before → after
+
+### The root stylesheets
+
+```tsx
+// BEFORE
+import darkCssUrl from "@ngrok/mantle/mantle-dark.css?url";
+import {
+	MantleStyleSheets,
+	mantleStyleSheetUrls,
+	PreventWrongThemeFlashScript,
+} from "@ngrok/mantle/theme";
+
+const themeUrls = mantleStyleSheetUrls({ darkCssUrl });
+
+export function Layout({ nonce }: { nonce: string }) {
+	return (
+		<head>
+			<PreventWrongThemeFlashScript nonce={nonce} />
+			<MantleStyleSheets {...themeUrls} />
+		</head>
+	);
+}
+```
+
+```tsx
+// AFTER
+import { PreventWrongThemeFlashScript } from "@ngrok/mantle/theme";
+
+export function Layout({ nonce }: { nonce: string }) {
+	return (
+		<head>
+			<PreventWrongThemeFlashScript nonce={nonce} />
+		</head>
+	);
+}
+```
+
+### An aliased import
+
+```tsx
+// BEFORE
+import darkCssUrl from "@ngrok/mantle/mantle-dark.css?url";
+import { MantleStyleSheets as Sheets } from "@ngrok/mantle/theme";
+
+export function Head() {
+	return (
+		<head>
+			<Sheets darkCssUrl={darkCssUrl} />
+		</head>
+	);
+}
+```
+
+```tsx
+// AFTER
+export function Head() {
+	return <head></head>;
+}
+```
+
+### A CSS entry point
+
+```css
+/* BEFORE */
+@import "@ngrok/mantle/mantle.css";
+@import "@ngrok/mantle/mantle-dark.css";
+```
+
+```css
+/* AFTER */
+@import "@ngrok/mantle/mantle.css";
+```
+
+### A non-React head
+
+```html
+<!-- BEFORE -->
+<script>
+	{{ .ThemeScript }}
+</script>
+<link id="mantle-dark-styles" rel="stylesheet" href="/static/mantle-dark.css" />
+```
+
+```html
+<!-- AFTER -->
+<script>
+	{{ .ThemeScript }}
+</script>
+```
+
+### A token read from JavaScript
+
+```ts
+// BEFORE
+const accent = getComputedStyle(element).getPropertyValue("--color-accent-600").trim();
+editor.setTheme({ cursor: accent });
+```
+
+```ts
+// AFTER
+// Why a probe: the custom property holds light-dark() text; a color property resolves it.
+const probe = document.createElement("span");
+probe.style.color = "var(--color-accent-600)";
+element.append(probe);
+const accent = getComputedStyle(probe).color;
+probe.remove();
+editor.setTheme({ cursor: accent });
+```
+
+## Edge cases & gotchas
+
+- **Browser support.** `light-dark()` needs Safari 17.5, Chrome 123, or Firefox 120. In an older browser, a color token paints no color: backgrounds go transparent, and text takes the browser default.
+- **An island reads its own scheme.** A probe inside an `invert-theme` island resolves to the island's theme, so put the probe inside the element whose colors you need.
+- **A re-read after a theme change.** A resolved color does not follow a later theme change. Read it again when `<html>` changes its `class`, `data-theme`, or `data-applied-theme`.
+- **A theme-scoped override inside an island.** A token set under `:root.dark` reaches a light island on a dark page. Step 6 moves it into a `light-dark()` pair, which the island resolves to its own theme.
+- **`dark:` classes inside an island.** They still key off the page theme, not the island. This did not change.
+- **Tailwind's newer ramps.** `mauve`, `mist`, `olive`, and `taupe` have no dark values: they paint their light values in both themes. This did not change.
+
+## How to verify
+
+- Run `rg "mantle-dark|MantleStyleSheets|mantleStyleSheetUrls|MantleThemeCssUrls"` across the repo. Expect no results.
+- Run `rg "getPropertyValue\(['\"]--(color|background-color|text-color|border-color)"` and check each result against step 5.
+- Load a page in light, in dark, and with an `invert-theme` island. The page must look as before, and the browser must load no `mantle-dark` stylesheet.
+- Run the project's formatter, linter, type checker, and tests.

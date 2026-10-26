@@ -1,6 +1,5 @@
 import twThemeCss from "tailwindcss/theme.css?raw";
 import { describe, expect, test } from "vitest";
-import darkCss from "../../mantle-dark.css?raw";
 import mantleCss from "../../mantle.css?raw";
 import {
 	extractTopLevelRules,
@@ -9,109 +8,120 @@ import {
 } from "../../test-utils/parse-theme-css.js";
 
 /**
- * Guard suite for the `invert-theme` strategy: an inverted island is styled
- * by the opposite theme's own declarations, applied via selector extensions
- * on the theme blocks plus the palette-alias re-resolution rule in mantle.css.
- * Each stylesheet encodes only its own theme's values — the light base
- * materializes its complete palette so islands on dark pages restore the
- * defaults from the light block itself. These tests keep the hand-written
- * pieces mechanically honest: if a theme block gains or loses a variable, or
- * Tailwind's palette changes, the corresponding invariant fails here instead
- * of silently breaking inverted islands. The browser sweep in
- * `invert-theme.browser.test.ts` proves the end-to-end computed behavior.
+ * Guard suite for the theme strategy: every color token is one `light-dark()`
+ * declaration, and two `color-scheme` rules select the theme for the page and
+ * for `.invert-theme` islands. These tests keep the pieces honest: a palette
+ * stop that loses its pair, a theme value an island cannot re-declare, or a
+ * Tailwind palette change fails here instead of a page silently painting the
+ * wrong theme. The browser sweep in `invert-theme.browser.test.ts` proves the
+ * end-to-end resolved values.
  */
 
-/**
- * Light's own definitions, declared at `:root` and re-declared on islands.
- */
-const lightPageBlock = parseDeclarationBlock(
-	mantleCss,
-	(selector) => selector.startsWith(":root,") && selector.includes(":root.light,"),
-);
-/**
- * Tailwind's unmodified default ramps, restated for islands only. Kept out of
- * the page-level block so they cannot override a consumer's `@theme` palette.
- */
-const lightIslandBlock = parseDeclarationBlock(
-	mantleCss,
-	(selector) => selector.startsWith(":root:is(") && selector.endsWith(".invert-theme"),
-);
-/**
- * What an island on a dark page actually resolves: both rules match it, so the
- * completeness invariants below compare theme blocks against the union.
- */
-const lightBlock = new Map([...lightIslandBlock, ...lightPageBlock]);
-const darkBlock = parseDeclarationBlock(darkCss, (selector) => selector.includes(":root.dark"));
+const mantleThemeBlock = parseDeclarationBlock(mantleCss, (selector) => selector === "@theme");
 const tailwindDefaults = parseDeclarationBlock(twThemeCss, (selector) =>
 	selector.includes("@theme default"),
 );
-const mantleThemeBlock = parseDeclarationBlock(mantleCss, (selector) => selector === "@theme");
+const lightSchemeRule = extractTopLevelRules(mantleCss).find(({ selector }) =>
+	selector.startsWith(":root, :root.light,"),
+);
+const darkSchemeRule = extractTopLevelRules(mantleCss).find(({ selector }) =>
+	selector.startsWith(":root.dark,"),
+);
+if (lightSchemeRule == null || darkSchemeRule == null) {
+	throw new Error("the color-scheme rules are not in mantle.css");
+}
+const lightScheme = parseDeclarations(lightSchemeRule.body);
+const darkScheme = parseDeclarations(darkSchemeRule.body);
+const semanticBlock = parseDeclarationBlock(mantleCss, (selector) => selector === ":root");
 
-const invertThemeSelector = (selector: string) => selector.endsWith(".invert-theme");
+const stops = ["50", "100", "200", "300", "400", "500", "600", "700", "800", "900", "950"];
+const RAMP_STOP = /^--color-([a-z]+)-(50|[1-9]00|950)$/;
+
+/** The two arguments of a `light-dark()` value, or `undefined`. */
+const lightDarkArguments = (value: string) => {
+	const match = /^light-dark\(\s*(oklch\([^()]*\)),\s*(oklch\([^()]*\))\s*\)$/.exec(value);
+	return match?.[1] == null || match[2] == null ? undefined : { light: match[1], dark: match[2] };
+};
+
+/** `none` and `0` are the same hue for an achromatic color. */
+const sameColor = (first: string | undefined, second: string | undefined) =>
+	first?.replace(/ none\)$/, " 0)") === second?.replace(/ none\)$/, " 0)");
+
+/**
+ * Normalize whitespace around parentheses so selector assertions survive
+ * formatter reflows of long selector lists.
+ */
+const normalizeSelector = (selector: string) =>
+	selector.replace(/\(\s+/g, "(").replace(/\s+\)/g, ")");
 
 describe("cardinality floors", () => {
 	// Every other invariant in this suite is a set/equality comparison that a
 	// parser regression could satisfy vacuously with empty maps. These floors
 	// make degenerate parses fail loudly.
 	test("the parsed blocks are non-degenerate", () => {
-		expect(lightPageBlock.size).toBeGreaterThan(80);
-		expect(lightIslandBlock.size).toBeGreaterThan(200);
-		expect(lightBlock.size).toBeGreaterThan(250);
-		expect(darkBlock.size).toBeGreaterThan(250);
+		expect(mantleThemeBlock.size).toBeGreaterThan(300);
 		expect(tailwindDefaults.size).toBeGreaterThan(250);
-		expect(mantleThemeBlock.size).toBeGreaterThan(60);
+		expect(semanticBlock.size).toBeGreaterThan(60);
+		expect(lightScheme.size).toBeGreaterThan(3);
 	});
 });
 
-/**
- * Normalize whitespace around parentheses so selector assertions survive
- * formatter reflows of long selector lists.
- */
-const normalizeSelector = (selector: string | undefined) =>
-	(selector ?? "").replace(/\(\s+/g, "(").replace(/\s+\)/g, ")");
-
-describe("theme block selector extensions", () => {
-	test("the light base block also targets .invert-theme on dark pages", () => {
-		const rule = extractTopLevelRules(mantleCss).find(({ selector }) =>
-			selector.startsWith(":root,"),
-		);
-		expect(normalizeSelector(rule?.selector)).toContain(
+describe("the color-scheme rules", () => {
+	test("the light rule also targets .invert-theme on dark pages", () => {
+		expect(normalizeSelector(lightSchemeRule.selector)).toContain(
 			':root:is(.dark, [data-theme="dark"]:not([data-applied-theme]), [data-applied-theme="dark"]) .invert-theme',
 		);
+		expect(lightScheme.get("color-scheme")).toBe("light");
 	});
 
-	test("the dark block also targets .invert-theme on light pages (any page that is not dark)", () => {
-		const rule = extractTopLevelRules(darkCss).find(({ selector }) =>
-			selector.includes(":root.dark"),
-		);
-		expect(normalizeSelector(rule?.selector)).toContain(
+	test("the dark rule also targets .invert-theme on light pages (any page that is not dark)", () => {
+		expect(normalizeSelector(darkSchemeRule.selector)).toContain(
 			':root:not(.dark, [data-theme="dark"]:not([data-applied-theme]), [data-applied-theme="dark"]) .invert-theme',
 		);
+		expect(darkScheme.get("color-scheme")).toBe("dark");
+	});
+
+	test("both rules declare the same properties", () => {
+		// An island takes its non-color theme values from one of these rules. A
+		// property one rule declares and the other omits would leak the page
+		// theme's value into the island.
+		expect([...lightScheme.keys()].toSorted()).toEqual([...darkScheme.keys()].toSorted());
+	});
+
+	test("the rules declare no color: colors are light-dark() tokens", () => {
+		const colors = [...lightScheme.keys()].filter((property) => property.startsWith("--color-"));
+		expect(colors).toEqual([]);
+	});
+
+	test("no other rule targets .invert-theme", () => {
+		// An island is the color-scheme flip and nothing else. A rule that copies
+		// tokens onto islands would bring back a second source for each value.
+		const others = extractTopLevelRules(mantleCss)
+			.map(({ selector }) => selector)
+			.filter((selector) => selector.includes(".invert-theme"))
+			.filter(
+				(selector) => selector !== lightSchemeRule.selector && selector !== darkSchemeRule.selector,
+			);
+		expect(others).toEqual([]);
 	});
 
 	test("every data-theme selector is guarded against an applied theme", () => {
 		// `data-theme` carries the stored *preference*, which `forceTheme` leaves
-		// disagreeing with the theme actually applied. The dark stylesheet is
-		// always live, so a bare `[data-theme="dark"]` matches a
-		// `forceTheme="light"` page and the later sheet wins the cascade — the page
+		// disagreeing with the theme actually applied. Both rules are in one
+		// stylesheet, so a bare `[data-theme="dark"]` matches a
+		// `forceTheme="light"` page and the later rule wins the cascade — the page
 		// paints dark. The guard is what makes the applied theme authoritative.
 		// force-theme.browser.test.ts proves the computed outcome; this pins the
-		// spelling in both sheets so a new selector cannot reintroduce it.
-		const sheets = {
-			"mantle.css": mantleCss,
-			"mantle-dark.css": darkCss,
-		};
+		// spelling so a new selector cannot reintroduce it.
 		const unguarded: string[] = [];
 		let guarded = 0;
-		for (const [name, css] of Object.entries(sheets)) {
-			for (const match of css.matchAll(
-				/\[data-theme="[a-z-]+"\](:not\(\[data-applied-theme\]\))?/g,
-			)) {
-				if (match[1] == null) {
-					unguarded.push(`${name}: ${match[0]}`);
-				} else {
-					guarded += 1;
-				}
+		for (const match of mantleCss.matchAll(
+			/\[data-theme="[a-z-]+"\](:not\(\[data-applied-theme\]\))?/g,
+		)) {
+			if (match[1] == null) {
+				unguarded.push(match[0]);
+			} else {
+				guarded += 1;
 			}
 		}
 		expect(unguarded).toEqual([]);
@@ -120,182 +130,74 @@ describe("theme block selector extensions", () => {
 	});
 });
 
-describe("theme block completeness", () => {
-	// Every variable the light base declares must be declared by the dark
-	// block. Because the dark block styles inverted islands on light pages, a
-	// missing variable would silently inherit the *page* theme's value into the
-	// island (this is how the dark block came to declare the focus ring and
-	// menu-item tokens).
-	test("the dark block declares every variable the light base declares", () => {
-		const missing = [...lightBlock.keys()].filter(
-			(property) => !darkBlock.has(property) && !property.startsWith("--color-"),
-		);
+describe("the light-dark() palette (mantle.css @theme)", () => {
+	const palette = [...mantleThemeBlock].filter(([property]) => RAMP_STOP.test(property));
+
+	test("every Tailwind default ramp stop has a mantle light-dark() pair or a var() alias", () => {
+		// A stop mantle does not declare falls through to Tailwind's light value,
+		// and a dark page paints it light. Four newer Tailwind ramps have no dark
+		// values yet. A ramp a later Tailwind adds fails here, so someone
+		// decides its dark values.
+		const notInverted = new Set(["mauve", "mist", "olive", "taupe"]);
+		const missing = [...tailwindDefaults.keys()]
+			.filter((property) => !notInverted.has(RAMP_STOP.exec(property)?.[1] ?? ""))
+			.filter((property) => RAMP_STOP.test(property))
+			.filter((property) => {
+				const value = mantleThemeBlock.get(property);
+				return value == null || (lightDarkArguments(value) == null && !value.startsWith("var("));
+			});
 		expect(missing).toEqual([]);
 	});
 
-	test("the light and dark blocks declare identical variable sets", () => {
-		// each stylesheet encodes only its own theme's values, so the pair must
-		// cover the same surface — a var one member declares and the other omits
-		// would leak page-theme values into inverted islands
-		expect([...lightBlock.keys()].toSorted()).toEqual([...darkBlock.keys()].toSorted());
-	});
-
-	test("each theme stylesheet holds nothing outside its theme-gated rule", () => {
-		// The dark stylesheet is applied on every page, so any rule in it that is
-		// NOT gated on a `:root` theme match would leak onto light pages. Neither the browser sweep nor the rule-count check above can see
-		// such a rule: the sweep re-serializes only `:root`-prefixed rules.
-		const rules = extractTopLevelRules(darkCss);
-		expect(rules.length, "mantle-dark.css top-level rule count").toBe(1);
-		expect(rules[0]?.selector, "mantle-dark.css selector").toMatch(/^:root/);
-	});
-
-	test("the dark block's focus ring and menu tokens match the light base expressions", () => {
-		const properties = [
-			"--ring-color-focus-neutral",
-			"--ring-color-focus-accent",
-			"--ring-color-focus-danger",
-			"--ring-color-focus-warning",
-			"--ring-color-focus-success",
-			"--color-active-menu-item",
-			"--color-selected-menu-item",
-			"--color-active-selected-menu-item",
-		];
-		const mismatches = properties.filter(
-			(property) => darkBlock.get(property) !== lightBlock.get(property),
-		);
+	test("every light argument is the Tailwind default, the blue ramp, or an intentional custom stop", () => {
+		const intentionalCustomStops = new Set(["--color-neutral-950", "--color-sky-600"]);
+		const mismatches = palette
+			.filter(([property]) => !intentionalCustomStops.has(property))
+			.filter(([property]) => !property.startsWith("--color-blue-"))
+			.filter(([, value]) => !value.startsWith("var("))
+			.filter(
+				([property, value]) =>
+					!sameColor(lightDarkArguments(value)?.light, tailwindDefaults.get(property)),
+			)
+			.map(([property]) => property);
 		expect(mismatches).toEqual([]);
 	});
-});
 
-describe("the materialized default palette (mantle.css light base)", () => {
-	// Light materializes its complete palette so islands on dark pages restore it
-	// from mantle.css itself — mantle-dark.css never encodes light values. The
-	// verbatim Tailwind defaults live in the island-scoped restore rule and light's
-	// own divergences in the page-level block; the union is what an island sees.
-	// Custom stops that intentionally diverge are exempt from the verbatim check.
-	const intentionalCustomStops = new Set(["--color-neutral-950", "--color-sky-600"]);
-
-	/**
-	 * The eight chart slots, which no default can match. Each theme authors its
-	 * own `oklch()` literal. `@theme inline` registers the name alone.
-	 * `components/chart/tokens.test.ts` gates those values: it pins every slot's
-	 * literal and its declaring file in both themes.
-	 */
-	const isChartSlot = (property: string) => /^--color-chart-[1-8]$/.test(property);
-
-	test("the page-level light block restates no unmodified Tailwind default", () => {
-		// This is the whole reason for the island-only scope: `@theme` variables are
-		// emitted into `@layer theme` and unlayered author CSS beats every layer, so
-		// a verbatim restatement at `:root` silently overrides a consumer's own
-		// `@theme { --color-rose-500: … }` with mantle's stock value — for every ramp,
-		// with no error anywhere.
-		const restated = [...lightPageBlock]
-			.filter(([property]) => property.startsWith("--color-"))
-			.filter(([property, value]) => tailwindDefaults.get(property) === value)
-			.map(([property]) => property);
-		expect(restated).toEqual([]);
-	});
-
-	test("the palette restore covers exactly the islands the light block covers", () => {
-		// Both rules must match the same islands. If the selectors drift, an island
-		// gets one half of light's values and silently inherits the page theme's for
-		// the other half.
-		const pageRule = extractTopLevelRules(mantleCss).find(({ selector }) =>
-			selector.startsWith(":root,"),
-		);
-		const restoreRule = extractTopLevelRules(mantleCss).find(
-			({ selector }) => selector.startsWith(":root:is(") && selector.endsWith(".invert-theme"),
-		);
-		const restoreSelector = normalizeSelector(restoreRule?.selector);
-		expect(restoreSelector).toBe(
-			':root:is(.dark, [data-theme="dark"]:not([data-applied-theme]), [data-applied-theme="dark"]) .invert-theme',
-		);
-		expect(normalizeSelector(pageRule?.selector)).toContain(restoreSelector);
-	});
-
-	test("mantle-dark.css contains no light values (its only .invert-theme rule is the block extension)", () => {
-		const invertRules = extractTopLevelRules(darkCss).filter(({ selector }) =>
-			invertThemeSelector(selector),
-		);
-		expect(invertRules.length).toBe(1);
-		expect(invertRules[0]?.selector).toContain(":root.dark");
-	});
-
-	test("every light color is a Tailwind default, a mantle @theme literal, an alias, a chart slot, or an intentional custom stop", () => {
-		const mismatches = [...lightBlock]
-			.filter(([property]) => property.startsWith("--color-"))
+	test("every dark argument is the light argument of the mirror stop", () => {
+		// The dark ramps are the light ramps in reverse: dark 50 is light 950,
+		// and so on. `sky-400` keeps Tailwind's stock `sky-600` in dark, not
+		// mantle's custom light `sky-600`.
+		const exceptions = new Map([["--color-sky-400", "oklch(58.8% 0.158 241.966)"]]);
+		const mismatches = palette
+			.filter(([, value]) => !value.startsWith("var("))
 			.filter(([property, value]) => {
-				if (
-					intentionalCustomStops.has(property) ||
-					property.startsWith("--color-blue-") ||
-					isChartSlot(property)
-				) {
-					// the blue ramp, the chart slots, and the custom stops are mantle's own
-					// light values
-					return false;
-				}
-				if (value.includes("var(")) {
-					// expressions over other theme vars (the gray aliases, --color-separator,
-					// the menu-item tokens) re-resolve per element; covered by the browser sweep
-					return false;
-				}
-				return value !== (mantleThemeBlock.get(property) ?? tailwindDefaults.get(property));
+				const [, ramp, stop] = RAMP_STOP.exec(property) ?? [];
+				const mirror = `--color-${ramp}-${stops[stops.length - 1 - stops.indexOf(stop ?? "")]}`;
+				const expected =
+					exceptions.get(property) ?? lightDarkArguments(mantleThemeBlock.get(mirror) ?? "")?.light;
+				return !sameColor(lightDarkArguments(value)?.dark, expected);
 			})
 			.map(([property]) => property);
 		expect(mismatches).toEqual([]);
 	});
 });
 
-describe("the palette-alias re-resolution rule (mantle.css)", () => {
-	const aliasRule = extractTopLevelRules(mantleCss).find(
-		({ selector }) => selector === ".invert-theme",
-	);
-	if (aliasRule == null) {
-		throw new Error(".invert-theme alias rule not found in mantle.css");
-	}
-	const aliasDeclarations = parseDeclarations(aliasRule.body);
-
-	test("matches the @theme palette aliases exactly", () => {
-		const themeAliases = new Map(
-			[...mantleThemeBlock].filter(
-				([property, value]) => property.startsWith("--color-") && value.includes("var(--color-"),
-			),
-		);
-		expect(aliasDeclarations.size).toBeGreaterThan(60);
-		expect(Object.fromEntries(aliasDeclarations)).toEqual(Object.fromEntries(themeAliases));
-	});
-});
-
-describe("the Shiki/code-block token rule (mantle.css)", () => {
-	test("the Shiki tokens are declared on .invert-theme islands so they re-resolve against inverted ramps", () => {
-		const shikiRule = extractTopLevelRules(mantleCss).find(
-			({ selector }) => selector === ":root, .invert-theme",
-		);
-		expect(shikiRule).toBeDefined();
-		const shikiDeclarations = parseDeclarations(shikiRule?.body ?? "");
-		expect(
-			[...shikiDeclarations.keys()].filter((key) => key.startsWith("--shiki-")).length,
-		).toBeGreaterThan(10);
-	});
-});
-
 describe("the @theme inline resolution premise", () => {
-	// Inversion only works because utilities resolve semantic tokens at the
-	// consuming element: every token the theme blocks re-declare must be
-	// registered in @theme inline as a var() reference to a theme-declared
-	// custom property (usually itself), never inlined as a literal value.
-	test("every theme-block token registered in @theme inline is a var() reference to a theme-declared property", () => {
+	// Utilities resolve semantic tokens at the consuming element: every
+	// semantic token registered in @theme inline must be a var() reference to a
+	// property the semantic block declares (usually itself), never an inlined
+	// value. An inlined value would carry no light-dark() to resolve.
+	test("every semantic token registered in @theme inline is a var() reference to a declared property", () => {
 		const inlineBlock = parseDeclarationBlock(
 			mantleCss,
 			(selector) => selector === "@theme inline",
 		);
-		const themeDeclared = new Set([...lightBlock.keys(), ...darkBlock.keys()]);
-		const covered = [...inlineBlock].filter(([property]) => themeDeclared.has(property));
+		const covered = [...inlineBlock].filter(([property]) => semanticBlock.has(property));
 		expect(covered.length).toBeGreaterThan(40);
 		const offenders = covered
 			.filter(([, value]) => {
 				const target = /^var\((--[\w-]+)\)$/.exec(value)?.[1];
-				return target == null || !themeDeclared.has(target);
+				return target == null || !semanticBlock.has(target);
 			})
 			.map(([property]) => property);
 		expect(offenders).toEqual([]);

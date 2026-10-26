@@ -1,7 +1,6 @@
 import { describe, expect, test } from "vitest";
 import twThemeCss from "tailwindcss/theme.css?raw";
-import darkCss from "../../mantle-dark.css?raw";
-import lightCss from "../../mantle.css?raw";
+import mantleCss from "../../mantle.css?raw";
 import { CHART_DECORATIVE_COLOR } from "./colors.js";
 import {
 	CHROMA_FLOOR,
@@ -91,15 +90,8 @@ const shippedDecorativeProperty = (): string => {
 	return match[1];
 };
 
-const resolveTheme = (name: ThemeName, themeCss: string, themeFile: string): Theme => {
-	const chain =
-		themeFile === "mantle.css"
-			? [layer("mantle.css", lightCss), layer("tailwindcss/theme.css", twThemeCss)]
-			: [
-					layer(themeFile, themeCss),
-					layer("mantle.css", lightCss),
-					layer("tailwindcss/theme.css", twThemeCss),
-				];
+const resolveTheme = (name: ThemeName): Theme => {
+	const chain = [layer("mantle.css", mantleCss, name), layer("tailwindcss/theme.css", twThemeCss)];
 
 	const hexOf = (property: string) => hexFromOklch(resolveProperty(chain, property).literal);
 
@@ -137,10 +129,7 @@ const resolveTheme = (name: ThemeName, themeCss: string, themeFile: string): The
 	};
 };
 
-const THEMES: Theme[] = [
-	resolveTheme("light", lightCss, "mantle.css"),
-	resolveTheme("dark", darkCss, "mantle-dark.css"),
-];
+const THEMES: Theme[] = [resolveTheme("light"), resolveTheme("dark")];
 
 describe("empty-state text over a decorative chart", () => {
 	test.each(THEMES.map((theme) => [theme.name, theme] as const))(

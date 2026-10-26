@@ -5,7 +5,6 @@ import { defineConfig } from "tsdown";
 import { reactCompilerOptions } from "./react-compiler.config.ts";
 
 const MANTLE_CSS_SRC = new URL("./src/mantle.css", import.meta.url);
-const MANTLE_DARK_CSS_SRC = new URL("./src/mantle-dark.css", import.meta.url);
 const SOURCE_ALL_CSS_SRC = new URL("./src/source-all.css", import.meta.url);
 
 /**
@@ -177,7 +176,6 @@ export default defineConfig((options) => [
 			try {
 				await Promise.all([
 					fs.promises.copyFile(MANTLE_CSS_SRC, "./dist/mantle.css"),
-					fs.promises.copyFile(MANTLE_DARK_CSS_SRC, "./dist/mantle-dark.css"),
 					fs.promises.copyFile(SOURCE_ALL_CSS_SRC, "./dist/source-all.css"),
 				]);
 			} catch (error) {

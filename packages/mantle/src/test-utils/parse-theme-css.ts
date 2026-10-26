@@ -1,9 +1,9 @@
 /**
- * Test-only helpers for parsing mantle's theme stylesheets. Power the
- * invert-theme guard tests (which keep the hand-written `.invert-theme` rules
- * mechanically honest against the theme blocks and Tailwind's default palette)
- * and the browser sweep test (which injects normalized theme CSS and asserts
- * computed inversion end-to-end).
+ * Test-only helpers for parsing mantle's theme stylesheet. Power the
+ * invert-theme guard tests (which keep the `light-dark()` palette and the
+ * color-scheme rules honest against Tailwind's default palette) and the
+ * browser tests (which inject normalized theme CSS and assert the resolved
+ * colors end-to-end).
  */
 
 /**
@@ -161,9 +161,91 @@ function parseDeclarationBlock(
 	return parseDeclarations(rule.body);
 }
 
+function serializeRule(selector: string, declarations: Map<string, string>): string {
+	const body = [...declarations].map(([property, value]) => `${property}: ${value};`).join("\n");
+	return `${selector} {\n${body}\n}`;
+}
+
+/**
+ * Build the theme CSS a consumer build emits, from the raw sources, so a
+ * browser test can inject it with no Tailwind build step: Tailwind's default
+ * palette and mantle's `@theme` at `:root`, then every `:root` rule of
+ * mantle.css. Each value has `--alpha()` compiled to `color-mix()`.
+ *
+ * @example
+ * ```ts
+ * style.textContent = themeTestCss({ mantleCss, tailwindThemeCss });
+ * ```
+ */
+function themeTestCss({
+	mantleCss,
+	tailwindThemeCss,
+}: {
+	mantleCss: string;
+	tailwindThemeCss: string;
+}): string {
+	const tailwindDefaults = parseDeclarationBlock(tailwindThemeCss, (selector) =>
+		selector.includes("@theme default"),
+	);
+	const mantleTheme = parseDeclarationBlock(mantleCss, (selector) => selector === "@theme");
+	const rootRules = extractTopLevelRules(mantleCss)
+		.filter(({ selector }) => selector.startsWith(":root"))
+		.map(({ selector, body }) => serializeRule(selector, parseDeclarations(body)));
+	return [
+		serializeRule(":root", new Map([...tailwindDefaults, ...mantleTheme])),
+		...rootRules,
+	].join("\n");
+}
+
+/**
+ * The color a probe takes when a property holds no color, so the reader can
+ * tell a color token from any other value.
+ */
+const NOT_A_COLOR = "rgb(1, 2, 3)";
+
+/**
+ * Read each property as an element under `element` paints it. A color
+ * resolves as the `color` of a child probe, so each `light-dark()` resolves
+ * against the `color-scheme` there. Any other value is the raw computed
+ * value, prefixed `raw:`. The map also holds the computed `color-scheme`.
+ *
+ * Why a probe: a custom property keeps `light-dark()` unresolved, so
+ * `getPropertyValue` returns the same text in both themes.
+ *
+ * @example
+ * ```ts
+ * readResolvedTokens(island, ["--background-color-card"]).get("--background-color-card");
+ * // "oklch(0.205 0 0)"
+ * ```
+ */
+function readResolvedTokens(
+	element: HTMLElement,
+	properties: readonly string[],
+): Map<string, string> {
+	const wrapper = document.createElement("span");
+	wrapper.style.color = NOT_A_COLOR;
+	const probe = document.createElement("span");
+	wrapper.appendChild(probe);
+	element.appendChild(wrapper);
+	const computed = getComputedStyle(element);
+	const values = new Map([["color-scheme", computed.colorScheme]]);
+	for (const property of properties) {
+		probe.style.color = `var(${property})`;
+		const color = getComputedStyle(probe).color;
+		values.set(
+			property,
+			color === NOT_A_COLOR ? `raw:${computed.getPropertyValue(property).trim()}` : color,
+		);
+	}
+	wrapper.remove();
+	return values;
+}
+
 export {
 	//,
 	extractTopLevelRules,
 	parseDeclarationBlock,
 	parseDeclarations,
+	readResolvedTokens,
+	themeTestCss,
 };

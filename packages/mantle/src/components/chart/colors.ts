@@ -195,7 +195,10 @@ const canvasParses = (context: ColorParseContext, value: string): boolean => {
  * The computed-style reads the resolver makes. A `CSSStyleDeclaration` from
  * `getComputedStyle` satisfies it; a test passes a fake.
  */
-type ComputedColorSource = Pick<CSSStyleDeclaration, "getPropertyValue" | "color" | "fontFamily">;
+type ComputedColorSource = Pick<
+	CSSStyleDeclaration,
+	"getPropertyValue" | "color" | "colorScheme" | "fontFamily"
+>;
 
 /**
  * Resolves CSS color strings against one chart root for one resolution pass.
@@ -217,6 +220,52 @@ const BARE_VAR = /^var\(\s*(--[\w-]+)\s*\)$/i;
  * another function, or `light-dark()`, which only a color property resolves.
  */
 const UNRESOLVED = /var\(|currentcolor|light-dark\(/i;
+
+/**
+ * Replace each `light-dark(<light>, <dark>)` in a computed value with the
+ * argument for `scheme`, nested ones too. A `light-dark()` with no comma
+ * between its arguments stays in place.
+ *
+ * Why: every mantle color token is a `light-dark()` pair, and the canvas
+ * cannot parse one. Picking the argument from the root's `color-scheme`
+ * keeps the token off the probe, which forces a style recalc per color.
+ *
+ * @example
+ * ```ts
+ * pickLightDark("light-dark(oklch(1 0 0), oklch(0 0 0))", "dark"); // "oklch(0 0 0)"
+ * ```
+ */
+const pickLightDark = (value: string, scheme: "light" | "dark"): string => {
+	const start = value.indexOf("light-dark(");
+	if (start === -1) {
+		return value;
+	}
+	const open = start + "light-dark".length;
+	let depth = 0;
+	let comma = -1;
+	for (let index = open; index < value.length; index += 1) {
+		const char = value[index];
+		if (char === "(") {
+			depth += 1;
+		} else if (char === "," && depth === 1 && comma === -1) {
+			comma = index;
+		} else if (char === ")") {
+			depth -= 1;
+			if (depth === 0) {
+				if (comma === -1) {
+					return value;
+				}
+				const argument =
+					scheme === "light" ? value.slice(open + 1, comma) : value.slice(comma + 1, index);
+				return pickLightDark(
+					`${value.slice(0, start)}${argument.trim()}${value.slice(index + 1)}`,
+					scheme,
+				);
+			}
+		}
+	}
+	return value;
+};
 
 /**
  * Create the resolver for one resolution pass. A bare `var(--name)` reads
@@ -241,6 +290,12 @@ const createColorResolver = (
 ): ColorResolver => {
 	const { computed, parseContext } = source;
 	const resolved = new Map<string, string>();
+	// Why only an exact scheme: `light dark` and `normal` leave the choice to
+	// the browser, so the probe resolves those.
+	const scheme =
+		computed.colorScheme === "light" || computed.colorScheme === "dark"
+			? computed.colorScheme
+			: undefined;
 	const resolve = (cssColor: string): string => {
 		const cached = resolved.get(cssColor);
 		if (cached != null) {
@@ -251,6 +306,9 @@ const createColorResolver = (
 		let candidate: string;
 		if (bareVar?.[1] != null) {
 			candidate = computed.getPropertyValue(bareVar[1]).trim();
+			if (scheme != null) {
+				candidate = pickLightDark(candidate, scheme);
+			}
 		} else if (trimmed.toLowerCase() === "currentcolor") {
 			candidate = computed.color;
 		} else {
@@ -382,6 +440,7 @@ export {
 	createColorResolver,
 	isChartColorToken,
 	observeThemeChanges,
+	pickLightDark,
 	resolveChromeColors,
 	resolveSeriesColor,
 	resolveThroughProbe,

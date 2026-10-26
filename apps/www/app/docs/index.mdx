@@ -86,8 +86,7 @@ section below says where the file lives.
 @import "@ngrok/mantle/source-all.css";
 ```
 
-`mantle.css` imports Tailwind, the theme tokens, and the light theme. The dark theme ships in
-`mantle-dark.css`; each framework section below shows how to load it. `source-all.css` holds one
+`mantle.css` imports Tailwind and the theme tokens for both themes. `source-all.css` holds one
 `@source` directive that points Tailwind at mantle's `dist/` directory. Tailwind 4 skips
 `node_modules` when it scans for class names, so without that directive it generates none of the
 classes mantle's components use. The components then render without their styles: an open
@@ -140,8 +139,6 @@ export default defineConfig({
 In your app's `app/root.tsx`, import `app.css` (created in [Stylesheet](#stylesheet), here at
 `app/app.css`) and set up the [Theme Provider](/components/primitives/theme),
 [Toaster](/components/feedback/toast), and [Tooltip Provider](/components/overlays/tooltip).
-`mantle.css` holds only the light theme. `MantleStyleSheets` loads the dark theme from
-`mantle-dark.css`; without it, nothing renders dark.
 
 > [!WARNING]
 > It is critical to include `PreventWrongThemeFlashScript` early in the `<head>` of your app to
@@ -166,10 +163,7 @@ responseHeaders.set(
 
 ```tsx
 // app/root.tsx
-import darkCssUrl from "@ngrok/mantle/mantle-dark.css?url";
 import {
-	mantleStyleSheetUrls,
-	MantleStyleSheets,
 	PreventWrongThemeFlashScript,
 	ThemeProvider,
 	useInitialHtmlThemeProps,
@@ -189,8 +183,6 @@ import {
 import type { Route } from "./+types/root";
 import "./app.css";
 
-const themeUrls = mantleStyleSheetUrls({ darkCssUrl });
-
 export function Layout({ children }: PropsWithChildren) {
 	const initialHtmlThemeProps = useInitialHtmlThemeProps({
 		className: "h-full",
@@ -205,8 +197,6 @@ export function Layout({ children }: PropsWithChildren) {
 				<meta name="viewport" content="width=device-width, initial-scale=1" />
 				{/* PreventWrongThemeFlashScript must be as early as possible in <head> */}
 				<PreventWrongThemeFlashScript />
-				{/* MantleStyleSheets loads the dark theme */}
-				<MantleStyleSheets {...themeUrls} />
 				<Meta />
 				<Links />
 			</head>
@@ -321,17 +311,6 @@ export default defineConfig({
 });
 ```
 
-Add the dark theme to `app.css` (created in [Stylesheet](#stylesheet), here at `src/app.css`).
-`mantle.css` holds only the light theme, so without this import nothing renders dark. Each rule in
-`mantle-dark.css` is scoped to the dark theme, so it changes nothing on a light page.
-
-```css
-/* src/app.css */
-@import "@ngrok/mantle/mantle.css";
-@import "@ngrok/mantle/mantle-dark.css";
-@import "@ngrok/mantle/source-all.css";
-```
-
 In your app's `src/main.tsx`, import `app.css` and set up the
 [Theme Provider](/components/primitives/theme), [Toaster](/components/feedback/toast), and
 [Tooltip Provider](/components/overlays/tooltip):
@@ -361,9 +340,8 @@ createRoot(document.getElementById("root")!).render(
 To prevent a flash of unstyled content (FOUC), add the theme script to the `<head>` of your
 `index.html`. The `<script>` below holds the output of `preventWrongThemeFlashScriptContent()`
 from `@ngrok/mantle/theme`, generated from the version of mantle this page was built with.
-Generate it again after you upgrade mantle. For a `<head>` that loads the dark theme with a
-`<link>` tag instead, see [Non-React head](/components/primitives/theme#non-react-head) on the
-Theme page.
+Generate it again after you upgrade mantle. For a `<head>` that a server writes without React,
+see [Non-React head](/components/primitives/theme#non-react-head) on the Theme page.
 
 > [!WARNING]
 > While mantle supports any type of React application, Vite is not the primary target. For now,
@@ -401,16 +379,6 @@ You are now ready to use mantle components in your application! Start with the
 > working on adding support for it soon.
 
 ### React SPA
-
-Add the dark theme to `app.css` (created in [Stylesheet](#stylesheet)). `mantle.css` holds only
-the light theme, so without this import nothing renders dark.
-
-```css
-/* app.css */
-@import "@ngrok/mantle/mantle.css";
-@import "@ngrok/mantle/mantle-dark.css";
-@import "@ngrok/mantle/source-all.css";
-```
 
 In your app's entry/root file, import `app.css` and set up the
 [Theme Provider](/components/primitives/theme), [Toaster](/components/feedback/toast), and
@@ -451,9 +419,8 @@ root.render(
 To prevent a flash of unstyled content (FOUC), add the theme script to the `<head>` of your
 `index.html`. The `<script>` below holds the output of `preventWrongThemeFlashScriptContent()`
 from `@ngrok/mantle/theme`, generated from the version of mantle this page was built with.
-Generate it again after you upgrade mantle. For a `<head>` that loads the dark theme with a
-`<link>` tag instead, see [Non-React head](/components/primitives/theme#non-react-head) on the
-Theme page.
+Generate it again after you upgrade mantle. For a `<head>` that a server writes without React,
+see [Non-React head](/components/primitives/theme#non-react-head) on the Theme page.
 
 > [!WARNING]
 > While mantle supports any type of React application, arbitrary React SPA apps are not the

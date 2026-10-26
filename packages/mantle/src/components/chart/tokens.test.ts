@@ -1,7 +1,6 @@
 import { describe, expect, test } from "vitest";
 import twThemeCss from "tailwindcss/theme.css?raw";
-import darkCss from "../../mantle-dark.css?raw";
-import lightCss from "../../mantle.css?raw";
+import mantleCss from "../../mantle.css?raw";
 import {
 	CHROMA_FLOOR,
 	CONTRAST_FLOOR_BY_THEME,
@@ -36,8 +35,8 @@ import type { PaletteMode, ThemeName, WorstPair } from "./palette-gates.js";
  *
  * It replaced a test that compared alias NAMES, which could not see any of the
  * regressions that matter — a color edited by one digit, a surface change, or a
- * deleted override that drops a slot through to another file. Each theme now
- * authors its eight slots as `oklch()` literals, so the recorded value below is
+ * deleted override that drops a slot through to another file. Each slot is now
+ * a `light-dark()` pair of `oklch()` literals, so the recorded value below is
  * the color that ships and the recorded source is the file that declares it.
  *
  * **When this test fails, re-step a slot. Never widen a threshold and never
@@ -68,23 +67,12 @@ type ThemePalette = {
 const CHART_SLOTS = [1, 2, 3, 4, 5, 6, 7, 8] as const;
 
 /**
- * Resolve one theme's palette through the cascade a browser applies: the theme
- * file outranks `mantle.css`, which outranks Tailwind's own theme.
+ * Resolve one theme's palette through the cascade a browser applies:
+ * `mantle.css` outranks Tailwind's own theme. Each `light-dark()` value in
+ * `mantle.css` reads as the argument for `mode`.
  */
-const resolvePalette = (
-	name: ThemeName,
-	mode: PaletteMode,
-	themeCss: string,
-	themeFile: string,
-): ThemePalette => {
-	const chain =
-		themeFile === "mantle.css"
-			? [layer("mantle.css", lightCss), layer("tailwindcss/theme.css", twThemeCss)]
-			: [
-					layer(themeFile, themeCss),
-					layer("mantle.css", lightCss),
-					layer("tailwindcss/theme.css", twThemeCss),
-				];
+const resolvePalette = (name: ThemeName, mode: PaletteMode): ThemePalette => {
+	const chain = [layer("mantle.css", mantleCss, mode), layer("tailwindcss/theme.css", twThemeCss)];
 
 	const hexOf = (property: string) => hexFromOklch(resolveProperty(chain, property).literal);
 	return {
@@ -100,10 +88,7 @@ const resolvePalette = (
 	};
 };
 
-const THEMES: ThemePalette[] = [
-	resolvePalette("light", "light", lightCss, "mantle.css"),
-	resolvePalette("dark", "dark", darkCss, "mantle-dark.css"),
-];
+const THEMES: ThemePalette[] = [resolvePalette("light", "light"), resolvePalette("dark", "dark")];
 
 /**
  * The literal each slot resolves to, and the file that declares it.
@@ -111,12 +96,13 @@ const THEMES: ThemePalette[] = [
  * This is the recorded shape of the palette, and it is the gate no color
  * measurement can replace. The value column pins the shipped color, so a slot
  * re-tuned by one digit fails here even when it still clears every threshold.
- * The source column pins the owner: a deleted theme override can keep passing
- * every color measurement while it drops that slot through to light's value, or
- * past mantle entirely to `tailwindcss/theme.css`.
+ * The source column pins the owner: a deleted slot can drop past mantle
+ * entirely to `tailwindcss/theme.css`. A slot that loses its `light-dark()`
+ * pair paints one color in both themes, and the value column of one theme
+ * sees it.
  *
- * Each theme declares its own eight `oklch()` literals. Only `chart-other` is
- * still an alias, and it resolves to that theme's `--color-neutral-500`.
+ * Each slot pairs its own two `oklch()` literals. Only `chart-other` is still
+ * an alias, and it resolves to that theme's `--color-neutral-500`.
  */
 const PROVENANCE: Record<ThemeName, Array<{ slot: string; value: string; source: string }>> = {
 	light: [
@@ -131,15 +117,15 @@ const PROVENANCE: Record<ThemeName, Array<{ slot: string; value: string; source:
 		{ slot: "chart-other", value: "oklch(55.6% 0 none)", source: "mantle.css" },
 	],
 	dark: [
-		{ slot: "chart-1", value: "oklch(0.668 0.168 260.3)", source: "mantle-dark.css" },
-		{ slot: "chart-2", value: "oklch(0.537 0.121 160.1)", source: "mantle-dark.css" },
-		{ slot: "chart-3", value: "oklch(0.627 0.242 6.7)", source: "mantle-dark.css" },
-		{ slot: "chart-4", value: "oklch(0.565 0.169 41.2)", source: "mantle-dark.css" },
-		{ slot: "chart-5", value: "oklch(0.668 0.112 198.8)", source: "mantle-dark.css" },
-		{ slot: "chart-6", value: "oklch(0.584 0.261 332.9)", source: "mantle-dark.css" },
-		{ slot: "chart-7", value: "oklch(0.573 0.244 285.4)", source: "mantle-dark.css" },
-		{ slot: "chart-8", value: "oklch(0.668 0.137 83.5)", source: "mantle-dark.css" },
-		{ slot: "chart-other", value: "oklch(55.6% 0 0)", source: "mantle-dark.css" },
+		{ slot: "chart-1", value: "oklch(0.668 0.168 260.3)", source: "mantle.css" },
+		{ slot: "chart-2", value: "oklch(0.537 0.121 160.1)", source: "mantle.css" },
+		{ slot: "chart-3", value: "oklch(0.627 0.242 6.7)", source: "mantle.css" },
+		{ slot: "chart-4", value: "oklch(0.565 0.169 41.2)", source: "mantle.css" },
+		{ slot: "chart-5", value: "oklch(0.668 0.112 198.8)", source: "mantle.css" },
+		{ slot: "chart-6", value: "oklch(0.584 0.261 332.9)", source: "mantle.css" },
+		{ slot: "chart-7", value: "oklch(0.573 0.244 285.4)", source: "mantle.css" },
+		{ slot: "chart-8", value: "oklch(0.668 0.137 83.5)", source: "mantle.css" },
+		{ slot: "chart-other", value: "oklch(55.6% 0 0)", source: "mantle.css" },
 	],
 };
 
@@ -193,8 +179,8 @@ describe.each(THEMES)("chart palette gates — $name", (theme) => {
 	test("every slot resolves to the recorded literal in the recorded file", () => {
 		// The one gate no color measurement can replace. A slot re-tuned by a digit
 		// still clears every threshold, and the value column is what sees it. The
-		// source column names the file that owns each color, so a deleted theme
-		// override reads as the wrong owner instead of as a silent fallback.
+		// source column names the file that owns each color, so a deleted slot
+		// reads as the wrong owner instead of as a silent fallback.
 		//
 		// A `tailwindcss/theme.css` row would mean mantle ships a chart color it
 		// does not own, where an upstream re-tune moves a shipped series.

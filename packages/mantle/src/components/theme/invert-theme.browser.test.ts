@@ -1,23 +1,21 @@
 import twThemeCss from "tailwindcss/theme.css?raw";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import darkCss from "../../mantle-dark.css?raw";
 import mantleCss from "../../mantle.css?raw";
 import {
 	extractTopLevelRules,
-	parseDeclarationBlock,
 	parseDeclarations,
+	readResolvedTokens,
+	themeTestCss,
 } from "../../test-utils/parse-theme-css.js";
 
 /**
  * End-to-end proof of the `invert-theme` contract in a real browser: for
- * every theme-controlled custom property, its computed value inside an
- * `.invert-theme` subtree under theme T equals its computed value on a plain
- * page under T's pair partner, in both directions (light ⇄ dark).
+ * every theme token, the value an element paints with inside an
+ * `.invert-theme` subtree under theme T equals the value on a plain page
+ * under T's pair partner, in both directions (light ⇄ dark).
  *
- * The real stylesheets are injected with two mechanical normalizations that
- * the consumer build pipeline performs (Tailwind's `--alpha()` compiled to
- * `color-mix()`, and Tailwind's default `@theme` palette emitted at `:root`),
- * so the assertions run against the shipped selectors and declarations.
+ * The values are read through a color probe, because a custom property keeps
+ * `light-dark()` unresolved: its computed text is the same in both themes.
  */
 
 const THEME_CLASSES = ["light", "dark"] as const;
@@ -28,58 +26,21 @@ const OPPOSITE: Record<ThemeClass, ThemeClass> = {
 	dark: "light",
 };
 
-function serializeRule(selector: string, declarations: Map<string, string>): string {
-	const body = [...declarations].map(([property, value]) => `${property}: ${value};`).join("\n");
-	return `${selector} {\n${body}\n}`;
-}
-
 /**
- * Re-serialize a file's `:root`-selector rules (the theme blocks, including
- * their `.invert-theme` selector extensions) with normalized declarations.
- */
-function serializeThemeRules(css: string): string {
-	return extractTopLevelRules(css)
-		.filter(({ selector }) => selector.startsWith(":root"))
-		.map(({ selector, body }) => serializeRule(selector, parseDeclarations(body)))
-		.join("\n");
-}
-
-// Light's surface is split across two rules — its own definitions at `:root`
-// (plus islands) and Tailwind's unmodified default ramps scoped to islands only
-// — so the sweep surface is the union. Taking just the page-level block would
-// leave the ramps in the sweep only for as long as the dark block keeps
-// declaring them.
-const lightBlock = new Map([
-	...parseDeclarationBlock(
-		mantleCss,
-		(selector) => selector.startsWith(":root:is(") && selector.endsWith(".invert-theme"),
-	),
-	...parseDeclarationBlock(
-		mantleCss,
-		(selector) => selector.startsWith(":root,") && selector.includes(":root.light,"),
-	),
-]);
-const darkBlock = parseDeclarationBlock(darkCss, (selector) => selector.includes(":root.dark"));
-const mantleThemeBlock = parseDeclarationBlock(mantleCss, (selector) => selector === "@theme");
-// the Shiki/code-block tokens are declared on `:root, .invert-theme` so their
-// theme-dependent var() references re-resolve inside islands
-const shikiBlock = parseDeclarationBlock(
-	mantleCss,
-	(selector) => selector === ":root, .invert-theme",
-);
-const tailwindDefaults = parseDeclarationBlock(twThemeCss, (selector) =>
-	selector.includes("@theme default"),
-);
-
-/**
- * Every custom property any theme block declares, plus the palette aliases
- * and the Shiki/code-block tokens — the full inversion surface under test.
+ * Every custom property mantle declares at `:root`, plus the `@theme` colors:
+ * the palette, the semantic tokens, the non-color theme values, and the Shiki
+ * tokens. The `@theme` shadows read `--alpha()` with a `var()` alpha, which
+ * only a Tailwind build compiles.
  */
 const sweepProperties = [
 	...new Set(
-		[lightBlock, darkBlock, shikiBlock]
-			.flatMap((block) => [...block.keys()])
-			.concat([...mantleThemeBlock.keys()].filter((property) => property.startsWith("--color-"))),
+		extractTopLevelRules(mantleCss).flatMap(({ selector, body }) => {
+			const properties = [...parseDeclarations(body).keys()];
+			if (selector === "@theme") {
+				return properties.filter((property) => property.startsWith("--color-"));
+			}
+			return selector.startsWith(":root") ? properties : [];
+		}),
 	),
 ].filter((property) => property.startsWith("--"));
 
@@ -89,28 +50,8 @@ let islandProbe: HTMLDivElement;
 let nestedIslandProbe: HTMLDivElement;
 
 beforeAll(() => {
-	// Tailwind emits its default palette and mantle's @theme colors at :root;
-	// the consumer's build does this, so the test reproduces it.
-	const rootColorVariables = new Map(
-		[...tailwindDefaults, ...mantleThemeBlock].filter(([property]) =>
-			property.startsWith("--color-"),
-		),
-	);
 	styleElement = document.createElement("style");
-	styleElement.textContent = [
-		serializeRule(":root", rootColorVariables),
-		// the light base block (with its dark-page island selector extension)
-		serializeThemeRules(mantleCss),
-		// the palette-alias re-resolution rule
-		serializeRule(
-			".invert-theme",
-			parseDeclarations(
-				extractTopLevelRules(mantleCss).find(({ selector }) => selector === ".invert-theme")
-					?.body ?? "",
-			),
-		),
-		serializeThemeRules(darkCss),
-	].join("\n");
+	styleElement.textContent = themeTestCss({ mantleCss, tailwindThemeCss: twThemeCss });
 	document.head.appendChild(styleElement);
 
 	pageProbe = document.createElement("div");
@@ -148,17 +89,7 @@ function applyTheme(theme: ThemeClass | null) {
 	}
 }
 
-function readProperties(element: Element): Map<string, string> {
-	const style = getComputedStyle(element);
-	const values = new Map<string, string>();
-	for (const property of sweepProperties) {
-		values.set(property, style.getPropertyValue(property).trim());
-	}
-	values.set("color-scheme", style.colorScheme);
-	return values;
-}
-
-describe("invert-theme renders the opposite theme's computed values", () => {
+describe("invert-theme renders the opposite theme's resolved values", () => {
 	// Snapshot the plain-page values for each theme once, then compare each
 	// theme's island against its pair partner's page.
 	const pageValues = new Map<ThemeClass, Map<string, string>>();
@@ -166,7 +97,7 @@ describe("invert-theme renders the opposite theme's computed values", () => {
 	beforeAll(() => {
 		for (const theme of THEME_CLASSES) {
 			applyTheme(theme);
-			pageValues.set(theme, readProperties(pageProbe));
+			pageValues.set(theme, readResolvedTokens(pageProbe, sweepProperties));
 		}
 	});
 
@@ -178,15 +109,24 @@ describe("invert-theme renders the opposite theme's computed values", () => {
 		for (const theme of THEME_CLASSES) {
 			const values = pageValues.get(theme);
 			for (const property of sweepProperties) {
-				expect(values?.get(property), `${property} under ${theme}`).not.toBe("");
+				expect(values?.get(property), `${property} under ${theme}`).not.toMatch(/^(raw:)?$/);
 			}
 		}
 	});
 
+	test("the two themes resolve different surfaces, so the comparisons below can fail", () => {
+		const surfaces = ["--background-color-card", "--color-neutral-50", "--text-color-body"];
+		const same = surfaces.filter(
+			(property) =>
+				pageValues.get("light")?.get(property) === pageValues.get("dark")?.get(property),
+		);
+		expect(same).toEqual([]);
+	});
+
 	for (const theme of THEME_CLASSES) {
-		test(`under ${theme}, an island computes exactly the ${OPPOSITE[theme]} page values`, () => {
+		test(`under ${theme}, an island resolves exactly the ${OPPOSITE[theme]} page values`, () => {
 			applyTheme(theme);
-			const islandValues = readProperties(islandProbe);
+			const islandValues = readResolvedTokens(islandProbe, sweepProperties);
 			const expected = pageValues.get(OPPOSITE[theme]);
 			for (const [property, value] of islandValues) {
 				expect(value, `${property} inside .invert-theme under ${theme}`).toBe(
@@ -196,9 +136,9 @@ describe("invert-theme renders the opposite theme's computed values", () => {
 		});
 	}
 
-	test("a bare :root (no theme class) is treated as light: the island computes dark values", () => {
+	test("a bare :root (no theme class) is treated as light: the island resolves dark values", () => {
 		applyTheme(null);
-		const islandValues = readProperties(islandProbe);
+		const islandValues = readResolvedTokens(islandProbe, sweepProperties);
 		const expected = pageValues.get("dark");
 		for (const [property, value] of islandValues) {
 			expect(value, `${property} inside .invert-theme with no page theme`).toBe(
@@ -209,7 +149,7 @@ describe("invert-theme renders the opposite theme's computed values", () => {
 
 	test("nesting invert-theme is idempotent: the inner island stays inverted, it does not revert", () => {
 		applyTheme("dark");
-		const nestedValues = readProperties(nestedIslandProbe);
+		const nestedValues = readResolvedTokens(nestedIslandProbe, sweepProperties);
 		const expected = pageValues.get("light");
 		for (const [property, value] of nestedValues) {
 			expect(value, `${property} inside nested .invert-theme under dark`).toBe(

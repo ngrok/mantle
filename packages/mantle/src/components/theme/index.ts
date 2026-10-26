@@ -7,18 +7,6 @@
 
 export {
 	//,
-	mantleStyleSheetUrls,
-	MantleStyleSheets,
-} from "./mantle-style-sheets.js";
-
-export type {
-	//,
-	MantleStyleSheetsProps,
-	MantleThemeCssUrls,
-} from "./mantle-style-sheets.js";
-
-export {
-	//,
 	extractThemeCookie,
 	getStoredTheme,
 	PreventWrongThemeFlashScript,

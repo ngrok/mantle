@@ -503,6 +503,14 @@ export const migrations = [
 			"The high-contrast themes, stylesheets, and variants are gone, MantleStyleSheets takes only darkCssUrl, and ThemeSwitcher is one light/dark toggle.",
 		route: "/migrations/0011-eliminate-high-contrast-migration",
 	},
+	{
+		number: 12,
+		slug: "light-dark-tokens-migration",
+		title: "Light Dark Tokens",
+		description:
+			"mantle.css holds both themes as light-dark() tokens, so mantle-dark.css, MantleStyleSheets, and mantleStyleSheetUrls are gone.",
+		route: "/migrations/0012-light-dark-tokens-migration",
+	},
 ] as const satisfies readonly Migration[];
 
 /** Migration guides, newest first: the order the index page and the sidebar show. */
