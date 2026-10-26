@@ -1,6 +1,5 @@
 import twThemeCss from "tailwindcss/theme.css?raw";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import darkCss from "../../mantle-dark.css?raw";
 import mantleCss from "../../mantle.css?raw";
 import {
 	extractTopLevelRules,
@@ -59,7 +58,7 @@ const lightBlock = new Map([
 		(selector) => selector.startsWith(":root,") && selector.includes(":root.light,"),
 	),
 ]);
-const darkBlock = parseDeclarationBlock(darkCss, (selector) => selector.includes(":root.dark"));
+const darkBlock = parseDeclarationBlock(mantleCss, (selector) => selector.includes(":root.dark"));
 const mantleThemeBlock = parseDeclarationBlock(mantleCss, (selector) => selector === "@theme");
 // the Shiki/code-block tokens are declared on `:root, .invert-theme` so their
 // theme-dependent var() references re-resolve inside islands
@@ -109,7 +108,6 @@ beforeAll(() => {
 					?.body ?? "",
 			),
 		),
-		serializeThemeRules(darkCss),
 	].join("\n");
 	document.head.appendChild(styleElement);
 
