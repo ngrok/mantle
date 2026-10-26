@@ -1,5 +1,77 @@
 # @ngrok/mantle
 
+## 0.92.0
+
+### Minor Changes
+
+- [#1619](https://github.com/ngrok/mantle/pull/1619) [`914629c`](https://github.com/ngrok/mantle/commit/914629c51b8686f14cbe8f14746ec3de8e074899) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `mantle.css` holds the dark theme too, so an app loads one stylesheet.
+
+  Each page makes one fewer render-blocking stylesheet request. The CSS is also smaller over the wire, because the two themes compress as one file. With every mantle class in the build, minified, the CSS goes from 41.0 KB to 38.4 KB with gzip (−6.6%), and from 29.9 KB to 27.6 KB with Brotli (−7.4%).
+
+  **Breaking:**
+
+  - `@ngrok/mantle/mantle-dark.css` is gone. Delete its `?url` import and every use of the URL, its CSS `@import`, and the `mantle-dark-styles` `<link>` in a non-React `<head>`.
+  - `MantleStyleSheets`, `mantleStyleSheetUrls`, `MantleStyleSheetsProps`, and `MantleThemeCssUrls` are gone from `@ngrok/mantle/theme`. Delete `<MantleStyleSheets />` and its `mantleStyleSheetUrls` call. `PreventWrongThemeFlashScript` stays in `<head>`.
+
+  The resolved colors do not change, with one exception. When the `<html>` theme class and `data-applied-theme` disagree, the light rule now wins. Before, the stylesheet order decided. `ThemeProvider` and `PreventWrongThemeFlashScript` keep the two in step, so this affects only a page whose writers get different `forceTheme` values.
+
+  The codemod deletes the imports, the element, and the call. Migration guide: https://mantle.ngrok.com/migrations/0012-single-stylesheet-migration
+
+### Patch Changes
+
+- [#1615](https://github.com/ngrok/mantle/pull/1615) [`1d37d30`](https://github.com/ngrok/mantle/commit/1d37d30f1988400fc010fb57799c50c903bf709b) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Accordion.TriggerIcon` now stays centered on the first line of the trigger label when the label wraps. Before, it was centered on the full trigger height.
+
+- [#1610](https://github.com/ngrok/mantle/pull/1610) [`81ee570`](https://github.com/ngrok/mantle/commit/81ee570d604be04daf75e55ad5fb52c850aed52b) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `$cssProperties` from `@ngrok/mantle/types` now checks each key of an object literal. A key that starts with `--` is still a valid CSS variable, and the return type is still React's `CSSProperties`, so `style={$cssProperties({ "--gap": 8, ...style })}` compiles as before. A misspelled key that does not start with `--`, such as `displya`, now fails to compile. Before, it compiled and had no effect. Fix the spelling at that call site.
+
+- [#1610](https://github.com/ngrok/mantle/pull/1610) [`81ee570`](https://github.com/ngrok/mantle/commit/81ee570d604be04daf75e55ad5fb52c850aed52b) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `useUndoRedo` spells its constraint `T extends {}`, the type that `NonNullable<unknown>` resolves to. Calls compile as before.
+
+- [#1616](https://github.com/ngrok/mantle/pull/1616) [`a511d5e`](https://github.com/ngrok/mantle/commit/a511d5e1b7ac3cf20d5fd734e89dd94ae52e8942) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `isApplePlatform` returns `false` during a server render. Before this release, it read the `navigator` global, which Node 21 and later also define, so a server on macOS could report an Apple platform and the client could then hydrate a different shortcut hint.
+
+  The source now passes the stricter lint rules that the ngrok frontend repo uses. The other changes are internal and do not change behavior.
+
+  Tailwind classes in the source use their canonical form. The default `preferredWidth` of `Sheet.Content` is now spelled `sm:max-w-120`, which is the same width as `sm:max-w-[30rem]`.
+
+- [#1612](https://github.com/ngrok/mantle/pull/1612) [`895815b`](https://github.com/ngrok/mantle/commit/895815b6de614d9de7fe48a9efc9d833c80b1887) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Every component and hook in `dist` now ships React Compiler output, except the virtualization hook inside `List`. That hook opts out on purpose with `"use no memo"`, because the compiler cannot model `@tanstack/react-virtual`. Before this release, the compiler skipped `useInertSiblings` and the click handler of `DataTable.ControlCell` and gave no warning, so those two had no memoization. Both now compile. Their behavior does not change.
+
+  The mantle build now fails when the compiler cannot compile a function, so a function that the compiler skips with no warning can no longer reach a release.
+
+  What changes for you:
+
+  - `useInertSiblings` and `DataTable.ControlCell` get the same memoization as the rest of mantle.
+  - You do not need to change your code.
+
+- [#1614](https://github.com/ngrok/mantle/pull/1614) [`b868a2b`](https://github.com/ngrok/mantle/commit/b868a2b62521a1c67cdd846d78a219195b81a020) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - The mantle build now runs every React Compiler validation, and lint enforces every rule that ports a compiler diagnostic. To pass them, these parts move a state update out of an effect, or make an effect read each value in its dependency list:
+
+  - `List` grid navigation clamps its active row during render when the list shrinks. A shrink that clamps the row now takes 1 commit instead of 2.
+  - Charts read the `aria-labelledby` text for the data-table caption with `useSyncExternalStore`. A chart mount with `aria-labelledby` now takes 2 commits instead of 3. When `aria-labelledby` names an element that contains the chart, the caption skips the text of the data table.
+  - `Sandbar.Root` sets its presence during render when `open` changes. Open and close still take 2 commits each.
+  - `AppLayout.SidePanel` resets its transition gate during render when it opens. An open still takes 2 commits.
+  - Charts clear the keyboard announcement during render, and the color effect passes `className` and `style` to the engine.
+  - `CodeBlock.Code` attaches the fold handler only to highlighted HTML, the only HTML that has fold toggles.
+
+  What changes for you:
+
+  - No API changes. You do not need to change your code.
+  - The validations do not change compiler output. A build with them and a build without them are byte-identical.
+  - The commit counts come from a React `Profiler` probe in the unit test environment, the same on 3 runs, against the previous source.
+
+- [#1617](https://github.com/ngrok/mantle/pull/1617) [`21f2f37`](https://github.com/ngrok/mantle/commit/21f2f373ff3175ff21b25e816203eac46edf6ece) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Fix three behaviors that surprised consumers, and document the others in JSDoc and on the docs site.
+
+  - `Separator`, and so `Tabs.Separator`, no longer shrinks to zero height in a flex container that overflows, such as a scrolling `Dialog.Body`. A `className` with a `shrink` class still wins.
+  - The `Sidebar.Root` `⌘B` / `Ctrl+B` shortcut now does nothing when an earlier `keydown` listener called `preventDefault()`, as the `Command.DialogRoot` `⌘K` shortcut already does.
+  - The `--shadow-*` tokens are now CSS custom properties on `:root`, so a stylesheet that Tailwind does not process can read `var(--shadow-md)`. See https://mantle.ngrok.com/base/shadows.
+
+  New JSDoc notes:
+
+  - `Button`: pass an icon through the `icon` prop, never as a child. The `icon` gets `size-5` unless the icon sets its own size, `asChild` wraps a plain `<a>` and not `Anchor`, and the `disabled={!isReady || isPending}` pattern.
+  - `Combobox.Input`: Enter never submits a parent form while the combobox is open, with a free-text example. `Combobox.Root`: control `open` when you render `Combobox.Content` conditionally. `Combobox.Content`: children must be items, groups, or separators.
+  - Charts: a `xKey`, `dataKey`, or `zKey` that no row has throws. The Root is `aspect-video` by default, the legend scrolls past `max-h-16`, and a `mode="decorative"` chart hides its children from assistive technology.
+  - `ThemeProvider`: the `mantle-ui-theme` cookie and the events that apply it again. Set the cookie and reload in browser automation.
+  - `Dialog.Content`, `Sheet.Content`, and `AlertDialog.Content`: the `overlay-prompt` class lets UI such as a consent banner take clicks above an open overlay. It does not reach the keyboard or assistive technology.
+  - `useInView`: do not combine `once: true` with `initial: true`.
+  - `Breakpoint`: `xs` (480px) is wider than most phones, so give each `xs:` class an unprefixed base.
+  - The docs site lists the reserved `⌘K` and `⌘B` chords at https://mantle.ngrok.com/accessibility#reserved-keyboard-shortcuts.
+
 ## 0.91.1
 
 ### Patch Changes

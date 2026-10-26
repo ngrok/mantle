@@ -1,5 +1,13 @@
 # @ngrok/mantle-vite-plugins
 
+## 1.2.6
+
+### Patch Changes
+
+- [#1616](https://github.com/ngrok/mantle/pull/1616) [`a511d5e`](https://github.com/ngrok/mantle/commit/a511d5e1b7ac3cf20d5fd734e89dd94ae52e8942) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - The source now passes the stricter lint rules that the ngrok frontend repo uses. Helpers with four or more parameters take one options object. Behavior does not change.
+- Updated dependencies [[`a511d5e`](https://github.com/ngrok/mantle/commit/a511d5e1b7ac3cf20d5fd734e89dd94ae52e8942)]:
+  - @ngrok/mantle-server-syntax-highlighter@1.1.19
+
 ## 1.2.5
 
 ### Patch Changes
