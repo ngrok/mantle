@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import twThemeCss from "tailwindcss/theme.css?raw";
-import darkCss from "../../mantle-dark.css?raw";
-import lightCss from "../../mantle.css?raw";
+import mantleCss from "../../mantle.css?raw";
+import { splitDarkThemeRule } from "../../test-utils/parse-theme-css.js";
 import {
 	CHROMA_FLOOR,
 	CONTRAST_FLOOR_BY_THEME,
@@ -20,6 +20,8 @@ import {
 	worstNormalPair,
 } from "./palette-gates.js";
 import type { PaletteMode, ThemeName, WorstPair } from "./palette-gates.js";
+
+const { light: lightCss, dark: darkCss } = splitDarkThemeRule(mantleCss);
 
 /**
  * The validated chart palette, measured rather than pinned by name.
@@ -102,7 +104,7 @@ const resolvePalette = (
 
 const THEMES: ThemePalette[] = [
 	resolvePalette("light", "light", lightCss, "mantle.css"),
-	resolvePalette("dark", "dark", darkCss, "mantle-dark.css"),
+	resolvePalette("dark", "dark", darkCss, "mantle.css (dark)"),
 ];
 
 /**
@@ -131,15 +133,15 @@ const PROVENANCE: Record<ThemeName, Array<{ slot: string; value: string; source:
 		{ slot: "chart-other", value: "oklch(55.6% 0 none)", source: "mantle.css" },
 	],
 	dark: [
-		{ slot: "chart-1", value: "oklch(0.668 0.168 260.3)", source: "mantle-dark.css" },
-		{ slot: "chart-2", value: "oklch(0.537 0.121 160.1)", source: "mantle-dark.css" },
-		{ slot: "chart-3", value: "oklch(0.627 0.242 6.7)", source: "mantle-dark.css" },
-		{ slot: "chart-4", value: "oklch(0.565 0.169 41.2)", source: "mantle-dark.css" },
-		{ slot: "chart-5", value: "oklch(0.668 0.112 198.8)", source: "mantle-dark.css" },
-		{ slot: "chart-6", value: "oklch(0.584 0.261 332.9)", source: "mantle-dark.css" },
-		{ slot: "chart-7", value: "oklch(0.573 0.244 285.4)", source: "mantle-dark.css" },
-		{ slot: "chart-8", value: "oklch(0.668 0.137 83.5)", source: "mantle-dark.css" },
-		{ slot: "chart-other", value: "oklch(55.6% 0 0)", source: "mantle-dark.css" },
+		{ slot: "chart-1", value: "oklch(0.668 0.168 260.3)", source: "mantle.css (dark)" },
+		{ slot: "chart-2", value: "oklch(0.537 0.121 160.1)", source: "mantle.css (dark)" },
+		{ slot: "chart-3", value: "oklch(0.627 0.242 6.7)", source: "mantle.css (dark)" },
+		{ slot: "chart-4", value: "oklch(0.565 0.169 41.2)", source: "mantle.css (dark)" },
+		{ slot: "chart-5", value: "oklch(0.668 0.112 198.8)", source: "mantle.css (dark)" },
+		{ slot: "chart-6", value: "oklch(0.584 0.261 332.9)", source: "mantle.css (dark)" },
+		{ slot: "chart-7", value: "oklch(0.573 0.244 285.4)", source: "mantle.css (dark)" },
+		{ slot: "chart-8", value: "oklch(0.668 0.137 83.5)", source: "mantle.css (dark)" },
+		{ slot: "chart-other", value: "oklch(55.6% 0 0)", source: "mantle.css (dark)" },
 	],
 };
 

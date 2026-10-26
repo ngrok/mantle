@@ -1,6 +1,5 @@
 import twThemeCss from "tailwindcss/theme.css?raw";
 import { describe, expect, test } from "vitest";
-import darkCss from "../../mantle-dark.css?raw";
 import mantleCss from "../../mantle.css?raw";
 import {
 	extractTopLevelRules,
@@ -41,13 +40,11 @@ const lightIslandBlock = parseDeclarationBlock(
  * completeness invariants below compare theme blocks against the union.
  */
 const lightBlock = new Map([...lightIslandBlock, ...lightPageBlock]);
-const darkBlock = parseDeclarationBlock(darkCss, (selector) => selector.includes(":root.dark"));
+const darkBlock = parseDeclarationBlock(mantleCss, (selector) => selector.includes(":root.dark"));
 const tailwindDefaults = parseDeclarationBlock(twThemeCss, (selector) =>
 	selector.includes("@theme default"),
 );
 const mantleThemeBlock = parseDeclarationBlock(mantleCss, (selector) => selector === "@theme");
-
-const invertThemeSelector = (selector: string) => selector.endsWith(".invert-theme");
 
 describe("cardinality floors", () => {
 	// Every other invariant in this suite is a set/equality comparison that a
@@ -81,8 +78,8 @@ describe("theme block selector extensions", () => {
 	});
 
 	test("the dark block also targets .invert-theme on light pages (any page that is not dark)", () => {
-		const rule = extractTopLevelRules(darkCss).find(({ selector }) =>
-			selector.includes(":root.dark"),
+		const rule = extractTopLevelRules(mantleCss).find(({ selector }) =>
+			selector.startsWith(":root.dark,"),
 		);
 		expect(normalizeSelector(rule?.selector)).toContain(
 			':root:not(.dark, [data-theme="dark"]:not([data-applied-theme]), [data-applied-theme="dark"]) .invert-theme',
@@ -91,15 +88,14 @@ describe("theme block selector extensions", () => {
 
 	test("every data-theme selector is guarded against an applied theme", () => {
 		// `data-theme` carries the stored *preference*, which `forceTheme` leaves
-		// disagreeing with the theme actually applied. The dark stylesheet is
+		// disagreeing with the theme actually applied. The dark rule is
 		// always live, so a bare `[data-theme="dark"]` matches a
-		// `forceTheme="light"` page and the later sheet wins the cascade — the page
+		// `forceTheme="light"` page and the later rule wins the cascade — the page
 		// paints dark. The guard is what makes the applied theme authoritative.
 		// force-theme.browser.test.ts proves the computed outcome; this pins the
-		// spelling in both sheets so a new selector cannot reintroduce it.
+		// spelling in mantle.css so a new selector cannot reintroduce it.
 		const sheets = {
 			"mantle.css": mantleCss,
-			"mantle-dark.css": darkCss,
 		};
 		const unguarded: string[] = [];
 		let guarded = 0;
@@ -140,15 +136,6 @@ describe("theme block completeness", () => {
 		expect([...lightBlock.keys()].toSorted()).toEqual([...darkBlock.keys()].toSorted());
 	});
 
-	test("each theme stylesheet holds nothing outside its theme-gated rule", () => {
-		// The dark stylesheet is applied on every page, so any rule in it that is
-		// NOT gated on a `:root` theme match would leak onto light pages. Neither the browser sweep nor the rule-count check above can see
-		// such a rule: the sweep re-serializes only `:root`-prefixed rules.
-		const rules = extractTopLevelRules(darkCss);
-		expect(rules.length, "mantle-dark.css top-level rule count").toBe(1);
-		expect(rules[0]?.selector, "mantle-dark.css selector").toMatch(/^:root/);
-	});
-
 	test("the dark block's focus ring and menu tokens match the light base expressions", () => {
 		const properties = [
 			"--ring-color-focus-neutral",
@@ -169,7 +156,7 @@ describe("theme block completeness", () => {
 
 describe("the materialized default palette (mantle.css light base)", () => {
 	// Light materializes its complete palette so islands on dark pages restore it
-	// from mantle.css itself — mantle-dark.css never encodes light values. The
+	// from the light rules — the dark rule never encodes light values. The
 	// verbatim Tailwind defaults live in the island-scoped restore rule and light's
 	// own divergences in the page-level block; the union is what an island sees.
 	// Custom stops that intentionally diverge are exempt from the verbatim check.
@@ -211,14 +198,6 @@ describe("the materialized default palette (mantle.css light base)", () => {
 			':root:is(.dark, [data-theme="dark"]:not([data-applied-theme]), [data-applied-theme="dark"]) .invert-theme',
 		);
 		expect(normalizeSelector(pageRule?.selector)).toContain(restoreSelector);
-	});
-
-	test("mantle-dark.css contains no light values (its only .invert-theme rule is the block extension)", () => {
-		const invertRules = extractTopLevelRules(darkCss).filter(({ selector }) =>
-			invertThemeSelector(selector),
-		);
-		expect(invertRules.length).toBe(1);
-		expect(invertRules[0]?.selector).toContain(":root.dark");
 	});
 
 	test("every light color is a Tailwind default, a mantle @theme literal, an alias, a chart slot, or an intentional custom stop", () => {

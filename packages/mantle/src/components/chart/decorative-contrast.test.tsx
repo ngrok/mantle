@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import twThemeCss from "tailwindcss/theme.css?raw";
-import darkCss from "../../mantle-dark.css?raw";
-import lightCss from "../../mantle.css?raw";
+import mantleCss from "../../mantle.css?raw";
+import { splitDarkThemeRule } from "../../test-utils/parse-theme-css.js";
 import { CHART_DECORATIVE_COLOR } from "./colors.js";
 import {
 	CHROMA_FLOOR,
@@ -12,6 +12,8 @@ import {
 	resolveProperty,
 } from "./palette-gates.js";
 import type { ThemeName } from "./palette-gates.js";
+
+const { light: lightCss, dark: darkCss } = splitDarkThemeRule(mantleCss);
 
 /**
  * A message over a decorative chart must stay readable, in every theme, with no
@@ -139,7 +141,7 @@ const resolveTheme = (name: ThemeName, themeCss: string, themeFile: string): The
 
 const THEMES: Theme[] = [
 	resolveTheme("light", lightCss, "mantle.css"),
-	resolveTheme("dark", darkCss, "mantle-dark.css"),
+	resolveTheme("dark", darkCss, "mantle.css (dark)"),
 ];
 
 describe("empty-state text over a decorative chart", () => {

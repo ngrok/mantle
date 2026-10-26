@@ -24,12 +24,6 @@
 			"import": "./dist/mantle.css",
 			"default": "./dist/mantle.css"
 		},
-		"./mantle-dark.css": {
-			"@ngrok/src-live-types": "./src/mantle-dark.css",
-			"style": "./dist/mantle-dark.css",
-			"import": "./dist/mantle-dark.css",
-			"default": "./dist/mantle-dark.css"
-		},
 		"./source-all.css": {
 			"style": "./dist/source-all.css",
 			"import": "./dist/source-all.css",

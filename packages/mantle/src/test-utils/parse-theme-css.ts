@@ -161,9 +161,39 @@ function parseDeclarationBlock(
 	return parseDeclarations(rule.body);
 }
 
+const isDarkThemeRule = ({ selector }: CssRule) => selector.startsWith(":root.dark,");
+
+const serializeRules = (rules: CssRule[]) =>
+	rules.map(({ selector, body }) => `${selector} {${body}}`).join("\n");
+
+/**
+ * Split `mantle.css` into its dark theme rule and the other top-level rules,
+ * both as comment-stripped CSS text.
+ *
+ * Why: a test that collects every declaration in one file reads the last one,
+ * so it reads the dark value of a token that both themes declare.
+ *
+ * @example
+ * ```ts
+ * const { light, dark } = splitDarkThemeRule(mantleCss);
+ * ```
+ */
+function splitDarkThemeRule(css: string): { light: string; dark: string } {
+	const rules = extractTopLevelRules(css);
+	const dark = rules.filter(isDarkThemeRule);
+	if (dark.length !== 1) {
+		throw new Error(`parse-theme-css: expected one dark theme rule, found ${dark.length}`);
+	}
+	return {
+		light: serializeRules(rules.filter((rule) => !isDarkThemeRule(rule))),
+		dark: serializeRules(dark),
+	};
+}
+
 export {
 	//,
 	extractTopLevelRules,
 	parseDeclarationBlock,
 	parseDeclarations,
+	splitDarkThemeRule,
 };

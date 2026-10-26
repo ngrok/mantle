@@ -1,0 +1,164 @@
+---
+title: Single Stylesheet Migration
+description: mantle.css holds both themes, so mantle-dark.css, MantleStyleSheets, and mantleStyleSheetUrls are gone. Delete them.
+---
+
+# Mantle Single Stylesheet Migration Guide
+
+`@ngrok/mantle/mantle.css` holds the light theme and the dark theme. `@ngrok/mantle/mantle-dark.css` is gone, with `MantleStyleSheets`, `mantleStyleSheetUrls`, and the types `MantleStyleSheetsProps` and `MantleThemeCssUrls`. `invert-theme` islands, the `dark:` and `light:` variants, `ThemeProvider`, and `PreventWrongThemeFlashScript` work as before.
+
+**TL;DR:** Delete every import of `@ngrok/mantle/mantle-dark.css`, every `<MantleStyleSheets />`, and every `mantleStyleSheetUrls` call. In a non-React `<head>`, delete the `mantle-dark-styles` `<link>`. Nothing replaces them.
+
+## Codemod
+
+From a mantle checkout:
+
+```sh
+pnpm -w run migrate 0012 <path>
+```
+
+In a project that installs `@ngrok/mantle`:
+
+```sh
+npx --yes --package=@ast-grep/cli@0.51.0 ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/0012-single-stylesheet.yml --update-all <path>
+```
+
+The rules apply steps 1 and 2:
+
+- They delete each `<MantleStyleSheets />` that is a direct child of a JSX element.
+- They delete each `const` whose value is a `mantleStyleSheetUrls` call, when only a deleted `<MantleStyleSheets />` reads it.
+- They delete each JavaScript import of `@ngrok/mantle/mantle-dark.css`, with or without `?url`, when only deleted code reads its name.
+- They delete the `MantleStyleSheets`, `mantleStyleSheetUrls`, `MantleStyleSheetsProps`, and `MantleThemeCssUrls` imports from `@ngrok/mantle/theme` when only deleted code reads them, and they delete an import statement that holds nothing else.
+
+Code that other code still reads stays: an exported `const`, a `<MantleStyleSheets />` inside an expression such as `{show && …}`, a type annotation, and a `mantle-dark.css` URL in a preload list. The removed export then makes the type checker or the bundler name that code for manual work. The rules read a part through its import from `@ngrok/mantle/theme`, under its own name or an alias. A function that binds the part's name to a parameter or a local shadows the import, so the rules leave that function alone.
+
+Steps 3 and 4 stay manual, because a CSS `@import` and an HTML template are not syntax a rule can read. The codemod is safe to run twice. Pass `--dry-run` to print the rewrites first, and run your formatter after the rewrite.
+
+---
+
+## You are an agent migrating a codebase. Do this:
+
+1. Find every `MantleStyleSheets` element and every `mantleStyleSheetUrls` call from `@ngrok/mantle/theme`, under its own name or an alias. Delete each one, the `const` that holds the call, and the imports. Delete the `MantleStyleSheetsProps` and `MantleThemeCssUrls` types, or replace them with your own. Keep `PreventWrongThemeFlashScript` in `<head>`; it did not change.
+2. Find every JavaScript import of `@ngrok/mantle/mantle-dark.css`, usually `import darkCssUrl from "@ngrok/mantle/mantle-dark.css?url"`. Delete it and every use of its name, such as a `Link` preload header in a server entry. The type checker does not report a stale `?url` import, because a `*?url` module declaration types it. The bundler fails on it.
+3. Find every CSS `@import "@ngrok/mantle/mantle-dark.css";`. Delete it. `@import "@ngrok/mantle/mantle.css";` holds both themes.
+4. In a `<head>` that a non-React server writes, such as a Go template, delete `<link id="mantle-dark-styles" rel="stylesheet" href="…/mantle-dark.css" />`. Keep the inline theme script.
+5. After editing, run the project's formatter, linter, type checker, tests, and production build.
+
+> **Why one stylesheet?** Every page loaded `mantle-dark.css`, because an `invert-theme` island on a light page paints in dark. The second sheet saved no request, and it made every app wire a `?url` import and a component into `<head>`.
+
+---
+
+## Before → after
+
+### The root stylesheets
+
+```tsx
+// BEFORE
+import darkCssUrl from "@ngrok/mantle/mantle-dark.css?url";
+import {
+	MantleStyleSheets,
+	mantleStyleSheetUrls,
+	PreventWrongThemeFlashScript,
+} from "@ngrok/mantle/theme";
+
+const themeUrls = mantleStyleSheetUrls({ darkCssUrl });
+
+export function Layout({ nonce }: { nonce: string }) {
+	return (
+		<head>
+			<PreventWrongThemeFlashScript nonce={nonce} />
+			<MantleStyleSheets {...themeUrls} />
+		</head>
+	);
+}
+```
+
+```tsx
+// AFTER
+import { PreventWrongThemeFlashScript } from "@ngrok/mantle/theme";
+
+export function Layout({ nonce }: { nonce: string }) {
+	return (
+		<head>
+			<PreventWrongThemeFlashScript nonce={nonce} />
+		</head>
+	);
+}
+```
+
+### An aliased import
+
+```tsx
+// BEFORE
+import darkCssUrl from "@ngrok/mantle/mantle-dark.css?url";
+import { MantleStyleSheets as Sheets } from "@ngrok/mantle/theme";
+
+export function Head() {
+	return (
+		<head>
+			<Sheets darkCssUrl={darkCssUrl} />
+		</head>
+	);
+}
+```
+
+```tsx
+// AFTER
+export function Head() {
+	return <head></head>;
+}
+```
+
+### A server entry that preloads the stylesheet
+
+```tsx
+// BEFORE
+import darkCssUrl from "@ngrok/mantle/mantle-dark.css?url";
+
+const stylesheetHrefs = [darkCssUrl, ...routeStylesheetHrefs(routerContext)];
+```
+
+```tsx
+// AFTER
+const stylesheetHrefs = routeStylesheetHrefs(routerContext);
+```
+
+### A CSS entry point
+
+```css
+/* BEFORE */
+@import "@ngrok/mantle/mantle.css";
+@import "@ngrok/mantle/mantle-dark.css";
+```
+
+```css
+/* AFTER */
+@import "@ngrok/mantle/mantle.css";
+```
+
+### A non-React head
+
+```html
+<!-- BEFORE -->
+<script>
+	{{ .ThemeScript }}
+</script>
+<link id="mantle-dark-styles" rel="stylesheet" href="/static/mantle-dark.css" />
+```
+
+```html
+<!-- AFTER -->
+<script>
+	{{ .ThemeScript }}
+</script>
+```
+
+## Edge cases & gotchas
+
+- **A theme class that disagrees with `data-applied-theme`.** The dark rules now come before the light rules in `mantle.css`. When the `<html>` theme class and `data-applied-theme` disagree, the light rule wins. Before, the stylesheet order decided. `ThemeProvider` and `PreventWrongThemeFlashScript` keep the two in step, so only a page whose writers get different `forceTheme` values sees this.
+
+## How to verify
+
+- Run `rg "mantle-dark|MantleStyleSheets|mantleStyleSheetUrls|MantleThemeCssUrls"` across the repo. Expect no results.
+- Load a page in light, in dark, and with an `invert-theme` island. The page must look as before, and the browser must load no `mantle-dark` stylesheet.
+- Run the project's formatter, linter, type checker, tests, and production build.
