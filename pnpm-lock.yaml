@@ -400,6 +400,12 @@ importers:
       '@phosphor-icons/react':
         specifier: 'catalog:'
         version: 2.1.10(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@tailwindcss/node':
+        specifier: 'catalog:'
+        version: 4.3.3
+      '@tailwindcss/oxide':
+        specifier: 'catalog:'
+        version: 4.3.3
       '@testing-library/dom':
         specifier: 'catalog:'
         version: 10.4.2

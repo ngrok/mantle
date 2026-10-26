@@ -1,3 +1,8 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+
+import { compile } from "@tailwindcss/node";
+import { Scanner } from "@tailwindcss/oxide";
 import { playwright, type PlaywrightProviderOptions } from "@vitest/browser-playwright";
 import { transform } from "oxc-transform-react";
 import { configDefaults, defineConfig } from "vitest/config";
@@ -23,6 +28,25 @@ type EmulatedMedia = { reducedMotion: "reduce" | "no-preference" };
 // script inside the test iframe can set it.
 const emulateMedia: BrowserCommand<[options: EmulatedMedia]> = async ({ page }, options) => {
 	await page.emulateMedia(options);
+};
+
+// Why a command: a browser test asserts layout, so it needs the CSS that Tailwind
+// really compiles for a component. A hand-written copy keeps passing when Tailwind
+// drops a rule. The path is relative to the test file.
+const tailwindCss: BrowserCommand<[sourceFile: string]> = async ({ testPath }, sourceFile) => {
+	if (testPath == null) {
+		throw new Error("tailwindCss runs only inside a test file.");
+	}
+	const file = path.resolve(path.dirname(testPath), sourceFile);
+	const content = await readFile(file, "utf8");
+	const candidates = new Scanner({ sources: [] })
+		.getCandidatesWithPositions({ content, extension: path.extname(file).slice(1) })
+		.map(({ candidate }) => candidate);
+	const compiler = await compile('@import "tailwindcss/theme"; @import "tailwindcss/utilities";', {
+		base: import.meta.dirname,
+		onDependency: () => {},
+	});
+	return compiler.build(candidates);
 };
 
 // The published dist ships React Compiler output (see `tsdown.config.ts`), so tests must run the
@@ -127,7 +151,7 @@ export default defineConfig({
 								})
 							: playwright({ contextOptions }),
 						instances: [{ browser: "chromium" }],
-						commands: { emulateMedia },
+						commands: { emulateMedia, tailwindCss },
 					},
 				},
 			},
