@@ -170,6 +170,13 @@ describe("filterItemsByQuery evaluation", () => {
 		expect(ids("-is:bogus")).toHaveLength(3);
 	});
 
+	test("matches nothing for a quoted empty value, while a bare key waits for one", () => {
+		expect(ids('is:""')).toEqual([]);
+		expect(ids("is:")).toHaveLength(3);
+		expect(ids('is:"')).toHaveLength(3);
+		expect(ids('name:""')).toHaveLength(3);
+	});
+
 	test("searches an unknown key as literal text rather than failing", () => {
 		// A misspelled key stays one term, so it finds the rows that carry it
 		// as text and empties the list for the rows that do not.

@@ -42,6 +42,8 @@ export function useQueryParamInput() {
 			setSearchParams(
 				(current) => {
 					const next = new URLSearchParams(current);
+					// A new filter starts a paginated list over at its first page.
+					next.delete("page");
 					if (query === "") {
 						next.delete("q");
 					} else {

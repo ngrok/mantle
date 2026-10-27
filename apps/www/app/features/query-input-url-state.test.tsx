@@ -46,6 +46,17 @@ describe("useQueryParamInput", () => {
 		expect(screen.getByRole("status").textContent).toBe("is:new");
 	});
 
+	test("sends a paginated list back to its first page", async () => {
+		const router = renderWithRouter("/?q=old&page=3&sort=name");
+
+		act(() => screen.getByRole("button", { name: "Type" }).click());
+		await act(async () => {
+			await vi.advanceTimersByTimeAsync(250);
+		});
+
+		expect(router.state.location.search).toBe("?q=is%3Anew&sort=name");
+	});
+
 	test("keeps a navigation that lands inside the wait", async () => {
 		const router = renderWithRouter("/?q=old");
 

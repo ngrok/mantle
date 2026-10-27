@@ -249,7 +249,8 @@ function toFacetValueMember<Item>({
  *
  * A list key takes the scanned runs, so an unquoted comma separates members and
  * a quoted one stays inside its member. A prose key keeps the whole value as one
- * member. Empty runs (`is:active,` mid-typing) produce no member.
+ * member. Empty runs (`is:active,` mid-typing) produce no member, but a
+ * quoted empty value (`is:""`) does: it asks for an empty value on purpose.
  */
 function splitFacetValue<Item>({
 	grammar,
@@ -266,7 +267,7 @@ function splitFacetValue<Item>({
 	valueEnd: number;
 	scannedMembers: ScannedMember[];
 }): FacetValueMember[] {
-	if (rawValue === "") {
+	if (!isWrittenValue(rawValue, valueStart, valueEnd)) {
 		return [];
 	}
 
@@ -283,7 +284,7 @@ function splitFacetValue<Item>({
 	}
 
 	return scannedMembers
-		.filter((member) => member.literal !== "")
+		.filter((member) => isWrittenValue(member.literal, member.start, member.end))
 		.map((member) =>
 			toFacetValueMember({
 				grammar,
@@ -293,6 +294,14 @@ function splitFacetValue<Item>({
 				end: member.end,
 			}),
 		);
+}
+
+/**
+ * Whether a value span holds a value. Only quotes add a span with no literal,
+ * so a span of two or more such characters is a closed quoted empty value.
+ */
+function isWrittenValue(literal: string, start: number, end: number) {
+	return literal !== "" || end - start >= 2;
 }
 
 /**
