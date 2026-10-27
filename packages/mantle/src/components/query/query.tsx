@@ -39,7 +39,7 @@ import { IconButton } from "../button/icon-button.js";
 import { Code } from "../code/code.js";
 import { FieldControlContext, type FieldControlAriaProps } from "../field/field-context.js";
 import type { WithValidation } from "../field/validation.js";
-import { Input, InputCapture } from "../input/input.js";
+import { Input as InputShell, InputCapture } from "../input/input.js";
 import { Kbd } from "../kbd/kbd.js";
 import { Popover } from "../popover/popover.js";
 import { Slot } from "../slot/index.js";
@@ -58,21 +58,21 @@ const sectionHeadings = {
  * so a query reads like the code on the same page.
  */
 const segmentClassNames = {
-	key: "text-(--query-input-key-color,var(--shiki-token-attribute))",
-	value: "text-(--query-input-value-color,var(--shiki-token-string))",
+	key: "text-(--query-key-color,var(--shiki-token-attribute))",
+	value: "text-(--query-value-color,var(--shiki-token-string))",
 	invalid: "text-danger-600 underline decoration-wavy underline-offset-4",
 	text: "text-strong",
-	operator: "text-(--query-input-operator-color,var(--shiki-token-operator))",
+	operator: "text-(--query-operator-color,var(--shiki-token-operator))",
 	syntax: "text-muted",
 	plain: "",
 } as const satisfies Record<HighlightSegmentKind, string>;
 
 /**
- * The state `QueryInput.Root` shares with its parts. It holds no `Item`
+ * The state `Query.Root` shares with its parts. It holds no `Item`
  * type: `Root` closes over the grammar and the items, so the parts need no
  * type argument.
  */
-type QueryInputContextValue = {
+type QueryContextValue = {
 	/** The query, exactly as typed. */
 	value: string;
 	/** The syntax the grammar honors. */
@@ -103,34 +103,34 @@ type QueryInputContextValue = {
 	acceptSuggestion: (suggestion: FilterSuggestion) => void;
 	/** Empties the query and moves focus back to the `<input>`. */
 	clearValue: () => void;
-	/** `QueryInput.Content` calls this on mount. It returns the cleanup. */
+	/** `Query.Content` calls this on mount. It returns the cleanup. */
 	registerContent: () => () => void;
 };
 
-const QueryInputContext = createContext<QueryInputContextValue | null>(null);
+const QueryContext = createContext<QueryContextValue | null>(null);
 
-/** The elements `QueryInput.Root` reads in its handlers. A separate context keeps refs out of the render state. */
-type QueryInputRefs = {
+/** The elements `Query.Root` reads in its handlers. A separate context keeps refs out of the render state. */
+type QueryRefs = {
 	anchorRef: RefObject<HTMLDivElement | null>;
 	inputRef: RefObject<HTMLInputElement | null>;
 };
 
-const QueryInputRefsContext = createContext<QueryInputRefs | null>(null);
+const QueryRefsContext = createContext<QueryRefs | null>(null);
 
-function useQueryInputRefs(part: string) {
-	const refs = useContext(QueryInputRefsContext);
-	invariant(refs, `${part} must be rendered inside QueryInput.Root.`);
+function useQueryRefs(part: string) {
+	const refs = useContext(QueryRefsContext);
+	invariant(refs, `${part} must be rendered inside Query.Root.`);
 	return refs;
 }
 
-function useQueryInputContext(part: string) {
-	const context = useContext(QueryInputContext);
-	invariant(context, `${part} must be rendered inside QueryInput.Root.`);
+function useQueryContext(part: string) {
+	const context = useContext(QueryContext);
+	invariant(context, `${part} must be rendered inside Query.Root.`);
 	return context;
 }
 
 /**
- * Clears the props `Field.Control` clones onto `QueryInput.Root`. They name the
+ * Clears the props `Field.Control` clones onto `Query.Root`. They name the
  * `<input>`, which reads them from context; on the row they duplicate its `id`.
  */
 const clearedFieldControlProps = {
@@ -146,9 +146,9 @@ function optionId(listboxId: string, index: number) {
 }
 
 /**
- * The props for `QueryInput.Root`.
+ * The props for `Query.Root`.
  */
-type QueryInputRootProps<Item extends object> = Omit<ComponentProps<"div">, "defaultValue"> &
+type QueryRootProps<Item extends object> = Omit<ComponentProps<"div">, "defaultValue"> &
 	WithAsChild &
 	WithDataSlot & {
 		/**
@@ -173,16 +173,16 @@ type QueryInputRootProps<Item extends object> = Omit<ComponentProps<"div">, "def
  * out the field and any actions in one row, and it owns the caret, the open
  * state, and the active suggestion.
  *
- * @see https://mantle.ngrok.com/components/forms/query-input#queryinputroot
+ * @see https://mantle.ngrok.com/components/forms/query#queryroot
  *
  * @example
  * ```tsx
  * const [query, setQuery] = useState("");
  *
- * <QueryInput.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
- *   <QueryInput.Field aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared" />
- *   <QueryInput.Content />
- * </QueryInput.Root>
+ * <Query.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
+ *   <Query.Input aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared" />
+ *   <Query.Content />
+ * </Query.Root>
  * ```
  */
 function Root<Item extends object>({
@@ -195,7 +195,7 @@ function Root<Item extends object>({
 	onValueChange,
 	value,
 	...props
-}: QueryInputRootProps<Item>) {
+}: QueryRootProps<Item>) {
 	const anchorRef = useRef<HTMLDivElement>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
 	// The value the last typed edit reported. `reportInsertedText` reads it to report an edit once.
@@ -239,7 +239,7 @@ function Root<Item extends object>({
 		return () => setHasContent(false);
 	}, []);
 
-	const context = useMemo((): QueryInputContextValue => {
+	const context = useMemo((): QueryContextValue => {
 		const suggestions = getFilterSuggestions({ grammar, query: value, caretIndex, items });
 
 		/**
@@ -355,11 +355,11 @@ function Root<Item extends object>({
 	const Comp = asChild ? Slot : "div";
 
 	return (
-		<QueryInputRefsContext.Provider value={refs}>
-			<QueryInputContext.Provider value={context}>
+		<QueryRefsContext.Provider value={refs}>
+			<QueryContext.Provider value={context}>
 				<Popover.Root open={context.isListboxOpen} onOpenChange={setOpen}>
 					<Comp
-						data-slot={joinDataSlot(dataSlot, "query-input")}
+						data-slot={joinDataSlot(dataSlot, "query")}
 						className={cx("flex w-full items-center gap-2", className)}
 						{...props}
 						{...(fieldControl == null ? {} : clearedFieldControlProps)}
@@ -367,15 +367,15 @@ function Root<Item extends object>({
 						{children}
 					</Comp>
 				</Popover.Root>
-			</QueryInputContext.Provider>
-		</QueryInputRefsContext.Provider>
+			</QueryContext.Provider>
+		</QueryRefsContext.Provider>
 	);
 }
 
 /**
- * The props for `QueryInput.Field`.
+ * The props for `Query.Input`.
  */
-type QueryInputFieldProps = Omit<
+type QueryProps = Omit<
 	ComponentProps<"input">,
 	| "aria-activedescendant"
 	| "aria-autocomplete"
@@ -434,31 +434,31 @@ type QueryInputFieldProps = Omit<
  * While the query has text and the field is editable, a clear button shows
  * at the right edge. It empties the query and moves focus back to the field.
  * Children render after the text as inline actions, before the clear button,
- * in a `[data-slot="query-input-field-actions"]` wrapper with `display: contents`.
+ * in a `[data-slot="query-input-actions"]` wrapper with `display: contents`.
  *
  * **CSS variables:**
  *
  * | CSS Variable                   | Default                        | Description                     |
  * | ------------------------------ | ------------------------------ | ------------------------------- |
- * | `--query-input-key-color`      | `var(--shiki-token-attribute)` | The color of a qualifier key.   |
- * | `--query-input-value-color`    | `var(--shiki-token-string)`    | The color of a qualifier value. |
- * | `--query-input-operator-color` | `var(--shiki-token-operator)`  | The color of `OR` and `AND`.    |
+ * | `--query-key-color`      | `var(--shiki-token-attribute)` | The color of a qualifier key.   |
+ * | `--query-value-color`    | `var(--shiki-token-string)`    | The color of a qualifier value. |
+ * | `--query-operator-color` | `var(--shiki-token-operator)`  | The color of `OR` and `AND`.    |
  *
- * @see https://mantle.ngrok.com/components/forms/query-input#queryinputfield
+ * @see https://mantle.ngrok.com/components/forms/query#queryinput
  *
  * @example
  * ```tsx
  * const [query, setQuery] = useState("");
  *
- * <QueryInput.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
- *   <QueryInput.Field aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared" />
- *   <QueryInput.Content />
- * </QueryInput.Root>
+ * <Query.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
+ *   <Query.Input aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared" />
+ *   <Query.Content />
+ * </Query.Root>
  * ```
  */
 // Why no asChild: the field renders the anchor, the shell, the painted copy,
 // and the `<input>` together, so there is no single element to swap.
-function Field({
+function Input({
 	"aria-describedby": describedBy,
 	"aria-errormessage": errorMessage,
 	"aria-invalid": invalid,
@@ -481,9 +481,9 @@ function Field({
 	style,
 	suggestOnFocus = true,
 	...props
-}: QueryInputFieldProps) {
-	const context = useQueryInputContext("QueryInput.Field");
-	const { anchorRef, inputRef } = useQueryInputRefs("QueryInput.Field");
+}: QueryProps) {
+	const context = useQueryContext("Query.Input");
+	const { anchorRef, inputRef } = useQueryRefs("Query.Input");
 	const fieldControl = useContext(FieldControlContext);
 	const overlayRef = useRef<HTMLDivElement>(null);
 	const composedRef = useComposedRefs(ref, inputRef);
@@ -555,14 +555,14 @@ function Field({
 	return (
 		<Popover.Anchor
 			ref={anchorRef}
-			data-slot={joinDataSlot(dataSlot, "query-input-field")}
+			data-slot={joinDataSlot(dataSlot, "query-input")}
 			className={cx("min-w-0 flex-1", className)}
 			style={style}
 		>
-			{/* Why the input props go to `Input`: it hands them to `InputCapture`
+			{/* Why the input props go to `InputShell` (mantle's `Input`): it hands them to `InputCapture`
 			    and also stamps its own chrome, such as `data-disabled` and the
 			    validation border, from them. */}
-			<Input
+			<InputShell
 				autoCapitalize="off"
 				{...props}
 				aria-invalid={invalid ?? fieldControl?.["aria-invalid"]}
@@ -572,7 +572,7 @@ function Field({
 				placeholder={placeholder}
 				readOnly={readOnly}
 				// A trailing inline action sits as far from the right edge as from the top and bottom.
-				className="has-[>[data-slot=query-input-field-actions]>button:last-child]:pe-1.25"
+				className="has-[>[data-slot=query-input-actions]>button:last-child]:pe-1.25"
 			>
 				<MagnifyingGlassIcon aria-hidden />
 				{/* One box for the input and its painted copy, so the copy ends where
@@ -640,12 +640,12 @@ function Field({
 					/>
 				</div>
 				{(children != null || canClear) && (
-					<span data-slot="query-input-field-actions" className="contents">
+					<span data-slot="query-input-actions" className="contents">
 						{children}
 						{canClear && <ClearButton label={clearLabel} onClear={context.clearValue} />}
 					</span>
 				)}
-			</Input>
+			</InputShell>
 		</Popover.Anchor>
 	);
 }
@@ -680,9 +680,9 @@ function ClearButton({ label, onClear }: { label: string; onClear: () => void })
 }
 
 /**
- * The props for `QueryInput.Content`.
+ * The props for `Query.Content`.
  */
-type QueryInputContentProps = Pick<ComponentProps<typeof Popover.Content>, "className" | "ref"> &
+type QueryContentProps = Pick<ComponentProps<typeof Popover.Content>, "className" | "ref"> &
 	WithDataSlot & {
 		/** Content under the keyboard hints, such as a link to the filter docs. */
 		children?: ReactNode;
@@ -705,18 +705,18 @@ type QueryInputContentProps = Pick<ComponentProps<typeof Popover.Content>, "clas
  * When no row matches, an empty state above the legend says what the
  * field accepts there. Keyboard hints follow the legend; `enterHint` names
  * what Enter does. Children render under the hints, in a
- * `[data-slot="query-input-content-footer"]` `div`.
+ * `[data-slot="query-content-footer"]` `div`.
  *
- * @see https://mantle.ngrok.com/components/forms/query-input#queryinputcontent
+ * @see https://mantle.ngrok.com/components/forms/query#querycontent
  *
  * @example
  * ```tsx
  * const [query, setQuery] = useState("");
  *
- * <QueryInput.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
- *   <QueryInput.Field aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared" />
- *   <QueryInput.Content />
- * </QueryInput.Root>
+ * <Query.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
+ *   <Query.Input aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared" />
+ *   <Query.Content />
+ * </Query.Root>
  * ```
  */
 // Why no asChild: the part renders the listbox and the legend itself.
@@ -726,13 +726,13 @@ function Content({
 	className,
 	enterHint = "select",
 	ref,
-}: QueryInputContentProps) {
-	const context = useQueryInputContext("QueryInput.Content");
-	const { anchorRef } = useQueryInputRefs("QueryInput.Content");
+}: QueryContentProps) {
+	const context = useQueryContext("Query.Content");
+	const { anchorRef } = useQueryRefs("Query.Content");
 	const { registerContent } = context;
 	const rowCount = context.suggestions.items.length;
 
-	// Why an effect: `Content` is a later sibling of `Field`, so the render pass
+	// Why an effect: `Content` is a later sibling of `Input`, so the render pass
 	// cannot hand its presence to the `<input>`'s `aria-expanded`. The server
 	// renders the popover closed, so the first paint is the same.
 	useIsomorphicLayoutEffect(registerContent, [registerContent]);
@@ -740,7 +740,7 @@ function Content({
 	return (
 		<Popover.Content
 			ref={ref}
-			data-slot={joinDataSlot(dataSlot, "query-input-content")}
+			data-slot={joinDataSlot(dataSlot, "query-content")}
 			align="start"
 			className={cx("w-(--radix-popover-trigger-width) p-1", className)}
 			preferredWidth="max-w-none"
@@ -784,7 +784,7 @@ function Content({
 				<SyntaxLegend keys={context.keys} syntax={context.syntax} />
 				<KeyboardHints enterHint={enterHint} />
 				{children != null && (
-					<div data-slot="query-input-content-footer" className="mt-2">
+					<div data-slot="query-content-footer" className="mt-2">
 						{children}
 					</div>
 				)}
@@ -929,7 +929,7 @@ function scrollActiveOptionIntoView(element: HTMLDivElement | null) {
 
 /** The suggestion listbox, grouped by section. */
 function SuggestionList() {
-	const context = useQueryInputContext("QueryInput.Content");
+	const context = useQueryContext("Query.Content");
 	const { activeIndex, hoveredIndex, listboxId } = context;
 
 	const rowsBySection = new Map<
@@ -1009,42 +1009,42 @@ function SuggestionList() {
  * - `MultiSelect`: pick several values, shown as tags.
  * - `Command`: a palette that runs an action or navigates.
  *
- * @see https://mantle.ngrok.com/components/forms/query-input
+ * @see https://mantle.ngrok.com/components/forms/query
  *
  * @example
  * Composition:
  * ```
- * QueryInput.Root
- * ├── QueryInput.Field
- * └── QueryInput.Content
+ * Query.Root
+ * ├── Query.Input
+ * └── Query.Content
  * ```
  *
  * @example
  * ```tsx
  * const [query, setQuery] = useState("");
  *
- * <QueryInput.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
- *   <QueryInput.Field aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared" />
- *   <QueryInput.Content />
- * </QueryInput.Root>
+ * <Query.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
+ *   <Query.Input aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared" />
+ *   <Query.Content />
+ * </Query.Root>
  * ```
  */
-const QueryInput = {
+const Query = {
 	/**
 	 * The row and the state owner of a query input. It renders a `div` that lays
 	 * out the field and any actions in one row, and it owns the caret, the open
 	 * state, and the active suggestion.
 	 *
-	 * @see https://mantle.ngrok.com/components/forms/query-input#queryinputroot
+	 * @see https://mantle.ngrok.com/components/forms/query#queryroot
 	 *
 	 * @example
 	 * ```tsx
 	 * const [query, setQuery] = useState("");
 	 *
-	 * <QueryInput.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
-	 *   <QueryInput.Field aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared" />
-	 *   <QueryInput.Content />
-	 * </QueryInput.Root>
+	 * <Query.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
+	 *   <Query.Input aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared" />
+	 *   <Query.Content />
+	 * </Query.Root>
 	 * ```
 	 */
 	Root,
@@ -1053,34 +1053,34 @@ const QueryInput = {
 	 * copy of its own text, with a leading magnifier and a clear button.
 	 * Children render after the text as inline actions.
 	 *
-	 * @see https://mantle.ngrok.com/components/forms/query-input#queryinputfield
+	 * @see https://mantle.ngrok.com/components/forms/query#queryinput
 	 *
 	 * @example
 	 * ```tsx
 	 * const [query, setQuery] = useState("");
 	 *
-	 * <QueryInput.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
-	 *   <QueryInput.Field aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared" />
-	 *   <QueryInput.Content />
-	 * </QueryInput.Root>
+	 * <Query.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
+	 *   <Query.Input aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared" />
+	 *   <Query.Content />
+	 * </Query.Root>
 	 * ```
 	 */
-	Field,
+	Input,
 	/**
 	 * The suggestion popover: a listbox of keys and values for the token under
 	 * the caret, then the syntax legend and the keyboard hints. Children render
 	 * under the hints.
 	 *
-	 * @see https://mantle.ngrok.com/components/forms/query-input#queryinputcontent
+	 * @see https://mantle.ngrok.com/components/forms/query#querycontent
 	 *
 	 * @example
 	 * ```tsx
 	 * const [query, setQuery] = useState("");
 	 *
-	 * <QueryInput.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
-	 *   <QueryInput.Field aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared" />
-	 *   <QueryInput.Content />
-	 * </QueryInput.Root>
+	 * <Query.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
+	 *   <Query.Input aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared" />
+	 *   <Query.Content />
+	 * </Query.Root>
 	 * ```
 	 */
 	Content,
@@ -1088,12 +1088,12 @@ const QueryInput = {
 
 export {
 	//,
-	QueryInput,
+	Query,
 };
 
 export type {
 	//,
-	QueryInputContentProps,
-	QueryInputFieldProps,
-	QueryInputRootProps,
+	QueryContentProps,
+	QueryProps,
+	QueryRootProps,
 };

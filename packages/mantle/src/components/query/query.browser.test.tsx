@@ -3,14 +3,14 @@ import { useState } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { testGrammar } from "../../utils/query-filter/test-grammar.js";
-import { QueryInput } from "./query-input.js";
+import { Query } from "./query.js";
 
 /** The compound under a `useState`, with the state painted where a test can read it. */
 function Host({ onValueChange }: { onValueChange?: (value: string) => void }) {
 	const [value, setValue] = useState("");
 	return (
 		<>
-			<QueryInput.Root
+			<Query.Root
 				grammar={testGrammar}
 				value={value}
 				onValueChange={(next) => {
@@ -18,18 +18,18 @@ function Host({ onValueChange }: { onValueChange?: (value: string) => void }) {
 					onValueChange?.(next);
 				}}
 			>
-				<QueryInput.Field
+				<Query.Input
 					aria-label="Filter projects"
 					placeholder="Filter projects, or type a filter like name:api"
 				/>
-				<QueryInput.Content />
-			</QueryInput.Root>
+				<Query.Content />
+			</Query.Root>
 			<output aria-label="query state">{value}</output>
 		</>
 	);
 }
 
-describe("QueryInput in a browser", () => {
+describe("Query in a browser", () => {
 	// A suggestion lands through `setRangeText`, which Chromium does not route
 	// through React's value tracker. Without a resync, deleting back to the
 	// tracked value is dropped, and the state keeps the suggestion over an empty input.

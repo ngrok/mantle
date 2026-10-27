@@ -5,41 +5,40 @@ import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import { defineRemoteFilterGrammar } from "../../utils/query-filter/grammar.js";
 import { type TestItem, testGrammar, testItems } from "../../utils/query-filter/test-grammar.js";
 import { Field } from "../field/field.js";
-import { QueryInput, type QueryInputFieldProps } from "./query-input.js";
+import { Query, type QueryProps } from "./query.js";
 
 /** Field props a test can set. The harness owns the label and the placeholder. */
-type ExtraFieldProps = Partial<Omit<QueryInputFieldProps, "placeholder">> &
-	Record<`data-${string}`, string>;
+type ExtraFieldProps = Partial<Omit<QueryProps, "placeholder">> & Record<`data-${string}`, string>;
 
-/** Props for {@link ControlledQueryInput}. */
-type ControlledQueryInputProps = {
+/** Props for {@link ControlledQuery}. */
+type ControlledQueryProps = {
 	/** The query the input starts with. */
 	initialValue: string;
 	/** The items the input counts against; `null` hands the input none. */
 	items: TestItem[] | null;
 	/** Called with every query the input hands back. */
 	onValueChange: (value: string) => void;
-	/** Props for `QueryInput.Field`. */
+	/** Props for `Query.Input`. */
 	fieldProps?: ExtraFieldProps;
-	/** Children of `QueryInput.Field`: the inline actions. */
+	/** Children of `Query.Input`: the inline actions. */
 	fieldChildren?: ReactNode;
-	/** Children of `QueryInput.Content`: the footer under the legend. */
+	/** Children of `Query.Content`: the footer under the legend. */
 	footer?: ReactNode;
 };
 
 /** The compound under a `useState`, the way a table hosts it, reporting every value it writes. */
-function ControlledQueryInput({
+function ControlledQuery({
 	initialValue,
 	items,
 	onValueChange,
 	fieldProps,
 	fieldChildren,
 	footer,
-}: ControlledQueryInputProps) {
+}: ControlledQueryProps) {
 	const [value, setValue] = useState(initialValue);
 
 	return (
-		<QueryInput.Root
+		<Query.Root
 			grammar={testGrammar}
 			items={items ?? undefined}
 			value={value}
@@ -48,20 +47,20 @@ function ControlledQueryInput({
 				onValueChange(nextValue);
 			}}
 		>
-			<QueryInput.Field
+			<Query.Input
 				aria-label="Filter projects"
 				placeholder="Filter projects, or type a filter like name:api"
 				{...fieldProps}
 			>
 				{fieldChildren}
-			</QueryInput.Field>
-			<QueryInput.Content>{footer}</QueryInput.Content>
-		</QueryInput.Root>
+			</Query.Input>
+			<Query.Content>{footer}</Query.Content>
+		</Query.Root>
 	);
 }
 
 /** Renders the controlled compound, reporting every value it writes. */
-function renderQueryInput({
+function renderQuery({
 	initialValue = "",
 	items = testItems,
 	fieldProps,
@@ -82,7 +81,7 @@ function renderQueryInput({
 	render(
 		<>
 			{before}
-			<ControlledQueryInput
+			<ControlledQuery
 				initialValue={initialValue}
 				items={items}
 				onValueChange={(value) => {
@@ -103,12 +102,12 @@ function renderQueryInput({
 }
 
 /** Renders the compound over a grammar that another system executes. */
-function renderRemoteQueryInput(grammar: ReturnType<typeof defineRemoteFilterGrammar>) {
+function renderRemoteQuery(grammar: ReturnType<typeof defineRemoteFilterGrammar>) {
 	render(
-		<QueryInput.Root grammar={grammar} value="" onValueChange={() => {}}>
-			<QueryInput.Field aria-label="Search" placeholder="Search" />
-			<QueryInput.Content />
-		</QueryInput.Root>,
+		<Query.Root grammar={grammar} value="" onValueChange={() => {}}>
+			<Query.Input aria-label="Search" placeholder="Search" />
+			<Query.Content />
+		</Query.Root>,
 	);
 	return screen.getByRole<HTMLInputElement>("combobox", { name: "Search" });
 }
@@ -125,11 +124,11 @@ function typeWithCaret(input: HTMLElement, value: string, caretIndex: number) {
 	});
 }
 
-describe("QueryInput.Root", () => {
+describe("Query.Root", () => {
 	test("forwards className, data attributes, and ref to its row", () => {
 		const ref = createRef<HTMLDivElement>();
 		render(
-			<QueryInput.Root
+			<Query.Root
 				ref={ref}
 				grammar={testGrammar}
 				value=""
@@ -137,12 +136,12 @@ describe("QueryInput.Root", () => {
 				className="custom-row"
 				data-testid="row"
 			>
-				<QueryInput.Field aria-label="Filter projects" placeholder="Filter" />
-			</QueryInput.Root>,
+				<Query.Input aria-label="Filter projects" placeholder="Filter" />
+			</Query.Root>,
 		);
 
 		const row = screen.getByTestId("row");
-		expect(row).toHaveAttribute("data-slot", "query-input");
+		expect(row).toHaveAttribute("data-slot", "query");
 		expect(row).toHaveClass("custom-row");
 		expect(ref.current).toBe(row);
 	});
@@ -150,7 +149,7 @@ describe("QueryInput.Root", () => {
 	test("merges its props, slot, and ref onto the child with asChild", () => {
 		const ref = createRef<HTMLDivElement>();
 		render(
-			<QueryInput.Root
+			<Query.Root
 				asChild
 				ref={ref}
 				grammar={testGrammar}
@@ -160,13 +159,13 @@ describe("QueryInput.Root", () => {
 				data-state-hook="row"
 			>
 				<section aria-label="Filters" className="own-class">
-					<QueryInput.Field aria-label="Filter projects" placeholder="Filter" />
+					<Query.Input aria-label="Filter projects" placeholder="Filter" />
 				</section>
-			</QueryInput.Root>,
+			</Query.Root>,
 		);
 
 		const row = screen.getByRole("region", { name: "Filters" });
-		expect(row).toHaveAttribute("data-slot", "query-input");
+		expect(row).toHaveAttribute("data-slot", "query");
 		expect(row).toHaveAttribute("data-state-hook", "row");
 		expect(row).toHaveClass("custom-row", "own-class");
 		expect(ref.current).toBe(row);
@@ -174,27 +173,27 @@ describe("QueryInput.Root", () => {
 
 	test("throws when a part renders outside it", () => {
 		vi.spyOn(console, "error").mockImplementation(() => {});
-		expect(() => render(<QueryInput.Field aria-label="Filter" placeholder="Filter" />)).toThrow(
-			"QueryInput.Field must be rendered inside QueryInput.Root.",
+		expect(() => render(<Query.Input aria-label="Filter" placeholder="Filter" />)).toThrow(
+			"Query.Input must be rendered inside Query.Root.",
 		);
 	});
 });
 
-describe("QueryInput.Field", () => {
+describe("Query.Input", () => {
 	test("sends className to its outer element, and ref and data attributes to the input", () => {
 		const ref = createRef<HTMLInputElement>();
-		const { input } = renderQueryInput({
+		const { input } = renderQuery({
 			fieldProps: { ref, className: "custom-field", "data-testid": "field" },
 		});
 
-		const field = input.closest('[data-slot~="query-input-field"]');
+		const field = input.closest('[data-slot~="query-input"]');
 		expect(field).toHaveClass("custom-field");
 		expect(screen.getByTestId("field")).toBe(input);
 		expect(ref.current).toBe(input);
 	});
 
 	test("disables the input and offers no suggestions", () => {
-		const { input } = renderQueryInput({ fieldProps: { disabled: true } });
+		const { input } = renderQuery({ fieldProps: { disabled: true } });
 
 		expect(input).toBeDisabled();
 		expect(input.closest('[data-slot~="input"]')).toHaveAttribute("data-disabled");
@@ -205,7 +204,7 @@ describe("QueryInput.Field", () => {
 	});
 
 	test("offers no suggestions on a read-only input", () => {
-		const { input } = renderQueryInput({ fieldProps: { readOnly: true } });
+		const { input } = renderQuery({ fieldProps: { readOnly: true } });
 
 		input.focus();
 		fireEvent.click(input);
@@ -216,13 +215,13 @@ describe("QueryInput.Field", () => {
 	});
 
 	test("marks the input required for a hosting form", () => {
-		const { input } = renderQueryInput({ fieldProps: { required: true } });
+		const { input } = renderQuery({ fieldProps: { required: true } });
 
 		expect(input).toBeRequired();
 	});
 
 	test("shows the error state on the field's box when the caller marks it invalid", () => {
-		const { input } = renderQueryInput({ fieldProps: { validation: "error" } });
+		const { input } = renderQuery({ fieldProps: { validation: "error" } });
 
 		expect(input).toBeInvalid();
 		expect(input.closest('[data-slot~="input"]')).toHaveAttribute("data-validation", "error");
@@ -235,7 +234,7 @@ describe("QueryInput.Field", () => {
 				event.preventDefault();
 			}
 		});
-		const { input } = renderQueryInput({ fieldProps: { onFocus, onKeyDown } });
+		const { input } = renderQuery({ fieldProps: { onFocus, onKeyDown } });
 
 		input.focus();
 		expect(onFocus).toHaveBeenCalledOnce();
@@ -247,7 +246,7 @@ describe("QueryInput.Field", () => {
 	});
 
 	test("offers every qualifier when the empty input takes focus", async () => {
-		const { input } = renderQueryInput();
+		const { input } = renderQuery();
 
 		expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
 		input.focus();
@@ -263,7 +262,7 @@ describe("QueryInput.Field", () => {
 	});
 
 	test("waits for a click before it offers suggestions when focus alone must not open them", async () => {
-		const { input } = renderQueryInput({ fieldProps: { suggestOnFocus: false } });
+		const { input } = renderQuery({ fieldProps: { suggestOnFocus: false } });
 
 		input.focus();
 		expect(input).toHaveFocus();
@@ -273,11 +272,11 @@ describe("QueryInput.Field", () => {
 		expect(await screen.findByRole("listbox", { name: "Filter suggestions" })).toBeInTheDocument();
 	});
 
-	test("stays collapsed without a QueryInput.Content to show the list", () => {
+	test("stays collapsed without a Query.Content to show the list", () => {
 		render(
-			<QueryInput.Root grammar={testGrammar} value="" onValueChange={() => {}}>
-				<QueryInput.Field aria-label="Filter projects" placeholder="Filter" />
-			</QueryInput.Root>,
+			<Query.Root grammar={testGrammar} value="" onValueChange={() => {}}>
+				<Query.Input aria-label="Filter projects" placeholder="Filter" />
+			</Query.Root>,
 		);
 		const input = screen.getByRole("combobox", { name: "Filter projects" });
 
@@ -287,7 +286,7 @@ describe("QueryInput.Field", () => {
 	});
 
 	test("hands every typed query to the caller", () => {
-		const { input, values } = renderQueryInput();
+		const { input, values } = renderQuery();
 
 		type(input, "is:shared acme");
 
@@ -295,7 +294,7 @@ describe("QueryInput.Field", () => {
 	});
 
 	test("paints the caller's query as colored runs beside the input", () => {
-		const { input } = renderQueryInput({ initialValue: "is:bogus" });
+		const { input } = renderQuery({ initialValue: "is:bogus" });
 
 		expect(input).toHaveValue("is:bogus");
 		// The painted copy holds one element per highlighted run, so the key and
@@ -307,22 +306,22 @@ describe("QueryInput.Field", () => {
 	});
 
 	test("colors keys, values, and operators through their documented CSS variables", () => {
-		renderQueryInput({ initialValue: "is:new OR acme" });
+		renderQuery({ initialValue: "is:new OR acme" });
 
 		// Spelling pins: the docs page and the Field JSDoc document these names and defaults.
 		expect(screen.getByText("is")).toHaveClass(
-			"text-(--query-input-key-color,var(--shiki-token-attribute))",
+			"text-(--query-key-color,var(--shiki-token-attribute))",
 		);
 		expect(screen.getByText("new")).toHaveClass(
-			"text-(--query-input-value-color,var(--shiki-token-string))",
+			"text-(--query-value-color,var(--shiki-token-string))",
 		);
 		expect(screen.getByText("OR")).toHaveClass(
-			"text-(--query-input-operator-color,var(--shiki-token-operator))",
+			"text-(--query-operator-color,var(--shiki-token-operator))",
 		);
 	});
 
 	test("scrolls the painted copy with the input, so a long query stays aligned", () => {
-		const { input } = renderQueryInput({ initialValue: 'description:"a long value"' });
+		const { input } = renderQuery({ initialValue: 'description:"a long value"' });
 
 		// happy-dom has no layout, so the test asserts the mechanism: the overlay
 		// takes the scroll offset of the input.
@@ -333,7 +332,7 @@ describe("QueryInput.Field", () => {
 	});
 
 	test("clears the query and refocuses the field from its clear button", async () => {
-		const { input, values } = renderQueryInput({ initialValue: "is:shared " });
+		const { input, values } = renderQuery({ initialValue: "is:shared " });
 
 		const clear = screen.getByRole("button", { name: "Clear filter" });
 		expect(input.closest('[data-slot~="input"]')).toContainElement(clear);
@@ -346,50 +345,50 @@ describe("QueryInput.Field", () => {
 	});
 
 	test("shows no clear button while the query is empty", () => {
-		renderQueryInput();
+		renderQuery();
 
 		expect(screen.queryByRole("button", { name: "Clear filter" })).not.toBeInTheDocument();
 	});
 
 	test("shows no clear button on a field the user cannot edit", () => {
-		renderQueryInput({ initialValue: "is:shared", fieldProps: { readOnly: true } });
+		renderQuery({ initialValue: "is:shared", fieldProps: { readOnly: true } });
 
 		expect(screen.queryByRole("button", { name: "Clear filter" })).not.toBeInTheDocument();
 	});
 
 	test("names the clear button with clearLabel", () => {
-		renderQueryInput({ initialValue: "acme", fieldProps: { clearLabel: "Clear search" } });
+		renderQuery({ initialValue: "acme", fieldProps: { clearLabel: "Clear search" } });
 
 		expect(screen.getByRole("button", { name: "Clear search" })).toBeInTheDocument();
 	});
 
 	test("renders its children as inline actions inside the input's box", () => {
-		const { input } = renderQueryInput({
+		const { input } = renderQuery({
 			fieldChildren: <button type="button">Copy query</button>,
 		});
 
 		const action = screen.getByRole("button", { name: "Copy query" });
 		expect(input.closest('[data-slot~="input"]')).toContainElement(action);
-		expect(action.parentElement).toHaveAttribute("data-slot", "query-input-field-actions");
+		expect(action.parentElement).toHaveAttribute("data-slot", "query-input-actions");
 	});
 
 	test("survives a swapped inline action after a translation engine rewrote it", () => {
 		function Host() {
 			const [label, setLabel] = useState("Clear");
 			return (
-				<QueryInput.Root grammar={testGrammar} value="" onValueChange={() => {}}>
-					<QueryInput.Field aria-label="Filter projects" placeholder="Filter">
+				<Query.Root grammar={testGrammar} value="" onValueChange={() => {}}>
+					<Query.Input aria-label="Filter projects" placeholder="Filter">
 						{label}
-					</QueryInput.Field>
+					</Query.Input>
 					<button type="button" onClick={() => setLabel("Reset")}>
 						Swap
 					</button>
-				</QueryInput.Root>
+				</Query.Root>
 			);
 		}
 		render(<Host />);
 
-		const actions = screen.getByText("Clear").closest('[data-slot="query-input-field-actions"]');
+		const actions = screen.getByText("Clear").closest('[data-slot="query-input-actions"]');
 		if (actions == null) {
 			throw new Error("expected the inline actions wrapper");
 		}
@@ -400,7 +399,7 @@ describe("QueryInput.Field", () => {
 	});
 
 	test("keeps a field owner's description and error wiring beside the legend", async () => {
-		const { input } = renderQueryInput({
+		const { input } = renderQuery({
 			initialValue: "is:bogus",
 			before: <p id="hint">Enter applies the filter.</p>,
 			fieldProps: { id: "project-filter", "aria-describedby": "hint", "aria-invalid": true },
@@ -422,9 +421,9 @@ describe("QueryInput.Field", () => {
 			<Field.Item name="projectFilter">
 				<Field.Label>Filter projects</Field.Label>
 				<Field.Control>
-					<QueryInput.Root grammar={testGrammar} value="" onValueChange={() => {}}>
-						<QueryInput.Field placeholder="Filter" />
-					</QueryInput.Root>
+					<Query.Root grammar={testGrammar} value="" onValueChange={() => {}}>
+						<Query.Input placeholder="Filter" />
+					</Query.Root>
 				</Field.Control>
 				<Field.Description>Type a key and a colon.</Field.Description>
 			</Field.Item>,
@@ -440,9 +439,9 @@ describe("QueryInput.Field", () => {
 			<Field.Item name="projectFilter" id="project-filter">
 				<Field.Label>Filter projects</Field.Label>
 				<Field.Control>
-					<QueryInput.Root grammar={testGrammar} value="" onValueChange={() => {}}>
-						<QueryInput.Field placeholder="Filter" />
-					</QueryInput.Root>
+					<Query.Root grammar={testGrammar} value="" onValueChange={() => {}}>
+						<Query.Input placeholder="Filter" />
+					</Query.Root>
 				</Field.Control>
 			</Field.Item>,
 		);
@@ -456,10 +455,10 @@ describe("QueryInput.Field", () => {
 		function Host() {
 			const [value, setValue] = useState("");
 			return (
-				<QueryInput.Root grammar={testGrammar} value={value} onValueChange={setValue}>
-					<QueryInput.Field aria-label="Filter projects" placeholder="Filter" />
-					<QueryInput.Content />
-				</QueryInput.Root>
+				<Query.Root grammar={testGrammar} value={value} onValueChange={setValue}>
+					<Query.Input aria-label="Filter projects" placeholder="Filter" />
+					<Query.Content />
+				</Query.Root>
 			);
 		}
 		render(<Host />);
@@ -479,9 +478,9 @@ describe("QueryInput.Field", () => {
 	});
 });
 
-describe("QueryInput.Content", () => {
+describe("Query.Content", () => {
 	test("shows the keyboard hints under the legend, with the host's Enter action", async () => {
-		const { input } = renderQueryInput();
+		const { input } = renderQuery();
 
 		input.focus();
 		await screen.findByRole("listbox");
@@ -492,10 +491,10 @@ describe("QueryInput.Content", () => {
 
 	test("names the host's own Enter action with enterHint", async () => {
 		render(
-			<QueryInput.Root grammar={testGrammar} value="" onValueChange={() => {}}>
-				<QueryInput.Field aria-label="Search" placeholder="Search" />
-				<QueryInput.Content enterHint="select, or search" />
-			</QueryInput.Root>,
+			<Query.Root grammar={testGrammar} value="" onValueChange={() => {}}>
+				<Query.Input aria-label="Search" placeholder="Search" />
+				<Query.Content enterHint="select, or search" />
+			</Query.Root>,
 		);
 
 		screen.getByRole("combobox").focus();
@@ -503,7 +502,7 @@ describe("QueryInput.Content", () => {
 	});
 
 	test("exposes the listbox as the popup, with no dialog around it", async () => {
-		const { input } = renderQueryInput();
+		const { input } = renderQuery();
 
 		input.focus();
 		await screen.findByRole("listbox");
@@ -512,7 +511,7 @@ describe("QueryInput.Content", () => {
 	});
 
 	test("offers a qualifier's values with live match counts once the colon is typed", async () => {
-		const { input } = renderQueryInput();
+		const { input } = renderQuery();
 
 		input.focus();
 		type(input, "is:");
@@ -532,7 +531,7 @@ describe("QueryInput.Content", () => {
 	});
 
 	test("shows no match counts when the caller has no items to count", async () => {
-		const { input } = renderQueryInput({ items: null });
+		const { input } = renderQuery({ items: null });
 
 		input.focus();
 		type(input, "is:");
@@ -551,7 +550,7 @@ describe("QueryInput.Content", () => {
 	});
 
 	test("writes the canonical value into the input when an option is clicked", async () => {
-		const { input, values } = renderQueryInput();
+		const { input, values } = renderQuery();
 
 		input.focus();
 		type(input, "is:sha");
@@ -564,7 +563,7 @@ describe("QueryInput.Content", () => {
 	});
 
 	test("moves the active option with the arrow keys and accepts it with Enter", async () => {
-		const { input } = renderQueryInput();
+		const { input } = renderQuery();
 
 		input.focus();
 		type(input, "is:");
@@ -585,7 +584,7 @@ describe("QueryInput.Content", () => {
 	});
 
 	test("wraps the active option around the ends of the list", async () => {
-		const { input } = renderQueryInput();
+		const { input } = renderQuery();
 
 		input.focus();
 		type(input, "is:");
@@ -606,7 +605,7 @@ describe("QueryInput.Content", () => {
 	});
 
 	test("dismisses a passive list on Enter without touching the query", async () => {
-		const { input } = renderQueryInput();
+		const { input } = renderQuery();
 
 		input.focus();
 		// A finished filter with a trailing space: the key list is open again,
@@ -623,7 +622,7 @@ describe("QueryInput.Content", () => {
 	});
 
 	test("lets Enter reach a hosting form unless it accepts a suggestion", async () => {
-		const { input } = renderQueryInput();
+		const { input } = renderQuery();
 
 		input.focus();
 		type(input, "is:");
@@ -641,7 +640,7 @@ describe("QueryInput.Content", () => {
 	// A pointer at rest over the open list must not make a row active, or Enter
 	// inserts that row instead of submitting the typed query.
 	test("lets Enter reach a hosting form while the pointer rests on a row", async () => {
-		const { input } = renderQueryInput();
+		const { input } = renderQuery();
 
 		input.focus();
 		type(input, "is:archived ");
@@ -658,7 +657,7 @@ describe("QueryInput.Content", () => {
 	});
 
 	test("leaves the keys to the IME while it is composing", async () => {
-		const { input } = renderQueryInput();
+		const { input } = renderQuery();
 
 		input.focus();
 		type(input, "is:");
@@ -673,7 +672,7 @@ describe("QueryInput.Content", () => {
 	});
 
 	test("retires the active option when the caret moves", async () => {
-		const { input } = renderQueryInput();
+		const { input } = renderQuery();
 
 		input.focus();
 		type(input, "is:");
@@ -693,7 +692,7 @@ describe("QueryInput.Content", () => {
 	});
 
 	test("closes the suggestions on Escape without changing the query", async () => {
-		const { input } = renderQueryInput();
+		const { input } = renderQuery();
 
 		input.focus();
 		type(input, "is:");
@@ -709,7 +708,7 @@ describe("QueryInput.Content", () => {
 	});
 
 	test("reopens with no active option after a dismissal", async () => {
-		const { input } = renderQueryInput();
+		const { input } = renderQuery();
 
 		input.focus();
 		type(input, "is:");
@@ -729,7 +728,7 @@ describe("QueryInput.Content", () => {
 	});
 
 	test("extends a comma list without inserting a space into it", async () => {
-		const { input } = renderQueryInput();
+		const { input } = renderQuery();
 
 		input.focus();
 		type(input, "is:new,sha");
@@ -740,7 +739,7 @@ describe("QueryInput.Content", () => {
 	});
 
 	test("adds no space when the caret already sits against one", async () => {
-		const { input } = renderQueryInput();
+		const { input } = renderQuery();
 
 		input.focus();
 		typeWithCaret(input, "is:sha acme", 6);
@@ -751,7 +750,7 @@ describe("QueryInput.Content", () => {
 	});
 
 	test("adds no space when the caret sits against a comma mid-list", async () => {
-		const { input } = renderQueryInput();
+		const { input } = renderQuery();
 
 		input.focus();
 		typeWithCaret(input, "is:new,sha,archived", 10);
@@ -762,7 +761,7 @@ describe("QueryInput.Content", () => {
 	});
 
 	test("renders its children under the legend when no suggestion matches", async () => {
-		const { input } = renderQueryInput({
+		const { input } = renderQuery({
 			initialValue: "zzzz",
 			footer: <p>Press Enter to apply</p>,
 		});
@@ -770,12 +769,12 @@ describe("QueryInput.Content", () => {
 		input.focus();
 
 		const footer = await screen.findByText("Press Enter to apply");
-		expect(footer.parentElement).toHaveAttribute("data-slot", "query-input-content-footer");
+		expect(footer.parentElement).toHaveAttribute("data-slot", "query-content-footer");
 		expect(screen.queryAllByRole("option")).toHaveLength(0);
 	});
 
 	test("opens on an arrow key when no suggestion matches", async () => {
-		const { input } = renderQueryInput({
+		const { input } = renderQuery({
 			initialValue: "zzzz",
 			fieldProps: { suggestOnFocus: false },
 			footer: <p>Press Enter to apply</p>,
@@ -790,7 +789,7 @@ describe("QueryInput.Content", () => {
 	});
 
 	test("keeps the popover open with an empty state when no suggestion matches", async () => {
-		const { input } = renderQueryInput();
+		const { input } = renderQuery();
 
 		input.focus();
 		await screen.findByRole("listbox");
@@ -805,7 +804,7 @@ describe("QueryInput.Content", () => {
 	});
 
 	test("describes a free-text qualifier while its value is typed", async () => {
-		const { input } = renderQueryInput();
+		const { input } = renderQuery();
 
 		input.focus();
 		type(input, "name:api");
@@ -817,7 +816,7 @@ describe("QueryInput.Content", () => {
 	});
 
 	test("points back to the values when a listed value does not match", async () => {
-		const { input } = renderQueryInput();
+		const { input } = renderQuery();
 
 		input.focus();
 		type(input, "is:zzzz");
@@ -827,7 +826,7 @@ describe("QueryInput.Content", () => {
 	});
 
 	test("describes the filter syntax to assistive tech while the list is open", async () => {
-		const { input } = renderQueryInput();
+		const { input } = renderQuery();
 
 		expect(input).not.toHaveAccessibleDescription(/excludes/);
 		input.focus();
@@ -838,7 +837,7 @@ describe("QueryInput.Content", () => {
 	});
 
 	test("describes only key:value for a qualifiers-only grammar", async () => {
-		const input = renderRemoteQueryInput(
+		const input = renderRemoteQuery(
 			defineRemoteFilterGrammar({ keys: [{ key: "is", description: "State" }] }),
 		);
 
@@ -850,7 +849,7 @@ describe("QueryInput.Content", () => {
 	});
 
 	test("leaves exclusions out of the legend when no key can exclude", async () => {
-		const input = renderRemoteQueryInput(
+		const input = renderRemoteQuery(
 			defineRemoteFilterGrammar({
 				syntax: "conjunction",
 				keys: [{ key: "host", description: "Host", negatable: false }],
@@ -865,7 +864,7 @@ describe("QueryInput.Content", () => {
 	});
 
 	test("leaves OR out of the legend for a conjunction grammar", async () => {
-		const input = renderRemoteQueryInput(
+		const input = renderRemoteQuery(
 			defineRemoteFilterGrammar({
 				syntax: "conjunction",
 				keys: [{ key: "is", description: "State" }],

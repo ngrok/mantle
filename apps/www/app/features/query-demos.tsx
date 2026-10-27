@@ -6,7 +6,7 @@ import {
 	defineRemoteFilterGrammar,
 	filterItemsByQuery,
 } from "@ngrok/mantle/query-filter";
-import { QueryInput } from "@ngrok/mantle/query-input";
+import { Query } from "@ngrok/mantle/query";
 import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
 import { useDeferredValue, useState } from "react";
 
@@ -114,7 +114,7 @@ const columns = columnHelper.columns([
 	}),
 ]);
 
-export function QueryInputExample() {
+export function QueryExample() {
 	const [query, setQuery] = useState("");
 	const deferredQuery = useDeferredValue(query);
 	const visibleProjects = filterItemsByQuery({
@@ -127,18 +127,18 @@ export function QueryInputExample() {
 
 	return (
 		<div className="w-full space-y-3">
-			<QueryInput.Root
+			<Query.Root
 				grammar={projectFilterGrammar}
 				items={projects}
 				value={query}
 				onValueChange={setQuery}
 			>
-				<QueryInput.Field
+				<Query.Input
 					aria-label="Filter projects"
 					placeholder="Filter projects, or type a filter like is:shared"
 				/>
-				<QueryInput.Content />
-			</QueryInput.Root>
+				<Query.Content />
+			</Query.Root>
 			<DataTable.Root table={table}>
 				<DataTable.Head />
 				<DataTable.Body>
@@ -168,25 +168,25 @@ export function QueryInputExample() {
 	);
 }
 
-export function InlineActionsQueryInputExample() {
+export function InlineActionsQueryExample() {
 	const [query, setQuery] = useState("is:shared ");
 
 	return (
-		<QueryInput.Root
+		<Query.Root
 			className="max-w-xl"
 			grammar={projectFilterGrammar}
 			items={projects}
 			value={query}
 			onValueChange={setQuery}
 		>
-			<QueryInput.Field
+			<Query.Input
 				aria-label="Filter projects"
 				placeholder="Filter projects, or type a filter like is:shared"
 			/>
-			<QueryInput.Content>
+			<Query.Content>
 				<p>Filters apply as you type.</p>
-			</QueryInput.Content>
-		</QueryInput.Root>
+			</Query.Content>
+		</Query.Root>
 	);
 }
 
@@ -201,7 +201,7 @@ const accountSearchGrammar = defineRemoteFilterGrammar({
 	],
 });
 
-export function RemoteQueryInputExample() {
+export function RemoteQueryExample() {
 	const [query, setQuery] = useState("");
 	const [submittedQuery, setSubmittedQuery] = useState<string | null>(null);
 
@@ -213,16 +213,16 @@ export function RemoteQueryInputExample() {
 				setSubmittedQuery(query);
 			}}
 		>
-			<QueryInput.Root grammar={accountSearchGrammar} value={query} onValueChange={setQuery}>
-				<QueryInput.Field
+			<Query.Root grammar={accountSearchGrammar} value={query} onValueChange={setQuery}>
+				<Query.Input
 					aria-label="Search accounts"
 					placeholder="Search accounts, or type a filter like is:suspended"
 				/>
 				<Button type="submit" appearance="outlined" intent="neutral">
 					Search
 				</Button>
-				<QueryInput.Content />
-			</QueryInput.Root>
+				<Query.Content />
+			</Query.Root>
 			<p className="text-muted text-sm">
 				{submittedQuery == null ? "Press Enter to search." : `The server runs: ${submittedQuery}`}
 			</p>

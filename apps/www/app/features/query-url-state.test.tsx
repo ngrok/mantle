@@ -2,7 +2,7 @@
 import { act, render, screen } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { useQueryParamInput } from "./query-input-url-state";
+import { useQueryParamInput } from "./query-url-state";
 
 afterEach(() => {
 	vi.useRealTimers();

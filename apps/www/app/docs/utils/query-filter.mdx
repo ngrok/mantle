@@ -5,7 +5,7 @@ description: The query-filter language from @ngrok/mantle/query-filter. A gramma
 
 # query-filter
 
-The language behind [Query Input](/components/forms/query-input): free text and `key:value` qualifiers in one string, such as `is:shared -staging api`. The module is plain TypeScript with no React import, so a server, a script, or a test can parse and match a query with the same rules the field uses.
+The language behind [Query](/components/forms/query): free text and `key:value` qualifiers in one string, such as `is:shared -staging api`. The module is plain TypeScript with no React import, so a server, a script, or a test can parse and match a query with the same rules the field uses.
 
 ```ts
 import {
@@ -140,4 +140,4 @@ parseFilterQuery(projectFilterGrammar, "is:shared -acme");
 
 - `formatFacet({ key, value, negated })` writes a qualifier in its canonical form, with quotes where the value needs them.
 - `queryUsesQualifiers(grammar, query)` reports whether a query holds a qualifier. Use it to pick the advice in a filtered-empty state.
-- `getFilterSuggestions` and `getHighlightSegments` are what `QueryInput` renders. Use them to build your own field.
+- `getFilterSuggestions` and `getHighlightSegments` are what `Query` renders. Use them to build your own field.

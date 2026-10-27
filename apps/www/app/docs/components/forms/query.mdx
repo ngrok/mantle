@@ -1,16 +1,16 @@
 ---
-title: Query Input
+title: Query
 description: A filter field where free text and key:value qualifiers interleave, with in-place highlighting and suggestions.
 ---
 
 import { Example } from "~/components/example";
 import {
-	InlineActionsQueryInputExample,
-	QueryInputExample,
-	RemoteQueryInputExample,
-} from "~/features/query-input-demos";
+	InlineActionsQueryExample,
+	QueryExample,
+	RemoteQueryExample,
+} from "~/features/query-demos";
 
-# Query Input
+# Query
 
 A single-line filter field for a list. Free text and `key:value` qualifiers mix in one query: `is:shared -staging api`. The field colors each token in place. A suggestion popover completes keys and values while the caret stays in the field.
 
@@ -19,7 +19,7 @@ A grammar from [`@ngrok/mantle/query-filter`](/utils/query-filter) sets the voca
 Type `is:` to see the values and their live match counts.
 
 <Example>
-	<QueryInputExample />
+	<QueryExample />
 </Example>
 
 ```tsx
@@ -27,7 +27,7 @@ import { Button } from "@ngrok/mantle/button";
 import { DataTable, createColumnHelper, tableFeatures, useTable } from "@ngrok/mantle/data-table";
 import { Empty } from "@ngrok/mantle/empty";
 import { type FilterGrammar, filterItemsByQuery } from "@ngrok/mantle/query-filter";
-import { QueryInput } from "@ngrok/mantle/query-input";
+import { Query } from "@ngrok/mantle/query";
 import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
 import { useDeferredValue, useState } from "react";
 
@@ -135,7 +135,7 @@ const columns = columnHelper.columns([
 	}),
 ]);
 
-export function QueryInputExample() {
+export function QueryExample() {
 	const [query, setQuery] = useState("");
 	const deferredQuery = useDeferredValue(query);
 	const visibleProjects = filterItemsByQuery({
@@ -148,18 +148,18 @@ export function QueryInputExample() {
 
 	return (
 		<div className="w-full space-y-3">
-			<QueryInput.Root
+			<Query.Root
 				grammar={projectFilterGrammar}
 				items={projects}
 				value={query}
 				onValueChange={setQuery}
 			>
-				<QueryInput.Field
+				<Query.Input
 					aria-label="Filter projects"
 					placeholder="Filter projects, or type a filter like is:shared"
 				/>
-				<QueryInput.Content />
-			</QueryInput.Root>
+				<Query.Content />
+			</Query.Root>
 			<DataTable.Root table={table}>
 				<DataTable.Head />
 				<DataTable.Body>
@@ -190,57 +190,57 @@ export function QueryInputExample() {
 }
 ```
 
-The query is the only state, and you own it through `value` and `onValueChange`. There's no uncontrolled form, because every list that hosts this field already keeps the query somewhere: in component state, in form state, or in the URL. To keep it in `?q=`, follow the [Query Input from the URL](/recipes/query-input-from-the-url) recipe.
+The query is the only state, and you own it through `value` and `onValueChange`. There's no uncontrolled form, because every list that hosts this field already keeps the query somewhere: in component state, in form state, or in the URL. To keep it in `?q=`, follow the [Query from the URL](/recipes/query-from-the-url) recipe.
 
 ## Composition
 
 ```text showLineNumbers=false
-QueryInput.Root
-├── QueryInput.Field
-└── QueryInput.Content
+Query.Root
+├── Query.Input
+└── Query.Content
 ```
 
-`Root` lays out its children in one row, so put your own buttons beside the field there. `Field` is the input. `Content` is the suggestion popover; without it, the field is a highlighted input with no suggestions.
+`Root` lays out its children in one row, so put your own buttons beside the field there. `Input` is the field. `Content` is the suggestion popover; without it, the field is a highlighted input with no suggestions.
 
 ## Polymorphism
 
-`QueryInput.Root` takes `asChild`. Use it to render the row as your own element, such as a `<section>` with its own label, while `Root` keeps the state and the layout classes.
+`Query.Root` takes `asChild`. Use it to render the row as your own element, such as a `<section>` with its own label, while `Root` keeps the state and the layout classes.
 
-`Field` and `Content` don't take `asChild`. Each one renders a group of elements together (the field's shell, its painted copy, and the `<input>`, or the listbox and the legend), so there's no single element to swap.
+`Input` and `Content` don't take `asChild`. Each one renders a group of elements together (the field's shell, its painted copy, and the `<input>`, or the listbox and the legend), so there's no single element to swap.
 
 ## Inline actions and a footer
 
-While the query has text, `QueryInput.Field` shows a clear button at its right edge. The button empties the query and moves focus back to the field. Set `clearLabel` to rename it. Other children of `QueryInput.Field` render before the clear button. Pass ghost `xs` icon buttons.
+While the query has text, `Query.Input` shows a clear button at its right edge. The button empties the query and moves focus back to the field. Set `clearLabel` to rename it. Other children of `Query.Input` render before the clear button. Pass ghost `xs` icon buttons.
 
-`QueryInput.Content` shows keyboard hints under the syntax legend. When Enter submits a form, set `enterHint` to name that action, such as `"select, or search"`. Children of `QueryInput.Content` render under the hints. When no suggestion matches, the popover stays open and an empty state says what the field accepts there.
+`Query.Content` shows keyboard hints under the syntax legend. When Enter submits a form, set `enterHint` to name that action, such as `"select, or search"`. Children of `Query.Content` render under the hints. When no suggestion matches, the popover stays open and an empty state says what the field accepts there.
 
 <Example>
-	<InlineActionsQueryInputExample />
+	<InlineActionsQueryExample />
 </Example>
 
 ```tsx
-import { QueryInput } from "@ngrok/mantle/query-input";
+import { Query } from "@ngrok/mantle/query";
 import { useState } from "react";
 
-export function InlineActionsQueryInputExample() {
+export function InlineActionsQueryExample() {
 	const [query, setQuery] = useState("is:shared ");
 
 	return (
-		<QueryInput.Root
+		<Query.Root
 			className="max-w-xl"
 			grammar={projectFilterGrammar}
 			items={projects}
 			value={query}
 			onValueChange={setQuery}
 		>
-			<QueryInput.Field
+			<Query.Input
 				aria-label="Filter projects"
 				placeholder="Filter projects, or type a filter like is:shared"
 			/>
-			<QueryInput.Content>
+			<Query.Content>
 				<p>Filters apply as you type.</p>
-			</QueryInput.Content>
-		</QueryInput.Root>
+			</Query.Content>
+		</Query.Root>
 	);
 }
 ```
@@ -254,13 +254,13 @@ When a server runs the query, declare its vocabulary with `defineRemoteFilterGra
 Inside a `<form>`, Enter submits the form, unless the keyboard made a suggestion active. Then Enter accepts that suggestion.
 
 <Example>
-	<RemoteQueryInputExample />
+	<RemoteQueryExample />
 </Example>
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
 import { defineRemoteFilterGrammar } from "@ngrok/mantle/query-filter";
-import { QueryInput } from "@ngrok/mantle/query-input";
+import { Query } from "@ngrok/mantle/query";
 import { useState } from "react";
 
 const accountSearchGrammar = defineRemoteFilterGrammar({
@@ -274,7 +274,7 @@ const accountSearchGrammar = defineRemoteFilterGrammar({
 	],
 });
 
-export function RemoteQueryInputExample() {
+export function RemoteQueryExample() {
 	const [query, setQuery] = useState("");
 	const [submittedQuery, setSubmittedQuery] = useState<string | null>(null);
 
@@ -286,16 +286,16 @@ export function RemoteQueryInputExample() {
 				setSubmittedQuery(query);
 			}}
 		>
-			<QueryInput.Root grammar={accountSearchGrammar} value={query} onValueChange={setQuery}>
-				<QueryInput.Field
+			<Query.Root grammar={accountSearchGrammar} value={query} onValueChange={setQuery}>
+				<Query.Input
 					aria-label="Search accounts"
 					placeholder="Search accounts, or type a filter like is:suspended"
 				/>
 				<Button type="submit" appearance="outlined" intent="neutral">
 					Search
 				</Button>
-				<QueryInput.Content />
-			</QueryInput.Root>
+				<Query.Content />
+			</Query.Root>
 			<p className="text-muted text-sm">
 				{submittedQuery == null ? "Press Enter to search." : `The server runs: ${submittedQuery}`}
 			</p>
@@ -309,19 +309,19 @@ export function RemoteQueryInputExample() {
 Keys, values, and `OR` take the colors that [Code Block](/components/data-display/code-block) gives attributes, strings, and operators, so a query reads like the code on the same page. Set the three CSS variables on the field or any ancestor to change them. This calmer set colors only the keys:
 
 ```tsx
-<QueryInput.Root
+<Query.Root
 	grammar={projectFilterGrammar}
 	items={projects}
 	value={query}
 	onValueChange={setQuery}
-	className="[--query-input-operator-color:var(--shiki-token-keyword)] [--query-input-value-color:var(--text-color-strong)]"
+	className="[--query-operator-color:var(--shiki-token-keyword)] [--query-value-color:var(--text-color-strong)]"
 >
-	<QueryInput.Field
+	<Query.Input
 		aria-label="Filter projects"
 		placeholder="Filter projects, or type a filter like is:shared"
 	/>
-	<QueryInput.Content />
-</QueryInput.Root>
+	<Query.Content />
+</Query.Root>
 ```
 
 ## Accessibility
@@ -341,7 +341,7 @@ The section headings ("Filter by", "Exclude", "Values"), the legend, and the lis
 
 ## API Reference
 
-### QueryInput.Root
+### Query.Root
 
 The row and the state owner. It renders a `div` that lays out its children in a row, and accepts every `div` prop.
 
@@ -353,11 +353,11 @@ The row and the state owner. It renders a `div` that lays out its children in a 
 | `onValueChange` | `(value: string) => void` | none    | Called with the whole query on every edit, typed or inserted. Required.                                                     |
 | `asChild`       | `boolean`                 | `false` | Render the row as the child element and merge the props onto it.                                                            |
 
-| Data Attribute | Value           | Description         |
-| -------------- | --------------- | ------------------- |
-| `data-slot`    | `"query-input"` | On the row element. |
+| Data Attribute | Value     | Description         |
+| -------------- | --------- | ------------------- |
+| `data-slot`    | `"query"` | On the row element. |
 
-### QueryInput.Field
+### Query.Input
 
 The query field. `className` and `style` go to the field's outer element, as on `Input`. All other props go to the `<input>`, such as `ref`, `id`, `name`, `disabled`, `required`, `readOnly`, `validation`, the `aria-*` props, and the event handlers. A disabled or read-only field shows no suggestions and no clear button.
 
@@ -371,18 +371,18 @@ The query field. `className` and `style` go to the field's outer element, as on 
 | `ref`              | `Ref<HTMLInputElement>` | none             | The `<input>` element.                                                                                                       |
 | `aria-describedby` | `string`                | none             | The field's own description. The syntax legend joins it while the popover is open.                                           |
 
-| CSS Variable                   | Default                        | Description                     |
-| ------------------------------ | ------------------------------ | ------------------------------- |
-| `--query-input-key-color`      | `var(--shiki-token-attribute)` | The color of a qualifier key.   |
-| `--query-input-value-color`    | `var(--shiki-token-string)`    | The color of a qualifier value. |
-| `--query-input-operator-color` | `var(--shiki-token-operator)`  | The color of `OR` and `AND`.    |
+| CSS Variable             | Default                        | Description                     |
+| ------------------------ | ------------------------------ | ------------------------------- |
+| `--query-key-color`      | `var(--shiki-token-attribute)` | The color of a qualifier key.   |
+| `--query-value-color`    | `var(--shiki-token-string)`    | The color of a qualifier value. |
+| `--query-operator-color` | `var(--shiki-token-operator)`  | The color of `OR` and `AND`.    |
 
-| Data Attribute | Value                         | Description                                                                                                                |
-| -------------- | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `data-slot`    | `"query-input-field"`         | On the field's outer element.                                                                                              |
-| `data-slot`    | `"query-input-field-actions"` | On the `span` that wraps the children and the clear button. It has `display: contents`, so each child lays out in the row. |
+| Data Attribute | Value                   | Description                                                                                                                |
+| -------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `data-slot`    | `"query-input"`         | On the field's outer element.                                                                                              |
+| `data-slot`    | `"query-input-actions"` | On the `span` that wraps the children and the clear button. It has `display: contents`, so each child lays out in the row. |
 
-### QueryInput.Content
+### Query.Content
 
 The suggestion popover: the listbox for the token under the caret, then the syntax legend and the keyboard hints. The legend shows only the syntax the grammar honors.
 
@@ -392,7 +392,7 @@ The suggestion popover: the listbox for the token under the caret, then the synt
 | `enterHint` | `string`    | `"select"` | What Enter does, in the keyboard hints. Name your action when Enter submits a form. |
 | `className` | `string`    | none       | Classes for the popover.                                                            |
 
-| Data Attribute | Value                          | Description                                 |
-| -------------- | ------------------------------ | ------------------------------------------- |
-| `data-slot`    | `"query-input-content"`        | On the popover, beside `"popover-content"`. |
-| `data-slot`    | `"query-input-content-footer"` | On the `div` that wraps the children.       |
+| Data Attribute | Value                    | Description                                 |
+| -------------- | ------------------------ | ------------------------------------------- |
+| `data-slot`    | `"query-content"`        | On the popover, beside `"popover-content"`. |
+| `data-slot`    | `"query-content-footer"` | On the `div` that wraps the children.       |

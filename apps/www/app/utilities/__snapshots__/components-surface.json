@@ -714,17 +714,17 @@
     ]
   },
   {
-    "name": "Query Input",
-    "slug": "components/forms/query-input",
+    "name": "Query",
+    "slug": "components/forms/query",
     "kind": "component",
     "category": "Forms",
     "status": "stable",
-    "importPath": "@ngrok/mantle/query-input",
+    "importPath": "@ngrok/mantle/query",
     "summary": "A filter field where free text and key:value qualifiers interleave, with in-place highlighting and suggestions.",
     "jsdoc": "A single-line filter field where free text and `key:value` qualifiers interleave.",
     "examples": [
-      "Composition:\n```\nQueryInput.Root\n├── QueryInput.Field\n└── QueryInput.Content\n```",
-      "```tsx\nconst [query, setQuery] = useState(\"\");\n\n<QueryInput.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>\n  <QueryInput.Field aria-label=\"Filter projects\" placeholder=\"Filter projects, or type a filter like is:shared\" />\n  <QueryInput.Content />\n</QueryInput.Root>\n```"
+      "Composition:\n```\nQuery.Root\n├── Query.Input\n└── Query.Content\n```",
+      "```tsx\nconst [query, setQuery] = useState(\"\");\n\n<Query.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>\n  <Query.Input aria-label=\"Filter projects\" placeholder=\"Filter projects, or type a filter like is:shared\" />\n  <Query.Content />\n</Query.Root>\n```"
     ],
     "siblings": [
       {

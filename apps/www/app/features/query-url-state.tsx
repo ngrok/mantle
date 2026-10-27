@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useSearchParams } from "react-router";
 
 /**
- * Owns the typed text of a `QueryInput` and keeps it in the `?q=` URL param,
+ * Owns the typed text of a `Query` and keeps it in the `?q=` URL param,
  * so a filtered list is shareable by its URL.
  *
  * The typed text is the source of truth while you type: the URL write waits
@@ -13,7 +13,7 @@ import { useSearchParams } from "react-router";
  * @example
  * ```tsx
  * const { query, setQuery } = useQueryParamInput();
- * <QueryInput.Root grammar={grammar} items={items} value={query} onValueChange={setQuery}>…</QueryInput.Root>
+ * <Query.Root grammar={grammar} items={items} value={query} onValueChange={setQuery}>…</Query.Root>
  * ```
  */
 export function useQueryParamInput() {

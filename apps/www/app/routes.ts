@@ -89,7 +89,7 @@ const docsPages = [
 	"components/forms/multi-select",
 	"components/forms/otp-input",
 	"components/forms/password-input",
-	"components/forms/query-input",
+	"components/forms/query",
 	"components/forms/radio-group",
 	"components/forms/select",
 	"components/forms/slider",
@@ -154,7 +154,7 @@ const recipesPages = [
 	"header-actions-from-routes",
 	"list-page-loading-states",
 	"overlay-async",
-	"query-input-from-the-url",
+	"query-from-the-url",
 	"route-announcer",
 	"sparklines-in-a-list",
 ];

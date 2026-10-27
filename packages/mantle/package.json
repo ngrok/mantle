@@ -282,15 +282,15 @@
 			"types": "./dist/qr-code.d.ts",
 			"import": "./dist/qr-code.js"
 		},
+		"./query": {
+			"@ngrok/src-live-types": "./src/components/query/index.ts",
+			"types": "./dist/query.d.ts",
+			"import": "./dist/query.js"
+		},
 		"./query-filter": {
 			"@ngrok/src-live-types": "./src/utils/query-filter/index.ts",
 			"types": "./dist/query-filter.d.ts",
 			"import": "./dist/query-filter.js"
-		},
-		"./query-input": {
-			"@ngrok/src-live-types": "./src/components/query-input/index.ts",
-			"types": "./dist/query-input.d.ts",
-			"import": "./dist/query-input.js"
 		},
 		"./radio-group": {
 			"@ngrok/src-live-types": "./src/components/radio-group/index.ts",

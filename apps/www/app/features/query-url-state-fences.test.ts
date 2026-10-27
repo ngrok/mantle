@@ -10,11 +10,11 @@ import { describe, expect, it } from "vitest";
  * If this fails, the fix is to re-copy the file into the fence, never to loosen
  * the assertion.
  */
-const RECIPE = "app/docs/recipes/query-input-from-the-url.mdx";
+const RECIPE = "app/docs/recipes/query-from-the-url.mdx";
 
 const FENCED_FILES = [
-	"app/features/query-input-url-state.tsx",
-	"app/features/query-input-url-state-demo.tsx",
+	"app/features/query-url-state.tsx",
+	"app/features/query-url-state-demo.tsx",
 ] as const;
 
 /** This file's own location, two directories below the app root. */

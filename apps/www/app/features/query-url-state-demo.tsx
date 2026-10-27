@@ -2,11 +2,11 @@ import { Button } from "@ngrok/mantle/button";
 import { DataTable, createColumnHelper, tableFeatures, useTable } from "@ngrok/mantle/data-table";
 import { Empty } from "@ngrok/mantle/empty";
 import { filterItemsByQuery } from "@ngrok/mantle/query-filter";
-import { QueryInput } from "@ngrok/mantle/query-input";
+import { Query } from "@ngrok/mantle/query";
 import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
 import { useDeferredValue } from "react";
-import { type Project, projectFilterGrammar, projects } from "~/features/query-input-demos";
-import { useQueryParamInput } from "~/features/query-input-url-state";
+import { type Project, projectFilterGrammar, projects } from "~/features/query-demos";
+import { useQueryParamInput } from "~/features/query-url-state";
 
 const features = tableFeatures({});
 const columnHelper = createColumnHelper<typeof features, Project>();
@@ -27,7 +27,7 @@ const columns = columnHelper.columns([
 	}),
 ]);
 
-export function QueryInputFromUrlDemo() {
+export function QueryFromUrlDemo() {
 	const { query, setQuery } = useQueryParamInput();
 	const deferredQuery = useDeferredValue(query);
 	const visibleProjects = filterItemsByQuery({
@@ -40,18 +40,18 @@ export function QueryInputFromUrlDemo() {
 
 	return (
 		<div className="w-full space-y-3">
-			<QueryInput.Root
+			<Query.Root
 				grammar={projectFilterGrammar}
 				items={projects}
 				value={query}
 				onValueChange={setQuery}
 			>
-				<QueryInput.Field
+				<Query.Input
 					aria-label="Filter projects"
 					placeholder="Filter projects, or type a filter like is:shared"
 				/>
-				<QueryInput.Content />
-			</QueryInput.Root>
+				<Query.Content />
+			</Query.Root>
 			<DataTable.Root table={table}>
 				<DataTable.Head />
 				<DataTable.Body>
