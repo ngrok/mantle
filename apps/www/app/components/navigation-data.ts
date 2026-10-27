@@ -344,12 +344,22 @@ export const recipePages = [
 	"Breadcrumbs from Routes",
 	"Header Actions from Routes",
 	"List Page Loading States",
-	"Natural Language Query",
 	"Overlays + Async Data",
 	"Query from the URL",
 	"Route Announcer",
 	"Sparklines in a List",
 ] as const;
+
+/**
+ * Recipe proposals — recipes with an open design question. They are not yet a
+ * recommended pattern; each page states what is still open.
+ */
+export const proposalRecipePages = [
+	//,
+	"Natural Language Query",
+] as const;
+
+type RecipePage = (typeof recipePages)[number] | (typeof proposalRecipePages)[number];
 
 /** Route lookup for recipe pages. */
 export const recipeRoutes = {
@@ -362,7 +372,7 @@ export const recipeRoutes = {
 	"Query from the URL": "/recipes/query-from-the-url",
 	"Route Announcer": "/recipes/route-announcer",
 	"Sparklines in a List": "/recipes/sparklines-in-a-list",
-} as const satisfies Record<(typeof recipePages)[number], Route>;
+} as const satisfies Record<RecipePage, Route>;
 
 /** Short descriptions for recipe index pages. */
 export const recipeDescriptions = {
@@ -384,7 +394,7 @@ export const recipeDescriptions = {
 		"Announce completed client-side navigations to screen readers by pairing a persistent LiveRegion with React Router's location, with page-name fallbacks and repeat-message handling.",
 	"Sparklines in a List":
 		"Put two BarChart sparklines in every row of a DataTable: sized for a row, named for the row, with a compact total beside each one, and dormant until a reader scrolls to it.",
-} as const satisfies Record<(typeof recipePages)[number], string>;
+} as const satisfies Record<RecipePage, string>;
 
 /**
  * A migration guide. The index page, the sidebar, and the legacy redirects

@@ -4,9 +4,15 @@ description: Let people describe a filter in plain words, and turn the words int
 ---
 
 import { Example } from "~/components/example";
+import { PageHeader } from "~/components/page-header";
 import { NaturalLanguageQueryDemo } from "~/features/natural-language-query-demo";
 
-# Natural language query
+<PageHeader id="natural-language-query" isProposal>
+	Natural language query
+</PageHeader>
+
+> [!WARNING]
+> This recipe is a proposal, not a recommended pattern yet. One design question is open. When a person types plain words after a `key:value` filter, the field keeps the filter active and matches the words as free text, so Enter never translates them. The proposed fix: when the input turns into natural language, the field shows the rest of the query as disabled, and the list stops filtering on it until the person translates or deletes the words. Do not copy this recipe into a product until that question is closed.
 
 Filter syntax is fast once you know it, and a wall until you do. Let people type what they want, like "shared projects that aren't archived", and press Enter. A model translates the words into a [Query](/components/forms/query) filter, the field shows the filter in place, and the list filters on it. The person sees exactly what ran, and can edit it like any other query.
 

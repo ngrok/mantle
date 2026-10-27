@@ -11,6 +11,7 @@ import {
 	layoutPages,
 	layoutRoutes,
 	previewComponents,
+	proposalRecipePages,
 	previewComponentsRouteLookup,
 	prodReadyComponentRouteLookup,
 	recipePages,
@@ -199,7 +200,7 @@ export function buildPaletteCommands(mantleVersion: string): PaletteCommand[] {
 				subtitle: layoutRoutes[page],
 			}),
 		),
-		...recipePages.map((page) =>
+		...[...recipePages, ...proposalRecipePages].map((page) =>
 			routeCommand({
 				title: page,
 				to: recipeRoutes[page],
