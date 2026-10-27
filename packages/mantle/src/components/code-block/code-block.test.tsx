@@ -58,6 +58,21 @@ function TabbedCodeBlock({
 
 describe("CodeBlock", () => {
 	describe("Code", () => {
+		// Firefox reads `-moz-tab-size` as an alias of `tab-size`, and React writes
+		// a numeric `MozTabSize` with `px`, so a tab shrank to two pixels there.
+		test("sets a tab to two spaces, with no prefixed tab size", () => {
+			const html = renderToString(
+				<CodeBlock.Root>
+					<CodeBlock.Body>
+						<CodeBlock.Code value={makeValue("\tconst x = 1;")} />
+					</CodeBlock.Body>
+				</CodeBlock.Root>,
+			);
+
+			expect(html).toMatch(/tab-size:2[;"]/);
+			expect(html).not.toContain("-moz-tab-size");
+		});
+
 		test("renders plain text fallback when preHtml is missing", () => {
 			const value = createMantleCodeBlockValue({
 				language: "typescript",
