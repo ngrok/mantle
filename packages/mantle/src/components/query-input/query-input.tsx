@@ -96,7 +96,7 @@ type QueryInputContextValue = {
 	syncCaret: (input: HTMLInputElement) => void;
 	acceptSuggestion: (suggestion: FilterSuggestion) => void;
 	/** `QueryInput.Content` calls this on mount. It returns the cleanup. */
-	registerContent: (options: { hasChildren: boolean }) => () => void;
+	registerContent: () => () => void;
 };
 
 const QueryInputContext = createContext<QueryInputContextValue | null>(null);
@@ -203,7 +203,7 @@ function Root<Item extends object>({
 	// The pointer only highlights a row. A pointer at rest over the list must
 	// not arm Enter, or Enter inserts that row instead of submitting the query.
 	const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-	const [content, setContent] = useState<{ hasChildren: boolean } | null>(null);
+	const [hasContent, setHasContent] = useState(false);
 	const fieldControl = useContext(FieldControlContext);
 
 	// The value the field last reported. A `value` that differs came from the
@@ -228,9 +228,9 @@ function Root<Item extends object>({
 		}
 	}, []);
 
-	const registerContent = useCallback((options: { hasChildren: boolean }) => {
-		setContent(options);
-		return () => setContent(null);
+	const registerContent = useCallback(() => {
+		setHasContent(true);
+		return () => setHasContent(false);
 	}, []);
 
 	const context = useMemo((): QueryInputContextValue => {
@@ -274,8 +274,9 @@ function Root<Item extends object>({
 			keys: grammar.keys,
 			suggestions,
 			segments: getHighlightSegments(grammar, value),
-			isListboxOpen:
-				isOpen && content != null && (suggestions.items.length > 0 || content.hasChildren),
+			// With no rows, the popover stays open: its empty state and the legend
+			// still tell the user what to type next.
+			isListboxOpen: isOpen && hasContent,
 			setIsOpen: setOpen,
 			activeIndex,
 			setActiveIndex,
@@ -327,8 +328,8 @@ function Root<Item extends object>({
 	}, [
 		activeIndex,
 		caretIndex,
-		content,
 		grammar,
+		hasContent,
 		hoveredIndex,
 		isOpen,
 		items,
@@ -491,7 +492,7 @@ function Field({
 
 		const rowCount = context.suggestions.items.length;
 		if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-			// With no rows, an arrow key still opens a footer-only popover.
+			// With no rows, an arrow key still opens the empty state.
 			if (rowCount === 0) {
 				context.setIsOpen(true);
 				return;
@@ -628,10 +629,7 @@ function Field({
  */
 type QueryInputContentProps = Pick<ComponentProps<typeof Popover.Content>, "className" | "ref"> &
 	WithDataSlot & {
-		/**
-		 * Content under the syntax legend, such as keyboard hints. With children,
-		 * focus opens the popover even when no suggestion matches.
-		 */
+		/** Content under the syntax legend, such as keyboard hints. */
 		children?: ReactNode;
 	};
 
@@ -642,8 +640,9 @@ type QueryInputContentProps = Pick<ComponentProps<typeof Popover.Content>, "clas
  * through `aria-activedescendant`. The legend describes only the syntax the
  * grammar honors.
  *
- * Children render under the legend, in a `[data-slot="query-input-content-footer"]`
- * `div`.
+ * When no row matches, an empty state above the legend says what the
+ * field accepts there. Children render under the legend, in a
+ * `[data-slot="query-input-content-footer"]` `div`.
  *
  * @see https://mantle.ngrok.com/components/forms/query-input#queryinputcontent
  *
@@ -664,13 +663,12 @@ function Content({ "data-slot": dataSlot, children, className, ref }: QueryInput
 	const context = useQueryInputContext("QueryInput.Content");
 	const { anchorRef } = useQueryInputRefs("QueryInput.Content");
 	const { registerContent } = context;
-	const hasChildren = children != null;
 	const rowCount = context.suggestions.items.length;
 
 	// Why an effect: `Content` is a later sibling of `Field`, so the render pass
 	// cannot hand its presence to the `<input>`'s `aria-expanded`. The server
 	// renders the popover closed, so the first paint is the same.
-	useIsomorphicLayoutEffect(() => registerContent({ hasChildren }), [registerContent, hasChildren]);
+	useIsomorphicLayoutEffect(registerContent, [registerContent]);
 
 	return (
 		<Popover.Content
@@ -707,14 +705,59 @@ function Content({ "data-slot": dataSlot, children, className, ref }: QueryInput
 					rowCount > 0 ? "mt-1 border-t" : "-mt-1",
 				)}
 			>
+				{rowCount === 0 && (
+					<EmptySuggestions keys={context.keys} valueKey={context.suggestions.key} />
+				)}
 				<SyntaxLegend keys={context.keys} syntax={context.syntax} />
-				{hasChildren && (
+				{children != null && (
 					<div data-slot="query-input-content-footer" className="mt-2">
 						{children}
 					</div>
 				)}
 			</div>
 		</Popover.Content>
+	);
+}
+
+/**
+ * What the field accepts at the caret when no row matches, so a free-text
+ * value or a typo does not leave the user with only the legend.
+ */
+function EmptySuggestions({
+	keys,
+	valueKey,
+}: {
+	keys: readonly RemoteFilterKeyDefinition[];
+	valueKey: string | undefined;
+}) {
+	const definition = keys.find((candidate) => candidate.key === valueKey);
+	const className = "text-body mb-2 text-sm";
+
+	// Each case is its own keyed `<p>`, so a switch replaces a whole element
+	// and never a text node that a translation engine rewrote.
+	if (definition == null) {
+		return (
+			<p key="text" className={className}>
+				No filter matches. The words search as text.
+			</p>
+		);
+	}
+	if (definition.values == null) {
+		return (
+			<p key="free-value" className={className}>
+				<SyntaxRule token={`${definition.key}:`}>
+					{definition.description == null
+						? "Any text matches."
+						: `${definition.description}. Any text matches.`}
+				</SyntaxRule>
+			</p>
+		);
+	}
+	return (
+		<p key="listed-value" className={className}>
+			<span>No value matches. Delete the value after</span>{" "}
+			<Code className="text-xs">{definition.key}:</Code> <span>to see all values.</span>
+		</p>
 	);
 }
 

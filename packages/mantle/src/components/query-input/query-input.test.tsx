@@ -712,7 +712,7 @@ describe("QueryInput.Content", () => {
 		expect(input).toHaveValue("is:new,shared,archived");
 	});
 
-	test("keeps the popover open on focus for its children, even when no suggestion matches", async () => {
+	test("renders its children under the legend when no suggestion matches", async () => {
 		const { input } = renderQueryInput({
 			initialValue: "zzzz",
 			footer: <p>Press Enter to apply</p>,
@@ -725,7 +725,7 @@ describe("QueryInput.Content", () => {
 		expect(screen.queryAllByRole("option")).toHaveLength(0);
 	});
 
-	test("opens on an arrow key for its children, even when no suggestion matches", async () => {
+	test("opens on an arrow key when no suggestion matches", async () => {
 		const { input } = renderQueryInput({
 			initialValue: "zzzz",
 			fieldProps: { suggestOnFocus: false },
@@ -740,17 +740,41 @@ describe("QueryInput.Content", () => {
 		expect(await screen.findByText("Press Enter to apply")).toBeInTheDocument();
 	});
 
-	test("closes when no suggestion matches and it has no children", async () => {
+	test("keeps the popover open with an empty state when no suggestion matches", async () => {
 		const { input } = renderQueryInput();
 
 		input.focus();
 		await screen.findByRole("listbox");
 		type(input, "zzzz");
 
-		await waitFor(() => {
-			expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
-		});
-		expect(input).toHaveAttribute("aria-expanded", "false");
+		expect(
+			await screen.findByText("No filter matches. The words search as text."),
+		).toBeInTheDocument();
+		expect(screen.queryAllByRole("option")).toHaveLength(0);
+		expect(input).toHaveAttribute("aria-expanded", "true");
+		expect(input).toHaveAccessibleDescription(/No filter matches/);
+	});
+
+	test("describes a free-text qualifier while its value is typed", async () => {
+		const { input } = renderQueryInput();
+
+		input.focus();
+		type(input, "name:api");
+
+		expect(
+			await screen.findByText("Text in the project name. Any text matches."),
+		).toBeInTheDocument();
+		expect(screen.getByText(/excludes/)).toBeInTheDocument();
+	});
+
+	test("points back to the values when a listed value does not match", async () => {
+		const { input } = renderQueryInput();
+
+		input.focus();
+		type(input, "is:zzzz");
+
+		expect(await screen.findByText("No value matches. Delete the value after")).toBeInTheDocument();
+		expect(screen.queryAllByRole("option")).toHaveLength(0);
 	});
 
 	test("describes the filter syntax to assistive tech while the list is open", async () => {

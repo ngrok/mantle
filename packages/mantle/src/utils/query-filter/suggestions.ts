@@ -63,6 +63,11 @@ type FilterSuggestions = {
 	replaceEnd: number;
 	/** The rows, in display order. */
 	items: FilterSuggestion[];
+	/**
+	 * The canonical key of the qualifier whose value the caret sits in. It is
+	 * absent when the caret sits in a key or in free text.
+	 */
+	key?: string;
 };
 
 /** Everything the suggestion list reads. */
@@ -273,7 +278,7 @@ function getValueSuggestions<Item extends object>(
 			};
 		});
 
-	return { replaceStart, replaceEnd, items: rows };
+	return { replaceStart, replaceEnd, items: rows, key: definition.key };
 }
 
 /** The span a qualifier suggestion replaces, and the key text already inside it. */

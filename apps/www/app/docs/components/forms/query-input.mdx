@@ -210,7 +210,7 @@ QueryInput.Root
 
 ## Inline actions and a footer
 
-Children of `QueryInput.Field` render inside the field at its right edge. Pass ghost `xs` icon buttons, such as a clear button. Children of `QueryInput.Content` render under the syntax legend, such as keyboard hints. With children, the popover opens on focus even when no suggestion matches.
+Children of `QueryInput.Field` render inside the field at its right edge. Pass ghost `xs` icon buttons, such as a clear button. Children of `QueryInput.Content` render under the syntax legend, such as keyboard hints. When no suggestion matches, the popover stays open and an empty state says what the field accepts there.
 
 <Example>
 	<InlineActionsQueryInputExample />
@@ -401,10 +401,10 @@ The query field. `className` and `style` go to the field's outer element, as on 
 
 The suggestion popover: the listbox for the token under the caret, then the syntax legend. The legend shows only the syntax the grammar honors.
 
-| Prop        | Type        | Default | Description                                                                                                               |
-| ----------- | ----------- | ------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `children`  | `ReactNode` | none    | Content under the legend, such as keyboard hints. With children, focus opens the popover even when no suggestion matches. |
-| `className` | `string`    | none    | Classes for the popover.                                                                                                  |
+| Prop        | Type        | Default | Description                                       |
+| ----------- | ----------- | ------- | ------------------------------------------------- |
+| `children`  | `ReactNode` | none    | Content under the legend, such as keyboard hints. |
+| `className` | `string`    | none    | Classes for the popover.                          |
 
 | Data Attribute | Value                          | Description                                 |
 | -------------- | ------------------------------ | ------------------------------------------- |
