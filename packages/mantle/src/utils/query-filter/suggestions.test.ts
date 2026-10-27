@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 
+import { defineRemoteFilterGrammar } from "./grammar.js";
 import { getFilterSuggestions } from "./suggestions.js";
 import { testGrammar, testItems } from "./test-grammar.js";
 
@@ -159,6 +160,24 @@ describe("value suggestions", () => {
 
 	test("rewrites a quoted member with its quotes", () => {
 		expect(accept('is:"ne",shared', 7, "new")).toBe("is:new,shared");
+	});
+
+	test.each([
+		{ query: 'is:"', caretIndex: 4 },
+		{ query: 'is:""', caretIndex: 4 },
+		{ query: 'is:""', caretIndex: 5 },
+	])("rewrites the empty quoted value $query with its quotes", ({ query, caretIndex }) => {
+		expect(accept(query, caretIndex, "new")).toBe("is:new");
+	});
+
+	test("inserts a value as written when the grammar reads quotes as text", () => {
+		const grammar = defineRemoteFilterGrammar({
+			keys: [{ key: "tag", description: "Tag", values: [{ value: "a,b" }] }],
+		});
+
+		const { items } = getFilterSuggestions({ grammar, query: "tag:", caretIndex: 4 });
+
+		expect(items.map((item) => item.insertText)).toEqual(["a,b"]);
 	});
 });
 

@@ -36,7 +36,7 @@ import {
 	getFilterSuggestions,
 } from "../../utils/query-filter/suggestions.js";
 import { Code } from "../code/code.js";
-import { FieldControlContext } from "../field/field-context.js";
+import { FieldControlContext, type FieldControlAriaProps } from "../field/field-context.js";
 import { Input, InputCapture } from "../input/input.js";
 import { Popover } from "../popover/popover.js";
 import { Slot } from "../slot/index.js";
@@ -119,6 +119,18 @@ function useQueryInputContext(part: string) {
 	return context;
 }
 
+/**
+ * Clears the props `Field.Control` clones onto `QueryInput.Root`. They name the
+ * `<input>`, which reads them from context; on the row they duplicate its `id`.
+ */
+const clearedFieldControlProps = {
+	id: undefined,
+	name: undefined,
+	"aria-describedby": undefined,
+	"aria-errormessage": undefined,
+	"aria-invalid": undefined,
+} as const satisfies Record<keyof FieldControlAriaProps, undefined>;
+
 function optionId(listboxId: string, index: number) {
 	return `${listboxId}-option-${index}`;
 }
@@ -190,6 +202,16 @@ function Root<Item extends object>({
 	// not arm Enter, or Enter inserts that row instead of submitting the query.
 	const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 	const [content, setContent] = useState<{ hasChildren: boolean } | null>(null);
+	const fieldControl = useContext(FieldControlContext);
+
+	// The value the field last reported. A `value` that differs came from the
+	// caller, such as a clear button: the old active row and caret no longer apply.
+	const [reportedValue, setReportedValue] = useState(value);
+	if (value !== reportedValue) {
+		setReportedValue(value);
+		setActiveIndex(null);
+		setCaretIndex(value.length);
+	}
 
 	const listboxId = useId();
 	const refs = useMemo(() => ({ anchorRef, inputRef }), []);
@@ -227,6 +249,7 @@ function Root<Item extends object>({
 			reportedValueRef.current = null;
 			input.dispatchEvent(new Event("input", { bubbles: true }));
 			if (reportedValueRef.current !== input.value) {
+				setReportedValue(input.value);
 				onValueChange(input.value);
 			}
 			syncCaret(input);
@@ -253,6 +276,7 @@ function Root<Item extends object>({
 			syncCaret,
 			reportTypedValue: (input) => {
 				reportedValueRef.current = input.value;
+				setReportedValue(input.value);
 				onValueChange(input.value);
 				syncCaret(input);
 				setActiveIndex(null);
@@ -314,6 +338,7 @@ function Root<Item extends object>({
 						data-slot={joinDataSlot(dataSlot, "query-input")}
 						className={cx("flex w-full items-center gap-2", className)}
 						{...props}
+						{...(fieldControl == null ? {} : clearedFieldControlProps)}
 					>
 						{children}
 					</Comp>
@@ -601,6 +626,9 @@ function Content({ "data-slot": dataSlot, children, className, ref }: QueryInput
 			align="start"
 			className={cx("w-(--radix-popover-trigger-width) p-1", className)}
 			preferredWidth="max-w-none"
+			// Why presentation: the popup is the listbox inside, which the `<input>`
+			// controls. Radix's default `role="dialog"` adds an unnamed dialog around it.
+			role="presentation"
 			// Focus never leaves the input: the active option is announced through
 			// `aria-activedescendant` instead.
 			onOpenAutoFocus={(event) => event.preventDefault()}

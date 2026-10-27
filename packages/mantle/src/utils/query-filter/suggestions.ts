@@ -156,17 +156,20 @@ type ValueEdit = {
  *
  * A member's span covers its quotes, so accepting a row over `"GET"` rewrites
  * the quotes with it. A caret in an empty run, as after `is:active,`, has no
- * member; the row then inserts at the caret.
+ * member; the row then inserts at the caret. An empty quoted run (`is:"`,
+ * `is:""`) has no member either, so the edit takes its quotes.
  */
 function getValueEdit<Item>({
 	grammar,
 	definition,
 	token,
+	query,
 	caretIndex,
 }: {
 	grammar: FilterGrammar<Item>;
 	definition: FilterKeyDefinition<Item>;
 	token: FacetToken;
+	query: string;
 	caretIndex: number;
 }): ValueEdit {
 	if (!acceptsValueList(grammar, definition)) {
@@ -177,7 +180,23 @@ function getValueEdit<Item>({
 		(candidate) => caretIndex >= candidate.start && caretIndex <= candidate.end,
 	);
 	if (member == null) {
-		return { replaceStart: caretIndex, replaceEnd: caretIndex, typed: "" };
+		let replaceStart = caretIndex;
+		let replaceEnd = caretIndex;
+		while (
+			replaceStart > token.colonIndex + 1 &&
+			replaceEnd - replaceStart < 2 &&
+			query.charAt(replaceStart - 1) === '"'
+		) {
+			replaceStart -= 1;
+		}
+		while (
+			replaceEnd < token.end &&
+			replaceEnd - replaceStart < 2 &&
+			query.charAt(replaceEnd) === '"'
+		) {
+			replaceEnd += 1;
+		}
+		return { replaceStart, replaceEnd, typed: "" };
 	}
 	return { replaceStart: member.start, replaceEnd: member.end, typed: member.rawValue };
 }
@@ -196,6 +215,7 @@ function getValueSuggestions<Item extends object>(
 		grammar,
 		definition,
 		token,
+		query,
 		caretIndex,
 	});
 
@@ -213,7 +233,11 @@ function getValueSuggestions<Item extends object>(
 		)
 		.filter((candidate) => !pickedElsewhere.has(candidate.value.toLowerCase()))
 		.map((candidate): FilterSuggestion => {
-			const insertText = quoteFilterValue(candidate.value);
+			// A `"qualifiers"` grammar reads quotes as literal text, so it takes the value as is.
+			const insertText =
+				getFilterSyntax(grammar) === "qualifiers"
+					? candidate.value
+					: quoteFilterValue(candidate.value);
 			const accepted = query.slice(0, replaceStart) + insertText + query.slice(replaceEnd);
 
 			return {

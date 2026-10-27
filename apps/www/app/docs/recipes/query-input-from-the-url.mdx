@@ -134,20 +134,31 @@ export function useQueryParamInput() {
 	const urlQuery = searchParams.get("q") ?? "";
 	const [query, setQuery] = useState(urlQuery);
 	const [previousUrlQuery, setPreviousUrlQuery] = useState(urlQuery);
+	// The `q` this hook last wrote. When the URL comes back with it, the typed text stays.
+	const [writtenQuery, setWrittenQuery] = useState(urlQuery);
 	if (urlQuery !== previousUrlQuery) {
 		setPreviousUrlQuery(urlQuery);
-		setQuery(urlQuery);
+		if (urlQuery !== writtenQuery) {
+			setQuery(urlQuery);
+			setWrittenQuery(urlQuery);
+		}
 	}
 
+	// The write reads `query` when it runs. A URL change from outside during the
+	// wait replaces `query`, so the write never puts the old text back.
 	const writeUrlQuery = useDebouncedCallback(
-		(nextQuery: string) => {
+		() => {
+			if (query === urlQuery) {
+				return;
+			}
+			setWrittenQuery(query);
 			setSearchParams(
 				(current) => {
 					const next = new URLSearchParams(current);
-					if (nextQuery === "") {
+					if (query === "") {
 						next.delete("q");
 					} else {
-						next.set("q", nextQuery);
+						next.set("q", query);
 					}
 					return next;
 				},
@@ -161,7 +172,7 @@ export function useQueryParamInput() {
 		query,
 		setQuery: (nextQuery: string) => {
 			setQuery(nextQuery);
-			writeUrlQuery(nextQuery);
+			writeUrlQuery();
 		},
 	};
 }

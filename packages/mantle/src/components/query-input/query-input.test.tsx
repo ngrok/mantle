@@ -333,9 +333,65 @@ describe("QueryInput.Field", () => {
 		expect(input).toHaveAttribute("name", "projectFilter");
 		expect(input).toHaveAccessibleDescription("Type a key and a colon.");
 	});
+
+	test("keeps the Field.Control id on the input alone", () => {
+		const { container } = render(
+			<Field.Item name="projectFilter" id="project-filter">
+				<Field.Label>Filter projects</Field.Label>
+				<Field.Control>
+					<QueryInput.Root grammar={testGrammar} value="" onValueChange={() => {}}>
+						<QueryInput.Field placeholder="Filter" />
+					</QueryInput.Root>
+				</Field.Control>
+			</Field.Item>,
+		);
+
+		expect(container.querySelectorAll("#project-filter")).toHaveLength(1);
+		expect(container.querySelectorAll("[name=projectFilter]")).toHaveLength(1);
+		expect(screen.getByLabelText("Filter projects")).toBe(screen.getByRole("combobox"));
+	});
+
+	test("retires the active option when the caller changes the value", async () => {
+		function Host() {
+			const [value, setValue] = useState("");
+			return (
+				<QueryInput.Root grammar={testGrammar} value={value} onValueChange={setValue}>
+					<QueryInput.Field aria-label="Filter projects" placeholder="Filter">
+						<button type="button" onClick={() => setValue("")}>
+							Clear filter
+						</button>
+					</QueryInput.Field>
+					<QueryInput.Content />
+				</QueryInput.Root>
+			);
+		}
+		render(<Host />);
+		const input = screen.getByRole("combobox");
+
+		input.focus();
+		type(input, "is:");
+		await screen.findByRole("listbox");
+		fireEvent.keyDown(input, { key: "ArrowDown" });
+		expect(input).toHaveAttribute("aria-activedescendant");
+
+		fireEvent.click(screen.getByRole("button", { name: "Clear filter" }));
+		expect(input).not.toHaveAttribute("aria-activedescendant");
+
+		fireEvent.keyDown(input, { key: "Enter" });
+		expect(input).toHaveValue("");
+	});
 });
 
 describe("QueryInput.Content", () => {
+	test("exposes the listbox as the popup, with no dialog around it", async () => {
+		const { input } = renderQueryInput();
+
+		input.focus();
+		await screen.findByRole("listbox");
+
+		expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+	});
+
 	test("offers a qualifier's values with live match counts once the colon is typed", async () => {
 		const { input } = renderQueryInput();
 
