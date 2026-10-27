@@ -48,7 +48,10 @@ import { composeRefs } from "../../utils/compose-refs/compose-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
-import { useLayerContainer } from "../../utils/layer-container/layer-container.js";
+import {
+	useIsInsideModalLayer,
+	useLayerContainer,
+} from "../../utils/layer-container/layer-container.js";
 import { shakeElement } from "../../utils/shake.js";
 import { FieldControlContext } from "../field/field-context.js";
 import { parseValidation, useFieldValidation } from "../field/validation.js";
@@ -897,14 +900,14 @@ const Content = ({
 	const triggerRef = useContext(TriggerRefContext);
 	const layerContainer = useLayerContainer();
 
-	// Why the layer container decides: every mantle overlay (`Dialog`, `Sheet`,
-	// `AlertDialog`) renders its content inside a `LayerContainer` and already
-	// locks body scroll. Ariakit's own lock must stay off inside one. It snapshots
+	// Why the modal layer decides: every mantle overlay (`Dialog`, `Sheet`,
+	// `AlertDialog`) renders its content inside a modal `LayerContainer` and
+	// already locks body scroll. Ariakit's own lock must stay off inside one. It snapshots
 	// body's inline style, including the overlay's transient `pointer-events: none`,
 	// and re-applies that stale snapshot on an animation frame after unmount. That
 	// re-apply freezes the page (see the regression test in
 	// `multi-select.browser.test.tsx`).
-	const isInsideModal = layerContainer != null;
+	const isInsideModal = useIsInsideModalLayer();
 
 	const getAnchorRect = useCallback(() => {
 		return triggerRef.current?.getBoundingClientRect() ?? null;

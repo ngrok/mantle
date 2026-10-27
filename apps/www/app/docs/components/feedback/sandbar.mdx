@@ -582,7 +582,7 @@ export function EndpointSettings() {
 	const isDirty = draft.name !== saved.name || draft.description !== saved.description;
 
 	return (
-		<form>
+		<>
 			<Field.Item name="endpoint-name">
 				<Field.Label>Endpoint name</Field.Label>
 				<Field.Control>
@@ -628,7 +628,7 @@ export function EndpointSettings() {
 					<Sandbar.SaveButton onClick={() => setSaved(draft)}>Save changes</Sandbar.SaveButton>
 				</Sandbar.Actions>
 			</Sandbar.Root>
-		</form>
+		</>
 	);
 }
 ```
