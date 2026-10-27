@@ -296,10 +296,10 @@ export function SandbarPendingPublishDemo() {
 }
 
 /**
- * A Sandbar over an open Sheet. The form lives in the sheet, and the bar sits
- * at page level, above the sheet's scrim. Save and Discard work with the sheet
- * open, and a click on the bar does not close the sheet. Renders as a full
- * preview document.
+ * A Sandbar over an open Sheet. The form is on the page; the sheet opens on top
+ * of it with read-only details. The bar stays above the sheet's scrim, and a
+ * click on Save or Discard does not close the sheet. Keyboard users reach the
+ * bar after they close the sheet. Renders as a full preview document.
  */
 export function SandbarOverSheetDemo() {
 	const [saved, setSaved] = useState<Profile>(initialProfile);
@@ -310,45 +310,46 @@ export function SandbarOverSheetDemo() {
 	return (
 		<Main className="min-h-full p-6">
 			<Card.Root className="mx-auto max-w-xl">
-				<Card.Body className="flex items-center justify-between gap-4">
-					<div>
-						<h2 className="text-strong font-medium">{saved.name}</h2>
-						<p className="text-muted text-sm">{saved.description}</p>
-					</div>
+				<Card.Body className="space-y-4">
+					<Field.Item name="endpoint-name">
+						<Field.Label>Endpoint name</Field.Label>
+						<Field.Control>
+							<Input
+								onChange={(event) => setDraft({ ...draft, name: event.target.value })}
+								value={draft.name}
+							/>
+						</Field.Control>
+					</Field.Item>
+					<Field.Item name="endpoint-description">
+						<Field.Label>Description</Field.Label>
+						<Field.Control>
+							<TextArea
+								onChange={(event) => setDraft({ ...draft, description: event.target.value })}
+								value={draft.description}
+							/>
+						</Field.Control>
+					</Field.Item>
 					<Sheet.Root>
 						<Sheet.Trigger asChild>
 							<Button appearance="outlined" intent="neutral" type="button">
-								Edit endpoint
+								View endpoint details
 							</Button>
 						</Sheet.Trigger>
 						<Sheet.Content>
 							<Sheet.Header>
 								<Sheet.TitleGroup>
-									<Sheet.Title>Edit endpoint</Sheet.Title>
+									<Sheet.Title>{saved.name}</Sheet.Title>
 									<Sheet.Actions>
 										<Sheet.CloseIconButton />
 									</Sheet.Actions>
 								</Sheet.TitleGroup>
+								<Sheet.Description>{saved.description}</Sheet.Description>
 							</Sheet.Header>
-							<Sheet.Body className="space-y-4">
-								<Field.Item name="sheet-endpoint-name">
-									<Field.Label>Endpoint name</Field.Label>
-									<Field.Control>
-										<Input
-											onChange={(event) => setDraft({ ...draft, name: event.target.value })}
-											value={draft.name}
-										/>
-									</Field.Control>
-								</Field.Item>
-								<Field.Item name="sheet-endpoint-description">
-									<Field.Label>Description</Field.Label>
-									<Field.Control>
-										<TextArea
-											onChange={(event) => setDraft({ ...draft, description: event.target.value })}
-											value={draft.description}
-										/>
-									</Field.Control>
-								</Field.Item>
+							<Sheet.Body>
+								<p className="text-muted text-sm">
+									Saved details show here. Save or discard from the bar below without closing this
+									sheet.
+								</p>
 							</Sheet.Body>
 						</Sheet.Content>
 					</Sheet.Root>

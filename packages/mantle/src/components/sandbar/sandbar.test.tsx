@@ -5,6 +5,7 @@ import { createRef } from "react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import mantleCss from "../../mantle.css?raw";
 import { Dialog } from "../dialog/dialog.js";
+import { Popover } from "../popover/popover.js";
 import { Sheet } from "../sheet/sheet.js";
 import type { SandbarHandle } from "./sandbar.js";
 import { Sandbar } from "./sandbar.js";
@@ -981,4 +982,26 @@ describe("Sandbar over an open overlay", () => {
 		expect(onOpenChange).not.toHaveBeenCalled();
 		expect(screen.getByRole("dialog")).toBeInTheDocument();
 	});
+});
+
+test("a float composed in the bar portals into the bar's layer, above the bar", async () => {
+	const user = userEvent.setup();
+	render(
+		<Sandbar.Root open>
+			<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+			<Sandbar.Actions>
+				<Popover.Root>
+					<Popover.Trigger>More</Popover.Trigger>
+					<Popover.Content>Save as draft</Popover.Content>
+				</Popover.Root>
+			</Sandbar.Actions>
+		</Sandbar.Root>,
+	);
+
+	await user.click(screen.getByRole("button", { name: "More" }));
+
+	// Why the wrapper: it sits at `z-70`, above the overlay tier. A float portaled
+	// to <body> at `z-50` would paint under the bar.
+	const wrapper = getPanel().parentElement;
+	expect(wrapper?.contains(await screen.findByText("Save as draft"))).toBe(true);
 });

@@ -20,6 +20,7 @@ import { alternateAnnouncement } from "../../utils/alternate-announcement.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
+import { LayerContainer } from "../../utils/layer-container/layer-container.js";
 import { shakeElement } from "../../utils/shake.js";
 import type { ButtonProps } from "../button/button.js";
 import { Button } from "../button/button.js";
@@ -206,7 +207,9 @@ type SandbarRootProps = ComponentProps<"div"> &
  *
  * The bar renders at Tailwind `z-70`, above Mantle's overlay tier (`z-60`), so
  * it stays visible above the scrim of an open dialog, alert dialog, or sheet.
- * Like a toast, a click on the panel does not dismiss that overlay.
+ * Like a toast, a click on the panel does not dismiss that overlay. Keyboard
+ * and screen-reader users reach the bar only after the overlay closes, so a
+ * form inside an overlay keeps its save actions in the overlay.
  *
  * `ref`, `className`, and all other props target the panel. Render it in
  * place at the end of the form it saves — `position: fixed` changes paint
@@ -573,10 +576,13 @@ const Root = ({
 
 	return (
 		<SandbarContext.Provider value={context}>
-			<div
-				// Why z-70: the bar stays visible and usable while a dialog, alert
-				// dialog, or sheet (the `z-60` overlay tier) is open, as a toast does.
-				className="pointer-events-none fixed inset-x-0 bottom-4 z-70 flex justify-center px-4 sm:bottom-10"
+			{/* Why z-70: the bar stays visible and usable while a dialog, alert
+			    dialog, or sheet (the `z-60` overlay tier) is open, as a toast does.
+			    Why a layer container: a float composed in the bar (a menu, a
+			    tooltip) portals in here and paints above the bar, not under it at
+			    `z-50`. `*:pointer-events-auto` keeps those floats clickable. */}
+			<LayerContainer
+				className="pointer-events-none fixed inset-x-0 bottom-4 z-70 flex justify-center px-4 *:pointer-events-auto sm:bottom-10"
 				onBlur={handleFocusOut}
 				onFocus={handleFocusIn}
 				ref={wrapperRef}
@@ -646,7 +652,7 @@ const Root = ({
 				>
 					{children}
 				</div>
-			</div>
+			</LayerContainer>
 		</SandbarContext.Provider>
 	);
 };

@@ -545,8 +545,12 @@ island shape, which satisfies the AA criterion.
 
 The bar renders above an open [Dialog](/components/overlays/dialog),
 [AlertDialog](/components/overlays/alert-dialog), or [Sheet](/components/overlays/sheet) and its
-scrim, the same as a toast. A click on the bar does not close the overlay. Open the sheet below,
-edit a field, then save or discard: the sheet stays open.
+scrim, the same as a toast. A click on the bar does not close the overlay. Edit a field below, open
+the sheet, then save or discard: the sheet stays open.
+
+The open overlay traps focus and hides the rest of the page from screen readers. Keyboard and
+screen-reader users reach the bar after the overlay closes. For a form inside a dialog or sheet, put
+the save and discard actions in the overlay's footer, not in a Sandbar.
 
 <CodeExample.Root>
 	<CodeExample.PreviewFrame example="sandbar-over-sheet" title="Sandbar over sheet demo" />
@@ -571,53 +575,52 @@ const initialProfile: Profile = {
 	description: "Forwards traffic to the local dev server.",
 };
 
-export function EditEndpoint() {
+export function EndpointSettings() {
 	const [saved, setSaved] = useState<Profile>(initialProfile);
 	const [draft, setDraft] = useState<Profile>(initialProfile);
 
 	const isDirty = draft.name !== saved.name || draft.description !== saved.description;
 
 	return (
-		<>
+		<form>
+			<Field.Item name="endpoint-name">
+				<Field.Label>Endpoint name</Field.Label>
+				<Field.Control>
+					<Input
+						onChange={(event) => setDraft({ ...draft, name: event.target.value })}
+						value={draft.name}
+					/>
+				</Field.Control>
+			</Field.Item>
+			<Field.Item name="endpoint-description">
+				<Field.Label>Description</Field.Label>
+				<Field.Control>
+					<TextArea
+						onChange={(event) => setDraft({ ...draft, description: event.target.value })}
+						value={draft.description}
+					/>
+				</Field.Control>
+			</Field.Item>
 			<Sheet.Root>
 				<Sheet.Trigger asChild>
 					<Button appearance="outlined" intent="neutral" type="button">
-						Edit endpoint
+						View endpoint details
 					</Button>
 				</Sheet.Trigger>
 				<Sheet.Content>
 					<Sheet.Header>
 						<Sheet.TitleGroup>
-							<Sheet.Title>Edit endpoint</Sheet.Title>
+							<Sheet.Title>{saved.name}</Sheet.Title>
 							<Sheet.Actions>
 								<Sheet.CloseIconButton />
 							</Sheet.Actions>
 						</Sheet.TitleGroup>
+						<Sheet.Description>{saved.description}</Sheet.Description>
 					</Sheet.Header>
-					<Sheet.Body>
-						<Field.Item name="endpoint-name">
-							<Field.Label>Endpoint name</Field.Label>
-							<Field.Control>
-								<Input
-									onChange={(event) => setDraft({ ...draft, name: event.target.value })}
-									value={draft.name}
-								/>
-							</Field.Control>
-						</Field.Item>
-						<Field.Item name="endpoint-description">
-							<Field.Label>Description</Field.Label>
-							<Field.Control>
-								<TextArea
-									onChange={(event) => setDraft({ ...draft, description: event.target.value })}
-									value={draft.description}
-								/>
-							</Field.Control>
-						</Field.Item>
-					</Sheet.Body>
 				</Sheet.Content>
 			</Sheet.Root>
 
-			{/* page level, outside the sheet: the bar still renders above the scrim */}
+			{/* the bar renders above the open sheet's scrim */}
 			<Sandbar.Root open={isDirty}>
 				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
 				<Sandbar.Actions>
@@ -625,7 +628,7 @@ export function EditEndpoint() {
 					<Sandbar.SaveButton onClick={() => setSaved(draft)}>Save changes</Sandbar.SaveButton>
 				</Sandbar.Actions>
 			</Sandbar.Root>
-		</>
+		</form>
 	);
 }
 ```
