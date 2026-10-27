@@ -58,6 +58,70 @@ function TabbedCodeBlock({
 
 describe("CodeBlock", () => {
 	describe("Code", () => {
+		// Firefox reads `-moz-tab-size` as an alias of `tab-size`, and React writes
+		// a numeric `MozTabSize` with `px`, so a tab shrank to two pixels there.
+		test("sets a tab to two spaces, with no prefixed tab size", () => {
+			const html = renderToString(
+				<CodeBlock.Root>
+					<CodeBlock.Body>
+						<CodeBlock.Code value={makeValue("\tconst x = 1;")} />
+					</CodeBlock.Body>
+				</CodeBlock.Root>,
+			);
+
+			expect(html).toMatch(/tab-size:2[;"]/);
+			expect(html).not.toContain("-moz-tab-size");
+		});
+
+		test("drops a prefixed tab size from a consumer style", () => {
+			const html = renderToString(
+				<CodeBlock.Root>
+					<CodeBlock.Body>
+						<CodeBlock.Code style={{ MozTabSize: 4 }} value={makeValue("\tconst x = 1;")} />
+					</CodeBlock.Body>
+				</CodeBlock.Root>,
+			);
+
+			expect(html).toMatch(/tab-size:2[;"]/);
+			expect(html).not.toContain("-moz-tab-size");
+		});
+
+		// On a client mount, React writes each style key, an `undefined` value as
+		// `""`. The alias below acts as Firefox does, so a `MozTabSize` write of
+		// any value replaces `tab-size`.
+		test("keeps a tab at two spaces on a client mount in Firefox", () => {
+			Object.defineProperty(CSSStyleDeclaration.prototype, "MozTabSize", {
+				configurable: true,
+				get(this: CSSStyleDeclaration) {
+					return this.tabSize;
+				},
+				set(this: CSSStyleDeclaration, value: string) {
+					this.tabSize = value;
+				},
+			});
+			try {
+				const { container } = render(
+					<>
+						<CodeBlock.Root>
+							<CodeBlock.Body>
+								<CodeBlock.Code value={makeValue("\tconst x = 1;")} />
+							</CodeBlock.Body>
+						</CodeBlock.Root>
+						<CodeBlock.Root>
+							<CodeBlock.Body>
+								<CodeBlock.Code style={{ MozTabSize: 4 }} value={makeValue("\tconst y = 2;")} />
+							</CodeBlock.Body>
+						</CodeBlock.Root>
+					</>,
+				);
+
+				const tabSizes = [...container.querySelectorAll("pre")].map((pre) => pre.style.tabSize);
+				expect(tabSizes).toEqual(["2", "2"]);
+			} finally {
+				Reflect.deleteProperty(CSSStyleDeclaration.prototype, "MozTabSize");
+			}
+		});
+
 		test("renders plain text fallback when preHtml is missing", () => {
 			const value = createMantleCodeBlockValue({
 				language: "typescript",

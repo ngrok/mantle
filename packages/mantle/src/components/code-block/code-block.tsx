@@ -465,6 +465,10 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 	// runtime-managed DOM state on the children (e.g. fold attributes).
 	const innerHtmlProp = useMemo(() => ({ __html: displayHtml }), [displayHtml]);
 	const expanderState = isCodeExpanded ? "expanded" : "collapsed";
+	// Why omit `MozTabSize`: Firefox reads `-moz-tab-size` as an alias of
+	// `tab-size`. React writes a number as `2px`, and on a client mount it writes
+	// an `undefined` value as `""`, which clears `tab-size` too.
+	const { MozTabSize: _mozTabSize, ...preStyle } = style ?? {};
 
 	return (
 		<pre
@@ -496,10 +500,9 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 			ref={composedRef}
 			style={
 				{
-					...style,
+					...preStyle,
 					"--mantle-line-number-start": String(effectiveLineNumberStart),
 					tabSize: 2,
-					MozTabSize: 2,
 				} as ComponentProps<"pre">["style"]
 			}
 			{...props}
