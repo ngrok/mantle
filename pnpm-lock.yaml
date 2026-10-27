@@ -64,8 +64,8 @@ catalogs:
       specifier: 4.3.3
       version: 4.3.3
     tsdown:
-      specifier: 0.23.1
-      version: 0.23.1
+      specifier: 0.23.2
+      version: 0.23.2
     tsx:
       specifier: 4.23.15
       version: 4.23.15
@@ -420,7 +420,7 @@ importers:
         version: 14.6.8(@testing-library/dom@10.4.2)
       '@tsdown/css':
         specifier: 'catalog:'
-        version: 0.23.1(jiti@2.7.0)(postcss@8.5.31)(tsdown@0.23.1)(tsx@4.23.15)(yaml@2.9.1)
+        version: 0.23.1(jiti@2.7.0)(postcss@8.5.31)(tsdown@0.23.2)(tsx@4.23.15)(yaml@2.9.1)
       '@types/d3-scale':
         specifier: 4.0.9
         version: 4.0.9
@@ -459,7 +459,7 @@ importers:
         version: 4.3.3
       tsdown:
         specifier: 'catalog:'
-        version: 0.23.1(@tsdown/css@0.23.1)(tsx@4.23.15)(typescript@7.0.2)
+        version: 0.23.2(@tsdown/css@0.23.1)(tsx@4.23.15)(typescript@7.0.2)
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -487,7 +487,7 @@ importers:
         version: 24.19.2
       tsdown:
         specifier: 'catalog:'
-        version: 0.23.1(@tsdown/css@0.23.1)(tsx@4.23.15)(typescript@7.0.2)
+        version: 0.23.2(@tsdown/css@0.23.1)(tsx@4.23.15)(typescript@7.0.2)
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -524,7 +524,7 @@ importers:
         version: 4.3.3
       tsdown:
         specifier: 'catalog:'
-        version: 0.23.1(@tsdown/css@0.23.1)(tsx@4.23.15)(typescript@7.0.2)
+        version: 0.23.2(@tsdown/css@0.23.1)(tsx@4.23.15)(typescript@7.0.2)
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -4602,19 +4602,16 @@ packages:
     resolution: {integrity: sha512-g6QUff04oZpHs0eG5p83rFLhHeV00ug/Yf9nZM6fLeUrPguBTkTQOdpAWWspMh55TZfVQDPaN3NQJfbVRAxdIw==}
     engines: {iojs: '>=1.0.0', node: '>=0.10.0'}
 
-  rolldown-plugin-dts@0.28.8:
-    resolution: {integrity: sha512-FVhfqxorCWcc20BVT5eVRfRjzLLl6mgzjcMR4gSBf0K4oQMXT0qoHhhzfXy0L7y83fQy7Ug5ZDNk90xM3/LiCQ==}
+  rolldown-plugin-dts@0.29.0-beta.2:
+    resolution: {integrity: sha512-0NT4q7HMRIpQv47+SfZB5IhEWJh0gp2rDEZPu2ry+LeJFb9tlMB08Sy+sl1+cqcCXnHpkd9dvBy3rZDCBF1JIg==}
     engines: {node: ^22.18.0 || ^24.11.0 || >=26.0.0}
     peerDependencies:
-      '@typescript/native-preview': '*'
       '@volar/typescript': ~2.4.0
       '@vue/language-core': ~3.2.0 || ~3.3.0
       rolldown: ^1.2.0
-      typescript: ^5.0.0 || ^6.0.0 || ~7.0.0
+      typescript: ^5.0.0 || ^6.0.0 || ~7.0.0 || ~7.1.0-0
       vue-tsc: ~3.2.0 || ~3.3.0
     peerDependenciesMeta:
-      '@typescript/native-preview':
-        optional: true
       '@volar/typescript':
         optional: true
       '@vue/language-core':
@@ -4850,14 +4847,14 @@ packages:
   ts-toolbelt@6.15.5:
     resolution: {integrity: sha512-FZIXf1ksVyLcfr7M317jbB67XFJhOO1YqdTcuGaq9q5jLUoTikukZ+98TPjKiP2jC5CgmYdWWYs0s2nLSU0/1A==}
 
-  tsdown@0.23.1:
-    resolution: {integrity: sha512-MSC2WSOts3in95J334/VIS7KPfor3eCSvndJ6KdoVj9Aak9Kh1aNfz9ws5owhdukuTNSXRdfkPEzA/ihpDD6SA==}
+  tsdown@0.23.2:
+    resolution: {integrity: sha512-om1OoDykFlv07uM98WAX3ZNmu02FBmHqZYLW1hm+IMktb92r7VMNKgQ/G8dknECI1Q2huPrFJ+sggdYk8efsQg==}
     engines: {node: ^22.18.0 || ^24.11.0 || >=26.0.0}
     hasBin: true
     peerDependencies:
       '@arethetypeswrong/core': ^0.18.1
-      '@tsdown/css': 0.23.1
-      '@tsdown/exe': 0.23.1
+      '@tsdown/css': 0.23.2
+      '@tsdown/exe': 0.23.2
       '@vitejs/devtools': '*'
       publint: ^0.3.8
       tsx: '*'
@@ -7026,12 +7023,12 @@ snapshots:
       mkdirp: 1.0.4
       path-browserify: 1.0.1
 
-  '@tsdown/css@0.23.1(jiti@2.7.0)(postcss@8.5.31)(tsdown@0.23.1)(tsx@4.23.15)(yaml@2.9.1)':
+  '@tsdown/css@0.23.1(jiti@2.7.0)(postcss@8.5.31)(tsdown@0.23.2)(tsx@4.23.15)(yaml@2.9.1)':
     dependencies:
       lightningcss: 1.33.0
       postcss-load-config: 6.0.1(jiti@2.7.0)(postcss@8.5.31)(tsx@4.23.15)(yaml@2.9.1)
       rolldown: 1.2.15
-      tsdown: 0.23.1(@tsdown/css@0.23.1)(tsx@4.23.15)(typescript@7.0.2)
+      tsdown: 0.23.2(@tsdown/css@0.23.1)(tsx@4.23.15)(typescript@7.0.2)
     optionalDependencies:
       postcss: 8.5.31
     transitivePeerDependencies:
@@ -9124,7 +9121,7 @@ snapshots:
 
   reusify@1.1.0: {}
 
-  rolldown-plugin-dts@0.28.8(rolldown@1.2.15)(typescript@7.0.2):
+  rolldown-plugin-dts@0.29.0-beta.2(rolldown@1.2.15)(typescript@7.0.2):
     dependencies:
       dts-resolver: 3.0.0
       get-tsconfig: 5.0.0-beta.6
@@ -9410,7 +9407,7 @@ snapshots:
 
   ts-toolbelt@6.15.5: {}
 
-  tsdown@0.23.1(@tsdown/css@0.23.1)(tsx@4.23.15)(typescript@7.0.2):
+  tsdown@0.23.2(@tsdown/css@0.23.1)(tsx@4.23.15)(typescript@7.0.2):
     dependencies:
       cac: 7.1.0
       defu: 6.1.7
@@ -9420,18 +9417,17 @@ snapshots:
       obug: 3.0.0
       picomatch: 4.0.7
       rolldown: 1.2.15
-      rolldown-plugin-dts: 0.28.8(rolldown@1.2.15)(typescript@7.0.2)
+      rolldown-plugin-dts: 0.29.0-beta.2(rolldown@1.2.15)(typescript@7.0.2)
       tinyexec: 1.3.1
       tinyglobby: 0.2.17
       tree-kill: 1.2.2
       unconfig-core: 7.5.0
       verkit: 0.5.0
     optionalDependencies:
-      '@tsdown/css': 0.23.1(jiti@2.7.0)(postcss@8.5.31)(tsdown@0.23.1)(tsx@4.23.15)(yaml@2.9.1)
+      '@tsdown/css': 0.23.1(jiti@2.7.0)(postcss@8.5.31)(tsdown@0.23.2)(tsx@4.23.15)(yaml@2.9.1)
       tsx: 4.23.15
       typescript: 7.0.2
     transitivePeerDependencies:
-      - '@typescript/native-preview'
       - '@volar/typescript'
       - '@vue/language-core'
       - oxc-resolver
