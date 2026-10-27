@@ -40,7 +40,13 @@ export const projects: Project[] = [
 		shared: true,
 		archived: true,
 	},
-	{ id: "p_4", name: "staging-api", description: "Staging API", shared: false, archived: false },
+	{
+		id: "p_4",
+		name: "staging-api",
+		description: "Staging API",
+		shared: false,
+		archived: false,
+	},
 	{
 		id: "p_5",
 		name: "webhook-tests",
