@@ -19,10 +19,9 @@ function Host({ onValueChange }: { onValueChange?: (value: string) => void }) {
 				}}
 			>
 				<QueryInput.Field
-					aria-label="Filter domains"
-					placeholder="Filter domains, or type a filter like domain:api"
+					aria-label="Filter projects"
+					placeholder="Filter projects, or type a filter like name:api"
 				/>
-				<QueryInput.BuilderMenu label="Add filter" />
 				<QueryInput.Content />
 			</QueryInput.Root>
 			<output aria-label="query state">{value}</output>
@@ -36,11 +35,11 @@ describe("QueryInput in a browser", () => {
 	// tracked value is dropped, and the state keeps the suggestion over an empty input.
 	test("hands every edit to the caller after a suggestion is accepted", async () => {
 		render(<Host />);
-		const input = page.getByRole("combobox", { name: "Filter domains" });
+		const input = page.getByRole("combobox", { name: "Filter projects" });
 
 		await userEvent.click(input);
-		await userEvent.click(page.getByRole("option", { name: /^domain:/ }));
-		await expect.element(input).toHaveValue("domain:");
+		await userEvent.click(page.getByRole("option", { name: /^name:/ }));
+		await expect.element(input).toHaveValue("name:");
 
 		await userEvent.clear(input);
 
@@ -51,28 +50,13 @@ describe("QueryInput in a browser", () => {
 	test("reports an accepted suggestion once", async () => {
 		const onValueChange = vi.fn<(value: string) => void>();
 		render(<Host onValueChange={onValueChange} />);
-		const input = page.getByRole("combobox", { name: "Filter domains" });
+		const input = page.getByRole("combobox", { name: "Filter projects" });
 
 		await userEvent.click(input);
-		await userEvent.click(page.getByRole("option", { name: /^domain:/ }));
-		await expect.element(input).toHaveValue("domain:");
+		await userEvent.click(page.getByRole("option", { name: /^name:/ }));
+		await expect.element(input).toHaveValue("name:");
 
 		expect(onValueChange).toHaveBeenCalledTimes(1);
-		expect(onValueChange).toHaveBeenCalledWith("domain:");
-	});
-
-	// FEP-1917: a pointer pick in the builder menu must leave focus in the field,
-	// so the next keystroke types the value.
-	test("keeps typing in the field after a pointer pick in the builder menu", async () => {
-		render(<Host />);
-		const input = page.getByRole("combobox", { name: "Filter domains" });
-
-		await userEvent.click(page.getByRole("button", { name: "Add filter" }));
-		await userEvent.click(page.getByRole("menuitem", { name: /^domain:/ }));
-		await expect.element(input).toHaveFocus();
-
-		await userEvent.keyboard("api");
-
-		await expect.element(input).toHaveValue("domain:api");
+		expect(onValueChange).toHaveBeenCalledWith("name:");
 	});
 });

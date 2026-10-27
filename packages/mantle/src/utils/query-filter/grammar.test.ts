@@ -43,12 +43,12 @@ describe("getFilterSyntax", () => {
 
 describe("acceptsValueList", () => {
 	test("splits list keys and keeps prose keys whole under the full syntax", () => {
-		const [domain, description] = testGrammar.keys;
-		if (domain == null || description == null) {
+		const [name, description] = testGrammar.keys;
+		if (name == null || description == null) {
 			throw new Error("the test grammar lost its keys");
 		}
 
-		expect(acceptsValueList(testGrammar, domain)).toBe(true);
+		expect(acceptsValueList(testGrammar, name)).toBe(true);
 		expect(acceptsValueList(testGrammar, description)).toBe(false);
 	});
 

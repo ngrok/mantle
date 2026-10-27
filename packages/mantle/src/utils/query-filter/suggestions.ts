@@ -127,7 +127,7 @@ type ValueCandidate = {
  *
  * @example
  * ```ts
- * getValueCandidates(isDefinition); // => [{ value: "dev", description: "…" }, …]
+ * getValueCandidates(isDefinition); // => [{ value: "active", description: "…" }, …]
  * getValueCandidates(descriptionDefinition); // => [] — free text
  * ```
  */
@@ -155,7 +155,7 @@ type ValueEdit = {
  * caret for a list key, or the whole value otherwise.
  *
  * A member's span covers its quotes, so accepting a row over `"GET"` rewrites
- * the quotes with it. A caret in an empty run, as after `is:dev,`, has no
+ * the quotes with it. A caret in an empty run, as after `is:active,`, has no
  * member; the row then inserts at the caret.
  */
 function getValueEdit<Item>({
@@ -200,7 +200,7 @@ function getValueSuggestions<Item extends object>(
 	});
 
 	// Values already picked by the token's other members would only repeat
-	// themselves, so `is:dev,` offers everything but `dev`.
+	// themselves, so `is:active,` offers everything but `active`.
 	const pickedElsewhere = new Set(
 		token.members
 			.filter((member) => member.start !== replaceStart || member.end !== replaceEnd)
@@ -330,7 +330,7 @@ function getKeySuggestions<Item>({
  * @example
  * ```ts
  * getFilterSuggestions({ grammar, query: "is:", caretIndex: 3, items });
- * // => { replaceStart: 3, replaceEnd: 3, items: [{ label: "dev", matchCount: 2, … }, …] }
+ * // => { replaceStart: 3, replaceEnd: 3, items: [{ label: "active", matchCount: 2, … }, …] }
  * ```
  */
 function getFilterSuggestions<Item extends object>(

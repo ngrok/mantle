@@ -1,6 +1,5 @@
 "use client";
 
-import { FunnelSimpleIcon } from "@phosphor-icons/react/FunnelSimple";
 import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
 import type {
 	ComponentProps,
@@ -30,21 +29,13 @@ import {
 	getHighlightSegments,
 } from "../../utils/query-filter/highlight.js";
 import { countItemsByQuery } from "../../utils/query-filter/match.js";
-import { formatFacet } from "../../utils/query-filter/parse.js";
 import {
 	type FilterSuggestion,
 	type FilterSuggestionSection,
 	type FilterSuggestions,
 	getFilterSuggestions,
-	getValueCandidates,
 } from "../../utils/query-filter/suggestions.js";
-import {
-	IconButton,
-	type IconButtonAppearance,
-	type IconButtonProps,
-} from "../button/icon-button.js";
 import { Code } from "../code/code.js";
-import { DropdownMenu } from "../dropdown-menu/dropdown-menu.js";
 import { FieldControlContext } from "../field/field-context.js";
 import { Input, InputCapture } from "../input/input.js";
 import { Popover } from "../popover/popover.js";
@@ -102,8 +93,6 @@ type QueryInputContextValue = {
 	/** Records where the caret landed after anything that can move it. */
 	syncCaret: (input: HTMLInputElement) => void;
 	acceptSuggestion: (suggestion: FilterSuggestion) => void;
-	/** Appends text from the builder menu, spaced off the typed text. */
-	appendFilterText: (text: string) => void;
 	/** `QueryInput.Content` calls this on mount. It returns the cleanup. */
 	registerContent: (options: { hasChildren: boolean }) => () => void;
 };
@@ -168,11 +157,10 @@ type QueryInputRootProps<Item extends object> = Omit<ComponentProps<"div">, "def
  * ```tsx
  * const [query, setQuery] = useState("");
  *
- * <QueryInput.Root grammar={domainFilterGrammar} items={domains} value={query} onValueChange={setQuery}>
- *   <QueryInput.Field aria-label="Filter domains" placeholder="Filter domains, or type a filter like is:custom">
+ * <QueryInput.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
+ *   <QueryInput.Field aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared">
  *     <IconButton type="button" appearance="ghost" intent="neutral" size="xs" label="Clear filter" icon={<XIcon />} onClick={() => setQuery("")} />
  *   </QueryInput.Field>
- *   <QueryInput.BuilderMenu label="Add filter" />
  *   <QueryInput.Content />
  * </QueryInput.Root>
  * ```
@@ -300,19 +288,6 @@ function Root<Item extends object>({
 				reportInsertedText(input);
 				input.focus();
 			},
-			appendFilterText: (text) => {
-				const input = inputRef.current;
-				if (input == null) {
-					return;
-				}
-
-				const queryLength = input.value.length;
-				const needsSpace = queryLength > 0 && !input.value.endsWith(" ");
-				input.setRangeText(`${needsSpace ? " " : ""}${text}`, queryLength, queryLength, "end");
-				input.setSelectionRange(input.value.length, input.value.length);
-
-				reportInsertedText(input);
-			},
 			registerContent,
 		};
 	}, [
@@ -402,11 +377,10 @@ type QueryInputFieldProps = Omit<ComponentProps<"div">, "ref" | "children"> &
  * ```tsx
  * const [query, setQuery] = useState("");
  *
- * <QueryInput.Root grammar={domainFilterGrammar} items={domains} value={query} onValueChange={setQuery}>
- *   <QueryInput.Field aria-label="Filter domains" placeholder="Filter domains, or type a filter like is:custom">
+ * <QueryInput.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
+ *   <QueryInput.Field aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared">
  *     <IconButton type="button" appearance="ghost" intent="neutral" size="xs" label="Clear filter" icon={<XIcon />} onClick={() => setQuery("")} />
  *   </QueryInput.Field>
- *   <QueryInput.BuilderMenu label="Add filter" />
  *   <QueryInput.Content />
  * </QueryInput.Root>
  * ```
@@ -572,187 +546,6 @@ function Field({
 }
 
 /**
- * The props for `QueryInput.BuilderMenu`.
- */
-type QueryInputBuilderMenuProps = Omit<
-	IconButtonProps,
-	"appearance" | "icon" | "intent" | "label" | "size"
-> & {
-	/**
-	 * The look of the trigger. Set `"ghost"` inside a panel `ButtonGroup`.
-	 *
-	 * @default "outlined"
-	 */
-	appearance?: IconButtonAppearance;
-	/** The screen-reader label of the icon-only trigger, such as "Add filter". Required on purpose. */
-	label: string;
-	/**
-	 * The size of the trigger.
-	 *
-	 * @default "md"
-	 */
-	size?: IconButtonProps["size"];
-};
-
-/**
- * The browsable half of the query language: a dropdown menu that lists every
- * qualifier, with a submenu of values and live match counts where the grammar
- * or the items have them. A pick writes the canonical filter at the end of the
- * query and moves focus into the field.
- *
- * @see https://mantle.ngrok.com/components/forms/query-input#queryinputbuildermenu
- *
- * @example
- * ```tsx
- * const [query, setQuery] = useState("");
- *
- * <QueryInput.Root grammar={domainFilterGrammar} items={domains} value={query} onValueChange={setQuery}>
- *   <QueryInput.Field aria-label="Filter domains" placeholder="Filter domains, or type a filter like is:custom">
- *     <IconButton type="button" appearance="ghost" intent="neutral" size="xs" label="Clear filter" icon={<XIcon />} onClick={() => setQuery("")} />
- *   </QueryInput.Field>
- *   <QueryInput.BuilderMenu label="Add filter" />
- *   <QueryInput.Content />
- * </QueryInput.Root>
- * ```
- */
-// Why no asChild: the part renders a whole menu (the trigger and its content).
-// `className`, `ref`, and the other button props go to the trigger.
-function BuilderMenu({
-	"data-slot": dataSlot,
-	appearance = "outlined",
-	label,
-	size = "md",
-	...props
-}: QueryInputBuilderMenuProps) {
-	const context = useQueryInputContext("QueryInput.BuilderMenu");
-	const { inputRef } = useQueryInputRefs("QueryInput.BuilderMenu");
-	// Whether the menu closes because a pick inserted text. Focus then belongs in
-	// the field; on a plain dismissal it returns to the trigger.
-	const insertedRef = useRef(false);
-
-	function insert(text: string) {
-		insertedRef.current = true;
-		context.appendFilterText(text);
-	}
-
-	return (
-		// Why non-modal: a modal menu marks the page inert, which blocks the focus
-		// handoff into the field after a pick.
-		<DropdownMenu.Root modal={false}>
-			<DropdownMenu.Trigger asChild>
-				<IconButton
-					type="button"
-					data-slot={joinDataSlot(dataSlot, "query-input-builder-menu")}
-					appearance={appearance}
-					intent="neutral"
-					size={size}
-					icon={<FunnelSimpleIcon />}
-					label={label}
-					{...props}
-				/>
-			</DropdownMenu.Trigger>
-			<DropdownMenu.Content
-				align="end"
-				onCloseAutoFocus={(event) => {
-					if (!insertedRef.current) {
-						return;
-					}
-					insertedRef.current = false;
-					event.preventDefault();
-					// Why focus here: Radix calls this after the menu closes, so no menu
-					// teardown can move focus after this call.
-					const input = inputRef.current;
-					if (input != null) {
-						input.focus();
-						input.setSelectionRange(input.value.length, input.value.length);
-					}
-				}}
-			>
-				{context.keys.map((definition) => (
-					<BuilderMenuKey key={definition.key} definition={definition} onInsert={insert} />
-				))}
-			</DropdownMenu.Content>
-		</DropdownMenu.Root>
-	);
-}
-
-/** One qualifier in the builder menu: a submenu of values, or an entry that starts the qualifier. */
-function BuilderMenuKey({
-	definition,
-	onInsert,
-}: {
-	definition: RemoteFilterKeyDefinition;
-	onInsert: (text: string) => void;
-}) {
-	const keyLabel = formatFacet({ key: definition.key, value: "", negated: false });
-	const entry = (
-		<>
-			<span translate="no" className="text-strong font-mono">
-				{keyLabel}
-			</span>
-			<span className="text-muted truncate text-xs">{definition.description}</span>
-		</>
-	);
-
-	if (getValueCandidates(definition).length === 0) {
-		return (
-			<DropdownMenu.Item className="flex items-center gap-2" onSelect={() => onInsert(keyLabel)}>
-				{entry}
-			</DropdownMenu.Item>
-		);
-	}
-
-	return (
-		<DropdownMenu.Sub>
-			<DropdownMenu.SubTrigger className="flex items-center gap-2">{entry}</DropdownMenu.SubTrigger>
-			<DropdownMenu.SubContent>
-				<BuilderMenuValues definition={definition} onInsert={onInsert} />
-			</DropdownMenu.SubContent>
-		</DropdownMenu.Sub>
-	);
-}
-
-/**
- * The value rows of one qualifier's submenu. A component on purpose: each
- * count scans every item, and Radix mounts a submenu only while it is open,
- * so opening the builder menu itself counts nothing.
- */
-function BuilderMenuValues({
-	definition,
-	onInsert,
-}: {
-	definition: RemoteFilterKeyDefinition;
-	onInsert: (text: string) => void;
-}) {
-	const { countMatches, value } = useQueryInputContext("QueryInput.BuilderMenu");
-
-	return getValueCandidates(definition).map((candidate) => {
-		const facet = formatFacet({ key: definition.key, value: candidate.value, negated: false });
-		// The count runs the real matcher over the appended query, so it reads
-		// against the filters already in place.
-		const matchCount = countMatches?.(`${value} ${facet}`);
-
-		return (
-			<DropdownMenu.Item
-				key={candidate.value}
-				className="flex items-center gap-2"
-				onSelect={() => onInsert(`${facet} `)}
-			>
-				<span translate="no" className="text-strong font-mono">
-					{candidate.value}
-				</span>
-				{candidate.description != null && (
-					<span className="text-muted truncate text-xs">{candidate.description}</span>
-				)}
-				{matchCount != null && (
-					<span className="text-muted ml-auto pl-2 text-xs tabular-nums">{matchCount}</span>
-				)}
-			</DropdownMenu.Item>
-		);
-	});
-}
-
-/**
  * The props for `QueryInput.Content`.
  */
 type QueryInputContentProps = Pick<ComponentProps<typeof Popover.Content>, "className" | "ref"> &
@@ -780,11 +573,10 @@ type QueryInputContentProps = Pick<ComponentProps<typeof Popover.Content>, "clas
  * ```tsx
  * const [query, setQuery] = useState("");
  *
- * <QueryInput.Root grammar={domainFilterGrammar} items={domains} value={query} onValueChange={setQuery}>
- *   <QueryInput.Field aria-label="Filter domains" placeholder="Filter domains, or type a filter like is:custom">
+ * <QueryInput.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
+ *   <QueryInput.Field aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared">
  *     <IconButton type="button" appearance="ghost" intent="neutral" size="xs" label="Clear filter" icon={<XIcon />} onClick={() => setQuery("")} />
  *   </QueryInput.Field>
- *   <QueryInput.BuilderMenu label="Add filter" />
  *   <QueryInput.Content />
  * </QueryInput.Root>
  * ```
@@ -972,10 +764,9 @@ function SuggestionList() {
 
 /**
  * A single-line filter field where free text and `key:value` qualifiers
- * interleave. The tokens are colored in place, a suggestion popover completes
- * keys and values while the caret stays in the field, and a builder menu
- * writes filters for people who would rather browse than type. The grammar
- * from `@ngrok/mantle/query-filter` decides the vocabulary.
+ * interleave. The tokens are colored in place, and a suggestion popover
+ * completes keys and values while the caret stays in the field. The grammar from
+ * `@ngrok/mantle/query-filter` decides the vocabulary.
  *
  * The typed string is the only state, and the caller owns it. Inside a
  * `<form>`, Enter submits the form unless it accepts an active suggestion.
@@ -995,7 +786,6 @@ function SuggestionList() {
  * ```
  * QueryInput.Root
  * ├── QueryInput.Field
- * ├── QueryInput.BuilderMenu
  * └── QueryInput.Content
  * ```
  *
@@ -1003,11 +793,10 @@ function SuggestionList() {
  * ```tsx
  * const [query, setQuery] = useState("");
  *
- * <QueryInput.Root grammar={domainFilterGrammar} items={domains} value={query} onValueChange={setQuery}>
- *   <QueryInput.Field aria-label="Filter domains" placeholder="Filter domains, or type a filter like is:custom">
+ * <QueryInput.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
+ *   <QueryInput.Field aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared">
  *     <IconButton type="button" appearance="ghost" intent="neutral" size="xs" label="Clear filter" icon={<XIcon />} onClick={() => setQuery("")} />
  *   </QueryInput.Field>
- *   <QueryInput.BuilderMenu label="Add filter" />
  *   <QueryInput.Content />
  * </QueryInput.Root>
  * ```
@@ -1024,11 +813,10 @@ const QueryInput = {
 	 * ```tsx
 	 * const [query, setQuery] = useState("");
 	 *
-	 * <QueryInput.Root grammar={domainFilterGrammar} items={domains} value={query} onValueChange={setQuery}>
-	 *   <QueryInput.Field aria-label="Filter domains" placeholder="Filter domains, or type a filter like is:custom">
+	 * <QueryInput.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
+	 *   <QueryInput.Field aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared">
 	 *     <IconButton type="button" appearance="ghost" intent="neutral" size="xs" label="Clear filter" icon={<XIcon />} onClick={() => setQuery("")} />
 	 *   </QueryInput.Field>
-	 *   <QueryInput.BuilderMenu label="Add filter" />
 	 *   <QueryInput.Content />
 	 * </QueryInput.Root>
 	 * ```
@@ -1045,37 +833,15 @@ const QueryInput = {
 	 * ```tsx
 	 * const [query, setQuery] = useState("");
 	 *
-	 * <QueryInput.Root grammar={domainFilterGrammar} items={domains} value={query} onValueChange={setQuery}>
-	 *   <QueryInput.Field aria-label="Filter domains" placeholder="Filter domains, or type a filter like is:custom">
+	 * <QueryInput.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
+	 *   <QueryInput.Field aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared">
 	 *     <IconButton type="button" appearance="ghost" intent="neutral" size="xs" label="Clear filter" icon={<XIcon />} onClick={() => setQuery("")} />
 	 *   </QueryInput.Field>
-	 *   <QueryInput.BuilderMenu label="Add filter" />
 	 *   <QueryInput.Content />
 	 * </QueryInput.Root>
 	 * ```
 	 */
 	Field,
-	/**
-	 * The browsable half of the query language: a dropdown menu of every
-	 * qualifier and its values. A pick writes the canonical filter at the end
-	 * of the query and moves focus into the field.
-	 *
-	 * @see https://mantle.ngrok.com/components/forms/query-input#queryinputbuildermenu
-	 *
-	 * @example
-	 * ```tsx
-	 * const [query, setQuery] = useState("");
-	 *
-	 * <QueryInput.Root grammar={domainFilterGrammar} items={domains} value={query} onValueChange={setQuery}>
-	 *   <QueryInput.Field aria-label="Filter domains" placeholder="Filter domains, or type a filter like is:custom">
-	 *     <IconButton type="button" appearance="ghost" intent="neutral" size="xs" label="Clear filter" icon={<XIcon />} onClick={() => setQuery("")} />
-	 *   </QueryInput.Field>
-	 *   <QueryInput.BuilderMenu label="Add filter" />
-	 *   <QueryInput.Content />
-	 * </QueryInput.Root>
-	 * ```
-	 */
-	BuilderMenu,
 	/**
 	 * The suggestion popover: a listbox of keys and values for the token under
 	 * the caret, then the syntax legend. Children render under the legend.
@@ -1086,11 +852,10 @@ const QueryInput = {
 	 * ```tsx
 	 * const [query, setQuery] = useState("");
 	 *
-	 * <QueryInput.Root grammar={domainFilterGrammar} items={domains} value={query} onValueChange={setQuery}>
-	 *   <QueryInput.Field aria-label="Filter domains" placeholder="Filter domains, or type a filter like is:custom">
+	 * <QueryInput.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
+	 *   <QueryInput.Field aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared">
 	 *     <IconButton type="button" appearance="ghost" intent="neutral" size="xs" label="Clear filter" icon={<XIcon />} onClick={() => setQuery("")} />
 	 *   </QueryInput.Field>
-	 *   <QueryInput.BuilderMenu label="Add filter" />
 	 *   <QueryInput.Content />
 	 * </QueryInput.Root>
 	 * ```
@@ -1105,7 +870,6 @@ export {
 
 export type {
 	//,
-	QueryInputBuilderMenuProps,
 	QueryInputContentProps,
 	QueryInputFieldProps,
 	QueryInputRootProps,

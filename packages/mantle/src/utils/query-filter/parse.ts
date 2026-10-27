@@ -68,7 +68,7 @@ type FacetToken = FilterTokenBase & {
 	rawValue: string;
 	/**
 	 * The value's members, which OR together: every unquoted comma splits one
-	 * off for a list key (`is:dev,custom`), a quoted comma stays inside its
+	 * off for a list key (`is:active,pending`), a quoted comma stays inside its
 	 * member (`name:"a,b",c`), and a prose key keeps one member. Empty while the
 	 * value is empty — the user is still typing.
 	 */
@@ -248,7 +248,7 @@ function toFacetValueMember<Item>({
  *
  * A list key takes the scanned runs, so an unquoted comma separates members and
  * a quoted one stays inside its member. A prose key keeps the whole value as one
- * member. Empty runs (`is:dev,` mid-typing) produce no member.
+ * member. Empty runs (`is:active,` mid-typing) produce no member.
  */
 function splitFacetValue<Item>({
 	grammar,
@@ -447,7 +447,7 @@ function formatFacet({ key, value, negated }: { key: string; value: string; nega
  *
  * @example
  * ```ts
- * const tokens = parseFilterQuery(grammar, "is:dev acme");
+ * const tokens = parseFilterQuery(grammar, "is:active acme");
  * findTokenAtCaret(tokens, 3)?.key; // => "is"
  * findTokenAtCaret(tokens, 6); // => undefined — the caret is in the space
  * ```
@@ -461,7 +461,7 @@ function findTokenAtCaret(tokens: readonly FilterToken[], caretIndex: number) {
  *
  * @example
  * ```ts
- * const [token] = parseFilterQuery(grammar, "is:dev");
+ * const [token] = parseFilterQuery(grammar, "is:active");
  * isCaretInFacetValue(token, 4); // => true
  * isCaretInFacetValue(token, 2); // => false — still in the key
  * ```

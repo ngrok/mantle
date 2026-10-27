@@ -5,7 +5,7 @@ description: The query-filter language from @ngrok/mantle/query-filter. A gramma
 
 # query-filter
 
-The language behind [Query Input](/components/forms/query-input): free text and `key:value` qualifiers in one string, such as `is:custom -staging api`. The module is plain TypeScript with no React import, so a server, a script, or a test can parse and match a query with the same rules the field uses.
+The language behind [Query Input](/components/forms/query-input): free text and `key:value` qualifiers in one string, such as `is:shared -staging api`. The module is plain TypeScript with no React import, so a server, a script, or a test can parse and match a query with the same rules the field uses.
 
 ```ts
 import {
@@ -47,9 +47,9 @@ import type {
 | You write           | It means                                                            |
 | ------------------- | ------------------------------------------------------------------- |
 | `acme`              | Items whose search text contains `acme`.                            |
-| `is:custom`         | Items that the `is` key's matcher accepts for `custom`.             |
-| `-is:custom`        | Items that the matcher rejects for `custom`.                        |
-| `is:custom,managed` | Either value. A `prose` key keeps the comma as text.                |
+| `is:shared`         | Items that the `is` key's matcher accepts for `shared`.             |
+| `-is:shared`        | Items that the matcher rejects for `shared`.                        |
+| `is:shared,private` | Either value. A `prose` key keeps the comma as text.                |
 | `a OR b`            | Either group. `AND` (or nothing) joins tokens.                      |
 | `"staging api"`     | One term with a space. `\"` and `\\` write a quote and a backslash. |
 
@@ -62,27 +62,27 @@ A grammar is one `FilterGrammar<Item>` object per list. Declare it as a module c
 ```ts
 import { type FilterGrammar } from "@ngrok/mantle/query-filter";
 
-type Domain = { id: string; name: string; custom: boolean };
+type Project = { id: string; name: string; shared: boolean };
 
-const domainFilterGrammar: FilterGrammar<Domain> = {
+const projectFilterGrammar: FilterGrammar<Project> = {
 	keys: [
 		{
-			key: "domain",
-			aliases: ["name", "host"],
-			description: "Text in the domain name",
-			matches: (domain, value) => domain.name.toLowerCase().includes(value.toLowerCase()),
+			key: "name",
+			aliases: ["title"],
+			description: "Text in the project name",
+			matches: (project, value) => project.name.toLowerCase().includes(value.toLowerCase()),
 		},
 		{
 			key: "is",
-			description: "The kind of domain",
+			description: "The project state",
 			values: [
-				{ value: "custom", description: "A domain you brought to ngrok" },
-				{ value: "managed", description: "A hostname ngrok gave you", aliases: ["ngrok"] },
+				{ value: "shared", description: "Your team can see it" },
+				{ value: "private", description: "Only you can see it", aliases: ["personal"] },
 			],
-			matches: (domain, value) => (value === "custom" ? domain.custom : !domain.custom),
+			matches: (project, value) => (value === "shared" ? project.shared : !project.shared),
 		},
 	],
-	getSearchText: (domain) => [domain.name, domain.id].join("\n"),
+	getSearchText: (project) => [project.name, project.id].join("\n"),
 };
 ```
 
@@ -97,10 +97,10 @@ const domainFilterGrammar: FilterGrammar<Domain> = {
 ```ts
 import { filterItemsByQuery } from "@ngrok/mantle/query-filter";
 
-const visibleDomains = filterItemsByQuery({
-	grammar: domainFilterGrammar,
-	items: domains,
-	query: "is:custom api",
+const visibleProjects = filterItemsByQuery({
+	grammar: projectFilterGrammar,
+	items: projects,
+	query: "is:shared api",
 });
 ```
 
@@ -131,8 +131,8 @@ const accountSearchGrammar = defineRemoteFilterGrammar({
 ```ts
 import { parseFilterQuery } from "@ngrok/mantle/query-filter";
 
-parseFilterQuery(domainFilterGrammar, "is:custom -acme");
-// => [{ kind: "facet", key: "is", members: [{ value: "custom", … }], negated: false, … },
+parseFilterQuery(projectFilterGrammar, "is:shared -acme");
+// => [{ kind: "facet", key: "is", members: [{ value: "shared", … }], negated: false, … },
 //     { kind: "text", text: "acme", negated: true, … }]
 ```
 

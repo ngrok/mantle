@@ -19,9 +19,9 @@ function freshItems(): TestItem[] {
 }
 
 describe("filterItemsByTokens", () => {
-	// Every React Query `select` in the app memoizes on the query string alone
-	// and relies on this identity: a new array on an unasked query would give
-	// each list a new reference on every render.
+	// A caller that memoizes on the query string alone relies on this identity:
+	// a new array on an unasked query would give each list a new reference on
+	// every render.
 	test("hands back the same array when the query asks nothing", () => {
 		expect(
 			filterItemsByTokens({ grammar: testGrammar, items: testItems, tokens: tokens("") }),
@@ -60,7 +60,7 @@ describe("filterItemsByTokens", () => {
 		const result = filterItemsByTokens({
 			grammar: testGrammar,
 			items: testItems,
-			tokens: tokens("is:dev"),
+			tokens: tokens("is:new"),
 		});
 
 		expect(result).not.toBe(testItems);
@@ -74,7 +74,7 @@ describe("filterItemsByQuery", () => {
 			testItems,
 		);
 		expect(
-			filterItemsByQuery({ grammar: testGrammar, items: testItems, query: "is:dev" }),
+			filterItemsByQuery({ grammar: testGrammar, items: testItems, query: "is:new" }),
 		).not.toBe(testItems);
 	});
 });
@@ -88,14 +88,14 @@ describe("filterItemsByQuery", () => {
 describe("filterItemsByQuery evaluation", () => {
 	const items: TestItem[] = [
 		{
-			id: "rd_api",
-			name: "api.acme.com",
+			id: "p_api",
+			name: "acme-api",
 			description: "Production API",
 			metadata: "env:prod",
-			custom: true,
+			shared: true,
 		},
-		{ id: "rd_app", name: "app.acme.com", description: "Staging app", custom: true },
-		{ id: "rd_dev", name: "lovely-lemur.ngrok.dev", description: "Free dev domain", dev: true },
+		{ id: "p_app", name: "acme-app", description: "Staging app", shared: true },
+		{ id: "p_new", name: "lovely-lemur", description: "Draft roadmap", isNew: true },
 	];
 
 	/** Filters the fixture items and returns the matching IDs, in list order. */
@@ -104,23 +104,23 @@ describe("filterItemsByQuery evaluation", () => {
 	}
 
 	test("ANDs every token, repeats of one key included", () => {
-		expect(ids("acme production")).toEqual(["rd_api"]);
-		expect(ids("domain:acme domain:app")).toEqual(["rd_app"]);
-		expect(ids("domain:api domain:app")).toEqual([]);
+		expect(ids("acme production")).toEqual(["p_api"]);
+		expect(ids("name:acme name:app")).toEqual(["p_app"]);
+		expect(ids("name:api name:app")).toEqual([]);
 	});
 
 	test("reads a bare AND or && as the conjunction it already implies", () => {
-		expect(ids("domain:acme AND staging")).toEqual(["rd_app"]);
-		expect(ids("domain:acme && staging")).toEqual(["rd_app"]);
-		expect(ids("is:dev AND")).toEqual(["rd_dev"]);
+		expect(ids("name:acme AND staging")).toEqual(["p_app"]);
+		expect(ids("name:acme && staging")).toEqual(["p_app"]);
+		expect(ids("is:new AND")).toEqual(["p_new"]);
 	});
 
 	test("ORs the comma members of one value", () => {
-		expect(ids("id:rd_api,rd_dev")).toEqual(["rd_api", "rd_dev"]);
+		expect(ids("id:p_api,p_new")).toEqual(["p_api", "p_new"]);
 	});
 
 	test("matches the known members even when a sibling member is unknown", () => {
-		expect(ids("is:dev,bogus")).toEqual(["rd_dev"]);
+		expect(ids("is:new,bogus")).toEqual(["p_new"]);
 	});
 
 	test("ignores a comma-only value the same as an empty one", () => {
@@ -128,28 +128,28 @@ describe("filterItemsByQuery evaluation", () => {
 	});
 
 	test("ORs whole filter groups, with AND binding tighter", () => {
-		expect(ids("is:dev OR domain:api")).toEqual(["rd_api", "rd_dev"]);
-		expect(ids("is:custom staging OR is:dev")).toEqual(["rd_app", "rd_dev"]);
-		expect(ids("id:rd_api || id:rd_dev")).toEqual(["rd_api", "rd_dev"]);
+		expect(ids("is:new OR name:api")).toEqual(["p_api", "p_new"]);
+		expect(ids("is:shared staging OR is:new")).toEqual(["p_app", "p_new"]);
+		expect(ids("id:p_api || id:p_new")).toEqual(["p_api", "p_new"]);
 	});
 
 	test("ignores an OR that has nothing on one side yet", () => {
-		expect(ids("is:dev OR")).toEqual(["rd_dev"]);
-		expect(ids("OR is:dev")).toEqual(["rd_dev"]);
-		expect(ids("is:dev OR OR id:rd_api")).toEqual(["rd_api", "rd_dev"]);
+		expect(ids("is:new OR")).toEqual(["p_new"]);
+		expect(ids("OR is:new")).toEqual(["p_new"]);
+		expect(ids("is:new OR OR id:p_api")).toEqual(["p_api", "p_new"]);
 	});
 
 	test("excludes the rows a negated term matches", () => {
-		expect(ids("-staging")).toEqual(["rd_api", "rd_dev"]);
+		expect(ids("-staging")).toEqual(["p_api", "p_new"]);
 	});
 
 	test("excludes on a negated qualifier, ANDing the exclusions", () => {
-		expect(ids("-is:dev")).toEqual(["rd_api", "rd_app"]);
-		expect(ids("-is:dev -domain:api")).toEqual(["rd_app"]);
+		expect(ids("-is:new")).toEqual(["p_api", "p_app"]);
+		expect(ids("-is:new -name:api")).toEqual(["p_app"]);
 	});
 
 	test("excludes every row a negated member list matches", () => {
-		expect(ids("-is:dev,custom")).toEqual([]);
+		expect(ids("-is:new,shared")).toEqual([]);
 	});
 
 	test("matches nothing for an unknown value, and its negation excludes nothing", () => {
@@ -161,17 +161,17 @@ describe("filterItemsByQuery evaluation", () => {
 	test("searches an unknown key as literal text rather than failing", () => {
 		// A misspelled key stays one term, so it finds the rows that carry it
 		// as text and empties the list for the rows that do not.
-		expect(ids("env:prod")).toEqual(["rd_api"]);
+		expect(ids("env:prod")).toEqual(["p_api"]);
 		expect(ids("stauts:active")).toEqual([]);
 	});
 
 	test("matches an exact substring instead of a fuzzy neighbour", () => {
-		expect(ids("staging")).toEqual(["rd_app"]);
+		expect(ids("staging")).toEqual(["p_app"]);
 		expect(ids("stagnig")).toEqual([]);
 	});
 
 	test("matches free text case-insensitively", () => {
-		expect(ids("PRODUCTION")).toEqual(["rd_api"]);
+		expect(ids("PRODUCTION")).toEqual(["p_api"]);
 	});
 
 	test("matches no row for a term that normalizes to nothing, so its negation matches every row", () => {
@@ -182,7 +182,7 @@ describe("filterItemsByQuery evaluation", () => {
 
 		expect(ids("*.", wildcardGrammar)).toEqual([]);
 		expect(ids("-*.", wildcardGrammar)).toHaveLength(3);
-		expect(ids("*.acme", wildcardGrammar)).toEqual(["rd_api", "rd_app"]);
+		expect(ids("*.acme", wildcardGrammar)).toEqual(["p_api", "p_app"]);
 	});
 });
 
@@ -191,11 +191,11 @@ describe("countItemsByQuery", () => {
 		const items = freshItems();
 
 		expect(countItemsByQuery(testGrammar, items, "")).toBe(3);
-		expect(countItemsByQuery(testGrammar, items, "is:dev")).toBe(1);
-		expect(countItemsByQuery(testGrammar, items, "is:custom acme")).toBe(2);
-		expect(countItemsByQuery(testGrammar, items, "is:dev OR is:custom")).toBe(3);
-		expect(countItemsByQuery(testGrammar, items, "-is:custom")).toBe(1);
-		expect(countItemsByQuery(testGrammar, items, "is:wildcard")).toBe(0);
+		expect(countItemsByQuery(testGrammar, items, "is:new")).toBe(1);
+		expect(countItemsByQuery(testGrammar, items, "is:shared acme")).toBe(2);
+		expect(countItemsByQuery(testGrammar, items, "is:new OR is:shared")).toBe(3);
+		expect(countItemsByQuery(testGrammar, items, "-is:shared")).toBe(1);
+		expect(countItemsByQuery(testGrammar, items, "is:archived")).toBe(0);
 	});
 
 	test("serves a repeat of the same items and query from the cache", () => {
@@ -206,10 +206,10 @@ describe("countItemsByQuery", () => {
 		const matches = vi.spyOn(definition, "matches");
 		const items = freshItems();
 
-		expect(countItemsByQuery(testGrammar, items, "is:dev")).toBe(1);
+		expect(countItemsByQuery(testGrammar, items, "is:new")).toBe(1);
 		expect(matches).toHaveBeenCalledTimes(items.length);
 
-		expect(countItemsByQuery(testGrammar, items, "is:dev")).toBe(1);
+		expect(countItemsByQuery(testGrammar, items, "is:new")).toBe(1);
 		expect(matches).toHaveBeenCalledTimes(items.length);
 	});
 
@@ -220,8 +220,8 @@ describe("countItemsByQuery", () => {
 		}
 		const matches = vi.spyOn(definition, "matches");
 
-		expect(countItemsByQuery(testGrammar, freshItems(), "is:dev")).toBe(1);
-		expect(countItemsByQuery(testGrammar, freshItems(), "is:dev")).toBe(1);
+		expect(countItemsByQuery(testGrammar, freshItems(), "is:new")).toBe(1);
+		expect(countItemsByQuery(testGrammar, freshItems(), "is:new")).toBe(1);
 
 		expect(matches).toHaveBeenCalledTimes(testItems.length * 2);
 	});

@@ -5,7 +5,6 @@ export {
 
 export type {
 	//,
-	QueryInputBuilderMenuProps,
 	QueryInputContentProps,
 	QueryInputFieldProps,
 	QueryInputRootProps,

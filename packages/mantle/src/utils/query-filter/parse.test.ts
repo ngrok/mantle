@@ -12,15 +12,15 @@ import { testGrammar } from "./test-grammar.js";
 
 describe("parseFilterQuery", () => {
 	test("splits a known key from its value on the first colon", () => {
-		expect(parseFilterQuery(testGrammar, "is:dev")).toEqual([
+		expect(parseFilterQuery(testGrammar, "is:new")).toEqual([
 			{
 				kind: "facet",
 				start: 0,
 				end: 6,
 				negated: false,
 				key: "is",
-				rawValue: "dev",
-				members: [{ value: "dev", rawValue: "dev", isKnownValue: true, start: 3, end: 6 }],
+				rawValue: "new",
+				members: [{ value: "new", rawValue: "new", isKnownValue: true, start: 3, end: 6 }],
 				isKnownValue: true,
 				colonIndex: 2,
 			},
@@ -34,10 +34,10 @@ describe("parseFilterQuery", () => {
 	});
 
 	test("resolves key and value aliases to their canonical spelling", () => {
-		expect(parseFilterQuery(testGrammar, "DESC:api DOMAIN:acme is:ngrok")).toMatchObject([
+		expect(parseFilterQuery(testGrammar, "DESC:api NAME:acme is:personal")).toMatchObject([
 			{ key: "description", members: [{ value: "api" }] },
-			{ key: "domain", members: [{ value: "acme" }] },
-			{ key: "is", members: [{ value: "managed" }] },
+			{ key: "name", members: [{ value: "acme" }] },
+			{ key: "is", members: [{ value: "private" }] },
 		]);
 	});
 
@@ -55,8 +55,8 @@ describe("parseFilterQuery", () => {
 
 	test("reads an escaped quote as text that neither opens nor closes a quoted run", () => {
 		expect(parseFilterQuery(testGrammar, 'name:"a\\"b",c name:\\"d')).toMatchObject([
-			{ key: "domain", members: [{ value: 'a"b', start: 5, end: 11 }, { value: "c" }], end: 13 },
-			{ key: "domain", members: [{ value: '"d' }] },
+			{ key: "name", members: [{ value: 'a"b', start: 5, end: 11 }, { value: "c" }], end: 13 },
+			{ key: "name", members: [{ value: '"d' }] },
 		]);
 	});
 
@@ -67,8 +67,8 @@ describe("parseFilterQuery", () => {
 	});
 
 	test("marks a leading dash as negation on both qualifiers and terms", () => {
-		expect(parseFilterQuery(testGrammar, "-is:dev -staging")).toMatchObject([
-			{ kind: "facet", key: "is", members: [{ value: "dev" }], negated: true },
+		expect(parseFilterQuery(testGrammar, "-is:new -staging")).toMatchObject([
+			{ kind: "facet", key: "is", members: [{ value: "new" }], negated: true },
 			{ kind: "text", text: "staging", negated: true },
 		]);
 	});
@@ -109,25 +109,25 @@ describe("parseFilterQuery", () => {
 	});
 
 	test("splits a list key's value on commas into OR members with source offsets", () => {
-		expect(parseFilterQuery(testGrammar, "is:dev,custom")).toMatchObject([
+		expect(parseFilterQuery(testGrammar, "is:new,shared")).toMatchObject([
 			{
 				key: "is",
-				rawValue: "dev,custom",
+				rawValue: "new,shared",
 				isKnownValue: true,
 				members: [
-					{ value: "dev", start: 3, end: 6 },
-					{ value: "custom", start: 7, end: 13 },
+					{ value: "new", start: 3, end: 6 },
+					{ value: "shared", start: 7, end: 13 },
 				],
 			},
 		]);
 	});
 
 	test("flags only the member that matches no alias", () => {
-		expect(parseFilterQuery(testGrammar, "is:dev,bogus")).toMatchObject([
+		expect(parseFilterQuery(testGrammar, "is:new,bogus")).toMatchObject([
 			{
 				isKnownValue: false,
 				members: [
-					{ value: "dev", isKnownValue: true },
+					{ value: "new", isKnownValue: true },
 					{ value: "bogus", isKnownValue: false },
 				],
 			},
@@ -135,11 +135,11 @@ describe("parseFilterQuery", () => {
 	});
 
 	test("produces no member for a trailing or doubled comma", () => {
-		expect(parseFilterQuery(testGrammar, "is:dev,")).toMatchObject([
-			{ members: [{ value: "dev" }] },
+		expect(parseFilterQuery(testGrammar, "is:new,")).toMatchObject([
+			{ members: [{ value: "new" }] },
 		]);
-		expect(parseFilterQuery(testGrammar, "is:dev,,custom")).toMatchObject([
-			{ members: [{ value: "dev" }, { value: "custom" }] },
+		expect(parseFilterQuery(testGrammar, "is:new,,shared")).toMatchObject([
+			{ members: [{ value: "new" }, { value: "shared" }] },
 		]);
 		expect(parseFilterQuery(testGrammar, "is:,")).toMatchObject([{ members: [] }]);
 	});
@@ -161,16 +161,16 @@ describe("parseFilterQuery", () => {
 	});
 
 	test("still splits an unquoted value when the quotes sat in the key", () => {
-		expect(parseFilterQuery(testGrammar, '"is":dev,custom')).toMatchObject([
-			{ key: "is", members: [{ value: "dev" }, { value: "custom" }] },
+		expect(parseFilterQuery(testGrammar, '"is":new,shared')).toMatchObject([
+			{ key: "is", members: [{ value: "new" }, { value: "shared" }] },
 		]);
 	});
 
 	test("reads a bare OR or || as the group separator", () => {
-		expect(parseFilterQuery(testGrammar, "is:dev OR domain:api || acme")).toMatchObject([
+		expect(parseFilterQuery(testGrammar, "is:new OR name:api || acme")).toMatchObject([
 			{ kind: "facet", key: "is" },
 			{ kind: "or", text: "OR" },
-			{ kind: "facet", key: "domain" },
+			{ kind: "facet", key: "name" },
 			{ kind: "or", text: "||" },
 			{ kind: "text", text: "acme" },
 		]);
@@ -185,7 +185,7 @@ describe("parseFilterQuery", () => {
 	});
 
 	test("reads a bare AND or && as an operator, and a lowercase and as text", () => {
-		expect(parseFilterQuery(testGrammar, "is:dev AND acme && and")).toMatchObject([
+		expect(parseFilterQuery(testGrammar, "is:new AND acme && and")).toMatchObject([
 			{ kind: "facet", key: "is" },
 			{ kind: "and", text: "AND" },
 			{ kind: "text", text: "acme" },
@@ -202,13 +202,13 @@ describe("parseFilterQuery", () => {
 	});
 
 	test("reports offsets that address the source query", () => {
-		const query = "  is:dev   acme";
+		const query = "  is:new   acme";
 
 		expect(parseFilterQuery(testGrammar, query)).toMatchObject([
 			{ start: 2, end: 8, colonIndex: 4 },
 			{ start: 11, end: 15 },
 		]);
-		expect(query.slice(2, 8)).toBe("is:dev");
+		expect(query.slice(2, 8)).toBe("is:new");
 	});
 
 	test("returns no tokens for an empty or whitespace-only query", () => {
@@ -217,7 +217,7 @@ describe("parseFilterQuery", () => {
 	});
 
 	test("parses every prefix of an awkward query without throwing", () => {
-		const query = 'description:"staging api" -is:dev https://a.b:c "unclosed';
+		const query = 'description:"staging api" -is:new https://a.b:c "unclosed';
 
 		for (let length = 0; length <= query.length; length += 1) {
 			expect(() => parseFilterQuery(testGrammar, query.slice(0, length))).not.toThrow();
@@ -227,7 +227,7 @@ describe("parseFilterQuery", () => {
 		// so "never throws" is not being bought with a degenerate result.
 		expect(parseFilterQuery(testGrammar, query)).toMatchObject([
 			{ key: "description", members: [{ value: "staging api" }] },
-			{ key: "is", members: [{ value: "dev" }], negated: true },
+			{ key: "is", members: [{ value: "new" }], negated: true },
 			{ kind: "text", text: "https://a.b:c" },
 			{ kind: "text", text: "unclosed" },
 		]);
@@ -236,7 +236,7 @@ describe("parseFilterQuery", () => {
 
 describe("queryUsesQualifiers", () => {
 	test("reports a qualifier standing beside a search term", () => {
-		expect(queryUsesQualifiers(testGrammar, "is:dev acme")).toBe(true);
+		expect(queryUsesQualifiers(testGrammar, "is:new acme")).toBe(true);
 	});
 
 	test("reports no qualifier for search terms alone", () => {
@@ -265,7 +265,7 @@ describe("quoteFilterValue", () => {
 
 	test("quotes a comma so a list key keeps the value as one member", () => {
 		expect(quoteFilterValue("a,b")).toBe('"a,b"');
-		expect(parseFilterQuery(testGrammar, `domain:${quoteFilterValue("a,b")}`)).toMatchObject([
+		expect(parseFilterQuery(testGrammar, `name:${quoteFilterValue("a,b")}`)).toMatchObject([
 			{ members: [{ value: "a,b" }] },
 		]);
 	});
@@ -295,7 +295,7 @@ describe("formatFacet", () => {
 });
 
 describe("findTokenAtCaret", () => {
-	const tokens = parseFilterQuery(testGrammar, "is:dev acme");
+	const tokens = parseFilterQuery(testGrammar, "is:new acme");
 
 	test("claims a caret sitting against either edge of a token", () => {
 		expect(findTokenAtCaret(tokens, 0)).toMatchObject({ key: "is" });
@@ -304,13 +304,13 @@ describe("findTokenAtCaret", () => {
 	});
 
 	test("claims no token for a caret parked in whitespace", () => {
-		expect(findTokenAtCaret(parseFilterQuery(testGrammar, "is:dev   acme"), 8)).toBeUndefined();
+		expect(findTokenAtCaret(parseFilterQuery(testGrammar, "is:new   acme"), 8)).toBeUndefined();
 	});
 });
 
 describe("isCaretInFacetValue", () => {
 	test("separates the value side of the colon from the key side", () => {
-		const [token] = parseFilterQuery(testGrammar, "is:dev");
+		const [token] = parseFilterQuery(testGrammar, "is:new");
 		if (token == null) {
 			throw new Error("expected a token");
 		}

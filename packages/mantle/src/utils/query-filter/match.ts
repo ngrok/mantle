@@ -13,8 +13,8 @@ import { type FacetToken, type FilterToken, parseFilterQuery } from "./parse.js"
  * The lowercased search corpus per item, memoized per grammar. The suggestion
  * match counts re-filter the whole list once per candidate value, so at five
  * digits of items the corpus must build once per item, not once per pass.
- * Items are stable inside one React Query cache entry, so the map hits until
- * a refetch replaces them — and then it releases them.
+ * Items keep their identity until the caller replaces the array, so the map
+ * hits until then — and then it releases them.
  */
 const searchTextCaches = new WeakMap<object, WeakMap<object, string>>();
 
@@ -157,7 +157,7 @@ function filterItemsByTokens<Item extends object>({
 
 	// Hand back the same array when nothing was asked — an empty query, or
 	// bare operators mid-typing — so an unfiltered list keeps its identity
-	// through the React Query `select`.
+	// through a memoized caller.
 	if (groups.length === 0) {
 		return items;
 	}

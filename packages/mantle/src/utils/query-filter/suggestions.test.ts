@@ -26,18 +26,18 @@ function accept(query: string, caretIndex: number, label: string) {
 }
 
 describe("qualifier suggestions", () => {
-	test("offers every qualifier, domain first, and its exclusion, on an empty query", () => {
+	test("offers every qualifier, name first, and its exclusion, on an empty query", () => {
 		const { items } = suggest("");
 
 		expect(items.filter((item) => item.section === "filters").map((item) => item.label)).toEqual([
-			"domain:",
+			"name:",
 			"description:",
 			"is:",
 			"id:",
 			"metadata:",
 		]);
 		expect(items.filter((item) => item.section === "exclusions").map((item) => item.label)).toEqual(
-			["-domain:", "-description:", "-is:", "-id:", "-metadata:"],
+			["-name:", "-description:", "-is:", "-id:", "-metadata:"],
 		);
 	});
 
@@ -49,7 +49,7 @@ describe("qualifier suggestions", () => {
 	});
 
 	test("finds a qualifier through an alias rather than its own spelling", () => {
-		expect(suggest("host").items.map((item) => item.label)).toEqual(["domain:", "-domain:"]);
+		expect(suggest("title").items.map((item) => item.label)).toEqual(["name:", "-name:"]);
 	});
 
 	test("offers only exclusions once a dash is typed", () => {
@@ -61,7 +61,7 @@ describe("qualifier suggestions", () => {
 	});
 
 	test("replaces what was typed with the canonical qualifier", () => {
-		expect(accept("host", 4, "domain:")).toBe("domain:");
+		expect(accept("title", 5, "name:")).toBe("name:");
 		expect(accept("-desc", 5, "-description:")).toBe("-description:");
 	});
 
@@ -74,38 +74,38 @@ describe("qualifier suggestions", () => {
 	});
 
 	test("offers qualifiers for the token the caret sits in, not the last one", () => {
-		expect(accept("is:dev desc acme", 11, "description:")).toBe("is:dev description: acme");
+		expect(accept("is:new desc acme", 11, "description:")).toBe("is:new description: acme");
 	});
 });
 
 describe("value suggestions", () => {
-	test("counts how many domains each value would leave", () => {
+	test("counts how many projects each value would leave", () => {
 		expect(
 			suggest("is:").items.map((item) => ({ label: item.label, matchCount: item.matchCount })),
 		).toEqual([
-			{ label: "dev", matchCount: 1 },
-			{ label: "custom", matchCount: 2 },
-			{ label: "managed", matchCount: 1 },
-			{ label: "wildcard", matchCount: 0 },
+			{ label: "new", matchCount: 1 },
+			{ label: "shared", matchCount: 2 },
+			{ label: "private", matchCount: 1 },
+			{ label: "archived", matchCount: 0 },
 		]);
 	});
 
 	test("counts against the rest of the query, not the whole list", () => {
 		expect(
-			suggest("-domain:api is:").items.map((item) => ({
+			suggest("-name:api is:").items.map((item) => ({
 				label: item.label,
 				matchCount: item.matchCount,
 			})),
 		).toEqual([
-			{ label: "dev", matchCount: 1 },
-			{ label: "custom", matchCount: 1 },
-			{ label: "managed", matchCount: 1 },
-			{ label: "wildcard", matchCount: 0 },
+			{ label: "new", matchCount: 1 },
+			{ label: "shared", matchCount: 1 },
+			{ label: "private", matchCount: 1 },
+			{ label: "archived", matchCount: 0 },
 		]);
 	});
 
 	test("narrows the values to what is typed after the colon", () => {
-		expect(suggest("is:man").items.map((item) => item.label)).toEqual(["managed"]);
+		expect(suggest("is:pri").items.map((item) => item.label)).toEqual(["private"]);
 	});
 
 	test("finishes the filter when a value is picked", () => {
@@ -113,36 +113,36 @@ describe("value suggestions", () => {
 	});
 
 	test("replaces a typed value with the canonical spelling", () => {
-		expect(accept("is:MANAGED", 10, "managed")).toBe("is:managed");
+		expect(accept("is:PRIVATE", 10, "private")).toBe("is:private");
 	});
 
 	test("finds a value through an alias rather than its own spelling", () => {
-		expect(suggest("is:ngrok").items.map((item) => item.label)).toEqual(["managed"]);
+		expect(suggest("is:personal").items.map((item) => item.label)).toEqual(["private"]);
 	});
 
 	test("offers nothing for a qualifier that takes arbitrary text", () => {
-		expect(suggest("domain:").items).toEqual([]);
+		expect(suggest("name:").items).toEqual([]);
 		expect(suggest("description:").items).toEqual([]);
 		expect(suggest("id:").items).toEqual([]);
 		expect(suggest("metadata:").items).toEqual([]);
 	});
 
 	test("suggests for the comma member under the caret, replacing only it", () => {
-		expect(accept("is:dev,cus", 10, "custom")).toBe("is:dev,custom");
-		expect(accept("is:dev,cus is:managed", 10, "custom")).toBe("is:dev,custom is:managed");
+		expect(accept("is:new,sha", 10, "shared")).toBe("is:new,shared");
+		expect(accept("is:new,sha is:private", 10, "shared")).toBe("is:new,shared is:private");
 	});
 
 	test("offers everything but the members already picked after a comma", () => {
-		const labels = suggest("is:dev,").items.map((item) => item.label);
+		const labels = suggest("is:new,").items.map((item) => item.label);
 
-		expect(labels).not.toContain("dev");
-		expect(labels).toContain("custom");
+		expect(labels).not.toContain("new");
+		expect(labels).toContain("shared");
 	});
 
 	test("counts a comma member against the whole accepted list", () => {
-		const item = suggest("is:dev,").items.find((candidate) => candidate.label === "custom");
+		const item = suggest("is:new,").items.find((candidate) => candidate.label === "shared");
 
-		// dev OR custom covers all three fixture domains.
+		// new OR shared covers all three fixture projects.
 		expect(item?.matchCount).toBe(3);
 	});
 
@@ -154,11 +154,11 @@ describe("value suggestions", () => {
 	});
 
 	test("suggests for the member under the caret after a quoted member", () => {
-		expect(accept('is:"dev",cus', 12, "custom")).toBe('is:"dev",custom');
+		expect(accept('is:"new",sha', 12, "shared")).toBe('is:"new",shared');
 	});
 
 	test("rewrites a quoted member with its quotes", () => {
-		expect(accept('is:"de",custom', 7, "dev")).toBe("is:dev,custom");
+		expect(accept('is:"ne",shared', 7, "new")).toBe("is:new,shared");
 	});
 });
 
@@ -166,7 +166,7 @@ describe("suggestions without items", () => {
 	test("carries no match counts when there is nothing to count", () => {
 		const { items } = getFilterSuggestions({ grammar: testGrammar, query: "is:", caretIndex: 3 });
 
-		expect(items.map((item) => item.label)).toEqual(["dev", "custom", "managed", "wildcard"]);
+		expect(items.map((item) => item.label)).toEqual(["new", "shared", "private", "archived"]);
 		expect(items.every((item) => item.matchCount == null)).toBe(true);
 	});
 });

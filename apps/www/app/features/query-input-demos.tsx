@@ -12,67 +12,92 @@ import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
 import { XIcon } from "@phosphor-icons/react/X";
 import { useDeferredValue, useState } from "react";
 
-export type Domain = {
+export type Project = {
 	id: string;
 	name: string;
 	description: string;
-	custom: boolean;
+	shared: boolean;
+	archived: boolean;
 };
 
-export const domains: Domain[] = [
-	{ id: "rd_1", name: "api.acme.com", description: "Production API", custom: true },
-	{ id: "rd_2", name: "app.acme.com", description: "Customer dashboard", custom: true },
-	{ id: "rd_3", name: "*.preview.acme.com", description: "Preview deploys", custom: true },
-	{ id: "rd_4", name: "lovely-lemur.ngrok.app", description: "Staging API", custom: false },
-	{ id: "rd_5", name: "brave-otter.ngrok.dev", description: "Local webhook tests", custom: false },
+export const projects: Project[] = [
+	{
+		id: "p_1",
+		name: "billing-api",
+		description: "Invoices and payments",
+		shared: true,
+		archived: false,
+	},
+	{
+		id: "p_2",
+		name: "marketing-site",
+		description: "Public website",
+		shared: true,
+		archived: false,
+	},
+	{
+		id: "p_3",
+		name: "design-tokens",
+		description: "Old color scales",
+		shared: true,
+		archived: true,
+	},
+	{ id: "p_4", name: "staging-api", description: "Staging API", shared: false, archived: false },
+	{
+		id: "p_5",
+		name: "webhook-tests",
+		description: "Local webhook tests",
+		shared: false,
+		archived: false,
+	},
 ];
 
-export const domainFilterGrammar: FilterGrammar<Domain> = {
+export const projectFilterGrammar: FilterGrammar<Project> = {
 	keys: [
 		{
-			key: "domain",
-			aliases: ["name", "host"],
-			description: "Text in the domain name",
-			matches: (domain, value) => domain.name.toLowerCase().includes(value.toLowerCase()),
+			key: "name",
+			aliases: ["title"],
+			description: "Text in the project name",
+			matches: (project, value) => project.name.toLowerCase().includes(value.toLowerCase()),
 		},
 		{
 			key: "description",
 			aliases: ["desc"],
 			description: "Text in the description",
 			prose: true,
-			matches: (domain, value) => domain.description.toLowerCase().includes(value.toLowerCase()),
+			matches: (project, value) => project.description.toLowerCase().includes(value.toLowerCase()),
 		},
 		{
 			key: "is",
-			description: "The kind of domain",
+			description: "The project state",
 			values: [
-				{ value: "custom", description: "A domain you brought to ngrok" },
-				{ value: "managed", description: "A hostname ngrok gave you", aliases: ["ngrok"] },
-				{ value: "wildcard", description: "Covers every subdomain" },
+				{ value: "shared", description: "Your team can see it" },
+				{ value: "private", description: "Only you can see it", aliases: ["personal"] },
+				{ value: "archived", description: "Kept for reference" },
 			],
-			matches: (domain, value) => {
+			matches: (project, value) => {
 				switch (value) {
-					case "custom":
-						return domain.custom;
-					case "managed":
-						return !domain.custom;
-					case "wildcard":
-						return domain.name.startsWith("*.");
+					case "shared":
+						return project.shared;
+					case "private":
+						return !project.shared;
+					case "archived":
+						return project.archived;
 					default:
 						return false;
 				}
 			},
 		},
 	],
-	getSearchText: (domain) => [domain.name, domain.description, domain.id].join("\n"),
+	getSearchText: (project) => [project.name, project.description, project.id].join("\n"),
 };
 
 const features = tableFeatures({});
-const columnHelper = createColumnHelper<typeof features, Domain>();
+const columnHelper = createColumnHelper<typeof features, Project>();
 const columns = columnHelper.columns([
 	columnHelper.accessor("name", {
 		id: "name",
-		header: () => <DataTable.Header>Domain</DataTable.Header>,
+		header: () => <DataTable.Header>Project</DataTable.Header>,
 		cell: (props) => (
 			<DataTable.Cell className="text-strong" translate="no">
 				{props.getValue()}
@@ -84,9 +109,9 @@ const columns = columnHelper.columns([
 		header: () => <DataTable.Header>Description</DataTable.Header>,
 		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
 	}),
-	columnHelper.accessor((domain) => (domain.custom ? "Custom" : "Managed"), {
-		id: "kind",
-		header: () => <DataTable.Header>Kind</DataTable.Header>,
+	columnHelper.accessor((project) => (project.shared ? "Shared" : "Private"), {
+		id: "visibility",
+		header: () => <DataTable.Header>Visibility</DataTable.Header>,
 		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
 	}),
 ]);
@@ -94,27 +119,26 @@ const columns = columnHelper.columns([
 export function QueryInputExample() {
 	const [query, setQuery] = useState("");
 	const deferredQuery = useDeferredValue(query);
-	const visibleDomains = filterItemsByQuery({
-		grammar: domainFilterGrammar,
-		items: domains,
+	const visibleProjects = filterItemsByQuery({
+		grammar: projectFilterGrammar,
+		items: projects,
 		query: deferredQuery,
 	});
-	const table = useTable({ features, data: visibleDomains, columns });
+	const table = useTable({ features, data: visibleProjects, columns });
 	const rows = table.getRowModel().rows;
 
 	return (
 		<div className="w-full space-y-3">
 			<QueryInput.Root
-				grammar={domainFilterGrammar}
-				items={domains}
+				grammar={projectFilterGrammar}
+				items={projects}
 				value={query}
 				onValueChange={setQuery}
 			>
 				<QueryInput.Field
-					aria-label="Filter domains"
-					placeholder="Filter domains, or type a filter like is:custom"
+					aria-label="Filter projects"
+					placeholder="Filter projects, or type a filter like is:shared"
 				/>
-				<QueryInput.BuilderMenu label="Add filter" />
 				<QueryInput.Content />
 			</QueryInput.Root>
 			<DataTable.Root table={table}>
@@ -126,7 +150,7 @@ export function QueryInputExample() {
 						<DataTable.EmptyRow>
 							<Empty.Root>
 								<Empty.Icon svg={<MagnifyingGlassIcon />} />
-								<Empty.Title>No domains match this filter</Empty.Title>
+								<Empty.Title>No projects match this filter</Empty.Title>
 								<Empty.Actions>
 									<Button
 										type="button"
@@ -147,19 +171,19 @@ export function QueryInputExample() {
 }
 
 export function InlineActionsQueryInputExample() {
-	const [query, setQuery] = useState("is:custom ");
+	const [query, setQuery] = useState("is:shared ");
 
 	return (
 		<QueryInput.Root
 			className="max-w-xl"
-			grammar={domainFilterGrammar}
-			items={domains}
+			grammar={projectFilterGrammar}
+			items={projects}
 			value={query}
 			onValueChange={setQuery}
 		>
 			<QueryInput.Field
-				aria-label="Filter domains"
-				placeholder="Filter domains, or type a filter like is:custom"
+				aria-label="Filter projects"
+				placeholder="Filter projects, or type a filter like is:shared"
 			>
 				{query !== "" && (
 					<IconButton
@@ -173,7 +197,6 @@ export function InlineActionsQueryInputExample() {
 					/>
 				)}
 			</QueryInput.Field>
-			<QueryInput.BuilderMenu label="Add filter" />
 			<QueryInput.Content>
 				<p>
 					<Kbd>↑</Kbd> <Kbd>↓</Kbd> to move, <Kbd className="w-auto">Enter</Kbd> to pick,{" "}

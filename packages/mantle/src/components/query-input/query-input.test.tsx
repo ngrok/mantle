@@ -49,13 +49,12 @@ function ControlledQueryInput({
 			}}
 		>
 			<QueryInput.Field
-				aria-label="Filter domains"
-				placeholder="Filter domains, or type a filter like domain:api"
+				aria-label="Filter projects"
+				placeholder="Filter projects, or type a filter like name:api"
 				{...fieldProps}
 			>
 				{fieldChildren}
 			</QueryInput.Field>
-			<QueryInput.BuilderMenu label="Add filter" />
 			<QueryInput.Content>{footer}</QueryInput.Content>
 		</QueryInput.Root>
 	);
@@ -98,7 +97,7 @@ function renderQueryInput({
 
 	// Tests focus this with `input.focus()`, never `fireEvent.focus`: a
 	// synthetic focus event leaves `document.activeElement` behind.
-	const input = screen.getByRole<HTMLInputElement>("combobox", { name: "Filter domains" });
+	const input = screen.getByRole<HTMLInputElement>("combobox", { name: "Filter projects" });
 
 	return { values, input };
 }
@@ -138,7 +137,7 @@ describe("QueryInput.Root", () => {
 				className="custom-row"
 				data-testid="row"
 			>
-				<QueryInput.Field aria-label="Filter domains" placeholder="Filter" />
+				<QueryInput.Field aria-label="Filter projects" placeholder="Filter" />
 			</QueryInput.Root>,
 		);
 
@@ -161,7 +160,7 @@ describe("QueryInput.Root", () => {
 				data-state-hook="row"
 			>
 				<section aria-label="Filters" className="own-class">
-					<QueryInput.Field aria-label="Filter domains" placeholder="Filter" />
+					<QueryInput.Field aria-label="Filter projects" placeholder="Filter" />
 				</section>
 			</QueryInput.Root>,
 		);
@@ -189,7 +188,7 @@ describe("QueryInput.Field", () => {
 		const field = screen.getByTestId("field");
 		expect(field).toHaveAttribute("data-slot", "query-input-field");
 		expect(field).toHaveClass("custom-field");
-		expect(ref.current).toBe(screen.getByRole("combobox", { name: "Filter domains" }));
+		expect(ref.current).toBe(screen.getByRole("combobox", { name: "Filter projects" }));
 	});
 
 	test("offers every qualifier when the empty input takes focus", async () => {
@@ -203,7 +202,7 @@ describe("QueryInput.Field", () => {
 			within(listbox)
 				.getAllByRole("option")
 				.map((option) => option.textContent),
-		).toEqual(expect.arrayContaining(["domain:Text in the domain name"]));
+		).toEqual(expect.arrayContaining(["name:Text in the project name"]));
 		expect(input).toHaveAttribute("aria-expanded", "true");
 		expect(input).toHaveAttribute("aria-controls", listbox.id);
 	});
@@ -222,10 +221,10 @@ describe("QueryInput.Field", () => {
 	test("stays collapsed without a QueryInput.Content to show the list", () => {
 		render(
 			<QueryInput.Root grammar={testGrammar} value="" onValueChange={() => {}}>
-				<QueryInput.Field aria-label="Filter domains" placeholder="Filter" />
+				<QueryInput.Field aria-label="Filter projects" placeholder="Filter" />
 			</QueryInput.Root>,
 		);
-		const input = screen.getByRole("combobox", { name: "Filter domains" });
+		const input = screen.getByRole("combobox", { name: "Filter projects" });
 
 		act(() => input.focus());
 
@@ -235,9 +234,9 @@ describe("QueryInput.Field", () => {
 	test("hands every typed query to the caller", () => {
 		const { input, values } = renderQueryInput();
 
-		type(input, "is:custom acme");
+		type(input, "is:shared acme");
 
-		expect(values).toEqual(["is:custom acme"]);
+		expect(values).toEqual(["is:shared acme"]);
 	});
 
 	test("paints the caller's query as colored runs beside the input", () => {
@@ -278,7 +277,7 @@ describe("QueryInput.Field", () => {
 			const [label, setLabel] = useState("Clear");
 			return (
 				<QueryInput.Root grammar={testGrammar} value="" onValueChange={() => {}}>
-					<QueryInput.Field aria-label="Filter domains" placeholder="Filter">
+					<QueryInput.Field aria-label="Filter projects" placeholder="Filter">
 						{label}
 					</QueryInput.Field>
 					<button type="button" onClick={() => setLabel("Reset")}>
@@ -303,10 +302,10 @@ describe("QueryInput.Field", () => {
 		const { input } = renderQueryInput({
 			initialValue: "is:bogus",
 			before: <p id="hint">Enter applies the filter.</p>,
-			fieldProps: { id: "domain-filter", "aria-describedby": "hint", "aria-invalid": true },
+			fieldProps: { id: "project-filter", "aria-describedby": "hint", "aria-invalid": true },
 		});
 
-		expect(input).toHaveAttribute("id", "domain-filter");
+		expect(input).toHaveAttribute("id", "project-filter");
 		expect(input).toBeInvalid();
 		expect(input).toHaveAccessibleDescription("Enter applies the filter.");
 
@@ -319,8 +318,8 @@ describe("QueryInput.Field", () => {
 
 	test("takes its id, label, and description from Field.Control", () => {
 		render(
-			<Field.Item name="domainFilter">
-				<Field.Label>Filter domains</Field.Label>
+			<Field.Item name="projectFilter">
+				<Field.Label>Filter projects</Field.Label>
 				<Field.Control>
 					<QueryInput.Root grammar={testGrammar} value="" onValueChange={() => {}}>
 						<QueryInput.Field placeholder="Filter" />
@@ -330,8 +329,8 @@ describe("QueryInput.Field", () => {
 			</Field.Item>,
 		);
 
-		const input = screen.getByRole("combobox", { name: "Filter domains" });
-		expect(input).toHaveAttribute("name", "domainFilter");
+		const input = screen.getByRole("combobox", { name: "Filter projects" });
+		expect(input).toHaveAttribute("name", "projectFilter");
 		expect(input).toHaveAccessibleDescription("Type a key and a colon.");
 	});
 });
@@ -349,10 +348,10 @@ describe("QueryInput.Content", () => {
 				.getAllByRole("option")
 				.map((option) => option.textContent),
 		).toEqual([
-			"devYour free dev domain1",
-			"customA domain you brought to ngrok2",
-			"managedA hostname ngrok gave you1",
-			"wildcardCovers every subdomain0",
+			"newCreated this week1",
+			"sharedShared with your team2",
+			"privateOnly you can see it1",
+			"archivedKept for reference0",
 		]);
 		expect(within(listbox).getByRole("group", { name: "Values" })).toBeInTheDocument();
 	});
@@ -369,10 +368,10 @@ describe("QueryInput.Content", () => {
 				.getAllByRole("option")
 				.map((option) => option.textContent),
 		).toEqual([
-			"devYour free dev domain",
-			"customA domain you brought to ngrok",
-			"managedA hostname ngrok gave you",
-			"wildcardCovers every subdomain",
+			"newCreated this week",
+			"sharedShared with your team",
+			"privateOnly you can see it",
+			"archivedKept for reference",
 		]);
 	});
 
@@ -380,13 +379,13 @@ describe("QueryInput.Content", () => {
 		const { input, values } = renderQueryInput();
 
 		input.focus();
-		type(input, "is:cus");
+		type(input, "is:sha");
 
-		fireEvent.click(await screen.findByRole("option", { name: /custom/ }));
+		fireEvent.click(await screen.findByRole("option", { name: /shared/ }));
 
 		// Canonicalized, and a trailing space so the next token starts clean.
-		expect(input).toHaveValue("is:custom ");
-		expect(values.at(-1)).toBe("is:custom ");
+		expect(input).toHaveValue("is:shared ");
+		expect(values.at(-1)).toBe("is:shared ");
 	});
 
 	test("moves the active option with the arrow keys and accepts it with Enter", async () => {
@@ -407,7 +406,7 @@ describe("QueryInput.Content", () => {
 		expect(input).toHaveAttribute("aria-activedescendant", options[1]?.id);
 
 		fireEvent.keyDown(input, { key: "Enter" });
-		expect(input).toHaveValue("is:custom ");
+		expect(input).toHaveValue("is:shared ");
 	});
 
 	test("wraps the active option around the ends of the list", async () => {
@@ -437,7 +436,7 @@ describe("QueryInput.Content", () => {
 		input.focus();
 		// A finished filter with a trailing space: the key list is open again,
 		// and Enter must not write the first key into the query.
-		type(input, "is:wildcard ");
+		type(input, "is:archived ");
 		await screen.findByRole("listbox");
 
 		fireEvent.keyDown(input, { key: "Enter" });
@@ -445,7 +444,7 @@ describe("QueryInput.Content", () => {
 		await waitFor(() => {
 			expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
 		});
-		expect(input).toHaveValue("is:wildcard ");
+		expect(input).toHaveValue("is:archived ");
 	});
 
 	test("lets Enter reach a hosting form unless it accepts a suggestion", async () => {
@@ -458,7 +457,7 @@ describe("QueryInput.Content", () => {
 		// An active suggestion claims Enter: the form must stay put.
 		fireEvent.keyDown(input, { key: "ArrowDown" });
 		expect(fireEvent.keyDown(input, { key: "Enter" })).toBe(false);
-		expect(input).toHaveValue("is:dev ");
+		expect(input).toHaveValue("is:new ");
 
 		// With no active suggestion, Enter passes through to the form.
 		expect(fireEvent.keyDown(input, { key: "Enter" })).toBe(true);
@@ -470,7 +469,7 @@ describe("QueryInput.Content", () => {
 		const { input } = renderQueryInput();
 
 		input.focus();
-		type(input, "is:wildcard ");
+		type(input, "is:archived ");
 		const [firstOption] = within(await screen.findByRole("listbox")).getAllByRole("option");
 		if (firstOption == null) {
 			throw new Error("expected the key list to have options");
@@ -480,7 +479,7 @@ describe("QueryInput.Content", () => {
 		expect(firstOption).toHaveAttribute("data-highlighted");
 		expect(input).not.toHaveAttribute("aria-activedescendant");
 		expect(fireEvent.keyDown(input, { key: "Enter" })).toBe(true);
-		expect(input).toHaveValue("is:wildcard ");
+		expect(input).toHaveValue("is:archived ");
 	});
 
 	test("leaves the keys to the IME while it is composing", async () => {
@@ -538,33 +537,33 @@ describe("QueryInput.Content", () => {
 		const { input } = renderQueryInput();
 
 		input.focus();
-		type(input, "is:dev,cus");
+		type(input, "is:new,sha");
 
-		fireEvent.click(await screen.findByRole("option", { name: /custom/ }));
+		fireEvent.click(await screen.findByRole("option", { name: /shared/ }));
 
-		expect(input).toHaveValue("is:dev,custom ");
+		expect(input).toHaveValue("is:new,shared ");
 	});
 
 	test("adds no space when the caret already sits against one", async () => {
 		const { input } = renderQueryInput();
 
 		input.focus();
-		typeWithCaret(input, "is:cus acme", 6);
+		typeWithCaret(input, "is:sha acme", 6);
 
-		fireEvent.click(await screen.findByRole("option", { name: /custom/ }));
+		fireEvent.click(await screen.findByRole("option", { name: /shared/ }));
 
-		expect(input).toHaveValue("is:custom acme");
+		expect(input).toHaveValue("is:shared acme");
 	});
 
 	test("adds no space when the caret sits against a comma mid-list", async () => {
 		const { input } = renderQueryInput();
 
 		input.focus();
-		typeWithCaret(input, "is:dev,cus,wildcard", 10);
+		typeWithCaret(input, "is:new,sha,archived", 10);
 
-		fireEvent.click(await screen.findByRole("option", { name: /custom/ }));
+		fireEvent.click(await screen.findByRole("option", { name: /shared/ }));
 
-		expect(input).toHaveValue("is:dev,custom,wildcard");
+		expect(input).toHaveValue("is:new,shared,archived");
 	});
 
 	test("keeps the popover open on focus for its children, even when no suggestion matches", async () => {
@@ -644,119 +643,5 @@ describe("QueryInput.Content", () => {
 
 		expect(input).toHaveAccessibleDescription(/-key:value excludes/);
 		expect(input).not.toHaveAccessibleDescription(/OR joins/);
-	});
-});
-
-/** Opens the builder menu. Radix opens its dropdowns on pointerdown. */
-function openBuilderMenu() {
-	fireEvent.pointerDown(screen.getByRole("button", { name: "Add filter" }), {
-		button: 0,
-		ctrlKey: false,
-	});
-	return screen.getByRole("menu");
-}
-
-describe("QueryInput.BuilderMenu", () => {
-	test("stamps its slot on the trigger", () => {
-		renderQueryInput();
-
-		expect(screen.getByRole("button", { name: "Add filter" })).toHaveAttribute(
-			"data-slot",
-			"query-input-builder-menu icon-button",
-		);
-	});
-
-	test("starts an open-ended qualifier in the input and moves focus there", async () => {
-		const { input, values } = renderQueryInput();
-
-		const menu = openBuilderMenu();
-		fireEvent.click(within(menu).getByRole("menuitem", { name: /domain:/ }));
-
-		expect(input).toHaveValue("domain:");
-		// Focus lands in the input, ready for the value, not back on the trigger.
-		await waitFor(() => {
-			expect(input).toHaveFocus();
-		});
-		expect(input.selectionStart).toBe("domain:".length);
-		expect(values).toEqual(["domain:"]);
-	});
-
-	test("returns focus to the trigger on a plain dismissal", async () => {
-		renderQueryInput();
-
-		const menu = openBuilderMenu();
-		fireEvent.keyDown(menu, { key: "Escape" });
-
-		await waitFor(() => {
-			expect(screen.getByRole("button", { name: "Add filter" })).toHaveFocus();
-		});
-	});
-
-	test("writes a finished filter from a value submenu, with its match count shown", async () => {
-		const { input } = renderQueryInput();
-
-		const menu = openBuilderMenu();
-		fireEvent.keyDown(within(menu).getByRole("menuitem", { name: /is:/ }), { key: "ArrowRight" });
-
-		const valueItem = await screen.findByRole("menuitem", { name: /Your free dev domain/ });
-		// One fixture domain is a dev domain.
-		expect(valueItem).toHaveTextContent("1");
-
-		fireEvent.click(valueItem);
-		expect(input).toHaveValue("is:dev ");
-	});
-
-	test("counts submenu values against the query already typed", async () => {
-		renderQueryInput({ initialValue: "is:custom" });
-
-		const menu = openBuilderMenu();
-		fireEvent.keyDown(within(menu).getByRole("menuitem", { name: /is:/ }), { key: "ArrowRight" });
-
-		const valueItem = await screen.findByRole("menuitem", { name: /Your free dev domain/ });
-		// "is:custom is:dev" ANDs, and no fixture domain is both. The bare count
-		// would read 1, so the 0 proves the typed query is in play.
-		expect(valueItem).toHaveTextContent("0");
-	});
-
-	test("shows no counts in a submenu when the caller has no items", async () => {
-		renderQueryInput({ items: null });
-
-		const menu = openBuilderMenu();
-		fireEvent.keyDown(within(menu).getByRole("menuitem", { name: /is:/ }), { key: "ArrowRight" });
-
-		const valueItem = await screen.findByRole("menuitem", { name: /Your free dev domain/ });
-		expect(valueItem).toHaveTextContent(/^devYour free dev domain$/);
-	});
-
-	test("appends to what is already typed, spaced once", async () => {
-		const { input } = renderQueryInput({ initialValue: "acme" });
-
-		fireEvent.click(within(openBuilderMenu()).getByRole("menuitem", { name: /description:/ }));
-		expect(input).toHaveValue("acme description:");
-	});
-
-	test("appends without doubling the space after a query that ends in one", async () => {
-		const { input } = renderQueryInput({ initialValue: "acme " });
-
-		fireEvent.click(within(openBuilderMenu()).getByRole("menuitem", { name: /description:/ }));
-		expect(input).toHaveValue("acme description:");
-	});
-
-	test("computes no match counts until a value submenu opens", () => {
-		const definition = testGrammar.keys.find((key) => key.key === "is");
-		if (definition == null) {
-			throw new Error("the test grammar lost its is key");
-		}
-		const matches = vi.spyOn(definition, "matches");
-
-		// A fresh items array keeps the count cache cold, so a count another test
-		// already paid for cannot mask an eager computation here.
-		renderQueryInput({ items: testItems.map((item) => ({ ...item })) });
-		openBuilderMenu();
-
-		// Every count of an `is:` value at the root menu would call this matcher
-		// once per item; the counts must wait for the submenu that shows them.
-		expect(matches).toHaveBeenCalledTimes(0);
-		matches.mockRestore();
 	});
 });

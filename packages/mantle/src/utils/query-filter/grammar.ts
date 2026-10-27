@@ -4,8 +4,8 @@
  * A grammar declares the qualifier keys of one list surface — their spellings,
  * their fixed values, and how one value tests one item. The engine modules
  * (`parse`, `match`, `suggestions`, `highlight`) stay grammar-agnostic and take
- * the grammar as their first argument, so every list in the app can speak the
- * same language over its own vocabulary.
+ * the grammar as their first argument, so every list can speak the same
+ * language over its own vocabulary.
  *
  * Spellings stay forgiving through explicit aliases, never fuzzy matching:
  * each accepted spelling is one entry, matched case-insensitively, and the
@@ -27,9 +27,9 @@ type FilterValueDefinition = {
  * The inputs of one matching pass that live outside the items, sampled once
  * per pass.
  *
- * A caller that filters inside a React Query `select` passes a ticking `now`
- * from React state. The clock is then an input of the `select`, so the pass
- * re-runs as time passes instead of going stale in a memo.
+ * A caller that memoizes the filter passes a ticking `now` from React state.
+ * The clock is then an input of the memo, so the pass re-runs as time passes
+ * instead of going stale.
  */
 type FilterMatchContext = {
 	/** The clock the matchers compare dates against, in epoch milliseconds. */
@@ -51,7 +51,7 @@ type FilterKeyDefinition<Item> = {
 	values?: readonly FilterValueDefinition[];
 	/**
 	 * Prose keys keep commas as content. Every other key splits an unquoted
-	 * comma list into OR members (`is:dev,custom`).
+	 * comma list into OR members (`is:active,pending`).
 	 */
 	prose?: boolean;
 	/**
@@ -159,7 +159,7 @@ function compileGrammar<Item>(grammar: FilterGrammar<Item>): CompiledGrammar {
  *
  * @example
  * ```ts
- * getFilterSyntax(domainGrammar); // => "full"
+ * getFilterSyntax({ keys, getSearchText }); // => "full"
  * getFilterSyntax(defineRemoteFilterGrammar({ keys })); // => "qualifiers"
  * ```
  */
@@ -196,7 +196,7 @@ function resolveFilterKey<Item>(
  *
  * @example
  * ```ts
- * resolveFilterValue(grammar, "is", "POOLING"); // => "pooled" — an alias
+ * resolveFilterValue(grammar, "is", "LIVE"); // => "active" — an alias
  * resolveFilterValue(grammar, "is", "bogus"); // => null
  * resolveFilterValue(grammar, "description", "Staging API"); // => "Staging API"
  * ```
@@ -218,7 +218,7 @@ function resolveFilterValue<Item>(
  *
  * @example
  * ```ts
- * getFilterKeyDefinition(grammar, "is")?.values?.[0]; // => { value: "dev", … }
+ * getFilterKeyDefinition(grammar, "is")?.values?.[0]; // => { value: "active", … }
  * ```
  */
 function getFilterKeyDefinition<Item>(grammar: FilterGrammar<Item>, key: string) {
@@ -228,7 +228,7 @@ function getFilterKeyDefinition<Item>(grammar: FilterGrammar<Item>, key: string)
 
 /**
  * Reports whether a key's value splits on commas into an OR list, as in
- * `is:dev,custom`. Prose keys keep the comma: there it is content. So does
+ * `is:active,pending`. Prose keys keep the comma: there it is content. So does
  * every key of a `"qualifiers"` grammar, whose executor knows no lists.
  *
  * @example

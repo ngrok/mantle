@@ -5,15 +5,15 @@ import { filterItemsByQuery } from "@ngrok/mantle/query-filter";
 import { QueryInput } from "@ngrok/mantle/query-input";
 import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
 import { useDeferredValue } from "react";
-import { type Domain, domainFilterGrammar, domains } from "~/features/query-input-demos";
+import { type Project, projectFilterGrammar, projects } from "~/features/query-input-demos";
 import { useQueryParamInput } from "~/features/query-input-url-state";
 
 const features = tableFeatures({});
-const columnHelper = createColumnHelper<typeof features, Domain>();
+const columnHelper = createColumnHelper<typeof features, Project>();
 const columns = columnHelper.columns([
 	columnHelper.accessor("name", {
 		id: "name",
-		header: () => <DataTable.Header>Domain</DataTable.Header>,
+		header: () => <DataTable.Header>Project</DataTable.Header>,
 		cell: (props) => (
 			<DataTable.Cell className="text-strong" translate="no">
 				{props.getValue()}
@@ -30,27 +30,26 @@ const columns = columnHelper.columns([
 export function QueryInputFromUrlDemo() {
 	const { query, setQuery } = useQueryParamInput();
 	const deferredQuery = useDeferredValue(query);
-	const visibleDomains = filterItemsByQuery({
-		grammar: domainFilterGrammar,
-		items: domains,
+	const visibleProjects = filterItemsByQuery({
+		grammar: projectFilterGrammar,
+		items: projects,
 		query: deferredQuery,
 	});
-	const table = useTable({ features, data: visibleDomains, columns });
+	const table = useTable({ features, data: visibleProjects, columns });
 	const rows = table.getRowModel().rows;
 
 	return (
 		<div className="w-full space-y-3">
 			<QueryInput.Root
-				grammar={domainFilterGrammar}
-				items={domains}
+				grammar={projectFilterGrammar}
+				items={projects}
 				value={query}
 				onValueChange={setQuery}
 			>
 				<QueryInput.Field
-					aria-label="Filter domains"
-					placeholder="Filter domains, or type a filter like is:custom"
+					aria-label="Filter projects"
+					placeholder="Filter projects, or type a filter like is:shared"
 				/>
-				<QueryInput.BuilderMenu label="Add filter" />
 				<QueryInput.Content />
 			</QueryInput.Root>
 			<DataTable.Root table={table}>
@@ -62,7 +61,7 @@ export function QueryInputFromUrlDemo() {
 						<DataTable.EmptyRow>
 							<Empty.Root>
 								<Empty.Icon svg={<MagnifyingGlassIcon />} />
-								<Empty.Title>No domains match this filter</Empty.Title>
+								<Empty.Title>No projects match this filter</Empty.Title>
 								<Empty.Actions>
 									<Button
 										type="button"
