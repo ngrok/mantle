@@ -9,6 +9,7 @@ import { Input } from "@ngrok/mantle/input";
 import { Main } from "@ngrok/mantle/main";
 import type { SandbarHandle } from "@ngrok/mantle/sandbar";
 import { Sandbar } from "@ngrok/mantle/sandbar";
+import { Sheet } from "@ngrok/mantle/sheet";
 import { Switch } from "@ngrok/mantle/switch";
 import { TextArea } from "@ngrok/mantle/text-area";
 import { makeToast, Toast, Toaster } from "@ngrok/mantle/toast";
@@ -288,6 +289,77 @@ export function SandbarPendingPublishDemo() {
 					<Button appearance="filled" intent="neutral" type="button" onClick={() => setPending([])}>
 						Publish all
 					</Button>
+				</Sandbar.Actions>
+			</Sandbar.Root>
+		</Main>
+	);
+}
+
+/**
+ * A Sandbar over an open Sheet. The form lives in the sheet, and the bar sits
+ * at page level, above the sheet's scrim. Save and Discard work with the sheet
+ * open, and a click on the bar does not close the sheet. Renders as a full
+ * preview document.
+ */
+export function SandbarOverSheetDemo() {
+	const [saved, setSaved] = useState<Profile>(initialProfile);
+	const [draft, setDraft] = useState<Profile>(initialProfile);
+
+	const isDirty = draft.name !== saved.name || draft.description !== saved.description;
+
+	return (
+		<Main className="min-h-full p-6">
+			<Card.Root className="mx-auto max-w-xl">
+				<Card.Body className="flex items-center justify-between gap-4">
+					<div>
+						<h2 className="text-strong font-medium">{saved.name}</h2>
+						<p className="text-muted text-sm">{saved.description}</p>
+					</div>
+					<Sheet.Root>
+						<Sheet.Trigger asChild>
+							<Button appearance="outlined" intent="neutral" type="button">
+								Edit endpoint
+							</Button>
+						</Sheet.Trigger>
+						<Sheet.Content>
+							<Sheet.Header>
+								<Sheet.TitleGroup>
+									<Sheet.Title>Edit endpoint</Sheet.Title>
+									<Sheet.Actions>
+										<Sheet.CloseIconButton />
+									</Sheet.Actions>
+								</Sheet.TitleGroup>
+							</Sheet.Header>
+							<Sheet.Body className="space-y-4">
+								<Field.Item name="sheet-endpoint-name">
+									<Field.Label>Endpoint name</Field.Label>
+									<Field.Control>
+										<Input
+											onChange={(event) => setDraft({ ...draft, name: event.target.value })}
+											value={draft.name}
+										/>
+									</Field.Control>
+								</Field.Item>
+								<Field.Item name="sheet-endpoint-description">
+									<Field.Label>Description</Field.Label>
+									<Field.Control>
+										<TextArea
+											onChange={(event) => setDraft({ ...draft, description: event.target.value })}
+											value={draft.description}
+										/>
+									</Field.Control>
+								</Field.Item>
+							</Sheet.Body>
+						</Sheet.Content>
+					</Sheet.Root>
+				</Card.Body>
+			</Card.Root>
+
+			<Sandbar.Root open={isDirty}>
+				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+				<Sandbar.Actions>
+					<Sandbar.DiscardButton onClick={() => setDraft(saved)}>Discard</Sandbar.DiscardButton>
+					<Sandbar.SaveButton onClick={() => setSaved(draft)}>Save changes</Sandbar.SaveButton>
 				</Sandbar.Actions>
 			</Sandbar.Root>
 		</Main>

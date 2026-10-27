@@ -1,7 +1,8 @@
 // @vitest-environment happy-dom
 import { fireEvent, render, screen } from "@testing-library/react";
+import { PointerEventsCheckLevel, userEvent } from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
-import { SandbarReducedMotionDemo } from "./sandbar-demos";
+import { SandbarOverSheetDemo, SandbarReducedMotionDemo } from "./sandbar-demos";
 
 function getPanel(): HTMLElement {
 	const panel = document.querySelector('[data-slot="sandbar"]');
@@ -55,5 +56,26 @@ describe("SandbarReducedMotionDemo", () => {
 		// Why "open" at once: the panel is still visible mid-exit, so the reopen
 		// skips the pre-enter frame.
 		expect(getPanel().getAttribute("data-state")).toBe("open");
+	});
+});
+
+describe("SandbarOverSheetDemo", () => {
+	it("saves from the bar while the sheet stays open", async () => {
+		// Why skip the pointer-events check: the open sheet sets `pointer-events: none`
+		// on <body>, and tests load no Tailwind for the panel's `pointer-events-auto`.
+		const user = userEvent.setup({ pointerEventsCheck: PointerEventsCheckLevel.Never });
+		render(<SandbarOverSheetDemo />);
+
+		await user.click(screen.getByRole("button", { name: "Edit endpoint" }));
+		const name = await screen.findByRole("textbox", { name: "Endpoint name" });
+		await user.type(name, "-v2");
+		expect(getPanel().getAttribute("data-state")).toBe("open");
+
+		// The open sheet marks the bar `aria-hidden`, so the query passes `hidden: true`.
+		await user.click(screen.getByRole("button", { name: "Save changes", hidden: true }));
+
+		expect(screen.queryByRole("dialog")).not.toBeNull();
+		expect(getPanel().getAttribute("data-state")).toBe("closed");
+		expect(screen.queryByText("my-agent-endpoint-v2", { selector: "h2" })).not.toBeNull();
 	});
 });
