@@ -68,7 +68,7 @@
     "tinyglobby": "0.2.17",
     "tsx": "catalog:",
     "typescript": "catalog:",
-    "unist-util-visit": "5.1.0",
+    "unist-util-visit": "5.2.0",
     "vite": "catalog:",
     "vite-plugin-devtools-json": "1.1.2",
     "yaml": "2.9.1"
