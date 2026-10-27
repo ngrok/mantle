@@ -1,9 +1,11 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { userEvent } from "@testing-library/user-event";
+import { PointerEventsCheckLevel, userEvent } from "@testing-library/user-event";
 import type { TransitionEvent } from "react";
 import { createRef } from "react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import mantleCss from "../../mantle.css?raw";
+import { Dialog } from "../dialog/dialog.js";
+import { Sheet } from "../sheet/sheet.js";
 import type { SandbarHandle } from "./sandbar.js";
 import { Sandbar } from "./sandbar.js";
 
@@ -926,5 +928,57 @@ describe("Sandbar regressions", () => {
 		rerender(loadableSaveTree({ disabled: false, isLoading: true }));
 		expect(saveButton).not.toBeDisabled();
 		expect(document.activeElement).toBe(saveButton);
+	});
+});
+
+describe("Sandbar over an open overlay", () => {
+	test.each([
+		[
+			"Dialog",
+			(onOpenChange: (open: boolean) => void) => (
+				<Dialog.Root defaultOpen onOpenChange={onOpenChange}>
+					<Dialog.Content>
+						<Dialog.Title>Edit endpoint</Dialog.Title>
+					</Dialog.Content>
+				</Dialog.Root>
+			),
+		],
+		[
+			"Sheet",
+			(onOpenChange: (open: boolean) => void) => (
+				<Sheet.Root defaultOpen onOpenChange={onOpenChange}>
+					<Sheet.Content>
+						<Sheet.Header>
+							<Sheet.Title>Edit endpoint</Sheet.Title>
+						</Sheet.Header>
+					</Sheet.Content>
+				</Sheet.Root>
+			),
+		],
+	])("a click on the bar leaves the open %s open", async (_name, renderOverlay) => {
+		// Why skip the pointer-events check: the modal sets `pointer-events: none`
+		// on <body>, and tests load no Tailwind for the panel's `pointer-events-auto`.
+		const user = userEvent.setup({ pointerEventsCheck: PointerEventsCheckLevel.Never });
+		const onDiscard = vi.fn<() => void>();
+		const onOpenChange = vi.fn<(open: boolean) => void>();
+		render(
+			<>
+				<Sandbar.Root open>
+					<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+					<Sandbar.Actions>
+						<Sandbar.DiscardButton onClick={onDiscard}>Discard</Sandbar.DiscardButton>
+					</Sandbar.Actions>
+				</Sandbar.Root>
+				{renderOverlay(onOpenChange)}
+			</>,
+		);
+		await screen.findByRole("dialog");
+
+		// The modal marks the bar `aria-hidden`, so the query passes `hidden: true`.
+		await user.click(screen.getByRole("button", { name: "Discard", hidden: true }));
+
+		expect(onDiscard).toHaveBeenCalledTimes(1);
+		expect(onOpenChange).not.toHaveBeenCalled();
+		expect(screen.getByRole("dialog")).toBeInTheDocument();
 	});
 });

@@ -551,6 +551,9 @@ Discard/Save. Two caveats:
   `position: fixed` (common with page-transition wrappers). If you cannot render Root outside the
   transformed ancestor, portal it yourself with `createPortal(<Sandbar.Root …/>, document.body)`,
   and accept that this severs the form→actions tab-order adjacency.
+- The bar renders above an open dialog, alert dialog, or sheet and their scrim. A click on the bar
+  does not dismiss that overlay, the same as a toast. An ancestor that sets `z-index` or `isolation`
+  starts a new stacking context and can put the bar below the overlay; render Root outside it.
 - Only render one Sandbar per page: it is a singleton surface, like a page's primary save action.
 
 ## API Reference

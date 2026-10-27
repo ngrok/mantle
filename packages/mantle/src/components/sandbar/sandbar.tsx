@@ -204,6 +204,10 @@ type SandbarRootProps = ComponentProps<"div"> &
  * the page (light ⇄ dark), and so does everything composed inside it — the
  * blessed buttons and any custom children.
  *
+ * The bar renders at Tailwind `z-70`, above Mantle's overlay tier (`z-60`), so
+ * it stays visible above the scrim of an open dialog, alert dialog, or sheet.
+ * Like a toast, a click on the panel does not dismiss that overlay.
+ *
  * `ref`, `className`, and all other props target the panel. Render it in
  * place at the end of the form it saves — `position: fixed` changes paint
  * position, not tab order, so Tab from the last field lands on the actions.
@@ -570,7 +574,9 @@ const Root = ({
 	return (
 		<SandbarContext.Provider value={context}>
 			<div
-				className="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex justify-center px-4 sm:bottom-10"
+				// Why z-70: the bar stays visible and usable while a dialog, alert
+				// dialog, or sheet (the `z-60` overlay tier) is open, as a toast does.
+				className="pointer-events-none fixed inset-x-0 bottom-4 z-70 flex justify-center px-4 sm:bottom-10"
 				onBlur={handleFocusOut}
 				onFocus={handleFocusIn}
 				ref={wrapperRef}
@@ -594,7 +600,9 @@ const Root = ({
 						// recolors transparent borders to a system color while stripping
 						// box-shadow and backgrounds, so the border becomes the island's
 						// boundary in Windows High Contrast.
-						"invert-theme pointer-events-auto flex w-fit max-w-full flex-wrap items-center justify-center gap-x-4 gap-y-2 rounded-2xl border border-transparent bg-base px-4 py-3 text-strong shadow-lg",
+						// `overlay-prompt` keeps a click on the panel from dismissing an
+						// open dialog or sheet.
+						"invert-theme overlay-prompt pointer-events-auto flex w-fit max-w-full flex-wrap items-center justify-center gap-x-4 gap-y-2 rounded-2xl border border-transparent bg-base px-4 py-3 text-strong shadow-lg",
 						"max-h-[60svh] overflow-y-auto",
 						"focus:outline-hidden",
 						// The closed state is the `hidden` attribute, and `flex` above would
