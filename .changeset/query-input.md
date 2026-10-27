@@ -17,7 +17,7 @@ import { QueryInput } from "@ngrok/mantle/query-input";
 ```
 
 - `QueryInput.Root` owns the caret, the open state, and the active suggestion, and lays out its children in a row. It is controlled only: pass `value` and `onValueChange`. Pass `items` for live match counts, or leave it out when a server runs the query.
-- `QueryInput.Field` is the input, with a leading magnifier. Its children render inside the field as inline actions. Inside `Field.Control`, it takes its `id`, `name`, and ARIA wiring from the `Field.Item`.
+- `QueryInput.Field` is the input, with a leading magnifier. Its children render inside the field as inline actions. Inside `Field.Control`, it takes its `id`, `name`, and ARIA wiring from the `Field.Item`. Keys, values, and `OR` use the `CodeBlock` colors. Set `--query-input-key-color`, `--query-input-value-color`, or `--query-input-operator-color` to change them.
 - `QueryInput.Content` is the suggestion popover with the syntax legend. Its children render under the legend.
 - Data attributes: `data-slot` is `query-input`, `query-input-field`, `query-input-field-actions`, `query-input-content`, and `query-input-content-footer`.
 

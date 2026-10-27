@@ -47,13 +47,17 @@ const sectionHeadings = {
 	values: "Values",
 } as const satisfies Record<FilterSuggestionSection, string>;
 
-/** Text color per highlighted run of the query. */
+/**
+ * Text color per highlighted run of the query. Keys, values, and operators
+ * default to the `CodeBlock` colors for attributes, strings, and operators,
+ * so a query reads like the code on the same page.
+ */
 const segmentClassNames = {
-	key: "text-accent-600",
-	value: "text-success-600",
+	key: "text-(--query-input-key-color,var(--shiki-token-attribute))",
+	value: "text-(--query-input-value-color,var(--shiki-token-string))",
 	invalid: "text-danger-600 underline decoration-wavy underline-offset-4",
 	text: "text-strong",
-	operator: "text-accent-600",
+	operator: "text-(--query-input-operator-color,var(--shiki-token-operator))",
 	syntax: "text-muted",
 	plain: "",
 } as const satisfies Record<HighlightSegmentKind, string>;
@@ -401,6 +405,14 @@ type QueryInputFieldProps = Omit<ComponentProps<"div">, "ref" | "children"> &
  *
  * Children render after the text as inline actions, in a
  * `[data-slot="query-input-field-actions"]` wrapper with `display: contents`.
+ *
+ * **CSS variables:**
+ *
+ * | CSS Variable                   | Default                        | Description                     |
+ * | ------------------------------ | ------------------------------ | ------------------------------- |
+ * | `--query-input-key-color`      | `var(--shiki-token-attribute)` | The color of a qualifier key.   |
+ * | `--query-input-value-color`    | `var(--shiki-token-string)`    | The color of a qualifier value. |
+ * | `--query-input-operator-color` | `var(--shiki-token-operator)`  | The color of `OR` and `AND`.    |
  *
  * @see https://mantle.ngrok.com/components/forms/query-input#queryinputfield
  *

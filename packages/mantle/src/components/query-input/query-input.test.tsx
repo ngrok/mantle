@@ -251,6 +251,21 @@ describe("QueryInput.Field", () => {
 		expect(screen.getByText("bogus").closest("[aria-hidden]")).toHaveAttribute("translate", "no");
 	});
 
+	test("colors keys, values, and operators through their documented CSS variables", () => {
+		renderQueryInput({ initialValue: "is:new OR acme" });
+
+		// Spelling pins: the docs page and the Field JSDoc document these names and defaults.
+		expect(screen.getByText("is")).toHaveClass(
+			"text-(--query-input-key-color,var(--shiki-token-attribute))",
+		);
+		expect(screen.getByText("new")).toHaveClass(
+			"text-(--query-input-value-color,var(--shiki-token-string))",
+		);
+		expect(screen.getByText("OR")).toHaveClass(
+			"text-(--query-input-operator-color,var(--shiki-token-operator))",
+		);
+	});
+
 	test("scrolls the painted copy with the input, so a long query stays aligned", () => {
 		const { input } = renderQueryInput({ initialValue: 'description:"a long value"' });
 

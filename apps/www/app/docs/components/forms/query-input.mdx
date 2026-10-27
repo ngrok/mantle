@@ -320,6 +320,26 @@ export function RemoteQueryInputExample() {
 }
 ```
 
+## Token colors
+
+Keys, values, and `OR` take the colors that [Code Block](/components/data-display/code-block) gives attributes, strings, and operators, so a query reads like the code on the same page. Set the three CSS variables on the field or any ancestor to change them. This calmer set colors only the keys:
+
+```tsx
+<QueryInput.Root
+	grammar={projectFilterGrammar}
+	items={projects}
+	value={query}
+	onValueChange={setQuery}
+	className="[--query-input-operator-color:var(--shiki-token-keyword)] [--query-input-value-color:var(--text-color-strong)]"
+>
+	<QueryInput.Field
+		aria-label="Filter projects"
+		placeholder="Filter projects, or type a filter like is:shared"
+	/>
+	<QueryInput.Content />
+</QueryInput.Root>
+```
+
 ## Accessibility
 
 The field is a real `<input role="combobox">` with `aria-autocomplete="list"`. The text you edit is the input's own value, so the caret, selection, IME composition, paste, and undo all stay native. A painted copy of the text sits over the input and is hidden from assistive tech.
@@ -365,6 +385,12 @@ The query field. `className`, `data-*`, and other `div` props go to the field's 
 | `children`         | `ReactNode`             | none    | Inline actions inside the field at its right edge, such as a clear button.                                                   |
 | `ref`              | `Ref<HTMLInputElement>` | none    | The `<input>` element.                                                                                                       |
 | `aria-describedby` | `string`                | none    | The field's own description. The syntax legend joins it while the popover is open.                                           |
+
+| CSS Variable                   | Default                        | Description                     |
+| ------------------------------ | ------------------------------ | ------------------------------- |
+| `--query-input-key-color`      | `var(--shiki-token-attribute)` | The color of a qualifier key.   |
+| `--query-input-value-color`    | `var(--shiki-token-string)`    | The color of a qualifier value. |
+| `--query-input-operator-color` | `var(--shiki-token-operator)`  | The color of `OR` and `AND`.    |
 
 | Data Attribute | Value                         | Description                                                                                           |
 | -------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------- |
