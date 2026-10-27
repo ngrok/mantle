@@ -1,4 +1,6 @@
 import { Button, IconButton } from "@ngrok/mantle/button";
+import { DataTable, createColumnHelper, tableFeatures, useTable } from "@ngrok/mantle/data-table";
+import { Empty } from "@ngrok/mantle/empty";
 import { Kbd } from "@ngrok/mantle/kbd";
 import {
 	type FilterGrammar,
@@ -6,6 +8,7 @@ import {
 	filterItemsByQuery,
 } from "@ngrok/mantle/query-filter";
 import { QueryInput } from "@ngrok/mantle/query-input";
+import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
 import { XIcon } from "@phosphor-icons/react/X";
 import { useDeferredValue, useState } from "react";
 
@@ -64,6 +67,30 @@ export const domainFilterGrammar: FilterGrammar<Domain> = {
 	getSearchText: (domain) => [domain.name, domain.description, domain.id].join("\n"),
 };
 
+const features = tableFeatures({});
+const columnHelper = createColumnHelper<typeof features, Domain>();
+const columns = columnHelper.columns([
+	columnHelper.accessor("name", {
+		id: "name",
+		header: () => <DataTable.Header>Domain</DataTable.Header>,
+		cell: (props) => (
+			<DataTable.Cell className="text-strong" translate="no">
+				{props.getValue()}
+			</DataTable.Cell>
+		),
+	}),
+	columnHelper.accessor("description", {
+		id: "description",
+		header: () => <DataTable.Header>Description</DataTable.Header>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+	columnHelper.accessor((domain) => (domain.custom ? "Custom" : "Managed"), {
+		id: "kind",
+		header: () => <DataTable.Header>Kind</DataTable.Header>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+]);
+
 export function QueryInputExample() {
 	const [query, setQuery] = useState("");
 	const deferredQuery = useDeferredValue(query);
@@ -72,9 +99,11 @@ export function QueryInputExample() {
 		items: domains,
 		query: deferredQuery,
 	});
+	const table = useTable({ features, data: visibleDomains, columns });
+	const rows = table.getRowModel().rows;
 
 	return (
-		<div className="w-full max-w-xl space-y-3">
+		<div className="w-full space-y-3">
 			<QueryInput.Root
 				grammar={domainFilterGrammar}
 				items={domains}
@@ -88,14 +117,31 @@ export function QueryInputExample() {
 				<QueryInput.BuilderMenu label="Add filter" />
 				<QueryInput.Content />
 			</QueryInput.Root>
-			<ul aria-label="Domains" className="divide-y rounded-md border">
-				{visibleDomains.map((domain) => (
-					<li key={domain.id} className="flex justify-between gap-4 px-3 py-2 text-sm">
-						<span className="font-mono">{domain.name}</span>
-						<span className="text-muted">{domain.description}</span>
-					</li>
-				))}
-			</ul>
+			<DataTable.Root table={table}>
+				<DataTable.Head />
+				<DataTable.Body>
+					{rows.length > 0 ? (
+						rows.map((row) => <DataTable.Row key={row.id} row={row} />)
+					) : (
+						<DataTable.EmptyRow>
+							<Empty.Root>
+								<Empty.Icon svg={<MagnifyingGlassIcon />} />
+								<Empty.Title>No domains match this filter</Empty.Title>
+								<Empty.Actions>
+									<Button
+										type="button"
+										appearance="outlined"
+										intent="neutral"
+										onClick={() => setQuery("")}
+									>
+										Clear filter
+									</Button>
+								</Empty.Actions>
+							</Empty.Root>
+						</DataTable.EmptyRow>
+					)}
+				</DataTable.Body>
+			</DataTable.Root>
 		</div>
 	);
 }
