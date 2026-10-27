@@ -141,6 +141,7 @@ export const prodReadyComponents: readonly ProdReadyComponent[] = componentCateg
 export const previewComponents = [
 	//,
 	"Calendar",
+	"Query Input",
 ] as const;
 
 /** Route lookup for production-ready component pages. */
@@ -222,6 +223,7 @@ export const prodReadyComponentRouteLookup = {
 /** Route lookup for preview component pages. */
 export const previewComponentsRouteLookup = {
 	Calendar: "/components/preview/calendar",
+	"Query Input": "/components/preview/query-input",
 } as const satisfies Record<(typeof previewComponents)[number], Route>;
 
 /**
@@ -231,6 +233,7 @@ export const previewComponentsRouteLookup = {
  */
 export const previewComponentCategoryLookup = {
 	Calendar: "Forms",
+	"Query Input": "Forms",
 } as const satisfies Record<(typeof previewComponents)[number], ComponentCategory>;
 
 /** Welcome section pages. */
@@ -289,6 +292,7 @@ export const utilsPages = [
 	"composeRefs",
 	"highlight-utils",
 	"inView",
+	"query-filter",
 	"sorting",
 ] as const;
 
@@ -299,6 +303,7 @@ export const utilsRoutes = {
 	composeRefs: "/utils/compose-refs",
 	"highlight-utils": "/utils/highlight-utils",
 	inView: "/utils/in-view",
+	"query-filter": "/utils/query-filter",
 	sorting: "/utils/sorting",
 } as const satisfies Record<(typeof utilsPages)[number], Route>;
 
@@ -341,6 +346,7 @@ export const recipePages = [
 	"Header Actions from Routes",
 	"List Page Loading States",
 	"Overlays + Async Data",
+	"Query Input from the URL",
 	"Route Announcer",
 	"Sparklines in a List",
 ] as const;
@@ -352,6 +358,7 @@ export const recipeRoutes = {
 	"Header Actions from Routes": "/recipes/header-actions-from-routes",
 	"List Page Loading States": "/recipes/list-page-loading-states",
 	"Overlays + Async Data": "/recipes/overlay-async",
+	"Query Input from the URL": "/recipes/query-input-from-the-url",
 	"Route Announcer": "/recipes/route-announcer",
 	"Sparklines in a List": "/recipes/sparklines-in-a-list",
 } as const satisfies Record<(typeof recipePages)[number], Route>;
@@ -368,6 +375,8 @@ export const recipeDescriptions = {
 		"Render a list page's header, filters, and column headers on the first frame, then fill the table with skeleton rows that match the loaded rows, so nothing shifts when the data lands.",
 	"Overlays + Async Data":
 		"Open a Sheet, Dialog, or Alert Dialog immediately, then swap the body between pending, loaded, 404, and 500 states with TanStack Query.",
+	"Query Input from the URL":
+		"Keep a Query Input's typed query in the ?q= URL param, so a filtered list is shareable by its URL. One small hook for React Router, and the same hook with nuqs.",
 	"Route Announcer":
 		"Announce completed client-side navigations to screen readers by pairing a persistent LiveRegion with React Router's location, with page-name fallbacks and repeat-message handling.",
 	"Sparklines in a List":

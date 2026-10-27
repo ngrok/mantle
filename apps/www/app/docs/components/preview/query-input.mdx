@@ -1,0 +1,335 @@
+---
+title: Query Input
+description: A filter field where free text and key:value qualifiers interleave, with in-place highlighting, suggestions, and a builder menu.
+category: Forms
+---
+
+import { Example } from "~/components/example";
+import { PageHeader } from "~/components/page-header";
+import {
+	InlineActionsQueryInputExample,
+	QueryInputExample,
+	RemoteQueryInputExample,
+} from "~/features/query-input-demos";
+
+<PageHeader id="query-input" isPreview>
+	Query Input
+</PageHeader>
+
+A single-line filter field for a list. Free text and `key:value` qualifiers mix in one query: `is:custom -staging api`. The field colors each token in place. A suggestion popover completes keys and values while the caret stays in the field, and a builder menu writes filters for people who'd rather browse than type.
+
+A grammar from [`@ngrok/mantle/query-filter`](/utils/query-filter) sets the vocabulary. The same grammar filters your items with `filterItemsByQuery`, so the field and the list always agree.
+
+Type `is:` to see the values and their live match counts, or pick a filter from the funnel menu.
+
+<Example>
+	<QueryInputExample />
+</Example>
+
+```tsx
+import { type FilterGrammar, filterItemsByQuery } from "@ngrok/mantle/query-filter";
+import { QueryInput } from "@ngrok/mantle/query-input";
+import { useDeferredValue, useState } from "react";
+
+type Domain = {
+	id: string;
+	name: string;
+	description: string;
+	custom: boolean;
+};
+
+const domains: Domain[] = [
+	{ id: "rd_1", name: "api.acme.com", description: "Production API", custom: true },
+	{ id: "rd_2", name: "app.acme.com", description: "Customer dashboard", custom: true },
+	{ id: "rd_3", name: "*.preview.acme.com", description: "Preview deploys", custom: true },
+	{ id: "rd_4", name: "lovely-lemur.ngrok.app", description: "Staging API", custom: false },
+	{ id: "rd_5", name: "brave-otter.ngrok.dev", description: "Local webhook tests", custom: false },
+];
+
+const domainFilterGrammar: FilterGrammar<Domain> = {
+	keys: [
+		{
+			key: "domain",
+			aliases: ["name", "host"],
+			description: "Text in the domain name",
+			matches: (domain, value) => domain.name.toLowerCase().includes(value.toLowerCase()),
+		},
+		{
+			key: "description",
+			aliases: ["desc"],
+			description: "Text in the description",
+			prose: true,
+			matches: (domain, value) => domain.description.toLowerCase().includes(value.toLowerCase()),
+		},
+		{
+			key: "is",
+			description: "The kind of domain",
+			values: [
+				{ value: "custom", description: "A domain you brought to ngrok" },
+				{ value: "managed", description: "A hostname ngrok gave you", aliases: ["ngrok"] },
+				{ value: "wildcard", description: "Covers every subdomain" },
+			],
+			matches: (domain, value) => {
+				switch (value) {
+					case "custom":
+						return domain.custom;
+					case "managed":
+						return !domain.custom;
+					case "wildcard":
+						return domain.name.startsWith("*.");
+					default:
+						return false;
+				}
+			},
+		},
+	],
+	getSearchText: (domain) => [domain.name, domain.description, domain.id].join("\n"),
+};
+
+export function QueryInputExample() {
+	const [query, setQuery] = useState("");
+	const deferredQuery = useDeferredValue(query);
+	const visibleDomains = filterItemsByQuery({
+		grammar: domainFilterGrammar,
+		items: domains,
+		query: deferredQuery,
+	});
+
+	return (
+		<div className="w-full max-w-xl space-y-3">
+			<QueryInput.Root
+				grammar={domainFilterGrammar}
+				items={domains}
+				value={query}
+				onValueChange={setQuery}
+			>
+				<QueryInput.Field
+					aria-label="Filter domains"
+					placeholder="Filter domains, or type a filter like is:custom"
+				/>
+				<QueryInput.BuilderMenu label="Add filter" />
+				<QueryInput.Content />
+			</QueryInput.Root>
+			<ul aria-label="Domains" className="divide-y rounded-md border">
+				{visibleDomains.map((domain) => (
+					<li key={domain.id} className="flex justify-between gap-4 px-3 py-2 text-sm">
+						<span className="font-mono">{domain.name}</span>
+						<span className="text-muted">{domain.description}</span>
+					</li>
+				))}
+			</ul>
+		</div>
+	);
+}
+```
+
+The query is the only state, and you own it through `value` and `onValueChange`. There's no uncontrolled form, because every list that hosts this field already keeps the query somewhere: in component state, in form state, or in the URL. To keep it in `?q=`, follow the [Query Input from the URL](/recipes/query-input-from-the-url) recipe.
+
+## Composition
+
+```text showLineNumbers=false
+QueryInput.Root
+├── QueryInput.Field
+├── QueryInput.BuilderMenu
+└── QueryInput.Content
+```
+
+`Root` lays out its children in one row, so put your own buttons beside the field there. `Field` is the input. `BuilderMenu` is optional. `Content` is the suggestion popover; without it, the field is a highlighted input with no suggestions.
+
+## Polymorphism
+
+`QueryInput.Root` takes `asChild`. Use it to render the row as your own element, such as a `<section>` with its own label, while `Root` keeps the state and the layout classes.
+
+`Field`, `BuilderMenu`, and `Content` don't take `asChild`. Each one renders a group of elements together (the field's shell, its painted copy, and the `<input>`, or a whole menu), so there's no single element to swap.
+
+## Inline actions and a footer
+
+Children of `QueryInput.Field` render inside the field at its right edge. Pass ghost `xs` icon buttons, such as a clear button. Children of `QueryInput.Content` render under the syntax legend, such as keyboard hints. With children, the popover opens on focus even when no suggestion matches.
+
+<Example>
+	<InlineActionsQueryInputExample />
+</Example>
+
+```tsx
+import { IconButton } from "@ngrok/mantle/button";
+import { Kbd } from "@ngrok/mantle/kbd";
+import { QueryInput } from "@ngrok/mantle/query-input";
+import { XIcon } from "@phosphor-icons/react/X";
+import { useState } from "react";
+
+export function InlineActionsQueryInputExample() {
+	const [query, setQuery] = useState("is:custom ");
+
+	return (
+		<QueryInput.Root
+			className="max-w-xl"
+			grammar={domainFilterGrammar}
+			items={domains}
+			value={query}
+			onValueChange={setQuery}
+		>
+			<QueryInput.Field
+				aria-label="Filter domains"
+				placeholder="Filter domains, or type a filter like is:custom"
+			>
+				{query !== "" && (
+					<IconButton
+						type="button"
+						appearance="ghost"
+						intent="neutral"
+						size="xs"
+						label="Clear filter"
+						icon={<XIcon />}
+						onClick={() => setQuery("")}
+					/>
+				)}
+			</QueryInput.Field>
+			<QueryInput.BuilderMenu label="Add filter" />
+			<QueryInput.Content>
+				<p>
+					<Kbd>↑</Kbd> <Kbd>↓</Kbd> to move, <Kbd className="w-auto">Enter</Kbd> to pick,{" "}
+					<Kbd className="w-auto">Esc</Kbd> to close
+				</p>
+			</QueryInput.Content>
+		</QueryInput.Root>
+	);
+}
+```
+
+`domainFilterGrammar` and `domains` are the ones from the first example.
+
+## Search on the server
+
+When a server runs the query, declare its vocabulary with `defineRemoteFilterGrammar` and leave out `items`. The suggestions then carry no counts. The grammar's `syntax` keeps the highlighting to what the server reads: `"qualifiers"` (the default) treats only bare `key:value` tokens as structure, and `"conjunction"` reads one AND group of exclusions, comma lists, and quotes.
+
+Inside a `<form>`, Enter submits the form, unless the keyboard made a suggestion active. Then Enter accepts that suggestion.
+
+<Example>
+	<RemoteQueryInputExample />
+</Example>
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { defineRemoteFilterGrammar } from "@ngrok/mantle/query-filter";
+import { QueryInput } from "@ngrok/mantle/query-input";
+import { useState } from "react";
+
+const accountSearchGrammar = defineRemoteFilterGrammar({
+	keys: [
+		{
+			key: "is",
+			description: "The account state",
+			values: [{ value: "active" }, { value: "suspended" }, { value: "past_due" }],
+		},
+		{ key: "email", description: "The account email" },
+	],
+});
+
+export function RemoteQueryInputExample() {
+	const [query, setQuery] = useState("");
+	const [submittedQuery, setSubmittedQuery] = useState<string | null>(null);
+
+	return (
+		<form
+			className="w-full max-w-xl space-y-3"
+			onSubmit={(event) => {
+				event.preventDefault();
+				setSubmittedQuery(query);
+			}}
+		>
+			<QueryInput.Root grammar={accountSearchGrammar} value={query} onValueChange={setQuery}>
+				<QueryInput.Field
+					aria-label="Search accounts"
+					placeholder="Search accounts, or type a filter like is:suspended"
+				/>
+				<Button type="submit" appearance="outlined" intent="neutral">
+					Search
+				</Button>
+				<QueryInput.Content />
+			</QueryInput.Root>
+			<p className="text-muted text-sm">
+				{submittedQuery == null ? "Press Enter to search." : `The server runs: ${submittedQuery}`}
+			</p>
+		</form>
+	);
+}
+```
+
+## Accessibility
+
+The field is a real `<input role="combobox">` with `aria-autocomplete="list"`. The text you edit is the input's own value, so the caret, selection, IME composition, paste, and undo all stay native. A painted copy of the text sits over the input and is hidden from assistive tech.
+
+- Focus never leaves the input. The active suggestion is announced through `aria-activedescendant`.
+- No suggestion is active until an arrow key moves. Up and Down wrap around the list. A pointer over a row highlights it but doesn't arm Enter.
+- Enter accepts the active suggestion. With no active suggestion, Enter closes the list and lets the event reach your form. Escape closes the list.
+- A caret move retires the active suggestion, so Enter can't accept a row from a list you didn't see.
+- While an IME composes, every key goes to the IME.
+- While the popover is open, the syntax legend joins the input's accessible description, after any description you set.
+
+Name the field with `aria-label`, or put it in a [Field](/components/forms/field) and label it with `Field.Label`. Inside `Field.Control`, the field takes its `id`, `name`, `aria-describedby`, `aria-errormessage`, and `aria-invalid` from the `Field.Item`.
+
+The section headings ("Filter by", "Exclude", "Values"), the legend, and the listbox name ("Filter suggestions") are English copy that mantle sets.
+
+## API Reference
+
+### QueryInput.Root
+
+The row and the state owner. It renders a `div` that lays out its children in a row, and accepts every `div` prop.
+
+| Prop            | Type                      | Default | Description                                                                                                                 |
+| --------------- | ------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `grammar`       | `FilterGrammar<Item>`     | none    | The grammar of this list's filter language. Declare it as a module constant: the engine caches its tables per object.       |
+| `items`         | `Item[]`                  | none    | The unfiltered items, for the live match counts. Leave it out when a server runs the query; the suggestions show no counts. |
+| `value`         | `string`                  | none    | The query, exactly as typed. Required.                                                                                      |
+| `onValueChange` | `(value: string) => void` | none    | Called with the whole query on every edit, typed or inserted. Required.                                                     |
+| `asChild`       | `boolean`                 | `false` | Render the row as the child element and merge the props onto it.                                                            |
+
+| Data Attribute | Value           | Description         |
+| -------------- | --------------- | ------------------- |
+| `data-slot`    | `"query-input"` | On the row element. |
+
+### QueryInput.Field
+
+The query field. `className`, `data-*`, and other `div` props go to the field's outer element. `ref`, `id`, `name`, and the `aria-*` props go to the `<input>`.
+
+| Prop               | Type                    | Default | Description                                                                                                                  |
+| ------------------ | ----------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `placeholder`      | `string`                | none    | Placeholder copy. Name one example filter the grammar accepts. Required.                                                     |
+| `aria-label`       | `string`                | none    | The accessible name. Leave it out when `Field.Label` names the field.                                                        |
+| `suggestOnFocus`   | `boolean`               | `true`  | Whether focus alone opens the suggestions. Set `false` when you move focus into the field for the user, as on a dialog open. |
+| `children`         | `ReactNode`             | none    | Inline actions inside the field at its right edge, such as a clear button.                                                   |
+| `ref`              | `Ref<HTMLInputElement>` | none    | The `<input>` element.                                                                                                       |
+| `aria-describedby` | `string`                | none    | The field's own description. The syntax legend joins it while the popover is open.                                           |
+
+| Data Attribute | Value                         | Description                                                                                           |
+| -------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `data-slot`    | `"query-input-field"`         | On the field's outer element.                                                                         |
+| `data-slot`    | `"query-input-field-actions"` | On the `span` that wraps the children. It has `display: contents`, so each child lays out in the row. |
+
+### QueryInput.BuilderMenu
+
+A dropdown menu of every qualifier, with a submenu of values and live match counts where the grammar or the items have them. A pick writes the canonical filter at the end of the query and moves focus into the field. It accepts every `IconButton` prop except `icon` and `intent`, and those props go to the trigger.
+
+| Prop         | Type                                    | Default      | Description                                                          |
+| ------------ | --------------------------------------- | ------------ | -------------------------------------------------------------------- |
+| `label`      | `string`                                | none         | The screen-reader label of the icon-only trigger. Required.          |
+| `appearance` | `"filled"` \| `"ghost"` \| `"outlined"` | `"outlined"` | The look of the trigger. Set `"ghost"` inside a panel `ButtonGroup`. |
+| `size`       | `IconButtonProps["size"]`               | `"md"`       | The size of the trigger.                                             |
+
+| Data Attribute | Value                                    | Description     |
+| -------------- | ---------------------------------------- | --------------- |
+| `data-slot`    | `"query-input-builder-menu icon-button"` | On the trigger. |
+
+### QueryInput.Content
+
+The suggestion popover: the listbox for the token under the caret, then the syntax legend. The legend shows only the syntax the grammar honors.
+
+| Prop        | Type        | Default | Description                                                                                                               |
+| ----------- | ----------- | ------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `children`  | `ReactNode` | none    | Content under the legend, such as keyboard hints. With children, focus opens the popover even when no suggestion matches. |
+| `className` | `string`    | none    | Classes for the popover.                                                                                                  |
+
+| Data Attribute | Value                          | Description                                 |
+| -------------- | ------------------------------ | ------------------------------------------- |
+| `data-slot`    | `"query-input-content"`        | On the popover, beside `"popover-content"`. |
+| `data-slot`    | `"query-input-content-footer"` | On the `div` that wraps the children.       |

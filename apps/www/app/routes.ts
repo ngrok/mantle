@@ -112,6 +112,7 @@ const docsPages = [
 	"components/overlays/tooltip",
 	// preview (lifecycle namespace, not a category)
 	"components/preview/calendar",
+	"components/preview/query-input",
 	// primitives
 	"components/primitives/browser-only",
 	"components/primitives/live-region",
@@ -137,6 +138,7 @@ const docsPages = [
 	"utils/cx",
 	"utils/highlight-utils",
 	"utils/in-view",
+	"utils/query-filter",
 	"utils/sorting",
 ];
 
@@ -152,6 +154,7 @@ const recipesPages = [
 	"header-actions-from-routes",
 	"list-page-loading-states",
 	"overlay-async",
+	"query-input-from-the-url",
 	"route-announcer",
 	"sparklines-in-a-list",
 ];

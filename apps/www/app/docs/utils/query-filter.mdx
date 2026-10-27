@@ -1,0 +1,141 @@
+---
+title: query-filter
+description: The query-filter language from @ngrok/mantle/query-filter. A grammar contract, a total parser, a matcher, suggestions, and highlight segments.
+---
+
+# query-filter
+
+The language behind [Query Input](/components/preview/query-input): free text and `key:value` qualifiers in one string, such as `is:custom -staging api`. The module is plain TypeScript with no React import, so a server, a script, or a test can parse and match a query with the same rules the field uses.
+
+```ts
+import {
+	acceptsValueList,
+	countItemsByQuery,
+	defineRemoteFilterGrammar,
+	filterItemsByQuery,
+	filterItemsByTokens,
+	findTokenAtCaret,
+	formatFacet,
+	getFilterKeyDefinition,
+	getFilterSuggestions,
+	getFilterSyntax,
+	getHighlightSegments,
+	getValueCandidates,
+	isCaretInFacetValue,
+	parseFilterQuery,
+	queryUsesQualifiers,
+	quoteFilterValue,
+	resolveFilterKey,
+	resolveFilterValue,
+} from "@ngrok/mantle/query-filter";
+
+import type {
+	FilterGrammar,
+	FilterKeyDefinition,
+	FilterMatchContext,
+	FilterSuggestion,
+	FilterSuggestions,
+	FilterSyntax,
+	FilterToken,
+	FilterValueDefinition,
+	HighlightSegment,
+} from "@ngrok/mantle/query-filter";
+```
+
+## The language
+
+| You write           | It means                                                            |
+| ------------------- | ------------------------------------------------------------------- |
+| `acme`              | Items whose search text contains `acme`.                            |
+| `is:custom`         | Items that the `is` key's matcher accepts for `custom`.             |
+| `-is:custom`        | Items that the matcher rejects for `custom`.                        |
+| `is:custom,managed` | Either value. A `prose` key keeps the comma as text.                |
+| `a OR b`            | Either group. `AND` (or nothing) joins tokens.                      |
+| `"staging api"`     | One term with a space. `\"` and `\\` write a quote and a backslash. |
+
+Keys, values, and their aliases match without regard to case, and never fuzzily. A key the grammar doesn't know stays free text, so a pasted `https://api.example.com` searches for that URL. A value an enumerated key doesn't know matches no item.
+
+## Write a grammar
+
+A grammar is one `FilterGrammar<Item>` object per list. Declare it as a module constant: the engine caches its alias tables per grammar object.
+
+```ts
+import { type FilterGrammar } from "@ngrok/mantle/query-filter";
+
+type Domain = { id: string; name: string; custom: boolean };
+
+const domainFilterGrammar: FilterGrammar<Domain> = {
+	keys: [
+		{
+			key: "domain",
+			aliases: ["name", "host"],
+			description: "Text in the domain name",
+			matches: (domain, value) => domain.name.toLowerCase().includes(value.toLowerCase()),
+		},
+		{
+			key: "is",
+			description: "The kind of domain",
+			values: [
+				{ value: "custom", description: "A domain you brought to ngrok" },
+				{ value: "managed", description: "A hostname ngrok gave you", aliases: ["ngrok"] },
+			],
+			matches: (domain, value) => (value === "custom" ? domain.custom : !domain.custom),
+		},
+	],
+	getSearchText: (domain) => [domain.name, domain.id].join("\n"),
+};
+```
+
+- `getSearchText` builds the text a free-text term searches. Join the fields with a newline, so a term can't match across two fields.
+- A matcher that compares a date against the clock reads `context.now`, never `Date.now()`. Pass `{ now }` from a ticking state hook, so a memoized filter re-runs as time passes.
+- `negatable: false` on a key removes its `-key:` suggestion and paints a typed `-` as invalid.
+
+## Filter items
+
+`filterItemsByQuery` keeps the input order. An empty query returns the same array, so a memoized list keeps its identity.
+
+```ts
+import { filterItemsByQuery } from "@ngrok/mantle/query-filter";
+
+const visibleDomains = filterItemsByQuery({
+	grammar: domainFilterGrammar,
+	items: domains,
+	query: "is:custom api",
+});
+```
+
+`countItemsByQuery(grammar, items, query)` counts the matches without building the array. It caches the count per grammar, items array, and query, so the counts in the suggestions cost one scan for each query.
+
+## A query that a server runs
+
+`defineRemoteFilterGrammar` declares the vocabulary of a query that another system runs. Nothing matches on the client. Its `syntax` sets what the highlighter paints as structure:
+
+- `"qualifiers"` (the default) reads only bare `key:value` tokens. Quotes, `-`, `OR`, and commas stay text.
+- `"conjunction"` reads one AND group of exclusions, comma lists, and quotes. A bare term paints as invalid, because the executor can't run it.
+
+```ts
+import { defineRemoteFilterGrammar } from "@ngrok/mantle/query-filter";
+
+const accountSearchGrammar = defineRemoteFilterGrammar({
+	keys: [
+		{ key: "is", description: "The account state", values: [{ value: "suspended" }] },
+		{ key: "email", description: "The account email" },
+	],
+});
+```
+
+## Parse a query
+
+`parseFilterQuery` is total: it returns tokens for every input and never throws. A query is a hand-edited URL param, and the field re-parses it on every keystroke.
+
+```ts
+import { parseFilterQuery } from "@ngrok/mantle/query-filter";
+
+parseFilterQuery(domainFilterGrammar, "is:custom -acme");
+// => [{ kind: "facet", key: "is", members: [{ value: "custom", … }], negated: false, … },
+//     { kind: "text", text: "acme", negated: true, … }]
+```
+
+- `formatFacet({ key, value, negated })` writes a qualifier in its canonical form, with quotes where the value needs them.
+- `queryUsesQualifiers(grammar, query)` reports whether a query holds a qualifier. Use it to pick the advice in a filtered-empty state.
+- `getFilterSuggestions` and `getHighlightSegments` are what `QueryInput` renders. Use them to build your own field.
