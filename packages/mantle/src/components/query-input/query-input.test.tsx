@@ -589,6 +589,26 @@ describe("QueryInput.Content", () => {
 		expect(input).toHaveAttribute("aria-expanded", "false");
 	});
 
+	test("reopens with no active option after a dismissal", async () => {
+		const { input } = renderQueryInput();
+
+		input.focus();
+		type(input, "is:");
+		await screen.findByRole("listbox");
+		fireEvent.keyDown(input, { key: "ArrowDown" });
+		fireEvent.keyDown(input, { key: "Escape" });
+		await waitFor(() => {
+			expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+		});
+
+		fireEvent.click(input);
+		await screen.findByRole("listbox");
+
+		expect(input).not.toHaveAttribute("aria-activedescendant");
+		fireEvent.keyDown(input, { key: "Enter" });
+		expect(input).toHaveValue("is:");
+	});
+
 	test("extends a comma list without inserting a space into it", async () => {
 		const { input } = renderQueryInput();
 
@@ -633,6 +653,21 @@ describe("QueryInput.Content", () => {
 		const footer = await screen.findByText("Press Enter to apply");
 		expect(footer.parentElement).toHaveAttribute("data-slot", "query-input-content-footer");
 		expect(screen.queryAllByRole("option")).toHaveLength(0);
+	});
+
+	test("opens on an arrow key for its children, even when no suggestion matches", async () => {
+		const { input } = renderQueryInput({
+			initialValue: "zzzz",
+			fieldProps: { suggestOnFocus: false },
+			footer: <p>Press Enter to apply</p>,
+		});
+
+		input.focus();
+		expect(screen.queryByText("Press Enter to apply")).not.toBeInTheDocument();
+
+		fireEvent.keyDown(input, { key: "ArrowDown" });
+
+		expect(await screen.findByText("Press Enter to apply")).toBeInTheDocument();
 	});
 
 	test("closes when no suggestion matches and it has no children", async () => {

@@ -324,7 +324,12 @@ function getKeySuggestions<Item>({
 	caretIndex: number;
 	token: FilterToken | undefined;
 }): FilterSuggestions {
-	const { replaceStart, replaceEnd, typed, negated } = getKeyEdit(query, caretIndex, token);
+	const syntax = getFilterSyntax(grammar);
+	// A lone `-` parses as text until a key follows it. Where `-` excludes, it starts an exclusion.
+	const { replaceStart, replaceEnd, typed, negated } =
+		syntax !== "qualifiers" && token?.kind === "text" && !token.negated && token.text === "-"
+			? { replaceStart: token.start, replaceEnd: token.end, typed: "", negated: true }
+			: getKeyEdit(query, caretIndex, token);
 	const matching = grammar.keys.filter((definition) => keyMatchesTyped(grammar, definition, typed));
 	const negatable = matching.filter((definition) => definition.negatable !== false);
 
@@ -336,7 +341,7 @@ function getKeySuggestions<Item>({
 
 	// A typed `-` already made every row an exclusion; do not offer them twice.
 	// A grammar without negation has no exclusions to offer at all.
-	if (negated || getFilterSyntax(grammar) === "qualifiers") {
+	if (negated || syntax === "qualifiers") {
 		return { replaceStart, replaceEnd, items: filters };
 	}
 

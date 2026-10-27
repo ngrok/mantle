@@ -216,6 +216,16 @@ function Root<Item extends object>({
 	const listboxId = useId();
 	const refs = useMemo(() => ({ anchorRef, inputRef }), []);
 
+	// A closed list keeps no active or hovered row, so a reopened list starts
+	// passive and Enter cannot accept a row the user did not pick again.
+	const setOpen = useCallback((open: boolean) => {
+		setIsOpen(open);
+		if (!open) {
+			setActiveIndex(null);
+			setHoveredIndex(null);
+		}
+	}, []);
+
 	const registerContent = useCallback((options: { hasChildren: boolean }) => {
 		setContent(options);
 		return () => setContent(null);
@@ -266,7 +276,7 @@ function Root<Item extends object>({
 				items == null ? undefined : (query: string) => countItemsByQuery(grammar, items, query),
 			isListboxOpen:
 				isOpen && content != null && (suggestions.items.length > 0 || content.hasChildren),
-			setIsOpen,
+			setIsOpen: setOpen,
 			activeIndex,
 			setActiveIndex,
 			hoveredIndex,
@@ -325,6 +335,7 @@ function Root<Item extends object>({
 		listboxId,
 		onValueChange,
 		registerContent,
+		setOpen,
 		value,
 	]);
 
@@ -333,7 +344,7 @@ function Root<Item extends object>({
 	return (
 		<QueryInputRefsContext.Provider value={refs}>
 			<QueryInputContext.Provider value={context}>
-				<Popover.Root open={context.isListboxOpen} onOpenChange={setIsOpen}>
+				<Popover.Root open={context.isListboxOpen} onOpenChange={setOpen}>
 					<Comp
 						data-slot={joinDataSlot(dataSlot, "query-input")}
 						className={cx("flex w-full items-center gap-2", className)}
@@ -453,7 +464,9 @@ function Field({
 
 		const rowCount = context.suggestions.items.length;
 		if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+			// With no rows, an arrow key still opens a footer-only popover.
 			if (rowCount === 0) {
+				context.setIsOpen(true);
 				return;
 			}
 			event.preventDefault();
@@ -546,11 +559,7 @@ function Field({
 						onSelect={(event) => context.syncCaret(event.currentTarget)}
 						onFocus={() => context.setIsOpen(suggestOnFocus)}
 						onClick={() => context.setIsOpen(true)}
-						onBlur={() => {
-							context.setIsOpen(false);
-							// The list unmounts without a mouseleave, so a reopen must not paint the old row.
-							context.setHoveredIndex(null);
-						}}
+						onBlur={() => context.setIsOpen(false)}
 						onKeyDown={handleKeyDown}
 						onScroll={(event) => {
 							const overlay = overlayRef.current;

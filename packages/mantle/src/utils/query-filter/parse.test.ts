@@ -11,6 +11,12 @@ import {
 import { testGrammar } from "./test-grammar.js";
 
 describe("parseFilterQuery", () => {
+	test("separates tokens on any whitespace, a line break included", () => {
+		expect(
+			parseFilterQuery(testGrammar, "is:new\nname:api\r\nacme").map((token) => token.kind),
+		).toEqual(["facet", "facet", "text"]);
+	});
+
 	test("splits a known key from its value on the first colon", () => {
 		expect(parseFilterQuery(testGrammar, "is:new")).toEqual([
 			{

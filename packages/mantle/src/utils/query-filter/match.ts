@@ -90,6 +90,11 @@ function matchesConjunction<Item extends object>({
 			if (token.members.length === 0) {
 				continue;
 			}
+			// A `-` on a key that cannot exclude paints invalid. Like an unknown
+			// value, it is a filter that nothing satisfies.
+			if (token.negated && getFilterKeyDefinition(grammar, token.key)?.negatable === false) {
+				return false;
+			}
 			if (matchesFacet({ grammar, item, token, context }) === token.negated) {
 				return false;
 			}

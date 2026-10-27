@@ -88,7 +88,7 @@ const projectFilterGrammar: FilterGrammar<Project> = {
 
 - `getSearchText` builds the text a free-text term searches. Join the fields with a newline, so a term can't match across two fields.
 - A matcher that compares a date against the clock reads `context.now`, never `Date.now()`. Pass `{ now }` from a ticking state hook, so a memoized filter re-runs as time passes.
-- `negatable: false` on a key removes its `-key:` suggestion and paints a typed `-` as invalid.
+- `negatable: false` on a key removes its `-key:` suggestion and paints a typed `-` as invalid. A typed `-key:value` on that key matches no items.
 
 ## Filter items
 
@@ -110,7 +110,7 @@ const visibleProjects = filterItemsByQuery({
 
 `defineRemoteFilterGrammar` declares the vocabulary of a query that another system runs. Nothing matches on the client. Its `syntax` sets what the highlighter paints as structure:
 
-- `"qualifiers"` (the default) reads only bare `key:value` tokens. Quotes, `-`, `OR`, and commas stay text.
+- `"qualifiers"` (the default) reads only bare `key:value` tokens. Quotes, `-`, `OR`, and commas stay text. A value with a space can't be written, so `defineRemoteFilterGrammar` throws on one.
 - `"conjunction"` reads one AND group of exclusions, comma lists, and quotes. A bare term paints as invalid, because the executor can't run it.
 
 ```ts

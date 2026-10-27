@@ -63,6 +63,13 @@ describe("acceptsValueList", () => {
 });
 
 describe("defineRemoteFilterGrammar", () => {
+	test("throws on a value with whitespace under the qualifiers syntax, which cannot express it", () => {
+		const keys = [{ key: "status", description: "Status", values: [{ value: "needs review" }] }];
+
+		expect(() => defineRemoteFilterGrammar({ keys })).toThrow(/needs review/);
+		expect(() => defineRemoteFilterGrammar({ keys, syntax: "conjunction" })).not.toThrow();
+	});
+
 	test("keeps every qualifier and value spelling it was given", () => {
 		expect(parseFilterQuery(remoteGrammar, "hasplan:v2_pro is:PAST_DUE")).toMatchObject([
 			{ kind: "facet", key: "hasplan", members: [{ value: "v2_pro", isKnownValue: true }] },

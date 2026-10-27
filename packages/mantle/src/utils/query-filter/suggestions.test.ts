@@ -79,6 +79,21 @@ describe("qualifier suggestions", () => {
 	});
 });
 
+describe("a lone dash", () => {
+	test("offers the exclusions it starts", () => {
+		const { items } = suggest("-");
+
+		expect(items.map((item) => item.label)).toEqual([
+			"-name:",
+			"-description:",
+			"-is:",
+			"-id:",
+			"-metadata:",
+		]);
+		expect(accept("-", 1, "-is:")).toBe("-is:");
+	});
+});
+
 describe("value suggestions", () => {
 	test("counts how many projects each value would leave", () => {
 		expect(

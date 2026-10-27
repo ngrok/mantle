@@ -106,11 +106,12 @@ type AndToken = FilterTokenBase & {
 type FilterToken = FreeTextToken | FacetToken | OrToken | AndToken;
 
 /**
- * Reports whether a character separates tokens. Quoted runs suspend this, so a
- * quoted value can carry spaces.
+ * Reports whether a character separates tokens: any whitespace, the same set
+ * `quoteFilterValue` quotes. Quoted runs suspend this, so a quoted value can
+ * carry spaces.
  */
 function isTokenSeparator(character: string) {
-	return character === " " || character === "\t";
+	return /\s/.test(character);
 }
 
 /** One comma-delimited run of a scanned value, with its quotes dropped from the literal. */

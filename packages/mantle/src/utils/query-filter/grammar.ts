@@ -1,3 +1,5 @@
+import invariant from "tiny-invariant";
+
 /**
  * The grammar contract of the query-filter language.
  *
@@ -265,6 +267,9 @@ type RemoteFilterGrammarOptions = {
  * group of exclusions, comma lists, and the `OR` the consumer accepts under
  * `"conjunction"`.
  *
+ * Under `"qualifiers"`, it throws when a value contains whitespace: no query
+ * can express that value.
+ *
  * @example
  * ```ts
  * const accountSearchGrammar = defineRemoteFilterGrammar({
@@ -276,6 +281,19 @@ function defineRemoteFilterGrammar({
 	keys,
 	syntax = "qualifiers",
 }: RemoteFilterGrammarOptions): FilterGrammar<never> {
+	// Why: a `"qualifiers"` executor splits on whitespace and reads no quotes, so
+	// no query can carry such a value, and an accepted suggestion would split it.
+	if (syntax === "qualifiers") {
+		for (const definition of keys) {
+			for (const valueDefinition of definition.values ?? []) {
+				invariant(
+					!/\s/.test(valueDefinition.value),
+					`The value "${valueDefinition.value}" of the "${definition.key}" key contains whitespace, which a "qualifiers" grammar cannot express. Set syntax: "conjunction", which reads quotes.`,
+				);
+			}
+		}
+	}
+
 	return {
 		keys: keys.map((definition) => ({ ...definition, matches: () => false })),
 		getSearchText: () => "",

@@ -103,6 +103,18 @@ describe("filterItemsByQuery evaluation", () => {
 		return filterItemsByQuery({ grammar, items, query }).map((item) => item.id);
 	}
 
+	test("matches nothing for an exclusion on a key that cannot exclude", () => {
+		const grammar = {
+			...testGrammar,
+			keys: testGrammar.keys.map((definition) =>
+				definition.key === "is" ? { ...definition, negatable: false } : definition,
+			),
+		};
+
+		expect(ids("-is:new", grammar)).toEqual([]);
+		expect(ids("is:new", grammar)).toEqual(["p_new"]);
+	});
+
 	test("ANDs every token, repeats of one key included", () => {
 		expect(ids("acme production")).toEqual(["p_api"]);
 		expect(ids("name:acme name:app")).toEqual(["p_app"]);
