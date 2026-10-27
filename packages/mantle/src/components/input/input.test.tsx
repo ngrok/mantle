@@ -101,6 +101,19 @@ describe("Input", () => {
 		expect(screen.getByRole("textbox")).toHaveAttribute("aria-invalid", "true");
 	});
 
+	test("with children, sends disabled, required, and readOnly on <Input> to the capture", () => {
+		render(
+			<Input disabled required readOnly aria-label="Email">
+				<InputCapture />
+			</Input>,
+		);
+		const input = screen.getByRole("textbox", { name: "Email" });
+		expect(input).toBeDisabled();
+		expect(input).toBeRequired();
+		expect(input).toHaveAttribute("readonly");
+		expect(getInputContainer()).toHaveAttribute("data-disabled");
+	});
+
 	test('with children, with validation="error" on <InputCapture>, renders an input with aria-invalid="true"', () => {
 		render(
 			<Input>

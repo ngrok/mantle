@@ -375,7 +375,7 @@ The row and the state owner. It renders a `div` that lays out its children in a 
 
 ### QueryInput.Field
 
-The query field. `className`, `data-*`, and other `div` props go to the field's outer element. `ref`, `id`, `name`, and the `aria-*` props go to the `<input>`.
+The query field. `className` and `style` go to the field's outer element, as on `Input`. All other props go to the `<input>`, such as `ref`, `id`, `name`, `disabled`, `required`, `readOnly`, `validation`, the `aria-*` props, and the event handlers. A disabled or read-only field shows no suggestions.
 
 | Prop               | Type                    | Default | Description                                                                                                                  |
 | ------------------ | ----------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------- |

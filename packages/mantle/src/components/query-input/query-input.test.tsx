@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { type ReactNode, createRef, useState } from "react";
+import { type KeyboardEvent, type ReactNode, createRef, useState } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import { defineRemoteFilterGrammar } from "../../utils/query-filter/grammar.js";
@@ -181,14 +181,69 @@ describe("QueryInput.Root", () => {
 });
 
 describe("QueryInput.Field", () => {
-	test("sends className and data attributes to its outer element, and ref to the input", () => {
+	test("sends className to its outer element, and ref and data attributes to the input", () => {
 		const ref = createRef<HTMLInputElement>();
-		renderQueryInput({ fieldProps: { ref, className: "custom-field", "data-testid": "field" } });
+		const { input } = renderQueryInput({
+			fieldProps: { ref, className: "custom-field", "data-testid": "field" },
+		});
 
-		const field = screen.getByTestId("field");
-		expect(field).toHaveAttribute("data-slot", "query-input-field");
+		const field = input.closest('[data-slot~="query-input-field"]');
 		expect(field).toHaveClass("custom-field");
-		expect(ref.current).toBe(screen.getByRole("combobox", { name: "Filter projects" }));
+		expect(screen.getByTestId("field")).toBe(input);
+		expect(ref.current).toBe(input);
+	});
+
+	test("disables the input and offers no suggestions", () => {
+		const { input } = renderQueryInput({ fieldProps: { disabled: true } });
+
+		expect(input).toBeDisabled();
+		expect(input.closest('[data-slot~="input"]')).toHaveAttribute("data-disabled");
+
+		fireEvent.click(input);
+		fireEvent.keyDown(input, { key: "ArrowDown" });
+		expect(input).toHaveAttribute("aria-expanded", "false");
+	});
+
+	test("offers no suggestions on a read-only input", () => {
+		const { input } = renderQueryInput({ fieldProps: { readOnly: true } });
+
+		input.focus();
+		fireEvent.click(input);
+		fireEvent.keyDown(input, { key: "ArrowDown" });
+
+		expect(input).toHaveAttribute("readonly");
+		expect(input).toHaveAttribute("aria-expanded", "false");
+	});
+
+	test("marks the input required for a hosting form", () => {
+		const { input } = renderQueryInput({ fieldProps: { required: true } });
+
+		expect(input).toBeRequired();
+	});
+
+	test("shows the error state on the field's box when the caller marks it invalid", () => {
+		const { input } = renderQueryInput({ fieldProps: { validation: "error" } });
+
+		expect(input).toBeInvalid();
+		expect(input.closest('[data-slot~="input"]')).toHaveAttribute("data-validation", "error");
+	});
+
+	test("calls the caller's handlers, and a prevented keydown skips the field's own", async () => {
+		const onFocus = vi.fn<() => void>();
+		const onKeyDown = vi.fn<(event: KeyboardEvent<HTMLInputElement>) => void>((event) => {
+			if (event.key === "ArrowDown") {
+				event.preventDefault();
+			}
+		});
+		const { input } = renderQueryInput({ fieldProps: { onFocus, onKeyDown } });
+
+		input.focus();
+		expect(onFocus).toHaveBeenCalledOnce();
+		await screen.findByRole("listbox");
+
+		fireEvent.keyDown(input, { key: "ArrowDown" });
+		expect(onKeyDown).toHaveBeenCalledOnce();
+		expect(input).not.toHaveAttribute("aria-activedescendant");
 	});
 
 	test("offers every qualifier when the empty input takes focus", async () => {

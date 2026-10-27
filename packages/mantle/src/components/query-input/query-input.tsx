@@ -36,6 +36,7 @@ import {
 } from "../../utils/query-filter/suggestions.js";
 import { Code } from "../code/code.js";
 import { FieldControlContext, type FieldControlAriaProps } from "../field/field-context.js";
+import type { WithValidation } from "../field/validation.js";
 import { Input, InputCapture } from "../input/input.js";
 import { Popover } from "../popover/popover.js";
 import { Slot } from "../slot/index.js";
@@ -361,17 +362,24 @@ function Root<Item extends object>({
 /**
  * The props for `QueryInput.Field`.
  */
-type QueryInputFieldProps = Omit<ComponentProps<"div">, "ref" | "children"> &
-	Pick<
-		ComponentProps<"input">,
-		| "aria-describedby"
-		| "aria-errormessage"
-		| "aria-invalid"
-		| "aria-label"
-		| "aria-labelledby"
-		| "name"
-		| "ref"
-	> &
+type QueryInputFieldProps = Omit<
+	ComponentProps<"input">,
+	| "aria-activedescendant"
+	| "aria-autocomplete"
+	| "aria-controls"
+	| "aria-expanded"
+	| "autoComplete"
+	| "children"
+	| "defaultValue"
+	| "list"
+	| "multiple"
+	| "onChange"
+	| "placeholder"
+	| "role"
+	| "type"
+	| "value"
+> &
+	WithValidation &
 	WithDataSlot & {
 		/**
 		 * Inline actions inside the field at its right edge, such as a clear
@@ -396,12 +404,13 @@ type QueryInputFieldProps = Omit<ComponentProps<"div">, "ref" | "children"> &
  * IME composition, paste, and undo stay native, because the text the user
  * edits is a plain `<input>`, not a contenteditable.
  *
- * `className`, `data-*`, and other `div` props go to the field's outer
- * element. `ref`, `id`, `name`, and the `aria-*` props go to the
- * `<input>`. Inside `Field.Item`, the field reads its `id`, `name`,
- * `aria-describedby`, `aria-errormessage`, and `aria-invalid` from
- * `Field.Control`. While the suggestions show, the syntax legend joins the
- * `<input>`'s description.
+ * `className` and `style` go to the field's outer element, as on `Input`.
+ * All other props, such as `ref`, `id`, `name`, `disabled`, `required`,
+ * `readOnly`, the `aria-*` props, and the event handlers, go to the
+ * `<input>`. A disabled or read-only field shows no suggestions. Inside
+ * `Field.Item`, the field reads its `id`, `name`, `aria-describedby`,
+ * `aria-errormessage`, and `aria-invalid` from `Field.Control`. While the
+ * suggestions show, the syntax legend joins the `<input>`'s description.
  *
  * Children render after the text as inline actions, in a
  * `[data-slot="query-input-field-actions"]` wrapper with `display: contents`.
@@ -434,15 +443,22 @@ function Field({
 	"aria-describedby": describedBy,
 	"aria-errormessage": errorMessage,
 	"aria-invalid": invalid,
-	"aria-label": ariaLabel,
-	"aria-labelledby": labelledBy,
 	"data-slot": dataSlot,
 	children,
 	className,
+	disabled,
 	id,
 	name,
+	onBlur,
+	onClick,
+	onFocus,
+	onKeyDown,
+	onScroll,
+	onSelect,
 	placeholder,
+	readOnly,
 	ref,
+	style,
 	suggestOnFocus = true,
 	...props
 }: QueryInputFieldProps) {
@@ -457,10 +473,14 @@ function Field({
 		.filter((value) => value != null && value !== "")
 		.join(" ");
 
+	// A field the user cannot edit offers no edits.
+	const canSuggest = !disabled && !readOnly;
+
 	function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+		onKeyDown?.(event);
 		// An IME owns these keys while it composes: Enter commits a candidate and
 		// the arrows move through candidates.
-		if (event.nativeEvent.isComposing) {
+		if (event.defaultPrevented || !canSuggest || event.nativeEvent.isComposing) {
 			return;
 		}
 
@@ -511,12 +531,20 @@ function Field({
 			ref={anchorRef}
 			data-slot={joinDataSlot(dataSlot, "query-input-field")}
 			className={cx("min-w-0 flex-1", className)}
-			{...props}
+			style={style}
 		>
+			{/* Why the input props go to `Input`: it hands them to `InputCapture`
+			    and also stamps its own chrome, such as `data-disabled` and the
+			    validation border, from them. */}
 			<Input
 				autoCapitalize="off"
+				{...props}
+				aria-invalid={invalid ?? fieldControl?.["aria-invalid"]}
 				autoComplete="off"
+				disabled={disabled}
+				name={name ?? fieldControl?.name}
 				placeholder={placeholder}
+				readOnly={readOnly}
 				// A trailing inline action sits as far from the right edge as from the top and bottom.
 				className="has-[>[data-slot=query-input-field-actions]>button:last-child]:pe-1.25"
 			>
@@ -545,7 +573,6 @@ function Field({
 					<InputCapture
 						ref={composedRef}
 						id={id ?? fieldControl?.id}
-						name={name ?? fieldControl?.name}
 						role="combobox"
 						aria-autocomplete="list"
 						aria-controls={context.listboxId}
@@ -557,18 +584,28 @@ function Field({
 						}
 						aria-describedby={describedByIds === "" ? undefined : describedByIds}
 						aria-errormessage={errorMessage ?? fieldControl?.["aria-errormessage"]}
-						aria-invalid={invalid ?? fieldControl?.["aria-invalid"]}
-						aria-label={ariaLabel}
-						aria-labelledby={labelledBy}
 						className="caret-(--text-color-strong) text-transparent"
 						value={context.value}
 						onChange={(event) => context.reportTypedValue(event.target)}
-						onSelect={(event) => context.syncCaret(event.currentTarget)}
-						onFocus={() => context.setIsOpen(suggestOnFocus)}
-						onClick={() => context.setIsOpen(true)}
-						onBlur={() => context.setIsOpen(false)}
+						onSelect={(event) => {
+							onSelect?.(event);
+							context.syncCaret(event.currentTarget);
+						}}
+						onFocus={(event) => {
+							onFocus?.(event);
+							context.setIsOpen(suggestOnFocus && canSuggest);
+						}}
+						onClick={(event) => {
+							onClick?.(event);
+							context.setIsOpen(canSuggest);
+						}}
+						onBlur={(event) => {
+							onBlur?.(event);
+							context.setIsOpen(false);
+						}}
 						onKeyDown={handleKeyDown}
 						onScroll={(event) => {
+							onScroll?.(event);
 							const overlay = overlayRef.current;
 							if (overlay != null) {
 								overlay.scrollLeft = event.currentTarget.scrollLeft;
