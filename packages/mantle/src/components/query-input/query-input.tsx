@@ -162,7 +162,7 @@ type QueryInputRootProps<Item extends object> = Omit<ComponentProps<"div">, "def
  * out the field and any actions in one row, and it owns the caret, the open
  * state, and the active suggestion.
  *
- * @see https://mantle.ngrok.com/components/preview/query-input#queryinputroot
+ * @see https://mantle.ngrok.com/components/forms/query-input#queryinputroot
  *
  * @example
  * ```tsx
@@ -396,7 +396,7 @@ type QueryInputFieldProps = Omit<ComponentProps<"div">, "ref" | "children"> &
  * Children render after the text as inline actions, in a
  * `[data-slot="query-input-field-actions"]` wrapper with `display: contents`.
  *
- * @see https://mantle.ngrok.com/components/preview/query-input#queryinputfield
+ * @see https://mantle.ngrok.com/components/forms/query-input#queryinputfield
  *
  * @example
  * ```tsx
@@ -600,7 +600,7 @@ type QueryInputBuilderMenuProps = Omit<
  * or the items have them. A pick writes the canonical filter at the end of the
  * query and moves focus into the field.
  *
- * @see https://mantle.ngrok.com/components/preview/query-input#queryinputbuildermenu
+ * @see https://mantle.ngrok.com/components/forms/query-input#queryinputbuildermenu
  *
  * @example
  * ```tsx
@@ -774,7 +774,7 @@ type QueryInputContentProps = Pick<ComponentProps<typeof Popover.Content>, "clas
  * Children render under the legend, in a `[data-slot="query-input-content-footer"]`
  * `div`.
  *
- * @see https://mantle.ngrok.com/components/preview/query-input#queryinputcontent
+ * @see https://mantle.ngrok.com/components/forms/query-input#queryinputcontent
  *
  * @example
  * ```tsx
@@ -988,7 +988,7 @@ function SuggestionList() {
  * - `MultiSelect`: pick several values, shown as tags.
  * - `Command`: a palette that runs an action or navigates.
  *
- * @see https://mantle.ngrok.com/components/preview/query-input
+ * @see https://mantle.ngrok.com/components/forms/query-input
  *
  * @example
  * Composition:
@@ -1018,7 +1018,7 @@ const QueryInput = {
 	 * out the field and any actions in one row, and it owns the caret, the open
 	 * state, and the active suggestion.
 	 *
-	 * @see https://mantle.ngrok.com/components/preview/query-input#queryinputroot
+	 * @see https://mantle.ngrok.com/components/forms/query-input#queryinputroot
 	 *
 	 * @example
 	 * ```tsx
@@ -1039,7 +1039,7 @@ const QueryInput = {
 	 * copy of its own text, with a leading magnifier. Children render after the
 	 * text as inline actions.
 	 *
-	 * @see https://mantle.ngrok.com/components/preview/query-input#queryinputfield
+	 * @see https://mantle.ngrok.com/components/forms/query-input#queryinputfield
 	 *
 	 * @example
 	 * ```tsx
@@ -1060,7 +1060,7 @@ const QueryInput = {
 	 * qualifier and its values. A pick writes the canonical filter at the end
 	 * of the query and moves focus into the field.
 	 *
-	 * @see https://mantle.ngrok.com/components/preview/query-input#queryinputbuildermenu
+	 * @see https://mantle.ngrok.com/components/forms/query-input#queryinputbuildermenu
 	 *
 	 * @example
 	 * ```tsx
@@ -1080,7 +1080,7 @@ const QueryInput = {
 	 * The suggestion popover: a listbox of keys and values for the token under
 	 * the caret, then the syntax legend. Children render under the legend.
 	 *
-	 * @see https://mantle.ngrok.com/components/preview/query-input#queryinputcontent
+	 * @see https://mantle.ngrok.com/components/forms/query-input#queryinputcontent
 	 *
 	 * @example
 	 * ```tsx

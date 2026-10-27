@@ -37,6 +37,12 @@ One more surface question belongs here, because its answer is a public name: if 
 
 Then ask the user:
 
+> Does `<ComponentName>` ship as stable or as preview?
+
+Do not choose for the user. Recommend stable when the component already runs in a product and has had a design pass. Recommend preview when its API is still unproven. The answer sets the docs path, the nav lookups, and the page header ([§2.4](../../COMPONENT_SPEC.md#24-nav-and-route-registration), [§7.1](../../COMPONENT_SPEC.md#71-page-kinds)). Both kinds take a `minor` changeset.
+
+Then ask:
+
 > Is `<ComponentName>` a compound component (a POJO namespace with multiple parts) or a simple single-element component?
 
 If compound, follow up:

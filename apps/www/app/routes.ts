@@ -89,6 +89,7 @@ const docsPages = [
 	"components/forms/multi-select",
 	"components/forms/otp-input",
 	"components/forms/password-input",
+	"components/forms/query-input",
 	"components/forms/radio-group",
 	"components/forms/select",
 	"components/forms/slider",
@@ -112,7 +113,6 @@ const docsPages = [
 	"components/overlays/tooltip",
 	// preview (lifecycle namespace, not a category)
 	"components/preview/calendar",
-	"components/preview/query-input",
 	// primitives
 	"components/primitives/browser-only",
 	"components/primitives/live-region",

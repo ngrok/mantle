@@ -715,10 +715,10 @@
   },
   {
     "name": "Query Input",
-    "slug": "components/preview/query-input",
+    "slug": "components/forms/query-input",
     "kind": "component",
     "category": "Forms",
-    "status": "preview",
+    "status": "stable",
     "importPath": "@ngrok/mantle/query-input",
     "summary": "A filter field where free text and key:value qualifiers interleave, with in-place highlighting, suggestions, and a builder menu.",
     "jsdoc": "A single-line filter field where free text and `key:value` qualifiers interleave.",

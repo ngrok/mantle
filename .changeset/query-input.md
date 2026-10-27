@@ -2,7 +2,7 @@
 "@ngrok/mantle": minor
 ---
 
-Add `QueryInput`, a preview component, and `@ngrok/mantle/query-filter`, the filter language it speaks.
+Add `QueryInput` and `@ngrok/mantle/query-filter`, the filter language it speaks.
 
 `QueryInput` is a single-line filter field where free text and `key:value` qualifiers interleave, such as `is:custom -staging api`. The field colors each token in place. A suggestion popover completes keys and values while the caret stays in the field, and a builder menu writes filters from a list. The field is a real `<input role="combobox">`, so the caret, selection, IME composition, paste, and undo stay native.
 
@@ -25,4 +25,4 @@ import { QueryInput } from "@ngrok/mantle/query-input";
 
 `@ngrok/mantle/query-filter` has no React import, so a server or a script can parse and match with the same rules. It exports the `FilterGrammar` contract, `defineRemoteFilterGrammar`, the total parser `parseFilterQuery`, the matchers `filterItemsByQuery` and `countItemsByQuery`, `getFilterSuggestions`, and `getHighlightSegments`. The names match `@pkg/query-filter` in the ngrok dashboard, so a migration changes only import paths.
 
-Docs: https://mantle.ngrok.com/components/preview/query-input and https://mantle.ngrok.com/utils/query-filter
+Docs: https://mantle.ngrok.com/components/forms/query-input and https://mantle.ngrok.com/utils/query-filter

@@ -89,6 +89,7 @@ export const componentsByCategory = {
 		"Multi Select",
 		"OTP Input",
 		"Password Input",
+		"Query Input",
 		"Radio Group",
 		"Select",
 		"Slider",
@@ -141,7 +142,6 @@ export const prodReadyComponents: readonly ProdReadyComponent[] = componentCateg
 export const previewComponents = [
 	//,
 	"Calendar",
-	"Query Input",
 ] as const;
 
 /** Route lookup for production-ready component pages. */
@@ -192,6 +192,7 @@ export const prodReadyComponentRouteLookup = {
 	"Progress Bar": "/components/feedback/progress-bar",
 	"Progress Donut": "/components/feedback/progress-donut",
 	"QR Code": "/components/data-display/qr-code",
+	"Query Input": "/components/forms/query-input",
 	"Radio Group": "/components/forms/radio-group",
 	Sandbar: "/components/feedback/sandbar",
 	SandboxedOnClick: "/components/primitives/sandboxed-on-click",
@@ -223,7 +224,6 @@ export const prodReadyComponentRouteLookup = {
 /** Route lookup for preview component pages. */
 export const previewComponentsRouteLookup = {
 	Calendar: "/components/preview/calendar",
-	"Query Input": "/components/preview/query-input",
 } as const satisfies Record<(typeof previewComponents)[number], Route>;
 
 /**
@@ -233,7 +233,6 @@ export const previewComponentsRouteLookup = {
  */
 export const previewComponentCategoryLookup = {
 	Calendar: "Forms",
-	"Query Input": "Forms",
 } as const satisfies Record<(typeof previewComponents)[number], ComponentCategory>;
 
 /** Welcome section pages. */

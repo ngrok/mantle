@@ -1,20 +1,16 @@
 ---
 title: Query Input
 description: A filter field where free text and key:value qualifiers interleave, with in-place highlighting, suggestions, and a builder menu.
-category: Forms
 ---
 
 import { Example } from "~/components/example";
-import { PageHeader } from "~/components/page-header";
 import {
 	InlineActionsQueryInputExample,
 	QueryInputExample,
 	RemoteQueryInputExample,
 } from "~/features/query-input-demos";
 
-<PageHeader id="query-input" isPreview>
-	Query Input
-</PageHeader>
+# Query Input
 
 A single-line filter field for a list. Free text and `key:value` qualifiers mix in one query: `is:custom -staging api`. The field colors each token in place. A suggestion popover completes keys and values while the caret stays in the field, and a builder menu writes filters for people who'd rather browse than type.
 
