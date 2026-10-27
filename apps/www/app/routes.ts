@@ -153,6 +153,7 @@ const recipesPages = [
 	"breadcrumbs-from-routes",
 	"header-actions-from-routes",
 	"list-page-loading-states",
+	"natural-language-query",
 	"overlay-async",
 	"query-from-the-url",
 	"route-announcer",

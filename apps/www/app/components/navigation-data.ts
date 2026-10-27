@@ -344,6 +344,7 @@ export const recipePages = [
 	"Breadcrumbs from Routes",
 	"Header Actions from Routes",
 	"List Page Loading States",
+	"Natural Language Query",
 	"Overlays + Async Data",
 	"Query from the URL",
 	"Route Announcer",
@@ -356,6 +357,7 @@ export const recipeRoutes = {
 	"Breadcrumbs from Routes": "/recipes/breadcrumbs-from-routes",
 	"Header Actions from Routes": "/recipes/header-actions-from-routes",
 	"List Page Loading States": "/recipes/list-page-loading-states",
+	"Natural Language Query": "/recipes/natural-language-query",
 	"Overlays + Async Data": "/recipes/overlay-async",
 	"Query from the URL": "/recipes/query-from-the-url",
 	"Route Announcer": "/recipes/route-announcer",
@@ -372,6 +374,8 @@ export const recipeDescriptions = {
 		"Put each route's actions in the app header's actions slot from a React Router route handle. The deepest route wins, the server renders them, and below the mobile breakpoint they collapse into one menu.",
 	"List Page Loading States":
 		"Render a list page's header, filters, and column headers on the first frame, then fill the table with skeleton rows that match the loaded rows, so nothing shifts when the data lands.",
+	"Natural Language Query":
+		"Let people describe a filter in plain words, and turn the words into a Query filter on Enter through ngrok.ai gateway inference, with a mock translator, a refusal check, and Revert.",
 	"Overlays + Async Data":
 		"Open a Sheet, Dialog, or Alert Dialog immediately, then swap the body between pending, loaded, 404, and 500 states with TanStack Query.",
 	"Query from the URL":

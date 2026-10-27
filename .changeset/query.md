@@ -21,7 +21,7 @@ import { Query } from "@ngrok/mantle/query";
 - `Query.Content` is the suggestion popover with the syntax legend and keyboard hints. `enterHint` names what Enter does. When no suggestion matches, it stays open and an empty state says what the field accepts. Its children render under the hints.
 - Data attributes: `data-slot` is `query`, `query-input`, `query-input-actions`, `query-content`, and `query-content-footer`.
 
-`@ngrok/mantle/query-filter` has no React import, so a server or a script can parse and match with the same rules. It exports the `FilterGrammar` contract, `defineRemoteFilterGrammar`, the total parser `parseFilterQuery`, the matchers `filterItemsByQuery` and `countItemsByQuery`, `getFilterSuggestions`, and `getHighlightSegments`.
+`@ngrok/mantle/query-filter` has no React import, so a server or a script can parse and match with the same rules. It exports the `FilterGrammar` contract, `defineRemoteFilterGrammar`, the total parser `parseFilterQuery`, the matchers `filterItemsByQuery` and `countItemsByQuery`, `getFilterSuggestions`, and `getHighlightSegments`. For a natural-language search, `describeFilterGrammar` describes the language as JSON for a model, and `checkFilterQuery` finds the unknown keys and values in the query that the model returns.
 
 The engine is faster than the copy it replaces in ngrok's apps. It compiles a query once per pass, reads each item's search text by index, and counts the value suggestions over the items the rest of the query keeps. Median times on 50,000 items:
 

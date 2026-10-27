@@ -34,6 +34,17 @@ export {
 } from "./match.js";
 export {
 	//,
+	checkFilterQuery,
+	describeFilterGrammar,
+} from "./natural-language.js";
+export type {
+	//,
+	FilterGrammarDescription,
+	FilterKeyDescription,
+	FilterQueryProblem,
+} from "./natural-language.js";
+export {
+	//,
 	findTokenAtCaret,
 	formatFacet,
 	isCaretInFacetValue,
