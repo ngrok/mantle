@@ -1,7 +1,6 @@
-import { Button, IconButton } from "@ngrok/mantle/button";
+import { Button } from "@ngrok/mantle/button";
 import { DataTable, createColumnHelper, tableFeatures, useTable } from "@ngrok/mantle/data-table";
 import { Empty } from "@ngrok/mantle/empty";
-import { Kbd } from "@ngrok/mantle/kbd";
 import {
 	type FilterGrammar,
 	defineRemoteFilterGrammar,
@@ -9,7 +8,6 @@ import {
 } from "@ngrok/mantle/query-filter";
 import { QueryInput } from "@ngrok/mantle/query-input";
 import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
-import { XIcon } from "@phosphor-icons/react/X";
 import { useDeferredValue, useState } from "react";
 
 export type Project = {
@@ -184,24 +182,9 @@ export function InlineActionsQueryInputExample() {
 			<QueryInput.Field
 				aria-label="Filter projects"
 				placeholder="Filter projects, or type a filter like is:shared"
-			>
-				{query !== "" && (
-					<IconButton
-						type="button"
-						appearance="ghost"
-						intent="neutral"
-						size="xs"
-						label="Clear filter"
-						icon={<XIcon />}
-						onClick={() => setQuery("")}
-					/>
-				)}
-			</QueryInput.Field>
+			/>
 			<QueryInput.Content>
-				<p>
-					<Kbd>↑</Kbd> <Kbd>↓</Kbd> to move, <Kbd className="w-auto">Enter</Kbd> to pick,{" "}
-					<Kbd className="w-auto">Esc</Kbd> to close
-				</p>
+				<p>Filters apply as you type.</p>
 			</QueryInput.Content>
 		</QueryInput.Root>
 	);

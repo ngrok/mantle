@@ -59,4 +59,42 @@ describe("QueryInput in a browser", () => {
 		expect(onValueChange).toHaveBeenCalledTimes(1);
 		expect(onValueChange).toHaveBeenCalledWith("name:");
 	});
+
+	test("submits the host form on Enter unless Enter accepts an active row", async () => {
+		const onSubmit = vi.fn<() => void>();
+		render(
+			<form
+				onSubmit={(event) => {
+					event.preventDefault();
+					onSubmit();
+				}}
+			>
+				<Host />
+			</form>,
+		);
+		const input = page.getByRole("combobox", { name: "Filter projects" });
+
+		await userEvent.click(input);
+		await userEvent.keyboard("{ArrowDown}{Enter}");
+		await expect.element(input).toHaveValue("name:");
+		expect(onSubmit).not.toHaveBeenCalled();
+
+		await userEvent.keyboard("acme{Enter}");
+		expect(onSubmit).toHaveBeenCalledOnce();
+	});
+
+	// Radix reports a mouse press outside the popover after the click, when the
+	// clear button is already gone. The popover must not read that as a dismiss.
+	test("keeps the suggestions open after the clear button empties the query", async () => {
+		render(<Host />);
+		const input = page.getByRole("combobox", { name: "Filter projects" });
+
+		await userEvent.click(input);
+		await userEvent.keyboard("acme");
+		await userEvent.click(page.getByRole("button", { name: "Clear filter" }));
+
+		await expect.element(input).toHaveValue("");
+		await expect.element(input).toHaveFocus();
+		await expect.element(input).toHaveAttribute("aria-expanded", "true");
+	});
 });

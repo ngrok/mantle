@@ -210,17 +210,16 @@ QueryInput.Root
 
 ## Inline actions and a footer
 
-Children of `QueryInput.Field` render inside the field at its right edge. Pass ghost `xs` icon buttons, such as a clear button. Children of `QueryInput.Content` render under the syntax legend, such as keyboard hints. When no suggestion matches, the popover stays open and an empty state says what the field accepts there.
+While the query has text, `QueryInput.Field` shows a clear button at its right edge. The button empties the query and moves focus back to the field. Set `clearLabel` to rename it. Other children of `QueryInput.Field` render before the clear button. Pass ghost `xs` icon buttons.
+
+`QueryInput.Content` shows keyboard hints under the syntax legend. When Enter submits a form, set `enterHint` to name that action, such as `"select, or search"`. Children of `QueryInput.Content` render under the hints. When no suggestion matches, the popover stays open and an empty state says what the field accepts there.
 
 <Example>
 	<InlineActionsQueryInputExample />
 </Example>
 
 ```tsx
-import { IconButton } from "@ngrok/mantle/button";
-import { Kbd } from "@ngrok/mantle/kbd";
 import { QueryInput } from "@ngrok/mantle/query-input";
-import { XIcon } from "@phosphor-icons/react/X";
 import { useState } from "react";
 
 export function InlineActionsQueryInputExample() {
@@ -237,24 +236,9 @@ export function InlineActionsQueryInputExample() {
 			<QueryInput.Field
 				aria-label="Filter projects"
 				placeholder="Filter projects, or type a filter like is:shared"
-			>
-				{query !== "" && (
-					<IconButton
-						type="button"
-						appearance="ghost"
-						intent="neutral"
-						size="xs"
-						label="Clear filter"
-						icon={<XIcon />}
-						onClick={() => setQuery("")}
-					/>
-				)}
-			</QueryInput.Field>
+			/>
 			<QueryInput.Content>
-				<p>
-					<Kbd>↑</Kbd> <Kbd>↓</Kbd> to move, <Kbd className="w-auto">Enter</Kbd> to pick,{" "}
-					<Kbd className="w-auto">Esc</Kbd> to close
-				</p>
+				<p>Filters apply as you type.</p>
 			</QueryInput.Content>
 		</QueryInput.Root>
 	);
@@ -375,16 +359,17 @@ The row and the state owner. It renders a `div` that lays out its children in a 
 
 ### QueryInput.Field
 
-The query field. `className` and `style` go to the field's outer element, as on `Input`. All other props go to the `<input>`, such as `ref`, `id`, `name`, `disabled`, `required`, `readOnly`, `validation`, the `aria-*` props, and the event handlers. A disabled or read-only field shows no suggestions.
+The query field. `className` and `style` go to the field's outer element, as on `Input`. All other props go to the `<input>`, such as `ref`, `id`, `name`, `disabled`, `required`, `readOnly`, `validation`, the `aria-*` props, and the event handlers. A disabled or read-only field shows no suggestions and no clear button.
 
-| Prop               | Type                    | Default | Description                                                                                                                  |
-| ------------------ | ----------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `placeholder`      | `string`                | none    | Placeholder copy. Name one example filter the grammar accepts. Required.                                                     |
-| `aria-label`       | `string`                | none    | The accessible name. Leave it out when `Field.Label` names the field.                                                        |
-| `suggestOnFocus`   | `boolean`               | `true`  | Whether focus alone opens the suggestions. Set `false` when you move focus into the field for the user, as on a dialog open. |
-| `children`         | `ReactNode`             | none    | Inline actions inside the field at its right edge, such as a clear button.                                                   |
-| `ref`              | `Ref<HTMLInputElement>` | none    | The `<input>` element.                                                                                                       |
-| `aria-describedby` | `string`                | none    | The field's own description. The syntax legend joins it while the popover is open.                                           |
+| Prop               | Type                    | Default          | Description                                                                                                                  |
+| ------------------ | ----------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `placeholder`      | `string`                | none             | Placeholder copy. Name one example filter the grammar accepts. Required.                                                     |
+| `aria-label`       | `string`                | none             | The accessible name. Leave it out when `Field.Label` names the field.                                                        |
+| `suggestOnFocus`   | `boolean`               | `true`           | Whether focus alone opens the suggestions. Set `false` when you move focus into the field for the user, as on a dialog open. |
+| `children`         | `ReactNode`             | none             | Inline actions inside the field at its right edge, before the clear button.                                                  |
+| `clearLabel`       | `string`                | `"Clear filter"` | The accessible name and tooltip of the clear button.                                                                         |
+| `ref`              | `Ref<HTMLInputElement>` | none             | The `<input>` element.                                                                                                       |
+| `aria-describedby` | `string`                | none             | The field's own description. The syntax legend joins it while the popover is open.                                           |
 
 | CSS Variable                   | Default                        | Description                     |
 | ------------------------------ | ------------------------------ | ------------------------------- |
@@ -392,19 +377,20 @@ The query field. `className` and `style` go to the field's outer element, as on 
 | `--query-input-value-color`    | `var(--shiki-token-string)`    | The color of a qualifier value. |
 | `--query-input-operator-color` | `var(--shiki-token-operator)`  | The color of `OR` and `AND`.    |
 
-| Data Attribute | Value                         | Description                                                                                           |
-| -------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `data-slot`    | `"query-input-field"`         | On the field's outer element.                                                                         |
-| `data-slot`    | `"query-input-field-actions"` | On the `span` that wraps the children. It has `display: contents`, so each child lays out in the row. |
+| Data Attribute | Value                         | Description                                                                                                                |
+| -------------- | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `data-slot`    | `"query-input-field"`         | On the field's outer element.                                                                                              |
+| `data-slot`    | `"query-input-field-actions"` | On the `span` that wraps the children and the clear button. It has `display: contents`, so each child lays out in the row. |
 
 ### QueryInput.Content
 
-The suggestion popover: the listbox for the token under the caret, then the syntax legend. The legend shows only the syntax the grammar honors.
+The suggestion popover: the listbox for the token under the caret, then the syntax legend and the keyboard hints. The legend shows only the syntax the grammar honors.
 
-| Prop        | Type        | Default | Description                                       |
-| ----------- | ----------- | ------- | ------------------------------------------------- |
-| `children`  | `ReactNode` | none    | Content under the legend, such as keyboard hints. |
-| `className` | `string`    | none    | Classes for the popover.                          |
+| Prop        | Type        | Default    | Description                                                                         |
+| ----------- | ----------- | ---------- | ----------------------------------------------------------------------------------- |
+| `children`  | `ReactNode` | none       | Content under the keyboard hints.                                                   |
+| `enterHint` | `string`    | `"select"` | What Enter does, in the keyboard hints. Name your action when Enter submits a form. |
+| `className` | `string`    | none       | Classes for the popover.                                                            |
 
 | Data Attribute | Value                          | Description                                 |
 | -------------- | ------------------------------ | ------------------------------------------- |

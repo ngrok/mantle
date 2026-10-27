@@ -1,6 +1,7 @@
 "use client";
 
 import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
+import { XIcon } from "@phosphor-icons/react/X";
 import type {
 	ComponentProps,
 	Dispatch,
@@ -34,12 +35,15 @@ import {
 	type FilterSuggestions,
 	getFilterSuggestions,
 } from "../../utils/query-filter/suggestions.js";
+import { IconButton } from "../button/icon-button.js";
 import { Code } from "../code/code.js";
 import { FieldControlContext, type FieldControlAriaProps } from "../field/field-context.js";
 import type { WithValidation } from "../field/validation.js";
 import { Input, InputCapture } from "../input/input.js";
+import { Kbd } from "../kbd/kbd.js";
 import { Popover } from "../popover/popover.js";
 import { Slot } from "../slot/index.js";
+import { Tooltip, TooltipProvider } from "../tooltip/tooltip.js";
 
 /** Headings for the suggestion groups. */
 const sectionHeadings = {
@@ -90,11 +94,15 @@ type QueryInputContextValue = {
 	setHoveredIndex: (index: number | null) => void;
 	listboxId: string;
 	legendId: string;
+	/** The id of the message that shows when no row matches. */
+	emptyStateId: string;
 	/** Handles a typed edit from the `<input>`. */
 	reportTypedValue: (input: HTMLInputElement) => void;
 	/** Records where the caret landed after anything that can move it. */
 	syncCaret: (input: HTMLInputElement) => void;
 	acceptSuggestion: (suggestion: FilterSuggestion) => void;
+	/** Empties the query and moves focus back to the `<input>`. */
+	clearValue: () => void;
 	/** `QueryInput.Content` calls this on mount. It returns the cleanup. */
 	registerContent: () => () => void;
 };
@@ -172,9 +180,7 @@ type QueryInputRootProps<Item extends object> = Omit<ComponentProps<"div">, "def
  * const [query, setQuery] = useState("");
  *
  * <QueryInput.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
- *   <QueryInput.Field aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared">
- *     <IconButton type="button" appearance="ghost" intent="neutral" size="xs" label="Clear filter" icon={<XIcon />} onClick={() => setQuery("")} />
- *   </QueryInput.Field>
+ *   <QueryInput.Field aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared" />
  *   <QueryInput.Content />
  * </QueryInput.Root>
  * ```
@@ -284,6 +290,7 @@ function Root<Item extends object>({
 			setHoveredIndex,
 			listboxId,
 			legendId: `${listboxId}-legend`,
+			emptyStateId: `${listboxId}-empty`,
 			syncCaret,
 			reportTypedValue: (input) => {
 				reportedValueRef.current = input.value;
@@ -322,6 +329,11 @@ function Root<Item extends object>({
 
 				reportInsertedText(input);
 				input.focus();
+			},
+			clearValue: () => {
+				onValueChange("");
+				// The clear button unmounts with the text, so focus goes back to the field.
+				inputRef.current?.focus();
 			},
 			registerContent,
 		};
@@ -383,10 +395,16 @@ type QueryInputFieldProps = Omit<
 	WithValidation &
 	WithDataSlot & {
 		/**
-		 * Inline actions inside the field at its right edge, such as a clear
+		 * Inline actions inside the field at its right edge, before the clear
 		 * button. Pass ghost `xs` icon buttons.
 		 */
 		children?: ReactNode;
+		/**
+		 * The accessible name and tooltip of the clear button.
+		 *
+		 * @default "Clear filter"
+		 */
+		clearLabel?: string;
 		/** Placeholder copy. Name one example filter the grammar accepts. Required on purpose. */
 		placeholder: string;
 		/**
@@ -413,8 +431,10 @@ type QueryInputFieldProps = Omit<
  * `aria-errormessage`, and `aria-invalid` from `Field.Control`. While the
  * suggestions show, the syntax legend joins the `<input>`'s description.
  *
- * Children render after the text as inline actions, in a
- * `[data-slot="query-input-field-actions"]` wrapper with `display: contents`.
+ * While the query has text and the field is editable, a clear button shows
+ * at the right edge. It empties the query and moves focus back to the field.
+ * Children render after the text as inline actions, before the clear button,
+ * in a `[data-slot="query-input-field-actions"]` wrapper with `display: contents`.
  *
  * **CSS variables:**
  *
@@ -431,9 +451,7 @@ type QueryInputFieldProps = Omit<
  * const [query, setQuery] = useState("");
  *
  * <QueryInput.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
- *   <QueryInput.Field aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared">
- *     <IconButton type="button" appearance="ghost" intent="neutral" size="xs" label="Clear filter" icon={<XIcon />} onClick={() => setQuery("")} />
- *   </QueryInput.Field>
+ *   <QueryInput.Field aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared" />
  *   <QueryInput.Content />
  * </QueryInput.Root>
  * ```
@@ -447,6 +465,7 @@ function Field({
 	"data-slot": dataSlot,
 	children,
 	className,
+	clearLabel = "Clear filter",
 	disabled,
 	id,
 	name,
@@ -470,12 +489,18 @@ function Field({
 	const composedRef = useComposedRefs(ref, inputRef);
 
 	const ownDescription = describedBy ?? fieldControl?.["aria-describedby"];
-	const describedByIds = [ownDescription, context.isListboxOpen ? context.legendId : undefined]
+	const hasNoRows = context.suggestions.items.length === 0;
+	const describedByIds = [
+		ownDescription,
+		context.isListboxOpen && hasNoRows ? context.emptyStateId : undefined,
+		context.isListboxOpen ? context.legendId : undefined,
+	]
 		.filter((value) => value != null && value !== "")
 		.join(" ");
 
 	// A field the user cannot edit offers no edits.
 	const canSuggest = !disabled && !readOnly;
+	const canClear = canSuggest && context.value !== "";
 
 	function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
 		onKeyDown?.(event);
@@ -614,9 +639,10 @@ function Field({
 						}}
 					/>
 				</div>
-				{children != null && (
+				{(children != null || canClear) && (
 					<span data-slot="query-input-field-actions" className="contents">
 						{children}
+						{canClear && <ClearButton label={clearLabel} onClear={context.clearValue} />}
 					</span>
 				)}
 			</Input>
@@ -625,12 +651,48 @@ function Field({
 }
 
 /**
+ * The clear button at the right edge of the field. It shows only while the
+ * query has text.
+ */
+function ClearButton({ label, onClear }: { label: string; onClear: () => void }) {
+	// Why a local provider: Radix throws for a tooltip with no provider above it,
+	// and the field must not ask the app to mount one.
+	return (
+		<TooltipProvider>
+			<Tooltip.Root>
+				<Tooltip.Trigger asChild>
+					<IconButton
+						type="button"
+						appearance="ghost"
+						intent="neutral"
+						size="xs"
+						label={label}
+						icon={<XIcon />}
+						// Keep focus in the input, so a click does not close the suggestions.
+						onMouseDown={(event) => event.preventDefault()}
+						onClick={onClear}
+					/>
+				</Tooltip.Trigger>
+				<Tooltip.Content>{label}</Tooltip.Content>
+			</Tooltip.Root>
+		</TooltipProvider>
+	);
+}
+
+/**
  * The props for `QueryInput.Content`.
  */
 type QueryInputContentProps = Pick<ComponentProps<typeof Popover.Content>, "className" | "ref"> &
 	WithDataSlot & {
-		/** Content under the syntax legend, such as keyboard hints. */
+		/** Content under the keyboard hints, such as a link to the filter docs. */
 		children?: ReactNode;
+		/**
+		 * What Enter does, in the keyboard hints. Name the host's own action when
+		 * Enter submits a form, such as `"select, or search"`.
+		 *
+		 * @default "select"
+		 */
+		enterHint?: string;
 	};
 
 /**
@@ -641,7 +703,8 @@ type QueryInputContentProps = Pick<ComponentProps<typeof Popover.Content>, "clas
  * grammar honors.
  *
  * When no row matches, an empty state above the legend says what the
- * field accepts there. Children render under the legend, in a
+ * field accepts there. Keyboard hints follow the legend; `enterHint` names
+ * what Enter does. Children render under the hints, in a
  * `[data-slot="query-input-content-footer"]` `div`.
  *
  * @see https://mantle.ngrok.com/components/forms/query-input#queryinputcontent
@@ -651,15 +714,19 @@ type QueryInputContentProps = Pick<ComponentProps<typeof Popover.Content>, "clas
  * const [query, setQuery] = useState("");
  *
  * <QueryInput.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
- *   <QueryInput.Field aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared">
- *     <IconButton type="button" appearance="ghost" intent="neutral" size="xs" label="Clear filter" icon={<XIcon />} onClick={() => setQuery("")} />
- *   </QueryInput.Field>
+ *   <QueryInput.Field aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared" />
  *   <QueryInput.Content />
  * </QueryInput.Root>
  * ```
  */
 // Why no asChild: the part renders the listbox and the legend itself.
-function Content({ "data-slot": dataSlot, children, className, ref }: QueryInputContentProps) {
+function Content({
+	"data-slot": dataSlot,
+	children,
+	className,
+	enterHint = "select",
+	ref,
+}: QueryInputContentProps) {
 	const context = useQueryInputContext("QueryInput.Content");
 	const { anchorRef } = useQueryInputRefs("QueryInput.Content");
 	const { registerContent } = context;
@@ -686,9 +753,14 @@ function Content({ "data-slot": dataSlot, children, className, ref }: QueryInput
 			onCloseAutoFocus={(event) => event.preventDefault()}
 			onInteractOutside={(event) => {
 				// The input sits outside the popover, so Radix reads a click into it
-				// as an outside interaction.
+				// as an outside interaction. Radix reports a mouse press after the
+				// click, so the clear button can be gone by then: a detached target
+				// is a control that the press itself removed.
 				const target = event.detail.originalEvent.target;
-				if (target instanceof Node && anchorRef.current?.contains(target) === true) {
+				if (
+					target instanceof Node &&
+					(!target.isConnected || anchorRef.current?.contains(target) === true)
+				) {
 					event.preventDefault();
 				}
 			}}
@@ -696,19 +768,21 @@ function Content({ "data-slot": dataSlot, children, className, ref }: QueryInput
 			{/* Only the options scroll; the legend below stays pinned. */}
 			<div className="max-h-72 overflow-y-auto">
 				<SuggestionList />
+				{rowCount === 0 && (
+					<EmptySuggestions
+						id={context.emptyStateId}
+						keys={context.keys}
+						valueKey={context.suggestions.key}
+					/>
+				)}
 			</div>
 			{/* It bleeds through the popover's `p-1`, so the border spans edge to edge. */}
 			<div
 				id={context.legendId}
-				className={cx(
-					"text-muted border-popover -mx-1 -mb-1 px-3 pt-2 pb-2 text-xs",
-					rowCount > 0 ? "mt-1 border-t" : "-mt-1",
-				)}
+				className="text-muted border-popover -mx-1 -mb-1 mt-1 border-t px-3 pt-2 pb-2 text-xs"
 			>
-				{rowCount === 0 && (
-					<EmptySuggestions keys={context.keys} valueKey={context.suggestions.key} />
-				)}
 				<SyntaxLegend keys={context.keys} syntax={context.syntax} />
+				<KeyboardHints enterHint={enterHint} />
 				{children != null && (
 					<div data-slot="query-input-content-footer" className="mt-2">
 						{children}
@@ -724,27 +798,29 @@ function Content({ "data-slot": dataSlot, children, className, ref }: QueryInput
  * value or a typo does not leave the user with only the legend.
  */
 function EmptySuggestions({
+	id,
 	keys,
 	valueKey,
 }: {
+	id: string;
 	keys: readonly RemoteFilterKeyDefinition[];
 	valueKey: string | undefined;
 }) {
 	const definition = keys.find((candidate) => candidate.key === valueKey);
-	const className = "text-body mb-2 text-sm";
+	const className = "text-body px-2 py-3 text-sm";
 
 	// Each case is its own keyed `<p>`, so a switch replaces a whole element
 	// and never a text node that a translation engine rewrote.
 	if (definition == null) {
 		return (
-			<p key="text" className={className}>
+			<p key="text" id={id} className={className}>
 				No filter matches. The words search as text.
 			</p>
 		);
 	}
 	if (definition.values == null) {
 		return (
-			<p key="free-value" className={className}>
+			<p key="free-value" id={id} className={className}>
 				<SyntaxRule token={`${definition.key}:`}>
 					{definition.description == null
 						? "Any text matches."
@@ -754,7 +830,7 @@ function EmptySuggestions({
 		);
 	}
 	return (
-		<p key="listed-value" className={className}>
+		<p key="listed-value" id={id} className={className}>
 			<span>No value matches. Delete the value after</span>{" "}
 			<Code className="text-xs">{definition.key}:</Code> <span>to see all values.</span>
 		</p>
@@ -800,6 +876,36 @@ function SyntaxLegend({
 					<SyntaxRule token={rule.token}>{rule.text}</SyntaxRule>{" "}
 				</span>
 			))}
+		</p>
+	);
+}
+
+/** The keys the field answers to, under the syntax legend. */
+function KeyboardHints({ enterHint }: { enterHint: string }) {
+	return (
+		<p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+			<span className="inline-flex items-center gap-1">
+				<Kbd>
+					<span className="sr-only">Up arrow</span>
+					<span aria-hidden>↑</span>
+				</Kbd>
+				<Kbd>
+					<span className="sr-only">Down arrow</span>
+					<span aria-hidden>↓</span>
+				</Kbd>{" "}
+				<span>pick a suggestion</span>
+			</span>{" "}
+			<span className="inline-flex items-center gap-1">
+				<Kbd>
+					<span className="sr-only">Enter</span>
+					<span aria-hidden>↵</span>
+				</Kbd>{" "}
+				<span>{enterHint}</span>
+			</span>{" "}
+			<span className="inline-flex items-center gap-1">
+				{/* The chip is square by default, which clips a three-letter key. */}
+				<Kbd className="w-auto px-1">esc</Kbd> <span>close</span>
+			</span>
 		</p>
 	);
 }
@@ -918,9 +1024,7 @@ function SuggestionList() {
  * const [query, setQuery] = useState("");
  *
  * <QueryInput.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
- *   <QueryInput.Field aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared">
- *     <IconButton type="button" appearance="ghost" intent="neutral" size="xs" label="Clear filter" icon={<XIcon />} onClick={() => setQuery("")} />
- *   </QueryInput.Field>
+ *   <QueryInput.Field aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared" />
  *   <QueryInput.Content />
  * </QueryInput.Root>
  * ```
@@ -938,9 +1042,7 @@ const QueryInput = {
 	 * const [query, setQuery] = useState("");
 	 *
 	 * <QueryInput.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
-	 *   <QueryInput.Field aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared">
-	 *     <IconButton type="button" appearance="ghost" intent="neutral" size="xs" label="Clear filter" icon={<XIcon />} onClick={() => setQuery("")} />
-	 *   </QueryInput.Field>
+	 *   <QueryInput.Field aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared" />
 	 *   <QueryInput.Content />
 	 * </QueryInput.Root>
 	 * ```
@@ -948,8 +1050,8 @@ const QueryInput = {
 	Root,
 	/**
 	 * The query field: a real `<input role="combobox">` painted over by a colored
-	 * copy of its own text, with a leading magnifier. Children render after the
-	 * text as inline actions.
+	 * copy of its own text, with a leading magnifier and a clear button.
+	 * Children render after the text as inline actions.
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/query-input#queryinputfield
 	 *
@@ -958,9 +1060,7 @@ const QueryInput = {
 	 * const [query, setQuery] = useState("");
 	 *
 	 * <QueryInput.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
-	 *   <QueryInput.Field aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared">
-	 *     <IconButton type="button" appearance="ghost" intent="neutral" size="xs" label="Clear filter" icon={<XIcon />} onClick={() => setQuery("")} />
-	 *   </QueryInput.Field>
+	 *   <QueryInput.Field aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared" />
 	 *   <QueryInput.Content />
 	 * </QueryInput.Root>
 	 * ```
@@ -968,7 +1068,8 @@ const QueryInput = {
 	Field,
 	/**
 	 * The suggestion popover: a listbox of keys and values for the token under
-	 * the caret, then the syntax legend. Children render under the legend.
+	 * the caret, then the syntax legend and the keyboard hints. Children render
+	 * under the hints.
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/query-input#queryinputcontent
 	 *
@@ -977,9 +1078,7 @@ const QueryInput = {
 	 * const [query, setQuery] = useState("");
 	 *
 	 * <QueryInput.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
-	 *   <QueryInput.Field aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared">
-	 *     <IconButton type="button" appearance="ghost" intent="neutral" size="xs" label="Clear filter" icon={<XIcon />} onClick={() => setQuery("")} />
-	 *   </QueryInput.Field>
+	 *   <QueryInput.Field aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared" />
 	 *   <QueryInput.Content />
 	 * </QueryInput.Root>
 	 * ```

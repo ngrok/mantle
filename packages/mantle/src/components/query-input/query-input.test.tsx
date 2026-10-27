@@ -332,12 +332,43 @@ describe("QueryInput.Field", () => {
 		expect(screen.getByText("description").closest('[aria-hidden="true"]')?.scrollLeft).toBe(40);
 	});
 
+	test("clears the query and refocuses the field from its clear button", async () => {
+		const { input, values } = renderQueryInput({ initialValue: "is:shared " });
+
+		const clear = screen.getByRole("button", { name: "Clear filter" });
+		expect(input.closest('[data-slot~="input"]')).toContainElement(clear);
+		fireEvent.click(clear);
+
+		expect(input).toHaveValue("");
+		expect(values).toEqual([""]);
+		expect(input).toHaveFocus();
+		expect(screen.queryByRole("button", { name: "Clear filter" })).not.toBeInTheDocument();
+	});
+
+	test("shows no clear button while the query is empty", () => {
+		renderQueryInput();
+
+		expect(screen.queryByRole("button", { name: "Clear filter" })).not.toBeInTheDocument();
+	});
+
+	test("shows no clear button on a field the user cannot edit", () => {
+		renderQueryInput({ initialValue: "is:shared", fieldProps: { readOnly: true } });
+
+		expect(screen.queryByRole("button", { name: "Clear filter" })).not.toBeInTheDocument();
+	});
+
+	test("names the clear button with clearLabel", () => {
+		renderQueryInput({ initialValue: "acme", fieldProps: { clearLabel: "Clear search" } });
+
+		expect(screen.getByRole("button", { name: "Clear search" })).toBeInTheDocument();
+	});
+
 	test("renders its children as inline actions inside the input's box", () => {
 		const { input } = renderQueryInput({
-			fieldChildren: <button type="button">Clear filter</button>,
+			fieldChildren: <button type="button">Copy query</button>,
 		});
 
-		const action = screen.getByRole("button", { name: "Clear filter" });
+		const action = screen.getByRole("button", { name: "Copy query" });
 		expect(input.closest('[data-slot~="input"]')).toContainElement(action);
 		expect(action.parentElement).toHaveAttribute("data-slot", "query-input-field-actions");
 	});
@@ -426,11 +457,7 @@ describe("QueryInput.Field", () => {
 			const [value, setValue] = useState("");
 			return (
 				<QueryInput.Root grammar={testGrammar} value={value} onValueChange={setValue}>
-					<QueryInput.Field aria-label="Filter projects" placeholder="Filter">
-						<button type="button" onClick={() => setValue("")}>
-							Clear filter
-						</button>
-					</QueryInput.Field>
+					<QueryInput.Field aria-label="Filter projects" placeholder="Filter" />
 					<QueryInput.Content />
 				</QueryInput.Root>
 			);
@@ -453,6 +480,28 @@ describe("QueryInput.Field", () => {
 });
 
 describe("QueryInput.Content", () => {
+	test("shows the keyboard hints under the legend, with the host's Enter action", async () => {
+		const { input } = renderQueryInput();
+
+		input.focus();
+		await screen.findByRole("listbox");
+		expect(screen.getByText("pick a suggestion")).toBeInTheDocument();
+		expect(screen.getByText("select")).toBeInTheDocument();
+		expect(input).toHaveAccessibleDescription(/Enter select/);
+	});
+
+	test("names the host's own Enter action with enterHint", async () => {
+		render(
+			<QueryInput.Root grammar={testGrammar} value="" onValueChange={() => {}}>
+				<QueryInput.Field aria-label="Search" placeholder="Search" />
+				<QueryInput.Content enterHint="select, or search" />
+			</QueryInput.Root>,
+		);
+
+		screen.getByRole("combobox").focus();
+		expect(await screen.findByText("select, or search")).toBeInTheDocument();
+	});
+
 	test("exposes the listbox as the popup, with no dialog around it", async () => {
 		const { input } = renderQueryInput();
 

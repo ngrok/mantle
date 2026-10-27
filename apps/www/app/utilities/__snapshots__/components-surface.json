@@ -724,7 +724,7 @@
     "jsdoc": "A single-line filter field where free text and `key:value` qualifiers interleave.",
     "examples": [
       "Composition:\n```\nQueryInput.Root\n├── QueryInput.Field\n└── QueryInput.Content\n```",
-      "```tsx\nconst [query, setQuery] = useState(\"\");\n\n<QueryInput.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>\n  <QueryInput.Field aria-label=\"Filter projects\" placeholder=\"Filter projects, or type a filter like is:shared\">\n    <IconButton type=\"button\" appearance=\"ghost\" intent=\"neutral\" size=\"xs\" label=\"Clear filter\" icon={<XIcon />} onClick={() => setQuery(\"\")} />\n  </QueryInput.Field>\n  <QueryInput.Content />\n</QueryInput.Root>\n```"
+      "```tsx\nconst [query, setQuery] = useState(\"\");\n\n<QueryInput.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>\n  <QueryInput.Field aria-label=\"Filter projects\" placeholder=\"Filter projects, or type a filter like is:shared\" />\n  <QueryInput.Content />\n</QueryInput.Root>\n```"
     ],
     "siblings": [
       {
