@@ -28,7 +28,6 @@ import {
 	type HighlightSegmentKind,
 	getHighlightSegments,
 } from "../../utils/query-filter/highlight.js";
-import { countItemsByQuery } from "../../utils/query-filter/match.js";
 import {
 	type FilterSuggestion,
 	type FilterSuggestionSection,
@@ -75,8 +74,6 @@ type QueryInputContextValue = {
 	suggestions: FilterSuggestions;
 	/** The colored runs the field paints over its own text. */
 	segments: HighlightSegment[];
-	/** Counts the items a query matches. `undefined` when `Root` has no `items`. */
-	countMatches: ((query: string) => number) | undefined;
 	/** Whether the suggestion popover shows. */
 	isListboxOpen: boolean;
 	setIsOpen: (open: boolean) => void;
@@ -272,8 +269,6 @@ function Root<Item extends object>({
 			keys: grammar.keys,
 			suggestions,
 			segments: getHighlightSegments(grammar, value),
-			countMatches:
-				items == null ? undefined : (query: string) => countItemsByQuery(grammar, items, query),
 			isListboxOpen:
 				isOpen && content != null && (suggestions.items.length > 0 || content.hasChildren),
 			setIsOpen: setOpen,

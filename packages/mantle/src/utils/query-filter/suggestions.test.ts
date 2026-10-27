@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import { defineRemoteFilterGrammar } from "./grammar.js";
+import { filterItemsByQuery } from "./match.js";
 import { getFilterSuggestions } from "./suggestions.js";
 import { testGrammar, testItems } from "./test-grammar.js";
 
@@ -193,6 +194,39 @@ describe("value suggestions", () => {
 		const { items } = getFilterSuggestions({ grammar, query: "tag:", caretIndex: 4 });
 
 		expect(items.map((item) => item.insertText)).toEqual(["a,b"]);
+	});
+});
+
+describe("value match counts", () => {
+	test.each([
+		"is:",
+		"acme is:",
+		"-acme is:",
+		"is:new OR is:",
+		"lemur OR acme is:",
+		"is:bogus is:",
+		"name:acme is:new,",
+		'is:"',
+	])("equal the rows the filter keeps for each value of %s", (query) => {
+		const items = testItems.map((item) => ({ ...item }));
+		const {
+			items: rows,
+			replaceStart,
+			replaceEnd,
+		} = getFilterSuggestions({
+			grammar: testGrammar,
+			query,
+			caretIndex: query.length,
+			items,
+		});
+
+		expect(rows.length).toBeGreaterThan(0);
+		for (const row of rows) {
+			const accepted = query.slice(0, replaceStart) + row.insertText + query.slice(replaceEnd);
+			expect(row.matchCount).toBe(
+				filterItemsByQuery({ grammar: testGrammar, items, query: accepted }).length,
+			);
+		}
 	});
 });
 

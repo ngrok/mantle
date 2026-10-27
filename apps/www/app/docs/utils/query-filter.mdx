@@ -104,7 +104,9 @@ const visibleProjects = filterItemsByQuery({
 });
 ```
 
-`countItemsByQuery(grammar, items, query)` counts the matches without building the array. It caches the count per grammar, items array, and query, so the counts in the suggestions cost one scan for each query.
+`countItemsByQuery(grammar, items, query)` counts the matches without building the array. It caches up to 1,000 counts per grammar and items array, so the counts in the suggestions cost one scan for each query.
+
+The engine caches the search text per item and per items array. Treat items as immutable: replace a changed item with a new object, and pass a new array, as React state already requires.
 
 ## A query that a server runs
 

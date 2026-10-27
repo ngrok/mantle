@@ -7,7 +7,7 @@ import {
 	resolveFilterKey,
 	resolveFilterValue,
 } from "./grammar.js";
-import { countItemsByQuery } from "./match.js";
+import { countItemsByQuery, countItemsByRestAndToken } from "./match.js";
 import {
 	type FacetToken,
 	type FilterToken,
@@ -227,6 +227,30 @@ function getValueSuggestions<Item extends object>(
 			.map((member) => member.value.toLowerCase()),
 	);
 
+	// Every row rewrites only this token. Without an `OR`, the query is one AND
+	// group, so the rest of it filters the items once for all the rows.
+	const restQuery = `${query.slice(0, token.start)} ${query.slice(token.end)}`;
+	const isOneGroup = !parseFilterQuery(grammar, query).some((other) => other.kind === "or");
+	const quotes = getFilterSyntax(grammar) !== "qualifiers";
+
+	function countAccepted(insertText: string) {
+		if (items == null) {
+			return undefined;
+		}
+		const accepted = query.slice(0, replaceStart) + insertText + query.slice(replaceEnd);
+		if (!isOneGroup) {
+			return countItemsByQuery(grammar, items, accepted);
+		}
+		return countItemsByRestAndToken({
+			grammar,
+			items,
+			query: accepted,
+			restQuery,
+			tokenQuery:
+				query.slice(token.start, replaceStart) + insertText + query.slice(replaceEnd, token.end),
+		});
+	}
+
 	const rows = getValueCandidates(definition)
 		.filter((candidate) =>
 			valueMatchesTyped({ grammar, key: definition.key, value: candidate.value, typed }),
@@ -234,11 +258,7 @@ function getValueSuggestions<Item extends object>(
 		.filter((candidate) => !pickedElsewhere.has(candidate.value.toLowerCase()))
 		.map((candidate): FilterSuggestion => {
 			// A `"qualifiers"` grammar reads quotes as literal text, so it takes the value as is.
-			const insertText =
-				getFilterSyntax(grammar) === "qualifiers"
-					? candidate.value
-					: quoteFilterValue(candidate.value);
-			const accepted = query.slice(0, replaceStart) + insertText + query.slice(replaceEnd);
+			const insertText = quotes ? quoteFilterValue(candidate.value) : candidate.value;
 
 			return {
 				section: "values",
@@ -247,7 +267,7 @@ function getValueSuggestions<Item extends object>(
 				// Counting with the real matcher over the accepted query is the
 				// honest number; the count cache keeps it one scan per distinct
 				// query, so caret moves re-ask for free.
-				matchCount: items == null ? undefined : countItemsByQuery(grammar, items, accepted),
+				matchCount: countAccepted(insertText),
 				insertText,
 				completes: true,
 			};

@@ -225,6 +225,24 @@ describe("countItemsByQuery", () => {
 		expect(matches).toHaveBeenCalledTimes(items.length);
 	});
 
+	test("starts the cache over once it holds 1000 counts for one items array", () => {
+		const definition = testGrammar.keys.find((key) => key.key === "is");
+		if (definition == null) {
+			throw new Error("the test grammar lost its is key");
+		}
+		const items = freshItems();
+		countItemsByQuery(testGrammar, items, "is:new");
+		for (let index = 1; index < 1000; index += 1) {
+			countItemsByQuery(testGrammar, items, `name:${index}`);
+		}
+		const matches = vi.spyOn(definition, "matches");
+
+		// The cache is full, so this count clears it and is stored alone.
+		countItemsByQuery(testGrammar, items, "name:full");
+		expect(countItemsByQuery(testGrammar, items, "is:new")).toBe(1);
+		expect(matches).toHaveBeenCalledTimes(items.length);
+	});
+
 	test("recounts when the items array is replaced", () => {
 		const definition = testGrammar.keys.find((key) => key.key === "is");
 		if (definition == null) {
