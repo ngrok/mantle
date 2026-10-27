@@ -73,6 +73,19 @@ describe("CodeBlock", () => {
 			expect(html).not.toContain("-moz-tab-size");
 		});
 
+		test("drops a prefixed tab size from a consumer style", () => {
+			const html = renderToString(
+				<CodeBlock.Root>
+					<CodeBlock.Body>
+						<CodeBlock.Code style={{ MozTabSize: 4 }} value={makeValue("\tconst x = 1;")} />
+					</CodeBlock.Body>
+				</CodeBlock.Root>,
+			);
+
+			expect(html).toMatch(/tab-size:2[;"]/);
+			expect(html).not.toContain("-moz-tab-size");
+		});
+
 		test("renders plain text fallback when preHtml is missing", () => {
 			const value = createMantleCodeBlockValue({
 				language: "typescript",

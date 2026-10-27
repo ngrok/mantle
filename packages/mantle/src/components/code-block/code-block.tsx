@@ -498,9 +498,11 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 				{
 					...style,
 					"--mantle-line-number-start": String(effectiveLineNumberStart),
-					// Why no `MozTabSize`: React writes it as `-moz-tab-size: 2px`, and
-					// Firefox reads that alias over `tab-size`, so a tab shrinks to 2px.
 					tabSize: 2,
+					// Why clear `MozTabSize`: React writes a number as `-moz-tab-size: 2px`,
+					// and Firefox reads that alias over `tab-size`, so a tab shrinks to 2px.
+					// Clear it after the spread so a consumer style cannot set it.
+					MozTabSize: undefined,
 				} as ComponentProps<"pre">["style"]
 			}
 			{...props}
