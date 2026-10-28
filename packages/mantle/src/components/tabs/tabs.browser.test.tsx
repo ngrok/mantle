@@ -30,6 +30,7 @@ const TABS_LAYOUT_STYLE = `
 	.h-px { height: 1px; }
 	.w-px { width: 1px; }
 	.w-full { width: 100%; }
+	.select-none { user-select: none; }
 	.h-full { height: 100%; }
 	.h-auto { height: auto; }
 	.self-stretch { align-self: stretch; }
@@ -262,4 +263,79 @@ test("a second real click on the same trigger fires again when the root kept its
 	await userEvent.click(tab);
 
 	expect(onValueChange).toHaveBeenCalledTimes(2);
+});
+
+function PlainTabs() {
+	return (
+		<Tabs.Root defaultValue="a">
+			<Tabs.List>
+				<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
+				<Tabs.Trigger value="b">Tab B</Tabs.Trigger>
+			</Tabs.List>
+			<Tabs.Content value="a">Panel A</Tabs.Content>
+			<Tabs.Content value="b">Panel B</Tabs.Content>
+		</Tabs.Root>
+	);
+}
+
+// Why Tab first: Chromium gives a focus moved by script the focus ring state of
+// the element that had focus before, so the bug shows only after keyboard focus.
+test("a click after keyboard focus activates the tab without the focus ring", async () => {
+	render(<PlainTabs />);
+	const tab = screen.getByRole("tab", { name: "Tab B" });
+	await userEvent.keyboard("{Tab}");
+
+	await userEvent.click(tab);
+
+	expect(tab).toHaveAttribute("aria-selected", "true");
+	expect(tab).toHaveFocus();
+	expect(tab.matches(":focus-visible")).toBe(false);
+});
+
+test("the arrow keys move a focus that shows the focus ring", async () => {
+	render(<PlainTabs />);
+	const tab = screen.getByRole("tab", { name: "Tab B" });
+	await userEvent.click(screen.getByRole("tab", { name: "Tab A" }));
+
+	await userEvent.keyboard("{ArrowRight}");
+
+	expect(tab).toHaveFocus();
+	expect(tab.matches(":focus-visible")).toBe(true);
+});
+
+/** Tabs whose triggers are `asChild` links, the shape a router link takes. */
+function LinkTabs() {
+	return (
+		<Tabs.Root defaultValue="a">
+			<Tabs.List>
+				<Tabs.Trigger value="a" asChild>
+					<a href="#a">Tab A</a>
+				</Tabs.Trigger>
+				<Tabs.Trigger value="b" asChild>
+					<a href="#b">Tab B</a>
+				</Tabs.Trigger>
+			</Tabs.List>
+		</Tabs.Root>
+	);
+}
+
+test("a press that moves on an asChild link starts no drag", async () => {
+	render(<LinkTabs />);
+	const tab = screen.getByRole("tab", { name: "Tab B" });
+	let dragStarted = false;
+	tab.addEventListener("dragstart", () => {
+		dragStarted = true;
+	});
+
+	await userEvent.dragAndDrop(tab, screen.getByRole("tab", { name: "Tab A" }));
+
+	expect(dragStarted).toBe(false);
+});
+
+test("a selection across the tabs copies the panel text and no tab label", () => {
+	const { container } = render(<PlainTabs />);
+
+	document.getSelection()?.selectAllChildren(container);
+
+	expect(document.getSelection()?.toString()).toBe("Panel A");
 });
