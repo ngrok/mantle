@@ -26,6 +26,7 @@ const mantleShikiLanguageGrammarIds = [
 	"bash",
 	"csharp",
 	"css",
+	"dotenv",
 	"go",
 	"html",
 	"java",
