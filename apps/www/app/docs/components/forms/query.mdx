@@ -165,7 +165,14 @@ export function QueryExample() {
 					aria-label="Filter projects"
 					placeholder="Filter projects, or type a filter like is:shared"
 				/>
-				<Query.Content />
+				<Query.Content>
+					<Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+					<Query.Empty />
+					<Query.Footer>
+						<Query.Legend />
+						<Query.KeyboardHints />
+					</Query.Footer>
+				</Query.Content>
 			</Query.Root>
 			<DataTable.Root table={table}>
 				<DataTable.Head />
@@ -205,21 +212,43 @@ The query is the only state, and you own it through `value` and `onValueChange`.
 Query.Root
 ├── Query.Input
 └── Query.Content
+    ├── Query.List
+    │   └── Query.Item
+    ├── Query.Empty
+    └── Query.Footer
+        ├── Query.Legend
+        └── Query.KeyboardHints
 ```
 
 `Root` lays out its children in one row, so put your own buttons beside the field there. `Input` is the field. `Content` is the suggestion popover; without it, the field is a highlighted input with no suggestions.
+
+You compose the popover from its parts:
+
+- `List` is the listbox. Its child is a function that gets each suggestion and returns a `Query.Item` for it. Pass children to `Item` to show your own row content.
+- `Empty` shows when no suggestion matches. By default, it says what the field accepts at the caret. Pass children to show your own message.
+- `Footer` stays under the rows while they scroll. Put `Legend`, `KeyboardHints`, and your own content, such as a link to your filter docs, in it.
+
+Leave out a part to remove it. Wrap your own text in `Footer` in an element, such as a `<p>`, so it is not bare text beside the legend.
 
 ## Polymorphism
 
 `Query.Root` takes `asChild`. Use it to render the row as your own element, such as a `<section>` with its own label, while `Root` keeps the state and the layout classes.
 
-`Input` and `Content` don't take `asChild`. Each one renders a group of elements together (the field's shell, its painted copy, and the `<input>`, or the listbox and the legend), so there's no single element to swap.
+`Query.Footer` takes `asChild`. Use it to render the footer as your own element, while the footer keeps its `id` and the input keeps it as its description.
+
+The other parts don't take `asChild`:
+
+- `Input` renders the field's shell, its painted copy, and the `<input>` together.
+- `Content` wraps `Popover.Content`, whose element Radix positions.
+- `List` renders the section groups and their headings.
+- `Item` must stay the `role="option"` element that the input names through `aria-activedescendant`.
+- `Empty`, `Legend`, and `KeyboardHints` render their own content.
 
 ## Inline actions and a footer
 
 While the query has text, `Query.Input` shows a clear button at its right edge. The button empties the query and moves focus back to the field. Set `clearLabel` to rename it. Set `onClear` for work that only a clear does, such as applying the empty query at once. Other children of `Query.Input` render before the clear button. Pass ghost `xs` icon buttons.
 
-`Query.Content` shows keyboard hints under the syntax legend. When Enter submits a form, set `enterHint` to name that action, such as `"select, or search"`. Children of `Query.Content` render under the hints. When no suggestion matches, the popover stays open and an empty state says what the field accepts there.
+`Query.KeyboardHints` shows the keys the field answers to. When Enter submits a form, set `enterHint` to name that action, such as `"select, or search"`. Put your own footer content in `Query.Footer`, after the hints.
 
 <Example>
 	<InlineActionsQueryExample />
@@ -257,7 +286,13 @@ export function InlineActionsQueryExample() {
 				/>
 			</Query.Input>
 			<Query.Content>
-				<p>Filters apply as you type.</p>
+				<Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+				<Query.Empty />
+				<Query.Footer>
+					<Query.Legend />
+					<Query.KeyboardHints />
+					<p>Filters apply as you type.</p>
+				</Query.Footer>
 			</Query.Content>
 		</Query.Root>
 	);
@@ -313,7 +348,14 @@ export function RemoteQueryExample() {
 				<Button type="submit" appearance="outlined" intent="neutral">
 					Search
 				</Button>
-				<Query.Content />
+				<Query.Content>
+					<Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+					<Query.Empty />
+					<Query.Footer>
+						<Query.Legend />
+						<Query.KeyboardHints />
+					</Query.Footer>
+				</Query.Content>
 			</Query.Root>
 			<p className="text-muted text-sm">
 				{submittedQuery == null ? "Press Enter to search." : `The server runs: ${submittedQuery}`}
@@ -325,7 +367,7 @@ export function RemoteQueryExample() {
 
 ## Large lists
 
-The match counts and the live filter each run one pass over `items` per keystroke. For thousands of rows, or a list that streams in, apply the query on Enter: wrap the field in a `<form>`, leave out `items`, and set `enterHint`. Enter with no active suggestion submits the form. The [Query from the URL](/recipes/query-from-the-url#apply-on-enter) recipe has the hook and a demo.
+The match counts and the live filter each run one pass over `items` per keystroke. For thousands of rows, or a list that streams in, apply the query on Enter: wrap the field in a `<form>`, leave out `items`, and set `enterHint` on `Query.KeyboardHints`. Enter with no active suggestion submits the form. The [Query from the URL](/recipes/query-from-the-url#apply-on-enter) recipe has the hook and a demo.
 
 ## Filter from a value
 
@@ -358,7 +400,14 @@ export function TokenColorsQueryExample() {
 				aria-label="Filter projects"
 				placeholder="Filter projects, or type a filter like is:shared"
 			/>
-			<Query.Content />
+			<Query.Content>
+				<Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+				<Query.Empty />
+				<Query.Footer>
+					<Query.Legend />
+					<Query.KeyboardHints />
+				</Query.Footer>
+			</Query.Content>
 		</Query.Root>
 	);
 }
@@ -373,11 +422,11 @@ The field is a real `<input role="combobox">` with `aria-autocomplete="list"`. T
 - Enter accepts the active suggestion. With no active suggestion, Enter closes the list and lets the event reach your form. Escape closes the list.
 - A caret move retires the active suggestion, so Enter can't accept a row from a list you didn't see.
 - While an IME composes, every key goes to the IME.
-- While the popover is open, the syntax legend joins the input's accessible description, after any description you set.
+- While the popover is open, `Query.Footer` joins the input's accessible description, after any description you set. While no suggestion matches, `Query.Empty` joins it too.
 
 Name the field with `aria-label`, or put it in a [Field](/components/forms/field) and label it with `Field.Label`. Inside `Field.Control`, the field takes its `id`, `name`, `aria-describedby`, `aria-errormessage`, and `aria-invalid` from the `Field.Item`.
 
-The section headings ("Filter by", "Exclude", "Values"), the legend, and the listbox name ("Filter suggestions") are English copy that mantle sets.
+The section headings ("Filter by", "Exclude", "Values"), the legend, the keyboard hints, and the default empty message are English copy that mantle sets. The listbox name defaults to "Filter suggestions"; set `aria-label` on `Query.List` to change it.
 
 ## API Reference
 
@@ -411,7 +460,7 @@ The query field. `className` and `style` go to the field's outer element, as on 
 | `onClear`          | `() => void`                                                                                             | none             | Called after the clear button empties the query.                                                                                    |
 | `ref`              | `Ref<HTMLInputElement>`                                                                                  | none             | The `<input>` element.                                                                                                              |
 | `validation`       | `"error"` \| `"success"` \| `"warning"` \| `false` \| `() => "error" \| "success" \| "warning" \| false` | none             | The validation state. It sets the border, and `"error"` also sets `aria-invalid`. Inside `Field.Control`, the `Field.Item` sets it. |
-| `aria-describedby` | `string`                                                                                                 | none             | The field's own description. The syntax legend joins it while the popover is open.                                                  |
+| `aria-describedby` | `string`                                                                                                 | none             | The field's own description. `Query.Footer` joins it while the popover is open.                                                     |
 
 | CSS Variable             | Default                        | Description                     |
 | ------------------------ | ------------------------------ | ------------------------------- |
@@ -429,20 +478,90 @@ The query field. `className` and `style` go to the field's outer element, as on 
 
 ### Query.Content
 
-The suggestion popover: the listbox for the token under the caret, then the syntax legend and the keyboard hints. The legend shows only the syntax the grammar honors. It accepts the `Popover.Content` props except the ones it owns: `align`, `role`, `preferredWidth`, the auto-focus handlers, and `onInteractOutside`.
+The suggestion popover. It holds the parts you compose into it and keeps focus in the field. It accepts the `Popover.Content` props except the ones it owns: `align`, `role`, `preferredWidth`, the auto-focus handlers, and `onInteractOutside`.
 
-| Prop                                                    | Type                  | Default    | Description                                                                         |
-| ------------------------------------------------------- | --------------------- | ---------- | ----------------------------------------------------------------------------------- |
-| `children`                                              | `ReactNode`           | none       | Content under the keyboard hints.                                                   |
-| `enterHint`                                             | `string`              | `"select"` | What Enter does, in the keyboard hints. Name your action when Enter submits a form. |
-| `className`                                             | `string`              | none       | Classes for the popover.                                                            |
-| `ref`                                                   | `Ref<HTMLDivElement>` | none       | The popover element.                                                                |
-| `side`, `sideOffset`, `id`, `style`, `aria-*`, `data-*` |                       | none       | Go to the popover, as on `Popover.Content`.                                         |
+| Prop                                                    | Type                  | Default | Description                                                           |
+| ------------------------------------------------------- | --------------------- | ------- | --------------------------------------------------------------------- |
+| `children`                                              | `ReactNode`           | none    | The parts: `Query.List`, `Query.Empty`, and `Query.Footer`. Required. |
+| `className`                                             | `string`              | none    | Classes for the popover.                                              |
+| `ref`                                                   | `Ref<HTMLDivElement>` | none    | The popover element.                                                  |
+| `side`, `sideOffset`, `id`, `style`, `aria-*`, `data-*` |                       | none    | Go to the popover, as on `Popover.Content`.                           |
 
-| Data Attribute | Value                    | Description                                 |
-| -------------- | ------------------------ | ------------------------------------------- |
-| `data-slot`    | `"query-content"`        | On the popover, beside `"popover-content"`. |
-| `data-slot`    | `"query-content-footer"` | On the `div` that wraps the children.       |
-| `data-state`   | `"open"` \| `"closed"`   | On the popover, from Radix.                 |
-| `data-side`    | `"top"` \| `"bottom"`    | On the popover: the side it opened on.      |
-| `data-align`   | `"start"`                | On the popover.                             |
+| Data Attribute | Value                  | Description                                 |
+| -------------- | ---------------------- | ------------------------------------------- |
+| `data-slot`    | `"query-content"`      | On the popover, beside `"popover-content"`. |
+| `data-state`   | `"open"` \| `"closed"` | On the popover, from Radix.                 |
+| `data-side`    | `"top"` \| `"bottom"`  | On the popover: the side it opened on.      |
+| `data-align`   | `"start"`              | On the popover.                             |
+
+### Query.List
+
+The suggestion listbox for the token under the caret. It groups the rows under "Filter by", "Exclude", and "Values", and it scrolls when the rows don't fit. It accepts every `div` prop except `id` and `role`.
+
+| Prop         | Type                                          | Default                | Description                                                                                                                  |
+| ------------ | --------------------------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `children`   | `(suggestion: FilterSuggestion) => ReactNode` | none                   | Renders one suggestion. Return a `Query.Item` for every suggestion, because the arrow keys move through every one. Required. |
+| `aria-label` | `string`                                      | `"Filter suggestions"` | The accessible name of the listbox.                                                                                          |
+
+| Data Attribute | Value          | Description     |
+| -------------- | -------------- | --------------- |
+| `data-slot`    | `"query-list"` | On the listbox. |
+
+### Query.Item
+
+One suggestion row: a `role="option"` that inserts its suggestion on a click. The arrow keys in the field make a row active, and Enter inserts it. It accepts every `div` prop except `id`, `role`, `tabIndex`, and `aria-selected`. Your event handlers run first; call `preventDefault()` in `onClick` to skip the insert.
+
+| Prop         | Type               | Default | Description                                                                                     |
+| ------------ | ------------------ | ------- | ----------------------------------------------------------------------------------------------- |
+| `suggestion` | `FilterSuggestion` | none    | The suggestion this row inserts. Pass the one `Query.List` hands its function. Required.        |
+| `children`   | `ReactNode`        | none    | The row's content. When omitted, the row shows the label, the description, and the match count. |
+
+| Data Attribute     | Value          | Description                                                       |
+| ------------------ | -------------- | ----------------------------------------------------------------- |
+| `data-slot`        | `"query-item"` | On the option.                                                    |
+| `data-highlighted` | present        | While the row is active, or under the pointer with no active row. |
+
+### Query.Empty
+
+The message that shows in place of the rows when no suggestion matches. It accepts every `div` prop except `id`.
+
+| Prop       | Type        | Default | Description                                                             |
+| ---------- | ----------- | ------- | ----------------------------------------------------------------------- |
+| `children` | `ReactNode` | none    | The message. When omitted, it says what the field accepts at the caret. |
+
+| Data Attribute | Value           | Description     |
+| -------------- | --------------- | --------------- |
+| `data-slot`    | `"query-empty"` | On the message. |
+
+### Query.Footer
+
+The area under the rows, pinned while the rows scroll. It accepts every `div` prop except `id`. The footer sets its own `id`, so the field can name it as its description. With `asChild`, that `id` replaces the id of the child.
+
+| Prop       | Type        | Default | Description                                                         |
+| ---------- | ----------- | ------- | ------------------------------------------------------------------- |
+| `children` | `ReactNode` | none    | `Query.Legend`, `Query.KeyboardHints`, and your own content.        |
+| `asChild`  | `boolean`   | `false` | Render the footer as the child element and merge the props onto it. |
+
+| Data Attribute | Value            | Description    |
+| -------------- | ---------------- | -------------- |
+| `data-slot`    | `"query-footer"` | On the footer. |
+
+### Query.Legend
+
+The syntax reminder. It shows only the syntax the grammar honors. It accepts every `p` prop except `children`.
+
+| Data Attribute | Value            | Description    |
+| -------------- | ---------------- | -------------- |
+| `data-slot`    | `"query-legend"` | On the legend. |
+
+### Query.KeyboardHints
+
+The keys the field answers to: the arrows, Enter, and Escape. It accepts every `p` prop except `children`.
+
+| Prop        | Type     | Default    | Description                                                  |
+| ----------- | -------- | ---------- | ------------------------------------------------------------ |
+| `enterHint` | `string` | `"select"` | What Enter does. Name your action when Enter submits a form. |
+
+| Data Attribute | Value                    | Description   |
+| -------------- | ------------------------ | ------------- |
+| `data-slot`    | `"query-keyboard-hints"` | On the hints. |

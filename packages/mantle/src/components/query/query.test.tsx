@@ -11,6 +11,24 @@ import { Query, type QueryInputProps } from "./query.js";
 type ExtraFieldProps = Partial<Omit<QueryInputProps, "placeholder">> &
 	Record<`data-${string}`, string>;
 
+/**
+ * The popover with every part, the way a product composes it. Its children
+ * render in the footer, after the hints.
+ */
+function QueryContent({ children, enterHint }: { children?: ReactNode; enterHint?: string }) {
+	return (
+		<Query.Content>
+			<Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+			<Query.Empty />
+			<Query.Footer>
+				<Query.Legend />
+				<Query.KeyboardHints enterHint={enterHint} />
+				{children}
+			</Query.Footer>
+		</Query.Content>
+	);
+}
+
 /** Props for {@link ControlledQuery}. */
 type ControlledQueryProps = {
 	/** The query the input starts with. */
@@ -23,7 +41,7 @@ type ControlledQueryProps = {
 	fieldProps?: ExtraFieldProps;
 	/** Children of `Query.Input`: the inline actions. */
 	fieldChildren?: ReactNode;
-	/** Children of `Query.Content`: the footer under the legend. */
+	/** Content in `Query.Footer`, after the hints. */
 	footer?: ReactNode;
 };
 
@@ -55,7 +73,7 @@ function ControlledQuery({
 			>
 				{fieldChildren}
 			</Query.Input>
-			<Query.Content>{footer}</Query.Content>
+			<QueryContent>{footer}</QueryContent>
 		</Query.Root>
 	);
 }
@@ -107,7 +125,7 @@ function renderRemoteQuery(grammar: ReturnType<typeof defineRemoteFilterGrammar>
 	render(
 		<Query.Root grammar={grammar} value="" onValueChange={() => {}}>
 			<Query.Input aria-label="Search" placeholder="Search" />
-			<Query.Content />
+			<QueryContent />
 		</Query.Root>,
 	);
 	return screen.getByRole<HTMLInputElement>("combobox", { name: "Search" });
@@ -516,7 +534,7 @@ describe("Query.Input", () => {
 			return (
 				<Query.Root grammar={testGrammar} value={value} onValueChange={setValue}>
 					<Query.Input aria-label="Filter projects" placeholder="Filter" />
-					<Query.Content />
+					<QueryContent />
 				</Query.Root>
 			);
 		}
@@ -542,7 +560,7 @@ describe("Query.Input", () => {
 			return (
 				<Query.Root grammar={testGrammar} items={items} value={value} onValueChange={setValue}>
 					<Query.Input aria-label="Filter projects" placeholder="Filter" />
-					<Query.Content />
+					<QueryContent />
 				</Query.Root>
 			);
 		}
@@ -563,13 +581,223 @@ describe("Query.Input", () => {
 	});
 });
 
+describe("Query.List and Query.Item", () => {
+	test("forward className and join data-slot on the listbox and each row", async () => {
+		const rows: HTMLDivElement[] = [];
+		const listRef = createRef<HTMLDivElement>();
+		render(
+			<Query.Root grammar={testGrammar} value="" onValueChange={() => {}}>
+				<Query.Input aria-label="Filter projects" placeholder="Filter" />
+				<Query.Content>
+					<Query.List ref={listRef} className="list" data-slot="mine">
+						{(suggestion) => (
+							<Query.Item
+								suggestion={suggestion}
+								className="row"
+								data-slot="mine"
+								ref={(element) => {
+									if (element != null) {
+										rows.push(element);
+									}
+								}}
+							/>
+						)}
+					</Query.List>
+				</Query.Content>
+			</Query.Root>,
+		);
+
+		screen.getByRole("combobox").focus();
+		const listbox = await screen.findByRole("listbox", { name: "Filter suggestions" });
+		const [row] = within(listbox).getAllByRole("option");
+
+		expect(listRef.current).toBe(listbox);
+		expect(listbox).toHaveClass("list");
+		expect(listbox).toHaveAttribute("data-slot", "mine query-list");
+		expect(row).toHaveClass("row");
+		expect(row).toHaveAttribute("data-slot", "mine query-item");
+		expect(rows).toContain(row);
+	});
+
+	test("renders an item's own content, and a click still inserts its suggestion", async () => {
+		function Host() {
+			const [value, setValue] = useState("");
+			return (
+				<Query.Root grammar={testGrammar} value={value} onValueChange={setValue}>
+					<Query.Input aria-label="Filter" placeholder="Filter" />
+					<Query.Content>
+						<Query.List>
+							{(suggestion) => (
+								<Query.Item suggestion={suggestion}>
+									<span>Add {suggestion.label}</span>
+								</Query.Item>
+							)}
+						</Query.List>
+					</Query.Content>
+				</Query.Root>
+			);
+		}
+		render(<Host />);
+		const field = screen.getByRole("combobox", { name: "Filter" });
+
+		field.focus();
+		fireEvent.click(await screen.findByRole("option", { name: "Add is:" }));
+
+		expect(field).toHaveValue("is:");
+	});
+
+	test("skips the insert when the item's onClick prevents the default", async () => {
+		const onValueChange = vi.fn<(value: string) => void>();
+		render(
+			<Query.Root grammar={testGrammar} value="" onValueChange={onValueChange}>
+				<Query.Input aria-label="Filter" placeholder="Filter" />
+				<Query.Content>
+					<Query.List>
+						{(suggestion) => (
+							<Query.Item suggestion={suggestion} onClick={(event) => event.preventDefault()} />
+						)}
+					</Query.List>
+				</Query.Content>
+			</Query.Root>,
+		);
+
+		screen.getByRole("combobox").focus();
+		fireEvent.click(await screen.findByRole("option", { name: /^is:/ }));
+
+		expect(onValueChange).not.toHaveBeenCalled();
+	});
+
+	test("throws for a suggestion the list did not hand it", () => {
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		const suggestion = {
+			section: "filters",
+			label: "owner:",
+			insertText: "owner:",
+			completes: false,
+		} as const;
+
+		expect(() =>
+			render(
+				<Query.Root grammar={testGrammar} value="" onValueChange={() => {}}>
+					<Query.Item suggestion={suggestion} />
+				</Query.Root>,
+			),
+		).toThrow("Query.Item takes a suggestion from the Query.List render function.");
+	});
+});
+
+describe("Query.Empty", () => {
+	test("shows its own message in place of the default, as the input's description", async () => {
+		const ref = createRef<HTMLDivElement>();
+		render(
+			<Query.Root grammar={testGrammar} value="zzzz" onValueChange={() => {}}>
+				<Query.Input aria-label="Filter" placeholder="Filter" />
+				<Query.Content>
+					<Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+					<Query.Empty ref={ref} className="empty" data-slot="mine">
+						Nothing to suggest
+					</Query.Empty>
+				</Query.Content>
+			</Query.Root>,
+		);
+		const input = screen.getByRole("combobox");
+
+		input.focus();
+		const empty = await screen.findByText("Nothing to suggest");
+
+		expect(ref.current).toBe(empty);
+		expect(empty).toHaveClass("empty");
+		expect(empty).toHaveAttribute("data-slot", "mine query-empty");
+		expect(screen.queryByText(/No filter matches/)).not.toBeInTheDocument();
+		expect(input).toHaveAccessibleDescription("Nothing to suggest");
+	});
+});
+
+describe("Query.Footer", () => {
+	test("merges its props, classes, and ref onto its child with asChild", async () => {
+		const ref = createRef<HTMLDivElement>();
+		render(
+			<Query.Root grammar={testGrammar} value="" onValueChange={() => {}}>
+				<Query.Input aria-label="Filter" placeholder="Filter" />
+				<Query.Content>
+					<Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+					<Query.Footer asChild ref={ref} className="footer" data-test="footer">
+						<section className="own">Filter docs</section>
+					</Query.Footer>
+				</Query.Content>
+			</Query.Root>,
+		);
+		const input = screen.getByRole("combobox");
+
+		input.focus();
+		const footer = await screen.findByText("Filter docs");
+
+		expect(footer.tagName).toBe("SECTION");
+		expect(footer).toHaveClass("footer", "own");
+		expect(footer).toHaveAttribute("data-slot", "query-footer");
+		expect(footer).toHaveAttribute("data-test", "footer");
+		expect(ref.current).toBe(footer);
+		expect(input).toHaveAccessibleDescription("Filter docs");
+	});
+
+	test("keeps the input's description when its asChild child has its own id", async () => {
+		render(
+			<Query.Root grammar={testGrammar} value="" onValueChange={() => {}}>
+				<Query.Input aria-label="Filter" placeholder="Filter" />
+				<Query.Content>
+					<Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+					<Query.Footer asChild>
+						<section id="help">Filter docs</section>
+					</Query.Footer>
+				</Query.Content>
+			</Query.Root>,
+		);
+		const input = screen.getByRole("combobox");
+
+		input.focus();
+		await screen.findByText("Filter docs");
+
+		expect(input).toHaveAccessibleDescription("Filter docs");
+	});
+
+	test("forwards className, data-slot, and ref on the legend and the hints", async () => {
+		const legendRef = createRef<HTMLParagraphElement>();
+		const hintsRef = createRef<HTMLParagraphElement>();
+		render(
+			<Query.Root grammar={testGrammar} value="" onValueChange={() => {}}>
+				<Query.Input aria-label="Filter" placeholder="Filter" />
+				<Query.Content>
+					<Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+					<Query.Footer>
+						<Query.Legend ref={legendRef} className="legend" data-slot="mine" />
+						<Query.KeyboardHints ref={hintsRef} className="hints" data-slot="mine" />
+					</Query.Footer>
+				</Query.Content>
+			</Query.Root>,
+		);
+
+		screen.getByRole("combobox").focus();
+		const legend = (await screen.findByText("excludes")).closest("p");
+		const hints = screen.getByText("pick a suggestion").closest("p");
+
+		expect(legendRef.current).toBe(legend);
+		expect(hintsRef.current).toBe(hints);
+		expect(legend).toHaveClass("legend");
+		expect(legend).toHaveAttribute("data-slot", "mine query-legend");
+		expect(hints).toHaveClass("hints");
+		expect(hints).toHaveAttribute("data-slot", "mine query-keyboard-hints");
+	});
+});
+
 describe("Query.Content", () => {
 	test("forwards className, ref, data-slot, and popover props to the popover", async () => {
 		const ref = createRef<HTMLDivElement>();
 		render(
 			<Query.Root grammar={testGrammar} value="" onValueChange={() => {}}>
 				<Query.Input aria-label="Filter projects" placeholder="Filter" />
-				<Query.Content ref={ref} className="custom" data-slot="mine" id="suggestions" />
+				<Query.Content ref={ref} className="custom" data-slot="mine" id="suggestions">
+					<Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+				</Query.Content>
 			</Query.Root>,
 		);
 
@@ -597,7 +825,7 @@ describe("Query.Content", () => {
 		render(
 			<Query.Root grammar={testGrammar} value="" onValueChange={() => {}}>
 				<Query.Input aria-label="Search" placeholder="Search" />
-				<Query.Content enterHint="select, or search" />
+				<QueryContent enterHint="select, or search" />
 			</Query.Root>,
 		);
 
@@ -741,6 +969,56 @@ describe("Query.Content", () => {
 		expect(fireEvent.keyDown(input, { key: "Enter" })).toBe(true);
 	});
 
+	test("accepts no hidden row on Enter when the popover has no list", async () => {
+		const values: string[] = [];
+		render(
+			<Query.Root grammar={testGrammar} value="" onValueChange={(value) => values.push(value)}>
+				<Query.Input aria-label="Filter" placeholder="Filter" />
+				<Query.Content>
+					<Query.Footer>Filter docs</Query.Footer>
+				</Query.Content>
+			</Query.Root>,
+		);
+		const input = screen.getByRole("combobox");
+
+		input.focus();
+		await screen.findByText("Filter docs");
+		fireEvent.keyDown(input, { key: "ArrowDown" });
+
+		expect(input).not.toHaveAttribute("aria-activedescendant");
+		expect(input).not.toHaveAttribute("aria-controls");
+		expect(fireEvent.keyDown(input, { key: "Enter" })).toBe(true);
+		expect(values).toEqual([]);
+	});
+
+	test("adds no highlight when a row's mouse handlers prevent the default", async () => {
+		render(
+			<Query.Root grammar={testGrammar} value="" onValueChange={() => {}}>
+				<Query.Input aria-label="Filter" placeholder="Filter" />
+				<Query.Content>
+					<Query.List>
+						{(suggestion) => (
+							<Query.Item
+								suggestion={suggestion}
+								onMouseMove={(event) => event.preventDefault()}
+								onMouseLeave={(event) => event.preventDefault()}
+							/>
+						)}
+					</Query.List>
+				</Query.Content>
+			</Query.Root>,
+		);
+
+		screen.getByRole("combobox").focus();
+		const [firstOption] = within(await screen.findByRole("listbox")).getAllByRole("option");
+		if (firstOption == null) {
+			throw new Error("expected the key list to have options");
+		}
+		fireEvent.mouseMove(firstOption);
+
+		expect(firstOption).not.toHaveAttribute("data-highlighted");
+	});
+
 	// A pointer at rest over the open list must not make a row active, or Enter
 	// inserts that row instead of submitting the typed query.
 	test("lets Enter reach a hosting form while the pointer rests on a row", async () => {
@@ -864,7 +1142,7 @@ describe("Query.Content", () => {
 		expect(input).toHaveValue("is:new,shared,archived");
 	});
 
-	test("renders its children under the legend when no suggestion matches", async () => {
+	test("renders the footer under the empty state when no suggestion matches", async () => {
 		const { input } = renderQuery({
 			initialValue: "zzzz",
 			footer: <p>Press Enter to apply</p>,
@@ -873,7 +1151,7 @@ describe("Query.Content", () => {
 		input.focus();
 
 		const footer = await screen.findByText("Press Enter to apply");
-		expect(footer.parentElement).toHaveAttribute("data-slot", "query-content-footer");
+		expect(footer.parentElement).toHaveAttribute("data-slot", "query-footer");
 		expect(screen.queryAllByRole("option")).toHaveLength(0);
 	});
 
@@ -892,7 +1170,7 @@ describe("Query.Content", () => {
 			return (
 				<Query.Root grammar={testGrammar} value="" onValueChange={() => {}}>
 					<Query.Input aria-label="Filter projects" placeholder="Filter" readOnly={readOnly} />
-					<Query.Content />
+					<QueryContent />
 				</Query.Root>
 			);
 		}
@@ -913,7 +1191,7 @@ describe("Query.Content", () => {
 		render(
 			<Query.Root grammar={grammar} value="zzzz" onValueChange={() => {}}>
 				<Query.Input aria-label="Search" placeholder="Search" />
-				<Query.Content />
+				<QueryContent />
 			</Query.Root>,
 		);
 
@@ -931,7 +1209,10 @@ describe("Query.Content", () => {
 				<Query.Root grammar={testGrammar} value={value} onValueChange={setValue}>
 					<Query.Input aria-label="Filter projects" placeholder="Filter" />
 					<Query.Content>
-						{value === "" ? "Type a filter" : <strong>Filtering</strong>}
+						<Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+						<Query.Footer>
+							{value === "" ? "Type a filter" : <strong>Filtering</strong>}
+						</Query.Footer>
 					</Query.Content>
 				</Query.Root>
 			);
@@ -940,9 +1221,7 @@ describe("Query.Content", () => {
 		const input = screen.getByRole("combobox");
 
 		input.focus();
-		const footer = (await screen.findByText("Type a filter")).closest(
-			'[data-slot="query-content-footer"]',
-		);
+		const footer = (await screen.findByText("Type a filter")).closest('[data-slot="query-footer"]');
 		if (footer == null) {
 			throw new Error("expected the footer wrapper");
 		}

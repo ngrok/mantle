@@ -125,7 +125,14 @@ export function NaturalLanguageQueryDemo() {
 							/>
 						)}
 					</Query.Input>
-					<Query.Content enterHint="select, or search" />
+					<Query.Content>
+						<Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+						<Query.Empty />
+						<Query.Footer>
+							<Query.Legend />
+							<Query.KeyboardHints enterHint="select, or search" />
+						</Query.Footer>
+					</Query.Content>
 				</Query.Root>
 			</form>
 			<div className="flex min-h-8 flex-wrap items-center gap-x-3 text-sm">
@@ -169,7 +176,7 @@ export function NaturalLanguageQueryDemo() {
 }
 ```
 
-The arrow button inside the field submits the same form, for people who reach for the mouse. `enterHint` names the new meaning of Enter in the keyboard hints.
+The arrow button inside the field submits the same form, for people who reach for the mouse. `enterHint` on `Query.KeyboardHints` names the new meaning of Enter.
 
 Try "shared projects not archived named billing", "old stuff", or "tell me a joke". Then type `is:` and press Enter: a query that already holds a filter never goes to the model.
 

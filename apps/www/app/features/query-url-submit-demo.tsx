@@ -26,7 +26,14 @@ export function QueryFromUrlSubmitDemo() {
 						aria-label="Filter projects"
 						placeholder="Filter projects, then press Enter"
 					/>
-					<Query.Content enterHint="select, or apply the filter" />
+					<Query.Content>
+						<Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+						<Query.Empty />
+						<Query.Footer>
+							<Query.Legend />
+							<Query.KeyboardHints enterHint="select, or apply the filter" />
+						</Query.Footer>
+					</Query.Content>
 				</Query.Root>
 			</form>
 			<ul className="text-body space-y-1 text-sm">

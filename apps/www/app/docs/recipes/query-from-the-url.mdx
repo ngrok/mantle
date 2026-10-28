@@ -75,7 +75,14 @@ export function QueryFromUrlDemo() {
 					aria-label="Filter projects"
 					placeholder="Filter projects, or type a filter like is:shared"
 				/>
-				<Query.Content />
+				<Query.Content>
+					<Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+					<Query.Empty />
+					<Query.Footer>
+						<Query.Legend />
+						<Query.KeyboardHints />
+					</Query.Footer>
+				</Query.Content>
 			</Query.Root>
 			<DataTable.Root table={table}>
 				<DataTable.Head />
@@ -209,7 +216,7 @@ Filter with `useDeferredValue(query)`, as the demo does, so a long list re-rende
 Filtering on every keystroke is right for most lists. When one filter pass over the list is too slow to run while a person types, as with thousands of rows or a list that streams in, apply the query on Enter instead. Pass `commitOn: "submit"`, and filter by `appliedQuery`, the query in the URL:
 
 - Wrap the field in a `<form>`. Enter with no active suggestion submits it, and the submit handler calls `submit`.
-- Set `enterHint`, so the keyboard hints say that Enter applies the filter.
+- Set `enterHint` on `Query.KeyboardHints`, so the hints say that Enter applies the filter.
 - Leave out `items`. Each match count is one more filter pass, so the suggestions show none.
 - A clear still applies at once, so the clear button and the empty field agree.
 
@@ -248,7 +255,14 @@ export function QueryFromUrlSubmitDemo() {
 						aria-label="Filter projects"
 						placeholder="Filter projects, then press Enter"
 					/>
-					<Query.Content enterHint="select, or apply the filter" />
+					<Query.Content>
+						<Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+						<Query.Empty />
+						<Query.Footer>
+							<Query.Legend />
+							<Query.KeyboardHints enterHint="select, or apply the filter" />
+						</Query.Footer>
+					</Query.Content>
 				</Query.Root>
 			</form>
 			<ul className="text-body space-y-1 text-sm">

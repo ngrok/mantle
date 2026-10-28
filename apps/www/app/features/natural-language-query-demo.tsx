@@ -100,7 +100,14 @@ export function NaturalLanguageQueryDemo() {
 							/>
 						)}
 					</Query.Input>
-					<Query.Content enterHint="select, or search" />
+					<Query.Content>
+						<Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+						<Query.Empty />
+						<Query.Footer>
+							<Query.Legend />
+							<Query.KeyboardHints enterHint="select, or search" />
+						</Query.Footer>
+					</Query.Content>
 				</Query.Root>
 			</form>
 			<div className="flex min-h-8 flex-wrap items-center gap-x-3 text-sm">
