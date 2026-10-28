@@ -7,6 +7,7 @@ export const supportedLanguages = [
 	"cs",
 	"csharp",
 	"css",
+	"dotenv",
 	"go",
 	"html",
 	"java",
