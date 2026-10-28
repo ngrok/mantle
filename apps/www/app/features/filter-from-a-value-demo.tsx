@@ -104,7 +104,14 @@ export function FilterFromAValueDemo() {
 					aria-label="Filter projects"
 					placeholder="Filter projects, or select a state in the table"
 				/>
-				<Query.Content />
+				<Query.Content>
+					<Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+					<Query.Empty />
+					<Query.Footer>
+						<Query.Legend />
+						<Query.KeyboardHints />
+					</Query.Footer>
+				</Query.Content>
 			</Query.Root>
 			<DataTable.Root table={table}>
 				<DataTable.Head />

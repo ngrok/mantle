@@ -11,6 +11,7 @@ import type {
 	SetStateAction,
 } from "react";
 import {
+	Fragment,
 	createContext,
 	useCallback,
 	useContext,
@@ -102,7 +103,8 @@ type QueryContextValue = {
 	hoveredIndex: number | null;
 	setHoveredIndex: (index: number | null) => void;
 	listboxId: string;
-	legendId: string;
+	/** The id of `Query.Footer`, which joins the `<input>`'s description while the list shows. */
+	footerId: string;
 	/** The id of the message that shows when no row matches. */
 	emptyStateId: string;
 	/** Handles a typed edit from the `<input>`. */
@@ -191,7 +193,14 @@ type QueryRootProps<Item extends object> = Omit<ComponentProps<"div">, "defaultV
  *
  * <Query.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
  *   <Query.Input aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared" />
- *   <Query.Content />
+ *   <Query.Content>
+ *     <Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+ *     <Query.Empty />
+ *     <Query.Footer>
+ *       <Query.Legend />
+ *       <Query.KeyboardHints />
+ *     </Query.Footer>
+ *   </Query.Content>
  * </Query.Root>
  * ```
  */
@@ -300,7 +309,7 @@ function Root<Item extends object>({
 			keys: grammar.keys,
 			suggestions,
 			segments: getHighlightSegments(grammar, value),
-			// With no rows, the popover stays open: its empty state and the legend
+			// With no rows, the popover stays open: its empty state and the footer
 			// still tell the user what to type next.
 			isListboxOpen: isOpen && hasContent,
 			setIsOpen: setOpen,
@@ -309,7 +318,7 @@ function Root<Item extends object>({
 			hoveredIndex,
 			setHoveredIndex,
 			listboxId,
-			legendId: `${listboxId}-legend`,
+			footerId: `${listboxId}-footer`,
 			emptyStateId: `${listboxId}-empty`,
 			syncCaret,
 			reportTypedValue: (input) => {
@@ -454,7 +463,7 @@ type QueryInputProps = Omit<
  * `<input>`. A disabled or read-only field shows no suggestions. Inside
  * `Field.Item`, the field reads its `id`, `name`, `aria-describedby`,
  * `aria-errormessage`, and `aria-invalid` from `Field.Control`. While the
- * suggestions show, the syntax legend joins the `<input>`'s description.
+ * suggestions show, `Query.Footer` joins the `<input>`'s description.
  *
  * While the query has text and the field is editable, a clear button shows
  * at the right edge. It empties the query and moves focus back to the field.
@@ -488,7 +497,14 @@ type QueryInputProps = Omit<
  *
  * <Query.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
  *   <Query.Input aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared" />
- *   <Query.Content />
+ *   <Query.Content>
+ *     <Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+ *     <Query.Empty />
+ *     <Query.Footer>
+ *       <Query.Legend />
+ *       <Query.KeyboardHints />
+ *     </Query.Footer>
+ *   </Query.Content>
  * </Query.Root>
  * ```
  */
@@ -532,7 +548,7 @@ function Input({
 	const describedByIds = [
 		ownDescription,
 		context.isListboxOpen && hasNoRows ? context.emptyStateId : undefined,
-		context.isListboxOpen ? context.legendId : undefined,
+		context.isListboxOpen ? context.footerId : undefined,
 	]
 		.filter((value) => value != null && value !== "")
 		.join(" ");
@@ -762,38 +778,24 @@ type QueryContentProps = Omit<
 	| "role"
 > &
 	WithDataSlot & {
-		/** Content under the keyboard hints, such as a link to the filter docs. */
-		children?: ReactNode;
-		/**
-		 * What Enter does, in the keyboard hints. Name the host's own action when
-		 * Enter submits a form, such as `"select, or search"`.
-		 *
-		 * @default "select"
-		 */
-		enterHint?: string;
+		/** The parts of the popover: `Query.List`, `Query.Empty`, and `Query.Footer`. */
+		children: ReactNode;
 	};
 
 /**
- * The suggestion popover: a listbox of keys and values for the token under
- * the caret, grouped under "Filter by", "Exclude", and "Values", then the
- * syntax legend. Focus never leaves the field; the active row is announced
- * through `aria-activedescendant`. The legend describes only the syntax the
- * grammar honors.
- *
- * When no row matches, an empty state above the legend says what the
- * field accepts there. Keyboard hints follow the legend; `enterHint` names
- * what Enter does. Children render under the hints, in a
- * `[data-slot="query-content-footer"]` `div`. It accepts the `Popover.Content`
- * props except the ones it owns.
+ * The suggestion popover. It holds the parts you compose into it, and it
+ * keeps focus in the field: the active row is announced through
+ * `aria-activedescendant`. It accepts the `Popover.Content` props except the
+ * ones it owns.
  *
  * **Data attributes:**
  *
- * | Attribute    | Value                    | Description                                 |
- * | ------------ | ------------------------ | ------------------------------------------- |
- * | `data-slot`  | `"query-content"`        | On the popover, beside `"popover-content"`. |
- * | `data-slot`  | `"query-content-footer"` | On the `div` that wraps the children.       |
- * | `data-state` | `"open"` \| `"closed"`   | On the popover, from Radix.                 |
- * | `data-side`  | `"top"` \| `"bottom"`    | On the popover: the side it opened on.      |
+ * | Attribute    | Value                  | Description                                 |
+ * | ------------ | ---------------------- | ------------------------------------------- |
+ * | `data-slot`  | `"query-content"`      | On the popover, beside `"popover-content"`. |
+ * | `data-state` | `"open"` \| `"closed"` | On the popover, from Radix.                 |
+ * | `data-side`  | `"top"` \| `"bottom"`  | On the popover: the side it opened on.      |
+ * | `data-align` | `"start"`              | On the popover.                             |
  *
  * @see https://mantle.ngrok.com/components/forms/query#querycontent
  *
@@ -803,24 +805,23 @@ type QueryContentProps = Omit<
  *
  * <Query.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
  *   <Query.Input aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared" />
- *   <Query.Content />
+ *   <Query.Content>
+ *     <Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+ *     <Query.Empty />
+ *     <Query.Footer>
+ *       <Query.Legend />
+ *       <Query.KeyboardHints />
+ *     </Query.Footer>
+ *   </Query.Content>
  * </Query.Root>
  * ```
  */
-// Why no asChild: the part renders the listbox and the legend itself.
-function Content({
-	"data-slot": dataSlot,
-	children,
-	className,
-	enterHint = "select",
-	ref,
-	...props
-}: QueryContentProps) {
+// Why no asChild: the part wraps `Popover.Content`, whose element Radix positions.
+function Content({ "data-slot": dataSlot, children, className, ref, ...props }: QueryContentProps) {
 	const context = useQueryContext("Query.Content");
 	const { anchorRef, contentRef } = useQueryRefs("Query.Content");
 	const composedRef = useComposedRefs(ref, contentRef);
 	const { registerContent } = context;
-	const rowCount = context.suggestions.items.length;
 
 	// Why an effect: `Content` is a later sibling of `Input`, so the render pass
 	// cannot hand its presence to the `<input>`'s `aria-expanded`. The server
@@ -856,73 +857,309 @@ function Content({
 				}
 			}}
 		>
-			{/* Only the options scroll; the legend below stays pinned. */}
-			<div className="max-h-72 overflow-y-auto">
-				<SuggestionList />
-				{rowCount === 0 && (
-					<EmptySuggestions
-						id={context.emptyStateId}
-						keys={context.keys}
-						syntax={context.syntax}
-						valueKey={context.suggestions.key}
-					/>
-				)}
-			</div>
-			{/* It bleeds through the popover's `p-1`, so the border spans edge to edge. */}
-			<div
-				id={context.legendId}
-				className="text-muted border-popover -mx-1 -mb-1 mt-1 border-t px-3 pt-2 pb-2 text-xs"
-			>
-				<SyntaxLegend keys={context.keys} syntax={context.syntax} />
-				<KeyboardHints enterHint={enterHint} />
-				{children != null && (
-					<div data-slot="query-content-footer" className="mt-2">
-						{children}
-					</div>
-				)}
-			</div>
+			{children}
 		</Popover.Content>
 	);
 }
 
 /**
- * What the field accepts at the caret when no row matches, so a free-text
- * value or a typo does not leave the user with only the legend.
+ * The props for `Query.List`.
  */
-function EmptySuggestions({
-	id,
+type QueryListProps = Omit<ComponentProps<"div">, "children" | "id" | "role"> &
+	WithDataSlot & {
+		/**
+		 * Renders one suggestion. Return a `Query.Item` for it. The list calls it
+		 * for each suggestion under the caret, in order.
+		 */
+		children: (suggestion: FilterSuggestion) => ReactNode;
+	};
+
+/**
+ * The suggestion listbox for the token under the caret. It groups the rows
+ * under "Filter by", "Exclude", and "Values", and it scrolls when the rows
+ * do not fit. `aria-label` names the listbox and defaults to
+ * `"Filter suggestions"`.
+ *
+ * **Data attributes:**
+ *
+ * | Attribute   | Value          | Description          |
+ * | ----------- | -------------- | -------------------- |
+ * | `data-slot` | `"query-list"` | On the listbox.      |
+ *
+ * @see https://mantle.ngrok.com/components/forms/query#querylist
+ *
+ * @example
+ * ```tsx
+ * const [query, setQuery] = useState("");
+ *
+ * <Query.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
+ *   <Query.Input aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared" />
+ *   <Query.Content>
+ *     <Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+ *     <Query.Empty />
+ *     <Query.Footer>
+ *       <Query.Legend />
+ *       <Query.KeyboardHints />
+ *     </Query.Footer>
+ *   </Query.Content>
+ * </Query.Root>
+ * ```
+ */
+// Why no asChild: the part renders the section groups and their headings itself.
+function List({ "data-slot": dataSlot, children, className, ...props }: QueryListProps) {
+	const context = useQueryContext("Query.List");
+
+	const rowsBySection = new Map<FilterSuggestionSection, FilterSuggestion[]>();
+	for (const suggestion of context.suggestions.items) {
+		const rows = rowsBySection.get(suggestion.section) ?? [];
+		rows.push(suggestion);
+		rowsBySection.set(suggestion.section, rows);
+	}
+
+	return (
+		<div
+			role="listbox"
+			aria-label="Filter suggestions"
+			{...props}
+			id={context.listboxId}
+			data-slot={joinDataSlot(dataSlot, "query-list")}
+			className={cx("max-h-72 overflow-y-auto", className)}
+		>
+			{[...rowsBySection].map(([section, rows]) => (
+				<div key={section} role="group" aria-label={sectionHeadings[section]}>
+					<span aria-hidden className="text-muted block px-2 pt-2 pb-1 text-xs font-medium">
+						{sectionHeadings[section]}
+					</span>
+					{rows.map((suggestion) => (
+						<Fragment key={suggestion.label}>{children(suggestion)}</Fragment>
+					))}
+				</div>
+			))}
+		</div>
+	);
+}
+
+/**
+ * Keeps the active option visible inside the scrolling listbox. Focus stays on
+ * the input, so the browser never scrolls the option into view on its own.
+ */
+function scrollActiveOptionIntoView(element: HTMLDivElement | null) {
+	element?.scrollIntoView({ block: "nearest" });
+}
+
+/**
+ * The props for `Query.Item`.
+ */
+type QueryItemProps = Omit<ComponentProps<"div">, "aria-selected" | "id" | "role" | "tabIndex"> &
+	WithDataSlot & {
+		/** The suggestion this row inserts. Pass the one `Query.List` hands its render function. */
+		suggestion: FilterSuggestion;
+		/**
+		 * The row's content. When omitted, the row shows the suggestion's label,
+		 * its description, and its match count.
+		 */
+		children?: ReactNode;
+	};
+
+/**
+ * One suggestion row: a `role="option"` that inserts its suggestion on a
+ * click. The arrow keys in the field make a row active, and Enter inserts it.
+ * A click keeps focus and the caret in the field.
+ *
+ * **Data attributes:**
+ *
+ * | Attribute          | Value          | Description                                                       |
+ * | ------------------ | -------------- | ----------------------------------------------------------------- |
+ * | `data-slot`        | `"query-item"` | On the option.                                                    |
+ * | `data-highlighted` | present        | While the row is active, or under the pointer with no active row. |
+ *
+ * @see https://mantle.ngrok.com/components/forms/query#queryitem
+ *
+ * @example
+ * ```tsx
+ * const [query, setQuery] = useState("");
+ *
+ * <Query.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
+ *   <Query.Input aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared" />
+ *   <Query.Content>
+ *     <Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+ *     <Query.Empty />
+ *     <Query.Footer>
+ *       <Query.Legend />
+ *       <Query.KeyboardHints />
+ *     </Query.Footer>
+ *   </Query.Content>
+ * </Query.Root>
+ * ```
+ */
+// Why no asChild: the input names the row through `aria-activedescendant`, so the row stays an option.
+function Item({
+	"data-slot": dataSlot,
+	children,
+	className,
+	onClick,
+	onMouseDown,
+	onMouseLeave,
+	onMouseMove,
+	ref,
+	suggestion,
+	...props
+}: QueryItemProps) {
+	const context = useQueryContext("Query.Item");
+	const index = context.suggestions.items.indexOf(suggestion);
+	invariant(index !== -1, "Query.Item takes a suggestion from the Query.List render function.");
+	const isActive = index === context.activeIndex;
+	// The scroll ref attaches only while the row is active, so activation scrolls it into view.
+	const composedRef = useComposedRefs(ref, isActive ? scrollActiveOptionIntoView : null);
+	const isHighlighted = isActive || (context.activeIndex == null && index === context.hoveredIndex);
+
+	return (
+		// Why the rule is off: the keyboard contract of an `aria-activedescendant`
+		// combobox lives on the input, which keeps focus for the whole widget.
+		// oxlint-disable-next-line jsx-a11y/click-events-have-key-events -- the combobox input owns the keyboard contract
+		<div
+			{...props}
+			ref={composedRef}
+			role="option"
+			id={optionId(context.listboxId, index)}
+			tabIndex={-1}
+			aria-selected={isActive}
+			data-highlighted={isHighlighted ? "" : undefined}
+			data-slot={joinDataSlot(dataSlot, "query-item")}
+			className={cx(
+				"data-highlighted:bg-accent-500/10 flex cursor-pointer flex-wrap items-baseline gap-x-2 gap-y-0.5 rounded px-2 py-1.5 text-sm",
+				className,
+			)}
+			onMouseDown={(event) => {
+				onMouseDown?.(event);
+				// Keep focus in the input, so the caret never jumps on a click.
+				event.preventDefault();
+			}}
+			onMouseMove={(event) => {
+				onMouseMove?.(event);
+				context.setHoveredIndex(index);
+			}}
+			onMouseLeave={(event) => {
+				onMouseLeave?.(event);
+				context.setHoveredIndex(null);
+			}}
+			onClick={(event) => {
+				onClick?.(event);
+				if (!event.defaultPrevented) {
+					context.acceptSuggestion(suggestion);
+				}
+			}}
+		>
+			{children ?? (
+				<>
+					<span translate="no" className="text-strong font-mono">
+						{suggestion.label}
+					</span>
+					{suggestion.description != null && (
+						<span className="text-muted text-xs">{suggestion.description}</span>
+					)}
+					{suggestion.matchCount != null && (
+						<span className="text-muted ml-auto text-xs tabular-nums">{suggestion.matchCount}</span>
+					)}
+				</>
+			)}
+		</div>
+	);
+}
+
+/**
+ * The props for `Query.Empty`.
+ */
+type QueryEmptyProps = Omit<ComponentProps<"div">, "id"> &
+	WithDataSlot & {
+		/**
+		 * The message. When omitted, the part says what the field accepts at the
+		 * caret, from the grammar.
+		 */
+		children?: ReactNode;
+	};
+
+/**
+ * The message that shows in place of the rows when no suggestion matches. The
+ * popover stays open, so a free-text value or a typo does not leave the user
+ * with only the legend. While it shows, it joins the `<input>`'s description.
+ *
+ * **Data attributes:**
+ *
+ * | Attribute   | Value           | Description      |
+ * | ----------- | --------------- | ---------------- |
+ * | `data-slot` | `"query-empty"` | On the message.  |
+ *
+ * @see https://mantle.ngrok.com/components/forms/query#queryempty
+ *
+ * @example
+ * ```tsx
+ * const [query, setQuery] = useState("");
+ *
+ * <Query.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
+ *   <Query.Input aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared" />
+ *   <Query.Content>
+ *     <Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+ *     <Query.Empty />
+ *     <Query.Footer>
+ *       <Query.Legend />
+ *       <Query.KeyboardHints />
+ *     </Query.Footer>
+ *   </Query.Content>
+ * </Query.Root>
+ * ```
+ */
+// Why no asChild: the default message is a choice of elements, so there is no single child to merge onto.
+function Empty({ "data-slot": dataSlot, children, className, ...props }: QueryEmptyProps) {
+	const context = useQueryContext("Query.Empty");
+	if (context.suggestions.items.length > 0) {
+		return null;
+	}
+
+	return (
+		<div
+			{...props}
+			id={context.emptyStateId}
+			data-slot={joinDataSlot(dataSlot, "query-empty")}
+			className={cx("text-body px-2 py-3 text-sm", className)}
+		>
+			{children ?? (
+				<EmptyMessage
+					keys={context.keys}
+					syntax={context.syntax}
+					valueKey={context.suggestions.key}
+				/>
+			)}
+		</div>
+	);
+}
+
+/** What the field accepts at the caret, from the grammar. */
+function EmptyMessage({
 	keys,
 	syntax,
 	valueKey,
 }: {
-	id: string;
 	keys: readonly RemoteFilterKeyDefinition[];
 	syntax: FilterSyntax;
 	valueKey: string | undefined;
 }) {
 	const definition = keys.find((candidate) => candidate.key === valueKey);
-	const className = "text-body px-2 py-3 text-sm";
 
 	// Each case is its own keyed `<p>`, so a switch replaces a whole element
 	// and never a text node that a translation engine rewrote.
 	// A conjunction executor reads no free text, so the words cannot search.
 	if (definition == null && syntax === "conjunction") {
 		return (
-			<p key="qualifiers-only" id={id} className={className}>
-				No filter matches. This search reads only key:value filters.
-			</p>
+			<p key="qualifiers-only">No filter matches. This search reads only key:value filters.</p>
 		);
 	}
 	if (definition == null) {
-		return (
-			<p key="text" id={id} className={className}>
-				No filter matches. The words search as text.
-			</p>
-		);
+		return <p key="text">No filter matches. The words search as text.</p>;
 	}
 	if (definition.values == null) {
 		return (
-			<p key="free-value" id={id} className={className}>
+			<p key="free-value">
 				<SyntaxRule token={`${definition.key}:`}>
 					{definition.description == null
 						? "Any text matches."
@@ -932,7 +1169,7 @@ function EmptySuggestions({
 		);
 	}
 	return (
-		<p key="listed-value" id={id} className={className}>
+		<p key="listed-value">
 			<span>No value matches. Delete the value after</span>{" "}
 			<Code className="text-xs">{definition.key}:</Code> <span>to see all values.</span>
 		</p>
@@ -940,20 +1177,102 @@ function EmptySuggestions({
 }
 
 /**
- * The syntax reminder under the suggestions. It describes only what the
- * grammar honors, so a remote grammar never advertises an `OR` its executor
- * refuses.
+ * The props for `Query.Footer`.
  */
-function SyntaxLegend({
-	keys,
-	syntax,
-}: {
-	keys: readonly RemoteFilterKeyDefinition[];
-	syntax: FilterSyntax;
-}) {
+type QueryFooterProps = Omit<ComponentProps<"div">, "id"> & WithAsChild & WithDataSlot;
+
+/**
+ * The area under the rows, pinned while the rows scroll. Compose
+ * `Query.Legend`, `Query.KeyboardHints`, and your own content, such as a link
+ * to the filter docs. While the popover is open, the footer joins the
+ * `<input>`'s description.
+ *
+ * **Data attributes:**
+ *
+ * | Attribute   | Value            | Description     |
+ * | ----------- | ---------------- | --------------- |
+ * | `data-slot` | `"query-footer"` | On the footer.  |
+ *
+ * @see https://mantle.ngrok.com/components/forms/query#queryfooter
+ *
+ * @example
+ * ```tsx
+ * const [query, setQuery] = useState("");
+ *
+ * <Query.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
+ *   <Query.Input aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared" />
+ *   <Query.Content>
+ *     <Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+ *     <Query.Empty />
+ *     <Query.Footer>
+ *       <Query.Legend />
+ *       <Query.KeyboardHints />
+ *     </Query.Footer>
+ *   </Query.Content>
+ * </Query.Root>
+ * ```
+ */
+function Footer({ "data-slot": dataSlot, asChild = false, className, ...props }: QueryFooterProps) {
+	const context = useQueryContext("Query.Footer");
+	const Comp = asChild ? Slot : "div";
+
+	return (
+		<Comp
+			{...props}
+			id={context.footerId}
+			data-slot={joinDataSlot(dataSlot, "query-footer")}
+			// It bleeds through the popover's `p-1`, so the border spans edge to edge.
+			className={cx(
+				"text-muted border-popover -mx-1 -mb-1 mt-1 flex flex-col gap-2 border-t px-3 py-2 text-xs",
+				className,
+			)}
+		/>
+	);
+}
+
+/**
+ * The props for `Query.Legend`.
+ */
+type QueryLegendProps = Omit<ComponentProps<"p">, "children"> & WithDataSlot;
+
+/**
+ * The syntax reminder. It describes only what the grammar honors, so a
+ * remote grammar never advertises an `OR` its executor refuses.
+ *
+ * **Data attributes:**
+ *
+ * | Attribute   | Value            | Description     |
+ * | ----------- | ---------------- | --------------- |
+ * | `data-slot` | `"query-legend"` | On the legend.  |
+ *
+ * @see https://mantle.ngrok.com/components/forms/query#querylegend
+ *
+ * @example
+ * ```tsx
+ * const [query, setQuery] = useState("");
+ *
+ * <Query.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
+ *   <Query.Input aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared" />
+ *   <Query.Content>
+ *     <Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+ *     <Query.Empty />
+ *     <Query.Footer>
+ *       <Query.Legend />
+ *       <Query.KeyboardHints />
+ *     </Query.Footer>
+ *   </Query.Content>
+ * </Query.Root>
+ * ```
+ */
+// Why no asChild: the part renders its rules from the grammar.
+function Legend({ "data-slot": dataSlot, className, ...props }: QueryLegendProps) {
+	const { keys, syntax } = useQueryContext("Query.Legend");
+	const rowClassName = cx("flex flex-wrap items-center gap-x-4 gap-y-1.5", className);
+	const slot = joinDataSlot(dataSlot, "query-legend");
+
 	if (syntax === "qualifiers") {
 		return (
-			<p className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+			<p {...props} data-slot={slot} className={rowClassName}>
 				<SyntaxRule token="key:value">narrows the search</SyntaxRule>{" "}
 				<span>Other words search as text.</span>
 			</p>
@@ -972,7 +1291,7 @@ function SyntaxLegend({
 	// the accessible description keeps it, so assistive tech reads separate rules.
 	// Each rule and its space share a wrapper, so no rule mounts in front of bare text.
 	return (
-		<p className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+		<p {...props} data-slot={slot} className={rowClassName}>
 			{rules.map((rule) => (
 				<span key={rule.token} className="contents">
 					<SyntaxRule token={rule.token}>{rule.text}</SyntaxRule>{" "}
@@ -982,10 +1301,63 @@ function SyntaxLegend({
 	);
 }
 
-/** The keys the field answers to, under the syntax legend. */
-function KeyboardHints({ enterHint }: { enterHint: string }) {
+/**
+ * The props for `Query.KeyboardHints`.
+ */
+type QueryKeyboardHintsProps = Omit<ComponentProps<"p">, "children"> &
+	WithDataSlot & {
+		/**
+		 * What Enter does. Name the host's own action when Enter submits a form,
+		 * such as `"select, or search"`.
+		 *
+		 * @default "select"
+		 */
+		enterHint?: string;
+	};
+
+/**
+ * The keys the field answers to: the arrows, Enter, and Escape.
+ *
+ * **Data attributes:**
+ *
+ * | Attribute   | Value                    | Description    |
+ * | ----------- | ------------------------ | -------------- |
+ * | `data-slot` | `"query-keyboard-hints"` | On the hints.  |
+ *
+ * @see https://mantle.ngrok.com/components/forms/query#querykeyboardhints
+ *
+ * @example
+ * ```tsx
+ * const [query, setQuery] = useState("");
+ *
+ * <Query.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
+ *   <Query.Input aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared" />
+ *   <Query.Content>
+ *     <Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+ *     <Query.Empty />
+ *     <Query.Footer>
+ *       <Query.Legend />
+ *       <Query.KeyboardHints />
+ *     </Query.Footer>
+ *   </Query.Content>
+ * </Query.Root>
+ * ```
+ */
+// Why no asChild: the part renders its own key chips.
+function KeyboardHints({
+	"data-slot": dataSlot,
+	className,
+	enterHint = "select",
+	...props
+}: QueryKeyboardHintsProps) {
+	useQueryContext("Query.KeyboardHints");
+
 	return (
-		<p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+		<p
+			{...props}
+			data-slot={joinDataSlot(dataSlot, "query-keyboard-hints")}
+			className={cx("flex flex-wrap items-center gap-x-4 gap-y-1.5", className)}
+		>
 			<span className="inline-flex items-center gap-1">
 				<Kbd>
 					<span className="sr-only">Up arrow</span>
@@ -1022,79 +1394,6 @@ function SyntaxRule({ token, children }: { token: string; children: ReactNode })
 }
 
 /**
- * Keeps the active option visible inside the scrolling listbox. Focus stays on
- * the input, so the browser never scrolls the option into view on its own.
- */
-function scrollActiveOptionIntoView(element: HTMLDivElement | null) {
-	element?.scrollIntoView({ block: "nearest" });
-}
-
-/** The suggestion listbox, grouped by section. */
-function SuggestionList() {
-	const context = useQueryContext("Query.Content");
-	const { activeIndex, hoveredIndex, listboxId } = context;
-
-	const rowsBySection = new Map<
-		FilterSuggestionSection,
-		{ item: FilterSuggestion; index: number }[]
-	>();
-	context.suggestions.items.forEach((item, index) => {
-		const rows = rowsBySection.get(item.section) ?? [];
-		rows.push({ item, index });
-		rowsBySection.set(item.section, rows);
-	});
-
-	return (
-		<div role="listbox" id={listboxId} aria-label="Filter suggestions">
-			{[...rowsBySection].map(([section, rows]) => (
-				<div key={section} role="group" aria-label={sectionHeadings[section]}>
-					<span aria-hidden className="text-muted block px-2 pt-2 pb-1 text-xs font-medium">
-						{sectionHeadings[section]}
-					</span>
-					{rows.map(({ item, index }) => (
-						// Why the rule is off: the keyboard contract of an
-						// `aria-activedescendant` combobox lives on the input, which keeps
-						// focus for the whole widget.
-						// oxlint-disable-next-line jsx-a11y/click-events-have-key-events -- the combobox input owns the keyboard contract
-						<div
-							key={item.label}
-							role="option"
-							id={optionId(listboxId, index)}
-							// The ref attaches only while the row is active, so activation
-							// scrolls it into view.
-							ref={index === activeIndex ? scrollActiveOptionIntoView : null}
-							tabIndex={-1}
-							aria-selected={index === activeIndex}
-							data-highlighted={
-								index === activeIndex || (activeIndex == null && index === hoveredIndex)
-									? ""
-									: undefined
-							}
-							className="data-highlighted:bg-accent-500/10 flex cursor-pointer flex-wrap items-baseline gap-x-2 gap-y-0.5 rounded px-2 py-1.5 text-sm"
-							// Keep focus in the input, so the caret never jumps on a click.
-							onMouseDown={(event) => event.preventDefault()}
-							onMouseMove={() => context.setHoveredIndex(index)}
-							onMouseLeave={() => context.setHoveredIndex(null)}
-							onClick={() => context.acceptSuggestion(item)}
-						>
-							<span translate="no" className="text-strong font-mono">
-								{item.label}
-							</span>
-							{item.description != null && (
-								<span className="text-muted text-xs">{item.description}</span>
-							)}
-							{item.matchCount != null && (
-								<span className="text-muted ml-auto text-xs tabular-nums">{item.matchCount}</span>
-							)}
-						</div>
-					))}
-				</div>
-			))}
-		</div>
-	);
-}
-
-/**
  * A single-line filter field where free text and `key:value` qualifiers
  * interleave. The tokens are colored in place, and a suggestion popover
  * completes keys and values while the caret stays in the field. The grammar from
@@ -1119,6 +1418,12 @@ function SuggestionList() {
  * Query.Root
  * ├── Query.Input
  * └── Query.Content
+ *     ├── Query.List
+ *     │   └── Query.Item
+ *     ├── Query.Empty
+ *     └── Query.Footer
+ *         ├── Query.Legend
+ *         └── Query.KeyboardHints
  * ```
  *
  * @example
@@ -1127,7 +1432,14 @@ function SuggestionList() {
  *
  * <Query.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
  *   <Query.Input aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared" />
- *   <Query.Content />
+ *   <Query.Content>
+ *     <Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+ *     <Query.Empty />
+ *     <Query.Footer>
+ *       <Query.Legend />
+ *       <Query.KeyboardHints />
+ *     </Query.Footer>
+ *   </Query.Content>
  * </Query.Root>
  * ```
  */
@@ -1145,7 +1457,14 @@ const Query = {
 	 *
 	 * <Query.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
 	 *   <Query.Input aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared" />
-	 *   <Query.Content />
+	 *   <Query.Content>
+	 *     <Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+	 *     <Query.Empty />
+	 *     <Query.Footer>
+	 *       <Query.Legend />
+	 *       <Query.KeyboardHints />
+	 *     </Query.Footer>
+	 *   </Query.Content>
 	 * </Query.Root>
 	 * ```
 	 */
@@ -1163,15 +1482,21 @@ const Query = {
 	 *
 	 * <Query.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
 	 *   <Query.Input aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared" />
-	 *   <Query.Content />
+	 *   <Query.Content>
+	 *     <Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+	 *     <Query.Empty />
+	 *     <Query.Footer>
+	 *       <Query.Legend />
+	 *       <Query.KeyboardHints />
+	 *     </Query.Footer>
+	 *   </Query.Content>
 	 * </Query.Root>
 	 * ```
 	 */
 	Input,
 	/**
-	 * The suggestion popover: a listbox of keys and values for the token under
-	 * the caret, then the syntax legend and the keyboard hints. Children render
-	 * under the hints.
+	 * The suggestion popover. It holds the parts you compose into it, and it
+	 * keeps focus in the field.
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/query#querycontent
 	 *
@@ -1181,11 +1506,157 @@ const Query = {
 	 *
 	 * <Query.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
 	 *   <Query.Input aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared" />
-	 *   <Query.Content />
+	 *   <Query.Content>
+	 *     <Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+	 *     <Query.Empty />
+	 *     <Query.Footer>
+	 *       <Query.Legend />
+	 *       <Query.KeyboardHints />
+	 *     </Query.Footer>
+	 *   </Query.Content>
 	 * </Query.Root>
 	 * ```
 	 */
 	Content,
+	/**
+	 * The suggestion listbox for the token under the caret, grouped by section.
+	 * Its children render one suggestion each.
+	 *
+	 * @see https://mantle.ngrok.com/components/forms/query#querylist
+	 *
+	 * @example
+	 * ```tsx
+	 * const [query, setQuery] = useState("");
+	 *
+	 * <Query.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
+	 *   <Query.Input aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared" />
+	 *   <Query.Content>
+	 *     <Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+	 *     <Query.Empty />
+	 *     <Query.Footer>
+	 *       <Query.Legend />
+	 *       <Query.KeyboardHints />
+	 *     </Query.Footer>
+	 *   </Query.Content>
+	 * </Query.Root>
+	 * ```
+	 */
+	List,
+	/**
+	 * One suggestion row: a `role="option"` that inserts its suggestion on a click.
+	 *
+	 * @see https://mantle.ngrok.com/components/forms/query#queryitem
+	 *
+	 * @example
+	 * ```tsx
+	 * const [query, setQuery] = useState("");
+	 *
+	 * <Query.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
+	 *   <Query.Input aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared" />
+	 *   <Query.Content>
+	 *     <Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+	 *     <Query.Empty />
+	 *     <Query.Footer>
+	 *       <Query.Legend />
+	 *       <Query.KeyboardHints />
+	 *     </Query.Footer>
+	 *   </Query.Content>
+	 * </Query.Root>
+	 * ```
+	 */
+	Item,
+	/**
+	 * The message that shows in place of the rows when no suggestion matches.
+	 *
+	 * @see https://mantle.ngrok.com/components/forms/query#queryempty
+	 *
+	 * @example
+	 * ```tsx
+	 * const [query, setQuery] = useState("");
+	 *
+	 * <Query.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
+	 *   <Query.Input aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared" />
+	 *   <Query.Content>
+	 *     <Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+	 *     <Query.Empty />
+	 *     <Query.Footer>
+	 *       <Query.Legend />
+	 *       <Query.KeyboardHints />
+	 *     </Query.Footer>
+	 *   </Query.Content>
+	 * </Query.Root>
+	 * ```
+	 */
+	Empty,
+	/**
+	 * The area under the rows, pinned while the rows scroll.
+	 *
+	 * @see https://mantle.ngrok.com/components/forms/query#queryfooter
+	 *
+	 * @example
+	 * ```tsx
+	 * const [query, setQuery] = useState("");
+	 *
+	 * <Query.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
+	 *   <Query.Input aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared" />
+	 *   <Query.Content>
+	 *     <Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+	 *     <Query.Empty />
+	 *     <Query.Footer>
+	 *       <Query.Legend />
+	 *       <Query.KeyboardHints />
+	 *     </Query.Footer>
+	 *   </Query.Content>
+	 * </Query.Root>
+	 * ```
+	 */
+	Footer,
+	/**
+	 * The syntax reminder. It describes only what the grammar honors.
+	 *
+	 * @see https://mantle.ngrok.com/components/forms/query#querylegend
+	 *
+	 * @example
+	 * ```tsx
+	 * const [query, setQuery] = useState("");
+	 *
+	 * <Query.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
+	 *   <Query.Input aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared" />
+	 *   <Query.Content>
+	 *     <Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+	 *     <Query.Empty />
+	 *     <Query.Footer>
+	 *       <Query.Legend />
+	 *       <Query.KeyboardHints />
+	 *     </Query.Footer>
+	 *   </Query.Content>
+	 * </Query.Root>
+	 * ```
+	 */
+	Legend,
+	/**
+	 * The keys the field answers to: the arrows, Enter, and Escape.
+	 *
+	 * @see https://mantle.ngrok.com/components/forms/query#querykeyboardhints
+	 *
+	 * @example
+	 * ```tsx
+	 * const [query, setQuery] = useState("");
+	 *
+	 * <Query.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>
+	 *   <Query.Input aria-label="Filter projects" placeholder="Filter projects, or type a filter like is:shared" />
+	 *   <Query.Content>
+	 *     <Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+	 *     <Query.Empty />
+	 *     <Query.Footer>
+	 *       <Query.Legend />
+	 *       <Query.KeyboardHints />
+	 *     </Query.Footer>
+	 *   </Query.Content>
+	 * </Query.Root>
+	 * ```
+	 */
+	KeyboardHints,
 } as const;
 
 export {
@@ -1196,6 +1667,12 @@ export {
 export type {
 	//,
 	QueryContentProps,
+	QueryEmptyProps,
+	QueryFooterProps,
 	QueryInputProps,
+	QueryItemProps,
+	QueryKeyboardHintsProps,
+	QueryLegendProps,
+	QueryListProps,
 	QueryRootProps,
 };

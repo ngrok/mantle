@@ -6,6 +6,12 @@ export {
 export type {
 	//,
 	QueryContentProps,
+	QueryEmptyProps,
+	QueryFooterProps,
 	QueryInputProps,
+	QueryItemProps,
+	QueryKeyboardHintsProps,
+	QueryLegendProps,
+	QueryListProps,
 	QueryRootProps,
 } from "./query.js";

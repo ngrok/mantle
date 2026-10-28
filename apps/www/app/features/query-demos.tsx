@@ -144,7 +144,14 @@ export function QueryExample() {
 					aria-label="Filter projects"
 					placeholder="Filter projects, or type a filter like is:shared"
 				/>
-				<Query.Content />
+				<Query.Content>
+					<Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+					<Query.Empty />
+					<Query.Footer>
+						<Query.Legend />
+						<Query.KeyboardHints />
+					</Query.Footer>
+				</Query.Content>
 			</Query.Root>
 			<DataTable.Root table={table}>
 				<DataTable.Head />
@@ -201,7 +208,13 @@ export function InlineActionsQueryExample() {
 				/>
 			</Query.Input>
 			<Query.Content>
-				<p>Filters apply as you type.</p>
+				<Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+				<Query.Empty />
+				<Query.Footer>
+					<Query.Legend />
+					<Query.KeyboardHints />
+					<p>Filters apply as you type.</p>
+				</Query.Footer>
 			</Query.Content>
 		</Query.Root>
 	);
@@ -238,7 +251,14 @@ export function RemoteQueryExample() {
 				<Button type="submit" appearance="outlined" intent="neutral">
 					Search
 				</Button>
-				<Query.Content />
+				<Query.Content>
+					<Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+					<Query.Empty />
+					<Query.Footer>
+						<Query.Legend />
+						<Query.KeyboardHints />
+					</Query.Footer>
+				</Query.Content>
 			</Query.Root>
 			<p className="text-muted text-sm">
 				{submittedQuery == null ? "Press Enter to search." : `The server runs: ${submittedQuery}`}
@@ -262,7 +282,14 @@ export function TokenColorsQueryExample() {
 				aria-label="Filter projects"
 				placeholder="Filter projects, or type a filter like is:shared"
 			/>
-			<Query.Content />
+			<Query.Content>
+				<Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+				<Query.Empty />
+				<Query.Footer>
+					<Query.Legend />
+					<Query.KeyboardHints />
+				</Query.Footer>
+			</Query.Content>
 		</Query.Root>
 	);
 }

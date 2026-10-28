@@ -22,7 +22,9 @@ function Host({ onValueChange }: { onValueChange?: (value: string) => void }) {
 					aria-label="Filter projects"
 					placeholder="Filter projects, or type a filter like name:api"
 				/>
-				<Query.Content />
+				<Query.Content>
+					<Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+				</Query.Content>
 			</Query.Root>
 			<output aria-label="query state">{value}</output>
 		</>
