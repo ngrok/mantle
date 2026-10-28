@@ -12,7 +12,9 @@ import type {
 } from "react";
 import {
 	Fragment,
+	cloneElement,
 	createContext,
+	isValidElement,
 	useCallback,
 	useContext,
 	useEffect,
@@ -116,6 +118,10 @@ type QueryContextValue = {
 	clearValue: () => void;
 	/** `Query.Content` calls this on mount. It returns the cleanup. */
 	registerContent: () => () => void;
+	/** Whether `Query.List` shows. Without it, Enter has no row to accept. */
+	hasList: boolean;
+	/** `Query.List` calls this on mount. It returns the cleanup. */
+	registerList: () => () => void;
 };
 
 const QueryContext = createContext<QueryContextValue | null>(null);
@@ -230,6 +236,7 @@ function Root<Item extends object>({
 	// not arm Enter, or Enter inserts that row instead of submitting the query.
 	const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 	const [hasContent, setHasContent] = useState(false);
+	const [hasList, setHasList] = useState(false);
 	const fieldControl = useContext(FieldControlContext);
 
 	// The value the field last reported. A `value` that differs came from the
@@ -266,6 +273,11 @@ function Root<Item extends object>({
 	const registerContent = useCallback(() => {
 		setHasContent(true);
 		return () => setHasContent(false);
+	}, []);
+
+	const registerList = useCallback(() => {
+		setHasList(true);
+		return () => setHasList(false);
 	}, []);
 
 	const context = useMemo((): QueryContextValue => {
@@ -365,18 +377,22 @@ function Root<Item extends object>({
 				inputRef.current?.focus();
 			},
 			registerContent,
+			hasList,
+			registerList,
 		};
 	}, [
 		activeIndex,
 		caretIndex,
 		grammar,
 		hasContent,
+		hasList,
 		hoveredIndex,
 		isOpen,
 		items,
 		listboxId,
 		onValueChange,
 		registerContent,
+		registerList,
 		setOpen,
 		value,
 	]);
@@ -604,8 +620,11 @@ function Input({
 		}
 
 		if (event.key === "Enter" && context.isListboxOpen) {
+			// Without `Query.List`, the active row is not on screen, so Enter cannot accept it.
 			const activeItem =
-				context.activeIndex == null ? undefined : context.suggestions.items[context.activeIndex];
+				!context.hasList || context.activeIndex == null
+					? undefined
+					: context.suggestions.items[context.activeIndex];
 			if (activeItem != null) {
 				event.preventDefault();
 				context.acceptSuggestion(activeItem);
@@ -669,7 +688,7 @@ function Input({
 						aria-controls={context.listboxId}
 						aria-expanded={context.isListboxOpen}
 						aria-activedescendant={
-							context.isListboxOpen && context.activeIndex != null
+							context.isListboxOpen && context.hasList && context.activeIndex != null
 								? optionId(context.listboxId, context.activeIndex)
 								: undefined
 						}
@@ -908,6 +927,11 @@ type QueryListProps = Omit<ComponentProps<"div">, "children" | "id" | "role"> &
 // Why no asChild: the part renders the section groups and their headings itself.
 function List({ "data-slot": dataSlot, children, className, ...props }: QueryListProps) {
 	const context = useQueryContext("Query.List");
+	const { registerList } = context;
+
+	// Why an effect: the `<input>` is an earlier sibling, so the render pass
+	// cannot tell it that the rows exist.
+	useIsomorphicLayoutEffect(registerList, [registerList]);
 
 	const rowsBySection = new Map<FilterSuggestionSection, FilterSuggestion[]>();
 	for (const suggestion of context.suggestions.items) {
@@ -1037,11 +1061,15 @@ function Item({
 			}}
 			onMouseMove={(event) => {
 				onMouseMove?.(event);
-				context.setHoveredIndex(index);
+				if (!event.defaultPrevented) {
+					context.setHoveredIndex(index);
+				}
 			}}
 			onMouseLeave={(event) => {
 				onMouseLeave?.(event);
-				context.setHoveredIndex(null);
+				if (!event.defaultPrevented) {
+					context.setHoveredIndex(null);
+				}
 			}}
 			onClick={(event) => {
 				onClick?.(event);
@@ -1185,7 +1213,8 @@ type QueryFooterProps = Omit<ComponentProps<"div">, "id"> & WithAsChild & WithDa
  * The area under the rows, pinned while the rows scroll. Compose
  * `Query.Legend`, `Query.KeyboardHints`, and your own content, such as a link
  * to the filter docs. While the popover is open, the footer joins the
- * `<input>`'s description.
+ * `<input>`'s description. With `asChild`, the footer replaces the child's `id`
+ * with its own, so the description keeps its link.
  *
  * **Data attributes:**
  *
@@ -1212,7 +1241,13 @@ type QueryFooterProps = Omit<ComponentProps<"div">, "id"> & WithAsChild & WithDa
  * </Query.Root>
  * ```
  */
-function Footer({ "data-slot": dataSlot, asChild = false, className, ...props }: QueryFooterProps) {
+function Footer({
+	"data-slot": dataSlot,
+	asChild = false,
+	children,
+	className,
+	...props
+}: QueryFooterProps) {
 	const context = useQueryContext("Query.Footer");
 	const Comp = asChild ? Slot : "div";
 
@@ -1226,7 +1261,13 @@ function Footer({ "data-slot": dataSlot, asChild = false, className, ...props }:
 				"text-muted border-popover -mx-1 -mb-1 mt-1 flex flex-col gap-2 border-t px-3 py-2 text-xs",
 				className,
 			)}
-		/>
+		>
+			{/* Why the clone: `Slot` lets the child's own `id` win, and the `<input>`'s
+			description names the footer by this id. */}
+			{asChild && isValidElement<{ id?: string }>(children)
+				? cloneElement(children, { id: context.footerId })
+				: children}
+		</Comp>
 	);
 }
 

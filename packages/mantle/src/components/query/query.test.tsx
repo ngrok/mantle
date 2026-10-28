@@ -740,6 +740,26 @@ describe("Query.Footer", () => {
 		expect(input).toHaveAccessibleDescription("Filter docs");
 	});
 
+	test("keeps the input's description when its asChild child has its own id", async () => {
+		render(
+			<Query.Root grammar={testGrammar} value="" onValueChange={() => {}}>
+				<Query.Input aria-label="Filter" placeholder="Filter" />
+				<Query.Content>
+					<Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+					<Query.Footer asChild>
+						<section id="help">Filter docs</section>
+					</Query.Footer>
+				</Query.Content>
+			</Query.Root>,
+		);
+		const input = screen.getByRole("combobox");
+
+		input.focus();
+		await screen.findByText("Filter docs");
+
+		expect(input).toHaveAccessibleDescription("Filter docs");
+	});
+
 	test("forwards className, data-slot, and ref on the legend and the hints", async () => {
 		const legendRef = createRef<HTMLParagraphElement>();
 		const hintsRef = createRef<HTMLParagraphElement>();
@@ -947,6 +967,55 @@ describe("Query.Content", () => {
 
 		// With no active suggestion, Enter passes through to the form.
 		expect(fireEvent.keyDown(input, { key: "Enter" })).toBe(true);
+	});
+
+	test("accepts no hidden row on Enter when the popover has no list", async () => {
+		const values: string[] = [];
+		render(
+			<Query.Root grammar={testGrammar} value="" onValueChange={(value) => values.push(value)}>
+				<Query.Input aria-label="Filter" placeholder="Filter" />
+				<Query.Content>
+					<Query.Footer>Filter docs</Query.Footer>
+				</Query.Content>
+			</Query.Root>,
+		);
+		const input = screen.getByRole("combobox");
+
+		input.focus();
+		await screen.findByText("Filter docs");
+		fireEvent.keyDown(input, { key: "ArrowDown" });
+
+		expect(input).not.toHaveAttribute("aria-activedescendant");
+		expect(fireEvent.keyDown(input, { key: "Enter" })).toBe(true);
+		expect(values).toEqual([]);
+	});
+
+	test("adds no highlight when a row's mouse handlers prevent the default", async () => {
+		render(
+			<Query.Root grammar={testGrammar} value="" onValueChange={() => {}}>
+				<Query.Input aria-label="Filter" placeholder="Filter" />
+				<Query.Content>
+					<Query.List>
+						{(suggestion) => (
+							<Query.Item
+								suggestion={suggestion}
+								onMouseMove={(event) => event.preventDefault()}
+								onMouseLeave={(event) => event.preventDefault()}
+							/>
+						)}
+					</Query.List>
+				</Query.Content>
+			</Query.Root>,
+		);
+
+		screen.getByRole("combobox").focus();
+		const [firstOption] = within(await screen.findByRole("listbox")).getAllByRole("option");
+		if (firstOption == null) {
+			throw new Error("expected the key list to have options");
+		}
+		fireEvent.mouseMove(firstOption);
+
+		expect(firstOption).not.toHaveAttribute("data-highlighted");
 	});
 
 	// A pointer at rest over the open list must not make a row active, or Enter

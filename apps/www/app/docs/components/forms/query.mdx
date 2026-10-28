@@ -535,7 +535,7 @@ The message that shows in place of the rows when no suggestion matches. It accep
 
 ### Query.Footer
 
-The area under the rows, pinned while the rows scroll. It accepts every `div` prop except `id`.
+The area under the rows, pinned while the rows scroll. It accepts every `div` prop except `id`. The footer sets its own `id`, so the field can name it as its description. With `asChild`, that `id` replaces the id of the child.
 
 | Prop       | Type        | Default | Description                                                         |
 | ---------- | ----------- | ------- | ------------------------------------------------------------------- |
