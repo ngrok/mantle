@@ -49,6 +49,9 @@ type FilterGrammarDescription = {
  * The description holds no matchers and no aliases: a model that writes the
  * canonical spelling writes a query every surface reads the same way.
  *
+ * @preview The API is not stable and may change. There may also be bugs.
+ * Please file an issue at https://github.com/ngrok/mantle/issues if you find any.
+ *
  * @example
  * ```ts
  * const description = describeFilterGrammar(projectFilterGrammar);
@@ -118,6 +121,9 @@ const keyLikePrefix = /^([A-Za-z][\w-]*):/;
  * invented filter never empties the list without a reason.
  *
  * A quoted `"key:value"` is free text on purpose, so it is not a problem.
+ *
+ * @preview The API is not stable and may change. There may also be bugs.
+ * Please file an issue at https://github.com/ngrok/mantle/issues if you find any.
  *
  * @returns the problems in query order, or an empty array for a clean query.
  *

@@ -141,3 +141,24 @@ parseFilterQuery(projectFilterGrammar, "is:shared -acme");
 - `formatFacet({ key, value, negated })` writes a qualifier in its canonical form, with quotes where the value needs them.
 - `queryUsesQualifiers(grammar, query)` reports whether a query holds a qualifier. Use it to pick the advice in a filtered-empty state.
 - `getFilterSuggestions` and `getHighlightSegments` are what `Query` renders. Use them to build your own field.
+
+## Natural language search
+
+> [!WARNING]
+> These helpers are in preview. Their API is not stable and can change.
+
+Two helpers connect the language to a model. Neither one calls a model: your server owns the request.
+
+- `describeFilterGrammar(grammar)` describes the keys, the allowed values, and the syntax rules as plain data. Send it to the model with the person's words.
+- `checkFilterQuery(grammar, query)` returns the unknown keys, the unknown values, and the exclusions a key can't do. Check the model's query before you show it, so an invented filter never empties the list.
+
+```ts
+import { checkFilterQuery, describeFilterGrammar } from "@ngrok/mantle/query-filter";
+
+const language = JSON.stringify(describeFilterGrammar(projectFilterGrammar));
+
+checkFilterQuery(projectFilterGrammar, "is:shared owner:me");
+// => [{ kind: "unknown-key", key: "owner", start: 10, end: 18 }]
+```
+
+The [natural language query recipe](/recipes/natural-language-query) wires them to a `Query` field.
