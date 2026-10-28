@@ -71,7 +71,8 @@ slogan.
    never a second public component ([§1.1](#11-one-component-per-user-intent)).
 4. **Composition over configuration.** Configuration props handle the common case; `asChild` and children
    handle everything else. Never a prop bag ([§1.7](#17-forbidden-api-shapes)). Take a data prop only when
-   behavior must reach items that are not mounted ([§1.5](#15-composition-vs-data-driven)).
+   behavior must reach items that are not mounted, and even then the data never renders: rows are parts
+   ([§1.5](#15-composition-vs-data-driven)).
 5. **Make invalid states unrepresentable.** Push contracts into the type system — discriminated unions,
    `satisfies Record<…>` exhaustiveness, a rich `label` that requires `labelText`. What the compiler cannot
    catch fails loudly at runtime ([§3.5](#35-errors-and-invariants)).
@@ -196,8 +197,25 @@ porting from the ecosystem; vocabulary is re-derived from what the component emi
 
 Compose children when every behavior derives from the authored children (`Table`, `List`). Take a data prop
 when collection-level behavior — filtering, select-all, virtualization — must operate over items that may not
-be mounted or even created (`DataTable`'s `data`, `SelectableList`'s `options`). Even then, keep _rendering_
-composable via a render prop, and keep the data a thin description (a value, its text, a disabled flag).
+be mounted or even created (`DataTable`'s `data`, `SelectableList`'s `options`). Keep the data a thin
+description (a value, its text, a disabled flag).
+
+A data prop feeds behavior; it never renders. No part may render the rows, the empty state, or the chrome
+around them from data on its own. Each is a part the consumer composes, and rows come from a function child
+that returns a row part:
+
+```tsx
+<Query.Content>
+	<Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+	<Query.Empty />
+	<Query.Footer>
+		<Query.Legend />
+	</Query.Footer>
+</Query.Content>
+```
+
+`Query` first shipped `Query.Content` as a closed box that rendered all four from `Root`'s `items` (#1622), and
+#1633 broke it into parts. An `items`, `options`, or `rows` prop that renders is the same defect.
 
 **Never** read collection facts off children via prop-sniffing or `cloneElement` injection — pass data or
 index-based callbacks. Element sniffing only sees the outermost composed child and fails silently the moment a
@@ -224,6 +242,7 @@ Avoid optional-property-heavy "bag of props" types where states are mutually exc
 | `React.FC` / `FC`                                                  | Inline function types                                                                                                                                                               |
 | Boolean-bag prop types where states are mutually exclusive         | Discriminated unions that make invalid states unrepresentable                                                                                                                       |
 | Reading collection facts off children (`cloneElement`, prop-sniff) | A data prop or index-based callbacks                                                                                                                                                |
+| A part that renders rows, an empty state, or a footer from data    | One part each; rows from a function child ([§1.5](#15-composition-vs-data-driven))                                                                                                  |
 | A deprecated API from a dependency                                 | The current replacement (or a `// Why:` comment naming the constraint)                                                                                                              |
 | An import from a router or app framework (`react-router`, `next`)  | A structural type for the fields you read, `asChild` for the framework's element, and the glue in an `apps/www` recipe ([docs/framework-boundary.md](./docs/framework-boundary.md)) |
 
@@ -953,6 +972,8 @@ accessibility semantics:
 - A component or part borrowing an unearned ARIA pattern word → propose the standards-vocabulary rename with
   the markup and keyboard evidence behind it. Renames are breaking and must go all the way through.
 - A prop whose name does not read as the DOM/ARIA it emits (`isActive` → `current`).
+- A part that renders rows, an empty state, or a footer from data ([§1.5](#15-composition-vs-data-driven)) →
+  propose the parts and the composed tree.
 - A part that emits an ARIA role without implementing that pattern's keyboard contract → the author chooses
   between implementing the contract and dropping both the role and the name.
 
@@ -981,6 +1002,7 @@ Run this against the diff before calling a component done. Each line is a defect
 - [ ] Outermost part is `Root`; every part name is the web-standards term for what it renders.
 - [ ] No unearned ARIA pattern word anywhere in the component or part names.
 - [ ] Props read as the ARIA/DOM they emit; no prop-bag passthrough props.
+- [ ] No data prop renders: rows, empty state, and footer are parts, and rows come from a function child.
 - [ ] Namespace is one level deep, annotated if any member's type is third-party.
 - [ ] No `forwardRef`, no `React.FC`, no `displayName` assignment.
 - [ ] Mutually exclusive states are a discriminated union, not a boolean bag.
