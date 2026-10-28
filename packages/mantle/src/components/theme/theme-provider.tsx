@@ -95,8 +95,8 @@ type ThemeProviderProps = PropsWithChildren<{
 	 * `useInitialHtmlThemeProps`. The server then seeds
 	 * the context with the stored theme, so the hydrated client agrees with the
 	 * server HTML. When omitted, the server renders `"system"`. A client with a
-	 * stored theme then reports a hydration mismatch. The client always reads
-	 * `document.cookie`.
+	 * stored theme then reports a hydration mismatch. The client reads
+	 * `document.cookie`, and reads `ssrCookie` only when the environment blocks cookies.
 	 */
 	ssrCookie?: string;
 }>;
@@ -139,11 +139,11 @@ type ThemeProviderProps = PropsWithChildren<{
  */
 function ThemeProvider({ children, forceTheme, ssrCookie }: ThemeProviderProps) {
 	// Why apply during init: the resolved class must be on `<html>` before first paint.
-	// Why `ssrCookie` on the server only: the FOUC script can seed or migrate the
-	// cookie before hydration. The client reads that newer value from `document.cookie`.
+	// Why the client reads `document.cookie` first: the FOUC script can seed or migrate
+	// the cookie before hydration. `ssrCookie` is the fallback where cookies are blocked.
 	const [theme, setTheme] = useState<Theme>(() => {
 		const storedTheme = getStoredTheme({
-			cookie: canUseDOM() ? readDocumentCookie() : ssrCookie,
+			cookie: canUseDOM() ? (readDocumentCookie() ?? ssrCookie) : ssrCookie,
 		});
 		applyThemeToHtml(storedTheme, { forceTheme });
 		return storedTheme;
@@ -153,7 +153,7 @@ function ThemeProvider({ children, forceTheme, ssrCookie }: ThemeProviderProps) 
 
 	useEffect(() => {
 		function syncThemeFromCookie() {
-			const newTheme = getStoredTheme({ cookie: readDocumentCookie() });
+			const newTheme = getStoredTheme({ cookie: readDocumentCookie() ?? ssrCookie });
 			setTheme(newTheme);
 			applyThemeToHtml(newTheme, { forceTheme });
 		}
@@ -222,7 +222,7 @@ function ThemeProvider({ children, forceTheme, ssrCookie }: ThemeProviderProps) 
 			closeBroadcastChannel(broadcastChannelRef.current);
 			broadcastChannelRef.current = null;
 		};
-	}, [forceTheme]);
+	}, [forceTheme, ssrCookie]);
 
 	const value: ThemeProviderState = useMemo(
 		() => [
@@ -576,7 +576,7 @@ function useInitialHtmlThemeProps(props: UseInitialHtmlThemePropsOptions = {}): 
 			resolvedTheme = resolveTheme(initialTheme, { prefersDarkMode: false });
 		} else {
 			const prefersDarkMode = window.matchMedia(prefersDarkModeMediaQuery).matches;
-			initialTheme = getStoredTheme({ cookie: readDocumentCookie() });
+			initialTheme = getStoredTheme({ cookie: readDocumentCookie() ?? ssrCookie });
 			resolvedTheme = resolveTheme(initialTheme, { prefersDarkMode });
 		}
 
@@ -775,14 +775,14 @@ function buildThemeCookie(value: string) {
 }
 
 /**
- * Reads `document.cookie`, or `""` when the environment blocks cookies. A
+ * Reads `document.cookie`, or `undefined` when the environment blocks cookies. A
  * sandboxed iframe with no `allow-same-origin` throws a `SecurityError` on the read.
  */
-function readDocumentCookie(): string {
+function readDocumentCookie(): string | undefined {
 	try {
 		return document.cookie;
 	} catch {
-		return "";
+		return undefined;
 	}
 }
 

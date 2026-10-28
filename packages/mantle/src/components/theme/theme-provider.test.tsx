@@ -768,7 +768,7 @@ describe("a sandboxed frame that blocks cookies", () => {
 		});
 	}
 
-	test("ThemeProvider renders the default theme", () => {
+	test("ThemeProvider renders the default theme with no ssrCookie", () => {
 		mockMatchMedia({});
 		blockCookies();
 
@@ -781,13 +781,55 @@ describe("a sandboxed frame that blocks cookies", () => {
 		expect(screen.getByTestId("current-theme")).toHaveTextContent("system");
 	});
 
-	test("useInitialHtmlThemeProps resolves the default theme", () => {
+	test("useInitialHtmlThemeProps resolves the default theme with no ssrCookie", () => {
 		mockMatchMedia({});
 		blockCookies();
 
 		const { result } = renderHook(() => useInitialHtmlThemeProps());
 
 		expect(result.current["data-theme"]).toBe("system");
+	});
+
+	test("useInitialHtmlThemeProps resolves the theme from ssrCookie", () => {
+		mockMatchMedia({});
+		blockCookies();
+
+		const { result } = renderHook(() =>
+			useInitialHtmlThemeProps({ ssrCookie: `${THEME_COOKIE}=dark` }),
+		);
+
+		expect(result.current["data-theme"]).toBe("dark");
+	});
+
+	// Why: the server can read the cookie that the frame cannot, so the client must
+	// seed from `ssrCookie` to match the server HTML.
+	test("ThemeProvider hydrates without a mismatch and keeps the ssrCookie theme", () => {
+		mockMatchMedia({});
+		const app = (
+			<ThemeProvider ssrCookie={`${THEME_COOKIE}=dark`}>
+				<ThemeProbe />
+			</ThemeProvider>
+		);
+		const container = document.createElement("div");
+		container.innerHTML = renderOnServer(app);
+		document.body.append(container);
+		blockCookies();
+		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+		const onRecoverableError = vi.fn<(error: unknown) => void>();
+
+		let root: Root | undefined;
+		act(() => {
+			root = hydrateRoot(container, app, { onRecoverableError });
+		});
+
+		expect(onRecoverableError).toHaveBeenCalledTimes(0);
+		expect(consoleError).toHaveBeenCalledTimes(0);
+		expect(container.textContent).toBe("theme=dark applied=dark");
+
+		act(() => {
+			root?.unmount();
+		});
+		container.remove();
 	});
 });
 
