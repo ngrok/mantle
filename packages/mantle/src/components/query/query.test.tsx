@@ -398,6 +398,33 @@ describe("Query.Input", () => {
 		expect(actions).toHaveTextContent("Reset");
 	});
 
+	test("survives a text action that swaps to an element beside the clear button after a translation", () => {
+		function Host() {
+			const [swapped, setSwapped] = useState(false);
+			return (
+				<Query.Root grammar={testGrammar} value="acme" onValueChange={() => {}}>
+					<Query.Input aria-label="Filter projects" placeholder="Filter">
+						{swapped ? <strong>Saved</strong> : "Unsaved"}
+					</Query.Input>
+					<button type="button" onClick={() => setSwapped(true)}>
+						Swap
+					</button>
+				</Query.Root>
+			);
+		}
+		render(<Host />);
+		expect(screen.getByRole("button", { name: "Clear filter" })).toBeInTheDocument();
+
+		const actions = screen.getByText("Unsaved").closest('[data-slot="query-input-actions"]');
+		if (actions == null) {
+			throw new Error("expected the inline actions wrapper");
+		}
+		translateTextNodes(actions);
+		fireEvent.click(screen.getByRole("button", { name: "Swap" }));
+
+		expect(actions).toHaveTextContent("Saved");
+	});
+
 	test("keeps a field owner's description and error wiring beside the legend", async () => {
 		const { input } = renderQuery({
 			initialValue: "is:bogus",
@@ -451,6 +478,24 @@ describe("Query.Input", () => {
 		expect(screen.getByLabelText("Filter projects")).toBe(screen.getByRole("combobox"));
 	});
 
+	test("keeps the Field.Item wiring over its own props inside Field.Control", () => {
+		render(
+			<Field.Item name="projectFilter">
+				<Field.Label>Filter projects</Field.Label>
+				<Field.Control>
+					<Query.Root grammar={testGrammar} value="" onValueChange={() => {}}>
+						<Query.Input id="other" name="other" aria-describedby="other" placeholder="Filter" />
+					</Query.Root>
+				</Field.Control>
+				<Field.Description>Type a key and a colon.</Field.Description>
+			</Field.Item>,
+		);
+
+		const input = screen.getByRole("combobox", { name: "Filter projects" });
+		expect(input).toHaveAttribute("name", "projectFilter");
+		expect(input).toHaveAccessibleDescription("Type a key and a colon.");
+	});
+
 	test("retires the active option when the caller changes the value", async () => {
 		function Host() {
 			const [value, setValue] = useState("");
@@ -475,6 +520,32 @@ describe("Query.Input", () => {
 
 		fireEvent.keyDown(input, { key: "Enter" });
 		expect(input).toHaveValue("");
+	});
+
+	test("new items retire the active row, so Enter cannot insert a row the user did not pick", async () => {
+		function Host({ items }: { items: TestItem[] }) {
+			const [value, setValue] = useState("");
+			return (
+				<Query.Root grammar={testGrammar} items={items} value={value} onValueChange={setValue}>
+					<Query.Input aria-label="Filter projects" placeholder="Filter" />
+					<Query.Content />
+				</Query.Root>
+			);
+		}
+		const { rerender } = render(<Host items={testItems} />);
+		const input = screen.getByRole("combobox");
+
+		input.focus();
+		type(input, "is:");
+		await screen.findByRole("listbox");
+		fireEvent.keyDown(input, { key: "ArrowDown" });
+		expect(input).toHaveAttribute("aria-activedescendant");
+
+		rerender(<Host items={testItems.slice(1)} />);
+		expect(input).not.toHaveAttribute("aria-activedescendant");
+
+		fireEvent.keyDown(input, { key: "Enter" });
+		expect(input).toHaveValue("is:");
 	});
 });
 
@@ -771,6 +842,81 @@ describe("Query.Content", () => {
 		const footer = await screen.findByText("Press Enter to apply");
 		expect(footer.parentElement).toHaveAttribute("data-slot", "query-content-footer");
 		expect(screen.queryAllByRole("option")).toHaveLength(0);
+	});
+
+	test("stays open when focus moves into the footer, so a pressed link keeps its click", async () => {
+		const { input } = renderQuery({ footer: <a href="#filter-docs">Filter docs</a> });
+
+		input.focus();
+		const link = await screen.findByRole("link", { name: "Filter docs" });
+		fireEvent.blur(input, { relatedTarget: link });
+
+		expect(screen.getByRole("listbox")).toBeInTheDocument();
+	});
+
+	test("closes the open list when the field turns read-only", async () => {
+		function Host({ readOnly }: { readOnly: boolean }) {
+			return (
+				<Query.Root grammar={testGrammar} value="" onValueChange={() => {}}>
+					<Query.Input aria-label="Filter projects" placeholder="Filter" readOnly={readOnly} />
+					<Query.Content />
+				</Query.Root>
+			);
+		}
+		const { rerender } = render(<Host readOnly={false} />);
+
+		screen.getByRole("combobox").focus();
+		await screen.findByRole("listbox");
+		rerender(<Host readOnly />);
+
+		await waitFor(() => expect(screen.queryByRole("listbox")).not.toBeInTheDocument());
+	});
+
+	test("says that a conjunction search reads only qualifiers when no suggestion matches", async () => {
+		const grammar = defineRemoteFilterGrammar({
+			syntax: "conjunction",
+			keys: [{ key: "is", description: "State", values: [{ value: "active" }] }],
+		});
+		render(
+			<Query.Root grammar={grammar} value="zzzz" onValueChange={() => {}}>
+				<Query.Input aria-label="Search" placeholder="Search" />
+				<Query.Content />
+			</Query.Root>,
+		);
+
+		screen.getByRole("combobox").focus();
+
+		expect(
+			await screen.findByText("No filter matches. This search reads only key:value filters."),
+		).toBeInTheDocument();
+	});
+
+	test("survives footer text that swaps to an element after a translation", async () => {
+		function Host() {
+			const [value, setValue] = useState("");
+			return (
+				<Query.Root grammar={testGrammar} value={value} onValueChange={setValue}>
+					<Query.Input aria-label="Filter projects" placeholder="Filter" />
+					<Query.Content>
+						{value === "" ? "Type a filter" : <strong>Filtering</strong>}
+					</Query.Content>
+				</Query.Root>
+			);
+		}
+		render(<Host />);
+		const input = screen.getByRole("combobox");
+
+		input.focus();
+		const footer = (await screen.findByText("Type a filter")).closest(
+			'[data-slot="query-content-footer"]',
+		);
+		if (footer == null) {
+			throw new Error("expected the footer wrapper");
+		}
+		translateTextNodes(footer);
+		type(input, "a");
+
+		expect(footer).toHaveTextContent("Filtering");
 	});
 
 	test("opens on an arrow key when no suggestion matches", async () => {

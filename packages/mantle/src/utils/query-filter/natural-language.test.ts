@@ -39,6 +39,29 @@ describe("describeFilterGrammar", () => {
 		expect(rules.join(" ")).not.toMatch(/OR|excludes|either|quotes/);
 		expect(rules).toContain("Other words search the item text.");
 	});
+
+	test("does not offer an exclusion that a qualifiers grammar reads as text", () => {
+		const grammar = defineRemoteFilterGrammar({
+			keys: [{ key: "is", description: "State", values: [{ value: "active" }] }],
+		});
+
+		const description = describeFilterGrammar(grammar);
+
+		expect(description.keys[0]?.negatable).toBe(false);
+		expect(description.rules.join(" ")).not.toMatch(/excludes/);
+	});
+
+	test("tells the model that a conjunction grammar reads only qualifiers", () => {
+		const grammar = defineRemoteFilterGrammar({
+			syntax: "conjunction",
+			keys: [{ key: "is", description: "State", values: [{ value: "active" }] }],
+		});
+
+		const { rules } = describeFilterGrammar(grammar);
+
+		expect(rules).toContain("Write only qualifiers. The search cannot read other words.");
+		expect(rules).not.toContain("Other words search the item text.");
+	});
 });
 
 describe("checkFilterQuery", () => {
@@ -49,6 +72,36 @@ describe("checkFilterQuery", () => {
 	test("reports a key the grammar does not define", () => {
 		expect(checkFilterQuery(testGrammar, "is:shared owner:me")).toEqual([
 			{ kind: "unknown-key", key: "owner", start: 10, end: 18 },
+		]);
+	});
+
+	test("reports a quoted key, a key in any script, and an exclusion that a qualifiers grammar reads as text", () => {
+		const qualifiers = defineRemoteFilterGrammar({
+			keys: [{ key: "is", description: "State", values: [{ value: "active" }] }],
+		});
+
+		expect(checkFilterQuery(testGrammar, '"owner":me über:x 123:y')).toEqual([
+			{ kind: "unknown-key", key: "owner", start: 0, end: 10 },
+			{ kind: "unknown-key", key: "über", start: 11, end: 17 },
+			{ kind: "unknown-key", key: "123", start: 18, end: 23 },
+		]);
+		expect(checkFilterQuery(qualifiers, "-is:active")).toEqual([
+			{ kind: "unknown-key", key: "-is", start: 0, end: 10 },
+		]);
+	});
+
+	test("reads a URL as search text, not as a key", () => {
+		expect(checkFilterQuery(testGrammar, "https://api.example.com")).toEqual([]);
+	});
+
+	test("reports a bare term that a conjunction grammar cannot run", () => {
+		const grammar = defineRemoteFilterGrammar({
+			syntax: "conjunction",
+			keys: [{ key: "is", description: "State", values: [{ value: "active" }] }],
+		});
+
+		expect(checkFilterQuery(grammar, "is:active api")).toEqual([
+			{ kind: "unsupported-term", text: "api", start: 10, end: 13 },
 		]);
 	});
 

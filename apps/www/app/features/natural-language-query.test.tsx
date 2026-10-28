@@ -122,4 +122,19 @@ describe("mockTranslateQuery", () => {
 			query: "-is:archived is:shared name:billing",
 		});
 	});
+
+	test.for([
+		{ words: "shared projects that aren't archived", query: "-is:archived is:shared" },
+		{ words: "not shared", query: "-is:shared" },
+		{ words: "unarchived", query: "-is:archived" },
+		{ words: "active projects", query: "-is:archived" },
+		{ words: "old stuff", query: "is:archived stuff" },
+	])("maps $words to $query", async ({ words, query }) => {
+		vi.useFakeTimers();
+		const request = mockTranslateQuery({ words, signal: new AbortController().signal });
+		await vi.advanceTimersByTimeAsync(700);
+		vi.useRealTimers();
+
+		expect(await request).toEqual({ kind: "query", query });
+	});
 });

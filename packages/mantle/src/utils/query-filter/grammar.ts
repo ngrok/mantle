@@ -267,8 +267,8 @@ type RemoteFilterGrammarOptions = {
  * group of exclusions, comma lists, and the `OR` the consumer accepts under
  * `"conjunction"`.
  *
- * Under `"qualifiers"`, it throws when a value contains whitespace: no query
- * can express that value.
+ * Under `"qualifiers"`, it throws when a value or a value alias contains
+ * whitespace: no query can express it.
  *
  * @example
  * ```ts
@@ -286,10 +286,13 @@ function defineRemoteFilterGrammar({
 	if (syntax === "qualifiers") {
 		for (const definition of keys) {
 			for (const valueDefinition of definition.values ?? []) {
-				invariant(
-					!/\s/.test(valueDefinition.value),
-					`The value "${valueDefinition.value}" of the "${definition.key}" key contains whitespace, which a "qualifiers" grammar cannot express. Set syntax: "conjunction", which reads quotes.`,
-				);
+				// An alias is typed too, so it has the same limit as the value.
+				for (const spelling of [valueDefinition.value, ...(valueDefinition.aliases ?? [])]) {
+					invariant(
+						!/\s/.test(spelling),
+						`The value "${spelling}" of the "${definition.key}" key contains whitespace, which a "qualifiers" grammar cannot express. Set syntax: "conjunction", which reads quotes.`,
+					);
+				}
 			}
 		}
 	}

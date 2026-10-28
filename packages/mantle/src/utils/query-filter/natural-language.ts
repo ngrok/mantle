@@ -68,7 +68,8 @@ function describeFilterGrammar<Item>(grammar: FilterGrammar<Item>): FilterGramma
 			: {
 					values: definition.values.map(({ value, description }) => ({ value, description })),
 				}),
-		negatable: definition.negatable !== false,
+		// Why: a `"qualifiers"` grammar reads `-key:value` as search text.
+		negatable: syntax !== "qualifiers" && definition.negatable !== false,
 		acceptsList: acceptsValueList(grammar, definition),
 	}));
 
@@ -80,7 +81,9 @@ function describeFilterGrammar<Item>(grammar: FilterGrammar<Item>): FilterGramma
 		syntax !== "qualifiers" && 'Wrap a value that has spaces in double quotes: `key:"a b"`.',
 		syntax === "full" && "`OR` between two groups keeps the items that match either group.",
 		"Qualifiers separated by spaces must all match.",
-		"Other words search the item text.",
+		syntax === "conjunction"
+			? "Write only qualifiers. The search cannot read other words."
+			: "Other words search the item text.",
 	].filter((rule) => rule !== false);
 
 	return { syntax, keys, rules };
@@ -109,18 +112,62 @@ type FilterQueryProblem =
 			key: string;
 			start: number;
 			end: number;
+	  }
+	| {
+			/** A bare term in a `"conjunction"` query. The executor cannot run it. */
+			kind: "unsupported-term";
+			text: string;
+			start: number;
+			end: number;
 	  };
 
-/** A bare `word:` at the start of a free-text token, which reads as an attempt at a key. */
-const keyLikePrefix = /^([A-Za-z][\w-]*):/;
+/** The characters of a written key. Any letter or digit counts, so `über:` and `123:` read as keys. */
+const keyCharacters = /^[\p{L}\p{N}_-]+$/u;
+
+/**
+ * Reads the key that a free-text token attempts, such as `owner` in
+ * `owner:me` or `"owner":me`. A colon inside quotes is text on purpose, and
+ * `scheme://` starts a URL, so neither one attempts a key.
+ */
+function findAttemptedKey({
+	query,
+	start,
+	end,
+	quotes,
+}: {
+	query: string;
+	start: number;
+	end: number;
+	quotes: boolean;
+}) {
+	let insideQuotes = false;
+	let key = "";
+	for (let index = start; index < end; index += 1) {
+		const character = query.charAt(index);
+		if (quotes && character === "\\" && /["\\]/.test(query.charAt(index + 1))) {
+			key += query.charAt(index + 1);
+			index += 1;
+		} else if (quotes && character === '"') {
+			insideQuotes = !insideQuotes;
+		} else if (character === ":" && !insideQuotes) {
+			const isUrl = query.startsWith("//", index + 1);
+			return !isUrl && keyCharacters.test(key) ? key : null;
+		} else {
+			key += character;
+		}
+	}
+	return null;
+}
 
 /**
  * Finds the parts of a query that do not mean what they look like: an
- * unknown key, an unknown value, or an exclusion on a key that cannot
- * exclude. Check a query that a model wrote before you show it, so an
- * invented filter never empties the list without a reason.
+ * unknown key, an unknown value, an exclusion on a key that cannot exclude,
+ * or a bare term that a `"conjunction"` grammar cannot run. Check a query
+ * that a model wrote before you show it, so an invented filter never empties
+ * the list without a reason.
  *
- * A quoted `"key:value"` is free text on purpose, so it is not a problem.
+ * A quoted `"key:value"` and a URL are free text on purpose, so neither one
+ * is a problem.
  *
  * @preview The API is not stable and may change. There may also be bugs.
  * Please file an issue at https://github.com/ngrok/mantle/issues if you find any.
@@ -135,13 +182,22 @@ const keyLikePrefix = /^([A-Za-z][\w-]*):/;
  */
 function checkFilterQuery<Item>(grammar: FilterGrammar<Item>, query: string): FilterQueryProblem[] {
 	const problems: FilterQueryProblem[] = [];
+	const syntax = getFilterSyntax(grammar);
 
 	for (const token of parseFilterQuery(grammar, query)) {
 		if (token.kind === "text") {
-			const bodyStart = token.start + (token.negated ? 1 : 0);
-			const match = query.charAt(bodyStart) === '"' ? null : keyLikePrefix.exec(token.text);
-			if (match?.[1] != null) {
-				problems.push({ kind: "unknown-key", key: match[1], start: token.start, end: token.end });
+			const { start, end } = token;
+			const bodyStart = start + (token.negated ? 1 : 0);
+			const key = findAttemptedKey({
+				query,
+				start: bodyStart,
+				end,
+				quotes: syntax !== "qualifiers",
+			});
+			if (key != null) {
+				problems.push({ kind: "unknown-key", key, start, end });
+			} else if (syntax === "conjunction") {
+				problems.push({ kind: "unsupported-term", text: token.text, start, end });
 			}
 			continue;
 		}

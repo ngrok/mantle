@@ -70,6 +70,18 @@ describe("defineRemoteFilterGrammar", () => {
 		expect(() => defineRemoteFilterGrammar({ keys, syntax: "conjunction" })).not.toThrow();
 	});
 
+	test("throws on a value alias with whitespace under the qualifiers syntax", () => {
+		const keys = [
+			{
+				key: "status",
+				description: "Status",
+				values: [{ value: "review", aliases: ["needs review"] }],
+			},
+		];
+
+		expect(() => defineRemoteFilterGrammar({ keys })).toThrow(/needs review/);
+	});
+
 	test("keeps every qualifier and value spelling it was given", () => {
 		expect(parseFilterQuery(remoteGrammar, "hasplan:v2_pro is:PAST_DUE")).toMatchObject([
 			{ kind: "facet", key: "hasplan", members: [{ value: "v2_pro", isKnownValue: true }] },

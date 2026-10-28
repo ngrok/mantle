@@ -10,7 +10,16 @@ import type {
 	RefObject,
 	SetStateAction,
 } from "react";
-import { createContext, useCallback, useContext, useId, useMemo, useRef, useState } from "react";
+import {
+	createContext,
+	useCallback,
+	useContext,
+	useEffect,
+	useId,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import invariant from "tiny-invariant";
 import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
 import type { WithAsChild } from "../../types/as-child.js";
@@ -112,6 +121,7 @@ const QueryContext = createContext<QueryContextValue | null>(null);
 /** The elements `Query.Root` reads in its handlers. A separate context keeps refs out of the render state. */
 type QueryRefs = {
 	anchorRef: RefObject<HTMLDivElement | null>;
+	contentRef: RefObject<HTMLDivElement | null>;
 	inputRef: RefObject<HTMLInputElement | null>;
 };
 
@@ -197,6 +207,7 @@ function Root<Item extends object>({
 	...props
 }: QueryRootProps<Item>) {
 	const anchorRef = useRef<HTMLDivElement>(null);
+	const contentRef = useRef<HTMLDivElement>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
 	// The value the last typed edit reported. `reportInsertedText` reads it to report an edit once.
 	const reportedValueRef = useRef<string | null>(null);
@@ -221,8 +232,17 @@ function Root<Item extends object>({
 		setCaretIndex(value.length);
 	}
 
+	// New items rebuild the suggestions, so the active index can name another
+	// row. Enter must never accept a row the user did not pick.
+	const [suggestedItems, setSuggestedItems] = useState(items);
+	if (items !== suggestedItems) {
+		setSuggestedItems(items);
+		setActiveIndex(null);
+		setHoveredIndex(null);
+	}
+
 	const listboxId = useId();
-	const refs = useMemo(() => ({ anchorRef, inputRef }), []);
+	const refs = useMemo(() => ({ anchorRef, contentRef, inputRef }), []);
 
 	// A closed list keeps no active or hovered row, so a reopened list starts
 	// passive and Enter cannot accept a row the user did not pick again.
@@ -435,6 +455,7 @@ type QueryProps = Omit<
  * at the right edge. It empties the query and moves focus back to the field.
  * Children render after the text as inline actions, before the clear button,
  * in a `[data-slot="query-input-actions"]` wrapper with `display: contents`.
+ * The clear button sits after that wrapper, not inside it.
  *
  * **CSS variables:**
  *
@@ -483,12 +504,14 @@ function Input({
 	...props
 }: QueryProps) {
 	const context = useQueryContext("Query.Input");
-	const { anchorRef, inputRef } = useQueryRefs("Query.Input");
+	const { anchorRef, contentRef, inputRef } = useQueryRefs("Query.Input");
 	const fieldControl = useContext(FieldControlContext);
 	const overlayRef = useRef<HTMLDivElement>(null);
 	const composedRef = useComposedRefs(ref, inputRef);
 
-	const ownDescription = describedBy ?? fieldControl?.["aria-describedby"];
+	// Field.Item owns the id, name, and ARIA wiring, as it does for `Select.Trigger`,
+	// so a prop on the input cannot drop the field's description or error.
+	const ownDescription = fieldControl ? fieldControl["aria-describedby"] : describedBy;
 	const hasNoRows = context.suggestions.items.length === 0;
 	const describedByIds = [
 		ownDescription,
@@ -501,6 +524,16 @@ function Input({
 	// A field the user cannot edit offers no edits.
 	const canSuggest = !disabled && !readOnly;
 	const canClear = canSuggest && context.value !== "";
+
+	// Why an effect: `disabled` and `readOnly` are props of this part, and the
+	// open state lives in `Root`. A field that turns read-only must not keep a
+	// list whose rows still edit the query.
+	const { setIsOpen } = context;
+	useEffect(() => {
+		if (!canSuggest) {
+			setIsOpen(false);
+		}
+	}, [canSuggest, setIsOpen]);
 
 	function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
 		onKeyDown?.(event);
@@ -565,14 +598,14 @@ function Input({
 			<InputShell
 				autoCapitalize="off"
 				{...props}
-				aria-invalid={invalid ?? fieldControl?.["aria-invalid"]}
+				aria-invalid={fieldControl ? fieldControl["aria-invalid"] : invalid}
 				autoComplete="off"
 				disabled={disabled}
-				name={name ?? fieldControl?.name}
+				name={fieldControl ? fieldControl.name : name}
 				placeholder={placeholder}
 				readOnly={readOnly}
 				// A trailing inline action sits as far from the right edge as from the top and bottom.
-				className="has-[>[data-slot=query-input-actions]>button:last-child]:pe-1.25"
+				className="has-[>button:last-child]:pe-1.25 has-[>[data-slot=query-input-actions]:last-child>button:last-child]:pe-1.25"
 			>
 				<MagnifyingGlassIcon aria-hidden />
 				{/* One box for the input and its painted copy, so the copy ends where
@@ -598,7 +631,7 @@ function Input({
 					</div>
 					<InputCapture
 						ref={composedRef}
-						id={id ?? fieldControl?.id}
+						id={fieldControl ? fieldControl.id : id}
 						role="combobox"
 						aria-autocomplete="list"
 						aria-controls={context.listboxId}
@@ -609,7 +642,7 @@ function Input({
 								: undefined
 						}
 						aria-describedby={describedByIds === "" ? undefined : describedByIds}
-						aria-errormessage={errorMessage ?? fieldControl?.["aria-errormessage"]}
+						aria-errormessage={fieldControl ? fieldControl["aria-errormessage"] : errorMessage}
 						className="caret-(--text-color-strong) text-transparent"
 						value={context.value}
 						onChange={(event) => context.reportTypedValue(event.target)}
@@ -627,6 +660,13 @@ function Input({
 						}}
 						onBlur={(event) => {
 							onBlur?.(event);
+							// Focus that moves into the popover, such as a press on a
+							// footer link, keeps the list open, or the link unmounts
+							// before its click. Radix closes the list when focus leaves it.
+							const target = event.relatedTarget;
+							if (event.defaultPrevented || contentRef.current?.contains(target) === true) {
+								return;
+							}
 							context.setIsOpen(false);
 						}}
 						onKeyDown={handleKeyDown}
@@ -639,12 +679,15 @@ function Input({
 						}}
 					/>
 				</div>
-				{(children != null || canClear) && (
+				{/* Why the clear button sits outside the wrapper: the consumer's
+				    children need a host node of their own, or the button's mount
+				    lands beside a text node that a translation engine reparented. */}
+				{children != null && (
 					<span data-slot="query-input-actions" className="contents">
 						{children}
-						{canClear && <ClearButton label={clearLabel} onClear={context.clearValue} />}
 					</span>
 				)}
+				{canClear && <ClearButton label={clearLabel} onClear={context.clearValue} />}
 			</InputShell>
 		</Popover.Anchor>
 	);
@@ -728,7 +771,8 @@ function Content({
 	ref,
 }: QueryContentProps) {
 	const context = useQueryContext("Query.Content");
-	const { anchorRef } = useQueryRefs("Query.Content");
+	const { anchorRef, contentRef } = useQueryRefs("Query.Content");
+	const composedRef = useComposedRefs(ref, contentRef);
 	const { registerContent } = context;
 	const rowCount = context.suggestions.items.length;
 
@@ -739,7 +783,7 @@ function Content({
 
 	return (
 		<Popover.Content
-			ref={ref}
+			ref={composedRef}
 			data-slot={joinDataSlot(dataSlot, "query-content")}
 			align="start"
 			className={cx("w-(--radix-popover-trigger-width) p-1", className)}
@@ -772,6 +816,7 @@ function Content({
 					<EmptySuggestions
 						id={context.emptyStateId}
 						keys={context.keys}
+						syntax={context.syntax}
 						valueKey={context.suggestions.key}
 					/>
 				)}
@@ -800,10 +845,12 @@ function Content({
 function EmptySuggestions({
 	id,
 	keys,
+	syntax,
 	valueKey,
 }: {
 	id: string;
 	keys: readonly RemoteFilterKeyDefinition[];
+	syntax: FilterSyntax;
 	valueKey: string | undefined;
 }) {
 	const definition = keys.find((candidate) => candidate.key === valueKey);
@@ -811,6 +858,14 @@ function EmptySuggestions({
 
 	// Each case is its own keyed `<p>`, so a switch replaces a whole element
 	// and never a text node that a translation engine rewrote.
+	// A conjunction executor reads no free text, so the words cannot search.
+	if (definition == null && syntax === "conjunction") {
+		return (
+			<p key="qualifiers-only" id={id} className={className}>
+				No filter matches. This search reads only key:value filters.
+			</p>
+		);
+	}
 	if (definition == null) {
 		return (
 			<p key="text" id={id} className={className}>

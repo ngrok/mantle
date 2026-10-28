@@ -1,12 +1,14 @@
 import type { TranslateQuery, TranslateResult } from "~/features/natural-language-query";
 
-/** Words that name a project state, and the qualifier each one means. */
-const stateWords: ReadonlyArray<readonly [RegExp, string]> = [
-	[/\b(not|un)[ -]?archived\b|\bactive\b|\bcurrent\b/, "-is:archived"],
-	[/\barchived\b|\bold\b/, "is:archived"],
-	[/\bshared\b|\bteam\b/, "is:shared"],
-	[/\bprivate\b|\bpersonal\b|\bmine\b|\bonly me\b/, "is:private"],
+/** Words that name a project state, and the state each one means. */
+const stateWords: ReadonlyArray<readonly [string, string]> = [
+	["archived|old", "archived"],
+	["shared|team", "shared"],
+	["private|personal|mine|only me", "private"],
 ];
+
+/** A negation before a state word, such as "not", "aren't", or "un". */
+const negation = String.raw`(?:(?:not|aren't|isn't|non)[ -]?|un-?)`;
 
 /** Words that carry no meaning for the filter. */
 const fillerWords = new Set(
@@ -34,16 +36,24 @@ export const mockTranslateQuery: TranslateQuery = ({ words, signal }) =>
 	});
 
 function translateWords(words: string): TranslateResult {
-	let text = words.toLowerCase();
+	let text = words.toLowerCase().replaceAll("’", "'");
 	if (offTopic.test(text)) {
 		return { kind: "off_topic" };
 	}
 
 	const qualifiers: string[] = [];
-	for (const [pattern, qualifier] of stateWords) {
-		if (pattern.test(text)) {
-			qualifiers.push(qualifier);
-			text = text.replace(pattern, " ");
+	// "active" and "current" mean not archived.
+	text = text.replace(/\b(?:active|current)\b/, " not archived ");
+	for (const [stateWord, state] of stateWords) {
+		// Read the negated form first, so "not archived" never reads as "archived".
+		const negated = new RegExp(String.raw`\b${negation}(?:${stateWord})\b`);
+		const plain = new RegExp(String.raw`\b(?:${stateWord})\b`);
+		if (negated.test(text)) {
+			qualifiers.push(`-is:${state}`);
+			text = text.replace(negated, " ");
+		} else if (plain.test(text)) {
+			qualifiers.push(`is:${state}`);
+			text = text.replace(plain, " ");
 		}
 	}
 
