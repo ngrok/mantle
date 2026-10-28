@@ -11,7 +11,6 @@ import type {
 	SetStateAction,
 } from "react";
 import {
-	Fragment,
 	cloneElement,
 	createContext,
 	isValidElement,
@@ -125,6 +124,9 @@ type QueryContextValue = {
 };
 
 const QueryContext = createContext<QueryContextValue | null>(null);
+
+/** The index of the row `Query.List` renders, so each `Query.Item` gets it without a scan. */
+const QueryRowIndexContext = createContext<number | null>(null);
 
 /** The elements `Query.Root` reads in its handlers. A separate context keeps refs out of the render state. */
 type QueryRefs = {
@@ -685,7 +687,7 @@ function Input({
 						id={fieldControl ? fieldControl.id : id}
 						role="combobox"
 						aria-autocomplete="list"
-						aria-controls={context.listboxId}
+						aria-controls={context.hasList ? context.listboxId : undefined}
 						aria-expanded={context.isListboxOpen}
 						aria-activedescendant={
 							context.isListboxOpen && context.hasList && context.activeIndex != null
@@ -887,8 +889,9 @@ function Content({ "data-slot": dataSlot, children, className, ref, ...props }: 
 type QueryListProps = Omit<ComponentProps<"div">, "children" | "id" | "role"> &
 	WithDataSlot & {
 		/**
-		 * Renders one suggestion. Return a `Query.Item` for it. The list calls it
-		 * for each suggestion under the caret, in order.
+		 * Renders one suggestion. Return a `Query.Item` for it, and do not skip a
+		 * suggestion: the arrow keys move through every one. The list calls it for
+		 * each suggestion under the caret, in order.
 		 */
 		children: (suggestion: FilterSuggestion) => ReactNode;
 	};
@@ -933,10 +936,13 @@ function List({ "data-slot": dataSlot, children, className, ...props }: QueryLis
 	// cannot tell it that the rows exist.
 	useIsomorphicLayoutEffect(registerList, [registerList]);
 
-	const rowsBySection = new Map<FilterSuggestionSection, FilterSuggestion[]>();
-	for (const suggestion of context.suggestions.items) {
+	const rowsBySection = new Map<
+		FilterSuggestionSection,
+		{ suggestion: FilterSuggestion; index: number }[]
+	>();
+	for (const [index, suggestion] of context.suggestions.items.entries()) {
 		const rows = rowsBySection.get(suggestion.section) ?? [];
-		rows.push(suggestion);
+		rows.push({ suggestion, index });
 		rowsBySection.set(suggestion.section, rows);
 	}
 
@@ -954,8 +960,10 @@ function List({ "data-slot": dataSlot, children, className, ...props }: QueryLis
 					<span aria-hidden className="text-muted block px-2 pt-2 pb-1 text-xs font-medium">
 						{sectionHeadings[section]}
 					</span>
-					{rows.map((suggestion) => (
-						<Fragment key={suggestion.label}>{children(suggestion)}</Fragment>
+					{rows.map(({ suggestion, index }) => (
+						<QueryRowIndexContext.Provider key={suggestion.label} value={index}>
+							{children(suggestion)}
+						</QueryRowIndexContext.Provider>
 					))}
 				</div>
 			))}
@@ -1030,8 +1038,11 @@ function Item({
 	...props
 }: QueryItemProps) {
 	const context = useQueryContext("Query.Item");
-	const index = context.suggestions.items.indexOf(suggestion);
-	invariant(index !== -1, "Query.Item takes a suggestion from the Query.List render function.");
+	const index = useContext(QueryRowIndexContext);
+	invariant(
+		index != null && context.suggestions.items[index] === suggestion,
+		"Query.Item takes a suggestion from the Query.List render function.",
+	);
 	const isActive = index === context.activeIndex;
 	// The scroll ref attaches only while the row is active, so activation scrolls it into view.
 	const composedRef = useComposedRefs(ref, isActive ? scrollActiveOptionIntoView : null);

@@ -986,6 +986,7 @@ describe("Query.Content", () => {
 		fireEvent.keyDown(input, { key: "ArrowDown" });
 
 		expect(input).not.toHaveAttribute("aria-activedescendant");
+		expect(input).not.toHaveAttribute("aria-controls");
 		expect(fireEvent.keyDown(input, { key: "Enter" })).toBe(true);
 		expect(values).toEqual([]);
 	});

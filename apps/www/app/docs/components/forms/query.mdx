@@ -498,10 +498,10 @@ The suggestion popover. It holds the parts you compose into it and keeps focus i
 
 The suggestion listbox for the token under the caret. It groups the rows under "Filter by", "Exclude", and "Values", and it scrolls when the rows don't fit. It accepts every `div` prop except `id` and `role`.
 
-| Prop         | Type                                          | Default                | Description                                                     |
-| ------------ | --------------------------------------------- | ---------------------- | --------------------------------------------------------------- |
-| `children`   | `(suggestion: FilterSuggestion) => ReactNode` | none                   | Renders one suggestion. Return a `Query.Item` for it. Required. |
-| `aria-label` | `string`                                      | `"Filter suggestions"` | The accessible name of the listbox.                             |
+| Prop         | Type                                          | Default                | Description                                                                                                                  |
+| ------------ | --------------------------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `children`   | `(suggestion: FilterSuggestion) => ReactNode` | none                   | Renders one suggestion. Return a `Query.Item` for every suggestion, because the arrow keys move through every one. Required. |
+| `aria-label` | `string`                                      | `"Filter suggestions"` | The accessible name of the listbox.                                                                                          |
 
 | Data Attribute | Value          | Description     |
 | -------------- | -------------- | --------------- |
