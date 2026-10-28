@@ -1,5 +1,13 @@
 # @ngrok/mantle-server-syntax-highlighter
 
+## 1.1.20
+
+### Patch Changes
+
+- [#1630](https://github.com/ngrok/mantle/pull/1630) [`061c62a`](https://github.com/ngrok/mantle/commit/061c62a75facb5782a9d0eaa2a6a355bd67b72dc) Thanks [@joelhans](https://github.com/joelhans)! - `dotenv` joins the supported code block languages. `mantleCode("dotenv")`, Markdown fences, and the server highlighter render `.env` files with Shiki's dotenv grammar, which ships in the existing `shiki` dependency. Before this change, a `dotenv` fence was not highlighted, and the rehype plugin left it as a plain `<pre>` without `CodeBlock` styles.
+
+- [#1631](https://github.com/ngrok/mantle/pull/1631) [`b6cd8a6`](https://github.com/ngrok/mantle/commit/b6cd8a63db9854776456c644c1a072788c352ee3) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Bump `oxc-parser` from 0.155.0 to 0.156.0.
+
 ## 1.1.19
 
 ### Patch Changes
