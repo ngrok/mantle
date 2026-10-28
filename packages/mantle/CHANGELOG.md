@@ -1,5 +1,81 @@
 # @ngrok/mantle
 
+## 0.93.0
+
+### Minor Changes
+
+- [#1622](https://github.com/ngrok/mantle/pull/1622) [`c05af74`](https://github.com/ngrok/mantle/commit/c05af740debf9d95a218a44cc514b5ac286c651b) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add `Query` and `@ngrok/mantle/query-filter`, the filter language it speaks.
+
+  `Query` is a single-line filter field where free text and `key:value` qualifiers interleave, such as `is:shared -staging api`. The field colors each token in place. A suggestion popover completes keys and values while the caret stays in the field. The field is a real `<input role="combobox">`, so the caret, selection, IME composition, paste, and undo stay native.
+
+  ```tsx
+  import { type FilterGrammar, filterItemsByQuery } from "@ngrok/mantle/query-filter";
+  import { Query } from "@ngrok/mantle/query";
+
+  <Query.Root
+  	grammar={projectFilterGrammar}
+  	items={projects}
+  	value={query}
+  	onValueChange={setQuery}
+  >
+  	<Query.Input
+  		aria-label="Filter projects"
+  		placeholder="Filter projects, or type a filter like is:shared"
+  	/>
+  	<Query.Content>
+  		<Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+  		<Query.Empty />
+  		<Query.Footer>
+  			<Query.Legend />
+  			<Query.KeyboardHints />
+  		</Query.Footer>
+  	</Query.Content>
+  </Query.Root>;
+  ```
+
+  - `Query.Root` owns the caret, the open state, and the active suggestion, and lays out its children in a row. It is controlled only: pass `value` and `onValueChange`. Pass `items` for live match counts, or leave it out when a server runs the query.
+  - `Query.Input` is the field, with a leading magnifier and a clear button that shows while the query has text. It takes the `<input>` props, such as `disabled`, `required`, `readOnly`, and `validation`, as `Input` does. Its children render inside the field as inline actions, before the clear button. `clearLabel` names the clear button, and `onClear` runs after a clear. Inside `Field.Control`, it takes its `id`, `name`, and ARIA wiring from the `Field.Item`. Keys, values, and `OR` use the `CodeBlock` colors. Set `--query-key-color`, `--query-value-color`, or `--query-operator-color` to change them.
+  - `Query.Content` is the suggestion popover. You compose its parts, and you leave out a part to remove it. It accepts the `Popover.Content` props, such as `side` and `id`, except the ones it owns.
+  - `Query.List` is the listbox, grouped under "Filter by", "Exclude", and "Values". Its child is a function that gets each suggestion and returns a `Query.Item`.
+  - `Query.Item` is one suggestion row. It shows the label, the description, and the match count, or the children you pass. Call `preventDefault()` in its `onClick` to skip the insert.
+  - `Query.Empty` shows when no suggestion matches, and the popover stays open. By default, it says what the field accepts at the caret.
+  - `Query.Footer` stays under the rows while they scroll, and it joins the input's description while the popover is open. It takes `asChild`.
+  - `Query.Legend` shows the syntax the grammar honors. `Query.KeyboardHints` shows the keys the field answers to, and `enterHint` names what Enter does.
+  - Data attributes: `data-slot` is `query`, `query-input`, `query-input-actions`, `query-content`, `query-list`, `query-item`, `query-empty`, `query-footer`, `query-legend`, and `query-keyboard-hints`. `data-highlighted` marks the active row, or the row under the pointer.
+
+  `@ngrok/mantle/query-filter` has no React import, so a server or a script can parse and match with the same rules. It exports the `FilterGrammar` contract, `defineRemoteFilterGrammar`, the total parser `parseFilterQuery`, `toggleFacet` to add or remove one qualifier, the matchers `filterItemsByQuery` and `countItemsByQuery`, `getFilterSuggestions`, and `getHighlightSegments`. For a natural-language search, `describeFilterGrammar` describes the language as JSON for a model, and `checkFilterQuery` finds the unknown keys and values in the query that the model returns, and the bare terms that a `"conjunction"` grammar cannot run. These two helpers are in preview, so their API can change.
+
+  The engine is faster than the copy it replaces in ngrok's apps. It compiles a query once per pass, reads each item's search text by index, and counts the value suggestions over the items the rest of the query keeps. Median times on 50,000 items:
+
+  | Case                                           | Before  | After  |
+  | ---------------------------------------------- | ------- | ------ |
+  | Filter by one term                             | 2.9 ms  | 1.3 ms |
+  | Filter by qualifiers, an exclusion, and a term | 4.7 ms  | 1.8 ms |
+  | Filter with `OR`                               | 4.9 ms  | 2.6 ms |
+  | Filter by three exclusions                     | 5.4 ms  | 2.6 ms |
+  | Count a new query                              | 3.1 ms  | 1.3 ms |
+  | Value suggestions, the rest narrows            | 12.8 ms | 2.1 ms |
+  | Value suggestions, the rest keeps all          | 15.4 ms | 4.7 ms |
+  | Value suggestions after a refetch              | 12.4 ms | 3.3 ms |
+
+  For each items array, the caches cost up to one pointer and 4 bytes per item, and at most 1,000 counts.
+
+  Docs: https://mantle.ngrok.com/components/forms/query and https://mantle.ngrok.com/utils/query-filter
+
+### Patch Changes
+
+- [#1630](https://github.com/ngrok/mantle/pull/1630) [`061c62a`](https://github.com/ngrok/mantle/commit/061c62a75facb5782a9d0eaa2a6a355bd67b72dc) Thanks [@joelhans](https://github.com/joelhans)! - `dotenv` joins the supported code block languages. `mantleCode("dotenv")`, Markdown fences, and the server highlighter render `.env` files with Shiki's dotenv grammar, which ships in the existing `shiki` dependency. Before this change, a `dotenv` fence was not highlighted, and the rehype plugin left it as a plain `<pre>` without `CodeBlock` styles.
+
+- [#1622](https://github.com/ngrok/mantle/pull/1622) [`c05af74`](https://github.com/ngrok/mantle/commit/c05af740debf9d95a218a44cc514b5ac286c651b) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `useDebouncedCallback` accepts a callback with typed parameters, such as `(query: string) => void`. Before, TypeScript rejected every callback that did not take `unknown` arguments, including the one in the hook's own example.
+
+- [#1627](https://github.com/ngrok/mantle/pull/1627) [`4970366`](https://github.com/ngrok/mantle/commit/4970366fbc4fbab0ef1b71084a0f166a659a4ca9) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Fix the indentation of tab-indented code in `CodeBlock` on Firefox. A tab now shows as two spaces in every browser. The code block wrote `-moz-tab-size: 2px`, which Firefox reads over `tab-size`, so each tab was 2px wide. `CodeBlock.Code` now ignores a `MozTabSize` in its `style` prop for the same reason.
+
+- [#1631](https://github.com/ngrok/mantle/pull/1631) [`b6cd8a6`](https://github.com/ngrok/mantle/commit/b6cd8a63db9854776456c644c1a072788c352ee3) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Bump `@tanstack/react-virtual` from 3.14.22 to 3.14.23.
+
+- [#1629](https://github.com/ngrok/mantle/pull/1629) [`c9c50aa`](https://github.com/ngrok/mantle/commit/c9c50aa05d3fcd384639c621b25d4ecbc86e76a4) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Show `Sandbar` above an open `Dialog`, `AlertDialog`, or `Sheet` and its scrim. Before, the overlay covered the bar. A click on the bar, or in a menu or popup opened from the bar, now does not dismiss the overlay, the same as a toast. A menu or popup opened from the bar shows above the bar.
+
+- [#1634](https://github.com/ngrok/mantle/pull/1634) [`977abd8`](https://github.com/ngrok/mantle/commit/977abd85024191a3ef5167464c4cf6f36d9e2d46) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Keep the `Slider` thumb white in dark mode for better contrast.
+
 ## 0.92.1
 
 ### Patch Changes
