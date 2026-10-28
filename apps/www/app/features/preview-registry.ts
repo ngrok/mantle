@@ -14,6 +14,7 @@ import {
 import {
 	SandbarDemo,
 	SandbarFailedSaveDemo,
+	SandbarOverSheetDemo,
 	SandbarPendingPublishDemo,
 	SandbarReducedMotionDemo,
 } from "~/features/sandbar-demos";
@@ -132,6 +133,11 @@ export const previewExamples = {
 	"sandbar-failed-save": {
 		title: "Sandbar failed save demo",
 		Component: SandbarFailedSaveDemo,
+		sourceFile: "sandbar-demos.tsx",
+	},
+	"sandbar-over-sheet": {
+		title: "Sandbar over sheet demo",
+		Component: SandbarOverSheetDemo,
 		sourceFile: "sandbar-demos.tsx",
 	},
 	"sandbar-pending-publish": {

@@ -6,6 +6,7 @@ import { useState } from "react";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { Dialog } from "../../components/dialog/dialog.js";
 import { Popover } from "../../components/popover/popover.js";
+import { Sandbar } from "../../components/sandbar/sandbar.js";
 import { Sheet } from "../../components/sheet/sheet.js";
 import { makeToast, Toaster } from "../../components/toast/toast.js";
 
@@ -16,8 +17,8 @@ import { makeToast, Toaster } from "../../components/toast/toast.js";
  * `document.elementFromPoint`.
  *
  * Cross-file spelling pin: browser tests load no Tailwind, so this restates
- * the CSS the layering utilities and `Toaster` emit (`fixed`, `z-50`, `z-60`,
- * `pointer-events-auto`, insets).
+ * the CSS the layering utilities, `Toaster`, and `Sandbar` emit (`fixed`,
+ * `z-50`, `z-60`, `z-70`, `pointer-events-*`, insets).
  * Radix mirrors each float content's computed z-index onto its popper wrapper,
  * so `.z-50` here engages the real stacking mechanism. If a component's tier
  * class changes, `layer-container.test.tsx`'s tier test catches the class; if
@@ -28,7 +29,12 @@ const STYLE = `
 .fixed { position: fixed; }
 .z-50 { z-index: 50; }
 .z-60 { z-index: 60; }
+.z-70 { z-index: 70; }
 .pointer-events-auto { pointer-events: auto; }
+.pointer-events-none { pointer-events: none; }
+.\\*\\:pointer-events-auto > * { pointer-events: auto; }
+.inset-x-0 { left: 0px; right: 0px; }
+.bottom-4 { bottom: 16px; }
 .inset-0 { inset: 0px; }
 .inset-4 { inset: 16px; }
 .inset-y-0 { top: 0px; bottom: 0px; }
@@ -252,6 +258,32 @@ describe("paint order across layer tiers", () => {
 			const topElement = topElementAt(toastContent);
 			expect(topElement).not.toBeNull();
 			expect(toastContent.contains(topElement)).toBe(true);
+		});
+	});
+
+	test("the sandbar stays hit-testable above a modal dialog", async () => {
+		render(
+			<div>
+				<Sandbar.Root open>
+					<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+				</Sandbar.Root>
+				<Dialog.Root open>
+					<Dialog.Content appearance="full-bleed">
+						<Dialog.Title>Takeover</Dialog.Title>
+					</Dialog.Content>
+				</Dialog.Root>
+			</div>,
+		);
+
+		const message = await screen.findByText("You have unsaved changes");
+
+		// Why modal: as with the toast above, only the bar's own
+		// `pointer-events-auto` keeps it the hit target. The `z-70` tier puts it
+		// above the dialog's `z-60` layer.
+		await waitFor(() => {
+			const topElement = topElementAt(message);
+			expect(topElement).not.toBeNull();
+			expect(message.contains(topElement)).toBe(true);
 		});
 	});
 });

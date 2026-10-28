@@ -23,6 +23,12 @@ import { useComposedRefs } from "../compose-refs/compose-refs.js";
 const LayerContainerContext = createContext<Element | DocumentFragment | null>(null);
 
 /**
+ * `true` inside a modal overlay's layer container. A non-modal layer, such as
+ * `Sandbar`, does not lock body scroll, so it does not set this.
+ */
+const ModalLayerContext = createContext(false);
+
+/**
  * The nearest overlay's layer container, or `null` outside every overlay.
  * Pass the result to a portal's `container` prop — `null` falls back to
  * `document.body`.
@@ -39,6 +45,15 @@ const LayerContainerContext = createContext<Element | DocumentFragment | null>(n
  */
 function useLayerContainer(): Element | DocumentFragment | null {
 	return useContext(LayerContainerContext);
+}
+
+/**
+ * `true` when a modal overlay (`Dialog`, `AlertDialog`, `Sheet`) encloses the
+ * caller. That overlay already locks body scroll, so a float inside it must not
+ * add its own lock.
+ */
+function useIsInsideModalLayer(): boolean {
+	return useContext(ModalLayerContext);
 }
 
 /**
@@ -59,13 +74,28 @@ function useLayerContainer(): Element | DocumentFragment | null {
  * </Portal>
  * ```
  */
-function LayerContainer({ children, ref, ...props }: ComponentProps<"div">) {
+function LayerContainer({
+	children,
+	modal = true,
+	ref,
+	...props
+}: ComponentProps<"div"> & {
+	/**
+	 * Whether the layer belongs to a modal overlay that locks body scroll.
+	 * A non-modal layer inside a modal one stays modal.
+	 * @default true
+	 */
+	modal?: boolean;
+}) {
 	const [element, setElement] = useState<HTMLDivElement | null>(null);
 	const composedRef = useComposedRefs(ref, setElement);
+	const isInsideModal = useIsInsideModalLayer();
 
 	return (
 		<div ref={composedRef} {...props}>
-			<LayerContainerContext.Provider value={element}>{children}</LayerContainerContext.Provider>
+			<ModalLayerContext.Provider value={isInsideModal || modal}>
+				<LayerContainerContext.Provider value={element}>{children}</LayerContainerContext.Provider>
+			</ModalLayerContext.Provider>
 		</div>
 	);
 }
@@ -74,5 +104,6 @@ export {
 	//,
 	LayerContainer,
 	LayerContainerContext,
+	useIsInsideModalLayer,
 	useLayerContainer,
 };

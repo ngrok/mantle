@@ -1,7 +1,8 @@
 // @vitest-environment happy-dom
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { PointerEventsCheckLevel, userEvent } from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
-import { SandbarReducedMotionDemo } from "./sandbar-demos";
+import { SandbarOverSheetDemo, SandbarReducedMotionDemo } from "./sandbar-demos";
 
 function getPanel(): HTMLElement {
 	const panel = document.querySelector('[data-slot="sandbar"]');
@@ -55,5 +56,44 @@ describe("SandbarReducedMotionDemo", () => {
 		// Why "open" at once: the panel is still visible mid-exit, so the reopen
 		// skips the pre-enter frame.
 		expect(getPanel().getAttribute("data-state")).toBe("open");
+	});
+});
+
+describe("SandbarOverSheetDemo", () => {
+	it("saves from the bar while the sheet stays open", async () => {
+		// Why skip the pointer-events check: the open sheet sets `pointer-events: none`
+		// on <body>, and tests load no Tailwind for the panel's `pointer-events-auto`.
+		const user = userEvent.setup({ pointerEventsCheck: PointerEventsCheckLevel.Never });
+		render(<SandbarOverSheetDemo />);
+
+		await user.type(screen.getByRole("textbox", { name: "Endpoint name" }), "-v2");
+		await user.click(screen.getByRole("button", { name: "View endpoint details" }));
+		await screen.findByRole("dialog");
+
+		// The open sheet marks the bar `aria-hidden`, so the query passes `hidden: true`.
+		await user.click(screen.getByRole("button", { name: "Save changes", hidden: true }));
+
+		expect(screen.queryByRole("dialog")).not.toBeNull();
+		expect(getPanel().getAttribute("data-state")).toBe("closed");
+		expect(screen.queryByRole("heading", { name: "my-agent-endpoint-v2" })).not.toBeNull();
+	});
+
+	it("keeps the bar reachable by keyboard once the sheet closes", async () => {
+		const user = userEvent.setup();
+		render(<SandbarOverSheetDemo />);
+
+		await user.type(screen.getByRole("textbox", { name: "Endpoint name" }), "-v2");
+		await user.click(screen.getByRole("button", { name: "View endpoint details" }));
+		await screen.findByRole("dialog");
+		await user.keyboard("{Escape}");
+		await waitFor(() => {
+			expect(screen.queryByRole("dialog")).toBeNull();
+		});
+
+		const save = screen.getByRole("button", { name: "Save changes" });
+		while (document.activeElement !== save && document.activeElement !== document.body) {
+			await user.tab();
+		}
+		expect(document.activeElement).toBe(save);
 	});
 });

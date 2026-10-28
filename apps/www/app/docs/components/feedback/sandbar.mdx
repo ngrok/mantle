@@ -541,6 +541,102 @@ scroll-into-view lands fields above the bar. Scroll padding only helps elements 
 into view. An element already in view behind the bar is only partially obscured thanks to the
 island shape, which satisfies the AA criterion.
 
+## Over a dialog or sheet
+
+The bar renders above an open [Dialog](/components/overlays/dialog),
+[AlertDialog](/components/overlays/alert-dialog), or [Sheet](/components/overlays/sheet) and its
+scrim, the same as a toast. A click on the bar does not close the overlay. Edit a field below, open
+the sheet, then save or discard: the sheet stays open.
+
+The open overlay traps focus and hides the rest of the page from screen readers. Keyboard and
+screen-reader users reach the bar after the overlay closes. For a form inside a dialog or sheet, put
+the save and discard actions in the overlay's footer, not in a Sandbar.
+
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="sandbar-over-sheet" title="Sandbar over sheet demo" />
+	<CodeExample.Code>
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { Field } from "@ngrok/mantle/field";
+import { Input } from "@ngrok/mantle/input";
+import { Sandbar } from "@ngrok/mantle/sandbar";
+import { Sheet } from "@ngrok/mantle/sheet";
+import { TextArea } from "@ngrok/mantle/text-area";
+import { useState } from "react";
+
+type Profile = {
+	name: string;
+	description: string;
+};
+
+const initialProfile: Profile = {
+	name: "my-agent-endpoint",
+	description: "Forwards traffic to the local dev server.",
+};
+
+export function EndpointSettings() {
+	const [saved, setSaved] = useState<Profile>(initialProfile);
+	const [draft, setDraft] = useState<Profile>(initialProfile);
+
+	const isDirty = draft.name !== saved.name || draft.description !== saved.description;
+
+	return (
+		<>
+			<Field.Item name="endpoint-name">
+				<Field.Label>Endpoint name</Field.Label>
+				<Field.Control>
+					<Input
+						onChange={(event) => setDraft({ ...draft, name: event.target.value })}
+						value={draft.name}
+					/>
+				</Field.Control>
+			</Field.Item>
+			<Field.Item name="endpoint-description">
+				<Field.Label>Description</Field.Label>
+				<Field.Control>
+					<TextArea
+						onChange={(event) => setDraft({ ...draft, description: event.target.value })}
+						value={draft.description}
+					/>
+				</Field.Control>
+			</Field.Item>
+			<Sheet.Root>
+				<Sheet.Trigger asChild>
+					<Button appearance="outlined" intent="neutral" type="button">
+						View endpoint details
+					</Button>
+				</Sheet.Trigger>
+				<Sheet.Content>
+					<Sheet.Header>
+						<Sheet.TitleGroup>
+							<Sheet.Title>{saved.name}</Sheet.Title>
+							<Sheet.Actions>
+								<Sheet.CloseIconButton />
+							</Sheet.Actions>
+						</Sheet.TitleGroup>
+						<Sheet.Description>{saved.description}</Sheet.Description>
+					</Sheet.Header>
+				</Sheet.Content>
+			</Sheet.Root>
+
+			{/* the bar renders above the open sheet's scrim */}
+			<Sandbar.Root open={isDirty}>
+				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+				<Sandbar.Actions>
+					<Sandbar.DiscardButton onClick={() => setDraft(saved)}>Discard</Sandbar.DiscardButton>
+					<Sandbar.SaveButton onClick={() => setSaved(draft)}>Save changes</Sandbar.SaveButton>
+				</Sandbar.Actions>
+			</Sandbar.Root>
+		</>
+	);
+}
+```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Placement
 
 Render `Sandbar.Root` in place, inside or immediately after the form it saves; `position: fixed`
@@ -551,6 +647,8 @@ Discard/Save. Two caveats:
   `position: fixed` (common with page-transition wrappers). If you cannot render Root outside the
   transformed ancestor, portal it yourself with `createPortal(<Sandbar.Root …/>, document.body)`,
   and accept that this severs the form→actions tab-order adjacency.
+- An ancestor that sets `z-index` or `isolation` starts a new stacking context. It can put the bar
+  below an open [dialog or sheet](#over-a-dialog-or-sheet). Render Root outside that ancestor.
 - Only render one Sandbar per page: it is a singleton surface, like a page's primary save action.
 
 ## API Reference

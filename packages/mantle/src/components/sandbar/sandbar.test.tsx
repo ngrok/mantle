@@ -1,9 +1,13 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { userEvent } from "@testing-library/user-event";
+import { PointerEventsCheckLevel, userEvent } from "@testing-library/user-event";
 import type { TransitionEvent } from "react";
 import { createRef } from "react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import mantleCss from "../../mantle.css?raw";
+import { Dialog } from "../dialog/dialog.js";
+import { MultiSelect } from "../multi-select/multi-select.js";
+import { Popover } from "../popover/popover.js";
+import { Sheet } from "../sheet/sheet.js";
 import type { SandbarHandle } from "./sandbar.js";
 import { Sandbar } from "./sandbar.js";
 
@@ -926,5 +930,143 @@ describe("Sandbar regressions", () => {
 		rerender(loadableSaveTree({ disabled: false, isLoading: true }));
 		expect(saveButton).not.toBeDisabled();
 		expect(document.activeElement).toBe(saveButton);
+	});
+});
+
+describe("Sandbar over an open overlay", () => {
+	test.each([
+		[
+			"Dialog",
+			(onOpenChange: (open: boolean) => void) => (
+				<Dialog.Root defaultOpen onOpenChange={onOpenChange}>
+					<Dialog.Content>
+						<Dialog.Title>Edit endpoint</Dialog.Title>
+					</Dialog.Content>
+				</Dialog.Root>
+			),
+		],
+		[
+			"Sheet",
+			(onOpenChange: (open: boolean) => void) => (
+				<Sheet.Root defaultOpen onOpenChange={onOpenChange}>
+					<Sheet.Content>
+						<Sheet.Header>
+							<Sheet.Title>Edit endpoint</Sheet.Title>
+						</Sheet.Header>
+					</Sheet.Content>
+				</Sheet.Root>
+			),
+		],
+	])("a click on the bar leaves the open %s open", async (_name, renderOverlay) => {
+		// Why skip the pointer-events check: the modal sets `pointer-events: none`
+		// on <body>, and tests load no Tailwind for the panel's `pointer-events-auto`.
+		const user = userEvent.setup({ pointerEventsCheck: PointerEventsCheckLevel.Never });
+		const onDiscard = vi.fn<() => void>();
+		const onOpenChange = vi.fn<(open: boolean) => void>();
+		render(
+			<>
+				<Sandbar.Root open>
+					<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+					<Sandbar.Actions>
+						<Sandbar.DiscardButton onClick={onDiscard}>Discard</Sandbar.DiscardButton>
+					</Sandbar.Actions>
+				</Sandbar.Root>
+				{renderOverlay(onOpenChange)}
+			</>,
+		);
+		await screen.findByRole("dialog");
+
+		// The modal marks the bar `aria-hidden`, so the query passes `hidden: true`.
+		await user.click(screen.getByRole("button", { name: "Discard", hidden: true }));
+
+		expect(onDiscard).toHaveBeenCalledTimes(1);
+		expect(onOpenChange).not.toHaveBeenCalled();
+		expect(screen.getByRole("dialog")).toBeInTheDocument();
+	});
+});
+
+test("a float composed in the bar portals into the bar's layer, above the bar", async () => {
+	const user = userEvent.setup();
+	render(
+		<Sandbar.Root open>
+			<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+			<Sandbar.Actions>
+				<Popover.Root>
+					<Popover.Trigger>More</Popover.Trigger>
+					<Popover.Content>Save as draft</Popover.Content>
+				</Popover.Root>
+			</Sandbar.Actions>
+		</Sandbar.Root>,
+	);
+
+	await user.click(screen.getByRole("button", { name: "More" }));
+
+	// Why the wrapper: it sits at `z-70`, above the overlay tier. A float portaled
+	// to <body> at `z-50` would paint under the bar.
+	const wrapper = getPanel().parentElement;
+	expect(wrapper?.contains(await screen.findByText("Save as draft"))).toBe(true);
+});
+
+test("a click in a float composed in the bar leaves an open dialog open", async () => {
+	// Why skip the pointer-events check: the modal sets `pointer-events: none` on
+	// <body>, and tests load no Tailwind for the bar's `pointer-events-auto`.
+	const user = userEvent.setup({ pointerEventsCheck: PointerEventsCheckLevel.Never });
+	const onOpenChange = vi.fn<(open: boolean) => void>();
+	render(
+		<>
+			<Sandbar.Root open>
+				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+				<Sandbar.Actions>
+					<MultiSelect.Root>
+						<MultiSelect.Trigger>
+							<MultiSelect.TagValues />
+							<MultiSelect.Input placeholder="Add tags" />
+						</MultiSelect.Trigger>
+						<MultiSelect.Content>
+							<MultiSelect.Item value="prod">prod</MultiSelect.Item>
+						</MultiSelect.Content>
+					</MultiSelect.Root>
+				</Sandbar.Actions>
+			</Sandbar.Root>
+			<Dialog.Root defaultOpen onOpenChange={onOpenChange}>
+				<Dialog.Content>
+					<Dialog.Title>Edit endpoint</Dialog.Title>
+				</Dialog.Content>
+			</Dialog.Root>
+		</>,
+	);
+	await screen.findByRole("dialog");
+
+	await user.click(screen.getByRole("combobox", { hidden: true }));
+	await user.click(await screen.findByRole("option", { name: "prod", hidden: true }));
+
+	expect(onOpenChange).not.toHaveBeenCalled();
+});
+
+test("a MultiSelect composed in the bar still locks page scroll", async () => {
+	const user = userEvent.setup();
+	render(
+		<Sandbar.Root open>
+			<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+			<Sandbar.Actions>
+				<MultiSelect.Root>
+					<MultiSelect.Trigger>
+						<MultiSelect.TagValues />
+						<MultiSelect.Input placeholder="Add tags" />
+					</MultiSelect.Trigger>
+					<MultiSelect.Content>
+						<MultiSelect.Item value="prod">prod</MultiSelect.Item>
+					</MultiSelect.Content>
+				</MultiSelect.Root>
+			</Sandbar.Actions>
+		</Sandbar.Root>,
+	);
+
+	await user.click(screen.getByRole("combobox"));
+	await screen.findByRole("listbox");
+
+	// Why: the bar is not a modal, so no overlay locks scroll for the MultiSelect.
+	await waitFor(() => {
+		expect(document.documentElement.style.overflowY).toBe("hidden");
 	});
 });
