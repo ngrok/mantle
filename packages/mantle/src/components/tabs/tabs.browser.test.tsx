@@ -315,9 +315,39 @@ function LinkTabs() {
 					<a href="#b">Tab B</a>
 				</Tabs.Trigger>
 			</Tabs.List>
+			<Tabs.Content value="a">Panel A</Tabs.Content>
+			<Tabs.Content value="b">Panel B</Tabs.Content>
 		</Tabs.Root>
 	);
 }
+
+test("a click on an asChild link follows it and activates its tab without the focus ring", async () => {
+	render(<LinkTabs />);
+	const tab = screen.getByRole("tab", { name: "Tab B" });
+	await userEvent.keyboard("{Tab}");
+
+	await userEvent.click(tab);
+
+	expect(window.location.hash).toBe("#b");
+	expect(screen.getByRole("tabpanel")).toHaveTextContent("Panel B");
+	expect(tab).toHaveFocus();
+	expect(tab.matches(":focus-visible")).toBe(false);
+});
+
+// Why: a link follows only a press released on it, so the tab must not switch
+// on the press alone, or the panel and the URL disagree.
+test("a press released off an asChild link switches no tab", async () => {
+	render(<LinkTabs />);
+	const hash = window.location.hash;
+
+	await userEvent.dragAndDrop(
+		screen.getByRole("tab", { name: "Tab B" }),
+		screen.getByRole("tablist"),
+	);
+
+	expect(window.location.hash).toBe(hash);
+	expect(screen.getByRole("tabpanel")).toHaveTextContent("Panel A");
+});
 
 test("a press that moves on an asChild link starts no drag", async () => {
 	render(<LinkTabs />);

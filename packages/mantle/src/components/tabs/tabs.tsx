@@ -452,7 +452,8 @@ const triggerVariants = cva(
  *
  * **Pointer press.** A mouse press focuses the trigger without the focus ring;
  * keyboard focus still shows it. The label text is not selectable. An `asChild`
- * link does not drag: set `draggable` on the child to drag it.
+ * link activates on click, not on the press, so a press released off the link
+ * switches no tab. The link does not drag.
  *
  * **Data attributes:**
  *
@@ -487,6 +488,7 @@ const Trigger = ({
 	className,
 	"data-slot": dataSlot,
 	disabled: _disabled,
+	onClick,
 	onMouseDown,
 	ref,
 	...props
@@ -499,12 +501,37 @@ const Trigger = ({
 		className: cx(triggerVariants({ orientation, appearance }), className),
 		"data-slot": joinDataSlot(dataSlot, "tabs-trigger"),
 		disabled,
+		onClick: (event: MouseEvent<HTMLButtonElement>) => {
+			onClick?.(event);
+			// Why: a link trigger skips the press, so this focus activates it through
+			// the Radix focus handler. A click with a modifier opens the link elsewhere.
+			if (
+				!disabled &&
+				event.currentTarget.matches("a[href]") &&
+				event.button === 0 &&
+				!event.altKey &&
+				!event.ctrlKey &&
+				!event.metaKey &&
+				!event.shiftKey
+			) {
+				event.currentTarget.focus({ focusVisible: false });
+			}
+		},
 		onMouseDown: (event: MouseEvent<HTMLButtonElement>) => {
 			onMouseDown?.(event);
+			if (event.defaultPrevented || disabled) {
+				return;
+			}
+			// Why: a link follows only a press released on it, so a link trigger
+			// waits for the click. The cancel skips the Radix handler and the link drag.
+			if (event.currentTarget.matches("a[href]")) {
+				event.preventDefault();
+				return;
+			}
 			// Why: Radix focuses the trigger from script on this press, and Chromium
 			// gives that focus the ring of the element that had focus before. A focus
 			// here comes first, so the Radix call finds the trigger already focused.
-			if (!event.defaultPrevented && !disabled && event.button === 0 && !event.ctrlKey) {
+			if (event.button === 0 && !event.ctrlKey) {
 				event.currentTarget.focus({ focusVisible: false });
 			}
 		},
@@ -529,10 +556,8 @@ const Trigger = ({
 		// would win over it and put every tab in the Tab order.
 		const cloneProps = disabled ? { href: undefined, to: undefined } : {};
 
-		// Why `draggable={false}`: a small mouse move on a link starts a drag, and
-		// the drag cancels the click. A `draggable` on the child still wins.
 		return (
-			<TabsPrimitiveTrigger asChild draggable={false} {...tabsTriggerProps} ref={ref}>
+			<TabsPrimitiveTrigger asChild {...tabsTriggerProps} ref={ref}>
 				{cloneElement(
 					disabled ? <button type="button" /> : singleChild,
 					cloneProps,

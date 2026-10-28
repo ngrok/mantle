@@ -6,4 +6,4 @@
 
 The label text is not selectable (`select-none`), so a selection across the page copies no tab labels.
 
-An `asChild` link trigger now sets `draggable={false}`. Before, a small mouse move on the link started a drag, and the drag cancelled the click, so the tab did not switch. Set `draggable` on the child to drag it.
+An `asChild` link trigger now activates on click, not on the press. Before, a press released off the link switched the tab but followed no link, so the panel and the URL disagreed. The link also no longer starts a drag on a small mouse move, which cancelled the click.

@@ -400,7 +400,7 @@ Tabs.Root
 ## Polymorphism
 
 `Tabs.Trigger` accepts an `asChild` prop. When `true`, it composes the trigger styling and tab behavior onto its single child instead of rendering its own `<button>`. Use it to render each tab as a router link (a `react-router` `Link` here) so tabs drive client-side navigation while keeping the active-tab styling.
-The child link does not drag on a mouse press, because a drag cancels the click. Set `draggable` on the child to drag it.
+A link tab activates on click, not on the press, so a press released off the link switches no tab and follows no link.
 
 `Tabs.Separator` accepts `asChild` too. When `true`, it composes the hairline's styling and attributes onto your own element instead of rendering its own `<div>`.
 
