@@ -759,6 +759,38 @@ describe("forceTheme pins what lands on <html>", () => {
 	});
 });
 
+describe("a sandboxed frame that blocks cookies", () => {
+	// Why a getter that throws: a sandboxed iframe with no `allow-same-origin`
+	// throws a `SecurityError` when code reads `document.cookie`.
+	function blockCookies() {
+		vi.spyOn(document, "cookie", "get").mockImplementation(() => {
+			throw new DOMException("The document is sandboxed.", "SecurityError");
+		});
+	}
+
+	test("ThemeProvider renders the default theme", () => {
+		mockMatchMedia({});
+		blockCookies();
+
+		render(
+			<ThemeProvider>
+				<ThemeControls />
+			</ThemeProvider>,
+		);
+
+		expect(screen.getByTestId("current-theme")).toHaveTextContent("system");
+	});
+
+	test("useInitialHtmlThemeProps resolves the default theme", () => {
+		mockMatchMedia({});
+		blockCookies();
+
+		const { result } = renderHook(() => useInitialHtmlThemeProps());
+
+		expect(result.current["data-theme"]).toBe("system");
+	});
+});
+
 describe("useInitialHtmlThemeProps resolves a system preference", () => {
 	test("against the OS media queries on the client", () => {
 		mockMatchMedia({ [PREFERS_DARK]: true });

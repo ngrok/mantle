@@ -143,7 +143,7 @@ function ThemeProvider({ children, forceTheme, ssrCookie }: ThemeProviderProps) 
 	// cookie before hydration. The client reads that newer value from `document.cookie`.
 	const [theme, setTheme] = useState<Theme>(() => {
 		const storedTheme = getStoredTheme({
-			cookie: canUseDOM() ? document.cookie : ssrCookie,
+			cookie: canUseDOM() ? readDocumentCookie() : ssrCookie,
 		});
 		applyThemeToHtml(storedTheme, { forceTheme });
 		return storedTheme;
@@ -153,7 +153,7 @@ function ThemeProvider({ children, forceTheme, ssrCookie }: ThemeProviderProps) 
 
 	useEffect(() => {
 		function syncThemeFromCookie() {
-			const newTheme = getStoredTheme({ cookie: document.cookie });
+			const newTheme = getStoredTheme({ cookie: readDocumentCookie() });
 			setTheme(newTheme);
 			applyThemeToHtml(newTheme, { forceTheme });
 		}
@@ -163,13 +163,13 @@ function ThemeProvider({ children, forceTheme, ssrCookie }: ThemeProviderProps) 
 
 		// Why rewrite: a retired high-contrast cookie reads as its base theme, and the
 		// rewrite stores that theme so every app on the cookie domain agrees.
-		const storedValue = readCookie(document.cookie, THEME_STORAGE_KEY);
+		const storedValue = readCookie(readDocumentCookie(), THEME_STORAGE_KEY);
 		if (
 			storedValue != null &&
 			!isTheme(storedValue) &&
 			Object.hasOwn(themeByCookieValue, storedValue)
 		) {
-			setCookie(getStoredTheme({ cookie: document.cookie }));
+			setCookie(getStoredTheme({ cookie: readDocumentCookie() }));
 		}
 
 		// Why the feature test and the catch: Safari before 15.4 ships no
@@ -576,7 +576,7 @@ function useInitialHtmlThemeProps(props: UseInitialHtmlThemePropsOptions = {}): 
 			resolvedTheme = resolveTheme(initialTheme, { prefersDarkMode: false });
 		} else {
 			const prefersDarkMode = window.matchMedia(prefersDarkModeMediaQuery).matches;
-			initialTheme = getStoredTheme({ cookie: document.cookie });
+			initialTheme = getStoredTheme({ cookie: readDocumentCookie() });
 			resolvedTheme = resolveTheme(initialTheme, { prefersDarkMode });
 		}
 
@@ -772,6 +772,18 @@ function buildThemeCookie(value: string) {
 	const secureAttribute = protocol === "https:" ? "; Secure" : "";
 
 	return `${THEME_STORAGE_KEY}=${encodeURIComponent(value)}; expires=${expires.toUTCString()}; path=/${domainAttribute}; SameSite=Lax${secureAttribute}` as const;
+}
+
+/**
+ * Reads `document.cookie`, or `""` when the environment blocks cookies. A
+ * sandboxed iframe with no `allow-same-origin` throws a `SecurityError` on the read.
+ */
+function readDocumentCookie(): string {
+	try {
+		return document.cookie;
+	} catch {
+		return "";
+	}
 }
 
 /**
