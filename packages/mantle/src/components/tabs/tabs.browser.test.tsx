@@ -362,6 +362,99 @@ test("a press that moves on an asChild link starts no drag", async () => {
 	expect(dragStarted).toBe(false);
 });
 
+// Why: in manual mode the Radix focus handler activates nothing, so a link
+// trigger that skips the press must activate on its click.
+test("a click on an asChild link activates its tab in manual activation mode", async () => {
+	render(
+		<Tabs.Root defaultValue="a" activationMode="manual">
+			<Tabs.List>
+				<Tabs.Trigger value="a" asChild>
+					<a href="#a">Tab A</a>
+				</Tabs.Trigger>
+				<Tabs.Trigger value="b" asChild>
+					<a href="#b">Tab B</a>
+				</Tabs.Trigger>
+			</Tabs.List>
+			<Tabs.Content value="a">Panel A</Tabs.Content>
+			<Tabs.Content value="b">Panel B</Tabs.Content>
+		</Tabs.Root>,
+	);
+
+	await userEvent.click(screen.getByRole("tab", { name: "Tab B" }));
+
+	expect(screen.getByRole("tabpanel")).toHaveTextContent("Panel B");
+});
+
+test("a second click on a focused asChild link fires again when the root kept its value", async () => {
+	const onValueChange = vi.fn<(value: string) => void>();
+	render(
+		<Tabs.Root value="a" onValueChange={onValueChange}>
+			<Tabs.List>
+				<Tabs.Trigger value="a" asChild>
+					<a href="#a">Tab A</a>
+				</Tabs.Trigger>
+				<Tabs.Trigger value="b" asChild>
+					<a href="#b">Tab B</a>
+				</Tabs.Trigger>
+			</Tabs.List>
+		</Tabs.Root>,
+	);
+	const tab = screen.getByRole("tab", { name: "Tab B" });
+
+	await userEvent.click(tab);
+	await userEvent.click(tab);
+
+	expect(onValueChange).toHaveBeenCalledTimes(2);
+	expect(onValueChange).toHaveBeenLastCalledWith("b");
+});
+
+test("a click that the consumer cancels on an asChild link switches no tab", async () => {
+	render(
+		<Tabs.Root defaultValue="a">
+			<Tabs.List>
+				<Tabs.Trigger value="a" asChild>
+					<a href="#a">Tab A</a>
+				</Tabs.Trigger>
+				<Tabs.Trigger value="b" asChild>
+					<a href="#b" onClick={(event) => event.preventDefault()}>
+						Tab B
+					</a>
+				</Tabs.Trigger>
+			</Tabs.List>
+			<Tabs.Content value="a">Panel A</Tabs.Content>
+			<Tabs.Content value="b">Panel B</Tabs.Content>
+		</Tabs.Root>,
+	);
+
+	await userEvent.click(screen.getByRole("tab", { name: "Tab B" }));
+
+	expect(screen.getByRole("tabpanel")).toHaveTextContent("Panel A");
+});
+
+// Why a fully visible tab: Playwright scrolls a clipped target into view before
+// it clicks. Tab B sits right of the list's center, so a keyboard-path focus
+// would scroll it to the center.
+test("a pointer click on an asChild link in an overflowing list does not scroll it into view", async () => {
+	render(
+		<Tabs.Root defaultValue="a" style={{ width: 400 }}>
+			<Tabs.List>
+				{["a", "b", "c"].map((value) => (
+					<Tabs.Trigger key={value} value={value} asChild style={{ flex: "0 0 160px" }}>
+						<a href={`#${value}`}>Tab {value.toUpperCase()}</a>
+					</Tabs.Trigger>
+				))}
+			</Tabs.List>
+		</Tabs.Root>,
+	);
+	const scrollIntoView = vi.spyOn(Element.prototype, "scrollIntoView");
+
+	await userEvent.click(screen.getByRole("tab", { name: "Tab B" }));
+
+	expect(screen.getByRole("tab", { name: "Tab B" })).toHaveFocus();
+	expect(scrollIntoView).not.toHaveBeenCalled();
+	scrollIntoView.mockRestore();
+});
+
 test("a selection across the tabs copies the panel text and no tab label", () => {
 	const { container } = render(<PlainTabs />);
 
