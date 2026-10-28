@@ -4,8 +4,8 @@ import { Empty } from "@ngrok/mantle/empty";
 import { LiveRegion } from "@ngrok/mantle/live-region";
 import { Query } from "@ngrok/mantle/query";
 import { filterItemsByQuery, queryUsesQualifiers } from "@ngrok/mantle/query-filter";
+import { ArrowRightIcon } from "@phosphor-icons/react/ArrowRight";
 import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
-import { SparkleIcon } from "@phosphor-icons/react/Sparkle";
 import { useDeferredValue } from "react";
 import { type TranslationStatus, useNaturalLanguageQuery } from "~/features/natural-language-query";
 import { mockTranslateQuery } from "~/features/natural-language-query-mock";
@@ -36,19 +36,19 @@ function describeStatus(status: TranslationStatus): string {
 		case "idle":
 			return "";
 		case "translating":
-			return `Translating “${status.words}”…`;
+			return `Searching for “${status.words}”…`;
 		case "translated":
-			return `Translated “${status.words}” into a filter.`;
+			return `Showing projects for “${status.words}”.`;
 		case "failed":
 			switch (status.reason) {
 				case "off_topic":
 					return "That doesn't describe a project. Try words like shared, archived, or a name.";
 				case "invalid":
-					return "The translation used a filter this list doesn't have, so the query stays as typed.";
+					return "Those words don't match a filter this list has, so they search as text.";
 				case "rate_limited":
 					return "That's a lot of searches. Wait a minute, then try again.";
 				case "unavailable":
-					return "Translation isn't available right now. The words still search as text.";
+					return "Search by description isn't available right now. The words still search as text.";
 			}
 	}
 }
@@ -94,13 +94,13 @@ export function NaturalLanguageQueryDemo() {
 								appearance="ghost"
 								intent="neutral"
 								size="xs"
-								label="Translate with AI"
-								icon={<SparkleIcon />}
+								label="Search"
+								icon={<ArrowRightIcon />}
 								isLoading={nl.status.kind === "translating"}
 							/>
 						)}
 					</Query.Input>
-					<Query.Content enterHint="select, or translate with AI" />
+					<Query.Content enterHint="select, or search" />
 				</Query.Root>
 			</form>
 			<div className="flex min-h-8 flex-wrap items-center gap-x-3 text-sm">
@@ -139,10 +139,6 @@ export function NaturalLanguageQueryDemo() {
 					)}
 				</DataTable.Body>
 			</DataTable.Root>
-			<p className="text-muted text-xs">
-				Plain words go to a model on Enter, and the model writes the filter. It can be wrong, so
-				check the filter before you rely on it.
-			</p>
 		</div>
 	);
 }
