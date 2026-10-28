@@ -201,8 +201,9 @@ be mounted or even created (`DataTable`'s `data`, `SelectableList`'s `options`).
 description (a value, its text, a disabled flag).
 
 A data prop feeds behavior; it never renders. No part may render the rows, the empty state, or the chrome
-around them from data on its own. Each is a part the consumer composes, and rows come from a function child
-that returns a row part:
+around them from data on its own. Each is a part the consumer composes. A collection whose behavior derives from
+authored children (`Table`, `List`) takes its row parts as direct children. When the rows come from data, a
+function child returns each row part:
 
 ```tsx
 <Query.Content>
@@ -1002,7 +1003,7 @@ Run this against the diff before calling a component done. Each line is a defect
 - [ ] Outermost part is `Root`; every part name is the web-standards term for what it renders.
 - [ ] No unearned ARIA pattern word anywhere in the component or part names.
 - [ ] Props read as the ARIA/DOM they emit; no prop-bag passthrough props.
-- [ ] No data prop renders: rows, empty state, and footer are parts, and rows come from a function child.
+- [ ] No data prop renders: rows, empty state, and footer are parts, and rows from data come from a function child.
 - [ ] Namespace is one level deep, annotated if any member's type is third-party.
 - [ ] No `forwardRef`, no `React.FC`, no `displayName` assignment.
 - [ ] Mutually exclusive states are a discriminated union, not a boolean bag.
