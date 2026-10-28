@@ -780,6 +780,12 @@ controlled/uncontrolled, polymorphism):
   a "only this line changes" diff, never a reference to an identifier that appears nowhere on the page. Data,
   handlers, and state are defined inline or in the page's module scope (a page-level `const fruits = […]` is
   fine). An undefined `switchTo` counts as incomplete — define it or use `() => {}`.
+- **Built from mantle.** Show the component the way a product uses it, and render everything around it with
+  mantle components that already exist: `DataTable` or `Table` for rows, `Card` for a card grid, `List` for
+  items, `DescriptionList` for key-value pairs, and `Empty` for an empty or no-results state. Never hand-roll a
+  list, a table, or a card from raw elements and utility classes. Humans and agents copy demos verbatim
+  ([§0](#0-principles) item 12), so a one-off shape in a demo becomes a one-off in product code and reads as a
+  blessed pattern. If no mantle component fits the surround, leave the surround out.
 
 Define the demo as an `export function <Name>Example()` in the page's module scope — the default — and move it
 to `~/features/<component-name>-demos.tsx` (plural, the canonical suffix for new files) when it is large,
@@ -1015,6 +1021,8 @@ Run this against the diff before calling a component done. Each line is a defect
       with the wrapper's `display` stated.
 - [ ] Docs page has the required sections in order; `title:` is the Title Case display name; every example is
       live and self-contained.
+- [ ] Every example builds its surround from existing mantle components, with no hand-rolled list, table, or
+      card ([§7.3](#73-examples-must-be-live-and-complete)).
 - [ ] Trees in the JSDoc and the docs page match.
 
 **Wiring**

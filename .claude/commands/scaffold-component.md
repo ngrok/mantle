@@ -37,6 +37,12 @@ One more surface question belongs here, because its answer is a public name: if 
 
 Then ask the user:
 
+> Does `<ComponentName>` ship as stable or as preview?
+
+Do not choose for the user. Recommend stable when the component already runs in a product and has had a design pass. Recommend preview when its API is still unproven. The answer sets the docs path, the nav lookups, and the page header ([§2.4](../../COMPONENT_SPEC.md#24-nav-and-route-registration), [§7.1](../../COMPONENT_SPEC.md#71-page-kinds)). Both kinds take a `minor` changeset.
+
+Then ask:
+
 > Is `<ComponentName>` a compound component (a POJO namespace with multiple parts) or a simple single-element component?
 
 If compound, follow up:
@@ -67,7 +73,9 @@ Copy shape from the exemplars named at the end of the spec — and heed the gaps
 
 Create the page at the path for its kind ([§7.1](../../COMPONENT_SPEC.md#71-page-kinds)) and follow [§7.2](../../COMPONENT_SPEC.md#72-required-structure-in-order)'s required sections in order, [§7.3](../../COMPONENT_SPEC.md#73-examples-must-be-live-and-complete) for examples, and [§7.4](../../COMPONENT_SPEC.md#74-prose-rules) for prose.
 
-Every runnable example must be **live** and **complete** — no fragments, no `…` placeholders, no undefined identifiers. The API reference gets one `### <ComponentName>.<Part>` subsection per part with its props table, plus CSS-variable and data-attribute tables where applicable.
+Every runnable example must be **live** and **complete** — no fragments, no `…` placeholders, no undefined identifiers.
+
+Build every example from mantle components that already exist ([§7.3](../../COMPONENT_SPEC.md#73-examples-must-be-live-and-complete)). A filter field filters a `DataTable`, a list of `Card`s, or a `List`, never a `<ul>` with border classes. An empty result is an `Empty`. Humans and agents copy these demos into product code, so a hand-rolled surround teaches a pattern mantle does not ship. If no mantle component fits, leave the surround out. Before you report done, look at each demo in the browser and ask: would a product page render it this way? The API reference gets one `### <ComponentName>.<Part>` subsection per part with its props table, plus CSS-variable and data-attribute tables where applicable.
 
 ## 4. Wire it up
 

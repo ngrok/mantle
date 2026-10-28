@@ -1,0 +1,448 @@
+---
+title: Query
+description: A filter field where free text and key:value qualifiers interleave, with in-place highlighting and suggestions.
+---
+
+import { Example } from "~/components/example";
+import {
+	InlineActionsQueryExample,
+	QueryExample,
+	RemoteQueryExample,
+	TokenColorsQueryExample,
+} from "~/features/query-demos";
+
+# Query
+
+A single-line filter field for a list. Free text and `key:value` qualifiers mix in one query: `is:shared -staging api`. The field colors each token in place. A suggestion popover completes keys and values while the caret stays in the field.
+
+A grammar from [`@ngrok/mantle/query-filter`](/utils/query-filter) sets the vocabulary. The same grammar filters your items with `filterItemsByQuery`, so the field and the list always agree.
+
+Type `is:` to see the values and their live match counts.
+
+<Example>
+	<QueryExample />
+</Example>
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { DataTable, createColumnHelper, tableFeatures, useTable } from "@ngrok/mantle/data-table";
+import { Empty } from "@ngrok/mantle/empty";
+import { type FilterGrammar, filterItemsByQuery } from "@ngrok/mantle/query-filter";
+import { Query } from "@ngrok/mantle/query";
+import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
+import { useDeferredValue, useState } from "react";
+
+type Project = {
+	id: string;
+	name: string;
+	description: string;
+	shared: boolean;
+	archived: boolean;
+};
+
+const projects: Project[] = [
+	{
+		id: "p_1",
+		name: "billing-api",
+		description: "Invoices and payments",
+		shared: true,
+		archived: false,
+	},
+	{
+		id: "p_2",
+		name: "marketing-site",
+		description: "Public website",
+		shared: true,
+		archived: false,
+	},
+	{
+		id: "p_3",
+		name: "design-tokens",
+		description: "Old color scales",
+		shared: true,
+		archived: true,
+	},
+	{
+		id: "p_4",
+		name: "staging-api",
+		description: "Staging API",
+		shared: false,
+		archived: false,
+	},
+	{
+		id: "p_5",
+		name: "webhook-tests",
+		description: "Local webhook tests",
+		shared: false,
+		archived: false,
+	},
+];
+
+const projectFilterGrammar: FilterGrammar<Project> = {
+	keys: [
+		{
+			key: "name",
+			aliases: ["title"],
+			description: "Text in the project name",
+			matches: (project, value) => project.name.toLowerCase().includes(value.toLowerCase()),
+		},
+		{
+			key: "description",
+			aliases: ["desc"],
+			description: "Text in the description",
+			prose: true,
+			matches: (project, value) => project.description.toLowerCase().includes(value.toLowerCase()),
+		},
+		{
+			key: "is",
+			description: "The project state",
+			values: [
+				{ value: "shared", description: "Your team can see it" },
+				{ value: "private", description: "Only you can see it", aliases: ["personal"] },
+				{ value: "archived", description: "Kept for reference" },
+			],
+			matches: (project, value) => {
+				switch (value) {
+					case "shared":
+						return project.shared;
+					case "private":
+						return !project.shared;
+					case "archived":
+						return project.archived;
+					default:
+						return false;
+				}
+			},
+		},
+	],
+	getSearchText: (project) => [project.name, project.description, project.id].join("\n"),
+};
+
+const features = tableFeatures({});
+const columnHelper = createColumnHelper<typeof features, Project>();
+const columns = columnHelper.columns([
+	columnHelper.accessor("name", {
+		id: "name",
+		header: () => <DataTable.Header>Project</DataTable.Header>,
+		cell: (props) => (
+			<DataTable.Cell className="text-strong" translate="no">
+				{props.getValue()}
+			</DataTable.Cell>
+		),
+	}),
+	columnHelper.accessor("description", {
+		id: "description",
+		header: () => <DataTable.Header>Description</DataTable.Header>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+	columnHelper.accessor((project) => (project.shared ? "Shared" : "Private"), {
+		id: "visibility",
+		header: () => <DataTable.Header>Visibility</DataTable.Header>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+]);
+
+export function QueryExample() {
+	const [query, setQuery] = useState("");
+	const deferredQuery = useDeferredValue(query);
+	const visibleProjects = filterItemsByQuery({
+		grammar: projectFilterGrammar,
+		items: projects,
+		query: deferredQuery,
+	});
+	const table = useTable({ features, data: visibleProjects, columns });
+	const rows = table.getRowModel().rows;
+
+	return (
+		<div className="w-full space-y-3">
+			<Query.Root
+				grammar={projectFilterGrammar}
+				items={projects}
+				value={query}
+				onValueChange={setQuery}
+			>
+				<Query.Input
+					aria-label="Filter projects"
+					placeholder="Filter projects, or type a filter like is:shared"
+				/>
+				<Query.Content />
+			</Query.Root>
+			<DataTable.Root table={table}>
+				<DataTable.Head />
+				<DataTable.Body>
+					{rows.length > 0 ? (
+						rows.map((row) => <DataTable.Row key={row.id} row={row} />)
+					) : (
+						<DataTable.EmptyRow>
+							<Empty.Root>
+								<Empty.Icon svg={<MagnifyingGlassIcon />} />
+								<Empty.Title>No projects match this filter</Empty.Title>
+								<Empty.Actions>
+									<Button
+										type="button"
+										appearance="outlined"
+										intent="neutral"
+										onClick={() => setQuery("")}
+									>
+										Clear filter
+									</Button>
+								</Empty.Actions>
+							</Empty.Root>
+						</DataTable.EmptyRow>
+					)}
+				</DataTable.Body>
+			</DataTable.Root>
+		</div>
+	);
+}
+```
+
+The query is the only state, and you own it through `value` and `onValueChange`. There's no uncontrolled form, because every list that hosts this field already keeps the query somewhere: in component state, in form state, or in the URL. To keep it in `?q=`, follow the [Query from the URL](/recipes/query-from-the-url) recipe.
+
+## Composition
+
+```text showLineNumbers=false
+Query.Root
+├── Query.Input
+└── Query.Content
+```
+
+`Root` lays out its children in one row, so put your own buttons beside the field there. `Input` is the field. `Content` is the suggestion popover; without it, the field is a highlighted input with no suggestions.
+
+## Polymorphism
+
+`Query.Root` takes `asChild`. Use it to render the row as your own element, such as a `<section>` with its own label, while `Root` keeps the state and the layout classes.
+
+`Input` and `Content` don't take `asChild`. Each one renders a group of elements together (the field's shell, its painted copy, and the `<input>`, or the listbox and the legend), so there's no single element to swap.
+
+## Inline actions and a footer
+
+While the query has text, `Query.Input` shows a clear button at its right edge. The button empties the query and moves focus back to the field. Set `clearLabel` to rename it. Set `onClear` for work that only a clear does, such as applying the empty query at once. Other children of `Query.Input` render before the clear button. Pass ghost `xs` icon buttons.
+
+`Query.Content` shows keyboard hints under the syntax legend. When Enter submits a form, set `enterHint` to name that action, such as `"select, or search"`. Children of `Query.Content` render under the hints. When no suggestion matches, the popover stays open and an empty state says what the field accepts there.
+
+<Example>
+	<InlineActionsQueryExample />
+</Example>
+
+```tsx
+import { IconButton } from "@ngrok/mantle/button";
+import { Query } from "@ngrok/mantle/query";
+import { CopyIcon } from "@phosphor-icons/react/Copy";
+import { useState } from "react";
+
+export function InlineActionsQueryExample() {
+	const [query, setQuery] = useState("is:shared ");
+
+	return (
+		<Query.Root
+			className="max-w-xl"
+			grammar={projectFilterGrammar}
+			items={projects}
+			value={query}
+			onValueChange={setQuery}
+		>
+			<Query.Input
+				aria-label="Filter projects"
+				placeholder="Filter projects, or type a filter like is:shared"
+			>
+				<IconButton
+					type="button"
+					appearance="ghost"
+					intent="neutral"
+					size="xs"
+					label="Copy filter"
+					icon={<CopyIcon />}
+					onClick={() => void navigator.clipboard.writeText(query)}
+				/>
+			</Query.Input>
+			<Query.Content>
+				<p>Filters apply as you type.</p>
+			</Query.Content>
+		</Query.Root>
+	);
+}
+```
+
+`projectFilterGrammar` and `projects` are the ones from the first example.
+
+## Search on the server
+
+When a server runs the query, declare its vocabulary with `defineRemoteFilterGrammar` and leave out `items`. The suggestions then carry no counts. The grammar's `syntax` keeps the highlighting to what the server reads: `"qualifiers"` (the default) treats only bare `key:value` tokens as structure, and `"conjunction"` reads one AND group of exclusions, comma lists, and quotes.
+
+Inside a `<form>`, Enter submits the form, unless the keyboard made a suggestion active. Then Enter accepts that suggestion.
+
+<Example>
+	<RemoteQueryExample />
+</Example>
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { defineRemoteFilterGrammar } from "@ngrok/mantle/query-filter";
+import { Query } from "@ngrok/mantle/query";
+import { useState } from "react";
+
+const accountSearchGrammar = defineRemoteFilterGrammar({
+	keys: [
+		{
+			key: "is",
+			description: "The account state",
+			values: [{ value: "active" }, { value: "suspended" }, { value: "past_due" }],
+		},
+		{ key: "email", description: "The account email" },
+	],
+});
+
+export function RemoteQueryExample() {
+	const [query, setQuery] = useState("");
+	const [submittedQuery, setSubmittedQuery] = useState<string | null>(null);
+
+	return (
+		<form
+			className="w-full max-w-xl space-y-3"
+			onSubmit={(event) => {
+				event.preventDefault();
+				setSubmittedQuery(query);
+			}}
+		>
+			<Query.Root grammar={accountSearchGrammar} value={query} onValueChange={setQuery}>
+				<Query.Input
+					aria-label="Search accounts"
+					placeholder="Search accounts, or type a filter like is:suspended"
+				/>
+				<Button type="submit" appearance="outlined" intent="neutral">
+					Search
+				</Button>
+				<Query.Content />
+			</Query.Root>
+			<p className="text-muted text-sm">
+				{submittedQuery == null ? "Press Enter to search." : `The server runs: ${submittedQuery}`}
+			</p>
+		</form>
+	);
+}
+```
+
+## Large lists
+
+The match counts and the live filter each run one pass over `items` per keystroke. For thousands of rows, or a list that streams in, apply the query on Enter: wrap the field in a `<form>`, leave out `items`, and set `enterHint`. Enter with no active suggestion submits the form. The [Query from the URL](/recipes/query-from-the-url#apply-on-enter) recipe has the hook and a demo.
+
+## Filter from a value
+
+To let a person select a value in a table row and get its filter, call `toggleFacet` in the click handler. The [Filter from a value](/recipes/filter-from-a-value) recipe has the demo.
+
+## Token colors
+
+Keys, values, and `OR` take the colors that [Code Block](/components/data-display/code-block) gives attributes, strings, and operators, so a query reads like the code on the same page. Set the three CSS variables on the field or any ancestor to change them. This calmer set colors only the keys:
+
+<Example>
+	<TokenColorsQueryExample />
+</Example>
+
+```tsx
+import { Query } from "@ngrok/mantle/query";
+import { useState } from "react";
+
+export function TokenColorsQueryExample() {
+	const [query, setQuery] = useState("is:shared OR name:api");
+
+	return (
+		<Query.Root
+			grammar={projectFilterGrammar}
+			items={projects}
+			value={query}
+			onValueChange={setQuery}
+			className="max-w-xl [--query-operator-color:var(--shiki-token-keyword)] [--query-value-color:var(--text-color-strong)]"
+		>
+			<Query.Input
+				aria-label="Filter projects"
+				placeholder="Filter projects, or type a filter like is:shared"
+			/>
+			<Query.Content />
+		</Query.Root>
+	);
+}
+```
+
+## Accessibility
+
+The field is a real `<input role="combobox">` with `aria-autocomplete="list"`. The text you edit is the input's own value, so the caret, selection, IME composition, paste, and undo all stay native. A painted copy of the text sits over the input and is hidden from assistive tech.
+
+- Focus never leaves the input. The active suggestion is announced through `aria-activedescendant`.
+- No suggestion is active until an arrow key moves. Up and Down wrap around the list. A pointer over a row highlights it but doesn't arm Enter.
+- Enter accepts the active suggestion. With no active suggestion, Enter closes the list and lets the event reach your form. Escape closes the list.
+- A caret move retires the active suggestion, so Enter can't accept a row from a list you didn't see.
+- While an IME composes, every key goes to the IME.
+- While the popover is open, the syntax legend joins the input's accessible description, after any description you set.
+
+Name the field with `aria-label`, or put it in a [Field](/components/forms/field) and label it with `Field.Label`. Inside `Field.Control`, the field takes its `id`, `name`, `aria-describedby`, `aria-errormessage`, and `aria-invalid` from the `Field.Item`.
+
+The section headings ("Filter by", "Exclude", "Values"), the legend, and the listbox name ("Filter suggestions") are English copy that mantle sets.
+
+## API Reference
+
+### Query.Root
+
+The row and the state owner. It renders a `div` that lays out its children in a row, and accepts every `div` prop.
+
+| Prop            | Type                      | Default | Description                                                                                                                 |
+| --------------- | ------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `grammar`       | `FilterGrammar<Item>`     | none    | The grammar of this list's filter language. Declare it as a module constant: the engine caches its tables per object.       |
+| `items`         | `Item[]`                  | none    | The unfiltered items, for the live match counts. Leave it out when a server runs the query; the suggestions show no counts. |
+| `value`         | `string`                  | none    | The query, exactly as typed. Required.                                                                                      |
+| `onValueChange` | `(value: string) => void` | none    | Called with the whole query on every edit, typed or inserted. Required.                                                     |
+| `asChild`       | `boolean`                 | `false` | Render the row as the child element and merge the props onto it.                                                            |
+
+| Data Attribute | Value     | Description         |
+| -------------- | --------- | ------------------- |
+| `data-slot`    | `"query"` | On the row element. |
+
+### Query.Input
+
+The query field. `className` and `style` go to the field's outer element, as on `Input`. All other props go to the `<input>`, such as `ref`, `id`, `name`, `disabled`, `required`, `readOnly`, `validation`, the `aria-*` props, and the event handlers. A disabled or read-only field shows no suggestions and no clear button.
+
+| Prop               | Type                                                                                                     | Default          | Description                                                                                                                         |
+| ------------------ | -------------------------------------------------------------------------------------------------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `placeholder`      | `string`                                                                                                 | none             | Placeholder copy. Name one example filter the grammar accepts. Required.                                                            |
+| `aria-label`       | `string`                                                                                                 | none             | The accessible name. Leave it out when `Field.Label` names the field.                                                               |
+| `suggestOnFocus`   | `boolean`                                                                                                | `true`           | Whether focus alone opens the suggestions. Set `false` when you move focus into the field for the user, as on a dialog open.        |
+| `children`         | `ReactNode`                                                                                              | none             | Inline actions inside the field at its right edge, before the clear button.                                                         |
+| `clearLabel`       | `string`                                                                                                 | `"Clear filter"` | The accessible name and tooltip of the clear button.                                                                                |
+| `onClear`          | `() => void`                                                                                             | none             | Called after the clear button empties the query.                                                                                    |
+| `ref`              | `Ref<HTMLInputElement>`                                                                                  | none             | The `<input>` element.                                                                                                              |
+| `validation`       | `"error"` \| `"success"` \| `"warning"` \| `false` \| `() => "error" \| "success" \| "warning" \| false` | none             | The validation state. It sets the border, and `"error"` also sets `aria-invalid`. Inside `Field.Control`, the `Field.Item` sets it. |
+| `aria-describedby` | `string`                                                                                                 | none             | The field's own description. The syntax legend joins it while the popover is open.                                                  |
+
+| CSS Variable             | Default                        | Description                     |
+| ------------------------ | ------------------------------ | ------------------------------- |
+| `--query-key-color`      | `var(--shiki-token-attribute)` | The color of a qualifier key.   |
+| `--query-value-color`    | `var(--shiki-token-string)`    | The color of a qualifier value. |
+| `--query-operator-color` | `var(--shiki-token-operator)`  | The color of `OR` and `AND`.    |
+
+| Data Attribute    | Value                                   | Description                                                                                                                        |
+| ----------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `data-slot`       | `"query-input"`                         | On the field's outer element.                                                                                                      |
+| `data-slot`       | `"query-input-actions"`                 | On the `span` that wraps the children. The clear button follows it. It has `display: contents`, so each child lays out in the row. |
+| `data-slot`       | `"input"`                               | On the field's chrome, inside `"query-input"`, as on `Input`.                                                                      |
+| `data-disabled`   | present                                 | On the `"input"` chrome while the field is disabled.                                                                               |
+| `data-validation` | `"error"` \| `"success"` \| `"warning"` | On the `"input"` chrome. Omitted when unset.                                                                                       |
+
+### Query.Content
+
+The suggestion popover: the listbox for the token under the caret, then the syntax legend and the keyboard hints. The legend shows only the syntax the grammar honors. It accepts the `Popover.Content` props except the ones it owns: `align`, `role`, `preferredWidth`, the auto-focus handlers, and `onInteractOutside`.
+
+| Prop                                                    | Type                  | Default    | Description                                                                         |
+| ------------------------------------------------------- | --------------------- | ---------- | ----------------------------------------------------------------------------------- |
+| `children`                                              | `ReactNode`           | none       | Content under the keyboard hints.                                                   |
+| `enterHint`                                             | `string`              | `"select"` | What Enter does, in the keyboard hints. Name your action when Enter submits a form. |
+| `className`                                             | `string`              | none       | Classes for the popover.                                                            |
+| `ref`                                                   | `Ref<HTMLDivElement>` | none       | The popover element.                                                                |
+| `side`, `sideOffset`, `id`, `style`, `aria-*`, `data-*` |                       | none       | Go to the popover, as on `Popover.Content`.                                         |
+
+| Data Attribute | Value                    | Description                                 |
+| -------------- | ------------------------ | ------------------------------------------- |
+| `data-slot`    | `"query-content"`        | On the popover, beside `"popover-content"`. |
+| `data-slot`    | `"query-content-footer"` | On the `div` that wraps the children.       |
+| `data-state`   | `"open"` \| `"closed"`   | On the popover, from Radix.                 |
+| `data-side`    | `"top"` \| `"bottom"`    | On the popover: the side it opened on.      |
+| `data-align`   | `"start"`                | On the popover.                             |

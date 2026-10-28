@@ -89,6 +89,7 @@ const docsPages = [
 	"components/forms/multi-select",
 	"components/forms/otp-input",
 	"components/forms/password-input",
+	"components/forms/query",
 	"components/forms/radio-group",
 	"components/forms/select",
 	"components/forms/slider",
@@ -137,6 +138,7 @@ const docsPages = [
 	"utils/cx",
 	"utils/highlight-utils",
 	"utils/in-view",
+	"utils/query-filter",
 	"utils/sorting",
 ];
 
@@ -149,9 +151,12 @@ const layoutsPages = ["app-layout", "centered-layout"];
 const recipesPages = [
 	"assistant-across-routes",
 	"breadcrumbs-from-routes",
+	"filter-from-a-value",
 	"header-actions-from-routes",
 	"list-page-loading-states",
+	"natural-language-query",
 	"overlay-async",
+	"query-from-the-url",
 	"route-announcer",
 	"sparklines-in-a-list",
 ];

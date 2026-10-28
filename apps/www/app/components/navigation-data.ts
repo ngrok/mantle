@@ -89,6 +89,7 @@ export const componentsByCategory = {
 		"Multi Select",
 		"OTP Input",
 		"Password Input",
+		"Query",
 		"Radio Group",
 		"Select",
 		"Slider",
@@ -191,6 +192,7 @@ export const prodReadyComponentRouteLookup = {
 	"Progress Bar": "/components/feedback/progress-bar",
 	"Progress Donut": "/components/feedback/progress-donut",
 	"QR Code": "/components/data-display/qr-code",
+	Query: "/components/forms/query",
 	"Radio Group": "/components/forms/radio-group",
 	Sandbar: "/components/feedback/sandbar",
 	SandboxedOnClick: "/components/primitives/sandboxed-on-click",
@@ -289,6 +291,7 @@ export const utilsPages = [
 	"composeRefs",
 	"highlight-utils",
 	"inView",
+	"query-filter",
 	"sorting",
 ] as const;
 
@@ -299,6 +302,7 @@ export const utilsRoutes = {
 	composeRefs: "/utils/compose-refs",
 	"highlight-utils": "/utils/highlight-utils",
 	inView: "/utils/in-view",
+	"query-filter": "/utils/query-filter",
 	sorting: "/utils/sorting",
 } as const satisfies Record<(typeof utilsPages)[number], Route>;
 
@@ -338,23 +342,39 @@ export const recipePages = [
 	//,
 	"Assistant Across Routes",
 	"Breadcrumbs from Routes",
+	"Filter from a Value",
 	"Header Actions from Routes",
 	"List Page Loading States",
 	"Overlays + Async Data",
+	"Query from the URL",
 	"Route Announcer",
 	"Sparklines in a List",
 ] as const;
+
+/**
+ * Recipe proposals — recipes with an open design question. They are not yet a
+ * recommended pattern; each page states what is still open.
+ */
+export const proposalRecipePages = [
+	//,
+	"Natural Language Query",
+] as const;
+
+type RecipePage = (typeof recipePages)[number] | (typeof proposalRecipePages)[number];
 
 /** Route lookup for recipe pages. */
 export const recipeRoutes = {
 	"Assistant Across Routes": "/recipes/assistant-across-routes",
 	"Breadcrumbs from Routes": "/recipes/breadcrumbs-from-routes",
+	"Filter from a Value": "/recipes/filter-from-a-value",
 	"Header Actions from Routes": "/recipes/header-actions-from-routes",
 	"List Page Loading States": "/recipes/list-page-loading-states",
+	"Natural Language Query": "/recipes/natural-language-query",
 	"Overlays + Async Data": "/recipes/overlay-async",
+	"Query from the URL": "/recipes/query-from-the-url",
 	"Route Announcer": "/recipes/route-announcer",
 	"Sparklines in a List": "/recipes/sparklines-in-a-list",
-} as const satisfies Record<(typeof recipePages)[number], Route>;
+} as const satisfies Record<RecipePage, Route>;
 
 /** Short descriptions for recipe index pages. */
 export const recipeDescriptions = {
@@ -362,17 +382,23 @@ export const recipeDescriptions = {
 		"Render an assistant in main on its own route and in the AppLayout side panel on every other route, with one conversation above both and a 300ms View Transition that morphs the page into the panel.",
 	"Breadcrumbs from Routes":
 		"Derive a breadcrumb trail from the matched route chain with React Router route handles \u2014 derived state, so it is correct on the server and on the first frame, with no context and no effects.",
+	"Filter from a Value":
+		"Turn a value in a table row into a Query filter with one click, and take it out with a second click. One pure function, toggleFacet, does the edit.",
 	"Header Actions from Routes":
 		"Put each route's actions in the app header's actions slot from a React Router route handle. The deepest route wins, the server renders them, and below the mobile breakpoint they collapse into one menu.",
 	"List Page Loading States":
 		"Render a list page's header, filters, and column headers on the first frame, then fill the table with skeleton rows that match the loaded rows, so nothing shifts when the data lands.",
+	"Natural Language Query":
+		"Let people describe a filter in plain words, and turn the words into a Query filter on Enter through ngrok.ai gateway inference, with a mock translator, a refusal check, and Revert.",
 	"Overlays + Async Data":
 		"Open a Sheet, Dialog, or Alert Dialog immediately, then swap the body between pending, loaded, 404, and 500 states with TanStack Query.",
+	"Query from the URL":
+		"Keep the text of a Query field in the ?q= URL param, so a filtered list is shareable by its URL. One small hook for React Router, and the same hook with nuqs.",
 	"Route Announcer":
 		"Announce completed client-side navigations to screen readers by pairing a persistent LiveRegion with React Router's location, with page-name fallbacks and repeat-message handling.",
 	"Sparklines in a List":
 		"Put two BarChart sparklines in every row of a DataTable: sized for a row, named for the row, with a compact total beside each one, and dormant until a reader scrolls to it.",
-} as const satisfies Record<(typeof recipePages)[number], string>;
+} as const satisfies Record<RecipePage, string>;
 
 /**
  * A migration guide. The index page, the sidebar, and the legacy redirects

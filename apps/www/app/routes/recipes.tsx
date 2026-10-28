@@ -1,5 +1,10 @@
 import { DocIndexList } from "~/components/doc-index-list";
-import { recipeDescriptions, recipePages, recipeRoutes } from "~/components/navigation-data";
+import {
+	proposalRecipePages,
+	recipeDescriptions,
+	recipePages,
+	recipeRoutes,
+} from "~/components/navigation-data";
 
 export const meta = () => {
 	return [
@@ -31,6 +36,19 @@ export default function RecipesPage() {
 					}))}
 				/>
 			</div>
+			<h2 className="mt-12 mb-2 text-2xl font-medium text-strong">Proposals</h2>
+			<p className="mb-4 leading-relaxed text-pretty text-body">
+				Recipes with an open design question. They are not yet a recommended pattern. Each one
+				states what is still open.
+			</p>
+			<DocIndexList
+				label="Proposals"
+				items={proposalRecipePages.map((page) => ({
+					to: recipeRoutes[page],
+					title: page,
+					description: recipeDescriptions[page],
+				}))}
+			/>
 		</div>
 	);
 }

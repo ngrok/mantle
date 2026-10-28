@@ -714,6 +714,39 @@
     ]
   },
   {
+    "name": "Query",
+    "slug": "components/forms/query",
+    "kind": "component",
+    "category": "Forms",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/query",
+    "summary": "A filter field where free text and key:value qualifiers interleave, with in-place highlighting and suggestions.",
+    "jsdoc": "A single-line filter field where free text and `key:value` qualifiers interleave.",
+    "examples": [
+      "Composition:\n```\nQuery.Root\n├── Query.Input\n└── Query.Content\n```",
+      "```tsx\nconst [query, setQuery] = useState(\"\");\n\n<Query.Root grammar={projectFilterGrammar} items={projects} value={query} onValueChange={setQuery}>\n  <Query.Input aria-label=\"Filter projects\" placeholder=\"Filter projects, or type a filter like is:shared\" />\n  <Query.Content />\n</Query.Root>\n```"
+    ],
+    "siblings": [
+      {
+        "name": "Input",
+        "boundary": "a plain search box with no query language."
+      },
+      {
+        "name": "Combobox",
+        "boundary": "pick one value from a filtered list of options."
+      },
+      {
+        "name": "MultiSelect",
+        "boundary": "pick several values, shown as tags."
+      },
+      {
+        "name": "Command",
+        "boundary": "a palette that runs an action or navigates."
+      }
+    ],
+    "useWhen": "Filter a list with a typed query of free text and `key:value` qualifiers."
+  },
+  {
     "name": "Radio Group",
     "slug": "components/forms/radio-group",
     "kind": "component",

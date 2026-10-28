@@ -839,7 +839,7 @@ function hookEntries(inputs: AgentManifestInputs): AgentManifestHook[] {
 }
 
 /**
- * The curated utilities. `cx`, `color`, and `highlight-utils` are subpath
+ * The curated utilities. `cx`, `color`, `query-filter`, and `highlight-utils` are subpath
  * exports of their own; `composeRefs`, `inView`, and `sorting` ship through
  * the `@ngrok/mantle/utils` barrel and have their own docs pages. `./hooks`
  * is the hooks manifest and `./types` has no runtime entry, so neither is here.
@@ -872,6 +872,13 @@ const utilityDescriptors = [
 		importPath: "@ngrok/mantle/utils",
 		sourcePath: "utils/in-view",
 		primaryExport: "inView",
+	},
+	{
+		name: "query-filter",
+		docsSlug: "utils/query-filter",
+		importPath: "@ngrok/mantle/query-filter",
+		sourcePath: "utils/query-filter/parse",
+		primaryExport: "parseFilterQuery",
 	},
 	{
 		name: "sorting",

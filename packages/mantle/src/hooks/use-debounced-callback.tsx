@@ -51,7 +51,7 @@ type Options = {
  *   />
  * );
  */
-function useDebouncedCallback<T extends (...args: unknown[]) => unknown>(
+function useDebouncedCallback<T extends (...args: never[]) => unknown>(
 	callbackFn: T,
 	options: Options,
 ) {
