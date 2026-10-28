@@ -198,7 +198,7 @@ function Slider({
 					// multi-thumb sliders share the surrounding aria wiring.
 					id={index === 0 ? fieldControl?.id : undefined}
 					className={cx(
-						"bg-card border-card relative size-(--slider-thumb-size) rounded-full border",
+						"bg-static-white border-card relative size-(--slider-thumb-size) rounded-full border",
 						"shadow-md transition-[color,box-shadow]",
 						"after:absolute after:-inset-2",
 						"focus-visible:ring-3 focus-visible:ring-accent-500/20 focus-visible:outline-hidden",
