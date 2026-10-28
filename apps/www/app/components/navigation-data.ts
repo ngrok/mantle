@@ -342,6 +342,7 @@ export const recipePages = [
 	//,
 	"Assistant Across Routes",
 	"Breadcrumbs from Routes",
+	"Filter from a Value",
 	"Header Actions from Routes",
 	"List Page Loading States",
 	"Overlays + Async Data",
@@ -365,6 +366,7 @@ type RecipePage = (typeof recipePages)[number] | (typeof proposalRecipePages)[nu
 export const recipeRoutes = {
 	"Assistant Across Routes": "/recipes/assistant-across-routes",
 	"Breadcrumbs from Routes": "/recipes/breadcrumbs-from-routes",
+	"Filter from a Value": "/recipes/filter-from-a-value",
 	"Header Actions from Routes": "/recipes/header-actions-from-routes",
 	"List Page Loading States": "/recipes/list-page-loading-states",
 	"Natural Language Query": "/recipes/natural-language-query",
@@ -380,6 +382,8 @@ export const recipeDescriptions = {
 		"Render an assistant in main on its own route and in the AppLayout side panel on every other route, with one conversation above both and a 300ms View Transition that morphs the page into the panel.",
 	"Breadcrumbs from Routes":
 		"Derive a breadcrumb trail from the matched route chain with React Router route handles \u2014 derived state, so it is correct on the server and on the first frame, with no context and no effects.",
+	"Filter from a Value":
+		"Turn a value in a table row into a Query filter with one click, and take it out with a second click. One pure function, toggleFacet, does the edit.",
 	"Header Actions from Routes":
 		"Put each route's actions in the app header's actions slot from a React Router route handle. The deepest route wins, the server renders them, and below the mobile breakpoint they collapse into one menu.",
 	"List Page Loading States":

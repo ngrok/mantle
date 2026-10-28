@@ -1,5 +1,3 @@
-import invariant from "tiny-invariant";
-
 /**
  * The grammar contract of the query-filter language.
  *
@@ -267,8 +265,9 @@ type RemoteFilterGrammarOptions = {
  * group of exclusions, comma lists, and the `OR` the consumer accepts under
  * `"conjunction"`.
  *
- * Under `"qualifiers"`, it throws when a value or a value alias contains
- * whitespace: no query can express it.
+ * Under `"qualifiers"`, it drops each value and value alias that contains
+ * whitespace, because no query can express it. Set `syntax: "conjunction"`,
+ * which reads quotes, to keep such values.
  *
  * @example
  * ```ts
@@ -277,28 +276,42 @@ type RemoteFilterGrammarOptions = {
  * });
  * ```
  */
+/** Whether a spelling has no whitespace, so a `"qualifiers"` query can carry it. */
+function isBareSpelling(spelling: string) {
+	return !/\s/.test(spelling);
+}
+
+/** Drops each value and alias that a `"qualifiers"` query cannot carry. */
+function withoutWhitespaceSpellings(
+	definition: RemoteFilterKeyDefinition,
+): RemoteFilterKeyDefinition {
+	if (definition.values == null) {
+		return definition;
+	}
+	return {
+		...definition,
+		values: definition.values
+			.filter((valueDefinition) => isBareSpelling(valueDefinition.value))
+			.map((valueDefinition) =>
+				valueDefinition.aliases == null
+					? valueDefinition
+					: { ...valueDefinition, aliases: valueDefinition.aliases.filter(isBareSpelling) },
+			),
+	};
+}
+
 function defineRemoteFilterGrammar({
 	keys,
 	syntax = "qualifiers",
 }: RemoteFilterGrammarOptions): FilterGrammar<never> {
 	// Why: a `"qualifiers"` executor splits on whitespace and reads no quotes, so
-	// no query can carry such a value, and an accepted suggestion would split it.
-	if (syntax === "qualifiers") {
-		for (const definition of keys) {
-			for (const valueDefinition of definition.values ?? []) {
-				// An alias is typed too, so it has the same limit as the value.
-				for (const spelling of [valueDefinition.value, ...(valueDefinition.aliases ?? [])]) {
-					invariant(
-						!/\s/.test(spelling),
-						`The value "${spelling}" of the "${definition.key}" key contains whitespace, which a "qualifiers" grammar cannot express. Set syntax: "conjunction", which reads quotes.`,
-					);
-				}
-			}
-		}
-	}
+	// no query can carry such a spelling, and an accepted suggestion would split
+	// it. Values often come from a server, so the grammar drops them instead of
+	// throwing during render.
+	const expressibleKeys = syntax === "qualifiers" ? keys.map(withoutWhitespaceSpellings) : keys;
 
 	return {
-		keys: keys.map((definition) => ({ ...definition, matches: () => false })),
+		keys: expressibleKeys.map((definition) => ({ ...definition, matches: () => false })),
 		getSearchText: () => "",
 		syntax,
 	};

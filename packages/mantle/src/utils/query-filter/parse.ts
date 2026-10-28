@@ -448,6 +448,68 @@ function formatFacet({ key, value, negated }: { key: string; value: string; nega
 	return value === "" ? `${prefix}${key}:` : `${prefix}${key}:${quoteFilterValue(value)}`;
 }
 
+/** Whether a token is the one-value qualifier `key:value`, negated or not. */
+function isSingleFacet(token: FilterToken | undefined, key: string, value: string) {
+	return (
+		token?.kind === "facet" &&
+		token.key === key &&
+		token.members.length === 1 &&
+		token.members[0]?.value === value
+	);
+}
+
+/**
+ * Adds a qualifier to a query, or takes it out when the query already has it.
+ * Use it for a value that filters when the person clicks it, such as a status
+ * badge in a table row.
+ *
+ * The key and the value resolve through the grammar's aliases, so `is:personal`
+ * counts as `is:private`. The opposite qualifier gives way: `-is:shared`
+ * becomes `is:shared`. A list such as `is:shared,private` stays as written. An
+ * `OR` or `AND` beside a removed qualifier goes with it, so no operator dangles.
+ *
+ * @example
+ * ```ts
+ * toggleFacet({ grammar, query: "api", facet: { key: "is", value: "shared", negated: false } });
+ * // => "api is:shared"
+ * toggleFacet({ grammar, query: "api is:shared", facet: { key: "is", value: "shared", negated: false } });
+ * // => "api"
+ * toggleFacet({ grammar, query: "-is:shared", facet: { key: "is", value: "shared", negated: false } });
+ * // => "is:shared"
+ * ```
+ */
+function toggleFacet<Item>({
+	grammar,
+	query,
+	facet,
+}: {
+	grammar: FilterGrammar<Item>;
+	query: string;
+	facet: { key: string; value: string; negated: boolean };
+}) {
+	const key = resolveFilterKey(grammar, facet.key)?.key ?? facet.key;
+	const value = resolveFilterValue(grammar, key, facet.value) ?? facet.value;
+	const tokens = parseFilterQuery(grammar, query);
+	const removed = tokens.map((token) => isSingleFacet(token, key, value));
+	const wasOn = tokens.some((token, index) => removed[index] && token.negated === facet.negated);
+
+	const kept: string[] = [];
+	tokens.forEach((token, index) => {
+		if (removed[index]) {
+			return;
+		}
+		const isOperator = token.kind === "or" || token.kind === "and";
+		if (isOperator && (removed[index - 1] === true || removed[index + 1] === true)) {
+			return;
+		}
+		kept.push(query.slice(token.start, token.end));
+	});
+
+	return [...kept, ...(wasOn ? [] : [formatFacet({ key, value, negated: facet.negated })])].join(
+		" ",
+	);
+}
+
 /**
  * Finds the token the caret sits in or against.
  *
@@ -488,6 +550,7 @@ export {
 	parseFilterQuery,
 	queryUsesQualifiers,
 	quoteFilterValue,
+	toggleFacet,
 };
 
 export type {

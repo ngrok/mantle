@@ -1,4 +1,4 @@
-import { Button } from "@ngrok/mantle/button";
+import { Button, IconButton } from "@ngrok/mantle/button";
 import { DataTable, createColumnHelper, tableFeatures, useTable } from "@ngrok/mantle/data-table";
 import { Empty } from "@ngrok/mantle/empty";
 import {
@@ -7,6 +7,7 @@ import {
 	filterItemsByQuery,
 } from "@ngrok/mantle/query-filter";
 import { Query } from "@ngrok/mantle/query";
+import { CopyIcon } from "@phosphor-icons/react/Copy";
 import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
 import { useDeferredValue, useState } from "react";
 
@@ -188,7 +189,17 @@ export function InlineActionsQueryExample() {
 			<Query.Input
 				aria-label="Filter projects"
 				placeholder="Filter projects, or type a filter like is:shared"
-			/>
+			>
+				<IconButton
+					type="button"
+					appearance="ghost"
+					intent="neutral"
+					size="xs"
+					label="Copy filter"
+					icon={<CopyIcon />}
+					onClick={() => void navigator.clipboard.writeText(query)}
+				/>
+			</Query.Input>
 			<Query.Content>
 				<p>Filters apply as you type.</p>
 			</Query.Content>
@@ -233,5 +244,25 @@ export function RemoteQueryExample() {
 				{submittedQuery == null ? "Press Enter to search." : `The server runs: ${submittedQuery}`}
 			</p>
 		</form>
+	);
+}
+
+export function TokenColorsQueryExample() {
+	const [query, setQuery] = useState("is:shared OR name:api");
+
+	return (
+		<Query.Root
+			grammar={projectFilterGrammar}
+			items={projects}
+			value={query}
+			onValueChange={setQuery}
+			className="max-w-xl [--query-operator-color:var(--shiki-token-keyword)] [--query-value-color:var(--text-color-strong)]"
+		>
+			<Query.Input
+				aria-label="Filter projects"
+				placeholder="Filter projects, or type a filter like is:shared"
+			/>
+			<Query.Content />
+		</Query.Root>
 	);
 }

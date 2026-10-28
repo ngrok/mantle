@@ -5,6 +5,7 @@ description: Keep the text of a Query field in the ?q= URL param, so a filtered 
 
 import { Example } from "~/components/example";
 import { QueryFromUrlDemo } from "~/features/query-url-state-demo";
+import { QueryFromUrlSubmitDemo } from "~/features/query-url-submit-demo";
 
 # Query from the URL
 
@@ -12,7 +13,7 @@ A filtered list is worth sharing. Put the query in `?q=` and the link you paste 
 
 Two rules shape it:
 
-- The typed text is the source of truth while you type. Bind the field straight to the URL and every keystroke is a navigation, so the URL write waits 250 ms after the last edit and replaces the history entry instead of pushing one.
+- The typed text is the source of truth while you type. Bind the field straight to the URL and every keystroke is a navigation, so the URL write waits 250 ms after the last edit and replaces the history entry instead of pushing one. A clear writes at once, so an empty field never shows a filtered list.
 - A URL change from outside (the back button, a link to `?q=is:shared`) replaces the typed text. The hook compares the URL value with the one it saw last render and resets the text during render, not in an effect.
 
 Type a filter below and watch the address bar.
@@ -112,16 +113,26 @@ Copy this file. It uses `useSearchParams` from `react-router` and `useDebouncedC
 
 ````tsx
 import { useDebouncedCallback } from "@ngrok/mantle/hooks";
-import { useState } from "react";
+import { startTransition, useState } from "react";
 import { useSearchParams } from "react-router";
+
+/**
+ * When the typed text reaches the URL:
+ * - `change`: 250 ms after the last edit.
+ * - `submit`: only when the person presses Enter. Use it when one filter pass
+ *   over the list is too slow to run while the person types.
+ */
+export type QueryCommitMode = "change" | "submit";
 
 /**
  * Owns the typed text of a `Query` and keeps it in the `?q=` URL param,
  * so a filtered list is shareable by its URL.
  *
- * The typed text is the source of truth while you type: the URL write waits
- * 250 ms after the last edit and replaces the history entry. A URL change from
- * outside, such as the back button, replaces the typed text.
+ * The typed text is the source of truth while you type. In `change` mode, the
+ * URL write waits 250 ms after the last edit. In `submit` mode, only `submit`
+ * writes. In both modes, a clear writes at once. Each write replaces the
+ * history entry. A URL change from outside, such as the back button, replaces
+ * the typed text.
  *
  * @example
  * ```tsx
@@ -129,7 +140,7 @@ import { useSearchParams } from "react-router";
  * <Query.Root grammar={grammar} items={items} value={query} onValueChange={setQuery}>…</Query.Root>
  * ```
  */
-export function useQueryParamInput() {
+export function useQueryParamInput({ commitOn = "change" }: { commitOn?: QueryCommitMode } = {}) {
 	const [searchParams, setSearchParams] = useSearchParams();
 	const urlQuery = searchParams.get("q") ?? "";
 	const [query, setQuery] = useState(urlQuery);
@@ -144,58 +155,131 @@ export function useQueryParamInput() {
 		}
 	}
 
-	// The write reads `query` when it runs. A URL change from outside during the
-	// wait replaces `query`, so the write never puts the old text back.
-	const writeUrlQuery = useDebouncedCallback(
-		() => {
-			if (query === urlQuery) {
-				return;
-			}
-			setWrittenQuery(query);
+	function writeUrlQuery(nextQuery: string) {
+		if (nextQuery === urlQuery) {
+			return;
+		}
+		setWrittenQuery(nextQuery);
+		// The transition keeps the keystroke urgent while the list re-filters.
+		startTransition(() => {
 			setSearchParams(
 				(current) => {
 					const next = new URLSearchParams(current);
 					// A new filter starts a paginated list over at its first page.
 					next.delete("page");
-					if (query === "") {
+					if (nextQuery === "") {
 						next.delete("q");
 					} else {
-						next.set("q", query);
+						next.set("q", nextQuery);
 					}
 					return next;
 				},
 				{ replace: true, preventScrollReset: true },
 			);
-		},
-		{ waitMs: 250 },
-	);
+		});
+	}
+
+	// The write reads `query` when it runs. A URL change from outside during the
+	// wait replaces `query`, so the write never puts the old text back.
+	const writeTypedQuery = useDebouncedCallback(() => writeUrlQuery(query), { waitMs: 250 });
 
 	return {
+		/** The text in the field. */
 		query,
+		/** The query in the URL. In `submit` mode, filter the list by this. */
+		appliedQuery: urlQuery,
 		setQuery: (nextQuery: string) => {
 			setQuery(nextQuery);
-			writeUrlQuery();
+			if (nextQuery === "") {
+				writeUrlQuery("");
+			} else if (commitOn === "change") {
+				writeTypedQuery();
+			}
 		},
+		/** Writes the typed text to the URL now. Call it from the form's submit handler. */
+		submit: () => writeUrlQuery(query),
 	};
 }
 ````
 
 Filter with `useDeferredValue(query)`, as the demo does, so a long list re-renders behind the keystroke instead of in front of it. If the list loads through TanStack Query, filter inside `select` and keep the query key unfiltered, so one cache entry serves every query.
 
+## Apply on Enter
+
+Filtering on every keystroke is right for most lists. When one filter pass over the list is too slow to run while a person types, as with thousands of rows or a list that streams in, apply the query on Enter instead. Pass `commitOn: "submit"`, and filter by `appliedQuery`, the query in the URL:
+
+- Wrap the field in a `<form>`. Enter with no active suggestion submits it, and the submit handler calls `submit`.
+- Set `enterHint`, so the keyboard hints say that Enter applies the filter.
+- Leave out `items`. Each match count is one more filter pass, so the suggestions show none.
+- A clear still applies at once, so the clear button and the empty field agree.
+
+Pick the mode from the list size, such as `commitOn: rows.length > 2000 ? "submit" : "change"`. The hook reads the mode on each render, so the switch keeps the person's focus and caret.
+
+<Example>
+	<QueryFromUrlSubmitDemo />
+</Example>
+
+```tsx
+import { filterItemsByQuery } from "@ngrok/mantle/query-filter";
+import { Query } from "@ngrok/mantle/query";
+import { projectFilterGrammar, projects } from "~/features/query-demos";
+import { useQueryParamInput } from "~/features/query-url-state";
+
+export function QueryFromUrlSubmitDemo() {
+	const { query, setQuery, appliedQuery, submit } = useQueryParamInput({ commitOn: "submit" });
+	// Filter by the applied query: one pass runs per Enter, not per keystroke.
+	const visibleProjects = filterItemsByQuery({
+		grammar: projectFilterGrammar,
+		items: projects,
+		query: appliedQuery,
+	});
+
+	return (
+		<div className="w-full space-y-3">
+			<form
+				onSubmit={(event) => {
+					event.preventDefault();
+					submit();
+				}}
+			>
+				{/* No `items`: each match count is one more filter pass, so the suggestions show none. */}
+				<Query.Root grammar={projectFilterGrammar} value={query} onValueChange={setQuery}>
+					<Query.Input
+						aria-label="Filter projects"
+						placeholder="Filter projects, then press Enter"
+					/>
+					<Query.Content enterHint="select, or apply the filter" />
+				</Query.Root>
+			</form>
+			<ul className="text-body space-y-1 text-sm">
+				{visibleProjects.map((project) => (
+					<li key={project.id} translate="no">
+						{project.name}
+					</li>
+				))}
+			</ul>
+		</div>
+	);
+}
+```
+
 ## The hook with nuqs
 
-With [nuqs](https://nuqs.dev), `useQueryState` owns the URL write, and its `throttleMs` option takes the place of the debounce. This docs site doesn't use nuqs, so nothing on this page runs this version.
+With [nuqs](https://nuqs.dev) 2.5 or later, `useQueryStates` owns the URL write, and its `limitUrlUpdates: debounce(250)` option takes the place of the debounce. One call writes `q` and clears `page`. This docs site doesn't use nuqs, so nothing on this page runs this version.
 
 ```tsx showLineNumbers=false
-import { parseAsString, useQueryState } from "nuqs";
-import { useState } from "react";
+import { debounce, parseAsInteger, parseAsString, useQueryStates } from "nuqs";
+import { startTransition, useState } from "react";
 
-const queryParam = parseAsString
-	.withDefault("")
-	.withOptions({ clearOnDefault: true, throttleMs: 250 });
+const params = {
+	q: parseAsString.withDefault(""),
+	page: parseAsInteger,
+};
 
-export function useQueryParamInput() {
-	const [urlQuery, setUrlQuery] = useQueryState("q", queryParam);
+export function useQueryParamInput({
+	commitOn = "change",
+}: { commitOn?: "change" | "submit" } = {}) {
+	const [{ q: urlQuery }, setParams] = useQueryStates(params, { clearOnDefault: true });
 	const [query, setQuery] = useState(urlQuery);
 	const [previousUrlQuery, setPreviousUrlQuery] = useState(urlQuery);
 	if (urlQuery !== previousUrlQuery) {
@@ -203,12 +287,26 @@ export function useQueryParamInput() {
 		setQuery(urlQuery);
 	}
 
+	function writeUrlQuery(nextQuery: string, { wait }: { wait: boolean }) {
+		// A new filter starts a paginated list over at its first page.
+		void setParams(
+			{ q: nextQuery, page: null },
+			{ startTransition, limitUrlUpdates: wait ? debounce(250) : undefined },
+		);
+	}
+
 	return {
 		query,
+		appliedQuery: urlQuery,
 		setQuery: (nextQuery: string) => {
 			setQuery(nextQuery);
-			void setUrlQuery(nextQuery);
+			if (nextQuery === "") {
+				writeUrlQuery("", { wait: false });
+			} else if (commitOn === "change") {
+				writeUrlQuery(nextQuery, { wait: true });
+			}
 		},
+		submit: () => writeUrlQuery(query, { wait: false }),
 	};
 }
 ```

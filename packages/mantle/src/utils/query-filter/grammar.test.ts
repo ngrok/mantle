@@ -63,23 +63,21 @@ describe("acceptsValueList", () => {
 });
 
 describe("defineRemoteFilterGrammar", () => {
-	test("throws on a value with whitespace under the qualifiers syntax, which cannot express it", () => {
-		const keys = [{ key: "status", description: "Status", values: [{ value: "needs review" }] }];
-
-		expect(() => defineRemoteFilterGrammar({ keys })).toThrow(/needs review/);
-		expect(() => defineRemoteFilterGrammar({ keys, syntax: "conjunction" })).not.toThrow();
-	});
-
-	test("throws on a value alias with whitespace under the qualifiers syntax", () => {
+	test("drops a value and an alias with whitespace under the qualifiers syntax, which cannot express them", () => {
 		const keys = [
 			{
 				key: "status",
 				description: "Status",
-				values: [{ value: "review", aliases: ["needs review"] }],
+				values: [{ value: "needs review" }, { value: "open", aliases: ["not closed", "active"] }],
 			},
 		];
 
-		expect(() => defineRemoteFilterGrammar({ keys })).toThrow(/needs review/);
+		expect(defineRemoteFilterGrammar({ keys }).keys[0]?.values).toEqual([
+			{ value: "open", aliases: ["active"] },
+		]);
+		expect(defineRemoteFilterGrammar({ keys, syntax: "conjunction" }).keys[0]?.values).toEqual(
+			keys[0]?.values,
+		);
 	});
 
 	test("keeps every qualifier and value spelling it was given", () => {

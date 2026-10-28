@@ -51,6 +51,7 @@ export {
 	parseFilterQuery,
 	queryUsesQualifiers,
 	quoteFilterValue,
+	toggleFacet,
 } from "./parse.js";
 export type {
 	//,

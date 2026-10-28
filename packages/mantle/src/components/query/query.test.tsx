@@ -5,10 +5,11 @@ import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import { defineRemoteFilterGrammar } from "../../utils/query-filter/grammar.js";
 import { type TestItem, testGrammar, testItems } from "../../utils/query-filter/test-grammar.js";
 import { Field } from "../field/field.js";
-import { Query, type QueryProps } from "./query.js";
+import { Query, type QueryInputProps } from "./query.js";
 
 /** Field props a test can set. The harness owns the label and the placeholder. */
-type ExtraFieldProps = Partial<Omit<QueryProps, "placeholder">> & Record<`data-${string}`, string>;
+type ExtraFieldProps = Partial<Omit<QueryInputProps, "placeholder">> &
+	Record<`data-${string}`, string>;
 
 /** Props for {@link ControlledQuery}. */
 type ControlledQueryProps = {
@@ -356,6 +357,19 @@ describe("Query.Input", () => {
 		expect(screen.queryByRole("button", { name: "Clear filter" })).not.toBeInTheDocument();
 	});
 
+	test("calls onClear after the clear button empties the query", () => {
+		// What `onValueChange` had reported when `onClear` ran.
+		const reportedAtClear: string[][] = [];
+		const onClear = vi.fn<() => void>(() => reportedAtClear.push([...rendered.values]));
+		const rendered = renderQuery({ initialValue: "acme", fieldProps: { onClear } });
+
+		fireEvent.click(screen.getByRole("button", { name: "Clear filter" }));
+
+		expect(rendered.input).toHaveValue("");
+		expect(onClear).toHaveBeenCalledOnce();
+		expect(reportedAtClear).toEqual([[""]]);
+	});
+
 	test("names the clear button with clearLabel", () => {
 		renderQuery({ initialValue: "acme", fieldProps: { clearLabel: "Clear search" } });
 
@@ -550,6 +564,25 @@ describe("Query.Input", () => {
 });
 
 describe("Query.Content", () => {
+	test("forwards className, ref, data-slot, and popover props to the popover", async () => {
+		const ref = createRef<HTMLDivElement>();
+		render(
+			<Query.Root grammar={testGrammar} value="" onValueChange={() => {}}>
+				<Query.Input aria-label="Filter projects" placeholder="Filter" />
+				<Query.Content ref={ref} className="custom" data-slot="mine" id="suggestions" />
+			</Query.Root>,
+		);
+
+		screen.getByRole("combobox").focus();
+		const listbox = await screen.findByRole("listbox");
+		const popover = listbox.closest('[data-slot~="query-content"]');
+
+		expect(popover).toBe(ref.current);
+		expect(popover).toHaveClass("custom");
+		expect(popover).toHaveAttribute("id", "suggestions");
+		expect(popover?.getAttribute("data-slot")?.split(" ")).toContain("mine");
+	});
+
 	test("shows the keyboard hints under the legend, with the host's Enter action", async () => {
 		const { input } = renderQuery();
 

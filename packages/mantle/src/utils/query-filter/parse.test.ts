@@ -7,6 +7,7 @@ import {
 	parseFilterQuery,
 	queryUsesQualifiers,
 	quoteFilterValue,
+	toggleFacet,
 } from "./parse.js";
 import { testGrammar } from "./test-grammar.js";
 
@@ -297,6 +298,55 @@ describe("formatFacet", () => {
 
 	test("leaves the value off entirely when there is none to write", () => {
 		expect(formatFacet({ key: "is", value: "", negated: false })).toBe("is:");
+	});
+});
+
+describe("toggleFacet", () => {
+	const shared = { key: "is", value: "shared", negated: false };
+
+	test("adds a qualifier the query does not have", () => {
+		expect(toggleFacet({ grammar: testGrammar, query: "api", facet: shared })).toBe(
+			"api is:shared",
+		);
+		expect(toggleFacet({ grammar: testGrammar, query: "", facet: shared })).toBe("is:shared");
+	});
+
+	test("takes out a qualifier the query has, through its aliases", () => {
+		expect(
+			toggleFacet({ grammar: testGrammar, query: "api IS:shared -is:new", facet: shared }),
+		).toBe("api -is:new");
+		expect(
+			toggleFacet({
+				grammar: testGrammar,
+				query: "is:personal",
+				facet: { key: "is", value: "private", negated: false },
+			}),
+		).toBe("");
+	});
+
+	test("replaces the opposite qualifier", () => {
+		expect(toggleFacet({ grammar: testGrammar, query: "-is:shared api", facet: shared })).toBe(
+			"api is:shared",
+		);
+	});
+
+	test("keeps a list as written, and drops an operator beside a removed qualifier", () => {
+		expect(toggleFacet({ grammar: testGrammar, query: "is:shared,new", facet: shared })).toBe(
+			"is:shared,new is:shared",
+		);
+		expect(toggleFacet({ grammar: testGrammar, query: "is:shared OR api", facet: shared })).toBe(
+			"api",
+		);
+	});
+
+	test("quotes a value that needs quotes", () => {
+		expect(
+			toggleFacet({
+				grammar: testGrammar,
+				query: "",
+				facet: { key: "name", value: "staging api", negated: true },
+			}),
+		).toBe('-name:"staging api"');
 	});
 });
 

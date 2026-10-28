@@ -395,7 +395,7 @@ function Root<Item extends object>({
 /**
  * The props for `Query.Input`.
  */
-type QueryProps = Omit<
+type QueryInputProps = Omit<
 	ComponentProps<"input">,
 	| "aria-activedescendant"
 	| "aria-autocomplete"
@@ -425,6 +425,11 @@ type QueryProps = Omit<
 		 * @default "Clear filter"
 		 */
 		clearLabel?: string;
+		/**
+		 * Called after the clear button empties the query. Use it for work that
+		 * only a clear does, such as applying the empty query at once.
+		 */
+		onClear?: () => void;
 		/** Placeholder copy. Name one example filter the grammar accepts. Required on purpose. */
 		placeholder: string;
 		/**
@@ -459,11 +464,21 @@ type QueryProps = Omit<
  *
  * **CSS variables:**
  *
- * | CSS Variable                   | Default                        | Description                     |
- * | ------------------------------ | ------------------------------ | ------------------------------- |
+ * | CSS Variable             | Default                        | Description                     |
+ * | ------------------------ | ------------------------------ | ------------------------------- |
  * | `--query-key-color`      | `var(--shiki-token-attribute)` | The color of a qualifier key.   |
  * | `--query-value-color`    | `var(--shiki-token-string)`    | The color of a qualifier value. |
  * | `--query-operator-color` | `var(--shiki-token-operator)`  | The color of `OR` and `AND`.    |
+ *
+ * **Data attributes:**
+ *
+ * | Attribute         | Value                                  | Description                                  |
+ * | ----------------- | -------------------------------------- | -------------------------------------------- |
+ * | `data-slot`       | `"query-input"`                        | On the field's outer element.                |
+ * | `data-slot`       | `"query-input-actions"`                | On the `span` that wraps the children.       |
+ * | `data-slot`       | `"input"`                              | On the field's chrome, as on `Input`.        |
+ * | `data-disabled`   | present                                | On the chrome while the field is disabled.   |
+ * | `data-validation` | `"error"` \| `"success"` \| `"warning"` | On the chrome. Omitted when unset.           |
  *
  * @see https://mantle.ngrok.com/components/forms/query#queryinput
  *
@@ -491,6 +506,7 @@ function Input({
 	id,
 	name,
 	onBlur,
+	onClear,
 	onClick,
 	onFocus,
 	onKeyDown,
@@ -502,7 +518,7 @@ function Input({
 	style,
 	suggestOnFocus = true,
 	...props
-}: QueryProps) {
+}: QueryInputProps) {
 	const context = useQueryContext("Query.Input");
 	const { anchorRef, contentRef, inputRef } = useQueryRefs("Query.Input");
 	const fieldControl = useContext(FieldControlContext);
@@ -687,7 +703,15 @@ function Input({
 						{children}
 					</span>
 				)}
-				{canClear && <ClearButton label={clearLabel} onClear={context.clearValue} />}
+				{canClear && (
+					<ClearButton
+						label={clearLabel}
+						onClear={() => {
+							context.clearValue();
+							onClear?.();
+						}}
+					/>
+				)}
 			</InputShell>
 		</Popover.Anchor>
 	);
@@ -725,7 +749,18 @@ function ClearButton({ label, onClear }: { label: string; onClear: () => void })
 /**
  * The props for `Query.Content`.
  */
-type QueryContentProps = Pick<ComponentProps<typeof Popover.Content>, "className" | "ref"> &
+type QueryContentProps = Omit<
+	ComponentProps<typeof Popover.Content>,
+	// The part owns these: focus stays in the input, and the listbox inside is the popup.
+	| "align"
+	| "asChild"
+	| "children"
+	| "onCloseAutoFocus"
+	| "onInteractOutside"
+	| "onOpenAutoFocus"
+	| "preferredWidth"
+	| "role"
+> &
 	WithDataSlot & {
 		/** Content under the keyboard hints, such as a link to the filter docs. */
 		children?: ReactNode;
@@ -748,7 +783,17 @@ type QueryContentProps = Pick<ComponentProps<typeof Popover.Content>, "className
  * When no row matches, an empty state above the legend says what the
  * field accepts there. Keyboard hints follow the legend; `enterHint` names
  * what Enter does. Children render under the hints, in a
- * `[data-slot="query-content-footer"]` `div`.
+ * `[data-slot="query-content-footer"]` `div`. It accepts the `Popover.Content`
+ * props except the ones it owns.
+ *
+ * **Data attributes:**
+ *
+ * | Attribute    | Value                    | Description                                 |
+ * | ------------ | ------------------------ | ------------------------------------------- |
+ * | `data-slot`  | `"query-content"`        | On the popover, beside `"popover-content"`. |
+ * | `data-slot`  | `"query-content-footer"` | On the `div` that wraps the children.       |
+ * | `data-state` | `"open"` \| `"closed"`   | On the popover, from Radix.                 |
+ * | `data-side`  | `"top"` \| `"bottom"`    | On the popover: the side it opened on.      |
  *
  * @see https://mantle.ngrok.com/components/forms/query#querycontent
  *
@@ -769,6 +814,7 @@ function Content({
 	className,
 	enterHint = "select",
 	ref,
+	...props
 }: QueryContentProps) {
 	const context = useQueryContext("Query.Content");
 	const { anchorRef, contentRef } = useQueryRefs("Query.Content");
@@ -783,6 +829,7 @@ function Content({
 
 	return (
 		<Popover.Content
+			{...props}
 			ref={composedRef}
 			data-slot={joinDataSlot(dataSlot, "query-content")}
 			align="start"
@@ -1149,6 +1196,6 @@ export {
 export type {
 	//,
 	QueryContentProps,
-	QueryProps,
+	QueryInputProps,
 	QueryRootProps,
 };

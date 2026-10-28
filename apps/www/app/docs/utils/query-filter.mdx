@@ -27,6 +27,7 @@ import {
 	quoteFilterValue,
 	resolveFilterKey,
 	resolveFilterValue,
+	toggleFacet,
 } from "@ngrok/mantle/query-filter";
 
 import type {
@@ -112,7 +113,7 @@ The engine caches the search text per item and per items array. Treat items as i
 
 `defineRemoteFilterGrammar` declares the vocabulary of a query that another system runs. Nothing matches on the client. Its `syntax` sets what the highlighter paints as structure:
 
-- `"qualifiers"` (the default) reads only bare `key:value` tokens. Quotes, `-`, `OR`, and commas stay text. A value with a space can't be written, so `defineRemoteFilterGrammar` throws on one.
+- `"qualifiers"` (the default) reads only bare `key:value` tokens. Quotes, `-`, `OR`, and commas stay text. A value with a space can't be written, so `defineRemoteFilterGrammar` drops it, and drops an alias with a space too. Values often come from a server, so the grammar never throws on one.
 - `"conjunction"` reads one AND group of exclusions, comma lists, and quotes. A bare term paints as invalid, because the executor can't run it.
 
 ```ts
@@ -139,6 +140,7 @@ parseFilterQuery(projectFilterGrammar, "is:shared -acme");
 ```
 
 - `formatFacet({ key, value, negated })` writes a qualifier in its canonical form, with quotes where the value needs them.
+- `toggleFacet({ grammar, query, facet })` adds a qualifier, or takes it out when the query has it. The [Filter from a value](/recipes/filter-from-a-value) recipe uses it for a value a person selects in a table row.
 - `queryUsesQualifiers(grammar, query)` reports whether a query holds a qualifier. Use it to pick the advice in a filtered-empty state.
 - `getFilterSuggestions` and `getHighlightSegments` are what `Query` renders. Use them to build your own field.
 

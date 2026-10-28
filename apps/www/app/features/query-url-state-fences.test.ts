@@ -15,6 +15,7 @@ const RECIPE = "app/docs/recipes/query-from-the-url.mdx";
 const FENCED_FILES = [
 	"app/features/query-url-state.tsx",
 	"app/features/query-url-state-demo.tsx",
+	"app/features/query-url-submit-demo.tsx",
 ] as const;
 
 /** This file's own location, two directories below the app root. */
