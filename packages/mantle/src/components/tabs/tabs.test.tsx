@@ -220,6 +220,30 @@ describe("Tabs", () => {
 			expect(scrollIntoView).not.toHaveBeenCalled();
 		});
 
+		test("a press that the consumer cancels neither focuses nor activates the trigger", async () => {
+			const user = userEvent.setup();
+			const onMouseDown = vi.fn<(event: { preventDefault: () => void }) => void>((event) =>
+				event.preventDefault(),
+			);
+			render(
+				<Tabs.Root defaultValue="a">
+					<Tabs.List>
+						<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
+						<Tabs.Trigger value="b" onMouseDown={onMouseDown}>
+							Tab B
+						</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>,
+			);
+			const tab = screen.getByRole("tab", { name: "Tab B" });
+
+			await user.click(tab);
+
+			expect(onMouseDown).toHaveBeenCalledTimes(1);
+			expect(tab).not.toHaveFocus();
+			expect(tab).toHaveAttribute("aria-selected", "false");
+		});
+
 		test("keyboard focus scrolls the trigger into view", async () => {
 			const user = userEvent.setup();
 			// Why a spy: happy-dom lays out nothing, so the `scrollIntoView` call is the

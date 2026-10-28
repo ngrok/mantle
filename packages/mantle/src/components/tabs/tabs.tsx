@@ -7,7 +7,7 @@ import {
 	Trigger as TabsPrimitiveTrigger,
 } from "@radix-ui/react-tabs";
 import { cva } from "class-variance-authority";
-import type { ComponentProps, ComponentRef } from "react";
+import type { ComponentProps, ComponentRef, MouseEvent as ReactMouseEvent } from "react";
 import {
 	Children,
 	cloneElement,
@@ -245,7 +245,9 @@ const List = ({
 		const clearPointerFlag = () => {
 			focusFromPointer = false;
 		};
-		element.addEventListener("pointerup", clearPointerFlag, { signal });
+		// Why a timeout: a link trigger takes focus in its click handler, which runs
+		// after `pointerup` in the same task.
+		element.addEventListener("pointerup", () => setTimeout(clearPointerFlag), { signal });
 		element.addEventListener("pointercancel", clearPointerFlag, { signal });
 		element.addEventListener("keydown", clearPointerFlag, { signal });
 
@@ -402,7 +404,7 @@ const TabsTriggerDecoration = () => {
  */
 const triggerVariants = cva(
 	cx(
-		"group/tab-trigger relative flex cursor-pointer items-center gap-1 whitespace-nowrap py-3 text-sm font-medium text-gray-600",
+		"group/tab-trigger relative flex cursor-pointer select-none items-center gap-1 whitespace-nowrap py-3 text-sm font-medium text-gray-600",
 		"ring-focus-accent outline-hidden",
 		"aria-disabled:cursor-default aria-disabled:opacity-50",
 		"focus-visible:ring-4",
@@ -450,6 +452,11 @@ const triggerVariants = cva(
  * variant instead: `[&>[data-slot=tabs-trigger-label]>svg]:size-4`. A `[&_svg]`
  * or a class on the icon loses to the default, which is more specific.
  *
+ * **Pointer press.** A mouse press focuses the trigger without the focus ring;
+ * keyboard focus still shows it. The label text is not selectable. An `asChild`
+ * link activates on click, not on the press, so a press released off the link
+ * switches no tab. The link does not drag.
+ *
  * **Data attributes:**
  *
  * | Data Attribute | Value                    | Description                          |
@@ -483,17 +490,65 @@ const Trigger = ({
 	className,
 	"data-slot": dataSlot,
 	disabled: _disabled,
+	onClick,
+	onMouseDown,
 	ref,
 	...props
 }: TabsTriggerProps) => {
 	const { orientation, appearance } = useTabsState("Tabs.Trigger");
 	const disabled = parseBooleanish(_ariaDisabled ?? _disabled);
+	const replayingPress = useRef(false);
 
 	const tabsTriggerProps = {
 		"aria-disabled": _ariaDisabled ?? _disabled,
 		className: cx(triggerVariants({ orientation, appearance }), className),
 		"data-slot": joinDataSlot(dataSlot, "tabs-trigger"),
 		disabled,
+		onClick: (event: ReactMouseEvent<HTMLButtonElement>) => {
+			onClick?.(event);
+			// Why: a click with a modifier opens the link elsewhere.
+			if (
+				event.defaultPrevented ||
+				disabled ||
+				!event.currentTarget.matches("a[href]") ||
+				event.button !== 0 ||
+				event.altKey ||
+				event.ctrlKey ||
+				event.metaKey ||
+				event.shiftKey
+			) {
+				return;
+			}
+			const trigger = event.currentTarget;
+			trigger.focus({ focusVisible: false });
+			// Why: a link trigger skips the press, and the focus activates only an
+			// unfocused trigger in automatic mode. This replayed press runs the Radix
+			// activation, and the root drops the second call for the same value.
+			replayingPress.current = true;
+			trigger.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
+			replayingPress.current = false;
+		},
+		onMouseDown: (event: ReactMouseEvent<HTMLButtonElement>) => {
+			if (replayingPress.current) {
+				return;
+			}
+			onMouseDown?.(event);
+			if (event.defaultPrevented || disabled) {
+				return;
+			}
+			// Why: a link follows only a press released on it, so a link trigger
+			// waits for the click. The cancel skips the Radix handler and the link drag.
+			if (event.currentTarget.matches("a[href]")) {
+				event.preventDefault();
+				return;
+			}
+			// Why: Radix focuses the trigger from script on this press, and Chromium
+			// gives that focus the ring of the element that had focus before. A focus
+			// here comes first, so the Radix call finds the trigger already focused.
+			if (event.button === 0 && !event.ctrlKey) {
+				event.currentTarget.focus({ focusVisible: false });
+			}
+		},
 		...props,
 	};
 
