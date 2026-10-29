@@ -21,6 +21,7 @@ import { assetsCdnOrigin, preloadFontLink } from "@ngrok/mantle/theme";
 import invariant from "tiny-invariant";
 import { NonceProvider } from "./components/nonce";
 import { getBaseUrl } from "./utilities/base-url";
+import { canonicalOrigin } from "./utilities/canonical-origin";
 import { rawDocContent, urlToFileMap } from "./utilities/docs";
 
 // Increase the stack trace limit so we can see more of the error
@@ -94,6 +95,7 @@ export default function handleRequest(
 	const requestPathname = new URL(request.url).pathname;
 	const allowSameOriginFraming =
 		requestPathname === "/preview" || requestPathname.startsWith("/preview/");
+	const isPrototypeFrame = requestPathname === "/mcp/preview-frame";
 
 	return new Promise((resolve, reject) => {
 		let shellRendered = false;
@@ -184,7 +186,11 @@ export default function handleRequest(
 					 * `frame-ancestors` directive below mirrors this for modern
 					 * browsers.
 					 */
-					responseHeaders.set("X-Frame-Options", allowSameOriginFraming ? "SAMEORIGIN" : "DENY");
+					// Why no header for the prototype frame: the preview page can frame it from
+					// another origin, and its CSP `frame-ancestors` names the allowed parents.
+					if (!isPrototypeFrame) {
+						responseHeaders.set("X-Frame-Options", allowSameOriginFraming ? "SAMEORIGIN" : "DENY");
+					}
 
 					/**
 					 * Enable basic XSS protection in older browsers by instructing them
@@ -198,7 +204,9 @@ export default function handleRequest(
 					 */
 					responseHeaders.set(
 						"Content-Security-Policy",
-						buildCSPHeader({ nonce: uniquePerRequestNonce, baseUrl, allowSameOriginFraming }),
+						isPrototypeFrame
+							? buildPrototypeFrameCSPHeader({ nonce: uniquePerRequestNonce, baseUrl })
+							: buildCSPHeader({ nonce: uniquePerRequestNonce, baseUrl, allowSameOriginFraming }),
 					);
 
 					resolve(
@@ -333,5 +341,34 @@ function buildCSPHeader({
 		objectSrc,
 		workerSrc,
 		frameAncestors,
+	].join("; ");
+}
+
+/**
+ * Builds the CSP for `/mcp/preview-frame`, the document that runs prototype
+ * code from a link. The policy repeats the frame's `sandbox` so the document
+ * has an opaque origin even when someone opens it outside the preview page.
+ * It blocks every network request and form submission, so the code cannot
+ * send data out. `'unsafe-eval'` lets the frame run the compiled prototype.
+ *
+ * @example
+ * buildPrototypeFrameCSPHeader({ nonce: "abc", baseUrl: "/" });
+ * // => "script-src 'nonce-abc' 'unsafe-eval' 'self'; connect-src 'none'; …"
+ */
+function buildPrototypeFrameCSPHeader({ nonce, baseUrl }: { nonce: string; baseUrl: string }) {
+	const hostedOrigin = baseUrl !== "/" ? baseUrl : undefined;
+	const scriptSrc = [`'nonce-${nonce}'`, "'unsafe-eval'", "'self'", hostedOrigin].filter(Boolean);
+	const frameAncestors = ["'self'", canonicalOrigin, hostedOrigin].filter(Boolean);
+
+	return [
+		//,
+		`script-src ${scriptSrc.join(" ")}`,
+		"connect-src 'none'",
+		"form-action 'none'",
+		"base-uri 'none'",
+		"object-src 'none'",
+		"worker-src 'none'",
+		`frame-ancestors ${frameAncestors.join(" ")}`,
+		"sandbox allow-scripts",
 	].join("; ");
 }

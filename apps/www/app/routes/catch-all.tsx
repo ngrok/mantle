@@ -32,6 +32,15 @@ export function loader({ request }: Route.LoaderArgs) {
 	return data(null, { status: 404 });
 }
 
+/**
+ * Answers a POST, PUT, PATCH, or DELETE to an unknown URL with 404. Without
+ * an action, React Router answers these with an error status, and a client
+ * that probes the URL reads that as a server fault.
+ */
+export function action() {
+	return new Response("Not Found", { status: 404, headers: { "X-Robots-Tag": "noindex" } });
+}
+
 /** The 404 page. Catches any URL that doesn't match a known route. */
 export default function CatchAll() {
 	return (

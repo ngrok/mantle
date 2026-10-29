@@ -91,11 +91,12 @@ RUN --mount=type=secret,id=TURBO_TOKEN \
     pnpm turbo run build --filter=@app/www...
 
 # Install only the runtime deps of `server/` (`hono`, `@hono/node-server`,
-# `pino`, and `react-router`) into a clean directory, so we can copy a minimal
+# `pino`, and `react-router`) and `oxc-parser`, which loads a native binary
+# that the bundle cannot hold, into a clean directory, so we can copy a minimal
 # node_modules into the distroless runner. Each version comes from the app's own
 # install, so it matches the lockfile.
 RUN cd apps/www \
-    && SERVER_DEPS=$(node -e "for (const name of ['hono', '@hono/node-server', 'pino', 'react-router']) process.stdout.write(name + '@' + require('./node_modules/' + name + '/package.json').version + ' ')") \
+    && SERVER_DEPS=$(node -e "for (const name of ['hono', '@hono/node-server', 'pino', 'react-router', 'oxc-parser']) process.stdout.write(name + '@' + require('./node_modules/' + name + '/package.json').version + ' ')") \
     && mkdir /app/runner-deps && cd /app/runner-deps \
     && npm init -y \
     && npm install --omit=dev --no-fund --no-audit $SERVER_DEPS \
