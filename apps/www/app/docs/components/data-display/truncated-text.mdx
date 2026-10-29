@@ -68,20 +68,102 @@ import { TruncatedText } from "@ngrok/mantle/truncated-text";
 `tail` is the number of graphemes that stay visible, 8 by default. Count what tells your values apart: an ngrok resource ID ends in the characters that differ, so `tail={6}` keeps them. The count is in grapheme clusters, so an emoji or a letter with a combining mark never splits in half.
 
 <Example>
-	<div className="flex w-40 max-w-full flex-col gap-1 rounded-md border border-gray-300 p-3 font-mono text-sm">
-		<TruncatedText tail={6} value="ep_2abcdEFGhijKL123456" />
-		<TruncatedText tail={6} value="ep_2abcdEFGhijKL789012" />
-		<TruncatedText tail={6} value="ep_2abcdEFGhijKL345678" />
+	<div className="w-80 max-w-full">
+		<DescriptionList.Root>
+			<DescriptionList.Item>
+				<DescriptionList.Label>Production</DescriptionList.Label>
+				<DescriptionList.Value className="font-mono text-sm">
+					<TruncatedText tail={6} value="ep_2abcdEFGhijKL123456" />
+				</DescriptionList.Value>
+			</DescriptionList.Item>
+			<DescriptionList.Item>
+				<DescriptionList.Label>Staging</DescriptionList.Label>
+				<DescriptionList.Value className="font-mono text-sm">
+					<TruncatedText tail={6} value="ep_2abcdEFGhijKL789012" />
+				</DescriptionList.Value>
+			</DescriptionList.Item>
+			<DescriptionList.Item>
+				<DescriptionList.Label>Preview</DescriptionList.Label>
+				<DescriptionList.Value className="font-mono text-sm">
+					<TruncatedText tail={6} value="ep_2abcdEFGhijKL345678" />
+				</DescriptionList.Value>
+			</DescriptionList.Item>
+		</DescriptionList.Root>
 	</div>
 </Example>
 
 ```tsx
+import { DescriptionList } from "@ngrok/mantle/description-list";
 import { TruncatedText } from "@ngrok/mantle/truncated-text";
 
-<div className="flex w-40 max-w-full flex-col gap-1 rounded-md border border-gray-300 p-3 font-mono text-sm">
-	<TruncatedText tail={6} value="ep_2abcdEFGhijKL123456" />
-	<TruncatedText tail={6} value="ep_2abcdEFGhijKL789012" />
-	<TruncatedText tail={6} value="ep_2abcdEFGhijKL345678" />
+<div className="w-80 max-w-full">
+	<DescriptionList.Root>
+		<DescriptionList.Item>
+			<DescriptionList.Label>Production</DescriptionList.Label>
+			<DescriptionList.Value className="font-mono text-sm">
+				<TruncatedText tail={6} value="ep_2abcdEFGhijKL123456" />
+			</DescriptionList.Value>
+		</DescriptionList.Item>
+		<DescriptionList.Item>
+			<DescriptionList.Label>Staging</DescriptionList.Label>
+			<DescriptionList.Value className="font-mono text-sm">
+				<TruncatedText tail={6} value="ep_2abcdEFGhijKL789012" />
+			</DescriptionList.Value>
+		</DescriptionList.Item>
+		<DescriptionList.Item>
+			<DescriptionList.Label>Preview</DescriptionList.Label>
+			<DescriptionList.Value className="font-mono text-sm">
+				<TruncatedText tail={6} value="ep_2abcdEFGhijKL345678" />
+			</DescriptionList.Value>
+		</DescriptionList.Item>
+	</DescriptionList.Root>
+</div>;
+```
+
+## Head length
+
+`head` is the most graphemes that show before the ellipsis. Without it, the head fills the container. With it, a value longer than `head + tail` graphemes always clips to the same shape, and the root shrinks to fit. A narrower container still clips the head further. An ngrok resource ID starts with a type prefix, so `head={id.indexOf("_") + 1}` keeps the prefix and the ID shows as `mem_…A8KImPbQ`.
+
+The head rounds up to whole `ch` cells. In a monospace font the shape is exact. In a proportional font, one more narrow glyph can show before the ellipsis.
+
+<Example>
+	<div className="w-full max-w-md">
+		<DescriptionList.Root>
+			<DescriptionList.Item>
+				<DescriptionList.Label>Endpoint</DescriptionList.Label>
+				<DescriptionList.Value className="font-mono text-sm">
+					<TruncatedText head={3} value="ep_2abcdEFGhijKL123456" />
+				</DescriptionList.Value>
+			</DescriptionList.Item>
+			<DescriptionList.Item>
+				<DescriptionList.Label>Member</DescriptionList.Label>
+				<DescriptionList.Value className="font-mono text-sm">
+					<TruncatedText head={4} value="mem_21h80N9qQuAmhSB8nlTA8KImPbQ" />
+				</DescriptionList.Value>
+			</DescriptionList.Item>
+		</DescriptionList.Root>
+	</div>
+</Example>
+
+```tsx
+import { DescriptionList } from "@ngrok/mantle/description-list";
+import { TruncatedText } from "@ngrok/mantle/truncated-text";
+
+<div className="w-full max-w-md">
+	<DescriptionList.Root>
+		<DescriptionList.Item>
+			<DescriptionList.Label>Endpoint</DescriptionList.Label>
+			<DescriptionList.Value className="font-mono text-sm">
+				<TruncatedText head={3} value="ep_2abcdEFGhijKL123456" />
+			</DescriptionList.Value>
+		</DescriptionList.Item>
+		<DescriptionList.Item>
+			<DescriptionList.Label>Member</DescriptionList.Label>
+			<DescriptionList.Value className="font-mono text-sm">
+				<TruncatedText head={4} value="mem_21h80N9qQuAmhSB8nlTA8KImPbQ" />
+			</DescriptionList.Value>
+		</DescriptionList.Item>
+	</DescriptionList.Root>
 </div>;
 ```
 
@@ -90,7 +172,7 @@ import { TruncatedText } from "@ngrok/mantle/truncated-text";
 The root carries `user-select: all`, so one click selects the whole value across both segments, and a copy yields the full string. CSS draws the ellipsis, so a selection never contains it. The two segments copy as one line. Click the value below, then copy it. Pass `className="select-text"` to get normal text selection instead.
 
 <Example>
-	<div className="w-72 max-w-full rounded-md border border-gray-300 p-3 font-mono text-sm">
+	<div className="w-72 max-w-full font-mono text-sm">
 		<TruncatedText value="https://example.ngrok.app/api/items?filter=%7B%22name%22%3A%22x%22%7D&limit=200" />
 	</div>
 </Example>
@@ -98,7 +180,7 @@ The root carries `user-select: all`, so one click selects the whole value across
 ```tsx
 import { TruncatedText } from "@ngrok/mantle/truncated-text";
 
-<div className="w-72 max-w-full rounded-md border border-gray-300 p-3 font-mono text-sm">
+<div className="w-72 max-w-full font-mono text-sm">
 	<TruncatedText value="https://example.ngrok.app/api/items?filter=%7B%22name%22%3A%22x%22%7D&limit=200" />
 </div>;
 ```
@@ -158,6 +240,51 @@ import { TruncatedText } from "@ngrok/mantle/truncated-text";
 </div>;
 ```
 
+## Tooltip
+
+The tooltip shows the whole value. It is up to 24rem wide, so a resource ID fits on one line. A longer value breaks into lines of near-equal length, so the last line never holds only one or two characters, and the tooltip narrows to the longest line. Hover each value below.
+
+<Example>
+	<div className="w-full max-w-sm">
+		<DescriptionList.Root>
+			<DescriptionList.Item>
+				<DescriptionList.Label>Member</DescriptionList.Label>
+				<DescriptionList.Value className="font-mono text-sm">
+					<TruncatedText value="mem_21h80N9qQuAmhSB8nlTA8KImPbQ" />
+				</DescriptionList.Value>
+			</DescriptionList.Item>
+			<DescriptionList.Item>
+				<DescriptionList.Label>Request URL</DescriptionList.Label>
+				<DescriptionList.Value className="font-mono text-sm">
+					<TruncatedText value="https://example.ngrok.app/api/items?filter=%7B%22name%22%3A%22x%22%7D&limit=200" />
+				</DescriptionList.Value>
+			</DescriptionList.Item>
+		</DescriptionList.Root>
+	</div>
+</Example>
+
+```tsx
+import { DescriptionList } from "@ngrok/mantle/description-list";
+import { TruncatedText } from "@ngrok/mantle/truncated-text";
+
+<div className="w-full max-w-sm">
+	<DescriptionList.Root>
+		<DescriptionList.Item>
+			<DescriptionList.Label>Member</DescriptionList.Label>
+			<DescriptionList.Value className="font-mono text-sm">
+				<TruncatedText value="mem_21h80N9qQuAmhSB8nlTA8KImPbQ" />
+			</DescriptionList.Value>
+		</DescriptionList.Item>
+		<DescriptionList.Item>
+			<DescriptionList.Label>Request URL</DescriptionList.Label>
+			<DescriptionList.Value className="font-mono text-sm">
+				<TruncatedText value="https://example.ngrok.app/api/items?filter=%7B%22name%22%3A%22x%22%7D&limit=200" />
+			</DescriptionList.Value>
+		</DescriptionList.Item>
+	</DescriptionList.Root>
+</div>;
+```
+
 ## Accessibility
 
 A screen reader reads the whole value as one string. The two visible segments are `aria-hidden`, because Chromium puts a space between two inline-block boxes in an accessible name, and a visually hidden `<span>` holds the whole value instead. That copy carries `user-select: none`, so one click still copies the value once. A page-wide select-all copies it twice, like any visually hidden label. The ellipsis is a CSS effect, so nothing announces it.
@@ -181,6 +308,7 @@ All props from [span](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/
 | `asChild?`   | `boolean`                      | `false` | Render the value inside the single child element instead of a `<span>`. The child must have no children of its own.                                                   |
 | `className?` | `string`                       |         | Additional CSS classes to apply to the root. `select-text` turns off the one-click selection.                                                                         |
 | `dir?`       | `"ltr"` \| `"rtl"` \| `"auto"` | `"ltr"` | The text direction. The default keeps the tail on the right on an RTL page.                                                                                           |
+| `head?`      | `number`                       |         | The most graphemes that show before the ellipsis. A longer value always clips to `head` and `tail`, and the root shrinks to fit. A non-negative integer.              |
 | `tail?`      | `number`                       | `8`     | How many graphemes stay visible at the end of the value. Counts grapheme clusters, so an emoji or a letter with a combining mark counts once. A non-negative integer. |
 | `translate?` | `"yes"` \| `"no"`              | `"no"`  | Whether a browser translation engine may translate the value and its tooltip. When the value is prose, pass `"yes"`.                                                  |
 | `value`      | `string`                       |         | The full value. Required.                                                                                                                                             |
