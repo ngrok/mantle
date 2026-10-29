@@ -30,6 +30,7 @@ describe("negotiatedMarkdownResponse", () => {
 describe("hasMarkdownVariant", () => {
 	it("is true for a docs page and false for a path with no markdown", () => {
 		expect(hasMarkdownVariant("/components/actions/button")).toBe(true);
+		expect(hasMarkdownVariant("/components/actions/button/")).toBe(true);
 		expect(hasMarkdownVariant("/no-such-page")).toBe(false);
 	});
 });
@@ -37,6 +38,7 @@ describe("hasMarkdownVariant", () => {
 describe("markdownTwinPath", () => {
 	it("is the .md route of a docs page, and undefined for a path with no markdown", () => {
 		expect(markdownTwinPath("/components/actions/button")).toBe("/components/actions/button.md");
+		expect(markdownTwinPath("/components/actions/button/")).toBe("/components/actions/button.md");
 		expect(markdownTwinPath("/")).toBe("/index.md");
 		expect(markdownTwinPath("/no-such-page")).toBeUndefined();
 	});

@@ -1,9 +1,9 @@
 import { rawDocContent, urlToFileMap } from "./docs";
 import { prefersMarkdown } from "./prefers-markdown";
 
-/** The `urlToFileMap` key of the docs page at `pathname`. */
+/** The `urlToFileMap` key of the docs page at `pathname`, with or without a trailing slash. */
 function docKey(pathname: string): string {
-	return pathname.replace(/^\//, "") || "index";
+	return pathname.replace(/^\/|\/+$/g, "") || "index";
 }
 
 /** The raw markdown of the docs page at `pathname`, or `undefined` when the page has none. */
