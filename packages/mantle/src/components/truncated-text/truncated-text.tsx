@@ -129,7 +129,7 @@ function isInsideControl(element: HTMLElement): boolean {
 // Why no ligatures: a ligature such as `//` shapes as one glyph, so a clip
 // inside it drops both characters and the ellipsis lands a cell away.
 const rootClassName =
-	"inline-block min-w-0 max-w-full rounded whitespace-nowrap select-all [font-variant-ligatures:none] focus:outline-hidden focus-visible:ring-3 focus-visible:ring-focus-accent data-truncated:cursor-help";
+	"inline-block min-w-0 max-w-full rounded whitespace-nowrap select-all [font-variant-ligatures:none] focus:outline-hidden focus-visible:ring-3 focus-visible:ring-focus-accent";
 
 // Why 0.5px: without the slack, WebKit clips a value that fits exactly.
 // Why round(down, …, 1ch): while the value overflows, whole `ch` cells keep the
@@ -232,8 +232,9 @@ const TruncatedTextRoot = ({
  * `className="select-text"` to opt out.
  *
  * **Tooltip.** The tooltip shows the full value and opens only while the value
- * overflows. It needs a `TooltipProvider` ancestor, like every mantle tooltip,
- * and throws without one. The server render and the first client render assume
+ * overflows. A value that wraps breaks into lines of near-equal length. It
+ * needs a `TooltipProvider` ancestor, like every mantle tooltip, and throws
+ * without one. The server render and the first client render assume
  * no overflow; the measurement after mount adds the tooltip and `data-truncated`.
  * While the value overflows, the root is focusable, so Tab reaches it, a screen
  * reader announces the whole value, and the tooltip opens. A value that fits is
@@ -467,7 +468,9 @@ const TruncatedText = ({
 			{/* Why Radix's trigger and not `Tooltip.Trigger`: the mantle part stamps its
 			    own `data-slot`, which `Slot` joins into the root's. */}
 			<TooltipPrimitiveTrigger asChild>{root}</TooltipPrimitiveTrigger>
-			<Tooltip.Content className="break-all" translate={translate}>
+			{/* Why `text-balance`: `break-all` fills each line to the edge, so a value a
+			    little wider than the tooltip leaves one or two characters on the last line. */}
+			<Tooltip.Content className="break-all text-balance" translate={translate}>
 				{value}
 			</Tooltip.Content>
 		</TooltipPrimitiveRoot>
