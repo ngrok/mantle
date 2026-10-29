@@ -167,6 +167,34 @@ import { TruncatedText } from "@ngrok/mantle/truncated-text";
 </div>;
 ```
 
+## Style the head and the tail
+
+The head and the tail are two `<span>` elements, `data-slot="truncated-text-head"` and `data-slot="truncated-text-tail"`. Style each one from the root with a `*:data-[slot=…]:` class. CSS draws the ellipsis at the end of the head, so the ellipsis takes the head's color. To mute the type prefix of an ID and keep its tail at body color, pass `head` and color the head:
+
+<Example>
+	<div className="w-full max-w-md">
+		<TruncatedText
+			className="font-mono text-sm *:data-[slot=truncated-text-head]:text-muted *:data-[slot=truncated-text-tail]:text-body"
+			head={4}
+			value="mem_21h80N9qQuAmhSB8nlTA8KImPbQ"
+		/>
+	</div>
+</Example>
+
+```tsx
+import { TruncatedText } from "@ngrok/mantle/truncated-text";
+
+<div className="w-full max-w-md">
+	<TruncatedText
+		className="font-mono text-sm *:data-[slot=truncated-text-head]:text-muted *:data-[slot=truncated-text-tail]:text-body"
+		head={4}
+		value="mem_21h80N9qQuAmhSB8nlTA8KImPbQ"
+	/>
+</div>;
+```
+
+The two segments render when the value fits too, so these classes also color a value that fits. To color the segments only while the value overflows, add the `data-truncated:` variant first: `data-truncated:*:data-[slot=truncated-text-head]:text-muted`. A value no longer than `tail` has an empty head, so its tail draws the ellipsis in the tail's color.
+
 ## Selection
 
 The root carries `user-select: all`, so one click selects the whole value across both segments, and a copy yields the full string. CSS draws the ellipsis, so a selection never contains it. The two segments copy as one line. Click the value below, then copy it. Pass `className="select-text"` to get normal text selection instead.
