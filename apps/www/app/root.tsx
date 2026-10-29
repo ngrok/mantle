@@ -116,10 +116,19 @@ export function shouldRevalidate() {
 	return false;
 }
 
+const chromelessRouteIds = new Set([
+	//,
+	"preview-example",
+	"bench-charts",
+	"mcp-preview",
+	"mcp-preview-frame",
+]);
+
 /**
  * Whether the matched route is a chrome-less document: a framed example
- * preview (`/preview/:exampleName`) or the chart benchmark page
- * (`/bench/charts`). Matched on route identity, not pathname —
+ * preview (`/preview/:exampleName`), the chart benchmark page
+ * (`/bench/charts`), or an MCP prototype preview (`/mcp/preview` and its
+ * frame). Matched on route identity, not pathname —
  * mirroring the `layouts-index` pattern in layouts-layout.tsx. Preview
  * documents render inside the docs pages' iframes, and the benchmark page
  * is a timing fixture, so both skip the site chrome and the forced
@@ -127,7 +136,7 @@ export function shouldRevalidate() {
  */
 function useIsFramedPreview() {
 	const matches = useMatches();
-	return matches.some((match) => match.id === "preview-example" || match.id === "bench-charts");
+	return matches.some((match) => chromelessRouteIds.has(match.id));
 }
 
 const ReactQueryDevtoolsLazy = lazy(() =>
@@ -150,6 +159,7 @@ export function Layout({ children }: PropsWithChildren) {
 	});
 	const scrollBehavior = useScrollBehavior();
 	const isFramedPreview = useIsFramedPreview();
+	const isPrototypeFrame = useMatches().some((match) => match.id === "mcp-preview-frame");
 	const nonce = useNonce();
 	const [showReactQueryDevtools, setShowReactQueryDevtools] = useState(
 		Boolean(loaderData?.renderReactQueryDevtools),
@@ -214,7 +224,9 @@ export function Layout({ children }: PropsWithChildren) {
 				    the preview iframe, and each iframe would add its own status region
 				    to the page. */}
 				{!isFramedPreview && <RouteAnnouncer />}
-				<ScrollRestoration nonce={nonce} />
+				{/* Suppressed inside the prototype frame: its sandbox blocks the
+				    `sessionStorage` that the restoration script reads. */}
+				{!isPrototypeFrame && <ScrollRestoration nonce={nonce} />}
 				<Scripts nonce={nonce} />
 			</body>
 		</html>

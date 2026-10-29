@@ -160,6 +160,9 @@ export default defineConfig(({ command }) => ({
 	server: {
 		port: 3333,
 		allowedHosts: true,
+		// Why: the MCP preview frame has an opaque origin, so it loads its modules with
+		// `Origin: null`. The production server sends the same CORS header on `/assets`.
+		cors: { origin: true },
 		warmup: {
 			clientFiles: [
 				"./app/**/!(*.server|*.test)*.tsx", // Include all .tsx files except server and test files (add more patterns if required)
@@ -192,6 +195,9 @@ export default defineConfig(({ command }) => ({
 						// https://github.com/phosphor-icons/react/issues/45#issuecomment-2721119452
 						"@phosphor-icons/react",
 					],
+		// Why: `oxc-parser` loads a native binary that a bundle cannot hold. The Docker runner
+		// stage installs it next to the `server/` deps.
+		external: ["oxc-parser"],
 		resolve: {
 			// Same as above, but for the SSR renderer.
 			// Without this, the server falls back to dist and causes hydration mismatches

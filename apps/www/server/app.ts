@@ -163,7 +163,11 @@ export function createApp({
 		}
 		const urlPath = `/${relative(clientDirectory, file).split(sep).join("/")}`;
 		const headers: Record<string, string> = urlPath.startsWith("/assets/")
-			? { "Cache-Control": "public, max-age=31536000, immutable" }
+			? {
+					"Cache-Control": "public, max-age=31536000, immutable",
+					// Why: the sandboxed MCP preview frame has an opaque origin and loads modules in CORS mode.
+					"Access-Control-Allow-Origin": "*",
+				}
 			: staticHeadersFor(urlPath);
 		for (const [name, value] of Object.entries(headers)) {
 			context.res.headers.set(name, value);

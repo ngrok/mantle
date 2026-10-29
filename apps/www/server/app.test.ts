@@ -89,6 +89,7 @@ describe("the docs server", () => {
 		const response = await appWith().app.request("/assets/entry-abc123.js");
 
 		expect(response.headers.get("Cache-Control")).toBe("public, max-age=31536000, immutable");
+		expect(response.headers.get("Access-Control-Allow-Origin")).toBe("*");
 	});
 
 	it("refuses dotfiles but serves /.well-known/", async () => {

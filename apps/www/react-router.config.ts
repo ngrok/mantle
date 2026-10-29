@@ -71,6 +71,13 @@ export default {
 		// doc page; they are not pages to snapshot. Visiting them during prerender
 		// fails because the framework treats the 301 as an unexpected status.
 		// The benchmark page renders on the client only; a snapshot of it holds nothing.
-		return getStaticPaths().filter((path) => !path.endsWith(".mdx") && !path.startsWith("/bench/"));
+		// The `/mcp` routes read the MANTLE_MCP flag at request time, so a snapshot would freeze it.
+		return getStaticPaths().filter(
+			(path) =>
+				!path.endsWith(".mdx") &&
+				!path.startsWith("/bench/") &&
+				path !== "/mcp" &&
+				!path.startsWith("/mcp/"),
+		);
 	},
 } satisfies Config;
