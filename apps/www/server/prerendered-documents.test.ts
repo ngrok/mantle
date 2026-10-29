@@ -79,6 +79,13 @@ describe("prerenderedDocuments", () => {
 		expect(headers(twin, context)).toEqual({ Vary: "Accept" });
 	});
 
+	it("serves the markdown twin to a request for the page with a trailing slash", async () => {
+		const { headers, rewrite } = await preparedDocuments();
+
+		expect(rewrite(`${PAGE}/`, contextFor(`${PAGE}/`, "text/markdown"))).toBe(`${PAGE}.md`);
+		expect(headers(`${PAGE}/`, contextFor(`${PAGE}/`))?.Vary).toBe("x-ngrok-edge, Accept");
+	});
+
 	it("serves the page itself to a browser and to a path with no markdown", async () => {
 		const { rewrite } = await preparedDocuments();
 
