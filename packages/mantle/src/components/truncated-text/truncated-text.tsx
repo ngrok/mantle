@@ -311,8 +311,10 @@ const TruncatedTextRoot = ({
  * **Segment styles.** Style the head and the tail from the root with
  * `*:data-[slot=truncated-text-head]:` and `*:data-[slot=truncated-text-tail]:`
  * classes. CSS draws the ellipsis at the end of the head, so the ellipsis takes
- * the head's color. The two segments render when the value fits too. To color
- * them only while the value overflows, add the `data-truncated:` variant first.
+ * the head's color. A value no longer than `tail` has an empty head, so its
+ * tail draws the ellipsis in the tail's color. The two segments render when the
+ * value fits too. To color them only while the value overflows, add the
+ * `data-truncated:` variant first.
  *
  * **Selection.** The root carries `user-select: all`, so one click selects the
  * whole value across both segments, and a copy yields the full string. Pass
