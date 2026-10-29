@@ -1,5 +1,5 @@
 // The docs site's app server. The `serverEntry` Vite plugin bundles this module into
-// `build/server/index.js`, and `app-server start` runs it.
+// `build/server/index.js`, and `app-server serve` runs it.
 import { createServer, defaultPlugins } from "@ngrok/app-server";
 import { prerenderedDocuments } from "./prerendered-documents.ts";
 

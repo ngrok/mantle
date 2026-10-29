@@ -50,7 +50,7 @@ export const startServer = async (options: { port: number; build: boolean }): Pr
 	if (options.build) {
 		execFileSync("pnpm", ["run", "build"], { cwd: APP_ROOT, stdio: "inherit" });
 	}
-	const child = spawn("pnpm", ["exec", "app-server", "start"], {
+	const child = spawn("pnpm", ["exec", "app-server", "serve"], {
 		cwd: APP_ROOT,
 		env: { ...process.env, PORT: String(options.port), NODE_ENV: "production" },
 		stdio: ["ignore", "ignore", "inherit"],
