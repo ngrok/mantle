@@ -1,7 +1,8 @@
 import { cx } from "@ngrok/mantle/cx";
 import { useScrollBehavior } from "@ngrok/mantle/hooks";
 import {
-	extractThemeCookie,
+	assetsCdnOrigin,
+	PreloadFont,
 	PreventWrongThemeFlashScript,
 	ThemeProvider,
 	useInitialHtmlThemeProps,
@@ -90,10 +91,10 @@ export const meta: Route.MetaFunction = () => {
 	];
 };
 
-export const loader = async ({ request }: Route.LoaderArgs) => {
+// Why no theme cookie in the loader data: the CDN caches a rendered page publicly, so a
+// visitor's theme would reach every other visitor. The inline theme script sets the theme.
+export const loader = async () => {
 	const packageJson = await import("@ngrok/mantle/package.json");
-	const commitSha = process.env.VERCEL_GIT_COMMIT_SHA;
-	const deploymentId = process.env.VERCEL_DEPLOYMENT_ID;
 	const nodeEnv = process.env.NODE_ENV ?? "development";
 
 	return {
@@ -101,10 +102,7 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
 		 * The current version of mantle from the package.json
 		 */
 		currentMantleVersion: parseMantleVersion(packageJson.default.version),
-		commitSha,
-		deploymentId,
 		renderReactQueryDevtools: nodeEnv !== "production",
-		ssrCookie: extractThemeCookie(request.headers.get("Cookie")),
 	} as const;
 };
 
@@ -144,10 +142,7 @@ declare global {
 
 export function Layout({ children }: PropsWithChildren) {
 	const loaderData = useRouteLoaderData<typeof loader>("root");
-	const initialHtmlThemeProps = useInitialHtmlThemeProps({
-		className: "h-full",
-		ssrCookie: loaderData?.ssrCookie,
-	});
+	const initialHtmlThemeProps = useInitialHtmlThemeProps({ className: "h-full" });
 	const scrollBehavior = useScrollBehavior();
 	const isFramedPreview = useIsFramedPreview();
 	const nonce = useNonce();
@@ -175,11 +170,18 @@ export function Layout({ children }: PropsWithChildren) {
 				<meta name="twitter:card" content="summary_large_image" />
 				<meta name="og:image" property="og:image" content="/og-image.png" />
 				<meta name="twitter:image" property="twitter:image" content="/og-image.png" />
+				{/*
+				 * Resource hints live in the document, not the `Link` header: a prerendered page is
+				 * a static file with no per-request headers. Font requests are always CORS, so the
+				 * preconnect needs `crossOrigin`, or the browser opens a socket the font fetch cannot reuse.
+				 */}
+				<link rel="preconnect" href={assetsCdnOrigin} crossOrigin="anonymous" />
 				<PreventWrongThemeFlashScript nonce={nonce} />
+				<PreloadFont name="roobert" />
+				<PreloadFont name="family-regular" />
+				<PreloadFont name="jetbrains-mono" />
 				<meta name="author" content="ngrok" />
 				<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-				<meta name="commit-sha" content={loaderData?.commitSha} />
-				<meta name="deployment-id" content={loaderData?.deploymentId} />
 				<Meta />
 				<Links nonce={nonce} />
 			</head>
@@ -193,7 +195,7 @@ export function Layout({ children }: PropsWithChildren) {
 					scrollBehavior === "smooth" && "scroll-smooth",
 				)}
 			>
-				<ThemeProvider ssrCookie={loaderData?.ssrCookie}>
+				<ThemeProvider>
 					<TooltipProvider>
 						<Toaster />
 						<QueryClientProvider client={queryClient}>
