@@ -533,9 +533,12 @@ const Content = ({
 			// `hidden` restores `content-visibility`, so setting `height: auto` lays the
 			// text out at full height before the highlight paints. The closed state is
 			// also transparent, so show the content at full opacity for the same paint.
-			// The close branch of the effect below clears both inline values so the
-			// slide and the fade resume.
+			// The height transition would start the box at zero and slide it open, so
+			// the highlight would still be clipped when it paints: turn the transition
+			// off for this reveal. The close branch of the effect below clears all
+			// three inline values so the slide and the fade resume.
 			node.removeAttribute("hidden");
+			node.style.transition = "none";
 			node.style.height = "auto";
 			node.style.opacity = "1";
 			setOpen(true);
@@ -572,8 +575,9 @@ const Content = ({
 			node.removeAttribute("hidden");
 		} else {
 			node.setAttribute("hidden", "until-found");
-			// Drop the inline height and opacity a find-in-page reveal set so the
-			// class-driven `h-0 ↔ h-auto` slide and fade take over again.
+			// Drop the inline transition, height, and opacity a find-in-page reveal set
+			// so the class-driven `h-0 ↔ h-auto` slide and fade take over again.
+			node.style.transition = "";
 			node.style.height = "";
 			node.style.opacity = "";
 		}
