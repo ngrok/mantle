@@ -163,6 +163,9 @@ export default defineConfig(({ command }) => ({
 		// Listen on every interface, so a phone on the same network can open the dev site.
 		host: true,
 		allowedHosts: true,
+		// Why: the MCP preview frame has an opaque origin, so it loads its modules with
+		// `Origin: null`. The production server sends the same CORS header on `/assets`.
+		cors: { origin: true },
 		warmup: {
 			clientFiles: [
 				"./app/**/!(*.server|*.test)*.tsx", // Include all .tsx files except server and test files (add more patterns if required)

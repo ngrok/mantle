@@ -2,12 +2,52 @@
 // `build/server/app-server.js`.
 import type { Plugin } from "@ngrok/app-server";
 import { createServer, defaultPlugins, withHeaderHook } from "@ngrok/app-server";
+import { canonicalOrigin } from "~/utilities/canonical-origin";
 import { allowsIndexing, EDGE_HEADER } from "~/utilities/indexing";
 
 /** True for a framed example preview (`/preview/:exampleName`), which a docs page shows in an iframe. */
 function isPreviewDocument(path: string): boolean {
 	return path === "/preview" || path.startsWith("/preview/");
 }
+
+/** True for the sandboxed frame that runs an MCP prototype from a link. */
+function isPrototypeFrame(path: string): boolean {
+	return path === "/mcp/preview-frame";
+}
+
+/**
+ * The CSP of the prototype frame. The policy repeats the frame's `sandbox`, so
+ * the document has an opaque origin also when someone opens it outside the
+ * preview page. It blocks each network request and form submission, so the
+ * code cannot send data out. `'unsafe-eval'` lets the frame run the compiled
+ * prototype.
+ */
+function prototypeFramePolicy(scriptSrc: string): string {
+	return [
+		`script-src ${scriptSrc} 'unsafe-eval'`,
+		"connect-src 'none'",
+		"form-action 'none'",
+		"base-uri 'none'",
+		"object-src 'none'",
+		"worker-src 'none'",
+		`frame-ancestors 'self' ${canonicalOrigin}`,
+		"sandbox allow-scripts",
+	].join("; ");
+}
+
+/**
+ * Lets any origin load a build asset. The prototype frame has an opaque
+ * origin, so it loads its module scripts in CORS mode with `Origin: null`.
+ */
+const assetsCors: Plugin = {
+	name: "assets-cors",
+	middleware: (context, next) =>
+		context.req.path.startsWith("/assets/")
+			? withHeaderHook(context, next, (headers) => {
+					headers.set("Access-Control-Allow-Origin", "*");
+				})
+			: next(),
+};
 
 /**
  * Keeps an HTML document out of search indexes when the request did not come
@@ -46,16 +86,18 @@ export function createDocsServer() {
 		plugins: defaultPlugins({
 			contentSecurityPolicy: {
 				policy: (scriptSrc, context) =>
-					[
-						`script-src ${scriptSrc}`,
-						"base-uri 'self'",
-						"object-src 'none'",
-						"worker-src 'self' blob:",
-						// Why: a docs page frames its example previews. Each other document refuses a frame.
-						`frame-ancestors ${isPreviewDocument(context.req.path) ? "'self'" : "'none'"}`,
-					].join("; "),
+					isPrototypeFrame(context.req.path)
+						? prototypeFramePolicy(scriptSrc)
+						: [
+								`script-src ${scriptSrc}`,
+								"base-uri 'self'",
+								"object-src 'none'",
+								"worker-src 'self' blob:",
+								// Why: a docs page frames its example previews. Each other document refuses a frame.
+								`frame-ancestors ${isPreviewDocument(context.req.path) ? "'self'" : "'none'"}`,
+							].join("; "),
 			},
-			beforeStatic: [documentIndexing],
+			beforeStatic: [documentIndexing, assetsCors],
 			prerendered: { markdownTwins: true },
 		}),
 		trustForwardedProto: process.env.TRUST_FORWARDED_PROTO === "1",

@@ -20,6 +20,8 @@ async function start(): Promise<TestServer> {
 			"components/actions/button.md": "# Button",
 			"preview/button-demo/index.html": "<!doctype html><html><body></body></html>",
 			"llms.txt": "# mantle",
+			"mcp/preview-frame/index.html": "<!doctype html><html><body></body></html>",
+			"assets/entry-abc123.js": "export {};",
 		},
 	});
 	return server;
@@ -39,6 +41,22 @@ describe("the docs app server", () => {
 
 		expect(response.headers.get("Content-Security-Policy")).toContain("frame-ancestors 'self'");
 		expect(response.headers.get("X-Robots-Tag")).toBe("noindex, nofollow");
+	});
+
+	it("sandboxes the MCP prototype frame and blocks its network requests", async () => {
+		const policy = (await (await start()).request("/mcp/preview-frame")).headers.get(
+			"Content-Security-Policy",
+		);
+
+		expect(policy).toContain("sandbox allow-scripts");
+		expect(policy).toContain("connect-src 'none'");
+		expect(policy).toContain("frame-ancestors 'self' https://mantle.ngrok.com");
+	});
+
+	it("lets the opaque-origin prototype frame load a build asset", async () => {
+		const response = await (await start()).request("/assets/entry-abc123.js");
+
+		expect(response.headers.get("Access-Control-Allow-Origin")).toBe("*");
 	});
 
 	it("allows indexing only for a document request through the mantle.ngrok.com edge", async () => {
