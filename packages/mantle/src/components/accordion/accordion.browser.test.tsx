@@ -118,6 +118,58 @@ describe("Accordion (browser)", () => {
 		// The closed state is transparent, so a match the browser highlights now
 		// must not paint at zero opacity.
 		expect(getComputedStyle(region).opacity).toBe("1");
+		// The reveal turns the transition off only for its own flush. An open section
+		// must keep its transitions.
+		expect(getComputedStyle(region).transitionProperty).toContain("height");
+	});
+
+	test("a find-in-page reveal keeps the consumer's inline transition", () => {
+		render(
+			<Accordion.Root type="single" defaultValue="">
+				<Accordion.Item value="a">
+					<Accordion.Trigger>Trigger A</Accordion.Trigger>
+					<Accordion.Content style={{ transition: "color 300ms" }}>
+						<Accordion.Body>Body of section A</Accordion.Body>
+					</Accordion.Content>
+				</Accordion.Item>
+			</Accordion.Root>,
+		);
+
+		const region = regionFor("Body of section A");
+		if (!(region instanceof HTMLElement)) {
+			throw new Error("expected the content region to be an HTMLElement");
+		}
+		// The closed item's layout effect runs on mount and must leave the style alone.
+		expect(region.style.transition).toBe("color 300ms");
+
+		region.dispatchEvent(new Event("beforematch", { bubbles: true }));
+
+		expect(region.style.transition).toBe("color 300ms");
+	});
+
+	test("a find-in-page reveal keeps the consumer's inline transition longhand", () => {
+		render(
+			<Accordion.Root type="single" defaultValue="">
+				<Accordion.Item value="a">
+					<Accordion.Trigger>Trigger A</Accordion.Trigger>
+					<Accordion.Content style={{ transitionDuration: "500ms" }}>
+						<Accordion.Body>Body of section A</Accordion.Body>
+					</Accordion.Content>
+				</Accordion.Item>
+			</Accordion.Root>,
+		);
+
+		const region = regionFor("Body of section A");
+		if (!(region instanceof HTMLElement)) {
+			throw new Error("expected the content region to be an HTMLElement");
+		}
+
+		region.dispatchEvent(new Event("beforematch", { bubbles: true }));
+
+		// Why a longhand: with only one longhand set, the `transition` shorthand reads
+		// as empty, so a reveal that saves and restores the shorthand deletes it.
+		expect(region.style.transitionDuration).toBe("500ms");
+		expect(region.style.transitionProperty).toBe("");
 	});
 
 	test('closing a "beforematch"-revealed section clears the inline height', async () => {
