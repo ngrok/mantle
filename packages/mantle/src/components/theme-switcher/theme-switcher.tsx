@@ -43,7 +43,8 @@ type ThemeSwitcherIconProps = WithStyleProps;
  *
  * Reads the applied theme via `useAppliedTheme`, so it must render inside a
  * `ThemeProvider`. It is decorative (`aria-hidden`). Its box is the size of an
- * `Icon`, so it lines up with the icons of other menu rows.
+ * `Icon`, so it lines up with the icons of other menu rows. It is SSR-safe: a
+ * `Skeleton` renders until hydration, then the icon of the applied theme.
  *
  * **Data attributes:**
  *
@@ -72,7 +73,15 @@ function ThemeSwitcherIcon({ className, style }: ThemeSwitcherIconProps) {
 			className={cx("flex shrink-0 items-center justify-center text-muted", className)}
 			style={style}
 		>
-			<IconSwap active={appliedTheme} icons={appliedThemeIcons} />
+			<BrowserOnly
+				fallback={
+					<Skeleton asChild className="rounded-full size-5">
+						<span />
+					</Skeleton>
+				}
+			>
+				{() => <IconSwap active={appliedTheme} icons={appliedThemeIcons} />}
+			</BrowserOnly>
 		</span>
 	);
 }

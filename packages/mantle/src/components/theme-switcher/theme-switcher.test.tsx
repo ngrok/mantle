@@ -552,6 +552,19 @@ describe("ThemeDropdownMenuItem with children", () => {
 });
 
 describe("ThemeSwitcherIcon", () => {
+	test("the server render shows a skeleton, because the OS preference is unknown", () => {
+		const html = renderToString(
+			<ThemeProvider>
+				<ThemeSwitcherIcon />
+			</ThemeProvider>,
+		);
+		const template = document.createElement("template");
+		template.innerHTML = html;
+		const icon = template.content.querySelector('[data-slot="theme-switcher-icon"]');
+		expect(icon?.querySelector('[data-slot="skeleton"]')).not.toBeNull();
+		expect(icon?.querySelector("svg")).toBeNull();
+	});
+
 	test("shows the applied theme and is hidden from assistive technology", () => {
 		stubPrefersDarkMode(false);
 		document.cookie = "mantle-ui-theme=dark; path=/";
