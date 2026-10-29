@@ -10,17 +10,23 @@ import mantleCss from "../../mantle.css?raw";
 import { DropdownMenu } from "../dropdown-menu/index.js";
 import { Dialog } from "../dialog/index.js";
 import { ThemeProvider, useTheme } from "../theme/theme-provider.js";
-import { ThemeDropdownMenuItem, ThemeSwitcher } from "./theme-switcher.js";
+import {
+	ThemeDropdownMenuItem,
+	ThemeSwitcher,
+	ThemeSwitcherIcon,
+	useThemeToggle,
+} from "./theme-switcher.js";
 
 /**
  * The theme-swap rules from `mantle.css`, a probe whose color follows the
- * theme through a slow transition, and a slow dialog overlay exit animation. Browser tests load no Tailwind, so only
+ * theme through a slow transition, a slow icon swap, and a slow dialog overlay exit animation. Browser tests load no Tailwind, so only
  * these rules apply.
  */
 const STYLE = `
 ${mantleCss.match(/:root\[data-theme-transition\][^{]*\{[^}]*\}/g)?.join("\n") ?? ""}
 [data-testid="probe"] { color: rgb(0, 0, 0); transition: color 1s linear; }
 .dark [data-testid="probe"] { color: rgb(255, 255, 255); }
+[data-slot~="theme-switcher-icon"] > * { transition: opacity 1s linear; }
 @keyframes slow-exit { to { opacity: 0; } }
 [data-slot~="dialog-overlay"][data-state="closed"] { animation: slow-exit 1s; }
 [data-slot~="dialog-content"][data-state="closed"] { animation: slow-exit 1s; }
@@ -198,6 +204,54 @@ describe("ThemeDropdownMenuItem theme swap in Chromium", () => {
 		expect(document.documentElement).toHaveClass("dark");
 		expect(item).toHaveAccessibleName("Theme: Switch to light theme (system default)");
 		expect(screen.getByRole("menu")).toBeInTheDocument();
+
+		await reveal.finished;
+	});
+});
+
+describe("useThemeToggle theme swap in Chromium", () => {
+	test("the new theme grows in a circle from a ThemeSwitcherIcon placed first, and the icon keeps its swap", async () => {
+		function ThemeItem() {
+			const toggle = useThemeToggle();
+			return (
+				<DropdownMenu.Item disabled={toggle.disabled} onSelect={toggle.onSelect}>
+					<ThemeSwitcherIcon />
+					Theme
+				</DropdownMenu.Item>
+			);
+		}
+		render(
+			<ThemeProvider>
+				<DropdownMenu.Root>
+					<DropdownMenu.Trigger>Account</DropdownMenu.Trigger>
+					<DropdownMenu.Content>
+						<ThemeItem />
+					</DropdownMenu.Content>
+				</DropdownMenu.Root>
+			</ThemeProvider>,
+		);
+		await userEvent.click(screen.getByRole("button", { name: "Account" }));
+		const item = await screen.findByRole("menuitem", { name: "Theme" });
+		const icon = item.firstElementChild;
+		if (icon == null) {
+			throw new Error("the item renders no icon");
+		}
+		await userEvent.click(item);
+
+		const reveal = await revealAnimation();
+		const from = parseCircle((reveal.effect as KeyframeEffect).getKeyframes()[0]?.clipPath);
+		const { left, top, width, height } = icon.getBoundingClientRect();
+		expect(from.x).toBeCloseTo(left + width / 2);
+		expect(from.y).toBeCloseTo(top + height / 2);
+		expect(document.documentElement).toHaveClass("dark");
+		expect(screen.getByRole("menu")).toBeInTheDocument();
+		// Why check during the reveal: the swap stops every other transition.
+		expect(document.documentElement).toHaveAttribute("data-theme-transition");
+		const swap = icon.firstElementChild;
+		if (swap == null) {
+			throw new Error("the icon renders no swap");
+		}
+		expect(getComputedStyle(swap).transitionDuration).toBe("1s");
 
 		await reveal.finished;
 	});

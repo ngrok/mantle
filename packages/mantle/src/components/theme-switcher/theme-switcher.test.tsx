@@ -7,7 +7,12 @@ import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
 import { DropdownMenu } from "../dropdown-menu/index.js";
 import { ThemeIcon } from "../icons/theme.js";
 import { ThemeProvider, useTheme } from "../theme/theme-provider.js";
-import { ThemeDropdownMenuItem, ThemeSwitcher } from "./theme-switcher.js";
+import {
+	ThemeDropdownMenuItem,
+	ThemeSwitcher,
+	ThemeSwitcherIcon,
+	useThemeToggle,
+} from "./theme-switcher.js";
 
 /**
  * The one icon the switcher shows. A hidden icon is in a `data-state="inactive"` span.
@@ -520,5 +525,113 @@ describe("ThemeDropdownMenuItem", () => {
 		// Why the class check: the tailwind-merge contract puts the consumer's class beside the defaults.
 		expect(item.className).toContain("custom-item-class");
 		expect(item).toHaveStyle({ marginTop: "4px" });
+	});
+});
+
+describe("ThemeDropdownMenuItem with children", () => {
+	test("renders the children in place of the default row, and they name the item", () => {
+		renderMenuItem({
+			children: (
+				<>
+					<ThemeSwitcherIcon />
+					Appearance
+				</>
+			),
+		});
+		const item = screen.getByRole("menuitem", { name: "Appearance" });
+		expect(item.firstElementChild).toHaveAttribute("data-slot", "theme-switcher-icon");
+		expect(item.querySelector('[data-slot="theme-dropdown-menu-item-label"]')).toBeNull();
+	});
+
+	test.each([false, true, ""])("children of %j keep the default row and its name", (children) => {
+		stubPrefersDarkMode(false);
+		renderMenuItem({ children });
+		const item = screen.getByRole("menuitem", { name: "Theme: Switch to dark theme" });
+		expect(item.querySelector('[data-slot="theme-dropdown-menu-item-label"]')).toHaveTextContent(
+			"Theme",
+		);
+	});
+
+	test("a press flips the theme", () => {
+		stubPrefersDarkMode(false);
+		renderMenuItem({ children: "Appearance" });
+		fireEvent.click(screen.getByRole("menuitem", { name: "Appearance" }));
+		expect(screen.getByTestId("current-theme")).toHaveTextContent("dark");
+	});
+});
+
+describe("ThemeSwitcherIcon", () => {
+	test("the server render shows a skeleton, because the OS preference is unknown", () => {
+		const html = renderToString(
+			<ThemeProvider>
+				<ThemeSwitcherIcon />
+			</ThemeProvider>,
+		);
+		const template = document.createElement("template");
+		template.innerHTML = html;
+		const icon = template.content.querySelector('[data-slot="theme-switcher-icon"]');
+		expect(icon?.querySelector('[data-slot="skeleton"]')).not.toBeNull();
+		expect(icon?.querySelector("svg")).toBeNull();
+	});
+
+	test("shows the applied theme and is hidden from assistive technology", () => {
+		stubPrefersDarkMode(false);
+		document.cookie = "mantle-ui-theme=dark; path=/";
+		const { container } = render(
+			<ThemeProvider>
+				<ThemeSwitcherIcon className="custom-icon-class" />
+			</ThemeProvider>,
+		);
+		const icon = container.querySelector('[data-slot="theme-switcher-icon"]');
+		if (!(icon instanceof HTMLElement)) {
+			throw new Error("ThemeSwitcherIcon renders no slot");
+		}
+		expect(icon).toHaveAttribute("aria-hidden", "true");
+		expect(icon.className).toContain("custom-icon-class");
+		expect(glyphOf(shownIcon(icon))).toBe(glyphOf(<ThemeIcon theme="dark" />));
+	});
+});
+
+describe("useThemeToggle", () => {
+	function ThemeItem() {
+		const toggle = useThemeToggle();
+		return (
+			<DropdownMenu.Item disabled={toggle.disabled} onSelect={toggle.onSelect}>
+				<ThemeSwitcherIcon />
+				{toggle.label}
+			</DropdownMenu.Item>
+		);
+	}
+
+	const renderThemeItem = ({ forceTheme }: { forceTheme?: "dark" } = {}) => {
+		const onOpenChange = vi.fn<(open: boolean) => void>();
+		render(
+			<ThemeProvider forceTheme={forceTheme}>
+				<CurrentThemeProbe />
+				<DropdownMenu.Root open onOpenChange={onOpenChange}>
+					<DropdownMenu.Trigger>t</DropdownMenu.Trigger>
+					<DropdownMenu.Content>
+						<ThemeItem />
+					</DropdownMenu.Content>
+				</DropdownMenu.Root>
+			</ThemeProvider>,
+		);
+		return { onOpenChange };
+	};
+
+	test("a press flips the theme, updates the label, and keeps the menu open", () => {
+		stubPrefersDarkMode(false);
+		const { onOpenChange } = renderThemeItem();
+		fireEvent.click(screen.getByRole("menuitem", { name: "Switch to dark theme" }));
+		expect(screen.getByTestId("current-theme")).toHaveTextContent("dark");
+		expect(
+			screen.getByRole("menuitem", { name: "Switch to light theme (system default)" }),
+		).toBeInTheDocument();
+		expect(onOpenChange).not.toHaveBeenCalled();
+	});
+
+	test("under forceTheme, disabled is true", () => {
+		renderThemeItem({ forceTheme: "dark" });
+		expect(screen.getByRole("menuitem")).toHaveAttribute("aria-disabled", "true");
 	});
 });
