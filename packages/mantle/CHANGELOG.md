@@ -1,5 +1,15 @@
 # @ngrok/mantle
 
+## 0.93.4
+
+### Patch Changes
+
+- [#1646](https://github.com/ngrok/mantle/pull/1646) [`c6e8949`](https://github.com/ngrok/mantle/commit/c6e8949388266de631f3cbb5706b1e3b886a567c) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Show the find-in-page highlight when ⌘F opens a closed `Accordion` section.
+
+  The browser opened the section, but the height transition started the content at zero height. The match was clipped when the browser painted its highlight, so no highlight showed. The reveal now turns the transition off for that paint, and closing the section restores it.
+
+  See https://mantle.ngrok.com/components/data-display/accordion.
+
 ## 0.93.3
 
 ### Patch Changes
