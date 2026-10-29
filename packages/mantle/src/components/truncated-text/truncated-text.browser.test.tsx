@@ -430,12 +430,15 @@ test("the tooltip keeps a one-line value on one line when its width has a fracti
 });
 
 test("the tooltip balances a longer value and shrinks to its longest line", async () => {
-	const { content, inset, lines } = await openTooltip(url);
+	// Why this long: the line count depends on the platform's fonts, and this
+	// value wraps in all of them.
+	const { content, inset, lines } = await openTooltip(
+		"https://example.ngrok.app/api/items?filter=%7B%22name%22%3A%22x%22%7D&limit=200",
+	);
 
-	// The value is a little wider than the tooltip's `max-width`, so it wraps
-	// onto two lines of near-equal length.
-	expect(lines).toHaveLength(2);
-	expect(Math.abs((lines[0] ?? 0) - (lines[1] ?? 0))).toBeLessThan(20);
+	expect(lines.length).toBeGreaterThan(1);
+	// Balanced lines have near-equal length.
+	expect(Math.max(...lines) - Math.min(...lines)).toBeLessThan(20);
 	// The box hugs the longer line, not the `max-width`.
 	expect(content.getBoundingClientRect().width).toBeLessThanOrEqual(Math.max(...lines) + inset + 1);
 });
