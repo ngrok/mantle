@@ -6,8 +6,8 @@ import { fillGeneratedCode } from "./mdx-generated-code.ts";
 
 /**
  * Vite plugin that bundles raw MDX source files as a virtual module.
- * This makes raw markdown content available at runtime without filesystem access,
- * which is necessary for serverless environments like Vercel.
+ * This makes raw markdown content available at runtime without filesystem access.
+ * The server image does not hold the MDX source files.
  */
 function rawMdxDocs(docsDir: string): Plugin {
 	const virtualModuleId = "virtual:raw-mdx-docs";

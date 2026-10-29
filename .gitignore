@@ -30,7 +30,6 @@ tsconfig.tsbuildinfo
 .cache
 build
 .env
-.vercel
 .parcel-cache
 .turbo
 .react-router

@@ -12,7 +12,6 @@
 **/build
 **/.turbo
 **/.react-router
-**/.vercel
 **/.cache
 
 # TypeScript incremental build info

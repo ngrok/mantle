@@ -92,8 +92,6 @@ export const meta: Route.MetaFunction = () => {
 
 export const loader = async ({ request }: Route.LoaderArgs) => {
 	const packageJson = await import("@ngrok/mantle/package.json");
-	const commitSha = process.env.VERCEL_GIT_COMMIT_SHA;
-	const deploymentId = process.env.VERCEL_DEPLOYMENT_ID;
 	const nodeEnv = process.env.NODE_ENV ?? "development";
 
 	return {
@@ -101,8 +99,6 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
 		 * The current version of mantle from the package.json
 		 */
 		currentMantleVersion: parseMantleVersion(packageJson.default.version),
-		commitSha,
-		deploymentId,
 		renderReactQueryDevtools: nodeEnv !== "production",
 		ssrCookie: extractThemeCookie(request.headers.get("Cookie")),
 	} as const;
@@ -178,8 +174,6 @@ export function Layout({ children }: PropsWithChildren) {
 				<PreventWrongThemeFlashScript nonce={nonce} />
 				<meta name="author" content="ngrok" />
 				<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-				<meta name="commit-sha" content={loaderData?.commitSha} />
-				<meta name="deployment-id" content={loaderData?.deploymentId} />
 				<Meta />
 				<Links nonce={nonce} />
 			</head>

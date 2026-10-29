@@ -28,7 +28,7 @@ const useBaseUrl = () => useContext(BaseUrlContext);
  *
  * @example
  * // Client: "https://ngrok.com"
- * // Server (preview): "https://ngrok-mantle-pr-123.vercel.app"
+ * // Server (request origin): "https://mantle.ngrok.com"
  * // Server (local): "/"
  * const baseUrl = getBaseUrl();
  */
