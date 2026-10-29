@@ -1,5 +1,17 @@
 # @ngrok/mantle
 
+## 0.93.3
+
+### Patch Changes
+
+- [#1643](https://github.com/ngrok/mantle/pull/1643) [`943c2ff`](https://github.com/ngrok/mantle/commit/943c2ff4fb8b6e81c630ce6c55c9b8040f7e08a7) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add a `head` prop to `TruncatedText`, fit its tooltip to the value, and drop its help cursor.
+
+  - `head` is the most graphemes that show before the ellipsis. A value longer than `head + tail` graphemes always clips to that shape, and the root shrinks to fit. For an ngrok resource ID, `head={id.indexOf("_") + 1}` keeps the type prefix: `mem_…A8KImPbQ`. The component measures the lead, so a caller needs no `ch` math and no monospace font.
+  - The tooltip is up to 24rem wide, so a resource ID fits on one line. A longer value no longer leaves one or two characters alone on the last line: the lines have near-equal length, and the tooltip narrows to the longest line.
+  - A truncated value no longer shows the `help` cursor on hover. The cursor is the default text cursor, like a value that fits.
+
+  See https://mantle.ngrok.com/components/data-display/truncated-text.
+
 ## 0.93.2
 
 ### Patch Changes
