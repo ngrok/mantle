@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { nodeFiles } from "@ngrok/app-server/node";
 import { afterAll, describe, expect, it } from "vitest";
 import { prerenderedDocuments } from "./prerendered-documents.ts";
 
@@ -25,8 +26,12 @@ async function preparedDocuments() {
 	const documents = prerenderedDocuments();
 	await documents.plugin.setup?.({
 		mode: "production",
-		clientDirectory,
+		files: nodeFiles(clientDirectory),
 		prerenderedPaths: [PAGE, "/llms.txt"],
+		capturedHeaders: new Map(),
+		isDataRequest: () => false,
+		contentTypes: {},
+		gzip: undefined,
 		logger: { log: () => {} },
 	});
 	return documents;

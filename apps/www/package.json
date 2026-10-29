@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@mdx-js/react": "3.1.1",
-    "@ngrok/app-server": "0.1.1",
+    "@ngrok/app-server": "0.2.0",
     "@ngrok/mantle": "workspace:*",
     "@ngrok/mantle-server-syntax-highlighter": "workspace:*",
     "@ngrok/mantle-vite-plugins": "workspace:*",
