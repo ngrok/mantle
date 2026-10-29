@@ -543,6 +543,15 @@ describe("ThemeDropdownMenuItem with children", () => {
 		expect(item.querySelector('[data-slot="theme-dropdown-menu-item-label"]')).toBeNull();
 	});
 
+	test.each([false, true, ""])("children of %j keep the default row and its name", (children) => {
+		stubPrefersDarkMode(false);
+		renderMenuItem({ children });
+		const item = screen.getByRole("menuitem", { name: "Theme: Switch to dark theme" });
+		expect(item.querySelector('[data-slot="theme-dropdown-menu-item-label"]')).toHaveTextContent(
+			"Theme",
+		);
+	});
+
 	test("a press flips the theme", () => {
 		stubPrefersDarkMode(false);
 		renderMenuItem({ children: "Appearance" });

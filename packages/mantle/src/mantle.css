@@ -1878,14 +1878,14 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
 /*
  * The new snapshot is live, so a color transition would fade inside the circle
  * while the rest of the page shows the new theme. Stop transitions during the
- * swap. The icon of the switcher and of the menu item keeps its own swap.
+ * swap. The icon of the switcher and each `ThemeSwitcherIcon` keep their own swap.
  */
 :root[data-theme-transition]
-	:not([data-slot~="theme-switcher"] *, [data-slot~="theme-dropdown-menu-item"] *),
+	:not([data-slot~="theme-switcher"] *, [data-slot~="theme-switcher-icon"] *),
 :root[data-theme-transition]
-	:not([data-slot~="theme-switcher"] *, [data-slot~="theme-dropdown-menu-item"] *)::before,
+	:not([data-slot~="theme-switcher"] *, [data-slot~="theme-switcher-icon"] *)::before,
 :root[data-theme-transition]
-	:not([data-slot~="theme-switcher"] *, [data-slot~="theme-dropdown-menu-item"] *)::after {
+	:not([data-slot~="theme-switcher"] *, [data-slot~="theme-switcher-icon"] *)::after {
 	transition: none !important;
 }
 

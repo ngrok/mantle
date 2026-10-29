@@ -19,13 +19,14 @@ import {
 
 /**
  * The theme-swap rules from `mantle.css`, a probe whose color follows the
- * theme through a slow transition, and a slow dialog overlay exit animation. Browser tests load no Tailwind, so only
+ * theme through a slow transition, a slow icon swap, and a slow dialog overlay exit animation. Browser tests load no Tailwind, so only
  * these rules apply.
  */
 const STYLE = `
 ${mantleCss.match(/:root\[data-theme-transition\][^{]*\{[^}]*\}/g)?.join("\n") ?? ""}
 [data-testid="probe"] { color: rgb(0, 0, 0); transition: color 1s linear; }
 .dark [data-testid="probe"] { color: rgb(255, 255, 255); }
+[data-slot~="theme-switcher-icon"] > * { transition: opacity 1s linear; }
 @keyframes slow-exit { to { opacity: 0; } }
 [data-slot~="dialog-overlay"][data-state="closed"] { animation: slow-exit 1s; }
 [data-slot~="dialog-content"][data-state="closed"] { animation: slow-exit 1s; }
@@ -209,7 +210,7 @@ describe("ThemeDropdownMenuItem theme swap in Chromium", () => {
 });
 
 describe("useThemeToggle theme swap in Chromium", () => {
-	test("the new theme grows in a circle from a ThemeSwitcherIcon placed first", async () => {
+	test("the new theme grows in a circle from a ThemeSwitcherIcon placed first, and the icon keeps its swap", async () => {
 		function ThemeItem() {
 			const toggle = useThemeToggle();
 			return (
@@ -244,6 +245,13 @@ describe("useThemeToggle theme swap in Chromium", () => {
 		expect(from.y).toBeCloseTo(top + height / 2);
 		expect(document.documentElement).toHaveClass("dark");
 		expect(screen.getByRole("menu")).toBeInTheDocument();
+		// Why check during the reveal: the swap stops every other transition.
+		expect(document.documentElement).toHaveAttribute("data-theme-transition");
+		const swap = icon.firstElementChild;
+		if (swap == null) {
+			throw new Error("the icon renders no swap");
+		}
+		expect(getComputedStyle(swap).transitionDuration).toBe("1s");
 
 		await reveal.finished;
 	});

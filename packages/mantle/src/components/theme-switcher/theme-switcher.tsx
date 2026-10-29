@@ -173,7 +173,8 @@ type ThemeDropdownMenuItemProps = WithStyleProps &
 				/**
 				 * The content of the item, in place of the default row. Put a
 				 * `ThemeSwitcherIcon` where the icon goes. The content is also the
-				 * accessible name.
+				 * accessible name. Children that render nothing (`false`, `true`,
+				 * or `""`) keep the default row.
 				 */
 				children: ReactNode;
 				label?: never;
@@ -239,17 +240,22 @@ type ThemeDropdownMenuItemProps = WithStyleProps &
  */
 function ThemeDropdownMenuItem({ children, className, label, style }: ThemeDropdownMenuItemProps) {
 	const toggle = useThemeToggle();
+	// Why not `children != null`: `false`, `true`, and `""` render nothing, so the
+	// item would have no name.
+	const hasChildren = children != null && typeof children !== "boolean" && children !== "";
 
 	return (
 		<DropdownMenu.Item
-			aria-label={label == null && children == null ? `Theme: ${toggle.label}` : undefined}
+			aria-label={label == null && !hasChildren ? `Theme: ${toggle.label}` : undefined}
 			data-slot="theme-dropdown-menu-item"
 			className={cx("gap-2", className)}
 			disabled={toggle.disabled}
 			style={style}
 			onSelect={toggle.onSelect}
 		>
-			{children ?? (
+			{hasChildren ? (
+				children
+			) : (
 				<>
 					<span data-slot="theme-dropdown-menu-item-label" className="flex-1">
 						{label ?? "Theme"}
