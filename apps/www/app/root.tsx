@@ -2,7 +2,6 @@ import { cx } from "@ngrok/mantle/cx";
 import { useScrollBehavior } from "@ngrok/mantle/hooks";
 import {
 	assetsCdnOrigin,
-	extractThemeCookie,
 	PreloadFont,
 	PreventWrongThemeFlashScript,
 	ThemeProvider,
@@ -92,7 +91,9 @@ export const meta: Route.MetaFunction = () => {
 	];
 };
 
-export const loader = async ({ request }: Route.LoaderArgs) => {
+// Why no theme cookie in the loader data: the CDN caches a rendered page publicly, so a
+// visitor's theme would reach every other visitor. The inline theme script sets the theme.
+export const loader = async () => {
 	const packageJson = await import("@ngrok/mantle/package.json");
 	const nodeEnv = process.env.NODE_ENV ?? "development";
 
@@ -102,7 +103,6 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
 		 */
 		currentMantleVersion: parseMantleVersion(packageJson.default.version),
 		renderReactQueryDevtools: nodeEnv !== "production",
-		ssrCookie: extractThemeCookie(request.headers.get("Cookie")),
 	} as const;
 };
 
@@ -142,10 +142,7 @@ declare global {
 
 export function Layout({ children }: PropsWithChildren) {
 	const loaderData = useRouteLoaderData<typeof loader>("root");
-	const initialHtmlThemeProps = useInitialHtmlThemeProps({
-		className: "h-full",
-		ssrCookie: loaderData?.ssrCookie,
-	});
+	const initialHtmlThemeProps = useInitialHtmlThemeProps({ className: "h-full" });
 	const scrollBehavior = useScrollBehavior();
 	const isFramedPreview = useIsFramedPreview();
 	const nonce = useNonce();
@@ -198,7 +195,7 @@ export function Layout({ children }: PropsWithChildren) {
 					scrollBehavior === "smooth" && "scroll-smooth",
 				)}
 			>
-				<ThemeProvider ssrCookie={loaderData?.ssrCookie}>
+				<ThemeProvider>
 					<TooltipProvider>
 						<Toaster />
 						<QueryClientProvider client={queryClient}>
