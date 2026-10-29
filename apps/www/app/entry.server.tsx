@@ -1,6 +1,6 @@
 /**
  * The React Router server entry, with a per-request CSP nonce and markdown
- * negotiation.
+ * negotiation. It follows the server entries of the apps in the frontend repo.
  */
 
 import { randomBytes } from "node:crypto";
@@ -15,11 +15,10 @@ import type {
 	LoaderFunctionArgs,
 	RouterContextProvider,
 } from "react-router";
-import { ServerRouter } from "react-router";
+import { isRouteErrorResponse, ServerRouter } from "react-router";
 import { NonceProvider } from "./components/nonce";
 import { documentHeaders } from "./utilities/document-headers";
-import { rawDocContent, urlToFileMap } from "./utilities/docs";
-import { prefersMarkdown } from "./utilities/prefers-markdown";
+import { hasMarkdownVariant, negotiatedMarkdownResponse } from "./utilities/markdown-negotiation";
 
 // Increase the stack trace limit so we can see more of the error
 Error.stackTraceLimit = Number.POSITIVE_INFINITY;
@@ -40,31 +39,10 @@ export default function handleRequest(
 	routerContext: EntryContext,
 	_loadContext: RouterContextProvider,
 ) {
-	// Content negotiation: return raw markdown when Accept: text/markdown is requested
-	if (prefersMarkdown(request.headers.get("Accept"))) {
-		// `handleRequest` only receives document requests — single-fetch `.data`
-		// requests are handled before this — so `request.url` never carries a
-		// `.data` suffix here (and the normalized `url` loader arg isn't available
-		// to the entry handler regardless).
-		const url = new URL(request.url);
-		const pathname = url.pathname.replace(/^\//, "");
-		const filePath = urlToFileMap.get(pathname || "index");
-
-		if (filePath) {
-			const rawContent = rawDocContent[filePath];
-			if (rawContent) {
-				const filename = pathname.split("/").pop() ?? "document";
-				return new Response(rawContent, {
-					headers: {
-						"Content-Type": "text/markdown; charset=utf-8",
-						"Content-Disposition": `inline; filename="${filename}.md"`,
-						"Cache-Control": "max-age=300, stale-while-revalidate=604800",
-						"X-Content-Type-Options": "nosniff",
-						"X-Robots-Tag": "noindex, nofollow",
-					},
-				});
-			}
-		}
+	// An agent that asks for markdown gets the docs page's raw markdown instead of the HTML.
+	const markdownResponse = negotiatedMarkdownResponse(request);
+	if (markdownResponse != null) {
+		return markdownResponse;
 	}
 
 	const uniquePerRequestNonce = randomBytes(16).toString("hex");
@@ -73,10 +51,13 @@ export default function handleRequest(
 		let shellRendered = false;
 		const userAgent = request.headers.get("user-agent");
 
-		// Ensure requests from bots and SPA Mode renders wait for all content to load before responding
+		// A crawler, SPA mode, and the prerender pass get the whole page in one flush with every
+		// Suspense boundary inline; a browser gets the shell first.
 		// https://react.dev/reference/react-dom/server/renderToPipeableStream#waiting-for-all-content-to-load-for-crawlers-and-static-generation
 		const readyOption: keyof RenderToPipeableStreamOptions =
-			(userAgent && isbot(userAgent)) || routerContext.isSpaMode ? "onAllReady" : "onShellReady";
+			(userAgent != null && isbot(userAgent)) || routerContext.isSpaMode || isPrerenderPass()
+				? "onAllReady"
+				: "onShellReady";
 
 		const { pipe, abort } = renderToPipeableStream(
 			<NonceProvider value={uniquePerRequestNonce}>
@@ -88,12 +69,14 @@ export default function handleRequest(
 					const body = new PassThrough();
 					const stream = createReadableStreamFromReadable(body);
 
-					responseHeaders.set("Content-Type", "text/html");
+					responseHeaders.set("Content-Type", "text/html; charset=utf-8");
 
 					const headers = documentHeaders({
 						request,
+						routerContext,
 						nonce: uniquePerRequestNonce,
 						isDev,
+						hasMarkdownVariant: hasMarkdownVariant(new URL(request.url).pathname),
 					});
 					for (const [name, value] of Object.entries(headers)) {
 						if (name === "Vary") {
@@ -125,6 +108,9 @@ export default function handleRequest(
 					}
 				},
 				nonce: uniquePerRequestNonce,
+				// Why: above 12.8 KB, React moves a completed boundary into a hidden template that a
+				// script reveals, and a reader without JavaScript sees no content in that boundary.
+				progressiveChunkSize: Number.MAX_SAFE_INTEGER,
 			},
 		);
 
@@ -135,10 +121,27 @@ export default function handleRequest(
 }
 
 /**
- * TODO: add sentry/datadog handling here
+ * A client abort is not a failure. A 4xx from React Router, such as a 404 for
+ * a scanner's `/xmlrpc.php`, is a client mistake, so the error log skips it.
  */
 export function handleError(error: unknown, { request }: LoaderFunctionArgs | ActionFunctionArgs) {
-	if (!request.signal.aborted) {
-		console.error("react-router entry.server handleError (unexpected error)", error);
+	if (request.signal.aborted || isClientErrorRouteResponse(error)) {
+		return;
 	}
+	console.error("react-router entry.server handleError (unexpected error)", error);
+}
+
+/** True when `error` is a React Router `ErrorResponse` with a 4xx status. */
+function isClientErrorRouteResponse(error: unknown): boolean {
+	return isRouteErrorResponse(error) && error.status >= 400 && error.status < 500;
+}
+
+/**
+ * True while `react-router build` prerenders routes. React Router sets the
+ * marker before it starts the prerender server, and `react-router-serve` never
+ * sets it. The prerender requests carry no user agent, so this is the only
+ * signal a server entry has.
+ */
+function isPrerenderPass(): boolean {
+	return process.env.IS_RR_BUILD_REQUEST === "yes";
 }

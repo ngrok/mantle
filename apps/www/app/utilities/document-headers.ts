@@ -1,30 +1,34 @@
-import { assetsCdnOrigin, preloadFontLink } from "@ngrok/mantle/theme";
-import invariant from "tiny-invariant";
-import { getBaseUrl } from "./base-url";
+import type { EntryContext } from "react-router";
 import { allowsIndexing, EDGE_HEADER } from "./indexing";
 
 type DocumentHeadersOptions = {
 	request: Request;
+	/** The router context of the render, for the `Link` header. */
+	routerContext: EntryContext;
 	/** The nonce on the document's `<script>` tags. */
 	nonce: string;
 	/** Development and HMR responses are never cached. */
 	isDev: boolean;
+	/** The document also has a markdown answer, so caches must key on `Accept`. */
+	hasMarkdownVariant: boolean;
 };
 
 /**
- * The headers of an HTML document: security, indexing, caching, and
- * preconnect hints. `app/entry.server.tsx` sends them on each rendered page.
+ * The headers of a rendered HTML document: security, indexing, caching, and
+ * the `Link` preloads. `app/entry.server.tsx` sends them on each rendered page.
  *
  * Append `Vary` to the existing value; set the other headers.
  *
  * @example
- * const headers = documentHeaders({ request, nonce: "abc123", isDev: false });
- * headers["Content-Security-Policy"]; // => "script-src 'nonce-abc123' 'self' …"
+ * const headers = documentHeaders({ request, routerContext, nonce: "abc", isDev: false, hasMarkdownVariant: true });
+ * headers["Content-Security-Policy"]; // => "script-src 'nonce-abc' 'strict-dynamic'; …"
  */
 function documentHeaders({
 	request,
+	routerContext,
 	nonce,
 	isDev,
+	hasMarkdownVariant,
 }: DocumentHeadersOptions): Record<string, string> {
 	const indexable = allowsIndexing(request);
 	const allowSameOriginFraming = isPreviewDocument(new URL(request.url).pathname);
@@ -32,12 +36,13 @@ function documentHeaders({
 	const blockIndexing = !indexable || allowSameOriginFraming;
 
 	return {
-		Link: buildLinkHeader(request.url),
+		Link: buildLinkHeader(routerContext),
 		...(blockIndexing ? { "X-Robots-Tag": "noindex, nofollow" } : {}),
 		"X-Debug-Indexing-Blocked": String(blockIndexing),
 		"X-Debug-Has-Ngrok-Header": String(indexable),
-		// Why: the edge and a direct request get different headers, so a cache must key on the edge header.
-		Vary: EDGE_HEADER,
+		// Why: the edge and a direct request get different headers, and a docs page with a
+		// markdown answer gets a different body for `Accept: text/markdown`.
+		Vary: hasMarkdownVariant ? `${EDGE_HEADER}, Accept` : EDGE_HEADER,
 		...(isDev || blockIndexing
 			? { "Cache-Control": "private, no-store" }
 			: {
@@ -47,12 +52,17 @@ function documentHeaders({
 				}),
 		// Clickjacking mitigation. The CSP `frame-ancestors` directive does the same for modern browsers.
 		"X-Frame-Options": allowSameOriginFraming ? "SAMEORIGIN" : "DENY",
-		"X-XSS-Protection": "1; mode=block",
-		"Content-Security-Policy": buildCSPHeader({
-			nonce,
-			baseUrl: getBaseUrl(request.url),
-			allowSameOriginFraming,
-		}),
+		/**
+		 * Harden browser content handling. `nosniff` prevents MIME-type sniffing
+		 * for scripts and styles, and `X-XSS-Protection: 0` turns off the legacy
+		 * XSS auditors, which are obsolete and can add inconsistent behavior.
+		 */
+		"X-Content-Type-Options": "nosniff",
+		"X-XSS-Protection": "0",
+		// A privacy-preserving referrer, and no powerful browser features that the docs do not use.
+		"Referrer-Policy": "strict-origin-when-cross-origin",
+		"Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+		"Content-Security-Policy": buildCSPHeader({ nonce, allowSameOriginFraming }),
 	};
 }
 
@@ -67,82 +77,61 @@ function isPreviewDocument(pathname: string): boolean {
 }
 
 /**
- * Builds a single HTTP `Link` header value that advertises connection hints for
- * cross-origin resources using `rel=preconnect`.
+ * Builds the HTTP `Link` header for a rendered page: `rel=preload; as=style`
+ * for the matched routes' CSS and `rel=modulepreload` for the entry and the
+ * matched route modules.
  *
- * Behavior:
- * - Resolves the app's base origin from `requestUrl` via `getBaseUrl()`.
- * - Assembles a prioritized list of preconnect origins (regular and crossorigin).
- * - Asserts there are ≤4 total preconnects (typical UA limit; more can waste sockets).
- * - Serializes into a comma-separated `Link` header per RFC 8288.
+ * The header arrives before the HTML body, so the browser starts these
+ * fetches earlier than the `<link>` tags in the document. Preconnects and font
+ * preloads live in `root.tsx` instead, because a prerendered page is a static
+ * file with no `Link` header.
  *
- * @param requestUrl Absolute URL for the incoming request (used to compute the base origin).
- * @returns A comma-separated `Link` header value.
+ * @example
+ * buildLinkHeader(routerContext);
+ * // => "</assets/root-abc.css>; rel=preload; as=style, </assets/entry.client-def.js>; rel=modulepreload; fetchpriority=low"
  */
-function buildLinkHeader(requestUrl: string) {
-	const baseUrl = getBaseUrl(requestUrl);
-
-	const preconnects = [baseUrl !== "/" && baseUrl].filter(Boolean);
-
-	/**
-	 * Origins that serve font files require `crossorigin` on the preconnect
-	 * because font requests are always CORS. Without it the browser opens a
-	 * non-CORS connection that can't be reused for the actual font fetch.
-	 */
-	const crossoriginPreconnects = [assetsCdnOrigin] as const;
-
-	// keep ≤4 for optimal performance (browser limit)
-	invariant(
-		preconnects.length + crossoriginPreconnects.length <= 4,
-		"Keep ≤4 priority preconnects",
+function buildLinkHeader(routerContext: EntryContext): string {
+	const { manifest, staticHandlerContext } = routerContext;
+	const matchedRoutes = staticHandlerContext.matches.map(
+		(match) => manifest.routes[match.route.id],
 	);
-
-	const fontPreloads = [
-		preloadFontLink("roobert"),
-		preloadFontLink("jetbrains-mono"),
-		preloadFontLink("family-regular"),
-	];
+	const stylesheets = new Set(matchedRoutes.flatMap((route) => route?.css ?? []));
+	// The browser dedupes the `<link>` tags against these, so the header carries the same
+	// low priority as the tags, or the CSS would wait behind them.
+	const modules = new Set([
+		manifest.entry.module,
+		...manifest.entry.imports,
+		...matchedRoutes.flatMap((route) => (route == null ? [] : [route.module])),
+	]);
 
 	return [
-		...preconnects.map((origin) => `<${origin}>; rel=preconnect`),
-		...crossoriginPreconnects.map((origin) => `<${origin}>; rel=preconnect; crossorigin`),
-		...fontPreloads,
+		...Array.from(stylesheets, (href) => `<${href}>; rel=preload; as=style`),
+		...Array.from(modules, (href) => `<${href}>; rel=modulepreload; fetchpriority=low`),
 	].join(", ");
 }
 
 /**
- * Constructs a CSP (Content Security Policy) header string.
- * The `nonce` must match the `nonce` attribute of the document's script tags.
+ * Constructs a CSP (Content Security Policy) header string. The `nonce` must
+ * match the `nonce` attribute of the document's script tags.
  *
- * The script-src directive includes only trusted third-party scripts used in production.
+ * `'strict-dynamic'` makes every supported browser ignore host sources and
+ * `'self'`. The policy trusts the per-request nonce and the scripts that
+ * nonce-trusted code inserts. Do not add host sources: only browsers outside
+ * the support window read them.
+ *
  * `allowSameOriginFraming` relaxes `frame-ancestors` to `'self'` for the
  * framed example preview documents; everything else refuses framing.
  */
 function buildCSPHeader({
 	nonce,
-	baseUrl,
 	allowSameOriginFraming,
 }: {
 	nonce: string;
-	baseUrl: string;
 	allowSameOriginFraming: boolean;
 }): string {
-	const scriptNonce = `'nonce-${nonce}'`;
-
-	// The origin of the request, when it is known. Not needed for a relative base URL.
-	const hostedOrigin = baseUrl !== "/" ? baseUrl : undefined;
-
-	// List of trusted script sources.
-	// NOTE: URLs ending in '/' indicate prefix match (important for CSP)
-	const scriptSrcSources = [
-		//,
-		"'self'",
-		hostedOrigin,
-	].filter(Boolean);
-
 	return [
 		//,
-		`script-src ${scriptNonce} ${scriptSrcSources.join(" ")}`,
+		`script-src 'nonce-${nonce}' 'strict-dynamic'`,
 		"base-uri 'self'",
 		"object-src 'none'",
 		"worker-src 'self' blob:",

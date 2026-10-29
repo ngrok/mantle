@@ -1,7 +1,9 @@
 import { cx } from "@ngrok/mantle/cx";
 import { useScrollBehavior } from "@ngrok/mantle/hooks";
 import {
+	assetsCdnOrigin,
 	extractThemeCookie,
+	PreloadFont,
 	PreventWrongThemeFlashScript,
 	ThemeProvider,
 	useInitialHtmlThemeProps,
@@ -171,7 +173,16 @@ export function Layout({ children }: PropsWithChildren) {
 				<meta name="twitter:card" content="summary_large_image" />
 				<meta name="og:image" property="og:image" content="/og-image.png" />
 				<meta name="twitter:image" property="twitter:image" content="/og-image.png" />
+				{/*
+				 * Resource hints live in the document, not the `Link` header: a prerendered page is
+				 * a static file with no per-request headers. Font requests are always CORS, so the
+				 * preconnect needs `crossOrigin`, or the browser opens a socket the font fetch cannot reuse.
+				 */}
+				<link rel="preconnect" href={assetsCdnOrigin} crossOrigin="anonymous" />
 				<PreventWrongThemeFlashScript nonce={nonce} />
+				<PreloadFont name="roobert" />
+				<PreloadFont name="family-regular" />
+				<PreloadFont name="jetbrains-mono" />
 				<meta name="author" content="ngrok" />
 				<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 				<Meta />

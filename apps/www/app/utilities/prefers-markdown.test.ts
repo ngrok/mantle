@@ -1,21 +1,26 @@
 import { describe, expect, test } from "vitest";
 import { prefersMarkdown } from "./prefers-markdown";
 
+function requestWithAccept(accept?: string): Request {
+	return new Request("https://mantle.ngrok.com/components/button", {
+		headers: accept == null ? undefined : { Accept: accept },
+	});
+}
+
 describe("prefersMarkdown", () => {
 	test.each([
 		["text/markdown", true],
-		["text/markdown, text/html;q=0.9", true],
-		["text/html, text/markdown", true],
-		["text/markdown;q=0.9, text/html;q=0, */*;q=1", true],
-		["TEXT/Markdown", true],
-		["text/html, text/markdown;q=0", false],
-		["text/markdown;q=0.5, text/html", false],
-		["text/markdown;q=0.5, text/*;q=0.8, */*;q=0.1", false],
-		["text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", false],
-		["", false],
-		[null, false],
-		[undefined, false],
+		["text/markdown, text/html;q=0.8", true],
+		["text/markdown;q=0.5", true],
+		["Text/Markdown", true],
+		["text/markdown;q=0", false],
+		["text/markdown; q=0, text/html", false],
+		["text/html,application/xhtml+xml,*/*;q=0.8", false],
 	])("answers %j with %s", (accept, expected) => {
-		expect(prefersMarkdown(accept)).toBe(expected);
+		expect(prefersMarkdown(requestWithAccept(accept))).toBe(expected);
+	});
+
+	test("a missing Accept header does not match", () => {
+		expect(prefersMarkdown(requestWithAccept())).toBe(false);
 	});
 });
