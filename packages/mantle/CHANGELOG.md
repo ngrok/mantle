@@ -1,5 +1,15 @@
 # @ngrok/mantle
 
+## 0.93.5
+
+### Patch Changes
+
+- [#1648](https://github.com/ngrok/mantle/pull/1648) [`5e98020`](https://github.com/ngrok/mantle/commit/5e9802071143ab6251c2c6d6840589c9d08be5cf) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Keep the `Accordion.Content` transitions when ⌘F opens a closed section.
+
+  The find-in-page reveal turned the transition off until the section closed, and a closed section removed an inline `transition` from its `style` prop on mount. The reveal now turns the transition off only while it lays the content out, then restores the inline value.
+
+  See https://mantle.ngrok.com/components/data-display/accordion.
+
 ## 0.93.4
 
 ### Patch Changes
