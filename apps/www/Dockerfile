@@ -145,4 +145,4 @@ EXPOSE 3000
 
 ENV NODE_ENV=production
 
-CMD ["node_modules/@ngrok/app-server/dist/cli.js", "start", "build/server/index.js"]
+CMD ["node_modules/@ngrok/app-server/dist/cli.js", "serve", "build/server/index.js"]
