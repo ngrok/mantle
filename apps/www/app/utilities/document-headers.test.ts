@@ -108,6 +108,20 @@ describe("documentHeaders", () => {
 		);
 	});
 
+	it("trusts a prerendered page's inline scripts by hash and sends no Link header", () => {
+		const headers = documentHeaders({
+			request: new Request("https://mantle.ngrok.com/components/button", { headers: edge }),
+			scriptHashes: ["aGFzaDE=", "aGFzaDI="],
+			isDev: false,
+			hasMarkdownVariant: false,
+		});
+
+		expect(headers["Content-Security-Policy"]).toBe(
+			"script-src 'self' 'sha256-aGFzaDE=' 'sha256-aGFzaDI='; base-uri 'self'; object-src 'none'; worker-src 'self' blob:; frame-ancestors 'none'",
+		);
+		expect(headers.Link).toBeUndefined();
+	});
+
 	it("keys caches on Accept for a page with a markdown answer", () => {
 		const headers = documentHeaders({
 			request: new Request("https://mantle.ngrok.com/components/button", { headers: edge }),

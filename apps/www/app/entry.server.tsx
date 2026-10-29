@@ -138,8 +138,8 @@ function isClientErrorRouteResponse(error: unknown): boolean {
 
 /**
  * True while `react-router build` prerenders routes. React Router sets the
- * marker before it starts the prerender server, and `react-router-serve` never
- * sets it. The prerender requests carry no user agent, so this is the only
+ * marker before it starts the prerender server, and the app server never sets
+ * it. The prerender requests carry no user agent, so this is the only
  * signal a server entry has.
  */
 function isPrerenderPass(): boolean {

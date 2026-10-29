@@ -11,6 +11,7 @@ packages:
 minimumReleaseAge: 360
 
 minimumReleaseAgeExclude:
+  - "@ngrok/app-server"
   - "@ngrok/remark-mdx-github-alerts"
   - "@ngrok/remark-mdx-no-paragraph-wrap"
   - "@types/react"
