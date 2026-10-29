@@ -186,7 +186,7 @@ export default defineConfig(({ command }) => ({
 			command === "build"
 				? // Bundle every dependency into the server build so the production
 					// image can run without an app `node_modules` (the Docker runner
-					// stage ships only `@react-router/serve` and its runtime deps).
+					// stage ships only the runtime deps of `server/`).
 					true
 				: [
 						// https://github.com/phosphor-icons/react/issues/45#issuecomment-2721119452

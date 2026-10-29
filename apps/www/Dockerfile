@@ -90,12 +90,15 @@ RUN --mount=type=secret,id=TURBO_TOKEN \
     export TURBO_TELEMETRY_DISABLED=1 && \
     pnpm turbo run build --filter=@app/www...
 
-# Install only @react-router/serve + its runtime deps into a clean directory
-# so we can copy a minimal node_modules into the distroless runner.
-RUN RR_SERVE_VERSION=$(node -e "process.stdout.write(require('./apps/www/node_modules/@react-router/serve/package.json').version)") \
+# Install only the runtime deps of `server/` (`hono`, `@hono/node-server`,
+# `pino`, and `react-router`) into a clean directory, so we can copy a minimal
+# node_modules into the distroless runner. Each version comes from the app's own
+# install, so it matches the lockfile.
+RUN cd apps/www \
+    && SERVER_DEPS=$(node -e "for (const name of ['hono', '@hono/node-server', 'pino', 'react-router']) process.stdout.write(name + '@' + require('./node_modules/' + name + '/package.json').version + ' ')") \
     && mkdir /app/runner-deps && cd /app/runner-deps \
     && npm init -y \
-    && npm install --omit=dev --no-fund --no-audit "@react-router/serve@${RR_SERVE_VERSION}" \
+    && npm install --omit=dev --no-fund --no-audit $SERVER_DEPS \
     && rm -rf package.json package-lock.json
 
 # Node runtime stage — stages the Node files the runner copies, so `binutils`
@@ -120,7 +123,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # ---------------------------------------------------------------------------
 # Runner stage — Distroless, no shell/npm/package manager.
 # App deps are bundled into the server build (ssr.noExternal: true).
-# Only @react-router/serve + its runtime deps (express, etc.) are copied in.
+# Only the runner-deps above and the `server/` modules are copied in.
 # ---------------------------------------------------------------------------
 # Distroless has no image per Node patch release, so copy Node from the
 # node-runtime stage. `cc-debian13` has the CA bundle.
@@ -135,6 +138,7 @@ WORKDIR /app
 
 COPY --from=builder --chown=1001:1001 /app/apps/www/build build
 COPY --from=builder --chown=1001:1001 /app/runner-deps/node_modules node_modules
+COPY --from=builder --chown=1001:1001 /app/apps/www/server server
 
 USER 1001
 
@@ -142,4 +146,4 @@ EXPOSE 3000
 
 ENV NODE_ENV=production
 
-CMD ["node_modules/.bin/react-router-serve", "build/server/index.js"]
+CMD ["server/main.ts", "build/server/index.js"]
