@@ -685,9 +685,11 @@ function workerBackend(size: number): Backend {
 				request?.resolve(response);
 			}
 		});
+		// A worker can throw any value, not only an Error.
 		worker.on("error", (error) => {
+			const reason = error instanceof Error ? error : new Error(String(error), { cause: error });
 			for (const request of pending.values()) {
-				request.reject(error);
+				request.reject(reason);
 			}
 			pending.clear();
 		});
