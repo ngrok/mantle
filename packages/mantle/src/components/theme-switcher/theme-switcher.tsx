@@ -1,7 +1,6 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useRef } from "react";
 import { useIsHydrated } from "../../hooks/use-is-hydrated.js";
 import { useMatchesMediaQuery } from "../../hooks/use-matches-media-query.js";
 import type { WithStyleProps } from "../../types/with-style-props.js";
@@ -32,17 +31,145 @@ const appliedThemeIcons = {
 } satisfies Record<ResolvedTheme, ReactNode>;
 
 /**
- * The props for the `ThemeDropdownMenuItem` component.
+ * The props for the `ThemeSwitcherIcon` component.
  */
-type ThemeDropdownMenuItemProps = WithStyleProps & {
+type ThemeSwitcherIconProps = WithStyleProps;
+
+/**
+ * The `ThemeSwitcher` icon on its own: a sun or a moon for the applied theme,
+ * which swaps with a transition when the theme changes. Put it anywhere in the
+ * `children` of a `ThemeDropdownMenuItem`, or of a `DropdownMenu.Item` that
+ * uses `useThemeToggle`, and the new theme grows in a circle from it.
+ *
+ * Reads the applied theme via `useAppliedTheme`, so it must render inside a
+ * `ThemeProvider`. It is decorative (`aria-hidden`). Its box is the size of an
+ * `Icon`, so it lines up with the icons of other menu rows.
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"theme-switcher-icon"` | On the `<span>` that holds the icon. |
+ *
+ * @see https://mantle.ngrok.com/components/forms/theme-switcher#themeswitchericon
+ *
+ * @example
+ * ```tsx
+ * <ThemeDropdownMenuItem>
+ *   <ThemeSwitcherIcon />
+ *   Theme
+ * </ThemeDropdownMenuItem>
+ * ```
+ */
+// Why no asChild: the part owns its only content, the icon swap.
+function ThemeSwitcherIcon({ className, style }: ThemeSwitcherIconProps) {
+	const appliedTheme = useAppliedTheme();
+
+	return (
+		<span
+			aria-hidden
+			data-slot="theme-switcher-icon"
+			className={cx("flex shrink-0 items-center justify-center text-muted", className)}
+			style={style}
+		>
+			<IconSwap active={appliedTheme} icons={appliedThemeIcons} />
+		</span>
+	);
+}
+
+/**
+ * The value `useThemeToggle` returns.
+ */
+type ThemeToggle = {
 	/**
-	 * The visible label of the item. When set, it is also the accessible
-	 * name. When omitted, the label is "Theme", and the accessible name also
-	 * says which theme the next press shows, such as "Theme: Switch to dark
-	 * theme". Set it for localization.
+	 * Whether a press cannot change the theme: `true` under a `ThemeProvider`
+	 * with `forceTheme`. Pass it to the item as `disabled`.
 	 */
-	label?: string;
+	disabled: boolean;
+	/**
+	 * The accessible name of the next press, such as "Switch to dark theme" or
+	 * "Switch to light theme (system default)".
+	 */
+	label: string;
+	/**
+	 * The `onSelect` handler for a `DropdownMenu.Item`. It flips the theme and
+	 * keeps the menu open. The new theme grows in a circle from the
+	 * `ThemeSwitcherIcon` in the item, else from the item.
+	 */
+	onSelect: (event: Event) => void;
 };
+
+/**
+ * The light/dark toggle of `ThemeDropdownMenuItem` for a `DropdownMenu.Item`
+ * that you compose yourself. A press flips the theme the same way a
+ * `ThemeSwitcher` click does.
+ *
+ * Reads and writes the theme via `useTheme`, so it must run inside a
+ * `ThemeProvider`. Call it in a component that menu content renders: menu
+ * content mounts only on the client, so the OS preference in `label` is
+ * always known.
+ *
+ * @see https://mantle.ngrok.com/components/forms/theme-switcher#usethemetoggle
+ *
+ * @example
+ * ```tsx
+ * function ThemeItem() {
+ *   const toggle = useThemeToggle();
+ *
+ *   return (
+ *     <DropdownMenu.Item disabled={toggle.disabled} onSelect={toggle.onSelect}>
+ *       <ThemeSwitcherIcon />
+ *       Theme
+ *     </DropdownMenu.Item>
+ *   );
+ * }
+ * ```
+ */
+function useThemeToggle(): ThemeToggle {
+	const [theme, setTheme] = useTheme();
+	const forcedTheme = useForcedTheme();
+	const prefersDarkMode = useMatchesMediaQuery("(prefers-color-scheme: dark)");
+
+	return {
+		disabled: forcedTheme != null,
+		label: toggleLabel(getToggledTheme({ theme, prefersDarkMode }), { prefersDarkMode }),
+		onSelect: (event) => {
+			// Why keep the menu open: the user sees the icon swap under the reveal.
+			event.preventDefault();
+			const item = event.currentTarget instanceof Element ? event.currentTarget : null;
+			setTheme((current) => getToggledTheme({ theme: current, prefersDarkMode }), {
+				origin: item?.querySelector('[data-slot~="theme-switcher-icon"]') ?? item,
+			});
+		},
+	};
+}
+
+/**
+ * The props for the `ThemeDropdownMenuItem` component. Set `label` or
+ * `children`, not both.
+ */
+type ThemeDropdownMenuItemProps = WithStyleProps &
+	(
+		| {
+				/**
+				 * The visible label of the default row. When set, it is also the
+				 * accessible name. When omitted, the label is "Theme", and the
+				 * accessible name also says which theme the next press shows, such as
+				 * "Theme: Switch to dark theme". Set it for localization.
+				 */
+				label?: string;
+				children?: never;
+		  }
+		| {
+				/**
+				 * The content of the item, in place of the default row. Put a
+				 * `ThemeSwitcherIcon` where the icon goes. The content is also the
+				 * accessible name.
+				 */
+				children: ReactNode;
+				label?: never;
+		  }
+	);
 
 /**
  * Must render inside a `DropdownMenu.Content` or `DropdownMenu.SubContent` —
@@ -54,6 +181,10 @@ type ThemeDropdownMenuItemProps = WithStyleProps & {
  * click does, and the icon swaps between the sun and the moon. The menu stays
  * open, and the new theme grows in a circle from the icon.
  *
+ * To lay out the row yourself, such as with the icon first, pass `children`
+ * and put a `ThemeSwitcherIcon` in them. To wire a `DropdownMenu.Item` of your
+ * own, call `useThemeToggle`.
+ *
  * Reads and writes the theme via `useTheme`, so it must render inside a
  * `ThemeProvider`. Under a provider with `forceTheme`, it shows the forced
  * theme and is disabled. For a control in a header or toolbar, use
@@ -64,7 +195,7 @@ type ThemeDropdownMenuItemProps = WithStyleProps & {
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
  * | `data-slot` | `"theme-dropdown-menu-item"` | On the item element. |
- * | `data-slot` | `"theme-dropdown-menu-item-label"` | On the `<span>` that holds the `label`. |
+ * | `data-slot` | `"theme-dropdown-menu-item-label"` | On the `<span>` that holds the `label`. The item renders it only when `children` is omitted. |
  *
  * @see https://mantle.ngrok.com/components/forms/theme-switcher#themedropdownmenuitem
  *
@@ -80,44 +211,43 @@ type ThemeDropdownMenuItemProps = WithStyleProps & {
  *   </DropdownMenu.Content>
  * </DropdownMenu.Root>
  * ```
+ *
+ * @example
+ * ```tsx
+ * <DropdownMenu.Root>
+ *   <DropdownMenu.Trigger asChild>
+ *     <Button type="button" appearance="outlined" intent="neutral">Account</Button>
+ *   </DropdownMenu.Trigger>
+ *   <DropdownMenu.Content>
+ *     <DropdownMenu.Item>Profile</DropdownMenu.Item>
+ *     <ThemeDropdownMenuItem>
+ *       <ThemeSwitcherIcon />
+ *       Theme
+ *     </ThemeDropdownMenuItem>
+ *   </DropdownMenu.Content>
+ * </DropdownMenu.Root>
+ * ```
  */
-function ThemeDropdownMenuItem({ className, label, style }: ThemeDropdownMenuItemProps) {
-	const [theme, setTheme] = useTheme();
-	const appliedTheme = useAppliedTheme();
-	const forcedTheme = useForcedTheme();
-	const prefersDarkMode = useMatchesMediaQuery("(prefers-color-scheme: dark)");
-	const iconRef = useRef<HTMLSpanElement>(null);
-	const nextTheme = getToggledTheme({ theme, prefersDarkMode });
+function ThemeDropdownMenuItem({ children, className, label, style }: ThemeDropdownMenuItemProps) {
+	const toggle = useThemeToggle();
 
 	return (
 		<DropdownMenu.Item
-			// Why no hydration guard, unlike `ThemeSwitcher`: menu content mounts only
-			// on the client, so the OS preference is always known here.
-			aria-label={
-				label == null ? `Theme: ${toggleLabel(nextTheme, { prefersDarkMode })}` : undefined
-			}
+			aria-label={label == null && children == null ? `Theme: ${toggle.label}` : undefined}
 			data-slot="theme-dropdown-menu-item"
 			className={cx("gap-2", className)}
-			disabled={forcedTheme != null}
+			disabled={toggle.disabled}
 			style={style}
-			onSelect={(event) => {
-				// Why keep the menu open: the user sees the icon swap under the reveal.
-				event.preventDefault();
-				setTheme((current) => getToggledTheme({ theme: current, prefersDarkMode }), {
-					origin: iconRef.current,
-				});
-			}}
+			onSelect={toggle.onSelect}
 		>
-			<span data-slot="theme-dropdown-menu-item-label" className="flex-1">
-				{label ?? "Theme"}
-			</span>
-			<span
-				ref={iconRef}
-				aria-hidden
-				className="flex size-7 shrink-0 items-center justify-center text-muted [&_svg]:size-5"
-			>
-				<IconSwap active={appliedTheme} icons={appliedThemeIcons} />
-			</span>
+			{children ?? (
+				<>
+					<span data-slot="theme-dropdown-menu-item-label" className="flex-1">
+						{label ?? "Theme"}
+					</span>
+					<ThemeSwitcherIcon className="size-7" />
+				</>
+			)}
 		</DropdownMenu.Item>
 	);
 }
@@ -254,10 +384,14 @@ export {
 	//,
 	ThemeDropdownMenuItem,
 	ThemeSwitcher,
+	ThemeSwitcherIcon,
+	useThemeToggle,
 };
 
 export type {
 	//,
 	ThemeDropdownMenuItemProps,
+	ThemeSwitcherIconProps,
 	ThemeSwitcherProps,
+	ThemeToggle,
 };

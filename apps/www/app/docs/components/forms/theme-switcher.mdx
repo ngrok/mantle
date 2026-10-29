@@ -5,7 +5,12 @@ description: The canonical light/dark toggle for headers and toolbars, plus the 
 
 import { Button } from "@ngrok/mantle/button";
 import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
-import { ThemeDropdownMenuItem, ThemeSwitcher } from "@ngrok/mantle/theme-switcher";
+import {
+	ThemeDropdownMenuItem,
+	ThemeSwitcher,
+	ThemeSwitcherIcon,
+	useThemeToggle,
+} from "@ngrok/mantle/theme-switcher";
 import { Example } from "~/components/example";
 import { PageHeader } from "~/components/page-header";
 
@@ -24,6 +29,57 @@ export function EmbeddedMenuExample() {
 			<DropdownMenu.Content>
 				<DropdownMenu.Item>Profile</DropdownMenu.Item>
 				<ThemeDropdownMenuItem />
+				<DropdownMenu.Separator />
+				<DropdownMenu.Item>Log out</DropdownMenu.Item>
+			</DropdownMenu.Content>
+		</DropdownMenu.Root>
+	);
+}
+
+export function IconFirstMenuExample() {
+	return (
+		<DropdownMenu.Root>
+			<DropdownMenu.Trigger asChild>
+				<Button type="button" appearance="outlined" intent="neutral">
+					Account
+				</Button>
+			</DropdownMenu.Trigger>
+			<DropdownMenu.Content>
+				<DropdownMenu.Item>Profile</DropdownMenu.Item>
+				<ThemeDropdownMenuItem>
+					<ThemeSwitcherIcon />
+					Theme
+				</ThemeDropdownMenuItem>
+				<DropdownMenu.Separator />
+				<DropdownMenu.Item>Log out</DropdownMenu.Item>
+			</DropdownMenu.Content>
+		</DropdownMenu.Root>
+	);
+}
+
+export function ThemeItem() {
+const toggle = useThemeToggle();
+
+    return (
+    	<DropdownMenu.Item disabled={toggle.disabled} onSelect={toggle.onSelect}>
+    		<ThemeSwitcherIcon />
+    		Appearance
+    	</DropdownMenu.Item>
+    );
+
+}
+
+export function HookMenuExample() {
+	return (
+		<DropdownMenu.Root>
+			<DropdownMenu.Trigger asChild>
+				<Button type="button" appearance="outlined" intent="neutral">
+					Account
+				</Button>
+			</DropdownMenu.Trigger>
+			<DropdownMenu.Content>
+				<DropdownMenu.Item>Profile</DropdownMenu.Item>
+				<ThemeItem />
 				<DropdownMenu.Separator />
 				<DropdownMenu.Item>Log out</DropdownMenu.Item>
 			</DropdownMenu.Content>
@@ -126,19 +182,90 @@ import { ThemeDropdownMenuItem } from "@ngrok/mantle/theme-switcher";
 </DropdownMenu.Root>;
 ```
 
+### Laying out the row
+
+To lay out the row yourself, pass `children` and put a `ThemeSwitcherIcon` where the icon goes. Here the icon comes first, to line up with the icons of other menu rows. The children are the accessible name, and the new theme grows in a circle from the icon.
+
+<Example>
+	<IconFirstMenuExample />
+</Example>
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
+import { ThemeDropdownMenuItem, ThemeSwitcherIcon } from "@ngrok/mantle/theme-switcher";
+
+<DropdownMenu.Root>
+	<DropdownMenu.Trigger asChild>
+		<Button type="button" appearance="outlined" intent="neutral">
+			Account
+		</Button>
+	</DropdownMenu.Trigger>
+	<DropdownMenu.Content>
+		<DropdownMenu.Item>Profile</DropdownMenu.Item>
+		<ThemeDropdownMenuItem>
+			<ThemeSwitcherIcon />
+			Theme
+		</ThemeDropdownMenuItem>
+		<DropdownMenu.Separator />
+		<DropdownMenu.Item>Log out</DropdownMenu.Item>
+	</DropdownMenu.Content>
+</DropdownMenu.Root>;
+```
+
+### Wiring your own menu item
+
+To put the toggle on a `DropdownMenu.Item` of your own, call `useThemeToggle`. Pass its `onSelect` and `disabled` to the item. A press flips the theme and keeps the menu open, and the new theme grows in a circle from the `ThemeSwitcherIcon` in the item. Call the hook in a component that renders inside the menu content.
+
+<Example>
+	<HookMenuExample />
+</Example>
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
+import { ThemeSwitcherIcon, useThemeToggle } from "@ngrok/mantle/theme-switcher";
+
+export function ThemeItem() {
+	const toggle = useThemeToggle();
+
+	return (
+		<DropdownMenu.Item disabled={toggle.disabled} onSelect={toggle.onSelect}>
+			<ThemeSwitcherIcon />
+			Appearance
+		</DropdownMenu.Item>
+	);
+}
+
+<DropdownMenu.Root>
+	<DropdownMenu.Trigger asChild>
+		<Button type="button" appearance="outlined" intent="neutral">
+			Account
+		</Button>
+	</DropdownMenu.Trigger>
+	<DropdownMenu.Content>
+		<DropdownMenu.Item>Profile</DropdownMenu.Item>
+		<ThemeItem />
+		<DropdownMenu.Separator />
+		<DropdownMenu.Item>Log out</DropdownMenu.Item>
+	</DropdownMenu.Content>
+</DropdownMenu.Root>;
+```
+
 > [!IMPORTANT]
 > `ThemeDropdownMenuItem` must render inside a `DropdownMenu.Content` or `DropdownMenu.SubContent`. It renders a `DropdownMenu.Item`, which only works within an open dropdown menu. The type system cannot express this constraint, so it is on you to uphold it.
 
 ## Polymorphism
 
-`ThemeSwitcher` and `ThemeDropdownMenuItem` don't accept `asChild`. Each owns what it renders: the switcher renders only its icon, and the item renders its label and icon. To use your own control, call [`useTheme`](/components/primitives/theme#usage).
+`ThemeSwitcher`, `ThemeDropdownMenuItem`, and `ThemeSwitcherIcon` don't accept `asChild`. Each owns what it renders: the switcher renders only its icon, the item renders a `DropdownMenu.Item`, and the icon renders only the icon swap. To use your own menu item, call [`useThemeToggle`](#wiring-your-own-menu-item). To use your own control of another kind, call [`useTheme`](/components/primitives/theme#usage).
 
 ## Accessibility
 
 - When `label` is omitted, the accessible name says which theme the next click shows: "Switch to dark theme", "Switch to light theme", or "Switch to light theme (system default)" when the click returns to the OS setting. The server can't read the OS setting, so the name is "Toggle theme" until hydration.
 - The circular reveal is movement, so it does not run under `prefers-reduced-motion: reduce`.
 - The icon mirrors the applied theme (a sun or a moon). It's SSR-safe: a `Skeleton` placeholder renders until hydration, then the icon appears.
-- `ThemeDropdownMenuItem` is a `role="menuitem"`. When `label` is omitted, its accessible name starts with the visible "Theme" and says which theme the next press shows, such as "Theme: Switch to dark theme". When `label` is set, the label is the name. Under `forceTheme`, the item is disabled.
+- `ThemeDropdownMenuItem` is a `role="menuitem"`. When `label` is omitted, its accessible name starts with the visible "Theme" and says which theme the next press shows, such as "Theme: Switch to dark theme". When `label` is set, the label is the name. When `children` is set, the children are the name. Under `forceTheme`, the item is disabled.
+- `ThemeSwitcherIcon` is decorative, so it has `aria-hidden`.
 
 ## API Reference
 
@@ -157,13 +284,42 @@ All props from [`IconButton`](/components/actions/icon-button) except `icon`, `i
 
 The light/dark toggle in menu form: a **Theme** `menuitem` that ends in the `ThemeSwitcher` icon. It must render inside a `DropdownMenu.Content` or `DropdownMenu.SubContent`, and requires a [`ThemeProvider`](/components/primitives/theme) ancestor.
 
+| Prop | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+
+Set `label` or `children`, not both.
+
 | Prop         | Type            | Default   | Description                                                                                                                |
 | ------------ | --------------- | --------- | -------------------------------------------------------------------------------------------------------------------------- |
 | `label?`     | `string`        | `"Theme"` | The visible label. When set, it is also the accessible name; when omitted, the name also says which theme the press shows. |
+| `children?`  | `ReactNode`     |           | The content of the item, in place of the default row. Put a `ThemeSwitcherIcon` where the icon goes.                       |
 | `className?` | `string`        |           | CSS class name applied to the item.                                                                                        |
 | `style?`     | `CSSProperties` |           | Inline styles applied to the item.                                                                                         |
 
-| Data Attribute | Value                              | Description                             |
-| -------------- | ---------------------------------- | --------------------------------------- |
-| `data-slot`    | `"theme-dropdown-menu-item"`       | On the item element.                    |
-| `data-slot`    | `"theme-dropdown-menu-item-label"` | On the `<span>` that holds the `label`. |
+| Data Attribute | Value                              | Description                                                                          |
+| -------------- | ---------------------------------- | ------------------------------------------------------------------------------------ |
+| `data-slot`    | `"theme-dropdown-menu-item"`       | On the item element.                                                                 |
+| `data-slot`    | `"theme-dropdown-menu-item-label"` | On the `<span>` that holds the `label`. The item renders it only with no `children`. |
+
+### ThemeSwitcherIcon
+
+The `ThemeSwitcher` icon on its own: a sun or a moon for the applied theme. Requires a [`ThemeProvider`](/components/primitives/theme) ancestor.
+
+| Prop         | Type            | Default | Description                         |
+| ------------ | --------------- | ------- | ----------------------------------- |
+| `className?` | `string`        |         | CSS class name applied to the icon. |
+| `style?`     | `CSSProperties` |         | Inline styles applied to the icon.  |
+
+| Data Attribute | Value                   | Description                          |
+| -------------- | ----------------------- | ------------------------------------ |
+| `data-slot`    | `"theme-switcher-icon"` | On the `<span>` that holds the icon. |
+
+### useThemeToggle
+
+The toggle of `ThemeDropdownMenuItem` for a `DropdownMenu.Item` that you compose. Requires a [`ThemeProvider`](/components/primitives/theme) ancestor. It takes no arguments and returns:
+
+| Field      | Type                     | Description                                                                                         |
+| ---------- | ------------------------ | --------------------------------------------------------------------------------------------------- |
+| `disabled` | `boolean`                | `true` under `forceTheme`. Pass it to the item as `disabled`.                                       |
+| `label`    | `string`                 | The accessible name of the next press, such as "Switch to dark theme".                              |
+| `onSelect` | `(event: Event) => void` | The item's `onSelect`. It flips the theme, keeps the menu open, and grows the reveal from the icon. |
