@@ -1,5 +1,17 @@
 # @ngrok/mantle
 
+## 0.93.1
+
+### Patch Changes
+
+- [#1636](https://github.com/ngrok/mantle/pull/1636) [`122e171`](https://github.com/ngrok/mantle/commit/122e1710b71edaa7f010aa5e4186fc5044e7a763) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Tabs.Trigger`: a mouse press no longer shows the keyboard focus ring. Before, a click after a Tab key press showed the ring on the clicked tab in Chromium, because Radix focuses the trigger from script and Chromium gives that focus the ring state of the element that had focus before. Keyboard focus still shows the ring.
+
+  The label text is not selectable (`select-none`), so a selection across the page copies no tab labels.
+
+  An `asChild` link trigger now activates on click, not on the press. Before, a press released off the link switched the tab but followed no link, so the panel and the URL disagreed. The link also no longer starts a drag on a small mouse move, which cancelled the click.
+
+- [#1639](https://github.com/ngrok/mantle/pull/1639) [`dce0a88`](https://github.com/ngrok/mantle/commit/dce0a881238df2bb2e3904e4cb6b1e202db460a7) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `ThemeProvider` and `useInitialHtmlThemeProps` no longer throw in a sandboxed iframe that blocks cookies. In an iframe with `sandbox="allow-scripts"` and no `allow-same-origin`, a read of `document.cookie` throws a `SecurityError`. In such a frame, mantle now reads the theme from `ssrCookie`, so the client agrees with the server HTML. With no `ssrCookie`, it renders the default theme.
+
 ## 0.93.0
 
 ### Minor Changes
