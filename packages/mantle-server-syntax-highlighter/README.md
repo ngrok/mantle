@@ -6,7 +6,7 @@ Use this package to highlight code in API routes, server actions, or any Node.js
 
 ## Requirements
 
-- Node.js 24+
+- Node.js 26 LTS
 - `@ngrok/mantle` installed in the same project
 
 ## Installation
