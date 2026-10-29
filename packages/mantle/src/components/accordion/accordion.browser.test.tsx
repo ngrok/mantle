@@ -14,11 +14,15 @@ import { Accordion } from "./accordion.js";
 
 // Why inline CSS: the browser project loads no Tailwind, so its classes are bare here. The
 // reveal handler's inline `height: auto` and `opacity: 1` must beat the `h-0` and `opacity-0`
-// rules for the match to lay out and show. The trigger row rules give the icon its layout, and
-// `font: inherit` is the Tailwind preflight rule that gives the button the line height of its parent.
+// rules for the match to lay out and show. The content's real height and opacity transition is
+// load-bearing too: a transition starts the box at zero height and opacity, so without it a
+// handler that only sets the end values still passes. The trigger row rules give the icon its
+// layout, and `font: inherit` is the Tailwind preflight rule that gives the button the line height
+// of its parent.
 const STYLE = `
 	button { font: inherit; }
 	.h-0 { height: 0; } .opacity-0 { opacity: 0; }
+	[data-slot="accordion-content"] { transition: height 200ms, opacity 200ms; interpolate-size: allow-keywords; }
 	.flex { display: flex; } .items-center { align-items: center; }
 	.items-start { align-items: flex-start; } .gap-4 { gap: 1rem; }
 	.self-start { align-self: flex-start; } .shrink-0 { flex-shrink: 0; }
@@ -140,6 +144,7 @@ describe("Accordion (browser)", () => {
 		await waitFor(() => expect(region).toHaveAttribute("data-state", "closed"));
 		await waitFor(() => expect(region.style.height).toBe(""));
 		expect(region.style.opacity).toBe("");
+		expect(region.style.transition).toBe("");
 		expect(region).toHaveAttribute("hidden", "until-found");
 	});
 
