@@ -158,6 +158,24 @@ import { TruncatedText } from "@ngrok/mantle/truncated-text";
 </div>;
 ```
 
+## Tooltip
+
+The tooltip shows the whole value. A value wider than the tooltip breaks into lines of near-equal length, so the last line never holds only one or two characters. Hover the ID below.
+
+<Example>
+	<div className="w-48 max-w-full rounded-md border border-gray-300 p-3 font-mono text-sm">
+		<TruncatedText value="mem_21h80N9qQuAmhSB8nlTA8KImPbQ" />
+	</div>
+</Example>
+
+```tsx
+import { TruncatedText } from "@ngrok/mantle/truncated-text";
+
+<div className="w-48 max-w-full rounded-md border border-gray-300 p-3 font-mono text-sm">
+	<TruncatedText value="mem_21h80N9qQuAmhSB8nlTA8KImPbQ" />
+</div>;
+```
+
 ## Accessibility
 
 A screen reader reads the whole value as one string. The two visible segments are `aria-hidden`, because Chromium puts a space between two inline-block boxes in an accessible name, and a visually hidden `<span>` holds the whole value instead. That copy carries `user-select: none`, so one click still copies the value once. A page-wide select-all copies it twice, like any visually hidden label. The ellipsis is a CSS effect, so nothing announces it.
