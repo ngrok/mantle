@@ -1,7 +1,5 @@
 import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
-import type { Plugin, PrerenderedOptions } from "@ngrok/app-server";
+import type { Plugin, PrerenderedOptions, SetupInfo } from "@ngrok/app-server";
 import { documentHeaders } from "~/utilities/document-headers";
 import { hasMarkdownVariant, markdownTwinPath } from "~/utilities/markdown-negotiation";
 import { prefersMarkdown } from "~/utilities/prefers-markdown";
@@ -22,12 +20,12 @@ function inlineScriptHashes(html: string): string[] {
 }
 
 /** The HTML of the prerendered page at `path`, or `undefined` when the path is not a page. */
-async function readPage(clientDirectory: string, path: string): Promise<string | undefined> {
-	try {
-		return await readFile(join(clientDirectory, path, "index.html"), "utf8");
-	} catch {
+async function readPage(files: SetupInfo["files"], path: string): Promise<string | undefined> {
+	const file = `${pageKey(path).replace(/\/$/, "")}/index.html`;
+	if ((await files.stat(file))?.kind !== "file") {
 		return undefined;
 	}
+	return new Response(await files.open(file)).text();
 }
 
 /**
@@ -58,7 +56,7 @@ export function prerenderedDocuments(): {
 				}
 				const entries = await Promise.all(
 					info.prerenderedPaths.map(async (path) => {
-						const html = await readPage(info.clientDirectory, path);
+						const html = await readPage(info.files, path);
 						return html == null ? [] : [[pageKey(path), inlineScriptHashes(html)] as const];
 					}),
 				);

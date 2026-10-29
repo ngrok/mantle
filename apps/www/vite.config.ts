@@ -1,5 +1,7 @@
 import mdx from "@mdx-js/rollup";
-import { serverEntry } from "@ngrok/app-server/vite";
+import { node } from "@ngrok/app-server/node/vite";
+import { reactRouterAdapter } from "@ngrok/app-server/react-router/vite";
+import { appServer } from "@ngrok/app-server/vite";
 import { reactRouter } from "@react-router/dev/vite";
 import tailwindcss from "@tailwindcss/vite";
 import { mantleCodeBlockPlugins, mantleSourcesPlugin } from "@ngrok/mantle-vite-plugins";
@@ -115,7 +117,12 @@ export default defineConfig(({ command }) => ({
 		// The React Router plugin's Fast Refresh transform injects a preamble
 		// check that throws when .tsx modules load under Vitest, and tests
 		// don't need the framework plugins — component tests render directly.
-		...(process.env.VITEST ? [] : [reactRouter(), serverEntry("./server/app.ts")]),
+		...(process.env.VITEST
+			? []
+			: [
+					reactRouter(),
+					appServer({ framework: reactRouterAdapter(), host: node(), app: "./server/app.ts" }),
+				]),
 		reactCompiler(),
 		workspacePluginCacheKey([
 			"@ngrok/mantle-vite-plugins",

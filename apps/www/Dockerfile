@@ -93,7 +93,7 @@ RUN --mount=type=secret,id=TURBO_TOKEN \
 # Install only `@ngrok/app-server` and its runtime deps into a clean directory,
 # at the version the app pins, so we can copy a minimal node_modules into the
 # distroless runner. The app's `server/app.ts` and every app dependency are
-# already bundled into `build/server/index.js`. Its peers (`react-router`,
+# already bundled into `build/server/app-server.js`. Its peers (`react-router`,
 # `vite`) are optional, so npm leaves them out.
 RUN APP_SERVER_VERSION=$(node -e "process.stdout.write(require('./apps/www/node_modules/@ngrok/app-server/package.json').version)") \
     && mkdir /app/runner-deps && cd /app/runner-deps \
@@ -145,4 +145,4 @@ EXPOSE 3000
 
 ENV NODE_ENV=production
 
-CMD ["node_modules/@ngrok/app-server/dist/cli.js", "serve", "build/server/index.js"]
+CMD ["node_modules/@ngrok/app-server/dist/cli.js", "serve", "build/server/app-server.js"]
