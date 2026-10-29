@@ -1,5 +1,11 @@
 # @ngrok/mantle
 
+## 0.93.6
+
+### Patch Changes
+
+- [#1650](https://github.com/ngrok/mantle/pull/1650) [`10d8045`](https://github.com/ngrok/mantle/commit/10d80452fdbf2e5d78ade941dee417ce4cb2c8cd) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Document how to style the head and the tail of `TruncatedText`. Style each segment from the root with `*:data-[slot=truncated-text-head]:` and `*:data-[slot=truncated-text-tail]:` classes. The ellipsis takes the head's color, so `*:data-[slot=truncated-text-head]:text-muted` mutes an ID's type prefix and the ellipsis together. A value no longer than `tail` has an empty head, so its tail draws the ellipsis in the tail's color. Add `data-truncated:` first to color the segments only while the value overflows.
+
 ## 0.93.5
 
 ### Patch Changes
