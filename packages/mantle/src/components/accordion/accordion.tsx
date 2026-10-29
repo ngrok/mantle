@@ -536,16 +536,18 @@ const Content = ({
 			// The height transition would start the box at zero and slide it open, so
 			// the highlight would still be clipped when it paints: turn the transition
 			// off, force a style and layout flush so the box settles at its end values,
-			// then restore the consumer's inline transition. The close branch of the
-			// effect below clears the inline height and opacity so the slide and the
-			// fade resume.
-			const { transition } = node.style;
+			// then restore the consumer's inline value. Override only the
+			// `transition-property` longhand: the `transition` shorthand reads as empty
+			// when only some longhands are set, so restoring it would delete them. The
+			// close branch of the effect below clears the inline height and opacity so
+			// the slide and the fade resume.
+			const { transitionProperty } = node.style;
 			node.removeAttribute("hidden");
-			node.style.transition = "none";
+			node.style.transitionProperty = "none";
 			node.style.height = "auto";
 			node.style.opacity = "1";
 			node.getBoundingClientRect();
-			node.style.transition = transition;
+			node.style.transitionProperty = transitionProperty;
 			setOpen(true);
 		};
 

@@ -147,6 +147,31 @@ describe("Accordion (browser)", () => {
 		expect(region.style.transition).toBe("color 300ms");
 	});
 
+	test("a find-in-page reveal keeps the consumer's inline transition longhand", () => {
+		render(
+			<Accordion.Root type="single" defaultValue="">
+				<Accordion.Item value="a">
+					<Accordion.Trigger>Trigger A</Accordion.Trigger>
+					<Accordion.Content style={{ transitionDuration: "500ms" }}>
+						<Accordion.Body>Body of section A</Accordion.Body>
+					</Accordion.Content>
+				</Accordion.Item>
+			</Accordion.Root>,
+		);
+
+		const region = regionFor("Body of section A");
+		if (!(region instanceof HTMLElement)) {
+			throw new Error("expected the content region to be an HTMLElement");
+		}
+
+		region.dispatchEvent(new Event("beforematch", { bubbles: true }));
+
+		// Why a longhand: with only one longhand set, the `transition` shorthand reads
+		// as empty, so a reveal that saves and restores the shorthand deletes it.
+		expect(region.style.transitionDuration).toBe("500ms");
+		expect(region.style.transitionProperty).toBe("");
+	});
+
 	test('closing a "beforematch"-revealed section clears the inline height', async () => {
 		const user = userEvent.setup();
 		render(
