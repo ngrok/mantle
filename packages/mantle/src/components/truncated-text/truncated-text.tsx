@@ -34,6 +34,14 @@ type TruncatedTextProps = Omit<ComponentProps<"span">, "children" | "translate">
 	SelfClosingWithAsChild &
 	WithDataSlot & {
 		/**
+		 * The most graphemes the head shows before the ellipsis. When set, a value
+		 * longer than `head + tail` graphemes always clips to that shape, such as
+		 * `ep_…KL123456`, even when its container holds more. A narrower container
+		 * clips the head further. Counts grapheme clusters, like `tail`. Must be a
+		 * non-negative integer. When omitted, the head fills its container.
+		 */
+		head?: number;
+		/**
 		 * How many graphemes stay visible at the end of the value. Counts grapheme
 		 * clusters, so an emoji or a letter with a combining mark counts once. Must
 		 * be a non-negative integer.
@@ -59,6 +67,11 @@ type TruncatedTextProps = Omit<ComponentProps<"span">, "children" | "translate">
  * What the layout effect reads from the DOM after a paint.
  */
 type Measurement = {
+	/**
+	 * The width the head needs to show the lead and the ellipsis, in CSS pixels.
+	 * `null` while the value has no lead.
+	 */
+	headCap: number | null;
 	/**
 	 * The width of the tail's text, in CSS pixels.
 	 */
@@ -94,18 +107,73 @@ function contentWidth(element: HTMLElement): number {
 }
 
 /**
- * Reads whether the value overflows and how wide its tail is.
+ * The elements and the lead that `measure` reads.
+ */
+type MeasureTarget = {
+	root: HTMLElement;
+	head: HTMLElement;
+	tail: HTMLElement;
+	/**
+	 * While the value has a lead: the element that holds one ellipsis, and the
+	 * lead's length in UTF-16 code units.
+	 */
+	lead: { ellipsis: HTMLElement; length: number } | null;
+};
+
+/**
+ * Reads whether the value overflows, how wide its tail is, and how wide the
+ * head must be to show the lead and the ellipsis.
  *
  * Compares the natural widths of the two segments against the root's content
  * box, not against the head's clipped box. Once the whole value fits, a head
  * that the `ch` rounding shortened still reads as fitting.
  */
-function measure(root: HTMLElement, head: HTMLElement, tail: HTMLElement): Measurement {
+function measure({ root, head, tail, lead }: MeasureTarget): Measurement {
+	const headWidth = textWidth(head);
 	const tailWidth = textWidth(tail);
 	// Why half a pixel: the root's shrink-to-fit width and the text widths come
 	// from one layout, but the engines round them at different steps.
-	const truncated = textWidth(head) + tailWidth > contentWidth(root) + 0.5;
-	return { tailWidth, truncated };
+	const truncated = headWidth + tailWidth > contentWidth(root) + 0.5;
+	// Why the text node check: a translation engine can replace the head's
+	// text, and then the lead's length no longer points into it.
+	const text = head.firstChild;
+	if (lead == null || !(text instanceof Text)) {
+		return { headCap: null, tailWidth, truncated };
+	}
+	const range = document.createRange();
+	range.setStart(text, 0);
+	range.setEnd(text, Math.min(lead.length, text.length));
+	// Why the min: a head barely longer than its lead shows whole, with no gap.
+	const headCap = Math.min(
+		range.getBoundingClientRect().width + textWidth(lead.ellipsis),
+		headWidth,
+	);
+	return { headCap, tailWidth, truncated };
+}
+
+/**
+ * Narrows a block of wrapped text to its longest line, so the box around it
+ * shrinks too. `text-wrap: balance` evens the lines but leaves the box at its
+ * full width.
+ */
+function fitToLongestLine(element: HTMLElement | null) {
+	if (element == null) {
+		return;
+	}
+	// Why the reset: a second call, such as the StrictMode replay of a ref,
+	// must measure the lines at the tooltip's full width again.
+	element.style.width = "";
+	const range = document.createRange();
+	range.selectNodeContents(element);
+	const longest = Math.max(...Array.from(range.getClientRects(), (rect) => rect.width));
+	// Why the scale: the tooltip opens with a zoom, and the client rects include
+	// that transform. The computed width does not, and unlike `offsetWidth` it
+	// keeps the fraction, so a line never ends up a fraction too wide to fit.
+	const scale =
+		element.getBoundingClientRect().width / Number.parseFloat(getComputedStyle(element).width);
+	if (Number.isFinite(longest) && scale > 0) {
+		element.style.width = `${Math.ceil(longest / scale)}px`;
+	}
 }
 
 /**
@@ -142,6 +210,12 @@ const rootClassName =
 // Why String.raw: Tailwind reads this file's text, so the class must hold one
 // backslash, and a plain string literal spells that with two.
 const headClassName = String.raw`inline-block overflow-hidden text-ellipsis whitespace-nowrap align-bottom before:content-['\200B'] max-w-[calc(100%_-_var(--_tail-width)_+_0.5px)] [[data-truncated]>&]:max-w-[max(1ch_+_0.5px,calc(round(down,100%_-_var(--_tail-width),1ch)_+_0.5px))]`;
+
+// Why `width`: the root shrinks to its segments, and a percentage `max-width`
+// never narrows that. Only a length can cap the head there.
+// Why round(up, …, 1ch): the truncated rule rounds the head down to whole `ch`,
+// so a cap off the `ch` grid would lose a lead glyph in a proportional font.
+const headCapClassName = "w-[calc(round(up,var(--_head-cap)-0.5px,1ch)+0.5px)]";
 
 // Why min-w: while the reserve is still the `ch` estimate, the tail holds the
 // width the head subtracts, so a value that fits never clips its head.
@@ -227,12 +301,21 @@ const TruncatedTextRoot = ({
  * over-reserve of narrow glyphs can clip. The layout effect after mount
  * replaces the estimate with the measured width.
  *
+ * **Head length.** Pass `head` to show at most that many graphemes before the
+ * ellipsis. A value longer than `head + tail` graphemes then always clips to
+ * that shape, even when its container holds more, and the root shrinks to it.
+ * For an ngrok resource ID, `head={id.indexOf("_") + 1}` keeps the type prefix:
+ * `mem_…A8KImPbQ`. The head rounds up to whole `ch`, so a proportional font can
+ * show one more narrow glyph before the ellipsis.
+ *
  * **Selection.** The root carries `user-select: all`, so one click selects the
  * whole value across both segments, and a copy yields the full string. Pass
  * `className="select-text"` to opt out.
  *
  * **Tooltip.** The tooltip shows the full value and opens only while the value
- * overflows. A value that wraps breaks into lines of near-equal length. It
+ * overflows. The tooltip is up to 24rem wide, so a resource ID fits on one
+ * line. A longer value breaks into lines of near-equal length, and the tooltip
+ * narrows to the longest line. It
  * needs a `TooltipProvider` ancestor, like every mantle tooltip, and throws
  * without one. The server render and the first client render assume
  * no overflow; the measurement after mount adds the tooltip and `data-truncated`.
@@ -274,6 +357,12 @@ const TruncatedTextRoot = ({
  * | `data-truncated` | present while the value overflows                  | Presence-only. Style with `data-truncated:`. Absent on the server render.          |
  * | `data-state`     | `"closed"` \| `"delayed-open"` \| `"instant-open"` | The tooltip state Radix stamps on the root. Absent inside a control.               |
  *
+ * @useWhen Show one long opaque value on one line, and keep its end visible when it clips.
+ *
+ * @siblings
+ * - `Code`: a short fragment of inline code that never overflows.
+ * - `CodeBlock`: a value that may wrap over several lines.
+ *
  * @see https://mantle.ngrok.com/components/data-display/truncated-text
  *
  * @example
@@ -288,6 +377,9 @@ const TruncatedTextRoot = ({
  *
  * // Keep the six characters that tell two IDs apart.
  * <TruncatedText className="font-mono text-sm" tail={6} value="ep_2abcdEFGhijKL123456" />
+ *
+ * // Show an ID as its type prefix, an ellipsis, and its last eight characters.
+ * <TruncatedText className="font-mono text-sm" head={4} value="mem_21h80N9qQuAmhSB8nlTA8KImPbQ" />
  *
  * // As a <code> element.
  * <TruncatedText asChild tail={12} value="ghcr.io/ngrok/ngrok-operator:0.14.0">
@@ -304,6 +396,7 @@ const TruncatedText = ({
 	onFocus,
 	onPointerMove,
 	ref,
+	head,
 	style,
 	tabIndex,
 	tail = 8,
@@ -311,12 +404,13 @@ const TruncatedText = ({
 	value,
 	...props
 }: TruncatedTextProps) => {
-	const { head, tail: tailText, tailGraphemes } = splitTail(value, tail);
+	const { head: headText, lead, tail: tailText, tailGraphemes } = splitTail(value, { head, tail });
 	// Why state and not a ref: an `asChild` child of a new type remounts the
 	// root, and the effect below must bind its observer to the new node.
 	const [rootNode, setRootNode] = useState<HTMLSpanElement | null>(null);
 	const headRef = useRef<HTMLSpanElement>(null);
 	const tailRef = useRef<HTMLSpanElement>(null);
+	const ellipsisRef = useRef<HTMLSpanElement>(null);
 	const composedRef = useComposedRefs(ref, setRootNode);
 	const [measurement, setMeasurement] = useState<Measurement | null>(null);
 	const [open, setOpen] = useState(false);
@@ -340,10 +434,20 @@ const TruncatedText = ({
 			return;
 		}
 
+		const ellipsisElement = ellipsisRef.current;
 		const update = () => {
-			const next = measure(rootNode, headElement, tailElement);
+			const next = measure({
+				root: rootNode,
+				head: headElement,
+				tail: tailElement,
+				lead:
+					lead == null || ellipsisElement == null
+						? null
+						: { ellipsis: ellipsisElement, length: lead.length },
+			});
 			setMeasurement((previous) =>
 				previous != null &&
+				previous.headCap === next.headCap &&
 				previous.tailWidth === next.tailWidth &&
 				previous.truncated === next.truncated
 					? previous
@@ -365,11 +469,14 @@ const TruncatedText = ({
 		return () => {
 			observer.disconnect();
 		};
-	}, [rootNode, value, tail]);
+	}, [rootNode, lead, value, tail]);
 
 	// Why `ch` first: the server has no measurement, and in a monospace font
 	// one grapheme is one `ch`, so the first paint already reserves the tail.
 	const tailReserve = measurement == null ? `${tailGraphemes}ch` : `${measurement.tailWidth}px`;
+	// Why `head + 1`: the ellipsis takes one more cell after the lead.
+	const headCap =
+		measurement?.headCap == null ? `${(head ?? 0) + 1}ch` : `${measurement.headCap}px`;
 
 	const segments = (
 		<>
@@ -378,8 +485,19 @@ const TruncatedText = ({
 			<span data-slot="truncated-text-value" className="sr-only select-none">
 				{value}
 			</span>
-			<span ref={headRef} aria-hidden data-slot="truncated-text-head" className={headClassName}>
-				{head}
+			{/* Why: CSS draws the head's ellipsis, so no text node holds it to measure. */}
+			{lead != null && (
+				<span ref={ellipsisRef} aria-hidden className="invisible absolute select-none">
+					…
+				</span>
+			)}
+			<span
+				ref={headRef}
+				aria-hidden
+				data-slot="truncated-text-head"
+				className={cx(headClassName, lead != null && headCapClassName)}
+			>
+				{headText}
 			</span>
 			<span
 				ref={tailRef}
@@ -401,7 +519,11 @@ const TruncatedText = ({
 		// too, so the tail stays on the right and the head clips at its end.
 		dir: "ltr",
 		className: cx(rootClassName, className),
-		style: $cssProperties({ "--_tail-width": tailReserve, ...style }),
+		style: $cssProperties({
+			"--_tail-width": tailReserve,
+			...(lead != null && { "--_head-cap": headCap }),
+			...style,
+		}),
 		// Why only while truncated and outside a control: a value that fits hides
 		// nothing, and a control already owns the focus, so neither earns a tab
 		// stop. A clipped one on its own needs focus, because the tooltip opens on it.
@@ -468,10 +590,17 @@ const TruncatedText = ({
 			{/* Why Radix's trigger and not `Tooltip.Trigger`: the mantle part stamps its
 			    own `data-slot`, which `Slot` joins into the root's. */}
 			<TooltipPrimitiveTrigger asChild>{root}</TooltipPrimitiveTrigger>
-			{/* Why `text-balance`: `break-all` fills each line to the edge, so a value a
-			    little wider than the tooltip leaves one or two characters on the last line. */}
-			<Tooltip.Content className="break-all text-balance" translate={translate}>
-				{value}
+			{/* Why 24rem: a resource ID fits on one line, so only a longer value wraps.
+			    Why `text-balance`: `break-all` fills each line to the edge, so a value a
+			    little wider than the tooltip leaves one or two characters on the last line.
+			    Why the key: a new value must measure its lines again. */}
+			<Tooltip.Content
+				className="max-w-[min(24rem,calc(100vw-2rem))] break-all text-balance"
+				translate={translate}
+			>
+				<span key={value} ref={fitToLongestLine} className="block">
+					{value}
+				</span>
 			</Tooltip.Content>
 		</TooltipPrimitiveRoot>
 	);

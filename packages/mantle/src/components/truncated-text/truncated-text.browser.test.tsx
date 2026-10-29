@@ -11,7 +11,13 @@ let styleElement: HTMLStyleElement;
 // component's real utilities, the segments lay out as plain inline text.
 beforeAll(async () => {
 	styleElement = document.createElement("style");
-	styleElement.textContent = await commands.tailwindCss("./truncated-text.tsx");
+	// Why border-box: Tailwind's preflight sets it, and the tooltip's `max-width`
+	// holds its padding only under it.
+	styleElement.textContent = [
+		"*, ::before, ::after { box-sizing: border-box; }",
+		await commands.tailwindCss("./truncated-text.tsx"),
+		await commands.tailwindCss("../tooltip/tooltip.tsx"),
+	].join("\n");
 	document.head.appendChild(styleElement);
 });
 
@@ -25,6 +31,7 @@ type RenderOptions = {
 	/** The container's width in CSS pixels. */
 	width: number;
 	fontFamily?: "monospace" | "sans-serif";
+	head?: number;
 	value?: string;
 };
 
@@ -32,14 +39,19 @@ type RenderOptions = {
  * Renders the value inside a fixed-width container, with a probe that measures
  * `1ch` in the same font.
  */
-function renderValue({ width, fontFamily = "monospace", value = url }: RenderOptions) {
+function renderValue({
+	width,
+	fontFamily = "monospace",
+	head: headCount,
+	value = url,
+}: RenderOptions) {
 	render(
-		<TooltipProvider>
+		<TooltipProvider delayDuration={0}>
 			<div
 				data-testid="container"
 				style={{ width, fontFamily, fontSize: "13px", lineHeight: "20px" }}
 			>
-				<TruncatedText data-testid="value" value={value} />
+				<TruncatedText data-testid="value" head={headCount} value={value} />
 				<span data-testid="probe">0</span>
 			</div>
 		</TooltipProvider>,
@@ -275,4 +287,155 @@ test("a value no longer than its tail draws the ellipsis itself and keeps its en
 	// The tail takes all five cells; the ellipsis paints over the first of them.
 	expect(tail.getBoundingClientRect().width).toBeCloseTo(5 * ch + 0.5, 0);
 	expect(visibleGlyphs(tail)).toBe("ok:v3");
+});
+
+const memberId = "mem_21h80N9qQuAmhSB8nlTA8KImPbQ";
+
+test("with `head`, shows the lead, one ellipsis, and the tail while the container holds more", async () => {
+	const { root, head, tail, ch } = renderValue({ width: 600, head: 4, value: memberId });
+	await expect.poll(() => root.hasAttribute("data-truncated")).toBe(true);
+
+	// Four lead cells and one ellipsis cell, plus the half pixel of slack.
+	expect(head.getBoundingClientRect().width).toBeCloseTo(5 * ch + 0.5, 0);
+	expect(tail.getBoundingClientRect().width).toBeCloseTo(textWidth(tail), 0);
+	// The root shrinks to the two segments, so nothing follows the tail.
+	expect(root.getBoundingClientRect().right).toBeCloseTo(tail.getBoundingClientRect().right, 0);
+});
+
+test("with `head`, the server markup already shows the lead shape before hydration", () => {
+	const container = document.createElement("div");
+	container.style.cssText =
+		"width: 600px; font-family: monospace; font-size: 13px; line-height: 20px;";
+	container.innerHTML = renderToString(
+		<TooltipProvider>
+			<TruncatedText head={4} value={memberId} />
+		</TooltipProvider>,
+	);
+	const probe = document.createElement("span");
+	probe.textContent = "0";
+	container.append(probe);
+	document.body.appendChild(container);
+	try {
+		const head = container.querySelector('[data-slot="truncated-text-head"]');
+		if (!(head instanceof HTMLElement)) {
+			throw new Error("The server markup lacks the head slot.");
+		}
+		const ch = probe.getBoundingClientRect().width;
+		expect(head.getBoundingClientRect().width).toBeCloseTo(5 * ch + 0.5, 0);
+	} finally {
+		container.remove();
+	}
+});
+
+test("with `head`, a proportional font shows the whole lead and the ellipsis", async () => {
+	const { root, head, ch } = renderValue({
+		width: 600,
+		fontFamily: "sans-serif",
+		head: 4,
+		value: memberId,
+	});
+	await expect.poll(() => root.hasAttribute("data-truncated")).toBe(true);
+
+	const text = head.firstChild;
+	if (!(text instanceof Text)) {
+		throw new Error("The head holds no text node.");
+	}
+	const lead = document.createRange();
+	lead.setStart(text, 0);
+	lead.setEnd(text, 4);
+	const ellipsis = document.createElement("span");
+	ellipsis.textContent = "…";
+	root.parentElement?.append(ellipsis);
+	const needed = lead.getBoundingClientRect().width + ellipsis.getBoundingClientRect().width;
+	ellipsis.remove();
+
+	// The head rounds up to whole `ch`, so it never drops a lead glyph and
+	// adds less than one cell.
+	expect(head.getBoundingClientRect().width).toBeGreaterThanOrEqual(needed);
+	expect(head.getBoundingClientRect().width).toBeLessThan(needed + ch + 0.5);
+});
+
+test("with `head`, a narrower container clips the head further", async () => {
+	const { container, root, head, ch } = renderValue({ width: 600, head: 4, value: memberId });
+	container.style.width = `${Math.round(10.4 * ch)}px`;
+	await expect.poll(() => root.hasAttribute("data-truncated")).toBe(true);
+
+	expect(container.scrollWidth).toBeLessThanOrEqual(container.clientWidth);
+	// Ten cells hold the eight-cell tail and two head cells.
+	expect(head.getBoundingClientRect().width).toBeCloseTo(2 * ch + 0.5, 0);
+});
+
+test("with `head`, a value no longer than head plus tail renders whole", () => {
+	const { root, head } = renderValue({ width: 600, head: 4, value: "mem_A8KImPbQ" });
+
+	expect(root).not.toHaveAttribute("data-truncated");
+	expect(head.scrollWidth).toBeLessThanOrEqual(head.clientWidth);
+});
+
+/**
+ * Hovers a clipped value, waits for its tooltip to settle, and reads the
+ * widths of the tooltip's lines.
+ */
+async function openTooltip(value: string) {
+	const { root } = renderValue({ width: 160, value });
+	await expect.poll(() => root.hasAttribute("data-truncated")).toBe(true);
+
+	await userEvent.hover(root);
+	await expect.poll(() => document.querySelector('[data-slot~="tooltip-content"]')).not.toBeNull();
+	const content = document.querySelector('[data-slot~="tooltip-content"]');
+	const label = content?.querySelector('[data-slot="tooltip-label"] > span');
+	if (!(content instanceof HTMLElement) || !(label instanceof HTMLElement)) {
+		throw new Error("The tooltip did not open.");
+	}
+	await Promise.all(content.getAnimations().map((animation) => animation.finished));
+
+	const range = document.createRange();
+	range.selectNodeContents(label);
+	const style = getComputedStyle(content);
+	return {
+		content,
+		inset: Number.parseFloat(style.paddingLeft) + Number.parseFloat(style.paddingRight),
+		lines: Array.from(range.getClientRects(), (rect) => rect.width),
+	};
+}
+
+test("the tooltip shows a resource ID on one line", async () => {
+	const { lines } = await openTooltip(memberId);
+
+	expect(lines).toHaveLength(1);
+});
+
+test("the tooltip keeps a one-line value on one line when its width has a fraction", async () => {
+	// Why the search: `offsetWidth` rounds a width such as 167.36px down to 167px,
+	// and a box that narrow wraps the line. Pick an ID whose width in the
+	// tooltip's font has a fraction under one half, so a rounded width is too narrow.
+	const probe = document.createElement("span");
+	probe.className = "font-sans text-sm";
+	document.body.append(probe);
+	const id = Array.from("0123456789abcdefghij", (glyph) => `ep_2abcdEFGhijKL12345${glyph}`).find(
+		(candidate) => {
+			probe.textContent = candidate;
+			const fraction = probe.getBoundingClientRect().width % 1;
+			return fraction > 0.05 && fraction < 0.45;
+		},
+	);
+	probe.remove();
+	if (id == null) {
+		throw new Error("No candidate ID has a width with a small fraction in this font.");
+	}
+
+	const { lines } = await openTooltip(id);
+
+	expect(lines).toHaveLength(1);
+});
+
+test("the tooltip balances a longer value and shrinks to its longest line", async () => {
+	const { content, inset, lines } = await openTooltip(url);
+
+	// The value is a little wider than the tooltip's `max-width`, so it wraps
+	// onto two lines of near-equal length.
+	expect(lines).toHaveLength(2);
+	expect(Math.abs((lines[0] ?? 0) - (lines[1] ?? 0))).toBeLessThan(20);
+	// The box hugs the longer line, not the `max-width`.
+	expect(content.getBoundingClientRect().width).toBeLessThanOrEqual(Math.max(...lines) + inset + 1);
 });
