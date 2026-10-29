@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { hasMarkdownVariant, negotiatedMarkdownResponse } from "./markdown-negotiation";
+import {
+	hasMarkdownVariant,
+	markdownTwinPath,
+	negotiatedMarkdownResponse,
+} from "./markdown-negotiation";
 
 const markdownRequest = (path: string, accept = "text/markdown") =>
 	new Request(`https://mantle.ngrok.com${path}`, { headers: { Accept: accept } });
@@ -27,5 +31,13 @@ describe("hasMarkdownVariant", () => {
 	it("is true for a docs page and false for a path with no markdown", () => {
 		expect(hasMarkdownVariant("/components/actions/button")).toBe(true);
 		expect(hasMarkdownVariant("/no-such-page")).toBe(false);
+	});
+});
+
+describe("markdownTwinPath", () => {
+	it("is the .md route of a docs page, and undefined for a path with no markdown", () => {
+		expect(markdownTwinPath("/components/actions/button")).toBe("/components/actions/button.md");
+		expect(markdownTwinPath("/")).toBe("/index.md");
+		expect(markdownTwinPath("/no-such-page")).toBeUndefined();
 	});
 });
