@@ -373,10 +373,10 @@ const ListItem = ({
 			className={cx(
 				"group/radio border-form [&_label]:cursor-inherit relative flex select-none gap-2 border px-3 py-2 text-sm",
 				"cursor-pointer aria-disabled:cursor-default focus:outline-hidden",
-				"focus-visible:ring-focus-accent not-aria-disabled:focus-visible:border-accent-600 focus-visible:ring-4",
+				"focus-visible:ring-focus-accent focus-visible:z-1 focus-visible:ring-4",
 				"first-of-type:rounded-tl-md first-of-type:rounded-tr-md last-of-type:rounded-bl-md last-of-type:rounded-br-md",
 				"aria-disabled:border-form/50 not-aria-disabled:hover:bg-active-menu-item",
-				"aria-checked:z-1 aria-checked:border-accent-500/40 aria-checked:bg-selected-menu-item not-aria-disabled:hover:aria-checked:bg-active-selected-menu-item",
+				"aria-checked:bg-selected-menu-item not-aria-disabled:hover:aria-checked:bg-active-selected-menu-item",
 				"has-[.radio-indicator:first-child]:pl-2 has-[.radio-indicator:last-child]:pr-2",
 				className,
 			)}
@@ -440,10 +440,10 @@ const Card = ({
 			className={clsx(
 				"group/radio border-card bg-card [&_label]:cursor-inherit relative rounded-md border p-4 text-sm",
 				"cursor-pointer aria-disabled:cursor-default focus:outline-hidden",
-				"focus-visible:ring-focus-accent not-aria-disabled:focus-visible:border-accent-600 focus-visible:ring-4",
+				"focus-visible:ring-focus-accent focus-visible:ring-4",
 				"first-of-type:rounded-tl-md first-of-type:rounded-tr-md last-of-type:rounded-bl-md last-of-type:rounded-br-md",
 				"aria-disabled:border-form/50 not-aria-disabled:hover:bg-card-hover",
-				"aria-checked:z-1 aria-checked:border-accent-600/50 aria-checked:bg-selected-menu-item not-aria-disabled:hover:aria-checked:bg-active-selected-menu-item",
+				"aria-checked:bg-selected-menu-item not-aria-disabled:hover:aria-checked:bg-active-selected-menu-item",
 				className,
 			)}
 			{...props}
@@ -563,11 +563,11 @@ const Button = ({
 				"group/radio border-form [&_label]:cursor-inherit relative flex flex-1 select-none items-center justify-center gap-2 border px-3 text-sm",
 				// Why nowrap: the segment has a fixed height, so a wrapped label spills out of it.
 				"h-9 whitespace-nowrap",
-				"focus-visible:ring-focus-accent not-aria-disabled:focus-visible:border-accent-600 focus-visible:ring-4",
+				"focus-visible:ring-focus-accent focus-visible:z-1 focus-visible:ring-4",
 				"cursor-pointer aria-disabled:cursor-default focus:outline-hidden",
 				"first-of-type:rounded-bl-md first-of-type:rounded-tl-md last-of-type:rounded-br-md last-of-type:rounded-tr-md",
 				"not-aria-disabled:hover:bg-active-menu-item aria-disabled:opacity-50",
-				"aria-checked:z-1 aria-checked:border-accent-600/40 aria-checked:bg-selected-menu-item not-aria-disabled:hover:aria-checked:bg-active-selected-menu-item",
+				"aria-checked:bg-selected-menu-item not-aria-disabled:hover:aria-checked:bg-active-selected-menu-item",
 				"has-[.radio-indicator:first-child]:pl-2 has-[.radio-indicator:last-child]:pr-2",
 				className,
 			)}
