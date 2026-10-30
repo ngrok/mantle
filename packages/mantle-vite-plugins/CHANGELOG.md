@@ -1,5 +1,13 @@
 # @ngrok/mantle-vite-plugins
 
+## 1.2.8
+
+### Patch Changes
+
+- [#1652](https://github.com/ngrok/mantle/pull/1652) [`a6a8581`](https://github.com/ngrok/mantle/commit/a6a85814d6be91e323e7f071596805c5a71a3d63) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Set `engines.node` to `^26.0.0`. Node 26 is the active LTS release.
+- Updated dependencies [[`a6a8581`](https://github.com/ngrok/mantle/commit/a6a85814d6be91e323e7f071596805c5a71a3d63)]:
+  - @ngrok/mantle-server-syntax-highlighter@1.1.21
+
 ## 1.2.7
 
 ### Patch Changes
