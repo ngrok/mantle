@@ -3,7 +3,6 @@
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import process from "node:process";
-import { pathToFileURL } from "node:url";
 
 /** One command that `check:changed` runs. */
 export type CheckStep = {
@@ -177,8 +176,7 @@ function cli(): void {
 	console.log(`check:changed: all ${steps.length} steps passed for ${files.length} changed files.`);
 }
 
-const entryPoint = process.argv[1];
-if (entryPoint != null && import.meta.url === pathToFileURL(entryPoint).href) {
+if (import.meta.main) {
 	try {
 		cli();
 	} catch (error) {

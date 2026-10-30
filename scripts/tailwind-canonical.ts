@@ -7,7 +7,6 @@ import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { availableParallelism } from "node:os";
 import path from "node:path";
 import process from "node:process";
-import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import { Worker } from "node:worker_threads";
 
@@ -42,7 +41,7 @@ const CACHE_RULES_VERSION = 5;
  */
 const WORKER_FILE_THRESHOLD = 32;
 
-export const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+export const REPO_ROOT = path.resolve(import.meta.dirname, "..");
 
 /** A class the scanner found in a class-list literal, at its offset in the file. */
 export type Hit = { position: number; candidate: string };
@@ -850,9 +849,7 @@ async function main({ files, write }: { files: string[]; write: boolean }) {
 	}
 }
 
-const isEntrypoint =
-	process.argv[1] != null && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
-if (isEntrypoint) {
+if (import.meta.main) {
 	// With no file arguments, the run checks every source file under `apps/` and `packages/`.
 	const { values, positionals } = parseArgs({
 		allowPositionals: true,

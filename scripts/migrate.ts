@@ -4,7 +4,6 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
-import { pathToFileURL } from "node:url";
 
 const repoRoot = path.resolve(import.meta.dirname, "..");
 const docsOrigin = "https://mantle.ngrok.com";
@@ -196,6 +195,6 @@ export function main(argv: readonly string[], paths: MigrationPaths = defaultPat
 	return result.status ?? 1;
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
+if (import.meta.main) {
 	process.exitCode = main(process.argv.slice(2));
 }

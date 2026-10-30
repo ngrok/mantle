@@ -35,8 +35,8 @@ pnpm bench -- --matrix=table --n=100 --runs=3 --out=table
 pnpm bench:trace -- "?animate=0&kind=bar&mode=table&n=100&points=30" --runs=3 --per-task=14
 pnpm bench:profile -- "?animate=0&kind=line&mode=list&n=100&points=30"
 pnpm bench:report -- bench/results/list.jsonl --out=bench/results/report.md
-pnpm exec tsx bench/summary.ts bench/results/list.jsonl
-pnpm exec tsx bench/canvas-cost.ts 40
+node bench/summary.ts bench/results/list.jsonl
+node bench/canvas-cost.ts 40
 ```
 
 `run.ts` writes one JSON line per case to `bench/results/` (gitignored) and reports startup

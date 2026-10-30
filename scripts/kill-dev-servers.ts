@@ -3,7 +3,6 @@
 import { spawnSync } from "node:child_process";
 import process from "node:process";
 import { setTimeout } from "node:timers/promises";
-import { pathToFileURL } from "node:url";
 
 /** A TCP listener from the `lsof` field output. */
 export type TcpListener = {
@@ -387,8 +386,7 @@ function isNodeErrorWithCode(error: Error, code: string): boolean {
 	return "code" in error && error.code === code;
 }
 
-const entryPoint = process.argv[1];
-if (entryPoint != null && import.meta.url === pathToFileURL(entryPoint).href) {
+if (import.meta.main) {
 	try {
 		await cli();
 	} catch (error) {
