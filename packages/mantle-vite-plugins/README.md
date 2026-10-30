@@ -5,7 +5,7 @@ Vite plugins for apps built with [`@ngrok/mantle`](https://github.com/ngrok/mant
 
 ## Requirements
 
-- Node.js 24+
+- Node.js 26 LTS
 - Vite 8.3 or later
 - `@ngrok/mantle` installed in the same project
 
