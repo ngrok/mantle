@@ -115,7 +115,7 @@ const Title = ({
 	return (
 		<Comp
 			data-slot={joinDataSlot(dataSlot, "empty-title")}
-			className={cx("text-strong text-sm font-medium font-sans", className)}
+			className={cx("text-strong text-pretty text-sm font-medium font-sans", className)}
 			{...props}
 		>
 			{children}
@@ -159,7 +159,7 @@ const Description = ({
 	return (
 		<Comp
 			data-slot={joinDataSlot(dataSlot, "empty-description")}
-			className={cx("text-muted space-y-4 text-sm font-sans", className)}
+			className={cx("text-muted space-y-4 text-pretty text-sm font-sans", className)}
 			{...props}
 		>
 			{children}
