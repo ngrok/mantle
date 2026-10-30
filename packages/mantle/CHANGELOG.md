@@ -1,5 +1,11 @@
 # @ngrok/mantle
 
+## 0.93.8
+
+### Patch Changes
+
+- [`c9cbecd`](https://github.com/ngrok/mantle/commit/c9cbecd7551732a36826bd778c13cde08a9c8fc0) Thanks [@forzalupo](https://github.com/forzalupo)! - `Empty.Title` and `Empty.Description` use `text-pretty`, so the last line of long copy does not end on a single word.
+
 ## 0.93.7
 
 ### Patch Changes
