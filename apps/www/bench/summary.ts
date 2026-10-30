@@ -1,7 +1,7 @@
 /**
  * A compact cross-table for the write-up: one row per (case, animation) with the
  * handful of columns that decide the comparison. Medians over runs.
- * Run: `pnpm exec tsx bench/summary.ts bench/results/list.jsonl [more.jsonl]`.
+ * Run: `node bench/summary.ts bench/results/list.jsonl [more.jsonl]`.
  */
 import { readFile } from "node:fs/promises";
 import path from "node:path";

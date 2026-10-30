@@ -3,7 +3,6 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
-import { pathToFileURL } from "node:url";
 
 /** The largest size an agent doc may reach, in bytes. */
 export type AgentDocBudget = {
@@ -55,8 +54,7 @@ export function checkAgentDocs({
 	return problems;
 }
 
-const entryPoint = process.argv[1];
-if (entryPoint != null && import.meta.url === pathToFileURL(entryPoint).href) {
+if (import.meta.main) {
 	const rootDir = path.join(import.meta.dirname, "..");
 	const problems = checkAgentDocs({ rootDir, budgets: agentDocBudgets });
 	for (const problem of problems) {

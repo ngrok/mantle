@@ -4,7 +4,6 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
-import { pathToFileURL } from "node:url";
 
 /** One link in a markdown file, with the 1-based line it starts on. */
 export type MarkdownLink = { target: string; line: number };
@@ -174,7 +173,6 @@ function cli(): void {
 	console.log(`All relative links resolve in ${files.length} markdown files.`);
 }
 
-const entryPoint = process.argv[1];
-if (entryPoint != null && import.meta.url === pathToFileURL(entryPoint).href) {
+if (import.meta.main) {
 	cli();
 }

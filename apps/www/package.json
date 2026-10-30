@@ -11,10 +11,10 @@
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest watch",
     "typecheck": "react-router typegen && tsrs",
-    "bench": "tsx bench/run.ts",
-    "bench:trace": "tsx bench/trace.ts",
-    "bench:profile": "tsx bench/profile.ts",
-    "bench:report": "tsx bench/report.ts"
+    "bench": "node bench/run.ts",
+    "bench:trace": "node bench/trace.ts",
+    "bench:profile": "node bench/profile.ts",
+    "bench:report": "node bench/report.ts"
   },
   "dependencies": {
     "@mdx-js/react": "3.1.1",
@@ -65,7 +65,6 @@
     "remark-gfm": "4.0.1",
     "tailwindcss": "catalog:",
     "tinyglobby": "0.2.17",
-    "tsx": "catalog:",
     "typescript": "catalog:",
     "unist-util-visit": "5.2.0",
     "vite": "catalog:",

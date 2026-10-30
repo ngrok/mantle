@@ -1,7 +1,7 @@
 /**
  * The raw cost of canvas setup and paint for N sparkline-sized canvases, with
  * no React and no engine: how much of a chart's first paint is the browser's.
- * Run: `pnpm exec tsx bench/canvas-cost.ts [count]`.
+ * Run: `node bench/canvas-cost.ts [count]`.
  */
 import { chromium } from "playwright";
 

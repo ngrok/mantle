@@ -6,7 +6,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { chromium } from "playwright";
-import { BENCH_PATH, RESULTS_DIR, startServer } from "./serve";
+import { BENCH_PATH, RESULTS_DIR, startServer } from "./serve.ts";
 
 const PORT = 3446;
 

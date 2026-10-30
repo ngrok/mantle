@@ -1,5 +1,4 @@
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 /**
  * Get the absolute path relative to the current file in /scripts
@@ -7,8 +6,7 @@ import { fileURLToPath } from "node:url";
  * @param  {...string} parts
  */
 function relativePath(...parts) {
-	const currentDir = fileURLToPath(new URL(".", import.meta.url));
-	return path.resolve(currentDir, ...parts);
+	return path.resolve(import.meta.dirname, ...parts);
 }
 
 export {

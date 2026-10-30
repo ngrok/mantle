@@ -45,7 +45,6 @@
     "oxlint": "1.90.0",
     "oxlint-tsgolint": "7.0.2005",
     "tsrs": "0.20.1-ts7.1.0-beta",
-    "tsx": "catalog:",
     "turbo": "2.11.10",
     "typescript": "catalog:",
     "vitest": "5.0.5"

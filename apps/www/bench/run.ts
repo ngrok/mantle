@@ -12,7 +12,7 @@ import { chromium } from "playwright";
 import type { Browser, CDPSession, Page } from "playwright";
 import type { Gate, Kind, Mode } from "../app/features/chart-bench/config";
 import type { BenchSnapshot } from "../app/features/chart-bench/metrics";
-import { BENCH_PATH, RESULTS_DIR, startServer } from "./serve";
+import { BENCH_PATH, RESULTS_DIR, startServer } from "./serve.ts";
 
 type Case = {
 	/** Whether the charts play their mount animation. */
