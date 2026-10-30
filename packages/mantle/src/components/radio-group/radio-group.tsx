@@ -244,8 +244,7 @@ const DefaultRadioIndicator = ({ checked, disabled, focus, hover }: RadioStateCo
 			focus && !disabled && "ring-focus-accent ring-4",
 		)}
 	>
-		{/* Why static: `bg-white` turns black in dark mode. */}
-		{checked && <span className="size-2 rounded-full bg-static-white shrink-0" />}
+		{checked && <span className="size-2 rounded-full bg-white shrink-0" />}
 	</span>
 );
 
