@@ -12,8 +12,13 @@ export default {
 		// fails because the framework treats the 301 as an unexpected status.
 		// The benchmark page renders on the client only; a snapshot of it holds nothing.
 		// `robots.txt` depends on the `x-ngrok-edge` request header, so it must answer each request.
+		// `api/shiki-highlight` has only an action, so the prerender writes no file for it.
 		return getStaticPaths().filter(
-			(path) => !path.endsWith(".mdx") && !path.startsWith("/bench/") && path !== "/robots.txt",
+			(path) =>
+				!path.endsWith(".mdx") &&
+				!path.startsWith("/bench/") &&
+				path !== "/robots.txt" &&
+				path !== "/api/shiki-highlight",
 		);
 	},
 } satisfies Config;

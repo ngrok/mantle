@@ -1,12 +1,24 @@
 import type { EntryContext } from "react-router";
 import { allowsIndexing, EDGE_HEADER } from "./indexing";
 
-type DocumentHeadersOptions = {
+/** How the CSP trusts the scripts of a document. */
+type DocumentScripts =
+	| {
+			/** A rendered page: the nonce on its `<script>` tags. */
+			nonce: string;
+			/** The router context of the render, for the `Link` header. */
+			routerContext: EntryContext;
+	  }
+	| {
+			/**
+			 * A prerendered page: the base64 SHA-256 of each inline script. The nonce
+			 * in the file is the same for each visitor, so it protects nothing.
+			 */
+			scriptHashes: readonly string[];
+	  };
+
+type DocumentHeadersOptions = DocumentScripts & {
 	request: Request;
-	/** The router context of the render, for the `Link` header. */
-	routerContext: EntryContext;
-	/** The nonce on the document's `<script>` tags. */
-	nonce: string;
 	/** Development and HMR responses are never cached. */
 	isDev: boolean;
 	/** The document also has a markdown answer, so caches must key on `Accept`. */
@@ -14,8 +26,10 @@ type DocumentHeadersOptions = {
 };
 
 /**
- * The headers of a rendered HTML document: security, indexing, caching, and
- * the `Link` preloads. `app/entry.server.tsx` sends them on each rendered page.
+ * The headers of an HTML document: security, indexing, caching, and, for a
+ * rendered page, the `Link` preloads. `app/entry.server.tsx` sends them on
+ * each rendered page, and `server/prerendered-documents.ts` on each
+ * prerendered page.
  *
  * Append `Vary` to the existing value; set the other headers.
  *
@@ -25,10 +39,9 @@ type DocumentHeadersOptions = {
  */
 function documentHeaders({
 	request,
-	routerContext,
-	nonce,
 	isDev,
 	hasMarkdownVariant,
+	...scripts
 }: DocumentHeadersOptions): Record<string, string> {
 	const indexable = allowsIndexing(request);
 	const allowSameOriginFraming = isPreviewDocument(new URL(request.url).pathname);
@@ -36,7 +49,7 @@ function documentHeaders({
 	const blockIndexing = !indexable || allowSameOriginFraming;
 
 	return {
-		Link: buildLinkHeader(routerContext),
+		...("routerContext" in scripts ? { Link: buildLinkHeader(scripts.routerContext) } : {}),
 		...(blockIndexing ? { "X-Robots-Tag": "noindex, nofollow" } : {}),
 		"X-Debug-Indexing-Blocked": String(blockIndexing),
 		"X-Debug-Has-Ngrok-Header": String(indexable),
@@ -62,7 +75,7 @@ function documentHeaders({
 		// A privacy-preserving referrer, and no powerful browser features that the docs do not use.
 		"Referrer-Policy": "strict-origin-when-cross-origin",
 		"Permissions-Policy": "camera=(), microphone=(), geolocation=()",
-		"Content-Security-Policy": buildCSPHeader({ nonce, allowSameOriginFraming }),
+		"Content-Security-Policy": buildCSPHeader({ scripts, allowSameOriginFraming }),
 	};
 }
 
@@ -83,8 +96,8 @@ function isPreviewDocument(pathname: string): boolean {
  *
  * The header arrives before the HTML body, so the browser starts these
  * fetches earlier than the `<link>` tags in the document. Preconnects and font
- * preloads live in `root.tsx` instead, because a prerendered page is a static
- * file with no `Link` header.
+ * preloads live in `root.tsx` instead, because a prerendered page gets no
+ * `Link` header.
  *
  * @example
  * buildLinkHeader(routerContext);
@@ -119,19 +132,26 @@ function buildLinkHeader(routerContext: EntryContext): string {
  * nonce-trusted code inserts. Do not add host sources: only browsers outside
  * the support window read them.
  *
+ * A prerendered page trusts its inline scripts by hash and the app's own
+ * modules by `'self'`. Why no `'strict-dynamic'`: a hash, unlike a nonce,
+ * does not carry to the imports of an inline module script, so the browser
+ * would block the entry module.
+ *
  * `allowSameOriginFraming` relaxes `frame-ancestors` to `'self'` for the
  * framed example preview documents; everything else refuses framing.
  */
 function buildCSPHeader({
-	nonce,
+	scripts,
 	allowSameOriginFraming,
 }: {
-	nonce: string;
+	scripts: DocumentScripts;
 	allowSameOriginFraming: boolean;
 }): string {
 	return [
 		//,
-		`script-src 'nonce-${nonce}' 'strict-dynamic'`,
+		"nonce" in scripts
+			? `script-src 'nonce-${scripts.nonce}' 'strict-dynamic'`
+			: ["script-src 'self'", ...scripts.scriptHashes.map((hash) => `'sha256-${hash}'`)].join(" "),
 		"base-uri 'self'",
 		"object-src 'none'",
 		"worker-src 'self' blob:",

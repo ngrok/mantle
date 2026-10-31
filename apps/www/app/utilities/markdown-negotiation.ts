@@ -1,9 +1,14 @@
 import { rawDocContent, urlToFileMap } from "./docs";
 import { prefersMarkdown } from "./prefers-markdown";
 
+/** The `urlToFileMap` key of the docs page at `pathname`, with or without a trailing slash. */
+function docKey(pathname: string): string {
+	return pathname.replace(/^\/|\/+$/g, "") || "index";
+}
+
 /** The raw markdown of the docs page at `pathname`, or `undefined` when the page has none. */
 function markdownSource(pathname: string): string | undefined {
-	const filePath = urlToFileMap.get(pathname.replace(/^\//, "") || "index");
+	const filePath = urlToFileMap.get(docKey(pathname));
 	return filePath == null ? undefined : rawDocContent[filePath];
 }
 
@@ -17,6 +22,18 @@ function markdownSource(pathname: string): string | undefined {
  */
 function hasMarkdownVariant(pathname: string): boolean {
 	return markdownSource(pathname) != null;
+}
+
+/**
+ * The URL of the markdown twin of the docs page at `pathname` (its `.md`
+ * route, which the build prerenders), or `undefined` when the page has none.
+ *
+ * @example
+ * markdownTwinPath("/components/actions/button"); // => "/components/actions/button.md"
+ * markdownTwinPath("/"); // => "/index.md"
+ */
+function markdownTwinPath(pathname: string): string | undefined {
+	return hasMarkdownVariant(pathname) ? `/${docKey(pathname)}.md` : undefined;
 }
 
 /**
@@ -56,5 +73,6 @@ function negotiatedMarkdownResponse(request: Request): Response | null {
 export {
 	//,
 	hasMarkdownVariant,
+	markdownTwinPath,
 	negotiatedMarkdownResponse,
 };
