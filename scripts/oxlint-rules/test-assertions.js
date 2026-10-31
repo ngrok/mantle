@@ -8,6 +8,11 @@
  * `no-config-teardown`: each Vitest config sets `restoreMocks`, `unstubEnvs`,
  * and `unstubGlobals`, and each setup file runs `cleanup()` after each test.
  *
+ * `no-process-env-write`: never assign or delete `process.env` or a key of it.
+ * The unit test files share a worker, so the change reaches every later file,
+ * and a replaced `process.env` object also hides every later `vi.stubEnv`. Use
+ * `vi.stubEnv`, which the config undoes after each test.
+ *
  * `no-happy-dom-to-be-visible`: happy-dom loads no CSS, so `toBeVisible()`
  * sees only the `hidden` attribute and inline styles. Use `toBeInTheDocument()`
  * for presence. The rule has no autofix, because an element that a `hidden`
@@ -19,9 +24,11 @@
  * // ❌ Incorrect
  * test("loads", () => { expect(result).toBeDefined(); });
  * afterEach(() => { vi.restoreAllMocks(); });
+ * process.env.NODE_ENV = "test";
  * expect(screen.getByRole("heading")).toBeVisible(); // in happy-dom
  *
  * // ✅ Correct
+ * vi.stubEnv("NODE_ENV", "test");
  * expect(screen.getByRole("heading")).toBeInTheDocument();
  */
 
@@ -216,12 +223,59 @@ const noHappyDomToBeVisible = {
 	},
 };
 
+/** Whether the node is `process.env`, or a key read from it at any depth. */
+function isProcessEnv(node) {
+	if (node?.type !== "MemberExpression") {
+		return false;
+	}
+	const isEnv =
+		node.object.type === "Identifier" &&
+		node.object.name === "process" &&
+		node.property.type === "Identifier" &&
+		node.property.name === "env";
+	return isEnv || isProcessEnv(node.object);
+}
+
+const noProcessEnvWrite = {
+	meta: {},
+	create(context) {
+		const message =
+			"Never write process.env in a test; use vi.stubEnv, which the config undoes after each test.";
+		return {
+			AssignmentExpression(node) {
+				if (isProcessEnv(node.left)) {
+					context.report({ message, node });
+				}
+			},
+			UnaryExpression(node) {
+				if (node.operator === "delete" && isProcessEnv(node.argument)) {
+					context.report({ message, node });
+				}
+			},
+			CallExpression(node) {
+				const { callee } = node;
+				if (
+					callee.type === "MemberExpression" &&
+					callee.object.type === "Identifier" &&
+					callee.object.name === "Reflect" &&
+					callee.property.type === "Identifier" &&
+					callee.property.name === "deleteProperty" &&
+					isProcessEnv(node.arguments[0])
+				) {
+					context.report({ message, node });
+				}
+			},
+		};
+	},
+};
+
 const plugin = {
 	meta: { name: "mantle" },
 	rules: {
 		"no-config-teardown": noConfigTeardown,
 		"no-happy-dom-to-be-visible": noHappyDomToBeVisible,
 		"no-only-to-be-defined": noOnlyToBeDefined,
+		"no-process-env-write": noProcessEnvWrite,
 	},
 };
 

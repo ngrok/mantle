@@ -233,6 +233,7 @@
         "mantle/no-only-to-be-defined": "error",
         "mantle/no-bare-to-have-been-called": "error",
         "mantle/no-presence-matcher-on-get-by": "error",
+        "mantle/no-process-env-write": "error",
         "mantle/no-sleep-in-tests": "error",
         "vitest/expect-expect": ["error", { "assertFunctionNames": ["expect", "expect*"] }]
       }
