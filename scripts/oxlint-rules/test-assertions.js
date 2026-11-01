@@ -228,11 +228,11 @@ function isProcessEnv(node) {
 	if (node?.type !== "MemberExpression") {
 		return false;
 	}
-	const isEnv =
-		node.object.type === "Identifier" &&
-		node.object.name === "process" &&
-		node.property.type === "Identifier" &&
-		node.property.name === "env";
+	const { computed, property } = node;
+	const isEnvKey = computed
+		? property.type === "Literal" && property.value === "env"
+		: property.type === "Identifier" && property.name === "env";
+	const isEnv = node.object.type === "Identifier" && node.object.name === "process" && isEnvKey;
 	return isEnv || isProcessEnv(node.object);
 }
 
@@ -244,6 +244,11 @@ const noProcessEnvWrite = {
 		return {
 			AssignmentExpression(node) {
 				if (isProcessEnv(node.left)) {
+					context.report({ message, node });
+				}
+			},
+			UpdateExpression(node) {
+				if (isProcessEnv(node.argument)) {
 					context.report({ message, node });
 				}
 			},
