@@ -140,8 +140,8 @@ export default defineConfig(({ command }) => ({
 		// Why: a run spends three quarters of its time in the MDX, React Compiler, and code-block
 		// transforms, so keeping their output in `node_modules/.vitest-cache` cuts a warm run from
 		// 17s to 7s. `workspacePluginCacheKey` folds the built workspace plugins into the key.
-		// Why not in CI: a fresh runner has nothing to read, so the run only pays the writes.
-		fsModuleCache: !(process.env.CI === "1" || /true/i.test(process.env.CI ?? "")),
+		// CI uses it too: the `test` shards restore the cache that `warm-vitest-cache` saves.
+		fsModuleCache: true,
 	},
 	resolve: {
 		// Ensure Mantle components resolve to source in dev mode (not dist)

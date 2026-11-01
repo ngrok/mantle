@@ -135,14 +135,17 @@ Omit the name (or pass `all`) to sweep every component in `packages/mantle/src/c
 
 Pre-commit hooks run automatically via [husky](https://typicode.github.io/husky/) and [lint-staged](https://github.com/lint-staged/lint-staged). On every commit, staged files are formatted with oxfmt and linted with oxlint.
 
-If you need to skip the pre-commit hook locally (e.g., WIP commits, rebasing), set the `SKIP_HOOKS` env var:
+Before each push, the pre-push hook runs `pnpm -w run check:changed --no-tests`. It checks format, Tailwind classes, type-aware lint, agent-doc budgets, and doc links on the changed files, then typechecks the affected packages. It reads the working tree, uncommitted changes included. Tests take longer, so CI runs them. A branch delete skips the check.
+
+If you need to skip the git hooks locally (e.g., WIP commits, rebasing), set the `SKIP_HOOKS` env var:
 
 ```sh
 SKIP_HOOKS=1 git commit -m "wip"
+SKIP_HOOKS=1 git push
 ```
 
 > [!NOTE]
-> This is a **local opt-out only**. CI always runs formatting and linting checks against your branch, so any issues are still caught before merge.
+> This is a **local opt-out only**. CI always runs these checks against your branch, so any issues are still caught before merge.
 
 ## Submitting a Pull Request
 

@@ -1,0 +1,11 @@
+# Allow opting out of pre-push hooks by setting SKIP_HOOKS=1
+if [ "$SKIP_HOOKS" = "1" ]; then
+	exit 0
+fi
+
+# Git sends one line for each pushed ref. A branch delete sends an all-zero local SHA and pushes no code.
+while read -r _local_ref local_sha _remote_ref _remote_sha; do
+	if [ "$local_sha" != "0000000000000000000000000000000000000000" ]; then
+		exec pnpm -w run check:changed --no-tests
+	fi
+done
