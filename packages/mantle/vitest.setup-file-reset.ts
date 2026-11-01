@@ -1,4 +1,5 @@
-import type { DetachedWindowAPI } from "happy-dom";
+import { BrowserWindow, type DetachedWindowAPI, PropertySymbol } from "happy-dom";
+import WindowBrowserContext from "happy-dom/lib/window/WindowBrowserContext.js";
 import { createRoot } from "react-dom/client";
 import { afterAll, vi } from "vitest";
 
@@ -52,17 +53,29 @@ async function resetWindow() {
 	}
 	window.localStorage.clear();
 	window.sessionStorage.clear();
-	// Why both paths: an expiry write deletes a cookie only on its own path, and
-	// happy-dom stores a cookie set with no `Path` on no path.
-	for (const cookie of document.cookie.split(";")) {
-		const name = cookie.split("=")[0]?.trim();
-		if (name) {
-			document.cookie = `${name}=; Max-Age=0`;
-			document.cookie = `${name}=; Max-Age=0; Path=/`;
-		}
-	}
+	clearCookies();
 	const initialUrl = scope[INITIAL_URL_KEY];
 	if (initialUrl != null) {
 		window.happyDOM.setURL(initialUrl);
 	}
+}
+
+/**
+ * Deletes every cookie in the happy-dom browser context.
+ *
+ * Why the context: `document.cookie` shows only the cookies for the current URL,
+ * so an expiry write misses a cookie on another path. Vitest sets
+ * `document.defaultView` to the Node global, so the happy-dom window comes from
+ * the document's internal reference.
+ */
+function clearCookies() {
+	const happyDomWindow: unknown = Reflect.get(document, PropertySymbol.window);
+	const context =
+		happyDomWindow instanceof BrowserWindow
+			? new WindowBrowserContext(happyDomWindow).getBrowserContext()
+			: null;
+	if (context == null) {
+		throw new Error("The happy-dom browser context is missing. Check the happy-dom internals.");
+	}
+	context.cookieContainer.clearCookies();
 }
