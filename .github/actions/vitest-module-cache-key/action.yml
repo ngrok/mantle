@@ -1,0 +1,27 @@
+name: Vitest module cache key
+description: Compute the Actions cache key for the Vitest module cache in node_modules/.vitest-cache
+
+# Vitest keys each module on its source, the Vite config, and the config file imports.
+# It does not key on tsconfig `paths` or package `exports`, so the prefix hashes them.
+# The lockfile is in the prefix because Vitest clears the whole cache when the lockfile changes.
+
+outputs:
+  key:
+    description: The key for today. `warm-vitest-cache` saves one entry each day.
+    value: ${{ steps.key.outputs.key }}
+  prefix:
+    description: The key without the date. A restore matches the newest entry with this prefix.
+    value: ${{ steps.key.outputs.prefix }}
+
+runs:
+  using: composite
+  steps:
+    - name: Compute the key
+      id: key
+      shell: bash
+      env:
+        INPUTS_HASH: ${{ hashFiles('pnpm-lock.yaml', '**/tsconfig*.json', '**/package.json', '!**/node_modules/**') }}
+      run: |
+        prefix="vitest-fs-${RUNNER_OS}-${RUNNER_ARCH}-${INPUTS_HASH}-"
+        echo "prefix=${prefix}" >> "${GITHUB_OUTPUT}"
+        echo "key=${prefix}$(date -u +%F)" >> "${GITHUB_OUTPUT}"

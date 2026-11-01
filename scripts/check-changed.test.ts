@@ -89,6 +89,24 @@ describe("planChecks", () => {
 		]);
 	});
 
+	it("drops the test tasks and keeps typecheck when tests are off", () => {
+		const steps = planChecks({
+			files: ["scripts/check-changed.ts"],
+			deleted: [],
+			base: "origin/main",
+			tests: false,
+		});
+
+		expect(steps.map((step) => step.name)).toEqual(["fmt", "lint", "typecheck", "scripts"]);
+		expect(steps.at(-1)?.args).toEqual([
+			"exec",
+			"turbo",
+			"run",
+			"typecheck:scripts",
+			"--filter=//",
+		]);
+	});
+
 	it("lints only the code files, checks only the markdown links, and scopes turbo to packages changed since the base", () => {
 		const steps = planChecks({
 			files: ["packages/mantle/src/components/button/button.tsx", "README.md"],

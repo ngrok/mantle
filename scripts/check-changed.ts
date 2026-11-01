@@ -43,12 +43,15 @@ export function planChecks({
 	files,
 	deleted,
 	base,
+	tests = true,
 }: {
 	/** Every changed path, deleted ones included. */
 	files: readonly string[];
 	/** The changed paths that no longer exist. */
 	deleted: readonly string[];
 	base: string;
+	/** When `false`, the plan has no test tasks. The pre-push hook sets it. Defaults to `true`. */
+	tests?: boolean;
 }): CheckStep[] {
 	const existing = files.filter((file) => !deleted.includes(file));
 	const formattable = existing.filter((file) => formattableFile.test(file));
@@ -100,13 +103,22 @@ export function planChecks({
 			command: "pnpm",
 			args: ["exec", "turbo", "run", "typecheck", filter],
 		});
-		steps.push({ name: "test", command: "pnpm", args: ["exec", "turbo", "run", "test", filter] });
+		if (tests) {
+			steps.push({ name: "test", command: "pnpm", args: ["exec", "turbo", "run", "test", filter] });
+		}
 	}
 	if (files.some((file) => rootTaskInputFile.test(file))) {
 		steps.push({
 			name: "scripts",
 			command: "pnpm",
-			args: ["exec", "turbo", "run", "typecheck:scripts", "test:scripts", "--filter=//"],
+			args: [
+				"exec",
+				"turbo",
+				"run",
+				"typecheck:scripts",
+				...(tests ? ["test:scripts"] : []),
+				"--filter=//",
+			],
 		});
 	}
 	return steps;
@@ -145,7 +157,8 @@ function cli(): void {
 	const base = process.env.CHECK_BASE ?? "origin/main";
 	const files = changedFiles(base);
 	const deleted = files.filter((file) => !fs.existsSync(file));
-	const steps = planChecks({ files, deleted, base });
+	// Why `--no-tests`: the pre-push hook passes it. The other steps take seconds, and the tests take minutes.
+	const steps = planChecks({ files, deleted, base, tests: !process.argv.includes("--no-tests") });
 	if (steps.length === 0) {
 		console.log(`No changed files to check against ${base}.`);
 		return;
