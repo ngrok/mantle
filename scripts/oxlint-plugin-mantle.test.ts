@@ -134,6 +134,36 @@ describe("no-sleep-in-tests", () => {
 	});
 });
 
+describe("no-process-env-write", () => {
+	it("reports each write to process.env or a key of it, with dot or bracket access", () => {
+		const source = [
+			'process.env = { ...process.env, NODE_ENV: "test" };',
+			'process.env.NODE_ENV = "test";',
+			"delete process.env.NODE_ENV;",
+			'Reflect.deleteProperty(process.env, "NODE_ENV");',
+			'process["env"].NODE_ENV = "test";',
+			"process.env.COUNT++;",
+			"",
+		].join("\n");
+
+		expect(lint({ rule: "no-process-env-write", fileName: "a.test.ts", source })).toEqual(
+			Array.from({ length: 6 }, () => "no-process-env-write"),
+		);
+	});
+
+	it("leaves a read, vi.stubEnv, and a computed key that is not env alone", () => {
+		const source = [
+			"const nodeEnv = process.env.NODE_ENV;",
+			'vi.stubEnv("NODE_ENV", "test");',
+			'const key = "title";',
+			'process[key].NODE_ENV = "test";',
+			"",
+		].join("\n");
+
+		expect(lint({ rule: "no-process-env-write", fileName: "a.test.ts", source })).toEqual([]);
+	});
+});
+
 describe("no-presence-matcher-on-get-by", () => {
 	it("reports a getBy query wrapped in a presence matcher, negated or not", () => {
 		const source = [

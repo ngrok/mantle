@@ -117,11 +117,11 @@ export default defineConfig({
 					// Why: the theme and chart tests import the shipped stylesheets with `?raw`, and
 					// without this Vitest hands them an empty module.
 					css: true,
-					// Why `vmForks`: `forks` builds a fresh happy-dom for each of 137 files, a third of the
-					// run. `vmForks` builds one per worker and still gives each file its own `vm` context.
-					// `isolate: false` is as fast, but the suite leaks across files under a shuffled order
-					// (`button`, `alert-dialog`), so the per-file context stays.
-					pool: "vmForks",
+					// Why `isolate: false`: an isolated worker builds a new happy-dom and imports React,
+					// Radix, and the rest again for each file. The setup file reset keeps the files
+					// independent in the shared worker.
+					isolate: false,
+					setupFiles: ["./vitest.setup-file-reset.ts"],
 				},
 			},
 			{
