@@ -70,6 +70,9 @@ const baseOptions: ChartOptions = {
 	orientation: "vertical",
 	zKey: null,
 	dimensions: 3,
+	projection: "cartesian",
+	sizeKey: null,
+	land: null,
 	stacked: false,
 	animate: false,
 };

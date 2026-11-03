@@ -56,7 +56,7 @@ const toEpochOrNumber = (raw: unknown, isTime: boolean): number => {
  */
 const missingKeyMessage = (
 	owner: string,
-	keyName: "xKey" | "dataKey" | "zKey",
+	keyName: "xKey" | "dataKey" | "zKey" | "longitudeKey" | "latitudeKey" | "sizeKey",
 	key: string,
 	rows: readonly object[],
 ): string => {
@@ -84,6 +84,10 @@ type ChartKeys = {
 	/** The registered series keys. */
 	dataKeys: readonly string[];
 	zKey: string | null;
+	/** `WorldMap` only: the size key, checked like the depth key. */
+	sizeKey: string | null;
+	/** The public prop names a message uses: a world map names its keys for the coordinates they hold. */
+	keyNames: { x: "xKey" | "longitudeKey"; series: "dataKey" | "latitudeKey" };
 };
 
 /** Whether any of `candidates` carries `key`: a `null` value counts, an absent key does not. */
@@ -99,7 +103,7 @@ const hasKey = (candidates: readonly object[], key: string): boolean =>
  *
  * @example
  * ```ts
- * assertChartKeys({ rootName: "BarChart.Root", partName: "BarChart.Bar", rows, xKey: "month", xScale: "band", dataKeys: ["desktop"], zKey: null });
+ * assertChartKeys({ rootName: "BarChart.Root", partName: "BarChart.Bar", rows, xKey: "month", xScale: "band", dataKeys: ["desktop"], zKey: null, sizeKey: null, keyNames: { x: "xKey", series: "dataKey" } });
  * // throws when no row carries "month" or "desktop"
  * ```
  */
@@ -111,12 +115,14 @@ const assertChartKeys = ({
 	xScale,
 	dataKeys,
 	zKey,
+	sizeKey,
+	keyNames,
 }: ChartKeys): void => {
 	if (rows.length === 0) {
 		return;
 	}
 	if (!hasKey(rows, xKey)) {
-		throw new Error(missingKeyMessage(rootName, "xKey", xKey, rows));
+		throw new Error(missingKeyMessage(rootName, keyNames.x, xKey, rows));
 	}
 	let plotted: readonly object[] = rows;
 	if (xScale === "linear" || xScale === "time") {
@@ -139,11 +145,14 @@ const assertChartKeys = ({
 	}
 	for (const dataKey of dataKeys) {
 		if (!hasKey(plotted, dataKey)) {
-			throw new Error(missingKeyMessage(partName, "dataKey", dataKey, rows));
+			throw new Error(missingKeyMessage(partName, keyNames.series, dataKey, rows));
 		}
 	}
 	if (zKey != null && !hasKey(plotted, zKey)) {
 		throw new Error(missingKeyMessage(rootName, "zKey", zKey, rows));
+	}
+	if (sizeKey != null && !hasKey(plotted, sizeKey)) {
+		throw new Error(missingKeyMessage(rootName, "sizeKey", sizeKey, rows));
 	}
 };
 

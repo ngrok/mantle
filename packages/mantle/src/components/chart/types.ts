@@ -340,9 +340,30 @@ type ChartOptions = {
 	 * cube (3) — the collapse glides via the same chase as the domains.
 	 */
 	dimensions: 1 | 2 | 3;
+	/**
+	 * Scatter plots only: how x and y become pixels. `"robinson"` reads x as a
+	 * longitude and y as a latitude, and paints them on a world map.
+	 */
+	projection: ChartProjection;
+	/** World maps only: the row key of each point's size value. */
+	sizeKey: string | null;
+	/** World maps only: the land outline to paint, passed in so other charts do not bundle it. */
+	land: GeoLand | null;
 	stacked: boolean;
 	animate: boolean;
 };
+
+/**
+ * A land outline: polyline-encoded rings of longitude and latitude, in units
+ * of `1 / precision` degrees. `WorldMap` passes the Natural Earth outline.
+ */
+type GeoLand = {
+	precision: number;
+	rings: readonly string[];
+};
+
+/** How a scatter maps x and y to pixels: a plane, or a world map. */
+type ChartProjection = "cartesian" | "robinson";
 
 export type {
 	//,
@@ -352,9 +373,11 @@ export type {
 	ChartDatum,
 	ChartDatumEvent,
 	ChartOptions,
+	ChartProjection,
 	ChartSeriesSlot,
 	ContinuousXScale,
 	CurveKind,
+	GeoLand,
 	GridLines,
 	HoverSnapshot,
 	PointShape,

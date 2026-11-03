@@ -431,6 +431,11 @@
 			"@ngrok/src-live-types": "./src/components/well/index.ts",
 			"types": "./dist/well.d.ts",
 			"import": "./dist/well.js"
+		},
+		"./world-map": {
+			"@ngrok/src-live-types": "./src/components/world-map/index.ts",
+			"types": "./dist/world-map.d.ts",
+			"import": "./dist/world-map.js"
 		}
 	},
 	"scripts": {
@@ -494,7 +499,8 @@
 		"react-dom": "catalog:",
 		"tailwindcss": "catalog:",
 		"tsdown": "catalog:",
-		"typescript": "catalog:"
+		"typescript": "catalog:",
+		"world-atlas": "2.0.2"
 	},
 	"peerDependencies": {
 		"@phosphor-icons/react": "^2.1.10",
