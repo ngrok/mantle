@@ -133,6 +133,10 @@ const hostOf = (cloud: Cloud, overrides: Partial<ScatterHost> = {}): ScatterHost
 		zKey: () => null,
 		is3d: () => false,
 		requestPaint: () => {},
+		sourceRow: () => undefined,
+		animates: () => false,
+		grid: () => false,
+		plotOffset: () => ({ left: 0, top: 0 }),
 		...overrides,
 	};
 };

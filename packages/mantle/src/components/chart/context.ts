@@ -1,10 +1,19 @@
 "use client";
 
+import type { ComponentType } from "react";
 import { createContext, useContext, useState, useSyncExternalStore } from "react";
 import invariant from "tiny-invariant";
 import type { ChartEngine } from "./engine.js";
-import type { ChartStore } from "./store.js";
-import type { ChartDatum, ChartDatumEvent, SeriesMark, SeriesMeta, XScaleKind } from "./types.js";
+import type { XSummary } from "./describe.js";
+import type { ChartStore, TooltipConfig } from "./store.js";
+import type {
+	ChartDatum,
+	ChartDatumEvent,
+	HoverSnapshot,
+	SeriesMark,
+	SeriesMeta,
+	XScaleKind,
+} from "./types.js";
 
 /**
  * The shared React layer of the chart family. `BarChart`, `LineChart`,
@@ -285,9 +294,33 @@ const useShallowStable = <T extends object>(value: T): T => {
 	return value;
 };
 
+/**
+ * The screen-reader layer and the default tooltip of a family whose rows are
+ * not an x value and a measure. `WorldMap` passes one: a row reads as a place.
+ * The Root uses each member in place of its default, and a family that passes
+ * none loads none of this code.
+ */
+type ChartReadout = {
+	/** The default tooltip body, when the Tooltip part sets no `children`. */
+	Tooltip: ComponentType<{ hover: HoverSnapshot; config: TooltipConfig | null }>;
+	/** What a keyboard step announces. */
+	announce: (hover: HoverSnapshot, tooltip: TooltipConfig | null) => string;
+	/** The description's first sentence and the keyboard instructions. */
+	describe: (summary: XSummary, hydrated: boolean) => { sentence: string; instructions: string };
+	/** The sr-only data table. */
+	DataTable: ComponentType<{
+		data: readonly ChartDatum[];
+		label: string | undefined;
+		labelledBy: string | undefined;
+		slotName: string;
+		store: ChartStore;
+	}>;
+};
+
 export type {
 	//,
 	ChartAccessibilityProps,
+	ChartReadout,
 	ChartContextValue,
 	ChartMode,
 };

@@ -10,6 +10,7 @@ import { describeChartParts } from "./describe.js";
 import { formatNumber, formatXValue } from "./format.js";
 import type { ChartStore, TooltipConfig } from "./store.js";
 import type { ChartDatum, HoverSnapshot, SeriesMark, XScaleKind } from "./types.js";
+import type { ChartReadout } from "./context.js";
 import { useStoreSeries } from "./context.js";
 import type { ChartListContextValue } from "./list.js";
 
@@ -40,8 +41,11 @@ const useKeyboardStepAnnouncement = ({
 	store,
 	xHasTimeOfDay,
 	announce,
+	readout,
 }: {
 	store: ChartStore;
+	/** The family's own readout, which words the announcement. */
+	readout?: ChartReadout;
 	/** Whether the dataset's x dates carry a time-of-day component (label granularity). */
 	xHasTimeOfDay: boolean;
 	/** Writes the live region: the text of a step when its wait ends, and `""` to clear it. */
@@ -57,11 +61,14 @@ const useKeyboardStepAnnouncement = ({
 	// Why a callback ref: a render that passes a new `announce` or a new
 	// `xHasTimeOfDay` must not start the wait again.
 	const write = useCallbackRef((hover: HoverSnapshot | null) => {
-		announce(
-			hover == null
-				? ""
-				: announcementFor(hover, { xHasTimeOfDay, tooltip: store.getSnapshot().tooltip }),
-		);
+		const tooltip = store.getSnapshot().tooltip;
+		if (hover == null) {
+			announce("");
+		} else if (readout == null) {
+			announce(announcementFor(hover, { xHasTimeOfDay, tooltip }));
+		} else {
+			announce(readout.announce(hover, tooltip));
+		}
 	});
 	useEffect(() => {
 		// Why clear first: assistive technology (AT) does not announce text that did
@@ -100,9 +107,11 @@ const ChartDescription = ({
 	seriesRef,
 	summary,
 	instructions,
+	readout,
 }: {
 	id: string;
 	kind: SeriesMark;
+	readout?: ChartReadout;
 	slotName: string;
 	/** The Root writes the registered series into this span after every commit. */
 	seriesRef: Ref<HTMLSpanElement>;
@@ -111,7 +120,8 @@ const ChartDescription = ({
 	instructions: boolean;
 }) => {
 	const hydrated = useIsHydrated();
-	const parts = describeChartParts({ kind, summary, hydrated });
+	const parts =
+		readout?.describe(summary, hydrated) ?? describeChartParts({ kind, summary, hydrated });
 	return (
 		// Why sr-only, not hidden: a hidden span would shape no text, but browse
 		// mode would no longer read the description as page content.
@@ -130,13 +140,15 @@ const ChartDescription = ({
 const ChartAnnouncer = ({
 	store,
 	xHasTimeOfDay,
+	readout,
 }: {
 	store: ChartStore;
 	/** Whether the dataset's x dates carry a time-of-day component (label granularity). */
 	xHasTimeOfDay: boolean;
+	readout?: ChartReadout;
 }) => {
 	const [announcement, setAnnouncement] = useState("");
-	useKeyboardStepAnnouncement({ store, xHasTimeOfDay, announce: setAnnouncement });
+	useKeyboardStepAnnouncement({ store, xHasTimeOfDay, announce: setAnnouncement, readout });
 	return (
 		<span role="status" aria-live="polite" className="sr-only">
 			{announcement}
@@ -194,11 +206,13 @@ const ChartListAnnouncer = ({
 	list,
 	store,
 	xHasTimeOfDay,
+	readout,
 }: {
 	id: string;
 	list: ChartListContextValue;
 	store: ChartStore;
 	xHasTimeOfDay: boolean;
+	readout?: ChartReadout;
 }) => {
 	// Why: a chart that unmounts takes its last announcement out of the shared region.
 	useEffect(() => () => list.announce(id, ""), [id, list]);
@@ -206,6 +220,7 @@ const ChartListAnnouncer = ({
 		store,
 		xHasTimeOfDay,
 		announce: (text) => list.announce(id, text),
+		readout,
 	});
 	return null;
 };
@@ -452,4 +467,5 @@ export {
 	ChartDataTable,
 	ChartDescription,
 	ChartListAnnouncer,
+	useResolvedChartLabel,
 };

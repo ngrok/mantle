@@ -4,7 +4,7 @@ import type { PlotRect } from "./renderer.js";
 import { MARKER_RADIUS } from "./renderer.js";
 import type { Scatter3d } from "./scatter-3d.js";
 import { drawScatterPoints } from "./scatter-renderer.js";
-import type { PointShape, SeriesSpec } from "./types.js";
+import type { ChartDatum, PointShape, SeriesSpec } from "./types.js";
 
 /**
  * The scatter plot's part of the chart engine: the 2D paint and the hit test.
@@ -52,6 +52,14 @@ type ScatterHost = {
 	is3d: () => boolean;
 	/** Ask the engine for a repaint, such as when the 3D code finishes loading. */
 	requestPaint: () => void;
+	/** The consumer's row at a sorted row index. */
+	sourceRow: (index: number) => ChartDatum | undefined;
+	/** Whether a new point may animate: the chart was seen, and motion is on. */
+	animates: () => boolean;
+	/** Whether a grid part is composed. */
+	grid: () => boolean;
+	/** The plot's offset inside the Root, for elements the Root positions over the plot. */
+	plotOffset: () => { left: number; top: number };
 };
 
 /** The 3D frame's axis labels, painted after the marks clip is restored. */
@@ -140,10 +148,40 @@ const preloadScatter3d = (): Promise<typeof Scatter3d> => {
 };
 
 /**
+ * What the engine calls on the view that paints and hit tests its points: the
+ * scatter plot's {@link ScatterView}, or the world map's view. The engine
+ * calls each method once per frame or once per pointer event, never once per
+ * point.
+ */
+type PointView = {
+	/**
+	 * `"geo"` paints a world map: the engine draws no axes, grid lines, or
+	 * reference lines, and keeps the x and y domains fixed.
+	 */
+	readonly kind: "scatter" | "geo";
+	setDimensions(dimensions: 1 | 2 | 3, options: { glide: boolean }): void;
+	settle(dimensions: 1 | 2 | 3): void;
+	/** Advance the view's own motion. Returns `true` while it still moves. */
+	tick(now: number): boolean;
+	/** The engine ingested new rows. */
+	resetProjection(): void;
+	pressAt(cssX: number, cssY: number): boolean;
+	dragTo(cssX: number, cssY: number): DragMove;
+	release(): DragEnd;
+	paint(ctx: PaintContext): FrameLabels | null;
+	paintLabels(ctx: PaintContext, labels: FrameLabels): void;
+	hitAt(cssX: number, cssY: number): ScatterHit | null;
+	screenFor(index: number): { x: number; y: number } | null;
+	/** The radius of the point at a sorted row index, which sizes the hover dot. */
+	radiusAt(index: number): number;
+};
+
+/**
  * The scatter state one engine owns. The engine calls it once per frame to
  * paint and once per pointer event to hit test, never once per point.
  */
-class ScatterView {
+class ScatterView implements PointView {
+	readonly kind = "scatter";
 	readonly #host: ScatterHost;
 	/** The 3D state, once its module has loaded. */
 	#three: Scatter3d | null = null;
@@ -366,6 +404,11 @@ class ScatterView {
 		return null;
 	}
 
+	/** Every scatter point has the one marker radius. */
+	radiusAt(): number {
+		return MARKER_RADIUS;
+	}
+
 	/** Paint the 3D frame's axis labels outside the marks clip, so edge labels stay whole. */
 	paintLabels(ctx: PaintContext, labels: FrameLabels): void {
 		this.#three?.paintLabels(ctx, labels);
@@ -455,14 +498,15 @@ class ScatterView {
  */
 const createScatterView = (host: ScatterHost): ScatterView => new ScatterView(host);
 
-/** Builds the scatter view an engine owns; see {@link createScatterView}. */
-type ScatterViewFactory = typeof createScatterView;
+/** Builds the point view an engine owns; see {@link createScatterView}. */
+type ScatterViewFactory = (host: ScatterHost) => PointView;
 
 export type {
 	//,
 	DragEnd,
 	DragMove,
 	FrameLabels,
+	PointView,
 	ScatterHit,
 	ScatterHost,
 	ScatterView,

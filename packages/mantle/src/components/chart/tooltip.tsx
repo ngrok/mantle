@@ -9,6 +9,7 @@ import { formatNumber, formatXValue } from "./format.js";
 import type { ChartStore } from "./store.js";
 import type { TooltipConfig } from "./store.js";
 import type { HoverSnapshot, XValue } from "./types.js";
+import type { ChartReadout } from "./context.js";
 import { useChartContext, useShallowStable } from "./context.js";
 
 /**
@@ -104,10 +105,13 @@ const ChartTooltipSurface = ({
 	store,
 	tooltipRef,
 	xHasTimeOfDay,
+	readout,
 }: {
 	slotName: string;
 	store: ChartStore;
 	tooltipRef: Ref<HTMLDivElement>;
+	/** The family's own readout, which renders the default tooltip body. */
+	readout?: ChartReadout;
 	/** Whether the dataset's x dates carry a time-of-day component (label granularity). */
 	xHasTimeOfDay: boolean;
 }) => {
@@ -153,6 +157,7 @@ const ChartTooltipSurface = ({
 					config={config}
 					hover={hover}
 					xHasTimeOfDay={xHasTimeOfDay}
+					readout={readout}
 				/>
 			)}
 		</div>
@@ -165,11 +170,13 @@ const ChartTooltipReadout = ({
 	config,
 	hover,
 	xHasTimeOfDay,
+	readout,
 }: {
 	slotName: string;
 	config: TooltipConfig | null;
 	hover: HoverSnapshot;
 	xHasTimeOfDay: boolean;
+	readout?: ChartReadout;
 }) => {
 	if (config?.children != null) {
 		return (
@@ -178,6 +185,9 @@ const ChartTooltipReadout = ({
 				{config.children(hover)}
 			</div>
 		);
+	}
+	if (readout != null) {
+		return <readout.Tooltip hover={hover} config={config} />;
 	}
 	const footer = config?.footer;
 	return (

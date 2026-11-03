@@ -1,0 +1,443 @@
+---
+title: World Map
+description: A canvas-rendered world map that plots points by longitude and latitude on the Robinson projection.
+category: Charts
+---
+
+import { Button } from "@ngrok/mantle/button";
+import { WorldMap } from "@ngrok/mantle/world-map";
+import { useEffect, useState } from "react";
+import { Example } from "~/components/example";
+import { PageHeader } from "~/components/page-header";
+
+export const agentLocations = [
+	{ name: "Ashburn", longitude: -77.49, latitude: 39.04, agents: 42 },
+	{ name: "Boardman", longitude: -119.7, latitude: 45.84, agents: 18 },
+	{ name: "San Francisco", longitude: -122.42, latitude: 37.77, agents: 9 },
+	{ name: "Toronto", longitude: -79.38, latitude: 43.65, agents: 5 },
+	{ name: "São Paulo", longitude: -46.63, latitude: -23.55, agents: 7 },
+	{ name: "Dublin", longitude: -6.26, latitude: 53.35, agents: 14 },
+	{ name: "Frankfurt", longitude: 8.68, latitude: 50.11, agents: 21 },
+	{ name: "Stockholm", longitude: 18.07, latitude: 59.33, agents: 3 },
+	{ name: "Johannesburg", longitude: 28.05, latitude: -26.2, agents: 2 },
+	{ name: "Mumbai", longitude: 72.88, latitude: 19.08, agents: 8 },
+	{ name: "Singapore", longitude: 103.82, latitude: 1.35, agents: 16 },
+	{ name: "Tokyo", longitude: 139.69, latitude: 35.69, agents: 11 },
+	{ name: "Sydney", longitude: 151.21, latitude: -33.87, agents: 6 },
+];
+
+export function AgentLocationsExample() {
+	return (
+		<WorldMap.Root
+			data={agentLocations}
+			longitudeKey="longitude"
+			labelKey="name"
+			sizeKey="agents"
+			aria-label="Agents by location"
+		>
+			<WorldMap.Graticule />
+			<WorldMap.Point latitudeKey="latitude" label="Agents" />
+			<WorldMap.Tooltip />
+		</WorldMap.Root>
+	);
+}
+
+export const agentStatuses = [
+	{ name: "aws-us-east-1a", longitude: -77.49, online: 39.04, offline: null, blocked: null },
+	{ name: "gcp-us-west1", longitude: -121.18, online: 45.6, offline: null, blocked: null },
+	{ name: "home-lab", longitude: -97.74, online: null, offline: 30.27, blocked: null },
+	{ name: "azure-brazilsouth", longitude: -46.63, online: -23.55, offline: null, blocked: null },
+	{ name: "aws-eu-west-1", longitude: -6.26, online: 53.35, offline: null, blocked: null },
+	{ name: "hetzner-fsn1", longitude: 12.39, online: 50.48, offline: null, blocked: null },
+	{ name: "unknown-vps", longitude: 37.62, online: null, offline: null, blocked: 55.75 },
+	{ name: "aws-ap-south-1", longitude: 72.88, online: null, offline: 19.08, blocked: null },
+	{ name: "aws-ap-southeast-1", longitude: 103.82, online: 1.35, offline: null, blocked: null },
+	{ name: "edge-tokyo", longitude: 139.69, online: 35.69, offline: null, blocked: null },
+	{ name: "edge-sydney", longitude: 151.21, online: null, offline: -33.87, blocked: null },
+];
+
+export function AgentStatusExample() {
+	return (
+		<WorldMap.Root
+			data={agentStatuses}
+			longitudeKey="longitude"
+			labelKey="name"
+			aria-label="Agents by status"
+		>
+			<WorldMap.Graticule />
+			<WorldMap.Point latitudeKey="online" label="Online" />
+			<WorldMap.Point latitudeKey="offline" label="Offline" seriesSlot="other" />
+			<WorldMap.Point
+				latitudeKey="blocked"
+				label="On a blocklist"
+				color="var(--color-danger-600)"
+				shape="diamond"
+			/>
+			<WorldMap.Tooltip />
+			<WorldMap.Legend />
+		</WorldMap.Root>
+	);
+}
+
+export const liveCities = [
+	{ name: "Ashburn", longitude: -77.49, latitude: 39.04 },
+	{ name: "Chicago", longitude: -87.63, latitude: 41.88 },
+	{ name: "Dallas", longitude: -96.8, latitude: 32.78 },
+	{ name: "Seattle", longitude: -122.33, latitude: 47.61 },
+	{ name: "Mexico City", longitude: -99.13, latitude: 19.43 },
+	{ name: "Bogotá", longitude: -74.07, latitude: 4.71 },
+	{ name: "London", longitude: -0.13, latitude: 51.51 },
+	{ name: "Paris", longitude: 2.35, latitude: 48.86 },
+	{ name: "Madrid", longitude: -3.7, latitude: 40.42 },
+	{ name: "Warsaw", longitude: 21.01, latitude: 52.23 },
+	{ name: "Lagos", longitude: 3.38, latitude: 6.52 },
+	{ name: "Nairobi", longitude: 36.82, latitude: -1.29 },
+	{ name: "Dubai", longitude: 55.27, latitude: 25.2 },
+	{ name: "Bengaluru", longitude: 77.59, latitude: 12.97 },
+	{ name: "Jakarta", longitude: 106.85, latitude: -6.21 },
+	{ name: "Hong Kong", longitude: 114.17, latitude: 22.32 },
+	{ name: "Seoul", longitude: 126.98, latitude: 37.57 },
+	{ name: "Auckland", longitude: 174.76, latitude: -36.85 },
+];
+
+export function LiveAgentsExample() {
+	const [running, setRunning] = useState(true);
+	const [sessions, setSessions] = useState(() => liveCities.slice(0, 6));
+	useEffect(() => {
+		if (!running) {
+			return;
+		}
+		const timer = setInterval(() => {
+			setSessions((current) => {
+				const next = liveCities[Math.floor(Math.random() * liveCities.length)];
+				const kept = current.filter((city) => city.name !== next.name);
+				return [...kept, next].slice(-10);
+			});
+		}, 1200);
+		return () => clearInterval(timer);
+	}, [running]);
+	return (
+		<div className="flex w-full flex-col items-start gap-3">
+			<Button type="button" appearance="outlined" onClick={() => setRunning((value) => !value)}>
+				{running ? "Pause updates" : "Resume updates"}
+			</Button>
+			<WorldMap.Root
+				data={sessions}
+				longitudeKey="longitude"
+				labelKey="name"
+				aria-label="Agents that connected most recently"
+			>
+				<WorldMap.Point latitudeKey="latitude" label="Connected agents" />
+				<WorldMap.Tooltip />
+			</WorldMap.Root>
+		</div>
+	);
+}
+
+<PageHeader id="world-map" isPreview>
+	World Map
+</PageHeader>
+
+A canvas-rendered world map that plots points by longitude and latitude, such as ngrok agents placed by their IP address. It uses the Robinson projection: the meridians bend so that no region swells the way Mercator swells the poles, and land near the poles keeps a shape a reader knows. The interaction contract of every mantle chart ships with `WorldMap.Root`: the tooltip, keyboard stepping from west to east, polite announcements, a screen-reader description, and a screen-reader data table that lists every point.
+
+Size points by a count with `sizeKey` when many points share one place. IP geolocation puts many agents in one city or one cloud region, and points that share a place otherwise paint on top of each other. A point's area follows its value, so a place with four times the agents has twice the radius.
+
+<Example>
+	<AgentLocationsExample />
+</Example>
+
+```tsx
+import { WorldMap } from "@ngrok/mantle/world-map";
+
+const agentLocations = [
+	{ name: "Ashburn", longitude: -77.49, latitude: 39.04, agents: 42 },
+	{ name: "Boardman", longitude: -119.7, latitude: 45.84, agents: 18 },
+	{ name: "San Francisco", longitude: -122.42, latitude: 37.77, agents: 9 },
+	{ name: "Toronto", longitude: -79.38, latitude: 43.65, agents: 5 },
+	{ name: "São Paulo", longitude: -46.63, latitude: -23.55, agents: 7 },
+	{ name: "Dublin", longitude: -6.26, latitude: 53.35, agents: 14 },
+	{ name: "Frankfurt", longitude: 8.68, latitude: 50.11, agents: 21 },
+	{ name: "Stockholm", longitude: 18.07, latitude: 59.33, agents: 3 },
+	{ name: "Johannesburg", longitude: 28.05, latitude: -26.2, agents: 2 },
+	{ name: "Mumbai", longitude: 72.88, latitude: 19.08, agents: 8 },
+	{ name: "Singapore", longitude: 103.82, latitude: 1.35, agents: 16 },
+	{ name: "Tokyo", longitude: 139.69, latitude: 35.69, agents: 11 },
+	{ name: "Sydney", longitude: 151.21, latitude: -33.87, agents: 6 },
+];
+
+function AgentLocations() {
+	return (
+		<WorldMap.Root
+			data={agentLocations}
+			longitudeKey="longitude"
+			labelKey="name"
+			sizeKey="agents"
+			aria-label="Agents by location"
+		>
+			<WorldMap.Graticule />
+			<WorldMap.Point latitudeKey="latitude" label="Agents" />
+			<WorldMap.Tooltip />
+		</WorldMap.Root>
+	);
+}
+```
+
+## Composition
+
+Compose the parts of a `WorldMap` together to build your own:
+
+```text showLineNumbers=false
+WorldMap.Root
+├── WorldMap.Graticule
+├── WorldMap.Point (one per series)
+├── WorldMap.Tooltip
+└── WorldMap.Legend
+```
+
+## Series
+
+Each `WorldMap.Point` is one series, and it reads its latitudes from its own key. To split points by status, give each row its latitude under the key of its status and `null` under the others. A status that carries good/bad meaning wears a semantic color and its own shape, so a reader can tell it apart without color vision. Compose `WorldMap.Legend` on every map with more than one series.
+
+<Example>
+	<AgentStatusExample />
+</Example>
+
+```tsx
+import { WorldMap } from "@ngrok/mantle/world-map";
+
+const agentStatuses = [
+	{ name: "aws-us-east-1a", longitude: -77.49, online: 39.04, offline: null, blocked: null },
+	{ name: "gcp-us-west1", longitude: -121.18, online: 45.6, offline: null, blocked: null },
+	{ name: "home-lab", longitude: -97.74, online: null, offline: 30.27, blocked: null },
+	{ name: "azure-brazilsouth", longitude: -46.63, online: -23.55, offline: null, blocked: null },
+	{ name: "aws-eu-west-1", longitude: -6.26, online: 53.35, offline: null, blocked: null },
+	{ name: "hetzner-fsn1", longitude: 12.39, online: 50.48, offline: null, blocked: null },
+	{ name: "unknown-vps", longitude: 37.62, online: null, offline: null, blocked: 55.75 },
+	{ name: "aws-ap-south-1", longitude: 72.88, online: null, offline: 19.08, blocked: null },
+	{ name: "aws-ap-southeast-1", longitude: 103.82, online: 1.35, offline: null, blocked: null },
+	{ name: "edge-tokyo", longitude: 139.69, online: 35.69, offline: null, blocked: null },
+	{ name: "edge-sydney", longitude: 151.21, online: null, offline: -33.87, blocked: null },
+];
+
+function AgentStatus() {
+	return (
+		<WorldMap.Root
+			data={agentStatuses}
+			longitudeKey="longitude"
+			labelKey="name"
+			aria-label="Agents by status"
+		>
+			<WorldMap.Graticule />
+			<WorldMap.Point latitudeKey="online" label="Online" />
+			<WorldMap.Point latitudeKey="offline" label="Offline" seriesSlot="other" />
+			<WorldMap.Point
+				latitudeKey="blocked"
+				label="On a blocklist"
+				color="var(--color-danger-600)"
+				shape="diamond"
+			/>
+			<WorldMap.Tooltip />
+			<WorldMap.Legend />
+		</WorldMap.Root>
+	);
+}
+```
+
+## Live data
+
+Pass new rows whenever they arrive. A point at a place the previous rows did not have gets one ring that grows and fades in 900ms, so a reader sees where the change happened. A point that moves is a new place: it does not glide across the map. Reduced motion and `animate={false}` play no ring. The pulse plays for the 48 newest arrivals at most, and a map with more than 5,000 points plays none.
+
+A map that updates on its own needs a control that stops the updates ([WCAG 2.2.2](https://www.w3.org/WAI/WCAG22/Understanding/pause-stop-hide)), unless the reader started them.
+
+<Example>
+	<LiveAgentsExample />
+</Example>
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { WorldMap } from "@ngrok/mantle/world-map";
+import { useEffect, useState } from "react";
+
+const liveCities = [
+	{ name: "Ashburn", longitude: -77.49, latitude: 39.04 },
+	{ name: "Chicago", longitude: -87.63, latitude: 41.88 },
+	{ name: "Dallas", longitude: -96.8, latitude: 32.78 },
+	{ name: "Seattle", longitude: -122.33, latitude: 47.61 },
+	{ name: "Mexico City", longitude: -99.13, latitude: 19.43 },
+	{ name: "Bogotá", longitude: -74.07, latitude: 4.71 },
+	{ name: "London", longitude: -0.13, latitude: 51.51 },
+	{ name: "Paris", longitude: 2.35, latitude: 48.86 },
+	{ name: "Madrid", longitude: -3.7, latitude: 40.42 },
+	{ name: "Warsaw", longitude: 21.01, latitude: 52.23 },
+	{ name: "Lagos", longitude: 3.38, latitude: 6.52 },
+	{ name: "Nairobi", longitude: 36.82, latitude: -1.29 },
+	{ name: "Dubai", longitude: 55.27, latitude: 25.2 },
+	{ name: "Bengaluru", longitude: 77.59, latitude: 12.97 },
+	{ name: "Jakarta", longitude: 106.85, latitude: -6.21 },
+	{ name: "Hong Kong", longitude: 114.17, latitude: 22.32 },
+	{ name: "Seoul", longitude: 126.98, latitude: 37.57 },
+	{ name: "Auckland", longitude: 174.76, latitude: -36.85 },
+];
+
+function LiveAgents() {
+	const [running, setRunning] = useState(true);
+	const [sessions, setSessions] = useState(() => liveCities.slice(0, 6));
+	useEffect(() => {
+		if (!running) {
+			return;
+		}
+		const timer = setInterval(() => {
+			setSessions((current) => {
+				const next = liveCities[Math.floor(Math.random() * liveCities.length)];
+				const kept = current.filter((city) => city.name !== next.name);
+				return [...kept, next].slice(-10);
+			});
+		}, 1200);
+		return () => clearInterval(timer);
+	}, [running]);
+	return (
+		<div className="flex w-full flex-col items-start gap-3">
+			<Button type="button" appearance="outlined" onClick={() => setRunning((value) => !value)}>
+				{running ? "Pause updates" : "Resume updates"}
+			</Button>
+			<WorldMap.Root
+				data={sessions}
+				longitudeKey="longitude"
+				labelKey="name"
+				aria-label="Agents that connected most recently"
+			>
+				<WorldMap.Point latitudeKey="latitude" label="Connected agents" />
+				<WorldMap.Tooltip />
+			</WorldMap.Root>
+		</div>
+	);
+}
+```
+
+## The projection
+
+The map uses Arthur Robinson's projection (1963), from the table in Snyder's _Map Projections: A Working Manual_, with the same interpolation as d3-geo-projection's `geoRobinson`. Robinson is a compromise projection: it keeps neither area nor angles exact, and it keeps the distortion of both low across the whole map. The land is the Natural Earth 110m outline (public domain), about 8 KB gzipped, so the map needs no network request and no tile server.
+
+The map always shows the whole world. It has no zoom and no pan, because a dashboard overview that takes the wheel traps the page scroll.
+
+The rationale and the alternatives considered (Equal Earth, a dotted land grid, clustering, spatial keyboard navigation) are in the repo's decision doc, `decisions/2026-11-03-world-map.md`.
+
+## Accessibility
+
+Every interactive map must have an accessible name: an `aria-label`, or an `aria-labelledby` reference to a visible title. Omitting both is a compile error. The name lands on the focusable overlay. The canvas is hidden from assistive technology, so the map is never announced twice.
+
+The map is one tab stop with a keyboard point cursor. Points are in order from west to east, which is the order of the data table too.
+
+| Key                        | Behavior                                               |
+| -------------------------- | ------------------------------------------------------ |
+| `Tab`                      | Focus the map: one tab stop regardless of point count. |
+| `ArrowLeft` / `ArrowRight` | Step to the next point to the west or to the east.     |
+| `PageUp` / `PageDown`      | Jump forward or backward by 10% of the points.         |
+| `Home` / `End`             | Jump to the westernmost or easternmost point.          |
+| `Enter` / `Space`          | Activate the current point: fires `onDatumActivate`.   |
+| `Escape`                   | Dismiss the readout.                                   |
+
+Each step announces the point through a debounced polite live region: its name from `labelKey`, its coordinates, and its series. For example: "Frankfurt, 50.1° N, 8.7° E. Agents". Without `labelKey`, the coordinates are the name.
+
+The overlay's `aria-describedby` points at a screen-reader description, `data-slot="world-map-description"`: "World map with 13 points.", the series labels, and the keyboard instructions.
+
+Once focus lands inside the map, it mounts a screen-reader data table with one row per point: its name, its series, its latitude, and its longitude, bounded to the first 150 points from west to east. Value cells carry the raw number in `data-value`, so an agent can read exact coordinates from the DOM.
+
+## API Reference
+
+`WorldMap.Point` and `WorldMap.Graticule` are renderless: they register configuration with the `Root`, which paints everything on canvas. They accept no `className` and no DOM props. `WorldMap.Tooltip` and `WorldMap.Legend` are the parts that touch real DOM, and both accept `div` props.
+
+### WorldMap.Root
+
+The root of a world map: owns the data, the Robinson projection, the canvas renderer, and the whole interaction contract. Renders a `<div>` wrapper with a 2:1 aspect ratio (override it with `className`) that holds the canvas, the focusable overlay, the sr-only description, the hover dot layer, the live region, and, once focus lands inside the map, the sr-only data table. The world sits centered in the plot at its own 1.97:1 aspect ratio. Hovering hits the nearest point within 24px.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop                   | Type                                        | Default         | Description                                                                                                                                                                                                             |
+| ---------------------- | ------------------------------------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data`                 | `readonly TDatum[]`                         |                 | Rows of data; each row is one point per composed `WorldMap.Point` series.                                                                                                                                               |
+| `longitudeKey`         | `Extract<keyof TDatum, string>`             |                 | The key of each row's longitude, in degrees east (−180 to 180). Rows without a finite longitude are not plotted. If no row has the key, the Root throws.                                                                |
+| `labelKey?`            | `Extract<keyof TDatum, string>`             |                 | The key of each row's name. The tooltip, the keyboard announcement, and the data table read it. A row without a name reads as its coordinates.                                                                          |
+| `sizeKey?`             | `Extract<keyof TDatum, string>`             |                 | The key of each row's size value. A point's area follows the value: the largest value gets a 16px radius, and no point shrinks below 4px. Larger points paint first. If no row has the key, the Root throws.            |
+| `aria-label`           | `string`                                    |                 | The map's accessible name. Exactly one of `aria-label` or `aria-labelledby` is required, unless `mode` is `"decorative"`, which forbids both.                                                                           |
+| `aria-labelledby`      | `string`                                    |                 | The id of a visible element that names the map. Preferred over `aria-label` when the map sits under a heading.                                                                                                          |
+| `mode?`                | `"interactive" \| "static" \| "decorative"` | `"interactive"` | How much of the contract the Root exposes, as on every [mantle chart](/components/charts/scatter-plot#modes).                                                                                                           |
+| `animate?`             | `boolean`                                   | `true`          | Animate the reveal and the ring around a new point. `prefers-reduced-motion` always wins.                                                                                                                               |
+| `pending?`             | `boolean`                                   | `false`         | Hold the previous render at reduced opacity while fresh data loads.                                                                                                                                                     |
+| `activeIndex?`         | `number \| null`                            |                 | Controlled active datum index (`null` = none). Allowed only when `mode` is `"interactive"`.                                                                                                                             |
+| `onActiveIndexChange?` | `(index: number \| null) => void`           |                 | Notified when hover or the keyboard moves the active index. Allowed only when `mode` is `"interactive"`.                                                                                                                |
+| `onDatumActivate?`     | `(event: ChartDatumEvent) => void`          |                 | Notified on a point click or tap, or Enter/Space on the focused map. The event carries `{ index, xValue, datum, dataKey }`: `xValue` is the longitude, and `dataKey` names the series (`null` for keyboard activation). |
+
+**CSS variables**
+
+| CSS Variable                          | Default                    | Description                                        |
+| ------------------------------------- | -------------------------- | -------------------------------------------------- |
+| `--world-map-land-color`              | `var(--color-neutral-200)` | The land fill.                                     |
+| `--world-map-ocean-color`             | `var(--color-neutral-50)`  | The fill inside the world's outline.               |
+| `--color-chart-1` … `--color-chart-8` | per theme                  | The categorical series slots, in assignment order. |
+| `--color-chart-other`                 | `var(--color-neutral-500)` | The neutral slot.                                  |
+
+**Data attributes**
+
+| Data Attribute | Value                      | Description                                                                                                                                                                                        |
+| -------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-slot`    | `"world-map"`              | The Root wrapper, with any forwarded chain ahead of it.                                                                                                                                            |
+| `data-slot`    | `"world-map-plot"`         | The plot box. Every overlay layer positions against it.                                                                                                                                            |
+| `data-slot`    | `"world-map-canvas"`       | The `<canvas>` the map paints on. Always `aria-hidden`. Engine-owned: absent from server HTML and from a dormant map.                                                                              |
+| `data-slot`    | `"world-map-markers"`      | The container for the hover dot on the hit point. Engine-owned, interactive maps only.                                                                                                             |
+| `data-slot`    | `"world-map-tooltip"`      | The tooltip surface. The Root renders it on the first hover or keyboard step and keeps it.                                                                                                         |
+| `data-slot`    | `"world-map-description"`  | The `sr-only` description the overlay's `aria-describedby` points at: the point count, the series labels, and, on an interactive map, the keyboard instructions. Omitted when `mode="decorative"`. |
+| `data-slot`    | `"world-map-data-table"`   | The `sr-only` data table: one row per point, with its name, series, latitude, and longitude, from west to east. Mounts once focus lands inside the map and stays. Interactive maps only.           |
+| `data-state`   | `"dormant"` \| `"engaged"` | On the Root. Flips to `"engaged"` once focus lands inside the map, and never flips back. Interactive maps only.                                                                                    |
+
+### WorldMap.Graticule
+
+Meridians and parallels every 30°, painted on canvas under the land. Renderless, and it takes no props. Omit the part to omit the graticule.
+
+### WorldMap.Point
+
+One point series. Renders nothing itself: it registers the series with the map, which paints its points on canvas with a 2px surface ring.
+
+| Prop          | Type                                                                                                | Default                             | Description                                                                                                                                         |
+| ------------- | --------------------------------------------------------------------------------------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `latitudeKey` | `string`                                                                                            |                                     | The row key this series reads its latitudes from, in degrees north (−90 to 90). Put the key in every row, with `null` for a row not in this series. |
+| `label?`      | `string`                                                                                            | `latitudeKey`                       | Display name for the legend, tooltip, and data table.                                                                                               |
+| `seriesSlot?` | `1 \| 2 \| 3 \| 4 \| 5 \| 6 \| 7 \| 8 \| "other"`                                                   | next unreserved slot                | Give the series a fixed color-and-shape identity.                                                                                                   |
+| `color?`      | `SeriesColor`                                                                                       | color from the resolved slot        | Override only the color channel with a chart token or CSS color string.                                                                             |
+| `shape?`      | `"circle" \| "square" \| "triangle" \| "diamond" \| "triangle-down" \| "plus" \| "cross" \| "star"` | the glyph paired to the series slot | The glyph this series' points wear, mirrored by the legend key and hover dot.                                                                       |
+
+### WorldMap.Tooltip
+
+Customizes the hover and keyboard readout. The tooltip renders even when this part is absent. The default readout names the point, then its coordinates, then its series.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), except `children`, plus:
+
+| Prop         | Type                                                    | Default | Description                                                                 |
+| ------------ | ------------------------------------------------------- | ------- | --------------------------------------------------------------------------- |
+| `indicator?` | `"dot" \| "none"`                                       | `"dot"` | The series color key beside each series name.                               |
+| `footer?`    | `ReactNode \| ((snapshot: HoverSnapshot) => ReactNode)` |         | Content below the series rows.                                              |
+| `children?`  | `(snapshot: HoverSnapshot) => ReactNode`                |         | Replace the whole readout. The snapshot carries the hovered row as `datum`. |
+
+**Data attributes**
+
+| Data Attribute | Value                       | Description                                                                                     |
+| -------------- | --------------------------- | ----------------------------------------------------------------------------------------------- |
+| `data-slot`    | `"world-map-tooltip-label"` | On the `display: contents` `<div>` wrapping a `children` readout. The default readout has none. |
+
+### WorldMap.Legend
+
+Series names keyed by their point glyphs, rendered as real DOM in flow below the map. It renders nothing for a single series.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), except `children`, plus:
+
+| Prop        | Type                                  | Default | Description                                                       |
+| ----------- | ------------------------------------- | ------- | ----------------------------------------------------------------- |
+| `children?` | `(series: SeriesMeta[]) => ReactNode` |         | Replace the default legend items; receives the registered series. |
+
+**Data attributes**
+
+| Data Attribute | Value                                                                                               | Description                                                           |
+| -------------- | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `data-slot`    | `"world-map-legend"`                                                                                | The legend list.                                                      |
+| `data-slot`    | `"world-map-legend-label"`                                                                          | On the `display: contents` `<div>` wrapping a `children` render prop. |
+| `data-shape`   | `"circle" \| "square" \| "triangle" \| "diamond" \| "triangle-down" \| "plus" \| "cross" \| "star"` | On each series' swatch, naming the glyph its `WorldMap.Point` wears.  |

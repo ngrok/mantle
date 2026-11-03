@@ -35,6 +35,7 @@ import type {
 } from "./paint-backend.js";
 import { decimateColumns, shouldDecimate } from "./decimate.js";
 import { formatNumber, formatXValue, tickFractionDigits } from "./format.js";
+import type { ChartNames } from "./datum.js";
 import { ingestRows, PART_NAME } from "./ingest.js";
 import { nearestIndex } from "./hit-test.js";
 import {
@@ -67,8 +68,9 @@ import {
 	drawReferenceLine,
 	drawVerticalBaseline,
 	drawVerticalReferenceLine,
+	MARKER_RADIUS,
 } from "./renderer.js";
-import type { FrameLabels, ScatterView, ScatterViewFactory } from "./scatter-engine.js";
+import type { FrameLabels, PointView, ScatterViewFactory } from "./scatter-engine.js";
 import { computeStackBoundaries } from "./stack.js";
 import type { StackBoundaries } from "./stack.js";
 import { CHART_TWEEN_DURATION_MS, ChaseTween, PER_DATUM_TWEEN_LIMIT, ValueTween } from "./tween.js";
@@ -207,6 +209,8 @@ const barGap = ({ bandwidth, groupCount }: { bandwidth: number; groupCount: numb
 
 class ChartEngine {
 	#kind: SeriesMark;
+	/** The public names for error messages, from the Root; `null` derives them from the kind. */
+	#names: ChartNames | null;
 	#elements: EngineElements;
 	#store: ChartStore;
 	#options: ChartOptions = {
@@ -356,8 +360,8 @@ class ChartEngine {
 
 	#zs = new Float64Array(0);
 	#zDomain: [number, number] = [0, 1];
-	/** The scatter paint, hit test, and 3D camera. `null` for every other kind. */
-	#scatter: ScatterView | null = null;
+	/** The scatter or world map paint, hit test, and 3D camera. `null` for every other kind. */
+	#scatter: PointView | null = null;
 	readonly #createHoverLayers: (() => HoverLayers) | null;
 	/** The hover layers, made the first time the engine shows an active datum. */
 	#hover: HoverLayers | null = null;
@@ -407,8 +411,13 @@ class ChartEngine {
 		backend: (options: PaintBackendOptions) => PaintBackend;
 		/** The Root's slot name, such as `"bar-chart"`, for the surface's `data-slot`. */
 		slotName: string;
-		/** Builds the scatter view. Required for `kind: "scatter"`, and ignored for every other kind. */
+		/** Builds the point view. Required for `kind: "scatter"`, and ignored for every other kind. */
 		scatter?: ScatterViewFactory;
+		/**
+		 * The public names an error message uses, such as `"WorldMap.Root"`.
+		 * When omitted, the names follow the chart kind.
+		 */
+		names?: ChartNames;
 		/**
 		 * Builds the hover layers. The engine calls it the first time it shows an
 		 * active datum, appends the layers to the plot, and removes them on
@@ -437,6 +446,7 @@ class ChartEngine {
 		size?: { width: number; height: number };
 	}) {
 		this.#kind = options.kind;
+		this.#names = options.names ?? null;
 		this.#elements = options.elements;
 		this.#createHoverLayers = options.createHoverLayers ?? null;
 		this.#store = options.store;
@@ -540,6 +550,13 @@ class ChartEngine {
 				zKey: () => this.#options.zKey,
 				is3d: () => this.#is3d(),
 				requestPaint: () => this.#schedule(),
+				sourceRow: (index) => this.#rows[this.#order?.[index] ?? index],
+				animates: () => this.#seen && this.#motionDuration() > 0,
+				grid: () => this.#store.getSnapshot().grid != null,
+				plotOffset: () => ({
+					left: this.#elements.plot.offsetLeft,
+					top: this.#elements.plot.offsetTop,
+				}),
 			});
 		}
 	}
@@ -1153,6 +1170,8 @@ class ChartEngine {
 			specs,
 			zKey: this.#kind === "scatter" ? this.#options.zKey : null,
 			rootName: this.#rootName(),
+			partName: this.#names?.part,
+			keyNames: this.#names?.keys,
 		});
 		this.#rowCount = ingested.rowCount;
 		this.#xs = ingested.xs;
@@ -1172,7 +1191,7 @@ class ChartEngine {
 		const previousFirst = previousXs[0];
 		const previousLast = previousXs[previousXs.length - 1];
 		if (
-			!this.#is3d() &&
+			this.#hasCartesianFrame() &&
 			(xScale === "linear" || xScale === "time") &&
 			first != null &&
 			last != null &&
@@ -1415,6 +1434,11 @@ class ChartEngine {
 	}
 
 	#targetYDomain(): [number, number] {
+		// Why fixed: the world map projects its own points, so a moving domain
+		// would only paint frames that change nothing.
+		if (this.#scatter?.kind === "geo") {
+			return [-90, 90];
+		}
 		const [minOverride, maxOverride] = this.#options.yDomain;
 		let min: number;
 		let max: number;
@@ -1461,6 +1485,9 @@ class ChartEngine {
 	}
 
 	#targetXDomain(): [number, number] {
+		if (this.#scatter?.kind === "geo") {
+			return [-180, 180];
+		}
 		if (this.#rowCount === 0) {
 			return [0, 1];
 		}
@@ -1479,6 +1506,11 @@ class ChartEngine {
 
 	#is3d(): boolean {
 		return this.#kind === "scatter" && this.#options.zKey != null;
+	}
+
+	/** Whether the plot has an x/y frame: axes, grid lines, and reference lines. */
+	#hasCartesianFrame(): boolean {
+		return !this.#is3d() && this.#scatter?.kind !== "geo";
 	}
 
 	/**
@@ -1514,6 +1546,9 @@ class ChartEngine {
 
 	/** The public Root part name for error messages, e.g. `"BarChart.Root"`. */
 	#rootName(): string {
+		if (this.#names != null) {
+			return this.#names.root;
+		}
 		return `${PART_NAME[this.#kind].split(".")[0] ?? "Chart"}.Root`;
 	}
 
@@ -1654,17 +1689,21 @@ class ChartEngine {
 
 	#layout(): void {
 		const snapshot = this.#store.getSnapshot();
-		const is3d = this.#is3d();
+		const frameless = !this.#hasCartesianFrame();
 		const horizontal = this.#horizontalBars();
-		const hasXAxis = !is3d && snapshot.xAxis != null;
-		const hasYAxis = !is3d && snapshot.yAxis != null;
+		const hasXAxis = !frameless && snapshot.xAxis != null;
+		const hasYAxis = !frameless && snapshot.yAxis != null;
 		// Which composed axis part lands on which physical edge: vertically the
 		// value axis (YAxis) sits in the left gutter and the category axis (XAxis)
 		// runs along the bottom; horizontal orientation flips the two.
 		const leftAxis = horizontal ? hasXAxis : hasYAxis;
 		const bottomAxis = horizontal ? hasYAxis : hasXAxis;
-		// A bar chart without ticks runs its bars edge to edge, like a sparkline.
-		const padding = this.#kind === "bar" && !this.#hasTicks() ? 0 : PLOT_PADDING;
+		// A bar chart without ticks runs its bars edge to edge, like a sparkline,
+		// and a world map fits its own edge.
+		const padding =
+			(this.#kind === "bar" && !this.#hasTicks()) || this.#scatter?.kind === "geo"
+				? 0
+				: PLOT_PADDING;
 		const top = padding;
 		const bottom = bottomAxis ? X_AXIS_BAND : padding;
 		const height = Math.max(0, this.#cssHeight - top - bottom);
@@ -1967,7 +2006,7 @@ class ChartEngine {
 		const yCo = this.#yCoefficients();
 		const xCo = this.#xCoefficients();
 		const specs = this.#store.seriesSpecs();
-		const is3d = this.#is3d();
+		const frameless = !this.#hasCartesianFrame();
 
 		// Tick fade state: desired tick sets fade in/out instead of popping, and
 		// gridlines share the label alphas so everything slides together while
@@ -1979,9 +2018,10 @@ class ChartEngine {
 		// gridlines, and the `ctx.font` write plus a `measureText` per tick cost
 		// a sparkline more than its bars.
 		const wantsTicks = this.#hasTicks();
-		const desiredXTicks = is3d || !wantsTicks ? [] : this.#desiredXTicks(ctx, colors.fontFamily());
+		const desiredXTicks =
+			frameless || !wantsTicks ? [] : this.#desiredXTicks(ctx, colors.fontFamily());
 		const desiredYTicks =
-			is3d || !wantsTicks ? [] : this.#desiredValueTicks(ctx, colors.fontFamily());
+			frameless || !wantsTicks ? [] : this.#desiredValueTicks(ctx, colors.fontFamily());
 		let labelsAnimating = advanceLabelFade(this.#xLabelFade, desiredXTicks, paintDt, instantLabels);
 		labelsAnimating =
 			advanceLabelFade(this.#yLabelFade, desiredYTicks, paintDt, instantLabels) || labelsAnimating;
@@ -2040,7 +2080,7 @@ class ChartEngine {
 		// "horizontal" draws horizontal lines, "vertical" vertical ones. Category
 		// and value each supply whichever direction their axis currently occupies.
 		const paintGrid = (): void => {
-			if (snapshot.grid == null || is3d) {
+			if (snapshot.grid == null || frameless) {
 				return;
 			}
 			// An unset direction (the store publishes `undefined` for "author left
@@ -2114,7 +2154,7 @@ class ChartEngine {
 		// reference lines mark a value, so they run across the value axis: a
 		// vertical line when horizontal, horizontal otherwise. Skipped when off the
 		// value axis (an unclipped line would strike the label strip) and in 3D.
-		for (const reference of is3d ? [] : snapshot.referenceLines) {
+		for (const reference of frameless ? [] : snapshot.referenceLines) {
 			const position = valuePosition(reference.y);
 			const outOfRange = horizontal
 				? position < plot.left || position > plot.left + plot.width
@@ -2150,7 +2190,7 @@ class ChartEngine {
 		// horizontal and the bottom strip (`xLabels`) when vertical; value swaps
 		// the other way.
 		const categoryLabels =
-			snapshot.xAxis == null || is3d
+			snapshot.xAxis == null || frameless
 				? []
 				: [...this.#xLabelFade.entries()].map(([key, entry]) => ({
 						position: categoryPosition(key),
@@ -2158,7 +2198,7 @@ class ChartEngine {
 						alpha: entry.alpha,
 					}));
 		const valueLabels =
-			snapshot.yAxis == null || is3d
+			snapshot.yAxis == null || frameless
 				? []
 				: [...this.#yLabelFade.entries()].map(([key, entry]) => ({
 						position: valuePosition(key),
@@ -2965,6 +3005,14 @@ class ChartEngine {
 						: meta.find((series) => series.dataKey === this.#activeSeriesKey);
 				dot.style.opacity = "1";
 				styleMarkerDot(dot, active?.shape ?? "circle", active?.color ?? "currentColor");
+				// A sized world map point outgrows the default dot, so the dot takes its size plus the ring.
+				const size = `${2 * ((this.#scatter?.radiusAt(index) ?? MARKER_RADIUS) + 2)}px`;
+				if (dot.style.width !== size) {
+					dot.style.width = size;
+					dot.style.height = size;
+					dot.style.left = `calc(${size} / -2)`;
+					dot.style.top = `calc(${size} / -2)`;
+				}
 				dot.style.transform = `translate(${screen.x}px, ${screen.y}px)`;
 			}
 			this.#positionTooltip(screen.x, screen.y);

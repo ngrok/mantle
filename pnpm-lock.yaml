@@ -469,6 +469,9 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
+      world-atlas:
+        specifier: 2.0.2
+        version: 2.0.2
 
   packages/mantle-server-syntax-highlighter:
     dependencies:
@@ -4600,6 +4603,9 @@ packages:
     engines: {node: '>=20.11'}
     hasBin: true
 
+  world-atlas@2.0.2:
+    resolution: {integrity: sha512-IXfV0qwlKXpckz1FhwXVwKRjiIhOnWttOskm5CtxMsjgE/MXAYRHWJqgXOpM8IkcPBoXnyTU5lFHcYa5ChG0LQ==}
+
   ws@8.23.0:
     resolution: {integrity: sha512-wCkmX8QMOrKjgO8HW2WyDbTSGeqkocxgDzS9iR79rEAexty6/2qzilx3Ag8Tqf9ykop3irLKle0MtVn5qjVnoQ==}
     engines: {node: '>=10.0.0'}
@@ -8646,6 +8652,8 @@ snapshots:
       webidl-conversions: 3.0.1
 
   why-is-node-running@3.2.1: {}
+
+  world-atlas@2.0.2: {}
 
   ws@8.23.0: {}
 

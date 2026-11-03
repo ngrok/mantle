@@ -1,5 +1,6 @@
 import invariant from "tiny-invariant";
 import type { ChartDatum, SeriesMark, SeriesSpec, XScaleKind, XValue } from "./types.js";
+import type { ChartKeyNames } from "./datum.js";
 import { datumValue, missingKeyMessage, toEpochOrNumber, uncoercibleXMessage } from "./datum.js";
 import { hasTimeOfDay } from "./format.js";
 
@@ -28,6 +29,10 @@ type IngestInput = {
 	zKey: string | null;
 	/** The Root's public name, such as `"BarChart.Root"`, for error messages. */
 	rootName: string;
+	/** The series part's public name for error messages. When omitted, it follows the series mark. */
+	partName?: string;
+	/** The public names of the x and series keys for error messages. When omitted, `xKey` and `dataKey`. */
+	keyNames?: ChartKeyNames;
 };
 
 type IngestResult = {
@@ -63,7 +68,7 @@ type XIngest = Pick<
 	"rowCount" | "xs" | "xValues" | "order" | "orderInverse" | "xsAllIntegers"
 >;
 
-const ingestCategories = ({ rows, xKey, rootName }: IngestInput): XIngest => {
+const ingestCategories = ({ rows, xKey, rootName, keyNames }: IngestInput): XIngest => {
 	const count = rows.length;
 	const xs = new Float64Array(count);
 	const xValues: XValue[] = Array.from({ length: count }, () => "");
@@ -81,12 +86,14 @@ const ingestCategories = ({ rows, xKey, rootName }: IngestInput): XIngest => {
 			typeof raw === "string" || typeof raw === "number" || raw instanceof Date ? raw : String(raw);
 		xs[index] = index;
 	}
-	invariant(count === 0 || foundX, () => missingKeyMessage(rootName, "xKey", xKey, rows));
+	invariant(count === 0 || foundX, () =>
+		missingKeyMessage(rootName, keyNames?.x ?? "xKey", xKey, rows),
+	);
 	// Category positions are indexes: integral, and never linear-ticked.
 	return { rowCount: count, xs, xValues, order: null, orderInverse: null, xsAllIntegers: true };
 };
 
-const ingestContinuous = ({ rows, xKey, xScale, rootName }: IngestInput): XIngest => {
+const ingestContinuous = ({ rows, xKey, xScale, rootName, keyNames }: IngestInput): XIngest => {
 	// Why typed arrays: a stream ingests on every append, and an object per row
 	// is garbage at that rate. `xsAll` and `sources` hold the coercible rows in
 	// row order; a sort, when needed, permutes them.
@@ -121,7 +128,9 @@ const ingestContinuous = ({ rows, xKey, xScale, rootName }: IngestInput): XInges
 			kept += 1;
 		}
 	}
-	invariant(rows.length === 0 || sawXKey, () => missingKeyMessage(rootName, "xKey", xKey, rows));
+	invariant(rows.length === 0 || sawXKey, () =>
+		missingKeyMessage(rootName, keyNames?.x ?? "xKey", xKey, rows),
+	);
 	invariant(!sawNonNullish || kept > 0, () => uncoercibleXMessage(rootName, xKey, xScale));
 	// Sorting once keeps decimation and hit-testing correct for out-of-order
 	// responses; the sorted view is the engine's contract. A tie keeps row order.
@@ -225,7 +234,12 @@ const ingestRows = (input: IngestInput): IngestResult => {
 			}
 		}
 		invariant(count === 0 || found, () =>
-			missingKeyMessage(PART_NAME[spec.mark], "dataKey", spec.dataKey, rows),
+			missingKeyMessage(
+				input.partName ?? PART_NAME[spec.mark],
+				input.keyNames?.series ?? "dataKey",
+				spec.dataKey,
+				rows,
+			),
 		);
 		return values;
 	});
