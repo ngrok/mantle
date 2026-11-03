@@ -144,12 +144,14 @@ export default defineConfig({
 							!process.env.DISABLE_HEADLESS ||
 							process.env.CI === "1" ||
 							/true/i.test(process.env.CI ?? ""),
+						// Why chromiumSandbox: Playwright starts Chromium with `--no-sandbox` by default.
+						// Without the sandbox, one renderer bug runs code with the access of the user.
 						provider: process.env.PLAYWRIGHT_WS_ENDPOINT
 							? playwright({
 									connectOptions: { wsEndpoint: process.env.PLAYWRIGHT_WS_ENDPOINT },
 									contextOptions,
 								})
-							: playwright({ contextOptions }),
+							: playwright({ contextOptions, launchOptions: { chromiumSandbox: true } }),
 						instances: [{ browser: "chromium" }],
 						commands: { emulateMedia, tailwindCss },
 					},

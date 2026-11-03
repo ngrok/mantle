@@ -468,7 +468,11 @@ const traceOnce = async (browser: Browser, base: string): Promise<Analysis> => {
 
 const server = await startServer({ port: PORT, build });
 const base = server.base;
-const browser = await chromium.launch({ headless: true, channel: "chromium" });
+const browser = await chromium.launch({
+	headless: true,
+	channel: "chromium",
+	chromiumSandbox: true,
+});
 try {
 	// Why a warm-up: the first page of a fresh browser pays cold caches no later load pays.
 	await traceOnce(browser, base);

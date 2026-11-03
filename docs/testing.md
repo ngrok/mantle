@@ -3,6 +3,7 @@
 Read this file before you add or change a test anywhere in the monorepo. [COMPONENT_SPEC.md §8](../COMPONENT_SPEC.md#8-tests) adds the minimums for a component.
 
 - Runner: Vitest. Two modes — happy-dom (default, no per-file Playwright startup) and real-browser Chromium via Playwright.
+- Chromium starts with its sandbox on, in the browser project and in the `apps/www/bench` scripts. On Ubuntu 23.10 and later, AppArmor blocks the user namespaces that the sandbox needs, and Chromium does not start. Run `sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0`, or add an AppArmor profile for the Playwright Chromium. The `browser-test` CI job runs the `sysctl` command.
 - Libraries: `@testing-library/react`, `@testing-library/dom`, `@testing-library/jest-dom`
 - File naming, colocated with source:
   - happy-dom: `*.test.{ts,tsx}`

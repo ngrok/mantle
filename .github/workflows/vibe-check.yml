@@ -350,6 +350,11 @@ jobs:
           echo "TURBO_TEST_CONCURRENCY=${WORKERS}" >> "${GITHUB_ENV}"
           echo "Using ${WORKERS} test worker(s) for this runner"
 
+      # Why: Ubuntu 24.04 blocks unprivileged user namespaces through AppArmor, and
+      # the Chromium sandbox needs them. GitHub discards the runner after the job.
+      - name: Allow the Chromium sandbox 🔒
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
       - name: Browser Test 🧪
         run: |
           pnpm exec turbo run test \
