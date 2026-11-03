@@ -22,7 +22,11 @@ const build = !process.argv.includes("--no-build");
 
 const server = await startServer({ port: PORT, build });
 const base = server.base;
-const browser = await chromium.launch({ headless: true, channel: "chromium" });
+const browser = await chromium.launch({
+	headless: true,
+	channel: "chromium",
+	chromiumSandbox: true,
+});
 try {
 	const context = await browser.newContext({
 		viewport: { width: 1280, height: 900 },

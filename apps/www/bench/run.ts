@@ -482,7 +482,11 @@ const main = async (): Promise<void> => {
 
 	const server = await startServer({ port: PORT, build: !hasFlag("no-build") });
 	const base = server.base;
-	const browser = await chromium.launch({ headless: !headed, channel: "chromium" });
+	const browser = await chromium.launch({
+		headless: !headed,
+		channel: "chromium",
+		chromiumSandbox: true,
+	});
 	console.log(`${cases.length} cases × ${runs} runs → ${outFile}`);
 	const browserCdp = await browser.newBrowserCDPSession();
 	const info = await browserCdp.send("SystemInfo.getInfo");
