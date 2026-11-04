@@ -12,6 +12,7 @@ export {
 } from "./input.js";
 export { PasswordInput } from "./password-input.js";
 export { isInput } from "./is-input.js";
+export { passwordManagerIgnoreProps } from "./password-manager-ignore.js";
 
 export type {
 	//,

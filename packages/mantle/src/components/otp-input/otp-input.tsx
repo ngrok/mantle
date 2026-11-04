@@ -10,6 +10,7 @@ import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import { FieldControlContext } from "../field/field-context.js";
+import { passwordManagerIgnoreProps } from "../input/password-manager-ignore.js";
 import { parseValidation, useFieldValidation } from "../field/validation.js";
 import type { Validation, WithValidation } from "../field/validation.js";
 import { Slot as AsChildSlot } from "../slot/index.js";
@@ -114,20 +115,6 @@ const MantleOtpBridge = ({
 	);
 };
 
-/**
- * Attributes that tell each major password manager to skip the OTP input.
- * Without them, a password manager puts its badge in the last slot and offers
- * to fill a saved password. `autocomplete="one-time-code"` does not stop this;
- * input-otp sets it by default.
- */
-const passwordManagerIgnoreProps = {
-	"data-1p-ignore": true, // 1Password
-	"data-bwignore": true, // Bitwarden
-	"data-form-type": "other", // Dashlane
-	"data-lpignore": "true", // LastPass
-	"data-protonpass-ignore": true, // Proton Pass
-} as const;
-
 // Drop the `render` / `children?: never` branch of input-otp's discriminated
 // union — `OtpInput.Root` always wraps its children in `MantleOtpBridge`,
 // so consumers compose with `OtpInput.Group` / `OtpInput.Slot` children
@@ -157,10 +144,11 @@ type OtpInputRootProps = Omit<ComponentProps<typeof OTPInput>, "render" | "child
  * **Accessibility.** The hidden input needs an accessible name. Inside a
  * `Field.Item`, `Field.Label` supplies it. On its own, pass `aria-label`.
  *
- * **Password managers.** The hidden input carries the ignore attributes for
- * 1Password, Bitwarden, Dashlane, LastPass, and Proton Pass, so their badges
- * and fill prompts stay off the slots. To let one fill the code, pass its
- * attribute as `undefined`, as in `data-1p-ignore={undefined}`.
+ * **Password managers.** The hidden input sets `autocomplete="one-time-code"`,
+ * so 1Password, Bitwarden, Dashlane, and Proton Pass can fill the code. Each
+ * can also show its badge beside the last slot. Do not add their ignore
+ * attributes: an ignore attribute also stops the fill. LastPass does not fill
+ * one-time codes, so the input carries `data-lpignore`.
  *
  * @see https://mantle.ngrok.com/components/forms/otp-input
  *
@@ -209,7 +197,8 @@ const Root = ({
 			data-slot={joinDataSlot(dataSlot, "otp-input")}
 			containerClassName={cx("flex items-center gap-2 has-disabled:opacity-50", containerClassName)}
 			className={cx("disabled:cursor-not-allowed", className)}
-			{...passwordManagerIgnoreProps}
+			// LastPass does not fill one-time codes, so only its badge is kept off.
+			data-lpignore={passwordManagerIgnoreProps["data-lpignore"]}
 			{...props}
 			{...(fieldControl
 				? {
