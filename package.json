@@ -32,7 +32,7 @@
     "migrate": "node ./scripts/migrate.ts"
   },
   "devDependencies": {
-    "@ast-grep/cli": "0.51.0",
+    "@ast-grep/cli": "0.51.1",
     "@changesets/changelog-github": "1.0.1",
     "@changesets/cli": "3.0.3",
     "@tailwindcss/node": "catalog:",
@@ -44,13 +44,13 @@
     "oxfmt": "catalog:",
     "oxlint": "1.90.0",
     "oxlint-tsgolint": "7.0.2005",
-    "tsrs": "0.20.1-ts7.1.0-beta",
+    "tsrs": "0.21.0-ts7.1.0-beta",
     "turbo": "2.11.10",
     "typescript": "catalog:",
-    "vitest": "5.0.5"
+    "vitest": "5.1.0"
   },
   "engines": {
     "node": "^26.0.0"
   },
-  "packageManager": "pnpm@12.16.1"
+  "packageManager": "pnpm@12.17.0"
 }
