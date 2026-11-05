@@ -236,11 +236,12 @@ const DefaultRadioIndicator = ({ checked, disabled, focus, hover }: RadioStateCo
 		// Why: `RadioGroup.Item` reads this attribute to skip its own focus ring.
 		data-radio-default-indicator=""
 		className={cx(
-			"border-form flex size-4 items-center justify-center rounded-full border shrink-0",
+			"flex size-4 items-center justify-center rounded-full shrink-0",
 			disabled && "cursor-default opacity-50",
-			checked && "border-accent-600 bg-accent-600",
-			focus && !disabled && "border-accent-600 ring-focus-accent ring-4",
-			hover && "border-accent-600",
+			// Why a fill, not a border: hover shifts the fill toward more contrast in both themes.
+			checked ? "bg-filled-accent" : "bg-neutral-300",
+			hover && !disabled && (checked ? "bg-filled-accent-hover" : "bg-neutral-400"),
+			focus && !disabled && "ring-focus-accent ring-4",
 		)}
 	>
 		{checked && <span className="size-2 rounded-full bg-white shrink-0" />}
@@ -371,10 +372,10 @@ const ListItem = ({
 			className={cx(
 				"group/radio border-form [&_label]:cursor-inherit relative flex select-none gap-2 border px-3 py-2 text-sm",
 				"cursor-pointer aria-disabled:cursor-default focus:outline-hidden",
-				"focus-visible:ring-focus-accent not-aria-disabled:focus-visible:border-accent-600 focus-visible:ring-4",
+				"focus-visible:ring-focus-accent focus-visible:z-1 focus-visible:ring-4",
 				"first-of-type:rounded-tl-md first-of-type:rounded-tr-md last-of-type:rounded-bl-md last-of-type:rounded-br-md",
-				"aria-disabled:border-form/50 not-aria-disabled:hover:z-1 not-aria-disabled:hover:border-accent-600",
-				"aria-checked:z-1 aria-checked:border-accent-500/40 aria-checked:bg-accent-500/10 not-aria-disabled:hover:aria-checked:border-accent-600",
+				"aria-disabled:border-form/50 not-aria-disabled:hover:bg-active-menu-item",
+				"aria-checked:bg-selected-menu-item not-aria-disabled:hover:aria-checked:bg-active-selected-menu-item",
 				"has-[.radio-indicator:first-child]:pl-2 has-[.radio-indicator:last-child]:pr-2",
 				className,
 			)}
@@ -438,10 +439,10 @@ const Card = ({
 			className={clsx(
 				"group/radio border-card bg-card [&_label]:cursor-inherit relative rounded-md border p-4 text-sm",
 				"cursor-pointer aria-disabled:cursor-default focus:outline-hidden",
-				"focus-visible:ring-focus-accent not-aria-disabled:focus-visible:border-accent-600 focus-visible:ring-4",
+				"focus-visible:ring-focus-accent focus-visible:ring-4",
 				"first-of-type:rounded-tl-md first-of-type:rounded-tr-md last-of-type:rounded-bl-md last-of-type:rounded-br-md",
-				"aria-disabled:border-form/50 not-aria-disabled:hover:z-1 not-aria-disabled:hover:border-accent-600",
-				"aria-checked:z-1 aria-checked:border-accent-600/50 aria-checked:bg-accent-500/10 not-aria-disabled:hover:aria-checked:border-accent-600",
+				"aria-disabled:border-form/50 not-aria-disabled:hover:bg-card-hover",
+				"aria-checked:bg-selected-menu-item not-aria-disabled:hover:aria-checked:bg-active-selected-menu-item",
 				className,
 			)}
 			{...props}
@@ -561,11 +562,11 @@ const Button = ({
 				"group/radio border-form [&_label]:cursor-inherit relative flex flex-1 select-none items-center justify-center gap-2 border px-3 text-sm",
 				// Why nowrap: the segment has a fixed height, so a wrapped label spills out of it.
 				"h-9 whitespace-nowrap",
-				"focus-visible:ring-focus-accent not-aria-disabled:focus-visible:border-accent-600 focus-visible:ring-4",
+				"focus-visible:ring-focus-accent focus-visible:z-1 focus-visible:ring-4",
 				"cursor-pointer aria-disabled:cursor-default focus:outline-hidden",
 				"first-of-type:rounded-bl-md first-of-type:rounded-tl-md last-of-type:rounded-br-md last-of-type:rounded-tr-md",
-				"not-aria-disabled:hover:z-1 not-aria-disabled:hover:border-accent-600 aria-disabled:opacity-50",
-				"aria-checked:z-1 aria-checked:border-accent-600/40 aria-checked:bg-accent-500/10 not-aria-disabled:hover:aria-checked:border-accent-600",
+				"not-aria-disabled:hover:bg-active-menu-item aria-disabled:opacity-50",
+				"aria-checked:bg-selected-menu-item not-aria-disabled:hover:aria-checked:bg-active-selected-menu-item",
 				"has-[.radio-indicator:first-child]:pl-2 has-[.radio-indicator:last-child]:pr-2",
 				className,
 			)}
