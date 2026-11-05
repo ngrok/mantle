@@ -1,4 +1,4 @@
-import type { ChartDatum, SeriesMark, XScaleKind, XValue } from "./types.js";
+import type { ChartDatum, ChartProjection, SeriesMark, XScaleKind, XValue } from "./types.js";
 import { datumValue, toEpochOrNumber } from "./datum.js";
 import { formatNumber, formatXValue, hasTimeOfDay } from "./format.js";
 
@@ -113,6 +113,10 @@ const KIND_LABEL: Record<SeriesMark, string> = {
 const KEYBOARD_INSTRUCTIONS =
 	"Use the left and right arrow keys to move between data points, Page Up and Page Down to jump by a tenth of the data, Home and End to jump to the first and last, Enter or Space to activate the current point, and Escape to dismiss the readout.";
 
+/** The world map steps by longitude, so its instructions name the direction. */
+const MAP_KEYBOARD_INSTRUCTIONS =
+	"Use the left and right arrow keys to move between points from west to east, Page Up and Page Down to jump by a tenth of the points, Home and End to jump to the westernmost and easternmost, Enter or Space to activate the current point, and Escape to dismiss the readout.";
+
 /** What one row is to a chart of this kind: a category on a bar chart, a data point elsewhere. */
 const nounFor = (kind: SeriesMark, single: boolean): string => {
 	if (kind === "bar") {
@@ -123,6 +127,13 @@ const nounFor = (kind: SeriesMark, single: boolean): string => {
 
 type DescribeChartOptions = {
 	kind: SeriesMark;
+	/**
+	 * `"robinson"` describes a world map: a point count, and no x range (a
+	 * longitude span says little).
+	 *
+	 * @default "cartesian"
+	 */
+	projection?: ChartProjection;
 	summary: XSummary;
 	/** Registered series labels in paint order. */
 	seriesLabels: readonly string[];
@@ -159,9 +170,18 @@ const describeSeries = (seriesLabels: readonly string[]): string =>
  */
 const describeChartParts = ({
 	kind,
+	projection = "cartesian",
 	summary,
 	hydrated,
 }: Omit<DescribeChartOptions, "seriesLabels">): { sentence: string; instructions: string } => {
+	if (projection === "robinson") {
+		const count = hydrated ? formatNumber(summary.count) : String(summary.count);
+		const sentence =
+			summary.count === 0
+				? "World map with no points."
+				: `World map with ${count} ${summary.count === 1 ? "point" : "points"}.`;
+		return { sentence, instructions: ` ${MAP_KEYBOARD_INSTRUCTIONS}` };
+	}
 	let sentence: string;
 	if (summary.count === 0) {
 		sentence = `${KIND_LABEL[kind]} with no data.`;
@@ -191,8 +211,14 @@ const describeChartParts = ({
  * // "Line chart with 30 data points from Jul 1, 2026 to Jul 30, 2026. Series: Requests, Errors. Use the left and right arrow keys …"
  * ```
  */
-const describeChart = ({ kind, summary, seriesLabels, hydrated }: DescribeChartOptions): string => {
-	const { sentence, instructions } = describeChartParts({ kind, summary, hydrated });
+const describeChart = ({
+	kind,
+	projection,
+	summary,
+	seriesLabels,
+	hydrated,
+}: DescribeChartOptions): string => {
+	const { sentence, instructions } = describeChartParts({ kind, projection, summary, hydrated });
 	return `${sentence}${describeSeries(seriesLabels)}${instructions}`;
 };
 

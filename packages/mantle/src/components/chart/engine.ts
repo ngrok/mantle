@@ -8,6 +8,7 @@ import type {
 	ChartDatum,
 	ChartDatumEvent,
 	ChartOptions,
+	GeoLand,
 	HoverSnapshot,
 	PointShape,
 	SeriesColor,
@@ -35,6 +36,8 @@ import {
 } from "./environment.js";
 import { decimateColumns, shouldDecimate } from "./decimate.js";
 import { formatNumber, formatXValue, hasTimeOfDay, tickFractionDigits } from "./format.js";
+import type { GeoFit } from "./geo.js";
+import { fitWorld, graticulePath, landPath, outlinePath, toScreen } from "./geo.js";
 import { nearestIndex } from "./hit-test.js";
 import type { Camera } from "./projection.js";
 import {
@@ -83,7 +86,13 @@ import {
 } from "./renderer.js";
 import { computeStackBoundaries } from "./stack.js";
 import type { StackBoundaries } from "./stack.js";
-import { CHART_TWEEN_DURATION_MS, ChaseTween, PER_DATUM_TWEEN_LIMIT, ValueTween } from "./tween.js";
+import {
+	CHART_TWEEN_DURATION_MS,
+	ChaseTween,
+	easeCubicOut,
+	PER_DATUM_TWEEN_LIMIT,
+	ValueTween,
+} from "./tween.js";
 import { MARKER_RADIUS } from "./renderer.js";
 
 /**
@@ -167,6 +176,8 @@ type ResolvedColors = {
 	/** Rasterized pattern fills for textured bar series (no entry = solid fill). */
 	barTextures: Map<string, CanvasPattern>;
 	chrome: ChartChromeColors;
+	/** The world map's fills, resolved only for the Robinson projection. */
+	geo: { land: string; ocean: string } | null;
 	fontFamily: string;
 };
 
@@ -185,6 +196,15 @@ const PART_NAME: Record<SeriesMark, string> = {
 
 /** The pointer must land within this distance of a scatter point to hit it. */
 const SCATTER_HIT_RADIUS = 24;
+
+/** The largest world map point radius, in CSS pixels: the point with the largest size value. */
+const GEO_MAX_RADIUS = 16;
+/** How long the ring around a newly arrived world map point grows and fades. */
+const ARRIVAL_PULSE_MS = 900;
+/** Past this many points a world map stops tracking arrivals: a pulse among thousands says nothing. */
+const ARRIVAL_TRACK_LIMIT = 5000;
+/** The most pulses one world map runs at once; a burst pulses its newest points. */
+const ARRIVAL_PULSE_LIMIT = 48;
 /** Drag farther than this before a 3D pointer-down counts as a rotation. */
 const DRAG_THRESHOLD = 3;
 
@@ -230,6 +250,9 @@ class ChartEngine {
 		orientation: "vertical",
 		zKey: null,
 		dimensions: 3,
+		projection: "cartesian",
+		sizeKey: null,
+		land: null,
 		stacked: false,
 		animate: true,
 	};
@@ -403,6 +426,21 @@ class ChartEngine {
 	#zeroColumns: DecimatedColumns | null = null;
 	/** Reusable back-to-front paint order for the 3D projection (see #paintScatter3d). */
 	#depthOrder: Int32Array = new Int32Array(0);
+	/** World map: each sorted row's size value (NaN = none), and the largest. */
+	#sizes: Float64Array = new Float64Array(0);
+	#sizeMax = 0;
+	/** World map: the land, outline, and graticule paths for the current fit. */
+	#geoLayers: {
+		fit: GeoFit;
+		source: GeoLand | null;
+		land: Path2D;
+		outline: Path2D;
+		graticule: Path2D;
+	} | null = null;
+	/** World map: the points of the last ingest, keyed by series and position; `null` before the first. */
+	#arrivalKeys: Set<string> | null = null;
+	/** World map: points that arrived since the last ingest, with the time each pulse starts. */
+	#arrivals: { seriesKey: string; longitude: number; latitude: number; start: number }[] = [];
 	/** Reference-line colors resolved once per color signature (see #resolveReferenceColor). */
 	#referenceColorCache = new Map<string, string>();
 	#referenceColorSignature = "";
@@ -755,6 +793,8 @@ class ChartEngine {
 			previous.xKey !== options.xKey ||
 			previous.xScale !== options.xScale ||
 			previous.zKey !== options.zKey ||
+			previous.projection !== options.projection ||
+			previous.sizeKey !== options.sizeKey ||
 			previous.stacked !== options.stacked
 		) {
 			this.#pendingIngest = true;
@@ -1096,7 +1136,7 @@ class ChartEngine {
 				xs[index] = index;
 			}
 			invariant(count === 0 || foundX, () =>
-				missingKeyMessage(this.#rootName(), "xKey", xKey, rows),
+				missingKeyMessage(this.#rootName(), this.#xKeyName(), xKey, rows),
 			);
 			this.#order = null;
 			this.#orderInverse = null;
@@ -1144,7 +1184,7 @@ class ChartEngine {
 				}
 			}
 			invariant(rows.length === 0 || sawXKey, () =>
-				missingKeyMessage(this.#rootName(), "xKey", xKey, rows),
+				missingKeyMessage(this.#rootName(), this.#xKeyName(), xKey, rows),
 			);
 			invariant(!sawNonNullish || kept > 0, () =>
 				uncoercibleXMessage(this.#rootName(), xKey, xScale),
@@ -1226,6 +1266,7 @@ class ChartEngine {
 		const previousLast = previousXs[previousXs.length - 1];
 		if (
 			!this.#is3d() &&
+			!this.#isGeo() &&
 			(xScale === "linear" || xScale === "time") &&
 			first != null &&
 			last != null &&
@@ -1261,7 +1302,9 @@ class ChartEngine {
 		// Per-datum tweens are only meaningful when old and new points share the
 		// same x positions — index-aligned interpolation across a shifted window
 		// would morph each point into its neighbor's value.
-		let sameXVector = previousXs.length === count && count <= PER_DATUM_TWEEN_LIMIT;
+		// A world map never glides a point: a moved agent arrives at its new place.
+		let sameXVector =
+			!this.#isGeo() && previousXs.length === count && count <= PER_DATUM_TWEEN_LIMIT;
 		if (sameXVector) {
 			for (let index = 0; index < count; index++) {
 				if (previousXs[index] !== this.#xs[index]) {
@@ -1309,7 +1352,9 @@ class ChartEngine {
 				}
 			}
 			invariant(count === 0 || found, () =>
-				missingKeyMessage(PART_NAME[spec.mark], "dataKey", spec.dataKey, rows),
+				this.#isGeo()
+					? missingKeyMessage("WorldMap.Point", "latitudeKey", spec.dataKey, rows)
+					: missingKeyMessage(PART_NAME[spec.mark], "dataKey", spec.dataKey, rows),
 			);
 			this.#columns.set(spec.dataKey, values);
 		}
@@ -1351,6 +1396,10 @@ class ChartEngine {
 		} else {
 			this.#zs = new Float64Array(0);
 		}
+		if (this.#isGeo()) {
+			this.#ingestSizes(rows, count);
+			this.#trackArrivals(specs);
+		}
 		this.#projected = null;
 		// A fresh ingest re-projects every point; the cached hover pixel would
 		// otherwise strand the marker on the pre-ingest projection.
@@ -1362,11 +1411,13 @@ class ChartEngine {
 				)
 			: null;
 
-		this.#decimated = shouldDecimate({
-			pointCount: count,
-			columnCount: Math.max(1, Math.round(this.#plot.width * this.#dpr)),
-			wasDecimated: this.#decimated,
-		});
+		this.#decimated =
+			!this.#isGeo() &&
+			shouldDecimate({
+				pointCount: count,
+				columnCount: Math.max(1, Math.round(this.#plot.width * this.#dpr)),
+				wasDecimated: this.#decimated,
+			});
 
 		// A series registered after the first paint has no resolved canvas color
 		// yet (the theme signature is unchanged, so the lazy cache would skip it
@@ -1521,6 +1572,9 @@ class ChartEngine {
 	}
 
 	#targetYDomain(): [number, number] {
+		if (this.#isGeo()) {
+			return [-90, 90];
+		}
 		const [minOverride, maxOverride] = this.#options.yDomain;
 		let min: number;
 		let max: number;
@@ -1557,6 +1611,9 @@ class ChartEngine {
 	}
 
 	#targetXDomain(): [number, number] {
+		if (this.#isGeo()) {
+			return [-180, 180];
+		}
 		if (this.#rowCount === 0) {
 			return [0, 1];
 		}
@@ -1577,6 +1634,16 @@ class ChartEngine {
 		return this.#kind === "scatter" && this.#options.zKey != null;
 	}
 
+	/** Whether the scatter paints longitude and latitude on a world map. */
+	#isGeo(): boolean {
+		return this.#kind === "scatter" && this.#options.projection === "robinson";
+	}
+
+	/** Whether the plot has an x/y frame: axes, gridlines, and reference lines. */
+	#hasCartesianFrame(): boolean {
+		return !this.#is3d() && !this.#isGeo();
+	}
+
 	/**
 	 * Horizontal bar orientation: categories band down the y axis, values run
 	 * along x from a left baseline. The engine's semantic structures (x =
@@ -1589,7 +1656,15 @@ class ChartEngine {
 
 	/** The public Root part name for error messages, e.g. `"BarChart.Root"`. */
 	#rootName(): string {
+		if (this.#isGeo()) {
+			return "WorldMap.Root";
+		}
 		return `${PART_NAME[this.#kind].split(".")[0] ?? "Chart"}.Root`;
+	}
+
+	/** The public name of the x key prop, for error messages. */
+	#xKeyName(): "xKey" | "longitudeKey" {
+		return this.#isGeo() ? "longitudeKey" : "xKey";
 	}
 
 	/**
@@ -1698,7 +1773,7 @@ class ChartEngine {
 		// (zoom, monitor move) re-resolves alongside theme changes. Orientation is
 		// in the key too: both single-rung textures flip with the bars, so a
 		// runtime orientation change must regenerate the cached patterns.
-		const signature = `${themeSignature(root.ownerDocument.documentElement)}|${this.#dpr}|${this.#options.orientation}`;
+		const signature = `${themeSignature(root.ownerDocument.documentElement)}|${this.#dpr}|${this.#options.orientation}|${this.#options.projection}`;
 		if (this.#colors?.signature === signature) {
 			return;
 		}
@@ -1735,6 +1810,12 @@ class ChartEngine {
 			inputs,
 			barTextures,
 			chrome: resolveChromeColors(resolver),
+			geo: this.#isGeo()
+				? {
+						land: resolver.resolve("var(--world-map-land-color, var(--color-neutral-200))"),
+						ocean: resolver.resolve("var(--world-map-ocean-color, var(--color-neutral-50))"),
+					}
+				: null,
 			fontFamily: resolver.fontFamily,
 		};
 	}
@@ -1784,10 +1865,10 @@ class ChartEngine {
 
 	#layout(): void {
 		const snapshot = this.#store.getSnapshot();
-		const is3d = this.#is3d();
+		const cartesian = this.#hasCartesianFrame();
 		const horizontal = this.#horizontalBars();
-		const hasXAxis = !is3d && snapshot.xAxis != null;
-		const hasYAxis = !is3d && snapshot.yAxis != null;
+		const hasXAxis = cartesian && snapshot.xAxis != null;
+		const hasYAxis = cartesian && snapshot.yAxis != null;
 		// Which composed axis part lands on which physical edge: vertically the
 		// value axis (YAxis) sits in the left gutter and the category axis (XAxis)
 		// runs along the bottom; horizontal orientation flips the two.
@@ -1864,11 +1945,13 @@ class ChartEngine {
 			this.#bandLayout = null;
 		}
 
-		this.#decimated = shouldDecimate({
-			pointCount: this.#rowCount,
-			columnCount: Math.max(1, Math.round(this.#plot.width * this.#dpr)),
-			wasDecimated: this.#decimated,
-		});
+		this.#decimated =
+			!this.#isGeo() &&
+			shouldDecimate({
+				pointCount: this.#rowCount,
+				columnCount: Math.max(1, Math.round(this.#plot.width * this.#dpr)),
+				wasDecimated: this.#decimated,
+			});
 	}
 
 	#yCoefficients(): { k: number; b: number } {
@@ -2077,7 +2160,7 @@ class ChartEngine {
 		const yCo = this.#yCoefficients();
 		const xCo = this.#xCoefficients();
 		const specs = this.#store.seriesSpecs();
-		const is3d = this.#is3d();
+		const cartesian = this.#hasCartesianFrame();
 
 		// Tick fade state: desired tick sets fade in/out instead of popping, and
 		// gridlines share the label alphas so everything slides together while
@@ -2087,9 +2170,10 @@ class ChartEngine {
 		// gridlines, and the `ctx.font` write plus a `measureText` per tick cost
 		// a sparkline more than its bars.
 		const wantsTicks = snapshot.xAxis != null || snapshot.yAxis != null || snapshot.grid != null;
-		const desiredXTicks = is3d || !wantsTicks ? [] : this.#desiredXTicks(ctx, colors.fontFamily);
+		const desiredXTicks =
+			!cartesian || !wantsTicks ? [] : this.#desiredXTicks(ctx, colors.fontFamily);
 		const desiredYTicks =
-			is3d || !wantsTicks ? [] : this.#desiredValueTicks(ctx, colors.fontFamily);
+			!cartesian || !wantsTicks ? [] : this.#desiredValueTicks(ctx, colors.fontFamily);
 		let labelsAnimating = advanceLabelFade(this.#xLabelFade, desiredXTicks, paintDt, instantLabels);
 		labelsAnimating =
 			advanceLabelFade(this.#yLabelFade, desiredYTicks, paintDt, instantLabels) || labelsAnimating;
@@ -2148,7 +2232,7 @@ class ChartEngine {
 		// "horizontal" draws horizontal lines, "vertical" vertical ones. Category
 		// and value each supply whichever direction their axis currently occupies.
 		const paintGrid = (): void => {
-			if (snapshot.grid == null || is3d) {
+			if (snapshot.grid == null || !cartesian) {
 				return;
 			}
 			// An unset direction (the store publishes `undefined` for "author left
@@ -2186,6 +2270,8 @@ class ChartEngine {
 			} else {
 				this.#paintBars(ctx, specs, yCo);
 			}
+		} else if (this.#isGeo()) {
+			labelsAnimating = this.#paintGeo(ctx, specs, now) || labelsAnimating;
 		} else if (this.#kind === "scatter") {
 			frameLabels = this.#paintScatter(ctx, specs, yCo);
 		} else {
@@ -2231,7 +2317,7 @@ class ChartEngine {
 		// reference lines mark a value, so they run across the value axis: a
 		// vertical line when horizontal, horizontal otherwise. Skipped when off the
 		// value axis (an unclipped line would strike the label strip) and in 3D.
-		for (const reference of is3d ? [] : snapshot.referenceLines) {
+		for (const reference of cartesian ? snapshot.referenceLines : []) {
 			const position = valuePosition(reference.y);
 			const outOfRange = horizontal
 				? position < plot.left || position > plot.left + plot.width
@@ -2269,7 +2355,7 @@ class ChartEngine {
 		// horizontal and the bottom strip (`xLabels`) when vertical; value swaps
 		// the other way.
 		const categoryLabels =
-			snapshot.xAxis == null || is3d
+			snapshot.xAxis == null || !cartesian
 				? []
 				: [...this.#xLabelFade.entries()].map(([key, entry]) => ({
 						position: categoryPosition(key),
@@ -2277,7 +2363,7 @@ class ChartEngine {
 						alpha: entry.alpha,
 					}));
 		const valueLabels =
-			snapshot.yAxis == null || is3d
+			snapshot.yAxis == null || !cartesian
 				? []
 				: [...this.#yLabelFade.entries()].map(([key, entry]) => ({
 						position: valuePosition(key),
@@ -2997,6 +3083,217 @@ class ChartEngine {
 		this.#store.publishHover(snapshot);
 	}
 
+	/** World map: the world fitted into the current plot. */
+	#geoFit(): GeoFit {
+		return fitWorld(this.#plot, { inset: 1 });
+	}
+
+	/** World map: the land, outline, and graticule paths, built again only when the fit changes. */
+	#geoLayersFor(fit: GeoFit): { land: Path2D; outline: Path2D; graticule: Path2D } {
+		const cached = this.#geoLayers;
+		const source = this.#options.land;
+		if (
+			cached != null &&
+			cached.source === source &&
+			cached.fit.scale === fit.scale &&
+			cached.fit.centerX === fit.centerX &&
+			cached.fit.centerY === fit.centerY
+		) {
+			return cached;
+		}
+		const layers = {
+			fit,
+			source,
+			land: source == null ? new Path2D() : landPath(fit, source),
+			outline: outlinePath(fit),
+			graticule: graticulePath(fit, { step: 30 }),
+		};
+		this.#geoLayers = layers;
+		return layers;
+	}
+
+	/**
+	 * World map: reads the size column. A point's area follows its size value,
+	 * so the radius follows the square root, with {@link MARKER_RADIUS} as the
+	 * floor so the smallest point stays a target.
+	 */
+	#ingestSizes(rows: readonly ChartDatum[], count: number): void {
+		const sizeKey = this.#options.sizeKey;
+		if (sizeKey == null) {
+			this.#sizes = new Float64Array(0);
+			this.#sizeMax = 0;
+			return;
+		}
+		const sizes = new Float64Array(count);
+		let max = 0;
+		let found = false;
+		for (let index = 0; index < count; index++) {
+			const originalIndex = this.#order == null ? index : (this.#order[index] ?? index);
+			const row = rows[originalIndex];
+			const raw = row == null ? undefined : datumValue(row, sizeKey);
+			if (raw !== undefined) {
+				found = true;
+			}
+			const value = typeof raw === "number" && Number.isFinite(raw) && raw > 0 ? raw : Number.NaN;
+			sizes[index] = value;
+			if (value > max) {
+				max = value;
+			}
+		}
+		invariant(count === 0 || found, () =>
+			missingKeyMessage("WorldMap.Root", "sizeKey", sizeKey, rows),
+		);
+		this.#sizes = sizes;
+		this.#sizeMax = max;
+	}
+
+	/** World map: the radius of the point in sorted row `index`. */
+	#geoRadiusAt(index: number): number {
+		const size = this.#sizes[index];
+		if (size == null || Number.isNaN(size) || this.#sizeMax <= 0) {
+			return MARKER_RADIUS;
+		}
+		return Math.max(MARKER_RADIUS, GEO_MAX_RADIUS * Math.sqrt(size / this.#sizeMax));
+	}
+
+	/**
+	 * World map: compares the points of this ingest with the last one, and
+	 * starts a pulse for each point at a new place. The first ingest pulses
+	 * nothing: the series reveal covers it. A pulse needs motion, so reduced
+	 * motion and `animate={false}` start none.
+	 */
+	#trackArrivals(specs: readonly SeriesSpec[]): void {
+		if (this.#rowCount > ARRIVAL_TRACK_LIMIT) {
+			this.#arrivalKeys = null;
+			this.#arrivals = [];
+			return;
+		}
+		const previous = this.#arrivalKeys;
+		const pulse = previous != null && this.#seen && this.#motionDuration() > 0;
+		const now = performance.now();
+		const keys = new Set<string>();
+		for (const spec of specs) {
+			const latitudes = this.#columns.get(spec.dataKey);
+			if (latitudes == null) {
+				continue;
+			}
+			for (let index = 0; index < this.#rowCount; index++) {
+				const latitude = latitudes[index] ?? Number.NaN;
+				const longitude = this.#xs[index] ?? Number.NaN;
+				if (Number.isNaN(latitude)) {
+					continue;
+				}
+				const key = `${spec.dataKey}|${longitude}|${latitude}`;
+				keys.add(key);
+				if (pulse && !previous.has(key)) {
+					this.#arrivals.push({ seriesKey: spec.dataKey, longitude, latitude, start: now });
+				}
+			}
+		}
+		if (this.#arrivals.length > ARRIVAL_PULSE_LIMIT) {
+			this.#arrivals = this.#arrivals.slice(-ARRIVAL_PULSE_LIMIT);
+		}
+		this.#arrivalKeys = keys;
+	}
+
+	/**
+	 * World map: the ocean, the graticule when `Graticule` is composed, the
+	 * land, the outline, the points, then the pulse rings. Larger points paint
+	 * first, so a small point on top of a large one stays visible. Returns
+	 * whether a pulse still runs.
+	 */
+	#paintGeo(ctx: CanvasRenderingContext2D, specs: readonly SeriesSpec[], now: number): boolean {
+		const colors = this.#colors;
+		const geo = colors?.geo;
+		if (colors == null || geo == null) {
+			return false;
+		}
+		const fit = this.#geoFit();
+		const layers = this.#geoLayersFor(fit);
+		ctx.fillStyle = geo.ocean;
+		ctx.fill(layers.outline);
+		if (this.#store.getSnapshot().grid != null) {
+			ctx.save();
+			ctx.clip(layers.outline);
+			ctx.strokeStyle = colors.chrome.grid;
+			ctx.lineWidth = 1;
+			ctx.stroke(layers.graticule);
+			ctx.restore();
+		}
+		ctx.fillStyle = geo.land;
+		ctx.fill(layers.land, "evenodd");
+		ctx.strokeStyle = colors.chrome.grid;
+		ctx.lineWidth = 1;
+		ctx.stroke(layers.outline);
+
+		const count = this.#rowCount;
+		if (count === 0 || specs.length === 0) {
+			this.#arrivals = [];
+			return false;
+		}
+		const screenX = new Float64Array(count);
+		const screenY = new Float64Array(count);
+		// Why a cache: the paint order changes only at ingest, and a pulse repaints every frame.
+		let cached = this.#scatterIndexes;
+		if (cached == null || cached.columns !== this.#columns || cached.specs !== specs) {
+			const sized = this.#sizes.length > 0;
+			const indexes = specs.map((spec) => {
+				const defined = this.#definedIndexes(
+					this.#columns.get(spec.dataKey) ?? new Float64Array(0),
+				);
+				return sized
+					? defined.toSorted((a, b) => this.#geoRadiusAt(b) - this.#geoRadiusAt(a))
+					: defined;
+			});
+			cached = {
+				columns: this.#columns,
+				specs,
+				indexes,
+				total: indexes.reduce((sum, list) => sum + list.length, 0),
+			};
+			this.#scatterIndexes = cached;
+		}
+		const seriesIndexes = cached.indexes;
+		const totalPointCount = cached.total;
+		specs.forEach((spec, seriesIndex) => {
+			const latitudes = this.#columns.get(spec.dataKey) ?? new Float64Array(0);
+			const indexes = seriesIndexes[seriesIndex] ?? [];
+			for (const index of indexes) {
+				const [x, y] = toScreen(fit, this.#xs[index] ?? 0, latitudes[index] ?? 0);
+				screenX[index] = x;
+				screenY[index] = y;
+			}
+			ctx.save();
+			ctx.globalAlpha = this.#reveal(spec.dataKey);
+			drawScatterPoints(ctx, {
+				color: colors.series.get(spec.dataKey) ?? "currentColor",
+				surface: colors.chrome.surface,
+				shape: this.#store.seriesShape(spec.dataKey),
+				totalPointCount,
+				indexes,
+				xAt: (index) => screenX[index] ?? 0,
+				yAt: (index) => screenY[index] ?? 0,
+				radiusAt: (index) => this.#geoRadiusAt(index),
+			});
+			ctx.restore();
+		});
+
+		this.#arrivals = this.#arrivals.filter((arrival) => now - arrival.start < ARRIVAL_PULSE_MS);
+		for (const arrival of this.#arrivals) {
+			const progress = easeCubicOut(Math.max(0, now - arrival.start) / ARRIVAL_PULSE_MS);
+			const [x, y] = toScreen(fit, arrival.longitude, arrival.latitude);
+			ctx.save();
+			ctx.globalAlpha = 0.6 * (1 - progress);
+			ctx.strokeStyle = colors.series.get(arrival.seriesKey) ?? "currentColor";
+			ctx.lineWidth = 2;
+			ctx.beginPath();
+			ctx.arc(x, y, MARKER_RADIUS + 14 * progress, 0, Math.PI * 2);
+			ctx.stroke();
+			ctx.restore();
+		}
+		return this.#arrivals.length > 0;
+	}
+
 	#paintScatter(
 		ctx: CanvasRenderingContext2D,
 		specs: readonly SeriesSpec[],
@@ -3215,6 +3512,28 @@ class ChartEngine {
 		const limit = SCATTER_HIT_RADIUS * SCATTER_HIT_RADIUS;
 		let bestDistance = limit;
 		let best: { seriesKey: string; index: number; screenX: number; screenY: number } | null = null;
+		if (this.#isGeo()) {
+			const fit = this.#geoFit();
+			for (const spec of specs) {
+				const latitudes = this.#columns.get(spec.dataKey);
+				if (latitudes == null) {
+					continue;
+				}
+				for (let index = 0; index < this.#rowCount; index++) {
+					const latitude = latitudes[index] ?? Number.NaN;
+					if (Number.isNaN(latitude)) {
+						continue;
+					}
+					const [screenX, screenY] = toScreen(fit, this.#xs[index] ?? 0, latitude);
+					const distance = (screenX - cssX) ** 2 + (screenY - cssY) ** 2;
+					if (distance < bestDistance) {
+						bestDistance = distance;
+						best = { seriesKey: spec.dataKey, index, screenX, screenY };
+					}
+				}
+			}
+			return best;
+		}
 		if (this.#is3d()) {
 			const projected = this.#projected;
 			if (projected == null) {
@@ -3273,6 +3592,17 @@ class ChartEngine {
 	 */
 	#screenForIndex(index: number): { x: number; y: number } | null {
 		const specs = this.#store.seriesSpecs();
+		if (this.#isGeo()) {
+			const fit = this.#geoFit();
+			for (const spec of specs) {
+				const latitude = this.#columns.get(spec.dataKey)?.[index] ?? Number.NaN;
+				if (!Number.isNaN(latitude)) {
+					const [x, y] = toScreen(fit, this.#xs[index] ?? 0, latitude);
+					return { x, y };
+				}
+			}
+			return null;
+		}
 		if (this.#is3d()) {
 			const projected = this.#projected;
 			if (projected == null) {
@@ -3347,6 +3677,14 @@ class ChartEngine {
 						: meta.find((series) => series.dataKey === this.#activeSeriesKey);
 				dot.style.opacity = "1";
 				styleMarkerDot(dot, active?.shape ?? "circle", active?.color ?? "currentColor");
+				// A sized world map point outgrows the 12px dot, so the dot takes the point's size plus its ring.
+				const size = `${2 * ((this.#isGeo() ? this.#geoRadiusAt(index) : MARKER_RADIUS) + 2)}px`;
+				if (dot.style.width !== size) {
+					dot.style.width = size;
+					dot.style.height = size;
+					dot.style.left = `calc(${size} / -2)`;
+					dot.style.top = `calc(${size} / -2)`;
+				}
 				dot.style.transform = `translate3d(${screen.x}px, ${screen.y}px, 0)`;
 			}
 			this.#positionTooltip(screen.x, screen.y);

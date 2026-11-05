@@ -34,6 +34,7 @@ import type { HoverLayers } from "./engine.js";
 import { ChartEngine, POINT_SHAPE_CLIP_PATHS } from "./engine.js";
 import { observeResize, onPrint } from "./environment.js";
 import { formatNumber, formatXValue } from "./format.js";
+import { formatCoordinates } from "./geo.js";
 import { serializeChartMarkdown } from "./serialize.js";
 import { ChartStore } from "./store.js";
 import type { TooltipConfig } from "./store.js";
@@ -44,9 +45,11 @@ import type {
 	BarTexture,
 	ChartDatum,
 	ChartDatumEvent,
+	ChartProjection,
 	ChartSeriesSlot,
 	ContinuousXScale,
 	CurveKind,
+	GeoLand,
 	GridLines,
 	HoverSnapshot,
 	PointShape,
@@ -437,7 +440,51 @@ type InternalRootProps = ChartRootPrimitiveProps & {
 	kind: SeriesMark;
 	componentName: string;
 	slotName: string;
+	/**
+	 * `WorldMap` only: `"robinson"` reads x as a longitude and each series
+	 * value as a latitude, and paints them on a world map.
+	 */
+	projection?: ChartProjection;
+	/** `WorldMap` only: the row key of each point's size value. */
+	sizeKey?: string;
+	/** `WorldMap` only: the row key of each point's name, for the tooltip, the announcer, and the data table. */
+	labelKey?: string;
+	/** `WorldMap` only: its name for `xKey`, which it also passes as `xKey`. */
+	longitudeKey?: string;
+	/** `WorldMap` only: the land outline to paint. */
+	land?: GeoLand;
 };
+
+/** A world map's readout settings: where a point's name lives. `null` on every other chart. */
+type GeoReadout = { labelKey: string | undefined } | null;
+
+/**
+ * A world map point's name for people: the `labelKey` value when the row has
+ * one, else the point's coordinates.
+ */
+const geoPointName = ({
+	datum,
+	labelKey,
+	longitude,
+	latitude,
+}: {
+	datum: ChartDatum;
+	labelKey: string | undefined;
+	longitude: number;
+	latitude: number;
+}): string => {
+	const name = labelKey == null ? undefined : datumValue(datum, labelKey);
+	if ((typeof name === "string" && name !== "") || typeof name === "number") {
+		return String(name);
+	}
+	return formatCoordinates(longitude, latitude);
+};
+
+/** The longitude and latitude a world map hover points at. */
+const hoverCoordinates = (hover: HoverSnapshot): { longitude: number; latitude: number } => ({
+	longitude: typeof hover.xValue === "number" ? hover.xValue : Number.NaN,
+	latitude: hover.points[0]?.value ?? Number.NaN,
+});
 
 /**
  * Detect the x scale kind from the first row whose x value is present — a
@@ -557,6 +604,12 @@ const ChartRootPrimitive = ({
 	xScale,
 	zKey,
 	dimensions = 3,
+	projection = "cartesian",
+	sizeKey,
+	labelKey,
+	// Why pulled out: the Root reads `xKey`, and an unknown prop must not reach the DOM.
+	longitudeKey: _longitudeKey,
+	land,
 	yDomain = AUTO_Y_DOMAIN,
 	stacked = false,
 	orientation = "vertical",
@@ -663,6 +716,9 @@ const ChartRootPrimitive = ({
 			yDomain: [yDomainMin, yDomainMax],
 			zKey: zKey ?? null,
 			dimensions,
+			projection,
+			sizeKey: sizeKey ?? null,
+			land: land ?? null,
 			stacked,
 			orientation,
 			animate,
@@ -678,6 +734,9 @@ const ChartRootPrimitive = ({
 				yDomain: [yDomainMin, yDomainMax],
 				zKey: zKey ?? null,
 				dimensions,
+				projection,
+				sizeKey: sizeKey ?? null,
+				land: land ?? null,
 				stacked,
 				orientation,
 				animate,
@@ -833,6 +892,9 @@ const ChartRootPrimitive = ({
 			yDomain: [yDomainMin, yDomainMax],
 			zKey: zKey ?? null,
 			dimensions,
+			projection,
+			sizeKey: sizeKey ?? null,
+			land: land ?? null,
 			stacked,
 			orientation,
 			animate,
@@ -852,6 +914,9 @@ const ChartRootPrimitive = ({
 		yDomainMax,
 		zKey,
 		dimensions,
+		projection,
+		sizeKey,
+		land,
 		stacked,
 		orientation,
 		animate,
@@ -928,7 +993,7 @@ const ChartRootPrimitive = ({
 			return;
 		}
 		const dataKeys = store.seriesSpecs().map((spec) => spec.dataKey);
-		const signature = `${xKey}|${resolvedXScale}|${zKey ?? ""}|${dataKeys.join("|")}`;
+		const signature = `${xKey}|${resolvedXScale}|${zKey ?? ""}|${sizeKey ?? ""}|${dataKeys.join("|")}`;
 		const validated = validatedRef.current;
 		if (validated != null && validated.data === data && validated.signature === signature) {
 			return;
@@ -941,10 +1006,16 @@ const ChartRootPrimitive = ({
 			xScale: resolvedXScale,
 			dataKeys,
 			zKey: zKey ?? null,
+			sizeKey: sizeKey ?? null,
+			keyNames:
+				projection === "robinson"
+					? { x: "longitudeKey", series: "latitudeKey" }
+					: { x: "xKey", series: "dataKey" },
 		});
 		validatedRef.current = { data, signature };
 	});
 
+	const geo: GeoReadout = projection === "robinson" ? { labelKey } : null;
 	const latchState = engaged ? "engaged" : "dormant";
 	return (
 		<div
@@ -1106,6 +1177,7 @@ const ChartRootPrimitive = ({
 						<ChartDescription
 							id={descriptionId}
 							kind={kind}
+							projection={projection}
 							slotName={slotName}
 							seriesRef={descriptionSeriesRef}
 							summary={xSummary}
@@ -1127,6 +1199,7 @@ const ChartRootPrimitive = ({
 								engineRef.current?.attachTooltip(element);
 							}}
 							xHasTimeOfDay={xHasTimeOfDay}
+							geo={geo}
 						/>
 					)}
 				</div>
@@ -1134,9 +1207,20 @@ const ChartRootPrimitive = ({
 				{/* Only an interactive chart announces or tabulates. The live region
 				    mounts with the Root, because a region that appears right before
 				    its first message is not announced. */}
-				{interactive && <ChartAnnouncer store={store} xHasTimeOfDay={xHasTimeOfDay} />}
+				{interactive && <ChartAnnouncer store={store} xHasTimeOfDay={xHasTimeOfDay} geo={geo} />}
 				{/* Why last: the table mounts as an append, which a translation engine cannot break. */}
-				{interactive && engaged && (
+				{interactive && engaged && geo != null && (
+					<MapDataTable
+						data={data}
+						label={ariaLabel}
+						labelledBy={ariaLabelledBy}
+						slotName={slotName}
+						store={store}
+						longitudeKey={xKey}
+						labelKey={geo.labelKey}
+					/>
+				)}
+				{interactive && engaged && geo == null && (
 					<ChartDataTable
 						data={data}
 						label={ariaLabel}
@@ -1395,12 +1479,14 @@ const ChartTooltipSurface = ({
 	store,
 	tooltipRef,
 	xHasTimeOfDay,
+	geo,
 }: {
 	slotName: string;
 	store: ChartStore;
 	tooltipRef: Ref<HTMLDivElement>;
 	/** Whether the dataset's x dates carry a time-of-day component (label granularity). */
 	xHasTimeOfDay: boolean;
+	geo: GeoReadout;
 }) => {
 	const snapshot = useStoreSnapshot(store);
 	const config = snapshot.tooltip;
@@ -1446,6 +1532,7 @@ const ChartTooltipSurface = ({
 					config={config}
 					hover={hover}
 					xHasTimeOfDay={xHasTimeOfDay}
+					geo={geo}
 				/>
 			)}
 		</div>
@@ -1458,11 +1545,13 @@ const ChartTooltipReadout = ({
 	config,
 	hover,
 	xHasTimeOfDay,
+	geo,
 }: {
 	slotName: string;
 	config: TooltipConfig | null;
 	hover: HoverSnapshot;
 	xHasTimeOfDay: boolean;
+	geo: GeoReadout;
 }) => {
 	if (config?.children != null) {
 		return (
@@ -1473,6 +1562,36 @@ const ChartTooltipReadout = ({
 		);
 	}
 	const footer = config?.footer;
+	if (geo != null) {
+		const { longitude, latitude } = hoverCoordinates(hover);
+		const coordinates = formatCoordinates(longitude, latitude);
+		const name = geoPointName({ datum: hover.datum, labelKey: geo.labelKey, longitude, latitude });
+		return (
+			<>
+				<div className="text-strong font-medium">{name}</div>
+				{name !== coordinates && <div className="text-muted tabular-nums">{coordinates}</div>}
+				<div className="mt-1 grid gap-1">
+					{hover.points.map((point) => (
+						<div key={point.dataKey} className="flex items-center gap-1.5">
+							{config?.indicator !== "none" && (
+								<span
+									aria-hidden
+									className="size-2 shrink-0 rounded-full"
+									style={{ backgroundColor: point.color }}
+								/>
+							)}
+							<span className="text-muted">{point.label}</span>
+						</div>
+					))}
+				</div>
+				{footer != null && (
+					<div className="text-muted mt-1">
+						{typeof footer === "function" ? footer(hover) : footer}
+					</div>
+				)}
+			</>
+		);
+	}
 	return (
 		<>
 			<div className="text-muted font-medium">
@@ -1903,6 +2022,7 @@ const ChartCopyButtonPrimitive = ({
 const ChartDescription = ({
 	id,
 	kind,
+	projection,
 	slotName,
 	seriesRef,
 	summary,
@@ -1910,6 +2030,7 @@ const ChartDescription = ({
 }: {
 	id: string;
 	kind: SeriesMark;
+	projection: ChartProjection;
 	slotName: string;
 	/** The Root writes the registered series into this span after every commit. */
 	seriesRef: Ref<HTMLSpanElement>;
@@ -1918,7 +2039,7 @@ const ChartDescription = ({
 	instructions: boolean;
 }) => {
 	const hydrated = useIsHydrated();
-	const parts = describeChartParts({ kind, summary, hydrated });
+	const parts = describeChartParts({ kind, projection, summary, hydrated });
 	return (
 		// Why sr-only, not hidden: a hidden span would shape no text, but browse
 		// mode would no longer read the description as page content.
@@ -1937,12 +2058,17 @@ const ChartDescription = ({
 const ChartAnnouncer = ({
 	store,
 	xHasTimeOfDay,
+	geo,
 }: {
 	store: ChartStore;
 	/** Whether the dataset's x dates carry a time-of-day component (label granularity). */
 	xHasTimeOfDay: boolean;
+	geo: GeoReadout;
 }) => {
 	const hover = useStoreKeyboardHover(store);
+	// Why primitives: `geo` is a fresh object on every Root render, and the effect must not re-arm for it.
+	const isGeo = geo != null;
+	const geoLabelKey = geo?.labelKey;
 	const [announcement, setAnnouncement] = useState("");
 	// Why clear the state and not derive "": the clear must be a real DOM change
 	// before the debounced write, because AT does not re-announce identical text.
@@ -1963,13 +2089,21 @@ const ChartAnnouncer = ({
 			hover.zValue === undefined
 				? ""
 				: `, z: ${hover.zValue == null ? "no data" : formatNumber(hover.zValue)}`;
+		const text = (() => {
+			if (!isGeo) {
+				return `${formatXValue(hover.xValue, { datasetHasTimeOfDay: xHasTimeOfDay })}. ${values}${zPart}`;
+			}
+			const { longitude, latitude } = hoverCoordinates(hover);
+			const coordinates = formatCoordinates(longitude, latitude);
+			const name = geoPointName({ datum: hover.datum, labelKey: geoLabelKey, longitude, latitude });
+			const place = name === coordinates ? name : `${name}, ${coordinates}`;
+			return `${place}. ${hover.points.map((point) => point.label).join(", ")}`;
+		})();
 		const timer = setTimeout(() => {
-			setAnnouncement(
-				`${formatXValue(hover.xValue, { datasetHasTimeOfDay: xHasTimeOfDay })}. ${values}${zPart}`,
-			);
+			setAnnouncement(text);
 		}, 120);
 		return () => clearTimeout(timer);
-	}, [hover, xHasTimeOfDay]);
+	}, [hover, xHasTimeOfDay, isGeo, geoLabelKey]);
 	return (
 		<span role="status" aria-live="polite" className="sr-only">
 			{announcement}
@@ -2174,6 +2308,116 @@ const ChartDataTable = ({
 		</div>
 	);
 };
+
+/**
+ * The world map's structural twin: an sr-only table with one row per point,
+ * bounded to {@link CHART_TABLE_ROW_LIMIT} rows. Each row names the point, its
+ * series, and its coordinates, in the west-to-east order the keyboard steps.
+ */
+const MapDataTable = ({
+	data,
+	label,
+	labelledBy,
+	slotName,
+	store,
+	longitudeKey,
+	labelKey,
+}: {
+	data: readonly ChartDatum[];
+	/** The chart's `aria-label`, so multi-chart pages get distinct captions. */
+	label: string | undefined;
+	/** The chart's `aria-labelledby`, read for the caption after mount. */
+	labelledBy: string | undefined;
+	slotName: string;
+	store: ChartStore;
+	longitudeKey: string;
+	labelKey: string | undefined;
+}) => {
+	const series = useStoreSeries(store);
+	const resolvedLabel = useResolvedChartLabel(label, labelledBy);
+	const points = mapTablePoints({
+		data,
+		dataKeys: series.map((column) => column.dataKey),
+		longitudeKey,
+	});
+	if (points.length === 0) {
+		return null;
+	}
+	const labels = new Map(series.map((column) => [column.dataKey, column.label]));
+	const rows = points.slice(0, CHART_TABLE_ROW_LIMIT);
+	return (
+		<div className="sr-only" data-slot={`${slotName}-data-table`}>
+			<table>
+				<caption>
+					{`${resolvedLabel == null ? "Map data" : `${resolvedLabel} — map data`}${
+						points.length > CHART_TABLE_ROW_LIMIT
+							? `. Showing the first ${CHART_TABLE_ROW_LIMIT} of ${points.length} points, from west to east.`
+							: "."
+					}`}
+				</caption>
+				<thead>
+					<tr>
+						<th scope="col">Point</th>
+						<th scope="col">Series</th>
+						<th scope="col">Latitude</th>
+						<th scope="col">Longitude</th>
+					</tr>
+				</thead>
+				<tbody>
+					{rows.map((point) => (
+						<tr key={`${point.dataKey}:${point.rowIndex}`}>
+							<th scope="row">
+								{geoPointName({
+									datum: point.datum,
+									labelKey,
+									longitude: point.longitude,
+									latitude: point.latitude,
+								})}
+							</th>
+							<td>{labels.get(point.dataKey) ?? point.dataKey}</td>
+							<td data-value={point.latitude}>{formatNumber(point.latitude)}</td>
+							<td data-value={point.longitude}>{formatNumber(point.longitude)}</td>
+						</tr>
+					))}
+				</tbody>
+			</table>
+		</div>
+	);
+};
+
+/**
+ * The world map's points in table order: every row and series with a finite
+ * longitude and latitude, from west to east, in row order on a tie.
+ */
+const mapTablePoints = ({
+	data,
+	dataKeys,
+	longitudeKey,
+}: {
+	data: readonly ChartDatum[];
+	dataKeys: readonly string[];
+	longitudeKey: string;
+}): {
+	datum: ChartDatum;
+	rowIndex: number;
+	dataKey: string;
+	longitude: number;
+	latitude: number;
+}[] =>
+	data
+		.flatMap((datum, rowIndex) => {
+			const longitude = datumValue(datum, longitudeKey);
+			if (typeof longitude !== "number" || !Number.isFinite(longitude)) {
+				return [];
+			}
+			return dataKeys.flatMap((dataKey) => {
+				const latitude = datumValue(datum, dataKey);
+				return typeof latitude === "number" && Number.isFinite(latitude)
+					? [{ datum, rowIndex, dataKey, longitude, latitude }]
+					: [];
+			});
+		})
+		.toSorted((a, b) => a.longitude - b.longitude || a.rowIndex - b.rowIndex);
 
 export type {
 	//,

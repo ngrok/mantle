@@ -1153,5 +1153,30 @@
       }
     ],
     "useWhen": "De-emphasize a block of content relative to the surface around it."
+  },
+  {
+    "name": "World Map",
+    "slug": "components/preview/world-map",
+    "kind": "component",
+    "category": "Charts",
+    "status": "preview",
+    "importPath": "@ngrok/mantle/world-map",
+    "summary": "A canvas-rendered world map that plots points by longitude and latitude on the Robinson projection.",
+    "jsdoc": "A canvas-rendered world map that plots points by longitude and latitude on the Robinson projection, such as ngrok agents placed by their IP address.",
+    "examples": [
+      "Composition:\n```\nWorldMap.Root\n├── WorldMap.Graticule\n├── WorldMap.Point (one per series)\n├── WorldMap.Tooltip\n└── WorldMap.Legend\n```",
+      "```tsx\nconst agents = [\n  { name: \"sfo-edge-1\", longitude: -122.42, latitude: 37.77, sessions: 12 },\n  { name: \"fra-edge-1\", longitude: 8.68, latitude: 50.11, sessions: 30 },\n  { name: \"syd-edge-1\", longitude: 151.21, latitude: -33.87, sessions: 4 },\n];\n\n<WorldMap.Root\n  data={agents}\n  longitudeKey=\"longitude\"\n  labelKey=\"name\"\n  sizeKey=\"sessions\"\n  aria-label=\"Agents by location\"\n>\n  <WorldMap.Graticule />\n  <WorldMap.Point latitudeKey=\"latitude\" label=\"Agents\" />\n  <WorldMap.Tooltip />\n  <WorldMap.Legend />\n</WorldMap.Root>\n```"
+    ],
+    "siblings": [
+      {
+        "name": "ScatterPlot",
+        "boundary": "the two values are measures, not a place on Earth."
+      },
+      {
+        "name": "DataTable",
+        "boundary": "a reader needs to sort, filter, or act on each place more than see where it is."
+      }
+    ],
+    "useWhen": "Show where things are in the world: agents, endpoints, or edge locations placed by longitude and latitude."
   }
 ]
