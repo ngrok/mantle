@@ -1,5 +1,13 @@
 # @ngrok/mantle-server-syntax-highlighter
 
+## 1.1.22
+
+### Patch Changes
+
+- [#1666](https://github.com/ngrok/mantle/pull/1666) [`ac18ed0`](https://github.com/ngrok/mantle/commit/ac18ed0509dae4cad34e396c0dfb3ae474c10719) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Bump `oxc-parser` from 0.156.0 to 0.157.0, `parse5` from 8.0.1 to 8.1.0, and `shiki` from 4.5.0 to 4.6.0.
+
+- [#1666](https://github.com/ngrok/mantle/pull/1666) [`ac18ed0`](https://github.com/ngrok/mantle/commit/ac18ed0509dae4cad34e396c0dfb3ae474c10719) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Build with pnpm 12.17.0 and typecheck with `tsrs` 0.21.0. The published code does not change.
+
 ## 1.1.21
 
 ### Patch Changes
