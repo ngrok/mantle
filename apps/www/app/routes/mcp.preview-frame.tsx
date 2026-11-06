@@ -26,16 +26,6 @@ const decodeMessages = {
 	invalid: "The link is damaged. Copy the whole link, or ask the agent for a new one.",
 } as const;
 
-/**
- * Clears the CSP nonce of each element. The prototype runs in this document,
- * and with a nonce it could load a script from any host.
- */
-function clearNonces() {
-	for (const element of document.querySelectorAll<HTMLElement>("[nonce]")) {
-		element.nonce = "";
-	}
-}
-
 async function loadPrototype(fragment: string | null): Promise<RunPrototypeResult> {
 	// Why: only the preview page's `frame-src` limits where the prototype can navigate.
 	if (window.parent === window) {
@@ -49,7 +39,6 @@ async function loadPrototype(fragment: string | null): Promise<RunPrototypeResul
 	if (!decoded.ok) {
 		return { ok: false, title: "The preview cannot open", message: decodeMessages[decoded.reason] };
 	}
-	clearNonces();
 	return runPrototype(decoded.code);
 }
 

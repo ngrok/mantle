@@ -260,7 +260,7 @@ export default [
 	// The MCP server: a stateless resource route that answers 404 while the MANTLE_MCP flag is off.
 	route("mcp", "./routes/mcp.tsx", { id: "mcp" }),
 	// The MCP `preview` tool's link target and the sandboxed frame it embeds. root.tsx
-	// matches on the ids to skip the site chrome, and entry.server.tsx path-matches
+	// matches on the ids to skip the site chrome, and server.ts path-matches
 	// /mcp/preview-frame to send its sandbox CSP.
 	route("mcp/preview", "./routes/mcp.preview.tsx", { id: "mcp-preview" }),
 	route("mcp/preview-frame", "./routes/mcp.preview-frame.tsx", { id: "mcp-preview-frame" }),

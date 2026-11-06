@@ -109,13 +109,21 @@ describe("declarationsOf", () => {
 					" * @see https://mantle.ngrok.com/components/card",
 					" */",
 					"export declare const Card: unknown;",
+					"/**",
+					" * A list of cards.",
+					" *",
+					" * @example",
+					" * <CardList />",
+					" */",
+					"export declare const CardList: typeof Card;",
 				].join("\n"),
 			],
 		]);
 
-		const declaration = declarationsOf(files, "dist/card.d.ts", ["Card"]);
+		const declaration = declarationsOf(files, "dist/card.d.ts", ["Card", "CardList"]);
 
 		expect(declaration).not.toContain("<Card>Hi</Card>");
+		expect(declaration).toContain(" * A list of cards.\n *\n */\nexport declare const CardList");
 		expect(declaration).toContain("@see https://mantle.ngrok.com/components/card");
 		expect(declaration).toContain("export declare const Card: unknown;");
 	});

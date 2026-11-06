@@ -12,14 +12,12 @@ function isPreviewDocument(path: string): boolean {
 	return path === "/preview" || path.startsWith("/preview/");
 }
 
-/** True for the MCP preview page, which frames the prototype frame. */
-function isPrototypePage(path: string): boolean {
-	return path === "/mcp/preview";
-}
-
-/** True for the sandboxed frame that runs an MCP prototype from a link. */
+/**
+ * True for the sandboxed frame that runs an MCP prototype from a link. Why
+ * lowercase: the router matches a path in any case.
+ */
 function isPrototypeFrame(path: string): boolean {
-	return path === "/mcp/preview-frame";
+	return path.toLowerCase() === "/mcp/preview-frame";
 }
 
 /**
@@ -31,13 +29,17 @@ function isPrototypeFrame(path: string): boolean {
  *
  * Why no `'strict-dynamic'`: it lets the prototype add a script from any host.
  * The frame loads its own modules from `'self'` instead.
+ *
+ * Why a second policy: the prototype can read the nonce from the page, and a
+ * nonce allows a script from any host. A script must pass both policies, so
+ * it must come from `'self'`.
  */
 function prototypeFramePolicy(scriptSrc: string): string {
 	const trustedScripts = new Set(scriptSrc.split(" "));
 	trustedScripts.delete("'strict-dynamic'");
 	trustedScripts.add("'self'");
 	const pageOrigins = [canonicalOrigin, process.env.MANTLE_PREVIEW_ORIGIN].filter(Boolean);
-	return [
+	const framePolicy = [
 		"default-src 'none'",
 		`script-src ${Array.from(trustedScripts).join(" ")} 'unsafe-eval'`,
 		"style-src 'self' 'unsafe-inline'",
@@ -48,6 +50,7 @@ function prototypeFramePolicy(scriptSrc: string): string {
 		`frame-ancestors 'self' ${pageOrigins.join(" ")}`,
 		"sandbox allow-scripts",
 	].join("; ");
+	return `${framePolicy}, script-src 'self' 'unsafe-inline' 'unsafe-eval'`;
 }
 
 /**
@@ -110,10 +113,8 @@ export function createDocsServer() {
 								"worker-src 'self' blob:",
 								// Why: a docs page frames its example previews. Each other document refuses a frame.
 								`frame-ancestors ${isPreviewDocument(context.req.path) ? "'self'" : "'none'"}`,
-								// Why: the prototype can navigate its own frame, so the page limits where the frame goes.
-								...(isPrototypePage(context.req.path)
-									? [`frame-src 'self' ${previewFrameOrigin()}`.trim()]
-									: []),
+								// Why: a prototype can navigate its own frame, so each page limits where a frame goes.
+								`frame-src 'self' ${previewFrameOrigin()}`.trim(),
 							].join("; "),
 			},
 			beforeStatic: [documentIndexing, assetsCors],

@@ -15,9 +15,27 @@ const CORS_HEADERS = {
 	"Access-Control-Max-Age": "86400",
 } as const;
 
-/** Reads the whole body, so the handler can close before the response leaves. */
-async function withCors(response: Response): Promise<Response> {
-	const body = response.body == null ? null : await response.arrayBuffer();
+/**
+ * Adds the CORS headers, and passes the body through as it streams. Calls
+ * `onDone` once, when the body ends or the client goes away. Why stream: a
+ * `subscriptions/listen` response stays open.
+ */
+function withCors(
+	response: Response,
+	{ signal, onDone }: { signal: AbortSignal; onDone: () => void },
+): Response {
+	let done = false;
+	const finish = () => {
+		if (!done) {
+			done = true;
+			onDone();
+		}
+	};
+	signal.addEventListener("abort", finish, { once: true });
+	const body = response.body?.pipeThrough(new TransformStream({ flush: finish })) ?? null;
+	if (body == null) {
+		finish();
+	}
 	const headers = new Headers(response.headers);
 	for (const [name, value] of Object.entries(CORS_HEADERS)) {
 		headers.set(name, value);
@@ -51,11 +69,16 @@ async function serve(request: Request): Promise<Response> {
 			console.error("mcp handler error", error.name, frames);
 		},
 	});
+	const close = () => {
+		handler.close().catch((error: unknown) => {
+			console.error("mcp handler close error", error instanceof Error ? error.name : "unknown");
+		});
+	};
 	try {
-		// Why `await`: `finally` must close the handler after `withCors` reads the body.
-		return await withCors(await handler.fetch(request));
-	} finally {
-		await handler.close();
+		return withCors(await handler.fetch(request), { signal: request.signal, onDone: close });
+	} catch (error) {
+		close();
+		throw error;
 	}
 }
 

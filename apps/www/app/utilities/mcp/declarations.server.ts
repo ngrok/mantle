@@ -123,6 +123,10 @@ function withoutExamples(source: string): string {
 		return comment
 			.split("\n")
 			.filter((line) => {
+				// Why keep the last line: it closes the comment, also after an example.
+				if (line.includes("*/")) {
+					return true;
+				}
 				const tag = /^\s*\*\s*@(\w+)/.exec(line);
 				if (tag != null) {
 					inExample = tag[1] === "example";

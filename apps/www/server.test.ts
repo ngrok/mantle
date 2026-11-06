@@ -55,12 +55,27 @@ describe("the docs app server", () => {
 		expect(policy).toContain("frame-ancestors 'self' https://mantle.ngrok.com");
 	});
 
-	it("limits where the prototype frame can navigate from the preview page", async () => {
+	it("limits where a frame can navigate from a page", async () => {
 		const policy = (await (await start()).request("/mcp/preview")).headers.get(
 			"Content-Security-Policy",
 		);
 
 		expect(policy).toContain("frame-src 'self'");
+	});
+
+	it("sandboxes the prototype frame in any path case, as the router matches it", async () => {
+		// Why a server of its own: a case-insensitive disk merges `MCP/` with `mcp/`.
+		server = await createTestServer({
+			app: createDocsServer(),
+			files: { "MCP/preview-frame/index.html": "<!doctype html><html><body></body></html>" },
+		});
+
+		const policy = (await server.request("/MCP/preview-frame")).headers.get(
+			"Content-Security-Policy",
+		);
+
+		expect(policy).toContain("sandbox allow-scripts");
+		expect(policy).toContain(", script-src 'self' 'unsafe-inline' 'unsafe-eval'");
 	});
 
 	it("lets the opaque-origin prototype frame load a build asset", async () => {

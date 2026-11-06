@@ -16,7 +16,8 @@ export function publicModulePaths(workspaceRoot: string): string[] {
 	return [
 		"/app/",
 		"/@vite/",
-		"/@id/",
+		// Why only virtual IDs: Vite resolves `/@id/` plus a file path to any file.
+		"/@id/__x00__",
 		"/node_modules/",
 		"/fonts/",
 		`/@fs${workspaceRoot}/packages/`,

@@ -31,6 +31,7 @@ describe("allowsOpaqueOriginLoad", () => {
 			"/@fs/repo/packages/../local/secret.ts?raw",
 			"/@fs/repo/packages/%2e%2e/local/secret.ts?raw",
 			"/@fs/etc/hosts?raw",
+			"/@id//repo/CONVENTIONS.md?raw",
 		]) {
 			expect(allowsOpaqueOriginLoad({ headers: opaqueScript, url, publicPaths })).toBe(false);
 		}
