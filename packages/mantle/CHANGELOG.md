@@ -1,5 +1,19 @@
 # @ngrok/mantle
 
+## 0.93.8
+
+### Patch Changes
+
+- [`c9cbecd`](https://github.com/ngrok/mantle/commit/c9cbecd7551732a36826bd778c13cde08a9c8fc0) Thanks [@forzalupo](https://github.com/forzalupo)! - `Empty.Title` and `Empty.Description` use `text-pretty`, so the last line of long copy does not end on a single word.
+
+- [#1666](https://github.com/ngrok/mantle/pull/1666) [`ac18ed0`](https://github.com/ngrok/mantle/commit/ac18ed0509dae4cad34e396c0dfb3ae474c10719) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Bump `@tanstack/react-virtual` from 3.14.23 to 3.14.26, `d3-scale` from 4.0.2 to 4.0.3, and `d3-shape` from 3.2.0 to 3.2.1.
+
+- [#1666](https://github.com/ngrok/mantle/pull/1666) [`ac18ed0`](https://github.com/ngrok/mantle/commit/ac18ed0509dae4cad34e396c0dfb3ae474c10719) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Build with pnpm 12.17.0 and typecheck with `tsrs` 0.21.0. The published code does not change.
+
+- [#1665](https://github.com/ngrok/mantle/pull/1665) [`07b43fd`](https://github.com/ngrok/mantle/commit/07b43fd822c2de0e63ff9529bf7780d0b380d3fd) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `OtpInput.Root`: let password managers fill the one-time code again. The hidden input no longer carries the ignore attributes for 1Password, Bitwarden, Dashlane, and Proton Pass, because those attributes also stop the fill. It keeps `data-lpignore`, because LastPass does not fill one-time codes.
+
+  Add `passwordManagerIgnoreProps` to `@ngrok/mantle/input`. Spread it on an input that is not a credential, such as a search box, to keep password managers off it.
+
 ## 0.93.7
 
 ### Patch Changes
