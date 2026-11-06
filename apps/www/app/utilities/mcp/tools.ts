@@ -74,7 +74,36 @@ export function recordsOf(data: VersionData): ApiRecord[] {
 	];
 }
 
+/** A docs page with no API record: a foundation such as Colors, a recipe, or a guide. */
+export type DocPageRecord = {
+	/** The page title. */
+	name: string;
+	kind: "page";
+	/** The page description. */
+	summary?: string;
+	docsUrl: string;
+	docsSlug: string;
+};
+
+/** One record that `find` can return. */
+export type FindRecord = ApiRecord | DocPageRecord;
+
+/** One ranked `find` result. */
+export type FindMatch<T extends FindRecord> = {
+	record: T;
+	score: number;
+	/**
+	 * Whether the record clearly answers the query: its name or an alias
+	 * matches, or half the query words or more match. When the top result is
+	 * not strong, mantle may lack a part for the query.
+	 */
+	strong: boolean;
+};
+
 const FIND_LIMIT = 8;
+
+/** The lowest word score of a strong match: two summary words, or a name word. */
+const STRONG_WORD_SCORE = 6;
 
 const STOP_WORDS = new Set(["the", "and", "for", "with", "that", "this", "from", "into", "when"]);
 
@@ -83,49 +112,102 @@ function compact(name: string): string {
 	return name.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
+/** Folds a plural to its singular, so "tables" matches "table" and "tabs" matches "tab". */
+function singular(word: string): string {
+	if (word.length > 4 && word.endsWith("ies")) {
+		return `${word.slice(0, -3)}y`;
+	}
+	return word.length > 3 && word.endsWith("s") && !word.endsWith("ss") ? word.slice(0, -1) : word;
+}
+
+/** Whether one insert, delete, or substitution turns `left` into `right`. */
+function withinOneEdit(left: string, right: string): boolean {
+	if (Math.abs(left.length - right.length) > 1) {
+		return false;
+	}
+	let start = 0;
+	while (start < left.length && left[start] === right[start]) {
+		start += 1;
+	}
+	let leftEnd = left.length;
+	let rightEnd = right.length;
+	while (leftEnd > start && rightEnd > start && left[leftEnd - 1] === right[rightEnd - 1]) {
+		leftEnd -= 1;
+		rightEnd -= 1;
+	}
+	return leftEnd - start <= 1 && rightEnd - start <= 1;
+}
+
+/** The words of each field that `find` searches, with the weight of a hit. */
+function weightedFields(record: FindRecord): [string[], number][] {
+	if (record.kind === "page") {
+		return [
+			[keywordsFrom(record.name), 10],
+			[keywordsFrom(record.docsSlug), 4],
+			[keywordsFrom(record.summary), 3],
+		];
+	}
+	return [
+		[keywordsFrom(record.name), 10],
+		[keywordsFrom(...(record.aliases ?? [])), 8],
+		[keywordsFrom(record.useWhen), 4],
+		[keywordsFrom(record.summary), 3],
+		[keywordsFrom(record.jsdoc), 2],
+		[keywordsFrom(...(record.siblings ?? []).map((sibling) => sibling.boundary)), 1],
+	];
+}
+
 /**
  * Ranks records against an intent or a name. A name or alias match ranks
- * first; then each query word scores by where it appears.
+ * first, then a name one typo away; then each query word scores by where it
+ * appears. A plural matches its singular. Each result says whether it is a
+ * strong match.
  *
  * @example
- * findRecords(records, { query: "modal" })[0]?.name; // "Dialog"
+ * findRecords(records, { query: "modal" })[0]?.record.name; // "Dialog"
  */
-export function findRecords(
-	records: readonly ApiRecord[],
-	{ query, kind }: { query: string; kind?: ApiRecord["kind"] },
-): ApiRecord[] {
+export function findRecords<T extends FindRecord>(
+	records: readonly T[],
+	{ query, kind }: { query: string; kind?: FindRecord["kind"] },
+): FindMatch<T>[] {
 	const wanted = compact(query);
-	const tokens = keywordsFrom(query).filter((token) => !STOP_WORDS.has(token));
+	const tokens = keywordsFrom(query)
+		.filter((token) => !STOP_WORDS.has(token))
+		.map(singular);
 
 	const scored = records
 		.filter((record) => kind == null || record.kind === kind)
 		.map((record) => {
-			const nameKey = compact(record.name);
-			const aliasKeys = (record.aliases ?? []).map(compact);
-			const fields: [string[], number][] = [
-				[keywordsFrom(record.name), 10],
-				[keywordsFrom(...(record.aliases ?? [])), 8],
-				[keywordsFrom(record.useWhen), 4],
-				[keywordsFrom(record.summary), 3],
-				[keywordsFrom(record.jsdoc), 2],
-				[keywordsFrom(...(record.siblings ?? []).map((sibling) => sibling.boundary)), 1],
-			];
-			let score = 0;
-			if (nameKey === wanted || aliasKeys.includes(wanted)) {
-				score += 100;
-			} else if (wanted.length >= 3 && nameKey.includes(wanted)) {
-				score += 40;
+			const nameKeys = [record.name, ...(record.kind === "page" ? [] : (record.aliases ?? []))].map(
+				compact,
+			);
+			let nameScore = 0;
+			if (nameKeys.includes(wanted)) {
+				nameScore = 100;
+			} else if (wanted.length >= 3 && nameKeys[0]?.includes(wanted)) {
+				nameScore = 40;
+			} else if (wanted.length >= 4 && nameKeys.some((key) => withinOneEdit(key, wanted))) {
+				nameScore = 30;
 			}
+			let wordScore = 0;
+			let matchedTokens = 0;
 			for (const token of tokens) {
-				for (const [words, weight] of fields) {
+				let tokenScore = 0;
+				for (const [words, weight] of weightedFields(record)) {
 					if (
-						words.some((word) => word === token || (token.length >= 4 && word.startsWith(token)))
+						words.some(
+							(word) => singular(word) === token || (token.length >= 4 && word.startsWith(token)),
+						)
 					) {
-						score += weight;
+						tokenScore += weight;
 					}
 				}
+				wordScore += tokenScore;
+				matchedTokens += tokenScore > 0 ? 1 : 0;
 			}
-			return { record, score };
+			const strong =
+				nameScore > 0 || (wordScore >= STRONG_WORD_SCORE && matchedTokens * 2 >= tokens.length);
+			return { record, score: nameScore + wordScore, strong };
 		})
 		.filter(({ score }) => score > 0)
 		.toSorted(
@@ -133,7 +215,25 @@ export function findRecords(
 				right.score - left.score || left.record.name.localeCompare(right.record.name),
 		);
 
-	return scored.slice(0, FIND_LIMIT).map(({ record }) => record);
+	return scored.slice(0, FIND_LIMIT);
+}
+
+/**
+ * The words of a query that are safe to log as a gap signal: lowercase words
+ * with no digits, at most six. A word with `@`, `.`, `:`, or a slash goes, so
+ * URLs, domains, emails, and paths do not survive, and neither do IDs.
+ *
+ * @example
+ * gapTokens("Date range picker for https://dashboard.ngrok.com/x/123"); // ["date", "range", "picker"]
+ */
+export function gapTokens(query: string): string[] {
+	const words = query
+		.toLowerCase()
+		.replace(/\S*[@.:/\\]\S*/g, " ")
+		.split(/[^a-z0-9]+/)
+		.filter((word) => word.length >= 3 && word.length <= 24 && !/\d/.test(word))
+		.filter((word) => !STOP_WORDS.has(word));
+	return Array.from(new Set(words)).slice(0, 6);
 }
 
 /** The record named `name`, by display name or identifier. */
@@ -149,7 +249,8 @@ export function closeNames(records: readonly ApiRecord[], name: string): string[
 		const key = compact(record.name);
 		return wanted.length >= 2 && (key.includes(wanted) || wanted.includes(key));
 	});
-	const candidates = byName.length > 0 ? byName : findRecords(records, { query: name });
+	const candidates =
+		byName.length > 0 ? byName : findRecords(records, { query: name }).map(({ record }) => record);
 	return candidates.slice(0, 5).map((record) => record.name);
 }
 

@@ -20,6 +20,15 @@ function dependencies(overrides: Partial<McpDependencies> = {}): McpDependencies
 		readDocs: async (slug) =>
 			slug === "components/overlays/dialog" ? "# Dialog\n\n## API Reference\n\nProps." : undefined,
 		migrations: async () => [],
+		docPages: async () => [
+			{
+				name: "Colors",
+				kind: "page",
+				summary: "Color system with automatic dark mode support",
+				docsUrl: "https://mantle.ngrok.com/base/colors",
+				docsSlug: "base/colors",
+			},
+		],
 		flags: (): McpFlags => ({ enabled: true, disabledTools: new Set() }),
 		previewOrigin: "https://mantle.example",
 		log: () => {},
@@ -62,7 +71,7 @@ async function callTool(deps: McpDependencies, name: string, args: Record<string
 }
 
 describe("the mantle MCP server", () => {
-	it("lists the six read-only tools", async () => {
+	it("lists the tools, and marks each read-only but report_gap", async () => {
 		const { result } = await rpc(dependencies(), "tools/list");
 		const tools = (result?.tools ?? []) as {
 			name: string;
@@ -76,8 +85,70 @@ describe("the mantle MCP server", () => {
 			"migrate",
 			"check",
 			"preview",
+			"report_gap",
 		]);
-		expect(tools.every((tool) => tool.annotations?.readOnlyHint === true)).toBe(true);
+		expect(
+			tools.filter((tool) => tool.annotations?.readOnlyHint !== true).map((tool) => tool.name),
+		).toEqual(["report_gap"]);
+	});
+
+	it("finds a docs page next to the API records", async () => {
+		const { text } = await callTool(dependencies(), "find", { query: "colors" });
+
+		expect(text).toContain('- Colors (docs page): `read_docs` path "base/colors"');
+	});
+
+	it("logs a weak find as a gap with scrubbed words only", async () => {
+		const log = vi.fn<(event: ToolCallEvent) => void>();
+
+		const { text } = await callTool(dependencies({ log }), "find", {
+			query: "stepper for acme-corp.example.com onboarding v2",
+		});
+
+		expect(text).toContain("No result is a strong match");
+		expect(log).toHaveBeenLastCalledWith(
+			expect.objectContaining({
+				tool: "find",
+				resultCount: 0,
+				gap: {
+					source: "find",
+					tokens: ["stepper", "onboarding"],
+				},
+			}),
+		);
+	});
+
+	it("logs no gap for a strong find", async () => {
+		const log = vi.fn<(event: ToolCallEvent) => void>();
+
+		await callTool(dependencies({ log }), "find", { query: "modal" });
+
+		expect(log.mock.lastCall?.[0].gap).toBeUndefined();
+	});
+
+	it("logs a gap report with an allowlisted closest part", async () => {
+		const log = vi.fn<(event: ToolCallEvent) => void>();
+
+		const { text } = await callTool(dependencies({ log }), "report_gap", {
+			need: "Stepper",
+			kind: "component",
+			workaround: "composed-mantle-parts",
+			closestPart: "dialog",
+		});
+
+		expect(text).toBe("Reported: stepper. Thank you. Do not report this need again in this task.");
+		expect(log).toHaveBeenLastCalledWith(
+			expect.objectContaining({
+				tool: "report_gap",
+				gap: {
+					source: "report_gap",
+					tokens: ["stepper"],
+					kind: "component",
+					workaround: "composed-mantle-parts",
+					closestPart: "Dialog",
+				},
+			}),
+		);
 	});
 
 	it("keeps the instructions under 1 KB", () => {

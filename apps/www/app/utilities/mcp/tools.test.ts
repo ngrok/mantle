@@ -4,11 +4,13 @@ import { packageFilesFixture } from "~/utilities/mcp/test-fixtures";
 import {
 	closeNames,
 	findRecords,
+	gapTokens,
 	getRecordText,
 	migrateText,
 	migrationsBetween,
 	recordNamed,
 	recordsOf,
+	type DocPageRecord,
 	type MigrationGuide,
 } from "~/utilities/mcp/tools";
 import { versionDataFromFiles } from "~/utilities/mcp/version-data.server";
@@ -16,22 +18,59 @@ import { versionDataFromFiles } from "~/utilities/mcp/version-data.server";
 const data = versionDataFromFiles("0.93.0", packageFilesFixture());
 const records = recordsOf(data);
 
+const names = (matches: { record: { name: string } }[]) => matches.map(({ record }) => record.name);
+
 describe("findRecords", () => {
 	it("finds a component by a name from another library", () => {
-		expect(findRecords(records, { query: "modal" }).map((record) => record.name)).toEqual([
-			"Dialog",
-		]);
+		expect(names(findRecords(records, { query: "modal" }))).toEqual(["Dialog"]);
 	});
 
 	it("ranks an intent by the words of useWhen", () => {
-		expect(findRecords(records, { query: "confirm before delete" })[0]?.name).toBe("Dialog");
+		expect(names(findRecords(records, { query: "confirm before delete" }))[0]).toBe("Dialog");
 	});
 
 	it("filters by kind", () => {
 		expect(findRecords(records, { query: "breakpoint", kind: "component" })).toEqual([]);
-		expect(findRecords(records, { query: "breakpoint", kind: "hook" })[0]?.name).toBe(
+		expect(names(findRecords(records, { query: "breakpoint", kind: "hook" }))[0]).toBe(
 			"useBreakpoint",
 		);
+	});
+
+	it("matches a plural and a name one typo away", () => {
+		expect(names(findRecords(records, { query: "dialogs" }))[0]).toBe("Dialog");
+		expect(names(findRecords(records, { query: "buton" }))[0]).toBe("Button");
+	});
+
+	it("ranks a docs page by its title and description", () => {
+		const page: DocPageRecord = {
+			name: "Colors",
+			kind: "page",
+			summary: "Color system with automatic dark mode support",
+			docsUrl: "https://mantle.ngrok.com/base/colors",
+			docsSlug: "base/colors",
+		};
+
+		const [match] = findRecords([...records, page], { query: "dark mode colors" });
+
+		expect(match).toEqual(expect.objectContaining({ record: page, strong: true }));
+	});
+
+	it("calls a match weak when fewer than half the query words match", () => {
+		const [top] = findRecords(records, { query: "rich action editor" });
+
+		expect(top).toEqual(expect.objectContaining({ strong: false }));
+	});
+});
+
+describe("gapTokens", () => {
+	it("keeps generic words and drops URLs, emails, IDs, and stop words", () => {
+		expect(
+			gapTokens("Date range picker for https://dashboard.ngrok.com/x a@b.co ep_2abc user42"),
+		).toEqual(["date", "range", "picker"]);
+	});
+
+	it("keeps at most six words", () => {
+		expect(gapTokens("one two three four five six seven eight")).toHaveLength(6);
 	});
 });
 

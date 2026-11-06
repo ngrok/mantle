@@ -10,11 +10,14 @@ import { MAX_PREVIEW_CODE_BYTES, previewUrl } from "~/utilities/mcp/preview-url"
 import {
 	closeNames,
 	findRecords,
+	gapTokens,
 	getRecordText,
 	migrateText,
 	migrationsBetween,
 	recordNamed,
 	recordsOf,
+	type DocPageRecord,
+	type FindRecord,
 	type MigrationGuide,
 	type Provenance,
 } from "~/utilities/mcp/tools";
@@ -29,11 +32,13 @@ import { renderMdxToMarkdown } from "~/utilities/render-mdx-to-markdown.server";
 
 /** The server instructions. The contract test caps their size. */
 export const MCP_INSTRUCTIONS = [
-	"Answers questions about @ngrok/mantle, ngrok's React UI library, for one exact published version.",
-	"Your trained knowledge of mantle can be stale. Call `find` before you pick a component, and `get` before you write its props.",
+	"Helps you build ngrok websites and apps with @ngrok/mantle, ngrok's React UI library, for one exact published version.",
+	"Use mantle parts before you write custom UI or add another UI library.",
+	"Your trained knowledge of mantle can be stale. Call `find` before you pick a component or pattern, and `get` before you write its props.",
 	"Pass the exact installed version: read it from node_modules/@ngrok/mantle/package.json or the lockfile, not the range in package.json.",
 	"Call `check` on each file you change. Import each part from its own subpath, such as @ngrok/mantle/button.",
 	"When the user has no repo to run the code in, call `preview` and give them the link.",
+	"When mantle has no part for a need and you build a workaround, call `report_gap` once for that need.",
 ].join("\n");
 
 /** What the server reads; tests pass fakes. */
@@ -45,11 +50,39 @@ export type McpDependencies = {
 	docsCommit?: string;
 	readDocs: (slug: string) => Promise<string | undefined>;
 	migrations: () => Promise<MigrationGuide[]>;
+	/** The docs pages with no API record, such as foundations and recipes. */
+	docPages: () => Promise<DocPageRecord[]>;
 	flags: () => McpFlags;
 	/** The origin of the preview page. */
 	previewOrigin: string;
-	/** Records one tool call. Never receives code, queries, or messages. */
+	/** Records one tool call. Never receives code, free text, or messages. */
 	log: (event: ToolCallEvent) => void;
+};
+
+/** What a gap report says is missing. */
+const GAP_KINDS = ["component", "variant-or-prop", "hook-or-utility", "pattern", "docs"] as const;
+
+/** What the agent did when mantle had no fit. */
+const GAP_WORKAROUNDS = [
+	"built-custom",
+	"composed-mantle-parts",
+	"used-another-library",
+	"none",
+] as const;
+
+/**
+ * A sign that mantle lacks something. `find` sends one for each weak result,
+ * and `report_gap` sends one with what the agent did instead. It holds
+ * scrubbed words and enums only, never free text.
+ */
+export type GapSignal = {
+	source: "find" | "report_gap";
+	/** The words of the query or the need, from `gapTokens`. */
+	tokens: string[];
+	kind?: (typeof GAP_KINDS)[number];
+	workaround?: (typeof GAP_WORKAROUNDS)[number];
+	/** An allowlisted record name: the part the agent used or nearly used. */
+	closestPart?: string;
 };
 
 /** One tool call, as the server logs it. */
@@ -61,7 +94,13 @@ export type ToolCallEvent = {
 	dataVersion?: string;
 	/** Allowlisted record names from `find` and `get`, and diagnostic codes from `check`. */
 	ids?: string[];
+	/** The number of `find` results. */
+	resultCount?: number;
+	gap?: GapSignal;
 };
+
+/** The fields that a tool body adds to its log event. */
+type ToolCallFacts = Pick<ToolCallEvent, "dataVersion" | "ids" | "resultCount" | "gap">;
 
 const versionArgument = z
 	.string()
@@ -99,6 +138,30 @@ function provenanceLine(provenance: Provenance): string {
 	return `dataVersion: ${provenance.dataVersion}; docsVersion: ${provenance.docsVersion}${commit}`;
 }
 
+/** One `find` result as markdown. */
+function findResultText(record: FindRecord): string {
+	if (record.kind === "page") {
+		return [
+			`- ${record.name} (docs page): \`read_docs\` path "${record.docsSlug}"`,
+			record.summary == null ? undefined : `  ${record.summary}`,
+			`  Docs: ${record.docsUrl}`,
+		]
+			.filter((line) => line != null)
+			.join("\n");
+	}
+	return [
+		`- ${record.name} (${record.kind}${record.status === "preview" ? ", preview" : ""}): \`${record.importPath}\``,
+		record.useWhen == null ? undefined : `  Use when: ${record.useWhen}`,
+		record.summary == null ? undefined : `  ${record.summary}`,
+		...(record.siblings ?? []).map(
+			(sibling) => `  Instead \`${sibling.name}\`: ${sibling.boundary}`,
+		),
+		`  Docs: ${record.docsUrl}`,
+	]
+		.filter((line) => line != null)
+		.join("\n");
+}
+
 /**
  * Creates one MCP server instance with the mantle tools, resources, and
  * prompt. The HTTP handler calls it once per request, so it holds no state.
@@ -125,16 +188,14 @@ export function createMantleMcpServer(dependencies: McpDependencies): McpServer 
 	const run =
 		<Args>(
 			tool: string,
-			body: (
-				args: Args,
-			) => Promise<{ result: CallToolResult; dataVersion?: string; ids?: string[] }>,
+			body: (args: Args) => Promise<{ result: CallToolResult } & ToolCallFacts>,
 		) =>
 		async (args: Args): Promise<CallToolResult> => {
 			const started = performance.now();
 			const finish = (
 				outcome: ToolCallEvent["outcome"],
 				result: CallToolResult,
-				extra: Pick<ToolCallEvent, "dataVersion" | "ids"> = {},
+				facts: ToolCallFacts = {},
 			) => {
 				const resultText = result.content
 					.map((block) => (block.type === "text" ? block.text : ""))
@@ -144,7 +205,7 @@ export function createMantleMcpServer(dependencies: McpDependencies): McpServer 
 					outcome,
 					latencyMs: Math.round(performance.now() - started),
 					resultBytes: byteLength(resultText),
-					...extra,
+					...facts,
 				});
 				return result;
 			};
@@ -152,8 +213,8 @@ export function createMantleMcpServer(dependencies: McpDependencies): McpServer 
 				return finish("disabled", text(`The ${tool} tool is turned off on this server.`, true));
 			}
 			try {
-				const { result, dataVersion, ids } = await body(args);
-				return finish(result.isError === true ? "error" : "ok", result, { dataVersion, ids });
+				const { result, ...facts } = await body(args);
+				return finish(result.isError === true ? "error" : "ok", result, facts);
 			} catch (error) {
 				if (error instanceof VersionError) {
 					return finish("error", text(error.message, true));
@@ -166,43 +227,58 @@ export function createMantleMcpServer(dependencies: McpDependencies): McpServer 
 		"find",
 		{
 			title: "Find mantle parts",
-			description: `Ranks mantle components, layouts, hooks, and utilities for an intent ("confirm before delete") or a name from another library ("modal"). Returns up to 8 records with import paths. Supports ${MIN_SUPPORTED_VERSION} and later.`,
+			description: `Ranks mantle components, layouts, hooks, utilities, and docs pages (foundations such as colors, and recipes) for an intent ("confirm before delete") or a name from another library ("modal"). Returns up to 8 results with import paths, and says when no result is a strong match. Supports ${MIN_SUPPORTED_VERSION} and later.`,
 			inputSchema: z.object({
 				query: z.string().min(1).max(200).describe("An intent or a component name."),
-				kind: z.enum(["component", "layout", "hook", "utility"]).optional(),
+				kind: z.enum(["component", "layout", "hook", "utility", "page"]).optional(),
 				version: versionArgument,
 			}),
 			annotations: readOnly,
 		},
 		run("find", async ({ query, kind, version }) => {
-			const data = await dependencies.loader.load(version);
-			const found = findRecords(recordsOf(data), { query, kind });
-			const body =
-				found.length === 0
-					? `No mantle part matches. Try a shorter intent or another name. (${provenanceLine(provenanceFor(dependencies, data))})`
-					: [
-							provenanceLine(provenanceFor(dependencies, data)),
-							"",
-							...found.map((record) =>
-								[
-									`- ${record.name} (${record.kind}${record.status === "preview" ? ", preview" : ""}): \`${record.importPath}\``,
-									record.useWhen == null ? undefined : `  Use when: ${record.useWhen}`,
-									record.summary == null ? undefined : `  ${record.summary}`,
-									...(record.siblings ?? []).map(
-										(sibling) => `  Instead \`${sibling.name}\`: ${sibling.boundary}`,
-									),
-									`  Docs: ${record.docsUrl}`,
-								]
-									.filter((line) => line != null)
-									.join("\n"),
-							),
-							"",
-							"Call `get` with a name for its examples and props.",
-						].join("\n");
+			const [data, docPages] = await Promise.all([
+				dependencies.loader.load(version),
+				dependencies.docPages(),
+			]);
+			const records = recordsOf(data);
+			const recordSlugs = new Set(records.map((record) => record.docsSlug));
+			const searchable: FindRecord[] = [
+				...records,
+				...docPages.filter((page) => !recordSlugs.has(page.docsSlug)),
+			];
+			const found = findRecords(searchable, { query, kind });
+			const strongMatch = found[0]?.strong === true;
+			const advice = strongMatch
+				? "Call `get` with a name for its examples and props, or `read_docs` with a page path."
+				: "No result is a strong match, so mantle may have no part for this. Check that a result fits before you use it. If none fits, compose mantle parts, then call `report_gap`.";
+			const body = [
+				provenanceLine(provenanceFor(dependencies, data)),
+				"",
+				...found.map(({ record }) => findResultText(record)),
+				...(found.length === 0 ? ["No mantle part or docs page matches."] : []),
+				"",
+				advice,
+			].join("\n");
+			const tokens = strongMatch ? [] : gapTokens(query);
 			return {
-				result: text(body),
+				result: {
+					content: [{ type: "text", text: body }],
+					structuredContent: {
+						dataVersion: data.version,
+						strongMatch,
+						results: found.map(({ record, score }) => ({
+							name: record.name,
+							kind: record.kind,
+							importPath: record.kind === "page" ? undefined : record.importPath,
+							docsUrl: record.docsUrl,
+							score,
+						})),
+					},
+				},
 				dataVersion: data.version,
-				ids: found.map((record) => record.name),
+				ids: found.map(({ record }) => record.name),
+				resultCount: found.length,
+				gap: tokens.length === 0 ? undefined : { source: "find", tokens },
 			};
 		}),
 	);
@@ -412,6 +488,57 @@ export function createMantleMcpServer(dependencies: McpDependencies): McpServer 
 		}),
 	);
 
+	server.registerTool(
+		"report_gap",
+		{
+			title: "Report a mantle gap",
+			description:
+				'Tells the mantle team that mantle lacks something you needed, so they can add it. Call it once for each need, after `find` and `get` found no fit. Name the need in generic words, such as "stepper" or "date range picker". The server keeps only those words and the enums. Never send code, file paths, product names, or customer data.',
+			inputSchema: z.object({
+				need: z
+					.string()
+					.min(3)
+					.max(60)
+					.describe('Generic words for what you needed, such as "stepper".'),
+				kind: z.enum(GAP_KINDS).describe("What is missing."),
+				workaround: z.enum(GAP_WORKAROUNDS).describe("What you did instead."),
+				closestPart: z
+					.string()
+					.max(100)
+					.optional()
+					.describe("The mantle part you used or nearly used, such as Tabs."),
+				version: versionArgument,
+			}),
+			annotations: {
+				readOnlyHint: false,
+				destructiveHint: false,
+				idempotentHint: true,
+				openWorldHint: true,
+			},
+		},
+		run("report_gap", async ({ need, kind, workaround, closestPart, version }) => {
+			const tokens = gapTokens(need);
+			if (tokens.length === 0) {
+				return {
+					result: text(
+						'Name the need in generic words of three letters or more, such as "stepper".',
+						true,
+					),
+				};
+			}
+			const data = await dependencies.loader.load(version);
+			const closest =
+				closestPart == null ? undefined : recordNamed(recordsOf(data), closestPart)?.name;
+			return {
+				result: text(
+					`Reported: ${tokens.join(" ")}. Thank you. Do not report this need again in this task.`,
+				),
+				dataVersion: data.version,
+				gap: { source: "report_gap", tokens, kind, workaround, closestPart: closest },
+			};
+		}),
+	);
+
 	server.registerResource(
 		"llms.txt",
 		"mantle://llms.txt",
@@ -542,6 +669,45 @@ export async function loadMigrationGuides(): Promise<MigrationGuide[]> {
 	);
 }
 
+const docPageFrontmatter = z.object({ title: z.string(), description: z.string().optional() });
+
+/** Whether `find` searches a docs page. `migrate` covers the guides, and the rest are indexes. */
+function isFindablePage(slug: string): boolean {
+	return !slug.startsWith("migrations/") && slug !== "changelog" && slug !== "index";
+}
+
+/** Each findable docs page with a title. `find` drops the pages that an API record owns. */
+async function readDocPages(): Promise<DocPageRecord[]> {
+	const pages = await Promise.all(
+		Array.from(urlToFileMap)
+			.filter(([slug]) => isFindablePage(slug))
+			.map(async ([slug, filePath]): Promise<DocPageRecord | undefined> => {
+				const frontmatter = docPageFrontmatter.safeParse(await loadFrontmatter(filePath));
+				return frontmatter.success
+					? {
+							name: frontmatter.data.title,
+							kind: "page",
+							summary: frontmatter.data.description,
+							docsUrl: canonicalHref(`/${slug}`),
+							docsSlug: slug,
+						}
+					: undefined;
+			}),
+	);
+	return pages.filter((page) => page != null);
+}
+
+let docPagesCache: Promise<DocPageRecord[]> | undefined;
+
+/** The docs pages: one read for the process in production, a new read for each call in dev. */
+function loadDocPages(): Promise<DocPageRecord[]> {
+	if (!import.meta.env.PROD) {
+		return readDocPages();
+	}
+	docPagesCache ??= readDocPages();
+	return docPagesCache;
+}
+
 let loader: VersionDataLoader | undefined;
 
 /**
@@ -560,9 +726,10 @@ export function productionDependencies({
 	return {
 		loader,
 		docsVersion: mantlePackageJson.version,
-		docsCommit: process.env.COMMIT_SHA ?? process.env.VERCEL_GIT_COMMIT_SHA,
+		docsCommit: process.env.COMMIT_SHA,
 		readDocs,
 		migrations: loadMigrationGuides,
+		docPages: loadDocPages,
 		flags,
 		previewOrigin:
 			process.env.MANTLE_PREVIEW_ORIGIN ?? (import.meta.env.DEV ? requestOrigin : canonicalOrigin),
