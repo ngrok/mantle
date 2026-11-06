@@ -2,6 +2,7 @@
 // `build/server/app-server.js`.
 import type { Plugin } from "@ngrok/app-server";
 import { createServer, defaultPlugins, withHeaderHook } from "@ngrok/app-server";
+import { assetsCdnOrigin } from "@ngrok/mantle/theme";
 import { canonicalOrigin } from "~/utilities/canonical-origin";
 import { allowsIndexing, EDGE_HEADER } from "~/utilities/indexing";
 
@@ -18,19 +19,28 @@ function isPrototypeFrame(path: string): boolean {
 /**
  * The CSP of the prototype frame. The policy repeats the frame's `sandbox`, so
  * the document has an opaque origin also when someone opens it outside the
- * preview page. It blocks each network request and form submission, so the
- * code cannot send data out. `'unsafe-eval'` lets the frame run the compiled
- * prototype.
+ * preview page. `default-src 'none'` blocks each request that the frame does
+ * not need, so the code cannot send data out. `'unsafe-eval'` lets the frame
+ * run the compiled prototype.
+ *
+ * Why no `'strict-dynamic'`: it lets the prototype add a script from any host.
+ * The frame loads its own modules from `'self'` instead.
  */
 function prototypeFramePolicy(scriptSrc: string): string {
+	const trustedScripts = scriptSrc
+		.split(" ")
+		.filter((source) => source !== "'strict-dynamic'")
+		.join(" ");
+	const pageOrigins = [canonicalOrigin, process.env.MANTLE_PREVIEW_ORIGIN].filter(Boolean);
 	return [
-		`script-src ${scriptSrc} 'unsafe-eval'`,
-		"connect-src 'none'",
+		"default-src 'none'",
+		`script-src ${trustedScripts} 'self' 'unsafe-eval'`,
+		"style-src 'self' 'unsafe-inline'",
+		`img-src 'self' data: blob: ${assetsCdnOrigin}`,
+		`font-src 'self' ${assetsCdnOrigin}`,
 		"form-action 'none'",
 		"base-uri 'none'",
-		"object-src 'none'",
-		"worker-src 'none'",
-		`frame-ancestors 'self' ${canonicalOrigin}`,
+		`frame-ancestors 'self' ${pageOrigins.join(" ")}`,
 		"sandbox allow-scripts",
 	].join("; ");
 }

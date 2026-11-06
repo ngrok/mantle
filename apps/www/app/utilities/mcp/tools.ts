@@ -262,20 +262,46 @@ function contractSectionOf(record: ApiRecord): string {
 	return record.kind === "utility" ? "API" : "API Reference";
 }
 
-/** The identifier a record exports: `DataTable` for "Data Table", `useBreakpoint` for itself. */
-function identifierOf(record: ApiRecord): string {
-	return record.kind === "component" || record.kind === "layout"
-		? record.name.replace(/[^A-Za-z0-9]/g, "")
-		: record.name;
+/**
+ * The name that the record's subpath exports for it: `DataTable` for "Data
+ * Table", `QrCode` for "QR Code". Returns `undefined` for a record that names
+ * a module of several exports, such as `color`.
+ */
+function identifierOf(record: ApiRecord, data: VersionData): string | undefined {
+	const wanted = compact(record.name);
+	const names = data.exportsBySpecifier.get(record.importPath)?.names ?? [];
+	return Array.from(names).find((name) => compact(name) === wanted);
+}
+
+/** The docs prose of a contract: `sections`, else the default section, else the page. */
+function contractProse({
+	record,
+	docsMarkdown,
+	sections,
+}: {
+	record: ApiRecord;
+	docsMarkdown: string;
+	sections: readonly string[] | undefined;
+}): string {
+	if (sections != null) {
+		return fitMarkdown({ markdown: docsMarkdown, sections }).text.trim();
+	}
+	const section = fitMarkdown({ markdown: docsMarkdown, sections: [contractSectionOf(record)] });
+	// Why the page: some utility pages split their API across topic headings.
+	const fitted =
+		section.kind === "sections" && section.missing.length > 0
+			? fitMarkdown({ markdown: docsMarkdown })
+			: section;
+	return fitted.text.trim();
 }
 
 /**
  * Builds the `get` result: the record, its examples, and its contract.
  *
  * - When the docs build is the selected version, the contract is the docs API
- *   reference.
- * - Otherwise the contract is the selected version's declaration, and the docs
- *   prose follows as labeled extra context.
+ *   reference, or the whole page when it has no such section.
+ * - Otherwise the contract is the selected version's declarations, and the
+ *   docs prose follows as labeled extra context.
  *
  * @example
  * getRecordText({ record, data, provenance, docsMarkdown });
@@ -293,10 +319,13 @@ export function getRecordText({
 	docsMarkdown: string | undefined;
 	sections?: readonly string[];
 }): string {
+	const identifier = identifierOf(record, data);
 	const header = [
 		`# ${record.name}`,
 		"",
-		`- Import: \`import { ${identifierOf(record)} } from "${record.importPath}";\``,
+		identifier == null
+			? `- Import from: \`${record.importPath}\``
+			: `- Import: \`import { ${identifier} } from "${record.importPath}";\``,
 		`- Kind: ${record.kind}${record.status === "preview" ? " (preview: the API can change in any release)" : ""}`,
 		record.useWhen != null ? `- Use when: ${record.useWhen}` : undefined,
 		record.summary != null ? `- Summary: ${record.summary}` : undefined,
@@ -312,12 +341,7 @@ export function getRecordText({
 		.map((example, index) => `### Example ${index + 1}\n\n${example.trim()}`)
 		.join("\n\n");
 
-	const sectionNames = sections ?? [contractSectionOf(record)];
-	const prose =
-		docsMarkdown == null
-			? undefined
-			: fitMarkdown({ markdown: docsMarkdown, sections: sectionNames });
-	const proseText = prose?.text.trim() ?? "";
+	const proseText = docsMarkdown == null ? "" : contractProse({ record, docsMarkdown, sections });
 	const docsMatchData = provenance.docsVersion === provenance.dataVersion;
 
 	const contract = docsMatchData
@@ -330,9 +354,10 @@ export function getRecordText({
 				`## Contract (declarations of @ngrok/mantle@${provenance.dataVersion})`,
 				"",
 				"```ts",
-				...[identifierOf(record), `${identifierOf(record)}Props`]
-					.map((name) => data.declarationOf(record.importPath, name))
-					.filter((declaration) => declaration != null),
+				(identifier == null
+					? undefined
+					: data.declarationsOf(record.importPath, [identifier, `${identifier}Props`])) ??
+					`// ${record.importPath} has no single declaration for ${record.name}. The docs below name its exports.`,
 				"```",
 				"",
 				`## Extra context: docs prose for ${provenance.docsVersion}, not ${provenance.dataVersion}`,

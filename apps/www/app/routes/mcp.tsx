@@ -46,11 +46,14 @@ async function serve(request: Request): Promise<Response> {
 	const handler = createMcpHandler(() => createMantleMcpServer(dependencies), {
 		maxRequestBodySize: MAX_REQUEST_BODY_BYTES,
 		onerror: (error) => {
-			console.error("mcp handler error", error.name);
+			// Why no message: a JSON parse message quotes the request body.
+			const frames = error.stack?.split("\n").slice(1).join("\n") ?? "";
+			console.error("mcp handler error", error.name, frames);
 		},
 	});
 	try {
-		return withCors(await handler.fetch(request));
+		// Why `await`: `finally` must close the handler after `withCors` reads the body.
+		return await withCors(await handler.fetch(request));
 	} finally {
 		await handler.close();
 	}

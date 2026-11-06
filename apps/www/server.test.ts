@@ -49,7 +49,8 @@ describe("the docs app server", () => {
 		);
 
 		expect(policy).toContain("sandbox allow-scripts");
-		expect(policy).toContain("connect-src 'none'");
+		expect(policy).toContain("default-src 'none'");
+		expect(policy).not.toContain("'strict-dynamic'");
 		expect(policy).toContain("frame-ancestors 'self' https://mantle.ngrok.com");
 	});
 

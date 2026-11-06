@@ -19,7 +19,8 @@ export function tarOf(entries: Record<string, string>): Uint8Array {
 
 /**
  * The API data files of a small published version, in the shape tsdown emits:
- * an entry declaration that re-exports from a hashed chunk.
+ * an entry declaration that re-exports from a hashed chunk, a compound
+ * component, a subpath that re-exports another package, and a utility module.
  */
 export function packageFilesFixture(version = "0.93.0"): PackageFiles {
 	const origin = "https://mantle.ngrok.com";
@@ -28,7 +29,13 @@ export function packageFilesFixture(version = "0.93.0"): PackageFiles {
 		version,
 		origin,
 		endpoints: {},
-		subpaths: ["@ngrok/mantle/button", "@ngrok/mantle/dialog", "@ngrok/mantle/hooks"],
+		subpaths: [
+			"@ngrok/mantle/button",
+			"@ngrok/mantle/dialog",
+			"@ngrok/mantle/data-table",
+			"@ngrok/mantle/hooks",
+			"@ngrok/mantle/color",
+		],
 		components: [
 			{
 				name: "Button",
@@ -55,6 +62,17 @@ export function packageFilesFixture(version = "0.93.0"): PackageFiles {
 				aliases: ["modal"],
 				useWhen: "The user must confirm before a destructive action.",
 			},
+			{
+				name: "Data Table",
+				slug: "components/data-display/data-table",
+				kind: "component",
+				category: "Data Display",
+				status: "stable",
+				importPath: "@ngrok/mantle/data-table",
+				docsUrl: `${origin}/components/data-display/data-table`,
+				markdownUrl: `${origin}/components/data-display/data-table.md`,
+				summary: "Rows of data with sorting.",
+			},
 		],
 		hooks: [
 			{
@@ -65,7 +83,15 @@ export function packageFilesFixture(version = "0.93.0"): PackageFiles {
 				summary: "Reads the current breakpoint.",
 			},
 		],
-		utilities: [],
+		utilities: [
+			{
+				name: "color",
+				importPath: "@ngrok/mantle/color",
+				docsUrl: `${origin}/utils/color`,
+				markdownUrl: `${origin}/utils/color.md`,
+				summary: "Color names and type guards.",
+			},
+		],
 	};
 	return new Map([
 		[
@@ -77,7 +103,9 @@ export function packageFilesFixture(version = "0.93.0"): PackageFiles {
 					"./mantle.css": "./dist/mantle.css",
 					"./button": "./dist/button.js",
 					"./dialog": "./dist/dialog.js",
+					"./data-table": "./dist/data-table.js",
 					"./hooks": "./dist/hooks.js",
+					"./color": "./dist/color.js",
 				},
 			}),
 		],
@@ -101,8 +129,20 @@ export function packageFilesFixture(version = "0.93.0"): PackageFiles {
 		["dist/dialog.d.ts", 'export * from "./dialog-Xyz.js";\n'],
 		[
 			"dist/dialog-Xyz.d.ts",
-			"declare const Dialog: { Root: unknown; Footer: unknown };\nexport { Dialog };\n",
+			[
+				"/** The props of `Content`. */",
+				"type ContentProps = { title: string };",
+				"declare function Content(props: ContentProps): unknown;",
+				"declare const Dialog: { readonly Root: unknown; readonly Content: typeof Content };",
+				"export { Dialog };",
+				"",
+			].join("\n"),
+		],
+		[
+			"dist/data-table.d.ts",
+			'export * from "@tanstack/react-table";\nexport declare const DataTable: unknown;\n',
 		],
 		["dist/hooks.d.ts", "export declare function useBreakpoint(): string;\n"],
+		["dist/color.d.ts", "export declare const colors: readonly string[];\n"],
 	]);
 }

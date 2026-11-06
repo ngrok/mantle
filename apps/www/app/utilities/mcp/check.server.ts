@@ -1,4 +1,5 @@
 import { parseSync } from "oxc-parser";
+import { hasKind, isRecord, walk } from "~/utilities/mcp/ast-walk";
 import type { VersionData } from "~/utilities/mcp/version-data.server";
 
 const MAX_DIAGNOSTICS = 40;
@@ -12,6 +13,7 @@ export type Diagnostic = {
 		| "foreign-ui-library"
 		| "clsx-classnames"
 		| "classname-construction"
+		| "missing-default-export"
 		| "incomplete-context";
 	severity: "error" | "warning" | "info";
 	message: string;
@@ -44,37 +46,12 @@ function lineAndColumn(source: string, offset: number): { line: number; column: 
 /** The specifiers that export `name`, for a fix hint. */
 function specifiersExporting(data: VersionData, name: string): string[] {
 	const found: string[] = [];
-	for (const [specifier, names] of data.exportsBySpecifier) {
-		if (names.has(name)) {
+	for (const [specifier, exported] of data.exportsBySpecifier) {
+		if (exported.names.has(name)) {
 			found.push(specifier);
 		}
 	}
 	return found;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === "object" && value != null;
-}
-
-/** Calls `visit` on each AST node under `node`, depth first. */
-function walk(node: unknown, visit: (node: Record<string, unknown>) => void): void {
-	if (Array.isArray(node)) {
-		for (const child of node) {
-			walk(child, visit);
-		}
-		return;
-	}
-	if (!isRecord(node)) {
-		return;
-	}
-	if (typeof node.type === "string") {
-		visit(node);
-	}
-	for (const [key, value] of Object.entries(node)) {
-		if (key !== "parent" && typeof value === "object") {
-			walk(value, visit);
-		}
-	}
 }
 
 /** Whether a `className` value builds a string by hand instead of with `cx`. */
@@ -88,15 +65,41 @@ function isConstructedClassName(expression: Record<string, unknown>): boolean {
 	return expression.type === "ConditionalExpression";
 }
 
+/** The name an import entry reads: `default` for a default import, `undefined` for a namespace. */
+function importedNameOf(importName: { kind: string; name: string | null }): string | undefined {
+	if (hasKind(importName, "Default")) {
+		return "default";
+	}
+	return importName.name ?? undefined;
+}
+
+/** Whether a module exports a default, as `export default` or `export { x as default }`. */
+function hasDefaultExport(module: ReturnType<typeof parseSync>["module"]): boolean {
+	return module.staticExports.some((statement) =>
+		statement.entries.some(
+			(entry) => hasKind(entry.exportName, "Default") || entry.exportName.name === "default",
+		),
+	);
+}
+
 /**
  * Runs `check` stage A on one TSX file: a parse, then mantle import, export,
  * and `className` rules for the selected version. No TypeScript type check.
+ * With `requireDefaultExport`, a file with no default export is an error.
  *
  * @example
  * checkCode({ code: 'import { Buton } from "@ngrok/mantle/button";', data });
  * // [{ code: "unknown-export", message: "@ngrok/mantle/button does not export Buton.", … }]
  */
-export function checkCode({ code, data }: { code: string; data: VersionData }): Diagnostic[] {
+export function checkCode({
+	code,
+	data,
+	requireDefaultExport = false,
+}: {
+	code: string;
+	data: VersionData;
+	requireDefaultExport?: boolean;
+}): Diagnostic[] {
 	const diagnostics: Diagnostic[] = [];
 	const add = (offset: number, diagnostic: Omit<Diagnostic, "line" | "column">) => {
 		diagnostics.push({ ...diagnostic, ...lineAndColumn(code, offset) });
@@ -115,6 +118,15 @@ export function checkCode({ code, data }: { code: string; data: VersionData }): 
 	}
 
 	const cxUrl = "https://mantle.ngrok.com/utils/cx";
+
+	if (requireDefaultExport && !hasDefaultExport(parsed.module)) {
+		add(0, {
+			code: "missing-default-export",
+			severity: "error",
+			message: "The file has no default export, so the preview has no component to render.",
+			fix: "export default function App() { … }",
+		});
+	}
 
 	for (const statement of parsed.module.staticImports) {
 		const specifier = statement.moduleRequest.value;
@@ -151,13 +163,21 @@ export function checkCode({ code, data }: { code: string; data: VersionData }): 
 			continue;
 		}
 		if (/\.(css|json|txt)$/.test(specifier)) {
+			if (!data.specifiers.has(specifier)) {
+				add(start, {
+					code: "unknown-subpath",
+					severity: "error",
+					message: `@ngrok/mantle@${data.version} has no import path ${specifier}.`,
+				});
+			}
 			continue;
 		}
 
 		const exported = data.exportsBySpecifier.get(specifier);
-		const importedNames = statement.entries.flatMap((entry) =>
-			entry.importName.name == null ? [] : [entry.importName.name],
-		);
+		const importedNames = statement.entries.flatMap((entry) => {
+			const name = importedNameOf(entry.importName);
+			return name == null ? [] : [name];
+		});
 		if (exported == null) {
 			const hints = importedNames.map((name) => {
 				const homes = specifiersExporting(data, name);
@@ -174,8 +194,17 @@ export function checkCode({ code, data }: { code: string; data: VersionData }): 
 			continue;
 		}
 		for (const entry of statement.entries) {
-			const name = entry.importName.name;
-			if (name == null || exported.has(name)) {
+			const name = importedNameOf(entry.importName);
+			if (name == null || exported.names.has(name)) {
+				continue;
+			}
+			// Why not `default`: `export *` never re-exports a default.
+			if (exported.externalStars.length > 0 && name !== "default") {
+				add(entry.importName.start ?? start, {
+					code: "incomplete-context",
+					severity: "info",
+					message: `${specifier} re-exports ${exported.externalStars.join(", ")}. check cannot see whether ${name} comes from there.`,
+				});
 				continue;
 			}
 			const homes = specifiersExporting(data, name);

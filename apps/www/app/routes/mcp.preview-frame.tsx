@@ -1,8 +1,9 @@
 import { Alert } from "@ngrok/mantle/alert";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 import { data } from "react-router";
 import { startPrototypeTailwind } from "~/features/mcp-preview/prototype-tailwind";
 import { runPrototype, type RunPrototypeResult } from "~/features/mcp-preview/run-prototype";
+import { useLocationHash } from "~/features/mcp-preview/use-location-hash";
 import { isMcpToolEnabled, mcpFlags } from "~/utilities/mcp/flags.server";
 import { decodePreviewFragment, parsePreviewHash } from "~/utilities/mcp/preview-url";
 
@@ -19,22 +20,28 @@ export function meta() {
 	return [{ title: "Prototype - @ngrok/mantle" }, { name: "robots", content: "noindex, nofollow" }];
 }
 
-function subscribeToHash(onChange: () => void) {
-	window.addEventListener("hashchange", onChange);
-	return () => window.removeEventListener("hashchange", onChange);
-}
-
 const decodeMessages = {
 	missing: "The link has no code. Ask the agent for a new preview link.",
 	"too-large": "The code in the link is too large to preview.",
 	invalid: "The link is damaged. Copy the whole link, or ask the agent for a new one.",
 } as const;
 
+/**
+ * Clears the CSP nonce of each element. The prototype runs in this document,
+ * and with a nonce it could load a script from any host.
+ */
+function clearNonces() {
+	for (const element of document.querySelectorAll<HTMLElement>("[nonce]")) {
+		element.nonce = "";
+	}
+}
+
 async function loadPrototype(fragment: string | null): Promise<RunPrototypeResult> {
 	const decoded = await decodePreviewFragment(fragment);
 	if (!decoded.ok) {
 		return { ok: false, title: "The preview cannot open", message: decodeMessages[decoded.reason] };
 	}
+	clearNonces();
 	return runPrototype(decoded.code);
 }
 
@@ -44,14 +51,10 @@ type FrameState = { fragment: string | null; result: RunPrototypeResult } | null
  * The sandboxed document that runs a prototype. The preview page frames it with
  * `sandbox="allow-scripts"`, and its CSP repeats the sandbox and blocks the
  * network, so the code has no cookies, no storage, and no way to send data.
+ * The root layout applies the theme from the fragment.
  */
 export default function McpPreviewFrame() {
-	const hash = useSyncExternalStore(
-		subscribeToHash,
-		() => window.location.hash,
-		() => "",
-	);
-	const { code: fragment, theme } = parsePreviewHash(hash);
+	const { code: fragment } = parsePreviewHash(useLocationHash() ?? "");
 	const [state, setState] = useState<FrameState>(null);
 
 	useEffect(() => {
@@ -67,14 +70,6 @@ export default function McpPreviewFrame() {
 			cancelled = true;
 		};
 	}, [fragment]);
-
-	useEffect(() => {
-		const html = document.documentElement;
-		html.classList.remove("light", "dark");
-		html.classList.add(theme);
-		html.dataset.theme = theme;
-		html.dataset.appliedTheme = theme;
-	}, [theme]);
 
 	// Why compare the fragment: a new link must not show the last prototype while it loads.
 	if (state == null || state.fragment !== fragment) {

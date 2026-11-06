@@ -1,4 +1,5 @@
 import { parseSync } from "oxc-parser";
+import { hasKind, isRecord, walk } from "~/utilities/mcp/ast-walk";
 import type { PackageFiles } from "~/utilities/mcp/npm-tarball.server";
 
 type ParseResult = ReturnType<typeof parseSync>;
@@ -10,11 +11,6 @@ type ParsedDeclarationFile = {
 	comments: ParseResult["comments"];
 	source: string;
 };
-
-/** Compares an oxc name kind as a string; the oxc kinds are `const enum` types. */
-function hasKind(name: { kind: string }, kind: "Name" | "None"): boolean {
-	return name.kind === kind;
-}
 
 const MAX_REEXPORT_DEPTH = 6;
 
@@ -65,16 +61,26 @@ export function declarationEntryFor(
 	return path.replace(/^\.\//, "").replace(/\.js$/, ".d.ts");
 }
 
+/** What one JavaScript subpath exports. */
+export type SubpathExports = {
+	/** Each name the subpath exports, types included. A default export is `default`. */
+	names: ReadonlySet<string>;
+	/** The packages that the subpath re-exports with `export *`. Their names are not in `names`. */
+	externalStars: readonly string[];
+};
+
 /**
  * Every name that a declaration entry exports, types included. Follows
- * `export *` into other `dist` files.
+ * `export *` into other `dist` files, and records an `export *` from another
+ * package.
  *
  * @example
- * exportNamesOf(files, "dist/button.d.ts"); // Set { "Button", "ButtonProps", … }
+ * exportNamesOf(files, "dist/button.d.ts").names; // Set { "Button", "ButtonProps", … }
  */
-export function exportNamesOf(files: PackageFiles, entryPath: string): ReadonlySet<string> {
+export function exportNamesOf(files: PackageFiles, entryPath: string): SubpathExports {
 	const parse = createParser(files);
 	const names = new Set<string>();
+	const externalStars: string[] = [];
 
 	const visit = (path: string, depth: number) => {
 		const parsed = parse(path);
@@ -83,15 +89,20 @@ export function exportNamesOf(files: PackageFiles, entryPath: string): ReadonlyS
 		}
 		for (const statement of parsed.module.staticExports) {
 			for (const entry of statement.entries) {
+				if (hasKind(entry.exportName, "Default")) {
+					names.add("default");
+				}
 				if (hasKind(entry.exportName, "Name") && entry.exportName.name != null) {
 					names.add(entry.exportName.name);
 				}
 				const isStar = hasKind(entry.exportName, "None") && !hasKind(entry.importName, "Name");
-				const target =
-					entry.moduleRequest == null
-						? undefined
-						: resolveDeclarationPath(path, entry.moduleRequest.value);
-				if (isStar && target != null) {
+				if (!isStar || entry.moduleRequest == null) {
+					continue;
+				}
+				const target = resolveDeclarationPath(path, entry.moduleRequest.value);
+				if (target == null) {
+					externalStars.push(entry.moduleRequest.value);
+				} else {
 					visit(target, depth + 1);
 				}
 			}
@@ -99,7 +110,7 @@ export function exportNamesOf(files: PackageFiles, entryPath: string): ReadonlyS
 	};
 
 	visit(entryPath, 0);
-	return names;
+	return { names, externalStars };
 }
 
 /** The leading JSDoc block of a statement, when one ends just before it. */
@@ -139,23 +150,48 @@ function declaredNames(statement: Statement): string[] {
 	return [];
 }
 
+/** One top-level statement and the file that holds it. */
+type LocatedStatement = { path: string; parsed: ParsedDeclarationFile; statement: Statement };
+
+/** The names that a declaration refers to with `typeof X` or a type reference `X`. */
+function referencedNames(statement: Statement): string[] {
+	const names: string[] = [];
+	walk(statement, (node) => {
+		const reference = node.type === "TSTypeQuery" ? node.exprName : undefined;
+		const typeName = node.type === "TSTypeReference" ? node.typeName : reference;
+		if (isRecord(typeName) && typeName.type === "Identifier" && typeof typeName.name === "string") {
+			names.push(typeName.name);
+		}
+	});
+	return names;
+}
+
+/** The most declarations that one `declarationsOf` call returns. */
+const MAX_DECLARATIONS = 24;
+
 /**
- * The source text of the declaration that an entry exports as `name`, with its
- * JSDoc. Follows the re-export chain through the bundled `dist` chunks.
- * Returns `undefined` when the entry does not export `name`.
+ * The source text of the declarations that an entry exports as `names`, with
+ * their JSDoc, then each declaration in the package that they refer to, such
+ * as the parts and props of a compound component. Follows the re-export chain
+ * through the bundled `dist` chunks. Returns `undefined` when the entry
+ * exports none of `names`.
  *
  * @example
- * declarationOf(files, "dist/button.d.ts", "ButtonProps");
- * // "/** … *\/\ntype ButtonProps = …"
+ * declarationsOf(files, "dist/button.d.ts", ["Button", "ButtonProps"]);
+ * // "/** Starts an action. *\/\ndeclare const Button: …\n\n/** … *\/\ntype ButtonProps = …"
  */
-export function declarationOf(
+export function declarationsOf(
 	files: PackageFiles,
 	entryPath: string,
-	name: string,
+	names: readonly string[],
 ): string | undefined {
 	const parse = createParser(files);
 
-	const find = (path: string, exportedName: string, depth: number): string | undefined => {
+	const find = (
+		path: string,
+		exportedName: string,
+		depth: number,
+	): LocatedStatement | undefined => {
 		const parsed = parse(path);
 		if (parsed == null || depth > MAX_REEXPORT_DEPTH) {
 			return undefined;
@@ -186,14 +222,18 @@ export function declarationOf(
 		return localDeclaration(path, exportedName, depth);
 	};
 
-	const localDeclaration = (path: string, localName: string, depth: number): string | undefined => {
+	const localDeclaration = (
+		path: string,
+		localName: string,
+		depth: number,
+	): LocatedStatement | undefined => {
 		const parsed = parse(path);
 		if (parsed == null) {
 			return undefined;
 		}
 		for (const statement of parsed.program.body) {
 			if (declaredNames(statement).includes(localName)) {
-				return `${leadingJsDoc(parsed, statement.start)}${parsed.source.slice(statement.start, statement.end)}`;
+				return { path, parsed, statement };
 			}
 		}
 		for (const statement of parsed.module.staticImports) {
@@ -211,5 +251,35 @@ export function declarationOf(
 		return undefined;
 	};
 
-	return find(entryPath, name, 0);
+	const seen = new Set<string>();
+	const queue: LocatedStatement[] = [];
+	const texts: string[] = [];
+	const add = (located: LocatedStatement | undefined) => {
+		if (located == null || texts.length >= MAX_DECLARATIONS) {
+			return;
+		}
+		const key = `${located.path}:${located.statement.start}`;
+		if (seen.has(key)) {
+			return;
+		}
+		seen.add(key);
+		queue.push(located);
+		const { parsed, statement } = located;
+		texts.push(
+			`${leadingJsDoc(parsed, statement.start)}${parsed.source.slice(statement.start, statement.end)}`,
+		);
+	};
+
+	for (const name of names) {
+		add(find(entryPath, name, 0));
+	}
+	if (texts.length === 0) {
+		return undefined;
+	}
+	for (let located = queue.shift(); located != null; located = queue.shift()) {
+		for (const reference of referencedNames(located.statement)) {
+			add(localDeclaration(located.path, reference, 0));
+		}
+	}
+	return texts.join("\n\n");
 }

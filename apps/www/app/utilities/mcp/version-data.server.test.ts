@@ -7,7 +7,7 @@ import {
 	readTarEntries,
 	type PackageFiles,
 } from "~/utilities/mcp/npm-tarball.server";
-import { declarationOf, exportNamesOf } from "~/utilities/mcp/declarations.server";
+import { declarationsOf, exportNamesOf } from "~/utilities/mcp/declarations.server";
 import { packageFilesFixture, tarOf } from "~/utilities/mcp/test-fixtures";
 import {
 	createVersionDataLoader,
@@ -60,37 +60,58 @@ describe("exportNamesOf", () => {
 	it("lists named re-exports and follows export star into chunks", () => {
 		const files = packageFilesFixture();
 
-		expect(Array.from(exportNamesOf(files, "dist/button.d.ts")).toSorted()).toEqual([
+		expect(Array.from(exportNamesOf(files, "dist/button.d.ts").names).toSorted()).toEqual([
 			"Button",
 			"ButtonProps",
 		]);
-		expect(Array.from(exportNamesOf(files, "dist/dialog.d.ts"))).toEqual(["Dialog"]);
+		expect(Array.from(exportNamesOf(files, "dist/dialog.d.ts").names)).toEqual(["Dialog"]);
+	});
+
+	it("records an export star from another package", () => {
+		expect(exportNamesOf(packageFilesFixture(), "dist/data-table.d.ts")).toEqual({
+			names: new Set(["DataTable"]),
+			externalStars: ["@tanstack/react-table"],
+		});
 	});
 });
 
-describe("declarationOf", () => {
+describe("declarationsOf", () => {
 	it("follows the renamed chunk export to the declaration and keeps its JSDoc", () => {
-		const declaration = declarationOf(packageFilesFixture(), "dist/button.d.ts", "ButtonProps");
+		const declaration = declarationsOf(packageFilesFixture(), "dist/button.d.ts", ["ButtonProps"]);
 
 		expect(declaration).toBe(
 			'/** The props of `Button`. */\ntype ButtonProps = { intent: "neutral" | "danger" };',
 		);
 	});
 
+	it("adds the parts and props that a compound component refers to", () => {
+		const declaration = declarationsOf(packageFilesFixture(), "dist/dialog.d.ts", [
+			"Dialog",
+			"DialogProps",
+		]);
+
+		expect(declaration).toContain("declare const Dialog:");
+		expect(declaration).toContain("declare function Content(props: ContentProps): unknown;");
+		expect(declaration).toContain("type ContentProps = { title: string };");
+	});
+
 	it("returns undefined for a name the entry does not export", () => {
-		expect(declarationOf(packageFilesFixture(), "dist/button.d.ts", "Buton")).toBeUndefined();
+		expect(declarationsOf(packageFilesFixture(), "dist/button.d.ts", ["Buton"])).toBeUndefined();
 	});
 });
 
 describe("versionDataFromFiles", () => {
-	it("maps each JS export to its specifier and skips the stylesheet", () => {
+	it("maps each JS export to its specifier, and keeps the stylesheet as a specifier only", () => {
 		const data = versionDataFromFiles("0.93.0", packageFilesFixture());
 
 		expect(Array.from(data.exportsBySpecifier.keys())).toEqual([
 			"@ngrok/mantle/button",
 			"@ngrok/mantle/dialog",
+			"@ngrok/mantle/data-table",
 			"@ngrok/mantle/hooks",
+			"@ngrok/mantle/color",
 		]);
+		expect(data.specifiers.has("@ngrok/mantle/mantle.css")).toBe(true);
 	});
 
 	it("names the floor when the tarball has no agent manifest", () => {

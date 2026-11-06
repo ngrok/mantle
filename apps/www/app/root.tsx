@@ -30,10 +30,12 @@ import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { Header } from "./components/header";
 import { NavigationProvider } from "./components/navigation-context";
 import { PageContainer } from "./components/page-container";
+import { useLocationHash } from "./features/mcp-preview/use-location-hash";
 import { RouteAnnouncer } from "./features/route-announcer";
 import "./global.css";
 import { canonicalDomain, canonicalHref } from "./utilities/canonical-origin";
 import { parseMantleVersion } from "./utilities/mantle-version.server";
+import { parsePreviewHash } from "./utilities/mcp/preview-url";
 import invariant from "tiny-invariant";
 import { MantleVersionProvider } from "./components/mantle-version-provider";
 
@@ -150,6 +152,8 @@ export function Layout({ children }: PropsWithChildren) {
 	const scrollBehavior = useScrollBehavior();
 	const isFramedPreview = useIsFramedPreview();
 	const isPrototypeFrame = useMatches().some((match) => match.id === "mcp-preview-frame");
+	const prototypeHash = useLocationHash({ enabled: isPrototypeFrame });
+	const prototypeTheme = prototypeHash == null ? undefined : parsePreviewHash(prototypeHash).theme;
 	const nonce = cspNonce();
 	const [queryClient] = useState(() => new QueryClient());
 
@@ -193,7 +197,7 @@ export function Layout({ children }: PropsWithChildren) {
 					scrollBehavior === "smooth" && "scroll-smooth",
 				)}
 			>
-				<ThemeProvider>
+				<ThemeProvider forceTheme={prototypeTheme}>
 					<TooltipProvider>
 						<Toaster />
 						<QueryClientProvider client={queryClient}>

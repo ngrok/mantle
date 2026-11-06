@@ -9,9 +9,34 @@ export type RunPrototypeResult =
 
 const requirePattern = /\brequire\(\s*(["'])([^"']+)\1\s*\)/g;
 
-// Why a function check only: React reports any other component problem when it renders.
+/** The `$$typeof` of the component wrappers that React returns as objects: `memo`, `lazy`, and `forwardRef`. */
+const componentWrapperTypes = new Set<unknown>([
+	Symbol.for("react.memo"),
+	Symbol.for("react.lazy"),
+	Symbol.for("react.forward_ref"),
+]);
+
+// Why a shallow check only: React reports any other component problem when it renders.
 function isComponent(value: unknown): value is ComponentType {
-	return typeof value === "function";
+	if (typeof value === "function") {
+		return true;
+	}
+	return (
+		typeof value === "object" &&
+		value != null &&
+		"$$typeof" in value &&
+		componentWrapperTypes.has(value.$$typeof)
+	);
+}
+
+/** A `require` of a module that the preview registry does not have. */
+class UnavailableModuleError extends Error {
+	readonly specifier: string;
+
+	constructor(specifier: string) {
+		super(`\`${specifier}\` is not available in the preview.`);
+		this.specifier = specifier;
+	}
 }
 
 function failure(title: string, error: unknown): RunPrototypeResult {
@@ -55,22 +80,17 @@ export async function runPrototype(source: string): Promise<RunPrototypeResult> 
 	const specifiers = new Set(Array.from(code.matchAll(requirePattern), (match) => match[2] ?? ""));
 	const modules: Map<string, unknown> = new Map();
 	for (const specifier of specifiers) {
-		// Why one at a time: the first unknown import stops the run, and each load is a cached chunk.
+		// Why skip an unknown specifier: the scan also matches text in strings and comments. `require` reports a real import.
 		const loaded = await loadPreviewModule(specifier);
-		if (loaded == null) {
-			return {
-				ok: false,
-				title: "The code imports a module the preview cannot load",
-				message: `\`${specifier}\` is not available. A prototype can import react, react-dom, @ngrok/mantle/*, and @phosphor-icons/react.`,
-			};
+		if (loaded != null) {
+			modules.set(specifier, loaded);
 		}
-		modules.set(specifier, loaded);
 	}
 
 	const module: { exports: Record<string, unknown> } = { exports: {} };
 	const require = (specifier: string) => {
 		if (!modules.has(specifier)) {
-			throw new Error(`\`${specifier}\` is not available in the preview.`);
+			throw new UnavailableModuleError(specifier);
 		}
 		return modules.get(specifier);
 	};
@@ -78,6 +98,13 @@ export async function runPrototype(source: string): Promise<RunPrototypeResult> 
 		// oxlint-disable-next-line typescript/no-implied-eval -- Why: the preview runs the user's compiled prototype; the frame is a sandboxed opaque origin with no network.
 		new Function("require", "exports", "module", code)(require, module.exports, module);
 	} catch (error) {
+		if (error instanceof UnavailableModuleError) {
+			return {
+				ok: false,
+				title: "The code imports a module the preview cannot load",
+				message: `\`${error.specifier}\` is not available. A prototype can import react, react-dom, @ngrok/mantle/*, and @phosphor-icons/react.`,
+			};
+		}
 		return failure("The code throws when it loads", error);
 	}
 

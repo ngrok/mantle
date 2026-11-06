@@ -125,6 +125,44 @@ describe("getRecordText", () => {
 		expect(text).toContain("declare const Button: (props: ButtonProps) => unknown;");
 		expect(text).toContain("## Extra context: docs prose for 0.94.0, not 0.93.0");
 	});
+
+	it("imports the name the subpath exports, and adds the parts of a compound component", () => {
+		const dialog = recordNamed(records, "Dialog");
+		const dataTable = recordNamed(records, "Data Table");
+		if (dialog == null || dataTable == null) {
+			throw new Error("The fixture has no Dialog or Data Table.");
+		}
+		const provenance = { dataVersion: "0.93.0", docsVersion: "0.94.0" };
+
+		const dialogText = getRecordText({ record: dialog, data, provenance, docsMarkdown: undefined });
+		const dataTableText = getRecordText({
+			record: dataTable,
+			data,
+			provenance,
+			docsMarkdown: undefined,
+		});
+
+		expect(dialogText).toContain("type ContentProps = { title: string };");
+		expect(dataTableText).toContain('`import { DataTable } from "@ngrok/mantle/data-table";`');
+	});
+
+	it("names only the subpath of a utility module, and falls back to its page with no API section", () => {
+		const color = recordNamed(records, "color");
+		if (color == null) {
+			throw new Error("The fixture has no color utility.");
+		}
+
+		const text = getRecordText({
+			record: color,
+			data,
+			provenance: { dataVersion: "0.93.0", docsVersion: "0.93.0" },
+			docsMarkdown: "# Color\n\n## Type guards\n\nisColor checks a name.",
+		});
+
+		expect(text).toContain("- Import from: `@ngrok/mantle/color`");
+		expect(text).not.toContain("import { color }");
+		expect(text).toContain("isColor checks a name.");
+	});
 });
 
 const guide = (overrides: Partial<MigrationGuide>): MigrationGuide => ({

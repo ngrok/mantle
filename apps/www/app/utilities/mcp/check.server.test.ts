@@ -55,6 +55,37 @@ describe("checkCode", () => {
 		]);
 	});
 
+	it("reports a default import from a subpath with no default export", () => {
+		const [diagnostic] = checkCode({ code: 'import Button from "@ngrok/mantle/button";', data });
+
+		expect(diagnostic).toMatchObject({ code: "unknown-export", severity: "error" });
+	});
+
+	it("reports a stylesheet path that the version does not export", () => {
+		expect(codesOf('import "@ngrok/mantle/mantle-dark.css";')).toEqual(["unknown-subpath"]);
+	});
+
+	it("does not call a name invalid when the subpath re-exports another package", () => {
+		const diagnostics = checkCode({
+			code: 'import { DataTable, useTable } from "@ngrok/mantle/data-table";',
+			data,
+		});
+
+		expect(diagnostics).toMatchObject([{ code: "incomplete-context", severity: "info" }]);
+		expect(codesOf('import DataTable from "@ngrok/mantle/data-table";')).toEqual([
+			"unknown-export",
+		]);
+	});
+
+	it("requires a default export when the caller asks for one", () => {
+		const code = "export const App = () => null;";
+
+		expect(codesOf(code)).toEqual([]);
+		expect(
+			checkCode({ code, data, requireDefaultExport: true }).map((diagnostic) => diagnostic.code),
+		).toEqual(["missing-default-export"]);
+	});
+
 	it("reports className built with a template, a ternary, or plus", () => {
 		const code = [
 			"const a = <div className={`p-2 ${x}`} />;",

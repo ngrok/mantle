@@ -204,6 +204,43 @@ describe("the mantle MCP server", () => {
 		expect(text).toContain("check found nothing.");
 	});
 
+	it("reports a preview with no default export and keeps the local-module note", async () => {
+		const { text } = await callTool(dependencies(), "preview", {
+			code: 'import { thing } from "./thing";\nexport const App = () => thing;',
+		});
+
+		expect(text).toContain('"code": "missing-default-export"');
+		expect(text).toContain('"code": "incomplete-context"');
+	});
+
+	it("refuses a migration range that runs backward or past the latest version", async () => {
+		const backward = await callTool(dependencies(), "migrate", { from: "0.93.0", to: "0.90.0" });
+		const future = await callTool(dependencies(), "migrate", { from: "0.90.0", to: "0.99.0" });
+
+		expect(backward).toEqual({
+			text: "The target 0.90.0 is older than 0.93.0. Pass a newer `to`.",
+			isError: true,
+		});
+		expect(future).toEqual({
+			text: "0.99.0 is newer than 0.93.0, the latest published version.",
+			isError: true,
+		});
+	});
+
+	it("logs a tool call that fails with an unexpected error", async () => {
+		const log = vi.fn<(event: ToolCallEvent) => void>();
+		const loader = {
+			latestVersion: async () => "0.93.0",
+			load: async () => {
+				throw new Error("registry down");
+			},
+		};
+
+		await callTool(dependencies({ log, loader }), "get", { name: "Dialog" });
+
+		expect(log).toHaveBeenCalledWith(expect.objectContaining({ tool: "get", outcome: "error" }));
+	});
+
 	it("rejects code over the size cap before it parses it", async () => {
 		const result = await callTool(dependencies(), "check", { code: "x".repeat(20 * 1024 + 1) });
 

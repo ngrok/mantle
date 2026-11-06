@@ -17,6 +17,7 @@ import { reactCompilerOptions } from "../../packages/mantle/react-compiler.confi
 import { mantleChangelogMdx } from "./vite-plugins/mantle-changelog-mdx.ts";
 import { mdxDocComponentImports } from "./vite-plugins/mdx-doc-component-imports.ts";
 import { mdxGeneratedCode } from "./vite-plugins/mdx-generated-code.ts";
+import { opaqueOriginModuleCors } from "./vite-plugins/opaque-origin-module-cors.ts";
 import { rawMdxDocs } from "./vite-plugins/raw-mdx-docs.ts";
 import { rehypeMdxDocHandle } from "./vite-plugins/rehype-mdx-doc-handle.ts";
 import { remarkMdxDemoteLowercaseExports } from "./vite-plugins/remark-mdx-demote-lowercase-exports.ts";
@@ -78,6 +79,7 @@ export default defineConfig(({ command }) => ({
 		mdxDocComponentImports(path.resolve(import.meta.dirname, "app/docs")),
 		mantleChangelogMdx(path.resolve(import.meta.dirname, "../../packages/mantle/CHANGELOG.md")),
 		devtoolsJson(),
+		opaqueOriginModuleCors(),
 		tailwindcss(),
 		// Why here: this app resolves mantle to source through `resolve.conditions`, so the
 		// listed files are `packages/mantle/src` modules. The `@source "../../../packages/mantle/src"`
@@ -163,9 +165,6 @@ export default defineConfig(({ command }) => ({
 		// Listen on every interface, so a phone on the same network can open the dev site.
 		host: true,
 		allowedHosts: true,
-		// Why: the MCP preview frame has an opaque origin, so it loads its modules with
-		// `Origin: null`. The production server sends the same CORS header on `/assets`.
-		cors: { origin: true },
 		warmup: {
 			clientFiles: [
 				"./app/**/!(*.server|*.test)*.tsx", // Include all .tsx files except server and test files (add more patterns if required)

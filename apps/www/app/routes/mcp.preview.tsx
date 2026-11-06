@@ -1,9 +1,9 @@
 import { Alert } from "@ngrok/mantle/alert";
 import { Label } from "@ngrok/mantle/label";
 import { Switch } from "@ngrok/mantle/switch";
-import { useSyncExternalStore } from "react";
 import { data } from "react-router";
 import { useMantleVersion } from "~/components/mantle-version-provider";
+import { useLocationHash } from "~/features/mcp-preview/use-location-hash";
 import { isMcpToolEnabled, mcpFlags } from "~/utilities/mcp/flags.server";
 import { parsePreviewHash, type PreviewTheme } from "~/utilities/mcp/preview-url";
 import type { Route } from "./+types/mcp.preview";
@@ -11,14 +11,14 @@ import type { Route } from "./+types/mcp.preview";
 /**
  * Returns 404 unless the MCP server and its `preview` tool are on. The frame
  * origin comes from `MANTLE_PREVIEW_FRAME_ORIGIN`, so production can serve the
- * frame from a host with no ngrok sessions.
+ * frame from a host with no ngrok sessions. With no value the frame URL is
+ * relative, so it keeps the page's scheme behind a TLS proxy.
  */
-export function loader({ request }: Route.LoaderArgs) {
+export function loader() {
 	if (!isMcpToolEnabled(mcpFlags(), "preview")) {
 		throw data(null, { status: 404 });
 	}
-	const frameOrigin = process.env.MANTLE_PREVIEW_FRAME_ORIGIN || new URL(request.url).origin;
-	return { frameOrigin };
+	return { frameOrigin: process.env.MANTLE_PREVIEW_FRAME_ORIGIN ?? "" };
 }
 
 /** Titles the page and keeps it out of search indexes. */
@@ -27,20 +27,6 @@ export function meta() {
 		{ title: "Prototype preview - @ngrok/mantle" },
 		{ name: "robots", content: "noindex, nofollow" },
 	];
-}
-
-function subscribeToHash(onChange: () => void) {
-	window.addEventListener("hashchange", onChange);
-	return () => window.removeEventListener("hashchange", onChange);
-}
-
-// Why `null` on the server: the browser never sends the fragment, so the server cannot render the frame.
-function useLocationHash() {
-	return useSyncExternalStore(
-		subscribeToHash,
-		() => window.location.hash,
-		() => null,
-	);
 }
 
 function setTheme(theme: PreviewTheme) {

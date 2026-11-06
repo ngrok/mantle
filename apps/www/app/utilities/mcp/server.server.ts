@@ -22,6 +22,7 @@ import {
 	type Provenance,
 } from "~/utilities/mcp/tools";
 import {
+	compareVersions,
 	createVersionDataLoader,
 	MIN_SUPPORTED_VERSION,
 	VersionError,
@@ -184,7 +185,10 @@ export function createMantleMcpServer(dependencies: McpDependencies): McpServer 
 		},
 	);
 
-	/** Runs a tool body behind the kill switch, maps a version error to a tool error, and logs the call. */
+	/**
+	 * Runs a tool body behind the kill switch, maps a version error to a tool
+	 * error, and logs the call. Any other error is logged, then thrown to the handler.
+	 */
 	const run =
 		<Args>(
 			tool: string,
@@ -219,6 +223,7 @@ export function createMantleMcpServer(dependencies: McpDependencies): McpServer 
 				if (error instanceof VersionError) {
 					return finish("error", text(error.message, true));
 				}
+				finish("error", text("", true));
 				throw error;
 			}
 		};
@@ -391,7 +396,18 @@ export function createMantleMcpServer(dependencies: McpDependencies): McpServer 
 			annotations: readOnly,
 		},
 		run("migrate", async ({ from, to }) => {
-			const target = to ?? (await dependencies.loader.latestVersion());
+			const latest = await dependencies.loader.latestVersion();
+			const target = to ?? latest;
+			if (compareVersions(target, from) < 0) {
+				return {
+					result: text(`The target ${target} is older than ${from}. Pass a newer \`to\`.`, true),
+				};
+			}
+			if (compareVersions(target, latest) > 0) {
+				return {
+					result: text(`${target} is newer than ${latest}, the latest published version.`, true),
+				};
+			}
 			const guides = migrationsBetween(await dependencies.migrations(), { from, to: target });
 			return {
 				result: text(migrateText({ guides, from, to: target })),
@@ -461,10 +477,9 @@ export function createMantleMcpServer(dependencies: McpDependencies): McpServer 
 					),
 				};
 			}
-			const data = await dependencies.loader.load(undefined);
-			const diagnostics = checkCode({ code, data }).filter(
-				(diagnostic) => diagnostic.severity !== "info",
-			);
+			// Why the docs version: the preview page renders it, so check names what that page can import.
+			const data = await dependencies.loader.load(dependencies.docsVersion);
+			const diagnostics = checkCode({ code, data, requireDefaultExport: true });
 			const url = await previewUrl({ origin: dependencies.previewOrigin, code });
 			return {
 				result: {
@@ -476,7 +491,7 @@ export function createMantleMcpServer(dependencies: McpDependencies): McpServer 
 								`The page renders @ngrok/mantle@${dependencies.docsVersion}.`,
 								diagnostics.length === 0
 									? "check found nothing."
-									: `check found ${diagnostics.length} issue(s); fix them first:\n${JSON.stringify(diagnostics, null, 1)}`,
+									: `check found ${diagnostics.length} finding(s). Fix each error before you share the link:\n${JSON.stringify(diagnostics, null, 1)}`,
 							].join("\n"),
 						},
 					],

@@ -23,7 +23,34 @@ describe("runPrototype", () => {
 		const result = await runPrototype(
 			`import { chunk } from "lodash"; export default () => chunk;`,
 		);
-		expect(result).toMatchObject({ ok: false, message: expect.stringContaining("`lodash`") });
+		expect(result).toMatchObject({
+			ok: false,
+			title: "The code imports a module the preview cannot load",
+			message: expect.stringContaining("`lodash`"),
+		});
+	});
+
+	it("ignores require text inside a string", async () => {
+		const result = await runPrototype(
+			`export default function App() { return <p>{'require("fs")'}</p>; }`,
+		);
+		if (!result.ok) {
+			throw new Error(result.message);
+		}
+		render(<result.Component />);
+		expect(screen.getByText('require("fs")').tagName).toBe("P");
+	});
+
+	it("accepts a memoized default export", async () => {
+		const result = await runPrototype(`
+			import { memo } from "react";
+			export default memo(function App() { return <p>Memo</p>; });
+		`);
+		if (!result.ok) {
+			throw new Error(result.message);
+		}
+		render(<result.Component />);
+		expect(screen.getByText("Memo").tagName).toBe("P");
 	});
 
 	it("reports a syntax error", async () => {

@@ -1,8 +1,9 @@
 import type { AgentManifest } from "../../../../../packages/mantle/scripts/agent-manifest";
 import {
 	declarationEntryFor,
-	declarationOf,
+	declarationsOf,
 	exportNamesOf,
+	type SubpathExports,
 } from "~/utilities/mcp/declarations.server";
 import {
 	fetchPackageFiles,
@@ -18,12 +19,14 @@ export const MIN_SUPPORTED_VERSION = "0.90.0";
 export type VersionData = {
 	version: string;
 	manifest: AgentManifest;
-	/** Each importable specifier, such as `@ngrok/mantle/button`, and the names it exports. */
-	exportsBySpecifier: ReadonlyMap<string, ReadonlySet<string>>;
+	/** Each specifier in the package `exports`, such as `@ngrok/mantle/mantle.css`. */
+	specifiers: ReadonlySet<string>;
+	/** Each JavaScript specifier, such as `@ngrok/mantle/button`, and what it exports. */
+	exportsBySpecifier: ReadonlyMap<string, SubpathExports>;
 	/** The version's `dist/llms.txt`, when it ships one. */
 	llmsTxt: string | undefined;
-	/** The declaration source of `name` as `specifier` exports it, with its JSDoc. */
-	declarationOf: (specifier: string, name: string) => string | undefined;
+	/** The declaration source of `names` as `specifier` exports them, and the declarations they refer to. */
+	declarationsOf: (specifier: string, names: readonly string[]) => string | undefined;
 };
 
 /** A version argument the caller can act on: why the server cannot answer for it. */
@@ -67,7 +70,7 @@ function isAgentManifest(value: unknown): value is AgentManifest {
  *
  * @example
  * const data = versionDataFromFiles("0.93.0", files);
- * data.exportsBySpecifier.get("@ngrok/mantle/button")?.has("Button"); // true
+ * data.exportsBySpecifier.get("@ngrok/mantle/button")?.names.has("Button"); // true
  */
 export function versionDataFromFiles(version: string, files: PackageFiles): VersionData {
 	const manifestSource = files.get("dist/agent.json");
@@ -82,13 +85,15 @@ export function versionDataFromFiles(version: string, files: PackageFiles): Vers
 
 	const exportsField = packageJson.exports;
 	const entryBySpecifier = new Map<string, string>();
-	const exportsBySpecifier = new Map<string, ReadonlySet<string>>();
+	const exportsBySpecifier = new Map<string, SubpathExports>();
+	const specifiers = new Set<string>();
 	for (const subpath of Object.keys(exportsField)) {
+		const specifier = `@ngrok/mantle/${subpath.replace(/^\.\//, "")}`;
+		specifiers.add(specifier);
 		const entry = declarationEntryFor(exportsField, subpath);
 		if (entry == null) {
 			continue;
 		}
-		const specifier = `@ngrok/mantle/${subpath.replace(/^\.\//, "")}`;
 		entryBySpecifier.set(specifier, entry);
 		exportsBySpecifier.set(specifier, exportNamesOf(files, entry));
 	}
@@ -96,11 +101,12 @@ export function versionDataFromFiles(version: string, files: PackageFiles): Vers
 	return {
 		version,
 		manifest,
+		specifiers,
 		exportsBySpecifier,
 		llmsTxt: files.get("dist/llms.txt"),
-		declarationOf: (specifier, name) => {
+		declarationsOf: (specifier, names) => {
 			const entry = entryBySpecifier.get(specifier);
-			return entry == null ? undefined : declarationOf(files, entry, name);
+			return entry == null ? undefined : declarationsOf(files, entry, names);
 		},
 	};
 }
