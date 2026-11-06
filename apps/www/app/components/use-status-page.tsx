@@ -1,28 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { z } from "zod";
 
 const statusIndicatorLevels = ["none", "minor", "major", "critical"] as const;
 
 type StatusIndicatorLevel = (typeof statusIndicatorLevels)[number];
-
-/**
- * Statuspage API response schema
- * @see https://developer.statuspage.io/#operation/getPagesPageIdStatus
- */
-const statusPageStatusSchema = z.object({
-	page: z.object({
-		id: z.string(),
-		name: z.string(),
-		url: z.string(),
-		updated_at: z.string(),
-	}),
-	status: z.object({
-		indicator: z.enum(statusIndicatorLevels),
-		description: z.string(),
-	}),
-});
-
-type StatusPageStatus = z.infer<typeof statusPageStatusSchema>;
 
 type StatusIndicator = {
 	/** The severity level of the current status */
@@ -71,17 +51,33 @@ function getConfigForStatusIndicatorLevel(level: StatusIndicatorLevel) {
 	return STATUS_CONFIGS[level];
 }
 
-/** @see https://status.ngrok.com/api/v2/status.json */
-async function fetchStatusPageStatus() {
+function isStatusIndicatorLevel(value: unknown): value is StatusIndicatorLevel {
+	return statusIndicatorLevels.some((level) => level === value);
+}
+
+/**
+ * The indicator level of the ngrok status page. It throws for a response that
+ * has no known level.
+ *
+ * @see https://developer.statuspage.io/#operation/getPagesPageIdStatus
+ */
+async function fetchStatusIndicatorLevel(): Promise<StatusIndicatorLevel> {
 	const response = await fetch("https://status.ngrok.com/api/v2/status.json");
 
 	if (!response.ok) {
 		throw new Error(`Failed to fetch status: ${response.statusText}`);
 	}
 
-	const data = await response.json();
-
-	return statusPageStatusSchema.parse(data);
+	const data: unknown = await response.json();
+	const status = typeof data === "object" && data != null && "status" in data ? data.status : null;
+	const level =
+		typeof status === "object" && status != null && "indicator" in status
+			? status.indicator
+			: undefined;
+	if (!isStatusIndicatorLevel(level)) {
+		throw new Error(`Unknown status indicator: ${String(level)}`);
+	}
+	return level;
 }
 
 /**
@@ -90,7 +86,7 @@ async function fetchStatusPageStatus() {
 function useStatusPageStatus() {
 	return useQuery({
 		queryKey: ["statuspage", "status"],
-		queryFn: fetchStatusPageStatus,
+		queryFn: fetchStatusIndicatorLevel,
 		// Refetch every 5 minutes
 		refetchInterval: 300_000,
 		// Pause polling when the tab is inactive to avoid unnecessary API calls
@@ -105,8 +101,6 @@ export {
 	//,
 	useStatusPageStatus,
 	type StatusIndicator,
-	type StatusPageStatus,
 	type StatusIndicatorLevel,
-	statusPageStatusSchema,
 	getConfigForStatusIndicatorLevel,
 };

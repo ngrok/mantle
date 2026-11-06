@@ -12,7 +12,7 @@ import { cspNonce } from "@ngrok/app-server/client";
 import { TooltipProvider } from "@ngrok/mantle/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { PropsWithChildren } from "react";
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import {
 	href,
 	isRouteErrorResponse,
@@ -95,14 +95,12 @@ export const meta: Route.MetaFunction = () => {
 // visitor's theme would reach every other visitor. The inline theme script sets the theme.
 export const loader = async () => {
 	const packageJson = await import("@ngrok/mantle/package.json");
-	const nodeEnv = process.env.NODE_ENV ?? "development";
 
 	return {
 		/**
 		 * The current version of mantle from the package.json
 		 */
 		currentMantleVersion: parseMantleVersion(packageJson.default.version),
-		renderReactQueryDevtools: nodeEnv !== "production",
 	} as const;
 };
 
@@ -128,17 +126,14 @@ function useIsFramedPreview() {
 	return matches.some((match) => match.id === "preview-example" || match.id === "bench-charts");
 }
 
-const ReactQueryDevtoolsLazy = lazy(() =>
-	import("@tanstack/react-query-devtools/production").then((module) => ({
-		default: module.ReactQueryDevtools,
-	})),
-);
-
-declare global {
-	interface Window {
-		toggleReactQueryDevtools: () => void;
-	}
-}
+// Why development only: the production build then holds no devtools chunk.
+const ReactQueryDevtoolsLazy = import.meta.env.DEV
+	? lazy(() =>
+			import("@tanstack/react-query-devtools").then((module) => ({
+				default: module.ReactQueryDevtools,
+			})),
+		)
+	: null;
 
 export function Layout({ children }: PropsWithChildren) {
 	const loaderData = useRouteLoaderData<typeof loader>("root");
@@ -146,14 +141,7 @@ export function Layout({ children }: PropsWithChildren) {
 	const scrollBehavior = useScrollBehavior();
 	const isFramedPreview = useIsFramedPreview();
 	const nonce = cspNonce();
-	const [showReactQueryDevtools, setShowReactQueryDevtools] = useState(
-		Boolean(loaderData?.renderReactQueryDevtools),
-	);
 	const [queryClient] = useState(() => new QueryClient());
-
-	useEffect(() => {
-		window.toggleReactQueryDevtools = () => setShowReactQueryDevtools((previous) => !previous);
-	}, []);
 
 	const { currentMantleVersion } = loaderData ?? {};
 	invariant(currentMantleVersion, "current version should be defined");
@@ -201,7 +189,7 @@ export function Layout({ children }: PropsWithChildren) {
 						<QueryClientProvider client={queryClient}>
 							{/* Suppressed inside framed example previews: the floating devtools
 							    button would render on top of the demo in the docs page's iframe. */}
-							{showReactQueryDevtools && !isFramedPreview && (
+							{ReactQueryDevtoolsLazy != null && !isFramedPreview && (
 								<Suspense fallback={null}>
 									<ReactQueryDevtoolsLazy />
 								</Suspense>

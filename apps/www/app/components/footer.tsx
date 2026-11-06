@@ -446,8 +446,7 @@ function StatusIndicator({ className, ...props }: StatusIndicatorProps) {
 		);
 	}
 
-	const data = statusQuery.data;
-	const level = data.status.indicator;
+	const level = statusQuery.data;
 	const config = getConfigForStatusIndicatorLevel(level);
 
 	return (
