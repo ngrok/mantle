@@ -2,34 +2,28 @@ import { describe, expect, it, vi } from "vitest";
 import { isMcpToolEnabled, mcpFlags } from "./flags.server";
 
 describe("mcpFlags", () => {
-	it("turns the server on for MANTLE_MCP=on", () => {
+	it("turns the server on when MANTLE_MCP is not set, in production too", () => {
 		vi.stubEnv("DEV", false);
+		expect(mcpFlags({}).enabled).toBe(true);
 		expect(mcpFlags({ MANTLE_MCP: "on" }).enabled).toBe(true);
 	});
 
-	it("keeps the server off for any other value", () => {
-		vi.stubEnv("DEV", true);
+	it("turns the server off for MANTLE_MCP=off, in any case", () => {
 		expect(mcpFlags({ MANTLE_MCP: "off" }).enabled).toBe(false);
-	});
-
-	it("follows dev mode when MANTLE_MCP is not set", () => {
-		vi.stubEnv("DEV", false);
-		expect(mcpFlags({}).enabled).toBe(false);
-		vi.stubEnv("DEV", true);
-		expect(mcpFlags({}).enabled).toBe(true);
+		expect(mcpFlags({ MANTLE_MCP: " OFF " }).enabled).toBe(false);
 	});
 });
 
 describe("isMcpToolEnabled", () => {
 	it("turns off each listed tool and keeps the others", () => {
-		const flags = mcpFlags({ MANTLE_MCP: "on", MANTLE_MCP_DISABLED_TOOLS: " check, preview " });
+		const flags = mcpFlags({ MANTLE_MCP_DISABLED_TOOLS: " check, preview " });
 		expect(isMcpToolEnabled(flags, "preview")).toBe(false);
 		expect(isMcpToolEnabled(flags, "check")).toBe(false);
 		expect(isMcpToolEnabled(flags, "find")).toBe(true);
 	});
 
 	it("turns off every tool for *", () => {
-		const flags = mcpFlags({ MANTLE_MCP: "on", MANTLE_MCP_DISABLED_TOOLS: "*" });
+		const flags = mcpFlags({ MANTLE_MCP_DISABLED_TOOLS: "*" });
 		expect(isMcpToolEnabled(flags, "find")).toBe(false);
 	});
 

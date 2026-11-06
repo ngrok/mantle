@@ -10,18 +10,17 @@ export type McpFlags = {
  * Reads the MCP kill switches from the environment. Each call reads
  * `process.env` again, so an operator can change a switch with no deploy.
  *
- * - `MANTLE_MCP=on` turns the server on. With no value it is on in dev and off in production.
+ * - The server is on by default. `MANTLE_MCP=off` turns it off, as a kill switch.
  * - `MANTLE_MCP_DISABLED_TOOLS` is a comma list of tool names to turn off. `*` turns off all.
  *
  * @example
- * // MANTLE_MCP=on MANTLE_MCP_DISABLED_TOOLS=check,preview
+ * // MANTLE_MCP_DISABLED_TOOLS=check,preview
  * const flags = mcpFlags();
  * flags.enabled; // => true
  * isMcpToolEnabled(flags, "preview"); // => false
  */
 export function mcpFlags(env: Record<string, string | undefined> = process.env): McpFlags {
-	const value = env.MANTLE_MCP?.trim().toLowerCase();
-	const enabled = value == null || value === "" ? import.meta.env.DEV : value === "on";
+	const enabled = env.MANTLE_MCP?.trim().toLowerCase() !== "off";
 	const disabledTools = new Set(
 		(env.MANTLE_MCP_DISABLED_TOOLS ?? "")
 			.split(",")
