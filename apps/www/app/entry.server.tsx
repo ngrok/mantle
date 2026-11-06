@@ -1,9 +1,9 @@
 /**
- * The React Router server entry, with a per-request CSP nonce and markdown
- * negotiation. It follows the server entries of the apps in the frontend repo.
+ * The React Router server entry. The app server makes the CSP nonce of each
+ * request and sends the document headers (see `server.ts`).
  */
 
-import { randomBytes } from "node:crypto";
+import { cspNonce } from "@ngrok/app-server/client";
 import { PassThrough } from "node:stream";
 import { createReadableStreamFromReadable } from "@react-router/node";
 import { isbot } from "isbot";
@@ -16,9 +16,6 @@ import type {
 	RouterContextProvider,
 } from "react-router";
 import { isRouteErrorResponse, ServerRouter } from "react-router";
-import { NonceProvider } from "./components/nonce";
-import { documentHeaders } from "./utilities/document-headers";
-import { hasMarkdownVariant, negotiatedMarkdownResponse } from "./utilities/markdown-negotiation";
 
 // Increase the stack trace limit so we can see more of the error
 Error.stackTraceLimit = Number.POSITIVE_INFINITY;
@@ -30,8 +27,6 @@ export const streamTimeout = 5_000;
 // React has enough time to flush down the rejected boundary contents
 const reactRendererTimeout = streamTimeout + 1_000;
 
-const isDev = import.meta.env.DEV || process.env.NODE_ENV !== "production";
-
 export default function handleRequest(
 	request: Request,
 	responseStatusCode: number,
@@ -39,13 +34,7 @@ export default function handleRequest(
 	routerContext: EntryContext,
 	_loadContext: RouterContextProvider,
 ) {
-	// An agent that asks for markdown gets the docs page's raw markdown instead of the HTML.
-	const markdownResponse = negotiatedMarkdownResponse(request);
-	if (markdownResponse != null) {
-		return markdownResponse;
-	}
-
-	const uniquePerRequestNonce = randomBytes(16).toString("hex");
+	const nonce = cspNonce();
 
 	return new Promise((resolve, reject) => {
 		let shellRendered = false;
@@ -60,9 +49,7 @@ export default function handleRequest(
 				: "onShellReady";
 
 		const { pipe, abort } = renderToPipeableStream(
-			<NonceProvider value={uniquePerRequestNonce}>
-				<ServerRouter context={routerContext} url={request.url} nonce={uniquePerRequestNonce} />
-			</NonceProvider>,
+			<ServerRouter context={routerContext} url={request.url} nonce={nonce} />,
 			{
 				[readyOption]() {
 					shellRendered = true;
@@ -70,21 +57,6 @@ export default function handleRequest(
 					const stream = createReadableStreamFromReadable(body);
 
 					responseHeaders.set("Content-Type", "text/html; charset=utf-8");
-
-					const headers = documentHeaders({
-						request,
-						routerContext,
-						nonce: uniquePerRequestNonce,
-						isDev,
-						hasMarkdownVariant: hasMarkdownVariant(new URL(request.url).pathname),
-					});
-					for (const [name, value] of Object.entries(headers)) {
-						if (name === "Vary") {
-							responseHeaders.append(name, value);
-						} else {
-							responseHeaders.set(name, value);
-						}
-					}
 
 					resolve(
 						new Response(stream, {
@@ -107,7 +79,7 @@ export default function handleRequest(
 						console.error(error);
 					}
 				},
-				nonce: uniquePerRequestNonce,
+				nonce,
 				// Why: above 12.8 KB, React moves a completed boundary into a hidden template that a
 				// script reveals, and a reader without JavaScript sees no content in that boundary.
 				progressiveChunkSize: Number.MAX_SAFE_INTEGER,
@@ -138,8 +110,8 @@ function isClientErrorRouteResponse(error: unknown): boolean {
 
 /**
  * True while `react-router build` prerenders routes. React Router sets the
- * marker before it starts the prerender server, and `react-router-serve` never
- * sets it. The prerender requests carry no user agent, so this is the only
+ * marker before it starts the prerender server, and the app server never sets
+ * it. The prerender requests carry no user agent, so this is the only
  * signal a server entry has.
  */
 function isPrerenderPass(): boolean {

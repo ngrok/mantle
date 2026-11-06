@@ -1,6 +1,5 @@
 import { buildHooksManifest } from "~/utilities/hooks-manifest.server";
 import { jsonAgentResponse } from "~/utilities/json-response.server";
-import type { Route } from "./+types/api.hooks[.]json";
 
 /**
  * Serve `/api/hooks.json` — a structured, machine-readable manifest of
@@ -11,7 +10,7 @@ import type { Route } from "./+types/api.hooks[.]json";
  * Schema is documented inline on `HooksManifest`/`ManifestHook` types in
  * `~/utilities/hooks-manifest.server.ts`.
  */
-export async function loader({ request }: Route.LoaderArgs) {
+export async function loader() {
 	const manifest = await buildHooksManifest();
-	return jsonAgentResponse(manifest, request);
+	return jsonAgentResponse(manifest);
 }

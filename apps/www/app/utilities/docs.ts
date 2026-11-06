@@ -8,7 +8,11 @@ type MdxModule = {
 	handle?: DocHandle;
 };
 
-export type { TocEntry };
+export type {
+	//,
+	DocHandle,
+	TocEntry,
+};
 
 /**
  * Eager glob imports for production builds. Every MDX module resolves at

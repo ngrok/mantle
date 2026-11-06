@@ -1,12 +1,11 @@
 import type { ComponentProps, ReactNode } from "react";
-import { useMemo } from "react";
 import { href, Link, useMatches } from "react-router";
-import { z } from "zod";
 import { useNavigation } from "./navigation-context";
 import { PageContainer } from "./page-container";
 import { TableOfContents } from "./table-of-contents";
 import { cx } from "@ngrok/mantle/cx";
 import { Main } from "@ngrok/mantle/main";
+import type { DocHandle, TocEntry } from "~/utilities/docs";
 
 type PageLayoutProps = ComponentProps<"div"> & {
 	/** The section's sidebar navigation — rendered in the desktop sidebar column and inside the mobile drawer. */
@@ -21,17 +20,19 @@ const mobileDrawerLinks = [
 	{ to: href("/migrations"), label: "Migrations" },
 ];
 
-const handleWithTocSchema = z.object({
-	toc: z.array(
-		z.object({
-			id: z.string(),
-			text: z.string(),
-			level: z.union([z.literal(1), z.literal(2), z.literal(3)]),
-		}),
-	),
-});
+/**
+ * True for a route `handle` with a toc. Why no schema: the build writes each
+ * doc `handle` (see `rehypeMdxDocHandle`), and a parser here would add zod to
+ * the bundle of each page.
+ */
+function hasToc(handle: unknown): handle is Pick<DocHandle, "toc"> {
+	return (
+		typeof handle === "object" && handle != null && "toc" in handle && Array.isArray(handle.toc)
+	);
+}
 
-type Toc = z.infer<typeof handleWithTocSchema>["toc"];
+/** One array for each page with no toc, so the scroll-spy effect keeps its input. */
+const noToc: Array<TocEntry> = [];
 
 /**
  * The toc from the deepest match whose route `handle` carries one. A docs
@@ -44,14 +45,14 @@ type Toc = z.infer<typeof handleWithTocSchema>["toc"];
  * // on a docs page: [{ id: "usage", text: "Usage", level: 2 }, …]
  * // on a section index with no doc handle: []
  */
-export function tocFromMatches(matches: Array<{ handle?: unknown } | undefined>): Toc {
+export function tocFromMatches(matches: Array<{ handle?: unknown } | undefined>): Array<TocEntry> {
 	for (let index = matches.length - 1; index >= 0; index--) {
-		const parsed = handleWithTocSchema.safeParse(matches[index]?.handle);
-		if (parsed.success) {
-			return parsed.data.toc;
+		const handle = matches[index]?.handle;
+		if (hasToc(handle)) {
+			return handle.toc;
 		}
 	}
-	return [];
+	return noToc;
 }
 
 /**
@@ -62,11 +63,7 @@ export function tocFromMatches(matches: Array<{ handle?: unknown } | undefined>)
  */
 export function PageLayout({ className, children, sidebar, ...props }: PageLayoutProps) {
 	const { showNavigation, setShowNavigation } = useNavigation();
-	const matches = useMatches();
-	// Why `useMemo`: zod clones its output, so an unmemoized parse hands the
-	// scroll-spy effect a new `toc` identity on every render. The effect then
-	// re-attaches its listeners and re-measures every heading.
-	const toc = useMemo(() => tocFromMatches(matches), [matches]);
+	const toc = tocFromMatches(useMatches());
 
 	const closeMobileNavigation = () => {
 		setShowNavigation(false);

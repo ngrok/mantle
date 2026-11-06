@@ -5,9 +5,7 @@ import {
 } from "~/components/navigation-data";
 import { canonicalHref } from "~/utilities/canonical-origin";
 import { loadFrontmatter, urlToFileMap } from "~/utilities/docs";
-import { etagFor } from "~/utilities/etag";
 import { buildHooksManifest } from "~/utilities/hooks-manifest.server";
-import type { Route } from "./+types/llms[.]txt";
 
 type DocEntry = {
 	slug: string;
@@ -54,8 +52,6 @@ const SECTION_ORDER: readonly Section[] = [
 	{ id: "hooks", title: "Hooks", match: (slug) => slug === "hooks" },
 	{ id: "utils", title: "Utilities", match: (slug) => slug.startsWith("utils/") },
 ];
-
-const CACHE_CONTROL = "public, max-age=300, s-maxage=300, stale-while-revalidate=3600";
 
 function fallbackTitleFromSlug(slug: string): string {
 	const last = slug.split("/").pop() ?? slug;
@@ -160,26 +156,6 @@ async function buildBody(): Promise<string> {
 	return `${lines.join("\n").trimEnd()}\n`;
 }
 
-async function computePayload(): Promise<{ body: string; etag: string }> {
-	const body = await buildBody();
-	return { body, etag: etagFor(body) };
-}
-
-// Memoize in production: the doc set and frontmatter are fixed at build time,
-// so a single computation produces a stable body and ETag for the process
-// lifetime. In dev we recompute each request so MDX edits surface immediately.
-let cachedPayload: Promise<{ body: string; etag: string }> | null = null;
-
-function getPayload(): Promise<{ body: string; etag: string }> {
-	if (!import.meta.env.PROD) {
-		return computePayload();
-	}
-	if (!cachedPayload) {
-		cachedPayload = computePayload();
-	}
-	return cachedPayload;
-}
-
 /**
  * Serve `/llms.txt` — the curated index agents and LLMs use to ingest the
  * mantle docs site.
@@ -192,23 +168,8 @@ function getPayload(): Promise<{ body: string; etag: string }> {
  *
  * @see https://llmstxt.org
  */
-export async function loader({ request }: Route.LoaderArgs) {
-	const { body, etag } = await getPayload();
-
-	if (request.headers.get("If-None-Match") === etag) {
-		return new Response(null, {
-			status: 304,
-			headers: { ETag: etag, "Cache-Control": CACHE_CONTROL },
-		});
-	}
-
-	return new Response(body, {
-		status: 200,
-		headers: {
-			"Content-Type": "text/plain; charset=utf-8",
-			"Cache-Control": CACHE_CONTROL,
-			ETag: etag,
-			"X-Content-Type-Options": "nosniff",
-		},
+export async function loader() {
+	return new Response(await buildBody(), {
+		headers: { "Content-Type": "text/plain; charset=utf-8" },
 	});
 }

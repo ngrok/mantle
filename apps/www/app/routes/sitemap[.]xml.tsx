@@ -1,9 +1,5 @@
 import { canonicalHref } from "~/utilities/canonical-origin";
 import { urlToFileMap } from "~/utilities/docs";
-import { etagFor } from "~/utilities/etag";
-import type { Route } from "./+types/sitemap[.]xml";
-
-const CACHE_CONTROL = "public, max-age=300, s-maxage=300, stale-while-revalidate=3600";
 
 function escapeXml(input: string): string {
 	return input
@@ -41,41 +37,8 @@ ${entries}
 </urlset>`;
 }
 
-function computePayload(): { body: string; etag: string } {
-	const body = buildSitemap();
-	return { body, etag: etagFor(body) };
-}
-
-// Memoize in production: the doc set is fixed at build time. In dev we
-// recompute so newly added docs surface immediately.
-let cachedPayload: { body: string; etag: string } | null = null;
-
-function getPayload(): { body: string; etag: string } {
-	if (!import.meta.env.PROD) {
-		return computePayload();
-	}
-	if (!cachedPayload) {
-		cachedPayload = computePayload();
-	}
-	return cachedPayload;
-}
-
-export async function loader({ request }: Route.LoaderArgs) {
-	const { body, etag } = getPayload();
-
-	if (request.headers.get("If-None-Match") === etag) {
-		return new Response(null, {
-			status: 304,
-			headers: { ETag: etag, "Cache-Control": CACHE_CONTROL },
-		});
-	}
-
-	return new Response(body, {
-		status: 200,
-		headers: {
-			"Content-Type": "application/xml; charset=utf-8",
-			"Cache-Control": CACHE_CONTROL,
-			ETag: etag,
-		},
+export function loader() {
+	return new Response(buildSitemap(), {
+		headers: { "Content-Type": "application/xml; charset=utf-8" },
 	});
 }

@@ -1,124 +1,22 @@
 import { describe, expect, it } from "vitest";
 
-import { etagFor } from "./etag";
 import { jsonAgentResponse } from "./json-response.server";
 
 const data = { name: "@ngrok/mantle", entries: ["button"] };
-const body = JSON.stringify(data, null, "\t");
-const etag = etagFor(body);
-// Why the literal: the CDN in front of mantle.ngrok.com reads this header, and
-// both response paths must send the same directives.
-const cacheControl = "public, max-age=300, s-maxage=300, stale-while-revalidate=3600";
 
 describe("jsonAgentResponse", () => {
-	it("returns pretty JSON with the shared agent API headers", async () => {
-		const response = jsonAgentResponse(
-			data,
-			new Request("https://mantle.ngrok.com/api/package.json"),
-		);
+	it("returns pretty JSON with the agent API headers", async () => {
+		const response = jsonAgentResponse(data);
 
 		expect(response.status).toBe(200);
 		expect(response.headers.get("Content-Type")).toBe("application/json; charset=utf-8");
-		expect(response.headers.get("Cache-Control")).toBe(cacheControl);
-		expect(response.headers.get("ETag")).toBe(etag);
 		expect(response.headers.get("Access-Control-Allow-Origin")).toBe("*");
-		expect(await response.text()).toBe(body);
+		expect(await response.text()).toBe(JSON.stringify(data, null, "\t"));
 	});
 
-	it("returns matching cache, content-type, etag, and CORS headers for 304 revalidation", async () => {
-		const response = jsonAgentResponse(
-			data,
-			new Request("https://mantle.ngrok.com/api/package.json", {
-				headers: { "If-None-Match": etag },
-			}),
-		);
+	it("uses the content type that the caller gives", () => {
+		const response = jsonAgentResponse(data, { contentType: "application/schema+json" });
 
-		expect(response.status).toBe(304);
-		expect(response.headers.get("Content-Type")).toBe("application/json; charset=utf-8");
-		expect(response.headers.get("Cache-Control")).toBe(cacheControl);
-		expect(response.headers.get("ETag")).toBe(etag);
-		expect(response.headers.get("Access-Control-Allow-Origin")).toBe("*");
-		expect(await response.text()).toBe("");
-	});
-
-	it("applies a custom content type to both response paths", () => {
-		const contentType = "application/schema+json; charset=utf-8";
-
-		const fresh = jsonAgentResponse(data, new Request("https://mantle.ngrok.com/api/schema.json"), {
-			contentType,
-		});
-		const revalidated = jsonAgentResponse(
-			data,
-			new Request("https://mantle.ngrok.com/api/schema.json", {
-				headers: { "If-None-Match": etag },
-			}),
-			{ contentType },
-		);
-
-		expect(fresh.status).toBe(200);
-		expect(revalidated.status).toBe(304);
-		expect(fresh.headers.get("Content-Type")).toBe(contentType);
-		expect(revalidated.headers.get("Content-Type")).toBe(contentType);
-	});
-
-	it.each([
-		["a list", `"old-etag", ${etag}`],
-		["the wildcard", "*"],
-		["a weak validator", `W/${etag}`],
-	])("returns 304 when If-None-Match carries %s", (_label, ifNoneMatch) => {
-		const response = jsonAgentResponse(
-			data,
-			new Request("https://mantle.ngrok.com/api/package.json", {
-				headers: { "If-None-Match": ifNoneMatch },
-			}),
-		);
-
-		expect(response.status).toBe(304);
-	});
-
-	it("returns 200 when If-None-Match carries a stale etag", async () => {
-		const response = jsonAgentResponse(
-			data,
-			new Request("https://mantle.ngrok.com/api/package.json", {
-				headers: { "If-None-Match": '"stale-etag"' },
-			}),
-		);
-
-		expect(response.status).toBe(200);
-		expect(await response.text()).toBe(body);
-	});
-
-	// The 200 direction of the same decision: a present-but-stale validator must
-	// still serve the body, otherwise a revalidating client keeps its outdated
-	// copy of the manifest until the cache entry expires.
-	it("serves the full body when no If-None-Match validator matches", async () => {
-		const staleHeaders = ['"deadbeefdeadbeef"', '"a", "b"', `W/"not-${etag.slice(1)}`, ""];
-
-		for (const ifNoneMatch of staleHeaders) {
-			const response = jsonAgentResponse(
-				data,
-				new Request("https://mantle.ngrok.com/api/package.json", {
-					headers: { "If-None-Match": ifNoneMatch },
-				}),
-			);
-
-			expect(response.status).toBe(200);
-			expect(response.headers.get("ETag")).toBe(etag);
-			expect(await response.text()).toBe(body);
-		}
-	});
-
-	// A validator that merely *contains* the etag is not a match: the header is a
-	// comma-separated list of whole validators, not a substring search.
-	it("does not treat a validator that only contains the etag as a match", async () => {
-		const response = jsonAgentResponse(
-			data,
-			new Request("https://mantle.ngrok.com/api/package.json", {
-				headers: { "If-None-Match": `"prefix-${etag.slice(1, -1)}-suffix"` },
-			}),
-		);
-
-		expect(response.status).toBe(200);
-		expect(await response.text()).toBe(body);
+		expect(response.headers.get("Content-Type")).toBe("application/schema+json");
 	});
 });

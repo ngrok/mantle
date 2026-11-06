@@ -1,6 +1,5 @@
 import { buildChangelog } from "~/utilities/changelog.server";
 import { jsonAgentResponse } from "~/utilities/json-response.server";
-import type { Route } from "./+types/api.changelog[.]json";
 
 /**
  * Serve `/api/changelog.json` — `packages/mantle/CHANGELOG.md` split into
@@ -9,6 +8,6 @@ import type { Route } from "./+types/api.changelog[.]json";
  * fetching the markdown changelog and stripping the preamble per bullet
  * when an agent only wants the structured "what changed" view.
  */
-export async function loader({ request }: Route.LoaderArgs) {
-	return jsonAgentResponse(await buildChangelog(), request);
+export async function loader() {
+	return jsonAgentResponse(await buildChangelog());
 }

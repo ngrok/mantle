@@ -1,6 +1,5 @@
 import { canonicalHref } from "~/utilities/canonical-origin";
 import { jsonAgentResponse } from "~/utilities/json-response.server";
-import type { Route } from "./+types/api.schema[.]json";
 
 /**
  * Bump when a manifest shape changes in a non-additive way (renames,
@@ -276,8 +275,8 @@ const SCHEMA = {
  * to validate the rest of the surface or to introspect each endpoint's
  * field set without reading our source.
  */
-export function loader({ request }: Route.LoaderArgs) {
-	return jsonAgentResponse(SCHEMA, request, {
+export function loader() {
+	return jsonAgentResponse(SCHEMA, {
 		contentType: "application/schema+json; charset=utf-8",
 	});
 }

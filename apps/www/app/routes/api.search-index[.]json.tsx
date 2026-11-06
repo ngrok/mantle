@@ -1,6 +1,5 @@
 import { jsonAgentResponse } from "~/utilities/json-response.server";
 import { buildSearchIndex } from "~/utilities/search-index.server";
-import type { Route } from "./+types/api.search-index[.]json";
 
 /**
  * Serve `/api/search-index.json` — every component, hook, and utility
@@ -9,6 +8,6 @@ import type { Route } from "./+types/api.search-index[.]json";
  * Sized to fit comfortably in an agent context, and shaped to back a
  * future client-side search UI without another fetch round-trip.
  */
-export async function loader({ request }: Route.LoaderArgs) {
-	return jsonAgentResponse(await buildSearchIndex(), request);
+export async function loader() {
+	return jsonAgentResponse(await buildSearchIndex());
 }

@@ -1,6 +1,5 @@
 import { jsonAgentResponse } from "~/utilities/json-response.server";
 import { buildUtilitiesManifest } from "~/utilities/utils-manifest.server";
-import type { Route } from "./+types/api.utils[.]json";
 
 /**
  * Serve `/api/utils.json` — a structured, machine-readable manifest of
@@ -11,7 +10,7 @@ import type { Route } from "./+types/api.utils[.]json";
  * Schema is documented inline on `UtilitiesManifest`/`ManifestUtility`
  * types in `~/utilities/utils-manifest.server.ts`.
  */
-export async function loader({ request }: Route.LoaderArgs) {
+export async function loader() {
 	const manifest = await buildUtilitiesManifest();
-	return jsonAgentResponse(manifest, request);
+	return jsonAgentResponse(manifest);
 }

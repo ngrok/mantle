@@ -1,4 +1,5 @@
 import mdx from "@mdx-js/rollup";
+import { appServer } from "@ngrok/app-server/vite";
 import { reactRouter } from "@react-router/dev/vite";
 import tailwindcss from "@tailwindcss/vite";
 import { mantleCodeBlockPlugins, mantleSourcesPlugin } from "@ngrok/mantle-vite-plugins";
@@ -113,8 +114,8 @@ export default defineConfig(({ command }) => ({
 		}),
 		// The React Router plugin's Fast Refresh transform injects a preamble
 		// check that throws when .tsx modules load under Vitest, and tests
-		// don't need the framework plugin — component tests render directly.
-		...(process.env.VITEST ? [] : [reactRouter()]),
+		// don't need the framework plugins — component tests render directly.
+		...(process.env.VITEST ? [] : [reactRouter(), appServer()]),
 		reactCompiler(),
 		workspacePluginCacheKey([
 			"@ngrok/mantle-vite-plugins",
@@ -159,6 +160,8 @@ export default defineConfig(({ command }) => ({
 	},
 	server: {
 		port: 3333,
+		// Listen on every interface, so a phone on the same network can open the dev site.
+		host: true,
 		allowedHosts: true,
 		warmup: {
 			clientFiles: [
@@ -182,12 +185,11 @@ export default defineConfig(({ command }) => ({
 		host: "127.0.0.1",
 	},
 	ssr: {
+		// Why only in development: for the build, `appServer` bundles each dependency into the
+		// server build, so the image runs with no `node_modules`.
 		noExternal:
 			command === "build"
-				? // Bundle every dependency into the server build so the production
-					// image can run without an app `node_modules` (the Docker runner
-					// stage ships only `@react-router/serve` and its runtime deps).
-					true
+				? undefined
 				: [
 						// https://github.com/phosphor-icons/react/issues/45#issuecomment-2721119452
 						"@phosphor-icons/react",

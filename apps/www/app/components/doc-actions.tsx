@@ -1,10 +1,9 @@
-import { useCopyToClipboard } from "@ngrok/mantle/hooks";
 import { Icon } from "@ngrok/mantle/icon";
 import { SplitButton } from "@ngrok/mantle/split-button";
 import { Toast, makeToast } from "@ngrok/mantle/toast";
+import { copyToClipboard } from "@ngrok/mantle/utils";
 import { CopyIcon } from "@phosphor-icons/react/Copy";
 import { FileTextIcon } from "@phosphor-icons/react/FileText";
-import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "react-router";
 
 type Props = {
@@ -15,28 +14,35 @@ type Props = {
 	markdownPath?: string;
 };
 
+/**
+ * Fetches the markdown at `url` and copies it. The page holds no markdown: the
+ * fetch starts at the click. `ClipboardItem` takes the fetch as a promise, so
+ * the write starts in the click's user gesture, and Safari allows it. If that
+ * write fails, `copyToClipboard` copies the text with its own fallbacks.
+ */
+async function copyMarkdown(url: string): Promise<void> {
+	const markdown = fetch(url).then(async (response) => {
+		if (!response.ok) {
+			throw new Error(`Failed to fetch ${url}: ${response.status}`);
+		}
+		return response.text();
+	});
+	try {
+		const blob = markdown.then((text) => new Blob([text], { type: "text/plain" }));
+		await navigator.clipboard.write([new ClipboardItem({ "text/plain": blob })]);
+	} catch {
+		// Why: an insecure context has no `navigator.clipboard`, and an old browser has no `ClipboardItem`.
+		await copyToClipboard(await markdown);
+	}
+}
+
 export function DocActions({ markdownPath }: Props) {
 	const location = useLocation();
 	const markdownUrl = markdownPath ?? `${location.pathname}.md`;
-	const copyToClipboard = useCopyToClipboard();
-	const queryClient = useQueryClient();
 
 	async function copyMarkdownPage() {
 		try {
-			// query() respects the cache and stale time; it refetches only stale data
-			const markdown = await queryClient.query({
-				queryKey: ["markdown", markdownUrl],
-				queryFn: async () => {
-					const response = await fetch(markdownUrl);
-					if (!response.ok) {
-						throw new Error("Failed to fetch markdown");
-					}
-					return response.text();
-				},
-				staleTime: 5 * 60 * 1000, // 5 minutes
-			});
-
-			await copyToClipboard(markdown);
+			await copyMarkdown(markdownUrl);
 			makeToast(
 				<Toast.Root intent="success">
 					<Toast.Icon />
