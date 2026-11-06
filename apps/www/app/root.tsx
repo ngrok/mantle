@@ -8,6 +8,7 @@ import {
 	useInitialHtmlThemeProps,
 } from "@ngrok/mantle/theme";
 import { Toaster } from "@ngrok/mantle/toast";
+import { cspNonce } from "@ngrok/app-server/client";
 import { TooltipProvider } from "@ngrok/mantle/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { PropsWithChildren } from "react";
@@ -29,7 +30,6 @@ import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { Header } from "./components/header";
 import { NavigationProvider } from "./components/navigation-context";
 import { PageContainer } from "./components/page-container";
-import { useNonce } from "./components/nonce";
 import { RouteAnnouncer } from "./features/route-announcer";
 import "./global.css";
 import { canonicalDomain, canonicalHref } from "./utilities/canonical-origin";
@@ -145,7 +145,7 @@ export function Layout({ children }: PropsWithChildren) {
 	const initialHtmlThemeProps = useInitialHtmlThemeProps({ className: "h-full" });
 	const scrollBehavior = useScrollBehavior();
 	const isFramedPreview = useIsFramedPreview();
-	const nonce = useNonce();
+	const nonce = cspNonce();
 	const [showReactQueryDevtools, setShowReactQueryDevtools] = useState(
 		Boolean(loaderData?.renderReactQueryDevtools),
 	);

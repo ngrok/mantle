@@ -90,17 +90,6 @@ RUN --mount=type=secret,id=TURBO_TOKEN \
     export TURBO_TELEMETRY_DISABLED=1 && \
     pnpm turbo run build --filter=@app/www...
 
-# Install only `@ngrok/app-server` and its runtime deps into a clean directory,
-# at the version the app pins, so we can copy a minimal node_modules into the
-# distroless runner. The app's `server/app.ts` and every app dependency are
-# already bundled into `build/server/app-server.js`. Its peers (`react-router`,
-# `vite`) are optional, so npm leaves them out.
-RUN APP_SERVER_VERSION=$(node -e "process.stdout.write(require('./apps/www/node_modules/@ngrok/app-server/package.json').version)") \
-    && mkdir /app/runner-deps && cd /app/runner-deps \
-    && npm init -y \
-    && npm install --omit=dev --no-fund --no-audit "@ngrok/app-server@${APP_SERVER_VERSION}" \
-    && rm -rf package.json package-lock.json
-
 # Node runtime stage — stages the Node files the runner copies, so `binutils`
 # never reaches the runner.
 # - `strip` removes the ELF symbol table, about 18 MB on amd64. Native frames
@@ -122,8 +111,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # ---------------------------------------------------------------------------
 # Runner stage — Distroless, no shell/npm/package manager.
-# App deps are bundled into the server build (ssr.noExternal: true).
-# Only `@ngrok/app-server` and its runtime deps are copied in.
+# The `appServer` Vite plugin bundles each dependency into the server build,
+# so the build directory runs with no install.
 # ---------------------------------------------------------------------------
 # Distroless has no image per Node patch release, so copy Node from the
 # node-runtime stage. `cc-debian13` has the CA bundle.
@@ -137,7 +126,6 @@ ENTRYPOINT ["/nodejs/bin/node", "--use-openssl-ca"]
 WORKDIR /app
 
 COPY --from=builder --chown=1001:1001 /app/apps/www/build build
-COPY --from=builder --chown=1001:1001 /app/runner-deps/node_modules node_modules
 
 USER 1001
 
@@ -145,4 +133,4 @@ EXPOSE 3000
 
 ENV NODE_ENV=production
 
-CMD ["node_modules/@ngrok/app-server/dist/cli.js", "serve", "build/server/app-server.js"]
+CMD ["build/server/app-server.js"]

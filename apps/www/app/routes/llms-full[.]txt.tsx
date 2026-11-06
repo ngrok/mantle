@@ -1,11 +1,7 @@
 import { canonicalHref } from "~/utilities/canonical-origin";
 import { rawDocContent, urlToFileMap } from "~/utilities/docs";
-import { etagFor } from "~/utilities/etag";
 import { collectPreviewSources } from "~/utilities/preview-source.server";
 import { renderMdxToMarkdown } from "~/utilities/render-mdx-to-markdown.server";
-import type { Route } from "./+types/llms-full[.]txt";
-
-const CACHE_CONTROL = "public, max-age=300, s-maxage=300, stale-while-revalidate=3600";
 
 function buildBody(): string {
 	const slugs = Array.from(urlToFileMap.keys()).toSorted((a, b) => a.localeCompare(b));
@@ -76,26 +72,6 @@ function buildBody(): string {
 	return sections.join("\n");
 }
 
-function computePayload(): { body: string; etag: string } {
-	const body = buildBody();
-	return { body, etag: etagFor(body) };
-}
-
-// Memoize in production: rendering every MDX page through unified is the
-// most expensive work in this loader, and the doc set is fixed at build
-// time. In dev we recompute so MDX edits surface immediately.
-let cachedPayload: { body: string; etag: string } | null = null;
-
-function getPayload(): { body: string; etag: string } {
-	if (!import.meta.env.PROD) {
-		return computePayload();
-	}
-	if (!cachedPayload) {
-		cachedPayload = computePayload();
-	}
-	return cachedPayload;
-}
-
 /**
  * Serve `/llms-full.txt` — the concatenated markdown of every docs page, then
  * the React source of every framed preview those pages embed, suitable for
@@ -107,23 +83,8 @@ function getPayload(): { body: string; etag: string } {
  * served at `/<slug>.md`. Each preview module follows under `# Framed preview
  * sources`, in a `tsx` fence headed by its repo path and preview URLs.
  */
-export async function loader({ request }: Route.LoaderArgs) {
-	const { body, etag } = getPayload();
-
-	if (request.headers.get("If-None-Match") === etag) {
-		return new Response(null, {
-			status: 304,
-			headers: { ETag: etag, "Cache-Control": CACHE_CONTROL },
-		});
-	}
-
-	return new Response(body, {
-		status: 200,
-		headers: {
-			"Content-Type": "text/plain; charset=utf-8",
-			"Cache-Control": CACHE_CONTROL,
-			ETag: etag,
-			"X-Content-Type-Options": "nosniff",
-		},
+export function loader() {
+	return new Response(buildBody(), {
+		headers: { "Content-Type": "text/plain; charset=utf-8" },
 	});
 }
