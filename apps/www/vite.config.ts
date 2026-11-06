@@ -79,7 +79,7 @@ export default defineConfig(({ command }) => ({
 		mdxDocComponentImports(path.resolve(import.meta.dirname, "app/docs")),
 		mantleChangelogMdx(path.resolve(import.meta.dirname, "../../packages/mantle/CHANGELOG.md")),
 		devtoolsJson(),
-		opaqueOriginModuleCors(),
+		opaqueOriginModuleCors({ workspaceRoot: path.resolve(import.meta.dirname, "../..") }),
 		tailwindcss(),
 		// Why here: this app resolves mantle to source through `resolve.conditions`, so the
 		// listed files are `packages/mantle/src` modules. The `@source "../../../packages/mantle/src"`

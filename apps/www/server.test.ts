@@ -21,6 +21,7 @@ async function start(): Promise<TestServer> {
 			"preview/button-demo/index.html": "<!doctype html><html><body></body></html>",
 			"llms.txt": "# mantle",
 			"mcp/preview-frame/index.html": "<!doctype html><html><body></body></html>",
+			"mcp/preview/index.html": "<!doctype html><html><body></body></html>",
 			"assets/entry-abc123.js": "export {};",
 		},
 	});
@@ -52,6 +53,14 @@ describe("the docs app server", () => {
 		expect(policy).toContain("default-src 'none'");
 		expect(policy).not.toContain("'strict-dynamic'");
 		expect(policy).toContain("frame-ancestors 'self' https://mantle.ngrok.com");
+	});
+
+	it("limits where the prototype frame can navigate from the preview page", async () => {
+		const policy = (await (await start()).request("/mcp/preview")).headers.get(
+			"Content-Security-Policy",
+		);
+
+		expect(policy).toContain("frame-src 'self'");
 	});
 
 	it("lets the opaque-origin prototype frame load a build asset", async () => {

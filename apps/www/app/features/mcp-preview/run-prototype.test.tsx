@@ -1,7 +1,21 @@
 // @vitest-environment happy-dom
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import type * as ModuleRegistry from "./module-registry";
 import { runPrototype } from "./run-prototype";
+
+vi.mock("./module-registry", async (importOriginal) => {
+	const actual = await importOriginal<typeof ModuleRegistry>();
+	return {
+		...actual,
+		loadPreviewModule: async (specifier: string) => {
+			if (specifier === "@ngrok/mantle/flaky") {
+				throw new Error("The chunk failed to load.");
+			}
+			return actual.loadPreviewModule(specifier);
+		},
+	};
+});
 
 describe("runPrototype", () => {
 	it("runs a TSX prototype that imports mantle", async () => {
@@ -51,6 +65,17 @@ describe("runPrototype", () => {
 		}
 		render(<result.Component />);
 		expect(screen.getByText("Memo").tagName).toBe("P");
+	});
+
+	it("reports a module that fails to load", async () => {
+		const result = await runPrototype(
+			`import { Flaky } from "@ngrok/mantle/flaky"; export default () => <Flaky />;`,
+		);
+		expect(result).toEqual({
+			ok: false,
+			title: "The preview cannot load a module. Reload the page.",
+			message: "The chunk failed to load.",
+		});
 	});
 
 	it("reports a syntax error", async () => {

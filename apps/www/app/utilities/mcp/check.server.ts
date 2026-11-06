@@ -162,12 +162,14 @@ export function checkCode({
 		if (specifier !== "@ngrok/mantle" && !specifier.startsWith("@ngrok/mantle/")) {
 			continue;
 		}
-		if (/\.(css|json|txt)$/.test(specifier)) {
-			if (!data.specifiers.has(specifier)) {
+		// Why drop the query: a bundler reads `mantle.css?url` from the `mantle.css` export.
+		const assetPath = specifier.replace(/[?#].*$/, "");
+		if (/\.(css|json|txt)$/.test(assetPath)) {
+			if (!data.specifiers.has(assetPath)) {
 				add(start, {
 					code: "unknown-subpath",
 					severity: "error",
-					message: `@ngrok/mantle@${data.version} has no import path ${specifier}.`,
+					message: `@ngrok/mantle@${data.version} has no import path ${assetPath}.`,
 				});
 			}
 			continue;

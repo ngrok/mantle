@@ -359,16 +359,20 @@ export function getRecordText({
 					: data.declarationsOf(record.importPath, [identifier, `${identifier}Props`])) ??
 					`// ${record.importPath} has no single declaration for ${record.name}. The docs below name its exports.`,
 				"```",
-				"",
+			];
+	const extraContext = docsMatchData
+		? undefined
+		: [
 				`## Extra context: docs prose for ${provenance.docsVersion}, not ${provenance.dataVersion}`,
 				"",
 				"This prose can name props that the selected version does not have. The declarations above are the contract.",
 				"",
 				proseText,
-			];
+			].join("\n");
 
 	return truncate(
-		[header, examples && `## Examples\n\n${examples}`, contract.join("\n")]
+		// Why this order: the budget cuts from the end, so the contract goes first.
+		[header, contract.join("\n"), examples && `## Examples\n\n${examples}`, extraContext]
 			.filter(Boolean)
 			.join("\n\n"),
 		RESULT_BUDGET_BYTES,

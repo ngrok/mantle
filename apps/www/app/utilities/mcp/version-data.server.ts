@@ -143,6 +143,8 @@ type LoaderOptions = {
 export type VersionDataLoader = {
 	/** The latest published version. */
 	latestVersion: () => Promise<string>;
+	/** Whether the registry has `version`. */
+	isPublished: (version: string) => Promise<boolean>;
 	/** Validates `version` (or picks the latest) and loads its data. Throws {@link VersionError}. */
 	load: (version: string | undefined) => Promise<VersionData>;
 };
@@ -232,6 +234,7 @@ export function createVersionDataLoader({
 
 	return {
 		latestVersion,
+		isPublished: async (version) => (await getPackument()).versions.has(version),
 		load: async (requested) => {
 			if (requested != null && !VERSION_PATTERN.test(requested)) {
 				throw new VersionError(

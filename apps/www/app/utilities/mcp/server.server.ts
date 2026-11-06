@@ -396,17 +396,14 @@ export function createMantleMcpServer(dependencies: McpDependencies): McpServer 
 			annotations: readOnly,
 		},
 		run("migrate", async ({ from, to }) => {
-			const latest = await dependencies.loader.latestVersion();
-			const target = to ?? latest;
+			const target = to ?? (await dependencies.loader.latestVersion());
 			if (compareVersions(target, from) < 0) {
 				return {
 					result: text(`The target ${target} is older than ${from}. Pass a newer \`to\`.`, true),
 				};
 			}
-			if (compareVersions(target, latest) > 0) {
-				return {
-					result: text(`${target} is newer than ${latest}, the latest published version.`, true),
-				};
+			if (!(await dependencies.loader.isPublished(target))) {
+				return { result: text(`@ngrok/mantle@${target} is not a published version.`, true) };
 			}
 			const guides = migrationsBetween(await dependencies.migrations(), { from, to: target });
 			return {

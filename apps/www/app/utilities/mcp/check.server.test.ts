@@ -63,6 +63,7 @@ describe("checkCode", () => {
 
 	it("reports a stylesheet path that the version does not export", () => {
 		expect(codesOf('import "@ngrok/mantle/mantle-dark.css";')).toEqual(["unknown-subpath"]);
+		expect(codesOf('import cssUrl from "@ngrok/mantle/mantle.css?url";')).toEqual([]);
 	});
 
 	it("does not call a name invalid when the subpath re-exports another package", () => {

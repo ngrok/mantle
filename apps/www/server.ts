@@ -5,10 +5,16 @@ import { createServer, defaultPlugins, withHeaderHook } from "@ngrok/app-server"
 import { assetsCdnOrigin } from "@ngrok/mantle/theme";
 import { canonicalOrigin } from "~/utilities/canonical-origin";
 import { allowsIndexing, EDGE_HEADER } from "~/utilities/indexing";
+import { previewFrameOrigin } from "~/utilities/mcp/flags.server";
 
 /** True for a framed example preview (`/preview/:exampleName`), which a docs page shows in an iframe. */
 function isPreviewDocument(path: string): boolean {
 	return path === "/preview" || path.startsWith("/preview/");
+}
+
+/** True for the MCP preview page, which frames the prototype frame. */
+function isPrototypePage(path: string): boolean {
+	return path === "/mcp/preview";
 }
 
 /** True for the sandboxed frame that runs an MCP prototype from a link. */
@@ -27,14 +33,13 @@ function isPrototypeFrame(path: string): boolean {
  * The frame loads its own modules from `'self'` instead.
  */
 function prototypeFramePolicy(scriptSrc: string): string {
-	const trustedScripts = scriptSrc
-		.split(" ")
-		.filter((source) => source !== "'strict-dynamic'")
-		.join(" ");
+	const trustedScripts = new Set(scriptSrc.split(" "));
+	trustedScripts.delete("'strict-dynamic'");
+	trustedScripts.add("'self'");
 	const pageOrigins = [canonicalOrigin, process.env.MANTLE_PREVIEW_ORIGIN].filter(Boolean);
 	return [
 		"default-src 'none'",
-		`script-src ${trustedScripts} 'self' 'unsafe-eval'`,
+		`script-src ${Array.from(trustedScripts).join(" ")} 'unsafe-eval'`,
 		"style-src 'self' 'unsafe-inline'",
 		`img-src 'self' data: blob: ${assetsCdnOrigin}`,
 		`font-src 'self' ${assetsCdnOrigin}`,
@@ -105,6 +110,10 @@ export function createDocsServer() {
 								"worker-src 'self' blob:",
 								// Why: a docs page frames its example previews. Each other document refuses a frame.
 								`frame-ancestors ${isPreviewDocument(context.req.path) ? "'self'" : "'none'"}`,
+								// Why: the prototype can navigate its own frame, so the page limits where the frame goes.
+								...(isPrototypePage(context.req.path)
+									? [`frame-src 'self' ${previewFrameOrigin()}`.trim()]
+									: []),
 							].join("; "),
 			},
 			beforeStatic: [documentIndexing, assetsCors],

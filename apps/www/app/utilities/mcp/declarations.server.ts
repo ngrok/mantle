@@ -113,6 +113,26 @@ export function exportNamesOf(files: PackageFiles, entryPath: string): SubpathEx
 	return { names, externalStars };
 }
 
+/**
+ * Removes each `@example` block from the JSDoc comments in `source`. Why: the
+ * examples are most of a declaration's size, and `get` lists examples apart.
+ */
+function withoutExamples(source: string): string {
+	return source.replace(/\/\*\*[\s\S]*?\*\//g, (comment) => {
+		let inExample = false;
+		return comment
+			.split("\n")
+			.filter((line) => {
+				const tag = /^\s*\*\s*@(\w+)/.exec(line);
+				if (tag != null) {
+					inExample = tag[1] === "example";
+				}
+				return !inExample;
+			})
+			.join("\n");
+	});
+}
+
 /** The leading JSDoc block of a statement, when one ends just before it. */
 function leadingJsDoc(parsed: ParsedDeclarationFile, statementStart: number): string {
 	const comment = parsed.comments.findLast(
@@ -171,8 +191,8 @@ const MAX_DECLARATIONS = 24;
 
 /**
  * The source text of the declarations that an entry exports as `names`, with
- * their JSDoc, then each declaration in the package that they refer to, such
- * as the parts and props of a compound component. Follows the re-export chain
+ * their JSDoc but no `@example` blocks, then each declaration in the package
+ * that they refer to, such as the parts and props of a compound component. Follows the re-export chain
  * through the bundled `dist` chunks. Returns `undefined` when the entry
  * exports none of `names`.
  *
@@ -266,7 +286,9 @@ export function declarationsOf(
 		queue.push(located);
 		const { parsed, statement } = located;
 		texts.push(
-			`${leadingJsDoc(parsed, statement.start)}${parsed.source.slice(statement.start, statement.end)}`,
+			withoutExamples(
+				`${leadingJsDoc(parsed, statement.start)}${parsed.source.slice(statement.start, statement.end)}`,
+			),
 		);
 	};
 

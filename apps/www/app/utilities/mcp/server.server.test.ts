@@ -15,7 +15,11 @@ import { versionDataFromFiles } from "~/utilities/mcp/version-data.server";
 function dependencies(overrides: Partial<McpDependencies> = {}): McpDependencies {
 	const data = versionDataFromFiles("0.93.0", packageFilesFixture());
 	return {
-		loader: { latestVersion: async () => "0.93.0", load: async () => data },
+		loader: {
+			latestVersion: async () => "0.93.0",
+			isPublished: async (version) => ["0.90.0", "0.93.0"].includes(version),
+			load: async () => data,
+		},
 		docsVersion: "0.93.0",
 		readDocs: async (slug) =>
 			slug === "components/overlays/dialog" ? "# Dialog\n\n## API Reference\n\nProps." : undefined,
@@ -213,16 +217,16 @@ describe("the mantle MCP server", () => {
 		expect(text).toContain('"code": "incomplete-context"');
 	});
 
-	it("refuses a migration range that runs backward or past the latest version", async () => {
+	it("refuses a migration range that runs backward or ends at an unpublished version", async () => {
 		const backward = await callTool(dependencies(), "migrate", { from: "0.93.0", to: "0.90.0" });
-		const future = await callTool(dependencies(), "migrate", { from: "0.90.0", to: "0.99.0" });
+		const unpublished = await callTool(dependencies(), "migrate", { from: "0.90.0", to: "0.91.7" });
 
 		expect(backward).toEqual({
 			text: "The target 0.90.0 is older than 0.93.0. Pass a newer `to`.",
 			isError: true,
 		});
-		expect(future).toEqual({
-			text: "0.99.0 is newer than 0.93.0, the latest published version.",
+		expect(unpublished).toEqual({
+			text: "@ngrok/mantle@0.91.7 is not a published version.",
 			isError: true,
 		});
 	});
@@ -231,6 +235,7 @@ describe("the mantle MCP server", () => {
 		const log = vi.fn<(event: ToolCallEvent) => void>();
 		const loader = {
 			latestVersion: async () => "0.93.0",
+			isPublished: async () => true,
 			load: async () => {
 				throw new Error("registry down");
 			},

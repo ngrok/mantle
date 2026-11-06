@@ -40,3 +40,14 @@ export function mcpFlags(env: Record<string, string | undefined> = process.env):
 export function isMcpToolEnabled(flags: McpFlags, tool: string): boolean {
 	return flags.enabled && !flags.disabledTools.has("*") && !flags.disabledTools.has(tool);
 }
+
+/**
+ * The origin that serves the prototype frame, from `MANTLE_PREVIEW_FRAME_ORIGIN`.
+ * An empty string means the origin of the preview page.
+ *
+ * @example
+ * previewFrameOrigin({ MANTLE_PREVIEW_FRAME_ORIGIN: "https://frame.example" }); // => "https://frame.example"
+ */
+export function previewFrameOrigin(env: Record<string, string | undefined> = process.env): string {
+	return env.MANTLE_PREVIEW_FRAME_ORIGIN ?? "";
+}

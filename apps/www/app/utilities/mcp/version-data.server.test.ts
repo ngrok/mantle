@@ -95,6 +95,31 @@ describe("declarationsOf", () => {
 		expect(declaration).toContain("type ContentProps = { title: string };");
 	});
 
+	it("drops the @example blocks of the JSDoc and keeps the other tags", () => {
+		const files = new Map([
+			[
+				"dist/card.d.ts",
+				[
+					"/**",
+					" * A box for related content.",
+					" *",
+					" * @example",
+					" * <Card>Hi</Card>",
+					" *",
+					" * @see https://mantle.ngrok.com/components/card",
+					" */",
+					"export declare const Card: unknown;",
+				].join("\n"),
+			],
+		]);
+
+		const declaration = declarationsOf(files, "dist/card.d.ts", ["Card"]);
+
+		expect(declaration).not.toContain("<Card>Hi</Card>");
+		expect(declaration).toContain("@see https://mantle.ngrok.com/components/card");
+		expect(declaration).toContain("export declare const Card: unknown;");
+	});
+
 	it("returns undefined for a name the entry does not export", () => {
 		expect(declarationsOf(packageFilesFixture(), "dist/button.d.ts", ["Buton"])).toBeUndefined();
 	});

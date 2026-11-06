@@ -79,12 +79,16 @@ export async function runPrototype(source: string): Promise<RunPrototypeResult> 
 
 	const specifiers = new Set(Array.from(code.matchAll(requirePattern), (match) => match[2] ?? ""));
 	const modules: Map<string, unknown> = new Map();
-	for (const specifier of specifiers) {
-		// Why skip an unknown specifier: the scan also matches text in strings and comments. `require` reports a real import.
-		const loaded = await loadPreviewModule(specifier);
-		if (loaded != null) {
-			modules.set(specifier, loaded);
+	try {
+		for (const specifier of specifiers) {
+			// Why skip an unknown specifier: the scan also matches text in strings and comments. `require` reports a real import.
+			const loaded = await loadPreviewModule(specifier);
+			if (loaded != null) {
+				modules.set(specifier, loaded);
+			}
 		}
+	} catch (error) {
+		return failure("The preview cannot load a module. Reload the page.", error);
 	}
 
 	const module: { exports: Record<string, unknown> } = { exports: {} };

@@ -37,6 +37,14 @@ function clearNonces() {
 }
 
 async function loadPrototype(fragment: string | null): Promise<RunPrototypeResult> {
+	// Why: only the preview page's `frame-src` limits where the prototype can navigate.
+	if (window.parent === window) {
+		return {
+			ok: false,
+			title: "The preview cannot open",
+			message: "Open the preview link that the agent gave you.",
+		};
+	}
 	const decoded = await decodePreviewFragment(fragment);
 	if (!decoded.ok) {
 		return { ok: false, title: "The preview cannot open", message: decodeMessages[decoded.reason] };

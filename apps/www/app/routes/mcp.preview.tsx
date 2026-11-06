@@ -4,7 +4,7 @@ import { Switch } from "@ngrok/mantle/switch";
 import { data } from "react-router";
 import { useMantleVersion } from "~/components/mantle-version-provider";
 import { useLocationHash } from "~/features/mcp-preview/use-location-hash";
-import { isMcpToolEnabled, mcpFlags } from "~/utilities/mcp/flags.server";
+import { isMcpToolEnabled, mcpFlags, previewFrameOrigin } from "~/utilities/mcp/flags.server";
 import { parsePreviewHash, type PreviewTheme } from "~/utilities/mcp/preview-url";
 import type { Route } from "./+types/mcp.preview";
 
@@ -18,7 +18,7 @@ export function loader() {
 	if (!isMcpToolEnabled(mcpFlags(), "preview")) {
 		throw data(null, { status: 404 });
 	}
-	return { frameOrigin: process.env.MANTLE_PREVIEW_FRAME_ORIGIN ?? "" };
+	return { frameOrigin: previewFrameOrigin() };
 }
 
 /** Titles the page and keeps it out of search indexes. */
