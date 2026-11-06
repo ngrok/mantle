@@ -1,6 +1,7 @@
 import { Icon } from "@ngrok/mantle/icon";
 import { SplitButton } from "@ngrok/mantle/split-button";
 import { Toast, makeToast } from "@ngrok/mantle/toast";
+import { copyToClipboard } from "@ngrok/mantle/utils";
 import { CopyIcon } from "@phosphor-icons/react/Copy";
 import { FileTextIcon } from "@phosphor-icons/react/FileText";
 import { useLocation } from "react-router";
@@ -16,16 +17,23 @@ type Props = {
 /**
  * Fetches the markdown at `url` and copies it. The page holds no markdown: the
  * fetch starts at the click. `ClipboardItem` takes the fetch as a promise, so
- * the write starts in the click's user gesture, and Safari allows it.
+ * the write starts in the click's user gesture, and Safari allows it. If that
+ * write fails, `copyToClipboard` copies the text with its own fallbacks.
  */
 async function copyMarkdown(url: string): Promise<void> {
 	const markdown = fetch(url).then(async (response) => {
 		if (!response.ok) {
 			throw new Error(`Failed to fetch ${url}: ${response.status}`);
 		}
-		return new Blob([await response.text()], { type: "text/plain" });
+		return response.text();
 	});
-	await navigator.clipboard.write([new ClipboardItem({ "text/plain": markdown })]);
+	try {
+		const blob = markdown.then((text) => new Blob([text], { type: "text/plain" }));
+		await navigator.clipboard.write([new ClipboardItem({ "text/plain": blob })]);
+	} catch {
+		// Why: an insecure context has no `navigator.clipboard`, and an old browser has no `ClipboardItem`.
+		await copyToClipboard(await markdown);
+	}
 }
 
 export function DocActions({ markdownPath }: Props) {

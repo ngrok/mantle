@@ -72,6 +72,10 @@ function buildBody(): string {
 	return sections.join("\n");
 }
 
+// Why: the route matches without case, so `/LLMS-FULL.TXT` misses the
+// prerendered file and runs the loader. A build takes about a second.
+let productionBody: string | undefined;
+
 /**
  * Serve `/llms-full.txt` — the concatenated markdown of every docs page, then
  * the React source of every framed preview those pages embed, suitable for
@@ -84,7 +88,9 @@ function buildBody(): string {
  * sources`, in a `tsx` fence headed by its repo path and preview URLs.
  */
 export function loader() {
-	return new Response(buildBody(), {
+	// Why dev builds each time: an MDX edit then shows on the next request.
+	const body = import.meta.env.PROD ? (productionBody ??= buildBody()) : buildBody();
+	return new Response(body, {
 		headers: { "Content-Type": "text/plain; charset=utf-8" },
 	});
 }

@@ -54,6 +54,18 @@ describe("the docs app server", () => {
 		expect(edge.headers.get("Vary")).toMatch(/x-ngrok-edge/i);
 	});
 
+	it("keeps the edge in the Vary of a 304 for a document", async () => {
+		const app = await start();
+		const etag = (await app.request("/components/actions/button")).headers.get("ETag") ?? "";
+
+		const response = await app.request("/components/actions/button", {
+			headers: { "If-None-Match": etag },
+		});
+
+		expect(response.status).toBe(304);
+		expect(response.headers.get("Vary")).toMatch(/x-ngrok-edge/i);
+	});
+
 	it("leaves the indexing headers off a file that is not a document", async () => {
 		const response = await (await start()).request("/llms.txt");
 

@@ -18,7 +18,11 @@ const documentIndexing: Plugin = {
 	name: "document-indexing",
 	middleware: (context, next) =>
 		withHeaderHook(context, next, (headers) => {
-			if (!headers.get("Content-Type")?.startsWith("text/html")) {
+			// Why `staticDocument`: a 304 for a prerendered page has no `Content-Type`, and it must keep the `Vary`.
+			const isDocument =
+				context.get("staticDocument") != null ||
+				headers.get("Content-Type")?.startsWith("text/html") === true;
+			if (!isDocument) {
 				return;
 			}
 			// Why: the edge and a direct request get different headers, so a cache must key on it.
