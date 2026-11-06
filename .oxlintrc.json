@@ -285,7 +285,6 @@
     ".env",
     ".react-router/",
     ".turbo",
-    ".vercel",
     "build",
     "dist",
     "node_modules",
