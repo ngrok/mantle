@@ -13,12 +13,15 @@ export default {
 		// The benchmark page renders on the client only; a snapshot of it holds nothing.
 		// `robots.txt` depends on the `x-ngrok-edge` request header, so it must answer each request.
 		// `api/shiki-highlight` has only an action, so the prerender writes no file for it.
+		// The `/mcp` routes read the MANTLE_MCP flag at request time, so a snapshot would freeze it.
 		return getStaticPaths().filter(
 			(path) =>
 				!path.endsWith(".mdx") &&
 				!path.startsWith("/bench/") &&
 				path !== "/robots.txt" &&
-				path !== "/api/shiki-highlight",
+				path !== "/api/shiki-highlight" &&
+				path !== "/mcp" &&
+				!path.startsWith("/mcp/"),
 		);
 	},
 } satisfies Config;

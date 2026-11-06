@@ -18,7 +18,49 @@ and a structured component manifest is at /api/components.json. Hooks and
 utilities have their own manifests at /api/hooks.json and /api/utils.json.
 Offline, node_modules/@ngrok/mantle/dist/agent.json carries the same records
 for the installed version, and dist/llms.txt is its one-line index.
+When your client supports MCP, use the server at https://mantle.ngrok.com/mcp.
 ```
+
+## Connect over MCP
+
+mantle runs a hosted [MCP](https://modelcontextprotocol.io) server at `https://mantle.ngrok.com/mcp`. Connect your agent to it, and the agent reads the API of the mantle version you installed instead of guessing from its training data. The server has no sign-in, and it never stores your code.
+
+Add it to Claude Code:
+
+```sh
+claude mcp add --transport http mantle https://mantle.ngrok.com/mcp
+```
+
+To give everyone on a repo the server, commit it to the project config. Claude Code reads `.mcp.json` at the repo root:
+
+```json
+{
+	"mcpServers": {
+		"mantle": { "type": "http", "url": "https://mantle.ngrok.com/mcp" }
+	}
+}
+```
+
+Cursor reads the same `mcpServers` shape from `.cursor/mcp.json`. VS Code reads `.vscode/mcp.json`, with `servers` in place of `mcpServers`. Codex reads `~/.codex/config.toml`:
+
+```text
+[mcp_servers.mantle]
+url = "https://mantle.ngrok.com/mcp"
+```
+
+The server tells the agent when to call each tool, so you don't have to:
+
+| Tool         | What it does                                                                                                               |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| `find`       | Ranks components, hooks, utilities, and docs pages for an intent ("confirm before delete") or a name ("modal").            |
+| `get`        | Returns one part's import, examples, and prop contract for the version you pass.                                           |
+| `read_docs`  | Returns a docs page as markdown, or an outline when the page is long.                                                      |
+| `check`      | Checks one TSX file for wrong import paths and names, other UI libraries, and `className` strings built by hand.           |
+| `preview`    | Returns a link that renders one TSX file in a sandbox. The code travels in the link fragment, so the server never sees it. |
+| `migrate`    | Lists the migration guides and codemods between two versions, in order.                                                    |
+| `report_gap` | Tells the mantle team that mantle has no part for a need. It keeps only generic words, such as "stepper".                  |
+
+Pass the exact installed version (from `node_modules/@ngrok/mantle/package.json` or the lockfile), not the range in `package.json`. The server supports 0.90.0 and later.
 
 ## Machine-readable entry points
 
