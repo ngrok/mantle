@@ -875,6 +875,14 @@ const Close = ({
  * the content. When multiple overlays are open, the most recently mounted
  * overlay renders on top.
  *
+ * @useWhen The user must confirm a destructive or irreversible action, such as a delete or a
+ * sign-out, before it runs.
+ *
+ * @siblings
+ * - `Dialog`: a modal window gathers input or confirms a choice that is not destructive.
+ * - `Sheet`: the content slides in from the edge of the screen, such as a filter panel or a detail view.
+ * - `Sandbar`: the page holds unsaved changes, and a bar waits for the user to save or discard them.
+ *
  * @see https://mantle.ngrok.com/components/overlays/alert-dialog
  *
  * @example

@@ -268,6 +268,12 @@ const Footer = ({
  * sessions) never enters it, and landmark semantics stay compositional:
  * brand marks, links, and the `Main` landmark arrive as composed JSX.
  *
+ * @useWhen Center one focused full-page flow, such as sign-in, sign-up, onboarding, checkout, or a
+ * 404 page.
+ *
+ * @siblings
+ * - `AppLayout`: the page sits in a signed-in app, with a sidebar and a header that persist across routes.
+ *
  * @see https://mantle.ngrok.com/layouts/centered-layout
  *
  * @example

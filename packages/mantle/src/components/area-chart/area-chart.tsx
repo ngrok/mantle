@@ -454,6 +454,13 @@ const CopyButton = (props: AreaChartCopyButtonProps) => (
  * token from `Root`'s computed style, so a declaration scoped there wins for
  * that chart and leaves every other chart on the page alone.
  *
+ * @useWhen Show how a volume, or a total and its parts, changes over time or another continuous
+ * axis.
+ *
+ * @siblings
+ * - `LineChart`: the series are trends to compare, and filled areas would hide where they cross.
+ * - `BarChart`: the x axis is a set of categories, not a continuous range.
+ *
  * @see https://mantle.ngrok.com/components/charts/area-chart
  *
  * @example

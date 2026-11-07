@@ -466,6 +466,15 @@ const ComboboxSeparatorComponent = ({
  * an overlay it paints with the overlay's content. Outside one, an open overlay
  * (`z-60`) covers it.
  *
+ * @useWhen Pick one value from a long list of options, with a text field that filters the options
+ * as the user types.
+ *
+ * @siblings
+ * - `Select`: the list is short and needs no filter.
+ * - `MultiSelect`: the user picks several values, shown as tags.
+ * - `Command`: the list runs actions or goes to pages, in a palette.
+ * - `Query`: the field filters a list with free text and `key:value` qualifiers.
+ *
  * @see https://www.w3.org/WAI/ARIA/apg/patterns/combobox/
  * @see https://ariakit.org/components/combobox
  *

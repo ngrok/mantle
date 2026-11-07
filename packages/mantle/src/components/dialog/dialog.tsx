@@ -756,6 +756,14 @@ const Description = ({
  * content. When multiple overlays are open, the most recently mounted overlay
  * renders on top.
  *
+ * @useWhen Gather input or confirm a choice that is not destructive, in a modal window that blocks
+ * the page.
+ *
+ * @siblings
+ * - `AlertDialog`: the user must confirm a destructive or irreversible action, such as a delete.
+ * - `Sheet`: the content slides in from the edge of the screen, such as a filter panel or a detail view.
+ * - `Popover`: the content is small and opens next to its trigger, with no modal backdrop.
+ *
  * @see https://mantle.ngrok.com/components/overlays/dialog
  *
  * @example

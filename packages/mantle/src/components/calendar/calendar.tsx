@@ -89,6 +89,8 @@ const calendarClassNames = {
  * @preview The API is not stable and may change. There may also be bugs.
  * Please file an issue at https://github.com/ngrok/mantle/issues if you find any.
  *
+ * @useWhen Pick one date or a range of dates from a month grid.
+ *
  * @see https://mantle.ngrok.com/components/preview/calendar
  *
  * @example

@@ -607,7 +607,9 @@ Components, hooks, functions, and prop types each need:
    ```
 
    Each `@siblings` item is ``- `Name`: when a consumer reaches for it instead.`` A malformed item fails the
-   pack step.
+   pack step. If a component or layout has no `@useWhen`, or a `@siblings` item names no component or layout,
+   the package test fails. The `find` tool of the docs-site Model Context Protocol (MCP) server ranks intent
+   queries by `useWhen`.
 
 2. A `@see` link:
    - Component or compound namespace: `https://mantle.ngrok.com/components/<category>/<component-name>`.

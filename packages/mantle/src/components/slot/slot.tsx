@@ -119,6 +119,8 @@ function composeStyle(
  *
  * A function `children` is forwarded to the child as-is.
  *
+ * @useWhen Merge the props of a part onto its one child element, to build an `asChild` prop.
+ *
  * @see https://mantle.ngrok.com/components/primitives/slot
  *
  * @example

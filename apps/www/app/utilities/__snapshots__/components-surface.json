@@ -11,7 +11,18 @@
     "examples": [
       "Composition:\n```\nAccordion.Root\n└── Accordion.Item\n    ├── Accordion.Trigger\n    │   └── Accordion.TriggerIcon\n    └── Accordion.Content\n        └── Accordion.Body\n```",
       "<Accordion.Root type=\"single\" defaultValue=\"item-1\">\n  <Accordion.Item value=\"item-1\">\n    <Accordion.Trigger>\n      Is it accessible?\n      <Accordion.TriggerIcon />\n    </Accordion.Trigger>\n    <Accordion.Content>\n      <Accordion.Body>Yes. It adheres to the WAI-ARIA disclosure pattern.</Accordion.Body>\n    </Accordion.Content>\n  </Accordion.Item>\n</Accordion.Root>"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "Tabs",
+        "boundary": "one section shows at a time, and a row of tabs switches between them."
+      },
+      {
+        "name": "Strata",
+        "boundary": "every section stays open, with its title and explanation beside its content."
+      }
+    ],
+    "useWhen": "Stack titled sections that each expand and collapse in place, such as questions and answers or a group of advanced settings."
   },
   {
     "name": "Alert",
@@ -25,7 +36,26 @@
     "examples": [
       "Composition:\n```\nAlert.Root\n├── Alert.Icon\n├── Alert.Content\n    ├── Alert.Title\n    ├── Alert.Description\n    ├── Alert.DismissIconButton\n    └── Alert.ExpandButton\n```",
       "```tsx\n<Alert.Root intent=\"info\">\n  <Alert.Icon />\n  <Alert.Content>\n    <Alert.Title>Alert Title</Alert.Title>\n    <Alert.Description>\n      Alert description text.\n    </Alert.Description>\n    <Alert.DismissIconButton />\n    <Alert.ExpandButton count={2} expanded={false} />\n  </Alert.Content>\n</Alert.Root>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "Toast",
+        "boundary": "the message is brief and goes away on its own."
+      },
+      {
+        "name": "AlertDialog",
+        "boundary": "the user must respond before they continue."
+      },
+      {
+        "name": "AlertCenter",
+        "boundary": "several account-level alerts share one bar at the top of the app."
+      },
+      {
+        "name": "Empty",
+        "boundary": "a region has no data, no results, or no access to show."
+      }
+    ],
+    "useWhen": "Show a persistent message in the page, such as a warning, an error, or a success note, beside the content it describes."
   },
   {
     "name": "Alert Center",
@@ -39,7 +69,18 @@
     "examples": [
       "Composition (items render no DOM in place; their children portal into a\nstable host the bar or a row adopts):\n```\nAlertCenter.Root\n├── AlertCenter.Bar        ← the top-ranked item's children, in Alert chrome\n├── AlertCenter.Content    ← every other item's children, as ranked rows\n└── AlertCenter.Item (0..n, renderless)\n    └── Alert.Icon / Alert.Content / Alert.Title / Alert.Description /\n        AlertCenter.DismissIconButton\n```",
       "```tsx\n<AppLayout.Root className=\"fixed inset-0\">\n  <AppLayout.Notice>\n    {showPreviewNotice && <PreviewNotice />}\n    <AlertCenter.Root>\n      <AlertCenter.Bar />\n      <AlertCenter.Content />\n      <AlertCenter.Item id=\"payment-failed\" intent=\"danger\">\n        <Alert.Icon />\n        <Alert.Content>\n          <Alert.Title>\n            Payment failed — we couldn't charge your card.{\" \"}\n            <a href=\"/billing\">Update payment method</a>\n          </Alert.Title>\n          <Alert.Description>\n            Update your payment method to avoid a service interruption.\n          </Alert.Description>\n        </Alert.Content>\n      </AlertCenter.Item>\n      {!dismissed.has(\"transfer-limit\") && (\n        <AlertCenter.Item id=\"transfer-limit\" intent=\"warning\">\n          <Alert.Icon />\n          <Alert.Content>\n            <Alert.Title>\n              You've used 92% of your monthly transfer.{\" \"}\n              <a href=\"/billing/choose-a-plan\">Upgrade</a>\n            </Alert.Title>\n            <AlertCenter.DismissIconButton onClick={() => dismiss(\"transfer-limit\")} />\n          </Alert.Content>\n        </AlertCenter.Item>\n      )}\n    </AlertCenter.Root>\n  </AppLayout.Notice>\n  <AppLayout.Workspace>…</AppLayout.Workspace>\n</AppLayout.Root>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "Alert",
+        "boundary": "one message sits inline, and you place and control it yourself."
+      },
+      {
+        "name": "Toast",
+        "boundary": "the message is brief and goes away on its own."
+      }
+    ],
+    "useWhen": "Show persistent account-level alerts, such as usage limits with upgrade actions, in one ranked bar at the top of the app."
   },
   {
     "name": "Alert Dialog",
@@ -53,7 +94,26 @@
     "examples": [
       "Composition:\n```\nAlertDialog.Root\n├── AlertDialog.Trigger\n└── AlertDialog.Content\n    ├── AlertDialog.Icon\n    └── AlertDialog.Body\n        ├── AlertDialog.Header\n        │   ├── AlertDialog.Title\n        │   └── AlertDialog.Description\n        └── AlertDialog.Footer\n            ├── AlertDialog.Cancel\n            └── AlertDialog.Action\n```",
       "```tsx\n<AlertDialog.Root intent=\"danger\">\n  <AlertDialog.Trigger asChild>\n    <Button type=\"button\" appearance=\"outlined\" intent=\"neutral\">\n      Show Danger Alert Dialog\n    </Button>\n  </AlertDialog.Trigger>\n  <AlertDialog.Content>\n    <AlertDialog.Icon />\n    <AlertDialog.Body>\n      <AlertDialog.Header>\n        <AlertDialog.Title>\n          Are you absolutely sure?\n        </AlertDialog.Title>\n        <AlertDialog.Description>\n          Proident quis nisi tempor irure sunt ut minim occaecat mollit sunt.\n        </AlertDialog.Description>\n      </AlertDialog.Header>\n      <AlertDialog.Footer>\n        <AlertDialog.Cancel type=\"button\">Cancel</AlertDialog.Cancel>\n        <AlertDialog.Action type=\"button\">\n          Continue\n        </AlertDialog.Action>\n      </AlertDialog.Footer>\n    </AlertDialog.Body>\n  </AlertDialog.Content>\n</AlertDialog.Root>\n```"
-    ]
+    ],
+    "aliases": [
+      "confirm",
+      "confirmation"
+    ],
+    "siblings": [
+      {
+        "name": "Dialog",
+        "boundary": "a modal window gathers input or confirms a choice that is not destructive."
+      },
+      {
+        "name": "Sheet",
+        "boundary": "the content slides in from the edge of the screen, such as a filter panel or a detail view."
+      },
+      {
+        "name": "Sandbar",
+        "boundary": "the page holds unsaved changes, and a bar waits for the user to save or discard them."
+      }
+    ],
+    "useWhen": "The user must confirm a destructive or irreversible action, such as a delete or a sign-out, before it runs."
   },
   {
     "name": "Anchor",
@@ -66,7 +126,18 @@
     "jsdoc": "A styled hyperlink — a native `<a>` with mantle's link styling, focus treatment, optional leading/trailing icon, and a safer default for the `rel` attribute.",
     "examples": [
       "```tsx\nimport { Anchor } from \"@ngrok/mantle/anchor\";\nimport { BookIcon } from \"@phosphor-icons/react/Book\";\nimport { Link } from \"react-router\";\n\n// Basic external link.\n<Anchor href=\"https://ngrok.com/\">ngrok.com</Anchor>\n\n// External link in a new tab with a leading icon. `rel` defaults to\n// \"noopener noreferrer\" when `target=\"_blank\"`.\n<Anchor href=\"https://ngrok.com/docs\" target=\"_blank\" icon={<BookIcon />}>\n  ngrok docs\n</Anchor>\n\n// Compose Anchor styling onto a react-router Link for internal navigation.\n<Anchor asChild>\n  <Link to=\"/dashboard\">Open dashboard</Link>\n</Anchor>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "Button",
+        "boundary": "the control runs an action and does not navigate."
+      },
+      {
+        "name": "Breadcrumb",
+        "boundary": "the links show the path from a root page to the current page."
+      }
+    ],
+    "useWhen": "Link to an address outside the app, such as an external site, a file, or a `mailto:` address."
   },
   {
     "name": "App Layout",
@@ -79,7 +150,14 @@
     "examples": [
       "Composition:\n```\nAppLayout.Root\n├── AppLayout.Notice\n└── AppLayout.SidePanelRoot\n    └── AppLayout.Workspace\n        ├── AppLayout.Content\n        │   ├── AppLayout.Header\n        │   │   ├── AppLayout.HeaderStart\n        │   │   ├── AppLayout.HeaderContent\n        │   │   └── AppLayout.HeaderActions\n        │   │       └── AppLayout.SidePanelTrigger\n        │   └── AppLayout.Body\n        └── AppLayout.SidePanel\n            ├── AppLayout.SidePanelHeader\n            ├── AppLayout.SidePanelBody\n            └── AppLayout.SidePanelFooter\n```",
       "```tsx\n<Sidebar.Root>\n  <AppLayout.Root className=\"fixed inset-0\">\n    <SkipToMainLink />\n    <AppLayout.Notice>{isUnderMaintenance && <MaintenanceBanner />}</AppLayout.Notice>\n    <AppLayout.SidePanelRoot>\n      <AppLayout.Workspace>\n        <Sidebar.Nav aria-label=\"Main\">…</Sidebar.Nav>\n        <AppLayout.Content>\n          <AppLayout.Header>\n            <AppLayout.HeaderStart>\n              <Sidebar.Trigger />\n            </AppLayout.HeaderStart>\n            <AppLayout.HeaderContent>\n              <Breadcrumbs />\n            </AppLayout.HeaderContent>\n            <AppLayout.HeaderActions>\n              <AppLayout.SidePanelTrigger icon={<SparkleIcon />} label=\"Toggle the assistant\" />\n            </AppLayout.HeaderActions>\n          </AppLayout.Header>\n          <AppLayout.Body>\n            <Outlet />\n          </AppLayout.Body>\n        </AppLayout.Content>\n        <AppLayout.SidePanel aria-label=\"Assistant\">\n          <AppLayout.SidePanelHeader>\n            <p className=\"text-strong min-w-0 flex-1 truncate text-sm font-medium\">Assistant</p>\n            <AppLayout.SidePanelTrigger icon={<XIcon />} label=\"Close the assistant\" />\n          </AppLayout.SidePanelHeader>\n          <AppLayout.SidePanelBody>\n            <AssistantConversation />\n          </AppLayout.SidePanelBody>\n          <AppLayout.SidePanelFooter>\n            <AssistantComposer />\n          </AppLayout.SidePanelFooter>\n        </AppLayout.SidePanel>\n      </AppLayout.Workspace>\n    </AppLayout.SidePanelRoot>\n  </AppLayout.Root>\n</Sidebar.Root>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "CenteredLayout",
+        "boundary": "the page is one focused flow with no sidebar, such as sign-in, onboarding, or a 404 page."
+      }
+    ],
+    "useWhen": "Frame a signed-in app with navigation that persists across routes: a sidebar, a header toolbar, and one scrolling content card."
   },
   {
     "name": "Area Chart",
@@ -93,7 +171,18 @@
     "examples": [
       "Composition:\n```\nAreaChart.Root\n├── AreaChart.Grid\n├── AreaChart.XAxis\n├── AreaChart.YAxis\n├── AreaChart.Area (one per series)\n├── AreaChart.ReferenceLine\n├── AreaChart.Tooltip\n├── AreaChart.Legend\n└── AreaChart.CopyButton\n```",
       "```tsx\nconst data = [\n  { date: new Date(\"2026-07-15\"), http: 4200, tcp: 1400 },\n  { date: new Date(\"2026-07-16\"), http: 5100, tcp: 1650 },\n  { date: new Date(\"2026-07-17\"), http: 4700, tcp: 1500 },\n];\n\n<AreaChart.Root data={data} xKey=\"date\" stacked aria-label=\"Traffic by protocol\">\n  <AreaChart.Grid />\n  <AreaChart.XAxis />\n  <AreaChart.YAxis />\n  <AreaChart.Area dataKey=\"http\" label=\"HTTP\" />\n  <AreaChart.Area dataKey=\"tcp\" label=\"TCP\" />\n  <AreaChart.Tooltip />\n  <AreaChart.Legend />\n</AreaChart.Root>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "LineChart",
+        "boundary": "the series are trends to compare, and filled areas would hide where they cross."
+      },
+      {
+        "name": "BarChart",
+        "boundary": "the x axis is a set of categories, not a continuous range."
+      }
+    ],
+    "useWhen": "Show how a volume, or a total and its parts, changes over time or another continuous axis."
   },
   {
     "name": "Avatar",
@@ -107,7 +196,18 @@
     "examples": [
       "Composition:\n```\nAvatar.Root\n├── Avatar.Image\n└── Avatar.Fallback\n```",
       "```tsx\n<Avatar.Root appearance=\"square\" colorSeed=\"acc_123\">\n  <Avatar.Image src=\"https://example.com/acme.png\" alt=\"\" />\n  <Avatar.Fallback name=\"Acme Corp\" />\n</Avatar.Root>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "MediaObject",
+        "boundary": "the picture sits beside a title and a description."
+      },
+      {
+        "name": "Icon",
+        "boundary": "the image is a generic symbol, not a person or an account."
+      }
+    ],
+    "useWhen": "Show a small picture of a person or an account, with initials or an icon when there is no picture."
   },
   {
     "name": "Badge",
@@ -120,7 +220,22 @@
     "jsdoc": "A non-interactive label used to highlight short, scannable information — a status, a category tag, or a count — in the smallest possible footprint.",
     "examples": [
       "```tsx\nimport { Badge } from \"@ngrok/mantle/badge\";\nimport { CheckCircleIcon } from \"@phosphor-icons/react/CheckCircle\";\n\n<Badge appearance=\"muted\" color=\"success\" icon={<CheckCircleIcon />}>\n  Succeeded\n</Badge>\n\n// Polymorphic — render the badge as a link, preserving its styling.\n<Badge appearance=\"muted\" color=\"info\" asChild>\n  <a href=\"/status\">Operational</a>\n</Badge>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "Button",
+        "boundary": "the label must respond to a click."
+      },
+      {
+        "name": "Kbd",
+        "boundary": "the label is a keyboard key or a shortcut."
+      },
+      {
+        "name": "MultiSelect",
+        "boundary": "the tags are values that the user picks and removes."
+      }
+    ],
+    "useWhen": "Label an item with a short status, a category tag, or a count."
   },
   {
     "name": "Bar Chart",
@@ -134,7 +249,18 @@
     "examples": [
       "Composition:\n```\nBarChart.Root\n├── BarChart.Grid\n├── BarChart.XAxis\n├── BarChart.YAxis\n├── BarChart.Bar (one per series)\n├── BarChart.ReferenceLine\n├── BarChart.Tooltip\n├── BarChart.Legend\n└── BarChart.CopyButton\n```",
       "```tsx\nconst data = [\n  { month: \"January\", desktop: 186, mobile: 80 },\n  { month: \"February\", desktop: 305, mobile: 200 },\n  { month: \"March\", desktop: 237, mobile: 120 },\n];\n\n<BarChart.Root data={data} xKey=\"month\" aria-label=\"Visitors by month\">\n  <BarChart.Grid />\n  <BarChart.XAxis />\n  <BarChart.YAxis />\n  <BarChart.Bar dataKey=\"desktop\" label=\"Desktop\" />\n  <BarChart.Bar dataKey=\"mobile\" label=\"Mobile\" />\n  <BarChart.Tooltip />\n  <BarChart.Legend />\n</BarChart.Root>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "LineChart",
+        "boundary": "the x axis is time or another continuous range."
+      },
+      {
+        "name": "AreaChart",
+        "boundary": "a total and its parts change over a continuous range."
+      }
+    ],
+    "useWhen": "Compare values across categories, with grouped or stacked bars."
   },
   {
     "name": "Breadcrumb",
@@ -148,7 +274,18 @@
     "examples": [
       "Composition:\n```\nBreadcrumb.Root\n└── Breadcrumb.List\n    ├── Breadcrumb.Item\n    │   └── Breadcrumb.Link\n    ├── Breadcrumb.Separator\n    ├── Breadcrumb.Item\n    │   └── Breadcrumb.Label\n    ├── Breadcrumb.Separator\n    ├── Breadcrumb.Item\n    │   └── Breadcrumb.Page\n    └── Breadcrumb.Skeleton\n```",
       "```tsx\n<Breadcrumb.Root>\n\t<Breadcrumb.List>\n\t\t<Breadcrumb.Item>\n\t\t\t<Breadcrumb.Link href=\"/\">Home</Breadcrumb.Link>\n\t\t</Breadcrumb.Item>\n\t\t<Breadcrumb.Separator />\n\t\t<Breadcrumb.Item>\n\t\t\t<Breadcrumb.Link href=\"/endpoints\">Endpoints</Breadcrumb.Link>\n\t\t</Breadcrumb.Item>\n\t\t<Breadcrumb.Separator />\n\t\t<Breadcrumb.Item>\n\t\t\t<Breadcrumb.Page>ep_2h8…</Breadcrumb.Page>\n\t\t</Breadcrumb.Item>\n\t</Breadcrumb.List>\n</Breadcrumb.Root>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "Tabs",
+        "boundary": "the user switches between peer views of one page."
+      },
+      {
+        "name": "Sidebar",
+        "boundary": "the app needs persistent navigation to its top-level pages."
+      }
+    ],
+    "useWhen": "Show where the current page sits in a hierarchy, as a trail of links from a root page."
   },
   {
     "name": "Browser Only",
@@ -161,7 +298,8 @@
     "jsdoc": "A wrapper component that renders its children in the browser only, after hydration completes.",
     "examples": [
       "```tsx\n<BrowserOnly fallback={<div style={{ height: 200 }} />} >\n  {() => <ExpensiveChart />}\n</BrowserOnly>\n```"
-    ]
+    ],
+    "useWhen": "Render children in the browser only, after hydration, when they read browser state such as `window` or `localStorage`."
   },
   {
     "name": "Button",
@@ -179,7 +317,22 @@
       "Gate the button on readiness and on a pending action. An explicit `disabled`\nwins over `isLoading`, so `disabled` must cover both:\n```tsx\n<Button\n  type=\"submit\"\n  appearance=\"filled\"\n  intent=\"neutral\"\n  isLoading={isPending}\n  disabled={!isReady || isPending}\n>\n  Save\n</Button>\n```",
       "A button-styled link wraps a plain `<a>`, not `Anchor`:\n```tsx\n<Button asChild appearance=\"outlined\" intent=\"neutral\" icon={<ArrowSquareOutIcon />} iconPlacement=\"end\">\n  <a href=\"https://ngrok.com/docs\" target=\"_blank\" rel=\"noreferrer\">\n    Read the docs\n  </a>\n</Button>\n```",
       "Icon-only buttons are not `Button`s — use `IconButton` instead (an icon-only\n`Button` has no accessible name and keeps its text-box padding):\n```tsx\n// ❌ <Button appearance=\"outlined\" intent=\"neutral\" icon={<CopyIcon />} onClick={copyPage} />\n<IconButton appearance=\"outlined\" intent=\"neutral\" icon={<CopyIcon />} label=\"Copy page\" onClick={copyPage} />\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "IconButton",
+        "boundary": "the button shows one icon and no text."
+      },
+      {
+        "name": "SplitButton",
+        "boundary": "a default action sits beside a menu of related actions."
+      },
+      {
+        "name": "Anchor",
+        "boundary": "the control goes to another address and runs no action."
+      }
+    ],
+    "useWhen": "Run an action on a click: submit a form, save a change, or open a dialog."
   },
   {
     "name": "Calendar",
@@ -192,7 +345,8 @@
     "jsdoc": "A calendar component that allows users to select a date or a range of dates.",
     "examples": [
       "```tsx\n<Calendar\n  mode=\"single\"\n  selected={selectedDate}\n  onSelect={setSelectedDate}\n/>\n\n<Calendar\n  mode=\"range\"\n  selected={dateRange}\n  onSelect={setDateRange}\n/>\n```"
-    ]
+    ],
+    "useWhen": "Pick one date or a range of dates from a month grid."
   },
   {
     "name": "Card",
@@ -234,7 +388,14 @@
     "examples": [
       "Composition:\n```\nCenteredLayout.Root\n├── CenteredLayout.Notice\n├── CenteredLayout.Header\n├── CenteredLayout.Body\n└── CenteredLayout.Footer\n```",
       "```tsx\n<CenteredLayout.Root>\n  <SkipToMainLink />\n  <CenteredLayout.Body>\n    <a href=\"https://ngrok.com\">\n      <NgrokWordmarkIcon className=\"h-auto w-24\" />\n    </a>\n    <Main>\n      <SignInCard />\n    </Main>\n  </CenteredLayout.Body>\n  <CenteredLayout.Footer>\n    <ThemeSwitcher />\n  </CenteredLayout.Footer>\n</CenteredLayout.Root>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "AppLayout",
+        "boundary": "the page sits in a signed-in app, with a sidebar and a header that persist across routes."
+      }
+    ],
+    "useWhen": "Center one focused full-page flow, such as sign-in, sign-up, onboarding, checkout, or a 404 page."
   },
   {
     "name": "Checkbox",
@@ -247,7 +408,22 @@
     "jsdoc": "A form control that allows the user to toggle between checked and not checked.",
     "examples": [
       "```tsx\n<form>\n  <Label htmlFor=\"terms\" className=\"flex items-center gap-2\">\n    <Checkbox name=\"terms\" id=\"terms\" />\n    Accept terms and conditions\n  </Label>\n</form>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "Switch",
+        "boundary": "one setting turns on or off and needs no indeterminate state."
+      },
+      {
+        "name": "RadioGroup",
+        "boundary": "the user picks exactly one option from a set."
+      },
+      {
+        "name": "Choice",
+        "boundary": "the checkbox needs a title and a description beside it."
+      }
+    ],
+    "useWhen": "Turn one or more independent options on or off in a form, with an indeterminate state for a partial selection."
   },
   {
     "name": "Choice",
@@ -261,7 +437,18 @@
     "examples": [
       "Composition:\n```\nChoice.Root\n├── Choice.Indicator\n└── Choice.Content\n    ├── Choice.Label        (or Choice.Title — pick one)\n    └── Choice.Description\n```",
       "```tsx\n<Choice.Root name=\"notify\">\n  <Choice.Indicator>\n    <Checkbox />\n  </Choice.Indicator>\n  <Choice.Content>\n    <Choice.Label>Email</Choice.Label>\n    <Choice.Description>Get notified by email.</Choice.Description>\n  </Choice.Content>\n</Choice.Root>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "Label",
+        "boundary": "the control needs only a one-line caption."
+      },
+      {
+        "name": "MediaObject",
+        "boundary": "the thing beside the text is an image or an icon, not a control."
+      }
+    ],
+    "useWhen": "Put a checkbox, a radio, or a switch beside a title and an optional description."
   },
   {
     "name": "Code",
@@ -274,7 +461,22 @@
     "jsdoc": "Marks a short fragment of inline computer code — a function name, a variable, a CLI flag, a key.",
     "examples": [
       "```tsx\nimport { Code } from \"@ngrok/mantle/code\";\n\n<p>\n  Use the <Code>console.log()</Code> function to debug your code.\n</p>\n\n// As a link, preserving Code styling.\n<Code asChild>\n  <a href=\"/api\">/api/components.json</a>\n</Code>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "CodeBlock",
+        "boundary": "the code spans several lines or needs syntax highlighting."
+      },
+      {
+        "name": "Kbd",
+        "boundary": "the text is a keyboard key or a shortcut."
+      },
+      {
+        "name": "TruncatedText",
+        "boundary": "the value is long and opaque, such as a URL or an ID, and can overflow its row."
+      }
+    ],
+    "useWhen": "Mark a short fragment of code inside a sentence, such as a function name, a file path, or a key."
   },
   {
     "name": "Code Block",
@@ -288,7 +490,18 @@
     "examples": [
       "Composition:\n```\n# Standard\nCodeBlock.Root\n├── CodeBlock.Header\n│   ├── CodeBlock.Icon\n│   └── CodeBlock.Title\n├── CodeBlock.Body\n│   ├── CodeBlock.CopyButton\n│   └── CodeBlock.Code\n└── CodeBlock.ExpanderButton\n\n# Tabbed\nCodeBlock.Root\n├── CodeBlock.Header\n│   └── CodeBlock.TabList\n│       └── CodeBlock.TabTrigger\n├── CodeBlock.Body\n│   ├── CodeBlock.CopyButton\n│   └── CodeBlock.TabContent\n│       └── CodeBlock.Code\n└── CodeBlock.ExpanderButton\n```",
       "```tsx\n<CodeBlock.Root>\n  <CodeBlock.Header>\n    <CodeBlock.Icon preset=\"file\" />\n    <CodeBlock.Title>example.ts</CodeBlock.Title>\n  </CodeBlock.Header>\n  <CodeBlock.Body>\n    <CodeBlock.CopyButton />\n    <CodeBlock.Code value={mantleCode(\"typescript\")`const x = \"hello\";`} />\n  </CodeBlock.Body>\n  <CodeBlock.ExpanderButton />\n</CodeBlock.Root>\n\n// Server-highlighted HTML fetched via an action route + React Query mutation\nconst highlightMutation = useMutation({\n  mutationFn: async () => {\n    const response = await fetch(\"/api/shiki-highlight\", {\n      method: \"POST\",\n      headers: { \"Content-Type\": \"application/json\" },\n      body: JSON.stringify({ code: source, language: \"typescript\" }),\n    });\n    return response.json();\n  },\n});\n\nconst serverValue = createMantleCodeBlockValue({\n  language: \"typescript\",\n  code: source,\n  preHtml: highlightMutation.data?.html,\n});\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "Code",
+        "boundary": "the code is a short fragment inside a sentence."
+      },
+      {
+        "name": "TruncatedText",
+        "boundary": "one long opaque value must stay on one line."
+      }
+    ],
+    "useWhen": "Show a block of code with syntax highlighting and a copy button."
   },
   {
     "name": "Combobox",
@@ -306,7 +519,26 @@
     "aliases": [
       "autocomplete",
       "typeahead"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "Select",
+        "boundary": "the list is short and needs no filter."
+      },
+      {
+        "name": "MultiSelect",
+        "boundary": "the user picks several values, shown as tags."
+      },
+      {
+        "name": "Command",
+        "boundary": "the list runs actions or goes to pages, in a palette."
+      },
+      {
+        "name": "Query",
+        "boundary": "the field filters a list with free text and `key:value` qualifiers."
+      }
+    ],
+    "useWhen": "Pick one value from a long list of options, with a text field that filters the options as the user types."
   },
   {
     "name": "Command",
@@ -320,7 +552,18 @@
     "examples": [
       "Composition:\n```\nCommand.DialogRoot\n├── Command.SearchTrigger\n├── Command.DialogTrigger\n└── Command.DialogContent\n    ├── Command.Input\n    └── Command.List\n        ├── Command.Empty\n        ├── Command.Group\n        │   └── Command.Item\n        │       └── Command.Shortcut\n        └── Command.Separator\n```",
       "```tsx\n<Command.DialogRoot>\n  <Command.SearchTrigger>\n    <button type=\"button\">Search…</button>\n  </Command.SearchTrigger>\n  <Command.DialogContent>\n    <Command.Input placeholder=\"Type a command or search...\" />\n    <Command.List>\n      <Command.Empty>No results found.</Command.Empty>\n      <Command.Group heading=\"Suggestions\">\n        <Command.Item>\n          <span>Calendar</span>\n        </Command.Item>\n      </Command.Group>\n      <Command.Separator />\n      <Command.Group heading=\"Settings\">\n        <Command.Item>\n          <span>Profile</span>\n          <Command.Shortcut>⌘,</Command.Shortcut>\n        </Command.Item>\n      </Command.Group>\n    </Command.List>\n  </Command.DialogContent>\n</Command.DialogRoot>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "Combobox",
+        "boundary": "the text field filters options in place and sets a form value."
+      },
+      {
+        "name": "DropdownMenu",
+        "boundary": "a short list of actions opens from one button."
+      }
+    ],
+    "useWhen": "Search for an action or a page and run it from a keyboard-first palette, such as a `⌘K` menu."
   },
   {
     "name": "Data Table",
@@ -337,7 +580,18 @@
       "Sortable, filterable, paginated, with both empty states — a global text\nfilter, the no-data vs. no-results-for-filter empty states (an `Empty`\ndropped into `DataTable.EmptyRow`), and `CursorPagination` with a page-size\ndropdown:\n```tsx\nimport {\n  DataTable,\n  columnFilteringFeature,\n  createColumnHelper,\n  createFilteredRowModel,\n  createPaginatedRowModel,\n  createSortedRowModel,\n  globalFilteringFeature,\n  rowPaginationFeature,\n  rowSortingFeature,\n  sortFn_alphanumeric,\n  sortFn_datetime,\n  sortFn_text,\n  tableFeatures,\n  useTable,\n} from \"@ngrok/mantle/data-table\";\nimport { Button } from \"@ngrok/mantle/button\";\nimport { CursorPagination } from \"@ngrok/mantle/pagination\";\nimport { Empty } from \"@ngrok/mantle/empty\";\nimport { Input } from \"@ngrok/mantle/input\";\nimport { MagnifyingGlassIcon } from \"@phosphor-icons/react/MagnifyingGlass\";\nimport { TrayIcon } from \"@phosphor-icons/react/Tray\";\nimport { useState } from \"react\";\n\ntype Payment = { id: string; amount: number; status: \"pending\" | \"succeeded\" | \"failed\"; email: string };\n\n// The table's initial page size. It must be one of PageSizeSelect's pageSizes\n// (default 5 | 10 | 20 | 50 | 100).\nconst DEFAULT_PAGE_SIZE = 10;\n\n// `globalFilteringFeature` builds on `columnFilteringFeature`, so register both.\nconst features = tableFeatures({\n  columnFilteringFeature,\n  globalFilteringFeature,\n  rowPaginationFeature,\n  rowSortingFeature,\n  filteredRowModel: createFilteredRowModel(),\n  paginatedRowModel: createPaginatedRowModel(),\n  sortedRowModel: createSortedRowModel(),\n  sortFns: {\n    alphanumeric: sortFn_alphanumeric,\n    datetime: sortFn_datetime,\n    text: sortFn_text,\n  },\n});\n\nconst columnHelper = createColumnHelper<typeof features, Payment>();\nconst columns = columnHelper.columns([\n  columnHelper.accessor(\"status\", {\n    id: \"status\",\n    header: (props) => (\n      <DataTable.Header column={props.column}>\n        <DataTable.HeaderSortButton column={props.column} sortingMode=\"alphanumeric\">\n          Status\n        </DataTable.HeaderSortButton>\n      </DataTable.Header>\n    ),\n    cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,\n  }),\n  columnHelper.accessor(\"email\", {\n    id: \"email\",\n    header: (props) => (\n      <DataTable.Header column={props.column}>\n        <DataTable.HeaderSortButton column={props.column} sortingMode=\"alphanumeric\">\n          Email\n        </DataTable.HeaderSortButton>\n      </DataTable.Header>\n    ),\n    cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,\n  }),\n  columnHelper.accessor(\"amount\", {\n    id: \"amount\",\n    header: (props) => (\n      <DataTable.Header className=\"text-right\">\n        <DataTable.HeaderSortButton\n          column={props.column}\n          sortingMode=\"alphanumeric\"\n          className=\"justify-end\"\n          iconPlacement=\"start\"\n        >\n          Amount\n        </DataTable.HeaderSortButton>\n      </DataTable.Header>\n    ),\n    cell: (props) => (\n      <DataTable.Cell className=\"text-right tabular-nums\">\n        {new Intl.NumberFormat(\"en-US\", { style: \"currency\", currency: \"USD\" }).format(props.getValue())}\n      </DataTable.Cell>\n    ),\n  }),\n]);\n\nfunction PaymentsTable({ data }: { data: Payment[] }) {\n  const [globalFilter, setGlobalFilter] = useState(\"\");\n\n  const table = useTable({\n    features,\n    data,\n    columns,\n    state: { globalFilter },\n    onGlobalFilterChange: setGlobalFilter,\n    initialState: { pagination: { pageIndex: 0, pageSize: DEFAULT_PAGE_SIZE } },\n  });\n  const rows = table.getRowModel().rows;\n  const isFiltered = globalFilter.trim() !== \"\";\n\n  return (\n    <div className=\"space-y-4\">\n      <Input\n        placeholder=\"Filter payments…\"\n        value={globalFilter}\n        onChange={(event) => setGlobalFilter(event.target.value)}\n      />\n      <DataTable.Root table={table}>\n        <DataTable.Head />\n        <DataTable.Body>\n          {rows.length > 0 ? (\n            rows.map((row) => <DataTable.Row key={row.id} row={row} />)\n          ) : isFiltered ? (\n            // No results for the active filter — give the user a way out.\n            <DataTable.EmptyRow>\n              <Empty.Root>\n                <Empty.Icon svg={<MagnifyingGlassIcon />} />\n                <Empty.Title>No payments match your filter</Empty.Title>\n                <Empty.Description>\n                  <p>Try a different search, or clear the filter to see everything.</p>\n                </Empty.Description>\n                <Empty.Actions>\n                  <Button\n                    type=\"button\"\n                    appearance=\"outlined\"\n                    intent=\"neutral\"\n                    onClick={() => setGlobalFilter(\"\")}\n                  >\n                    Clear filters\n                  </Button>\n                </Empty.Actions>\n              </Empty.Root>\n            </DataTable.EmptyRow>\n          ) : (\n            // No data yet — informational, optionally a primary \"create\" action.\n            <DataTable.EmptyRow>\n              <Empty.Root>\n                <Empty.Icon svg={<TrayIcon />} />\n                <Empty.Title>No payments yet</Empty.Title>\n                <Empty.Description>\n                  <p>Payments you receive will appear here.</p>\n                </Empty.Description>\n              </Empty.Root>\n            </DataTable.EmptyRow>\n          )}\n        </DataTable.Body>\n      </DataTable.Root>\n      <CursorPagination.Root\n        className=\"flex justify-end\"\n        pageSize={table.state.pagination.pageSize}\n        onChangePageSize={(size) => {\n          table.setPageSize(size);\n          table.setPageIndex(0); // reset to the first page when the size changes\n        }}\n      >\n        <CursorPagination.PageSizeSelect />\n        <CursorPagination.Buttons\n          hasPreviousPage={table.getCanPreviousPage()}\n          hasNextPage={table.getCanNextPage()}\n          onPreviousPage={() => table.previousPage()}\n          onNextPage={() => table.nextPage()}\n        />\n      </CursorPagination.Root>\n    </div>\n  );\n}\n```",
       "Row action column — a sticky right-edge cell with a dropdown menu of actions.\nThe cell stops its own clicks, so the menu opens without a clickable row\nnavigating:\n```tsx\nimport { DataTable, createColumnHelper } from \"@ngrok/mantle/data-table\";\nimport { DropdownMenu } from \"@ngrok/mantle/dropdown-menu\";\nimport { IconButton } from \"@ngrok/mantle/button\";\nimport { DotsThreeVerticalIcon } from \"@phosphor-icons/react/DotsThreeVertical\";\n\nconst columnHelper = createColumnHelper<typeof features, Payment>();\n\nconst columns = columnHelper.columns([\n  // …other columns…\n  columnHelper.display({\n    id: \"actions\",\n    header: () => <DataTable.ActionHeader />,\n    cell: (props) => (\n      <DataTable.ActionCell>\n        <DropdownMenu.Root>\n          <DropdownMenu.Trigger asChild>\n            <IconButton type=\"button\" appearance=\"outlined\" intent=\"neutral\" label=\"Actions\" icon={<DotsThreeVerticalIcon />} />\n          </DropdownMenu.Trigger>\n          <DropdownMenu.Content align=\"end\">\n            <DropdownMenu.Item onSelect={() => copy(props.row.original.id)}>\n              Copy ID\n            </DropdownMenu.Item>\n            <DropdownMenu.Item onSelect={() => refund(props.row.original.id)}>\n              Refund\n            </DropdownMenu.Item>\n          </DropdownMenu.Content>\n        </DropdownMenu.Root>\n      </DataTable.ActionCell>\n    ),\n  }),\n]);\n```",
       "Clickable row navigating to a detail page. A `<tr>` is not focusable, so the\nprimary cell also renders a `<Link>` as the keyboard and screen-reader path.\n`SandboxedOnClick` keeps the link's click from also running the row handler:\n```tsx\nimport { DataTable, useTable } from \"@ngrok/mantle/data-table\";\nimport { SandboxedOnClick } from \"@ngrok/mantle/sandboxed-on-click\";\nimport { Link, href, useNavigate } from \"react-router\";\n\nfunction PaymentsTable({ data }: { data: Payment[] }) {\n  const navigate = useNavigate();\n  const table = useTable({ features, data, columns });\n  const rows = table.getRowModel().rows;\n\n  return (\n    <DataTable.Root table={table}>\n      <DataTable.Head />\n      <DataTable.Body>\n        {rows.map((row) => (\n          <DataTable.Row\n            key={row.id}\n            row={row}\n            onClick={() => navigate(href(\"/payments/:id\", { id: row.original.id }))}\n          />\n        ))}\n      </DataTable.Body>\n    </DataTable.Root>\n  );\n}\n\n// The primary column's cell renders a <Link> for keyboard / a11y reachability.\ncolumnHelper.accessor(\"email\", {\n  id: \"email\",\n  header: (props) => <DataTable.Header>Email</DataTable.Header>,\n  cell: (props) => (\n    <DataTable.Cell>\n      <SandboxedOnClick asChild allowClickEventDefault>\n        <Link to={href(\"/payments/:id\", { id: props.row.original.id })}>\n          {props.getValue()}\n        </Link>\n      </SandboxedOnClick>\n    </DataTable.Cell>\n  ),\n});\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "Table",
+        "boundary": "the data is static, with no sorting, filtering, pagination, or selection."
+      },
+      {
+        "name": "DescriptionList",
+        "boundary": "one record shows as label and value pairs."
+      }
+    ],
+    "useWhen": "Show rows of application data that the user sorts, filters, pages through, or selects."
   },
   {
     "name": "Description List",
@@ -351,7 +605,18 @@
     "examples": [
       "Composition:\n```\nDescriptionList.Root\n└── DescriptionList.Item\n    ├── DescriptionList.Label\n    └── DescriptionList.Value\n```",
       "```tsx\n<DescriptionList.Root>\n  <DescriptionList.Item>\n    <DescriptionList.Label>Name</DescriptionList.Label>\n    <DescriptionList.Value>my-api-key</DescriptionList.Value>\n  </DescriptionList.Item>\n  <DescriptionList.Item>\n    <DescriptionList.Label>ID</DescriptionList.Label>\n    <DescriptionList.Value>\n      aigk_2fKm9x8Hn3QpYT7zKlR0vW5\n    </DescriptionList.Value>\n  </DescriptionList.Item>\n</DescriptionList.Root>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "Table",
+        "boundary": "several records share the same columns."
+      },
+      {
+        "name": "Strata",
+        "boundary": "the pairs are headed sections of controls, not read-only data."
+      }
+    ],
+    "useWhen": "Show the label and value pairs of one resource, such as the metadata on a detail page."
   },
   {
     "name": "Dialog",
@@ -368,7 +633,22 @@
     ],
     "aliases": [
       "modal"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "AlertDialog",
+        "boundary": "the user must confirm a destructive or irreversible action, such as a delete."
+      },
+      {
+        "name": "Sheet",
+        "boundary": "the content slides in from the edge of the screen, such as a filter panel or a detail view."
+      },
+      {
+        "name": "Popover",
+        "boundary": "the content is small and opens next to its trigger, with no modal backdrop."
+      }
+    ],
+    "useWhen": "Gather input or confirm a choice that is not destructive, in a modal window that blocks the page."
   },
   {
     "name": "Dropdown Menu",
@@ -382,7 +662,26 @@
     "examples": [
       "Composition:\n```\nDropdownMenu.Root\n├── DropdownMenu.Trigger\n└── DropdownMenu.Content\n    ├── DropdownMenu.Group\n    │   ├── DropdownMenu.Label\n    │   ├── DropdownMenu.Item\n    │   │   └── DropdownMenu.Shortcut\n    │   ├── DropdownMenu.CheckboxItem\n    │   └── DropdownMenu.RadioGroup\n    │       └── DropdownMenu.RadioItem\n    ├── DropdownMenu.Separator\n    └── DropdownMenu.Sub\n        ├── DropdownMenu.SubTrigger\n        └── DropdownMenu.SubContent\n```",
       "```tsx\n<DropdownMenu.Root>\n  <DropdownMenu.Trigger asChild>\n    <Button type=\"button\" appearance=\"outlined\" intent=\"neutral\">\n      Open Menu\n    </Button>\n  </DropdownMenu.Trigger>\n  <DropdownMenu.Content>\n    <DropdownMenu.Item>Item 1</DropdownMenu.Item>\n    <DropdownMenu.Item>Item 2</DropdownMenu.Item>\n  </DropdownMenu.Content>\n</DropdownMenu.Root>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "Select",
+        "boundary": "the user picks one value for a form field."
+      },
+      {
+        "name": "SplitButton",
+        "boundary": "a default action runs on one click, and the menu holds its alternatives."
+      },
+      {
+        "name": "Command",
+        "boundary": "the user searches many actions or pages from the keyboard."
+      },
+      {
+        "name": "Popover",
+        "boundary": "the floating content is a small form or other content, not a menu."
+      }
+    ],
+    "useWhen": "Show a menu of actions or options when the user clicks a button."
   },
   {
     "name": "Empty",
@@ -429,7 +728,18 @@
     "examples": [
       "Composition:\n```\nField.Group\n└── Field.Item\n    ├── Field.LabelRow\n    │   ├── Field.Label            (or Field.LabelText for control-less rows)\n    │   │   └── Field.Optional\n    │   └── Field.Help\n    │       ├── Field.HelpTrigger\n    │       └── Field.HelpContent\n    ├── Field.Control\n    │   └── (control)\n    ├── Field.Errors             (or)\n    ├── Field.ErrorList\n    │   └── Field.ErrorItem\n    └── Field.Description\n```",
       "```tsx\n<Field.Group>\n  <Field.Item name=\"apiKey\">\n    <Field.LabelRow>\n      <Field.Label>\n        API key <Field.Optional />\n      </Field.Label>\n      <Field.Help>\n        <Field.HelpTrigger label=\"What is an API key?\" />\n        <Field.HelpContent>Copy this from the dashboard.</Field.HelpContent>\n      </Field.Help>\n    </Field.LabelRow>\n    <Field.Control>\n      <Input />\n    </Field.Control>\n    <Field.Errors messages={[\"API key is required.\"]} />\n    <Field.Description>You can find this in the ngrok dashboard.</Field.Description>\n  </Field.Item>\n</Field.Group>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "Label",
+        "boundary": "the control needs only a caption, with no description or errors."
+      },
+      {
+        "name": "Choice",
+        "boundary": "a checkbox, a radio, or a switch sits beside a title and a description."
+      }
+    ],
+    "useWhen": "Group one form control with its label, its description, and its validation errors."
   },
   {
     "name": "Flag",
@@ -442,7 +752,8 @@
     "jsdoc": "Renders a country flag from an [ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) country code, served as an SVG from ngrok's CDN.",
     "examples": [
       "```tsx\nimport { Flag } from \"@ngrok/mantle/flag\";\n\n<Flag code=\"US\" />\n<Flag code=\"JP\" size=\"m\" loading=\"eager\" />\n<Flag code=\"CA\" size=\"s\" />\n\n// Inline next to a country label.\n<span className=\"inline-flex items-center gap-2\">\n  <Flag code=\"GB\" size=\"s\" aria-hidden />\n  <span>United Kingdom</span>\n</span>\n```"
-    ]
+    ],
+    "useWhen": "Show the country of a region, an IP address, or a billing address as a flag, from its two-letter country code."
   },
   {
     "name": "Hover Card",
@@ -456,7 +767,18 @@
     "examples": [
       "Composition:\n```\nHoverCard.Root\n├── HoverCard.Trigger\n└── HoverCard.Content\n    └── HoverCard.Arrow\n```",
       "```tsx\n<HoverCard.Root>\n  <HoverCard.Trigger asChild>\n    <Button type=\"button\" appearance=\"outlined\" intent=\"neutral\">\n      Hover me\n    </Button>\n  </HoverCard.Trigger>\n  <HoverCard.Content>\n    <p>This is the hover card content.</p>\n  </HoverCard.Content>\n</HoverCard.Root>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "Tooltip",
+        "boundary": "the content is a short label or hint with no interactive content."
+      },
+      {
+        "name": "Popover",
+        "boundary": "the user opens interactive content on purpose, with a click or a key."
+      }
+    ],
+    "useWhen": "Preview the content behind a link on hover, such as a user card or a repository preview."
   },
   {
     "name": "Icon",
@@ -469,7 +791,18 @@
     "jsdoc": "Decorates an svg icon with automatic sizing styles and a `shrink-0` class.",
     "examples": [
       "```tsx\nimport { ShrimpIcon } from \"@phosphor-icons/react/Shrimp\";\n\n// Decorative: renders aria-hidden=\"true\".\n<Icon svg={<ShrimpIcon />} />\n\n// Meaningful: the name keeps it exposed.\n<Icon svg={<ShrimpIcon />} role=\"img\" aria-label=\"Shrimp\" />\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "IconButton",
+        "boundary": "the icon is the only content of a button."
+      },
+      {
+        "name": "Avatar",
+        "boundary": "the image represents a person or an account."
+      }
+    ],
+    "useWhen": "Show an SVG icon, such as a Phosphor icon, beside text or inside a control."
   },
   {
     "name": "Icon Button",
@@ -483,7 +816,14 @@
     "examples": [
       "```tsx\n<IconButton\n  icon={<TrashIcon />}\n  label=\"Delete item\"\n  appearance=\"ghost\"\n  intent=\"neutral\"\n  size=\"sm\"\n  onClick={handleDelete}\n/>\n```",
       "Submit a form — opt in with `type=\"submit\"` (the default `\"button\"` does not submit):\n```tsx\n<IconButton\n  type=\"submit\"\n  appearance=\"outlined\"\n  intent=\"neutral\"\n  icon={<MagnifyingGlassIcon />}\n  label=\"Search\"\n/>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "Button",
+        "boundary": "the button shows a text label."
+      }
+    ],
+    "useWhen": "Run an action from a compact button that shows one icon and no text, such as a close or a copy button."
   },
   {
     "name": "Icons",
@@ -493,7 +833,14 @@
     "status": "stable",
     "importPath": "@ngrok/mantle/icons",
     "summary": "Custom icons used throughout ngrok UI.",
-    "jsdoc": "Re-exports for the Icons component — the ngrok-specific icons that `@phosphor-icons/react` does not ship."
+    "jsdoc": "Re-exports for the Icons component — the ngrok-specific icons that `@phosphor-icons/react` does not ship.",
+    "siblings": [
+      {
+        "name": "Icon",
+        "boundary": "the glyph comes from `@phosphor-icons/react`."
+      }
+    ],
+    "useWhen": "Show an ngrok glyph that `@phosphor-icons/react` does not ship, such as the ngrok wordmark or the icon for a traffic policy file."
   },
   {
     "name": "Input",
@@ -506,7 +853,30 @@
     "jsdoc": "An interactive form control that accepts data from the user.",
     "examples": [
       "```tsx\n<Input\n  type=\"email\"\n  placeholder=\"Enter your email\"\n  validation=\"success\"\n/>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "TextArea",
+        "boundary": "the text spans several lines."
+      },
+      {
+        "name": "PasswordInput",
+        "boundary": "the value is a password or another secret."
+      },
+      {
+        "name": "OtpInput",
+        "boundary": "the value is a one-time passcode."
+      },
+      {
+        "name": "Combobox",
+        "boundary": "the user picks the value from a list of suggestions."
+      },
+      {
+        "name": "Query",
+        "boundary": "the field filters a list with free text and `key:value` qualifiers."
+      }
+    ],
+    "useWhen": "Accept one line of text from the user, such as a name, an email address, a URL, or a search term."
   },
   {
     "name": "Kbd",
@@ -519,7 +889,18 @@
     "jsdoc": "A square, centered keyboard \"key\" chip for rendering shortcut hints — \"K\", \"⌘\", \"⌃\", \"Enter\".",
     "examples": [
       "```tsx\nimport { Kbd } from \"@ngrok/mantle/kbd\";\n\n// Letter key.\n<Kbd>K</Kbd>\n\n// Symbol: a visually hidden label names the key, and the glyph is hidden.\n<Kbd>\n  <span className=\"sr-only\">Enter</span>\n  <span aria-hidden>↵</span>\n</Kbd>\n\n// Chord — render each key separately.\n<span className=\"inline-flex items-center gap-1\">\n  <Kbd>\n    <span className=\"sr-only\">Command</span>\n    <span aria-hidden>⌘</span>\n  </Kbd>\n  <span>+</span>\n  <Kbd>K</Kbd>\n</span>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "Code",
+        "boundary": "the text is a fragment of code, not a key."
+      },
+      {
+        "name": "Badge",
+        "boundary": "the label is a status, a category, or a count."
+      }
+    ],
+    "useWhen": "Show a keyboard key or a shortcut hint, such as `⌘` and `K`, in prose, a tooltip, or a menu item."
   },
   {
     "name": "Label",
@@ -532,7 +913,18 @@
     "jsdoc": "A caption for a form control — input, checkbox, radio, switch, select.",
     "examples": [
       "```tsx\nimport { Label } from \"@ngrok/mantle/label\";\nimport { Input } from \"@ngrok/mantle/input\";\n\n// Implicit — control nested inside the label.\n<Label className=\"grid gap-1\">\n  <span>Email</span>\n  <Input type=\"email\" name=\"email\" />\n</Label>\n\n// Explicit — htmlFor matches the control's id.\n<div className=\"grid gap-1\">\n  <Label htmlFor=\"api-key\">API key</Label>\n  <Input id=\"api-key\" name=\"apiKey\" />\n</div>\n\n// Inline label for a checkbox.\n<Label className=\"flex items-center gap-2\">\n  <Checkbox name=\"terms\" />\n  <span>I agree to the terms</span>\n</Label>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "Field",
+        "boundary": "the control also needs a description or validation errors."
+      },
+      {
+        "name": "Choice",
+        "boundary": "the control needs a title and a description beside it."
+      }
+    ],
+    "useWhen": "Give a form control a visible caption that names it and focuses it on a click."
   },
   {
     "name": "Line Chart",
@@ -546,7 +938,22 @@
     "examples": [
       "Composition:\n```\nLineChart.Root\n├── LineChart.Grid\n├── LineChart.XAxis\n├── LineChart.YAxis\n├── LineChart.Line (one per series)\n├── LineChart.ReferenceLine\n├── LineChart.Tooltip\n├── LineChart.Legend\n└── LineChart.CopyButton\n```",
       "```tsx\nconst data = [\n  { time: new Date(\"2026-07-18T10:00:00Z\"), p50: 120, p99: 480 },\n  { time: new Date(\"2026-07-18T10:01:00Z\"), p50: 132, p99: 510 },\n  { time: new Date(\"2026-07-18T10:02:00Z\"), p50: 101, p99: 460 },\n];\n\n<LineChart.Root data={data} xKey=\"time\" aria-label=\"Request latency\">\n  <LineChart.Grid />\n  <LineChart.XAxis />\n  <LineChart.YAxis />\n  <LineChart.Line dataKey=\"p50\" label=\"p50\" />\n  <LineChart.Line dataKey=\"p99\" label=\"p99\" curve=\"monotone\" />\n  <LineChart.Tooltip />\n  <LineChart.Legend />\n</LineChart.Root>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "AreaChart",
+        "boundary": "the chart shows a volume, or a total and its parts, as filled areas."
+      },
+      {
+        "name": "BarChart",
+        "boundary": "the x axis is a set of categories."
+      },
+      {
+        "name": "ScatterPlot",
+        "boundary": "the points show how two measures correlate, and their order does not matter."
+      }
+    ],
+    "useWhen": "Show how one or more values trend over time or another continuous axis, including long series with many points."
   },
   {
     "name": "List",
@@ -560,7 +967,18 @@
     "examples": [
       "Composition:\n```\nList.Root   (or .VirtualRoot)\n└── List.Item\n    ├── List.ItemTitle\n    └── List.ItemDescription\n```",
       "```tsx\n<List.Root aria-label=\"Your accounts\" className=\"max-h-80\">\n  {accounts.map((account) => (\n    <List.Item key={account.id} onClick={() => switchTo(account.id)}>\n      <List.ItemTitle>{account.name}</List.ItemTitle>\n      <List.ItemDescription>\n        {account.plan} · {account.memberCount} members\n      </List.ItemDescription>\n    </List.Item>\n  ))}\n</List.Root>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "SelectableList",
+        "boundary": "the user selects rows with checkboxes."
+      },
+      {
+        "name": "DropdownMenu",
+        "boundary": "the actions open in a menu from a button."
+      }
+    ],
+    "useWhen": "Show a scrollable list of items that each run an action or navigate, such as an account switcher."
   },
   {
     "name": "Live Region",
@@ -573,7 +991,22 @@
     "jsdoc": "Announces its text to screen readers when the text changes.",
     "examples": [
       "```tsx\nimport { LiveRegion } from \"@ngrok/mantle/live-region\";\n\n// Mount the region before the first message, then swap the message.\nfunction SearchResults({ results }: { results: string[] }) {\n  return (\n    <>\n      <LiveRegion>{`${results.length} results found`}</LiveRegion>\n      <ul>\n        {results.map((result) => (\n          <li key={result}>{result}</li>\n        ))}\n      </ul>\n    </>\n  );\n}\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "Toast",
+        "boundary": "sighted users also need to see the message."
+      },
+      {
+        "name": "Alert",
+        "boundary": "the message stays visible in the page and announces itself."
+      },
+      {
+        "name": "VisuallyHidden",
+        "boundary": "the hidden text is static and needs no announcement."
+      }
+    ],
+    "useWhen": "Announce a change to screen readers with no visible message, such as a save result or a count of search results."
   },
   {
     "name": "Main",
@@ -587,7 +1020,18 @@
     "examples": [
       "```tsx\n<SkipToMainLink />\n<Header />\n<Main>\n  <h1>Page title</h1>\n</Main>\n```",
       "In an app shell, `AppLayout.Body` renders it:\n```tsx\n<Sidebar.Root>\n  <AppLayout.Root className=\"fixed inset-0\">\n    <SkipToMainLink />\n    <AppLayout.Notice>{isUnderMaintenance && <MaintenanceBanner />}</AppLayout.Notice>\n    <AppLayout.Workspace>\n      <Sidebar.Nav aria-label=\"Main\">…</Sidebar.Nav>\n      <AppLayout.Content>\n        <AppLayout.Header>\n          <Sidebar.Trigger />\n          <Breadcrumbs />\n        </AppLayout.Header>\n        <AppLayout.Body>\n          <Outlet />\n        </AppLayout.Body>\n      </AppLayout.Content>\n    </AppLayout.Workspace>\n  </AppLayout.Root>\n</Sidebar.Root>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "SkipToMainLink",
+        "boundary": "keyboard users need the link that jumps to the landmark."
+      },
+      {
+        "name": "AppLayout",
+        "boundary": "the page sits in the app shell, where `AppLayout.Body` already renders the landmark."
+      }
+    ],
+    "useWhen": "Mark the primary content of a page as a focusable `<main>` landmark that a skip link can move focus to."
   },
   {
     "name": "Media Object",
@@ -601,7 +1045,18 @@
     "examples": [
       "Composition:\n```\nMediaObject.Root\n├── MediaObject.Media\n└── MediaObject.Content\n```",
       "```tsx\nimport { Avatar } from \"@ngrok/mantle/avatar\";\nimport { MediaObject } from \"@ngrok/mantle/media-object\";\n\n<MediaObject.Root>\n  <MediaObject.Media>\n    <Avatar.Root>\n      <Avatar.Image src={user.avatarUrl} alt=\"\" />\n      <Avatar.Fallback name={user.name} />\n    </Avatar.Root>\n  </MediaObject.Media>\n  <MediaObject.Content>\n    <p className=\"font-medium\">{user.name}</p>\n    <p className=\"text-muted text-sm\">{comment}</p>\n  </MediaObject.Content>\n</MediaObject.Root>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "Card",
+        "boundary": "the content needs a raised box with a border."
+      },
+      {
+        "name": "Choice",
+        "boundary": "the thing beside the text is a checkbox, a radio, or a switch."
+      }
+    ],
+    "useWhen": "Put an image, an avatar, or an icon beside a title and a description, such as in a comment or a list row."
   },
   {
     "name": "Multi Select",
@@ -615,7 +1070,22 @@
     "examples": [
       "Composition:\n```\nMultiSelect.Root\n├── MultiSelect.Trigger\n│   ├── MultiSelect.TagValues\n│   └── MultiSelect.Input\n└── MultiSelect.Content\n    ├── MultiSelect.Group\n    │   ├── MultiSelect.GroupLabel\n    │   ├── MultiSelect.GroupDescription\n    │   └── MultiSelect.Item\n    ├── MultiSelect.Separator\n    ├── MultiSelect.Empty\n    └── MultiSelect.ContentFooter\n```",
       "```tsx\n<MultiSelect.Root>\n  <MultiSelect.Trigger>\n    <MultiSelect.TagValues />\n    <MultiSelect.Input placeholder=\"Select items...\" />\n  </MultiSelect.Trigger>\n  <MultiSelect.Content>\n    <MultiSelect.Item value=\"apple\">Apple</MultiSelect.Item>\n    <MultiSelect.Item value=\"banana\">Banana</MultiSelect.Item>\n    <MultiSelect.Item value=\"cherry\">Cherry</MultiSelect.Item>\n  </MultiSelect.Content>\n</MultiSelect.Root>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "Combobox",
+        "boundary": "the user picks one value with a filter."
+      },
+      {
+        "name": "Select",
+        "boundary": "the user picks one value from a short list."
+      },
+      {
+        "name": "SelectableList",
+        "boundary": "the options show inline as checkbox rows, with no popover."
+      }
+    ],
+    "useWhen": "Pick several values from a list with a typeahead filter, and show the picks as removable tags."
   },
   {
     "name": "OTP Input",
@@ -629,7 +1099,18 @@
     "examples": [
       "Composition:\n```\nOtpInput.Root\n├── OtpInput.Group\n│   └── OtpInput.Slot\n├── OtpInput.Separator\n└── OtpInput.Group\n    └── OtpInput.Slot\n```",
       "```tsx\n<OtpInput.Root maxLength={6}>\n  <OtpInput.Group>\n    <OtpInput.Slot index={0} />\n    <OtpInput.Slot index={1} />\n    <OtpInput.Slot index={2} />\n  </OtpInput.Group>\n  <OtpInput.Separator />\n  <OtpInput.Group>\n    <OtpInput.Slot index={3} />\n    <OtpInput.Slot index={4} />\n    <OtpInput.Slot index={5} />\n  </OtpInput.Group>\n</OtpInput.Root>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "Input",
+        "boundary": "the value is free-form text."
+      },
+      {
+        "name": "PasswordInput",
+        "boundary": "the value is a password or another long-lived secret."
+      }
+    ],
+    "useWhen": "Enter a one-time passcode, such as a two-factor code, with one box for each character."
   },
   {
     "name": "Pagination",
@@ -639,7 +1120,8 @@
     "status": "stable",
     "importPath": "@ngrok/mantle/pagination",
     "summary": "Components and hooks for navigating through paged data with cursor-based and offset-based pagination strategies.",
-    "jsdoc": "Re-exports for the Pagination component family — `CursorPagination`'s parts for cursor paging, and `useOffsetPagination` for offset paging."
+    "jsdoc": "Re-exports for the Pagination component family — `CursorPagination`'s parts for cursor paging, and `useOffsetPagination` for offset paging.",
+    "useWhen": "Move through paged data one page at a time, with a cursor or an offset."
   },
   {
     "name": "Password Input",
@@ -652,7 +1134,18 @@
     "jsdoc": "An input optimized for password and other sensitive-value entry.",
     "examples": [
       "```tsx\nimport { PasswordInput } from \"@ngrok/mantle/input\";\nimport { Label } from \"@ngrok/mantle/label\";\nimport { useState } from \"react\";\n\n// Basic — uncontrolled visibility.\n<Label className=\"grid gap-1\">\n  <span>Password</span>\n  <PasswordInput name=\"password\" autoComplete=\"current-password\" />\n</Label>\n\n// Validation state.\n<PasswordInput validation=\"error\" />\n\n// Controlled visibility — one toggle reveals multiple fields.\nfunction PasswordPair() {\n  const [show, setShow] = useState(false);\n  return (\n    <>\n      <PasswordInput showValue={show} onValueVisibilityChange={setShow} />\n      <PasswordInput showValue={show} onValueVisibilityChange={setShow} />\n    </>\n  );\n}\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "Input",
+        "boundary": "the value is never sensitive."
+      },
+      {
+        "name": "OtpInput",
+        "boundary": "the value is a one-time passcode."
+      }
+    ],
+    "useWhen": "Accept a password or another secret value, with a button that shows or hides it."
   },
   {
     "name": "Popover",
@@ -669,7 +1162,26 @@
     ],
     "aliases": [
       "popup"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "Tooltip",
+        "boundary": "the content is a short label or hint that shows on hover or focus."
+      },
+      {
+        "name": "HoverCard",
+        "boundary": "the content is a preview of a link that shows on hover."
+      },
+      {
+        "name": "DropdownMenu",
+        "boundary": "the content is a list of actions."
+      },
+      {
+        "name": "Dialog",
+        "boundary": "the task needs a modal window that blocks the page."
+      }
+    ],
+    "useWhen": "Show interactive content, such as a small form, a settings menu, or a color picker, that the user opens from a button."
   },
   {
     "name": "Progress Bar",
@@ -683,7 +1195,18 @@
     "examples": [
       "Composition:\n```\nProgressBar.Root\n└── ProgressBar.Indicator\n```",
       "```tsx\n<ProgressBar.Root aria-label=\"Upload progress\" value={60}>\n  <ProgressBar.Indicator />\n</ProgressBar.Root>\n\n<ProgressBar.Root aria-label=\"Upload progress\" value={75} max={100}>\n  <ProgressBar.Indicator />\n</ProgressBar.Root>\n\n// Indeterminate progress\n<ProgressBar.Root aria-label=\"Upload progress\" value=\"indeterminate\">\n  <ProgressBar.Indicator />\n</ProgressBar.Root>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "ProgressDonut",
+        "boundary": "the indicator must be a small circle."
+      },
+      {
+        "name": "Skeleton",
+        "boundary": "the content still loads, and its progress is unknown."
+      }
+    ],
+    "useWhen": "Show how much of a task or a quota is complete, as a horizontal bar."
   },
   {
     "name": "Progress Donut",
@@ -697,7 +1220,14 @@
     "examples": [
       "Composition:\n```\nProgressDonut.Root\n└── ProgressDonut.Indicator\n```",
       "```tsx\n<ProgressDonut.Root aria-label=\"Data transfer out\" value={60}>\n  <ProgressDonut.Indicator />\n</ProgressDonut.Root>\n\n<ProgressDonut.Root aria-label=\"Data transfer out\" value={60}>\n  <ProgressDonut.Indicator className=\"text-danger-600\" />\n</ProgressDonut.Root>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "ProgressBar",
+        "boundary": "the indicator is a horizontal bar."
+      }
+    ],
+    "useWhen": "Show how much of a task or a quota is complete, as a small circle."
   },
   {
     "name": "QR Code",
@@ -711,7 +1241,8 @@
     "examples": [
       "Composition:\n```\nQrCode.Root\n├── QrCode.Frame\n│   └── QrCode.Pattern\n└── QrCode.Overlay\n```",
       "```tsx\n<QrCode.Root value=\"https://ngrok.com\" ecc=\"H\">\n  <QrCode.Frame>\n    <QrCode.Pattern />\n  </QrCode.Frame>\n  <QrCode.Overlay>\n    <NgrokLettermarkIcon className=\"size-7\" />\n  </QrCode.Overlay>\n</QrCode.Root>\n```"
-    ]
+    ],
+    "useWhen": "Encode a URL or other text as a QR code that a phone camera can scan, with an optional centered logo."
   },
   {
     "name": "Query",
@@ -758,7 +1289,22 @@
     "examples": [
       "Composition:\n```\n# Default radios\nRadioGroup.Root\n└── RadioGroup.Item\n    ├── RadioGroup.Indicator\n    └── RadioGroup.ItemContent\n\n# List layout with descriptions\nRadioGroup.List\n└── RadioGroup.ListItem\n    ├── RadioGroup.Indicator\n    └── RadioGroup.ItemContent\n\n# Segmented button group\nRadioGroup.ButtonGroup\n└── RadioGroup.Button\n\n# Card-style radios\nRadioGroup.Root\n└── RadioGroup.Card\n    └── RadioGroup.Indicator\n\n# Rich option layout (Choice)\nRadioGroup.Root\n└── RadioGroup.Item\n    └── Choice.Root\n        ├── Choice.Indicator\n        │   └── RadioGroup.Indicator\n        └── Choice.Content\n            ├── Choice.Title\n            └── Choice.Description\n```",
       "```tsx\n<RadioGroup.Root value={value} onChange={setValue}>\n  <RadioGroup.Item value=\"option1\">\n    <RadioGroup.Indicator />\n    <span>Option 1</span>\n  </RadioGroup.Item>\n  <RadioGroup.Item value=\"option2\">\n    <RadioGroup.Indicator />\n    <span>Option 2</span>\n  </RadioGroup.Item>\n</RadioGroup.Root>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "Select",
+        "boundary": "the set is long, or the form has little space."
+      },
+      {
+        "name": "Checkbox",
+        "boundary": "the user picks any number of options."
+      },
+      {
+        "name": "Choice",
+        "boundary": "each radio needs a title and a description beside it."
+      }
+    ],
+    "useWhen": "Pick exactly one option from a small set, with every option visible at once."
   },
   {
     "name": "Sandbar",
@@ -772,7 +1318,22 @@
     "examples": [
       "Composition:\n```\nSandbar.Root\n├── Sandbar.Message\n└── Sandbar.Actions\n    ├── Sandbar.DiscardButton\n    └── Sandbar.SaveButton\n```",
       "```tsx\n<Sandbar.Root open={isDirty} handleRef={sandbarHandle}>\n  <Sandbar.Message>You have unsaved changes</Sandbar.Message>\n  <Sandbar.Actions>\n    <Sandbar.DiscardButton onClick={reset}>Discard</Sandbar.DiscardButton>\n    <Sandbar.SaveButton onClick={save} isLoading={isPending}>Save</Sandbar.SaveButton>\n  </Sandbar.Actions>\n</Sandbar.Root>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "Toast",
+        "boundary": "the message reports something that already happened and goes away on its own."
+      },
+      {
+        "name": "Alert",
+        "boundary": "the message needs no decision and stays in the page."
+      },
+      {
+        "name": "AlertDialog",
+        "boundary": "one destructive action needs a confirmation before it runs."
+      }
+    ],
+    "useWhen": "Hold the unsaved changes of a form in a bar at the bottom of the page until the user saves or discards them."
   },
   {
     "name": "SandboxedOnClick",
@@ -785,7 +1346,8 @@
     "jsdoc": "A container that prevents the click event from bubbling out of it.",
     "examples": [
       "```tsx\n<TableRow onClick={() => navigate(\"/somewhere\")}>\n  <TableRowCell>\n    <SandboxedOnClick allowClickEventDefault>\n      <Anchor href=\"https://ngrok.com/docs\">\n        See ngrok docs\n      </Anchor>\n    </SandboxedOnClick>\n  </TableRowCell>\n</TableRow>\n```"
-    ]
+    ],
+    "useWhen": "Stop a click inside a region, such as a menu in a clickable table row, from reaching a click handler on an ancestor."
   },
   {
     "name": "Scatter Plot",
@@ -799,7 +1361,18 @@
     "examples": [
       "Composition:\n```\nScatterPlot.Root\n├── ScatterPlot.Grid\n├── ScatterPlot.XAxis\n├── ScatterPlot.YAxis\n├── ScatterPlot.Point (one per series)\n├── ScatterPlot.ReferenceLine\n├── ScatterPlot.Tooltip\n├── ScatterPlot.Legend\n└── ScatterPlot.CopyButton\n```",
       "```tsx\nconst data = [\n  { latency: 12, throughputA: 840, throughputB: 720 },\n  { latency: 28, throughputA: 610, throughputB: 590 },\n  { latency: 45, throughputA: 340, throughputB: 410 },\n];\n\n<ScatterPlot.Root data={data} xKey=\"latency\" aria-label=\"Latency vs throughput\">\n  <ScatterPlot.Grid />\n  <ScatterPlot.XAxis />\n  <ScatterPlot.YAxis />\n  <ScatterPlot.Point dataKey=\"throughputA\" label=\"Region A\" />\n  <ScatterPlot.Point dataKey=\"throughputB\" label=\"Region B\" />\n  <ScatterPlot.Tooltip />\n  <ScatterPlot.Legend />\n</ScatterPlot.Root>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "LineChart",
+        "boundary": "one measure trends over time or another continuous axis."
+      },
+      {
+        "name": "BarChart",
+        "boundary": "values compare across categories."
+      }
+    ],
+    "useWhen": "Show how two measures correlate across many points, or three measures in a rotatable 3D view."
   },
   {
     "name": "Select",
@@ -816,7 +1389,26 @@
     ],
     "aliases": [
       "dropdown"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "Combobox",
+        "boundary": "the list is long or loads from a server, and the user types to filter it."
+      },
+      {
+        "name": "MultiSelect",
+        "boundary": "the user picks several values."
+      },
+      {
+        "name": "RadioGroup",
+        "boundary": "the options are few and must all show at once."
+      },
+      {
+        "name": "DropdownMenu",
+        "boundary": "the list runs actions and sets no value."
+      }
+    ],
+    "useWhen": "Pick one value from a short, fixed list of options that needs no filter."
   },
   {
     "name": "Selectable List",
@@ -830,7 +1422,18 @@
     "examples": [
       "Composition:\n```\nSelectableList.Root\n├── SelectableList.Filter\n├── SelectableList.SelectAll\n├── SelectableList.Viewport            (or .VirtualViewport)\n│   └── SelectableList.Item            (optional render-prop; auto-rendered by default)\n│       ├── SelectableList.ItemTitle\n│       └── SelectableList.ItemDescription\n└── SelectableList.Empty\n```",
       "```tsx\nconst options = accessKeys.map((key) => ({\n  value: key.id,\n  label: key.name,\n  description: key.maskedToken,\n}));\n\n<SelectableList.Root options={options} value={selected} onValueChange={setSelected}>\n  <SelectableList.Filter placeholder=\"Filter access keys…\" />\n  <SelectableList.SelectAll>Select all</SelectableList.SelectAll>\n  <SelectableList.Viewport aria-label=\"Access keys\" className=\"max-h-80\" />\n  <SelectableList.Empty>No access keys found.</SelectableList.Empty>\n</SelectableList.Root>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "MultiSelect",
+        "boundary": "the options open in a popover, and the picks show as tags."
+      },
+      {
+        "name": "List",
+        "boundary": "each row runs an action or navigates, with no selection."
+      }
+    ],
+    "useWhen": "Select several items from an inline, filterable list of checkbox rows, with no popover."
   },
   {
     "name": "Separator",
@@ -877,7 +1480,22 @@
     "aliases": [
       "drawer",
       "side panel"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "Dialog",
+        "boundary": "the task fits a centered modal window."
+      },
+      {
+        "name": "AlertDialog",
+        "boundary": "the user must confirm a destructive or irreversible action."
+      },
+      {
+        "name": "Sidebar",
+        "boundary": "the panel holds the persistent navigation of the app."
+      }
+    ],
+    "useWhen": "Open a panel from the edge of the screen for a task beside the current view, such as a filter panel, a detail view, or a mobile menu."
   },
   {
     "name": "Sidebar",
@@ -891,7 +1509,22 @@
     "examples": [
       "Composition:\n```\nSidebar.Root\n├── Sidebar.Nav\n│   ├── Sidebar.Header\n│   │   └── Sidebar.SwitcherTrigger\n│   ├── Sidebar.Body\n│   │   ├── Sidebar.SearchTrigger\n│   │   └── Sidebar.Group\n│   │       ├── Sidebar.GroupLabel\n│   │       └── Sidebar.List\n│   │           └── Sidebar.Item\n│   │               └── Sidebar.Tooltip\n│   │                   └── Sidebar.ItemButton\n│   └── Sidebar.Footer\n│       ├── Sidebar.ItemButton\n│       ├── Sidebar.Separator\n│       └── Sidebar.SwitcherTrigger\n└── Sidebar.Trigger\n```",
       "```tsx\n<Sidebar.Root>\n  <Sidebar.Nav aria-label=\"Main\">\n    <Sidebar.Header>\n      <DropdownMenu.Root>\n        <DropdownMenu.Trigger asChild>\n          <Sidebar.SwitcherTrigger>\n            <GlobeIcon />\n            <span className=\"text-strong min-w-0 flex-1 truncate text-base\">Universal Gateway</span>\n            <CaretDownIcon className=\"text-muted size-4 shrink-0\" />\n          </Sidebar.SwitcherTrigger>\n        </DropdownMenu.Trigger>\n        <DropdownMenu.Content width=\"trigger\" className=\"min-w-(--sidebar-row-width)\">…</DropdownMenu.Content>\n      </DropdownMenu.Root>\n    </Sidebar.Header>\n    <Sidebar.Body>\n      <Sidebar.Group>\n        <Sidebar.GroupLabel>Traffic</Sidebar.GroupLabel>\n        <Sidebar.List>\n          <Sidebar.Item>\n            <Sidebar.ItemButton asChild current>\n              <a href=\"/endpoints\">\n                <GraphIcon />\n                Endpoints\n              </a>\n            </Sidebar.ItemButton>\n          </Sidebar.Item>\n        </Sidebar.List>\n      </Sidebar.Group>\n    </Sidebar.Body>\n    <Sidebar.Footer>\n      <Sidebar.Separator />\n      <DropdownMenu.Root>\n        <DropdownMenu.Trigger asChild>\n          <Sidebar.SwitcherTrigger>\n            <Avatar.Root appearance=\"square\" colorSeed=\"acc_123\">\n              <Avatar.Fallback name=\"Acme Corp\" />\n            </Avatar.Root>\n            <span className=\"text-strong min-w-0 flex-1 truncate text-sm font-medium\">Acme Corp</span>\n          </Sidebar.SwitcherTrigger>\n        </DropdownMenu.Trigger>\n        <DropdownMenu.Content width=\"trigger\" className=\"min-w-(--sidebar-row-width)\">…</DropdownMenu.Content>\n      </DropdownMenu.Root>\n    </Sidebar.Footer>\n  </Sidebar.Nav>\n  <Sidebar.Trigger />\n</Sidebar.Root>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "Tabs",
+        "boundary": "the user switches between views inside one page."
+      },
+      {
+        "name": "Sheet",
+        "boundary": "a panel opens over the page for a task, not for navigation."
+      },
+      {
+        "name": "Breadcrumb",
+        "boundary": "the page shows where it sits in a hierarchy."
+      }
+    ],
+    "useWhen": "Show the main navigation of an app in a column that collapses to an icon rail, and to a sheet on small screens."
   },
   {
     "name": "Skeleton",
@@ -904,7 +1537,18 @@
     "jsdoc": "A skeleton is a placeholder for content that is loading.",
     "examples": [
       "```tsx\nimport { Skeleton } from \"@ngrok/mantle/skeleton\";\n\n// Text-line placeholder.\n<Skeleton className=\"w-1/2\" />\n\n// Avatar placeholder.\n<Skeleton className=\"h-12 w-12 rounded-full\" />\n\n// Announce loading state to assistive tech.\n<div role=\"status\" aria-live=\"polite\">\n  <span className=\"sr-only\">Loading profile…</span>\n  <Skeleton className=\"h-12 w-12 rounded-full\" />\n</div>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "Empty",
+        "boundary": "the region loaded and has no data, no results, or no access to show."
+      },
+      {
+        "name": "ProgressBar",
+        "boundary": "a task shows how much of it is complete."
+      }
+    ],
+    "useWhen": "Hold the place of content while it loads, in the shape that the content will take."
   },
   {
     "name": "Skip to Main Link",
@@ -917,7 +1561,18 @@
     "jsdoc": "A visually-hidden-until-focused \"skip link\" that lets keyboard users jump past repeated navigation and land directly on the page's main content landmark.",
     "examples": [
       "```tsx\n<SkipToMainLink />\n<Header />\n<Main>\n  <h1>Page title</h1>\n</Main>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "Main",
+        "boundary": "the page needs the focusable `<main>` landmark that the link targets."
+      },
+      {
+        "name": "VisuallyHidden",
+        "boundary": "the hidden content is text for screen readers, not a link."
+      }
+    ],
+    "useWhen": "Let keyboard users jump past repeated navigation to the main content of the page."
   },
   {
     "name": "Slider",
@@ -932,7 +1587,14 @@
       "```tsx\n// single thumb\n<Slider\n  aria-label=\"Volume\"\n  defaultValue={75}\n  max={100}\n  step={1}\n/>\n```",
       "```tsx\n// range\n <Slider\n   aria-label=\"Price\"\n   defaultValue={[25, 50]}\n   max={100}\n   step={5}\n />\n```",
       "```tsx\n// multiple thumbs\n<Slider\n  aria-label=\"Breakpoint\"\n  defaultValue={[10, 20, 70]}\n  max={100}\n  step={10}\n />\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "Input",
+        "boundary": "the user types an exact number."
+      }
+    ],
+    "useWhen": "Pick a number, or a range between two numbers, with a thumb that moves along a track."
   },
   {
     "name": "Slot",
@@ -945,7 +1607,8 @@
     "jsdoc": "Merges its props onto its immediate child.",
     "examples": [
       "```tsx\n<Slot className=\"custom-class\">\n  <a href=\"/\">Home</a>\n</Slot>\n```"
-    ]
+    ],
+    "useWhen": "Merge the props of a part onto its one child element, to build an `asChild` prop."
   },
   {
     "name": "Split Button",
@@ -959,7 +1622,18 @@
     "examples": [
       "Composition:\n```\nSplitButton.Root\n├── SplitButton.PrimaryAction\n├── SplitButton.MenuTrigger\n└── SplitButton.MenuContent\n    └── SplitButton.MenuItem\n```",
       "```tsx\n<SplitButton.Root>\n  <SplitButton.PrimaryAction icon={<CopyIcon />} onClick={copyMarkdownPage}>\n    Copy page\n  </SplitButton.PrimaryAction>\n  <SplitButton.MenuTrigger label=\"Open doc actions menu\" />\n  <SplitButton.MenuContent>\n    <SplitButton.MenuItem onClick={copyMarkdownPage}>\n      <Icon svg={<CopyIcon />} />\n      Copy page\n    </SplitButton.MenuItem>\n    <SplitButton.MenuItem asChild onClick={copyMarkdownPage}>\n      <a href={markdownUrl} target=\"_blank\" rel=\"noopener noreferrer\">\n        <Icon svg={<FileTextIcon />} />\n        View as Markdown\n      </a>\n    </SplitButton.MenuItem>\n  </SplitButton.MenuContent>\n</SplitButton.Root>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "Button",
+        "boundary": "the control runs one action, with no alternatives."
+      },
+      {
+        "name": "DropdownMenu",
+        "boundary": "the button only opens a menu and runs no default action."
+      }
+    ],
+    "useWhen": "Run a default action on one click, and offer related alternatives in an attached menu."
   },
   {
     "name": "Strata",
@@ -973,7 +1647,22 @@
     "examples": [
       "Composition:\n```\nStrata.Root\n└── Strata.Section\n    ├── Strata.Header\n    │   ├── Strata.Title\n    │   └── Strata.Description\n    └── Strata.Body\n```",
       "```tsx\n<Strata.Root>\n  <Strata.Section>\n    <Strata.Header>\n      <Strata.Title>Providers</Strata.Title>\n      <Strata.Description>What providers keys may call.</Strata.Description>\n    </Strata.Header>\n    <Strata.Body>\n      <ProviderScopePicker />\n    </Strata.Body>\n  </Strata.Section>\n  <Strata.Section>\n    <Strata.Header>\n      <Strata.Title>Routing rules</Strata.Title>\n      <Strata.Description>Define how requests are authenticated.</Strata.Description>\n    </Strata.Header>\n    <Strata.Body>\n      <RoutingRuleList />\n    </Strata.Body>\n  </Strata.Section>\n</Strata.Root>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "Card",
+        "boundary": "a group needs a raised surface of its own."
+      },
+      {
+        "name": "MediaObject",
+        "boundary": "the thing beside the text is an image or an icon."
+      },
+      {
+        "name": "DescriptionList",
+        "boundary": "the pairs are read-only label and value data, not headed sections."
+      }
+    ],
+    "useWhen": "Lay out a settings page or a configuration editor as titled sections, each one explained beside its controls."
   },
   {
     "name": "Switch",
@@ -989,7 +1678,22 @@
     ],
     "aliases": [
       "toggle"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "Checkbox",
+        "boundary": "the option needs an indeterminate state."
+      },
+      {
+        "name": "Choice",
+        "boundary": "the switch needs a title and a description beside it."
+      },
+      {
+        "name": "ThemeSwitcher",
+        "boundary": "the setting is the light or dark theme."
+      }
+    ],
+    "useWhen": "Turn one setting on or off, such as a feature toggle in a settings list."
   },
   {
     "name": "Table",
@@ -1003,7 +1707,18 @@
     "examples": [
       "Composition:\n```\nTable.Root\n└── Table.Element\n    ├── Table.Caption\n    ├── Table.Head\n    │   └── Table.Row\n    │       └── Table.Header\n    ├── Table.Body\n    │   └── Table.Row\n    │       └── Table.Cell\n    └── Table.Foot\n```",
       "```tsx\n<Table.Root>\n  <Table.Element>\n    <Table.Caption>A list of your recent invoices.</Table.Caption>\n    <Table.Head>\n      <Table.Row>\n        <Table.Header className=\"w-25\">Invoice</Table.Header>\n        <Table.Header>Status</Table.Header>\n        <Table.Header>Method</Table.Header>\n        <Table.Header className=\"text-right\">Amount</Table.Header>\n      </Table.Row>\n    </Table.Head>\n    <Table.Body>\n      {invoices.map((invoice) => (\n        <Table.Row key={invoice.invoice}>\n          <Table.Cell className=\"font-medium\">{invoice.invoice}</Table.Cell>\n          <Table.Cell>{invoice.paymentStatus}</Table.Cell>\n          <Table.Cell>{invoice.paymentMethod}</Table.Cell>\n          <Table.Cell className=\"text-right\">{invoice.totalAmount}</Table.Cell>\n        </Table.Row>\n      ))}\n    </Table.Body>\n    <Table.Foot>\n      <Table.Row>\n        <Table.Cell colSpan={3}>Total</Table.Cell>\n        <Table.Cell className=\"text-right\">$2,500.00</Table.Cell>\n      </Table.Row>\n    </Table.Foot>\n  </Table.Element>\n</Table.Root>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "DataTable",
+        "boundary": "the user sorts, filters, pages through, or selects the rows."
+      },
+      {
+        "name": "DescriptionList",
+        "boundary": "one record shows as label and value pairs."
+      }
+    ],
+    "useWhen": "Show static rows and columns of data, such as a read-only data dump, with no sorting, filtering, or pagination."
   },
   {
     "name": "Tabs",
@@ -1017,7 +1732,18 @@
     "examples": [
       "Composition:\n```\nTabs.Root\n├── Tabs.List\n│   └── Tabs.Trigger\n│       └── Tabs.Badge\n├── Tabs.Separator\n└── Tabs.Content\n```",
       "```tsx\n<Tabs.Root defaultValue=\"account\">\n  <Tabs.List>\n    <Tabs.Trigger value=\"account\">Account</Tabs.Trigger>\n    <Tabs.Trigger value=\"password\">Password</Tabs.Trigger>\n  </Tabs.List>\n  <Tabs.Separator />\n  <Tabs.Content value=\"account\">\n    <p>Make changes to your account here.</p>\n  </Tabs.Content>\n  <Tabs.Content value=\"password\">\n    <p>Change your password here.</p>\n  </Tabs.Content>\n</Tabs.Root>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "Accordion",
+        "boundary": "several sections stack, and each one expands in place."
+      },
+      {
+        "name": "RadioGroup",
+        "boundary": "the user picks a form value, not a view."
+      }
+    ],
+    "useWhen": "Switch between peer views of related content in one place, with one view visible at a time."
   },
   {
     "name": "Text Area",
@@ -1030,7 +1756,14 @@
     "jsdoc": "A multi-line plain-text editing control, useful when you want to allow users to enter a sizeable amount of free-form text, for example a comment on a review or feedback form.",
     "examples": [
       "```tsx\n<form>\n  <div>\n    <Label htmlFor=\"feedback\">Feedback:</Label>\n    <TextArea\n      id=\"feedback\"\n      name=\"feedback\"\n      placeholder=\"Enter your feedback here\"\n    />\n  </div>\n</form>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "Input",
+        "boundary": "the text fits on one line."
+      }
+    ],
+    "useWhen": "Accept several lines of free-form text, such as a comment or a description."
   },
   {
     "name": "Theme",
@@ -1040,7 +1773,14 @@
     "status": "stable",
     "importPath": "@ngrok/mantle/theme",
     "summary": "Theme primitives (ThemeProvider and FOUC prevention) for light and dark modes that follow the OS by default.",
-    "jsdoc": "Re-exports for the Theme component — the provider and hooks that carry the applied theme, plus the document tags that stop a wrong-theme flash."
+    "jsdoc": "Re-exports for the Theme component — the provider and hooks that carry the applied theme, plus the document tags that stop a wrong-theme flash.",
+    "siblings": [
+      {
+        "name": "ThemeSwitcher",
+        "boundary": "the user changes the theme from a control in the UI."
+      }
+    ],
+    "useWhen": "Apply the light or dark theme to an app, follow the operating system by default, and stop a wrong-theme flash on load."
   },
   {
     "name": "Theme Switcher",
@@ -1054,7 +1794,14 @@
     "examples": [
       "```tsx\n<ThemeProvider>\n  <header>\n    <ThemeSwitcher />\n  </header>\n</ThemeProvider>\n```",
       "```tsx\n<ThemeSwitcher appearance=\"outlined\" label=\"Cambiar tema\" />\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "Switch",
+        "boundary": "the toggle controls a setting other than the theme."
+      }
+    ],
+    "useWhen": "Let the user switch between light and dark mode from a header, a toolbar, or an account menu."
   },
   {
     "name": "Toast",
@@ -1072,7 +1819,22 @@
     "aliases": [
       "notification",
       "snackbar"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "Alert",
+        "boundary": "the message stays in the page next to the content it describes."
+      },
+      {
+        "name": "AlertDialog",
+        "boundary": "the user must respond before they continue."
+      },
+      {
+        "name": "Sandbar",
+        "boundary": "the message waits for the user to save or discard pending changes."
+      }
+    ],
+    "useWhen": "Report the result of an action, such as a save or a copy, in a brief message that goes away on its own."
   },
   {
     "name": "Tooltip",
@@ -1086,7 +1848,18 @@
     "examples": [
       "Composition:\n```\nTooltip.Root\n├── Tooltip.Trigger\n└── Tooltip.Content\n```",
       "```tsx\n<Tooltip.Root>\n  <Tooltip.Trigger asChild>\n    <Button type=\"button\" appearance=\"outlined\" intent=\"neutral\">\n      Hover me\n    </Button>\n  </Tooltip.Trigger>\n  <Tooltip.Content>\n    This is a tooltip\n  </Tooltip.Content>\n</Tooltip.Root>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "Popover",
+        "boundary": "the content is interactive, such as a form or a settings menu."
+      },
+      {
+        "name": "HoverCard",
+        "boundary": "the content is a rich preview of a link."
+      }
+    ],
+    "useWhen": "Show a short, non-interactive hint for an element on hover or focus, such as the meaning of an icon button."
   },
   {
     "name": "Truncated Text",
@@ -1123,7 +1896,22 @@
     "jsdoc": "Content for assistive technology only.",
     "examples": [
       "```tsx\nimport { VisuallyHidden } from \"@ngrok/mantle/visually-hidden\";\n\n<a href=\"https://status.ngrok.com\" target=\"_blank\" rel=\"noreferrer\">\n  ngrok status\n  <VisuallyHidden> (opens in a new tab)</VisuallyHidden>\n</a>\n```"
-    ]
+    ],
+    "siblings": [
+      {
+        "name": "LiveRegion",
+        "boundary": "screen readers must announce the text when it changes."
+      },
+      {
+        "name": "IconButton",
+        "boundary": "the text names an icon-only button; pass it as the `label` prop."
+      },
+      {
+        "name": "SkipToMainLink",
+        "boundary": "the hidden content is a skip link that shows on focus."
+      }
+    ],
+    "useWhen": "Give screen readers text that sighted users never see, such as \"(opens in a new tab)\" on an external link."
   },
   {
     "name": "Well",

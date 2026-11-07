@@ -2,6 +2,8 @@
  * Re-exports for the Pagination component family — `CursorPagination`'s parts
  * for cursor paging, and `useOffsetPagination` for offset paging.
  *
+ * @useWhen Move through paged data one page at a time, with a cursor or an offset.
+ *
  * @see https://mantle.ngrok.com/components/navigation/pagination
  */
 

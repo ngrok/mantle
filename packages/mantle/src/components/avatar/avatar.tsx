@@ -438,6 +438,13 @@ const Fallback = ({
  * For the leading visual of a sidebar switcher row, put it inside
  * [Sidebar.SwitcherTrigger](https://mantle.ngrok.com/components/navigation/sidebar#sidebarswitchertrigger).
  *
+ * @useWhen Show a small picture of a person or an account, with initials or an icon when there is
+ * no picture.
+ *
+ * @siblings
+ * - `MediaObject`: the picture sits beside a title and a description.
+ * - `Icon`: the image is a generic symbol, not a person or an account.
+ *
  * @see https://mantle.ngrok.com/components/data-display/avatar
  *
  * @example

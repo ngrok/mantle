@@ -221,6 +221,13 @@ const Content = ({
  * (`z-60`). When sibling floats share a container, the most recently mounted
  * float paints on top.
  *
+ * @useWhen Show a short, non-interactive hint for an element on hover or focus, such as the meaning
+ * of an icon button.
+ *
+ * @siblings
+ * - `Popover`: the content is interactive, such as a form or a settings menu.
+ * - `HoverCard`: the content is a rich preview of a link.
+ *
  * @see https://mantle.ngrok.com/components/overlays/tooltip
  * @see https://www.w3.org/WAI/ARIA/apg/patterns/tooltip/
  *

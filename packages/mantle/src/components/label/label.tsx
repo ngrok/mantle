@@ -47,6 +47,12 @@ type LabelProps = ComponentProps<"label"> & {
  * passing a font-weight utility on the `Label` itself, e.g.
  * `<Label className="font-bold">`.
  *
+ * @useWhen Give a form control a visible caption that names it and focuses it on a click.
+ *
+ * @siblings
+ * - `Field`: the control also needs a description or validation errors.
+ * - `Choice`: the control needs a title and a description beside it.
+ *
  * @see https://mantle.ngrok.com/components/forms/label
  *
  * @example

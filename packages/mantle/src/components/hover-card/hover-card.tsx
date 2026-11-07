@@ -286,6 +286,12 @@ const Arrow = ({
  * (`z-60`). When sibling floats share a container, the most recently mounted
  * float paints on top.
  *
+ * @useWhen Preview the content behind a link on hover, such as a user card or a repository preview.
+ *
+ * @siblings
+ * - `Tooltip`: the content is a short label or hint with no interactive content.
+ * - `Popover`: the user opens interactive content on purpose, with a click or a key.
+ *
  * @see https://mantle.ngrok.com/components/overlays/hover-card
  *
  * @example

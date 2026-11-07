@@ -446,6 +446,12 @@ const CopyButton = (props: BarChartCopyButtonProps) => (
  * token from `Root`'s computed style, so a declaration scoped there wins for
  * that chart and leaves every other chart on the page alone.
  *
+ * @useWhen Compare values across categories, with grouped or stacked bars.
+ *
+ * @siblings
+ * - `LineChart`: the x axis is time or another continuous range.
+ * - `AreaChart`: a total and its parts change over a continuous range.
+ *
  * @see https://mantle.ngrok.com/components/charts/bar-chart
  *
  * @example

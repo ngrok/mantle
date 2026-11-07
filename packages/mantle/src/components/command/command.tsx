@@ -794,6 +794,13 @@ const CommandShortcut = ({
  * opening a modal, the component is
  * [Combobox](https://mantle.ngrok.com/components/forms/combobox).
  *
+ * @useWhen Search for an action or a page and run it from a keyboard-first palette, such as a `⌘K`
+ * menu.
+ *
+ * @siblings
+ * - `Combobox`: the text field filters options in place and sets a form value.
+ * - `DropdownMenu`: a short list of actions opens from one button.
+ *
  * @see https://mantle.ngrok.com/components/navigation/command
  *
  * @example

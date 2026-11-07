@@ -681,6 +681,13 @@ const Body = ({
  * `Accordion.Root` defaults to `type="multiple"` (sections open independently);
  * pass `type="single"` when opening one section should auto-close the others.
  *
+ * @useWhen Stack titled sections that each expand and collapse in place, such as questions and
+ * answers or a group of advanced settings.
+ *
+ * @siblings
+ * - `Tabs`: one section shows at a time, and a row of tabs switches between them.
+ * - `Strata`: every section stays open, with its title and explanation beside its content.
+ *
  * @see https://mantle.ngrok.com/components/data-display/accordion
  *
  * @example

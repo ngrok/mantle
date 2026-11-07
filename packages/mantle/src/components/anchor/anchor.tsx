@@ -85,6 +85,13 @@ type AnchorProps = Omit<ComponentProps<"a">, "rel"> &
  * | -------------- | ---------------- | --------------------------------------------------------------------------- |
  * | `data-slot`    | `"anchor-label"` | On the `<span>` wrapping `children`. Stable styling hook for the link text. |
  *
+ * @useWhen Link to an address outside the app, such as an external site, a file, or a `mailto:`
+ * address.
+ *
+ * @siblings
+ * - `Button`: the control runs an action and does not navigate.
+ * - `Breadcrumb`: the links show the path from a root page to the current page.
+ *
  * @see https://mantle.ngrok.com/components/navigation/anchor
  *
  * @example

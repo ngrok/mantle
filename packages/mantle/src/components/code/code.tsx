@@ -29,6 +29,14 @@ import { Slot } from "../slot/index.js";
  * `Kbd` and `CodeBlock.Code` take no such override — a key and a block of code
  * are never translatable.
  *
+ * @useWhen Mark a short fragment of code inside a sentence, such as a function name, a file path,
+ * or a key.
+ *
+ * @siblings
+ * - `CodeBlock`: the code spans several lines or needs syntax highlighting.
+ * - `Kbd`: the text is a keyboard key or a shortcut.
+ * - `TruncatedText`: the value is long and opaque, such as a URL or an ID, and can overflow its row.
+ *
  * @see https://mantle.ngrok.com/components/data-display/code
  * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/translate
  *

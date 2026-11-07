@@ -47,6 +47,14 @@ type LiveRegionProps = ComponentProps<"span"> &
  * | -------------- | --------------- | ------------------------------------------------------------------------- |
  * | `data-slot`    | `"live-region"` | Stamped on the rendered element, and joined onto the child via `asChild`. |
  *
+ * @useWhen Announce a change to screen readers with no visible message, such as a save result or a
+ * count of search results.
+ *
+ * @siblings
+ * - `Toast`: sighted users also need to see the message.
+ * - `Alert`: the message stays visible in the page and announces itself.
+ * - `VisuallyHidden`: the hidden text is static and needs no announcement.
+ *
  * @see https://mantle.ngrok.com/components/primitives/live-region
  * @see https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Guides/Live_regions
  *

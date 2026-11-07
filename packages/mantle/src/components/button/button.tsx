@@ -284,6 +284,13 @@ type ButtonProps = ComponentProps<"button"> &
  * | `data-loading`    | present when `isLoading`                               | Presence-only, never `"false"`.                                                               |
  * | `data-disabled`   | present when disabled                                  | Presence-only, never `"false"`, since the `data-disabled:` variant matches the attribute's existence. Set when the button resolves disabled: `disabled`, `aria-disabled="true"`, or `isLoading` with no explicit `disabled`. `disabled={false}` keeps a loading button enabled and omits it. |
  *
+ * @useWhen Run an action on a click: submit a form, save a change, or open a dialog.
+ *
+ * @siblings
+ * - `IconButton`: the button shows one icon and no text.
+ * - `SplitButton`: a default action sits beside a menu of related actions.
+ * - `Anchor`: the control goes to another address and runs no action.
+ *
  * @see https://mantle.ngrok.com/components/actions/button
  *
  * @example

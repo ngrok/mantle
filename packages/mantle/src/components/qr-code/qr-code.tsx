@@ -351,6 +351,9 @@ const Overlay = ({
  * `Root` and `Overlay` support the `asChild` prop for polymorphic composition.
  * `Frame` and `Pattern` render fixed SVG elements and do not.
  *
+ * @useWhen Encode a URL or other text as a QR code that a phone camera can scan, with an optional
+ * centered logo.
+ *
  * @see https://mantle.ngrok.com/components/data-display/qr-code
  *
  * @example

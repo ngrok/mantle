@@ -75,6 +75,9 @@ const sizingVariants = cva("", {
  * **Loading.** Defaults to `loading="lazy"`. Use `loading="eager"` for flags
  * above the fold or in critical content.
  *
+ * @useWhen Show the country of a region, an IP address, or a billing address as a flag, from its
+ * two-letter country code.
+ *
  * @see https://mantle.ngrok.com/components/data-display/flag
  *
  * @example

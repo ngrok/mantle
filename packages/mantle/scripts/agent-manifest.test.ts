@@ -469,4 +469,28 @@ describe("buildAgentManifestFromFilesystem", () => {
 
 		expect(JSON.parse(JSON.stringify(surface))).toEqual(snapshot);
 	});
+
+	// Why: the docs site's `find` tool answers an intent query from `useWhen`,
+	// so a component without it is out of reach for a query that does not name it.
+	it("names the intent of every component and layout in @useWhen", () => {
+		const { components } = buildAgentManifestFromFilesystem();
+
+		expect(
+			components.filter((component) => component.useWhen == null).map(({ name }) => name),
+		).toEqual([]);
+	});
+
+	it("names a component or layout in every @siblings item", () => {
+		const { components } = buildAgentManifestFromFilesystem();
+		const key = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, "");
+		const names = new Set(components.map((component) => key(component.name)));
+
+		const unknown = components.flatMap((component) =>
+			(component.siblings ?? [])
+				.filter((sibling) => !names.has(key(sibling.name)))
+				.map((sibling) => `${component.name}: ${sibling.name}`),
+		);
+
+		expect(unknown).toEqual([]);
+	});
 });

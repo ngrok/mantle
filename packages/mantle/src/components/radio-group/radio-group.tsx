@@ -668,6 +668,13 @@ const InputSandbox = ({
 /**
  * A group of radio items. It manages the state of the children radios.
  *
+ * @useWhen Pick exactly one option from a small set, with every option visible at once.
+ *
+ * @siblings
+ * - `Select`: the set is long, or the form has little space.
+ * - `Checkbox`: the user picks any number of options.
+ * - `Choice`: each radio needs a title and a description beside it.
+ *
  * @see https://mantle.ngrok.com/components/forms/radio-group#radiogrouproot
  *
  * @example

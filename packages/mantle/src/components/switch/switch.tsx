@@ -24,6 +24,13 @@ type SwitchProps = ComponentProps<typeof SwitchPrimitiveRoot> &
  * compose it inside [`Choice`](/components/forms/choice) for a titled, multi-line
  * label with a supplementary description.
  *
+ * @useWhen Turn one setting on or off, such as a feature toggle in a settings list.
+ *
+ * @siblings
+ * - `Checkbox`: the option needs an indeterminate state.
+ * - `Choice`: the switch needs a title and a description beside it.
+ * - `ThemeSwitcher`: the setting is the light or dark theme.
+ *
  * @see https://mantle.ngrok.com/components/forms/switch
  *
  * @example

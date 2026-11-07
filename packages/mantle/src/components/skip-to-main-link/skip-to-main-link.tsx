@@ -30,6 +30,12 @@ type SkipToMainLinkProps = Omit<ComponentProps<"a">, "href"> &
  * Pair with the `<Main>` component (or any element with a matching `id`
  * and `tabIndex={-1}`) so it can receive focus.
  *
+ * @useWhen Let keyboard users jump past repeated navigation to the main content of the page.
+ *
+ * @siblings
+ * - `Main`: the page needs the focusable `<main>` landmark that the link targets.
+ * - `VisuallyHidden`: the hidden content is text for screen readers, not a link.
+ *
  * @see https://mantle.ngrok.com/components/primitives/skip-to-main-link
  *
  * @example

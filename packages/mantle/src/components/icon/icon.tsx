@@ -21,6 +21,12 @@ type IconProps = Omit<SvgAttributes, "children"> & {
  * `aria-hidden`. Pass `role="img"` and `aria-label` when the icon is the only
  * thing that conveys its meaning.
  *
+ * @useWhen Show an SVG icon, such as a Phosphor icon, beside text or inside a control.
+ *
+ * @siblings
+ * - `IconButton`: the icon is the only content of a button.
+ * - `Avatar`: the image represents a person or an account.
+ *
  * @see https://mantle.ngrok.com/components/data-display/icon
  *
  * @example

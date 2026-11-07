@@ -105,7 +105,20 @@ const FIND_LIMIT = 8;
 /** The lowest word score of a strong match: two summary words, or a name word. */
 const STRONG_WORD_SCORE = 6;
 
-const STOP_WORDS = new Set(["the", "and", "for", "with", "that", "this", "from", "into", "when"]);
+/**
+ * Function words and query filler. They name no part, so `find` does not score
+ * them and `gapTokens` does not log them: "before" in "confirm before delete"
+ * matches nothing.
+ */
+const STOP_WORDS = new Set(
+	`about above after against along also although among and are around because been before behind
+	being below beside between beyond but can component components could did does during either for
+	from had has have her here him his how into its let lets like may might must need needs neither
+	nor onto other our over per shall she should since such than that the their them then there
+	these they this those though through toward towards under unless until upon use used user users
+	using via want wants was were what when where whether which while who whom whose why will with
+	within without would yet you your`.split(/\s+/),
+);
 
 /** A name with case, spaces, and dashes removed, so "Data Table" equals "data-table" and "DataTable". */
 function compact(name: string): string {

@@ -1026,6 +1026,12 @@ const TabContent = ({ "data-slot": dataSlot, ...props }: CodeBlockTabContentProp
  *
  * Use `mantleCodeBlockPlugins()` to enable pre-rendering at build time.
  *
+ * @useWhen Show a block of code with syntax highlighting and a copy button.
+ *
+ * @siblings
+ * - `Code`: the code is a short fragment inside a sentence.
+ * - `TruncatedText`: one long opaque value must stay on one line.
+ *
  * @see https://mantle.ngrok.com/components/data-display/code-block
  *
  * @example

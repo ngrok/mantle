@@ -671,6 +671,13 @@ const Caption = ({
  * For INTERACTIVE tabular data with sorting / filtering / pagination / row
  * selection, use `DataTable` (built on TanStack Table) instead.
  *
+ * @useWhen Show static rows and columns of data, such as a read-only data dump, with no sorting,
+ * filtering, or pagination.
+ *
+ * @siblings
+ * - `DataTable`: the user sorts, filters, pages through, or selects the rows.
+ * - `DescriptionList`: one record shows as label and value pairs.
+ *
  * @see https://mantle.ngrok.com/components/data-display/table
  *
  * @example
