@@ -1008,12 +1008,21 @@ const TruncatedText = ({
 									element.setAttribute("data-state", binding.state);
 								}
 								const pending = pendingEventRef.current;
-								pendingEventRef.current = null;
-								if (pending?.type === "pointermove") {
-									binding.handlers.onPointerMove?.(pending.event);
-								} else if (pending?.type === "focus" && document.activeElement === element) {
-									binding.handlers.onFocus?.(pending.event);
+								if (pending == null) {
+									return;
 								}
+								pendingEventRef.current = null;
+								// Why a microtask: Radix starts its open-delay timer here, and in
+								// development StrictMode reruns Radix's effects after this one, which
+								// clears that timer. The microtask runs after the commit.
+								queueMicrotask(() => {
+									const handlers = triggerRef.current?.handlers;
+									if (pending.type === "pointermove") {
+										handlers?.onPointerMove?.(pending.event);
+									} else if (document.activeElement === element) {
+										handlers?.onFocus?.(pending.event);
+									}
+								});
 							}}
 						/>
 					</TooltipPrimitiveTrigger>

@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { createRef, useState } from "react";
+import { StrictMode, createRef, useState } from "react";
 import { renderToString } from "react-dom/server";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { findTranslatedFont, translateTextNodes } from "../../test-utils/translate-text-nodes.js";
@@ -233,6 +233,25 @@ describe("TruncatedText", () => {
 			// The tooltip's text is the root's own content, so a description would
 			// make a screen reader read the value twice.
 			expect(root).not.toHaveAttribute("aria-describedby");
+		});
+
+		test("opens the tooltip on the first hover under StrictMode", async () => {
+			const user = userEvent.setup();
+			stubGeometry(overflows);
+			// Why a delay: the delayed open path runs a timer, and StrictMode reruns
+			// the tooltip's effects in development after it mounts on the hover.
+			render(
+				<StrictMode>
+					<TooltipProvider delayDuration={50}>
+						<TruncatedText data-testid="value" value={url} />
+					</TooltipProvider>
+				</StrictMode>,
+			);
+			await measured();
+
+			await user.hover(screen.getByTestId("value"));
+
+			expect(await screen.findByRole("tooltip")).toHaveTextContent(url);
 		});
 
 		test("keeps a consumer's aria-describedby while the tooltip is open", async () => {
