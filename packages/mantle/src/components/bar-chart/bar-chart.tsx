@@ -449,8 +449,8 @@ const CopyButton = (props: BarChartCopyButtonProps) => (
  * @useWhen Compare values across categories, with grouped or stacked bars.
  *
  * @siblings
- * - `LineChart`: the x axis is time or another continuous range.
- * - `AreaChart`: a total and its parts change over a continuous range.
+ * - `LineChart`: the chart shows a trend across an ordered x axis, such as time.
+ * - `AreaChart`: a total and its parts change across an ordered x axis, such as time.
  *
  * @see https://mantle.ngrok.com/components/charts/bar-chart
  *

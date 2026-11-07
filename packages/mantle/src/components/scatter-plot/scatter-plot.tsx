@@ -461,7 +461,7 @@ const CopyButton = (props: ScatterPlotCopyButtonProps) => (
  * view.
  *
  * @siblings
- * - `LineChart`: one measure trends over time or another continuous axis.
+ * - `LineChart`: one measure trends across an ordered x axis, such as time.
  * - `BarChart`: values compare across categories.
  *
  * @see https://mantle.ngrok.com/components/charts/scatter-plot

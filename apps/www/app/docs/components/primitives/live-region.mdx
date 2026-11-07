@@ -21,7 +21,7 @@ A live region announces reliably only when it already exists in the accessibilit
 
 **When not to use**
 
-- For status the user must see. Use [`Alert`](/components/feedback/alert) or [`Toast`](/components/feedback/toast), which pair visible UI with their own announcements.
+- For status the user must see. Use [`Toast`](/components/feedback/toast), which announces its message, or [`Alert`](/components/feedback/alert), which announces only when you pass it a `role`.
 - For hidden text that never changes. Use [`VisuallyHidden`](/components/primitives/visually-hidden).
 
 export function ResultsExample() {

@@ -442,12 +442,12 @@ const CopyButton = (props: LineChartCopyButtonProps) => (
  * token from `Root`'s computed style, so a declaration scoped there wins for
  * that chart and leaves every other chart on the page alone.
  *
- * @useWhen Show how one or more values trend over time or another continuous axis, including long
- * series with many points.
+ * @useWhen Show how one or more values trend across an ordered x axis, such as time, including
+ * long series with many points.
  *
  * @siblings
  * - `AreaChart`: the chart shows a volume, or a total and its parts, as filled areas.
- * - `BarChart`: the x axis is a set of categories.
+ * - `BarChart`: the reader compares values across categories by bar length from zero.
  * - `ScatterPlot`: the points show how two measures correlate, and their order does not matter.
  *
  * @see https://mantle.ngrok.com/components/charts/line-chart

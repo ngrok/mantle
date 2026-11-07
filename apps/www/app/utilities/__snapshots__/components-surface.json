@@ -179,10 +179,10 @@
       },
       {
         "name": "BarChart",
-        "boundary": "the x axis is a set of categories, not a continuous range."
+        "boundary": "the reader compares values across categories by bar length from zero."
       }
     ],
-    "useWhen": "Show how a volume, or a total and its parts, changes over time or another continuous axis."
+    "useWhen": "Show how a volume, or a total and its parts, changes across an ordered x axis, such as time."
   },
   {
     "name": "Avatar",
@@ -253,11 +253,11 @@
     "siblings": [
       {
         "name": "LineChart",
-        "boundary": "the x axis is time or another continuous range."
+        "boundary": "the chart shows a trend across an ordered x axis, such as time."
       },
       {
         "name": "AreaChart",
-        "boundary": "a total and its parts change over a continuous range."
+        "boundary": "a total and its parts change across an ordered x axis, such as time."
       }
     ],
     "useWhen": "Compare values across categories, with grouped or stacked bars."
@@ -946,14 +946,14 @@
       },
       {
         "name": "BarChart",
-        "boundary": "the x axis is a set of categories."
+        "boundary": "the reader compares values across categories by bar length from zero."
       },
       {
         "name": "ScatterPlot",
         "boundary": "the points show how two measures correlate, and their order does not matter."
       }
     ],
-    "useWhen": "Show how one or more values trend over time or another continuous axis, including long series with many points."
+    "useWhen": "Show how one or more values trend across an ordered x axis, such as time, including long series with many points."
   },
   {
     "name": "List",
@@ -999,7 +999,7 @@
       },
       {
         "name": "Alert",
-        "boundary": "the message stays visible in the page and announces itself."
+        "boundary": "the message stays visible in the page. It announces only when you pass it a `role`."
       },
       {
         "name": "VisuallyHidden",
@@ -1365,7 +1365,7 @@
     "siblings": [
       {
         "name": "LineChart",
-        "boundary": "one measure trends over time or another continuous axis."
+        "boundary": "one measure trends across an ordered x axis, such as time."
       },
       {
         "name": "BarChart",
