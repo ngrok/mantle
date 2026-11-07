@@ -1,6 +1,7 @@
 /**
  * Re-exports for the Pagination component family — `CursorPagination`'s parts
- * for cursor paging, and `useOffsetPagination` for offset paging.
+ * for cursor paging, `useOffsetPagination` for offset paging, and
+ * `PaginationRange` for the count line of a list whose total is known.
  *
  * @useWhen Move through paged data one page at a time, with a cursor or an offset.
  *
@@ -11,6 +12,11 @@ export {
 	//,
 	CursorPagination,
 } from "./cursor-pagination.js";
+
+export {
+	//,
+	PaginationRange,
+} from "./pagination-range.js";
 
 export {
 	//,
@@ -25,6 +31,12 @@ export type {
 	CursorPageSizeValueProps,
 	CursorPaginationProps,
 } from "./cursor-pagination.js";
+
+export type {
+	//,
+	PaginationNoun,
+	PaginationRangeProps,
+} from "./pagination-range.js";
 
 export type {
 	//,

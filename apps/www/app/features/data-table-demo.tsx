@@ -27,7 +27,7 @@ import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
 import { Empty } from "@ngrok/mantle/empty";
 import { Icon } from "@ngrok/mantle/icon";
 import { Input } from "@ngrok/mantle/input";
-import { CursorPagination } from "@ngrok/mantle/pagination";
+import { CursorPagination, PaginationRange } from "@ngrok/mantle/pagination";
 import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
 import { CaretRightIcon } from "@phosphor-icons/react/CaretRight";
 import { DotsThreeIcon } from "@phosphor-icons/react/DotsThree";
@@ -719,20 +719,29 @@ export function PaginatedPaymentsDemo() {
 				</DataTable.Body>
 			</DataTable.Root>
 			<CursorPagination.Root
-				className="flex justify-end"
+				className="flex flex-wrap justify-between"
 				pageSize={table.state.pagination.pageSize}
 				onChangePageSize={(size) => {
 					table.setPageSize(size);
 					table.setPageIndex(0); // reset to the first page when the size changes
 				}}
 			>
-				<CursorPagination.PageSizeSelect />
-				<CursorPagination.Buttons
-					hasPreviousPage={table.getCanPreviousPage()}
-					hasNextPage={table.getCanNextPage()}
-					onPreviousPage={() => table.previousPage()}
-					onNextPage={() => table.nextPage()}
+				{/* The count line is a live region, so a screen reader hears the new range. */}
+				<PaginationRange
+					offset={table.state.pagination.pageIndex * table.state.pagination.pageSize}
+					pageSize={table.state.pagination.pageSize}
+					total={table.getRowCount()}
+					noun={{ singular: "payment", plural: "payments" }}
 				/>
+				<div className="flex items-center gap-2">
+					<CursorPagination.PageSizeSelect />
+					<CursorPagination.Buttons
+						hasPreviousPage={table.getCanPreviousPage()}
+						hasNextPage={table.getCanNextPage()}
+						onPreviousPage={() => table.previousPage()}
+						onNextPage={() => table.nextPage()}
+					/>
+				</div>
 			</CursorPagination.Root>
 		</div>
 	);

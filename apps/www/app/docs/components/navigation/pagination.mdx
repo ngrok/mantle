@@ -291,7 +291,7 @@ import {
 	tableFeatures,
 	useTable,
 } from "@ngrok/mantle/data-table";
-import { CursorPagination } from "@ngrok/mantle/pagination";
+import { CursorPagination, PaginationRange } from "@ngrok/mantle/pagination";
 
 // The table's initial page size. It must be one of PageSizeSelect's pageSizes
 // (default 5 | 10 | 20 | 50 | 100).
@@ -354,20 +354,29 @@ function PaginatedTable({ data }: { data: Payment[] }) {
 				</DataTable.Body>
 			</DataTable.Root>
 			<CursorPagination.Root
-				className="flex justify-end"
+				className="flex flex-wrap justify-between"
 				pageSize={table.state.pagination.pageSize}
 				onChangePageSize={(size) => {
 					table.setPageSize(size);
 					table.setPageIndex(0); // reset to the first page when the size changes
 				}}
 			>
-				<CursorPagination.PageSizeSelect />
-				<CursorPagination.Buttons
-					hasPreviousPage={table.getCanPreviousPage()}
-					hasNextPage={table.getCanNextPage()}
-					onPreviousPage={() => table.previousPage()}
-					onNextPage={() => table.nextPage()}
+				{/* The count line is a live region, so a screen reader hears the new range. */}
+				<PaginationRange
+					offset={table.state.pagination.pageIndex * table.state.pagination.pageSize}
+					pageSize={table.state.pagination.pageSize}
+					total={table.getRowCount()}
+					noun={{ singular: "payment", plural: "payments" }}
 				/>
+				<div className="flex items-center gap-2">
+					<CursorPagination.PageSizeSelect />
+					<CursorPagination.Buttons
+						hasPreviousPage={table.getCanPreviousPage()}
+						hasNextPage={table.getCanNextPage()}
+						onPreviousPage={() => table.previousPage()}
+						onNextPage={() => table.nextPage()}
+					/>
+				</div>
 			</CursorPagination.Root>
 		</div>
 	);
@@ -408,6 +417,15 @@ function ServerCursorPagination() {
 ```
 
 See the [DataTable pagination recipe](/components/data-display/data-table#pagination-controls) for the full table markup.
+
+## Count line
+
+`PaginationRange` renders the count line beside the controls, such as "1–10 of 23 payments". The client-paginated example above shows it. It takes the page's `offset`, the `pageSize`, and the list's `total`, so it fits both offset state from `useOffsetPagination` and a TanStack table instance:
+
+- Beside a [`Table`](/components/data-display/table#pagination), pass the hook's `offset` and `pageSize`, and the filtered list's length as `total`.
+- Beside a [`DataTable`](/components/data-display/data-table#pagination-controls), pass `pageIndex * pageSize` and `getRowCount()`.
+
+The line is a live region (`role="status"`), so a screen reader announces the new range when the page changes. It stays in the DOM while the list is empty, because a live region added together with its text isn't announced. It shows the total alone when one page holds every row, and no text for an empty list, which shows its own empty state. Cursor data has no total, so it has no count line.
 
 ## Composition
 
@@ -458,6 +476,22 @@ A select input for changing the number of items per page. Its combobox is named 
 ### CursorPagination.PageSizeValue
 
 Displays the current page size as a read-only value (e.g. "100 per page"). Accepts standard `span` attributes.
+
+### PaginationRange
+
+The count line for one page of a list. It renders a `span` with `role="status"`. Accepts standard `span` attributes except `children`, plus:
+
+| Prop       | Type                                   | Default                                     | Description                                                                       |
+| :--------- | :------------------------------------- | :------------------------------------------ | :-------------------------------------------------------------------------------- |
+| `offset`   | `number`                               |                                             | The index of the first row on the page, from 0. A non-negative integer.           |
+| `pageSize` | `number`                               |                                             | The most rows a page holds. A positive integer.                                   |
+| `total`    | `number`                               |                                             | How many rows the list holds after its filter. A non-negative integer.            |
+| `noun?`    | `{ singular: string; plural: string }` | `{ singular: "result", plural: "results" }` | The noun to count, in both forms, because an English plural is irregular.         |
+| `asChild?` | `boolean`                              | `false`                                     | Renders the text in your own element. The child must have no children of its own. |
+
+| Data Attribute | Value                | Description  |
+| :------------- | :------------------- | :----------- |
+| `data-slot`    | `"pagination-range"` | On the root. |
 
 ## Offset pagination
 
