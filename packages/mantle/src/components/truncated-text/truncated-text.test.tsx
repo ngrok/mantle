@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { createRef, useState } from "react";
 import { renderToString } from "react-dom/server";
@@ -45,34 +45,59 @@ function stubGeometry(geometry: Geometry) {
 	});
 }
 
-/** The callbacks the component registers, so a test can fire a resize by hand. */
-const resizeCallbacks = new Set<ResizeObserverCallback>();
+/**
+ * Every observer the component creates. Kept across tests, because the
+ * component creates one observer for all instances and keeps it.
+ */
+const observers = new Set<FakeResizeObserver>();
 
 class FakeResizeObserver implements ResizeObserver {
 	#callback: ResizeObserverCallback;
+	readonly targets = new Set<Element>();
 
 	constructor(callback: ResizeObserverCallback) {
 		this.#callback = callback;
+		observers.add(this);
 	}
 
-	observe(): void {
-		resizeCallbacks.add(this.#callback);
+	observe(target: Element): void {
+		this.targets.add(target);
 	}
 
-	unobserve(): void {}
+	unobserve(target: Element): void {
+		this.targets.delete(target);
+	}
 
 	disconnect(): void {
-		resizeCallbacks.delete(this.#callback);
+		this.targets.clear();
+	}
+
+	/** Reports every observed element, the way a layout change would. */
+	fire(): void {
+		// Why the rect: the component reads the root's content width from the entry.
+		const entries = Array.from(
+			this.targets,
+			(target) => ({ target, contentRect: target.getBoundingClientRect() }) as ResizeObserverEntry,
+		);
+		this.#callback(entries, this);
 	}
 }
 
-/** Fires every registered observer, the way a layout change would. */
+/** Fires every observer, the way a layout change would. */
 function resize(): void {
 	act(() => {
-		for (const callback of resizeCallbacks) {
-			callback([], new FakeResizeObserver(callback));
+		for (const observer of observers) {
+			observer.fire();
 		}
 	});
+}
+
+/**
+ * Waits for the batch that measures after a commit. It runs in a microtask,
+ * before the browser paints.
+ */
+async function measured(): Promise<void> {
+	await act(async () => {});
 }
 
 const fits: Geometry = { root: 400, head: 250, tail: 60 };
@@ -90,7 +115,6 @@ function renderValue(props: RenderProps = {}) {
 }
 
 beforeEach(() => {
-	resizeCallbacks.clear();
 	vi.stubGlobal("ResizeObserver", FakeResizeObserver);
 });
 
@@ -196,6 +220,7 @@ describe("TruncatedText", () => {
 			const user = userEvent.setup();
 			stubGeometry(overflows);
 			renderValue();
+			await measured();
 			const root = screen.getByTestId("value");
 			expect(root).toHaveAttribute("data-truncated", "");
 
@@ -214,6 +239,7 @@ describe("TruncatedText", () => {
 			const user = userEvent.setup();
 			stubGeometry(overflows);
 			renderValue({ "aria-describedby": "hint" });
+			await measured();
 			const root = screen.getByTestId("value");
 
 			await user.hover(root);
@@ -227,6 +253,7 @@ describe("TruncatedText", () => {
 			const user = userEvent.setup();
 			stubGeometry(overflows);
 			renderValue();
+			await measured();
 			const root = screen.getByTestId("value");
 			expect(root).toHaveAttribute("tabindex", "0");
 
@@ -236,7 +263,38 @@ describe("TruncatedText", () => {
 			expect(await screen.findByRole("tooltip")).toHaveTextContent(url);
 		});
 
-		test("inside a control, keeps the whole value in its name and adds no tab stop or tooltip", () => {
+		test("opens no tooltip when a tap focuses the value, and opens it on keyboard focus", async () => {
+			const user = userEvent.setup();
+			stubGeometry(overflows);
+			render(
+				<TooltipProvider>
+					<button type="button">Before</button>
+					<TruncatedText data-testid="value" value={url} />
+				</TooltipProvider>,
+			);
+			await measured();
+			const root = screen.getByTestId("value");
+
+			// Why by hand: a browser moves focus during the press, but user-event
+			// moves it at the release, after the click that closes a tooltip.
+			fireEvent.pointerDown(root, { pointerType: "touch" });
+			act(() => {
+				root.focus();
+			});
+			// Why: a tooltip that the focus opened would mount in a later commit.
+			await measured();
+
+			expect(root).toHaveFocus();
+			expect(screen.queryByRole("tooltip")).toBeNull();
+			fireEvent.pointerUp(document, { pointerType: "touch" });
+
+			await user.tab({ shift: true });
+			await user.tab();
+
+			expect(await screen.findByRole("tooltip")).toHaveTextContent(url);
+		});
+
+		test("inside a control, keeps the whole value in its name and adds no tab stop or tooltip", async () => {
 			stubGeometry(overflows);
 			render(
 				<TooltipProvider>
@@ -245,6 +303,7 @@ describe("TruncatedText", () => {
 					</button>
 				</TooltipProvider>,
 			);
+			await measured();
 			const root = screen.getByTestId("value");
 			expect(root).toHaveAttribute("data-truncated", "");
 			expect(root).not.toHaveAttribute("tabindex");
@@ -254,7 +313,7 @@ describe("TruncatedText", () => {
 			expect(screen.getByRole("button", { name: url })).toBeInTheDocument();
 		});
 
-		test("inside a radio, a control by role alone, adds no tab stop or tooltip", () => {
+		test("inside a radio, a control by role alone, adds no tab stop or tooltip", async () => {
 			stubGeometry(overflows);
 			render(
 				<TooltipProvider>
@@ -265,6 +324,7 @@ describe("TruncatedText", () => {
 					</RadioGroup.Root>
 				</TooltipProvider>,
 			);
+			await measured();
 			const root = screen.getByTestId("value");
 			expect(root).toHaveAttribute("data-truncated", "");
 			expect(root).not.toHaveAttribute("tabindex");
@@ -288,32 +348,35 @@ describe("TruncatedText", () => {
 				);
 			}
 			render(<Link />);
+			await measured();
 			expect(screen.getByTestId("value")).not.toHaveAttribute("tabindex");
 
 			await user.click(screen.getByRole("button", { name: "Unlink" }));
 
-			// Why a fresh query: the root remounts when it leaves the control.
 			const root = screen.getByTestId("value");
 			expect(root).toHaveAttribute("tabindex", "0");
 			expect(root).toHaveAttribute("data-state", "closed");
 		});
 
-		test("lets a consumer's tabIndex win", () => {
+		test("lets a consumer's tabIndex win", async () => {
 			stubGeometry(overflows);
 			renderValue({ tabIndex: -1 });
+			await measured();
 			expect(screen.getByTestId("value")).toHaveAttribute("tabindex", "-1");
 		});
 
-		test("treats an overflow past half a pixel as truncated", () => {
+		test("treats an overflow past half a pixel as truncated", async () => {
 			// 250 + 60 = 310 against 309.4 + 0.5: the boundary pins the epsilon.
 			stubGeometry({ root: 309.4, head: 250, tail: 60 });
 			renderValue();
+			await measured();
 			expect(screen.getByTestId("value")).toHaveAttribute("data-truncated", "");
 		});
 
-		test("measures again when the value changes", () => {
+		test("measures again when the value changes", async () => {
 			stubGeometry(overflows);
 			const { rerender } = renderValue();
+			await measured();
 			const root = screen.getByTestId("value");
 			expect(root).toHaveAttribute("data-truncated", "");
 
@@ -323,11 +386,12 @@ describe("TruncatedText", () => {
 					<TruncatedText data-testid="value" value="ep_2abcd" />
 				</TooltipProvider>,
 			);
+			await measured();
 
 			expect(root).not.toHaveAttribute("data-truncated");
 		});
 
-		test("measures the new element when an asChild child changes type", () => {
+		test("measures the new element when an asChild child changes type", async () => {
 			stubGeometry(overflows);
 			const { rerender } = render(
 				<TooltipProvider>
@@ -336,6 +400,7 @@ describe("TruncatedText", () => {
 					</TruncatedText>
 				</TooltipProvider>,
 			);
+			await measured();
 			expect(screen.getByTestId("value")).toHaveAttribute("data-truncated", "");
 
 			stubGeometry(fits);
@@ -346,6 +411,7 @@ describe("TruncatedText", () => {
 					</TruncatedText>
 				</TooltipProvider>,
 			);
+			await measured();
 
 			const root = screen.getByTestId("value");
 			expect(root.tagName).toBe("KBD");
@@ -356,6 +422,7 @@ describe("TruncatedText", () => {
 			const user = userEvent.setup();
 			stubGeometry(overflows);
 			renderValue();
+			await measured();
 			const root = screen.getByTestId("value");
 			await user.hover(root);
 			expect(await screen.findByRole("tooltip")).toHaveTextContent(url);
@@ -377,6 +444,7 @@ describe("TruncatedText", () => {
 			const user = userEvent.setup();
 			stubGeometry(overflows);
 			renderValue({ translate: "yes" });
+			await measured();
 			const root = screen.getByTestId("value");
 			expect(root).toHaveAttribute("translate", "yes");
 
@@ -389,6 +457,7 @@ describe("TruncatedText", () => {
 			const user = userEvent.setup();
 			stubGeometry(overflows);
 			renderValue();
+			await measured();
 			const root = screen.getByTestId("value");
 			await user.hover(root);
 			expect(await screen.findByRole("tooltip")).toHaveTextContent(url);
@@ -419,15 +488,17 @@ describe("TruncatedText", () => {
 					</Tooltip.Root>
 				</TooltipProvider>,
 			);
+			await measured();
 
 			await user.hover(screen.getByTestId("value"));
 
 			expect(await screen.findByRole("tooltip")).toHaveTextContent("Copy the endpoint URL");
 		});
 
-		test("leaves data-truncated off and adds no tab stop", () => {
+		test("leaves data-truncated off and adds no tab stop", async () => {
 			stubGeometry(fits);
 			renderValue();
+			await measured();
 			const root = screen.getByTestId("value");
 			expect(root).not.toHaveAttribute("data-truncated");
 			expect(root).not.toHaveAttribute("tabindex");
@@ -445,6 +516,7 @@ describe("TruncatedText", () => {
 					<TruncatedText data-testid="value" value={url} />
 				</TooltipProvider>,
 			);
+			await measured();
 			// Focus opens the button's tooltip, so no pointer leave can close it.
 			await user.tab();
 			expect(await screen.findByRole("tooltip")).toHaveTextContent("Copy endpoint URL");
@@ -456,17 +528,19 @@ describe("TruncatedText", () => {
 			expect(screen.getByRole("tooltip")).toHaveTextContent("Copy endpoint URL");
 		});
 
-		test("treats an overflow inside half a pixel as fitting", () => {
+		test("treats an overflow inside half a pixel as fitting", async () => {
 			// 250 + 60 = 310 against 309.7 + 0.5: the engines round the root's
 			// shrink-to-fit width and the text widths at different steps.
 			stubGeometry({ root: 309.7, head: 250, tail: 60 });
 			renderValue();
+			await measured();
 			expect(screen.getByTestId("value")).not.toHaveAttribute("data-truncated");
 		});
 
-		test("stamps data-truncated once the container shrinks", () => {
+		test("stamps data-truncated once the container shrinks", async () => {
 			stubGeometry(fits);
 			renderValue();
+			await measured();
 			const root = screen.getByTestId("value");
 
 			stubGeometry(overflows);

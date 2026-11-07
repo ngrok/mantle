@@ -10,8 +10,11 @@ import {
 	cloneElement,
 	type FocusEvent,
 	isValidElement,
+	type MouseEvent,
 	type PointerEvent,
 	type ReactNode,
+	type Ref,
+	type RefCallback,
 	useRef,
 	useState,
 } from "react";
@@ -64,7 +67,7 @@ type TruncatedTextProps = Omit<ComponentProps<"span">, "children" | "translate">
 	};
 
 /**
- * What the layout effect reads from the DOM after a paint.
+ * What a batch reads from the DOM after a commit or a resize.
  */
 type Measurement = {
 	/**
@@ -72,6 +75,12 @@ type Measurement = {
 	 * `null` while the value has no lead.
 	 */
 	headCap: number | null;
+	/**
+	 * While the value overflows in a font that is not monospace: the width of
+	 * the longest prefix of the head that fits beside the tail with the
+	 * ellipsis, plus the ellipsis, in CSS pixels. Otherwise `null`.
+	 */
+	headFit: number | null;
 	/**
 	 * The width of the tail's text, in CSS pixels.
 	 */
@@ -107,17 +116,35 @@ function contentWidth(element: HTMLElement): number {
 }
 
 /**
- * The elements and the lead that `measure` reads.
+ * One mounted instance: the elements a batch reads, and what it last wrote.
  */
 type MeasureTarget = {
 	root: HTMLElement;
 	head: HTMLElement;
 	tail: HTMLElement;
+	/** The invisible element that holds one ellipsis, in the head's font. */
+	ellipsis: HTMLElement;
+	/** The lead's length in UTF-16 code units. `null` while the value has no lead. */
+	leadLength: number | null;
 	/**
-	 * While the value has a lead: the element that holds one ellipsis, and the
-	 * lead's length in UTF-16 code units.
+	 * Whether the batch sets the root's tab stop: true while the consumer passes
+	 * no `tabIndex` and the root is outside a control.
 	 */
-	lead: { ellipsis: HTMLElement; length: number } | null;
+	ownsTabStop: boolean;
+	/**
+	 * The measurement the last batch wrote to the DOM. `null` until the first
+	 * batch, and again after the value changes.
+	 */
+	written: Measurement | null;
+	/**
+	 * What the last batch read about the font. Valid while the tail's text
+	 * keeps `tailWidth`: a new font or a new value changes that width.
+	 */
+	font: { tailWidth: number; ellipsisWidth: number; monospace: boolean } | null;
+	/** How many code units of the head the last fit kept. A search starts there. */
+	fitLength: number | null;
+	/** Called when the value stops overflowing, so an open tooltip closes. */
+	onFit: () => void;
 };
 
 /**
@@ -126,29 +153,300 @@ type MeasureTarget = {
  *
  * Compares the natural widths of the two segments against the root's content
  * box, not against the head's clipped box. Once the whole value fits, a head
- * that the `ch` rounding shortened still reads as fitting.
+ * that the `ch` rounding shortened still reads as fitting. `available` is the
+ * root's content width when the caller already has it.
  */
-function measure({ root, head, tail, lead }: MeasureTarget): Measurement {
+function measure(target: MeasureTarget, available = contentWidth(target.root)): Measurement {
+	const { head, tail, ellipsis, leadLength } = target;
 	const headWidth = textWidth(head);
 	const tailWidth = textWidth(tail);
 	// Why half a pixel: the root's shrink-to-fit width and the text widths come
 	// from one layout, but the engines round them at different steps.
-	const truncated = headWidth + tailWidth > contentWidth(root) + 0.5;
+	const truncated = headWidth + tailWidth > available + 0.5;
 	// Why the text node check: a translation engine can replace the head's
-	// text, and then the lead's length no longer points into it.
+	// text, and then a length no longer points into it.
 	const text = head.firstChild;
-	if (lead == null || !(text instanceof Text)) {
-		return { headCap: null, tailWidth, truncated };
+	if (!(text instanceof Text)) {
+		return { headCap: null, headFit: null, tailWidth, truncated };
 	}
-	const range = document.createRange();
-	range.setStart(text, 0);
-	range.setEnd(text, Math.min(lead.length, text.length));
+	if (target.font?.tailWidth !== tailWidth) {
+		const ellipsisWidth = textWidth(ellipsis);
+		target.font = {
+			tailWidth,
+			ellipsisWidth,
+			monospace: isMonospace(text, { headWidth, ellipsisWidth }),
+		};
+	}
+	const { ellipsisWidth, monospace } = target.font;
+	let headFit: number | null = null;
+	if (truncated && !monospace) {
+		const fit = fitPrefix(text, {
+			limit: available - tailWidth - ellipsisWidth,
+			hint: target.fitLength,
+		});
+		target.fitLength = fit.length;
+		headFit = fit.width + ellipsisWidth;
+	}
+	if (leadLength == null) {
+		return { headCap: null, headFit, tailWidth, truncated };
+	}
 	// Why the min: a head barely longer than its lead shows whole, with no gap.
 	const headCap = Math.min(
-		range.getBoundingClientRect().width + textWidth(lead.ellipsis),
+		prefixWidth(text, Math.min(leadLength, text.length)) + ellipsisWidth,
 		headWidth,
 	);
-	return { headCap, tailWidth, truncated };
+	return { headCap, headFit, tailWidth, truncated };
+}
+
+/**
+ * Whether the head's first glyph, its last glyph, its mean glyph, and the
+ * ellipsis are one cell wide.
+ *
+ * Why: in a monospace font, whole `ch` cells in CSS already keep the ellipsis
+ * flush, and a resize then needs no search. A wrong `false` costs only speed.
+ * Why 1/32 px: a range snaps each width to a 1/64 px layout unit.
+ */
+function isMonospace(
+	text: Text,
+	{ headWidth, ellipsisWidth }: { headWidth: number; ellipsisWidth: number },
+): boolean {
+	if (text.length === 0) {
+		return true;
+	}
+	const cell = prefixWidth(text, 1);
+	const last = headWidth - prefixWidth(text, text.length - 1);
+	return [ellipsisWidth, last, headWidth / text.length].every(
+		(width) => Math.abs(width - cell) < 1 / 32,
+	);
+}
+
+/** The width of the first `end` code units of a text node, in CSS pixels. */
+function prefixWidth(text: Text, end: number): number {
+	const range = document.createRange();
+	range.setStart(text, 0);
+	range.setEnd(text, end);
+	return range.getBoundingClientRect().width;
+}
+
+/**
+ * The longest prefix of a text node that is no wider than `limit` CSS pixels:
+ * its length in code units and its width.
+ *
+ * Why the hint: a resize moves the fit by a glyph or two, so the search first
+ * tries the last fit and its neighbor, and reads two widths in the usual case.
+ */
+function fitPrefix(
+	text: Text,
+	{ limit, hint }: { limit: number; hint: number | null },
+): { length: number; width: number } {
+	// The invariant: the prefix of length `low` fits, and no prefix longer than `high` fits.
+	let low = 0;
+	let high = text.length;
+	if (hint != null && hint > 0 && hint <= text.length) {
+		const width = prefixWidth(text, hint);
+		if (width <= limit) {
+			if (hint === text.length || prefixWidth(text, hint + 1) > limit) {
+				return { length: hint, width };
+			}
+			low = hint + 1;
+		} else {
+			high = hint - 1;
+			const shorter = prefixWidth(text, high);
+			if (shorter <= limit) {
+				return { length: high, width: shorter };
+			}
+			high -= 1;
+		}
+	}
+	while (low < high) {
+		const middle = Math.ceil((low + high) / 2);
+		if (prefixWidth(text, middle) <= limit) {
+			low = middle;
+		} else {
+			high = middle - 1;
+		}
+	}
+	return { length: low, width: prefixWidth(text, low) };
+}
+
+/**
+ * Sets or removes the root's tab stop. A value that fits hides nothing, so it
+ * takes no tab stop. A clipped one needs focus, because the tooltip opens on it.
+ */
+function writeTabStop(target: MeasureTarget) {
+	if (!target.ownsTabStop) {
+		return;
+	}
+	if (target.written?.truncated === true) {
+		target.root.tabIndex = 0;
+	} else {
+		target.root.removeAttribute("tabindex");
+	}
+}
+
+/**
+ * What `write` did: wrote nothing because a width changed under `deferWidths`,
+ * wrote a new tail width or head cap, or wrote only the rest.
+ */
+type WriteResult = "deferred" | "resized" | "written";
+
+/**
+ * Writes the widths to the root's style, the flag to `data-truncated`, and the
+ * tab stop. Writes nothing when `deferWidths` is set and a width changed.
+ */
+function write(
+	target: MeasureTarget,
+	next: Measurement,
+	{ deferWidths = false } = {},
+): WriteResult {
+	const { root, written } = target;
+	const widthsChanged =
+		written == null || written.tailWidth !== next.tailWidth || written.headCap !== next.headCap;
+	// Why defer: a new width can resize the root, and a resize of an observed
+	// element inside its own observer callback reports a loop error to `window`.
+	if (widthsChanged && deferWidths) {
+		return "deferred";
+	}
+	if (widthsChanged) {
+		root.style.setProperty("--_tail-width", `${next.tailWidth}px`);
+		if (next.headCap != null) {
+			root.style.setProperty("--_head-cap", `${next.headCap}px`);
+		}
+	}
+	// Why no deferral: the fit caps the head inside a percentage `max-width`,
+	// which the root's shrink-to-fit width ignores, so the root keeps its size.
+	if (written?.headFit !== next.headFit) {
+		if (next.headFit == null) {
+			root.style.removeProperty("--_head-fit");
+		} else {
+			root.style.setProperty("--_head-fit", `${next.headFit}px`);
+		}
+	}
+	if (written?.truncated !== next.truncated) {
+		root.toggleAttribute("data-truncated", next.truncated);
+	}
+	target.written = next;
+	writeTabStop(target);
+	if (!next.truncated) {
+		target.onFit();
+	}
+	return widthsChanged ? "resized" : "written";
+}
+
+/**
+ * Measures every target, then writes every result.
+ *
+ * Why all reads before all writes: a write between two reads makes the second
+ * read lay out the page again, once for each instance in a large table.
+ */
+function measureAll(
+	targets: Iterable<MeasureTarget>,
+	{
+		deferWidths = false,
+		settle = true,
+		contentWidths,
+	}: {
+		deferWidths?: boolean;
+		settle?: boolean;
+		/** Root content widths that an observer entry already holds. */
+		contentWidths?: Map<MeasureTarget, number>;
+	} = {},
+) {
+	const results = Array.from(
+		targets,
+		(target) => [target, measure(target, contentWidths?.get(target))] as const,
+	);
+	const deferred: MeasureTarget[] = [];
+	const resized: MeasureTarget[] = [];
+	for (const [target, next] of results) {
+		const result = write(target, next, { deferWidths });
+		if (result === "deferred") {
+			deferred.push(target);
+		} else if (result === "resized" && target.leadLength != null) {
+			resized.push(target);
+		}
+	}
+	// Why a second pass: with a lead, the root shrinks to its segments, so the
+	// fit that the first pass read beside the old head cap is stale.
+	if (settle && resized.length > 0) {
+		measureAll(resized, { deferWidths, settle: false });
+	}
+	if (deferred.length > 0) {
+		requestAnimationFrame(() => {
+			measureAll(deferred.filter((target) => target.root.isConnected));
+		});
+	}
+}
+
+/** The event that mounted the tooltip, which its trigger receives once it mounts. */
+type PendingEvent =
+	| { type: "pointermove"; event: PointerEvent<HTMLSpanElement> }
+	| { type: "focus"; event: FocusEvent<HTMLSpanElement> };
+
+/** Whether the last batch flagged the root as overflowing. */
+function isTruncated(element: Element): boolean {
+	return element.hasAttribute("data-truncated");
+}
+
+/** The targets that wait for the next microtask batch. */
+const pending = new Set<MeasureTarget>();
+
+/**
+ * Adds a target to the batch that runs after the current commit, before the
+ * browser paints. One batch serves every instance that mounts or changes in
+ * the commit.
+ */
+function scheduleMeasure(target: MeasureTarget) {
+	if (pending.size === 0) {
+		queueMicrotask(() => {
+			const batch = [...pending].filter((target) => target.root.isConnected);
+			pending.clear();
+			measureAll(batch);
+		});
+	}
+	pending.add(target);
+}
+
+/** The target that owns each observed root and tail. */
+const observedTargets = new WeakMap<Element, MeasureTarget>();
+
+let resizeObserver: ResizeObserver | undefined;
+
+/**
+ * One observer for every instance. Its callback runs after layout and before
+ * paint, so the reads cost no extra layout and the flag never lags a frame.
+ */
+function observe(target: MeasureTarget) {
+	resizeObserver ??= new ResizeObserver((entries) => {
+		const targets = new Set<MeasureTarget>();
+		// Why: the entry holds the root's content box, so the batch skips a style read.
+		const contentWidths = new Map<MeasureTarget, number>();
+		for (const entry of entries) {
+			const owner = observedTargets.get(entry.target);
+			if (owner == null) {
+				continue;
+			}
+			targets.add(owner);
+			if (entry.target === owner.root) {
+				contentWidths.set(owner, entry.contentRect.width);
+			}
+		}
+		measureAll(targets, { deferWidths: true, contentWidths });
+	});
+	observedTargets.set(target.root, target);
+	observedTargets.set(target.tail, target);
+	resizeObserver.observe(target.root);
+	resizeObserver.observe(target.tail);
+}
+
+function unobserve(target: MeasureTarget) {
+	pending.delete(target);
+	for (const element of [target.root, target.tail]) {
+		if (observedTargets.get(element) === target) {
+			observedTargets.delete(element);
+			resizeObserver?.unobserve(element);
+		}
+	}
 }
 
 /**
@@ -202,6 +500,9 @@ const rootClassName =
 // Why 0.5px: without the slack, WebKit clips a value that fits exactly.
 // Why round(down, …, 1ch): while the value overflows, whole `ch` cells keep the
 // clipped glyphs, the ellipsis, and the tail flush in a monospace font.
+// Why `--_head-fit`: in another font, the batch caps the head at the prefix
+// that fits plus the ellipsis, so the ellipsis sits flush there too. The
+// percentage wins while a resize waits for the observer.
 // Why max(1ch …): when the container holds less, the head keeps one cell for
 // the ellipsis. A head of zero width also drops out of a copy in Chromium.
 // Why the zero-width space: Chromium never swaps the first glyph of a box for
@@ -209,7 +510,7 @@ const rootClassName =
 // is that first glyph, and generated content never enters a selection.
 // Why String.raw: Tailwind reads this file's text, so the class must hold one
 // backslash, and a plain string literal spells that with two.
-const headClassName = String.raw`inline-block overflow-hidden text-ellipsis whitespace-nowrap align-bottom before:content-['\200B'] max-w-[calc(100%_-_var(--_tail-width)_+_0.5px)] [[data-truncated]>&]:max-w-[max(1ch_+_0.5px,calc(round(down,100%_-_var(--_tail-width),1ch)_+_0.5px))]`;
+const headClassName = String.raw`inline-block overflow-hidden text-ellipsis whitespace-nowrap align-bottom before:content-['\200B'] max-w-[calc(100%_-_var(--_tail-width)_+_0.5px)] [[data-truncated]>&]:max-w-[max(1ch_+_0.5px,min(100%_-_var(--_tail-width),var(--_head-fit,round(down,100%_-_var(--_tail-width),1ch)))_+_0.5px)]`;
 
 // Why `width`: the root shrinks to its segments, and a percentage `max-width`
 // never narrows that. Only a length can cap the head there.
@@ -231,29 +532,59 @@ const headCapClassName = "w-[calc(round(up,var(--_head-cap)-0.5px,1ch)+0.5px)]";
 const tailClassName =
 	"inline-block overflow-hidden whitespace-nowrap text-left align-bottom min-w-(--_tail-width) [[data-truncated]>&]:min-w-0 [[data-truncated]>&]:max-w-[calc(round(down,100%_-_1ch_-_var(--_tail-width),1ch)_+_var(--_tail-width))] [[data-truncated]>:empty+&]:max-w-[calc(round(down,100%_-_var(--_tail-width),1ch)_+_var(--_tail-width)_+_0.5px)] [[data-truncated]>:empty+&]:text-ellipsis";
 
-type TruncatedTextRootProps = ComponentProps<"span"> & {
-	/** Whether to render through `Slot` onto the consumer's element. */
-	asChild?: boolean;
-	/** The consumer's own `aria-describedby`, carried past the trigger merge. */
-	describedBy: string | undefined;
+/** The Radix trigger handlers that the root calls with its own events. */
+type TriggerHandlers = Pick<
+	ComponentProps<"span">,
+	"onBlur" | "onClick" | "onFocus" | "onPointerDown" | "onPointerLeave" | "onPointerMove"
+>;
+
+/** What Radix's trigger merges onto its child, which the root takes in its place. */
+type TriggerBinding = {
+	/** Radix's composed ref: its trigger node, its popper anchor, and its own ref. */
+	ref: Ref<HTMLElement> | undefined;
+	handlers: TriggerHandlers;
+	/** The tooltip state for `data-state`. */
+	state: string | undefined;
+};
+
+type TriggerBridgeProps = TriggerHandlers & {
+	ref?: Ref<HTMLElement>;
+	"data-state"?: string;
+	"aria-describedby"?: string;
+	/** Receives the trigger's props after each commit. */
+	onBind: (binding: TriggerBinding) => void;
 };
 
 /**
- * The root element, rendered after Radix merges the trigger props onto it.
+ * Renders nothing. It takes the props Radix's trigger merges onto its child and
+ * hands them to the root, so the tooltip anchors to the root and listens on it.
  *
- * Why it drops `aria-describedby`: Radix joins the tooltip id onto the
- * trigger, and here the tooltip's text is the root's own content, so a screen
- * reader would read the value twice. Only the consumer's own ids land.
+ * Why it drops `aria-describedby`: the tooltip's text is the root's own content,
+ * so a screen reader would read the value twice.
  */
-const TruncatedTextRoot = ({
-	"aria-describedby": _merged,
-	asChild = false,
-	describedBy,
-	...props
-}: TruncatedTextRootProps) => {
-	const Component = asChild ? Slot : "span";
-	return <Component aria-describedby={describedBy} {...props} />;
-};
+function TriggerBridge({
+	"aria-describedby": _describedBy,
+	"data-state": state,
+	onBind,
+	ref,
+	...handlers
+}: TriggerBridgeProps) {
+	useIsomorphicLayoutEffect(() => {
+		onBind({ ref, handlers, state });
+	});
+	return null;
+}
+
+/** Points a ref at a node. Returns the cleanup a ref callback returns. */
+function assignRef(ref: Ref<HTMLElement> | undefined, node: HTMLElement | null) {
+	if (typeof ref === "function") {
+		return ref(node);
+	}
+	if (ref != null) {
+		ref.current = node;
+	}
+	return undefined;
+}
 
 /**
  * Renders one long opaque value (a URL, a resource ID, an image reference, a
@@ -291,15 +622,22 @@ const TruncatedTextRoot = ({
  * a token reads left to right on an RTL page too; a `dir` prop wins. CSS draws
  * the ellipsis, so a selection never contains it. The component sets no font,
  * but it turns ligatures off, so a `//` or `=>` clips between its two
- * characters. In a monospace font the clipped head sits flush against the
- * tail; a proportional font leaves a gap smaller than one glyph.
+ * characters. The ellipsis sits flush against the tail in any font, and it
+ * stays flush while the container resizes.
  *
- * Until the first measurement, the tail reserves one `ch` per grapheme, which
- * is exact in a monospace font. In another font the first paint of an
+ * The server render reserves one `ch` per grapheme for the tail, which is
+ * exact in a monospace font. In another font the server paint of an
  * overflowing value can be off by the difference: a tail of wide glyphs (CJK,
  * emoji) can poke past the container, and a value that fits by less than the
- * over-reserve of narrow glyphs can clip. The layout effect after mount
- * replaces the estimate with the measured width.
+ * over-reserve of narrow glyphs can clip. On the client, the measurement runs
+ * after the commit and before the browser paints.
+ *
+ * **Performance.** Each instance renders once on mount. One batch measures
+ * every instance that mounted in the commit: it reads all of them, then writes
+ * all of them, so the page lays out once for the batch. The tooltip mounts on
+ * the first hover or keyboard focus while the value overflows. One
+ * `ResizeObserver` serves every instance, and a resize renders no component.
+ * A table still lays out each cell it renders, so paginate a long table.
  *
  * **Head length.** Pass `head` to show at most that many graphemes before the
  * ellipsis. A value longer than `head + tail` graphemes then always clips to
@@ -323,10 +661,10 @@ const TruncatedTextRoot = ({
  * **Tooltip.** The tooltip shows the full value and opens only while the value
  * overflows. The tooltip is up to 24rem wide, so a resource ID fits on one
  * line. A longer value breaks into lines of near-equal length, and the tooltip
- * narrows to the longest line. It
- * needs a `TooltipProvider` ancestor, like every mantle tooltip, and throws
- * without one. The server render and the first client render assume
- * no overflow; the measurement after mount adds the tooltip and `data-truncated`.
+ * narrows to the longest line. It needs a `TooltipProvider` ancestor, like
+ * every mantle tooltip, and throws without one when it first mounts. The
+ * server render and the first client render assume no overflow; the
+ * measurement after mount adds `data-truncated`.
  * While the value overflows, the root is focusable, so Tab reaches it, a screen
  * reader announces the whole value, and the tooltip opens. A value that fits is
  * not a tab stop. A `tabIndex` prop wins in both states.
@@ -363,7 +701,7 @@ const TruncatedTextRoot = ({
  * | `data-slot`      | `"truncated-text-tail"`                            | On the `<span>` that stays visible. Holds the last `tail` graphemes.               |
  * | `data-slot`      | `"truncated-text-value"`                           | On the visually hidden `<span>` that holds the whole value for assistive technology. |
  * | `data-truncated` | present while the value overflows                  | Presence-only. Style with `data-truncated:`. Absent on the server render.          |
- * | `data-state`     | `"closed"` \| `"delayed-open"` \| `"instant-open"` | The tooltip state Radix stamps on the root. Absent inside a control.               |
+ * | `data-state`     | `"closed"` \| `"delayed-open"` \| `"instant-open"` | The tooltip state on the root. `"closed"` until the tooltip mounts. Absent inside a control. |
  *
  * @useWhen Show one long opaque value on one line, and keep its end visible when it clips.
  *
@@ -408,7 +746,11 @@ const TruncatedText = ({
 	children,
 	className,
 	"data-slot": dataSlot,
+	onBlur,
+	onClick,
 	onFocus,
+	onPointerDown,
+	onPointerLeave,
 	onPointerMove,
 	ref,
 	head,
@@ -420,78 +762,87 @@ const TruncatedText = ({
 	...props
 }: TruncatedTextProps) => {
 	const { head: headText, lead, tail: tailText, tailGraphemes } = splitTail(value, { head, tail });
-	// Why state and not a ref: an `asChild` child of a new type remounts the
-	// root, and the effect below must bind its observer to the new node.
-	const [rootNode, setRootNode] = useState<HTMLSpanElement | null>(null);
 	const headRef = useRef<HTMLSpanElement>(null);
 	const tailRef = useRef<HTMLSpanElement>(null);
 	const ellipsisRef = useRef<HTMLSpanElement>(null);
-	const composedRef = useComposedRefs(ref, setRootNode);
-	const [measurement, setMeasurement] = useState<Measurement | null>(null);
+	const targetRef = useRef<MeasureTarget | null>(null);
+	const triggerRef = useRef<TriggerBinding | null>(null);
+	const pendingEventRef = useRef<PendingEvent | null>(null);
+	const pointerDownRef = useRef(false);
+	const [armed, setArmed] = useState(false);
 	const [open, setOpen] = useState(false);
 	const [insideControl, setInsideControl] = useState(false);
-	const isTruncated = measurement?.truncated === true;
+	const ownsTabStop = tabIndex == null && !insideControl;
+
+	// Why a ref callback and not an effect: an `asChild` child of a new type
+	// remounts the root, and the observer must bind to the new node. A state
+	// copy of the node would render every instance a second time on mount.
+	// Why it reads `lead` and `ownsTabStop`: a change to either binds a new
+	// target, so a remounted root never starts from stale values.
+	const bindRoot: RefCallback<HTMLSpanElement> = (node) => {
+		const headElement = headRef.current;
+		const tailElement = tailRef.current;
+		const ellipsisElement = ellipsisRef.current;
+		if (node == null || headElement == null || tailElement == null || ellipsisElement == null) {
+			return;
+		}
+		const target: MeasureTarget = {
+			root: node,
+			head: headElement,
+			tail: tailElement,
+			ellipsis: ellipsisElement,
+			leadLength: lead?.length ?? null,
+			ownsTabStop,
+			written: null,
+			font: null,
+			fitLength: null,
+			onFit: () => setOpen(false),
+		};
+		targetRef.current = target;
+		observe(target);
+		scheduleMeasure(target);
+		// Why: a remounted root takes the trigger's place, so the tooltip anchors to it.
+		const binding = triggerRef.current;
+		if (binding != null) {
+			assignRef(binding.ref, node);
+		}
+		return () => {
+			unobserve(target);
+			targetRef.current = null;
+		};
+	};
+	const composedRef = useComposedRefs(ref, bindRoot);
 
 	// Why no dependency list: a control above the root can gain or lose its
 	// `href` or role without remounting the root, so each commit reads the DOM again.
 	// Why `isConnected`: the commit that swaps the root still holds the old node,
 	// and a detached node reads as outside every control.
 	useIsomorphicLayoutEffect(() => {
-		if (rootNode?.isConnected) {
-			setInsideControl(isInsideControl(rootNode));
+		const root = targetRef.current?.root;
+		if (root?.isConnected) {
+			setInsideControl(isInsideControl(root));
 		}
 	});
 
+	// Why `written = null`: the style prop writes the `ch` estimate again when
+	// the value changes, so the batch must write the measured widths back. The
+	// font check and the fit hint belong to the old text, so they reset too.
 	useIsomorphicLayoutEffect(() => {
-		const headElement = headRef.current;
-		const tailElement = tailRef.current;
-		if (rootNode == null || headElement == null || tailElement == null) {
-			return;
+		const target = targetRef.current;
+		if (target != null) {
+			target.written = null;
+			target.font = null;
+			target.fitLength = null;
+			scheduleMeasure(target);
 		}
+	}, [value, tail]);
 
-		const ellipsisElement = ellipsisRef.current;
-		const update = () => {
-			const next = measure({
-				root: rootNode,
-				head: headElement,
-				tail: tailElement,
-				lead:
-					lead == null || ellipsisElement == null
-						? null
-						: { ellipsis: ellipsisElement, length: lead.length },
-			});
-			setMeasurement((previous) =>
-				previous != null &&
-				previous.headCap === next.headCap &&
-				previous.tailWidth === next.tailWidth &&
-				previous.truncated === next.truncated
-					? previous
-					: next,
-			);
-			// Why: while the `open` prop already reads false, Radix skips
-			// `onOpenChange`, so a stale `true` here reopens the tooltip by itself
-			// the next time the value overflows.
-			if (!next.truncated) {
-				setOpen(false);
-			}
-		};
-
-		update();
-
-		const observer = new ResizeObserver(update);
-		observer.observe(rootNode);
-		observer.observe(tailElement);
-		return () => {
-			observer.disconnect();
-		};
-	}, [rootNode, lead, value, tail]);
-
-	// Why `ch` first: the server has no measurement, and in a monospace font
-	// one grapheme is one `ch`, so the first paint already reserves the tail.
-	const tailReserve = measurement == null ? `${tailGraphemes}ch` : `${measurement.tailWidth}px`;
+	// Why `ch`: the server has no measurement, and in a monospace font one
+	// grapheme is one `ch`, so the first paint already reserves the tail. The
+	// batch after mount writes the measured widths over these.
+	const tailReserve = `${tailGraphemes}ch`;
 	// Why `head + 1`: the ellipsis takes one more cell after the lead.
-	const headCap =
-		measurement?.headCap == null ? `${(head ?? 0) + 1}ch` : `${measurement.headCap}px`;
+	const headCap = `${(head ?? 0) + 1}ch`;
 
 	const segments = (
 		<>
@@ -500,12 +851,11 @@ const TruncatedText = ({
 			<span data-slot="truncated-text-value" className="sr-only select-none">
 				{value}
 			</span>
-			{/* Why: CSS draws the head's ellipsis, so no text node holds it to measure. */}
-			{lead != null && (
-				<span ref={ellipsisRef} aria-hidden className="invisible absolute select-none">
-					…
-				</span>
-			)}
+			{/* Why: CSS draws the head's ellipsis, so no text node holds it to measure.
+			    Why `translate="no"`: the batch measures this glyph, so it must stay "…". */}
+			<span ref={ellipsisRef} aria-hidden translate="no" className="invisible absolute select-none">
+				…
+			</span>
 			<span
 				ref={headRef}
 				aria-hidden
@@ -526,10 +876,22 @@ const TruncatedText = ({
 		</>
 	);
 
+	/** Whether the root may open the tooltip now. */
+	const canOpen = (element: Element) => isTruncated(element) && !insideControl;
+
+	/** Mounts the tooltip, then replays `event` to its trigger. */
+	const arm = (event: PendingEvent) => {
+		pendingEventRef.current = event;
+		setArmed(true);
+	};
+
 	const rootProps = {
 		ref: composedRef,
+		"aria-describedby": describedBy,
 		"data-slot": joinDataSlot(dataSlot, "truncated-text"),
-		"data-truncated": isTruncated ? "" : undefined,
+		// Why "closed" before the tooltip mounts: Radix stamps the state once it
+		// mounts, and the attribute stays a stable styling hook in both states.
+		"data-state": insideControl ? undefined : "closed",
 		// Why `ltr`: a URL, an ID, or a token reads left to right on an RTL page
 		// too, so the tail stays on the right and the head clips at its end.
 		dir: "ltr",
@@ -539,26 +901,60 @@ const TruncatedText = ({
 			...(lead != null && { "--_head-cap": headCap }),
 			...style,
 		}),
-		// Why only while truncated and outside a control: a value that fits hides
-		// nothing, and a control already owns the focus, so neither earns a tab
-		// stop. A clipped one on its own needs focus, because the tooltip opens on it.
-		tabIndex: isTruncated && !insideControl ? (tabIndex ?? 0) : tabIndex,
-		// Why preventDefault: Radix runs its global open path before it reads
-		// `open`, and that path closes every other tooltip on the page. A value
-		// that fits has no tooltip to open, so it must not run.
-		// Why not inside a control: the root is no trigger there, and a prevented
-		// event also stops the tooltip a consumer wraps around the control.
+		// Why only the consumer's: the batch sets the tab stop on the DOM while
+		// the value overflows, so a resize never renders the component.
+		tabIndex,
+		// Why the open events pass only while the value overflows: Radix closes
+		// every other tooltip on the page before it reads `open`.
 		onPointerMove: (event: PointerEvent<HTMLSpanElement>) => {
 			onPointerMove?.(event);
-			if (!isTruncated && !insideControl) {
-				event.preventDefault();
+			if (event.pointerType === "touch" || !canOpen(event.currentTarget)) {
+				return;
 			}
+			if (armed) {
+				triggerRef.current?.handlers.onPointerMove?.(event);
+			} else {
+				arm({ type: "pointermove", event });
+			}
+		},
+		onPointerLeave: (event: PointerEvent<HTMLSpanElement>) => {
+			onPointerLeave?.(event);
+			triggerRef.current?.handlers.onPointerLeave?.(event);
+		},
+		onPointerDown: (event: PointerEvent<HTMLSpanElement>) => {
+			onPointerDown?.(event);
+			if (armed) {
+				triggerRef.current?.handlers.onPointerDown?.(event);
+				return;
+			}
+			// Why: a focus that a press causes opens no tooltip, like Radix's own trigger.
+			pointerDownRef.current = true;
+			document.addEventListener(
+				"pointerup",
+				() => {
+					pointerDownRef.current = false;
+				},
+				{ once: true },
+			);
 		},
 		onFocus: (event: FocusEvent<HTMLSpanElement>) => {
 			onFocus?.(event);
-			if (!isTruncated && !insideControl) {
-				event.preventDefault();
+			if (!canOpen(event.currentTarget)) {
+				return;
 			}
+			if (armed) {
+				triggerRef.current?.handlers.onFocus?.(event);
+			} else if (!pointerDownRef.current) {
+				arm({ type: "focus", event });
+			}
+		},
+		onBlur: (event: FocusEvent<HTMLSpanElement>) => {
+			onBlur?.(event);
+			triggerRef.current?.handlers.onBlur?.(event);
+		},
+		onClick: (event: MouseEvent<HTMLSpanElement>) => {
+			onClick?.(event);
+			triggerRef.current?.handlers.onClick?.(event);
 		},
 		translate,
 		...props,
@@ -575,49 +971,67 @@ const TruncatedText = ({
 			singleChild.props.children == null,
 			"When using `asChild`, the child of TruncatedText must have no children of its own. `value` is the content.",
 		);
-		root = (
-			<TruncatedTextRoot asChild describedBy={describedBy} {...rootProps}>
-				{cloneElement(singleChild, {}, segments)}
-			</TruncatedTextRoot>
-		);
+		root = <Slot {...rootProps}>{cloneElement(singleChild, {}, segments)}</Slot>;
 	} else {
-		root = (
-			<TruncatedTextRoot describedBy={describedBy} {...rootProps}>
-				{segments}
-			</TruncatedTextRoot>
-		);
+		root = <span {...rootProps}>{segments}</span>;
 	}
 
-	// Why a bare root and not a gated trigger: a gated trigger needs its pointer
-	// events prevented, and a prevented event also stops a tooltip wrapped
-	// around the control.
-	// Why the root remounts once inside a control: the first render assumes no
-	// control, and this swap changes the element type above the root.
-	if (insideControl) {
-		return root;
-	}
-
+	// Why the tooltip is a sibling and mounts on first use: Radix's root and
+	// trigger cost more to mount than the rest of the component, and a table
+	// mounts one for each row. As a sibling, it mounts without a remount of the root.
+	// Why not inside a control: a control cannot hold a second tab stop or tooltip.
 	return (
-		<TooltipPrimitiveRoot
-			open={isTruncated && open}
-			onOpenChange={(next) => setOpen(isTruncated && next)}
-		>
-			{/* Why Radix's trigger and not `Tooltip.Trigger`: the mantle part stamps its
-			    own `data-slot`, which `Slot` joins into the root's. */}
-			<TooltipPrimitiveTrigger asChild>{root}</TooltipPrimitiveTrigger>
-			{/* Why 24rem: a resource ID fits on one line, so only a longer value wraps.
-			    Why `text-balance`: `break-all` fills each line to the edge, so a value a
-			    little wider than the tooltip leaves one or two characters on the last line.
-			    Why the key: a new value must measure its lines again. */}
-			<Tooltip.Content
-				className="max-w-[min(24rem,calc(100vw-2rem))] break-all text-balance"
-				translate={translate}
-			>
-				<span key={value} ref={fitToLongestLine} className="block">
-					{value}
-				</span>
-			</Tooltip.Content>
-		</TooltipPrimitiveRoot>
+		<>
+			{root}
+			{armed && !insideControl && (
+				<TooltipPrimitiveRoot
+					open={open}
+					onOpenChange={(next) => {
+						const element = targetRef.current?.root;
+						setOpen(next && element != null && isTruncated(element));
+					}}
+				>
+					<TooltipPrimitiveTrigger asChild>
+						<TriggerBridge
+							onBind={(binding) => {
+								const previous = triggerRef.current;
+								triggerRef.current = binding;
+								const element = targetRef.current?.root;
+								if (element == null) {
+									return;
+								}
+								if (previous?.ref !== binding.ref) {
+									assignRef(previous?.ref, null);
+									assignRef(binding.ref, element);
+								}
+								if (binding.state != null) {
+									element.setAttribute("data-state", binding.state);
+								}
+								const pending = pendingEventRef.current;
+								pendingEventRef.current = null;
+								if (pending?.type === "pointermove") {
+									binding.handlers.onPointerMove?.(pending.event);
+								} else if (pending?.type === "focus" && document.activeElement === element) {
+									binding.handlers.onFocus?.(pending.event);
+								}
+							}}
+						/>
+					</TooltipPrimitiveTrigger>
+					{/* Why 24rem: a resource ID fits on one line, so only a longer value wraps.
+					    Why `text-balance`: `break-all` fills each line to the edge, so a value a
+					    little wider than the tooltip leaves one or two characters on the last line.
+					    Why the key: a new value must measure its lines again. */}
+					<Tooltip.Content
+						className="max-w-[min(24rem,calc(100vw-2rem))] break-all text-balance"
+						translate={translate}
+					>
+						<span key={value} ref={fitToLongestLine} className="block">
+							{value}
+						</span>
+					</Tooltip.Content>
+				</TooltipPrimitiveRoot>
+			)}
+		</>
 	);
 };
 

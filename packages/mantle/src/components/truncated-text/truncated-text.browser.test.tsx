@@ -110,6 +110,24 @@ test("measures again when the container shrinks", async () => {
 	await expect.poll(() => root.hasAttribute("data-truncated")).toBe(true);
 });
 
+test("stamps data-truncated in the same frame as the resize, before paint", async () => {
+	const { container, root } = renderValue({ width: 600 });
+	await expect.poll(() => root.hasAttribute("data-truncated")).toBe(false);
+
+	container.style.width = "240px";
+	// Why an observer created after the component's: its callback runs after the
+	// component's in the same frame, so it sees what that frame paints.
+	const painted = await new Promise<boolean>((resolve) => {
+		const observer = new ResizeObserver(() => {
+			observer.disconnect();
+			resolve(root.hasAttribute("data-truncated"));
+		});
+		observer.observe(container);
+	});
+
+	expect(painted).toBe(true);
+});
+
 test("the server markup keeps a fitting value unclipped before hydration", () => {
 	const container = document.createElement("div");
 	container.style.cssText =
@@ -441,4 +459,58 @@ test("the tooltip balances a longer value and shrinks to its longest line", asyn
 	expect(Math.max(...lines) - Math.min(...lines)).toBeLessThan(20);
 	// The box hugs the longer line, not the `max-width`.
 	expect(content.getBoundingClientRect().width).toBeLessThanOrEqual(Math.max(...lines) + inset + 1);
+});
+
+/**
+ * The space between the ellipsis the head draws and the tail, in CSS pixels.
+ * The head draws the longest prefix whose width plus the ellipsis fits its box.
+ */
+function ellipsisGap(head: HTMLElement, tail: HTMLElement): number {
+	const text = head.firstChild;
+	if (!(text instanceof Text)) {
+		throw new Error("The head holds no text node.");
+	}
+	const ellipsis = document.createElement("span");
+	ellipsis.textContent = "…";
+	head.after(ellipsis);
+	const ellipsisWidth = ellipsis.getBoundingClientRect().width;
+	ellipsis.remove();
+	const box = head.getBoundingClientRect();
+	const prefix = document.createRange();
+	prefix.setStart(text, 0);
+	let drawn = 0;
+	for (let end = 1; end <= text.length; end++) {
+		prefix.setEnd(text, end);
+		const width = prefix.getBoundingClientRect().width;
+		if (width + ellipsisWidth > box.width) {
+			break;
+		}
+		drawn = width;
+	}
+	return tail.getBoundingClientRect().left - (box.left + drawn + ellipsisWidth);
+}
+
+test("keeps the ellipsis flush against the tail in a proportional font while the container resizes", async () => {
+	const { container, root, head, tail } = renderValue({ width: 300, fontFamily: "sans-serif" });
+	const errors: string[] = [];
+	const onError = (event: ErrorEvent) => errors.push(event.message);
+	window.addEventListener("error", onError);
+
+	try {
+		// Why these widths: each one leaves the head a different part of a glyph.
+		for (const width of [300, 283, 271, 262, 254, 247, 300]) {
+			container.style.width = `${width}px`;
+			await expect.poll(() => root.getBoundingClientRect().width).toBeCloseTo(width, 0);
+			await expect.poll(() => root.hasAttribute("data-truncated")).toBe(true);
+			// Why 0.5: the head keeps half a pixel of slack, so WebKit never clips a
+			// value that fits exactly.
+			await expect.poll(() => ellipsisGap(head, tail)).toBeLessThanOrEqual(0.5 + 1 / 64);
+		}
+	} finally {
+		window.removeEventListener("error", onError);
+	}
+
+	// Why: a write that resizes an observed element inside the observer callback
+	// reports a loop error to `window`.
+	expect(errors).toEqual([]);
 });
