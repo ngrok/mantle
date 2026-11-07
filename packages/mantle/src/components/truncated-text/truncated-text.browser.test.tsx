@@ -244,7 +244,9 @@ function visibleGlyphs(element: HTMLElement): string {
 		range.setStart(textNode, index);
 		range.setEnd(textNode, index + 1);
 		const rect = range.getBoundingClientRect();
-		if (rect.left >= box.left - 0.5 && rect.right <= box.right + 0.5) {
+		// Why the width check: WebKit reports a glyph that an ellipsis hides as a
+		// rect of zero width. Why 1 px: WebKit snaps a glyph's rect to whole pixels.
+		if (rect.width > 0 && rect.left >= box.left - 1 && rect.right <= box.right + 1) {
 			glyphs.push({ left: rect.left, glyph: textNode.data[index] ?? "" });
 		}
 	}
@@ -304,7 +306,9 @@ test("a value no longer than its tail draws the ellipsis itself and keeps its en
 	expect(container.scrollWidth).toBeLessThanOrEqual(container.clientWidth);
 	// The tail takes all five cells; the ellipsis paints over the first of them.
 	expect(tail.getBoundingClientRect().width).toBeCloseTo(5 * ch + 0.5, 0);
-	expect(visibleGlyphs(tail)).toBe("ok:v3");
+	// Why the optional "o": Chromium reports the glyph the ellipsis paints over,
+	// and WebKit does not. Both keep the end.
+	expect(visibleGlyphs(tail)).toMatch(/^o?k:v3$/);
 });
 
 const memberId = "mem_21h80N9qQuAmhSB8nlTA8KImPbQ";
@@ -313,8 +317,11 @@ test("with `head`, shows the lead, one ellipsis, and the tail while the containe
 	const { root, head, tail, ch } = renderValue({ width: 600, head: 4, value: memberId });
 	await expect.poll(() => root.hasAttribute("data-truncated")).toBe(true);
 
-	// Four lead cells and one ellipsis cell, plus the half pixel of slack.
-	expect(head.getBoundingClientRect().width).toBeCloseTo(5 * ch + 0.5, 0);
+	// Four lead cells and one ellipsis cell, and no sixth cell. Why a range and
+	// not an exact width: WebKit snaps a range over part of a text node to whole
+	// pixels, so its head can hold up to a pixel more than five cells.
+	expect(head.getBoundingClientRect().width).toBeGreaterThanOrEqual(5 * ch);
+	expect(head.getBoundingClientRect().width).toBeLessThan(6 * ch);
 	expect(tail.getBoundingClientRect().width).toBeCloseTo(textWidth(tail), 0);
 	// The root shrinks to the two segments, so nothing follows the tail.
 	expect(root.getBoundingClientRect().right).toBeCloseTo(tail.getBoundingClientRect().right, 0);

@@ -122,6 +122,8 @@ type MeasureTarget = {
 	root: HTMLElement;
 	head: HTMLElement;
 	tail: HTMLElement;
+	/** The visually hidden element that holds the whole value as one text node. */
+	copy: HTMLElement;
 	/** The invisible element that holds one ellipsis, in the head's font. */
 	ellipsis: HTMLElement;
 	/** The lead's length in UTF-16 code units. `null` while the value has no lead. */
@@ -157,16 +159,13 @@ type MeasureTarget = {
  * root's content width when the caller already has it.
  */
 function measure(target: MeasureTarget, available = contentWidth(target.root)): Measurement {
-	const { head, tail, ellipsis, leadLength } = target;
-	const headWidth = textWidth(head);
-	const tailWidth = textWidth(tail);
+	const { ellipsis, leadLength } = target;
+	const reading = readText(target);
+	const { headWidth, headLength, tailWidth, text } = reading;
 	// Why half a pixel: the root's shrink-to-fit width and the text widths come
 	// from one layout, but the engines round them at different steps.
 	const truncated = headWidth + tailWidth > available + 0.5;
-	// Why the text node check: a translation engine can replace the head's
-	// text, and then a length no longer points into it.
-	const text = head.firstChild;
-	if (!(text instanceof Text)) {
+	if (text == null) {
 		return { headCap: null, headFit: null, tailWidth, truncated };
 	}
 	if (target.font?.tailWidth !== tailWidth) {
@@ -174,13 +173,14 @@ function measure(target: MeasureTarget, available = contentWidth(target.root)): 
 		target.font = {
 			tailWidth,
 			ellipsisWidth,
-			monospace: isMonospace(text, { headWidth, ellipsisWidth }),
+			monospace: isMonospace({ ...reading, ellipsisWidth }),
 		};
 	}
 	const { ellipsisWidth, monospace } = target.font;
 	let headFit: number | null = null;
 	if (truncated && !monospace) {
 		const fit = fitPrefix(text, {
+			length: headLength,
 			limit: available - tailWidth - ellipsisWidth,
 			hint: target.fitLength,
 		});
@@ -190,34 +190,82 @@ function measure(target: MeasureTarget, available = contentWidth(target.root)): 
 	if (leadLength == null) {
 		return { headCap: null, headFit, tailWidth, truncated };
 	}
+	// Why cells in a monospace font: WebKit snaps a range over part of a node to
+	// whole pixels, and the CSS would round that up to one more cell.
+	const lead = Math.min(leadLength, headLength);
+	const leadWidth = monospace ? lead * ellipsisWidth : prefixWidth(text, lead);
 	// Why the min: a head barely longer than its lead shows whole, with no gap.
-	const headCap = Math.min(
-		prefixWidth(text, Math.min(leadLength, text.length)) + ellipsisWidth,
-		headWidth,
-	);
+	const headCap = Math.min(leadWidth + ellipsisWidth, headWidth);
 	return { headCap, headFit, tailWidth, truncated };
 }
 
+/** The natural widths of the two segments, and a text node to read head prefixes from. */
+type TextReading = {
+	headWidth: number;
+	/** How many UTF-16 code units the head holds. */
+	headLength: number;
+	tailWidth: number;
+	/** How many UTF-16 code units the tail holds. */
+	tailLength: number;
+	/**
+	 * A text node that starts with the head's text, so a prefix of the head is a
+	 * range from offset 0. `null` when no such node exists.
+	 */
+	text: Text | null;
+};
+
 /**
- * Whether the head's first glyph, its last glyph, its mean glyph, and the
+ * Reads the natural widths of the head and the tail.
+ *
+ * Why the hidden copy: WebKit clips a range's geometry at a `text-overflow`
+ * ellipsis, so a clipped head reads as its visible part only. The copy draws
+ * no ellipsis. A range over a whole node reads exact, and WebKit snaps a range
+ * over part of a node to whole pixels, so the head is the copy less the tail.
+ * Why the length check: a translation engine can replace the text, and then
+ * the head's offsets no longer point into the copy.
+ */
+function readText({ copy, head, tail }: MeasureTarget): TextReading {
+	const headText = head.firstChild;
+	const headLength = headText instanceof Text ? headText.length : 0;
+	const tailLength = tail.textContent?.length ?? 0;
+	const copyText = copy.firstChild;
+	if (!(copyText instanceof Text) || copyText.length !== headLength + tailLength) {
+		const headWidth = textWidth(head);
+		return {
+			headWidth,
+			headLength,
+			tailWidth: textWidth(tail),
+			tailLength,
+			text: headText instanceof Text ? headText : null,
+		};
+	}
+	const total = textWidth(copy);
+	// Why the copy when the head is empty: the tail then draws the ellipsis itself.
+	const tailWidth = headLength === 0 ? total : textWidth(tail);
+	return { headWidth: total - tailWidth, headLength, tailWidth, tailLength, text: copyText };
+}
+
+/**
+ * Whether the mean glyph of the head, the mean glyph of the tail, and the
  * ellipsis are one cell wide.
  *
  * Why: in a monospace font, whole `ch` cells in CSS already keep the ellipsis
  * flush, and a resize then needs no search. A wrong `false` costs only speed.
- * Why 1/32 px: a range snaps each width to a 1/64 px layout unit.
+ * Why only whole-node widths: WebKit snaps a range over part of a node to
+ * whole pixels. Why 1/32 px: a range snaps each width to a 1/64 px layout unit.
  */
-function isMonospace(
-	text: Text,
-	{ headWidth, ellipsisWidth }: { headWidth: number; ellipsisWidth: number },
-): boolean {
-	if (text.length === 0) {
-		return true;
-	}
-	const cell = prefixWidth(text, 1);
-	const last = headWidth - prefixWidth(text, text.length - 1);
-	return [ellipsisWidth, last, headWidth / text.length].every(
-		(width) => Math.abs(width - cell) < 1 / 32,
-	);
+function isMonospace({
+	headLength,
+	headWidth,
+	tailLength,
+	tailWidth,
+	ellipsisWidth,
+}: Omit<TextReading, "text"> & { ellipsisWidth: number }): boolean {
+	const means = [
+		headLength > 0 ? headWidth / headLength : ellipsisWidth,
+		tailLength > 0 ? tailWidth / tailLength : ellipsisWidth,
+	];
+	return means.every((width) => Math.abs(width - ellipsisWidth) < 1 / 32);
 }
 
 /** The width of the first `end` code units of a text node, in CSS pixels. */
@@ -229,23 +277,23 @@ function prefixWidth(text: Text, end: number): number {
 }
 
 /**
- * The longest prefix of a text node that is no wider than `limit` CSS pixels:
- * its length in code units and its width.
+ * The longest prefix of a text node, at most `length` code units, that is no
+ * wider than `limit` CSS pixels: its length in code units and its width.
  *
  * Why the hint: a resize moves the fit by a glyph or two, so the search first
  * tries the last fit and its neighbor, and reads two widths in the usual case.
  */
 function fitPrefix(
 	text: Text,
-	{ limit, hint }: { limit: number; hint: number | null },
+	{ length, limit, hint }: { length: number; limit: number; hint: number | null },
 ): { length: number; width: number } {
 	// The invariant: the prefix of length `low` fits, and no prefix longer than `high` fits.
 	let low = 0;
-	let high = text.length;
-	if (hint != null && hint > 0 && hint <= text.length) {
+	let high = length;
+	if (hint != null && hint > 0 && hint <= length) {
 		const width = prefixWidth(text, hint);
 		if (width <= limit) {
-			if (hint === text.length || prefixWidth(text, hint + 1) > limit) {
+			if (hint === length || prefixWidth(text, hint + 1) > limit) {
 				return { length: hint, width };
 			}
 			low = hint + 1;
@@ -461,17 +509,34 @@ function fitToLongestLine(element: HTMLElement | null) {
 	// Why the reset: a second call, such as the StrictMode replay of a ref,
 	// must measure the lines at the tooltip's full width again.
 	element.style.width = "";
-	const range = document.createRange();
-	range.selectNodeContents(element);
-	const longest = Math.max(...Array.from(range.getClientRects(), (rect) => rect.width));
 	// Why the scale: the tooltip opens with a zoom, and the client rects include
 	// that transform. The computed width does not, and unlike `offsetWidth` it
 	// keeps the fraction, so a line never ends up a fraction too wide to fit.
 	const scale =
 		element.getBoundingClientRect().width / Number.parseFloat(getComputedStyle(element).width);
-	if (Number.isFinite(longest) && scale > 0) {
-		element.style.width = `${Math.ceil(longest / scale)}px`;
+	if (!(scale > 0)) {
+		return;
 	}
+	const lines = lineWidths(element, scale);
+	// Why: WebKit does not balance text that breaks between letters, so its
+	// last line can hold a few characters. An even share of the text, plus one
+	// character of room, gives the same number of lines at near-equal length.
+	if (lines.length > 1) {
+		const total = lines.reduce((sum, width) => sum + width, 0);
+		const character = total / Math.max(element.textContent?.length ?? 1, 1);
+		element.style.width = `${Math.ceil(total / lines.length + character)}px`;
+	}
+	const longest = Math.max(...lineWidths(element, scale));
+	if (Number.isFinite(longest)) {
+		element.style.width = `${Math.ceil(longest)}px`;
+	}
+}
+
+/** The width of each line of an element's text, in CSS pixels before `scale`. */
+function lineWidths(element: HTMLElement, scale: number): number[] {
+	const range = document.createRange();
+	range.selectNodeContents(element);
+	return Array.from(range.getClientRects(), (rect) => rect.width / scale);
 }
 
 /**
@@ -652,7 +717,9 @@ function assignRef(ref: Ref<HTMLElement> | undefined, node: HTMLElement | null) 
  * the head's color. A value no longer than `tail` has an empty head, so its
  * tail draws the ellipsis in the tail's color. The two segments render when the
  * value fits too. To color them only while the value overflows, add the
- * `data-truncated:` variant first.
+ * `data-truncated:` variant first. Change the color of a segment, not its
+ * font: the measurement reads the whole value in the root's font. Set a font
+ * on the root.
  *
  * **Selection.** The root carries `user-select: all`, so one click selects the
  * whole value across both segments, and a copy yields the full string. Pass
@@ -765,6 +832,7 @@ const TruncatedText = ({
 	const headRef = useRef<HTMLSpanElement>(null);
 	const tailRef = useRef<HTMLSpanElement>(null);
 	const ellipsisRef = useRef<HTMLSpanElement>(null);
+	const copyRef = useRef<HTMLSpanElement>(null);
 	const targetRef = useRef<MeasureTarget | null>(null);
 	const triggerRef = useRef<TriggerBinding | null>(null);
 	const pendingEventRef = useRef<PendingEvent | null>(null);
@@ -783,13 +851,21 @@ const TruncatedText = ({
 		const headElement = headRef.current;
 		const tailElement = tailRef.current;
 		const ellipsisElement = ellipsisRef.current;
-		if (node == null || headElement == null || tailElement == null || ellipsisElement == null) {
+		const copyElement = copyRef.current;
+		if (
+			node == null ||
+			headElement == null ||
+			tailElement == null ||
+			ellipsisElement == null ||
+			copyElement == null
+		) {
 			return;
 		}
 		const target: MeasureTarget = {
 			root: node,
 			head: headElement,
 			tail: tailElement,
+			copy: copyElement,
 			ellipsis: ellipsisElement,
 			leadLength: lead?.length ?? null,
 			ownsTabStop,
@@ -848,7 +924,7 @@ const TruncatedText = ({
 		<>
 			{/* Why the hidden copy: a screen reader reads the two boxes below as two
 			    strings, so they are hidden from it and this one text node is not. */}
-			<span data-slot="truncated-text-value" className="sr-only select-none">
+			<span ref={copyRef} data-slot="truncated-text-value" className="sr-only select-none">
 				{value}
 			</span>
 			{/* Why: CSS draws the head's ellipsis, so no text node holds it to measure.

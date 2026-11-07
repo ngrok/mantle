@@ -24,6 +24,10 @@ function stubGeometry(geometry: Geometry) {
 			return 0;
 		}
 		const slot = node.getAttribute("data-slot") ?? "";
+		// Why: the hidden copy holds the whole value, so its text is both segments.
+		if (slot.includes("truncated-text-value")) {
+			return geometry.head + geometry.tail;
+		}
 		if (slot.includes("truncated-text-head")) {
 			return geometry.head;
 		}

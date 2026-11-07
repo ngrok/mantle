@@ -169,7 +169,7 @@ import { TruncatedText } from "@ngrok/mantle/truncated-text";
 
 ## Style the head and the tail
 
-The head and the tail are two `<span>` elements, `data-slot="truncated-text-head"` and `data-slot="truncated-text-tail"`. Style each one from the root with a `*:data-[slot=…]:` class. CSS draws the ellipsis at the end of the head, so the ellipsis takes the head's color. To mute the type prefix of an ID and keep its tail at body color, pass `head` and color the head:
+The head and the tail are two `<span>` elements, `data-slot="truncated-text-head"` and `data-slot="truncated-text-tail"`. Style each one from the root with a `*:data-[slot=…]:` class. Change a segment's color, not its font: the component measures the whole value in the root's font, so set a font on the root. CSS draws the ellipsis at the end of the head, so the ellipsis takes the head's color. To mute the type prefix of an ID and keep its tail at body color, pass `head` and color the head:
 
 <Example>
 	<div className="w-full max-w-md">
