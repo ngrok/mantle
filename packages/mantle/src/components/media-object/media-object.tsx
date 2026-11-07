@@ -152,6 +152,13 @@ const Content = ({
  * **Polymorphism.** Each part accepts `asChild` for swapping the rendered
  * element (e.g. render `Root` as an `<a>` to make the whole row clickable).
  *
+ * @useWhen Put an image, an avatar, or an icon beside a title and a description, such as in a
+ * comment or a list row.
+ *
+ * @siblings
+ * - `Card`: the content needs a raised box with a border.
+ * - `Choice`: the thing beside the text is a checkbox, a radio, or a switch.
+ *
  * @see https://mantle.ngrok.com/components/structure/media-object
  *
  * @example

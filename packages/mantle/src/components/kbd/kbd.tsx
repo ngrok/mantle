@@ -30,6 +30,13 @@ import { joinDataSlot } from "../../utils/data-slot.js";
  * key the reader's keyboard does not have. The `translate` prop is omitted from
  * the type, so no call site can turn the guard off.
  *
+ * @useWhen Show a keyboard key or a shortcut hint, such as `⌘` and `K`, in prose, a tooltip, or a
+ * menu item.
+ *
+ * @siblings
+ * - `Code`: the text is a fragment of code, not a key.
+ * - `Badge`: the label is a status, a category, or a count.
+ *
  * @see https://mantle.ngrok.com/components/data-display/kbd
  * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/translate
  *

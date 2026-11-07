@@ -688,6 +688,13 @@ const Content = ({
 /**
  * Layered sections of content, called tab panels, that show one at a time.
  *
+ * @useWhen Switch between peer views of related content in one place, with one view visible at a
+ * time.
+ *
+ * @siblings
+ * - `Accordion`: several sections stack, and each one expands in place.
+ * - `RadioGroup`: the user picks a form value, not a view.
+ *
  * @see https://mantle.ngrok.com/components/navigation/tabs
  *
  * @example

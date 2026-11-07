@@ -66,6 +66,13 @@ type BadgeProps = ComponentProps<"span"> &
  * | -------------- | --------------- | -------------------------------------------------------------------------------------------- |
  * | `data-slot`    | `"badge-label"` | On the `<span>` wrapping `children`. `display: contents`, so it changes no layout by itself. |
  *
+ * @useWhen Label an item with a short status, a category tag, or a count.
+ *
+ * @siblings
+ * - `Button`: the label must respond to a click.
+ * - `Kbd`: the label is a keyboard key or a shortcut.
+ * - `MultiSelect`: the tags are values that the user picks and removes.
+ *
  * @see https://mantle.ngrok.com/components/data-display/badge
  *
  * @example

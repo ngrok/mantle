@@ -323,6 +323,13 @@ const ItemDescription = ({
  * also move focus between them — the focused item tints like hover instead of
  * drawing a focus ring.
  *
+ * @useWhen Show a scrollable list of items that each run an action or navigate, such as an account
+ * switcher.
+ *
+ * @siblings
+ * - `SelectableList`: the user selects rows with checkboxes.
+ * - `DropdownMenu`: the actions open in a menu from a button.
+ *
  * @see https://mantle.ngrok.com/components/data-display/list
  *
  * @example

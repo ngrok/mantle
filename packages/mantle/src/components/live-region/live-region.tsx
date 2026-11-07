@@ -37,7 +37,7 @@ type LiveRegionProps = ComponentProps<"span"> &
  * - Announce an async result that moves focus nowhere: "3 results found", "Draft saved".
  *
  * **When not to use**
- * - For status the user must see. Use {@link https://mantle.ngrok.com/components/feedback/alert Alert} or {@link https://mantle.ngrok.com/components/feedback/toast Toast}, which pair visible UI with their own announcements.
+ * - For status the user must see. Use {@link https://mantle.ngrok.com/components/feedback/toast Toast}, which announces its message, or {@link https://mantle.ngrok.com/components/feedback/alert Alert}, which announces only when you pass it a `role`.
  * - For hidden text that never changes. Use {@link https://mantle.ngrok.com/components/primitives/visually-hidden VisuallyHidden}.
  *
  * **Polymorphism.** Pass `asChild` to render the live region as a different
@@ -46,6 +46,14 @@ type LiveRegionProps = ComponentProps<"span"> &
  * | Data Attribute | Value           | Description                                                               |
  * | -------------- | --------------- | ------------------------------------------------------------------------- |
  * | `data-slot`    | `"live-region"` | Stamped on the rendered element, and joined onto the child via `asChild`. |
+ *
+ * @useWhen Announce a change to screen readers with no visible message, such as a save result or a
+ * count of search results.
+ *
+ * @siblings
+ * - `Toast`: sighted users also need to see the message.
+ * - `Alert`: the message stays visible in the page. It announces only when you pass it a `role`.
+ * - `VisuallyHidden`: the hidden text is static and needs no announcement.
  *
  * @see https://mantle.ngrok.com/components/primitives/live-region
  * @see https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Guides/Live_regions

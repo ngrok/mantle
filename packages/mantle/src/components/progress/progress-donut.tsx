@@ -255,6 +255,11 @@ const Indicator = ({ "data-slot": dataSlot, className, ...props }: ProgressDonut
  * The indicator color is inherited via `currentColor`. Override the default
  * (`accent-600`) by setting the `ProgressDonut.Indicator`'s text color.
  *
+ * @useWhen Show how much of a task or a quota is complete, as a small circle.
+ *
+ * @siblings
+ * - `ProgressBar`: the indicator is a horizontal bar.
+ *
  * @see https://mantle.ngrok.com/components/feedback/progress-donut
  *
  * @example

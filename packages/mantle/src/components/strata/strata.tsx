@@ -391,6 +391,14 @@ const Body = ({
  * [DescriptionList](https://mantle.ngrok.com/components/data-display/description-list)
  * when the pairs are read-only term/value data rather than headed sections.
  *
+ * @useWhen Lay out a settings page or a configuration editor as titled sections, each one explained
+ * beside its controls.
+ *
+ * @siblings
+ * - `Card`: a group needs a raised surface of its own.
+ * - `MediaObject`: the thing beside the text is an image or an icon.
+ * - `DescriptionList`: the pairs are read-only label and value data, not headed sections.
+ *
  * @see https://mantle.ngrok.com/components/structure/strata
  *
  * @example

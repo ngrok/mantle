@@ -1385,6 +1385,14 @@ const ContentFooter = ({
  * paints above the content that contains
  * it. Outside one, an open overlay (`z-60`) covers it.
  *
+ * @useWhen Pick several values from a list with a typeahead filter, and show the picks as removable
+ * tags.
+ *
+ * @siblings
+ * - `Combobox`: the user picks one value with a filter.
+ * - `Select`: the user picks one value from a short list.
+ * - `SelectableList`: the options show inline as checkbox rows, with no popover.
+ *
  * @see https://mantle.ngrok.com/components/forms/multi-select
  * @see https://www.w3.org/WAI/ARIA/apg/patterns/combobox/
  * @see https://ariakit.org/components/combobox

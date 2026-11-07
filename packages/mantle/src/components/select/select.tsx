@@ -844,6 +844,14 @@ const SelectSeparatorComponent = ({
  * (`z-60`). When sibling floats share a container, the most recently mounted
  * float paints on top.
  *
+ * @useWhen Pick one value from a short, fixed list of options that needs no filter.
+ *
+ * @siblings
+ * - `Combobox`: the list is long or loads from a server, and the user types to filter it.
+ * - `MultiSelect`: the user picks several values.
+ * - `RadioGroup`: the options are few and must all show at once.
+ * - `DropdownMenu`: the list runs actions and sets no value.
+ *
  * @see https://mantle.ngrok.com/components/forms/select
  *
  * @example

@@ -425,6 +425,14 @@ const Message = ({
  * A succinct message that appears temporarily. Toasts give the user feedback
  * without interrupting their workflow.
  *
+ * @useWhen Report the result of an action, such as a save or a copy, in a brief message that goes
+ * away on its own.
+ *
+ * @siblings
+ * - `Alert`: the message stays in the page next to the content it describes.
+ * - `AlertDialog`: the user must respond before they continue.
+ * - `Sandbar`: the message waits for the user to save or discard pending changes.
+ *
  * @see https://mantle.ngrok.com/components/feedback/toast
  *
  * @example

@@ -476,6 +476,12 @@ const Separator = ({
  * single hidden input (handling paste, autofill, and IME) with a row of
  * styled character slots.
  *
+ * @useWhen Enter a one-time passcode, such as a two-factor code, with one box for each character.
+ *
+ * @siblings
+ * - `Input`: the value is free-form text.
+ * - `PasswordInput`: the value is a password or another long-lived secret.
+ *
  * @see https://mantle.ngrok.com/components/forms/otp-input
  *
  * @example

@@ -1759,6 +1759,13 @@ const Content = ({
  * only the one-to-many case: persistent, ACCOUNT-level alerts that must be
  * ranked and collapsed into a single top-level bar.
  *
+ * @useWhen Show persistent account-level alerts, such as usage limits with upgrade actions, in one
+ * ranked bar at the top of the app.
+ *
+ * @siblings
+ * - `Alert`: one message sits inline, and you place and control it yourself.
+ * - `Toast`: the message is brief and goes away on its own.
+ *
  * @see https://mantle.ngrok.com/components/feedback/alert-center
  *
  * @example

@@ -47,6 +47,14 @@ type Props = Omit<ComponentProps<"input">, "type" | "checked" | "defaultChecked"
  * compose it inside [`Choice`](/components/forms/choice) for a titled, multi-line
  * label with a supplementary description.
  *
+ * @useWhen Turn one or more independent options on or off in a form, with an indeterminate state
+ * for a partial selection.
+ *
+ * @siblings
+ * - `Switch`: one setting turns on or off and needs no indeterminate state.
+ * - `RadioGroup`: the user picks exactly one option from a set.
+ * - `Choice`: the checkbox needs a title and a description beside it.
+ *
  * @see https://mantle.ngrok.com/components/forms/checkbox
  *
  * @example

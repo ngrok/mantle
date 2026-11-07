@@ -1139,6 +1139,12 @@ const FieldErrorList = ({
  * `Field.Group`; use `Field.Set` + `Field.Legend` for radios / related
  * checkboxes that share one accessible name.
  *
+ * @useWhen Group one form control with its label, its description, and its validation errors.
+ *
+ * @siblings
+ * - `Label`: the control needs only a caption, with no description or errors.
+ * - `Choice`: a checkbox, a radio, or a switch sits beside a title and a description.
+ *
  * @see https://mantle.ngrok.com/components/forms/field
  *
  * @example

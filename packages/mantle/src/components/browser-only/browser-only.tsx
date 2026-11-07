@@ -28,6 +28,9 @@ type Props = {
  *   the `fallback` is rendered.
  * - On the client, after hydration, the `children` render function is called.
  *
+ * @useWhen Render children in the browser only, after hydration, when they read browser state such
+ * as `window` or `localStorage`.
+ *
  * @see https://mantle.ngrok.com/components/primitives/browser-only
  *
  * @example

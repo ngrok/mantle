@@ -72,6 +72,9 @@ type Props = ComponentProps<"div"> & WithAsChild & BaseProps;
  * only the sandboxed `onClick`: a presentational role on a link or button is a
  * conflict that user agents ignore.
  *
+ * @useWhen Stop a click inside a region, such as a menu in a clickable table row, from reaching a
+ * click handler on an ancestor.
+ *
  * @see https://mantle.ngrok.com/components/primitives/sandboxed-on-click
  *
  * @example

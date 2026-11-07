@@ -2049,6 +2049,12 @@ function ExpandedRow<TFeatures extends TableFeatures, TData extends RowData>({
  * For STATIC, layout-driven tables (read-only data dumps, simple key/value
  * displays, plain markup tables with no interactivity), use `Table` instead.
  *
+ * @useWhen Show rows of application data that the user sorts, filters, pages through, or selects.
+ *
+ * @siblings
+ * - `Table`: the data is static, with no sorting, filtering, pagination, or selection.
+ * - `DescriptionList`: one record shows as label and value pairs.
+ *
  * @see https://mantle.ngrok.com/components/data-display/data-table
  *
  * @example

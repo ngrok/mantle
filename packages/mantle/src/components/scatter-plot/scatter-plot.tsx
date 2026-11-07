@@ -457,6 +457,13 @@ const CopyButton = (props: ScatterPlotCopyButtonProps) => (
  * token from `Root`'s computed style, so a declaration scoped there wins for
  * that chart and leaves every other chart on the page alone.
  *
+ * @useWhen Show how two measures correlate across many points, or three measures in a rotatable 3D
+ * view.
+ *
+ * @siblings
+ * - `LineChart`: one measure trends across an ordered x axis, such as time.
+ * - `BarChart`: values compare across categories.
+ *
  * @see https://mantle.ngrok.com/components/charts/scatter-plot
  *
  * @example

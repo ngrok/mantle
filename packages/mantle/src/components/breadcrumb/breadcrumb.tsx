@@ -578,6 +578,12 @@ const BreadcrumbSkeleton = ({
  * router's link via `asChild`. A trail too wide for its row scrolls sideways
  * with faded edges instead of wrapping, and starts at the current page.
  *
+ * @useWhen Show where the current page sits in a hierarchy, as a trail of links from a root page.
+ *
+ * @siblings
+ * - `Tabs`: the user switches between peer views of one page.
+ * - `Sidebar`: the app needs persistent navigation to its top-level pages.
+ *
  * @see https://mantle.ngrok.com/components/navigation/breadcrumb
  *
  * @example

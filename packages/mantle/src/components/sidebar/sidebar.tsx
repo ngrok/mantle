@@ -2555,6 +2555,14 @@ const SidebarSeparator = ({
  * details pane is `AppLayout.SidePanel`; a modal drawer is `Sheet`; switching
  * sections inside one page is `Tabs`.
  *
+ * @useWhen Show the main navigation of an app in a column that collapses to an icon rail, and to a
+ * sheet on small screens.
+ *
+ * @siblings
+ * - `Tabs`: the user switches between views inside one page.
+ * - `Sheet`: a panel opens over the page for a task, not for navigation.
+ * - `Breadcrumb`: the page shows where it sits in a hierarchy.
+ *
  * @see https://mantle.ngrok.com/components/navigation/sidebar
  *
  * @example

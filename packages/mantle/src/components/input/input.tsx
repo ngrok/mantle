@@ -36,6 +36,16 @@ type InputProps = Omit<ComponentProps<"input">, "autoComplete" | "type"> &
  * An interactive form control that accepts data from the user. Supports many
  * input types and validation states, and composes with adornment children.
  *
+ * @useWhen Accept one line of text from the user, such as a name, an email address, a URL, or a
+ * search term.
+ *
+ * @siblings
+ * - `TextArea`: the text spans several lines.
+ * - `PasswordInput`: the value is a password or another secret.
+ * - `OtpInput`: the value is a one-time passcode.
+ * - `Combobox`: the user picks the value from a list of suggestions.
+ * - `Query`: the field filters a list with free text and `key:value` qualifiers.
+ *
  * @see https://mantle.ngrok.com/components/forms/input
  *
  * @example

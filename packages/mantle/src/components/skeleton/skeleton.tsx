@@ -34,6 +34,12 @@ type Props = Omit<ComponentProps<"div">, "children"> & SelfClosingWithAsChild & 
  * is loading, also announce it to screen readers, for example wrap it in an
  * element with `role="status"` and a visually-hidden "Loading…" label.
  *
+ * @useWhen Hold the place of content while it loads, in the shape that the content will take.
+ *
+ * @siblings
+ * - `Empty`: the region loaded and has no data, no results, or no access to show.
+ * - `ProgressBar`: a task shows how much of it is complete.
+ *
  * @see https://mantle.ngrok.com/components/feedback/skeleton
  *
  * @example

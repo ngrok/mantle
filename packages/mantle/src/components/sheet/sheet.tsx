@@ -1002,6 +1002,14 @@ const Actions = ({
  * When multiple overlays are open, the most recently mounted overlay renders on
  * top.
  *
+ * @useWhen Open a panel from the edge of the screen for a task beside the current view, such as a
+ * filter panel, a detail view, or a mobile menu.
+ *
+ * @siblings
+ * - `Dialog`: the task fits a centered modal window.
+ * - `AlertDialog`: the user must confirm a destructive or irreversible action.
+ * - `Sidebar`: the panel holds the persistent navigation of the app.
+ *
  * @see https://mantle.ngrok.com/components/overlays/sheet
  *
  * @example

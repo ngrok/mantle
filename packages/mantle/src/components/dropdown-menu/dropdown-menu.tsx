@@ -712,6 +712,14 @@ const Shortcut = ({
  * `document.body`, below the overlay tier (`z-60`). When sibling floats share a
  * container, the most recently mounted float paints on top.
  *
+ * @useWhen Show a menu of actions or options when the user clicks a button.
+ *
+ * @siblings
+ * - `Select`: the user picks one value for a form field.
+ * - `SplitButton`: a default action runs on one click, and the menu holds its alternatives.
+ * - `Command`: the user searches many actions or pages from the keyboard.
+ * - `Popover`: the floating content is a small form or other content, not a menu.
+ *
  * @see https://mantle.ngrok.com/components/overlays/dropdown-menu
  *
  * @example

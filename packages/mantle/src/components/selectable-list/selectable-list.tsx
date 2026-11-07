@@ -1033,6 +1033,12 @@ const Empty = ({
  * row (tracked via `aria-activedescendant`, so navigation works across the full
  * option set even when virtualized) and `Space`/`Enter` toggles it.
  *
+ * @useWhen Select several items from an inline, filterable list of checkbox rows, with no popover.
+ *
+ * @siblings
+ * - `MultiSelect`: the options open in a popover, and the picks show as tags.
+ * - `List`: each row runs an action or navigates, with no selection.
+ *
  * @see https://mantle.ngrok.com/components/data-display/selectable-list
  *
  * @example

@@ -1999,6 +1999,12 @@ const SidePanelFooter = ({
  * bottom bar is exactly what most consumers want. Make the page's root a flex
  * column instead; see the docs' "Sizing a page to the card".
  *
+ * @useWhen Frame a signed-in app with navigation that persists across routes: a sidebar, a header
+ * toolbar, and one scrolling content card.
+ *
+ * @siblings
+ * - `CenteredLayout`: the page is one focused flow with no sidebar, such as sign-in, onboarding, or a 404 page.
+ *
  * @see https://mantle.ngrok.com/layouts/app-layout
  *
  * @example

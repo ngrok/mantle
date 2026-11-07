@@ -1,11 +1,16 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { createMcpHandler } from "@modelcontextprotocol/server";
+import mantlePackageJson from "@ngrok/mantle/package.json" with { type: "json" };
 import { describe, expect, it, vi } from "vitest";
+import { buildSiteAgentManifest } from "~/utilities/agent-manifest.server";
 import { urlToFileMap } from "~/utilities/docs";
 import type { McpFlags } from "~/utilities/mcp/flags.server";
 import {
 	createMantleMcpServer,
 	loadMigrationGuides,
 	MCP_INSTRUCTIONS,
+	productionDependencies,
 	type McpDependencies,
 	type ToolCallEvent,
 } from "~/utilities/mcp/server.server";
@@ -252,6 +257,71 @@ describe("the mantle MCP server", () => {
 		expect(result.isError).toBe(true);
 		expect(result.text).toBe("The code is over 20480 bytes. Check one file at a time.");
 	});
+});
+
+/** The production dependencies, with the current docs build as the published version. */
+async function currentDependencies(): Promise<McpDependencies> {
+	const manifest = await buildSiteAgentManifest();
+	const data = versionDataFromFiles(
+		manifest.version,
+		new Map([
+			["package.json", JSON.stringify(mantlePackageJson)],
+			["dist/agent.json", JSON.stringify(manifest)],
+		]),
+	);
+	return {
+		...productionDependencies({
+			flags: () => ({ enabled: true, disabledTools: new Set() }),
+			requestOrigin: "https://mantle.example",
+		}),
+		loader: {
+			latestVersion: async () => data.version,
+			isPublished: async () => true,
+			load: async () => data,
+		},
+		log: () => {},
+	};
+}
+
+/** The queries in `("…")` form, as the `find` description and the For AI Agents page quote them. */
+function quotedExamples(text: string): string[] {
+	return Array.from(text.matchAll(/\("([^"]+)"\)/g), (match) => match[1] ?? "");
+}
+
+describe("the documented find examples", () => {
+	const topResultByExample = { "confirm before delete": "Alert Dialog", modal: "Dialog" };
+
+	it("are the examples that the find description and the For AI Agents page name", async () => {
+		const { result } = await rpc(dependencies(), "tools/list");
+		const tools = (result?.tools ?? []) as { name: string; description?: string }[];
+		const page = readFileSync(
+			fileURLToPath(new URL("../../docs/for-ai-agents.mdx", import.meta.url)),
+			"utf8",
+		);
+		const findRow = page.split("\n").find((line) => line.startsWith("| `find`")) ?? "";
+
+		const findDescription = tools.find((tool) => tool.name === "find")?.description ?? "";
+
+		expect(quotedExamples(findDescription)).toEqual(Object.keys(topResultByExample));
+		expect(quotedExamples(findRow)).toEqual(Object.keys(topResultByExample));
+	});
+
+	it.each(Object.entries(topResultByExample))(
+		'finds "%s" as a strong match to %s in the current docs build',
+		async (query, name) => {
+			const { result } = await rpc(await currentDependencies(), "tools/call", {
+				name: "find",
+				arguments: { query },
+			});
+			const found = result?.structuredContent as {
+				strongMatch: boolean;
+				results: { name: string }[];
+			};
+
+			expect(found.strongMatch).toBe(true);
+			expect(found.results[0]?.name).toBe(name);
+		},
+	);
 });
 
 describe("loadMigrationGuides", () => {

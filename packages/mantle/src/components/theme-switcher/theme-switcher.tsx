@@ -312,6 +312,12 @@ type ThemeSwitcherProps = Omit<
  * hydration, then the icon of the applied theme. To put the same control in
  * an existing menu, use `ThemeDropdownMenuItem`.
  *
+ * @useWhen Let the user switch between light and dark mode from a header, a toolbar, or an account
+ * menu.
+ *
+ * @siblings
+ * - `Switch`: the toggle controls a setting other than the theme.
+ *
  * @see https://mantle.ngrok.com/components/forms/theme-switcher
  * @see https://lea.verou.me/blog/2026/dark-mode-toggles/
  *

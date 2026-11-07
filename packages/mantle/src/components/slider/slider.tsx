@@ -77,6 +77,11 @@ type SliderProps = SliderBaseProps &
  * thumb ("Minimum Price", "Maximum Price"). `aria-labelledby` names every
  * thumb with the same text, so prefer `aria-label` for a range slider.
  *
+ * @useWhen Pick a number, or a range between two numbers, with a thumb that moves along a track.
+ *
+ * @siblings
+ * - `Input`: the user types an exact number.
+ *
  * @see https://mantle.ngrok.com/components/forms/slider
  *
  * @example

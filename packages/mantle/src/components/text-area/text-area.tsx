@@ -22,6 +22,11 @@ type Props = ComponentProps<"textarea"> &
  * to enter a sizeable amount of free-form text, for example a comment on a
  * review or feedback form.
  *
+ * @useWhen Accept several lines of free-form text, such as a comment or a description.
+ *
+ * @siblings
+ * - `Input`: the text fits on one line.
+ *
  * @see https://mantle.ngrok.com/components/forms/text-area
  *
  * @example

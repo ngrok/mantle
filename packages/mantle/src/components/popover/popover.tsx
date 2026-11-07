@@ -308,6 +308,15 @@ const Arrow = ({
  * (`z-60`). When sibling floats share a container, the most recently mounted
  * float paints on top.
  *
+ * @useWhen Show interactive content, such as a small form, a settings menu, or a color picker, that
+ * the user opens from a button.
+ *
+ * @siblings
+ * - `Tooltip`: the content is a short label or hint that shows on hover or focus.
+ * - `HoverCard`: the content is a preview of a link that shows on hover.
+ * - `DropdownMenu`: the content is a list of actions.
+ * - `Dialog`: the task needs a modal window that blocks the page.
+ *
  * @see https://mantle.ngrok.com/components/overlays/popover
  * @see https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/
  *

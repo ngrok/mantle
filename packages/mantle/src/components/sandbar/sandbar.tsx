@@ -1002,6 +1002,14 @@ const DiscardButton = ({
  * navigation guard and call `shake()` on the {@link SandbarHandle} when a
  * navigation attempt is blocked.
  *
+ * @useWhen Hold the unsaved changes of a form in a bar at the bottom of the page until the user
+ * saves or discards them.
+ *
+ * @siblings
+ * - `Toast`: the message reports something that already happened and goes away on its own.
+ * - `Alert`: the message needs no decision and stays in the page.
+ * - `AlertDialog`: one destructive action needs a confirmation before it runs.
+ *
  * @see https://mantle.ngrok.com/components/feedback/sandbar
  *
  * @example

@@ -178,6 +178,12 @@ function Indicator({ "data-slot": dataSlot, className, style, ...props }: Indica
  * A horizontal progress bar that shows the completion progress of a task.
  * Use this component for linear progress indication.
  *
+ * @useWhen Show how much of a task or a quota is complete, as a horizontal bar.
+ *
+ * @siblings
+ * - `ProgressDonut`: the indicator must be a small circle.
+ * - `Skeleton`: the content still loads, and its progress is unknown.
+ *
  * @see https://mantle.ngrok.com/components/feedback/progress-bar
  *
  * @example

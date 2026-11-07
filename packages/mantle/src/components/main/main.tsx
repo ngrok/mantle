@@ -19,6 +19,13 @@ import { joinDataSlot } from "../../utils/data-slot.js";
  * it on the `AppLayout.Content` card around the body. Focus then lands on an
  * element that cannot scroll, and the keyboard user is stranded.
  *
+ * @useWhen Mark the primary content of a page as a focusable `<main>` landmark that a skip link can
+ * move focus to.
+ *
+ * @siblings
+ * - `SkipToMainLink`: keyboard users need the link that jumps to the landmark.
+ * - `AppLayout`: the page sits in the app shell, where `AppLayout.Body` already renders the landmark.
+ *
  * @see https://mantle.ngrok.com/components/primitives/main
  *
  * @example

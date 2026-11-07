@@ -27,6 +27,14 @@ import { Slot } from "../slot/index.js";
  * | -------------- | ------------------- | ------------------------------------------------------------------------- |
  * | `data-slot`    | `"visually-hidden"` | Stamped on the rendered element, and joined onto the child via `asChild`. |
  *
+ * @useWhen Give screen readers text that sighted users never see, such as "(opens in a new tab)" on
+ * an external link.
+ *
+ * @siblings
+ * - `LiveRegion`: screen readers must announce the text when it changes.
+ * - `IconButton`: the text names an icon-only button; pass it as the `label` prop.
+ * - `SkipToMainLink`: the hidden content is a skip link that shows on focus.
+ *
  * @see https://mantle.ngrok.com/components/primitives/visually-hidden
  * @see https://webaim.org/techniques/css/invisiblecontent/
  *

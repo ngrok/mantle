@@ -671,6 +671,15 @@ const ExpandButton = ({
 /**
  * Displays a callout for user attention.
  *
+ * @useWhen Show a persistent message in the page, such as a warning, an error, or a success note,
+ * beside the content it describes.
+ *
+ * @siblings
+ * - `Toast`: the message is brief and goes away on its own.
+ * - `AlertDialog`: the user must respond before they continue.
+ * - `AlertCenter`: several account-level alerts share one bar at the top of the app.
+ * - `Empty`: a region has no data, no results, or no access to show.
+ *
  * @see https://mantle.ngrok.com/components/feedback/alert
  *
  * @example

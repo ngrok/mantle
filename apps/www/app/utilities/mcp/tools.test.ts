@@ -10,6 +10,7 @@ import {
 	migrationsBetween,
 	recordNamed,
 	recordsOf,
+	type ApiRecord,
 	type DocPageRecord,
 	type MigrationGuide,
 } from "~/utilities/mcp/tools";
@@ -27,6 +28,21 @@ describe("findRecords", () => {
 
 	it("ranks an intent by the words of useWhen", () => {
 		expect(names(findRecords(records, { query: "confirm before delete" }))[0]).toBe("Dialog");
+	});
+
+	it("does not score a function word such as before", () => {
+		const avatar: ApiRecord = {
+			name: "Avatar",
+			kind: "component",
+			importPath: "@ngrok/mantle/avatar",
+			jsdoc: "A small image, with a fallback before one loads.",
+			docsUrl: "https://mantle.ngrok.com/components/data-display/avatar",
+			docsSlug: "components/data-display/avatar",
+		};
+
+		expect(names(findRecords([...records, avatar], { query: "confirm before delete" }))).toEqual([
+			"Dialog",
+		]);
 	});
 
 	it("filters by kind", () => {

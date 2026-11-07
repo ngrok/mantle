@@ -77,6 +77,12 @@ type PasswordInputType = Extract<InputType, "text" | "password">;
  * `type="text"`. Some password managers may pause autofill in this state,
  * which is the intended security trade-off.
  *
+ * @useWhen Accept a password or another secret value, with a button that shows or hides it.
+ *
+ * @siblings
+ * - `Input`: the value is never sensitive.
+ * - `OtpInput`: the value is a one-time passcode.
+ *
  * @see https://mantle.ngrok.com/components/forms/password-input
  *
  * @example

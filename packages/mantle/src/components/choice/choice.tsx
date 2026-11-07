@@ -564,6 +564,12 @@ const Description = ({
  * accessible name is the title alone and the description is its
  * `aria-describedby`.
  *
+ * @useWhen Put a checkbox, a radio, or a switch beside a title and an optional description.
+ *
+ * @siblings
+ * - `Label`: the control needs only a one-line caption.
+ * - `MediaObject`: the thing beside the text is an image or an icon, not a control.
+ *
  * @see https://mantle.ngrok.com/components/forms/choice
  *
  * @example

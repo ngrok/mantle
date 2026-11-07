@@ -276,6 +276,12 @@ const MenuItem = ({ className, ...props }: ComponentProps<typeof DropdownMenu.It
  * of related alternatives. Best for when users typically want one action but
  * occasionally need variants.
  *
+ * @useWhen Run a default action on one click, and offer related alternatives in an attached menu.
+ *
+ * @siblings
+ * - `Button`: the control runs one action, with no alternatives.
+ * - `DropdownMenu`: the button only opens a menu and runs no default action.
+ *
  * @see https://mantle.ngrok.com/components/actions/split-button
  *
  * @example
