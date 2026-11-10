@@ -26,6 +26,7 @@ import {
 	compareVersions,
 	createVersionDataLoader,
 	MIN_SUPPORTED_VERSION,
+	ServerBusyError,
 	VersionError,
 	type VersionData,
 	type VersionDataLoader,
@@ -95,6 +96,7 @@ export type GapSignal = {
  * - `not_found`: no part, docs page, or published version has the name.
  * - `version`: the version is malformed, too old, or not published.
  * - `too_large`: the code is over the size cap.
+ * - `busy`: the server has too many versions to load. A retry can work.
  * - `internal`: the server failed.
  */
 export type ToolErrorKind =
@@ -103,6 +105,7 @@ export type ToolErrorKind =
 	| "not_found"
 	| "version"
 	| "too_large"
+	| "busy"
 	| "internal";
 
 /** How a tool call ended. An `error` outcome always has its kind. */
@@ -247,13 +250,18 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 	);
 
 	/**
-	 * Wraps the input schema of `tool` to log a call whose arguments fail it.
-	 * The SDK rejects that call before `run`, so this is its one log event.
+	 * Wraps the input schema of `tool` to log a call whose arguments fail it,
+	 * with the scrubbed `intent` when it is a string. The SDK rejects that call
+	 * before `run`, so this is its one log event.
 	 */
 	const logInvalid = <Schema extends z.ZodType>(tool: string, schema: Schema) => {
 		const standard = schema["~standard"];
-		const report = (result: Awaited<ReturnType<typeof standard.validate>>) => {
+		const report = (value: unknown, result: Awaited<ReturnType<typeof standard.validate>>) => {
 			if (result.issues != null) {
+				const intent =
+					typeof value === "object" && value != null && "intent" in value
+						? value.intent
+						: undefined;
 				const fields = result.issues.map(({ path }) => {
 					const first = path?.[0];
 					return String(typeof first === "object" ? first.key : (first ?? "arguments"));
@@ -265,6 +273,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 					latencyMs: 0,
 					resultBytes: 0,
 					client,
+					intent: typeof intent === "string" ? scrubIntent(intent) : undefined,
 					invalidFields: Array.from(new Set(fields)),
 				});
 			}
@@ -275,7 +284,9 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 				...standard,
 				validate: (value: unknown) => {
 					const result = standard.validate(value);
-					return result instanceof Promise ? result.then(report) : report(result);
+					return result instanceof Promise
+						? result.then((settled) => report(value, settled))
+						: report(value, result);
 				},
 			},
 		};
@@ -327,7 +338,8 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 				return finish(outcome, result, facts);
 			} catch (error) {
 				if (error instanceof VersionError) {
-					return finish({ outcome: "error", errorKind: "version" }, text(error.message, true));
+					const errorKind = error instanceof ServerBusyError ? "busy" : "version";
+					return finish({ outcome: "error", errorKind }, text(error.message, true));
 				}
 				finish({ outcome: "error", errorKind: "internal" }, text("", true));
 				throw error;

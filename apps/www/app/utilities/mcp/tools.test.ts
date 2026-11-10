@@ -252,12 +252,28 @@ describe("fitMarkdown", () => {
 });
 
 describe("scrubIntent", () => {
-	it("drops URLs, domains, emails, paths, IDs, and code, and keeps the words", () => {
+	it("drops URLs, domains, emails, paths, IDs, and quoted literals, and keeps the words", () => {
 		expect(
 			scrubIntent(
-				"Settings page for acme.example.com, mail ops@acme.io, see src/app.tsx and ticket 4412 with <Button intent={x}>",
+				'Settings page for acme.example.com, mail ops@acme.io, see src/app.tsx, .env, user_id, and ticket 4412 with "Acme Corp"',
 			),
 		).toBe("Settings page for mail see and ticket with");
+	});
+
+	it("drops domains and numbers in any script", () => {
+		expect(scrubIntent("Show данные.рф and 商店.公司 for account １２３４５")).toBe(
+			"Show and for account",
+		);
+	});
+
+	it.each([
+		["a fenced code span", '```updateCustomer("Confidential Customer")```'],
+		["a call", 'Load data with fetch("customer-secret")'],
+		["a JSX tag", 'Render <Button variant="danger">Delete Acme</Button>'],
+		["an assignment", "Set const plan = premium"],
+		["a block", "Handle if (isOpen) { return null }"],
+	])("logs no intent that holds %s", (_, intent) => {
+		expect(scrubIntent(intent)).toBeUndefined();
 	});
 
 	it("keeps 160 characters at most", () => {

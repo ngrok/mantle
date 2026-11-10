@@ -15,7 +15,7 @@ import {
 	type ToolCallEvent,
 } from "~/utilities/mcp/server.server";
 import { packageFilesFixture } from "~/utilities/mcp/test-fixtures";
-import { versionDataFromFiles } from "~/utilities/mcp/version-data.server";
+import { ServerBusyError, versionDataFromFiles } from "~/utilities/mcp/version-data.server";
 
 function dependencies(overrides: Partial<McpDependencies> = {}): McpDependencies {
 	const data = versionDataFromFiles("0.93.0", packageFilesFixture());
@@ -218,6 +218,20 @@ describe("the mantle MCP server", () => {
 		);
 	});
 
+	it("logs the scrubbed intent of a call that fails schema validation", async () => {
+		const log = vi.fn<(event: ToolCallEvent) => void>();
+
+		await callTool(dependencies({ log }), "get", { name: "", intent: "Danger zone for acme.io" });
+
+		expect(log).toHaveBeenLastCalledWith(
+			expect.objectContaining({
+				errorKind: "validation",
+				intent: "Danger zone for",
+				invalidFields: ["name"],
+			}),
+		);
+	});
+
 	it("logs the client and the scrubbed intent", async () => {
 		const log = vi.fn<(event: ToolCallEvent) => void>();
 
@@ -297,6 +311,27 @@ describe("the mantle MCP server", () => {
 		expect(log).toHaveBeenCalledTimes(1);
 		expect(log).toHaveBeenLastCalledWith(
 			expect.objectContaining({ tool: "get", outcome: "error", errorKind: "internal" }),
+		);
+	});
+
+	it("logs a full download queue as busy, not as a version error", async () => {
+		const log = vi.fn<(event: ToolCallEvent) => void>();
+		const loader = {
+			latestVersion: async () => "0.93.0",
+			isPublished: async () => true,
+			load: async () => {
+				throw new ServerBusyError("The server is busy loading other versions. Try again soon.");
+			},
+		};
+
+		const result = await callTool(dependencies({ log, loader }), "get", { name: "Dialog" });
+
+		expect(result).toEqual({
+			text: "The server is busy loading other versions. Try again soon.",
+			isError: true,
+		});
+		expect(log).toHaveBeenLastCalledWith(
+			expect.objectContaining({ tool: "get", outcome: "error", errorKind: "busy" }),
 		);
 	});
 

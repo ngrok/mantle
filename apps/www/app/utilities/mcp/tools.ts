@@ -252,20 +252,30 @@ export function gapTokens(query: string): string[] {
 /** The longest intent that the log keeps, in characters. */
 const INTENT_LOG_LENGTH = 160;
 
+/** A code span, a tag, a call, or an assignment. An intent with one is not logged. */
+const CODE_SIGNAL = /[`{};=]|<\/?\p{L}|\p{L}\(/u;
+
+/** A number, `@`, `:`, a slash, a quote, a bracket, `_`, `$`, `#`, a leading dot, or a dot inside a word. */
+const UNSAFE_WORD = /[\p{N}@:/\\<>()[\]"_$#]|\p{L}\.\p{L}|^\./u;
+
 /**
- * The words of an agent's `intent` that are safe to log. A word goes when it
- * has a digit, `@`, `:`, a slash, a dot inside it, or code punctuation, so
- * URLs, emails, paths, IDs, and JSX do not survive. Returns `undefined` when
- * no word is left.
+ * The part of an agent's `intent` that is safe to log. An intent that holds
+ * code (a code span, a tag, a call, or an assignment) is not logged. In other
+ * intents, a word goes when it matches `UNSAFE_WORD`, so URLs, emails, paths,
+ * domains, dotfiles, IDs, and quoted literals do not survive, in any script.
+ * Returns `undefined` when no word is left.
  *
  * @example
  * scrubIntent("Settings page for acme.example.com with a danger zone, ticket 4412");
  * // "Settings page for with a danger zone, ticket"
  */
 export function scrubIntent(intent: string): string | undefined {
+	if (CODE_SIGNAL.test(intent)) {
+		return undefined;
+	}
 	const kept = intent
 		.split(/\s+/)
-		.filter((word) => word !== "" && !/[\d@:/\\<>{}=;`]|\w\.\w/.test(word))
+		.filter((word) => word !== "" && !UNSAFE_WORD.test(word))
 		.join(" ")
 		.slice(0, INTENT_LOG_LENGTH)
 		.trim();
