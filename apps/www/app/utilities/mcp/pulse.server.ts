@@ -12,6 +12,16 @@ const ALERTS_PER_HOUR = 30;
 /** The longest wait for Slack. A post must not hold a shutdown. */
 const POST_TIMEOUT_MS = 3_000;
 
+/**
+ * The longest wait at shutdown for the MCP requests in flight. With
+ * `POST_TIMEOUT_MS`, the shutdown digest posts before the 10 s drain deadline
+ * of app-server.
+ */
+const DRAIN_WAIT_MS = 5_000;
+
+/** The most client names, and the most needs, that one digest counts by name. */
+const DIGEST_KEYS = 200;
+
 /** One alert: its Slack text, and the key that holds back a repeat for an hour. */
 type Alert = { key: string; text: string };
 
@@ -93,7 +103,7 @@ function footer(event: ToolCallEvent): string {
  * The Slack alert for a call that a person must see now, or `undefined`:
  *
  * - a `report_gap` call,
- * - a `find` call with no strong match, and
+ * - a `find` call with no strong match, when its query has words that are safe to log, and
  * - a call that failed with a `busy` or `internal` error.
  *
  * @example
@@ -170,7 +180,9 @@ export type Digest = {
 	calls: number;
 	tools: Map<string, ToolStats>;
 	errors: Map<ToolErrorKind, number>;
+	/** At most `DIGEST_KEYS` names. A call from a new client after the cap counts only in `calls`. */
 	clients: Map<string, number>;
+	/** At most `DIGEST_KEYS` needs, as `clients`. */
 	needs: Map<string, number>;
 	reportedGaps: number;
 	weakFinds: number;
@@ -195,8 +207,11 @@ export function emptyDigest(now: number): Digest {
 	};
 }
 
-function increment<Key>(map: Map<Key, number>, key: Key) {
-	map.set(key, (map.get(key) ?? 0) + 1);
+/** Adds `by` to the count of `key`. A new key after `DIGEST_KEYS` keys is not added, so callers cannot grow the map. */
+function increment<Key>(map: Map<Key, number>, key: Key, by = 1) {
+	if (map.has(key) || map.size < DIGEST_KEYS) {
+		map.set(key, (map.get(key) ?? 0) + by);
+	}
 }
 
 /** Adds one call to the digest. */
@@ -222,6 +237,36 @@ export function addToDigest(digest: Digest, event: ToolCallEvent) {
 	if (event.intent != null && !digest.goals.includes(event.intent)) {
 		digest.goals = [event.intent, ...digest.goals].slice(0, 3);
 	}
+}
+
+/**
+ * Adds the counts of `older` to `digest`, so that the calls of a digest that
+ * Slack did not accept post with the next digest.
+ */
+function mergeDigest(digest: Digest, older: Digest) {
+	digest.since = Math.min(digest.since, older.since);
+	digest.calls += older.calls;
+	for (const [tool, stats] of older.tools) {
+		const into = digest.tools.get(tool) ?? { calls: 0, totalMs: 0, maxMs: 0 };
+		digest.tools.set(tool, {
+			calls: into.calls + stats.calls,
+			totalMs: into.totalMs + stats.totalMs,
+			maxMs: Math.max(into.maxMs, stats.maxMs),
+		});
+	}
+	for (const [kind, times] of older.errors) {
+		increment(digest.errors, kind, times);
+	}
+	for (const [name, calls] of older.clients) {
+		increment(digest.clients, name, calls);
+	}
+	for (const [need, times] of older.needs) {
+		increment(digest.needs, need, times);
+	}
+	digest.reportedGaps += older.reportedGaps;
+	digest.weakFinds += older.weakFinds;
+	digest.heldAlerts += older.heldAlerts;
+	digest.goals = Array.from(new Set([...digest.goals, ...older.goals])).slice(0, 3);
 }
 
 /** The entries of `map`, largest count first. */
@@ -292,18 +337,32 @@ export function digestText(
 export type Pulse = {
 	/** Adds a call to the digest, and posts its alert when the call needs one. Never waits for Slack. */
 	record: (event: ToolCallEvent) => void;
-	/** Posts the digest when it has calls, then starts a new one. */
+	/**
+	 * Marks an MCP request as in flight, and returns the function that ends it.
+	 * Why: app-server runs the shutdown hook while the requests drain, so the
+	 * shutdown digest waits up to 5 s for the calls in flight.
+	 */
+	hold: () => () => void;
+	/**
+	 * Posts the digest when it has calls, then starts a new one. Slack can
+	 * refuse the post; then the next digest also counts these calls. At
+	 * shutdown, it first waits for the requests in flight and the posts that
+	 * are not done.
+	 */
 	flush: (reason: "interval" | "shutdown") => Promise<void>;
 };
 
 /**
  * Creates the Slack pulse of the MCP server. With no `webhookUrl`, it posts
- * nothing. A repeat of an alert waits an hour, and one process posts at most
- * 30 alerts an hour; the digest counts the alerts it held back.
+ * nothing. A repeat of an alert waits an hour after Slack accepts it, and one
+ * process tries at most 30 alerts an hour; the digest counts the alerts it held
+ * back.
  *
  * @example
  * const pulse = createPulse({ webhookUrl: process.env.MANTLE_MCP_SLACK_WEBHOOK_URL });
+ * const release = pulse.hold();
  * pulse.record(event);
+ * release();
  * await pulse.flush("shutdown");
  */
 export function createPulse({
@@ -321,10 +380,40 @@ export function createPulse({
 	const lastSent = new Map<string, number>();
 	let windowStart = now();
 	let sentInWindow = 0;
+	/** The posts and the interval flushes that are not done. */
+	const pending = new Set<Promise<unknown>>();
+	let inFlight = 0;
+	let onIdle: (() => void) | undefined;
 
-	const post = async (text: string) => {
+	const track = <Value>(work: Promise<Value>): Promise<Value> => {
+		pending.add(work);
+		const remove = () => pending.delete(work);
+		void work.then(remove, remove);
+		return work;
+	};
+
+	const settled = () => Promise.allSettled(pending);
+
+	/** Resolves when no request is in flight, or after `DRAIN_WAIT_MS`. */
+	const idle = () =>
+		new Promise<void>((resolve) => {
+			if (inFlight === 0) {
+				resolve();
+				return;
+			}
+			const done = () => {
+				clearTimeout(timer);
+				onIdle = undefined;
+				resolve();
+			};
+			const timer = setTimeout(done, DRAIN_WAIT_MS);
+			onIdle = done;
+		});
+
+	/** Posts `text`, and resolves to whether Slack accepted it. */
+	const post = async (text: string): Promise<boolean> => {
 		if (webhookUrl == null || webhookUrl === "") {
-			return;
+			return true;
 		}
 		try {
 			const response = await fetch(webhookUrl, {
@@ -336,9 +425,33 @@ export function createPulse({
 			if (!response.ok) {
 				console.error("mcp pulse post failed", response.status);
 			}
+			return response.ok;
 		} catch (error) {
 			// Why no message: a fetch error message can quote the webhook URL, which is a secret.
 			console.error("mcp pulse post failed", error instanceof Error ? error.name : "unknown");
+			return false;
+		}
+	};
+
+	const postAlert = async (alert: Alert, sentAt: number) => {
+		// Why: a refused alert must not hold back the next one for an hour.
+		if (!(await post(alert.text)) && lastSent.get(alert.key) === sentAt) {
+			lastSent.delete(alert.key);
+		}
+	};
+
+	const postDigest = async (reason: "interval" | "shutdown") => {
+		const time = now();
+		const text = digestText(digest, { now: time, reason, host });
+		const sent = digest;
+		digest = emptyDigest(time);
+		for (const [key, sentAt] of lastSent) {
+			if (time - sentAt >= HOUR_MS) {
+				lastSent.delete(key);
+			}
+		}
+		if (text != null && !(await post(text))) {
+			mergeDigest(digest, sent);
 		}
 	};
 
@@ -363,20 +476,30 @@ export function createPulse({
 			}
 			sentInWindow += 1;
 			lastSent.set(alert.key, time);
-			void post(alert.text);
+			void track(postAlert(alert, time));
+		},
+		hold: () => {
+			inFlight += 1;
+			let held = true;
+			return () => {
+				if (held) {
+					held = false;
+					inFlight -= 1;
+					if (inFlight === 0) {
+						onIdle?.();
+					}
+				}
+			};
 		},
 		flush: async (reason) => {
-			const time = now();
-			const text = digestText(digest, { now: time, reason, host });
-			digest = emptyDigest(time);
-			for (const [key, sentAt] of lastSent) {
-				if (time - sentAt >= HOUR_MS) {
-					lastSent.delete(key);
-				}
+			if (reason === "interval") {
+				await track(postDigest(reason));
+				return;
 			}
-			if (text != null) {
-				await post(text);
-			}
+			await Promise.all([idle(), settled()]);
+			await postDigest(reason);
+			// Why again: a call that ended during the wait can post an alert.
+			await settled();
 		},
 	};
 }

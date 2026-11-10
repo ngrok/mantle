@@ -39,15 +39,22 @@ const weakFind = event({
 	gap: { source: "find", tokens: ["date", "range", "picker"] },
 });
 
-/** A pulse with a fake clock and a fake Slack that records each posted text. */
-function testPulse(
-	{ webhookUrl }: { webhookUrl: string | undefined } = { webhookUrl: "https://hooks.slack.test/x" },
-) {
+/**
+ * A pulse with a fake clock and a fake Slack that records each posted text.
+ * `respond` makes the Slack answer; by default Slack accepts each post.
+ */
+function testPulse({
+	webhookUrl = "https://hooks.slack.test/x",
+	respond = async () => new Response("ok"),
+}: {
+	webhookUrl?: string;
+	respond?: () => Promise<Response>;
+} = {}) {
 	let time = 0;
 	const posts: string[] = [];
 	const fetch = vi.fn<typeof globalThis.fetch>(async (_url, init) => {
 		posts.push((JSON.parse(init?.body as string) as { text: string }).text);
-		return new Response("ok");
+		return respond();
 	});
 	const pulse = createPulse({ webhookUrl, fetch, now: () => time, host: "www-1" });
 	return {
@@ -153,6 +160,18 @@ describe("digestText", () => {
 		);
 	});
 
+	it("names at most 200 clients and counts the calls of the others", () => {
+		const digest = emptyDigest(0);
+		for (let index = 0; index < 300; index += 1) {
+			addToDigest(digest, event({ client: `caller${index}/1.0` }));
+		}
+
+		const text = digestText(digest, { now: HOUR_MS, reason: "interval", host: "www-1" });
+
+		expect(text).toContain("*mantle MCP: 300 calls in the last 1 h*");
+		expect(text).toContain("*Clients:* caller0 0% · caller1 0% · caller2 0% · 197 more");
+	});
+
 	it("has no text when no call came in", () => {
 		expect(
 			digestText(emptyDigest(0), { now: HOUR_MS, reason: "interval", host: "www-1" }),
@@ -196,12 +215,85 @@ describe("createPulse", () => {
 	});
 
 	it("posts nothing with no webhook URL", async () => {
-		const { pulse, fetch } = testPulse({ webhookUrl: undefined });
+		const fetch = vi.fn<typeof globalThis.fetch>();
+		const pulse = createPulse({ webhookUrl: undefined, fetch });
 
 		pulse.record(gapReport);
 		await pulse.flush("shutdown");
 
 		expect(fetch).not.toHaveBeenCalled();
+	});
+
+	it("posts an alert again when Slack refused it", async () => {
+		const answers = [new Response("rate limited", { status: 429 }), new Response("ok")];
+		const error = vi.spyOn(console, "error").mockImplementation(() => {});
+		const { pulse, posts } = testPulse({
+			respond: async () => answers.shift() ?? new Response("ok"),
+		});
+
+		pulse.record(gapReport);
+		await pulse.flush("shutdown");
+		pulse.record(gapReport);
+		pulse.record(gapReport);
+		await pulse.flush("shutdown");
+
+		expect(posts.filter((text) => text.startsWith(":jigsaw:"))).toHaveLength(2);
+		expect(error).toHaveBeenCalledWith("mcp pulse post failed", 429);
+		error.mockRestore();
+	});
+
+	it("posts the calls of a refused digest with the next digest", async () => {
+		const answers = [new Response("error", { status: 500 }), new Response("ok")];
+		const error = vi.spyOn(console, "error").mockImplementation(() => {});
+		const { pulse, posts } = testPulse({
+			respond: async () => answers.shift() ?? new Response("ok"),
+		});
+
+		pulse.record(event({ ids: ["Dialog"] }));
+		await pulse.flush("interval");
+		pulse.record(event({ ids: ["Dialog"] }));
+		await pulse.flush("interval");
+
+		expect(posts[1]).toContain("*mantle MCP: 2 calls in the last 0 ms*");
+		error.mockRestore();
+	});
+
+	it("posts the shutdown digest after an interval digest that is posting", async () => {
+		const slack = Promise.withResolvers<Response>();
+		let answered = false;
+		const answeredAtShutdownPost: boolean[] = [];
+		const { pulse, posts } = testPulse({
+			respond: () => {
+				if (posts.length === 1) {
+					return slack.promise;
+				}
+				answeredAtShutdownPost.push(answered);
+				return Promise.resolve(new Response("ok"));
+			},
+		});
+
+		pulse.record(event({ ids: ["Dialog"] }));
+		void pulse.flush("interval");
+		pulse.record(event({ ids: ["Dialog"] }));
+		const shutdown = pulse.flush("shutdown");
+		answered = true;
+		slack.resolve(new Response("ok"));
+		await shutdown;
+
+		expect(answeredAtShutdownPost).toEqual([true]);
+	});
+
+	it("waits at shutdown for the calls of a request in flight", async () => {
+		const { pulse, posts } = testPulse();
+
+		const release = pulse.hold();
+		const shutdown = pulse.flush("shutdown");
+		pulse.record(event({ ids: ["Dialog"] }));
+		release();
+		await shutdown;
+
+		expect(posts).toHaveLength(1);
+		expect(posts[0]).toContain("*mantle MCP: 1 call in the last 0 ms*");
 	});
 
 	it("keeps a failed post out of the tool call and the shutdown", async () => {

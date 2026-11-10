@@ -1,5 +1,6 @@
 import { createMcpHandler } from "@modelcontextprotocol/server";
 import { mcpFlags } from "~/utilities/mcp/flags.server";
+import { mcpPulse } from "~/utilities/mcp/pulse.server";
 import { createMantleMcpServer, productionDependencies } from "~/utilities/mcp/server.server";
 import type { Route } from "./+types/mcp";
 
@@ -72,7 +73,10 @@ async function serve(request: Request): Promise<Response> {
 			},
 		},
 	);
+	// Why: the shutdown digest waits for the calls of this request.
+	const release = mcpPulse.hold();
 	const close = () => {
+		release();
 		handler.close().catch((error: unknown) => {
 			console.error("mcp handler close error", error instanceof Error ? error.name : "unknown");
 		});
