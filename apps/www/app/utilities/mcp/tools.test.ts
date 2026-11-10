@@ -10,6 +10,7 @@ import {
 	migrationsBetween,
 	recordNamed,
 	recordsOf,
+	scrubIntent,
 	type ApiRecord,
 	type DocPageRecord,
 	type MigrationGuide,
@@ -247,5 +248,23 @@ describe("fitMarkdown", () => {
 		const result = fitMarkdown({ markdown: page, sections: ["Usage"] });
 
 		expect(result.text).toBe("## Usage\n\n```md\n## Not a heading\n```\n");
+	});
+});
+
+describe("scrubIntent", () => {
+	it("drops URLs, domains, emails, paths, IDs, and code, and keeps the words", () => {
+		expect(
+			scrubIntent(
+				"Settings page for acme.example.com, mail ops@acme.io, see src/app.tsx and ticket 4412 with <Button intent={x}>",
+			),
+		).toBe("Settings page for mail see and ticket with");
+	});
+
+	it("keeps 160 characters at most", () => {
+		expect(scrubIntent("abcdef ".repeat(30))).toHaveLength(160);
+	});
+
+	it("returns undefined when no word is left", () => {
+		expect(scrubIntent("https://example.com 42")).toBeUndefined();
 	});
 });

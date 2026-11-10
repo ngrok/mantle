@@ -61,14 +61,17 @@ async function serve(request: Request): Promise<Response> {
 		flags: mcpFlags,
 		requestOrigin: new URL(request.url).origin,
 	});
-	const handler = createMcpHandler(() => createMantleMcpServer(dependencies), {
-		maxRequestBodySize: MAX_REQUEST_BODY_BYTES,
-		onerror: (error) => {
-			// Why no message: a JSON parse message quotes the request body.
-			const frames = error.stack?.split("\n").slice(1).join("\n") ?? "";
-			console.error("mcp handler error", error.name, frames);
+	const handler = createMcpHandler(
+		({ requestInfo }) => createMantleMcpServer(dependencies, requestInfo),
+		{
+			maxRequestBodySize: MAX_REQUEST_BODY_BYTES,
+			onerror: (error) => {
+				// Why no message: a JSON parse message quotes the request body.
+				const frames = error.stack?.split("\n").slice(1).join("\n") ?? "";
+				console.error("mcp handler error", error.name, frames);
+			},
 		},
-	});
+	);
 	const close = () => {
 		handler.close().catch((error: unknown) => {
 			console.error("mcp handler close error", error instanceof Error ? error.name : "unknown");

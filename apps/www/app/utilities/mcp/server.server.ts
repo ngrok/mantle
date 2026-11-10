@@ -16,6 +16,7 @@ import {
 	migrationsBetween,
 	recordNamed,
 	recordsOf,
+	scrubIntent,
 	type DocPageRecord,
 	type FindRecord,
 	type MigrationGuide,
@@ -56,7 +57,7 @@ export type McpDependencies = {
 	flags: () => McpFlags;
 	/** The origin of the preview page. */
 	previewOrigin: string;
-	/** Records one tool call. Never receives code, free text, or messages. */
+	/** Records one tool call. Never receives code or messages, and free text only as `scrubIntent` output. */
 	log: (event: ToolCallEvent) => void;
 };
 
@@ -86,22 +87,69 @@ export type GapSignal = {
 	closestPart?: string;
 };
 
+/**
+ * Why a tool call failed:
+ *
+ * - `validation`: the arguments do not match the input schema, so the tool body never ran.
+ * - `invalid_argument`: the arguments match the schema, but the tool cannot use them.
+ * - `not_found`: no part, docs page, or published version has the name.
+ * - `version`: the version is malformed, too old, or not published.
+ * - `too_large`: the code is over the size cap.
+ * - `internal`: the server failed.
+ */
+export type ToolErrorKind =
+	| "validation"
+	| "invalid_argument"
+	| "not_found"
+	| "version"
+	| "too_large"
+	| "internal";
+
+/** How a tool call ended. An `error` outcome always has its kind. */
+type ToolCallOutcome =
+	| { outcome: "ok" | "disabled" }
+	| { outcome: "error"; errorKind: ToolErrorKind };
+
 /** One tool call, as the server logs it. */
-export type ToolCallEvent = {
+export type ToolCallEvent = ToolCallOutcome & {
 	tool: string;
-	outcome: "ok" | "error" | "disabled";
 	latencyMs: number;
 	resultBytes: number;
+	/** The first product token of the `User-Agent` header, such as `claude-code/2.1.3`. */
+	client?: string;
+	/** The agent's reason for the call, from `scrubIntent`. */
+	intent?: string;
 	dataVersion?: string;
 	/** Allowlisted record names from `find` and `get`, and diagnostic codes from `check`. */
 	ids?: string[];
 	/** The number of `find` results. */
 	resultCount?: number;
+	/** The top-level argument names that failed validation. */
+	invalidFields?: string[];
 	gap?: GapSignal;
 };
 
 /** The fields that a tool body adds to its log event. */
-type ToolCallFacts = Pick<ToolCallEvent, "dataVersion" | "ids" | "resultCount" | "gap">;
+type ToolCallFacts = Pick<ToolCallEvent, "dataVersion" | "ids" | "resultCount" | "gap"> & {
+	/** Set by `failure`; a tool error with no kind logs as `internal`. */
+	errorKind?: ToolErrorKind;
+};
+
+/** A tool error result with the kind that its log event records. */
+function failure(errorKind: ToolErrorKind, message: string, facts: ToolCallFacts = {}) {
+	return { result: text(message, true), ...facts, errorKind };
+}
+
+/**
+ * The client name of a request: the first product token of its `User-Agent`
+ * header, with any character outside `[\w./-]` removed. Most clients send no
+ * `clientInfo` on a stateless `tools/call`, so the header is the one signal.
+ */
+function clientOf(request: Request | undefined): string | undefined {
+	const token = request?.headers.get("user-agent")?.trim().split(/\s+/)[0] ?? "";
+	const client = token.replace(/[^\w./-]/g, "").slice(0, 60);
+	return client === "" ? undefined : client;
+}
 
 const versionArgument = z
 	.string()
@@ -115,6 +163,14 @@ const sectionsArgument = z
 	.max(12)
 	.optional()
 	.describe("Docs headings to return, such as `API Reference`. Omit for the default.");
+
+// Why no max: a long intent must not fail the call. `scrubIntent` cuts it for the log.
+const intentArgument = z
+	.string()
+	.optional()
+	.describe(
+		'Why you call this tool: the user\'s goal in generic words, such as "settings page with a danger zone". The mantle team reads it to learn what agents build. Never send code, URLs, product names, or customer data.',
+	);
 
 const readOnly = { readOnlyHint: true, idempotentHint: true, openWorldHint: false } as const;
 
@@ -166,11 +222,16 @@ function findResultText(record: FindRecord): string {
 /**
  * Creates one MCP server instance with the mantle tools, resources, and
  * prompt. The HTTP handler calls it once per request, so it holds no state.
+ * The request names the client in each log event.
  *
  * @example
- * const handler = createMcpHandler(() => createMantleMcpServer(dependencies));
+ * const handler = createMcpHandler(({ requestInfo }) =>
+ * 	createMantleMcpServer(dependencies, requestInfo),
+ * );
  */
-export function createMantleMcpServer(dependencies: McpDependencies): McpServer {
+export function createMantleMcpServer(dependencies: McpDependencies, request?: Request): McpServer {
+	const client = clientOf(request);
+
 	const server = new McpServer(
 		{ name: "mantle", title: "ngrok mantle", version: dependencies.docsVersion },
 		{
@@ -186,44 +247,89 @@ export function createMantleMcpServer(dependencies: McpDependencies): McpServer 
 	);
 
 	/**
+	 * Wraps the input schema of `tool` to log a call whose arguments fail it.
+	 * The SDK rejects that call before `run`, so this is its one log event.
+	 */
+	const logInvalid = <Schema extends z.ZodType>(tool: string, schema: Schema) => {
+		const standard = schema["~standard"];
+		const report = (result: Awaited<ReturnType<typeof standard.validate>>) => {
+			if (result.issues != null) {
+				const fields = result.issues.map(({ path }) => {
+					const first = path?.[0];
+					return String(typeof first === "object" ? first.key : (first ?? "arguments"));
+				});
+				dependencies.log({
+					tool,
+					outcome: "error",
+					errorKind: "validation",
+					latencyMs: 0,
+					resultBytes: 0,
+					client,
+					invalidFields: Array.from(new Set(fields)),
+				});
+			}
+			return result;
+		};
+		return {
+			"~standard": {
+				...standard,
+				validate: (value: unknown) => {
+					const result = standard.validate(value);
+					return result instanceof Promise ? result.then(report) : report(result);
+				},
+			},
+		};
+	};
+
+	/**
 	 * Runs a tool body behind the kill switch, maps a version error to a tool
-	 * error, and logs the call. Any other error is logged, then thrown to the handler.
+	 * error, and logs the call with the scrubbed `intent`. The body never sees
+	 * `intent`. Any other error is logged, then thrown to the handler.
 	 */
 	const run =
-		<Args>(
+		<Args extends { intent?: string }>(
 			tool: string,
-			body: (args: Args) => Promise<{ result: CallToolResult } & ToolCallFacts>,
+			body: (args: Omit<Args, "intent">) => Promise<{ result: CallToolResult } & ToolCallFacts>,
 		) =>
-		async (args: Args): Promise<CallToolResult> => {
+		async ({ intent, ...args }: Args): Promise<CallToolResult> => {
 			const started = performance.now();
 			const finish = (
-				outcome: ToolCallEvent["outcome"],
+				outcome: ToolCallOutcome,
 				result: CallToolResult,
-				facts: ToolCallFacts = {},
+				facts: Omit<ToolCallFacts, "errorKind"> = {},
 			) => {
 				const resultText = result.content
 					.map((block) => (block.type === "text" ? block.text : ""))
 					.join("");
 				dependencies.log({
 					tool,
-					outcome,
+					...outcome,
 					latencyMs: Math.round(performance.now() - started),
 					resultBytes: byteLength(resultText),
+					client,
+					intent: intent == null ? undefined : scrubIntent(intent),
 					...facts,
 				});
 				return result;
 			};
 			if (!isMcpToolEnabled(dependencies.flags(), tool)) {
-				return finish("disabled", text(`The ${tool} tool is turned off on this server.`, true));
+				return finish(
+					{ outcome: "disabled" },
+					text(`The ${tool} tool is turned off on this server.`, true),
+				);
 			}
 			try {
-				const { result, ...facts } = await body(args);
-				return finish(result.isError === true ? "error" : "ok", result, facts);
+				const { result, errorKind, ...facts } = await body(args);
+				const outcome: ToolCallOutcome =
+					result.isError === true
+						? { outcome: "error", errorKind: errorKind ?? "internal" }
+						: { outcome: "ok" };
+				return finish(outcome, result, facts);
 			} catch (error) {
 				if (error instanceof VersionError) {
-					return finish("error", text(error.message, true));
+					return finish({ outcome: "error", errorKind: "version" }, text(error.message, true));
 				}
-				finish("error", text("", true));
+				finish({ outcome: "error", errorKind: "internal" }, text("", true));
 				throw error;
 			}
 		};
@@ -233,11 +339,15 @@ export function createMantleMcpServer(dependencies: McpDependencies): McpServer 
 		{
 			title: "Find mantle parts",
 			description: `Ranks mantle components, layouts, hooks, utilities, and docs pages (foundations such as colors, and recipes) for an intent ("confirm before delete") or a name from another library ("modal"). Returns up to 8 results with import paths, and says when no result is a strong match. Supports ${MIN_SUPPORTED_VERSION} and later.`,
-			inputSchema: z.object({
-				query: z.string().min(1).max(200).describe("An intent or a component name."),
-				kind: z.enum(["component", "layout", "hook", "utility", "page"]).optional(),
-				version: versionArgument,
-			}),
+			inputSchema: logInvalid(
+				"find",
+				z.object({
+					query: z.string().min(1).max(200).describe("An intent or a component name."),
+					kind: z.enum(["component", "layout", "hook", "utility", "page"]).optional(),
+					version: versionArgument,
+					intent: intentArgument,
+				}),
+			),
 			annotations: readOnly,
 		},
 		run("find", async ({ query, kind, version }) => {
@@ -293,15 +403,19 @@ export function createMantleMcpServer(dependencies: McpDependencies): McpServer 
 		{
 			title: "Get a mantle part",
 			description: `Returns one component, layout, hook, or utility: its import, examples, and prop contract for the selected version. Supports ${MIN_SUPPORTED_VERSION} and later.`,
-			inputSchema: z.object({
-				name: z
-					.string()
-					.min(1)
-					.max(100)
-					.describe('A name from `find`, such as "Dialog" or "useBreakpoint".'),
-				sections: sectionsArgument,
-				version: versionArgument,
-			}),
+			inputSchema: logInvalid(
+				"get",
+				z.object({
+					name: z
+						.string()
+						.min(1)
+						.max(100)
+						.describe('A name from `find`, such as "Dialog" or "useBreakpoint".'),
+					sections: sectionsArgument,
+					version: versionArgument,
+					intent: intentArgument,
+				}),
+			),
 			annotations: readOnly,
 		},
 		run("get", async ({ name, sections, version }) => {
@@ -312,13 +426,11 @@ export function createMantleMcpServer(dependencies: McpDependencies): McpServer 
 				const close = closeNames(records, name);
 				const hint =
 					close.length > 0 ? ` Close matches: ${close.join(", ")}.` : " Call `find` first.";
-				return {
-					result: text(
-						`@ngrok/mantle@${data.version} has no part named ${JSON.stringify(name)}.${hint}`,
-						true,
-					),
-					dataVersion: data.version,
-				};
+				return failure(
+					"not_found",
+					`@ngrok/mantle@${data.version} has no part named ${JSON.stringify(name)}.${hint}`,
+					{ dataVersion: data.version },
+				);
 			}
 			const provenance = provenanceFor(dependencies, data);
 			const body = getRecordText({
@@ -342,26 +454,28 @@ export function createMantleMcpServer(dependencies: McpDependencies): McpServer 
 			title: "Read a mantle docs page",
 			description:
 				"Returns a docs page as markdown, or an outline when the page is long. The docs are always the latest build.",
-			inputSchema: z.object({
-				path: z
-					.string()
-					.min(1)
-					.max(200)
-					.describe('A docs slug, such as "components/overlays/dialog" or "base/colors".'),
-				sections: sectionsArgument,
-			}),
+			inputSchema: logInvalid(
+				"read_docs",
+				z.object({
+					path: z
+						.string()
+						.min(1)
+						.max(200)
+						.describe('A docs slug, such as "components/overlays/dialog" or "base/colors".'),
+					sections: sectionsArgument,
+					intent: intentArgument,
+				}),
+			),
 			annotations: readOnly,
 		},
 		run("read_docs", async ({ path, sections }) => {
 			const slug = path.replace(/^\/+|\/+$/g, "").replace(/\.mdx?$/, "") || "index";
 			const markdown = await dependencies.readDocs(slug);
 			if (markdown == null) {
-				return {
-					result: text(
-						`No docs page at ${JSON.stringify(path)}. Call \`find\`, or read mantle://llms.txt for the page list.`,
-						true,
-					),
-				};
+				return failure(
+					"not_found",
+					`No docs page at ${JSON.stringify(path)}. Call \`find\`, or read mantle://llms.txt for the page list.`,
+				);
 			}
 			const fitted = fitMarkdown({ markdown, sections });
 			const missing =
@@ -382,28 +496,33 @@ export function createMantleMcpServer(dependencies: McpDependencies): McpServer 
 			title: "Plan a mantle upgrade",
 			description:
 				"Lists the migration guides between two versions, in order, with the codemod command for each guide that ships one.",
-			inputSchema: z.object({
-				from: z
-					.string()
-					.regex(/^\d+\.\d+\.\d+$/)
-					.describe("The installed version."),
-				to: z
-					.string()
-					.regex(/^\d+\.\d+\.\d+$/)
-					.optional()
-					.describe("The target version. Defaults to the latest."),
-			}),
+			inputSchema: logInvalid(
+				"migrate",
+				z.object({
+					from: z
+						.string()
+						.regex(/^\d+\.\d+\.\d+$/)
+						.describe("The installed version."),
+					to: z
+						.string()
+						.regex(/^\d+\.\d+\.\d+$/)
+						.optional()
+						.describe("The target version. Defaults to the latest."),
+					intent: intentArgument,
+				}),
+			),
 			annotations: readOnly,
 		},
 		run("migrate", async ({ from, to }) => {
 			const target = to ?? (await dependencies.loader.latestVersion());
 			if (compareVersions(target, from) < 0) {
-				return {
-					result: text(`The target ${target} is older than ${from}. Pass a newer \`to\`.`, true),
-				};
+				return failure(
+					"invalid_argument",
+					`The target ${target} is older than ${from}. Pass a newer \`to\`.`,
+				);
 			}
 			if (!(await dependencies.loader.isPublished(target))) {
-				return { result: text(`@ngrok/mantle@${target} is not a published version.`, true) };
+				return failure("version", `@ngrok/mantle@${target} is not a published version.`);
 			}
 			const guides = migrationsBetween(await dependencies.migrations(), { from, to: target });
 			return {
@@ -418,20 +537,22 @@ export function createMantleMcpServer(dependencies: McpDependencies): McpServer 
 		{
 			title: "Check mantle code",
 			description: `Returns feedback on one TSX file: mantle import paths and names for the selected version, foreign UI libraries, and className construction. No type check. Max ${MAX_PREVIEW_CODE_BYTES} bytes. Supports ${MIN_SUPPORTED_VERSION} and later.`,
-			inputSchema: z.object({
-				code: z.string().min(1).describe("The TSX source of one file."),
-				version: versionArgument,
-			}),
+			inputSchema: logInvalid(
+				"check",
+				z.object({
+					code: z.string().min(1).describe("The TSX source of one file."),
+					version: versionArgument,
+					intent: intentArgument,
+				}),
+			),
 			annotations: readOnly,
 		},
 		run("check", async ({ code, version }) => {
 			if (byteLength(code) > MAX_PREVIEW_CODE_BYTES) {
-				return {
-					result: text(
-						`The code is over ${MAX_PREVIEW_CODE_BYTES} bytes. Check one file at a time.`,
-						true,
-					),
-				};
+				return failure(
+					"too_large",
+					`The code is over ${MAX_PREVIEW_CODE_BYTES} bytes. Check one file at a time.`,
+				);
 			}
 			const data = await dependencies.loader.load(version);
 			const diagnostics = checkCode({ code, data });
@@ -460,19 +581,21 @@ export function createMantleMcpServer(dependencies: McpDependencies): McpServer 
 		{
 			title: "Preview mantle code",
 			description: `Returns a link that renders one self-contained TSX file with a default export, in a sandbox in the user's browser. Imports react and @ngrok/mantle/* only. The server never stores the code; it travels in the link. Max ${MAX_PREVIEW_CODE_BYTES} bytes.`,
-			inputSchema: z.object({
-				code: z.string().min(1).describe("The TSX source of one file with one default export."),
-			}),
+			inputSchema: logInvalid(
+				"preview",
+				z.object({
+					code: z.string().min(1).describe("The TSX source of one file with one default export."),
+					intent: intentArgument,
+				}),
+			),
 			annotations: readOnly,
 		},
 		run("preview", async ({ code }) => {
 			if (byteLength(code) > MAX_PREVIEW_CODE_BYTES) {
-				return {
-					result: text(
-						`The code is over ${MAX_PREVIEW_CODE_BYTES} bytes. Split it or remove unused parts.`,
-						true,
-					),
-				};
+				return failure(
+					"too_large",
+					`The code is over ${MAX_PREVIEW_CODE_BYTES} bytes. Split it or remove unused parts.`,
+				);
 			}
 			// Why the docs version: the preview page renders it, so check names what that page can import.
 			const data = await dependencies.loader.load(dependencies.docsVersion);
@@ -506,21 +629,25 @@ export function createMantleMcpServer(dependencies: McpDependencies): McpServer 
 			title: "Report a mantle gap",
 			description:
 				'Tells the mantle team that mantle lacks something you needed, so they can add it. Call it once for each need, after `find` and `get` found no fit. Name the need in generic words, such as "stepper" or "date range picker". The server keeps only those words and the enums. Never send code, file paths, product names, or customer data.',
-			inputSchema: z.object({
-				need: z
-					.string()
-					.min(3)
-					.max(60)
-					.describe('Generic words for what you needed, such as "stepper".'),
-				kind: z.enum(GAP_KINDS).describe("What is missing."),
-				workaround: z.enum(GAP_WORKAROUNDS).describe("What you did instead."),
-				closestPart: z
-					.string()
-					.max(100)
-					.optional()
-					.describe("The mantle part you used or nearly used, such as Tabs."),
-				version: versionArgument,
-			}),
+			inputSchema: logInvalid(
+				"report_gap",
+				z.object({
+					need: z
+						.string()
+						.min(3)
+						.max(60)
+						.describe('Generic words for what you needed, such as "stepper".'),
+					kind: z.enum(GAP_KINDS).describe("What is missing."),
+					workaround: z.enum(GAP_WORKAROUNDS).describe("What you did instead."),
+					closestPart: z
+						.string()
+						.max(100)
+						.optional()
+						.describe("The mantle part you used or nearly used, such as Tabs."),
+					version: versionArgument,
+					intent: intentArgument,
+				}),
+			),
 			annotations: {
 				readOnlyHint: false,
 				destructiveHint: false,
@@ -531,12 +658,10 @@ export function createMantleMcpServer(dependencies: McpDependencies): McpServer 
 		run("report_gap", async ({ need, kind, workaround, closestPart, version }) => {
 			const tokens = gapTokens(need);
 			if (tokens.length === 0) {
-				return {
-					result: text(
-						'Name the need in generic words of three letters or more, such as "stepper".',
-						true,
-					),
-				};
+				return failure(
+					"invalid_argument",
+					'Name the need in generic words of three letters or more, such as "stepper".',
+				);
 			}
 			const data = await dependencies.loader.load(version);
 			const closest =

@@ -249,6 +249,29 @@ export function gapTokens(query: string): string[] {
 	return Array.from(new Set(words)).slice(0, 6);
 }
 
+/** The longest intent that the log keeps, in characters. */
+const INTENT_LOG_LENGTH = 160;
+
+/**
+ * The words of an agent's `intent` that are safe to log. A word goes when it
+ * has a digit, `@`, `:`, a slash, a dot inside it, or code punctuation, so
+ * URLs, emails, paths, IDs, and JSX do not survive. Returns `undefined` when
+ * no word is left.
+ *
+ * @example
+ * scrubIntent("Settings page for acme.example.com with a danger zone, ticket 4412");
+ * // "Settings page for with a danger zone, ticket"
+ */
+export function scrubIntent(intent: string): string | undefined {
+	const kept = intent
+		.split(/\s+/)
+		.filter((word) => word !== "" && !/[\d@:/\\<>{}=;`]|\w\.\w/.test(word))
+		.join(" ")
+		.slice(0, INTENT_LOG_LENGTH)
+		.trim();
+	return kept === "" ? undefined : kept;
+}
+
 /** The record named `name`, by display name or identifier. */
 export function recordNamed(records: readonly ApiRecord[], name: string): ApiRecord | undefined {
 	const wanted = compact(name);

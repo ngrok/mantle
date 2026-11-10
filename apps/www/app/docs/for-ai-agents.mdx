@@ -62,6 +62,15 @@ The server tells the agent when to call each tool, so you don't have to:
 
 Pass the exact installed version (from `node_modules/@ngrok/mantle/package.json` or the lockfile), not the range in `package.json`. The server supports 0.90.0 and later.
 
+Each tool takes an optional `intent`: the goal of the call in generic words, such as "settings page with a danger zone". The mantle team reads the intents to learn what agents build and where mantle falls short. For each call, the server logs these values:
+
+- the tool name, the outcome, and the error kind
+- the client name from the `User-Agent` header
+- the names of the parts that the tool returned
+- the intent, with each word that holds a URL, an email, a path, a number, or code removed
+
+The server never logs code.
+
 ## Machine-readable entry points
 
 | URL                                                | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
