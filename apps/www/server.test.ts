@@ -1,6 +1,7 @@
 import { createTestServer } from "@ngrok/app-server/testing";
 import type { TestServer } from "@ngrok/app-server/testing";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { DIGEST_INTERVAL_MS, mcpPulse } from "~/utilities/mcp/pulse.server";
 import { createDocsServer } from "./server.ts";
 
 const THEME_SCRIPT = "document.documentElement.dataset.theme = 'dark';";
@@ -125,5 +126,23 @@ describe("the docs app server", () => {
 
 		expect(await response.text()).toBe("# Button");
 		expect(response.headers.get("Vary")).toMatch(/Accept/);
+	});
+
+	it("stops the daily MCP digest when the app shuts down", async () => {
+		vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+		const flush = vi.spyOn(mcpPulse, "flush");
+		try {
+			const app = await start();
+			await app.request("/llms.txt");
+			await app.close();
+			server = undefined;
+			flush.mockClear();
+			vi.advanceTimersByTime(DIGEST_INTERVAL_MS);
+
+			expect(flush).not.toHaveBeenCalled();
+		} finally {
+			flush.mockRestore();
+			vi.useRealTimers();
+		}
 	});
 });

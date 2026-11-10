@@ -31,6 +31,7 @@ import {
 	type VersionData,
 	type VersionDataLoader,
 } from "~/utilities/mcp/version-data.server";
+import { mcpPulse } from "~/utilities/mcp/pulse.server";
 import { renderMdxToMarkdown } from "~/utilities/render-mdx-to-markdown.server";
 
 /** The server instructions. The contract test caps their size. */
@@ -884,6 +885,7 @@ export function productionDependencies({
 			process.env.MANTLE_PREVIEW_ORIGIN ?? (import.meta.env.DEV ? requestOrigin : canonicalOrigin),
 		log: (event) => {
 			console.info(JSON.stringify({ event: "mcp.tool_call", ...event }));
+			mcpPulse.record(event);
 		},
 	};
 }
