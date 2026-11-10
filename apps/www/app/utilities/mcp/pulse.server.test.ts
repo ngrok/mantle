@@ -65,8 +65,13 @@ describe("alertOf", () => {
 		expect(alertOf(gapReport)?.text).toBe(
 			[
 				':jigsaw: *Gap reported: "stepper"*',
-				"An agent needed a component. It composed mantle parts instead. The closest part was *Tabs*.",
+				"",
+				"An agent needed a component.",
+				"It composed mantle parts instead.",
+				"The closest part was *Tabs*.",
+				"",
 				"> Goal: settings page with a danger zone",
+				"",
 				"_claude-code · mantle 0.93.0_",
 			].join("\n"),
 		);
@@ -76,7 +81,12 @@ describe("alertOf", () => {
 		expect(alertOf(weakFind)?.text).toBe(
 			[
 				':mag: *No strong match for "date range picker"*',
-				"Best guesses: DatePicker, Calendar, Popover.",
+				"",
+				"*Best guesses*",
+				"• DatePicker",
+				"• Calendar",
+				"• Popover",
+				"",
 				"_claude-code · mantle 0.93.0_",
 			].join("\n"),
 		);
@@ -89,7 +99,7 @@ describe("alertOf", () => {
 		const busy = alertOf(event({ tool: "get", outcome: "error", errorKind: "busy" }));
 
 		expect(internal?.text).toContain("*`get` failed with a server error*");
-		expect(internal?.text).toContain("It failed after 1.2 s.");
+		expect(internal?.text).toContain("It failed after 1.2 s.\nThe stack is in the container log.");
 		expect(busy?.text).toContain("*`get` is busy*");
 	});
 
@@ -122,12 +132,22 @@ describe("digestText", () => {
 		expect(digestText(digest, { now: 6 * HOUR_MS, reason: "shutdown", host: "www-1" })).toBe(
 			[
 				":bar_chart: *mantle MCP: 4 calls in the last 6 h*",
-				"*Tools:* find 2, report_gap 1, get 1",
-				"*Errors:* 1 (25.0%): 1 not found",
-				"*Clients:* claude-code 75%, cursor 25%",
-				'*Gaps:* 1 reported, 2 finds with no strong match. Top needs: "date range picker" ×2, "stepper"',
+				"",
+				"*Tools:* find 2 · report_gap 1 · get 1",
+				"*Clients:* claude-code 75% · cursor 25%",
 				"*Slowest:* get averages 400 ms (max 400 ms)",
-				"*Recent goals:* booking form; settings page with a danger zone",
+				"",
+				"*Errors:* 1 of 4 calls (25.0%)",
+				"• 1 not found",
+				"",
+				"*Gaps:* 1 reported, 2 finds with no strong match",
+				'• "date range picker" ×2',
+				'• "stepper"',
+				"",
+				"*Recent goals*",
+				"• booking form",
+				"• settings page with a danger zone",
+				"",
 				"_Posted at shutdown from www-1. Each server counts its own calls._",
 			].join("\n"),
 		);

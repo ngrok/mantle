@@ -49,6 +49,15 @@ function lines(...parts: Array<string | undefined>): string {
 	return parts.filter((part) => part != null).join("\n");
 }
 
+/** Blocks with a blank line between them, so a person can scan the message. */
+function sections(...blocks: Array<string | undefined>): string {
+	return blocks.filter((block) => block != null).join("\n\n");
+}
+
+function bullets(items: readonly string[]): string {
+	return items.map((item) => `• ${item}`).join("\n");
+}
+
 function count(value: number): string {
 	return value.toLocaleString("en-US");
 }
@@ -89,7 +98,7 @@ function footer(event: ToolCallEvent): string {
  *
  * @example
  * alertOf({ tool: "report_gap", outcome: "ok", latencyMs: 4, resultBytes: 60, gap: { source: "report_gap", tokens: ["stepper"], kind: "component", workaround: "composed-mantle-parts" } });
- * // { key: "gap:stepper", text: ':jigsaw: *Gap reported: "stepper"*\nAn agent needed a component. It composed mantle parts instead.\n_unknown client_' }
+ * // { key: "gap:stepper", text: ':jigsaw: *Gap reported: "stepper"*\n\nAn agent needed a component.\nIt composed mantle parts instead.\n\n_unknown client_' }
  */
 export function alertOf(event: ToolCallEvent): Alert | undefined {
 	const { gap } = event;
@@ -101,9 +110,9 @@ export function alertOf(event: ToolCallEvent): Alert | undefined {
 			gap.closestPart == null ? undefined : `The closest part was *${escape(gap.closestPart)}*.`;
 		return {
 			key: `gap:${need}`,
-			text: lines(
+			text: sections(
 				`:jigsaw: *Gap reported: "${need}"*`,
-				[`An agent needed ${needed}.`, workaround, closest].filter(Boolean).join(" "),
+				lines(`An agent needed ${needed}.`, workaround, closest),
 				goal(event),
 				footer(event),
 			),
@@ -114,10 +123,10 @@ export function alertOf(event: ToolCallEvent): Alert | undefined {
 		const guesses = (event.ids ?? []).slice(0, 3).map(escape);
 		return {
 			key: `find:${query}`,
-			text: lines(
+			text: sections(
 				`:mag: *No strong match for "${query}"*`,
 				guesses.length > 0
-					? `Best guesses: ${guesses.join(", ")}.`
+					? lines("*Best guesses*", bullets(guesses))
 					: "No part or docs page matched.",
 				goal(event),
 				footer(event),
@@ -127,9 +136,12 @@ export function alertOf(event: ToolCallEvent): Alert | undefined {
 	if (event.outcome === "error" && event.errorKind === "busy") {
 		return {
 			key: `error:${event.tool}:busy`,
-			text: lines(
+			text: sections(
 				`:hourglass_flowing_sand: *\`${event.tool}\` is busy*`,
-				"The version download queue is full, so the call failed. A retry can work. If this repeats, the queue is too small.",
+				lines(
+					"The version download queue is full, so the call failed.",
+					"A retry can work. If this repeats, the queue is too small.",
+				),
 				footer(event),
 			),
 		};
@@ -137,9 +149,12 @@ export function alertOf(event: ToolCallEvent): Alert | undefined {
 	if (event.outcome === "error" && event.errorKind === "internal") {
 		return {
 			key: `error:${event.tool}:internal`,
-			text: lines(
+			text: sections(
 				`:rotating_light: *\`${event.tool}\` failed with a server error*`,
-				`It failed after ${duration(event.latencyMs)}. The stack is in the container log.`,
+				lines(
+					`It failed after ${duration(event.latencyMs)}.`,
+					"The stack is in the container log.",
+				),
 				footer(event),
 			),
 		};
@@ -239,26 +254,33 @@ export function digestText(
 	const needs = ranked(digest.needs)
 		.slice(0, 5)
 		.map(([need, times]) => `"${escape(need)}"${times > 1 ? ` ×${times}` : ""}`);
-	return lines(
+	const tools = ranked(new Map(Array.from(digest.tools, ([tool, stats]) => [tool, stats.calls])));
+	return sections(
 		`:bar_chart: *mantle MCP: ${count(digest.calls)} ${digest.calls === 1 ? "call" : "calls"} in the last ${duration(now - digest.since)}*`,
-		`*Tools:* ${ranked(new Map(Array.from(digest.tools, ([tool, stats]) => [tool, stats.calls])))
-			.map(([tool, calls]) => `${tool} ${count(calls)}`)
-			.join(", ")}`,
+		lines(
+			`*Tools:* ${tools.map(([tool, calls]) => `${tool} ${count(calls)}`).join(" · ")}`,
+			`*Clients:* ${[...topClients, ...(clients.length > 3 ? [`${clients.length - 3} more`] : [])].join(" · ")}`,
+			slowest == null
+				? undefined
+				: `*Slowest:* ${slowest[0]} averages ${duration(slowest[1].totalMs / slowest[1].calls)} (max ${duration(slowest[1].maxMs)})`,
+		),
 		errorCount === 0
 			? "*Errors:* none"
-			: `*Errors:* ${count(errorCount)} (${errorShare}%): ${ranked(digest.errors)
-					.map(([kind, times]) => `${count(times)} ${ERROR_LABELS[kind]}`)
-					.join(", ")}`,
-		`*Clients:* ${topClients.join(", ")}${clients.length > 3 ? `, ${clients.length - 3} more` : ""}`,
+			: lines(
+					`*Errors:* ${count(errorCount)} of ${count(digest.calls)} calls (${errorShare}%)`,
+					bullets(
+						ranked(digest.errors).map(([kind, times]) => `${count(times)} ${ERROR_LABELS[kind]}`),
+					),
+				),
 		digest.reportedGaps + digest.weakFinds === 0
 			? "*Gaps:* none"
-			: `*Gaps:* ${count(digest.reportedGaps)} reported, ${count(digest.weakFinds)} finds with no strong match. Top needs: ${needs.join(", ")}`,
-		slowest == null
-			? undefined
-			: `*Slowest:* ${slowest[0]} averages ${duration(slowest[1].totalMs / slowest[1].calls)} (max ${duration(slowest[1].maxMs)})`,
+			: lines(
+					`*Gaps:* ${count(digest.reportedGaps)} reported, ${count(digest.weakFinds)} finds with no strong match`,
+					bullets(needs),
+				),
 		digest.goals.length === 0
 			? undefined
-			: `*Recent goals:* ${digest.goals.map(escape).join("; ")}`,
+			: lines("*Recent goals*", bullets(digest.goals.map(escape))),
 		digest.heldAlerts === 0
 			? undefined
 			: `*Held back:* ${count(digest.heldAlerts)} alerts over the cap of ${ALERTS_PER_HOUR} an hour.`,
