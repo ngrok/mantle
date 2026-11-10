@@ -15,7 +15,7 @@ import {
 	type ToolCallEvent,
 } from "~/utilities/mcp/server.server";
 import { packageFilesFixture } from "~/utilities/mcp/test-fixtures";
-import { versionDataFromFiles } from "~/utilities/mcp/version-data.server";
+import { ServerBusyError, versionDataFromFiles } from "~/utilities/mcp/version-data.server";
 
 function dependencies(overrides: Partial<McpDependencies> = {}): McpDependencies {
 	const data = versionDataFromFiles("0.93.0", packageFilesFixture());
@@ -49,7 +49,7 @@ let requestId = 0;
 
 /** Sends one 2025-era JSON-RPC request through the stateless HTTP handler. */
 async function rpc(deps: McpDependencies, method: string, params: Record<string, unknown> = {}) {
-	const handler = createMcpHandler(() => createMantleMcpServer(deps));
+	const handler = createMcpHandler(({ requestInfo }) => createMantleMcpServer(deps, requestInfo));
 	requestId += 1;
 	const response = await handler.fetch(
 		new Request("https://mantle.example/mcp", {
@@ -57,6 +57,7 @@ async function rpc(deps: McpDependencies, method: string, params: Record<string,
 			headers: {
 				"Content-Type": "application/json",
 				Accept: "application/json, text/event-stream",
+				"User-Agent": "claude-code/2.1.3 (cli; darwin)",
 			},
 			body: JSON.stringify({ jsonrpc: "2.0", id: requestId, method, params }),
 		}),
@@ -182,13 +183,72 @@ describe("the mantle MCP server", () => {
 		);
 	});
 
-	it("returns a tool error with close names for an unknown name", async () => {
-		const result = await callTool(dependencies(), "get", { name: "Dialogue" });
+	it("returns a tool error with close names for an unknown name, and logs it as not_found", async () => {
+		const log = vi.fn<(event: ToolCallEvent) => void>();
+
+		const result = await callTool(dependencies({ log }), "get", { name: "Dialogue" });
 
 		expect(result).toEqual({
 			text: '@ngrok/mantle@0.93.0 has no part named "Dialogue". Close matches: Dialog.',
 			isError: true,
 		});
+		expect(log).toHaveBeenLastCalledWith(
+			expect.objectContaining({ tool: "get", outcome: "error", errorKind: "not_found" }),
+		);
+	});
+
+	it("logs a call that fails schema validation, with the argument names only", async () => {
+		const log = vi.fn<(event: ToolCallEvent) => void>();
+
+		const result = await callTool(dependencies({ log }), "find", {
+			query: "",
+			kind: "widget",
+		});
+
+		expect(result.isError).toBe(true);
+		expect(log).toHaveBeenCalledTimes(1);
+		expect(log).toHaveBeenLastCalledWith(
+			expect.objectContaining({
+				tool: "find",
+				outcome: "error",
+				errorKind: "validation",
+				client: "claude-code/2.1.3",
+				invalidFields: ["query", "kind"],
+			}),
+		);
+	});
+
+	it("logs the scrubbed intent of a call that fails schema validation", async () => {
+		const log = vi.fn<(event: ToolCallEvent) => void>();
+
+		await callTool(dependencies({ log }), "get", { name: "", intent: "Danger zone for acme.io" });
+
+		expect(log).toHaveBeenLastCalledWith(
+			expect.objectContaining({
+				errorKind: "validation",
+				intent: "Danger zone for",
+				invalidFields: ["name"],
+			}),
+		);
+	});
+
+	it("logs the client and the scrubbed intent", async () => {
+		const log = vi.fn<(event: ToolCallEvent) => void>();
+
+		const { text } = await callTool(dependencies({ log }), "find", {
+			query: "modal",
+			intent: "Confirm before a user deletes a domain at https://dashboard.example.com/domains/42",
+		});
+
+		expect(text).toContain("Dialog");
+		expect(log).toHaveBeenLastCalledWith(
+			expect.objectContaining({
+				tool: "find",
+				outcome: "ok",
+				client: "claude-code/2.1.3",
+				intent: "Confirm before a user deletes a domain at",
+			}),
+		);
 	});
 
 	it("turns off one tool with the kill switch", async () => {
@@ -248,7 +308,31 @@ describe("the mantle MCP server", () => {
 
 		await callTool(dependencies({ log, loader }), "get", { name: "Dialog" });
 
-		expect(log).toHaveBeenCalledWith(expect.objectContaining({ tool: "get", outcome: "error" }));
+		expect(log).toHaveBeenCalledTimes(1);
+		expect(log).toHaveBeenLastCalledWith(
+			expect.objectContaining({ tool: "get", outcome: "error", errorKind: "internal" }),
+		);
+	});
+
+	it("logs a full download queue as busy, not as a version error", async () => {
+		const log = vi.fn<(event: ToolCallEvent) => void>();
+		const loader = {
+			latestVersion: async () => "0.93.0",
+			isPublished: async () => true,
+			load: async () => {
+				throw new ServerBusyError("The server is busy loading other versions. Try again soon.");
+			},
+		};
+
+		const result = await callTool(dependencies({ log, loader }), "get", { name: "Dialog" });
+
+		expect(result).toEqual({
+			text: "The server is busy loading other versions. Try again soon.",
+			isError: true,
+		});
+		expect(log).toHaveBeenLastCalledWith(
+			expect.objectContaining({ tool: "get", outcome: "error", errorKind: "busy" }),
+		);
 	});
 
 	it("rejects code over the size cap before it parses it", async () => {

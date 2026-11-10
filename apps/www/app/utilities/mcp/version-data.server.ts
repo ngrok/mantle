@@ -34,6 +34,11 @@ export class VersionError extends Error {
 	override name = "VersionError";
 }
 
+/** The download queue is full. The version can be valid; a retry can work. */
+export class ServerBusyError extends VersionError {
+	override name = "ServerBusyError";
+}
+
 /** Compares two `MAJOR.MINOR.PATCH` strings. */
 export function compareVersions(left: string, right: string): number {
 	const leftParts = left.split(".").map(Number);
@@ -191,7 +196,7 @@ export function createVersionDataLoader({
 	const withSlot = async <T>(task: () => Promise<T>): Promise<T> => {
 		if (running >= maxConcurrentFetches) {
 			if (waiting.length >= maxQueuedFetches) {
-				throw new VersionError("The server is busy loading other versions. Try again soon.");
+				throw new ServerBusyError("The server is busy loading other versions. Try again soon.");
 			}
 			await new Promise<void>((resolve) => {
 				waiting.push(resolve);
