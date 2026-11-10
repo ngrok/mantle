@@ -1,11 +1,12 @@
 // The docs site's app server. The `appServer` Vite plugin finds this file and bundles it into
 // `build/server/app-server.js`.
 import type { Plugin } from "@ngrok/app-server";
-import { createServer, defaultPlugins, withHeaderHook } from "@ngrok/app-server";
+import { createServer, defaultPlugins, shutdownSignal, withHeaderHook } from "@ngrok/app-server";
 import { assetsCdnOrigin } from "@ngrok/mantle/theme";
 import { canonicalOrigin } from "~/utilities/canonical-origin";
 import { allowsIndexing, EDGE_HEADER } from "~/utilities/indexing";
 import { previewFrameOrigin } from "~/utilities/mcp/flags.server";
+import { DIGEST_INTERVAL_MS, mcpPulse } from "~/utilities/mcp/pulse.server";
 
 /** True for a framed example preview (`/preview/:exampleName`), which a docs page shows in an iframe. */
 function isPreviewDocument(path: string): boolean {
@@ -92,6 +93,20 @@ const documentIndexing: Plugin = {
 };
 
 /**
+ * Posts the MCP digest to Slack once a day and at shutdown. A crash or a
+ * `SIGKILL` loses the calls since the last digest.
+ */
+const mcpPulseDigest: Plugin = {
+	name: "mcp-pulse-digest",
+	setup: () => {
+		const timer = setInterval(() => void mcpPulse.flush("interval"), DIGEST_INTERVAL_MS);
+		timer.unref();
+		shutdownSignal().addEventListener("abort", () => clearInterval(timer), { once: true });
+	},
+	onShutdown: () => mcpPulse.flush("shutdown"),
+};
+
+/**
  * The docs site's app: the default plugins, with a CSP for each document, the
  * indexing rule, and the markdown twin of each docs page. A test makes a new
  * one for each server, because an app runs the `setup` of its plugins one time.
@@ -117,7 +132,7 @@ export function createDocsServer() {
 								`frame-src 'self' ${previewFrameOrigin()}`.trim(),
 							].join("; "),
 			},
-			beforeStatic: [documentIndexing, assetsCors],
+			beforeStatic: [documentIndexing, assetsCors, mcpPulseDigest],
 			prerendered: { markdownTwins: true },
 		}),
 		trustForwardedProto: process.env.TRUST_FORWARDED_PROTO === "1",
