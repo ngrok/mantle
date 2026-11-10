@@ -43,7 +43,7 @@
     "oxc-parser": "catalog:",
     "oxfmt": "catalog:",
     "oxlint": "1.90.0",
-    "oxlint-tsgolint": "7.0.2005",
+    "oxlint-tsgolint": "7.0.2006",
     "tsrs": "0.21.0-ts7.1.0-beta",
     "turbo": "2.11.10",
     "typescript": "catalog:",
