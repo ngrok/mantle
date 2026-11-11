@@ -109,7 +109,7 @@ type BarChartBarProps = {
 	 */
 	color?: SeriesColor;
 	/**
-	 * The fill texture the series wears, on canvas and on its legend key:
+	 * The fill texture the series wears, on the bars and on its legend key:
 	 * `"solid"` (default), diagonal hatch lines at 45° (`"hatch"`), the 135°
 	 * mirror (`"hatch-reverse"`), both (`"crosshatch"`), rungs perpendicular
 	 * to the bar's length (`"perpendicular"` — horizontal lines on vertical
@@ -169,14 +169,14 @@ type BarChartLegendProps = LegendPrimitiveProps;
 type BarChartCopyButtonProps = CopyButtonPrimitiveProps;
 
 /**
- * The root of a bar chart: owns the data, the scales, the canvas renderer,
+ * The root of a bar chart: owns the data, the scales, the renderer,
  * and the entire interaction contract (per-category hover with a lifted band
  * and tooltip, keyboard stepping with polite announcements, an sr-only
  * description, an sr-only data table, Enter/Space + click activation).
  * Compose the chrome and series parts as children.
  *
  * A Root mounts dormant: a shell of the plot, the named overlay, and its
- * sr-only description. It builds its canvas, its hover layers, and its engine
+ * sr-only description. It builds its paint surface, its hover layers, and its engine
  * once it comes within one viewport of the visible area, takes focus, or
  * prints (on-screen charts first, a few milliseconds at a time), and it mounts
  * the sr-only data table once focus lands inside it. A list of charts pays
@@ -184,14 +184,15 @@ type BarChartCopyButtonProps = CopyButtonPrimitiveProps;
  * tables until a reader asks for one.
  *
  * The Root's own subtree is addressable by slot: `bar-chart` on the wrapper,
- * then `bar-chart-plot`, `bar-chart-canvas`, `bar-chart-crosshair`,
+ * then `bar-chart-plot`, `bar-chart-svg` (`bar-chart-canvas` with `renderer="canvas"`),
+ * `bar-chart-crosshair`,
  * `bar-chart-hover-band`, `bar-chart-markers`, `bar-chart-tooltip`,
  * `bar-chart-description`, and, once focus lands inside the chart,
  * `bar-chart-data-table`. A bar chart shows the band and never the crosshair
- * or the markers. The canvas and the three layers are engine-owned: absent
+ * or the markers. The surface and the three layers are engine-owned: absent
  * from server HTML and from a dormant chart, inserted at activation (near the
  * viewport, on focus, or before print). A static or decorative chart
- * inserts the canvas alone. The tooltip surface mounts on the
+ * inserts the surface alone. The tooltip surface mounts on the
  * first hover or keyboard step and stays.
  *
  * **Data attributes:**
@@ -236,7 +237,7 @@ const Root = <TDatum extends ChartDatum = ChartDatum, TMode extends ChartMode = 
 
 /**
  * One bar series. Renders nothing itself — it registers the series with the
- * chart, which paints it on canvas. Compose one `Bar` per series; with
+ * chart, which paints it. Compose one `Bar` per series; with
  * `stacked` on the Root, bars stack from the baseline up in registration
  * order, so a `Bar` that mounts later stacks on top whatever its position in
  * the JSX. `texture` adds a pattern fill as a redundant identity encoding
@@ -259,7 +260,7 @@ const Root = <TDatum extends ChartDatum = ChartDatum, TMode extends ChartMode = 
 const Bar = (props: BarChartBarProps) => useSeriesPrimitive("BarChart.Bar", "bar", props);
 
 /**
- * Hairline value gridlines behind the bars (renderless; painted on canvas).
+ * Hairline value gridlines behind the bars (renderless; the chart paints it).
  * The default runs perpendicular to the bars: horizontal lines for vertical
  * bars, vertical lines for horizontal bars. Pass `lines` to force a direction.
  * Omit the part to omit the grid.
@@ -280,7 +281,7 @@ const Bar = (props: BarChartBarProps) => useSeriesPrimitive("BarChart.Bar", "bar
 const Grid = (props: BarChartGridProps) => useGridPrimitive("BarChart.Grid", props);
 
 /**
- * Category labels for the bars (renderless; painted on canvas): along the
+ * Category labels for the bars (renderless; the chart paints it): along the
  * bottom for vertical bars, down the left gutter for horizontal bars. Labels
  * that would collide are skipped, never rotated.
  *
@@ -300,7 +301,7 @@ const Grid = (props: BarChartGridProps) => useGridPrimitive("BarChart.Grid", pro
 const XAxis = (props: BarChartXAxisProps) => useXAxisPrimitive("BarChart.XAxis", props);
 
 /**
- * Value tick labels (renderless; painted on canvas): along the left for
+ * Value tick labels (renderless; the chart paints it): along the left for
  * vertical bars, across the bottom for horizontal bars. Ticks land on clean
  * thousands-separated numbers.
  *
@@ -321,7 +322,7 @@ const YAxis = (props: BarChartYAxisProps) => useYAxisPrimitive("BarChart.YAxis",
 
 /**
  * A dashed marker at the value `y`, such as an SLO threshold, a budget, or a
- * limit (renderless; painted on canvas). It crosses the value axis: a horizontal
+ * limit (renderless; the chart paints it). It crosses the value axis: a horizontal
  * line for vertical bars, a vertical line for horizontal bars.
  *
  * @see https://mantle.ngrok.com/components/charts/bar-chart#barchartreferenceline
@@ -446,7 +447,10 @@ const CopyButton = (props: BarChartCopyButtonProps) => (
  * tooltip and one `role="status"` region instead of one per chart. Each chart
  * keeps its own Tooltip part, description, and data table.
  *
- * Renders a `div` wrapper with the live region as its last child.
+ * Renders a `div` (`bar-chart-list`) that holds the charts in a `display: contents`
+ * wrapper (`bar-chart-list-items`), so a grid or flex layout on the List reaches
+ * the cards, and the live region as its last child. No `asChild`: a list
+ * element such as `ul` cannot hold the live region as a child.
  *
  * @see https://mantle.ngrok.com/components/charts/bar-chart#barchartlist
  *
@@ -467,13 +471,13 @@ const List = (props: BarChartListProps) => (
 );
 
 /**
- * A canvas-rendered bar chart for comparing values across categories, with
+ * A bar chart for comparing values across categories, with
  * grouped and stacked variants. Series colors come from the theme's validated
  * `--color-chart-*` tokens; bars keep a fixed slot color for the chart's
  * lifetime even as other series are filtered in and out. Interaction ships
  * with `Root` unconditionally: a per-category tooltip, keyboard stepping,
  * aria-live announcements, and an sr-only description. A Root builds and paints
- * its canvas once it comes within one viewport of the visible area, takes
+ * its surface once it comes within one viewport of the visible area, takes
  * focus, or prints, and it mounts its sr-only data table once focus lands
  * inside it.
  *
@@ -534,7 +538,7 @@ const List = (props: BarChartListProps) => (
  */
 const BarChart = {
 	/**
-	 * The root of a bar chart: owns the data, the scales, the canvas renderer,
+	 * The root of a bar chart: owns the data, the scales, the renderer,
 	 * and the entire interaction contract.
 	 *
 	 * @see https://mantle.ngrok.com/components/charts/bar-chart#barchartroot
@@ -554,7 +558,7 @@ const BarChart = {
 	 */
 	Root,
 	/**
-	 * One bar series; registers with the chart and paints on canvas.
+	 * One bar series; registers with the chart, which paints it.
 	 *
 	 * @see https://mantle.ngrok.com/components/charts/bar-chart#barchartbar
 	 *
@@ -573,7 +577,7 @@ const BarChart = {
 	 */
 	Bar,
 	/**
-	 * Hairline value gridlines behind the bars (renderless; painted on canvas).
+	 * Hairline value gridlines behind the bars (renderless; the chart paints it).
 	 * The default runs perpendicular to the bars: horizontal lines for vertical
 	 * bars, vertical lines for horizontal bars. Pass `lines` to force a direction.
 	 * Omit the part to omit the grid.
@@ -595,7 +599,7 @@ const BarChart = {
 	 */
 	Grid,
 	/**
-	 * Category labels for the bars (renderless; painted on canvas): along the
+	 * Category labels for the bars (renderless; the chart paints it): along the
 	 * bottom for vertical bars, down the left gutter for horizontal bars. Labels
 	 * that would collide are skipped, never rotated.
 	 *
@@ -616,7 +620,7 @@ const BarChart = {
 	 */
 	XAxis,
 	/**
-	 * Value tick labels (renderless; painted on canvas): along the left for
+	 * Value tick labels (renderless; the chart paints it): along the left for
 	 * vertical bars, across the bottom for horizontal bars. Ticks land on clean
 	 * thousands-separated numbers.
 	 *
@@ -638,7 +642,7 @@ const BarChart = {
 	YAxis,
 	/**
 	 * A dashed marker at the value `y`, such as an SLO threshold, a budget, or a
-	 * limit (renderless; painted on canvas). It crosses the value axis: a horizontal
+	 * limit (renderless; the chart paints it). It crosses the value axis: a horizontal
 	 * line for vertical bars, a vertical line for horizontal bars.
 	 *
 	 * @see https://mantle.ngrok.com/components/charts/bar-chart#barchartreferenceline

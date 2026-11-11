@@ -1311,8 +1311,17 @@ const ChartListPrimitive = ({
 		},
 	}));
 	return (
+		// Why no asChild: the List renders its live region beside the charts, and
+		// a list element such as `ul` cannot hold that region as a child.
 		<div data-slot={joinDataSlot(dataSlot, slotName)} {...props}>
-			<ChartListContext.Provider value={context}>{children}</ChartListContext.Provider>
+			{/* Why a wrapper: the live region is always beside the children, so they
+			    are never its parent's lone child. `contents` keeps a grid or flex
+			    layout on the List reaching the cards. */}
+			<ChartListContext.Provider value={context}>
+				<div data-slot={`${slotName}-items`} className="contents">
+					{children}
+				</div>
+			</ChartListContext.Provider>
 			<span role="status" aria-live="polite" className="sr-only">
 				{announcement.text}
 			</span>

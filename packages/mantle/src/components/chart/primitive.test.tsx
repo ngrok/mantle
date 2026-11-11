@@ -894,8 +894,28 @@ describe("List", () => {
 		expect(surfaces[0]).toHaveStyle({ opacity: "1" });
 	});
 
-	test("the list wrapper carries the family's slot", () => {
+	test("the list wrapper and its items wrapper carry the family's slots", () => {
 		const { container } = renderList();
-		expect(container.firstElementChild).toHaveAttribute("data-slot", "bar-chart-list");
+		const list = container.firstElementChild;
+		expect(list).toHaveAttribute("data-slot", "bar-chart-list");
+		expect(list?.firstElementChild).toHaveAttribute("data-slot", "bar-chart-list-items");
+		expect(
+			screen
+				.getByRole("application", { name: "Ingress" })
+				.closest('[data-slot="bar-chart-list-items"]'),
+		).not.toBeNull();
+	});
+
+	test("a translated text child swaps to an element without a crash", () => {
+		const Swap = ({ loaded }: { loaded: boolean }) => (
+			<BarChart.List>{loaded ? <span>Loaded</span> : "Loading charts"}</BarChart.List>
+		);
+		const { container, rerender } = render(<Swap loaded={false} />);
+		translateTextNodes(container);
+		// Guards the step below: a helper that silently no-ops would leave the
+		// swap green whether or not the items wrapper does its job.
+		expect(findTranslatedFont(container)).not.toBeNull();
+		rerender(<Swap loaded />);
+		expect(screen.getByText("Loaded")).toBeInTheDocument();
 	});
 });

@@ -452,7 +452,10 @@ const CopyButton = (props: ScatterPlotCopyButtonProps) => (
  * tooltip and one `role="status"` region instead of one per chart. Each chart
  * keeps its own Tooltip part, description, and data table.
  *
- * Renders a `div` wrapper with the live region as its last child.
+ * Renders a `div` (`scatter-plot-list`) that holds the charts in a `display: contents`
+ * wrapper (`scatter-plot-list-items`), so a grid or flex layout on the List reaches
+ * the cards, and the live region as its last child. No `asChild`: a list
+ * element such as `ul` cannot hold the live region as a child.
  *
  * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterplotlist
  *

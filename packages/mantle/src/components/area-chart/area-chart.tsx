@@ -162,17 +162,17 @@ type AreaChartLegendProps = LegendPrimitiveProps;
 type AreaChartCopyButtonProps = CopyButtonPrimitiveProps;
 
 /**
- * The root of an area chart: owns the data, the scales, the canvas renderer,
+ * The root of an area chart: owns the data, the scales, the renderer,
  * and the entire interaction contract (a crosshair with an every-series
  * tooltip, keyboard stepping with polite announcements, an sr-only
  * description, an sr-only data table, Enter/Space + click activation). Areas
  * fill with a 10% wash of the series color plus a 2px band-edge stroke;
  * `stacked` on the Root stacks the series in registration order, the
  * first-registered series at the baseline. Large datasets decimate before
- * painting on canvas. Compose the chrome and series parts as children.
+ * painting. Compose the chrome and series parts as children.
  *
  * A Root mounts dormant: a shell of the plot, the named overlay, and its
- * sr-only description. It builds its canvas, its hover layers, and its engine
+ * sr-only description. It builds its paint surface, its hover layers, and its engine
  * once it comes within one viewport of the visible area, takes focus, or
  * prints (on-screen charts first, a few milliseconds at a time), and it mounts
  * the sr-only data table once focus lands inside it. A list of charts pays
@@ -180,14 +180,15 @@ type AreaChartCopyButtonProps = CopyButtonPrimitiveProps;
  * tables until a reader asks for one.
  *
  * The Root's own subtree is addressable by slot: `area-chart` on the wrapper,
- * then `area-chart-plot`, `area-chart-canvas`, `area-chart-crosshair`,
+ * then `area-chart-plot`, `area-chart-svg` (`area-chart-canvas` with `renderer="canvas"`),
+ * `area-chart-crosshair`,
  * `area-chart-hover-band`, `area-chart-markers`, `area-chart-tooltip`,
  * `area-chart-description`, and, once focus lands inside the chart,
  * `area-chart-data-table`. An area chart shows the crosshair and one marker
- * dot per series, and never the band. The canvas and the three layers are
+ * dot per series, and never the band. The surface and the three layers are
  * engine-owned: absent from server HTML and from a dormant chart, inserted at
  * activation (near the viewport, on focus, or before print). A static or
- * decorative chart inserts the canvas alone. The tooltip
+ * decorative chart inserts the surface alone. The tooltip
  * surface mounts on the first hover or keyboard step and stays.
  * Each hover dot carries `chart-active-point` plus a `data-shape` of
  * `"circle"`, `"square"`, `"triangle"`, `"diamond"`, `"triangle-down"`,
@@ -236,7 +237,7 @@ const Root = <TDatum extends ChartDatum = ChartDatum, TMode extends ChartMode = 
 
 /**
  * One area series. Renders nothing itself — it registers the series with the
- * chart, which paints it on canvas. Compose one `Area` per series; with
+ * chart, which paints it. Compose one `Area` per series; with
  * `stacked` on the Root, areas stack in registration order with the
  * first-registered series at the baseline, so an `Area` that mounts later
  * stacks on top whatever its position in the JSX.
@@ -259,8 +260,8 @@ const Root = <TDatum extends ChartDatum = ChartDatum, TMode extends ChartMode = 
 const Area = (props: AreaChartAreaProps) => useSeriesPrimitive("AreaChart.Area", "area", props);
 
 /**
- * Horizontal hairline gridlines behind the areas (renderless; painted on
- * canvas). Omit the part to omit the grid.
+ * Horizontal hairline gridlines behind the areas (renderless; the chart
+ * paints it). Omit the part to omit the grid.
  *
  * @see https://mantle.ngrok.com/components/charts/area-chart#areachartgrid
  *
@@ -280,7 +281,7 @@ const Area = (props: AreaChartAreaProps) => useSeriesPrimitive("AreaChart.Area",
 const Grid = (props: AreaChartGridProps) => useGridPrimitive("AreaChart.Grid", props);
 
 /**
- * Tick labels along the bottom of the plot (renderless; painted on canvas).
+ * Tick labels along the bottom of the plot (renderless; the chart paints it).
  * Labels that would collide are skipped, never rotated.
  *
  * @see https://mantle.ngrok.com/components/charts/area-chart#areachartxaxis
@@ -301,8 +302,8 @@ const Grid = (props: AreaChartGridProps) => useGridPrimitive("AreaChart.Grid", p
 const XAxis = (props: AreaChartXAxisProps) => useXAxisPrimitive("AreaChart.XAxis", props);
 
 /**
- * Value tick labels along the left of the plot (renderless; painted on
- * canvas). Ticks land on clean thousands-separated numbers.
+ * Value tick labels along the left of the plot (renderless; the chart
+ * paints it). Ticks land on clean thousands-separated numbers.
  *
  * @see https://mantle.ngrok.com/components/charts/area-chart#areachartyaxis
  *
@@ -323,7 +324,7 @@ const YAxis = (props: AreaChartYAxisProps) => useYAxisPrimitive("AreaChart.YAxis
 
 /**
  * A dashed horizontal marker at a y value — an SLO threshold, a budget, a
- * limit (renderless; painted on canvas).
+ * limit (renderless; the chart paints it).
  *
  * @see https://mantle.ngrok.com/components/charts/area-chart#areachartreferenceline
  *
@@ -451,7 +452,10 @@ const CopyButton = (props: AreaChartCopyButtonProps) => (
  * tooltip and one `role="status"` region instead of one per chart. Each chart
  * keeps its own Tooltip part, description, and data table.
  *
- * Renders a `div` wrapper with the live region as its last child.
+ * Renders a `div` (`area-chart-list`) that holds the charts in a `display: contents`
+ * wrapper (`area-chart-list-items`), so a grid or flex layout on the List reaches
+ * the cards, and the live region as its last child. No `asChild`: a list
+ * element such as `ul` cannot hold the live region as a child.
  *
  * @see https://mantle.ngrok.com/components/charts/area-chart#areachartlist
  *
@@ -472,7 +476,7 @@ const List = (props: AreaChartListProps) => (
 );
 
 /**
- * A canvas-rendered area chart for showing how values — and, when stacked, a
+ * A area chart for showing how values — and, when stacked, a
  * total and its parts — change over a continuous x axis. Each area fills with
  * a 10% wash of the series color plus a 2px band-edge stroke; the Root-level
  * `stacked` prop stacks the series in registration order from the baseline.
@@ -481,9 +485,9 @@ const List = (props: AreaChartListProps) => (
  * other series are filtered in and out. Interaction ships with `Root`
  * unconditionally: a crosshair with an every-series tooltip, keyboard
  * stepping, aria-live announcements, and an sr-only description. A Root builds
- * and paints its canvas once it comes within one viewport of the visible
+ * and paints its surface once it comes within one viewport of the visible
  * area, takes focus, or prints, and it mounts its sr-only data table once
- * focus lands inside it. Large datasets decimate before painting on canvas.
+ * focus lands inside it. Large datasets decimate before painting.
  *
  * **CSS variables (public API):**
  *
@@ -543,7 +547,7 @@ const List = (props: AreaChartListProps) => (
  */
 const AreaChart = {
 	/**
-	 * The root of an area chart: owns the data, the scales, the canvas renderer,
+	 * The root of an area chart: owns the data, the scales, the renderer,
 	 * and the entire interaction contract.
 	 *
 	 * @see https://mantle.ngrok.com/components/charts/area-chart#areachartroot
@@ -563,7 +567,7 @@ const AreaChart = {
 	 */
 	Root,
 	/**
-	 * One area series; registers with the chart and paints on canvas.
+	 * One area series; registers with the chart, which paints it.
 	 *
 	 * @see https://mantle.ngrok.com/components/charts/area-chart#areachartarea
 	 *
