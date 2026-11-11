@@ -1,4 +1,14 @@
-import { scaleTime } from "d3-scale";
+import {
+	timeDay,
+	timeHour,
+	timeMinute,
+	timeMonth,
+	timeSecond,
+	timeTicks as d3TimeTicks,
+	timeWeek,
+	timeYear,
+} from "d3-time";
+import { timeFormat } from "d3-time-format";
 
 // The 1/2/5 "nice step" tick solver, ported from d3-array 3.2.4 (`ticks` /
 // `tickIncrement`) so the chart engine doesn't pull the whole d3-array package
@@ -345,57 +355,59 @@ const linearTicksAtMost = (
 };
 
 /**
- * Calendar-aware ticks (epoch milliseconds) for a time domain — the reason
- * d3-scale is a dependency: correct month/DST/year boundaries are the hardest
- * axis math to hand-roll.
+ * Calendar-aware ticks (epoch milliseconds) for a time domain, from d3-time:
+ * correct month, DST, and year boundaries are the hardest axis math to
+ * hand-roll. The result matches d3-scale's `scaleTime().ticks(count)`.
  *
  * @example
  * ```ts
  * const tickTimes = timeTicks([start.getTime(), end.getTime()], 6);
  * ```
  */
-// `timeTicks` and `timeTickFormatter` are called back-to-back from the paint
-// loop with the identical domain; caching the last `scaleTime` lets the pair
-// build one instance per frame instead of two. During a domain glide the domain
-// changes each frame so the cache turns over, but the two calls within a single
-// frame share the same scale.
-let cachedTimeDomain: readonly [number, number] | null = null;
-let cachedTimeScale: ReturnType<typeof scaleTime> | null = null;
+const timeTicks = (domain: readonly [number, number], count: number): number[] =>
+	d3TimeTicks(new Date(domain[0]), new Date(domain[1]), count).map((date) => date.getTime());
 
-const timeScaleForDomain = (domain: readonly [number, number]): ReturnType<typeof scaleTime> => {
-	if (
-		cachedTimeScale != null &&
-		cachedTimeDomain != null &&
-		cachedTimeDomain[0] === domain[0] &&
-		cachedTimeDomain[1] === domain[1]
-	) {
-		return cachedTimeScale;
-	}
-	const scale = scaleTime().domain([new Date(domain[0]), new Date(domain[1])]);
-	cachedTimeDomain = [domain[0], domain[1]];
-	cachedTimeScale = scale;
-	return scale;
-};
-
-const timeTicks = (domain: readonly [number, number], count: number): number[] => {
-	return timeScaleForDomain(domain)
-		.ticks(count)
-		.map((date) => date.getTime());
-};
+const formatMillisecond = timeFormat(".%L");
+const formatSecond = timeFormat(":%S");
+const formatMinute = timeFormat("%I:%M");
+const formatHour = timeFormat("%I %p");
+const formatDay = timeFormat("%a %d");
+const formatWeek = timeFormat("%b %d");
+const formatMonth = timeFormat("%B");
+const formatYear = timeFormat("%Y");
 
 /**
- * A multi-granularity label formatter for time-axis ticks (d3's default:
- * years at year boundaries, month names at month boundaries, and so on).
+ * The label of one time-axis tick, at the coarsest unit the tick lands on: a
+ * year at a year boundary, a month name at a month boundary, and so on down
+ * to milliseconds. The result matches d3-scale's `scaleTime().tickFormat()`.
  *
  * @example
  * ```ts
- * const format = timeTickFormatter([start, end]);
- * format(new Date(2026, 0, 1).getTime()); // "2026"
+ * formatTimeTick(new Date(2026, 0, 1).getTime()); // "2026"
+ * formatTimeTick(new Date(2026, 2, 1).getTime()); // "March"
  * ```
  */
-const timeTickFormatter = (domain: readonly [number, number]): ((epochMs: number) => string) => {
-	const format = timeScaleForDomain(domain).tickFormat();
-	return (epochMs: number) => format(new Date(epochMs));
+const formatTimeTick = (epochMs: number): string => {
+	const date = new Date(epochMs);
+	if (timeSecond(date) < date) {
+		return formatMillisecond(date);
+	}
+	if (timeMinute(date) < date) {
+		return formatSecond(date);
+	}
+	if (timeHour(date) < date) {
+		return formatMinute(date);
+	}
+	if (timeDay(date) < date) {
+		return formatHour(date);
+	}
+	if (timeMonth(date) < date) {
+		return timeWeek(date) < date ? formatDay(date) : formatWeek(date);
+	}
+	if (timeYear(date) < date) {
+		return formatMonth(date);
+	}
+	return formatYear(date);
 };
 
 /**
@@ -481,12 +493,12 @@ export {
 	bandHitRegion,
 	bandStart,
 	computeBandLayout,
+	formatTimeTick,
 	invertBand,
 	linearCoefficients,
 	linearTicks,
 	linearTicksAtMost,
 	niceDomain,
 	niceZeroAnchoredDomain,
-	timeTickFormatter,
 	timeTicks,
 };

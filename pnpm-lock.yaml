@@ -369,12 +369,15 @@ importers:
       cmdk:
         specifier: 1.1.1
         version: 1.1.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
-      d3-scale:
-        specifier: 4.0.3
-        version: 4.0.3
       d3-shape:
         specifier: 3.2.1
         version: 3.2.1
+      d3-time:
+        specifier: 3.1.1
+        version: 3.1.1
+      d3-time-format:
+        specifier: 4.1.1
+        version: 4.1.1
       input-otp:
         specifier: 1.5.0
         version: 1.5.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -427,6 +430,12 @@ importers:
       '@types/d3-shape':
         specifier: 3.2.0
         version: 3.2.0
+      '@types/d3-time':
+        specifier: 3.0.4
+        version: 3.0.4
+      '@types/d3-time-format':
+        specifier: 4.0.3
+        version: 4.0.3
       '@types/react':
         specifier: 'catalog:'
         version: 19.3.0
@@ -439,6 +448,9 @@ importers:
       axe-core:
         specifier: 4.14.0
         version: 4.14.0
+      d3-scale:
+        specifier: 4.0.3
+        version: 4.0.3
       happy-dom:
         specifier: 'catalog:'
         version: 21.0.4
@@ -2605,6 +2617,9 @@ packages:
 
   '@types/d3-shape@3.2.0':
     resolution: {integrity: sha512-kVd74ta9eof3eJOvbNd1vGKS/XERRyQbT26Og63hIsvDO84cjD5gEOhsXf26w3FSoNlPVz84DOFcKv/oou+fMw==}
+
+  '@types/d3-time-format@4.0.3':
+    resolution: {integrity: sha512-5xg9rC+wWL8kdDj153qZcsJ0FWiFt0J5RB6LYUNZjwSnesfblqrI/bJ1wBdJ8OQfncgbJG5+2F+qfqnqyzYxyg==}
 
   '@types/d3-time@3.0.4':
     resolution: {integrity: sha512-yuzZug1nkAAaBlBBikKZTgzCeA+k1uy4ZFwWANOfKw5z5LRhV0gNA7gNkKm7HoK+HRN0wX3EkxGk0fpbWhmB7g==}
@@ -6460,6 +6475,8 @@ snapshots:
   '@types/d3-shape@3.2.0':
     dependencies:
       '@types/d3-path': 3.1.1
+
+  '@types/d3-time-format@4.0.3': {}
 
   '@types/d3-time@3.0.4': {}
 

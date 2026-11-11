@@ -41,13 +41,13 @@ import {
 	bandHitRegion,
 	bandStart,
 	computeBandLayout,
+	formatTimeTick,
 	invertBand,
 	linearCoefficients,
 	linearTicks,
 	linearTicksAtMost,
 	niceDomain,
 	niceZeroAnchoredDomain,
-	timeTickFormatter,
 	timeTicks,
 } from "./scales.js";
 import type { BarRect, HorizontalBarRect, PlotRect } from "./renderer.js";
@@ -1914,9 +1914,8 @@ class ChartEngine {
 		const range: [number, number] = [domain[0] ?? 0, domain[1] ?? 1];
 		const count = snapshot.xAxis?.tickCount ?? Math.max(2, Math.floor(this.#plot.width / 90));
 		if (this.#options.xScale === "time") {
-			const defaultFormat = timeTickFormatter(range);
 			return timeTicks(range, count).map((epoch) => {
-				const defaultLabel = defaultFormat(epoch);
+				const defaultLabel = formatTimeTick(epoch);
 				return {
 					index: null,
 					value: epoch,
