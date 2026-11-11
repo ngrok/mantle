@@ -1,7 +1,9 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
+import { createPortal } from "react-dom";
 import { renderToString } from "react-dom/server";
 import { afterAll, beforeAll, expect, test } from "vitest";
 import { commands, userEvent } from "vitest/browser";
+import { Dialog } from "../dialog/index.js";
 import { TooltipProvider } from "../tooltip/index.js";
 import { TruncatedText } from "./truncated-text.js";
 
@@ -108,6 +110,24 @@ test("measures again when the container shrinks", async () => {
 	container.style.width = "240px";
 
 	await expect.poll(() => root.hasAttribute("data-truncated")).toBe(true);
+});
+
+test("stamps data-truncated in the same frame as the resize, before paint", async () => {
+	const { container, root } = renderValue({ width: 600 });
+	await expect.poll(() => root.hasAttribute("data-truncated")).toBe(false);
+
+	container.style.width = "240px";
+	// Why an observer created after the component's: its callback runs after the
+	// component's in the same frame, so it sees what that frame paints.
+	const painted = await new Promise<boolean>((resolve) => {
+		const observer = new ResizeObserver(() => {
+			observer.disconnect();
+			resolve(root.hasAttribute("data-truncated"));
+		});
+		observer.observe(container);
+	});
+
+	expect(painted).toBe(true);
 });
 
 test("the server markup keeps a fitting value unclipped before hydration", () => {
@@ -226,7 +246,9 @@ function visibleGlyphs(element: HTMLElement): string {
 		range.setStart(textNode, index);
 		range.setEnd(textNode, index + 1);
 		const rect = range.getBoundingClientRect();
-		if (rect.left >= box.left - 0.5 && rect.right <= box.right + 0.5) {
+		// Why the width check: WebKit reports a glyph that an ellipsis hides as a
+		// rect of zero width. Why 1 px: WebKit snaps a glyph's rect to whole pixels.
+		if (rect.width > 0 && rect.left >= box.left - 1 && rect.right <= box.right + 1) {
 			glyphs.push({ left: rect.left, glyph: textNode.data[index] ?? "" });
 		}
 	}
@@ -286,7 +308,9 @@ test("a value no longer than its tail draws the ellipsis itself and keeps its en
 	expect(container.scrollWidth).toBeLessThanOrEqual(container.clientWidth);
 	// The tail takes all five cells; the ellipsis paints over the first of them.
 	expect(tail.getBoundingClientRect().width).toBeCloseTo(5 * ch + 0.5, 0);
-	expect(visibleGlyphs(tail)).toBe("ok:v3");
+	// Why the optional "o": Chromium reports the glyph the ellipsis paints over,
+	// and WebKit does not. Both keep the end.
+	expect(visibleGlyphs(tail)).toMatch(/^o?k:v3$/);
 });
 
 const memberId = "mem_21h80N9qQuAmhSB8nlTA8KImPbQ";
@@ -295,8 +319,11 @@ test("with `head`, shows the lead, one ellipsis, and the tail while the containe
 	const { root, head, tail, ch } = renderValue({ width: 600, head: 4, value: memberId });
 	await expect.poll(() => root.hasAttribute("data-truncated")).toBe(true);
 
-	// Four lead cells and one ellipsis cell, plus the half pixel of slack.
-	expect(head.getBoundingClientRect().width).toBeCloseTo(5 * ch + 0.5, 0);
+	// Four lead cells and one ellipsis cell, and no sixth cell. Why a range and
+	// not an exact width: WebKit snaps a range over part of a text node to whole
+	// pixels, so its head can hold up to a pixel more than five cells.
+	expect(head.getBoundingClientRect().width).toBeGreaterThanOrEqual(5 * ch);
+	expect(head.getBoundingClientRect().width).toBeLessThan(6 * ch);
 	expect(tail.getBoundingClientRect().width).toBeCloseTo(textWidth(tail), 0);
 	// The root shrinks to the two segments, so nothing follows the tail.
 	expect(root.getBoundingClientRect().right).toBeCloseTo(tail.getBoundingClientRect().right, 0);
@@ -441,4 +468,387 @@ test("the tooltip balances a longer value and shrinks to its longest line", asyn
 	expect(Math.max(...lines) - Math.min(...lines)).toBeLessThan(20);
 	// The box hugs the longer line, not the `max-width`.
 	expect(content.getBoundingClientRect().width).toBeLessThanOrEqual(Math.max(...lines) + inset + 1);
+});
+
+/**
+ * The space between the ellipsis the head draws and the tail, in CSS pixels.
+ * The head draws the longest prefix whose width plus the ellipsis fits its box.
+ */
+function ellipsisGap(head: HTMLElement, tail: HTMLElement): number {
+	const text = head.firstChild;
+	if (!(text instanceof Text)) {
+		throw new Error("The head holds no text node.");
+	}
+	const ellipsis = document.createElement("span");
+	ellipsis.textContent = "…";
+	head.after(ellipsis);
+	const ellipsisWidth = ellipsis.getBoundingClientRect().width;
+	ellipsis.remove();
+	const box = head.getBoundingClientRect();
+	const prefix = document.createRange();
+	prefix.setStart(text, 0);
+	let drawn = 0;
+	for (let end = 1; end <= text.length; end++) {
+		prefix.setEnd(text, end);
+		const width = prefix.getBoundingClientRect().width;
+		if (width + ellipsisWidth > box.width) {
+			break;
+		}
+		drawn = width;
+	}
+	return tail.getBoundingClientRect().left - (box.left + drawn + ellipsisWidth);
+}
+
+test("keeps the ellipsis flush against the tail in a proportional font while the container resizes", async () => {
+	const { container, root, head, tail } = renderValue({ width: 300, fontFamily: "sans-serif" });
+	const errors: string[] = [];
+	const onError = (event: ErrorEvent) => errors.push(event.message);
+	window.addEventListener("error", onError);
+
+	try {
+		// Why these widths: each one leaves the head a different part of a glyph.
+		for (const width of [300, 283, 271, 262, 254, 247, 300]) {
+			container.style.width = `${width}px`;
+			await expect.poll(() => root.getBoundingClientRect().width).toBeCloseTo(width, 0);
+			await expect.poll(() => root.hasAttribute("data-truncated")).toBe(true);
+			// Why 0.5: the head keeps half a pixel of slack, so WebKit never clips a
+			// value that fits exactly.
+			await expect.poll(() => ellipsisGap(head, tail)).toBeLessThanOrEqual(0.5 + 1 / 64);
+		}
+	} finally {
+		window.removeEventListener("error", onError);
+	}
+
+	// Why: a write that resizes an observed element inside the observer callback
+	// reports a loop error to `window`.
+	expect(errors).toEqual([]);
+});
+
+/** Waits for the next animation frame. */
+function nextFrame(): Promise<void> {
+	return new Promise((resolve) => {
+		requestAnimationFrame(() => resolve());
+	});
+}
+
+/** The attributes that the batch writes on a root and its segments. */
+const batchAttributes = ["style", "data-truncated", "tabindex"];
+
+/**
+ * Waits until no instance writes a style, `data-truncated`, or `tabindex` for
+ * 10 frames in a row. Gives up after 120 frames, because an instance that
+ * writes in every frame never goes quiet.
+ */
+async function settled(): Promise<void> {
+	let writes = 0;
+	const observer = new MutationObserver((records) => {
+		writes += records.length;
+	});
+	observer.observe(document.body, { subtree: true, attributeFilter: batchAttributes });
+	try {
+		for (let frame = 0, quiet = 0; quiet < 10 && frame < 120; frame++) {
+			const before = writes;
+			await nextFrame();
+			writes += observer.takeRecords().length;
+			quiet = writes === before ? quiet + 1 : 0;
+		}
+	} finally {
+		observer.disconnect();
+	}
+}
+
+/**
+ * Waits until the generic `monospace` family draws a monospace font.
+ *
+ * Why: a new Firefox profile can draw it with a proportional fallback for a
+ * few seconds, and the switch measures every instance once more.
+ */
+async function monospaceLoaded(): Promise<void> {
+	const probe = document.createElement("span");
+	probe.style.cssText = "font: 13px monospace; white-space: pre;";
+	document.body.append(probe);
+	const width = (text: string) => {
+		probe.textContent = text;
+		return probe.getBoundingClientRect().width;
+	};
+	try {
+		await expect.poll(() => width("iiii") === width("WWWW"), { timeout: 20_000 }).toBe(true);
+	} finally {
+		probe.remove();
+	}
+}
+
+test("clips a value whose head and tail kern across their boundary", async () => {
+	// Why "T" and "o": a proportional font kerns this pair, so the value as one
+	// run is narrower than the head and the tail laid out apart.
+	const probe = document.createElement("div");
+	probe.style.cssText = "font: 13px sans-serif; font-variant-ligatures: none; white-space: nowrap;";
+	const joined = document.createElement("span");
+	joined.textContent = "abc-To1";
+	const apart = ["abc-T", "o1"].map((text) => {
+		const segment = document.createElement("span");
+		segment.style.display = "inline-block";
+		segment.textContent = text;
+		return segment;
+	});
+	probe.append(joined, ...apart);
+	document.body.append(probe);
+	const joinedWidth = textWidth(joined);
+	const apartWidth = apart.reduce((sum, segment) => sum + textWidth(segment), 0);
+	probe.remove();
+	if (apartWidth - joinedWidth < 0.5) {
+		throw new Error("The sans-serif font does not kern “To”.");
+	}
+
+	// Why this width: the joined run fits within the half-pixel margin, and the
+	// two segments do not.
+	render(
+		<TooltipProvider>
+			<div style={{ width: apartWidth - 0.75, fontFamily: "sans-serif", fontSize: "13px" }}>
+				<TruncatedText data-testid="value" tail={2} value="abc-To1" />
+			</div>
+		</TooltipProvider>,
+	);
+	const root = screen.getByTestId("value");
+
+	await expect.poll(() => root.hasAttribute("data-truncated")).toBe(true);
+	expect(root).toHaveAttribute("tabindex", "0");
+});
+
+test("writes nothing to the roots while the page is idle", async () => {
+	await monospaceLoaded();
+	// Why many widths: Firefox reads a text range about 1e-5 px apart after the
+	// text moves, and only some widths put a clipped tail on a rounding edge.
+	const widths = Array.from({ length: 133 }, (_, index) => 18 + index);
+	render(
+		<TooltipProvider delayDuration={0}>
+			{(["monospace", "sans-serif"] as const).flatMap((fontFamily) =>
+				widths.map((width) => (
+					<div
+						key={`${fontFamily} ${width}`}
+						style={{ width, fontFamily, fontSize: "13px", lineHeight: "20px" }}
+					>
+						<TruncatedText data-testid={`${fontFamily} ${width}px`} value={url} />
+					</div>
+				)),
+			)}
+		</TooltipProvider>,
+	);
+	await settled();
+
+	const writes: Record<string, number> = {};
+	const count = (records: MutationRecord[]) => {
+		for (const { target } of records) {
+			// Why the closest test ID: the batch writes the widths on the head and the tail.
+			const name =
+				target instanceof Element
+					? (target.closest<HTMLElement>("[data-testid]")?.dataset.testid ?? "")
+					: "";
+			writes[name] = (writes[name] ?? 0) + 1;
+		}
+	};
+	const observer = new MutationObserver(count);
+	observer.observe(document.body, { subtree: true, attributeFilter: batchAttributes });
+	try {
+		for (let frame = 0; frame < 60; frame++) {
+			await nextFrame();
+		}
+		count(observer.takeRecords());
+	} finally {
+		observer.disconnect();
+	}
+
+	// The narrowest container clips the tail, where a write can move it.
+	expect(screen.getByTestId("monospace 18px")).toHaveAttribute("data-truncated", "");
+	expect(writes).toEqual({});
+}, 60_000);
+
+/** The width of `value` on one line in a 13 px font, with no clip. */
+function lineWidth(value: string, fontFamily: "monospace" | "sans-serif"): number {
+	const probe = document.createElement("span");
+	probe.style.cssText = `font: 13px ${fontFamily}; font-variant-ligatures: none; white-space: nowrap;`;
+	probe.textContent = value;
+	document.body.append(probe);
+	const width = probe.getBoundingClientRect().width;
+	probe.remove();
+	return width;
+}
+
+/**
+ * Renders the value in a sans-serif container that holds `room` times its
+ * width, under an ancestor at `scale`. Once the measurement settles, the scale
+ * ends with no resize, as a zoom-in does. Returns the errors that reach `window`.
+ */
+async function renderScaled({ room, scale }: { room: number; scale: number }) {
+	const errors: string[] = [];
+	const onError = (event: ErrorEvent) => errors.push(event.message);
+	window.addEventListener("error", onError);
+	try {
+		const rendered = renderValue({
+			width: lineWidth(url, "sans-serif") * room,
+			fontFamily: "sans-serif",
+		});
+		// Why before the first await: the batch after mount runs in a microtask, so
+		// it measures under the scale.
+		rendered.container.style.transform = `scale(${scale})`;
+		await settled();
+		rendered.container.style.transform = "";
+		await settled();
+		return { ...rendered, errors };
+	} finally {
+		window.removeEventListener("error", onError);
+	}
+}
+
+test("clips a value that overflows under a scaled ancestor, also once the scale ends", async () => {
+	// The value overflows by 3%, and at 0.95 its text reads 2% narrower than the container.
+	const { container, root, head, tail, errors } = await renderScaled({
+		room: 1 / 1.03,
+		scale: 0.95,
+	});
+
+	expect(root).toHaveAttribute("data-truncated", "");
+	expect(root).toHaveAttribute("tabindex", "0");
+	expect(container.scrollWidth).toBeLessThanOrEqual(container.clientWidth);
+	// Why 1/40: the batch read each width under the scale, which rounds it once more.
+	expect(ellipsisGap(head, tail)).toBeLessThanOrEqual(0.5 + 1 / 64 + 1 / 40);
+	expect(errors).toEqual([]);
+});
+
+test("renders a value that fits under a scaled ancestor plain, also once the scale ends", async () => {
+	// The value fits by 3%, and at 1.05 its text reads 2% wider than the container.
+	const { root, head, tail, errors } = await renderScaled({ room: 1.03, scale: 1.05 });
+
+	expect(root).not.toHaveAttribute("data-truncated");
+	expect(root).not.toHaveAttribute("tabindex");
+	expect(head.scrollWidth).toBeLessThanOrEqual(head.clientWidth);
+	// The tail reserves its text's width, so the root ends where the value ends.
+	expect(tail.getBoundingClientRect().width).toBeCloseTo(textWidth(tail), 0);
+	expect(errors).toEqual([]);
+});
+
+test("clips a value inside a Dialog that opens with a zoom, also once the zoom ends", async () => {
+	// Why a copy of the zoom: the `tailwindCss` command compiles no
+	// `tw-animate-css`, which draws the content's `zoom-in-95`.
+	const zoom = document.createElement("style");
+	zoom.textContent = `
+		@keyframes zoom-in { from { transform: scale(0.95); } }
+		[data-slot~="dialog-content"][data-state~="open"] { animation: zoom-in 200ms ease-out; }
+	`;
+	document.head.append(zoom);
+	const errors: string[] = [];
+	const onError = (event: ErrorEvent) => errors.push(event.message);
+	window.addEventListener("error", onError);
+	try {
+		render(
+			<TooltipProvider delayDuration={0}>
+				<Dialog.Root open>
+					<Dialog.Content aria-describedby={undefined}>
+						<Dialog.Title>Endpoint</Dialog.Title>
+						<div
+							data-testid="container"
+							style={{
+								width: lineWidth(url, "sans-serif") / 1.03,
+								fontFamily: "sans-serif",
+								fontSize: "13px",
+								lineHeight: "20px",
+							}}
+						>
+							<TruncatedText data-testid="value" value={url} />
+						</div>
+					</Dialog.Content>
+				</Dialog.Root>
+			</TooltipProvider>,
+		);
+		// Why the name: a focus ring on the content can add transitions of its own.
+		const zooms = screen
+			.getByRole("dialog")
+			.getAnimations()
+			.filter(
+				(animation) => animation instanceof CSSAnimation && animation.animationName === "zoom-in",
+			);
+		expect(zooms).toHaveLength(1);
+		await Promise.all(zooms.map((animation) => animation.finished));
+		await settled();
+	} finally {
+		window.removeEventListener("error", onError);
+		zoom.remove();
+	}
+
+	const container = screen.getByTestId("container");
+	const root = screen.getByTestId("value");
+	const head = root.querySelector('[data-slot="truncated-text-head"]');
+	const tail = root.querySelector('[data-slot="truncated-text-tail"]');
+	if (!(head instanceof HTMLElement) || !(tail instanceof HTMLElement)) {
+		throw new Error("TruncatedText rendered without its head and tail slots.");
+	}
+	expect(root).toHaveAttribute("data-truncated", "");
+	expect(root).toHaveAttribute("tabindex", "0");
+	expect(container.scrollWidth).toBeLessThanOrEqual(container.clientWidth);
+	// Why 1/40: the batch read each width under the zoom, which rounds it once more.
+	expect(ellipsisGap(head, tail)).toBeLessThanOrEqual(0.5 + 1 / 64 + 1 / 40);
+	expect(errors).toEqual([]);
+});
+
+/** The head segment of a root, in any document. */
+function headOf(root: Element): Element {
+	const head = root.querySelector('[data-slot="truncated-text-head"]');
+	if (head == null) {
+		throw new Error("TruncatedText rendered without its head slot.");
+	}
+	return head;
+}
+
+test("measures a value that React renders into a same-origin frame", async () => {
+	const frame = document.createElement("iframe");
+	frame.srcdoc = "<!doctype html><title>Frame</title>";
+	frame.style.cssText = "width: 600px; height: 120px; border: 0;";
+	const loaded = new Promise((resolve) => {
+		frame.addEventListener("load", resolve, { once: true });
+	});
+	document.body.append(frame);
+	await loaded;
+	const frameDocument = frame.contentDocument;
+	if (frameDocument == null) {
+		throw new Error("The frame has no document.");
+	}
+	const frameStyle = frameDocument.createElement("style");
+	frameStyle.textContent = styleElement.textContent;
+	frameDocument.head.append(frameStyle);
+	const style = { width: 120, fontFamily: "sans-serif", fontSize: "13px", lineHeight: "20px" };
+	const values = (
+		<>
+			<div style={style}>
+				<TruncatedText data-testid="fit" value={url} />
+			</div>
+			<div style={style}>
+				<TruncatedText data-testid="lead" head={4} value={memberId} />
+			</div>
+		</>
+	);
+	// Why one tree: React in the page renders into the frame, so the frame's text
+	// nodes come from another window.
+	const { unmount } = render(
+		<TooltipProvider delayDuration={0}>
+			{values}
+			{createPortal(values, frameDocument.body)}
+		</TooltipProvider>,
+	);
+	try {
+		const frameValues = within(frameDocument.body);
+		for (const testId of ["fit", "lead"]) {
+			const root = screen.getByTestId(testId);
+			const frameRoot = frameValues.getByTestId(testId);
+			await expect.poll(() => root.hasAttribute("data-truncated")).toBe(true);
+			await expect.poll(() => frameRoot.hasAttribute("data-truncated")).toBe(true);
+			// Why the head's box: in a proportional font, the measured fit and the
+			// lead's cap set its width. Without them it falls back to whole `ch` cells.
+			await expect
+				.poll(() => headOf(frameRoot).getBoundingClientRect().width)
+				.toBeCloseTo(headOf(root).getBoundingClientRect().width, 1);
+		}
+	} finally {
+		unmount();
+		frame.remove();
+	}
 });

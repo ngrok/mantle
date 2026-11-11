@@ -48,6 +48,67 @@ import { joinDataSlot } from "../../utils/data-slot.js";
  * </Table.Root>
  * ```
  *
+ * @example
+ * Paginated, with the count line and a page-size select:
+ * ```tsx
+ * import {
+ *   CursorPagination,
+ *   PaginationRange,
+ *   getOffsetPaginatedSlice,
+ *   useOffsetPagination,
+ * } from "@ngrok/mantle/pagination";
+ * import { Table } from "@ngrok/mantle/table";
+ *
+ * function InvoicesTable({ invoices }: { invoices: Invoice[] }) {
+ *   const pagination = useOffsetPagination({ listSize: invoices.length, pageSize: 20 });
+ *   const pageInvoices = getOffsetPaginatedSlice(invoices, pagination);
+ *
+ *   return (
+ *     <div className="flex flex-col gap-4">
+ *       <Table.Root>
+ *         <Table.Element>
+ *           <Table.Head>
+ *             <Table.Row>
+ *               <Table.Header>Invoice</Table.Header>
+ *               <Table.Header className="text-right">Amount</Table.Header>
+ *             </Table.Row>
+ *           </Table.Head>
+ *           <Table.Body>
+ *             {pageInvoices.map((invoice) => (
+ *               <Table.Row key={invoice.invoice}>
+ *                 <Table.Cell>{invoice.invoice}</Table.Cell>
+ *                 <Table.Cell className="text-right">{invoice.totalAmount}</Table.Cell>
+ *               </Table.Row>
+ *             ))}
+ *           </Table.Body>
+ *         </Table.Element>
+ *       </Table.Root>
+ *       <CursorPagination.Root
+ *         className="flex flex-wrap justify-between"
+ *         pageSize={pagination.pageSize}
+ *         onChangePageSize={pagination.setPageSize}
+ *       >
+ *         <PaginationRange
+ *           offset={pagination.offset}
+ *           pageSize={pagination.pageSize}
+ *           total={invoices.length}
+ *           noun={{ singular: "invoice", plural: "invoices" }}
+ *         />
+ *         <div className="flex items-center gap-2">
+ *           <CursorPagination.PageSizeSelect />
+ *           <CursorPagination.Buttons
+ *             hasPreviousPage={pagination.hasPreviousPage}
+ *             hasNextPage={pagination.hasNextPage}
+ *             onPreviousPage={pagination.previousPage}
+ *             onNextPage={pagination.nextPage}
+ *           />
+ *         </div>
+ *       </CursorPagination.Root>
+ *     </div>
+ *   );
+ * }
+ * ```
+ *
  * `ref` lands on the inner scroll container, so a consumer can read or set its
  * scroll position. Every other prop lands on the outer element.
  *
@@ -670,6 +731,17 @@ const Caption = ({
  *
  * For INTERACTIVE tabular data with sorting / filtering / pagination / row
  * selection, use `DataTable` (built on TanStack Table) instead.
+ *
+ * **Large lists.** Each rendered row costs mount and layout time, so a table
+ * that renders every row of a large list blocks input while it mounts:
+ * - Paginate a list that can grow past 100 rows, and show 100 rows or fewer on
+ *   a page. Slice the rows with `useOffsetPagination` and
+ *   `getOffsetPaginatedSlice`, and compose `CursorPagination` with
+ *   `PaginationRange` under the table, as the paginated example below shows.
+ * - Search and filter the whole list, then paginate the result. Pass the
+ *   filtered length as `listSize`, so a new filter returns to the first page.
+ * - Paginate before you virtualize. A page of 100 rows mounts fast, and the
+ *   browser's find in page still sees every row on it.
  *
  * @useWhen Show static rows and columns of data, such as a read-only data dump, with no sorting,
  * filtering, or pagination.

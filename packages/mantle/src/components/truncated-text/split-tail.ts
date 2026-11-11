@@ -43,6 +43,10 @@ type SplitValue = {
 
 let segmenter: Intl.Segmenter | undefined;
 
+// Why: in printable ASCII each code unit is one grapheme, so a slice splits on
+// a grapheme boundary. Most IDs, URLs, and tokens match.
+const printableAscii = /^[\x20-\x7E]*$/;
+
 /**
  * Splits `value` so that its last `tail` graphemes form the tail, and its
  * first `head` graphemes form the lead.
@@ -73,21 +77,39 @@ function splitTail(value: string, { head, tail }: SplitCounts): SplitValue {
 		`TruncatedText: \`head\` must be a non-negative integer, received ${String(head)}.`,
 	);
 
+	if (printableAscii.test(value)) {
+		return split(value.length, (start, end) => value.slice(start, end), { head, tail });
+	}
+
 	// Why lazy: a module-level constructor is a side effect a bundler cannot
 	// drop from a consumer that never renders the component.
 	segmenter ??= new Intl.Segmenter(undefined, { granularity: "grapheme" });
 	const graphemes = Array.from(segmenter.segment(value), (segment) => segment.segment);
+	return split(graphemes.length, (start, end) => graphemes.slice(start, end).join(""), {
+		head,
+		tail,
+	});
+}
 
-	if (graphemes.length <= tail) {
-		return { head: "", lead: null, tail: value, tailGraphemes: graphemes.length };
+/**
+ * Splits a value of `length` graphemes. `slice` returns the graphemes from
+ * `start` up to `end` as one string.
+ */
+function split(
+	length: number,
+	slice: (start: number, end?: number) => string,
+	{ head, tail }: SplitCounts,
+): SplitValue {
+	if (length <= tail) {
+		return { head: "", lead: null, tail: slice(0), tailGraphemes: length };
 	}
 
-	const splitAt = graphemes.length - tail;
-	const hasLead = head != null && graphemes.length > head + tail;
+	const splitAt = length - tail;
+	const hasLead = head != null && length > head + tail;
 	return {
-		head: graphemes.slice(0, splitAt).join(""),
-		lead: hasLead ? graphemes.slice(0, head).join("") : null,
-		tail: graphemes.slice(splitAt).join(""),
+		head: slice(0, splitAt),
+		lead: hasLead ? slice(0, head) : null,
+		tail: slice(splitAt),
 		tailGraphemes: tail,
 	};
 }

@@ -327,6 +327,20 @@ Follow these invariants for a correctly styled, accessible, and behaving `DataTa
 11. **Register features, not row models.** `useTable` wires up only what `tableFeatures` registers: `rowSortingFeature` with `sortedRowModel` for sorting, `rowPaginationFeature` with `paginatedRowModel` for pagination, `columnFilteringFeature` with `filteredRowModel` for filtering. A feature without its row model is a dead control: `rowSortingFeature` alone toggles the sort icon and never reorders a row.
 12. **Give a compiled component of your own its subscription.** mantle ships `DataTable` compiled with the React Compiler, and each part subscribes to the state it reads. If your app also compiles, and one of your components receives only a stable `row`, `column`, `cell`, or `header` and reads state through it, wrap that read in TanStack's `Subscribe`. See [TanStack's React Compiler guide](https://tanstack.com/table/latest/docs/framework/react/guide/react-compiler).
 
+## Guidelines
+
+Each row a table renders costs mount and layout time. A table that renders every row of a large list blocks typing and clicks while it mounts, and a slow device feels it first.
+
+- Paginate a list that can grow past 100 rows. Show 100 rows or fewer on a page, and default to a smaller page, such as 20. `CursorPagination.PageSizeSelect` offers 5 to 100 by default.
+- Search and filter the whole list, then paginate the result. Pagination limits what renders, not what a search finds. `getRowCount()` counts every row the filter keeps.
+- Show the count with [`PaginationRange`](/components/navigation/pagination#paginationrange), so a reader knows how many rows match and where the page sits.
+- Return to the first page when a search, a filter, or a sort changes. TanStack does this while `autoResetPageIndex` keeps its default, so leave it unset.
+- Keep the page in the URL when a reader leaves the table and comes back, such as from a detail page. Control `state.pagination` and write each change to the URL.
+- Paginate before you virtualize. A page of 100 rows mounts fast, and the browser's find in page still sees every row on it.
+- Clip a long ID or URL with [`TruncatedText`](/components/data-display/truncated-text), which keeps the end of the value. See [Customizing cells](#customizing-cells-badges-numeric-truncation).
+
+The [pagination recipe](#pagination-controls) puts these together.
+
 ## Anti-patterns
 
 Common mistakes. The left column is what not to do; the right column is the fix.
@@ -784,7 +798,7 @@ const features = tableFeatures({
 
 ### Pagination controls
 
-Register `rowPaginationFeature` with `paginatedRowModel: createPaginatedRowModel()`, then wire [`CursorPagination`](/components/navigation/pagination) to the table instance for a page-size dropdown plus previous/next buttons: no hand-rolled `Button`s or `Page X of Y` span needed.
+Register `rowPaginationFeature` with `paginatedRowModel: createPaginatedRowModel()`, then wire [`CursorPagination`](/components/navigation/pagination) to the table instance for a page-size dropdown plus previous/next buttons: no hand-rolled `Button`s or `Page X of Y` span needed. Add [`PaginationRange`](/components/navigation/pagination#paginationrange) for the count line. It's a live region, so a screen reader hears the new range when the page changes.
 
 <Example>
 	<PaginatedPaymentsDemo />
@@ -803,7 +817,7 @@ import {
 	tableFeatures,
 	useTable,
 } from "@ngrok/mantle/data-table";
-import { CursorPagination } from "@ngrok/mantle/pagination";
+import { CursorPagination, PaginationRange } from "@ngrok/mantle/pagination";
 
 // The table's initial page size. It must be one of PageSizeSelect's pageSizes
 // (default 5 | 10 | 20 | 50 | 100).
@@ -847,20 +861,29 @@ function PaginatedTable({ data }: { data: Payment[] }) {
 			</DataTable.Root>
 
 			<CursorPagination.Root
-				className="flex justify-end"
+				className="flex flex-wrap justify-between"
 				pageSize={table.state.pagination.pageSize}
 				onChangePageSize={(size) => {
 					table.setPageSize(size);
 					table.setPageIndex(0); // reset to the first page when the size changes
 				}}
 			>
-				<CursorPagination.PageSizeSelect />
-				<CursorPagination.Buttons
-					hasPreviousPage={table.getCanPreviousPage()}
-					hasNextPage={table.getCanNextPage()}
-					onPreviousPage={() => table.previousPage()}
-					onNextPage={() => table.nextPage()}
+				{/* The count line is a live region, so a screen reader hears the new range. */}
+				<PaginationRange
+					offset={table.state.pagination.pageIndex * table.state.pagination.pageSize}
+					pageSize={table.state.pagination.pageSize}
+					total={table.getRowCount()}
+					noun={{ singular: "payment", plural: "payments" }}
 				/>
+				<div className="flex items-center gap-2">
+					<CursorPagination.PageSizeSelect />
+					<CursorPagination.Buttons
+						hasPreviousPage={table.getCanPreviousPage()}
+						hasNextPage={table.getCanNextPage()}
+						onPreviousPage={() => table.previousPage()}
+						onNextPage={() => table.nextPage()}
+					/>
+				</div>
 			</CursorPagination.Root>
 		</>
 	);
@@ -872,6 +895,7 @@ function PaginatedTable({ data }: { data: Payment[] }) {
 - The page size must be one of `CursorPagination.PageSizeSelect`'s `pageSizes` (default `5 | 10 | 20 | 50 | 100`), or the select throws.
 - The table owns the page size: pass the live `table.state.pagination.pageSize` as `pageSize`. The select then follows a `setPageSize()` call from anywhere, including table state you keep in the URL.
 - Reset to page 0 on a size change.
+- Pass `pageIndex * pageSize` as the `offset` of `PaginationRange`, and `getRowCount()` as its `total`, so the count follows the filter.
 - **Server/cursor data** (no `rowPaginationFeature`): wire `Buttons` to your fetch's has-next/has-prev + load callbacks, and use the read-only `CursorPagination.PageSizeValue` when the page size is fixed server-side rather than `PageSizeSelect`. See [Pagination → Within a data table](/components/navigation/pagination#within-a-data-table).
 
 ### Row selection with checkboxes

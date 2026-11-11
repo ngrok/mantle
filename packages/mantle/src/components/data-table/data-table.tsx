@@ -2049,6 +2049,18 @@ function ExpandedRow<TFeatures extends TableFeatures, TData extends RowData>({
  * For STATIC, layout-driven tables (read-only data dumps, simple key/value
  * displays, plain markup tables with no interactivity), use `Table` instead.
  *
+ * **Large lists.** Each rendered row costs mount and layout time, so a table
+ * that renders every row of a large list blocks input while it mounts:
+ * - Paginate a list that can grow past 100 rows, and show 100 rows or fewer on
+ *   a page. Register `rowPaginationFeature` and compose `CursorPagination` with
+ *   `PaginationRange` under the table, as the paginated example below shows.
+ * - Search and filter the whole list, not the current page. The count line
+ *   reads `getRowCount()`, which counts every row the filter keeps.
+ * - Keep `autoResetPageIndex` at its default, so a new filter, sort, or data
+ *   set returns the table to its first page.
+ * - Paginate before you virtualize. A page of 100 rows mounts fast, and the
+ *   browser's find in page still sees every row on it.
+ *
  * @useWhen Show rows of application data that the user sorts, filters, pages through, or selects.
  *
  * @siblings
@@ -2161,7 +2173,7 @@ function ExpandedRow<TFeatures extends TableFeatures, TData extends RowData>({
  *   useTable,
  * } from "@ngrok/mantle/data-table";
  * import { Button } from "@ngrok/mantle/button";
- * import { CursorPagination } from "@ngrok/mantle/pagination";
+ * import { CursorPagination, PaginationRange } from "@ngrok/mantle/pagination";
  * import { Empty } from "@ngrok/mantle/empty";
  * import { Input } from "@ngrok/mantle/input";
  * import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
@@ -2298,20 +2310,28 @@ function ExpandedRow<TFeatures extends TableFeatures, TData extends RowData>({
  *         </DataTable.Body>
  *       </DataTable.Root>
  *       <CursorPagination.Root
- *         className="flex justify-end"
+ *         className="flex flex-wrap justify-between"
  *         pageSize={table.state.pagination.pageSize}
  *         onChangePageSize={(size) => {
  *           table.setPageSize(size);
  *           table.setPageIndex(0); // reset to the first page when the size changes
  *         }}
  *       >
- *         <CursorPagination.PageSizeSelect />
- *         <CursorPagination.Buttons
- *           hasPreviousPage={table.getCanPreviousPage()}
- *           hasNextPage={table.getCanNextPage()}
- *           onPreviousPage={() => table.previousPage()}
- *           onNextPage={() => table.nextPage()}
+ *         <PaginationRange
+ *           offset={table.state.pagination.pageIndex * table.state.pagination.pageSize}
+ *           pageSize={table.state.pagination.pageSize}
+ *           total={table.getRowCount()}
+ *           noun={{ singular: "payment", plural: "payments" }}
  *         />
+ *         <div className="flex items-center gap-2">
+ *           <CursorPagination.PageSizeSelect />
+ *           <CursorPagination.Buttons
+ *             hasPreviousPage={table.getCanPreviousPage()}
+ *             hasNextPage={table.getCanNextPage()}
+ *             onPreviousPage={() => table.previousPage()}
+ *             onNextPage={() => table.nextPage()}
+ *           />
+ *         </div>
  *       </CursorPagination.Root>
  *     </div>
  *   );

@@ -40,6 +40,20 @@ describe("splitTail", () => {
 		});
 	});
 
+	test("keeps a CRLF line break as one grapheme", () => {
+		// `\r\n` is ASCII but one grapheme, so a split by code unit lands inside it.
+		expect(splitTail("ab\r\n", { tail: 1 })).toEqual({
+			head: "ab",
+			lead: null,
+			tail: "\r\n",
+			tailGraphemes: 1,
+		});
+	});
+
+	test("keeps a letter with a combining mark as one grapheme", () => {
+		expect(splitTail("cafe\u0301", { tail: 1 }).tail).toBe("e\u0301");
+	});
+
 	test("throws when `count` is negative", () => {
 		expect(() => splitTail("ep_2abcd", { tail: -1 })).toThrow("non-negative integer");
 	});

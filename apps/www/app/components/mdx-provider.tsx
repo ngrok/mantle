@@ -74,7 +74,18 @@ const components = {
 	},
 	code: (props) => {
 		const { node: _node, className, ...rest } = props;
-		return <Code className={cx("whitespace-nowrap text-strong", className)} {...rest} />;
+		// Why break-word: in prose, a token wider than the line breaks, so a phone
+		// never scrolls the page sideways. Unlike `anywhere`, it keeps a table
+		// cell's minimum width, and a table cell keeps the code on one line.
+		return (
+			<Code
+				className={cx(
+					"wrap-break-word text-strong in-[td]:whitespace-nowrap in-[th]:whitespace-nowrap",
+					className,
+				)}
+				{...rest}
+			/>
+		);
 	},
 	hr: (props) => {
 		const { node: _node, className, ...rest } = props;

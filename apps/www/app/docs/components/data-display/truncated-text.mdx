@@ -169,7 +169,7 @@ import { TruncatedText } from "@ngrok/mantle/truncated-text";
 
 ## Style the head and the tail
 
-The head and the tail are two `<span>` elements, `data-slot="truncated-text-head"` and `data-slot="truncated-text-tail"`. Style each one from the root with a `*:data-[slot=…]:` class. CSS draws the ellipsis at the end of the head, so the ellipsis takes the head's color. To mute the type prefix of an ID and keep its tail at body color, pass `head` and color the head:
+The head and the tail are two `<span>` elements, `data-slot="truncated-text-head"` and `data-slot="truncated-text-tail"`. Style each one from the root with a `*:data-[slot=…]:` class. Change a segment's color, not its font: the component measures the whole value in the root's font, so set a font on the root. CSS draws the ellipsis at the end of the head, so the ellipsis takes the head's color. To mute the type prefix of an ID and keep its tail at body color, pass `head` and color the head:
 
 <Example>
 	<div className="w-full max-w-md">
@@ -223,9 +223,19 @@ The container decides the width. `TruncatedText` is an `inline-block` that grows
 
 When the container holds less than the tail and one cell, the ellipsis is all that remains of the head. The tail then clips at its start, so the end of the value is the last thing to go. A value no longer than `tail` has no head, so its tail draws the ellipsis itself. Give the value a line of its own: beside other inline text, an overflowing value wraps to the next line at the container's full width. The root sets `dir="ltr"`, because a URL, an ID, or a token reads left to right on an RTL page too. A `dir` prop wins.
 
-The component sets no font, but it turns ligatures off, so a `//` or `=>` clips between its two characters. In a monospace font the clipped head sits flush against the tail. In a proportional font the browser leaves a gap smaller than one glyph.
+The component sets no font, but it turns ligatures off, so a `//` or `=>` clips between its two characters. The ellipsis sits flush against the tail in any font, and it stays flush while the container resizes.
 
-Until the first measurement, the tail reserves one `ch` per grapheme, which is exact in a monospace font. In another font the first paint of an overflowing value can be off by the difference: a tail of wide glyphs (CJK, emoji) can poke past the container, and a value that fits by less than the over-reserve of narrow glyphs can clip. The layout effect after mount replaces the estimate with the measured width.
+The server render reserves one `ch` per grapheme for the tail, which is exact in a monospace font. In another font the server paint of an overflowing value can be off by the difference: a tail of wide glyphs (CJK, emoji) can poke past the container, and a value that fits by less than the over-reserve of narrow glyphs can clip. On the client, the measurement runs after the commit and before the browser paints.
+
+## Performance
+
+`TruncatedText` is built for tables with many rows:
+
+- Each instance renders once on mount. One batch measures every instance that mounted in the commit: it reads all of them first, then writes all of them, so the page lays out once for the batch and not once for each row.
+- The tooltip mounts on the first hover or keyboard focus while the value overflows. A table of values mounts no tooltip until a reader asks for one.
+- One `ResizeObserver` serves every instance, and a resize writes the DOM in the same frame. A resize renders no React component.
+
+A table still lays out each cell that it renders. Paginate a long table: see [Table](/components/data-display/table#pagination).
 
 <Example>
 	<div className="w-full max-w-md">
@@ -317,7 +327,7 @@ import { TruncatedText } from "@ngrok/mantle/truncated-text";
 
 A screen reader reads the whole value as one string. The two visible segments are `aria-hidden`, because Chromium puts a space between two inline-block boxes in an accessible name, and a visually hidden `<span>` holds the whole value instead. That copy carries `user-select: none`, so one click still copies the value once. A page-wide select-all copies it twice, like any visually hidden label. The ellipsis is a CSS effect, so nothing announces it.
 
-The tooltip opens on hover only while the value overflows. It needs a [`TooltipProvider`](/components/overlays/tooltip#tooltipprovider) ancestor, like every mantle tooltip, and throws without one. While the value overflows, the root is focusable, so Tab reaches it, a screen reader announces the whole value, and the tooltip opens. A value that fits isn't a tab stop. A `tabIndex` prop wins in both states.
+The tooltip opens on hover only while the value overflows. It needs a [`TooltipProvider`](/components/overlays/tooltip#tooltipprovider) ancestor, like every mantle tooltip. Without one, it throws when the tooltip first mounts. While the value overflows, the root is focusable, so Tab reaches it, a screen reader announces the whole value, and the tooltip opens. A value that fits isn't a tab stop. A `tabIndex` prop wins in both states.
 
 Inside a control (a `<button>`, an `<a href>`, a radio, a menu item, a tab) the root takes no tab stop and opens no tooltip, because a control cannot hold a second one. The segments still clip, `data-truncated` still lands, and the hidden copy gives the control's accessible name the whole value. Wrap the control in [`Tooltip`](/components/overlays/tooltip) when a sighted reader needs the full value. The server render and the first client render assume no control, like they assume no overflow; each commit after that reads the DOM again.
 
@@ -343,11 +353,11 @@ All props from [span](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/
 
 #### Data attributes
 
-| Data Attribute   | Value                                              | Description                                                                          |
-| ---------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `data-slot`      | `"truncated-text"`                                 | On the root, and joined onto the child via `asChild`.                                |
-| `data-slot`      | `"truncated-text-head"`                            | On the `<span>` that clips. Holds everything before the tail.                        |
-| `data-slot`      | `"truncated-text-tail"`                            | On the `<span>` that stays visible. Holds the last `tail` graphemes.                 |
-| `data-slot`      | `"truncated-text-value"`                           | On the visually hidden `<span>` that holds the whole value for assistive technology. |
-| `data-truncated` | present while the value overflows                  | Presence-only. Style with `data-truncated:`. Absent on the server render.            |
-| `data-state`     | `"closed"` \| `"delayed-open"` \| `"instant-open"` | The tooltip state Radix stamps on the root. Absent inside a control.                 |
+| Data Attribute   | Value                                              | Description                                                                                  |
+| ---------------- | -------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `data-slot`      | `"truncated-text"`                                 | On the root, and joined onto the child via `asChild`.                                        |
+| `data-slot`      | `"truncated-text-head"`                            | On the `<span>` that clips. Holds everything before the tail.                                |
+| `data-slot`      | `"truncated-text-tail"`                            | On the `<span>` that stays visible. Holds the last `tail` graphemes.                         |
+| `data-slot`      | `"truncated-text-value"`                           | On the visually hidden `<span>` that holds the whole value for assistive technology.         |
+| `data-truncated` | present while the value overflows                  | Presence-only. Style with `data-truncated:`. Absent on the server render.                    |
+| `data-state`     | `"closed"` \| `"delayed-open"` \| `"instant-open"` | The tooltip state on the root. `"closed"` until the tooltip mounts. Absent inside a control. |
