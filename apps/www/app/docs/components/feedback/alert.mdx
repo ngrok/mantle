@@ -119,8 +119,8 @@ Alert.Root
 ├── Alert.Content
     ├── Alert.Title
     ├── Alert.Description
-    ├── Alert.DismissIconButton
-    └── Alert.ExpandButton
+    ├── Alert.ExpandButton
+    └── Alert.DismissIconButton
 ```
 
 ## Polymorphism
@@ -320,7 +320,7 @@ export function TrialAlert() {
 
 ## Expand button
 
-Use `Alert.ExpandButton` for a compact control that reveals related alerts. It sits in the same trailing position as the dismiss button and reserves space for the count and caret, so alert copy remains contained on narrow viewports. It shows `+N` on mobile and `+N more` from the `md` (tablet) breakpoint.
+Use `Alert.ExpandButton` for a compact control that reveals related alerts. It sits at the trailing edge, to the left of the dismiss button when both are present, and reserves space for the count and caret, so alert copy remains contained on narrow viewports. It shows `+N` on mobile and `+N more` from the `md` (tablet) breakpoint.
 
 <Example>
 	<Alert.Root intent="warning">
@@ -349,15 +349,15 @@ const toggle = () => {};
 
 ## Dismiss and expand
 
-`Alert.DismissIconButton` and `Alert.ExpandButton` compose safely in the same alert. Both stay absolutely positioned at the trailing edge; when both are present, the dismiss button moves to the left of the expander and `Alert.Content` reserves room for the pair. This also handles an alert that first renders dismissable and later gains an expander as more alerts arrive.
+`Alert.DismissIconButton` and `Alert.ExpandButton` compose safely in the same alert. Both stay absolutely positioned at the trailing edge. When both are present, the dismiss button stays rightmost, the expander moves to its left, and `Alert.Content` reserves room for the pair. Put `Alert.ExpandButton` before `Alert.DismissIconButton` in your markup so the Tab order matches the visual order. This also handles an alert that first renders dismissable and later gains an expander as more alerts arrive.
 
 <Example>
 	<Alert.Root intent="warning">
 		<Alert.Icon />
 		<Alert.Content>
 			<Alert.Title>Your workspace is approaching its monthly usage limit</Alert.Title>
-			<Alert.DismissIconButton />
 			<Alert.ExpandButton count={2} expanded={false} />
+			<Alert.DismissIconButton />
 		</Alert.Content>
 	</Alert.Root>
 </Example>
@@ -373,8 +373,8 @@ const toggle = () => {};
 	<Alert.Icon />
 	<Alert.Content>
 		<Alert.Title>Your workspace is approaching its monthly usage limit</Alert.Title>
-		<Alert.DismissIconButton onClick={dismiss} />
 		<Alert.ExpandButton count={2} expanded={isExpanded} onClick={toggle} />
+		<Alert.DismissIconButton onClick={dismiss} />
 	</Alert.Content>
 </Alert.Root>;
 ```
@@ -401,8 +401,8 @@ const toggle = () => {};
 		<Alert.Icon />
 		<Alert.Content>
 			<Alert.Title>Usage limit approaching</Alert.Title>
-			<Alert.DismissIconButton />
 			<Alert.ExpandButton count={2} expanded={false} />
+			<Alert.DismissIconButton />
 		</Alert.Content>
 	</Alert.Root>
 </Example>
@@ -422,8 +422,8 @@ import { Alert } from "@ngrok/mantle/alert";
 	<Alert.Icon />
 	<Alert.Content>
 		<Alert.Title>Usage limit approaching</Alert.Title>
-		<Alert.DismissIconButton />
 		<Alert.ExpandButton count={2} expanded={false} />
+		<Alert.DismissIconButton />
 	</Alert.Content>
 </Alert.Root>;
 ```

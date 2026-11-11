@@ -486,19 +486,13 @@ describe("Alert", () => {
 				</Alert.Root>,
 			);
 			// Why the markers: `Root` reserves room with `has-data-alert-dismiss:` and
-			// `has-data-alert-expand:` selectors, so a renamed marker loses the layout
+			// `has-data-alert-expand:` selectors, and it seats the expand control left
+			// of dismiss through both markers, so a renamed marker loses the layout
 			// with every other test green.
 			const dismiss = container.querySelector('[data-slot~="alert-dismiss-icon-button"]');
 			const expand = container.querySelector('[data-slot~="alert-expand-button"]');
 			expect(dismiss).toHaveAttribute("data-alert-dismiss");
 			expect(expand).toHaveAttribute("data-alert-expand");
-			// Cross-file spelling pin: `Root` positions the dismiss control through a
-			// `~=` slot selector, and the control's slot is a joined chain that an
-			// exact `=` match never hits.
-			expect(dismiss).toHaveAttribute("data-slot", "alert-dismiss-icon-button icon-button");
-			expect(container.firstElementChild).toHaveClass(
-				"has-data-alert-expand:**:data-[slot~=alert-dismiss-icon-button]:right-16",
-			);
 		});
 	});
 
