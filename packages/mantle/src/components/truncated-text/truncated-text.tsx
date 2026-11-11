@@ -92,19 +92,89 @@ type Measurement = {
 };
 
 /**
- * The width of an element's text in CSS pixels, including the part an overflow
- * clip hides.
+ * A range's width in client pixels, rounded to 1/64 px.
+ *
+ * Why round: Firefox reads a text range's width from its position on the page,
+ * so the same text reads up to 1e-5 px apart after it moves. An exact compare
+ * takes that noise for a new width, and a clipped tail then writes its style in
+ * every frame while the page is idle.
  */
-function textWidth(element: HTMLElement): number {
-	const range = document.createRange();
-	range.selectNodeContents(element);
-	return range.getBoundingClientRect().width;
+function rangeWidth(range: Range): number {
+	return Math.round(range.getBoundingClientRect().width * 64) / 64;
 }
 
 /**
- * The width of an element's content box in CSS pixels.
+ * The one range that every width read reuses.
+ *
+ * Why one range: until garbage collection, a browser updates each range that a
+ * script creates on every text write and node removal. A batch over a large
+ * table reads thousands of widths, and the next page of the table then writes
+ * new text into every row.
  */
-function contentWidth(element: HTMLElement): number {
+let measureRange: Range | undefined;
+
+/**
+ * Moves the shared range over the whole content of `node`, and returns it.
+ *
+ * Why never `setStart`: it compares the new start with the end that the last
+ * read left. When that end is in another row, the compare walks the tree.
+ */
+function rangeOver(node: Node): Range {
+	measureRange ??= document.createRange();
+	measureRange.selectNodeContents(node);
+	return measureRange;
+}
+
+/**
+ * Moves the shared range to the document node. A batch calls it after its reads.
+ *
+ * Why: a range keeps the nodes it holds alive. A node can leave the page with
+ * no node removal to move the range off it, such as a node in a frame that closes.
+ */
+function releaseRange() {
+	measureRange?.selectNodeContents(document);
+}
+
+/**
+ * The width of an element's text in client pixels, including the part an
+ * overflow clip hides.
+ */
+function textWidth(element: HTMLElement): number {
+	return rangeWidth(rangeOver(element));
+}
+
+/** An element's content box, as one batch reads it. */
+type ContentBox = {
+	/** The content width in CSS pixels. */
+	width: number;
+	/**
+	 * How many client pixels one CSS pixel of the element spans. A client pixel
+	 * is the unit of a client rect, which includes the scale of a transformed
+	 * ancestor, such as the zoom a dialog or a popover opens with.
+	 *
+	 * Why: a transform resizes no box, so no observer entry measures again when
+	 * a zoom ends. The widths a batch writes must not depend on the scale.
+	 */
+	scale: number;
+};
+
+/**
+ * The scale of an element, from the ratio of its client width to its CSS
+ * width. Returns 1 for a ratio that is not a positive number, as for a root
+ * with `display: none`. A rotation or a skew is out of scope: it changes a
+ * rect's width by more than the scale.
+ *
+ * Why 1 within 1e-4: Chromium and Firefox round a computed width to six
+ * significant digits, so an unscaled root reads a scale of exactly 1.
+ */
+function toScale(ratio: number): number {
+	return ratio > 0 && Number.isFinite(ratio) && Math.abs(ratio - 1) > 1e-4 ? ratio : 1;
+}
+
+/**
+ * Reads the content box of an element.
+ */
+function contentBox(element: HTMLElement): ContentBox {
 	const style = getComputedStyle(element);
 	const inset = [
 		style.paddingLeft,
@@ -112,7 +182,13 @@ function contentWidth(element: HTMLElement): number {
 		style.borderLeftWidth,
 		style.borderRightWidth,
 	].reduce((sum, length) => sum + (Number.parseFloat(length) || 0), 0);
-	return element.getBoundingClientRect().width - inset;
+	const client = element.getBoundingClientRect().width;
+	// Why the inset only under `content-box`: there the computed width excludes
+	// it. With no inset the two boxes match, so `box-sizing` needs no read.
+	const borderBox =
+		Number.parseFloat(style.width) + (inset > 0 && style.boxSizing === "content-box" ? inset : 0);
+	const scale = toScale(client / borderBox);
+	return { width: client / scale - inset, scale };
 }
 
 /**
@@ -140,7 +216,7 @@ type MeasureTarget = {
 	written: Measurement | null;
 	/**
 	 * What the last batch read about the font. Valid while the tail's text
-	 * keeps `tailWidth`: a new font or a new value changes that width.
+	 * keeps `tailWidth`: a new font, a new value, or a new scale changes that width.
 	 */
 	font: { tailWidth: number; ellipsisWidth: number; monospace: boolean } | null;
 	/** How many code units of the head the last fit kept. A search starts there. */
@@ -155,18 +231,23 @@ type MeasureTarget = {
  *
  * Compares the natural widths of the two segments against the root's content
  * box, not against the head's clipped box. Once the whole value fits, a head
- * that the `ch` rounding shortened still reads as fitting. `available` is the
- * root's content width when the caller already has it.
+ * that the `ch` rounding shortened still reads as fitting. `box` is the
+ * root's content box when the caller already has it.
+ *
+ * Why client pixels: each range reads them, so the measure compares in client
+ * pixels and returns CSS pixels.
  */
-function measure(target: MeasureTarget, available = contentWidth(target.root)): Measurement {
+function measure(target: MeasureTarget, box = contentBox(target.root)): Measurement {
 	const { ellipsis, leadLength } = target;
+	const { scale } = box;
+	const available = box.width * scale;
 	const reading = readText(target);
 	const { headWidth, headLength, tailWidth, text } = reading;
-	// Why half a pixel: the root's shrink-to-fit width and the text widths come
-	// from one layout, but the engines round them at different steps.
-	const truncated = headWidth + tailWidth > available + 0.5;
+	// Why half a CSS pixel: the root's shrink-to-fit width and the text widths
+	// come from one layout, but the engines round them at different steps.
+	const truncated = headWidth + tailWidth > available + 0.5 * scale;
 	if (text == null) {
-		return { headCap: null, headFit: null, tailWidth, truncated };
+		return { headCap: null, headFit: null, tailWidth: tailWidth / scale, truncated };
 	}
 	if (target.font?.tailWidth !== tailWidth) {
 		const ellipsisWidth = textWidth(ellipsis);
@@ -185,21 +266,24 @@ function measure(target: MeasureTarget, available = contentWidth(target.root)): 
 			hint: target.fitLength,
 		});
 		target.fitLength = fit.length;
-		headFit = fit.width + ellipsisWidth;
+		headFit = (fit.width + ellipsisWidth) / scale;
 	}
 	if (leadLength == null) {
-		return { headCap: null, headFit, tailWidth, truncated };
+		return { headCap: null, headFit, tailWidth: tailWidth / scale, truncated };
 	}
 	// Why cells in a monospace font: WebKit snaps a range over part of a node to
 	// whole pixels, and the CSS would round that up to one more cell.
 	const lead = Math.min(leadLength, headLength);
 	const leadWidth = monospace ? lead * ellipsisWidth : prefixWidth(text, lead);
 	// Why the min: a head barely longer than its lead shows whole, with no gap.
-	const headCap = Math.min(leadWidth + ellipsisWidth, headWidth);
-	return { headCap, headFit, tailWidth, truncated };
+	const headCap = Math.min(leadWidth + ellipsisWidth, headWidth) / scale;
+	return { headCap, headFit, tailWidth: tailWidth / scale, truncated };
 }
 
-/** The natural widths of the two segments, and a text node to read head prefixes from. */
+/**
+ * The natural widths of the two segments in client pixels, and a text node to
+ * read head prefixes from.
+ */
 type TextReading = {
 	headWidth: number;
 	/** How many UTF-16 code units the head holds. */
@@ -215,6 +299,16 @@ type TextReading = {
 };
 
 /**
+ * Whether a node is a text node.
+ *
+ * Why `nodeType`: a text node in another window's document, such as a
+ * same-origin frame that React renders into, is no instance of this window's `Text`.
+ */
+function isText(node: Node | null): node is Text {
+	return node?.nodeType === Node.TEXT_NODE;
+}
+
+/**
  * Reads the natural widths of the head and the tail.
  *
  * Why the hidden copy: WebKit clips a range's geometry at a `text-overflow`
@@ -226,17 +320,17 @@ type TextReading = {
  */
 function readText({ copy, head, tail }: MeasureTarget): TextReading {
 	const headText = head.firstChild;
-	const headLength = headText instanceof Text ? headText.length : 0;
+	const headLength = isText(headText) ? headText.length : 0;
 	const tailLength = tail.textContent?.length ?? 0;
 	const copyText = copy.firstChild;
-	if (!(copyText instanceof Text) || copyText.length !== headLength + tailLength) {
+	if (!isText(copyText) || copyText.length !== headLength + tailLength) {
 		const headWidth = textWidth(head);
 		return {
 			headWidth,
 			headLength,
 			tailWidth: textWidth(tail),
 			tailLength,
-			text: headText instanceof Text ? headText : null,
+			text: isText(headText) ? headText : null,
 		};
 	}
 	const total = textWidth(copy);
@@ -252,7 +346,7 @@ function readText({ copy, head, tail }: MeasureTarget): TextReading {
  * Why: in a monospace font, whole `ch` cells in CSS already keep the ellipsis
  * flush, and a resize then needs no search. A wrong `false` costs only speed.
  * Why only whole-node widths: WebKit snaps a range over part of a node to
- * whole pixels. Why 1/32 px: a range snaps each width to a 1/64 px layout unit.
+ * whole pixels. Why 1/32 px: `rangeWidth` rounds each width to 1/64 px.
  */
 function isMonospace({
 	headLength,
@@ -268,17 +362,16 @@ function isMonospace({
 	return means.every((width) => Math.abs(width - ellipsisWidth) < 1 / 32);
 }
 
-/** The width of the first `end` code units of a text node, in CSS pixels. */
+/** The width of the first `end` code units of a text node, in client pixels. */
 function prefixWidth(text: Text, end: number): number {
-	const range = document.createRange();
-	range.setStart(text, 0);
+	const range = rangeOver(text);
 	range.setEnd(text, end);
-	return range.getBoundingClientRect().width;
+	return rangeWidth(range);
 }
 
 /**
  * The longest prefix of a text node, at most `length` code units, that is no
- * wider than `limit` CSS pixels: its length in code units and its width.
+ * wider than `limit` client pixels: its length in code units and its width.
  *
  * Why the hint: a resize moves the fit by a glyph or two, so the search first
  * tries the last fit and its neighbor, and reads two widths in the usual case.
@@ -318,6 +411,12 @@ function fitPrefix(
 }
 
 /**
+ * The roots whose tab stop the batch set. React never writes that attribute,
+ * so `bindRoot` removes it when the new target does not own the tab stop.
+ */
+const tabStops = new WeakSet<HTMLElement>();
+
+/**
  * Sets or removes the root's tab stop. A value that fits hides nothing, so it
  * takes no tab stop. A clipped one needs focus, because the tooltip opens on it.
  */
@@ -327,8 +426,10 @@ function writeTabStop(target: MeasureTarget) {
 	}
 	if (target.written?.truncated === true) {
 		target.root.tabIndex = 0;
+		tabStops.add(target.root);
 	} else {
 		target.root.removeAttribute("tabindex");
+		tabStops.delete(target.root);
 	}
 }
 
@@ -339,15 +440,20 @@ function writeTabStop(target: MeasureTarget) {
 type WriteResult = "deferred" | "resized" | "written";
 
 /**
- * Writes the widths to the root's style, the flag to `data-truncated`, and the
- * tab stop. Writes nothing when `deferWidths` is set and a width changed.
+ * Writes the widths to the styles of the head and the tail, the flag to the
+ * root's `data-truncated`, and the tab stop. Writes nothing when `deferWidths`
+ * is set and a width changed.
+ *
+ * Why the segments and not the root: a custom property inherits, so a write on
+ * the root restyles every element under it. A write on the segment that reads
+ * it restyles only that segment.
  */
 function write(
 	target: MeasureTarget,
 	next: Measurement,
 	{ deferWidths = false } = {},
 ): WriteResult {
-	const { root, written } = target;
+	const { root, head, tail, written } = target;
 	const widthsChanged =
 		written == null || written.tailWidth !== next.tailWidth || written.headCap !== next.headCap;
 	// Why defer: a new width can resize the root, and a resize of an observed
@@ -356,18 +462,20 @@ function write(
 		return "deferred";
 	}
 	if (widthsChanged) {
-		root.style.setProperty("--_tail-width", `${next.tailWidth}px`);
+		const reserve = `${next.tailWidth}px`;
+		head.style.setProperty("--_tail-width", reserve);
+		tail.style.setProperty("--_tail-width", reserve);
 		if (next.headCap != null) {
-			root.style.setProperty("--_head-cap", `${next.headCap}px`);
+			head.style.setProperty("--_head-cap", `${next.headCap}px`);
 		}
 	}
 	// Why no deferral: the fit caps the head inside a percentage `max-width`,
 	// which the root's shrink-to-fit width ignores, so the root keeps its size.
 	if (written?.headFit !== next.headFit) {
 		if (next.headFit == null) {
-			root.style.removeProperty("--_head-fit");
+			head.style.removeProperty("--_head-fit");
 		} else {
-			root.style.setProperty("--_head-fit", `${next.headFit}px`);
+			head.style.setProperty("--_head-fit", `${next.headFit}px`);
 		}
 	}
 	if (written?.truncated !== next.truncated) {
@@ -392,18 +500,19 @@ function measureAll(
 	{
 		deferWidths = false,
 		settle = true,
-		contentWidths,
+		contentBoxes,
 	}: {
 		deferWidths?: boolean;
 		settle?: boolean;
-		/** Root content widths that an observer entry already holds. */
-		contentWidths?: Map<MeasureTarget, number>;
+		/** Root content boxes that an observer entry already holds. */
+		contentBoxes?: Map<MeasureTarget, ContentBox>;
 	} = {},
 ) {
 	const results = Array.from(
 		targets,
-		(target) => [target, measure(target, contentWidths?.get(target))] as const,
+		(target) => [target, measure(target, contentBoxes?.get(target))] as const,
 	);
+	releaseRange();
 	const deferred: MeasureTarget[] = [];
 	const resized: MeasureTarget[] = [];
 	for (const [target, next] of results) {
@@ -468,18 +577,25 @@ function observe(target: MeasureTarget) {
 	resizeObserver ??= new ResizeObserver((entries) => {
 		const targets = new Set<MeasureTarget>();
 		// Why: the entry holds the root's content box, so the batch skips a style read.
-		const contentWidths = new Map<MeasureTarget, number>();
+		const contentBoxes = new Map<MeasureTarget, ContentBox>();
 		for (const entry of entries) {
 			const owner = observedTargets.get(entry.target);
 			if (owner == null) {
 				continue;
 			}
 			targets.add(owner);
-			if (entry.target === owner.root) {
-				contentWidths.set(owner, entry.contentRect.width);
+			// Why the optional chain: without `borderBoxSize`, the batch reads the root's style.
+			const borderBox = entry.borderBoxSize?.[0]?.inlineSize;
+			if (entry.target === owner.root && borderBox != null) {
+				// Why the rect: the entry holds CSS pixels, and the scale needs client
+				// pixels too. The callback runs after layout, so the read lays out nothing.
+				contentBoxes.set(owner, {
+					width: entry.contentRect.width,
+					scale: toScale(owner.root.getBoundingClientRect().width / borderBox),
+				});
 			}
 		}
-		measureAll(targets, { deferWidths: true, contentWidths });
+		measureAll(targets, { deferWidths: true, contentBoxes });
 	});
 	observedTargets.set(target.root, target);
 	observedTargets.set(target.tail, target);
@@ -840,7 +956,10 @@ const TruncatedText = ({
 	const [armed, setArmed] = useState(false);
 	const [open, setOpen] = useState(false);
 	const [insideControl, setInsideControl] = useState(false);
-	const ownsTabStop = tabIndex == null && !insideControl;
+	// Why a boolean: `bindRoot` reads it, and a change from one `tabIndex`
+	// number to another must bind no new target.
+	const hasTabIndex = tabIndex != null;
+	const ownsTabStop = !hasTabIndex && !insideControl;
 
 	// Why a ref callback and not an effect: an `asChild` child of a new type
 	// remounts the root, and the observer must bind to the new node. A state
@@ -860,6 +979,11 @@ const TruncatedText = ({
 			copyElement == null
 		) {
 			return;
+		}
+		// Why: React never wrote the tab stop that the batch set, so it never
+		// removes it. A consumer's `tabIndex` replaced it in this commit instead.
+		if (!ownsTabStop && tabStops.delete(node) && !hasTabIndex) {
+			node.removeAttribute("tabindex");
 		}
 		const target: MeasureTarget = {
 			root: node,
@@ -900,9 +1024,10 @@ const TruncatedText = ({
 		}
 	});
 
-	// Why `written = null`: the style prop writes the `ch` estimate again when
-	// the value changes, so the batch must write the measured widths back. The
-	// font check and the fit hint belong to the old text, so they reset too.
+	// Why `written = null`: the widths on the head and the tail belong to the
+	// old text, and they shadow the root's `ch` estimate, so the batch writes
+	// each width again. The font check and the fit hint belong to the old text,
+	// so they reset too.
 	useIsomorphicLayoutEffect(() => {
 		const target = targetRef.current;
 		if (target != null) {
@@ -915,7 +1040,8 @@ const TruncatedText = ({
 
 	// Why `ch`: the server has no measurement, and in a monospace font one
 	// grapheme is one `ch`, so the first paint already reserves the tail. The
-	// batch after mount writes the measured widths over these.
+	// head and the tail inherit these until the batch after mount writes the
+	// measured widths on them.
 	const tailReserve = `${tailGraphemes}ch`;
 	// Why `head + 1`: the ellipsis takes one more cell after the lead.
 	const headCap = `${(head ?? 0) + 1}ch`;

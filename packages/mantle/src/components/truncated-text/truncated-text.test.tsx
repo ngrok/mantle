@@ -381,11 +381,58 @@ describe("TruncatedText", () => {
 			expect(root).toHaveAttribute("data-state", "closed");
 		});
 
+		test("drops its tab stop and tooltip when the element above it becomes a control", async () => {
+			const user = userEvent.setup();
+			stubGeometry(overflows);
+			function Link() {
+				const [href, setHref] = useState<string | undefined>(undefined);
+				return (
+					<TooltipProvider>
+						<a href={href}>
+							<TruncatedText data-testid="value" value={url} />
+						</a>
+						<button type="button" onClick={() => setHref("/endpoints")}>
+							Link
+						</button>
+					</TooltipProvider>
+				);
+			}
+			render(<Link />);
+			await measured();
+			expect(screen.getByTestId("value")).toHaveAttribute("tabindex", "0");
+
+			await user.click(screen.getByRole("button", { name: "Link" }));
+			await measured();
+
+			const root = screen.getByTestId("value");
+			expect(root).not.toHaveAttribute("tabindex");
+			expect(root).not.toHaveAttribute("data-state");
+		});
+
 		test("lets a consumer's tabIndex win", async () => {
 			stubGeometry(overflows);
 			renderValue({ tabIndex: -1 });
 			await measured();
 			expect(screen.getByTestId("value")).toHaveAttribute("tabindex", "-1");
+		});
+
+		test("lets a consumer's tabIndex win when it arrives after the root took a tab stop", async () => {
+			stubGeometry(overflows);
+			const { rerender } = renderValue();
+			await measured();
+			const root = screen.getByTestId("value");
+			expect(root).toHaveAttribute("tabindex", "0");
+
+			// Why 0: the consumer's value equals the batch's, so only the prop tells
+			// them apart.
+			rerender(
+				<TooltipProvider>
+					<TruncatedText data-testid="value" tabIndex={0} value={url} />
+				</TooltipProvider>,
+			);
+			await measured();
+
+			expect(root).toHaveAttribute("tabindex", "0");
 		});
 
 		test("treats an overflow past half a pixel as truncated", async () => {
