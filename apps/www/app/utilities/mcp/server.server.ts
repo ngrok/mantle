@@ -45,7 +45,8 @@ export const MCP_INSTRUCTIONS = [
 	"Call `check` on each file you change. Import each part from its own subpath, such as @ngrok/mantle/button.",
 	"When the user has no repo to run the code in, call `preview` and give them the link.",
 	"When mantle has no part for a need and you build a workaround, call `report_gap` once for that need.",
-	"Pass `intent`, `workspace`, and `ticket` on each call, so the mantle team learns what agents build and where.",
+	"Pass `intent` and `workspace` on each call, so the mantle team learns what agents build and where.",
+	"When you know the Linear issue of the work, such as FEP-1867, pass it as `ticket` on each call, and always on `report_gap`.",
 ].join("\n");
 
 /** What the server reads; tests pass fakes. */
@@ -227,7 +228,7 @@ const ticketArgument = z
 	.string()
 	.optional()
 	.describe(
-		'The Linear issue key of the work, such as "FEP-1867". Read it from the branch name, the commit messages, or the task. Send the key only, never the title or a URL. Omit it when no issue is known.',
+		'The Linear issue key of the work, such as "FEP-1867". When the user named an issue in the conversation, or one is in the branch name, a commit, or the task, send it on each call. Send the key only, never the title or a URL. Omit it when you do not know it, and do not ask the user only for this.',
 	);
 
 const readOnly = { readOnlyHint: true, idempotentHint: true, openWorldHint: false } as const;
@@ -356,7 +357,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 	/**
 	 * Runs a tool body behind the kill switch, maps a version error to a tool
 	 * error, and logs the call with the scrubbed `intent`, `workspace`, and
-	 * `ticket`. The body never sees them. Any other error is logged, then
+	 * `ticket`. The body sees only the logged ticket. Any other error is logged, then
 	 * thrown to the handler.
 	 */
 	const run =
@@ -364,10 +365,12 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 			tool: string,
 			body: (
 				args: Omit<Args, "intent" | "workspace" | "ticket">,
+				call: { ticket?: string },
 			) => Promise<{ result: CallToolResult } & ToolCallFacts>,
 		) =>
 		async ({ intent, workspace, ticket, ...args }: Args): Promise<CallToolResult> => {
 			const started = performance.now();
+			const issue = source == null || ticket == null ? undefined : ticketKey(ticket);
 			const finish = (
 				outcome: ToolCallOutcome,
 				result: CallToolResult,
@@ -385,7 +388,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 					source,
 					intent: intent == null ? undefined : scrubIntent(intent),
 					workspace: workspace == null ? undefined : workspaceSlug(workspace),
-					ticket: source == null || ticket == null ? undefined : ticketKey(ticket),
+					ticket: issue,
 					...facts,
 				});
 				return result;
@@ -397,7 +400,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 				);
 			}
 			try {
-				const { result, errorKind, ...facts } = await body(args);
+				const { result, errorKind, ...facts } = await body(args, { ticket: issue });
 				const outcome: ToolCallOutcome =
 					result.isError === true
 						? { outcome: "error", errorKind: errorKind ?? "internal" }
@@ -719,7 +722,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 		{
 			title: "Report a mantle gap",
 			description:
-				'Tells the mantle team that mantle lacks something you needed, so they can add it. Call it once for each need, after `find` and `get` found no fit. Name the need in generic words, such as "stepper" or "date range picker". The server keeps only those words and the enums. Never send code, file paths, product names, or customer data.',
+				'Tells the mantle team that mantle lacks something you needed, so they can add it. Call it once for each need, after `find` and `get` found no fit. Name the need in generic words, such as "stepper" or "date range picker". The server keeps only those words and the enums. Never send code, file paths, product names, or customer data. When you know the Linear issue of the work (the user named it, or it is in the branch name), pass it as `ticket`: the mantle team uses it to find the work that needs the part.',
 			inputSchema: logInvalid(
 				"report_gap",
 				z.object({
@@ -748,7 +751,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 				openWorldHint: true,
 			},
 		},
-		run("report_gap", async ({ need, kind, workaround, closestPart, version }) => {
+		run("report_gap", async ({ need, kind, workaround, closestPart, version }, call) => {
 			const tokens = gapTokens(need);
 			if (tokens.length === 0) {
 				return failure(
@@ -759,9 +762,14 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 			const data = await dependencies.loader.load(version);
 			const closest =
 				closestPart == null ? undefined : recordNamed(recordsOf(data), closestPart)?.name;
+			// Why only with a source: the ask is for ngrok repos, which track work in Linear.
+			const ask =
+				source != null && call.ticket == null
+					? " If you know the Linear issue of this work, pass it as `ticket` on your next mantle calls."
+					: "";
 			return {
 				result: text(
-					`Reported: ${tokens.join(" ")}. Thank you. Do not report this need again in this task.`,
+					`Reported: ${tokens.join(" ")}. Thank you. Do not report this need again in this task.${ask}`,
 				),
 				dataVersion: data.version,
 				gap: { source: "report_gap", tokens, kind, workaround, closestPart: closest },

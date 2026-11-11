@@ -171,6 +171,21 @@ describe("the mantle MCP server", () => {
 		);
 	});
 
+	it("asks a gap report from an ngrok repo for its Linear issue when it has none", async () => {
+		const gap = { need: "stepper", kind: "component", workaround: "built-custom" };
+
+		const withoutTicket = await callToolFromFrontend(dependencies(), "report_gap", gap);
+		const withTicket = await callToolFromFrontend(dependencies(), "report_gap", {
+			...gap,
+			ticket: "FEP-1867",
+		});
+		const withoutSource = await callTool(dependencies(), "report_gap", gap);
+
+		expect(withoutTicket.text).toContain("pass it as `ticket` on your next mantle calls.");
+		expect(withTicket.text).not.toContain("`ticket`");
+		expect(withoutSource.text).not.toContain("`ticket`");
+	});
+
 	it("keeps the instructions under 1 KB", () => {
 		expect(new TextEncoder().encode(MCP_INSTRUCTIONS).length).toBeLessThan(1024);
 	});
