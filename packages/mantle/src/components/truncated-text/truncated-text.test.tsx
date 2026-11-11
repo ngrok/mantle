@@ -50,6 +50,45 @@ function stubGeometry(geometry: Geometry) {
 }
 
 /**
+ * Reports a monospace layout: each code unit of text is `font.glyph` pixels
+ * wide, and the root's content box is `root` pixels wide. A test changes
+ * `font.glyph` to change the font.
+ */
+function stubGlyphs(font: { glyph: number }, root: number) {
+	vi.spyOn(Range.prototype, "getBoundingClientRect").mockImplementation(function (this: Range) {
+		const units =
+			this.startContainer.nodeType === Node.TEXT_NODE
+				? this.endOffset - this.startOffset
+				: (this.startContainer.textContent?.length ?? 0);
+		return new DOMRect(0, 0, units * font.glyph, 16);
+	});
+	vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (
+		this: HTMLElement,
+	) {
+		return new DOMRect(0, 0, this.matches('[data-slot~="truncated-text"]') ? root : 0, 16);
+	});
+}
+
+/** Waits for the next animation frame, where the batch runs a deferred measurement. */
+async function nextFrame(): Promise<void> {
+	await act(async () => {
+		await new Promise<void>((resolve) => {
+			requestAnimationFrame(() => {
+				resolve();
+			});
+		});
+	});
+}
+
+/** The width the batch wrote for the head's lead and ellipsis. */
+function headCap(): string {
+	const head = screen
+		.getByTestId("value")
+		.querySelector<HTMLElement>('[data-slot="truncated-text-head"]');
+	return head?.style.getPropertyValue("--_head-cap") ?? "";
+}
+
+/**
  * Every observer the component creates. Kept across tests, because the
  * component creates one observer for all instances and keeps it.
  */
@@ -433,6 +472,137 @@ describe("TruncatedText", () => {
 			await measured();
 
 			expect(root).toHaveAttribute("tabindex", "0");
+		});
+
+		test("lets an asChild child's tabIndex win", async () => {
+			stubGeometry(overflows);
+			render(
+				<TooltipProvider>
+					<TruncatedText asChild data-testid="value" value={url}>
+						<code tabIndex={-1} />
+					</TruncatedText>
+				</TooltipProvider>,
+			);
+			await measured();
+
+			expect(screen.getByTestId("value")).toHaveAttribute("tabindex", "-1");
+		});
+
+		test("opens the tooltip on keyboard focus after a canceled press", async () => {
+			const user = userEvent.setup();
+			stubGeometry(overflows);
+			render(
+				<TooltipProvider>
+					<button type="button">Before</button>
+					<TruncatedText data-testid="value" value={url} />
+				</TooltipProvider>,
+			);
+			await measured();
+
+			// Why cancel: a touch that becomes a scroll ends with no `pointerup`.
+			fireEvent.pointerDown(screen.getByTestId("value"), { pointerType: "touch" });
+			fireEvent.pointerCancel(document, { pointerType: "touch" });
+			await user.tab();
+			await user.tab();
+
+			expect(await screen.findByRole("tooltip")).toHaveTextContent(url);
+		});
+
+		test("opens no tooltip when the pointer leaves before the tooltip mounts", async () => {
+			stubGeometry(overflows);
+			render(
+				<TooltipProvider delayDuration={0}>
+					<TruncatedText data-testid="value" value={url} />
+				</TooltipProvider>,
+			);
+			await measured();
+			const root = screen.getByTestId("value");
+			// Why fake timers: with no delay, Radix still opens in a timeout.
+			vi.useFakeTimers({ toFake: ["setTimeout"] });
+			try {
+				// Why one act: the tooltip mounts in the commit after both events.
+				act(() => {
+					fireEvent.pointerMove(root, { pointerType: "mouse" });
+					fireEvent.pointerOut(root, { pointerType: "mouse", relatedTarget: document.body });
+				});
+				await measured();
+				act(() => {
+					vi.runOnlyPendingTimers();
+				});
+
+				expect(screen.queryByRole("tooltip")).toBeNull();
+			} finally {
+				vi.useRealTimers();
+			}
+		});
+
+		test("opens the tooltip on the first keyboard focus inside a shadow root", async () => {
+			const user = userEvent.setup();
+			stubGeometry(overflows);
+			const host = document.createElement("div");
+			document.body.append(host);
+			const container = document.createElement("div");
+			host.attachShadow({ mode: "open" }).append(container);
+			try {
+				render(
+					<TooltipProvider>
+						<TruncatedText data-testid="value" value={url} />
+					</TooltipProvider>,
+					{ container },
+				);
+				await measured();
+				const root = container.querySelector<HTMLElement>('[data-testid="value"]');
+
+				act(() => {
+					root?.focus();
+				});
+				await measured();
+
+				await waitFor(() => {
+					expect(container.querySelector('[data-state$="open"]')).toBe(root);
+				});
+				await user.keyboard("{Escape}");
+			} finally {
+				host.remove();
+			}
+		});
+
+		test("with `tail={0}`, measures the ellipsis again after the font changes", async () => {
+			const font = { glyph: 10 };
+			stubGlyphs(font, 200);
+			renderValue({ head: 4, tail: 0 });
+			await measured();
+			// Four glyphs of lead and one of ellipsis.
+			expect(headCap()).toBe("50px");
+
+			font.glyph = 12;
+			resize();
+			await nextFrame();
+
+			expect(headCap()).toBe("60px");
+		});
+
+		test("drops a deferred measurement once a new `head` rebinds the root", async () => {
+			const font = { glyph: 10 };
+			stubGlyphs(font, 200);
+			const { rerender } = renderValue({ head: 4 });
+			await measured();
+			expect(headCap()).toBe("50px");
+
+			// The resize defers the new widths to the next frame. Before that frame,
+			// a new `head` measures the root again with a lead of two glyphs.
+			font.glyph = 12;
+			resize();
+			rerender(
+				<TooltipProvider>
+					<TruncatedText data-testid="value" head={2} value={url} />
+				</TooltipProvider>,
+			);
+			await measured();
+			expect(headCap()).toBe("36px");
+			await nextFrame();
+
+			expect(headCap()).toBe("36px");
 		});
 
 		test("treats an overflow past half a pixel as truncated", async () => {

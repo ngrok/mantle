@@ -578,6 +578,43 @@ async function monospaceLoaded(): Promise<void> {
 	}
 }
 
+test("clips a value whose head and tail kern across their boundary", async () => {
+	// Why "T" and "o": a proportional font kerns this pair, so the value as one
+	// run is narrower than the head and the tail laid out apart.
+	const probe = document.createElement("div");
+	probe.style.cssText = "font: 13px sans-serif; font-variant-ligatures: none; white-space: nowrap;";
+	const joined = document.createElement("span");
+	joined.textContent = "abc-To1";
+	const apart = ["abc-T", "o1"].map((text) => {
+		const segment = document.createElement("span");
+		segment.style.display = "inline-block";
+		segment.textContent = text;
+		return segment;
+	});
+	probe.append(joined, ...apart);
+	document.body.append(probe);
+	const joinedWidth = textWidth(joined);
+	const apartWidth = apart.reduce((sum, segment) => sum + textWidth(segment), 0);
+	probe.remove();
+	if (apartWidth - joinedWidth < 0.5) {
+		throw new Error("The sans-serif font does not kern “To”.");
+	}
+
+	// Why this width: the joined run fits within the half-pixel margin, and the
+	// two segments do not.
+	render(
+		<TooltipProvider>
+			<div style={{ width: apartWidth - 0.75, fontFamily: "sans-serif", fontSize: "13px" }}>
+				<TruncatedText data-testid="value" tail={2} value="abc-To1" />
+			</div>
+		</TooltipProvider>,
+	);
+	const root = screen.getByTestId("value");
+
+	await expect.poll(() => root.hasAttribute("data-truncated")).toBe(true);
+	expect(root).toHaveAttribute("tabindex", "0");
+});
+
 test("writes nothing to the roots while the page is idle", async () => {
 	await monospaceLoaded();
 	// Why many widths: Firefox reads a text range about 1e-5 px apart after the

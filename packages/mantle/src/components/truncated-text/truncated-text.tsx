@@ -215,10 +215,15 @@ type MeasureTarget = {
 	 */
 	written: Measurement | null;
 	/**
-	 * What the last batch read about the font. Valid while the tail's text
-	 * keeps `tailWidth`: a new font, a new value, or a new scale changes that width.
+	 * What the last batch read about the font. Valid while the head and the tail
+	 * keep their widths: a new font, a new value, or a new scale changes them.
 	 */
-	font: { tailWidth: number; ellipsisWidth: number; monospace: boolean } | null;
+	font: {
+		headWidth: number;
+		tailWidth: number;
+		ellipsisWidth: number;
+		monospace: boolean;
+	} | null;
 	/** How many code units of the head the last fit kept. A search starts there. */
 	fitLength: number | null;
 	/** Called when the value stops overflowing, so an open tooltip closes. */
@@ -242,16 +247,31 @@ function measure(target: MeasureTarget, box = contentBox(target.root)): Measurem
 	const { scale } = box;
 	const available = box.width * scale;
 	const reading = readText(target);
-	const { headWidth, headLength, tailWidth, text } = reading;
+	const { headLength, tailLength, tailWidth, text } = reading;
 	// Why half a CSS pixel: the root's shrink-to-fit width and the text widths
 	// come from one layout, but the engines round them at different steps.
-	const truncated = headWidth + tailWidth > available + 0.5 * scale;
+	const limit = available + 0.5 * scale;
+	let { headWidth } = reading;
+	// Why the head's own width near the limit: the copy shapes the value as one
+	// run, but the head and the tail shape apart. A kerning pair across them
+	// makes the copy narrower by a part of a glyph, and the clipped head then
+	// reads as fitting. Why the max: WebKit clips the head's range at its ellipsis.
+	if (
+		tailLength > 0 &&
+		headWidth + tailWidth <= limit &&
+		headWidth + tailWidth + tailWidth / tailLength > limit
+	) {
+		headWidth = Math.max(headWidth, textWidth(target.head));
+	}
+	const truncated = headWidth + tailWidth > limit;
 	if (text == null) {
 		return { headCap: null, headFit: null, tailWidth: tailWidth / scale, truncated };
 	}
-	if (target.font?.tailWidth !== tailWidth) {
+	// Why both widths: with `tail={0}`, the tail's width is 0 in every font and at every scale.
+	if (target.font?.headWidth !== reading.headWidth || target.font.tailWidth !== tailWidth) {
 		const ellipsisWidth = textWidth(ellipsis);
 		target.font = {
+			headWidth: reading.headWidth,
 			tailWidth,
 			ellipsisWidth,
 			monospace: isMonospace({ ...reading, ellipsisWidth }),
@@ -529,8 +549,14 @@ function measureAll(
 		measureAll(resized, { deferWidths, settle: false });
 	}
 	if (deferred.length > 0) {
+		// Why the owner check: a new `head` binds a new target to the same root
+		// before the frame, and the old target's lead is stale.
 		requestAnimationFrame(() => {
-			measureAll(deferred.filter((target) => target.root.isConnected));
+			measureAll(
+				deferred.filter(
+					(target) => target.root.isConnected && observedTargets.get(target.root) === target,
+				),
+			);
 		});
 	}
 }
@@ -539,6 +565,18 @@ function measureAll(
 type PendingEvent =
 	| { type: "pointermove"; event: PointerEvent<HTMLSpanElement> }
 	| { type: "focus"; event: FocusEvent<HTMLSpanElement> };
+
+/**
+ * Whether an element has focus.
+ *
+ * Why its own root: in a shadow root or a frame, the page's `activeElement` is
+ * the host or the frame.
+ */
+function isFocused(element: Element): boolean {
+	// Why `in`: a detached element is its own root, and has no `activeElement`.
+	const root = element.getRootNode();
+	return "activeElement" in root && root.activeElement === element;
+}
 
 /** Whether the last batch flagged the root as overflowing. */
 function isTruncated(element: Element): boolean {
@@ -958,7 +996,10 @@ const TruncatedText = ({
 	const [insideControl, setInsideControl] = useState(false);
 	// Why a boolean: `bindRoot` reads it, and a change from one `tabIndex`
 	// number to another must bind no new target.
-	const hasTabIndex = tabIndex != null;
+	// Why the child's too: `Slot` lets an `asChild` child's `tabIndex` win.
+	const hasTabIndex =
+		tabIndex != null ||
+		(asChild && isValidElement<{ tabIndex?: number }>(children) && children.props.tabIndex != null);
 	const ownsTabStop = !hasTabIndex && !insideControl;
 
 	// Why a ref callback and not an effect: an `asChild` child of a new type
@@ -1121,6 +1162,10 @@ const TruncatedText = ({
 		},
 		onPointerLeave: (event: PointerEvent<HTMLSpanElement>) => {
 			onPointerLeave?.(event);
+			// Why: a hover that leaves before the tooltip mounts must not open it.
+			if (pendingEventRef.current?.type === "pointermove") {
+				pendingEventRef.current = null;
+			}
 			triggerRef.current?.handlers.onPointerLeave?.(event);
 		},
 		onPointerDown: (event: PointerEvent<HTMLSpanElement>) => {
@@ -1130,14 +1175,17 @@ const TruncatedText = ({
 				return;
 			}
 			// Why: a focus that a press causes opens no tooltip, like Radix's own trigger.
+			// Why `pointercancel` too: a touch that scrolls ends with no `pointerup`.
+			// Why the owner document: a frame's events do not reach the page's document.
 			pointerDownRef.current = true;
-			document.addEventListener(
-				"pointerup",
-				() => {
-					pointerDownRef.current = false;
-				},
-				{ once: true },
-			);
+			const ownerDocument = event.currentTarget.ownerDocument;
+			const release = () => {
+				pointerDownRef.current = false;
+				ownerDocument.removeEventListener("pointerup", release);
+				ownerDocument.removeEventListener("pointercancel", release);
+			};
+			ownerDocument.addEventListener("pointerup", release);
+			ownerDocument.addEventListener("pointercancel", release);
 		},
 		onFocus: (event: FocusEvent<HTMLSpanElement>) => {
 			onFocus?.(event);
@@ -1221,7 +1269,7 @@ const TruncatedText = ({
 									const handlers = triggerRef.current?.handlers;
 									if (pending.type === "pointermove") {
 										handlers?.onPointerMove?.(pending.event);
-									} else if (document.activeElement === element) {
+									} else if (isFocused(element)) {
 										handlers?.onFocus?.(pending.event);
 									}
 								});
