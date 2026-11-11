@@ -1,4 +1,3 @@
-import invariant from "tiny-invariant";
 import { area as d3Area, curveLinear, curveMonotoneX, curveStep, line as d3Line } from "d3-shape";
 import type { CurveKind, PointShape } from "./types.js";
 import type { DecimatedColumns } from "./decimate.js";
@@ -55,7 +54,7 @@ const curveFactory = (curve: CurveKind) => {
 /** A d3-shape line or area generator over datum indexes. */
 type ShapeGenerator = {
 	(indexes: readonly number[]): string | null;
-	context(context: CanvasRenderingContext2D | null): unknown;
+	context(context: PaintContext | null): unknown;
 };
 
 /**
@@ -63,20 +62,18 @@ type ShapeGenerator = {
  * takes the generator's drawing calls; the SVG recorder takes its path string.
  */
 const traceShape = (ctx: PaintContext, shape: ShapeGenerator, indexes: readonly number[]): void => {
-	if (typeof CanvasRenderingContext2D !== "undefined" && ctx instanceof CanvasRenderingContext2D) {
-		shape.context(ctx);
-		shape(indexes);
+	// Why a capability check and not `instanceof CanvasRenderingContext2D`: a
+	// chart in a same-origin iframe paints into a context from another realm.
+	if (acceptsPathData(ctx)) {
+		shape.context(null);
+		const data = shape(indexes);
+		if (typeof data === "string") {
+			ctx.appendPathData(data);
+		}
 		return;
 	}
-	invariant(
-		acceptsPathData(ctx),
-		"A chart paint context must be a canvas context or take path data.",
-	);
-	shape.context(null);
-	const data = shape(indexes);
-	if (typeof data === "string") {
-		ctx.appendPathData(data);
-	}
+	shape.context(ctx);
+	shape(indexes);
 };
 
 /**

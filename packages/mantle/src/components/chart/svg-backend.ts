@@ -26,6 +26,13 @@ import { paintTextureTile, TEXTURE_TILE_SIZE, textureInkColor } from "./texture.
 
 const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 
+/**
+ * Whether `node` is an SVG element. Why not `instanceof SVGElement`: a chart in
+ * a same-origin iframe owns elements from that frame's realm.
+ */
+const isSvgElement = (node: Element | undefined): node is SVGElement =>
+	node?.namespaceURI === SVG_NAMESPACE;
+
 /** The layers a frame paints into, back to front. */
 type Layer = "underlay" | "marks" | "overlay";
 
@@ -512,18 +519,17 @@ class SvgSurface {
 	#writeLayer(group: SVGGElement, marks: readonly Mark[], usedClips: Set<string>): void {
 		marks.forEach((mark, index) => {
 			const tag = mark.type === "path" ? "path" : "text";
-			let element = group.children[index];
-			if (!(element instanceof SVGElement) || element.localName !== tag) {
-				const created = this.#create(tag);
-				if (element == null) {
-					group.append(created);
+			const existing = group.children[index];
+			let element: SVGElement;
+			if (isSvgElement(existing) && existing.localName === tag) {
+				element = existing;
+			} else {
+				element = this.#create(tag);
+				if (existing == null) {
+					group.append(element);
 				} else {
-					element.replaceWith(created);
+					existing.replaceWith(element);
 				}
-				element = created;
-			}
-			if (!(element instanceof SVGElement)) {
-				return;
 			}
 			const { state } = mark;
 			const key = clipKey(state.clip);

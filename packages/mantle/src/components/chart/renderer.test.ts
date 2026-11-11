@@ -2,7 +2,8 @@ import { describe, expect, test } from "vitest";
 import type { PointShape } from "./types.js";
 import { POINT_SHAPE_CLIP_PATHS } from "./engine.js";
 import { CUBE_CORNERS, CUBE_EDGES, projectionMatrix, projectPoint } from "./projection.js";
-import { drawCubeFrame, tracePointShape } from "./renderer.js";
+import type { PaintContext } from "./paint-backend.js";
+import { drawCubeFrame, drawLinePath, tracePointShape } from "./renderer.js";
 
 /** Record path-trace calls without a real canvas context. */
 const makeRecorder = () => {
@@ -392,3 +393,51 @@ export function typeLevelContracts(): [Exclude<PointShape, (typeof ALL_SHAPES)[n
 	: never {
 	return true;
 }
+
+describe("drawLinePath", () => {
+	test("traces into a canvas context from another realm", () => {
+		// A chart in a same-origin iframe paints into the frame's context, which
+		// is not an instance of this window's `CanvasRenderingContext2D`.
+		const calls: string[] = [];
+		const record = (op: string) => () => {
+			calls.push(op);
+		};
+		const foreignContext: PaintContext = {
+			fillStyle: "",
+			strokeStyle: "",
+			lineWidth: 1,
+			globalAlpha: 1,
+			lineJoin: "miter",
+			lineCap: "butt",
+			font: "",
+			textAlign: "start",
+			textBaseline: "alphabetic",
+			save: record("save"),
+			restore: record("restore"),
+			beginPath: record("beginPath"),
+			closePath: record("closePath"),
+			moveTo: record("moveTo"),
+			lineTo: record("lineTo"),
+			bezierCurveTo: record("bezierCurveTo"),
+			rect: record("rect"),
+			roundRect: record("roundRect"),
+			arc: record("arc"),
+			fill: record("fill"),
+			stroke: record("stroke"),
+			fillRect: record("fillRect"),
+			clip: record("clip"),
+			setLineDash: record("setLineDash"),
+			fillText: record("fillText"),
+			measureText: () => ({ width: 0 }),
+		};
+		drawLinePath(foreignContext, {
+			color: "red",
+			curve: "linear",
+			indexes: [0, 1, 2],
+			xAt: (index) => index * 10,
+			yAt: (index) => index,
+			definedAt: () => true,
+		});
+		expect(calls).toEqual(["beginPath", "moveTo", "lineTo", "lineTo", "stroke"]);
+	});
+});

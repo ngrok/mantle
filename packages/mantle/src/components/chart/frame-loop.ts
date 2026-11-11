@@ -20,11 +20,24 @@ const run = (view: Window, loop: FrameLoop): void => {
 	// so a chart mid-animation commits once per frame and not twice in this one.
 	const callbacks = [...loop.callbacks];
 	loop.callbacks.clear();
+	// Why catch: each engine marks itself scheduled until its callback runs. A
+	// chart that throws must not leave the charts after it unable to repaint.
+	const errors: unknown[] = [];
 	for (const callback of callbacks) {
-		callback();
+		try {
+			callback();
+		} catch (error) {
+			errors.push(error);
+		}
 	}
 	if (loop.callbacks.size === 0) {
 		loops.delete(view);
+	}
+	if (errors.length === 1) {
+		throw errors[0];
+	}
+	if (errors.length > 1) {
+		throw new AggregateError(errors, "More than one chart failed to commit a frame.");
 	}
 };
 

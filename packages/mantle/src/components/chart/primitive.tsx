@@ -15,7 +15,6 @@ import {
 	useState,
 	useSyncExternalStore,
 } from "react";
-import { createPortal } from "react-dom";
 import invariant from "tiny-invariant";
 import { useCopyToClipboard } from "../../hooks/use-copy-to-clipboard.js";
 import { useIsHydrated } from "../../hooks/use-is-hydrated.js";
@@ -694,6 +693,16 @@ const ChartRootPrimitive = ({
 	}, []);
 
 	const descriptionId = useId();
+	// Inside a List, only the chart that holds the shared tooltip renders it, in
+	// its own subtree, so the consumer's render props keep this chart's context.
+	const holdsListTooltip = useSyncExternalStore(
+		list?.subscribe ?? subscribeToNothing,
+		() => list?.tooltipHolder() === descriptionId,
+		() => false,
+	);
+	// Tells the List effect below that a reader interacts with this chart (`true`)
+	// or left it (`false`).
+	const listInteractionRef = useRef<((interacting: boolean) => void) | null>(null);
 	const resolvedXScale: XScaleKind = kind === "bar" ? "band" : (xScale ?? detectXScale(data, xKey));
 	// Scatter axes are continuous by contract — a string x would silently render
 	// evenly-spaced categorical positions misaligned against the value axis.
@@ -983,33 +992,32 @@ const ChartRootPrimitive = ({
 		return store.subscribe(write);
 	}, [store, decorative]);
 
-	// A chart inside a List lends its plot to the list's tooltip surface while a
-	// reader points at it or steps through it.
+	// A chart inside a List takes the shared tooltip when a reader points at it
+	// or steps through it and its hover lands. Why not on each store change: a
+	// data update publishes the hover again, and it must not pull the tooltip
+	// away from the chart under the pointer.
 	useEffect(() => {
-		const plot = plotRef.current;
-		if (list == null || !interactive || plot == null) {
+		if (list == null || !interactive) {
 			return;
 		}
-		const entry: ChartListEntry = {
-			id: descriptionId,
-			plot,
-			slotName,
-			store,
-			xHasTimeOfDay,
-			attachTooltip,
-		};
+		let interacting = false;
 		const sync = () => {
-			if (store.getSnapshot().hover != null) {
-				list.showTooltip(entry);
+			if (interacting && store.getSnapshot().hover != null) {
+				interacting = false;
+				list.showTooltip(descriptionId);
 			}
 		};
-		sync();
+		listInteractionRef.current = (next) => {
+			interacting = next;
+			sync();
+		};
 		const stop = store.subscribe(sync);
 		return () => {
 			stop();
+			listInteractionRef.current = null;
 			list.releaseTooltip(descriptionId);
 		};
-	}, [list, interactive, descriptionId, slotName, store, xHasTimeOfDay, attachTooltip]);
+	}, [list, interactive, descriptionId, store]);
 
 	// A dormant Root holds no engine, so it throws the key invariants itself:
 	// a typo must fail in the mount commit, not in the observer task that
@@ -1165,12 +1173,14 @@ const ChartRootPrimitive = ({
 									event.nativeEvent.offsetX,
 									event.nativeEvent.offsetY,
 								);
+								listInteractionRef.current?.(true);
 							}}
 							onPointerMove={(event) => {
 								engineRef.current?.handlePointerMove(
 									event.nativeEvent.offsetX,
 									event.nativeEvent.offsetY,
 								);
+								listInteractionRef.current?.(true);
 							}}
 							onPointerUp={(event) => {
 								engineRef.current?.handlePointerUp(
@@ -1180,18 +1190,22 @@ const ChartRootPrimitive = ({
 							}}
 							onPointerLeave={() => {
 								engineRef.current?.handlePointerLeave();
+								listInteractionRef.current?.(false);
 							}}
 							onPointerCancel={() => {
 								// The browser reclaimed the pointer (e.g. a touch pan won) —
 								// reset drag/hover state deterministically.
 								engineRef.current?.handlePointerLeave();
+								listInteractionRef.current?.(false);
 							}}
 							onBlur={() => {
 								engineRef.current?.handlePointerLeave();
+								listInteractionRef.current?.(false);
 							}}
 							onKeyDown={(event) => {
 								if (engineRef.current?.handleKeyDown(event.key)) {
 									event.preventDefault();
+									listInteractionRef.current?.(true);
 								}
 							}}
 						/>
@@ -1212,7 +1226,7 @@ const ChartRootPrimitive = ({
 					    tooltip surface is React-rendered for the consumer's render prop,
 					    so it mounts on the first hover and stays while the chart is
 					    interactive. */}
-					{tooltipWanted && interactive && list == null && (
+					{tooltipWanted && interactive && (list == null || holdsListTooltip) && (
 						<ChartTooltipSurface
 							slotName={slotName}
 							store={store}
@@ -1256,22 +1270,14 @@ const ChartRootPrimitive = ({
 
 // ---- list -------------------------------------------------------------------
 
-/** A chart inside a List, as the list's tooltip surface sees it. */
-type ChartListEntry = {
-	id: string;
-	/** The plot the surface mounts in while this chart shows it. */
-	plot: HTMLElement;
-	slotName: string;
-	store: ChartStore;
-	xHasTimeOfDay: boolean;
-	/** Hands the mounted surface to the chart's engine; `null` takes it back. */
-	attachTooltip: (element: HTMLDivElement | null) => void;
-};
-
 type ChartListContextValue = {
-	/** Move the tooltip surface into this chart. */
-	showTooltip: (entry: ChartListEntry) => void;
-	/** Take the surface out of a chart that unmounts. */
+	/** Listen for a change of the chart that holds the shared tooltip. */
+	subscribe: (listener: () => void) => () => void;
+	/** The id of the chart that renders the shared tooltip, or `null`. */
+	tooltipHolder: () => string | null;
+	/** Give the shared tooltip to this chart. */
+	showTooltip: (id: string) => void;
+	/** Take the shared tooltip from a chart that unmounts. */
 	releaseTooltip: (id: string) => void;
 	/** Write one chart's announcement. An empty one clears only that chart's text. */
 	announce: (id: string, text: string) => void;
@@ -1292,24 +1298,45 @@ const ChartListPrimitive = ({
 	children,
 	...props
 }: ChartListPrimitiveProps & { slotName: string }) => {
-	const [active, setActive] = useState<ChartListEntry | null>(null);
 	const [announcement, setAnnouncement] = useState({ id: "", text: "" });
-	const [context] = useState<ChartListContextValue>(() => ({
-		showTooltip: (entry) => {
-			setActive((current) => (current?.id === entry.id ? current : entry));
-		},
-		releaseTooltip: (id) => {
-			setActive((current) => (current?.id === id ? null : current));
-		},
-		announce: (id, text) => {
-			setAnnouncement((current) => {
-				if (text === "" && current.id !== id) {
-					return current;
+	const [context] = useState<ChartListContextValue>(() => {
+		// Why not React state: a change of holder must re-render only the two
+		// charts it moves between, not the List and each chart in it.
+		let holder: string | null = null;
+		const listeners = new Set<() => void>();
+		const setHolder = (next: string | null) => {
+			if (next === holder) {
+				return;
+			}
+			holder = next;
+			for (const listener of listeners) {
+				listener();
+			}
+		};
+		return {
+			subscribe: (listener) => {
+				listeners.add(listener);
+				return () => {
+					listeners.delete(listener);
+				};
+			},
+			tooltipHolder: () => holder,
+			showTooltip: setHolder,
+			releaseTooltip: (id) => {
+				if (holder === id) {
+					setHolder(null);
 				}
-				return current.id === id && current.text === text ? current : { id, text };
-			});
-		},
-	}));
+			},
+			announce: (id, text) => {
+				setAnnouncement((current) => {
+					if (text === "" && current.id !== id) {
+						return current;
+					}
+					return current.id === id && current.text === text ? current : { id, text };
+				});
+			},
+		};
+	});
 	return (
 		// Why no asChild: the List renders its live region beside the charts, and
 		// a list element such as `ul` cannot hold that region as a child.
@@ -1325,17 +1352,6 @@ const ChartListPrimitive = ({
 			<span role="status" aria-live="polite" className="sr-only">
 				{announcement.text}
 			</span>
-			{active != null &&
-				createPortal(
-					<ChartTooltipSurface
-						key={active.id}
-						slotName={active.slotName}
-						store={active.store}
-						tooltipRef={active.attachTooltip}
-						xHasTimeOfDay={active.xHasTimeOfDay}
-					/>,
-					active.plot,
-				)}
 		</div>
 	);
 };
@@ -2186,6 +2202,8 @@ const ChartListAnnouncer = ({
 	xHasTimeOfDay: boolean;
 }) => {
 	const hover = useStoreKeyboardHover(store);
+	// Why: a chart that unmounts takes its last announcement out of the shared region.
+	useEffect(() => () => list.announce(id, ""), [id, list]);
 	useEffect(() => {
 		// Why clear first: AT does not announce text that did not change, so a
 		// step back to the same datum must pass through an empty region.

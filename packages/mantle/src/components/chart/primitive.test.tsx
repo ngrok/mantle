@@ -1,7 +1,7 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import type { ComponentProps, MouseEvent, ReactNode } from "react";
-import { createRef, useState } from "react";
+import { createContext, createRef, useContext, useState } from "react";
 import type { Root } from "react-dom/client";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
@@ -906,16 +906,68 @@ describe("List", () => {
 		).not.toBeNull();
 	});
 
-	test("a translated text child swaps to an element without a crash", () => {
-		const Swap = ({ loaded }: { loaded: boolean }) => (
-			<BarChart.List>{loaded ? <span>Loaded</span> : "Loading charts"}</BarChart.List>
-		);
-		const { container, rerender } = render(<Swap loaded={false} />);
+	test("a translated text child swaps to an element without a crash", async () => {
+		const Swap = () => {
+			const [loaded, setLoaded] = useState(false);
+			return (
+				<>
+					<button type="button" onClick={() => setLoaded(true)}>
+						Load
+					</button>
+					<BarChart.List>{loaded ? <span>Loaded</span> : "Loading charts"}</BarChart.List>
+				</>
+			);
+		};
+		const user = userEvent.setup();
+		const { container } = render(<Swap />);
 		translateTextNodes(container);
 		// Guards the step below: a helper that silently no-ops would leave the
 		// swap green whether or not the items wrapper does its job.
 		expect(findTranslatedFont(container)).not.toBeNull();
-		rerender(<Swap loaded />);
+		await user.click(screen.getByRole("button"));
 		expect(screen.getByText("Loaded")).toBeInTheDocument();
+	});
+
+	test("a tooltip render prop reads the context around its own chart", async () => {
+		const Region = createContext("none");
+		const RegionName = () => <>{useContext(Region)}</>;
+		const user = userEvent.setup();
+		const { container } = render(
+			<BarChart.List>
+				<Region.Provider value="eu-west">
+					<BarChart.Root data={data} xKey="month" aria-label="Ingress">
+						<BarChart.Bar dataKey="desktop" label="Desktop" />
+						<BarChart.Tooltip>{() => <RegionName />}</BarChart.Tooltip>
+					</BarChart.Root>
+				</Region.Provider>
+			</BarChart.List>,
+		);
+		await user.tab();
+		await user.keyboard("{ArrowRight}");
+		expect(container.querySelector('[data-slot="bar-chart-tooltip"]')).toHaveTextContent("eu-west");
+	});
+
+	test("a chart that unmounts takes its announcement out of the shared region", async () => {
+		const Pair = ({ egress }: { egress: boolean }) => (
+			<BarChart.List>
+				<BarChart.Root data={data} xKey="month" aria-label="Ingress">
+					<BarChart.Bar dataKey="desktop" label="Desktop" />
+				</BarChart.Root>
+				{egress && (
+					<BarChart.Root data={data} xKey="month" aria-label="Egress">
+						<BarChart.Bar dataKey="desktop" label="Desktop" />
+					</BarChart.Root>
+				)}
+			</BarChart.List>
+		);
+		const user = userEvent.setup();
+		const { rerender } = render(<Pair egress />);
+		const region = screen.getByRole("status");
+		await user.tab();
+		await user.tab();
+		await user.keyboard("{End}");
+		await waitFor(() => expect(region).toHaveTextContent("March. Desktop: 237"));
+		rerender(<Pair egress={false} />);
+		expect(region).toBeEmptyDOMElement();
 	});
 });

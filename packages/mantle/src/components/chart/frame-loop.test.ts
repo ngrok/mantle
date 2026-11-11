@@ -69,3 +69,29 @@ test("canceling the last request cancels the animation frame", () => {
 	expect(canceledFirst).toHaveBeenCalledTimes(0);
 	expect(dropped).toHaveBeenCalledTimes(0);
 });
+
+test("a callback that throws does not stop the callbacks after it", () => {
+	const { view, flush } = createView();
+	const failure = new Error("commit failed");
+	const healthy = vi.fn<() => void>();
+	requestSharedFrame(view, () => {
+		throw failure;
+	});
+	requestSharedFrame(view, healthy);
+	expect(flush).toThrow(failure);
+	expect(healthy).toHaveBeenCalledTimes(1);
+	requestSharedFrame(view, healthy);
+	flush();
+	expect(healthy).toHaveBeenCalledTimes(2);
+});
+
+test("two callbacks that throw surface both errors", () => {
+	const { view, flush } = createView();
+	requestSharedFrame(view, () => {
+		throw new Error("first");
+	});
+	requestSharedFrame(view, () => {
+		throw new Error("second");
+	});
+	expect(flush).toThrow(AggregateError);
+});
