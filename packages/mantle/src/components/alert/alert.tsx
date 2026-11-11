@@ -186,8 +186,8 @@ type AlertProps = ComponentProps<"div"> & {
  *     <Alert.Description>
  *       Alert description text.
  *     </Alert.Description>
- *     <Alert.DismissIconButton />
  *     <Alert.ExpandButton count={2} expanded={false} />
+ *     <Alert.DismissIconButton />
  *   </Alert.Content>
  * </Alert.Root>
  *```
@@ -210,12 +210,13 @@ const Root = ({
 					alertVariants({ appearance, intent }),
 					// Each trailing control reserves its own space: the root's right
 					// padding makes room for dismiss, and the content's padding makes
-					// room for expand. Together they compose without extra consumer work.
+					// room for expand. Dismiss stays rightmost, so expand moves left of
+					// it. The rule reads the presence attributes, not the slots, because
+					// `AlertCenter.DismissIconButton` replaces the dismiss slot value.
 					"has-data-alert-dismiss:pr-10",
-					"has-data-alert-expand:**:data-[slot~=alert-dismiss-icon-button]:right-16",
-					"md:has-data-alert-expand:**:data-[slot~=alert-dismiss-icon-button]:right-24",
-					"has-data-alert-expand:**:data-[slot~=alert-content]:pr-12",
-					"md:has-data-alert-expand:**:data-[slot~=alert-content]:pr-22",
+					"has-data-alert-dismiss:**:data-alert-expand:right-10",
+					"has-data-alert-expand:**:data-[slot~=alert-content]:pr-16",
+					"md:has-data-alert-expand:**:data-[slot~=alert-content]:pr-24",
 					className,
 				)}
 				style={$cssProperties({
@@ -265,8 +266,8 @@ const defaultIcons = {
  *     <Alert.Description>
  *       Alert description text.
  *     </Alert.Description>
- *     <Alert.DismissIconButton />
  *     <Alert.ExpandButton count={2} expanded={false} />
+ *     <Alert.DismissIconButton />
  *   </Alert.Content>
  * </Alert.Root>
  * ```
@@ -301,8 +302,8 @@ const Icon = ({ "data-slot": dataSlot, className, ref, svg, ...props }: AlertIco
  *     <Alert.Description>
  *       Alert description text.
  *     </Alert.Description>
- *     <Alert.DismissIconButton />
  *     <Alert.ExpandButton count={2} expanded={false} />
+ *     <Alert.DismissIconButton />
  *   </Alert.Content>
  * </Alert.Root>
  *```
@@ -337,8 +338,8 @@ type AlertTitleProps = ComponentProps<"h5"> & WithAsChild & WithDataSlot;
  *     <Alert.Description>
  *       Alert description text.
  *     </Alert.Description>
- *     <Alert.DismissIconButton />
  *     <Alert.ExpandButton count={2} expanded={false} />
+ *     <Alert.DismissIconButton />
  *   </Alert.Content>
  * </Alert.Root>
  *```
@@ -380,8 +381,8 @@ type AlertDescriptionProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
  *     <Alert.Description>
  *       Alert description text.
  *     </Alert.Description>
- *     <Alert.DismissIconButton />
  *     <Alert.ExpandButton count={2} expanded={false} />
+ *     <Alert.DismissIconButton />
  *   </Alert.Content>
  * </Alert.Root>
  * ```
@@ -528,8 +529,8 @@ function useDismissFocusRedirect({
  *   <Alert.Icon />
  *   <Alert.Content>
  *     <Alert.Title>Usage limit approaching</Alert.Title>
- *     <Alert.DismissIconButton onClick={dismiss} />
  *     <Alert.ExpandButton count={2} expanded={isExpanded} onClick={toggle} />
+ *     <Alert.DismissIconButton onClick={dismiss} />
  *   </Alert.Content>
  * </Alert.Root>
  * ```
@@ -597,9 +598,10 @@ type AlertExpandButtonProps = Omit<
 /**
  * A compact, trailing control for expanding or collapsing related alerts.
  *
- * It occupies the trailing control area alongside `Alert.DismissIconButton`
- * when both are present, and marks the alert so `Alert.Content` reserves room
- * for its plus-prefixed count and caret on narrow viewports. It shares the
+ * It sits at the trailing edge. When `Alert.DismissIconButton` is also
+ * present, it moves to the left of the dismiss control, which stays
+ * rightmost. It marks the alert so `Alert.Content` reserves room for its
+ * plus-prefixed count and caret on narrow viewports. It shares the
  * `--alert-control-*` color variables from `Alert.Root` with the dismiss
  * control.
  *
@@ -611,8 +613,8 @@ type AlertExpandButtonProps = Omit<
  *   <Alert.Icon />
  *   <Alert.Content>
  *     <Alert.Title>Usage limit approaching</Alert.Title>
- *     <Alert.DismissIconButton />
  *     <Alert.ExpandButton count={2} expanded={isExpanded} onClick={toggle} />
+ *     <Alert.DismissIconButton />
  *   </Alert.Content>
  * </Alert.Root>
  * ```
@@ -690,8 +692,8 @@ const ExpandButton = ({
  * ├── Alert.Content
  *     ├── Alert.Title
  *     ├── Alert.Description
- *     ├── Alert.DismissIconButton
- *     └── Alert.ExpandButton
+ *     ├── Alert.ExpandButton
+ *     └── Alert.DismissIconButton
  * ```
  *
  * @example
@@ -703,8 +705,8 @@ const ExpandButton = ({
  *     <Alert.Description>
  *       Alert description text.
  *     </Alert.Description>
- *     <Alert.DismissIconButton />
  *     <Alert.ExpandButton count={2} expanded={false} />
+ *     <Alert.DismissIconButton />
  *   </Alert.Content>
  * </Alert.Root>
  *```
@@ -722,8 +724,8 @@ const Alert = {
 	 *   <Alert.Content>
 	 *     <Alert.Title>Alert Title</Alert.Title>
 	 *     <Alert.Description>Alert description</Alert.Description>
-	 *     <Alert.DismissIconButton />
 	 *     <Alert.ExpandButton count={2} expanded={false} />
+	 *     <Alert.DismissIconButton />
 	 *   </Alert.Content>
 	 * </Alert.Root>
 	 * ```
@@ -741,8 +743,8 @@ const Alert = {
 	 *   <Alert.Content>
 	 *     <Alert.Title>Alert Title</Alert.Title>
 	 *     <Alert.Description>Alert description text.</Alert.Description>
-	 *     <Alert.DismissIconButton />
 	 *     <Alert.ExpandButton count={2} expanded={false} />
+	 *     <Alert.DismissIconButton />
 	 *   </Alert.Content>
 	 * </Alert.Root>
 	 * ```
@@ -762,8 +764,8 @@ const Alert = {
 	 *   <Alert.Icon />
 	 *   <Alert.Content>
 	 *     <Alert.Title>Usage limit approaching</Alert.Title>
-	 *     <Alert.DismissIconButton />
 	 *     <Alert.ExpandButton count={2} expanded={isExpanded} onClick={toggle} />
+	 *     <Alert.DismissIconButton />
 	 *   </Alert.Content>
 	 * </Alert.Root>
 	 * ```
@@ -781,8 +783,8 @@ const Alert = {
 	 *   <Alert.Content>
 	 *     <Alert.Title>Alert Title</Alert.Title>
 	 *     <Alert.Description>Alert description text.</Alert.Description>
-	 *     <Alert.DismissIconButton />
 	 *     <Alert.ExpandButton count={2} expanded={false} />
+	 *     <Alert.DismissIconButton />
 	 *   </Alert.Content>
 	 * </Alert.Root>
 	 * ```
@@ -827,8 +829,8 @@ const Alert = {
 	 *   <Alert.Content>
 	 *     <Alert.Title>Alert Title</Alert.Title>
 	 *     <Alert.Description>Alert description text.</Alert.Description>
-	 *     <Alert.DismissIconButton />
 	 *     <Alert.ExpandButton count={2} expanded={false} />
+	 *     <Alert.DismissIconButton />
 	 *   </Alert.Content>
 	 * </Alert.Root>
 	 * ```
@@ -846,8 +848,8 @@ const Alert = {
 	 *   <Alert.Content>
 	 *     <Alert.Title>Alert Title</Alert.Title>
 	 *     <Alert.Description>Alert description text.</Alert.Description>
-	 *     <Alert.DismissIconButton />
 	 *     <Alert.ExpandButton count={2} expanded={false} />
+	 *     <Alert.DismissIconButton />
 	 *   </Alert.Content>
 	 * </Alert.Root>
 	 * ```

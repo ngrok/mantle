@@ -845,8 +845,8 @@ type AlertCenterDismissIconButtonProps = ComponentProps<typeof Alert.DismissIcon
  * out — per alert; its presence IS the alert's dismissability.
  *
  * Where the control sits in each placement is the chrome's business, not this
- * wrapper's: {@link dismissClearsExpandControl} seats it beside the bar's
- * expand control, and {@link singleLineBarControls} re-centers it in a
+ * wrapper's: `Alert.Root` keeps it rightmost and seats the bar's expand
+ * control to its left, and {@link singleLineBarControls} re-centers it in a
  * single-line bar.
  *
  * **Data attributes:**
@@ -1215,19 +1215,6 @@ const chromeClassName = "gap-2 py-2 pr-2 **:data-[slot~=alert-icon]:shrink-0";
 const singleLineBarControls =
 	"not-has-data-[slot=alert-description]:[&_[data-alert-dismiss],&_[data-alert-expand]]:top-1/2 not-has-data-[slot=alert-description]:[&_[data-alert-dismiss],&_[data-alert-expand]]:-translate-y-1/2";
 
-/**
- * Keeps the bar's dismiss control clear of the expand control beside it.
- * `Alert.Root` already ships this offset, but its rule matches the dismiss
- * button by the exact `data-slot` value `Alert.DismissIconButton` stamps — and
- * `AlertCenter.DismissIconButton` replaces that value with its own part slot
- * (COMPONENT_SPEC §3.2), so the rule stops matching inside the center. Restated
- * here against `data-alert-dismiss` / `data-alert-expand`, the presence
- * attributes `Alert` stamps alongside the slots, which survive the rename.
- * Only the bar composes both controls, so rows need nothing equivalent.
- */
-const dismissClearsExpandControl =
-	"has-data-alert-expand:**:data-alert-dismiss:right-16 md:has-data-alert-expand:**:data-alert-dismiss:right-24";
-
 // Why no `asChild`: Bar renders a fixed two-element structure — a presence
 // wrapper that owns the exit animation (`data-state`, `inert`, `tabIndex`, and
 // the `transitionend` that completes the exit) around an `Alert.Root` banner —
@@ -1447,13 +1434,7 @@ const Bar = ({ className, "data-slot": dataSlot, ref, ...props }: AlertCenterBar
 				ref={ref}
 				appearance="banner"
 				intent={alert.intent}
-				className={cx(
-					chromeClassName,
-					singleLineBarControls,
-					dismissClearsExpandControl,
-					className,
-					alert.className,
-				)}
+				className={cx(chromeClassName, singleLineBarControls, className, alert.className)}
 				{...props}
 				// after the spread so consumers can't drop the styling/testing hooks
 				data-slot={joinDataSlot(dataSlot, "alert-center-bar")}

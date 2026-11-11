@@ -34,8 +34,8 @@
     "summary": "Displays a callout for user attention.",
     "jsdoc": "Displays a callout for user attention.",
     "examples": [
-      "Composition:\n```\nAlert.Root\n├── Alert.Icon\n├── Alert.Content\n    ├── Alert.Title\n    ├── Alert.Description\n    ├── Alert.DismissIconButton\n    └── Alert.ExpandButton\n```",
-      "```tsx\n<Alert.Root intent=\"info\">\n  <Alert.Icon />\n  <Alert.Content>\n    <Alert.Title>Alert Title</Alert.Title>\n    <Alert.Description>\n      Alert description text.\n    </Alert.Description>\n    <Alert.DismissIconButton />\n    <Alert.ExpandButton count={2} expanded={false} />\n  </Alert.Content>\n</Alert.Root>\n```"
+      "Composition:\n```\nAlert.Root\n├── Alert.Icon\n├── Alert.Content\n    ├── Alert.Title\n    ├── Alert.Description\n    ├── Alert.ExpandButton\n    └── Alert.DismissIconButton\n```",
+      "```tsx\n<Alert.Root intent=\"info\">\n  <Alert.Icon />\n  <Alert.Content>\n    <Alert.Title>Alert Title</Alert.Title>\n    <Alert.Description>\n      Alert description text.\n    </Alert.Description>\n    <Alert.ExpandButton count={2} expanded={false} />\n    <Alert.DismissIconButton />\n  </Alert.Content>\n</Alert.Root>\n```"
     ],
     "siblings": [
       {
