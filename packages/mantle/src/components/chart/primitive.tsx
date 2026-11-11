@@ -5,6 +5,7 @@ import { CopyIcon } from "@phosphor-icons/react/Copy";
 import type { ComponentProps, CSSProperties, ReactNode, Ref } from "react";
 import {
 	createContext,
+	useCallback,
 	useContext,
 	useEffect,
 	useId,
@@ -14,6 +15,7 @@ import {
 	useState,
 	useSyncExternalStore,
 } from "react";
+import { createPortal } from "react-dom";
 import invariant from "tiny-invariant";
 import { useCopyToClipboard } from "../../hooks/use-copy-to-clipboard.js";
 import { useIsHydrated } from "../../hooks/use-is-hydrated.js";
@@ -683,6 +685,13 @@ const ChartRootPrimitive = ({
 	const composedRootRef = useComposedRefs(rootRef, ref);
 	const plotRef = useRef<HTMLDivElement | null>(null);
 	const tooltipRef = useRef<HTMLDivElement | null>(null);
+	// Inside a List, the list owns the one tooltip surface and the one live
+	// region its charts share.
+	const list = useContext(ChartListContext);
+	const attachTooltip = useCallback((element: HTMLDivElement | null) => {
+		tooltipRef.current = element;
+		engineRef.current?.attachTooltip(element);
+	}, []);
 
 	const descriptionId = useId();
 	const resolvedXScale: XScaleKind = kind === "bar" ? "band" : (xScale ?? detectXScale(data, xKey));
@@ -974,6 +983,34 @@ const ChartRootPrimitive = ({
 		return store.subscribe(write);
 	}, [store, decorative]);
 
+	// A chart inside a List lends its plot to the list's tooltip surface while a
+	// reader points at it or steps through it.
+	useEffect(() => {
+		const plot = plotRef.current;
+		if (list == null || !interactive || plot == null) {
+			return;
+		}
+		const entry: ChartListEntry = {
+			id: descriptionId,
+			plot,
+			slotName,
+			store,
+			xHasTimeOfDay,
+			attachTooltip,
+		};
+		const sync = () => {
+			if (store.getSnapshot().hover != null) {
+				list.showTooltip(entry);
+			}
+		};
+		sync();
+		const stop = store.subscribe(sync);
+		return () => {
+			stop();
+			list.releaseTooltip(descriptionId);
+		};
+	}, [list, interactive, descriptionId, slotName, store, xHasTimeOfDay, attachTooltip]);
+
 	// A dormant Root holds no engine, so it throws the key invariants itself:
 	// a typo must fail in the mount commit, not in the observer task that
 	// activates the chart. The signature skips the pass when nothing changed.
@@ -1175,14 +1212,11 @@ const ChartRootPrimitive = ({
 					    tooltip surface is React-rendered for the consumer's render prop,
 					    so it mounts on the first hover and stays while the chart is
 					    interactive. */}
-					{tooltipWanted && interactive && (
+					{tooltipWanted && interactive && list == null && (
 						<ChartTooltipSurface
 							slotName={slotName}
 							store={store}
-							tooltipRef={(element) => {
-								tooltipRef.current = element;
-								engineRef.current?.attachTooltip(element);
-							}}
+							tooltipRef={attachTooltip}
 							xHasTimeOfDay={xHasTimeOfDay}
 						/>
 					)}
@@ -1191,7 +1225,17 @@ const ChartRootPrimitive = ({
 				{/* Only an interactive chart announces or tabulates. The live region
 				    mounts with the Root, because a region that appears right before
 				    its first message is not announced. */}
-				{interactive && <ChartAnnouncer store={store} xHasTimeOfDay={xHasTimeOfDay} />}
+				{interactive && list == null && (
+					<ChartAnnouncer store={store} xHasTimeOfDay={xHasTimeOfDay} />
+				)}
+				{interactive && list != null && (
+					<ChartListAnnouncer
+						id={descriptionId}
+						list={list}
+						store={store}
+						xHasTimeOfDay={xHasTimeOfDay}
+					/>
+				)}
 				{/* Why last: the table mounts as an append, which a translation engine cannot break. */}
 				{interactive && engaged && (
 					<ChartDataTable
@@ -1206,6 +1250,83 @@ const ChartRootPrimitive = ({
 					/>
 				)}
 			</ChartContext.Provider>
+		</div>
+	);
+};
+
+// ---- list -------------------------------------------------------------------
+
+/** A chart inside a List, as the list's tooltip surface sees it. */
+type ChartListEntry = {
+	id: string;
+	/** The plot the surface mounts in while this chart shows it. */
+	plot: HTMLElement;
+	slotName: string;
+	store: ChartStore;
+	xHasTimeOfDay: boolean;
+	/** Hands the mounted surface to the chart's engine; `null` takes it back. */
+	attachTooltip: (element: HTMLDivElement | null) => void;
+};
+
+type ChartListContextValue = {
+	/** Move the tooltip surface into this chart. */
+	showTooltip: (entry: ChartListEntry) => void;
+	/** Take the surface out of a chart that unmounts. */
+	releaseTooltip: (id: string) => void;
+	/** Write one chart's announcement. An empty one clears only that chart's text. */
+	announce: (id: string, text: string) => void;
+};
+
+const ChartListContext = createContext<ChartListContextValue | null>(null);
+
+type ChartListPrimitiveProps = ComponentProps<"div"> & WithDataSlot;
+
+/**
+ * The List implementation: the charts inside it share one tooltip surface and
+ * one live region, so a page of 100 charts mounts one of each instead of one
+ * per chart a reader has pointed at.
+ */
+const ChartListPrimitive = ({
+	slotName,
+	"data-slot": dataSlot,
+	children,
+	...props
+}: ChartListPrimitiveProps & { slotName: string }) => {
+	const [active, setActive] = useState<ChartListEntry | null>(null);
+	const [announcement, setAnnouncement] = useState({ id: "", text: "" });
+	const [context] = useState<ChartListContextValue>(() => ({
+		showTooltip: (entry) => {
+			setActive((current) => (current?.id === entry.id ? current : entry));
+		},
+		releaseTooltip: (id) => {
+			setActive((current) => (current?.id === id ? null : current));
+		},
+		announce: (id, text) => {
+			setAnnouncement((current) => {
+				if (text === "" && current.id !== id) {
+					return current;
+				}
+				return current.id === id && current.text === text ? current : { id, text };
+			});
+		},
+	}));
+	return (
+		<div data-slot={joinDataSlot(dataSlot, slotName)} {...props}>
+			<ChartListContext.Provider value={context}>{children}</ChartListContext.Provider>
+			<span role="status" aria-live="polite" className="sr-only">
+				{announcement.text}
+			</span>
+			{active != null &&
+				createPortal(
+					<ChartTooltipSurface
+						key={active.id}
+						slotName={active.slotName}
+						store={active.store}
+						tooltipRef={active.attachTooltip}
+						xHasTimeOfDay={active.xHasTimeOfDay}
+					/>,
+					active.plot,
+				)}
 		</div>
 	);
 };
@@ -2011,20 +2132,9 @@ const ChartAnnouncer = ({
 		if (hover == null) {
 			return;
 		}
-		const values = hover.points
-			.map(
-				(point) => `${point.label}: ${point.value == null ? "no data" : formatNumber(point.value)}`,
-			)
-			.join(", ");
-		const zPart =
-			hover.zValue === undefined
-				? ""
-				: `, z: ${hover.zValue == null ? "no data" : formatNumber(hover.zValue)}`;
 		const timer = setTimeout(() => {
-			setAnnouncement(
-				`${formatXValue(hover.xValue, { datasetHasTimeOfDay: xHasTimeOfDay })}. ${values}${zPart}`,
-			);
-		}, 120);
+			setAnnouncement(announcementFor(hover, xHasTimeOfDay));
+		}, ANNOUNCE_DELAY_MS);
 		return () => clearTimeout(timer);
 	}, [hover, xHasTimeOfDay]);
 	return (
@@ -2032,6 +2142,54 @@ const ChartAnnouncer = ({
 			{announcement}
 		</span>
 	);
+};
+
+/** The wait before a keyboard step announces, so fast arrowing does not flood the reader. */
+const ANNOUNCE_DELAY_MS = 120;
+
+/** What a keyboard step announces: the x value, then each series' value. */
+const announcementFor = (hover: HoverSnapshot, xHasTimeOfDay: boolean): string => {
+	const values = hover.points
+		.map(
+			(point) => `${point.label}: ${point.value == null ? "no data" : formatNumber(point.value)}`,
+		)
+		.join(", ");
+	const zPart =
+		hover.zValue === undefined
+			? ""
+			: `, z: ${hover.zValue == null ? "no data" : formatNumber(hover.zValue)}`;
+	return `${formatXValue(hover.xValue, { datasetHasTimeOfDay: xHasTimeOfDay })}. ${values}${zPart}`;
+};
+
+/**
+ * The announcer of a chart inside a List: it writes to the list's one live
+ * region instead of rendering its own. It renders nothing.
+ */
+const ChartListAnnouncer = ({
+	id,
+	list,
+	store,
+	xHasTimeOfDay,
+}: {
+	id: string;
+	list: ChartListContextValue;
+	store: ChartStore;
+	xHasTimeOfDay: boolean;
+}) => {
+	const hover = useStoreKeyboardHover(store);
+	useEffect(() => {
+		// Why clear first: AT does not announce text that did not change, so a
+		// step back to the same datum must pass through an empty region.
+		list.announce(id, "");
+		if (hover == null) {
+			return;
+		}
+		const timer = setTimeout(() => {
+			list.announce(id, announcementFor(hover, xHasTimeOfDay));
+		}, ANNOUNCE_DELAY_MS);
+		return () => clearTimeout(timer);
+	}, [hover, id, list, xHasTimeOfDay]);
+	return null;
 };
 
 /**
@@ -2235,6 +2393,7 @@ const ChartDataTable = ({
 export type {
 	//,
 	ChartAccessibilityProps,
+	ChartListPrimitiveProps,
 	ChartMode,
 	ChartRendererProps,
 	ChartRootBaseProps,
@@ -2253,6 +2412,7 @@ export {
 	CHART_TABLE_ROW_LIMIT,
 	ChartCopyButtonPrimitive,
 	ChartLegendPrimitive,
+	ChartListPrimitive,
 	ChartRootPrimitive,
 	useGridPrimitive,
 	useReferenceLinePrimitive,

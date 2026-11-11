@@ -13,6 +13,7 @@ export type {
 	BarChartCopyButtonProps,
 	BarChartGridProps,
 	BarChartLegendProps,
+	BarChartListProps,
 	BarChartReferenceLineProps,
 	BarChartRootProps,
 	BarChartTooltipProps,

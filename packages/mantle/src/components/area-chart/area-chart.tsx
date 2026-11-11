@@ -2,6 +2,7 @@
 
 import type {
 	ChartAccessibilityProps,
+	ChartListPrimitiveProps,
 	ChartMode,
 	ChartRendererProps,
 	ChartRootBaseProps,
@@ -26,6 +27,7 @@ import { paintBackendSource } from "../chart/backends.js";
 import {
 	ChartCopyButtonPrimitive,
 	ChartLegendPrimitive,
+	ChartListPrimitive,
 	ChartRootPrimitive,
 	useGridPrimitive,
 	useReferenceLinePrimitive,
@@ -34,6 +36,11 @@ import {
 	useXAxisPrimitive,
 	useYAxisPrimitive,
 } from "../chart/primitive.js";
+
+/**
+ * Props for {@link AreaChart.List}.
+ */
+type AreaChartListProps = ChartListPrimitiveProps;
 
 /**
  * Props for {@link AreaChart.Root}. Areas fill from a shared zero baseline, so
@@ -438,6 +445,33 @@ const CopyButton = (props: AreaChartCopyButtonProps) => (
 );
 
 /**
+ * Groups a list of charts, such as one chart per card, so they share one
+ * tooltip surface and one live region. The surface moves into the chart a
+ * reader points at or steps through, so a page of 100 charts mounts one
+ * tooltip and one `role="status"` region instead of one per chart. Each chart
+ * keeps its own Tooltip part, description, and data table.
+ *
+ * Renders a `div` wrapper with the live region as its last child.
+ *
+ * @see https://mantle.ngrok.com/components/charts/area-chart#areachartlist
+ *
+ * @example
+ * ```tsx
+ * <AreaChart.List>
+ *   {agents.map((agent) => (
+ *     <AreaChart.Root key={agent.id} data={agent.rows} xKey="date" aria-label={agent.name}>
+ *       <AreaChart.Area dataKey="http" label="HTTP" />
+ *       <AreaChart.Tooltip />
+ *     </AreaChart.Root>
+ *   ))}
+ * </AreaChart.List>
+ * ```
+ */
+const List = (props: AreaChartListProps) => (
+	<ChartListPrimitive slotName="area-chart-list" {...props} />
+);
+
+/**
  * A canvas-rendered area chart for showing how values — and, when stacked, a
  * total and its parts — change over a continuous x axis. Each area fills with
  * a 10% wash of the series color plus a 2px band-edge stroke; the Root-level
@@ -679,6 +713,25 @@ const AreaChart = {
 	 * ```
 	 */
 	CopyButton,
+	/**
+	 * Groups a list of charts so they share one tooltip surface and one live
+	 * region.
+	 *
+	 * @see https://mantle.ngrok.com/components/charts/area-chart#areachartlist
+	 *
+	 * @example
+	 * ```tsx
+	 * <AreaChart.List>
+	 *   {agents.map((agent) => (
+	 *     <AreaChart.Root key={agent.id} data={agent.rows} xKey="date" aria-label={agent.name}>
+	 *       <AreaChart.Area dataKey="http" label="HTTP" />
+	 *       <AreaChart.Tooltip />
+	 *     </AreaChart.Root>
+	 *   ))}
+	 * </AreaChart.List>
+	 * ```
+	 */
+	List,
 } as const;
 
 export type {
@@ -687,6 +740,7 @@ export type {
 	AreaChartCopyButtonProps,
 	AreaChartGridProps,
 	AreaChartLegendProps,
+	AreaChartListProps,
 	AreaChartReferenceLineProps,
 	AreaChartRootProps,
 	AreaChartTooltipProps,

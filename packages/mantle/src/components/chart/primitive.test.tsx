@@ -836,3 +836,66 @@ describe("data-table caption", () => {
 		expect(caption?.textContent).not.toContain("chart data — chart data");
 	});
 });
+
+describe("List", () => {
+	const renderList = () =>
+		render(
+			<BarChart.List>
+				{["Ingress", "Egress"].map((name) => (
+					<BarChart.Root key={name} data={data} xKey="month" aria-label={name}>
+						<BarChart.Bar dataKey="desktop" label="Desktop" />
+					</BarChart.Root>
+				))}
+			</BarChart.List>,
+		);
+
+	/** The plot of the chart named `name`. */
+	const plotOf = (name: string): HTMLElement => {
+		const plot = screen.getByRole("application", { name }).parentElement;
+		if (!(plot instanceof HTMLElement)) {
+			throw new Error(`expected the "${name}" chart to render its plot`);
+		}
+		return plot;
+	};
+
+	test("its charts share one live region, which reads the step a reader took", async () => {
+		const user = userEvent.setup();
+		const { container } = renderList();
+		// A region per chart would count three: the list's and one in each chart.
+		expect(container.querySelectorAll('[role="status"]')).toHaveLength(1);
+		const region = screen.getByRole("status");
+		await user.tab();
+		await user.keyboard("{ArrowRight}");
+		// The announcement waits out a short debounce, so the wait names the text.
+		await waitFor(() => expect(region).toHaveTextContent("January. Desktop: 186"));
+		await user.tab();
+		await user.keyboard("{End}");
+		await waitFor(() => expect(region).toHaveTextContent("March. Desktop: 237"));
+	});
+
+	test("one tooltip surface moves into the chart a reader steps through", async () => {
+		const user = userEvent.setup();
+		const { container } = renderList();
+		expect(container.querySelector('[data-slot="bar-chart-tooltip"]')).toBeNull();
+		await user.tab();
+		await user.keyboard("{ArrowRight}");
+		const first = container.querySelector('[data-slot="bar-chart-tooltip"]');
+		expect(plotOf("Ingress").contains(first)).toBe(true);
+		expect(first).toHaveTextContent("186");
+		expect(first).toHaveStyle({ opacity: "1" });
+
+		await user.tab();
+		await user.keyboard("{End}");
+		const surfaces = container.querySelectorAll('[data-slot="bar-chart-tooltip"]');
+		expect(surfaces).toHaveLength(1);
+		expect(plotOf("Egress").contains(surfaces[0] ?? null)).toBe(true);
+		// The engine that now holds the surface positions it and reveals it.
+		expect(surfaces[0]).toHaveTextContent("237");
+		expect(surfaces[0]).toHaveStyle({ opacity: "1" });
+	});
+
+	test("the list wrapper carries the family's slot", () => {
+		const { container } = renderList();
+		expect(container.firstElementChild).toHaveAttribute("data-slot", "bar-chart-list");
+	});
+});

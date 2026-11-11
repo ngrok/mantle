@@ -2,6 +2,7 @@
 
 import type {
 	ChartAccessibilityProps,
+	ChartListPrimitiveProps,
 	ChartMode,
 	ChartRendererProps,
 	ChartRootBaseProps,
@@ -25,6 +26,7 @@ import { paintBackendSource } from "../chart/backends.js";
 import {
 	ChartCopyButtonPrimitive,
 	ChartLegendPrimitive,
+	ChartListPrimitive,
 	ChartRootPrimitive,
 	useGridPrimitive,
 	useReferenceLinePrimitive,
@@ -33,6 +35,11 @@ import {
 	useXAxisPrimitive,
 	useYAxisPrimitive,
 } from "../chart/primitive.js";
+
+/**
+ * Props for {@link BarChart.List}.
+ */
+type BarChartListProps = ChartListPrimitiveProps;
 
 /**
  * Props for {@link BarChart.Root}. Bars encode value by length from a shared
@@ -433,6 +440,33 @@ const CopyButton = (props: BarChartCopyButtonProps) => (
 );
 
 /**
+ * Groups a list of charts, such as one chart per card, so they share one
+ * tooltip surface and one live region. The surface moves into the chart a
+ * reader points at or steps through, so a page of 100 charts mounts one
+ * tooltip and one `role="status"` region instead of one per chart. Each chart
+ * keeps its own Tooltip part, description, and data table.
+ *
+ * Renders a `div` wrapper with the live region as its last child.
+ *
+ * @see https://mantle.ngrok.com/components/charts/bar-chart#barchartlist
+ *
+ * @example
+ * ```tsx
+ * <BarChart.List>
+ *   {agents.map((agent) => (
+ *     <BarChart.Root key={agent.id} data={agent.rows} xKey="month" aria-label={agent.name}>
+ *       <BarChart.Bar dataKey="desktop" label="Desktop" />
+ *       <BarChart.Tooltip />
+ *     </BarChart.Root>
+ *   ))}
+ * </BarChart.List>
+ * ```
+ */
+const List = (props: BarChartListProps) => (
+	<ChartListPrimitive slotName="bar-chart-list" {...props} />
+);
+
+/**
  * A canvas-rendered bar chart for comparing values across categories, with
  * grouped and stacked variants. Series colors come from the theme's validated
  * `--color-chart-*` tokens; bars keep a fixed slot color for the chart's
@@ -678,6 +712,25 @@ const BarChart = {
 	 * ```
 	 */
 	CopyButton,
+	/**
+	 * Groups a list of charts so they share one tooltip surface and one live
+	 * region.
+	 *
+	 * @see https://mantle.ngrok.com/components/charts/bar-chart#barchartlist
+	 *
+	 * @example
+	 * ```tsx
+	 * <BarChart.List>
+	 *   {agents.map((agent) => (
+	 *     <BarChart.Root key={agent.id} data={agent.rows} xKey="month" aria-label={agent.name}>
+	 *       <BarChart.Bar dataKey="desktop" label="Desktop" />
+	 *       <BarChart.Tooltip />
+	 *     </BarChart.Root>
+	 *   ))}
+	 * </BarChart.List>
+	 * ```
+	 */
+	List,
 } as const;
 
 export type {
@@ -686,6 +739,7 @@ export type {
 	BarChartCopyButtonProps,
 	BarChartGridProps,
 	BarChartLegendProps,
+	BarChartListProps,
 	BarChartReferenceLineProps,
 	BarChartRootProps,
 	BarChartTooltipProps,

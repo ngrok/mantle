@@ -2,6 +2,7 @@
 
 import type {
 	ChartAccessibilityProps,
+	ChartListPrimitiveProps,
 	ChartMode,
 	ChartRootBaseProps,
 	CopyButtonPrimitiveProps,
@@ -24,6 +25,7 @@ import type { PaintBackendSource } from "../chart/paint-backend.js";
 import {
 	ChartCopyButtonPrimitive,
 	ChartLegendPrimitive,
+	ChartListPrimitive,
 	ChartRootPrimitive,
 	useGridPrimitive,
 	useReferenceLinePrimitive,
@@ -32,6 +34,11 @@ import {
 	useXAxisPrimitive,
 	useYAxisPrimitive,
 } from "../chart/primitive.js";
+
+/**
+ * Props for {@link ScatterPlot.List}.
+ */
+type ScatterPlotListProps = ChartListPrimitiveProps;
 
 /**
  * Props for {@link ScatterPlot.Root}. Scatter x values must be continuous
@@ -439,6 +446,33 @@ const CopyButton = (props: ScatterPlotCopyButtonProps) => (
 );
 
 /**
+ * Groups a list of charts, such as one chart per card, so they share one
+ * tooltip surface and one live region. The surface moves into the chart a
+ * reader points at or steps through, so a page of 100 charts mounts one
+ * tooltip and one `role="status"` region instead of one per chart. Each chart
+ * keeps its own Tooltip part, description, and data table.
+ *
+ * Renders a `div` wrapper with the live region as its last child.
+ *
+ * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterplotlist
+ *
+ * @example
+ * ```tsx
+ * <ScatterPlot.List>
+ *   {agents.map((agent) => (
+ *     <ScatterPlot.Root key={agent.id} data={agent.rows} xKey="latency" aria-label={agent.name}>
+ *       <ScatterPlot.Point dataKey="throughputA" label="Region A" />
+ *       <ScatterPlot.Tooltip />
+ *     </ScatterPlot.Root>
+ *   ))}
+ * </ScatterPlot.List>
+ * ```
+ */
+const List = (props: ScatterPlotListProps) => (
+	<ChartListPrimitive slotName="scatter-plot-list" {...props} />
+);
+
+/**
  * A canvas-rendered scatter plot for correlating two measures — three with
  * the 3D projection (`zKey`), which renders a rotatable, depth-sorted point
  * cloud (drag to orbit). Hover hits the nearest point within 24px; keyboard
@@ -673,6 +707,25 @@ const ScatterPlot = {
 	 * ```
 	 */
 	CopyButton,
+	/**
+	 * Groups a list of charts so they share one tooltip surface and one live
+	 * region.
+	 *
+	 * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterplotlist
+	 *
+	 * @example
+	 * ```tsx
+	 * <ScatterPlot.List>
+	 *   {agents.map((agent) => (
+	 *     <ScatterPlot.Root key={agent.id} data={agent.rows} xKey="latency" aria-label={agent.name}>
+	 *       <ScatterPlot.Point dataKey="throughputA" label="Region A" />
+	 *       <ScatterPlot.Tooltip />
+	 *     </ScatterPlot.Root>
+	 *   ))}
+	 * </ScatterPlot.List>
+	 * ```
+	 */
+	List,
 } as const;
 
 export type {
@@ -682,6 +735,7 @@ export type {
 	ScatterPlotCopyButtonProps,
 	ScatterPlotGridProps,
 	ScatterPlotLegendProps,
+	ScatterPlotListProps,
 	ScatterPlotPointProps,
 	ScatterPlotReferenceLineProps,
 	ScatterPlotRootProps,

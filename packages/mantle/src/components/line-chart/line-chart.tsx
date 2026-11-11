@@ -2,6 +2,7 @@
 
 import type {
 	ChartAccessibilityProps,
+	ChartListPrimitiveProps,
 	ChartMode,
 	ChartRendererProps,
 	ChartRootBaseProps,
@@ -26,6 +27,7 @@ import { paintBackendSource } from "../chart/backends.js";
 import {
 	ChartCopyButtonPrimitive,
 	ChartLegendPrimitive,
+	ChartListPrimitive,
 	ChartRootPrimitive,
 	useGridPrimitive,
 	useReferenceLinePrimitive,
@@ -34,6 +36,11 @@ import {
 	useXAxisPrimitive,
 	useYAxisPrimitive,
 } from "../chart/primitive.js";
+
+/**
+ * Props for {@link LineChart.List}.
+ */
+type LineChartListProps = ChartListPrimitiveProps;
 
 /**
  * Props for {@link LineChart.Root}. Lines encode value by vertical position,
@@ -428,6 +435,33 @@ const CopyButton = (props: LineChartCopyButtonProps) => (
 );
 
 /**
+ * Groups a list of charts, such as one chart per card, so they share one
+ * tooltip surface and one live region. The surface moves into the chart a
+ * reader points at or steps through, so a page of 100 charts mounts one
+ * tooltip and one `role="status"` region instead of one per chart. Each chart
+ * keeps its own Tooltip part, description, and data table.
+ *
+ * Renders a `div` wrapper with the live region as its last child.
+ *
+ * @see https://mantle.ngrok.com/components/charts/line-chart#linechartlist
+ *
+ * @example
+ * ```tsx
+ * <LineChart.List>
+ *   {agents.map((agent) => (
+ *     <LineChart.Root key={agent.id} data={agent.rows} xKey="time" aria-label={agent.name}>
+ *       <LineChart.Line dataKey="p50" label="p50" />
+ *       <LineChart.Tooltip />
+ *     </LineChart.Root>
+ *   ))}
+ * </LineChart.List>
+ * ```
+ */
+const List = (props: LineChartListProps) => (
+	<ChartListPrimitive slotName="line-chart-list" {...props} />
+);
+
+/**
  * A canvas-rendered line chart for trends over a continuous x — time above
  * all. Series colors come from the theme's validated `--color-chart-*`
  * tokens; lines keep a fixed slot color for the chart's lifetime even as
@@ -667,6 +701,25 @@ const LineChart = {
 	 * ```
 	 */
 	CopyButton,
+	/**
+	 * Groups a list of charts so they share one tooltip surface and one live
+	 * region.
+	 *
+	 * @see https://mantle.ngrok.com/components/charts/line-chart#linechartlist
+	 *
+	 * @example
+	 * ```tsx
+	 * <LineChart.List>
+	 *   {agents.map((agent) => (
+	 *     <LineChart.Root key={agent.id} data={agent.rows} xKey="time" aria-label={agent.name}>
+	 *       <LineChart.Line dataKey="p50" label="p50" />
+	 *       <LineChart.Tooltip />
+	 *     </LineChart.Root>
+	 *   ))}
+	 * </LineChart.List>
+	 * ```
+	 */
+	List,
 } as const;
 
 export type {
@@ -676,6 +729,7 @@ export type {
 	LineChartCopyButtonProps,
 	LineChartGridProps,
 	LineChartLegendProps,
+	LineChartListProps,
 	LineChartLineProps,
 	LineChartReferenceLineProps,
 	LineChartRootProps,
