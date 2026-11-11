@@ -4,7 +4,6 @@ import type {
 	ChartAccessibilityProps,
 	ChartListPrimitiveProps,
 	ChartMode,
-	ChartRendererProps,
 	ChartRootBaseProps,
 	CopyButtonPrimitiveProps,
 	GridPrimitiveProps,
@@ -22,7 +21,7 @@ import type {
 	ChartSeriesSlot,
 	SeriesColor,
 } from "../chart/types.js";
-import { paintBackendSource } from "../chart/backends.js";
+import { createSvgBackend } from "../chart/svg-backend.js";
 import {
 	ChartCopyButtonPrimitive,
 	ChartLegendPrimitive,
@@ -50,8 +49,7 @@ type BarChartRootProps<
 	TDatum extends ChartDatum = ChartDatum,
 	TMode extends ChartMode = "interactive",
 > = Omit<ChartRootBaseProps, "yDomain"> &
-	ChartAccessibilityProps<TMode> &
-	ChartRendererProps & {
+	ChartAccessibilityProps<TMode> & {
 		/** Rows of data; each `BarChart.Bar` reads one numeric key per row. */
 		data: readonly TDatum[];
 		/**
@@ -184,7 +182,7 @@ type BarChartCopyButtonProps = CopyButtonPrimitiveProps;
  * tables until a reader asks for one.
  *
  * The Root's own subtree is addressable by slot: `bar-chart` on the wrapper,
- * then `bar-chart-plot`, `bar-chart-svg` (`bar-chart-canvas` with `renderer="canvas"`),
+ * then `bar-chart-plot`, `bar-chart-svg`,
  * `bar-chart-crosshair`,
  * `bar-chart-hover-band`, `bar-chart-markers`, `bar-chart-tooltip`,
  * `bar-chart-description`, and, once focus lands inside the chart,
@@ -230,7 +228,7 @@ const Root = <TDatum extends ChartDatum = ChartDatum, TMode extends ChartMode = 
 		kind="bar"
 		componentName="BarChart"
 		slotName="bar-chart"
-		paintBackend={paintBackendSource(props.renderer ?? "svg")}
+		paintBackend={createSvgBackend}
 		{...props}
 	/>
 );

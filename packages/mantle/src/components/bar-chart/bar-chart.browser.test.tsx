@@ -5,6 +5,7 @@ import { findChartCanvas } from "../../test-utils/find-chart-canvas.js";
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import type { MockInstance } from "vitest";
 import { BarChart } from "./bar-chart.js";
+import { CanvasBarChartRoot } from "../../test-utils/canvas-chart-roots.js";
 
 /**
  * Real-browser canvas tests: the paint pipeline (device-pixel sizing via
@@ -208,19 +209,13 @@ const pressAt = (overlay: HTMLElement, cssX: number, cssY: number): void => {
 const renderChart = () =>
 	render(
 		<div style={{ width: 600, height: 300 }}>
-			<BarChart.Root
-				renderer="canvas"
-				data={data}
-				xKey="month"
-				animate={false}
-				aria-label="Visitors by month"
-			>
+			<CanvasBarChartRoot data={data} xKey="month" animate={false} aria-label="Visitors by month">
 				<BarChart.Grid />
 				<BarChart.XAxis />
 				<BarChart.YAxis />
 				<BarChart.Bar dataKey="desktop" label="Desktop" />
 				<BarChart.Tooltip />
-			</BarChart.Root>
+			</CanvasBarChartRoot>
 		</div>,
 	);
 
@@ -316,8 +311,7 @@ describe("overriding a chart color token", () => {
 		render(
 			<>
 				<div style={{ width: 600, height: 300 }}>
-					<BarChart.Root
-						renderer="canvas"
+					<CanvasBarChartRoot
 						data={data}
 						xKey="month"
 						animate={false}
@@ -325,18 +319,12 @@ describe("overriding a chart color token", () => {
 						className="scoped-chart-1"
 					>
 						<BarChart.Bar dataKey="desktop" label="Desktop" />
-					</BarChart.Root>
+					</CanvasBarChartRoot>
 				</div>
 				<div style={{ width: 600, height: 300 }}>
-					<BarChart.Root
-						renderer="canvas"
-						data={data}
-						xKey="month"
-						animate={false}
-						aria-label="Default"
-					>
+					<CanvasBarChartRoot data={data} xKey="month" animate={false} aria-label="Default">
 						<BarChart.Bar dataKey="desktop" label="Desktop" />
-					</BarChart.Root>
+					</CanvasBarChartRoot>
 				</div>
 			</>,
 		);
@@ -383,8 +371,7 @@ describe("BarChart yDomain", () => {
 	test("an explicit yDomain caps the value axis above the data", async () => {
 		render(
 			<div style={{ width: 600, height: 300 }}>
-				<BarChart.Root
-					renderer="canvas"
+				<CanvasBarChartRoot
 					data={data}
 					xKey="month"
 					yDomain={[0, 1000]}
@@ -393,7 +380,7 @@ describe("BarChart yDomain", () => {
 				>
 					<BarChart.YAxis />
 					<BarChart.Bar dataKey="desktop" label="Desktop" />
-				</BarChart.Root>
+				</CanvasBarChartRoot>
 			</div>,
 		);
 		// The data tops out at 305, so a painted 1,000 tick can only come from the
@@ -409,8 +396,7 @@ describe("BarChart pointer activation", () => {
 		const onDatumActivate = vi.fn<(event: { index: number; dataKey: string | null }) => void>();
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
-				<BarChart.Root
-					renderer="canvas"
+				<CanvasBarChartRoot
 					data={[{ month: "January", desktop: 186, mobile: 80 }]}
 					xKey="month"
 					animate={false}
@@ -419,7 +405,7 @@ describe("BarChart pointer activation", () => {
 				>
 					<BarChart.Bar dataKey="desktop" label="Desktop" />
 					<BarChart.Bar dataKey="mobile" label="Mobile" />
-				</BarChart.Root>
+				</CanvasBarChartRoot>
 			</div>,
 		);
 		const canvas = await findChartCanvas(container);
@@ -463,8 +449,7 @@ describe("BarChart decimated keyboard stride", () => {
 		const onActiveIndexChange = vi.fn<(index: number | null) => void>();
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
-				<BarChart.Root
-					renderer="canvas"
+				<CanvasBarChartRoot
 					data={rows}
 					xKey="month"
 					animate={false}
@@ -472,7 +457,7 @@ describe("BarChart decimated keyboard stride", () => {
 					onActiveIndexChange={onActiveIndexChange}
 				>
 					<BarChart.Bar dataKey="desktop" label="Desktop" />
-				</BarChart.Root>
+				</CanvasBarChartRoot>
 			</div>,
 		);
 		const canvas = await findChartCanvas(container);

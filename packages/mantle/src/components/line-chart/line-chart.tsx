@@ -4,7 +4,6 @@ import type {
 	ChartAccessibilityProps,
 	ChartListPrimitiveProps,
 	ChartMode,
-	ChartRendererProps,
 	ChartRootBaseProps,
 	CopyButtonPrimitiveProps,
 	GridPrimitiveProps,
@@ -23,7 +22,7 @@ import type {
 	PointShape,
 	SeriesColor,
 } from "../chart/types.js";
-import { paintBackendSource } from "../chart/backends.js";
+import { createSvgBackend } from "../chart/svg-backend.js";
 import {
 	ChartCopyButtonPrimitive,
 	ChartLegendPrimitive,
@@ -51,8 +50,7 @@ type LineChartRootProps<
 	TDatum extends ChartDatum = ChartDatum,
 	TMode extends ChartMode = "interactive",
 > = Omit<ChartRootBaseProps, "stacked"> &
-	ChartAccessibilityProps<TMode> &
-	ChartRendererProps & {
+	ChartAccessibilityProps<TMode> & {
 		/** Rows of data; each `LineChart.Line` reads one numeric key per row. */
 		data: readonly TDatum[];
 		/**
@@ -183,7 +181,7 @@ type LineChartCopyButtonProps = CopyButtonPrimitiveProps;
  * tables until a reader asks for one.
  *
  * The Root's own subtree is addressable by slot: `line-chart` on the wrapper,
- * then `line-chart-plot`, `line-chart-svg` (`line-chart-canvas` with `renderer="canvas"`),
+ * then `line-chart-plot`, `line-chart-svg`,
  * `line-chart-crosshair`,
  * `line-chart-hover-band`, `line-chart-markers`, `line-chart-tooltip`,
  * `line-chart-description`, and, once focus lands inside the chart,
@@ -233,7 +231,7 @@ const Root = <TDatum extends ChartDatum = ChartDatum, TMode extends ChartMode = 
 		kind="line"
 		componentName="LineChart"
 		slotName="line-chart"
-		paintBackend={paintBackendSource(props.renderer ?? "svg")}
+		paintBackend={createSvgBackend}
 		{...props}
 	/>
 );

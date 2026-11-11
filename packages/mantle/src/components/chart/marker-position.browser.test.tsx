@@ -8,6 +8,11 @@ import { BarChart } from "../bar-chart/index.js";
 import { LineChart } from "../line-chart/index.js";
 import { ScatterPlot } from "../scatter-plot/index.js";
 import { POINT_SHAPE_CLIP_PATHS } from "./engine.js";
+import {
+	CanvasAreaChartRoot,
+	CanvasBarChartRoot,
+	CanvasLineChartRoot,
+} from "../../test-utils/canvas-chart-roots.js";
 
 /**
  * Real-browser marker tests: the active-point dots are DOM overlay elements
@@ -184,8 +189,7 @@ describe("hover marker geometry", () => {
 		// the plot bottom, detached from their painted bands.
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
-				<AreaChart.Root
-					renderer="canvas"
+				<CanvasAreaChartRoot
 					data={protocolData}
 					xKey="day"
 					stacked
@@ -195,7 +199,7 @@ describe("hover marker geometry", () => {
 					<AreaChart.Area dataKey="http" label="HTTP" />
 					<AreaChart.Area dataKey="tcp" label="TCP" />
 					<AreaChart.Area dataKey="tls" label="TLS" />
-				</AreaChart.Root>
+				</CanvasAreaChartRoot>
 			</div>,
 		);
 		await assertDatumGeometry(container, "Home", () => {
@@ -216,17 +220,11 @@ describe("hover marker geometry", () => {
 	test("unstacked area dots sit at raw value heights", async () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
-				<AreaChart.Root
-					renderer="canvas"
-					data={protocolData}
-					xKey="day"
-					animate={false}
-					aria-label="Traffic"
-				>
+				<CanvasAreaChartRoot data={protocolData} xKey="day" animate={false} aria-label="Traffic">
 					<AreaChart.Area dataKey="http" label="HTTP" />
 					<AreaChart.Area dataKey="tcp" label="TCP" />
 					<AreaChart.Area dataKey="tls" label="TLS" />
-				</AreaChart.Root>
+				</CanvasAreaChartRoot>
 			</div>,
 		);
 		await assertDatumGeometry(container, "Home", () => {
@@ -243,8 +241,7 @@ describe("hover marker geometry", () => {
 	test("line dots sit at each series' value height", async () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
-				<LineChart.Root
-					renderer="canvas"
+				<CanvasLineChartRoot
 					data={[
 						{ t: 1, p50: 10, p99: 90 },
 						{ t: 2, p50: 12, p99: 95 },
@@ -255,7 +252,7 @@ describe("hover marker geometry", () => {
 				>
 					<LineChart.Line dataKey="p50" label="p50" />
 					<LineChart.Line dataKey="p99" label="p99" />
-				</LineChart.Root>
+				</CanvasLineChartRoot>
 			</div>,
 		);
 		await assertDatumGeometry(container, "Home", () => {
@@ -275,8 +272,7 @@ describe("hover marker geometry", () => {
 		// painted after the pointer leaves).
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
-				<LineChart.Root
-					renderer="canvas"
+				<CanvasLineChartRoot
 					data={[
 						{ t: 1, p50: 10, p99: 90 },
 						{ t: 2, p50: 12, p99: 95 },
@@ -287,7 +283,7 @@ describe("hover marker geometry", () => {
 				>
 					<LineChart.Line dataKey="p50" label="p50" />
 					<LineChart.Line dataKey="p99" label="p99" />
-				</LineChart.Root>
+				</CanvasLineChartRoot>
 			</div>,
 		);
 		await assertDatumGeometry(container, "Home", () => {
@@ -309,8 +305,7 @@ describe("hover marker geometry", () => {
 		// corner, claiming a point the tooltip reports as an em dash.
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
-				<LineChart.Root
-					renderer="canvas"
+				<CanvasLineChartRoot
 					data={[
 						{ t: 1, p50: 10, p99: null },
 						{ t: 2, p50: 12, p99: 95 },
@@ -321,7 +316,7 @@ describe("hover marker geometry", () => {
 				>
 					<LineChart.Line dataKey="p50" label="p50" />
 					<LineChart.Line dataKey="p99" label="p99" />
-				</LineChart.Root>
+				</CanvasLineChartRoot>
 			</div>,
 		);
 		await assertDatumGeometry(container, "Home", () => {
@@ -343,8 +338,7 @@ describe("hover marker geometry", () => {
 	test("hover dots wear each series' configured shape", async () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
-				<LineChart.Root
-					renderer="canvas"
+				<CanvasLineChartRoot
 					data={[
 						{ t: 1, p50: 10, p99: 90 },
 						{ t: 2, p50: 12, p99: 95 },
@@ -355,7 +349,7 @@ describe("hover marker geometry", () => {
 				>
 					<LineChart.Line dataKey="p50" label="p50" shape="triangle" />
 					<LineChart.Line dataKey="p99" label="p99" shape="diamond" />
-				</LineChart.Root>
+				</CanvasLineChartRoot>
 			</div>,
 		);
 		await assertDatumGeometry(container, "Home", () => {
@@ -374,8 +368,7 @@ describe("hover marker geometry", () => {
 		// the order it registered in.
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
-				<LineChart.Root
-					renderer="canvas"
+				<CanvasLineChartRoot
 					data={[
 						{ t: 1, p50: 10, p99: 50, p999: 90 },
 						{ t: 2, p50: 12, p99: 55, p999: 95 },
@@ -387,7 +380,7 @@ describe("hover marker geometry", () => {
 					<LineChart.Line dataKey="p50" label="p50" />
 					<LineChart.Line dataKey="p99" label="p99" />
 					<LineChart.Line dataKey="p999" label="p999" seriesSlot={6} />
-				</LineChart.Root>
+				</CanvasLineChartRoot>
 			</div>,
 		);
 		await assertDatumGeometry(container, "Home", () => {
@@ -405,8 +398,7 @@ describe("hover marker geometry", () => {
 		// against the engine's table, which the legend key reads too.
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
-				<LineChart.Root
-					renderer="canvas"
+				<CanvasLineChartRoot
 					data={[
 						{ t: 1, p50: 10, p99: 90 },
 						{ t: 2, p50: 12, p99: 95 },
@@ -417,7 +409,7 @@ describe("hover marker geometry", () => {
 				>
 					<LineChart.Line dataKey="p50" label="p50" shape="star" />
 					<LineChart.Line dataKey="p99" label="p99" />
-				</LineChart.Root>
+				</CanvasLineChartRoot>
 			</div>,
 		);
 		await assertDatumGeometry(container, "Home", () => {
@@ -447,8 +439,7 @@ describe("hover marker geometry", () => {
 		const cardColor = "rgb(1, 2, 3)";
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
-				<LineChart.Root
-					renderer="canvas"
+				<CanvasLineChartRoot
 					data={[
 						{ t: 1, p50: 10, p99: 90 },
 						{ t: 2, p50: 12, p99: 95 },
@@ -459,7 +450,7 @@ describe("hover marker geometry", () => {
 				>
 					<LineChart.Line dataKey="p50" label="p50" />
 					<LineChart.Line dataKey="p99" label="p99" />
-				</LineChart.Root>
+				</CanvasLineChartRoot>
 			</div>,
 		);
 		container.style.setProperty("--background-color-card", cardColor);
@@ -521,8 +512,7 @@ describe("hover marker geometry", () => {
 	test("bar charts never render dots — the category band is the hover affordance", async () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
-				<BarChart.Root
-					renderer="canvas"
+				<CanvasBarChartRoot
 					data={[
 						{ month: "Jan", desktop: 186 },
 						{ month: "Feb", desktop: 305 },
@@ -532,7 +522,7 @@ describe("hover marker geometry", () => {
 					aria-label="Visitors"
 				>
 					<BarChart.Bar dataKey="desktop" label="Desktop" />
-				</BarChart.Root>
+				</CanvasBarChartRoot>
 			</div>,
 		);
 		const canvas = await findChartCanvas(container);
@@ -637,15 +627,14 @@ describe("line canvas markers", () => {
 					] as const
 				).map(([name, shape]) => (
 					<div key={name} data-line={name} style={{ width: 400, height: 240 }}>
-						<LineChart.Root
-							renderer="canvas"
+						<CanvasLineChartRoot
 							data={latency}
 							xKey="t"
 							animate={false}
 							aria-label={`${name} line`}
 						>
 							<LineChart.Line dataKey="p50" label="p50" seriesSlot={8} markers shape={shape} />
-						</LineChart.Root>
+						</CanvasLineChartRoot>
 					</div>
 				))}
 			</div>,

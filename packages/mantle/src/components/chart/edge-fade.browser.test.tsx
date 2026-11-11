@@ -1,6 +1,7 @@
 "use client";
 
 import { render, waitFor } from "@testing-library/react";
+import { CanvasAreaChartRoot, CanvasLineChartRoot } from "../../test-utils/canvas-chart-roots.js";
 import { findChartCanvas } from "../../test-utils/find-chart-canvas.js";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { AreaChart } from "../area-chart/index.js";
@@ -103,15 +104,9 @@ const Chart = ({
 }) => (
 	<div style={{ width: 600, height: 300 }}>
 		{/* animate=false so the fade strength snaps: deterministic pixels. */}
-		<AreaChart.Root
-			renderer="canvas"
-			data={data}
-			xKey="x"
-			animate={animate}
-			aria-label="Live traffic"
-		>
+		<CanvasAreaChartRoot data={data} xKey="x" animate={animate} aria-label="Live traffic">
 			<AreaChart.Area dataKey="value" label="Value" />
-		</AreaChart.Root>
+		</CanvasAreaChartRoot>
 	</div>
 );
 
@@ -123,16 +118,10 @@ const Chart = ({
  */
 const GriddedChart = ({ data }: { data: Array<{ x: number; value: number }> }) => (
 	<div style={{ width: 600, height: 300 }}>
-		<LineChart.Root
-			renderer="canvas"
-			data={data}
-			xKey="x"
-			animate={false}
-			aria-label="Live traffic"
-		>
+		<CanvasLineChartRoot data={data} xKey="x" animate={false} aria-label="Live traffic">
 			<LineChart.Grid />
 			<LineChart.Line dataKey="value" label="Value" color="chart-1" />
-		</LineChart.Root>
+		</CanvasLineChartRoot>
 	</div>
 );
 

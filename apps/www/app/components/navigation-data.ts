@@ -542,7 +542,7 @@ export const migrations = [
 		slug: "chart-svg-renderer-migration",
 		title: "Chart SVG Renderer",
 		description:
-			'Bar, Line, and Area charts paint an svg instead of a canvas. Update selectors and tests that read the canvas, or set renderer="canvas".',
+			"Bar, Line, and Area charts paint an svg instead of a canvas. Update selectors and tests that read the canvas.",
 		route: "/migrations/0013-chart-svg-renderer-migration",
 	},
 ] as const satisfies readonly Migration[];

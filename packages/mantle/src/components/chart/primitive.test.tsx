@@ -14,6 +14,7 @@ import { datumValue } from "./datum.js";
 import { ChartStore } from "./store.js";
 import { ValueTween } from "./tween.js";
 import type { HoverSnapshot, SeriesMeta } from "./types.js";
+import { CanvasBarChartRoot } from "../../test-utils/canvas-chart-roots.js";
 
 // Why a spied module: `datumValue` is the single read point for chart rows. The
 // engine reads them once at ingest, so after mount every call comes from a
@@ -552,15 +553,14 @@ describe("activation outside React", () => {
 		const user = userEvent.setup();
 		const { container } = render(
 			<>
-				<BarChart.Root data={data} xKey="month" aria-label="Visitors by month" renderer="canvas">
+				<CanvasBarChartRoot data={data} xKey="month" aria-label="Visitors by month">
 					<BarChart.Bar dataKey="desktop" label="Desktop" />
-				</BarChart.Root>
+				</CanvasBarChartRoot>
 				<button type="button">After</button>
 			</>,
 		);
 		expect(container.querySelector("canvas")).toBeNull();
 		await user.tab();
-		// The canvas backend loads in its own chunk, so the focus activates once it arrives.
 		const canvas = await waitFor(() => {
 			const element = container.querySelector("canvas");
 			expect(element).toBeInTheDocument();
@@ -582,9 +582,9 @@ describe("activation outside React", () => {
 		const user = userEvent.setup();
 		const { container } = render(
 			<>
-				<BarChart.Root data={data} xKey="month" aria-label="Visitors by month" renderer="canvas">
+				<CanvasBarChartRoot data={data} xKey="month" aria-label="Visitors by month">
 					<BarChart.Bar dataKey="desktop" label="Desktop" />
-				</BarChart.Root>
+				</CanvasBarChartRoot>
 				<button type="button">After</button>
 			</>,
 		);

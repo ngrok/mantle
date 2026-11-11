@@ -6,7 +6,7 @@ import type {
 	PaintContext,
 	ResolvedPaint,
 } from "./paint-backend.js";
-import type { BarOrientation, SeriesColor, SeriesMeta } from "./types.js";
+import type { SeriesColor, SeriesMeta } from "./types.js";
 import {
 	colorParseContext,
 	createColorResolver,
@@ -16,15 +16,12 @@ import {
 	themeSignature,
 } from "./canvas-colors.js";
 import { watchDevicePixelRatio } from "./environment.js";
-import { createBarTexturePattern, textureInkColor } from "./texture.js";
 
 /**
  * The canvas paint backend: one `<canvas>` per chart, sized to the device
  * pixel ratio. A canvas cannot paint a CSS variable, so this backend resolves
- * every color through the Root's computed style, rasterizes bar textures into
- * patterns, and repaints when the theme or the device pixel ratio changes.
- * ScatterPlot paints here; Bar, Line, and Area charts load this module only
- * with `renderer="canvas"`.
+ * every color through the Root's computed style, and repaints when the theme
+ * or the device pixel ratio changes. Only ScatterPlot paints here.
  *
  * This module is internal shared implementation — not exported from the package.
  */
@@ -66,27 +63,15 @@ class CanvasBackend implements PaintBackend {
 		return this.#context;
 	}
 
-	paintSignature({
-		devicePixelRatio,
-		orientation,
-	}: {
-		devicePixelRatio: number;
-		orientation: BarOrientation;
-	}): string {
-		// Pattern tiles rasterize at the device pixel ratio, and both single-rung
-		// textures flip with the bars, so both join the theme in the key.
-		return `${themeSignature(this.#root.ownerDocument.documentElement)}|${devicePixelRatio}|${orientation}`;
+	paintSignature(): string {
+		return themeSignature(this.#root.ownerDocument.documentElement);
 	}
 
 	resolvePaint({
 		series,
-		devicePixelRatio,
-		orientation,
 		signature,
 	}: {
 		series: readonly SeriesMeta[];
-		devicePixelRatio: number;
-		orientation: BarOrientation;
 		signature: string;
 	}): ResolvedPaint | null {
 		const view = this.#root.ownerDocument.defaultView;
@@ -100,32 +85,18 @@ class CanvasBackend implements PaintBackend {
 			computed: view.getComputedStyle(this.#root),
 			parseContext: colorParseContext(this.#root.ownerDocument),
 		});
-		const context = this.#ctx();
 		const colors = new Map<string, string>();
 		const inputs = new Map<string, string>();
-		const barFills = new Map<string, string | CanvasPattern>();
 		for (const meta of series) {
-			const resolved = resolveSeriesColor(resolver, meta.colorInput);
-			colors.set(meta.dataKey, resolved);
+			colors.set(meta.dataKey, resolveSeriesColor(resolver, meta.colorInput));
 			inputs.set(meta.dataKey, `${meta.colorInput}|${meta.texture}`);
-			if (context != null && meta.mark === "bar" && meta.texture !== "solid") {
-				const pattern = createBarTexturePattern(context, {
-					texture: meta.texture,
-					color: resolved,
-					ink: resolver.resolve(textureInkColor(resolved)),
-					devicePixelRatio,
-					orientation,
-				});
-				if (pattern != null) {
-					barFills.set(meta.dataKey, pattern);
-				}
-			}
 		}
 		return {
 			signature,
 			series: colors,
 			inputs,
-			barFills,
+			// Why empty: ScatterPlot draws no bars, so no series takes a texture.
+			barFills: new Map(),
 			chrome: resolveChromeColors(resolver),
 			fontFamily: () => resolver.fontFamily,
 			resolve: (color: SeriesColor) => resolveSeriesColor(resolver, color),

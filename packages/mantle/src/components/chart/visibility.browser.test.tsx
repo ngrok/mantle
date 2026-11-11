@@ -2,8 +2,8 @@
 
 import { render, screen, waitFor } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, expect, test } from "vitest";
+import { CanvasLineChartRoot } from "../../test-utils/canvas-chart-roots.js";
 import { LineChart } from "../line-chart/index.js";
-import type { ChartRenderer } from "./paint-backend.js";
 
 /**
  * Real-browser visibility tests: a chart activates (builds its paint surface
@@ -74,13 +74,19 @@ const data = [
 	{ time: new Date("2026-07-18T10:02:00Z"), p50: 110 },
 ];
 
-const chart = (name: string, renderer: ChartRenderer = "svg") => (
-	<div style={{ width: 400, height: 200 }}>
-		<LineChart.Root data={data} xKey="time" animate={false} aria-label={name} renderer={renderer}>
-			<LineChart.Line dataKey="p50" label="p50" />
-		</LineChart.Root>
-	</div>
-);
+/** The surface a chart paints on. A canvas holds a bitmap the far band releases. */
+type Surface = "svg" | "canvas";
+
+const chart = (name: string, surface: Surface = "svg") => {
+	const Root = surface === "canvas" ? CanvasLineChartRoot : LineChart.Root;
+	return (
+		<div style={{ width: 400, height: 200 }}>
+			<Root data={data} xKey="time" animate={false} aria-label={name}>
+				<LineChart.Line dataKey="p50" label="p50" />
+			</Root>
+		</div>
+	);
+};
 
 type Chart = { root: HTMLElement; plot: HTMLElement };
 
@@ -120,12 +126,12 @@ const isPainted = (chart: Chart): boolean => {
  * A chart in view at the top, a spacer four viewports tall, and a chart past
  * it: beyond the near band (one viewport) and the far band (three).
  */
-const renderPage = (renderer: ChartRenderer = "svg") => {
+const renderPage = (surface: Surface = "svg") => {
 	render(
 		<>
-			{chart("Top chart", renderer)}
+			{chart("Top chart", surface)}
 			<div style={{ height: window.innerHeight * 4 }} />
-			{chart("Far chart", renderer)}
+			{chart("Far chart", surface)}
 		</>,
 	);
 	return { top: chartNamed("Top chart"), far: chartNamed("Far chart") };

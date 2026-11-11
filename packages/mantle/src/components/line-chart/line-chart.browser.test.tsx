@@ -1,6 +1,7 @@
 "use client";
 
 import { render, waitFor } from "@testing-library/react";
+import { CanvasLineChartRoot } from "../../test-utils/canvas-chart-roots.js";
 import { findChartCanvas } from "../../test-utils/find-chart-canvas.js";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { LineChart } from "./line-chart.js";
@@ -174,20 +175,14 @@ const gappy = [
 const renderGappy = (connectNulls: boolean) =>
 	render(
 		<div style={{ width: 600, height: 300 }}>
-			<LineChart.Root
-				renderer="canvas"
-				data={gappy}
-				xKey="attempt"
-				animate={false}
-				aria-label="Latency"
-			>
+			<CanvasLineChartRoot data={gappy} xKey="attempt" animate={false} aria-label="Latency">
 				<LineChart.Line
 					dataKey="latency"
 					label="Latency"
 					color="chart-1"
 					connectNulls={connectNulls}
 				/>
-			</LineChart.Root>
+			</CanvasLineChartRoot>
 		</div>,
 	);
 
@@ -224,15 +219,9 @@ describe("LineChart curve", () => {
 	const renderRamp = (curve: "linear" | "step") =>
 		render(
 			<div style={{ width: 600, height: 300 }}>
-				<LineChart.Root
-					renderer="canvas"
-					data={ramp}
-					xKey="attempt"
-					animate={false}
-					aria-label="Latency"
-				>
+				<CanvasLineChartRoot data={ramp} xKey="attempt" animate={false} aria-label="Latency">
 					<LineChart.Line dataKey="latency" label="Latency" color="chart-1" curve={curve} />
-				</LineChart.Root>
+				</CanvasLineChartRoot>
 			</div>,
 		);
 
@@ -275,15 +264,9 @@ describe("LineChart markers", () => {
 	const renderSamples = (markers: boolean) =>
 		render(
 			<div style={{ width: 600, height: 300 }}>
-				<LineChart.Root
-					renderer="canvas"
-					data={samples}
-					xKey="attempt"
-					animate={false}
-					aria-label="Latency"
-				>
+				<CanvasLineChartRoot data={samples} xKey="attempt" animate={false} aria-label="Latency">
 					<LineChart.Line dataKey="latency" label="Latency" color="chart-1" markers={markers} />
-				</LineChart.Root>
+				</CanvasLineChartRoot>
 			</div>,
 		);
 

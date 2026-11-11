@@ -10,7 +10,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
  * frontmatter, but neither renders a demo — so a page can ship an example that
  * type-checks and then throws on a reader's first paint. This mounts each one and
  * checks the engine reached its paint surface: an SVG, or a canvas for a
- * scatter plot or `renderer="canvas"`.
+ * scatter plot.
  *
  * Both lists are derived rather than written out, so a new chart page or a new
  * example is covered the moment it lands. The glob mirrors `docs.ts`, which is

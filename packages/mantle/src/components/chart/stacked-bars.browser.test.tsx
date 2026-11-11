@@ -6,6 +6,7 @@ import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { AreaChart } from "../area-chart/index.js";
 import { BarChart } from "../bar-chart/index.js";
 import { BAR_CORNER_RADIUS } from "./renderer.js";
+import { CanvasAreaChartRoot, CanvasBarChartRoot } from "../../test-utils/canvas-chart-roots.js";
 
 /**
  * Real-browser geometry tests for stacked `BarChart` segments: which segment
@@ -315,8 +316,7 @@ describe("stacked bar caps and baselines", () => {
 		// bars are pixel-identical apart from which series drew them.
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
-				<BarChart.Root
-					renderer="canvas"
+				<CanvasBarChartRoot
 					data={sparseStack}
 					xKey="day"
 					stacked
@@ -325,7 +325,7 @@ describe("stacked bar caps and baselines", () => {
 				>
 					<BarChart.Bar dataKey="first" label="First" color="chart-1" />
 					<BarChart.Bar dataKey="second" label="Second" color="chart-1" />
-				</BarChart.Root>
+				</CanvasBarChartRoot>
 			</div>,
 		);
 		const canvas = await findChartCanvas(container);
@@ -351,8 +351,7 @@ describe("stacked bar caps and baselines", () => {
 		// `body` segment square-topped. Only pixel distance gets this right.
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
-				<BarChart.Root
-					renderer="canvas"
+				<CanvasBarChartRoot
 					data={subPixelTopSegment}
 					xKey="day"
 					stacked
@@ -361,7 +360,7 @@ describe("stacked bar caps and baselines", () => {
 				>
 					<BarChart.Bar dataKey="body" label="Body" color="chart-1" />
 					<BarChart.Bar dataKey="sliver" label="Sliver" color="chart-2" />
-				</BarChart.Root>
+				</CanvasBarChartRoot>
 			</div>,
 		);
 		const canvas = await findChartCanvas(container);
@@ -401,8 +400,7 @@ describe("stacked bar caps and baselines", () => {
 		// off the axis and shows the grid through the seam.
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
-				<BarChart.Root
-					renderer="canvas"
+				<CanvasBarChartRoot
 					data={sparseStack}
 					xKey="day"
 					stacked
@@ -411,7 +409,7 @@ describe("stacked bar caps and baselines", () => {
 				>
 					<BarChart.Bar dataKey="first" label="First" color="chart-1" />
 					<BarChart.Bar dataKey="second" label="Second" color="chart-1" />
-				</BarChart.Root>
+				</CanvasBarChartRoot>
 			</div>,
 		);
 		const canvas = await findChartCanvas(container);
@@ -437,8 +435,7 @@ describe("stacked bar caps and baselines", () => {
 		// rounding every segment would render the column as a stack of pills.
 		const { container } = render(
 			<div style={{ width: 600, height: 400 }}>
-				<BarChart.Root
-					renderer="canvas"
+				<CanvasBarChartRoot
 					data={threeEqualSegments}
 					xKey="day"
 					stacked
@@ -448,7 +445,7 @@ describe("stacked bar caps and baselines", () => {
 					<BarChart.Bar dataKey="bottom" label="Bottom" color="chart-1" />
 					<BarChart.Bar dataKey="middle" label="Middle" color="chart-2" />
 					<BarChart.Bar dataKey="top" label="Top" color="chart-3" />
-				</BarChart.Root>
+				</CanvasBarChartRoot>
 			</div>,
 		);
 		const canvas = await findChartCanvas(container);
@@ -499,8 +496,7 @@ describe("stacked bar caps and baselines", () => {
 		// segment up in the positive pile, puts it on the edge facing zero instead.
 		const { container } = render(
 			<div style={{ width: 600, height: 400 }}>
-				<BarChart.Root
-					renderer="canvas"
+				<CanvasBarChartRoot
 					data={[{ day: "Mon", up: 40, down: -40 }]}
 					xKey="day"
 					stacked
@@ -509,7 +505,7 @@ describe("stacked bar caps and baselines", () => {
 				>
 					<BarChart.Bar dataKey="up" label="Up" color="chart-1" />
 					<BarChart.Bar dataKey="down" label="Down" color="chart-2" />
-				</BarChart.Root>
+				</CanvasBarChartRoot>
 			</div>,
 		);
 		const canvas = await findChartCanvas(container);
@@ -552,8 +548,7 @@ describe("stacked bar caps and baselines", () => {
 		// segments in one column stay visibly separated.
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
-				<BarChart.Root
-					renderer="canvas"
+				<CanvasBarChartRoot
 					data={[{ day: "Mon", first: 100, second: 100 }]}
 					xKey="day"
 					stacked
@@ -562,7 +557,7 @@ describe("stacked bar caps and baselines", () => {
 				>
 					<BarChart.Bar dataKey="first" label="First" color="chart-1" />
 					<BarChart.Bar dataKey="second" label="Second" color="chart-2" />
-				</BarChart.Root>
+				</CanvasBarChartRoot>
 			</div>,
 		);
 		const canvas = await findChartCanvas(container);
@@ -584,8 +579,7 @@ describe("stacked bar caps and baselines", () => {
 	test("horizontal bars round the data end and weld to the baseline per row", async () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
-				<BarChart.Root
-					renderer="canvas"
+				<CanvasBarChartRoot
 					data={sparseStack}
 					xKey="day"
 					stacked
@@ -595,7 +589,7 @@ describe("stacked bar caps and baselines", () => {
 				>
 					<BarChart.Bar dataKey="first" label="First" color="chart-1" />
 					<BarChart.Bar dataKey="second" label="Second" color="chart-1" />
-				</BarChart.Root>
+				</CanvasBarChartRoot>
 			</div>,
 		);
 		const canvas = await findChartCanvas(container);
@@ -630,8 +624,7 @@ describe("stacked bar caps and baselines", () => {
 		// through the middle of a chart whose minimum is documented as fixed at 0.
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
-				<BarChart.Root
-					renderer="canvas"
+				<CanvasBarChartRoot
 					data={[
 						{ day: "Mon", value: 0 },
 						{ day: "Tue", value: 0 },
@@ -641,7 +634,7 @@ describe("stacked bar caps and baselines", () => {
 					aria-label="No usage yet"
 				>
 					<BarChart.Bar dataKey="value" label="Value" color="chart-1" />
-				</BarChart.Root>
+				</CanvasBarChartRoot>
 			</div>,
 		);
 		const canvas = await findChartCanvas(container);
@@ -660,8 +653,7 @@ describe("stacked bar caps and baselines", () => {
 		// domain pads to [-1, 1] and the collapsed area floats to mid-plot.
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
-				<AreaChart.Root
-					renderer="canvas"
+				<CanvasAreaChartRoot
 					data={[
 						{ day: "Mon", value: 0 },
 						{ day: "Tue", value: 0 },
@@ -671,7 +663,7 @@ describe("stacked bar caps and baselines", () => {
 					aria-label="No usage yet, area"
 				>
 					<AreaChart.Area dataKey="value" label="Value" color="chart-1" />
-				</AreaChart.Root>
+				</CanvasAreaChartRoot>
 			</div>,
 		);
 		const canvas = await findChartCanvas(container);
@@ -758,17 +750,11 @@ describe("hover band geometry", () => {
 		// floor washes over a third of each neighbor.
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
-				<BarChart.Root
-					renderer="canvas"
-					data={denseDays}
-					xKey="day"
-					animate={false}
-					aria-label="Dense days"
-				>
+				<CanvasBarChartRoot data={denseDays} xKey="day" animate={false} aria-label="Dense days">
 					<BarChart.XAxis />
 					<BarChart.YAxis />
 					<BarChart.Bar dataKey="value" label="Value" color="chart-1" />
-				</BarChart.Root>
+				</CanvasBarChartRoot>
 			</div>,
 		);
 		const canvas = await findChartCanvas(container);
@@ -829,8 +815,7 @@ describe("stacked segment hit resolution", () => {
 		const activated: Array<string | null> = [];
 		const { container } = render(
 			<div style={{ width: 600, height: 400 }}>
-				<BarChart.Root
-					renderer="canvas"
+				<CanvasBarChartRoot
 					data={threeEqualSegments}
 					xKey="day"
 					stacked
@@ -841,7 +826,7 @@ describe("stacked segment hit resolution", () => {
 					<BarChart.Bar dataKey="bottom" label="Bottom" color="chart-1" />
 					<BarChart.Bar dataKey="middle" label="Middle" color="chart-2" />
 					<BarChart.Bar dataKey="top" label="Top" color="chart-3" />
-				</BarChart.Root>
+				</CanvasBarChartRoot>
 			</div>,
 		);
 		const canvas = await findChartCanvas(container);
@@ -895,8 +880,7 @@ describe("stacked segment hit resolution", () => {
 		const activated: Array<string | null> = [];
 		const { container } = render(
 			<div style={{ width: 600, height: 400 }}>
-				<BarChart.Root
-					renderer="canvas"
+				<CanvasBarChartRoot
 					data={threeEqualSegments}
 					xKey="day"
 					stacked
@@ -908,7 +892,7 @@ describe("stacked segment hit resolution", () => {
 					<BarChart.Bar dataKey="bottom" label="Bottom" color="chart-1" />
 					<BarChart.Bar dataKey="middle" label="Middle" color="chart-2" />
 					<BarChart.Bar dataKey="top" label="Top" color="chart-3" />
-				</BarChart.Root>
+				</CanvasBarChartRoot>
 			</div>,
 		);
 		const canvas = await findChartCanvas(container);
@@ -957,8 +941,7 @@ describe("stacked segment hit resolution", () => {
 		const activated: Array<string | null> = [];
 		const { container } = render(
 			<div style={{ width: 600, height: 400 }}>
-				<BarChart.Root
-					renderer="canvas"
+				<CanvasBarChartRoot
 					data={[{ day: "Mon", bottom: 1, middle: 0, top: 1 }]}
 					xKey="day"
 					stacked
@@ -969,7 +952,7 @@ describe("stacked segment hit resolution", () => {
 					<BarChart.Bar dataKey="bottom" label="Bottom" color="chart-1" />
 					<BarChart.Bar dataKey="middle" label="Middle" color="chart-2" />
 					<BarChart.Bar dataKey="top" label="Top" color="chart-3" />
-				</BarChart.Root>
+				</CanvasBarChartRoot>
 			</div>,
 		);
 		const canvas = await findChartCanvas(container);
@@ -1036,8 +1019,7 @@ describe("tooltip placement", () => {
 		}
 		const { container } = render(
 			<div style={{ width: 600, height: 160 }}>
-				<BarChart.Root
-					renderer="canvas"
+				<CanvasBarChartRoot
 					data={[row]}
 					xKey="day"
 					stacked
@@ -1047,7 +1029,7 @@ describe("tooltip placement", () => {
 					{series.map((key) => (
 						<BarChart.Bar key={key} dataKey={key} label={key} />
 					))}
-				</BarChart.Root>
+				</CanvasBarChartRoot>
 			</div>,
 		);
 		const canvas = await findChartCanvas(container);
@@ -1074,8 +1056,7 @@ describe("tooltip placement", () => {
 	test("a readout that fits stays inside the plot box", async () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
-				<BarChart.Root
-					renderer="canvas"
+				<CanvasBarChartRoot
 					data={threeEqualSegments}
 					xKey="day"
 					stacked
@@ -1085,7 +1066,7 @@ describe("tooltip placement", () => {
 					<BarChart.Bar dataKey="bottom" label="Bottom" color="chart-1" />
 					<BarChart.Bar dataKey="middle" label="Middle" color="chart-2" />
 					<BarChart.Bar dataKey="top" label="Top" color="chart-3" />
-				</BarChart.Root>
+				</CanvasBarChartRoot>
 			</div>,
 		);
 		const canvas = await findChartCanvas(container);
@@ -1113,8 +1094,7 @@ describe("tooltip placement", () => {
 		// distance apart are what pin the follow itself.
 		const { container } = render(
 			<div style={{ width: 600, height: 400 }}>
-				<BarChart.Root
-					renderer="canvas"
+				<CanvasBarChartRoot
 					data={threeEqualSegments}
 					xKey="day"
 					stacked
@@ -1124,7 +1104,7 @@ describe("tooltip placement", () => {
 					<BarChart.Bar dataKey="bottom" label="Bottom" color="chart-1" />
 					<BarChart.Bar dataKey="middle" label="Middle" color="chart-2" />
 					<BarChart.Bar dataKey="top" label="Top" color="chart-3" />
-				</BarChart.Root>
+				</CanvasBarChartRoot>
 			</div>,
 		);
 		const canvas = await findChartCanvas(container);
@@ -1176,8 +1156,7 @@ describe("tooltip placement", () => {
 		const xAxisBand = 24;
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
-				<BarChart.Root
-					renderer="canvas"
+				<CanvasBarChartRoot
 					data={threeEqualSegments}
 					xKey="day"
 					stacked
@@ -1189,7 +1168,7 @@ describe("tooltip placement", () => {
 					<BarChart.Bar dataKey="bottom" label="Bottom" color="chart-1" />
 					<BarChart.Bar dataKey="middle" label="Middle" color="chart-2" />
 					<BarChart.Bar dataKey="top" label="Top" color="chart-3" />
-				</BarChart.Root>
+				</CanvasBarChartRoot>
 			</div>,
 		);
 		const canvas = await findChartCanvas(container);

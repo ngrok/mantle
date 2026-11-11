@@ -5,6 +5,7 @@ import { findChartCanvas } from "../../test-utils/find-chart-canvas.js";
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import type { MockInstance } from "vitest";
 import { BarChart } from "../bar-chart/index.js";
+import { CanvasBarChartRoot } from "../../test-utils/canvas-chart-roots.js";
 
 /**
  * Real-browser geometry tests for `BarChart` `orientation="horizontal"`: bars
@@ -174,8 +175,7 @@ describe("bar orientation", () => {
 		// more ink on the right, and every bar's ink hugs the bottom.
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
-				<BarChart.Root
-					renderer="canvas"
+				<CanvasBarChartRoot
 					data={twoCategories}
 					xKey="cat"
 					animate={false}
@@ -184,7 +184,7 @@ describe("bar orientation", () => {
 					<BarChart.XAxis />
 					<BarChart.YAxis />
 					<BarChart.Bar dataKey="v" label="Value" color="chart-1" />
-				</BarChart.Root>
+				</CanvasBarChartRoot>
 			</div>,
 		);
 		const canvas = await findChartCanvas(container);
@@ -205,8 +205,7 @@ describe("bar orientation", () => {
 		// carries far more ink and reaches further right than the top row.
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
-				<BarChart.Root
-					renderer="canvas"
+				<CanvasBarChartRoot
 					data={twoCategories}
 					xKey="cat"
 					orientation="horizontal"
@@ -216,7 +215,7 @@ describe("bar orientation", () => {
 					<BarChart.XAxis />
 					<BarChart.YAxis />
 					<BarChart.Bar dataKey="v" label="Value" color="chart-1" />
-				</BarChart.Root>
+				</CanvasBarChartRoot>
 			</div>,
 		);
 		const canvas = await findChartCanvas(container);
@@ -236,8 +235,7 @@ describe("bar orientation", () => {
 	test("vertical: category names sit under the plot, value numbers in the left gutter", async () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
-				<BarChart.Root
-					renderer="canvas"
+				<CanvasBarChartRoot
 					data={twoCategories}
 					xKey="cat"
 					animate={false}
@@ -246,7 +244,7 @@ describe("bar orientation", () => {
 					<BarChart.XAxis />
 					<BarChart.YAxis />
 					<BarChart.Bar dataKey="v" label="Value" color="chart-1" />
-				</BarChart.Root>
+				</CanvasBarChartRoot>
 			</div>,
 		);
 		const canvas = await findChartCanvas(container);
@@ -277,8 +275,7 @@ describe("bar orientation", () => {
 		// coordinates on the wrong axis.
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
-				<BarChart.Root
-					renderer="canvas"
+				<CanvasBarChartRoot
 					data={twoCategories}
 					xKey="cat"
 					orientation="horizontal"
@@ -288,7 +285,7 @@ describe("bar orientation", () => {
 					<BarChart.XAxis />
 					<BarChart.YAxis />
 					<BarChart.Bar dataKey="v" label="Value" color="chart-1" />
-				</BarChart.Root>
+				</CanvasBarChartRoot>
 			</div>,
 		);
 		const canvas = await findChartCanvas(container);

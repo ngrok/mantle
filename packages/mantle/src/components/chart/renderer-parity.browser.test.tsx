@@ -4,14 +4,20 @@ import { render, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterAll, beforeAll, expect, test } from "vitest";
 import { page } from "vitest/browser";
-import { AreaChart } from "../area-chart/index.js";
-import { BarChart } from "../bar-chart/index.js";
-import { LineChart } from "../line-chart/index.js";
-import type { ChartRenderer } from "./paint-backend.js";
+import {
+	CanvasAreaChartRoot,
+	CanvasBarChartRoot,
+	CanvasLineChartRoot,
+} from "../../test-utils/canvas-chart-roots.js";
+import { AreaChart, type AreaChartRootProps } from "../area-chart/index.js";
+import { BarChart, type BarChartRootProps } from "../bar-chart/index.js";
+import { LineChart, type LineChartRootProps } from "../line-chart/index.js";
+import type { ChartDatum } from "./types.js";
 
 /**
  * The SVG and canvas backends draw one geometry, so the same scene must give
- * the same pixels through both. Each test paints a scene twice, takes a real
+ * the same pixels through both. Bar, Line, and Area ship SVG only; the canvas
+ * here is the reference, the browser's own 2D rasterizer. Each test paints a scene twice, takes a real
  * screenshot of each plot, and counts the pixels that differ. The canvas
  * pixel tests elsewhere pin the geometry itself, so this file extends them to
  * the SVG backend.
@@ -77,7 +83,28 @@ afterAll(() => {
  */
 const CHANNEL_TOLERANCE = 8;
 
-type Scene = (renderer: ChartRenderer) => ReactNode;
+/** The backend a scene paints through. */
+type Surface = "svg" | "canvas";
+
+type Scene = (surface: Surface) => ReactNode;
+
+const BarRoot = <TDatum extends ChartDatum>({
+	surface,
+	...props
+}: BarChartRootProps<TDatum> & { surface: Surface }) =>
+	surface === "svg" ? <BarChart.Root {...props} /> : <CanvasBarChartRoot {...props} />;
+
+const LineRoot = <TDatum extends ChartDatum>({
+	surface,
+	...props
+}: LineChartRootProps<TDatum> & { surface: Surface }) =>
+	surface === "svg" ? <LineChart.Root {...props} /> : <CanvasLineChartRoot {...props} />;
+
+const AreaRoot = <TDatum extends ChartDatum>({
+	surface,
+	...props
+}: AreaChartRootProps<TDatum> & { surface: Surface }) =>
+	surface === "svg" ? <AreaChart.Root {...props} /> : <CanvasAreaChartRoot {...props} />;
 
 /** Decode a base64 PNG screenshot into its pixels. */
 const pixelsOf = async (base64: string): Promise<ImageData> => {
@@ -150,23 +177,21 @@ const labelBounds = (image: ImageData) => {
 };
 
 /** Paint one scene through both backends and return each plot's pixels. */
-const paintBoth = async (scene: Scene): Promise<Record<ChartRenderer, ImageData>> => {
+const paintBoth = async (scene: Scene): Promise<Record<Surface, ImageData>> => {
 	const { container } = render(
 		<>
-			<div className="parity-frame" data-renderer="canvas">
+			<div className="parity-frame" data-surface="canvas">
 				{scene("canvas")}
 			</div>
-			<div className="parity-frame" data-renderer="svg">
+			<div className="parity-frame" data-surface="svg">
 				{scene("svg")}
 			</div>
 		</>,
 	);
-	const plotOf = (renderer: ChartRenderer): HTMLElement => {
-		const plot = container.querySelector(
-			`[data-renderer="${renderer}"] [data-slot$="-chart-plot"]`,
-		);
+	const plotOf = (surface: Surface): HTMLElement => {
+		const plot = container.querySelector(`[data-surface="${surface}"] [data-slot$="-chart-plot"]`);
 		if (!(plot instanceof HTMLElement)) {
-			throw new Error(`expected the ${renderer} plot to render`);
+			throw new Error(`expected the ${surface} plot to render`);
 		}
 		return plot;
 	};
@@ -175,8 +200,8 @@ const paintBoth = async (scene: Scene): Promise<Record<ChartRenderer, ImageData>
 		expect(canvas?.width).toBe(Math.round(plotOf("canvas").clientWidth * devicePixelRatio));
 		expect(plotOf("svg").querySelector("svg path[d]")).not.toBeNull();
 	});
-	const shoot = async (renderer: ChartRenderer) =>
-		pixelsOf(await page.screenshot({ element: plotOf(renderer), save: false }));
+	const shoot = async (surface: Surface) =>
+		pixelsOf(await page.screenshot({ element: plotOf(surface), save: false }));
 	return { canvas: await shoot("canvas"), svg: await shoot("svg") };
 };
 
@@ -208,9 +233,9 @@ const scenes: Array<{ name: string; scene: Scene; tolerance: number }> = [
 	{
 		name: "grouped vertical bars",
 		tolerance: 0.002,
-		scene: (renderer) => (
-			<BarChart.Root
-				renderer={renderer}
+		scene: (surface) => (
+			<BarRoot
+				surface={surface}
 				data={categories}
 				xKey="month"
 				animate={false}
@@ -219,15 +244,15 @@ const scenes: Array<{ name: string; scene: Scene; tolerance: number }> = [
 				<BarChart.Grid />
 				<BarChart.Bar dataKey="desktop" label="Desktop" />
 				<BarChart.Bar dataKey="mobile" label="Mobile" />
-			</BarChart.Root>
+			</BarRoot>
 		),
 	},
 	{
 		name: "stacked bars with a reference line",
 		tolerance: 0.002,
-		scene: (renderer) => (
-			<BarChart.Root
-				renderer={renderer}
+		scene: (surface) => (
+			<BarRoot
+				surface={surface}
 				data={categories}
 				xKey="month"
 				stacked
@@ -238,43 +263,43 @@ const scenes: Array<{ name: string; scene: Scene; tolerance: number }> = [
 				<BarChart.Bar dataKey="mobile" label="Mobile" />
 				<BarChart.Bar dataKey="tablet" label="Tablet" />
 				<BarChart.ReferenceLine y={300} />
-			</BarChart.Root>
+			</BarRoot>
 		),
 	},
 	{
-		name: "horizontal textured bars",
+		name: "horizontal bars",
 		tolerance: 0.002,
-		scene: (renderer) => (
-			<BarChart.Root
-				renderer={renderer}
+		scene: (surface) => (
+			<BarRoot
+				surface={surface}
 				data={categories}
 				xKey="month"
 				orientation="horizontal"
 				animate={false}
 				aria-label="Horizontal"
 			>
-				<BarChart.Bar dataKey="desktop" label="Desktop" texture="hatch" />
-				<BarChart.Bar dataKey="mobile" label="Mobile" texture="dots" />
-			</BarChart.Root>
+				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Bar dataKey="mobile" label="Mobile" />
+			</BarRoot>
 		),
 	},
 	{
 		name: "monotone lines with markers and a gap",
 		tolerance: 0.002,
-		scene: (renderer) => (
-			<LineChart.Root renderer={renderer} data={series} xKey="x" animate={false} aria-label="Lines">
+		scene: (surface) => (
+			<LineRoot surface={surface} data={series} xKey="x" animate={false} aria-label="Lines">
 				<LineChart.Grid />
 				<LineChart.Line dataKey="a" label="A" curve="monotone" markers />
 				<LineChart.Line dataKey="b" label="B" curve="step" />
-			</LineChart.Root>
+			</LineRoot>
 		),
 	},
 	{
 		name: "stacked areas",
 		tolerance: 0.002,
-		scene: (renderer) => (
-			<AreaChart.Root
-				renderer={renderer}
+		scene: (surface) => (
+			<AreaRoot
+				surface={surface}
 				data={series.map((row) => ({ ...row, b: row.b ?? 0 }))}
 				xKey="x"
 				stacked
@@ -283,34 +308,28 @@ const scenes: Array<{ name: string; scene: Scene; tolerance: number }> = [
 			>
 				<AreaChart.Area dataKey="a" label="A" />
 				<AreaChart.Area dataKey="b" label="B" />
-			</AreaChart.Root>
+			</AreaRoot>
 		),
 	},
 	{
 		name: "a decimated line",
 		tolerance: 0.002,
-		scene: (renderer) => (
-			<LineChart.Root renderer={renderer} data={dense} xKey="x" animate={false} aria-label="Dense">
+		scene: (surface) => (
+			<LineRoot surface={surface} data={dense} xKey="x" animate={false} aria-label="Dense">
 				<LineChart.Line dataKey="value" label="Value" />
-			</LineChart.Root>
+			</LineRoot>
 		),
 	},
 	{
 		name: "axes and grid labels",
 		tolerance: 0.03,
-		scene: (renderer) => (
-			<BarChart.Root
-				renderer={renderer}
-				data={categories}
-				xKey="month"
-				animate={false}
-				aria-label="Axes"
-			>
+		scene: (surface) => (
+			<BarRoot surface={surface} data={categories} xKey="month" animate={false} aria-label="Axes">
 				<BarChart.Grid />
 				<BarChart.XAxis />
 				<BarChart.YAxis />
 				<BarChart.Bar dataKey="desktop" label="Desktop" />
-			</BarChart.Root>
+			</BarRoot>
 		),
 	},
 ];

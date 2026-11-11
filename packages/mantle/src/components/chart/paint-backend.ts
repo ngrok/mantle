@@ -16,7 +16,7 @@ import type { BarOrientation, SeriesColor, SeriesMeta } from "./types.js";
  * satisfies it, and so does the SVG backend's recorder.
  */
 type PaintContext = {
-	/** A color string. The canvas backend also takes a texture pattern here. */
+	/** A color string, or the SVG backend's `url(#…)` texture reference. */
 	fillStyle: string | CanvasGradient | CanvasPattern;
 	strokeStyle: string | CanvasGradient | CanvasPattern;
 	lineWidth: number;
@@ -84,7 +84,7 @@ type ResolvedPaint = {
 	/** The color and texture inputs each series resolved from, so a change resolves again. */
 	inputs: Map<string, string>;
 	/** The fill of each textured bar series. A series with no entry fills solid. */
-	barFills: Map<string, string | CanvasPattern>;
+	barFills: Map<string, string>;
 	chrome: ChartChromeColors;
 	/** The font family the axis labels measure and draw with, read on first call. */
 	fontFamily: () => string;
@@ -151,29 +151,13 @@ type PaintBackendOptions = {
 /** Builds the paint backend of one chart at activation. */
 type PaintBackendFactory = (options: PaintBackendOptions) => PaintBackend;
 
-/**
- * Where a Root gets its backend: a factory in the same chunk, or a loader for
- * a backend split into its own chunk.
- */
-type PaintBackendSource =
-	| { factory: PaintBackendFactory; load?: never }
-	| { load: () => Promise<PaintBackendFactory>; factory?: never };
-
-/**
- * The surface Bar, Line, and Area charts paint on. `"svg"` writes one path
- * per series; `"canvas"` rasterizes into a bitmap.
- */
-type ChartRenderer = "svg" | "canvas";
-
 export type {
 	//,
-	ChartRenderer,
 	EdgeFade,
 	EnvironmentChange,
 	PaintBackend,
 	PaintBackendFactory,
 	PaintBackendOptions,
-	PaintBackendSource,
 	PaintContext,
 	PathDataContext,
 	ResolvedPaint,

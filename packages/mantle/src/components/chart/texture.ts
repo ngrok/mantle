@@ -11,9 +11,8 @@ import type { BarOrientation, BarTexture } from "./types.js";
  * of the series' own fill, at equal loudness across every slot — so a textured
  * series never shouts over a solid one.
  *
- * Tiles are rasterized at the device pixel ratio and the returned pattern is
- * pre-scaled back down, so under the engine's dpr canvas transform the lines
- * stay crisp instead of resampling.
+ * The SVG backend records each tile into a `<pattern>`, so the browser
+ * rasterizes it at the screen's resolution.
  *
  * This module is internal shared implementation — not exported from the package.
  */
@@ -213,69 +212,10 @@ const TILE_PAINTERS: Record<Exclude<BarTexture, "solid">, TilePainter> = {
 	},
 };
 
-type BarTexturePatternOptions = {
-	/** The non-solid texture to rasterize. */
-	texture: Exclude<BarTexture, "solid">;
-	/** The series' resolved, canvas-paintable fill color (the tile ground). */
-	color: string;
-	/** The resolved tone-on-tone line ink (see {@link textureInkColor}). */
-	ink: string;
-	/** The device pixel ratio the engine's canvas transform is scaled by. */
-	devicePixelRatio: number;
-	/**
-	 * The chart's bar direction, read by the two single-rung textures. The
-	 * `"perpendicular"` rung runs across the bar's length and the `"parallel"`
-	 * rung along it, so the two flip with the bars in opposite senses. Every
-	 * other texture, `"grid"` included, is direction-free.
-	 */
-	orientation: BarOrientation;
-};
-
-/**
- * Rasterize a repeating texture tile and wrap it in a `CanvasPattern` ready
- * to assign to `fillStyle` in place of the series' solid color. Returns
- * `null` when a tile context is unavailable — callers must fall back to the
- * solid series color so the bars never vanish.
- *
- * @example
- * ```ts
- * const pattern = createBarTexturePattern(ctx, {
- *   texture: "hatch",
- *   color: resolvedSeriesColor,
- *   ink: resolvedInkColor,
- *   devicePixelRatio: 2,
- *   orientation: "vertical",
- * });
- * drawBars(ctx, { fill: pattern ?? resolvedSeriesColor, rects });
- * ```
- */
-const createBarTexturePattern = (
-	context: CanvasRenderingContext2D,
-	options: BarTexturePatternOptions,
-): CanvasPattern | null => {
-	const { texture, color, ink, devicePixelRatio, orientation } = options;
-	const size = TEXTURE_TILE_SIZE;
-	const tile = context.canvas.ownerDocument.createElement("canvas");
-	tile.width = Math.max(1, Math.round(size * devicePixelRatio));
-	tile.height = tile.width;
-	const tileContext = tile.getContext("2d");
-	if (tileContext == null) {
-		return null;
-	}
-	const deviceScale = tile.width / size;
-	tileContext.scale(deviceScale, deviceScale);
-	paintTextureTile(tileContext, { texture, color, ink, orientation });
-	const pattern = context.createPattern(tile, "repeat");
-	// The tile is rasterized at device resolution; scale it back to CSS pixels
-	// so the engine's dpr transform lands it 1:1 on the device grid.
-	pattern?.setTransform({ a: 1 / deviceScale, b: 0, c: 0, d: 1 / deviceScale, e: 0, f: 0 });
-	return pattern;
-};
-
 /**
  * Paint one texture tile, ground and marks, into `tileContext` at CSS-pixel
- * scale: {@link TEXTURE_TILE_SIZE} on each edge. The canvas backend rasterizes
- * the tile into a pattern; the SVG backend records it into a `<pattern>`.
+ * scale: {@link TEXTURE_TILE_SIZE} on each edge. The SVG backend records it
+ * into a `<pattern>`.
  *
  * @example
  * ```ts
@@ -299,12 +239,10 @@ const paintTextureTile = (
 
 export type {
 	//,
-	BarTexturePatternOptions,
 	LineTraceContext,
 };
 export {
 	//,
-	createBarTexturePattern,
 	paintTextureTile,
 	textureInkColor,
 	TEXTURE_TILE_SIZE,

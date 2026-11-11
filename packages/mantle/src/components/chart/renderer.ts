@@ -182,16 +182,16 @@ type BarRect = {
 
 /**
  * Fill one series' bars as a single batched path (one `fill()` per series).
- * `fill` is the series' solid color or its texture pattern — a `CanvasPattern`
- * anchors to the canvas, so one pattern paints every bar of the series in a
- * continuous diagonal field. Corner radii collapse as bars get thin (< 8px:
+ * `fill` is the series' solid color or its texture's `url(#…)` reference — the
+ * `<pattern>` anchors to the SVG, so one pattern paints every bar of the
+ * series in a continuous field. Corner radii collapse as bars get thin (< 8px:
  * square; width is clamped to a minimum of half a pixel so ten-thousand-category
  * charts degrade to a silhouette instead of vanishing).
  */
 const drawBars = (
 	ctx: PaintContext,
 	options: {
-		fill: string | CanvasPattern;
+		fill: string;
 		rects: readonly BarRect[];
 		/** How many leading `rects` to draw, so a caller can reuse one longer list. Defaults to all. */
 		count?: number;
@@ -250,7 +250,7 @@ type HorizontalBarRect = {
 const drawHorizontalBars = (
 	ctx: PaintContext,
 	options: {
-		fill: string | CanvasPattern;
+		fill: string;
 		rects: readonly HorizontalBarRect[];
 		/** How many leading `rects` to draw, so a caller can reuse one longer list. Defaults to all. */
 		count?: number;

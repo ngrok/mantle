@@ -21,7 +21,6 @@ import type {
 	SeriesColor,
 } from "../chart/types.js";
 import { createCanvasBackend } from "../chart/canvas-backend.js";
-import type { PaintBackendSource } from "../chart/paint-backend.js";
 import {
 	ChartCopyButtonPrimitive,
 	ChartLegendPrimitive,
@@ -233,9 +232,6 @@ type ScatterPlotCopyButtonProps = CopyButtonPrimitiveProps;
  * </ScatterPlot.Root>
  * ```
  */
-/** Scatter plots paint on canvas: a point cloud past a few thousand marks redraws faster there. */
-const CANVAS_BACKEND: PaintBackendSource = { factory: createCanvasBackend };
-
 const Root = <TDatum extends ChartDatum = ChartDatum, TMode extends ChartMode = "interactive">(
 	props: ScatterPlotRootProps<TDatum, TMode>,
 ) => (
@@ -243,7 +239,8 @@ const Root = <TDatum extends ChartDatum = ChartDatum, TMode extends ChartMode = 
 		kind="scatter"
 		componentName="ScatterPlot"
 		slotName="scatter-plot"
-		paintBackend={CANVAS_BACKEND}
+		// Why canvas: a point cloud past a few thousand marks redraws faster there.
+		paintBackend={createCanvasBackend}
 		{...props}
 	/>
 );

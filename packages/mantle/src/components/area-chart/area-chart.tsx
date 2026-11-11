@@ -4,7 +4,6 @@ import type {
 	ChartAccessibilityProps,
 	ChartListPrimitiveProps,
 	ChartMode,
-	ChartRendererProps,
 	ChartRootBaseProps,
 	CopyButtonPrimitiveProps,
 	GridPrimitiveProps,
@@ -23,7 +22,7 @@ import type {
 	PointShape,
 	SeriesColor,
 } from "../chart/types.js";
-import { paintBackendSource } from "../chart/backends.js";
+import { createSvgBackend } from "../chart/svg-backend.js";
 import {
 	ChartCopyButtonPrimitive,
 	ChartLegendPrimitive,
@@ -51,8 +50,7 @@ type AreaChartRootProps<
 	TDatum extends ChartDatum = ChartDatum,
 	TMode extends ChartMode = "interactive",
 > = Omit<ChartRootBaseProps, "yDomain"> &
-	ChartAccessibilityProps<TMode> &
-	ChartRendererProps & {
+	ChartAccessibilityProps<TMode> & {
 		/** Rows of data; each `AreaChart.Area` reads one numeric key per row. */
 		data: readonly TDatum[];
 		/**
@@ -180,7 +178,7 @@ type AreaChartCopyButtonProps = CopyButtonPrimitiveProps;
  * tables until a reader asks for one.
  *
  * The Root's own subtree is addressable by slot: `area-chart` on the wrapper,
- * then `area-chart-plot`, `area-chart-svg` (`area-chart-canvas` with `renderer="canvas"`),
+ * then `area-chart-plot`, `area-chart-svg`,
  * `area-chart-crosshair`,
  * `area-chart-hover-band`, `area-chart-markers`, `area-chart-tooltip`,
  * `area-chart-description`, and, once focus lands inside the chart,
@@ -230,7 +228,7 @@ const Root = <TDatum extends ChartDatum = ChartDatum, TMode extends ChartMode = 
 		kind="area"
 		componentName="AreaChart"
 		slotName="area-chart"
-		paintBackend={paintBackendSource(props.renderer ?? "svg")}
+		paintBackend={createSvgBackend}
 		{...props}
 	/>
 );
