@@ -2,6 +2,7 @@
 
 import type {
 	ChartAccessibilityProps,
+	ChartListPrimitiveProps,
 	ChartMode,
 	ChartRootBaseProps,
 	CopyButtonPrimitiveProps,
@@ -21,9 +22,11 @@ import type {
 	PointShape,
 	SeriesColor,
 } from "../chart/types.js";
+import { createSvgBackend } from "../chart/svg-backend.js";
 import {
 	ChartCopyButtonPrimitive,
 	ChartLegendPrimitive,
+	ChartListPrimitive,
 	ChartRootPrimitive,
 	useGridPrimitive,
 	useReferenceLinePrimitive,
@@ -32,6 +35,11 @@ import {
 	useXAxisPrimitive,
 	useYAxisPrimitive,
 } from "../chart/primitive.js";
+
+/**
+ * Props for {@link LineChart.List}.
+ */
+type LineChartListProps = ChartListPrimitiveProps;
 
 /**
  * Props for {@link LineChart.Root}. Lines encode value by vertical position,
@@ -108,7 +116,7 @@ type LineChartLineProps = {
 	 */
 	connectNulls?: boolean;
 	/**
-	 * The glyph the hover dot, the canvas point markers, and the legend key
+	 * The glyph the hover dot, the painted point markers, and the legend key
 	 * wear: `"circle"`, `"square"`, `"triangle"`, `"diamond"`,
 	 * `"triangle-down"`, `"plus"`, `"cross"`, or `"star"`. Shape is a redundant
 	 * encoding alongside color that keeps series distinguishable without color
@@ -156,16 +164,16 @@ type LineChartLegendProps = LegendPrimitiveProps;
 type LineChartCopyButtonProps = CopyButtonPrimitiveProps;
 
 /**
- * The root of a line chart: owns the data, the scales, the canvas renderer,
+ * The root of a line chart: owns the data, the scales, the renderer,
  * and the entire interaction contract (a crosshair snapped to the nearest x
  * with a tooltip reading every series, keyboard stepping with polite
  * announcements, an sr-only description, an sr-only data table, Enter/Space +
- * click activation). Rendering is canvas with min/max decimation, so series
+ * click activation). Rendering decimates to min/max per pixel column, so series
  * of 100k+ points stay smooth. Compose the chrome and series parts as
  * children.
  *
  * A Root mounts dormant: a shell of the plot, the named overlay, and its
- * sr-only description. It builds its canvas, its hover layers, and its engine
+ * sr-only description. It builds its paint surface, its hover layers, and its engine
  * once it comes within one viewport of the visible area, takes focus, or
  * prints (on-screen charts first, a few milliseconds at a time), and it mounts
  * the sr-only data table once focus lands inside it. A list of charts pays
@@ -173,14 +181,15 @@ type LineChartCopyButtonProps = CopyButtonPrimitiveProps;
  * tables until a reader asks for one.
  *
  * The Root's own subtree is addressable by slot: `line-chart` on the wrapper,
- * then `line-chart-plot`, `line-chart-canvas`, `line-chart-crosshair`,
+ * then `line-chart-plot`, `line-chart-svg`,
+ * `line-chart-crosshair`,
  * `line-chart-hover-band`, `line-chart-markers`, `line-chart-tooltip`,
  * `line-chart-description`, and, once focus lands inside the chart,
  * `line-chart-data-table`. A line chart shows the crosshair and one marker
- * dot per series, and never the band. The canvas and the three layers are
+ * dot per series, and never the band. The surface and the three layers are
  * engine-owned: absent from server HTML and from a dormant chart, inserted at
  * activation (near the viewport, on focus, or before print). A static or
- * decorative chart inserts the canvas alone. The tooltip
+ * decorative chart inserts the surface alone. The tooltip
  * surface mounts on the first hover or keyboard step and stays.
  * Each hover dot carries `chart-active-point` plus a `data-shape` of
  * `"circle"`, `"square"`, `"triangle"`, `"diamond"`, `"triangle-down"`,
@@ -217,11 +226,19 @@ type LineChartCopyButtonProps = CopyButtonPrimitiveProps;
  */
 const Root = <TDatum extends ChartDatum = ChartDatum, TMode extends ChartMode = "interactive">(
 	props: LineChartRootProps<TDatum, TMode>,
-) => <ChartRootPrimitive kind="line" componentName="LineChart" slotName="line-chart" {...props} />;
+) => (
+	<ChartRootPrimitive
+		kind="line"
+		componentName="LineChart"
+		slotName="line-chart"
+		paintBackend={createSvgBackend}
+		{...props}
+	/>
+);
 
 /**
  * One line series. Renders nothing itself — it registers the series with the
- * chart, which paints it on canvas. Compose one `Line` per series; `null` and
+ * chart, which paints it. Compose one `Line` per series; `null` and
  * missing values render as gaps unless `connectNulls` joins across them.
  *
  * @see https://mantle.ngrok.com/components/charts/line-chart#linechartline
@@ -241,8 +258,8 @@ const Root = <TDatum extends ChartDatum = ChartDatum, TMode extends ChartMode = 
 const Line = (props: LineChartLineProps) => useSeriesPrimitive("LineChart.Line", "line", props);
 
 /**
- * Horizontal hairline gridlines behind the lines (renderless; painted on
- * canvas). Omit the part to omit the grid.
+ * Horizontal hairline gridlines behind the lines (renderless; the chart
+ * paints it). Omit the part to omit the grid.
  *
  * @see https://mantle.ngrok.com/components/charts/line-chart#linechartgrid
  *
@@ -260,7 +277,7 @@ const Line = (props: LineChartLineProps) => useSeriesPrimitive("LineChart.Line",
 const Grid = (props: LineChartGridProps) => useGridPrimitive("LineChart.Grid", props);
 
 /**
- * Tick labels along the bottom of the plot (renderless; painted on canvas).
+ * Tick labels along the bottom of the plot (renderless; the chart paints it).
  * Labels that would collide are skipped, never rotated.
  *
  * @see https://mantle.ngrok.com/components/charts/line-chart#linechartxaxis
@@ -279,8 +296,8 @@ const Grid = (props: LineChartGridProps) => useGridPrimitive("LineChart.Grid", p
 const XAxis = (props: LineChartXAxisProps) => useXAxisPrimitive("LineChart.XAxis", props);
 
 /**
- * Value tick labels along the left of the plot (renderless; painted on
- * canvas). Ticks land on clean thousands-separated numbers.
+ * Value tick labels along the left of the plot (renderless; the chart
+ * paints it). Ticks land on clean thousands-separated numbers.
  *
  * @see https://mantle.ngrok.com/components/charts/line-chart#linechartyaxis
  *
@@ -299,7 +316,7 @@ const YAxis = (props: LineChartYAxisProps) => useYAxisPrimitive("LineChart.YAxis
 
 /**
  * A dashed horizontal marker at a y value — an SLO threshold, a budget, a
- * limit (renderless; painted on canvas).
+ * limit (renderless; the chart paints it).
  *
  * @see https://mantle.ngrok.com/components/charts/line-chart#linechartreferenceline
  *
@@ -417,13 +434,43 @@ const CopyButton = (props: LineChartCopyButtonProps) => (
 );
 
 /**
- * A canvas-rendered line chart for trends over a continuous x — time above
+ * Groups a list of charts, such as one chart per card, so they share one
+ * tooltip surface and one live region. The surface moves into the chart a
+ * reader points at or steps through, so a page of 100 charts mounts one
+ * tooltip and one `role="status"` region instead of one per chart. Each chart
+ * keeps its own Tooltip part, description, and data table.
+ *
+ * Renders a `div` (`line-chart-list`) that holds the charts in a `display: contents`
+ * wrapper (`line-chart-list-items`), so a grid or flex layout on the List reaches
+ * the cards, and the live region as its last child. No `asChild`: a list
+ * element such as `ul` cannot hold the live region as a child.
+ *
+ * @see https://mantle.ngrok.com/components/charts/line-chart#linechartlist
+ *
+ * @example
+ * ```tsx
+ * <LineChart.List>
+ *   {agents.map((agent) => (
+ *     <LineChart.Root key={agent.id} data={agent.rows} xKey="time" aria-label={agent.name}>
+ *       <LineChart.Line dataKey="p50" label="p50" />
+ *       <LineChart.Tooltip />
+ *     </LineChart.Root>
+ *   ))}
+ * </LineChart.List>
+ * ```
+ */
+const List = (props: LineChartListProps) => (
+	<ChartListPrimitive slotName="line-chart-list" {...props} />
+);
+
+/**
+ * A line chart for trends over a continuous x — time above
  * all. Series colors come from the theme's validated `--color-chart-*`
  * tokens; lines keep a fixed slot color for the chart's lifetime even as
  * other series are filtered in and out. Interaction ships with `Root`
  * unconditionally: a crosshair snapped to the nearest x with an every-series
  * tooltip, keyboard stepping, aria-live announcements, and an sr-only
- * description. A Root paints and allocates its canvas once it comes within
+ * description. A Root paints and allocates its surface once it comes within
  * one viewport of the visible area or takes focus, and it mounts its sr-only
  * data table once focus lands inside it. Min/max decimation keeps 100k+ point
  * series smooth.
@@ -438,8 +485,8 @@ const CopyButton = (props: LineChartCopyButtonProps) => (
  * Two ways to change a series color, both public API. The `color` prop on
  * `LineChart.Line` sets one series and takes any CSS color. To restyle a slot itself,
  * redeclare its token on `Root` —
- * `className="[--color-chart-1:var(--color-brand)]"`. The engine resolves every
- * token from `Root`'s computed style, so a declaration scoped there wins for
+ * `className="[--color-chart-1:var(--color-brand)]"`. Every token resolves in
+ * `Root`'s own cascade, so a declaration scoped there wins for
  * that chart and leaves every other chart on the page alone.
  *
  * @useWhen Show how one or more values trend across an ordered x axis, such as time, including
@@ -466,6 +513,12 @@ const CopyButton = (props: LineChartCopyButtonProps) => (
  * └── LineChart.CopyButton
  * ```
  *
+ * A List groups Roots:
+ * ```
+ * LineChart.List
+ * └── LineChart.Root (one per chart)
+ * ```
+ *
  * @example
  * ```tsx
  * const data = [
@@ -487,7 +540,7 @@ const CopyButton = (props: LineChartCopyButtonProps) => (
  */
 const LineChart = {
 	/**
-	 * The root of a line chart: owns the data, the scales, the canvas renderer,
+	 * The root of a line chart: owns the data, the scales, the renderer,
 	 * and the entire interaction contract.
 	 *
 	 * @see https://mantle.ngrok.com/components/charts/line-chart#linechartroot
@@ -507,7 +560,7 @@ const LineChart = {
 	 */
 	Root,
 	/**
-	 * One line series; registers with the chart and paints on canvas.
+	 * One line series; registers with the chart, which paints it.
 	 *
 	 * @see https://mantle.ngrok.com/components/charts/line-chart#linechartline
 	 *
@@ -656,6 +709,25 @@ const LineChart = {
 	 * ```
 	 */
 	CopyButton,
+	/**
+	 * Groups a list of charts so they share one tooltip surface and one live
+	 * region.
+	 *
+	 * @see https://mantle.ngrok.com/components/charts/line-chart#linechartlist
+	 *
+	 * @example
+	 * ```tsx
+	 * <LineChart.List>
+	 *   {agents.map((agent) => (
+	 *     <LineChart.Root key={agent.id} data={agent.rows} xKey="time" aria-label={agent.name}>
+	 *       <LineChart.Line dataKey="p50" label="p50" />
+	 *       <LineChart.Tooltip />
+	 *     </LineChart.Root>
+	 *   ))}
+	 * </LineChart.List>
+	 * ```
+	 */
+	List,
 } as const;
 
 export type {
@@ -665,6 +737,7 @@ export type {
 	LineChartCopyButtonProps,
 	LineChartGridProps,
 	LineChartLegendProps,
+	LineChartListProps,
 	LineChartLineProps,
 	LineChartReferenceLineProps,
 	LineChartRootProps,

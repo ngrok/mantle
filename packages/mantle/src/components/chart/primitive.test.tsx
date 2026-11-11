@@ -1,7 +1,7 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import type { ComponentProps, MouseEvent, ReactNode } from "react";
-import { createRef, useState } from "react";
+import { createContext, createRef, useContext, useState } from "react";
 import type { Root } from "react-dom/client";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
@@ -14,6 +14,7 @@ import { datumValue } from "./datum.js";
 import { ChartStore } from "./store.js";
 import { ValueTween } from "./tween.js";
 import type { HoverSnapshot, SeriesMeta } from "./types.js";
+import { CanvasBarChartRoot } from "../../test-utils/canvas-chart-roots.js";
 
 // Why a spied module: `datumValue` is the single read point for chart rows. The
 // engine reads them once at ingest, so after mount every call comes from a
@@ -368,8 +369,8 @@ describe("server render", () => {
 			"<span>Line chart with 2 data points.</span><span></span><span> Use the left and right arrow keys",
 		);
 		expect(html).toContain('role="status"');
-		// The canvas and the hover layers are engine-owned and arrive at activation.
-		expect(html).not.toContain("<canvas");
+		// The paint surface and the hover layers are engine-owned and arrive at activation.
+		expect(html).not.toContain("line-chart-svg");
 		expect(html).not.toContain("line-chart-tooltip");
 		const markup = document.createElement("div");
 		markup.innerHTML = html;
@@ -406,8 +407,11 @@ describe("server render", () => {
 	});
 });
 
+/** The bar chart's default paint surface, which the engine inserts at activation. */
+const SURFACE = '[data-slot="bar-chart-svg"]';
+
 describe("activation outside React", () => {
-	test("a dormant chart is a shell: no canvas, no hover layers, no tooltip surface", () => {
+	test("a dormant chart is a shell: no paint surface, no hover layers, no tooltip surface", () => {
 		// A stub that never reports intersection keeps the chart dormant.
 		const stub = createIntersectionObserverStub({ intersecting: false });
 		vi.stubGlobal("IntersectionObserver", stub.Observer);
@@ -417,7 +421,7 @@ describe("activation outside React", () => {
 			</BarChart.Root>,
 		);
 		expect(screen.getByRole("application", { name: "Visitors by month" })).toBeInTheDocument();
-		for (const slot of ["canvas", "crosshair", "hover-band", "markers", "tooltip"]) {
+		for (const slot of ["svg", "crosshair", "hover-band", "markers", "tooltip"]) {
 			expect(container.querySelector(`[data-slot="bar-chart-${slot}"]`)).toBeNull();
 		}
 		const plot = container.querySelector('[data-slot="bar-chart-plot"]');
@@ -427,11 +431,11 @@ describe("activation outside React", () => {
 		act(() => {
 			stub.enter(plot);
 		});
-		for (const slot of ["canvas", "crosshair", "hover-band", "markers"]) {
+		for (const slot of ["svg", "crosshair", "hover-band", "markers"]) {
 			expect(container.querySelector(`[data-slot="bar-chart-${slot}"]`)).toBeInTheDocument();
 		}
-		// The canvas sits under the overlay and the layers above it.
-		expect(plot.firstElementChild).toHaveAttribute("data-slot", "bar-chart-canvas");
+		// The surface sits under the overlay and the layers above it.
+		expect(plot.firstElementChild).toHaveAttribute("data-slot", "bar-chart-svg");
 		expect(plot.lastElementChild).toHaveAttribute("data-slot", "bar-chart-markers");
 	});
 
@@ -533,31 +537,35 @@ describe("activation outside React", () => {
 			stub.enter(...plots);
 		});
 		// Three bands flushed one chart each; the last two are still queued.
-		expect(plots[0]?.querySelector("canvas")).toBeInTheDocument();
-		expect(fourth.querySelector("canvas")).toBeNull();
+		expect(plots[0]?.querySelector(SURFACE)).toBeInTheDocument();
+		expect(fourth.querySelector(SURFACE)).toBeNull();
 		act(() => {
 			stub.leave(fourth);
 		});
-		// The fifth chart's canvas proves the queue ran on after the exit.
-		await waitFor(() => expect(fifth.querySelector("canvas")).toBeInTheDocument());
-		expect(fourth.querySelector("canvas")).toBeNull();
+		// The fifth chart's surface proves the queue ran on after the exit.
+		await waitFor(() => expect(fifth.querySelector(SURFACE)).toBeInTheDocument());
+		expect(fourth.querySelector(SURFACE)).toBeNull();
 	});
 
-	test("focus paints a chart beyond the far band, and blur releases its canvas", async () => {
+	test("focus paints a canvas chart beyond the far band, and blur releases its canvas", async () => {
 		const stub = createIntersectionObserverStub({ intersecting: false });
 		vi.stubGlobal("IntersectionObserver", stub.Observer);
 		const user = userEvent.setup();
 		const { container } = render(
 			<>
-				<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
+				<CanvasBarChartRoot data={data} xKey="month" aria-label="Visitors by month">
 					<BarChart.Bar dataKey="desktop" label="Desktop" />
-				</BarChart.Root>
+				</CanvasBarChartRoot>
 				<button type="button">After</button>
 			</>,
 		);
 		expect(container.querySelector("canvas")).toBeNull();
 		await user.tab();
-		const canvas = container.querySelector("canvas");
+		const canvas = await waitFor(() => {
+			const element = container.querySelector("canvas");
+			expect(element).toBeInTheDocument();
+			return element;
+		});
 		if (!(canvas instanceof HTMLCanvasElement)) {
 			throw new Error("expected focus to activate the chart");
 		}
@@ -574,13 +582,17 @@ describe("activation outside React", () => {
 		const user = userEvent.setup();
 		const { container } = render(
 			<>
-				<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
+				<CanvasBarChartRoot data={data} xKey="month" aria-label="Visitors by month">
 					<BarChart.Bar dataKey="desktop" label="Desktop" />
-				</BarChart.Root>
+				</CanvasBarChartRoot>
 				<button type="button">After</button>
 			</>,
 		);
-		const canvas = container.querySelector("canvas");
+		const canvas = await waitFor(() => {
+			const element = container.querySelector("canvas");
+			expect(element).toBeInTheDocument();
+			return element;
+		});
 		if (!(canvas instanceof HTMLCanvasElement)) {
 			throw new Error("expected the chart to activate at mount");
 		}
@@ -598,9 +610,9 @@ describe("activation outside React", () => {
 				<BarChart.Bar dataKey="desktop" label="Desktop" />
 			</BarChart.Root>,
 		);
-		expect(container.querySelector("canvas")).toBeInTheDocument();
+		expect(container.querySelector(SURFACE)).toBeInTheDocument();
 		unmount();
-		expect(document.querySelector("canvas")).toBeNull();
+		expect(document.querySelector(SURFACE)).toBeNull();
 	});
 });
 
@@ -665,8 +677,8 @@ describe("static mode", () => {
 		expect(screen.queryByRole("application")).toBeNull();
 		expect(container.querySelector("[tabindex]")).toBeNull();
 		expect(container.querySelector('[data-slot="bar-chart"]')).not.toHaveAttribute("data-state");
-		// The plot holds the canvas alone: without an overlay the hover layers are dead DOM.
-		expect(container.querySelector('[data-slot="bar-chart-canvas"]')).toBeInTheDocument();
+		// The plot holds the surface alone: without an overlay the hover layers are dead DOM.
+		expect(container.querySelector(SURFACE)).toBeInTheDocument();
 		for (const slot of ["crosshair", "hover-band", "markers"]) {
 			expect(container.querySelector(`[data-slot="bar-chart-${slot}"]`)).toBeNull();
 		}
@@ -681,7 +693,7 @@ describe("static mode", () => {
 		);
 		// The mode change rebuilds the layers in the same commit, with no new
 		// visibility report to wait for.
-		expect(container.querySelector('[data-slot="bar-chart-canvas"]')).toBeInTheDocument();
+		expect(container.querySelector(SURFACE)).toBeInTheDocument();
 		expect(container.querySelector('[data-slot="bar-chart-hover-band"]')).toBeInTheDocument();
 		expect(screen.getByRole("application", { name: "Visitors by month" })).toBeInTheDocument();
 	});
@@ -822,5 +834,140 @@ describe("data-table caption", () => {
 		const caption = document.querySelector('[data-slot="bar-chart-data-table"] caption');
 		expect(caption?.textContent).toMatch(/^Visitors/);
 		expect(caption?.textContent).not.toContain("chart data — chart data");
+	});
+});
+
+describe("List", () => {
+	const renderList = () =>
+		render(
+			<BarChart.List>
+				{["Ingress", "Egress"].map((name) => (
+					<BarChart.Root key={name} data={data} xKey="month" aria-label={name}>
+						<BarChart.Bar dataKey="desktop" label="Desktop" />
+					</BarChart.Root>
+				))}
+			</BarChart.List>,
+		);
+
+	/** The plot of the chart named `name`. */
+	const plotOf = (name: string): HTMLElement => {
+		const plot = screen.getByRole("application", { name }).parentElement;
+		if (!(plot instanceof HTMLElement)) {
+			throw new Error(`expected the "${name}" chart to render its plot`);
+		}
+		return plot;
+	};
+
+	test("its charts share one live region, which reads the step a reader took", async () => {
+		const user = userEvent.setup();
+		const { container } = renderList();
+		// A region per chart would count three: the list's and one in each chart.
+		expect(container.querySelectorAll('[role="status"]')).toHaveLength(1);
+		const region = screen.getByRole("status");
+		await user.tab();
+		await user.keyboard("{ArrowRight}");
+		// The announcement waits out a short debounce, so the wait names the text.
+		await waitFor(() => expect(region).toHaveTextContent("January. Desktop: 186"));
+		await user.tab();
+		await user.keyboard("{End}");
+		await waitFor(() => expect(region).toHaveTextContent("March. Desktop: 237"));
+	});
+
+	test("one tooltip surface moves into the chart a reader steps through", async () => {
+		const user = userEvent.setup();
+		const { container } = renderList();
+		expect(container.querySelector('[data-slot="bar-chart-tooltip"]')).toBeNull();
+		await user.tab();
+		await user.keyboard("{ArrowRight}");
+		const first = container.querySelector('[data-slot="bar-chart-tooltip"]');
+		expect(plotOf("Ingress").contains(first)).toBe(true);
+		expect(first).toHaveTextContent("186");
+		expect(first).toHaveStyle({ opacity: "1" });
+
+		await user.tab();
+		await user.keyboard("{End}");
+		const surfaces = container.querySelectorAll('[data-slot="bar-chart-tooltip"]');
+		expect(surfaces).toHaveLength(1);
+		expect(plotOf("Egress").contains(surfaces[0] ?? null)).toBe(true);
+		// The engine that now holds the surface positions it and reveals it.
+		expect(surfaces[0]).toHaveTextContent("237");
+		expect(surfaces[0]).toHaveStyle({ opacity: "1" });
+	});
+
+	test("the list wrapper and its items wrapper carry the family's slots", () => {
+		const { container } = renderList();
+		const list = container.firstElementChild;
+		expect(list).toHaveAttribute("data-slot", "bar-chart-list");
+		expect(list?.firstElementChild).toHaveAttribute("data-slot", "bar-chart-list-items");
+		expect(
+			screen
+				.getByRole("application", { name: "Ingress" })
+				.closest('[data-slot="bar-chart-list-items"]'),
+		).not.toBeNull();
+	});
+
+	test("a translated text child swaps to an element without a crash", async () => {
+		const Swap = () => {
+			const [loaded, setLoaded] = useState(false);
+			return (
+				<>
+					<button type="button" onClick={() => setLoaded(true)}>
+						Load
+					</button>
+					<BarChart.List>{loaded ? <span>Loaded</span> : "Loading charts"}</BarChart.List>
+				</>
+			);
+		};
+		const user = userEvent.setup();
+		const { container } = render(<Swap />);
+		translateTextNodes(container);
+		// Guards the step below: a helper that silently no-ops would leave the
+		// swap green whether or not the items wrapper does its job.
+		expect(findTranslatedFont(container)).not.toBeNull();
+		await user.click(screen.getByRole("button"));
+		expect(screen.getByText("Loaded")).toBeInTheDocument();
+	});
+
+	test("a tooltip render prop reads the context around its own chart", async () => {
+		const Region = createContext("none");
+		const RegionName = () => <>{useContext(Region)}</>;
+		const user = userEvent.setup();
+		const { container } = render(
+			<BarChart.List>
+				<Region.Provider value="eu-west">
+					<BarChart.Root data={data} xKey="month" aria-label="Ingress">
+						<BarChart.Bar dataKey="desktop" label="Desktop" />
+						<BarChart.Tooltip>{() => <RegionName />}</BarChart.Tooltip>
+					</BarChart.Root>
+				</Region.Provider>
+			</BarChart.List>,
+		);
+		await user.tab();
+		await user.keyboard("{ArrowRight}");
+		expect(container.querySelector('[data-slot="bar-chart-tooltip"]')).toHaveTextContent("eu-west");
+	});
+
+	test("a chart that unmounts takes its announcement out of the shared region", async () => {
+		const Pair = ({ egress }: { egress: boolean }) => (
+			<BarChart.List>
+				<BarChart.Root data={data} xKey="month" aria-label="Ingress">
+					<BarChart.Bar dataKey="desktop" label="Desktop" />
+				</BarChart.Root>
+				{egress && (
+					<BarChart.Root data={data} xKey="month" aria-label="Egress">
+						<BarChart.Bar dataKey="desktop" label="Desktop" />
+					</BarChart.Root>
+				)}
+			</BarChart.List>
+		);
+		const user = userEvent.setup();
+		const { rerender } = render(<Pair egress />);
+		const region = screen.getByRole("status");
+		await user.tab();
+		await user.tab();
+		await user.keyboard("{End}");
+		await waitFor(() => expect(region).toHaveTextContent("March. Desktop: 237"));
+		rerender(<Pair egress={false} />);
+		expect(region).toBeEmptyDOMElement();
 	});
 });

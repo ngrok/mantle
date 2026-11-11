@@ -13,6 +13,7 @@ export type {
 	AreaChartCopyButtonProps,
 	AreaChartGridProps,
 	AreaChartLegendProps,
+	AreaChartListProps,
 	AreaChartReferenceLineProps,
 	AreaChartRootProps,
 	AreaChartTooltipProps,

@@ -1,6 +1,6 @@
 ---
 title: Line Chart
-description: A canvas-rendered line chart for trends over a continuous x axis — time above all. Min/max decimation keeps 100,000+ point series smooth.
+description: A line chart for trends over a continuous x axis, time above all. Min/max decimation keeps 100,000+ point series smooth.
 aliases: [sparkline]
 ---
 
@@ -295,7 +295,7 @@ export function SeriesIdentityLineChartExample() {
 
 # Line Chart
 
-A canvas-rendered line chart for trends over a continuous x axis, time above all. Rendering is canvas with min/max decimation, so series of 100,000+ points stay smooth. The entire interaction contract ships with `LineChart.Root`: a crosshair snapped to the nearest x with an every-series tooltip, keyboard stepping, polite announcements, a screen-reader description, and a screen-reader data table that mounts once the chart takes focus. No part removal can strip keyboard access to the data.
+A line chart for trends over a continuous x axis, time above all. Rendering decimates each series to its min/max per pixel column, so series of 100,000+ points stay smooth. The entire interaction contract ships with `LineChart.Root`: a crosshair snapped to the nearest x with an every-series tooltip, keyboard stepping, polite announcements, a screen-reader description, and a screen-reader data table that mounts once the chart takes focus. No part removal can strip keyboard access to the data.
 
 ## When to use
 
@@ -382,7 +382,7 @@ function CurveMarkersExample() {
 
 ## High-density series
 
-This chart plots a 50,000-point seeded pseudo-random walk on a `"linear"` x scale. Past 4 points per device pixel, the engine decimates each series to its min/max per device-pixel column, so a redraw costs O(plot width), not O(points). It is also visually lossless, because a line through every intermediate value paints the same column of pixels anyway. The idle chart costs zero CPU: there is no always-on render loop; every mutation coalesces into a single `requestAnimationFrame` commit. And hover never repaints the canvas: the crosshair, active-point markers, and tooltip are DOM overlay elements moved with transforms.
+This chart plots a 50,000-point seeded pseudo-random walk on a `"linear"` x scale. Past 4 points per device pixel, the engine decimates each series to its min/max per device-pixel column, so a redraw costs O(plot width), not O(points). It is also visually lossless, because a line through every intermediate value paints the same column of pixels anyway. The idle chart costs zero CPU: there is no always-on render loop; every mutation coalesces into a single `requestAnimationFrame` commit. And hover never repaints the chart: the crosshair, active-point markers, and tooltip are DOM overlay elements moved with transforms.
 
 <Example>
 	<HighDensityExample />
@@ -652,7 +652,9 @@ import { LineChart } from "@ngrok/mantle/line-chart";
 
 ## Lists of charts
 
-A page of 100 charts pays for the handful a reader can see. Every `LineChart.Root` ingests its data and answers the keyboard from its first render, but it paints and allocates its canvas only once it comes within one viewport of the visible area or takes focus. Three viewports away it releases its canvas memory and repaints on the way back; printing paints every chart. The screen-reader data table waits for focus alone: it mounts once a reader tabs into the chart, so a page of sparklines holds no hidden tables until a reader asks for one. Add `content-visibility: auto` to your list's cards as a complement: it skips style and layout for offscreen cards, and the chart's own gate already skips paint and canvas memory.
+A page of 100 charts pays for the handful a reader can see. Every `LineChart.Root` ingests its data and answers the keyboard from its first render, but it builds and paints its surface only once it comes within one viewport of the visible area or takes focus. Printing paints every chart. The screen-reader data table waits for focus alone: it mounts once a reader tabs into the chart, so a page of sparklines holds no hidden tables until a reader asks for one. Add `content-visibility: auto` to your list's cards as a complement: it skips style and layout for offscreen cards, and the chart's own gate already skips paint.
+
+Wrap a list of interactive charts in [`LineChart.List`](#linechartlist). The charts inside share one tooltip surface and one `role="status"` live region. The surface moves into the chart a reader points at or steps through, so a page of 100 charts mounts one tooltip and one live region instead of one per chart. Each chart keeps its own `LineChart.Tooltip` config, description, and data table. Charts of different families can share one List, so one `LineChart.List` can hold a grid of bar, line, area, and scatter charts. A [static chart](#static-charts) has no tooltip and no live region, so a list of sparklines needs no List.
 
 ## Modes
 
@@ -745,9 +747,16 @@ LineChart.Root
 └── LineChart.CopyButton
 ```
 
+Wrap a list of Roots in `LineChart.List` so they share one tooltip and one live region:
+
+```text showLineNumbers=false
+LineChart.List
+└── LineChart.Root (one per chart)
+```
+
 ## Accessibility
 
-Every interactive chart must have an accessible name: either a direct `aria-label` or an `aria-labelledby` reference to a visible title (preferred when the chart sits under a heading — no drift-prone duplicated text). This is enforced at the type level: omitting both is a compile error, not a runtime warning. The name lands on the focusable interaction overlay, the chart's single named element (the canvas itself is hidden from assistive technology so the chart is never announced twice). A [static chart](#static-charts) names its plot `role="img"` instead and has no Tab stop. A [decorative chart](#decorative-charts) carries no real data, so it takes no accessible name and is hidden from assistive technology entirely.
+Every interactive chart must have an accessible name: either a direct `aria-label` or an `aria-labelledby` reference to a visible title (preferred when the chart sits under a heading — no drift-prone duplicated text). This is enforced at the type level: omitting both is a compile error, not a runtime warning. The name lands on the focusable interaction overlay, the chart's single named element (the paint surface itself is hidden from assistive technology, so the chart is never announced twice). A [static chart](#static-charts) names its plot `role="img"` instead and has no Tab stop. A [decorative chart](#decorative-charts) carries no real data, so it takes no accessible name and is hidden from assistive technology entirely.
 
 The chart is a single tab stop with a full keyboard point cursor:
 
@@ -770,11 +779,11 @@ The table doubles as the chart's machine-readable surface. Date row headers carr
 
 ## API Reference
 
-`LineChart.Line`, `LineChart.Grid`, `LineChart.XAxis`, `LineChart.YAxis`, and `LineChart.ReferenceLine` are renderless: they register configuration with the `Root`, which paints everything on canvas. They accept no `className` and no DOM props. `LineChart.Tooltip`, `LineChart.Legend`, and `LineChart.CopyButton` are the parts that touch real DOM — the first two accept `div` props, `CopyButton` accepts `button` props.
+`LineChart.Line`, `LineChart.Grid`, `LineChart.XAxis`, `LineChart.YAxis`, and `LineChart.ReferenceLine` are renderless: they register configuration with the `Root`, which paints everything on one surface: an `<svg>`. They accept no `className` and no DOM props. `LineChart.Tooltip`, `LineChart.Legend`, and `LineChart.CopyButton` are the parts that touch real DOM — the first two accept `div` props, `CopyButton` accepts `button` props. `LineChart.List` also renders real DOM: a `div` around a list of Roots.
 
 ### LineChart.Root
 
-The root of a line chart: owns the data, the scales, the canvas renderer, and the entire interaction contract. Renders a `<div>` wrapper (defaulting to a 16:9 aspect ratio, overridable via `className`) containing the canvas, the focusable interaction overlay, the sr-only description, the crosshair, hover-band, and marker layers, the aria-live region, and, once focus lands inside the chart, the sr-only data table. Lines encode value by vertical position, not length from a baseline, so the full y domain is overridable via `yDomain`. Lines never stack, so there is no `stacked` prop.
+The root of a line chart: owns the data, the scales, the renderer, and the entire interaction contract. Renders a `<div>` wrapper (defaulting to a 16:9 aspect ratio, overridable via `className`) containing the paint surface, the focusable interaction overlay, the sr-only description, the crosshair, hover-band, and marker layers, the aria-live region, and, once focus lands inside the chart, the sr-only data table. Lines encode value by vertical position, not length from a baseline, so the full y domain is overridable via `yDomain`. Lines never stack, so there is no `stacked` prop.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
@@ -795,39 +804,39 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 **Data attributes**
 
-| Data Attribute | Value                                                                                               | Description                                                                                                                                                                                                                                                                                                                                              |
-| -------------- | --------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `data-slot`    | `"line-chart"`                                                                                      | The Root wrapper, with any forwarded chain ahead of it.                                                                                                                                                                                                                                                                                                  |
-| `data-slot`    | `"line-chart-plot"`                                                                                 | The plot box. Every overlay layer positions against it, and the resize observer measures it.                                                                                                                                                                                                                                                             |
-| `data-slot`    | `"line-chart-canvas"`                                                                               | The `<canvas>` the marks paint on. Always `aria-hidden`. Engine-owned: it is absent from server HTML and from a dormant chart, and the Root inserts it when the chart activates (near the viewport, on focus, or before print).                                                                                                                          |
-| `data-slot`    | `"line-chart-crosshair"`                                                                            | The vertical hairline snapped to the active x. The engine writes its geometry as an inline style. Engine-owned: it is absent from server HTML and from a dormant chart, and the Root inserts it when the chart activates (near the viewport, on focus, or before print). Interactive charts only: a static or decorative chart inserts the canvas alone. |
-| `data-slot`    | `"line-chart-hover-band"`                                                                           | The category highlight; a line chart never shows it. Engine-owned: it is absent from server HTML and from a dormant chart, and the Root inserts it when the chart activates (near the viewport, on focus, or before print). Interactive charts only: a static or decorative chart inserts the canvas alone.                                              |
-| `data-slot`    | `"line-chart-markers"`                                                                              | The container the engine syncs one hover dot per series into. Engine-owned: it is absent from server HTML and from a dormant chart, and the Root inserts it when the chart activates (near the viewport, on focus, or before print). Interactive charts only: a static or decorative chart inserts the canvas alone.                                     |
-| `data-slot`    | `"line-chart-tooltip"`                                                                              | The tooltip surface. The Root renders it on the first hover or keyboard step and keeps it; `LineChart.Tooltip` configures it. A chart nobody points at holds none.                                                                                                                                                                                       |
-| `data-slot`    | `"line-chart-description"`                                                                          | The `sr-only` description the overlay's `aria-describedby` points at: the chart kind, the point count, the x range, the series labels, and, on an interactive chart, the keyboard instructions. Omitted when `mode="decorative"`.                                                                                                                        |
-| `data-slot`    | `"line-chart-data-table"`                                                                           | The `sr-only` data table. Mounts once focus lands inside the chart (`data-state` flips to `"engaged"`) and stays. Interactive charts only.                                                                                                                                                                                                               |
-| `data-state`   | `"dormant"` \| `"engaged"`                                                                          | On the Root. Flips to `"engaged"` once focus lands inside the chart, and never flips back. The data table mounts with it. Visibility paints the chart but never flips it. Interactive charts only.                                                                                                                                                       |
-| `data-slot`    | `"chart-active-point"`                                                                              | One hover dot inside the markers layer. Also carries `data-shape`.                                                                                                                                                                                                                                                                                       |
-| `data-shape`   | `"circle" \| "square" \| "triangle" \| "diamond" \| "triangle-down" \| "plus" \| "cross" \| "star"` | On each hover dot, naming the glyph its series wears — the `shape` it set, else the one paired to its series slot. The dot clips itself to that glyph, so target this only to restyle a dot.                                                                                                                                                             |
+| Data Attribute | Value                                                                                               | Description                                                                                                                                                                                                                                                                                                                                               |
+| -------------- | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-slot`    | `"line-chart"`                                                                                      | The Root wrapper, with any forwarded chain ahead of it.                                                                                                                                                                                                                                                                                                   |
+| `data-slot`    | `"line-chart-plot"`                                                                                 | The plot box. Every overlay layer positions against it, and the resize observer measures it.                                                                                                                                                                                                                                                              |
+| `data-slot`    | `"line-chart-svg"`                                                                                  | The `<svg>` the marks paint on. Always `aria-hidden`. Engine-owned: it is absent from server HTML and from a dormant chart, and the Root inserts it when the chart activates (near the viewport, on focus, or before print).                                                                                                                              |
+| `data-slot`    | `"line-chart-crosshair"`                                                                            | The vertical hairline snapped to the active x. The engine writes its geometry as an inline style. Engine-owned: it is absent from server HTML and from a dormant chart, and the Root inserts it when the chart activates (near the viewport, on focus, or before print). Interactive charts only: a static or decorative chart inserts the surface alone. |
+| `data-slot`    | `"line-chart-hover-band"`                                                                           | The category highlight; a line chart never shows it. Engine-owned: it is absent from server HTML and from a dormant chart, and the Root inserts it when the chart activates (near the viewport, on focus, or before print). Interactive charts only: a static or decorative chart inserts the surface alone.                                              |
+| `data-slot`    | `"line-chart-markers"`                                                                              | The container the engine syncs one hover dot per series into. Engine-owned: it is absent from server HTML and from a dormant chart, and the Root inserts it when the chart activates (near the viewport, on focus, or before print). Interactive charts only: a static or decorative chart inserts the surface alone.                                     |
+| `data-slot`    | `"line-chart-tooltip"`                                                                              | The tooltip surface. The Root renders it on the first hover or keyboard step and keeps it; `LineChart.Tooltip` configures it. A chart nobody points at holds none. Inside a [`LineChart.List`](#linechartlist), the List renders one surface and moves it into the chart a reader points at.                                                              |
+| `data-slot`    | `"line-chart-description"`                                                                          | The `sr-only` description the overlay's `aria-describedby` points at: the chart kind, the point count, the x range, the series labels, and, on an interactive chart, the keyboard instructions. Omitted when `mode="decorative"`.                                                                                                                         |
+| `data-slot`    | `"line-chart-data-table"`                                                                           | The `sr-only` data table. Mounts once focus lands inside the chart (`data-state` flips to `"engaged"`) and stays. Interactive charts only.                                                                                                                                                                                                                |
+| `data-state`   | `"dormant"` \| `"engaged"`                                                                          | On the Root. Flips to `"engaged"` once focus lands inside the chart, and never flips back. The data table mounts with it. Visibility paints the chart but never flips it. Interactive charts only.                                                                                                                                                        |
+| `data-slot`    | `"chart-active-point"`                                                                              | One hover dot inside the markers layer. Also carries `data-shape`.                                                                                                                                                                                                                                                                                        |
+| `data-shape`   | `"circle" \| "square" \| "triangle" \| "diamond" \| "triangle-down" \| "plus" \| "cross" \| "star"` | On each hover dot, naming the glyph its series wears — the `shape` it set, else the one paired to its series slot. The dot clips itself to that glyph, so target this only to restyle a dot.                                                                                                                                                              |
 
 ### LineChart.Line
 
-One line series. Renderless — it registers the series with the chart, which paints it on canvas. Compose one `Line` per series.
+One line series. Renders nothing itself — it registers the series with the chart, which paints it. Compose one `Line` per series.
 
-| Prop            | Type                                                                                                | Default                             | Description                                                                                                                                                                   |
-| --------------- | --------------------------------------------------------------------------------------------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `dataKey`       | `string`                                                                                            |                                     | The row key this series reads its numeric values from.                                                                                                                        |
-| `label?`        | `string`                                                                                            | `dataKey`                           | Display name for the legend, tooltip, and data table.                                                                                                                         |
-| `seriesSlot?`   | `1 \| 2 \| 3 \| 4 \| 5 \| 6 \| 7 \| 8 \| "other"`                                                   | next unreserved slot                | Give the series a fixed color-and-shape identity. See [Chart color tokens](#chart-color-tokens).                                                                              |
-| `color?`        | `SeriesColor`                                                                                       | color from the resolved slot        | Override only the color channel with a chart token or CSS color string. This does not change the series slot or default shape. See [Chart color tokens](#chart-color-tokens). |
-| `curve?`        | `"linear"` \| `"monotone"` \| `"step"`                                                              | `"linear"`                          | Interpolation between points. `"monotone"` smooths without overshooting the data.                                                                                             |
-| `markers?`      | `boolean`                                                                                           | `false`                             | Draw point markers with a surface ring. Auto-hidden when points are denser than ~12px apart.                                                                                  |
-| `connectNulls?` | `boolean`                                                                                           | `false`                             | Join across `null`/missing values instead of leaving gaps. Gaps are the default and usually correct.                                                                          |
-| `shape?`        | `"circle" \| "square" \| "triangle" \| "diamond" \| "triangle-down" \| "plus" \| "cross" \| "star"` | the glyph paired to the series slot | The glyph the hover dot, canvas point markers, and legend key wear. This overrides only the shape channel. See [Point shapes](/components/charts/scatter-plot#point-shapes).  |
+| Prop            | Type                                                                                                | Default                             | Description                                                                                                                                                                           |
+| --------------- | --------------------------------------------------------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dataKey`       | `string`                                                                                            |                                     | The row key this series reads its numeric values from.                                                                                                                                |
+| `label?`        | `string`                                                                                            | `dataKey`                           | Display name for the legend, tooltip, and data table.                                                                                                                                 |
+| `seriesSlot?`   | `1 \| 2 \| 3 \| 4 \| 5 \| 6 \| 7 \| 8 \| "other"`                                                   | next unreserved slot                | Give the series a fixed color-and-shape identity. See [Chart color tokens](#chart-color-tokens).                                                                                      |
+| `color?`        | `SeriesColor`                                                                                       | color from the resolved slot        | Override only the color channel with a chart token or CSS color string. This does not change the series slot or default shape. See [Chart color tokens](#chart-color-tokens).         |
+| `curve?`        | `"linear"` \| `"monotone"` \| `"step"`                                                              | `"linear"`                          | Interpolation between points. `"monotone"` smooths without overshooting the data.                                                                                                     |
+| `markers?`      | `boolean`                                                                                           | `false`                             | Draw point markers with a surface ring. Auto-hidden when points are denser than ~12px apart.                                                                                          |
+| `connectNulls?` | `boolean`                                                                                           | `false`                             | Join across `null`/missing values instead of leaving gaps. Gaps are the default and usually correct.                                                                                  |
+| `shape?`        | `"circle" \| "square" \| "triangle" \| "diamond" \| "triangle-down" \| "plus" \| "cross" \| "star"` | the glyph paired to the series slot | The glyph the hover dot, the painted point markers, and the legend key wear. This overrides only the shape channel. See [Point shapes](/components/charts/scatter-plot#point-shapes). |
 
 ### LineChart.Grid
 
-Hairline gridlines behind the lines. Renderless — painted on canvas. Omit the part to omit the grid.
+Horizontal hairline gridlines behind the lines (renderless; the chart paints it). Omit the part to omit the grid.
 
 | Prop     | Type                                       | Default        | Description              |
 | -------- | ------------------------------------------ | -------------- | ------------------------ |
@@ -835,7 +844,7 @@ Hairline gridlines behind the lines. Renderless — painted on canvas. Omit the 
 
 ### LineChart.XAxis
 
-Tick labels along the bottom of the plot. Renderless — painted on canvas. Labels that would collide are skipped, never rotated.
+Tick labels along the bottom of the plot (renderless; the chart paints it). Labels that would collide are skipped, never rotated.
 
 | Prop          | Type                                                                             | Default         | Description                                                                                                                                                                                                                                                                                                                                    |
 | ------------- | -------------------------------------------------------------------------------- | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -844,7 +853,7 @@ Tick labels along the bottom of the plot. Renderless — painted on canvas. Labe
 
 ### LineChart.YAxis
 
-Value tick labels along the left of the plot. Renderless — painted on canvas. Ticks land on clean thousands-separated numbers.
+Value tick labels along the left of the plot (renderless; the chart paints it). Ticks land on clean thousands-separated numbers.
 
 | Prop          | Type                                                                         | Default             | Description                                                                                                                                                                                                                                                                                   |
 | ------------- | ---------------------------------------------------------------------------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -853,7 +862,7 @@ Value tick labels along the left of the plot. Renderless — painted on canvas. 
 
 ### LineChart.ReferenceLine
 
-A dashed horizontal marker at a y value — an SLO threshold, a budget, a limit. Renderless — painted on canvas.
+A dashed horizontal marker at a y value — an SLO threshold, a budget, a limit (renderless; the chart paints it).
 
 | Prop     | Type          | Default           | Description                                                              |
 | -------- | ------------- | ----------------- | ------------------------------------------------------------------------ |
@@ -924,6 +933,19 @@ While a copy is fresh, an always-mounted `role="status"` element beside the butt
 | -------------- | -------------------------- | ---------------------------- |
 | `data-slot`    | `"line-chart-copy-button"` | The button the part renders. |
 
+### LineChart.List
+
+Groups a list of charts, such as one chart per card, so they share one tooltip surface and one live region. The surface moves into the chart a reader points at or steps through, so a page of 100 charts mounts one tooltip and one `role="status"` region instead of one per chart. Each chart keeps its own Tooltip part, description, and data table. Charts of different families can share one List. See [Lists of charts](#lists-of-charts).
+
+Renders a `div` (`line-chart-list`) that holds the charts in a `display: contents` wrapper (`line-chart-list-items`), so a grid or flex layout on the List reaches the cards, and the live region as its last child. `LineChart.List` takes no `asChild`: a list element such as `ul` cannot hold the live region as a child.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes).
+
+| Data Attribute | Value                     | Description                                                                                                 |
+| -------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `data-slot`    | `"line-chart-list"`       | The List wrapper, with any forwarded chain ahead of it. It takes the `className` and the other div props.   |
+| `data-slot`    | `"line-chart-list-items"` | The `display: contents` wrapper around the charts, so a grid or flex layout on the List lays out the cards. |
+
 ### Chart color tokens
 
 The ordered `--color-chart-1`…`--color-chart-8` tokens define the built-in series identities. Each of the two themes (light and dark) authors its own eight `oklch()` literals, measured so all 28 pairs hold 15 ΔE apart for full-color vision and 8 ΔE under simulated protanopia or deuteranopia, and so every slot clears 3:1 against that theme's card surface. The semantic ramps are deliberately excluded, so a series never reads as a status color.
@@ -955,7 +977,7 @@ Three public paths control a series identity or color.
 - **One color channel** — pass `color` on `LineChart.Line`. It takes a chart token by name or any CSS color string without changing the slot or default shape.
 - **One chart** — redeclare the token on `LineChart.Root`: `className="[--color-chart-1:var(--color-brand)]"`. Every series that lands in slot 1 picks the new value up. So do its legend key and hover dot.
 
-The chart resolves every token from `Root`'s computed style in one read, inside that Root's own cascade, so a declaration scoped to one Root wins for that chart alone. Sibling charts on the page keep the theme value. A bare `currentColor` resolves from `Root`'s computed `color`. A value the canvas cannot parse by itself, such as `light-dark()` or a `currentColor` nested inside `color-mix()`, resolves through a hidden element inside `Root` instead. Declare the same custom property higher up (on a dashboard wrapper, or at `:root`) to retheme a whole subtree.
+The chart paints every token as CSS, so the browser resolves it inside the Root's own cascade, with no computed-style read and no hidden probe element. A declaration scoped to one Root wins for that chart alone, and sibling charts on the page keep the theme value. Declare the same custom property higher up (on a dashboard wrapper, or at `:root`) to retheme a whole subtree.
 
 An overridden color leaves mantle's gates behind, so measure the value you set against the slots its neighbors hold. The example fixes Last week at slot 4 for a diamond identity, then overrides only its paint.
 

@@ -109,7 +109,8 @@ const CHART_ROOTS =
 /**
  * Marks the commit that mounts every chart. An effect on the last sibling runs
  * after every chart's own effects. Two frames after every visible chart holds
- * a sized canvas, the first paint of every chart has gone out.
+ * a painted surface (a sized canvas, or an SVG with a path), the first paint
+ * of every chart has gone out.
  */
 const Ready = () => {
 	useEffect(() => {
@@ -131,7 +132,14 @@ const Ready = () => {
 			if (visible.length === 0) {
 				return true;
 			}
-			return visible.every((root) => (root.querySelector("canvas")?.width ?? 0) > 0);
+			return visible.every((root) => {
+				const surface = root.querySelector('canvas, [data-slot$="-svg"]');
+				// A canvas has painted once it holds a sized bitmap; an SVG, once it holds a path.
+				if (surface instanceof HTMLCanvasElement) {
+					return surface.width > 0;
+				}
+				return surface?.querySelector("path[d]") != null;
+			});
 		};
 		let frames = 0;
 		const tick = () => {

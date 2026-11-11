@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { createColorResolver } from "./colors.js";
+import { createCanvasBackend } from "./canvas-backend.js";
+import { createColorResolver } from "./canvas-colors.js";
+import { createSvgBackend } from "./svg-backend.js";
 import type { EngineElements, HoverLayers } from "./engine.js";
 import { ChartEngine } from "./engine.js";
 import { ChartStore } from "./store.js";
@@ -9,12 +11,13 @@ import type { ChartDatumEvent, ChartOptions, SeriesMark, SeriesSpec } from "./ty
 // Why a spied module: happy-dom has no 2D context, so no paint reaches the
 // canvas. `createColorResolver` runs once per color pass, and its call count is
 // the one trace of when the engine resolves colors.
-vi.mock("./colors.js", { spy: true });
+vi.mock("./canvas-colors.js", { spy: true });
 
 /**
- * These tests drive `ChartEngine` directly, with a `ChartStore` and hand-built
- * overlay elements appended to the document, the way the Root binding does.
- * happy-dom returns no 2d context, so the canvas paint path returns early;
+ * These tests drive `ChartEngine` directly, with a `ChartStore`, the canvas
+ * backend, and hand-built overlay elements appended to the document, the way
+ * the Root binding does. happy-dom returns no 2d context, so the canvas paint
+ * path returns early;
  * ingest, tween retargeting, hover snapshots, and the DOM overlay still run.
  * A fake `ResizeObserver` gives the plot a size, because happy-dom's never
  * fires and a 0×0 plot projects every value onto one pixel.
@@ -78,6 +81,8 @@ type Mounted = {
 	engine: ChartEngine;
 	store: ChartStore;
 	elements: EngineElements;
+	/** The canvas the backend inserted into the plot. */
+	canvas: HTMLCanvasElement;
 	options: ChartOptions;
 	/** Each registered series' unregister cleanup, by `dataKey`. */
 	unregister: Map<string, () => void>;
@@ -89,15 +94,14 @@ const createElements = (): EngineElements => {
 	const document = window.document;
 	const root = document.createElement("div");
 	const plot = document.createElement("div");
-	const canvas = document.createElement("canvas");
 	const crosshair = document.createElement("div");
 	const band = document.createElement("div");
 	const markers = document.createElement("div");
 	const tooltip = document.createElement("div");
-	plot.append(canvas, crosshair, band, markers, tooltip);
+	plot.append(crosshair, band, markers, tooltip);
 	root.append(plot);
 	document.body.append(root);
-	return { root, canvas, plot, hover: { crosshair, band, markers }, tooltip };
+	return { root, plot, hover: { crosshair, band, markers }, tooltip };
 };
 
 /** The hover layers of a mounted engine; every mount here is interactive. */
@@ -134,7 +138,18 @@ const mountEngine = (config: {
 }): Mounted => {
 	const store = new ChartStore();
 	const elements = createElements();
-	const engine = new ChartEngine({ kind: config.kind, elements, store, inView: config.inView });
+	const engine = new ChartEngine({
+		kind: config.kind,
+		elements,
+		store,
+		backend: createCanvasBackend,
+		slotName: "chart",
+		inView: config.inView,
+	});
+	const canvas = elements.plot.querySelector("canvas");
+	if (canvas == null) {
+		throw new Error("expected the canvas backend to insert its canvas");
+	}
 	const unregister = new Map(
 		config.series.map((spec) => [spec.dataKey, store.registerSeries(spec)] as const),
 	);
@@ -146,7 +161,7 @@ const mountEngine = (config: {
 		deliverResize({ elements }, config.size ?? { width: 400, height: 200 });
 	}
 	engine.flushIngest();
-	const result = { engine, store, elements, options, unregister };
+	const result = { engine, store, elements, canvas, options, unregister };
 	mounted.push(result);
 	return result;
 };
@@ -403,14 +418,14 @@ describe("ChartEngine reveal on first sight", () => {
 
 	test("a print of an unseen chart snaps the reveal to full", () => {
 		const spy = retarget();
-		mountEngine({
+		const mount = mountEngine({
 			kind: "line",
 			series: lineSeries,
 			rows: flatRows,
 			inView: false,
 			options: { animate: true },
 		});
-		window.dispatchEvent(new Event("beforeprint"));
+		mount.engine.paintForPrint();
 		// A held reveal prints the axes and no marks.
 		const snaps = spy.mock.calls.filter(
 			([target, options]) =>
@@ -602,12 +617,12 @@ describe("ChartEngine color resolution", () => {
 		await afterNextCommit();
 		expect(resolves).toHaveBeenCalledTimes(0);
 		// A context created in the constructor would show up here.
-		expect(getContext.mock.contexts).not.toContain(mount.elements.canvas);
+		expect(getContext.mock.contexts).not.toContain(mount.canvas);
 
 		mount.engine.setInView(true);
 		await afterNextCommit();
 		expect(resolves).toHaveBeenCalledTimes(1);
-		expect(getContext.mock.contexts).toContain(mount.elements.canvas);
+		expect(getContext.mock.contexts).toContain(mount.canvas);
 	});
 
 	test("releasing the backing stores clears the canvas and the next in-view frame paints again", async () => {
@@ -618,11 +633,11 @@ describe("ChartEngine color resolution", () => {
 		const tick = vi.spyOn(ChaseTween.prototype, "tick");
 		mount.engine.setInView(false);
 		// happy-dom never sizes the canvas, so a painted bitmap is set by hand.
-		mount.elements.canvas.width = 800;
-		mount.elements.canvas.height = 400;
+		mount.canvas.width = 800;
+		mount.canvas.height = 400;
 		mount.engine.releaseBackingStores();
-		expect(mount.elements.canvas.width).toBe(0);
-		expect(mount.elements.canvas.height).toBe(0);
+		expect(mount.canvas.width).toBe(0);
+		expect(mount.canvas.height).toBe(0);
 
 		// A release that forgets to mark the repaint leaves the entry with nothing to do.
 		mount.engine.setInView(true);
@@ -684,37 +699,38 @@ describe("ChartEngine resize observation", () => {
 		deliverResize(second, { width: 300, height: 150 });
 		// Only the second engine took the size, so a print measures the first
 		// plot and not the second. A dispatch to every handler would size both.
-		window.dispatchEvent(new Event("beforeprint"));
+		first.engine.paintForPrint();
+		second.engine.paintForPrint();
 		expect(measureFirst).toHaveBeenCalledTimes(1);
 		expect(measureSecond).toHaveBeenCalledTimes(0);
 	});
 });
 
 describe("ChartEngine printing", () => {
-	test("beforeprint paints a dormant chart synchronously and afterprint releases it", async () => {
+	test("a print paints a dormant chart synchronously and its end releases it", async () => {
 		const resolves = vi.mocked(createColorResolver);
 		const mount = mountEngine({ kind: "line", series: lineSeries, rows: flatRows, inView: false });
 		await afterNextCommit();
 		expect(resolves).toHaveBeenCalledTimes(0);
 
-		window.dispatchEvent(new Event("beforeprint"));
+		mount.engine.paintForPrint();
 		// No frame runs before the print snapshot, so a listener that only
 		// schedules prints a blank chart.
 		expect(resolves).toHaveBeenCalledTimes(1);
 
-		mount.elements.canvas.width = 800;
-		mount.elements.canvas.height = 400;
-		window.dispatchEvent(new Event("afterprint"));
-		expect(mount.elements.canvas.width).toBe(0);
+		mount.canvas.width = 800;
+		mount.canvas.height = 400;
+		mount.engine.afterPrint();
+		expect(mount.canvas.width).toBe(0);
 	});
 
-	test("afterprint keeps the canvas of a chart in view", () => {
+	test("the end of a print keeps the canvas of a chart in view", () => {
 		const mount = mountEngine({ kind: "line", series: lineSeries, rows: flatRows });
-		mount.elements.canvas.width = 800;
-		mount.elements.canvas.height = 400;
-		window.dispatchEvent(new Event("beforeprint"));
-		window.dispatchEvent(new Event("afterprint"));
-		expect(mount.elements.canvas.width).toBe(800);
+		mount.canvas.width = 800;
+		mount.canvas.height = 400;
+		mount.engine.paintForPrint();
+		mount.engine.afterPrint();
+		expect(mount.canvas.width).toBe(800);
 	});
 
 	test("a print before the first resize delivery resolves colors once", async () => {
@@ -724,7 +740,7 @@ describe("ChartEngine printing", () => {
 		vi.spyOn(mount.elements.plot, "getBoundingClientRect").mockReturnValue(
 			new DOMRect(0, 0, 400, 200),
 		);
-		window.dispatchEvent(new Event("beforeprint"));
+		mount.engine.paintForPrint();
 		expect(resolves).toHaveBeenCalledTimes(1);
 
 		// The observer's first entry carries the same size and ratio the print
@@ -732,5 +748,54 @@ describe("ChartEngine printing", () => {
 		deliverResize(mount, { width: 400, height: 200 });
 		await afterNextCommit();
 		expect(resolves).toHaveBeenCalledTimes(1);
+	});
+});
+
+describe("ChartEngine device pixel ratio", () => {
+	test("an SVG chart samples its marks at the new ratio after a zoom", async () => {
+		// Why a fake query: happy-dom's `matchMedia` never fires `change`.
+		const ratioListeners: Array<() => void> = [];
+		vi.stubGlobal("matchMedia", (query: string) => ({
+			matches: false,
+			media: query,
+			addEventListener: (_type: string, listener: () => void) => {
+				ratioListeners.push(listener);
+			},
+			removeEventListener: () => {},
+		}));
+		vi.stubGlobal("devicePixelRatio", 1);
+		const store = new ChartStore();
+		const elements = createElements();
+		const engine = new ChartEngine({
+			kind: "line",
+			elements,
+			store,
+			backend: createSvgBackend,
+			slotName: "chart",
+		});
+		store.registerSeries(makeSeries("y", "line"));
+		engine.setOptions({ ...baseOptions, xKey: "x" });
+		engine.setRows(
+			Array.from({ length: 4000 }, (_, index) => ({ x: index, y: 50 + 40 * Math.sin(index / 7) })),
+		);
+		deliverResize({ elements }, { width: 100, height: 100 });
+		engine.flushIngest();
+		engine.commitNow();
+		const commands = (): number =>
+			(elements.plot.querySelector("svg path[d]")?.getAttribute("d") ?? "").match(/[ML]/g)
+				?.length ?? 0;
+		const atOne = commands();
+		expect(atOne).toBeGreaterThan(0);
+
+		// A zoom changes the ratio and not the plot's CSS size, so no resize arrives.
+		vi.stubGlobal("devicePixelRatio", 2);
+		// Why splice: each listener re-arms the watch, which adds a listener.
+		for (const listener of ratioListeners.splice(0)) {
+			listener();
+		}
+		await afterNextCommit();
+		expect(commands()).toBeGreaterThan(atOne);
+		engine.destroy();
+		elements.root.remove();
 	});
 });

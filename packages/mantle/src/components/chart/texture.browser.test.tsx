@@ -1,19 +1,14 @@
 import { render, waitFor } from "@testing-library/react";
-import { findChartCanvas } from "../../test-utils/find-chart-canvas.js";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { BarChart } from "../bar-chart/index.js";
-import {
-	createBarTexturePattern,
-	TEXTURE_TILE_SIZE,
-	type BarTexturePatternOptions,
-} from "./texture.js";
+import { paintTextureTile, TEXTURE_TILE_SIZE } from "./texture.js";
 import type { BarOrientation, BarTexture } from "./types.js";
 
 /**
- * Real-browser canvas-pixel tests for bar texture fills: pattern tiles must
- * rasterize with both the ground color and the tone-on-tone ink, and textured
- * bars must paint visibly differently from solid ones. happy-dom cannot
- * exercise this — it has no real 2D context or paint.
+ * Real-browser tests for bar texture fills: each tile must paint both the
+ * ground color and the tone-on-tone ink, and a textured bar must fill with its
+ * SVG `<pattern>`. The tile tests read canvas pixels, which happy-dom cannot
+ * paint.
  */
 const STYLE = `
 :root {
@@ -92,54 +87,30 @@ const makeContext = (size: number): CanvasRenderingContext2D => {
 	return context;
 };
 
-/** Count the distinct opaque RGB colors in a filled region. */
-const distinctOpaqueColors = (
-	context: CanvasRenderingContext2D,
-	x: number,
-	y: number,
-	width: number,
-	height: number,
-): Set<string> => {
-	const image = context.getImageData(x, y, width, height);
-	const colors = new Set<string>();
-	for (let offset = 0; offset < image.data.length; offset += 4) {
-		if ((image.data[offset + 3] ?? 0) === 255) {
-			colors.add(`${image.data[offset]},${image.data[offset + 1]},${image.data[offset + 2]}`);
-		}
-	}
-	return colors;
-};
-
 /**
  * Every value the tile painters cover, typed off the option itself rather than
  * hand-copied — a narrower copy would stay assignable and cover nothing new.
  * Pixel coverage for a ninth value is still on the author: the probes below name
  * their textures explicitly.
  */
-type NonSolidTexture = BarTexturePatternOptions["texture"];
+type NonSolidTexture = Exclude<BarTexture, "solid">;
 
 /**
- * The red channel of one 8×8 pattern tile, indexed `[y][x]`: black ink darkens
- * the rgb(62, …) ground, and untouched ground reads exactly 62. The context is
- * unscaled, so a `devicePixelRatio` above 1 reads the tile through the
- * pattern's own inverse transform, in CSS pixels.
+ * The red channel of one 8×8 texture tile, indexed `[y][x]`: black ink darkens
+ * the rgb(62, …) ground, and untouched ground reads exactly 62.
  */
 const tileReds = (
 	texture: NonSolidTexture,
 	orientation: BarOrientation = "vertical",
-	devicePixelRatio = 1,
 ): number[][] => {
 	const size = TEXTURE_TILE_SIZE;
-	const context = makeContext(size * 4);
-	const pattern = createBarTexturePattern(context, {
+	const context = makeContext(size);
+	paintTextureTile(context, {
 		texture,
 		color: "rgb(62, 111, 244)",
 		ink: "rgb(0, 0, 0)",
-		devicePixelRatio,
 		orientation,
 	});
-	context.fillStyle = pattern ?? "white";
-	context.fillRect(0, 0, size * 4, size * 4);
 	const image = context.getImageData(0, 0, size, size);
 	return Array.from({ length: size }, (_, y) =>
 		Array.from({ length: size }, (_, x) => image.data[(y * size + x) * 4] ?? 255),
@@ -161,28 +132,24 @@ const inkedColumns = (tile: readonly number[][]): number[] =>
 	(tile[0] ?? []).flatMap((_, x) => (tile.every((row) => isInked(row[x] ?? 255)) ? [x] : []));
 
 /**
- * Mean ink coverage of a texture's tile over a 64 CSS px square: black ink on a
- * white ground, weighted per pixel so a half-covered edge counts as half. This
- * is the loudness contract's unit — a textured bar may never read darker than
- * its siblings.
+ * Mean ink coverage of a texture's tile: black ink on a white ground, weighted
+ * per pixel so a half-covered edge counts as half. The tile repeats, so one
+ * tile's coverage is the bar's. This is the loudness contract's unit — a
+ * textured bar may never read darker than its siblings.
  */
 const inkCoverage = (texture: NonSolidTexture, devicePixelRatio: number): number => {
-	const span = 64;
-	const context = makeContext(span * devicePixelRatio);
-	// The engine paints under this same `devicePixelRatio` transform, so the tile
-	// lands 1:1 on the device grid. Without it the pattern's own inverse transform
-	// resamples the tile and every coverage number drifts.
+	const span = TEXTURE_TILE_SIZE * devicePixelRatio;
+	const context = makeContext(span);
+	// Paint at device resolution, as an SVG `<pattern>` rasterizes on a retina
+	// screen; at 1x the coarse grid drops ink from the strokes and the dots.
 	context.scale(devicePixelRatio, devicePixelRatio);
-	const pattern = createBarTexturePattern(context, {
+	paintTextureTile(context, {
 		texture,
 		color: "rgb(255, 255, 255)",
 		ink: "rgb(0, 0, 0)",
-		devicePixelRatio,
 		orientation: "vertical",
 	});
-	context.fillStyle = pattern ?? "white";
-	context.fillRect(0, 0, span, span);
-	const image = context.getImageData(0, 0, span * devicePixelRatio, span * devicePixelRatio);
+	const image = context.getImageData(0, 0, span, span);
 	let ink = 0;
 	for (let offset = 0; offset < image.data.length; offset += 4) {
 		ink += (255 - (image.data[offset] ?? 255)) / 255;
@@ -190,24 +157,21 @@ const inkCoverage = (texture: NonSolidTexture, devicePixelRatio: number): number
 	return ink / (image.data.length / 4);
 };
 
-describe("createBarTexturePattern", () => {
-	/** The red channel at one pixel of a pattern-filled canvas. */
+describe("texture tiles", () => {
+	/** The red channel at one pixel of a tile. */
 	const redAt = (texture: NonSolidTexture, x: number, y: number) =>
 		tileReds(texture)[y]?.[x] ?? 255;
 
-	test("rasterizes a two-tone tile: the series ground plus darker ink lines", () => {
-		const context = makeContext(64);
-		const pattern = createBarTexturePattern(context, {
+	test("paints a two-tone tile: the series ground plus darker ink lines", () => {
+		const size = TEXTURE_TILE_SIZE;
+		const context = makeContext(size);
+		paintTextureTile(context, {
 			texture: "hatch",
 			color: "rgb(62, 111, 244)",
 			ink: "rgb(43, 78, 171)",
-			devicePixelRatio: 1,
 			orientation: "vertical",
 		});
-		expect(pattern).not.toBeNull();
-		context.fillStyle = pattern ?? "black";
-		context.fillRect(0, 0, 64, 64);
-		const image = context.getImageData(0, 0, 64, 64);
+		const image = context.getImageData(0, 0, size, size);
 		let ground = 0;
 		let inked = 0;
 		for (let offset = 0; offset < image.data.length; offset += 4) {
@@ -306,31 +270,11 @@ describe("createBarTexturePattern", () => {
 		expect(tileReds("grid", "horizontal")).toEqual(tileReds("grid", "vertical"));
 	});
 
-	test("a retina tile keeps the same CSS-pixel period (the inverse pattern transform)", () => {
-		// The tile rasterizes at device resolution but keeps the same 8px CSS
-		// period, so lines land crisply on the device grid instead of doubling in
-		// size. Dropping `pattern.setTransform` doubles every period on retina.
-		const retina = (texture: NonSolidTexture) => tileReds(texture, "vertical", 2);
-		const hatch = retina("hatch");
-		expect(hatch[6]?.[1] ?? 255).toBeLessThan(40);
-		expect(hatch[6]?.[6]).toBe(62);
-		expect(retina("hatch-reverse")[6]?.[6] ?? 255).toBeLessThan(40);
-		// The perpendicular rung stays in the same tile band, at the same width.
-		const perpendicular = retina("perpendicular");
-		expect(perpendicular[3]?.[3] ?? 255).toBeLessThan(40);
-		expect(perpendicular[0]?.[3]).toBe(62);
-		expect(perpendicular[6]?.[3]).toBe(62);
-		// Dots keep their quarter-grid positions rather than growing to fill the tile.
-		const dots = retina("dots");
-		expect(dots[2]?.[2] ?? 255).toBeLessThan(40);
-		expect(dots[2]?.[5]).toBe(62);
-	});
-
 	test("the new textures ink inside the loudness band the shipped ones set", () => {
 		// Loudness is an ink-coverage contract: a textured bar may never read
 		// darker than its siblings. The band comes from the five textures that
-		// shipped first, measured through the real pattern rather than recomputed
-		// from constants. Sample at device pixel ratio 2. At 1x the diagonal strokes
+		// shipped first, measured through the real tile painters rather than
+		// recomputed from constants. Sample at device pixel ratio 2. At 1x the diagonal strokes
 		// and the dot field both lose ink to the coarse device grid, so the floor
 		// drops to about 22.5% — low enough to admit a lattice that reads too light
 		// at real resolutions.
@@ -511,7 +455,6 @@ describe("textured bar charts", () => {
 		orientation?: BarOrientation;
 	}) => (
 		<div style={{ width: 600, height: 300 }}>
-			{/* animate=false so bars snap to full height: deterministic pixels. */}
 			<BarChart.Root
 				data={data}
 				xKey="month"
@@ -525,142 +468,41 @@ describe("textured bar charts", () => {
 		</div>
 	);
 
-	const chartCanvasContext = async (container: HTMLElement) => {
-		const canvas = await findChartCanvas(container);
-		const context = canvas.getContext("2d");
-		if (context == null) {
-			throw new Error("expected the chart canvas to have a 2d context");
-		}
-		return { canvas, context };
-	};
-
-	/**
-	 * Scan a mid-height device-pixel row (equal values put every bar's interior
-	 * there, away from rounded corners and the baseline) and count the distinct
-	 * opaque colors inside each bar run: 1 for a flat solid interior, ≥ 2 where
-	 * texture ink crosses it.
-	 */
-	const barRunColorCounts = (
-		context: CanvasRenderingContext2D,
-		canvas: HTMLCanvasElement,
-	): number[] => {
-		const row = context.getImageData(0, Math.round(canvas.height / 2), canvas.width, 1);
-		const runs: Array<{ start: number; end: number }> = [];
-		let runStart: number | null = null;
-		for (let x = 0; x < canvas.width; x++) {
-			const opaque = (row.data[x * 4 + 3] ?? 0) === 255;
-			if (opaque && runStart == null) {
-				runStart = x;
-			}
-			if (!opaque && runStart != null) {
-				runs.push({ start: runStart, end: x });
-				runStart = null;
-			}
-		}
-		if (runStart != null) {
-			runs.push({ start: runStart, end: canvas.width });
-		}
-		return runs.map((run) => {
-			const inset = 2;
-			const width = run.end - run.start - inset * 2;
-			return distinctOpaqueColors(
-				context,
-				run.start + inset,
-				Math.round(canvas.height / 2) - 8,
-				Math.max(1, width),
-				16,
-			).size;
-		});
-	};
-
-	/** The axis a bar's ink bands run along. */
-	type InkAxis = "horizontal" | "vertical" | "flat" | "mixed";
-
-	/**
-	 * Read one bar's ink axis off a square inside it: a horizontal rung leaves
-	 * every row of the square one color, a vertical rung every column, and a solid
-	 * fill leaves both.
-	 */
-	const inkAxis = (
-		context: CanvasRenderingContext2D,
-		square: { x: number; y: number; size: number },
-	): InkAxis => {
-		const { x, y, size } = square;
-		const offsets = Array.from({ length: size }, (_, offset) => offset);
-		const rowsUniform = offsets.every(
-			(offset) => distinctOpaqueColors(context, x, y + offset, size, 1).size === 1,
+	/** The bar paths, without the tile paths inside each `<pattern>`. */
+	const barPaths = (container: HTMLElement): SVGPathElement[] =>
+		[...container.querySelectorAll('[data-slot="bar-chart-svg"] path')].filter(
+			(path): path is SVGPathElement =>
+				path instanceof SVGPathElement && path.closest("pattern") == null,
 		);
-		const columnsUniform = offsets.every(
-			(offset) => distinctOpaqueColors(context, x + offset, y, 1, size).size === 1,
-		);
-		if (rowsUniform && columnsUniform) {
-			return "flat";
-		}
-		if (rowsUniform) {
-			return "horizontal";
-		}
-		if (columnsUniform) {
-			return "vertical";
-		}
-		return "mixed";
-	};
 
-	/**
-	 * Walk the canvas' mid line — a row for vertical bars, a column for horizontal
-	 * ones — and report each bar's ink axis. Equal values put every bar's interior
-	 * on that line, clear of the rounded corners and the baseline.
-	 */
-	const barInkAxes = (
-		context: CanvasRenderingContext2D,
-		canvas: HTMLCanvasElement,
-		scan: "row" | "column",
-	): InkAxis[] => {
-		const along = scan === "row" ? canvas.width : canvas.height;
-		const middle = Math.round((scan === "row" ? canvas.height : canvas.width) / 2);
-		const strip =
-			scan === "row"
-				? context.getImageData(0, middle, along, 1)
-				: context.getImageData(middle, 0, 1, along);
-		const runs: Array<{ start: number; end: number }> = [];
-		let runStart: number | null = null;
-		for (let offset = 0; offset < along; offset++) {
-			const opaque = (strip.data[offset * 4 + 3] ?? 0) === 255;
-			if (opaque && runStart == null) {
-				runStart = offset;
-			}
-			if (!opaque && runStart != null) {
-				runs.push({ start: runStart, end: offset });
-				runStart = null;
+	/** The `<pattern>` each textured bar path fills with, in paint order. */
+	const barPatterns = (container: HTMLElement): SVGPatternElement[] => {
+		const svg = container.querySelector('[data-slot="bar-chart-svg"]');
+		const patterns: SVGPatternElement[] = [];
+		for (const path of barPaths(container)) {
+			const id = /^url\("?#([^")]+)"?\)$/.exec(path.style.fill)?.[1];
+			const pattern = id == null ? null : svg?.querySelector(`pattern[id="${id}"]`);
+			if (pattern instanceof SVGPatternElement) {
+				patterns.push(pattern);
 			}
 		}
-		if (runStart != null) {
-			runs.push({ start: runStart, end: along });
-		}
-		const size = 16;
-		return runs.map((run) => {
-			const inset = run.start + 4;
-			return scan === "row"
-				? inkAxis(context, { x: inset, y: middle - size / 2, size })
-				: inkAxis(context, { x: middle - size / 2, y: inset, size });
-		});
+		return patterns;
 	};
 
-	test("a textured series paints striped bars; a solid one stays flat", async () => {
+	/** The fills of the bar paths that paint a series color, with no texture. */
+	const solidBarFills = (container: HTMLElement): string[] =>
+		barPaths(container)
+			.map((path) => path.style.fill)
+			.filter((fill) => fill.startsWith("var("));
+
+	test("a textured series fills its bars with a pattern; a solid one stays flat", async () => {
 		const { container } = render(<Chart mobileTexture="hatch" />);
-		const { canvas, context } = await chartCanvasContext(container);
 		await waitFor(() => {
-			expect(canvas.width).toBeGreaterThan(0);
+			expect(barPatterns(container)).toHaveLength(1);
 		});
-		await waitFor(() => {
-			const colorCounts = barRunColorCounts(context, canvas);
-			// Three categories × two series = six bars crossing the row,
-			// alternating solid desktop / textured mobile.
-			expect(colorCounts).toHaveLength(6);
-			const solidCounts = colorCounts.filter((_, index) => index % 2 === 0);
-			const texturedCounts = colorCounts.filter((_, index) => index % 2 === 1);
-			expect(solidCounts).toEqual([1, 1, 1]);
-			expect(Math.min(...texturedCounts)).toBeGreaterThan(1);
-		});
+		expect(solidBarFills(container)).toEqual(["var(--color-chart-1)"]);
+		// The tile paints its ground and its ink.
+		expect(barPatterns(container)[0]?.querySelectorAll("path").length).toBeGreaterThan(1);
 	});
 
 	test("changing texture on a mounted chart repaints the bars (paint-cache staleness)", async () => {
@@ -668,44 +510,32 @@ describe("textured bar charts", () => {
 		// is unchanged across this rerender, so if the key regressed to comparing
 		// colors alone the cache would stay "fresh" and keep painting solid.
 		const { container, rerender } = render(<Chart mobileTexture="solid" />);
-		const { canvas, context } = await chartCanvasContext(container);
 		await waitFor(() => {
-			expect(canvas.width).toBeGreaterThan(0);
+			expect(solidBarFills(container)).toHaveLength(2);
 		});
-		await waitFor(() => {
-			const colorCounts = barRunColorCounts(context, canvas);
-			expect(colorCounts).toEqual([1, 1, 1, 1, 1, 1]);
-		});
+		expect(barPatterns(container)).toHaveLength(0);
 		rerender(<Chart mobileTexture="hatch" />);
 		await waitFor(() => {
-			const colorCounts = barRunColorCounts(context, canvas);
-			expect(colorCounts).toHaveLength(6);
-			expect(Math.min(...colorCounts.filter((_, index) => index % 2 === 1))).toBeGreaterThan(1);
+			expect(barPatterns(container)).toHaveLength(1);
 		});
 	});
 
 	test("flipping orientation on a mounted chart turns the rungs with the bars", async () => {
-		// The rung textures bake the bar direction into the tile, so the engine's
-		// paint-cache signature has to carry orientation. Keyed on theme and device
-		// pixel ratio alone, a chart the consumer flips keeps wearing the rungs its
-		// old layout painted. No other test in the suite reads that repaint.
+		// The rung textures bake the bar direction into the tile, so the backend's
+		// paint signature has to carry orientation. Keyed on anything less, a
+		// chart the consumer flips keeps the rungs its old layout painted. The
+		// tile tests above pin which way each rung runs.
 		const { container, rerender } = render(<Chart mobileTexture="parallel" />);
-		const { canvas, context } = await chartCanvasContext(container);
+		let vertical = "";
 		await waitFor(() => {
-			expect(canvas.width).toBeGreaterThan(0);
-		});
-		await waitFor(() => {
-			// Vertical bars wear the rung along their length, so the ink runs down.
-			const axes = barInkAxes(context, canvas, "row");
-			expect(axes.filter((axis) => axis === "vertical")).toHaveLength(3);
-			expect(axes.filter((axis) => axis === "flat")).toHaveLength(3);
+			vertical = barPatterns(container)[0]?.innerHTML ?? "";
+			expect(vertical).not.toBe("");
 		});
 		rerender(<Chart mobileTexture="parallel" orientation="horizontal" />);
 		await waitFor(() => {
-			// Horizontal bars run sideways, so the same texture inks sideways too.
-			const axes = barInkAxes(context, canvas, "column");
-			expect(axes.filter((axis) => axis === "horizontal")).toHaveLength(3);
-			expect(axes.filter((axis) => axis === "flat")).toHaveLength(3);
+			const horizontal = barPatterns(container)[0]?.innerHTML ?? "";
+			expect(horizontal).not.toBe("");
+			expect(horizontal).not.toBe(vertical);
 		});
 	});
 });

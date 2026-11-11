@@ -105,8 +105,8 @@ test("a press on a chart whose activation is still queued activates its datum", 
 	act(() => {
 		stub.enter(...plots);
 	});
-	expect(plots[2]?.querySelector("canvas")).toBeInTheDocument();
-	expect(fourth.querySelector("canvas")).toBeNull();
+	expect(plots[2]?.querySelector('[data-slot="bar-chart-svg"]')).toBeInTheDocument();
+	expect(fourth.querySelector('[data-slot="bar-chart-svg"]')).toBeNull();
 	const overlay = fourth.querySelector('[role="application"]');
 	if (!(overlay instanceof HTMLElement)) {
 		throw new Error("expected the interaction overlay to render");

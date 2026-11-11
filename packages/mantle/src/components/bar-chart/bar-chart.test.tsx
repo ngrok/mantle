@@ -33,8 +33,8 @@ describe("BarChart.Root", () => {
 	test("renders a labelled chart image and interaction overlay", () => {
 		renderChart();
 		expect(screen.getByRole("application", { name: "Visitors by month" })).toBeInTheDocument();
-		// The canvas is decorative pixels; the overlay is the single named element.
-		expect(document.querySelector("canvas")).toHaveAttribute("aria-hidden");
+		// The paint surface is decorative; the overlay is the single named element.
+		expect(document.querySelector('[data-slot="bar-chart-svg"]')).toHaveAttribute("aria-hidden");
 	});
 
 	test("the keyboard instructions name every key the overlay handles", () => {
@@ -156,7 +156,7 @@ describe("BarChart data slots", () => {
 	test.each([
 		["bar-chart", "DIV"],
 		["bar-chart-plot", "DIV"],
-		["bar-chart-canvas", "CANVAS"],
+		["bar-chart-svg", "svg"],
 		["bar-chart-crosshair", "DIV"],
 		["bar-chart-hover-band", "DIV"],
 		["bar-chart-markers", "DIV"],
@@ -185,15 +185,15 @@ describe("BarChart data slots", () => {
 		}
 	});
 
-	test("a decorative chart inserts the canvas alone", () => {
+	test("a decorative chart inserts the paint surface alone", () => {
 		// Without an overlay nothing ever hovers, so the hover layers would be
-		// dead DOM; the canvas still paints the placeholder.
+		// dead DOM; the surface still paints the placeholder.
 		const { container } = render(
 			<BarChart.Root data={data} xKey="month" mode="decorative">
 				<BarChart.Bar dataKey="desktop" label="Desktop" />
 			</BarChart.Root>,
 		);
-		expect(container.querySelector('[data-slot="bar-chart-canvas"]')).toBeInTheDocument();
+		expect(container.querySelector('[data-slot="bar-chart-svg"]')).toBeInTheDocument();
 		expect(container.querySelector('[data-slot="bar-chart-hover-band"]')).toBeNull();
 		expect(container.querySelector('[data-slot="bar-chart-markers"]')).toBeNull();
 		expect(container.querySelector('[role="application"]')).not.toBeInTheDocument();
@@ -482,7 +482,7 @@ describe("BarChart paging keys", () => {
 describe("BarChart pending", () => {
 	test("pending holds the previous render instead of swapping in a skeleton", async () => {
 		// The dimming is a plain opacity utility with no data attribute behind it,
-		// so the assertable contract is that the canvas, the data-table twin, and
+		// so the assertable contract is that the paint surface, the data-table twin, and
 		// keyboard inspection all stay while fresh data loads.
 		const user = userEvent.setup();
 		const { container, rerender } = render(
@@ -497,7 +497,7 @@ describe("BarChart pending", () => {
 				<BarChart.Tooltip />
 			</BarChart.Root>,
 		);
-		expect(container.querySelector("canvas")).toBeInTheDocument();
+		expect(container.querySelector('[data-slot="bar-chart-svg"]')).toBeInTheDocument();
 		await user.tab();
 		expect(screen.getByRole("cell", { name: "305" })).toBeInTheDocument();
 		await user.keyboard("{ArrowRight}");
@@ -628,9 +628,9 @@ describe("BarChart decorative mode", () => {
 		const { container } = renderDecorative();
 		const root = container.querySelector('[data-slot="bar-chart"]');
 		expect(root).toHaveAttribute("aria-hidden", "true");
-		// The canvas still paints the placeholder bars — decorative preserves the
+		// The surface still paints the placeholder bars — decorative preserves the
 		// visual rendering, it only strips the interaction and a11y layers.
-		expect(container.querySelector("canvas")).toBeInTheDocument();
+		expect(container.querySelector('[data-slot="bar-chart-svg"]')).toBeInTheDocument();
 	});
 
 	test("renders no interaction overlay, so nothing in the chart is a tab stop", () => {
@@ -642,7 +642,7 @@ describe("BarChart decorative mode", () => {
 	test("paints every series neutral, so no mark on a backdrop reads as data", () => {
 		// The Root prop has to reach the store for the neutral fill to land, and the
 		// legend swatch is where a DOM surface publishes what a series paints. The
-		// canvas reads the same value from the same place — the browser sweep in
+		// paint surface reads the same value from the same place — the browser sweep in
 		// chart/decorative-paint.browser.test.tsx samples the painted pixels.
 		const { container } = render(
 			<BarChart.Root data={data} xKey="month" mode="decorative">

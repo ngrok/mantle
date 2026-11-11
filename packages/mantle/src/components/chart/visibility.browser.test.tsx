@@ -2,13 +2,14 @@
 
 import { render, screen, waitFor } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, expect, test } from "vitest";
+import { CanvasLineChartRoot } from "../../test-utils/canvas-chart-roots.js";
 import { LineChart } from "../line-chart/index.js";
 
 /**
- * Real-browser visibility tests: a chart activates (builds its canvas and
- * paints) once an `IntersectionObserver` reports it within a viewport of the
- * visible area, and releases its canvas three viewports away. Both need real
- * layout, a real observer, and real scrolling.
+ * Real-browser visibility tests: a chart activates (builds its paint surface
+ * and paints) once an `IntersectionObserver` reports it within a viewport of
+ * the visible area, and a canvas chart releases its canvas three viewports
+ * away. Both need real layout, a real observer, and real scrolling.
  */
 const STYLE = `
 :root {
@@ -73,13 +74,19 @@ const data = [
 	{ time: new Date("2026-07-18T10:02:00Z"), p50: 110 },
 ];
 
-const chart = (name: string) => (
-	<div style={{ width: 400, height: 200 }}>
-		<LineChart.Root data={data} xKey="time" animate={false} aria-label={name}>
-			<LineChart.Line dataKey="p50" label="p50" />
-		</LineChart.Root>
-	</div>
-);
+/** The surface a chart paints on. A canvas holds a bitmap the far band releases. */
+type Surface = "svg" | "canvas";
+
+const chart = (name: string, surface: Surface = "svg") => {
+	const Root = surface === "canvas" ? CanvasLineChartRoot : LineChart.Root;
+	return (
+		<div style={{ width: 400, height: 200 }}>
+			<Root data={data} xKey="time" animate={false} aria-label={name}>
+				<LineChart.Line dataKey="p50" label="p50" />
+			</Root>
+		</div>
+	);
+};
 
 type Chart = { root: HTMLElement; plot: HTMLElement };
 
@@ -93,6 +100,10 @@ const chartNamed = (name: string): Chart => {
 	return { root, plot };
 };
 
+/** The chart's paint surface, or `null` while the chart is dormant. */
+const surfaceOf = ({ plot }: Chart): Element | null =>
+	plot.querySelector('[data-slot="line-chart-svg"], [data-slot="line-chart-canvas"]');
+
 /** The chart's canvas, or `null` while the chart is dormant. */
 const canvasOf = ({ plot }: Chart): HTMLCanvasElement | null => {
 	const canvas = plot.querySelector("canvas");
@@ -102,16 +113,25 @@ const canvasOf = ({ plot }: Chart): HTMLCanvasElement | null => {
 /** The backing-store width a painted canvas holds for its plot. */
 const paintedWidth = ({ plot }: Chart): number => Math.round(plot.clientWidth * devicePixelRatio);
 
+/** Whether the chart has painted: a canvas sized to its plot, or an SVG with a line path. */
+const isPainted = (chart: Chart): boolean => {
+	const canvas = canvasOf(chart);
+	if (canvas != null) {
+		return canvas.width === paintedWidth(chart);
+	}
+	return chart.plot.querySelector('[data-slot="line-chart-svg"] path[d]') != null;
+};
+
 /**
  * A chart in view at the top, a spacer four viewports tall, and a chart past
  * it: beyond the near band (one viewport) and the far band (three).
  */
-const renderPage = () => {
+const renderPage = (surface: Surface = "svg") => {
 	render(
 		<>
-			{chart("Top chart")}
+			{chart("Top chart", surface)}
 			<div style={{ height: window.innerHeight * 4 }} />
-			{chart("Far chart")}
+			{chart("Far chart", surface)}
 		</>,
 	);
 	return { top: chartNamed("Top chart"), far: chartNamed("Far chart") };
@@ -124,15 +144,15 @@ const scrollToBottom = (): void => {
 /** Resolves once `chart` has painted, which also proves the observers delivered. */
 const painted = (chart: Chart): Promise<void> =>
 	waitFor(() => {
-		expect(canvasOf(chart)?.width).toBe(paintedWidth(chart));
+		expect(isPainted(chart)).toBe(true);
 	});
 
 test("a chart below the fold stays a shell while the chart in view activates and paints", async () => {
 	const { top, far } = renderPage();
 	await painted(top);
-	// A chart that activates regardless of visibility holds a canvas here.
+	// A chart that activates regardless of visibility holds a surface here.
 	expect(far.root).toHaveAttribute("data-state", "dormant");
-	expect(canvasOf(far)).toBeNull();
+	expect(surfaceOf(far)).toBeNull();
 	expect(far.plot.querySelector('[data-slot="line-chart-hover-band"]')).toBeNull();
 });
 
@@ -147,7 +167,7 @@ test("scrolling to a dormant chart activates it but mounts no data table", async
 });
 
 test("three viewports away the canvas is released, and it paints again on return", async () => {
-	const { far } = renderPage();
+	const { far } = renderPage("canvas");
 	scrollToBottom();
 	await painted(far);
 
@@ -160,8 +180,8 @@ test("three viewports away the canvas is released, and it paints again on return
 	await painted(far);
 });
 
-test("beforeprint activates and paints a dormant chart synchronously and afterprint releases it", async () => {
-	const { top, far } = renderPage();
+test("beforeprint activates and paints a dormant canvas chart synchronously and afterprint releases it", async () => {
+	const { top, far } = renderPage("canvas");
 	await painted(top);
 	expect(canvasOf(far)).toBeNull();
 
@@ -187,10 +207,10 @@ test("beforeprint paints a page whose only chart is dormant", async () => {
 	await waitFor(() => {
 		expect(screen.getByRole("application", { name: "Lone chart" })).toBeInTheDocument();
 	});
-	expect(canvasOf(lone)).toBeNull();
+	expect(surfaceOf(lone)).toBeNull();
 
 	window.dispatchEvent(new Event("beforeprint"));
-	expect(canvasOf(lone)?.width).toBe(paintedWidth(lone));
+	expect(isPainted(lone)).toBe(true);
 	window.dispatchEvent(new Event("afterprint"));
 });
 

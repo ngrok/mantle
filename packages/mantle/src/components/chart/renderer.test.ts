@@ -2,7 +2,8 @@ import { describe, expect, test } from "vitest";
 import type { PointShape } from "./types.js";
 import { POINT_SHAPE_CLIP_PATHS } from "./engine.js";
 import { CUBE_CORNERS, CUBE_EDGES, projectionMatrix, projectPoint } from "./projection.js";
-import { drawCubeFrame, tracePointShape } from "./renderer.js";
+import type { PaintContext } from "./paint-backend.js";
+import { drawCubeFrame, drawLinePath, tracePointShape } from "./renderer.js";
 
 /** Record path-trace calls without a real canvas context. */
 const makeRecorder = () => {
@@ -132,12 +133,13 @@ const distinct = (numbers: readonly number[]): number[] => {
 };
 
 describe("tracePointShape", () => {
-	test("circle traces a full arc at the given radius", () => {
+	test("circle moves to the arc's start, then traces a full arc at the given radius", () => {
 		const recorder = makeRecorder();
 		tracePointShape(recorder, 10, 20, 4, "circle");
-		expect(recorder.calls).toHaveLength(1);
-		expect(recorder.calls[0]?.op).toBe("arc");
-		expect(recorder.calls[0]?.args.slice(0, 3)).toEqual([10, 20, 4]);
+		// The move starts a new subpath, so a batch of markers draws no joining line.
+		expect(recorder.calls.map((call) => call.op)).toEqual(["moveTo", "arc"]);
+		expect(recorder.calls[0]?.args).toEqual([14, 20]);
+		expect(recorder.calls[1]?.args.slice(0, 3)).toEqual([10, 20, 4]);
 	});
 
 	test("square traces a closed axis-aligned box centered on the point", () => {
@@ -276,7 +278,7 @@ describe("point glyphs across the canvas and the CSS clip", () => {
 	test("the circle and the square clip with the CSS basic shape each canvas path draws", () => {
 		// The two glyphs CSS models directly: an arc pairs with `circle()`, an
 		// axis-aligned box with `inset()`.
-		expect(trace("circle").calls.map((call) => call.op)).toEqual(["arc"]);
+		expect(trace("circle").calls.map((call) => call.op)).toEqual(["moveTo", "arc"]);
 		expect(POINT_SHAPE_CLIP_PATHS.circle).toMatch(/^circle\(/);
 		expect(unitSilhouette(trace("square").vertices)).toEqual([
 			"0.000,0.000",
@@ -391,3 +393,51 @@ export function typeLevelContracts(): [Exclude<PointShape, (typeof ALL_SHAPES)[n
 	: never {
 	return true;
 }
+
+describe("drawLinePath", () => {
+	test("traces into a canvas context from another realm", () => {
+		// A chart in a same-origin iframe paints into the frame's context, which
+		// is not an instance of this window's `CanvasRenderingContext2D`.
+		const calls: string[] = [];
+		const record = (op: string) => () => {
+			calls.push(op);
+		};
+		const foreignContext: PaintContext = {
+			fillStyle: "",
+			strokeStyle: "",
+			lineWidth: 1,
+			globalAlpha: 1,
+			lineJoin: "miter",
+			lineCap: "butt",
+			font: "",
+			textAlign: "start",
+			textBaseline: "alphabetic",
+			save: record("save"),
+			restore: record("restore"),
+			beginPath: record("beginPath"),
+			closePath: record("closePath"),
+			moveTo: record("moveTo"),
+			lineTo: record("lineTo"),
+			bezierCurveTo: record("bezierCurveTo"),
+			rect: record("rect"),
+			roundRect: record("roundRect"),
+			arc: record("arc"),
+			fill: record("fill"),
+			stroke: record("stroke"),
+			fillRect: record("fillRect"),
+			clip: record("clip"),
+			setLineDash: record("setLineDash"),
+			fillText: record("fillText"),
+			measureText: () => ({ width: 0 }),
+		};
+		drawLinePath(foreignContext, {
+			color: "red",
+			curve: "linear",
+			indexes: [0, 1, 2],
+			xAt: (index) => index * 10,
+			yAt: (index) => index,
+			definedAt: () => true,
+		});
+		expect(calls).toEqual(["beginPath", "moveTo", "lineTo", "lineTo", "stroke"]);
+	});
+});

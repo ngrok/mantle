@@ -81,10 +81,10 @@ const observe = () => {
 /** The observer for one band. The one-off support probe holds no target, so it never matches. */
 const observerWithMargin = (margin: string): FakeIntersectionObserver => {
 	const observer = instances.find(
-		(instance) => instance.rootMargin === margin && instance.targets.size > 0,
+		(instance) => instance.scrollMargin === margin && instance.targets.size > 0,
 	);
 	if (observer == null) {
-		throw new Error(`expected an observer with a ${margin} root margin`);
+		throw new Error(`expected an observer with a ${margin} scroll margin`);
 	}
 	return observer;
 };
@@ -124,9 +124,9 @@ test("every element shares one observer per band: visible, near at one viewport,
 	const visible = observerWithMargin("0px");
 	const near = observerWithMargin("100%");
 	const far = observerWithMargin("300%");
-	// A scrolling panel clips the band too; `rootMargin` alone widens only the viewport.
-	expect(near.scrollMargin).toBe("100%");
-	expect(far.scrollMargin).toBe("300%");
+	// The scroll margin also widens the document's scroller. A root margin beside it widens
+	// the viewport twice (100% of each reaches four viewports in Chromium).
+	expect([visible.rootMargin, near.rootMargin, far.rootMargin]).toEqual(["0px", "0px", "0px"]);
 	expect(near.root).toBeNull();
 
 	// The rect rides along so an activation can seed the engine's size.

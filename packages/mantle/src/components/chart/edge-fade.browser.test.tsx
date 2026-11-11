@@ -1,6 +1,7 @@
 "use client";
 
 import { render, waitFor } from "@testing-library/react";
+import { CanvasAreaChartRoot, CanvasLineChartRoot } from "../../test-utils/canvas-chart-roots.js";
 import { findChartCanvas } from "../../test-utils/find-chart-canvas.js";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { AreaChart } from "../area-chart/index.js";
@@ -103,9 +104,9 @@ const Chart = ({
 }) => (
 	<div style={{ width: 600, height: 300 }}>
 		{/* animate=false so the fade strength snaps: deterministic pixels. */}
-		<AreaChart.Root data={data} xKey="x" animate={animate} aria-label="Live traffic">
+		<CanvasAreaChartRoot data={data} xKey="x" animate={animate} aria-label="Live traffic">
 			<AreaChart.Area dataKey="value" label="Value" />
-		</AreaChart.Root>
+		</CanvasAreaChartRoot>
 	</div>
 );
 
@@ -117,10 +118,10 @@ const Chart = ({
  */
 const GriddedChart = ({ data }: { data: Array<{ x: number; value: number }> }) => (
 	<div style={{ width: 600, height: 300 }}>
-		<LineChart.Root data={data} xKey="x" animate={false} aria-label="Live traffic">
+		<CanvasLineChartRoot data={data} xKey="x" animate={false} aria-label="Live traffic">
 			<LineChart.Grid />
 			<LineChart.Line dataKey="value" label="Value" color="chart-1" />
-		</LineChart.Root>
+		</CanvasLineChartRoot>
 	</div>
 );
 
@@ -384,5 +385,50 @@ describe("left-edge scroll mask", () => {
 			expect(right.gridPixels).toBeGreaterThan(0);
 			expect(left.gridPixels).toBe(right.gridPixels);
 		});
+	});
+});
+
+const SvgChart = ({ data }: { data: Array<{ x: number; value: number }> }) => (
+	<div style={{ width: 600, height: 300 }}>
+		<AreaChart.Root data={data} xKey="x" aria-label="Live traffic">
+			<AreaChart.Area dataKey="value" label="Value" />
+		</AreaChart.Root>
+	</div>
+);
+
+/** The share of a mark the SVG fade keeps at the plot's left edge: 1 when no mask applies. */
+const svgLeftEdgeOpacity = (container: HTMLElement): number => {
+	const masked = container.querySelector('[data-slot="area-chart-svg"] g[mask]');
+	if (masked == null) {
+		return 1;
+	}
+	const id = /url\(#(.+)\)/.exec(masked.getAttribute("mask") ?? "")?.[1];
+	const rect = id == null ? null : container.querySelector(`mask[id="${CSS.escape(id)}"] rect`);
+	const gradientId = /url\(#(.+)\)/.exec(rect?.getAttribute("fill") ?? "")?.[1];
+	const stop =
+		gradientId == null ? null : container.querySelector(`[id="${CSS.escape(gradientId)}"] stop`);
+	return Number(stop?.getAttribute("stop-opacity") ?? 1);
+};
+
+describe("left-edge scroll mask on the SVG renderer", () => {
+	test("a sliding window masks the left edge, then the mask decays once idle", async () => {
+		const { container, rerender } = render(<SvgChart data={windowAt(0)} />);
+		await waitFor(() => {
+			expect(container.querySelector('[data-slot="area-chart-svg"] path[d]')).not.toBeNull();
+		});
+		expect(svgLeftEdgeOpacity(container)).toBe(1);
+		rerender(<SvgChart data={windowAt(1)} />);
+		rerender(<SvgChart data={windowAt(2)} />);
+		await waitFor(() => {
+			expect(svgLeftEdgeOpacity(container)).toBeLessThan(0.5);
+		});
+		// The production default eases: the decay must keep scheduling frames
+		// until the mask is gone, or a stopped stream stays faded.
+		await waitFor(
+			() => {
+				expect(svgLeftEdgeOpacity(container)).toBe(1);
+			},
+			{ timeout: 4000, interval: 100 },
+		);
 	});
 });

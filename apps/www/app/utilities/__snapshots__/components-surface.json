@@ -166,10 +166,10 @@
     "category": "Charts",
     "status": "stable",
     "importPath": "@ngrok/mantle/area-chart",
-    "summary": "A canvas-rendered area chart for showing how values — and, when stacked, a total and its parts — change over a continuous x axis.",
-    "jsdoc": "A canvas-rendered area chart for showing how values — and, when stacked, a total and its parts — change over a continuous x axis.",
+    "summary": "An area chart for showing how values (and, when stacked, a total and its parts) change over a continuous x axis.",
+    "jsdoc": "An area chart for showing how values — and, when stacked, a total and its parts — change over a continuous x axis.",
     "examples": [
-      "Composition:\n```\nAreaChart.Root\n├── AreaChart.Grid\n├── AreaChart.XAxis\n├── AreaChart.YAxis\n├── AreaChart.Area (one per series)\n├── AreaChart.ReferenceLine\n├── AreaChart.Tooltip\n├── AreaChart.Legend\n└── AreaChart.CopyButton\n```",
+      "Composition:\n```\nAreaChart.Root\n├── AreaChart.Grid\n├── AreaChart.XAxis\n├── AreaChart.YAxis\n├── AreaChart.Area (one per series)\n├── AreaChart.ReferenceLine\n├── AreaChart.Tooltip\n├── AreaChart.Legend\n└── AreaChart.CopyButton\n```\n\nA List groups Roots:\n```\nAreaChart.List\n└── AreaChart.Root (one per chart)\n```",
       "```tsx\nconst data = [\n  { date: new Date(\"2026-07-15\"), http: 4200, tcp: 1400 },\n  { date: new Date(\"2026-07-16\"), http: 5100, tcp: 1650 },\n  { date: new Date(\"2026-07-17\"), http: 4700, tcp: 1500 },\n];\n\n<AreaChart.Root data={data} xKey=\"date\" stacked aria-label=\"Traffic by protocol\">\n  <AreaChart.Grid />\n  <AreaChart.XAxis />\n  <AreaChart.YAxis />\n  <AreaChart.Area dataKey=\"http\" label=\"HTTP\" />\n  <AreaChart.Area dataKey=\"tcp\" label=\"TCP\" />\n  <AreaChart.Tooltip />\n  <AreaChart.Legend />\n</AreaChart.Root>\n```"
     ],
     "aliases": [
@@ -247,10 +247,10 @@
     "category": "Charts",
     "status": "stable",
     "importPath": "@ngrok/mantle/bar-chart",
-    "summary": "A canvas-rendered bar chart for comparing values across categories, with grouped and stacked variants.",
-    "jsdoc": "A canvas-rendered bar chart for comparing values across categories, with grouped and stacked variants.",
+    "summary": "A bar chart for comparing values across categories, with grouped and stacked variants.",
+    "jsdoc": "A bar chart for comparing values across categories, with grouped and stacked variants.",
     "examples": [
-      "Composition:\n```\nBarChart.Root\n├── BarChart.Grid\n├── BarChart.XAxis\n├── BarChart.YAxis\n├── BarChart.Bar (one per series)\n├── BarChart.ReferenceLine\n├── BarChart.Tooltip\n├── BarChart.Legend\n└── BarChart.CopyButton\n```",
+      "Composition:\n```\nBarChart.Root\n├── BarChart.Grid\n├── BarChart.XAxis\n├── BarChart.YAxis\n├── BarChart.Bar (one per series)\n├── BarChart.ReferenceLine\n├── BarChart.Tooltip\n├── BarChart.Legend\n└── BarChart.CopyButton\n```\n\nA List groups Roots:\n```\nBarChart.List\n└── BarChart.Root (one per chart)\n```",
       "```tsx\nconst data = [\n  { month: \"January\", desktop: 186, mobile: 80 },\n  { month: \"February\", desktop: 305, mobile: 200 },\n  { month: \"March\", desktop: 237, mobile: 120 },\n];\n\n<BarChart.Root data={data} xKey=\"month\" aria-label=\"Visitors by month\">\n  <BarChart.Grid />\n  <BarChart.XAxis />\n  <BarChart.YAxis />\n  <BarChart.Bar dataKey=\"desktop\" label=\"Desktop\" />\n  <BarChart.Bar dataKey=\"mobile\" label=\"Mobile\" />\n  <BarChart.Tooltip />\n  <BarChart.Legend />\n</BarChart.Root>\n```"
     ],
     "aliases": [
@@ -940,10 +940,10 @@
     "category": "Charts",
     "status": "stable",
     "importPath": "@ngrok/mantle/line-chart",
-    "summary": "A canvas-rendered line chart for trends over a continuous x axis — time above all. Min/max decimation keeps 100,000+ point series smooth.",
-    "jsdoc": "A canvas-rendered line chart for trends over a continuous x — time above all.",
+    "summary": "A line chart for trends over a continuous x axis, time above all. Min/max decimation keeps 100,000+ point series smooth.",
+    "jsdoc": "A line chart for trends over a continuous x — time above all.",
     "examples": [
-      "Composition:\n```\nLineChart.Root\n├── LineChart.Grid\n├── LineChart.XAxis\n├── LineChart.YAxis\n├── LineChart.Line (one per series)\n├── LineChart.ReferenceLine\n├── LineChart.Tooltip\n├── LineChart.Legend\n└── LineChart.CopyButton\n```",
+      "Composition:\n```\nLineChart.Root\n├── LineChart.Grid\n├── LineChart.XAxis\n├── LineChart.YAxis\n├── LineChart.Line (one per series)\n├── LineChart.ReferenceLine\n├── LineChart.Tooltip\n├── LineChart.Legend\n└── LineChart.CopyButton\n```\n\nA List groups Roots:\n```\nLineChart.List\n└── LineChart.Root (one per chart)\n```",
       "```tsx\nconst data = [\n  { time: new Date(\"2026-07-18T10:00:00Z\"), p50: 120, p99: 480 },\n  { time: new Date(\"2026-07-18T10:01:00Z\"), p50: 132, p99: 510 },\n  { time: new Date(\"2026-07-18T10:02:00Z\"), p50: 101, p99: 460 },\n];\n\n<LineChart.Root data={data} xKey=\"time\" aria-label=\"Request latency\">\n  <LineChart.Grid />\n  <LineChart.XAxis />\n  <LineChart.YAxis />\n  <LineChart.Line dataKey=\"p50\" label=\"p50\" />\n  <LineChart.Line dataKey=\"p99\" label=\"p99\" curve=\"monotone\" />\n  <LineChart.Tooltip />\n  <LineChart.Legend />\n</LineChart.Root>\n```"
     ],
     "aliases": [
@@ -1372,7 +1372,7 @@
     "summary": "A canvas-rendered scatter plot for correlating two continuous measures (three with the rotatable 3D projection).",
     "jsdoc": "A canvas-rendered scatter plot for correlating two measures — three with the 3D projection (`zKey`), which renders a rotatable, depth-sorted point cloud (drag to orbit).",
     "examples": [
-      "Composition:\n```\nScatterPlot.Root\n├── ScatterPlot.Grid\n├── ScatterPlot.XAxis\n├── ScatterPlot.YAxis\n├── ScatterPlot.Point (one per series)\n├── ScatterPlot.ReferenceLine\n├── ScatterPlot.Tooltip\n├── ScatterPlot.Legend\n└── ScatterPlot.CopyButton\n```",
+      "Composition:\n```\nScatterPlot.Root\n├── ScatterPlot.Grid\n├── ScatterPlot.XAxis\n├── ScatterPlot.YAxis\n├── ScatterPlot.Point (one per series)\n├── ScatterPlot.ReferenceLine\n├── ScatterPlot.Tooltip\n├── ScatterPlot.Legend\n└── ScatterPlot.CopyButton\n```\n\nA List groups Roots:\n```\nScatterPlot.List\n└── ScatterPlot.Root (one per chart)\n```",
       "```tsx\nconst data = [\n  { latency: 12, throughputA: 840, throughputB: 720 },\n  { latency: 28, throughputA: 610, throughputB: 590 },\n  { latency: 45, throughputA: 340, throughputB: 410 },\n];\n\n<ScatterPlot.Root data={data} xKey=\"latency\" aria-label=\"Latency vs throughput\">\n  <ScatterPlot.Grid />\n  <ScatterPlot.XAxis />\n  <ScatterPlot.YAxis />\n  <ScatterPlot.Point dataKey=\"throughputA\" label=\"Region A\" />\n  <ScatterPlot.Point dataKey=\"throughputB\" label=\"Region B\" />\n  <ScatterPlot.Tooltip />\n  <ScatterPlot.Legend />\n</ScatterPlot.Root>\n```"
     ],
     "siblings": [

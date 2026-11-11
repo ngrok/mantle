@@ -4,6 +4,7 @@ import { render, waitFor } from "@testing-library/react";
 import { findChartCanvas } from "../../test-utils/find-chart-canvas.js";
 import { afterAll, beforeAll, expect, test, vi } from "vitest";
 import { LineChart } from "../line-chart/index.js";
+import { CanvasLineChartRoot } from "../../test-utils/canvas-chart-roots.js";
 
 /**
  * Real-browser test of the engine's one style read per color pass: a custom
@@ -76,11 +77,11 @@ test("custom reference-line colors resolve through the color pass's one style re
 	const reads = vi.spyOn(window, "getComputedStyle");
 	const { container } = render(
 		<div style={{ width: 400, height: 200 }}>
-			<LineChart.Root data={data} xKey="time" animate={false} aria-label="Latency">
+			<CanvasLineChartRoot data={data} xKey="time" animate={false} aria-label="Latency">
 				<LineChart.Line dataKey="p50" label="p50" />
 				<LineChart.ReferenceLine y={125} label="SLO" color="#e40014" />
 				<LineChart.ReferenceLine y={115} color="#0044ff" />
-			</LineChart.Root>
+			</CanvasLineChartRoot>
 		</div>,
 	);
 	const canvas = await findChartCanvas(container);

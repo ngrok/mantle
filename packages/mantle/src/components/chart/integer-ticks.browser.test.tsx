@@ -5,6 +5,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from "vit
 import type { MockInstance } from "vitest";
 import { BarChart } from "../bar-chart/index.js";
 import { LineChart } from "../line-chart/index.js";
+import { CanvasBarChartRoot, CanvasLineChartRoot } from "../../test-utils/canvas-chart-roots.js";
 
 /**
  * Real-browser regression tests for MNTL-56: axes backed by integer-only data
@@ -87,7 +88,7 @@ describe("integer-valued data never paints fractional axis ticks (MNTL-56)", () 
 	test("vertical bars: a small count domain ticks by whole numbers", async () => {
 		render(
 			<div style={{ width: 600, height: 300 }}>
-				<BarChart.Root
+				<CanvasBarChartRoot
 					data={[
 						{ cat: "A", count: 1 },
 						{ cat: "B", count: 3 },
@@ -99,7 +100,7 @@ describe("integer-valued data never paints fractional axis ticks (MNTL-56)", () 
 					<BarChart.XAxis />
 					<BarChart.YAxis />
 					<BarChart.Bar dataKey="count" label="Count" color="chart-1" />
-				</BarChart.Root>
+				</CanvasBarChartRoot>
 			</div>,
 		);
 		await waitFor(() => {
@@ -112,7 +113,7 @@ describe("integer-valued data never paints fractional axis ticks (MNTL-56)", () 
 	test("horizontal bars: the value axis along the bottom keeps whole-number ticks", async () => {
 		render(
 			<div style={{ width: 600, height: 300 }}>
-				<BarChart.Root
+				<CanvasBarChartRoot
 					data={[
 						{ cat: "A", count: 1 },
 						{ cat: "B", count: 3 },
@@ -125,7 +126,7 @@ describe("integer-valued data never paints fractional axis ticks (MNTL-56)", () 
 					<BarChart.XAxis />
 					<BarChart.YAxis />
 					<BarChart.Bar dataKey="count" label="Count" color="chart-1" />
-				</BarChart.Root>
+				</CanvasBarChartRoot>
 			</div>,
 		);
 		await waitFor(() => {
@@ -139,7 +140,7 @@ describe("integer-valued data never paints fractional axis ticks (MNTL-56)", () 
 		// fractional label could only come from the [0, 3] linear x domain.
 		render(
 			<div style={{ width: 600, height: 300 }}>
-				<LineChart.Root
+				<CanvasLineChartRoot
 					data={[
 						{ attempt: 0, latency: 100 },
 						{ attempt: 1, latency: 240 },
@@ -153,7 +154,7 @@ describe("integer-valued data never paints fractional axis ticks (MNTL-56)", () 
 					<LineChart.XAxis />
 					<LineChart.YAxis />
 					<LineChart.Line dataKey="latency" label="Latency" color="chart-1" />
-				</LineChart.Root>
+				</CanvasLineChartRoot>
 			</div>,
 		);
 		await waitFor(() => {
@@ -172,7 +173,7 @@ describe("integer-valued data never paints fractional axis ticks (MNTL-56)", () 
 		// label can only have come from the x axis.
 		render(
 			<div style={{ width: 600, height: 300 }}>
-				<LineChart.Root
+				<CanvasLineChartRoot
 					data={[
 						{ ratio: 0.25, latency: 100 },
 						{ ratio: 0.5, latency: 240 },
@@ -186,7 +187,7 @@ describe("integer-valued data never paints fractional axis ticks (MNTL-56)", () 
 					<LineChart.XAxis />
 					<LineChart.YAxis />
 					<LineChart.Line dataKey="latency" label="Latency" color="chart-1" />
-				</LineChart.Root>
+				</CanvasLineChartRoot>
 			</div>,
 		);
 		await waitFor(() => {
@@ -197,7 +198,7 @@ describe("integer-valued data never paints fractional axis ticks (MNTL-56)", () 
 	test("fractional data keeps sub-integer ticks (the clamp is data-driven, not global)", async () => {
 		render(
 			<div style={{ width: 600, height: 300 }}>
-				<LineChart.Root
+				<CanvasLineChartRoot
 					data={[
 						{ cat: "A", rate: 0.2 },
 						{ cat: "B", rate: 0.8 },
@@ -209,7 +210,7 @@ describe("integer-valued data never paints fractional axis ticks (MNTL-56)", () 
 					<LineChart.XAxis />
 					<LineChart.YAxis />
 					<LineChart.Line dataKey="rate" label="Rate" color="chart-1" />
-				</LineChart.Root>
+				</CanvasLineChartRoot>
 			</div>,
 		);
 		await waitFor(() => {

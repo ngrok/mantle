@@ -1,6 +1,4 @@
-import invariant from "tiny-invariant";
 import { barThickness, isStackedDataEnd, stackedSegmentEdges } from "./bar-geometry.js";
-import type { ChartChromeColors, ColorResolver } from "./colors.js";
 import type { DecimatedColumns } from "./decimate.js";
 import type { BandLayout } from "./scales.js";
 import type { ChartStore } from "./store.js";
@@ -10,31 +8,27 @@ import type {
 	ChartOptions,
 	HoverSnapshot,
 	PointShape,
-	SeriesColor,
 	SeriesMark,
 	SeriesMeta,
 	SeriesSpec,
 	XValue,
 } from "./types.js";
 import {
-	colorParseContext,
-	createColorResolver,
-	observeThemeChanges,
-	resolveChromeColors,
-	resolveSeriesColor,
-	themeSignature,
-} from "./colors.js";
-import { createBarTexturePattern, textureInkColor } from "./texture.js";
-import { datumValue, missingKeyMessage, toEpochOrNumber, uncoercibleXMessage } from "./datum.js";
-import {
 	observeResize,
 	onFontsLoaded,
-	onPrint,
 	prefersReducedMotion,
 	watchDevicePixelRatio,
 } from "./environment.js";
+import { requestSharedFrame } from "./frame-loop.js";
+import type {
+	PaintBackend,
+	PaintBackendFactory,
+	PaintContext,
+	ResolvedPaint,
+} from "./paint-backend.js";
 import { decimateColumns, shouldDecimate } from "./decimate.js";
-import { formatNumber, formatXValue, hasTimeOfDay, tickFractionDigits } from "./format.js";
+import { formatNumber, formatXValue, tickFractionDigits } from "./format.js";
+import { ingestRows, PART_NAME } from "./ingest.js";
 import { nearestIndex } from "./hit-test.js";
 import type { Camera } from "./projection.js";
 import {
@@ -50,13 +44,13 @@ import {
 	bandHitRegion,
 	bandStart,
 	computeBandLayout,
+	formatTimeTick,
 	invertBand,
 	linearCoefficients,
 	linearTicks,
 	linearTicksAtMost,
 	niceDomain,
 	niceZeroAnchoredDomain,
-	timeTickFormatter,
 	timeTicks,
 } from "./scales.js";
 import type { BarRect, HorizontalBarRect, PlotRect } from "./renderer.js";
@@ -90,7 +84,7 @@ import { MARKER_RADIUS } from "./renderer.js";
  * The imperative, framework-free chart engine. One instance backs one chart
  * Root for its lifetime:
  *
- * - owns the canvas (device-pixel sizing, DPR transform) and the paint loop
+ * - owns the paint backend (an SVG or a canvas surface) and the paint loop
  * - ingests consumer rows into columnar Float64Arrays (NaN = gap)
  * - schedules on demand: every mutation coalesces into one rAF commit; an
  *   idle chart costs zero CPU (there is no always-on loop)
@@ -100,11 +94,11 @@ import { MARKER_RADIUS } from "./renderer.js";
  * - hit-tests hover/keyboard positions and publishes snapshots to the store;
  *   the crosshair/markers/hover band/tooltip are DOM overlay elements moved
  *   with transforms, so pointer moves never repaint the canvas
- * - resolves mantle color tokens once per theme (cached; invalidated by the
- *   documentElement theme attributes the ThemeProvider writes)
+ * - asks the backend for its colors once per paint signature (a theme, for
+ *   the canvas backend; CSS resolves the SVG backend's colors)
  * - paints only while the Root reports it near the viewport (`setInView`), so a
  *   list of charts pays for the ones a reader can see; the rest ingest and
- *   answer keyboard input but hold no canvas backing store
+ *   answer keyboard input but paint nothing
  *
  * React never renders inside the paint path; the engine never touches React.
  *
@@ -128,8 +122,7 @@ type HoverLayers = {
 type EngineElements = {
 	/** The chart root (color-resolution host; consumer CSS var overrides apply here). */
 	root: HTMLElement;
-	canvas: HTMLCanvasElement;
-	/** The plot wrapper the canvas fills; the resize-observation target. */
+	/** The plot wrapper the paint surface fills; the resize-observation target. */
 	plot: HTMLElement;
 	/** The hover layers; `null` on a static chart, which never hovers. */
 	hover: HoverLayers | null;
@@ -157,31 +150,11 @@ type EngineCallbacks = {
 	onActiveIndexChange: ((index: number | null) => void) | null;
 };
 
-type ResolvedColors = {
-	signature: string;
-	/** The pass's resolver, kept so a reference line resolves through the same style read. */
-	resolver: ColorResolver;
-	series: Map<string, string>;
-	/** The paint inputs (color + texture) the maps were resolved from, for staleness checks. */
-	inputs: Map<string, string>;
-	/** Rasterized pattern fills for textured bar series (no entry = solid fill). */
-	barTextures: Map<string, CanvasPattern>;
-	chrome: ChartChromeColors;
-	fontFamily: string;
-};
-
 /**
  * The per-series inputs the resolved paint cache derives from — any change
  * (color or texture) must invalidate the cached colors and patterns.
  */
 const seriesPaintInput = (meta: SeriesMeta): string => `${meta.colorInput}|${meta.texture}`;
-
-const PART_NAME: Record<SeriesMark, string> = {
-	bar: "BarChart.Bar",
-	line: "LineChart.Line",
-	area: "AreaChart.Area",
-	scatter: "ScatterPlot.Point",
-};
 
 /** The pointer must land within this distance of a scatter point to hit it. */
 const SCATTER_HIT_RADIUS = 24;
@@ -235,22 +208,18 @@ class ChartEngine {
 	};
 	#callbacks: EngineCallbacks = { onDatumActivate: null, onActiveIndexChange: null };
 
-	/** The 2D context, created on the first paint (see `#context`). */
-	#ctx: CanvasRenderingContext2D | null = null;
-	#contextRequested = false;
+	#backend: PaintBackend;
 	#stopResize: (() => void) | null = null;
-	#themeDisconnect: (() => void) | null = null;
-	#tooltipResizeObserver: ResizeObserver | null = null;
-	#dprCleanup: (() => void) | null = null;
-	#printCleanup: (() => void) | null = null;
+	#stopRatio: (() => void) | null = null;
+	#stopTooltipResize: (() => void) | null = null;
 	#fontsCleanup: (() => void) | null = null;
 	/** The owning window, or `null` in a detached document. */
 	#view: Window | null = null;
 
 	/**
 	 * Whether the Root reports the chart near the viewport. Paint, text
-	 * measurement, color resolution, and the canvas backing store wait for it;
-	 * ingest, layout, and the keyboard point cursor do not.
+	 * measurement, and color resolution wait for it; ingest, layout, and the
+	 * keyboard point cursor do not.
 	 */
 	#inView: boolean;
 	/** Set between `beforeprint` and `afterprint`, when every chart paints. */
@@ -286,7 +255,10 @@ class ChartEngine {
 	 */
 	#xHasTimeOfDay = false;
 	#pendingIngest = false;
-	#columns = new Map<string, Float64Array>();
+	/** One column per series, in `seriesSpecs()` order as of the last ingest. */
+	#columns: Float64Array[] = [];
+	/** The column of each `dataKey`, for the reads that start from a key. */
+	#columnIndex = new Map<string, number>();
 	#valueMin = 0;
 	#valueMax = 0;
 	/**
@@ -352,7 +324,7 @@ class ChartEngine {
 	#streamInterval: number | null = null;
 	#edgeFadeDecayTimer: ReturnType<typeof setTimeout> | null = null;
 
-	#colors: ResolvedColors | null = null;
+	#colors: ResolvedPaint | null = null;
 	#colorScope: { className: string | undefined; style: object } | null = null;
 
 	#plot: PlotRect = { left: 0, top: 0, width: 0, height: 0 };
@@ -394,7 +366,7 @@ class ChartEngine {
 	#allIndexes: number[] = [];
 	/** The defined indexes of each scatter series, kept until the next ingest. */
 	#scatterIndexes: {
-		columns: Map<string, Float64Array>;
+		columns: readonly Float64Array[];
 		specs: readonly SeriesSpec[];
 		indexes: number[][];
 		total: number;
@@ -403,9 +375,6 @@ class ChartEngine {
 	#zeroColumns: DecimatedColumns | null = null;
 	/** Reusable back-to-front paint order for the 3D projection (see #paintScatter3d). */
 	#depthOrder: Int32Array = new Int32Array(0);
-	/** Reference-line colors resolved once per color signature (see #resolveReferenceColor). */
-	#referenceColorCache = new Map<string, string>();
-	#referenceColorSignature = "";
 	#activeScreen: { x: number; y: number } | null = null;
 	#activeSeriesKey: string | null = null;
 
@@ -425,13 +394,17 @@ class ChartEngine {
 
 	#scheduled = false;
 	#needsPaint = false;
-	#frame = 0;
+	#cancelFrame: (() => void) | null = null;
 	#destroyed = false;
 
 	constructor(options: {
 		kind: SeriesMark;
 		elements: EngineElements;
 		store: ChartStore;
+		/** Builds the surface the engine paints on; the engine inserts it into the plot. */
+		backend: PaintBackendFactory;
+		/** The Root's slot name, such as `"bar-chart"`, for the surface's `data-slot`. */
+		slotName: string;
 		/**
 		 * Whether the chart starts near the viewport. The Root passes `false` and
 		 * reports visibility through `setInView`; a bare engine paints at once.
@@ -460,6 +433,14 @@ class ChartEngine {
 		// delivers, and a ratio of 1 there would key the color cache wrong and
 		// resolve every color twice.
 		this.#dpr = this.#currentDpr();
+		this.#backend = options.backend({
+			root: options.elements.root,
+			plot: options.elements.plot,
+			slotName: options.slotName,
+			onColorsChange: this.#onColorsChange,
+		});
+		// The surface goes under the overlay, which the Root renders first.
+		options.elements.plot.prepend(this.#backend.element);
 
 		this.#store.onSeriesChange = () => {
 			// Deferred (not ingested inline): a series (re)registration and its
@@ -499,37 +480,36 @@ class ChartEngine {
 			this.#observeTooltip();
 		}
 
-		const documentElement = options.elements.root.ownerDocument.documentElement;
-		this.#themeDisconnect = observeThemeChanges(documentElement, () => {
-			this.#colors = null;
-			this.#schedule();
-		});
 		this.#fontsCleanup = onFontsLoaded(options.elements.root.ownerDocument, () => {
 			this.#textWidths.clear();
 			this.#schedule();
 		});
 		this.#view = options.elements.root.ownerDocument.defaultView;
-		if (this.#view != null) {
-			this.#printCleanup = onPrint(this.#view, {
-				before: this.#onBeforePrint,
-				after: this.#onAfterPrint,
-			});
-			this.#dprCleanup = watchDevicePixelRatio(this.#view, () => {
-				this.#dpr = this.#currentDpr();
-				this.#decimationCache.clear();
-				this.#schedule();
-			});
-		}
+		// Why the engine watches and not the backend: decimation, pointer snap,
+		// and the keyboard stride read the ratio on every surface.
+		const view = this.#view;
+		this.#stopRatio = view == null ? null : watchDevicePixelRatio(view, this.#onRatioChange);
 		this.#dimensionChase.jump([1, 1]);
 	}
+
+	#onRatioChange = (): void => {
+		this.#dpr = this.#currentDpr();
+		this.#decimationCache.clear();
+		this.#schedule();
+	};
+
+	#onColorsChange = (): void => {
+		this.#colors = null;
+		this.#schedule();
+	};
 
 	destroy(): void {
 		this.#destroyed = true;
 		this.#stopResize?.();
-		this.#tooltipResizeObserver?.disconnect();
-		this.#themeDisconnect?.();
-		this.#dprCleanup?.();
-		this.#printCleanup?.();
+		this.#stopRatio?.();
+		this.#stopTooltipResize?.();
+		this.#backend.destroy();
+		this.#backend.element.remove();
 		this.#fontsCleanup?.();
 		this.#store.onSeriesChange = null;
 		this.#store.onPresentationChange = null;
@@ -537,9 +517,8 @@ class ChartEngine {
 			clearTimeout(this.#edgeFadeDecayTimer);
 			this.#edgeFadeDecayTimer = null;
 		}
-		if (this.#frame !== 0) {
-			cancelAnimationFrame(this.#frame);
-		}
+		this.#cancelFrame?.();
+		this.#cancelFrame = null;
 	}
 
 	/**
@@ -581,19 +560,15 @@ class ChartEngine {
 	}
 
 	/**
-	 * Drop the canvas backing stores of a chart far from the viewport. The next
-	 * in-view commit repaints in full, because `#paint` resizes a canvas whose
-	 * bitmap no longer matches the plot.
+	 * Free the surface memory of a chart far from the viewport: the canvas
+	 * backend drops its bitmap, and the SVG backend holds none. The next
+	 * in-view commit repaints in full.
 	 */
 	releaseBackingStores(): void {
-		if (this.#destroyed) {
+		if (this.#destroyed || this.#backend.kind === "svg") {
 			return;
 		}
-		const canvas = this.#elements.canvas;
-		if (canvas.width !== 0 || canvas.height !== 0) {
-			canvas.width = 0;
-			canvas.height = 0;
-		}
+		this.#backend.release();
 		this.#needsPaint = true;
 	}
 
@@ -612,10 +587,8 @@ class ChartEngine {
 		if (this.#destroyed) {
 			return;
 		}
-		if (this.#frame !== 0) {
-			cancelAnimationFrame(this.#frame);
-			this.#frame = 0;
-		}
+		this.#cancelFrame?.();
+		this.#cancelFrame = null;
 		this.#scheduled = false;
 		this.#commit();
 	}
@@ -634,8 +607,8 @@ class ChartEngine {
 		if (this.#elements.tooltip === element || this.#destroyed) {
 			return;
 		}
-		this.#tooltipResizeObserver?.disconnect();
-		this.#tooltipResizeObserver = null;
+		this.#stopTooltipResize?.();
+		this.#stopTooltipResize = null;
 		this.#tooltipSize = { width: 0, height: 0 };
 		this.#elements.tooltip = element;
 		if (element != null && this.#inView) {
@@ -676,47 +649,42 @@ class ChartEngine {
 		this.#commit();
 	}
 
-	#onBeforePrint = (): void => {
-		this.paintForPrint();
-	};
-
-	#onAfterPrint = (): void => {
+	/**
+	 * End the print snapshot: a chart away from the viewport frees the surface
+	 * memory the print allocated.
+	 *
+	 * @example
+	 * ```ts
+	 * window.addEventListener("afterprint", () => engine.afterPrint());
+	 * ```
+	 */
+	afterPrint(): void {
+		if (this.#destroyed || !this.#printing) {
+			return;
+		}
 		this.#printing = false;
 		if (!this.#inView) {
 			this.releaseBackingStores();
 		}
-	};
+	}
 
 	/**
-	 * Observe the tooltip's size once the chart can show it. The read of
-	 * `offsetWidth` forces a layout, so a dormant chart never pays for it.
+	 * Observe the tooltip's size once the chart can show it, through the one
+	 * resize observer its document shares. The read of `offsetWidth` forces a
+	 * layout, so a dormant chart never pays for it.
 	 */
 	#observeTooltip(): void {
 		const tooltip = this.#elements.tooltip;
-		if (
-			tooltip == null ||
-			this.#tooltipResizeObserver != null ||
-			typeof ResizeObserver === "undefined"
-		) {
+		if (tooltip == null || this.#stopTooltipResize != null) {
 			return;
 		}
-		this.#tooltipResizeObserver = new ResizeObserver(() => {
+		this.#stopTooltipResize = observeResize(tooltip, () => {
 			this.#tooltipSize = {
 				width: tooltip.offsetWidth,
 				height: tooltip.offsetHeight,
 			};
 			this.#scheduleOverlay();
 		});
-		this.#tooltipResizeObserver.observe(tooltip);
-	}
-
-	/** The 2D context, created on first use so a chart that never paints never holds one. */
-	#context(): CanvasRenderingContext2D | null {
-		if (!this.#contextRequested) {
-			this.#contextRequested = true;
-			this.#ctx = this.#elements.canvas.getContext("2d");
-		}
-		return this.#ctx;
 	}
 
 	setOptions(options: ChartOptions): void {
@@ -1019,9 +987,6 @@ class ChartEngine {
 			return;
 		}
 		this.#colors = null;
-		// The theme signature is unchanged on a Root-scoped override, so the
-		// reference-line cache keyed on it needs an explicit clear.
-		this.#referenceColorCache.clear();
 		this.#schedule();
 	}
 
@@ -1067,153 +1032,25 @@ class ChartEngine {
 
 	#ingest(): void {
 		const rows = this.#rows;
-		const { xKey, xScale } = this.#options;
+		const { xScale } = this.#options;
 		const specs = this.#store.seriesSpecs();
 		this.#decimationCache.clear();
 		const previousXs = this.#xs;
-
-		// x values + sort order (continuous scales require ascending x; rows whose
-		// x cannot be coerced — null/unparseable dates — are dropped entirely, since
-		// a point with no position would poison the domain into NaN).
-		if (xScale === "band" || xScale === "point") {
-			const count = rows.length;
-			const xs = new Float64Array(count);
-			const xValues: XValue[] = Array.from({ length: count }, () => "");
-			// `undefined` means the x key is absent from the row: when EVERY row
-			// misses it that is an xKey typo, and it must fail fast the way a
-			// dataKey typo does — not render a full axis of "undefined" categories.
-			let foundX = false;
-			for (let index = 0; index < count; index++) {
-				const row = rows[index];
-				const raw = row == null ? undefined : datumValue(row, xKey);
-				if (raw !== undefined) {
-					foundX = true;
-				}
-				xValues[index] =
-					typeof raw === "string" || typeof raw === "number" || raw instanceof Date
-						? raw
-						: String(raw);
-				xs[index] = index;
-			}
-			invariant(count === 0 || foundX, () =>
-				missingKeyMessage(this.#rootName(), "xKey", xKey, rows),
-			);
-			this.#order = null;
-			this.#orderInverse = null;
-			this.#rowCount = count;
-			this.#xs = xs;
-			this.#xValues = xValues;
-			// Band/point positions are indices — vacuously integral (and unread:
-			// category axes never linear-tick). Reset so a scale change to linear
-			// on the same engine never reads a stale flag.
-			this.#xsAllIntegers = true;
-		} else {
-			// Why typed arrays: a stream ingests on every append, and an object per
-			// row is garbage at that rate. `xsAll` and `sources` hold the coercible
-			// rows in row order; a sort, when needed, permutes them.
-			const xsAll = new Float64Array(rows.length);
-			const sources = new Int32Array(rows.length);
-			let kept = 0;
-			let sortedAscending = true;
-			// `undefined` = key absent (an all-rows absence is a typo, below);
-			// `null` = an explicit per-row gap that drops silently; a present but
-			// uncoercible value that leaves NO coercible rows at all means the
-			// data cannot live on this scale — silence would render a blank chart
-			// with zero diagnostics.
-			let sawXKey = false;
-			let sawNonNullish = false;
-			for (let index = 0; index < rows.length; index++) {
-				const row = rows[index];
-				const raw = row == null ? undefined : datumValue(row, xKey);
-				if (raw !== undefined) {
-					sawXKey = true;
-				}
-				if (raw != null) {
-					sawNonNullish = true;
-				}
-				// Only finite x survives: Infinity (like NaN and invalid dates) has
-				// no position and would poison the domain into NaN, blanking the chart.
-				const x = toEpochOrNumber(raw, xScale === "time");
-				if (Number.isFinite(x)) {
-					if (kept > 0 && x < (xsAll[kept - 1] ?? 0)) {
-						sortedAscending = false;
-					}
-					xsAll[kept] = x;
-					sources[kept] = index;
-					kept += 1;
-				}
-			}
-			invariant(rows.length === 0 || sawXKey, () =>
-				missingKeyMessage(this.#rootName(), "xKey", xKey, rows),
-			);
-			invariant(!sawNonNullish || kept > 0, () =>
-				uncoercibleXMessage(this.#rootName(), xKey, xScale),
-			);
-			// Sorting once at ingest keeps decimation and hit-testing correct for
-			// out-of-order API responses; the sorted view is the engine's contract.
-			// A tie keeps row order.
-			const count = kept;
-			let xs = count === rows.length ? xsAll : xsAll.slice(0, count);
-			let order = count === rows.length ? sources : sources.slice(0, count);
-			if (!sortedAscending) {
-				const unsortedXs = xs;
-				const unsortedSources = order;
-				const permutation = Array.from({ length: count }, (_unused, slot) => slot).toSorted(
-					(a, b) => (unsortedXs[a] ?? 0) - (unsortedXs[b] ?? 0) || a - b,
-				);
-				xs = new Float64Array(count);
-				order = new Int32Array(count);
-				for (let slot = 0; slot < count; slot++) {
-					const from = permutation[slot] ?? slot;
-					xs[slot] = unsortedXs[from] ?? 0;
-					order[slot] = unsortedSources[from] ?? 0;
-				}
-			}
-			let xsAllIntegers = true;
-			for (let index = 0; index < count; index++) {
-				if (!Number.isInteger(xs[index])) {
-					xsAllIntegers = false;
-					break;
-				}
-			}
-			// Every row kept, in row order: the view is the data array itself.
-			const identityOrder = count === rows.length && sortedAscending;
-			if (identityOrder) {
-				this.#order = null;
-				this.#orderInverse = null;
-			} else {
-				this.#order = order;
-				// The inverse (source → view) backs the public index contract:
-				// consumers speak in their data array's indexes; -1 marks dropped rows.
-				const inverse = new Int32Array(rows.length).fill(-1);
-				for (let index = 0; index < count; index++) {
-					const source = order[index];
-					if (source != null) {
-						inverse[source] = index;
-					}
-				}
-				this.#orderInverse = inverse;
-			}
-			this.#rowCount = count;
-			this.#xs = xs;
-			// Why reset: after a scale change from band to linear, the category
-			// array would outlive its scale, and the time-of-day scan below reads it.
-			this.#xValues = [];
-			this.#xsAllIntegers = xsAllIntegers;
-		}
-		// Date label granularity is a dataset property, not a sample property:
-		// the midnight point inside an hourly series must keep its time of day.
-		// Only the category axis reads the flag (`#xTicks` under `#bandLayout`),
-		// so the scan covers `#xValues` alone. A continuous ingest leaves that
-		// array empty, so a time scale allocates no `Date` here.
-		let xHasTime = false;
-		for (const value of this.#xValues) {
-			if (value instanceof Date && hasTimeOfDay(value)) {
-				xHasTime = true;
-				break;
-			}
-		}
-		this.#xHasTimeOfDay = xHasTime;
+		const ingested = ingestRows({
+			rows,
+			xKey: this.#options.xKey,
+			xScale,
+			specs,
+			zKey: this.#kind === "scatter" ? this.#options.zKey : null,
+			rootName: this.#rootName(),
+		});
+		this.#rowCount = ingested.rowCount;
+		this.#xs = ingested.xs;
+		this.#xValues = ingested.xValues;
+		this.#order = ingested.order;
+		this.#orderInverse = ingested.orderInverse;
+		this.#xsAllIntegers = ingested.xsAllIntegers;
+		this.#xHasTimeOfDay = ingested.xHasTimeOfDay;
 
 		// Left-edge scroll mask activation. The streaming signature is a window
 		// slide: the first x advanced into the previous window while the last kept
@@ -1271,96 +1108,20 @@ class ChartEngine {
 			}
 		}
 
-		// Per-series columns (NaN = gap) + extent + fail-fast key validation.
-		const previousColumns = this.#columns;
-		this.#columns = new Map();
-		let min = Number.POSITIVE_INFINITY;
-		let max = Number.NEGATIVE_INFINITY;
-		// Stacked sums of integers are integers, so scanning the raw per-series
-		// values covers stacked domains too.
-		let valuesAllIntegers = true;
-		for (const spec of specs) {
-			const values = new Float64Array(count);
-			let found = false;
-			for (let index = 0; index < count; index++) {
-				const originalIndex = this.#order == null ? index : (this.#order[index] ?? index);
-				const row = rows[originalIndex];
-				const raw = row == null ? undefined : datumValue(row, spec.dataKey);
-				if (raw === undefined) {
-					values[index] = Number.NaN;
-					continue;
-				}
-				found = true;
-				// Non-finite values (an Infinity from an upstream divide-by-zero)
-				// render as gaps — fed into the extent they would nice the domain
-				// into NaN and blank the entire chart.
-				const value = typeof raw === "number" && Number.isFinite(raw) ? raw : Number.NaN;
-				values[index] = value;
-				if (!Number.isNaN(value)) {
-					if (value < min) {
-						min = value;
-					}
-					if (value > max) {
-						max = value;
-					}
-					if (!Number.isInteger(value)) {
-						valuesAllIntegers = false;
-					}
-				}
-			}
-			invariant(count === 0 || found, () =>
-				missingKeyMessage(PART_NAME[spec.mark], "dataKey", spec.dataKey, rows),
-			);
-			this.#columns.set(spec.dataKey, values);
-		}
-		this.#valueMin = min === Number.POSITIVE_INFINITY ? 0 : min;
-		this.#valueMax = max === Number.NEGATIVE_INFINITY ? 0 : max;
-		this.#valuesAllIntegers = valuesAllIntegers;
-
-		// 3D scatter: the depth column, sorted-aligned like every series column.
-		const zKey = this.#options.zKey;
-		if (this.#kind === "scatter" && zKey != null) {
-			const zs = new Float64Array(count);
-			let zMin = Number.POSITIVE_INFINITY;
-			let zMax = Number.NEGATIVE_INFINITY;
-			let zFound = false;
-			for (let index = 0; index < count; index++) {
-				const originalIndex = this.#order == null ? index : (this.#order[index] ?? index);
-				const row = rows[originalIndex];
-				const raw = row == null ? undefined : datumValue(row, zKey);
-				if (raw !== undefined) {
-					zFound = true;
-				}
-				const value = typeof raw === "number" && Number.isFinite(raw) ? raw : Number.NaN;
-				zs[index] = value;
-				if (!Number.isNaN(value)) {
-					if (value < zMin) {
-						zMin = value;
-					}
-					if (value > zMax) {
-						zMax = value;
-					}
-				}
-			}
-			invariant(count === 0 || zFound, () =>
-				missingKeyMessage("ScatterPlot.Root", "zKey", zKey, rows),
-			);
-			this.#zs = zs;
-			this.#zDomain =
-				zMin === Number.POSITIVE_INFINITY ? [0, 1] : niceDomain([zMin, zMax], Y_TICK_COUNT);
-		} else {
-			this.#zs = new Float64Array(0);
-		}
+		const previousColumnIndex = this.#columnIndex;
+		this.#columns = ingested.columns;
+		this.#columnIndex = new Map(specs.map((spec, index) => [spec.dataKey, index]));
+		this.#valueMin = ingested.valueMin;
+		this.#valueMax = ingested.valueMax;
+		this.#valuesAllIntegers = ingested.valuesAllIntegers;
+		this.#zs = ingested.zs;
+		this.#zDomain = ingested.zExtent == null ? [0, 1] : niceDomain(ingested.zExtent, Y_TICK_COUNT);
 		this.#projected = null;
 		// A fresh ingest re-projects every point; the cached hover pixel would
 		// otherwise strand the marker on the pre-ingest projection.
 		this.#activeScreen = null;
 
-		this.#stack = this.#options.stacked
-			? computeStackBoundaries(
-					specs.map((spec) => this.#columns.get(spec.dataKey) ?? new Float64Array(0)),
-				)
-			: null;
+		this.#stack = this.#options.stacked ? computeStackBoundaries(this.#columns) : null;
 
 		this.#decimated = shouldDecimate({
 			pointCount: count,
@@ -1382,7 +1143,7 @@ class ChartEngine {
 			}
 		}
 
-		this.#retargetTweens(specs, previousColumns, sameXVector);
+		this.#retargetTweens(specs, previousColumnIndex, sameXVector);
 
 		// Data changed under the active position: clamp, then force a republish
 		// so the snapshot reflects the fresh rows even at an unchanged index.
@@ -1398,7 +1159,7 @@ class ChartEngine {
 
 	#retargetTweens(
 		specs: readonly SeriesSpec[],
-		previousColumns: Map<string, Float64Array>,
+		previousColumnIndex: ReadonlyMap<string, number>,
 		sameXVector: boolean,
 	): void {
 		const now = performance.now();
@@ -1441,7 +1202,7 @@ class ChartEngine {
 
 		specs.forEach((spec, seriesIndex) => {
 			registeredKeys.add(spec.dataKey);
-			const hadPrevious = previousColumns.has(spec.dataKey);
+			const hadPrevious = previousColumnIndex.has(spec.dataKey);
 			if (this.#stack != null) {
 				retargetBuffer(
 					`${spec.dataKey}:lower`,
@@ -1456,7 +1217,7 @@ class ChartEngine {
 			} else {
 				retargetBuffer(
 					spec.dataKey,
-					this.#columns.get(spec.dataKey) ?? new Float64Array(0),
+					this.#columns[seriesIndex] ?? new Float64Array(0),
 					hadPrevious,
 				);
 			}
@@ -1596,7 +1357,7 @@ class ChartEngine {
 	 * The width of one axis label. The caller has set `ctx.font` to the axis
 	 * font.
 	 */
-	#textWidth(ctx: CanvasRenderingContext2D, text: string): number {
+	#textWidth(ctx: PaintContext, text: string): number {
 		let width = this.#textWidths.get(text);
 		if (width == null) {
 			// Why the bound: a streaming time axis makes new labels without end.
@@ -1611,7 +1372,7 @@ class ChartEngine {
 
 	// ---- scheduling + paint ---------------------------------------------------
 
-	/** Schedule a full canvas repaint (plus overlay sync) on the next frame. */
+	/** Schedule a full repaint (plus overlay sync) on the next frame. */
 	#schedule(): void {
 		this.#needsPaint = true;
 		this.#needsLayout = true;
@@ -1621,23 +1382,26 @@ class ChartEngine {
 	/**
 	 * Schedule only the DOM overlay sync (crosshair/band/markers/tooltip
 	 * transforms). This is the hover path — pointer moves never repaint the
-	 * canvas.
+	 * marks.
 	 */
 	#scheduleOverlay(): void {
 		this.#request();
 	}
 
 	#request(): void {
-		if (this.#scheduled || this.#destroyed) {
+		const view = this.#view;
+		if (this.#scheduled || this.#destroyed || view == null) {
 			return;
 		}
 		this.#scheduled = true;
-		this.#frame = requestAnimationFrame(() => {
-			this.#scheduled = false;
-			this.#frame = 0;
-			this.#commit();
-		});
+		this.#cancelFrame = requestSharedFrame(view, this.#onFrame);
 	}
+
+	#onFrame = (): void => {
+		this.#scheduled = false;
+		this.#cancelFrame = null;
+		this.#commit();
+	};
 
 	#commit(): void {
 		if (this.#destroyed) {
@@ -1693,93 +1457,25 @@ class ChartEngine {
 	}
 
 	#resolveColorsIfNeeded(): void {
-		const root = this.#elements.root;
-		// Pattern tiles rasterize at the device pixel ratio, so a dpr change
-		// (zoom, monitor move) re-resolves alongside theme changes. Orientation is
-		// in the key too: both single-rung textures flip with the bars, so a
-		// runtime orientation change must regenerate the cached patterns.
-		const signature = `${themeSignature(root.ownerDocument.documentElement)}|${this.#dpr}|${this.#options.orientation}`;
+		const signature = this.#backend.paintSignature({
+			devicePixelRatio: this.#dpr,
+			orientation: this.#options.orientation,
+		});
 		if (this.#colors?.signature === signature) {
 			return;
 		}
-		const resolver = this.#colorResolver();
-		if (resolver == null) {
+		const colors = this.#backend.resolvePaint({
+			series: this.#store.seriesMeta(),
+			devicePixelRatio: this.#dpr,
+			orientation: this.#options.orientation,
+			signature,
+		});
+		if (colors == null) {
 			return;
 		}
-		const ctx = this.#context();
-		const series = new Map<string, string>();
-		const inputs = new Map<string, string>();
-		const barTextures = new Map<string, CanvasPattern>();
-		for (const meta of this.#store.seriesMeta()) {
-			const resolved = resolveSeriesColor(resolver, meta.colorInput);
-			series.set(meta.dataKey, resolved);
-			inputs.set(meta.dataKey, seriesPaintInput(meta));
-			if (ctx != null && meta.mark === "bar" && meta.texture !== "solid") {
-				const pattern = createBarTexturePattern(ctx, {
-					texture: meta.texture,
-					color: resolved,
-					ink: resolver.resolve(textureInkColor(resolved)),
-					devicePixelRatio: this.#dpr,
-					orientation: this.#options.orientation,
-				});
-				if (pattern != null) {
-					barTextures.set(meta.dataKey, pattern);
-				}
-			}
-		}
+		// The font family resolves with the colors, so the measured widths are stale.
 		this.#textWidths.clear();
-		this.#colors = {
-			signature,
-			resolver,
-			series,
-			inputs,
-			barTextures,
-			chrome: resolveChromeColors(resolver),
-			fontFamily: resolver.fontFamily,
-		};
-	}
-
-	/**
-	 * One resolver per resolution pass: it holds the single computed-style read
-	 * every token resolves from, so a pass costs one style read instead of one
-	 * probe insertion per color. `null` in a detached document.
-	 */
-	#colorResolver(): ColorResolver | null {
-		const root = this.#elements.root;
-		const view = root.ownerDocument.defaultView;
-		if (view == null) {
-			return null;
-		}
-		// Why the plot hosts the probe: the Root's child list is the consumer's
-		// (a legend, a copy button), and a structural selector there must not
-		// count a hidden span. The plot already holds the engine's own layers.
-		return createColorResolver(this.#elements.plot, {
-			computed: view.getComputedStyle(root),
-			parseContext: colorParseContext(root.ownerDocument),
-		});
-	}
-
-	/**
-	 * Resolve a reference-line color, cached per color input and invalidated with
-	 * the theme/dpr color signature. A reference line paints on every animation
-	 * frame, so resolving through the DOM probe each time would force a style
-	 * recalc inside the paint loop. The pass's own resolver serves it, so a
-	 * custom reference color adds no style read of its own.
-	 */
-	#resolveReferenceColor(input: SeriesColor): string {
-		const signature = this.#colors?.signature ?? "";
-		if (signature !== this.#referenceColorSignature) {
-			this.#referenceColorCache.clear();
-			this.#referenceColorSignature = signature;
-		}
-		const cached = this.#referenceColorCache.get(input);
-		if (cached != null) {
-			return cached;
-		}
-		const resolver = this.#colors?.resolver ?? this.#colorResolver();
-		const resolved = resolver == null ? input : resolveSeriesColor(resolver, input);
-		this.#referenceColorCache.set(input, resolved);
-		return resolved;
+		this.#colors = colors;
 	}
 
 	#layout(): void {
@@ -1814,9 +1510,9 @@ class ChartEngine {
 			left = FALLBACK_AXIS_GUTTER;
 			// Why colors first: a dormant chart lays out without resolved colors, and
 			// asking for the context here would allocate one it never paints with.
-			const ctx = this.#colors == null ? null : this.#context();
+			const ctx = this.#colors == null ? null : this.#backend.measureContext();
 			if (ctx != null && this.#colors != null) {
-				ctx.font = `${AXIS_FONT_SIZE}px ${this.#colors.fontFamily}`;
+				ctx.font = `${AXIS_FONT_SIZE}px ${this.#colors.fontFamily()}`;
 				let widest = 0;
 				// The gutter holds whichever labels the orientation puts on the left:
 				// value ticks when vertical, category names when horizontal.
@@ -2020,9 +1716,8 @@ class ChartEngine {
 		const range: [number, number] = [domain[0] ?? 0, domain[1] ?? 1];
 		const count = snapshot.xAxis?.tickCount ?? Math.max(2, Math.floor(this.#plot.width / 90));
 		if (this.#options.xScale === "time") {
-			const defaultFormat = timeTickFormatter(range);
 			return timeTicks(range, count).map((epoch) => {
-				const defaultLabel = defaultFormat(epoch);
+				const defaultLabel = formatTimeTick(epoch);
 				return {
 					index: null,
 					value: epoch,
@@ -2051,24 +1746,27 @@ class ChartEngine {
 	}
 
 	#paint(now: number): boolean {
-		const ctx = this.#context();
 		const colors = this.#colors;
-		if (ctx == null || colors == null || this.#cssWidth <= 0 || this.#cssHeight <= 0) {
+		if (colors == null || this.#cssWidth <= 0 || this.#cssHeight <= 0) {
 			return false;
 		}
+		const ctx = this.#backend.begin({
+			cssWidth: this.#cssWidth,
+			cssHeight: this.#cssHeight,
+			devicePixelRatio: this.#dpr,
+		});
+		if (ctx == null) {
+			return false;
+		}
+		const animating = this.#paintFrame(ctx, colors, now);
+		this.#backend.end();
+		return animating;
+	}
+
+	/** Draw one frame into a context the backend began. Returns whether a fade still moves. */
+	#paintFrame(ctx: PaintContext, colors: ResolvedPaint, now: number): boolean {
 		const paintDt = Math.min(50, Math.max(0, now - this.#lastPaintTime));
 		this.#lastPaintTime = now;
-		const canvas = this.#elements.canvas;
-		const deviceWidth = Math.round(this.#cssWidth * this.#dpr);
-		const deviceHeight = Math.round(this.#cssHeight * this.#dpr);
-		if (canvas.width !== deviceWidth || canvas.height !== deviceHeight) {
-			// Setting the backing store clears the canvas — only touch it on change.
-			canvas.width = deviceWidth;
-			canvas.height = deviceHeight;
-		}
-		ctx.setTransform(this.#dpr, 0, 0, this.#dpr, 0, 0);
-		ctx.clearRect(0, 0, this.#cssWidth, this.#cssHeight);
-
 		const snapshot = this.#store.getSnapshot();
 		const plot = this.#plot;
 		if (plot.width <= 0 || plot.height <= 0) {
@@ -2087,9 +1785,9 @@ class ChartEngine {
 		// gridlines, and the `ctx.font` write plus a `measureText` per tick cost
 		// a sparkline more than its bars.
 		const wantsTicks = snapshot.xAxis != null || snapshot.yAxis != null || snapshot.grid != null;
-		const desiredXTicks = is3d || !wantsTicks ? [] : this.#desiredXTicks(ctx, colors.fontFamily);
+		const desiredXTicks = is3d || !wantsTicks ? [] : this.#desiredXTicks(ctx, colors.fontFamily());
 		const desiredYTicks =
-			is3d || !wantsTicks ? [] : this.#desiredValueTicks(ctx, colors.fontFamily);
+			is3d || !wantsTicks ? [] : this.#desiredValueTicks(ctx, colors.fontFamily());
 		let labelsAnimating = advanceLabelFade(this.#xLabelFade, desiredXTicks, paintDt, instantLabels);
 		labelsAnimating =
 			advanceLabelFade(this.#yLabelFade, desiredYTicks, paintDt, instantLabels) || labelsAnimating;
@@ -2166,52 +1864,49 @@ class ChartEngine {
 			});
 		};
 
-		// While the left-edge fade is active, the marks paint first so the
-		// destination-out erase touches only marks. The grid then paints beneath
-		// them with destination-over, which gives the same pixels with no
-		// offscreen canvas.
+		// The left-edge fade touches only the marks: the backend fades them
+		// through a ramp at the plot's left edge and keeps the grid whole.
 		const fadeWidth = Math.min(EDGE_FADE_WIDTH, plot.width * 0.25);
 		const fading = edgeFade.alpha > 0.01 && fadeWidth > 1;
-		if (!fading) {
-			paintGrid();
-		}
-		ctx.save();
-		ctx.beginPath();
-		ctx.rect(plot.left, plot.top, plot.width, plot.height + 1);
-		ctx.clip();
-		let frameLabels: FrameLabels | null = null;
-		if (this.#kind === "bar") {
-			if (horizontal) {
-				this.#paintHorizontalBars(ctx, specs);
-			} else {
-				this.#paintBars(ctx, specs, yCo);
-			}
-		} else if (this.#kind === "scatter") {
-			frameLabels = this.#paintScatter(ctx, specs, yCo);
-		} else {
-			this.#paintLinesOrAreas(ctx, specs, yCo);
-		}
-		ctx.restore();
-		if (fading) {
-			// Liveline's scroll mask: erase the marks through a horizontal alpha
-			// ramp at the plot's left edge, then paint the grid beneath them.
-			ctx.save();
-			ctx.globalCompositeOperation = "destination-out";
-			const eraseGradient = ctx.createLinearGradient(plot.left, 0, plot.left + fadeWidth, 0);
-			eraseGradient.addColorStop(0, `rgba(0, 0, 0, ${edgeFade.alpha})`);
-			eraseGradient.addColorStop(1, "rgba(0, 0, 0, 0)");
-			ctx.fillStyle = eraseGradient;
-			ctx.fillRect(plot.left, plot.top, fadeWidth, plot.height + 1);
-			ctx.globalCompositeOperation = "destination-over";
-			paintGrid();
-			ctx.restore();
-		}
+		// Why a holder: the marks callback writes it, and a `let` would narrow to `null` past the call.
+		const frame: { labels: FrameLabels | null } = { labels: null };
+		this.#backend.composite(ctx, {
+			underlay: paintGrid,
+			marks: () => {
+				ctx.save();
+				ctx.beginPath();
+				ctx.rect(plot.left, plot.top, plot.width, plot.height + 1);
+				ctx.clip();
+				if (this.#kind === "bar") {
+					if (horizontal) {
+						this.#paintHorizontalBars(ctx, specs);
+					} else {
+						this.#paintBars(ctx, specs, yCo);
+					}
+				} else if (this.#kind === "scatter") {
+					frame.labels = this.#paintScatter(ctx, specs, yCo);
+				} else {
+					this.#paintLinesOrAreas(ctx, specs, yCo);
+				}
+				ctx.restore();
+			},
+			fade: fading
+				? {
+						left: plot.left,
+						top: plot.top,
+						width: fadeWidth,
+						height: plot.height + 1,
+						alpha: edgeFade.alpha,
+					}
+				: null,
+		});
 
 		// 3D frame labels: after the clip so edge-adjacent labels stay whole.
+		const frameLabels = frame.labels;
 		if (frameLabels != null) {
 			drawCubeAxisLabels(ctx, {
 				textColor: colors.chrome.tickText,
-				fontFamily: colors.fontFamily,
+				fontFamily: colors.fontFamily(),
 				plot,
 				center: frameLabels.center,
 				axes: frameLabels.axes,
@@ -2240,9 +1935,7 @@ class ChartEngine {
 				continue;
 			}
 			const color =
-				reference.color == null
-					? colors.chrome.reference
-					: this.#resolveReferenceColor(reference.color);
+				reference.color == null ? colors.chrome.reference : colors.resolve(reference.color);
 			if (horizontal) {
 				drawVerticalReferenceLine(ctx, {
 					plot,
@@ -2250,7 +1943,7 @@ class ChartEngine {
 					textColor: colors.chrome.tickText,
 					x: position,
 					label: reference.label,
-					fontFamily: colors.fontFamily,
+					fontFamily: colors.fontFamily(),
 				});
 			} else {
 				drawReferenceLine(ctx, {
@@ -2259,7 +1952,7 @@ class ChartEngine {
 					textColor: colors.chrome.tickText,
 					y: position,
 					label: reference.label,
-					fontFamily: colors.fontFamily,
+					fontFamily: colors.fontFamily(),
 				});
 			}
 		}
@@ -2290,7 +1983,7 @@ class ChartEngine {
 			drawAxisLabels(ctx, {
 				plot,
 				color: colors.chrome.tickText,
-				fontFamily: colors.fontFamily,
+				fontFamily: colors.fontFamily(),
 				xLabels,
 				yLabels,
 			});
@@ -2305,10 +1998,7 @@ class ChartEngine {
 	 * charts thin by label height, since categories stack down the y axis. Keys
 	 * are band indexes on band scales and tick values on continuous ones.
 	 */
-	#desiredXTicks(
-		ctx: CanvasRenderingContext2D,
-		fontFamily: string,
-	): Array<{ key: number; text: string }> {
+	#desiredXTicks(ctx: PaintContext, fontFamily: string): Array<{ key: number; text: string }> {
 		ctx.font = `${AXIS_FONT_SIZE}px ${fontFamily}`;
 		const horizontal = this.#horizontalBars();
 		const xCo = this.#xCoefficients();
@@ -2339,10 +2029,7 @@ class ChartEngine {
 	 * where they collide by line height. Horizontal charts place them along the x
 	 * axis, where they collide by measured width.
 	 */
-	#desiredValueTicks(
-		ctx: CanvasRenderingContext2D,
-		fontFamily: string,
-	): Array<{ key: number; text: string }> {
+	#desiredValueTicks(ctx: PaintContext, fontFamily: string): Array<{ key: number; text: string }> {
 		const ticks = this.#yTicks();
 		const valueCo = this.#valueCoefficients();
 		if (!this.#horizontalBars()) {
@@ -2396,10 +2083,20 @@ class ChartEngine {
 			}
 		}
 		if (boundary === "value") {
-			return this.#columns.get(series.dataKey) ?? new Float64Array(0);
+			return this.#columns[seriesIndex] ?? new Float64Array(0);
 		}
 		const rows = boundary === "lower" ? this.#stack?.lower : this.#stack?.upper;
 		return rows?.[seriesIndex] ?? new Float64Array(0);
+	}
+
+	/**
+	 * The column of one series by its key. The paint path holds each series'
+	 * index; an event between a registration and the next ingest does not, and
+	 * a key cannot read another series' column.
+	 */
+	#columnOf(dataKey: string): Float64Array | undefined {
+		const index = this.#columnIndex.get(dataKey);
+		return index == null ? undefined : this.#columns[index];
 	}
 
 	/** The indexes below `#rowCount` where `values` holds a number. */
@@ -2468,11 +2165,7 @@ class ChartEngine {
 		return isStackedDataEnd({ lower, upper, pileOuter, toPixel });
 	}
 
-	#paintBars(
-		ctx: CanvasRenderingContext2D,
-		specs: readonly SeriesSpec[],
-		yCo: { k: number; b: number },
-	): void {
+	#paintBars(ctx: PaintContext, specs: readonly SeriesSpec[], yCo: { k: number; b: number }): void {
 		const layout = this.#bandLayout;
 		const colors = this.#colors;
 		if (layout == null || colors == null || this.#rowCount === 0 || specs.length === 0) {
@@ -2526,7 +2219,7 @@ class ChartEngine {
 			// solid series color so bars never vanish.
 			drawBars(ctx, {
 				fill:
-					colors.barTextures.get(spec.dataKey) ?? colors.series.get(spec.dataKey) ?? "currentColor",
+					colors.barFills.get(spec.dataKey) ?? colors.series.get(spec.dataKey) ?? "currentColor",
 				rects,
 				count,
 			});
@@ -2540,7 +2233,7 @@ class ChartEngine {
 	 * bar thickness is a y extent, and the reveal grows rightward from the value
 	 * baseline.
 	 */
-	#paintHorizontalBars(ctx: CanvasRenderingContext2D, specs: readonly SeriesSpec[]): void {
+	#paintHorizontalBars(ctx: PaintContext, specs: readonly SeriesSpec[]): void {
 		const layout = this.#bandLayout;
 		const colors = this.#colors;
 		if (layout == null || colors == null || this.#rowCount === 0 || specs.length === 0) {
@@ -2592,7 +2285,7 @@ class ChartEngine {
 			}
 			drawHorizontalBars(ctx, {
 				fill:
-					colors.barTextures.get(spec.dataKey) ?? colors.series.get(spec.dataKey) ?? "currentColor",
+					colors.barFills.get(spec.dataKey) ?? colors.series.get(spec.dataKey) ?? "currentColor",
 				rects,
 				count,
 			});
@@ -2600,7 +2293,7 @@ class ChartEngine {
 	}
 
 	#paintLinesOrAreas(
-		ctx: CanvasRenderingContext2D,
+		ctx: PaintContext,
 		specs: readonly SeriesSpec[],
 		yCo: { k: number; b: number },
 	): void {
@@ -2670,7 +2363,7 @@ class ChartEngine {
 	}
 
 	#paintDecimatedSeries(
-		ctx: CanvasRenderingContext2D,
+		ctx: PaintContext,
 		spec: SeriesSpec,
 		seriesIndex: number,
 		color: string,
@@ -2885,7 +2578,7 @@ class ChartEngine {
 			// Stacked marks paint at their cumulative boundary, so hit-test the
 			// boundary — raw values would misattribute everything to the largest series.
 			const values =
-				this.#stack == null ? this.#columns.get(spec.dataKey) : this.#stack.upper[seriesIndex];
+				this.#stack == null ? this.#columnOf(spec.dataKey) : this.#stack.upper[seriesIndex];
 			const value = values?.[index] ?? Number.NaN;
 			if (Number.isNaN(value)) {
 				return;
@@ -2958,7 +2651,7 @@ class ChartEngine {
 		// costs no sort per hover; `seriesMeta()` re-sorts per call.
 		const meta = this.#store.getSnapshot().series;
 		let points = meta.map((series) => {
-			const values = this.#columns.get(series.dataKey);
+			const values = this.#columnOf(series.dataKey);
 			const value = values?.[index] ?? Number.NaN;
 			return {
 				dataKey: series.dataKey,
@@ -2998,7 +2691,7 @@ class ChartEngine {
 	}
 
 	#paintScatter(
-		ctx: CanvasRenderingContext2D,
+		ctx: PaintContext,
 		specs: readonly SeriesSpec[],
 		yCo: { k: number; b: number },
 	): FrameLabels | null {
@@ -3017,8 +2710,8 @@ class ChartEngine {
 		// at ingest.
 		let cached = this.#scatterIndexes;
 		if (cached == null || cached.columns !== this.#columns || cached.specs !== specs) {
-			const indexes = specs.map((spec) =>
-				this.#definedIndexes(this.#columns.get(spec.dataKey) ?? new Float64Array(0)),
+			const indexes = specs.map((_spec, seriesIndex) =>
+				this.#definedIndexes(this.#columns[seriesIndex] ?? new Float64Array(0)),
 			);
 			cached = {
 				columns: this.#columns,
@@ -3050,7 +2743,7 @@ class ChartEngine {
 		return null;
 	}
 
-	#paintScatter3d(ctx: CanvasRenderingContext2D, specs: readonly SeriesSpec[]): FrameLabels | null {
+	#paintScatter3d(ctx: PaintContext, specs: readonly SeriesSpec[]): FrameLabels | null {
 		const colors = this.#colors;
 		if (colors == null) {
 			return null;
@@ -3243,7 +2936,7 @@ class ChartEngine {
 		const xCo = this.#xCoefficients();
 		const yCo = this.#yCoefficients();
 		for (const spec of specs) {
-			const values = this.#columns.get(spec.dataKey);
+			const values = this.#columnOf(spec.dataKey);
 			if (values == null) {
 				continue;
 			}
@@ -3288,7 +2981,7 @@ class ChartEngine {
 		const xCo = this.#xCoefficients();
 		const yCo = this.#yCoefficients();
 		for (const spec of specs) {
-			const value = this.#columns.get(spec.dataKey)?.[index] ?? Number.NaN;
+			const value = this.#columnOf(spec.dataKey)?.[index] ?? Number.NaN;
 			if (!Number.isNaN(value)) {
 				return { x: (this.#xs[index] ?? 0) * xCo.k + xCo.b, y: value * yCo.k + yCo.b };
 			}
@@ -3341,7 +3034,7 @@ class ChartEngine {
 				const active =
 					this.#activeSeriesKey == null
 						? meta.find((series) => {
-								const value = this.#columns.get(series.dataKey)?.[index] ?? Number.NaN;
+								const value = this.#columnOf(series.dataKey)?.[index] ?? Number.NaN;
 								return !Number.isNaN(value);
 							})
 						: meta.find((series) => series.dataKey === this.#activeSeriesKey);
@@ -3402,7 +3095,7 @@ class ChartEngine {
 				// the stack carries a boundary through the gap); position follows the
 				// PAINTED value — the stacked upper boundary when stacking — so the
 				// dot sits on its series' drawn line, never at the unstacked height.
-				const raw = this.#columns.get(series.dataKey)?.[index] ?? Number.NaN;
+				const raw = this.#columnOf(series.dataKey)?.[index] ?? Number.NaN;
 				const painted =
 					this.#paintedValues(series, this.#stack != null ? "upper" : "value", seriesIndex)[
 						index

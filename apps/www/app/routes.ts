@@ -178,6 +178,7 @@ const migrationsPages = [
 	"0010-button-icon-swap-migration",
 	"0011-eliminate-high-contrast-migration",
 	"0012-single-stylesheet-migration",
+	"0013-chart-svg-renderer-migration",
 ];
 
 export default [

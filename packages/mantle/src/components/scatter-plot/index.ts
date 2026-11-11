@@ -14,6 +14,7 @@ export type {
 	ScatterPlotCopyButtonProps,
 	ScatterPlotGridProps,
 	ScatterPlotLegendProps,
+	ScatterPlotListProps,
 	ScatterPlotPointProps,
 	ScatterPlotReferenceLineProps,
 	ScatterPlotRootProps,

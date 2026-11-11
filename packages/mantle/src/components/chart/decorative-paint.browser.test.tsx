@@ -4,6 +4,7 @@ import { render, waitFor } from "@testing-library/react";
 import { findChartCanvas } from "../../test-utils/find-chart-canvas.js";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { BarChart } from "../bar-chart/index.js";
+import { CanvasBarChartRoot } from "../../test-utils/canvas-chart-roots.js";
 
 /**
  * Real-browser paint test for `decorative`: the chart drops the categorical
@@ -122,9 +123,9 @@ describe("a decorative chart's painted fill", () => {
 		// the same neutral, and no categorical blue reaches the canvas at all.
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
-				<BarChart.Root data={data} xKey="cat" animate={false} mode="decorative">
+				<CanvasBarChartRoot data={data} xKey="cat" animate={false} mode="decorative">
 					<BarChart.Bar dataKey="v" label="Value" color="chart-1" />
-				</BarChart.Root>
+				</CanvasBarChartRoot>
 			</div>,
 		);
 		const canvas = await findChartCanvas(container);
@@ -140,9 +141,9 @@ describe("a decorative chart's painted fill", () => {
 		// and always painted neutral would pass the test above.
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
-				<BarChart.Root data={data} xKey="cat" animate={false} aria-label="Values by category">
+				<CanvasBarChartRoot data={data} xKey="cat" animate={false} aria-label="Values by category">
 					<BarChart.Bar dataKey="v" label="Value" color="chart-1" />
-				</BarChart.Root>
+				</CanvasBarChartRoot>
 			</div>,
 		);
 		const canvas = await findChartCanvas(container);

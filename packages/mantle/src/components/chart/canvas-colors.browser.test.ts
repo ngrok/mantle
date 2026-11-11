@@ -1,11 +1,11 @@
 import { afterAll, afterEach, beforeAll, expect, test } from "vitest";
-import type { ColorParseContext, ColorResolver } from "./colors.js";
+import type { ColorParseContext, ColorResolver } from "./canvas-colors.js";
 import {
 	canvasParses,
 	colorParseContext,
 	createColorResolver,
 	resolveSeriesColor,
-} from "./colors.js";
+} from "./canvas-colors.js";
 import { textureInkColor } from "./texture.js";
 
 /**

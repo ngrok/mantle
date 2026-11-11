@@ -125,10 +125,10 @@ const createObserver = (
 		},
 		{
 			root,
-			rootMargin: margin,
-			// Why scrollMargin: `rootMargin` widens the viewport alone. A chart in a
-			// scrolling panel also needs the panel's clip widened, or it paints only
-			// once the panel has revealed it.
+			// Why `scrollMargin` alone: it widens the clip of every scroll container, the
+			// document's own scroller included. A `rootMargin` beside it widens the document's
+			// scroller twice (100% of each reaches 2 viewports in Firefox, 4 in Chromium and WebKit).
+			rootMargin: supportsScrollMargin() ? "0px" : margin,
 			scrollMargin: margin,
 			threshold: 0,
 		},

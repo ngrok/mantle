@@ -1,9 +1,11 @@
+import { scaleTime } from "d3-scale";
 import { describe, expect, test } from "vitest";
 import {
 	bandCenter,
 	bandHitRegion,
 	bandStart,
 	computeBandLayout,
+	formatTimeTick,
 	invertBand,
 	linearCoefficients,
 	linearTicks,
@@ -311,6 +313,43 @@ describe("timeTicks", () => {
 			expect(tick).toBeLessThanOrEqual(end);
 			// Hour-aligned for a 6-hour domain.
 			expect(new Date(tick).getMinutes()).toBe(0);
+		}
+	});
+});
+
+describe("time ticks match d3-scale's scaleTime", () => {
+	// Why d3-scale as the oracle: the chart dropped it to ship less code, and its
+	// ticks and labels are the contract every existing time axis shows. A seeded
+	// sweep reaches spans from milliseconds to decades and every tick unit.
+	let seed = 7;
+	const random = (): number => {
+		seed = (seed * 1664525 + 1013904223) >>> 0;
+		return seed / 4294967296;
+	};
+	const domains = Array.from({ length: 4000 }, () => {
+		const start = Date.UTC(1990, 0, 1) + random() * 40 * 365 * 86_400_000;
+		// Spans from about 2 ms to about 70 years, spread evenly in log space.
+		const span = Math.exp(random() * 35);
+		return [start, start + span] as const;
+	});
+
+	test("every tick lands where scaleTime puts it", () => {
+		for (const [start, end] of domains) {
+			const count = 2 + Math.floor(random() * 10);
+			const expected = scaleTime()
+				.domain([new Date(start), new Date(end)])
+				.ticks(count)
+				.map((date) => date.getTime());
+			expect(timeTicks([start, end], count)).toEqual(expected);
+		}
+	});
+
+	test("every tick wears the label scaleTime gives it", () => {
+		const format = scaleTime().tickFormat();
+		for (const [start, end] of domains) {
+			for (const tick of timeTicks([start, end], 6)) {
+				expect(formatTimeTick(tick)).toBe(format(new Date(tick)));
+			}
 		}
 	});
 });

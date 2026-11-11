@@ -1,6 +1,6 @@
 ---
 title: Area Chart
-description: A canvas-rendered area chart for showing how values — and, when stacked, a total and its parts — change over a continuous x axis.
+description: An area chart for showing how values (and, when stacked, a total and its parts) change over a continuous x axis.
 aliases: [sparkline]
 ---
 
@@ -370,7 +370,7 @@ export function SeriesIdentityAreaChartExample() {
 
 # Area Chart
 
-A canvas-rendered area chart for showing how values — and, when stacked, a total and its parts — change over a continuous x axis. Each area fills with a 10% wash of its series color plus a 2px stroke on the band edge, rising from a shared zero baseline. Interaction ships with the Root unconditionally: a crosshair with an every-series tooltip, keyboard stepping with polite announcements, an sr-only description, and click / <kbd translate="no">Enter</kbd> / <kbd translate="no">Space</kbd> activation. The sr-only data table mounts once the chart takes focus. Large datasets decimate before painting.
+An area chart for showing how values (and, when stacked, a total and its parts) change over a continuous x axis. Each area fills with a 10% wash of its series color plus a 2px stroke on the band edge, rising from a shared zero baseline. Interaction ships with the Root unconditionally: a crosshair with an every-series tooltip, keyboard stepping with polite announcements, an sr-only description, and click / <kbd translate="no">Enter</kbd> / <kbd translate="no">Space</kbd> activation. The sr-only data table mounts once the chart takes focus. Large datasets decimate before painting.
 
 ## When to use
 
@@ -813,7 +813,9 @@ import { AreaChart } from "@ngrok/mantle/area-chart";
 
 ## Lists of charts
 
-A page of 100 charts pays for the handful a reader can see. Every `AreaChart.Root` ingests its data and answers the keyboard from its first render, but it paints and allocates its canvas only once it comes within one viewport of the visible area or takes focus. Three viewports away it releases its canvas memory and repaints on the way back; printing paints every chart. The screen-reader data table waits for focus alone: it mounts once a reader tabs into the chart, so a page of sparklines holds no hidden tables until a reader asks for one. Add `content-visibility: auto` to your list's cards as a complement: it skips style and layout for offscreen cards, and the chart's own gate already skips paint and canvas memory.
+A page of 100 charts pays for the handful a reader can see. Every `AreaChart.Root` ingests its data and answers the keyboard from its first render, but it builds and paints its surface only once it comes within one viewport of the visible area or takes focus. Printing paints every chart. The screen-reader data table waits for focus alone: it mounts once a reader tabs into the chart, so a page of sparklines holds no hidden tables until a reader asks for one. Add `content-visibility: auto` to your list's cards as a complement: it skips style and layout for offscreen cards, and the chart's own gate already skips paint.
+
+Wrap a list of interactive charts in [`AreaChart.List`](#areachartlist). The charts inside share one tooltip surface and one `role="status"` live region. The surface moves into the chart a reader points at or steps through, so a page of 100 charts mounts one tooltip and one live region instead of one per chart. Each chart keeps its own `AreaChart.Tooltip` config, description, and data table. Charts of different families can share one List, so one `AreaChart.List` can hold a grid of bar, line, area, and scatter charts. A [static chart](#static-charts) has no tooltip and no live region, so a list of sparklines needs no List.
 
 ## Modes
 
@@ -906,15 +908,22 @@ AreaChart.Root
 └── AreaChart.CopyButton
 ```
 
-- **`Root`** owns the data, the scales, the canvas renderer, and the entire interaction contract. Every other part must be composed inside it.
+- **`Root`** owns the data, the scales, the renderer, and the entire interaction contract. Every other part must be composed inside it.
 - **`Area`** registers one series per part; with `stacked` on the Root, areas stack in registration order with the first-registered series at the baseline.
-- **`Grid`**, **`XAxis`**, **`YAxis`**, and **`ReferenceLine`** register chart chrome that the Root paints on canvas. Omit a part to omit that chrome.
+- **`Grid`**, **`XAxis`**, **`YAxis`**, and **`ReferenceLine`** register chart chrome that the Root paints. Omit a part to omit that chrome.
 - **`Tooltip`** customizes the always-on hover/keyboard readout; omitting it never removes the hover layer.
 - **`Legend`** renders series names keyed by color swatches as real DOM in flow below the plot. Always compose it on multi-series charts; it renders nothing for a single series.
 
+Wrap a list of Roots in `AreaChart.List` so they share one tooltip and one live region:
+
+```text showLineNumbers=false
+AreaChart.List
+└── AreaChart.Root (one per chart)
+```
+
 ## Accessibility
 
-Every interactive chart must have an accessible name: the Root requires exactly one of `aria-label` or `aria-labelledby`, enforced at the type level. Prefer `aria-labelledby` referencing a visible title when the chart sits under a heading — no drift-prone duplicated text. The name lands on the focusable interaction overlay, the chart's single named element (the canvas itself is hidden from assistive technology so the chart is never announced twice). A [static chart](#static-charts) names its plot `role="img"` instead and has no Tab stop. A [decorative chart](#decorative-charts) carries no real data, so it takes no accessible name and is hidden from assistive technology entirely.
+Every interactive chart must have an accessible name: the Root requires exactly one of `aria-label` or `aria-labelledby`, enforced at the type level. Prefer `aria-labelledby` referencing a visible title when the chart sits under a heading — no drift-prone duplicated text. The name lands on the focusable interaction overlay, the chart's single named element (the paint surface itself is hidden from assistive technology, so the chart is never announced twice). A [static chart](#static-charts) names its plot `role="img"` instead and has no Tab stop. A [decorative chart](#decorative-charts) carries no real data, so it takes no accessible name and is hidden from assistive technology entirely.
 
 The plot is a single tab stop with a keyboard point cursor:
 
@@ -937,11 +946,11 @@ The table doubles as the chart's machine-readable surface: date row headers carr
 
 ## API Reference
 
-`AreaChart.Area`, `AreaChart.Grid`, `AreaChart.XAxis`, `AreaChart.YAxis`, and `AreaChart.ReferenceLine` are renderless: they register configuration with the Root, which paints everything onto a single canvas. They accept no `className`, `style`, or other DOM props. `AreaChart.Tooltip` and `AreaChart.Legend` accept `div` props — the legend renders a real DOM element in flow, and the tooltip forwards its `div` props onto the tooltip element the Root renders. `AreaChart.CopyButton` also renders real DOM — an icon button accepting `button` props.
+`AreaChart.Area`, `AreaChart.Grid`, `AreaChart.XAxis`, `AreaChart.YAxis`, and `AreaChart.ReferenceLine` are renderless: they register configuration with the Root, which paints everything onto one surface: an `<svg>`. They accept no `className`, `style`, or other DOM props. `AreaChart.Tooltip` and `AreaChart.Legend` accept `div` props — the legend renders a real DOM element in flow, and the tooltip forwards its `div` props onto the tooltip element the Root renders. `AreaChart.CopyButton` also renders real DOM — an icon button accepting `button` props. `AreaChart.List` renders a `div` around a list of Roots.
 
 ### AreaChart.Root
 
-The root of an area chart: owns the data, the scales, the canvas renderer, and the entire interaction contract. Renders a `<div>` wrapping the canvas plot and is generic over `TDatum`, the row type of `data`.
+The root of an area chart: owns the data, the scales, the renderer, and the entire interaction contract. Renders a `<div>` wrapping the plot and is generic over `TDatum`, the row type of `data`.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
@@ -965,24 +974,24 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 **Data attributes**
 
-| Data Attribute | Value                                                                                               | Description                                                                                                                                                                                                                                                                                                                                              |
-| -------------- | --------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `data-slot`    | `"area-chart"`                                                                                      | The Root wrapper, with any forwarded chain ahead of it.                                                                                                                                                                                                                                                                                                  |
-| `data-slot`    | `"area-chart-plot"`                                                                                 | The plot box. Every overlay layer positions against it, and the resize observer measures it.                                                                                                                                                                                                                                                             |
-| `data-slot`    | `"area-chart-canvas"`                                                                               | The `<canvas>` the marks paint on. Always `aria-hidden`. Engine-owned: it is absent from server HTML and from a dormant chart, and the Root inserts it when the chart activates (near the viewport, on focus, or before print).                                                                                                                          |
-| `data-slot`    | `"area-chart-crosshair"`                                                                            | The vertical hairline snapped to the active x. The engine writes its geometry as an inline style. Engine-owned: it is absent from server HTML and from a dormant chart, and the Root inserts it when the chart activates (near the viewport, on focus, or before print). Interactive charts only: a static or decorative chart inserts the canvas alone. |
-| `data-slot`    | `"area-chart-hover-band"`                                                                           | The category highlight; an area chart never shows it. Engine-owned: it is absent from server HTML and from a dormant chart, and the Root inserts it when the chart activates (near the viewport, on focus, or before print). Interactive charts only: a static or decorative chart inserts the canvas alone.                                             |
-| `data-slot`    | `"area-chart-markers"`                                                                              | The container the engine syncs one hover dot per series into. Engine-owned: it is absent from server HTML and from a dormant chart, and the Root inserts it when the chart activates (near the viewport, on focus, or before print). Interactive charts only: a static or decorative chart inserts the canvas alone.                                     |
-| `data-slot`    | `"area-chart-tooltip"`                                                                              | The tooltip surface. The Root renders it on the first hover or keyboard step and keeps it; `AreaChart.Tooltip` configures it. A chart nobody points at holds none.                                                                                                                                                                                       |
-| `data-slot`    | `"area-chart-description"`                                                                          | The `sr-only` description the overlay's `aria-describedby` points at: the chart kind, the point count, the x range, the series labels, and, on an interactive chart, the keyboard instructions. Omitted when `mode="decorative"`.                                                                                                                        |
-| `data-slot`    | `"area-chart-data-table"`                                                                           | The `sr-only` data table. Mounts once focus lands inside the chart (`data-state` flips to `"engaged"`) and stays. Interactive charts only.                                                                                                                                                                                                               |
-| `data-state`   | `"dormant"` \| `"engaged"`                                                                          | On the Root. Flips to `"engaged"` once focus lands inside the chart, and never flips back. The data table mounts with it. Visibility paints the chart but never flips it. Interactive charts only.                                                                                                                                                       |
-| `data-slot`    | `"chart-active-point"`                                                                              | One hover dot inside the markers layer. Also carries `data-shape`.                                                                                                                                                                                                                                                                                       |
-| `data-shape`   | `"circle" \| "square" \| "triangle" \| "diamond" \| "triangle-down" \| "plus" \| "cross" \| "star"` | On each hover dot, naming the glyph its series wears — the `shape` it set, else the one paired to its series slot. The dot clips itself to that glyph, so target this only to restyle a dot.                                                                                                                                                             |
+| Data Attribute | Value                                                                                               | Description                                                                                                                                                                                                                                                                                                                                               |
+| -------------- | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-slot`    | `"area-chart"`                                                                                      | The Root wrapper, with any forwarded chain ahead of it.                                                                                                                                                                                                                                                                                                   |
+| `data-slot`    | `"area-chart-plot"`                                                                                 | The plot box. Every overlay layer positions against it, and the resize observer measures it.                                                                                                                                                                                                                                                              |
+| `data-slot`    | `"area-chart-svg"`                                                                                  | The `<svg>` the marks paint on. Always `aria-hidden`. Engine-owned: it is absent from server HTML and from a dormant chart, and the Root inserts it when the chart activates (near the viewport, on focus, or before print).                                                                                                                              |
+| `data-slot`    | `"area-chart-crosshair"`                                                                            | The vertical hairline snapped to the active x. The engine writes its geometry as an inline style. Engine-owned: it is absent from server HTML and from a dormant chart, and the Root inserts it when the chart activates (near the viewport, on focus, or before print). Interactive charts only: a static or decorative chart inserts the surface alone. |
+| `data-slot`    | `"area-chart-hover-band"`                                                                           | The category highlight; an area chart never shows it. Engine-owned: it is absent from server HTML and from a dormant chart, and the Root inserts it when the chart activates (near the viewport, on focus, or before print). Interactive charts only: a static or decorative chart inserts the surface alone.                                             |
+| `data-slot`    | `"area-chart-markers"`                                                                              | The container the engine syncs one hover dot per series into. Engine-owned: it is absent from server HTML and from a dormant chart, and the Root inserts it when the chart activates (near the viewport, on focus, or before print). Interactive charts only: a static or decorative chart inserts the surface alone.                                     |
+| `data-slot`    | `"area-chart-tooltip"`                                                                              | The tooltip surface. The Root renders it on the first hover or keyboard step and keeps it; `AreaChart.Tooltip` configures it. A chart nobody points at holds none. Inside a [`AreaChart.List`](#areachartlist), the List renders one surface and moves it into the chart a reader points at.                                                              |
+| `data-slot`    | `"area-chart-description"`                                                                          | The `sr-only` description the overlay's `aria-describedby` points at: the chart kind, the point count, the x range, the series labels, and, on an interactive chart, the keyboard instructions. Omitted when `mode="decorative"`.                                                                                                                         |
+| `data-slot`    | `"area-chart-data-table"`                                                                           | The `sr-only` data table. Mounts once focus lands inside the chart (`data-state` flips to `"engaged"`) and stays. Interactive charts only.                                                                                                                                                                                                                |
+| `data-state`   | `"dormant"` \| `"engaged"`                                                                          | On the Root. Flips to `"engaged"` once focus lands inside the chart, and never flips back. The data table mounts with it. Visibility paints the chart but never flips it. Interactive charts only.                                                                                                                                                        |
+| `data-slot`    | `"chart-active-point"`                                                                              | One hover dot inside the markers layer. Also carries `data-shape`.                                                                                                                                                                                                                                                                                        |
+| `data-shape`   | `"circle" \| "square" \| "triangle" \| "diamond" \| "triangle-down" \| "plus" \| "cross" \| "star"` | On each hover dot, naming the glyph its series wears — the `shape` it set, else the one paired to its series slot. The dot clips itself to that glyph, so target this only to restyle a dot.                                                                                                                                                              |
 
 ### AreaChart.Area
 
-One area series. Renderless — it registers the series with the chart, which paints it on canvas. Compose one `Area` per series.
+One area series. Renders nothing itself — it registers the series with the chart, which paints it. Compose one `Area` per series.
 
 | Prop            | Type                                                                                                | Default                             | Description                                                                                                                            |
 | --------------- | --------------------------------------------------------------------------------------------------- | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
@@ -996,7 +1005,7 @@ One area series. Renderless — it registers the series with the chart, which pa
 
 ### AreaChart.Grid
 
-Horizontal hairline gridlines behind the areas. Renderless — painted on canvas. Omit the part to omit the grid.
+Horizontal hairline gridlines behind the areas (renderless; the chart paints it). Omit the part to omit the grid.
 
 | Prop    | Type                                       | Default        | Description              |
 | ------- | ------------------------------------------ | -------------- | ------------------------ |
@@ -1004,7 +1013,7 @@ Horizontal hairline gridlines behind the areas. Renderless — painted on canvas
 
 ### AreaChart.XAxis
 
-Tick labels along the bottom of the plot. Renderless — painted on canvas. Labels that would collide are skipped, never rotated.
+Tick labels along the bottom of the plot (renderless; the chart paints it). Labels that would collide are skipped, never rotated.
 
 | Prop         | Type                                                                             | Default         | Description                                                                                                                                                                                                                            |
 | ------------ | -------------------------------------------------------------------------------- | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -1013,7 +1022,7 @@ Tick labels along the bottom of the plot. Renderless — painted on canvas. Labe
 
 ### AreaChart.YAxis
 
-Value tick labels along the left of the plot. Renderless — painted on canvas. Ticks land on clean thousands-separated numbers.
+Value tick labels along the left of the plot (renderless; the chart paints it). Ticks land on clean thousands-separated numbers.
 
 | Prop         | Type                                                                         | Default             | Description                                                                                                                                                                                                                                                                                   |
 | ------------ | ---------------------------------------------------------------------------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -1022,7 +1031,7 @@ Value tick labels along the left of the plot. Renderless — painted on canvas. 
 
 ### AreaChart.ReferenceLine
 
-A dashed horizontal marker at a y value — an SLO threshold, a budget, a limit. Renderless — painted on canvas.
+A dashed horizontal marker at a y value — an SLO threshold, a budget, a limit (renderless; the chart paints it).
 
 | Prop    | Type                                                     | Default                     | Description                                       |
 | ------- | -------------------------------------------------------- | --------------------------- | ------------------------------------------------- |
@@ -1095,6 +1104,19 @@ While a copy is fresh, an always-mounted `role="status"` element beside the butt
 | -------------- | -------------------------- | ---------------------------- |
 | `data-slot`    | `"area-chart-copy-button"` | The button the part renders. |
 
+### AreaChart.List
+
+Groups a list of charts, such as one chart per card, so they share one tooltip surface and one live region. The surface moves into the chart a reader points at or steps through, so a page of 100 charts mounts one tooltip and one `role="status"` region instead of one per chart. Each chart keeps its own Tooltip part, description, and data table. Charts of different families can share one List. See [Lists of charts](#lists-of-charts).
+
+Renders a `div` (`area-chart-list`) that holds the charts in a `display: contents` wrapper (`area-chart-list-items`), so a grid or flex layout on the List reaches the cards, and the live region as its last child. `AreaChart.List` takes no `asChild`: a list element such as `ul` cannot hold the live region as a child.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes).
+
+| Data Attribute | Value                     | Description                                                                                                 |
+| -------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `data-slot`    | `"area-chart-list"`       | The List wrapper, with any forwarded chain ahead of it. It takes the `className` and the other div props.   |
+| `data-slot`    | `"area-chart-list-items"` | The `display: contents` wrapper around the charts, so a grid or flex layout on the List lays out the cards. |
+
 ### Chart color tokens
 
 The ordered `--color-chart-1` … `--color-chart-8` tokens define the built-in series identities. Each of the two themes (light and dark) authors its own eight `oklch()` literals, measured so all 28 pairs hold 15 ΔE apart for full-color vision and 8 ΔE under simulated protanopia or deuteranopia, and so every slot clears 3:1 against that theme's chart surface.
@@ -1126,7 +1148,7 @@ Three public paths control a series identity or color.
 - **One color channel** — pass `color` on `AreaChart.Area`. It takes a chart token by name or any CSS color string without changing the slot or default shape.
 - **One chart** — redeclare the token on `AreaChart.Root`: `className="[--color-chart-1:var(--color-brand)]"`. Every series that lands in slot 1 picks the new value up. So do its legend key, band fill, and hover dot.
 
-The chart resolves every token from `Root`'s computed style in one read, inside that Root's own cascade, so a declaration scoped to one Root wins for that chart alone. Sibling charts on the page keep the theme value. A bare `currentColor` resolves from `Root`'s computed `color`. A value the canvas cannot parse by itself, such as `light-dark()` or a `currentColor` nested inside `color-mix()`, resolves through a hidden element inside `Root` instead. Declare the same custom property higher up (on a dashboard wrapper, or at `:root`) to retheme a whole subtree.
+The chart paints every token as CSS, so the browser resolves it inside the Root's own cascade, with no computed-style read and no hidden probe element. A declaration scoped to one Root wins for that chart alone, and sibling charts on the page keep the theme value. Declare the same custom property higher up (on a dashboard wrapper, or at `:root`) to retheme a whole subtree.
 
 An overridden color leaves mantle's gates behind, so measure the value you set against the slots its neighbors hold. The `#d07c00` below shares a band edge with `chart-2`, and it clears 8 ΔE from that green under simulated protanopia and deuteranopia in both themes. TLS fixes slot 4 for a diamond identity, then overrides only its paint.
 

@@ -42,8 +42,8 @@ const renderChart = (extraRootProps: Record<string, unknown> = {}) =>
 describe("AreaChart.Root", () => {
 	test("renders a labelled chart image and interaction overlay", () => {
 		renderChart();
-		// The canvas is decorative pixels; the overlay is the single named element.
-		expect(document.querySelector("canvas")).toHaveAttribute("aria-hidden");
+		// The paint surface is decorative; the overlay is the single named element.
+		expect(document.querySelector('[data-slot="area-chart-svg"]')).toHaveAttribute("aria-hidden");
 		expect(screen.getByRole("application", { name: "Traffic by protocol" })).toBeInTheDocument();
 	});
 
@@ -124,7 +124,7 @@ describe("AreaChart data slots", () => {
 	test.each([
 		["area-chart", "DIV"],
 		["area-chart-plot", "DIV"],
-		["area-chart-canvas", "CANVAS"],
+		["area-chart-svg", "svg"],
 		["area-chart-crosshair", "DIV"],
 		["area-chart-hover-band", "DIV"],
 		["area-chart-markers", "DIV"],
@@ -477,8 +477,8 @@ describe("AreaChart decorative mode", () => {
 			"aria-hidden",
 			"true",
 		);
-		// Decorative preserves the canvas rendering; it only strips interaction + a11y.
-		expect(container.querySelector("canvas")).toBeInTheDocument();
+		// Decorative preserves the rendering; it only strips interaction + a11y.
+		expect(container.querySelector('[data-slot="area-chart-svg"]')).toBeInTheDocument();
 	});
 
 	test("is inert: no interaction overlay, tab stop, data table, or live region", () => {

@@ -5,6 +5,7 @@ import { CopyIcon } from "@phosphor-icons/react/Copy";
 import type { ComponentProps, CSSProperties, ReactNode, Ref } from "react";
 import {
 	createContext,
+	useCallback,
 	useContext,
 	useEffect,
 	useId,
@@ -33,6 +34,7 @@ import { describeChartParts, describeSeries, scanX } from "./describe.js";
 import type { HoverLayers } from "./engine.js";
 import { ChartEngine, POINT_SHAPE_CLIP_PATHS } from "./engine.js";
 import { observeResize, onPrint } from "./environment.js";
+import type { PaintBackendFactory } from "./paint-backend.js";
 import { formatNumber, formatXValue } from "./format.js";
 import { serializeChartMarkdown } from "./serialize.js";
 import { ChartStore } from "./store.js";
@@ -437,6 +439,8 @@ type InternalRootProps = ChartRootPrimitiveProps & {
 	kind: SeriesMark;
 	componentName: string;
 	slotName: string;
+	/** The surface the engine paints on. Pass a stable function: a new one rebuilds the engine. */
+	paintBackend: PaintBackendFactory;
 };
 
 /**
@@ -483,33 +487,21 @@ const AUTO_Y_DOMAIN: YDomain = ["auto", "auto"];
  */
 /**
  * The class strings of the engine-owned layers. They live here, not in
- * `createChartLayers`, so the Tailwind source scan of this module finds them
+ * `createHoverLayers`, so the Tailwind source scan of this module finds them
  * next to the Root's own classes.
  */
-const CANVAS_CLASS = "absolute inset-0 size-full";
 const CROSSHAIR_CLASS = "bg-neutral-500 pointer-events-none absolute left-0 top-0 w-px opacity-0";
 const HOVER_BAND_CLASS =
 	"bg-neutral-500/10 pointer-events-none absolute left-0 top-0 rounded-sm opacity-0";
 const MARKERS_CLASS = "pointer-events-none absolute inset-0 opacity-0";
 
-type ChartLayers = {
-	canvas: HTMLCanvasElement;
-	/** The three hover layers; `null` on a static chart, which never hovers. */
-	hover: HoverLayers | null;
-};
-
 /**
- * Build the canvas and, for an interactive chart, the three hover layers an
- * engine paints and positions.
- * The Root inserts them at activation and removes them with the engine, so
- * React never owns them: a dormant chart is the overlay and its description
- * alone.
+ * Build the three hover layers an interactive chart's engine positions. The
+ * Root inserts them at activation and removes them with the engine, so React
+ * never owns them: a dormant chart is the overlay and its description alone.
+ * The engine inserts its own paint surface.
  */
-const createChartLayers = (
-	document: Document,
-	slotName: string,
-	options: { hover: boolean },
-): ChartLayers => {
+const createHoverLayers = (document: Document, slotName: string): HoverLayers => {
 	const layer = (slot: string, className: string): HTMLDivElement => {
 		const element = document.createElement("div");
 		element.setAttribute("data-slot", `${slotName}-${slot}`);
@@ -517,19 +509,10 @@ const createChartLayers = (
 		element.className = className;
 		return element;
 	};
-	const canvas = document.createElement("canvas");
-	canvas.setAttribute("data-slot", `${slotName}-canvas`);
-	canvas.setAttribute("aria-hidden", "true");
-	canvas.className = CANVAS_CLASS;
 	return {
-		canvas,
-		hover: options.hover
-			? {
-					crosshair: layer("crosshair", CROSSHAIR_CLASS),
-					band: layer("hover-band", HOVER_BAND_CLASS),
-					markers: layer("markers", MARKERS_CLASS),
-				}
-			: null,
+		crosshair: layer("crosshair", CROSSHAIR_CLASS),
+		band: layer("hover-band", HOVER_BAND_CLASS),
+		markers: layer("markers", MARKERS_CLASS),
 	};
 };
 
@@ -552,6 +535,7 @@ const ChartRootPrimitive = ({
 	kind,
 	componentName,
 	slotName,
+	paintBackend,
 	data,
 	xKey,
 	xScale,
@@ -597,12 +581,12 @@ const ChartRootPrimitive = ({
 	// would hold a 30-row table in every cell.
 	const [engaged, setEngaged] = useState(false);
 	// A dormant Root renders the shell alone: the plot, the overlay, and the
-	// description. The canvas, the hover layers, and the engine arrive through
-	// `activate`, outside React, once the chart nears the viewport, takes
-	// focus, or prints. The tooltip surface mounts on the first hover.
+	// description. The paint surface, the hover layers, and the engine arrive
+	// through `activate`, outside React, once the chart nears the viewport,
+	// takes focus, or prints. The tooltip surface mounts on the first hover.
 	const engineRef = useRef<ChartEngine | null>(null);
-	const layersRef = useRef<ChartLayers | null>(null);
-	/** Whether the engine effect's cleanup tore down a live engine, so its next run paints at once. */
+	const layersRef = useRef<HoverLayers | null>(null);
+	/** Whether the engine effect's next run activates at once: its cleanup tore down a live engine. */
 	const reactivateRef = useRef(false);
 	const activateRef = useRef<((rect: DOMRectReadOnly | null) => void) | null>(null);
 	// The observer's latest reports, kept for an engine created later, and
@@ -634,8 +618,25 @@ const ChartRootPrimitive = ({
 	const composedRootRef = useComposedRefs(rootRef, ref);
 	const plotRef = useRef<HTMLDivElement | null>(null);
 	const tooltipRef = useRef<HTMLDivElement | null>(null);
+	// Inside a List, the list owns the one tooltip surface and the one live
+	// region its charts share.
+	const list = useContext(ChartListContext);
+	const attachTooltip = useCallback((element: HTMLDivElement | null) => {
+		tooltipRef.current = element;
+		engineRef.current?.attachTooltip(element);
+	}, []);
 
 	const descriptionId = useId();
+	// Inside a List, only the chart that holds the shared tooltip renders it, in
+	// its own subtree, so the consumer's render props keep this chart's context.
+	const holdsListTooltip = useSyncExternalStore(
+		list?.subscribe ?? subscribeToNothing,
+		() => list?.tooltipHolder() === descriptionId,
+		() => false,
+	);
+	// Tells the List effect below that a reader interacts with this chart (`true`)
+	// or left it (`false`).
+	const listInteractionRef = useRef<((interacting: boolean) => void) | null>(null);
 	const resolvedXScale: XScaleKind = kind === "bar" ? "band" : (xScale ?? detectXScale(data, xKey));
 	// Scatter axes are continuous by contract — a string x would silently render
 	// evenly-spaced categorical positions misaligned against the value axis.
@@ -707,13 +708,11 @@ const ChartRootPrimitive = ({
 			// Focus, print, and a press activate ahead of the queue; the stale
 			// entry would spend a slice on a no-op.
 			cancelActivation(plot);
-			const layers = createChartLayers(plot.ownerDocument, slotName, { hover: interactive });
-			// The canvas goes under the overlay; the hover layers go above it and
-			// let pointer events through. A static chart has no hover, so its
-			// plot holds the canvas alone.
-			plot.prepend(layers.canvas);
-			if (layers.hover != null) {
-				plot.append(layers.hover.crosshair, layers.hover.band, layers.hover.markers);
+			// The hover layers go above the overlay and let pointer events through;
+			// the engine puts its surface under it. A static chart has no hover.
+			const layers = interactive ? createHoverLayers(plot.ownerDocument, slotName) : null;
+			if (layers != null) {
+				plot.append(layers.crosshair, layers.band, layers.markers);
 			}
 			const size =
 				rect != null && rect.width > 0 && rect.height > 0
@@ -722,11 +721,12 @@ const ChartRootPrimitive = ({
 			const engine = new ChartEngine({
 				kind,
 				store,
+				backend: paintBackend,
+				slotName,
 				elements: {
 					root,
 					plot,
-					canvas: layers.canvas,
-					hover: layers.hover,
+					hover: layers,
 					tooltip: tooltipRef.current,
 				},
 				// Why false: the reveal must hold until the `visible` band reports
@@ -763,13 +763,12 @@ const ChartRootPrimitive = ({
 			layersRef.current = null;
 			engine?.destroy();
 			if (layers != null) {
-				layers.canvas.remove();
-				layers.hover?.crosshair.remove();
-				layers.hover?.band.remove();
-				layers.hover?.markers.remove();
+				layers.crosshair.remove();
+				layers.band.remove();
+				layers.markers.remove();
 			}
 		};
-	}, [kind, store, slotName, interactive]);
+	}, [kind, store, slotName, interactive, paintBackend]);
 
 	// Why a layout effect: observing before the first frame means the browser
 	// computes the entries at the end of that frame, so a chart that starts in
@@ -822,7 +821,9 @@ const ChartRootPrimitive = ({
 				activateRef.current?.(null);
 				engineRef.current?.paintForPrint();
 			},
-			after: () => {},
+			after: () => {
+				engineRef.current?.afterPrint();
+			},
 		});
 	}, []);
 
@@ -916,6 +917,33 @@ const ChartRootPrimitive = ({
 		write();
 		return store.subscribe(write);
 	}, [store, decorative]);
+
+	// A chart inside a List takes the shared tooltip when a reader points at it
+	// or steps through it and its hover lands. Why not on each store change: a
+	// data update publishes the hover again, and it must not pull the tooltip
+	// away from the chart under the pointer.
+	useEffect(() => {
+		if (list == null || !interactive) {
+			return;
+		}
+		let interacting = false;
+		const sync = () => {
+			if (interacting && store.getSnapshot().hover != null) {
+				interacting = false;
+				list.showTooltip(descriptionId);
+			}
+		};
+		listInteractionRef.current = (next) => {
+			interacting = next;
+			sync();
+		};
+		const stop = store.subscribe(sync);
+		return () => {
+			stop();
+			listInteractionRef.current = null;
+			list.releaseTooltip(descriptionId);
+		};
+	}, [list, interactive, descriptionId, store]);
 
 	// A dormant Root holds no engine, so it throws the key invariants itself:
 	// a typo must fail in the mount commit, not in the observer task that
@@ -1071,12 +1099,14 @@ const ChartRootPrimitive = ({
 									event.nativeEvent.offsetX,
 									event.nativeEvent.offsetY,
 								);
+								listInteractionRef.current?.(true);
 							}}
 							onPointerMove={(event) => {
 								engineRef.current?.handlePointerMove(
 									event.nativeEvent.offsetX,
 									event.nativeEvent.offsetY,
 								);
+								listInteractionRef.current?.(true);
 							}}
 							onPointerUp={(event) => {
 								engineRef.current?.handlePointerUp(
@@ -1086,18 +1116,22 @@ const ChartRootPrimitive = ({
 							}}
 							onPointerLeave={() => {
 								engineRef.current?.handlePointerLeave();
+								listInteractionRef.current?.(false);
 							}}
 							onPointerCancel={() => {
 								// The browser reclaimed the pointer (e.g. a touch pan won) —
 								// reset drag/hover state deterministically.
 								engineRef.current?.handlePointerLeave();
+								listInteractionRef.current?.(false);
 							}}
 							onBlur={() => {
 								engineRef.current?.handlePointerLeave();
+								listInteractionRef.current?.(false);
 							}}
 							onKeyDown={(event) => {
 								if (engineRef.current?.handleKeyDown(event.key)) {
 									event.preventDefault();
+									listInteractionRef.current?.(true);
 								}
 							}}
 						/>
@@ -1118,14 +1152,11 @@ const ChartRootPrimitive = ({
 					    tooltip surface is React-rendered for the consumer's render prop,
 					    so it mounts on the first hover and stays while the chart is
 					    interactive. */}
-					{tooltipWanted && interactive && (
+					{tooltipWanted && interactive && (list == null || holdsListTooltip) && (
 						<ChartTooltipSurface
 							slotName={slotName}
 							store={store}
-							tooltipRef={(element) => {
-								tooltipRef.current = element;
-								engineRef.current?.attachTooltip(element);
-							}}
+							tooltipRef={attachTooltip}
 							xHasTimeOfDay={xHasTimeOfDay}
 						/>
 					)}
@@ -1134,7 +1165,17 @@ const ChartRootPrimitive = ({
 				{/* Only an interactive chart announces or tabulates. The live region
 				    mounts with the Root, because a region that appears right before
 				    its first message is not announced. */}
-				{interactive && <ChartAnnouncer store={store} xHasTimeOfDay={xHasTimeOfDay} />}
+				{interactive && list == null && (
+					<ChartAnnouncer store={store} xHasTimeOfDay={xHasTimeOfDay} />
+				)}
+				{interactive && list != null && (
+					<ChartListAnnouncer
+						id={descriptionId}
+						list={list}
+						store={store}
+						xHasTimeOfDay={xHasTimeOfDay}
+					/>
+				)}
 				{/* Why last: the table mounts as an append, which a translation engine cannot break. */}
 				{interactive && engaged && (
 					<ChartDataTable
@@ -1149,6 +1190,94 @@ const ChartRootPrimitive = ({
 					/>
 				)}
 			</ChartContext.Provider>
+		</div>
+	);
+};
+
+// ---- list -------------------------------------------------------------------
+
+type ChartListContextValue = {
+	/** Listen for a change of the chart that holds the shared tooltip. */
+	subscribe: (listener: () => void) => () => void;
+	/** The id of the chart that renders the shared tooltip, or `null`. */
+	tooltipHolder: () => string | null;
+	/** Give the shared tooltip to this chart. */
+	showTooltip: (id: string) => void;
+	/** Take the shared tooltip from a chart that unmounts. */
+	releaseTooltip: (id: string) => void;
+	/** Write one chart's announcement. An empty one clears only that chart's text. */
+	announce: (id: string, text: string) => void;
+};
+
+const ChartListContext = createContext<ChartListContextValue | null>(null);
+
+type ChartListPrimitiveProps = ComponentProps<"div"> & WithDataSlot;
+
+/**
+ * The List implementation: the charts inside it share one tooltip surface and
+ * one live region, so a page of 100 charts mounts one of each instead of one
+ * per chart a reader has pointed at.
+ */
+const ChartListPrimitive = ({
+	slotName,
+	"data-slot": dataSlot,
+	children,
+	...props
+}: ChartListPrimitiveProps & { slotName: string }) => {
+	const [announcement, setAnnouncement] = useState({ id: "", text: "" });
+	const [context] = useState<ChartListContextValue>(() => {
+		// Why not React state: a change of holder must re-render only the two
+		// charts it moves between, not the List and each chart in it.
+		let holder: string | null = null;
+		const listeners = new Set<() => void>();
+		const setHolder = (next: string | null) => {
+			if (next === holder) {
+				return;
+			}
+			holder = next;
+			for (const listener of listeners) {
+				listener();
+			}
+		};
+		return {
+			subscribe: (listener) => {
+				listeners.add(listener);
+				return () => {
+					listeners.delete(listener);
+				};
+			},
+			tooltipHolder: () => holder,
+			showTooltip: setHolder,
+			releaseTooltip: (id) => {
+				if (holder === id) {
+					setHolder(null);
+				}
+			},
+			announce: (id, text) => {
+				setAnnouncement((current) => {
+					if (text === "" && current.id !== id) {
+						return current;
+					}
+					return current.id === id && current.text === text ? current : { id, text };
+				});
+			},
+		};
+	});
+	return (
+		// Why no asChild: the List renders its live region beside the charts, and
+		// a list element such as `ul` cannot hold that region as a child.
+		<div data-slot={joinDataSlot(dataSlot, slotName)} {...props}>
+			{/* Why a wrapper: the live region is always beside the children, so they
+			    are never its parent's lone child. `contents` keeps a grid or flex
+			    layout on the List reaching the cards. */}
+			<ChartListContext.Provider value={context}>
+				<div data-slot={`${slotName}-items`} className="contents">
+					{children}
+				</div>
+			</ChartListContext.Provider>
+			<span role="status" aria-live="polite" className="sr-only">
+				{announcement.text}
+			</span>
 		</div>
 	);
 };
@@ -1954,20 +2083,9 @@ const ChartAnnouncer = ({
 		if (hover == null) {
 			return;
 		}
-		const values = hover.points
-			.map(
-				(point) => `${point.label}: ${point.value == null ? "no data" : formatNumber(point.value)}`,
-			)
-			.join(", ");
-		const zPart =
-			hover.zValue === undefined
-				? ""
-				: `, z: ${hover.zValue == null ? "no data" : formatNumber(hover.zValue)}`;
 		const timer = setTimeout(() => {
-			setAnnouncement(
-				`${formatXValue(hover.xValue, { datasetHasTimeOfDay: xHasTimeOfDay })}. ${values}${zPart}`,
-			);
-		}, 120);
+			setAnnouncement(announcementFor(hover, xHasTimeOfDay));
+		}, ANNOUNCE_DELAY_MS);
 		return () => clearTimeout(timer);
 	}, [hover, xHasTimeOfDay]);
 	return (
@@ -1975,6 +2093,56 @@ const ChartAnnouncer = ({
 			{announcement}
 		</span>
 	);
+};
+
+/** The wait before a keyboard step announces, so fast arrowing does not flood the reader. */
+const ANNOUNCE_DELAY_MS = 120;
+
+/** What a keyboard step announces: the x value, then each series' value. */
+const announcementFor = (hover: HoverSnapshot, xHasTimeOfDay: boolean): string => {
+	const values = hover.points
+		.map(
+			(point) => `${point.label}: ${point.value == null ? "no data" : formatNumber(point.value)}`,
+		)
+		.join(", ");
+	const zPart =
+		hover.zValue === undefined
+			? ""
+			: `, z: ${hover.zValue == null ? "no data" : formatNumber(hover.zValue)}`;
+	return `${formatXValue(hover.xValue, { datasetHasTimeOfDay: xHasTimeOfDay })}. ${values}${zPart}`;
+};
+
+/**
+ * The announcer of a chart inside a List: it writes to the list's one live
+ * region instead of rendering its own. It renders nothing.
+ */
+const ChartListAnnouncer = ({
+	id,
+	list,
+	store,
+	xHasTimeOfDay,
+}: {
+	id: string;
+	list: ChartListContextValue;
+	store: ChartStore;
+	xHasTimeOfDay: boolean;
+}) => {
+	const hover = useStoreKeyboardHover(store);
+	// Why: a chart that unmounts takes its last announcement out of the shared region.
+	useEffect(() => () => list.announce(id, ""), [id, list]);
+	useEffect(() => {
+		// Why clear first: AT does not announce text that did not change, so a
+		// step back to the same datum must pass through an empty region.
+		list.announce(id, "");
+		if (hover == null) {
+			return;
+		}
+		const timer = setTimeout(() => {
+			list.announce(id, announcementFor(hover, xHasTimeOfDay));
+		}, ANNOUNCE_DELAY_MS);
+		return () => clearTimeout(timer);
+	}, [hover, id, list, xHasTimeOfDay]);
+	return null;
 };
 
 /**
@@ -2178,6 +2346,7 @@ const ChartDataTable = ({
 export type {
 	//,
 	ChartAccessibilityProps,
+	ChartListPrimitiveProps,
 	ChartMode,
 	ChartRootBaseProps,
 	ChartRootPrimitiveProps,
@@ -2195,6 +2364,7 @@ export {
 	CHART_TABLE_ROW_LIMIT,
 	ChartCopyButtonPrimitive,
 	ChartLegendPrimitive,
+	ChartListPrimitive,
 	ChartRootPrimitive,
 	useGridPrimitive,
 	useReferenceLinePrimitive,

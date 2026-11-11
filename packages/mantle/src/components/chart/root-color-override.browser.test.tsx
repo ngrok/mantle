@@ -4,6 +4,7 @@ import { render, waitFor } from "@testing-library/react";
 import { findChartCanvas } from "../../test-utils/find-chart-canvas.js";
 import { afterAll, beforeAll, expect, test, vi } from "vitest";
 import { BarChart } from "../bar-chart/index.js";
+import { CanvasBarChartRoot } from "../../test-utils/canvas-chart-roots.js";
 
 /**
  * Real-browser paint test of a color override that changes after the first
@@ -116,7 +117,7 @@ const countPixels = (
 test("a new className on the Root repaints the series from its new token value", async () => {
 	const chart = (className: string) => (
 		<div style={{ width: 600, height: 300 }}>
-			<BarChart.Root
+			<CanvasBarChartRoot
 				data={data}
 				xKey="cat"
 				animate={false}
@@ -124,7 +125,7 @@ test("a new className on the Root repaints the series from its new token value",
 				className={className}
 			>
 				<BarChart.Bar dataKey="v" label="Value" />
-			</BarChart.Root>
+			</CanvasBarChartRoot>
 		</div>
 	);
 	const { container, rerender } = render(chart("token-blue"));
@@ -142,7 +143,7 @@ test("a new className on the Root repaints the series from its new token value",
 test("a new inline color on the Root repaints a currentColor series", async () => {
 	const chart = (color: string) => (
 		<div style={{ width: 600, height: 300 }}>
-			<BarChart.Root
+			<CanvasBarChartRoot
 				data={data}
 				xKey="cat"
 				animate={false}
@@ -150,7 +151,7 @@ test("a new inline color on the Root repaints a currentColor series", async () =
 				style={{ color }}
 			>
 				<BarChart.Bar dataKey="v" label="Value" color="currentColor" />
-			</BarChart.Root>
+			</CanvasBarChartRoot>
 		</div>
 	);
 	const { container, rerender } = render(chart("#3e6ff4"));
@@ -171,7 +172,7 @@ test("a re-render with an equal inline style resolves the colors once", async ()
 	const reads = vi.spyOn(window, "getComputedStyle");
 	const chart = () => (
 		<div style={{ width: 600, height: 300 }}>
-			<BarChart.Root
+			<CanvasBarChartRoot
 				data={data}
 				xKey="cat"
 				animate={false}
@@ -179,7 +180,7 @@ test("a re-render with an equal inline style resolves the colors once", async ()
 				style={{ color: "#3e6ff4" }}
 			>
 				<BarChart.Bar dataKey="v" label="Value" color="currentColor" />
-			</BarChart.Root>
+			</CanvasBarChartRoot>
 		</div>
 	);
 	const { container, rerender } = render(chart());

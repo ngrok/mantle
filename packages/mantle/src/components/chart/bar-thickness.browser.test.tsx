@@ -1,6 +1,7 @@
 "use client";
 
 import { render, waitFor } from "@testing-library/react";
+import { CanvasBarChartRoot } from "../../test-utils/canvas-chart-roots.js";
 import { findChartCanvas } from "../../test-utils/find-chart-canvas.js";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { BarChart } from "../bar-chart/index.js";
@@ -122,9 +123,9 @@ const seriesOf = (count: number) =>
 
 const chart = (rows: ReturnType<typeof seriesOf>) => (
 	<div style={{ width: 600, height: 300 }}>
-		<BarChart.Root data={rows} xKey="cat" animate={false} aria-label="Values by day">
+		<CanvasBarChartRoot data={rows} xKey="cat" animate={false} aria-label="Values by day">
 			<BarChart.Bar dataKey="v" label="Value" color="chart-1" />
-		</BarChart.Root>
+		</CanvasBarChartRoot>
 	</div>
 );
 

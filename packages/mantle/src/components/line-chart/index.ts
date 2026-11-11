@@ -14,6 +14,7 @@ export type {
 	LineChartCopyButtonProps,
 	LineChartGridProps,
 	LineChartLegendProps,
+	LineChartListProps,
 	LineChartLineProps,
 	LineChartReferenceLineProps,
 	LineChartRootProps,

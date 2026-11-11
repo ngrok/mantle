@@ -6,6 +6,7 @@ import type { MockInstance } from "vitest";
 import { BarChart } from "../bar-chart/index.js";
 import { LineChart } from "../line-chart/index.js";
 import type { YTickContext } from "./types.js";
+import { CanvasBarChartRoot, CanvasLineChartRoot } from "../../test-utils/canvas-chart-roots.js";
 
 /**
  * Real-browser regression tests for MNTL-97: a short plot must never paint more
@@ -92,11 +93,11 @@ describe("the y axis fits its labels to the plot height (MNTL-97)", () => {
 	test("a 64px chart paints two labels, not five", async () => {
 		render(
 			<div style={{ width: 600, height: 64 }}>
-				<BarChart.Root data={data} xKey="hour" animate={false} aria-label="5XX errors">
+				<CanvasBarChartRoot data={data} xKey="hour" animate={false} aria-label="5XX errors">
 					<BarChart.XAxis />
 					<BarChart.YAxis tickCount={3} />
 					<BarChart.Bar dataKey="count" label="Errors" color="chart-1" />
-				</BarChart.Root>
+				</CanvasBarChartRoot>
 			</div>,
 		);
 		await waitFor(() => {
@@ -108,11 +109,11 @@ describe("the y axis fits its labels to the plot height (MNTL-97)", () => {
 	test("a tall chart keeps tickCount as a maximum", async () => {
 		render(
 			<div style={{ width: 600, height: 400 }}>
-				<BarChart.Root data={data} xKey="hour" animate={false} aria-label="5XX errors">
+				<CanvasBarChartRoot data={data} xKey="hour" animate={false} aria-label="5XX errors">
 					<BarChart.XAxis />
 					<BarChart.YAxis tickCount={3} />
 					<BarChart.Bar dataKey="count" label="Errors" color="chart-1" />
-				</BarChart.Root>
+				</CanvasBarChartRoot>
 			</div>,
 		);
 		await waitFor(() => {
@@ -124,7 +125,7 @@ describe("the y axis fits its labels to the plot height (MNTL-97)", () => {
 	test("a single tick keeps the precision of the domain", async () => {
 		render(
 			<div style={{ width: 600, height: 64 }}>
-				<LineChart.Root
+				<CanvasLineChartRoot
 					data={[
 						{ day: 1, ratio: 1.0002 },
 						{ day: 2, ratio: 1.0002 },
@@ -136,7 +137,7 @@ describe("the y axis fits its labels to the plot height (MNTL-97)", () => {
 				>
 					<LineChart.YAxis />
 					<LineChart.Line dataKey="ratio" label="Ratio" color="chart-1" />
-				</LineChart.Root>
+				</CanvasLineChartRoot>
 			</div>,
 		);
 		await waitFor(() => {
@@ -151,7 +152,7 @@ describe("the y axis fits its labels to the plot height (MNTL-97)", () => {
 		);
 		render(
 			<div style={{ width: 600, height: 400 }}>
-				<BarChart.Root
+				<CanvasBarChartRoot
 					data={[
 						{ day: "Mon", cost: 0.0001 },
 						{ day: "Tue", cost: 0 },
@@ -162,7 +163,7 @@ describe("the y axis fits its labels to the plot height (MNTL-97)", () => {
 				>
 					<BarChart.YAxis tickFormat={tickFormat} />
 					<BarChart.Bar dataKey="cost" label="Cost" color="chart-1" />
-				</BarChart.Root>
+				</CanvasBarChartRoot>
 			</div>,
 		);
 		await waitFor(() => {

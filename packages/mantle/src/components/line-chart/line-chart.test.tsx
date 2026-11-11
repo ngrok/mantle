@@ -35,8 +35,8 @@ const renderChart = (extraRootProps: Record<string, unknown> = {}) =>
 describe("LineChart.Root", () => {
 	test("renders a labelled chart image and interaction overlay", () => {
 		renderChart();
-		// The canvas is decorative pixels; the overlay is the single named element.
-		expect(document.querySelector("canvas")).toHaveAttribute("aria-hidden");
+		// The paint surface is decorative; the overlay is the single named element.
+		expect(document.querySelector('[data-slot="line-chart-svg"]')).toHaveAttribute("aria-hidden");
 		expect(screen.getByRole("application", { name: "Request latency" })).toBeInTheDocument();
 	});
 
@@ -357,7 +357,7 @@ describe("LineChart data slots", () => {
 	test.each([
 		["line-chart", "DIV"],
 		["line-chart-plot", "DIV"],
-		["line-chart-canvas", "CANVAS"],
+		["line-chart-svg", "svg"],
 		["line-chart-crosshair", "DIV"],
 		["line-chart-hover-band", "DIV"],
 		["line-chart-markers", "DIV"],
@@ -980,8 +980,8 @@ describe("LineChart decorative mode", () => {
 			"aria-hidden",
 			"true",
 		);
-		// Decorative preserves the canvas rendering; it only strips interaction + a11y.
-		expect(container.querySelector("canvas")).toBeInTheDocument();
+		// Decorative preserves the rendering; it only strips interaction + a11y.
+		expect(container.querySelector('[data-slot="line-chart-svg"]')).toBeInTheDocument();
 	});
 
 	test("is inert: no interaction overlay, description, tab stop, data table, or live region", () => {
