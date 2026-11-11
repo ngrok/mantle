@@ -487,8 +487,8 @@ const List = (props: LineChartListProps) => (
  * Two ways to change a series color, both public API. The `color` prop on
  * `LineChart.Line` sets one series and takes any CSS color. To restyle a slot itself,
  * redeclare its token on `Root` —
- * `className="[--color-chart-1:var(--color-brand)]"`. The engine resolves every
- * token from `Root`'s computed style, so a declaration scoped there wins for
+ * `className="[--color-chart-1:var(--color-brand)]"`. Every token resolves in
+ * `Root`'s own cascade, so a declaration scoped there wins for
  * that chart and leaves every other chart on the page alone.
  *
  * @useWhen Show how one or more values trend across an ordered x axis, such as time, including
@@ -513,6 +513,12 @@ const List = (props: LineChartListProps) => (
  * ├── LineChart.Tooltip
  * ├── LineChart.Legend
  * └── LineChart.CopyButton
+ * ```
+ *
+ * A List groups Roots:
+ * ```
+ * LineChart.List
+ * └── LineChart.Root (one per chart)
  * ```
  *
  * @example

@@ -537,6 +537,14 @@ export const migrations = [
 			"mantle.css holds both themes, so mantle-dark.css, MantleStyleSheets, and mantleStyleSheetUrls are gone.",
 		route: "/migrations/0012-single-stylesheet-migration",
 	},
+	{
+		number: 13,
+		slug: "chart-svg-renderer-migration",
+		title: "Chart SVG Renderer",
+		description:
+			'Bar, Line, and Area charts paint an svg instead of a canvas. Update selectors and tests that read the canvas, or set renderer="canvas".',
+		route: "/migrations/0013-chart-svg-renderer-migration",
+	},
 ] as const satisfies readonly Migration[];
 
 /** Migration guides, newest first: the order the index page and the sidebar show. */

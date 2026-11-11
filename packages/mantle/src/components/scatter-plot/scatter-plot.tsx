@@ -523,6 +523,12 @@ const List = (props: ScatterPlotListProps) => (
  * └── ScatterPlot.CopyButton
  * ```
  *
+ * A List groups Roots:
+ * ```
+ * ScatterPlot.List
+ * └── ScatterPlot.Root (one per chart)
+ * ```
+ *
  * @example
  * ```tsx
  * const data = [

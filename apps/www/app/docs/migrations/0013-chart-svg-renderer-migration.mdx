@@ -1,0 +1,87 @@
+---
+title: Chart SVG Renderer Migration
+description: Bar, Line, and Area charts paint an svg instead of a canvas. Update selectors and tests that read the canvas, or set renderer="canvas".
+introducedIn: "0.94.0"
+---
+
+# Mantle Chart SVG Renderer Migration Guide
+
+`BarChart`, `LineChart`, and `AreaChart` paint into an `<svg>` by default. The `<canvas>` with `data-slot="bar-chart-canvas"` (`line-chart-canvas`, `area-chart-canvas`) is gone from the default chart, and an `<svg>` with `data-slot="bar-chart-svg"` (`line-chart-svg`, `area-chart-svg`) takes its place. The marks, the axes, the hover layers, the tooltip, the description, and the data table are the same. A new `renderer` prop keeps the canvas: `renderer="canvas"` paints exactly as before. `ScatterPlot` did not change.
+
+**TL;DR:** Find every selector and every test that reads a chart's `<canvas>` (`canvas`, `[data-slot="bar-chart-canvas"]`, `getContext("2d")`, `getImageData`). Point a selector at `[data-slot="bar-chart-svg"]` instead. A test that reads canvas pixels either reads the SVG's paths, or sets `renderer="canvas"` on the chart it tests. Change nothing else.
+
+## Codemod
+
+Codemod: manual: the change breaks CSS selectors and test queries, not JSX, and a rule cannot tell which chart a test reads pixels from.
+
+---
+
+## You are an agent migrating a codebase. Do this:
+
+1. Find each CSS selector, `querySelector`, and testing-library query that names a chart canvas: `[data-slot="bar-chart-canvas"]`, `[data-slot="line-chart-canvas"]`, `[data-slot="area-chart-canvas"]`, `[data-slot$="-chart-canvas"]`, or a bare `canvas` inside a `BarChart.Root`, `LineChart.Root`, or `AreaChart.Root`. Replace `-chart-canvas` with `-chart-svg`, and a bare `canvas` with `svg[data-slot$="-chart-svg"]`. Leave a `scatter-plot-canvas` selector alone.
+2. Find each test that waits for a chart to paint through its canvas, such as `canvas.width > 0`. Wait for a path in the SVG instead: `container.querySelector('[data-slot="bar-chart-svg"] path[d]')`.
+3. Find each test that reads a chart's pixels through `getContext("2d")` or `getImageData`. When the test checks what the chart draws, set `renderer="canvas"` on that chart's Root, and keep the test as it is. When the test checks only that a series appears, read the SVG: each series paints one `<path>`, and its `style.fill` or `style.stroke` is the series color, such as `var(--color-chart-1)`.
+4. Keep `renderer="canvas"` for a chart that redraws thousands of marks on every frame, such as a bar chart with thousands of bars in a live stream. For every other chart, keep the default.
+5. After editing, run the project's formatter, linter, type checker, and tests.
+
+> **Why SVG?** On a list of 100 cards with one small chart each, the SVG charts used less main-thread time than the canvas charts on mount, hover, resize, theme switch, and a data change, and they hold no bitmap memory. An SVG paints mantle's color tokens as CSS, so a theme switch repaints no chart. Both renderers draw the same geometry: a browser test paints each scene through both and compares the pixels.
+
+---
+
+## Before → after
+
+### A selector on the chart surface
+
+```css
+/* BEFORE */
+.agent-card [data-slot="bar-chart-canvas"] {
+	opacity: 0.8;
+}
+
+/* AFTER */
+.agent-card [data-slot="bar-chart-svg"] {
+	opacity: 0.8;
+}
+```
+
+### A test that waits for the paint
+
+```tsx
+// BEFORE
+const canvas = await waitFor(() => {
+	const element = container.querySelector("canvas");
+	expect(element).not.toBeNull();
+	return element;
+});
+
+// AFTER
+await waitFor(() => {
+	expect(container.querySelector('[data-slot="bar-chart-svg"] path[d]')).not.toBeNull();
+});
+```
+
+### A test that reads canvas pixels
+
+```tsx
+// BEFORE
+<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
+	<BarChart.Bar dataKey="desktop" label="Desktop" />
+</BarChart.Root>
+
+// AFTER
+<BarChart.Root data={data} xKey="month" aria-label="Visitors by month" renderer="canvas">
+	<BarChart.Bar dataKey="desktop" label="Desktop" />
+</BarChart.Root>
+```
+
+---
+
+## Edge cases & gotchas
+
+- `renderer="canvas"` loads the canvas code in its own chunk the first time a chart asks for it, so that chart paints a moment after an SVG chart would. A test with `renderer="canvas"` waits for the `<canvas>` to appear instead of reading it right after `render()`.
+- happy-dom lays out nothing, so no chart paints its marks in a happy-dom test with either renderer. Assert the slots, roles, and text a happy-dom test can see, and read paint in a browser test.
+- A consumer stylesheet that set `color` or a `--color-chart-N` override on the Root still works: the SVG reads both from the Root's cascade.
+
+## How to verify
+
+Run the project's tests. Search the code for `-chart-canvas` and for `getContext("2d")` near a chart. Each match left is a `scatter-plot-canvas` selector or a chart with `renderer="canvas"`.

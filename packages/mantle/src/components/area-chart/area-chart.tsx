@@ -476,7 +476,7 @@ const List = (props: AreaChartListProps) => (
 );
 
 /**
- * A area chart for showing how values — and, when stacked, a
+ * An area chart for showing how values — and, when stacked, a
  * total and its parts — change over a continuous x axis. Each area fills with
  * a 10% wash of the series color plus a 2px band-edge stroke; the Root-level
  * `stacked` prop stacks the series in registration order from the baseline.
@@ -499,8 +499,8 @@ const List = (props: AreaChartListProps) => (
  * Two ways to change a series color, both public API. The `color` prop on
  * `AreaChart.Area` sets one series and takes any CSS color. To restyle a slot itself,
  * redeclare its token on `Root` —
- * `className="[--color-chart-1:var(--color-brand)]"`. The engine resolves every
- * token from `Root`'s computed style, so a declaration scoped there wins for
+ * `className="[--color-chart-1:var(--color-brand)]"`. Every token resolves in
+ * `Root`'s own cascade, so a declaration scoped there wins for
  * that chart and leaves every other chart on the page alone.
  *
  * @useWhen Show how a volume, or a total and its parts, changes across an ordered x axis, such as
@@ -524,6 +524,12 @@ const List = (props: AreaChartListProps) => (
  * ├── AreaChart.Tooltip
  * ├── AreaChart.Legend
  * └── AreaChart.CopyButton
+ * ```
+ *
+ * A List groups Roots:
+ * ```
+ * AreaChart.List
+ * └── AreaChart.Root (one per chart)
  * ```
  *
  * @example

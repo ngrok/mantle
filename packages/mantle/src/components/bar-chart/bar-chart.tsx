@@ -491,8 +491,8 @@ const List = (props: BarChartListProps) => (
  * Two ways to change a series color, both public API. The `color` prop on
  * `BarChart.Bar` sets one series and takes any CSS color. To restyle a slot
  * itself, redeclare its token on `Root` —
- * `className="[--color-chart-1:var(--color-brand)]"`. The engine resolves every
- * token from `Root`'s computed style, so a declaration scoped there wins for
+ * `className="[--color-chart-1:var(--color-brand)]"`. Every token resolves in
+ * `Root`'s own cascade, so a declaration scoped there wins for
  * that chart and leaves every other chart on the page alone.
  *
  * @useWhen Compare values across categories, with grouped or stacked bars.
@@ -515,6 +515,12 @@ const List = (props: BarChartListProps) => (
  * ├── BarChart.Tooltip
  * ├── BarChart.Legend
  * └── BarChart.CopyButton
+ * ```
+ *
+ * A List groups Roots:
+ * ```
+ * BarChart.List
+ * └── BarChart.Root (one per chart)
  * ```
  *
  * @example

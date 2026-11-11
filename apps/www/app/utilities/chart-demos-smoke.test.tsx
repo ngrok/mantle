@@ -9,7 +9,8 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
  * `pnpm build` compiles the pages and the surface-drift test reads their
  * frontmatter, but neither renders a demo — so a page can ship an example that
  * type-checks and then throws on a reader's first paint. This mounts each one and
- * checks the engine reached a canvas.
+ * checks the engine reached its paint surface: an SVG, or a canvas for a
+ * scatter plot or `renderer="canvas"`.
  *
  * Both lists are derived rather than written out, so a new chart page or a new
  * example is covered the moment it lands. The glob mirrors `docs.ts`, which is
@@ -29,7 +30,7 @@ const demosOf = (page: Record<string, unknown>): Array<[string, () => ReactNode]
 	);
 
 /**
- * Why a stub: a chart builds its canvas when an `IntersectionObserver` reports
+ * Why a stub: a chart builds its paint surface when an `IntersectionObserver` reports
  * it near the viewport, and happy-dom's observer never reports. This one
  * reports every observed element in view inside `observe()`, so a demo
  * activates at mount the way a visible chart does in a browser.
@@ -85,8 +86,10 @@ describe.each(Object.entries(chartPages))("%s", (_path, page) => {
 		expect(demos.length).toBeGreaterThan(0);
 	});
 
-	test.each(demos)("%s mounts and paints a canvas", (_name, Demo) => {
+	test.each(demos)("%s mounts and builds its paint surface", (_name, Demo) => {
 		const { container } = render(<Demo />);
-		expect(container.querySelector("canvas")).not.toBeNull();
+		expect(
+			container.querySelector('[data-slot$="-chart-svg"], [data-slot$="-canvas"]'),
+		).not.toBeNull();
 	});
 });
