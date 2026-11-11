@@ -46,7 +46,7 @@ export const MCP_INSTRUCTIONS = [
 	"When the user has no repo to run the code in, call `preview` and give them the link.",
 	"When mantle has no part for a need and you build a workaround, call `report_gap` once for that need.",
 	"Pass `intent` and `workspace` on each call, so the mantle team learns what agents build and where.",
-	"When you know the Linear issue of the work, such as FEP-1867, pass it as `ticket` on each call, and always on `report_gap`.",
+	"When you know the Linear issue of the work, such as FEP-1867 or MNTL-59, pass it as `ticket` on each call, and always on `report_gap`.",
 ].join("\n");
 
 /** What the server reads; tests pass fakes. */
@@ -228,7 +228,7 @@ const ticketArgument = z
 	.string()
 	.optional()
 	.describe(
-		'The Linear issue key of the work, such as "FEP-1867". When the user named an issue in the conversation, or one is in the branch name, a commit, or the task, send it on each call. Send the key only, never the title or a URL. Omit it when you do not know it, and do not ask the user only for this.',
+		'The Linear issue key of the work: the team key in capitals, a hyphen, and a number, such as "FEP-1867" or "MNTL-59". Each team has its own key. When the user named an issue in the conversation, or one is in the branch name, a commit, or the task, send it on each call. Send the key only, never the title or a URL. Omit it when you do not know it, and do not ask the user only for this.',
 	);
 
 const readOnly = { readOnlyHint: true, idempotentHint: true, openWorldHint: false } as const;

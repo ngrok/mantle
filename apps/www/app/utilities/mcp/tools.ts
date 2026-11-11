@@ -299,8 +299,8 @@ export function workspaceSlug(workspace: string): string | undefined {
 	return WORKSPACE_SLUG.test(slug) ? slug : undefined;
 }
 
-/** A Linear issue key: a team key of 2 to 10 letters and digits, a hyphen, and a number. */
-const TICKET_KEY = /^[A-Z][A-Z0-9]{1,9}-[1-9]\d{0,5}$/;
+/** A Linear issue key: any team key in capitals (such as `FEP` or `K8SOP`), a hyphen, and a number. */
+const TICKET_KEY = /^[A-Z][A-Z0-9]{0,9}-[1-9]\d{0,6}$/;
 
 /**
  * The part of an agent's `ticket` that is safe to log: the trimmed, uppercase

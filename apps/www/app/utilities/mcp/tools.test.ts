@@ -310,6 +310,13 @@ describe("ticketKey", () => {
 		expect(ticketKey(" fep-1867 ")).toBe("FEP-1867");
 	});
 
+	it.each(["PE-3", "MNTL-59", "K8SOP-120", "CDATA-1234567"])(
+		"keeps the key %s of any team",
+		(key) => {
+			expect(ticketKey(key)).toBe(key);
+		},
+	);
+
 	it.each([
 		["a branch name", "cody/fep-1867-usage"],
 		["a URL", "https://linear.app/ngrok/issue/FEP-1867"],
