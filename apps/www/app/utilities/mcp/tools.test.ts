@@ -77,6 +77,27 @@ describe("findRecords", () => {
 
 		expect(top).toEqual(expect.objectContaining({ strong: false }));
 	});
+
+	it("ranks a strong match above a weak match with a higher score", () => {
+		const record = (name: string, useWhen: string): ApiRecord => ({
+			name,
+			kind: "component",
+			importPath: `@ngrok/mantle/${name.toLowerCase()}`,
+			useWhen,
+			summary: useWhen,
+			jsdoc: useWhen,
+			docsUrl: `https://mantle.ngrok.com/components/${name.toLowerCase()}`,
+			docsSlug: `components/${name.toLowerCase()}`,
+		});
+		const account = record("Account", "Show account limits.");
+		const chooser = record("Chooser", "Pick a member.");
+
+		const [top, next] = findRecords([account, chooser], { query: "pick account member" });
+
+		expect(top).toEqual(expect.objectContaining({ record: chooser, strong: true }));
+		expect(next).toEqual(expect.objectContaining({ record: account, strong: false }));
+		expect(next?.score).toBeGreaterThan(top?.score ?? 0);
+	});
 });
 
 describe("gapTokens", () => {

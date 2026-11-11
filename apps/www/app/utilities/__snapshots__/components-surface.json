@@ -172,6 +172,9 @@
       "Composition:\n```\nAreaChart.Root\n├── AreaChart.Grid\n├── AreaChart.XAxis\n├── AreaChart.YAxis\n├── AreaChart.Area (one per series)\n├── AreaChart.ReferenceLine\n├── AreaChart.Tooltip\n├── AreaChart.Legend\n└── AreaChart.CopyButton\n```",
       "```tsx\nconst data = [\n  { date: new Date(\"2026-07-15\"), http: 4200, tcp: 1400 },\n  { date: new Date(\"2026-07-16\"), http: 5100, tcp: 1650 },\n  { date: new Date(\"2026-07-17\"), http: 4700, tcp: 1500 },\n];\n\n<AreaChart.Root data={data} xKey=\"date\" stacked aria-label=\"Traffic by protocol\">\n  <AreaChart.Grid />\n  <AreaChart.XAxis />\n  <AreaChart.YAxis />\n  <AreaChart.Area dataKey=\"http\" label=\"HTTP\" />\n  <AreaChart.Area dataKey=\"tcp\" label=\"TCP\" />\n  <AreaChart.Tooltip />\n  <AreaChart.Legend />\n</AreaChart.Root>\n```"
     ],
+    "aliases": [
+      "sparkline"
+    ],
     "siblings": [
       {
         "name": "LineChart",
@@ -249,6 +252,9 @@
     "examples": [
       "Composition:\n```\nBarChart.Root\n├── BarChart.Grid\n├── BarChart.XAxis\n├── BarChart.YAxis\n├── BarChart.Bar (one per series)\n├── BarChart.ReferenceLine\n├── BarChart.Tooltip\n├── BarChart.Legend\n└── BarChart.CopyButton\n```",
       "```tsx\nconst data = [\n  { month: \"January\", desktop: 186, mobile: 80 },\n  { month: \"February\", desktop: 305, mobile: 200 },\n  { month: \"March\", desktop: 237, mobile: 120 },\n];\n\n<BarChart.Root data={data} xKey=\"month\" aria-label=\"Visitors by month\">\n  <BarChart.Grid />\n  <BarChart.XAxis />\n  <BarChart.YAxis />\n  <BarChart.Bar dataKey=\"desktop\" label=\"Desktop\" />\n  <BarChart.Bar dataKey=\"mobile\" label=\"Mobile\" />\n  <BarChart.Tooltip />\n  <BarChart.Legend />\n</BarChart.Root>\n```"
+    ],
+    "aliases": [
+      "sparkline"
     ],
     "siblings": [
       {
@@ -518,7 +524,8 @@
     ],
     "aliases": [
       "autocomplete",
-      "typeahead"
+      "typeahead",
+      "searchable select"
     ],
     "siblings": [
       {
@@ -939,6 +946,9 @@
       "Composition:\n```\nLineChart.Root\n├── LineChart.Grid\n├── LineChart.XAxis\n├── LineChart.YAxis\n├── LineChart.Line (one per series)\n├── LineChart.ReferenceLine\n├── LineChart.Tooltip\n├── LineChart.Legend\n└── LineChart.CopyButton\n```",
       "```tsx\nconst data = [\n  { time: new Date(\"2026-07-18T10:00:00Z\"), p50: 120, p99: 480 },\n  { time: new Date(\"2026-07-18T10:01:00Z\"), p50: 132, p99: 510 },\n  { time: new Date(\"2026-07-18T10:02:00Z\"), p50: 101, p99: 460 },\n];\n\n<LineChart.Root data={data} xKey=\"time\" aria-label=\"Request latency\">\n  <LineChart.Grid />\n  <LineChart.XAxis />\n  <LineChart.YAxis />\n  <LineChart.Line dataKey=\"p50\" label=\"p50\" />\n  <LineChart.Line dataKey=\"p99\" label=\"p99\" curve=\"monotone\" />\n  <LineChart.Tooltip />\n  <LineChart.Legend />\n</LineChart.Root>\n```"
     ],
+    "aliases": [
+      "sparkline"
+    ],
     "siblings": [
       {
         "name": "AreaChart",
@@ -1290,6 +1300,9 @@
       "Composition:\n```\n# Default radios\nRadioGroup.Root\n└── RadioGroup.Item\n    ├── RadioGroup.Indicator\n    └── RadioGroup.ItemContent\n\n# List layout with descriptions\nRadioGroup.List\n└── RadioGroup.ListItem\n    ├── RadioGroup.Indicator\n    └── RadioGroup.ItemContent\n\n# Segmented button group\nRadioGroup.ButtonGroup\n└── RadioGroup.Button\n\n# Card-style radios\nRadioGroup.Root\n└── RadioGroup.Card\n    └── RadioGroup.Indicator\n\n# Rich option layout (Choice)\nRadioGroup.Root\n└── RadioGroup.Item\n    └── Choice.Root\n        ├── Choice.Indicator\n        │   └── RadioGroup.Indicator\n        └── Choice.Content\n            ├── Choice.Title\n            └── Choice.Description\n```",
       "```tsx\n<RadioGroup.Root value={value} onChange={setValue}>\n  <RadioGroup.Item value=\"option1\">\n    <RadioGroup.Indicator />\n    <span>Option 1</span>\n  </RadioGroup.Item>\n  <RadioGroup.Item value=\"option2\">\n    <RadioGroup.Indicator />\n    <span>Option 2</span>\n  </RadioGroup.Item>\n</RadioGroup.Root>\n```"
     ],
+    "aliases": [
+      "segmented control"
+    ],
     "siblings": [
       {
         "name": "Select",
@@ -1524,7 +1537,7 @@
         "boundary": "the page shows where it sits in a hierarchy."
       }
     ],
-    "useWhen": "Show the main navigation of an app in a column that collapses to an icon rail, and to a sheet on small screens."
+    "useWhen": "Show the main navigation of an app, with its app and account switchers, in a column that collapses to an icon rail, and to a sheet on small screens."
   },
   {
     "name": "Skeleton",
