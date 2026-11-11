@@ -3,6 +3,7 @@
 import type {
 	ChartAccessibilityProps,
 	ChartMode,
+	ChartRendererProps,
 	ChartRootBaseProps,
 	CopyButtonPrimitiveProps,
 	GridPrimitiveProps,
@@ -20,6 +21,7 @@ import type {
 	ChartSeriesSlot,
 	SeriesColor,
 } from "../chart/types.js";
+import { paintBackendSource } from "../chart/backends.js";
 import {
 	ChartCopyButtonPrimitive,
 	ChartLegendPrimitive,
@@ -41,7 +43,8 @@ type BarChartRootProps<
 	TDatum extends ChartDatum = ChartDatum,
 	TMode extends ChartMode = "interactive",
 > = Omit<ChartRootBaseProps, "yDomain"> &
-	ChartAccessibilityProps<TMode> & {
+	ChartAccessibilityProps<TMode> &
+	ChartRendererProps & {
 		/** Rows of data; each `BarChart.Bar` reads one numeric key per row. */
 		data: readonly TDatum[];
 		/**
@@ -214,7 +217,15 @@ type BarChartCopyButtonProps = CopyButtonPrimitiveProps;
  */
 const Root = <TDatum extends ChartDatum = ChartDatum, TMode extends ChartMode = "interactive">(
 	props: BarChartRootProps<TDatum, TMode>,
-) => <ChartRootPrimitive kind="bar" componentName="BarChart" slotName="bar-chart" {...props} />;
+) => (
+	<ChartRootPrimitive
+		kind="bar"
+		componentName="BarChart"
+		slotName="bar-chart"
+		paintBackend={paintBackendSource(props.renderer ?? "svg")}
+		{...props}
+	/>
+);
 
 /**
  * One bar series. Renders nothing itself — it registers the series with the

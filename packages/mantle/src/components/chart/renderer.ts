@@ -1,9 +1,13 @@
+import invariant from "tiny-invariant";
 import { area as d3Area, curveLinear, curveMonotoneX, curveStep, line as d3Line } from "d3-shape";
 import type { CurveKind, PointShape } from "./types.js";
 import type { DecimatedColumns } from "./decimate.js";
+import type { PaintContext } from "./paint-backend.js";
+import { acceptsPathData } from "./paint-backend.js";
 
 /**
- * Canvas 2D draw routines. Fixed mark specs (the loud parts of a chart are
+ * 2D draw routines over a {@link PaintContext}: a canvas context, or the SVG
+ * backend's recorder. Fixed mark specs (the loud parts of a chart are
  * the data, never the chrome):
  *
  * - lines: 2px, round join/cap
@@ -48,6 +52,33 @@ const curveFactory = (curve: CurveKind) => {
 	return curveLinear;
 };
 
+/** A d3-shape line or area generator over datum indexes. */
+type ShapeGenerator = {
+	(indexes: readonly number[]): string | null;
+	context(context: CanvasRenderingContext2D | null): unknown;
+};
+
+/**
+ * Trace a d3-shape generator into the current path of `ctx`. A canvas context
+ * takes the generator's drawing calls; the SVG recorder takes its path string.
+ */
+const traceShape = (ctx: PaintContext, shape: ShapeGenerator, indexes: readonly number[]): void => {
+	if (typeof CanvasRenderingContext2D !== "undefined" && ctx instanceof CanvasRenderingContext2D) {
+		shape.context(ctx);
+		shape(indexes);
+		return;
+	}
+	invariant(
+		acceptsPathData(ctx),
+		"A chart paint context must be a canvas context or take path data.",
+	);
+	shape.context(null);
+	const data = shape(indexes);
+	if (typeof data === "string") {
+		ctx.appendPathData(data);
+	}
+};
+
 /**
  * Align a coordinate to the device grid for crisp 1px hairlines.
  */
@@ -60,7 +91,7 @@ const hairline = (position: number): number => Math.round(position) + 0.5;
  * stroke per direction.
  */
 const drawGrid = (
-	ctx: CanvasRenderingContext2D,
+	ctx: PaintContext,
 	options: {
 		plot: PlotRect;
 		color: string;
@@ -85,7 +116,7 @@ const drawGrid = (
 
 /** Stroke each run of same-alpha lines as one path. */
 const strokeGridLines = (
-	ctx: CanvasRenderingContext2D,
+	ctx: PaintContext,
 	lines: ReadonlyArray<{ position: number; alpha: number }>,
 	trace: (position: number) => void,
 ): void => {
@@ -110,7 +141,7 @@ const strokeGridLines = (
  * Draw the zero baseline bars grow from.
  */
 const drawBaseline = (
-	ctx: CanvasRenderingContext2D,
+	ctx: PaintContext,
 	options: { plot: PlotRect; color: string; y: number },
 ): void => {
 	const { plot, color, y } = options;
@@ -126,7 +157,7 @@ const drawBaseline = (
  * Draw the zero baseline horizontal bars grow rightward from.
  */
 const drawVerticalBaseline = (
-	ctx: CanvasRenderingContext2D,
+	ctx: PaintContext,
 	options: { plot: PlotRect; color: string; x: number },
 ): void => {
 	const { plot, color, x } = options;
@@ -161,7 +192,7 @@ type BarRect = {
  * charts degrade to a silhouette instead of vanishing).
  */
 const drawBars = (
-	ctx: CanvasRenderingContext2D,
+	ctx: PaintContext,
 	options: {
 		fill: string | CanvasPattern;
 		rects: readonly BarRect[];
@@ -220,7 +251,7 @@ type HorizontalBarRect = {
  * end, with the same thin-bar corner collapse and half-pixel minimum.
  */
 const drawHorizontalBars = (
-	ctx: CanvasRenderingContext2D,
+	ctx: PaintContext,
 	options: {
 		fill: string | CanvasPattern;
 		rects: readonly HorizontalBarRect[];
@@ -265,7 +296,7 @@ const drawHorizontalBars = (
  * `connectNulls`.
  */
 const drawLinePath = (
-	ctx: CanvasRenderingContext2D,
+	ctx: PaintContext,
 	options: {
 		color: string;
 		curve: CurveKind;
@@ -276,18 +307,13 @@ const drawLinePath = (
 	},
 ): void => {
 	const { color, curve, indexes, xAt, yAt, definedAt } = options;
-	const path = d3Line<number>()
-		.x(xAt)
-		.y(yAt)
-		.defined(definedAt)
-		.curve(curveFactory(curve))
-		.context(ctx);
+	const path = d3Line<number>().x(xAt).y(yAt).defined(definedAt).curve(curveFactory(curve));
 	ctx.strokeStyle = color;
 	ctx.lineWidth = LINE_WIDTH;
 	ctx.lineJoin = "round";
 	ctx.lineCap = "round";
 	ctx.beginPath();
-	path(indexes);
+	traceShape(ctx, path, indexes);
 	ctx.stroke();
 };
 
@@ -296,7 +322,7 @@ const drawLinePath = (
  * 2px band-edge stroke on the outer boundary.
  */
 const drawAreaPath = (
-	ctx: CanvasRenderingContext2D,
+	ctx: PaintContext,
 	options: {
 		color: string;
 		curve: CurveKind;
@@ -313,27 +339,21 @@ const drawAreaPath = (
 		.y0(y0At)
 		.y1(y1At)
 		.defined(definedAt)
-		.curve(curveFactory(curve))
-		.context(ctx);
+		.curve(curveFactory(curve));
 	ctx.beginPath();
-	areaPath(indexes);
+	traceShape(ctx, areaPath, indexes);
 	ctx.save();
 	ctx.globalAlpha = 0.1;
 	ctx.fillStyle = color;
 	ctx.fill();
 	ctx.restore();
-	const edge = d3Line<number>()
-		.x(xAt)
-		.y(y1At)
-		.defined(definedAt)
-		.curve(curveFactory(curve))
-		.context(ctx);
+	const edge = d3Line<number>().x(xAt).y(y1At).defined(definedAt).curve(curveFactory(curve));
 	ctx.strokeStyle = color;
 	ctx.lineWidth = LINE_WIDTH;
 	ctx.lineJoin = "round";
 	ctx.lineCap = "round";
 	ctx.beginPath();
-	edge(indexes);
+	traceShape(ctx, edge, indexes);
 	ctx.stroke();
 };
 
@@ -344,7 +364,7 @@ const drawAreaPath = (
  * index to pixel x.
  */
 const drawDecimatedLine = (
-	ctx: CanvasRenderingContext2D,
+	ctx: PaintContext,
 	options: {
 		color: string;
 		columns: DecimatedColumns;
@@ -393,7 +413,7 @@ const drawDecimatedLine = (
  * stroking the upper envelope as the band edge.
  */
 const drawDecimatedArea = (
-	ctx: CanvasRenderingContext2D,
+	ctx: PaintContext,
 	options: {
 		color: string;
 		lowerColumns: DecimatedColumns;
@@ -453,14 +473,14 @@ const drawDecimatedArea = (
  * The subset of the 2D context {@link tracePointShape} traces into —
  * structural, so unit tests can record calls without type assertions.
  */
-type PathTraceContext = Pick<CanvasRenderingContext2D, "arc" | "moveTo" | "lineTo" | "closePath">;
+type PathTraceContext = Pick<PaintContext, "arc" | "moveTo" | "lineTo" | "closePath">;
 
 /**
  * The subset of the 2D context {@link drawCubeFrame} strokes with. It is
  * structural, so unit tests can record calls without type assertions.
  */
 type CubeFrameContext = Pick<
-	CanvasRenderingContext2D,
+	PaintContext,
 	| "save"
 	| "restore"
 	| "beginPath"
@@ -550,6 +570,9 @@ const POINT_SHAPE_TRACERS: Record<
 	(ctx: PathTraceContext, x: number, y: number, radius: number) => void
 > = {
 	circle: (ctx, x, y, radius) => {
+		// Why the move: an arc joins the current point with a line, and a
+		// batched path of markers holds the previous glyph's last point.
+		ctx.moveTo(x + radius, y);
 		ctx.arc(x, y, radius, 0, Math.PI * 2);
 	},
 	square: (ctx, x, y, radius) => {
@@ -629,10 +652,12 @@ const tracePointShape = (
 
 /**
  * Point markers with a 2px surface ring so dots stay legible where they cross
- * lines or each other.
+ * lines. One series' markers fill as one path and ring as one path. The
+ * engine draws markers only at 12px or more of average spacing, so they
+ * rarely overlap; where two do, both rings paint above both fills.
  */
 const drawMarkers = (
-	ctx: CanvasRenderingContext2D,
+	ctx: PaintContext,
 	options: {
 		color: string;
 		surface: string;
@@ -647,15 +672,14 @@ const drawMarkers = (
 	ctx.fillStyle = color;
 	ctx.strokeStyle = surface;
 	ctx.lineWidth = MARKER_RING;
+	ctx.beginPath();
 	for (const index of indexes) {
-		if (!definedAt(index)) {
-			continue;
+		if (definedAt(index)) {
+			tracePointShape(ctx, xAt(index), yAt(index), MARKER_RADIUS, shape);
 		}
-		ctx.beginPath();
-		tracePointShape(ctx, xAt(index), yAt(index), MARKER_RADIUS, shape);
-		ctx.fill();
-		ctx.stroke();
 	}
+	ctx.fill();
+	ctx.stroke();
 };
 
 /**
@@ -672,7 +696,7 @@ const SCATTER_RECT_LIMIT = 20000;
  * the 3D projection attenuate size with depth; return 0 to skip a point.
  */
 const drawScatterPoints = (
-	ctx: CanvasRenderingContext2D,
+	ctx: PaintContext,
 	options: {
 		color: string;
 		surface: string;
@@ -722,7 +746,7 @@ const drawScatterPoints = (
  * the rect fast path degrade by count exactly like the 2D scatter.
  */
 const drawDepthSortedPoints = (
-	ctx: CanvasRenderingContext2D,
+	ctx: PaintContext,
 	options: {
 		count: number;
 		order: Iterable<number>;
@@ -849,7 +873,7 @@ const drawCubeFrame = (
  * farther from the frame's center — outside the cube, never over the cloud.
  */
 const drawCubeAxisLabels = (
-	ctx: CanvasRenderingContext2D,
+	ctx: PaintContext,
 	options: {
 		textColor: string;
 		fontFamily: string;
@@ -897,7 +921,7 @@ const drawCubeAxisLabels = (
  * what says "this is a marker, not data".
  */
 const drawReferenceLine = (
-	ctx: CanvasRenderingContext2D,
+	ctx: PaintContext,
 	options: {
 		plot: PlotRect;
 		color: string;
@@ -931,7 +955,7 @@ const drawReferenceLine = (
  * axis runs along x.
  */
 const drawVerticalReferenceLine = (
-	ctx: CanvasRenderingContext2D,
+	ctx: PaintContext,
 	options: {
 		plot: PlotRect;
 		color: string;
@@ -970,7 +994,7 @@ const drawVerticalReferenceLine = (
  * entering/exiting ticks slide instead of popping.
  */
 const drawAxisLabels = (
-	ctx: CanvasRenderingContext2D,
+	ctx: PaintContext,
 	options: {
 		plot: PlotRect;
 		color: string;

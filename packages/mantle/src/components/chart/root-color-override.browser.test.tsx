@@ -117,6 +117,7 @@ test("a new className on the Root repaints the series from its new token value",
 	const chart = (className: string) => (
 		<div style={{ width: 600, height: 300 }}>
 			<BarChart.Root
+				renderer="canvas"
 				data={data}
 				xKey="cat"
 				animate={false}
@@ -143,6 +144,7 @@ test("a new inline color on the Root repaints a currentColor series", async () =
 	const chart = (color: string) => (
 		<div style={{ width: 600, height: 300 }}>
 			<BarChart.Root
+				renderer="canvas"
 				data={data}
 				xKey="cat"
 				animate={false}
@@ -172,6 +174,7 @@ test("a re-render with an equal inline style resolves the colors once", async ()
 	const chart = () => (
 		<div style={{ width: 600, height: 300 }}>
 			<BarChart.Root
+				renderer="canvas"
 				data={data}
 				xKey="cat"
 				animate={false}

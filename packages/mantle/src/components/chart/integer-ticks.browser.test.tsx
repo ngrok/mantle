@@ -88,6 +88,7 @@ describe("integer-valued data never paints fractional axis ticks (MNTL-56)", () 
 		render(
 			<div style={{ width: 600, height: 300 }}>
 				<BarChart.Root
+					renderer="canvas"
 					data={[
 						{ cat: "A", count: 1 },
 						{ cat: "B", count: 3 },
@@ -113,6 +114,7 @@ describe("integer-valued data never paints fractional axis ticks (MNTL-56)", () 
 		render(
 			<div style={{ width: 600, height: 300 }}>
 				<BarChart.Root
+					renderer="canvas"
 					data={[
 						{ cat: "A", count: 1 },
 						{ cat: "B", count: 3 },
@@ -140,6 +142,7 @@ describe("integer-valued data never paints fractional axis ticks (MNTL-56)", () 
 		render(
 			<div style={{ width: 600, height: 300 }}>
 				<LineChart.Root
+					renderer="canvas"
 					data={[
 						{ attempt: 0, latency: 100 },
 						{ attempt: 1, latency: 240 },
@@ -173,6 +176,7 @@ describe("integer-valued data never paints fractional axis ticks (MNTL-56)", () 
 		render(
 			<div style={{ width: 600, height: 300 }}>
 				<LineChart.Root
+					renderer="canvas"
 					data={[
 						{ ratio: 0.25, latency: 100 },
 						{ ratio: 0.5, latency: 240 },
@@ -198,6 +202,7 @@ describe("integer-valued data never paints fractional axis ticks (MNTL-56)", () 
 		render(
 			<div style={{ width: 600, height: 300 }}>
 				<LineChart.Root
+					renderer="canvas"
 					data={[
 						{ cat: "A", rate: 0.2 },
 						{ cat: "B", rate: 0.8 },

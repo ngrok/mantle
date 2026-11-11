@@ -3,6 +3,7 @@
 import type {
 	ChartAccessibilityProps,
 	ChartMode,
+	ChartRendererProps,
 	ChartRootBaseProps,
 	CopyButtonPrimitiveProps,
 	GridPrimitiveProps,
@@ -21,6 +22,7 @@ import type {
 	PointShape,
 	SeriesColor,
 } from "../chart/types.js";
+import { paintBackendSource } from "../chart/backends.js";
 import {
 	ChartCopyButtonPrimitive,
 	ChartLegendPrimitive,
@@ -42,7 +44,8 @@ type AreaChartRootProps<
 	TDatum extends ChartDatum = ChartDatum,
 	TMode extends ChartMode = "interactive",
 > = Omit<ChartRootBaseProps, "yDomain"> &
-	ChartAccessibilityProps<TMode> & {
+	ChartAccessibilityProps<TMode> &
+	ChartRendererProps & {
 		/** Rows of data; each `AreaChart.Area` reads one numeric key per row. */
 		data: readonly TDatum[];
 		/**
@@ -214,7 +217,15 @@ type AreaChartCopyButtonProps = CopyButtonPrimitiveProps;
  */
 const Root = <TDatum extends ChartDatum = ChartDatum, TMode extends ChartMode = "interactive">(
 	props: AreaChartRootProps<TDatum, TMode>,
-) => <ChartRootPrimitive kind="area" componentName="AreaChart" slotName="area-chart" {...props} />;
+) => (
+	<ChartRootPrimitive
+		kind="area"
+		componentName="AreaChart"
+		slotName="area-chart"
+		paintBackend={paintBackendSource(props.renderer ?? "svg")}
+		{...props}
+	/>
+);
 
 /**
  * One area series. Renders nothing itself — it registers the series with the

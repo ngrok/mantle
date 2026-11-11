@@ -316,6 +316,7 @@ describe("stacked bar caps and baselines", () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
 				<BarChart.Root
+					renderer="canvas"
 					data={sparseStack}
 					xKey="day"
 					stacked
@@ -351,6 +352,7 @@ describe("stacked bar caps and baselines", () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
 				<BarChart.Root
+					renderer="canvas"
 					data={subPixelTopSegment}
 					xKey="day"
 					stacked
@@ -400,6 +402,7 @@ describe("stacked bar caps and baselines", () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
 				<BarChart.Root
+					renderer="canvas"
 					data={sparseStack}
 					xKey="day"
 					stacked
@@ -435,6 +438,7 @@ describe("stacked bar caps and baselines", () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 400 }}>
 				<BarChart.Root
+					renderer="canvas"
 					data={threeEqualSegments}
 					xKey="day"
 					stacked
@@ -496,6 +500,7 @@ describe("stacked bar caps and baselines", () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 400 }}>
 				<BarChart.Root
+					renderer="canvas"
 					data={[{ day: "Mon", up: 40, down: -40 }]}
 					xKey="day"
 					stacked
@@ -548,6 +553,7 @@ describe("stacked bar caps and baselines", () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
 				<BarChart.Root
+					renderer="canvas"
 					data={[{ day: "Mon", first: 100, second: 100 }]}
 					xKey="day"
 					stacked
@@ -579,6 +585,7 @@ describe("stacked bar caps and baselines", () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
 				<BarChart.Root
+					renderer="canvas"
 					data={sparseStack}
 					xKey="day"
 					stacked
@@ -624,6 +631,7 @@ describe("stacked bar caps and baselines", () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
 				<BarChart.Root
+					renderer="canvas"
 					data={[
 						{ day: "Mon", value: 0 },
 						{ day: "Tue", value: 0 },
@@ -653,6 +661,7 @@ describe("stacked bar caps and baselines", () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
 				<AreaChart.Root
+					renderer="canvas"
 					data={[
 						{ day: "Mon", value: 0 },
 						{ day: "Tue", value: 0 },
@@ -749,7 +758,13 @@ describe("hover band geometry", () => {
 		// floor washes over a third of each neighbor.
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
-				<BarChart.Root data={denseDays} xKey="day" animate={false} aria-label="Dense days">
+				<BarChart.Root
+					renderer="canvas"
+					data={denseDays}
+					xKey="day"
+					animate={false}
+					aria-label="Dense days"
+				>
 					<BarChart.XAxis />
 					<BarChart.YAxis />
 					<BarChart.Bar dataKey="value" label="Value" color="chart-1" />
@@ -815,6 +830,7 @@ describe("stacked segment hit resolution", () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 400 }}>
 				<BarChart.Root
+					renderer="canvas"
 					data={threeEqualSegments}
 					xKey="day"
 					stacked
@@ -880,6 +896,7 @@ describe("stacked segment hit resolution", () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 400 }}>
 				<BarChart.Root
+					renderer="canvas"
 					data={threeEqualSegments}
 					xKey="day"
 					stacked
@@ -941,6 +958,7 @@ describe("stacked segment hit resolution", () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 400 }}>
 				<BarChart.Root
+					renderer="canvas"
 					data={[{ day: "Mon", bottom: 1, middle: 0, top: 1 }]}
 					xKey="day"
 					stacked
@@ -1018,7 +1036,14 @@ describe("tooltip placement", () => {
 		}
 		const { container } = render(
 			<div style={{ width: 600, height: 160 }}>
-				<BarChart.Root data={[row]} xKey="day" stacked animate={false} aria-label="Many series">
+				<BarChart.Root
+					renderer="canvas"
+					data={[row]}
+					xKey="day"
+					stacked
+					animate={false}
+					aria-label="Many series"
+				>
 					{series.map((key) => (
 						<BarChart.Bar key={key} dataKey={key} label={key} />
 					))}
@@ -1050,6 +1075,7 @@ describe("tooltip placement", () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
 				<BarChart.Root
+					renderer="canvas"
 					data={threeEqualSegments}
 					xKey="day"
 					stacked
@@ -1088,6 +1114,7 @@ describe("tooltip placement", () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 400 }}>
 				<BarChart.Root
+					renderer="canvas"
 					data={threeEqualSegments}
 					xKey="day"
 					stacked
@@ -1150,6 +1177,7 @@ describe("tooltip placement", () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
 				<BarChart.Root
+					renderer="canvas"
 					data={threeEqualSegments}
 					xKey="day"
 					stacked

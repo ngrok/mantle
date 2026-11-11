@@ -92,7 +92,13 @@ describe("the y axis fits its labels to the plot height (MNTL-97)", () => {
 	test("a 64px chart paints two labels, not five", async () => {
 		render(
 			<div style={{ width: 600, height: 64 }}>
-				<BarChart.Root data={data} xKey="hour" animate={false} aria-label="5XX errors">
+				<BarChart.Root
+					renderer="canvas"
+					data={data}
+					xKey="hour"
+					animate={false}
+					aria-label="5XX errors"
+				>
 					<BarChart.XAxis />
 					<BarChart.YAxis tickCount={3} />
 					<BarChart.Bar dataKey="count" label="Errors" color="chart-1" />
@@ -108,7 +114,13 @@ describe("the y axis fits its labels to the plot height (MNTL-97)", () => {
 	test("a tall chart keeps tickCount as a maximum", async () => {
 		render(
 			<div style={{ width: 600, height: 400 }}>
-				<BarChart.Root data={data} xKey="hour" animate={false} aria-label="5XX errors">
+				<BarChart.Root
+					renderer="canvas"
+					data={data}
+					xKey="hour"
+					animate={false}
+					aria-label="5XX errors"
+				>
 					<BarChart.XAxis />
 					<BarChart.YAxis tickCount={3} />
 					<BarChart.Bar dataKey="count" label="Errors" color="chart-1" />
@@ -125,6 +137,7 @@ describe("the y axis fits its labels to the plot height (MNTL-97)", () => {
 		render(
 			<div style={{ width: 600, height: 64 }}>
 				<LineChart.Root
+					renderer="canvas"
 					data={[
 						{ day: 1, ratio: 1.0002 },
 						{ day: 2, ratio: 1.0002 },
@@ -152,6 +165,7 @@ describe("the y axis fits its labels to the plot height (MNTL-97)", () => {
 		render(
 			<div style={{ width: 600, height: 400 }}>
 				<BarChart.Root
+					renderer="canvas"
 					data={[
 						{ day: "Mon", cost: 0.0001 },
 						{ day: "Tue", cost: 0 },

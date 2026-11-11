@@ -76,7 +76,13 @@ test("custom reference-line colors resolve through the color pass's one style re
 	const reads = vi.spyOn(window, "getComputedStyle");
 	const { container } = render(
 		<div style={{ width: 400, height: 200 }}>
-			<LineChart.Root data={data} xKey="time" animate={false} aria-label="Latency">
+			<LineChart.Root
+				renderer="canvas"
+				data={data}
+				xKey="time"
+				animate={false}
+				aria-label="Latency"
+			>
 				<LineChart.Line dataKey="p50" label="p50" />
 				<LineChart.ReferenceLine y={125} label="SLO" color="#e40014" />
 				<LineChart.ReferenceLine y={115} color="#0044ff" />

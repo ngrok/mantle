@@ -1,3 +1,4 @@
+import type { PaintContext } from "./paint-backend.js";
 import type { BarOrientation, BarTexture } from "./types.js";
 
 /**
@@ -62,7 +63,7 @@ const textureInkColor = (seriesColor: string): string =>
  * The subset of the 2D context {@link traceDiagonalLines} traces into —
  * structural, so unit tests can record calls without a real canvas.
  */
-type LineTraceContext = Pick<CanvasRenderingContext2D, "moveTo" | "lineTo">;
+type LineTraceContext = Pick<PaintContext, "moveTo" | "lineTo">;
 
 /**
  * Trace one seamless family of parallel diagonal lines across a square tile:
@@ -106,7 +107,7 @@ const traceDiagonalLines = (
  * with no visible seam — an edge-anchored rung stitches against its neighbor.
  */
 const fillHorizontalRung = (
-	tileContext: CanvasRenderingContext2D,
+	tileContext: PaintContext,
 	options: { size: number; width: number },
 ): void => {
 	const { size, width } = options;
@@ -118,7 +119,7 @@ const fillHorizontalRung = (
  * {@link fillHorizontalRung}, centered for the same reason.
  */
 const fillVerticalRung = (
-	tileContext: CanvasRenderingContext2D,
+	tileContext: PaintContext,
 	options: { size: number; width: number },
 ): void => {
 	const { size, width } = options;
@@ -140,7 +141,7 @@ type TilePaint = {
  * Each painter sets its own ink, width, and path, so no width leaks from one
  * texture to the next.
  */
-type TilePainter = (tileContext: CanvasRenderingContext2D, paint: TilePaint) => void;
+type TilePainter = (tileContext: PaintContext, paint: TilePaint) => void;
 
 /**
  * One painter per non-solid texture, keyed by the union itself. A total record
@@ -263,14 +264,37 @@ const createBarTexturePattern = (
 	}
 	const deviceScale = tile.width / size;
 	tileContext.scale(deviceScale, deviceScale);
-	tileContext.fillStyle = color;
-	tileContext.fillRect(0, 0, size, size);
-	TILE_PAINTERS[texture](tileContext, { size, ink, orientation });
+	paintTextureTile(tileContext, { texture, color, ink, orientation });
 	const pattern = context.createPattern(tile, "repeat");
 	// The tile is rasterized at device resolution; scale it back to CSS pixels
 	// so the engine's dpr transform lands it 1:1 on the device grid.
 	pattern?.setTransform({ a: 1 / deviceScale, b: 0, c: 0, d: 1 / deviceScale, e: 0, f: 0 });
 	return pattern;
+};
+
+/**
+ * Paint one texture tile, ground and marks, into `tileContext` at CSS-pixel
+ * scale: {@link TEXTURE_TILE_SIZE} on each edge. The canvas backend rasterizes
+ * the tile into a pattern; the SVG backend records it into a `<pattern>`.
+ *
+ * @example
+ * ```ts
+ * paintTextureTile(recorder, { texture: "hatch", color, ink: textureInkColor(color), orientation: "vertical" });
+ * ```
+ */
+const paintTextureTile = (
+	tileContext: PaintContext,
+	options: {
+		texture: Exclude<BarTexture, "solid">;
+		color: string;
+		ink: string;
+		orientation: BarOrientation;
+	},
+): void => {
+	const { texture, color, ink, orientation } = options;
+	tileContext.fillStyle = color;
+	tileContext.fillRect(0, 0, TEXTURE_TILE_SIZE, TEXTURE_TILE_SIZE);
+	TILE_PAINTERS[texture](tileContext, { size: TEXTURE_TILE_SIZE, ink, orientation });
 };
 
 export type {
@@ -281,6 +305,7 @@ export type {
 export {
 	//,
 	createBarTexturePattern,
+	paintTextureTile,
 	textureInkColor,
 	TEXTURE_TILE_SIZE,
 	traceDiagonalLines,

@@ -368,8 +368,8 @@ describe("server render", () => {
 			"<span>Line chart with 2 data points.</span><span></span><span> Use the left and right arrow keys",
 		);
 		expect(html).toContain('role="status"');
-		// The canvas and the hover layers are engine-owned and arrive at activation.
-		expect(html).not.toContain("<canvas");
+		// The paint surface and the hover layers are engine-owned and arrive at activation.
+		expect(html).not.toContain("line-chart-svg");
 		expect(html).not.toContain("line-chart-tooltip");
 		const markup = document.createElement("div");
 		markup.innerHTML = html;
@@ -406,8 +406,11 @@ describe("server render", () => {
 	});
 });
 
+/** The bar chart's default paint surface, which the engine inserts at activation. */
+const SURFACE = '[data-slot="bar-chart-svg"]';
+
 describe("activation outside React", () => {
-	test("a dormant chart is a shell: no canvas, no hover layers, no tooltip surface", () => {
+	test("a dormant chart is a shell: no paint surface, no hover layers, no tooltip surface", () => {
 		// A stub that never reports intersection keeps the chart dormant.
 		const stub = createIntersectionObserverStub({ intersecting: false });
 		vi.stubGlobal("IntersectionObserver", stub.Observer);
@@ -417,7 +420,7 @@ describe("activation outside React", () => {
 			</BarChart.Root>,
 		);
 		expect(screen.getByRole("application", { name: "Visitors by month" })).toBeInTheDocument();
-		for (const slot of ["canvas", "crosshair", "hover-band", "markers", "tooltip"]) {
+		for (const slot of ["svg", "crosshair", "hover-band", "markers", "tooltip"]) {
 			expect(container.querySelector(`[data-slot="bar-chart-${slot}"]`)).toBeNull();
 		}
 		const plot = container.querySelector('[data-slot="bar-chart-plot"]');
@@ -427,11 +430,11 @@ describe("activation outside React", () => {
 		act(() => {
 			stub.enter(plot);
 		});
-		for (const slot of ["canvas", "crosshair", "hover-band", "markers"]) {
+		for (const slot of ["svg", "crosshair", "hover-band", "markers"]) {
 			expect(container.querySelector(`[data-slot="bar-chart-${slot}"]`)).toBeInTheDocument();
 		}
-		// The canvas sits under the overlay and the layers above it.
-		expect(plot.firstElementChild).toHaveAttribute("data-slot", "bar-chart-canvas");
+		// The surface sits under the overlay and the layers above it.
+		expect(plot.firstElementChild).toHaveAttribute("data-slot", "bar-chart-svg");
 		expect(plot.lastElementChild).toHaveAttribute("data-slot", "bar-chart-markers");
 	});
 
@@ -533,23 +536,23 @@ describe("activation outside React", () => {
 			stub.enter(...plots);
 		});
 		// Three bands flushed one chart each; the last two are still queued.
-		expect(plots[0]?.querySelector("canvas")).toBeInTheDocument();
-		expect(fourth.querySelector("canvas")).toBeNull();
+		expect(plots[0]?.querySelector(SURFACE)).toBeInTheDocument();
+		expect(fourth.querySelector(SURFACE)).toBeNull();
 		act(() => {
 			stub.leave(fourth);
 		});
-		// The fifth chart's canvas proves the queue ran on after the exit.
-		await waitFor(() => expect(fifth.querySelector("canvas")).toBeInTheDocument());
-		expect(fourth.querySelector("canvas")).toBeNull();
+		// The fifth chart's surface proves the queue ran on after the exit.
+		await waitFor(() => expect(fifth.querySelector(SURFACE)).toBeInTheDocument());
+		expect(fourth.querySelector(SURFACE)).toBeNull();
 	});
 
-	test("focus paints a chart beyond the far band, and blur releases its canvas", async () => {
+	test("focus paints a canvas chart beyond the far band, and blur releases its canvas", async () => {
 		const stub = createIntersectionObserverStub({ intersecting: false });
 		vi.stubGlobal("IntersectionObserver", stub.Observer);
 		const user = userEvent.setup();
 		const { container } = render(
 			<>
-				<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
+				<BarChart.Root data={data} xKey="month" aria-label="Visitors by month" renderer="canvas">
 					<BarChart.Bar dataKey="desktop" label="Desktop" />
 				</BarChart.Root>
 				<button type="button">After</button>
@@ -557,7 +560,12 @@ describe("activation outside React", () => {
 		);
 		expect(container.querySelector("canvas")).toBeNull();
 		await user.tab();
-		const canvas = container.querySelector("canvas");
+		// The canvas backend loads in its own chunk, so the focus activates once it arrives.
+		const canvas = await waitFor(() => {
+			const element = container.querySelector("canvas");
+			expect(element).toBeInTheDocument();
+			return element;
+		});
 		if (!(canvas instanceof HTMLCanvasElement)) {
 			throw new Error("expected focus to activate the chart");
 		}
@@ -574,13 +582,17 @@ describe("activation outside React", () => {
 		const user = userEvent.setup();
 		const { container } = render(
 			<>
-				<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
+				<BarChart.Root data={data} xKey="month" aria-label="Visitors by month" renderer="canvas">
 					<BarChart.Bar dataKey="desktop" label="Desktop" />
 				</BarChart.Root>
 				<button type="button">After</button>
 			</>,
 		);
-		const canvas = container.querySelector("canvas");
+		const canvas = await waitFor(() => {
+			const element = container.querySelector("canvas");
+			expect(element).toBeInTheDocument();
+			return element;
+		});
 		if (!(canvas instanceof HTMLCanvasElement)) {
 			throw new Error("expected the chart to activate at mount");
 		}
@@ -598,9 +610,9 @@ describe("activation outside React", () => {
 				<BarChart.Bar dataKey="desktop" label="Desktop" />
 			</BarChart.Root>,
 		);
-		expect(container.querySelector("canvas")).toBeInTheDocument();
+		expect(container.querySelector(SURFACE)).toBeInTheDocument();
 		unmount();
-		expect(document.querySelector("canvas")).toBeNull();
+		expect(document.querySelector(SURFACE)).toBeNull();
 	});
 });
 
@@ -665,8 +677,8 @@ describe("static mode", () => {
 		expect(screen.queryByRole("application")).toBeNull();
 		expect(container.querySelector("[tabindex]")).toBeNull();
 		expect(container.querySelector('[data-slot="bar-chart"]')).not.toHaveAttribute("data-state");
-		// The plot holds the canvas alone: without an overlay the hover layers are dead DOM.
-		expect(container.querySelector('[data-slot="bar-chart-canvas"]')).toBeInTheDocument();
+		// The plot holds the surface alone: without an overlay the hover layers are dead DOM.
+		expect(container.querySelector(SURFACE)).toBeInTheDocument();
 		for (const slot of ["crosshair", "hover-band", "markers"]) {
 			expect(container.querySelector(`[data-slot="bar-chart-${slot}"]`)).toBeNull();
 		}
@@ -681,7 +693,7 @@ describe("static mode", () => {
 		);
 		// The mode change rebuilds the layers in the same commit, with no new
 		// visibility report to wait for.
-		expect(container.querySelector('[data-slot="bar-chart-canvas"]')).toBeInTheDocument();
+		expect(container.querySelector(SURFACE)).toBeInTheDocument();
 		expect(container.querySelector('[data-slot="bar-chart-hover-band"]')).toBeInTheDocument();
 		expect(screen.getByRole("application", { name: "Visitors by month" })).toBeInTheDocument();
 	});

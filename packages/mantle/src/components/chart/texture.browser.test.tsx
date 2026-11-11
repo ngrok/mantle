@@ -383,6 +383,7 @@ describe("textured legend keys", () => {
 		];
 		const { container, unmount } = render(
 			<BarChart.Root
+				renderer="canvas"
 				data={data}
 				xKey="month"
 				orientation={orientation}
@@ -430,7 +431,7 @@ describe("textured legend keys", () => {
 			{ month: "February", desktop: 305, mobile: 200 },
 		];
 		const { container } = render(
-			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
+			<BarChart.Root renderer="canvas" data={data} xKey="month" aria-label="Visitors by month">
 				<BarChart.Bar dataKey="desktop" label="Desktop" />
 				<BarChart.Bar dataKey="mobile" label="Mobile" texture="hatch" />
 				<BarChart.Legend />
@@ -513,6 +514,7 @@ describe("textured bar charts", () => {
 		<div style={{ width: 600, height: 300 }}>
 			{/* animate=false so bars snap to full height: deterministic pixels. */}
 			<BarChart.Root
+				renderer="canvas"
 				data={data}
 				xKey="month"
 				animate={false}

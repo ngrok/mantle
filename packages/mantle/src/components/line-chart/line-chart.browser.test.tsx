@@ -174,7 +174,13 @@ const gappy = [
 const renderGappy = (connectNulls: boolean) =>
 	render(
 		<div style={{ width: 600, height: 300 }}>
-			<LineChart.Root data={gappy} xKey="attempt" animate={false} aria-label="Latency">
+			<LineChart.Root
+				renderer="canvas"
+				data={gappy}
+				xKey="attempt"
+				animate={false}
+				aria-label="Latency"
+			>
 				<LineChart.Line
 					dataKey="latency"
 					label="Latency"
@@ -218,7 +224,13 @@ describe("LineChart curve", () => {
 	const renderRamp = (curve: "linear" | "step") =>
 		render(
 			<div style={{ width: 600, height: 300 }}>
-				<LineChart.Root data={ramp} xKey="attempt" animate={false} aria-label="Latency">
+				<LineChart.Root
+					renderer="canvas"
+					data={ramp}
+					xKey="attempt"
+					animate={false}
+					aria-label="Latency"
+				>
 					<LineChart.Line dataKey="latency" label="Latency" color="chart-1" curve={curve} />
 				</LineChart.Root>
 			</div>,
@@ -263,7 +275,13 @@ describe("LineChart markers", () => {
 	const renderSamples = (markers: boolean) =>
 		render(
 			<div style={{ width: 600, height: 300 }}>
-				<LineChart.Root data={samples} xKey="attempt" animate={false} aria-label="Latency">
+				<LineChart.Root
+					renderer="canvas"
+					data={samples}
+					xKey="attempt"
+					animate={false}
+					aria-label="Latency"
+				>
 					<LineChart.Line dataKey="latency" label="Latency" color="chart-1" markers={markers} />
 				</LineChart.Root>
 			</div>,

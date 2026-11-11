@@ -122,7 +122,13 @@ const seriesOf = (count: number) =>
 
 const chart = (rows: ReturnType<typeof seriesOf>) => (
 	<div style={{ width: 600, height: 300 }}>
-		<BarChart.Root data={rows} xKey="cat" animate={false} aria-label="Values by day">
+		<BarChart.Root
+			renderer="canvas"
+			data={rows}
+			xKey="cat"
+			animate={false}
+			aria-label="Values by day"
+		>
 			<BarChart.Bar dataKey="v" label="Value" color="chart-1" />
 		</BarChart.Root>
 	</div>

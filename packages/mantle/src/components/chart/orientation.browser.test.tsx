@@ -174,7 +174,13 @@ describe("bar orientation", () => {
 		// more ink on the right, and every bar's ink hugs the bottom.
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
-				<BarChart.Root data={twoCategories} xKey="cat" animate={false} aria-label="Default bars">
+				<BarChart.Root
+					renderer="canvas"
+					data={twoCategories}
+					xKey="cat"
+					animate={false}
+					aria-label="Default bars"
+				>
 					<BarChart.XAxis />
 					<BarChart.YAxis />
 					<BarChart.Bar dataKey="v" label="Value" color="chart-1" />
@@ -200,6 +206,7 @@ describe("bar orientation", () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
 				<BarChart.Root
+					renderer="canvas"
 					data={twoCategories}
 					xKey="cat"
 					orientation="horizontal"
@@ -229,7 +236,13 @@ describe("bar orientation", () => {
 	test("vertical: category names sit under the plot, value numbers in the left gutter", async () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
-				<BarChart.Root data={twoCategories} xKey="cat" animate={false} aria-label="Default bars">
+				<BarChart.Root
+					renderer="canvas"
+					data={twoCategories}
+					xKey="cat"
+					animate={false}
+					aria-label="Default bars"
+				>
 					<BarChart.XAxis />
 					<BarChart.YAxis />
 					<BarChart.Bar dataKey="v" label="Value" color="chart-1" />
@@ -265,6 +278,7 @@ describe("bar orientation", () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
 				<BarChart.Root
+					renderer="canvas"
 					data={twoCategories}
 					xKey="cat"
 					orientation="horizontal"

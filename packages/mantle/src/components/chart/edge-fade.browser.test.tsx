@@ -103,7 +103,13 @@ const Chart = ({
 }) => (
 	<div style={{ width: 600, height: 300 }}>
 		{/* animate=false so the fade strength snaps: deterministic pixels. */}
-		<AreaChart.Root data={data} xKey="x" animate={animate} aria-label="Live traffic">
+		<AreaChart.Root
+			renderer="canvas"
+			data={data}
+			xKey="x"
+			animate={animate}
+			aria-label="Live traffic"
+		>
 			<AreaChart.Area dataKey="value" label="Value" />
 		</AreaChart.Root>
 	</div>
@@ -117,7 +123,13 @@ const Chart = ({
  */
 const GriddedChart = ({ data }: { data: Array<{ x: number; value: number }> }) => (
 	<div style={{ width: 600, height: 300 }}>
-		<LineChart.Root data={data} xKey="x" animate={false} aria-label="Live traffic">
+		<LineChart.Root
+			renderer="canvas"
+			data={data}
+			xKey="x"
+			animate={false}
+			aria-label="Live traffic"
+		>
 			<LineChart.Grid />
 			<LineChart.Line dataKey="value" label="Value" color="chart-1" />
 		</LineChart.Root>

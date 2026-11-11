@@ -208,7 +208,13 @@ const pressAt = (overlay: HTMLElement, cssX: number, cssY: number): void => {
 const renderChart = () =>
 	render(
 		<div style={{ width: 600, height: 300 }}>
-			<BarChart.Root data={data} xKey="month" animate={false} aria-label="Visitors by month">
+			<BarChart.Root
+				renderer="canvas"
+				data={data}
+				xKey="month"
+				animate={false}
+				aria-label="Visitors by month"
+			>
 				<BarChart.Grid />
 				<BarChart.XAxis />
 				<BarChart.YAxis />
@@ -311,6 +317,7 @@ describe("overriding a chart color token", () => {
 			<>
 				<div style={{ width: 600, height: 300 }}>
 					<BarChart.Root
+						renderer="canvas"
 						data={data}
 						xKey="month"
 						animate={false}
@@ -321,7 +328,13 @@ describe("overriding a chart color token", () => {
 					</BarChart.Root>
 				</div>
 				<div style={{ width: 600, height: 300 }}>
-					<BarChart.Root data={data} xKey="month" animate={false} aria-label="Default">
+					<BarChart.Root
+						renderer="canvas"
+						data={data}
+						xKey="month"
+						animate={false}
+						aria-label="Default"
+					>
 						<BarChart.Bar dataKey="desktop" label="Desktop" />
 					</BarChart.Root>
 				</div>
@@ -371,6 +384,7 @@ describe("BarChart yDomain", () => {
 		render(
 			<div style={{ width: 600, height: 300 }}>
 				<BarChart.Root
+					renderer="canvas"
 					data={data}
 					xKey="month"
 					yDomain={[0, 1000]}
@@ -396,6 +410,7 @@ describe("BarChart pointer activation", () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
 				<BarChart.Root
+					renderer="canvas"
 					data={[{ month: "January", desktop: 186, mobile: 80 }]}
 					xKey="month"
 					animate={false}
@@ -449,6 +464,7 @@ describe("BarChart decimated keyboard stride", () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
 				<BarChart.Root
+					renderer="canvas"
 					data={rows}
 					xKey="month"
 					animate={false}

@@ -184,7 +184,14 @@ describe("hover marker geometry", () => {
 		// the plot bottom, detached from their painted bands.
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
-				<AreaChart.Root data={protocolData} xKey="day" stacked animate={false} aria-label="Traffic">
+				<AreaChart.Root
+					renderer="canvas"
+					data={protocolData}
+					xKey="day"
+					stacked
+					animate={false}
+					aria-label="Traffic"
+				>
 					<AreaChart.Area dataKey="http" label="HTTP" />
 					<AreaChart.Area dataKey="tcp" label="TCP" />
 					<AreaChart.Area dataKey="tls" label="TLS" />
@@ -209,7 +216,13 @@ describe("hover marker geometry", () => {
 	test("unstacked area dots sit at raw value heights", async () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
-				<AreaChart.Root data={protocolData} xKey="day" animate={false} aria-label="Traffic">
+				<AreaChart.Root
+					renderer="canvas"
+					data={protocolData}
+					xKey="day"
+					animate={false}
+					aria-label="Traffic"
+				>
 					<AreaChart.Area dataKey="http" label="HTTP" />
 					<AreaChart.Area dataKey="tcp" label="TCP" />
 					<AreaChart.Area dataKey="tls" label="TLS" />
@@ -231,6 +244,7 @@ describe("hover marker geometry", () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
 				<LineChart.Root
+					renderer="canvas"
 					data={[
 						{ t: 1, p50: 10, p99: 90 },
 						{ t: 2, p50: 12, p99: 95 },
@@ -262,6 +276,7 @@ describe("hover marker geometry", () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
 				<LineChart.Root
+					renderer="canvas"
 					data={[
 						{ t: 1, p50: 10, p99: 90 },
 						{ t: 2, p50: 12, p99: 95 },
@@ -295,6 +310,7 @@ describe("hover marker geometry", () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
 				<LineChart.Root
+					renderer="canvas"
 					data={[
 						{ t: 1, p50: 10, p99: null },
 						{ t: 2, p50: 12, p99: 95 },
@@ -328,6 +344,7 @@ describe("hover marker geometry", () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
 				<LineChart.Root
+					renderer="canvas"
 					data={[
 						{ t: 1, p50: 10, p99: 90 },
 						{ t: 2, p50: 12, p99: 95 },
@@ -358,6 +375,7 @@ describe("hover marker geometry", () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
 				<LineChart.Root
+					renderer="canvas"
 					data={[
 						{ t: 1, p50: 10, p99: 50, p999: 90 },
 						{ t: 2, p50: 12, p99: 55, p999: 95 },
@@ -388,6 +406,7 @@ describe("hover marker geometry", () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
 				<LineChart.Root
+					renderer="canvas"
 					data={[
 						{ t: 1, p50: 10, p99: 90 },
 						{ t: 2, p50: 12, p99: 95 },
@@ -429,6 +448,7 @@ describe("hover marker geometry", () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
 				<LineChart.Root
+					renderer="canvas"
 					data={[
 						{ t: 1, p50: 10, p99: 90 },
 						{ t: 2, p50: 12, p99: 95 },
@@ -502,6 +522,7 @@ describe("hover marker geometry", () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
 				<BarChart.Root
+					renderer="canvas"
 					data={[
 						{ month: "Jan", desktop: 186 },
 						{ month: "Feb", desktop: 305 },
@@ -616,7 +637,13 @@ describe("line canvas markers", () => {
 					] as const
 				).map(([name, shape]) => (
 					<div key={name} data-line={name} style={{ width: 400, height: 240 }}>
-						<LineChart.Root data={latency} xKey="t" animate={false} aria-label={`${name} line`}>
+						<LineChart.Root
+							renderer="canvas"
+							data={latency}
+							xKey="t"
+							animate={false}
+							aria-label={`${name} line`}
+						>
 							<LineChart.Line dataKey="p50" label="p50" seriesSlot={8} markers shape={shape} />
 						</LineChart.Root>
 					</div>

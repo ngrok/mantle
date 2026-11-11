@@ -132,12 +132,13 @@ const distinct = (numbers: readonly number[]): number[] => {
 };
 
 describe("tracePointShape", () => {
-	test("circle traces a full arc at the given radius", () => {
+	test("circle moves to the arc's start, then traces a full arc at the given radius", () => {
 		const recorder = makeRecorder();
 		tracePointShape(recorder, 10, 20, 4, "circle");
-		expect(recorder.calls).toHaveLength(1);
-		expect(recorder.calls[0]?.op).toBe("arc");
-		expect(recorder.calls[0]?.args.slice(0, 3)).toEqual([10, 20, 4]);
+		// The move starts a new subpath, so a batch of markers draws no joining line.
+		expect(recorder.calls.map((call) => call.op)).toEqual(["moveTo", "arc"]);
+		expect(recorder.calls[0]?.args).toEqual([14, 20]);
+		expect(recorder.calls[1]?.args.slice(0, 3)).toEqual([10, 20, 4]);
 	});
 
 	test("square traces a closed axis-aligned box centered on the point", () => {
@@ -276,7 +277,7 @@ describe("point glyphs across the canvas and the CSS clip", () => {
 	test("the circle and the square clip with the CSS basic shape each canvas path draws", () => {
 		// The two glyphs CSS models directly: an arc pairs with `circle()`, an
 		// axis-aligned box with `inset()`.
-		expect(trace("circle").calls.map((call) => call.op)).toEqual(["arc"]);
+		expect(trace("circle").calls.map((call) => call.op)).toEqual(["moveTo", "arc"]);
 		expect(POINT_SHAPE_CLIP_PATHS.circle).toMatch(/^circle\(/);
 		expect(unitSilhouette(trace("square").vertices)).toEqual([
 			"0.000,0.000",
