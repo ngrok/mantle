@@ -118,6 +118,16 @@ describe("alertOf", () => {
 		expect(alertOf(call)).toBeUndefined();
 	});
 
+	it("names the ngrok repo and the workspace of a call in the footer", () => {
+		const fromFrontend = alertOf({ ...weakFind, source: "frontend", workspace: "dashboard" });
+		const fromWorkspace = alertOf({ ...weakFind, workspace: "my-app" });
+
+		expect(fromFrontend?.text).toContain(
+			"_claude-code · ngrok/frontend › dashboard · mantle 0.93.0_",
+		);
+		expect(fromWorkspace?.text).toContain("_claude-code · my-app · mantle 0.93.0_");
+	});
+
 	it("escapes Slack markup, so an intent cannot ping or link", () => {
 		const text = alertOf({ ...gapReport, intent: "<!channel> & <https://x.test|y>" })?.text;
 

@@ -94,9 +94,19 @@ function goal(event: ToolCallEvent): string | undefined {
 	return event.intent == null ? undefined : `> Goal: ${escape(event.intent)}`;
 }
 
+/**
+ * Where the call came from: the ngrok repo of its `source`, then its
+ * workspace, such as `ngrok/frontend › dashboard`.
+ */
+function origin(event: ToolCallEvent): string | undefined {
+	const repo = event.source == null ? undefined : `ngrok/${event.source}`;
+	return [repo, event.workspace].filter(Boolean).join(" › ") || undefined;
+}
+
+/** The client, where the call came from, and the data version. */
 function footer(event: ToolCallEvent): string {
 	const version = event.dataVersion == null ? undefined : `mantle ${event.dataVersion}`;
-	return `_${[escape(clientName(event.client)), version].filter(Boolean).join(" · ")}_`;
+	return `_${[escape(clientName(event.client)), origin(event), version].filter(Boolean).join(" · ")}_`;
 }
 
 /**

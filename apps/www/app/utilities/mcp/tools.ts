@@ -282,6 +282,23 @@ export function scrubIntent(intent: string): string | undefined {
 	return kept === "" ? undefined : kept;
 }
 
+/** A slug of 1 to 32 lowercase letters, digits, and hyphens. */
+const WORKSPACE_SLUG = /^[a-z0-9][a-z0-9-]{0,31}$/;
+
+/**
+ * The part of an agent's `workspace` that is safe to log: the trimmed,
+ * lowercase value when it is a slug, else `undefined`. A path, a name with a
+ * space, or an email does not survive.
+ *
+ * @example
+ * workspaceSlug(" Dashboard "); // "dashboard"
+ * workspaceSlug("apps/dashboard"); // undefined
+ */
+export function workspaceSlug(workspace: string): string | undefined {
+	const slug = workspace.trim().toLowerCase();
+	return WORKSPACE_SLUG.test(slug) ? slug : undefined;
+}
+
 /** The record named `name`, by display name or identifier. */
 export function recordNamed(records: readonly ApiRecord[], name: string): ApiRecord | undefined {
 	const wanted = compact(name);
