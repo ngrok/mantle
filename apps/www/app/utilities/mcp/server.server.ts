@@ -17,6 +17,7 @@ import {
 	recordNamed,
 	recordsOf,
 	scrubIntent,
+	ticketKey,
 	workspaceSlug,
 	type DocPageRecord,
 	type FindRecord,
@@ -44,7 +45,7 @@ export const MCP_INSTRUCTIONS = [
 	"Call `check` on each file you change. Import each part from its own subpath, such as @ngrok/mantle/button.",
 	"When the user has no repo to run the code in, call `preview` and give them the link.",
 	"When mantle has no part for a need and you build a workaround, call `report_gap` once for that need.",
-	"Pass `intent` and `workspace` on each call, so the mantle team learns what agents build and where.",
+	"Pass `intent`, `workspace`, and `ticket` on each call, so the mantle team learns what agents build and where.",
 ].join("\n");
 
 /** What the server reads; tests pass fakes. */
@@ -129,6 +130,8 @@ export type ToolCallEvent = ToolCallOutcome & {
 	intent?: string;
 	/** The app or package that the agent changes, from `workspaceSlug`. */
 	workspace?: string;
+	/** The Linear issue key of the work, from `ticketKey`. Only a call with a `source` has one. */
+	ticket?: string;
 	dataVersion?: string;
 	/** Allowlisted record names from `find` and `get`, and diagnostic codes from `check`. */
 	ids?: string[];
@@ -162,7 +165,7 @@ function clientOf(request: Request | undefined): string | undefined {
 }
 
 /** The string at `key` in the raw arguments of a call, or `undefined`. */
-function rawString(value: unknown, key: "intent" | "workspace"): string | undefined {
+function rawString(value: unknown, key: "intent" | "workspace" | "ticket"): string | undefined {
 	if (typeof value !== "object" || value == null || !(key in value)) {
 		return undefined;
 	}
@@ -219,6 +222,14 @@ const workspaceArgument = z
 		'The app or package that you change, as a short lowercase slug: its folder name in a monorepo, such as "dashboard" for apps/dashboard, else the repo name. Never send a person\'s name or email.',
 	);
 
+// Why no schema check: a bad ticket must not fail the call. `ticketKey` drops it from the log.
+const ticketArgument = z
+	.string()
+	.optional()
+	.describe(
+		'The Linear issue key of the work, such as "FEP-1867". Read it from the branch name, the commit messages, or the task. Send the key only, never the title or a URL. Omit it when no issue is known.',
+	);
+
 const readOnly = { readOnlyHint: true, idempotentHint: true, openWorldHint: false } as const;
 
 function text(body: string, isError = false): CallToolResult {
@@ -269,7 +280,9 @@ function findResultText(record: FindRecord): string {
 /**
  * Creates one MCP server instance with the mantle tools, resources, and
  * prompt. The HTTP handler calls it once per request, so it holds no state.
- * The request names the client and the source in each log event.
+ * The request names the client and the source in each log event. A call
+ * logs its `ticket` only when the request has a source, so the keys of other
+ * companies stay out of Slack.
  *
  * @example
  * const handler = createMcpHandler(({ requestInfo }) =>
@@ -296,8 +309,9 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 
 	/**
 	 * Wraps the input schema of `tool` to log a call whose arguments fail it,
-	 * with the scrubbed `intent` and `workspace` when they are strings. The
-	 * SDK rejects that call before `run`, so this is its one log event.
+	 * with the scrubbed `intent`, `workspace`, and `ticket` when they are
+	 * strings. The SDK rejects that call before `run`, so this is its one log
+	 * event.
 	 */
 	const logInvalid = <Schema extends z.ZodType>(tool: string, schema: Schema) => {
 		const standard = schema["~standard"];
@@ -305,6 +319,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 			if (result.issues != null) {
 				const intent = rawString(value, "intent");
 				const workspace = rawString(value, "workspace");
+				const ticket = rawString(value, "ticket");
 				const fields = result.issues.map(({ path }) => {
 					const first = path?.[0];
 					return String(typeof first === "object" ? first.key : (first ?? "arguments"));
@@ -319,6 +334,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 					source,
 					intent: intent == null ? undefined : scrubIntent(intent),
 					workspace: workspace == null ? undefined : workspaceSlug(workspace),
+					ticket: source == null || ticket == null ? undefined : ticketKey(ticket),
 					invalidFields: Array.from(new Set(fields)),
 				});
 			}
@@ -339,17 +355,18 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 
 	/**
 	 * Runs a tool body behind the kill switch, maps a version error to a tool
-	 * error, and logs the call with the scrubbed `intent` and `workspace`. The
-	 * body never sees them. Any other error is logged, then thrown to the handler.
+	 * error, and logs the call with the scrubbed `intent`, `workspace`, and
+	 * `ticket`. The body never sees them. Any other error is logged, then
+	 * thrown to the handler.
 	 */
 	const run =
-		<Args extends { intent?: string; workspace?: string }>(
+		<Args extends { intent?: string; workspace?: string; ticket?: string }>(
 			tool: string,
 			body: (
-				args: Omit<Args, "intent" | "workspace">,
+				args: Omit<Args, "intent" | "workspace" | "ticket">,
 			) => Promise<{ result: CallToolResult } & ToolCallFacts>,
 		) =>
-		async ({ intent, workspace, ...args }: Args): Promise<CallToolResult> => {
+		async ({ intent, workspace, ticket, ...args }: Args): Promise<CallToolResult> => {
 			const started = performance.now();
 			const finish = (
 				outcome: ToolCallOutcome,
@@ -368,6 +385,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 					source,
 					intent: intent == null ? undefined : scrubIntent(intent),
 					workspace: workspace == null ? undefined : workspaceSlug(workspace),
+					ticket: source == null || ticket == null ? undefined : ticketKey(ticket),
 					...facts,
 				});
 				return result;
@@ -408,6 +426,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 					version: versionArgument,
 					intent: intentArgument,
 					workspace: workspaceArgument,
+					ticket: ticketArgument,
 				}),
 			),
 			annotations: readOnly,
@@ -477,6 +496,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 					version: versionArgument,
 					intent: intentArgument,
 					workspace: workspaceArgument,
+					ticket: ticketArgument,
 				}),
 			),
 			annotations: readOnly,
@@ -528,6 +548,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 					sections: sectionsArgument,
 					intent: intentArgument,
 					workspace: workspaceArgument,
+					ticket: ticketArgument,
 				}),
 			),
 			annotations: readOnly,
@@ -574,6 +595,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 						.describe("The target version. Defaults to the latest."),
 					intent: intentArgument,
 					workspace: workspaceArgument,
+					ticket: ticketArgument,
 				}),
 			),
 			annotations: readOnly,
@@ -609,6 +631,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 					version: versionArgument,
 					intent: intentArgument,
 					workspace: workspaceArgument,
+					ticket: ticketArgument,
 				}),
 			),
 			annotations: readOnly,
@@ -653,6 +676,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 					code: z.string().min(1).describe("The TSX source of one file with one default export."),
 					intent: intentArgument,
 					workspace: workspaceArgument,
+					ticket: ticketArgument,
 				}),
 			),
 			annotations: readOnly,
@@ -714,6 +738,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 					version: versionArgument,
 					intent: intentArgument,
 					workspace: workspaceArgument,
+					ticket: ticketArgument,
 				}),
 			),
 			annotations: {

@@ -103,10 +103,17 @@ function origin(event: ToolCallEvent): string | undefined {
 	return [repo, event.workspace].filter(Boolean).join(" › ") || undefined;
 }
 
-/** The client, where the call came from, and the data version. */
+/** A Slack link to the Linear issue of the call. `ticketKey` lets no markup through. */
+function ticketLink(event: ToolCallEvent): string | undefined {
+	return event.ticket == null
+		? undefined
+		: `<https://linear.app/ngrok/issue/${event.ticket}|${event.ticket}>`;
+}
+
+/** The client, where the call came from, its Linear issue, and the data version. */
 function footer(event: ToolCallEvent): string {
 	const version = event.dataVersion == null ? undefined : `mantle ${event.dataVersion}`;
-	return `_${[escape(clientName(event.client)), origin(event), version].filter(Boolean).join(" · ")}_`;
+	return `_${[escape(clientName(event.client)), origin(event), ticketLink(event), version].filter(Boolean).join(" · ")}_`;
 }
 
 /**

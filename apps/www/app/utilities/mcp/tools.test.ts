@@ -11,6 +11,7 @@ import {
 	recordNamed,
 	recordsOf,
 	scrubIntent,
+	ticketKey,
 	workspaceSlug,
 	type ApiRecord,
 	type DocPageRecord,
@@ -301,5 +302,22 @@ describe("workspaceSlug", () => {
 		["an empty value", " "],
 	])("drops %s", (_, workspace) => {
 		expect(workspaceSlug(workspace)).toBeUndefined();
+	});
+});
+
+describe("ticketKey", () => {
+	it("keeps an issue key, uppercased and trimmed", () => {
+		expect(ticketKey(" fep-1867 ")).toBe("FEP-1867");
+	});
+
+	it.each([
+		["a branch name", "cody/fep-1867-usage"],
+		["a URL", "https://linear.app/ngrok/issue/FEP-1867"],
+		["a title", "FEP-1867 Fix usage page"],
+		["Slack markup", "<!channel>"],
+		["a key with no number", "FEP-"],
+		["a zero number", "FEP-0"],
+	])("drops %s", (_, ticket) => {
+		expect(ticketKey(ticket)).toBeUndefined();
 	});
 });

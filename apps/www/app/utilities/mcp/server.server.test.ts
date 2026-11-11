@@ -290,23 +290,52 @@ describe("the mantle MCP server", () => {
 		);
 	});
 
-	it("logs the source and workspace of a call that fails schema validation", async () => {
+	it("logs the Linear issue key of a call from an ngrok repo", async () => {
 		const log = vi.fn<(event: ToolCallEvent) => void>();
 
-		await callToolFromFrontend(dependencies({ log }), "get", { name: "", workspace: "blog" });
+		await callToolFromFrontend(dependencies({ log }), "find", {
+			query: "modal",
+			ticket: "fep-1867",
+		});
+
+		expect(log).toHaveBeenLastCalledWith(expect.objectContaining({ ticket: "FEP-1867" }));
+	});
+
+	it("logs no issue key for a call with no source", async () => {
+		const log = vi.fn<(event: ToolCallEvent) => void>();
+
+		await callTool(dependencies({ log }), "find", { query: "modal", ticket: "FEP-1867" });
+
+		expect(log).toHaveBeenLastCalledWith(expect.objectContaining({ ticket: undefined }));
+	});
+
+	it("logs the source, workspace, and ticket of a call that fails schema validation", async () => {
+		const log = vi.fn<(event: ToolCallEvent) => void>();
+
+		await callToolFromFrontend(dependencies({ log }), "get", {
+			name: "",
+			workspace: "blog",
+			ticket: "FEP-1867",
+		});
 
 		expect(log).toHaveBeenLastCalledWith(
-			expect.objectContaining({ errorKind: "validation", source: "frontend", workspace: "blog" }),
+			expect.objectContaining({
+				errorKind: "validation",
+				source: "frontend",
+				workspace: "blog",
+				ticket: "FEP-1867",
+			}),
 		);
 	});
 
-	it("gives each tool an intent and a workspace argument", async () => {
+	it("gives each tool an intent, a workspace, and a ticket argument", async () => {
 		const { result } = await rpc(dependencies(), "tools/list");
 		const tools = (result?.tools ?? []) as { name: string; inputSchema: { properties: object } }[];
 
 		const missing = tools
 			.filter(({ inputSchema }) => !("intent" in inputSchema.properties))
 			.concat(tools.filter(({ inputSchema }) => !("workspace" in inputSchema.properties)))
+			.concat(tools.filter(({ inputSchema }) => !("ticket" in inputSchema.properties)))
 			.map(({ name }) => name);
 
 		expect(tools.length).toBeGreaterThan(0);

@@ -62,7 +62,7 @@ The server tells the agent when to call each tool, so you don't have to:
 
 Pass the exact installed version (from `node_modules/@ngrok/mantle/package.json` or the lockfile), not the range in `package.json`. The server supports 0.90.0 and later.
 
-Each tool takes an optional `intent`: the goal of the call in generic words, such as "endpoints list page, add bulk delete, need a confirm step for a destructive action". Each tool also takes an optional `workspace`: the app or package that the agent changes, such as "dashboard". The mantle team reads them to learn what agents build, where, and where mantle falls short. For each call, the server logs these values:
+Each tool takes an optional `intent`: the goal of the call in generic words, such as "endpoints list page, add bulk delete, need a confirm step for a destructive action". Each tool also takes an optional `workspace`: the app or package that the agent changes, such as "dashboard", and an optional `ticket`: the Linear issue key of the work, such as "FEP-1867". The mantle team reads them to learn what agents build, where, and where mantle falls short. For each call, the server logs these values:
 
 - the tool name, the outcome, and the error kind
 - the client name from the `User-Agent` header
@@ -70,6 +70,7 @@ Each tool takes an optional `intent`: the goal of the call in generic words, suc
 - the names of the parts that the tool returned
 - the intent, with each word that holds a URL, an email, a path, a number, or a quote removed. The server drops an intent that holds a code span, a tag, a call, or an assignment.
 - the workspace, when it is a slug of up to 32 lowercase letters, digits, and hyphens
+- the ticket, when it is an issue key and the MCP URL has a `source`
 
 The server never logs the code that you send to `check` or `preview`.
 

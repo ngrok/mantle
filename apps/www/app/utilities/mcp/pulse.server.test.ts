@@ -128,6 +128,14 @@ describe("alertOf", () => {
 		expect(fromWorkspace?.text).toContain("_claude-code · my-app · mantle 0.93.0_");
 	});
 
+	it("links the Linear issue of a call in the footer", () => {
+		const text = alertOf({ ...weakFind, source: "frontend", ticket: "FEP-1867" })?.text;
+
+		expect(text).toContain(
+			"_claude-code · ngrok/frontend · <https://linear.app/ngrok/issue/FEP-1867|FEP-1867> · mantle 0.93.0_",
+		);
+	});
+
 	it("escapes Slack markup, so an intent cannot ping or link", () => {
 		const text = alertOf({ ...gapReport, intent: "<!channel> & <https://x.test|y>" })?.text;
 

@@ -299,6 +299,23 @@ export function workspaceSlug(workspace: string): string | undefined {
 	return WORKSPACE_SLUG.test(slug) ? slug : undefined;
 }
 
+/** A Linear issue key: a team key of 2 to 10 letters and digits, a hyphen, and a number. */
+const TICKET_KEY = /^[A-Z][A-Z0-9]{1,9}-[1-9]\d{0,5}$/;
+
+/**
+ * The part of an agent's `ticket` that is safe to log: the trimmed, uppercase
+ * value when it is a Linear issue key, else `undefined`. A URL, a branch name,
+ * or an issue title does not survive.
+ *
+ * @example
+ * ticketKey(" fep-1867 "); // "FEP-1867"
+ * ticketKey("cody/fep-1867-usage"); // undefined
+ */
+export function ticketKey(ticket: string): string | undefined {
+	const key = ticket.trim().toUpperCase();
+	return TICKET_KEY.test(key) ? key : undefined;
+}
+
 /** The record named `name`, by display name or identifier. */
 export function recordNamed(records: readonly ApiRecord[], name: string): ApiRecord | undefined {
 	const wanted = compact(name);
