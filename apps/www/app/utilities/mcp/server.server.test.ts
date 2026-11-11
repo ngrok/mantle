@@ -310,6 +310,29 @@ describe("the mantle MCP server", () => {
 		);
 	});
 
+	it("logs no workspace for a call with no source", async () => {
+		const log = vi.fn<(event: ToolCallEvent) => void>();
+
+		await callTool(dependencies({ log }), "find", { query: "modal", workspace: "acme-billing" });
+
+		expect(log).toHaveBeenLastCalledWith(expect.objectContaining({ workspace: undefined }));
+	});
+
+	it("answers a call with a null workspace and ticket", async () => {
+		const log = vi.fn<(event: ToolCallEvent) => void>();
+
+		const result = await callToolFromFrontend(dependencies({ log }), "find", {
+			query: "modal",
+			workspace: null,
+			ticket: null,
+		});
+
+		expect(result.isError).toBe(false);
+		expect(log).toHaveBeenLastCalledWith(
+			expect.objectContaining({ outcome: "ok", workspace: undefined, ticket: undefined }),
+		);
+	});
+
 	it("logs the Linear issue key of a call from an ngrok repo", async () => {
 		const log = vi.fn<(event: ToolCallEvent) => void>();
 

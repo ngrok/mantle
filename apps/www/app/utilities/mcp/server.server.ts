@@ -129,7 +129,7 @@ export type ToolCallEvent = ToolCallOutcome & {
 	source?: McpSource;
 	/** The agent's reason for the call, from `scrubIntent`. */
 	intent?: string;
-	/** The app or package that the agent changes, from `workspaceSlug`. */
+	/** The app or package that the agent changes, from `workspaceSlug`. Only a call with a `source` has one. */
 	workspace?: string;
 	/** The Linear issue key of the work, from `ticketKey`. Only a call with a `source` has one. */
 	ticket?: string;
@@ -218,9 +218,9 @@ const intentArgument = z
 // Why no schema check: a bad workspace must not fail the call. `workspaceSlug` drops it from the log.
 const workspaceArgument = z
 	.string()
-	.optional()
+	.nullish()
 	.describe(
-		'The app or package that you change, as a short lowercase slug: its folder name in a monorepo, such as "dashboard" for apps/dashboard, else the repo name. Never send a person\'s name or email.',
+		'The app or package that you change, as a short lowercase slug: its folder name in a monorepo, such as "dashboard" for apps/dashboard. Never send a person\'s name or email.',
 	);
 
 // Why no schema check: a bad ticket must not fail the call. `ticketKey` drops it from the log.
@@ -229,7 +229,7 @@ const TICKET_TEXT =
 
 const ticketArgument = z
 	.string()
-	.optional()
+	.nullish()
 	.describe(
 		`${TICKET_TEXT} When you know it, send it on each call. Omit it when you do not know it, and do not ask the user only for this.`,
 	);
@@ -292,8 +292,8 @@ function findResultText(record: FindRecord): string {
  * Creates one MCP server instance with the mantle tools, resources, and
  * prompt. The HTTP handler calls it once per request, so it holds no state.
  * The request names the client and the source in each log event. A call
- * logs its `ticket` only when the request has a source, so the keys of other
- * companies stay out of Slack.
+ * logs its `workspace` and `ticket` only when the request has a source, so
+ * the project names and issue keys of other companies stay out of Slack.
  *
  * @example
  * const handler = createMcpHandler(({ requestInfo }) =>
@@ -303,6 +303,14 @@ function findResultText(record: FindRecord): string {
 export function createMantleMcpServer(dependencies: McpDependencies, request?: Request): McpServer {
 	const client = clientOf(request);
 	const source = sourceOf(request);
+	/** The logged `workspace` and `ticket`. Both need a source. */
+	const attribution = (
+		workspace: string | null | undefined,
+		ticket: string | null | undefined,
+	) => ({
+		workspace: source == null || workspace == null ? undefined : workspaceSlug(workspace),
+		ticket: source == null || ticket == null ? undefined : ticketKey(ticket),
+	});
 
 	const server = new McpServer(
 		{ name: "mantle", title: "ngrok mantle", version: dependencies.docsVersion },
@@ -344,8 +352,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 					client,
 					source,
 					intent: intent == null ? undefined : scrubIntent(intent),
-					workspace: workspace == null ? undefined : workspaceSlug(workspace),
-					ticket: source == null || ticket == null ? undefined : ticketKey(ticket),
+					...attribution(workspace, ticket),
 					invalidFields: Array.from(new Set(fields)),
 				});
 			}
@@ -371,7 +378,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 	 * thrown to the handler.
 	 */
 	const run =
-		<Args extends { intent?: string; workspace?: string; ticket?: string }>(
+		<Args extends { intent?: string; workspace?: string | null; ticket?: string | null }>(
 			tool: string,
 			body: (
 				args: Omit<Args, "intent" | "workspace" | "ticket">,
@@ -379,7 +386,6 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 		) =>
 		async ({ intent, workspace, ticket, ...args }: Args): Promise<CallToolResult> => {
 			const started = performance.now();
-			const issue = source == null || ticket == null ? undefined : ticketKey(ticket);
 			const finish = (
 				outcome: ToolCallOutcome,
 				result: CallToolResult,
@@ -396,8 +402,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 					client,
 					source,
 					intent: intent == null ? undefined : scrubIntent(intent),
-					workspace: workspace == null ? undefined : workspaceSlug(workspace),
-					ticket: issue,
+					...attribution(workspace, ticket),
 					...facts,
 				});
 				return result;

@@ -69,7 +69,7 @@ Each tool takes an optional `intent`: the goal of the call in generic words, suc
 - the `source` query parameter of the MCP URL, when it names an ngrok repo
 - the names of the parts that the tool returned
 - the intent, with each word that holds a URL, an email, a path, a number, or a quote removed. The server drops an intent that holds a code span, a tag, a call, or an assignment.
-- the workspace, when it is a slug of up to 32 lowercase letters, digits, and hyphens
+- the workspace, when it is a slug of up to 32 lowercase letters, digits, and hyphens and the MCP URL has a `source`
 - the ticket, when it is an issue key and the MCP URL has a `source`
 
 The server never logs the code that you send to `check` or `preview`.

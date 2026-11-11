@@ -120,12 +120,10 @@ describe("alertOf", () => {
 
 	it("names the ngrok repo and the workspace of a call in the footer", () => {
 		const fromFrontend = alertOf({ ...weakFind, source: "frontend", workspace: "dashboard" });
-		const fromWorkspace = alertOf({ ...weakFind, workspace: "my-app" });
 
 		expect(fromFrontend?.text).toContain(
 			"_claude-code · ngrok/frontend › dashboard · mantle 0.93.0_",
 		);
-		expect(fromWorkspace?.text).toContain("_claude-code · my-app · mantle 0.93.0_");
 	});
 
 	it("links the Linear issue of a call in the footer", () => {
@@ -207,6 +205,18 @@ describe("createPulse", () => {
 		pulse.record(gapReport);
 
 		expect(posts).toHaveLength(2);
+	});
+
+	it("posts the same need once for each app in the same hour", () => {
+		const { pulse, posts } = testPulse();
+		const fromDashboard = { ...gapReport, source: "frontend", workspace: "dashboard" } as const;
+
+		pulse.record(fromDashboard);
+		pulse.record({ ...fromDashboard, workspace: "blog" });
+		pulse.record(fromDashboard);
+
+		expect(posts).toHaveLength(2);
+		expect(posts[1]).toContain("ngrok/frontend › blog");
 	});
 
 	it("holds back alerts over 30 an hour and counts them in the digest", async () => {

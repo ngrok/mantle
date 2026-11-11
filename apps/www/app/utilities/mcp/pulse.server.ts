@@ -103,6 +103,15 @@ function origin(event: ToolCallEvent): string | undefined {
 	return [repo, event.workspace].filter(Boolean).join(" › ") || undefined;
 }
 
+/**
+ * The repeat key of an alert: `base`, then where the call came from. Why: the
+ * same gap from two apps must post two alerts in the same hour.
+ */
+function keyOf(base: string, event: ToolCallEvent): string {
+	const from = origin(event);
+	return from == null ? base : `${base} @ ${from}`;
+}
+
 /** A Slack link to the Linear issue of the call. `ticketKey` lets no markup through. */
 function ticketLink(event: ToolCallEvent): string | undefined {
 	return event.ticket == null
@@ -136,7 +145,7 @@ export function alertOf(event: ToolCallEvent): Alert | undefined {
 		const closest =
 			gap.closestPart == null ? undefined : `The closest part was *${escape(gap.closestPart)}*.`;
 		return {
-			key: `gap:${need}`,
+			key: keyOf(`gap:${need}`, event),
 			text: sections(
 				`:jigsaw: *Gap reported: "${need}"*`,
 				lines(`An agent needed ${needed}.`, workaround, closest),
@@ -149,7 +158,7 @@ export function alertOf(event: ToolCallEvent): Alert | undefined {
 		const query = escape(gap.tokens.join(" "));
 		const guesses = (event.ids ?? []).slice(0, 3).map(escape);
 		return {
-			key: `find:${query}`,
+			key: keyOf(`find:${query}`, event),
 			text: sections(
 				`:mag: *No strong match for "${query}"*`,
 				guesses.length > 0
