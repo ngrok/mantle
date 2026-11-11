@@ -47,38 +47,48 @@ function dependencies(overrides: Partial<McpDependencies> = {}): McpDependencies
 
 let requestId = 0;
 
-/** Sends one 2025-era JSON-RPC request through the stateless HTTP handler. */
-async function rpc(deps: McpDependencies, method: string, params: Record<string, unknown> = {}) {
-	const handler = createMcpHandler(({ requestInfo }) => createMantleMcpServer(deps, requestInfo));
-	requestId += 1;
-	const response = await handler.fetch(
-		new Request("https://mantle.example/mcp", {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-				Accept: "application/json, text/event-stream",
-				"User-Agent": "claude-code/2.1.3 (cli; darwin)",
-			},
-			body: JSON.stringify({ jsonrpc: "2.0", id: requestId, method, params }),
-		}),
-	);
-	// Why: the 2025-era leg answers over SSE, so the JSON-RPC response is the `data:` line.
-	const raw = await response.text();
-	await handler.close();
-	const data =
-		raw
-			.split("\n")
-			.find((line) => line.startsWith("data: "))
-			?.slice("data: ".length) ?? raw;
-	const body: unknown = JSON.parse(data);
-	return body as { result?: Record<string, unknown>; error?: { message: string } };
+/** Sends one 2025-era JSON-RPC request to `url` through the stateless HTTP handler. */
+function rpcAt(url: string) {
+	return async (deps: McpDependencies, method: string, params: Record<string, unknown> = {}) => {
+		const handler = createMcpHandler(({ requestInfo }) => createMantleMcpServer(deps, requestInfo));
+		requestId += 1;
+		const response = await handler.fetch(
+			new Request(url, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					Accept: "application/json, text/event-stream",
+					"User-Agent": "claude-code/2.1.3 (cli; darwin)",
+				},
+				body: JSON.stringify({ jsonrpc: "2.0", id: requestId, method, params }),
+			}),
+		);
+		// Why: the 2025-era leg answers over SSE, so the JSON-RPC response is the `data:` line.
+		const raw = await response.text();
+		await handler.close();
+		const data =
+			raw
+				.split("\n")
+				.find((line) => line.startsWith("data: "))
+				?.slice("data: ".length) ?? raw;
+		const body: unknown = JSON.parse(data);
+		return body as { result?: Record<string, unknown>; error?: { message: string } };
+	};
 }
 
-async function callTool(deps: McpDependencies, name: string, args: Record<string, unknown>) {
-	const { result } = await rpc(deps, "tools/call", { name, arguments: args });
-	const content = (result?.content ?? []) as { type: string; text: string }[];
-	return { text: content.map((block) => block.text).join(""), isError: result?.isError === true };
+/** Calls one tool at `url`, and returns its text and error flag. */
+function callToolAt(url: string) {
+	const send = rpcAt(url);
+	return async (deps: McpDependencies, name: string, args: Record<string, unknown>) => {
+		const { result } = await send(deps, "tools/call", { name, arguments: args });
+		const content = (result?.content ?? []) as { type: string; text: string }[];
+		return { text: content.map((block) => block.text).join(""), isError: result?.isError === true };
+	};
 }
+
+const rpc = rpcAt("https://mantle.example/mcp");
+const callTool = callToolAt("https://mantle.example/mcp");
+const callToolFromFrontend = callToolAt("https://mantle.example/mcp?source=frontend");
 
 describe("the mantle MCP server", () => {
 	it("lists the tools, and marks each read-only but report_gap", async () => {
@@ -140,6 +150,7 @@ describe("the mantle MCP server", () => {
 		const log = vi.fn<(event: ToolCallEvent) => void>();
 
 		const { text } = await callTool(dependencies({ log }), "report_gap", {
+			ticket: "none",
 			need: "Stepper",
 			kind: "component",
 			workaround: "composed-mantle-parts",
@@ -158,6 +169,25 @@ describe("the mantle MCP server", () => {
 					closestPart: "Dialog",
 				},
 			}),
+		);
+	});
+
+	it("requires a ticket on report_gap, and logs none as no ticket", async () => {
+		const log = vi.fn<(event: ToolCallEvent) => void>();
+		const gap = { need: "stepper", kind: "component", workaround: "built-custom" };
+
+		const missing = await callToolFromFrontend(dependencies({ log }), "report_gap", gap);
+		const missingEvent = log.mock.lastCall?.[0];
+		const none = await callToolFromFrontend(dependencies({ log }), "report_gap", {
+			...gap,
+			ticket: "none",
+		});
+
+		expect(missing.isError).toBe(true);
+		expect(missingEvent).toMatchObject({ errorKind: "validation", invalidFields: ["ticket"] });
+		expect(none.isError).toBe(false);
+		expect(log).toHaveBeenLastCalledWith(
+			expect.objectContaining({ outcome: "ok", source: "frontend", ticket: undefined }),
 		);
 	});
 
@@ -249,6 +279,110 @@ describe("the mantle MCP server", () => {
 				intent: "Confirm before a user deletes a domain at",
 			}),
 		);
+	});
+
+	it("logs the ngrok repo from the source parameter and the workspace slug", async () => {
+		const log = vi.fn<(event: ToolCallEvent) => void>();
+
+		await callToolFromFrontend(dependencies({ log }), "find", {
+			query: "modal",
+			workspace: " Dashboard ",
+		});
+
+		expect(log).toHaveBeenLastCalledWith(
+			expect.objectContaining({ source: "frontend", workspace: "dashboard" }),
+		);
+	});
+
+	it.each([
+		["an unknown repo and a path", "acme", "apps/dashboard"],
+		["a name and an email", "Jane Doe", "jane@example.com"],
+		["markup and a long value", "<!channel>", "a".repeat(33)],
+	])("logs no source or workspace for %s", async (_, source, workspace) => {
+		const log = vi.fn<(event: ToolCallEvent) => void>();
+
+		const call = callToolAt(`https://mantle.example/mcp?source=${encodeURIComponent(source)}`);
+		const result = await call(dependencies({ log }), "find", { query: "modal", workspace });
+
+		expect(result.isError).toBe(false);
+		expect(log).toHaveBeenLastCalledWith(
+			expect.objectContaining({ source: undefined, workspace: undefined }),
+		);
+	});
+
+	it("logs no workspace for a call with no source", async () => {
+		const log = vi.fn<(event: ToolCallEvent) => void>();
+
+		await callTool(dependencies({ log }), "find", { query: "modal", workspace: "acme-billing" });
+
+		expect(log).toHaveBeenLastCalledWith(expect.objectContaining({ workspace: undefined }));
+	});
+
+	it("answers a call with a null workspace and ticket", async () => {
+		const log = vi.fn<(event: ToolCallEvent) => void>();
+
+		const result = await callToolFromFrontend(dependencies({ log }), "find", {
+			query: "modal",
+			workspace: null,
+			ticket: null,
+		});
+
+		expect(result.isError).toBe(false);
+		expect(log).toHaveBeenLastCalledWith(
+			expect.objectContaining({ outcome: "ok", workspace: undefined, ticket: undefined }),
+		);
+	});
+
+	it("logs the Linear issue key of a call from an ngrok repo", async () => {
+		const log = vi.fn<(event: ToolCallEvent) => void>();
+
+		await callToolFromFrontend(dependencies({ log }), "find", {
+			query: "modal",
+			ticket: "fep-1867",
+		});
+
+		expect(log).toHaveBeenLastCalledWith(expect.objectContaining({ ticket: "FEP-1867" }));
+	});
+
+	it("logs no issue key for a call with no source", async () => {
+		const log = vi.fn<(event: ToolCallEvent) => void>();
+
+		await callTool(dependencies({ log }), "find", { query: "modal", ticket: "FEP-1867" });
+
+		expect(log).toHaveBeenLastCalledWith(expect.objectContaining({ ticket: undefined }));
+	});
+
+	it("logs the source, workspace, and ticket of a call that fails schema validation", async () => {
+		const log = vi.fn<(event: ToolCallEvent) => void>();
+
+		await callToolFromFrontend(dependencies({ log }), "get", {
+			name: "",
+			workspace: "blog",
+			ticket: "FEP-1867",
+		});
+
+		expect(log).toHaveBeenLastCalledWith(
+			expect.objectContaining({
+				errorKind: "validation",
+				source: "frontend",
+				workspace: "blog",
+				ticket: "FEP-1867",
+			}),
+		);
+	});
+
+	it("gives each tool an intent, a workspace, and a ticket argument", async () => {
+		const { result } = await rpc(dependencies(), "tools/list");
+		const tools = (result?.tools ?? []) as { name: string; inputSchema: { properties: object } }[];
+
+		const missing = tools
+			.filter(({ inputSchema }) => !("intent" in inputSchema.properties))
+			.concat(tools.filter(({ inputSchema }) => !("workspace" in inputSchema.properties)))
+			.concat(tools.filter(({ inputSchema }) => !("ticket" in inputSchema.properties)))
+			.map(({ name }) => name);
+
+		expect(tools.length).toBeGreaterThan(0);
+		expect(missing).toEqual([]);
 	});
 
 	it("turns off one tool with the kill switch", async () => {

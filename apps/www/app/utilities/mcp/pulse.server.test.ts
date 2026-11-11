@@ -118,6 +118,22 @@ describe("alertOf", () => {
 		expect(alertOf(call)).toBeUndefined();
 	});
 
+	it("names the ngrok repo and the workspace of a call in the footer", () => {
+		const fromFrontend = alertOf({ ...weakFind, source: "frontend", workspace: "dashboard" });
+
+		expect(fromFrontend?.text).toContain(
+			"_claude-code · ngrok/frontend › dashboard · mantle 0.93.0_",
+		);
+	});
+
+	it("links the Linear issue of a call in the footer", () => {
+		const text = alertOf({ ...weakFind, source: "frontend", ticket: "FEP-1867" })?.text;
+
+		expect(text).toContain(
+			"_claude-code · ngrok/frontend · <https://linear.app/ngrok/issue/FEP-1867|FEP-1867> · mantle 0.93.0_",
+		);
+	});
+
 	it("escapes Slack markup, so an intent cannot ping or link", () => {
 		const text = alertOf({ ...gapReport, intent: "<!channel> & <https://x.test|y>" })?.text;
 
@@ -189,6 +205,18 @@ describe("createPulse", () => {
 		pulse.record(gapReport);
 
 		expect(posts).toHaveLength(2);
+	});
+
+	it("posts the same need once for each app in the same hour", () => {
+		const { pulse, posts } = testPulse();
+		const fromDashboard = { ...gapReport, source: "frontend", workspace: "dashboard" } as const;
+
+		pulse.record(fromDashboard);
+		pulse.record({ ...fromDashboard, workspace: "blog" });
+		pulse.record(fromDashboard);
+
+		expect(posts).toHaveLength(2);
+		expect(posts[1]).toContain("ngrok/frontend › blog");
 	});
 
 	it("holds back alerts over 30 an hour and counts them in the digest", async () => {
