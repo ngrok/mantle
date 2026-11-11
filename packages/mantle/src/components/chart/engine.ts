@@ -1,4 +1,3 @@
-import invariant from "tiny-invariant";
 import { barThickness, isStackedDataEnd, stackedSegmentEdges } from "./bar-geometry.js";
 import type { DecimatedColumns } from "./decimate.js";
 import type { BandLayout } from "./scales.js";
@@ -14,7 +13,6 @@ import type {
 	SeriesSpec,
 	XValue,
 } from "./types.js";
-import { datumValue, missingKeyMessage, toEpochOrNumber, uncoercibleXMessage } from "./datum.js";
 import { observeResize, onFontsLoaded, prefersReducedMotion } from "./environment.js";
 import { requestSharedFrame } from "./frame-loop.js";
 import type {
@@ -25,7 +23,8 @@ import type {
 	ResolvedPaint,
 } from "./paint-backend.js";
 import { decimateColumns, shouldDecimate } from "./decimate.js";
-import { formatNumber, formatXValue, hasTimeOfDay, tickFractionDigits } from "./format.js";
+import { formatNumber, formatXValue, tickFractionDigits } from "./format.js";
+import { ingestRows, PART_NAME } from "./ingest.js";
 import { nearestIndex } from "./hit-test.js";
 import type { Camera } from "./projection.js";
 import {
@@ -153,13 +152,6 @@ type EngineCallbacks = {
  */
 const seriesPaintInput = (meta: SeriesMeta): string => `${meta.colorInput}|${meta.texture}`;
 
-const PART_NAME: Record<SeriesMark, string> = {
-	bar: "BarChart.Bar",
-	line: "LineChart.Line",
-	area: "AreaChart.Area",
-	scatter: "ScatterPlot.Point",
-};
-
 /** The pointer must land within this distance of a scatter point to hit it. */
 const SCATTER_HIT_RADIUS = 24;
 /** Drag farther than this before a 3D pointer-down counts as a rotation. */
@@ -258,7 +250,10 @@ class ChartEngine {
 	 */
 	#xHasTimeOfDay = false;
 	#pendingIngest = false;
-	#columns = new Map<string, Float64Array>();
+	/** One column per series, in `seriesSpecs()` order as of the last ingest. */
+	#columns: Float64Array[] = [];
+	/** The column of each `dataKey`, for the reads that start from a key. */
+	#columnIndex = new Map<string, number>();
 	#valueMin = 0;
 	#valueMax = 0;
 	/**
@@ -366,7 +361,7 @@ class ChartEngine {
 	#allIndexes: number[] = [];
 	/** The defined indexes of each scatter series, kept until the next ingest. */
 	#scatterIndexes: {
-		columns: Map<string, Float64Array>;
+		columns: readonly Float64Array[];
 		specs: readonly SeriesSpec[];
 		indexes: number[][];
 		total: number;
@@ -1026,153 +1021,25 @@ class ChartEngine {
 
 	#ingest(): void {
 		const rows = this.#rows;
-		const { xKey, xScale } = this.#options;
+		const { xScale } = this.#options;
 		const specs = this.#store.seriesSpecs();
 		this.#decimationCache.clear();
 		const previousXs = this.#xs;
-
-		// x values + sort order (continuous scales require ascending x; rows whose
-		// x cannot be coerced — null/unparseable dates — are dropped entirely, since
-		// a point with no position would poison the domain into NaN).
-		if (xScale === "band" || xScale === "point") {
-			const count = rows.length;
-			const xs = new Float64Array(count);
-			const xValues: XValue[] = Array.from({ length: count }, () => "");
-			// `undefined` means the x key is absent from the row: when EVERY row
-			// misses it that is an xKey typo, and it must fail fast the way a
-			// dataKey typo does — not render a full axis of "undefined" categories.
-			let foundX = false;
-			for (let index = 0; index < count; index++) {
-				const row = rows[index];
-				const raw = row == null ? undefined : datumValue(row, xKey);
-				if (raw !== undefined) {
-					foundX = true;
-				}
-				xValues[index] =
-					typeof raw === "string" || typeof raw === "number" || raw instanceof Date
-						? raw
-						: String(raw);
-				xs[index] = index;
-			}
-			invariant(count === 0 || foundX, () =>
-				missingKeyMessage(this.#rootName(), "xKey", xKey, rows),
-			);
-			this.#order = null;
-			this.#orderInverse = null;
-			this.#rowCount = count;
-			this.#xs = xs;
-			this.#xValues = xValues;
-			// Band/point positions are indices — vacuously integral (and unread:
-			// category axes never linear-tick). Reset so a scale change to linear
-			// on the same engine never reads a stale flag.
-			this.#xsAllIntegers = true;
-		} else {
-			// Why typed arrays: a stream ingests on every append, and an object per
-			// row is garbage at that rate. `xsAll` and `sources` hold the coercible
-			// rows in row order; a sort, when needed, permutes them.
-			const xsAll = new Float64Array(rows.length);
-			const sources = new Int32Array(rows.length);
-			let kept = 0;
-			let sortedAscending = true;
-			// `undefined` = key absent (an all-rows absence is a typo, below);
-			// `null` = an explicit per-row gap that drops silently; a present but
-			// uncoercible value that leaves NO coercible rows at all means the
-			// data cannot live on this scale — silence would render a blank chart
-			// with zero diagnostics.
-			let sawXKey = false;
-			let sawNonNullish = false;
-			for (let index = 0; index < rows.length; index++) {
-				const row = rows[index];
-				const raw = row == null ? undefined : datumValue(row, xKey);
-				if (raw !== undefined) {
-					sawXKey = true;
-				}
-				if (raw != null) {
-					sawNonNullish = true;
-				}
-				// Only finite x survives: Infinity (like NaN and invalid dates) has
-				// no position and would poison the domain into NaN, blanking the chart.
-				const x = toEpochOrNumber(raw, xScale === "time");
-				if (Number.isFinite(x)) {
-					if (kept > 0 && x < (xsAll[kept - 1] ?? 0)) {
-						sortedAscending = false;
-					}
-					xsAll[kept] = x;
-					sources[kept] = index;
-					kept += 1;
-				}
-			}
-			invariant(rows.length === 0 || sawXKey, () =>
-				missingKeyMessage(this.#rootName(), "xKey", xKey, rows),
-			);
-			invariant(!sawNonNullish || kept > 0, () =>
-				uncoercibleXMessage(this.#rootName(), xKey, xScale),
-			);
-			// Sorting once at ingest keeps decimation and hit-testing correct for
-			// out-of-order API responses; the sorted view is the engine's contract.
-			// A tie keeps row order.
-			const count = kept;
-			let xs = count === rows.length ? xsAll : xsAll.slice(0, count);
-			let order = count === rows.length ? sources : sources.slice(0, count);
-			if (!sortedAscending) {
-				const unsortedXs = xs;
-				const unsortedSources = order;
-				const permutation = Array.from({ length: count }, (_unused, slot) => slot).toSorted(
-					(a, b) => (unsortedXs[a] ?? 0) - (unsortedXs[b] ?? 0) || a - b,
-				);
-				xs = new Float64Array(count);
-				order = new Int32Array(count);
-				for (let slot = 0; slot < count; slot++) {
-					const from = permutation[slot] ?? slot;
-					xs[slot] = unsortedXs[from] ?? 0;
-					order[slot] = unsortedSources[from] ?? 0;
-				}
-			}
-			let xsAllIntegers = true;
-			for (let index = 0; index < count; index++) {
-				if (!Number.isInteger(xs[index])) {
-					xsAllIntegers = false;
-					break;
-				}
-			}
-			// Every row kept, in row order: the view is the data array itself.
-			const identityOrder = count === rows.length && sortedAscending;
-			if (identityOrder) {
-				this.#order = null;
-				this.#orderInverse = null;
-			} else {
-				this.#order = order;
-				// The inverse (source → view) backs the public index contract:
-				// consumers speak in their data array's indexes; -1 marks dropped rows.
-				const inverse = new Int32Array(rows.length).fill(-1);
-				for (let index = 0; index < count; index++) {
-					const source = order[index];
-					if (source != null) {
-						inverse[source] = index;
-					}
-				}
-				this.#orderInverse = inverse;
-			}
-			this.#rowCount = count;
-			this.#xs = xs;
-			// Why reset: after a scale change from band to linear, the category
-			// array would outlive its scale, and the time-of-day scan below reads it.
-			this.#xValues = [];
-			this.#xsAllIntegers = xsAllIntegers;
-		}
-		// Date label granularity is a dataset property, not a sample property:
-		// the midnight point inside an hourly series must keep its time of day.
-		// Only the category axis reads the flag (`#xTicks` under `#bandLayout`),
-		// so the scan covers `#xValues` alone. A continuous ingest leaves that
-		// array empty, so a time scale allocates no `Date` here.
-		let xHasTime = false;
-		for (const value of this.#xValues) {
-			if (value instanceof Date && hasTimeOfDay(value)) {
-				xHasTime = true;
-				break;
-			}
-		}
-		this.#xHasTimeOfDay = xHasTime;
+		const ingested = ingestRows({
+			rows,
+			xKey: this.#options.xKey,
+			xScale,
+			specs,
+			zKey: this.#kind === "scatter" ? this.#options.zKey : null,
+			rootName: this.#rootName(),
+		});
+		this.#rowCount = ingested.rowCount;
+		this.#xs = ingested.xs;
+		this.#xValues = ingested.xValues;
+		this.#order = ingested.order;
+		this.#orderInverse = ingested.orderInverse;
+		this.#xsAllIntegers = ingested.xsAllIntegers;
+		this.#xHasTimeOfDay = ingested.xHasTimeOfDay;
 
 		// Left-edge scroll mask activation. The streaming signature is a window
 		// slide: the first x advanced into the previous window while the last kept
@@ -1230,96 +1097,20 @@ class ChartEngine {
 			}
 		}
 
-		// Per-series columns (NaN = gap) + extent + fail-fast key validation.
-		const previousColumns = this.#columns;
-		this.#columns = new Map();
-		let min = Number.POSITIVE_INFINITY;
-		let max = Number.NEGATIVE_INFINITY;
-		// Stacked sums of integers are integers, so scanning the raw per-series
-		// values covers stacked domains too.
-		let valuesAllIntegers = true;
-		for (const spec of specs) {
-			const values = new Float64Array(count);
-			let found = false;
-			for (let index = 0; index < count; index++) {
-				const originalIndex = this.#order == null ? index : (this.#order[index] ?? index);
-				const row = rows[originalIndex];
-				const raw = row == null ? undefined : datumValue(row, spec.dataKey);
-				if (raw === undefined) {
-					values[index] = Number.NaN;
-					continue;
-				}
-				found = true;
-				// Non-finite values (an Infinity from an upstream divide-by-zero)
-				// render as gaps — fed into the extent they would nice the domain
-				// into NaN and blank the entire chart.
-				const value = typeof raw === "number" && Number.isFinite(raw) ? raw : Number.NaN;
-				values[index] = value;
-				if (!Number.isNaN(value)) {
-					if (value < min) {
-						min = value;
-					}
-					if (value > max) {
-						max = value;
-					}
-					if (!Number.isInteger(value)) {
-						valuesAllIntegers = false;
-					}
-				}
-			}
-			invariant(count === 0 || found, () =>
-				missingKeyMessage(PART_NAME[spec.mark], "dataKey", spec.dataKey, rows),
-			);
-			this.#columns.set(spec.dataKey, values);
-		}
-		this.#valueMin = min === Number.POSITIVE_INFINITY ? 0 : min;
-		this.#valueMax = max === Number.NEGATIVE_INFINITY ? 0 : max;
-		this.#valuesAllIntegers = valuesAllIntegers;
-
-		// 3D scatter: the depth column, sorted-aligned like every series column.
-		const zKey = this.#options.zKey;
-		if (this.#kind === "scatter" && zKey != null) {
-			const zs = new Float64Array(count);
-			let zMin = Number.POSITIVE_INFINITY;
-			let zMax = Number.NEGATIVE_INFINITY;
-			let zFound = false;
-			for (let index = 0; index < count; index++) {
-				const originalIndex = this.#order == null ? index : (this.#order[index] ?? index);
-				const row = rows[originalIndex];
-				const raw = row == null ? undefined : datumValue(row, zKey);
-				if (raw !== undefined) {
-					zFound = true;
-				}
-				const value = typeof raw === "number" && Number.isFinite(raw) ? raw : Number.NaN;
-				zs[index] = value;
-				if (!Number.isNaN(value)) {
-					if (value < zMin) {
-						zMin = value;
-					}
-					if (value > zMax) {
-						zMax = value;
-					}
-				}
-			}
-			invariant(count === 0 || zFound, () =>
-				missingKeyMessage("ScatterPlot.Root", "zKey", zKey, rows),
-			);
-			this.#zs = zs;
-			this.#zDomain =
-				zMin === Number.POSITIVE_INFINITY ? [0, 1] : niceDomain([zMin, zMax], Y_TICK_COUNT);
-		} else {
-			this.#zs = new Float64Array(0);
-		}
+		const previousColumnIndex = this.#columnIndex;
+		this.#columns = ingested.columns;
+		this.#columnIndex = new Map(specs.map((spec, index) => [spec.dataKey, index]));
+		this.#valueMin = ingested.valueMin;
+		this.#valueMax = ingested.valueMax;
+		this.#valuesAllIntegers = ingested.valuesAllIntegers;
+		this.#zs = ingested.zs;
+		this.#zDomain = ingested.zExtent == null ? [0, 1] : niceDomain(ingested.zExtent, Y_TICK_COUNT);
 		this.#projected = null;
 		// A fresh ingest re-projects every point; the cached hover pixel would
 		// otherwise strand the marker on the pre-ingest projection.
 		this.#activeScreen = null;
 
-		this.#stack = this.#options.stacked
-			? computeStackBoundaries(
-					specs.map((spec) => this.#columns.get(spec.dataKey) ?? new Float64Array(0)),
-				)
-			: null;
+		this.#stack = this.#options.stacked ? computeStackBoundaries(this.#columns) : null;
 
 		this.#decimated = shouldDecimate({
 			pointCount: count,
@@ -1341,7 +1132,7 @@ class ChartEngine {
 			}
 		}
 
-		this.#retargetTweens(specs, previousColumns, sameXVector);
+		this.#retargetTweens(specs, previousColumnIndex, sameXVector);
 
 		// Data changed under the active position: clamp, then force a republish
 		// so the snapshot reflects the fresh rows even at an unchanged index.
@@ -1357,7 +1148,7 @@ class ChartEngine {
 
 	#retargetTweens(
 		specs: readonly SeriesSpec[],
-		previousColumns: Map<string, Float64Array>,
+		previousColumnIndex: ReadonlyMap<string, number>,
 		sameXVector: boolean,
 	): void {
 		const now = performance.now();
@@ -1400,7 +1191,7 @@ class ChartEngine {
 
 		specs.forEach((spec, seriesIndex) => {
 			registeredKeys.add(spec.dataKey);
-			const hadPrevious = previousColumns.has(spec.dataKey);
+			const hadPrevious = previousColumnIndex.has(spec.dataKey);
 			if (this.#stack != null) {
 				retargetBuffer(
 					`${spec.dataKey}:lower`,
@@ -1415,7 +1206,7 @@ class ChartEngine {
 			} else {
 				retargetBuffer(
 					spec.dataKey,
-					this.#columns.get(spec.dataKey) ?? new Float64Array(0),
+					this.#columns[seriesIndex] ?? new Float64Array(0),
 					hadPrevious,
 				);
 			}
@@ -2281,10 +2072,20 @@ class ChartEngine {
 			}
 		}
 		if (boundary === "value") {
-			return this.#columns.get(series.dataKey) ?? new Float64Array(0);
+			return this.#columns[seriesIndex] ?? new Float64Array(0);
 		}
 		const rows = boundary === "lower" ? this.#stack?.lower : this.#stack?.upper;
 		return rows?.[seriesIndex] ?? new Float64Array(0);
+	}
+
+	/**
+	 * The column of one series by its key. The paint path holds each series'
+	 * index; an event between a registration and the next ingest does not, and
+	 * a key cannot read another series' column.
+	 */
+	#columnOf(dataKey: string): Float64Array | undefined {
+		const index = this.#columnIndex.get(dataKey);
+		return index == null ? undefined : this.#columns[index];
 	}
 
 	/** The indexes below `#rowCount` where `values` holds a number. */
@@ -2766,7 +2567,7 @@ class ChartEngine {
 			// Stacked marks paint at their cumulative boundary, so hit-test the
 			// boundary — raw values would misattribute everything to the largest series.
 			const values =
-				this.#stack == null ? this.#columns.get(spec.dataKey) : this.#stack.upper[seriesIndex];
+				this.#stack == null ? this.#columnOf(spec.dataKey) : this.#stack.upper[seriesIndex];
 			const value = values?.[index] ?? Number.NaN;
 			if (Number.isNaN(value)) {
 				return;
@@ -2839,7 +2640,7 @@ class ChartEngine {
 		// costs no sort per hover; `seriesMeta()` re-sorts per call.
 		const meta = this.#store.getSnapshot().series;
 		let points = meta.map((series) => {
-			const values = this.#columns.get(series.dataKey);
+			const values = this.#columnOf(series.dataKey);
 			const value = values?.[index] ?? Number.NaN;
 			return {
 				dataKey: series.dataKey,
@@ -2898,8 +2699,8 @@ class ChartEngine {
 		// at ingest.
 		let cached = this.#scatterIndexes;
 		if (cached == null || cached.columns !== this.#columns || cached.specs !== specs) {
-			const indexes = specs.map((spec) =>
-				this.#definedIndexes(this.#columns.get(spec.dataKey) ?? new Float64Array(0)),
+			const indexes = specs.map((_spec, seriesIndex) =>
+				this.#definedIndexes(this.#columns[seriesIndex] ?? new Float64Array(0)),
 			);
 			cached = {
 				columns: this.#columns,
@@ -3124,7 +2925,7 @@ class ChartEngine {
 		const xCo = this.#xCoefficients();
 		const yCo = this.#yCoefficients();
 		for (const spec of specs) {
-			const values = this.#columns.get(spec.dataKey);
+			const values = this.#columnOf(spec.dataKey);
 			if (values == null) {
 				continue;
 			}
@@ -3169,7 +2970,7 @@ class ChartEngine {
 		const xCo = this.#xCoefficients();
 		const yCo = this.#yCoefficients();
 		for (const spec of specs) {
-			const value = this.#columns.get(spec.dataKey)?.[index] ?? Number.NaN;
+			const value = this.#columnOf(spec.dataKey)?.[index] ?? Number.NaN;
 			if (!Number.isNaN(value)) {
 				return { x: (this.#xs[index] ?? 0) * xCo.k + xCo.b, y: value * yCo.k + yCo.b };
 			}
@@ -3222,7 +3023,7 @@ class ChartEngine {
 				const active =
 					this.#activeSeriesKey == null
 						? meta.find((series) => {
-								const value = this.#columns.get(series.dataKey)?.[index] ?? Number.NaN;
+								const value = this.#columnOf(series.dataKey)?.[index] ?? Number.NaN;
 								return !Number.isNaN(value);
 							})
 						: meta.find((series) => series.dataKey === this.#activeSeriesKey);
@@ -3283,7 +3084,7 @@ class ChartEngine {
 				// the stack carries a boundary through the gap); position follows the
 				// PAINTED value — the stacked upper boundary when stacking — so the
 				// dot sits on its series' drawn line, never at the unstacked height.
-				const raw = this.#columns.get(series.dataKey)?.[index] ?? Number.NaN;
+				const raw = this.#columnOf(series.dataKey)?.[index] ?? Number.NaN;
 				const painted =
 					this.#paintedValues(series, this.#stack != null ? "upper" : "value", seriesIndex)[
 						index
