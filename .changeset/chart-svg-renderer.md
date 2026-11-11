@@ -2,7 +2,9 @@
 "@ngrok/mantle": minor
 ---
 
-`BarChart`, `LineChart`, and `AreaChart` paint into an `<svg>` by default instead of a `<canvas>`. The marks, axes, tooltip, keyboard model, description, and data table are the same, and a browser test paints each scene through both renderers and compares the pixels. The SVG paints mantle's color tokens as CSS, so a theme switch repaints no chart, the chart reads no computed style to paint, and it holds no bitmap memory. On a list of 100 cards with one chart each, SVG charts used less main-thread time than canvas charts on mount, hover, resize, theme switch, and a data change.
+`BarChart`, `LineChart`, and `AreaChart` paint into an `<svg>` by default instead of a `<canvas>`. The marks, axes, tooltip, keyboard model, description, and data table are the same, and a browser test paints each scene through both renderers and compares the pixels. The SVG paints mantle's color tokens as CSS, so a theme switch repaints no chart, the chart reads no computed style to paint, and the page holds no canvas bitmaps.
+
+Measured with the docs site's chart bench on a page of 100 line chart cards (Chromium 158 on Linux with a software GPU, median of 3 runs, this release against the last one): main-thread time at load fell from 824 ms to 225 ms, a data replace from 481 ms to 25 ms, and a hover sweep from 1,452 ms to 315 ms. Bar chart cards and a 100-row table of sparklines improved by similar ratios. The SVG paths are DOM nodes, so the same page holds about 700 more DOM nodes and 3 to 5 MB more JavaScript heap.
 
 The paint surface is now `data-slot="bar-chart-svg"` (`line-chart-svg`, `area-chart-svg`). A new `renderer` prop keeps the canvas: `renderer="canvas"` paints exactly as before, with `data-slot="bar-chart-canvas"`. The canvas code loads in its own chunk the first time a chart asks for it, so a page with no canvas chart does not download it. `ScatterPlot` still paints on canvas.
 

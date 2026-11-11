@@ -26,6 +26,7 @@ Agent v4 list cards (DES-186) put one small interactive chart on every card: 20 
 ## Consequences
 
 - Each chart family's static import graph is 51.4 KB gzip (minified, React external), down from 54.5 KB before this change, with the SVG backend included. The canvas backend adds a 1.8 KB lazy chunk. ScatterPlot is 49.2 KB.
+- On the www chart bench (`/bench/charts`, devbox Chromium 158 with SwiftShader, CPU ×1, DPR 2, median of 3 interleaved runs, `origin/main` against this change with every item above): 100 line cards took 225 ms of main thread at load instead of 824 ms, 25 ms for a data replace instead of 481 ms, and 315 ms for a hover sweep instead of 1,452 ms. 100 bar cards and a 100-row sparkline table moved by similar ratios. The list pages hold about 700 more DOM nodes and 3 to 5 MB more JavaScript heap, because each path and label is a node.
 - A static or decorative SVG chart paints the same marks with no hover layers.
 - The `far` band releases nothing for an SVG chart: it holds no bitmap.
 - The engine is still one object per chart. The study's prototype kept no per-chart engine at all (one struct-of-arrays store per list); this change keeps the compound API and every engine feature (tweens, the edge fade, horizontal bars, textures, decimation) instead.
