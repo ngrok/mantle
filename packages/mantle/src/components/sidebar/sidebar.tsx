@@ -2555,8 +2555,8 @@ const SidebarSeparator = ({
  * details pane is `AppLayout.SidePanel`; a modal drawer is `Sheet`; switching
  * sections inside one page is `Tabs`.
  *
- * @useWhen Show the main navigation of an app in a column that collapses to an icon rail, and to a
- * sheet on small screens.
+ * @useWhen Show the main navigation of an app, with its app and account switchers, in a column that
+ * collapses to an icon rail, and to a sheet on small screens.
  *
  * @siblings
  * - `Tabs`: the user switches between views inside one page.

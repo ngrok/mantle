@@ -174,7 +174,7 @@ function weightedFields(record: FindRecord): [string[], number][] {
  * Ranks records against an intent or a name. A name or alias match ranks
  * first, then a name one typo away; then each query word scores by where it
  * appears. A plural matches its singular. Each result says whether it is a
- * strong match.
+ * strong match, and each strong match ranks above each weak match.
  *
  * @example
  * findRecords(records, { query: "modal" })[0]?.record.name; // "Dialog"
@@ -223,9 +223,13 @@ export function findRecords<T extends FindRecord>(
 			return { record, score: nameScore + wordScore, strong };
 		})
 		.filter(({ score }) => score > 0)
+		// Why strong first: `find` reads the strong flag of the top result only. A weak record that
+		// repeats one query word in many fields must not hide a strong record.
 		.toSorted(
 			(left, right) =>
-				right.score - left.score || left.record.name.localeCompare(right.record.name),
+				Number(right.strong) - Number(left.strong) ||
+				right.score - left.score ||
+				left.record.name.localeCompare(right.record.name),
 		);
 
 	return scored.slice(0, FIND_LIMIT);
