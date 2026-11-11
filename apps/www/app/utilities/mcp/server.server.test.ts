@@ -150,6 +150,7 @@ describe("the mantle MCP server", () => {
 		const log = vi.fn<(event: ToolCallEvent) => void>();
 
 		const { text } = await callTool(dependencies({ log }), "report_gap", {
+			ticket: "none",
 			need: "Stepper",
 			kind: "component",
 			workaround: "composed-mantle-parts",
@@ -171,19 +172,23 @@ describe("the mantle MCP server", () => {
 		);
 	});
 
-	it("asks a gap report from an ngrok repo for its Linear issue when it has none", async () => {
+	it("requires a ticket on report_gap, and logs none as no ticket", async () => {
+		const log = vi.fn<(event: ToolCallEvent) => void>();
 		const gap = { need: "stepper", kind: "component", workaround: "built-custom" };
 
-		const withoutTicket = await callToolFromFrontend(dependencies(), "report_gap", gap);
-		const withTicket = await callToolFromFrontend(dependencies(), "report_gap", {
+		const missing = await callToolFromFrontend(dependencies({ log }), "report_gap", gap);
+		const missingEvent = log.mock.lastCall?.[0];
+		const none = await callToolFromFrontend(dependencies({ log }), "report_gap", {
 			...gap,
-			ticket: "FEP-1867",
+			ticket: "none",
 		});
-		const withoutSource = await callTool(dependencies(), "report_gap", gap);
 
-		expect(withoutTicket.text).toContain("pass it as `ticket` on your next mantle calls.");
-		expect(withTicket.text).not.toContain("`ticket`");
-		expect(withoutSource.text).not.toContain("`ticket`");
+		expect(missing.isError).toBe(true);
+		expect(missingEvent).toMatchObject({ errorKind: "validation", invalidFields: ["ticket"] });
+		expect(none.isError).toBe(false);
+		expect(log).toHaveBeenLastCalledWith(
+			expect.objectContaining({ outcome: "ok", source: "frontend", ticket: undefined }),
+		);
 	});
 
 	it("keeps the instructions under 1 KB", () => {

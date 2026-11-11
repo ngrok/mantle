@@ -46,7 +46,7 @@ export const MCP_INSTRUCTIONS = [
 	"When the user has no repo to run the code in, call `preview` and give them the link.",
 	"When mantle has no part for a need and you build a workaround, call `report_gap` once for that need.",
 	"Pass `intent` and `workspace` on each call, so the mantle team learns what agents build and where.",
-	"When you know the Linear issue of the work, such as FEP-1867 or MNTL-59, pass it as `ticket` on each call, and always on `report_gap`.",
+	'When you know the Linear issue of the work, such as MNTL-59, pass it as `ticket` on each call. `report_gap` requires it, or "none".',
 ].join("\n");
 
 /** What the server reads; tests pass fakes. */
@@ -224,11 +224,21 @@ const workspaceArgument = z
 	);
 
 // Why no schema check: a bad ticket must not fail the call. `ticketKey` drops it from the log.
+const TICKET_TEXT =
+	'The Linear issue key of the work: the team key in capitals, a hyphen, and a number, such as "FEP-1867" or "MNTL-59". Each team has its own key. Look for it in the conversation, the branch name, the commits, and the task. Send the key only, never the title or a URL, and never invent a key.';
+
 const ticketArgument = z
 	.string()
 	.optional()
 	.describe(
-		'The Linear issue key of the work: the team key in capitals, a hyphen, and a number, such as "FEP-1867" or "MNTL-59". Each team has its own key. When the user named an issue in the conversation, or one is in the branch name, a commit, or the task, send it on each call. Send the key only, never the title or a URL. Omit it when you do not know it, and do not ask the user only for this.',
+		`${TICKET_TEXT} When you know it, send it on each call. Omit it when you do not know it, and do not ask the user only for this.`,
+	);
+
+// Why required: an agent fills each required argument, so it looks for the issue before it reports a gap.
+const requiredTicketArgument = z
+	.string()
+	.describe(
+		`${TICKET_TEXT} Send "none" when you do not know it, and do not ask the user only for this.`,
 	);
 
 const readOnly = { readOnlyHint: true, idempotentHint: true, openWorldHint: false } as const;
@@ -357,7 +367,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 	/**
 	 * Runs a tool body behind the kill switch, maps a version error to a tool
 	 * error, and logs the call with the scrubbed `intent`, `workspace`, and
-	 * `ticket`. The body sees only the logged ticket. Any other error is logged, then
+	 * `ticket`. The body never sees them. Any other error is logged, then
 	 * thrown to the handler.
 	 */
 	const run =
@@ -365,7 +375,6 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 			tool: string,
 			body: (
 				args: Omit<Args, "intent" | "workspace" | "ticket">,
-				call: { ticket?: string },
 			) => Promise<{ result: CallToolResult } & ToolCallFacts>,
 		) =>
 		async ({ intent, workspace, ticket, ...args }: Args): Promise<CallToolResult> => {
@@ -400,7 +409,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 				);
 			}
 			try {
-				const { result, errorKind, ...facts } = await body(args, { ticket: issue });
+				const { result, errorKind, ...facts } = await body(args);
 				const outcome: ToolCallOutcome =
 					result.isError === true
 						? { outcome: "error", errorKind: errorKind ?? "internal" }
@@ -722,7 +731,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 		{
 			title: "Report a mantle gap",
 			description:
-				'Tells the mantle team that mantle lacks something you needed, so they can add it. Call it once for each need, after `find` and `get` found no fit. Name the need in generic words, such as "stepper" or "date range picker". The server keeps only those words and the enums. Never send code, file paths, product names, or customer data. When you know the Linear issue of the work (the user named it, or it is in the branch name), pass it as `ticket`: the mantle team uses it to find the work that needs the part.',
+				'Tells the mantle team that mantle lacks something you needed, so they can add it. Call it once for each need, after `find` and `get` found no fit. Name the need in generic words, such as "stepper" or "date range picker". The server keeps only those words and the enums. Never send code, file paths, product names, or customer data. Always send `ticket`: the Linear issue key of the work, or "none". The mantle team uses it to find the work that needs the part.',
 			inputSchema: logInvalid(
 				"report_gap",
 				z.object({
@@ -741,7 +750,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 					version: versionArgument,
 					intent: intentArgument,
 					workspace: workspaceArgument,
-					ticket: ticketArgument,
+					ticket: requiredTicketArgument,
 				}),
 			),
 			annotations: {
@@ -751,7 +760,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 				openWorldHint: true,
 			},
 		},
-		run("report_gap", async ({ need, kind, workaround, closestPart, version }, call) => {
+		run("report_gap", async ({ need, kind, workaround, closestPart, version }) => {
 			const tokens = gapTokens(need);
 			if (tokens.length === 0) {
 				return failure(
@@ -762,14 +771,9 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 			const data = await dependencies.loader.load(version);
 			const closest =
 				closestPart == null ? undefined : recordNamed(recordsOf(data), closestPart)?.name;
-			// Why only with a source: the ask is for ngrok repos, which track work in Linear.
-			const ask =
-				source != null && call.ticket == null
-					? " If you know the Linear issue of this work, pass it as `ticket` on your next mantle calls."
-					: "";
 			return {
 				result: text(
-					`Reported: ${tokens.join(" ")}. Thank you. Do not report this need again in this task.${ask}`,
+					`Reported: ${tokens.join(" ")}. Thank you. Do not report this need again in this task.`,
 				),
 				dataVersion: data.version,
 				gap: { source: "report_gap", tokens, kind, workaround, closestPart: closest },
