@@ -20,7 +20,7 @@ test("a chart in another realm's document writes its marks", () => {
 		root,
 		plot: root,
 		slotName: "bar-chart",
-		onEnvironmentChange: () => {},
+		onColorsChange: () => {},
 	});
 	const context = backend.begin({ cssWidth: 100, cssHeight: 100, devicePixelRatio: 1 });
 	if (context == null) {
@@ -38,4 +38,43 @@ test("a chart in another realm's document writes its marks", () => {
 	expect(backend.element.querySelector("path")).toHaveAttribute("d");
 	backend.destroy();
 	frame.remove();
+});
+
+test("a right-aligned label ends at its anchor under an RTL ancestor", () => {
+	const root = document.createElement("div");
+	root.dir = "rtl";
+	root.style.cssText = "position: relative; width: 200px; height: 100px;";
+	document.body.append(root);
+	const backend = createSvgBackend({
+		root,
+		plot: root,
+		slotName: "line-chart",
+		onColorsChange: () => {},
+	});
+	root.prepend(backend.element);
+	const context = backend.begin({ cssWidth: 200, cssHeight: 100, devicePixelRatio: 1 });
+	if (context == null) {
+		throw new Error("The backend cannot paint.");
+	}
+	backend.composite(context, {
+		underlay: () => {},
+		marks: () => {
+			// A y-axis label: the engine draws it right-aligned, just left of the plot.
+			context.font = "12px sans-serif";
+			context.textAlign = "right";
+			context.fillText("1,000", 60, 50);
+		},
+		fade: null,
+	});
+	backend.end();
+	const label = backend.element.querySelector("text");
+	if (label == null) {
+		throw new Error("The backend wrote no label.");
+	}
+	const anchor = root.getBoundingClientRect().left + 60;
+	const box = label.getBoundingClientRect();
+	expect(box.width).toBeGreaterThan(0);
+	expect(Math.abs(box.right - anchor)).toBeLessThan(2);
+	backend.destroy();
+	root.remove();
 });

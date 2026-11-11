@@ -92,9 +92,6 @@ type ResolvedPaint = {
 	resolve: (color: SeriesColor) => string;
 };
 
-/** What changed outside the chart that a backend reports to its engine. */
-type EnvironmentChange = "colors" | "ratio";
-
 type PaintBackend = {
 	/** Which surface the backend paints. */
 	kind: "canvas" | "svg";
@@ -144,8 +141,8 @@ type PaintBackendOptions = {
 	plot: HTMLElement;
 	/** The Root's slot name, such as `"bar-chart"`, for the surface's `data-slot`. */
 	slotName: string;
-	/** Report a change outside the chart that needs a repaint. */
-	onEnvironmentChange: (change: EnvironmentChange) => void;
+	/** Report a theme change outside the chart that changes the resolved colors. */
+	onColorsChange: () => void;
 };
 
 /** Builds the paint backend of one chart at activation. */
@@ -154,7 +151,6 @@ type PaintBackendFactory = (options: PaintBackendOptions) => PaintBackend;
 export type {
 	//,
 	EdgeFade,
-	EnvironmentChange,
 	PaintBackend,
 	PaintBackendFactory,
 	PaintBackendOptions,

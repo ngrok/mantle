@@ -95,3 +95,28 @@ test("two callbacks that throw surface both errors", () => {
 	});
 	expect(flush).toThrow(AggregateError);
 });
+
+test("a request canceled by an earlier callback in the same frame does not run", () => {
+	const { view, flush } = createView();
+	const canceled = vi.fn<() => void>();
+	let cancel = (): void => {};
+	requestSharedFrame(view, () => cancel());
+	cancel = requestSharedFrame(view, canceled);
+	flush();
+	expect(canceled).toHaveBeenCalledTimes(0);
+});
+
+test("a cancel then a new request inside a frame runs the callback in the next frame", () => {
+	const { view, flush } = createView();
+	const replaced = vi.fn<() => void>();
+	let cancel = (): void => {};
+	requestSharedFrame(view, () => {
+		cancel();
+		requestSharedFrame(view, replaced);
+	});
+	cancel = requestSharedFrame(view, replaced);
+	flush();
+	expect(replaced).toHaveBeenCalledTimes(0);
+	flush();
+	expect(replaced).toHaveBeenCalledTimes(1);
+});

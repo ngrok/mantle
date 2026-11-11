@@ -15,7 +15,6 @@ import {
 	resolveSeriesColor,
 	themeSignature,
 } from "./canvas-colors.js";
-import { watchDevicePixelRatio } from "./environment.js";
 
 /**
  * The canvas paint backend: one `<canvas>` per chart, sized to the device
@@ -34,9 +33,8 @@ class CanvasBackend implements PaintBackend {
 	#context: CanvasRenderingContext2D | null = null;
 	#contextRequested = false;
 	#stopTheme: () => void;
-	#stopRatio: () => void;
 
-	constructor({ root, plot, slotName, onEnvironmentChange }: PaintBackendOptions) {
+	constructor({ root, plot, slotName, onColorsChange }: PaintBackendOptions) {
 		this.#root = root;
 		this.#plot = plot;
 		const canvas = root.ownerDocument.createElement("canvas");
@@ -47,12 +45,7 @@ class CanvasBackend implements PaintBackend {
 		canvas.style.width = "100%";
 		canvas.style.height = "100%";
 		this.element = canvas;
-		this.#stopTheme = observeThemeChanges(root.ownerDocument.documentElement, () =>
-			onEnvironmentChange("colors"),
-		);
-		const view = root.ownerDocument.defaultView;
-		this.#stopRatio =
-			view == null ? () => {} : watchDevicePixelRatio(view, () => onEnvironmentChange("ratio"));
+		this.#stopTheme = observeThemeChanges(root.ownerDocument.documentElement, onColorsChange);
 	}
 
 	#ctx(): CanvasRenderingContext2D | null {
@@ -172,7 +165,6 @@ class CanvasBackend implements PaintBackend {
 
 	destroy(): void {
 		this.#stopTheme();
-		this.#stopRatio();
 	}
 }
 
@@ -181,7 +173,7 @@ class CanvasBackend implements PaintBackend {
  *
  * @example
  * ```ts
- * const backend = createCanvasBackend({ root, plot, slotName: "scatter-plot", onEnvironmentChange });
+ * const backend = createCanvasBackend({ root, plot, slotName: "scatter-plot", onColorsChange });
  * plot.prepend(backend.element);
  * ```
  */

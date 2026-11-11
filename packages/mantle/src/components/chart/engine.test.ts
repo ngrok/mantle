@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { createCanvasBackend } from "./canvas-backend.js";
 import { createColorResolver } from "./canvas-colors.js";
+import { createSvgBackend } from "./svg-backend.js";
 import type { EngineElements, HoverLayers } from "./engine.js";
 import { ChartEngine } from "./engine.js";
 import { ChartStore } from "./store.js";
@@ -747,5 +748,54 @@ describe("ChartEngine printing", () => {
 		deliverResize(mount, { width: 400, height: 200 });
 		await afterNextCommit();
 		expect(resolves).toHaveBeenCalledTimes(1);
+	});
+});
+
+describe("ChartEngine device pixel ratio", () => {
+	test("an SVG chart samples its marks at the new ratio after a zoom", async () => {
+		// Why a fake query: happy-dom's `matchMedia` never fires `change`.
+		const ratioListeners: Array<() => void> = [];
+		vi.stubGlobal("matchMedia", (query: string) => ({
+			matches: false,
+			media: query,
+			addEventListener: (_type: string, listener: () => void) => {
+				ratioListeners.push(listener);
+			},
+			removeEventListener: () => {},
+		}));
+		vi.stubGlobal("devicePixelRatio", 1);
+		const store = new ChartStore();
+		const elements = createElements();
+		const engine = new ChartEngine({
+			kind: "line",
+			elements,
+			store,
+			backend: createSvgBackend,
+			slotName: "chart",
+		});
+		store.registerSeries(makeSeries("y", "line"));
+		engine.setOptions({ ...baseOptions, xKey: "x" });
+		engine.setRows(
+			Array.from({ length: 4000 }, (_, index) => ({ x: index, y: 50 + 40 * Math.sin(index / 7) })),
+		);
+		deliverResize({ elements }, { width: 100, height: 100 });
+		engine.flushIngest();
+		engine.commitNow();
+		const commands = (): number =>
+			(elements.plot.querySelector("svg path[d]")?.getAttribute("d") ?? "").match(/[ML]/g)
+				?.length ?? 0;
+		const atOne = commands();
+		expect(atOne).toBeGreaterThan(0);
+
+		// A zoom changes the ratio and not the plot's CSS size, so no resize arrives.
+		vi.stubGlobal("devicePixelRatio", 2);
+		// Why splice: each listener re-arms the watch, which adds a listener.
+		for (const listener of ratioListeners.splice(0)) {
+			listener();
+		}
+		await afterNextCommit();
+		expect(commands()).toBeGreaterThan(atOne);
+		engine.destroy();
+		elements.root.remove();
 	});
 });

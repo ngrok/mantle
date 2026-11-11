@@ -459,6 +459,10 @@ class SvgSurface {
 		svg.style.width = "100%";
 		svg.style.height = "100%";
 		svg.style.overflow = "hidden";
+		// Why ltr: the engine aligns text to physical left and right, as canvas
+		// does. SVG `text-anchor` follows the inherited direction, so an RTL
+		// ancestor would flip each label to the other side of its anchor.
+		svg.style.direction = "ltr";
 		this.#defs = this.#create("defs");
 		svg.append(this.#defs);
 		this.#groups = {
@@ -787,7 +791,7 @@ class SvgBackend implements PaintBackend {
  *
  * @example
  * ```ts
- * const backend = createSvgBackend({ root, plot, slotName: "bar-chart", onEnvironmentChange });
+ * const backend = createSvgBackend({ root, plot, slotName: "bar-chart", onColorsChange });
  * plot.prepend(backend.element);
  * ```
  */

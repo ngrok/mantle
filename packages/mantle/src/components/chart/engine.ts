@@ -13,10 +13,14 @@ import type {
 	SeriesSpec,
 	XValue,
 } from "./types.js";
-import { observeResize, onFontsLoaded, prefersReducedMotion } from "./environment.js";
+import {
+	observeResize,
+	onFontsLoaded,
+	prefersReducedMotion,
+	watchDevicePixelRatio,
+} from "./environment.js";
 import { requestSharedFrame } from "./frame-loop.js";
 import type {
-	EnvironmentChange,
 	PaintBackend,
 	PaintBackendFactory,
 	PaintContext,
@@ -206,6 +210,7 @@ class ChartEngine {
 
 	#backend: PaintBackend;
 	#stopResize: (() => void) | null = null;
+	#stopRatio: (() => void) | null = null;
 	#stopTooltipResize: (() => void) | null = null;
 	#fontsCleanup: (() => void) | null = null;
 	/** The owning window, or `null` in a detached document. */
@@ -432,7 +437,7 @@ class ChartEngine {
 			root: options.elements.root,
 			plot: options.elements.plot,
 			slotName: options.slotName,
-			onEnvironmentChange: this.#onEnvironmentChange,
+			onColorsChange: this.#onColorsChange,
 		});
 		// The surface goes under the overlay, which the Root renders first.
 		options.elements.plot.prepend(this.#backend.element);
@@ -480,22 +485,28 @@ class ChartEngine {
 			this.#schedule();
 		});
 		this.#view = options.elements.root.ownerDocument.defaultView;
+		// Why the engine watches and not the backend: decimation, pointer snap,
+		// and the keyboard stride read the ratio on every surface.
+		const view = this.#view;
+		this.#stopRatio = view == null ? null : watchDevicePixelRatio(view, this.#onRatioChange);
 		this.#dimensionChase.jump([1, 1]);
 	}
 
-	#onEnvironmentChange = (change: EnvironmentChange): void => {
-		if (change === "ratio") {
-			this.#dpr = this.#currentDpr();
-			this.#decimationCache.clear();
-		} else {
-			this.#colors = null;
-		}
+	#onRatioChange = (): void => {
+		this.#dpr = this.#currentDpr();
+		this.#decimationCache.clear();
+		this.#schedule();
+	};
+
+	#onColorsChange = (): void => {
+		this.#colors = null;
 		this.#schedule();
 	};
 
 	destroy(): void {
 		this.#destroyed = true;
 		this.#stopResize?.();
+		this.#stopRatio?.();
 		this.#stopTooltipResize?.();
 		this.#backend.destroy();
 		this.#backend.element.remove();
