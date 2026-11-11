@@ -213,8 +213,14 @@ const Root = ({
 					// room for expand. Dismiss stays rightmost, so expand moves left of
 					// it. The rule reads the presence attributes, not the slots, because
 					// `AlertCenter.DismissIconButton` replaces the dismiss slot value.
-					"has-data-alert-dismiss:pr-10",
-					"has-data-alert-dismiss:**:data-alert-expand:right-10",
+					// `--alert-dismiss-room` is the dismiss width plus its inset and the
+					// gap. The `xs` and `2xs` sizes fit in the default `sm` room.
+					"[--alert-dismiss-room:--spacing(10)]",
+					"has-[[data-alert-dismiss][data-size=md]]:[--alert-dismiss-room:--spacing(12)]",
+					"has-[[data-alert-dismiss][data-size=lg]]:[--alert-dismiss-room:--spacing(13)]",
+					"has-[[data-alert-dismiss][data-size=xl]]:[--alert-dismiss-room:--spacing(15)]",
+					"has-data-alert-dismiss:pr-(--alert-dismiss-room)",
+					"has-data-alert-dismiss:**:data-alert-expand:right-(--alert-dismiss-room)",
 					"has-data-alert-expand:**:data-[slot~=alert-content]:pr-16",
 					"md:has-data-alert-expand:**:data-[slot~=alert-content]:pr-24",
 					className,
