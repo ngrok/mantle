@@ -236,7 +236,9 @@ const DefaultRadioIndicator = ({ checked, disabled, focus, hover }: RadioStateCo
 		// Why: `RadioGroup.Item` reads this attribute to skip its own focus ring.
 		data-radio-default-indicator=""
 		className={cx(
-			"flex size-4 items-center justify-center rounded-full shrink-0",
+			// Why a transparent border: forced-colors mode removes the fill and paints this
+			// border in a system color, so the circle keeps its outline.
+			"flex size-4 items-center justify-center rounded-full border border-transparent shrink-0",
 			disabled && "cursor-default opacity-50",
 			// Why a fill, not a border: hover shifts the fill toward more contrast in both themes.
 			checked ? "bg-filled-accent" : "bg-neutral-300",
@@ -244,7 +246,10 @@ const DefaultRadioIndicator = ({ checked, disabled, focus, hover }: RadioStateCo
 			focus && !disabled && "ring-focus-accent ring-4",
 		)}
 	>
-		{checked && <span className="size-2 rounded-full bg-white shrink-0" />}
+		{/* Why the forced-colors classes: forced-colors mode removes the fill, so the dot keeps a system color. */}
+		{checked && (
+			<span className="size-2 rounded-full bg-white shrink-0 forced-colors:forced-color-adjust-none forced-colors:bg-[CanvasText]" />
+		)}
 	</span>
 );
 
