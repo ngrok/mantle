@@ -31,28 +31,28 @@ catalog:
   "@phosphor-icons/react": "2.1.10"
   "@types/react": "19.3.0"
   "@types/react-dom": "19.3.0"
-  "@tailwindcss/node": "4.3.4"
-  "@tailwindcss/oxide": "4.3.4"
-  "@tailwindcss/vite": "4.3.4"
+  "@tailwindcss/node": "4.3.5"
+  "@tailwindcss/oxide": "4.3.5"
+  "@tailwindcss/vite": "4.3.5"
   "@testing-library/dom": "10.4.2"
   "@testing-library/jest-dom": "7.0.1"
   "@testing-library/react": "16.3.3"
-  "@testing-library/user-event": "14.6.8"
-  "@tsdown/css": "0.23.5"
+  "@testing-library/user-event": "14.6.9"
+  "@tsdown/css": "0.23.7"
   "@types/node": "26.6.6"
   "@vitest/browser-playwright": "5.1.0"
   "happy-dom": "21.0.4"
-  "oxc-parser": "0.157.0"
-  "oxc-transform-react": "0.156.0"
-  "oxfmt": "0.76.0"
+  "oxc-parser": "0.158.0"
+  "oxc-transform-react": "0.158.0"
+  "oxfmt": "0.78.0"
   "playwright-core": "1.65.0"
   "playwright": "1.65.0"
   "react-dom": "19.3.1"
   "react": "19.3.1"
-  "tailwindcss": "4.3.4"
-  "tsdown": "0.23.5"
+  "tailwindcss": "4.3.5"
+  "tsdown": "0.23.7"
   "typescript": "7.0.2"
-  "vite": "8.3.5"
+  "vite": "8.3.8"
 
 overrides:
   "@types/node": "catalog:"
@@ -83,4 +83,6 @@ allowBuilds:
 # dependency ships stays out of the install.
 permissions:
   "@tanstack/react-table":
+    skills: false
+  "tsdown":
     skills: false
