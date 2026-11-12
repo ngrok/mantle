@@ -35,6 +35,7 @@ import type { HoverLayers } from "./engine.js";
 import { ChartEngine, POINT_SHAPE_CLIP_PATHS } from "./engine.js";
 import { observeResize, onPrint } from "./environment.js";
 import type { PaintBackendFactory } from "./paint-backend.js";
+import type { ScatterViewFactory } from "./scatter-engine.js";
 import { formatNumber, formatXValue } from "./format.js";
 import { serializeChartMarkdown } from "./serialize.js";
 import { ChartStore } from "./store.js";
@@ -441,6 +442,8 @@ type InternalRootProps = ChartRootPrimitiveProps & {
 	slotName: string;
 	/** The surface the engine paints on. Pass a stable function: a new one rebuilds the engine. */
 	paintBackend: PaintBackendFactory;
+	/** The scatter view factory. ScatterPlot passes it; the other families leave it out. */
+	scatterView?: ScatterViewFactory;
 };
 
 /**
@@ -536,6 +539,7 @@ const ChartRootPrimitive = ({
 	componentName,
 	slotName,
 	paintBackend,
+	scatterView,
 	data,
 	xKey,
 	xScale,
@@ -711,6 +715,7 @@ const ChartRootPrimitive = ({
 				kind,
 				store,
 				backend: paintBackend,
+				scatter: scatterView,
 				slotName,
 				elements: {
 					root,
@@ -757,7 +762,7 @@ const ChartRootPrimitive = ({
 				layers.markers.remove();
 			}
 		};
-	}, [kind, store, slotName, interactive, paintBackend]);
+	}, [kind, store, slotName, interactive, paintBackend, scatterView]);
 
 	// Why a layout effect: observing before the first frame means the browser
 	// computes the entries at the end of that frame, so a chart that starts in

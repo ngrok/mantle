@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { createCanvasBackend } from "./canvas-backend.js";
+import { createScatterView } from "./scatter-engine.js";
 import { createColorResolver } from "./canvas-colors.js";
 import { createSvgBackend } from "./svg-backend.js";
 import type { EngineElements, HoverLayers } from "./engine.js";
@@ -144,6 +145,7 @@ const mountEngine = (config: {
 		store,
 		backend: createCanvasBackend,
 		slotName: "chart",
+		scatter: createScatterView,
 		inView: config.inView,
 	});
 	const canvas = elements.plot.querySelector("canvas");

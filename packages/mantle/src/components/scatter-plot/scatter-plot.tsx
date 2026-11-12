@@ -21,6 +21,7 @@ import type {
 	SeriesColor,
 } from "../chart/types.js";
 import { createCanvasBackend } from "../chart/canvas-backend.js";
+import { createScatterView } from "../chart/scatter-engine.js";
 import {
 	ChartCopyButtonPrimitive,
 	ChartLegendPrimitive,
@@ -241,6 +242,7 @@ const Root = <TDatum extends ChartDatum = ChartDatum, TMode extends ChartMode = 
 		slotName="scatter-plot"
 		// Why canvas: a point cloud past a few thousand marks redraws faster there.
 		paintBackend={createCanvasBackend}
+		scatterView={createScatterView}
 		{...props}
 	/>
 );

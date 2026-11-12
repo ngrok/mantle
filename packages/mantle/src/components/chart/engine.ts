@@ -1,3 +1,4 @@
+import invariant from "tiny-invariant";
 import { barThickness, isStackedDataEnd, stackedSegmentEdges } from "./bar-geometry.js";
 import type { DecimatedColumns } from "./decimate.js";
 import type { BandLayout } from "./scales.js";
@@ -30,15 +31,6 @@ import { decimateColumns, shouldDecimate } from "./decimate.js";
 import { formatNumber, formatXValue, tickFractionDigits } from "./format.js";
 import { ingestRows, PART_NAME } from "./ingest.js";
 import { nearestIndex } from "./hit-test.js";
-import type { Camera } from "./projection.js";
-import {
-	clampPitch,
-	CUBE_CORNERS,
-	CUBE_EDGES,
-	normalizeToCube,
-	projectionMatrix,
-	projectPoint,
-} from "./projection.js";
 import {
 	bandCenter,
 	bandHitRegion,
@@ -61,24 +53,20 @@ import {
 	drawAxisLabels,
 	drawBars,
 	drawBaseline,
-	drawCubeAxisLabels,
-	drawCubeFrame,
 	drawDecimatedArea,
 	drawDecimatedLine,
 	drawGrid,
 	drawHorizontalBars,
 	drawLinePath,
-	drawDepthSortedPoints,
 	drawMarkers,
 	drawReferenceLine,
-	drawScatterPoints,
 	drawVerticalBaseline,
 	drawVerticalReferenceLine,
 } from "./renderer.js";
+import type { FrameLabels, ScatterView, ScatterViewFactory } from "./scatter-engine.js";
 import { computeStackBoundaries } from "./stack.js";
 import type { StackBoundaries } from "./stack.js";
 import { CHART_TWEEN_DURATION_MS, ChaseTween, PER_DATUM_TWEEN_LIMIT, ValueTween } from "./tween.js";
-import { MARKER_RADIUS } from "./renderer.js";
 
 /**
  * The imperative, framework-free chart engine. One instance backs one chart
@@ -134,17 +122,6 @@ type EngineElements = {
 	tooltip: HTMLElement | null;
 };
 
-/** The 3D frame's axis labels, painted after the marks clip is restored. */
-type FrameLabels = {
-	center: { x: number; y: number };
-	axes: Array<{
-		label: string;
-		alpha: number;
-		from: { x: number; y: number };
-		to: { x: number; y: number };
-	}>;
-};
-
 type EngineCallbacks = {
 	onDatumActivate: ((event: ChartDatumEvent) => void) | null;
 	onActiveIndexChange: ((index: number | null) => void) | null;
@@ -155,11 +132,6 @@ type EngineCallbacks = {
  * (color or texture) must invalidate the cached colors and patterns.
  */
 const seriesPaintInput = (meta: SeriesMeta): string => `${meta.colorInput}|${meta.texture}`;
-
-/** The pointer must land within this distance of a scatter point to hit it. */
-const SCATTER_HIT_RADIUS = 24;
-/** Drag farther than this before a 3D pointer-down counts as a rotation. */
-const DRAG_THRESHOLD = 3;
 
 const Y_TICK_COUNT = 5;
 /** The vertical space, in CSS pixels, that one y-axis tick label needs. */
@@ -332,30 +304,14 @@ class ChartEngine {
 
 	#zs = new Float64Array(0);
 	#zDomain: [number, number] = [0, 1];
-	#camera: Camera = { yaw: 0.65, pitch: -0.35 };
-	// Dimension changes re-aim the camera (face-on for a line or plane, the
-	// default tilt for the cube); a manual drag cancels the glide.
-	#cameraChase = new ChaseTween({ speed: 0.12 });
-	// Per-axis collapse factors [y, z] for the 3D dimensions morph: 1D collapses
-	// the cloud onto the x axis, 2D onto the xy plane. Chased so dimension
-	// changes glide like every other motion in the engine.
-	#dimensionChase = new ChaseTween({ speed: 0.16 });
-	#drag: { lastX: number; lastY: number; moved: boolean } | null = null;
+	/** The scatter paint, hit test, and 3D camera. `null` for every other kind. */
+	#scatter: ScatterView | null = null;
 	/**
 	 * Whether the current press began on the overlay. Click semantics require
 	 * down + up on the chart: a drag that started outside (text selection, a
 	 * press on the legend) releasing over the plot must not activate.
 	 */
 	#pressed = false;
-	#projected: {
-		screenX: Float64Array;
-		screenY: Float64Array;
-		radius: Float64Array;
-		seriesIndex: Int32Array;
-		pointIndex: Int32Array;
-		depths: Float64Array;
-		count: number;
-	} | null = null;
 	/**
 	 * Bar rects reused across series and frames. A tween repaints every bar on
 	 * every frame, and a fresh object per bar is garbage at frame rate.
@@ -364,17 +320,8 @@ class ChartEngine {
 	#horizontalBarRects: HorizontalBarRect[] = [];
 	/** `0..rowCount-1`, the index list of a line or area that does not connect nulls. */
 	#allIndexes: number[] = [];
-	/** The defined indexes of each scatter series, kept until the next ingest. */
-	#scatterIndexes: {
-		columns: readonly Float64Array[];
-		specs: readonly SeriesSpec[];
-		indexes: number[][];
-		total: number;
-	} | null = null;
 	/** The zero lower envelope of an unstacked decimated area, per column count. */
 	#zeroColumns: DecimatedColumns | null = null;
-	/** Reusable back-to-front paint order for the 3D projection (see #paintScatter3d). */
-	#depthOrder: Int32Array = new Int32Array(0);
 	#activeScreen: { x: number; y: number } | null = null;
 	#activeSeriesKey: string | null = null;
 
@@ -405,6 +352,8 @@ class ChartEngine {
 		backend: PaintBackendFactory;
 		/** The Root's slot name, such as `"bar-chart"`, for the surface's `data-slot`. */
 		slotName: string;
+		/** Builds the scatter view. Required for `kind: "scatter"`, and ignored for every other kind. */
+		scatter?: ScatterViewFactory;
 		/**
 		 * Whether the chart starts near the viewport. The Root passes `false` and
 		 * reports visibility through `setInView`; a bare engine paints at once.
@@ -489,7 +438,33 @@ class ChartEngine {
 		// and the keyboard stride read the ratio on every surface.
 		const view = this.#view;
 		this.#stopRatio = view == null ? null : watchDevicePixelRatio(view, this.#onRatioChange);
-		this.#dimensionChase.jump([1, 1]);
+		if (this.#kind === "scatter") {
+			invariant(options.scatter != null, "A scatter ChartEngine needs a `scatter` view factory.");
+			this.#scatter = options.scatter({
+				plot: () => this.#plot,
+				colors: () => this.#colors,
+				specs: () => this.#store.seriesSpecs(),
+				rowCount: () => this.#rowCount,
+				xs: () => this.#xs,
+				zs: () => this.#zs,
+				columns: () => this.#columns,
+				columnOf: (dataKey) => this.#columnOf(dataKey),
+				paintedValues: (spec, seriesIndex) => this.#paintedValues(spec, "value", seriesIndex),
+				definedIndexes: (values) => this.#definedIndexes(values),
+				reveal: (dataKey) => this.#reveal(dataKey),
+				shape: (dataKey) => this.#store.seriesShape(dataKey),
+				xCoefficients: () => this.#xCoefficients(),
+				yCoefficients: () => this.#yCoefficients(),
+				domains: () => {
+					const x = this.#xTween.values();
+					const y = this.#yTween.values();
+					return { x: [x[0] ?? 0, x[1] ?? 1], y: [y[0] ?? 0, y[1] ?? 1], z: this.#zDomain };
+				},
+				xKey: () => this.#options.xKey,
+				zKey: () => this.#options.zKey,
+				is3d: () => this.#is3d(),
+			});
+		}
 	}
 
 	#onRatioChange = (): void => {
@@ -701,23 +676,11 @@ class ChartEngine {
 			this.#snapAllMotion();
 		}
 		if (previous.dimensions !== options.dimensions) {
-			const target = [options.dimensions >= 2 ? 1 : 0, options.dimensions >= 3 ? 1 : 0];
-			const view = cameraViewFor(options.dimensions);
-			if (this.#tweenDuration() === 0 || !this.#hasIngested) {
-				// Snap before first paint (and under reduced motion) — a chart must
-				// not mount mid-collapse.
-				this.#dimensionChase.jump(target);
-				this.#camera = view;
-				this.#cameraChase.jump([view.yaw, view.pitch]);
-			} else {
-				// Unwind accumulated drag revolutions so the camera takes the short
-				// way to the view instead of spinning back through every turn.
-				const yawTarget =
-					view.yaw + Math.round((this.#camera.yaw - view.yaw) / (Math.PI * 2)) * Math.PI * 2;
-				this.#dimensionChase.aim(target, performance.now());
-				this.#cameraChase.jump([this.#camera.yaw, this.#camera.pitch]);
-				this.#cameraChase.aim([yawTarget, view.pitch], performance.now());
-			}
+			// Snap before first paint (and under reduced motion): a chart must not
+			// mount mid-collapse.
+			this.#scatter?.setDimensions(options.dimensions, {
+				glide: this.#tweenDuration() > 0 && this.#hasIngested,
+			});
 		}
 		if (
 			previous.xKey !== options.xKey ||
@@ -809,19 +772,11 @@ class ChartEngine {
 	}
 
 	handlePointerMove(cssX: number, cssY: number): void {
-		if (this.#drag != null) {
-			// 3D rotation drag: update the camera, suppress hover, repaint.
-			const deltaX = cssX - this.#drag.lastX;
-			const deltaY = cssY - this.#drag.lastY;
-			if (this.#drag.moved || Math.abs(deltaX) + Math.abs(deltaY) > DRAG_THRESHOLD) {
-				this.#drag.moved = true;
-				this.#camera = {
-					yaw: this.#camera.yaw + deltaX * 0.008,
-					pitch: clampPitch(this.#camera.pitch + deltaY * 0.008),
-				};
-				this.#cameraChase.jump([this.#camera.yaw, this.#camera.pitch]);
-				this.#drag.lastX = cssX;
-				this.#drag.lastY = cssY;
+		const scatter = this.#scatter;
+		const drag = scatter?.dragTo(cssX, cssY) ?? "none";
+		if (drag !== "none") {
+			// A 3D rotation drag suppresses hover and repaints.
+			if (drag === "rotated") {
 				this.#setActive(null, { viaKeyboard: false, notify: false });
 				this.#schedule();
 			}
@@ -829,8 +784,8 @@ class ChartEngine {
 		}
 		this.#pointerX = cssX;
 		this.#pointerY = cssY;
-		if (this.#kind === "scatter") {
-			const hit = this.#scatterHitAt(cssX, cssY);
+		if (scatter != null) {
+			const hit = scatter.hitAt(cssX, cssY);
 			this.#activeSeriesKey = hit?.seriesKey ?? null;
 			this.#activeScreen = hit == null ? null : { x: hit.screenX, y: hit.screenY };
 			this.#setActive(hit?.index ?? null, { viaKeyboard: false, notify: true });
@@ -846,8 +801,7 @@ class ChartEngine {
 	 */
 	handlePointerDown(cssX: number, cssY: number): void {
 		this.#pressed = true;
-		if (this.#is3d()) {
-			this.#drag = { lastX: cssX, lastY: cssY, moved: false };
+		if (this.#scatter?.pressAt(cssX, cssY) === true) {
 			return;
 		}
 		this.handlePointerMove(cssX, cssY);
@@ -860,14 +814,13 @@ class ChartEngine {
 	 * drag-away-to-cancel.
 	 */
 	handlePointerUp(cssX: number, cssY: number): void {
-		const drag = this.#drag;
-		this.#drag = null;
+		const drag = this.#scatter?.release() ?? "none";
 		const pressed = this.#pressed;
 		this.#pressed = false;
-		if (drag != null) {
-			if (drag.moved) {
-				return;
-			}
+		if (drag === "rotated") {
+			return;
+		}
+		if (drag === "tap") {
 			// A tap in 3D: inspect, then activate.
 			this.handlePointerMove(cssX, cssY);
 		}
@@ -880,7 +833,7 @@ class ChartEngine {
 	handlePointerLeave(): void {
 		this.#pointerX = null;
 		this.#pointerY = null;
-		this.#drag = null;
+		this.#scatter?.release();
 		this.#pressed = false;
 		this.#activeSeriesKey = null;
 		this.#activeScreen = null;
@@ -1011,13 +964,7 @@ class ChartEngine {
 	#snapAllMotion(): void {
 		this.#yTween.jump(this.#targetYDomain());
 		this.#xTween.jump(this.#targetXDomain());
-		this.#dimensionChase.jump([
-			this.#options.dimensions >= 2 ? 1 : 0,
-			this.#options.dimensions >= 3 ? 1 : 0,
-		]);
-		const view = cameraViewFor(this.#options.dimensions);
-		this.#camera = view;
-		this.#cameraChase.jump([view.yaw, view.pitch]);
+		this.#scatter?.snap(this.#options.dimensions);
 		for (const tween of this.#valueTweens.values()) {
 			tween.snap();
 		}
@@ -1116,7 +1063,7 @@ class ChartEngine {
 		this.#valuesAllIntegers = ingested.valuesAllIntegers;
 		this.#zs = ingested.zs;
 		this.#zDomain = ingested.zExtent == null ? [0, 1] : niceDomain(ingested.zExtent, Y_TICK_COUNT);
-		this.#projected = null;
+		this.#scatter?.resetProjection();
 		// A fresh ingest re-projects every point; the cached hover pixel would
 		// otherwise strand the marker on the pre-ingest projection.
 		this.#activeScreen = null;
@@ -1429,12 +1376,7 @@ class ChartEngine {
 			for (const tween of this.#revealTweens.values()) {
 				animating = tween.tick(now) || animating;
 			}
-			animating = this.#dimensionChase.tick(now) || animating;
-			if (this.#cameraChase.tick(now)) {
-				animating = true;
-				const view = this.#cameraChase.values();
-				this.#camera = { yaw: view[0] ?? this.#camera.yaw, pitch: view[1] ?? this.#camera.pitch };
-			}
+			animating = (this.#scatter?.tick(now) ?? false) || animating;
 
 			if (this.#cssWidth > 0 && this.#cssHeight > 0) {
 				this.#resolveColorsIfNeeded();
@@ -1884,7 +1826,7 @@ class ChartEngine {
 						this.#paintBars(ctx, specs, yCo);
 					}
 				} else if (this.#kind === "scatter") {
-					frame.labels = this.#paintScatter(ctx, specs, yCo);
+					frame.labels = this.#scatter?.paint(ctx) ?? null;
 				} else {
 					this.#paintLinesOrAreas(ctx, specs, yCo);
 				}
@@ -1902,15 +1844,8 @@ class ChartEngine {
 		});
 
 		// 3D frame labels: after the clip so edge-adjacent labels stay whole.
-		const frameLabels = frame.labels;
-		if (frameLabels != null) {
-			drawCubeAxisLabels(ctx, {
-				textColor: colors.chrome.tickText,
-				fontFamily: colors.fontFamily(),
-				plot,
-				center: frameLabels.center,
-				axes: frameLabels.axes,
-			});
+		if (frame.labels != null) {
+			this.#scatter?.paintLabels(ctx, frame.labels);
 		}
 
 		// baseline (bars grow from a single baseline; keep it visible) — a vertical
@@ -2690,305 +2625,6 @@ class ChartEngine {
 		this.#store.publishHover(snapshot);
 	}
 
-	#paintScatter(
-		ctx: PaintContext,
-		specs: readonly SeriesSpec[],
-		yCo: { k: number; b: number },
-	): FrameLabels | null {
-		const colors = this.#colors;
-		if (colors == null || this.#rowCount === 0 || specs.length === 0) {
-			return null;
-		}
-		if (this.#is3d()) {
-			return this.#paintScatter3d(ctx, specs);
-		}
-		const xCo = this.#xCoefficients();
-		// Degradation tiers count PAINTED points: sparse all-pairs data (each row
-		// populating one series) must not inflate the count by the series factor.
-		// Why a cache: a value tween keeps a gap a gap (`ValueTween` paints a NaN
-		// end as NaN), so the defined indexes follow the columns, which change only
-		// at ingest.
-		let cached = this.#scatterIndexes;
-		if (cached == null || cached.columns !== this.#columns || cached.specs !== specs) {
-			const indexes = specs.map((_spec, seriesIndex) =>
-				this.#definedIndexes(this.#columns[seriesIndex] ?? new Float64Array(0)),
-			);
-			cached = {
-				columns: this.#columns,
-				specs,
-				indexes,
-				total: indexes.reduce((sum, list) => sum + list.length, 0),
-			};
-			this.#scatterIndexes = cached;
-		}
-		const seriesIndexes = cached.indexes;
-		const totalPointCount = cached.total;
-		specs.forEach((spec, seriesIndex) => {
-			const values = this.#paintedValues(spec, "value", seriesIndex);
-			const indexes = seriesIndexes[seriesIndex] ?? [];
-			ctx.save();
-			ctx.globalAlpha = this.#reveal(spec.dataKey);
-			drawScatterPoints(ctx, {
-				color: colors.series.get(spec.dataKey) ?? "currentColor",
-				surface: colors.chrome.surface,
-				shape: this.#store.seriesShape(spec.dataKey),
-				totalPointCount,
-				indexes,
-				xAt: (index) => (this.#xs[index] ?? 0) * xCo.k + xCo.b,
-				yAt: (index) => (values[index] ?? 0) * yCo.k + yCo.b,
-				radiusAt: () => MARKER_RADIUS,
-			});
-			ctx.restore();
-		});
-		return null;
-	}
-
-	#paintScatter3d(ctx: PaintContext, specs: readonly SeriesSpec[]): FrameLabels | null {
-		const colors = this.#colors;
-		if (colors == null) {
-			return null;
-		}
-		const plot = this.#plot;
-		const matrix = projectionMatrix(this.#camera);
-		const centerX = plot.left + plot.width / 2;
-		const centerY = plot.top + plot.height / 2;
-		// The frame must survive any rotation: cube corners sit √3 units out
-		// (≤ ~1.75 screen units with perspective), a plane's corners √2, a line's
-		// ends 1 — so the radius breathes with the collapse, letting a face-on
-		// line or plane fill more of the plot than the full rotating cube.
-		const collapseValues = this.#dimensionChase.values();
-		const breatheY = collapseValues[0] ?? 1;
-		const breatheZ = collapseValues[1] ?? 1;
-		const radiusFactor = 0.85 - 0.22 * breatheY - 0.11 * breatheZ;
-		const cubeRadius = (Math.min(plot.width, plot.height) / 2) * radiusFactor;
-		const xDomainRaw = this.#xTween.values();
-		const xDomain: [number, number] = [xDomainRaw[0] ?? 0, xDomainRaw[1] ?? 1];
-		const yDomainRaw = this.#yTween.values();
-		const yDomain: [number, number] = [yDomainRaw[0] ?? 0, yDomainRaw[1] ?? 1];
-		const zDomain = this.#zDomain;
-
-		// Enter reveals apply per series (via alphaAt below) so a late-added
-		// series fades in without blinking the established cloud.
-		const seriesReveal = specs.map((spec) => this.#reveal(spec.dataKey));
-
-		// Dimensions morph: chased per-axis collapse factors. 1D pins the cloud
-		// to the x axis line, 2D to the xy plane; the y/z frame fades with them.
-		const collapse = this.#dimensionChase.values();
-		const collapseY = collapse[0] ?? 1;
-		const collapseZ = collapse[1] ?? 1;
-
-		const toScreen = (nx: number, ny: number, nz: number): { x: number; y: number } => {
-			const projected = projectPoint(nx, ny, nz, matrix);
-			return { x: centerX + projected.x * cubeRadius, y: centerY - projected.y * cubeRadius };
-		};
-		const corners = CUBE_CORNERS.map(([cornerX, cornerY, cornerZ]) =>
-			toScreen(cornerX, cornerY, cornerZ),
-		);
-		const firstSpec = specs[0];
-		const yLabel = specs.length === 1 && firstSpec != null ? firstSpec.dataKey : "y";
-		const frameAxes = [
-			{
-				label: this.#options.xKey,
-				alpha: 1,
-				from: toScreen(-1, -collapseY, -collapseZ),
-				to: toScreen(1, -collapseY, -collapseZ),
-			},
-			{
-				label: yLabel,
-				alpha: collapseY,
-				from: toScreen(-1, -1, -collapseZ),
-				to: toScreen(-1, 1, -collapseZ),
-			},
-			{
-				label: this.#options.zKey ?? "z",
-				alpha: collapseZ,
-				from: toScreen(-1, -collapseY, -1),
-				to: toScreen(-1, -collapseY, 1),
-			},
-		];
-		drawCubeFrame(ctx, {
-			gridColor: colors.chrome.grid,
-			axisColor: colors.chrome.baseline,
-			corners,
-			edges: CUBE_EDGES,
-			// The full wireframe belongs to the 3rd dimension; below it only the
-			// axis lines carry orientation. The axes travel with the morph so they
-			// always hug the collapsed line/plane (x through the collapsed center,
-			// y along its left edge) instead of stranding at a cube corner.
-			cubeAlpha: collapseZ,
-			axes: frameAxes,
-		});
-
-		// Project every populated point into reusable scratch buffers.
-		const capacity = this.#rowCount * specs.length;
-		let projected = this.#projected;
-		if (projected == null || projected.screenX.length < capacity) {
-			projected = {
-				screenX: new Float64Array(capacity),
-				screenY: new Float64Array(capacity),
-				radius: new Float64Array(capacity),
-				seriesIndex: new Int32Array(capacity),
-				pointIndex: new Int32Array(capacity),
-				depths: new Float64Array(capacity),
-				count: 0,
-			};
-		}
-		const depths = projected.depths;
-		let count = 0;
-		specs.forEach((spec, seriesIndex) => {
-			const values = this.#paintedValues(spec, "value", seriesIndex);
-			for (let index = 0; index < this.#rowCount; index++) {
-				const value = values[index] ?? Number.NaN;
-				const z = this.#zs[index] ?? Number.NaN;
-				if (Number.isNaN(value) || Number.isNaN(z)) {
-					continue;
-				}
-				// Collapse scales toward the cube center, and the axis lines travel
-				// with it — 1D reads as points on a centered line, 2D as a flat plane.
-				const point = projectPoint(
-					normalizeToCube(this.#xs[index] ?? 0, xDomain),
-					normalizeToCube(value, yDomain) * collapseY,
-					normalizeToCube(z, zDomain) * collapseZ,
-					matrix,
-				);
-				projected.screenX[count] = centerX + point.x * cubeRadius;
-				projected.screenY[count] = centerY - point.y * cubeRadius;
-				projected.radius[count] = MARKER_RADIUS * point.scale;
-				projected.seriesIndex[count] = seriesIndex;
-				projected.pointIndex[count] = index;
-				depths[count] = point.depth;
-				count += 1;
-			}
-		});
-		projected.count = count;
-		this.#projected = projected;
-
-		// Paint back-to-front, reusing a persistent order buffer — a fresh
-		// Array+toSorted every frame churned GC during rotation/dimension morphs.
-		if (this.#depthOrder.length < count) {
-			this.#depthOrder = new Int32Array(capacity);
-		}
-		const order = this.#depthOrder.subarray(0, count);
-		for (let slot = 0; slot < count; slot++) {
-			order[slot] = slot;
-		}
-		order.sort((a, b) => (depths[b] ?? 0) - (depths[a] ?? 0));
-		// Resolve each series' glyph once per frame: `shapeAt` runs per point, and
-		// the cloud can carry tens of thousands of them.
-		const shapes = specs.map((spec) => this.#store.seriesShape(spec.dataKey));
-		drawDepthSortedPoints(ctx, {
-			count,
-			order,
-			screenX: projected.screenX,
-			screenY: projected.screenY,
-			radius: projected.radius,
-			colorAt: (slot) => {
-				const spec = specs[projected.seriesIndex[slot] ?? 0];
-				return spec == null ? "currentColor" : (colors.series.get(spec.dataKey) ?? "currentColor");
-			},
-			shapeAt: (slot) => shapes[projected.seriesIndex[slot] ?? 0] ?? "circle",
-			alphaAt: (slot) => seriesReveal[projected.seriesIndex[slot] ?? 0] ?? 1,
-			surface: colors.chrome.surface,
-		});
-
-		// Labels are drawn by #paint after the marks clip is restored, so a label
-		// nudged past the plot edge isn't sliced off.
-		return { center: { x: centerX, y: centerY }, axes: frameAxes };
-	}
-
-	/**
-	 * The scatter hit test: the nearest point within {@link SCATTER_HIT_RADIUS}
-	 * of the pointer — 2D from the columns, 3D from the projected buffers.
-	 */
-	#scatterHitAt(
-		cssX: number,
-		cssY: number,
-	): { seriesKey: string; index: number; screenX: number; screenY: number } | null {
-		const specs = this.#store.seriesSpecs();
-		const limit = SCATTER_HIT_RADIUS * SCATTER_HIT_RADIUS;
-		let bestDistance = limit;
-		let best: { seriesKey: string; index: number; screenX: number; screenY: number } | null = null;
-		if (this.#is3d()) {
-			const projected = this.#projected;
-			if (projected == null) {
-				return null;
-			}
-			for (let slot = 0; slot < projected.count; slot++) {
-				const deltaX = (projected.screenX[slot] ?? 0) - cssX;
-				const deltaY = (projected.screenY[slot] ?? 0) - cssY;
-				const distance = deltaX * deltaX + deltaY * deltaY;
-				if (distance < bestDistance) {
-					const spec = specs[projected.seriesIndex[slot] ?? 0];
-					if (spec == null) {
-						continue;
-					}
-					bestDistance = distance;
-					best = {
-						seriesKey: spec.dataKey,
-						index: projected.pointIndex[slot] ?? 0,
-						screenX: projected.screenX[slot] ?? 0,
-						screenY: projected.screenY[slot] ?? 0,
-					};
-				}
-			}
-			return best;
-		}
-		const xCo = this.#xCoefficients();
-		const yCo = this.#yCoefficients();
-		for (const spec of specs) {
-			const values = this.#columnOf(spec.dataKey);
-			if (values == null) {
-				continue;
-			}
-			for (let index = 0; index < this.#rowCount; index++) {
-				const value = values[index] ?? Number.NaN;
-				if (Number.isNaN(value)) {
-					continue;
-				}
-				const screenX = (this.#xs[index] ?? 0) * xCo.k + xCo.b;
-				const screenY = value * yCo.k + yCo.b;
-				const deltaX = screenX - cssX;
-				const deltaY = screenY - cssY;
-				const distance = deltaX * deltaX + deltaY * deltaY;
-				if (distance < bestDistance) {
-					bestDistance = distance;
-					best = { seriesKey: spec.dataKey, index, screenX, screenY };
-				}
-			}
-		}
-		return best;
-	}
-
-	/**
-	 * The screen position for a scatter datum reached without a pointer
-	 * (keyboard stepping, controlled activeIndex): the row's first populated
-	 * series, via the projection in 3D.
-	 */
-	#screenForIndex(index: number): { x: number; y: number } | null {
-		const specs = this.#store.seriesSpecs();
-		if (this.#is3d()) {
-			const projected = this.#projected;
-			if (projected == null) {
-				return null;
-			}
-			for (let slot = 0; slot < projected.count; slot++) {
-				if ((projected.pointIndex[slot] ?? -1) === index) {
-					return { x: projected.screenX[slot] ?? 0, y: projected.screenY[slot] ?? 0 };
-				}
-			}
-			return null;
-		}
-		const xCo = this.#xCoefficients();
-		const yCo = this.#yCoefficients();
-		for (const spec of specs) {
-			const value = this.#columnOf(spec.dataKey)?.[index] ?? Number.NaN;
-			if (!Number.isNaN(value)) {
-				return { x: (this.#xs[index] ?? 0) * xCo.k + xCo.b, y: value * yCo.k + yCo.b };
-			}
-		}
-		return null;
-	}
-
 	#updateOverlay(): void {
 		const { hover, tooltip } = this.#elements;
 		// A static chart has no layers to place and nothing to point at.
@@ -3014,7 +2650,7 @@ class ChartEngine {
 		const plot = this.#plot;
 
 		if (isScatter) {
-			const screen = this.#activeScreen ?? this.#screenForIndex(index);
+			const screen = this.#activeScreen ?? this.#scatter?.screenFor(index) ?? null;
 			if (screen == null) {
 				markers.style.opacity = "0";
 				if (tooltip != null) {
@@ -3151,20 +2787,6 @@ class ChartEngine {
 		tooltip.style.transform = `translate3d(${tooltipLeft}px, ${tooltipTop}px, 0)`;
 	}
 }
-
-/**
- * The camera view a dimension reads best from: face-on for a line or a plane
- * (a tilted line floating in space looks broken), the default tilt for the
- * full cube.
- */
-const cameraViewFor = (dimensions: 1 | 2 | 3): Camera => {
-	if (dimensions === 3) {
-		// Slightly above and to the right — the standard "looking down at the
-		// cube" explainer view.
-		return { yaw: 0.65, pitch: -0.35 };
-	}
-	return { yaw: 0, pitch: 0 };
-};
 
 /**
  * Advance a tick-label fade map toward its desired set: wanted labels fade in,
