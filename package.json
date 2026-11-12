@@ -44,8 +44,8 @@
     "oxfmt": "catalog:",
     "oxlint": "1.93.0",
     "oxlint-tsgolint": "7.0.2006",
-    "tsrs": "0.24.0-ts7.1.0-beta",
-    "turbo": "2.11.10",
+    "tsrs": "0.25.0-ts7.1.0-beta",
+    "turbo": "2.11.11",
     "typescript": "catalog:",
     "vitest": "5.1.0"
   },
