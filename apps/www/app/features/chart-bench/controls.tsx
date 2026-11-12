@@ -5,7 +5,7 @@ import { Input } from "@ngrok/mantle/input";
 import { Label } from "@ngrok/mantle/label";
 import { Select } from "@ngrok/mantle/select";
 import type { Config } from "./config";
-import { GATES, KINDS, MODES, readConfig, writeConfig } from "./config";
+import { GATES, GROUPS, KINDS, MODES, readConfig, writeConfig } from "./config";
 
 /** Load the page with a scenario, the way the driver does: a full load, marks included. */
 const load = (search: string): void => {
@@ -20,7 +20,7 @@ const Pick = ({
 	options,
 }: {
 	config: Config;
-	name: "animate" | "kind" | "mode" | "gate";
+	name: "animate" | "kind" | "mode" | "gate" | "group";
 	label: string;
 	options: ReadonlyArray<{ value: string; label: string }>;
 }) => {
@@ -127,6 +127,15 @@ export const Controls = ({ config }: { config: Config }) => {
 				options={GATES.map((gate) => ({
 					value: gate,
 					label: gate === "cv" ? "content-visibility" : "none",
+				}))}
+			/>
+			<Pick
+				config={config}
+				name="group"
+				label="Card group"
+				options={GROUPS.map((group) => ({
+					value: group,
+					label: group === "list" ? "List part" : "none",
 				}))}
 			/>
 			<Label className="flex items-center gap-2 pb-2">

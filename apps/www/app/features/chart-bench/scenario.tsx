@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Config } from "./config";
 import type { PointRow, Row } from "./data";
 import { categoryRows, pointRows, sampleRows, sparseRows, timeRows } from "./data";
-import { MantleChart, MantleSparkline } from "./mantle-charts";
+import { MantleCards, MantleChart, MantleSparkline } from "./mantle-charts";
 import type { UpdateMode } from "./metrics";
 import { startMetrics } from "./metrics";
 import { canUseDOM } from "@ngrok/mantle/browser-only";
@@ -323,27 +323,30 @@ export const Scenario = ({ config }: { config: Config }) => {
 				{config.kind} / {config.mode} / n={config.n} / points={config.points} / animation{" "}
 				{config.animate ? "on" : "off"}
 				{config.gate === "cv" && " / content-visibility"}
+				{config.group === "list" && " / List"}
 			</h1>
-			{items.map((item) => (
-				<section
-					key={item.index}
-					className="rounded-lg border border-neutral-300 p-4"
-					style={
-						config.gate === "cv"
-							? { contentVisibility: "auto", containIntrinsicSize: "auto 376px" }
-							: undefined
-					}
-					data-bench-chart
-				>
-					<h2 className="mb-2 text-sm font-medium">Endpoint {item.index + 1}</h2>
-					<MantleChart
-						config={config}
-						rows={item.rows}
-						points={item.points}
-						label={`Endpoint ${item.index + 1}`}
-					/>
-				</section>
-			))}
+			<MantleCards config={config} className="flex flex-col gap-6">
+				{items.map((item) => (
+					<section
+						key={item.index}
+						className="rounded-lg border border-neutral-300 p-4"
+						style={
+							config.gate === "cv"
+								? { contentVisibility: "auto", containIntrinsicSize: "auto 376px" }
+								: undefined
+						}
+						data-bench-chart
+					>
+						<h2 className="mb-2 text-sm font-medium">Endpoint {item.index + 1}</h2>
+						<MantleChart
+							config={config}
+							rows={item.rows}
+							points={item.points}
+							label={`Endpoint ${item.index + 1}`}
+						/>
+					</section>
+				))}
+			</MantleCards>
 			<Ready />
 		</main>
 	);

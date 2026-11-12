@@ -15,6 +15,7 @@ type Row = Record<string, unknown> & {
 	throttle: number;
 	twin?: boolean;
 	gate?: string;
+	group?: string;
 	/** Absent in a results file from before the runner recorded it; those ran at 2. */
 	dpr?: number;
 	ok: boolean;
@@ -75,6 +76,7 @@ const COLUMNS = [
 	["shift×5", "updateShift.taskMs"],
 	["hover", "hover.taskMs"],
 	["hover worst", "hover.frames.maxMs"],
+	["hover DOM", "hover.domNodes"],
 	["heap MB", "memory.jsHeapMB"],
 	["canvas MB", "memory.uaByTypeMB.Canvas"],
 	["DOM", "memory.domNodes"],
@@ -86,7 +88,7 @@ const ANIMATE_ORDER = [
 ] as const;
 // Why every input: a gate or a pixel ratio changes the measured scenario, so it never shares a median.
 const caseKey = (row: Row) =>
-	`${row.mode}|${row.kind}|${row.n}|${row.points}|${row.throttle}|${row.twin ? "twin" : ""}|${row.gate ?? "none"}|${row.dpr ?? 2}`;
+	`${row.mode}|${row.kind}|${row.n}|${row.points}|${row.throttle}|${row.twin ? "twin" : ""}|${row.gate ?? "none"}|${row.dpr ?? 2}|${row.group ?? "none"}`;
 
 const cases = new Map<string, Row[]>();
 for (const row of rows) {
@@ -104,8 +106,8 @@ const fmt = (value: number | undefined): string => {
 console.log(`| case | animation | ${COLUMNS.map(([label]) => label).join(" | ")} |`);
 console.log(`| --- | --- | ${COLUMNS.map(() => "---:").join(" | ")} |`);
 for (const [key, list] of cases) {
-	const [mode, kind, n, points, throttle, twin, gate, dpr] = key.split("|");
-	const label = `${mode} ${kind} ${mode === "dense" ? `${Number(points).toLocaleString()} rows` : `n=${n}`} ×${throttle} @${dpr}x${twin ? " +twin" : ""}${gate === "cv" ? " +cv" : ""}`;
+	const [mode, kind, n, points, throttle, twin, gate, dpr, group] = key.split("|");
+	const label = `${mode} ${kind} ${mode === "dense" ? `${Number(points).toLocaleString()} rows` : `n=${n}`} ×${throttle} @${dpr}x${twin ? " +twin" : ""}${gate === "cv" ? " +cv" : ""}${group === "list" ? " +List" : ""}`;
 	for (const { animate, label: animation } of ANIMATE_ORDER) {
 		const libRows = list.filter((row) => row.animate === animate);
 		if (libRows.length === 0) {

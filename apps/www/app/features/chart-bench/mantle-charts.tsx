@@ -2,6 +2,7 @@ import { AreaChart } from "@ngrok/mantle/area-chart";
 import { BarChart } from "@ngrok/mantle/bar-chart";
 import { LineChart } from "@ngrok/mantle/line-chart";
 import { ScatterPlot } from "@ngrok/mantle/scatter-plot";
+import type { ReactNode } from "react";
 import type { Config, Kind } from "./config";
 import type { PointRow, Row } from "./data";
 
@@ -160,5 +161,33 @@ export const MantleChart = ({
 			return <MantleBar data={rows} series={series} animate={config.animate} label={label} />;
 		case "scatter":
 			return <MantleScatter data={points} animate={config.animate} label={label} />;
+	}
+};
+
+/**
+ * The cards' container: the family's `List` part when `config.group` is
+ * `list`, so the charts share one tooltip and one live region, else a plain box.
+ */
+export const MantleCards = ({
+	config,
+	className,
+	children,
+}: {
+	config: Config;
+	className: string;
+	children: ReactNode;
+}) => {
+	if (config.group === "none") {
+		return <div className={className}>{children}</div>;
+	}
+	switch (config.kind) {
+		case "line":
+			return <LineChart.List className={className}>{children}</LineChart.List>;
+		case "area":
+			return <AreaChart.List className={className}>{children}</AreaChart.List>;
+		case "bar":
+			return <BarChart.List className={className}>{children}</BarChart.List>;
+		case "scatter":
+			return <ScatterPlot.List className={className}>{children}</ScatterPlot.List>;
 	}
 };
