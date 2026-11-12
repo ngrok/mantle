@@ -166,7 +166,7 @@ export const MantleChart = ({
 
 /**
  * The cards' container: the family's `List` part when `config.group` is
- * `list`, so the charts share one tooltip and one live region, else a plain box.
+ * `list`, so the charts share one live region, else a plain box.
  */
 export const MantleCards = ({
 	config,

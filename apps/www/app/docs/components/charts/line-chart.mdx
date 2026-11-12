@@ -654,7 +654,7 @@ import { LineChart } from "@ngrok/mantle/line-chart";
 
 A page of 100 charts pays for the handful a reader can see. Every `LineChart.Root` ingests its data and answers the keyboard from its first render, but it builds and paints its surface only once it comes within one viewport of the visible area or takes focus. Printing paints every chart. The screen-reader data table waits for focus alone: it mounts once a reader tabs into the chart, so a page of sparklines holds no hidden tables until a reader asks for one. Add `content-visibility: auto` to your list's cards as a complement: it skips style and layout for offscreen cards, and the chart's own gate already skips paint.
 
-Wrap a list of interactive charts in [`LineChart.List`](#linechartlist). The charts inside share one tooltip surface and one `role="status"` live region. The surface moves into the chart a reader points at or steps through, so a page of 100 charts mounts one tooltip and one live region instead of one per chart. Each chart keeps its own `LineChart.Tooltip` config, description, and data table. Charts of different families can share one List, so one `LineChart.List` can hold a grid of bar, line, area, and scatter charts. A [static chart](#static-charts) has no tooltip and no live region, so a list of sparklines needs no List.
+Wrap a list of interactive charts in [`LineChart.List`](#linechartlist). The charts inside share one `role="status"` live region, so a page of 100 charts mounts one region instead of one per chart. Each chart keeps its own tooltip, description, and data table. Charts of different families can share one List, so one `LineChart.List` can hold a grid of bar, line, area, and scatter charts. A [static chart](#static-charts) has no tooltip and no live region, so a list of sparklines needs no List.
 
 ## Modes
 
@@ -747,7 +747,7 @@ LineChart.Root
 └── LineChart.CopyButton
 ```
 
-Wrap a list of Roots in `LineChart.List` so they share one tooltip and one live region:
+Wrap a list of Roots in `LineChart.List` so they share one live region:
 
 ```text showLineNumbers=false
 LineChart.List
@@ -812,7 +812,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | `data-slot`    | `"line-chart-crosshair"`                                                                            | The vertical hairline snapped to the active x. The engine writes its geometry as an inline style. Engine-owned: it is absent from server HTML and from a dormant chart, and the Root inserts it when the chart activates (near the viewport, on focus, or before print). Interactive charts only: a static or decorative chart inserts the surface alone. |
 | `data-slot`    | `"line-chart-hover-band"`                                                                           | The category highlight; a line chart never shows it. Engine-owned: it is absent from server HTML and from a dormant chart, and the Root inserts it when the chart activates (near the viewport, on focus, or before print). Interactive charts only: a static or decorative chart inserts the surface alone.                                              |
 | `data-slot`    | `"line-chart-markers"`                                                                              | The container the engine syncs one hover dot per series into. Engine-owned: it is absent from server HTML and from a dormant chart, and the Root inserts it when the chart activates (near the viewport, on focus, or before print). Interactive charts only: a static or decorative chart inserts the surface alone.                                     |
-| `data-slot`    | `"line-chart-tooltip"`                                                                              | The tooltip surface. The Root renders it on the first hover or keyboard step and keeps it; `LineChart.Tooltip` configures it. A chart nobody points at holds none. Inside a [`LineChart.List`](#linechartlist), the List renders one surface and moves it into the chart a reader points at.                                                              |
+| `data-slot`    | `"line-chart-tooltip"`                                                                              | The tooltip surface. The Root renders it on the first hover or keyboard step and keeps it; `LineChart.Tooltip` configures it. A chart nobody points at holds none.                                                                                                                                                                                        |
 | `data-slot`    | `"line-chart-description"`                                                                          | The `sr-only` description the overlay's `aria-describedby` points at: the chart kind, the point count, the x range, the series labels, and, on an interactive chart, the keyboard instructions. Omitted when `mode="decorative"`.                                                                                                                         |
 | `data-slot`    | `"line-chart-data-table"`                                                                           | The `sr-only` data table. Mounts once focus lands inside the chart (`data-state` flips to `"engaged"`) and stays. Interactive charts only.                                                                                                                                                                                                                |
 | `data-state`   | `"dormant"` \| `"engaged"`                                                                          | On the Root. Flips to `"engaged"` once focus lands inside the chart, and never flips back. The data table mounts with it. Visibility paints the chart but never flips it. Interactive charts only.                                                                                                                                                        |
@@ -935,7 +935,7 @@ While a copy is fresh, an always-mounted `role="status"` element beside the butt
 
 ### LineChart.List
 
-Groups a list of charts, such as one chart per card, so they share one tooltip surface and one live region. The surface moves into the chart a reader points at or steps through, so a page of 100 charts mounts one tooltip and one `role="status"` region instead of one per chart. Each chart keeps its own Tooltip part, description, and data table. Charts of different families can share one List. See [Lists of charts](#lists-of-charts).
+Groups a list of charts, such as one chart per card, so they share one `role="status"` live region. A page of 100 charts mounts one region instead of one per chart. Each chart keeps its own tooltip, description, and data table. Charts of different families can share one List. See [Lists of charts](#lists-of-charts).
 
 Renders a `div` (`line-chart-list`) that holds the charts in a `display: contents` wrapper (`line-chart-list-items`), so a grid or flex layout on the List reaches the cards, and the live region as its last child. `LineChart.List` takes no `asChild`: a list element such as `ul` cannot hold the live region as a child.
 

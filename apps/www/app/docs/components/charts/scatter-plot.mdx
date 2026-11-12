@@ -762,7 +762,7 @@ import { ScatterPlot } from "@ngrok/mantle/scatter-plot";
 
 A page of 100 charts pays for the handful a reader can see. Every `ScatterPlot.Root` ingests its data and answers the keyboard from its first render, but it paints and allocates its canvas only once it comes within one viewport of the visible area or takes focus. Three viewports away it releases its canvas memory and repaints on the way back; printing paints every chart. The screen-reader data table waits for focus alone: it mounts once a reader tabs into the chart, so a page of sparklines holds no hidden tables until a reader asks for one. Add `content-visibility: auto` to your list's cards as a complement: it skips style and layout for offscreen cards, and the chart's own gate already skips paint and canvas memory.
 
-Wrap a list of interactive charts in [`ScatterPlot.List`](#scatterplotlist). The charts inside share one tooltip surface and one `role="status"` live region. The surface moves into the chart a reader points at or steps through, so a page of 100 charts mounts one tooltip and one live region instead of one per chart. Each chart keeps its own `ScatterPlot.Tooltip` config, description, and data table. Charts of different families can share one List, so one `ScatterPlot.List` can hold a grid of bar, line, area, and scatter charts. A [static chart](#static-charts) has no tooltip and no live region, so a list of sparklines needs no List.
+Wrap a list of interactive charts in [`ScatterPlot.List`](#scatterplotlist). The charts inside share one `role="status"` live region, so a page of 100 charts mounts one region instead of one per chart. Each chart keeps its own tooltip, description, and data table. Charts of different families can share one List, so one `ScatterPlot.List` can hold a grid of bar, line, area, and scatter charts. A [static chart](#static-charts) has no tooltip and no live region, so a list of sparklines needs no List.
 
 ## Modes
 
@@ -861,7 +861,7 @@ ScatterPlot.Root
 └── ScatterPlot.CopyButton
 ```
 
-Wrap a list of Roots in `ScatterPlot.List` so they share one tooltip and one live region:
+Wrap a list of Roots in `ScatterPlot.List` so they share one live region:
 
 ```text showLineNumbers=false
 ScatterPlot.List
@@ -930,7 +930,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | `data-slot`    | `"scatter-plot-crosshair"`                                                                          | The vertical hairline; a scatter plot never shows it. Engine-owned: it is absent from server HTML and from a dormant chart, and the Root inserts it when the chart activates (near the viewport, on focus, or before print). Interactive charts only: a static or decorative chart inserts the canvas alone.          |
 | `data-slot`    | `"scatter-plot-hover-band"`                                                                         | The category highlight; a scatter plot never shows it. Engine-owned: it is absent from server HTML and from a dormant chart, and the Root inserts it when the chart activates (near the viewport, on focus, or before print). Interactive charts only: a static or decorative chart inserts the canvas alone.         |
 | `data-slot`    | `"scatter-plot-markers"`                                                                            | The container the engine syncs the hit point's hover dot into. Engine-owned: it is absent from server HTML and from a dormant chart, and the Root inserts it when the chart activates (near the viewport, on focus, or before print). Interactive charts only: a static or decorative chart inserts the canvas alone. |
-| `data-slot`    | `"scatter-plot-tooltip"`                                                                            | The tooltip surface. The Root renders it on the first hover or keyboard step and keeps it; `ScatterPlot.Tooltip` configures it. A chart nobody points at holds none. Inside a [`ScatterPlot.List`](#scatterplotlist), the List renders one surface and moves it into the chart a reader points at.                    |
+| `data-slot`    | `"scatter-plot-tooltip"`                                                                            | The tooltip surface. The Root renders it on the first hover or keyboard step and keeps it; `ScatterPlot.Tooltip` configures it. A chart nobody points at holds none.                                                                                                                                                  |
 | `data-slot`    | `"scatter-plot-description"`                                                                        | The `sr-only` description the overlay's `aria-describedby` points at: the chart kind, the point count, the x range, the series labels, and, on an interactive chart, the keyboard instructions. Omitted when `mode="decorative"`.                                                                                     |
 | `data-slot`    | `"scatter-plot-data-table"`                                                                         | The `sr-only` data table. Mounts once focus lands inside the chart (`data-state` flips to `"engaged"`) and stays. Interactive charts only.                                                                                                                                                                            |
 | `data-state`   | `"dormant"` \| `"engaged"`                                                                          | On the Root. Flips to `"engaged"` once focus lands inside the chart, and never flips back. The data table mounts with it. Visibility paints the chart but never flips it. Interactive charts only.                                                                                                                    |
@@ -1050,7 +1050,7 @@ While a copy is fresh, an always-mounted `role="status"` element beside the butt
 
 ### ScatterPlot.List
 
-Groups a list of charts, such as one chart per card, so they share one tooltip surface and one live region. The surface moves into the chart a reader points at or steps through, so a page of 100 charts mounts one tooltip and one `role="status"` region instead of one per chart. Each chart keeps its own Tooltip part, description, and data table. Charts of different families can share one List. See [Lists of charts](#lists-of-charts).
+Groups a list of charts, such as one chart per card, so they share one `role="status"` live region. A page of 100 charts mounts one region instead of one per chart. Each chart keeps its own tooltip, description, and data table. Charts of different families can share one List. See [Lists of charts](#lists-of-charts).
 
 Renders a `div` (`scatter-plot-list`) that holds the charts in a `display: contents` wrapper (`scatter-plot-list-items`), so a grid or flex layout on the List reaches the cards, and the live region as its last child. `ScatterPlot.List` takes no `asChild`: a list element such as `ul` cannot hold the live region as a child.
 

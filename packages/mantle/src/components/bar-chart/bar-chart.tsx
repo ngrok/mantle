@@ -440,10 +440,9 @@ const CopyButton = (props: BarChartCopyButtonProps) => (
 
 /**
  * Groups a list of charts, such as one chart per card, so they share one
- * tooltip surface and one live region. The surface moves into the chart a
- * reader points at or steps through, so a page of 100 charts mounts one
- * tooltip and one `role="status"` region instead of one per chart. Each chart
- * keeps its own Tooltip part, description, and data table.
+ * `role="status"` live region. A page of 100 charts mounts one region instead
+ * of one per chart. Each chart keeps its own tooltip, description, and data
+ * table.
  *
  * Renders a `div` (`bar-chart-list`) that holds the charts in a `display: contents`
  * wrapper (`bar-chart-list-items`), so a grid or flex layout on the List reaches
@@ -721,8 +720,7 @@ const BarChart = {
 	 */
 	CopyButton,
 	/**
-	 * Groups a list of charts so they share one tooltip surface and one live
-	 * region.
+	 * Groups a list of charts so they share one live region.
 	 *
 	 * @see https://mantle.ngrok.com/components/charts/bar-chart#barchartlist
 	 *

@@ -8,7 +8,7 @@ export type Kind = "line" | "bar" | "area" | "scatter";
 export type Mode = "list" | "dense" | "table";
 /** `cv` wraps each list card in `content-visibility: auto`. */
 export type Gate = "none" | "cv";
-/** `list` wraps the list cards in the family's `List` part, so the charts share one tooltip and one live region. */
+/** `list` wraps the list cards in the family's `List` part, so the charts share one live region. */
 export type Group = "none" | "list";
 
 export type Config = {

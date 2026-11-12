@@ -1,7 +1,7 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import type { ComponentProps, MouseEvent, ReactNode } from "react";
-import { createContext, createRef, useContext, useState } from "react";
+import { StrictMode, createContext, createRef, useContext, useState } from "react";
 import type { Root } from "react-dom/client";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
@@ -873,25 +873,60 @@ describe("List", () => {
 		await waitFor(() => expect(region).toHaveTextContent("March. Desktop: 237"));
 	});
 
-	test("one tooltip surface moves into the chart a reader steps through", async () => {
+	test("each chart shows its own readout in its own plot", async () => {
 		const user = userEvent.setup();
 		const { container } = renderList();
 		expect(container.querySelector('[data-slot="bar-chart-tooltip"]')).toBeNull();
 		await user.tab();
 		await user.keyboard("{ArrowRight}");
-		const first = container.querySelector('[data-slot="bar-chart-tooltip"]');
-		expect(plotOf("Ingress").contains(first)).toBe(true);
-		expect(first).toHaveTextContent("186");
-		expect(first).toHaveStyle({ opacity: "1" });
+		const ingress = plotOf("Ingress").querySelector('[data-slot="bar-chart-tooltip"]');
+		expect(ingress).toHaveTextContent("186");
+		expect(ingress).toHaveStyle({ opacity: "1" });
 
 		await user.tab();
 		await user.keyboard("{End}");
-		const surfaces = container.querySelectorAll('[data-slot="bar-chart-tooltip"]');
-		expect(surfaces).toHaveLength(1);
-		expect(plotOf("Egress").contains(surfaces[0] ?? null)).toBe(true);
-		// The engine that now holds the surface positions it and reveals it.
-		expect(surfaces[0]).toHaveTextContent("237");
-		expect(surfaces[0]).toHaveStyle({ opacity: "1" });
+		const egress = plotOf("Egress").querySelector('[data-slot="bar-chart-tooltip"]');
+		expect(egress).toHaveTextContent("237");
+		expect(egress).toHaveStyle({ opacity: "1" });
+		// The chart a reader left hides its readout.
+		expect(ingress).toHaveStyle({ opacity: "0" });
+	});
+
+	test("a StrictMode double mount keeps one live region that announces", async () => {
+		const user = userEvent.setup();
+		const { container } = render(
+			<StrictMode>
+				<BarChart.List>
+					<BarChart.Root data={data} xKey="month" aria-label="Ingress">
+						<BarChart.Bar dataKey="desktop" label="Desktop" />
+					</BarChart.Root>
+				</BarChart.List>
+			</StrictMode>,
+		);
+		expect(container.querySelectorAll('[role="status"]')).toHaveLength(1);
+		await user.tab();
+		await user.keyboard("{ArrowRight}");
+		await waitFor(() =>
+			expect(screen.getByRole("status")).toHaveTextContent("January. Desktop: 186"),
+		);
+	});
+
+	test("a chart that turns static takes its announcement out of the shared region", async () => {
+		const Single = ({ mode }: { mode: "interactive" | "static" }) => (
+			<BarChart.List>
+				<BarChart.Root data={data} xKey="month" mode={mode} aria-label="Ingress">
+					<BarChart.Bar dataKey="desktop" label="Desktop" />
+				</BarChart.Root>
+			</BarChart.List>
+		);
+		const user = userEvent.setup();
+		const { rerender } = render(<Single mode="interactive" />);
+		const region = screen.getByRole("status");
+		await user.tab();
+		await user.keyboard("{End}");
+		await waitFor(() => expect(region).toHaveTextContent("March. Desktop: 237"));
+		rerender(<Single mode="static" />);
+		expect(region).toBeEmptyDOMElement();
 	});
 
 	test("the list wrapper and its items wrapper carry the family's slots", () => {
