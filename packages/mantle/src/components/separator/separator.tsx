@@ -112,7 +112,9 @@ type SeparatorProps = ComponentProps<"div"> &
  * | `data-orientation` | `"horizontal"` \| `"vertical"` | The resolved orientation, after a `HorizontalSeparatorGroup` wins. |
  * | `data-separator`   | present                        | Presence-only. Lets a group exempt separators from `shrink-0`.     |
  *
- * @useWhen Divide adjacent content without a box, in a row or in a column.
+ * @useWhen Divide adjacent content without a box, in a row or in a column. To put a text
+ * label in the middle or at one end of a horizontal divider, wrap the label and the separators
+ * in a `HorizontalSeparatorGroup`.
  *
  * @siblings
  * - `Card`: the content needs a border on every side.

@@ -8,6 +8,7 @@ import {
 } from "~/components/navigation-data";
 import { canonicalHref } from "~/utilities/canonical-origin";
 import { buildSiteAgentManifest } from "./agent-manifest.server";
+import { findRecords, recordsOf } from "./mcp/tools";
 import { buildSearchEntries } from "./search-index.server";
 
 describe("the site's agent manifest", () => {
@@ -71,5 +72,29 @@ describe("the site's agent manifest", () => {
 		const dialog = entries.find((entry) => entry.name === "Dialog");
 
 		expect(dialog?.keywords).toContain("modal");
+	});
+	// The MCP `find` tool ranks the site manifest. A gap report asked for a divider with a
+	// label in the middle and got no strong match, though Separator builds one.
+	it("finds Separator for a divider with a text label", async () => {
+		const manifest = await buildSiteAgentManifest();
+		const records = recordsOf({
+			version: "0.0.0",
+			manifest,
+			specifiers: new Set(),
+			exportsBySpecifier: new Map(),
+			llmsTxt: undefined,
+			declarationsOf: () => undefined,
+		});
+
+		const [top] = findRecords(records, {
+			query: "horizontal separator divider text label middle",
+		});
+
+		expect(top).toEqual(
+			expect.objectContaining({
+				record: expect.objectContaining({ name: "Separator" }),
+				strong: true,
+			}),
+		);
 	});
 });

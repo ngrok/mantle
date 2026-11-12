@@ -1460,6 +1460,11 @@
     "examples": [
       "```tsx\n<Separator className=\"my-4\" />\n\n<Separator className=\"my-4\" semantic />\n\n<div className=\"flex h-5 items-center gap-4 text-sm\">\n  Blog\n  <Separator orientation=\"vertical\" />\n  Docs\n  <Separator orientation=\"vertical\" />\n  Source\n</div>\n```"
     ],
+    "aliases": [
+      "divider",
+      "labeled separator",
+      "text divider"
+    ],
     "siblings": [
       {
         "name": "Card",
@@ -1474,7 +1479,7 @@
         "boundary": "the content is key and value pairs, which carry their own rows."
       }
     ],
-    "useWhen": "Divide adjacent content without a box, in a row or in a column."
+    "useWhen": "Divide adjacent content without a box, in a row or in a column. To put a text label in the middle or at one end of a horizontal divider, wrap the label and the separators in a `HorizontalSeparatorGroup`."
   },
   {
     "name": "Sheet",
