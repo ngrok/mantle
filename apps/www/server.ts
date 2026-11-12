@@ -124,7 +124,7 @@ export function createDocsServer() {
 	return createServer({
 		plugins: defaultPlugins({
 			contentSecurityPolicy: {
-				policy: (scriptSrc, context) =>
+				policy: ({ scriptSrc, context }) =>
 					isPrototypeFrame(context.req.path)
 						? prototypeFramePolicy(scriptSrc)
 						: [
