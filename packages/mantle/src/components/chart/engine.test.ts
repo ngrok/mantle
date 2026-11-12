@@ -81,7 +81,7 @@ const baseOptions: ChartOptions = {
 type Mounted = {
 	engine: ChartEngine;
 	store: ChartStore;
-	elements: EngineElements;
+	elements: ReturnType<typeof createElements>;
 	/** The canvas the backend inserted into the plot. */
 	canvas: HTMLCanvasElement;
 	options: ChartOptions;
@@ -91,7 +91,7 @@ type Mounted = {
 
 const mounted: Mounted[] = [];
 
-const createElements = (): EngineElements => {
+const createElements = (): EngineElements & { layers: HoverLayers } => {
 	const document = window.document;
 	const root = document.createElement("div");
 	const plot = document.createElement("div");
@@ -102,16 +102,11 @@ const createElements = (): EngineElements => {
 	plot.append(crosshair, band, markers, tooltip);
 	root.append(plot);
 	document.body.append(root);
-	return { root, plot, hover: { crosshair, band, markers }, tooltip };
+	return { root, plot, tooltip, layers: { crosshair, band, markers } };
 };
 
 /** The hover layers of a mounted engine; every mount here is interactive. */
-const hoverOf = (mount: Pick<Mounted, "elements">): HoverLayers => {
-	if (mount.elements.hover == null) {
-		throw new Error("expected an interactive mount with hover layers");
-	}
-	return mount.elements.hover;
-};
+const hoverOf = (mount: Pick<Mounted, "elements">): HoverLayers => mount.elements.layers;
 
 /**
  * Mount an engine the way one React commit does: series register first, then
@@ -146,6 +141,7 @@ const mountEngine = (config: {
 		backend: createCanvasBackend,
 		slotName: "chart",
 		scatter: createScatterView,
+		createHoverLayers: () => elements.layers,
 		inView: config.inView,
 	});
 	const canvas = elements.plot.querySelector("canvas");

@@ -112,8 +112,6 @@ type EngineElements = {
 	root: HTMLElement;
 	/** The plot wrapper the paint surface fills; the resize-observation target. */
 	plot: HTMLElement;
-	/** The hover layers; `null` on a static chart, which never hovers. */
-	hover: HoverLayers | null;
 	/**
 	 * The tooltip container; content is React-rendered, position is
 	 * engine-written. `null` until the Root mounts it on the first hover
@@ -306,6 +304,9 @@ class ChartEngine {
 	#zDomain: [number, number] = [0, 1];
 	/** The scatter paint, hit test, and 3D camera. `null` for every other kind. */
 	#scatter: ScatterView | null = null;
+	readonly #createHoverLayers: (() => HoverLayers) | null;
+	/** The hover layers, made the first time the engine shows an active datum. */
+	#hover: HoverLayers | null = null;
 	/**
 	 * Whether the current press began on the overlay. Click semantics require
 	 * down + up on the chart: a drag that started outside (text selection, a
@@ -355,6 +356,12 @@ class ChartEngine {
 		/** Builds the scatter view. Required for `kind: "scatter"`, and ignored for every other kind. */
 		scatter?: ScatterViewFactory;
 		/**
+		 * Builds the hover layers. The engine calls it the first time it shows an
+		 * active datum, appends the layers to the plot, and removes them on
+		 * `destroy`. Leave it out for a static chart, which never hovers.
+		 */
+		createHoverLayers?: () => HoverLayers;
+		/**
 		 * Whether the chart starts near the viewport. The Root passes `false` and
 		 * reports visibility through `setInView`; a bare engine paints at once.
 		 *
@@ -370,6 +377,7 @@ class ChartEngine {
 	}) {
 		this.#kind = options.kind;
 		this.#elements = options.elements;
+		this.#createHoverLayers = options.createHoverLayers ?? null;
 		this.#store = options.store;
 		this.#inView = options.inView ?? true;
 		// A bare engine is in view from the start, so its first ingest reveals.
@@ -494,6 +502,12 @@ class ChartEngine {
 		}
 		this.#cancelFrame?.();
 		this.#cancelFrame = null;
+		if (this.#hover != null) {
+			this.#hover.crosshair.remove();
+			this.#hover.band.remove();
+			this.#hover.markers.remove();
+			this.#hover = null;
+		}
 	}
 
 	/**
@@ -2626,14 +2640,16 @@ class ChartEngine {
 	}
 
 	#updateOverlay(): void {
-		const { hover, tooltip } = this.#elements;
-		// A static chart has no layers to place and nothing to point at.
+		const index = this.#effectiveIndex();
+		const visible = index != null && this.#rowCount > 0;
+		const hover = this.#hover ?? (visible ? this.#appendHoverLayers() : null);
+		// A static chart has no layers to place. Before its first active datum,
+		// an interactive chart has nothing to show.
 		if (hover == null) {
 			return;
 		}
+		const { tooltip } = this.#elements;
 		const { crosshair, band, markers } = hover;
-		const index = this.#effectiveIndex();
-		const visible = index != null && this.#rowCount > 0;
 		const isBar = this.#kind === "bar";
 		const isScatter = this.#kind === "scatter";
 
@@ -2765,6 +2781,20 @@ class ChartEngine {
 	 * When the readout is taller than the plot, the outer clamp pins it to the
 	 * wrapper's top edge instead of spilling the overflow past the bottom.
 	 */
+	/**
+	 * Make the hover layers and append them to the plot, above the paint
+	 * surface and the overlay. A chart nobody points at never holds them.
+	 */
+	#appendHoverLayers(): HoverLayers | null {
+		if (this.#createHoverLayers == null) {
+			return null;
+		}
+		const hover = this.#createHoverLayers();
+		this.#elements.plot.append(hover.crosshair, hover.band, hover.markers);
+		this.#hover = hover;
+		return hover;
+	}
+
 	#positionTooltip(anchorX: number, anchorY: number): void {
 		const plot = this.#plot;
 		const tooltip = this.#elements.tooltip;

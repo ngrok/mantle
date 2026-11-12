@@ -170,7 +170,7 @@ type AreaChartCopyButtonProps = CopyButtonPrimitiveProps;
  * painting. Compose the chrome and series parts as children.
  *
  * A Root mounts dormant: a shell of the plot, the named overlay, and its
- * sr-only description. It builds its paint surface, its hover layers, and its engine
+ * sr-only description. It builds its paint surface and its engine
  * once it comes within one viewport of the visible area, takes focus, or
  * prints (on-screen charts first, a few milliseconds at a time), and it mounts
  * the sr-only data table once focus lands inside it. A list of charts pays
@@ -184,8 +184,9 @@ type AreaChartCopyButtonProps = CopyButtonPrimitiveProps;
  * `area-chart-description`, and, once focus lands inside the chart,
  * `area-chart-data-table`. An area chart shows the crosshair and one marker
  * dot per series, and never the band. The surface and the three layers are
- * engine-owned: absent from server HTML and from a dormant chart, inserted at
- * activation (near the viewport, on focus, or before print). A static or
+ * engine-owned: absent from server HTML and from a dormant chart. The surface arrives at activation (near the viewport, on
+ * focus, or before print), and the layers arrive on the first hover or
+ * keyboard step. A static or
  * decorative chart inserts the surface alone. The tooltip
  * surface mounts on the first hover or keyboard step and stays.
  * Each hover dot carries `chart-active-point` plus a `data-shape` of

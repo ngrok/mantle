@@ -143,10 +143,18 @@ describe("AreaChart data slots", () => {
 		expect(element?.tagName).toBe(tagName);
 	});
 
-	test("the three hover layers sit inside the plot and stay hidden from assistive tech", () => {
+	test("the three hover layers arrive in the plot on the first step and stay hidden from assistive tech", async () => {
+		const user = userEvent.setup();
 		const { container } = renderChart();
 		const plot = container.querySelector('[data-slot="area-chart-plot"]');
-		for (const slot of ["area-chart-crosshair", "area-chart-hover-band", "area-chart-markers"]) {
+		const layers = ["area-chart-crosshair", "area-chart-hover-band", "area-chart-markers"];
+		// A chart nobody points at holds no hover layers.
+		for (const slot of layers) {
+			expect(container.querySelector(`[data-slot="${slot}"]`)).toBeNull();
+		}
+		engageChart();
+		await user.keyboard("{ArrowRight}");
+		for (const slot of layers) {
 			const layer = container.querySelector(`[data-slot="${slot}"]`);
 			expect(plot?.contains(layer ?? null)).toBe(true);
 			expect(layer).toHaveAttribute("aria-hidden", "true");

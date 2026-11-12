@@ -270,11 +270,6 @@ describe("BarChart canvas painting", () => {
 			HTMLElement,
 			"the overlay",
 		);
-		const band = mustBe(
-			container.querySelector('[data-slot="bar-chart-hover-band"]'),
-			HTMLElement,
-			"the hover band",
-		);
 		await waitFor(() => {
 			expect(countPixels(canvas, isChart1Ink)).toBeGreaterThan(1000);
 		});
@@ -292,8 +287,10 @@ describe("BarChart canvas painting", () => {
 			const tooltip = container.querySelector('[data-slot="bar-chart-tooltip"]');
 			expect(tooltip?.textContent).toContain("February");
 			expect(tooltip?.textContent).toContain("305");
-			// Why inside waitFor: the engine writes the band opacity on the next animation frame.
-			expect(band.style.opacity).toBe("1");
+			// Why inside waitFor: the engine makes the band and writes its opacity on the next animation frame.
+			expect(container.querySelector('[data-slot="bar-chart-hover-band"]')).toHaveStyle({
+				opacity: "1",
+			});
 		});
 		// Why: hover syncs the DOM overlays only, so the bars painted before the pointer moved must still be there.
 		expect(

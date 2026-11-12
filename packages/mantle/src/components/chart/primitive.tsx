@@ -474,7 +474,7 @@ const AUTO_Y_DOMAIN: YDomain = ["auto", "auto"];
  * The chart Root implementation: renders the plot, the interaction overlay,
  * the sr-only description, the aria-live region, the tooltip container (from
  * the first hover), and (once engaged) the sr-only data table; builds the
- * canvas, the hover layers, and the engine at activation; owns the engine
+ * paint surface and the engine at activation; owns the engine
  * lifecycle and the engagement latch.
  *
  * In `"static"` mode it omits the interaction overlay, the tooltip, the
@@ -500,9 +500,8 @@ const MARKERS_CLASS = "pointer-events-none absolute inset-0 opacity-0";
 
 /**
  * Build the three hover layers an interactive chart's engine positions. The
- * Root inserts them at activation and removes them with the engine, so React
- * never owns them: a dormant chart is the overlay and its description alone.
- * The engine inserts its own paint surface.
+ * engine inserts them on the first hover and removes them on `destroy`, so
+ * React never owns them, and a chart nobody points at holds none.
  */
 const createHoverLayers = (document: Document, slotName: string): HoverLayers => {
 	const layer = (slot: string, className: string): HTMLDivElement => {
@@ -585,11 +584,10 @@ const ChartRootPrimitive = ({
 	// would hold a 30-row table in every cell.
 	const [engaged, setEngaged] = useState(false);
 	// A dormant Root renders the shell alone: the plot, the overlay, and the
-	// description. The paint surface, the hover layers, and the engine arrive
-	// through `activate`, outside React, once the chart nears the viewport,
-	// takes focus, or prints. The tooltip surface mounts on the first hover.
+	// description. The paint surface and the engine arrive through `activate`,
+	// outside React, once the chart nears the viewport, takes focus, or prints.
+	// The hover layers and the tooltip surface arrive on the first hover.
 	const engineRef = useRef<ChartEngine | null>(null);
-	const layersRef = useRef<HoverLayers | null>(null);
 	/** Whether the engine effect's next run activates at once: its cleanup tore down a live engine. */
 	const reactivateRef = useRef(false);
 	const activateRef = useRef<((rect: DOMRectReadOnly | null) => void) | null>(null);
@@ -701,12 +699,6 @@ const ChartRootPrimitive = ({
 			// Focus, print, and a press activate ahead of the queue; the stale
 			// entry would spend a slice on a no-op.
 			cancelActivation(plot);
-			// The hover layers go above the overlay and let pointer events through;
-			// the engine puts its surface under it. A static chart has no hover.
-			const layers = interactive ? createHoverLayers(plot.ownerDocument, slotName) : null;
-			if (layers != null) {
-				plot.append(layers.crosshair, layers.band, layers.markers);
-			}
 			const size =
 				rect != null && rect.width > 0 && rect.height > 0
 					? { width: rect.width, height: rect.height }
@@ -717,12 +709,12 @@ const ChartRootPrimitive = ({
 				backend: paintBackend,
 				scatter: scatterView,
 				slotName,
-				elements: {
-					root,
-					plot,
-					hover: layers,
-					tooltip: tooltipRef.current,
-				},
+				elements: { root, plot, tooltip: tooltipRef.current },
+				// The engine puts its surface under the overlay and makes the hover
+				// layers above it on the first hover. A static chart has no hover.
+				createHoverLayers: interactive
+					? () => createHoverLayers(plot.ownerDocument, slotName)
+					: undefined,
 				// Why false: the reveal must hold until the `visible` band reports
 				// the chart on screen; `setInView` below does not mark it seen.
 				inView: false,
@@ -734,7 +726,6 @@ const ChartRootPrimitive = ({
 			engine.setCallbacks(inputs.callbacks);
 			engine.setControlledActiveIndex(inputs.controlledActiveIndex);
 			engineRef.current = engine;
-			layersRef.current = layers;
 			engine.flushIngest();
 			engine.setInView(visibilityRef.current.near || visibilityRef.current.focused);
 			if (visibilityRef.current.seen) {
@@ -751,16 +742,8 @@ const ChartRootPrimitive = ({
 		return () => {
 			reactivateRef.current = engineRef.current != null;
 			activateRef.current = null;
-			const engine = engineRef.current;
-			const layers = layersRef.current;
+			engineRef.current?.destroy();
 			engineRef.current = null;
-			layersRef.current = null;
-			engine?.destroy();
-			if (layers != null) {
-				layers.crosshair.remove();
-				layers.band.remove();
-				layers.markers.remove();
-			}
 		};
 	}, [kind, store, slotName, interactive, paintBackend, scatterView]);
 
@@ -1107,9 +1090,9 @@ const ChartRootPrimitive = ({
 							instructions={interactive}
 						/>
 					)}
-					{/* The canvas and the three hover layers are engine-owned: `activate`
-					    inserts them around these children (the canvas first, the layers
-					    last) and the engine writes their geometry as inline styles. The
+					{/* The paint surface and the three hover layers are engine-owned: the
+					    engine inserts the surface first at activation and appends the
+					    layers on the first hover, and writes their geometry as inline styles. The
 					    tooltip surface is React-rendered for the consumer's render prop,
 					    so it mounts on the first hover and stays while the chart is
 					    interactive. */}

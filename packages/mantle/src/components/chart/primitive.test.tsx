@@ -411,7 +411,7 @@ describe("server render", () => {
 const SURFACE = '[data-slot="bar-chart-svg"]';
 
 describe("activation outside React", () => {
-	test("a dormant chart is a shell: no paint surface, no hover layers, no tooltip surface", () => {
+	test("a dormant chart is a shell: no paint surface, no hover layers, no tooltip surface", async () => {
 		// A stub that never reports intersection keeps the chart dormant.
 		const stub = createIntersectionObserverStub({ intersecting: false });
 		vi.stubGlobal("IntersectionObserver", stub.Observer);
@@ -431,12 +431,20 @@ describe("activation outside React", () => {
 		act(() => {
 			stub.enter(plot);
 		});
-		for (const slot of ["svg", "crosshair", "hover-band", "markers"]) {
-			expect(container.querySelector(`[data-slot="bar-chart-${slot}"]`)).toBeInTheDocument();
-		}
-		// The surface sits under the overlay and the layers above it.
 		expect(plot.firstElementChild).toHaveAttribute("data-slot", "bar-chart-svg");
-		expect(plot.lastElementChild).toHaveAttribute("data-slot", "bar-chart-markers");
+		// An active chart makes its hover layers on the first step, not before.
+		expect(container.querySelector('[data-slot="bar-chart-hover-band"]')).toBeNull();
+		const user = userEvent.setup();
+		await user.tab();
+		await user.keyboard("{ArrowRight}");
+		// The surface sits under the overlay, and the layers come after both.
+		expect(plot.firstElementChild).toHaveAttribute("data-slot", "bar-chart-svg");
+		for (const slot of ["crosshair", "hover-band", "markers"]) {
+			const layer = container.querySelector(`[data-slot="bar-chart-${slot}"]`);
+			expect(plot.contains(layer)).toBe(true);
+			const position = screen.getByRole("application").compareDocumentPosition(layer ?? plot);
+			expect(position & Node.DOCUMENT_POSITION_FOLLOWING).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+		}
 	});
 
 	test("a dormant chart still throws a dataKey typo in its mount commit", () => {
@@ -684,18 +692,22 @@ describe("static mode", () => {
 		}
 	});
 
-	test("a Root that turns interactive gains its hover layers and paints again at once", () => {
+	test("a Root that turns interactive paints again at once and hovers on its first step", async () => {
 		const { container, rerender } = render(sparkline());
 		rerender(
 			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
 				<BarChart.Bar dataKey="desktop" label="Desktop" />
 			</BarChart.Root>,
 		);
-		// The mode change rebuilds the layers in the same commit, with no new
+		// The mode change rebuilds the engine in the same commit, with no new
 		// visibility report to wait for.
 		expect(container.querySelector(SURFACE)).toBeInTheDocument();
-		expect(container.querySelector('[data-slot="bar-chart-hover-band"]')).toBeInTheDocument();
-		expect(screen.getByRole("application", { name: "Visitors by month" })).toBeInTheDocument();
+		const user = userEvent.setup();
+		await user.tab();
+		await user.keyboard("{ArrowRight}");
+		expect(container.querySelector('[data-slot="bar-chart-hover-band"]')).toHaveStyle({
+			opacity: "1",
+		});
 	});
 
 	test("a static chart keeps its palette", () => {
