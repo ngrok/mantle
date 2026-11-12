@@ -8,6 +8,7 @@ import {
 } from "~/components/navigation-data";
 import { canonicalHref } from "~/utilities/canonical-origin";
 import { buildSiteAgentManifest } from "./agent-manifest.server";
+import { findRecords, recordsOf } from "./mcp/tools";
 import { buildSearchEntries } from "./search-index.server";
 
 describe("the site's agent manifest", () => {
@@ -71,5 +72,85 @@ describe("the site's agent manifest", () => {
 		const dialog = entries.find((entry) => entry.name === "Dialog");
 
 		expect(dialog?.keywords).toContain("modal");
+	});
+	// The MCP `find` tool ranks the site manifest. A gap report asked for a divider with a
+	// label in the middle and got no strong match, though Separator builds one.
+	it("finds Separator for a divider with a text label", async () => {
+		const manifest = await buildSiteAgentManifest();
+		const records = recordsOf({
+			version: "0.0.0",
+			manifest,
+			specifiers: new Set(),
+			exportsBySpecifier: new Map(),
+			llmsTxt: undefined,
+			declarationsOf: () => undefined,
+		});
+
+		const [top] = findRecords(records, {
+			query: "horizontal separator divider text label middle",
+		});
+
+		expect(top).toEqual(
+			expect.objectContaining({
+				record: expect.objectContaining({ name: "Separator" }),
+				strong: true,
+			}),
+		);
+	});
+	// An alias word scores high, so an alias that names a different part sends agents to the wrong page.
+	it("ranks a page that lists an alias first for that alias", async () => {
+		const manifest = await buildSiteAgentManifest();
+		const records = recordsOf({
+			version: "0.0.0",
+			manifest,
+			specifiers: new Set(),
+			exportsBySpecifier: new Map(),
+			llmsTxt: undefined,
+			declarationsOf: () => undefined,
+		});
+
+		const misses = manifest.components.flatMap((component) =>
+			(component.aliases ?? [])
+				.map((alias) => ({ alias, top: findRecords(records, { query: alias })[0]?.record }))
+				.filter(({ alias, top }) => !top?.aliases?.includes(alias))
+				.map(({ alias, top }) => `${alias} -> ${top?.name}`),
+		);
+
+		expect(misses).toEqual([]);
+	});
+	// The Separator search words must not rank a divider above Label for a plain label query.
+	it("ranks Label above Separator for a text label", async () => {
+		const manifest = await buildSiteAgentManifest();
+		const records = recordsOf({
+			version: "0.0.0",
+			manifest,
+			specifiers: new Set(),
+			exportsBySpecifier: new Map(),
+			llmsTxt: undefined,
+			declarationsOf: () => undefined,
+		});
+
+		const names = findRecords(records, { query: "text label" }).map(({ record }) => record.name);
+
+		const rank = (name: string) => (names.includes(name) ? names.indexOf(name) : names.length);
+
+		expect(rank("Label")).toBeLessThan(rank("Separator"));
+	});
+	// A part of a qualified alias must not win: "text field" of "multiline text field" is not Text Area.
+	it.each([
+		["label a text field", "Field"],
+		["labeled text input", "Input"],
+	])("ranks the plain part first for %s", async (query, name) => {
+		const manifest = await buildSiteAgentManifest();
+		const records = recordsOf({
+			version: "0.0.0",
+			manifest,
+			specifiers: new Set(),
+			exportsBySpecifier: new Map(),
+			llmsTxt: undefined,
+			declarationsOf: () => undefined,
+		});
+
+		expect(findRecords(records, { query })[0]?.record.name).toBe(name);
 	});
 });
