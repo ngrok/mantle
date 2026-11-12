@@ -75,7 +75,9 @@ type ScatterPlotDepthProps<TDatum extends ChartDatum = ChartDatum> =
 			 * The key of each row's depth value. When set, the scatter renders in
 			 * 3D: drag the plot to rotate the cube. Axis parts and reference lines
 			 * apply to the 2D projection only and are ignored in 3D (the cube frame
-			 * carries orientation). If no row has the key, the Root throws.
+			 * carries orientation). If no row has the key, the Root throws. The 3D
+			 * code loads on the first paint with a `zKey`, so a 2D scatter plot
+			 * never downloads it.
 			 */
 			zKey: Extract<keyof TDatum, string>;
 			/**

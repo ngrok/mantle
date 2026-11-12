@@ -4,7 +4,7 @@ import { POINT_SHAPE_CLIP_PATHS } from "./engine.js";
 import { CUBE_CORNERS, CUBE_EDGES, projectionMatrix, projectPoint } from "./projection.js";
 import type { PaintContext } from "./paint-backend.js";
 import { drawLinePath, tracePointShape } from "./renderer.js";
-import { drawCubeFrame } from "./scatter-renderer.js";
+import { drawCubeFrame } from "./scatter-3d-renderer.js";
 
 /** Record path-trace calls without a real canvas context. */
 const makeRecorder = () => {

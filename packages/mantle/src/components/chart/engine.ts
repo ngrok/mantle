@@ -471,6 +471,7 @@ class ChartEngine {
 				xKey: () => this.#options.xKey,
 				zKey: () => this.#options.zKey,
 				is3d: () => this.#is3d(),
+				requestPaint: () => this.#schedule(),
 			});
 		}
 	}

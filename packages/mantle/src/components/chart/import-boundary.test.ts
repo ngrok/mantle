@@ -36,13 +36,14 @@ const readSource = (target: string): string => {
 
 // Why: decisions/2026-11-11-chart-svg-renderer.md keeps canvas code out of the
 // SVG families, and decisions/2026-11-12-chart-engine-optimization.md keeps
-// the scatter and 3D code out of them.
+// the scatter code out of them and the 3D code out of every static graph.
+const THREE_D_ONLY = ["projection.ts", "scatter-3d.ts", "scatter-3d-renderer.ts"];
 const SCATTER_ONLY = [
 	"canvas-backend.ts",
 	"canvas-colors.ts",
-	"projection.ts",
 	"scatter-engine.ts",
 	"scatter-renderer.ts",
+	...THREE_D_ONLY,
 ];
 
 describe("the static import graph", () => {
@@ -56,8 +57,12 @@ describe("the static import graph", () => {
 		},
 	);
 
-	test("of ScatterPlot holds every scatter module", () => {
+	test("of ScatterPlot holds the 2D scatter modules and no 3D module", () => {
 		const graph = staticGraph("../scatter-plot/index.ts");
-		expect(SCATTER_ONLY.filter((file) => !graph.has(file))).toEqual([]);
+		expect(SCATTER_ONLY.filter((file) => !graph.has(file))).toEqual(THREE_D_ONLY);
+	});
+
+	test("of the lazy 3D module reaches the projection", () => {
+		expect(staticGraph("./scatter-3d.ts")).toContain("projection.ts");
 	});
 });
