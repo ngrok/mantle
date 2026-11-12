@@ -1,8 +1,8 @@
 import type { AreaChartRootProps } from "../components/area-chart/index.js";
 import type { BarChartRootProps } from "../components/bar-chart/index.js";
 import { createCanvasBackend } from "../components/chart/canvas-backend.js";
-import type { ChartMode } from "../components/chart/primitive.js";
-import { ChartRootPrimitive } from "../components/chart/primitive.js";
+import type { ChartMode } from "../components/chart/context.js";
+import { ChartRootPrimitive } from "../components/chart/root.js";
 import type { ChartDatum } from "../components/chart/types.js";
 import type { LineChartRootProps } from "../components/line-chart/index.js";
 

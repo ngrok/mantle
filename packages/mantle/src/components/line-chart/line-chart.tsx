@@ -1,18 +1,29 @@
 "use client";
 
+import type { ChartAccessibilityProps, ChartMode } from "../chart/context.js";
+import { ChartCopyButtonPrimitive } from "../chart/copy-button.js";
+import type { CopyButtonPrimitiveProps } from "../chart/copy-button.js";
+import { ChartLegendPrimitive } from "../chart/legend.js";
+import type { LegendPrimitiveProps } from "../chart/legend.js";
+import { ChartListPrimitive } from "../chart/list.js";
+import type { ChartListPrimitiveProps } from "../chart/list.js";
+import {
+	useGridPrimitive,
+	useReferenceLinePrimitive,
+	useSeriesPrimitive,
+	useXAxisPrimitive,
+	useYAxisPrimitive,
+} from "../chart/registration.js";
 import type {
-	ChartAccessibilityProps,
-	ChartListPrimitiveProps,
-	ChartMode,
-	ChartRootBaseProps,
-	CopyButtonPrimitiveProps,
 	GridPrimitiveProps,
-	LegendPrimitiveProps,
 	ReferenceLinePrimitiveProps,
-	TooltipPrimitiveProps,
 	XAxisPrimitiveProps,
 	YAxisPrimitiveProps,
-} from "../chart/primitive.js";
+} from "../chart/registration.js";
+import { ChartRootPrimitive } from "../chart/root.js";
+import type { ChartRootBaseProps } from "../chart/root.js";
+import { useTooltipPrimitive } from "../chart/tooltip.js";
+import type { TooltipPrimitiveProps } from "../chart/tooltip.js";
 import type {
 	ChartDatum,
 	ChartDatumEvent,
@@ -23,18 +34,6 @@ import type {
 	SeriesColor,
 } from "../chart/types.js";
 import { createSvgBackend } from "../chart/svg-backend.js";
-import {
-	ChartCopyButtonPrimitive,
-	ChartLegendPrimitive,
-	ChartListPrimitive,
-	ChartRootPrimitive,
-	useGridPrimitive,
-	useReferenceLinePrimitive,
-	useSeriesPrimitive,
-	useTooltipPrimitive,
-	useXAxisPrimitive,
-	useYAxisPrimitive,
-} from "../chart/primitive.js";
 
 /**
  * Props for {@link LineChart.List}.
