@@ -1,6 +1,6 @@
 "use client";
 
-import type { ComponentProps, CSSProperties } from "react";
+import type { ComponentProps, CSSProperties, RefObject } from "react";
 import {
 	useCallback,
 	useContext,
@@ -145,24 +145,6 @@ const detectXScale = (data: readonly ChartDatum[], xKey: string): ContinuousXSca
 const AUTO_Y_DOMAIN: YDomain = ["auto", "auto"];
 
 /**
- * The chart Root implementation: renders the plot, the interaction overlay,
- * the sr-only description, the aria-live region, the tooltip container (from
- * the first hover), and (once engaged) the sr-only data table; builds the
- * paint surface and the engine at activation; owns the engine
- * lifecycle and the engagement latch.
- *
- * In `"static"` mode it omits the interaction overlay, the tooltip, the
- * aria-live region, and the data table, and names the plot `role="img"` with
- * the description beside it. In `"decorative"` mode it omits the description
- * too, marks the root `aria-hidden` and `inert`, and publishes the decorative
- * fill to the store so every series paints neutral: a placeholder backdrop
- * with no interaction and nothing for assistive technology.
- *
- * No `asChild`: Root owns a fixed internal structure (canvas + observers +
- * overlay) whose lifecycles are bound to this exact element tree, so
- * element-swapping polymorphism does not apply.
- */
-/**
  * The class strings of the engine-owned layers. They live here, not in
  * `createHoverLayers`, so the Tailwind source scan of this module finds them
  * next to the Root's own classes.
@@ -209,6 +191,147 @@ type EngineInputs = {
 	controlledActiveIndex: number | null | undefined;
 };
 
+/** The latest visibility reports, kept for an engine created later, and whether focus holds the chart painted. */
+type ChartVisibility = { near: boolean; withinFar: boolean; seen: boolean; focused: boolean };
+
+/** The refs the Root's activation hooks share with its engine lifecycle. */
+type ActivationRefs = {
+	engineRef: RefObject<ChartEngine | null>;
+	activateRef: RefObject<((rect: DOMRectReadOnly | null) => void) | null>;
+};
+
+/**
+ * Report the plot's visibility bands to the engine. Near the viewport, a
+ * dormant chart queues its activation; far away, a chart nobody focuses
+ * releases its backing stores.
+ */
+const useChartVisibility = ({
+	plotRef,
+	engineRef,
+	activateRef,
+	visibilityRef,
+}: ActivationRefs & {
+	plotRef: RefObject<HTMLDivElement | null>;
+	visibilityRef: RefObject<ChartVisibility>;
+}): void => {
+	// Why a layout effect: observing before the first frame means the browser
+	// computes the entries at the end of that frame, so a chart that starts in
+	// view paints on the second frame, the same frame the sized plot allows.
+	useLayoutEffect(() => {
+		const plot = plotRef.current;
+		if (plot == null) {
+			return;
+		}
+		return observeChartVisibility(plot, ({ band, inView, rect }) => {
+			const engine = engineRef.current;
+			const visibility = visibilityRef.current;
+			if (band === "near") {
+				visibility.near = inView;
+				if (engine != null) {
+					engine.setInView(inView || visibility.focused);
+				} else if (inView) {
+					queueActivation(plot, { rect, run: (entryRect) => activateRef.current?.(entryRect) });
+				} else {
+					// A chart that scrolled away before its slice ran has nothing to paint.
+					cancelActivation(plot);
+				}
+			} else if (band === "visible" && inView) {
+				visibility.seen = true;
+				if (engine != null) {
+					engine.markSeen();
+				} else {
+					promoteActivation(plot);
+				}
+			} else if (band === "far") {
+				visibility.withinFar = inView;
+				// A focused chart keeps its canvas: a reader is driving it from the keyboard.
+				if (!inView && !visibility.focused) {
+					engine?.releaseBackingStores();
+				}
+			}
+		});
+	}, [plotRef, engineRef, activateRef, visibilityRef]);
+};
+
+/**
+ * Activate a dormant chart before the print snapshot and paint it at once.
+ * The engine's own print listener is a no-op after that.
+ */
+const usePrintActivation = ({
+	rootRef,
+	engineRef,
+	activateRef,
+}: ActivationRefs & { rootRef: RefObject<HTMLDivElement | null> }): void => {
+	useLayoutEffect(() => {
+		const view = rootRef.current?.ownerDocument.defaultView;
+		if (view == null) {
+			return;
+		}
+		return onPrint(view, {
+			before: () => {
+				activateRef.current?.(null);
+				engineRef.current?.paintForPrint();
+			},
+			after: () => {
+				engineRef.current?.afterPrint();
+			},
+		});
+	}, [rootRef, engineRef, activateRef]);
+};
+
+/**
+ * Write the series sentence of the description from the store, not from a
+ * render: the parts register after the Root's first render, and a re-render
+ * for it would change the text after the first layout. The subscription also
+ * follows a part that registers without a Root render.
+ */
+const useDescriptionSeries = ({
+	store,
+	decorative,
+	targetRef,
+}: {
+	store: ChartStore;
+	decorative: boolean;
+	targetRef: RefObject<HTMLSpanElement | null>;
+}): void => {
+	// Why the `decorative` check: the span mounts with the plot's named
+	// surface, so the writer rebinds when a Root stops being decorative.
+	useLayoutEffect(() => {
+		const target = targetRef.current;
+		if (decorative || target == null) {
+			return;
+		}
+		let last: string | null = null;
+		const write = () => {
+			const text = describeSeries(store.getSnapshot().series.map((series) => series.label));
+			if (text !== last) {
+				last = text;
+				target.textContent = text;
+			}
+		};
+		write();
+		return store.subscribe(write);
+	}, [store, decorative, targetRef]);
+};
+
+/**
+ * The chart Root implementation: renders the plot, the interaction overlay,
+ * the sr-only description, the aria-live region, the tooltip container (from
+ * the first hover), and (once engaged) the sr-only data table; builds the
+ * paint surface and the engine at activation; owns the engine
+ * lifecycle and the engagement latch.
+ *
+ * In `"static"` mode it omits the interaction overlay, the tooltip, the
+ * aria-live region, and the data table, and names the plot `role="img"` with
+ * the description beside it. In `"decorative"` mode it omits the description
+ * too, marks the root `aria-hidden` and `inert`, and publishes the decorative
+ * fill to the store so every series paints neutral: a placeholder backdrop
+ * with no interaction and nothing for assistive technology.
+ *
+ * No `asChild`: Root owns a fixed internal structure (canvas + observers +
+ * overlay) whose lifecycles are bound to this exact element tree, so
+ * element-swapping polymorphism does not apply.
+ */
 const ChartRootPrimitive = ({
 	kind,
 	componentName,
@@ -269,7 +392,12 @@ const ChartRootPrimitive = ({
 	const activateRef = useRef<((rect: DOMRectReadOnly | null) => void) | null>(null);
 	// The observer's latest reports, kept for an engine created later, and
 	// whether focus holds the chart painted wherever it is.
-	const visibilityRef = useRef({ near: false, withinFar: true, seen: false, focused: false });
+	const visibilityRef = useRef<ChartVisibility>({
+		near: false,
+		withinFar: true,
+		seen: false,
+		focused: false,
+	});
 	const descriptionSeriesRef = useRef<HTMLSpanElement | null>(null);
 	// Why a selector on the latch alone: a hover publish must not re-render the Root.
 	const tooltipWanted = useSyncExternalStore(
@@ -423,62 +551,9 @@ const ChartRootPrimitive = ({
 		};
 	}, [kind, store, slotName, interactive, paintBackend, scatterView]);
 
-	// Why a layout effect: observing before the first frame means the browser
-	// computes the entries at the end of that frame, so a chart that starts in
-	// view paints on the second frame, the same frame the sized plot allows.
-	useLayoutEffect(() => {
-		const plot = plotRef.current;
-		if (plot == null) {
-			return;
-		}
-		return observeChartVisibility(plot, ({ band, inView, rect }) => {
-			const engine = engineRef.current;
-			const visibility = visibilityRef.current;
-			if (band === "near") {
-				visibility.near = inView;
-				if (engine != null) {
-					engine.setInView(inView || visibility.focused);
-				} else if (inView) {
-					queueActivation(plot, { rect, run: (entryRect) => activateRef.current?.(entryRect) });
-				} else {
-					// A chart that scrolled away before its slice ran has nothing to paint.
-					cancelActivation(plot);
-				}
-			} else if (band === "visible" && inView) {
-				visibility.seen = true;
-				if (engine != null) {
-					engine.markSeen();
-				} else {
-					promoteActivation(plot);
-				}
-			} else if (band === "far") {
-				visibility.withinFar = inView;
-				// A focused chart keeps its canvas: a reader is driving it from the keyboard.
-				if (!inView && !visibility.focused) {
-					engine?.releaseBackingStores();
-				}
-			}
-		});
-	}, []);
+	useChartVisibility({ plotRef, engineRef, activateRef, visibilityRef });
 
-	// A dormant chart holds no engine, so the Root activates it before the
-	// print snapshot and paints at once; the engine's own print listener is a
-	// no-op after that.
-	useLayoutEffect(() => {
-		const view = rootRef.current?.ownerDocument.defaultView;
-		if (view == null) {
-			return;
-		}
-		return onPrint(view, {
-			before: () => {
-				activateRef.current?.(null);
-				engineRef.current?.paintForPrint();
-			},
-			after: () => {
-				engineRef.current?.afterPrint();
-			},
-		});
-	}, []);
+	usePrintActivation({ rootRef, engineRef, activateRef });
 
 	useLayoutEffect(() => {
 		engineRef.current?.setOptions({
@@ -543,33 +618,13 @@ const ChartRootPrimitive = ({
 		engineRef.current?.setColorScope(className, stableStyle);
 	}, [className, stableStyle]);
 
+	useDescriptionSeries({ store, decorative, targetRef: descriptionSeriesRef });
+
 	// Must stay the LAST effect: rows, options, and series registrations from
 	// one commit land in the engine as a single consistent ingest. Ingesting
 	// inline (mid-commit) would validate one render's series specs against the
 	// previous render's rows — swapping `data` and a series `dataKey` together
 	// would fail fast on a key the settled commit does contain.
-	// The series sentence of the description is written from the store, not
-	// rendered: the parts register after the Root's first render, and a
-	// re-render for it would change the text after the first layout. The
-	// subscription also follows a part that registers without a Root render.
-	// Why the `decorative` check: the span mounts with the plot's named
-	// surface, so the writer rebinds when a Root stops being decorative.
-	useLayoutEffect(() => {
-		const target = descriptionSeriesRef.current;
-		if (decorative || target == null) {
-			return;
-		}
-		let last: string | null = null;
-		const write = () => {
-			const text = describeSeries(store.getSnapshot().series.map((series) => series.label));
-			if (text !== last) {
-				last = text;
-				target.textContent = text;
-			}
-		};
-		write();
-		return store.subscribe(write);
-	}, [store, decorative]);
 
 	// A dormant Root holds no engine, so it throws the key invariants itself:
 	// a typo must fail in the mount commit, not in the observer task that
