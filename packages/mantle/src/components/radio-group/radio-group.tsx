@@ -322,7 +322,12 @@ const List = ({ "data-slot": dataSlot, className, ref, ...props }: RadioGroupPro
 	return (
 		<Root
 			data-slot={joinDataSlot(dataSlot, "radio-group-list")}
-			className={clsx("-space-y-px", className)}
+			className={clsx(
+				// Why 0.6875rem: the row radius (6px), the padding (4px), and the border (1px) add up to it.
+				// The rows and their focus rings then follow the group corner.
+				"border-form flex flex-col gap-px rounded-[0.6875rem] border p-1",
+				className,
+			)}
 			{...props}
 			ref={ref}
 		/>
@@ -375,11 +380,10 @@ const ListItem = ({
 		<HeadlessRadio
 			data-slot={joinDataSlot(dataSlot, "radio-group-list-item")}
 			className={cx(
-				"group/radio border-form [&_label]:cursor-inherit relative flex select-none gap-2 border px-3 py-2 text-sm",
+				"group/radio [&_label]:cursor-inherit relative flex select-none gap-2 rounded-md px-3 py-2 text-sm",
 				"cursor-pointer aria-disabled:cursor-default focus:outline-hidden",
 				"focus-visible:ring-focus-accent focus-visible:z-1 focus-visible:ring-4",
-				"first-of-type:rounded-tl-md first-of-type:rounded-tr-md last-of-type:rounded-bl-md last-of-type:rounded-br-md",
-				"aria-disabled:border-form/50 not-aria-disabled:hover:bg-active-menu-item",
+				"not-aria-disabled:hover:bg-active-menu-item",
 				"aria-checked:bg-selected-menu-item not-aria-disabled:hover:aria-checked:bg-active-selected-menu-item",
 				"has-[.radio-indicator:first-child]:pl-2 has-[.radio-indicator:last-child]:pr-2",
 				className,
@@ -522,7 +526,12 @@ const ButtonGroup = ({ "data-slot": dataSlot, className, ref, ...props }: RadioG
 	return (
 		<Root
 			data-slot={joinDataSlot(dataSlot, "radio-group-button-group")}
-			className={clsx("flex flex-row flex-nowrap -space-x-px", className)}
+			className={clsx(
+				// Why 0.6875rem: the segment radius (6px), the padding (4px), and the border (1px) add up to it.
+				// The segments and their focus rings then follow the group corner.
+				"border-form flex h-9 flex-row flex-nowrap gap-px rounded-[0.6875rem] border p-1",
+				className,
+			)}
 			{...props}
 			ref={ref}
 		/>
@@ -564,12 +573,11 @@ const Button = ({
 		<HeadlessRadio
 			data-slot={joinDataSlot(dataSlot, "radio-group-button")}
 			className={cx(
-				"group/radio border-form [&_label]:cursor-inherit relative flex flex-1 select-none items-center justify-center gap-2 border px-3 text-sm",
-				// Why nowrap: the segment has a fixed height, so a wrapped label spills out of it.
-				"h-9 whitespace-nowrap",
+				"group/radio [&_label]:cursor-inherit relative flex flex-1 select-none items-center justify-center gap-2 rounded-md px-3 text-sm",
+				// Why nowrap: `ButtonGroup` has a fixed height, so a wrapped label spills out of the segment.
+				"whitespace-nowrap",
 				"focus-visible:ring-focus-accent focus-visible:z-1 focus-visible:ring-4",
 				"cursor-pointer aria-disabled:cursor-default focus:outline-hidden",
-				"first-of-type:rounded-bl-md first-of-type:rounded-tl-md last-of-type:rounded-br-md last-of-type:rounded-tr-md",
 				"not-aria-disabled:hover:bg-active-menu-item aria-disabled:opacity-50",
 				"aria-checked:bg-selected-menu-item not-aria-disabled:hover:aria-checked:bg-active-selected-menu-item",
 				"has-[.radio-indicator:first-child]:pl-2 has-[.radio-indicator:last-child]:pr-2",
@@ -869,7 +877,7 @@ const RadioGroup = {
 	 */
 	ItemContent,
 	/**
-	 * A group of radio list items with connected borders. Use RadioGroup.ListItem as direct children.
+	 * A bordered group of radio list items. Use RadioGroup.ListItem as direct children.
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/radio-group#radiogrouplist
 	 *
