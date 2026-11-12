@@ -16,8 +16,24 @@ import { useChartContext, useShallowStable } from "./context.js";
  * This module is internal shared implementation — not exported from the package.
  */
 
-const useStoreSnapshot = (store: ChartStore) =>
-	useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
+/**
+ * Subscribe to the hover and the tooltip config only. A data update
+ * publishes a new snapshot, and a chart nobody points at keeps the same
+ * `null` hover, so its surface skips the re-render.
+ */
+const useTooltipState = (store: ChartStore) => {
+	const hover = useSyncExternalStore(
+		store.subscribe,
+		() => store.getSnapshot().hover,
+		() => store.getSnapshot().hover,
+	);
+	const config = useSyncExternalStore(
+		store.subscribe,
+		() => store.getSnapshot().tooltip,
+		() => store.getSnapshot().tooltip,
+	);
+	return { hover, config };
+};
 
 type TooltipPrimitiveProps = Omit<ComponentProps<"div">, "children"> & {
 	/** Format the x/label row of the readout. */
@@ -95,9 +111,7 @@ const ChartTooltipSurface = ({
 	/** Whether the dataset's x dates carry a time-of-day component (label granularity). */
 	xHasTimeOfDay: boolean;
 }) => {
-	const snapshot = useStoreSnapshot(store);
-	const config = snapshot.tooltip;
-	const hover = snapshot.hover;
+	const { hover, config } = useTooltipState(store);
 	const { className, ref: consumerRef, style, ...divProps } = config?.divProps ?? {};
 	const surfaceRef = useRef<HTMLDivElement | null>(null);
 	const composedRef = useComposedRefs(tooltipRef, surfaceRef);
