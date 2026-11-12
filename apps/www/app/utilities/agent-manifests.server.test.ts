@@ -136,4 +136,21 @@ describe("the site's agent manifest", () => {
 
 		expect(rank("Label")).toBeLessThan(rank("Separator"));
 	});
+	// A part of a qualified alias must not win: "text field" of "multiline text field" is not Text Area.
+	it.each([
+		["label a text field", "Field"],
+		["labeled text input", "Input"],
+	])("ranks the plain part first for %s", async (query, name) => {
+		const manifest = await buildSiteAgentManifest();
+		const records = recordsOf({
+			version: "0.0.0",
+			manifest,
+			specifiers: new Set(),
+			exportsBySpecifier: new Map(),
+			llmsTxt: undefined,
+			declarationsOf: () => undefined,
+		});
+
+		expect(findRecords(records, { query })[0]?.record.name).toBe(name);
+	});
 });

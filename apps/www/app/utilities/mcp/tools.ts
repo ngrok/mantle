@@ -151,8 +151,38 @@ function withinOneEdit(left: string, right: string): boolean {
 	return leftEnd - start <= 1 && rightEnd - start <= 1;
 }
 
+/** Whether a query word hits a field word: the same singular, or a prefix of four or more letters. */
+function hits(word: string, token: string): boolean {
+	return singular(word) === token || (token.length >= 4 && word.startsWith(token));
+}
+
+/**
+ * The alias words of a record that score for a query. A whole alias scores
+ * each word. A partial alias does not score a word from the name of a
+ * different record. Why: "text" and "field" of the Text Area alias "multiline
+ * text field" must not rank Text Area above Field for "label a text field".
+ */
+function aliasWords(
+	record: ApiRecord,
+	tokens: readonly string[],
+	nameWords: ReadonlySet<string>,
+): string[] {
+	const ownWords = keywordsFrom(record.name).map(singular);
+	return (record.aliases ?? []).flatMap((alias) => {
+		const words = keywordsFrom(alias).filter((word) => !STOP_WORDS.has(word));
+		const whole = words.every((word) => tokens.some((token) => hits(word, token)));
+		return whole
+			? words
+			: words.filter((word) => ownWords.includes(singular(word)) || !nameWords.has(singular(word)));
+	});
+}
+
 /** The words of each field that `find` searches, with the weight of a hit. */
-function weightedFields(record: FindRecord): [string[], number][] {
+function weightedFields(
+	record: FindRecord,
+	tokens: readonly string[],
+	nameWords: ReadonlySet<string>,
+): [string[], number][] {
 	if (record.kind === "page") {
 		return [
 			[keywordsFrom(record.name), 10],
@@ -162,7 +192,7 @@ function weightedFields(record: FindRecord): [string[], number][] {
 	}
 	return [
 		[keywordsFrom(record.name), 10],
-		[keywordsFrom(...(record.aliases ?? [])), 8],
+		[aliasWords(record, tokens, nameWords), 8],
 		[keywordsFrom(record.useWhen), 4],
 		[keywordsFrom(record.summary), 3],
 		[keywordsFrom(record.jsdoc), 2],
@@ -187,6 +217,7 @@ export function findRecords<T extends FindRecord>(
 	const tokens = keywordsFrom(query)
 		.filter((token) => !STOP_WORDS.has(token))
 		.map(singular);
+	const nameWords = new Set(records.flatMap((record) => keywordsFrom(record.name).map(singular)));
 
 	const scored = records
 		.filter((record) => kind == null || record.kind === kind)
@@ -202,16 +233,13 @@ export function findRecords<T extends FindRecord>(
 			} else if (wanted.length >= 4 && nameKeys.some((key) => withinOneEdit(key, wanted))) {
 				nameScore = 30;
 			}
+			const fields = weightedFields(record, tokens, nameWords);
 			let wordScore = 0;
 			let matchedTokens = 0;
 			for (const token of tokens) {
 				let tokenScore = 0;
-				for (const [words, weight] of weightedFields(record)) {
-					if (
-						words.some(
-							(word) => singular(word) === token || (token.length >= 4 && word.startsWith(token)),
-						)
-					) {
+				for (const [words, weight] of fields) {
+					if (words.some((word) => hits(word, token))) {
 						tokenScore += weight;
 					}
 				}
