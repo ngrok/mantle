@@ -97,4 +97,22 @@ describe("the site's agent manifest", () => {
 			}),
 		);
 	});
+	// The Separator search words must not rank a divider above Label for a plain label query.
+	it("ranks Label above Separator for a text label", async () => {
+		const manifest = await buildSiteAgentManifest();
+		const records = recordsOf({
+			version: "0.0.0",
+			manifest,
+			specifiers: new Set(),
+			exportsBySpecifier: new Map(),
+			llmsTxt: undefined,
+			declarationsOf: () => undefined,
+		});
+
+		const names = findRecords(records, { query: "text label" }).map(({ record }) => record.name);
+
+		const rank = (name: string) => (names.includes(name) ? names.indexOf(name) : names.length);
+
+		expect(rank("Label")).toBeLessThan(rank("Separator"));
+	});
 });

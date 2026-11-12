@@ -1461,9 +1461,7 @@
       "```tsx\n<Separator className=\"my-4\" />\n\n<Separator className=\"my-4\" semantic />\n\n<div className=\"flex h-5 items-center gap-4 text-sm\">\n  Blog\n  <Separator orientation=\"vertical\" />\n  Docs\n  <Separator orientation=\"vertical\" />\n  Source\n</div>\n```"
     ],
     "aliases": [
-      "divider",
-      "labeled separator",
-      "text divider"
+      "divider"
     ],
     "siblings": [
       {
