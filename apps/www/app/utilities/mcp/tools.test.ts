@@ -123,6 +123,14 @@ describe("findRecords", () => {
 		expect(top).toEqual(expect.objectContaining({ record: chart, strong: true }));
 	});
 
+	it("needs a second name or alias word to call a one-word name strong", () => {
+		const badge = part("Badge", { aliases: ["tag"] });
+		const code = part("Code");
+
+		expect(findRecords([badge], { query: "removable badge tag" })[0]?.strong).toBe(true);
+		expect(findRecords([code], { query: "rich editor code completion" })[0]?.strong).toBe(false);
+	});
+
 	it("scores a sibling boundary for the sibling it names", () => {
 		const radio = part("Radio", {
 			siblings: [{ name: "Picker", boundary: "The set is long or numeric." }],

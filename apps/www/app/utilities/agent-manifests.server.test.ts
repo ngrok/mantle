@@ -158,6 +158,24 @@ describe("the site's agent manifest", () => {
 			expect.objectContaining({ record: expect.objectContaining({ name }), strong: true }),
 		);
 	});
+	// Mantle has no part for these queries. A part name in the query must not hide the gap.
+	it.each([
+		"rich text editor with code completion",
+		"card carousel slider",
+		"dialog wizard with steps",
+	])("finds no strong match for %s", async (query) => {
+		const manifest = await buildSiteAgentManifest();
+		const records = recordsOf({
+			version: "0.0.0",
+			manifest,
+			specifiers: new Set(),
+			exportsBySpecifier: new Map(),
+			llmsTxt: undefined,
+			declarationsOf: () => undefined,
+		});
+
+		expect(findRecords(records, { query })[0]?.strong).toBe(false);
+	});
 	// A part of a qualified alias must not win: "text field" of "multiline text field" is not Text Area.
 	it.each([
 		["label a text field", "Field"],

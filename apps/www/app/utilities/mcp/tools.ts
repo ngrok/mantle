@@ -94,8 +94,8 @@ export type FindMatch<T extends FindRecord> = {
 	score: number;
 	/**
 	 * Whether the record clearly answers the query: its name or an alias
-	 * matches, the query contains each word of its name, or half the query
-	 * words or more match. When the top result is
+	 * matches, the query contains each word of its name and a second name or
+	 * alias word, or half the query words or more match. When the top result is
 	 * not strong, mantle may lack a part for the query.
 	 */
 	strong: boolean;
@@ -195,21 +195,31 @@ function boundariesBySibling(records: readonly FindRecord[]): Map<string, string
 	return boundaries;
 }
 
+/** The lowercase singular words of a text, short words included. */
+function wordsOf(text: string): string[] {
+	return text
+		.toLowerCase()
+		.split(/[^a-z0-9]+/)
+		.filter(Boolean)
+		.map(singular);
+}
+
 /**
- * Whether the query contains each word of the record name. Short words count,
- * so "qr code" names QR Code. Docs pages do not count: their titles are
- * sentences, not part names.
+ * Whether the query contains each word of the record name, and two or more
+ * words of its name and aliases. Short words count, so "qr code" names QR
+ * Code. Why two: one word is weak evidence. "rich text editor with code
+ * completion" contains Code, but Code is not an editor. Docs pages do not
+ * count: their titles are sentences, not part names.
  */
 function namedInQuery(record: FindRecord, queryWords: ReadonlySet<string>): boolean {
 	if (record.kind === "page") {
 		return false;
 	}
-	const words = record.name
-		.toLowerCase()
-		.split(/[^a-z0-9]+/)
-		.filter(Boolean)
-		.map(singular);
-	return words.length > 0 && words.every((word) => queryWords.has(word));
+	const words = wordsOf(record.name);
+	const named = new Set(
+		[...words, ...(record.aliases ?? []).flatMap(wordsOf)].filter((word) => queryWords.has(word)),
+	);
+	return words.length > 0 && words.every((word) => queryWords.has(word)) && named.size >= 2;
 }
 
 /** The words of each field that `find` searches, with the weight of a hit. */
@@ -260,13 +270,7 @@ export function findRecords<T extends FindRecord>(
 		.filter((token) => !STOP_WORDS.has(token))
 		.map(singular);
 	const nameWords = new Set(records.flatMap((record) => keywordsFrom(record.name).map(singular)));
-	const queryWords = new Set(
-		query
-			.toLowerCase()
-			.split(/[^a-z0-9]+/)
-			.filter(Boolean)
-			.map(singular),
-	);
+	const queryWords = new Set(wordsOf(query));
 	const boundaries = boundariesBySibling(records);
 
 	const scored = records
