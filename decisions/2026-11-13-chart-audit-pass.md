@@ -48,6 +48,7 @@ Three results set the direction:
 - **Layers released while idle** (the hover layers drop their transform when no datum is active): no change in hover time while the spinner layers were on the page.
 - **No clip on an edge-to-edge chart** (the marks clip equals the SVG box): 2% less `Layerize`, inside the spread between runs.
 - **A tooltip with a fixed width, and one that never narrows during a hover:** no change. The full compositing step ran with no tooltip at all.
+- **The readout on the mantle `Popover`** (non-modal, a virtual anchor, floating-ui polling): about 0.8 ms more main-thread time for each pointer move at both page sizes (4.15 ms to 4.96 ms on 100 cards, 2.78 ms to 3.63 ms on 20), and a poll 60 times a second while the pointer rests. The raster thread did 45% less work, so over all threads the cost is 0.6 to 0.7 ms. Bytes do not decide it: `Popover` is already on 17 of the 28 dashboard routes that hold a chart. Two effects that no prop removes decide it. The focus scope of the popover lets Tab leave a modal `Dialog` while a readout shows, and the portal drops a `--color-chart-*` override that an app sets on the chart Root.
 - **A `viewBox` for print:** headless Chromium (`page.pdf()`) repaints each chart at the print width, with and without it. A print from the browser's own dialog was not measured.
 
 ## Deferred (named, with the trigger that reopens each)
@@ -58,6 +59,7 @@ Three results set the direction:
 - **A dense bar chart that merges bars under one device pixel.** Reopen when a page draws more than about 2,000 bars in one chart.
 - **One path for each scatter series from 5,001 to 20,000 points, and a counting sort for the 3D depth order.** Reopen when a page draws a scatter above 5,000 points.
 - **A readout that leaves the plot** (the top layer, with `popover="manual"`): on an 80 px chart the readout covers the bars, and a card can clip it. It needs a placement from design.
+- **A readout that a reader pins or acts in.** That is the use of the mantle `Popover`: open it from `onDatumActivate` and place it one time with `Popover.Anchor virtualRef`. The chart needs a seam that gives the anchor point of the active datum, about 20 lines. Reopen when a page needs a link or an action in the readout.
 - **Touch:** a tap shows the readout only while the finger is down, and one tap inspects and activates. It needs a model from design.
 - **Escape inside a mantle Dialog** closes the dialog and not only the readout, and a readout that a pointer opened cannot be dismissed from the keyboard. Both need a contract between the chart and the dialog layer.
 - **3D rotation from the keyboard** and from a pointer with no drag (SC 2.1.1 and SC 2.5.7).
