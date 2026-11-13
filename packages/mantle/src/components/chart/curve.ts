@@ -252,8 +252,8 @@ const traceLine = (
 	const trace = curveTracer(curve);
 	forEachRun(indexes, definedAt, (from, to) => {
 		const count = trace(ctx, { indexes, from, to, xAt, yAt, joined: false });
-		// Why close a run of one point: under round caps a closed point paints a
-		// dot. An open point paints nothing.
+		// Why close a run of one point: in an SVG path, round caps paint a closed
+		// point as a dot. A canvas strokes no subpath of one point.
 		if (count === 1) {
 			ctx.closePath();
 		}

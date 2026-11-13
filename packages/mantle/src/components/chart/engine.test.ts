@@ -514,41 +514,39 @@ describe("ChartEngine hover sync", () => {
 	});
 });
 
-describe("ChartEngine category gutter", () => {
-	/**
-	 * The x of the first category label on the first paint of a horizontal bar
-	 * chart. The labels end at the right edge of the gutter.
-	 */
-	const firstPaintLabelX = (categories: readonly string[]): number => {
-		const mount = mountEngine({
-			kind: "bar",
-			backend: createSvgBackend,
-			series: [makeSeries("a", "bar")],
-			rows: categories.map((x, index) => ({ x, a: index + 1 })),
-			options: { xScale: "band", orientation: "horizontal" },
-		});
-		mount.store.registerXAxis({ tickFormat: undefined, tickCount: undefined });
-		mount.engine.commitNow();
-		const label = [...mount.elements.plot.querySelectorAll("svg text")].find(
-			(text) => text.textContent === categories[0],
-		);
-		if (label == null) {
-			throw new Error(`expected the "${categories[0]}" label to paint`);
-		}
-		return Number(label.getAttribute("x"));
-	};
-
-	test("the first layout of a horizontal bar chart sizes the gutter for its category names", () => {
-		const short = firstPaintLabelX(["a", "b", "c"]);
-		const long = firstPaintLabelX([
-			"us-east-1-production",
-			"us-west-2-production",
-			"eu-west-1-production",
-		]);
-		// A gutter sized for the row indexes is the same for both charts, and it
-		// clips the long names.
-		expect(long).toBeGreaterThan(short);
+/**
+ * The x of the first category label on the first paint of a horizontal bar
+ * chart. The labels end at the right edge of the gutter.
+ */
+const firstPaintLabelX = (categories: readonly string[]): number => {
+	const mount = mountEngine({
+		kind: "bar",
+		backend: createSvgBackend,
+		series: [makeSeries("a", "bar")],
+		rows: categories.map((x, index) => ({ x, a: index + 1 })),
+		options: { xScale: "band", orientation: "horizontal" },
 	});
+	mount.store.registerXAxis({ tickFormat: undefined, tickCount: undefined });
+	mount.engine.commitNow();
+	const label = [...mount.elements.plot.querySelectorAll("svg text")].find(
+		(text) => text.textContent === categories[0],
+	);
+	if (label == null) {
+		throw new Error(`expected the "${categories[0]}" label to paint`);
+	}
+	return Number(label.getAttribute("x"));
+};
+
+test("the first layout of a horizontal bar chart sizes the gutter for its category names", () => {
+	const short = firstPaintLabelX(["a", "b", "c"]);
+	const long = firstPaintLabelX([
+		"us-east-1-production",
+		"us-west-2-production",
+		"eu-west-1-production",
+	]);
+	// A gutter sized for the row indexes is the same for both charts, and it
+	// clips the long names.
+	expect(long).toBeGreaterThan(short);
 });
 
 describe("ChartEngine tooltip placement", () => {
@@ -575,16 +573,43 @@ describe("ChartEngine tooltip placement", () => {
 		return { frames, mount, tooltip };
 	};
 
-	test("a new readout size moves the tooltip inside the observer callback, with no frame", () => {
+	test("a new readout size moves the tooltip on the next frame, not inside the observer callback", () => {
 		const { frames, mount, tooltip } = mountOnLastBand();
 		const unsized = tooltip.style.transform;
 
 		reportTooltipSize(mount, READOUT);
 
-		// The callback runs after layout and before paint. A move on the next
-		// frame paints the readout once where its old size put it.
+		// A move inside the callback can add a scrollbar to an ancestor. That
+		// resizes an observed box in the same observer pass: a loop error.
+		expect(tooltip.style.transform).toBe(unsized);
+		frames.settle();
 		expect(tooltip.style.transform).not.toBe(unsized);
-		expect(frames.pending()).toBe(false);
+	});
+
+	test("the first frame of the first readout sits where the size of its surface puts it", () => {
+		const frames = installFrameClock();
+		const mount = mountEngine({
+			kind: "bar",
+			series: [makeSeries("a", "bar")],
+			rows: firstRows,
+			options: { xScale: "band" },
+		});
+		const { tooltip } = mount.elements;
+		if (tooltip == null) {
+			throw new Error("expected the mount to hold a tooltip element");
+		}
+		// The surface holds its rows before the observer reports their size.
+		vi.spyOn(tooltip, "offsetWidth", "get").mockReturnValue(READOUT.width);
+		vi.spyOn(tooltip, "offsetHeight", "get").mockReturnValue(READOUT.height);
+
+		mount.engine.handleKeyDown("End");
+		frames.step();
+		const firstFrame = tooltip.style.transform;
+		reportTooltipSize(mount, READOUT);
+		frames.settle();
+
+		expect(firstFrame).toMatch(/^translate\(/);
+		expect(firstFrame).toBe(tooltip.style.transform);
 	});
 
 	test("the empty box of an idle tooltip does not replace the size of the last readout", () => {
@@ -1397,6 +1422,67 @@ describe("ChartEngine on-screen motion", () => {
 		expect(painted()).not.toEqual(paintedPaths(settled));
 		expect(frames.pending()).toBe(true);
 	});
+
+	/** A bar engine with motion on, and the same chart at rest with no motion. */
+	const mountPair = (config: {
+		series: readonly SeriesSpec[];
+		inView?: boolean;
+		onScreen?: boolean;
+	}) => {
+		const frames = installFrameClock();
+		const rows = [
+			{ x: "GET", a: 40, b: 10 },
+			{ x: "POST", a: 80, b: 30 },
+		];
+		const mount = mountEngine({
+			kind: "bar",
+			backend: createSvgBackend,
+			series: config.series,
+			rows,
+			options: { xScale: "band", animate: true },
+			inView: config.inView,
+			onScreen: config.onScreen,
+		});
+		const atRest = mountEngine({
+			kind: "bar",
+			backend: createSvgBackend,
+			series: [makeSeries("a", "bar"), makeSeries("b", "bar")],
+			rows,
+			options: { xScale: "band" },
+		});
+		return { frames, mount, atRest };
+	};
+
+	test("a series that registers while the engine is off screen appears settled, in one frame", () => {
+		const { frames, mount, atRest } = mountPair({ series: [makeSeries("a", "bar")] });
+		frames.settle();
+		mount.engine.setOnScreen(false);
+
+		// A top-N chart swaps in a series key.
+		mount.store.registerSeries(makeSeries("b", "bar"));
+		mount.engine.flushIngest();
+		frames.step();
+
+		expect(paintedPaths(mount)).toEqual(paintedPaths(atRest));
+		expect(frames.pending()).toBe(false);
+	});
+
+	test("an engine that is marked seen while off screen shows its marks settled, in one frame", () => {
+		const { frames, mount, atRest } = mountPair({
+			series: [makeSeries("a", "bar"), makeSeries("b", "bar")],
+			inView: false,
+			onScreen: false,
+		});
+		mount.engine.setInView(true);
+		frames.settle();
+
+		// The Root marks a rebuilt engine seen when its chart was on screen before.
+		mount.engine.markSeen();
+		frames.step();
+
+		expect(paintedPaths(mount)).toEqual(paintedPaths(atRest));
+		expect(frames.pending()).toBe(false);
+	});
 });
 
 describe("ChartEngine domain chase", () => {
@@ -1517,11 +1603,53 @@ describe("ChartEngine category changes", () => {
 		expect(firstFrame).toEqual(paintedPaths(mount));
 	});
 
+	test("a line on a point scale whose window slides by one category paints the settled line on the first frame", () => {
+		const frames = installFrameClock();
+		const mount = mountEngine({
+			kind: "line",
+			backend: createSvgBackend,
+			series: [makeSeries("a", "line")],
+			rows: [
+				{ x: "09:00", a: 10 },
+				{ x: "09:01", a: 40 },
+				{ x: "09:02", a: 90 },
+			],
+			options: { xScale: "point", yDomain: [0, 100], animate: true },
+		});
+		frames.settle();
+		const before = paintedPaths(mount);
+
+		mount.engine.setRows([
+			{ x: "09:01", a: 40 },
+			{ x: "09:02", a: 90 },
+			{ x: "09:03", a: 20 },
+		]);
+		mount.engine.flushIngest();
+		frames.step();
+		const firstFrame = paintedPaths(mount);
+		frames.settle();
+
+		expect(firstFrame).not.toEqual(before);
+		expect(firstFrame).toEqual(paintedPaths(mount));
+	});
+
+	type Category = string | number | Date;
+
 	test.each([
-		{ name: "equal strings", category: (minute: number): string | Date => `09:0${minute}` },
+		{ name: "equal strings", category: (minute: number): Category => `09:0${minute}` },
 		{
 			name: "equal times on new Date objects",
-			category: (minute: number): string | Date => new Date(Date.UTC(2026, 6, 18, 9, minute)),
+			category: (minute: number): Category => new Date(Date.UTC(2026, 6, 18, 9, minute)),
+		},
+		// `NaN` is not equal to itself, and an invalid `Date` has a time of `NaN`.
+		{
+			name: "numbers with a NaN in them",
+			category: (minute: number): Category => (minute === 1 ? Number.NaN : minute),
+		},
+		{
+			name: "dates with an invalid Date in them",
+			category: (minute: number): Category =>
+				minute === 1 ? new Date("not a date") : new Date(Date.UTC(2026, 6, 18, 9, minute)),
 		},
 	])("the same categories as $name tween their bars to new values", ({ category }) => {
 		const frames = installFrameClock();
@@ -1589,6 +1717,25 @@ describe("ChartEngine per-datum tweens", () => {
 
 		expect(paintedPaths(mount)).not.toEqual(before);
 		expect(frames.pending()).toBe(false);
+	});
+
+	test("a dense scatter plot under the limit tweens its points after an update on the same x vector", () => {
+		const frames = installFrameClock();
+		const mount = mountEngine({
+			kind: "scatter",
+			series: [makeSeries("a", "scatter")],
+			rows: waveRows(2000, 0),
+			options: { yDomain: [0, 100], animate: true },
+			// 24 rows per pixel column decimate a line. A scatter draws every point.
+			size: { width: 100, height: 200 },
+		});
+		frames.settle();
+
+		mount.engine.setRows(waveRows(2000, 1));
+		mount.engine.flushIngest();
+		frames.step();
+
+		expect(frames.pending()).toBe(true);
 	});
 
 	test("a decimated chart under the limit asks for no tween frame after an update on the same x vector", () => {

@@ -243,10 +243,13 @@ class ScatterView {
 		this.#three?.setDimensions(dimensions, options);
 	}
 
-	/** Finish the camera glide and the dimensions morph at their targets. */
-	snap(dimensions: 1 | 2 | 3): void {
+	/**
+	 * Finish the camera glide and the dimensions morph at their targets. A
+	 * camera at rest keeps the view that a drag gave it.
+	 */
+	settle(dimensions: 1 | 2 | 3): void {
 		this.#dimensions = dimensions;
-		this.#three?.snap(dimensions);
+		this.#three?.settle(dimensions);
 	}
 
 	/** Advance the camera and the morph. Returns `true` while either still moves. */

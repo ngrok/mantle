@@ -93,12 +93,23 @@ class Scatter3d {
 		this.#cameraChase.aim([yawTarget, view.pitch], now);
 	}
 
-	/** Finish the camera glide and the dimensions morph at their targets. */
+	/** Put the camera and the dimensions morph at the view of `dimensions`. */
 	snap(dimensions: 1 | 2 | 3): void {
 		const view = cameraViewFor(dimensions);
 		this.#dimensionChase.jump(collapseFor(dimensions));
 		this.#camera = view;
 		this.#cameraChase.jump([view.yaw, view.pitch]);
+	}
+
+	/**
+	 * Finish the camera glide and the dimensions morph at their targets. A
+	 * camera at rest keeps the view that a drag gave it.
+	 */
+	settle(dimensions: 1 | 2 | 3): void {
+		this.#dimensionChase.jump(collapseFor(dimensions));
+		if (this.#cameraChase.active) {
+			this.snap(dimensions);
+		}
 	}
 
 	/** Advance the camera and the morph. Returns `true` while either still moves. */

@@ -4,7 +4,7 @@ These chart modules hold code ported from d3:
 
 - `curve.ts`: the line and area generators and three curves of `d3-shape` 3.2.1
 - `time-ticks.ts`: the local time intervals and the tick solver of `d3-time` 3.1.1, the tick label rule of `d3-scale` 4.0.3 with its eight formats of `d3-time-format` 4.1.1, and `tickStep` of `d3-array` 3.2.5
-- `scales.ts`: `ticks` and `tickIncrement` of `d3-array` 3.2.4
+- `scales.ts`: `ticks`, `tickIncrement`, and `nice` of `d3-array` 3.2.4
 
 The five packages share this license:
 

@@ -2,6 +2,7 @@
 
 import { render, screen, waitFor } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, expect, test } from "vitest";
+import { commands } from "vitest/browser";
 import { CanvasLineChartRoot } from "../../test-utils/canvas-chart-roots.js";
 import { LineChart } from "../line-chart/index.js";
 
@@ -282,6 +283,9 @@ const nextFrame = (): Promise<void> =>
 
 /** Render the pair, give both charts new data once they painted, and wait one frame. */
 const updatePair = async (offset: number) => {
+	// Why pinned: under reduced motion no chart glides, and the host's own
+	// setting would otherwise decide what the moving chart does.
+	await commands.emulateMedia({ reducedMotion: "no-preference" });
 	const { rerender } = render(chartPair({ rows: data, offset }));
 	const moving = chartNamed("Moving chart");
 	const settled = chartNamed("Settled chart");

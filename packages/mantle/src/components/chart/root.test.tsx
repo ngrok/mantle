@@ -239,13 +239,38 @@ describe("motion at activation", () => {
 	test("a chart that activates on screen fades its tick labels in", () => {
 		const { plot } = renderChart({ axis: true });
 
-		// At page load the `near` band activates the chart before the `visible`
-		// band reports it, so the activation rect is what places it on screen.
+		// When the `near` band reports before the `visible` band, the activation
+		// rect is what places the chart on screen.
 		report("near", plot, { inView: true, rect: ON_SCREEN });
 
 		const alphas = labelAlphas(plot);
 		expect(alphas.length).toBeGreaterThan(0);
 		expect(Math.max(...alphas)).toBeLessThan(1);
+	});
+
+	test("a chart that the visible band reported on screen fades its tick labels in, with a rect under the fold", () => {
+		const { plot } = renderChart({ axis: true });
+
+		// The reader scrolled between the two reports, so the rect is stale.
+		report("visible", plot, { inView: true });
+		report("near", plot, { inView: true, rect: BELOW_FOLD });
+
+		const alphas = labelAlphas(plot);
+		expect(alphas.length).toBeGreaterThan(0);
+		expect(Math.max(...alphas)).toBeLessThan(1);
+	});
+
+	test("a chart that the visible band reported off screen paints its tick labels at full alpha, with a rect inside the window", () => {
+		const { plot } = renderChart({ axis: true });
+
+		// A scroll panel clips the plot, and the rect of the plot is still inside
+		// the window. The browser delivers the bands of one round in no fixed order.
+		report("visible", plot, { inView: false, rect: ON_SCREEN });
+		report("near", plot, { inView: true, rect: ON_SCREEN });
+
+		const alphas = labelAlphas(plot);
+		expect(alphas.length).toBeGreaterThan(0);
+		expect(Math.min(...alphas)).toBe(1);
 	});
 });
 
@@ -417,24 +442,28 @@ describe("resolved x scale", () => {
 });
 
 describe("pointer buttons", () => {
-	/** Render a chart with a sized plot, and return its overlay and its activation spy. */
+	/** Render a chart with a sized plot, and return its overlay and its spies. */
 	const renderPressable = () => {
+		const onActiveIndexChange = vi.fn<(index: number | null) => void>();
 		const onDatumActivate = vi.fn<(event: ChartDatumEvent) => void>();
-		const { plot } = renderChart({ onDatumActivate });
+		const { plot } = renderChart({ onActiveIndexChange, onDatumActivate });
 		// Why the report: its rect sizes the plot, and a press on a plot with no size hits no datum.
 		report("near", plot, { inView: true });
 		const overlay = screen.getByRole("application", { name: "Visitors by month" });
-		return { overlay, onDatumActivate };
+		return { overlay, onActiveIndexChange, onDatumActivate };
 	};
 
-	test("a press of the middle button activates no datum, and a press of the primary button activates one", () => {
-		const { overlay, onDatumActivate } = renderPressable();
+	test("a press of the middle button inspects and activates no datum, and a press of the primary button does both", () => {
+		const { overlay, onActiveIndexChange, onDatumActivate } = renderPressable();
 
 		fireEvent.pointerDown(overlay, { button: 1 });
+		// A press that reaches the engine inspects the datum under it.
+		expect(onActiveIndexChange).toHaveBeenCalledTimes(0);
 		fireEvent.pointerUp(overlay, { button: 1 });
 		expect(onDatumActivate).toHaveBeenCalledTimes(0);
 
 		fireEvent.pointerDown(overlay, { button: 0 });
+		expect(onActiveIndexChange).toHaveBeenLastCalledWith(0);
 		fireEvent.pointerUp(overlay, { button: 0 });
 		expect(onDatumActivate).toHaveBeenCalledTimes(1);
 		expect(onDatumActivate).toHaveBeenLastCalledWith(expect.objectContaining({ index: 0 }));

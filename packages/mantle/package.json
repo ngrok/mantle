@@ -11,7 +11,8 @@
 	},
 	"files": [
 		"dist",
-		"package.json"
+		"package.json",
+		"src/components/chart/d3-license.md"
 	],
 	"type": "module",
 	"sideEffects": [

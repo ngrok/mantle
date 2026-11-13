@@ -149,3 +149,41 @@ describe("Scatter3d paint", () => {
 		expect(three.hitAt(position.x, position.y, 24)).toMatchObject({ seriesKey: "a", index: 1 });
 	});
 });
+
+describe("Scatter3d settle", () => {
+	/** A 3D state at the default view of `dimensions`, and a read of where it paints row 0. */
+	const mountAt = (dimensions: 1 | 2 | 3) => {
+		const { context } = recordingContext();
+		const three = new Scatter3d(hostAt({ a: 1, b: 1 }), dimensions);
+		const paintedRow = (): { x: number; y: number } | null => {
+			three.paint(context, colors, specs);
+			return three.screenFor(0);
+		};
+		return { three, paintedRow };
+	};
+
+	test("a camera at rest keeps the view that a drag gave it", () => {
+		const { three, paintedRow } = mountAt(3);
+		const initial = paintedRow();
+		three.press(100, 100);
+		three.dragTo(160, 120);
+		three.release();
+		const rotated = paintedRow();
+		// Guards the drag: a camera that did not turn would pass the check below.
+		expect(rotated).not.toEqual(initial);
+
+		// A print and a chart that leaves the screen both settle the motion.
+		three.settle(3);
+
+		expect(paintedRow()).toEqual(rotated);
+	});
+
+	test("a camera glide in flight ends at the view of the dimension count", () => {
+		const { three, paintedRow } = mountAt(3);
+		three.setDimensions(2, { glide: true });
+
+		three.settle(2);
+
+		expect(paintedRow()).toEqual(mountAt(2).paintedRow());
+	});
+});

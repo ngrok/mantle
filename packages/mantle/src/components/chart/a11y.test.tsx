@@ -86,6 +86,22 @@ describe("ChartDataTable row headers", () => {
 		expect(headers).toStrictEqual(["—", "1"]);
 		expect(screen.getByRole("cell", { name: "12" })).toBeInTheDocument();
 	});
+
+	test.each(["band", "point"] as const)(
+		"on a %s scale a row whose x is null reads the category that the chart plots",
+		(xScale) => {
+			renderTable({
+				data: [
+					{ time: null, p50: 12 },
+					{ time: "us", p50: 14 },
+				],
+				xScale,
+			});
+			// The tick label, the tooltip, and the announcement name this category `null`.
+			const headers = screen.getAllByRole("rowheader").map((header) => header.textContent);
+			expect(headers).toStrictEqual(["null", "us"]);
+		},
+	);
 });
 
 /** The snapshot the engine publishes for a keyboard step to `index`, where the one series reads `value`. */

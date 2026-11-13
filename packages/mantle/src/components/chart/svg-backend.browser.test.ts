@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { createSvgBackend } from "./svg-backend.js";
+import { createSvgBackend, SvgRecorder } from "./svg-backend.js";
 
 test("a chart in another realm's document writes its marks", () => {
 	// A chart in a same-origin iframe creates its elements from that frame's
@@ -75,6 +75,42 @@ test("a right-aligned label ends at its anchor under an RTL ancestor", () => {
 	const box = label.getBoundingClientRect();
 	expect(box.width).toBeGreaterThan(0);
 	expect(Math.abs(box.right - anchor)).toBeLessThan(2);
+	backend.destroy();
+	root.remove();
+});
+
+test("a backend at rest holds no mark of its last frame", () => {
+	const root = document.createElement("div");
+	document.body.append(root);
+	const backend = createSvgBackend({
+		root,
+		plot: root,
+		slotName: "bar-chart",
+		onColorsChange: () => {},
+	});
+	const context = backend.begin({ cssWidth: 100, cssHeight: 100, devicePixelRatio: 1 });
+	if (context == null) {
+		throw new Error("The backend cannot paint.");
+	}
+	backend.composite(context, {
+		underlay: () => {},
+		marks: () => {
+			context.fillStyle = "red";
+			context.fillRect(0, 0, 30, 60);
+		},
+		fade: null,
+	});
+
+	backend.end();
+
+	// Why the recorder: its marks hold every path string of the frame, and that
+	// memory has no other trace. The surface keeps the painted path.
+	const recorder = backend.measureContext();
+	if (!(recorder instanceof SvgRecorder)) {
+		throw new Error("The backend measures with another context.");
+	}
+	expect(recorder.marks).toEqual({ underlay: [], marks: [], overlay: [] });
+	expect(backend.element.querySelector("path")).toHaveAttribute("d");
 	backend.destroy();
 	root.remove();
 });

@@ -302,8 +302,8 @@ const hasNoTextForm = (x: unknown): boolean =>
 /**
  * Reads one x value for its row header: the text a reader hears, and the
  * `Date` behind it when the text is a date. On a `"time"` scale an epoch number
- * and a date string are dates too, as the engine reads them. An x with no text
- * form reads as an em dash, as a value cell does.
+ * and a date string are dates too, as the engine reads them. On a `"linear"`
+ * scale an x with no text form reads as an em dash, as a value cell does.
  */
 const xHeaderFor = (
 	x: unknown,
@@ -317,7 +317,9 @@ const xHeaderFor = (
 			date: Number.isNaN(value.getTime()) ? null : value,
 		};
 	}
-	if (hasNoTextForm(value)) {
+	// Why the linear scale alone: it has no position for such an x, so the chart
+	// drops the row. A band or point scale plots the x as a category.
+	if (xScale === "linear" && hasNoTextForm(value)) {
 		return { text: "—", date: null };
 	}
 	// Why `String`: the engine paints any other x as the category `String(x)`.

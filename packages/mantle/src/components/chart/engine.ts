@@ -241,8 +241,6 @@ class ChartEngine {
 	 * screen paints each new state at once.
 	 */
 	#onScreen: boolean;
-	/** Whether the last commit asked for another frame: a tween, a chase, or a fade still moved. */
-	#animating = false;
 	/** Set between `beforeprint` and `afterprint`, when every chart paints. */
 	#printing = false;
 	/**
@@ -612,9 +610,9 @@ class ChartEngine {
 			return;
 		}
 		this.#onScreen = onScreen;
-		// Why the pending paint: a retarget since the last commit is motion too,
-		// and each retarget schedules a paint. A chart at rest has neither.
-		if (!onScreen && (this.#animating || this.#needsPaint)) {
+		// Why the pending paint: each retarget schedules one, and so does a commit
+		// that left a tween, a chase, or a fade in motion. A chart at rest has none.
+		if (!onScreen && this.#needsPaint) {
 			this.#snapAllMotion();
 			this.#schedule();
 		}
@@ -631,7 +629,9 @@ class ChartEngine {
 		}
 		this.#seen = true;
 		const now = performance.now();
-		const duration = this.#motionDuration();
+		// Why not `#motionDuration`: the Root marks a rebuilt engine seen when the
+		// chart was on screen before, and that chart can be off screen now.
+		const duration = this.#tweenDuration();
 		for (const reveal of this.#revealTweens.values()) {
 			reveal.retarget([1], { duration, now });
 		}
@@ -769,10 +769,9 @@ class ChartEngine {
 				width: tooltip.offsetWidth,
 				height: tooltip.offsetHeight,
 			};
-			// Why here and not on the next frame: this callback runs after layout and
-			// before paint, so no frame paints the readout at the size it had before.
-			// The overlay writes change no box that a resize observer watches.
-			this.#updateOverlay();
+			// Why record only: a move here can add a scrollbar to an ancestor, which
+			// resizes an observed box inside this observer pass and raises a loop error.
+			this.#scheduleOverlay();
 		});
 	}
 
@@ -1012,8 +1011,8 @@ class ChartEngine {
 	 * Keyboard interaction on the focusable overlay. Returns `true` when the
 	 * key was handled (the caller prevents default). Arrow strides widen to one
 	 * device-pixel column when decimated so dense charts stay traversable.
-	 * Escape, Enter, and Space are handled only while a datum is active. Pass
-	 * the event's `repeat`: a held Enter or Space activates once.
+	 * The engine handles Escape, Enter, and Space only while a datum is active.
+	 * Pass the event's `repeat`: a held Enter or Space activates once.
 	 *
 	 * @example
 	 * ```ts
@@ -1119,7 +1118,7 @@ class ChartEngine {
 	#snapAllMotion(): void {
 		this.#yTween.jump(this.#targetYDomain());
 		this.#xTween.jump(this.#targetXDomain());
-		this.#scatter?.snap(this.#options.dimensions);
+		this.#scatter?.settle(this.#options.dimensions);
 		for (const tween of this.#valueTweens.values()) {
 			tween.snap();
 		}
@@ -1352,7 +1351,8 @@ class ChartEngine {
 				const motion = this.#motionDuration();
 				reveal.retarget([0], { duration: 0, now });
 				if (this.#seen || motion === 0) {
-					reveal.retarget([1], { duration: this.#seen ? motion : 0, now });
+					// A seen chart that is off screen now reveals a new series at once.
+					reveal.retarget([1], { duration: this.#seen ? this.#tweenDuration() : 0, now });
 				}
 				this.#revealTweens.set(spec.dataKey, reveal);
 			}
@@ -1593,7 +1593,6 @@ class ChartEngine {
 			this.#layout();
 			animating = this.#paint(now) || animating;
 
-			this.#animating = animating;
 			if (animating) {
 				this.#schedule();
 			}
@@ -3064,6 +3063,11 @@ class ChartEngine {
 		if (tooltip == null) {
 			return;
 		}
+		// Why measure here: the surface mounts with its first readout, and the size
+		// observer reports after this frame's layout. One read places that readout.
+		if (this.#tooltipSize.width === 0 && this.#tooltipSize.height === 0) {
+			this.#tooltipSize = { width: tooltip.offsetWidth, height: tooltip.offsetHeight };
+		}
 		const size = this.#tooltipSize;
 		const gapX = 12;
 		let tooltipLeft = anchorX + gapX;
@@ -3086,9 +3090,10 @@ class ChartEngine {
  * its time, because a new fetch builds new `Date` objects for the same buckets.
  */
 const sameCategory = (previous: XValue | undefined, next: XValue | undefined): boolean =>
+	// Why `Object.is`: `NaN`, and the time of an invalid `Date`, must equal itself.
 	previous instanceof Date && next instanceof Date
-		? previous.getTime() === next.getTime()
-		: previous === next;
+		? Object.is(previous.getTime(), next.getTime())
+		: Object.is(previous, next);
 
 /**
  * Advance a tick-label fade map toward its desired set: wanted labels fade in,

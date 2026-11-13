@@ -200,8 +200,8 @@ type EngineInputs = {
 type ChartVisibility = {
 	near: boolean;
 	withinFar: boolean;
-	/** Whether the plot is inside the viewport now. */
-	visible: boolean;
+	/** Whether the plot is inside the viewport now. `null` until the `visible` band reports. */
+	visible: boolean | null;
 	/** Whether the plot was ever inside the viewport. */
 	seen: boolean;
 	focused: boolean;
@@ -419,7 +419,7 @@ const ChartRootPrimitive = ({
 	const visibilityRef = useRef<ChartVisibility>({
 		near: false,
 		withinFar: true,
-		visible: false,
+		visible: null,
 		seen: false,
 		focused: false,
 	});
@@ -547,9 +547,9 @@ const ChartRootPrimitive = ({
 				// Why false: the reveal must hold until the `visible` band reports
 				// the chart on screen; `setInView` below does not mark it seen.
 				inView: false,
-				// Why the rect: at page load the `near` band activates a chart before
+				// Why the rect: at page load the `near` band can activate a chart before
 				// the `visible` band reports it. Focus and print pass no rect.
-				onScreen: visibilityRef.current.visible || (rect != null && isOnScreen(plot, rect)),
+				onScreen: visibilityRef.current.visible ?? (rect != null && isOnScreen(plot, rect)),
 				size,
 			});
 			const inputs = inputsRef.current;

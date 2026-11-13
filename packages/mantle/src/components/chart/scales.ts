@@ -153,9 +153,8 @@ const tickIncrement = (start: number, stop: number, count: number): number =>
 
 /**
  * Plain multiply-add coefficients derived from a linear domain→range mapping.
- * The d3 scale objects stay the authority for domains, niceness, and ticks;
- * per-point mapping in paint loops uses `value * k + b` to avoid d3's nested
- * closure calls at 100k+ points.
+ * A paint loop maps each point with `value * k + b`, so 100k+ points cost no
+ * call per point.
  *
  * @example
  * ```ts

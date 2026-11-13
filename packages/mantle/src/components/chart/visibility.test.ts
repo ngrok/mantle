@@ -231,16 +231,21 @@ describe("without scrollMargin support", () => {
 		const panel = document.createElement("div");
 		panel.style.overflowX = config.overflow?.x ?? "visible";
 		panel.style.overflowY = config.overflow?.y ?? "auto";
-		const element = document.createElement("div");
-		panel.append(element);
 		document.body.append(panel);
-		const handler = vi.fn<(change: VisibilityChange) => void>();
-		const stop = fresh.observeChartVisibility(element, { onChange: handler, far: config.far });
+		/** Observe one more chart in the panel. */
+		const add = (options: { far?: boolean } = {}) => {
+			const element = document.createElement("div");
+			panel.append(element);
+			const handler = vi.fn<(change: VisibilityChange) => void>();
+			const stop = fresh.observeChartVisibility(element, { onChange: handler, far: options.far });
+			stops.push(stop);
+			return { element, handler, stop };
+		};
+		const first = add({ far: config.far });
 		stops.push(() => {
-			stop();
 			panel.remove();
 		});
-		return { panel, element, handler, stop };
+		return { panel, ...first, add };
 	};
 
 	test("a panel's chart observes the near band from the panel, and only while the panel is near the viewport", async () => {
@@ -306,6 +311,35 @@ describe("without scrollMargin support", () => {
 		const { panel, element } = await observeInPanel({ overflow: { x: "auto", y: "hidden" } });
 		expect(observerFor("100%", null).targets.has(element)).toBe(true);
 		expect(instances.some((instance) => instance.root === panel)).toBe(false);
+	});
+
+	test("the cleanup of one of a panel's two charts keeps the other chart observed", async () => {
+		// An SVG chart, which leaves out the far band, and a canvas chart share the panel.
+		const { panel, element, add } = await observeInPanel({ far: false });
+		const canvasChart = add({ far: true });
+		const panelNear = observerFor("100%", panel);
+		observerFor("100%", null).report(panel, true);
+
+		canvasChart.stop();
+
+		expect(panelNear.disconnected).toBe(false);
+		expect(panelNear.targets.has(element)).toBe(true);
+	});
+
+	test("a far band that opens again does not observe a chart that left the panel", async () => {
+		const { panel, add } = await observeInPanel({ far: false });
+		const canvasChart = add({ far: true });
+		const viewportFar = observerFor("300%", null);
+		const panelFar = observerFor("300%", panel);
+		viewportFar.report(panel, true);
+		// Guards the check below: the band held the chart before the chart left.
+		expect(panelFar.targets.has(canvasChart.element)).toBe(true);
+		canvasChart.stop();
+
+		viewportFar.report(panel, false);
+		viewportFar.report(panel, true);
+
+		expect(panelFar.targets.has(canvasChart.element)).toBe(false);
 	});
 
 	test("the last chart's cleanup releases the panel's observers and its viewport entries", async () => {

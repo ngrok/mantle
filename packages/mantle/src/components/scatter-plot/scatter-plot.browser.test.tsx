@@ -240,18 +240,33 @@ describe("ScatterPlot 3D painting", () => {
 		);
 	});
 
-	test("dragging the overlay rotates the camera and repaints a different frame", async () => {
+	/** The red channel of every tenth pixel: enough to tell one camera view from another. */
+	const sampleFrame = (canvas: HTMLCanvasElement): number[] => {
+		const context = canvas.getContext("2d");
+		if (context == null) {
+			throw new Error("expected a 2d context");
+		}
+		const { data } = context.getImageData(0, 0, canvas.width, canvas.height);
+		const samples: number[] = [];
+		for (let offset = 0; offset < data.length; offset += 40) {
+			samples.push(data[offset] ?? 0);
+		}
+		return samples;
+	};
+
+	/** How many samples differ between two frames. */
+	const changedSamples = (frame: readonly number[], other: readonly number[]): number =>
+		frame.filter((sample, index) => sample !== other[index]).length;
+
+	/** Render the cube, turn its camera with a drag, and wait for the frame of the new view. */
+	const renderRotated = async () => {
 		const { container } = render3d(3);
 		const canvas = await findChartCanvas(container);
 		const overlay = mustBeOverlay(container.querySelector('[role="application"]'));
 		await waitFor(() => {
 			expect(measureInk(canvas, isChart1Ink).count).toBeGreaterThan(600);
 		});
-		const context = canvas.getContext("2d");
-		if (context == null) {
-			throw new Error("expected a 2d context");
-		}
-		const before = context.getImageData(0, 0, canvas.width, canvas.height).data;
+		const initial = sampleFrame(canvas);
 		const rect = overlay.getBoundingClientRect();
 		const startX = rect.left + rect.width / 2;
 		const startY = rect.top + rect.height / 2;
@@ -273,15 +288,26 @@ describe("ScatterPlot 3D painting", () => {
 			}),
 		);
 		await waitFor(() => {
-			const after = context.getImageData(0, 0, canvas.width, canvas.height).data;
-			let changed = 0;
-			for (let offset = 0; offset < after.length; offset += 40) {
-				if (after[offset] !== before[offset]) {
-					changed += 1;
-				}
-			}
-			expect(changed).toBeGreaterThan(100);
+			expect(changedSamples(sampleFrame(canvas), initial)).toBeGreaterThan(100);
 		});
+		return { canvas, initial, rotated: sampleFrame(canvas) };
+	};
+
+	test("dragging the overlay rotates the camera and repaints a different frame", async () => {
+		const { initial, rotated } = await renderRotated();
+
+		expect(changedSamples(rotated, initial)).toBeGreaterThan(100);
+	});
+
+	test("a print keeps the view that a drag gave the camera", async () => {
+		const { canvas, rotated } = await renderRotated();
+
+		// The Root paints the print frame inside the `beforeprint` event.
+		window.dispatchEvent(new Event("beforeprint"));
+		const printed = sampleFrame(canvas);
+		window.dispatchEvent(new Event("afterprint"));
+
+		expect(changedSamples(printed, rotated)).toBe(0);
 	});
 });
 

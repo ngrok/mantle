@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { afterAll, beforeAll, beforeEach, expect, test } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from "vitest";
 import { commands } from "vitest/browser";
 import { IconSwap } from "./icon-swap.js";
 
@@ -20,6 +20,11 @@ afterAll(() => {
 // Why pinned: the swap transition is `motion-safe`, and the host's own setting
 // would otherwise decide which path a test runs.
 beforeEach(async () => {
+	await commands.emulateMedia({ reducedMotion: "no-preference" });
+});
+
+// Why after each test: the emulation belongs to the page, and the page outlives this file.
+afterEach(async () => {
 	await commands.emulateMedia({ reducedMotion: "no-preference" });
 });
 
