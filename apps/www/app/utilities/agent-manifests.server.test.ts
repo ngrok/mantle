@@ -136,6 +136,46 @@ describe("the site's agent manifest", () => {
 
 		expect(rank("Label")).toBeLessThan(rank("Separator"));
 	});
+	// Each query is a recent `find` with no strong match in the MCP feed.
+	it.each([
+		["monospace inline code bytes display", "Code"],
+		["pick one value few fixed numeric", "Radio Group"],
+		["horizontal bar chart scores small label", "Bar Chart"],
+		["removable badge tag dismiss button", "Badge"],
+		["segmented control pick one three none", "Radio Group"],
+	])("finds a strong match for %s", async (query, name) => {
+		const manifest = await buildSiteAgentManifest();
+		const records = recordsOf({
+			version: "0.0.0",
+			manifest,
+			specifiers: new Set(),
+			exportsBySpecifier: new Map(),
+			llmsTxt: undefined,
+			declarationsOf: () => undefined,
+		});
+
+		expect(findRecords(records, { query })[0]).toEqual(
+			expect.objectContaining({ record: expect.objectContaining({ name }), strong: true }),
+		);
+	});
+	// Mantle has no part for these queries. A part name in the query must not hide the gap.
+	it.each([
+		"rich text editor with code completion",
+		"card carousel slider",
+		"dialog wizard with steps",
+	])("finds no strong match for %s", async (query) => {
+		const manifest = await buildSiteAgentManifest();
+		const records = recordsOf({
+			version: "0.0.0",
+			manifest,
+			specifiers: new Set(),
+			exportsBySpecifier: new Map(),
+			llmsTxt: undefined,
+			declarationsOf: () => undefined,
+		});
+
+		expect(findRecords(records, { query })[0]?.strong).toBe(false);
+	});
 	// A part of a qualified alias must not win: "text field" of "multiline text field" is not Text Area.
 	it.each([
 		["label a text field", "Field"],

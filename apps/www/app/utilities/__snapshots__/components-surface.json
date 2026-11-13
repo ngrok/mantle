@@ -1525,7 +1525,7 @@
         "boundary": "each radio needs a title and a description beside it."
       }
     ],
-    "useWhen": "Pick exactly one option from a small set, with every option visible at once."
+    "useWhen": "Pick exactly one value from a few fixed options, with every option visible at once."
   },
   {
     "name": "Sandbar",
