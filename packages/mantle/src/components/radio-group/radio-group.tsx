@@ -11,6 +11,7 @@ import {
 	createContext,
 	isValidElement,
 	useCallback,
+	useId,
 	useContext,
 	useMemo,
 	useRef,
@@ -25,6 +26,7 @@ import type {
 	Ref,
 } from "react";
 import type { WithAsChild } from "../../types/as-child.js";
+import { $cssProperties } from "../../types/index.js";
 import { clsx } from "../../utils/cx/clsx.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
@@ -522,16 +524,33 @@ const ItemContent = ({
  * </RadioGroup.ButtonGroup>
  * ```
  */
-const ButtonGroup = ({ "data-slot": dataSlot, className, ref, ...props }: RadioGroupProps) => {
+const ButtonGroup = ({
+	"data-slot": dataSlot,
+	className,
+	ref,
+	style,
+	...props
+}: RadioGroupProps) => {
+	// Why a name for each group: anchor names are global, so two groups on one page
+	// would otherwise share one checked button.
+	const thumbAnchor = `--radio-group-thumb${useId().replaceAll(/[^\w-]/g, "")}`;
 	return (
 		<Root
 			data-slot={joinDataSlot(dataSlot, "radio-group-button-group")}
 			className={clsx(
 				// Why 0.625rem: the segment radius (6px) and the padding (4px) add up to it.
 				// The segments and their focus rings then follow the group corner.
-				"bg-neutral-500/10 flex h-9 flex-row flex-nowrap gap-px rounded-[0.625rem] p-1",
+				"bg-neutral-500/10 relative flex h-9 flex-row flex-nowrap gap-px rounded-[0.625rem] p-1",
+				// Why a pseudo-element on the group: one thumb slides to the checked button,
+				// and no element sits beside the consumer's children.
+				"before:absolute before:rounded-md before:bg-card before:shadow-sm dark:before:bg-neutral-300",
+				"before:[position-anchor:var(--radio-group-thumb)] before:top-[anchor(top)] before:left-[anchor(left)] before:w-[anchor-size(width)] before:h-[anchor-size(height)]",
+				"motion-safe:before:transition-[left,width] motion-safe:before:duration-200 motion-safe:before:ease-out-strong",
+				// Why: a white thumb cannot get lighter, so hover on it lifts the shadow.
+				"has-[[aria-checked=true]:not([aria-disabled]):hover]:before:shadow",
 				className,
 			)}
+			style={{ ...$cssProperties({ "--radio-group-thumb": thumbAnchor }), ...style }}
 			{...props}
 			ref={ref}
 		/>
@@ -579,8 +598,12 @@ const Button = ({
 				"focus-visible:ring-focus-accent focus-visible:z-1 focus-visible:ring-4",
 				"cursor-pointer aria-disabled:cursor-default focus:outline-hidden",
 				"text-muted not-aria-disabled:hover:text-strong aria-disabled:opacity-50",
-				// Why a raised card surface: on the dim group, it marks the checked segment without color.
-				"aria-checked:bg-card aria-checked:text-strong aria-checked:shadow-sm",
+				// Why a lighter tint: hover moves a segment toward the raised thumb in both themes.
+				"not-aria-disabled:hover:bg-white/60 dark:not-aria-disabled:hover:bg-neutral-500/10",
+				// Why an anchor: the group's thumb slides under the checked button.
+				"aria-checked:text-strong aria-checked:[anchor-name:var(--radio-group-thumb)]",
+				// Why: a browser with no anchor positioning draws no thumb, so the button raises itself.
+				"not-supports-[anchor-name:--a]:aria-checked:bg-card not-supports-[anchor-name:--a]:aria-checked:shadow-sm dark:not-supports-[anchor-name:--a]:aria-checked:bg-neutral-300",
 				"has-[.radio-indicator:first-child]:pl-2 has-[.radio-indicator:last-child]:pr-2",
 				className,
 			)}
