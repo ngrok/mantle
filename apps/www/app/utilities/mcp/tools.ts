@@ -343,8 +343,11 @@ const INTENT_LOG_LENGTH = 500;
 /** A code span, a tag, a call, or an assignment. An intent with one is not logged. */
 const CODE_SIGNAL = /[`{};=]|<\/?\p{L}|\p{L}\(/u;
 
-/** A number, `@`, `:`, a slash, a bracket, `_`, `$`, `#`, a leading dot, or a dot inside a word. */
-const UNSAFE_WORD = /[\p{N}@:/\\<>()[\]_$#]|\p{L}\.\p{L}|^\./u;
+/**
+ * A number, `@`, `:`, a slash, a bracket, `_`, `$`, `#`, a dot inside a word,
+ * or a leading dot. A leading dot can follow quotes, so `".env"` goes too.
+ */
+const UNSAFE_WORD = /[\p{N}@:/\\<>()[\]_$#]|\p{L}\.\p{L}|^\p{P}*\./u;
 
 /**
  * The part of an agent's `intent` that is safe to log. An intent that holds

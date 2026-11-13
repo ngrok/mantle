@@ -343,6 +343,12 @@ describe("scrubIntent", () => {
 		expect(scrubIntent(intent)).toBe(intent);
 	});
 
+	it("drops a quoted dotfile", () => {
+		expect(scrubIntent(`Settings page, explain ".env", '.npmrc', and “.gitignore”`)).toBe(
+			"Settings page, explain and",
+		);
+	});
+
 	it("keeps 500 characters at most", () => {
 		expect(scrubIntent("abcdef ".repeat(80))).toHaveLength(500);
 	});
