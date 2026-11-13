@@ -668,7 +668,7 @@ const InputSandbox = ({
 /**
  * A group of radio items. It manages the state of the children radios.
  *
- * @useWhen Pick exactly one option from a small set, with every option visible at once.
+ * @useWhen Pick exactly one value from a few fixed options, with every option visible at once.
  *
  * @siblings
  * - `Select`: the set is long, or the form has little space.

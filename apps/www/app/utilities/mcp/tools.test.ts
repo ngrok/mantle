@@ -91,14 +91,45 @@ describe("findRecords", () => {
 			docsUrl: `https://mantle.ngrok.com/components/${name.toLowerCase()}`,
 			docsSlug: `components/${name.toLowerCase()}`,
 		});
-		const account = record("Account", "Show account limits.");
+		const usage = record("Account Usage", "Show account limits.");
 		const chooser = record("Chooser", "Pick a member.");
 
-		const [top, next] = findRecords([account, chooser], { query: "pick account member" });
+		const [top, next] = findRecords([usage, chooser], { query: "pick account member" });
 
 		expect(top).toEqual(expect.objectContaining({ record: chooser, strong: true }));
-		expect(next).toEqual(expect.objectContaining({ record: account, strong: false }));
+		expect(next).toEqual(expect.objectContaining({ record: usage, strong: false }));
 		expect(next?.score).toBeGreaterThan(top?.score ?? 0);
+	});
+
+	const part = (name: string, fields: Partial<ApiRecord> = {}): ApiRecord => ({
+		name,
+		kind: "component",
+		importPath: `@ngrok/mantle/${name.toLowerCase()}`,
+		docsUrl: `https://mantle.ngrok.com/components/${name.toLowerCase()}`,
+		docsSlug: `components/${name.toLowerCase()}`,
+		...fields,
+	});
+
+	it("calls a match strong when the query names the part", () => {
+		const chart = part("Bar Chart");
+		const meter = part("Meter", {
+			useWhen: "Show a horizontal bar with a small label for scores.",
+		});
+
+		const [top] = findRecords([chart, meter], {
+			query: "horizontal bar chart scores small label",
+		});
+
+		expect(top).toEqual(expect.objectContaining({ record: chart, strong: true }));
+	});
+
+	it("scores a sibling boundary for the sibling it names", () => {
+		const radio = part("Radio", {
+			siblings: [{ name: "Picker", boundary: "The set is long or numeric." }],
+		});
+		const picker = part("Picker");
+
+		expect(names(findRecords([radio, picker], { query: "long numeric set" }))).toEqual(["Picker"]);
 	});
 });
 

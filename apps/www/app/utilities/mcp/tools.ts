@@ -94,7 +94,8 @@ export type FindMatch<T extends FindRecord> = {
 	score: number;
 	/**
 	 * Whether the record clearly answers the query: its name or an alias
-	 * matches, or half the query words or more match. When the top result is
+	 * matches, the query contains each word of its name, or half the query
+	 * words or more match. When the top result is
 	 * not strong, mantle may lack a part for the query.
 	 */
 	strong: boolean;
@@ -177,11 +178,52 @@ function aliasWords(
 	});
 }
 
+/**
+ * The `@siblings` boundaries of all records, by the compact name of the
+ * sibling that each boundary names. Why: a boundary tells when to use the
+ * sibling, so its words describe the sibling, not the record that lists it.
+ * "`Select`: the set is long" is a reason to use Select, not Radio Group.
+ */
+function boundariesBySibling(records: readonly FindRecord[]): Map<string, string[]> {
+	const boundaries = new Map<string, string[]>();
+	for (const record of records) {
+		for (const sibling of record.kind === "page" ? [] : (record.siblings ?? [])) {
+			const key = compact(sibling.name);
+			boundaries.set(key, [...(boundaries.get(key) ?? []), sibling.boundary]);
+		}
+	}
+	return boundaries;
+}
+
+/**
+ * Whether the query contains each word of the record name. Short words count,
+ * so "qr code" names QR Code. Docs pages do not count: their titles are
+ * sentences, not part names.
+ */
+function namedInQuery(record: FindRecord, queryWords: ReadonlySet<string>): boolean {
+	if (record.kind === "page") {
+		return false;
+	}
+	const words = record.name
+		.toLowerCase()
+		.split(/[^a-z0-9]+/)
+		.filter(Boolean)
+		.map(singular);
+	return words.length > 0 && words.every((word) => queryWords.has(word));
+}
+
 /** The words of each field that `find` searches, with the weight of a hit. */
 function weightedFields(
 	record: FindRecord,
-	tokens: readonly string[],
-	nameWords: ReadonlySet<string>,
+	{
+		tokens,
+		nameWords,
+		boundaries,
+	}: {
+		tokens: readonly string[];
+		nameWords: ReadonlySet<string>;
+		boundaries: ReadonlyMap<string, string[]>;
+	},
 ): [string[], number][] {
 	if (record.kind === "page") {
 		return [
@@ -196,7 +238,7 @@ function weightedFields(
 		[keywordsFrom(record.useWhen), 4],
 		[keywordsFrom(record.summary), 3],
 		[keywordsFrom(record.jsdoc), 2],
-		[keywordsFrom(...(record.siblings ?? []).map((sibling) => sibling.boundary)), 1],
+		[keywordsFrom(...(boundaries.get(compact(record.name)) ?? [])), 1],
 	];
 }
 
@@ -218,6 +260,14 @@ export function findRecords<T extends FindRecord>(
 		.filter((token) => !STOP_WORDS.has(token))
 		.map(singular);
 	const nameWords = new Set(records.flatMap((record) => keywordsFrom(record.name).map(singular)));
+	const queryWords = new Set(
+		query
+			.toLowerCase()
+			.split(/[^a-z0-9]+/)
+			.filter(Boolean)
+			.map(singular),
+	);
+	const boundaries = boundariesBySibling(records);
 
 	const scored = records
 		.filter((record) => kind == null || record.kind === kind)
@@ -233,7 +283,7 @@ export function findRecords<T extends FindRecord>(
 			} else if (wanted.length >= 4 && nameKeys.some((key) => withinOneEdit(key, wanted))) {
 				nameScore = 30;
 			}
-			const fields = weightedFields(record, tokens, nameWords);
+			const fields = weightedFields(record, { tokens, nameWords, boundaries });
 			let wordScore = 0;
 			let matchedTokens = 0;
 			for (const token of tokens) {
@@ -247,7 +297,9 @@ export function findRecords<T extends FindRecord>(
 				matchedTokens += tokenScore > 0 ? 1 : 0;
 			}
 			const strong =
-				nameScore > 0 || (wordScore >= STRONG_WORD_SCORE && matchedTokens * 2 >= tokens.length);
+				nameScore > 0 ||
+				namedInQuery(record, queryWords) ||
+				(wordScore >= STRONG_WORD_SCORE && matchedTokens * 2 >= tokens.length);
 			return { record, score: nameScore + wordScore, strong };
 		})
 		.filter(({ score }) => score > 0)
