@@ -3,7 +3,7 @@
 **Date:** 2026-11-13
 **Status:** Accepted
 **Amends:** [2026-07-18-canvas-chart-family.md](./2026-07-18-canvas-chart-family.md) (d3 is no longer the math authority at run time), [2026-10-08-chart-list-mount-cost.md](./2026-10-08-chart-list-mount-cost.md) (motion follows the screen, not the near band; one activation slice for each delivery), items 3 and 5 of [2026-11-12-chart-engine-optimization.md](./2026-11-12-chart-engine-optimization.md) (the hover layers move with 2D transforms; a failed 3D load retries), and item 7 of [2026-11-11-chart-svg-renderer.md](./2026-11-11-chart-svg-renderer.md) (time ticks no longer read d3-time).
-**Evidence:** the www chart bench (`/bench/charts`) on the devbox: Chromium 158 with SwiftShader, CPU ×1, DPR 2, median of 3 interleaved rounds. "Base" is `df09bfc7`, the branch before this pass. Hover figures come from `bench:hover` traces (main-thread task time for each pointer move). Layer counts come from the DevTools protocol (`LayerTree.compositingReasons`). Sizes come from rolldown 1.2.16 over the package build on one machine: minified ESM, React and Phosphor external, Node zlib gzip level 9. "Chart-only" also leaves out `cx`, `Button`, `Slot`, and the icon modules, which an app that uses mantle loads already.
+**Evidence:** the www chart bench (`/bench/charts`) on the devbox: Chromium 158 with SwiftShader, CPU ×1, DPR 2, median of 3 interleaved rounds. "Base" is `df09bfc7`, the branch before this pass. Hover figures come from `bench:hover` traces (main-thread task time for each pointer move). Layer counts come from the DevTools protocol (`LayerTree.compositingReasons`). Sizes come from rolldown 1.2.19 over the package build on one machine: minified ESM, React and Phosphor external, Node zlib gzip level 9. "Chart-only" also leaves out `cx`, `Button`, `Slot`, and the icon modules, which an app that uses mantle loads already.
 
 ## Context
 
@@ -31,11 +31,12 @@ Three results set the direction:
 
 ## Consequences
 
-- A Bar, Line, or Area chart ships 52.2 KB in place of 59.6 KB on `main` (−7.4 KB, −12.4%), and its chart-only code is 38.9 KB in place of 45.9 KB. A 2D ScatterPlot ships 51.8 KB in place of 57.4 KB.
+- A Bar, Line, or Area chart ships 52.3 KB in place of 59.6 KB on `main` (−7.4 KB, −12.4%), and its chart-only code is 38.9 KB in place of 45.9 KB. A 2D ScatterPlot ships 51.8 KB in place of 57.4 KB.
 - On 100 agent cards with animation on, base against this pass: main-thread time at load fell from 428 ms to 329 ms, a data replace from 358 ms to 112 ms, a window shift from 823 ms to 242 ms, and a hover sweep over 12 cards from 4,572 ms to 1,615 ms. One pointer move costs 4.2 ms of main thread in place of 9.9 ms. On 20 cards it costs 2.7 ms in place of 3.5 ms.
 - The 100-card page holds 5 compositor layers at load in place of 135, and a chart that a reader pointed at keeps none.
 - The JS heap after a forced collection stayed the same (11.3 MB and 11.1 MB). A heap figure read with no collection first rose 21% with animation on, because less work runs fewer collections before the read.
 - A 100-row table of static sparklines stayed inside the spread between runs on every metric.
+- The fixes from the review of this pass changed no timing. In two A/B runs against the commit before them, one in each order, the mean difference was under 3% on each metric. The run that went first in a pair was the faster one, by up to 16%.
 
 - The text of a line or area `d` attribute changes: two decimals and spaces, where d3 wrote three decimals and commas. The largest difference over 120,000 paths is 0.005 px.
 - A chart that scrolls into view in the middle of an update shows the settled data.
