@@ -147,8 +147,8 @@ importers:
         specifier: 2.4.0
         version: 2.4.0
       '@ngrok/app-server':
-        specifier: 0.4.0
-        version: 0.4.0(react-router@8.5.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(rollup@4.68.2)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))
+        specifier: 0.4.1
+        version: 0.4.1(react-router@8.5.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(rollup@4.68.2)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))
       '@ngrok/mantle':
         specifier: workspace:*
         version: link:../../packages/mantle
@@ -930,8 +930,8 @@ packages:
       '@emnapi/core': ^1.7.1 || 2.0.0-beta.2
       '@emnapi/runtime': ^1.7.1 || 2.0.0-beta.2
 
-  '@ngrok/app-server@0.4.0':
-    resolution: {integrity: sha512-Elt+2TjcFfsvmOIbjremwAKlcLzhMyzN1uj24/8zqK3kwZZuMZ++a/Rgwcg8Fmq+QCOUfvLdqE/C1aBsgwLH3w==}
+  '@ngrok/app-server@0.4.1':
+    resolution: {integrity: sha512-PgRRkFpCJY3wnjhIqpuyXvOc1coWn9K+4egaqGM3ZXZhmU7JGpOVW9qcwraTlF4zN9CK+LVhF5gUMB/pBIPGjw==}
     engines: {node: ^26.0.0}
     hasBin: true
     peerDependencies:
@@ -5167,7 +5167,7 @@ snapshots:
       '@tybys/wasm-util': 0.10.4
     optional: true
 
-  '@ngrok/app-server@0.4.0(react-router@8.5.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(rollup@4.68.2)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))':
+  '@ngrok/app-server@0.4.1(react-router@8.5.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(rollup@4.68.2)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))':
     dependencies:
       '@hono/node-server': 2.1.5(hono@4.13.14)
       '@vercel/nft': 1.11.0(rollup@4.68.2)
