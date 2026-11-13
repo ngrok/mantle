@@ -32,7 +32,8 @@ import type {
 	SeriesColor,
 } from "../chart/types.js";
 import { createCanvasBackend } from "../chart/canvas-backend.js";
-import { createScatterView } from "../chart/scatter-engine.js";
+import { createScatterView, preloadScatter3d } from "../chart/scatter-engine.js";
+import { useEffect } from "react";
 
 /**
  * Props for {@link ScatterPlot.List}.
@@ -76,7 +77,7 @@ type ScatterPlotDepthProps<TDatum extends ChartDatum = ChartDatum> =
 			 * 3D: drag the plot to rotate the cube. Axis parts and reference lines
 			 * apply to the 2D projection only and are ignored in 3D (the cube frame
 			 * carries orientation). If no row has the key, the Root throws. The 3D
-			 * code loads on the first paint with a `zKey`, so a 2D scatter plot
+			 * code loads when a Root with a `zKey` mounts, so a 2D scatter plot
 			 * never downloads it.
 			 */
 			zKey: Extract<keyof TDatum, string>;
@@ -237,17 +238,29 @@ type ScatterPlotCopyButtonProps = CopyButtonPrimitiveProps;
  */
 const Root = <TDatum extends ChartDatum = ChartDatum, TMode extends ChartMode = "interactive">(
 	props: ScatterPlotRootProps<TDatum, TMode>,
-) => (
-	<ChartRootPrimitive
-		kind="scatter"
-		componentName="ScatterPlot"
-		slotName="scatter-plot"
-		// Why canvas: a point cloud past a few thousand marks redraws faster there.
-		paintBackend={createCanvasBackend}
-		scatterView={createScatterView}
-		{...props}
-	/>
-);
+) => {
+	const is3d = props.zKey != null;
+	// Why at mount and not at the first paint: a chart that activates for
+	// print paints at once, and the print snapshot cannot wait for an import.
+	useEffect(() => {
+		if (is3d) {
+			preloadScatter3d().catch(() => {
+				// The first 3D paint loads it again and reports a failure.
+			});
+		}
+	}, [is3d]);
+	return (
+		<ChartRootPrimitive
+			kind="scatter"
+			componentName="ScatterPlot"
+			slotName="scatter-plot"
+			// Why canvas: a point cloud past a few thousand marks redraws faster there.
+			paintBackend={createCanvasBackend}
+			scatterView={createScatterView}
+			{...props}
+		/>
+	);
+};
 
 /**
  * One point series. Renders nothing itself — it registers the series with the

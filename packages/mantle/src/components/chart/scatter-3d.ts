@@ -10,6 +10,7 @@ import {
 } from "./projection.js";
 import { MARKER_RADIUS } from "./renderer.js";
 import type { DragEnd, DragMove, FrameLabels, ScatterHit, ScatterHost } from "./scatter-engine.js";
+import { DRAG_THRESHOLD } from "./scatter-engine.js";
 import { drawCubeAxisLabels, drawCubeFrame, drawDepthSortedPoints } from "./scatter-3d-renderer.js";
 import { ChaseTween } from "./tween.js";
 import type { SeriesSpec } from "./types.js";
@@ -17,14 +18,11 @@ import type { SeriesSpec } from "./types.js";
 /**
  * The 3D part of the scatter view: the camera, its rotation drag, the
  * dimensions morph, the projection, and the cube frame. `scatter-engine.ts`
- * imports this module the first time a chart has a `zKey`, so a 2D scatter
+ * imports this module when a chart with a `zKey` mounts, so a 2D scatter
  * plot never loads it.
  *
  * This module is internal shared implementation — not exported from the package.
  */
-
-/** A 3D press must move this many CSS pixels before it rotates the camera. */
-const DRAG_THRESHOLD = 3;
 
 /**
  * The camera view a dimension reads best from: face-on for a line or a plane

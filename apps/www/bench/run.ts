@@ -70,8 +70,8 @@ type Result = Case & {
 		frames: FrameStats;
 	};
 	gpu?: string;
-	/** The sweep over the first `--hover` cards; `domNodes` is read after it. */
-	hover?: MainThread & { longTasks: number; frames: FrameStats; domNodes: number };
+	/** The sweep over the first `cards` cards (`--hover`); `domNodes` is read after it. */
+	hover?: MainThread & { longTasks: number; frames: FrameStats; domNodes: number; cards: number };
 	input?: { inp?: number; maxEventMs: number; events: number };
 	updateReplace?: MainThread & { longTasks: number; frames: FrameStats };
 	updateShift?: MainThread & { longTasks: number; frames: FrameStats };
@@ -455,6 +455,7 @@ const measure = async ({
 			longTasks: longTasksBetween(snapHover, hoverFrom, hoverTo).length,
 			frames: hoverFrames,
 			domNodes: snapHover.domNodes,
+			cards: HOVER_CARDS,
 		};
 
 		await clickAndKeys(page);

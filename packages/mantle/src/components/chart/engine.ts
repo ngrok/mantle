@@ -2776,13 +2776,6 @@ class ChartEngine {
 	}
 
 	/**
-	 * Position the tooltip near an anchor point, flipping sides at the plot edge
-	 * and clamping vertically. The inner clamp holds the readout inside the plot
-	 * rect, which keeps it off the tick labels the x-axis band reserves below.
-	 * When the readout is taller than the plot, the outer clamp pins it to the
-	 * wrapper's top edge instead of spilling the overflow past the bottom.
-	 */
-	/**
 	 * Make the hover layers and append them to the plot, above the paint
 	 * surface and the overlay. A chart nobody points at never holds them.
 	 */
@@ -2796,6 +2789,13 @@ class ChartEngine {
 		return hover;
 	}
 
+	/**
+	 * Position the tooltip near an anchor point, flipping sides at the plot edge
+	 * and clamping vertically. The inner clamp holds the readout inside the plot
+	 * rect, which keeps it off the tick labels the x-axis band reserves below.
+	 * When the readout is taller than the plot, the outer clamp pins it to the
+	 * wrapper's top edge instead of spilling the overflow past the bottom.
+	 */
 	#positionTooltip(anchorX: number, anchorY: number): void {
 		const plot = this.#plot;
 		const tooltip = this.#elements.tooltip;

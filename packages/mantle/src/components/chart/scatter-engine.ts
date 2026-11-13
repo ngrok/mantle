@@ -9,8 +9,9 @@ import type { PointShape, SeriesSpec } from "./types.js";
  * The scatter plot's part of the chart engine: the 2D paint and the hit test.
  * Only ScatterPlot passes {@link createScatterView} to its Root, so Bar, Line,
  * and Area charts load none of this code. The 3D camera, the projection, and
- * the cube frame live in `scatter-3d.ts`, which loads the first time a chart
- * has a `zKey`, so a 2D scatter plot never loads them.
+ * the cube frame live in `scatter-3d.ts`, which loads when a chart with a
+ * `zKey` mounts (see {@link preloadScatter3d}), so a 2D scatter plot never
+ * loads them.
  *
  * This module is internal shared implementation — not exported from the package.
  */
@@ -81,6 +82,46 @@ type DragEnd = "none" | "tap" | "rotated";
 /** The pointer must land within this distance of a scatter point to hit it. */
 const SCATTER_HIT_RADIUS = 24;
 
+/** A 3D press must move this many CSS pixels before it rotates the camera. */
+const DRAG_THRESHOLD = 3;
+
+/** The 3D class once its module has loaded. Every scatter view on the page shares it. */
+let scatter3dClass: typeof Scatter3d | null = null;
+let scatter3dLoad: Promise<typeof Scatter3d> | null = null;
+
+/**
+ * Start to load the 3D code, once for the page. A failed load clears the
+ * promise, so the next call tries again.
+ *
+ * Why at mount: a dormant chart builds its engine at print, and the print
+ * snapshot cannot wait for an import. A chart that loads the code when it
+ * mounts has it before any paint.
+ *
+ * @example
+ * ```ts
+ * useEffect(() => {
+ * 	if (zKey != null) {
+ * 		preloadScatter3d().catch(() => {
+ * 			// The first 3D paint loads it again and reports a failure.
+ * 		});
+ * 	}
+ * }, [zKey]);
+ * ```
+ */
+const preloadScatter3d = (): Promise<typeof Scatter3d> => {
+	scatter3dLoad ??= import("./scatter-3d.js").then(
+		(module) => {
+			scatter3dClass = module.Scatter3d;
+			return module.Scatter3d;
+		},
+		(error: unknown) => {
+			scatter3dLoad = null;
+			throw error;
+		},
+	);
+	return scatter3dLoad;
+};
+
 /**
  * The scatter state one engine owns. The engine calls it once per frame to
  * paint and once per pointer event to hit test, never once per point.
@@ -90,6 +131,8 @@ class ScatterView {
 	/** The 3D state, once its module has loaded. */
 	#three: Scatter3d | null = null;
 	#loading = false;
+	/** A 3D press that began while the module loaded; it moves to the 3D state when it arrives. */
+	#pendingPress: { x: number; y: number; moved: boolean } | null = null;
 	/** The latest dimension count, for the 3D state created after it arrived. */
 	#dimensions: 1 | 2 | 3 = 3;
 	/** The defined indexes of each series, kept until the next ingest. */
@@ -106,9 +149,18 @@ class ScatterView {
 
 	/**
 	 * The 3D state, or `null` while its module loads. The first call starts
-	 * the load, and the engine repaints when it finishes.
+	 * the load if no chart started it yet, and the engine repaints when it
+	 * finishes.
 	 */
 	#load3d(): Scatter3d | null {
+		if (this.#three == null && scatter3dClass != null) {
+			this.#three = new scatter3dClass(this.#host, this.#dimensions);
+			const press = this.#pendingPress;
+			this.#pendingPress = null;
+			if (press != null) {
+				this.#three.press(press.x, press.y);
+			}
+		}
 		if (this.#three != null || this.#loading) {
 			return this.#three;
 		}
@@ -119,14 +171,17 @@ class ScatterView {
 
 	async #import3d(): Promise<void> {
 		try {
-			const { Scatter3d } = await import("./scatter-3d.js");
-			this.#three = new Scatter3d(this.#host, this.#dimensions);
-			this.#host.requestPaint();
+			await preloadScatter3d();
 		} catch (error) {
-			// The next 3D paint tries the load again.
+			// The next 3D paint tries the load again. `reportError` sends the
+			// failure to the page's error handlers, not to an unhandled rejection.
 			this.#loading = false;
-			throw error;
+			reportError(error);
+			return;
 		}
+		this.#loading = false;
+		this.#load3d();
+		this.#host.requestPaint();
 	}
 
 	/**
@@ -156,21 +211,37 @@ class ScatterView {
 
 	/** Start a press. In 3D the press may become a rotation drag. Returns whether it did. */
 	pressAt(cssX: number, cssY: number): boolean {
-		const three = this.#host.is3d() ? this.#load3d() : null;
-		if (three == null) {
+		if (!this.#host.is3d()) {
 			return false;
 		}
-		three.press(cssX, cssY);
+		const three = this.#load3d();
+		if (three == null) {
+			// Why keep it: a drag that starts before the module arrives must still
+			// rotate, and must not end as a tap that activates a datum.
+			this.#pendingPress = { x: cssX, y: cssY, moved: false };
+		} else {
+			three.press(cssX, cssY);
+		}
 		return true;
 	}
 
 	/** Follow a pointer move during a 3D press: past the threshold it turns the camera. */
 	dragTo(cssX: number, cssY: number): DragMove {
+		const press = this.#pendingPress;
+		if (press != null) {
+			press.moved ||= Math.abs(cssX - press.x) + Math.abs(cssY - press.y) > DRAG_THRESHOLD;
+			return "held";
+		}
 		return this.#three?.dragTo(cssX, cssY) ?? "none";
 	}
 
 	/** End a press, or cancel it when the pointer leaves. */
 	release(): DragEnd {
+		const press = this.#pendingPress;
+		if (press != null) {
+			this.#pendingPress = null;
+			return press.moved ? "rotated" : "tap";
+		}
 		return this.#three?.release() ?? "none";
 	}
 
@@ -326,4 +397,6 @@ export type {
 export {
 	//,
 	createScatterView,
+	DRAG_THRESHOLD,
+	preloadScatter3d,
 };
