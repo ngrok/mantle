@@ -236,7 +236,7 @@ const ChartLegendPrimitive = ({
 			className={cx(
 				// Why the height bound: the plot is the only part of a fixed-height Root that
 				// shrinks, so a legend with many series can take all of its height.
-				"text-muted focus-visible:ring-focus-accent flex max-h-16 shrink-0 flex-wrap items-center gap-x-4 gap-y-1 overflow-y-auto rounded-sm pt-3 text-xs outline-none focus-visible:ring-2",
+				"text-muted focus-visible:ring-focus-accent flex max-h-16 shrink-0 flex-wrap items-center gap-x-4 gap-y-1 overflow-y-auto rounded-sm pt-3 text-xs focus:outline-hidden focus-visible:ring-2",
 				className,
 			)}
 			// Why: Safari does not put a scroll container in the Tab order, so keyboard

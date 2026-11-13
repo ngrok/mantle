@@ -1,3 +1,4 @@
+import { lowerBound } from "./hit-test.js";
 import type { PaintContext, ResolvedPaint } from "./paint-backend.js";
 import type { PlotRect } from "./renderer.js";
 import { MARKER_RADIUS } from "./renderer.js";
@@ -28,6 +29,7 @@ type ScatterHost = {
 	colors: () => ResolvedPaint | null;
 	specs: () => readonly SeriesSpec[];
 	rowCount: () => number;
+	/** The x position of each row, ascending. The hit test searches it. */
 	xs: () => Float64Array;
 	zs: () => Float64Array;
 	/** The ingested columns, by series index. A new array means a new ingest. */
@@ -85,13 +87,25 @@ const SCATTER_HIT_RADIUS = 24;
 /** A 3D press must move this many CSS pixels before it rotates the camera. */
 const DRAG_THRESHOLD = 3;
 
+/**
+ * The smallest alpha that can change a canvas pixel: half of one 8-bit step.
+ * A series whose reveal is under it draws nothing.
+ */
+const MIN_VISIBLE_ALPHA = 1 / 510;
+
+/**
+ * The wait before each repaint that a view asks for after a failed 3D load.
+ * The waits grow, so a server that is down gets few requests.
+ */
+const LOAD_RETRY_DELAYS_MS = [1_000, 4_000, 16_000] as const;
+
 /** The 3D class once its module has loaded. Every scatter view on the page shares it. */
 let scatter3dClass: typeof Scatter3d | null = null;
 let scatter3dLoad: Promise<typeof Scatter3d> | null = null;
 
 /**
- * Start to load the 3D code, once for the page. A failed load clears the
- * promise, so the next call tries again.
+ * Start to load the 3D code, once for the page. A failed load reports its
+ * error once and clears the promise, so the next call tries again.
  *
  * Why at mount: a dormant chart builds its engine at print, and the print
  * snapshot cannot wait for an import. A chart that loads the code when it
@@ -102,7 +116,7 @@ let scatter3dLoad: Promise<typeof Scatter3d> | null = null;
  * useEffect(() => {
  * 	if (zKey != null) {
  * 		preloadScatter3d().catch(() => {
- * 			// The first 3D paint loads it again and reports a failure.
+ * 			// `preloadScatter3d` reported the failure. The first 3D paint loads the code again.
  * 		});
  * 	}
  * }, [zKey]);
@@ -116,6 +130,9 @@ const preloadScatter3d = (): Promise<typeof Scatter3d> => {
 		},
 		(error: unknown) => {
 			scatter3dLoad = null;
+			// Why here: every view awaits this one promise, so a report from each
+			// view repeats one failure. `reportError` sends it to the page's error handlers.
+			reportError(error);
 			throw error;
 		},
 	);
@@ -131,6 +148,10 @@ class ScatterView {
 	/** The 3D state, once its module has loaded. */
 	#three: Scatter3d | null = null;
 	#loading = false;
+	/** How many waits of {@link LOAD_RETRY_DELAYS_MS} the view used since the last press or ingest. */
+	#retryCount = 0;
+	/** The pending repaint that tries a failed 3D load again. */
+	#retryTimer: ReturnType<typeof setTimeout> | null = null;
 	/** A 3D press that began while the module loaded; it moves to the 3D state when it arrives. */
 	#pendingPress: { x: number; y: number; moved: boolean } | null = null;
 	/** The latest dimension count, for the 3D state created after it arrived. */
@@ -155,6 +176,7 @@ class ScatterView {
 	#load3d(): Scatter3d | null {
 		if (this.#three == null && scatter3dClass != null) {
 			this.#three = new scatter3dClass(this.#host, this.#dimensions);
+			this.#restartRetries();
 			const press = this.#pendingPress;
 			this.#pendingPress = null;
 			if (press != null) {
@@ -172,16 +194,44 @@ class ScatterView {
 	async #import3d(): Promise<void> {
 		try {
 			await preloadScatter3d();
-		} catch (error) {
-			// The next 3D paint tries the load again. `reportError` sends the
-			// failure to the page's error handlers, not to an unhandled rejection.
+		} catch {
+			// `preloadScatter3d` reported the failure. The next 3D paint tries the
+			// load again, and an idle chart gets that paint from the retry.
 			this.#loading = false;
-			reportError(error);
+			this.#scheduleRetry();
 			return;
 		}
 		this.#loading = false;
 		this.#load3d();
 		this.#host.requestPaint();
+	}
+
+	/**
+	 * Ask for one repaint after the next wait in {@link LOAD_RETRY_DELAYS_MS}.
+	 * That paint tries the 3D load again. After the last wait the view asks for
+	 * no more. A press or an ingest starts the waits again.
+	 */
+	#scheduleRetry(): void {
+		const delay = LOAD_RETRY_DELAYS_MS[this.#retryCount];
+		// Why keep a pending retry: a paint of an animation can fail before the
+		// retry runs, and that failure must not use up a wait.
+		if (delay == null || this.#retryTimer != null) {
+			return;
+		}
+		this.#retryCount += 1;
+		this.#retryTimer = setTimeout(() => {
+			this.#retryTimer = null;
+			this.#host.requestPaint();
+		}, delay);
+	}
+
+	/** Drop the pending retry, and start the waits from the first one. */
+	#restartRetries(): void {
+		if (this.#retryTimer != null) {
+			clearTimeout(this.#retryTimer);
+			this.#retryTimer = null;
+		}
+		this.#retryCount = 0;
 	}
 
 	/**
@@ -204,8 +254,12 @@ class ScatterView {
 		return this.#three?.tick(now) ?? false;
 	}
 
-	/** Drop the projected points: a new ingest projects every point again. */
+	/**
+	 * Drop the projected points: a new ingest projects every point again. New
+	 * data also starts the retries of a failed 3D load again.
+	 */
 	resetProjection(): void {
+		this.#restartRetries();
 		this.#three?.resetProjection();
 	}
 
@@ -214,6 +268,7 @@ class ScatterView {
 		if (!this.#host.is3d()) {
 			return false;
 		}
+		this.#restartRetries();
 		const three = this.#load3d();
 		if (three == null) {
 			// Why keep it: a drag that starts before the module arrives must still
@@ -284,9 +339,15 @@ class ScatterView {
 		const seriesIndexes = cached.indexes;
 		const totalPointCount = cached.total;
 		specs.forEach((spec, seriesIndex) => {
+			const reveal = host.reveal(spec.dataKey);
+			// Why skip: a chart nobody has seen holds its reveal at 0. Each point
+			// there costs its canvas calls and changes no pixel.
+			if (reveal < MIN_VISIBLE_ALPHA) {
+				return;
+			}
 			const values = host.paintedValues(spec, seriesIndex);
 			ctx.save();
-			ctx.globalAlpha = host.reveal(spec.dataKey);
+			ctx.globalAlpha = reveal;
 			drawScatterPoints(ctx, {
 				color: colors.series.get(spec.dataKey) ?? "currentColor",
 				surface: colors.chrome.surface,
@@ -323,17 +384,28 @@ class ScatterView {
 		const yCo = host.yCoefficients();
 		const xs = host.xs();
 		const rowCount = host.rowCount();
+		const screenXAt = (index: number): number => (xs[index] ?? 0) * xCo.k + xCo.b;
+		// Why a window: `xs` ascends, so with a positive `k` the rows within the
+		// radius in x are one run. The search and the scan share `screenXAt`, so
+		// they round each pixel the same way and agree on the rows at the edges.
+		const ascending = xCo.k > 0;
+		const start = ascending
+			? lowerBound(rowCount, (index) => screenXAt(index) - cssX <= -SCATTER_HIT_RADIUS)
+			: 0;
+		const end = ascending
+			? lowerBound(rowCount, (index) => screenXAt(index) - cssX < SCATTER_HIT_RADIUS)
+			: rowCount;
 		for (const spec of specs) {
 			const values = host.columnOf(spec.dataKey);
 			if (values == null) {
 				continue;
 			}
-			for (let index = 0; index < rowCount; index++) {
+			for (let index = start; index < end; index++) {
 				const value = values[index] ?? Number.NaN;
 				if (Number.isNaN(value)) {
 					continue;
 				}
-				const screenX = (xs[index] ?? 0) * xCo.k + xCo.b;
+				const screenX = screenXAt(index);
 				const screenY = value * yCo.k + yCo.b;
 				const deltaX = screenX - cssX;
 				const deltaY = screenY - cssY;
@@ -398,5 +470,6 @@ export {
 	//,
 	createScatterView,
 	DRAG_THRESHOLD,
+	MIN_VISIBLE_ALPHA,
 	preloadScatter3d,
 };

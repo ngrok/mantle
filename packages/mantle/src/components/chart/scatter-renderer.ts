@@ -11,8 +11,8 @@ import { MARKER_RING, tracePointShape } from "./renderer.js";
  */
 
 /**
- * Past this many points, scatter marks drop their surface ring (three canvas
- * ops per point → one); past four times this, dots become 2×2 rects (no arc
+ * Past this many points, scatter marks drop their surface ring (one
+ * `stroke()` less per point); past four times this, dots become 2×2 rects (no arc
  * rasterization) so 50k+ point clouds stay in the frame budget.
  */
 const SCATTER_RING_LIMIT = 5000;

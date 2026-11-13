@@ -29,7 +29,7 @@ import {
 import { requestSharedFrame } from "./frame-loop.js";
 import type {
 	PaintBackend,
-	PaintBackendFactory,
+	PaintBackendOptions,
 	PaintContext,
 	ResolvedPaint,
 } from "./paint-backend.js";
@@ -42,15 +42,14 @@ import {
 	bandHitRegion,
 	bandStart,
 	computeBandLayout,
-	formatTimeTick,
 	invertBand,
 	linearCoefficients,
 	linearTicks,
 	linearTicksAtMost,
 	niceDomain,
 	niceZeroAnchoredDomain,
-	timeTicks,
 } from "./scales.js";
+import { formatTimeTick, timeTicks } from "./time-ticks.js";
 import type { BarRect, HorizontalBarRect, PlotRect } from "./renderer.js";
 import {
 	AXIS_FONT_SIZE,
@@ -93,6 +92,8 @@ import { CHART_TWEEN_DURATION_MS, ChaseTween, PER_DATUM_TWEEN_LIMIT, ValueTween 
  * - paints only while the Root reports it near the viewport (`setInView`), so a
  *   list of charts pays for the ones a reader can see; the rest ingest and
  *   answer keyboard input but paint nothing
+ * - plays its motion only while the Root reports it on screen (`setOnScreen`);
+ *   a chart near the viewport but off screen paints each new state at once
  *
  * React never renders inside the paint path; the engine never touches React.
  *
@@ -173,6 +174,18 @@ const STACK_GAP = 1;
 const BAR_HEADROOM = 1.12;
 
 /**
+ * The keys a horizontal bar chart reads by its layout, each with the key a
+ * vertical chart reads for the same step. The categories run from the top
+ * down, so the Down arrow and Page Down move forward.
+ */
+const HORIZONTAL_BAR_KEYS: ReadonlyMap<string, string> = new Map([
+	["ArrowDown", "ArrowRight"],
+	["ArrowUp", "ArrowLeft"],
+	["PageDown", "PageUp"],
+	["PageUp", "PageDown"],
+]);
+
+/**
  * The share of a band's step left as air: a fixed pixel gap, so dense bars
  * fill their step whatever its width.
  */
@@ -222,6 +235,14 @@ class ChartEngine {
 	 * keyboard point cursor do not.
 	 */
 	#inView: boolean;
+	/**
+	 * Whether the Root reports the chart inside the viewport. Glides, chases,
+	 * and fades play only there: a chart that is near the viewport but off
+	 * screen paints each new state at once.
+	 */
+	#onScreen: boolean;
+	/** Whether the last commit asked for another frame: a tween, a chase, or a fade still moved. */
+	#animating = false;
 	/** Set between `beforeprint` and `afterprint`, when every chart paints. */
 	#printing = false;
 	/**
@@ -306,6 +327,11 @@ class ChartEngine {
 	 */
 	#textWidths = new Map<string, number>();
 
+	/**
+	 * Whether the marks paint one column per device pixel, which also widens
+	 * the arrow-key stride to one column. Never set on a scatter plot: it paints
+	 * every point, so its cursor must reach every point.
+	 */
 	#decimated = false;
 	#decimationCache = new Map<string, { key: string; columns: DecimatedColumns }>();
 
@@ -380,7 +406,7 @@ class ChartEngine {
 		elements: EngineElements;
 		store: ChartStore;
 		/** Builds the surface the engine paints on; the engine inserts it into the plot. */
-		backend: PaintBackendFactory;
+		backend: (options: PaintBackendOptions) => PaintBackend;
 		/** The Root's slot name, such as `"bar-chart"`, for the surface's `data-slot`. */
 		slotName: string;
 		/** Builds the scatter view. Required for `kind: "scatter"`, and ignored for every other kind. */
@@ -399,6 +425,13 @@ class ChartEngine {
 		 */
 		inView?: boolean;
 		/**
+		 * Whether the chart starts inside the viewport. The Root passes what it
+		 * knows at activation and reports each change through `setOnScreen`.
+		 *
+		 * @default true
+		 */
+		onScreen?: boolean;
+		/**
 		 * The plot's CSS size when it is already known (the intersection entry
 		 * that activated the chart carries it), so the first commit paints
 		 * instead of waiting for the resize observer's first delivery.
@@ -410,6 +443,7 @@ class ChartEngine {
 		this.#createHoverLayers = options.createHoverLayers ?? null;
 		this.#store = options.store;
 		this.#inView = options.inView ?? true;
+		this.#onScreen = options.onScreen ?? true;
 		// A bare engine is in view from the start, so its first ingest reveals.
 		this.#seen = this.#inView;
 		if (options.size != null) {
@@ -469,7 +503,10 @@ class ChartEngine {
 
 		this.#fontsCleanup = onFontsLoaded(options.elements.root.ownerDocument, () => {
 			this.#textWidths.clear();
-			this.#schedule();
+			// Why the guard: a chart with no text paints the same frame again.
+			if (this.#drawsText()) {
+				this.#schedule();
+			}
 		});
 		this.#view = options.elements.root.ownerDocument.defaultView;
 		// Why the engine watches and not the backend: decimation, pointer snap,
@@ -558,6 +595,28 @@ class ChartEngine {
 		this.#observeTooltip();
 		if (this.#needsPaint || this.#pendingIngest) {
 			this.#request();
+		}
+	}
+
+	/**
+	 * Report whether the chart is inside the viewport. Off screen, the chart
+	 * paints each new state at once, and motion in flight ends at its target.
+	 *
+	 * @example
+	 * ```ts
+	 * engine.setOnScreen(entry.isIntersecting);
+	 * ```
+	 */
+	setOnScreen(onScreen: boolean): void {
+		if (onScreen === this.#onScreen || this.#destroyed) {
+			return;
+		}
+		this.#onScreen = onScreen;
+		// Why the pending paint: a retarget since the last commit is motion too,
+		// and each retarget schedules a paint. A chart at rest has neither.
+		if (!onScreen && (this.#animating || this.#needsPaint)) {
+			this.#snapAllMotion();
+			this.#schedule();
 		}
 	}
 
@@ -665,6 +724,8 @@ class ChartEngine {
 				reveal.retarget([1], { duration: 0, now });
 			}
 		}
+		// Why settle: the snapshot takes this one frame, so motion left in flight prints part-way.
+		this.#snapAllMotion();
 		this.#needsPaint = true;
 		this.#commit();
 	}
@@ -699,11 +760,19 @@ class ChartEngine {
 			return;
 		}
 		this.#stopTooltipResize = observeResize(tooltip, () => {
+			// Why: with no active datum the surface holds no rows, and that box
+			// would place the next readout until its own size arrives.
+			if (this.#effectiveIndex() == null) {
+				return;
+			}
 			this.#tooltipSize = {
 				width: tooltip.offsetWidth,
 				height: tooltip.offsetHeight,
 			};
-			this.#scheduleOverlay();
+			// Why here and not on the next frame: this callback runs after layout and
+			// before paint, so no frame paints the readout at the size it had before.
+			// The overlay writes change no box that a resize observer watches.
+			this.#updateOverlay();
 		});
 	}
 
@@ -853,12 +922,17 @@ class ChartEngine {
 	}
 
 	/**
-	 * Pointer-up activates the datum under the pointer — but only when the
-	 * press began on the overlay (and never when it was rotating the 3D
-	 * camera). Leaving the plot mid-press cancels, preserving
-	 * drag-away-to-cancel.
+	 * Pointer-up activates the datum under the pointer, but only when the press
+	 * began on the overlay, and never when it rotated the 3D camera. Leaving the
+	 * plot mid-press cancels, which keeps drag-away-to-cancel. With
+	 * `activate: false` the release ends the press and activates nothing: the
+	 * Root passes it for a button that is not the primary one.
 	 */
-	handlePointerUp(cssX: number, cssY: number): void {
+	handlePointerUp(
+		cssX: number,
+		cssY: number,
+		{ activate = true }: { activate?: boolean } = {},
+	): void {
 		const drag = this.#scatter?.release() ?? "none";
 		const pressed = this.#pressed;
 		this.#pressed = false;
@@ -869,7 +943,7 @@ class ChartEngine {
 			// A tap in 3D: inspect, then activate.
 			this.handlePointerMove(cssX, cssY);
 		}
-		if (!pressed) {
+		if (!pressed || !activate) {
 			return;
 		}
 		this.handleActivate(cssX, cssY);
@@ -885,40 +959,70 @@ class ChartEngine {
 		this.#setActive(null, { viaKeyboard: false, notify: true });
 	}
 
+	/**
+	 * Report one activation through `onDatumActivate`. A pointer position names
+	 * the datum under it. `null` coordinates (Enter or Space) name the active
+	 * datum.
+	 */
 	handleActivate(cssX: number | null, cssY: number | null): void {
-		const index = this.#effectiveIndex();
-		if (index == null) {
+		const target = this.#activationTarget(cssX, cssY);
+		if (target == null) {
 			return;
 		}
-		const sourceIndex = this.#toSourceIndex(index);
+		const sourceIndex = this.#toSourceIndex(target.index);
 		const datum = this.#rows[sourceIndex];
 		if (datum == null) {
 			return;
 		}
-		const dataKey = ((): string | null => {
-			if (this.#kind === "scatter") {
-				return this.#activeSeriesKey;
-			}
-			if (cssX == null || cssY == null) {
-				return null;
-			}
-			return this.#nearestSeries(index, cssX, cssY);
-		})();
 		this.#callbacks.onDatumActivate?.({
 			// Public indexes address the consumer's data array, not the sorted view.
 			index: sourceIndex,
-			xValue: this.#xValueAt(index),
+			xValue: this.#xValueAt(target.index),
 			datum,
-			dataKey,
+			dataKey: target.dataKey,
 		});
+	}
+
+	/**
+	 * The datum an activation names, as a view index, with its series.
+	 *
+	 * Why the pointer position and not the active index: a controlled index is
+	 * the consumer's, and it can stay on another datum through the press.
+	 */
+	#activationTarget(
+		cssX: number | null,
+		cssY: number | null,
+	): { index: number; dataKey: string | null } | null {
+		if (cssX == null || cssY == null) {
+			const index = this.#effectiveIndex();
+			if (index == null) {
+				return null;
+			}
+			return { index, dataKey: this.#kind === "scatter" ? this.#activeSeriesKey : null };
+		}
+		if (this.#scatter != null) {
+			const hit = this.#scatter.hitAt(cssX, cssY);
+			return hit == null ? null : { index: hit.index, dataKey: hit.seriesKey };
+		}
+		const index = this.#indexAtPixel(cssX, cssY);
+		return index == null ? null : { index, dataKey: this.#nearestSeries(index, cssX, cssY) };
 	}
 
 	/**
 	 * Keyboard interaction on the focusable overlay. Returns `true` when the
 	 * key was handled (the caller prevents default). Arrow strides widen to one
 	 * device-pixel column when decimated so dense charts stay traversable.
+	 * Escape, Enter, and Space are handled only while a datum is active. Pass
+	 * the event's `repeat`: a held Enter or Space activates once.
+	 *
+	 * @example
+	 * ```ts
+	 * if (engine.handleKeyDown(event.key, { repeat: event.repeat })) {
+	 * 	event.preventDefault();
+	 * }
+	 * ```
 	 */
-	handleKeyDown(key: string): boolean {
+	handleKeyDown(key: string, { repeat = false }: { repeat?: boolean } = {}): boolean {
 		if (this.#rowCount === 0) {
 			return false;
 		}
@@ -928,9 +1032,10 @@ class ChartEngine {
 			? Math.max(1, Math.floor(this.#rowCount / Math.max(1, this.#plot.width * this.#dpr)))
 			: 1;
 		const pageStride = Math.max(1, Math.floor(this.#rowCount / 10));
+		const stepKey = this.#horizontalBars() ? (HORIZONTAL_BAR_KEYS.get(key) ?? key) : key;
 
 		const target = (() => {
-			switch (key) {
+			switch (stepKey) {
 				case "ArrowLeft": {
 					return Math.max(0, (current ?? this.#rowCount) - stride);
 				}
@@ -950,7 +1055,8 @@ class ChartEngine {
 					return last;
 				}
 				case "Escape": {
-					return null;
+					// Why: with no datum to dismiss, Escape belongs to the surface around the chart.
+					return current == null ? undefined : null;
 				}
 				default: {
 					return undefined;
@@ -959,11 +1065,15 @@ class ChartEngine {
 		})();
 
 		if (target === undefined) {
-			if (key === "Enter" || key === " ") {
-				this.handleActivate(null, null);
-				return true;
+			const activates = key === "Enter" || key === " ";
+			// Why the active datum: with none to activate, Space must still scroll the page.
+			if (!activates || current == null) {
+				return false;
 			}
-			return false;
+			if (!repeat) {
+				this.handleActivate(null, null);
+			}
+			return true;
 		}
 		// Reset BOTH pointer axes: a stale #pointerX would anchor a horizontal
 		// bar's keyboard tooltip to the old pointer column instead of the plot
@@ -989,7 +1099,7 @@ class ChartEngine {
 	}
 
 	/**
-	 * Records the Root's `className` and `style`, where a `--color-chart-N` or
+	 * Records the Root's `className` and `style`, where a `--color-chart-<name>` or
 	 * `color` override lives. A changed value drops the resolved colors.
 	 * Compare `style` by reference, so pass a shallow-stable object.
 	 */
@@ -1003,8 +1113,8 @@ class ChartEngine {
 	}
 
 	/**
-	 * Finish every in-flight motion at its target immediately (animate switched
-	 * off, or reduced motion arriving mid-glide).
+	 * End every motion in flight at its target: `animate` turned off, the chart
+	 * left the screen, or a print starts. The caller paints the settled frame.
 	 */
 	#snapAllMotion(): void {
 		this.#yTween.jump(this.#targetYDomain());
@@ -1017,7 +1127,6 @@ class ChartEngine {
 			tween.snap();
 		}
 		this.#edgeFade.alpha = this.#edgeFade.target;
-		this.#schedule();
 	}
 
 	// ---- data ingest ----------------------------------------------------------
@@ -1028,6 +1137,7 @@ class ChartEngine {
 		const specs = this.#store.seriesSpecs();
 		this.#decimationCache.clear();
 		const previousXs = this.#xs;
+		const previousXValues = this.#xValues;
 		const ingested = ingestRows({
 			rows,
 			xKey: this.#options.xKey,
@@ -1090,10 +1200,16 @@ class ChartEngine {
 		// Per-datum tweens are only meaningful when old and new points share the
 		// same x positions — index-aligned interpolation across a shifted window
 		// would morph each point into its neighbor's value.
+		// Why the categories: a category scale's positions are the indexes, which
+		// are equal whenever the counts are, so only the categories show a shift.
+		const categorical = xScale === "band" || xScale === "point";
 		let sameXVector = previousXs.length === count && count <= PER_DATUM_TWEEN_LIMIT;
 		if (sameXVector) {
 			for (let index = 0; index < count; index++) {
-				if (previousXs[index] !== this.#xs[index]) {
+				const same = categorical
+					? sameCategory(previousXValues[index], this.#xValues[index])
+					: previousXs[index] === this.#xs[index];
+				if (!same) {
 					sameXVector = false;
 					break;
 				}
@@ -1115,11 +1231,13 @@ class ChartEngine {
 
 		this.#stack = this.#options.stacked ? computeStackBoundaries(this.#columns) : null;
 
-		this.#decimated = shouldDecimate({
-			pointCount: count,
-			columnCount: Math.max(1, Math.round(this.#plot.width * this.#dpr)),
-			wasDecimated: this.#decimated,
-		});
+		this.#decimated =
+			this.#kind !== "scatter" &&
+			shouldDecimate({
+				pointCount: count,
+				columnCount: Math.max(1, Math.round(this.#plot.width * this.#dpr)),
+				wasDecimated: this.#decimated,
+			});
 
 		// A series registered after the first paint has no resolved canvas color
 		// yet (the theme signature is unchanged, so the lazy cache would skip it
@@ -1165,7 +1283,10 @@ class ChartEngine {
 			this.#xTween.jump(this.#targetXDomain());
 		} else {
 			this.#yTween.aim(this.#targetYDomain(), now);
-			if (this.#sliding && this.#streamInterval != null) {
+			if (this.#kind === "bar") {
+				// Why a jump: the band layout places every bar, so no bar paint reads the x domain.
+				this.#xTween.jump(this.#targetXDomain());
+			} else if (this.#sliding && this.#streamInterval != null) {
 				// Why a straight line: a stream's x axis is time passing, so it
 				// scrolls at one speed. A chase covers most of each step in the first
 				// frames after an append and then stalls before the next one.
@@ -1175,10 +1296,18 @@ class ChartEngine {
 			}
 		}
 
-		// Per-datum tweens: only below the limit and only when the x vector is
-		// unchanged — index-aligned interpolation across a shifted window would
-		// morph each point into its neighbor's value.
-		const perDatum = this.#rowCount > 0 && this.#rowCount <= PER_DATUM_TWEEN_LIMIT && sameXVector;
+		// Per-datum tweens run under the limit and on an unchanged x vector: a tween
+		// by index across a shifted window moves each point toward its neighbor's
+		// value. A decimated paint reads the settled column, so a tween there
+		// repeats one frame.
+		const perDatum =
+			this.#rowCount > 0 &&
+			this.#rowCount <= PER_DATUM_TWEEN_LIMIT &&
+			sameXVector &&
+			!this.#decimated;
+		// Why none above the limit: `#paintedValues` reads no tween there, and each
+		// tween holds three copies of its column.
+		const holdsValueTweens = this.#rowCount <= PER_DATUM_TWEEN_LIMIT;
 		const activeKeys = new Set<string>();
 		const registeredKeys = new Set<string>();
 		const retargetBuffer = (tweenKey: string, target: Float64Array, hadPrevious: boolean) => {
@@ -1195,7 +1324,8 @@ class ChartEngine {
 		specs.forEach((spec, seriesIndex) => {
 			registeredKeys.add(spec.dataKey);
 			const hadPrevious = previousColumnIndex.has(spec.dataKey);
-			if (this.#stack != null) {
+			// Above the limit the prune below drops a tween the series held under it.
+			if (holdsValueTweens && this.#stack != null) {
 				retargetBuffer(
 					`${spec.dataKey}:lower`,
 					this.#stack.lower[seriesIndex] ?? new Float64Array(0),
@@ -1206,7 +1336,7 @@ class ChartEngine {
 					this.#stack.upper[seriesIndex] ?? new Float64Array(0),
 					hadPrevious,
 				);
-			} else {
+			} else if (holdsValueTweens) {
 				retargetBuffer(
 					spec.dataKey,
 					this.#columns[seriesIndex] ?? new Float64Array(0),
@@ -1248,10 +1378,12 @@ class ChartEngine {
 	/**
 	 * How long a glide takes this frame: zero while dormant, so a chart that
 	 * enters view paints its current data instead of gliding from a stale
-	 * domain it never showed.
+	 * domain it never showed. Off screen it is zero too: no reader sees a glide
+	 * there.
 	 */
 	#tweenDuration(): number {
-		if (!this.#inView && !this.#printing) {
+		const visible = this.#inView && this.#onScreen;
+		if (!visible && !this.#printing) {
 			return 0;
 		}
 		return this.#motionDuration();
@@ -1350,6 +1482,21 @@ class ChartEngine {
 		return snapshot.xAxis != null || snapshot.yAxis != null || snapshot.grid != null;
 	}
 
+	/**
+	 * Whether a font changes what the chart paints: tick labels (which also thin
+	 * the gridlines by their width), a reference line's label, or the 3D frame's
+	 * axis names.
+	 */
+	#drawsText(): boolean {
+		return (
+			this.#hasTicks() ||
+			this.#is3d() ||
+			this.#store
+				.getSnapshot()
+				.referenceLines.some((line) => line.label != null && line.label.length > 0)
+		);
+	}
+
 	#horizontalBars(): boolean {
 		return this.#kind === "bar" && this.#options.orientation === "horizontal";
 	}
@@ -1427,8 +1574,11 @@ class ChartEngine {
 			this.#needsLayout = false;
 			const now = performance.now();
 			let animating = false;
-			animating = this.#yTween.tick(now) || animating;
-			animating = this.#xTween.tick(now) || animating;
+			const valueExtent = this.#horizontalBars() ? this.#plot.width : this.#plot.height;
+			animating =
+				this.#yTween.tick(now, this.#settleDistance(this.#yTween, valueExtent)) || animating;
+			animating =
+				this.#xTween.tick(now, this.#settleDistance(this.#xTween, this.#plot.width)) || animating;
 			for (const tween of this.#valueTweens.values()) {
 				animating = tween.tick(now) || animating;
 			}
@@ -1443,11 +1593,24 @@ class ChartEngine {
 			this.#layout();
 			animating = this.#paint(now) || animating;
 
+			this.#animating = animating;
 			if (animating) {
 				this.#schedule();
 			}
 		}
 		this.#updateOverlay();
+	}
+
+	/**
+	 * How far a domain bound is from its target, in domain units, when no mark
+	 * is more than half a device pixel from its end position. `extent` is the
+	 * length in CSS pixels of the axis the domain maps onto. While the plot has
+	 * no size, the result is `0`, which sets no floor.
+	 */
+	#settleDistance(chase: ChaseTween, extent: number): number {
+		const domain = chase.values();
+		const span = Math.abs((domain[1] ?? 0) - (domain[0] ?? 0));
+		return extent > 0 && Number.isFinite(span) ? (span * 0.5) / (extent * this.#dpr) : 0;
 	}
 
 	#currentDpr(): number {
@@ -1566,11 +1729,13 @@ class ChartEngine {
 			this.#bandLayout = null;
 		}
 
-		this.#decimated = shouldDecimate({
-			pointCount: this.#rowCount,
-			columnCount: Math.max(1, Math.round(this.#plot.width * this.#dpr)),
-			wasDecimated: this.#decimated,
-		});
+		this.#decimated =
+			this.#kind !== "scatter" &&
+			shouldDecimate({
+				pointCount: this.#rowCount,
+				columnCount: Math.max(1, Math.round(this.#plot.width * this.#dpr)),
+				wasDecimated: this.#decimated,
+			});
 	}
 
 	#yCoefficients(): { k: number; b: number } {
@@ -1676,11 +1841,22 @@ class ChartEngine {
 	}
 
 	/**
+	 * Whether the x ticks are the categories of a band or point scale.
+	 *
+	 * Why the scale and not `#bandLayout`: `#layout` sizes the gutter of a
+	 * horizontal bar chart from these ticks before it builds the band layout.
+	 */
+	#hasCategoryTicks(): boolean {
+		const { xScale } = this.#options;
+		return xScale === "band" || xScale === "point";
+	}
+
+	/**
 	 * Every input of {@link #buildXTicks} except the formatter and the category
 	 * values, which the memo compares by identity.
 	 */
 	#xTickKey(): string {
-		if (this.#bandLayout != null) {
+		if (this.#hasCategoryTicks()) {
 			const horizontal = this.#horizontalBars();
 			const axisExtent = horizontal ? this.#plot.height : this.#plot.width;
 			return `band|${horizontal}|${axisExtent}|${this.#rowCount}|${this.#xHasTimeOfDay}`;
@@ -1693,7 +1869,7 @@ class ChartEngine {
 	#buildXTicks(): Array<{ index: number | null; value: number; text: string }> {
 		const snapshot = this.#store.getSnapshot();
 		const format = snapshot.xAxis?.tickFormat;
-		if (this.#bandLayout != null) {
+		if (this.#hasCategoryTicks()) {
 			// Pre-thin dense category axes by stride before any text measurement so
 			// ten-thousand-band charts never format ten thousand labels per paint.
 			// The category axis runs along whichever pixel dimension carries it —
@@ -1786,7 +1962,9 @@ class ChartEngine {
 		// Tick fade state: desired tick sets fade in/out instead of popping, and
 		// gridlines share the label alphas so everything slides together while
 		// the domains glide.
-		const instantLabels = this.#tweenDuration() === 0;
+		// Why instant in a print: the snapshot takes one frame, and a label that
+		// fades in is at its first step there.
+		const instantLabels = this.#printing || this.#tweenDuration() === 0;
 		// Why the guard: a chart with no axis and no grid draws no labels and no
 		// gridlines, and the `ctx.font` write plus a `measureText` per tick cost
 		// a sparkline more than its bars.
@@ -2777,7 +2955,7 @@ class ChartEngine {
 						: meta.find((series) => series.dataKey === this.#activeSeriesKey);
 				dot.style.opacity = "1";
 				styleMarkerDot(dot, active?.shape ?? "circle", active?.color ?? "currentColor");
-				dot.style.transform = `translate3d(${screen.x}px, ${screen.y}px, 0)`;
+				dot.style.transform = `translate(${screen.x}px, ${screen.y}px)`;
 			}
 			this.#positionTooltip(screen.x, screen.y);
 			return;
@@ -2799,17 +2977,17 @@ class ChartEngine {
 				const start = region.start - (size - region.size) / 2;
 				if (horizontal) {
 					// The band spans the full plot width at the category's y row.
-					band.style.transform = `translate3d(${plot.left}px, ${start}px, 0)`;
+					band.style.transform = `translate(${plot.left}px, ${start}px)`;
 					band.style.width = `${plot.width}px`;
 					band.style.height = `${size}px`;
 				} else {
-					band.style.transform = `translate3d(${start}px, ${plot.top}px, 0)`;
+					band.style.transform = `translate(${start}px, ${plot.top}px)`;
 					band.style.width = `${size}px`;
 					band.style.height = `${plot.height}px`;
 				}
 			}
 		} else {
-			crosshair.style.transform = `translate3d(${xPx}px, ${plot.top}px, 0)`;
+			crosshair.style.transform = `translate(${xPx}px, ${plot.top}px)`;
 			crosshair.style.height = `${plot.height}px`;
 
 			// One marker dot per series, synced imperatively. The overlay syncs on
@@ -2843,7 +3021,7 @@ class ChartEngine {
 				}
 				dot.style.opacity = "1";
 				styleMarkerDot(dot, series.shape, series.color);
-				dot.style.transform = `translate3d(${xPx}px, ${painted * yCo.k + yCo.b}px, 0)`;
+				dot.style.transform = `translate(${xPx}px, ${painted * yCo.k + yCo.b}px)`;
 			});
 		}
 
@@ -2899,9 +3077,18 @@ class ChartEngine {
 			0,
 			Math.min(anchorY - size.height / 2, plot.top + plot.height - size.height),
 		);
-		tooltip.style.transform = `translate3d(${tooltipLeft}px, ${tooltipTop}px, 0)`;
+		tooltip.style.transform = `translate(${tooltipLeft}px, ${tooltipTop}px)`;
 	}
 }
+
+/**
+ * Whether two category values name the same category. A `Date` compares by
+ * its time, because a new fetch builds new `Date` objects for the same buckets.
+ */
+const sameCategory = (previous: XValue | undefined, next: XValue | undefined): boolean =>
+	previous instanceof Date && next instanceof Date
+		? previous.getTime() === next.getTime()
+		: previous === next;
 
 /**
  * Advance a tick-label fade map toward its desired set: wanted labels fade in,
@@ -2990,6 +3177,9 @@ const createMarkerDot = (ownerDocument: Document): HTMLElement => {
 	dot.style.height = "12px";
 	dot.style.left = "-6px";
 	dot.style.top = "-6px";
+	// Why: the dot is two background colors, and forced colors mode replaces
+	// both with the page background. The two layers inherit the opt-out.
+	dot.style.forcedColorAdjust = "none";
 	const ring = ownerDocument.createElement("div");
 	ring.style.position = "absolute";
 	ring.style.inset = "0";

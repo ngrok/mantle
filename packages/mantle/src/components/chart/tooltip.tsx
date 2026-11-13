@@ -56,9 +56,8 @@ const useTooltipPrimitive = (partName: string, props: TooltipPrimitiveProps): nu
 	const context = useChartContext(partName);
 	const { labelFormat, valueFormat, indicator = "line", footer, children, ...divProps } = props;
 	// Why a stable rest object: every render rebuilds `divProps`. Without a
-	// stable identity, every parent re-render re-registers the tooltip. Each
-	// registration republishes to every DOM consumer and repaints the canvas
-	// with nothing changed.
+	// stable identity, every parent re-render re-registers the tooltip, and each
+	// registration republishes to every DOM consumer.
 	const stableDivProps = useShallowStable(divProps);
 	useLayoutEffect(
 		() =>
@@ -207,7 +206,9 @@ const ChartTooltipReadout = ({
 						{config?.indicator !== "none" && (
 							<span
 								aria-hidden
-								className="h-2.5 w-0.5 shrink-0 rounded-full"
+								// Why `forced-color-adjust-none`: the indicator is a color key, and
+								// forced colors mode replaces its background with the page background.
+								className="forced-color-adjust-none h-2.5 w-0.5 shrink-0 rounded-full"
 								style={{ backgroundColor: point.color }}
 							/>
 						)}

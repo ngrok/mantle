@@ -11,7 +11,8 @@ import { CanvasBarChartRoot } from "../../test-utils/canvas-chart-roots.js";
  * Real-browser geometry tests for `BarChart` `orientation="horizontal"`: bars
  * grow rightward from a left baseline with categories banded down the y axis.
  * happy-dom lacks the real plot layout the engine projects onto, so
- * these sample the painted canvas directly.
+ * these sample the painted canvas directly. The gutter test measures the
+ * labels of the SVG surface, which are elements with a real box.
  */
 const STYLE = `
 :root {
@@ -307,5 +308,49 @@ describe("bar orientation", () => {
 				Math.min(...values.map((value) => value.x)),
 			);
 		});
+	});
+
+	test("horizontal: the first paint leaves room for the longest category name", async () => {
+		const regions = [
+			{ cat: "us-east-1-production", v: 10 },
+			{ cat: "us-west-2-production", v: 90 },
+			{ cat: "eu-central-1-production", v: 40 },
+		];
+		// Why under the fold: a chart there paints once, at activation. On screen,
+		// a second frame can lay the chart out again and hide a wrong first layout.
+		const { container } = render(
+			<>
+				<div style={{ height: window.innerHeight * 1.25 }} />
+				<div style={{ width: 600, height: 300 }}>
+					<BarChart.Root
+						data={regions}
+						xKey="cat"
+						orientation="horizontal"
+						animate={false}
+						aria-label="Requests by region"
+					>
+						<BarChart.XAxis />
+						<BarChart.Bar dataKey="v" label="Value" color="blue" />
+					</BarChart.Root>
+				</div>
+			</>,
+		);
+		const labels = await waitFor(() => {
+			const painted = [...container.querySelectorAll('[data-slot="bar-chart-svg"] text')].filter(
+				(label) => regions.some((row) => row.cat === label.textContent),
+			);
+			expect(painted).toHaveLength(regions.length);
+			return painted;
+		});
+		const surface = container.querySelector('[data-slot="bar-chart-svg"]');
+		if (surface == null) {
+			throw new Error("expected the SVG surface to render");
+		}
+		const surfaceLeft = surface.getBoundingClientRect().left;
+		// The names end at the gutter's right edge. In a gutter sized for the row
+		// indexes they start left of the surface, which clips them.
+		for (const label of labels) {
+			expect(label.getBoundingClientRect().left).toBeGreaterThanOrEqual(surfaceLeft);
+		}
 	});
 });

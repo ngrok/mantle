@@ -9,9 +9,7 @@ import { engageChart } from "../../test-utils/engage-chart.js";
 import { ScatterPlot } from "./scatter-plot.js";
 
 // Scatter rows are individual points: most rows populate only one of the two
-// series, which is the shape the scatter snapshot filtering exists for. Keep
-// the set under 4 rows — happy-dom never delivers a plot size, and a zero-width
-// plot decimates 4+ rows, which widens the keyboard stride to the whole set.
+// series, which is the shape the scatter snapshot filtering exists for.
 const data = [
 	{ latency: 12, regionA: 840, regionB: null },
 	{ latency: 28, regionA: null, regionB: 590 },

@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useSyncExternalStore } from "react
 import invariant from "tiny-invariant";
 import type { ChartEngine } from "./engine.js";
 import type { ChartStore } from "./store.js";
-import type { ChartDatum, ChartDatumEvent, SeriesMark, SeriesMeta } from "./types.js";
+import type { ChartDatum, ChartDatumEvent, SeriesMark, SeriesMeta, XScaleKind } from "./types.js";
 
 /**
  * The shared React layer of the chart family. `BarChart`, `LineChart`,
@@ -17,11 +17,12 @@ import type { ChartDatum, ChartDatumEvent, SeriesMark, SeriesMeta } from "./type
  * composed Tooltip part customizes the readout; omitting it never removes the
  * hover layer, and no part removal can strip keyboard access to the data.
  *
- * A Root mounts dormant: it ingests its data and answers the keyboard, but it
- * paints and allocates its canvas once it nears the viewport, and it mounts
- * the data table once focus lands inside it. A list of 100 charts pays for
- * the ones a reader can see, and a table of sparklines holds no hidden
- * tables until a reader asks for one.
+ * A Root mounts dormant: a shell of the plot, the named overlay, and the
+ * sr-only description. It builds its paint surface and its engine once it
+ * nears the viewport, takes focus, or prints, and it mounts the data table
+ * once focus lands inside it. A list of 100 charts pays for the ones a reader
+ * can see, and a table of sparklines holds no hidden tables until a reader
+ * asks for one.
  *
  * This module is internal shared implementation — it is not exported from the
  * package.
@@ -114,8 +115,8 @@ type ChartAccessibilityProps<TMode extends ChartMode = ChartMode> = {
 	 * name and a description; only its values live in the text beside it.
 	 * One hundred sparklines in a table as one hundred Tab stops is a focus
 	 * order no reader wants, and a readout that only a pointer can reach
-	 * fails WCAG 1.4.13, so `"static"` offers neither. A chart that is the
-	 * only source of its values stays `"interactive"`.
+	 * fails WCAG 2.2 SC 2.1.1 (Keyboard), so `"static"` offers neither. A
+	 * chart that is the only source of its values stays `"interactive"`.
 	 *
 	 * **`"static"`** names the plot `role="img"`, with the consumer's
 	 * `aria-label` or `aria-labelledby` and an `aria-describedby` to the
@@ -155,8 +156,8 @@ type ChartAccessibilityProps<TMode extends ChartMode = ChartMode> = {
 	 *   <LineChart.Grid />
 	 *   <LineChart.XAxis />
 	 *   <LineChart.YAxis />
-	 *   <LineChart.Line dataKey="p50" label="p50" />
-	 *   <LineChart.Line dataKey="p99" label="p99" />
+	 *   <LineChart.Line dataKey="p50" label="p50" color="blue" />
+	 *   <LineChart.Line dataKey="p99" label="p99" color="emerald" />
 	 *   <LineChart.Tooltip />
 	 *   <LineChart.Legend />
 	 * </LineChart.Root>
@@ -173,7 +174,7 @@ type ChartAccessibilityProps<TMode extends ChartMode = ChartMode> = {
 	 *     aria-label={`Requests for ${service.name}, last 30 days`}
 	 *     className="aspect-auto h-6 w-28"
 	 *   >
-	 *     <BarChart.Bar dataKey="count" label="Requests" />
+	 *     <BarChart.Bar dataKey="count" label="Requests" color="blue" />
 	 *   </BarChart.Root>
 	 *   <span className="text-muted text-xs tabular-nums">{compact(service.requestTotal)}</span>
 	 * </div>
@@ -184,7 +185,7 @@ type ChartAccessibilityProps<TMode extends ChartMode = ChartMode> = {
 	 * // Decorative: the message is a sibling of the chart, so AT still announces it.
 	 * <div className="relative w-full">
 	 *   <BarChart.Root data={placeholderUsage} xKey="day" mode="decorative">
-	 *     <BarChart.Bar dataKey="value" />
+	 *     <BarChart.Bar dataKey="value" color="blue" />
 	 *   </BarChart.Root>
 	 *   <Empty.Root className="absolute inset-0 m-auto h-fit w-fit">
 	 *     <Empty.Title>No usage yet</Empty.Title>
@@ -214,7 +215,13 @@ type ChartContextValue = {
 	 * once per Root lifetime, stays stable across data updates.
 	 */
 	dataRef: {
-		current: { data: readonly ChartDatum[]; xKey: string; zKey: string | undefined };
+		current: {
+			data: readonly ChartDatum[];
+			xKey: string;
+			/** The resolved x scale, so a copy reads a time-scale x as the engine does. */
+			xScale: XScaleKind;
+			zKey: string | undefined;
+		};
 	};
 };
 

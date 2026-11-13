@@ -24,6 +24,11 @@ const SLICE_MS = 4;
 const queue = new Map<Element, Activation>();
 /** Whether a yielded continuation is already scheduled. */
 let continuationPending = false;
+/**
+ * Whether a chart joined the queue or moved ahead in it since the last slice.
+ * Only such a change earns a slice in the caller's task.
+ */
+let queueChanged = false;
 
 const hasYield = (value: unknown): value is { yield: () => Promise<void> } =>
 	typeof value === "object" &&
@@ -59,6 +64,16 @@ const yieldToBrowser = (): Promise<void> => {
 	});
 };
 
+/**
+ * Whether `rect` intersects the viewport of the window that holds `element`.
+ * With no rect or no window there is nothing to compare, and the answer is
+ * `true`.
+ *
+ * @example
+ * ```ts
+ * isOnScreen(plot, entry.boundingClientRect); // false for a plot below the fold
+ * ```
+ */
 const isOnScreen = (element: Element, rect: DOMRectReadOnly | null): boolean => {
 	const view = element.ownerDocument.defaultView;
 	if (rect == null || view == null) {
@@ -75,31 +90,41 @@ const isOnScreen = (element: Element, rect: DOMRectReadOnly | null): boolean => 
  * it first.
  */
 const drain = (): void => {
+	queueChanged = false;
 	const start = performance.now();
 	const ordered = [...queue.entries()].toSorted(
 		([, a], [, b]) => Number(b.onScreen) - Number(a.onScreen) || a.top - b.top,
 	);
-	for (const [element, activation] of ordered) {
-		// A cancel or a re-queue during the slice drops the stale entry.
-		if (queue.get(element) !== activation) {
-			continue;
+	try {
+		for (const [element, activation] of ordered) {
+			// A cancel or a re-queue during the slice drops the stale entry.
+			if (queue.get(element) !== activation) {
+				continue;
+			}
+			queue.delete(element);
+			activation.run(activation.rect);
+			if (queue.size > 0 && performance.now() - start >= SLICE_MS) {
+				break;
+			}
 		}
-		queue.delete(element);
-		activation.run(activation.rect);
-		if (queue.size > 0 && performance.now() - start >= SLICE_MS) {
-			break;
+	} finally {
+		// Why finally: a chart that throws must not strand the charts queued after it.
+		if (queue.size > 0 && !continuationPending) {
+			continuationPending = true;
+			void continueAfterYield();
 		}
-	}
-	if (queue.size > 0 && !continuationPending) {
-		continuationPending = true;
-		void continueAfterYield();
 	}
 };
 
 const continueAfterYield = async (): Promise<void> => {
 	await yieldToBrowser();
 	continuationPending = false;
-	drain();
+	try {
+		drain();
+	} catch (error) {
+		// Why report: no caller awaits this slice, so a throw here is an unhandled rejection.
+		reportError(error);
+	}
 };
 
 /**
@@ -122,6 +147,7 @@ const queueActivation = (
 		onScreen: isOnScreen(element, activation.rect),
 		top: activation.rect?.top ?? 0,
 	});
+	queueChanged = true;
 };
 
 /**
@@ -135,8 +161,11 @@ const queueActivation = (
  */
 const promoteActivation = (element: Element): void => {
 	const queued = queue.get(element);
-	if (queued != null) {
+	// Why the check: at page load the `visible` band names charts that queued as
+	// on screen. That report must not start a second slice.
+	if (queued != null && !queued.onScreen) {
 		queued.onScreen = true;
+		queueChanged = true;
 	}
 };
 
@@ -154,7 +183,9 @@ const cancelActivation = (element: Element): void => {
 
 /**
  * Run the queue: the first slice now, inside the caller's task, and the rest
- * after a yield each.
+ * after a yield each. If no chart joined the queue or moved ahead in it since
+ * the last slice, a call does nothing. One delivery reaches the observer of
+ * every band, and each observer calls this, so the delivery runs one slice.
  *
  * @example
  * ```ts
@@ -165,7 +196,7 @@ const cancelActivation = (element: Element): void => {
  * ```
  */
 const flushActivations = (): void => {
-	if (queue.size === 0) {
+	if (queue.size === 0 || !queueChanged) {
 		return;
 	}
 	drain();
@@ -175,6 +206,7 @@ export {
 	//,
 	cancelActivation,
 	flushActivations,
+	isOnScreen,
 	promoteActivation,
 	queueActivation,
 };

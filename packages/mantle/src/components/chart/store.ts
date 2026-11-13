@@ -72,6 +72,13 @@ type StoreSnapshot = {
 	orientation: BarOrientation;
 };
 
+/**
+ * What a registration changed, which picks the engine hook: `"series"` needs
+ * a new ingest and `"presentation"` a repaint. `"tooltip"` calls no hook,
+ * because the engine paints nothing from the tooltip config.
+ */
+type RegistrationChange = "series" | "presentation" | "tooltip";
+
 /** The glyph a series wears when it sets no `shape`. */
 const DEFAULT_SHAPE: PointShape = "circle";
 
@@ -154,13 +161,13 @@ class ChartStore {
 		this.#sequenceByKey.set(spec.dataKey, sequence);
 		this.#seriesByKey.set(spec.dataKey, { spec, sequence });
 		this.#specs = null;
-		this.#publishRegistrations({ seriesChanged: true });
+		this.#publishRegistrations("series");
 		return () => {
 			const current = this.#seriesByKey.get(spec.dataKey);
 			if (current?.spec === spec) {
 				this.#seriesByKey.delete(spec.dataKey);
 				this.#specs = null;
-				this.#publishRegistrations({ seriesChanged: true });
+				this.#publishRegistrations("series");
 			}
 		};
 	}
@@ -179,7 +186,7 @@ class ChartStore {
 			return;
 		}
 		this.#decorative = decorative;
-		this.#publishRegistrations({ seriesChanged: true });
+		this.#publishRegistrations("series");
 	}
 
 	/** Root-side: publish the bar direction so DOM consumers (legend keys) can mirror it. */
@@ -247,11 +254,11 @@ class ChartStore {
 	registerTooltip(config: TooltipConfig): () => void {
 		// Singleton part: last registration wins.
 		this.#tooltip = config;
-		this.#publishRegistrations();
+		this.#publishRegistrations("tooltip");
 		return () => {
 			if (this.#tooltip === config) {
 				this.#tooltip = null;
-				this.#publishRegistrations();
+				this.#publishRegistrations("tooltip");
 			}
 		};
 	}
@@ -290,12 +297,12 @@ class ChartStore {
 		});
 	}
 
-	#publishRegistrations(options: { seriesChanged: boolean } = { seriesChanged: false }): void {
+	#publishRegistrations(change: RegistrationChange = "presentation"): void {
 		this.#snapshot = {
 			// Why keep the old list on other changes: the legend and the data table
 			// subscribe to `series` by identity, so an axis or tooltip registration
 			// must not re-render them.
-			series: options.seriesChanged ? this.seriesMeta() : this.#snapshot.series,
+			series: change === "series" ? this.seriesMeta() : this.#snapshot.series,
 			hover: this.#hover,
 			grid: this.#grid,
 			xAxis: this.#xAxis,
@@ -307,9 +314,9 @@ class ChartStore {
 			orientation: this.#orientation,
 		};
 		this.#emit();
-		if (options.seriesChanged) {
+		if (change === "series") {
 			this.onSeriesChange?.();
-		} else {
+		} else if (change === "presentation") {
 			this.onPresentationChange?.();
 		}
 	}

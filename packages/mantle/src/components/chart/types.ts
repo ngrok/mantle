@@ -49,10 +49,12 @@ type SeriesMark = "bar" | "line" | "area" | "scatter";
  * A series color: a mantle color name, the same `Color` that `Badge` takes, or
  * any CSS color string as an escape hatch.
  *
- * A name paints that color's chart token, `--color-chart-<name>`, which each
- * theme tunes to clear 3:1 contrast on the card surface. Functional names
- * (`success`, `danger`, …) alias the hue their status color uses. `neutral` is
- * the color for an "Other" series.
+ * A name paints that color's chart token, `--color-chart-<name>`: the color's
+ * 600 step in light mode and its 500 step in dark mode. Most names reach 3:1
+ * contrast on the card surface, and the docs list the names that do not.
+ * Mantle does not guarantee that any set of names stays apart for a
+ * color-blind reader. Functional names (`success`, `danger`, …) alias the hue
+ * their status color uses. `neutral` is the color for an "Other" series.
  *
  * A static CSS color (raw hex) cannot follow the two themes, so prefer a
  * `var(--your-token)` a consumer declares per theme. A series that carries

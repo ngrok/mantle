@@ -313,13 +313,10 @@ in a plain stylesheet (a third-party widget override) resolves to nothing.
 	--ring-color-focus-warning: var(--ring-color-focus-warning);
 	--ring-color-focus-success: var(--ring-color-focus-success);
 
-	/* Chart series tokens — one per mantle color name, the names Badge takes. A
-	   series names its color: <BarChart.Bar />. Each theme tunes every
-	   token to clear 3:1 on its card surface. Eight hues carry bespoke oklch()
-	   literals whose 28 pairs stay apart for full-color readers and for dichromats
-	   (blue, emerald, pink, orange, teal, fuchsia, violet, amber); the rest alias a
-	   palette step. A decorative chart paints every series with
-	   --color-chart-decorative. */
+	/* Chart series tokens: one for each mantle color name, the names Badge takes.
+	   Each theme block sets them (the 600 step in light mode, the 500 step in dark
+	   mode), and mantle does not guarantee that a set of names stays apart for a
+	   color-blind reader. */
 	--color-chart-amber: var(--color-chart-amber);
 	--color-chart-blue: var(--color-chart-blue);
 	--color-chart-cyan: var(--color-chart-cyan);
@@ -345,6 +342,7 @@ in a plain stylesheet (a third-party widget override) resolves to nothing.
 	--color-chart-neutral: var(--color-chart-neutral);
 	--color-chart-success: var(--color-chart-success);
 	--color-chart-warning: var(--color-chart-warning);
+	/* The one fill every series wears on a decorative chart. */
 	--color-chart-decorative: var(--color-chart-decorative);
 }
 
@@ -707,8 +705,8 @@ the app stylesheet in `<head>`. An app that `@import`ed `mantle-dark.css` after
 	--color-chart-success: var(--color-chart-emerald);
 	--color-chart-warning: var(--color-chart-amber);
 
-	/* The decorative-chart fill — this theme's neutral-200, which holds
-	   --text-color-muted at 4.93:1. See mantle.css for the derivation. */
+	/* The fill of a decorative chart: this theme's neutral-200, which holds
+	   --text-color-muted at 4.93:1. The LIGHT DEFS block gives the derivation. */
 	--color-chart-decorative: var(--color-neutral-200);
 
 	--text-color-strong: #fff;
@@ -886,7 +884,7 @@ from `:root` (see MARK: INVERT THEME below).
 	   this light because the message laid over it must stay readable: --text-color-muted
 	   over neutral-200 measures 4.56:1 here, and neutral-300 drops it to 4.24:1 — under
 	   the 4.5:1 floor for 14px text. Each theme aliases its own neutral-200, and
-	   chart/decorative-contrast.test.tsx measures all four. */
+	   chart/decorative-contrast.test.tsx measures both. */
 	--color-chart-decorative: var(--color-neutral-200);
 
 	--text-color-strong: var(--color-neutral-950);

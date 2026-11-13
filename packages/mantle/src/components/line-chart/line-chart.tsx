@@ -426,8 +426,8 @@ const CopyButton = (props: LineChartCopyButtonProps) => (
 /**
  * Groups a list of charts, such as one chart per card, so they share one
  * `role="status"` live region. A page of 100 charts mounts one region instead
- * of one per chart. Each chart keeps its own tooltip, description, and data
- * table.
+ * of one per chart, plus one for each `LineChart.CopyButton`. Each chart keeps
+ * its own tooltip, description, and data table.
  *
  * Renders a `div` (`line-chart-list`) that holds the charts in a `display: contents`
  * wrapper (`line-chart-list-items`), so a grid or flex layout on the List reaches
@@ -466,7 +466,7 @@ const List = (props: LineChartListProps) => (
  *
  * | CSS Variable | Default | Description |
  * | --- | --- | --- |
- * | `--color-chart-<name>` | per theme | The color a series with `color="<name>"` paints. Every mantle color name has one, tuned for 3:1 contrast on the card surface. |
+ * | `--color-chart-<name>` | per theme | The color a series with `color="<name>"` paints. Every mantle color name has one: the 600 step of its hue in light mode, and the 500 step in dark mode. Most names reach 3:1 contrast on the card surface, and the docs page lists the names that do not. |
  *
  * Two ways to change a series color, both public API. The `color` prop on
  * `LineChart.Line` takes a color name or any CSS color. To restyle a color name for one chart,

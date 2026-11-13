@@ -44,8 +44,8 @@ describe("Tooltip registration", () => {
 		expect(registerTooltip).toHaveBeenCalledTimes(1);
 		rerender(chart({}));
 		rerender(chart({}));
-		// Every registration republishes to the legend, tooltip, announcer, and
-		// data table and repaints the canvas, so an unchanged part must stay quiet.
+		// Every registration publishes a new snapshot to each store subscriber, so
+		// an unchanged part must stay quiet.
 		expect(registerTooltip).toHaveBeenCalledTimes(1);
 	});
 
@@ -521,8 +521,8 @@ describe("activation outside React", () => {
 		const stub = createIntersectionObserverStub({ intersecting: false });
 		vi.stubGlobal("IntersectionObserver", stub.Observer);
 		// Why a stepped clock: every activation then overspends the slice budget,
-		// so each band's delivery runs one chart and the rest wait for a later
-		// flush, the window in which a chart can scroll away.
+		// so a slice runs one chart and the rest wait for a later flush, the
+		// window in which a chart can scroll away.
 		let clock = 0;
 		vi.spyOn(performance, "now").mockImplementation(() => (clock += 5));
 		const names = ["First", "Second", "Third", "Fourth", "Fifth"];
@@ -544,7 +544,7 @@ describe("activation outside React", () => {
 		act(() => {
 			stub.enter(...plots);
 		});
-		// Three bands flushed one chart each; the last two are still queued.
+		// The delivery ran the first chart; the last two are still queued.
 		expect(plots[0]?.querySelector(SURFACE)).toBeInTheDocument();
 		expect(fourth.querySelector(SURFACE)).toBeNull();
 		act(() => {

@@ -57,8 +57,8 @@ type PanelObservers = {
 	far: IntersectionObserver;
 	/** Whether the panel is inside the viewport's band of the same name. */
 	open: Record<PanelBand, boolean>;
-	/** The charts inside the panel. */
-	elements: Set<Element>;
+	/** The charts inside the panel that take each band. Every chart takes `near`. */
+	elements: Record<PanelBand, Set<Element>>;
 };
 
 const viewportObserversByDocument = new WeakMap<Document, ViewportObservers>();
@@ -84,8 +84,9 @@ const supportsScrollMargin = (): boolean => {
 const SCROLLS = /auto|scroll/;
 
 /**
- * The nearest ancestor that scrolls, or `null` when the viewport is the only
- * scroller. Read once per chart, on engines without `scrollMargin`.
+ * The nearest ancestor that scrolls on the block axis, or `null` when the
+ * viewport is the only such scroller. Read once per chart, on engines without
+ * `scrollMargin`.
  */
 const scrollPanelOf = (element: Element): Element | null => {
 	const document = element.ownerDocument;
@@ -97,8 +98,9 @@ const scrollPanelOf = (element: Element): Element | null => {
 		if (node === document.documentElement || node === document.body) {
 			break;
 		}
-		const style = view.getComputedStyle(node);
-		if (SCROLLS.test(style.overflowY) || SCROLLS.test(style.overflowX)) {
+		// Why the block axis alone: a wrapper that scrolls on x is as tall as its
+		// content, so a band around its box holds every chart inside it.
+		if (SCROLLS.test(view.getComputedStyle(node).overflowY)) {
 			return node;
 		}
 	}
@@ -171,7 +173,7 @@ const panelObserversFor = (panel: Element, viewport: ViewportObservers): PanelOb
 		near: createObserver("near", NEAR_MARGIN, panel),
 		far: createObserver("far", FAR_MARGIN, panel),
 		open: { near: false, far: false },
-		elements: new Set(),
+		elements: { near: new Set(), far: new Set() },
 	};
 	// The panel's own entries open and close its bands for every chart inside.
 	// A closed band reports each chart out of view once and stops observing it.
@@ -180,7 +182,7 @@ const panelObserversFor = (panel: Element, viewport: ViewportObservers): PanelOb
 			return;
 		}
 		created.open[band] = inView;
-		for (const element of created.elements) {
+		for (const element of created.elements[band]) {
 			if (inView) {
 				created[band].observe(element);
 			} else {
@@ -202,7 +204,7 @@ const releasePanelObservers = (
 	viewport: ViewportObservers,
 	document: Document,
 ): void => {
-	if (observers.elements.size > 0) {
+	if (observers.elements.near.size > 0) {
 		return;
 	}
 	observers.near.disconnect();
@@ -221,25 +223,45 @@ const releasePanelObservers = (
  * trio of its document. `onChange` receives one entry per band whenever that
  * band's intersection flips, starting with the initial state. Without an
  * `IntersectionObserver` (a jsdom test) every band reports in view at once, so
- * a chart there paints and reveals at mount.
+ * a chart there paints and reveals at mount. With `far: false` no observer
+ * holds the element for the `far` band, and `onChange` gets no `far` entry.
  *
  * @example
  * ```ts
- * const stop = observeChartVisibility(plot, ({ band, inView }) => {
- *   if (band === "near") {
- *     engine.setInView(inView);
- *   } else if (band === "visible" && inView) {
- *     engine.markSeen();
- *   } else if (band === "far" && !inView) {
- *     engine.releaseBackingStores();
- *   }
+ * const stop = observeChartVisibility(plot, {
+ *   onChange: ({ band, inView }) => {
+ *     if (band === "near") {
+ *       engine.setInView(inView);
+ *     } else if (band === "visible") {
+ *       engine.setOnScreen(inView);
+ *     } else if (band === "far" && !inView) {
+ *       engine.releaseBackingStores();
+ *     }
+ *   },
  * });
  * ```
  */
-const observeChartVisibility = (element: Element, onChange: VisibilityHandler): (() => void) => {
+const observeChartVisibility = (
+	element: Element,
+	{
+		onChange,
+		far = true,
+	}: {
+		onChange: VisibilityHandler;
+		/**
+		 * Whether to observe the `far` band. A surface that holds no bitmap has
+		 * nothing to release there, so its chart leaves the band out.
+		 *
+		 * @default true
+		 */
+		far?: boolean;
+	},
+): (() => void) => {
 	if (typeof IntersectionObserver === "undefined") {
 		onChange({ band: "near", inView: true, rect: null });
-		onChange({ band: "far", inView: true, rect: null });
+		if (far) {
+			onChange({ band: "far", inView: true, rect: null });
+		}
 		onChange({ band: "visible", inView: true, rect: null });
 		flushActivations();
 		return () => {
@@ -253,7 +275,9 @@ const observeChartVisibility = (element: Element, onChange: VisibilityHandler): 
 	const panel = supportsScrollMargin() ? null : scrollPanelOf(element);
 	if (panel == null) {
 		viewport.near.observe(element);
-		viewport.far.observe(element);
+		if (far) {
+			viewport.far.observe(element);
+		}
 		return () => {
 			if (handlersByElement.get(element) !== onChange) {
 				return;
@@ -267,8 +291,11 @@ const observeChartVisibility = (element: Element, onChange: VisibilityHandler): 
 		};
 	}
 	const panelObservers = panelObserversFor(panel, viewport);
-	panelObservers.elements.add(element);
 	for (const band of PANEL_BANDS) {
+		if (band === "far" && !far) {
+			continue;
+		}
+		panelObservers.elements[band].add(element);
 		if (panelObservers.open[band]) {
 			panelObservers[band].observe(element);
 		}
@@ -279,9 +306,10 @@ const observeChartVisibility = (element: Element, onChange: VisibilityHandler): 
 		}
 		handlersByElement.delete(element);
 		cancelActivation(element);
-		panelObservers.elements.delete(element);
-		panelObservers.near.unobserve(element);
-		panelObservers.far.unobserve(element);
+		for (const band of PANEL_BANDS) {
+			panelObservers.elements[band].delete(element);
+			panelObservers[band].unobserve(element);
+		}
 		viewport.visible.unobserve(element);
 		releaseViewportObservers(document, viewport);
 		releasePanelObservers(panel, panelObservers, viewport, document);

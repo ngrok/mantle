@@ -1,8 +1,7 @@
-import { area as d3Area, curveLinear, curveMonotoneX, curveStep, line as d3Line } from "d3-shape";
 import type { CurveKind, PointShape } from "./types.js";
 import type { DecimatedColumns } from "./decimate.js";
 import type { PaintContext } from "./paint-backend.js";
-import { acceptsPathData } from "./paint-backend.js";
+import { traceArea, traceLine } from "./curve.js";
 
 /**
  * 2D draw routines over a {@link PaintContext}: a canvas context, or the SVG
@@ -10,9 +9,12 @@ import { acceptsPathData } from "./paint-backend.js";
  * the data, never the chrome):
  *
  * - lines: 2px, round join/cap
- * - bars: as thick as `barThickness` allows the band (24px through 64px, see
- *   ./bar-geometry.js), 4px rounded data-end, square at the baseline, 2px
- *   surface gaps between touching fills
+ * - bars: fill the band step except a 2px gap, which narrows to 1px and then
+ *   to none as the step narrows; on a wide step, `barThickness` caps the bar
+ *   (see ./bar-geometry.js); a bar or a whole stack rounds both ends at 2px;
+ *   the segments of a stack sit 1px apart
+ * - bar textures: marks in the full series color over a ground that mixes 25%
+ *   of that color into the card surface (see ./texture.js)
  * - area fills: the series hue at 10% opacity with a 2px band-edge stroke
  * - grid/axes: solid 1px hairlines, one step off the surface, never dashed
  * - markers: r ≥ 4 dots with a 2px surface ring
@@ -40,41 +42,6 @@ const BAR_GAP = 2;
 const MARKER_RADIUS = 4;
 const MARKER_RING = 2;
 const AXIS_FONT_SIZE = 11;
-
-const curveFactory = (curve: CurveKind) => {
-	if (curve === "monotone") {
-		return curveMonotoneX;
-	}
-	if (curve === "step") {
-		return curveStep;
-	}
-	return curveLinear;
-};
-
-/** A d3-shape line or area generator over datum indexes. */
-type ShapeGenerator = {
-	(indexes: readonly number[]): string | null;
-	context(context: PaintContext | null): unknown;
-};
-
-/**
- * Trace a d3-shape generator into the current path of `ctx`. A canvas context
- * takes the generator's drawing calls; the SVG recorder takes its path string.
- */
-const traceShape = (ctx: PaintContext, shape: ShapeGenerator, indexes: readonly number[]): void => {
-	// Why a capability check and not `instanceof CanvasRenderingContext2D`: a
-	// chart in a same-origin iframe paints into a context from another realm.
-	if (acceptsPathData(ctx)) {
-		shape.context(null);
-		const data = shape(indexes);
-		if (typeof data === "string") {
-			ctx.appendPathData(data);
-		}
-		return;
-	}
-	shape.context(ctx);
-	shape(indexes);
-};
 
 /**
  * Align a coordinate to the device grid for crisp 1px hairlines.
@@ -247,8 +214,9 @@ const drawBars = (
 };
 
 /**
- * One horizontal bar rectangle in CSS pixels, with rounding only at the data
- * end — the mirror of {@link BarRect} for `orientation="horizontal"`.
+ * One horizontal bar rectangle in CSS pixels, with rounding at the data end
+ * and at the baseline end: the mirror of {@link BarRect} for
+ * `orientation="horizontal"`.
  */
 type HorizontalBarRect = {
 	y: number;
@@ -264,10 +232,10 @@ type HorizontalBarRect = {
 };
 
 /**
- * Fill one series' horizontal bars as a single batched path — the
- * {@link drawBars} mirror for `orientation="horizontal"`: bars grow rightward
- * from the baseline (leftward for negative values), rounding only the data
- * end, with the same thin-bar corner collapse and half-pixel minimum.
+ * Fill one series' horizontal bars as a single batched path, as
+ * {@link drawBars} does for vertical bars. Bars grow rightward from the
+ * baseline (leftward for negative values) and round the ends their rect names,
+ * with the same thin-bar corner collapse and half-pixel minimum.
  */
 const drawHorizontalBars = (
 	ctx: PaintContext,
@@ -315,8 +283,8 @@ const drawHorizontalBars = (
 };
 
 /**
- * Accessor-driven full-resolution line stroke via d3-shape (used below the
- * decimation threshold; supports curves and gaps). `indexes` is the ordered
+ * Full-resolution line stroke through accessors (used below the decimation
+ * threshold; supports curves and gaps). `indexes` is the ordered
  * list of datum indexes to draw: pass every index for gap semantics (with
  * `definedAt` marking gaps) or a prefiltered finite-only list for
  * `connectNulls`.
@@ -333,13 +301,12 @@ const drawLinePath = (
 	},
 ): void => {
 	const { color, curve, indexes, xAt, yAt, definedAt } = options;
-	const path = d3Line<number>().x(xAt).y(yAt).defined(definedAt).curve(curveFactory(curve));
 	ctx.strokeStyle = color;
 	ctx.lineWidth = LINE_WIDTH;
 	ctx.lineJoin = "round";
 	ctx.lineCap = "round";
 	ctx.beginPath();
-	traceShape(ctx, path, indexes);
+	traceLine(ctx, { curve, indexes, xAt, yAt, definedAt });
 	ctx.stroke();
 };
 
@@ -360,26 +327,19 @@ const drawAreaPath = (
 	},
 ): void => {
 	const { color, curve, indexes, xAt, y0At, y1At, definedAt } = options;
-	const areaPath = d3Area<number>()
-		.x(xAt)
-		.y0(y0At)
-		.y1(y1At)
-		.defined(definedAt)
-		.curve(curveFactory(curve));
 	ctx.beginPath();
-	traceShape(ctx, areaPath, indexes);
+	traceArea(ctx, { curve, indexes, xAt, y0At, y1At, definedAt });
 	ctx.save();
 	ctx.globalAlpha = 0.1;
 	ctx.fillStyle = color;
 	ctx.fill();
 	ctx.restore();
-	const edge = d3Line<number>().x(xAt).y(y1At).defined(definedAt).curve(curveFactory(curve));
 	ctx.strokeStyle = color;
 	ctx.lineWidth = LINE_WIDTH;
 	ctx.lineJoin = "round";
 	ctx.lineCap = "round";
 	ctx.beginPath();
-	traceShape(ctx, edge, indexes);
+	traceLine(ctx, { curve, indexes, xAt, yAt: y1At, definedAt });
 	ctx.stroke();
 };
 

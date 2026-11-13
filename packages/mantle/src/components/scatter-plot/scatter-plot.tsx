@@ -40,9 +40,11 @@ type ScatterPlotListProps = ChartListPrimitiveProps;
  * switch the chart into the 3D projection: points render inside a rotatable
  * cube (drag to orbit), depth-sorted with gentle perspective.
  *
- * Scatter is an all-pairs chart form — any two marks can sit side by side. The
- * eight default chart tokens hold at every pair, so keep it to eight series or
- * fewer. Past eight, fold into an "Other" series or facet into small multiples.
+ * Keep it to eight series or fewer: the top seven, plus an "Other" series in
+ * `"neutral"`. Scatter is an all-pairs chart form: any point can land next to a
+ * point from any other series, so every pair of series colors must stay apart.
+ * Mantle does not guarantee that any set of colors stays apart. To show more
+ * series, facet into small multiples.
  */
 type ScatterPlotRootProps<
 	TDatum extends ChartDatum = ChartDatum,
@@ -230,7 +232,7 @@ const Root = <TDatum extends ChartDatum = ChartDatum, TMode extends ChartMode = 
 	useEffect(() => {
 		if (is3d) {
 			preloadScatter3d().catch(() => {
-				// The first 3D paint loads it again and reports a failure.
+				// The loader reports the failure, and the first 3D paint loads it again.
 			});
 		}
 	}, [is3d]);
@@ -447,8 +449,8 @@ const CopyButton = (props: ScatterPlotCopyButtonProps) => (
 /**
  * Groups a list of charts, such as one chart per card, so they share one
  * `role="status"` live region. A page of 100 charts mounts one region instead
- * of one per chart. Each chart keeps its own tooltip, description, and data
- * table.
+ * of one per chart, plus one for each `ScatterPlot.CopyButton`. Each chart
+ * keeps its own tooltip, description, and data table.
  *
  * Renders a `div` (`scatter-plot-list`) that holds the charts in a `display: contents`
  * wrapper (`scatter-plot-list-items`), so a grid or flex layout on the List reaches
@@ -480,15 +482,16 @@ const List = (props: ScatterPlotListProps) => (
  * stepping, polite announcements, and the sr-only description ship with
  * `Root` unconditionally. A Root builds and paints its canvas once it comes
  * within one viewport of the visible area, takes focus, or prints, and it mounts
- * its sr-only data table once focus lands inside it. Scatter is an all-pairs
- * chart form: the eight default chart tokens hold at every pair, so keep it
- * to eight series or fewer.
+ * its sr-only data table once focus lands inside it. Keep it to eight series
+ * or fewer: the top seven, plus an "Other" series in `"neutral"`. Scatter is
+ * an all-pairs chart form, and mantle does not guarantee that any set of
+ * colors stays apart.
  *
  * **CSS variables (public API):**
  *
  * | CSS Variable | Default | Description |
  * | --- | --- | --- |
- * | `--color-chart-<name>` | per theme | The color a series with `color="<name>"` paints. Every mantle color name has one, tuned for 3:1 contrast on the card surface. |
+ * | `--color-chart-<name>` | per theme | The color a series with `color="<name>"` paints. Every mantle color name has one: the 600 step of its hue in light mode, and the 500 step in dark mode. Most names reach 3:1 contrast on the card surface, and the docs page lists the names that do not. |
  *
  * Two ways to change a series color, both public API. The `color` prop on
  * `ScatterPlot.Point` takes a color name or any CSS color. To restyle a color name for one chart,

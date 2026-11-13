@@ -5,7 +5,6 @@ import type {
 	PaintBackendFactory,
 	PaintBackendOptions,
 	PaintContext,
-	PathDataContext,
 	ResolvedPaint,
 } from "./paint-backend.js";
 import type { BarOrientation, SeriesMeta } from "./types.js";
@@ -138,7 +137,7 @@ const intersect = (a: ClipRect | null, b: ClipRect): ClipRect => {
  * Records 2D drawing calls as SVG marks. It holds no DOM: {@link SvgSurface}
  * writes what it recorded.
  */
-class SvgRecorder implements PathDataContext {
+class SvgRecorder implements PaintContext {
 	#state: DrawState = { ...INITIAL_STATE };
 	#stack: DrawState[] = [];
 	#path: string[] = [];
@@ -331,12 +330,6 @@ class SvgRecorder implements PathDataContext {
 			const large = sweep > Math.PI ? 1 : 0;
 			this.#path.push(`A${r} ${r} 0 ${large} 1 ${coordinate(endX)} ${coordinate(endY)}`);
 		}
-		this.#pathRect = null;
-		this.#hasCurrentPoint = true;
-	}
-
-	appendPathData(data: string): void {
-		this.#path.push(data);
 		this.#pathRect = null;
 		this.#hasCurrentPoint = true;
 	}
@@ -779,6 +772,9 @@ class SvgBackend implements PaintBackend {
 
 	end(): void {
 		this.#surface.write(this.#recorder, this.#fade);
+		// Why drop the marks now: a chart at rest begins no next frame, and the
+		// marks hold every path string of this one.
+		this.#recorder.reset();
 	}
 
 	release(): void {}
@@ -795,7 +791,10 @@ class SvgBackend implements PaintBackend {
  * plot.prepend(backend.element);
  * ```
  */
-const createSvgBackend: PaintBackendFactory = (options) => new SvgBackend(options);
+const createSvgBackend: PaintBackendFactory = Object.assign(
+	(options: PaintBackendOptions): PaintBackend => new SvgBackend(options),
+	{ kind: "svg" as const },
+);
 
 export {
 	//,

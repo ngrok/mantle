@@ -1,14 +1,15 @@
 "use client";
 
-import type { Ref } from "react";
+import type { ReactNode, Ref } from "react";
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { useCallbackRef } from "../../hooks/use-callback-ref.js";
 import { useIsHydrated } from "../../hooks/use-is-hydrated.js";
-import { datumValue } from "./datum.js";
+import { datumValue, toEpochOrNumber } from "./datum.js";
 import type { XSummary } from "./describe.js";
 import { describeChartParts } from "./describe.js";
 import { formatNumber, formatXValue } from "./format.js";
-import type { ChartStore } from "./store.js";
-import type { ChartDatum, HoverSnapshot, SeriesMark } from "./types.js";
+import type { ChartStore, TooltipConfig } from "./store.js";
+import type { ChartDatum, HoverSnapshot, SeriesMark, XScaleKind } from "./types.js";
 import { useStoreSeries } from "./context.js";
 import type { ChartListContextValue } from "./list.js";
 
@@ -19,21 +20,60 @@ import type { ChartListContextValue } from "./list.js";
  * This module is internal shared implementation — not exported from the package.
  */
 
-/**
- * The hover snapshot of a keyboard step alone, else `null`. Only a keyboard
- * step is announced, so a registration or a pointer hover never re-renders
- * the announcer.
- */
-const useStoreKeyboardHover = (store: ChartStore): HoverSnapshot | null =>
-	useSyncExternalStore(
-		store.subscribe,
-		() => keyboardHover(store),
-		() => keyboardHover(store),
-	);
-
+/** The hover snapshot of a keyboard step alone, else `null`: a pointer hover is never announced. */
 const keyboardHover = (store: ChartStore): HoverSnapshot | null => {
 	const hover = store.getSnapshot().hover;
 	return hover?.viaKeyboard === true ? hover : null;
+};
+
+/** The `data` index of the datum the keyboard cursor is on, else `null`. */
+const keyboardIndex = (store: ChartStore): number | null => keyboardHover(store)?.index ?? null;
+
+/**
+ * The rule the two announcers share: an announcement follows a keyboard step,
+ * not a data update. A step to another datum clears the text, waits
+ * {@link ANNOUNCE_DELAY_MS}, then announces the text of the latest snapshot. A
+ * data update under a parked cursor publishes a new snapshot for the same
+ * datum, so it starts no wait and announces nothing.
+ */
+const useKeyboardStepAnnouncement = ({
+	store,
+	xHasTimeOfDay,
+	announce,
+}: {
+	store: ChartStore;
+	/** Whether the dataset's x dates carry a time-of-day component (label granularity). */
+	xHasTimeOfDay: boolean;
+	/** Writes the live region: the text of a step when its wait ends, and `""` to clear it. */
+	announce: (text: string) => void;
+}): void => {
+	// Why the index and not the snapshot: each ingest publishes a new snapshot
+	// object for the same datum, and a registration or a pointer hover is no step.
+	const index = useSyncExternalStore(
+		store.subscribe,
+		() => keyboardIndex(store),
+		() => keyboardIndex(store),
+	);
+	// Why a callback ref: a render that passes a new `announce` or a new
+	// `xHasTimeOfDay` must not start the wait again.
+	const write = useCallbackRef((hover: HoverSnapshot | null) => {
+		announce(
+			hover == null
+				? ""
+				: announcementFor(hover, { xHasTimeOfDay, tooltip: store.getSnapshot().tooltip }),
+		);
+	});
+	useEffect(() => {
+		// Why clear first: assistive technology (AT) does not announce text that did
+		// not change, so a step to a datum that reads the same must start from an
+		// empty region.
+		write(null);
+		if (index == null) {
+			return;
+		}
+		const timer = setTimeout(() => write(keyboardHover(store)), ANNOUNCE_DELAY_MS);
+		return () => clearTimeout(timer);
+	}, [index, store, write]);
 };
 
 /**
@@ -95,23 +135,8 @@ const ChartAnnouncer = ({
 	/** Whether the dataset's x dates carry a time-of-day component (label granularity). */
 	xHasTimeOfDay: boolean;
 }) => {
-	const hover = useStoreKeyboardHover(store);
 	const [announcement, setAnnouncement] = useState("");
-	// Why clear the state and not derive "": the clear must be a real DOM change
-	// before the debounced write, because AT does not re-announce identical text.
-	// Derived state flashes the previous datum's text first.
-	if (hover == null && announcement !== "") {
-		setAnnouncement("");
-	}
-	useEffect(() => {
-		if (hover == null) {
-			return;
-		}
-		const timer = setTimeout(() => {
-			setAnnouncement(announcementFor(hover, xHasTimeOfDay));
-		}, ANNOUNCE_DELAY_MS);
-		return () => clearTimeout(timer);
-	}, [hover, xHasTimeOfDay]);
+	useKeyboardStepAnnouncement({ store, xHasTimeOfDay, announce: setAnnouncement });
 	return (
 		<span role="status" aria-live="polite" className="sr-only">
 			{announcement}
@@ -122,18 +147,42 @@ const ChartAnnouncer = ({
 /** The wait before a keyboard step announces, so fast arrowing does not flood the reader. */
 const ANNOUNCE_DELAY_MS = 120;
 
-/** What a keyboard step announces: the x value, then each series' value. */
-const announcementFor = (hover: HoverSnapshot, xHasTimeOfDay: boolean): string => {
-	const values = hover.points
-		.map(
-			(point) => `${point.label}: ${point.value == null ? "no data" : formatNumber(point.value)}`,
-		)
-		.join(", ");
+/** The text of a formatter result that a screen reader can hear: a string or a number. An element has none. */
+const plainText = (result: ReactNode): string | null => {
+	if (typeof result === "string") {
+		return result;
+	}
+	return typeof result === "number" ? String(result) : null;
+};
+
+/**
+ * What a keyboard step announces: the x value, the Total of a stacked chart,
+ * then each series' value. The `labelFormat` and `valueFormat` of a composed
+ * Tooltip part apply when they return a string or a number, so the announcement
+ * says what the tooltip shows.
+ */
+const announcementFor = (
+	hover: HoverSnapshot,
+	{ xHasTimeOfDay, tooltip }: { xHasTimeOfDay: boolean; tooltip: TooltipConfig | null },
+): string => {
+	const valueText = (value: number, dataKey: string): string =>
+		plainText(tooltip?.valueFormat?.(value, dataKey)) ?? formatNumber(value);
+	const label =
+		plainText(tooltip?.labelFormat?.(hover.xValue)) ??
+		formatXValue(hover.xValue, { datasetHasTimeOfDay: xHasTimeOfDay });
+	const values = [
+		// The tooltip passes the Total to `valueFormat` under the key "total".
+		...(hover.total == null ? [] : [`Total: ${valueText(hover.total, "total")}`]),
+		...hover.points.map(
+			(point) =>
+				`${point.label}: ${point.value == null ? "no data" : valueText(point.value, point.dataKey)}`,
+		),
+	].join(", ");
 	const zPart =
 		hover.zValue === undefined
 			? ""
 			: `, z: ${hover.zValue == null ? "no data" : formatNumber(hover.zValue)}`;
-	return `${formatXValue(hover.xValue, { datasetHasTimeOfDay: xHasTimeOfDay })}. ${values}${zPart}`;
+	return `${label}. ${values}${zPart}`;
 };
 
 /**
@@ -151,21 +200,13 @@ const ChartListAnnouncer = ({
 	store: ChartStore;
 	xHasTimeOfDay: boolean;
 }) => {
-	const hover = useStoreKeyboardHover(store);
 	// Why: a chart that unmounts takes its last announcement out of the shared region.
 	useEffect(() => () => list.announce(id, ""), [id, list]);
-	useEffect(() => {
-		// Why clear first: AT does not announce text that did not change, so a
-		// step back to the same datum must pass through an empty region.
-		list.announce(id, "");
-		if (hover == null) {
-			return;
-		}
-		const timer = setTimeout(() => {
-			list.announce(id, announcementFor(hover, xHasTimeOfDay));
-		}, ANNOUNCE_DELAY_MS);
-		return () => clearTimeout(timer);
-	}, [hover, id, list, xHasTimeOfDay]);
+	useKeyboardStepAnnouncement({
+		store,
+		xHasTimeOfDay,
+		announce: (text) => list.announce(id, text),
+	});
 	return null;
 };
 
@@ -254,11 +295,40 @@ function textOutsideChartTables(element: HTMLElement | null): string {
 	return text.trim();
 }
 
+/** Whether an x value has no text form: `null`, a missing key, or a number that is not finite. */
+const hasNoTextForm = (x: unknown): boolean =>
+	x == null || (typeof x === "number" && !Number.isFinite(x));
+
+/**
+ * Reads one x value for its row header: the text a reader hears, and the
+ * `Date` behind it when the text is a date. On a `"time"` scale an epoch number
+ * and a date string are dates too, as the engine reads them. An x with no text
+ * form reads as an em dash, as a value cell does.
+ */
+const xHeaderFor = (
+	x: unknown,
+	{ xScale, xHasTimeOfDay }: { xScale: XScaleKind | undefined; xHasTimeOfDay: boolean },
+): { text: string; date: Date | null } => {
+	const value = xScale === "time" ? new Date(toEpochOrNumber(x, true)) : x;
+	if (value instanceof Date) {
+		return {
+			// `formatXValue` reads an invalid date as an em dash.
+			text: formatXValue(value, { datasetHasTimeOfDay: xHasTimeOfDay }),
+			date: Number.isNaN(value.getTime()) ? null : value,
+		};
+	}
+	if (hasNoTextForm(value)) {
+		return { text: "—", date: null };
+	}
+	// Why `String`: the engine paints any other x as the category `String(x)`.
+	return { text: typeof value === "number" ? formatNumber(value) : String(value), date: null };
+};
+
 /**
  * The chart's structural twin: an sr-only table of the data, bounded to
  * {@link CHART_TABLE_ROW_LIMIT} rows with a caption stating the summarization.
- * Tooltips enhance, they never gate — every plotted value is reachable here
- * or through the keyboard point cursor.
+ * The keyboard point cursor and the Markdown copy reach the rows past the
+ * bound.
  */
 const ChartDataTable = ({
 	data,
@@ -268,6 +338,7 @@ const ChartDataTable = ({
 	store,
 	xHasTimeOfDay,
 	xKey,
+	xScale,
 	zKey,
 }: {
 	data: readonly ChartDatum[];
@@ -284,6 +355,11 @@ const ChartDataTable = ({
 	/** Whether the dataset's x dates carry a time-of-day component (label granularity). */
 	xHasTimeOfDay: boolean;
 	xKey: string;
+	/**
+	 * The chart's x scale. On a `"time"` scale a row header reads an epoch number
+	 * and a date string as dates, as it reads a `Date` on every scale.
+	 */
+	xScale?: XScaleKind;
 	zKey: string | undefined;
 }) => {
 	// Why a selector: `publishHover` replaces the snapshot on every index
@@ -325,11 +401,7 @@ const ChartDataTable = ({
 						// agents scrape exact timestamps/numbers from the DOM without
 						// reverse-engineering locale formatting.
 						const x = datumValue(row, xKey);
-						const isValidDate = x instanceof Date && !Number.isNaN(x.getTime());
-						const xText =
-							typeof x === "string" || typeof x === "number" || x instanceof Date
-								? formatXValue(x, { datasetHasTimeOfDay: xHasTimeOfDay })
-								: String(x);
+						const header = xHeaderFor(x, { xScale, xHasTimeOfDay });
 						return (
 							// oxlint-disable-next-line react/no-array-index-key -- rows have no identity beyond position; the table is regenerated wholesale on data change, never reordered
 							<tr key={index}>
@@ -337,7 +409,11 @@ const ChartDataTable = ({
 									scope="row"
 									data-value={typeof x === "number" && Number.isFinite(x) ? x : undefined}
 								>
-									{isValidDate ? <time dateTime={x.toISOString()}>{xText}</time> : xText}
+									{header.date == null ? (
+										header.text
+									) : (
+										<time dateTime={header.date.toISOString()}>{header.text}</time>
+									)}
 								</th>
 								{series.map((column) => {
 									const value = datumValue(row, column.dataKey);

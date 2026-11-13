@@ -327,8 +327,12 @@ class ChaseTween {
 	 * remaining delta is too small for the step to make representable float
 	 * progress snaps to the target, so rounding can never wedge the chase into
 	 * ticking forever.
+	 *
+	 * @param settleDistance A floor for the snap threshold, in the units of the
+	 * values. A caller that knows how far one pixel is passes it, so the chase
+	 * stops when no pixel is left to move. Default `0`.
 	 */
-	tick(now: number): boolean {
+	tick(now: number, settleDistance = 0): boolean {
 		if (!this.#active) {
 			return false;
 		}
@@ -341,7 +345,7 @@ class ChaseTween {
 		const dt = Math.min(50, Math.max(0, now - this.#lastTime));
 		this.#lastTime = now;
 		const factor = 1 - Math.pow(1 - this.#speed, dt / 16.67);
-		const snapDistance = Math.max(this.#journey * this.#epsilon, Number.EPSILON);
+		const snapDistance = Math.max(this.#journey * this.#epsilon, settleDistance, Number.EPSILON);
 		let settled = true;
 		for (let index = 0; index < this.#current.length; index++) {
 			const target = this.#target[index] ?? Number.NaN;

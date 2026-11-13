@@ -124,10 +124,11 @@ const ChartCopyButtonPrimitive = ({
 							setAnnouncement("");
 							return;
 						}
-						const { data, xKey, zKey } = context.dataRef.current;
+						const { data, xKey, xScale, zKey } = context.dataRef.current;
 						const markdown = serializeChartMarkdown({
 							data,
 							xKey,
+							xScale,
 							zKey,
 							series: context.store.getSnapshot().series,
 						});

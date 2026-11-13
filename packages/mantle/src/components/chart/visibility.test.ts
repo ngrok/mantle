@@ -70,10 +70,10 @@ class FakeIntersectionObserver implements IntersectionObserver {
 /** Every observation a test started, released after it so the shared pair resets. */
 const stops: Array<() => void> = [];
 
-const observe = () => {
+const observe = (options: { far?: boolean } = {}) => {
 	const element = document.createElement("div");
 	const handler = vi.fn<(change: VisibilityChange) => void>();
-	const stop = observeChartVisibility(element, handler);
+	const stop = observeChartVisibility(element, { onChange: handler, ...options });
 	stops.push(stop);
 	return { element, handler, stop };
 };
@@ -190,6 +190,23 @@ test("with no IntersectionObserver every band reports in view at once", () => {
 	expect(handler).toHaveBeenNthCalledWith(3, { band: "visible", inView: true, rect: null });
 });
 
+describe("an element that leaves out the far band", () => {
+	test("joins the visible and the near observer alone", () => {
+		const { element } = observe({ far: false });
+		const margins = instances
+			.filter((instance) => instance.targets.has(element))
+			.map((instance) => instance.scrollMargin);
+		// A surface with no bitmap has nothing to release three viewports away.
+		expect(margins.toSorted()).toEqual(["0px", "100%"]);
+	});
+
+	test("gets no far report when there is no IntersectionObserver", () => {
+		vi.stubGlobal("IntersectionObserver", undefined);
+		const { handler } = observe({ far: false });
+		expect(handler.mock.calls.map(([change]) => change.band)).toEqual(["near", "visible"]);
+	});
+});
+
 describe("without scrollMargin support", () => {
 	// An engine that ignores `scrollMargin` exposes no such property on its observers.
 	class LegacyIntersectionObserver extends FakeIntersectionObserver {
@@ -199,19 +216,26 @@ describe("without scrollMargin support", () => {
 		}
 	}
 
-	/** A chart inside a scrolling panel, observed through a fresh module whose support probe sees the legacy engine. */
-	const observeInPanel = async () => {
+	/**
+	 * A chart inside a wrapper, observed through a fresh module whose support
+	 * probe sees the legacy engine. The wrapper scrolls on the block axis unless
+	 * `overflow` says otherwise.
+	 */
+	const observeInPanel = async (
+		config: { far?: boolean; overflow?: { x: string; y: string } } = {},
+	) => {
 		vi.stubGlobal("IntersectionObserver", LegacyIntersectionObserver);
 		// Why a fresh module: the support probe runs once per module and is cached.
 		vi.resetModules();
 		const fresh = await import("./visibility.js");
 		const panel = document.createElement("div");
-		panel.style.overflowY = "auto";
+		panel.style.overflowX = config.overflow?.x ?? "visible";
+		panel.style.overflowY = config.overflow?.y ?? "auto";
 		const element = document.createElement("div");
 		panel.append(element);
 		document.body.append(panel);
 		const handler = vi.fn<(change: VisibilityChange) => void>();
-		const stop = fresh.observeChartVisibility(element, handler);
+		const stop = fresh.observeChartVisibility(element, { onChange: handler, far: config.far });
 		stops.push(() => {
 			stop();
 			panel.remove();
@@ -263,6 +287,25 @@ describe("without scrollMargin support", () => {
 		expect(
 			instances.some((instance) => instance.rootMargin === "0px" && instance.root != null),
 		).toBe(false);
+	});
+
+	test("a panel's chart that leaves out the far band stays off the panel's far observer", async () => {
+		const { panel, element, handler } = await observeInPanel({ far: false });
+		const viewportFar = observerFor("300%", null);
+		const panelFar = observerFor("300%", panel);
+		viewportFar.report(panel, true);
+		expect(panelFar.targets.has(element)).toBe(false);
+		// A band that closes reports each of its charts out of view, and this chart is not one.
+		viewportFar.report(panel, false);
+		expect(handler).toHaveBeenCalledTimes(0);
+	});
+
+	test("a wrapper that scrolls on the inline axis alone is not a panel", async () => {
+		// A mantle Table scrolls on x and is as tall as its rows, so a band around
+		// the table's own box holds the chart of every row.
+		const { panel, element } = await observeInPanel({ overflow: { x: "auto", y: "hidden" } });
+		expect(observerFor("100%", null).targets.has(element)).toBe(true);
+		expect(instances.some((instance) => instance.root === panel)).toBe(false);
 	});
 
 	test("the last chart's cleanup releases the panel's observers and its viewport entries", async () => {

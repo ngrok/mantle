@@ -3,8 +3,9 @@ import type { PointShape } from "./types.js";
 import { POINT_SHAPE_CLIP_PATHS } from "./engine.js";
 import { CUBE_CORNERS, CUBE_EDGES, projectionMatrix, projectPoint } from "./projection.js";
 import type { PaintContext } from "./paint-backend.js";
-import { drawLinePath, tracePointShape } from "./renderer.js";
+import { drawAreaPath, drawLinePath, tracePointShape } from "./renderer.js";
 import { drawCubeFrame } from "./scatter-3d-renderer.js";
+import { SvgRecorder } from "./svg-backend.js";
 
 /** Record path-trace calls without a real canvas context. */
 const makeRecorder = () => {
@@ -395,6 +396,19 @@ export function typeLevelContracts(): [Exclude<PointShape, (typeof ALL_SHAPES)[n
 	return true;
 }
 
+/**
+ * The SVG paths one draw routine records, each as its paint and its path data.
+ * An SVG chart gets every line and area through these calls, so the path data
+ * is what the browser draws.
+ */
+const recordedPaths = (draw: (context: PaintContext) => void): Array<[string, string]> => {
+	const recorder = new SvgRecorder(document);
+	draw(recorder);
+	return recorder.marks.overlay.flatMap((mark): Array<[string, string]> =>
+		mark.type === "path" ? [[mark.paint, mark.data]] : [],
+	);
+};
+
 describe("drawLinePath", () => {
 	test("traces into a canvas context from another realm", () => {
 		// A chart in a same-origin iframe paints into the frame's context, which
@@ -441,4 +455,40 @@ describe("drawLinePath", () => {
 		});
 		expect(calls).toEqual(["beginPath", "moveTo", "lineTo", "lineTo", "stroke"]);
 	});
+
+	test("strokes a monotone line into an SVG path as one cubic curve per interval", () => {
+		// Why these numbers: the slope is 1.5 at the start, 0 at the peak, and -1.5
+		// at the end. A control point sits 10px in from its end, a third of the interval.
+		const paths = recordedPaths((context) => {
+			drawLinePath(context, {
+				color: "red",
+				curve: "monotone",
+				indexes: [0, 1, 2],
+				xAt: (index) => index * 30,
+				yAt: (index) => (index === 1 ? 30 : 0),
+				definedAt: () => true,
+			});
+		});
+		expect(paths).toEqual([["stroke", "M0 0C10 15 20 30 30 30C40 30 50 15 60 0"]]);
+	});
+});
+
+test("drawAreaPath fills the band between y0 and y1 and strokes the y1 edge alone, both along the curve", () => {
+	// Why the step curve: a fill or a stroke that drops the curve draws straight
+	// segments, so a linear band cannot fail.
+	const paths = recordedPaths((context) => {
+		drawAreaPath(context, {
+			color: "red",
+			curve: "step",
+			indexes: [0, 1],
+			xAt: (index) => index * 10,
+			y0At: () => 40,
+			y1At: (index) => index * 5,
+			definedAt: () => true,
+		});
+	});
+	expect(paths).toEqual([
+		["fill", "M0 0L5 0L5 5L10 5L10 40L5 40L5 40L0 40Z"],
+		["stroke", "M0 0L5 0L5 5L10 5"],
+	]);
 });

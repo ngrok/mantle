@@ -10,7 +10,7 @@ import {
 } from "./projection.js";
 import { MARKER_RADIUS } from "./renderer.js";
 import type { DragEnd, DragMove, FrameLabels, ScatterHit, ScatterHost } from "./scatter-engine.js";
-import { DRAG_THRESHOLD } from "./scatter-engine.js";
+import { DRAG_THRESHOLD, MIN_VISIBLE_ALPHA } from "./scatter-engine.js";
 import { drawCubeAxisLabels, drawCubeFrame, drawDepthSortedPoints } from "./scatter-3d-renderer.js";
 import { ChaseTween } from "./tween.js";
 import type { SeriesSpec } from "./types.js";
@@ -288,6 +288,12 @@ class Scatter3d {
 		});
 		projected.count = count;
 		this.#projected = projected;
+		const labels: FrameLabels = { center: { x: centerX, y: centerY }, axes: frameAxes };
+		// Why after the projection: the hit test and `screenFor` read its buffers
+		// while the cloud is hidden. The sort and the points change no pixel then.
+		if (seriesReveal.every((reveal) => reveal < MIN_VISIBLE_ALPHA)) {
+			return labels;
+		}
 
 		// Paint back-to-front, reusing a persistent order buffer — a fresh
 		// Array+toSorted every frame churned GC during rotation/dimension morphs.
@@ -317,7 +323,7 @@ class Scatter3d {
 			surface: colors.chrome.surface,
 		});
 
-		return { center: { x: centerX, y: centerY }, axes: frameAxes };
+		return labels;
 	}
 
 	/** The nearest projected point within `radius` CSS pixels of the pointer. */

@@ -361,6 +361,22 @@ describe("BarChart keyboard interaction", () => {
 		expect(onActiveIndexChange).toHaveBeenCalledTimes(3);
 	});
 
+	test("a horizontal chart steps to the next category with ArrowDown and back with ArrowUp", async () => {
+		const user = userEvent.setup();
+		const onActiveIndexChange = vi.fn<(index: number | null) => void>();
+		renderChart({ orientation: "horizontal", onActiveIndexChange });
+		await user.tab();
+		// The categories run from the top down, so the Down arrow moves forward.
+		await user.keyboard("{ArrowDown}{ArrowDown}");
+		const tooltip = document.querySelector('[data-slot="bar-chart-tooltip"]');
+		expect(tooltip?.textContent).toContain("February");
+		expect(onActiveIndexChange).toHaveBeenLastCalledWith(1);
+		await user.keyboard("{ArrowUp}");
+		expect(tooltip?.textContent).toContain("January");
+		expect(onActiveIndexChange).toHaveBeenLastCalledWith(0);
+		expect(onActiveIndexChange).toHaveBeenCalledTimes(3);
+	});
+
 	test("the tooltip surface is revealed while a datum is active and hidden again on Escape", async () => {
 		// React renders the readout's text, but the engine writes its visibility
 		// as an inline opacity on every commit. Without this assertion the whole

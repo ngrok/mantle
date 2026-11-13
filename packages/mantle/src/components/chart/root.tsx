@@ -17,7 +17,7 @@ import { cx } from "../../utils/cx/cx.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { assertChartKeys, datumValue } from "./datum.js";
-import { cancelActivation, promoteActivation, queueActivation } from "./activation.js";
+import { cancelActivation, isOnScreen, promoteActivation, queueActivation } from "./activation.js";
 import { describeSeries, scanX } from "./describe.js";
 import type { HoverLayers } from "./engine.js";
 import { ChartEngine } from "./engine.js";
@@ -148,11 +148,16 @@ const AUTO_Y_DOMAIN: YDomain = ["auto", "auto"];
  * The class strings of the engine-owned layers. They live here, not in
  * `createHoverLayers`, so the Tailwind source scan of this module finds them
  * next to the Root's own classes.
+ *
+ * Why the `forced-colors` classes: forced colors mode replaces an author
+ * background color with the page background and keeps a system color. The
+ * crosshair paints `Highlight`, and the band gets an outline in that color.
  */
-const CROSSHAIR_CLASS = "bg-neutral-500 pointer-events-none absolute left-0 top-0 w-px opacity-0";
+const CROSSHAIR_CLASS =
+	"bg-neutral-500 pointer-events-none absolute left-0 top-0 w-px opacity-0 forced-colors:bg-[Highlight]";
 
 const HOVER_BAND_CLASS =
-	"bg-neutral-500/10 pointer-events-none absolute left-0 top-0 rounded-sm opacity-0";
+	"bg-neutral-500/10 pointer-events-none absolute left-0 top-0 rounded-sm opacity-0 forced-colors:outline forced-colors:outline-[Highlight]";
 
 const MARKERS_CLASS = "pointer-events-none absolute inset-0 opacity-0";
 
@@ -192,7 +197,15 @@ type EngineInputs = {
 };
 
 /** The latest visibility reports, kept for an engine created later, and whether focus holds the chart painted. */
-type ChartVisibility = { near: boolean; withinFar: boolean; seen: boolean; focused: boolean };
+type ChartVisibility = {
+	near: boolean;
+	withinFar: boolean;
+	/** Whether the plot is inside the viewport now. */
+	visible: boolean;
+	/** Whether the plot was ever inside the viewport. */
+	seen: boolean;
+	focused: boolean;
+};
 
 /** The refs the Root's activation hooks share with its engine lifecycle. */
 type ActivationRefs = {
@@ -202,17 +215,20 @@ type ActivationRefs = {
 
 /**
  * Report the plot's visibility bands to the engine. Near the viewport, a
- * dormant chart queues its activation; far away, a chart nobody focuses
- * releases its backing stores.
+ * dormant chart queues its activation; on screen, a chart plays its motion;
+ * far away, a chart nobody focuses releases its backing stores.
  */
 const useChartVisibility = ({
 	plotRef,
 	engineRef,
 	activateRef,
 	visibilityRef,
+	holdsBitmap,
 }: ActivationRefs & {
 	plotRef: RefObject<HTMLDivElement | null>;
 	visibilityRef: RefObject<ChartVisibility>;
+	/** Whether the paint surface holds a bitmap. Only such a surface has memory for the `far` band to release. */
+	holdsBitmap: boolean;
 }): void => {
 	// Why a layout effect: observing before the first frame means the browser
 	// computes the entries at the end of that frame, so a chart that starts in
@@ -222,35 +238,43 @@ const useChartVisibility = ({
 		if (plot == null) {
 			return;
 		}
-		return observeChartVisibility(plot, ({ band, inView, rect }) => {
-			const engine = engineRef.current;
-			const visibility = visibilityRef.current;
-			if (band === "near") {
-				visibility.near = inView;
-				if (engine != null) {
-					engine.setInView(inView || visibility.focused);
-				} else if (inView) {
-					queueActivation(plot, { rect, run: (entryRect) => activateRef.current?.(entryRect) });
-				} else {
-					// A chart that scrolled away before its slice ran has nothing to paint.
-					cancelActivation(plot);
+		return observeChartVisibility(plot, {
+			far: holdsBitmap,
+			onChange: ({ band, inView, rect }) => {
+				const engine = engineRef.current;
+				const visibility = visibilityRef.current;
+				if (band === "near") {
+					visibility.near = inView;
+					if (engine != null) {
+						engine.setInView(inView || visibility.focused);
+					} else if (inView) {
+						queueActivation(plot, { rect, run: (entryRect) => activateRef.current?.(entryRect) });
+					} else {
+						// A chart that scrolled away before its slice ran has nothing to paint.
+						cancelActivation(plot);
+					}
+				} else if (band === "visible") {
+					visibility.visible = inView;
+					// Both directions: a chart that leaves the screen stops its motion.
+					engine?.setOnScreen(inView);
+					if (inView) {
+						visibility.seen = true;
+						if (engine != null) {
+							engine.markSeen();
+						} else {
+							promoteActivation(plot);
+						}
+					}
+				} else if (band === "far") {
+					visibility.withinFar = inView;
+					// A focused chart keeps its canvas: a reader is driving it from the keyboard.
+					if (!inView && !visibility.focused) {
+						engine?.releaseBackingStores();
+					}
 				}
-			} else if (band === "visible" && inView) {
-				visibility.seen = true;
-				if (engine != null) {
-					engine.markSeen();
-				} else {
-					promoteActivation(plot);
-				}
-			} else if (band === "far") {
-				visibility.withinFar = inView;
-				// A focused chart keeps its canvas: a reader is driving it from the keyboard.
-				if (!inView && !visibility.focused) {
-					engine?.releaseBackingStores();
-				}
-			}
+			},
 		});
-	}, [plotRef, engineRef, activateRef, visibilityRef]);
+	}, [plotRef, engineRef, activateRef, visibilityRef, holdsBitmap]);
 };
 
 /**
@@ -395,6 +419,7 @@ const ChartRootPrimitive = ({
 	const visibilityRef = useRef<ChartVisibility>({
 		near: false,
 		withinFar: true,
+		visible: false,
 		seen: false,
 		focused: false,
 	});
@@ -405,9 +430,10 @@ const ChartRootPrimitive = ({
 		() => store.hoverEver,
 		() => false,
 	);
+	const resolvedXScale: XScaleKind = kind === "bar" ? "band" : (xScale ?? detectXScale(data, xKey));
 	// Why a hoisted ref: the context object is state, so a write through
 	// `context.dataRef.current` reads as a state mutation to the React Compiler.
-	const dataRef = useRef({ data, xKey, zKey });
+	const dataRef = useRef({ data, xKey, xScale: resolvedXScale, zKey });
 	const [context] = useState<ChartContextValue>(() => ({
 		kind,
 		componentName,
@@ -417,8 +443,8 @@ const ChartRootPrimitive = ({
 	}));
 
 	useLayoutEffect(() => {
-		dataRef.current = { data, xKey, zKey };
-	}, [data, xKey, zKey]);
+		dataRef.current = { data, xKey, xScale: resolvedXScale, zKey };
+	}, [data, xKey, resolvedXScale, zKey]);
 
 	const rootRef = useRef<HTMLDivElement | null>(null);
 	const composedRootRef = useComposedRefs(rootRef, ref);
@@ -432,7 +458,6 @@ const ChartRootPrimitive = ({
 	}, []);
 
 	const descriptionId = useId();
-	const resolvedXScale: XScaleKind = kind === "bar" ? "band" : (xScale ?? detectXScale(data, xKey));
 	// Scatter axes are continuous by contract — a string x would silently render
 	// evenly-spaced categorical positions misaligned against the value axis.
 	invariant(
@@ -522,6 +547,9 @@ const ChartRootPrimitive = ({
 				// Why false: the reveal must hold until the `visible` band reports
 				// the chart on screen; `setInView` below does not mark it seen.
 				inView: false,
+				// Why the rect: at page load the `near` band activates a chart before
+				// the `visible` band reports it. Focus and print pass no rect.
+				onScreen: visibilityRef.current.visible || (rect != null && isOnScreen(plot, rect)),
 				size,
 			});
 			const inputs = inputsRef.current;
@@ -551,7 +579,13 @@ const ChartRootPrimitive = ({
 		};
 	}, [kind, store, slotName, interactive, paintBackend, scatterView]);
 
-	useChartVisibility({ plotRef, engineRef, activateRef, visibilityRef });
+	useChartVisibility({
+		plotRef,
+		engineRef,
+		activateRef,
+		visibilityRef,
+		holdsBitmap: paintBackend.kind === "canvas",
+	});
 
 	usePrintActivation({ rootRef, engineRef, activateRef });
 
@@ -610,7 +644,7 @@ const ChartRootPrimitive = ({
 		engineRef.current?.setControlledActiveIndex(interactive ? activeIndex : undefined);
 	}, [interactive, activeIndex]);
 
-	// The engine caches its resolved colors per theme, and a `--color-chart-N`
+	// The engine caches its resolved colors per theme, and a `--color-chart-<name>`
 	// or `color` override scoped to this Root lives in `className` or `style`.
 	// A new value re-resolves them; an equal inline `style` object does not.
 	const stableStyle = useShallowStable(style ?? NO_STYLE);
@@ -751,7 +785,9 @@ const ChartRootPrimitive = ({
 							// oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- role="application" is the keyboard point-cursor widget; focus is how arrow-key stepping works
 							tabIndex={0}
 							className={cx(
-								"focus-visible:ring-focus-accent absolute inset-0 rounded-sm outline-none focus-visible:ring-2",
+								// Why `outline-hidden` and not `outline-none`: forced colors mode drops
+								// the ring's box shadow, and `outline-hidden` keeps an outline there.
+								"focus-visible:ring-focus-accent absolute inset-0 rounded-sm focus:outline-hidden focus-visible:ring-2",
 								(kind === "line" || kind === "area") && "cursor-crosshair",
 								// touch-none only in 3D: without it the browser claims the pan
 								// gesture and cancels the rotation drag on touch devices. 2D
@@ -761,6 +797,11 @@ const ChartRootPrimitive = ({
 									"touch-none cursor-grab active:cursor-grabbing",
 							)}
 							onPointerDown={(event) => {
+								// Why: the middle and the right button belong to the browser, so
+								// only the primary button presses. A touch or pen contact reports 0.
+								if (event.button !== 0) {
+									return;
+								}
 								// Capture only for the 3D rotation drag (it must keep tracking
 								// outside the plot); on 2D charts, capture would also make
 								// drag-away-to-cancel activation impossible. Synthetic events
@@ -791,6 +832,9 @@ const ChartRootPrimitive = ({
 								engineRef.current?.handlePointerUp(
 									event.nativeEvent.offsetX,
 									event.nativeEvent.offsetY,
+									// Why: a press of two buttons ends on the one released last,
+									// and the engine must still end the press.
+									{ activate: event.button === 0 },
 								);
 							}}
 							onPointerLeave={() => {
@@ -805,7 +849,12 @@ const ChartRootPrimitive = ({
 								engineRef.current?.handlePointerLeave();
 							}}
 							onKeyDown={(event) => {
-								if (engineRef.current?.handleKeyDown(event.key)) {
+								// Why: a chord with Alt, Ctrl, or Meta is a shortcut of the browser
+								// or the page, such as history back.
+								if (event.altKey || event.ctrlKey || event.metaKey) {
+									return;
+								}
+								if (engineRef.current?.handleKeyDown(event.key, { repeat: event.repeat })) {
 									event.preventDefault();
 								}
 							}}
@@ -861,6 +910,7 @@ const ChartRootPrimitive = ({
 						store={store}
 						xHasTimeOfDay={xHasTimeOfDay}
 						xKey={xKey}
+						xScale={resolvedXScale}
 						zKey={zKey}
 					/>
 				)}

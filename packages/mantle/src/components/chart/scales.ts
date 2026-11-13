@@ -1,15 +1,3 @@
-import {
-	timeDay,
-	timeHour,
-	timeMinute,
-	timeMonth,
-	timeSecond,
-	timeTicks as d3TimeTicks,
-	timeWeek,
-	timeYear,
-} from "d3-time";
-import { timeFormat } from "d3-time-format";
-
 // The 1/2/5 "nice step" tick solver, ported from d3-array 3.2.4 (`ticks` /
 // `tickIncrement`) so the chart engine doesn't pull the whole d3-array package
 // in for two pure functions. Behavior is identical — `scales.test.ts` locks the
@@ -355,62 +343,6 @@ const linearTicksAtMost = (
 };
 
 /**
- * Calendar-aware ticks (epoch milliseconds) for a time domain, from d3-time:
- * correct month, DST, and year boundaries are the hardest axis math to
- * hand-roll. The result matches d3-scale's `scaleTime().ticks(count)`.
- *
- * @example
- * ```ts
- * const tickTimes = timeTicks([start.getTime(), end.getTime()], 6);
- * ```
- */
-const timeTicks = (domain: readonly [number, number], count: number): number[] =>
-	d3TimeTicks(new Date(domain[0]), new Date(domain[1]), count).map((date) => date.getTime());
-
-const formatMillisecond = timeFormat(".%L");
-const formatSecond = timeFormat(":%S");
-const formatMinute = timeFormat("%I:%M");
-const formatHour = timeFormat("%I %p");
-const formatDay = timeFormat("%a %d");
-const formatWeek = timeFormat("%b %d");
-const formatMonth = timeFormat("%B");
-const formatYear = timeFormat("%Y");
-
-/**
- * The label of one time-axis tick, at the coarsest unit the tick lands on: a
- * year at a year boundary, a month name at a month boundary, and so on down
- * to milliseconds. The result matches d3-scale's `scaleTime().tickFormat()`.
- *
- * @example
- * ```ts
- * formatTimeTick(new Date(2026, 0, 1).getTime()); // "2026"
- * formatTimeTick(new Date(2026, 2, 1).getTime()); // "March"
- * ```
- */
-const formatTimeTick = (epochMs: number): string => {
-	const date = new Date(epochMs);
-	if (timeSecond(date) < date) {
-		return formatMillisecond(date);
-	}
-	if (timeMinute(date) < date) {
-		return formatSecond(date);
-	}
-	if (timeHour(date) < date) {
-		return formatMinute(date);
-	}
-	if (timeDay(date) < date) {
-		return formatHour(date);
-	}
-	if (timeMonth(date) < date) {
-		return timeWeek(date) < date ? formatDay(date) : formatWeek(date);
-	}
-	if (timeYear(date) < date) {
-		return formatMonth(date);
-	}
-	return formatYear(date);
-};
-
-/**
  * Expand a `[min, max]` domain to "nice" human-friendly bounds that land on
  * tick values.
  *
@@ -493,12 +425,11 @@ export {
 	bandHitRegion,
 	bandStart,
 	computeBandLayout,
-	formatTimeTick,
 	invertBand,
 	linearCoefficients,
 	linearTicks,
 	linearTicksAtMost,
 	niceDomain,
 	niceZeroAnchoredDomain,
-	timeTicks,
+	tickIncrement,
 };

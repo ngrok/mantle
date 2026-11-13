@@ -280,6 +280,27 @@ describe("ChartStore registrations", () => {
 		store.registerGrid("horizontal");
 		expect(calls).toEqual(["series", "presentation"]);
 	});
+
+	test("a tooltip registration notifies the subscribers and calls neither engine hook", () => {
+		// The engine paints nothing from the tooltip config, so a repaint for it
+		// builds every mark again and changes none.
+		const store = new ChartStore();
+		const calls: string[] = [];
+		store.onSeriesChange = () => calls.push("series");
+		store.onPresentationChange = () => calls.push("presentation");
+		store.subscribe(() => calls.push("subscriber"));
+		const unregister = store.registerTooltip({
+			labelFormat: undefined,
+			valueFormat: (value) => `${value} ms`,
+			indicator: "line",
+			footer: undefined,
+			children: undefined,
+			divProps: {},
+		});
+		unregister();
+		// One notice for the registration and one for its cleanup.
+		expect(calls).toEqual(["subscriber", "subscriber"]);
+	});
 });
 
 describe("ChartStore hover", () => {

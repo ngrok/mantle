@@ -137,9 +137,9 @@ const markersLayer = (container: HTMLElement): HTMLElement => {
 	return layer;
 };
 
-/** Parse `translate3d(Xpx, Ypx, 0)` into plot-space coordinates. */
+/** Parse `translate(Xpx, Ypx)` into plot-space coordinates. */
 const dotPosition = (dot: HTMLElement): { x: number; y: number } => {
-	const match = /translate3d\((-?[\d.]+)px,\s*(-?[\d.]+)px/.exec(dot.style.transform);
+	const match = /^translate\((-?[\d.]+)px,\s*(-?[\d.]+)px\)$/.exec(dot.style.transform);
 	if (match?.[1] == null || match[2] == null) {
 		throw new Error(`expected a positioned dot, got transform "${dot.style.transform}"`);
 	}
@@ -300,7 +300,7 @@ describe("hover marker geometry", () => {
 
 	test("a gapped series hides its dot while its neighbors keep theirs", async () => {
 		// Visibility follows the RAW value: without the NaN guard the dot gets
-		// opacity 1 and `translate3d(…, NaNpx, 0)`, which is invalid CSS — the
+		// opacity 1 and `translate(…, NaNpx)`, which is invalid CSS — the
 		// transform is dropped and the dot pins itself to the layer's top-left
 		// corner, claiming a point the tooltip reports as an em dash.
 		const { container } = render(
