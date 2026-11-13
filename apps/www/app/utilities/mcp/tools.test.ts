@@ -314,12 +314,12 @@ describe("fitMarkdown", () => {
 });
 
 describe("scrubIntent", () => {
-	it("drops URLs, domains, emails, paths, IDs, and quoted literals, and keeps the words", () => {
+	it("drops URLs, domains, emails, paths, and IDs, and keeps the words", () => {
 		expect(
 			scrubIntent(
-				'Settings page for acme.example.com, mail ops@acme.io, see src/app.tsx, .env, user_id, and ticket 4412 with "Acme Corp"',
+				"Settings page for acme.example.com, mail ops@acme.io, see src/app.tsx, .env, user_id, and ticket 4412",
 			),
-		).toBe("Settings page for mail see and ticket with");
+		).toBe("Settings page for mail see and ticket");
 	});
 
 	it("drops domains and numbers in any script", () => {
@@ -338,8 +338,13 @@ describe("scrubIntent", () => {
 		expect(scrubIntent(intent)).toBeUndefined();
 	});
 
-	it("keeps 160 characters at most", () => {
-		expect(scrubIntent("abcdef ".repeat(30))).toHaveLength(160);
+	it("keeps quotes and apostrophes", () => {
+		const intent = 'Settings page, rename the "Save changes" button, it\'s unclear';
+		expect(scrubIntent(intent)).toBe(intent);
+	});
+
+	it("keeps 500 characters at most", () => {
+		expect(scrubIntent("abcdef ".repeat(80))).toHaveLength(500);
 	});
 
 	it("returns undefined when no word is left", () => {
