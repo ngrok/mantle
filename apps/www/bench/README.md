@@ -9,21 +9,27 @@ through CDP. The page is linked from the Bar Chart docs page, under "Lists of ch
 The page reads one scenario from its query string. The form at the top of the page picks a
 variant and loads the page again with the new query, the way the driver does:
 
-| param      | values                           | meaning                                                                        |
-| ---------- | -------------------------------- | ------------------------------------------------------------------------------ |
-| `animate`  | `1`, `0`                         | whether the charts play their mount animation; `0` sets `animate={false}`      |
-| `kind`     | `line`, `bar`, `area`, `scatter` | the chart family                                                               |
-| `mode`     | `list`, `dense`, `table`         | `n` cards of full charts, one chart with many rows, or `n` rows × 2 sparklines |
-| `n`        | integer                          | charts on the page (list mode) or rows (table mode)                            |
-| `points`   | integer                          | rows per chart                                                                 |
-| `gate`     | `cv`                             | wraps each list card in `content-visibility: auto`                             |
-| `nocharts` | `1`                              | table mode with an empty box per sparkline: the table's own floor              |
+| param      | values                                           | meaning                                                                                         |
+| ---------- | ------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| `animate`  | `1`, `0`                                         | whether the charts play their mount animation; `0` sets `animate={false}`                       |
+| `kind`     | `line`, `bar`, `area`, `scatter`                 | the chart family                                                                                |
+| `mode`     | `list`, `dense`, `table`, `agents`, `agents-dom` | `n` cards of full charts, one chart with many rows, `n` rows × 2 sparklines, or `n` agent cards |
+| `n`        | integer                                          | charts on the page (list mode) or rows (table mode)                                             |
+| `points`   | integer                                          | rows per chart                                                                                  |
+| `gate`     | `cv`                                             | wraps each list card in `content-visibility: auto`                                              |
+| `nocharts` | `1`                                              | table mode with an empty box per sparkline: the table's own floor                               |
 
 List charts render at 558×314 CSS pixels with both axes, grid lines, a tooltip, and two series.
 The table is a `DataTable` with a name, two badges, two sparklines, and a date per row, like the
 dashboard's app list. Sparklines are 112×24 with one series of the picked `kind`, `points` rows
 each, and no axes; the bar Releases series is zero most of the time. Data comes from a seeded
 generator.
+
+Agent cards copy the dashboard's Agents page: a 1,100 px list of cards, each with a name, badges,
+a meta line, and a 30-bucket traffic chart about 420×80 with In (hatched) stacked under Out and a
+tooltip. `agents` draws the chart with `BarChart`. `agents-dom` draws it the way the dashboard
+prototype does: one `span` column and one Radix tooltip per bucket. `--matrix=agents` runs both,
+and the hover sweep crosses only the chart.
 
 ## Commands
 

@@ -162,6 +162,37 @@ const buildMatrix = (): Case[] => {
 					}
 				}
 			}
+			if ((matrix === "agents" || matrix === "all") && kind === "bar") {
+				// Why one dom row per cell: the hand-rolled baseline has no List to group by.
+				for (const n of listCounts) {
+					for (const animate of animations) {
+						for (const group of groups) {
+							cases.push({
+								animate,
+								kind,
+								mode: "agents",
+								n,
+								points: 30,
+								throttle,
+								dpr,
+								gate,
+								group,
+							});
+						}
+						cases.push({
+							animate,
+							kind,
+							mode: "agents-dom",
+							n,
+							points: 30,
+							throttle,
+							dpr,
+							gate,
+							group: "none",
+						});
+					}
+				}
+			}
 			if (matrix === "smoke" || matrix === "dense" || matrix === "all") {
 				const sizes = matrix === "smoke" ? [10_000] : densePoints;
 				for (const points of sizes) {
@@ -307,13 +338,17 @@ const hoverSweep = async (page: Page, targets: number): Promise<void> => {
 	for (let index = 0; index < count; index += 1) {
 		const card = cards.nth(index);
 		await card.scrollIntoViewIfNeeded();
-		const box = await card.boundingBox();
+		// Why the hover target: an agent card's chart fills only its right side.
+		const target = card.locator("[data-bench-hover]");
+		const isChartOnly = (await target.count()) > 0;
+		const box = await (isChartOnly ? target.first() : card).boundingBox();
 		if (box == null) {
 			continue;
 		}
 		const y = box.y + box.height * 0.55;
-		const x0 = box.x + 72;
-		const x1 = box.x + box.width - 24;
+		// Why the inset on a full card: it skips the y-axis labels and the card padding.
+		const x0 = box.x + (isChartOnly ? 2 : 72);
+		const x1 = box.x + box.width - (isChartOnly ? 2 : 24);
 		const steps = 40;
 		for (let step = 0; step <= steps; step += 1) {
 			await page.mouse.move(x0 + ((x1 - x0) * step) / steps, y);
@@ -473,7 +508,7 @@ const measure = async ({
 		result.updateShift = await updatePhase(page, cdp, "shift");
 
 		const metricsBeforeScroll = await readMetrics(cdp);
-		if (item.mode === "list") {
+		if (item.mode !== "dense" && item.mode !== "table") {
 			await startFrames(page);
 			await scrollSweep(page);
 			const scrollFrames = frameStats((await stopFrames(page)).deltas);

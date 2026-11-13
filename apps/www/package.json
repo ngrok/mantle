@@ -14,6 +14,7 @@
     "bench": "node bench/run.ts",
     "bench:trace": "node bench/trace.ts",
     "bench:profile": "node bench/profile.ts",
+    "bench:hover": "node bench/hover-trace.ts",
     "bench:report": "node bench/report.ts"
   },
   "dependencies": {

@@ -4,8 +4,14 @@
  */
 
 export type Kind = "line" | "bar" | "area" | "scatter";
-/** `list` is n cards, `dense` is one chart with many rows, `table` is n rows × 2 sparklines. */
-export type Mode = "list" | "dense" | "table";
+/**
+ * - `list`: n cards
+ * - `dense`: one chart with many rows
+ * - `table`: n rows × 2 sparklines
+ * - `agents`: n agent cards, each with a stacked In/Out bar chart and a tooltip, like the dashboard's Agents page
+ * - `agents-dom`: the same cards with hand-rolled bars and one Radix tooltip per bar, as the dashboard prototype draws them
+ */
+export type Mode = "list" | "dense" | "table" | "agents" | "agents-dom";
 /** `cv` wraps each list card in `content-visibility: auto`. */
 export type Gate = "none" | "cv";
 /** `list` wraps the list cards in the family's `List` part, so the charts share one live region. */
@@ -27,7 +33,7 @@ export type Config = {
 };
 
 export const KINDS: readonly Kind[] = ["line", "bar", "area", "scatter"];
-export const MODES: readonly Mode[] = ["list", "dense", "table"];
+export const MODES: readonly Mode[] = ["list", "dense", "table", "agents", "agents-dom"];
 export const GATES: readonly Gate[] = ["none", "cv"];
 export const GROUPS: readonly Group[] = ["none", "list"];
 
