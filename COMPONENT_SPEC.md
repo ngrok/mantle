@@ -750,7 +750,7 @@ plain-markdown twin (`/api/…`, `llms-full.txt`) generated from it.
 - **Layout page** — `apps/www/app/docs/layouts/<layout-name>.mdx`, wired through `layoutPages` /
   `layoutRoutes` / `layoutDescriptions`.
 - **Supplementary sub-page** — a routed deep-dive under a component's own folder
-  (`data-display/code-block/folding-by-language.mdx`). It gets a route but no nav entry, and §7.2 items 5–8 do
+  (`data-display/code-block/folding-by-language.mdx`). It gets a route but no nav entry, and §7.2 items 5–9 do
   not apply.
 
 ### 7.2. Required structure, in order
@@ -766,15 +766,20 @@ plain-markdown twin (`/api/…`, `llms-full.txt`) generated from it.
    `rehype-mdx-doc-handle.ts`, so a page using it loses its H1 in the markdown twin and its level-1 TOC entry
    until those two files learn to handle it. Follow the title with prose stating what the component is for and which
    decisions it encodes.
-4. **A primary live example** with its code block.
-5. **`## Composition`** — compound components only: the ASCII tree in a ` ```text showLineNumbers=false `
+4. **A primary live example** with its code block. For a compound component, it shows the simplest use case.
+5. **One `##` section for each other use case** — compound components whose parts serve distinct use cases
+   (`RadioGroup` has plain radios, a segmented control, a list, and cards). Each section has a heading that
+   names the use case, one or two sentences on when to use it and which parts it takes, a live example, and a
+   code block with only that use case. Never show two use cases in one example: a reader cannot tell which code
+   makes which shape, and the TOC cannot link to one of them.
+6. **`## Composition`** — compound components only: the ASCII tree in a ` ```text showLineNumbers=false `
    fence, identical to the namespace JSDoc's tree. Simple components omit it — there is no tree to draw.
-6. **`## Polymorphism`** — required when any part accepts `asChild`. List every part that supports it and when
+7. **`## Polymorphism`** — required when any part accepts `asChild`. List every part that supports it and when
    a consumer would reach for it. Never title this section "Composition"; that name is reserved for the
    structural tree.
-7. **Optional sections** — variants, sizing, accessibility notes, recipes. They come after Composition and
+8. **Optional sections** — variants, sizing, accessibility notes, recipes. They come after Composition and
    Polymorphism, before the API reference, and none of them may be named "Composition".
-8. **`## API Reference`** — one `### <ComponentName>.<Part>` subsection per exported part (`### Alert.Root`,
+9. **`## API Reference`** — one `### <ComponentName>.<Part>` subsection per exported part (`### Alert.Root`,
    `### Card.Header`), each with its props table and, where applicable, its CSS-variable
    ([§5.2](#52-documenting)) and data-attribute ([§6](#6-data-attributes-are-api)) tables. Props tables use
    `Prop | Type | Default | Description`.
@@ -1049,6 +1054,8 @@ Run this against the diff before calling a component done. Each line is a defect
 - [ ] Every example builds its surround from existing mantle components, with no hand-rolled list, table, or
       card ([§7.3](#73-examples-must-be-live-and-complete)).
 - [ ] Trees in the JSDoc and the docs page match.
+- [ ] Compound: each use case has its own section, example, and code block
+      ([§7.2](#72-required-structure-in-order) item 5).
 
 **Wiring**
 

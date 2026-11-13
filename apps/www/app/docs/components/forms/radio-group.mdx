@@ -123,113 +123,125 @@ import { RadioGroup } from "@ngrok/mantle/radio-group";
 </Field.Set>;
 ```
 
-Or render the control on its own:
+## Segmented control
 
-<Example className="mt-4 grid gap-6">
-	<RadioGroup.Root aria-label="Density" defaultValue="compact">
-		<RadioGroup.Item value="default">
-			<RadioGroup.Indicator />
-			<RadioGroup.ItemContent>Default</RadioGroup.ItemContent>
-		</RadioGroup.Item>
-		<RadioGroup.Item value="comfortable" disabled>
-			<RadioGroup.Indicator />
-			<RadioGroup.ItemContent>Comfortable</RadioGroup.ItemContent>
-		</RadioGroup.Item>
-		<RadioGroup.Item value="compact">
-			<RadioGroup.Indicator />
-			<RadioGroup.ItemContent>Compact</RadioGroup.ItemContent>
-		</RadioGroup.Item>
-		<RadioGroup.Item value="roomy">
-			<RadioGroup.Indicator />
-			<RadioGroup.ItemContent>Roomy</RadioGroup.ItemContent>
-		</RadioGroup.Item>
-	</RadioGroup.Root>
-	<RadioGroup.ButtonGroup aria-label="Environment" defaultValue="production">
+Use `RadioGroup.ButtonGroup` in place of `RadioGroup.Root` for a short set of options in one row, like a view or an environment switch. A raised thumb slides to the checked `RadioGroup.Button`.
+
+<Example>
+	<RadioGroup.ButtonGroup
+		aria-label="Environment"
+		defaultValue="production"
+		className="w-full max-w-md"
+	>
 		<RadioGroup.Button value="development">Dev</RadioGroup.Button>
-		<RadioGroup.Button disabled value="staging">
+		<RadioGroup.Button value="staging" disabled>
 			Staging
 		</RadioGroup.Button>
 		<RadioGroup.Button value="production">Prod</RadioGroup.Button>
 	</RadioGroup.ButtonGroup>
-	<RadioGroup.List aria-label="Density" defaultValue="comfortable">
+</Example>
+
+```tsx
+import { RadioGroup } from "@ngrok/mantle/radio-group";
+
+<RadioGroup.ButtonGroup aria-label="Environment" defaultValue="production">
+	<RadioGroup.Button value="development">Dev</RadioGroup.Button>
+	<RadioGroup.Button value="staging" disabled>
+		Staging
+	</RadioGroup.Button>
+	<RadioGroup.Button value="production">Prod</RadioGroup.Button>
+</RadioGroup.ButtonGroup>;
+```
+
+## List
+
+Use `RadioGroup.List` and `RadioGroup.ListItem` when each option needs a description. The list draws one border, and each row tints on hover and when checked.
+
+<Example>
+	<RadioGroup.List aria-label="Density" defaultValue="comfortable" className="w-full max-w-md">
 		<RadioGroup.ListItem value="default" disabled>
 			<RadioGroup.Indicator />
 			<RadioGroup.ItemContent>
 				<p className="text-strong font-medium">Default</p>
-				<p className="text-body">Laborum esse cillum incididunt est dolore.</p>
+				<p className="text-body">Standard row height for most tables.</p>
 			</RadioGroup.ItemContent>
 		</RadioGroup.ListItem>
 		<RadioGroup.ListItem value="comfortable">
 			<RadioGroup.Indicator />
 			<RadioGroup.ItemContent>
 				<p className="text-strong font-medium">Comfortable</p>
-				<p className="text-body">Ea laboris tempor laborum officia ea adipisicing exercitation.</p>
+				<p className="text-body">More space between rows for easier scanning.</p>
 			</RadioGroup.ItemContent>
 		</RadioGroup.ListItem>
 		<RadioGroup.ListItem value="compact">
 			<RadioGroup.Indicator />
 			<RadioGroup.ItemContent>
 				<p className="text-strong font-medium">Compact</p>
-				<p className="text-body">Adipisicing est dolore velit magna dolor voluptate velit.</p>
-			</RadioGroup.ItemContent>
-		</RadioGroup.ListItem>
-		<RadioGroup.ListItem value="roomy">
-			<RadioGroup.Indicator />
-			<RadioGroup.ItemContent>
-				<p className="text-strong font-medium">Roomy</p>
-				<p className="text-body">Tempor dolore Lorem exercitation id nisi aliquip elit.</p>
+				<p className="text-body">Less space between rows to fit more data.</p>
 			</RadioGroup.ItemContent>
 		</RadioGroup.ListItem>
 	</RadioGroup.List>
-	<RadioGroup.List aria-label="SSO enforcement" defaultValue="mixed">
-		<RadioGroup.ListItem value="mixed" disabled>
-			<RadioGroup.Indicator />
-			<RadioGroup.ItemContent>
-				<p className="text-strong font-medium">Mixed</p>
-				<p className="text-body">
-					Only new workspace members are required to use SSO. Existing members can still log in with
-					other methods.
-				</p>
-			</RadioGroup.ItemContent>
-		</RadioGroup.ListItem>
-		<RadioGroup.ListItem value="strict" disabled>
-			<RadioGroup.Indicator />
-			<RadioGroup.ItemContent>
-				<p className="text-strong font-medium">Strict</p>
-				<p className="text-body">All workspace members are required to log in with SSO.</p>
-			</RadioGroup.ItemContent>
-		</RadioGroup.ListItem>
-	</RadioGroup.List>
+</Example>
+
+```tsx
+import { RadioGroup } from "@ngrok/mantle/radio-group";
+
+<RadioGroup.List aria-label="Density" defaultValue="comfortable">
+	<RadioGroup.ListItem value="default" disabled>
+		<RadioGroup.Indicator />
+		<RadioGroup.ItemContent>
+			<p className="text-strong font-medium">Default</p>
+			<p className="text-body">Standard row height for most tables.</p>
+		</RadioGroup.ItemContent>
+	</RadioGroup.ListItem>
+	<RadioGroup.ListItem value="comfortable">
+		<RadioGroup.Indicator />
+		<RadioGroup.ItemContent>
+			<p className="text-strong font-medium">Comfortable</p>
+			<p className="text-body">More space between rows for easier scanning.</p>
+		</RadioGroup.ItemContent>
+	</RadioGroup.ListItem>
+	<RadioGroup.ListItem value="compact">
+		<RadioGroup.Indicator />
+		<RadioGroup.ItemContent>
+			<p className="text-strong font-medium">Compact</p>
+			<p className="text-body">Less space between rows to fit more data.</p>
+		</RadioGroup.ItemContent>
+	</RadioGroup.ListItem>
+</RadioGroup.List>;
+```
+
+## Cards
+
+Use `RadioGroup.Card` when each option is a larger block of content, like a plan or an audience. Lay the cards out with a grid on `RadioGroup.Root`. The checked card gets an accent border and tint.
+
+<Example>
 	<RadioGroup.Root
 		aria-label="Audience"
-		className="grid grid-cols-1 gap-y-6 sm:grid-cols-3 sm:gap-x-4"
+		className="grid w-full grid-cols-1 gap-4 sm:grid-cols-3"
 		defaultValue="existing"
 	>
 		<RadioGroup.Card className="flex" value="newsletter">
 			<div className="flex-1">
-				<p className="text-strong block text-sm font-medium">Newsletter</p>
-				<p className="mt-1 flex items-center text-sm text-gray-500">
-					Last message sent an hour ago
-				</p>
-				<p className="mt-6 text-sm font-medium">621 users</p>
+				<p className="text-strong font-medium">Newsletter</p>
+				<p className="text-muted mt-1">Last message sent an hour ago</p>
+				<p className="mt-6 font-medium">621 users</p>
 			</div>
 			<RadioGroup.Indicator />
 		</RadioGroup.Card>
 		<RadioGroup.Card className="flex" value="existing">
 			<div className="flex-1">
-				<p className="text-strong block text-sm font-medium">Existing Customers</p>
-				<p className="mt-1 flex items-center text-sm text-gray-500">
-					Last message sent 2 weeks ago
-				</p>
-				<p className="mt-6 text-sm font-medium">1200 users</p>
+				<p className="text-strong font-medium">Existing customers</p>
+				<p className="text-muted mt-1">Last message sent 2 weeks ago</p>
+				<p className="mt-6 font-medium">1,200 users</p>
 			</div>
 			<RadioGroup.Indicator />
 		</RadioGroup.Card>
 		<RadioGroup.Card className="flex" value="trial">
 			<div className="flex-1">
-				<p className="text-strong block text-sm font-medium">Trial Users</p>
-				<p className="mt-1 flex items-center text-sm text-gray-500">Last message sent 4 days ago</p>
-				<p className="mt-6 text-sm font-medium">2740 Users</p>
+				<p className="text-strong font-medium">Trial users</p>
+				<p className="text-muted mt-1">Last message sent 4 days ago</p>
+				<p className="mt-6 font-medium">2,740 users</p>
 			</div>
 			<RadioGroup.Indicator />
 		</RadioGroup.Card>
@@ -239,54 +251,36 @@ Or render the control on its own:
 ```tsx
 import { RadioGroup } from "@ngrok/mantle/radio-group";
 
-<RadioGroup.Root aria-label="Density" defaultValue="comfortable">
-	<RadioGroup.Item className="py-1" value="default">
-		<RadioGroup.Indicator />
-		<RadioGroup.ItemContent>Default</RadioGroup.ItemContent>
-	</RadioGroup.Item>
-	<RadioGroup.Item className="py-1" value="comfortable" disabled>
-		<RadioGroup.Indicator />
-		<RadioGroup.ItemContent>Comfortable</RadioGroup.ItemContent>
-	</RadioGroup.Item>
-	<RadioGroup.Item className="py-1" value="compact">
-		<RadioGroup.Indicator />
-		<RadioGroup.ItemContent>Compact</RadioGroup.ItemContent>
-	</RadioGroup.Item>
-</RadioGroup.Root>
-
-<RadioGroup.ButtonGroup aria-label="Environment" defaultValue="production">
-	<RadioGroup.Button value="development">Development</RadioGroup.Button>
-	<RadioGroup.Button value="staging">Staging</RadioGroup.Button>
-	<RadioGroup.Button value="production">Production</RadioGroup.Button>
-</RadioGroup.ButtonGroup>
-
-<RadioGroup.List aria-label="Density" defaultValue="comfortable">
-	<RadioGroup.ListItem value="default" disabled>
-		<RadioGroup.Indicator />
-		<RadioGroup.ItemContent>
-			<p className="font-medium text-strong">Default</p>
-			<p className="text-body">Laborum esse cillum incididunt est dolore.</p>
-		</RadioGroup.ItemContent>
-	</RadioGroup.ListItem>
-	<RadioGroup.ListItem value="comfortable">
-		<RadioGroup.Indicator />
-		<RadioGroup.ItemContent>
-			<p className="font-medium text-strong">Comfortable</p>
-			<p className="text-body">Ea laboris tempor laborum officia ea adipisicing exercitation.</p>
-		</RadioGroup.ItemContent>
-	</RadioGroup.ListItem>
-</RadioGroup.List>
-
-<RadioGroup.Root aria-label="Audience" className="grid grid-cols-1 gap-y-6 sm:grid-cols-3 sm:gap-x-4" defaultValue="existing">
+<RadioGroup.Root
+	aria-label="Audience"
+	className="grid grid-cols-1 gap-4 sm:grid-cols-3"
+	defaultValue="existing"
+>
 	<RadioGroup.Card className="flex" value="newsletter">
 		<div className="flex-1">
-			<p className="block text-sm font-medium text-strong">Newsletter</p>
-			<p className="mt-1 flex items-center text-sm text-gray-500">Last message sent an hour ago</p>
-			<p className="mt-6 text-sm font-medium">621 users</p>
+			<p className="text-strong font-medium">Newsletter</p>
+			<p className="text-muted mt-1">Last message sent an hour ago</p>
+			<p className="mt-6 font-medium">621 users</p>
 		</div>
 		<RadioGroup.Indicator />
 	</RadioGroup.Card>
-</RadioGroup.Root>
+	<RadioGroup.Card className="flex" value="existing">
+		<div className="flex-1">
+			<p className="text-strong font-medium">Existing customers</p>
+			<p className="text-muted mt-1">Last message sent 2 weeks ago</p>
+			<p className="mt-6 font-medium">1,200 users</p>
+		</div>
+		<RadioGroup.Indicator />
+	</RadioGroup.Card>
+	<RadioGroup.Card className="flex" value="trial">
+		<div className="flex-1">
+			<p className="text-strong font-medium">Trial users</p>
+			<p className="text-muted mt-1">Last message sent 4 days ago</p>
+			<p className="mt-6 font-medium">2,740 users</p>
+		</div>
+		<RadioGroup.Indicator />
+	</RadioGroup.Card>
+</RadioGroup.Root>;
 ```
 
 ## Rich option layout with `Choice`
