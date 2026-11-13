@@ -612,6 +612,30 @@ describe("ChartEngine tooltip placement", () => {
 		expect(firstFrame).toBe(tooltip.style.transform);
 	});
 
+	test("a dormant engine places its readout with no read of the surface size", () => {
+		const frames = installFrameClock();
+		const mount = mountEngine({
+			kind: "bar",
+			series: [makeSeries("a", "bar")],
+			rows: firstRows,
+			options: { xScale: "band" },
+			inView: false,
+		});
+		const { tooltip } = mount.elements;
+		if (tooltip == null) {
+			throw new Error("expected the mount to hold a tooltip element");
+		}
+		// Why a spy: the read forces a layout, and a layout has no other trace here.
+		const width = vi.spyOn(tooltip, "offsetWidth", "get");
+
+		// A controlled index reaches a chart that is far from the viewport.
+		mount.engine.setControlledActiveIndex(1);
+		frames.settle();
+
+		expect(tooltip.style.transform).toMatch(/^translate\(/);
+		expect(width).toHaveBeenCalledTimes(0);
+	});
+
 	test("the empty box of an idle tooltip does not replace the size of the last readout", () => {
 		const { frames, mount, tooltip } = mountOnLastBand();
 		reportTooltipSize(mount, READOUT);

@@ -3065,7 +3065,8 @@ class ChartEngine {
 		}
 		// Why measure here: the surface mounts with its first readout, and the size
 		// observer reports after this frame's layout. One read places that readout.
-		if (this.#tooltipSize.width === 0 && this.#tooltipSize.height === 0) {
+		// A dormant chart skips the read, which forces a layout.
+		if (this.#inView && this.#tooltipSize.width === 0 && this.#tooltipSize.height === 0) {
 			this.#tooltipSize = { width: tooltip.offsetWidth, height: tooltip.offsetHeight };
 		}
 		const size = this.#tooltipSize;
