@@ -236,13 +236,13 @@ const DefaultRadioIndicator = ({ checked, disabled, focus, hover }: RadioStateCo
 		// Why: `RadioGroup.Item` reads this attribute to skip its own focus ring.
 		data-radio-default-indicator=""
 		className={cx(
-			// Why a transparent border: forced-colors mode removes the fill and paints this
-			// border in a system color, so the circle keeps its outline.
-			"flex size-4 items-center justify-center rounded-full border border-transparent shrink-0",
+			"flex size-4 items-center justify-center rounded-full border shrink-0",
 			disabled && "cursor-default opacity-50",
-			// Why a fill, not a border: hover shifts the fill toward more contrast in both themes.
-			checked ? "bg-filled-accent" : "bg-neutral-300",
-			hover && !disabled && (checked ? "bg-filled-accent-hover" : "bg-neutral-400"),
+			// Why an outline when unchecked: a solid gray circle reads as disabled.
+			// Why a transparent border when checked: forced-colors mode removes the fill and
+			// paints this border in a system color, so the circle keeps its outline.
+			checked ? "bg-filled-accent border-transparent" : "bg-form border-form",
+			hover && !disabled && (checked ? "bg-filled-accent-hover" : "border-neutral-400"),
 			focus && !disabled && "ring-focus-accent ring-4",
 		)}
 	>
@@ -451,7 +451,7 @@ const Card = ({
 				"focus-visible:ring-focus-accent focus-visible:ring-4",
 				"first-of-type:rounded-tl-md first-of-type:rounded-tr-md last-of-type:rounded-bl-md last-of-type:rounded-br-md",
 				"aria-disabled:border-form/50 not-aria-disabled:hover:bg-card-hover",
-				"aria-checked:bg-selected-menu-item not-aria-disabled:hover:aria-checked:bg-active-selected-menu-item",
+				"aria-checked:border-accent-500/50 aria-checked:bg-selected-menu-item not-aria-disabled:hover:aria-checked:bg-active-selected-menu-item",
 				className,
 			)}
 			{...props}
@@ -527,9 +527,9 @@ const ButtonGroup = ({ "data-slot": dataSlot, className, ref, ...props }: RadioG
 		<Root
 			data-slot={joinDataSlot(dataSlot, "radio-group-button-group")}
 			className={clsx(
-				// Why 0.6875rem: the segment radius (6px), the padding (4px), and the border (1px) add up to it.
+				// Why 0.625rem: the segment radius (6px) and the padding (4px) add up to it.
 				// The segments and their focus rings then follow the group corner.
-				"border-form flex h-9 flex-row flex-nowrap gap-px rounded-[0.6875rem] border p-1",
+				"bg-neutral-500/10 flex h-9 flex-row flex-nowrap gap-px rounded-[0.625rem] p-1",
 				className,
 			)}
 			{...props}
@@ -578,8 +578,9 @@ const Button = ({
 				"whitespace-nowrap",
 				"focus-visible:ring-focus-accent focus-visible:z-1 focus-visible:ring-4",
 				"cursor-pointer aria-disabled:cursor-default focus:outline-hidden",
-				"not-aria-disabled:hover:bg-active-menu-item aria-disabled:opacity-50",
-				"aria-checked:bg-selected-menu-item not-aria-disabled:hover:aria-checked:bg-active-selected-menu-item",
+				"text-muted not-aria-disabled:hover:text-strong aria-disabled:opacity-50",
+				// Why a raised card surface: on the dim group, it marks the checked segment without color.
+				"aria-checked:bg-card aria-checked:text-strong aria-checked:shadow-sm",
 				"has-[.radio-indicator:first-child]:pl-2 has-[.radio-indicator:last-child]:pr-2",
 				className,
 			)}
