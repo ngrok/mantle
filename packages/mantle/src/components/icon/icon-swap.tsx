@@ -24,7 +24,8 @@ type IconSwapProps<Key extends string> = Omit<ComponentProps<"span">, "children"
  * swap during the motion reverses it from its current value. Under reduced
  * motion, the swap is instant. Each icon is in a `data-slot="icon-swap-item"`
  * span. The span of the active icon has `data-state="active"`; the others have
- * `data-state="inactive"` and `aria-hidden`.
+ * `data-state="inactive"` and `aria-hidden`, and they are `visibility: hidden`
+ * once the swap ends.
  *
  * @example
  * ```tsx
@@ -60,8 +61,11 @@ const IconSwap = <Key extends string>({
 					aria-hidden={isActive ? undefined : true}
 					className={cx(
 						"col-start-1 row-start-1 grid place-items-center",
-						"motion-safe:transition-[opacity,scale,filter] motion-safe:duration-200 motion-safe:ease-out-strong",
+						"motion-safe:transition-[opacity,scale,filter,visibility] motion-safe:duration-200 motion-safe:ease-out-strong",
 						"data-state-inactive:opacity-0 motion-safe:data-state-inactive:scale-50 motion-safe:data-state-inactive:blur-[2px] motion-safe:data-state-inactive:duration-150",
+						// Why invisible: a browser gives a paused spinner its own compositor
+						// layer while it paints. The transition holds `visible` to the end of the exit.
+						"data-state-inactive:invisible",
 						// Why paused: a spinner that is not shown must not keep a running animation.
 						"data-state-inactive:*:paused",
 					)}
