@@ -1918,14 +1918,17 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
 
 /*
  * The new snapshot is live, so a color transition would fade inside the circle
- * while the rest of the page shows the new theme. Stop transitions during the
- * swap. The icon of the switcher and each `ThemeSwitcherIcon` keep their own swap.
+ * while the rest of the page shows the new theme. The swap cancels those
+ * transitions in script. On a page that holds many transitions it sets this
+ * attribute, and this rule stops them. The rule restyles every element, so the
+ * swap does not use it on other pages. The icon of the switcher and each
+ * `ThemeSwitcherIcon` keep their own swap.
  */
-:root[data-theme-transition]
+:root[data-theme-transition-many]
 	:not([data-slot~="theme-switcher"] *, [data-slot~="theme-switcher-icon"] *),
-:root[data-theme-transition]
+:root[data-theme-transition-many]
 	:not([data-slot~="theme-switcher"] *, [data-slot~="theme-switcher-icon"] *)::before,
-:root[data-theme-transition]
+:root[data-theme-transition-many]
 	:not([data-slot~="theme-switcher"] *, [data-slot~="theme-switcher-icon"] *)::after {
 	transition: none !important;
 }
@@ -1934,15 +1937,16 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
  * A dialog or a menu that closes as the swap starts, such as a command
  * palette, would freeze in the old snapshot outside the circle. Without an
  * exit animation it unmounts before the snapshot. The dialog positioner
- * animates only to hold the exit, so it stops too.
+ * animates only to hold the exit, so it stops too. The swap marks each
+ * surface that is open when it starts: a rule under the root attribute would
+ * restyle every element that has a `data-slot`.
  */
-:root[data-theme-transition]
-	:is(
+:is(
 		[data-slot~="dialog-overlay"],
 		[data-slot~="dialog-content"],
 		[data-slot~="dropdown-menu-content"],
 		[data-slot~="dropdown-menu-sub-content"]
-	)[data-state="closed"],
-:root[data-theme-transition] [data-slot~="dialog-positioner"] {
+	)[data-theme-transition][data-state="closed"],
+[data-slot~="dialog-positioner"][data-theme-transition] {
 	animation: none !important;
 }

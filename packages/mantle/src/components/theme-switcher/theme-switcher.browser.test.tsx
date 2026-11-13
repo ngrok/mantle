@@ -23,10 +23,11 @@ import {
  * these rules apply.
  */
 const STYLE = `
-${mantleCss.match(/:root\[data-theme-transition\][^{]*\{[^}]*\}/g)?.join("\n") ?? ""}
+${mantleCss.match(/[^{}]*\[data-theme-transition(?:-many)?\][^{]*\{[^}]*\}/g)?.join("\n") ?? ""}
 [data-testid="probe"] { color: rgb(0, 0, 0); transition: color 1s linear; }
 .dark [data-testid="probe"] { color: rgb(255, 255, 255); }
 [data-slot~="theme-switcher-icon"] > * { transition: opacity 1s linear; }
+.dark [data-slot~="theme-switcher-icon"] > * { opacity: 0.5; }
 @keyframes slow-exit { to { opacity: 0; } }
 [data-slot~="dialog-overlay"][data-state="closed"] { animation: slow-exit 1s; }
 [data-slot~="dialog-content"][data-state="closed"] { animation: slow-exit 1s; }
@@ -56,11 +57,16 @@ afterEach(async () => {
 	await commands.emulateMedia({ reducedMotion: "no-preference" });
 });
 
-function renderSwitcher() {
+function renderSwitcher({ rows = 0 }: { rows?: number } = {}) {
 	render(
 		<ThemeProvider>
 			<ThemeSwitcher />
 			<p data-testid="probe">Probe</p>
+			{Array.from({ length: rows }, (_, index) => (
+				<p key={index} data-testid="probe">
+					Row
+				</p>
+			))}
 		</ThemeProvider>,
 	);
 	return screen.getByRole("button", { name: "Switch to dark theme" });
@@ -118,17 +124,38 @@ describe("ThemeSwitcher theme swap in Chromium", () => {
 		);
 	});
 
-	test("colors change at once during the swap, and transitions return after it", async () => {
+	test("colors change at once during the swap, and the swap changes no transition style", async () => {
 		const button = renderSwitcher();
 		const probe = screen.getByTestId("probe");
 		await userEvent.click(button);
 
 		await waitFor(() => expect(document.documentElement).toHaveClass("dark"));
+		expect(document.documentElement).toHaveAttribute("data-theme-transition");
 		expect(getComputedStyle(probe).color).toBe("rgb(255, 255, 255)");
+		// Why: a rule that stops transitions on every element restyles the whole
+		// document when the swap starts and again when it ends.
+		expect(getComputedStyle(probe).transitionDuration).toBe("1s");
+	});
+
+	test("on a page that holds many transitions, a rule stops them during the swap and they return after it", async () => {
+		// Why 2,200 rows: above 2,000 elements with a transition, the list of
+		// them costs more than the rule does.
+		const button = renderSwitcher({ rows: 2200 });
+		const [probe] = screen.getAllByTestId("probe");
+		if (probe == null) {
+			throw new Error("the page renders no probe");
+		}
+		await userEvent.click(button);
+
+		await waitFor(() => expect(document.documentElement).toHaveClass("dark"));
+		expect(document.documentElement).toHaveAttribute("data-theme-transition-many");
+		expect(getComputedStyle(probe).color).toBe("rgb(255, 255, 255)");
+		expect(getComputedStyle(probe).transitionDuration).toBe("0s");
 
 		await waitFor(() =>
 			expect(document.documentElement).not.toHaveAttribute("data-theme-transition"),
 		);
+		expect(document.documentElement).not.toHaveAttribute("data-theme-transition-many");
 		expect(getComputedStyle(probe).transitionDuration).toBe("1s");
 	});
 
@@ -245,13 +272,21 @@ describe("useThemeToggle theme swap in Chromium", () => {
 		expect(from.y).toBeCloseTo(top + height / 2);
 		expect(document.documentElement).toHaveClass("dark");
 		expect(screen.getByRole("menu")).toBeInTheDocument();
-		// Why check during the reveal: the swap stops every other transition.
+		// Why check during the reveal: the swap cancels every other transition.
 		expect(document.documentElement).toHaveAttribute("data-theme-transition");
 		const swap = icon.firstElementChild;
 		if (swap == null) {
 			throw new Error("the icon renders no swap");
 		}
-		expect(getComputedStyle(swap).transitionDuration).toBe("1s");
+		const iconMotion = document
+			.getAnimations()
+			.filter(
+				(animation) =>
+					animation instanceof CSSTransition &&
+					animation.effect instanceof KeyframeEffect &&
+					animation.effect.target === swap,
+			);
+		expect(iconMotion.map((animation) => animation.playState)).toEqual(["running"]);
 
 		await reveal.finished;
 	});

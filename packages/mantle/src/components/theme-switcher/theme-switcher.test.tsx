@@ -300,6 +300,8 @@ function stubViewTransition({ deferUpdate = false }: { deferUpdate?: boolean } =
 		configurable: true,
 		value: startViewTransition,
 	});
+	// happy-dom has no `getAnimations`. Each browser with view transitions has it.
+	Object.defineProperty(document, "getAnimations", { configurable: true, value: () => [] });
 	vi.spyOn(document.documentElement, "animate").mockImplementation(() => new Animation());
 	return { finish, runUpdates, skipTransition, startViewTransition };
 }
@@ -307,6 +309,7 @@ function stubViewTransition({ deferUpdate = false }: { deferUpdate?: boolean } =
 describe("ThemeSwitcher theme swap", () => {
 	afterEach(() => {
 		Reflect.deleteProperty(document, "startViewTransition");
+		Reflect.deleteProperty(document, "getAnimations");
 	});
 
 	test("with motion allowed, the swap runs in a view transition and marks <html> until it ends", async () => {
