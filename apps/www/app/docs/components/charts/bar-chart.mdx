@@ -4,8 +4,10 @@ description: A bar chart for comparing values across categories, with grouped an
 aliases: [sparkline, bar graph, column chart, histogram]
 ---
 
+import { Badge } from "@ngrok/mantle/badge";
 import { BarChart } from "@ngrok/mantle/bar-chart";
 import { Button } from "@ngrok/mantle/button";
+import { Card } from "@ngrok/mantle/card";
 import { Empty } from "@ngrok/mantle/empty";
 import { useEffect, useState } from "react";
 import { Example } from "~/components/example";
@@ -483,6 +485,75 @@ export function SharedColorBarChartExample() {
 			<BarChart.Tooltip />
 			<BarChart.Legend />
 		</BarChart.Root>
+	);
+}
+
+export function agentThroughput(seed) {
+	// The last hour of one agent's throughput, in 30 buckets of two minutes,
+	// oldest first. The seed gives each agent its own shape.
+	return Array.from({ length: 30 }, (_, bucket) => {
+		const step = bucket + seed * 7;
+		const swell = Math.sin(step * 0.42) * 0.5 + 0.5;
+		const chop = Math.sin(step * 1.87) * 0.5 + 0.5;
+		const noise = (offset) => {
+			const value = Math.sin((step + offset) * 12.9898) * 43758.5453;
+			return value - Math.floor(value);
+		};
+		const inSpike = step % 11 === 0 ? 1.8 : step % 6 === 0 ? 0.32 : 1;
+		const outSpike = step % 9 === 0 ? 1.65 : step % 7 === 0 ? 0.28 : 1;
+		return {
+			minutesAgo: (29 - bucket) * 2,
+			in: Math.max(18, (70 + swell * 430 + chop * 180 + noise(0) * 190) * inSpike),
+			out: Math.max(12, (50 + (1 - swell) * 340 + chop * 250 + noise(99) * 210) * outSpike),
+		};
+	});
+}
+
+export const agents = [
+	{ name: "api-gateway-staging", version: "4.4.1", location: "US-VA-1", endpoints: 6 },
+	{ name: "billing-worker", version: "4.5.0", location: "US-VA-1", endpoints: 5 },
+	{ name: "brians-mac-mini", version: "4.4.1", location: "US-CAL-1", endpoints: 3 },
+].map((agent, seed) => ({ ...agent, traffic: agentThroughput(seed) }));
+
+export function AgentTrafficBarChartExample() {
+	return (
+		<BarChart.List className="flex w-full flex-col gap-3">
+			{agents.map((agent) => (
+				<Card.Root key={agent.name}>
+					<Card.Body className="flex flex-col gap-4 sm:flex-row sm:items-end">
+						<div className="flex min-w-0 flex-1 flex-col gap-2">
+							<span className="text-strong font-medium">{agent.name}</span>
+							<div className="flex flex-wrap items-center gap-2 text-sm">
+								<span>{agent.version}</span>
+								<Badge appearance="muted" color="neutral">
+									US
+								</Badge>
+								<Badge appearance="muted" color="neutral">
+									{agent.location}
+								</Badge>
+								<span>{agent.endpoints} endpoints</span>
+							</div>
+						</div>
+						<BarChart.Root
+							data={agent.traffic}
+							xKey="minutesAgo"
+							stacked
+							aria-label={`Throughput for ${agent.name} over the last hour`}
+							className="aspect-auto h-20 w-full sm:max-w-120 sm:min-w-60 sm:flex-1"
+						>
+							{/* One agent, one color: Out sits on the baseline, and the
+							    hatch marks In on top of it. */}
+							<BarChart.Bar dataKey="out" label="Out" color="neutral" />
+							<BarChart.Bar dataKey="in" label="In" color="neutral" texture="hatch" />
+							<BarChart.Tooltip
+								labelFormat={(minutesAgo) => (minutesAgo === 0 ? "Just now" : `${minutesAgo}m ago`)}
+								valueFormat={(gbits) => `${gbits.toFixed(1)} Gbits/s`}
+							/>
+						</BarChart.Root>
+					</Card.Body>
+				</Card.Root>
+			))}
+		</BarChart.List>
 	);
 }
 
@@ -1316,7 +1387,7 @@ Two rules make it work:
 - **Every member sets the same `color`.** The color names the family, not the member.
 - **Every member carries its own `texture`.** Two series that share a color and a texture paint identically. Nothing warns you. One member may stay solid; the rest take a value each.
 
-Count the costs before you reach for it. One hue no longer names one series, so the legend carries the mapping, and every member needs a `label`. A pair is the clearest form: an Out series with `color="neutral"` beside an In series with `color="neutral"` and `texture="hatch"` reads as the dark and light halves of one agent's traffic.
+Count the costs before you reach for it. One hue no longer names one series, so the legend carries the mapping, and every member needs a `label`. A pair is the clearest form: an Out series with `color="neutral"` beside an In series with `color="neutral"` and `texture="hatch"` reads as the dark and light halves of one agent's traffic. [Neutral bars in a card list](#neutral-bars-in-a-card-list) shows the pair.
 
 Below, the three us-east zones share blue, and `eu-west-1` takes its own color.
 
@@ -1355,6 +1426,91 @@ function SharedColorBarChartExample() {
 			<BarChart.Tooltip />
 			<BarChart.Legend />
 		</BarChart.Root>
+	);
+}
+```
+
+## Neutral bars in a card list
+
+Use `color="neutral"` when a chart gives context to a card and is not its subject. On the dashboard's Agents page, each agent card shows the last hour of throughput beside the agent's name. Out sits on the baseline with `color="neutral"`. In sits on top with `color="neutral"` and `texture="hatch"`. One color names the agent's traffic, and the texture tells the two directions apart.
+
+A chart with no axes and no grid has no plot padding and no zero rule, and the tallest stack leaves 12% headroom. The tooltip leads with the bucket's total. The cards share one live region through [`BarChart.List`](#lists-of-charts).
+
+<Example>
+	<AgentTrafficBarChartExample />
+</Example>
+
+```tsx
+import { Badge } from "@ngrok/mantle/badge";
+import { BarChart } from "@ngrok/mantle/bar-chart";
+import { Card } from "@ngrok/mantle/card";
+
+function agentThroughput(seed) {
+	// The last hour of one agent's throughput, in 30 buckets of two minutes,
+	// oldest first. The seed gives each agent its own shape.
+	return Array.from({ length: 30 }, (_, bucket) => {
+		const step = bucket + seed * 7;
+		const swell = Math.sin(step * 0.42) * 0.5 + 0.5;
+		const chop = Math.sin(step * 1.87) * 0.5 + 0.5;
+		const noise = (offset) => {
+			const value = Math.sin((step + offset) * 12.9898) * 43758.5453;
+			return value - Math.floor(value);
+		};
+		const inSpike = step % 11 === 0 ? 1.8 : step % 6 === 0 ? 0.32 : 1;
+		const outSpike = step % 9 === 0 ? 1.65 : step % 7 === 0 ? 0.28 : 1;
+		return {
+			minutesAgo: (29 - bucket) * 2,
+			in: Math.max(18, (70 + swell * 430 + chop * 180 + noise(0) * 190) * inSpike),
+			out: Math.max(12, (50 + (1 - swell) * 340 + chop * 250 + noise(99) * 210) * outSpike),
+		};
+	});
+}
+
+const agents = [
+	{ name: "api-gateway-staging", version: "4.4.1", location: "US-VA-1", endpoints: 6 },
+	{ name: "billing-worker", version: "4.5.0", location: "US-VA-1", endpoints: 5 },
+	{ name: "brians-mac-mini", version: "4.4.1", location: "US-CAL-1", endpoints: 3 },
+].map((agent, seed) => ({ ...agent, traffic: agentThroughput(seed) }));
+
+function AgentTrafficBarChartExample() {
+	return (
+		<BarChart.List className="flex w-full flex-col gap-3">
+			{agents.map((agent) => (
+				<Card.Root key={agent.name}>
+					<Card.Body className="flex flex-col gap-4 sm:flex-row sm:items-end">
+						<div className="flex min-w-0 flex-1 flex-col gap-2">
+							<span className="text-strong font-medium">{agent.name}</span>
+							<div className="flex flex-wrap items-center gap-2 text-sm">
+								<span>{agent.version}</span>
+								<Badge appearance="muted" color="neutral">
+									US
+								</Badge>
+								<Badge appearance="muted" color="neutral">
+									{agent.location}
+								</Badge>
+								<span>{agent.endpoints} endpoints</span>
+							</div>
+						</div>
+						<BarChart.Root
+							data={agent.traffic}
+							xKey="minutesAgo"
+							stacked
+							aria-label={`Throughput for ${agent.name} over the last hour`}
+							className="aspect-auto h-20 w-full sm:max-w-120 sm:min-w-60 sm:flex-1"
+						>
+							{/* One agent, one color: Out sits on the baseline, and the
+							    hatch marks In on top of it. */}
+							<BarChart.Bar dataKey="out" label="Out" color="neutral" />
+							<BarChart.Bar dataKey="in" label="In" color="neutral" texture="hatch" />
+							<BarChart.Tooltip
+								labelFormat={(minutesAgo) => (minutesAgo === 0 ? "Just now" : `${minutesAgo}m ago`)}
+								valueFormat={(gbits) => `${gbits.toFixed(1)} Gbits/s`}
+							/>
+						</BarChart.Root>
+					</Card.Body>
+				</Card.Root>
+			))}
+		</BarChart.List>
 	);
 }
 ```
