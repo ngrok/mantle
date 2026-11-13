@@ -78,7 +78,7 @@ From a fresh clone, run `./scripts/setup`. It installs mise, the pinned Node and
 Run commands from the repo root with `pnpm -w run <script>` (the root `package.json` lists them). Agents get these wrong:
 
 ```sh
-pnpm -w run start -F @app/www     # the docs site dev server
+pnpm -w run start                 # the docs site dev server
 pnpm -w run test -F @ngrok/mantle # one package
 ```
 

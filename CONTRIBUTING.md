@@ -107,7 +107,7 @@ To get started, run:
 pnpm -w run start
 ```
 
-This starts the react-router documentation site. It watches components for changes, so your changes appear instantly.
+This builds the packages that the documentation site needs, then starts the site. It watches components for changes, so your changes appear instantly.
 
 ## Scaffolding a New Component
 
