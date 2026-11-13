@@ -428,8 +428,8 @@ type StyleSheetLayer = { name: string; declarations: Map<string, string> };
  *
  * @example
  * ```ts
- * collectDeclarations(":root { --color-chart-1: var(--color-blue-500); }");
- * // Map { "--color-chart-1" => "var(--color-blue-500)" }
+ * collectDeclarations(":root { --color-chart-blue: var(--color-blue-500); }");
+ * // Map { "--color-chart-blue" => "var(--color-blue-500)" }
  * ```
  */
 const collectDeclarations = (css: string): Map<string, string> => {
@@ -474,7 +474,7 @@ type ResolvedProperty = { name: string; literal: string; source: string };
  *
  * @example
  * ```ts
- * resolveProperty([layer("mantle.css", css)], "--color-chart-1");
+ * resolveProperty([layer("mantle.css", css)], "--color-chart-blue");
  * // { name: "--color-blue-500", literal: "oklch(58.4% 0.2069 265.3)", source: "mantle.css" }
  * ```
  */

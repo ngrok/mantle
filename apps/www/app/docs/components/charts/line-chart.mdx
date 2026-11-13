@@ -23,8 +23,8 @@ export function LatencyExample() {
 			<LineChart.Grid />
 			<LineChart.XAxis />
 			<LineChart.YAxis tickFormat={(value) => `${value}ms`} />
-			<LineChart.Line dataKey="p50" label="p50" />
-			<LineChart.Line dataKey="p99" label="p99" />
+			<LineChart.Line dataKey="p50" label="p50" color="blue" />
+			<LineChart.Line dataKey="p99" label="p99" color="emerald" />
 			<LineChart.Tooltip valueFormat={(value) => `${value}ms`} />
 			<LineChart.Legend />
 		</LineChart.Root>
@@ -37,8 +37,8 @@ export function CopyMarkdownExample() {
 			<LineChart.Grid />
 			<LineChart.XAxis />
 			<LineChart.YAxis tickFormat={(value) => `${value}ms`} />
-			<LineChart.Line dataKey="p50" label="p50" />
-			<LineChart.Line dataKey="p99" label="p99" />
+			<LineChart.Line dataKey="p50" label="p50" color="blue" />
+			<LineChart.Line dataKey="p99" label="p99" color="emerald" />
 			<LineChart.Tooltip valueFormat={(value) => `${value}ms`} />
 			<LineChart.Legend />
 			<LineChart.CopyButton className="absolute right-0 top-0" />
@@ -62,8 +62,15 @@ export function CurveMarkersExample() {
 			<LineChart.Grid />
 			<LineChart.XAxis />
 			<LineChart.YAxis />
-			<LineChart.Line dataKey="thisWeek" label="This week" curve="monotone" markers />
-			<LineChart.Line dataKey="lastWeek" label="Last week" curve="monotone" markers />
+			<LineChart.Line dataKey="thisWeek" label="This week" curve="monotone" markers color="blue" />
+			<LineChart.Line
+				dataKey="lastWeek"
+				label="Last week"
+				curve="monotone"
+				markers
+				color="emerald"
+				shape="square"
+			/>
 			<LineChart.Tooltip />
 			<LineChart.Legend />
 		</LineChart.Root>
@@ -92,7 +99,7 @@ export function HighDensityExample() {
 			<LineChart.Grid />
 			<LineChart.XAxis />
 			<LineChart.YAxis />
-			<LineChart.Line dataKey="value" label="Value" />
+			<LineChart.Line dataKey="value" label="Value" color="blue" />
 			<LineChart.Tooltip />
 		</LineChart.Root>
 	);
@@ -123,8 +130,8 @@ export function GapsExample() {
 			<LineChart.Grid />
 			<LineChart.XAxis />
 			<LineChart.YAxis tickFormat={(value) => `${value}°C`} />
-			<LineChart.Line dataKey="roof" label="Roof (gaps)" />
-			<LineChart.Line dataKey="lobby" label="Lobby (connectNulls)" connectNulls />
+			<LineChart.Line dataKey="roof" label="Roof (gaps)" color="blue" />
+			<LineChart.Line dataKey="lobby" label="Lobby (connectNulls)" connectNulls color="emerald" />
 			<LineChart.Tooltip valueFormat={(value) => `${value}°C`} />
 			<LineChart.Legend />
 		</LineChart.Root>
@@ -147,7 +154,7 @@ export function ReferenceLineExample() {
 			<LineChart.Grid />
 			<LineChart.XAxis />
 			<LineChart.YAxis tickFormat={(value) => `${value}%`} />
-			<LineChart.Line dataKey="errorRate" label="Error rate" color="var(--color-danger-600)" />
+			<LineChart.Line dataKey="errorRate" label="Error rate" color="danger" />
 			<LineChart.ReferenceLine y={1} label="SLO" />
 			<LineChart.Tooltip valueFormat={(value) => `${value}%`} />
 		</LineChart.Root>
@@ -176,7 +183,7 @@ export function LinkedChartsExample() {
 				<LineChart.Grid />
 				<LineChart.XAxis />
 				<LineChart.YAxis />
-				<LineChart.Line dataKey="requests" label="Requests" />
+				<LineChart.Line dataKey="requests" label="Requests" color="blue" />
 				<LineChart.Tooltip />
 			</LineChart.Root>
 			<LineChart.Root
@@ -190,7 +197,7 @@ export function LinkedChartsExample() {
 				<LineChart.Grid />
 				<LineChart.XAxis />
 				<LineChart.YAxis />
-				<LineChart.Line dataKey="errors" label="Errors" color="var(--color-danger-600)" />
+				<LineChart.Line dataKey="errors" label="Errors" color="danger" />
 				<LineChart.Tooltip />
 			</LineChart.Root>
 		</div>
@@ -234,8 +241,8 @@ export function LiveLineExample() {
 				tickFormat={(value) => (value instanceof Date ? formatClock.format(value) : String(value))}
 			/>
 			<LineChart.YAxis tickFormat={(value) => `${value}ms`} />
-			<LineChart.Line dataKey="p50" label="p50" />
-			<LineChart.Line dataKey="p99" label="p99" />
+			<LineChart.Line dataKey="p50" label="p50" color="blue" />
+			<LineChart.Line dataKey="p99" label="p99" color="emerald" />
 			<LineChart.Tooltip
 				valueFormat={(value) => `${value}ms`}
 				labelFormat={(value) => (value instanceof Date ? formatClock.format(value) : String(value))}
@@ -254,7 +261,7 @@ export function EmptyStateLineChartExample() {
 	return (
 		<div className="relative w-full">
 			<LineChart.Root data={placeholderLatency} xKey="minute" mode="decorative">
-				<LineChart.Line dataKey="value" curve="monotone" />
+				<LineChart.Line dataKey="value" curve="monotone" color="blue" />
 			</LineChart.Root>
 			<Empty.Root className="absolute inset-0 m-auto h-fit w-fit">
 				<Empty.Title>No latency data yet</Empty.Title>
@@ -274,19 +281,14 @@ export function SeriesIdentityLineChartExample() {
 			// An app declares its brand token once, high in the tree. This example
 			// declares it beside the override so it stands alone. A theme that needs
 			// its own value takes a variant: `dark:[--color-brand:…]`.
-			className="[--color-brand:#d07c00] [--color-chart-1:var(--color-brand)]"
+			className="[--color-brand:#d07c00] [--color-chart-blue:var(--color-brand)]"
 			aria-label="Signups by day of week"
 		>
 			<LineChart.Grid />
 			<LineChart.XAxis />
 			<LineChart.YAxis />
-			<LineChart.Line dataKey="thisWeek" label="This week" />
-			<LineChart.Line
-				dataKey="lastWeek"
-				label="Last week"
-				seriesSlot={4}
-				color="var(--color-accent-600)"
-			/>
+			<LineChart.Line dataKey="thisWeek" label="This week" color="blue" />
+			<LineChart.Line dataKey="lastWeek" label="Last week" color="gray" shape="square" />
 			<LineChart.Tooltip />
 			<LineChart.Legend />
 		</LineChart.Root>
@@ -306,7 +308,7 @@ A `LineChart` answers "how is this changing?" and "do these series move together
 
 The x scale is auto-detected from the first row's x value: `Date` values get a `"time"` scale with calendar-aware ticks, numbers get `"linear"`, and strings get `"point"` (evenly spaced categories). Pass `xScale` when detection guesses wrong. For example, epoch-millisecond numbers auto-detect as `"linear"`, so pass `xScale="time"` to read them as time.
 
-**Keep it to eight series or fewer.** The default chart tokens are eight validated categorical slots. The ninth series onward all wear the neutral `--color-chart-other`, so a dozen keys legend as a wall of identical gray. Eight is the palette's measured limit, not a style preference: all 28 pairs of the eight clear the colorblind-safe gates, and the closest pair clears its floor by 0.054 ΔE. A ninth hue has nowhere to sit. Rank by the window's total, keep the top seven, and sum the rest into one `"Other"` series. The Bar Chart page carries [a worked fold](/components/charts/bar-chart#when-to-use). Set the fold's own `Line` to `seriesSlot="other"`, so it reads as the tail rather than taking a categorical slot.
+**Keep a chart to eight series.** A dozen lines in one plot is a tangle no reader can follow. Rank the series by the window's total, keep the top seven, and sum the rest into one `"Other"` series. Give the Other line `color="neutral"`, so it reads as the tail and not as one more series. The Bar Chart page carries [a worked fold](/components/charts/bar-chart#when-to-use).
 
 Compose `LineChart.Root` with one `LineChart.Line` per series. Every chart requires an accessible name (`aria-label` or `aria-labelledby`), and every multi-series chart composes `LineChart.Legend` — identity must never rely on color-matching alone. Hover or focus the chart and arrow around: the tooltip reads every series at the active x.
 
@@ -331,8 +333,8 @@ function LatencyExample() {
 			<LineChart.Grid />
 			<LineChart.XAxis />
 			<LineChart.YAxis tickFormat={(value) => `${value}ms`} />
-			<LineChart.Line dataKey="p50" label="p50" />
-			<LineChart.Line dataKey="p99" label="p99" />
+			<LineChart.Line dataKey="p50" label="p50" color="blue" />
+			<LineChart.Line dataKey="p99" label="p99" color="emerald" />
 			<LineChart.Tooltip valueFormat={(value) => `${value}ms`} />
 			<LineChart.Legend />
 		</LineChart.Root>
@@ -344,7 +346,7 @@ function LatencyExample() {
 
 `curve` controls interpolation between points: `"linear"` (the default), `"monotone"` (smoothed without overshooting the data), or `"step"`. `markers` draws a dot with a surface ring at each point. Markers auto-hide when points get denser than ~12px apart, so a chart that grows dense never turns to gravel. `shape` picks the marker glyph per series, and the hover dot and legend key wear it too.
 
-Eight glyphs match the palette's eight series slots: `"circle"`, `"square"`, `"triangle"`, `"diamond"`, `"triangle-down"`, `"plus"`, `"cross"`, `"star"`, in that order. A series that sets no `shape` wears the glyph of its slot. Neither line below sets one: this week takes slot 1 and its circle, last week slot 2 and its square, on the markers, in the legend, and under the crosshair. Every chart therefore carries a second identity channel by default. That channel matters where color cannot carry identity alone: a reader with a color vision deficiency, a grayscale print or export, forced-colors mode. Set `seriesSlot={3}` for a fixed triangle identity. Set `shape` to override only the glyph. All chart families share the glyph set; [Point shapes](/components/charts/scatter-plot#point-shapes) on the scatter plot page is the full treatment.
+The glyphs are `"circle"`, `"square"`, `"triangle"`, `"diamond"`, `"triangle-down"`, `"plus"`, `"cross"`, and `"star"`. Every series wears `"circle"` until you set `shape`, and the chart never picks a glyph for you. Below, last week sets `shape="square"`, so it wears a square on its markers, in the legend, and under the crosshair. That second channel matters where color can't carry identity alone: a reader with a color vision deficiency, a grayscale print or export, forced-colors mode. All chart families share the glyph set; [Point shapes](/components/charts/scatter-plot#point-shapes) on the scatter plot page is the full treatment.
 
 String x values put the chart on a `"point"` scale: evenly spaced categorical positions with no band thickness.
 
@@ -371,8 +373,15 @@ function CurveMarkersExample() {
 			<LineChart.Grid />
 			<LineChart.XAxis />
 			<LineChart.YAxis />
-			<LineChart.Line dataKey="thisWeek" label="This week" curve="monotone" markers />
-			<LineChart.Line dataKey="lastWeek" label="Last week" curve="monotone" markers />
+			<LineChart.Line dataKey="thisWeek" label="This week" curve="monotone" markers color="blue" />
+			<LineChart.Line
+				dataKey="lastWeek"
+				label="Last week"
+				curve="monotone"
+				markers
+				color="emerald"
+				shape="square"
+			/>
 			<LineChart.Tooltip />
 			<LineChart.Legend />
 		</LineChart.Root>
@@ -413,7 +422,7 @@ function HighDensityExample() {
 			<LineChart.Grid />
 			<LineChart.XAxis />
 			<LineChart.YAxis />
-			<LineChart.Line dataKey="value" label="Value" />
+			<LineChart.Line dataKey="value" label="Value" color="blue" />
 			<LineChart.Tooltip />
 		</LineChart.Root>
 	);
@@ -456,8 +465,8 @@ function GapsExample() {
 			<LineChart.Grid />
 			<LineChart.XAxis />
 			<LineChart.YAxis tickFormat={(value) => `${value}°C`} />
-			<LineChart.Line dataKey="roof" label="Roof (gaps)" />
-			<LineChart.Line dataKey="lobby" label="Lobby (connectNulls)" connectNulls />
+			<LineChart.Line dataKey="roof" label="Roof (gaps)" color="blue" />
+			<LineChart.Line dataKey="lobby" label="Lobby (connectNulls)" connectNulls color="emerald" />
 			<LineChart.Tooltip valueFormat={(value) => `${value}°C`} />
 			<LineChart.Legend />
 		</LineChart.Root>
@@ -467,7 +476,7 @@ function GapsExample() {
 
 ## Reference lines
 
-`LineChart.ReferenceLine` paints a dashed horizontal marker at a y value — an SLO threshold, a budget, a limit — in the neutral reference color, with an optional label above its right end. Two conventions worth copying here: a series that carries bad meaning (an error rate) wears a semantic status color instead of a categorical chart slot, and `yDomain` anchors the rate at zero so the distance to the threshold reads truthfully.
+`LineChart.ReferenceLine` paints a dashed horizontal marker at a y value — an SLO threshold, a budget, a limit — in the neutral reference color, with an optional label above its right end. Two conventions worth copying here: a series that carries bad meaning (an error rate) wears the functional `color="danger"`, and `yDomain` anchors the rate at zero so the distance to the threshold reads truthfully.
 
 <Example>
 	<ReferenceLineExample />
@@ -492,7 +501,7 @@ function ReferenceLineExample() {
 			<LineChart.Grid />
 			<LineChart.XAxis />
 			<LineChart.YAxis tickFormat={(value) => `${value}%`} />
-			<LineChart.Line dataKey="errorRate" label="Error rate" color="var(--color-danger-600)" />
+			<LineChart.Line dataKey="errorRate" label="Error rate" color="danger" />
 			<LineChart.ReferenceLine y={1} label="SLO" />
 			<LineChart.Tooltip valueFormat={(value) => `${value}%`} />
 		</LineChart.Root>
@@ -535,7 +544,7 @@ function LinkedChartsExample() {
 				<LineChart.Grid />
 				<LineChart.XAxis />
 				<LineChart.YAxis />
-				<LineChart.Line dataKey="requests" label="Requests" />
+				<LineChart.Line dataKey="requests" label="Requests" color="blue" />
 				<LineChart.Tooltip />
 			</LineChart.Root>
 			<LineChart.Root
@@ -549,7 +558,7 @@ function LinkedChartsExample() {
 				<LineChart.Grid />
 				<LineChart.XAxis />
 				<LineChart.YAxis />
-				<LineChart.Line dataKey="errors" label="Errors" color="var(--color-danger-600)" />
+				<LineChart.Line dataKey="errors" label="Errors" color="danger" />
 				<LineChart.Tooltip />
 			</LineChart.Root>
 		</div>
@@ -613,8 +622,8 @@ function LiveLineExample() {
 				tickFormat={(value) => (value instanceof Date ? formatClock.format(value) : String(value))}
 			/>
 			<LineChart.YAxis tickFormat={(value) => `${value}ms`} />
-			<LineChart.Line dataKey="p50" label="p50" />
-			<LineChart.Line dataKey="p99" label="p99" />
+			<LineChart.Line dataKey="p50" label="p50" color="blue" />
+			<LineChart.Line dataKey="p99" label="p99" color="emerald" />
 			<LineChart.Tooltip
 				valueFormat={(value) => `${value}ms`}
 				labelFormat={(value) => (value instanceof Date ? formatClock.format(value) : String(value))}
@@ -642,8 +651,8 @@ import { LineChart } from "@ngrok/mantle/line-chart";
 	<LineChart.Grid />
 	<LineChart.XAxis />
 	<LineChart.YAxis tickFormat={(value) => `${value}ms`} />
-	<LineChart.Line dataKey="p50" label="p50" />
-	<LineChart.Line dataKey="p99" label="p99" />
+	<LineChart.Line dataKey="p50" label="p50" color="blue" />
+	<LineChart.Line dataKey="p99" label="p99" color="emerald" />
 	<LineChart.Tooltip valueFormat={(value) => `${value}ms`} />
 	<LineChart.Legend />
 	<LineChart.CopyButton className="absolute right-0 top-0" />
@@ -681,7 +690,7 @@ Set `mode="static"` for a chart a reader glances at while the exact values sit b
 		aria-label={`Requests for ${service.name}, last 30 days`}
 		className="aspect-auto h-6 w-28"
 	>
-		<LineChart.Line dataKey="count" label="Requests" />
+		<LineChart.Line dataKey="count" label="Requests" color="blue" />
 	</LineChart.Root>
 	<span className="text-muted text-xs tabular-nums">{compact(service.requestTotal)}</span>
 </div>
@@ -691,7 +700,7 @@ Set `mode="static"` for a chart a reader glances at while the exact values sit b
 
 Set `mode="decorative"` to render the chart as a placeholder backdrop instead of real data: a synthetic line behind an empty state, an atmospheric hero graphic. A decorative chart keeps its visual rendering and animation but drops every layer that only makes sense for real data: it is hidden from assistive technology, removed from the tab order, and inert to pointer and keyboard, with no hover band, tooltip, sr-only data table, or live region. Because the values aren't information, `mode="decorative"` is mutually exclusive with the accessible-name props (`aria-label` / `aria-labelledby`) and the interaction props (`activeIndex`, `onActiveIndexChange`, `onDatumActivate`); the type won't compile with both.
 
-A decorative chart also drops the categorical palette. Every series paints `--color-chart-decorative`, one neutral fill that outranks a series' `color` and `seriesSlot`. A backdrop carries no series identity, and a hue on values that are not information invites a reader to decode it.
+A decorative chart also drops the series colors. Every series paints `--color-chart-decorative`, one neutral fill that outranks a series' `color`. A backdrop carries no series identity, and a hue on values that are not information invites a reader to decode it.
 
 **That fill is what keeps an overlaid message readable.** `Empty.Description` sits on `text-muted`, which measures 4.88:1 on a bare light card: 0.38 over the 4.5:1 floor for 14px text, so any tint under that copy spends the headroom. `--color-chart-decorative` is the darkest neutral step that still clears the floor in both themes: 4.56:1 in light and 4.93:1 in dark. The message needs no scrim behind it, no dimming, and no blur. Redeclare the token on the Root to retune the fill (`className="[--color-chart-decorative:var(--color-neutral-100)]"`) and re-measure the copy against the value you pick.
 
@@ -717,7 +726,7 @@ function EmptyStateLineChartExample() {
 	return (
 		<div className="relative w-full">
 			<LineChart.Root data={placeholderLatency} xKey="minute" mode="decorative">
-				<LineChart.Line dataKey="value" curve="monotone" />
+				<LineChart.Line dataKey="value" curve="monotone" color="blue" />
 			</LineChart.Root>
 			{/* The real message is a sibling of the chart, so AT still announces it. */}
 			<Empty.Root className="absolute inset-0 m-auto h-fit w-fit">
@@ -753,6 +762,14 @@ Wrap a list of Roots in `LineChart.List` so they share one live region:
 LineChart.List
 └── LineChart.Root (one per chart)
 ```
+
+## Color and accessibility
+
+A line is a part of the graphic that a reader needs to understand the chart. So WCAG 2.2 [SC 1.4.11 Non-text Contrast](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html) asks for 3:1 between each line and the card behind it. Lines don't need 3:1 against each other or against the gridlines. In dark mode, every color name clears 3:1 on the card. In light mode, every name clears it except `yellow` (2.94:1). A 2px line carries less paint than a bar or an area, so give a line another name before you give it `yellow`.
+
+Mantle doesn't promise that any set of names stays apart for a color-blind reader. Pick colors that differ in lightness as well as hue. When lines cross or run close together, give each line its own `shape`, as [Curves, markers, and shapes](#curves-markers-and-shapes) does. The legend key and the hover dot always wear the glyph, and the point markers wear it when `markers` is on.
+
+The [Bar Chart page](/components/charts/bar-chart#color-and-accessibility) covers the rest: mantle's stance, what counts as an exemption under SC 1.4.11, and the eight-series guidance.
 
 ## Accessibility
 
@@ -817,22 +834,21 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | `data-slot`    | `"line-chart-data-table"`                                                                           | The `sr-only` data table. Mounts once focus lands inside the chart (`data-state` flips to `"engaged"`) and stays. Interactive charts only.                                                                                                                                                                                                                |
 | `data-state`   | `"dormant"` \| `"engaged"`                                                                          | On the Root. Flips to `"engaged"` once focus lands inside the chart, and never flips back. The data table mounts with it. Visibility paints the chart but never flips it. Interactive charts only.                                                                                                                                                        |
 | `data-slot`    | `"chart-active-point"`                                                                              | One hover dot inside the markers layer. Also carries `data-shape`.                                                                                                                                                                                                                                                                                        |
-| `data-shape`   | `"circle" \| "square" \| "triangle" \| "diamond" \| "triangle-down" \| "plus" \| "cross" \| "star"` | On each hover dot, naming the glyph its series wears — the `shape` it set, else the one paired to its series slot. The dot clips itself to that glyph, so target this only to restyle a dot.                                                                                                                                                              |
+| `data-shape`   | `"circle" \| "square" \| "triangle" \| "diamond" \| "triangle-down" \| "plus" \| "cross" \| "star"` | On each hover dot, naming the glyph its series wears — the `shape` it set, else `"circle"`. The dot clips itself to that glyph, so target this only to restyle a dot.                                                                                                                                                                                     |
 
 ### LineChart.Line
 
 One line series. Renders nothing itself — it registers the series with the chart, which paints it. Compose one `Line` per series.
 
-| Prop            | Type                                                                                                | Default                             | Description                                                                                                                                                                           |
-| --------------- | --------------------------------------------------------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `dataKey`       | `string`                                                                                            |                                     | The row key this series reads its numeric values from.                                                                                                                                |
-| `label?`        | `string`                                                                                            | `dataKey`                           | Display name for the legend, tooltip, and data table.                                                                                                                                 |
-| `seriesSlot?`   | `1 \| 2 \| 3 \| 4 \| 5 \| 6 \| 7 \| 8 \| "other"`                                                   | next unreserved slot                | Give the series a fixed color-and-shape identity. See [Chart color tokens](#chart-color-tokens).                                                                                      |
-| `color?`        | `SeriesColor`                                                                                       | color from the resolved slot        | Override only the color channel with a chart token or CSS color string. This does not change the series slot or default shape. See [Chart color tokens](#chart-color-tokens).         |
-| `curve?`        | `"linear"` \| `"monotone"` \| `"step"`                                                              | `"linear"`                          | Interpolation between points. `"monotone"` smooths without overshooting the data.                                                                                                     |
-| `markers?`      | `boolean`                                                                                           | `false`                             | Draw point markers with a surface ring. Auto-hidden when points are denser than ~12px apart.                                                                                          |
-| `connectNulls?` | `boolean`                                                                                           | `false`                             | Join across `null`/missing values instead of leaving gaps. Gaps are the default and usually correct.                                                                                  |
-| `shape?`        | `"circle" \| "square" \| "triangle" \| "diamond" \| "triangle-down" \| "plus" \| "cross" \| "star"` | the glyph paired to the series slot | The glyph the hover dot, the painted point markers, and the legend key wear. This overrides only the shape channel. See [Point shapes](/components/charts/scatter-plot#point-shapes). |
+| Prop            | Type                                                                                                | Default    | Description                                                                                                                                                                               |
+| --------------- | --------------------------------------------------------------------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dataKey`       | `string`                                                                                            |            | The row key this series reads its numeric values from.                                                                                                                                    |
+| `label?`        | `string`                                                                                            | `dataKey`  | Display name for the legend, tooltip, and data table.                                                                                                                                     |
+| `color`         | `SeriesColor`                                                                                       |            | The color the series paints: a mantle color name (the `Color` that `Badge` takes) or any CSS color. Required. See [Chart color tokens](#chart-color-tokens).                              |
+| `curve?`        | `"linear"` \| `"monotone"` \| `"step"`                                                              | `"linear"` | Interpolation between points. `"monotone"` smooths without overshooting the data.                                                                                                         |
+| `markers?`      | `boolean`                                                                                           | `false`    | Draw point markers with a surface ring. Auto-hidden when points are denser than ~12px apart.                                                                                              |
+| `connectNulls?` | `boolean`                                                                                           | `false`    | Join across `null`/missing values instead of leaving gaps. Gaps are the default and usually correct.                                                                                      |
+| `shape?`        | `"circle" \| "square" \| "triangle" \| "diamond" \| "triangle-down" \| "plus" \| "cross" \| "star"` | `"circle"` | The glyph the hover dot, the painted point markers, and the legend key wear. Set it for a second encoding beside color. See [Point shapes](/components/charts/scatter-plot#point-shapes). |
 
 ### LineChart.Grid
 
@@ -948,38 +964,23 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 ### Chart color tokens
 
-The ordered `--color-chart-1`…`--color-chart-8` tokens define the built-in series identities. Each of the two themes (light and dark) authors its own eight `oklch()` literals, measured so all 28 pairs hold 15 ΔE apart for full-color vision and 8 ΔE under simulated protanopia or deuteranopia, and so every slot clears 3:1 against that theme's card surface. The semantic ramps are deliberately excluded, so a series never reads as a status color.
+Every series names its own `color`. A mantle color name reads its chart token: `color="blue"` paints `--color-chart-blue`. The names are the `Color` that `Badge` takes: the hues `amber`, `blue`, `cyan`, `emerald`, `fuchsia`, `gray`, `green`, `indigo`, `lime`, `orange`, `pink`, `purple`, `red`, `rose`, `sky`, `teal`, `violet`, and `yellow`, plus the functional names `accent`, `danger`, `important`, `info`, `neutral`, `success`, and `warning`. Give a series that means good or bad a functional name (`danger` for an error rate), and give an "Other" series `neutral`.
 
-Series receive unreserved slots in composition order. Set `seriesSlot` to give a series a fixed visual identity. Mantle reserves fixed slots before automatic series take the remaining slots. Removing an automatic series closes the gap. The `color` and `shape` props override only their own channels and never change slot assignment. `seriesSlot="other"` selects the neutral tail treatment without reserving a categorical slot. When the chart runs out of unreserved categorical slots, later automatic series paint with `--color-chart-other`. Fold the long tail into a single "Other" series instead. Eight is the validated limit, and no ninth hue clears it.
+| CSS Variable                 | Description                                                                                                                                                                                                                                                                                  |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--color-chart-<hue>`        | One token for each hue name. Dark mode uses the hue's 500 step. Light mode uses its 600 step, because 500 reads washed out on a white card.                                                                                                                                                  |
+| `--color-chart-<functional>` | One token for each functional name. Each aliases the hue its status color uses: `accent` and `info` → `sky`, `danger` → `rose`, `important` → `purple`, `success` → `emerald`, `warning` → `amber`. `neutral` is `--color-neutral-500` in dark mode and `--color-neutral-600` in light mode. |
+| `--color-chart-decorative`   | The neutral fill every series wears on a [decorative chart](#decorative-charts), in place of its own color.                                                                                                                                                                                  |
 
-| CSS Variable               | Description                                                                                                                       |
-| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `--color-chart-1`          | The first categorical series slot (blue).                                                                                         |
-| `--color-chart-2`          | The second categorical series slot (green).                                                                                       |
-| `--color-chart-3`          | The third categorical series slot (pink).                                                                                         |
-| `--color-chart-4`          | The fourth categorical series slot (red-orange).                                                                                  |
-| `--color-chart-5`          | The fifth categorical series slot (teal).                                                                                         |
-| `--color-chart-6`          | The sixth categorical series slot (magenta).                                                                                      |
-| `--color-chart-7`          | The seventh categorical series slot (violet).                                                                                     |
-| `--color-chart-8`          | The eighth categorical series slot (amber).                                                                                       |
-| `--color-chart-other`      | The fold slot, worn once more than eight series show at once (neutral gray). Collapse the long tail into a single "Other" series. |
-| `--color-chart-decorative` | The neutral fill every series wears on a [decorative chart](#decorative-charts), in place of its categorical slot.                |
+The `color` prop also takes any CSS color string. A raw hex can't follow the two themes, so prefer a `var(...)` reference to a token you declare for each theme. A color you pick for yourself has no measurement behind it: check it for 3:1 against the card, as [Color and accessibility](#color-and-accessibility) describes.
 
-The Bar Chart page records [what each theme measures](/components/charts/bar-chart#chart-color-tokens) over those 28 pairs.
+#### Restyle a color for one chart
 
-The `color` escape hatch accepts any CSS color string, but static colors (a raw hex) do not adapt across themes — prefer a `var(...)` reference to a theme-aware token, and validate custom palettes for surface contrast and for colorblind-safe separation from every other color on the chart, just like the defaults. A series that carries good/bad meaning — an error rate, a pass/fail split — should wear the semantic status colors (e.g. `var(--color-danger-600)`), never a categorical slot.
-
-#### Series identity and color
-
-Three public paths control a series identity or color.
-
-- **Fixed identity** — pass `seriesSlot` on `LineChart.Line`. It reserves one built-in color-and-shape pairing before automatic series take the remaining slots.
-- **One color channel** — pass `color` on `LineChart.Line`. It takes a chart token by name or any CSS color string without changing the slot or default shape.
-- **One chart** — redeclare the token on `LineChart.Root`: `className="[--color-chart-1:var(--color-brand)]"`. Every series that lands in slot 1 picks the new value up. So do its legend key and hover dot.
+Redeclare a token on `LineChart.Root` to change what one name paints in that chart alone: `className="[--color-chart-blue:var(--color-brand)]"`. Every series that sets `color="blue"` picks up the new value, and so do its legend key and hover dot.
 
 The chart paints every token as CSS, so the browser resolves it inside the Root's own cascade, with no computed-style read and no hidden probe element. A declaration scoped to one Root wins for that chart alone, and sibling charts on the page keep the theme value. Declare the same custom property higher up (on a dashboard wrapper, or at `:root`) to retheme a whole subtree.
 
-An overridden color leaves mantle's gates behind, so measure the value you set against the slots its neighbors hold. The example fixes Last week at slot 4 for a diamond identity, then overrides only its paint.
+Below, this week paints the brand color through `color="blue"`. Last week wears `gray`, and its square glyph in the legend and under the crosshair keeps it apart from this week by shape as well as color.
 
 <Example>
 	<SeriesIdentityLineChartExample />
@@ -1006,19 +1007,14 @@ function SeriesIdentityLineChartExample() {
 			// An app declares its brand token once, high in the tree. This example
 			// declares it beside the override so it stands alone. A theme that needs
 			// its own value takes a variant: `dark:[--color-brand:…]`.
-			className="[--color-brand:#d07c00] [--color-chart-1:var(--color-brand)]"
+			className="[--color-brand:#d07c00] [--color-chart-blue:var(--color-brand)]"
 			aria-label="Signups by day of week"
 		>
 			<LineChart.Grid />
 			<LineChart.XAxis />
 			<LineChart.YAxis />
-			<LineChart.Line dataKey="thisWeek" label="This week" />
-			<LineChart.Line
-				dataKey="lastWeek"
-				label="Last week"
-				seriesSlot={4}
-				color="var(--color-accent-600)"
-			/>
+			<LineChart.Line dataKey="thisWeek" label="This week" color="blue" />
+			<LineChart.Line dataKey="lastWeek" label="Last week" color="gray" shape="square" />
 			<LineChart.Tooltip />
 			<LineChart.Legend />
 		</LineChart.Root>

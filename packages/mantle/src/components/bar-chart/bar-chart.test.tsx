@@ -22,8 +22,8 @@ const renderChart = (extraRootProps: Record<string, unknown> = {}) =>
 			<BarChart.Grid />
 			<BarChart.XAxis />
 			<BarChart.YAxis />
-			<BarChart.Bar dataKey="desktop" label="Desktop" />
-			<BarChart.Bar dataKey="mobile" label="Mobile" />
+			<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
+			<BarChart.Bar dataKey="mobile" label="Mobile" color="emerald" />
 			<BarChart.Tooltip />
 			<BarChart.Legend />
 		</BarChart.Root>,
@@ -50,7 +50,7 @@ describe("BarChart.Root", () => {
 			<>
 				<h2 id="visitors-title">Visitors by month</h2>
 				<BarChart.Root data={data} xKey="month" aria-labelledby="visitors-title">
-					<BarChart.Bar dataKey="desktop" label="Desktop" />
+					<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 				</BarChart.Root>
 			</>,
 		);
@@ -74,7 +74,7 @@ describe("BarChart.Root", () => {
 		expect(() =>
 			render(
 				<BarChart.Root data={untypedRows} xKey="mnth" aria-label="Typo chart">
-					<BarChart.Bar dataKey="desktop" label="Desktop" />
+					<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 				</BarChart.Root>,
 			),
 		).toThrow(/BarChart\.Root xKey "mnth" does not match any key.*month, desktop, mobile/);
@@ -91,7 +91,7 @@ describe("BarChart.Root", () => {
 				data-testid="chart-root"
 				ref={ref}
 			>
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 			</BarChart.Root>,
 		);
 		const root = container.querySelector('[data-slot="bar-chart"]');
@@ -119,7 +119,7 @@ describe("BarChart.Root", () => {
 		}));
 		render(
 			<BarChart.Root data={bigData} xKey="month" aria-label="Large chart">
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 			</BarChart.Root>,
 		);
 		engageChart();
@@ -131,7 +131,7 @@ describe("BarChart.Root", () => {
 	test("empty data renders without crashing and without a table", () => {
 		render(
 			<BarChart.Root data={[]} xKey="month" aria-label="Empty chart">
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 			</BarChart.Root>,
 		);
 		expect(screen.getByRole("application", { name: "Empty chart" })).toBeInTheDocument();
@@ -143,7 +143,7 @@ describe("BarChart.Root", () => {
 		expect(() =>
 			render(
 				<BarChart.Root data={data} xKey="month" aria-label="Typo chart">
-					<BarChart.Bar dataKey="desktp" label="Desktop" />
+					<BarChart.Bar dataKey="desktp" label="Desktop" color="blue" />
 				</BarChart.Root>,
 			),
 		).toThrow(/dataKey "desktp" does not match any key.*month, desktop, mobile/);
@@ -198,7 +198,7 @@ describe("BarChart data slots", () => {
 		// dead DOM; the surface still paints the placeholder.
 		const { container } = render(
 			<BarChart.Root data={data} xKey="month" mode="decorative">
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 			</BarChart.Root>,
 		);
 		expect(container.querySelector('[data-slot="bar-chart-svg"]')).toBeInTheDocument();
@@ -219,16 +219,16 @@ describe("BarChart series paint order", () => {
 	test("reordering the Bar parts does not reorder the series", () => {
 		const { rerender } = render(
 			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
-				<BarChart.Bar dataKey="mobile" label="Mobile" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
+				<BarChart.Bar dataKey="mobile" label="Mobile" color="emerald" />
 			</BarChart.Root>,
 		);
 		engageChart();
 		expect(seriesColumns()).toEqual(["Desktop", "Mobile"]);
 		rerender(
 			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
-				<BarChart.Bar dataKey="mobile" label="Mobile" />
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Bar dataKey="mobile" label="Mobile" color="blue" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="emerald" />
 			</BarChart.Root>,
 		);
 		// The position sticks to the dataKey, which is what keeps a series from
@@ -243,14 +243,14 @@ describe("BarChart series paint order", () => {
 		];
 		const { rerender } = render(
 			<BarChart.Root data={withTablet} xKey="month" aria-label="Visitors by month">
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 			</BarChart.Root>,
 		);
 		engageChart();
 		rerender(
 			<BarChart.Root data={withTablet} xKey="month" aria-label="Visitors by month">
-				<BarChart.Bar dataKey="tablet" label="Tablet" />
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Bar dataKey="tablet" label="Tablet" color="blue" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="emerald" />
 			</BarChart.Root>,
 		);
 		expect(seriesColumns()).toEqual(["Desktop", "Tablet"]);
@@ -259,7 +259,7 @@ describe("BarChart series paint order", () => {
 
 test("a BarChart part rendered outside Root throws", () => {
 	vi.spyOn(console, "error").mockImplementation(() => {});
-	expect(() => render(<BarChart.Bar dataKey="desktop" />)).toThrow(
+	expect(() => render(<BarChart.Bar dataKey="desktop" color="pink" />)).toThrow(
 		/BarChart\.Bar must be composed inside BarChart\.Root/,
 	);
 });
@@ -276,7 +276,7 @@ describe("BarChart.Legend", () => {
 	test("renders nothing for a single series (the title already names it)", () => {
 		const { container } = render(
 			<BarChart.Root data={data} xKey="month" aria-label="Desktop visitors">
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 				<BarChart.Legend />
 			</BarChart.Root>,
 		);
@@ -286,8 +286,8 @@ describe("BarChart.Legend", () => {
 	test("supports a render-prop for custom legends", () => {
 		render(
 			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
-				<BarChart.Bar dataKey="mobile" label="Mobile" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
+				<BarChart.Bar dataKey="mobile" label="Mobile" color="emerald" />
 				<BarChart.Legend>
 					{(series) => series.map((entry) => <span key={entry.dataKey}>custom {entry.label}</span>)}
 				</BarChart.Legend>
@@ -317,6 +317,27 @@ describe("BarChart keyboard interaction", () => {
 		expect(tooltip?.textContent).toContain("March");
 		await user.keyboard("{Home}");
 		expect(tooltip?.textContent).toContain("January");
+	});
+
+	test("a stacked chart's readout leads with the column total, then the series from the top down", async () => {
+		const user = userEvent.setup();
+		renderChart({ stacked: true });
+		await user.tab();
+		await user.keyboard("{ArrowRight}");
+		const tooltip = document.querySelector('[data-slot="bar-chart-tooltip"]');
+		const rows = [...(tooltip?.querySelectorAll(".grid > div") ?? [])].map(
+			(row) => row.textContent,
+		);
+		expect(rows).toEqual(["Total266", "Mobile80", "Desktop186"]);
+	});
+
+	test("an unstacked chart's readout has no total", async () => {
+		const user = userEvent.setup();
+		renderChart();
+		await user.tab();
+		await user.keyboard("{ArrowRight}");
+		const tooltip = document.querySelector('[data-slot="bar-chart-tooltip"]');
+		expect(tooltip?.textContent).not.toContain("Total");
 	});
 
 	test("ArrowLeft enters at the last datum and clamps at the first", async () => {
@@ -450,7 +471,7 @@ describe("BarChart paging keys", () => {
 				aria-label="Visitors by week"
 				onActiveIndexChange={onActiveIndexChange}
 			>
-				<BarChart.Bar dataKey="visits" label="Visits" />
+				<BarChart.Bar dataKey="visits" label="Visits" color="blue" />
 				<BarChart.Tooltip />
 			</BarChart.Root>,
 		);
@@ -495,13 +516,13 @@ describe("BarChart pending", () => {
 		const user = userEvent.setup();
 		const { container, rerender } = render(
 			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 				<BarChart.Tooltip />
 			</BarChart.Root>,
 		);
 		rerender(
 			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month" pending>
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 				<BarChart.Tooltip />
 			</BarChart.Root>,
 		);
@@ -520,7 +541,7 @@ describe("BarChart.Tooltip customization", () => {
 		const user = userEvent.setup();
 		render(
 			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 				<BarChart.Tooltip
 					labelFormat={(value) => `Month: ${String(value)}`}
 					valueFormat={(value) => `${value} visits`}
@@ -540,7 +561,7 @@ describe("BarChart.Tooltip customization", () => {
 		const user = userEvent.setup();
 		render(
 			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 				<BarChart.Tooltip>
 					{(snapshot) => <strong>Custom readout for {String(snapshot.xValue)}</strong>}
 				</BarChart.Tooltip>
@@ -559,8 +580,8 @@ describe("BarChart.Tooltip customization", () => {
 		];
 		render(
 			<BarChart.Root data={gappy} xKey="month" aria-label="Visitors by month">
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
-				<BarChart.Bar dataKey="mobile" label="Mobile" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
+				<BarChart.Bar dataKey="mobile" label="Mobile" color="emerald" />
 			</BarChart.Root>,
 		);
 		await user.tab();
@@ -575,7 +596,7 @@ describe("BarChart controlled activeIndex", () => {
 	test("a controlled activeIndex drives the tooltip readout", () => {
 		render(
 			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month" activeIndex={1}>
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 			</BarChart.Root>,
 		);
 		const tooltip = document.querySelector('[data-slot="bar-chart-tooltip"]');
@@ -586,7 +607,7 @@ describe("BarChart controlled activeIndex", () => {
 	test("an out-of-range controlled activeIndex clamps to the data instead of rendering garbage", () => {
 		render(
 			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month" activeIndex={99}>
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 			</BarChart.Root>,
 		);
 		const tooltip = document.querySelector('[data-slot="bar-chart-tooltip"]');
@@ -597,7 +618,7 @@ describe("BarChart controlled activeIndex", () => {
 	test("activeIndex null renders no readout", () => {
 		render(
 			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month" activeIndex={null}>
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 			</BarChart.Root>,
 		);
 		// The surface mounts on the first active datum, so none means no surface.
@@ -610,8 +631,8 @@ test("legend keys wear the series' texture as a redundant encoding", () => {
 	// values, so texture.browser.test.tsx owns the stripe itself.
 	const { container } = render(
 		<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
-			<BarChart.Bar dataKey="desktop" label="Desktop" />
-			<BarChart.Bar dataKey="mobile" label="Mobile" texture="hatch" />
+			<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
+			<BarChart.Bar dataKey="mobile" label="Mobile" texture="hatch" color="emerald" />
 			<BarChart.Legend />
 		</BarChart.Root>,
 	);
@@ -619,7 +640,7 @@ test("legend keys wear the series' texture as a redundant encoding", () => {
 		...container.querySelectorAll<HTMLElement>('[data-slot="bar-chart-legend"] span[data-texture]'),
 	];
 	expect(swatches.map((swatch) => swatch.getAttribute("data-texture"))).toEqual(["solid", "hatch"]);
-	expect(swatches[1]?.style.backgroundColor).toContain("chart-2");
+	expect(swatches[0]?.style.backgroundColor).toContain("chart-blue");
 });
 
 describe("BarChart decorative mode", () => {
@@ -627,8 +648,8 @@ describe("BarChart decorative mode", () => {
 		render(
 			<BarChart.Root data={data} xKey="month" mode="decorative">
 				<BarChart.Grid />
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
-				<BarChart.Bar dataKey="mobile" label="Mobile" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
+				<BarChart.Bar dataKey="mobile" label="Mobile" color="emerald" />
 			</BarChart.Root>,
 		);
 
@@ -654,8 +675,8 @@ describe("BarChart decorative mode", () => {
 		// chart/decorative-paint.browser.test.tsx samples the painted pixels.
 		const { container } = render(
 			<BarChart.Root data={data} xKey="month" mode="decorative">
-				<BarChart.Bar dataKey="desktop" label="Desktop" color="chart-4" />
-				<BarChart.Bar dataKey="mobile" label="Mobile" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
+				<BarChart.Bar dataKey="mobile" label="Mobile" color="emerald" />
 				<BarChart.Legend />
 			</BarChart.Root>,
 		);
@@ -675,8 +696,8 @@ describe("BarChart decorative mode", () => {
 	test("a chart with real data keeps its palette and paints no neutral fill", () => {
 		const { container } = render(
 			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
-				<BarChart.Bar dataKey="mobile" label="Mobile" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
+				<BarChart.Bar dataKey="mobile" label="Mobile" color="emerald" />
 				<BarChart.Legend />
 			</BarChart.Root>,
 		);
@@ -686,8 +707,8 @@ describe("BarChart decorative mode", () => {
 			),
 		];
 		expect(swatches.map((swatch) => swatch.style.backgroundColor)).toEqual([
-			"var(--color-chart-1)",
-			"var(--color-chart-2)",
+			"var(--color-chart-blue)",
+			"var(--color-chart-emerald)",
 		]);
 	});
 
@@ -697,7 +718,7 @@ describe("BarChart decorative mode", () => {
 		// a tab stop the decorative contract removed.
 		const { container } = render(
 			<BarChart.Root data={data} xKey="month" mode="decorative" tabIndex={0}>
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 			</BarChart.Root>,
 		);
 		expect(container.querySelector('[data-slot="bar-chart"]')).not.toHaveAttribute("tabindex");
@@ -712,7 +733,7 @@ describe("BarChart decorative mode", () => {
 	test("is inert, so a composed CopyButton is not a tab stop inside the hidden backdrop", () => {
 		const { container } = render(
 			<BarChart.Root data={data} xKey="month" mode="decorative">
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 				<BarChart.CopyButton />
 			</BarChart.Root>,
 		);
@@ -739,7 +760,7 @@ describe("BarChart decorative mode", () => {
 			<>
 				{/* @ts-expect-error — decorative forbids activeIndex; the runtime guard must suppress it anyway */}
 				<BarChart.Root data={data} xKey="month" mode="decorative" activeIndex={1}>
-					<BarChart.Bar dataKey="desktop" label="Desktop" />
+					<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 				</BarChart.Root>
 			</>,
 		);
@@ -747,97 +768,11 @@ describe("BarChart decorative mode", () => {
 	});
 });
 
-describe("BarChart series slots", () => {
-	test("automatic bars skip fixed slots", () => {
-		const { container } = render(
-			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
-				<BarChart.Bar dataKey="mobile" label="Mobile" seriesSlot={1} />
-				<BarChart.Legend />
-			</BarChart.Root>,
-		);
-		const legend = container.querySelector('[data-slot="bar-chart-legend"]');
-		const swatches = legend == null ? [] : [...legend.querySelectorAll("span")];
-		expect(swatches.map((swatch) => swatch.style.backgroundColor)).toStrictEqual([
-			"var(--color-chart-2)",
-			"var(--color-chart-1)",
-		]);
-	});
-
-	test("automatic series close composition gaps", () => {
-		const filterableData = [
-			{ month: "January", desktop: 186, mobile: 80, tablet: 40 },
-			{ month: "February", desktop: 305, mobile: 200, tablet: 60 },
-		];
-		const { container, rerender } = render(
-			<BarChart.Root data={filterableData} xKey="month" aria-label="Visitors by month">
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
-				<BarChart.Bar dataKey="mobile" label="Mobile" />
-				<BarChart.Legend />
-			</BarChart.Root>,
-		);
-		const swatchColors = () => {
-			const legend = container.querySelector('[data-slot="bar-chart-legend"]');
-			const items = legend == null ? [] : [...legend.querySelectorAll("span")];
-			return items.map((item) => item.style.backgroundColor);
-		};
-		expect(swatchColors()[1]).toContain("chart-2");
-		rerender(
-			<BarChart.Root data={filterableData} xKey="month" aria-label="Visitors by month">
-				<BarChart.Bar dataKey="mobile" label="Mobile" />
-				<BarChart.Bar dataKey="tablet" label="Tablet" />
-				<BarChart.Legend />
-			</BarChart.Root>,
-		);
-		const [mobileAfter, tabletAfter] = swatchColors();
-		expect(mobileAfter).toContain("chart-1");
-		expect(tabletAfter).toContain("chart-2");
-	});
-
-	test("regrouping a monthly chart does not exhaust the palette", () => {
-		// A monthly time series grouped by provider, then regrouped by access key,
-		// is the shape that used to break: eight provider keys register and leave,
-		// so the four keys on screen all painted the overflow gray. One `groupBy`
-		// click was enough. The Root is deliberately NOT keyed — remounting it
-		// would discard the tween and replay the enter animation.
-		const providers = ["aws", "gcp", "azure", "fly", "vercel", "render", "railway", "heroku"];
-		const accessKeys = ["key-a", "key-b", "key-c", "key-d"];
-		const monthlyRow = (month: string, keys: readonly string[]) => {
-			const row: Record<string, string | number> = { month };
-			for (const [index, key] of keys.entries()) {
-				row[key] = 100 + index * 10;
-			}
-			return row;
-		};
-		const monthsFor = (keys: readonly string[]) =>
-			["January", "February", "March"].map((month) => monthlyRow(month, keys));
-		const chartFor = (keys: readonly string[]) => (
-			<BarChart.Root data={monthsFor(keys)} xKey="month" stacked aria-label="Spend by month">
-				{keys.map((key) => (
-					<BarChart.Bar key={key} dataKey={key} label={key} />
-				))}
-				<BarChart.Legend />
-			</BarChart.Root>
-		);
-
-		const { container, rerender } = render(chartFor(providers));
-		rerender(chartFor(accessKeys));
-
-		const legend = container.querySelector('[data-slot="bar-chart-legend"]');
-		const swatches = [...(legend?.querySelectorAll("span[data-texture]") ?? [])].map(
-			(swatch) => swatch instanceof HTMLElement && swatch.style.backgroundColor,
-		);
-		expect(swatches).toHaveLength(accessKeys.length);
-		expect(swatches).not.toContain("var(--color-chart-other)");
-		expect(new Set(swatches).size).toBe(accessKeys.length);
-	});
-});
-
 test("BarChart.CopyButton announces 'Copied' through a live region, and again for a second copy inside the reset window", async () => {
 	const user = userEvent.setup();
 	const { container } = render(
 		<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
-			<BarChart.Bar dataKey="desktop" label="Desktop" />
+			<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 			<BarChart.CopyButton />
 		</BarChart.Root>,
 	);
@@ -884,41 +819,41 @@ export function typeLevelContracts(isPlaceholder: boolean) {
 				mode={isPlaceholder ? "static" : "interactive"}
 				aria-label="Visitors"
 			>
-				<BarChart.Bar dataKey="desktop" />
+				<BarChart.Bar dataKey="desktop" color="blue" />
 			</BarChart.Root>
 			{/* @ts-expect-error -- a runtime-picked mode satisfies every arm: the interactive arm needs a name */}
 			<BarChart.Root data={data} xKey="month" mode={isPlaceholder ? "decorative" : "interactive"}>
-				<BarChart.Bar dataKey="desktop" />
+				<BarChart.Bar dataKey="desktop" color="blue" />
 			</BarChart.Root>
 			{/* @ts-expect-error -- a decorative Root type requires `mode`; omitted, the runtime default is interactive */}
 			<BarChart.Root<Row, "decorative"> data={data} xKey="month">
-				<BarChart.Bar dataKey="desktop" />
+				<BarChart.Bar dataKey="desktop" color="blue" />
 			</BarChart.Root>
 			<BarChart.Root data={data} xKey="month" mode="decorative">
-				<BarChart.Bar dataKey="desktop" />
+				<BarChart.Bar dataKey="desktop" color="blue" />
 			</BarChart.Root>
 			<BarChart.Root data={data} xKey="month" mode="static" aria-label="Visitors, last 3 months">
-				<BarChart.Bar dataKey="desktop" />
+				<BarChart.Bar dataKey="desktop" color="blue" />
 			</BarChart.Root>
 			{/* @ts-expect-error -- a static chart requires an accessible name */}
 			<BarChart.Root data={data} xKey="month" mode="static">
-				<BarChart.Bar dataKey="desktop" />
+				<BarChart.Bar dataKey="desktop" color="blue" />
 			</BarChart.Root>
 			{/* @ts-expect-error -- static forbids interaction props */}
 			<BarChart.Root data={data} xKey="month" mode="static" aria-label="Visitors" activeIndex={1}>
-				<BarChart.Bar dataKey="desktop" />
+				<BarChart.Bar dataKey="desktop" color="blue" />
 			</BarChart.Root>
 			{/* @ts-expect-error -- an interactive chart requires an accessible name */}
 			<BarChart.Root data={data} xKey="month">
-				<BarChart.Bar dataKey="desktop" />
+				<BarChart.Bar dataKey="desktop" color="blue" />
 			</BarChart.Root>
 			{/* @ts-expect-error -- decorative forbids an accessible name */}
 			<BarChart.Root data={data} xKey="month" mode="decorative" aria-label="Placeholder">
-				<BarChart.Bar dataKey="desktop" />
+				<BarChart.Bar dataKey="desktop" color="blue" />
 			</BarChart.Root>
 			{/* @ts-expect-error -- decorative forbids interaction callbacks */}
 			<BarChart.Root data={data} xKey="month" mode="decorative" onDatumActivate={() => {}}>
-				<BarChart.Bar dataKey="desktop" />
+				<BarChart.Bar dataKey="desktop" color="blue" />
 			</BarChart.Root>
 		</>
 	);

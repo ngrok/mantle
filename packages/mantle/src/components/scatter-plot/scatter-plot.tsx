@@ -24,13 +24,7 @@ import { ChartRootPrimitive } from "../chart/root.js";
 import type { ChartRootBaseProps } from "../chart/root.js";
 import { useTooltipPrimitive } from "../chart/tooltip.js";
 import type { TooltipPrimitiveProps } from "../chart/tooltip.js";
-import type {
-	ChartDatum,
-	ChartDatumEvent,
-	ChartSeriesSlot,
-	PointShape,
-	SeriesColor,
-} from "../chart/types.js";
+import type { ChartDatum, ChartDatumEvent, PointShape, SeriesColor } from "../chart/types.js";
 import { createCanvasBackend } from "../chart/canvas-backend.js";
 import { createScatterView, preloadScatter3d } from "../chart/scatter-engine.js";
 import { useEffect } from "react";
@@ -108,35 +102,26 @@ type ScatterPlotPointProps = {
 	/** Display name for the legend, tooltip, and data table. Defaults to `dataKey`. */
 	label?: string;
 	/**
-	 * A fixed visual identity slot. Slots `1` through `8` select a paired chart
-	 * color and point shape. `"other"` selects the shared neutral treatment.
+	 * The color the series paints: a mantle color name, the same `Color` that
+	 * `Badge` takes, or any CSS color. Required: name every series' color on
+	 * purpose. Give an "Other" series `"neutral"`, and a series that means good
+	 * or bad a functional color such as `"danger"`.
 	 *
-	 * Series receive unreserved slots in composition order. Set `seriesSlot` to
-	 * give a series a fixed visual identity.
+	 * A static CSS color (raw hex) cannot follow the two themes, so prefer a
+	 * `var(--your-token)` declared per theme.
 	 *
 	 * @example
 	 * ```tsx
-	 * <ScatterPlot.Point dataKey="errors" seriesSlot={4} />
+	 * <ScatterPlot.Point dataKey="latency" label="Latency" color="blue" />
 	 * ```
 	 */
-	seriesSlot?: ChartSeriesSlot;
-	/**
-	 * Override the color channel with a chart token or any CSS color. This does
-	 * not change the series slot or its paired point shape. When omitted, the
-	 * series paints the color from its slot.
-	 *
-	 * A static color (raw hex) cannot follow the two themes, so prefer a
-	 * `var(--your-token)` declared per theme. A series that carries good/bad
-	 * meaning should wear the semantic status colors, never a categorical slot.
-	 */
-	color?: SeriesColor;
+	color: SeriesColor;
 	/**
 	 * The glyph this series' points wear, mirrored by the legend key and the
 	 * hover dot: `"circle"`, `"square"`, `"triangle"`, `"diamond"`,
 	 * `"triangle-down"`, `"plus"`, `"cross"`, or `"star"`. Shape is the
 	 * redundant encoding that keeps overlapping clouds distinguishable without
-	 * color vision. When omitted, the series wears the glyph paired to its
-	 * series slot, so both channels name one slot.
+	 * color vision. Defaults to `"circle"`.
 	 */
 	shape?: PointShape;
 };
@@ -229,8 +214,8 @@ type ScatterPlotCopyButtonProps = CopyButtonPrimitiveProps;
  *   <ScatterPlot.Grid />
  *   <ScatterPlot.XAxis />
  *   <ScatterPlot.YAxis />
- *   <ScatterPlot.Point dataKey="throughputA" label="Region A" />
- *   <ScatterPlot.Point dataKey="throughputB" label="Region B" />
+ *   <ScatterPlot.Point dataKey="throughputA" label="Region A" color="blue" />
+ *   <ScatterPlot.Point dataKey="throughputB" label="Region B" color="emerald" />
  *   <ScatterPlot.Tooltip />
  *   <ScatterPlot.Legend />
  * </ScatterPlot.Root>
@@ -275,8 +260,8 @@ const Root = <TDatum extends ChartDatum = ChartDatum, TMode extends ChartMode = 
  *   <ScatterPlot.Grid />
  *   <ScatterPlot.XAxis />
  *   <ScatterPlot.YAxis />
- *   <ScatterPlot.Point dataKey="throughputA" label="Region A" />
- *   <ScatterPlot.Point dataKey="throughputB" label="Region B" />
+ *   <ScatterPlot.Point dataKey="throughputA" label="Region A" color="blue" />
+ *   <ScatterPlot.Point dataKey="throughputB" label="Region B" color="emerald" />
  *   <ScatterPlot.Tooltip />
  *   <ScatterPlot.Legend />
  * </ScatterPlot.Root>
@@ -298,7 +283,7 @@ const Point = (props: ScatterPlotPointProps) =>
  *   <ScatterPlot.Grid lines="both" />
  *   <ScatterPlot.XAxis />
  *   <ScatterPlot.YAxis />
- *   <ScatterPlot.Point dataKey="throughputA" label="Region A" />
+ *   <ScatterPlot.Point dataKey="throughputA" label="Region A" color="blue" />
  *   <ScatterPlot.Legend />
  * </ScatterPlot.Root>
  * ```
@@ -317,7 +302,7 @@ const Grid = (props: ScatterPlotGridProps) => useGridPrimitive("ScatterPlot.Grid
  *   <ScatterPlot.Grid />
  *   <ScatterPlot.XAxis tickFormat={(value) => `${value}ms`} />
  *   <ScatterPlot.YAxis />
- *   <ScatterPlot.Point dataKey="throughputA" label="Region A" />
+ *   <ScatterPlot.Point dataKey="throughputA" label="Region A" color="blue" />
  *   <ScatterPlot.Legend />
  * </ScatterPlot.Root>
  * ```
@@ -336,7 +321,7 @@ const XAxis = (props: ScatterPlotXAxisProps) => useXAxisPrimitive("ScatterPlot.X
  *   <ScatterPlot.Grid />
  *   <ScatterPlot.XAxis />
  *   <ScatterPlot.YAxis tickFormat={(value) => `${value / 1000}k`} />
- *   <ScatterPlot.Point dataKey="throughputA" label="Region A" />
+ *   <ScatterPlot.Point dataKey="throughputA" label="Region A" color="blue" />
  *   <ScatterPlot.Legend />
  * </ScatterPlot.Root>
  * ```
@@ -355,7 +340,7 @@ const YAxis = (props: ScatterPlotYAxisProps) => useYAxisPrimitive("ScatterPlot.Y
  *   <ScatterPlot.Grid />
  *   <ScatterPlot.XAxis />
  *   <ScatterPlot.YAxis />
- *   <ScatterPlot.Point dataKey="throughputA" label="Region A" />
+ *   <ScatterPlot.Point dataKey="throughputA" label="Region A" color="blue" />
  *   <ScatterPlot.ReferenceLine y={500} label="Target" />
  *   <ScatterPlot.Legend />
  * </ScatterPlot.Root>
@@ -389,7 +374,7 @@ const ReferenceLine = (props: ScatterPlotReferenceLineProps) =>
  * @example
  * ```tsx
  * <ScatterPlot.Root data={data} xKey="latency" aria-label="Latency vs throughput">
- *   <ScatterPlot.Point dataKey="throughputA" label="Region A" />
+ *   <ScatterPlot.Point dataKey="throughputA" label="Region A" color="blue" />
  *   <ScatterPlot.Tooltip valueFormat={(value) => `${value} rps`} />
  *   <ScatterPlot.Legend />
  * </ScatterPlot.Root>
@@ -417,15 +402,15 @@ const Tooltip = (props: ScatterPlotTooltipProps) =>
  * | --- | --- | --- |
  * | `data-slot` | `"scatter-plot-legend"` | The legend list. `ScatterPlot.Legend` renders it in flow below the plot. |
  * | `data-slot` | `"scatter-plot-legend-label"` | On the `<div>` wrapping a `children` render prop. The default legend has none. |
- * | `data-shape` | `"circle"` \| `"square"` \| `"triangle"` \| `"diamond"` \| `"triangle-down"` \| `"plus"` \| `"cross"` \| `"star"` | On each series' swatch, naming the glyph its `ScatterPlot.Point` wears — the `shape` it set, else the one paired to its series slot. The swatch clips itself to that glyph, so target this only to restyle a key. |
+ * | `data-shape` | `"circle"` \| `"square"` \| `"triangle"` \| `"diamond"` \| `"triangle-down"` \| `"plus"` \| `"cross"` \| `"star"` | On each series' swatch, naming the glyph its `ScatterPlot.Point` wears — the `shape` it set, else the circle. The swatch clips itself to that glyph, so target this only to restyle a key. |
  *
  * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterplotlegend
  *
  * @example
  * ```tsx
  * <ScatterPlot.Root data={data} xKey="latency" aria-label="Latency vs throughput">
- *   <ScatterPlot.Point dataKey="throughputA" label="Region A" />
- *   <ScatterPlot.Point dataKey="throughputB" label="Region B" />
+ *   <ScatterPlot.Point dataKey="throughputA" label="Region A" color="blue" />
+ *   <ScatterPlot.Point dataKey="throughputB" label="Region B" color="emerald" />
  *   <ScatterPlot.Tooltip />
  *   <ScatterPlot.Legend />
  * </ScatterPlot.Root>
@@ -448,8 +433,8 @@ const Legend = (props: ScatterPlotLegendProps) => (
  * @example
  * ```tsx
  * <ScatterPlot.Root data={data} xKey="latency" aria-label="Latency vs throughput">
- *   <ScatterPlot.Point dataKey="throughputA" label="Region A" />
- *   <ScatterPlot.Point dataKey="throughputB" label="Region B" />
+ *   <ScatterPlot.Point dataKey="throughputA" label="Region A" color="blue" />
+ *   <ScatterPlot.Point dataKey="throughputB" label="Region B" color="emerald" />
  *   <ScatterPlot.Legend />
  *   <ScatterPlot.CopyButton />
  * </ScatterPlot.Root>
@@ -477,7 +462,7 @@ const CopyButton = (props: ScatterPlotCopyButtonProps) => (
  * <ScatterPlot.List>
  *   {agents.map((agent) => (
  *     <ScatterPlot.Root key={agent.id} data={agent.rows} xKey="latency" aria-label={agent.name}>
- *       <ScatterPlot.Point dataKey="throughputA" label="Region A" />
+ *       <ScatterPlot.Point dataKey="throughputA" label="Region A" color="blue" />
  *       <ScatterPlot.Tooltip />
  *     </ScatterPlot.Root>
  *   ))}
@@ -503,13 +488,12 @@ const List = (props: ScatterPlotListProps) => (
  *
  * | CSS Variable | Default | Description |
  * | --- | --- | --- |
- * | `--color-chart-1` … `--color-chart-8` | per theme | The validated categorical series slots, in assignment order. |
- * | `--color-chart-other` | `--color-neutral-500` | The neutral overflow slot a series wears once every slot is held. |
+ * | `--color-chart-<name>` | per theme | The color a series with `color="<name>"` paints. Every mantle color name has one, tuned for 3:1 contrast on the card surface. |
  *
  * Two ways to change a series color, both public API. The `color` prop on
- * `ScatterPlot.Point` sets one series and takes any CSS color. To restyle a slot itself,
- * redeclare its token on `Root` —
- * `className="[--color-chart-1:var(--color-brand)]"`. The engine resolves every
+ * `ScatterPlot.Point` takes a color name or any CSS color. To restyle a color name for one chart,
+ * redeclare its token on `Root`:
+ * `className="[--color-chart-blue:var(--color-brand)]"`. The engine resolves every
  * token from `Root`'s computed style, so a declaration scoped there wins for
  * that chart and leaves every other chart on the page alone.
  *
@@ -554,8 +538,8 @@ const List = (props: ScatterPlotListProps) => (
  *   <ScatterPlot.Grid />
  *   <ScatterPlot.XAxis />
  *   <ScatterPlot.YAxis />
- *   <ScatterPlot.Point dataKey="throughputA" label="Region A" />
- *   <ScatterPlot.Point dataKey="throughputB" label="Region B" />
+ *   <ScatterPlot.Point dataKey="throughputA" label="Region A" color="blue" />
+ *   <ScatterPlot.Point dataKey="throughputB" label="Region B" color="emerald" />
  *   <ScatterPlot.Tooltip />
  *   <ScatterPlot.Legend />
  * </ScatterPlot.Root>
@@ -575,8 +559,8 @@ const ScatterPlot = {
 	 *   <ScatterPlot.Grid />
 	 *   <ScatterPlot.XAxis />
 	 *   <ScatterPlot.YAxis />
-	 *   <ScatterPlot.Point dataKey="throughputA" label="Region A" />
-	 *   <ScatterPlot.Point dataKey="throughputB" label="Region B" />
+	 *   <ScatterPlot.Point dataKey="throughputA" label="Region A" color="blue" />
+	 *   <ScatterPlot.Point dataKey="throughputB" label="Region B" color="emerald" />
 	 *   <ScatterPlot.Tooltip />
 	 *   <ScatterPlot.Legend />
 	 * </ScatterPlot.Root>
@@ -594,8 +578,8 @@ const ScatterPlot = {
 	 *   <ScatterPlot.Grid />
 	 *   <ScatterPlot.XAxis />
 	 *   <ScatterPlot.YAxis />
-	 *   <ScatterPlot.Point dataKey="throughputA" label="Region A" />
-	 *   <ScatterPlot.Point dataKey="throughputB" label="Region B" />
+	 *   <ScatterPlot.Point dataKey="throughputA" label="Region A" color="blue" />
+	 *   <ScatterPlot.Point dataKey="throughputB" label="Region B" color="emerald" />
 	 *   <ScatterPlot.Tooltip />
 	 *   <ScatterPlot.Legend />
 	 * </ScatterPlot.Root>
@@ -613,7 +597,7 @@ const ScatterPlot = {
 	 *   <ScatterPlot.Grid lines="both" />
 	 *   <ScatterPlot.XAxis />
 	 *   <ScatterPlot.YAxis />
-	 *   <ScatterPlot.Point dataKey="throughputA" label="Region A" />
+	 *   <ScatterPlot.Point dataKey="throughputA" label="Region A" color="blue" />
 	 *   <ScatterPlot.Tooltip />
 	 *   <ScatterPlot.Legend />
 	 * </ScatterPlot.Root>
@@ -631,7 +615,7 @@ const ScatterPlot = {
 	 *   <ScatterPlot.Grid />
 	 *   <ScatterPlot.XAxis tickFormat={(value) => `${value}ms`} />
 	 *   <ScatterPlot.YAxis />
-	 *   <ScatterPlot.Point dataKey="throughputA" label="Region A" />
+	 *   <ScatterPlot.Point dataKey="throughputA" label="Region A" color="blue" />
 	 *   <ScatterPlot.Tooltip />
 	 *   <ScatterPlot.Legend />
 	 * </ScatterPlot.Root>
@@ -649,7 +633,7 @@ const ScatterPlot = {
 	 *   <ScatterPlot.Grid />
 	 *   <ScatterPlot.XAxis />
 	 *   <ScatterPlot.YAxis tickFormat={(value) => `${value / 1000}k`} />
-	 *   <ScatterPlot.Point dataKey="throughputA" label="Region A" />
+	 *   <ScatterPlot.Point dataKey="throughputA" label="Region A" color="blue" />
 	 *   <ScatterPlot.Tooltip />
 	 *   <ScatterPlot.Legend />
 	 * </ScatterPlot.Root>
@@ -667,7 +651,7 @@ const ScatterPlot = {
 	 *   <ScatterPlot.Grid />
 	 *   <ScatterPlot.XAxis />
 	 *   <ScatterPlot.YAxis />
-	 *   <ScatterPlot.Point dataKey="throughputA" label="Region A" />
+	 *   <ScatterPlot.Point dataKey="throughputA" label="Region A" color="blue" />
 	 *   <ScatterPlot.ReferenceLine y={500} label="Target" />
 	 *   <ScatterPlot.Tooltip />
 	 *   <ScatterPlot.Legend />
@@ -686,7 +670,7 @@ const ScatterPlot = {
 	 *   <ScatterPlot.Grid />
 	 *   <ScatterPlot.XAxis />
 	 *   <ScatterPlot.YAxis />
-	 *   <ScatterPlot.Point dataKey="throughputA" label="Region A" />
+	 *   <ScatterPlot.Point dataKey="throughputA" label="Region A" color="blue" />
 	 *   <ScatterPlot.Tooltip valueFormat={(value) => `${value} rps`} />
 	 *   <ScatterPlot.Legend />
 	 * </ScatterPlot.Root>
@@ -705,8 +689,8 @@ const ScatterPlot = {
 	 *   <ScatterPlot.Grid />
 	 *   <ScatterPlot.XAxis />
 	 *   <ScatterPlot.YAxis />
-	 *   <ScatterPlot.Point dataKey="throughputA" label="Region A" />
-	 *   <ScatterPlot.Point dataKey="throughputB" label="Region B" />
+	 *   <ScatterPlot.Point dataKey="throughputA" label="Region A" color="blue" />
+	 *   <ScatterPlot.Point dataKey="throughputB" label="Region B" color="emerald" />
 	 *   <ScatterPlot.Tooltip />
 	 *   <ScatterPlot.Legend />
 	 * </ScatterPlot.Root>
@@ -721,8 +705,8 @@ const ScatterPlot = {
 	 * @example
 	 * ```tsx
 	 * <ScatterPlot.Root data={data} xKey="latency" aria-label="Latency vs throughput">
-	 *   <ScatterPlot.Point dataKey="throughputA" label="Region A" />
-	 *   <ScatterPlot.Point dataKey="throughputB" label="Region B" />
+	 *   <ScatterPlot.Point dataKey="throughputA" label="Region A" color="blue" />
+	 *   <ScatterPlot.Point dataKey="throughputB" label="Region B" color="emerald" />
 	 *   <ScatterPlot.Legend />
 	 *   <ScatterPlot.CopyButton />
 	 * </ScatterPlot.Root>
@@ -739,7 +723,7 @@ const ScatterPlot = {
 	 * <ScatterPlot.List>
 	 *   {agents.map((agent) => (
 	 *     <ScatterPlot.Root key={agent.id} data={agent.rows} xKey="latency" aria-label={agent.name}>
-	 *       <ScatterPlot.Point dataKey="throughputA" label="Region A" />
+	 *       <ScatterPlot.Point dataKey="throughputA" label="Region A" color="blue" />
 	 *       <ScatterPlot.Tooltip />
 	 *     </ScatterPlot.Root>
 	 *   ))}

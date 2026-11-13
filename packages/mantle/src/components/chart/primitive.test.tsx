@@ -33,7 +33,7 @@ describe("Tooltip registration", () => {
 	// out before Root renders, which hides a re-registration.
 	const chart = (tooltipProps: ComponentProps<typeof BarChart.Tooltip>) => (
 		<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
-			<BarChart.Bar dataKey="desktop" label="Desktop" />
+			<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 			<BarChart.Tooltip {...tooltipProps} />
 		</BarChart.Root>
 	);
@@ -106,9 +106,9 @@ describe("hover subscriptions", () => {
 		const user = userEvent.setup();
 		render(
 			<BarChart.Root data={rows} xKey="month" aria-label="Visitors by month">
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
-				<BarChart.Bar dataKey="mobile" label="Mobile" />
-				<BarChart.Bar dataKey="tablet" label="Tablet" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
+				<BarChart.Bar dataKey="mobile" label="Mobile" color="emerald" />
+				<BarChart.Bar dataKey="tablet" label="Tablet" color="pink" />
 			</BarChart.Root>,
 		);
 		// Focus mounts the table, which reads every cell through the spy.
@@ -136,8 +136,8 @@ describe("hover subscriptions", () => {
 		);
 		const { container } = render(
 			<BarChart.Root data={rows} xKey="month" aria-label="Visitors by month">
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
-				<BarChart.Bar dataKey="mobile" label="Mobile" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
+				<BarChart.Bar dataKey="mobile" label="Mobile" color="emerald" />
 				<BarChart.Legend>{legendItems}</BarChart.Legend>
 			</BarChart.Root>,
 		);
@@ -163,7 +163,7 @@ describe("Tooltip consumer ref", () => {
 		const ref = createRef<HTMLDivElement>();
 		const { container, unmount } = render(
 			<LineChart.Root data={latency} xKey="time" aria-label="Request latency">
-				<LineChart.Line dataKey="p50" label="p50" />
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
 				<LineChart.Tooltip ref={ref} />
 			</LineChart.Root>,
 		);
@@ -183,7 +183,7 @@ describe("Tooltip consumer ref", () => {
 		const callbackRef = vi.fn<(node: HTMLDivElement | null) => () => void>(() => cleanup);
 		const { container, unmount } = render(
 			<LineChart.Root data={latency} xKey="time" aria-label="Request latency">
-				<LineChart.Line dataKey="p50" label="p50" />
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
 				<LineChart.Tooltip ref={callbackRef} />
 			</LineChart.Root>,
 		);
@@ -209,7 +209,7 @@ test("a CopyButton consumer onClick that prevents default cancels the copy", asy
 	});
 	const { container } = render(
 		<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
-			<BarChart.Bar dataKey="desktop" label="Desktop" />
+			<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 			<BarChart.CopyButton onClick={onClick} onCopy={onCopy} />
 		</BarChart.Root>,
 	);
@@ -237,7 +237,7 @@ describe("Tooltip and Legend after browser translation", () => {
 		const user = userEvent.setup();
 		const { container } = render(
 			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 				<BarChart.Tooltip>{readout}</BarChart.Tooltip>
 			</BarChart.Root>,
 		);
@@ -265,7 +265,7 @@ describe("Tooltip and Legend after browser translation", () => {
 		const user = userEvent.setup();
 		const { container } = render(
 			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 				<BarChart.Tooltip />
 			</BarChart.Root>,
 		);
@@ -281,8 +281,8 @@ describe("Tooltip and Legend after browser translation", () => {
 	test("a custom legend renders inside a label slot", () => {
 		const { container } = render(
 			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
-				<BarChart.Bar dataKey="mobile" label="Mobile" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
+				<BarChart.Bar dataKey="mobile" label="Mobile" color="emerald" />
 				<BarChart.Legend>{(series) => series.map((item) => item.label).join(", ")}</BarChart.Legend>
 			</BarChart.Root>,
 		);
@@ -295,8 +295,8 @@ describe("Tooltip and Legend after browser translation", () => {
 	test("the default legend renders no label slot", () => {
 		const { container } = render(
 			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
-				<BarChart.Bar dataKey="mobile" label="Mobile" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
+				<BarChart.Bar dataKey="mobile" label="Mobile" color="emerald" />
 				<BarChart.Legend />
 			</BarChart.Root>,
 		);
@@ -312,8 +312,8 @@ describe("Tooltip and Legend after browser translation", () => {
 		function Chart({ custom }: { custom: boolean }) {
 			return (
 				<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
-					<BarChart.Bar dataKey="desktop" label="Desktop" />
-					<BarChart.Bar dataKey="mobile" label="Mobile" />
+					<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
+					<BarChart.Bar dataKey="mobile" label="Mobile" color="emerald" />
 					{custom ? (
 						<BarChart.Legend>
 							{(series) => (
@@ -356,7 +356,7 @@ describe("server render", () => {
 	];
 	const chart = (
 		<LineChart.Root data={latency} xKey="time" aria-label="Request latency">
-			<LineChart.Line dataKey="p50" label="p50" />
+			<LineChart.Line dataKey="p50" label="p50" color="blue" />
 		</LineChart.Root>
 	);
 
@@ -417,7 +417,7 @@ describe("activation outside React", () => {
 		vi.stubGlobal("IntersectionObserver", stub.Observer);
 		const { container } = render(
 			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 			</BarChart.Root>,
 		);
 		expect(screen.getByRole("application", { name: "Visitors by month" })).toBeInTheDocument();
@@ -453,7 +453,7 @@ describe("activation outside React", () => {
 		expect(() =>
 			render(
 				<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
-					<BarChart.Bar dataKey="visits" label="Visits" />
+					<BarChart.Bar dataKey="visits" label="Visits" color="blue" />
 				</BarChart.Root>,
 			),
 		).toThrow(
@@ -474,7 +474,7 @@ describe("activation outside React", () => {
 					xKey="x"
 					aria-label="Demo"
 				>
-					<BarChart.Bar dataKey="typo" />
+					<BarChart.Bar dataKey="typo" color="blue" />
 				</BarChart.Root>,
 			),
 		).toThrow("Available keys: x, a, b.");
@@ -487,7 +487,7 @@ describe("activation outside React", () => {
 		// this row has none, so it plots nothing and checks no series key.
 		render(
 			<LineChart.Root data={[{ t: null }]} xKey="t" xScale="time" aria-label="Latency">
-				<LineChart.Line dataKey="p50" label="p50" />
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
 			</LineChart.Root>,
 		);
 		expect(screen.getByRole("application", { name: "Latency" })).toHaveAccessibleDescription(
@@ -511,7 +511,7 @@ describe("activation outside React", () => {
 					xScale="time"
 					aria-label="Latency"
 				>
-					<LineChart.Line dataKey="p50" label="p50" />
+					<LineChart.Line dataKey="p50" label="p50" color="blue" />
 				</LineChart.Root>,
 			),
 		).toThrow('LineChart.Line dataKey "p50" does not match any key in the provided data.');
@@ -530,7 +530,7 @@ describe("activation outside React", () => {
 			<>
 				{names.map((name) => (
 					<BarChart.Root key={name} data={data} xKey="month" aria-label={name}>
-						<BarChart.Bar dataKey="desktop" label="Desktop" />
+						<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 					</BarChart.Root>
 				))}
 			</>,
@@ -562,7 +562,7 @@ describe("activation outside React", () => {
 		const { container } = render(
 			<>
 				<CanvasBarChartRoot data={data} xKey="month" aria-label="Visitors by month">
-					<BarChart.Bar dataKey="desktop" label="Desktop" />
+					<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 				</CanvasBarChartRoot>
 				<button type="button">After</button>
 			</>,
@@ -591,7 +591,7 @@ describe("activation outside React", () => {
 		const { container } = render(
 			<>
 				<CanvasBarChartRoot data={data} xKey="month" aria-label="Visitors by month">
-					<BarChart.Bar dataKey="desktop" label="Desktop" />
+					<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 				</CanvasBarChartRoot>
 				<button type="button">After</button>
 			</>,
@@ -615,7 +615,7 @@ describe("activation outside React", () => {
 	test("unmounting removes the engine-owned layers with the Root", () => {
 		const { container, unmount } = render(
 			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 			</BarChart.Root>,
 		);
 		expect(container.querySelector(SURFACE)).toBeInTheDocument();
@@ -629,7 +629,7 @@ describe("tooltip surface latch", () => {
 		const user = userEvent.setup();
 		const { container, rerender } = render(
 			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 				<BarChart.Tooltip />
 			</BarChart.Root>,
 		);
@@ -638,7 +638,7 @@ describe("tooltip surface latch", () => {
 		expect(container.querySelector('[data-slot="bar-chart-tooltip"]')).toBeInTheDocument();
 		rerender(
 			<BarChart.Root data={data} xKey="month" mode="decorative">
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 				<BarChart.Tooltip />
 			</BarChart.Root>,
 		);
@@ -650,7 +650,7 @@ describe("tooltip surface latch", () => {
 		const user = userEvent.setup();
 		const { container } = render(
 			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 			</BarChart.Root>,
 		);
 		expect(container.querySelector('[data-slot="bar-chart-tooltip"]')).toBeNull();
@@ -670,7 +670,7 @@ describe("tooltip surface latch", () => {
 describe("static mode", () => {
 	const sparkline = (extra?: ReactNode) => (
 		<BarChart.Root data={data} xKey="month" mode="static" aria-label="Visitors by month">
-			<BarChart.Bar dataKey="desktop" label="Desktop" />
+			<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 			{extra}
 		</BarChart.Root>
 	);
@@ -696,7 +696,7 @@ describe("static mode", () => {
 		const { container, rerender } = render(sparkline());
 		rerender(
 			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 			</BarChart.Root>,
 		);
 		// The mode change rebuilds the engine in the same commit, with no new
@@ -715,7 +715,7 @@ describe("static mode", () => {
 		const { container } = render(
 			sparkline(
 				<>
-					<BarChart.Bar dataKey="mobile" label="Mobile" />
+					<BarChart.Bar dataKey="mobile" label="Mobile" color="emerald" />
 					<BarChart.Legend />
 				</>,
 			),
@@ -726,8 +726,8 @@ describe("static mode", () => {
 			),
 		];
 		expect(swatches.map((swatch) => swatch.style.backgroundColor)).toEqual([
-			"var(--color-chart-1)",
-			"var(--color-chart-2)",
+			"var(--color-chart-blue)",
+			"var(--color-chart-emerald)",
 		]);
 	});
 
@@ -759,7 +759,7 @@ describe("static mode", () => {
 		unmount();
 		render(
 			<BarChart.Root data={data} xKey="month" mode="static" animate aria-label="Visitors by month">
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 			</BarChart.Root>,
 		);
 		expect(reveals()).toBe(1);
@@ -782,8 +782,8 @@ describe("description series sentence", () => {
 	test("the overlay's accessible description names the series and the keys, and the span stays in the reading order", () => {
 		render(
 			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
-				<BarChart.Bar dataKey="mobile" label="Mobile" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
+				<BarChart.Bar dataKey="mobile" label="Mobile" color="emerald" />
 			</BarChart.Root>,
 		);
 		const overlay = screen.getByRole("application", { name: "Visitors by month" });
@@ -799,9 +799,9 @@ describe("description series sentence", () => {
 		const user = userEvent.setup();
 		render(
 			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 				<Toggle>
-					<BarChart.Bar dataKey="mobile" label="Mobile" />
+					<BarChart.Bar dataKey="mobile" label="Mobile" color="emerald" />
 				</Toggle>
 			</BarChart.Root>,
 		);
@@ -814,12 +814,12 @@ describe("description series sentence", () => {
 	test("a Root that turns interactive after a decorative render describes its series", () => {
 		const { rerender } = render(
 			<BarChart.Root data={data} xKey="month" mode="decorative">
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 			</BarChart.Root>,
 		);
 		rerender(
 			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 			</BarChart.Root>,
 		);
 		// The description span mounts with the overlay, so the writer binds to it
@@ -837,7 +837,7 @@ describe("data-table caption", () => {
 			<section id="visitors-card">
 				<h2>Visitors</h2>
 				<BarChart.Root data={data} xKey="month" aria-labelledby="visitors-card">
-					<BarChart.Bar dataKey="desktop" label="Desktop" />
+					<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 				</BarChart.Root>
 			</section>,
 		);
@@ -855,7 +855,7 @@ describe("List", () => {
 			<BarChart.List>
 				{["Ingress", "Egress"].map((name) => (
 					<BarChart.Root key={name} data={data} xKey="month" aria-label={name}>
-						<BarChart.Bar dataKey="desktop" label="Desktop" />
+						<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 					</BarChart.Root>
 				))}
 			</BarChart.List>,
@@ -910,7 +910,7 @@ describe("List", () => {
 			<StrictMode>
 				<BarChart.List>
 					<BarChart.Root data={data} xKey="month" aria-label="Ingress">
-						<BarChart.Bar dataKey="desktop" label="Desktop" />
+						<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 					</BarChart.Root>
 				</BarChart.List>
 			</StrictMode>,
@@ -927,7 +927,7 @@ describe("List", () => {
 		const Single = ({ mode }: { mode: "interactive" | "static" }) => (
 			<BarChart.List>
 				<BarChart.Root data={data} xKey="month" mode={mode} aria-label="Ingress">
-					<BarChart.Bar dataKey="desktop" label="Desktop" />
+					<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 				</BarChart.Root>
 			</BarChart.List>
 		);
@@ -983,7 +983,7 @@ describe("List", () => {
 			<BarChart.List>
 				<Region.Provider value="eu-west">
 					<BarChart.Root data={data} xKey="month" aria-label="Ingress">
-						<BarChart.Bar dataKey="desktop" label="Desktop" />
+						<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 						<BarChart.Tooltip>{() => <RegionName />}</BarChart.Tooltip>
 					</BarChart.Root>
 				</Region.Provider>
@@ -998,11 +998,11 @@ describe("List", () => {
 		const Pair = ({ egress }: { egress: boolean }) => (
 			<BarChart.List>
 				<BarChart.Root data={data} xKey="month" aria-label="Ingress">
-					<BarChart.Bar dataKey="desktop" label="Desktop" />
+					<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 				</BarChart.Root>
 				{egress && (
 					<BarChart.Root data={data} xKey="month" aria-label="Egress">
-						<BarChart.Bar dataKey="desktop" label="Desktop" />
+						<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 					</BarChart.Root>
 				)}
 			</BarChart.List>

@@ -1,3 +1,4 @@
+import type { Color } from "../../utils/color/index.js";
 /**
  * Shared types for the internal canvas chart engine.
  *
@@ -45,42 +46,19 @@ type ContinuousXScale = Exclude<XScaleKind, "band">;
 type SeriesMark = "bar" | "line" | "area" | "scatter";
 
 /**
- * The ordered chart color tokens. Series use the first eight through automatic
- * or fixed identity slots. `"chart-other"` is the shared neutral treatment for
- * overflow and folded-tail series.
- */
-type ChartColorToken =
-	| "chart-1"
-	| "chart-2"
-	| "chart-3"
-	| "chart-4"
-	| "chart-5"
-	| "chart-6"
-	| "chart-7"
-	| "chart-8"
-	| "chart-other";
-
-/**
- * A series' visual identity slot. Slots `1` through `8` pair one validated
- * chart color with one point shape. `"other"` selects the shared neutral
- * overflow treatment.
- */
-type ChartSeriesSlot = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | "other";
-
-/**
- * A series color: one of the validated chart tokens (preferred — they adapt to
- * the light and dark themes) or any CSS color string as an escape hatch.
+ * A series color: a mantle color name, the same `Color` that `Badge` takes, or
+ * any CSS color string as an escape hatch.
  *
- * `color` overrides only the color channel. It does not select or reserve a
- * series slot. When sibling series can mount or unmount, use `seriesSlot` on a
- * series part to keep its visual identity fixed.
+ * A name paints that color's chart token, `--color-chart-<name>`, which each
+ * theme tunes to clear 3:1 contrast on the card surface. Functional names
+ * (`success`, `danger`, …) alias the hue their status color uses. `neutral` is
+ * the color for an "Other" series.
  *
- * A static color (raw hex) cannot follow the two themes, so prefer a
+ * A static CSS color (raw hex) cannot follow the two themes, so prefer a
  * `var(--your-token)` a consumer declares per theme. A series that carries
- * good/bad meaning (error rate, pass/fail) should wear the semantic status
- * colors, never a categorical chart slot.
+ * good/bad meaning (error rate, pass/fail) should wear a functional color.
  */
-type SeriesColor = ChartColorToken | (string & {});
+type SeriesColor = Color | (string & {});
 
 /**
  * Line/area interpolation between points.
@@ -92,10 +70,7 @@ type CurveKind = "linear" | "monotone" | "step";
  * the hover dot on line/area charts. Shape is a redundant encoding alongside
  * color, so series stay distinguishable without color vision.
  *
- * Eight values match the palette's eight series slots. This union's order is
- * the pairing: a series that sets no `shape` wears the glyph of the slot it
- * holds — slot 1 the circle, slot 2 the square, on down to slot 8 and the
- * star. The shared `"chart-other"` treatment uses the circle.
+ * A series that sets no `shape` wears the circle.
  *
  * What each added name draws:
  *
@@ -129,13 +104,13 @@ type PointShape =
  *
  * The two rung textures flip with `orientation`, in opposite senses. Every
  * other value is direction-free, `"grid"` included — it is the orthogonal
- * lattice against `"crosshatch"`'s diagonal one. Eight values match the
- * palette's eight series slots.
+ * lattice against `"crosshatch"`'s diagonal one.
  *
- * Texture is a redundant identity encoding alongside color — inked tone-on-tone
- * at equal loudness across slots — so grouped and stacked series stay
- * distinguishable without color vision, in grayscale print, and under forced
- * colors.
+ * A textured series paints its marks in the full series color over a light
+ * tint of it. Texture is a redundant identity encoding alongside color, so
+ * grouped and stacked series stay distinguishable without color vision, in
+ * grayscale print, and under forced colors. Two series can share one color and
+ * stay apart by texture.
  */
 type BarTexture =
 	| "solid"
@@ -164,12 +139,8 @@ type SeriesSpec = {
 	dataKey: string;
 	/** Display name for the legend, tooltip, and data table. Defaults to `dataKey`. */
 	label: string;
-	/** Fixed visual identity slot; `undefined` takes the next unreserved slot. */
-	seriesSlot: ChartSeriesSlot | undefined;
-	/**
-	 * Explicit color override. When omitted, the series paints its resolved slot.
-	 */
-	color: SeriesColor | undefined;
+	/** The color the series paints. */
+	color: SeriesColor;
 	/** The mark this series paints. */
 	mark: SeriesMark;
 	/** Interpolation for line/area marks. */
@@ -178,12 +149,8 @@ type SeriesSpec = {
 	markers: boolean;
 	/** Join across `null`/missing values instead of leaving gaps. */
 	connectNulls: boolean;
-	/**
-	 * Explicit point glyph (scatter marks, line markers, hover dots).
-	 * `undefined` means the consumer chose none, so the series wears the glyph
-	 * paired to its series slot.
-	 */
-	shape: PointShape | undefined;
+	/** The point glyph (scatter marks, line markers, hover dots). */
+	shape: PointShape;
 	/** The fill texture (bar marks only). */
 	texture: BarTexture;
 };
@@ -196,17 +163,13 @@ type SeriesMeta = {
 	dataKey: string;
 	label: string;
 	mark: SeriesMark;
-	/** The CSS color string the series paints with (token-resolved). */
+	/** The CSS color string the series paints with (a color name resolves to its chart token). */
 	color: string;
-	/** The color as authored (token name or custom string) before resolution. */
+	/** The color as authored (a color name or a CSS string) before resolution. */
 	colorInput: SeriesColor;
 	/**
 	 * The point glyph the series wears (scatter marks, legend keys, hover
-	 * dots): the explicit `shape` when it set one, else the glyph paired to its
-	 * series slot.
-	 *
-	 * A bar paints no glyph. Its legend key wears `texture` instead, so nothing
-	 * draws the glyph a bar series is paired with.
+	 * dots). A bar paints no glyph; its legend key wears `texture` instead.
 	 */
 	shape: PointShape;
 	/** The fill texture the series wears (bar marks and their legend keys). */
@@ -291,6 +254,11 @@ type HoverSnapshot = {
 		value: number | null;
 		color: string;
 	}>;
+	/**
+	 * The sum of every series' value at the active index. Set only on a stacked
+	 * chart with two or more series, where the tooltip leads with it.
+	 */
+	total?: number;
 	/** The depth value at the active index (3D scatter plots only). */
 	zValue?: number | null;
 	/** Whether the snapshot came from keyboard stepping (vs pointer hover). */
@@ -348,11 +316,9 @@ export type {
 	//,
 	BarOrientation,
 	BarTexture,
-	ChartColorToken,
 	ChartDatum,
 	ChartDatumEvent,
 	ChartOptions,
-	ChartSeriesSlot,
 	ContinuousXScale,
 	CurveKind,
 	GridLines,

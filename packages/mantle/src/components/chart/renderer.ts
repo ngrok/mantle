@@ -35,7 +35,7 @@ type PlotRect = {
 };
 
 const LINE_WIDTH = 2;
-const BAR_CORNER_RADIUS = 4;
+const BAR_CORNER_RADIUS = 2;
 const BAR_GAP = 2;
 const MARKER_RADIUS = 4;
 const MARKER_RING = 2;
@@ -167,7 +167,8 @@ const drawVerticalBaseline = (
 };
 
 /**
- * One bar rectangle in CSS pixels, with rounding only at the data end.
+ * One bar rectangle in CSS pixels, with rounding at the data end and at the
+ * baseline end.
  */
 type BarRect = {
 	x: number;
@@ -178,13 +179,24 @@ type BarRect = {
 	valueY: number;
 	/** Round the data-end corners (outermost segment of a stack only). */
 	rounded: boolean;
+	/** Round the baseline-end corners (innermost segment of a stack only). */
+	roundedBase: boolean;
 };
+
+/**
+ * The corner radius one bar end takes: `radius` while the bar is at least
+ * twice that thick, else square, and never more than its length.
+ */
+const cornerRadius = (options: { radius: number; thickness: number; length: number }): number =>
+	options.thickness >= options.radius * 2
+		? Math.min(options.radius, options.thickness / 2, options.length)
+		: 0;
 
 /**
  * Fill one series' bars as a single batched path (one `fill()` per series).
  * `fill` is the series' solid color or its texture's `url(#…)` reference — the
  * `<pattern>` anchors to the SVG, so one pattern paints every bar of the
- * series in a continuous field. Corner radii collapse as bars get thin (< 8px:
+ * series in a continuous field. Corner radii collapse as bars get thin (< 4px:
  * square; width is clamped to a minimum of half a pixel so ten-thousand-category
  * charts degrade to a silhouette instead of vanishing).
  */
@@ -211,16 +223,24 @@ const drawBars = (
 		if (height === 0) {
 			continue;
 		}
-		const radius = rect.rounded && width >= 8 ? Math.min(BAR_CORNER_RADIUS, width / 2, height) : 0;
-		if (radius === 0) {
+		// Why half the length when both ends round: two full radii would cross.
+		const ends = rect.rounded && rect.roundedBase ? 2 : 1;
+		const radius = cornerRadius({
+			radius: BAR_CORNER_RADIUS,
+			thickness: width,
+			length: height / ends,
+		});
+		const end = rect.rounded ? radius : 0;
+		const base = rect.roundedBase ? radius : 0;
+		if (end === 0 && base === 0) {
 			ctx.rect(rect.x, top, width, height);
 			continue;
 		}
 		const growsUp = rect.valueY <= rect.baselineY;
 		if (growsUp) {
-			ctx.roundRect(rect.x, top, width, height, [radius, radius, 0, 0]);
+			ctx.roundRect(rect.x, top, width, height, [end, end, base, base]);
 		} else {
-			ctx.roundRect(rect.x, top, width, height, [0, 0, radius, radius]);
+			ctx.roundRect(rect.x, top, width, height, [base, base, end, end]);
 		}
 	}
 	ctx.fill();
@@ -239,6 +259,8 @@ type HorizontalBarRect = {
 	valueX: number;
 	/** Round the data-end corners (outermost segment of a stack only). */
 	rounded: boolean;
+	/** Round the baseline-end corners (innermost segment of a stack only). */
+	roundedBase: boolean;
 };
 
 /**
@@ -270,16 +292,23 @@ const drawHorizontalBars = (
 		if (width === 0) {
 			continue;
 		}
-		const radius = rect.rounded && height >= 8 ? Math.min(BAR_CORNER_RADIUS, height / 2, width) : 0;
-		if (radius === 0) {
+		const ends = rect.rounded && rect.roundedBase ? 2 : 1;
+		const radius = cornerRadius({
+			radius: BAR_CORNER_RADIUS,
+			thickness: height,
+			length: width / ends,
+		});
+		const end = rect.rounded ? radius : 0;
+		const base = rect.roundedBase ? radius : 0;
+		if (end === 0 && base === 0) {
 			ctx.rect(left, rect.y, width, height);
 			continue;
 		}
 		const growsRight = rect.valueX >= rect.baselineX;
 		if (growsRight) {
-			ctx.roundRect(left, rect.y, width, height, [0, radius, radius, 0]);
+			ctx.roundRect(left, rect.y, width, height, [base, end, end, base]);
 		} else {
-			ctx.roundRect(left, rect.y, width, height, [radius, 0, 0, radius]);
+			ctx.roundRect(left, rect.y, width, height, [end, base, base, end]);
 		}
 	}
 	ctx.fill();

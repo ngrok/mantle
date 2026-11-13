@@ -1,0 +1,115 @@
+---
+title: Chart Named Colors Migration
+description: Every chart series names its color with a mantle color name, the same names Badge takes. The chart-1 to chart-8 tokens, chart-other, and seriesSlot are gone, and color is required.
+introducedIn: "0.94.0"
+---
+
+# Mantle Chart Named Colors Migration Guide
+
+`@ngrok/mantle`'s chart series parts (`BarChart.Bar`, `LineChart.Line`, `AreaChart.Area`, and `ScatterPlot.Point`) take a required `color`: a mantle color name, the same `Color` that `Badge` takes (`"blue"`, `"emerald"`, `"danger"`, `"neutral"`, and the rest), or a CSS color. The chart no longer picks a color for a series. The `"chart-1"` to `"chart-8"` and `"chart-other"` token names, the `--color-chart-1` to `--color-chart-8` and `--color-chart-other` custom properties, the `seriesSlot` prop, and the point shape paired to a slot are gone. Each color name has a token, `--color-chart-<name>`, and a series that sets no `shape` wears the circle.
+
+**TL;DR:** Rename `color="chart-N"` to its color name and `"chart-other"` to `"neutral"`. Replace `seriesSlot={N}` with that slot's `color`. Rename `--color-chart-N` and `bg-chart-N` the same way. Then give every series that has no `color` the one you want: the type checker names each one.
+
+## Codemod
+
+From a mantle checkout:
+
+```sh
+pnpm -w run migrate 0014 <path>
+```
+
+In a project that installs `@ngrok/mantle`:
+
+```sh
+npx --yes --package=@ast-grep/cli@0.51.2 ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/0014-chart-named-colors.yml --update-all <path>
+```
+
+The rules apply steps 2 to 4. On a series part, `color="chart-N"` becomes its color name, also inside a ternary, and `color="chart-other"` becomes `color="neutral"`. `seriesSlot={N}` becomes `color="<name>"`, and `seriesSlot="other"` becomes `color="neutral"`. A `seriesSlot` beside a `color` is deleted, because the `color` already won. In any string, `--color-chart-N`, `bg-chart-N`, and the other Tailwind utilities on a chart token take the color name. Step 5 stays manual: a series with no `color` took the next free slot at run time, and that order is not in the JSX. A dynamic `seriesSlot={slot}` stays manual too. A CSS file stays manual, because the rules read TSX and TS only. The rules read a part through its import from `@ngrok/mantle/<chart>`, under its own name or an alias, and skip a function that shadows that name. Pass `--dry-run` to print the rewrites first, and run your formatter after the rewrite.
+
+---
+
+## You are an agent migrating a codebase. Do this:
+
+1. Find every chart series part: `BarChart.Bar`, `LineChart.Line`, `AreaChart.Area`, and `ScatterPlot.Point` from `@ngrok/mantle`, under their own names or an alias.
+2. Rename each token in a `color` prop: `chart-1` → `blue`, `chart-2` → `emerald`, `chart-3` → `pink`, `chart-4` → `orange`, `chart-5` → `teal`, `chart-6` → `fuchsia`, `chart-7` → `violet`, `chart-8` → `amber`, `chart-other` → `neutral`.
+3. Replace `seriesSlot={N}` with `color="<name>"` from the same table, and `seriesSlot="other"` with `color="neutral"`. Delete a `seriesSlot` on a part that already sets `color`.
+4. Rename the custom properties and utilities with the same table: `--color-chart-1` → `--color-chart-blue`, `bg-chart-1` → `bg-chart-blue`, `--color-chart-other` → `--color-chart-neutral`. Search class strings, inline styles, and CSS files.
+5. Run the type checker. It names every series part that has no `color`. Before this release, the Nth series of a chart with no `color` painted the Nth token in the table above, and the ninth and later painted `neutral`. To keep the look, set that color. Better: choose each color on purpose. Keep a chart to 8 series: the top 7, plus one "Other" series that sums the tail with `color="neutral"`. Give a series that means good or bad a functional color, such as `"danger"` or `"success"`.
+6. Find each line, area, or scatter series that relied on its slot's glyph (the second series wore a square, the third a triangle). Set `shape` where the chart needs a second encoding. A series with no `shape` now wears the circle.
+7. Find a test that reads `chart-N` from a legend swatch, a tooltip stroke, or a computed style, and rename it with the table.
+8. After editing, run the project's formatter, linter, type checker, and tests.
+
+> **Why named colors?** Automatic colors picked from an arbitrary order, so a chart's look depended on how many series it held and in what order they mounted. A designer could not say "this series is blue". A required name makes every color a choice, and it uses the vocabulary the rest of mantle already uses.
+
+---
+
+## Before → after
+
+### A token and a fixed slot
+
+```tsx
+// BEFORE
+<BarChart.Root data={rows} xKey="day">
+	<BarChart.Bar dataKey="requests" color="chart-1" />
+	<BarChart.Bar dataKey="errors" seriesSlot={4} />
+	<BarChart.Bar dataKey="rest" label="Other" seriesSlot="other" />
+</BarChart.Root>
+```
+
+```tsx
+// AFTER
+<BarChart.Root data={rows} xKey="day">
+	<BarChart.Bar dataKey="requests" color="blue" />
+	<BarChart.Bar dataKey="errors" color="orange" />
+	<BarChart.Bar dataKey="rest" label="Other" color="neutral" />
+</BarChart.Root>
+```
+
+### A series with no color
+
+```tsx
+// BEFORE: the chart painted chart-1, then chart-2
+<LineChart.Root data={rows} xKey="time">
+	<LineChart.Line dataKey="p50" label="p50" />
+	<LineChart.Line dataKey="p99" label="p99" />
+</LineChart.Root>
+```
+
+```tsx
+// AFTER: each series names its color; p99 keeps the square it wore
+<LineChart.Root data={rows} xKey="time">
+	<LineChart.Line dataKey="p50" label="p50" color="blue" />
+	<LineChart.Line dataKey="p99" label="p99" color="emerald" shape="square" />
+</LineChart.Root>
+```
+
+### A token restyled on one chart
+
+```tsx
+// BEFORE
+<AreaChart.Root data={rows} xKey="day" className="[--color-chart-1:var(--color-brand)]">
+	<AreaChart.Area dataKey="egress" color="chart-1" />
+</AreaChart.Root>
+```
+
+```tsx
+// AFTER
+<AreaChart.Root data={rows} xKey="day" className="[--color-chart-blue:var(--color-brand)]">
+	<AreaChart.Area dataKey="egress" color="blue" />
+</AreaChart.Root>
+```
+
+---
+
+## Edge cases & gotchas
+
+- **The colors change.** A name paints that color's 500 step in dark mode and its 600 step in light mode, not the bespoke values `chart-1` to `chart-8` held. Blue is still blue, but each one shifts. Read [Color and accessibility](/components/charts/bar-chart#color-and-accessibility) before you pick a set.
+- **A textured bar is a light tint now.** It paints a light tint of its color with the marks in the full color, so a solid series and a textured series of one color read as a pair.
+- **`neutral` is darker than `chart-other` was in light mode.** It paints `neutral-600` there.
+- **A `seriesSlot` from a variable** (`seriesSlot={slot}`) stays, and the type checker names it. Map the value to a color name in code.
+
+## How to verify
+
+- Run `rg -n "chart-[1-8]\b|chart-other|seriesSlot"`. Only comments and changelogs should match.
+- Run the type checker. A missing `color` is a type error.
+- Look at each chart in light and dark mode. Every series wears the color you named.

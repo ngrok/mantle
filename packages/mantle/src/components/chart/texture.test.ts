@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { textureInkColor, TEXTURE_TILE_SIZE, traceDiagonalLines } from "./texture.js";
+import { textureGroundColor, TEXTURE_TILE_SIZE, traceDiagonalLines } from "./texture.js";
 
 /** Record traced line segments without a real canvas context. */
 const makeRecorder = () => {
@@ -64,12 +64,10 @@ describe("traceDiagonalLines", () => {
 	});
 });
 
-describe("textureInkColor", () => {
-	test("steps the series' own fill down a fixed perceptual amount", () => {
-		// A fixed OKLCH lightness step, not a proportional mix — proportional
-		// darkening goes near-invisible on already-dark fills.
-		expect(textureInkColor("oklch(0.623 0.188 259.813)")).toBe(
-			"oklch(from oklch(0.623 0.188 259.813) calc(l - 0.18) c h)",
+describe("textureGroundColor", () => {
+	test("tints the series color into the card surface", () => {
+		expect(textureGroundColor("var(--color-chart-neutral)")).toBe(
+			"color-mix(in oklab, var(--color-chart-neutral) 25%, var(--background-color-card))",
 		);
 	});
 });

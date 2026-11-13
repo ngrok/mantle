@@ -13,8 +13,8 @@ import { LineChart } from "../line-chart/index.js";
  */
 const STYLE = `
 :root {
-	--color-chart-1: #3e6ff4;
-	--color-chart-other: #737373;
+	--color-chart-blue: #3e6ff4;
+	--color-chart-neutral: #737373;
 	--border-color-card-muted: #e5e5e5;
 	--border-color-card: #d4d4d4;
 	--text-color-muted: #717171;
@@ -82,7 +82,7 @@ const chart = (name: string, surface: Surface = "svg") => {
 	return (
 		<div style={{ width: 400, height: 200 }}>
 			<Root data={data} xKey="time" animate={false} aria-label={name}>
-				<LineChart.Line dataKey="p50" label="p50" />
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
 			</Root>
 		</div>
 	);

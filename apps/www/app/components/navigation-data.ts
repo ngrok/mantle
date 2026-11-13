@@ -545,6 +545,14 @@ export const migrations = [
 			"Bar, Line, and Area charts paint an svg instead of a canvas. Update selectors and tests that read the canvas.",
 		route: "/migrations/0013-chart-svg-renderer-migration",
 	},
+	{
+		number: 14,
+		slug: "chart-named-colors-migration",
+		title: "Chart Named Colors",
+		description:
+			"Every chart series names its color with a mantle color name, the same names Badge takes. The chart-1 to chart-8 tokens, chart-other, and seriesSlot are gone, and color is required.",
+		route: "/migrations/0014-chart-named-colors-migration",
+	},
 ] as const satisfies readonly Migration[];
 
 /** Migration guides, newest first: the order the index page and the sidebar show. */

@@ -62,10 +62,10 @@ const BAR_MAX_THICKNESS = 64;
  *
  * @example
  * ```ts
- * // Seven days across a 650px plot: a 93px step, a 74px band.
- * barThickness({ step: 92.9, slot: 74.3 }); // 55.7 — the fill rule
+ * // Seven days across a 650px plot: a 93px step, a 91px band.
+ * barThickness({ step: 92.9, slot: 90.9 }); // 55.7 — the fill rule
  * // Sixty points across the same plot: the step is too narrow to reach the cap.
- * barThickness({ step: 10.8, slot: 8.7 }); // 8.7 — the whole slot
+ * barThickness({ step: 10.8, slot: 8.8 }); // 8.8 — the whole slot
  * ```
  */
 const barThickness = (options: { step: number; slot: number }): number => {
@@ -171,12 +171,91 @@ const isStackedDataEnd = (options: {
 	return Math.abs(dataEnd - toPixel(pileOuter)) < MIN_VISIBLE_EXTENT;
 };
 
+/**
+ * Whether a painted segment starts on the zero baseline, so it is the
+ * innermost segment of its pile. A segment stacked on a pile below it starts
+ * a carved gap away from zero.
+ *
+ * @example
+ * ```ts
+ * isStackedBaseEnd({ baseline: 200, toPixel: (v) => 200 - v * 200 }); // true
+ * ```
+ */
+const isStackedBaseEnd = (options: {
+	baseline: number;
+	toPixel: (value: number) => number;
+}): boolean => Math.abs(options.baseline - options.toPixel(0)) < MIN_VISIBLE_EXTENT;
+
+/**
+ * Re-stack a stacked chart's segments at their enter reveal, so each column
+ * grows as one bar from the baseline. Each series' share of a column scales by
+ * its own reveal, and the shares sum again from zero, per pile.
+ *
+ * Without this, a segment grows from its settled base: an upper segment
+ * appears in the air above a lower one that is still rising. With it, every
+ * seam stays inside the bar. A series that enters later grows on top of a
+ * settled stack, and one that enters below a settled series lifts it.
+ *
+ * `lower` and `upper` are each series' settled boundaries, in stack order. A
+ * `NaN` upper is a gap and stays `NaN`.
+ *
+ * @example
+ * ```ts
+ * // Two series of 1 and 2, half revealed: the column reads 0.5 and 1.5.
+ * revealStack({ lower: [[0], [1]], upper: [[1], [3]], reveal: [0.5, 0.5], count: 1 });
+ * // { lower: [[0], [0.5]], upper: [[0.5], [1.5]] }
+ * ```
+ */
+const revealStack = (options: {
+	lower: readonly ArrayLike<number>[];
+	upper: readonly ArrayLike<number>[];
+	reveal: readonly number[];
+	count: number;
+}): { lower: Float64Array[]; upper: Float64Array[] } => {
+	const { lower, upper, reveal, count } = options;
+	const outLower = upper.map(() => new Float64Array(count));
+	const outUpper = upper.map(() => new Float64Array(count));
+	for (let index = 0; index < count; index++) {
+		let positive = 0;
+		let negative = 0;
+		for (let series = 0; series < upper.length; series++) {
+			const settledUpper = upper[series]?.[index] ?? Number.NaN;
+			const settledLower = lower[series]?.[index] ?? Number.NaN;
+			const share = reveal[series] ?? 1;
+			const revealedLower = outLower[series];
+			const revealedUpper = outUpper[series];
+			if (revealedLower == null || revealedUpper == null) {
+				continue;
+			}
+			if (Number.isNaN(settledUpper)) {
+				revealedLower[index] = Number.NaN;
+				revealedUpper[index] = Number.NaN;
+				continue;
+			}
+			const base = Number.isNaN(settledLower) ? 0 : settledLower;
+			if (base < 0) {
+				// A negative segment runs from `upper` (nearer zero) down to `lower`.
+				revealedUpper[index] = negative;
+				negative += (base - settledUpper) * share;
+				revealedLower[index] = negative;
+			} else {
+				revealedLower[index] = positive;
+				positive += (settledUpper - base) * share;
+				revealedUpper[index] = positive;
+			}
+		}
+	}
+	return { lower: outLower, upper: outUpper };
+};
+
 export {
 	//,
 	BAR_DENSE_THICKNESS,
 	BAR_MAX_THICKNESS,
 	BAR_STEP_FILL,
 	barThickness,
+	isStackedBaseEnd,
 	isStackedDataEnd,
+	revealStack,
 	stackedSegmentEdges,
 };

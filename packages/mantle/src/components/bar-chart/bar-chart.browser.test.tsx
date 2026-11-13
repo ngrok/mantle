@@ -20,10 +20,10 @@ import { CanvasBarChartRoot } from "../../test-utils/canvas-chart-roots.js";
  */
 const STYLE = `
 :root {
-	--color-chart-1: #3e6ff4;
-	--color-chart-2: #008138;
-	--color-chart-3: #f6339a;
-	--color-chart-other: #737373;
+	--color-chart-blue: #3e6ff4;
+	--color-chart-emerald: #008138;
+	--color-chart-pink: #f6339a;
+	--color-chart-neutral: #737373;
 	--border-color-card-muted: #e5e5e5;
 	--border-color-card: #d4d4d4;
 	--text-color-muted: #717171;
@@ -33,13 +33,13 @@ const STYLE = `
 	--border-color-popover: #d4d4d4;
 }
 :root[data-test-theme="flipped"] {
-	--color-chart-1: #ff0000;
+	--color-chart-blue: #ff0000;
 }
-/* What Tailwind compiles the arbitrary-property class [--color-chart-1:#e11d48]
+/* What Tailwind compiles the arbitrary-property class [--color-chart-blue:#e11d48]
    to. Browser tests load no Tailwind build, so the override a consumer writes on
    BarChart.Root is spelled out here instead. */
 .scoped-chart-1 {
-	--color-chart-1: #e11d48;
+	--color-chart-blue: #e11d48;
 }
 .sr-only {
 	position: absolute;
@@ -213,7 +213,7 @@ const renderChart = () =>
 				<BarChart.Grid />
 				<BarChart.XAxis />
 				<BarChart.YAxis />
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 				<BarChart.Tooltip />
 			</CanvasBarChartRoot>
 		</div>,
@@ -245,7 +245,7 @@ describe("BarChart canvas painting", () => {
 		await waitFor(() => {
 			expect(countPixels(canvas, isChart1Ink)).toBeGreaterThan(1000);
 		});
-		// Flip a theme attribute the engine observes; --color-chart-1 becomes red.
+		// Flip a theme attribute the engine observes; --color-chart-blue becomes red.
 		document.documentElement.setAttribute("data-test-theme", "flipped");
 		document.documentElement.setAttribute("data-applied-theme", "light");
 		try {
@@ -315,12 +315,12 @@ describe("overriding a chart color token", () => {
 						aria-label="Overridden"
 						className="scoped-chart-1"
 					>
-						<BarChart.Bar dataKey="desktop" label="Desktop" />
+						<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 					</CanvasBarChartRoot>
 				</div>
 				<div style={{ width: 600, height: 300 }}>
 					<CanvasBarChartRoot data={data} xKey="month" animate={false} aria-label="Default">
-						<BarChart.Bar dataKey="desktop" label="Desktop" />
+						<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 					</CanvasBarChartRoot>
 				</div>
 			</>,
@@ -340,7 +340,7 @@ describe("overriding a chart color token", () => {
 		// The contract colors.ts states: the resolution probe is appended INSIDE the
 		// chart root, so a custom property scoped to one root wins for that chart and
 		// leaves its siblings alone. A consumer writes this as Tailwind's
-		// `[--color-chart-1:#e11d48]`; without a Tailwind build the injected
+		// `[--color-chart-blue:#e11d48]`; without a Tailwind build the injected
 		// `.scoped-chart-1` rule stands in for it.
 		const { container } = renderPair();
 		const overridden = await canvasAt(container, 0, "overridden");
@@ -376,7 +376,7 @@ describe("BarChart yDomain", () => {
 					aria-label="Visitors by month"
 				>
 					<BarChart.YAxis />
-					<BarChart.Bar dataKey="desktop" label="Desktop" />
+					<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 				</CanvasBarChartRoot>
 			</div>,
 		);
@@ -400,8 +400,8 @@ describe("BarChart pointer activation", () => {
 					aria-label="Visitors by month"
 					onDatumActivate={onDatumActivate}
 				>
-					<BarChart.Bar dataKey="desktop" label="Desktop" />
-					<BarChart.Bar dataKey="mobile" label="Mobile" />
+					<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
+					<BarChart.Bar dataKey="mobile" label="Mobile" color="emerald" />
 				</CanvasBarChartRoot>
 			</div>,
 		);
@@ -453,7 +453,7 @@ describe("BarChart decimated keyboard stride", () => {
 					aria-label="Visitors by minute"
 					onActiveIndexChange={onActiveIndexChange}
 				>
-					<BarChart.Bar dataKey="desktop" label="Desktop" />
+					<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 				</CanvasBarChartRoot>
 			</div>,
 		);

@@ -38,7 +38,7 @@ const useTooltipState = (store: ChartStore) => {
 type TooltipPrimitiveProps = Omit<ComponentProps<"div">, "children"> & {
 	/** Format the x/label row of the readout. */
 	labelFormat?: (value: XValue) => ReactNode;
-	/** Format each series value. */
+	/** Format each series value. The Total row of a stacked chart passes the `dataKey` `"total"`. */
 	valueFormat?: (value: number, dataKey: string) => ReactNode;
 	/** The per-series color key: a short stroke (default) or nothing. */
 	indicator?: "line" | "none";
@@ -188,6 +188,20 @@ const ChartTooltipReadout = ({
 					: config.labelFormat(hover.xValue)}
 			</div>
 			<div className="mt-1 grid gap-1">
+				{hover.total !== undefined && (
+					<div className="flex items-center gap-1.5">
+						{/* Why a hidden indicator: it keeps the label in line with the series labels. */}
+						{config?.indicator !== "none" && (
+							<span aria-hidden className="invisible h-2.5 w-0.5 shrink-0" />
+						)}
+						<span className="text-muted">Total</span>
+						<span className="text-strong ml-auto pl-3 font-medium tabular-nums">
+							{config?.valueFormat == null
+								? formatNumber(hover.total)
+								: config.valueFormat(hover.total, "total")}
+						</span>
+					</div>
+				)}
 				{hover.points.map((point) => (
 					<div key={point.dataKey} className="flex items-center gap-1.5">
 						{config?.indicator !== "none" && (

@@ -25,10 +25,10 @@ import { CanvasAreaChartRoot, CanvasBarChartRoot } from "../../test-utils/canvas
  */
 const STYLE = `
 :root {
-	--color-chart-1: #3e6ff4;
-	--color-chart-2: #008138;
-	--color-chart-3: #f6339a;
-	--color-chart-other: #737373;
+	--color-chart-blue: #3e6ff4;
+	--color-chart-emerald: #008138;
+	--color-chart-pink: #f6339a;
+	--color-chart-neutral: #737373;
 	--border-color-card-muted: #e5e5e5;
 	/* The zero baseline reads this token. A color no other chrome wears makes
 	   the baseline row findable in the pixel data. */
@@ -312,7 +312,7 @@ const subPixelTopSegment = [
 
 describe("stacked bar caps and baselines", () => {
 	test("every column's topmost painted segment wears the rounded cap", async () => {
-		// Both series paint chart-1, so the scan measures silhouette alone: the two
+		// Both series paint blue, so the scan measures silhouette alone: the two
 		// bars are pixel-identical apart from which series drew them.
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
@@ -323,8 +323,8 @@ describe("stacked bar caps and baselines", () => {
 					animate={false}
 					aria-label="Sparse stack"
 				>
-					<BarChart.Bar dataKey="first" label="First" color="chart-1" />
-					<BarChart.Bar dataKey="second" label="Second" color="chart-1" />
+					<BarChart.Bar dataKey="first" label="First" color="blue" />
+					<BarChart.Bar dataKey="second" label="Second" color="blue" />
 				</CanvasBarChartRoot>
 			</div>,
 		);
@@ -337,7 +337,7 @@ describe("stacked bar caps and baselines", () => {
 			for (const bar of bars) {
 				const extent = verticalExtent(painted, CHART_1, bar);
 				const capWidth = rowRunLength(painted, extent.start, CHART_1, bar.start, bar.end + 1);
-				// 5 CSS px below the top clears the 4px corner radius entirely.
+				// 5 CSS px below the top clears the 2px corner radius entirely.
 				const bodyRow = extent.start + Math.round(5 * painted.scale);
 				const bodyWidth = rowRunLength(painted, bodyRow, CHART_1, bar.start, bar.end + 1);
 				expectRoundedCap(painted, { cap: capWidth, body: bodyWidth });
@@ -358,8 +358,8 @@ describe("stacked bar caps and baselines", () => {
 					animate={false}
 					aria-label="Sub-pixel top segment"
 				>
-					<BarChart.Bar dataKey="body" label="Body" color="chart-1" />
-					<BarChart.Bar dataKey="sliver" label="Sliver" color="chart-2" />
+					<BarChart.Bar dataKey="body" label="Body" color="blue" />
+					<BarChart.Bar dataKey="sliver" label="Sliver" color="emerald" />
 				</CanvasBarChartRoot>
 			</div>,
 		);
@@ -407,8 +407,10 @@ describe("stacked bar caps and baselines", () => {
 					animate={false}
 					aria-label="Sparse stack baseline"
 				>
-					<BarChart.Bar dataKey="first" label="First" color="chart-1" />
-					<BarChart.Bar dataKey="second" label="Second" color="chart-1" />
+					{/* Why a grid: a chart without ticks draws no zero rule to measure against. */}
+					<BarChart.Grid />
+					<BarChart.Bar dataKey="first" label="First" color="blue" />
+					<BarChart.Bar dataKey="second" label="Second" color="blue" />
 				</CanvasBarChartRoot>
 			</div>,
 		);
@@ -442,9 +444,9 @@ describe("stacked bar caps and baselines", () => {
 					animate={false}
 					aria-label="Three segments capping"
 				>
-					<BarChart.Bar dataKey="bottom" label="Bottom" color="chart-1" />
-					<BarChart.Bar dataKey="middle" label="Middle" color="chart-2" />
-					<BarChart.Bar dataKey="top" label="Top" color="chart-3" />
+					<BarChart.Bar dataKey="bottom" label="Bottom" color="blue" />
+					<BarChart.Bar dataKey="middle" label="Middle" color="emerald" />
+					<BarChart.Bar dataKey="top" label="Top" color="pink" />
 				</CanvasBarChartRoot>
 			</div>,
 		);
@@ -503,8 +505,8 @@ describe("stacked bar caps and baselines", () => {
 					animate={false}
 					aria-label="Diverging stack"
 				>
-					<BarChart.Bar dataKey="up" label="Up" color="chart-1" />
-					<BarChart.Bar dataKey="down" label="Down" color="chart-2" />
+					<BarChart.Bar dataKey="up" label="Up" color="blue" />
+					<BarChart.Bar dataKey="down" label="Down" color="emerald" />
 				</CanvasBarChartRoot>
 			</div>,
 		);
@@ -555,8 +557,8 @@ describe("stacked bar caps and baselines", () => {
 					animate={false}
 					aria-label="Dense stack"
 				>
-					<BarChart.Bar dataKey="first" label="First" color="chart-1" />
-					<BarChart.Bar dataKey="second" label="Second" color="chart-2" />
+					<BarChart.Bar dataKey="first" label="First" color="blue" />
+					<BarChart.Bar dataKey="second" label="Second" color="emerald" />
 				</CanvasBarChartRoot>
 			</div>,
 		);
@@ -571,7 +573,7 @@ describe("stacked bar caps and baselines", () => {
 			}
 			const lowerTop = verticalExtent(painted, CHART_1, lower).start;
 			const upperBottom = verticalExtent(painted, CHART_2, upper).end;
-			// The gap is 2 CSS px, carved out of the outer segment's baseline side.
+			// The gap is 1 CSS px, carved out of the outer segment's baseline side.
 			expect(lowerTop - upperBottom).toBeGreaterThanOrEqual(painted.scale);
 		});
 	});
@@ -587,8 +589,10 @@ describe("stacked bar caps and baselines", () => {
 					animate={false}
 					aria-label="Horizontal sparse stack"
 				>
-					<BarChart.Bar dataKey="first" label="First" color="chart-1" />
-					<BarChart.Bar dataKey="second" label="Second" color="chart-1" />
+					{/* Why a grid: a chart without ticks draws no zero rule to measure against. */}
+					<BarChart.Grid />
+					<BarChart.Bar dataKey="first" label="First" color="blue" />
+					<BarChart.Bar dataKey="second" label="Second" color="blue" />
 				</CanvasBarChartRoot>
 			</div>,
 		);
@@ -633,7 +637,9 @@ describe("stacked bar caps and baselines", () => {
 					animate={false}
 					aria-label="No usage yet"
 				>
-					<BarChart.Bar dataKey="value" label="Value" color="chart-1" />
+					{/* Why a grid: a chart without ticks draws no zero rule to measure against. */}
+					<BarChart.Grid />
+					<BarChart.Bar dataKey="value" label="Value" color="blue" />
 				</CanvasBarChartRoot>
 			</div>,
 		);
@@ -644,6 +650,40 @@ describe("stacked bar caps and baselines", () => {
 			const baselineRow = baselineRowOf(painted);
 			expect(baselineRow).toBeGreaterThan(0);
 			expect(baselineRow / painted.height).toBeGreaterThan(0.75);
+		});
+	});
+
+	test("a chart without ticks runs edge to edge, keeps 12% headroom, and draws no zero rule", async () => {
+		const { container } = render(
+			<div style={{ width: 600, height: 300 }}>
+				<CanvasBarChartRoot
+					data={[
+						{ day: "Mon", value: 50 },
+						{ day: "Tue", value: 100 },
+					]}
+					xKey="day"
+					animate={false}
+					aria-label="Tickless bars"
+				>
+					<BarChart.Bar dataKey="value" label="Value" color="blue" />
+				</CanvasBarChartRoot>
+			</div>,
+		);
+		const canvas = await findChartCanvas(container);
+		await waitForPlot(canvas);
+		await waitFor(() => {
+			const painted = readCanvas(canvas);
+			expect(baselineRowOf(painted)).toBe(-1);
+			const bars = columnRunsOf(painted, CHART_1);
+			expect(bars).toHaveLength(2);
+			const tallest = bars[1];
+			if (tallest == null) {
+				throw new Error("expected the tallest bar to paint");
+			}
+			const extent = verticalExtent(painted, CHART_1, tallest);
+			// The bar runs to the bottom edge, and its top leaves 1 - 1/1.12 of the height.
+			expect(painted.height - 1 - extent.end).toBeLessThanOrEqual(painted.scale);
+			expect(extent.start / painted.height).toBeCloseTo(1 - 1 / 1.12, 1);
 		});
 	});
 
@@ -662,7 +702,7 @@ describe("stacked bar caps and baselines", () => {
 					animate={false}
 					aria-label="No usage yet, area"
 				>
-					<AreaChart.Area dataKey="value" label="Value" color="chart-1" />
+					<AreaChart.Area dataKey="value" label="Value" color="blue" />
 				</CanvasAreaChartRoot>
 			</div>,
 		);
@@ -753,7 +793,7 @@ describe("hover band geometry", () => {
 				<CanvasBarChartRoot data={denseDays} xKey="day" animate={false} aria-label="Dense days">
 					<BarChart.XAxis />
 					<BarChart.YAxis />
-					<BarChart.Bar dataKey="value" label="Value" color="chart-1" />
+					<BarChart.Bar dataKey="value" label="Value" color="blue" />
 				</CanvasBarChartRoot>
 			</div>,
 		);
@@ -823,9 +863,9 @@ describe("stacked segment hit resolution", () => {
 					aria-label="Three segments"
 					onDatumActivate={(event) => activated.push(event.dataKey)}
 				>
-					<BarChart.Bar dataKey="bottom" label="Bottom" color="chart-1" />
-					<BarChart.Bar dataKey="middle" label="Middle" color="chart-2" />
-					<BarChart.Bar dataKey="top" label="Top" color="chart-3" />
+					<BarChart.Bar dataKey="bottom" label="Bottom" color="blue" />
+					<BarChart.Bar dataKey="middle" label="Middle" color="emerald" />
+					<BarChart.Bar dataKey="top" label="Top" color="pink" />
 				</CanvasBarChartRoot>
 			</div>,
 		);
@@ -889,9 +929,9 @@ describe("stacked segment hit resolution", () => {
 					aria-label="Three segments horizontal"
 					onDatumActivate={(event) => activated.push(event.dataKey)}
 				>
-					<BarChart.Bar dataKey="bottom" label="Bottom" color="chart-1" />
-					<BarChart.Bar dataKey="middle" label="Middle" color="chart-2" />
-					<BarChart.Bar dataKey="top" label="Top" color="chart-3" />
+					<BarChart.Bar dataKey="bottom" label="Bottom" color="blue" />
+					<BarChart.Bar dataKey="middle" label="Middle" color="emerald" />
+					<BarChart.Bar dataKey="top" label="Top" color="pink" />
 				</CanvasBarChartRoot>
 			</div>,
 		);
@@ -949,9 +989,9 @@ describe("stacked segment hit resolution", () => {
 					aria-label="Hollow stack"
 					onDatumActivate={(event) => activated.push(event.dataKey)}
 				>
-					<BarChart.Bar dataKey="bottom" label="Bottom" color="chart-1" />
-					<BarChart.Bar dataKey="middle" label="Middle" color="chart-2" />
-					<BarChart.Bar dataKey="top" label="Top" color="chart-3" />
+					<BarChart.Bar dataKey="bottom" label="Bottom" color="blue" />
+					<BarChart.Bar dataKey="middle" label="Middle" color="emerald" />
+					<BarChart.Bar dataKey="top" label="Top" color="pink" />
 				</CanvasBarChartRoot>
 			</div>,
 		);
@@ -1027,7 +1067,7 @@ describe("tooltip placement", () => {
 					aria-label="Many series"
 				>
 					{series.map((key) => (
-						<BarChart.Bar key={key} dataKey={key} label={key} />
+						<BarChart.Bar key={key} dataKey={key} label={key} color="blue" />
 					))}
 				</CanvasBarChartRoot>
 			</div>,
@@ -1063,9 +1103,9 @@ describe("tooltip placement", () => {
 					animate={false}
 					aria-label="Three segments"
 				>
-					<BarChart.Bar dataKey="bottom" label="Bottom" color="chart-1" />
-					<BarChart.Bar dataKey="middle" label="Middle" color="chart-2" />
-					<BarChart.Bar dataKey="top" label="Top" color="chart-3" />
+					<BarChart.Bar dataKey="bottom" label="Bottom" color="blue" />
+					<BarChart.Bar dataKey="middle" label="Middle" color="emerald" />
+					<BarChart.Bar dataKey="top" label="Top" color="pink" />
 				</CanvasBarChartRoot>
 			</div>,
 		);
@@ -1101,9 +1141,9 @@ describe("tooltip placement", () => {
 					animate={false}
 					aria-label="Three segments"
 				>
-					<BarChart.Bar dataKey="bottom" label="Bottom" color="chart-1" />
-					<BarChart.Bar dataKey="middle" label="Middle" color="chart-2" />
-					<BarChart.Bar dataKey="top" label="Top" color="chart-3" />
+					<BarChart.Bar dataKey="bottom" label="Bottom" color="blue" />
+					<BarChart.Bar dataKey="middle" label="Middle" color="emerald" />
+					<BarChart.Bar dataKey="top" label="Top" color="pink" />
 				</CanvasBarChartRoot>
 			</div>,
 		);
@@ -1165,9 +1205,9 @@ describe("tooltip placement", () => {
 				>
 					<BarChart.XAxis />
 					<BarChart.YAxis />
-					<BarChart.Bar dataKey="bottom" label="Bottom" color="chart-1" />
-					<BarChart.Bar dataKey="middle" label="Middle" color="chart-2" />
-					<BarChart.Bar dataKey="top" label="Top" color="chart-3" />
+					<BarChart.Bar dataKey="bottom" label="Bottom" color="blue" />
+					<BarChart.Bar dataKey="middle" label="Middle" color="emerald" />
+					<BarChart.Bar dataKey="top" label="Top" color="pink" />
 				</CanvasBarChartRoot>
 			</div>,
 		);

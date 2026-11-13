@@ -37,7 +37,7 @@ const Chart = ({ seriesCount }: { seriesCount: number }) => {
 		<div style={{ width: 160 }}>
 			<BarChart.Root data={data} xKey="day" animate={false} aria-label="Requests">
 				{keys.map((key) => (
-					<BarChart.Bar key={key} dataKey={key} label={`Series ${key}`} />
+					<BarChart.Bar key={key} dataKey={key} label={`Series ${key}`} color="blue" />
 				))}
 				<BarChart.Legend data-testid="legend" />
 			</BarChart.Root>

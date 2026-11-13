@@ -19,8 +19,8 @@ export const MantleLine = ({ data, series, animate, label }: SeriesProps) => (
 		<LineChart.Grid />
 		<LineChart.XAxis />
 		<LineChart.YAxis />
-		<LineChart.Line dataKey="a" label="Requests" />
-		{series === 2 && <LineChart.Line dataKey="b" label="Errors" />}
+		<LineChart.Line dataKey="a" label="Requests" color="blue" />
+		{series === 2 && <LineChart.Line dataKey="b" label="Errors" color="emerald" />}
 		<LineChart.Tooltip />
 	</LineChart.Root>
 );
@@ -31,8 +31,8 @@ export const MantleArea = ({ data, series, animate, label }: SeriesProps) => (
 		<AreaChart.Grid />
 		<AreaChart.XAxis />
 		<AreaChart.YAxis />
-		<AreaChart.Area dataKey="a" label="Requests" />
-		{series === 2 && <AreaChart.Area dataKey="b" label="Errors" />}
+		<AreaChart.Area dataKey="a" label="Requests" color="blue" />
+		{series === 2 && <AreaChart.Area dataKey="b" label="Errors" color="emerald" />}
 		<AreaChart.Tooltip />
 	</AreaChart.Root>
 );
@@ -43,8 +43,8 @@ export const MantleBar = ({ data, series, animate, label }: SeriesProps) => (
 		<BarChart.Grid />
 		<BarChart.XAxis />
 		<BarChart.YAxis />
-		<BarChart.Bar dataKey="a" label="p50" />
-		{series === 2 && <BarChart.Bar dataKey="b" label="p99" />}
+		<BarChart.Bar dataKey="a" label="p50" color="blue" />
+		{series === 2 && <BarChart.Bar dataKey="b" label="p99" color="emerald" />}
 		<BarChart.Tooltip />
 	</BarChart.Root>
 );
@@ -57,7 +57,7 @@ export const MantleScatter = ({ data, animate, label }: PointProps) => (
 		<ScatterPlot.Grid />
 		<ScatterPlot.XAxis />
 		<ScatterPlot.YAxis />
-		<ScatterPlot.Point dataKey="y" label="Latency" />
+		<ScatterPlot.Point dataKey="y" label="Latency" color="blue" />
 		<ScatterPlot.Tooltip />
 	</ScatterPlot.Root>
 );
@@ -94,7 +94,7 @@ export const MantleSparkline = ({
 					aria-label={label}
 					className={SPARKLINE_CLASS}
 				>
-					<LineChart.Line dataKey="a" label="Requests" />
+					<LineChart.Line dataKey="a" label="Requests" color="blue" />
 				</LineChart.Root>
 			);
 		case "area":
@@ -107,7 +107,7 @@ export const MantleSparkline = ({
 					aria-label={label}
 					className={SPARKLINE_CLASS}
 				>
-					<AreaChart.Area dataKey="a" label="Requests" />
+					<AreaChart.Area dataKey="a" label="Requests" color="blue" />
 				</AreaChart.Root>
 			);
 		case "bar":
@@ -120,7 +120,7 @@ export const MantleSparkline = ({
 					aria-label={label}
 					className={SPARKLINE_CLASS}
 				>
-					<BarChart.Bar dataKey="a" label="Requests" />
+					<BarChart.Bar dataKey="a" label="Requests" color="blue" />
 				</BarChart.Root>
 			);
 		case "scatter":
@@ -133,7 +133,7 @@ export const MantleSparkline = ({
 					aria-label={label}
 					className={SPARKLINE_CLASS}
 				>
-					<ScatterPlot.Point dataKey="y" label="Latency" />
+					<ScatterPlot.Point dataKey="y" label="Latency" color="blue" />
 				</ScatterPlot.Root>
 			);
 	}

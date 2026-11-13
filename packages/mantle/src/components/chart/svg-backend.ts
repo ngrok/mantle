@@ -10,14 +10,14 @@ import type {
 } from "./paint-backend.js";
 import type { BarOrientation, SeriesMeta } from "./types.js";
 import { CHART_CHROME_CSS, cssSeriesColor } from "./colors.js";
-import { paintTextureTile, TEXTURE_TILE_SIZE, textureInkColor } from "./texture.js";
+import { paintTextureTile, TEXTURE_TILE_SIZE, textureGroundColor } from "./texture.js";
 
 /**
  * The SVG paint backend: one `<svg>` per chart, in CSS pixels. It records the
  * renderer's 2D drawing calls and writes them as one `<path>` per run of calls
  * that share a style, so a bar series is one path and a line is one path.
  *
- * Colors stay CSS: a series paints `var(--color-chart-1)` and the browser
+ * Colors stay CSS: a series paints `var(--color-chart-blue)` and the browser
  * resolves it. A theme switch repaints no chart, and the backend reads no
  * computed style, watches no theme attribute, and holds no bitmap.
  *
@@ -732,7 +732,7 @@ class SvgBackend implements PaintBackend {
 		pattern.setAttribute("width", String(TEXTURE_TILE_SIZE));
 		pattern.setAttribute("height", String(TEXTURE_TILE_SIZE));
 		const tile = new SvgRecorder(document);
-		paintTextureTile(tile, { texture, color, ink: textureInkColor(color), orientation });
+		paintTextureTile(tile, { texture, ground: textureGroundColor(color), ink: color, orientation });
 		const group = document.createElementNS(SVG_NAMESPACE, "g");
 		for (const mark of tile.marks.overlay) {
 			if (mark.type !== "path") {

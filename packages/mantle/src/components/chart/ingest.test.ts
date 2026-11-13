@@ -5,13 +5,12 @@ import { ingestRows } from "./ingest.js";
 const series = (dataKey: string): SeriesSpec => ({
 	dataKey,
 	label: dataKey,
-	seriesSlot: undefined,
-	color: undefined,
+	color: "blue",
 	mark: "line",
 	curve: "linear",
 	markers: false,
 	connectNulls: false,
-	shape: undefined,
+	shape: "circle",
 	texture: "solid",
 });
 

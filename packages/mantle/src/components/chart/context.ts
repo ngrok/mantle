@@ -132,7 +132,7 @@ type ChartAccessibilityProps<TMode extends ChartMode = ChartMode> = {
 	 * technology (no name, no description, no table, no live region), out of
 	 * the tab order, and inert to pointer and keyboard. Every series paints
 	 * `--color-chart-decorative`, one neutral fill that outranks a series'
-	 * `color` and `seriesSlot`: a backdrop encodes no series identity, and a
+	 * `color`: a backdrop encodes no series identity, and a
 	 * hue on values that are not information invites a reader to decode it.
 	 * The token is the darkest neutral step that keeps `text-muted` over the
 	 * WCAG AA floor for 14px text in both themes (4.56:1 in light, 4.93:1

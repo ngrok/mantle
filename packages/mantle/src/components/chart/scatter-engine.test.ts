@@ -83,13 +83,12 @@ const mount3d = (
 	store.registerSeries({
 		dataKey: "y",
 		label: "Y",
-		seriesSlot: undefined,
-		color: undefined,
+		color: "blue",
 		mark: "scatter",
 		curve: "linear",
 		markers: false,
 		connectNulls: false,
-		shape: undefined,
+		shape: "circle",
 		texture: "solid",
 	});
 	const engine = new ChartEngine({

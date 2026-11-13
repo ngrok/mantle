@@ -56,13 +56,12 @@ const makeSeries = (
 ): SeriesSpec => ({
 	dataKey,
 	label: dataKey,
-	seriesSlot: undefined,
-	color: undefined,
+	color: "blue",
 	mark,
 	curve: "linear",
 	markers: false,
 	connectNulls: false,
-	shape: undefined,
+	shape: "circle",
 	texture: "solid",
 	...overrides,
 });

@@ -30,8 +30,8 @@ const renderChart = (extraRootProps: Record<string, unknown> = {}) =>
 			<ScatterPlot.Grid />
 			<ScatterPlot.XAxis />
 			<ScatterPlot.YAxis />
-			<ScatterPlot.Point dataKey="regionA" label="Region A" />
-			<ScatterPlot.Point dataKey="regionB" label="Region B" />
+			<ScatterPlot.Point dataKey="regionA" label="Region A" color="blue" />
+			<ScatterPlot.Point dataKey="regionB" label="Region B" color="emerald" />
 			<ScatterPlot.Tooltip />
 			<ScatterPlot.Legend />
 		</ScatterPlot.Root>,
@@ -45,8 +45,8 @@ const render3dChart = () =>
 			zKey="depth"
 			aria-label="Latency by region and depth"
 		>
-			<ScatterPlot.Point dataKey="regionA" label="Region A" />
-			<ScatterPlot.Point dataKey="regionB" label="Region B" />
+			<ScatterPlot.Point dataKey="regionA" label="Region A" color="blue" />
+			<ScatterPlot.Point dataKey="regionB" label="Region B" color="emerald" />
 			<ScatterPlot.Tooltip />
 		</ScatterPlot.Root>,
 	);
@@ -73,7 +73,7 @@ describe("ScatterPlot.Root", () => {
 				data-testid="chart-root"
 				ref={ref}
 			>
-				<ScatterPlot.Point dataKey="regionA" label="Region A" />
+				<ScatterPlot.Point dataKey="regionA" label="Region A" color="blue" />
 			</ScatterPlot.Root>,
 		);
 		const root = container.querySelector('[data-slot="scatter-plot"]');
@@ -104,7 +104,7 @@ describe("ScatterPlot.Root", () => {
 		}));
 		render(
 			<ScatterPlot.Root data={bigData} xKey="latency" aria-label="Large chart">
-				<ScatterPlot.Point dataKey="regionA" label="Region A" />
+				<ScatterPlot.Point dataKey="regionA" label="Region A" color="blue" />
 			</ScatterPlot.Root>,
 		);
 		engageChart();
@@ -116,7 +116,7 @@ describe("ScatterPlot.Root", () => {
 	test("empty data renders without crashing and without a table", () => {
 		render(
 			<ScatterPlot.Root data={[]} xKey="latency" aria-label="Empty chart">
-				<ScatterPlot.Point dataKey="regionA" label="Region A" />
+				<ScatterPlot.Point dataKey="regionA" label="Region A" color="blue" />
 			</ScatterPlot.Root>,
 		);
 		expect(screen.getByRole("application", { name: "Empty chart" })).toBeInTheDocument();
@@ -128,7 +128,7 @@ describe("ScatterPlot.Root", () => {
 		expect(() =>
 			render(
 				<ScatterPlot.Root data={data} xKey="latency" aria-label="Typo chart">
-					<ScatterPlot.Point dataKey="regionsA" label="Region A" />
+					<ScatterPlot.Point dataKey="regionsA" label="Region A" color="blue" />
 				</ScatterPlot.Root>,
 			),
 		).toThrow(
@@ -146,7 +146,7 @@ describe("ScatterPlot.Root", () => {
 				xKey="latency"
 				aria-label="Gappy scatter"
 			>
-				<ScatterPlot.Point dataKey="regionA" label="Region A" />
+				<ScatterPlot.Point dataKey="regionA" label="Region A" color="blue" />
 			</ScatterPlot.Root>,
 		);
 		expect(screen.getByRole("application", { name: "Gappy scatter" })).toBeInTheDocument();
@@ -199,7 +199,7 @@ describe("ScatterPlot data slots", () => {
 
 test("a part rendered outside Root throws", () => {
 	vi.spyOn(console, "error").mockImplementation(() => {});
-	expect(() => render(<ScatterPlot.Point dataKey="regionA" />)).toThrow(
+	expect(() => render(<ScatterPlot.Point dataKey="regionA" color="emerald" />)).toThrow(
 		/ScatterPlot\.Point must be composed inside ScatterPlot\.Root/,
 	);
 });
@@ -209,7 +209,7 @@ test("a BarChart.Bar composed inside ScatterPlot.Root throws", () => {
 	expect(() =>
 		render(
 			<ScatterPlot.Root data={data} xKey="latency" aria-label="Cross-family chart">
-				<BarChart.Bar dataKey="regionA" label="Region A" />
+				<BarChart.Bar dataKey="regionA" label="Region A" color="blue" />
 			</ScatterPlot.Root>,
 		),
 	).toThrow(/BarChart\.Bar cannot be composed inside ScatterPlot\.Root/);
@@ -227,7 +227,7 @@ describe("ScatterPlot.Legend", () => {
 	test("renders nothing for a single series (the title already names it)", () => {
 		const { container } = render(
 			<ScatterPlot.Root data={data} xKey="latency" aria-label="Region A latency">
-				<ScatterPlot.Point dataKey="regionA" label="Region A" />
+				<ScatterPlot.Point dataKey="regionA" label="Region A" color="blue" />
 				<ScatterPlot.Legend />
 			</ScatterPlot.Root>,
 		);
@@ -237,8 +237,8 @@ describe("ScatterPlot.Legend", () => {
 	test("supports a render-prop for custom legends", () => {
 		render(
 			<ScatterPlot.Root data={data} xKey="latency" aria-label="Latency by region">
-				<ScatterPlot.Point dataKey="regionA" label="Region A" />
-				<ScatterPlot.Point dataKey="regionB" label="Region B" />
+				<ScatterPlot.Point dataKey="regionA" label="Region A" color="blue" />
+				<ScatterPlot.Point dataKey="regionB" label="Region B" color="emerald" />
 				<ScatterPlot.Legend>
 					{(series) => series.map((entry) => <span key={entry.dataKey}>custom {entry.label}</span>)}
 				</ScatterPlot.Legend>
@@ -252,59 +252,11 @@ describe("ScatterPlot.Legend", () => {
 /** The engine's clip-path table, keyed by the string a `data-shape` carries. */
 const clipPathByShape = new Map<string, string>(Object.entries(POINT_SHAPE_CLIP_PATHS));
 
-/** Every legend key's `data-shape`, in registration order. */
-const legendShapes = (container: HTMLElement): Array<string | null> => {
-	const legend = container.querySelector('[data-slot="scatter-plot-legend"]');
-	const swatches = legend == null ? [] : [...legend.querySelectorAll("span[data-shape]")];
-	return swatches.map((swatch) => swatch.getAttribute("data-shape"));
-};
-
 describe("ScatterPlot.Legend glyphs", () => {
-	// Four keys so the pairing runs past the first slot, where an off-by-one
-	// table and the `chart-other` fallback both still read as "circle".
 	const cloudData = [
 		{ latency: 12, alpha: 840, beta: 720, gamma: 500, delta: 310 },
 		{ latency: 28, alpha: 610, beta: 590, gamma: 480, delta: 290 },
 	];
-
-	test("a series that sets no shape wears the glyph paired to its series slot", () => {
-		// The default a consumer gets for free: color and glyph name one slot, so
-		// the legend stays readable without color vision.
-		const { container } = render(
-			<ScatterPlot.Root data={cloudData} xKey="latency" aria-label="Latency by region">
-				<ScatterPlot.Point dataKey="alpha" label="Alpha" />
-				<ScatterPlot.Point dataKey="beta" label="Beta" />
-				<ScatterPlot.Point dataKey="gamma" label="Gamma" />
-				<ScatterPlot.Point dataKey="delta" label="Delta" />
-				<ScatterPlot.Legend />
-			</ScatterPlot.Root>,
-		);
-		expect(legendShapes(container)).toEqual(["circle", "square", "triangle", "diamond"]);
-	});
-
-	test("the glyph follows a fixed series slot, not composition order", () => {
-		// Pairing on order would draw these two as the circle and the square while
-		// the plot paints slots 5 and 7.
-		const { container } = render(
-			<ScatterPlot.Root data={cloudData} xKey="latency" aria-label="Latency by region">
-				<ScatterPlot.Point dataKey="alpha" label="Alpha" seriesSlot={5} />
-				<ScatterPlot.Point dataKey="beta" label="Beta" seriesSlot={7} />
-				<ScatterPlot.Legend />
-			</ScatterPlot.Root>,
-		);
-		expect(legendShapes(container)).toEqual(["triangle-down", "cross"]);
-	});
-
-	test("an explicit shape wins, and its siblings keep their slot's glyph", () => {
-		const { container } = render(
-			<ScatterPlot.Root data={cloudData} xKey="latency" aria-label="Latency by region">
-				<ScatterPlot.Point dataKey="alpha" label="Alpha" shape="star" />
-				<ScatterPlot.Point dataKey="beta" label="Beta" />
-				<ScatterPlot.Legend />
-			</ScatterPlot.Root>,
-		);
-		expect(legendShapes(container)).toEqual(["star", "square"]);
-	});
 
 	test("each legend key clips to the glyph its data-shape names", () => {
 		// Two halves of one contract in two files: `data-shape` is the public hook
@@ -312,9 +264,9 @@ describe("ScatterPlot.Legend glyphs", () => {
 		// reader sees. A rename on one side alone paints a lie.
 		const { container } = render(
 			<ScatterPlot.Root data={cloudData} xKey="latency" aria-label="Latency by region">
-				<ScatterPlot.Point dataKey="alpha" label="Alpha" shape="plus" />
-				<ScatterPlot.Point dataKey="beta" label="Beta" shape="star" />
-				<ScatterPlot.Point dataKey="gamma" label="Gamma" />
+				<ScatterPlot.Point dataKey="alpha" label="Alpha" shape="plus" color="blue" />
+				<ScatterPlot.Point dataKey="beta" label="Beta" shape="star" color="emerald" />
+				<ScatterPlot.Point dataKey="gamma" label="Gamma" color="pink" />
 				<ScatterPlot.Legend />
 			</ScatterPlot.Root>,
 		);
@@ -433,7 +385,7 @@ describe("ScatterPlot.Tooltip customization", () => {
 		const user = userEvent.setup();
 		render(
 			<ScatterPlot.Root data={data} xKey="latency" aria-label="Latency by region">
-				<ScatterPlot.Point dataKey="regionA" label="Region A" />
+				<ScatterPlot.Point dataKey="regionA" label="Region A" color="blue" />
 				<ScatterPlot.Tooltip
 					labelFormat={(value) => `Latency: ${String(value)}ms`}
 					valueFormat={(value) => `${value} rps`}
@@ -453,7 +405,7 @@ describe("ScatterPlot.Tooltip customization", () => {
 		const user = userEvent.setup();
 		render(
 			<ScatterPlot.Root data={data} xKey="latency" aria-label="Latency by region">
-				<ScatterPlot.Point dataKey="regionA" label="Region A" />
+				<ScatterPlot.Point dataKey="regionA" label="Region A" color="blue" />
 				<ScatterPlot.Tooltip>
 					{(snapshot) => <strong>Custom readout for {String(snapshot.xValue)}</strong>}
 				</ScatterPlot.Tooltip>
@@ -469,8 +421,8 @@ describe("ScatterPlot controlled activeIndex", () => {
 	test("a controlled activeIndex drives the tooltip readout with the row's populated series", () => {
 		render(
 			<ScatterPlot.Root data={data} xKey="latency" aria-label="Latency by region" activeIndex={1}>
-				<ScatterPlot.Point dataKey="regionA" label="Region A" />
-				<ScatterPlot.Point dataKey="regionB" label="Region B" />
+				<ScatterPlot.Point dataKey="regionA" label="Region A" color="blue" />
+				<ScatterPlot.Point dataKey="regionB" label="Region B" color="emerald" />
 			</ScatterPlot.Root>,
 		);
 		const tooltip = document.querySelector('[data-slot="scatter-plot-tooltip"]');
@@ -483,8 +435,8 @@ describe("ScatterPlot controlled activeIndex", () => {
 	test("an out-of-range controlled activeIndex clamps to the data instead of rendering garbage", () => {
 		render(
 			<ScatterPlot.Root data={data} xKey="latency" aria-label="Latency by region" activeIndex={99}>
-				<ScatterPlot.Point dataKey="regionA" label="Region A" />
-				<ScatterPlot.Point dataKey="regionB" label="Region B" />
+				<ScatterPlot.Point dataKey="regionA" label="Region A" color="blue" />
+				<ScatterPlot.Point dataKey="regionB" label="Region B" color="emerald" />
 			</ScatterPlot.Root>,
 		);
 		const tooltip = document.querySelector('[data-slot="scatter-plot-tooltip"]');
@@ -500,66 +452,11 @@ describe("ScatterPlot controlled activeIndex", () => {
 				aria-label="Latency by region"
 				activeIndex={null}
 			>
-				<ScatterPlot.Point dataKey="regionA" label="Region A" />
+				<ScatterPlot.Point dataKey="regionA" label="Region A" color="blue" />
 			</ScatterPlot.Root>,
 		);
 		// The surface mounts on the first active datum, so none means no surface.
 		expect(document.querySelector('[data-slot="scatter-plot-tooltip"]')).toBeNull();
-	});
-});
-
-describe("ScatterPlot series slots", () => {
-	test("automatic series close composition gaps", () => {
-		const filterableData = [
-			{ latency: 12, alpha: 840, beta: 720, gamma: 500 },
-			{ latency: 28, alpha: 610, beta: 590, gamma: 480 },
-		];
-		const { container, rerender } = render(
-			<ScatterPlot.Root data={filterableData} xKey="latency" aria-label="Latency by region">
-				<ScatterPlot.Point dataKey="alpha" label="Alpha" />
-				<ScatterPlot.Point dataKey="beta" label="Beta" />
-				<ScatterPlot.Legend />
-			</ScatterPlot.Root>,
-		);
-		const swatchColors = () => {
-			const legend = container.querySelector('[data-slot="scatter-plot-legend"]');
-			const items = legend == null ? [] : [...legend.querySelectorAll("span")];
-			return items.map((item) => item.style.backgroundColor);
-		};
-		expect(swatchColors()[1]).toContain("chart-2");
-		rerender(
-			<ScatterPlot.Root data={filterableData} xKey="latency" aria-label="Latency by region">
-				<ScatterPlot.Point dataKey="beta" label="Beta" />
-				<ScatterPlot.Point dataKey="gamma" label="Gamma" />
-				<ScatterPlot.Legend />
-			</ScatterPlot.Root>,
-		);
-		const [betaAfter, gammaAfter] = swatchColors();
-		expect(betaAfter).toContain("chart-1");
-		expect(gammaAfter).toContain("chart-2");
-	});
-
-	test("a fixed slot keeps the paired shape across conditional composition", () => {
-		const filterableData = [
-			{ latency: 12, alpha: 840, beta: 720, gamma: 500 },
-			{ latency: 28, alpha: 610, beta: 590, gamma: 480 },
-		];
-		const { container, rerender } = render(
-			<ScatterPlot.Root data={filterableData} xKey="latency" aria-label="Latency by region">
-				<ScatterPlot.Point dataKey="alpha" label="Alpha" />
-				<ScatterPlot.Point dataKey="beta" label="Beta" seriesSlot={2} />
-				<ScatterPlot.Legend />
-			</ScatterPlot.Root>,
-		);
-		expect(legendShapes(container)).toEqual(["circle", "square"]);
-		rerender(
-			<ScatterPlot.Root data={filterableData} xKey="latency" aria-label="Latency by region">
-				<ScatterPlot.Point dataKey="beta" label="Beta" seriesSlot={2} />
-				<ScatterPlot.Point dataKey="gamma" label="Gamma" />
-				<ScatterPlot.Legend />
-			</ScatterPlot.Root>,
-		);
-		expect(legendShapes(container)).toEqual(["square", "circle"]);
 	});
 });
 
@@ -585,7 +482,7 @@ describe("ScatterPlot 3D depth (zKey)", () => {
 				zKey="depth"
 				aria-label="Latency by region and depth"
 			>
-				<ScatterPlot.Point dataKey="regionA" label="Region A" />
+				<ScatterPlot.Point dataKey="regionA" label="Region A" color="blue" />
 				<ScatterPlot.Tooltip>
 					{(snapshot) => <strong>depth {String(snapshot.zValue)}</strong>}
 				</ScatterPlot.Tooltip>
@@ -610,7 +507,7 @@ describe("ScatterPlot decorative mode", () => {
 	const renderDecorative = () =>
 		render(
 			<ScatterPlot.Root data={data} xKey="latency" mode="decorative">
-				<ScatterPlot.Point dataKey="regionA" label="Region A" />
+				<ScatterPlot.Point dataKey="regionA" label="Region A" color="blue" />
 			</ScatterPlot.Root>,
 		);
 

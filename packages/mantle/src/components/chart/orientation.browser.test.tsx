@@ -15,8 +15,8 @@ import { CanvasBarChartRoot } from "../../test-utils/canvas-chart-roots.js";
  */
 const STYLE = `
 :root {
-	--color-chart-1: #3e6ff4;
-	--color-chart-other: #737373;
+	--color-chart-blue: #3e6ff4;
+	--color-chart-neutral: #737373;
 	--border-color-card-muted: #e5e5e5;
 	--border-color-card: #d4d4d4;
 	--text-color-muted: #717171;
@@ -183,7 +183,7 @@ describe("bar orientation", () => {
 				>
 					<BarChart.XAxis />
 					<BarChart.YAxis />
-					<BarChart.Bar dataKey="v" label="Value" color="chart-1" />
+					<BarChart.Bar dataKey="v" label="Value" color="blue" />
 				</CanvasBarChartRoot>
 			</div>,
 		);
@@ -214,7 +214,7 @@ describe("bar orientation", () => {
 				>
 					<BarChart.XAxis />
 					<BarChart.YAxis />
-					<BarChart.Bar dataKey="v" label="Value" color="chart-1" />
+					<BarChart.Bar dataKey="v" label="Value" color="blue" />
 				</CanvasBarChartRoot>
 			</div>,
 		);
@@ -243,7 +243,7 @@ describe("bar orientation", () => {
 				>
 					<BarChart.XAxis />
 					<BarChart.YAxis />
-					<BarChart.Bar dataKey="v" label="Value" color="chart-1" />
+					<BarChart.Bar dataKey="v" label="Value" color="blue" />
 				</CanvasBarChartRoot>
 			</div>,
 		);
@@ -284,7 +284,7 @@ describe("bar orientation", () => {
 				>
 					<BarChart.XAxis />
 					<BarChart.YAxis />
-					<BarChart.Bar dataKey="v" label="Value" color="chart-1" />
+					<BarChart.Bar dataKey="v" label="Value" color="blue" />
 				</CanvasBarChartRoot>
 			</div>,
 		);

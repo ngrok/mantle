@@ -1,5 +1,11 @@
 import invariant from "tiny-invariant";
-import { barThickness, isStackedDataEnd, stackedSegmentEdges } from "./bar-geometry.js";
+import {
+	barThickness,
+	isStackedBaseEnd,
+	isStackedDataEnd,
+	revealStack,
+	stackedSegmentEdges,
+} from "./bar-geometry.js";
 import type { DecimatedColumns } from "./decimate.js";
 import type { BandLayout } from "./scales.js";
 import type { ChartStore } from "./store.js";
@@ -150,6 +156,30 @@ const EDGE_FADE_WIDTH = 40;
 const STREAM_MAX_INTERVAL_MS = 2000;
 /** How long after the last window slide the left-edge fade lingers before decaying. */
 const EDGE_FADE_LINGER_MS = 1000;
+
+/** The pixel gap between neighboring bands, from the step width: 2px, then 1px, then none. */
+const BAND_GAP_STEPS = [
+	{ minStep: 6, gap: 2 },
+	{ minStep: 3, gap: 1 },
+] as const;
+
+/** A series with no boundaries: the fallback for an index past the spec list. */
+const EMPTY_SEGMENTS = { lower: null, upper: new Float64Array(0), reveal: 1 } as const;
+
+/** The gap between the segments of a stack, in CSS pixels. */
+const STACK_GAP = 1;
+
+/** The headroom a bar chart without ticks keeps over its tallest bar. */
+const BAR_HEADROOM = 1.12;
+
+/**
+ * The share of a band's step left as air: a fixed pixel gap, so dense bars
+ * fill their step whatever its width.
+ */
+const bandPadding = (step: number): number => {
+	const gap = BAND_GAP_STEPS.find((entry) => step >= entry.minStep)?.gap ?? 0;
+	return step > 0 ? gap / step : 0;
+};
 
 /** The pixel gap between bars in one band: `BAR_GAP` when roomy, 1 when tight, 0 when cramped. */
 const barGap = ({ bandwidth, groupCount }: { bandwidth: number; groupCount: number }): number => {
@@ -1266,6 +1296,14 @@ class ChartEngine {
 		if (this.#rowCount === 0) {
 			return [0, 1];
 		}
+		if (this.#kind === "bar" && !this.#hasTicks()) {
+			// Why no nice step: with no tick to land on, a nice maximum only adds a
+			// headroom that changes from chart to chart.
+			return [
+				typeof minOverride === "number" ? minOverride : min * BAR_HEADROOM,
+				typeof maxOverride === "number" ? maxOverride : max * BAR_HEADROOM || 1,
+			];
+		}
 		// Bars and areas measure length from zero, so both document an axis minimum
 		// fixed at the baseline. A line or a scatter may float its domain.
 		const zeroAnchored = this.#kind === "bar" || this.#kind === "area";
@@ -1306,6 +1344,12 @@ class ChartEngine {
 	 * category ticks and fades, the y tween = the value domain) are unchanged —
 	 * orientation only flips which pixel axis each maps onto.
 	 */
+	/** Whether any part draws ticks: an axis or a grid. */
+	#hasTicks(): boolean {
+		const snapshot = this.#store.getSnapshot();
+		return snapshot.xAxis != null || snapshot.yAxis != null || snapshot.grid != null;
+	}
+
 	#horizontalBars(): boolean {
 		return this.#kind === "bar" && this.#options.orientation === "horizontal";
 	}
@@ -1446,8 +1490,10 @@ class ChartEngine {
 		// runs along the bottom; horizontal orientation flips the two.
 		const leftAxis = horizontal ? hasXAxis : hasYAxis;
 		const bottomAxis = horizontal ? hasYAxis : hasXAxis;
-		const top = PLOT_PADDING;
-		const bottom = bottomAxis ? X_AXIS_BAND : PLOT_PADDING;
+		// A bar chart without ticks runs its bars edge to edge, like a sparkline.
+		const padding = this.#kind === "bar" && !this.#hasTicks() ? 0 : PLOT_PADDING;
+		const top = padding;
+		const bottom = bottomAxis ? X_AXIS_BAND : padding;
 		const height = Math.max(0, this.#cssHeight - top - bottom);
 		// Publish top/height (which don't depend on the left gutter) before
 		// measuring the gutter: the horizontal category stride in #xTicks()
@@ -1457,12 +1503,12 @@ class ChartEngine {
 		// on the first paint (and permanently under reduced motion, where no
 		// follow-up frame re-lays-out).
 		this.#plot = {
-			left: PLOT_PADDING,
+			left: padding,
 			top,
-			width: Math.max(0, this.#cssWidth - PLOT_PADDING * 2),
+			width: Math.max(0, this.#cssWidth - padding * 2),
 			height,
 		};
-		let left = PLOT_PADDING;
+		let left = padding;
 		if (leftAxis) {
 			left = FALLBACK_AXIS_GUTTER;
 			// Why colors first: a dormant chart lays out without resolved colors, and
@@ -1488,7 +1534,7 @@ class ChartEngine {
 		this.#plot = {
 			left,
 			top,
-			width: Math.max(0, this.#cssWidth - left - PLOT_PADDING),
+			width: Math.max(0, this.#cssWidth - left - padding),
 			height,
 		};
 		// The category band lays out along whichever pixel axis carries categories:
@@ -1498,12 +1544,15 @@ class ChartEngine {
 			? this.#plot.top + this.#plot.height
 			: this.#plot.left + this.#plot.width;
 		if (this.#options.xScale === "band") {
+			// Why a fixed gap: dense bars fill their step, and the thickness cap keeps
+			// sparse bars from growing into panels.
+			const air = bandPadding((bandRangeEnd - bandRangeStart) / Math.max(1, this.#rowCount));
 			this.#bandLayout = computeBandLayout({
 				count: this.#rowCount,
 				rangeStart: bandRangeStart,
 				rangeEnd: bandRangeEnd,
-				paddingInner: 0.2,
-				paddingOuter: 0.1,
+				paddingInner: air,
+				paddingOuter: air / 2,
 			});
 		} else if (this.#options.xScale === "point") {
 			this.#bandLayout = computeBandLayout({
@@ -1741,7 +1790,7 @@ class ChartEngine {
 		// Why the guard: a chart with no axis and no grid draws no labels and no
 		// gridlines, and the `ctx.font` write plus a `measureText` per tick cost
 		// a sparkline more than its bars.
-		const wantsTicks = snapshot.xAxis != null || snapshot.yAxis != null || snapshot.grid != null;
+		const wantsTicks = this.#hasTicks();
 		const desiredXTicks = is3d || !wantsTicks ? [] : this.#desiredXTicks(ctx, colors.fontFamily());
 		const desiredYTicks =
 			is3d || !wantsTicks ? [] : this.#desiredValueTicks(ctx, colors.fontFamily());
@@ -1864,8 +1913,9 @@ class ChartEngine {
 		}
 
 		// baseline (bars grow from a single baseline; keep it visible) — a vertical
-		// baseline at value zero when horizontal, a horizontal one otherwise.
-		if (this.#kind === "bar" && this.#rowCount > 0) {
+		// baseline at value zero when horizontal, a horizontal one otherwise. A
+		// chart without ticks skips it: its rounded bar ends mark the base.
+		if (this.#kind === "bar" && this.#rowCount > 0 && this.#hasTicks()) {
 			if (horizontal) {
 				drawVerticalBaseline(ctx, { plot, color: colors.chrome.baseline, x: valuePosition(0) });
 			} else {
@@ -2074,6 +2124,39 @@ class ChartEngine {
 	}
 
 	/**
+	 * Each bar series' boundaries and the reveal still to apply. A stacked
+	 * chart that is still entering re-stacks its revealed shares, so each column
+	 * grows as one bar; its segments then carry no reveal of their own.
+	 */
+	#barSegments(
+		specs: readonly SeriesSpec[],
+	): Array<{ lower: Float64Array | null; upper: Float64Array; reveal: number }> {
+		const reveals = specs.map((spec) => this.#reveal(spec.dataKey));
+		if (this.#stack == null) {
+			return specs.map((spec, seriesIndex) => ({
+				lower: null,
+				upper: this.#paintedValues(spec, "value", seriesIndex),
+				reveal: reveals[seriesIndex] ?? 1,
+			}));
+		}
+		const lower = specs.map((spec, seriesIndex) => this.#paintedValues(spec, "lower", seriesIndex));
+		const upper = specs.map((spec, seriesIndex) => this.#paintedValues(spec, "upper", seriesIndex));
+		if (reveals.every((reveal) => reveal >= 1)) {
+			return specs.map((_, seriesIndex) => ({
+				lower: lower[seriesIndex] ?? null,
+				upper: upper[seriesIndex] ?? new Float64Array(0),
+				reveal: 1,
+			}));
+		}
+		const revealed = revealStack({ lower, upper, reveal: reveals, count: this.#rowCount });
+		return specs.map((_, seriesIndex) => ({
+			lower: revealed.lower[seriesIndex] ?? null,
+			upper: revealed.upper[seriesIndex] ?? new Float64Array(0),
+			reveal: 1,
+		}));
+	}
+
+	/**
 	 * The baseline-side boundary of one bar segment: the stacked lower boundary,
 	 * or the zero baseline when the chart does not stack. `computeStackBoundaries`
 	 * pairs its `NaN`s, so a defined upper implies a defined lower — the fallback
@@ -2127,15 +2210,13 @@ class ChartEngine {
 		const slotWidth = (layout.bandwidth - gap * (groupCount - 1)) / groupCount;
 		const barWidth = barThickness({ step: layout.step, slot: slotWidth });
 		const toPixel = (value: number): number => value * yCo.k + yCo.b;
+		const stackGap = stacked ? STACK_GAP : 0;
 
 		const rects = this.#barRects;
+		const segments = this.#barSegments(specs);
 		specs.forEach((spec, seriesIndex) => {
-			const reveal = this.#reveal(spec.dataKey);
+			const { lower, upper, reveal } = segments[seriesIndex] ?? EMPTY_SEGMENTS;
 			let count = 0;
-			const lower = stacked ? this.#paintedValues(spec, "lower", seriesIndex) : null;
-			const upper = stacked
-				? this.#paintedValues(spec, "upper", seriesIndex)
-				: this.#paintedValues(spec, "value", seriesIndex);
 			for (let index = 0; index < this.#rowCount; index++) {
 				const upperValue = upper[index] ?? Number.NaN;
 				if (Number.isNaN(upperValue)) {
@@ -2153,7 +2234,7 @@ class ChartEngine {
 					upper: upperValue,
 					toPixel,
 					reveal,
-					gap: stacked ? gap : 0,
+					gap: stackGap,
 				});
 				const rect = rects[count] ?? emptyBarRect();
 				rects[count] = rect;
@@ -2163,6 +2244,7 @@ class ChartEngine {
 				rect.baselineY = edges.baseline;
 				rect.valueY = edges.value;
 				rect.rounded = this.#isDataEnd(seriesIndex, index, toPixel);
+				rect.roundedBase = isStackedBaseEnd({ baseline: edges.baseline, toPixel });
 			}
 			// Textured series paint with their cached pattern; a missing pattern
 			// (solid texture, or tile rasterization unavailable) falls back to the
@@ -2196,15 +2278,13 @@ class ChartEngine {
 		const slotHeight = (layout.bandwidth - gap * (groupCount - 1)) / groupCount;
 		const barHeight = barThickness({ step: layout.step, slot: slotHeight });
 		const toPixel = (value: number): number => value * valueCo.k + valueCo.b;
+		const stackGap = stacked ? STACK_GAP : 0;
 
 		const rects = this.#horizontalBarRects;
+		const segments = this.#barSegments(specs);
 		specs.forEach((spec, seriesIndex) => {
-			const reveal = this.#reveal(spec.dataKey);
+			const { lower, upper, reveal } = segments[seriesIndex] ?? EMPTY_SEGMENTS;
 			let count = 0;
-			const lower = stacked ? this.#paintedValues(spec, "lower", seriesIndex) : null;
-			const upper = stacked
-				? this.#paintedValues(spec, "upper", seriesIndex)
-				: this.#paintedValues(spec, "value", seriesIndex);
 			for (let index = 0; index < this.#rowCount; index++) {
 				const upperValue = upper[index] ?? Number.NaN;
 				if (Number.isNaN(upperValue)) {
@@ -2222,7 +2302,7 @@ class ChartEngine {
 					upper: upperValue,
 					toPixel,
 					reveal,
-					gap: stacked ? gap : 0,
+					gap: stackGap,
 				});
 				const rect = rects[count] ?? emptyHorizontalBarRect();
 				rects[count] = rect;
@@ -2232,6 +2312,7 @@ class ChartEngine {
 				rect.baselineX = edges.baseline;
 				rect.valueX = edges.value;
 				rect.rounded = this.#isDataEnd(seriesIndex, index, toPixel);
+				rect.roundedBase = isStackedBaseEnd({ baseline: edges.baseline, toPixel });
 			}
 			drawHorizontalBars(ctx, {
 				fill:
@@ -2300,7 +2381,7 @@ class ChartEngine {
 					drawMarkers(ctx, {
 						color,
 						surface: colors.chrome.surface,
-						shape: this.#store.seriesShape(spec.dataKey),
+						shape: spec.shape,
 						indexes,
 						xAt,
 						yAt,
@@ -2633,6 +2714,9 @@ class ChartEngine {
 			points,
 			viaKeyboard: this.#viaKeyboard,
 		};
+		if (this.#options.stacked && points.length > 1) {
+			snapshot.total = points.reduce((sum, point) => sum + (point.value ?? 0), 0);
+		}
 		if (this.#is3d()) {
 			const zValue = this.#zs[index] ?? Number.NaN;
 			snapshot.zValue = Number.isNaN(zValue) ? null : zValue;
@@ -2944,7 +3028,14 @@ const styleMarkerDot = (dot: HTMLElement, shape: PointShape, color: string): voi
 	}
 };
 
-const emptyBarRect = (): BarRect => ({ x: 0, width: 0, baselineY: 0, valueY: 0, rounded: false });
+const emptyBarRect = (): BarRect => ({
+	x: 0,
+	width: 0,
+	baselineY: 0,
+	valueY: 0,
+	rounded: false,
+	roundedBase: false,
+});
 
 const emptyHorizontalBarRect = (): HorizontalBarRect => ({
 	y: 0,
@@ -2952,6 +3043,7 @@ const emptyHorizontalBarRect = (): HorizontalBarRect => ({
 	baselineX: 0,
 	valueX: 0,
 	rounded: false,
+	roundedBase: false,
 });
 
 /**

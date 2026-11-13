@@ -7,7 +7,7 @@ import { cx } from "../../utils/cx/cx.js";
 import { POINT_SHAPE_CLIP_PATHS } from "./engine.js";
 import { observeResize } from "./environment.js";
 import type { ChartStore } from "./store.js";
-import { textureInkColor } from "./texture.js";
+import { textureGroundColor } from "./texture.js";
 import type { BarOrientation, BarTexture, SeriesMeta } from "./types.js";
 import { useChartContext, useStoreSeries } from "./context.js";
 
@@ -38,7 +38,7 @@ type LegendPrimitiveProps = Omit<ComponentProps<"div">, "children"> & {
 /**
  * One stripe family of the CSS texture a textured bar legend key wears. The
  * stripes are denser than the canvas tile (a key is read at 8px, not bar
- * scale) but carry the same tone-on-tone ink, so key and bars match. CSS
+ * scale) but carry the same ink over the same tinted ground, so key and bars match. CSS
  * gradient angles are perpendicular to their stripes: `135deg` renders the
  * 45° `/` family, `45deg` its `\` mirror, `0deg` horizontal rungs, `90deg`
  * vertical rungs.
@@ -118,7 +118,10 @@ const legendTextureStyle = (
 	if (texture === "solid") {
 		return {};
 	}
-	return LEGEND_TEXTURE_LAYERS[texture]({ ink: textureInkColor(color), orientation });
+	return {
+		backgroundColor: textureGroundColor(color),
+		...LEGEND_TEXTURE_LAYERS[texture]({ ink: color, orientation }),
+	};
 };
 
 /**

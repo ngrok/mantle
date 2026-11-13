@@ -31,8 +31,8 @@ const renderChart = (extraRootProps: Record<string, unknown> = {}) =>
 			<AreaChart.Grid />
 			<AreaChart.XAxis />
 			<AreaChart.YAxis />
-			<AreaChart.Area dataKey="http" label="HTTP" />
-			<AreaChart.Area dataKey="tcp" label="TCP" />
+			<AreaChart.Area dataKey="http" label="HTTP" color="blue" />
+			<AreaChart.Area dataKey="tcp" label="TCP" color="emerald" />
 			<AreaChart.ReferenceLine y={600} label="Capacity" />
 			<AreaChart.Tooltip />
 			<AreaChart.Legend />
@@ -58,7 +58,7 @@ describe("AreaChart.Root", () => {
 				data-testid="chart-root"
 				ref={ref}
 			>
-				<AreaChart.Area dataKey="http" label="HTTP" />
+				<AreaChart.Area dataKey="http" label="HTTP" color="blue" />
 			</AreaChart.Root>,
 		);
 		const root = container.querySelector('[data-slot="area-chart"]');
@@ -87,7 +87,7 @@ describe("AreaChart.Root", () => {
 		}));
 		render(
 			<AreaChart.Root data={bigData} xKey="date" aria-label="Large chart">
-				<AreaChart.Area dataKey="http" label="HTTP" />
+				<AreaChart.Area dataKey="http" label="HTTP" color="blue" />
 			</AreaChart.Root>,
 		);
 		engageChart();
@@ -99,7 +99,7 @@ describe("AreaChart.Root", () => {
 	test("empty data renders without crashing and without a table", () => {
 		render(
 			<AreaChart.Root data={[]} xKey="date" aria-label="Empty chart">
-				<AreaChart.Area dataKey="http" label="HTTP" />
+				<AreaChart.Area dataKey="http" label="HTTP" color="blue" />
 			</AreaChart.Root>,
 		);
 		expect(screen.getByRole("application", { name: "Empty chart" })).toBeInTheDocument();
@@ -111,7 +111,7 @@ describe("AreaChart.Root", () => {
 		expect(() =>
 			render(
 				<AreaChart.Root data={data} xKey="date" aria-label="Typo chart">
-					<AreaChart.Area dataKey="htp" label="HTTP" />
+					<AreaChart.Area dataKey="htp" label="HTTP" color="blue" />
 				</AreaChart.Root>,
 			),
 		).toThrow(/AreaChart\.Area dataKey "htp" does not match any key.*date, http, tcp/);
@@ -165,7 +165,7 @@ describe("AreaChart data slots", () => {
 describe("AreaChart parts outside Root", () => {
 	test("a part rendered outside Root throws", () => {
 		vi.spyOn(console, "error").mockImplementation(() => {});
-		expect(() => render(<AreaChart.Area dataKey="http" />)).toThrow(
+		expect(() => render(<AreaChart.Area dataKey="http" color="emerald" />)).toThrow(
 			/AreaChart\.Area must be composed inside AreaChart\.Root/,
 		);
 	});
@@ -177,7 +177,7 @@ describe("AreaChart cross-family composition", () => {
 		expect(() =>
 			render(
 				<AreaChart.Root data={data} xKey="date" aria-label="Traffic by protocol">
-					<BarChart.Bar dataKey="http" label="HTTP" />
+					<BarChart.Bar dataKey="http" label="HTTP" color="blue" />
 				</AreaChart.Root>,
 			),
 		).toThrow(/BarChart\.Bar cannot be composed inside AreaChart\.Root/);
@@ -196,7 +196,7 @@ describe("AreaChart.Legend", () => {
 	test("renders nothing for a single series (the title already names it)", () => {
 		const { container } = render(
 			<AreaChart.Root data={data} xKey="date" aria-label="HTTP traffic">
-				<AreaChart.Area dataKey="http" label="HTTP" />
+				<AreaChart.Area dataKey="http" label="HTTP" color="blue" />
 				<AreaChart.Legend />
 			</AreaChart.Root>,
 		);
@@ -208,8 +208,8 @@ describe("AreaChart.Legend", () => {
 		// redundant encoding alongside color — never reached the legend.
 		const { container } = render(
 			<AreaChart.Root data={data} xKey="date" aria-label="Traffic by protocol">
-				<AreaChart.Area dataKey="http" label="HTTP" />
-				<AreaChart.Area dataKey="tcp" label="TCP" shape="diamond" />
+				<AreaChart.Area dataKey="http" label="HTTP" color="blue" />
+				<AreaChart.Area dataKey="tcp" label="TCP" shape="diamond" color="emerald" />
 				<AreaChart.Legend />
 			</AreaChart.Root>,
 		);
@@ -224,8 +224,8 @@ describe("AreaChart.Legend", () => {
 	test("supports a render-prop for custom legends", () => {
 		render(
 			<AreaChart.Root data={data} xKey="date" aria-label="Traffic by protocol">
-				<AreaChart.Area dataKey="http" label="HTTP" />
-				<AreaChart.Area dataKey="tcp" label="TCP" />
+				<AreaChart.Area dataKey="http" label="HTTP" color="blue" />
+				<AreaChart.Area dataKey="tcp" label="TCP" color="emerald" />
 				<AreaChart.Legend>
 					{(series) => series.map((entry) => <span key={entry.dataKey}>custom {entry.label}</span>)}
 				</AreaChart.Legend>
@@ -323,8 +323,8 @@ describe("AreaChart stacked tooltip order", () => {
 		const user = userEvent.setup();
 		render(
 			<AreaChart.Root data={data} xKey="date" stacked aria-label="Traffic by protocol">
-				<AreaChart.Area dataKey="http" label="HTTP" />
-				<AreaChart.Area dataKey="tcp" label="TCP" />
+				<AreaChart.Area dataKey="http" label="HTTP" color="blue" />
+				<AreaChart.Area dataKey="tcp" label="TCP" color="emerald" />
 				<AreaChart.Tooltip />
 			</AreaChart.Root>,
 		);
@@ -342,8 +342,8 @@ describe("AreaChart stacked tooltip order", () => {
 		const user = userEvent.setup();
 		render(
 			<AreaChart.Root data={data} xKey="date" aria-label="Traffic by protocol">
-				<AreaChart.Area dataKey="http" label="HTTP" />
-				<AreaChart.Area dataKey="tcp" label="TCP" />
+				<AreaChart.Area dataKey="http" label="HTTP" color="blue" />
+				<AreaChart.Area dataKey="tcp" label="TCP" color="emerald" />
 				<AreaChart.Tooltip />
 			</AreaChart.Root>,
 		);
@@ -362,7 +362,7 @@ describe("AreaChart.Tooltip customization", () => {
 		const user = userEvent.setup();
 		render(
 			<AreaChart.Root data={data} xKey="date" aria-label="Traffic by protocol">
-				<AreaChart.Area dataKey="http" label="HTTP" />
+				<AreaChart.Area dataKey="http" label="HTTP" color="blue" />
 				<AreaChart.Tooltip
 					labelFormat={(value) =>
 						value instanceof Date ? `Day ${value.getDate()}` : String(value)
@@ -384,7 +384,7 @@ describe("AreaChart.Tooltip customization", () => {
 		const user = userEvent.setup();
 		render(
 			<AreaChart.Root data={data} xKey="date" aria-label="Traffic by protocol">
-				<AreaChart.Area dataKey="http" label="HTTP" />
+				<AreaChart.Area dataKey="http" label="HTTP" color="blue" />
 				<AreaChart.Tooltip>
 					{(snapshot) => <strong>Custom readout for row {snapshot.index}</strong>}
 				</AreaChart.Tooltip>
@@ -403,8 +403,8 @@ describe("AreaChart.Tooltip customization", () => {
 		];
 		render(
 			<AreaChart.Root data={gappy} xKey="date" aria-label="Traffic by protocol">
-				<AreaChart.Area dataKey="http" label="HTTP" />
-				<AreaChart.Area dataKey="tcp" label="TCP" />
+				<AreaChart.Area dataKey="http" label="HTTP" color="blue" />
+				<AreaChart.Area dataKey="tcp" label="TCP" color="emerald" />
 			</AreaChart.Root>,
 		);
 		await user.tab();
@@ -419,7 +419,7 @@ describe("AreaChart controlled activeIndex", () => {
 	test("a controlled activeIndex drives the tooltip readout", () => {
 		render(
 			<AreaChart.Root data={data} xKey="date" aria-label="Traffic by protocol" activeIndex={1}>
-				<AreaChart.Area dataKey="http" label="HTTP" />
+				<AreaChart.Area dataKey="http" label="HTTP" color="blue" />
 			</AreaChart.Root>,
 		);
 		const tooltip = document.querySelector('[data-slot="area-chart-tooltip"]');
@@ -430,7 +430,7 @@ describe("AreaChart controlled activeIndex", () => {
 	test("activeIndex null renders no readout", () => {
 		render(
 			<AreaChart.Root data={data} xKey="date" aria-label="Traffic by protocol" activeIndex={null}>
-				<AreaChart.Area dataKey="http" label="HTTP" />
+				<AreaChart.Area dataKey="http" label="HTTP" color="blue" />
 			</AreaChart.Root>,
 		);
 		// The surface mounts on the first active datum, so none means no surface.
@@ -438,44 +438,11 @@ describe("AreaChart controlled activeIndex", () => {
 	});
 });
 
-describe("AreaChart series slots", () => {
-	test("a fixed slot keeps a series identity across conditional composition", () => {
-		const filterableData = [
-			{ date: new Date(2026, 6, 15), http: 420, tcp: 140, udp: 40 },
-			{ date: new Date(2026, 6, 16), http: 510, tcp: 165, udp: 60 },
-		];
-		const { container, rerender } = render(
-			<AreaChart.Root data={filterableData} xKey="date" aria-label="Traffic by protocol">
-				<AreaChart.Area dataKey="http" label="HTTP" />
-				<AreaChart.Area dataKey="tcp" label="TCP" seriesSlot={2} />
-				<AreaChart.Legend />
-			</AreaChart.Root>,
-		);
-		const swatchColors = () => {
-			const legend = container.querySelector('[data-slot="area-chart-legend"]');
-			const items = legend == null ? [] : [...legend.querySelectorAll("span")];
-			return items.map((item) => item.style.backgroundColor);
-		};
-		const [, tcpBefore] = swatchColors();
-		expect(tcpBefore).toContain("chart-2");
-		rerender(
-			<AreaChart.Root data={filterableData} xKey="date" aria-label="Traffic by protocol">
-				<AreaChart.Area dataKey="tcp" label="TCP" seriesSlot={2} />
-				<AreaChart.Area dataKey="udp" label="UDP" />
-				<AreaChart.Legend />
-			</AreaChart.Root>,
-		);
-		const [tcpAfter, udpAfter] = swatchColors();
-		expect(tcpAfter).toBe(tcpBefore);
-		expect(udpAfter).toContain("chart-1");
-	});
-});
-
 describe("AreaChart decorative mode", () => {
 	const renderDecorative = () =>
 		render(
 			<AreaChart.Root data={data} xKey="date" mode="decorative">
-				<AreaChart.Area dataKey="http" label="HTTP" />
+				<AreaChart.Area dataKey="http" label="HTTP" color="blue" />
 			</AreaChart.Root>,
 		);
 

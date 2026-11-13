@@ -2,7 +2,6 @@ import { useId, useLayoutEffect } from "react";
 import invariant from "tiny-invariant";
 import type {
 	BarTexture,
-	ChartSeriesSlot,
 	CurveKind,
 	GridLines,
 	PointShape,
@@ -24,17 +23,11 @@ import { useChartContext } from "./context.js";
 type SeriesPrimitiveProps = {
 	dataKey: string;
 	label?: string;
-	seriesSlot?: ChartSeriesSlot;
-	color?: SeriesColor;
+	color: SeriesColor;
 	curve?: CurveKind;
 	markers?: boolean;
 	connectNulls?: boolean;
-	/**
-	 * The point glyph (scatter marks, line markers, hover dots) — worn by the
-	 * marks and their legend key. When omitted the series wears the glyph paired
-	 * to its series slot, so shape and color name the same slot with no consumer
-	 * effort.
-	 */
+	/** The point glyph (scatter marks, line markers, hover dots), worn by the marks and their legend key. Defaults to `"circle"`. */
 	shape?: PointShape;
 	/** The fill texture (bar marks only) — worn by the bars and their legend key. */
 	texture?: BarTexture;
@@ -58,14 +51,11 @@ const useSeriesPrimitive = (
 	const {
 		dataKey,
 		label,
-		seriesSlot,
 		color,
 		curve = "linear",
 		markers = false,
 		connectNulls = false,
-		// No default: the store pairs an unset shape with the series slot,
-		// and only `undefined` tells it the consumer chose nothing.
-		shape,
+		shape = "circle",
 		texture = "solid",
 	} = props;
 	useLayoutEffect(
@@ -73,7 +63,6 @@ const useSeriesPrimitive = (
 			context.store.registerSeries({
 				dataKey,
 				label: label ?? dataKey,
-				seriesSlot,
 				color,
 				mark,
 				curve,
@@ -82,19 +71,7 @@ const useSeriesPrimitive = (
 				shape,
 				texture,
 			}),
-		[
-			context.store,
-			dataKey,
-			label,
-			seriesSlot,
-			color,
-			mark,
-			curve,
-			markers,
-			connectNulls,
-			shape,
-			texture,
-		],
+		[context.store, dataKey, label, color, mark, curve, markers, connectNulls, shape, texture],
 	);
 	return null;
 };

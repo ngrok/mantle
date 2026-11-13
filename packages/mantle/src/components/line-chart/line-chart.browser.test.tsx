@@ -19,8 +19,8 @@ import { LineChart } from "./line-chart.js";
  */
 const STYLE = `
 :root {
-	--color-chart-1: #3e6ff4;
-	--color-chart-other: #737373;
+	--color-chart-blue: #3e6ff4;
+	--color-chart-neutral: #737373;
 	--border-color-card-muted: #e5e5e5;
 	--border-color-card: #d4d4d4;
 	--text-color-muted: #717171;
@@ -179,7 +179,7 @@ const renderGappy = (connectNulls: boolean) =>
 				<LineChart.Line
 					dataKey="latency"
 					label="Latency"
-					color="chart-1"
+					color="blue"
 					connectNulls={connectNulls}
 				/>
 			</CanvasLineChartRoot>
@@ -220,7 +220,7 @@ describe("LineChart curve", () => {
 		render(
 			<div style={{ width: 600, height: 300 }}>
 				<CanvasLineChartRoot data={ramp} xKey="attempt" animate={false} aria-label="Latency">
-					<LineChart.Line dataKey="latency" label="Latency" color="chart-1" curve={curve} />
+					<LineChart.Line dataKey="latency" label="Latency" color="blue" curve={curve} />
 				</CanvasLineChartRoot>
 			</div>,
 		);
@@ -265,7 +265,7 @@ describe("LineChart markers", () => {
 		render(
 			<div style={{ width: 600, height: 300 }}>
 				<CanvasLineChartRoot data={samples} xKey="attempt" animate={false} aria-label="Latency">
-					<LineChart.Line dataKey="latency" label="Latency" color="chart-1" markers={markers} />
+					<LineChart.Line dataKey="latency" label="Latency" color="blue" markers={markers} />
 				</CanvasLineChartRoot>
 			</div>,
 		);

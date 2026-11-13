@@ -57,23 +57,23 @@ describe("createColorResolver", () => {
 	test("a chart token resolves from the root's computed custom property with no probe", () => {
 		const host = mountHost();
 		const resolver = createColorResolver(host, {
-			computed: createComputed({ properties: { "--color-chart-1": "#3e6ff4" } }),
+			computed: createComputed({ properties: { "--color-chart-blue": "#3e6ff4" } }),
 			parseContext: createParseContext([]),
 		});
-		expect(resolveSeriesColor(resolver, "chart-1")).toBe("#3e6ff4");
+		expect(resolveSeriesColor(resolver, "blue")).toBe("#3e6ff4");
 		// A resolver that probes first appends a span and reads the inherited color.
 		expect(host.childElementCount).toBe(0);
 	});
 
 	test("one pass reads a custom property once for every series that paints it", () => {
-		const computed = createComputed({ properties: { "--color-chart-1": "#3e6ff4" } });
+		const computed = createComputed({ properties: { "--color-chart-blue": "#3e6ff4" } });
 		const reads = vi.spyOn(computed, "getPropertyValue");
 		const resolver = createColorResolver(mountHost(), {
 			computed,
 			parseContext: createParseContext([]),
 		});
-		resolveSeriesColor(resolver, "chart-1");
-		resolveSeriesColor(resolver, "chart-1");
+		resolveSeriesColor(resolver, "blue");
+		resolveSeriesColor(resolver, "blue");
 		expect(reads).toHaveBeenCalledTimes(1);
 	});
 
@@ -142,7 +142,7 @@ describe("canvasParses", () => {
 	});
 
 	test("a color the canvas drops leaves the sentinel in place", () => {
-		expect(canvasParses(createParseContext([]), "var(--color-chart-1)")).toBe(false);
+		expect(canvasParses(createParseContext([]), "var(--color-chart-blue)")).toBe(false);
 	});
 });
 

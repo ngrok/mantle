@@ -16,7 +16,7 @@ import type { LineChartRootProps } from "../components/line-chart/index.js";
  * ```tsx
  * render(
  *   <CanvasBarChartRoot data={data} xKey="month" aria-label="Visitors">
- *     <BarChart.Bar dataKey="desktop" label="Desktop" />
+ *     <BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
  *   </CanvasBarChartRoot>,
  * );
  * ```
@@ -42,7 +42,7 @@ export const CanvasBarChartRoot = <
  * @example
  * ```tsx
  * <CanvasLineChartRoot data={data} xKey="time" aria-label="Latency">
- *   <LineChart.Line dataKey="p50" label="p50" />
+ *   <LineChart.Line dataKey="p50" label="p50" color="blue" />
  * </CanvasLineChartRoot>
  * ```
  */
@@ -67,7 +67,7 @@ export const CanvasLineChartRoot = <
  * @example
  * ```tsx
  * <CanvasAreaChartRoot data={data} xKey="time" stacked aria-label="Traffic">
- *   <AreaChart.Area dataKey="http" label="HTTP" />
+ *   <AreaChart.Area dataKey="http" label="HTTP" color="blue" />
  * </CanvasAreaChartRoot>
  * ```
  */
