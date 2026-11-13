@@ -103,3 +103,13 @@ describe("the static import graph", () => {
 		expect(runtimePackages(staticGraph("../line-chart/index.ts"))).toContain("tiny-invariant");
 	});
 });
+
+// Why: the ISC license of d3 asks for its notice in every copy, and the build
+// drops the comments that name d3 in the ported modules.
+test("the package publishes the license of the ported d3 code", () => {
+	const manifest = readFileSync(path.resolve(import.meta.dirname, "../../../package.json"), "utf8");
+	const license = readFileSync(path.resolve(import.meta.dirname, "d3-license.md"), "utf8");
+	// Only the `files` list of the manifest names a source path.
+	expect(manifest).toContain('"src/components/chart/d3-license.md"');
+	expect(license).toContain("Permission to use, copy, modify");
+});
