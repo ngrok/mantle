@@ -1,39 +1,37 @@
 "use client";
 
+import type { ChartAccessibilityProps, ChartMode } from "../chart/context.js";
+import { ChartCopyButtonPrimitive } from "../chart/copy-button.js";
+import type { CopyButtonPrimitiveProps } from "../chart/copy-button.js";
+import { ChartLegendPrimitive } from "../chart/legend.js";
+import type { LegendPrimitiveProps } from "../chart/legend.js";
+import { ChartListPrimitive } from "../chart/list.js";
+import type { ChartListPrimitiveProps } from "../chart/list.js";
+import {
+	useGridPrimitive,
+	useReferenceLinePrimitive,
+	useSeriesPrimitive,
+	useXAxisPrimitive,
+	useYAxisPrimitive,
+} from "../chart/registration.js";
 import type {
-	ChartAccessibilityProps,
-	ChartListPrimitiveProps,
-	ChartMode,
-	ChartRootBaseProps,
-	CopyButtonPrimitiveProps,
 	GridPrimitiveProps,
-	LegendPrimitiveProps,
 	ReferenceLinePrimitiveProps,
-	TooltipPrimitiveProps,
 	XAxisPrimitiveProps,
 	YAxisPrimitiveProps,
-} from "../chart/primitive.js";
+} from "../chart/registration.js";
+import { ChartRootPrimitive } from "../chart/root.js";
+import type { ChartRootBaseProps } from "../chart/root.js";
+import { useTooltipPrimitive } from "../chart/tooltip.js";
+import type { TooltipPrimitiveProps } from "../chart/tooltip.js";
 import type {
 	BarOrientation,
 	BarTexture,
 	ChartDatum,
 	ChartDatumEvent,
-	ChartSeriesSlot,
 	SeriesColor,
 } from "../chart/types.js";
 import { createSvgBackend } from "../chart/svg-backend.js";
-import {
-	ChartCopyButtonPrimitive,
-	ChartLegendPrimitive,
-	ChartListPrimitive,
-	ChartRootPrimitive,
-	useGridPrimitive,
-	useReferenceLinePrimitive,
-	useSeriesPrimitive,
-	useTooltipPrimitive,
-	useXAxisPrimitive,
-	useYAxisPrimitive,
-} from "../chart/primitive.js";
 
 /**
  * Props for {@link BarChart.List}.
@@ -83,29 +81,20 @@ type BarChartBarProps = {
 	/** Display name for the legend, tooltip, and data table. Defaults to `dataKey`. */
 	label?: string;
 	/**
-	 * A fixed visual identity slot. Slots `1` through `8` select a chart color.
-	 * `"other"` selects the shared neutral treatment.
+	 * The color the series paints: a mantle color name, the same `Color` that
+	 * `Badge` takes, or any CSS color. Required: name every series' color on
+	 * purpose. Give an "Other" series `"neutral"`, and a series that means good
+	 * or bad a functional color such as `"danger"`.
 	 *
-	 * Series receive unreserved slots in composition order. Set `seriesSlot` to
-	 * give a series a fixed visual identity. Several series may share one slot;
-	 * use distinct textures to tell those bars apart.
+	 * A static CSS color (raw hex) cannot follow the two themes, so prefer a
+	 * `var(--your-token)` declared per theme.
 	 *
 	 * @example
 	 * ```tsx
-	 * <BarChart.Bar dataKey="errors" seriesSlot={4} />
+	 * <BarChart.Bar dataKey="errors" label="Errors" color="danger" />
 	 * ```
 	 */
-	seriesSlot?: ChartSeriesSlot;
-	/**
-	 * Override the color channel with a chart token or any CSS color. This does
-	 * not change the series slot. When omitted, the series paints the color from
-	 * its slot.
-	 *
-	 * A static color (raw hex) cannot follow the two themes, so prefer a
-	 * `var(--your-token)` declared per theme. A series that carries good/bad
-	 * meaning should wear the semantic status colors, never a categorical slot.
-	 */
-	color?: SeriesColor;
+	color: SeriesColor;
 	/**
 	 * The fill texture the series wears, on the bars and on its legend key:
 	 * `"solid"` (default), diagonal hatch lines at 45° (`"hatch"`), the 135°
@@ -117,15 +106,15 @@ type BarChartBarProps = {
 	 *
 	 * The two rung textures flip with the Root's `orientation`, in opposite
 	 * senses. Every other value is direction-free, `"grid"` included — it is the
-	 * orthogonal lattice against `"crosshatch"`'s diagonal one. Eight values
-	 * match the palette's eight series slots.
+	 * orthogonal lattice against `"crosshatch"`'s diagonal one.
 	 *
-	 * Texture is a redundant identity encoding alongside color — tone-on-tone
-	 * ink from the series' own fill — so grouped and stacked series stay
-	 * distinguishable without color vision, in grayscale print, and under
-	 * forced colors. Keep it opt-in and purposeful, never decorative: leave the
-	 * first series solid and texture the rest, or texture only the series in a
-	 * pair that color alone cannot separate.
+	 * A textured series paints its marks in the full series color over a light
+	 * tint of it, so it reads as the light member of its color's pair. Texture
+	 * is a redundant identity encoding alongside color: grouped and stacked
+	 * series stay distinguishable without color vision, in grayscale print, and
+	 * under forced colors. Keep it purposeful: two series of one color told
+	 * apart by texture, such as In and Out traffic, or the series in a pair that
+	 * color alone cannot separate.
 	 */
 	texture?: BarTexture;
 };
@@ -174,7 +163,7 @@ type BarChartCopyButtonProps = CopyButtonPrimitiveProps;
  * Compose the chrome and series parts as children.
  *
  * A Root mounts dormant: a shell of the plot, the named overlay, and its
- * sr-only description. It builds its paint surface, its hover layers, and its engine
+ * sr-only description. It builds its paint surface and its engine
  * once it comes within one viewport of the visible area, takes focus, or
  * prints (on-screen charts first, a few milliseconds at a time), and it mounts
  * the sr-only data table once focus lands inside it. A list of charts pays
@@ -188,8 +177,9 @@ type BarChartCopyButtonProps = CopyButtonPrimitiveProps;
  * `bar-chart-description`, and, once focus lands inside the chart,
  * `bar-chart-data-table`. A bar chart shows the band and never the crosshair
  * or the markers. The surface and the three layers are engine-owned: absent
- * from server HTML and from a dormant chart, inserted at activation (near the
- * viewport, on focus, or before print). A static or decorative chart
+ * from server HTML and from a dormant chart. The surface arrives at activation (near the viewport, on
+ * focus, or before print), and the layers arrive on the first hover or
+ * keyboard step. A static or decorative chart
  * inserts the surface alone. The tooltip surface mounts on the
  * first hover or keyboard step and stays.
  *
@@ -215,8 +205,8 @@ type BarChartCopyButtonProps = CopyButtonPrimitiveProps;
  *   <BarChart.Grid />
  *   <BarChart.XAxis />
  *   <BarChart.YAxis />
- *   <BarChart.Bar dataKey="desktop" label="Desktop" />
- *   <BarChart.Bar dataKey="mobile" label="Mobile" />
+ *   <BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
+ *   <BarChart.Bar dataKey="mobile" label="Mobile" color="emerald" />
  *   <BarChart.Legend />
  * </BarChart.Root>
  * ```
@@ -249,8 +239,8 @@ const Root = <TDatum extends ChartDatum = ChartDatum, TMode extends ChartMode = 
  *   <BarChart.Grid />
  *   <BarChart.XAxis />
  *   <BarChart.YAxis />
- *   <BarChart.Bar dataKey="desktop" label="Desktop" />
- *   <BarChart.Bar dataKey="mobile" label="Mobile" />
+ *   <BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
+ *   <BarChart.Bar dataKey="mobile" label="Mobile" color="emerald" />
  *   <BarChart.Legend />
  * </BarChart.Root>
  * ```
@@ -271,7 +261,7 @@ const Bar = (props: BarChartBarProps) => useSeriesPrimitive("BarChart.Bar", "bar
  *   <BarChart.Grid />
  *   <BarChart.XAxis />
  *   <BarChart.YAxis />
- *   <BarChart.Bar dataKey="desktop" label="Desktop" />
+ *   <BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
  *   <BarChart.Legend />
  * </BarChart.Root>
  * ```
@@ -291,7 +281,7 @@ const Grid = (props: BarChartGridProps) => useGridPrimitive("BarChart.Grid", pro
  *   <BarChart.Grid />
  *   <BarChart.XAxis tickFormat={(month) => String(month).slice(0, 3)} />
  *   <BarChart.YAxis />
- *   <BarChart.Bar dataKey="desktop" label="Desktop" />
+ *   <BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
  *   <BarChart.Legend />
  * </BarChart.Root>
  * ```
@@ -311,7 +301,7 @@ const XAxis = (props: BarChartXAxisProps) => useXAxisPrimitive("BarChart.XAxis",
  *   <BarChart.Grid />
  *   <BarChart.XAxis />
  *   <BarChart.YAxis tickFormat={(value) => `${value / 1000}k`} />
- *   <BarChart.Bar dataKey="desktop" label="Desktop" />
+ *   <BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
  *   <BarChart.Legend />
  * </BarChart.Root>
  * ```
@@ -331,7 +321,7 @@ const YAxis = (props: BarChartYAxisProps) => useYAxisPrimitive("BarChart.YAxis",
  *   <BarChart.Grid />
  *   <BarChart.XAxis />
  *   <BarChart.YAxis />
- *   <BarChart.Bar dataKey="desktop" label="Desktop" />
+ *   <BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
  *   <BarChart.ReferenceLine y={250} label="Capacity" />
  *   <BarChart.Legend />
  * </BarChart.Root>
@@ -367,7 +357,7 @@ const ReferenceLine = (props: BarChartReferenceLineProps) =>
  *   <BarChart.Grid />
  *   <BarChart.XAxis />
  *   <BarChart.YAxis />
- *   <BarChart.Bar dataKey="desktop" label="Desktop" />
+ *   <BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
  *   <BarChart.Tooltip valueFormat={(value) => `${value} visits`} footer="Click to view logs" />
  *   <BarChart.Legend />
  * </BarChart.Root>
@@ -404,8 +394,8 @@ const Tooltip = (props: BarChartTooltipProps) => useTooltipPrimitive("BarChart.T
  *   <BarChart.Grid />
  *   <BarChart.XAxis />
  *   <BarChart.YAxis />
- *   <BarChart.Bar dataKey="desktop" label="Desktop" />
- *   <BarChart.Bar dataKey="mobile" label="Mobile" />
+ *   <BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
+ *   <BarChart.Bar dataKey="mobile" label="Mobile" color="emerald" />
  *   <BarChart.Legend />
  * </BarChart.Root>
  * ```
@@ -427,8 +417,8 @@ const Legend = (props: BarChartLegendProps) => (
  * @example
  * ```tsx
  * <BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
- *   <BarChart.Bar dataKey="desktop" label="Desktop" />
- *   <BarChart.Bar dataKey="mobile" label="Mobile" />
+ *   <BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
+ *   <BarChart.Bar dataKey="mobile" label="Mobile" color="emerald" />
  *   <BarChart.Legend />
  *   <BarChart.CopyButton />
  * </BarChart.Root>
@@ -440,10 +430,9 @@ const CopyButton = (props: BarChartCopyButtonProps) => (
 
 /**
  * Groups a list of charts, such as one chart per card, so they share one
- * tooltip surface and one live region. The surface moves into the chart a
- * reader points at or steps through, so a page of 100 charts mounts one
- * tooltip and one `role="status"` region instead of one per chart. Each chart
- * keeps its own Tooltip part, description, and data table.
+ * `role="status"` live region. A page of 100 charts mounts one region instead
+ * of one per chart, plus one for each `BarChart.CopyButton`. Each chart keeps
+ * its own tooltip, description, and data table.
  *
  * Renders a `div` (`bar-chart-list`) that holds the charts in a `display: contents`
  * wrapper (`bar-chart-list-items`), so a grid or flex layout on the List reaches
@@ -457,7 +446,7 @@ const CopyButton = (props: BarChartCopyButtonProps) => (
  * <BarChart.List>
  *   {agents.map((agent) => (
  *     <BarChart.Root key={agent.id} data={agent.rows} xKey="month" aria-label={agent.name}>
- *       <BarChart.Bar dataKey="desktop" label="Desktop" />
+ *       <BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
  *       <BarChart.Tooltip />
  *     </BarChart.Root>
  *   ))}
@@ -470,9 +459,7 @@ const List = (props: BarChartListProps) => (
 
 /**
  * A bar chart for comparing values across categories, with
- * grouped and stacked variants. Series colors come from the theme's validated
- * `--color-chart-*` tokens; bars keep a fixed slot color for the chart's
- * lifetime even as other series are filtered in and out. Interaction ships
+ * grouped and stacked variants. Each series names its own `color`. Interaction ships
  * with `Root` unconditionally: a per-category tooltip, keyboard stepping,
  * aria-live announcements, and an sr-only description. A Root builds and paints
  * its surface once it comes within one viewport of the visible area, takes
@@ -483,13 +470,12 @@ const List = (props: BarChartListProps) => (
  *
  * | CSS Variable | Default | Description |
  * | --- | --- | --- |
- * | `--color-chart-1` … `--color-chart-8` | per theme | The validated categorical series slots, in assignment order. |
- * | `--color-chart-other` | `--color-neutral-500` | The neutral overflow slot a series wears once every slot is held. |
+ * | `--color-chart-<name>` | per theme | The color a series with `color="<name>"` paints. Every mantle color name has one: the 600 step of its hue in light mode, and the 500 step in dark mode. Most names reach 3:1 contrast on the card surface, and the docs page lists the names that do not. |
  *
  * Two ways to change a series color, both public API. The `color` prop on
- * `BarChart.Bar` sets one series and takes any CSS color. To restyle a slot
- * itself, redeclare its token on `Root` —
- * `className="[--color-chart-1:var(--color-brand)]"`. Every token resolves in
+ * `BarChart.Bar` takes a color name or any CSS color. To restyle a color name
+ * for one chart, redeclare its token on `Root`:
+ * `className="[--color-chart-blue:var(--color-brand)]"`. Every token resolves in
  * `Root`'s own cascade, so a declaration scoped there wins for
  * that chart and leaves every other chart on the page alone.
  *
@@ -533,8 +519,8 @@ const List = (props: BarChartListProps) => (
  *   <BarChart.Grid />
  *   <BarChart.XAxis />
  *   <BarChart.YAxis />
- *   <BarChart.Bar dataKey="desktop" label="Desktop" />
- *   <BarChart.Bar dataKey="mobile" label="Mobile" />
+ *   <BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
+ *   <BarChart.Bar dataKey="mobile" label="Mobile" color="emerald" />
  *   <BarChart.Tooltip />
  *   <BarChart.Legend />
  * </BarChart.Root>
@@ -553,8 +539,8 @@ const BarChart = {
 	 *   <BarChart.Grid />
 	 *   <BarChart.XAxis />
 	 *   <BarChart.YAxis />
-	 *   <BarChart.Bar dataKey="desktop" label="Desktop" />
-	 *   <BarChart.Bar dataKey="mobile" label="Mobile" />
+	 *   <BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
+	 *   <BarChart.Bar dataKey="mobile" label="Mobile" color="emerald" />
 	 *   <BarChart.Tooltip />
 	 *   <BarChart.Legend />
 	 * </BarChart.Root>
@@ -572,8 +558,8 @@ const BarChart = {
 	 *   <BarChart.Grid />
 	 *   <BarChart.XAxis />
 	 *   <BarChart.YAxis />
-	 *   <BarChart.Bar dataKey="desktop" label="Desktop" />
-	 *   <BarChart.Bar dataKey="mobile" label="Mobile" />
+	 *   <BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
+	 *   <BarChart.Bar dataKey="mobile" label="Mobile" color="emerald" />
 	 *   <BarChart.Tooltip />
 	 *   <BarChart.Legend />
 	 * </BarChart.Root>
@@ -594,8 +580,8 @@ const BarChart = {
 	 *   <BarChart.Grid />
 	 *   <BarChart.XAxis />
 	 *   <BarChart.YAxis />
-	 *   <BarChart.Bar dataKey="desktop" label="Desktop" />
-	 *   <BarChart.Bar dataKey="mobile" label="Mobile" />
+	 *   <BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
+	 *   <BarChart.Bar dataKey="mobile" label="Mobile" color="emerald" />
 	 *   <BarChart.Tooltip />
 	 *   <BarChart.Legend />
 	 * </BarChart.Root>
@@ -615,8 +601,8 @@ const BarChart = {
 	 *   <BarChart.Grid />
 	 *   <BarChart.XAxis tickFormat={(month) => String(month).slice(0, 3)} />
 	 *   <BarChart.YAxis />
-	 *   <BarChart.Bar dataKey="desktop" label="Desktop" />
-	 *   <BarChart.Bar dataKey="mobile" label="Mobile" />
+	 *   <BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
+	 *   <BarChart.Bar dataKey="mobile" label="Mobile" color="emerald" />
 	 *   <BarChart.Tooltip />
 	 *   <BarChart.Legend />
 	 * </BarChart.Root>
@@ -636,8 +622,8 @@ const BarChart = {
 	 *   <BarChart.Grid />
 	 *   <BarChart.XAxis />
 	 *   <BarChart.YAxis tickFormat={(value) => `${value / 1000}k`} />
-	 *   <BarChart.Bar dataKey="desktop" label="Desktop" />
-	 *   <BarChart.Bar dataKey="mobile" label="Mobile" />
+	 *   <BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
+	 *   <BarChart.Bar dataKey="mobile" label="Mobile" color="emerald" />
 	 *   <BarChart.Tooltip />
 	 *   <BarChart.Legend />
 	 * </BarChart.Root>
@@ -657,7 +643,7 @@ const BarChart = {
 	 *   <BarChart.Grid />
 	 *   <BarChart.XAxis />
 	 *   <BarChart.YAxis />
-	 *   <BarChart.Bar dataKey="desktop" label="Desktop" />
+	 *   <BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 	 *   <BarChart.ReferenceLine y={250} label="Capacity" />
 	 *   <BarChart.Tooltip />
 	 *   <BarChart.Legend />
@@ -676,8 +662,8 @@ const BarChart = {
 	 *   <BarChart.Grid />
 	 *   <BarChart.XAxis />
 	 *   <BarChart.YAxis />
-	 *   <BarChart.Bar dataKey="desktop" label="Desktop" />
-	 *   <BarChart.Bar dataKey="mobile" label="Mobile" />
+	 *   <BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
+	 *   <BarChart.Bar dataKey="mobile" label="Mobile" color="emerald" />
 	 *   <BarChart.Tooltip valueFormat={(value) => `${value} visits`} />
 	 *   <BarChart.Legend />
 	 * </BarChart.Root>
@@ -696,8 +682,8 @@ const BarChart = {
 	 *   <BarChart.Grid />
 	 *   <BarChart.XAxis />
 	 *   <BarChart.YAxis />
-	 *   <BarChart.Bar dataKey="desktop" label="Desktop" />
-	 *   <BarChart.Bar dataKey="mobile" label="Mobile" />
+	 *   <BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
+	 *   <BarChart.Bar dataKey="mobile" label="Mobile" color="emerald" />
 	 *   <BarChart.Tooltip />
 	 *   <BarChart.Legend />
 	 * </BarChart.Root>
@@ -712,8 +698,8 @@ const BarChart = {
 	 * @example
 	 * ```tsx
 	 * <BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
-	 *   <BarChart.Bar dataKey="desktop" label="Desktop" />
-	 *   <BarChart.Bar dataKey="mobile" label="Mobile" />
+	 *   <BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
+	 *   <BarChart.Bar dataKey="mobile" label="Mobile" color="emerald" />
 	 *   <BarChart.Legend />
 	 *   <BarChart.CopyButton />
 	 * </BarChart.Root>
@@ -721,8 +707,7 @@ const BarChart = {
 	 */
 	CopyButton,
 	/**
-	 * Groups a list of charts so they share one tooltip surface and one live
-	 * region.
+	 * Groups a list of charts so they share one live region.
 	 *
 	 * @see https://mantle.ngrok.com/components/charts/bar-chart#barchartlist
 	 *
@@ -731,7 +716,7 @@ const BarChart = {
 	 * <BarChart.List>
 	 *   {agents.map((agent) => (
 	 *     <BarChart.Root key={agent.id} data={agent.rows} xKey="month" aria-label={agent.name}>
-	 *       <BarChart.Bar dataKey="desktop" label="Desktop" />
+	 *       <BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 	 *       <BarChart.Tooltip />
 	 *     </BarChart.Root>
 	 *   ))}

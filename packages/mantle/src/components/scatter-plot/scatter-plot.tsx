@@ -1,38 +1,33 @@
 "use client";
 
-import type {
-	ChartAccessibilityProps,
-	ChartListPrimitiveProps,
-	ChartMode,
-	ChartRootBaseProps,
-	CopyButtonPrimitiveProps,
-	GridPrimitiveProps,
-	LegendPrimitiveProps,
-	ReferenceLinePrimitiveProps,
-	TooltipPrimitiveProps,
-	XAxisPrimitiveProps,
-	YAxisPrimitiveProps,
-} from "../chart/primitive.js";
-import type {
-	ChartDatum,
-	ChartDatumEvent,
-	ChartSeriesSlot,
-	PointShape,
-	SeriesColor,
-} from "../chart/types.js";
-import { createCanvasBackend } from "../chart/canvas-backend.js";
+import type { ChartAccessibilityProps, ChartMode } from "../chart/context.js";
+import { ChartCopyButtonPrimitive } from "../chart/copy-button.js";
+import type { CopyButtonPrimitiveProps } from "../chart/copy-button.js";
+import { ChartLegendPrimitive } from "../chart/legend.js";
+import type { LegendPrimitiveProps } from "../chart/legend.js";
+import { ChartListPrimitive } from "../chart/list.js";
+import type { ChartListPrimitiveProps } from "../chart/list.js";
 import {
-	ChartCopyButtonPrimitive,
-	ChartLegendPrimitive,
-	ChartListPrimitive,
-	ChartRootPrimitive,
 	useGridPrimitive,
 	useReferenceLinePrimitive,
 	useSeriesPrimitive,
-	useTooltipPrimitive,
 	useXAxisPrimitive,
 	useYAxisPrimitive,
-} from "../chart/primitive.js";
+} from "../chart/registration.js";
+import type {
+	GridPrimitiveProps,
+	ReferenceLinePrimitiveProps,
+	XAxisPrimitiveProps,
+	YAxisPrimitiveProps,
+} from "../chart/registration.js";
+import { ChartRootPrimitive } from "../chart/root.js";
+import type { ChartRootBaseProps } from "../chart/root.js";
+import { useTooltipPrimitive } from "../chart/tooltip.js";
+import type { TooltipPrimitiveProps } from "../chart/tooltip.js";
+import type { ChartDatum, ChartDatumEvent, PointShape, SeriesColor } from "../chart/types.js";
+import { createCanvasBackend } from "../chart/canvas-backend.js";
+import { createScatterView, preloadScatter3d } from "../chart/scatter-engine.js";
+import { useEffect } from "react";
 
 /**
  * Props for {@link ScatterPlot.List}.
@@ -45,9 +40,11 @@ type ScatterPlotListProps = ChartListPrimitiveProps;
  * switch the chart into the 3D projection: points render inside a rotatable
  * cube (drag to orbit), depth-sorted with gentle perspective.
  *
- * Scatter is an all-pairs chart form — any two marks can sit side by side. The
- * eight default chart tokens hold at every pair, so keep it to eight series or
- * fewer. Past eight, fold into an "Other" series or facet into small multiples.
+ * Keep it to eight series or fewer: the top seven, plus an "Other" series in
+ * `"neutral"`. Scatter is an all-pairs chart form: any point can land next to a
+ * point from any other series, so every pair of series colors must stay apart.
+ * Mantle does not guarantee that any set of colors stays apart. To show more
+ * series, facet into small multiples.
  */
 type ScatterPlotRootProps<
 	TDatum extends ChartDatum = ChartDatum,
@@ -75,7 +72,9 @@ type ScatterPlotDepthProps<TDatum extends ChartDatum = ChartDatum> =
 			 * The key of each row's depth value. When set, the scatter renders in
 			 * 3D: drag the plot to rotate the cube. Axis parts and reference lines
 			 * apply to the 2D projection only and are ignored in 3D (the cube frame
-			 * carries orientation). If no row has the key, the Root throws.
+			 * carries orientation). If no row has the key, the Root throws. The 3D
+			 * code loads when a Root with a `zKey` mounts, so a 2D scatter plot
+			 * never downloads it.
 			 */
 			zKey: Extract<keyof TDatum, string>;
 			/**
@@ -105,35 +104,26 @@ type ScatterPlotPointProps = {
 	/** Display name for the legend, tooltip, and data table. Defaults to `dataKey`. */
 	label?: string;
 	/**
-	 * A fixed visual identity slot. Slots `1` through `8` select a paired chart
-	 * color and point shape. `"other"` selects the shared neutral treatment.
+	 * The color the series paints: a mantle color name, the same `Color` that
+	 * `Badge` takes, or any CSS color. Required: name every series' color on
+	 * purpose. Give an "Other" series `"neutral"`, and a series that means good
+	 * or bad a functional color such as `"danger"`.
 	 *
-	 * Series receive unreserved slots in composition order. Set `seriesSlot` to
-	 * give a series a fixed visual identity.
+	 * A static CSS color (raw hex) cannot follow the two themes, so prefer a
+	 * `var(--your-token)` declared per theme.
 	 *
 	 * @example
 	 * ```tsx
-	 * <ScatterPlot.Point dataKey="errors" seriesSlot={4} />
+	 * <ScatterPlot.Point dataKey="latency" label="Latency" color="blue" />
 	 * ```
 	 */
-	seriesSlot?: ChartSeriesSlot;
-	/**
-	 * Override the color channel with a chart token or any CSS color. This does
-	 * not change the series slot or its paired point shape. When omitted, the
-	 * series paints the color from its slot.
-	 *
-	 * A static color (raw hex) cannot follow the two themes, so prefer a
-	 * `var(--your-token)` declared per theme. A series that carries good/bad
-	 * meaning should wear the semantic status colors, never a categorical slot.
-	 */
-	color?: SeriesColor;
+	color: SeriesColor;
 	/**
 	 * The glyph this series' points wear, mirrored by the legend key and the
 	 * hover dot: `"circle"`, `"square"`, `"triangle"`, `"diamond"`,
 	 * `"triangle-down"`, `"plus"`, `"cross"`, or `"star"`. Shape is the
 	 * redundant encoding that keeps overlapping clouds distinguishable without
-	 * color vision. When omitted, the series wears the glyph paired to its
-	 * series slot, so both channels name one slot.
+	 * color vision. Defaults to `"circle"`.
 	 */
 	shape?: PointShape;
 };
@@ -183,7 +173,7 @@ type ScatterPlotCopyButtonProps = CopyButtonPrimitiveProps;
  * 3D cube: drag to orbit, with points depth-sorted under gentle perspective.
  *
  * A Root mounts dormant: a shell of the plot, the named overlay, and its
- * sr-only description. It builds its canvas, its hover layers, and its engine
+ * sr-only description. It builds its canvas and its engine
  * once it comes within one viewport of the visible area, takes focus, or
  * prints (on-screen charts first, a few milliseconds at a time), and it mounts
  * the sr-only data table once focus lands inside it. A list of charts pays
@@ -196,8 +186,9 @@ type ScatterPlotCopyButtonProps = CopyButtonPrimitiveProps;
  * `scatter-plot-description`, and, once focus lands inside the chart,
  * `scatter-plot-data-table`. A scatter plot shows one marker dot on the hit
  * point, and never the crosshair or the band. The canvas and the three
- * layers are engine-owned: absent from server HTML and from a dormant chart,
- * inserted at activation (near the viewport, on focus, or before print). A
+ * layers are engine-owned: absent from server HTML and from a dormant chart. The canvas arrives at activation (near the viewport, on
+ * focus, or before print), and the layers arrive on the first hover or
+ * keyboard step. A
  * static or decorative chart inserts the canvas alone. The
  * tooltip surface mounts on the first hover or keyboard step and stays. That dot carries `chart-active-point` plus a `data-shape` of
  * `"circle"`, `"square"`, `"triangle"`, `"diamond"`, `"triangle-down"`,
@@ -225,8 +216,8 @@ type ScatterPlotCopyButtonProps = CopyButtonPrimitiveProps;
  *   <ScatterPlot.Grid />
  *   <ScatterPlot.XAxis />
  *   <ScatterPlot.YAxis />
- *   <ScatterPlot.Point dataKey="throughputA" label="Region A" />
- *   <ScatterPlot.Point dataKey="throughputB" label="Region B" />
+ *   <ScatterPlot.Point dataKey="throughputA" label="Region A" color="blue" />
+ *   <ScatterPlot.Point dataKey="throughputB" label="Region B" color="emerald" />
  *   <ScatterPlot.Tooltip />
  *   <ScatterPlot.Legend />
  * </ScatterPlot.Root>
@@ -234,16 +225,29 @@ type ScatterPlotCopyButtonProps = CopyButtonPrimitiveProps;
  */
 const Root = <TDatum extends ChartDatum = ChartDatum, TMode extends ChartMode = "interactive">(
 	props: ScatterPlotRootProps<TDatum, TMode>,
-) => (
-	<ChartRootPrimitive
-		kind="scatter"
-		componentName="ScatterPlot"
-		slotName="scatter-plot"
-		// Why canvas: a point cloud past a few thousand marks redraws faster there.
-		paintBackend={createCanvasBackend}
-		{...props}
-	/>
-);
+) => {
+	const is3d = props.zKey != null;
+	// Why at mount and not at the first paint: a chart that activates for
+	// print paints at once, and the print snapshot cannot wait for an import.
+	useEffect(() => {
+		if (is3d) {
+			preloadScatter3d().catch(() => {
+				// The loader reports the failure, and the first 3D paint loads it again.
+			});
+		}
+	}, [is3d]);
+	return (
+		<ChartRootPrimitive
+			kind="scatter"
+			componentName="ScatterPlot"
+			slotName="scatter-plot"
+			// Why canvas: a point cloud past a few thousand marks redraws faster there.
+			paintBackend={createCanvasBackend}
+			scatterView={createScatterView}
+			{...props}
+		/>
+	);
+};
 
 /**
  * One point series. Renders nothing itself — it registers the series with the
@@ -258,8 +262,8 @@ const Root = <TDatum extends ChartDatum = ChartDatum, TMode extends ChartMode = 
  *   <ScatterPlot.Grid />
  *   <ScatterPlot.XAxis />
  *   <ScatterPlot.YAxis />
- *   <ScatterPlot.Point dataKey="throughputA" label="Region A" />
- *   <ScatterPlot.Point dataKey="throughputB" label="Region B" />
+ *   <ScatterPlot.Point dataKey="throughputA" label="Region A" color="blue" />
+ *   <ScatterPlot.Point dataKey="throughputB" label="Region B" color="emerald" />
  *   <ScatterPlot.Tooltip />
  *   <ScatterPlot.Legend />
  * </ScatterPlot.Root>
@@ -281,7 +285,7 @@ const Point = (props: ScatterPlotPointProps) =>
  *   <ScatterPlot.Grid lines="both" />
  *   <ScatterPlot.XAxis />
  *   <ScatterPlot.YAxis />
- *   <ScatterPlot.Point dataKey="throughputA" label="Region A" />
+ *   <ScatterPlot.Point dataKey="throughputA" label="Region A" color="blue" />
  *   <ScatterPlot.Legend />
  * </ScatterPlot.Root>
  * ```
@@ -300,7 +304,7 @@ const Grid = (props: ScatterPlotGridProps) => useGridPrimitive("ScatterPlot.Grid
  *   <ScatterPlot.Grid />
  *   <ScatterPlot.XAxis tickFormat={(value) => `${value}ms`} />
  *   <ScatterPlot.YAxis />
- *   <ScatterPlot.Point dataKey="throughputA" label="Region A" />
+ *   <ScatterPlot.Point dataKey="throughputA" label="Region A" color="blue" />
  *   <ScatterPlot.Legend />
  * </ScatterPlot.Root>
  * ```
@@ -319,7 +323,7 @@ const XAxis = (props: ScatterPlotXAxisProps) => useXAxisPrimitive("ScatterPlot.X
  *   <ScatterPlot.Grid />
  *   <ScatterPlot.XAxis />
  *   <ScatterPlot.YAxis tickFormat={(value) => `${value / 1000}k`} />
- *   <ScatterPlot.Point dataKey="throughputA" label="Region A" />
+ *   <ScatterPlot.Point dataKey="throughputA" label="Region A" color="blue" />
  *   <ScatterPlot.Legend />
  * </ScatterPlot.Root>
  * ```
@@ -338,7 +342,7 @@ const YAxis = (props: ScatterPlotYAxisProps) => useYAxisPrimitive("ScatterPlot.Y
  *   <ScatterPlot.Grid />
  *   <ScatterPlot.XAxis />
  *   <ScatterPlot.YAxis />
- *   <ScatterPlot.Point dataKey="throughputA" label="Region A" />
+ *   <ScatterPlot.Point dataKey="throughputA" label="Region A" color="blue" />
  *   <ScatterPlot.ReferenceLine y={500} label="Target" />
  *   <ScatterPlot.Legend />
  * </ScatterPlot.Root>
@@ -372,7 +376,7 @@ const ReferenceLine = (props: ScatterPlotReferenceLineProps) =>
  * @example
  * ```tsx
  * <ScatterPlot.Root data={data} xKey="latency" aria-label="Latency vs throughput">
- *   <ScatterPlot.Point dataKey="throughputA" label="Region A" />
+ *   <ScatterPlot.Point dataKey="throughputA" label="Region A" color="blue" />
  *   <ScatterPlot.Tooltip valueFormat={(value) => `${value} rps`} />
  *   <ScatterPlot.Legend />
  * </ScatterPlot.Root>
@@ -400,15 +404,15 @@ const Tooltip = (props: ScatterPlotTooltipProps) =>
  * | --- | --- | --- |
  * | `data-slot` | `"scatter-plot-legend"` | The legend list. `ScatterPlot.Legend` renders it in flow below the plot. |
  * | `data-slot` | `"scatter-plot-legend-label"` | On the `<div>` wrapping a `children` render prop. The default legend has none. |
- * | `data-shape` | `"circle"` \| `"square"` \| `"triangle"` \| `"diamond"` \| `"triangle-down"` \| `"plus"` \| `"cross"` \| `"star"` | On each series' swatch, naming the glyph its `ScatterPlot.Point` wears — the `shape` it set, else the one paired to its series slot. The swatch clips itself to that glyph, so target this only to restyle a key. |
+ * | `data-shape` | `"circle"` \| `"square"` \| `"triangle"` \| `"diamond"` \| `"triangle-down"` \| `"plus"` \| `"cross"` \| `"star"` | On each series' swatch, naming the glyph its `ScatterPlot.Point` wears — the `shape` it set, else the circle. The swatch clips itself to that glyph, so target this only to restyle a key. |
  *
  * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterplotlegend
  *
  * @example
  * ```tsx
  * <ScatterPlot.Root data={data} xKey="latency" aria-label="Latency vs throughput">
- *   <ScatterPlot.Point dataKey="throughputA" label="Region A" />
- *   <ScatterPlot.Point dataKey="throughputB" label="Region B" />
+ *   <ScatterPlot.Point dataKey="throughputA" label="Region A" color="blue" />
+ *   <ScatterPlot.Point dataKey="throughputB" label="Region B" color="emerald" />
  *   <ScatterPlot.Tooltip />
  *   <ScatterPlot.Legend />
  * </ScatterPlot.Root>
@@ -431,8 +435,8 @@ const Legend = (props: ScatterPlotLegendProps) => (
  * @example
  * ```tsx
  * <ScatterPlot.Root data={data} xKey="latency" aria-label="Latency vs throughput">
- *   <ScatterPlot.Point dataKey="throughputA" label="Region A" />
- *   <ScatterPlot.Point dataKey="throughputB" label="Region B" />
+ *   <ScatterPlot.Point dataKey="throughputA" label="Region A" color="blue" />
+ *   <ScatterPlot.Point dataKey="throughputB" label="Region B" color="emerald" />
  *   <ScatterPlot.Legend />
  *   <ScatterPlot.CopyButton />
  * </ScatterPlot.Root>
@@ -444,10 +448,9 @@ const CopyButton = (props: ScatterPlotCopyButtonProps) => (
 
 /**
  * Groups a list of charts, such as one chart per card, so they share one
- * tooltip surface and one live region. The surface moves into the chart a
- * reader points at or steps through, so a page of 100 charts mounts one
- * tooltip and one `role="status"` region instead of one per chart. Each chart
- * keeps its own Tooltip part, description, and data table.
+ * `role="status"` live region. A page of 100 charts mounts one region instead
+ * of one per chart, plus one for each `ScatterPlot.CopyButton`. Each chart
+ * keeps its own tooltip, description, and data table.
  *
  * Renders a `div` (`scatter-plot-list`) that holds the charts in a `display: contents`
  * wrapper (`scatter-plot-list-items`), so a grid or flex layout on the List reaches
@@ -461,7 +464,7 @@ const CopyButton = (props: ScatterPlotCopyButtonProps) => (
  * <ScatterPlot.List>
  *   {agents.map((agent) => (
  *     <ScatterPlot.Root key={agent.id} data={agent.rows} xKey="latency" aria-label={agent.name}>
- *       <ScatterPlot.Point dataKey="throughputA" label="Region A" />
+ *       <ScatterPlot.Point dataKey="throughputA" label="Region A" color="blue" />
  *       <ScatterPlot.Tooltip />
  *     </ScatterPlot.Root>
  *   ))}
@@ -479,21 +482,21 @@ const List = (props: ScatterPlotListProps) => (
  * stepping, polite announcements, and the sr-only description ship with
  * `Root` unconditionally. A Root builds and paints its canvas once it comes
  * within one viewport of the visible area, takes focus, or prints, and it mounts
- * its sr-only data table once focus lands inside it. Scatter is an all-pairs
- * chart form: the eight default chart tokens hold at every pair, so keep it
- * to eight series or fewer.
+ * its sr-only data table once focus lands inside it. Keep it to eight series
+ * or fewer: the top seven, plus an "Other" series in `"neutral"`. Scatter is
+ * an all-pairs chart form, and mantle does not guarantee that any set of
+ * colors stays apart.
  *
  * **CSS variables (public API):**
  *
  * | CSS Variable | Default | Description |
  * | --- | --- | --- |
- * | `--color-chart-1` … `--color-chart-8` | per theme | The validated categorical series slots, in assignment order. |
- * | `--color-chart-other` | `--color-neutral-500` | The neutral overflow slot a series wears once every slot is held. |
+ * | `--color-chart-<name>` | per theme | The color a series with `color="<name>"` paints. Every mantle color name has one: the 600 step of its hue in light mode, and the 500 step in dark mode. Most names reach 3:1 contrast on the card surface, and the docs page lists the names that do not. |
  *
  * Two ways to change a series color, both public API. The `color` prop on
- * `ScatterPlot.Point` sets one series and takes any CSS color. To restyle a slot itself,
- * redeclare its token on `Root` —
- * `className="[--color-chart-1:var(--color-brand)]"`. The engine resolves every
+ * `ScatterPlot.Point` takes a color name or any CSS color. To restyle a color name for one chart,
+ * redeclare its token on `Root`:
+ * `className="[--color-chart-blue:var(--color-brand)]"`. The engine resolves every
  * token from `Root`'s computed style, so a declaration scoped there wins for
  * that chart and leaves every other chart on the page alone.
  *
@@ -538,8 +541,8 @@ const List = (props: ScatterPlotListProps) => (
  *   <ScatterPlot.Grid />
  *   <ScatterPlot.XAxis />
  *   <ScatterPlot.YAxis />
- *   <ScatterPlot.Point dataKey="throughputA" label="Region A" />
- *   <ScatterPlot.Point dataKey="throughputB" label="Region B" />
+ *   <ScatterPlot.Point dataKey="throughputA" label="Region A" color="blue" />
+ *   <ScatterPlot.Point dataKey="throughputB" label="Region B" color="emerald" />
  *   <ScatterPlot.Tooltip />
  *   <ScatterPlot.Legend />
  * </ScatterPlot.Root>
@@ -559,8 +562,8 @@ const ScatterPlot = {
 	 *   <ScatterPlot.Grid />
 	 *   <ScatterPlot.XAxis />
 	 *   <ScatterPlot.YAxis />
-	 *   <ScatterPlot.Point dataKey="throughputA" label="Region A" />
-	 *   <ScatterPlot.Point dataKey="throughputB" label="Region B" />
+	 *   <ScatterPlot.Point dataKey="throughputA" label="Region A" color="blue" />
+	 *   <ScatterPlot.Point dataKey="throughputB" label="Region B" color="emerald" />
 	 *   <ScatterPlot.Tooltip />
 	 *   <ScatterPlot.Legend />
 	 * </ScatterPlot.Root>
@@ -578,8 +581,8 @@ const ScatterPlot = {
 	 *   <ScatterPlot.Grid />
 	 *   <ScatterPlot.XAxis />
 	 *   <ScatterPlot.YAxis />
-	 *   <ScatterPlot.Point dataKey="throughputA" label="Region A" />
-	 *   <ScatterPlot.Point dataKey="throughputB" label="Region B" />
+	 *   <ScatterPlot.Point dataKey="throughputA" label="Region A" color="blue" />
+	 *   <ScatterPlot.Point dataKey="throughputB" label="Region B" color="emerald" />
 	 *   <ScatterPlot.Tooltip />
 	 *   <ScatterPlot.Legend />
 	 * </ScatterPlot.Root>
@@ -597,7 +600,7 @@ const ScatterPlot = {
 	 *   <ScatterPlot.Grid lines="both" />
 	 *   <ScatterPlot.XAxis />
 	 *   <ScatterPlot.YAxis />
-	 *   <ScatterPlot.Point dataKey="throughputA" label="Region A" />
+	 *   <ScatterPlot.Point dataKey="throughputA" label="Region A" color="blue" />
 	 *   <ScatterPlot.Tooltip />
 	 *   <ScatterPlot.Legend />
 	 * </ScatterPlot.Root>
@@ -615,7 +618,7 @@ const ScatterPlot = {
 	 *   <ScatterPlot.Grid />
 	 *   <ScatterPlot.XAxis tickFormat={(value) => `${value}ms`} />
 	 *   <ScatterPlot.YAxis />
-	 *   <ScatterPlot.Point dataKey="throughputA" label="Region A" />
+	 *   <ScatterPlot.Point dataKey="throughputA" label="Region A" color="blue" />
 	 *   <ScatterPlot.Tooltip />
 	 *   <ScatterPlot.Legend />
 	 * </ScatterPlot.Root>
@@ -633,7 +636,7 @@ const ScatterPlot = {
 	 *   <ScatterPlot.Grid />
 	 *   <ScatterPlot.XAxis />
 	 *   <ScatterPlot.YAxis tickFormat={(value) => `${value / 1000}k`} />
-	 *   <ScatterPlot.Point dataKey="throughputA" label="Region A" />
+	 *   <ScatterPlot.Point dataKey="throughputA" label="Region A" color="blue" />
 	 *   <ScatterPlot.Tooltip />
 	 *   <ScatterPlot.Legend />
 	 * </ScatterPlot.Root>
@@ -651,7 +654,7 @@ const ScatterPlot = {
 	 *   <ScatterPlot.Grid />
 	 *   <ScatterPlot.XAxis />
 	 *   <ScatterPlot.YAxis />
-	 *   <ScatterPlot.Point dataKey="throughputA" label="Region A" />
+	 *   <ScatterPlot.Point dataKey="throughputA" label="Region A" color="blue" />
 	 *   <ScatterPlot.ReferenceLine y={500} label="Target" />
 	 *   <ScatterPlot.Tooltip />
 	 *   <ScatterPlot.Legend />
@@ -670,7 +673,7 @@ const ScatterPlot = {
 	 *   <ScatterPlot.Grid />
 	 *   <ScatterPlot.XAxis />
 	 *   <ScatterPlot.YAxis />
-	 *   <ScatterPlot.Point dataKey="throughputA" label="Region A" />
+	 *   <ScatterPlot.Point dataKey="throughputA" label="Region A" color="blue" />
 	 *   <ScatterPlot.Tooltip valueFormat={(value) => `${value} rps`} />
 	 *   <ScatterPlot.Legend />
 	 * </ScatterPlot.Root>
@@ -689,8 +692,8 @@ const ScatterPlot = {
 	 *   <ScatterPlot.Grid />
 	 *   <ScatterPlot.XAxis />
 	 *   <ScatterPlot.YAxis />
-	 *   <ScatterPlot.Point dataKey="throughputA" label="Region A" />
-	 *   <ScatterPlot.Point dataKey="throughputB" label="Region B" />
+	 *   <ScatterPlot.Point dataKey="throughputA" label="Region A" color="blue" />
+	 *   <ScatterPlot.Point dataKey="throughputB" label="Region B" color="emerald" />
 	 *   <ScatterPlot.Tooltip />
 	 *   <ScatterPlot.Legend />
 	 * </ScatterPlot.Root>
@@ -705,8 +708,8 @@ const ScatterPlot = {
 	 * @example
 	 * ```tsx
 	 * <ScatterPlot.Root data={data} xKey="latency" aria-label="Latency vs throughput">
-	 *   <ScatterPlot.Point dataKey="throughputA" label="Region A" />
-	 *   <ScatterPlot.Point dataKey="throughputB" label="Region B" />
+	 *   <ScatterPlot.Point dataKey="throughputA" label="Region A" color="blue" />
+	 *   <ScatterPlot.Point dataKey="throughputB" label="Region B" color="emerald" />
 	 *   <ScatterPlot.Legend />
 	 *   <ScatterPlot.CopyButton />
 	 * </ScatterPlot.Root>
@@ -714,8 +717,7 @@ const ScatterPlot = {
 	 */
 	CopyButton,
 	/**
-	 * Groups a list of charts so they share one tooltip surface and one live
-	 * region.
+	 * Groups a list of charts so they share one live region.
 	 *
 	 * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterplotlist
 	 *
@@ -724,7 +726,7 @@ const ScatterPlot = {
 	 * <ScatterPlot.List>
 	 *   {agents.map((agent) => (
 	 *     <ScatterPlot.Root key={agent.id} data={agent.rows} xKey="latency" aria-label={agent.name}>
-	 *       <ScatterPlot.Point dataKey="throughputA" label="Region A" />
+	 *       <ScatterPlot.Point dataKey="throughputA" label="Region A" color="blue" />
 	 *       <ScatterPlot.Tooltip />
 	 *     </ScatterPlot.Root>
 	 *   ))}

@@ -12,9 +12,9 @@ import type { BarOrientation, BarTexture } from "./types.js";
  */
 const STYLE = `
 :root {
-	--color-chart-1: #3e6ff4;
-	--color-chart-2: #167837;
-	--color-chart-other: #737373;
+	--color-chart-blue: #3e6ff4;
+	--color-chart-emerald: #167837;
+	--color-chart-neutral: #737373;
 	--border-color-card-muted: #e5e5e5;
 	--border-color-card: #d4d4d4;
 	--text-color-muted: #717171;
@@ -107,7 +107,7 @@ const tileReds = (
 	const context = makeContext(size);
 	paintTextureTile(context, {
 		texture,
-		color: "rgb(62, 111, 244)",
+		ground: "rgb(62, 111, 244)",
 		ink: "rgb(0, 0, 0)",
 		orientation,
 	});
@@ -145,7 +145,7 @@ const inkCoverage = (texture: NonSolidTexture, devicePixelRatio: number): number
 	context.scale(devicePixelRatio, devicePixelRatio);
 	paintTextureTile(context, {
 		texture,
-		color: "rgb(255, 255, 255)",
+		ground: "rgb(255, 255, 255)",
 		ink: "rgb(0, 0, 0)",
 		orientation: "vertical",
 	});
@@ -162,12 +162,12 @@ describe("texture tiles", () => {
 	const redAt = (texture: NonSolidTexture, x: number, y: number) =>
 		tileReds(texture)[y]?.[x] ?? 255;
 
-	test("paints a two-tone tile: the series ground plus darker ink lines", () => {
+	test("paints a two-tone tile: a light ground under the series-color ink", () => {
 		const size = TEXTURE_TILE_SIZE;
 		const context = makeContext(size);
 		paintTextureTile(context, {
 			texture: "hatch",
-			color: "rgb(62, 111, 244)",
+			ground: "rgb(62, 111, 244)",
 			ink: "rgb(43, 78, 171)",
 			orientation: "vertical",
 		});
@@ -314,7 +314,7 @@ describe("textured legend keys", () => {
 
 	/**
 	 * Render one bar per texture and read every legend chip's computed paint.
-	 * Every series shares one series slot on purpose: one ink across all eight
+	 * Every series shares one color on purpose: one ink across all eight
 	 * chips leaves the stripe geometry as the only thing that can differ.
 	 */
 	const chipPaint = (orientation: BarOrientation): Map<BarTexture, ChipPaint> => {
@@ -335,10 +335,10 @@ describe("textured legend keys", () => {
 				{textures.map((texture) => (
 					<BarChart.Bar
 						key={texture}
-						seriesSlot={1}
 						dataKey={texture}
 						label={texture}
 						texture={texture}
+						color="blue"
 					/>
 				))}
 				<BarChart.Legend />
@@ -375,8 +375,8 @@ describe("textured legend keys", () => {
 		];
 		const { container } = render(
 			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
-				<BarChart.Bar dataKey="mobile" label="Mobile" texture="hatch" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
+				<BarChart.Bar dataKey="mobile" label="Mobile" texture="hatch" color="emerald" />
 				<BarChart.Legend />
 			</BarChart.Root>,
 		);
@@ -393,18 +393,24 @@ describe("textured legend keys", () => {
 		// The chip layers are a lookup keyed by the union. Its predecessor was an
 		// if-chain ending in the dot gradient, so an unhandled value rendered as
 		// dots — a wrong chip that looks deliberate. All eight series share one
-		// series slot here, so two equal backgrounds can only mean two values
+		// series color here, so two equal backgrounds can only mean two values
 		// reading one entry.
 		const paint = chipPaint("vertical");
 		expect(paint.size).toBe(Object.keys(EVERY_TEXTURE).length);
 		const backgrounds = [...paint.values()].map((chip) => chip.backgroundImage);
 		expect(new Set(backgrounds).size).toBe(backgrounds.length);
 		expect(chipOf(paint, "solid").backgroundImage).toBe("none");
-		// The stripes ride the series color, so the texture layers may never
-		// replace it — a chip that lost its ground floats over nothing.
-		expect(new Set([...paint.values()].map((chip) => chip.backgroundColor))).toStrictEqual(
-			new Set(["rgb(62, 111, 244)"]),
+		// A solid chip wears the series color. Every textured chip wears one light
+		// tint of it under the stripes — a chip that lost its ground floats over nothing.
+		const solidGround = chipOf(paint, "solid").backgroundColor;
+		const texturedGrounds = new Set(
+			[...paint.entries()].flatMap(([texture, chip]) =>
+				texture === "solid" ? [] : [chip.backgroundColor],
+			),
 		);
+		expect(solidGround).toBe("rgb(62, 111, 244)");
+		expect(texturedGrounds.size).toBe(1);
+		expect(texturedGrounds.has(solidGround)).toBe(false);
 	});
 
 	test('a "parallel" chip stripes the way its bars\' rungs run', () => {
@@ -462,8 +468,8 @@ describe("textured bar charts", () => {
 				orientation={orientation}
 				aria-label="Visitors by month"
 			>
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
-				<BarChart.Bar dataKey="mobile" label="Mobile" texture={mobileTexture} />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
+				<BarChart.Bar dataKey="mobile" label="Mobile" texture={mobileTexture} color="emerald" />
 			</BarChart.Root>
 		</div>
 	);
@@ -500,7 +506,7 @@ describe("textured bar charts", () => {
 		await waitFor(() => {
 			expect(barPatterns(container)).toHaveLength(1);
 		});
-		expect(solidBarFills(container)).toEqual(["var(--color-chart-1)"]);
+		expect(solidBarFills(container)).toEqual(["var(--color-chart-blue)"]);
 		// The tile paints its ground and its ink.
 		expect(barPatterns(container)[0]?.querySelectorAll("path").length).toBeGreaterThan(1);
 	});

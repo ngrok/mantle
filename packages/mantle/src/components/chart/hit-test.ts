@@ -44,7 +44,32 @@ const nearestIndex = (xs: Float64Array, length: number, x: number): number | nul
 	return highDistance < lowDistance ? high : low;
 };
 
+/**
+ * The first index in `0..length` that `isBefore` rejects, by binary search.
+ * `isBefore` must accept a run of indexes from 0 and reject every index after
+ * that run. Returns `length` when it accepts every index.
+ *
+ * @example
+ * ```ts
+ * const first = lowerBound(xs.length, (index) => (xs[index] ?? 0) < minX);
+ * ```
+ */
+const lowerBound = (length: number, isBefore: (index: number) => boolean): number => {
+	let low = 0;
+	let high = length;
+	while (low < high) {
+		const mid = (low + high) >> 1;
+		if (isBefore(mid)) {
+			low = mid + 1;
+		} else {
+			high = mid;
+		}
+	}
+	return low;
+};
+
 export {
 	//,
+	lowerBound,
 	nearestIndex,
 };

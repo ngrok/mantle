@@ -7,9 +7,9 @@ import type { BarOrientation, BarTexture } from "./types.js";
  * Texture is a redundant identity encoding alongside color: diagonal hatch
  * families at 45° and its 135° mirror, their crossed lattice, one rung per
  * tile across or along the bar's length, the orthogonal lattice of both rung
- * directions, and an offset dot field. The ink is tone-on-tone — a darker step
- * of the series' own fill, at equal loudness across every slot — so a textured
- * series never shouts over a solid one.
+ * directions, and an offset dot field. The marks ink in the full series color
+ * over a light tint of it, so a textured series reads as the light member of
+ * its color's pair beside a solid series of the same color.
  *
  * The SVG backend records each tile into a `<pattern>`, so the browser
  * rasterizes it at the screen's resolution.
@@ -42,21 +42,23 @@ const GRID_LINE_WIDTH = 1.1;
 /** Dot radius sized so two dots per tile match the hatch families' loudness. */
 const DOT_RADIUS = 1.6;
 
+/** How much of the series color a texture's ground mixes into the card surface. */
+const TEXTURE_GROUND_SHARE = 25;
+
 /**
- * The tone-on-tone ink for a texture's marks: the series' resolved fill
- * stepped down a fixed perceptual amount in OKLCH — the next darker step of
- * its own ramp. A fixed lightness step (not a proportional mix toward black)
- * keeps the ink equally loud over the darkest and the brightest fills of both
- * themes.
+ * The ground under a texture's marks: a light tint of the series color over
+ * the card surface. The marks ink in the full series color, so a textured
+ * series reads as the light member of its color's pair, beside a solid series
+ * of the same color.
  *
  * @example
  * ```ts
- * textureInkColor("oklch(0.623 0.188 259.813)");
- * // "oklch(from oklch(0.623 0.188 259.813) calc(l - 0.18) c h)"
+ * textureGroundColor("var(--color-chart-neutral)");
+ * // "color-mix(in oklab, var(--color-chart-neutral) 25%, var(--background-color-card))"
  * ```
  */
-const textureInkColor = (seriesColor: string): string =>
-	`oklch(from ${seriesColor} calc(l - 0.18) c h)`;
+const textureGroundColor = (seriesColor: string): string =>
+	`color-mix(in oklab, ${seriesColor} ${TEXTURE_GROUND_SHARE}%, var(--background-color-card))`;
 
 /**
  * The subset of the 2D context {@link traceDiagonalLines} traces into —
@@ -129,7 +131,7 @@ const fillVerticalRung = (
 type TilePaint = {
 	/** The tile edge in CSS pixels. */
 	size: number;
-	/** The resolved tone-on-tone line ink (see {@link textureInkColor}). */
+	/** The marks' color: the full series color. */
 	ink: string;
 	/** The chart's bar direction, read by the two single-rung textures. */
 	orientation: BarOrientation;
@@ -219,20 +221,22 @@ const TILE_PAINTERS: Record<Exclude<BarTexture, "solid">, TilePainter> = {
  *
  * @example
  * ```ts
- * paintTextureTile(recorder, { texture: "hatch", color, ink: textureInkColor(color), orientation: "vertical" });
+ * paintTextureTile(recorder, { texture: "hatch", ground: textureGroundColor(color), ink: color, orientation: "vertical" });
  * ```
  */
 const paintTextureTile = (
 	tileContext: PaintContext,
 	options: {
 		texture: Exclude<BarTexture, "solid">;
-		color: string;
+		/** The tile's ground: see {@link textureGroundColor}. */
+		ground: string;
+		/** The marks' color: the full series color. */
 		ink: string;
 		orientation: BarOrientation;
 	},
 ): void => {
-	const { texture, color, ink, orientation } = options;
-	tileContext.fillStyle = color;
+	const { texture, ground, ink, orientation } = options;
+	tileContext.fillStyle = ground;
 	tileContext.fillRect(0, 0, TEXTURE_TILE_SIZE, TEXTURE_TILE_SIZE);
 	TILE_PAINTERS[texture](tileContext, { size: TEXTURE_TILE_SIZE, ink, orientation });
 };
@@ -244,7 +248,7 @@ export type {
 export {
 	//,
 	paintTextureTile,
-	textureInkColor,
+	textureGroundColor,
 	TEXTURE_TILE_SIZE,
 	traceDiagonalLines,
 };

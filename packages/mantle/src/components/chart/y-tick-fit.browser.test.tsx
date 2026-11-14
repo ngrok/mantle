@@ -16,8 +16,8 @@ import { CanvasBarChartRoot, CanvasLineChartRoot } from "../../test-utils/canvas
  */
 const STYLE = `
 :root {
-	--color-chart-1: #3e6ff4;
-	--color-chart-other: #737373;
+	--color-chart-blue: #3e6ff4;
+	--color-chart-neutral: #737373;
 	--border-color-card-muted: #e5e5e5;
 	--border-color-card: #d4d4d4;
 	--text-color-muted: #717171;
@@ -96,7 +96,7 @@ describe("the y axis fits its labels to the plot height (MNTL-97)", () => {
 				<CanvasBarChartRoot data={data} xKey="hour" animate={false} aria-label="5XX errors">
 					<BarChart.XAxis />
 					<BarChart.YAxis tickCount={3} />
-					<BarChart.Bar dataKey="count" label="Errors" color="chart-1" />
+					<BarChart.Bar dataKey="count" label="Errors" color="blue" />
 				</CanvasBarChartRoot>
 			</div>,
 		);
@@ -112,7 +112,7 @@ describe("the y axis fits its labels to the plot height (MNTL-97)", () => {
 				<CanvasBarChartRoot data={data} xKey="hour" animate={false} aria-label="5XX errors">
 					<BarChart.XAxis />
 					<BarChart.YAxis tickCount={3} />
-					<BarChart.Bar dataKey="count" label="Errors" color="chart-1" />
+					<BarChart.Bar dataKey="count" label="Errors" color="blue" />
 				</CanvasBarChartRoot>
 			</div>,
 		);
@@ -136,7 +136,7 @@ describe("the y axis fits its labels to the plot height (MNTL-97)", () => {
 					aria-label="Ratio"
 				>
 					<LineChart.YAxis />
-					<LineChart.Line dataKey="ratio" label="Ratio" color="chart-1" />
+					<LineChart.Line dataKey="ratio" label="Ratio" color="blue" />
 				</CanvasLineChartRoot>
 			</div>,
 		);
@@ -162,7 +162,7 @@ describe("the y axis fits its labels to the plot height (MNTL-97)", () => {
 					aria-label="Cost"
 				>
 					<BarChart.YAxis tickFormat={tickFormat} />
-					<BarChart.Bar dataKey="cost" label="Cost" color="chart-1" />
+					<BarChart.Bar dataKey="cost" label="Cost" color="blue" />
 				</CanvasBarChartRoot>
 			</div>,
 		);

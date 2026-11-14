@@ -1,0 +1,1389 @@
+# Every rule binds the local name of a chart family's import from its
+# `@ngrok/mantle/<chart>` subpath, so an aliased import matches and another
+# library's `color` prop does not.
+id: chart-color-token
+language: tsx
+message: a series names its color, so chart-1 through chart-8 become color names and chart-other becomes neutral
+utils:
+  # A node that opens a lexical scope. The shadow search below stops at a
+  # nested one, so a sibling function's local name does not count.
+  scope:
+    any:
+      - kind: statement_block
+      - kind: function_declaration
+      - kind: generator_function_declaration
+      - kind: function_expression
+      - kind: generator_function
+      - kind: arrow_function
+      - kind: method_definition
+      - kind: class_body
+      - kind: for_statement
+      - kind: for_in_statement
+      - kind: catch_clause
+  # An identifier in a binding position: a parameter, a destructured name, a
+  # local variable, a function name, or a class name.
+  binding-name:
+    any:
+      - kind: shorthand_property_identifier_pattern
+      - kind: identifier
+        any:
+          - inside: { kind: variable_declarator, field: name }
+          - inside: { kind: function_declaration, field: name }
+          - inside: { kind: generator_function_declaration, field: name }
+          - inside: { kind: function_expression, field: name }
+          - inside: { kind: required_parameter, field: pattern }
+          - inside: { kind: optional_parameter, field: pattern }
+          - inside: { kind: assignment_pattern, field: left }
+          - inside: { kind: pair_pattern, field: value }
+          - inside: { kind: array_pattern }
+          - inside: { kind: rest_pattern }
+          - inside: { kind: arrow_function, field: parameter }
+          - inside: { kind: catch_clause, field: parameter }
+      - kind: type_identifier
+        inside: { kind: class_declaration, field: name }
+  # A function declaration opens a scope, so the search above stops at it and
+  # never reads its name. This matches the declaration itself instead.
+  function-declaration:
+    any:
+      - kind: function_declaration
+      - kind: generator_function_declaration
+  linechart-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/line-chart["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^LineChart$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $LINE
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $LINE
+  barchart-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/bar-chart["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^BarChart$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $BAR
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $BAR
+  areachart-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/area-chart["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^AreaChart$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $AREA
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $AREA
+  scatterplot-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/scatter-plot["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^ScatterPlot$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $SCATTER
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $SCATTER
+  # A part that takes a color (Line, Bar, Area, Point, or ReferenceLine) on the name
+  # the family's import binds.
+  color-part:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    has:
+      field: name
+      kind: member_expression
+      any:
+        - all:
+            - has:
+                field: object
+                pattern: $LINE
+            - has:
+                field: property
+                regex: ^(?:Line|ReferenceLine)$
+            - inside:
+                stopBy: end
+                kind: program
+                has:
+                  matches: linechart-import
+            # Why: a parameter or a local under the import's name shadows it, and the
+            # rules cannot tell which binding the element reads.
+            - not:
+                inside:
+                  stopBy: end
+                  matches: scope
+                  has:
+                    stopBy:
+                      matches: scope
+                    any:
+                      - matches: binding-name
+                        pattern: $LINE
+                      - matches: function-declaration
+                        has:
+                          field: name
+                          pattern: $LINE
+        - all:
+            - has:
+                field: object
+                pattern: $BAR
+            - has:
+                field: property
+                regex: ^(?:Bar|ReferenceLine)$
+            - inside:
+                stopBy: end
+                kind: program
+                has:
+                  matches: barchart-import
+            # Why: a parameter or a local under the import's name shadows it, and the
+            # rules cannot tell which binding the element reads.
+            - not:
+                inside:
+                  stopBy: end
+                  matches: scope
+                  has:
+                    stopBy:
+                      matches: scope
+                    any:
+                      - matches: binding-name
+                        pattern: $BAR
+                      - matches: function-declaration
+                        has:
+                          field: name
+                          pattern: $BAR
+        - all:
+            - has:
+                field: object
+                pattern: $AREA
+            - has:
+                field: property
+                regex: ^(?:Area|ReferenceLine)$
+            - inside:
+                stopBy: end
+                kind: program
+                has:
+                  matches: areachart-import
+            # Why: a parameter or a local under the import's name shadows it, and the
+            # rules cannot tell which binding the element reads.
+            - not:
+                inside:
+                  stopBy: end
+                  matches: scope
+                  has:
+                    stopBy:
+                      matches: scope
+                    any:
+                      - matches: binding-name
+                        pattern: $AREA
+                      - matches: function-declaration
+                        has:
+                          field: name
+                          pattern: $AREA
+        - all:
+            - has:
+                field: object
+                pattern: $SCATTER
+            - has:
+                field: property
+                regex: ^(?:Point|ReferenceLine)$
+            - inside:
+                stopBy: end
+                kind: program
+                has:
+                  matches: scatterplot-import
+            # Why: a parameter or a local under the import's name shadows it, and the
+            # rules cannot tell which binding the element reads.
+            - not:
+                inside:
+                  stopBy: end
+                  matches: scope
+                  has:
+                    stopBy:
+                      matches: scope
+                    any:
+                      - matches: binding-name
+                        pattern: $SCATTER
+                      - matches: function-declaration
+                        has:
+                          field: name
+                          pattern: $SCATTER
+  # The `color` attribute of a color part.
+  part-color:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^color$
+    inside:
+      matches: color-part
+  # A node whose value is the color: the attribute value, its expression, or a
+  # branch of a ternary there. A lookup key or a compared operand is not.
+  color-value:
+    any:
+      - inside:
+          matches: part-color
+      - inside:
+          kind: jsx_expression
+          inside:
+            matches: part-color
+      - inside:
+          kind: parenthesized_expression
+          matches: color-value
+      - inside:
+          kind: ternary_expression
+          field: consequence
+          matches: color-value
+      - inside:
+          kind: ternary_expression
+          field: alternative
+          matches: color-value
+rule:
+  kind: string_fragment
+  regex: ^chart-(?:[1-8]|other)$
+  pattern: $V
+  inside:
+    kind: string
+    matches: color-value
+transform:
+  T1:
+    replace:
+      source: $V
+      replace: ^chart-1$
+      by: blue
+  T2:
+    replace:
+      source: $T1
+      replace: ^chart-2$
+      by: emerald
+  T3:
+    replace:
+      source: $T2
+      replace: ^chart-3$
+      by: pink
+  T4:
+    replace:
+      source: $T3
+      replace: ^chart-4$
+      by: orange
+  T5:
+    replace:
+      source: $T4
+      replace: ^chart-5$
+      by: teal
+  T6:
+    replace:
+      source: $T5
+      replace: ^chart-6$
+      by: fuchsia
+  T7:
+    replace:
+      source: $T6
+      replace: ^chart-7$
+      by: violet
+  T8:
+    replace:
+      source: $T7
+      replace: ^chart-8$
+      by: amber
+  T9:
+    replace:
+      source: $T8
+      replace: ^chart-other$
+      by: neutral
+fix: $T9
+---
+id: chart-series-slot-with-color
+language: tsx
+message: seriesSlot is gone; the series' own color already names its color
+utils:
+  # A node that opens a lexical scope. The shadow search below stops at a
+  # nested one, so a sibling function's local name does not count.
+  scope:
+    any:
+      - kind: statement_block
+      - kind: function_declaration
+      - kind: generator_function_declaration
+      - kind: function_expression
+      - kind: generator_function
+      - kind: arrow_function
+      - kind: method_definition
+      - kind: class_body
+      - kind: for_statement
+      - kind: for_in_statement
+      - kind: catch_clause
+  # An identifier in a binding position: a parameter, a destructured name, a
+  # local variable, a function name, or a class name.
+  binding-name:
+    any:
+      - kind: shorthand_property_identifier_pattern
+      - kind: identifier
+        any:
+          - inside: { kind: variable_declarator, field: name }
+          - inside: { kind: function_declaration, field: name }
+          - inside: { kind: generator_function_declaration, field: name }
+          - inside: { kind: function_expression, field: name }
+          - inside: { kind: required_parameter, field: pattern }
+          - inside: { kind: optional_parameter, field: pattern }
+          - inside: { kind: assignment_pattern, field: left }
+          - inside: { kind: pair_pattern, field: value }
+          - inside: { kind: array_pattern }
+          - inside: { kind: rest_pattern }
+          - inside: { kind: arrow_function, field: parameter }
+          - inside: { kind: catch_clause, field: parameter }
+      - kind: type_identifier
+        inside: { kind: class_declaration, field: name }
+  # A function declaration opens a scope, so the search above stops at it and
+  # never reads its name. This matches the declaration itself instead.
+  function-declaration:
+    any:
+      - kind: function_declaration
+      - kind: generator_function_declaration
+  linechart-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/line-chart["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^LineChart$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $LINE
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $LINE
+  barchart-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/bar-chart["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^BarChart$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $BAR
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $BAR
+  areachart-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/area-chart["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^AreaChart$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $AREA
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $AREA
+  scatterplot-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/scatter-plot["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^ScatterPlot$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $SCATTER
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $SCATTER
+  # A series part of a chart family: Line, Bar, Area, or Point on the name
+  # the family's import binds.
+  series-part:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    has:
+      field: name
+      kind: member_expression
+      any:
+        - all:
+            - has:
+                field: object
+                pattern: $LINE
+            - has:
+                field: property
+                regex: ^Line$
+            - inside:
+                stopBy: end
+                kind: program
+                has:
+                  matches: linechart-import
+            # Why: a parameter or a local under the import's name shadows it, and the
+            # rules cannot tell which binding the element reads.
+            - not:
+                inside:
+                  stopBy: end
+                  matches: scope
+                  has:
+                    stopBy:
+                      matches: scope
+                    any:
+                      - matches: binding-name
+                        pattern: $LINE
+                      - matches: function-declaration
+                        has:
+                          field: name
+                          pattern: $LINE
+        - all:
+            - has:
+                field: object
+                pattern: $BAR
+            - has:
+                field: property
+                regex: ^Bar$
+            - inside:
+                stopBy: end
+                kind: program
+                has:
+                  matches: barchart-import
+            # Why: a parameter or a local under the import's name shadows it, and the
+            # rules cannot tell which binding the element reads.
+            - not:
+                inside:
+                  stopBy: end
+                  matches: scope
+                  has:
+                    stopBy:
+                      matches: scope
+                    any:
+                      - matches: binding-name
+                        pattern: $BAR
+                      - matches: function-declaration
+                        has:
+                          field: name
+                          pattern: $BAR
+        - all:
+            - has:
+                field: object
+                pattern: $AREA
+            - has:
+                field: property
+                regex: ^Area$
+            - inside:
+                stopBy: end
+                kind: program
+                has:
+                  matches: areachart-import
+            # Why: a parameter or a local under the import's name shadows it, and the
+            # rules cannot tell which binding the element reads.
+            - not:
+                inside:
+                  stopBy: end
+                  matches: scope
+                  has:
+                    stopBy:
+                      matches: scope
+                    any:
+                      - matches: binding-name
+                        pattern: $AREA
+                      - matches: function-declaration
+                        has:
+                          field: name
+                          pattern: $AREA
+        - all:
+            - has:
+                field: object
+                pattern: $SCATTER
+            - has:
+                field: property
+                regex: ^Point$
+            - inside:
+                stopBy: end
+                kind: program
+                has:
+                  matches: scatterplot-import
+            # Why: a parameter or a local under the import's name shadows it, and the
+            # rules cannot tell which binding the element reads.
+            - not:
+                inside:
+                  stopBy: end
+                  matches: scope
+                  has:
+                    stopBy:
+                      matches: scope
+                    any:
+                      - matches: binding-name
+                        pattern: $SCATTER
+                      - matches: function-declaration
+                        has:
+                          field: name
+                          pattern: $SCATTER
+  # The `color` attribute of a series part.
+  series-color:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^color$
+    inside:
+      matches: series-part
+rule:
+  kind: jsx_attribute
+  has:
+    kind: property_identifier
+    regex: ^seriesSlot$
+  inside:
+    matches: series-part
+    has:
+      matches: series-color
+fix: ""
+---
+id: chart-series-slot-number
+language: tsx
+message: seriesSlot is gone; a series names its color instead
+utils:
+  # A node that opens a lexical scope. The shadow search below stops at a
+  # nested one, so a sibling function's local name does not count.
+  scope:
+    any:
+      - kind: statement_block
+      - kind: function_declaration
+      - kind: generator_function_declaration
+      - kind: function_expression
+      - kind: generator_function
+      - kind: arrow_function
+      - kind: method_definition
+      - kind: class_body
+      - kind: for_statement
+      - kind: for_in_statement
+      - kind: catch_clause
+  # An identifier in a binding position: a parameter, a destructured name, a
+  # local variable, a function name, or a class name.
+  binding-name:
+    any:
+      - kind: shorthand_property_identifier_pattern
+      - kind: identifier
+        any:
+          - inside: { kind: variable_declarator, field: name }
+          - inside: { kind: function_declaration, field: name }
+          - inside: { kind: generator_function_declaration, field: name }
+          - inside: { kind: function_expression, field: name }
+          - inside: { kind: required_parameter, field: pattern }
+          - inside: { kind: optional_parameter, field: pattern }
+          - inside: { kind: assignment_pattern, field: left }
+          - inside: { kind: pair_pattern, field: value }
+          - inside: { kind: array_pattern }
+          - inside: { kind: rest_pattern }
+          - inside: { kind: arrow_function, field: parameter }
+          - inside: { kind: catch_clause, field: parameter }
+      - kind: type_identifier
+        inside: { kind: class_declaration, field: name }
+  # A function declaration opens a scope, so the search above stops at it and
+  # never reads its name. This matches the declaration itself instead.
+  function-declaration:
+    any:
+      - kind: function_declaration
+      - kind: generator_function_declaration
+  linechart-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/line-chart["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^LineChart$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $LINE
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $LINE
+  barchart-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/bar-chart["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^BarChart$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $BAR
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $BAR
+  areachart-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/area-chart["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^AreaChart$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $AREA
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $AREA
+  scatterplot-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/scatter-plot["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^ScatterPlot$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $SCATTER
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $SCATTER
+  # A series part of a chart family: Line, Bar, Area, or Point on the name
+  # the family's import binds.
+  series-part:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    has:
+      field: name
+      kind: member_expression
+      any:
+        - all:
+            - has:
+                field: object
+                pattern: $LINE
+            - has:
+                field: property
+                regex: ^Line$
+            - inside:
+                stopBy: end
+                kind: program
+                has:
+                  matches: linechart-import
+            # Why: a parameter or a local under the import's name shadows it, and the
+            # rules cannot tell which binding the element reads.
+            - not:
+                inside:
+                  stopBy: end
+                  matches: scope
+                  has:
+                    stopBy:
+                      matches: scope
+                    any:
+                      - matches: binding-name
+                        pattern: $LINE
+                      - matches: function-declaration
+                        has:
+                          field: name
+                          pattern: $LINE
+        - all:
+            - has:
+                field: object
+                pattern: $BAR
+            - has:
+                field: property
+                regex: ^Bar$
+            - inside:
+                stopBy: end
+                kind: program
+                has:
+                  matches: barchart-import
+            # Why: a parameter or a local under the import's name shadows it, and the
+            # rules cannot tell which binding the element reads.
+            - not:
+                inside:
+                  stopBy: end
+                  matches: scope
+                  has:
+                    stopBy:
+                      matches: scope
+                    any:
+                      - matches: binding-name
+                        pattern: $BAR
+                      - matches: function-declaration
+                        has:
+                          field: name
+                          pattern: $BAR
+        - all:
+            - has:
+                field: object
+                pattern: $AREA
+            - has:
+                field: property
+                regex: ^Area$
+            - inside:
+                stopBy: end
+                kind: program
+                has:
+                  matches: areachart-import
+            # Why: a parameter or a local under the import's name shadows it, and the
+            # rules cannot tell which binding the element reads.
+            - not:
+                inside:
+                  stopBy: end
+                  matches: scope
+                  has:
+                    stopBy:
+                      matches: scope
+                    any:
+                      - matches: binding-name
+                        pattern: $AREA
+                      - matches: function-declaration
+                        has:
+                          field: name
+                          pattern: $AREA
+        - all:
+            - has:
+                field: object
+                pattern: $SCATTER
+            - has:
+                field: property
+                regex: ^Point$
+            - inside:
+                stopBy: end
+                kind: program
+                has:
+                  matches: scatterplot-import
+            # Why: a parameter or a local under the import's name shadows it, and the
+            # rules cannot tell which binding the element reads.
+            - not:
+                inside:
+                  stopBy: end
+                  matches: scope
+                  has:
+                    stopBy:
+                      matches: scope
+                    any:
+                      - matches: binding-name
+                        pattern: $SCATTER
+                      - matches: function-declaration
+                        has:
+                          field: name
+                          pattern: $SCATTER
+  # The `color` attribute of a series part.
+  series-color:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^color$
+    inside:
+      matches: series-part
+rule:
+  kind: jsx_attribute
+  has:
+    kind: property_identifier
+    regex: ^seriesSlot$
+  all:
+    - has:
+        kind: jsx_expression
+        has:
+          kind: number
+          regex: ^[1-8]$
+          pattern: $S
+    - inside:
+        matches: series-part
+        not:
+          has:
+            matches: series-color
+transform:
+  T1:
+    replace:
+      source: $S
+      replace: ^1$
+      by: blue
+  T2:
+    replace:
+      source: $T1
+      replace: ^2$
+      by: emerald
+  T3:
+    replace:
+      source: $T2
+      replace: ^3$
+      by: pink
+  T4:
+    replace:
+      source: $T3
+      replace: ^4$
+      by: orange
+  T5:
+    replace:
+      source: $T4
+      replace: ^5$
+      by: teal
+  T6:
+    replace:
+      source: $T5
+      replace: ^6$
+      by: fuchsia
+  T7:
+    replace:
+      source: $T6
+      replace: ^7$
+      by: violet
+  T8:
+    replace:
+      source: $T7
+      replace: ^8$
+      by: amber
+fix: color="$T8"
+---
+id: chart-series-slot-other
+language: tsx
+message: seriesSlot is gone; an "Other" series wears neutral
+utils:
+  # A node that opens a lexical scope. The shadow search below stops at a
+  # nested one, so a sibling function's local name does not count.
+  scope:
+    any:
+      - kind: statement_block
+      - kind: function_declaration
+      - kind: generator_function_declaration
+      - kind: function_expression
+      - kind: generator_function
+      - kind: arrow_function
+      - kind: method_definition
+      - kind: class_body
+      - kind: for_statement
+      - kind: for_in_statement
+      - kind: catch_clause
+  # An identifier in a binding position: a parameter, a destructured name, a
+  # local variable, a function name, or a class name.
+  binding-name:
+    any:
+      - kind: shorthand_property_identifier_pattern
+      - kind: identifier
+        any:
+          - inside: { kind: variable_declarator, field: name }
+          - inside: { kind: function_declaration, field: name }
+          - inside: { kind: generator_function_declaration, field: name }
+          - inside: { kind: function_expression, field: name }
+          - inside: { kind: required_parameter, field: pattern }
+          - inside: { kind: optional_parameter, field: pattern }
+          - inside: { kind: assignment_pattern, field: left }
+          - inside: { kind: pair_pattern, field: value }
+          - inside: { kind: array_pattern }
+          - inside: { kind: rest_pattern }
+          - inside: { kind: arrow_function, field: parameter }
+          - inside: { kind: catch_clause, field: parameter }
+      - kind: type_identifier
+        inside: { kind: class_declaration, field: name }
+  # A function declaration opens a scope, so the search above stops at it and
+  # never reads its name. This matches the declaration itself instead.
+  function-declaration:
+    any:
+      - kind: function_declaration
+      - kind: generator_function_declaration
+  linechart-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/line-chart["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^LineChart$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $LINE
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $LINE
+  barchart-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/bar-chart["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^BarChart$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $BAR
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $BAR
+  areachart-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/area-chart["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^AreaChart$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $AREA
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $AREA
+  scatterplot-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/scatter-plot["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^ScatterPlot$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $SCATTER
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $SCATTER
+  # A series part of a chart family: Line, Bar, Area, or Point on the name
+  # the family's import binds.
+  series-part:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    has:
+      field: name
+      kind: member_expression
+      any:
+        - all:
+            - has:
+                field: object
+                pattern: $LINE
+            - has:
+                field: property
+                regex: ^Line$
+            - inside:
+                stopBy: end
+                kind: program
+                has:
+                  matches: linechart-import
+            # Why: a parameter or a local under the import's name shadows it, and the
+            # rules cannot tell which binding the element reads.
+            - not:
+                inside:
+                  stopBy: end
+                  matches: scope
+                  has:
+                    stopBy:
+                      matches: scope
+                    any:
+                      - matches: binding-name
+                        pattern: $LINE
+                      - matches: function-declaration
+                        has:
+                          field: name
+                          pattern: $LINE
+        - all:
+            - has:
+                field: object
+                pattern: $BAR
+            - has:
+                field: property
+                regex: ^Bar$
+            - inside:
+                stopBy: end
+                kind: program
+                has:
+                  matches: barchart-import
+            # Why: a parameter or a local under the import's name shadows it, and the
+            # rules cannot tell which binding the element reads.
+            - not:
+                inside:
+                  stopBy: end
+                  matches: scope
+                  has:
+                    stopBy:
+                      matches: scope
+                    any:
+                      - matches: binding-name
+                        pattern: $BAR
+                      - matches: function-declaration
+                        has:
+                          field: name
+                          pattern: $BAR
+        - all:
+            - has:
+                field: object
+                pattern: $AREA
+            - has:
+                field: property
+                regex: ^Area$
+            - inside:
+                stopBy: end
+                kind: program
+                has:
+                  matches: areachart-import
+            # Why: a parameter or a local under the import's name shadows it, and the
+            # rules cannot tell which binding the element reads.
+            - not:
+                inside:
+                  stopBy: end
+                  matches: scope
+                  has:
+                    stopBy:
+                      matches: scope
+                    any:
+                      - matches: binding-name
+                        pattern: $AREA
+                      - matches: function-declaration
+                        has:
+                          field: name
+                          pattern: $AREA
+        - all:
+            - has:
+                field: object
+                pattern: $SCATTER
+            - has:
+                field: property
+                regex: ^Point$
+            - inside:
+                stopBy: end
+                kind: program
+                has:
+                  matches: scatterplot-import
+            # Why: a parameter or a local under the import's name shadows it, and the
+            # rules cannot tell which binding the element reads.
+            - not:
+                inside:
+                  stopBy: end
+                  matches: scope
+                  has:
+                    stopBy:
+                      matches: scope
+                    any:
+                      - matches: binding-name
+                        pattern: $SCATTER
+                      - matches: function-declaration
+                        has:
+                          field: name
+                          pattern: $SCATTER
+  # The `color` attribute of a series part.
+  series-color:
+    kind: jsx_attribute
+    has:
+      kind: property_identifier
+      regex: ^color$
+    inside:
+      matches: series-part
+rule:
+  kind: jsx_attribute
+  has:
+    kind: property_identifier
+    regex: ^seriesSlot$
+  all:
+    - any:
+        - has:
+            kind: string
+            has:
+              kind: string_fragment
+              regex: ^other$
+        - has:
+            kind: jsx_expression
+            has:
+              kind: string
+              has:
+                kind: string_fragment
+                regex: ^other$
+    - inside:
+        matches: series-part
+        not:
+          has:
+            matches: series-color
+fix: color="neutral"
+---
+id: chart-token-in-string-tsx
+language: tsx
+message: the chart tokens take color names, so --color-chart-1 and bg-chart-1 become --color-chart-blue and bg-chart-blue
+rule:
+  kind: string_fragment
+  regex: '(?:--color-|bg-|text-|fill-|stroke-|border-|border-[xytrblse]-|divide-|ring-|ring-offset-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-|placeholder-)chart-(?:[1-8]|other)\b'
+  pattern: $V
+transform:
+  T1:
+    replace:
+      source: $V
+      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|border-[xytrblse]-|divide-|ring-|ring-offset-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-|placeholder-)chart-)1\b'
+      by: "${p}blue"
+  T2:
+    replace:
+      source: $T1
+      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|border-[xytrblse]-|divide-|ring-|ring-offset-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-|placeholder-)chart-)2\b'
+      by: "${p}emerald"
+  T3:
+    replace:
+      source: $T2
+      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|border-[xytrblse]-|divide-|ring-|ring-offset-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-|placeholder-)chart-)3\b'
+      by: "${p}pink"
+  T4:
+    replace:
+      source: $T3
+      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|border-[xytrblse]-|divide-|ring-|ring-offset-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-|placeholder-)chart-)4\b'
+      by: "${p}orange"
+  T5:
+    replace:
+      source: $T4
+      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|border-[xytrblse]-|divide-|ring-|ring-offset-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-|placeholder-)chart-)5\b'
+      by: "${p}teal"
+  T6:
+    replace:
+      source: $T5
+      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|border-[xytrblse]-|divide-|ring-|ring-offset-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-|placeholder-)chart-)6\b'
+      by: "${p}fuchsia"
+  T7:
+    replace:
+      source: $T6
+      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|border-[xytrblse]-|divide-|ring-|ring-offset-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-|placeholder-)chart-)7\b'
+      by: "${p}violet"
+  T8:
+    replace:
+      source: $T7
+      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|border-[xytrblse]-|divide-|ring-|ring-offset-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-|placeholder-)chart-)8\b'
+      by: "${p}amber"
+  T9:
+    replace:
+      source: $T8
+      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|border-[xytrblse]-|divide-|ring-|ring-offset-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-|placeholder-)chart-)other\b'
+      by: "${p}neutral"
+fix: $T9
+---
+id: chart-token-in-string-typescript
+language: typescript
+message: the chart tokens take color names, so --color-chart-1 and bg-chart-1 become --color-chart-blue and bg-chart-blue
+rule:
+  kind: string_fragment
+  regex: '(?:--color-|bg-|text-|fill-|stroke-|border-|border-[xytrblse]-|divide-|ring-|ring-offset-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-|placeholder-)chart-(?:[1-8]|other)\b'
+  pattern: $V
+transform:
+  T1:
+    replace:
+      source: $V
+      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|border-[xytrblse]-|divide-|ring-|ring-offset-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-|placeholder-)chart-)1\b'
+      by: "${p}blue"
+  T2:
+    replace:
+      source: $T1
+      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|border-[xytrblse]-|divide-|ring-|ring-offset-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-|placeholder-)chart-)2\b'
+      by: "${p}emerald"
+  T3:
+    replace:
+      source: $T2
+      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|border-[xytrblse]-|divide-|ring-|ring-offset-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-|placeholder-)chart-)3\b'
+      by: "${p}pink"
+  T4:
+    replace:
+      source: $T3
+      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|border-[xytrblse]-|divide-|ring-|ring-offset-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-|placeholder-)chart-)4\b'
+      by: "${p}orange"
+  T5:
+    replace:
+      source: $T4
+      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|border-[xytrblse]-|divide-|ring-|ring-offset-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-|placeholder-)chart-)5\b'
+      by: "${p}teal"
+  T6:
+    replace:
+      source: $T5
+      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|border-[xytrblse]-|divide-|ring-|ring-offset-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-|placeholder-)chart-)6\b'
+      by: "${p}fuchsia"
+  T7:
+    replace:
+      source: $T6
+      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|border-[xytrblse]-|divide-|ring-|ring-offset-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-|placeholder-)chart-)7\b'
+      by: "${p}violet"
+  T8:
+    replace:
+      source: $T7
+      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|border-[xytrblse]-|divide-|ring-|ring-offset-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-|placeholder-)chart-)8\b'
+      by: "${p}amber"
+  T9:
+    replace:
+      source: $T8
+      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|border-[xytrblse]-|divide-|ring-|ring-offset-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-|placeholder-)chart-)other\b'
+      by: "${p}neutral"
+fix: $T9

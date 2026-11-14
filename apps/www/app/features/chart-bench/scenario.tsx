@@ -3,8 +3,9 @@ import { DataTable, createColumnHelper, tableFeatures, useTable } from "@ngrok/m
 import { useEffect, useMemo, useState } from "react";
 import type { Config } from "./config";
 import type { PointRow, Row } from "./data";
-import { categoryRows, pointRows, sampleRows, sparseRows, timeRows } from "./data";
-import { MantleChart, MantleSparkline } from "./mantle-charts";
+import { categoryRows, pointRows, sampleRows, sparseRows, timeRows, trafficRows } from "./data";
+import { AgentCard } from "./agent-cards";
+import { MantleCards, MantleChart, MantleSparkline } from "./mantle-charts";
 import type { UpdateMode } from "./metrics";
 import { startMetrics } from "./metrics";
 import { canUseDOM } from "@ngrok/mantle/browser-only";
@@ -17,6 +18,9 @@ if (canUseDOM()) {
 }
 
 const rowsFor = (config: Config, seed: number): readonly Row[] => {
+	if (config.mode === "agents" || config.mode === "agents-dom") {
+		return trafficRows(config.points, seed);
+	}
 	if (config.kind === "bar") {
 		return categoryRows(config.points, seed);
 	}
@@ -317,33 +321,53 @@ export const Scenario = ({ config }: { config: Config }) => {
 	if (config.mode === "table") {
 		return <SparklineTable config={config} items={items} />;
 	}
+	if (config.mode === "agents" || config.mode === "agents-dom") {
+		return (
+			<main className="mx-auto w-[1100px] p-6">
+				<h1 className="mb-4 text-lg font-semibold">
+					{config.mode} / n={config.n} / points={config.points} / animation{" "}
+					{config.animate ? "on" : "off"}
+					{config.group === "list" && " / List"}
+				</h1>
+				<MantleCards config={config} className="flex flex-col gap-2">
+					{items.map((item) => (
+						<AgentCard key={item.index} config={config} index={item.index} rows={item.rows} />
+					))}
+				</MantleCards>
+				<Ready />
+			</main>
+		);
+	}
 	return (
 		<main className="mx-auto flex w-[640px] flex-col gap-6 p-6">
 			<h1 className="text-lg font-semibold">
 				{config.kind} / {config.mode} / n={config.n} / points={config.points} / animation{" "}
 				{config.animate ? "on" : "off"}
 				{config.gate === "cv" && " / content-visibility"}
+				{config.group === "list" && " / List"}
 			</h1>
-			{items.map((item) => (
-				<section
-					key={item.index}
-					className="rounded-lg border border-neutral-300 p-4"
-					style={
-						config.gate === "cv"
-							? { contentVisibility: "auto", containIntrinsicSize: "auto 376px" }
-							: undefined
-					}
-					data-bench-chart
-				>
-					<h2 className="mb-2 text-sm font-medium">Endpoint {item.index + 1}</h2>
-					<MantleChart
-						config={config}
-						rows={item.rows}
-						points={item.points}
-						label={`Endpoint ${item.index + 1}`}
-					/>
-				</section>
-			))}
+			<MantleCards config={config} className="flex flex-col gap-6">
+				{items.map((item) => (
+					<section
+						key={item.index}
+						className="rounded-lg border border-neutral-300 p-4"
+						style={
+							config.gate === "cv"
+								? { contentVisibility: "auto", containIntrinsicSize: "auto 376px" }
+								: undefined
+						}
+						data-bench-chart
+					>
+						<h2 className="mb-2 text-sm font-medium">Endpoint {item.index + 1}</h2>
+						<MantleChart
+							config={config}
+							rows={item.rows}
+							points={item.points}
+							label={`Endpoint ${item.index + 1}`}
+						/>
+					</section>
+				))}
+			</MantleCards>
 			<Ready />
 		</main>
 	);

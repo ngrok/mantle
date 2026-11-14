@@ -2,6 +2,7 @@
 
 import { render, screen, waitFor } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, expect, test } from "vitest";
+import { commands } from "vitest/browser";
 import { CanvasLineChartRoot } from "../../test-utils/canvas-chart-roots.js";
 import { LineChart } from "../line-chart/index.js";
 
@@ -9,12 +10,13 @@ import { LineChart } from "../line-chart/index.js";
  * Real-browser visibility tests: a chart activates (builds its paint surface
  * and paints) once an `IntersectionObserver` reports it within a viewport of
  * the visible area, and a canvas chart releases its canvas three viewports
- * away. Both need real layout, a real observer, and real scrolling.
+ * away. Both need real layout, a real observer, and real scrolling. Motion
+ * plays only on screen, which needs the real order of the band reports.
  */
 const STYLE = `
 :root {
-	--color-chart-1: #3e6ff4;
-	--color-chart-other: #737373;
+	--color-chart-blue: #3e6ff4;
+	--color-chart-neutral: #737373;
 	--border-color-card-muted: #e5e5e5;
 	--border-color-card: #d4d4d4;
 	--text-color-muted: #717171;
@@ -82,7 +84,7 @@ const chart = (name: string, surface: Surface = "svg") => {
 	return (
 		<div style={{ width: 400, height: 200 }}>
 			<Root data={data} xKey="time" animate={false} aria-label={name}>
-				<LineChart.Line dataKey="p50" label="p50" />
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
 			</Root>
 		</div>
 	);
@@ -212,6 +214,100 @@ test("beforeprint paints a page whose only chart is dormant", async () => {
 	window.dispatchEvent(new Event("beforeprint"));
 	expect(isPainted(lone)).toBe(true);
 	window.dispatchEvent(new Event("afterprint"));
+});
+
+test("beforeprint paints the tick labels of a dormant chart at full alpha", async () => {
+	render(
+		<>
+			<div style={{ height: window.innerHeight * 4 }} />
+			<div style={{ width: 400, height: 200 }}>
+				<LineChart.Root data={data} xKey="time" aria-label="Lone chart">
+					<LineChart.Line dataKey="p50" label="p50" color="blue" />
+					<LineChart.YAxis />
+				</LineChart.Root>
+			</div>
+		</>,
+	);
+	const lone = chartNamed("Lone chart");
+	await waitFor(() => {
+		expect(screen.getByRole("application", { name: "Lone chart" })).toBeInTheDocument();
+	});
+	expect(surfaceOf(lone)).toBeNull();
+
+	window.dispatchEvent(new Event("beforeprint"));
+
+	const labels = [...(lone.plot.querySelector("svg")?.querySelectorAll("text") ?? [])];
+	expect(labels.length).toBeGreaterThan(0);
+	// The print is this chart's first paint. A label that fades in is at its
+	// first step there, and the SVG surface writes no opacity for an alpha of 1.
+	expect(labels.filter((label) => label.style.opacity !== "")).toEqual([]);
+	window.dispatchEvent(new Event("afterprint"));
+});
+
+const nextData = [
+	{ time: new Date("2026-07-18T10:00:00Z"), p50: 320 },
+	{ time: new Date("2026-07-18T10:01:00Z"), p50: 150 },
+	{ time: new Date("2026-07-18T10:02:00Z"), p50: 280 },
+];
+
+/**
+ * A chart with motion on, above one with motion off that holds the same data
+ * at the same size. The second one always shows the line the first one ends
+ * on. `offset` is the space above the pair.
+ */
+const chartPair = ({ rows, offset }: { rows: typeof data; offset: number }) => (
+	<>
+		<div style={{ height: offset }} />
+		{[
+			{ name: "Moving chart", animate: true },
+			{ name: "Settled chart", animate: false },
+		].map(({ name, animate }) => (
+			<div key={name} style={{ width: 400, height: 200 }}>
+				<LineChart.Root data={rows} xKey="time" animate={animate} aria-label={name}>
+					<LineChart.Line dataKey="p50" label="p50" color="blue" />
+				</LineChart.Root>
+			</div>
+		))}
+	</>
+);
+
+/** The `d` of the chart's line, or `null` before the first paint. */
+const linePath = ({ plot }: Chart): string | null =>
+	plot.querySelector('[data-slot="line-chart-svg"] path')?.getAttribute("d") ?? null;
+
+/** Resolves after the next animation frame. The engines asked first, so they commit in it first. */
+const nextFrame = (): Promise<void> =>
+	new Promise((resolve) => {
+		requestAnimationFrame(() => resolve());
+	});
+
+/** Render the pair, give both charts new data once they painted, and wait one frame. */
+const updatePair = async (offset: number) => {
+	// Why pinned: under reduced motion no chart glides, and the host's own
+	// setting would otherwise decide what the moving chart does.
+	await commands.emulateMedia({ reducedMotion: "no-preference" });
+	const { rerender } = render(chartPair({ rows: data, offset }));
+	const moving = chartNamed("Moving chart");
+	const settled = chartNamed("Settled chart");
+	await painted(moving);
+	await painted(settled);
+	const before = linePath(settled);
+	rerender(chartPair({ rows: nextData, offset }));
+	await nextFrame();
+	// Guards the comparison below: the settled chart must hold the new line by now.
+	expect(linePath(settled)).not.toBe(before);
+	return { moving, settled };
+};
+
+test("a chart near the viewport but off screen paints new data settled on the first frame", async () => {
+	// One and a quarter viewports down: inside the near band, under the fold.
+	const { moving, settled } = await updatePair(window.innerHeight * 1.25);
+	expect(linePath(moving)).toBe(linePath(settled));
+});
+
+test("a chart on screen glides to new data", async () => {
+	const { moving, settled } = await updatePair(0);
+	expect(linePath(moving)).not.toBe(linePath(settled));
 });
 
 test("focus activates a dormant chart below the fold without scrolling it into view", async () => {

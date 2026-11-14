@@ -16,8 +16,8 @@ import { LineChart } from "../line-chart/index.js";
  */
 const STYLE = `
 :root {
-	--color-chart-1: #3e6ff4;
-	--color-chart-other: #737373;
+	--color-chart-blue: #3e6ff4;
+	--color-chart-neutral: #737373;
 	--border-color-card-muted: #e5e5e5;
 	--border-color-card: #d4d4d4;
 	--text-color-muted: #717171;
@@ -105,7 +105,7 @@ const Chart = ({
 	<div style={{ width: 600, height: 300 }}>
 		{/* animate=false so the fade strength snaps: deterministic pixels. */}
 		<CanvasAreaChartRoot data={data} xKey="x" animate={animate} aria-label="Live traffic">
-			<AreaChart.Area dataKey="value" label="Value" />
+			<AreaChart.Area dataKey="value" label="Value" color="blue" />
 		</CanvasAreaChartRoot>
 	</div>
 );
@@ -120,7 +120,7 @@ const GriddedChart = ({ data }: { data: Array<{ x: number; value: number }> }) =
 	<div style={{ width: 600, height: 300 }}>
 		<CanvasLineChartRoot data={data} xKey="x" animate={false} aria-label="Live traffic">
 			<LineChart.Grid />
-			<LineChart.Line dataKey="value" label="Value" color="chart-1" />
+			<LineChart.Line dataKey="value" label="Value" color="blue" />
 		</CanvasLineChartRoot>
 	</div>
 );
@@ -391,7 +391,7 @@ describe("left-edge scroll mask", () => {
 const SvgChart = ({ data }: { data: Array<{ x: number; value: number }> }) => (
 	<div style={{ width: 600, height: 300 }}>
 		<AreaChart.Root data={data} xKey="x" aria-label="Live traffic">
-			<AreaChart.Area dataKey="value" label="Value" />
+			<AreaChart.Area dataKey="value" label="Value" color="blue" />
 		</AreaChart.Root>
 	</div>
 );

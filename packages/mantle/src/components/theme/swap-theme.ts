@@ -7,14 +7,42 @@ import { getPrefersReducedMotion } from "../../hooks/use-prefers-reduced-motion.
 let activeTransition: ReturnType<Document["startViewTransition"]> | null = null;
 
 /**
+ * The surfaces that can close as a swap starts, such as a command palette.
+ * `mantle.css` stops the exit animation of a marked one, so it unmounts before
+ * the old snapshot and does not freeze outside the circle.
+ */
+const EXIT_SURFACES = [
+	'[data-slot~="dialog-overlay"]',
+	'[data-slot~="dialog-content"]',
+	'[data-slot~="dialog-positioner"]',
+	'[data-slot~="dropdown-menu-content"]',
+	'[data-slot~="dropdown-menu-sub-content"]',
+].join(", ");
+
+/** The parts whose descendants keep their own motion during a swap: the icon of a switcher. */
+const SWITCHER_PARTS = '[data-slot~="theme-switcher"], [data-slot~="theme-switcher-icon"]';
+
+/**
+ * The most elements with a transition for which the swap cancels the
+ * transitions in script. Chromium sorts the list that `getAnimations` returns:
+ * 2,000 transitions on sibling rows take 37 ms, about the cost of the two
+ * style passes that the rule adds on such a page, and 5,000 take 437 ms.
+ */
+const SCRIPT_CANCEL_LIMIT = 2000;
+
+/** How many elements the swap reads to estimate that count. */
+const SAMPLE_SIZE = 256;
+
+/**
  * Runs `update` inside a view transition, and grows the new theme in a circle
  * from `origin` over the old one. When `origin` is omitted, the circle grows
  * from the focused element, else from the center of the viewport. It runs
  * `update` at once when the browser has no view transitions, when the user
  * prefers reduced motion, or when the page is hidden.
  *
- * Why `flushSync`: React must commit the new theme before the browser takes
- * the snapshot of the new theme.
+ * Why each open surface gets the attribute and no rule hangs under `<html>`:
+ * a root attribute with a descendant rule restyles every element that the
+ * rule can match, when the attribute comes and again when it goes.
  *
  * Why the click listener: while a view transition runs, the browser sends each
  * pointer event to `<html>`, so a click on the page would be lost. A click ends
@@ -37,7 +65,7 @@ function swapTheme(update: () => void, { origin }: { origin?: Element | null } =
 
 	if (activeTransition != null) {
 		activeTransition.skipTransition();
-		void activeTransition.updateCallbackDone.finally(() => flushSync(update));
+		void activeTransition.updateCallbackDone.finally(() => applyAtOnce(update));
 		return;
 	}
 
@@ -45,8 +73,19 @@ function swapTheme(update: () => void, { origin }: { origin?: Element | null } =
 	const viewport = { width: window.innerWidth, height: window.innerHeight };
 	const circle = revealCircle(revealOrigin(origin, viewport), viewport);
 
-	html.dataset.themeTransition = "";
-	const transition = document.startViewTransition(() => flushSync(update));
+	const many = holdsManyTransitions();
+	const marked = [html, ...document.querySelectorAll<HTMLElement>(EXIT_SURFACES)];
+	for (const element of marked) {
+		element.dataset.themeTransition = "";
+	}
+	const transition = document.startViewTransition(() => {
+		if (many) {
+			// Why here: the rule that this attribute turns on restyles every
+			// element, and in the update that pass is the pass of the new theme.
+			html.dataset.themeTransitionMany = "";
+		}
+		applyAtOnce(update);
+	});
 	activeTransition = transition;
 
 	function onClick(event: MouseEvent) {
@@ -80,11 +119,74 @@ function swapTheme(update: () => void, { origin }: { origin?: Element | null } =
 		(await reveal)?.cancel();
 		document.removeEventListener("click", onClick, { capture: true });
 		activeTransition = null;
-		delete html.dataset.themeTransition;
+		delete html.dataset.themeTransitionMany;
+		for (const element of marked) {
+			delete element.dataset.themeTransition;
+		}
 	};
 	void transition.finished.finally(() => {
 		void finish();
 	});
+}
+
+/**
+ * Runs `update`, then cancels the CSS transitions that the new theme started.
+ * The new snapshot is live, so a color transition would fade inside the circle
+ * while the rest of the page shows the new theme.
+ *
+ * Why `flushSync`: React must commit the new theme before the browser takes
+ * the snapshot of the new theme.
+ *
+ * Why in script and not with a `transition: none` rule on every element: that
+ * rule restyles the whole document when it comes and again when it goes, so
+ * one swap cost three full style passes. `getAnimations` flushes the one pass
+ * that the new theme needs. A page that holds many transitions keeps the rule,
+ * because the list that `getAnimations` returns costs more there.
+ */
+function applyAtOnce(update: () => void) {
+	flushSync(update);
+	if (document.documentElement.hasAttribute("data-theme-transition-many")) {
+		return;
+	}
+	for (const animation of document.getAnimations()) {
+		if (animation instanceof CSSTransition && !isSwitcherMotion(animation)) {
+			animation.cancel();
+		}
+	}
+}
+
+/** Whether a transition runs inside a switcher part, which keeps its own swap. */
+function isSwitcherMotion(transition: CSSTransition) {
+	const target = transition.effect instanceof KeyframeEffect ? transition.effect.target : null;
+	return target?.parentElement?.closest(SWITCHER_PARTS) != null;
+}
+
+/**
+ * Estimates whether more than {@link SCRIPT_CANCEL_LIMIT} elements hold a
+ * transition. It reads one element at a random place in each run of n
+ * elements, so the estimate costs the same on a small page and on a large one.
+ *
+ * Why a random place: a fixed stride can match the period of repeated rows
+ * and read only the rows' wrappers.
+ */
+function holdsManyTransitions() {
+	const elements = document.getElementsByTagName("*");
+	const step = Math.max(1, Math.floor(elements.length / SAMPLE_SIZE));
+	let sampled = 0;
+	for (let start = 0; start < elements.length; start += step) {
+		const element = elements[start + Math.floor(Math.random() * step)];
+		if (element != null && hasTransition(element)) {
+			sampled += 1;
+		}
+	}
+	return sampled * step > SCRIPT_CANCEL_LIMIT;
+}
+
+/** Whether an element has a transition with a duration above zero. */
+function hasTransition(element: Element) {
+	return getComputedStyle(element)
+		.transitionDuration.split(",")
+		.some((duration) => Number.parseFloat(duration) > 0);
 }
 
 /**
@@ -128,6 +230,7 @@ function revealCircle(
 
 export {
 	//,
+	holdsManyTransitions,
 	revealCircle,
 	swapTheme,
 };

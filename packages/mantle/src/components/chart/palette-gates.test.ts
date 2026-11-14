@@ -216,7 +216,7 @@ describe("collectDeclarations", () => {
 
 describe("resolveProperty", () => {
 	const chain = [
-		layer("theme.css", ":root { --color-chart-1: var(--color-blue-500); }"),
+		layer("theme.css", ":root { --color-chart-blue: var(--color-blue-500); }"),
 		layer(
 			"base.css",
 			":root { --color-blue-500: oklch(58.4% 0.2069 265.3); --loop: var(--loop); }",
@@ -224,7 +224,7 @@ describe("resolveProperty", () => {
 	];
 
 	test("follows an alias chain and reports the file the literal came from", () => {
-		expect(resolveProperty(chain, "--color-chart-1")).toEqual({
+		expect(resolveProperty(chain, "--color-chart-blue")).toEqual({
 			name: "--color-blue-500",
 			literal: "oklch(58.4% 0.2069 265.3)",
 			source: "base.css",
@@ -233,7 +233,7 @@ describe("resolveProperty", () => {
 
 	test("an earlier layer outranks a later one", () => {
 		const overridden = [layer("theme.css", "--color-blue-500: oklch(1 0 0);"), ...chain];
-		expect(resolveProperty(overridden, "--color-chart-1").source).toBe("theme.css");
+		expect(resolveProperty(overridden, "--color-chart-blue").source).toBe("theme.css");
 	});
 
 	test("throws on a missing property rather than falling back", () => {

@@ -17,10 +17,14 @@ declare module "vitest" {
 declare module "vitest/browser" {
 	interface BrowserCommands {
 		/**
-		 * Sets the page's emulated media features through Playwright. Browser
-		 * project only; the config registers the command.
+		 * Sets the page's emulated media features through Playwright. A feature
+		 * left out keeps its current emulation. Browser project only; the config
+		 * registers the command.
 		 */
-		emulateMedia: (options: { reducedMotion: "reduce" | "no-preference" }) => Promise<void>;
+		emulateMedia: (options: {
+			reducedMotion?: "reduce" | "no-preference";
+			forcedColors?: "active" | "none";
+		}) => Promise<void>;
 		/**
 		 * Compiles the Tailwind utilities that a source file uses, with the path
 		 * relative to the test file. Browser project only; the config registers

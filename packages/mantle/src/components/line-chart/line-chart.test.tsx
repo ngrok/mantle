@@ -24,8 +24,8 @@ const renderChart = (extraRootProps: Record<string, unknown> = {}) =>
 			<LineChart.Grid />
 			<LineChart.XAxis />
 			<LineChart.YAxis />
-			<LineChart.Line dataKey="p50" label="p50" />
-			<LineChart.Line dataKey="p99" label="p99" />
+			<LineChart.Line dataKey="p50" label="p50" color="blue" />
+			<LineChart.Line dataKey="p99" label="p99" color="emerald" />
 			<LineChart.ReferenceLine y={500} label="SLO" />
 			<LineChart.Tooltip />
 			<LineChart.Legend />
@@ -51,7 +51,7 @@ describe("LineChart.Root", () => {
 				data-testid="chart-root"
 				ref={ref}
 			>
-				<LineChart.Line dataKey="p50" label="p50" />
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
 			</LineChart.Root>,
 		);
 		const root = container.querySelector('[data-slot="line-chart"]');
@@ -90,7 +90,7 @@ describe("LineChart.Root", () => {
 		}));
 		render(
 			<LineChart.Root data={bigData} xKey="time" aria-label="Large chart">
-				<LineChart.Line dataKey="p50" label="p50" />
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
 			</LineChart.Root>,
 		);
 		engageChart();
@@ -102,7 +102,7 @@ describe("LineChart.Root", () => {
 	test("empty data renders without crashing and without a table", () => {
 		render(
 			<LineChart.Root data={[]} xKey="time" aria-label="Empty chart">
-				<LineChart.Line dataKey="p50" label="p50" />
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
 			</LineChart.Root>,
 		);
 		expect(screen.getByRole("application", { name: "Empty chart" })).toBeInTheDocument();
@@ -114,7 +114,7 @@ describe("LineChart.Root", () => {
 		expect(() =>
 			render(
 				<LineChart.Root data={data} xKey="time" aria-label="Typo chart">
-					<LineChart.Line dataKey="p95" label="p95" />
+					<LineChart.Line dataKey="p95" label="p95" color="blue" />
 				</LineChart.Root>,
 			),
 		).toThrow(/LineChart\.Line dataKey "p95" does not match any key.*time, p50, p99/);
@@ -235,7 +235,7 @@ describe("LineChart machine-readable data table", () => {
 				xKey="time"
 				aria-label="Request latency"
 			>
-				<LineChart.Line dataKey="p50" label="p50" />
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
 			</LineChart.Root>,
 		);
 		engageChart();
@@ -250,7 +250,7 @@ describe("LineChart machine-readable data table", () => {
 				xKey="time"
 				aria-label="Request latency"
 			>
-				<LineChart.Line dataKey="p50" label="p50" />
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
 			</LineChart.Root>,
 		);
 		engageChart();
@@ -265,8 +265,8 @@ describe("LineChart.CopyButton", () => {
 		const onCopy = vi.fn<(value: string) => void>();
 		render(
 			<LineChart.Root data={data} xKey="time" aria-label="Request latency">
-				<LineChart.Line dataKey="p50" label="p50" />
-				<LineChart.Line dataKey="p99" label="p99" />
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
+				<LineChart.Line dataKey="p99" label="p99" color="emerald" />
 				<LineChart.CopyButton onCopy={onCopy} />
 			</LineChart.Root>,
 		);
@@ -289,7 +289,7 @@ describe("LineChart.CopyButton", () => {
 		const onCopy = vi.fn<(value: string) => void>();
 		const { rerender } = render(
 			<LineChart.Root data={data} xKey="time" aria-label="Request latency">
-				<LineChart.Line dataKey="p50" label="p50" />
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
 				<LineChart.CopyButton onCopy={onCopy} />
 			</LineChart.Root>,
 		);
@@ -299,7 +299,7 @@ describe("LineChart.CopyButton", () => {
 				xKey="time"
 				aria-label="Request latency"
 			>
-				<LineChart.Line dataKey="p50" label="p50" />
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
 				<LineChart.CopyButton onCopy={onCopy} />
 			</LineChart.Root>,
 		);
@@ -314,7 +314,7 @@ describe("LineChart.CopyButton", () => {
 	test("uses the label prop as the accessible name", () => {
 		render(
 			<LineChart.Root data={data} xKey="time" aria-label="Request latency">
-				<LineChart.Line dataKey="p50" label="p50" />
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
 				<LineChart.CopyButton label="Copy latency data" />
 			</LineChart.Root>,
 		);
@@ -325,7 +325,7 @@ describe("LineChart.CopyButton", () => {
 		const user = userEvent.setup();
 		const { container } = render(
 			<LineChart.Root data={data} xKey="time" aria-label="Request latency">
-				<LineChart.Line dataKey="p50" label="p50" />
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
 				<LineChart.CopyButton />
 			</LineChart.Root>,
 		);
@@ -376,10 +376,18 @@ describe("LineChart data slots", () => {
 		expect(element?.tagName).toBe(tagName);
 	});
 
-	test("the three hover layers sit inside the plot and stay hidden from assistive tech", () => {
+	test("the three hover layers arrive in the plot on the first step and stay hidden from assistive tech", async () => {
+		const user = userEvent.setup();
 		const { container } = renderChart();
 		const plot = container.querySelector('[data-slot="line-chart-plot"]');
-		for (const slot of ["line-chart-crosshair", "line-chart-hover-band", "line-chart-markers"]) {
+		const layers = ["line-chart-crosshair", "line-chart-hover-band", "line-chart-markers"];
+		// A chart nobody points at holds no hover layers.
+		for (const slot of layers) {
+			expect(container.querySelector(`[data-slot="${slot}"]`)).toBeNull();
+		}
+		engageChart();
+		await user.keyboard("{ArrowRight}");
+		for (const slot of layers) {
 			const layer = container.querySelector(`[data-slot="${slot}"]`);
 			expect(plot?.contains(layer ?? null)).toBe(true);
 			expect(layer).toHaveAttribute("aria-hidden", "true");
@@ -389,7 +397,7 @@ describe("LineChart data slots", () => {
 
 test("a LineChart part rendered outside Root throws", () => {
 	vi.spyOn(console, "error").mockImplementation(() => {});
-	expect(() => render(<LineChart.Line dataKey="p50" />)).toThrow(
+	expect(() => render(<LineChart.Line dataKey="p50" color="emerald" />)).toThrow(
 		/LineChart\.Line must be composed inside LineChart\.Root/,
 	);
 });
@@ -399,7 +407,7 @@ test("a BarChart.Bar composed inside LineChart.Root throws", () => {
 	expect(() =>
 		render(
 			<LineChart.Root data={data} xKey="time" aria-label="Cross-family chart">
-				<BarChart.Bar dataKey="p50" label="p50" />
+				<BarChart.Bar dataKey="p50" label="p50" color="blue" />
 			</LineChart.Root>,
 		),
 	).toThrow(/BarChart\.Bar cannot be composed inside LineChart\.Root/);
@@ -417,7 +425,7 @@ describe("LineChart.Legend", () => {
 	test("renders nothing for a single series (the title already names it)", () => {
 		const { container } = render(
 			<LineChart.Root data={data} xKey="time" aria-label="p50 latency">
-				<LineChart.Line dataKey="p50" label="p50" />
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
 				<LineChart.Legend />
 			</LineChart.Root>,
 		);
@@ -427,8 +435,8 @@ describe("LineChart.Legend", () => {
 	test("supports a render-prop for custom legends", () => {
 		render(
 			<LineChart.Root data={data} xKey="time" aria-label="Request latency">
-				<LineChart.Line dataKey="p50" label="p50" />
-				<LineChart.Line dataKey="p99" label="p99" />
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
+				<LineChart.Line dataKey="p99" label="p99" color="emerald" />
 				<LineChart.Legend>
 					{(series) => series.map((entry) => <span key={entry.dataKey}>custom {entry.label}</span>)}
 				</LineChart.Legend>
@@ -443,8 +451,8 @@ describe("LineChart.Legend", () => {
 		// encoding alongside color — never reached the legend.
 		const { container } = render(
 			<LineChart.Root data={data} xKey="time" aria-label="Request latency">
-				<LineChart.Line dataKey="p50" label="p50" />
-				<LineChart.Line dataKey="p99" label="p99" shape="triangle" />
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
+				<LineChart.Line dataKey="p99" label="p99" shape="triangle" color="emerald" />
 				<LineChart.Legend />
 			</LineChart.Root>,
 		);
@@ -500,7 +508,7 @@ describe("LineChart keyboard interaction", () => {
 		];
 		render(
 			<LineChart.Root data={unsorted} xKey="time" aria-label="Unsorted latency">
-				<LineChart.Line dataKey="p50" label="p50" />
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
 			</LineChart.Root>,
 		);
 		await user.tab();
@@ -524,7 +532,7 @@ describe("LineChart keyboard interaction", () => {
 		];
 		render(
 			<LineChart.Root data={unsorted} xKey="time" aria-label="Unsorted latency">
-				<LineChart.Line dataKey="p50" label="p50" />
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
 			</LineChart.Root>,
 		);
 		await user.tab();
@@ -588,7 +596,7 @@ describe("LineChart.Tooltip customization", () => {
 		const user = userEvent.setup();
 		render(
 			<LineChart.Root data={data} xKey="time" aria-label="Request latency">
-				<LineChart.Line dataKey="p50" label="p50" />
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
 				<LineChart.Tooltip
 					labelFormat={(value) =>
 						value instanceof Date ? `Time: ${value.toISOString()}` : String(value)
@@ -610,7 +618,7 @@ describe("LineChart.Tooltip customization", () => {
 		const user = userEvent.setup();
 		render(
 			<LineChart.Root data={data} xKey="time" aria-label="Request latency">
-				<LineChart.Line dataKey="p50" label="p50" />
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
 				<LineChart.Tooltip>
 					{(snapshot) => <strong>{`Custom readout for index ${snapshot.index}`}</strong>}
 				</LineChart.Tooltip>
@@ -629,8 +637,8 @@ describe("LineChart.Tooltip customization", () => {
 		];
 		render(
 			<LineChart.Root data={gappy} xKey="time" aria-label="Request latency">
-				<LineChart.Line dataKey="p50" label="p50" />
-				<LineChart.Line dataKey="p99" label="p99" />
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
+				<LineChart.Line dataKey="p99" label="p99" color="emerald" />
 			</LineChart.Root>,
 		);
 		await user.tab();
@@ -652,7 +660,7 @@ describe("LineChart.Tooltip customization", () => {
 		];
 		render(
 			<LineChart.Root data={gappy} xKey="time" aria-label="Request latency">
-				<LineChart.Line dataKey="p50" label="p50" connectNulls />
+				<LineChart.Line dataKey="p50" label="p50" connectNulls color="blue" />
 			</LineChart.Root>,
 		);
 		await user.tab();
@@ -678,14 +686,14 @@ test("swapping data and a series dataKey in the same commit does not crash", () 
 	];
 	const { rerender } = render(
 		<LineChart.Root data={memRows} xKey="time" aria-label="Usage">
-			<LineChart.Line dataKey="mem" label="mem" />
+			<LineChart.Line dataKey="mem" label="mem" color="blue" />
 		</LineChart.Root>,
 	);
 	engageChart();
 	expect(screen.getByRole("columnheader", { name: "mem" })).toBeInTheDocument();
 	rerender(
 		<LineChart.Root data={cpuRows} xKey="time" aria-label="Usage">
-			<LineChart.Line dataKey="cpu" label="cpu" />
+			<LineChart.Line dataKey="cpu" label="cpu" color="blue" />
 		</LineChart.Root>,
 	);
 	expect(screen.getByRole("columnheader", { name: "cpu" })).toBeInTheDocument();
@@ -713,7 +721,7 @@ describe("LineChart public index space", () => {
 				onDatumActivate={onDatumActivate}
 				onActiveIndexChange={onActiveIndexChange}
 			>
-				<LineChart.Line dataKey="p50" label="p50" />
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
 			</LineChart.Root>,
 		);
 		await user.tab();
@@ -728,7 +736,7 @@ describe("LineChart public index space", () => {
 	test("a controlled activeIndex addresses the consumer's data array for unsorted rows", () => {
 		render(
 			<LineChart.Root data={unsorted} xKey="time" aria-label="Unsorted latency" activeIndex={1}>
-				<LineChart.Line dataKey="p50" label="p50" />
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
 			</LineChart.Root>,
 		);
 		// data[1] is the 111 row regardless of the engine's internal sort.
@@ -779,7 +787,7 @@ describe("LineChart degenerate x data", () => {
 					xScale="linear"
 					aria-label="Numeric strings"
 				>
-					<LineChart.Line dataKey="p50" label="p50" />
+					<LineChart.Line dataKey="p50" label="p50" color="blue" />
 				</LineChart.Root>,
 			),
 		).toThrow(/LineChart\.Root could not read any "time" values as numbers/);
@@ -793,7 +801,7 @@ describe("LineChart degenerate x data", () => {
 		expect(() =>
 			render(
 				<LineChart.Root data={untypedRows} xKey="tme" xScale="time" aria-label="Typo chart">
-					<LineChart.Line dataKey="p50" label="p50" />
+					<LineChart.Line dataKey="p50" label="p50" color="blue" />
 				</LineChart.Root>,
 			),
 		).toThrow(/LineChart\.Root xKey "tme" does not match any key.*time, p50, p99/);
@@ -810,7 +818,7 @@ describe("LineChart degenerate x data", () => {
 				xKey="time"
 				aria-label="Rate"
 			>
-				<LineChart.Line dataKey="p50" label="p50" />
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
 			</LineChart.Root>,
 		);
 		await user.tab();
@@ -832,7 +840,7 @@ test("the midnight sample in an hourly series keeps its time of day", () => {
 	];
 	render(
 		<LineChart.Root data={hourly} xKey="time" aria-label="Hourly latency">
-			<LineChart.Line dataKey="p50" label="p50" />
+			<LineChart.Line dataKey="p50" label="p50" color="blue" />
 		</LineChart.Root>,
 	);
 	engageChart();
@@ -844,7 +852,7 @@ describe("LineChart controlled activeIndex", () => {
 	test("a controlled activeIndex drives the tooltip readout", () => {
 		render(
 			<LineChart.Root data={data} xKey="time" aria-label="Request latency" activeIndex={1}>
-				<LineChart.Line dataKey="p50" label="p50" />
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
 			</LineChart.Root>,
 		);
 		const tooltip = document.querySelector('[data-slot="line-chart-tooltip"]');
@@ -855,7 +863,7 @@ describe("LineChart controlled activeIndex", () => {
 	test("activeIndex null renders no readout", () => {
 		render(
 			<LineChart.Root data={data} xKey="time" aria-label="Request latency" activeIndex={null}>
-				<LineChart.Line dataKey="p50" label="p50" />
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
 			</LineChart.Root>,
 		);
 		// The surface mounts on the first active datum, so none means no surface.
@@ -875,7 +883,7 @@ describe("LineChart controlled activeIndex", () => {
 					activeIndex={active}
 					onActiveIndexChange={setActive}
 				>
-					<LineChart.Line dataKey="p50" label="p50" />
+					<LineChart.Line dataKey="p50" label="p50" color="blue" />
 				</LineChart.Root>
 			);
 		};
@@ -894,51 +902,18 @@ describe("LineChart controlled activeIndex", () => {
 		// pre-controlled index while the tooltip kept the controlled snapshot.
 		const { rerender } = render(
 			<LineChart.Root data={data} xKey="time" aria-label="Request latency" activeIndex={1}>
-				<LineChart.Line dataKey="p50" label="p50" />
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
 			</LineChart.Root>,
 		);
 		const tooltip = document.querySelector('[data-slot="line-chart-tooltip"]');
 		expect(tooltip?.textContent).toContain("132");
 		rerender(
 			<LineChart.Root data={data} xKey="time" aria-label="Request latency">
-				<LineChart.Line dataKey="p50" label="p50" />
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
 			</LineChart.Root>,
 		);
 		expect(tooltip?.textContent).toBe("");
 	});
-});
-
-test("a fixed slot keeps a series identity across conditional composition", () => {
-	const filterableData = [
-		{ time: new Date("2026-07-18T10:00:00Z"), p50: 120, p99: 480, p95: 300 },
-		{ time: new Date("2026-07-18T10:01:00Z"), p50: 132, p99: 510, p95: 320 },
-	];
-	const { container, rerender } = render(
-		<LineChart.Root data={filterableData} xKey="time" aria-label="Request latency">
-			<LineChart.Line dataKey="p50" label="p50" />
-			<LineChart.Line dataKey="p99" label="p99" seriesSlot={2} />
-			<LineChart.Legend />
-		</LineChart.Root>,
-	);
-	const swatchColors = () => {
-		const legend = container.querySelector('[data-slot="line-chart-legend"]');
-		// The glyph span carries the series color (line keys are composite:
-		// a stroke span plus the shape glyph span).
-		const items = legend == null ? [] : [...legend.querySelectorAll("span[data-shape]")];
-		return items.map((item) => (item instanceof HTMLElement ? item.style.backgroundColor : ""));
-	};
-	const [, p99Before] = swatchColors();
-	expect(p99Before).toContain("chart-2");
-	rerender(
-		<LineChart.Root data={filterableData} xKey="time" aria-label="Request latency">
-			<LineChart.Line dataKey="p99" label="p99" seriesSlot={2} />
-			<LineChart.Line dataKey="p95" label="p95" />
-			<LineChart.Legend />
-		</LineChart.Root>,
-	);
-	const [p99After, p95After] = swatchColors();
-	expect(p99After).toBe(p99Before);
-	expect(p95After).toContain("chart-1");
 });
 
 test("rows with unparseable timestamps are dropped without blanking the chart or crashing the tooltip", async () => {
@@ -952,7 +927,7 @@ test("rows with unparseable timestamps are dropped without blanking the chart or
 	];
 	render(
 		<LineChart.Root data={gappyRows} xKey="time" xScale="time" aria-label="Latency">
-			<LineChart.Line dataKey="p50" label="p50" />
+			<LineChart.Line dataKey="p50" label="p50" color="blue" />
 		</LineChart.Root>,
 	);
 	await user.tab();
@@ -970,7 +945,7 @@ describe("LineChart decorative mode", () => {
 	const renderDecorative = () =>
 		render(
 			<LineChart.Root data={data} xKey="time" mode="decorative">
-				<LineChart.Line dataKey="p50" label="p50" />
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
 			</LineChart.Root>,
 		);
 

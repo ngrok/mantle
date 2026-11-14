@@ -441,7 +441,7 @@ return <Comp data-slot={joinDataSlot(dataSlot, "foo")} className={cx("…", clas
 **A part with no children of its own still takes `asChild`** — type it `SelfClosingWithAsChild` (same module),
 a union that requires `children` exactly when `asChild` is `true` and forbids it otherwise, so
 `<Part asChild />` with nothing to clone is a compile error. See `skeleton.tsx`, `code-block.tsx`,
-`chart/primitive.tsx`.
+`chart/copy-button.tsx`.
 
 Legitimate exceptions — document the reason in a short comment at the declaration so the next maintainer sees
 intent, not oversight:

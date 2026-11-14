@@ -1,8 +1,6 @@
 import type { ComponentProps, ReactNode } from "react";
 import type {
 	BarOrientation,
-	ChartColorToken,
-	ChartSeriesSlot,
 	GridLines,
 	HoverSnapshot,
 	PointShape,
@@ -13,12 +11,7 @@ import type {
 	XValue,
 	YAxisSpec,
 } from "./types.js";
-import {
-	CHART_DECORATIVE_COLOR,
-	chartTokenVariable,
-	isChartColorToken,
-	SLOT_ORDER,
-} from "./colors.js";
+import { CHART_DECORATIVE_COLOR, cssSeriesColor } from "./colors.js";
 
 /**
  * Tooltip customization registered by a composed Tooltip part. Root renders
@@ -80,116 +73,17 @@ type StoreSnapshot = {
 };
 
 /**
- * The CSS color a series paints/keys with in DOM surfaces (legend swatches,
- * tooltip strokes): explicit colors pass through; token names become
- * `var(--color-chart-N)` references so the DOM stays theme-reactive without
- * any JS resolution.
+ * What a registration changed, which picks the engine hook: `"series"` needs
+ * a new ingest and `"presentation"` a repaint. `"tooltip"` calls no hook,
+ * because the engine paints nothing from the tooltip config.
  */
-const displayColor = (color: SeriesSpec["color"], slot: ChartColorToken): string => {
-	if (color == null) {
-		return `var(${chartTokenVariable(slot)})`;
-	}
-	if (isChartColorToken(color)) {
-		return `var(${chartTokenVariable(color)})`;
-	}
-	return color;
-};
+type RegistrationChange = "series" | "presentation" | "tooltip";
 
-/**
- * The glyph paired to each series slot. `"chart-other"` is the shared neutral
- * treatment, so its series use the circle.
- */
-const SHAPE_BY_SLOT: Record<ChartColorToken, PointShape> = {
-	"chart-1": "circle",
-	"chart-2": "square",
-	"chart-3": "triangle",
-	"chart-4": "diamond",
-	"chart-5": "triangle-down",
-	"chart-6": "plus",
-	"chart-7": "cross",
-	"chart-8": "star",
-	"chart-other": "circle",
-};
-
-/**
- * The glyph a series wears: the `shape` it set, else the one paired to its
- * series slot. A chart therefore ships redundant encoding with no consumer
- * effort — distinct color and distinct glyph.
- *
- * Pairing reads the resolved slot. An explicit `shape` can override that one
- * channel without changing the series' color.
- *
- * @example
- * ```ts
- * displayShape(undefined, "chart-2"); // "square"
- * displayShape("star", "chart-2"); // "star"
- * displayShape(undefined, "chart-other"); // "circle"
- * ```
- */
-const displayShape = (shape: SeriesSpec["shape"], slot: ChartColorToken): PointShape =>
-	shape ?? SHAPE_BY_SLOT[slot];
-
-/** The chart token selected by each public `seriesSlot` value. */
-const TOKEN_BY_SERIES_SLOT: Record<ChartSeriesSlot, ChartColorToken> = {
-	1: "chart-1",
-	2: "chart-2",
-	3: "chart-3",
-	4: "chart-4",
-	5: "chart-5",
-	6: "chart-6",
-	7: "chart-7",
-	8: "chart-8",
-	other: "chart-other",
-};
-
-type SeriesSlotInput = Pick<SeriesSpec, "dataKey" | "seriesSlot">;
-
-/**
- * Resolve the current series registrations into visual identity slots.
- * Explicit `seriesSlot` values reserve their slots first. Automatic series
- * then take the remaining slots in registration order.
- *
- * The result depends only on the current registrations. A `color` or `shape`
- * override changes its own channel and never changes a sibling's slot.
- *
- * @example
- * ```ts
- * assignSeriesSlots([
- *   { dataKey: "requests", seriesSlot: undefined },
- *   { dataKey: "errors", seriesSlot: 4 },
- *   { dataKey: "latency", seriesSlot: undefined },
- * ]);
- * // requests → chart-1, errors → chart-4, latency → chart-2
- * ```
- */
-const assignSeriesSlots = (specs: readonly SeriesSlotInput[]): Map<string, ChartColorToken> => {
-	const reserved = new Set<ChartColorToken>();
-	for (const spec of specs) {
-		if (spec.seriesSlot != null && spec.seriesSlot !== "other") {
-			reserved.add(TOKEN_BY_SERIES_SLOT[spec.seriesSlot]);
-		}
-	}
-
-	const assigned = new Map<string, ChartColorToken>();
-	const unavailable = new Set(reserved);
-	for (const spec of specs) {
-		if (spec.seriesSlot != null) {
-			assigned.set(spec.dataKey, TOKEN_BY_SERIES_SLOT[spec.seriesSlot]);
-			continue;
-		}
-		const slot = SLOT_ORDER.find((candidate) => !unavailable.has(candidate)) ?? "chart-other";
-		assigned.set(spec.dataKey, slot);
-		unavailable.add(slot);
-	}
-	return assigned;
-};
+/** The glyph a series wears when it sets no `shape`. */
+const DEFAULT_SHAPE: PointShape = "circle";
 
 /**
  * Create the store a chart Root owns for its lifetime.
- *
- * `assignSeriesSlots` derives every automatic identity from the current series
- * registrations. When a chart must keep one series stable across conditional
- * composition, `seriesSlot` reserves a fixed identity.
  */
 class ChartStore {
 	#listeners = new Set<() => void>();
@@ -255,24 +149,9 @@ class ChartStore {
 		return this.#specs;
 	}
 
-	/**
-	 * The glyph one registered series wears, resolved against its series slot:
-	 * the same `shape` that `seriesMeta` publishes to the DOM.
-	 *
-	 * The canvas paints from `seriesSpecs`, where `shape` is still the raw prop.
-	 * Reading it there would paint a circle under a legend key wearing the
-	 * paired glyph.
-	 *
-	 * Why the snapshot: the engine calls this per series on every painted
-	 * frame. `#publishRegistrations` resolves every slot on each registration
-	 * change, so the lookup costs one `find`. An unregistered key gets the
-	 * `"chart-other"` glyph.
-	 */
+	/** The glyph one registered series wears. An unregistered key gets the circle. */
 	seriesShape(dataKey: string): PointShape {
-		return (
-			this.#snapshot.series.find((series) => series.dataKey === dataKey)?.shape ??
-			SHAPE_BY_SLOT["chart-other"]
-		);
+		return this.#seriesByKey.get(dataKey)?.spec.shape ?? DEFAULT_SHAPE;
 	}
 
 	registerSeries(spec: SeriesSpec): () => void {
@@ -282,13 +161,13 @@ class ChartStore {
 		this.#sequenceByKey.set(spec.dataKey, sequence);
 		this.#seriesByKey.set(spec.dataKey, { spec, sequence });
 		this.#specs = null;
-		this.#publishRegistrations({ seriesChanged: true });
+		this.#publishRegistrations("series");
 		return () => {
 			const current = this.#seriesByKey.get(spec.dataKey);
 			if (current?.spec === spec) {
 				this.#seriesByKey.delete(spec.dataKey);
 				this.#specs = null;
-				this.#publishRegistrations({ seriesChanged: true });
+				this.#publishRegistrations("series");
 			}
 		};
 	}
@@ -307,7 +186,7 @@ class ChartStore {
 			return;
 		}
 		this.#decorative = decorative;
-		this.#publishRegistrations({ seriesChanged: true });
+		this.#publishRegistrations("series");
 	}
 
 	/** Root-side: publish the bar direction so DOM consumers (legend keys) can mirror it. */
@@ -375,11 +254,11 @@ class ChartStore {
 	registerTooltip(config: TooltipConfig): () => void {
 		// Singleton part: last registration wins.
 		this.#tooltip = config;
-		this.#publishRegistrations();
+		this.#publishRegistrations("tooltip");
 		return () => {
 			if (this.#tooltip === config) {
 				this.#tooltip = null;
-				this.#publishRegistrations();
+				this.#publishRegistrations("tooltip");
 			}
 		};
 	}
@@ -400,33 +279,30 @@ class ChartStore {
 	/** Build display metadata for DOM consumers (legend, tooltip, data table). */
 	seriesMeta(): SeriesMeta[] {
 		const specs = this.seriesSpecs();
-		const slots = assignSeriesSlots(specs);
 		return specs.map((spec) => {
-			const slot = slots.get(spec.dataKey) ?? "chart-other";
-			// A decorative chart paints the neutral fill and outranks a `color`
-			// override: the values are not information, so nothing about the marks
-			// may read as a series. Slots still resolve above, so a chart that
-			// leaves `decorative` gets its palette identity back unshuffled.
-			const color = this.#decorative ? CHART_DECORATIVE_COLOR : displayColor(spec.color, slot);
-			const colorInput = this.#decorative ? CHART_DECORATIVE_COLOR : (spec.color ?? slot);
+			// A decorative chart paints the neutral fill and outranks `color`: the
+			// values are not information, so nothing about the marks may read as a
+			// series.
+			const color = this.#decorative ? CHART_DECORATIVE_COLOR : cssSeriesColor(spec.color);
+			const colorInput = this.#decorative ? CHART_DECORATIVE_COLOR : spec.color;
 			return {
 				dataKey: spec.dataKey,
 				label: spec.label,
 				mark: spec.mark,
 				color,
 				colorInput,
-				shape: displayShape(spec.shape, slot),
+				shape: spec.shape,
 				texture: spec.texture,
 			};
 		});
 	}
 
-	#publishRegistrations(options: { seriesChanged: boolean } = { seriesChanged: false }): void {
+	#publishRegistrations(change: RegistrationChange = "presentation"): void {
 		this.#snapshot = {
 			// Why keep the old list on other changes: the legend and the data table
 			// subscribe to `series` by identity, so an axis or tooltip registration
 			// must not re-render them.
-			series: options.seriesChanged ? this.seriesMeta() : this.#snapshot.series,
+			series: change === "series" ? this.seriesMeta() : this.#snapshot.series,
 			hover: this.#hover,
 			grid: this.#grid,
 			xAxis: this.#xAxis,
@@ -438,9 +314,9 @@ class ChartStore {
 			orientation: this.#orientation,
 		};
 		this.#emit();
-		if (options.seriesChanged) {
+		if (change === "series") {
 			this.onSeriesChange?.();
-		} else {
+		} else if (change === "presentation") {
 			this.onPresentationChange?.();
 		}
 	}
@@ -459,8 +335,5 @@ export type {
 };
 export {
 	//,
-	assignSeriesSlots,
 	ChartStore,
-	displayColor,
-	displayShape,
 };

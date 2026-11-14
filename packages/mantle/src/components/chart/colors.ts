@@ -1,67 +1,24 @@
-import type { ChartColorToken, SeriesColor } from "./types.js";
+import { isColor } from "../../utils/color/index.js";
+import type { SeriesColor } from "./types.js";
 
 /**
- * The chart color vocabulary: the series slot tokens, the decorative fill,
- * and the chrome colors, all as CSS. The SVG backend paints these strings as
+ * The chart color vocabulary: series colors, the decorative fill, and the
+ * chrome colors, all as CSS. The SVG backend paints these strings as
  * they are; `canvas-colors.ts` resolves them for a canvas.
  *
  * This module is internal shared implementation — not exported from the package.
  */
 
-const CHART_COLOR_TOKENS = [
-	"chart-1",
-	"chart-2",
-	"chart-3",
-	"chart-4",
-	"chart-5",
-	"chart-6",
-	"chart-7",
-	"chart-8",
-	"chart-other",
-] as const;
-
 /**
- * Type guard for the chart color token vocabulary.
- *
- * @example
- * ```ts
- * isChartColorToken("chart-3"); // true
- * isChartColorToken("#ff0000"); // false
- * ```
- */
-const isChartColorToken = (value: string): value is ChartColorToken =>
-	(CHART_COLOR_TOKENS as readonly string[]).includes(value);
-
-/**
- * The CSS custom property a chart color token reads from.
- */
-const chartTokenVariable = (token: ChartColorToken): string => `--color-${token}`;
-
-/**
- * The color every series paints on a `decorative` chart, whatever slot or
- * `color` it would otherwise wear. A placeholder encodes no series identity, so
- * one neutral fill replaces the categorical palette — and the token is tuned so
+ * The color every series paints on a `decorative` chart, whatever `color` it
+ * would otherwise wear. A placeholder encodes no series identity, so one
+ * neutral fill replaces every series color, and the token is tuned so
  * a message laid over the marks stays above the WCAG AA text floor without a
  * scrim or a blur. `chart/decorative-contrast.test.tsx` measures every theme.
  *
- * Kept out of {@link CHART_COLOR_TOKENS} on purpose: it is a mode, not a slot a
- * consumer can assign a series to.
+ * It is a mode, not a color a consumer can give a series.
  */
 const CHART_DECORATIVE_COLOR = "var(--color-chart-decorative)";
-
-/**
- * The order automatic series take unreserved slots in.
- */
-const SLOT_ORDER: readonly ChartColorToken[] = [
-	"chart-1",
-	"chart-2",
-	"chart-3",
-	"chart-4",
-	"chart-5",
-	"chart-6",
-	"chart-7",
-	"chart-8",
-];
 
 /**
  * Chrome (non-series) paint colors, from mantle functional tokens.
@@ -89,17 +46,17 @@ const CHART_CHROME_CSS: ChartChromeColors = {
 };
 
 /**
- * A series color as CSS: a token reads its custom property, and any other
- * string is already CSS.
+ * A series color as CSS: a mantle color name reads its chart token, and any
+ * other string is already CSS.
  *
  * @example
  * ```ts
- * cssSeriesColor("chart-2"); // "var(--color-chart-2)"
+ * cssSeriesColor("emerald"); // "var(--color-chart-emerald)"
  * cssSeriesColor("#e40014"); // "#e40014"
  * ```
  */
 const cssSeriesColor = (color: SeriesColor): string =>
-	isChartColorToken(color) ? `var(${chartTokenVariable(color)})` : color;
+	isColor(color) ? `var(--color-chart-${color})` : color;
 
 export type {
 	//,
@@ -108,10 +65,6 @@ export type {
 export {
 	//,
 	CHART_CHROME_CSS,
-	CHART_COLOR_TOKENS,
 	CHART_DECORATIVE_COLOR,
-	chartTokenVariable,
 	cssSeriesColor,
-	isChartColorToken,
-	SLOT_ORDER,
 };

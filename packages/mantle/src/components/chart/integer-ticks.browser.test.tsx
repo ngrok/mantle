@@ -16,8 +16,8 @@ import { CanvasBarChartRoot, CanvasLineChartRoot } from "../../test-utils/canvas
  */
 const STYLE = `
 :root {
-	--color-chart-1: #3e6ff4;
-	--color-chart-other: #737373;
+	--color-chart-blue: #3e6ff4;
+	--color-chart-neutral: #737373;
 	--border-color-card-muted: #e5e5e5;
 	--border-color-card: #d4d4d4;
 	--text-color-muted: #717171;
@@ -99,7 +99,7 @@ describe("integer-valued data never paints fractional axis ticks (MNTL-56)", () 
 				>
 					<BarChart.XAxis />
 					<BarChart.YAxis />
-					<BarChart.Bar dataKey="count" label="Count" color="chart-1" />
+					<BarChart.Bar dataKey="count" label="Count" color="blue" />
 				</CanvasBarChartRoot>
 			</div>,
 		);
@@ -125,7 +125,7 @@ describe("integer-valued data never paints fractional axis ticks (MNTL-56)", () 
 				>
 					<BarChart.XAxis />
 					<BarChart.YAxis />
-					<BarChart.Bar dataKey="count" label="Count" color="chart-1" />
+					<BarChart.Bar dataKey="count" label="Count" color="blue" />
 				</CanvasBarChartRoot>
 			</div>,
 		);
@@ -153,7 +153,7 @@ describe("integer-valued data never paints fractional axis ticks (MNTL-56)", () 
 				>
 					<LineChart.XAxis />
 					<LineChart.YAxis />
-					<LineChart.Line dataKey="latency" label="Latency" color="chart-1" />
+					<LineChart.Line dataKey="latency" label="Latency" color="blue" />
 				</CanvasLineChartRoot>
 			</div>,
 		);
@@ -186,7 +186,7 @@ describe("integer-valued data never paints fractional axis ticks (MNTL-56)", () 
 				>
 					<LineChart.XAxis />
 					<LineChart.YAxis />
-					<LineChart.Line dataKey="latency" label="Latency" color="chart-1" />
+					<LineChart.Line dataKey="latency" label="Latency" color="blue" />
 				</CanvasLineChartRoot>
 			</div>,
 		);
@@ -209,7 +209,7 @@ describe("integer-valued data never paints fractional axis ticks (MNTL-56)", () 
 				>
 					<LineChart.XAxis />
 					<LineChart.YAxis />
-					<LineChart.Line dataKey="rate" label="Rate" color="chart-1" />
+					<LineChart.Line dataKey="rate" label="Rate" color="blue" />
 				</CanvasLineChartRoot>
 			</div>,
 		);

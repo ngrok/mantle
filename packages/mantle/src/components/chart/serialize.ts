@@ -1,5 +1,5 @@
-import { datumValue } from "./datum.js";
-import type { ChartDatum, SeriesMeta } from "./types.js";
+import { datumValue, toEpochOrNumber } from "./datum.js";
+import type { ChartDatum, SeriesMeta, XScaleKind } from "./types.js";
 
 /**
  * Serialization of chart data to clipboard-friendly text formats.
@@ -22,9 +22,11 @@ const escapeCell = (text: string): string =>
  * (`1e+21`), which round-trips exactly through `Number()`, spreadsheets, and
  * CSV parsers, where a fixed-point expansion would risk silent precision
  * loss — and the value itself for category strings. Invalid dates render as
- * an em dash, matching the tooltip/table convention.
+ * an em dash, matching the tooltip/table convention. On a `"time"` scale an
+ * epoch number and a date string are dates too, as the engine reads them.
  */
-const xCell = (value: unknown): string => {
+const xCell = (raw: unknown, xScale: XScaleKind | undefined): string => {
+	const value = xScale === "time" ? new Date(toEpochOrNumber(raw, true)) : raw;
 	if (value instanceof Date) {
 		return Number.isNaN(value.getTime()) ? "—" : value.toISOString();
 	}
@@ -54,6 +56,12 @@ type SerializeChartMarkdownOptions = {
 	data: readonly ChartDatum[];
 	/** The key of each row's x value; also the first column's header. */
 	xKey: string;
+	/**
+	 * The chart's x scale. On a `"time"` scale an epoch number and a date string
+	 * serialize as ISO 8601, as a `Date` does. Every other scale, and no scale,
+	 * serializes a number as a number and a string as itself.
+	 */
+	xScale?: XScaleKind;
 	/** The registered series in paint order; labels become column headers. */
 	series: readonly Pick<SeriesMeta, "dataKey" | "label">[];
 	/** Scatter plots only: the depth-value key, appended as a final column. */
@@ -82,6 +90,7 @@ type SerializeChartMarkdownOptions = {
 const serializeChartMarkdown = ({
 	data,
 	xKey,
+	xScale,
 	series,
 	zKey,
 }: SerializeChartMarkdownOptions): string => {
@@ -91,7 +100,7 @@ const serializeChartMarkdown = ({
 		...(zKey == null ? [] : [escapeCell(zKey)]),
 	];
 	const rows = data.map((row) => [
-		xCell(datumValue(row, xKey)),
+		xCell(datumValue(row, xKey), xScale),
 		...series.map((entry) => valueCell(datumValue(row, entry.dataKey))),
 		...(zKey == null ? [] : [valueCell(datumValue(row, zKey))]),
 	]);

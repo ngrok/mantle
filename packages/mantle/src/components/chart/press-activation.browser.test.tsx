@@ -13,8 +13,8 @@ import { BarChart } from "../bar-chart/index.js";
  */
 const STYLE = `
 :root {
-	--color-chart-1: #3e6ff4;
-	--color-chart-other: #737373;
+	--color-chart-blue: #3e6ff4;
+	--color-chart-neutral: #737373;
 	--border-color-card-muted: #e5e5e5;
 	--border-color-card: #d4d4d4;
 	--text-color-muted: #717171;
@@ -71,9 +71,9 @@ const data = [
 ];
 
 test("a press on a chart whose activation is still queued activates its datum", () => {
-	// A stub delivers every chart in one task, once per band observer, and a
-	// stepped clock makes each flush overspend its slice on one chart. Three
-	// bands flush three charts; the fourth is still queued when the press lands.
+	// A stub delivers every chart in one task, and a stepped clock makes each
+	// slice overspend on one chart. The delivery starts a slice only when the
+	// queue changed, so the fourth chart is still queued when the press lands.
 	const stub = createIntersectionObserverStub({ intersecting: false });
 	vi.stubGlobal("IntersectionObserver", stub.Observer);
 	let clock = 0;
@@ -91,7 +91,7 @@ test("a press on a chart whose activation is still queued activates its datum", 
 						aria-label={name}
 						onDatumActivate={name === "Fourth" ? onDatumActivate : undefined}
 					>
-						<BarChart.Bar dataKey="v" label="Value" />
+						<BarChart.Bar dataKey="v" label="Value" color="blue" />
 					</BarChart.Root>
 				</div>
 			))}
@@ -105,7 +105,7 @@ test("a press on a chart whose activation is still queued activates its datum", 
 	act(() => {
 		stub.enter(...plots);
 	});
-	expect(plots[2]?.querySelector('[data-slot="bar-chart-svg"]')).toBeInTheDocument();
+	expect(plots[0]?.querySelector('[data-slot="bar-chart-svg"]')).toBeInTheDocument();
 	expect(fourth.querySelector('[data-slot="bar-chart-svg"]')).toBeNull();
 	const overlay = fourth.querySelector('[role="application"]');
 	if (!(overlay instanceof HTMLElement)) {

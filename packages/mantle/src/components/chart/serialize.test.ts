@@ -104,3 +104,53 @@ describe("serializeChartMarkdown", () => {
 		expect(markdown).toBe(["| time | p50 |", "| --- | --- |"].join("\n"));
 	});
 });
+
+describe("serializeChartMarkdown on a time scale", () => {
+	const series = [{ dataKey: "p50", label: "p50" }];
+
+	test("an epoch number and a date string serialize as ISO 8601, as a Date does", () => {
+		const markdown = serializeChartMarkdown({
+			data: [
+				{ time: Date.UTC(2026, 6, 18, 10, 0), p50: 120 },
+				{ time: "2026-07-18T10:01:00Z", p50: 132 },
+			],
+			xKey: "time",
+			xScale: "time",
+			series,
+		});
+		expect(markdown).toBe(
+			[
+				"| time | p50 |",
+				"| --- | --- |",
+				"| 2026-07-18T10:00:00.000Z | 120 |",
+				"| 2026-07-18T10:01:00.000Z | 132 |",
+			].join("\n"),
+		);
+	});
+
+	test("an x that is not a time serializes as an em dash instead of throwing", () => {
+		const markdown = serializeChartMarkdown({
+			data: [
+				{ time: "not a date", p50: 120 },
+				// Why 1e20: it is a finite number past the last instant a `Date` holds,
+				// and `toISOString` throws on that date.
+				{ time: 1e20, p50: 132 },
+			],
+			xKey: "time",
+			xScale: "time",
+			series,
+		});
+		expect(markdown).toContain("| — | 120 |");
+		expect(markdown).toContain("| — | 132 |");
+	});
+
+	test("a number stays a number on every other scale", () => {
+		const markdown = serializeChartMarkdown({
+			data: [{ requests: 1_000_000, p50: 120 }],
+			xKey: "requests",
+			xScale: "linear",
+			series,
+		});
+		expect(markdown).toContain("| 1000000 | 120 |");
+	});
+});

@@ -27,10 +27,10 @@ import type { ChartDatum } from "./types.js";
  */
 const STYLE = `
 :root {
-	--color-chart-1: #3e6ff4;
-	--color-chart-2: #008138;
-	--color-chart-3: #f6339a;
-	--color-chart-other: #737373;
+	--color-chart-blue: #3e6ff4;
+	--color-chart-emerald: #008138;
+	--color-chart-pink: #f6339a;
+	--color-chart-neutral: #737373;
 	--border-color-card-muted: #e5e5e5;
 	--border-color-card: #a3a3a3;
 	--text-color-muted: #525252;
@@ -242,8 +242,8 @@ const scenes: Array<{ name: string; scene: Scene; tolerance: number }> = [
 				aria-label="Grouped"
 			>
 				<BarChart.Grid />
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
-				<BarChart.Bar dataKey="mobile" label="Mobile" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
+				<BarChart.Bar dataKey="mobile" label="Mobile" color="emerald" />
 			</BarRoot>
 		),
 	},
@@ -259,9 +259,9 @@ const scenes: Array<{ name: string; scene: Scene; tolerance: number }> = [
 				animate={false}
 				aria-label="Stacked"
 			>
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
-				<BarChart.Bar dataKey="mobile" label="Mobile" />
-				<BarChart.Bar dataKey="tablet" label="Tablet" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
+				<BarChart.Bar dataKey="mobile" label="Mobile" color="emerald" />
+				<BarChart.Bar dataKey="tablet" label="Tablet" color="pink" />
 				<BarChart.ReferenceLine y={300} />
 			</BarRoot>
 		),
@@ -278,8 +278,8 @@ const scenes: Array<{ name: string; scene: Scene; tolerance: number }> = [
 				animate={false}
 				aria-label="Horizontal"
 			>
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
-				<BarChart.Bar dataKey="mobile" label="Mobile" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
+				<BarChart.Bar dataKey="mobile" label="Mobile" color="emerald" />
 			</BarRoot>
 		),
 	},
@@ -289,8 +289,8 @@ const scenes: Array<{ name: string; scene: Scene; tolerance: number }> = [
 		scene: (surface) => (
 			<LineRoot surface={surface} data={series} xKey="x" animate={false} aria-label="Lines">
 				<LineChart.Grid />
-				<LineChart.Line dataKey="a" label="A" curve="monotone" markers />
-				<LineChart.Line dataKey="b" label="B" curve="step" />
+				<LineChart.Line dataKey="a" label="A" curve="monotone" markers color="blue" />
+				<LineChart.Line dataKey="b" label="B" curve="step" color="emerald" />
 			</LineRoot>
 		),
 	},
@@ -306,8 +306,8 @@ const scenes: Array<{ name: string; scene: Scene; tolerance: number }> = [
 				animate={false}
 				aria-label="Areas"
 			>
-				<AreaChart.Area dataKey="a" label="A" />
-				<AreaChart.Area dataKey="b" label="B" />
+				<AreaChart.Area dataKey="a" label="A" color="blue" />
+				<AreaChart.Area dataKey="b" label="B" color="emerald" />
 			</AreaRoot>
 		),
 	},
@@ -316,7 +316,7 @@ const scenes: Array<{ name: string; scene: Scene; tolerance: number }> = [
 		tolerance: 0.002,
 		scene: (surface) => (
 			<LineRoot surface={surface} data={dense} xKey="x" animate={false} aria-label="Dense">
-				<LineChart.Line dataKey="value" label="Value" />
+				<LineChart.Line dataKey="value" label="Value" color="blue" />
 			</LineRoot>
 		),
 	},
@@ -328,7 +328,7 @@ const scenes: Array<{ name: string; scene: Scene; tolerance: number }> = [
 				<BarChart.Grid />
 				<BarChart.XAxis />
 				<BarChart.YAxis />
-				<BarChart.Bar dataKey="desktop" label="Desktop" />
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 			</BarRoot>
 		),
 	},

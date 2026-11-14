@@ -27,15 +27,15 @@ import {
  */
 const STYLE = `
 :root {
-	--color-chart-1: #3e6ff4;
-	--color-chart-2: #008138;
-	--color-chart-3: #f6339a;
-	--color-chart-4: #7f22fe;
-	--color-chart-5: #d08700;
-	--color-chart-6: #009689;
-	--color-chart-7: #ff6900;
-	--color-chart-8: #4f39f6;
-	--color-chart-other: #737373;
+	--color-chart-blue: #3e6ff4;
+	--color-chart-emerald: #008138;
+	--color-chart-pink: #f6339a;
+	--color-chart-orange: #7f22fe;
+	--color-chart-teal: #d08700;
+	--color-chart-fuchsia: #009689;
+	--color-chart-violet: #ff6900;
+	--color-chart-amber: #4f39f6;
+	--color-chart-neutral: #737373;
 	--border-color-card-muted: #e5e5e5;
 	--border-color-card: #d4d4d4;
 	--text-color-muted: #717171;
@@ -137,9 +137,9 @@ const markersLayer = (container: HTMLElement): HTMLElement => {
 	return layer;
 };
 
-/** Parse `translate3d(Xpx, Ypx, 0)` into plot-space coordinates. */
+/** Parse `translate(Xpx, Ypx)` into plot-space coordinates. */
 const dotPosition = (dot: HTMLElement): { x: number; y: number } => {
-	const match = /translate3d\((-?[\d.]+)px,\s*(-?[\d.]+)px/.exec(dot.style.transform);
+	const match = /^translate\((-?[\d.]+)px,\s*(-?[\d.]+)px\)$/.exec(dot.style.transform);
 	if (match?.[1] == null || match[2] == null) {
 		throw new Error(`expected a positioned dot, got transform "${dot.style.transform}"`);
 	}
@@ -196,9 +196,9 @@ describe("hover marker geometry", () => {
 					animate={false}
 					aria-label="Traffic"
 				>
-					<AreaChart.Area dataKey="http" label="HTTP" />
-					<AreaChart.Area dataKey="tcp" label="TCP" />
-					<AreaChart.Area dataKey="tls" label="TLS" />
+					<AreaChart.Area dataKey="http" label="HTTP" color="blue" />
+					<AreaChart.Area dataKey="tcp" label="TCP" color="emerald" />
+					<AreaChart.Area dataKey="tls" label="TLS" color="pink" />
 				</CanvasAreaChartRoot>
 			</div>,
 		);
@@ -221,9 +221,9 @@ describe("hover marker geometry", () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
 				<CanvasAreaChartRoot data={protocolData} xKey="day" animate={false} aria-label="Traffic">
-					<AreaChart.Area dataKey="http" label="HTTP" />
-					<AreaChart.Area dataKey="tcp" label="TCP" />
-					<AreaChart.Area dataKey="tls" label="TLS" />
+					<AreaChart.Area dataKey="http" label="HTTP" color="blue" />
+					<AreaChart.Area dataKey="tcp" label="TCP" color="emerald" />
+					<AreaChart.Area dataKey="tls" label="TLS" color="pink" />
 				</CanvasAreaChartRoot>
 			</div>,
 		);
@@ -250,8 +250,8 @@ describe("hover marker geometry", () => {
 					animate={false}
 					aria-label="Latency"
 				>
-					<LineChart.Line dataKey="p50" label="p50" />
-					<LineChart.Line dataKey="p99" label="p99" />
+					<LineChart.Line dataKey="p50" label="p50" color="blue" />
+					<LineChart.Line dataKey="p99" label="p99" color="emerald" />
 				</CanvasLineChartRoot>
 			</div>,
 		);
@@ -281,8 +281,8 @@ describe("hover marker geometry", () => {
 					animate={false}
 					aria-label="Latency"
 				>
-					<LineChart.Line dataKey="p50" label="p50" />
-					<LineChart.Line dataKey="p99" label="p99" />
+					<LineChart.Line dataKey="p50" label="p50" color="blue" />
+					<LineChart.Line dataKey="p99" label="p99" color="emerald" />
 				</CanvasLineChartRoot>
 			</div>,
 		);
@@ -300,7 +300,7 @@ describe("hover marker geometry", () => {
 
 	test("a gapped series hides its dot while its neighbors keep theirs", async () => {
 		// Visibility follows the RAW value: without the NaN guard the dot gets
-		// opacity 1 and `translate3d(…, NaNpx, 0)`, which is invalid CSS — the
+		// opacity 1 and `translate(…, NaNpx)`, which is invalid CSS — the
 		// transform is dropped and the dot pins itself to the layer's top-left
 		// corner, claiming a point the tooltip reports as an em dash.
 		const { container } = render(
@@ -314,8 +314,8 @@ describe("hover marker geometry", () => {
 					animate={false}
 					aria-label="Latency"
 				>
-					<LineChart.Line dataKey="p50" label="p50" />
-					<LineChart.Line dataKey="p99" label="p99" />
+					<LineChart.Line dataKey="p50" label="p50" color="blue" />
+					<LineChart.Line dataKey="p99" label="p99" color="emerald" />
 				</CanvasLineChartRoot>
 			</div>,
 		);
@@ -347,8 +347,8 @@ describe("hover marker geometry", () => {
 					animate={false}
 					aria-label="Latency"
 				>
-					<LineChart.Line dataKey="p50" label="p50" shape="triangle" />
-					<LineChart.Line dataKey="p99" label="p99" shape="diamond" />
+					<LineChart.Line dataKey="p50" label="p50" shape="triangle" color="blue" />
+					<LineChart.Line dataKey="p99" label="p99" shape="diamond" color="emerald" />
 				</CanvasLineChartRoot>
 			</div>,
 		);
@@ -359,36 +359,6 @@ describe("hover marker geometry", () => {
 			}
 			expect(p50.getAttribute("data-shape")).toBe("triangle");
 			expect(p99.getAttribute("data-shape")).toBe("diamond");
-		});
-	});
-
-	test("hover dots wear the glyph paired to each series slot", async () => {
-		// A consumer who sets no `shape` still gets a distinct dot per series.
-		// "p999" fixes slot 6, so its plus can only come from the slot, never from
-		// the order it registered in.
-		const { container } = render(
-			<div style={{ width: 600, height: 300 }}>
-				<CanvasLineChartRoot
-					data={[
-						{ t: 1, p50: 10, p99: 50, p999: 90 },
-						{ t: 2, p50: 12, p99: 55, p999: 95 },
-					]}
-					xKey="t"
-					animate={false}
-					aria-label="Latency"
-				>
-					<LineChart.Line dataKey="p50" label="p50" />
-					<LineChart.Line dataKey="p99" label="p99" />
-					<LineChart.Line dataKey="p999" label="p999" seriesSlot={6} />
-				</CanvasLineChartRoot>
-			</div>,
-		);
-		await assertDatumGeometry(container, "Home", () => {
-			expect(activeDots(container).map((dot) => dot.getAttribute("data-shape"))).toEqual([
-				"circle",
-				"square",
-				"plus",
-			]);
 		});
 	});
 
@@ -407,8 +377,8 @@ describe("hover marker geometry", () => {
 					animate={false}
 					aria-label="Latency"
 				>
-					<LineChart.Line dataKey="p50" label="p50" shape="star" />
-					<LineChart.Line dataKey="p99" label="p99" />
+					<LineChart.Line dataKey="p50" label="p50" shape="star" color="blue" />
+					<LineChart.Line dataKey="p99" label="p99" shape="square" color="emerald" />
 				</CanvasLineChartRoot>
 			</div>,
 		);
@@ -448,8 +418,8 @@ describe("hover marker geometry", () => {
 					animate={false}
 					aria-label="Latency"
 				>
-					<LineChart.Line dataKey="p50" label="p50" />
-					<LineChart.Line dataKey="p99" label="p99" />
+					<LineChart.Line dataKey="p50" label="p50" color="blue" />
+					<LineChart.Line dataKey="p99" label="p99" color="emerald" />
 				</CanvasLineChartRoot>
 			</div>,
 		);
@@ -496,7 +466,7 @@ describe("hover marker geometry", () => {
 					animate={false}
 					aria-label="Correlation"
 				>
-					<ScatterPlot.Point dataKey="y" label="y" shape="square" />
+					<ScatterPlot.Point dataKey="y" label="y" shape="square" color="blue" />
 				</ScatterPlot.Root>
 			</div>,
 		);
@@ -521,7 +491,7 @@ describe("hover marker geometry", () => {
 					animate={false}
 					aria-label="Visitors"
 				>
-					<BarChart.Bar dataKey="desktop" label="Desktop" />
+					<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 				</CanvasBarChartRoot>
 			</div>,
 		);
@@ -551,7 +521,7 @@ describe("hover marker geometry", () => {
 					animate={false}
 					aria-label="Correlation"
 				>
-					<ScatterPlot.Point dataKey="y" label="y" />
+					<ScatterPlot.Point dataKey="y" label="y" color="blue" />
 				</ScatterPlot.Root>
 			</div>,
 		);
@@ -578,86 +548,6 @@ describe("hover marker geometry", () => {
 			// (2, 90) sits to the right of and above (1, 10) in screen space.
 			expect(last.x).toBeGreaterThan(first.x);
 			expect(last.y).toBeLessThan(first.y);
-		});
-	});
-});
-
-/** Every painted byte of a canvas, for pixel-exact comparison between frames. */
-const framePixels = (canvas: HTMLCanvasElement): Uint8ClampedArray => {
-	const context = canvas.getContext("2d");
-	if (context == null || canvas.width === 0 || canvas.height === 0) {
-		throw new Error("expected a sized canvas with a 2d context");
-	}
-	return context.getImageData(0, 0, canvas.width, canvas.height).data;
-};
-
-/** How many bytes two equally sized frames disagree on. */
-const differingBytes = (left: Uint8ClampedArray, right: Uint8ClampedArray): number => {
-	if (left.length !== right.length) {
-		throw new Error("expected two frames of the same size");
-	}
-	let count = 0;
-	for (let offset = 0; offset < left.length; offset++) {
-		if (left[offset] !== right[offset]) {
-			count += 1;
-		}
-	}
-	return count;
-};
-
-describe("line canvas markers", () => {
-	const latency = Array.from({ length: 8 }, (_unused, index) => ({
-		t: index,
-		p50: 20 + Math.sin(index) * 15,
-	}));
-
-	test("a line series that sets no shape paints its slot's glyph, not the circle", async () => {
-		// The canvas markers resolve their glyph through the store, exactly as the
-		// legend key and the hover dot do. Reading the raw `shape` prop here would
-		// paint circles under star-shaped legend keys. Only pixels can see that.
-		// All three lines fix slot 8, so one color and one layout hold across
-		// them: a differing byte is a differing marker path and nothing else.
-		const { container } = render(
-			<div style={{ display: "flex" }}>
-				{(
-					[
-						["paired", undefined],
-						["star", "star"],
-						["circle", "circle"],
-					] as const
-				).map(([name, shape]) => (
-					<div key={name} data-line={name} style={{ width: 400, height: 240 }}>
-						<CanvasLineChartRoot
-							data={latency}
-							xKey="t"
-							animate={false}
-							aria-label={`${name} line`}
-						>
-							<LineChart.Line dataKey="p50" label="p50" seriesSlot={8} markers shape={shape} />
-						</CanvasLineChartRoot>
-					</div>
-				))}
-			</div>,
-		);
-		const canvasFor = (name: string) =>
-			mustBe(
-				container.querySelector(`[data-line="${name}"] canvas`),
-				HTMLCanvasElement,
-				`the ${name} canvas`,
-			);
-		await waitFor(() => {
-			for (const name of ["paired", "star", "circle"]) {
-				expect(canvasFor(name).width).toBeGreaterThan(0);
-			}
-			// Slot 8 pairs with the star, so the unset series must paint the same
-			// frame as the one that asked for a star by name.
-			expect(differingBytes(framePixels(canvasFor("paired")), framePixels(canvasFor("star")))).toBe(
-				0,
-			);
-			// And a different frame from the circle it used to fall back to.
-			expect(
-				differingBytes(framePixels(canvasFor("paired")), framePixels(canvasFor("circle"))),
-			).toBeGreaterThan(500);
 		});
 	});
 });

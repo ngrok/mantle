@@ -177,7 +177,10 @@ class CanvasBackend implements PaintBackend {
  * plot.prepend(backend.element);
  * ```
  */
-const createCanvasBackend: PaintBackendFactory = (options) => new CanvasBackend(options);
+const createCanvasBackend: PaintBackendFactory = Object.assign(
+	(options: PaintBackendOptions): PaintBackend => new CanvasBackend(options),
+	{ kind: "canvas" as const },
+);
 
 export {
 	//,

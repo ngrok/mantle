@@ -1,11 +1,14 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { createCanvasBackend } from "./canvas-backend.js";
+import { createScatterView } from "./scatter-engine.js";
 import { createColorResolver } from "./canvas-colors.js";
+import { CHART_CHROME_CSS } from "./colors.js";
 import { createSvgBackend } from "./svg-backend.js";
 import type { EngineElements, HoverLayers } from "./engine.js";
 import { ChartEngine } from "./engine.js";
+import type { PaintBackendFactory } from "./paint-backend.js";
 import { ChartStore } from "./store.js";
-import { ChaseTween, ValueTween } from "./tween.js";
+import { ChaseTween, PER_DATUM_TWEEN_LIMIT, ValueTween } from "./tween.js";
 import type { ChartDatumEvent, ChartOptions, SeriesMark, SeriesSpec } from "./types.js";
 
 // Why a spied module: happy-dom has no 2D context, so no paint reaches the
@@ -19,6 +22,8 @@ vi.mock("./canvas-colors.js", { spy: true });
  * the Root binding does. happy-dom returns no 2d context, so the canvas paint
  * path returns early;
  * ingest, tween retargeting, hover snapshots, and the DOM overlay still run.
+ * A test that reads the painted marks mounts the SVG backend, which paints in
+ * happy-dom.
  * A fake `ResizeObserver` gives the plot a size, because happy-dom's never
  * fires and a 0×0 plot projects every value onto one pixel.
  */
@@ -55,13 +60,12 @@ const makeSeries = (
 ): SeriesSpec => ({
 	dataKey,
 	label: dataKey,
-	seriesSlot: undefined,
-	color: undefined,
+	color: "blue",
 	mark,
 	curve: "linear",
 	markers: false,
 	connectNulls: false,
-	shape: undefined,
+	shape: "circle",
 	texture: "solid",
 	...overrides,
 });
@@ -80,7 +84,7 @@ const baseOptions: ChartOptions = {
 type Mounted = {
 	engine: ChartEngine;
 	store: ChartStore;
-	elements: EngineElements;
+	elements: ReturnType<typeof createElements>;
 	/** The canvas the backend inserted into the plot. */
 	canvas: HTMLCanvasElement;
 	options: ChartOptions;
@@ -90,7 +94,7 @@ type Mounted = {
 
 const mounted: Mounted[] = [];
 
-const createElements = (): EngineElements => {
+const createElements = (): EngineElements & { layers: HoverLayers } => {
 	const document = window.document;
 	const root = document.createElement("div");
 	const plot = document.createElement("div");
@@ -101,16 +105,11 @@ const createElements = (): EngineElements => {
 	plot.append(crosshair, band, markers, tooltip);
 	root.append(plot);
 	document.body.append(root);
-	return { root, plot, hover: { crosshair, band, markers }, tooltip };
+	return { root, plot, tooltip, layers: { crosshair, band, markers } };
 };
 
 /** The hover layers of a mounted engine; every mount here is interactive. */
-const hoverOf = (mount: Pick<Mounted, "elements">): HoverLayers => {
-	if (mount.elements.hover == null) {
-		throw new Error("expected an interactive mount with hover layers");
-	}
-	return mount.elements.hover;
-};
+const hoverOf = (mount: Pick<Mounted, "elements">): HoverLayers => mount.elements.layers;
 
 /**
  * Mount an engine the way one React commit does: series register first, then
@@ -135,6 +134,10 @@ const mountEngine = (config: {
 	size?: PlotSize | null;
 	/** The Root passes `false` and reports the real state through `setInView`. */
 	inView?: boolean;
+	/** The Root passes what its `visible` band knows and reports changes through `setOnScreen`. */
+	onScreen?: boolean;
+	/** The canvas backend paints nothing in happy-dom. Pass the SVG backend to read the painted marks. */
+	backend?: PaintBackendFactory;
 }): Mounted => {
 	const store = new ChartStore();
 	const elements = createElements();
@@ -142,14 +145,13 @@ const mountEngine = (config: {
 		kind: config.kind,
 		elements,
 		store,
-		backend: createCanvasBackend,
+		backend: config.backend ?? createCanvasBackend,
 		slotName: "chart",
+		scatter: createScatterView,
+		createHoverLayers: () => elements.layers,
 		inView: config.inView,
+		onScreen: config.onScreen,
 	});
-	const canvas = elements.plot.querySelector("canvas");
-	if (canvas == null) {
-		throw new Error("expected the canvas backend to insert its canvas");
-	}
 	const unregister = new Map(
 		config.series.map((spec) => [spec.dataKey, store.registerSeries(spec)] as const),
 	);
@@ -161,17 +163,136 @@ const mountEngine = (config: {
 		deliverResize({ elements }, config.size ?? { width: 400, height: 200 });
 	}
 	engine.flushIngest();
-	const result = { engine, store, elements, canvas, options, unregister };
+	const result = {
+		engine,
+		store,
+		elements,
+		options,
+		unregister,
+		get canvas(): HTMLCanvasElement {
+			const canvas = elements.plot.querySelector("canvas");
+			if (canvas == null) {
+				throw new Error("expected the canvas backend to insert its canvas");
+			}
+			return canvas;
+		},
+	};
 	mounted.push(result);
 	return result;
 };
 
-/** Parse `translate3d(Xpx, Ypx, 0)` off a marker dot into plot-space coordinates. */
+/**
+ * Report a size for the tooltip the way the resize observer does. The engine
+ * reads the tooltip's offset box, which happy-dom leaves at zero.
+ */
+const reportTooltipSize = (mount: Pick<Mounted, "elements">, size: PlotSize): void => {
+	const { tooltip } = mount.elements;
+	const resize = tooltip == null ? undefined : resizeCallbacks.get(tooltip);
+	if (tooltip == null || resize == null) {
+		throw new Error("expected the engine to observe the tooltip element");
+	}
+	vi.spyOn(tooltip, "offsetWidth", "get").mockReturnValue(size.width);
+	vi.spyOn(tooltip, "offsetHeight", "get").mockReturnValue(size.height);
+	resize([{ target: tooltip, contentRect: size }]);
+};
+
+/** One 60 Hz frame, in ms. */
+const FRAME_MS = 16.67;
+
+/**
+ * Put the engine's clock and its animation frames under the test's control.
+ * happy-dom runs a frame on a real timer, so a test that counts frames, or
+ * that reads the first frame of a glide, steps them by hand. Call it before
+ * the engine mounts.
+ */
+const installFrameClock = () => {
+	let now = 1000;
+	let nextHandle = 1;
+	const requests = new Map<number, FrameRequestCallback>();
+	vi.spyOn(performance, "now").mockImplementation(() => now);
+	vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback): number => {
+		const handle = nextHandle;
+		nextHandle += 1;
+		requests.set(handle, callback);
+		return handle;
+	});
+	vi.stubGlobal("cancelAnimationFrame", (handle: number): void => {
+		requests.delete(handle);
+	});
+	/** Advance one frame and run the callbacks it holds. */
+	const step = (): void => {
+		now += FRAME_MS;
+		const callbacks = [...requests.values()];
+		requests.clear();
+		for (const callback of callbacks) {
+			callback(now);
+		}
+	};
+	return {
+		step,
+		/** Whether an engine asked for another frame. */
+		pending: (): boolean => requests.size > 0,
+		/** Run frames until no engine asks for another. Returns how many ran. */
+		settle: (): number => {
+			let frames = 0;
+			while (requests.size > 0) {
+				if (frames >= 500) {
+					throw new Error("expected the engine to stop asking for frames");
+				}
+				step();
+				frames += 1;
+			}
+			return frames;
+		},
+	};
+};
+
+/** The `d` of every path the SVG surface holds, in paint order. */
+const paintedPaths = (mount: Pick<Mounted, "elements">): string[] =>
+	[...mount.elements.plot.querySelectorAll("svg path")].map((path) => path.getAttribute("d") ?? "");
+
+const firstRows = [
+	{ x: "GET", a: 40 },
+	{ x: "POST", a: 80 },
+];
+// A new tallest bar: the bar values and the value domain both have somewhere to go.
+const nextRows = [
+	{ x: "GET", a: 70 },
+	{ x: "POST", a: 20 },
+];
+
+/**
+ * A bar engine with motion on that shows `firstRows`, and the `nextRows` frame
+ * it must reach. Both are at rest, so a later frame runs the engine alone.
+ */
+const mountBars = (config: { onScreen?: boolean } = {}) => {
+	const frames = installFrameClock();
+	const series = [makeSeries("a", "bar")];
+	const mount = mountEngine({
+		kind: "bar",
+		backend: createSvgBackend,
+		series,
+		rows: firstRows,
+		options: { xScale: "band", animate: true },
+		onScreen: config.onScreen,
+	});
+	const settled = mountEngine({
+		kind: "bar",
+		backend: createSvgBackend,
+		series,
+		rows: nextRows,
+		options: { xScale: "band" },
+	});
+	frames.settle();
+	return { frames, engine: mount.engine, painted: () => paintedPaths(mount), settled };
+};
+
+/** Parse `translate(Xpx, Ypx)` off a marker dot into plot-space coordinates. */
 const dotPosition = (dot: Element): { x: number; y: number } => {
 	if (!(dot instanceof HTMLElement)) {
 		throw new Error("expected a marker dot element");
 	}
-	const match = /translate3d\((-?[\d.]+)px,\s*(-?[\d.]+)px/.exec(dot.style.transform);
+	const match = /^translate\((-?[\d.]+)px,\s*(-?[\d.]+)px\)$/.exec(dot.style.transform);
 	if (match?.[1] == null || match[2] == null) {
 		throw new Error(`expected a positioned dot, got transform "${dot.style.transform}"`);
 	}
@@ -333,6 +454,355 @@ describe("ChartEngine hover sync", () => {
 		const expected = await activateFirstDatum(reference);
 		expect(dots.map((dot) => dotPosition(dot).y)).toEqual(
 			expected.map((dot) => dotPosition(dot).y),
+		);
+	});
+
+	/** Every element the engine moves to the active datum. */
+	type Placed = HoverLayers & Pick<EngineElements, "tooltip">;
+
+	test.each([
+		{
+			name: "the band of a vertical bar chart",
+			kind: "bar",
+			orientation: "vertical",
+			pick: (placed: Placed) => placed.band,
+		},
+		{
+			name: "the band of a horizontal bar chart",
+			kind: "bar",
+			orientation: "horizontal",
+			pick: (placed: Placed) => placed.band,
+		},
+		{
+			name: "the crosshair of a line chart",
+			kind: "line",
+			orientation: "vertical",
+			pick: (placed: Placed) => placed.crosshair,
+		},
+		{
+			name: "a marker dot of a line chart",
+			kind: "line",
+			orientation: "vertical",
+			pick: (placed: Placed) => placed.markers.firstElementChild,
+		},
+		{
+			name: "the marker dot of a scatter plot",
+			kind: "scatter",
+			orientation: "vertical",
+			pick: (placed: Placed) => placed.markers.firstElementChild,
+		},
+		{
+			name: "the tooltip",
+			kind: "line",
+			orientation: "vertical",
+			pick: (placed: Placed) => placed.tooltip,
+		},
+	] as const)("the engine moves $name with a 2D transform", ({ kind, orientation, pick }) => {
+		const frames = installFrameClock();
+		const mount = mountEngine({
+			kind,
+			series: [makeSeries("a", kind)],
+			rows: kind === "bar" ? firstRows : flatRows,
+			options: { xScale: kind === "bar" ? "band" : "linear", orientation },
+		});
+		mount.engine.handleKeyDown("Home");
+		frames.settle();
+		const element = pick({ ...hoverOf(mount), tooltip: mount.elements.tooltip });
+		// Why the function name: a 3D transform gives each element a compositor
+		// layer of its own, and the inline style is the one trace of that here.
+		expect(element instanceof HTMLElement ? element.style.transform : "").toMatch(/^translate\(/);
+	});
+});
+
+/**
+ * The x of the first category label on the first paint of a horizontal bar
+ * chart. The labels end at the right edge of the gutter.
+ */
+const firstPaintLabelX = (categories: readonly string[]): number => {
+	const mount = mountEngine({
+		kind: "bar",
+		backend: createSvgBackend,
+		series: [makeSeries("a", "bar")],
+		rows: categories.map((x, index) => ({ x, a: index + 1 })),
+		options: { xScale: "band", orientation: "horizontal" },
+	});
+	mount.store.registerXAxis({ tickFormat: undefined, tickCount: undefined });
+	mount.engine.commitNow();
+	const label = [...mount.elements.plot.querySelectorAll("svg text")].find(
+		(text) => text.textContent === categories[0],
+	);
+	if (label == null) {
+		throw new Error(`expected the "${categories[0]}" label to paint`);
+	}
+	return Number(label.getAttribute("x"));
+};
+
+test("the first layout of a horizontal bar chart sizes the gutter for its category names", () => {
+	const short = firstPaintLabelX(["a", "b", "c"]);
+	const long = firstPaintLabelX([
+		"us-east-1-production",
+		"us-west-2-production",
+		"eu-west-1-production",
+	]);
+	// A gutter sized for the row indexes is the same for both charts, and it
+	// clips the long names.
+	expect(long).toBeGreaterThan(short);
+});
+
+describe("ChartEngine tooltip placement", () => {
+	/** A readout too wide for the room to the right of the last band, so its size shows in where it sits. */
+	const READOUT = { width: 120, height: 80 };
+	/** The surface with no rows in it: its padding and its border. */
+	const EMPTY_BOX = { width: 20, height: 14 };
+
+	/** A bar engine with the keyboard cursor on its last band, at rest. */
+	const mountOnLastBand = () => {
+		const frames = installFrameClock();
+		const mount = mountEngine({
+			kind: "bar",
+			series: [makeSeries("a", "bar")],
+			rows: firstRows,
+			options: { xScale: "band" },
+		});
+		const { tooltip } = mount.elements;
+		if (tooltip == null) {
+			throw new Error("expected the mount to hold a tooltip element");
+		}
+		mount.engine.handleKeyDown("End");
+		frames.settle();
+		return { frames, mount, tooltip };
+	};
+
+	test("a new readout size moves the tooltip on the next frame, not inside the observer callback", () => {
+		const { frames, mount, tooltip } = mountOnLastBand();
+		const unsized = tooltip.style.transform;
+
+		reportTooltipSize(mount, READOUT);
+
+		// A move inside the callback can add a scrollbar to an ancestor. That
+		// resizes an observed box in the same observer pass: a loop error.
+		expect(tooltip.style.transform).toBe(unsized);
+		frames.settle();
+		expect(tooltip.style.transform).not.toBe(unsized);
+	});
+
+	test("the first frame of the first readout sits where the size of its surface puts it", () => {
+		const frames = installFrameClock();
+		const mount = mountEngine({
+			kind: "bar",
+			series: [makeSeries("a", "bar")],
+			rows: firstRows,
+			options: { xScale: "band" },
+		});
+		const { tooltip } = mount.elements;
+		if (tooltip == null) {
+			throw new Error("expected the mount to hold a tooltip element");
+		}
+		// The surface holds its rows before the observer reports their size.
+		vi.spyOn(tooltip, "offsetWidth", "get").mockReturnValue(READOUT.width);
+		vi.spyOn(tooltip, "offsetHeight", "get").mockReturnValue(READOUT.height);
+
+		mount.engine.handleKeyDown("End");
+		frames.step();
+		const firstFrame = tooltip.style.transform;
+		reportTooltipSize(mount, READOUT);
+		frames.settle();
+
+		expect(firstFrame).toMatch(/^translate\(/);
+		expect(firstFrame).toBe(tooltip.style.transform);
+	});
+
+	test("a dormant engine places its readout with no read of the surface size", () => {
+		const frames = installFrameClock();
+		const mount = mountEngine({
+			kind: "bar",
+			series: [makeSeries("a", "bar")],
+			rows: firstRows,
+			options: { xScale: "band" },
+			inView: false,
+		});
+		const { tooltip } = mount.elements;
+		if (tooltip == null) {
+			throw new Error("expected the mount to hold a tooltip element");
+		}
+		// Why a spy: the read forces a layout, and a layout has no other trace here.
+		const width = vi.spyOn(tooltip, "offsetWidth", "get");
+
+		// A controlled index reaches a chart that is far from the viewport.
+		mount.engine.setControlledActiveIndex(1);
+		frames.settle();
+
+		expect(tooltip.style.transform).toMatch(/^translate\(/);
+		expect(width).toHaveBeenCalledTimes(0);
+	});
+
+	test("the empty box of an idle tooltip does not replace the size of the last readout", () => {
+		const { frames, mount, tooltip } = mountOnLastBand();
+		reportTooltipSize(mount, READOUT);
+		frames.settle();
+		const placed = tooltip.style.transform;
+		mount.engine.handleKeyDown("Escape");
+		frames.settle();
+		// With no active datum the surface holds no rows, and the observer reports that box.
+		reportTooltipSize(mount, EMPTY_BOX);
+
+		mount.engine.handleKeyDown("End");
+		frames.step();
+
+		// The first frame of the next readout sits where the last one sat.
+		expect(tooltip.style.transform).toBe(placed);
+	});
+});
+
+describe("ChartEngine keyboard", () => {
+	// Twenty rows, so a Page key moves two of them.
+	const weekRows = Array.from({ length: 20 }, (_, index) => ({ x: `Week ${index}`, a: index + 1 }));
+
+	/** A laid-out bar engine over `weekRows`, with no active datum. */
+	const mountWeeks = (orientation: ChartOptions["orientation"]): Mounted => {
+		const mount = mountEngine({
+			kind: "bar",
+			series: [makeSeries("a", "bar")],
+			rows: weekRows,
+			options: { xScale: "band", orientation },
+		});
+		// Why a commit: until the first layout the plot has no width, and the
+		// arrow stride is the whole set.
+		mount.engine.commitNow();
+		return mount;
+	};
+
+	/** Press `key`, and return the `data` index of the active datum after it. */
+	const indexAfter = (mount: Mounted, key: string): number | null => {
+		mount.engine.handleKeyDown(key);
+		return mount.store.getSnapshot().hover?.index ?? null;
+	};
+
+	test("a horizontal bar chart moves down its categories with ArrowDown and Page Down, and up with ArrowUp and Page Up", () => {
+		const mount = mountWeeks("horizontal");
+		const keys = [
+			"ArrowDown",
+			"ArrowDown",
+			"PageDown",
+			"PageUp",
+			"ArrowUp",
+			"ArrowRight",
+			"ArrowLeft",
+		];
+		// The categories run from the top down, so the first one is index 0.
+		expect(keys.map((key) => indexAfter(mount, key))).toEqual([0, 1, 3, 1, 0, 1, 0]);
+	});
+
+	test("the arrow keys step a dense scatter plot one point at a time", () => {
+		vi.stubGlobal("devicePixelRatio", 2);
+		// 10,000 rows on a 600 px plot: a line this dense decimates, and its arrow keys stride 8 rows.
+		const rows = Array.from({ length: 10_000 }, (_, index) => ({ x: index, a: index % 97 }));
+		const mount = mountEngine({
+			kind: "scatter",
+			series: [makeSeries("a", "scatter")],
+			rows,
+			size: { width: 600, height: 300 },
+		});
+		mount.engine.commitNow();
+
+		// A scatter plot paints every point, so the cursor must reach every point.
+		expect([indexAfter(mount, "ArrowRight"), indexAfter(mount, "ArrowRight")]).toEqual([0, 1]);
+	});
+
+	test("a vertical chart leaves ArrowDown and ArrowUp to the page", () => {
+		const mount = mountWeeks("vertical");
+		expect(mount.engine.handleKeyDown("ArrowDown")).toBe(false);
+		expect(mount.engine.handleKeyDown("ArrowUp")).toBe(false);
+		expect(mount.store.getSnapshot().hover).toBeNull();
+	});
+
+	test("Escape with no active datum is not handled and asks for no frame", () => {
+		const frames = installFrameClock();
+		const mount = mountWeeks("vertical");
+		frames.settle();
+
+		expect(mount.engine.handleKeyDown("Escape")).toBe(false);
+
+		// Nothing changed, so a frame for it syncs the same overlay again.
+		expect(frames.pending()).toBe(false);
+	});
+
+	test("Space with no active datum is not handled", () => {
+		const mount = mountWeeks("vertical");
+		// A handled Space cannot scroll the page.
+		expect(mount.engine.handleKeyDown(" ")).toBe(false);
+	});
+
+	test("a held Enter stays handled and activates the datum once", () => {
+		const onDatumActivate = vi.fn<(event: ChartDatumEvent) => void>();
+		const mount = mountWeeks("vertical");
+		mount.engine.setCallbacks({ onDatumActivate, onActiveIndexChange: null });
+		mount.engine.handleKeyDown("Home");
+
+		expect(mount.engine.handleKeyDown("Enter")).toBe(true);
+		expect(mount.engine.handleKeyDown("Enter", { repeat: true })).toBe(true);
+
+		expect(onDatumActivate).toHaveBeenCalledTimes(1);
+		expect(onDatumActivate).toHaveBeenLastCalledWith(expect.objectContaining({ index: 0 }));
+	});
+});
+
+describe("ChartEngine pointer activation", () => {
+	test("a press on a bar chart whose controlled index stays on another datum activates the bar under the pointer", () => {
+		const onDatumActivate = vi.fn<(event: ChartDatumEvent) => void>();
+		const rows = [
+			{ x: "GET", a: 40, b: 10 },
+			{ x: "POST", a: 80, b: 20 },
+			{ x: "PUT", a: 60, b: 30 },
+		];
+		const mount = mountEngine({
+			kind: "bar",
+			series: [makeSeries("a", "bar"), makeSeries("b", "bar")],
+			rows,
+			options: { xScale: "band" },
+		});
+		mount.engine.setCallbacks({ onDatumActivate, onActiveIndexChange: null });
+		// The consumer holds the index and does not follow the pointer.
+		mount.engine.setControlledActiveIndex(2);
+		mount.engine.commitNow();
+
+		// Three bands share the 400 px plot, so x = 100 is in the right half of
+		// the first band, on its second bar.
+		mount.engine.handlePointerDown(100, 100);
+		mount.engine.handlePointerUp(100, 100);
+
+		expect(onDatumActivate).toHaveBeenCalledTimes(1);
+		expect(onDatumActivate).toHaveBeenLastCalledWith(
+			expect.objectContaining({ index: 0, xValue: "GET", datum: rows[0], dataKey: "b" }),
+		);
+	});
+
+	test("a press on a scatter plot whose controlled index stays on another datum activates the point under the pointer", () => {
+		const frames = installFrameClock();
+		const onDatumActivate = vi.fn<(event: ChartDatumEvent) => void>();
+		const rows = [
+			{ x: 0, a: 10 },
+			{ x: 1, a: 50 },
+			{ x: 2, a: 90 },
+		];
+		const mount = mountEngine({ kind: "scatter", series: [makeSeries("a", "scatter")], rows });
+		mount.engine.setCallbacks({ onDatumActivate, onActiveIndexChange: null });
+		// The keyboard cursor puts the marker dot on the first point, which gives its pixel.
+		mount.engine.handleKeyDown("Home");
+		frames.settle();
+		const [dot] = hoverOf(mount).markers.children;
+		if (dot == null) {
+			throw new Error("expected the marker dot of the first point");
+		}
+		const pixel = dotPosition(dot);
+		mount.engine.setControlledActiveIndex(2);
+
+		mount.engine.handlePointerDown(pixel.x, pixel.y);
+		mount.engine.handlePointerUp(pixel.x, pixel.y);
+
+		expect(onDatumActivate).toHaveBeenCalledTimes(1);
+		expect(onDatumActivate).toHaveBeenLastCalledWith(
+			expect.objectContaining({ index: 0, xValue: 0, datum: rows[0], dataKey: "a" }),
 		);
 	});
 });
@@ -749,6 +1219,48 @@ describe("ChartEngine printing", () => {
 		await afterNextCommit();
 		expect(resolves).toHaveBeenCalledTimes(1);
 	});
+
+	test("a print of a chart that never painted draws its tick labels and gridlines at full alpha", () => {
+		const mount = mountEngine({
+			kind: "line",
+			backend: createSvgBackend,
+			series: lineSeries,
+			rows: flatRows,
+			inView: false,
+			options: { animate: true },
+		});
+		mount.store.registerYAxis({ tickFormat: undefined, tickCount: undefined });
+		mount.store.registerGrid(undefined);
+
+		mount.engine.paintForPrint();
+
+		const svg = mount.elements.plot.querySelector("svg");
+		const labels = [...(svg?.querySelectorAll("text") ?? [])];
+		const gridlines = [...(svg?.querySelectorAll("path") ?? [])].filter(
+			(path) => path.style.getPropertyValue("stroke") === CHART_CHROME_CSS.grid,
+		);
+		expect(labels.length).toBeGreaterThan(0);
+		expect(gridlines.length).toBeGreaterThan(0);
+		// The SVG surface writes no opacity for an alpha of 1. A label that fades
+		// in takes one 50 ms step before the snapshot and prints at 0.41.
+		const alphas = [...labels, ...gridlines].map((mark) => {
+			const opacity = mark.style.getPropertyValue("opacity");
+			return opacity === "" ? 1 : Number(opacity);
+		});
+		expect([...new Set(alphas)]).toEqual([1]);
+	});
+
+	test("a print in the middle of a glide paints the frame the glide ends on", () => {
+		const { frames, engine, painted, settled } = mountBars();
+		engine.setRows(nextRows);
+		engine.flushIngest();
+		frames.step();
+
+		engine.paintForPrint();
+
+		// No frame runs before the print snapshot, so a glide left in flight prints mid-way.
+		expect(painted()).toEqual(paintedPaths(settled));
+	});
 });
 
 describe("ChartEngine device pixel ratio", () => {
@@ -797,5 +1309,476 @@ describe("ChartEngine device pixel ratio", () => {
 		expect(commands()).toBeGreaterThan(atOne);
 		engine.destroy();
 		elements.root.remove();
+	});
+});
+
+describe("ChartEngine font loads", () => {
+	/** happy-dom has no `FontFaceSet`. This one lets a test fire `loadingdone`. */
+	const installFonts = (): EventTarget => {
+		const fonts = new EventTarget();
+		Object.defineProperty(document, "fonts", { configurable: true, value: fonts });
+		return fonts;
+	};
+
+	afterEach(() => {
+		Reflect.deleteProperty(document, "fonts");
+	});
+
+	test("a chart that draws no text asks for no frame when a font loads", () => {
+		const fonts = installFonts();
+		const frames = installFrameClock();
+		const mount = mountEngine({
+			kind: "bar",
+			series: [makeSeries("a", "bar")],
+			rows: firstRows,
+			options: { xScale: "band" },
+		});
+		// A reference line with no label draws a rule and no text.
+		mount.store.registerReferenceLine("limit", { y: 60, label: undefined, color: undefined });
+		frames.settle();
+
+		fonts.dispatchEvent(new Event("loadingdone"));
+
+		expect(frames.pending()).toBe(false);
+	});
+
+	test.each([
+		{
+			name: "an axis",
+			kind: "bar",
+			options: { xScale: "band" },
+			compose: (store: ChartStore) => {
+				store.registerYAxis({ tickFormat: undefined, tickCount: undefined });
+			},
+		},
+		{
+			name: "a reference line with a label",
+			kind: "bar",
+			options: { xScale: "band" },
+			compose: (store: ChartStore) => {
+				store.registerReferenceLine("limit", { y: 60, label: "Limit", color: undefined });
+			},
+		},
+		{
+			name: "a 3D frame",
+			kind: "scatter",
+			options: { xKey: "a", zKey: "a" },
+			compose: () => {},
+		},
+	] as const)("a chart with $name repaints when a font loads", ({ kind, options, compose }) => {
+		const fonts = installFonts();
+		const frames = installFrameClock();
+		const mount = mountEngine({ kind, series: [makeSeries("a", kind)], rows: firstRows, options });
+		compose(mount.store);
+		frames.settle();
+
+		fonts.dispatchEvent(new Event("loadingdone"));
+
+		// The widths it measured are stale, and a canvas holds the old glyphs.
+		expect(frames.pending()).toBe(true);
+	});
+});
+
+describe("ChartEngine on-screen motion", () => {
+	test("an engine in view but off screen paints a data update settled, in one frame", () => {
+		const { frames, engine, painted, settled } = mountBars({ onScreen: false });
+
+		engine.setRows(nextRows);
+		engine.flushIngest();
+		frames.step();
+
+		expect(painted()).toEqual(paintedPaths(settled));
+		expect(frames.pending()).toBe(false);
+	});
+
+	test("an engine on screen glides to a data update", () => {
+		const { frames, engine, painted, settled } = mountBars();
+
+		engine.setRows(nextRows);
+		engine.flushIngest();
+		frames.step();
+
+		expect(painted()).not.toEqual(paintedPaths(settled));
+		expect(frames.pending()).toBe(true);
+	});
+
+	test("an engine that leaves the screen in the middle of a glide settles in one more frame", () => {
+		const { frames, engine, painted, settled } = mountBars();
+		engine.setRows(nextRows);
+		engine.flushIngest();
+		frames.step();
+
+		engine.setOnScreen(false);
+		frames.step();
+
+		expect(painted()).toEqual(paintedPaths(settled));
+		expect(frames.pending()).toBe(false);
+	});
+
+	test("an engine that leaves the screen before the first frame of a glide paints the settled frame", () => {
+		const { frames, engine, painted, settled } = mountBars();
+		engine.setRows(nextRows);
+		engine.flushIngest();
+
+		engine.setOnScreen(false);
+		frames.step();
+
+		expect(painted()).toEqual(paintedPaths(settled));
+		expect(frames.pending()).toBe(false);
+	});
+
+	test("an engine at rest asks for no frame when it leaves the screen", () => {
+		const { frames, engine } = mountBars();
+
+		engine.setOnScreen(false);
+
+		expect(frames.pending()).toBe(false);
+	});
+
+	test("an engine that comes back on screen glides to its next update", () => {
+		const { frames, engine, painted, settled } = mountBars({ onScreen: false });
+
+		engine.setOnScreen(true);
+		engine.setRows(nextRows);
+		engine.flushIngest();
+		frames.step();
+
+		expect(painted()).not.toEqual(paintedPaths(settled));
+		expect(frames.pending()).toBe(true);
+	});
+
+	/** A bar engine with motion on, and the same chart at rest with no motion. */
+	const mountPair = (config: {
+		series: readonly SeriesSpec[];
+		inView?: boolean;
+		onScreen?: boolean;
+	}) => {
+		const frames = installFrameClock();
+		const rows = [
+			{ x: "GET", a: 40, b: 10 },
+			{ x: "POST", a: 80, b: 30 },
+		];
+		const mount = mountEngine({
+			kind: "bar",
+			backend: createSvgBackend,
+			series: config.series,
+			rows,
+			options: { xScale: "band", animate: true },
+			inView: config.inView,
+			onScreen: config.onScreen,
+		});
+		const atRest = mountEngine({
+			kind: "bar",
+			backend: createSvgBackend,
+			series: [makeSeries("a", "bar"), makeSeries("b", "bar")],
+			rows,
+			options: { xScale: "band" },
+		});
+		return { frames, mount, atRest };
+	};
+
+	test("a series that registers while the engine is off screen appears settled, in one frame", () => {
+		const { frames, mount, atRest } = mountPair({ series: [makeSeries("a", "bar")] });
+		frames.settle();
+		mount.engine.setOnScreen(false);
+
+		// A top-N chart swaps in a series key.
+		mount.store.registerSeries(makeSeries("b", "bar"));
+		mount.engine.flushIngest();
+		frames.step();
+
+		expect(paintedPaths(mount)).toEqual(paintedPaths(atRest));
+		expect(frames.pending()).toBe(false);
+	});
+
+	test("an engine that is marked seen while off screen shows its marks settled, in one frame", () => {
+		const { frames, mount, atRest } = mountPair({
+			series: [makeSeries("a", "bar"), makeSeries("b", "bar")],
+			inView: false,
+			onScreen: false,
+		});
+		mount.engine.setInView(true);
+		frames.settle();
+
+		// The Root marks a rebuilt engine seen when its chart was on screen before.
+		mount.engine.markSeen();
+		frames.step();
+
+		expect(paintedPaths(mount)).toEqual(paintedPaths(atRest));
+		expect(frames.pending()).toBe(false);
+	});
+});
+
+describe("ChartEngine domain chase", () => {
+	test.each([
+		// Half a pixel of the 20 px axis is 2.5 units, more than the whole journey.
+		{ orientation: "vertical", ratio: 1, frames: 1 },
+		// Half a pixel of the 320 px axis is 0.16 units: 0.84^11 is the first power under it.
+		{ orientation: "horizontal", ratio: 1, frames: 11 },
+		// Half a device pixel is 0.08 units at a ratio of 2: 0.84^15 is the first power under it.
+		{ orientation: "horizontal", ratio: 2, frames: 15 },
+	] as const)(
+		"a $orientation bar chart at a pixel ratio of $ratio ends a 1-unit value chase in $frames frames",
+		({ orientation, ratio, frames: expected }) => {
+			vi.stubGlobal("devicePixelRatio", ratio);
+			const frames = installFrameClock();
+			const mount = mountEngine({
+				kind: "bar",
+				series: [makeSeries("a", "bar")],
+				rows: [
+					{ x: "GET", a: 50 },
+					{ x: "POST", a: 80 },
+				],
+				options: { xScale: "band", orientation, yDomain: [0, 100], animate: true },
+				// The value axis is the 20 px height when vertical and the 320 px width when horizontal.
+				size: { width: 320, height: 20 },
+			});
+			frames.settle();
+
+			mount.engine.setOptions({ ...mount.options, yDomain: [0, 101] });
+
+			// The journey's own threshold, 0.1% of it, needs 40 frames on every plot.
+			expect(frames.settle()).toBe(expected);
+		},
+	);
+
+	test("an x-domain chase under half a device pixel of the plot width settles in one frame", () => {
+		const frames = installFrameClock();
+		const mount = mountEngine({
+			kind: "line",
+			series: lineSeries,
+			rows: [
+				{ x: 0, a: 50 },
+				{ x: 100, a: 50 },
+			],
+			options: { animate: true },
+		});
+		frames.settle();
+
+		// The last x moves by a thousandth of a unit: 0.004 px of the 384 px plot.
+		mount.engine.setRows([
+			{ x: 0, a: 50 },
+			{ x: 100.001, a: 50 },
+		]);
+		mount.engine.flushIngest();
+
+		expect(frames.settle()).toBe(1);
+	});
+
+	test("a bar chart that gains a category does not chase its x domain", () => {
+		const frames = installFrameClock();
+		const mount = mountEngine({
+			kind: "bar",
+			series: [makeSeries("a", "bar")],
+			rows: [
+				{ x: "GET", a: 80 },
+				{ x: "POST", a: 50 },
+			],
+			options: { xScale: "band", animate: true },
+		});
+		frames.settle();
+
+		// The tallest bar stays, so the value domain stays. The band layout
+		// places every bar, so a chase of the x domain paints the same frame again.
+		mount.engine.setRows([
+			{ x: "GET", a: 80 },
+			{ x: "POST", a: 50 },
+			{ x: "PUT", a: 60 },
+		]);
+		mount.engine.flushIngest();
+
+		expect(frames.settle()).toBe(1);
+	});
+});
+
+describe("ChartEngine category changes", () => {
+	const barSeries = [makeSeries("a", "bar")];
+	// Why a fixed domain: only the bar values can move, so one frame shows whether they tween.
+	const bandOptions: Partial<ChartOptions> = { xScale: "band", yDomain: [0, 100], animate: true };
+
+	test("a window that slides by one category paints the settled bars on the first frame", () => {
+		const frames = installFrameClock();
+		const mount = mountEngine({
+			kind: "bar",
+			backend: createSvgBackend,
+			series: barSeries,
+			rows: [
+				{ x: "09:00", a: 10 },
+				{ x: "09:01", a: 40 },
+				{ x: "09:02", a: 90 },
+			],
+			options: bandOptions,
+		});
+		frames.settle();
+		const before = paintedPaths(mount);
+
+		mount.engine.setRows([
+			{ x: "09:01", a: 40 },
+			{ x: "09:02", a: 90 },
+			{ x: "09:03", a: 20 },
+		]);
+		mount.engine.flushIngest();
+		frames.step();
+		const firstFrame = paintedPaths(mount);
+		frames.settle();
+
+		expect(firstFrame).not.toEqual(before);
+		// A tween by index paints each bar on its way to its neighbor's value.
+		expect(firstFrame).toEqual(paintedPaths(mount));
+	});
+
+	test("a line on a point scale whose window slides by one category paints the settled line on the first frame", () => {
+		const frames = installFrameClock();
+		const mount = mountEngine({
+			kind: "line",
+			backend: createSvgBackend,
+			series: [makeSeries("a", "line")],
+			rows: [
+				{ x: "09:00", a: 10 },
+				{ x: "09:01", a: 40 },
+				{ x: "09:02", a: 90 },
+			],
+			options: { xScale: "point", yDomain: [0, 100], animate: true },
+		});
+		frames.settle();
+		const before = paintedPaths(mount);
+
+		mount.engine.setRows([
+			{ x: "09:01", a: 40 },
+			{ x: "09:02", a: 90 },
+			{ x: "09:03", a: 20 },
+		]);
+		mount.engine.flushIngest();
+		frames.step();
+		const firstFrame = paintedPaths(mount);
+		frames.settle();
+
+		expect(firstFrame).not.toEqual(before);
+		expect(firstFrame).toEqual(paintedPaths(mount));
+	});
+
+	type Category = string | number | Date;
+
+	test.each([
+		{ name: "equal strings", category: (minute: number): Category => `09:0${minute}` },
+		{
+			name: "equal times on new Date objects",
+			category: (minute: number): Category => new Date(Date.UTC(2026, 6, 18, 9, minute)),
+		},
+		// `NaN` is not equal to itself, and an invalid `Date` has a time of `NaN`.
+		{
+			name: "numbers with a NaN in them",
+			category: (minute: number): Category => (minute === 1 ? Number.NaN : minute),
+		},
+		{
+			name: "dates with an invalid Date in them",
+			category: (minute: number): Category =>
+				minute === 1 ? new Date("not a date") : new Date(Date.UTC(2026, 6, 18, 9, minute)),
+		},
+	])("the same categories as $name tween their bars to new values", ({ category }) => {
+		const frames = installFrameClock();
+		const rowsOf = (values: readonly number[]) =>
+			values.map((a, minute) => ({ x: category(minute), a }));
+		const mount = mountEngine({
+			kind: "bar",
+			backend: createSvgBackend,
+			series: barSeries,
+			rows: rowsOf([10, 40, 90]),
+			options: bandOptions,
+		});
+		frames.settle();
+
+		mount.engine.setRows(rowsOf([30, 60, 20]));
+		mount.engine.flushIngest();
+		frames.step();
+		const firstFrame = paintedPaths(mount);
+		frames.settle();
+
+		expect(firstFrame).not.toEqual(paintedPaths(mount));
+	});
+});
+
+describe("ChartEngine per-datum tweens", () => {
+	/** `count` rows on a fixed x vector, with values that follow `phase`. */
+	const waveRows = (count: number, phase: number) =>
+		Array.from({ length: count }, (_, index) => ({
+			x: index,
+			a: 50 + 40 * Math.sin(index / 7 + phase),
+		}));
+
+	test.each([
+		{ rows: PER_DATUM_TWEEN_LIMIT, copies: 1 },
+		{ rows: PER_DATUM_TWEEN_LIMIT + 1, copies: 0 },
+	])(
+		"an ingest of $rows rows copies $copies series columns into a value tween",
+		({ rows, copies }) => {
+			// Why a spy: above the limit no paint reads a value tween, so its copies of
+			// the column are memory with no other trace. A reveal retargets a plain array.
+			const retarget = vi.spyOn(ValueTween.prototype, "retarget");
+			mountEngine({ kind: "line", series: lineSeries, rows: waveRows(rows, 0) });
+			const columnCopies = retarget.mock.calls.filter(([target]) => target instanceof Float64Array);
+			expect(columnCopies).toHaveLength(copies);
+		},
+	);
+
+	test("above the limit, an update on the same x vector paints the new columns in one frame", () => {
+		const frames = installFrameClock();
+		const mount = mountEngine({
+			kind: "line",
+			backend: createSvgBackend,
+			series: lineSeries,
+			rows: waveRows(PER_DATUM_TWEEN_LIMIT + 1, 0),
+			options: { yDomain: [0, 100], animate: true },
+			// Wide enough that the line does not decimate: under 3 rows per pixel column.
+			size: { width: 1000, height: 200 },
+		});
+		frames.settle();
+		const before = paintedPaths(mount);
+
+		mount.engine.setRows(waveRows(PER_DATUM_TWEEN_LIMIT + 1, 1));
+		mount.engine.flushIngest();
+		frames.step();
+
+		expect(paintedPaths(mount)).not.toEqual(before);
+		expect(frames.pending()).toBe(false);
+	});
+
+	test("a dense scatter plot under the limit tweens its points after an update on the same x vector", () => {
+		const frames = installFrameClock();
+		const mount = mountEngine({
+			kind: "scatter",
+			series: [makeSeries("a", "scatter")],
+			rows: waveRows(2000, 0),
+			options: { yDomain: [0, 100], animate: true },
+			// 24 rows per pixel column decimate a line. A scatter draws every point.
+			size: { width: 100, height: 200 },
+		});
+		frames.settle();
+
+		mount.engine.setRows(waveRows(2000, 1));
+		mount.engine.flushIngest();
+		frames.step();
+
+		expect(frames.pending()).toBe(true);
+	});
+
+	test("a decimated chart under the limit asks for no tween frame after an update on the same x vector", () => {
+		const frames = installFrameClock();
+		const mount = mountEngine({
+			kind: "line",
+			series: lineSeries,
+			rows: waveRows(2000, 0),
+			options: { yDomain: [0, 100], animate: true },
+			// 2,000 rows on an 84 px plot is 24 rows per pixel column, so the line decimates.
+			size: { width: 100, height: 200 },
+		});
+		frames.settle();
+
+		mount.engine.setRows(waveRows(2000, 1));
+		mount.engine.flushIngest();
+		frames.step();
+
+		// The decimated paint reads the settled column, so a value tween only repeats that frame.
+		expect(frames.pending()).toBe(false);
 	});
 });

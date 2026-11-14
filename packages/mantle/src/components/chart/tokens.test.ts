@@ -2,331 +2,77 @@ import { describe, expect, test } from "vitest";
 import twThemeCss from "tailwindcss/theme.css?raw";
 import mantleCss from "../../mantle.css?raw";
 import { splitDarkThemeRule } from "../../test-utils/parse-theme-css.js";
+import { colors } from "../../utils/color/index.js";
 import {
 	CHROMA_FLOOR,
-	CONTRAST_FLOOR_BY_THEME,
-	CVD_TARGET,
-	NORMAL_VISION_FLOOR,
 	contrastRatio,
-	deltaE,
 	hexFromOklch,
 	layer,
-	lowChromaSlots,
-	lowContrastSlots,
-	offBandSlots,
 	oklchOf,
 	resolveProperty,
-	worstCvdPair,
-	worstNormalPair,
 } from "./palette-gates.js";
-import type { PaletteMode, ThemeName, WorstPair } from "./palette-gates.js";
 
 const { light: lightCss, dark: darkCss } = splitDarkThemeRule(mantleCss);
-
-/**
- * The validated chart palette, measured rather than pinned by name.
- *
- * This test resolves every `--color-chart-*` slot in every theme down to the
- * 8-bit color a browser rasterizes, then runs the measured accessibility gates
- * on the result: lightness band, chroma floor, separation under simulated color
- * vision deficiency (CVD), normal-vision separation, and contrast against that
- * theme's card surface. Separation runs over all 28 pairs. The overflow gray sits
- * outside that pairlist, so it gets its own contrast gate and its own recorded
- * distance from the eight.
- * `palette-gates.test.ts` pins the math itself against externally sourced
- * answers.
- *
- * It replaced a test that compared alias NAMES, which could not see any of the
- * regressions that matter — a color edited by one digit, a surface change, or a
- * deleted override that drops a slot through to another file. Each theme now
- * authors its eight slots as `oklch()` literals, so the recorded value below is
- * the color that ships and the recorded source is the file that declares it.
- *
- * **When this test fails, re-step a slot. Never widen a threshold and never
- * update an expectation to match.** The thresholds are the contract; the palette
- * is what moves. The all-pairs margins are the thin ones: over the normal-vision
- * floor of 15, light clears by 0.475 and dark by 0.072. One other gate runs as
- * close: dark's brightest slot sits 0.0005 under its band ceiling. Re-measure
- * every gate in every theme after any re-step, because a change that looks
- * cosmetic lands here.
- *
- * @see decisions/2026-07-18-canvas-chart-family.md — the recorded baseline
- */
-
-/** A theme's chart palette: eight categorical slots, the overflow, the surface. */
-type ThemePalette = {
-	name: ThemeName;
-	mode: PaletteMode;
-	/** Slots 1-8, in order. */
-	slots: string[];
-	/** The neutral overflow slot every ninth-and-later series wears. */
-	overflow: string;
-	/** The card surface the marks are measured against. */
-	surface: string;
-	/** Per slot, the literal it resolves to and the file that declares it. */
-	provenance: Array<{ slot: string; value: string; source: string }>;
-};
-
-const CHART_SLOTS = [1, 2, 3, 4, 5, 6, 7, 8] as const;
-
-/**
- * Resolve one theme's palette through the cascade a browser applies: the theme
- * file outranks `mantle.css`, which outranks Tailwind's own theme.
- */
-const resolvePalette = (
-	name: ThemeName,
-	mode: PaletteMode,
-	themeCss: string,
-	themeFile: string,
-): ThemePalette => {
-	const chain =
-		themeFile === "mantle.css"
-			? [layer("mantle.css", lightCss), layer("tailwindcss/theme.css", twThemeCss)]
-			: [
-					layer(themeFile, themeCss),
-					layer("mantle.css", lightCss),
-					layer("tailwindcss/theme.css", twThemeCss),
-				];
-
-	const hexOf = (property: string) => hexFromOklch(resolveProperty(chain, property).literal);
-	return {
-		name,
-		mode,
-		slots: CHART_SLOTS.map((slot) => hexOf(`--color-chart-${slot}`)),
-		overflow: hexOf("--color-chart-other"),
-		surface: hexOf("--background-color-card"),
-		provenance: [...CHART_SLOTS, "other"].map((slot) => {
-			const resolved = resolveProperty(chain, `--color-chart-${slot}`);
-			return { slot: `chart-${slot}`, value: resolved.literal, source: resolved.source };
-		}),
-	};
-};
-
-const THEMES: ThemePalette[] = [
-	resolvePalette("light", "light", lightCss, "mantle.css"),
-	resolvePalette("dark", "dark", darkCss, "mantle.css (dark)"),
-];
-
-/**
- * The literal each slot resolves to, and the file that declares it.
- *
- * This is the recorded shape of the palette, and it is the gate no color
- * measurement can replace. The value column pins the shipped color, so a slot
- * re-tuned by one digit fails here even when it still clears every threshold.
- * The source column pins the owner: a deleted theme override can keep passing
- * every color measurement while it drops that slot through to light's value, or
- * past mantle entirely to `tailwindcss/theme.css`.
- *
- * Each theme declares its own eight `oklch()` literals. Only `chart-other` is
- * still an alias, and it resolves to that theme's `--color-neutral-500`.
- */
-const PROVENANCE: Record<ThemeName, Array<{ slot: string; value: string; source: string }>> = {
-	light: [
-		{ slot: "chart-1", value: "oklch(0.622 0.203 259)", source: "mantle.css" },
-		{ slot: "chart-2", value: "oklch(0.478 0.106 159.7)", source: "mantle.css" },
-		{ slot: "chart-3", value: "oklch(0.644 0.258 1.2)", source: "mantle.css" },
-		{ slot: "chart-4", value: "oklch(0.519 0.192 31.8)", source: "mantle.css" },
-		{ slot: "chart-5", value: "oklch(0.611 0.103 204.6)", source: "mantle.css" },
-		{ slot: "chart-6", value: "oklch(0.501 0.208 334.3)", source: "mantle.css" },
-		{ slot: "chart-7", value: "oklch(0.473 0.227 290.6)", source: "mantle.css" },
-		{ slot: "chart-8", value: "oklch(0.621 0.125 80.1)", source: "mantle.css" },
-		{ slot: "chart-other", value: "oklch(55.6% 0 none)", source: "mantle.css" },
-	],
-	dark: [
-		{ slot: "chart-1", value: "oklch(0.668 0.168 260.3)", source: "mantle.css (dark)" },
-		{ slot: "chart-2", value: "oklch(0.537 0.121 160.1)", source: "mantle.css (dark)" },
-		{ slot: "chart-3", value: "oklch(0.627 0.242 6.7)", source: "mantle.css (dark)" },
-		{ slot: "chart-4", value: "oklch(0.565 0.169 41.2)", source: "mantle.css (dark)" },
-		{ slot: "chart-5", value: "oklch(0.668 0.112 198.8)", source: "mantle.css (dark)" },
-		{ slot: "chart-6", value: "oklch(0.584 0.261 332.9)", source: "mantle.css (dark)" },
-		{ slot: "chart-7", value: "oklch(0.573 0.244 285.4)", source: "mantle.css (dark)" },
-		{ slot: "chart-8", value: "oklch(0.668 0.137 83.5)", source: "mantle.css (dark)" },
-		{ slot: "chart-other", value: "oklch(55.6% 0 0)", source: "mantle.css (dark)" },
-	],
-};
-
-/**
- * One gate violation, worded so the vitest array diff alone tells a maintainer
- * what broke and what to do. The remedy is part of the string on purpose: the
- * two-argument `expect(value, hint)` form is not available here.
- */
-const violation = (theme: ThemePalette, detail: string) =>
-	`${theme.name}: ${detail} — re-step a slot and re-validate. Never widen a threshold, and never update an expectation to match. Resolved: ${theme.slots.join(",")} on surface ${theme.surface}.`;
 
 /** WCAG 2.2 SC 1.4.11 Non-text Contrast: the floor for a graphical object against its surface. */
 const WCAG_NON_TEXT_CONTRAST = 3;
 
-const describePair = (pair: WorstPair) =>
-	`chart-${pair.first.slot} ${pair.first.hex} <-> chart-${pair.second.slot} ${pair.second.hex} (${pair.kind}) ΔE ${pair.deltaE.toFixed(2)}`;
-
 /**
- * The closest a categorical slot may come to the overflow gray under simulated
- * protanopia or deuteranopia, per theme, rounded down to two places.
+ * The chart color tokens, measured rather than pinned by name.
  *
- * A ratchet, not a threshold: `dark` sits under
- * `CVD_FLOOR`, and no palette lifts them. `chart-other` has to be achromatic so
- * it reads as "not a category", the dichromacy simulations strip chroma, and a
- * gray therefore lands near any mark of its own lightness. The separation gates
- * exclude the overflow for that reason; this records what the exclusion costs.
+ * A series names its color with a mantle color name, and each name paints
+ * `--color-chart-<name>`. This test resolves every name in every theme down to
+ * the 8-bit color a browser rasterizes and measures it against the card.
+ *
+ * WCAG 2.2 SC 1.4.11 asks a mark a reader needs to see for 3:1 against its
+ * background. Mantle designs the color first and gets as close as it can, so
+ * the names under 3:1 are a recorded list, not a failure. A name that drops
+ * under the floor, or one that climbs over it, fails here until the list and
+ * the "Color and accessibility" docs section change with it.
  */
-const OVERFLOW_SEPARATION_FLOOR: Record<ThemeName, number> = {
-	light: 6.23,
-	dark: 3.8,
+const THEMES = [
+	{
+		name: "light",
+		chain: [layer("mantle.css", lightCss), layer("tailwindcss/theme.css", twThemeCss)],
+	},
+	{
+		name: "dark",
+		chain: [
+			layer("mantle.css (dark)", darkCss),
+			layer("mantle.css", lightCss),
+			layer("tailwindcss/theme.css", twThemeCss),
+		],
+	},
+] as const;
+
+/** The names each theme paints under 3:1 on its card, as the docs list them. */
+const UNDER_FLOOR: Record<(typeof THEMES)[number]["name"], readonly string[]> = {
+	light: ["yellow"],
+	dark: [],
 };
 
-/** The categorical slot nearest the overflow gray, under either dichromacy. */
-const closestOverflowPair = (theme: ThemePalette) => {
-	const pairs = theme.slots.flatMap((hex, index) =>
-		(["protan", "deutan"] as const).map((kind) => ({
-			slot: index + 1,
-			hex,
-			kind,
-			deltaE: deltaE(hex, theme.overflow, kind),
-		})),
+describe.each(THEMES)("chart color tokens — $name", ({ name, chain }) => {
+	const surface = hexFromOklch(resolveProperty(chain, "--background-color-card").literal);
+	const resolve = (color: string) => resolveProperty(chain, `--color-chart-${color}`);
+
+	test("only the recorded names sit under the WCAG 3:1 floor on the card", () => {
+		const under = colors.filter(
+			(color) =>
+				contrastRatio(hexFromOklch(resolve(color).literal), surface) < WCAG_NON_TEXT_CONTRAST,
+		);
+		expect(under).toStrictEqual(UNDER_FLOOR[name]);
+	});
+
+	test.each([...colors])(
+		"%s resolves in a mantle theme block, not in Tailwind's theme",
+		(color) => {
+			// A Tailwind row would mean mantle ships a chart color it does not own, where
+			// an upstream re-tune moves a shipped series.
+			expect(resolve(color).source).not.toBe("tailwindcss/theme.css");
+		},
 	);
-	const [worst] = pairs.toSorted((first, second) => first.deltaE - second.deltaE);
-	if (worst == null) {
-		throw new Error("closestOverflowPair needs at least one slot");
-	}
-	return worst;
-};
 
-describe.each(THEMES)("chart palette gates — $name", (theme) => {
-	test("every slot resolves to the recorded literal in the recorded file", () => {
-		// The one gate no color measurement can replace. A slot re-tuned by a digit
-		// still clears every threshold, and the value column is what sees it. The
-		// source column names the file that owns each color, so a deleted theme
-		// override reads as the wrong owner instead of as a silent fallback.
-		//
-		// A `tailwindcss/theme.css` row would mean mantle ships a chart color it
-		// does not own, where an upstream re-tune moves a shipped series.
-		expect(theme.provenance).toEqual(PROVENANCE[theme.name]);
-	});
-
-	test("the overflow slot reads as gray, so it does no identity work", () => {
-		// The inverse of the chroma floor. `chart-other` is excluded from the
-		// separation gates by construction, so only its lack of chroma keeps it
-		// from reading as a category.
-		expect(oklchOf(theme.overflow).chroma).toBeLessThan(CHROMA_FLOOR);
-	});
-
-	test("every slot sits inside the mode's lightness band", () => {
-		const violations = offBandSlots(theme.slots, theme.mode).map(({ slot, lightness }) =>
-			violation(theme, `chart-${slot} left the lightness band at L ${lightness.toFixed(3)}`),
-		);
-		expect(violations).toEqual([]);
-	});
-
-	test("every slot clears the chroma floor", () => {
-		const violations = lowChromaSlots(theme.slots).map(({ slot, chroma }) =>
-			violation(
-				theme,
-				`chart-${slot} chroma ${chroma.toFixed(4)} is under the ${CHROMA_FLOOR} floor, so it reads as gray`,
-			),
-		);
-		expect(violations).toEqual([]);
-	});
-
-	test("every pair of slots stays apart under simulated color vision deficiency", () => {
-		// All-pairs scope is the honest one for eight slots. A scatter neighbors any
-		// mark with any other, a legend lists all eight in a column, and fixed series
-		// slots can leave the painted slots non-consecutive. Adjacent
-		// scope alone let light's chart-1 and chart-7 ship at ΔE 1.90.
-		const worst = worstCvdPair(theme.slots, "all");
-		const violations =
-			worst.deltaE < CVD_TARGET
-				? [
-						violation(
-							theme,
-							`all-pairs CVD separation is under the ${CVD_TARGET} target. ${describePair(worst)}`,
-						),
-					]
-				: [];
-		expect(violations).toEqual([]);
-	});
-
-	test("every pair of slots stays apart for full-color readers", () => {
-		// The thinnest ΔE margin in the suite: dark clears it by 0.072.
-		const worst = worstNormalPair(theme.slots, "all");
-		const violations =
-			worst.deltaE < NORMAL_VISION_FLOOR
-				? [
-						violation(
-							theme,
-							`an all-pairs comparison fell under the normal-vision floor of ${NORMAL_VISION_FLOOR}, and this gate has no relief valve. ${describePair(worst)}`,
-						),
-					]
-				: [];
-		expect(violations).toEqual([]);
-	});
-
-	test("every slot and the overflow clear the WCAG 3:1 floor", () => {
-		// Why a literal floor: the per-theme floors below and the `CONTRAST_MIN`
-		// default are inputs a maintainer can lower, and the standard's floor is not.
-		const violations = lowContrastSlots([...theme.slots, theme.overflow], theme.surface, {
-			minimum: WCAG_NON_TEXT_CONTRAST,
-		}).map(({ slot, hex, ratio }) => {
-			const name = slot > theme.slots.length ? "overflow" : `chart-${slot}`;
-			return violation(
-				theme,
-				`${name} ${hex} is ${ratio.toFixed(2)}:1 against the surface, under ${WCAG_NON_TEXT_CONTRAST}:1`,
-			);
-		});
-		expect(violations).toEqual([]);
-	});
-
-	test("every slot clears this theme's own contrast floor", () => {
-		// Why the theme's own floor: a flat WCAG 3:1 gate would let a re-step drop a
-		// theme's contrast toward 3:1 unseen. The overflow
-		// runs through the same floor below under its own name, because
-		// `lowContrastSlots` numbers by position and a ninth entry here would report
-		// a `chart-9` that does not exist.
-		const minimum = CONTRAST_FLOOR_BY_THEME[theme.name];
-		const violations = lowContrastSlots(theme.slots, theme.surface, { minimum }).map(
-			({ slot, hex, ratio }) =>
-				violation(
-					theme,
-					`chart-${slot} ${hex} is ${ratio.toFixed(2)}:1 against the surface, under ${minimum}:1`,
-				),
-		);
-		expect(violations).toEqual([]);
-	});
-
-	test("the overflow slot clears this theme's own contrast floor", () => {
-		// Series nine and later all paint this gray, so it has to be as readable
-		// against the card as any categorical mark.
-		const minimum = CONTRAST_FLOOR_BY_THEME[theme.name];
-		const ratio = contrastRatio(theme.overflow, theme.surface);
-		const violations =
-			ratio < minimum
-				? [
-						violation(
-							theme,
-							`chart-other ${theme.overflow} is ${ratio.toFixed(2)}:1 against the surface, under ${minimum}:1`,
-						),
-					]
-				: [];
-		expect(violations).toEqual([]);
-	});
-
-	test("the overflow slot keeps its recorded distance from every categorical slot", () => {
-		// A ratchet, not a floor. The overflow is achromatic by construction, and
-		// simulated dichromacy strips chroma, so a low-chroma slot and this gray can
-		// never be far apart under CVD — `dark` reaches only 3.81 ΔE. That is the
-		// measured reason the docs tell a consumer to fold the tail into one "Other"
-		// series rather than paint a ninth. Recording it stops the distance shrinking
-		// further unseen. Raise an entry when a re-step lifts it; never lower one.
-		const floor = OVERFLOW_SEPARATION_FLOOR[theme.name];
-		const worst = closestOverflowPair(theme);
-		const violations =
-			worst.deltaE < floor
-				? [
-						violation(
-							theme,
-							`chart-${worst.slot} ${worst.hex} <-> chart-other ${theme.overflow} (${worst.kind}) fell to ΔE ${worst.deltaE.toFixed(2)}, under the recorded ${floor}`,
-						),
-					]
-				: [];
-		expect(violations).toEqual([]);
+	test("neutral reads as gray, so an Other series does no identity work", () => {
+		expect(oklchOf(hexFromOklch(resolve("neutral").literal)).chroma).toBeLessThan(CHROMA_FLOOR);
 	});
 });

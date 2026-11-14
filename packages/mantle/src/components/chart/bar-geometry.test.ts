@@ -5,14 +5,15 @@ import {
 	BAR_STEP_FILL,
 	barThickness,
 	isStackedDataEnd,
+	revealStack,
 	stackedSegmentEdges,
 } from "./bar-geometry.js";
 
 /**
- * A band step and the slot one series gets from it, at mantle's `paddingInner`
- * of 0.2 — the pairing the engine actually hands `barThickness`.
+ * A band step and the slot one series gets from it: the step less the 2px band
+ * gap, the pairing the engine hands `barThickness` once a step clears 6px.
  */
-const singleSeries = (step: number) => ({ step, slot: step * 0.8 });
+const singleSeries = (step: number) => ({ step, slot: step - 2 });
 
 /**
  * A vertical value axis 200px tall: value `0` sits at pixel 200 and value `1`
@@ -34,7 +35,7 @@ describe("barThickness", () => {
 	test("a dense chart fills its slot, exactly as it did before the fill rule", () => {
 		// 60 points across a 650px plot: a 10.8px step. The cap sits far above the
 		// slot, so the bar is the slot — the case a fixed 24px cap already handled.
-		expect(barThickness(singleSeries(10.8))).toBeCloseTo(8.64, 10);
+		expect(barThickness(singleSeries(10.8))).toBeCloseTo(8.8, 10);
 		expect(barThickness(singleSeries(30))).toBe(24);
 	});
 
@@ -236,5 +237,38 @@ describe("isStackedDataEnd", () => {
 
 	test("a torn pile end caps nothing", () => {
 		expect(isStackedDataEnd({ lower: 0, upper: 1, pileOuter: Number.NaN, toPixel })).toBe(false);
+	});
+});
+
+describe("revealStack", () => {
+	const settled = { lower: [[0], [1], [3]], upper: [[1], [3], [6]] };
+
+	test("a stack entering together grows as one column, its seams inside the bar", () => {
+		const half = revealStack({ ...settled, reveal: [0.5, 0.5, 0.5], count: 1 });
+		expect(half.lower.map((column) => column[0])).toEqual([0, 0.5, 1.5]);
+		expect(half.upper.map((column) => column[0])).toEqual([0.5, 1.5, 3]);
+	});
+
+	test("a series entering later grows on top of a settled stack", () => {
+		const entering = revealStack({ ...settled, reveal: [1, 1, 0], count: 1 });
+		expect(entering.lower.map((column) => column[0])).toEqual([0, 1, 3]);
+		expect(entering.upper.map((column) => column[0])).toEqual([1, 3, 3]);
+	});
+
+	test("a series entering below a settled one lifts it instead of overlapping it", () => {
+		const entering = revealStack({ ...settled, reveal: [0, 1, 1], count: 1 });
+		expect(entering.lower.map((column) => column[0])).toEqual([0, 0, 2]);
+		expect(entering.upper.map((column) => column[0])).toEqual([0, 2, 5]);
+	});
+
+	test("each pile of a diverging stack grows from zero, and a gap stays a gap", () => {
+		const revealed = revealStack({
+			lower: [[0], [-2], [Number.NaN]],
+			upper: [[4], [0], [Number.NaN]],
+			reveal: [0.5, 0.5, 0.5],
+			count: 1,
+		});
+		expect(revealed.lower.map((column) => column[0])).toEqual([0, -1, Number.NaN]);
+		expect(revealed.upper.map((column) => column[0])).toEqual([2, 0, Number.NaN]);
 	});
 });

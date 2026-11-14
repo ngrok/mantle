@@ -62,6 +62,7 @@ const barRect = (overrides: Partial<BarRect> = {}): BarRect => ({
 	baselineY: 100,
 	valueY: 40,
 	rounded: true,
+	roundedBase: false,
 	...overrides,
 });
 
@@ -71,6 +72,7 @@ const horizontalBarRect = (overrides: Partial<HorizontalBarRect> = {}): Horizont
 	baselineX: 40,
 	valueX: 100,
 	rounded: true,
+	roundedBase: false,
 	...overrides,
 });
 
@@ -79,7 +81,7 @@ describe("drawBars", () => {
 		const recorder = makeRecorder();
 		drawBars(recorder.context, { fill: "#3e6ff4", rects: [barRect()] });
 		expect(recorder.ops).toEqual([
-			{ op: "roundRect", args: [10, 40, 20, 60], radii: [4, 4, 0, 0] },
+			{ op: "roundRect", args: [10, 40, 20, 60], radii: [2, 2, 0, 0] },
 		]);
 		// One path, one fill for the whole series.
 		expect(recorder.beginPath).toHaveBeenCalledTimes(1);
@@ -93,7 +95,7 @@ describe("drawBars", () => {
 			rects: [barRect({ baselineY: 100, valueY: 160 })],
 		});
 		expect(recorder.ops).toEqual([
-			{ op: "roundRect", args: [10, 100, 20, 60], radii: [0, 0, 4, 4] },
+			{ op: "roundRect", args: [10, 100, 20, 60], radii: [0, 0, 2, 2] },
 		]);
 	});
 
@@ -105,25 +107,25 @@ describe("drawBars", () => {
 		});
 		// Only the second, non-zero bar contributes geometry.
 		expect(recorder.ops).toEqual([
-			{ op: "roundRect", args: [40, 40, 20, 60], radii: [4, 4, 0, 0] },
+			{ op: "roundRect", args: [40, 40, 20, 60], radii: [2, 2, 0, 0] },
 		]);
 	});
 
-	test("bars thinner than 8px go square, and never thinner than half a pixel", () => {
+	test("bars thinner than 4px go square, and never thinner than half a pixel", () => {
 		// Ten-thousand-category charts degrade to a silhouette instead of vanishing.
 		const recorder = makeRecorder();
 		drawBars(recorder.context, {
 			fill: "#3e6ff4",
 			rects: [
 				barRect({ x: 0, width: 0.2 }),
-				barRect({ x: 20, width: 7.9 }),
-				barRect({ x: 40, width: 8 }),
+				barRect({ x: 20, width: 3.9 }),
+				barRect({ x: 40, width: 4 }),
 			],
 		});
 		expect(recorder.ops).toEqual([
 			{ op: "rect", args: [0, 40, 0.5, 60] },
-			{ op: "rect", args: [20, 40, 7.9, 60] },
-			{ op: "roundRect", args: [40, 40, 8, 60], radii: [4, 4, 0, 0] },
+			{ op: "rect", args: [20, 40, 3.9, 60] },
+			{ op: "roundRect", args: [40, 40, 4, 60], radii: [2, 2, 0, 0] },
 		]);
 	});
 
@@ -131,9 +133,26 @@ describe("drawBars", () => {
 		const recorder = makeRecorder();
 		drawBars(recorder.context, {
 			fill: "#3e6ff4",
-			rects: [barRect({ baselineY: 100, valueY: 98 })],
+			rects: [barRect({ baselineY: 100, valueY: 99 })],
 		});
-		expect(recorder.ops).toEqual([{ op: "roundRect", args: [10, 98, 20, 2], radii: [2, 2, 0, 0] }]);
+		expect(recorder.ops).toEqual([{ op: "roundRect", args: [10, 99, 20, 1], radii: [1, 1, 0, 0] }]);
+	});
+
+	test("the innermost segment rounds its baseline end, so a lone bar rounds all four corners", () => {
+		const recorder = makeRecorder();
+		drawBars(recorder.context, { fill: "#3e6ff4", rects: [barRect({ roundedBase: true })] });
+		expect(recorder.ops).toEqual([
+			{ op: "roundRect", args: [10, 40, 20, 60], radii: [2, 2, 2, 2] },
+		]);
+	});
+
+	test("a short bar rounded at both ends splits its length between the two radii", () => {
+		const recorder = makeRecorder();
+		drawBars(recorder.context, {
+			fill: "#3e6ff4",
+			rects: [barRect({ baselineY: 100, valueY: 98, roundedBase: true })],
+		});
+		expect(recorder.ops).toEqual([{ op: "roundRect", args: [10, 98, 20, 2], radii: [1, 1, 1, 1] }]);
 	});
 
 	test("inner stack segments opt out of rounding", () => {
@@ -148,7 +167,7 @@ describe("drawHorizontalBars", () => {
 		const recorder = makeRecorder();
 		drawHorizontalBars(recorder.context, { fill: "#3e6ff4", rects: [horizontalBarRect()] });
 		expect(recorder.ops).toEqual([
-			{ op: "roundRect", args: [40, 10, 60, 20], radii: [0, 4, 4, 0] },
+			{ op: "roundRect", args: [40, 10, 60, 20], radii: [0, 2, 2, 0] },
 		]);
 		expect(recorder.fill).toHaveBeenCalledTimes(1);
 	});
@@ -160,7 +179,7 @@ describe("drawHorizontalBars", () => {
 			rects: [horizontalBarRect({ baselineX: 100, valueX: 40 })],
 		});
 		expect(recorder.ops).toEqual([
-			{ op: "roundRect", args: [40, 10, 60, 20], radii: [4, 0, 0, 4] },
+			{ op: "roundRect", args: [40, 10, 60, 20], radii: [2, 0, 0, 2] },
 		]);
 	});
 
@@ -171,12 +190,12 @@ describe("drawHorizontalBars", () => {
 			rects: [
 				horizontalBarRect({ baselineX: 40, valueX: 40 }),
 				horizontalBarRect({ y: 30, height: 0.2 }),
-				horizontalBarRect({ y: 60, height: 8 }),
+				horizontalBarRect({ y: 60, height: 4 }),
 			],
 		});
 		expect(recorder.ops).toEqual([
 			{ op: "rect", args: [40, 30, 60, 0.5] },
-			{ op: "roundRect", args: [40, 60, 60, 8], radii: [0, 4, 4, 0] },
+			{ op: "roundRect", args: [40, 60, 60, 4], radii: [0, 2, 2, 0] },
 		]);
 	});
 });

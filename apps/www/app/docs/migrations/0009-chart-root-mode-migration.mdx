@@ -39,7 +39,7 @@ The rules apply step 2. On the four chart Roots, `decorative` becomes `mode="dec
 6. Leave every other chart Root alone. The default mode is unchanged.
 7. After editing, run the project's formatter, linter, type checker, and tests.
 
-> **Why a mode?** Two booleans could not say "noninteractive but not decorative". A sparkline beside a total still tells a reader when activity happened and how it varied, so it keeps a name and a description. It has no Tab stop, because one hundred sparklines in a table as one hundred Tab stops is a focus order no reader wants, and no hover readout, because a value only a pointer can reach fails WCAG 1.4.13. `mode` names the three contracts, and the type forbids the props each one has no use for.
+> **Why a mode?** Two booleans could not say "noninteractive but not decorative". A sparkline beside a total still tells a reader when activity happened and how it varied, so it keeps a name and a description. It has no Tab stop, because one hundred sparklines in a table as one hundred Tab stops is a focus order no reader wants, and no hover readout, because a value only a pointer can reach fails WCAG 2.2 SC 2.1.1 (Keyboard). `mode` names the three contracts, and the type forbids the props each one has no use for.
 
 ---
 

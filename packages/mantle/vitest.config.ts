@@ -21,13 +21,34 @@ const contextOptions = {
 	timezoneId: "UTC",
 } as const satisfies ContextOptions;
 
-/** The media features a browser test can emulate through `commands.emulateMedia`. */
-type EmulatedMedia = { reducedMotion: "reduce" | "no-preference" };
+/**
+ * The media features a browser test can emulate through `commands.emulateMedia`.
+ * A feature left out keeps its current emulation.
+ */
+type EmulatedMedia = {
+	reducedMotion?: "reduce" | "no-preference";
+	forcedColors?: "active" | "none";
+};
 
-// Why a command: `prefers-reduced-motion` is a Playwright page emulation, and no
-// script inside the test iframe can set it.
+// Why a command: a media feature such as `prefers-reduced-motion` is a Playwright
+// page emulation, and no script inside the test iframe can set it.
 const emulateMedia: BrowserCommand<[options: EmulatedMedia]> = async ({ page }, options) => {
 	await page.emulateMedia(options);
+};
+
+/**
+ * The `@custom-variant` rules of `mantle.css`, which sit in one run before its
+ * base layer. Without them, Tailwind compiles a class such as
+ * `data-state-inactive:invisible` to nothing.
+ */
+const mantleCustomVariants = async (): Promise<string> => {
+	const css = await readFile(path.join(import.meta.dirname, "src/mantle.css"), "utf8");
+	const start = css.indexOf("@custom-variant");
+	const end = css.indexOf("@layer base", start);
+	if (start === -1 || end === -1) {
+		throw new Error("mantle.css holds no run of @custom-variant rules before its base layer.");
+	}
+	return css.slice(start, end);
 };
 
 // Why a command: a browser test asserts layout, so it needs the CSS that Tailwind
@@ -42,10 +63,13 @@ const tailwindCss: BrowserCommand<[sourceFile: string]> = async ({ testPath }, s
 	const candidates = new Scanner({ sources: [] })
 		.getCandidatesWithPositions({ content, extension: path.extname(file).slice(1) })
 		.map(({ candidate }) => candidate);
-	const compiler = await compile('@import "tailwindcss/theme"; @import "tailwindcss/utilities";', {
-		base: import.meta.dirname,
-		onDependency: () => {},
-	});
+	const compiler = await compile(
+		`@import "tailwindcss/theme"; @import "tailwindcss/utilities";\n${await mantleCustomVariants()}`,
+		{
+			base: import.meta.dirname,
+			onDependency: () => {},
+		},
+	);
 	return compiler.build(candidates);
 };
 

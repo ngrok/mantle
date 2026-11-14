@@ -10,7 +10,7 @@ import { appendFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { chromium } from "playwright";
 import type { Browser, CDPSession, Page } from "playwright";
-import type { Gate, Kind, Mode } from "../app/features/chart-bench/config";
+import type { Gate, Group, Kind, Mode } from "../app/features/chart-bench/config";
 import type { BenchSnapshot } from "../app/features/chart-bench/metrics";
 import { BENCH_PATH, RESULTS_DIR, startServer } from "./serve.ts";
 
@@ -24,6 +24,7 @@ type Case = {
 	throttle: number;
 	dpr: number;
 	gate: Gate;
+	group: Group;
 };
 
 type FrameStats = {
@@ -69,7 +70,8 @@ type Result = Case & {
 		frames: FrameStats;
 	};
 	gpu?: string;
-	hover?: MainThread & { longTasks: number; frames: FrameStats };
+	/** The sweep over the first `cards` cards (`--hover`); `domNodes` is read after it. */
+	hover?: MainThread & { longTasks: number; frames: FrameStats; domNodes: number; cards: number };
 	input?: { inp?: number; maxEventMs: number; events: number };
 	updateReplace?: MainThread & { longTasks: number; frames: FrameStats };
 	updateShift?: MainThread & { longTasks: number; frames: FrameStats };
@@ -93,6 +95,8 @@ const readArg = (name: string): string | undefined => {
 	return hit?.slice(prefix.length);
 };
 const hasFlag = (name: string): boolean => process.argv.includes(`--${name}`);
+/** How many cards the hover sweep crosses, from the top of the page. */
+const HOVER_CARDS = Number(readArg("hover") ?? 3);
 
 const ALL_ANIMATE: readonly string[] = ["on", "off"];
 const ALL_KINDS: readonly Kind[] = ["line", "bar", "area", "scatter"];
@@ -113,6 +117,8 @@ const buildMatrix = (): Case[] => {
 	const throttles = (readArg("throttle") ?? "1").split(",").map(Number);
 	const dpr = Number(readArg("dpr") ?? 2);
 	const gate: Gate = readArg("gate") === "cv" ? "cv" : "none";
+	// Why a group axis: the List part changes what the charts mount and share.
+	const groups = parseList<Group>(readArg("group") ?? "none", ["none", "list"]);
 	const cases: Case[] = [];
 	const listCounts = (readArg("n") ?? "10,50,100").split(",").map(Number);
 	const densePoints = (readArg("points") ?? "4000,10000,50000,100000").split(",").map(Number);
@@ -123,23 +129,68 @@ const buildMatrix = (): Case[] => {
 				const counts = matrix === "smoke" ? [10] : listCounts;
 				for (const n of counts) {
 					for (const animate of animations) {
-						cases.push({
-							animate,
-							kind,
-							mode: "list",
-							n,
-							points: kind === "bar" ? 12 : 30,
-							throttle,
-							dpr,
-							gate,
-						});
+						for (const group of groups) {
+							cases.push({
+								animate,
+								kind,
+								mode: "list",
+								n,
+								points: kind === "bar" ? 12 : 30,
+								throttle,
+								dpr,
+								gate,
+								group,
+							});
+						}
 					}
 				}
 			}
 			if ((matrix === "table" || matrix === "all") && kind === "bar") {
 				for (const n of listCounts) {
 					for (const animate of animations) {
-						cases.push({ animate, kind, mode: "table", n, points: 30, throttle, dpr, gate });
+						cases.push({
+							animate,
+							kind,
+							mode: "table",
+							n,
+							points: 30,
+							throttle,
+							dpr,
+							gate,
+							group: "none",
+						});
+					}
+				}
+			}
+			if ((matrix === "agents" || matrix === "all") && kind === "bar") {
+				// Why one dom row per cell: the hand-rolled baseline has no List to group by.
+				// Why gate none: the agent page has no gate, so a cv label would be false.
+				for (const n of listCounts) {
+					for (const animate of animations) {
+						for (const group of groups) {
+							cases.push({
+								animate,
+								kind,
+								mode: "agents",
+								n,
+								points: 30,
+								throttle,
+								dpr,
+								gate: "none",
+								group,
+							});
+						}
+						cases.push({
+							animate,
+							kind,
+							mode: "agents-dom",
+							n,
+							points: 30,
+							throttle,
+							dpr,
+							gate: "none",
+							group: "none",
+						});
 					}
 				}
 			}
@@ -149,7 +200,17 @@ const buildMatrix = (): Case[] => {
 					// Bars past 10k categories are narrower than a device pixel.
 					const rows = kind === "bar" ? Math.min(points / 10, 10_000) : points;
 					for (const animate of animations) {
-						cases.push({ animate, kind, mode: "dense", n: 1, points: rows, throttle, dpr, gate });
+						cases.push({
+							animate,
+							kind,
+							mode: "dense",
+							n: 1,
+							points: rows,
+							throttle,
+							dpr,
+							gate,
+							group: "none",
+						});
 					}
 				}
 			}
@@ -168,6 +229,9 @@ const caseUrl = (base: string, item: Case): string => {
 	});
 	if (item.gate !== "none") {
 		params.set("gate", item.gate);
+	}
+	if (item.group !== "none") {
+		params.set("group", item.group);
 	}
 	return `${base}${BENCH_PATH.slice(1)}?${params.toString()}`;
 };
@@ -275,13 +339,17 @@ const hoverSweep = async (page: Page, targets: number): Promise<void> => {
 	for (let index = 0; index < count; index += 1) {
 		const card = cards.nth(index);
 		await card.scrollIntoViewIfNeeded();
-		const box = await card.boundingBox();
+		// Why the hover target: an agent card's chart fills only its right side.
+		const target = card.locator("[data-bench-hover]");
+		const isChartOnly = (await target.count()) > 0;
+		const box = await (isChartOnly ? target.first() : card).boundingBox();
 		if (box == null) {
 			continue;
 		}
 		const y = box.y + box.height * 0.55;
-		const x0 = box.x + 72;
-		const x1 = box.x + box.width - 24;
+		// Why the inset on a full card: it skips the y-axis labels and the card padding.
+		const x0 = box.x + (isChartOnly ? 2 : 72);
+		const x1 = box.x + box.width - (isChartOnly ? 2 : 24);
 		const steps = 40;
 		for (let step = 0; step <= steps; step += 1) {
 			await page.mouse.move(x0 + ((x1 - x0) * step) / steps, y);
@@ -381,7 +449,7 @@ const measure = async ({
 				path: path.join(
 					RESULTS_DIR,
 					"shots",
-					`${item.animate ? "animated" : "static"}-${item.kind}-${item.mode}-n${item.n}-p${item.points}.png`,
+					`${item.animate ? "animated" : "static"}-${item.kind}-${item.mode}-${item.group}-n${item.n}-p${item.points}.png`,
 				),
 			});
 		}
@@ -413,7 +481,7 @@ const measure = async ({
 		const metricsBeforeHover = await readMetrics(cdp);
 		await startFrames(page);
 		const hoverFrom = await now(page);
-		await hoverSweep(page, 3);
+		await hoverSweep(page, HOVER_CARDS);
 		const hoverFrames = frameStats((await stopFrames(page)).deltas);
 		const hoverTo = await now(page);
 		const metricsHover = await readMetrics(cdp);
@@ -422,6 +490,8 @@ const measure = async ({
 			...mainThread(metricsBeforeHover, metricsHover),
 			longTasks: longTasksBetween(snapHover, hoverFrom, hoverTo).length,
 			frames: hoverFrames,
+			domNodes: snapHover.domNodes,
+			cards: HOVER_CARDS,
 		};
 
 		await clickAndKeys(page);
@@ -439,7 +509,7 @@ const measure = async ({
 		result.updateShift = await updatePhase(page, cdp, "shift");
 
 		const metricsBeforeScroll = await readMetrics(cdp);
-		if (item.mode === "list") {
+		if (item.mode !== "dense" && item.mode !== "table") {
 			await startFrames(page);
 			await scrollSweep(page);
 			const scrollFrames = frameStats((await stopFrames(page)).deltas);
@@ -519,7 +589,7 @@ const main = async (): Promise<void> => {
 					? `mount ${Math.round(result.timing?.mountMs ?? 0)}ms quiet ${Math.round(result.timing?.quietAtMs ?? 0)}ms task ${Math.round(result.startup?.taskMs ?? 0)}ms tbt ${Math.round(result.startup?.tbtMs ?? 0)}ms upd ${Math.round(result.updateReplace?.taskMs ?? 0)}/${Math.round(result.updateShift?.taskMs ?? 0)}ms heap ${result.memory?.jsHeapMB}MB`
 					: `ERROR ${result.error}`;
 				console.log(
-					`[${done}/${total} eta ${eta}s] ${item.animate ? "animated" : "static"} ${item.kind} ${item.mode} n=${item.n} p=${item.points} x${item.throttle}: ${summary}${result.pageErrors.length > 0 ? ` pageErrors=${result.pageErrors.length}` : ""}`,
+					`[${done}/${total} eta ${eta}s] ${item.animate ? "animated" : "static"} ${item.kind} ${item.mode}${item.group === "list" ? " List" : ""} n=${item.n} p=${item.points} x${item.throttle}: ${summary}${result.pageErrors.length > 0 ? ` pageErrors=${result.pageErrors.length}` : ""}`,
 				);
 			}
 		}

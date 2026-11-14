@@ -335,7 +335,7 @@ const columns = columnHelper.columns([
 							aria-label={`Requests for ${service.name}, last 30 days`}
 							className="aspect-auto h-6 w-28"
 						>
-							<BarChart.Bar dataKey="count" label="Requests" />
+							<BarChart.Bar dataKey="count" label="Requests" color="blue" />
 						</BarChart.Root>
 						<span className="text-muted min-w-10 text-right text-xs tabular-nums">
 							{compactNumber.format(service.requestTotal)}
@@ -360,7 +360,7 @@ const columns = columnHelper.columns([
 							aria-label={`Deploys for ${service.name}, last 12 weeks`}
 							className="aspect-auto h-6 w-28"
 						>
-							<BarChart.Bar dataKey="count" label="Deploys" />
+							<BarChart.Bar dataKey="count" label="Deploys" color="blue" />
 						</BarChart.Root>
 						<span className="text-muted min-w-10 text-right text-xs tabular-nums">
 							{compactNumber.format(service.deployTotal)}

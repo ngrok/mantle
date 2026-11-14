@@ -24,10 +24,10 @@ const DECORATIVE = { red: 136, green: 136, blue: 136 };
 
 const STYLE = `
 :root {
-	--color-chart-1: #3e6ff4;
-	--color-chart-2: #3e6ff4;
+	--color-chart-blue: #3e6ff4;
+	--color-chart-emerald: #3e6ff4;
 	--color-chart-decorative: #888888;
-	--color-chart-other: #737373;
+	--color-chart-neutral: #737373;
 	--border-color-card-muted: #e5e5e5;
 	--border-color-card: #d4d4d4;
 	--text-color-muted: #717171;
@@ -124,7 +124,7 @@ describe("a decorative chart's painted fill", () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
 				<CanvasBarChartRoot data={data} xKey="cat" animate={false} mode="decorative">
-					<BarChart.Bar dataKey="v" label="Value" color="chart-1" />
+					<BarChart.Bar dataKey="v" label="Value" color="blue" />
 				</CanvasBarChartRoot>
 			</div>,
 		);
@@ -142,7 +142,7 @@ describe("a decorative chart's painted fill", () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
 				<CanvasBarChartRoot data={data} xKey="cat" animate={false} aria-label="Values by category">
-					<BarChart.Bar dataKey="v" label="Value" color="chart-1" />
+					<BarChart.Bar dataKey="v" label="Value" color="blue" />
 				</CanvasBarChartRoot>
 			</div>,
 		);

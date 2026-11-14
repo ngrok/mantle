@@ -1,12 +1,6 @@
 import { afterAll, afterEach, beforeAll, expect, test } from "vitest";
 import type { ColorParseContext, ColorResolver } from "./canvas-colors.js";
-import {
-	canvasParses,
-	colorParseContext,
-	createColorResolver,
-	resolveSeriesColor,
-} from "./canvas-colors.js";
-import { textureInkColor } from "./texture.js";
+import { colorParseContext, createColorResolver, resolveSeriesColor } from "./canvas-colors.js";
 
 /**
  * Real-browser resolver tests: whether a color reaches the canvas through the
@@ -15,7 +9,7 @@ import { textureInkColor } from "./texture.js";
  */
 const STYLE = `
 :root {
-	--color-chart-1: #3e6ff4;
+	--color-chart-blue: #3e6ff4;
 }
 `;
 
@@ -78,16 +72,16 @@ const fillAlpha = (color: string): number => {
 
 test("a chart token resolves from the root's cascade with no probe", () => {
 	const host = mountHost();
-	expect(resolveSeriesColor(resolverFor(host), "chart-1")).toBe("#3e6ff4");
+	expect(resolveSeriesColor(resolverFor(host), "blue")).toBe("#3e6ff4");
 	// A resolver that probes first leaves a span in the chart root.
 	expect(host.childElementCount).toBe(0);
 });
 
 test("a custom property set on the root wins over the document's", () => {
 	const host = mountHost();
-	host.style.setProperty("--color-chart-1", "rgb(1 2 3)");
+	host.style.setProperty("--color-chart-blue", "rgb(1 2 3)");
 	// A resolver that reads the documentElement's computed style gets the `:root` value.
-	expect(resolveSeriesColor(resolverFor(host), "chart-1")).toBe("rgb(1 2 3)");
+	expect(resolveSeriesColor(resolverFor(host), "blue")).toBe("rgb(1 2 3)");
 });
 
 test("currentColor resolves to the root's computed color", () => {
@@ -105,12 +99,4 @@ test("a translucent color-mix() resolves to a color the canvas fills with its al
 	const alpha = fillAlpha(resolved);
 	expect(alpha).toBeGreaterThan(0);
 	expect(alpha).toBeLessThan(255);
-});
-
-test("the texture ink's relative oklch() resolves with no probe", () => {
-	const host = mountHost();
-	const resolver = resolverFor(host);
-	const ink = resolver.resolve(textureInkColor(resolveSeriesColor(resolver, "chart-1")));
-	expect(canvasParses(parseContext(), ink)).toBe(true);
-	expect(host.childElementCount).toBe(0);
 });

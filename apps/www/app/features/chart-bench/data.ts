@@ -66,6 +66,18 @@ export const categoryRows = (count: number, seed: number): Row[] => {
 	}));
 };
 
+/** Rows with a bucket-age category x and In (`a`) and Out (`b`) throughput: an agent card's traffic shape. */
+export const trafficRows = (count: number, seed: number): Row[] => {
+	const random = createRandom(seed);
+	const a = walk({ count, random, start: 400, step: 160 });
+	const b = walk({ count, random, start: 200, step: 120 });
+	return a.map((value, index) => ({
+		x: `${(count - 1 - index) * 2}m ago`,
+		a: value,
+		b: b[index] ?? 0,
+	}));
+};
+
 /** Rows with a category x and a count that is zero most of the time: the release-cadence shape. */
 export const sparseRows = (count: number, seed: number): Row[] => {
 	const random = createRandom(seed);

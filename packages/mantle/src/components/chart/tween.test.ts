@@ -303,6 +303,39 @@ describe("ChaseTween", () => {
 		expect(frames).toBeLessThan(1000);
 		expect(chase.values()[0]).toBe(100);
 	});
+
+	test("a settle distance ends the chase once every component is that close to its target", () => {
+		/** The 60 Hz ticks a chase from 0 to 100 takes before it reports settled. */
+		const ticksToSettle = (settleDistance?: number): { ticks: number; value: number } => {
+			const chase = new ChaseTween({ speed: 0.16 });
+			chase.jump([0]);
+			chase.aim([100], 0);
+			let time = 0;
+			let ticks = 1;
+			while (chase.tick((time += 16.67), settleDistance) && ticks < 1000) {
+				ticks += 1;
+			}
+			return { ticks, value: chase.values()[0] ?? Number.NaN };
+		};
+		// Each tick leaves 84% of the distance. The journey's own threshold is
+		// 0.1% of it: 0.84^40 is the first power under 0.001.
+		expect(ticksToSettle()).toEqual({ ticks: 40, value: 100 });
+		// A floor of 10 units is 10% of the journey: 0.84^14 is the first power under 0.1.
+		expect(ticksToSettle(10)).toEqual({ ticks: 14, value: 100 });
+	});
+
+	test("a settle distance under the journey's own threshold changes nothing", () => {
+		const chase = new ChaseTween({ speed: 0.16 });
+		chase.jump([0]);
+		chase.aim([100], 0);
+		let time = 0;
+		let ticks = 1;
+		// The journey's threshold is 0.1 here, so a floor of 0.01 must not shorten or lengthen the chase.
+		while (chase.tick((time += 16.67), 0.01) && ticks < 1000) {
+			ticks += 1;
+		}
+		expect(ticks).toBe(40);
+	});
 });
 
 describe("ChaseTween glide", () => {

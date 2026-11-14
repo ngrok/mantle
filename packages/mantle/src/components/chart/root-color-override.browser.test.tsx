@@ -17,8 +17,8 @@ const RED = { red: 228, green: 0, blue: 20 };
 
 const STYLE = `
 :root {
-	--color-chart-1: #3e6ff4;
-	--color-chart-other: #737373;
+	--color-chart-blue: #3e6ff4;
+	--color-chart-neutral: #737373;
 	--border-color-card-muted: #e5e5e5;
 	--border-color-card: #d4d4d4;
 	--text-color-muted: #717171;
@@ -26,10 +26,10 @@ const STYLE = `
 	--background-color-card: #ffffff;
 }
 .token-blue {
-	--color-chart-1: #3e6ff4;
+	--color-chart-blue: #3e6ff4;
 }
 .token-red {
-	--color-chart-1: #e40014;
+	--color-chart-blue: #e40014;
 }
 .sr-only {
 	position: absolute;
@@ -124,7 +124,7 @@ test("a new className on the Root repaints the series from its new token value",
 				aria-label="Values by category"
 				className={className}
 			>
-				<BarChart.Bar dataKey="v" label="Value" />
+				<BarChart.Bar dataKey="v" label="Value" color="blue" />
 			</CanvasBarChartRoot>
 		</div>
 	);

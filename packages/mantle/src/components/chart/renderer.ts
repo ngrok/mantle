@@ -1,8 +1,7 @@
-import { area as d3Area, curveLinear, curveMonotoneX, curveStep, line as d3Line } from "d3-shape";
 import type { CurveKind, PointShape } from "./types.js";
 import type { DecimatedColumns } from "./decimate.js";
 import type { PaintContext } from "./paint-backend.js";
-import { acceptsPathData } from "./paint-backend.js";
+import { traceArea, traceLine } from "./curve.js";
 
 /**
  * 2D draw routines over a {@link PaintContext}: a canvas context, or the SVG
@@ -10,9 +9,12 @@ import { acceptsPathData } from "./paint-backend.js";
  * the data, never the chrome):
  *
  * - lines: 2px, round join/cap
- * - bars: as thick as `barThickness` allows the band (24px through 64px, see
- *   ./bar-geometry.js), 4px rounded data-end, square at the baseline, 2px
- *   surface gaps between touching fills
+ * - bars: fill the band step except a 2px gap, which narrows to 1px and then
+ *   to none as the step narrows; on a wide step, `barThickness` caps the bar
+ *   (see ./bar-geometry.js); a bar or a whole stack rounds both ends at 2px;
+ *   the segments of a stack sit 1px apart
+ * - bar textures: marks in the full series color over a ground that mixes 25%
+ *   of that color into the card surface (see ./texture.js)
  * - area fills: the series hue at 10% opacity with a 2px band-edge stroke
  * - grid/axes: solid 1px hairlines, one step off the surface, never dashed
  * - markers: r ≥ 4 dots with a 2px surface ring
@@ -35,46 +37,11 @@ type PlotRect = {
 };
 
 const LINE_WIDTH = 2;
-const BAR_CORNER_RADIUS = 4;
+const BAR_CORNER_RADIUS = 2;
 const BAR_GAP = 2;
 const MARKER_RADIUS = 4;
 const MARKER_RING = 2;
 const AXIS_FONT_SIZE = 11;
-
-const curveFactory = (curve: CurveKind) => {
-	if (curve === "monotone") {
-		return curveMonotoneX;
-	}
-	if (curve === "step") {
-		return curveStep;
-	}
-	return curveLinear;
-};
-
-/** A d3-shape line or area generator over datum indexes. */
-type ShapeGenerator = {
-	(indexes: readonly number[]): string | null;
-	context(context: PaintContext | null): unknown;
-};
-
-/**
- * Trace a d3-shape generator into the current path of `ctx`. A canvas context
- * takes the generator's drawing calls; the SVG recorder takes its path string.
- */
-const traceShape = (ctx: PaintContext, shape: ShapeGenerator, indexes: readonly number[]): void => {
-	// Why a capability check and not `instanceof CanvasRenderingContext2D`: a
-	// chart in a same-origin iframe paints into a context from another realm.
-	if (acceptsPathData(ctx)) {
-		shape.context(null);
-		const data = shape(indexes);
-		if (typeof data === "string") {
-			ctx.appendPathData(data);
-		}
-		return;
-	}
-	shape.context(ctx);
-	shape(indexes);
-};
 
 /**
  * Align a coordinate to the device grid for crisp 1px hairlines.
@@ -167,7 +134,8 @@ const drawVerticalBaseline = (
 };
 
 /**
- * One bar rectangle in CSS pixels, with rounding only at the data end.
+ * One bar rectangle in CSS pixels, with rounding at the data end and at the
+ * baseline end.
  */
 type BarRect = {
 	x: number;
@@ -178,13 +146,24 @@ type BarRect = {
 	valueY: number;
 	/** Round the data-end corners (outermost segment of a stack only). */
 	rounded: boolean;
+	/** Round the baseline-end corners (innermost segment of a stack only). */
+	roundedBase: boolean;
 };
+
+/**
+ * The corner radius one bar end takes: `radius` while the bar is at least
+ * twice that thick, else square, and never more than its length.
+ */
+const cornerRadius = (options: { radius: number; thickness: number; length: number }): number =>
+	options.thickness >= options.radius * 2
+		? Math.min(options.radius, options.thickness / 2, options.length)
+		: 0;
 
 /**
  * Fill one series' bars as a single batched path (one `fill()` per series).
  * `fill` is the series' solid color or its texture's `url(#…)` reference — the
  * `<pattern>` anchors to the SVG, so one pattern paints every bar of the
- * series in a continuous field. Corner radii collapse as bars get thin (< 8px:
+ * series in a continuous field. Corner radii collapse as bars get thin (< 4px:
  * square; width is clamped to a minimum of half a pixel so ten-thousand-category
  * charts degrade to a silhouette instead of vanishing).
  */
@@ -211,24 +190,33 @@ const drawBars = (
 		if (height === 0) {
 			continue;
 		}
-		const radius = rect.rounded && width >= 8 ? Math.min(BAR_CORNER_RADIUS, width / 2, height) : 0;
-		if (radius === 0) {
+		// Why half the length when both ends round: two full radii would cross.
+		const ends = rect.rounded && rect.roundedBase ? 2 : 1;
+		const radius = cornerRadius({
+			radius: BAR_CORNER_RADIUS,
+			thickness: width,
+			length: height / ends,
+		});
+		const end = rect.rounded ? radius : 0;
+		const base = rect.roundedBase ? radius : 0;
+		if (end === 0 && base === 0) {
 			ctx.rect(rect.x, top, width, height);
 			continue;
 		}
 		const growsUp = rect.valueY <= rect.baselineY;
 		if (growsUp) {
-			ctx.roundRect(rect.x, top, width, height, [radius, radius, 0, 0]);
+			ctx.roundRect(rect.x, top, width, height, [end, end, base, base]);
 		} else {
-			ctx.roundRect(rect.x, top, width, height, [0, 0, radius, radius]);
+			ctx.roundRect(rect.x, top, width, height, [base, base, end, end]);
 		}
 	}
 	ctx.fill();
 };
 
 /**
- * One horizontal bar rectangle in CSS pixels, with rounding only at the data
- * end — the mirror of {@link BarRect} for `orientation="horizontal"`.
+ * One horizontal bar rectangle in CSS pixels, with rounding at the data end
+ * and at the baseline end: the mirror of {@link BarRect} for
+ * `orientation="horizontal"`.
  */
 type HorizontalBarRect = {
 	y: number;
@@ -239,13 +227,15 @@ type HorizontalBarRect = {
 	valueX: number;
 	/** Round the data-end corners (outermost segment of a stack only). */
 	rounded: boolean;
+	/** Round the baseline-end corners (innermost segment of a stack only). */
+	roundedBase: boolean;
 };
 
 /**
- * Fill one series' horizontal bars as a single batched path — the
- * {@link drawBars} mirror for `orientation="horizontal"`: bars grow rightward
- * from the baseline (leftward for negative values), rounding only the data
- * end, with the same thin-bar corner collapse and half-pixel minimum.
+ * Fill one series' horizontal bars as a single batched path, as
+ * {@link drawBars} does for vertical bars. Bars grow rightward from the
+ * baseline (leftward for negative values) and round the ends their rect names,
+ * with the same thin-bar corner collapse and half-pixel minimum.
  */
 const drawHorizontalBars = (
 	ctx: PaintContext,
@@ -270,24 +260,31 @@ const drawHorizontalBars = (
 		if (width === 0) {
 			continue;
 		}
-		const radius = rect.rounded && height >= 8 ? Math.min(BAR_CORNER_RADIUS, height / 2, width) : 0;
-		if (radius === 0) {
+		const ends = rect.rounded && rect.roundedBase ? 2 : 1;
+		const radius = cornerRadius({
+			radius: BAR_CORNER_RADIUS,
+			thickness: height,
+			length: width / ends,
+		});
+		const end = rect.rounded ? radius : 0;
+		const base = rect.roundedBase ? radius : 0;
+		if (end === 0 && base === 0) {
 			ctx.rect(left, rect.y, width, height);
 			continue;
 		}
 		const growsRight = rect.valueX >= rect.baselineX;
 		if (growsRight) {
-			ctx.roundRect(left, rect.y, width, height, [0, radius, radius, 0]);
+			ctx.roundRect(left, rect.y, width, height, [base, end, end, base]);
 		} else {
-			ctx.roundRect(left, rect.y, width, height, [radius, 0, 0, radius]);
+			ctx.roundRect(left, rect.y, width, height, [end, base, base, end]);
 		}
 	}
 	ctx.fill();
 };
 
 /**
- * Accessor-driven full-resolution line stroke via d3-shape (used below the
- * decimation threshold; supports curves and gaps). `indexes` is the ordered
+ * Full-resolution line stroke through accessors (used below the decimation
+ * threshold; supports curves and gaps). `indexes` is the ordered
  * list of datum indexes to draw: pass every index for gap semantics (with
  * `definedAt` marking gaps) or a prefiltered finite-only list for
  * `connectNulls`.
@@ -304,13 +301,12 @@ const drawLinePath = (
 	},
 ): void => {
 	const { color, curve, indexes, xAt, yAt, definedAt } = options;
-	const path = d3Line<number>().x(xAt).y(yAt).defined(definedAt).curve(curveFactory(curve));
 	ctx.strokeStyle = color;
 	ctx.lineWidth = LINE_WIDTH;
 	ctx.lineJoin = "round";
 	ctx.lineCap = "round";
 	ctx.beginPath();
-	traceShape(ctx, path, indexes);
+	traceLine(ctx, { curve, indexes, xAt, yAt, definedAt });
 	ctx.stroke();
 };
 
@@ -331,26 +327,19 @@ const drawAreaPath = (
 	},
 ): void => {
 	const { color, curve, indexes, xAt, y0At, y1At, definedAt } = options;
-	const areaPath = d3Area<number>()
-		.x(xAt)
-		.y0(y0At)
-		.y1(y1At)
-		.defined(definedAt)
-		.curve(curveFactory(curve));
 	ctx.beginPath();
-	traceShape(ctx, areaPath, indexes);
+	traceArea(ctx, { curve, indexes, xAt, y0At, y1At, definedAt });
 	ctx.save();
 	ctx.globalAlpha = 0.1;
 	ctx.fillStyle = color;
 	ctx.fill();
 	ctx.restore();
-	const edge = d3Line<number>().x(xAt).y(y1At).defined(definedAt).curve(curveFactory(curve));
 	ctx.strokeStyle = color;
 	ctx.lineWidth = LINE_WIDTH;
 	ctx.lineJoin = "round";
 	ctx.lineCap = "round";
 	ctx.beginPath();
-	traceShape(ctx, edge, indexes);
+	traceLine(ctx, { curve, indexes, xAt, yAt: y1At, definedAt });
 	ctx.stroke();
 };
 
@@ -471,23 +460,6 @@ const drawDecimatedArea = (
  * structural, so unit tests can record calls without type assertions.
  */
 type PathTraceContext = Pick<PaintContext, "arc" | "moveTo" | "lineTo" | "closePath">;
-
-/**
- * The subset of the 2D context {@link drawCubeFrame} strokes with. It is
- * structural, so unit tests can record calls without type assertions.
- */
-type CubeFrameContext = Pick<
-	PaintContext,
-	| "save"
-	| "restore"
-	| "beginPath"
-	| "moveTo"
-	| "lineTo"
-	| "stroke"
-	| "globalAlpha"
-	| "strokeStyle"
-	| "lineWidth"
->;
 
 /**
  * A closed outline as unit offsets from the glyph's center, in the winding
@@ -680,239 +652,6 @@ const drawMarkers = (
 };
 
 /**
- * Past this many points, scatter marks drop their surface ring (three canvas
- * ops per point → one); past four times this, dots become 2×2 rects (no arc
- * rasterization) so 50k+ point clouds stay in the frame budget.
- */
-const SCATTER_RING_LIMIT = 5000;
-const SCATTER_RECT_LIMIT = 20000;
-
-/**
- * Scatter marks for one series: r≥4 dots with a 2px surface ring, degrading
- * by total point count (ring dropped, then rect fast path). `radiusAt` lets
- * the 3D projection attenuate size with depth; return 0 to skip a point.
- */
-const drawScatterPoints = (
-	ctx: PaintContext,
-	options: {
-		color: string;
-		surface: string;
-		/** The series' point glyph (ignored on the 2×2-rect fast path). */
-		shape: PointShape;
-		/** Total points across ALL series this paint — the degradation input. */
-		totalPointCount: number;
-		indexes: readonly number[];
-		xAt: (index: number) => number;
-		yAt: (index: number) => number;
-		radiusAt: (index: number) => number;
-	},
-): void => {
-	const { color, surface, shape, totalPointCount, indexes, xAt, yAt, radiusAt } = options;
-	ctx.fillStyle = color;
-	if (totalPointCount > SCATTER_RECT_LIMIT) {
-		ctx.beginPath();
-		for (const index of indexes) {
-			if (radiusAt(index) <= 0) {
-				continue;
-			}
-			ctx.rect(xAt(index) - 1, yAt(index) - 1, 2, 2);
-		}
-		ctx.fill();
-		return;
-	}
-	const drawRing = totalPointCount <= SCATTER_RING_LIMIT;
-	ctx.strokeStyle = surface;
-	ctx.lineWidth = MARKER_RING;
-	for (const index of indexes) {
-		const radius = radiusAt(index);
-		if (radius <= 0) {
-			continue;
-		}
-		ctx.beginPath();
-		tracePointShape(ctx, xAt(index), yAt(index), radius, shape);
-		ctx.fill();
-		if (drawRing) {
-			ctx.stroke();
-		}
-	}
-};
-
-/**
- * Depth-sorted scatter marks for the 3D projection: `order` lists point slots
- * back-to-front; radii already carry the perspective attenuation. Rings and
- * the rect fast path degrade by count exactly like the 2D scatter.
- */
-const drawDepthSortedPoints = (
-	ctx: PaintContext,
-	options: {
-		count: number;
-		order: Iterable<number>;
-		screenX: Float64Array;
-		screenY: Float64Array;
-		radius: Float64Array;
-		colorAt: (slot: number) => string;
-		/** Per-slot point glyph (ignored on the rect fast path). */
-		shapeAt: (slot: number) => PointShape;
-		/** Per-slot opacity (series enter reveals) — 1 for settled series. */
-		alphaAt: (slot: number) => number;
-		surface: string;
-	},
-): void => {
-	const { count, order, screenX, screenY, radius, colorAt, shapeAt, alphaAt, surface } = options;
-	ctx.save();
-	if (count > SCATTER_RECT_LIMIT) {
-		let currentColor = "";
-		let currentAlpha = -1;
-		for (const slot of order) {
-			const color = colorAt(slot);
-			if (color !== currentColor) {
-				ctx.fillStyle = color;
-				currentColor = color;
-			}
-			const alpha = alphaAt(slot);
-			if (alpha !== currentAlpha) {
-				ctx.globalAlpha = alpha;
-				currentAlpha = alpha;
-			}
-			const size = Math.max(1, (radius[slot] ?? 0) / 2);
-			ctx.fillRect((screenX[slot] ?? 0) - size / 2, (screenY[slot] ?? 0) - size / 2, size, size);
-		}
-		ctx.restore();
-		return;
-	}
-	const drawRing = count <= SCATTER_RING_LIMIT;
-	ctx.strokeStyle = surface;
-	ctx.lineWidth = MARKER_RING;
-	let currentColor = "";
-	let currentAlpha = -1;
-	for (const slot of order) {
-		const color = colorAt(slot);
-		if (color !== currentColor) {
-			ctx.fillStyle = color;
-			currentColor = color;
-		}
-		const alpha = alphaAt(slot);
-		if (alpha !== currentAlpha) {
-			ctx.globalAlpha = alpha;
-			currentAlpha = alpha;
-		}
-		ctx.beginPath();
-		tracePointShape(ctx, screenX[slot] ?? 0, screenY[slot] ?? 0, radius[slot] ?? 0, shapeAt(slot));
-		ctx.fill();
-		if (drawRing) {
-			ctx.stroke();
-		}
-	}
-	ctx.restore();
-};
-
-/**
- * The 3D scatter's orientation frame: the cube wireframe as hairlines, with
- * the three origin-corner axis edges emphasized in the axis color and
- * labeled.
- */
-const drawCubeFrame = (
-	ctx: CubeFrameContext,
-	options: {
-		gridColor: string;
-		axisColor: string;
-		/** The projected screen positions of the cube's 8 corners. */
-		corners: ReadonlyArray<{ x: number; y: number }>;
-		edges: ReadonlyArray<readonly [number, number]>;
-		/** Wireframe opacity — fades with the 3rd dimension during the morph. */
-		cubeAlpha: number;
-		/** Axis lines with pre-projected screen endpoints (they travel with the
-		 * dimensions morph, hugging the collapsed line/plane). */
-		axes: ReadonlyArray<{
-			label: string;
-			alpha: number;
-			from: { x: number; y: number };
-			to: { x: number; y: number };
-		}>;
-	},
-): void => {
-	const { gridColor, axisColor, corners, edges, cubeAlpha, axes } = options;
-	ctx.save();
-	if (cubeAlpha > 0.01) {
-		ctx.globalAlpha = cubeAlpha;
-		ctx.strokeStyle = gridColor;
-		ctx.lineWidth = 1;
-		ctx.beginPath();
-		for (const [from, to] of edges) {
-			const start = corners[from];
-			const end = corners[to];
-			if (start == null || end == null) {
-				continue;
-			}
-			ctx.moveTo(start.x, start.y);
-			ctx.lineTo(end.x, end.y);
-		}
-		ctx.stroke();
-	}
-
-	ctx.strokeStyle = axisColor;
-	for (const { alpha, from, to } of axes) {
-		if (alpha <= 0.01) {
-			continue;
-		}
-		ctx.globalAlpha = alpha;
-		ctx.beginPath();
-		ctx.moveTo(from.x, from.y);
-		ctx.lineTo(to.x, to.y);
-		ctx.stroke();
-	}
-	ctx.restore();
-};
-
-/**
- * Axis-name labels for the 3D frame, drawn AFTER the points so they stay
- * readable, each placed a fixed distance past whichever end of its axis sits
- * farther from the frame's center — outside the cube, never over the cloud.
- */
-const drawCubeAxisLabels = (
-	ctx: PaintContext,
-	options: {
-		textColor: string;
-		fontFamily: string;
-		plot: PlotRect;
-		center: { x: number; y: number };
-		axes: ReadonlyArray<{
-			label: string;
-			alpha: number;
-			from: { x: number; y: number };
-			to: { x: number; y: number };
-		}>;
-	},
-): void => {
-	const { textColor, fontFamily, plot, center, axes } = options;
-	ctx.save();
-	ctx.fillStyle = textColor;
-	ctx.font = `${AXIS_FONT_SIZE}px ${fontFamily}`;
-	ctx.textAlign = "center";
-	ctx.textBaseline = "middle";
-	for (const { label, alpha, from, to } of axes) {
-		if (alpha <= 0.01) {
-			continue;
-		}
-		const fromDistance = Math.hypot(from.x - center.x, from.y - center.y);
-		const toDistance = Math.hypot(to.x - center.x, to.y - center.y);
-		const anchor = toDistance >= fromDistance ? to : from;
-		const other = toDistance >= fromDistance ? from : to;
-		const length = Math.max(1, Math.hypot(anchor.x - other.x, anchor.y - other.y));
-		const offsetX = ((anchor.x - other.x) / length) * 16;
-		const offsetY = ((anchor.y - other.y) / length) * 16;
-		const labelX = Math.min(
-			plot.left + plot.width - 8,
-			Math.max(plot.left + 8, anchor.x + offsetX),
-		);
-		const labelY = Math.min(plot.top + plot.height - 6, Math.max(plot.top + 6, anchor.y + offsetY));
-		ctx.globalAlpha = alpha;
-		ctx.fillText(label, labelX, labelY);
-	}
-	ctx.restore();
-};
-
-/**
  * A dashed reference line with an optional right-aligned label above it.
  * Dashing is reserved for thresholds (gridlines stay solid) — the dash is
  * what says "this is a marker, not data".
@@ -1034,21 +773,18 @@ export {
 	drawAxisLabels,
 	drawBars,
 	drawBaseline,
-	drawCubeAxisLabels,
-	drawCubeFrame,
 	drawDecimatedArea,
-	drawDepthSortedPoints,
 	drawDecimatedLine,
 	drawGrid,
 	drawHorizontalBars,
 	drawLinePath,
 	drawMarkers,
 	drawReferenceLine,
-	drawScatterPoints,
 	drawVerticalBaseline,
 	drawVerticalReferenceLine,
 	hairline,
 	LINE_WIDTH,
 	MARKER_RADIUS,
+	MARKER_RING,
 	tracePointShape,
 };

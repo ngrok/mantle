@@ -356,7 +356,7 @@ const columns = columnHelper.columns([
 							aria-label={`Requests for ${service.name}, last 30 days`}
 							className="aspect-auto h-6 w-28"
 						>
-							<BarChart.Bar dataKey="count" label="Requests" />
+							<BarChart.Bar dataKey="count" label="Requests" color="blue" />
 						</BarChart.Root>
 						<span className="text-muted min-w-10 text-right text-xs tabular-nums">
 							{compactNumber.format(service.requestTotal)}
@@ -381,7 +381,7 @@ const columns = columnHelper.columns([
 							aria-label={`Deploys for ${service.name}, last 12 weeks`}
 							className="aspect-auto h-6 w-28"
 						>
-							<BarChart.Bar dataKey="count" label="Deploys" />
+							<BarChart.Bar dataKey="count" label="Deploys" color="blue" />
 						</BarChart.Root>
 						<span className="text-muted min-w-10 text-right text-xs tabular-nums">
 							{compactNumber.format(service.deployTotal)}
@@ -489,7 +489,7 @@ Tab through the table: no sparkline is a Tab stop. A screen reader that reaches 
 ## Why sparklines in a list
 
 - **A chart Root mounts dormant.** `BarChart.Root` renders its named plot and description from the first frame and holds no paint surface and no engine until it comes within one viewport of the visible area; the charts on screen activate first, a few milliseconds at a time, so the page never stalls. A list of 100 rows pays for the rows a reader can see.
-- **A sparkline is a static chart.** `mode="static"` names the plot `role="img"` and drops the interaction overlay: no Tab stop, no hover band, no tooltip, no keyboard point cursor, no data table, no live region. Noninteractive is not decorative: the bars still tell a reader when activity happened and how it varied, so each chart keeps a name and a description, and the exact values live in the total beside it. Forty-eight Tab stops in a table is a focus order no reader wants, and a readout only a pointer can reach fails WCAG 1.4.13.
+- **A sparkline is a static chart.** `mode="static"` names the plot `role="img"` and drops the interaction overlay: no Tab stop, no hover band, no tooltip, no keyboard point cursor, no data table, no live region. Noninteractive is not decorative: the bars still tell a reader when activity happened and how it varied, so each chart keeps a name and a description, and the exact values live in the total beside it. Forty-eight Tab stops in a table is a focus order no reader wants, and a readout only a pointer can reach fails WCAG 2.2 SC 2.1.1 (Keyboard).
 - **No chart is a Tab stop, so no reveal plays.** A static chart defaults `animate` to `false`. A list of sparklines that each draw in as the reader scrolls is motion with no information in it.
 - **The description is always there.** The plot's `aria-describedby` points at a screen-reader-only sentence the Root renders from the first frame: the chart kind, the category count, the first and last category, and the series label: "Bar chart with 30 categories from Sep 9, 2026 to Oct 8, 2026. Series: Requests." Each chart's name tells it apart from the other 47: the row and the measure, `Requests for edge-router, last 30 days`.
 - **A sparkline is a chart with the chrome removed.** No axes, no grid, no legend. The row is 24px tall, and the total beside the chart carries the magnitude.

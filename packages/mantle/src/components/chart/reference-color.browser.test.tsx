@@ -14,8 +14,8 @@ import { CanvasLineChartRoot } from "../../test-utils/canvas-chart-roots.js";
  */
 const STYLE = `
 :root {
-	--color-chart-1: #3e6ff4;
-	--color-chart-other: #737373;
+	--color-chart-blue: #3e6ff4;
+	--color-chart-neutral: #737373;
 	--border-color-card-muted: #e5e5e5;
 	--border-color-card: #d4d4d4;
 	--text-color-muted: #717171;
@@ -78,7 +78,7 @@ test("custom reference-line colors resolve through the color pass's one style re
 	const { container } = render(
 		<div style={{ width: 400, height: 200 }}>
 			<CanvasLineChartRoot data={data} xKey="time" animate={false} aria-label="Latency">
-				<LineChart.Line dataKey="p50" label="p50" />
+				<LineChart.Line dataKey="p50" label="p50" color="blue" />
 				<LineChart.ReferenceLine y={125} label="SLO" color="#e40014" />
 				<LineChart.ReferenceLine y={115} color="#0044ff" />
 			</CanvasLineChartRoot>

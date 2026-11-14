@@ -52,19 +52,6 @@ type PaintContext = {
 	measureText(text: string): { width: number };
 };
 
-/** A context that also takes SVG path data, which a d3-shape generator writes as a string. */
-type PathDataContext = PaintContext & {
-	/** Append SVG path data to the current path. */
-	appendPathData(data: string): void;
-};
-
-/**
- * Whether `context` takes SVG path data directly. The SVG recorder does; a
- * canvas context does not.
- */
-const acceptsPathData = (context: PaintContext): context is PathDataContext =>
-	"appendPathData" in context && typeof context.appendPathData === "function";
-
 /** The left-edge scroll mask of a streaming chart, in CSS pixels. */
 type EdgeFade = {
 	left: number;
@@ -146,7 +133,14 @@ type PaintBackendOptions = {
 };
 
 /** Builds the paint backend of one chart at activation. */
-type PaintBackendFactory = (options: PaintBackendOptions) => PaintBackend;
+type PaintBackendFactory = {
+	(options: PaintBackendOptions): PaintBackend;
+	/**
+	 * Which surface the factory builds. The Root reads it before a backend
+	 * exists: a dormant chart must know whether its surface holds a bitmap.
+	 */
+	kind: PaintBackend["kind"];
+};
 
 export type {
 	//,
@@ -155,10 +149,5 @@ export type {
 	PaintBackendFactory,
 	PaintBackendOptions,
 	PaintContext,
-	PathDataContext,
 	ResolvedPaint,
-};
-export {
-	//,
-	acceptsPathData,
 };

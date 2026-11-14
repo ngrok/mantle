@@ -13,10 +13,10 @@ import { ScatterPlot } from "./scatter-plot.js";
  */
 const STYLE = `
 :root {
-	--color-chart-1: #3e6ff4;
-	--color-chart-2: #008138;
-	--color-chart-8: #4f39f6;
-	--color-chart-other: #737373;
+	--color-chart-blue: #3e6ff4;
+	--color-chart-emerald: #008138;
+	--color-chart-amber: #4f39f6;
+	--color-chart-neutral: #737373;
 	--border-color-card-muted: #e5e5e5;
 	--border-color-card: #d4d4d4;
 	--text-color-muted: #717171;
@@ -79,13 +79,6 @@ const points3d = Array.from({ length: 60 }, (_, index) => ({
 	y: Math.cos(index * 1.3) * 30 + 50,
 	depth: ((index * 37) % 100) + 1,
 }));
-
-const mustBeCanvas = (element: Element | null): HTMLCanvasElement => {
-	if (element instanceof HTMLCanvasElement) {
-		return element;
-	}
-	throw new Error("expected the chart canvas to render");
-};
 
 const mustBeOverlay = (element: Element | null): HTMLElement => {
 	if (element instanceof HTMLElement) {
@@ -183,44 +176,6 @@ const measureInk = (canvas: HTMLCanvasElement, predicate: InkPredicate): InkBox 
 	};
 };
 
-const countOpaquePixels = (canvas: HTMLCanvasElement): number => {
-	const context = canvas.getContext("2d");
-	if (context == null || canvas.width === 0 || canvas.height === 0) {
-		return 0;
-	}
-	const image = context.getImageData(0, 0, canvas.width, canvas.height);
-	let count = 0;
-	for (let offset = 3; offset < image.data.length; offset += 4) {
-		if ((image.data[offset] ?? 0) > 200) {
-			count += 1;
-		}
-	}
-	return count;
-};
-
-/** Every painted byte of a canvas, for pixel-exact comparison between frames. */
-const framePixels = (canvas: HTMLCanvasElement): Uint8ClampedArray => {
-	const context = canvas.getContext("2d");
-	if (context == null || canvas.width === 0 || canvas.height === 0) {
-		throw new Error("expected a sized canvas with a 2d context");
-	}
-	return context.getImageData(0, 0, canvas.width, canvas.height).data;
-};
-
-/** How many bytes two equally sized frames disagree on. */
-const differingBytes = (left: Uint8ClampedArray, right: Uint8ClampedArray): number => {
-	if (left.length !== right.length) {
-		throw new Error("expected two frames of the same size");
-	}
-	let count = 0;
-	for (let offset = 0; offset < left.length; offset++) {
-		if (left[offset] !== right[offset]) {
-			count += 1;
-		}
-	}
-	return count;
-};
-
 /** A full press+release at a point inside the interaction overlay, in CSS pixels. */
 const pressAt = (overlay: HTMLElement, cssX: number, cssY: number): void => {
 	const rect = overlay.getBoundingClientRect();
@@ -241,7 +196,7 @@ const render3d = (dimensions: 1 | 2 | 3) =>
 				animate={false}
 				aria-label="3D cloud"
 			>
-				<ScatterPlot.Point dataKey="y" label="Cluster" color="chart-1" />
+				<ScatterPlot.Point dataKey="y" label="Cluster" color="blue" />
 			</ScatterPlot.Root>
 		</div>,
 	);
@@ -285,18 +240,33 @@ describe("ScatterPlot 3D painting", () => {
 		);
 	});
 
-	test("dragging the overlay rotates the camera and repaints a different frame", async () => {
+	/** The red channel of every tenth pixel: enough to tell one camera view from another. */
+	const sampleFrame = (canvas: HTMLCanvasElement): number[] => {
+		const context = canvas.getContext("2d");
+		if (context == null) {
+			throw new Error("expected a 2d context");
+		}
+		const { data } = context.getImageData(0, 0, canvas.width, canvas.height);
+		const samples: number[] = [];
+		for (let offset = 0; offset < data.length; offset += 40) {
+			samples.push(data[offset] ?? 0);
+		}
+		return samples;
+	};
+
+	/** How many samples differ between two frames. */
+	const changedSamples = (frame: readonly number[], other: readonly number[]): number =>
+		frame.filter((sample, index) => sample !== other[index]).length;
+
+	/** Render the cube, turn its camera with a drag, and wait for the frame of the new view. */
+	const renderRotated = async () => {
 		const { container } = render3d(3);
 		const canvas = await findChartCanvas(container);
 		const overlay = mustBeOverlay(container.querySelector('[role="application"]'));
 		await waitFor(() => {
 			expect(measureInk(canvas, isChart1Ink).count).toBeGreaterThan(600);
 		});
-		const context = canvas.getContext("2d");
-		if (context == null) {
-			throw new Error("expected a 2d context");
-		}
-		const before = context.getImageData(0, 0, canvas.width, canvas.height).data;
+		const initial = sampleFrame(canvas);
 		const rect = overlay.getBoundingClientRect();
 		const startX = rect.left + rect.width / 2;
 		const startY = rect.top + rect.height / 2;
@@ -318,86 +288,26 @@ describe("ScatterPlot 3D painting", () => {
 			}),
 		);
 		await waitFor(() => {
-			const after = context.getImageData(0, 0, canvas.width, canvas.height).data;
-			let changed = 0;
-			for (let offset = 0; offset < after.length; offset += 40) {
-				if (after[offset] !== before[offset]) {
-					changed += 1;
-				}
-			}
-			expect(changed).toBeGreaterThan(100);
+			expect(changedSamples(sampleFrame(canvas), initial)).toBeGreaterThan(100);
 		});
-	});
-});
-
-describe("ScatterPlot slot-paired point glyphs on the canvas", () => {
-	const cloud = Array.from({ length: 40 }, (_unused, index) => ({
-		x: Math.sin(index * 0.7) * 40 + 50,
-		y: Math.cos(index * 1.3) * 30 + 50,
-		depth: ((index * 37) % 100) + 1,
-	}));
-
-	/**
-	 * Three clouds that differ only in the glyph they should paint: one that
-	 * sets no `shape`, one that names the star its slot pairs with, and one that
-	 * names the circle the series used to fall back to. All three fix slot 8, so
-	 * they carry one color and one layout — a byte that differs between two of
-	 * them is a differing marker path and nothing else.
-	 */
-	const renderGlyphTrio = ({ zKey }: { zKey: "depth" | undefined }) =>
-		render(
-			<div style={{ display: "flex" }}>
-				{(
-					[
-						["paired", undefined],
-						["star", "star"],
-						["circle", "circle"],
-					] as const
-				).map(([name, shape]) => (
-					<div key={name} data-cloud={name} style={{ width: 300, height: 220 }}>
-						<ScatterPlot.Root
-							data={cloud}
-							xKey="x"
-							zKey={zKey}
-							animate={false}
-							aria-label={`${name} cloud`}
-						>
-							<ScatterPlot.Point dataKey="y" label="Cluster" seriesSlot={8} shape={shape} />
-						</ScatterPlot.Root>
-					</div>
-				))}
-			</div>,
-		);
-
-	/** Assert the cloud that set no `shape` paints the star its slot pairs with. */
-	const expectPairedGlyph = async (container: HTMLElement) => {
-		const canvasFor = (name: string) =>
-			mustBeCanvas(container.querySelector(`[data-cloud="${name}"] canvas`));
-		await waitFor(() => {
-			for (const name of ["paired", "star", "circle"]) {
-				expect(countOpaquePixels(canvasFor(name))).toBeGreaterThan(200);
-			}
-			expect(differingBytes(framePixels(canvasFor("paired")), framePixels(canvasFor("star")))).toBe(
-				0,
-			);
-			expect(
-				differingBytes(framePixels(canvasFor("paired")), framePixels(canvasFor("circle"))),
-			).toBeGreaterThan(2000);
-		});
+		return { canvas, initial, rotated: sampleFrame(canvas) };
 	};
 
-	test("a series that sets no shape paints its slot's glyph, not the circle", async () => {
-		// The canvas resolves the glyph through the store, exactly as the legend
-		// key and the hover dot do. Reading the raw `shape` prop here would paint
-		// circles under star-shaped legend keys. Only pixels can see that.
-		await expectPairedGlyph(renderGlyphTrio({ zKey: undefined }).container);
+	test("dragging the overlay rotates the camera and repaints a different frame", async () => {
+		const { initial, rotated } = await renderRotated();
+
+		expect(changedSamples(rotated, initial)).toBeGreaterThan(100);
 	});
 
-	test("the depth-sorted 3D cloud pairs its glyph the same way", async () => {
-		// The projection resolves every series' glyph once per frame instead of
-		// per point, so it is a second call site that can drift back to the raw
-		// prop on its own.
-		await expectPairedGlyph(renderGlyphTrio({ zKey: "depth" }).container);
+	test("a print keeps the view that a drag gave the camera", async () => {
+		const { canvas, rotated } = await renderRotated();
+
+		// The Root paints the print frame inside the `beforeprint` event.
+		window.dispatchEvent(new Event("beforeprint"));
+		const printed = sampleFrame(canvas);
+		window.dispatchEvent(new Event("afterprint"));
+
+		expect(changedSamples(printed, rotated)).toBe(0);
 	});
 });
 
@@ -421,8 +331,8 @@ describe("ScatterPlot pointer hit testing", () => {
 					aria-label="Latency by region"
 					onDatumActivate={onDatumActivate}
 				>
-					<ScatterPlot.Point dataKey="alpha" label="Alpha" color="chart-1" />
-					<ScatterPlot.Point dataKey="beta" label="Beta" color="chart-2" />
+					<ScatterPlot.Point dataKey="alpha" label="Alpha" color="blue" />
+					<ScatterPlot.Point dataKey="beta" label="Beta" color="emerald" />
 				</ScatterPlot.Root>
 			</div>,
 		);

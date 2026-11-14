@@ -5,19 +5,18 @@ import type {
 	PaintBackendFactory,
 	PaintBackendOptions,
 	PaintContext,
-	PathDataContext,
 	ResolvedPaint,
 } from "./paint-backend.js";
 import type { BarOrientation, SeriesMeta } from "./types.js";
 import { CHART_CHROME_CSS, cssSeriesColor } from "./colors.js";
-import { paintTextureTile, TEXTURE_TILE_SIZE, textureInkColor } from "./texture.js";
+import { paintTextureTile, TEXTURE_TILE_SIZE, textureGroundColor } from "./texture.js";
 
 /**
  * The SVG paint backend: one `<svg>` per chart, in CSS pixels. It records the
  * renderer's 2D drawing calls and writes them as one `<path>` per run of calls
  * that share a style, so a bar series is one path and a line is one path.
  *
- * Colors stay CSS: a series paints `var(--color-chart-1)` and the browser
+ * Colors stay CSS: a series paints `var(--color-chart-blue)` and the browser
  * resolves it. A theme switch repaints no chart, and the backend reads no
  * computed style, watches no theme attribute, and holds no bitmap.
  *
@@ -138,7 +137,7 @@ const intersect = (a: ClipRect | null, b: ClipRect): ClipRect => {
  * Records 2D drawing calls as SVG marks. It holds no DOM: {@link SvgSurface}
  * writes what it recorded.
  */
-class SvgRecorder implements PathDataContext {
+class SvgRecorder implements PaintContext {
 	#state: DrawState = { ...INITIAL_STATE };
 	#stack: DrawState[] = [];
 	#path: string[] = [];
@@ -331,12 +330,6 @@ class SvgRecorder implements PathDataContext {
 			const large = sweep > Math.PI ? 1 : 0;
 			this.#path.push(`A${r} ${r} 0 ${large} 1 ${coordinate(endX)} ${coordinate(endY)}`);
 		}
-		this.#pathRect = null;
-		this.#hasCurrentPoint = true;
-	}
-
-	appendPathData(data: string): void {
-		this.#path.push(data);
 		this.#pathRect = null;
 		this.#hasCurrentPoint = true;
 	}
@@ -732,7 +725,7 @@ class SvgBackend implements PaintBackend {
 		pattern.setAttribute("width", String(TEXTURE_TILE_SIZE));
 		pattern.setAttribute("height", String(TEXTURE_TILE_SIZE));
 		const tile = new SvgRecorder(document);
-		paintTextureTile(tile, { texture, color, ink: textureInkColor(color), orientation });
+		paintTextureTile(tile, { texture, ground: textureGroundColor(color), ink: color, orientation });
 		const group = document.createElementNS(SVG_NAMESPACE, "g");
 		for (const mark of tile.marks.overlay) {
 			if (mark.type !== "path") {
@@ -779,6 +772,9 @@ class SvgBackend implements PaintBackend {
 
 	end(): void {
 		this.#surface.write(this.#recorder, this.#fade);
+		// Why drop the marks now: a chart at rest begins no next frame, and the
+		// marks hold every path string of this one.
+		this.#recorder.reset();
 	}
 
 	release(): void {}
@@ -795,7 +791,10 @@ class SvgBackend implements PaintBackend {
  * plot.prepend(backend.element);
  * ```
  */
-const createSvgBackend: PaintBackendFactory = (options) => new SvgBackend(options);
+const createSvgBackend: PaintBackendFactory = Object.assign(
+	(options: PaintBackendOptions): PaintBackend => new SvgBackend(options),
+	{ kind: "svg" as const },
+);
 
 export {
 	//,

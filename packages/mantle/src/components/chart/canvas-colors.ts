@@ -93,7 +93,7 @@ const PARSE_SENTINELS = ["#010203", "#030201"] as const;
  * @example
  * ```ts
  * canvasParses(context, "oklch(0.62 0.2 259)"); // true
- * canvasParses(context, "var(--color-chart-1)"); // false
+ * canvasParses(context, "var(--color-chart-blue)"); // false
  * ```
  */
 // Why a cache: every chart on a page resolves the same token values, and a
@@ -164,7 +164,7 @@ const UNRESOLVED = /var\(|currentcolor|light-dark\(/i;
  *   computed: getComputedStyle(root),
  *   parseContext: colorParseContext(root.ownerDocument),
  * });
- * resolver.resolve("var(--color-chart-1)"); // "oklch(62.2% .203 259)"
+ * resolver.resolve("var(--color-chart-blue)"); // "oklch(62.2% .203 259)"
  * ```
  */
 const createColorResolver = (
@@ -207,7 +207,7 @@ const createColorResolver = (
  *
  * @example
  * ```ts
- * resolveSeriesColor(resolver, "chart-2"); // "oklch(47.8% .106 159.7)"
+ * resolveSeriesColor(resolver, "emerald"); // "oklch(47.8% .106 159.7)"
  * resolveSeriesColor(resolver, "#e40014"); // "#e40014"
  * ```
  */

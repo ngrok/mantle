@@ -1,40 +1,38 @@
 "use client";
 
+import type { ChartAccessibilityProps, ChartMode } from "../chart/context.js";
+import { ChartCopyButtonPrimitive } from "../chart/copy-button.js";
+import type { CopyButtonPrimitiveProps } from "../chart/copy-button.js";
+import { ChartLegendPrimitive } from "../chart/legend.js";
+import type { LegendPrimitiveProps } from "../chart/legend.js";
+import { ChartListPrimitive } from "../chart/list.js";
+import type { ChartListPrimitiveProps } from "../chart/list.js";
+import {
+	useGridPrimitive,
+	useReferenceLinePrimitive,
+	useSeriesPrimitive,
+	useXAxisPrimitive,
+	useYAxisPrimitive,
+} from "../chart/registration.js";
 import type {
-	ChartAccessibilityProps,
-	ChartListPrimitiveProps,
-	ChartMode,
-	ChartRootBaseProps,
-	CopyButtonPrimitiveProps,
 	GridPrimitiveProps,
-	LegendPrimitiveProps,
 	ReferenceLinePrimitiveProps,
-	TooltipPrimitiveProps,
 	XAxisPrimitiveProps,
 	YAxisPrimitiveProps,
-} from "../chart/primitive.js";
+} from "../chart/registration.js";
+import { ChartRootPrimitive } from "../chart/root.js";
+import type { ChartRootBaseProps } from "../chart/root.js";
+import { useTooltipPrimitive } from "../chart/tooltip.js";
+import type { TooltipPrimitiveProps } from "../chart/tooltip.js";
 import type {
 	ChartDatum,
 	ChartDatumEvent,
-	ChartSeriesSlot,
 	ContinuousXScale,
 	CurveKind,
 	PointShape,
 	SeriesColor,
 } from "../chart/types.js";
 import { createSvgBackend } from "../chart/svg-backend.js";
-import {
-	ChartCopyButtonPrimitive,
-	ChartLegendPrimitive,
-	ChartListPrimitive,
-	ChartRootPrimitive,
-	useGridPrimitive,
-	useReferenceLinePrimitive,
-	useSeriesPrimitive,
-	useTooltipPrimitive,
-	useXAxisPrimitive,
-	useYAxisPrimitive,
-} from "../chart/primitive.js";
 
 /**
  * Props for {@link AreaChart.List}.
@@ -80,28 +78,20 @@ type AreaChartAreaProps = {
 	/** Display name for the legend, tooltip, and data table. Defaults to `dataKey`. */
 	label?: string;
 	/**
-	 * A fixed visual identity slot. Slots `1` through `8` select a paired chart
-	 * color and point shape. `"other"` selects the shared neutral treatment.
+	 * The color the series paints: a mantle color name, the same `Color` that
+	 * `Badge` takes, or any CSS color. Required: name every series' color on
+	 * purpose. Give an "Other" series `"neutral"`, and a series that means good
+	 * or bad a functional color such as `"danger"`.
 	 *
-	 * Series receive unreserved slots in composition order. Set `seriesSlot` to
-	 * give a series a fixed visual identity.
+	 * A static CSS color (raw hex) cannot follow the two themes, so prefer a
+	 * `var(--your-token)` declared per theme.
 	 *
 	 * @example
 	 * ```tsx
-	 * <AreaChart.Area dataKey="errors" seriesSlot={4} />
+	 * <AreaChart.Area dataKey="egress" label="Egress" color="blue" />
 	 * ```
 	 */
-	seriesSlot?: ChartSeriesSlot;
-	/**
-	 * Override the color channel with a chart token or any CSS color. This does
-	 * not change the series slot or its paired point shape. When omitted, the
-	 * series paints the color from its slot.
-	 *
-	 * A static color (raw hex) cannot follow the two themes, so prefer a
-	 * `var(--your-token)` declared per theme. A series that carries good/bad
-	 * meaning should wear the semantic status colors, never a categorical slot.
-	 */
-	color?: SeriesColor;
+	color: SeriesColor;
 	/**
 	 * Interpolation between points: `"linear"` (default), `"monotone"`
 	 * (smoothed), or `"step"`.
@@ -116,8 +106,7 @@ type AreaChartAreaProps = {
 	 * The glyph the hover dot and the legend key wear: `"circle"`, `"square"`,
 	 * `"triangle"`, `"diamond"`, `"triangle-down"`, `"plus"`, `"cross"`, or
 	 * `"star"`. Shape is a redundant encoding alongside color that keeps series
-	 * distinguishable without color vision. When omitted, the series wears the
-	 * glyph paired to its series slot, so both channels name one slot.
+	 * distinguishable without color vision. Defaults to `"circle"`.
 	 */
 	shape?: PointShape;
 };
@@ -170,7 +159,7 @@ type AreaChartCopyButtonProps = CopyButtonPrimitiveProps;
  * painting. Compose the chrome and series parts as children.
  *
  * A Root mounts dormant: a shell of the plot, the named overlay, and its
- * sr-only description. It builds its paint surface, its hover layers, and its engine
+ * sr-only description. It builds its paint surface and its engine
  * once it comes within one viewport of the visible area, takes focus, or
  * prints (on-screen charts first, a few milliseconds at a time), and it mounts
  * the sr-only data table once focus lands inside it. A list of charts pays
@@ -184,8 +173,9 @@ type AreaChartCopyButtonProps = CopyButtonPrimitiveProps;
  * `area-chart-description`, and, once focus lands inside the chart,
  * `area-chart-data-table`. An area chart shows the crosshair and one marker
  * dot per series, and never the band. The surface and the three layers are
- * engine-owned: absent from server HTML and from a dormant chart, inserted at
- * activation (near the viewport, on focus, or before print). A static or
+ * engine-owned: absent from server HTML and from a dormant chart. The surface arrives at activation (near the viewport, on
+ * focus, or before print), and the layers arrive on the first hover or
+ * keyboard step. A static or
  * decorative chart inserts the surface alone. The tooltip
  * surface mounts on the first hover or keyboard step and stays.
  * Each hover dot carries `chart-active-point` plus a `data-shape` of
@@ -214,8 +204,8 @@ type AreaChartCopyButtonProps = CopyButtonPrimitiveProps;
  *   <AreaChart.Grid />
  *   <AreaChart.XAxis />
  *   <AreaChart.YAxis />
- *   <AreaChart.Area dataKey="http" label="HTTP" />
- *   <AreaChart.Area dataKey="tcp" label="TCP" />
+ *   <AreaChart.Area dataKey="http" label="HTTP" color="blue" />
+ *   <AreaChart.Area dataKey="tcp" label="TCP" color="emerald" />
  *   <AreaChart.Tooltip />
  *   <AreaChart.Legend />
  * </AreaChart.Root>
@@ -248,8 +238,8 @@ const Root = <TDatum extends ChartDatum = ChartDatum, TMode extends ChartMode = 
  *   <AreaChart.Grid />
  *   <AreaChart.XAxis />
  *   <AreaChart.YAxis />
- *   <AreaChart.Area dataKey="http" label="HTTP" />
- *   <AreaChart.Area dataKey="tcp" label="TCP" />
+ *   <AreaChart.Area dataKey="http" label="HTTP" color="blue" />
+ *   <AreaChart.Area dataKey="tcp" label="TCP" color="emerald" />
  *   <AreaChart.Tooltip />
  *   <AreaChart.Legend />
  * </AreaChart.Root>
@@ -269,8 +259,8 @@ const Area = (props: AreaChartAreaProps) => useSeriesPrimitive("AreaChart.Area",
  *   <AreaChart.Grid />
  *   <AreaChart.XAxis />
  *   <AreaChart.YAxis />
- *   <AreaChart.Area dataKey="http" label="HTTP" />
- *   <AreaChart.Area dataKey="tcp" label="TCP" />
+ *   <AreaChart.Area dataKey="http" label="HTTP" color="blue" />
+ *   <AreaChart.Area dataKey="tcp" label="TCP" color="emerald" />
  *   <AreaChart.Tooltip />
  *   <AreaChart.Legend />
  * </AreaChart.Root>
@@ -290,8 +280,8 @@ const Grid = (props: AreaChartGridProps) => useGridPrimitive("AreaChart.Grid", p
  *   <AreaChart.Grid />
  *   <AreaChart.XAxis tickFormat={(date) => new Date(date).toLocaleDateString()} />
  *   <AreaChart.YAxis />
- *   <AreaChart.Area dataKey="http" label="HTTP" />
- *   <AreaChart.Area dataKey="tcp" label="TCP" />
+ *   <AreaChart.Area dataKey="http" label="HTTP" color="blue" />
+ *   <AreaChart.Area dataKey="tcp" label="TCP" color="emerald" />
  *   <AreaChart.Tooltip />
  *   <AreaChart.Legend />
  * </AreaChart.Root>
@@ -311,8 +301,8 @@ const XAxis = (props: AreaChartXAxisProps) => useXAxisPrimitive("AreaChart.XAxis
  *   <AreaChart.Grid />
  *   <AreaChart.XAxis />
  *   <AreaChart.YAxis tickFormat={(value) => `${value / 1000}k`} />
- *   <AreaChart.Area dataKey="http" label="HTTP" />
- *   <AreaChart.Area dataKey="tcp" label="TCP" />
+ *   <AreaChart.Area dataKey="http" label="HTTP" color="blue" />
+ *   <AreaChart.Area dataKey="tcp" label="TCP" color="emerald" />
  *   <AreaChart.Tooltip />
  *   <AreaChart.Legend />
  * </AreaChart.Root>
@@ -332,8 +322,8 @@ const YAxis = (props: AreaChartYAxisProps) => useYAxisPrimitive("AreaChart.YAxis
  *   <AreaChart.Grid />
  *   <AreaChart.XAxis />
  *   <AreaChart.YAxis />
- *   <AreaChart.Area dataKey="http" label="HTTP" />
- *   <AreaChart.Area dataKey="tcp" label="TCP" />
+ *   <AreaChart.Area dataKey="http" label="HTTP" color="blue" />
+ *   <AreaChart.Area dataKey="tcp" label="TCP" color="emerald" />
  *   <AreaChart.ReferenceLine y={6000} label="Capacity" />
  *   <AreaChart.Tooltip />
  *   <AreaChart.Legend />
@@ -370,8 +360,8 @@ const ReferenceLine = (props: AreaChartReferenceLineProps) =>
  *   <AreaChart.Grid />
  *   <AreaChart.XAxis />
  *   <AreaChart.YAxis />
- *   <AreaChart.Area dataKey="http" label="HTTP" />
- *   <AreaChart.Area dataKey="tcp" label="TCP" />
+ *   <AreaChart.Area dataKey="http" label="HTTP" color="blue" />
+ *   <AreaChart.Area dataKey="tcp" label="TCP" color="emerald" />
  *   <AreaChart.Tooltip valueFormat={(value) => `${value} requests`} footer="Click to view logs" />
  *   <AreaChart.Legend />
  * </AreaChart.Root>
@@ -398,7 +388,7 @@ const Tooltip = (props: AreaChartTooltipProps) => useTooltipPrimitive("AreaChart
  * | --- | --- | --- |
  * | `data-slot` | `"area-chart-legend"` | The legend list. `AreaChart.Legend` renders it in flow below the plot. |
  * | `data-slot` | `"area-chart-legend-label"` | On the `<div>` wrapping a `children` render prop. The default legend has none. |
- * | `data-shape` | `"circle"` \| `"square"` \| `"triangle"` \| `"diamond"` \| `"triangle-down"` \| `"plus"` \| `"cross"` \| `"star"` | On each series' swatch, naming the glyph its `AreaChart.Area` wears — the `shape` it set, else the one paired to its series slot. The swatch clips itself to that glyph, so target this only to restyle a key. |
+ * | `data-shape` | `"circle"` \| `"square"` \| `"triangle"` \| `"diamond"` \| `"triangle-down"` \| `"plus"` \| `"cross"` \| `"star"` | On each series' swatch, naming the glyph its `AreaChart.Area` wears — the `shape` it set, else the circle. The swatch clips itself to that glyph, so target this only to restyle a key. |
  *
  * @see https://mantle.ngrok.com/components/charts/area-chart#areachartlegend
  *
@@ -408,8 +398,8 @@ const Tooltip = (props: AreaChartTooltipProps) => useTooltipPrimitive("AreaChart
  *   <AreaChart.Grid />
  *   <AreaChart.XAxis />
  *   <AreaChart.YAxis />
- *   <AreaChart.Area dataKey="http" label="HTTP" />
- *   <AreaChart.Area dataKey="tcp" label="TCP" />
+ *   <AreaChart.Area dataKey="http" label="HTTP" color="blue" />
+ *   <AreaChart.Area dataKey="tcp" label="TCP" color="emerald" />
  *   <AreaChart.Tooltip />
  *   <AreaChart.Legend />
  * </AreaChart.Root>
@@ -432,8 +422,8 @@ const Legend = (props: AreaChartLegendProps) => (
  * @example
  * ```tsx
  * <AreaChart.Root data={data} xKey="date" stacked aria-label="Traffic by protocol">
- *   <AreaChart.Area dataKey="http" label="HTTP" />
- *   <AreaChart.Area dataKey="tcp" label="TCP" />
+ *   <AreaChart.Area dataKey="http" label="HTTP" color="blue" />
+ *   <AreaChart.Area dataKey="tcp" label="TCP" color="emerald" />
  *   <AreaChart.Legend />
  *   <AreaChart.CopyButton />
  * </AreaChart.Root>
@@ -445,10 +435,9 @@ const CopyButton = (props: AreaChartCopyButtonProps) => (
 
 /**
  * Groups a list of charts, such as one chart per card, so they share one
- * tooltip surface and one live region. The surface moves into the chart a
- * reader points at or steps through, so a page of 100 charts mounts one
- * tooltip and one `role="status"` region instead of one per chart. Each chart
- * keeps its own Tooltip part, description, and data table.
+ * `role="status"` live region. A page of 100 charts mounts one region instead
+ * of one per chart, plus one for each `AreaChart.CopyButton`. Each chart keeps
+ * its own tooltip, description, and data table.
  *
  * Renders a `div` (`area-chart-list`) that holds the charts in a `display: contents`
  * wrapper (`area-chart-list-items`), so a grid or flex layout on the List reaches
@@ -462,7 +451,7 @@ const CopyButton = (props: AreaChartCopyButtonProps) => (
  * <AreaChart.List>
  *   {agents.map((agent) => (
  *     <AreaChart.Root key={agent.id} data={agent.rows} xKey="date" aria-label={agent.name}>
- *       <AreaChart.Area dataKey="http" label="HTTP" />
+ *       <AreaChart.Area dataKey="http" label="HTTP" color="blue" />
  *       <AreaChart.Tooltip />
  *     </AreaChart.Root>
  *   ))}
@@ -478,9 +467,7 @@ const List = (props: AreaChartListProps) => (
  * total and its parts — change over a continuous x axis. Each area fills with
  * a 10% wash of the series color plus a 2px band-edge stroke; the Root-level
  * `stacked` prop stacks the series in registration order from the baseline.
- * Series colors come from the theme's validated `--color-chart-*`
- * tokens; areas keep a fixed slot color for the chart's lifetime even as
- * other series are filtered in and out. Interaction ships with `Root`
+ * Each series names its own `color`. Interaction ships with `Root`
  * unconditionally: a crosshair with an every-series tooltip, keyboard
  * stepping, aria-live announcements, and an sr-only description. A Root builds
  * and paints its surface once it comes within one viewport of the visible
@@ -491,13 +478,12 @@ const List = (props: AreaChartListProps) => (
  *
  * | CSS Variable | Default | Description |
  * | --- | --- | --- |
- * | `--color-chart-1` … `--color-chart-8` | per theme | The validated categorical series slots, in assignment order. |
- * | `--color-chart-other` | `--color-neutral-500` | The neutral overflow slot a series wears once every slot is held. |
+ * | `--color-chart-<name>` | per theme | The color a series with `color="<name>"` paints. Every mantle color name has one: the 600 step of its hue in light mode, and the 500 step in dark mode. Most names reach 3:1 contrast on the card surface, and the docs page lists the names that do not. |
  *
  * Two ways to change a series color, both public API. The `color` prop on
- * `AreaChart.Area` sets one series and takes any CSS color. To restyle a slot itself,
- * redeclare its token on `Root` —
- * `className="[--color-chart-1:var(--color-brand)]"`. Every token resolves in
+ * `AreaChart.Area` takes a color name or any CSS color. To restyle a color name for one chart,
+ * redeclare its token on `Root`:
+ * `className="[--color-chart-blue:var(--color-brand)]"`. Every token resolves in
  * `Root`'s own cascade, so a declaration scoped there wins for
  * that chart and leaves every other chart on the page alone.
  *
@@ -542,8 +528,8 @@ const List = (props: AreaChartListProps) => (
  *   <AreaChart.Grid />
  *   <AreaChart.XAxis />
  *   <AreaChart.YAxis />
- *   <AreaChart.Area dataKey="http" label="HTTP" />
- *   <AreaChart.Area dataKey="tcp" label="TCP" />
+ *   <AreaChart.Area dataKey="http" label="HTTP" color="blue" />
+ *   <AreaChart.Area dataKey="tcp" label="TCP" color="emerald" />
  *   <AreaChart.Tooltip />
  *   <AreaChart.Legend />
  * </AreaChart.Root>
@@ -562,8 +548,8 @@ const AreaChart = {
 	 *   <AreaChart.Grid />
 	 *   <AreaChart.XAxis />
 	 *   <AreaChart.YAxis />
-	 *   <AreaChart.Area dataKey="http" label="HTTP" />
-	 *   <AreaChart.Area dataKey="tcp" label="TCP" />
+	 *   <AreaChart.Area dataKey="http" label="HTTP" color="blue" />
+	 *   <AreaChart.Area dataKey="tcp" label="TCP" color="emerald" />
 	 *   <AreaChart.Tooltip />
 	 *   <AreaChart.Legend />
 	 * </AreaChart.Root>
@@ -581,8 +567,8 @@ const AreaChart = {
 	 *   <AreaChart.Grid />
 	 *   <AreaChart.XAxis />
 	 *   <AreaChart.YAxis />
-	 *   <AreaChart.Area dataKey="http" label="HTTP" />
-	 *   <AreaChart.Area dataKey="tcp" label="TCP" />
+	 *   <AreaChart.Area dataKey="http" label="HTTP" color="blue" />
+	 *   <AreaChart.Area dataKey="tcp" label="TCP" color="emerald" />
 	 *   <AreaChart.Tooltip />
 	 *   <AreaChart.Legend />
 	 * </AreaChart.Root>
@@ -600,8 +586,8 @@ const AreaChart = {
 	 *   <AreaChart.Grid />
 	 *   <AreaChart.XAxis />
 	 *   <AreaChart.YAxis />
-	 *   <AreaChart.Area dataKey="http" label="HTTP" />
-	 *   <AreaChart.Area dataKey="tcp" label="TCP" />
+	 *   <AreaChart.Area dataKey="http" label="HTTP" color="blue" />
+	 *   <AreaChart.Area dataKey="tcp" label="TCP" color="emerald" />
 	 *   <AreaChart.Tooltip />
 	 *   <AreaChart.Legend />
 	 * </AreaChart.Root>
@@ -619,8 +605,8 @@ const AreaChart = {
 	 *   <AreaChart.Grid />
 	 *   <AreaChart.XAxis tickFormat={(date) => new Date(date).toLocaleDateString()} />
 	 *   <AreaChart.YAxis />
-	 *   <AreaChart.Area dataKey="http" label="HTTP" />
-	 *   <AreaChart.Area dataKey="tcp" label="TCP" />
+	 *   <AreaChart.Area dataKey="http" label="HTTP" color="blue" />
+	 *   <AreaChart.Area dataKey="tcp" label="TCP" color="emerald" />
 	 *   <AreaChart.Tooltip />
 	 *   <AreaChart.Legend />
 	 * </AreaChart.Root>
@@ -638,8 +624,8 @@ const AreaChart = {
 	 *   <AreaChart.Grid />
 	 *   <AreaChart.XAxis />
 	 *   <AreaChart.YAxis tickFormat={(value) => `${value / 1000}k`} />
-	 *   <AreaChart.Area dataKey="http" label="HTTP" />
-	 *   <AreaChart.Area dataKey="tcp" label="TCP" />
+	 *   <AreaChart.Area dataKey="http" label="HTTP" color="blue" />
+	 *   <AreaChart.Area dataKey="tcp" label="TCP" color="emerald" />
 	 *   <AreaChart.Tooltip />
 	 *   <AreaChart.Legend />
 	 * </AreaChart.Root>
@@ -657,8 +643,8 @@ const AreaChart = {
 	 *   <AreaChart.Grid />
 	 *   <AreaChart.XAxis />
 	 *   <AreaChart.YAxis />
-	 *   <AreaChart.Area dataKey="http" label="HTTP" />
-	 *   <AreaChart.Area dataKey="tcp" label="TCP" />
+	 *   <AreaChart.Area dataKey="http" label="HTTP" color="blue" />
+	 *   <AreaChart.Area dataKey="tcp" label="TCP" color="emerald" />
 	 *   <AreaChart.ReferenceLine y={6000} label="Capacity" />
 	 *   <AreaChart.Tooltip />
 	 *   <AreaChart.Legend />
@@ -677,8 +663,8 @@ const AreaChart = {
 	 *   <AreaChart.Grid />
 	 *   <AreaChart.XAxis />
 	 *   <AreaChart.YAxis />
-	 *   <AreaChart.Area dataKey="http" label="HTTP" />
-	 *   <AreaChart.Area dataKey="tcp" label="TCP" />
+	 *   <AreaChart.Area dataKey="http" label="HTTP" color="blue" />
+	 *   <AreaChart.Area dataKey="tcp" label="TCP" color="emerald" />
 	 *   <AreaChart.Tooltip valueFormat={(value) => `${value} requests`} />
 	 *   <AreaChart.Legend />
 	 * </AreaChart.Root>
@@ -697,8 +683,8 @@ const AreaChart = {
 	 *   <AreaChart.Grid />
 	 *   <AreaChart.XAxis />
 	 *   <AreaChart.YAxis />
-	 *   <AreaChart.Area dataKey="http" label="HTTP" />
-	 *   <AreaChart.Area dataKey="tcp" label="TCP" />
+	 *   <AreaChart.Area dataKey="http" label="HTTP" color="blue" />
+	 *   <AreaChart.Area dataKey="tcp" label="TCP" color="emerald" />
 	 *   <AreaChart.Tooltip />
 	 *   <AreaChart.Legend />
 	 * </AreaChart.Root>
@@ -713,8 +699,8 @@ const AreaChart = {
 	 * @example
 	 * ```tsx
 	 * <AreaChart.Root data={data} xKey="date" stacked aria-label="Traffic by protocol">
-	 *   <AreaChart.Area dataKey="http" label="HTTP" />
-	 *   <AreaChart.Area dataKey="tcp" label="TCP" />
+	 *   <AreaChart.Area dataKey="http" label="HTTP" color="blue" />
+	 *   <AreaChart.Area dataKey="tcp" label="TCP" color="emerald" />
 	 *   <AreaChart.Legend />
 	 *   <AreaChart.CopyButton />
 	 * </AreaChart.Root>
@@ -722,8 +708,7 @@ const AreaChart = {
 	 */
 	CopyButton,
 	/**
-	 * Groups a list of charts so they share one tooltip surface and one live
-	 * region.
+	 * Groups a list of charts so they share one live region.
 	 *
 	 * @see https://mantle.ngrok.com/components/charts/area-chart#areachartlist
 	 *
@@ -732,7 +717,7 @@ const AreaChart = {
 	 * <AreaChart.List>
 	 *   {agents.map((agent) => (
 	 *     <AreaChart.Root key={agent.id} data={agent.rows} xKey="date" aria-label={agent.name}>
-	 *       <AreaChart.Area dataKey="http" label="HTTP" />
+	 *       <AreaChart.Area dataKey="http" label="HTTP" color="blue" />
 	 *       <AreaChart.Tooltip />
 	 *     </AreaChart.Root>
 	 *   ))}

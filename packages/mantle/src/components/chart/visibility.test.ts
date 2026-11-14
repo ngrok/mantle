@@ -70,10 +70,10 @@ class FakeIntersectionObserver implements IntersectionObserver {
 /** Every observation a test started, released after it so the shared pair resets. */
 const stops: Array<() => void> = [];
 
-const observe = () => {
+const observe = (options: { far?: boolean } = {}) => {
 	const element = document.createElement("div");
 	const handler = vi.fn<(change: VisibilityChange) => void>();
-	const stop = observeChartVisibility(element, handler);
+	const stop = observeChartVisibility(element, { onChange: handler, ...options });
 	stops.push(stop);
 	return { element, handler, stop };
 };
@@ -190,6 +190,23 @@ test("with no IntersectionObserver every band reports in view at once", () => {
 	expect(handler).toHaveBeenNthCalledWith(3, { band: "visible", inView: true, rect: null });
 });
 
+describe("an element that leaves out the far band", () => {
+	test("joins the visible and the near observer alone", () => {
+		const { element } = observe({ far: false });
+		const margins = instances
+			.filter((instance) => instance.targets.has(element))
+			.map((instance) => instance.scrollMargin);
+		// A surface with no bitmap has nothing to release three viewports away.
+		expect(margins.toSorted()).toEqual(["0px", "100%"]);
+	});
+
+	test("gets no far report when there is no IntersectionObserver", () => {
+		vi.stubGlobal("IntersectionObserver", undefined);
+		const { handler } = observe({ far: false });
+		expect(handler.mock.calls.map(([change]) => change.band)).toEqual(["near", "visible"]);
+	});
+});
+
 describe("without scrollMargin support", () => {
 	// An engine that ignores `scrollMargin` exposes no such property on its observers.
 	class LegacyIntersectionObserver extends FakeIntersectionObserver {
@@ -199,24 +216,36 @@ describe("without scrollMargin support", () => {
 		}
 	}
 
-	/** A chart inside a scrolling panel, observed through a fresh module whose support probe sees the legacy engine. */
-	const observeInPanel = async () => {
+	/**
+	 * A chart inside a wrapper, observed through a fresh module whose support
+	 * probe sees the legacy engine. The wrapper scrolls on the block axis unless
+	 * `overflow` says otherwise.
+	 */
+	const observeInPanel = async (
+		config: { far?: boolean; overflow?: { x: string; y: string } } = {},
+	) => {
 		vi.stubGlobal("IntersectionObserver", LegacyIntersectionObserver);
 		// Why a fresh module: the support probe runs once per module and is cached.
 		vi.resetModules();
 		const fresh = await import("./visibility.js");
 		const panel = document.createElement("div");
-		panel.style.overflowY = "auto";
-		const element = document.createElement("div");
-		panel.append(element);
+		panel.style.overflowX = config.overflow?.x ?? "visible";
+		panel.style.overflowY = config.overflow?.y ?? "auto";
 		document.body.append(panel);
-		const handler = vi.fn<(change: VisibilityChange) => void>();
-		const stop = fresh.observeChartVisibility(element, handler);
+		/** Observe one more chart in the panel. */
+		const add = (options: { far?: boolean } = {}) => {
+			const element = document.createElement("div");
+			panel.append(element);
+			const handler = vi.fn<(change: VisibilityChange) => void>();
+			const stop = fresh.observeChartVisibility(element, { onChange: handler, far: options.far });
+			stops.push(stop);
+			return { element, handler, stop };
+		};
+		const first = add({ far: config.far });
 		stops.push(() => {
-			stop();
 			panel.remove();
 		});
-		return { panel, element, handler, stop };
+		return { panel, ...first, add };
 	};
 
 	test("a panel's chart observes the near band from the panel, and only while the panel is near the viewport", async () => {
@@ -263,6 +292,54 @@ describe("without scrollMargin support", () => {
 		expect(
 			instances.some((instance) => instance.rootMargin === "0px" && instance.root != null),
 		).toBe(false);
+	});
+
+	test("a panel's chart that leaves out the far band stays off the panel's far observer", async () => {
+		const { panel, element, handler } = await observeInPanel({ far: false });
+		const viewportFar = observerFor("300%", null);
+		const panelFar = observerFor("300%", panel);
+		viewportFar.report(panel, true);
+		expect(panelFar.targets.has(element)).toBe(false);
+		// A band that closes reports each of its charts out of view, and this chart is not one.
+		viewportFar.report(panel, false);
+		expect(handler).toHaveBeenCalledTimes(0);
+	});
+
+	test("a wrapper that scrolls on the inline axis alone is not a panel", async () => {
+		// A mantle Table scrolls on x and is as tall as its rows, so a band around
+		// the table's own box holds the chart of every row.
+		const { panel, element } = await observeInPanel({ overflow: { x: "auto", y: "hidden" } });
+		expect(observerFor("100%", null).targets.has(element)).toBe(true);
+		expect(instances.some((instance) => instance.root === panel)).toBe(false);
+	});
+
+	test("the cleanup of one of a panel's two charts keeps the other chart observed", async () => {
+		// An SVG chart, which leaves out the far band, and a canvas chart share the panel.
+		const { panel, element, add } = await observeInPanel({ far: false });
+		const canvasChart = add({ far: true });
+		const panelNear = observerFor("100%", panel);
+		observerFor("100%", null).report(panel, true);
+
+		canvasChart.stop();
+
+		expect(panelNear.disconnected).toBe(false);
+		expect(panelNear.targets.has(element)).toBe(true);
+	});
+
+	test("a far band that opens again does not observe a chart that left the panel", async () => {
+		const { panel, add } = await observeInPanel({ far: false });
+		const canvasChart = add({ far: true });
+		const viewportFar = observerFor("300%", null);
+		const panelFar = observerFor("300%", panel);
+		viewportFar.report(panel, true);
+		// Guards the check below: the band held the chart before the chart left.
+		expect(panelFar.targets.has(canvasChart.element)).toBe(true);
+		canvasChart.stop();
+
+		viewportFar.report(panel, false);
+		viewportFar.report(panel, true);
+
+		expect(panelFar.targets.has(canvasChart.element)).toBe(false);
 	});
 
 	test("the last chart's cleanup releases the panel's observers and its viewport entries", async () => {

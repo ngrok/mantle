@@ -313,22 +313,36 @@ in a plain stylesheet (a third-party widget override) resolves to nothing.
 	--ring-color-focus-warning: var(--ring-color-focus-warning);
 	--ring-color-focus-success: var(--ring-color-focus-success);
 
-	/* Chart series tokens — an ordered categorical palette for data visualization.
-	   Each theme file authors its own eight oklch() literals, measured so every
-	   pair of slots stays apart for full-color readers and for dichromats, and so
-	   every slot clears 3:1 on that theme's card surface. Assign slots to series in
-	   order and never re-assign a series' slot when others are filtered out; series
-	   beyond 8 use --color-chart-other, and a decorative chart paints every series
-	   with --color-chart-decorative. */
-	--color-chart-1: var(--color-chart-1);
-	--color-chart-2: var(--color-chart-2);
-	--color-chart-3: var(--color-chart-3);
-	--color-chart-4: var(--color-chart-4);
-	--color-chart-5: var(--color-chart-5);
-	--color-chart-6: var(--color-chart-6);
-	--color-chart-7: var(--color-chart-7);
-	--color-chart-8: var(--color-chart-8);
-	--color-chart-other: var(--color-chart-other);
+	/* Chart series tokens: one for each mantle color name, the names Badge takes.
+	   Each theme block sets them (the 600 step in light mode, the 500 step in dark
+	   mode), and mantle does not guarantee that a set of names stays apart for a
+	   color-blind reader. */
+	--color-chart-amber: var(--color-chart-amber);
+	--color-chart-blue: var(--color-chart-blue);
+	--color-chart-cyan: var(--color-chart-cyan);
+	--color-chart-emerald: var(--color-chart-emerald);
+	--color-chart-fuchsia: var(--color-chart-fuchsia);
+	--color-chart-gray: var(--color-chart-gray);
+	--color-chart-green: var(--color-chart-green);
+	--color-chart-indigo: var(--color-chart-indigo);
+	--color-chart-lime: var(--color-chart-lime);
+	--color-chart-orange: var(--color-chart-orange);
+	--color-chart-pink: var(--color-chart-pink);
+	--color-chart-purple: var(--color-chart-purple);
+	--color-chart-red: var(--color-chart-red);
+	--color-chart-rose: var(--color-chart-rose);
+	--color-chart-sky: var(--color-chart-sky);
+	--color-chart-teal: var(--color-chart-teal);
+	--color-chart-violet: var(--color-chart-violet);
+	--color-chart-yellow: var(--color-chart-yellow);
+	--color-chart-accent: var(--color-chart-accent);
+	--color-chart-danger: var(--color-chart-danger);
+	--color-chart-important: var(--color-chart-important);
+	--color-chart-info: var(--color-chart-info);
+	--color-chart-neutral: var(--color-chart-neutral);
+	--color-chart-success: var(--color-chart-success);
+	--color-chart-warning: var(--color-chart-warning);
+	/* The one fill every series wears on a decorative chart. */
 	--color-chart-decorative: var(--color-chart-decorative);
 }
 
@@ -661,26 +675,38 @@ the app stylesheet in `<head>`. An app that `@import`ed `mantle-dark.css` after
 	--color-card-border-muted: var(--color-neutral-200);
 	--color-separator: --alpha(var(--color-gray-600) / 0.2);
 
-	/* Chart series tokens — dark's eight marks, in slot order: blue, green, pink,
-	   red-orange, teal, magenta, violet, amber. A slot keeps its family across the
-	   themes. Nothing else carries over: this theme re-tunes lightness, chroma, and
-	   hue together against the dark card surface (neutral-100), so every slot is its
-	   own literal. Chroma moves the most — chart-6 gains 25% over light's — and
-	   chart-4's hue drifts 9.4 degrees. Measured on that surface: worst pair ΔE
-	   15.07 for full-color vision, 9.55 under simulated protanopia or deuteranopia,
-	   3.65:1 lowest contrast. */
-	--color-chart-1: oklch(0.668 0.168 260.3); /* #5492fa */
-	--color-chart-2: oklch(0.537 0.121 160.1); /* #018355 */
-	--color-chart-3: oklch(0.627 0.242 6.7); /* #f41a70 */
-	--color-chart-4: oklch(0.565 0.169 41.2); /* #c3490a */
-	--color-chart-5: oklch(0.668 0.112 198.8); /* #0da9ae */
-	--color-chart-6: oklch(0.584 0.261 332.9); /* #cc04bb */
-	--color-chart-7: oklch(0.573 0.244 285.4); /* #744ffe */
-	--color-chart-8: oklch(0.668 0.137 83.5); /* #bd8c01 */
-	--color-chart-other: var(--color-neutral-500);
+	/* Chart series tokens — one per mantle color name, each that color's 500
+	   step, which clears 3:1 on the dark card. Light mode paints one step deeper.
+	   Functional names alias the hue their status color uses. Neutral is the
+	   color for an "Other" series. chart/tokens.test.ts measures every name. */
+	--color-chart-amber: var(--color-amber-500);
+	--color-chart-blue: var(--color-blue-500);
+	--color-chart-cyan: var(--color-cyan-500);
+	--color-chart-emerald: var(--color-emerald-500);
+	--color-chart-fuchsia: var(--color-fuchsia-500);
+	--color-chart-gray: var(--color-gray-500);
+	--color-chart-green: var(--color-green-500);
+	--color-chart-indigo: var(--color-indigo-500);
+	--color-chart-lime: var(--color-lime-500);
+	--color-chart-orange: var(--color-orange-500);
+	--color-chart-pink: var(--color-pink-500);
+	--color-chart-purple: var(--color-purple-500);
+	--color-chart-red: var(--color-red-500);
+	--color-chart-rose: var(--color-rose-500);
+	--color-chart-sky: var(--color-sky-500);
+	--color-chart-teal: var(--color-teal-500);
+	--color-chart-violet: var(--color-violet-500);
+	--color-chart-yellow: var(--color-yellow-500);
+	--color-chart-accent: var(--color-chart-sky);
+	--color-chart-danger: var(--color-chart-rose);
+	--color-chart-important: var(--color-chart-purple);
+	--color-chart-info: var(--color-chart-sky);
+	--color-chart-neutral: var(--color-neutral-500);
+	--color-chart-success: var(--color-chart-emerald);
+	--color-chart-warning: var(--color-chart-amber);
 
-	/* The decorative-chart fill — this theme's neutral-200, which holds
-	   --text-color-muted at 4.93:1. See mantle.css for the derivation. */
+	/* The fill of a decorative chart: this theme's neutral-200, which holds
+	   --text-color-muted at 4.93:1. The LIGHT DEFS block gives the derivation. */
 	--color-chart-decorative: var(--color-neutral-200);
 
 	--text-color-strong: #fff;
@@ -822,28 +848,43 @@ from `:root` (see MARK: INVERT THEME below).
 	--color-selected-menu-item: --alpha(var(--color-accent-500) / 0.1);
 	--color-active-selected-menu-item: --alpha(var(--color-accent-500) / 0.15);
 
-	/* Chart series tokens — light's eight marks, in slot order: blue, green, pink,
-	   red-orange, teal, magenta, violet, amber. Each is a bespoke oklch() literal,
-	   tuned so all 28 pairs clear the gates; the ramp steps this replaced held only
-	   the adjacent ones. Measured on the white card surface: worst pair ΔE 15.47 for
-	   full-color vision, 9.58 under simulated protanopia or deuteranopia, 3.61:1
-	   lowest contrast. chart/tokens.test.ts re-measures every number here. */
-	--color-chart-1: oklch(0.622 0.203 259); /* #2d81fe */
-	--color-chart-2: oklch(0.478 0.106 159.7); /* #086f47 */
-	--color-chart-3: oklch(0.644 0.258 1.2); /* #fd0983 */
-	--color-chart-4: oklch(0.519 0.192 31.8); /* #be2409 */
-	--color-chart-5: oklch(0.611 0.103 204.6); /* #0895a0 */
-	--color-chart-6: oklch(0.501 0.208 334.3); /* #a31992 */
-	--color-chart-7: oklch(0.473 0.227 290.6); /* #632bce */
-	--color-chart-8: oklch(0.621 0.125 80.1); /* #ad7d0f */
-	--color-chart-other: var(--color-neutral-500);
+	/* Chart series tokens — one per mantle color name, each that color's 600
+	   step: one step deeper than dark mode's 500, because the 500 steps read
+	   washed out on white. Only yellow stays under 3:1 here, at 2.94:1. Functional
+	   names alias the hue their status color uses. Neutral is the color for an
+	   "Other" series. chart/tokens.test.ts measures every name. */
+	--color-chart-amber: var(--color-amber-600);
+	--color-chart-blue: var(--color-blue-600);
+	--color-chart-cyan: var(--color-cyan-600);
+	--color-chart-emerald: var(--color-emerald-600);
+	--color-chart-fuchsia: var(--color-fuchsia-600);
+	--color-chart-gray: var(--color-gray-600);
+	--color-chart-green: var(--color-green-600);
+	--color-chart-indigo: var(--color-indigo-600);
+	--color-chart-lime: var(--color-lime-600);
+	--color-chart-orange: var(--color-orange-600);
+	--color-chart-pink: var(--color-pink-600);
+	--color-chart-purple: var(--color-purple-600);
+	--color-chart-red: var(--color-red-600);
+	--color-chart-rose: var(--color-rose-600);
+	--color-chart-sky: var(--color-sky-600);
+	--color-chart-teal: var(--color-teal-600);
+	--color-chart-violet: var(--color-violet-600);
+	--color-chart-yellow: var(--color-yellow-600);
+	--color-chart-accent: var(--color-chart-sky);
+	--color-chart-danger: var(--color-chart-rose);
+	--color-chart-important: var(--color-chart-purple);
+	--color-chart-info: var(--color-chart-sky);
+	--color-chart-neutral: var(--color-neutral-600);
+	--color-chart-success: var(--color-chart-emerald);
+	--color-chart-warning: var(--color-chart-amber);
 
-	/* The fill every series wears on a decorative chart, in place of its categorical
-	   slot. It is neutral because a placeholder encodes no series identity, and it is
+	/* The fill every series wears on a decorative chart, in place of its own
+	   color. It is neutral because a placeholder encodes no series identity, and it is
 	   this light because the message laid over it must stay readable: --text-color-muted
 	   over neutral-200 measures 4.56:1 here, and neutral-300 drops it to 4.24:1 — under
 	   the 4.5:1 floor for 14px text. Each theme aliases its own neutral-200, and
-	   chart/decorative-contrast.test.tsx measures all four. */
+	   chart/decorative-contrast.test.tsx measures both. */
 	--color-chart-decorative: var(--color-neutral-200);
 
 	--text-color-strong: var(--color-neutral-950);
@@ -1877,14 +1918,17 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
 
 /*
  * The new snapshot is live, so a color transition would fade inside the circle
- * while the rest of the page shows the new theme. Stop transitions during the
- * swap. The icon of the switcher and each `ThemeSwitcherIcon` keep their own swap.
+ * while the rest of the page shows the new theme. The swap cancels those
+ * transitions in script. On a page that holds many transitions it sets this
+ * attribute, and this rule stops them. The rule restyles every element, so the
+ * swap does not use it on other pages. The icon of the switcher and each
+ * `ThemeSwitcherIcon` keep their own swap.
  */
-:root[data-theme-transition]
+:root[data-theme-transition-many]
 	:not([data-slot~="theme-switcher"] *, [data-slot~="theme-switcher-icon"] *),
-:root[data-theme-transition]
+:root[data-theme-transition-many]
 	:not([data-slot~="theme-switcher"] *, [data-slot~="theme-switcher-icon"] *)::before,
-:root[data-theme-transition]
+:root[data-theme-transition-many]
 	:not([data-slot~="theme-switcher"] *, [data-slot~="theme-switcher-icon"] *)::after {
 	transition: none !important;
 }
@@ -1893,15 +1937,16 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
  * A dialog or a menu that closes as the swap starts, such as a command
  * palette, would freeze in the old snapshot outside the circle. Without an
  * exit animation it unmounts before the snapshot. The dialog positioner
- * animates only to hold the exit, so it stops too.
+ * animates only to hold the exit, so it stops too. The swap marks each
+ * surface that is open when it starts: a rule under the root attribute would
+ * restyle every element that has a `data-slot`.
  */
-:root[data-theme-transition]
-	:is(
+:is(
 		[data-slot~="dialog-overlay"],
 		[data-slot~="dialog-content"],
 		[data-slot~="dropdown-menu-content"],
 		[data-slot~="dropdown-menu-sub-content"]
-	)[data-state="closed"],
-:root[data-theme-transition] [data-slot~="dialog-positioner"] {
+	)[data-theme-transition][data-state="closed"],
+[data-slot~="dialog-positioner"][data-theme-transition] {
 	animation: none !important;
 }
