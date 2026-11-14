@@ -48,9 +48,31 @@ export const DynamicColorsExample = () => {
 
 # Progress Bar
 
-Displays an indicator showing the completion progress of a task as a linear progress bar with customizable colors.
+Displays an indicator showing the completion progress of a task as a linear progress bar with customizable colors. Give `ProgressBar.Root` an `aria-label`, or a screen reader announces a bare "progress bar".
 
-The progress bar consists of an indicator (filled portion) that shows the current progress value against a background container.
+<Example>
+	<ProgressBar.Root aria-label="Task progress" value={60}>
+		<ProgressBar.Indicator />
+	</ProgressBar.Root>
+</Example>
+
+```tsx
+import { ProgressBar } from "@ngrok/mantle/progress";
+
+<ProgressBar.Root aria-label="Task progress" value={60}>
+	<ProgressBar.Indicator />
+</ProgressBar.Root>;
+```
+
+## When to use
+
+- Show how much of a task or a quota is complete, as a horizontal bar.
+- Prefer [`ProgressDonut`](/components/feedback/progress-donut) when the indicator must be a small circle.
+- Prefer [`Skeleton`](/components/feedback/skeleton) when the content still loads, and its progress is unknown.
+
+## Indicator color
+
+The indicator is `bg-accent-600` by default. Set another background color on `ProgressBar.Indicator` with `className`.
 
 <Example className="flex-col gap-6">
 	<ProgressBar.Root aria-label="Task progress" value={60}>
@@ -62,6 +84,27 @@ The progress bar consists of an indicator (filled portion) that shows the curren
 	<ProgressBar.Root aria-label="Task progress" value={85}>
 		<ProgressBar.Indicator className="bg-emerald-600" />
 	</ProgressBar.Root>
+</Example>
+
+```tsx
+import { ProgressBar } from "@ngrok/mantle/progress";
+
+<ProgressBar.Root aria-label="Task progress" value={60}>
+	<ProgressBar.Indicator className="bg-warning-600" />
+</ProgressBar.Root>
+<ProgressBar.Root aria-label="Task progress" value={30}>
+	<ProgressBar.Indicator className="bg-accent-600" />
+</ProgressBar.Root>
+<ProgressBar.Root aria-label="Task progress" value={85}>
+	<ProgressBar.Indicator className="bg-emerald-600" />
+</ProgressBar.Root>
+```
+
+## With a label
+
+Put a short status label beside a narrow bar to show the state of each item in a list.
+
+<Example>
 	<div className="flex flex-col gap-3">
 		<div className="flex items-center gap-3 text-sm">
 			<ProgressBar.Root aria-label="Complete" value={100} className="w-24">
@@ -87,14 +130,6 @@ The progress bar consists of an indicator (filled portion) that shows the curren
 ```tsx
 import { ProgressBar } from "@ngrok/mantle/progress";
 
-<ProgressBar.Root aria-label="Task progress" value={60}>
-	<ProgressBar.Indicator className="bg-warning-600" />
-</ProgressBar.Root>
-
-<ProgressBar.Root aria-label="Task progress" value={30}>
-	<ProgressBar.Indicator className="bg-accent-600" />
-</ProgressBar.Root>
-
 <div className="flex flex-col gap-3">
 	<div className="flex items-center gap-3 text-sm">
 		<ProgressBar.Root aria-label="Complete" value={100} className="w-24">
@@ -102,14 +137,19 @@ import { ProgressBar } from "@ngrok/mantle/progress";
 		</ProgressBar.Root>
 		Complete
 	</div>
-
 	<div className="flex items-center gap-3 text-sm">
 		<ProgressBar.Root aria-label="In progress" value={45} className="w-24">
 			<ProgressBar.Indicator className="bg-warning-600" />
 		</ProgressBar.Root>
 		In Progress
 	</div>
-</div>
+	<div className="flex items-center gap-3 text-sm">
+		<ProgressBar.Root aria-label="Starting" value={10} className="w-24">
+			<ProgressBar.Indicator className="bg-danger-600" />
+		</ProgressBar.Root>
+		Starting
+	</div>
+</div>;
 ```
 
 ## Accessibility
@@ -204,7 +244,7 @@ const Example = () => {
 
 ## Composition
 
-Compose the parts of a `ProgressBar` together to build your own:
+The progress bar consists of an indicator (filled portion) that shows the current progress value against a background container. Compose the parts of a `ProgressBar` together to build your own:
 
 ```text showLineNumbers=false
 ProgressBar.Root

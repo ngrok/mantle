@@ -129,15 +129,7 @@ export const WithoutToErrorMessagesExample = () => {
 
 # Field
 
-`Field` is a compound layout primitive for building a single form field. It groups `Field.Label`, a control (`Input`, `Select`, `Checkbox`, etc.), helper / hint text (`Field.Description`), and validation errors (`Field.Errors`, `Field.ErrorList`, `Field.ErrorItem`). Stack multiple fields together with `Field.Group`, or (for radios and related checkboxes specifically) wrap them in a `Field.Set` + `Field.Legend` for a properly-named semantic group.
-
-`Field.Label` wraps the mantle [`Label`](/components/forms/label) for ergonomic field composition. It keeps the same click-to-focus, disabled, and typography behavior as `Label`; see the [Label docs](/components/forms/label) for the full surface.
-
-**Label-to-control association is automatic inside a `Field.Item`.** `Field.Item` generates a stable control id. `Field.Control` splats that id onto its focusable child, and `Field.Label` points `htmlFor` at it. The required `name` on `Field.Item` is the single source of truth for the control's form name. That lets you write `<Field.Label>Email</Field.Label>` next to `<Field.Control><Input /></Field.Control>` with no matching `htmlFor` / `id` pair and no separate `useId()` call. To set the id yourself, pass `id` on `Field.Item`, for example when a Playwright locator or an anchor link must find the control by id. `Field.Control` and `Field.Label` both follow it, and the wrapping `<div>` carries no id. `Field.Label` has no `htmlFor` prop and `Field.Control` has no `id` prop, so `Field.Item` is the one owner. Render the focusable element inside `Field.Control` so the id lands on it.
-
-Wrap the focusable control in `Field.Control` so `Field.Item` can associate descriptions and rendered errors via `aria-describedby` / `aria-errormessage`. A rendered `Field.Errors` or `Field.ErrorList` infers error state once the page hydrates. When you need to override that state, or when the error must be in the server HTML, pass `validation` on `Field.Item` (see [Server-rendered errors](#server-rendered-errors)).
-
-**`Field.Item` owns the full control contract.** When a focusable control is wrapped in `Field.Control`, the surrounding `Field.Item` owns its `id`, `name`, `aria-describedby`, `aria-errormessage`, `aria-invalid`, and `validation`; anything supplied on the child element (or on `Field.Control`) is overwritten. There's one place to override: `Field.Item` itself, with `id`, `name`, or `validation`. To opt out of the contract entirely, render the control without `Field.Control`.
+A layout primitive for a single form field: label, control, helper text, and error messages stacked with consistent spacing. Wrap the focusable control in `Field.Control`, and `Field.Item` connects it to the label, the description, and the errors.
 
 <Example className="w-full">
 	<Field.Item name="username" className="max-w-80">
@@ -161,6 +153,14 @@ import { Input } from "@ngrok/mantle/input";
 	<Field.Description>Pick something memorable — you can change it later.</Field.Description>
 </Field.Item>;
 ```
+
+## When to use
+
+- Group one form control (`Input`, `Select`, `Checkbox`, and others) with its label, its description, and its validation errors.
+- Stack several fields with `Field.Group`. See [Multiple fields](#multiple-fields).
+- Group radios or related checkboxes in `Field.Set` and `Field.Legend`, so the group gets a semantic name. See [Radio and checkbox groups](#radio-and-checkbox-groups).
+- Prefer [`Label`](/components/forms/label) when the control needs only a caption, with no description or errors.
+- Prefer [`Choice`](/components/forms/choice) when a checkbox, a radio, or a switch sits beside a title and a description.
 
 ## Common mistakes
 
@@ -394,7 +394,9 @@ Reach for the bundled `Field.Help` / `Field.HelpTrigger` / `Field.HelpContent` r
 </Field.Item>
 ```
 
-`Field.HelpTrigger` accepts every `IconButton` prop, so swap the icon or change the appearance without dropping down to raw `Popover`:
+### Custom help icon
+
+`Field.HelpTrigger` accepts every `IconButton` prop. Use it to change the icon or the appearance without a raw `Popover`.
 
 <Example className="w-full">
 	<Field.Item name="webhookSecret" className="max-w-80">
@@ -740,6 +742,16 @@ import { Field } from "@ngrok/mantle/field";
 	</Field.ErrorList>
 </Field.Item>;
 ```
+
+## Label and control association
+
+`Field.Label` wraps the mantle [`Label`](/components/forms/label) for ergonomic field composition. It keeps the same click-to-focus, disabled, and typography behavior as `Label`; see the [Label docs](/components/forms/label) for the full surface.
+
+**Label-to-control association is automatic inside a `Field.Item`.** `Field.Item` generates a stable control id. `Field.Control` splats that id onto its focusable child, and `Field.Label` points `htmlFor` at it. The required `name` on `Field.Item` is the single source of truth for the control's form name. That lets you write `<Field.Label>Email</Field.Label>` next to `<Field.Control><Input /></Field.Control>` with no matching `htmlFor` / `id` pair and no separate `useId()` call. To set the id yourself, pass `id` on `Field.Item`, for example when a Playwright locator or an anchor link must find the control by id. `Field.Control` and `Field.Label` both follow it, and the wrapping `<div>` carries no id. `Field.Label` has no `htmlFor` prop and `Field.Control` has no `id` prop, so `Field.Item` is the one owner. Render the focusable element inside `Field.Control` so the id lands on it.
+
+Wrap the focusable control in `Field.Control` so `Field.Item` can associate descriptions and rendered errors via `aria-describedby` / `aria-errormessage`. A rendered `Field.Errors` or `Field.ErrorList` infers error state once the page hydrates. When you need to override that state, or when the error must be in the server HTML, pass `validation` on `Field.Item` (see [Server-rendered errors](#server-rendered-errors)).
+
+**`Field.Item` owns the full control contract.** When a focusable control is wrapped in `Field.Control`, the surrounding `Field.Item` owns its `id`, `name`, `aria-describedby`, `aria-errormessage`, `aria-invalid`, and `validation`; anything supplied on the child element (or on `Field.Control`) is overwritten. There's one place to override: `Field.Item` itself, with `id`, `name`, or `validation`. To opt out of the contract entirely, render the control without `Field.Control`.
 
 ## API Reference
 

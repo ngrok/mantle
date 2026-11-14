@@ -11,16 +11,7 @@ import { Example } from "~/components/example";
 
 # Empty
 
-Display a placeholder when there is no data or content to show. Commonly used
-inside tables, lists, or pages that have no results.
-
-## When to use
-
-An `Empty` state tells the reader a region has no data, no results, or no access to show.
-
-- Prefer [`Skeleton`](/components/feedback/skeleton) while the region is still loading.
-- Prefer [`Alert`](/components/feedback/alert) when a message sits beside content that still exists.
-- Compose `Empty.Root` inside a [`Well`](/components/structure/well) when the state needs an inset panel.
+Display a placeholder when there is no data or content to show.
 
 <Example>
 	<Empty.Root>
@@ -55,6 +46,14 @@ import { GhostIcon, PlusIcon } from "@phosphor-icons/react";
 	</Empty.Actions>
 </Empty.Root>;
 ```
+
+## When to use
+
+- Show that a region has no data, no results, or no access to show.
+- Fill an empty table, list, or page that has no results.
+- Prefer [`Skeleton`](/components/feedback/skeleton) while the region is still loading.
+- Prefer [`Alert`](/components/feedback/alert) when a message sits beside content that still exists.
+- Compose `Empty.Root` inside a [`Well`](/components/structure/well) when the state needs an inset panel.
 
 ## Error page
 

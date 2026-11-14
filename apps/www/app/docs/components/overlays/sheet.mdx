@@ -58,11 +58,7 @@ export function WithoutTriggerExample() {
 
 # Sheet
 
-A container that overlays the current view from the edge of the screen. It is a lightweight way of allowing users to complete a task without losing contextual information of the view beneath it.
-
-## When to use
-
-Use `Sheet` for side-panel content that slides in from the left or right edge: filter panels, detail/inspector views, navigation drawers, mobile menus. For a centered modal, use [`Dialog`](/components/overlays/dialog) or [`AlertDialog`](/components/overlays/alert-dialog) (for destructive confirmations).
+A container that overlays the current view from the edge of the screen.
 
 <Example>
 	<Sheet.Root>
@@ -222,6 +218,14 @@ import { TrashSimpleIcon } from "@phosphor-icons/react/TrashSimple";
 	</Sheet.Content>
 </Sheet.Root>;
 ```
+
+## When to use
+
+- Show side-panel content that slides in from the left or right edge, such as a filter panel, a detail or inspector view, a navigation drawer, or a mobile menu.
+- Let the user complete a task without losing the context of the view beneath the sheet.
+- Prefer [`Dialog`](/components/overlays/dialog) for a centered modal.
+- Prefer [`AlertDialog`](/components/overlays/alert-dialog) for a destructive or irreversible confirmation.
+- Prefer [`Sidebar`](/components/navigation/sidebar) for the persistent navigation of the app.
 
 ## Layering and z-index
 

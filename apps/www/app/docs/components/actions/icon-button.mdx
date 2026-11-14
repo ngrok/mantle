@@ -14,12 +14,6 @@ import { Example } from "~/components/example";
 
 Initiates an action, such as completing a task or submitting information. Renders one icon and nothing else, with a required `label` prop that carries the accessible name.
 
-Every `IconButton` states what it means: `appearance` (visual weight) and `intent` (tone) are **required**; there are no implicit defaults. `intent` takes `"neutral"` alone: an icon carries no text to name the action a tone colors, so `IconButton` draws no accent or danger tone.
-
-## Appearance
-
-`IconButton` draws all three of [`Button`](/components/actions/button)'s box appearances, and each one matches its `Button` twin. `link` stays off the union — an icon-only link has no text to read as a link. An icon button sits beside a button with no color or weight seam.
-
 <Example className="flex items-center justify-center gap-2">
 	<IconButton appearance="ghost" intent="neutral" label="prestige worldwide" icon={<GlobeIcon />} />
 	<IconButton
@@ -44,6 +38,17 @@ import { GlobeIcon } from "@phosphor-icons/react/Globe";
 <IconButton appearance="filled" intent="neutral" label="prestige worldwide" icon={<GlobeIcon />} />
 <IconButton appearance="outlined" intent="neutral" label="prestige worldwide" icon={<GlobeIcon />} />
 ```
+
+## When to use
+
+- Run an action from a compact button that shows one icon and no text, such as a close or a copy button.
+- Prefer [`Button`](/components/actions/button) for a button that shows a text label.
+
+## Appearance
+
+`IconButton` draws all three of [`Button`](/components/actions/button)'s box appearances, and each one matches its `Button` twin. `link` is not in the union, because an icon-only link has no text to read as a link. An icon button sits beside a button with no color or weight seam.
+
+Every `IconButton` states what it means. `appearance` sets the visual weight, and `intent` sets the tone. Both props are required and have no default. `intent` takes only `"neutral"`. An icon has no text to name the action that a tone colors, so `IconButton` has no accent or danger tone.
 
 ## Size
 

@@ -16,7 +16,7 @@ import { Example } from "~/components/example";
 
 # Toast
 
-A succinct message that appears temporarily. Toasts give the user feedback without interrupting their workflow.
+A succinct message that appears temporarily. Render one `Toaster` at the root of your app, then call `makeToast` to show a toast.
 
 export function ToastDemo() {
 	const intents = ["info", "success", "warning", "danger"];
@@ -53,6 +53,66 @@ export function ToastDemo() {
 			>
 				Show Toast
 			</Button>
+		</Example>
+	);
+}
+
+<ToastDemo />
+
+```tsx
+import { Button, IconButton } from "@ngrok/mantle/button";
+import { makeToast, Toast, Toaster } from "@ngrok/mantle/toast";
+import { XIcon } from "@phosphor-icons/react/X";
+
+// Only one <Toaster /> should be rendered at a time
+// add it to the root of your app
+<Toaster />
+
+<Button
+	type="button"
+	appearance="outlined"
+	intent="neutral"
+	onClick={() =>
+		// make some toast! 🍞😋
+		makeToast(
+			<Toast.Root intent="success">
+				<Toast.Icon />
+				<Toast.Message>
+					Laborum ea anim adipisicing in Lorem incididunt mollit ipsum reprehenderit.
+				</Toast.Message>
+				<Toast.Action asChild>
+					<IconButton
+						type="button"
+						appearance="ghost"
+						intent="neutral"
+						size="xs"
+						icon={<XIcon />}
+						label="Dismiss toast"
+					/>
+				</Toast.Action>
+			</Toast.Root>,
+		)
+	}
+>
+	Show Toast
+</Button>
+```
+
+## When to use
+
+- Report the result of an action, such as a save or a copy, in a brief message that goes away on its own.
+- Give the user feedback without interrupting their workflow.
+- Prefer [`Alert`](/components/feedback/alert) when the message stays in the page next to the content it describes.
+- Prefer [`AlertDialog`](/components/overlays/alert-dialog) when the user must respond before they continue.
+- Prefer [`Sandbar`](/components/feedback/sandbar) when the message waits for the user to save or discard pending changes.
+
+## Over a sheet or dialog
+
+A toast shows above an open sheet, dialog, or alert dialog. A click on the toast does not close the overlay under it.
+
+export function ToastOverOverlaysDemo() {
+	return (
+		<Example className="flex-col gap-4">
 			<Sheet.Root>
 				<Sheet.Trigger asChild>
 					<Button type="button" appearance="filled" intent="neutral">
@@ -199,45 +259,107 @@ export function ToastDemo() {
 	);
 }
 
-<ToastDemo />
+<ToastOverOverlaysDemo />
 
 ```tsx
+import { AlertDialog } from "@ngrok/mantle/alert-dialog";
 import { Button, IconButton } from "@ngrok/mantle/button";
-import { makeToast, Toast, Toaster } from "@ngrok/mantle/toast";
+import { Dialog } from "@ngrok/mantle/dialog";
+import { Sheet } from "@ngrok/mantle/sheet";
+import { makeToast, Toast } from "@ngrok/mantle/toast";
 import { XIcon } from "@phosphor-icons/react/X";
 
-// Only one <Toaster /> should be rendered at a time
-// add it to the root of your app
-<Toaster />
+function showToast(intent: "danger" | "success" | "warning") {
+	makeToast(
+		<Toast.Root intent={intent}>
+			<Toast.Icon />
+			<Toast.Message>
+				Laborum ea anim adipisicing in Lorem incididunt mollit ipsum reprehenderit.
+			</Toast.Message>
+			<Toast.Action asChild>
+				<IconButton
+					type="button"
+					appearance="ghost"
+					intent="neutral"
+					size="xs"
+					icon={<XIcon />}
+					label="Dismiss toast"
+				/>
+			</Toast.Action>
+		</Toast.Root>,
+	);
+}
 
-<Button
-	type="button"
-	appearance="outlined"
-	intent="neutral"
-	onClick={() =>
-		// make some toast! 🍞😋
-		makeToast(
-			<Toast.Root intent="success">
-				<Toast.Icon />
-				<Toast.Message>
-					Laborum ea anim adipisicing in Lorem incididunt mollit ipsum reprehenderit.
-				</Toast.Message>
-				<Toast.Action asChild>
-					<IconButton
-						type="button"
-						appearance="ghost"
-						intent="neutral"
-						size="xs"
-						icon={<XIcon />}
-						label="Dismiss toast"
-					/>
-				</Toast.Action>
-			</Toast.Root>,
-		)
-	}
->
-	Show Toast
-</Button>
+<Sheet.Root>
+	<Sheet.Trigger asChild>
+		<Button type="button" appearance="filled" intent="neutral">
+			Open Sheet
+		</Button>
+	</Sheet.Trigger>
+	<Sheet.Content>
+		<Sheet.Header>
+			<Sheet.Title>Are you absolutely sure?</Sheet.Title>
+		</Sheet.Header>
+		<Sheet.Body className="space-y-4">
+			<Button type="button" appearance="outlined" intent="neutral" onClick={() => showToast("warning")}>
+				Show Toast
+			</Button>
+		</Sheet.Body>
+		<Sheet.Footer>
+			<Sheet.Close asChild>
+				<Button type="button" appearance="outlined" intent="neutral">
+					Close
+				</Button>
+			</Sheet.Close>
+		</Sheet.Footer>
+	</Sheet.Content>
+</Sheet.Root>
+<Dialog.Root>
+	<Dialog.Trigger asChild>
+		<Button type="button" appearance="filled" intent="neutral">
+			Open dialog
+		</Button>
+	</Dialog.Trigger>
+	<Dialog.Content>
+		<Dialog.Header>
+			<Dialog.Title>Are you absolutely sure?</Dialog.Title>
+			<Dialog.CloseIconButton />
+		</Dialog.Header>
+		<Dialog.Body>
+			<Button type="button" appearance="outlined" intent="neutral" onClick={() => showToast("danger")}>
+				Show Toast
+			</Button>
+		</Dialog.Body>
+		<Dialog.Footer>
+			<Dialog.Close asChild>
+				<Button type="button" intent="neutral" appearance="outlined">
+					Cancel
+				</Button>
+			</Dialog.Close>
+		</Dialog.Footer>
+	</Dialog.Content>
+</Dialog.Root>
+<AlertDialog.Root intent="info">
+	<AlertDialog.Trigger asChild>
+		<Button type="button" appearance="filled" intent="neutral">
+			Show Info Alert Dialog
+		</Button>
+	</AlertDialog.Trigger>
+	<AlertDialog.Content>
+		<AlertDialog.Icon />
+		<AlertDialog.Body>
+			<AlertDialog.Header>
+				<AlertDialog.Title>Are you absolutely sure?</AlertDialog.Title>
+			</AlertDialog.Header>
+			<Button type="button" appearance="outlined" intent="neutral" onClick={() => showToast("success")}>
+				Show Toast
+			</Button>
+			<AlertDialog.Footer>
+				<AlertDialog.Cancel type="button">Cancel</AlertDialog.Cancel>
+			</AlertDialog.Footer>
+		</AlertDialog.Body>
+	</AlertDialog.Content>
+</AlertDialog.Root>
 ```
 
 ## Composition

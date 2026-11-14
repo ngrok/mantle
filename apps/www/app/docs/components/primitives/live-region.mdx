@@ -11,19 +11,7 @@ import { Example } from "~/components/example";
 
 # Live Region
 
-Announces its text to screen readers when the text changes. `LiveRegion` renders a persistent, visually hidden `<span>` live region with `role="status"` and `aria-live="polite"`; the redundant `aria-live` covers screen reader and browser pairs that honor only one of the two. When `politeness` is `"assertive"`, it renders `role="alert"` alone: the role already carries assertive live-region semantics, and a redundant `aria-live` makes VoiceOver on iOS announce the message twice.
-
-A live region announces reliably only when it already exists in the accessibility tree before its text changes. Keep `LiveRegion` mounted from first paint and swap only its children. A screen reader does not re-announce a message identical to the previous one; when the same message must repeat, clear the children first.
-
-**When to use**
-
-- Announce a completed client-side navigation: the new page name, after a route change.
-- Announce an async result that moves focus nowhere: "3 results found", "Draft saved".
-
-**When not to use**
-
-- For status the user must see. Use [`Toast`](/components/feedback/toast), which announces its message, or [`Alert`](/components/feedback/alert), which announces only when you pass it a `role`.
-- For hidden text that never changes. Use [`VisuallyHidden`](/components/primitives/visually-hidden).
+A persistent, visually hidden region that announces its text to screen readers when the text changes. Keep `LiveRegion` mounted from first paint and swap only its children.
 
 export function ResultsExample() {
 	const [count, setCount] = useState(3);
@@ -79,6 +67,14 @@ function ResultsExample() {
 }
 ```
 
+## When to use
+
+- Announce a completed client-side navigation: the new page name, after a route change.
+- Announce an async result that moves focus nowhere: "3 results found", "Draft saved".
+- Prefer [`Toast`](/components/feedback/toast) for status the user must see. It announces its message.
+- Prefer [`Alert`](/components/feedback/alert) for a message that stays visible in the page. It announces only when you pass it a `role`.
+- Prefer [`VisuallyHidden`](/components/primitives/visually-hidden) for hidden text that never changes.
+
 ## Polymorphism
 
 `LiveRegion` accepts an `asChild` prop. When `true`, it renders its single child instead of its default `<span>`, forwarding its class names, ARIA attributes, `data-*` attributes, and ref onto that child.
@@ -98,9 +94,17 @@ import { LiveRegion } from "@ngrok/mantle/live-region";
 </LiveRegion>;
 ```
 
+## Announcing reliably
+
+A live region announces reliably only when it already exists in the accessibility tree before its text changes. Keep `LiveRegion` mounted from first paint and swap only its children.
+
+A screen reader does not re-announce a message identical to the previous one. When the same message must repeat, clear the children first.
+
 ## Politeness
 
 `politeness` defaults to `"polite"`: the announcement waits for the screen reader's current utterance to finish. Pass `"assertive"` only when a delayed announcement would mislead the user (a session about to expire, a failed save). An assertive region interrupts the screen reader's current utterance.
+
+By default, `LiveRegion` renders a persistent, visually hidden `<span>` with `role="status"` and `aria-live="polite"`. The redundant `aria-live` covers screen reader and browser pairs that honor only one of the two. When `politeness` is `"assertive"`, it renders `role="alert"` alone. The role already carries assertive live-region semantics, and a redundant `aria-live` makes VoiceOver on iOS announce the message twice.
 
 export function AssertiveExample() {
 	const [message, setMessage] = useState("");

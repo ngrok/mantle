@@ -158,14 +158,7 @@ export const ExampleTable = () => {
 
 # Table
 
-A structured way to display data in rows and columns.
-
-## When to use
-
-`Table` is the thin, semantic primitive for static tabular content: invoice summaries, pricing matrices, reference tables in documentation. Rows and cells render exactly what you put in them; there is no sorting, filtering, selection, or pagination built in.
-
-- Prefer [`DataTable`](/components/data-display/data-table) for dynamic, application data: anywhere users need to sort, filter, paginate, select, or click rows. `DataTable` is built on top of `Table` and powered by [TanStack Table](https://tanstack.com/table/latest/docs/introduction).
-- Use `Table` directly only when your data is static and none of those behaviors apply.
+A structured way to display data in rows and columns. Rows and cells render exactly what you put in them, with no sorting, filtering, selection, or pagination built in.
 
 <Example className="gap-2">
 	<ExampleTable />
@@ -204,6 +197,12 @@ import { Table } from "@ngrok/mantle/table";
 	</Table.Element>
 </Table.Root>;
 ```
+
+## When to use
+
+- Show static tabular content with a thin, semantic primitive: invoice summaries, pricing matrices, reference tables in documentation.
+- Prefer [`DataTable`](/components/data-display/data-table) for dynamic, application data: anywhere users need to sort, filter, paginate, select, or click rows. `DataTable` is built on top of `Table` and powered by [TanStack Table](https://tanstack.com/table/latest/docs/introduction).
+- Prefer [`DescriptionList`](/components/data-display/description-list) to show one record as label and value pairs.
 
 ## Composition
 

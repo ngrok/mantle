@@ -1,6 +1,6 @@
 ---
 title: Truncated Text
-description: Renders one long opaque value on a single line and keeps its tail visible when it overflows.
+description: Renders one long opaque value, such as a URL, a resource ID, a container image reference, or a token, on a single line and keeps its tail visible when it overflows.
 aliases: [ellipsis, middle truncation, truncate]
 ---
 
@@ -11,21 +11,7 @@ import { Example } from "~/components/example";
 
 # Truncated Text
 
-Renders one long opaque value (a URL, a resource ID, a container image reference, a token) on a single line. When the value overflows its container, the head clips with one ellipsis and the last eight graphemes stay visible. When the value fits, it renders plain. Hover a clipped value to read the whole thing in a tooltip.
-
-The tail is the part that tells values apart. Two URLs share a 60-character prefix and differ in the last path segment. Two IDs share a prefix and differ in the last six characters. A plain `truncate` hides exactly the part you need, so `TruncatedText` keeps it.
-
-## When to use
-
-- A URL, an ID, an image reference, or a token in a table cell, a description list, or a card, where the end of the value matters.
-
-## When not to use
-
-- For prose that may lose its end. Use the `truncate` utility.
-- For a value that may wrap over several lines. Let it wrap, or use [`CodeBlock`](/components/data-display/code-block).
-- For a short fragment of inline code that never overflows. Use [`Code`](/components/data-display/code).
-
-Drag the corner of the box to see the head give way while the tail stays put.
+Renders one long opaque value, such as a URL, a resource ID, a container image reference, or a token, on a single line and keeps its tail visible when it overflows.
 
 <Example>
 	<div className="w-80 max-w-full resize-x overflow-auto rounded-md border border-gray-300 p-3 font-mono text-sm">
@@ -40,6 +26,16 @@ import { TruncatedText } from "@ngrok/mantle/truncated-text";
 	<TruncatedText value="https://example.ngrok.app/api/items?filter=%7B%22name%22%3A%22x%22%7D&limit=200" />
 </div>;
 ```
+
+## When to use
+
+- A URL, an ID, an image reference, or a token in a table cell, a description list, or a card, where the end of the value matters.
+- Prefer [`CodeBlock`](/components/data-display/code-block) for a value that may wrap over several lines, or let it wrap.
+- Prefer [`Code`](/components/data-display/code) for a short fragment of inline code that never overflows.
+
+## When not to use
+
+- For prose that may lose its end. Use the `truncate` utility.
 
 ## Polymorphism
 
@@ -63,6 +59,14 @@ import { TruncatedText } from "@ngrok/mantle/truncated-text";
 	</TruncatedText>
 </div>;
 ```
+
+## How it truncates
+
+When the value overflows its container, the head clips with one ellipsis and the last eight graphemes stay visible. When the value fits, it renders plain. Hover a clipped value to read the whole thing in a tooltip.
+
+The tail is the part that tells values apart. Two URLs share a 60-character prefix and differ in the last path segment. Two IDs share a prefix and differ in the last six characters. A plain `truncate` hides exactly the part you need, so `TruncatedText` keeps it.
+
+Drag the corner of the box in the first example on this page to see the head give way while the tail stays put.
 
 ## Tail length
 

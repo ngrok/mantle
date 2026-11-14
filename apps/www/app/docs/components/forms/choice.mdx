@@ -11,9 +11,7 @@ import { Example } from "~/components/example";
 
 # Choice
 
-A reusable **indicator-left / content-right** layout for a single choice: a control (checkbox, radio, switch) beside an emphasized title and an optional de-emphasized description. Use it to pair a [`Checkbox`](/components/forms/checkbox) or [`RadioGroup`](/components/forms/radio-group) option with a rich, titled label, or reach for it directly to build your own choice-like rows.
-
-`Choice` is a pure **layout + association** primitive. It owns the control's `id` and the description's `id` and wires them together, but it does **not** own the control's value: you drop your own control into `Choice.Indicator`. Pick `Choice.Label` (a real `<label>`) when the `Choice` owns the labeling, or `Choice.Title` (label-less text) when an ancestor already does.
+A reusable indicator-left, content-right layout for a single choice: a control beside a titled, multi-line label. Put your own checkbox, radio, or switch in `Choice.Indicator`, and `Choice` connects it to the title and the description.
 
 <Example>
 	<div className="w-full max-w-md">
@@ -46,15 +44,13 @@ import { Choice } from "@ngrok/mantle/choice";
 
 ## When to use
 
-- A checkbox, radio, or switch that needs an emphasized title with a supplementary description beneath it.
-- A fully-clickable row (e.g. a list item) where a control sits beside titled text.
-- Anywhere you'd otherwise hand-roll the "control + label + helper text" flexbox and `htmlFor` / `aria-describedby` wiring.
-
-## When not to use
-
-- **Any layout that isn't a labeled checkbox or radio.** `Choice` is specifically for choice-like rows: a checkbox or radio input with an associated label and optional description. For general content layout (icon + text, thumbnails, etc.), use [`MediaObject`](/components/structure/media-object) or a plain flex / grid.
-- A bare control with a single-line caption: use [`Label`](/components/forms/label) with the control directly.
-- A field row with no focusable control (a read-only value): use [`Field.LabelText`](/components/forms/field).
+- Put a checkbox, a radio, or a switch beside an emphasized title and a description.
+- Give a [`Checkbox`](/components/forms/checkbox) or a [`RadioGroup`](/components/forms/radio-group) option a rich, titled label.
+- Build a fully clickable row, such as a list item, with a control beside titled text.
+- Replace a hand-rolled "control + label + helper text" flex layout and its `htmlFor` and `aria-describedby` wiring.
+- Prefer [`Label`](/components/forms/label) when the control needs only a one-line caption.
+- Prefer [`MediaObject`](/components/structure/media-object), or a plain flex or grid layout, when the thing beside the text is an image or an icon, not a control.
+- Prefer [`Field.LabelText`](/components/forms/field) for a field row with no focusable control, such as a read-only value.
 
 ## Inside a `Field`
 
@@ -195,6 +191,10 @@ import { Choice } from "@ngrok/mantle/choice";
 	</Choice.Content>
 </Choice.Root>;
 ```
+
+## Layout and association
+
+`Choice` is a layout and association primitive. It owns the control's `id` and the description's `id` and connects them. It does **not** own the control's value: you put your own control in `Choice.Indicator`. Use `Choice.Label` (a real `<label>`) when the `Choice` owns the labeling. Use `Choice.Title` (text with no label) when an ancestor already owns it.
 
 ## Accessibility
 

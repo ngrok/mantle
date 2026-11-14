@@ -196,23 +196,12 @@ export function OffsetPaginatedSliceExample() {
 
 # Pagination
 
-Components and hooks for navigating through paged data with cursor-based and offset-based pagination strategies.
+Components and hooks for navigating through paged data with cursor-based and offset-based pagination strategies. Use `CursorPagination` when the data loads by cursor, and the `useOffsetPagination` hook when it loads by offset.
 
-## Cursor pagination
-
-A pagination component for use with cursor-based pagination. Cursor-based pagination loads data in chunks by using a cursor from the last item on the current page to know where to start the next set. It doesn't let you jump to a specific page or know how many total pages there are, but it's more efficient for large or real-time data sets.
-
-<Example className="flex flex-col gap-6">
+<Example>
 	<CursorPagination.Root defaultPageSize={100}>
 		<CursorPagination.PageSizeSelect />
 		<CursorPagination.Buttons hasNextPage hasPreviousPage />
-	</CursorPagination.Root>
-	<CursorPagination.Root defaultPageSize={100}>
-		<CursorPagination.PageSizeValue />
-		<CursorPagination.Buttons hasNextPage hasPreviousPage />
-	</CursorPagination.Root>
-	<CursorPagination.Root defaultPageSize={100}>
-		<CursorPagination.Buttons hasNextPage hasPreviousPage={false} />
 	</CursorPagination.Root>
 </Example>
 
@@ -222,16 +211,56 @@ import { CursorPagination } from "@ngrok/mantle/pagination";
 <CursorPagination.Root defaultPageSize={100}>
 	<CursorPagination.PageSizeSelect />
 	<CursorPagination.Buttons hasNextPage hasPreviousPage />
-</CursorPagination.Root>
+</CursorPagination.Root>;
+```
+
+## When to use
+
+- Move through paged data one page at a time, with a cursor or an offset.
+- Use [cursor pagination](#cursor-pagination) for large or real-time data sets, where you cannot jump to a page or know the total.
+- Use [offset pagination](#offset-pagination) to jump to a specific page and know the total number of pages.
+- Put the controls under a [`DataTable`](/components/data-display/data-table), as in [Within a data table](#within-a-data-table).
+
+## Cursor pagination
+
+A pagination component for use with cursor-based pagination. Cursor-based pagination loads data in chunks by using a cursor from the last item on the current page to know where to start the next set. It doesn't let you jump to a specific page or know how many total pages there are, but it's more efficient for large or real-time data sets.
+
+### Read-only page size
+
+When the server fixes the page size, show it with `CursorPagination.PageSizeValue` in place of `PageSizeSelect`.
+
+<Example>
+	<CursorPagination.Root defaultPageSize={100}>
+		<CursorPagination.PageSizeValue />
+		<CursorPagination.Buttons hasNextPage hasPreviousPage />
+	</CursorPagination.Root>
+</Example>
+
+```tsx
+import { CursorPagination } from "@ngrok/mantle/pagination";
 
 <CursorPagination.Root defaultPageSize={100}>
 	<CursorPagination.PageSizeValue />
 	<CursorPagination.Buttons hasNextPage hasPreviousPage />
-</CursorPagination.Root>
+</CursorPagination.Root>;
+```
 
-<CursorPagination.Root defaultPageSize={20}>
+### Buttons only
+
+Leave out the page size part to show only the buttons. On the first page, pass `hasPreviousPage={false}` to disable the previous button.
+
+<Example>
+	<CursorPagination.Root defaultPageSize={100}>
+		<CursorPagination.Buttons hasNextPage hasPreviousPage={false} />
+	</CursorPagination.Root>
+</Example>
+
+```tsx
+import { CursorPagination } from "@ngrok/mantle/pagination";
+
+<CursorPagination.Root defaultPageSize={100}>
 	<CursorPagination.Buttons hasNextPage hasPreviousPage={false} />
-</CursorPagination.Root>
+</CursorPagination.Root>;
 ```
 
 ## Controlled page size
@@ -277,7 +306,9 @@ function ControlledPageSize() {
 
 `CursorPagination` pairs with a [`DataTable`](/components/data-display/data-table): drive its `Buttons` and `PageSizeSelect` from a TanStack Table instance.
 
-**Client-paginated:** the table holds every row, and the `paginatedRowModel` slices them. Register `rowPaginationFeature` and `createPaginatedRowModel()` with `tableFeatures`. The table owns the page size, so pass `table.state.pagination.pageSize` as `pageSize` and the select follows a `setPageSize()` call from anywhere. Read `getCanPreviousPage()` / `getCanNextPage()` for the buttons and call `setPageSize()` / `setPageIndex(0)` when the size changes:
+### Client-paginated
+
+The table holds every row, and the `paginatedRowModel` slices them. Register `rowPaginationFeature` and `createPaginatedRowModel()` with `tableFeatures`. The table owns the page size, so pass `table.state.pagination.pageSize` as `pageSize` and the select follows a `setPageSize()` call from anywhere. Read `getCanPreviousPage()` / `getCanNextPage()` for the buttons and call `setPageSize()` / `setPageIndex(0)` when the size changes:
 
 <Example>
 	<PaginatedPaymentsDemo />
@@ -384,7 +415,9 @@ function PaginatedTable({ data }: { data: Payment[] }) {
 }
 ```
 
-**Server / cursor data:** the server returns one page at a time, so there is no `paginatedRowModel` and no total count. Wire `Buttons` to your fetch's has-next / has-prev and load callbacks, and show the fixed, server-controlled page size with the read-only `PageSizeValue` instead of `PageSizeSelect`. The example simulates the server's cursor state with a page index:
+### Server cursor data
+
+The server returns one page at a time, so there is no `paginatedRowModel` and no total count. Wire `Buttons` to your fetch's has-next / has-prev and load callbacks, and show the fixed, server-controlled page size with the read-only `PageSizeValue` instead of `PageSizeSelect`. The example simulates the server's cursor state with a page index:
 
 <Example>
 	<ServerCursorPaginationExample />

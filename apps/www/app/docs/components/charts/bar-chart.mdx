@@ -785,47 +785,7 @@ export function EmptyStateBarChartExample() {
 
 # Bar Chart
 
-A bar chart for comparing values across categories, with grouped and stacked variants.
-
-## When to use
-
-Use a `BarChart` to compare values across discrete categories: months, endpoints, plans. Bars encode value by length from a shared zero baseline, so the y-axis minimum is fixed at `0` and a truncated-bar axis is unrepresentable.
-
-- Time-binned aggregates (requests per day, cost per week) are categories too: each bar is a bucket's total, so a dense daily chart like the one below belongs here.
-- Grouped bars (the default) compare series side by side within each category.
-- Stacked bars (`stacked` on the Root) show how parts compose each category's total.
-- Prefer `LineChart` for trends over continuous time: sampled measurements at every timestamp read as a stream, not buckets.
-- Prefer `AreaChart` for cumulative composition over continuous time.
-
-**Keep a chart to eight series.** A legend of a dozen access keys is a list no reader can match to the bars, and every added color sits closer to one already on the chart. Rank the series by the window's total, keep the top seven, and sum the rest into one `"Other"` series. Series that belong to one thing are the exception: they can share one `color` and stay apart by `texture`. See [Sharing one color](#sharing-one-color) and [Color and accessibility](#color-and-accessibility).
-
-```tsx
-const TOP_N = 7;
-
-/** The top-N keys by window total, with every other key summed into "Other". */
-function foldTail(rows, keys) {
-	const totals = keys.map((key) => ({
-		key,
-		total: rows.reduce((sum, row) => sum + (row[key] ?? 0), 0),
-	}));
-	const top = totals
-		.toSorted((a, b) => b.total - a.total)
-		.slice(0, TOP_N)
-		.map(({ key }) => key);
-	const tail = keys.filter((key) => !top.includes(key));
-	const folded = rows.map((row) => ({
-		...row,
-		other: tail.reduce((sum, key) => sum + (row[key] ?? 0), 0),
-	}));
-	return { rows: folded, series: tail.length === 0 ? top : [...top, "other"] };
-}
-```
-
-Give the fold's own series `color="neutral"`, so it reads as the tail and not as one more series. Other is always neutral. Keep it last, so it sits at the far end of a stack.
-
-Compose everything inside `BarChart.Root`: gridlines, axes, one `BarChart.Bar` per series, and (on multi-series charts) the legend. The interaction layer (per-category hover band and tooltip, keyboard stepping, polite announcements, and an sr-only description) ships with `Root` unconditionally; the sr-only data table mounts once the chart takes focus.
-
-Density takes care of itself: this chart plots 91 daily bars, and the band axis thins its own labels (evenly spaced from the first day, skipped rather than rotated when they'd collide). `Date` x values format as dates in the tooltip, land as exact ISO timestamps in the data-table twin, and take a `tickFormat` for short axis labels.
+A bar chart for comparing values across categories, with grouped and stacked variants. Compose the gridlines, axes, and one `BarChart.Bar` per series inside `BarChart.Root`.
 
 <Example>
 	<DailyBarChartExample />
@@ -864,6 +824,15 @@ function DailyBarChartExample() {
 	);
 }
 ```
+
+## When to use
+
+- Compare values across discrete categories: months, endpoints, plans.
+- Show time-binned totals, such as requests per day or cost per week. Each bar is one bucket's total, so the daily chart above is a bar chart.
+- Compare series side by side within each category with [grouped bars](#grouped-bars), the default.
+- Show how parts make up each category's total with [stacked bars](#stacked-bars).
+- Prefer [`LineChart`](/components/charts/line-chart) for a trend over continuous time: samples at each timestamp read as a stream, not as buckets.
+- Prefer [`AreaChart`](/components/charts/area-chart) for a total and its parts over continuous time.
 
 ## Grouped bars
 
@@ -2059,12 +2028,20 @@ BarChart.Root
 └── BarChart.CopyButton
 ```
 
+The interaction layer ships with `Root`, and there is no part to add for it: the per-category hover band and tooltip, keyboard stepping, polite announcements, and an sr-only description. The sr-only data table mounts once the chart takes focus.
+
 Wrap a list of Roots in `BarChart.List` so they share one live region:
 
 ```text showLineNumbers=false
 BarChart.List
 └── BarChart.Root (one per chart)
 ```
+
+## Axes and density
+
+Bars encode value by length from a shared zero baseline. The y axis therefore always starts at `0`, and a truncated bar is not possible.
+
+Density takes care of itself. The chart at the top of this page plots 91 daily bars. The band axis thins its own labels: it spaces them evenly from the first day, and it skips a label instead of rotating it when two collide. `Date` x values format as dates in the tooltip, land as exact ISO timestamps in the data-table twin, and take a `tickFormat` for short axis labels.
 
 ## Color and accessibility
 
@@ -2103,7 +2080,31 @@ The color choices are yours. Mantle does not promise that any set of names stays
 
 ### Keep a chart to eight series
 
-Show the top seven series, plus one "Other" series that sums the tail and wears `color="neutral"`. Other is always neutral, so it reads as the tail and not as one more series. [When to use](#when-to-use) has a worked fold. When several series belong to one thing, they can share one color and stay apart by texture; see [Sharing one color](#sharing-one-color).
+A legend of a dozen access keys is a list no reader can match to the bars, and each added color sits closer to one already on the chart. Rank the series by the window's total, keep the top seven, and sum the rest into one `"Other"` series:
+
+```tsx
+const TOP_N = 7;
+
+/** The top-N keys by window total, with every other key summed into "Other". */
+function foldTail(rows, keys) {
+	const totals = keys.map((key) => ({
+		key,
+		total: rows.reduce((sum, row) => sum + (row[key] ?? 0), 0),
+	}));
+	const top = totals
+		.toSorted((a, b) => b.total - a.total)
+		.slice(0, TOP_N)
+		.map(({ key }) => key);
+	const tail = keys.filter((key) => !top.includes(key));
+	const folded = rows.map((row) => ({
+		...row,
+		other: tail.reduce((sum, key) => sum + (row[key] ?? 0), 0),
+	}));
+	return { rows: folded, series: tail.length === 0 ? top : [...top, "other"] };
+}
+```
+
+Give the Other series `color="neutral"`, so it reads as the tail and not as one more series. Other is always neutral. Keep it last, so it sits at the far end of a stack. When several series belong to one thing, they can share one color and stay apart by texture; see [Sharing one color](#sharing-one-color).
 
 ### When a color falls short
 

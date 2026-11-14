@@ -319,19 +319,7 @@ export function SeriesIdentityScatterPlotExample() {
 
 # Scatter Plot
 
-A canvas-rendered scatter plot for correlating two continuous measures (three with the rotatable 3D projection). Hover hits the nearest point within 24px of the pointer, and the entire interaction contract (the tooltip, keyboard stepping, polite announcements, and a screen-reader description) ships with `ScatterPlot.Root` unconditionally. The screen-reader data table mounts once the chart takes focus. No part removal can strip keyboard access to the data.
-
-## When to use
-
-A `ScatterPlot` answers "are these two measures related?" (latency vs throughput, payload size vs duration, CPU vs memory). Every mark is one independent observation positioned by two continuous values, so correlation, clusters, and outliers surface as shape. With `zKey` on the Root it correlates three measures, projecting the points into a rotatable 3D cube.
-
-- Scatter x values must be continuous: numbers or `Date`s. There is no categorical scatter axis.
-- Prefer [`LineChart`](/components/charts/line-chart) for trends over a continuous x: lines connect ordered samples of one measure; scatter treats every row as an independent observation.
-- Prefer [`BarChart`](/components/charts/bar-chart) to compare values across discrete categories: bars encode value by length from a zero baseline.
-
-**Keep it to eight series or fewer:** the top seven, plus one "Other" series that sums the tail and wears `color="neutral"`. Scatter is an all-pairs chart form: any point can land next to any point from any other series, so every pair of series colors must stay apart, not only the neighbors in a legend. To show more series, facet into small multiples. [Color and accessibility](#color-and-accessibility) covers how to pick the colors.
-
-Compose everything inside `ScatterPlot.Root`: gridlines, axes, one `ScatterPlot.Point` per series, and the legend. Hover anywhere near a point: the chart hits the nearest point within 24px of the pointer, so a 4px dot is never a pinpoint target, and the tooltip names the hit point's series alone. Always compose `ScatterPlot.Legend` on multi-series charts: series identity must never rely on color-matching alone.
+A canvas-rendered scatter plot for correlating two continuous measures (three with the rotatable 3D projection). Compose the gridlines, axes, and one `ScatterPlot.Point` per series inside `ScatterPlot.Root`.
 
 <Example>
 	<RegionScatterExample />
@@ -384,6 +372,13 @@ function RegionScatterExample() {
 	);
 }
 ```
+
+## When to use
+
+- Show whether two measures are related, such as latency and throughput, payload size and duration, or CPU and memory. Correlation, clusters, and outliers show as shape.
+- Correlate three measures in a rotatable 3D cube with `zKey` on the Root. See [3D scatter](#3d-scatter).
+- Prefer [`LineChart`](/components/charts/line-chart) for the trend of one measure over a continuous x: lines connect ordered samples, and a scatter plot treats each row as an independent observation.
+- Prefer [`BarChart`](/components/charts/bar-chart) to compare values across discrete categories by bar length from zero.
 
 ## Point shapes
 
@@ -842,12 +837,22 @@ ScatterPlot.Root
 └── ScatterPlot.CopyButton
 ```
 
+The interaction layer ships with `Root`, and there is no part to add for it: the tooltip, keyboard stepping, polite announcements, and a screen-reader description. The screen-reader data table mounts once the chart takes focus. If you remove a part, keyboard access to the data stays.
+
+Hover hits the nearest point within 24px of the pointer, so a 4px dot is never a pinpoint target. The tooltip names only the series of the hit point. Compose `ScatterPlot.Legend` on every multi-series chart. Series identity must never rely on color alone.
+
 Wrap a list of Roots in `ScatterPlot.List` so they share one live region:
 
 ```text showLineNumbers=false
 ScatterPlot.List
 └── ScatterPlot.Root (one per chart)
 ```
+
+## Axes
+
+Every mark is one independent observation, placed by two continuous values.
+
+Scatter x values must be continuous: numbers or `Date`s. A scatter plot has no categorical axis.
 
 ## Color and accessibility
 
@@ -860,6 +865,10 @@ Scatter is the strictest chart form for color. A point can land next to a point 
 Each point needs 3:1 contrast against the card. A 4px dot is a small mark, so a low-contrast name such as `yellow` in light mode is hard to find on the plot. Pick another name there, or add a shape and visible value labels.
 
 The [Bar Chart page](/components/charts/bar-chart#color-and-accessibility) covers the rest: the WCAG contrast rules, the measured contrast of each name, and when a chart is exempt.
+
+### Keep a chart to eight series
+
+Show the top seven series, plus one "Other" series that sums the tail and has `color="neutral"`. Scatter is an all-pairs chart form: any point can land next to any point from any other series. So every pair of series colors must stay apart, not only the neighbors in a legend. To show more series, facet into small multiples. The Bar Chart page has [a worked fold](/components/charts/bar-chart#keep-a-chart-to-eight-series).
 
 ## Accessibility
 

@@ -14,11 +14,7 @@ import {
 
 # Query
 
-A single-line filter field for a list. Free text and `key:value` qualifiers mix in one query: `is:shared -staging api`. The field colors each token in place. A suggestion popover completes keys and values while the caret stays in the field.
-
-A grammar from [`@ngrok/mantle/query-filter`](/utils/query-filter) sets the vocabulary. The same grammar filters your items with `filterItemsByQuery`, so the field and the list always agree.
-
-Type `is:` to see the values and their live match counts.
+A filter field where free text and `key:value` qualifiers interleave, with in-place highlighting and suggestions. A grammar from [`@ngrok/mantle/query-filter`](/utils/query-filter) sets the vocabulary, and you own the query through `value` and `onValueChange`.
 
 <Example>
 	<QueryExample />
@@ -205,7 +201,13 @@ export function QueryExample() {
 }
 ```
 
-The query is the only state, and you own it through `value` and `onValueChange`. There's no uncontrolled form, because every list that hosts this field already keeps the query somewhere: in component state, in form state, or in the URL. To keep it in `?q=`, follow the [Query from the URL](/recipes/query-from-the-url) recipe.
+## When to use
+
+- Filter a list with a typed query of free text and `key:value` qualifiers.
+- Prefer [`Input`](/components/forms/input) for a plain search box with no query language.
+- Prefer [`Combobox`](/components/forms/combobox) to pick one value from a filtered list of options.
+- Prefer [`MultiSelect`](/components/forms/multi-select) to pick several values, shown as tags.
+- Prefer [`Command`](/components/navigation/command) for a palette that runs an action or navigates.
 
 ## Composition
 
@@ -244,6 +246,16 @@ The other parts don't take `asChild`:
 - `List` renders the section groups and their headings.
 - `Item` must stay the `role="option"` element that the input names through `aria-activedescendant`.
 - `Empty`, `Legend`, and `KeyboardHints` render their own content.
+
+## Query syntax
+
+`Query` is a single-line filter field for a list. Free text and `key:value` qualifiers mix in one query: `is:shared -staging api`. The field colors each token in place. A suggestion popover completes keys and values while the caret stays in the field. In the example at the top of this page, type `is:` to see the values and their live match counts.
+
+The grammar also filters your items with `filterItemsByQuery`, so the field and the list always agree.
+
+## State
+
+The query is the only state, and you own it through `value` and `onValueChange`. There's no uncontrolled form, because every list that hosts this field already keeps the query somewhere: in component state, in form state, or in the URL. To keep it in `?q=`, follow the [Query from the URL](/recipes/query-from-the-url) recipe.
 
 ## Inline actions and a footer
 

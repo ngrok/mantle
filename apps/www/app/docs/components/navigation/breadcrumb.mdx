@@ -139,7 +139,7 @@ export function BreadcrumbRouterLinkExample() {
 
 <PageHeader id="breadcrumb">Breadcrumb</PageHeader>
 
-Hierarchy-path navigation per the [WAI-ARIA breadcrumb pattern](https://www.w3.org/WAI/ARIA/apg/patterns/breadcrumb/): an ordered list of links from a root to the current page, inside a `<nav>` landmark labeled "Breadcrumb". Use it on detail pages inside deep hierarchies (an endpoint under a project under an account) so users can see how they got here and jump back up a level. It answers a different intent than [Tabs](/components/navigation/tabs), which switches _what you're looking at_ within one place; a breadcrumb tells you _where you are_ and offers the way up. It is router-agnostic: each `Breadcrumb.Link` is a plain `<a>` you can compose onto your router's link via `asChild` (see [Polymorphism](#polymorphism)), and [Anchor](/components/navigation/anchor) remains the right primitive for standalone external links.
+Hierarchy-path navigation per the [WAI-ARIA breadcrumb pattern](https://www.w3.org/WAI/ARIA/apg/patterns/breadcrumb/): an ordered list of links from a root to the current page, inside a `<nav>` landmark labeled "Breadcrumb".
 
 <Example>
 	<BreadcrumbExample />
@@ -165,7 +165,16 @@ import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
 </Breadcrumb.Root>;
 ```
 
-`Breadcrumb.Separator` renders a caret icon by default; pass your own children to replace it (a slash, for instance):
+## When to use
+
+- Show where a detail page sits in a deep hierarchy (an endpoint under a project under an account), so users can see how they got here and jump back up a level.
+- Prefer [`Tabs`](/components/navigation/tabs) to switch between peer views of one page. Tabs change _what you're looking at_; a breadcrumb tells you _where you are_ and offers the way up.
+- Prefer [`Sidebar`](/components/navigation/sidebar) for persistent navigation to the top-level pages of the app.
+- Prefer [`Anchor`](/components/navigation/anchor) for a standalone external link.
+
+## Custom separator
+
+`Breadcrumb.Separator` renders a caret icon by default. Pass your own children to replace it, such as a slash.
 
 <Example>
 	<BreadcrumbSlashSeparatorExample />

@@ -1,6 +1,6 @@
 ---
 title: Anchor
-description: Fundamental component for rendering links to external addresses.
+description: A fundamental component for rendering links to external addresses.
 aliases: [link, hyperlink]
 ---
 
@@ -12,14 +12,28 @@ import { Example } from "~/components/example";
 
 # Anchor
 
-A styled hyperlink — a native `<a>` with mantle's link styling, focus treatment, optional leading/trailing icon, and a safer default for the `rel` attribute. Use for links that point _outside_ the current application.
+A fundamental component for rendering links to external addresses.
 
-The `<Anchor>` element, with its `href` attribute, creates a hyperlink to web pages, files, email addresses, locations in the same page, or anything else a URL can address. See the [MDN docs](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a) for more information.
+<Example>
+	<p>
+		This link will go to <Anchor href="https://ngrok.com/">ngrok.com</Anchor>!
+	</p>
+</Example>
+
+```tsx
+import { Anchor } from "@ngrok/mantle/anchor";
+
+<p>
+	This link will go to <Anchor href="https://ngrok.com/">ngrok.com</Anchor>!
+</p>;
+```
 
 ## When to use
 
-- External URLs (docs, marketing pages, third-party sites).
-- Links to files or `mailto:` / `tel:` destinations.
+- Link to an external URL: docs, marketing pages, third-party sites.
+- Link to a file, or to a `mailto:` or `tel:` address.
+- Prefer [`Button`](/components/actions/button) when the control runs an action and does not navigate.
+- Prefer [`Breadcrumb`](/components/navigation/breadcrumb) when the links show the path from a root page to the current page.
 
 ## When not to use
 
@@ -30,20 +44,9 @@ The `<Anchor>` element, with its `href` attribute, creates a hyperlink to web pa
 
 Pass `icon` (a phosphor or custom SVG) and optionally `iconPlacement` (`"start"` default, or `"end"`) to render a small inline icon — useful for "external link" or "download" affordances. Icons are decorative; the link text must still describe the destination on its own.
 
-## Security
-
-When `target="_blank"` and `rel` is omitted, the anchor renders `rel="noopener noreferrer"`. A `rel` you pass is used as-is. The `rel` prop accepts an array: duplicates are de-duped and sorted, so it's safe to merge token sets.
-
-## Accessibility
-
-Link text must be self-describing: avoid "click here" / "read more". The icon is decorative by default: it renders `aria-hidden` unless the SVG carries `aria-label`, `aria-labelledby`, `role`, or an explicit `aria-hidden`. For icon-only links, pass an `aria-label`.
-
 <Example className="flex-col">
 	<p>
-		This link will go to <Anchor href="https://ngrok.com/">ngrok.com</Anchor>!
-	</p>
-	<p>
-		You can add icons! This one renders at the start:{" "}
+		This icon renders at the start:{" "}
 		<Anchor href="https://ngrok.com/docs" icon={<BookIcon />}>
 			ngrok docs
 		</Anchor>
@@ -64,10 +67,7 @@ import { BookIcon } from "@phosphor-icons/react/Book";
 import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
 
 <p>
-	This link will go to <Anchor href="https://ngrok.com/">ngrok.com</Anchor>!
-</p>
-<p>
-	You can add icons! This one renders at the start:{" "}
+	This icon renders at the start:{" "}
 	<Anchor href="https://ngrok.com/docs" icon={<BookIcon />}>
 		ngrok docs
 	</Anchor>
@@ -81,6 +81,14 @@ import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
 	!
 </p>
 ```
+
+## Security
+
+When `target="_blank"` and `rel` is omitted, the anchor renders `rel="noopener noreferrer"`. A `rel` you pass is used as-is. The `rel` prop accepts an array: duplicates are de-duped and sorted, so it's safe to merge token sets.
+
+## Accessibility
+
+Link text must be self-describing: avoid "click here" / "read more". The icon is decorative by default: it renders `aria-hidden` unless the SVG carries `aria-label`, `aria-labelledby`, `role`, or an explicit `aria-hidden`. For icon-only links, pass an `aria-label`.
 
 ## Polymorphism
 
@@ -104,6 +112,8 @@ import { Link, href } from "react-router";
 ## API Reference
 
 ### Anchor
+
+`Anchor` renders a native `<a>` with mantle's link styling and focus treatment. Its `href` can address a web page, a file, an email address, a location on the same page, or anything else a URL can address. See the [MDN docs](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a) for more information.
 
 All props from [a](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#attributes), plus:
 

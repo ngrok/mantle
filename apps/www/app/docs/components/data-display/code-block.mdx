@@ -12,19 +12,18 @@ import {
 	SingleLineHorizontalScrollingDemo,
 	ServerRenderedHighlightingDemo,
 	MantleCodeOptionsDemo,
-	OverridingIndentationDemo,
 	TabbedCodeBlockDemo,
 	ScrollingTabListDemo,
 	FoldableJsonDemo,
 	JsonCodeBlockValueDemo,
 	NestedFragmentInterpolationDemo,
+	DefaultOptionsDemo,
+	OverriddenOptionsDemo,
 } from "~/features/code-block-demos";
 
 # Code Block
 
-Code blocks render and apply syntax highlighting to blocks of code. The [`mantleCodeBlockPlugins()`](/vite-plugins#mantlecodeblockplugins) Vite plugin highlights the code at build time with [Shiki](https://shiki.style/), so there is zero highlighting cost in the browser.
-
-Use `mantleCode("language")` tagged template literals to define code values. The Vite plugin transforms these at build time, inlining pre-rendered HTML.
+Code blocks render and apply syntax highlighting to blocks of code using Shiki at build time. Define each code value with a `mantleCode("language")` tagged template literal.
 
 <PrimaryCodeBlockDemo />
 
@@ -43,6 +42,13 @@ import { CodeBlock, mantleCode } from "@ngrok/mantle/code-block";
 	<CodeBlock.ExpanderButton />
 </CodeBlock.Root>;
 ```
+
+## When to use
+
+- Show a block of code with syntax highlighting and a copy button.
+- Show the same snippet in several files or languages, with one tab for each. See [Tabbed code block](#tabbed-code-block).
+- Prefer [`Code`](/components/data-display/code) for a short fragment of code inside a sentence.
+- Prefer [`TruncatedText`](/components/data-display/truncated-text) for one long opaque value that must stay on one line.
 
 ## Examples
 
@@ -96,7 +102,7 @@ When line numbers are shown, the gutter (numbers and fold toggles) stays pinned 
 						Promise.resolve().then(() => {
 							console.log("url:", server.tunnel.url());
 						});
-					}, timeout);
+					}, 1000);
 				});
 				// Consumes authtoken from env automatically
 				ngrok.listen(server).then(() => {
@@ -351,9 +357,56 @@ const policyJson = mantleCode("json")`…`;
 </CodeBlock.Root>;
 ```
 
+### Scrolling tab list
+
 When the tabs are too wide for the header, `CodeBlock.TabList` scrolls horizontally with a [`scroll-fade-x`](/base/scroll-fade#horizontal-scroll-fade-x) edge fade instead of wrapping onto a second row (no extra wiring required).
 
 <ScrollingTabListDemo />
+
+```tsx
+import { CodeBlock, mantleCode } from "@ngrok/mantle/code-block";
+
+const helloTs = mantleCode("typescript")`console.log("Hello, ngrok!");`;
+const helloPy = mantleCode("python")`print("Hello, ngrok!")`;
+const helloGo = mantleCode("go")`fmt.Println("Hello, ngrok!")`;
+const helloRs = mantleCode("rust")`println!("Hello, ngrok!");`;
+const helloJava = mantleCode("java")`System.out.println("Hello, ngrok!");`;
+const helloRb = mantleCode("ruby")`puts "Hello, ngrok!"`;
+
+<CodeBlock.Root defaultTab="ts" className="max-w-xs">
+	<CodeBlock.Header>
+		<CodeBlock.TabList>
+			<CodeBlock.TabTrigger value="ts">index.ts</CodeBlock.TabTrigger>
+			<CodeBlock.TabTrigger value="py">server.py</CodeBlock.TabTrigger>
+			<CodeBlock.TabTrigger value="go">main.go</CodeBlock.TabTrigger>
+			<CodeBlock.TabTrigger value="rs">lib.rs</CodeBlock.TabTrigger>
+			<CodeBlock.TabTrigger value="java">App.java</CodeBlock.TabTrigger>
+			<CodeBlock.TabTrigger value="rb">app.rb</CodeBlock.TabTrigger>
+		</CodeBlock.TabList>
+	</CodeBlock.Header>
+	<CodeBlock.Body>
+		<CodeBlock.CopyButton />
+		<CodeBlock.TabContent value="ts">
+			<CodeBlock.Code value={helloTs} />
+		</CodeBlock.TabContent>
+		<CodeBlock.TabContent value="py">
+			<CodeBlock.Code value={helloPy} />
+		</CodeBlock.TabContent>
+		<CodeBlock.TabContent value="go">
+			<CodeBlock.Code value={helloGo} />
+		</CodeBlock.TabContent>
+		<CodeBlock.TabContent value="rs">
+			<CodeBlock.Code value={helloRs} />
+		</CodeBlock.TabContent>
+		<CodeBlock.TabContent value="java">
+			<CodeBlock.Code value={helloJava} />
+		</CodeBlock.TabContent>
+		<CodeBlock.TabContent value="rb">
+			<CodeBlock.Code value={helloRb} />
+		</CodeBlock.TabContent>
+	</CodeBlock.Body>
+</CodeBlock.Root>;
+```
 
 ### Reusing fragments with nested interpolation
 
@@ -433,45 +486,77 @@ import { CodeBlock, mantleCode } from "@ngrok/mantle/code-block";
 </CodeBlock.Root>;
 ```
 
-### Overriding defaults
+### Default options
 
-The `mantleCode()` options let you customize how code is displayed. By default, line numbers are shown starting at 1 and indentation is inferred from the language. You can also specify highlighted lines per code block. The first example below uses the defaults (YAML auto-detects space indentation), while the second overrides all options: custom indentation, line number start, highlighted lines, and visible line numbers.
+By default, `mantleCode()` shows line numbers from 1 and infers the indentation from the language. YAML must use spaces, so a YAML block gets space indentation with no options.
 
-<OverridingIndentationDemo />
+<DefaultOptionsDemo />
 
 ```tsx
-{
-	/* yaml auto-detects space indentation, all other defaults apply */
-}
-<CodeBlock.Code
-	value={mantleCode("yaml")`
-		on_http_request:
-			actions:
-				type: custom-response
-				config:
-					status_code: 200
-					content: Hello, World!
-	`}
-/>;
+<CodeBlock.Root>
+	<CodeBlock.Header>
+		<CodeBlock.Icon preset="traffic-policy" />
+		<CodeBlock.Title>traffic-policy.yaml</CodeBlock.Title>
+	</CodeBlock.Header>
+	<CodeBlock.Body>
+		<CodeBlock.CopyButton />
+		<CodeBlock.Code
+			value={mantleCode("yaml")`
+				# yaml indentation MUST use spaces (we infer this for you)
+				on_http_request:
+					actions:
+						type: custom-response
+						config:
+							status_code: 200
+							content: Hello, World!
+			`}
+		/>
+	</CodeBlock.Body>
+</CodeBlock.Root>
+```
 
-{
-	/* override all mantleCode() options */
-}
-<CodeBlock.Code
-	value={mantleCode("javascript", {
-		indentation: "spaces",
-		showLineNumbers: true,
-		highlightLines: [42, "46-48"],
-		lineNumberStart: 42,
-	})`
-		const http = require('http');
-		const ngrok = require("@ngrok/ngrok");
-		const server = http.createServer((req, res) => {
-			res.writeHead(200);
-			res.end("Hello!");
-		});
-	`}
-/>;
+### Overriding every option
+
+Pass options to `mantleCode()` to set the indentation, the first line number, the highlighted lines, and whether line numbers show.
+
+<OverriddenOptionsDemo />
+
+```tsx
+<CodeBlock.Root>
+	<CodeBlock.Header>
+		<CodeBlock.Icon preset="file" />
+		<CodeBlock.Title>ngrok-example.js (all options overridden)</CodeBlock.Title>
+	</CodeBlock.Header>
+	<CodeBlock.Body>
+		<CodeBlock.CopyButton />
+		<CodeBlock.Code
+			value={mantleCode("javascript", {
+				indentation: "spaces",
+				showLineNumbers: true,
+				highlightLines: [42, "46-48"],
+				lineNumberStart: 42,
+			})`
+				// by default, mantle decides that javascript uses tabs,
+				// but this example uses spaces for indentation
+				const http = require('http');
+				const ngrok = require("@ngrok/ngrok");
+				const server = http.createServer((req, res) => {
+					res.writeHead(200);
+					res.end("Hello!");
+					setTimeout(() => {
+						Promise.resolve().then(() => {
+							console.log("url:", server.tunnel.url());
+						});
+					}, 1000);
+				});
+				// Consumes authtoken from env automatically
+				ngrok.listen(server).then(() => {
+					console.log("url:", server.tunnel.url());
+				});
+			`}
+		/>
+	</CodeBlock.Body>
+</CodeBlock.Root>
 ```
 
 ## Composition
@@ -508,6 +593,10 @@ CodeBlock.Root
 Reach for it when `Root` should be a semantic `<figure>` or `<section>`, when `Title` needs a different heading level than the default `<h3>`, or when `Header` and `Body` should be `<header>` and `<section>`. `CopyButton` has no children of its own, so it is typed `SelfClosingWithAsChild`: `<CodeBlock.CopyButton asChild>` requires exactly one child to clone, and forbids children otherwise.
 
 The remaining parts do not accept `asChild`. `CodeBlock.Code` owns the highlighted markup it renders, and `CodeBlock.TabList`, `CodeBlock.TabTrigger`, and `CodeBlock.TabContent` each explicitly omit the prop because their behavior and mounting are driven by the active tab. `CodeBlock.Icon` takes its element through the `svg` prop instead. `CodeBlock.ExpanderButton` renders its own "Show more" / "Show less" label and caret icon, so there is no single child to clone; style it with `className`.
+
+## Build-time highlighting
+
+The [`mantleCodeBlockPlugins()`](/vite-plugins#mantlecodeblockplugins) Vite plugin highlights the code at build time with [Shiki](https://shiki.style/). It transforms each `mantleCode` tagged template literal and inlines the pre-rendered HTML, so highlighting costs nothing in the browser.
 
 ## Translation
 

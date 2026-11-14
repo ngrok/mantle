@@ -1,6 +1,6 @@
 ---
 title: Sandbar
-description: A floating save bar for unsaved changes. Batch save form state with save and discard actions, announce pending state to screen readers, and block navigation until changes are resolved.
+description: A floating save bar for unsaved changes.
 aliases: [save bar, contextual save bar, unsaved changes]
 ---
 
@@ -9,17 +9,7 @@ import { PageHeader } from "~/components/page-header";
 
 <PageHeader id="sandbar">Sandbar</PageHeader>
 
-A persistent, decision-bearing bar that floats near the bottom edge of the viewport. It surfaces
-pending state — primarily a form's unsaved ("dirty") changes — and stays until the user resolves
-it: save or discard.
-
-Toast announces something that already happened and leaves on its own; **a Sandbar waits for the
-user's decision**. If the message needs no decision, reach for
-[Toast](/components/feedback/toast) or [Alert](/components/feedback/alert) instead.
-
-The name: a sandbar is a bar that blocks navigation — exactly what this component does while
-changes are pending. Wire your router's navigation guard to `shake()` on the `SandbarHandle`, and
-blocked attempts wiggle the panel and announce assertively to screen readers.
+A floating save bar for unsaved changes. Keep `Sandbar.Root` mounted, and toggle it with the controlled `open` prop.
 
 <CodeExample.Root>
 	<CodeExample.PreviewFrame example="sandbar" title="Sandbar demo" />
@@ -166,6 +156,15 @@ export function EndpointSettings() {
     </CodeExample.Code>
 
 </CodeExample.Root>
+
+## When to use
+
+- Hold the unsaved changes of a form in a bar near the bottom of the viewport until the user saves or discards them.
+- Hold another [pending decision](#pending-decisions-beyond-saving) that the user must resolve before moving on.
+- [Block navigation](#blocking-navigation) until the user resolves the pending changes.
+- Prefer [`Toast`](/components/feedback/toast) when the message reports something that already happened and goes away on its own.
+- Prefer [`Alert`](/components/feedback/alert) when the message needs no decision and stays in the page.
+- Prefer [`AlertDialog`](/components/overlays/alert-dialog) when one destructive action needs a confirmation before it runs.
 
 ## Composition
 
@@ -498,6 +497,10 @@ Do not reach for `STILLNESS` in an app. It exists to demonstrate the reduced-mot
 reader who has motion switched on; in production the preference does this by itself.
 
 ## Blocking navigation
+
+The name: a sandbar is a bar that blocks navigation, and this component does that while
+changes are pending. Wire your router's navigation guard to `shake()` on the `SandbarHandle`. A
+blocked attempt then wiggles the panel and announces assertively to screen readers.
 
 The bar renders the decision; your app owns the guard. Pair `open` with your router's blocker
 (e.g. react-router's `useBlocker` plus a `beforeunload` listener while dirty) and call

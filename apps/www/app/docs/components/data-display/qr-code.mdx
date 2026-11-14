@@ -9,54 +9,7 @@ import { Example } from "~/components/example";
 
 # QR Code
 
-Render a scannable QR code from any string: a URL, an `otpauth://` MFA
-enrollment URI, a Wi-Fi credential, and so on. The value is encoded with the
-dependency-free [`uqr`](https://github.com/unjs/uqr) library.
-
-Compose a `QrCode.Frame` (the `svg`) wrapping a `QrCode.Pattern` (the modules)
-inside a `QrCode.Root`, and optionally drop a `QrCode.Overlay` in the center for
-a brand logo.
-
-<Example>
-	<QrCode.Root
-		value="otpauth://totp/ngrok:alice@example.com?secret=JBSWY3DPEHPK3PXP&issuer=ngrok"
-		ecc="H"
-	>
-		<QrCode.Frame>
-			<QrCode.Pattern />
-		</QrCode.Frame>
-		<QrCode.Overlay>
-			<NgrokLettermarkIcon className="size-7" />
-		</QrCode.Overlay>
-	</QrCode.Root>
-</Example>
-
-```tsx
-import { QrCode } from "@ngrok/mantle/qr-code";
-import { NgrokLettermarkIcon } from "@ngrok/mantle/icons";
-
-<QrCode.Root
-	value="otpauth://totp/ngrok:alice@example.com?secret=JBSWY3DPEHPK3PXP&issuer=ngrok"
-	ecc="H"
->
-	<QrCode.Frame>
-		<QrCode.Pattern />
-	</QrCode.Frame>
-	<QrCode.Overlay>
-		<NgrokLettermarkIcon className="size-7" />
-	</QrCode.Overlay>
-</QrCode.Root>;
-```
-
-The tile is intentionally white with dark modules in every theme: inverting a
-QR code's colors makes it unreliable for many scanners, so it stays
-black-on-white by default for scannability.
-
-## Basic
-
-The minimal QR code is a `Root` with a `Frame` and `Pattern`. The default error
-correction level is `L` (~7% recovery), which is plenty when there is no overlay
-covering modules.
+Render a scannable QR code, optionally branded with a centered logo. Compose a `QrCode.Frame` (the `svg`) wrapping a `QrCode.Pattern` (the modules) inside a `QrCode.Root`.
 
 <Example>
 	<QrCode.Root value="https://ngrok.com">
@@ -76,11 +29,17 @@ import { QrCode } from "@ngrok/mantle/qr-code";
 </QrCode.Root>;
 ```
 
+## When to use
+
+- Encode a string as a QR code that a phone camera can scan: a URL, an `otpauth://` MFA enrollment URI, a Wi-Fi credential, and so on.
+- Brand the code with a logo in a centered `QrCode.Overlay`. See [Error correction](#error-correction).
+
 ## Error correction
 
 A `QrCode.Overlay` hides the modules beneath it, so raise the error correction
 level via the `ecc` prop to keep the code scannable. Levels are `L` (~7%), `M`
 (~15%), `Q` (~25%), and `H` (~30%). Prefer `H` whenever a logo is present.
+The default level is `L`, which is plenty when no overlay covers modules.
 
 <Example>
 	<QrCode.Root value="https://ngrok.com" ecc="H">
@@ -160,7 +119,7 @@ import { QrCode } from "@ngrok/mantle/qr-code";
 
 ## Composition
 
-Compose the parts of a `QrCode` together to build your own:
+`QrCode.Root` encodes the value with the dependency-free [`uqr`](https://github.com/unjs/uqr) library. Compose the parts of a `QrCode` together to build your own:
 
 ```text showLineNumbers=false
 QrCode.Root

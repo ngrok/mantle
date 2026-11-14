@@ -90,7 +90,7 @@ export function HookMenuExample() {
 
 <PageHeader id="theme-switcher">Theme Switcher</PageHeader>
 
-Mantle owns the theme system ([`ThemeProvider`, `useTheme`, and the light and dark themes](/components/primitives/theme)), so it also ships the canonical theme control. `ThemeSwitcher` is a ghost [`IconButton`](/components/actions/icon-button) that shows the applied theme and flips between light and dark on each click. It reads and writes the theme via `useTheme`, so it needs a [`ThemeProvider`](/components/primitives/theme) ancestor. On a page that [locks the theme](/components/primitives/theme#locking-a-page-to-one-theme) with `forceTheme`, it shows the locked theme and is disabled, because a click cannot change what the page paints.
+The canonical light/dark toggle for headers and toolbars, plus the same toggle as one item for account menus. It reads and writes the theme with `useTheme`, so it needs a [`ThemeProvider`](/components/primitives/theme) ancestor.
 
 <Example>
 	<ThemeSwitcher />
@@ -102,6 +102,12 @@ import { ThemeSwitcher } from "@ngrok/mantle/theme-switcher";
 <ThemeSwitcher />;
 ```
 
+## When to use
+
+- Let the user switch between light and dark mode from a site header or a toolbar.
+- Put the same toggle in an account menu as one item, with [`ThemeDropdownMenuItem`](#embedding-in-an-existing-menu).
+- Prefer [`Switch`](/components/forms/switch) when the toggle controls a setting other than the theme.
+
 ## Choosing a control
 
 Give each surface one theme control. Two controls for one preference in one view make the user ask which one wins.
@@ -111,11 +117,13 @@ Give each surface one theme control. Two controls for one preference in one view
 | A site header or a toolbar         | `ThemeSwitcher`                                                                        |
 | A signed-out page, such as sign-in | `ThemeSwitcher` in the layout footer                                                   |
 | An app account menu                | [`ThemeDropdownMenuItem`](#embedding-in-an-existing-menu) at the top level of the menu |
-| An app settings page               | Your own radio group over [`useTheme`](/components/primitives/theme#usage)             |
+| An app settings page               | Your own radio group over [`useTheme`](/components/primitives/theme)                   |
 
 In a signed-in app, put the control in the account menu, and leave `ThemeSwitcher` out of the app chrome.
 
 ## How the toggle works
+
+Mantle owns the theme system ([`ThemeProvider`, `useTheme`, and the light and dark themes](/components/primitives/theme)), so it also ships the canonical theme control. `ThemeSwitcher` is a ghost [`IconButton`](/components/actions/icon-button) that shows the applied theme and flips between light and dark on each click. On a page that [locks the theme](/components/primitives/theme#locking-a-page-to-one-theme) with `forceTheme`, it shows the locked theme and is disabled, because a click cannot change what the page paints.
 
 The stored preference has three values: `"system"`, `"light"`, and `"dark"`. A user who opens the page and finds it too bright (or too dark) has one goal, which is to flip it, so the toggle shows two states and stores all three. It follows the model in [Lea Verou's post on dark mode toggles](https://lea.verou.me/blog/2026/dark-mode-toggles/):
 
@@ -258,7 +266,7 @@ export function ThemeItem() {
 
 ## Polymorphism
 
-`ThemeSwitcher`, `ThemeDropdownMenuItem`, and `ThemeSwitcherIcon` don't accept `asChild`. Each owns what it renders: the switcher renders only its icon, the item renders a `DropdownMenu.Item`, and the icon renders only the icon swap. To use your own menu item, call [`useThemeToggle`](#wiring-your-own-menu-item). To use your own control of another kind, call [`useTheme`](/components/primitives/theme#usage).
+`ThemeSwitcher`, `ThemeDropdownMenuItem`, and `ThemeSwitcherIcon` don't accept `asChild`. Each owns what it renders: the switcher renders only its icon, the item renders a `DropdownMenu.Item`, and the icon renders only the icon swap. To use your own menu item, call [`useThemeToggle`](#wiring-your-own-menu-item). To use your own control of another kind, call [`useTheme`](/components/primitives/theme).
 
 ## Accessibility
 

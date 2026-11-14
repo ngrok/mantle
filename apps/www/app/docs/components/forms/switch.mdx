@@ -1,6 +1,6 @@
 ---
 title: Switch
-description: A form control that toggles one setting on or off. Unlike Checkbox, it has no indeterminate state.
+description: A form control that toggles one setting on or off.
 aliases: [toggle, toggle switch]
 ---
 
@@ -15,9 +15,7 @@ import { Example } from "~/components/example";
 
 # Switch
 
-A form control that toggles one setting on or off. Unlike `Checkbox`, it has no indeterminate state.
-
-Pair with `Field.*` for label/description/error wiring in forms:
+A form control that toggles one setting on or off. Pair it with `Field` to connect its label, description, and errors in a form.
 
 <Example>
 	<Field.Item name="airplane-mode-field">
@@ -46,7 +44,16 @@ import { Switch } from "@ngrok/mantle/switch";
 </Field.Item>;
 ```
 
-Or render the control on its own:
+## When to use
+
+- Turn one setting on or off, such as a feature toggle in a settings list.
+- Prefer [`Checkbox`](/components/forms/checkbox) when the option needs an indeterminate state. A `Switch` has none.
+- Prefer [`Choice`](/components/forms/choice) when the switch needs a title and a description beside it.
+- Prefer [`ThemeSwitcher`](/components/forms/theme-switcher) when the setting is the light or dark theme.
+
+## Without a Field
+
+Render the control on its own, with a `Label` as its caption:
 
 <Example className="grid place-items-center">
 	<div className="flex flex-col gap-6">
@@ -125,6 +132,8 @@ import { Switch } from "@ngrok/mantle/switch";
 	</Choice.Content>
 </Choice.Root>;
 ```
+
+### Inside a Field
 
 Wrap that same `Choice` in a `Field.Item` / `Field.Control` to bind a form `name` and pick up validation. The field's `id` / `name` / `aria-*` flow onto the switch, and the `Field.Description` (or a `Field.Errors`) is merged into the control's `aria-describedby` alongside the `Choice.Description`:
 

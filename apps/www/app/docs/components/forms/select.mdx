@@ -1,6 +1,6 @@
 ---
 title: Select
-description: Displays a list of options for the user to pick from—triggered by a button.
+description: Displays a list of options for the user to pick from, triggered by a button.
 aliases: [dropdown, select box]
 ---
 
@@ -136,13 +136,7 @@ export function RichItemLabelsExample() {
 
 # Select
 
-Displays a list of options for the user to pick from—triggered by a button.
-
-## When to use
-
-Use `Select` for a small, finite list of options (~2-15) where the user picks exactly one and search/filtering is unnecessary. For larger lists, async data, or any single-select where typing to filter is helpful, use [`Combobox`](/components/forms/combobox). For picking multiple options, use [`Multi Select`](/components/forms/multi-select).
-
-When a `Select` is rendered inside `Field.Item`, wrap `Select.Root` in `Field.Control`. `Field.Control` flows the generated `id`, `name`, `aria-describedby`, `aria-errormessage`, and `aria-invalid` through to the focusable `Select.Trigger`: the `name` lands on `Select.Root` (so the hidden form input picks it up) and the trigger reads the ARIA props from context.
+Displays a list of options for the user to pick from, triggered by a button. Inside a `Field.Item`, wrap `Select.Root` in `Field.Control`.
 
 <Example>
 	<Field.Item className="max-w-64" name="fruits">
@@ -217,6 +211,14 @@ import { Select } from "@ngrok/mantle/select";
 </Field.Item>;
 ```
 
+## When to use
+
+- Pick one value from a short, fixed list of options (about 2 to 15) that needs no filter.
+- Prefer [`Combobox`](/components/forms/combobox) when the list is long or loads from a server, and the user types to filter it.
+- Prefer [`MultiSelect`](/components/forms/multi-select) when the user picks several values.
+- Prefer [`RadioGroup`](/components/forms/radio-group) when the options are few and must all show at once.
+- Prefer [`DropdownMenu`](/components/overlays/dropdown-menu) when the list runs actions and sets no value.
+
 ## Composition
 
 Compose the parts of a `Select` together to build your own:
@@ -242,6 +244,10 @@ Select.Root
 
 > [!WARNING]
 > `Select.Value asChild` renders your element but **drops every prop**: Radix hands its `Slot` a keyed Fragment, so the value's `data-slot`, `ref`, and `style` never reach your element, and React warns about invalid Fragment props. Do not use it. To render a custom value, pass `children` instead, as the [custom selected value](#custom-selected-value) example does.
+
+## Inside a Field
+
+`Field.Control` puts the generated `id`, `name`, `aria-describedby`, `aria-errormessage`, and `aria-invalid` on the focusable `Select.Trigger`. The `name` lands on `Select.Root`, so the hidden form input gets it. The trigger reads the ARIA props from context.
 
 ## Layering and z-index
 

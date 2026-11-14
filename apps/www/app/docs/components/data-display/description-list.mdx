@@ -11,9 +11,7 @@ import { Example } from "~/components/example";
 
 # Description List
 
-A semantically correct description list built on the HTML [`<dl>`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/dl) element. Renders a list of label/value pairs, commonly used in detail views to display metadata about a resource.
-
-Compose `<DescriptionList.Root>` with `<DescriptionList.Item>`, `<DescriptionList.Label>`, and `<DescriptionList.Value>` as direct children.
+A semantically correct description list built on the HTML [`<dl>`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/dl) element. Compose `<DescriptionList.Item>`, `<DescriptionList.Label>`, and `<DescriptionList.Value>` as direct children of `<DescriptionList.Root>`.
 
 <Example>
 	<div className="w-full max-w-lg">
@@ -80,6 +78,12 @@ import { DescriptionList } from "@ngrok/mantle/description-list";
 	</DescriptionList.Item>
 </DescriptionList.Root>;
 ```
+
+## When to use
+
+- Show a list of label and value pairs, such as the metadata of a resource on a detail page.
+- Prefer [`Table`](/components/data-display/table) when several records share the same columns.
+- Prefer [`Strata`](/components/structure/strata) when the pairs are headed sections of controls, not read-only data.
 
 ## Composition
 

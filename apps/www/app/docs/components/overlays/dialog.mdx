@@ -16,11 +16,7 @@ import { TanStackFormDemo } from "~/examples/dialog/dialog-tanstack-form-demo";
 
 # Dialog
 
-A window overlaid on either the primary window or another dialog window, rendering the content underneath inert. Built on top of Radix UI Dialog.
-
-## When to use
-
-Use `Dialog` for a centered modal that interrupts the user to gather input or confirm a non-destructive choice. For destructive confirmations (delete, irreversible actions), use [`AlertDialog`](/components/overlays/alert-dialog). For side-panel content (filter panels, detail/inspector views, navigation drawers), use [`Sheet`](/components/overlays/sheet).
+A window overlaid on either the primary window or another dialog window, rendering the content underneath inert.
 
 <Example className="flex-col gap-6">
 	<Dialog.Root>
@@ -88,6 +84,13 @@ import { Button } from "@ngrok/mantle/button";
 	</Dialog.Content>
 </Dialog.Root>;
 ```
+
+## When to use
+
+- Interrupt the user in a centered modal to gather input or confirm a choice that is not destructive.
+- Prefer [`AlertDialog`](/components/overlays/alert-dialog) for a destructive or irreversible confirmation, such as a delete.
+- Prefer [`Sheet`](/components/overlays/sheet) for side-panel content, such as a filter panel, a detail view, or a navigation drawer.
+- Prefer [`Popover`](/components/overlays/popover) for small content that opens next to its trigger, with no modal backdrop.
 
 ## Layering and z-index
 
@@ -765,6 +768,8 @@ function Example() {
 `Dialog.Root` and `Dialog.Portal` render no DOM of their own (`Root` is a state provider and `Portal` only relocates its children), so neither takes `asChild`. `Dialog.Header`, `Dialog.Body`, and `Dialog.Footer` are plain layout `<div>`s that do not currently accept it.
 
 ## API Reference
+
+The `Dialog` components are built on top of [Radix Dialog](https://www.radix-ui.com/primitives/docs/components/dialog).
 
 ### Dialog.Root
 

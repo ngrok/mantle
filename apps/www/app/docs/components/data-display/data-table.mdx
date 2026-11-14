@@ -13,24 +13,18 @@ import {
 	FitColumnDemo,
 	PaginatedPaymentsDemo,
 	PaymentsDemo,
+	QuickStartDemo,
 	SelectablePaymentsDemo,
 	SubRowsDemo,
 } from "~/features/data-table-demo";
 
 # Data Table
 
-Tables purposefully designed for dynamic, application data with features like sorting, filtering, and pagination. Powered by [TanStack Table](https://tanstack.com/table/latest/docs/introduction).
+Tables purposefully designed for dynamic, application data with features like sorting, filtering, and pagination. Pass a TanStack Table instance from `useTable` to `DataTable.Root`, and render one `DataTable.Row` for each row.
 
-## When to use
-
-A `DataTable` is for **dynamic, application data**: anywhere users need to sort, filter, paginate, select, or click rows. It is built on top of [`Table`](/components/data-display/table) and wires up [TanStack Table](https://tanstack.com/table/latest/docs/introduction) so you get those behaviors out of the box.
-
-- Prefer [`Table`](/components/data-display/table) for **static, presentational** tabular content (pricing matrices, reference tables, invoice summaries).
-- `@ngrok/mantle/data-table` re-exports every TanStack Table export: `useTable`, `tableFeatures`, `createColumnHelper`, the `*Feature` objects (`rowSortingFeature`, `rowSelectionFeature`, `rowExpandingFeature`, and the rest), the `create*RowModel` factories, and the `sortFn_*`, `filterFn_*`, and `aggregationFn_*` functions. You don't need to add `@tanstack/react-table` as a separate dependency.
-
-## Quick start
-
-The minimum viable `DataTable`. Copy, paste, replace the type and data:
+<Example>
+	<QuickStartDemo />
+</Example>
 
 ```tsx
 import {
@@ -46,6 +40,12 @@ import {
 } from "@ngrok/mantle/data-table";
 
 type Row = { id: string; name: string };
+
+const data: Row[] = [
+	{ id: "us", name: "United States" },
+	{ id: "eu", name: "Europe" },
+	{ id: "ap", name: "Asia Pacific" },
+];
 
 // Register only the features the table uses. Auto-sort resolves the
 // `alphanumeric`, `text`, and `datetime` comparators by name, so register those three.
@@ -75,7 +75,7 @@ const columns = columnHelper.columns([
 	}),
 ]);
 
-function MyTable({ data }: { data: Row[] }) {
+function QuickStartExample() {
 	const table = useTable({ features, data, columns });
 	const rows = table.getRowModel().rows;
 
@@ -94,7 +94,16 @@ function MyTable({ data }: { data: Row[] }) {
 }
 ```
 
-A fuller example, with sortable columns, row-click navigation, and a sticky action column:
+## When to use
+
+- Show application data that users sort, filter, page through, or select.
+- Show rows that users click to open a record.
+- Prefer [`Table`](/components/data-display/table) for static, presentational tabular content, such as pricing matrices, reference tables, or invoice summaries.
+- Prefer [`DescriptionList`](/components/data-display/description-list) to show one record as label and value pairs.
+
+## Sorting, row links, and actions
+
+A full table sorts each column, opens a record on row click, and pins an action column to the right edge.
 
 <Example>
 	<PaymentsDemo />
@@ -264,6 +273,10 @@ function PaymentsTable({ data }: { data: Payment[] }) {
 }
 ```
 
+## TanStack Table
+
+`DataTable` builds on [`Table`](/components/data-display/table) and wires up [TanStack Table](https://tanstack.com/table/latest/docs/introduction). `@ngrok/mantle/data-table` re-exports every TanStack Table export: `useTable`, `tableFeatures`, `createColumnHelper`, the `*Feature` objects (`rowSortingFeature`, `rowSelectionFeature`, `rowExpandingFeature`, and the rest), the `create*RowModel` factories, and the `sortFn_*`, `filterFn_*`, and `aggregationFn_*` functions. You don't need to add `@tanstack/react-table` as a separate dependency.
+
 ## Composition
 
 Compose the parts of a `DataTable` together to build your own:
@@ -426,7 +439,11 @@ A list has **two** distinct empty states, and they need different copy and actio
 1. **No data**: nothing exists yet. Informational, optionally a primary "create" action.
 2. **No results for the active filter/search**: the user filtered to nothing and needs a way out (a **Clear filters** button).
 
-Branch on `rows.length`, then on whether a filter is active, and host an [`Empty`](/components/feedback/empty) inside `DataTable.EmptyRow` for each branch. A pending query is a third state that comes before both: the [List Page Loading States](/recipes/list-page-loading-states) recipe wires all three, with skeleton rows that match the loaded rows. `EmptyRow` already spans every column (auto `colSpan`) and `Empty.Root` centers itself. Drop a single `Empty.Root` in as the child; don't hand-roll a `<td>` or any centering. Type into the filter below to see the "no results" branch and its working `Clear filters` reset:
+Branch on `rows.length`, then on whether a filter is active, and host an [`Empty`](/components/feedback/empty) inside `DataTable.EmptyRow` for each branch. A pending query is a third state that comes before both: the [List Page Loading States](/recipes/list-page-loading-states) recipe wires all three, with skeleton rows that match the loaded rows. `EmptyRow` already spans every column (auto `colSpan`) and `Empty.Root` centers itself. Drop a single `Empty.Root` in as the child; don't hand-roll a `<td>` or any centering.
+
+#### No results for a filter
+
+Type into the filter below to see the "no results" branch and its working `Clear filters` reset:
 
 <Example>
 	<FilteredEmptyStateDemo />
@@ -483,6 +500,8 @@ const isFiltered = globalFilter.trim() !== ""; // or table.state.columnFilters.l
 	)}
 </DataTable.Body>;
 ```
+
+#### No data
 
 With no data at all, the table shows the first branch:
 

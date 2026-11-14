@@ -14,21 +14,39 @@ import { Example } from "~/components/example";
 
 A non-interactive label used to highlight short, scannable information — a status, a category tag, or a count — in the smallest possible footprint.
 
+<Example>
+	<Badge appearance="muted" color="success">
+		Online
+	</Badge>
+</Example>
+
+```tsx
+import { Badge } from "@ngrok/mantle/badge";
+
+<Badge appearance="muted" color="success">
+	Online
+</Badge>;
+```
+
 ## When to use
 
-- Status indicators: `Succeeded`, `Failed`, `Pending`, `Beta`.
-- Category or tag chips alongside list items, table rows, or cards.
-- Counts (e.g. `12 new`) when paired with brief context.
+- Show a status, such as `Succeeded`, `Failed`, `Pending`, or `Beta`.
+- Tag a list item, a table row, or a card with a category.
+- Show a count, such as `12 new`, with brief context.
+- Prefer [`Button`](/components/actions/button) or [`Anchor`](/components/navigation/anchor) when the label must respond to a click. To give a link the look of a badge, see [Polymorphism](#polymorphism).
+- Prefer [`Kbd`](/components/data-display/kbd) for a keyboard key or a shortcut.
+- Prefer [`MultiSelect`](/components/forms/multi-select) for tags that the user picks and removes.
 
 ## When not to use
 
-- For interactive UI. Badges are not buttons or links; use [`Button`](/components/actions/button) or [`Anchor`](/components/navigation/anchor) (optionally with `asChild` styling) instead.
 - For long-form text. Keep labels to one or two short words.
 - As the sole signal of meaning. Pair color with a label or icon so the distinction works without color (color blindness, monochrome themes).
 
 ## Choosing a color
 
 Prefer functional colors (`success`, `warning`, `danger`, `info`, `accent`, `neutral`) for status meaning so theming stays coherent. Reach for named hues only when the badge's semantic role isn't already covered.
+
+Every color, with and without an `icon`:
 
 <Example className="p-4 md:p-8">
 	<ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">

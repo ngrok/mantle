@@ -57,9 +57,7 @@ export const invoices = [
 
 # SandboxedOnClick
 
-A container that prevents the click event from bubbling out of it.
-
-Each table row will trigger a `window.alert()` when clicked. The icon button is wrapped in `SandboxedOnClick` and navigates you to [the ngrok docs.](https://ngrok.com/docs)
+A container that prevents the click event from bubbling out of it. In the example, a click on a table row calls `window.alert()`, but the icon button inside `SandboxedOnClick` only opens [the ngrok docs](https://ngrok.com/docs).
 
 <Example className="gap-2">
 	<Table.Root>
@@ -173,6 +171,10 @@ import { BookIcon } from "@phosphor-icons/react/Book";
 	</Table.Element>
 </Table.Root>;
 ```
+
+## When to use
+
+- Stop a click inside a region, such as a menu or a button in a clickable table row, from reaching a click handler on an ancestor.
 
 ## Polymorphism
 

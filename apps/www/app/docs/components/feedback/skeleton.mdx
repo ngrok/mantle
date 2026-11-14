@@ -1,6 +1,6 @@
 ---
 title: Skeleton
-description: Use to show a placeholder while content is loading.
+description: Use Skeleton to show a placeholder while content is loading.
 aliases: [shimmer, loading placeholder, content loader]
 ---
 
@@ -10,14 +10,25 @@ import { Example } from "~/components/example";
 
 # Skeleton
 
-A skeleton is a placeholder for content that is loading. By rendering a neutral block where real content will eventually appear, you give the user an early sense of layout and reduce both perceived loading time and Cumulative Layout Shift (CLS).
+Use `Skeleton` to show a placeholder while content is loading.
+
+<Example>
+	<Skeleton className="w-full" />
+</Example>
+
+```tsx
+import { Skeleton } from "@ngrok/mantle/skeleton";
+
+<Skeleton className="w-full" />;
+```
 
 ## When to use
 
-- Async-loaded content where the eventual shape is predictable (lists, cards, tables, avatars).
-- On initial page load, before data has resolved.
-
-For a whole list page, the [List Page Loading States](/recipes/list-page-loading-states) recipe shows where the skeleton belongs and what renders around it.
+- Hold the place of async content whose shape you can predict: lists, cards, tables, avatars.
+- Fill the page on its first load, before the data resolves.
+- Show a whole list page while it loads. The [List Page Loading States](/recipes/list-page-loading-states) recipe shows where the skeleton belongs and what renders around it.
+- Prefer [`Empty`](/components/feedback/empty) when the region loaded and has no data, no results, or no access to show.
+- Prefer [`ProgressBar`](/components/feedback/progress-bar) when a task shows how much of it is complete.
 
 ## When not to use
 
@@ -26,6 +37,8 @@ For a whole list page, the [List Page Loading States](/recipes/list-page-loading
 - As a permanent decorative shape.
 
 ## Sizing
+
+A skeleton renders a neutral block where the real content will appear. It gives the user an early sense of the layout, and it reduces both perceived loading time and Cumulative Layout Shift (CLS).
 
 Default height is `1rem`. Override `className` with `h-*`, `w-*`, and `rounded-*` utilities to match the real content's dimensions — the more closely the skeleton matches, the less layout shift on swap.
 
@@ -47,16 +60,6 @@ import { Skeleton } from "@ngrok/mantle/skeleton";
 	<span className="sr-only">Loading profile…</span>
 	<Skeleton className="h-12 w-12 rounded-full" />
 </div>;
-```
-
-<Example>
-	<Skeleton className="w-full" />
-</Example>
-
-```tsx
-import { Skeleton } from "@ngrok/mantle/skeleton";
-
-<Skeleton className="w-full" />;
 ```
 
 ## Examples

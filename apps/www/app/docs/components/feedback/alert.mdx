@@ -13,102 +13,38 @@ import { DismissibleAlertDemo, DynamicAlertDemo } from "~/features/alert-demos";
 
 # Alert
 
-Displays a callout for user attention.
+Displays a callout for user attention. `intent` on `Alert.Root` is required: it sets the color and the default icon.
 
-<Example className="flex-col gap-2">
-	<Alert.Root intent="danger">
-		<Alert.Icon />
-		<Alert.Content>
-			<Alert.Title>Danger</Alert.Title>
-			<Alert.Description>This is a danger Alert.</Alert.Description>
-		</Alert.Content>
-	</Alert.Root>
+<Example>
 	<Alert.Root intent="info">
 		<Alert.Icon />
 		<Alert.Content>
-			<Alert.Title>Info</Alert.Title>
-			<Alert.DismissIconButton />
-			<Alert.Description>This is an info Alert.</Alert.Description>
-		</Alert.Content>
-	</Alert.Root>
-	<Alert.Root intent="important">
-		<Alert.Icon />
-		<Alert.Content>
-			<Alert.Title>Important</Alert.Title>
-			<Alert.Description>This is an important Alert.</Alert.Description>
-		</Alert.Content>
-	</Alert.Root>
-	<Alert.Root intent="success">
-		<Alert.Icon />
-		<Alert.Content>
-			<Alert.Title>Success</Alert.Title>
-			<Alert.Description>This is a success Alert.</Alert.Description>
-		</Alert.Content>
-	</Alert.Root>
-	<Alert.Root intent="warning">
-		<Alert.Icon />
-		<Alert.Content>
-			<Alert.Title>Warning</Alert.Title>
-			<Alert.Description>This is a warning Alert.</Alert.Description>
-		</Alert.Content>
-	</Alert.Root>
-	<Alert.Root intent="danger">
-		<Alert.Icon svg={<ShrimpIcon />} />
-		<Alert.Content>
-			<Alert.Title>Danger w/ custom icon</Alert.Title>
-			<Alert.Description>This is a danger Alert.</Alert.Description>
+			<Alert.Title>Maintenance window</Alert.Title>
+			<Alert.Description>Service may be briefly unavailable.</Alert.Description>
 		</Alert.Content>
 	</Alert.Root>
 </Example>
 
 ```tsx
 import { Alert } from "@ngrok/mantle/alert";
-import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
 
-<Alert.Root intent="danger">
-	<Alert.Icon />
-	<Alert.Content>
-		<Alert.Title>Danger</Alert.Title>
-		<Alert.Description>This is a danger Alert.</Alert.Description>
-	</Alert.Content>
-</Alert.Root>
 <Alert.Root intent="info">
 	<Alert.Icon />
 	<Alert.Content>
-		<Alert.Title>Info</Alert.Title>
-		<Alert.DismissIconButton />
-		<Alert.Description>This is an info Alert.</Alert.Description>
+		<Alert.Title>Maintenance window</Alert.Title>
+		<Alert.Description>Service may be briefly unavailable.</Alert.Description>
 	</Alert.Content>
-</Alert.Root>
-<Alert.Root intent="important">
-	<Alert.Icon />
-	<Alert.Content>
-		<Alert.Title>Important</Alert.Title>
-		<Alert.Description>This is an important Alert.</Alert.Description>
-	</Alert.Content>
-</Alert.Root>
-<Alert.Root intent="success">
-	<Alert.Icon />
-	<Alert.Content>
-		<Alert.Title>Success</Alert.Title>
-		<Alert.Description>This is a success Alert.</Alert.Description>
-	</Alert.Content>
-</Alert.Root>
-<Alert.Root intent="warning">
-	<Alert.Icon />
-	<Alert.Content>
-		<Alert.Title>Warning</Alert.Title>
-		<Alert.Description>This is a warning Alert.</Alert.Description>
-	</Alert.Content>
-</Alert.Root>
-<Alert.Root intent="danger">
-	<Alert.Icon svg={<ShrimpIcon />} />
-	<Alert.Content>
-		<Alert.Title>Danger w/ custom icon</Alert.Title>
-		<Alert.Description>This is a danger Alert.</Alert.Description>
-	</Alert.Content>
-</Alert.Root>
+</Alert.Root>;
 ```
+
+## When to use
+
+- Show a persistent message in the page, such as a warning, an error, or a success note, beside the content it describes.
+- Show a full-width notice at the top of a region with a [banner](#banners).
+- Prefer [`Toast`](/components/feedback/toast) when the message is brief and goes away on its own.
+- Prefer [`AlertDialog`](/components/overlays/alert-dialog) when the user must respond before they continue.
+- Prefer [`AlertCenter`](/components/feedback/alert-center) when several account-level alerts share one bar at the top of the app.
+- Prefer [`Empty`](/components/feedback/empty) when a region has no data, no results, or no access to show.
 
 ## Composition
 
@@ -157,6 +93,117 @@ import { Alert } from "@ngrok/mantle/alert";
 	</Alert.Content>
 </Alert.Root>;
 ```
+
+## Intents
+
+`intent` sets the color and the default icon of the alert.
+
+<Example className="flex-col gap-2">
+	<Alert.Root intent="danger">
+		<Alert.Icon />
+		<Alert.Content>
+			<Alert.Title>Danger</Alert.Title>
+			<Alert.Description>This is a danger Alert.</Alert.Description>
+		</Alert.Content>
+	</Alert.Root>
+	<Alert.Root intent="info">
+		<Alert.Icon />
+		<Alert.Content>
+			<Alert.Title>Info</Alert.Title>
+			<Alert.Description>This is an info Alert.</Alert.Description>
+		</Alert.Content>
+	</Alert.Root>
+	<Alert.Root intent="important">
+		<Alert.Icon />
+		<Alert.Content>
+			<Alert.Title>Important</Alert.Title>
+			<Alert.Description>This is an important Alert.</Alert.Description>
+		</Alert.Content>
+	</Alert.Root>
+	<Alert.Root intent="success">
+		<Alert.Icon />
+		<Alert.Content>
+			<Alert.Title>Success</Alert.Title>
+			<Alert.Description>This is a success Alert.</Alert.Description>
+		</Alert.Content>
+	</Alert.Root>
+	<Alert.Root intent="warning">
+		<Alert.Icon />
+		<Alert.Content>
+			<Alert.Title>Warning</Alert.Title>
+			<Alert.Description>This is a warning Alert.</Alert.Description>
+		</Alert.Content>
+	</Alert.Root>
+</Example>
+
+```tsx
+import { Alert } from "@ngrok/mantle/alert";
+
+<Alert.Root intent="danger">
+	<Alert.Icon />
+	<Alert.Content>
+		<Alert.Title>Danger</Alert.Title>
+		<Alert.Description>This is a danger Alert.</Alert.Description>
+	</Alert.Content>
+</Alert.Root>
+<Alert.Root intent="info">
+	<Alert.Icon />
+	<Alert.Content>
+		<Alert.Title>Info</Alert.Title>
+		<Alert.Description>This is an info Alert.</Alert.Description>
+	</Alert.Content>
+</Alert.Root>
+<Alert.Root intent="important">
+	<Alert.Icon />
+	<Alert.Content>
+		<Alert.Title>Important</Alert.Title>
+		<Alert.Description>This is an important Alert.</Alert.Description>
+	</Alert.Content>
+</Alert.Root>
+<Alert.Root intent="success">
+	<Alert.Icon />
+	<Alert.Content>
+		<Alert.Title>Success</Alert.Title>
+		<Alert.Description>This is a success Alert.</Alert.Description>
+	</Alert.Content>
+</Alert.Root>
+<Alert.Root intent="warning">
+	<Alert.Icon />
+	<Alert.Content>
+		<Alert.Title>Warning</Alert.Title>
+		<Alert.Description>This is a warning Alert.</Alert.Description>
+	</Alert.Content>
+</Alert.Root>
+```
+
+## Custom icon
+
+Pass the `svg` prop to `Alert.Icon` to replace the default icon of the intent.
+
+<Example>
+	<Alert.Root intent="danger">
+		<Alert.Icon svg={<ShrimpIcon />} />
+		<Alert.Content>
+			<Alert.Title>Danger w/ custom icon</Alert.Title>
+			<Alert.Description>This is a danger Alert.</Alert.Description>
+		</Alert.Content>
+	</Alert.Root>
+</Example>
+
+```tsx
+import { Alert } from "@ngrok/mantle/alert";
+import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
+
+<Alert.Root intent="danger">
+	<Alert.Icon svg={<ShrimpIcon />} />
+	<Alert.Content>
+		<Alert.Title>Danger w/ custom icon</Alert.Title>
+		<Alert.Description>This is a danger Alert.</Alert.Description>
+	</Alert.Content>
+</Alert.Root>;
+```
+
+## Layouts
 
 Mix and match what you put inside the `Alert` component to create different Alert layouts.
 

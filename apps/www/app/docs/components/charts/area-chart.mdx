@@ -26,6 +26,23 @@ export const trafficData = [
 	{ date: new Date("2026-07-14"), http: 6300, tcp: 1900, tls: 1200 },
 ];
 
+export function SingleSeriesAreaExample() {
+	return (
+		<AreaChart.Root
+			data={trafficData}
+			xKey="date"
+			aria-label="HTTP connections per day"
+			className="max-w-2xl"
+		>
+			<AreaChart.Grid />
+			<AreaChart.XAxis />
+			<AreaChart.YAxis tickFormat={(value) => `${value / 1000}k`} />
+			<AreaChart.Area dataKey="http" label="HTTP" color="blue" />
+			<AreaChart.Tooltip />
+		</AreaChart.Root>
+	);
+}
+
 export function StackedAreaExample() {
 	return (
 		<AreaChart.Root
@@ -370,20 +387,57 @@ export function SeriesIdentityAreaChartExample() {
 
 # Area Chart
 
-An area chart for showing how values (and, when stacked, a total and its parts) change over a continuous x axis. Each area fills with a 10% wash of its series color plus a 2px stroke on the band edge, rising from a shared zero baseline. Interaction ships with the Root unconditionally: a crosshair with an every-series tooltip, keyboard stepping with polite announcements, an sr-only description, and click / <kbd translate="no">Enter</kbd> / <kbd translate="no">Space</kbd> activation. The sr-only data table mounts once the chart takes focus. Large datasets decimate before painting.
+An area chart for showing how values (and, when stacked, a total and its parts) change over a continuous x axis. Compose the gridlines, axes, and one `AreaChart.Area` per series inside `AreaChart.Root`.
+
+<Example>
+	<SingleSeriesAreaExample />
+</Example>
+
+```tsx
+import { AreaChart } from "@ngrok/mantle/area-chart";
+
+const trafficData = [
+	{ date: new Date("2026-07-01"), http: 4200, tcp: 1400, tls: 860 },
+	{ date: new Date("2026-07-02"), http: 4600, tcp: 1350, tls: 900 },
+	{ date: new Date("2026-07-03"), http: 5100, tcp: 1500, tls: 940 },
+	{ date: new Date("2026-07-04"), http: 3800, tcp: 1250, tls: 780 },
+	{ date: new Date("2026-07-05"), http: 3500, tcp: 1200, tls: 750 },
+	{ date: new Date("2026-07-06"), http: 4900, tcp: 1550, tls: 980 },
+	{ date: new Date("2026-07-07"), http: 5400, tcp: 1600, tls: 1050 },
+	{ date: new Date("2026-07-08"), http: 5800, tcp: 1700, tls: 1100 },
+	{ date: new Date("2026-07-09"), http: 5200, tcp: 1650, tls: 1020 },
+	{ date: new Date("2026-07-10"), http: 6100, tcp: 1800, tls: 1150 },
+	{ date: new Date("2026-07-11"), http: 4400, tcp: 1450, tls: 880 },
+	{ date: new Date("2026-07-12"), http: 4100, tcp: 1400, tls: 840 },
+	{ date: new Date("2026-07-13"), http: 5600, tcp: 1750, tls: 1080 },
+	{ date: new Date("2026-07-14"), http: 6300, tcp: 1900, tls: 1200 },
+];
+
+<AreaChart.Root
+	data={trafficData}
+	xKey="date"
+	aria-label="HTTP connections per day"
+	className="max-w-2xl"
+>
+	<AreaChart.Grid />
+	<AreaChart.XAxis />
+	<AreaChart.YAxis tickFormat={(value) => `${value / 1000}k`} />
+	<AreaChart.Area dataKey="http" label="HTTP" color="blue" />
+	<AreaChart.Tooltip />
+</AreaChart.Root>;
+```
 
 ## When to use
 
-Reach for an `AreaChart` when the magnitude of a value over time is the story: the fill gives the value physical weight. Add `stacked` and it becomes a part-to-whole chart over time: the top edge of the stack is the total, and each band shows how much of it a series contributes.
+- Show how the magnitude of a value changes over time. The fill gives the value weight.
+- Show a total and its parts over time with [stacked areas](#stacked-areas).
+- Compare a few series that each fill from zero with [overlapping areas](#overlapping-areas).
+- Prefer [`LineChart`](/components/charts/line-chart) to compare the shapes of trends, where filled areas would hide where the series cross.
+- Prefer [`BarChart`](/components/charts/bar-chart) to compare discrete categories by bar length from zero.
 
-- The fill is a deliberate 10% wash with a 2px band-edge stroke, so an area chart reads as a line chart with weight, never a saturated block that hides the grid and its siblings.
-- Areas always fill from a zero baseline: the y-domain minimum is fixed at `0` at the type level (`yDomain?: [0, number | "auto"]`), so a truncated-baseline area chart is unrepresentable.
-- Prefer [`LineChart`](/components/charts/line-chart) when composition doesn't matter and you are comparing the shapes of trajectories.
-- Prefer [`BarChart`](/components/charts/bar-chart) when the x axis is categorical and the comparison is between discrete things, not over time.
+## Stacked areas
 
-**Keep a chart to eight series.** Past eight, a reader can't match each band to its legend key by color. Rank the series by the window's total, keep the top seven, and sum the rest into one `"Other"` series. Give the Other series `color="neutral"`, so it reads as the tail and not as one more category. Keep it last, so it sits at the top of a stack. The Bar Chart page carries [a worked fold](/components/charts/bar-chart#when-to-use).
-
-Compose `AreaChart.Root` with the chrome parts (`Grid`, `XAxis`, `YAxis`) and one `AreaChart.Area` per series. A stacked chart of connections by protocol over two weeks:
+Set `stacked` on the Root to show a total and its parts. The top edge of the stack is the total, and each band is the share of one series. Compose `AreaChart.Legend` on every multi-series chart.
 
 <Example>
 	<StackedAreaExample />
@@ -426,10 +480,6 @@ const trafficData = [
 	<AreaChart.Legend />
 </AreaChart.Root>;
 ```
-
-With `stacked` on the Root, series stack from the baseline up in registration order: areas that mount together register in composition order, so the first `Area` sits on the baseline and each later `Area` stacks on top of it. An `Area` that mounts later stacks on top of every series already registered, whatever its position in the JSX, and a `dataKey` that unmounts and returns resumes its original position. Reordering the parts of a mounted chart does not restack it: the position sticks to the `dataKey`, which is what keeps a series from jumping when you rename its `label`. The tooltip lists the top of the pile first, matching what a reader scans at the crosshair. Every multi-series chart must compose `AreaChart.Legend` — series identity must never rely on color-matching alone. (For a single series the legend renders nothing; the chart's title already names it.)
-
-The tooltip, crosshair, and keyboard cursor are part of `AreaChart.Root`'s interaction contract: composing `AreaChart.Tooltip` customizes the readout, and omitting it never removes the hover layer.
 
 ## Overlapping areas
 
@@ -916,12 +966,28 @@ AreaChart.Root
 - **`Tooltip`** customizes the always-on hover/keyboard readout; omitting it never removes the hover layer.
 - **`Legend`** renders series names keyed by color swatches as real DOM in flow below the plot. Always compose it on multi-series charts; it renders nothing for a single series.
 
+The interaction layer ships with `Root`, and there is no part to add for it: a crosshair with an every-series tooltip, keyboard stepping with polite announcements, an sr-only description, and click, <kbd translate="no">Enter</kbd>, or <kbd translate="no">Space</kbd> activation. The sr-only data table mounts once the chart takes focus.
+
 Wrap a list of Roots in `AreaChart.List` so they share one live region:
 
 ```text showLineNumbers=false
 AreaChart.List
 └── AreaChart.Root (one per chart)
 ```
+
+## Stacking order
+
+With `stacked` on the Root, series stack from the baseline up in registration order. Areas that mount together register in composition order, so the first `Area` sits on the baseline and each later `Area` stacks on top of it. An `Area` that mounts later stacks on top of every series already registered, whatever its position in the JSX. A `dataKey` that unmounts and returns goes back to its original position.
+
+Reordering the parts of a mounted chart does not restack it. The position stays with the `dataKey`, so a series does not jump when you rename its `label`. The tooltip lists the top of the pile first, to match what a reader scans at the crosshair.
+
+## Fill, axes, and density
+
+Each area fills with a 10% wash of its series color and has a 2px stroke on the band edge. An area chart therefore reads as a line chart with weight, and never as a saturated block that hides the grid and the other series.
+
+Areas always fill from a zero baseline. The type fixes the y-domain minimum at `0` (`yDomain?: [0, number | "auto"]`), so a truncated-baseline area chart is not possible.
+
+Large datasets decimate before they paint. [Accessibility](#accessibility) tells how the keyboard cursor steps through a decimated chart.
 
 ## Color and accessibility
 
@@ -932,6 +998,10 @@ An area's 2px edge is the mark a reader decodes. The 10% wash under it is decora
 - When bands overlap or sit side by side, set `shape` on each series. Its hover dot and legend key then carry a second encoding beside color (see [Shapes](#shapes)).
 
 The [Bar Chart page](/components/charts/bar-chart#color-and-accessibility) covers the rest: mantle's stance on color, the exemptions SC 1.4.11 allows, and the eight-series limit.
+
+### Keep a chart to eight series
+
+Past eight series, a reader cannot match each band to its legend key by color. Rank the series by the window's total, keep the top seven, and sum the rest into one `"Other"` series. Give the Other series `color="neutral"`, so it reads as the tail and not as one more category. Keep it last, so it sits at the top of a stack. The Bar Chart page has [a worked fold](/components/charts/bar-chart#keep-a-chart-to-eight-series).
 
 ## Accessibility
 

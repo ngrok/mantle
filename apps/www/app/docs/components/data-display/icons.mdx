@@ -21,9 +21,7 @@ import { IconsExplorer } from "~/features/icons-explorer";
 
 # Icons
 
-A list of custom icons that are used throughout ngrok UI.
-
-<IconsExplorer />
+Custom icons used throughout ngrok UI.
 
 <Example className="gap-4">
 	<SortIcon mode="time" direction="newest-to-oldest" />
@@ -57,6 +55,17 @@ function IconGallery() {
 	);
 }
 ```
+
+## When to use
+
+- Show an ngrok glyph that `@phosphor-icons/react` does not ship, such as the ngrok wordmark or the icon for a traffic policy file.
+- Prefer [`Icon`](/components/data-display/icon) for a glyph that `@phosphor-icons/react` ships.
+
+## Find an icon
+
+Search the custom icons. Click an icon to copy its import statement.
+
+<IconsExplorer />
 
 ## Color-coded icons
 

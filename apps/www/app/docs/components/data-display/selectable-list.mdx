@@ -202,7 +202,7 @@ export function VirtualViewportExample() {
 
 <PageHeader id="selectable-list">Selectable List</PageHeader>
 
-A filterable, multi-select **grid** of checkbox rows — the inline (non-popover) counterpart to [`MultiSelect`](/components/forms/multi-select) and [`Combobox`](/components/forms/combobox). Map your data into `options` once; the list owns filtering and selection. Each row is an APG grid `role="row"` (`aria-selected`) whose cells hold a real [`Checkbox`](/components/forms/checkbox) and a [`Choice`](/components/forms/choice)-laid-out title + description — the pattern that lets a selectable row carry a real control and its own interactive content. The default row is fully click-to-toggle with a title and an optional de-emphasized sub-line; or, as a stopgap, break out with your own row content (see [Custom rows](#custom-rows)). It renders every row by default; for long lists, swap `Viewport` → [`VirtualViewport`](#virtualization). The example below has a disabled row (`staging`).
+A filterable, multi-select grid of checkbox rows. Map your data into `options` once, and the list owns filtering and selection.
 
 <Example>
 	<SelectableListExample />
@@ -232,6 +232,14 @@ function Example() {
 }
 ```
 
+## When to use
+
+- Select several items from an inline, filterable list of checkbox rows, with no popover.
+- Toggle a row with a click anywhere on it. The default row shows a title and an optional de-emphasized sub-line. As a stopgap, you can break out with your own row content (see [Custom rows](#custom-rows)).
+- Show a long list: swap `Viewport` for [`VirtualViewport`](#virtualization) to window the rows. `Viewport` renders every row.
+- Prefer [`MultiSelect`](/components/forms/multi-select) or [`Combobox`](/components/forms/combobox) when the options open in a popover. `SelectableList` is their inline counterpart.
+- Prefer [`List`](/components/data-display/list) when each row runs an action or navigates, with no selection.
+
 ## Composition
 
 `SelectableList` is a compound. `Root` owns selection + filter state and the derived filtered options; the parts below it read from that shared state.
@@ -254,6 +262,8 @@ SelectableList.Root
 - **`Empty`** renders its children in place of the viewport when no options match the filter. It is an always-mounted polite `role="status"` live region (visually hidden while options match), so the empty state is announced, not just shown.
 
 > **Empty and loading states.** With zero `options` and no `Empty` composed, the component renders nothing: the viewport unmounts entirely. Compose `SelectableList.Empty` so the list always has a message; its copy serves both "no data yet" (e.g. still loading) and "no filter matches".
+
+## Disabled rows
 
 Mark an option `disabled` to render its row dimmed and exclude it from toggling and "select all" (the `legacy` row below, and one in the list at the top of this page):
 

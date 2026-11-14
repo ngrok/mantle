@@ -25,6 +25,12 @@ import { FireIcon } from "@phosphor-icons/react/Fire";
 <Icon className="text-danger-600" svg={<FireIcon weight="fill" />} />
 ```
 
+## When to use
+
+- Show an SVG icon, such as a [Phosphor icon](https://phosphoricons.com), beside text or inside a control.
+- Prefer [`IconButton`](/components/actions/icon-button) when the icon is the only content of a button.
+- Prefer [`Avatar`](/components/data-display/avatar) when the image represents a person or an account.
+
 ## Accessibility
 
 An `Icon` is decorative by default. It renders `aria-hidden="true"` unless the `Icon` or the svg element itself carries a name (`aria-label`, `aria-labelledby`, a `<title>` child, or Phosphor's `alt`), a `role`, or an explicit `aria-hidden`. A bare Phosphor icon sets none of these, so an icon next to a text label is hidden from assistive technology and the text carries the meaning.

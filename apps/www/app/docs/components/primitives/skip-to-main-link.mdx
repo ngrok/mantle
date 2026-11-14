@@ -9,11 +9,7 @@ import { Example } from "~/components/example";
 
 # Skip to Main Link
 
-A visually-hidden-until-focused "skip link" that lets keyboard users jump past repeated navigation and land directly on the page's main content landmark. When activated, it focuses the element identified by `targetId` (defaulting to `"main"`) and updates the URL hash using the browser History API, so it works in any framework, including React Router, Next.js, or plain HTML.
-
-Pair with the [`Main`](/components/primitives/main) component (or any element with a matching `id` and `tabIndex={-1}`) so it can receive focus.
-
-The focus call scrolls a target that sits off screen into view, so a sighted keyboard user sees where focus went. A target already in view does not move. Place the link at the top of the document, before the navigation it skips.
+A visually-hidden-until-focused "skip link" that lets keyboard users jump past repeated navigation and land directly on the page's main content landmark. Pair it with the [`Main`](/components/primitives/main) component (or any element with a matching `id` and `tabIndex={-1}`) so the target can receive focus.
 
 <Example className="flex-col gap-4">
 	<p className="text-sm text-muted">
@@ -39,6 +35,19 @@ export function App() {
 	);
 }
 ```
+
+## When to use
+
+- Let keyboard users jump past repeated navigation to the main content of the page.
+- Prefer [`VisuallyHidden`](/components/primitives/visually-hidden) when the hidden content is text for screen readers, not a link.
+
+## Placement and focus
+
+Place the link at the top of the document, before the navigation it skips.
+
+When activated, the link focuses the element identified by `targetId` (defaulting to `"main"`). It updates the URL hash with the browser History API, so it works in any framework, including React Router, Next.js, or plain HTML.
+
+The focus call scrolls a target that sits off screen into view, so a sighted keyboard user sees where focus went. A target already in view does not move.
 
 ## API Reference
 

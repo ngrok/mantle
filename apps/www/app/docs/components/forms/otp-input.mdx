@@ -73,13 +73,7 @@ window.alert(`Submitted: ${JSON.stringify(value, null, 2)}`);
 
 # OTP Input
 
-Capture a short, fixed-length one-time passcode (OTP), for two-factor codes,
-email verification codes, magic-link codes, and similar flows. Built on top of
-[`input-otp`](https://github.com/guilhermerodz/input-otp), it renders a single
-hidden input that handles paste, autofill, and IME correctly while displaying
-each character in its own styled slot.
-
-Pair with `Field.*` for label/description/error wiring in forms:
+Accessible one-time passcode (OTP) input with paste, autofill, and IME support. Pair it with `Field` to connect its label, description, and errors in a form.
 
 <Example>
 	<Field.Item name="otp">
@@ -122,7 +116,15 @@ import { OtpInput } from "@ngrok/mantle/otp-input";
 </Field.Item>;
 ```
 
-Or render the control on its own:
+## When to use
+
+- Capture a short, fixed-length one-time passcode, with one box for each character: two-factor codes, email verification codes, magic-link codes, and similar flows.
+- Prefer [`Input`](/components/forms/input) when the value is free-form text.
+- Prefer [`PasswordInput`](/components/forms/password-input) when the value is a password or another long-lived secret.
+
+## Without a Field
+
+Render the control on its own, and give it an accessible name with `aria-label`. This example splits the slots into two groups with an `OtpInput.Separator`.
 
 <Example>
 	<OtpInput.Root aria-label="Verification code" maxLength={6}>
@@ -444,6 +446,8 @@ semantic span, or wrapping a group in a styled label.
 ```
 
 ## Accessibility
+
+`OtpInput` builds on [`input-otp`](https://github.com/guilhermerodz/input-otp). It renders a single hidden input that handles paste, autofill, and IME correctly, and it shows each character in its own styled slot.
 
 The hidden `<input>` carries the value and the focus, so it needs an accessible name. Inside a `Field.Item`, `Field.Label` supplies it through the `Field.Item` id. On its own, pass `aria-label` to `OtpInput.Root`. Every example above that renders the control without a `Field.Label` does so.
 

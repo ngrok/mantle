@@ -97,7 +97,7 @@ export const DropdownMenuExample = () => {
 
 # Dropdown Menu
 
-Displays a menu to the user (such as a set of actions or functions), triggered by a button. Built on top of [Radix Dropdown Menu](https://www.radix-ui.com/primitives/docs/components/dropdown-menu).
+Displays a menu to the user (such as a set of actions or functions), triggered by a button.
 
 <Example className="flex-col gap-6">
 	<DropdownMenuExample />
@@ -193,6 +193,14 @@ function Example() {
 	);
 }
 ```
+
+## When to use
+
+- Show a menu of actions or options when the user clicks a button.
+- Prefer [`Select`](/components/forms/select) when the user picks one value for a form field.
+- Prefer [`SplitButton`](/components/actions/split-button) when a default action runs on one click and the menu holds its alternatives.
+- Prefer [`Command`](/components/navigation/command) when the user searches many actions or pages from the keyboard.
+- Prefer [`Popover`](/components/overlays/popover) when the floating content is a small form or other content, not a menu.
 
 ## Layering and z-index
 

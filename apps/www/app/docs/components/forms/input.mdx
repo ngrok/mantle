@@ -66,9 +66,7 @@ window.alert(`Submitted: ${JSON.stringify(value, null, 2)}`);
 
 # Input
 
-Fundamental component for inputs.
-
-Pair with `Field.*` for label/description/error wiring in forms:
+Fundamental component for inputs. Pair it with `Field` to connect its label, description, and errors in a form.
 
 <Example className="flex flex-col gap-6">
 	<Field.Item className="max-w-80" name="username">
@@ -83,29 +81,6 @@ Pair with `Field.*` for label/description/error wiring in forms:
 			<Input placeholder="Enter your email" autoComplete="email" />
 		</Field.Control>
 	</Field.Item>
-	<div className="w-full max-w-80 space-y-2">
-		<p className="font-medium">Validation States:</p>
-		<div className="flex w-full flex-col gap-6">
-			<Field.Item name="error">
-				<Field.Label>Error</Field.Label>
-				<Field.Control>
-					<Input placeholder={'validation="error"'} validation="error" />
-				</Field.Control>
-			</Field.Item>
-			<Field.Item name="success">
-				<Field.Label>Success</Field.Label>
-				<Field.Control>
-					<Input placeholder={'validation="success"'} validation="success" />
-				</Field.Control>
-			</Field.Item>
-			<Field.Item name="warning">
-				<Field.Label>Warning</Field.Label>
-				<Field.Control>
-					<Input placeholder={'validation="warning"'} validation="warning" />
-				</Field.Control>
-			</Field.Item>
-		</div>
-	</div>
 </Example>
 
 ```tsx
@@ -124,6 +99,45 @@ import { Input } from "@ngrok/mantle/input";
 		<Input placeholder="Enter your email" autoComplete="email" />
 	</Field.Control>
 </Field.Item>
+```
+
+## When to use
+
+- Accept one line of text from the user, such as a name, an email address, a URL, or a search term.
+- Prefer [`TextArea`](/components/forms/text-area) when the text spans several lines.
+- Prefer [`PasswordInput`](/components/forms/password-input) when the value is a password or another secret.
+- Prefer [`OtpInput`](/components/forms/otp-input) when the value is a one-time passcode.
+- Prefer [`Combobox`](/components/forms/combobox) when the user picks the value from a list of suggestions.
+- Prefer [`Query`](/components/forms/query) when the field filters a list with free text and `key:value` qualifiers.
+
+## Validation
+
+Set `validation` to show the validation status of the input. It changes the border and the outline.
+
+<Example className="flex flex-col gap-6">
+	<Field.Item className="max-w-80" name="error">
+		<Field.Label>Error</Field.Label>
+		<Field.Control>
+			<Input placeholder={'validation="error"'} validation="error" />
+		</Field.Control>
+	</Field.Item>
+	<Field.Item className="max-w-80" name="success">
+		<Field.Label>Success</Field.Label>
+		<Field.Control>
+			<Input placeholder={'validation="success"'} validation="success" />
+		</Field.Control>
+	</Field.Item>
+	<Field.Item className="max-w-80" name="warning">
+		<Field.Label>Warning</Field.Label>
+		<Field.Control>
+			<Input placeholder={'validation="warning"'} validation="warning" />
+		</Field.Control>
+	</Field.Item>
+</Example>
+
+```tsx
+import { Field } from "@ngrok/mantle/field";
+import { Input } from "@ngrok/mantle/input";
 
 <Field.Item name="error">
 	<Field.Label>Error</Field.Label>
@@ -145,7 +159,9 @@ import { Input } from "@ngrok/mantle/input";
 </Field.Item>
 ```
 
-Or render the control on its own:
+## Without a Field
+
+Render the control on its own when a form field wrapper does not fit.
 
 <Example>
 	<Input className="max-w-80" placeholder="Enter a username" />

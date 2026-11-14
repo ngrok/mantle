@@ -13,39 +13,13 @@ import { Example } from "~/components/example";
 
 # Text Area
 
-A multi-line plain-text editing control, useful when you want to allow users to enter a sizeable amount of free-form text, for example a comment on a review or feedback form.
+A multi-line plain-text editing control. Pair it with `Field` to connect its label, description, and errors in a form.
 
-Pair with `Field.*` for label/description/error wiring in forms:
-
-<Example className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+<Example>
 	<Field.Item name="textarea-default">
-		<Field.Label>Default TextArea</Field.Label>
+		<Field.Label>Feedback</Field.Label>
 		<Field.Control>
 			<TextArea placeholder="Tell us about your experience…" />
-		</Field.Control>
-	</Field.Item>
-	<Field.Item name="textarea-monospaced">
-		<Field.Label>Monospaced TextArea</Field.Label>
-		<Field.Control>
-			<TextArea appearance="monospaced" placeholder="Tell us about your experience…" />
-		</Field.Control>
-	</Field.Item>
-	<Field.Item name="textarea-error">
-		<Field.Label>Error TextArea</Field.Label>
-		<Field.Control>
-			<TextArea placeholder="Tell us about your experience…" validation="error" />
-		</Field.Control>
-	</Field.Item>
-	<Field.Item name="textarea-success">
-		<Field.Label>Success TextArea</Field.Label>
-		<Field.Control>
-			<TextArea placeholder="Tell us about your experience…" validation="success" />
-		</Field.Control>
-	</Field.Item>
-	<Field.Item name="textarea-warning">
-		<Field.Label>Warning TextArea</Field.Label>
-		<Field.Control>
-			<TextArea placeholder="Tell us about your experience…" validation="warning" />
 		</Field.Control>
 	</Field.Item>
 </Example>
@@ -55,26 +29,95 @@ import { Field } from "@ngrok/mantle/field";
 import { TextArea } from "@ngrok/mantle/text-area";
 
 <Field.Item name="feedback">
-	<Field.Label>Default TextArea</Field.Label>
+	<Field.Label>Feedback</Field.Label>
 	<Field.Control>
 		<TextArea placeholder="Tell us about your experience…" />
 	</Field.Control>
-</Field.Item>
+</Field.Item>;
+```
+
+## When to use
+
+- Accept several lines of free-form text, such as a comment on a review or a feedback form.
+- Prefer [`Input`](/components/forms/input) when the text fits on one line.
+
+## Appearance
+
+Set `appearance="monospaced"` to render the text in a fixed-width font.
+
+<Example>
+	<Field.Item name="textarea-monospaced">
+		<Field.Label>Monospaced TextArea</Field.Label>
+		<Field.Control>
+			<TextArea appearance="monospaced" placeholder="Tell us about your experience…" />
+		</Field.Control>
+	</Field.Item>
+</Example>
+
+```tsx
+import { Field } from "@ngrok/mantle/field";
+import { TextArea } from "@ngrok/mantle/text-area";
+
 <Field.Item name="feedback-mono">
 	<Field.Label>Monospaced TextArea</Field.Label>
 	<Field.Control>
 		<TextArea appearance="monospaced" placeholder="Tell us about your experience…" />
 	</Field.Control>
-</Field.Item>
+</Field.Item>;
+```
+
+## Validation
+
+Set `validation` to show the validation status of the text area.
+
+<Example className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+	<Field.Item name="textarea-error">
+		<Field.Label>Error TextArea</Field.Label>
+		<Field.Control>
+			<TextArea validation="error" placeholder="Tell us about your experience…" />
+		</Field.Control>
+	</Field.Item>
+	<Field.Item name="textarea-success">
+		<Field.Label>Success TextArea</Field.Label>
+		<Field.Control>
+			<TextArea validation="success" placeholder="Tell us about your experience…" />
+		</Field.Control>
+	</Field.Item>
+	<Field.Item name="textarea-warning">
+		<Field.Label>Warning TextArea</Field.Label>
+		<Field.Control>
+			<TextArea validation="warning" placeholder="Tell us about your experience…" />
+		</Field.Control>
+	</Field.Item>
+</Example>
+
+```tsx
+import { Field } from "@ngrok/mantle/field";
+import { TextArea } from "@ngrok/mantle/text-area";
+
 <Field.Item name="feedback-error">
 	<Field.Label>Error TextArea</Field.Label>
 	<Field.Control>
-		<TextArea placeholder="Tell us about your experience…" validation="error" />
+		<TextArea validation="error" placeholder="Tell us about your experience…" />
+	</Field.Control>
+</Field.Item>
+<Field.Item name="feedback-success">
+	<Field.Label>Success TextArea</Field.Label>
+	<Field.Control>
+		<TextArea validation="success" placeholder="Tell us about your experience…" />
+	</Field.Control>
+</Field.Item>
+<Field.Item name="feedback-warning">
+	<Field.Label>Warning TextArea</Field.Label>
+	<Field.Control>
+		<TextArea validation="warning" placeholder="Tell us about your experience…" />
 	</Field.Control>
 </Field.Item>
 ```
 
-Or render the control on its own:
+## Without a Field
+
+Render the control on its own, and give it an accessible name with `aria-label`.
 
 <Example>
 	<TextArea aria-label="Feedback" placeholder="Tell us about your experience…" />
