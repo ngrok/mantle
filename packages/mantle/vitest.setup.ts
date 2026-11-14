@@ -1,3 +1,6 @@
+// Why: the reference types `cdp()` with the Playwright provider's session, so
+// a browser test can send trusted touch input.
+/// <reference types="@vitest/browser-playwright" />
 import "@testing-library/jest-dom/vitest";
 import type { TestingLibraryMatchers } from "@testing-library/jest-dom/matchers";
 import { cleanup } from "@testing-library/react";
