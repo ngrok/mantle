@@ -62,8 +62,12 @@ const assetsCors: Plugin = {
 	name: "assets-cors",
 	middleware: (context, next) =>
 		context.req.path.startsWith("/assets/")
-			? withHeaderHook(context, next, (headers) => {
-					headers.set("Access-Control-Allow-Origin", "*");
+			? withHeaderHook({
+					context,
+					next,
+					hook: (headers) => {
+						headers.set("Access-Control-Allow-Origin", "*");
+					},
 				})
 			: next(),
 };
@@ -76,19 +80,23 @@ const assetsCors: Plugin = {
 const documentIndexing: Plugin = {
 	name: "document-indexing",
 	middleware: (context, next) =>
-		withHeaderHook(context, next, (headers) => {
-			// Why `staticDocument`: a 304 for a prerendered page has no `Content-Type`, and it must keep the `Vary`.
-			const isDocument =
-				context.get("staticDocument") != null ||
-				headers.get("Content-Type")?.startsWith("text/html") === true;
-			if (!isDocument) {
-				return;
-			}
-			// Why: the edge and a direct request get different headers, so a cache must key on it.
-			headers.append("Vary", EDGE_HEADER);
-			if (!allowsIndexing(context.req.raw) || isPreviewDocument(context.req.path)) {
-				headers.set("X-Robots-Tag", "noindex, nofollow");
-			}
+		withHeaderHook({
+			context,
+			next,
+			hook: (headers) => {
+				// Why `staticDocument`: a 304 for a prerendered page has no `Content-Type`, and it must keep the `Vary`.
+				const isDocument =
+					context.get("staticDocument") != null ||
+					headers.get("Content-Type")?.startsWith("text/html") === true;
+				if (!isDocument) {
+					return;
+				}
+				// Why: the edge and a direct request get different headers, so a cache must key on it.
+				headers.append("Vary", EDGE_HEADER);
+				if (!allowsIndexing(context.req.raw) || isPreviewDocument(context.req.path)) {
+					headers.set("X-Robots-Tag", "noindex, nofollow");
+				}
+			},
 		}),
 };
 
