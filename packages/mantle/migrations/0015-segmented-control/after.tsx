@@ -1,5 +1,8 @@
-import { RadioGroup, RadioGroup as MantleRadioGroup } from "@ngrok/mantle/radio-group";
+import { RadioGroup } from "@ngrok/mantle/radio-group";
 import { SegmentedControl } from "@ngrok/mantle/segmented-control";
+import { RadioGroup as MantleRadioGroup } from "@ngrok/mantle/radio-group";
+// An aliased import does not supply the name the rules write.
+import { SegmentedControl as MantleSegmentedControl } from "@ngrok/mantle/segmented-control";
 import { RadioGroup as OtherRadioGroup } from "@acme/ui";
 import type { ComponentProps } from "react";
 
@@ -57,3 +60,10 @@ export function Shadowed({ RadioGroup }: { RadioGroup: typeof OtherRadioGroup })
 		</RadioGroup.ButtonGroup>
 	);
 }
+
+// A file that already uses the new part under an alias.
+export const Migrated = (
+	<MantleSegmentedControl.Root aria-label="Mode">
+		<MantleSegmentedControl.Item value="a">A</MantleSegmentedControl.Item>
+	</MantleSegmentedControl.Root>
+);

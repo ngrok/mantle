@@ -88,19 +88,30 @@ describe("SegmentedControl thumb", () => {
  * through each stop, one frame (16ms) apart. A `rest` before the release
  * clears the pointer's speed, so the release is not a flick.
  */
-function renderEnvironments({ stagingDisabled = false } = {}) {
+function renderEnvironments({
+	stagingDisabled = false,
+	dir,
+}: { stagingDisabled?: boolean; dir?: "rtl" } = {}) {
 	const onChange = vi.fn<(value: string) => void>();
-	render(
-		<div style={{ width: 300 }}>
-			<SegmentedControl.Root aria-label="Environment" defaultValue="prod" onChange={onChange}>
+	const ui = (value?: string) => (
+		<div dir={dir} style={{ width: 300 }}>
+			<SegmentedControl.Root
+				aria-label="Environment"
+				defaultValue="prod"
+				value={value}
+				onChange={onChange}
+			>
 				<SegmentedControl.Item value="dev">Dev</SegmentedControl.Item>
 				<SegmentedControl.Item value="staging" disabled={stagingDisabled}>
 					Staging
 				</SegmentedControl.Item>
 				<SegmentedControl.Item value="prod">Prod</SegmentedControl.Item>
 			</SegmentedControl.Root>
-		</div>,
+		</div>
 	);
+	const { rerender } = render(ui());
+	/** Sets a controlled `value`, as a parent does. */
+	const setValue = (value: string) => rerender(ui(value));
 	const prod = screen.getByRole("radio", { name: "Prod" });
 	const rect = prod.getBoundingClientRect();
 	const start = rect.left + rect.width / 2;
@@ -138,7 +149,7 @@ function renderEnvironments({ stagingDisabled = false } = {}) {
 		const releaseTime = stops.length * 16 + (rest ? 120 : 0);
 		send({ type: "pointerup", clientX: start + (stops.at(-1) ?? 0), timeStamp: releaseTime });
 	};
-	return { drag, onChange, send, start };
+	return { drag, onChange, send, setValue, start };
 }
 
 describe("SegmentedControl drag", () => {
@@ -170,6 +181,37 @@ describe("SegmentedControl drag", () => {
 
 		expect(onChange).toHaveBeenCalledTimes(1);
 		expect(onChange).toHaveBeenLastCalledWith("dev");
+	});
+
+	test("in RTL, dragging the thumb right checks the segment on the right", () => {
+		// Why right: in RTL, "Prod" is on the left and "Dev" is on the right.
+		const { drag, onChange } = renderEnvironments({ dir: "rtl" });
+
+		drag([60, 120, 200], { rest: true });
+
+		expect(screen.getByRole("radio", { name: "Dev" })).toBeChecked();
+		expect(onChange).toHaveBeenLastCalledWith("dev");
+	});
+
+	test("a new value during a drag keeps the thumb under the pointer", async () => {
+		const { send, setValue, start } = renderEnvironments();
+		const group = screen.getByRole("radiogroup", { name: "Environment" });
+		const prodLeft = screen.getByRole("radio", { name: "Prod" }).getBoundingClientRect().left;
+		const devLeft = screen.getByRole("radio", { name: "Dev" }).getBoundingClientRect().left;
+		// Why the computed translate: the thumb sits at the checked segment's left
+		// edge, moved by its `translate`.
+		const thumbLeft = () =>
+			devLeft + Number.parseFloat(getComputedStyle(group, "::before").translate);
+
+		send({ type: "pointerdown", clientX: start, timeStamp: 0 });
+		send({ type: "pointermove", clientX: start - 60, timeStamp: 16 });
+		setValue("dev");
+		// Why one microtask: the hook sees the new `value` through a
+		// MutationObserver, whose callback the DOM change queued first.
+		await Promise.resolve();
+		send({ type: "pointermove", clientX: start - 150, timeStamp: 32 });
+
+		expect(thumbLeft()).toBeCloseTo(prodLeft - 150, 0);
 	});
 
 	test("the thumb skips a disabled segment", () => {

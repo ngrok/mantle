@@ -91,11 +91,12 @@ type DragSession = {
 	startY: number;
 	checked: HTMLElement;
 	checkedLeft: number;
-	checkedCenter: number;
+	checkedRight: number;
 	segments: readonly HTMLElement[];
 	boxes: readonly SegmentBox[];
-	min: number;
-	max: number;
+	/** The left edge of the leftmost segment. In RTL, that is the last one. */
+	trackLeft: number;
+	trackRight: number;
 	/** The group's padding: the thumb never leaves the track. */
 	give: number;
 	dragging: boolean;
@@ -121,7 +122,8 @@ type DragSession = {
  * The thumb then follows the pointer. Past either end, it meets rubber-band
  * resistance and stays inside the group's padding. On release, the thumb
  * slides to the nearest enabled segment, carried ahead by a flick, and that
- * segment's click commits the value. A gesture that travels further up or
+ * segment's click commits the value. A new `value` during a drag does not
+ * slide the thumb: it stays under the pointer. A gesture that travels further up or
  * down than sideways never starts, so the page still scrolls. While the drag
  * runs, the group carries `data-dragging` and the segment under the thumb
  * carries `data-thumb-over`.
@@ -162,6 +164,18 @@ function useSegmentedThumb(groupRef: RefObject<HTMLElement | null>): void {
 			});
 		};
 
+		/** Moves a running drag onto a new checked segment, so the thumb stays where it is. */
+		const rebaseDrag = (running: DragSession, checked: HTMLElement) => {
+			const rect = checked.getBoundingClientRect();
+			const shift = running.checkedLeft - rect.left;
+			running.checked = checked;
+			running.checkedLeft = rect.left;
+			running.checkedRight = rect.right;
+			running.base += shift;
+			running.offset += shift;
+			group.style.setProperty(offsetVariable, `${running.offset}px`);
+		};
+
 		let lastChecked = readChecked();
 		const observer = new MutationObserver(() => {
 			const checked = readChecked();
@@ -170,6 +184,18 @@ function useSegmentedThumb(groupRef: RefObject<HTMLElement | null>): void {
 			}
 			const previous = lastChecked;
 			lastChecked = checked;
+			// Why: a new `value` during a drag moves the thumb's anchor. A slide
+			// would fight the pointer, so the drag moves onto the new anchor.
+			if (session?.dragging) {
+				if (checked != null) {
+					rebaseDrag(session, checked);
+				}
+				return;
+			}
+			// Why: a press can start a drag only on the checked segment.
+			if (session != null) {
+				endSession();
+			}
 			if (previous?.isConnected) {
 				slideFrom(previous.getBoundingClientRect().left + readTranslate());
 			}
@@ -214,11 +240,10 @@ function useSegmentedThumb(groupRef: RefObject<HTMLElement | null>): void {
 					disabled: segment.getAttribute("aria-disabled") === "true",
 				};
 			});
-			const first = boxes.at(0);
-			const last = boxes.at(-1);
-			if (first == null || last == null) {
-				return;
-			}
+			// Why the extremes and not the first and last segment: in RTL, the
+			// first segment is on the right.
+			const trackLeft = Math.min(...boxes.map((box) => box.left));
+			const trackRight = Math.max(...boxes.map((box) => box.right));
 			const checkedRect = checked.getBoundingClientRect();
 			session = {
 				pointerId: event.pointerId,
@@ -226,12 +251,12 @@ function useSegmentedThumb(groupRef: RefObject<HTMLElement | null>): void {
 				startY: event.clientY,
 				checked,
 				checkedLeft: checkedRect.left,
-				checkedCenter: (checkedRect.left + checkedRect.right) / 2,
+				checkedRight: checkedRect.right,
 				segments,
 				boxes,
-				min: first.left - checkedRect.left,
-				max: last.right - checkedRect.right,
-				give: first.left - group.getBoundingClientRect().left - group.clientLeft,
+				trackLeft,
+				trackRight,
+				give: trackLeft - group.getBoundingClientRect().left - group.clientLeft,
 				dragging: false,
 				base: 0,
 				offset: 0,
@@ -281,9 +306,15 @@ function useSegmentedThumb(groupRef: RefObject<HTMLElement | null>): void {
 			}
 			session.lastX = event.clientX;
 			session.lastTime = event.timeStamp;
-			session.offset = thumbOffset({ travel: session.base + travel, ...session });
+			session.offset = thumbOffset({
+				travel: session.base + travel,
+				min: session.trackLeft - session.checkedLeft,
+				max: session.trackRight - session.checkedRight,
+				give: session.give,
+			});
 			group.style.setProperty(offsetVariable, `${session.offset}px`);
-			const over = nearestSegment(session.boxes, session.checkedCenter + session.offset);
+			const checkedCenter = (session.checkedLeft + session.checkedRight) / 2;
+			const over = nearestSegment(session.boxes, checkedCenter + session.offset);
 			for (const [index, segment] of session.segments.entries()) {
 				segment.toggleAttribute("data-thumb-over", index === over);
 			}
@@ -308,7 +339,8 @@ function useSegmentedThumb(groupRef: RefObject<HTMLElement | null>): void {
 			}
 			const rested = event.timeStamp - finished.lastTime > flickRestMs;
 			const velocity = rested ? 0 : finished.velocity;
-			const projected = finished.checkedCenter + finished.offset + velocity * flickProjectionMs;
+			const checkedCenter = (finished.checkedLeft + finished.checkedRight) / 2;
+			const projected = checkedCenter + finished.offset + velocity * flickProjectionMs;
 			const target = finished.segments[nearestSegment(finished.boxes, projected)];
 			if (target != null && target !== finished.checked) {
 				target.click();

@@ -6,7 +6,7 @@ introducedIn: "0.94.0"
 
 # Mantle Segmented Control Migration Guide
 
-`@ngrok/mantle` has a new `SegmentedControl` component, and `RadioGroup.ButtonGroup` and `RadioGroup.Button` are gone. `SegmentedControl.Root` replaces `RadioGroup.ButtonGroup`, and `SegmentedControl.Item` replaces `RadioGroup.Button`. The props, the styles, the keyboard, the ARIA roles, and the form behavior are the same: both components share one radio primitive. This guide moves a codebase to the new import.
+`@ngrok/mantle` has a new `SegmentedControl` component, and `RadioGroup.ButtonGroup` and `RadioGroup.Button` are gone. `SegmentedControl.Root` replaces `RadioGroup.ButtonGroup`, and `SegmentedControl.Item` replaces `RadioGroup.Button`. The props, the keyboard, the ARIA roles, and the form behavior are the same: both components share one radio primitive. The styles change: a thumb slides on a track in place of a row of bordered buttons. This guide moves a codebase to the new import.
 
 **TL;DR:** Import `SegmentedControl` from `@ngrok/mantle/segmented-control`. Rename `RadioGroup.ButtonGroup` to `SegmentedControl.Root` and `RadioGroup.Button` to `SegmentedControl.Item`, in JSX and in `typeof` type queries. Delete a `RadioGroup` import that nothing reads any more. Change a `data-slot` selector from `radio-group-button-group` to `segmented-control`, and from `radio-group-button` to `segmented-control-item`.
 
@@ -24,7 +24,7 @@ In a project that installs `@ngrok/mantle`:
 npx --yes --package=@ast-grep/cli@0.51.2 ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/0015-segmented-control.yml --update-all <path>
 ```
 
-The rules apply steps 2 and 3. They rename each `RadioGroup.ButtonGroup` and `RadioGroup.Button` JSX tag and `typeof` type query, and they add the `SegmentedControl` import after the `RadioGroup` import of each file they change. The rules read a part through its import from `@ngrok/mantle/radio-group`, under its own name or an alias. A part that reaches the file through a local re-export or a destructured namespace stays manual. A function that binds `RadioGroup` to a parameter or a local shadows the import, so the rules leave that function alone. Steps 4 and 5 stay manual: whether a file still reads `RadioGroup` depends on the rest of the file, and a `data-slot` selector is a string, not syntax. The codemod is safe to run more than once. Pass `--dry-run` to print the rewrites first, and run your formatter after the rewrite.
+The rules apply steps 2 and 3. They rename each `RadioGroup.ButtonGroup` and `RadioGroup.Button` JSX tag and `typeof` type query, in `.tsx` and `.ts` files. They add the `SegmentedControl` import after the first `@ngrok/mantle/radio-group` import of each file they change. The rules read a part through its import from `@ngrok/mantle/radio-group`, under its own name or an alias. A part that reaches the file through a local re-export or a destructured namespace stays manual. A function that binds `RadioGroup` to a parameter or a local shadows the import, so the rules leave that function alone. Steps 4 and 5 stay manual: whether a file still reads `RadioGroup` depends on the rest of the file, and a `data-slot` selector is a string, not syntax. The codemod is safe to run more than once. Pass `--dry-run` to print the rewrites first, and run your formatter after the rewrite.
 
 ## You are an agent migrating a codebase. Do this:
 
@@ -141,6 +141,8 @@ type ViewSwitchProps = ComponentProps<typeof SegmentedControl.Root>;
 ## Edge cases & gotchas
 
 - **A `RadioGroup` import that nothing reads.** The codemod keeps it, because the file can still read `RadioGroup` elsewhere. Your linter flags it as unused; delete it.
+- **Classes on the old parts.** `SegmentedControl.Root` is a 36px (`h-9`) track with 4px (`p-1`) padding, so each item is about 28px tall. The thumb marks the checked item. Review each `h-*`, border, and background class on a `RadioGroup.ButtonGroup` or a `RadioGroup.Button`: it can overflow the track or cover the thumb.
+- **A type-only `SegmentedControl` import.** The codemod keeps `import type { SegmentedControl }` and adds no import, so the renamed JSX reads a type-only name. Change it to a value import.
 - **A local name `SegmentedControl`.** The codemod adds an import under that name. When the file already declares `SegmentedControl`, import the component under an alias and rename the tags to match.
 - **A `SegmentedControl.Item` outside `SegmentedControl.Root`.** It throws an error that names the root. `RadioGroup.Button` inside `RadioGroup.Root` rendered before; wrap the items in `SegmentedControl.Root` in place of `RadioGroup.Root`.
 - **Tests.** The roles are the same, so `getByRole("radiogroup")` and `getByRole("radio", { name })` still match. Only a `data-slot` query changes.
