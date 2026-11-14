@@ -3,20 +3,14 @@ import { MetaKey } from "@ngrok/mantle/command";
 import { Kbd } from "@ngrok/mantle/kbd";
 import { Toast, makeToast } from "@ngrok/mantle/toast";
 import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
-import { Component, lazy, Suspense, useState } from "react";
+import { Component, lazy, startTransition, Suspense, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 
-const loadDialog = () => import("~/components/command-palette-dialog");
-
-/** Starts the dialog download on intent, so the first open waits less. */
-const preloadDialog = () => {
-	// Why: `DialogLoadBoundary` reports a failed load when the palette opens.
-	loadDialog().catch(() => undefined);
-};
-
 const CommandPaletteDialog = lazy(() =>
-	loadDialog().then((module) => ({ default: module.CommandPaletteDialog })),
+	import("~/components/command-palette-dialog").then((module) => ({
+		default: module.CommandPaletteDialog,
+	})),
 );
 
 type DialogLoadBoundaryProps = {
@@ -51,9 +45,9 @@ class DialogLoadBoundary extends Component<DialogLoadBoundaryProps, { failed: bo
 
 /**
  * The docs site search palette (⌘K): search triggers for the header plus the
- * command dialog. The dialog, with cmdk and the search code, loads at the
- * first open, or when a pointer or focus reaches a trigger, so a page ships
- * none of it until then.
+ * command dialog. The dialog, with cmdk and the search code, is a separate
+ * chunk. It loads after hydration, so it does not delay the first paint, and
+ * it is ready before the first open.
  *
  * @example
  * ```tsx
@@ -62,10 +56,17 @@ class DialogLoadBoundary extends Component<DialogLoadBoundaryProps, { failed: bo
  */
 export function CommandPalette() {
 	const [open, setOpen] = useState(false);
-	// Why: the dialog stays mounted after the first open, so its close animation runs.
-	const [opened, setOpened] = useState(false);
+	// Why: mount the closed dialog after hydration. Then the lazy chunk loads
+	// before the first open. If the first open suspends, React holds the reveal
+	// for up to 300 ms, and ⌘K feels slow.
+	const [mounted, setMounted] = useState(false);
+	useEffect(() => {
+		startTransition(() => {
+			setMounted(true);
+		});
+	}, []);
 	const openPalette = () => {
-		setOpened(true);
+		setMounted(true);
 		setOpen(true);
 	};
 	// preventDefault: browsers bind mod+k themselves (Firefox focuses the
@@ -81,8 +82,6 @@ export function CommandPalette() {
 				icon={<MagnifyingGlassIcon />}
 				label="Search Mantle"
 				onClick={openPalette}
-				onFocus={preloadDialog}
-				onPointerEnter={preloadDialog}
 				size="md"
 				type="button"
 			/>
@@ -91,8 +90,6 @@ export function CommandPalette() {
 				className="hidden md:flex"
 				icon={<MagnifyingGlassIcon />}
 				onClick={openPalette}
-				onFocus={preloadDialog}
-				onPointerEnter={preloadDialog}
 				intent="neutral"
 				type="button"
 			>
@@ -103,10 +100,15 @@ export function CommandPalette() {
 					<Kbd>K</Kbd>
 				</span>
 			</Button>
-			{opened && (
+			{mounted && (
 				<DialogLoadBoundary
 					onError={() => {
-						setOpened(false);
+						setMounted(false);
+						// Why: a failed background load stays silent. The toast shows
+						// when a person opens the palette, and the cached failure throws again.
+						if (!open) {
+							return;
+						}
 						setOpen(false);
 						makeToast(
 							<Toast.Root intent="danger">
