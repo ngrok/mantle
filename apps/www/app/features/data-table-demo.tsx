@@ -203,6 +203,53 @@ export function PaymentsDemo() {
 	);
 }
 
+type Region = { id: string; name: string };
+
+const exampleRegions: Region[] = [
+	{ id: "us", name: "United States" },
+	{ id: "eu", name: "Europe" },
+	{ id: "ap", name: "Asia Pacific" },
+];
+
+const regionColumnHelper = createColumnHelper<typeof sortableFeatures, Region>();
+
+const regionColumns = regionColumnHelper.columns([
+	regionColumnHelper.accessor("name", {
+		id: "name",
+		header: (props) => (
+			<DataTable.Header column={props.column}>
+				<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
+					Name
+				</DataTable.HeaderSortButton>
+			</DataTable.Header>
+		),
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+]);
+
+/** The smallest `DataTable`: one sortable column and an empty row. */
+export function QuickStartDemo() {
+	const table = useTable({
+		features: sortableFeatures,
+		data: exampleRegions,
+		columns: regionColumns,
+	});
+	const rows = table.getRowModel().rows;
+
+	return (
+		<DataTable.Root table={table}>
+			<DataTable.Head />
+			<DataTable.Body>
+				{rows.length > 0 ? (
+					rows.map((row) => <DataTable.Row key={row.id} row={row} />)
+				) : (
+					<DataTable.EmptyRow>No results.</DataTable.EmptyRow>
+				)}
+			</DataTable.Body>
+		</DataTable.Root>
+	);
+}
+
 type Endpoint = {
 	id: string;
 	region: string;

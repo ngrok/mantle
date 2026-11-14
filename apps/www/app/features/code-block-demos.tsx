@@ -571,14 +571,10 @@ export function MantleCodeOptionsDemo() {
 	);
 }
 
-/**
- * Code block demonstrating overriding `mantleCode()` defaults: indentation, line numbers,
- * highlighted lines, and line number start. The first block uses language-inferred defaults,
- * the second overrides all options.
- */
-export function OverridingIndentationDemo() {
+/** `mantleCode()` with no options: YAML infers space indentation. */
+export function DefaultOptionsDemo() {
 	return (
-		<Example className="flex-wrap gap-4">
+		<Example>
 			<CodeBlock.Root>
 				<CodeBlock.Header>
 					<CodeBlock.Icon preset="traffic-policy" />
@@ -599,6 +595,14 @@ export function OverridingIndentationDemo() {
 					/>
 				</CodeBlock.Body>
 			</CodeBlock.Root>
+		</Example>
+	);
+}
+
+/** `mantleCode()` with every option set. */
+export function OverriddenOptionsDemo() {
+	return (
+		<Example>
 			<CodeBlock.Root>
 				<CodeBlock.Header>
 					<CodeBlock.Icon preset="file" />

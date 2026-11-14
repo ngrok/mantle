@@ -101,31 +101,6 @@ export function ListMinimalExample() {
 	);
 }
 
-export function ListIsolatedExample() {
-	return (
-		<div className="w-full max-w-md">
-			<ul className="border-popover bg-popover scrollbar m-0 max-h-80 list-none overflow-y-auto overflow-x-hidden rounded-md border px-0 py-1">
-				{simpleAccounts.map((account) => (
-					<li key={account.id} className="px-1 pb-px last:pb-0">
-						<button
-							type="button"
-							onClick={() => {}}
-							className={cx(
-								"flex w-full cursor-pointer flex-col gap-0.5 rounded-md bg-transparent px-2 py-1.5 text-left text-sm",
-								"hover:bg-active-menu-item",
-								"focus-visible:bg-active-menu-item focus-visible:outline-hidden",
-							)}
-						>
-							<span className="text-strong font-medium">{account.name}</span>
-							<span className="text-body leading-4">{account.plan}</span>
-						</button>
-					</li>
-				))}
-			</ul>
-		</div>
-	);
-}
-
 export const providers = [
 	{
 		id: "okta",
@@ -254,43 +229,6 @@ function Example() {
 		</List.Root>
 	);
 }
-```
-
-## Hand-built rows
-
-The same three rows hand-built without `List`, with the same chrome and no virtualization (fine for short, static lists):
-
-<Example>
-	<ListIsolatedExample />
-</Example>
-
-```tsx
-import { cx } from "@ngrok/mantle/cx";
-
-const accounts = [
-	{ id: "personal", name: "Cody Price", plan: "All Subscription" },
-	{ id: "corp", name: "corp@ngrok.com", plan: "Enterprise Subscription" },
-	{ id: "dogfood", name: "dogfood@ngrok.com", plan: "Free" },
-];
-
-<ul className="border-popover bg-popover scrollbar m-0 max-h-80 list-none overflow-y-auto overflow-x-hidden rounded-md border px-0 py-1">
-	{accounts.map((account) => (
-		<li key={account.id} className="px-1 pb-px last:pb-0">
-			<button
-				type="button"
-				onClick={() => {}}
-				className={cx(
-					"flex w-full cursor-pointer flex-col gap-0.5 rounded-md bg-transparent px-2 py-1.5 text-left text-sm",
-					"hover:bg-active-menu-item",
-					"focus-visible:bg-active-menu-item focus-visible:outline-hidden",
-				)}
-			>
-				<span className="text-strong font-medium">{account.name}</span>
-				<span className="text-body leading-4">{account.plan}</span>
-			</button>
-		</li>
-	))}
-</ul>;
 ```
 
 ## Composition

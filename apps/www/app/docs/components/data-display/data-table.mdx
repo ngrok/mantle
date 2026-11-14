@@ -13,6 +13,7 @@ import {
 	FitColumnDemo,
 	PaginatedPaymentsDemo,
 	PaymentsDemo,
+	QuickStartDemo,
 	SelectablePaymentsDemo,
 	SubRowsDemo,
 } from "~/features/data-table-demo";
@@ -20,6 +21,89 @@ import {
 # Data Table
 
 Tables purposefully designed for dynamic, application data with features like sorting, filtering, and pagination. Pass a TanStack Table instance from `useTable` to `DataTable.Root`, and render one `DataTable.Row` for each row.
+
+<Example>
+	<QuickStartDemo />
+</Example>
+
+```tsx
+import {
+	DataTable,
+	createColumnHelper,
+	createSortedRowModel,
+	rowSortingFeature,
+	sortFn_alphanumeric,
+	sortFn_datetime,
+	sortFn_text,
+	tableFeatures,
+	useTable,
+} from "@ngrok/mantle/data-table";
+
+type Row = { id: string; name: string };
+
+const data: Row[] = [
+	{ id: "us", name: "United States" },
+	{ id: "eu", name: "Europe" },
+	{ id: "ap", name: "Asia Pacific" },
+];
+
+// Register only the features the table uses. Auto-sort resolves the
+// `alphanumeric`, `text`, and `datetime` comparators by name, so register those three.
+const features = tableFeatures({
+	rowSortingFeature,
+	sortedRowModel: createSortedRowModel(),
+	sortFns: {
+		alphanumeric: sortFn_alphanumeric,
+		datetime: sortFn_datetime,
+		text: sortFn_text,
+	},
+});
+
+const columnHelper = createColumnHelper<typeof features, Row>();
+
+const columns = columnHelper.columns([
+	columnHelper.accessor("name", {
+		id: "name",
+		header: (props) => (
+			<DataTable.Header column={props.column}>
+				<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
+					Name
+				</DataTable.HeaderSortButton>
+			</DataTable.Header>
+		),
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+]);
+
+function QuickStartExample() {
+	const table = useTable({ features, data, columns });
+	const rows = table.getRowModel().rows;
+
+	return (
+		<DataTable.Root table={table}>
+			<DataTable.Head />
+			<DataTable.Body>
+				{rows.length > 0 ? (
+					rows.map((row) => <DataTable.Row key={row.id} row={row} />)
+				) : (
+					<DataTable.EmptyRow>No results.</DataTable.EmptyRow>
+				)}
+			</DataTable.Body>
+		</DataTable.Root>
+	);
+}
+```
+
+## When to use
+
+- Show application data that users sort, filter, page through, or select.
+- Show rows that users click to open a record.
+- Prefer [`Table`](/components/data-display/table) for static, presentational tabular content, such as pricing matrices, reference tables, or invoice summaries.
+- Prefer [`DescriptionList`](/components/data-display/description-list) to show one record as label and value pairs.
+
+## Sorting, row links, and actions
+
+A full table sorts each column, opens a record on row click, and pins an action column to the right edge.
 
 <Example>
 	<PaymentsDemo />
@@ -189,80 +273,9 @@ function PaymentsTable({ data }: { data: Payment[] }) {
 }
 ```
 
-## When to use
-
-- Show application data that users sort, filter, page through, or select.
-- Show rows that users click to open a record.
-- Prefer [`Table`](/components/data-display/table) for static, presentational tabular content, such as pricing matrices, reference tables, or invoice summaries.
-- Prefer [`DescriptionList`](/components/data-display/description-list) to show one record as label and value pairs.
-
-## Quick start
+## TanStack Table
 
 `DataTable` builds on [`Table`](/components/data-display/table) and wires up [TanStack Table](https://tanstack.com/table/latest/docs/introduction). `@ngrok/mantle/data-table` re-exports every TanStack Table export: `useTable`, `tableFeatures`, `createColumnHelper`, the `*Feature` objects (`rowSortingFeature`, `rowSelectionFeature`, `rowExpandingFeature`, and the rest), the `create*RowModel` factories, and the `sortFn_*`, `filterFn_*`, and `aggregationFn_*` functions. You don't need to add `@tanstack/react-table` as a separate dependency.
-
-The example at the top of this page adds sortable columns, row-click navigation, and a sticky action column. This is the minimum viable `DataTable`. Copy, paste, replace the type and data:
-
-```tsx
-import {
-	DataTable,
-	createColumnHelper,
-	createSortedRowModel,
-	rowSortingFeature,
-	sortFn_alphanumeric,
-	sortFn_datetime,
-	sortFn_text,
-	tableFeatures,
-	useTable,
-} from "@ngrok/mantle/data-table";
-
-type Row = { id: string; name: string };
-
-// Register only the features the table uses. Auto-sort resolves the
-// `alphanumeric`, `text`, and `datetime` comparators by name, so register those three.
-const features = tableFeatures({
-	rowSortingFeature,
-	sortedRowModel: createSortedRowModel(),
-	sortFns: {
-		alphanumeric: sortFn_alphanumeric,
-		datetime: sortFn_datetime,
-		text: sortFn_text,
-	},
-});
-
-const columnHelper = createColumnHelper<typeof features, Row>();
-
-const columns = columnHelper.columns([
-	columnHelper.accessor("name", {
-		id: "name",
-		header: (props) => (
-			<DataTable.Header column={props.column}>
-				<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
-					Name
-				</DataTable.HeaderSortButton>
-			</DataTable.Header>
-		),
-		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
-	}),
-]);
-
-function MyTable({ data }: { data: Row[] }) {
-	const table = useTable({ features, data, columns });
-	const rows = table.getRowModel().rows;
-
-	return (
-		<DataTable.Root table={table}>
-			<DataTable.Head />
-			<DataTable.Body>
-				{rows.length > 0 ? (
-					rows.map((row) => <DataTable.Row key={row.id} row={row} />)
-				) : (
-					<DataTable.EmptyRow>No results.</DataTable.EmptyRow>
-				)}
-			</DataTable.Body>
-		</DataTable.Root>
-	);
-}
-```
 
 ## Composition
 

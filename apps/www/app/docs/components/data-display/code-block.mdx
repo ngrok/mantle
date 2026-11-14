@@ -12,12 +12,13 @@ import {
 	SingleLineHorizontalScrollingDemo,
 	ServerRenderedHighlightingDemo,
 	MantleCodeOptionsDemo,
-	OverridingIndentationDemo,
 	TabbedCodeBlockDemo,
 	ScrollingTabListDemo,
 	FoldableJsonDemo,
 	JsonCodeBlockValueDemo,
 	NestedFragmentInterpolationDemo,
+	DefaultOptionsDemo,
+	OverriddenOptionsDemo,
 } from "~/features/code-block-demos";
 
 # Code Block
@@ -485,45 +486,77 @@ import { CodeBlock, mantleCode } from "@ngrok/mantle/code-block";
 </CodeBlock.Root>;
 ```
 
-### Overriding defaults
+### Default options
 
-The `mantleCode()` options let you customize how code is displayed. By default, line numbers are shown starting at 1 and indentation is inferred from the language. You can also specify highlighted lines per code block. The first example below uses the defaults (YAML auto-detects space indentation), while the second overrides all options: custom indentation, line number start, highlighted lines, and visible line numbers.
+By default, `mantleCode()` shows line numbers from 1 and infers the indentation from the language. YAML must use spaces, so a YAML block gets space indentation with no options.
 
-<OverridingIndentationDemo />
+<DefaultOptionsDemo />
 
 ```tsx
-{
-	/* yaml auto-detects space indentation, all other defaults apply */
-}
-<CodeBlock.Code
-	value={mantleCode("yaml")`
-		on_http_request:
-			actions:
-				type: custom-response
-				config:
-					status_code: 200
-					content: Hello, World!
-	`}
-/>;
+<CodeBlock.Root>
+	<CodeBlock.Header>
+		<CodeBlock.Icon preset="traffic-policy" />
+		<CodeBlock.Title>traffic-policy.yaml</CodeBlock.Title>
+	</CodeBlock.Header>
+	<CodeBlock.Body>
+		<CodeBlock.CopyButton />
+		<CodeBlock.Code
+			value={mantleCode("yaml")`
+				# yaml indentation MUST use spaces (we infer this for you)
+				on_http_request:
+					actions:
+						type: custom-response
+						config:
+							status_code: 200
+							content: Hello, World!
+			`}
+		/>
+	</CodeBlock.Body>
+</CodeBlock.Root>
+```
 
-{
-	/* override all mantleCode() options */
-}
-<CodeBlock.Code
-	value={mantleCode("javascript", {
-		indentation: "spaces",
-		showLineNumbers: true,
-		highlightLines: [42, "46-48"],
-		lineNumberStart: 42,
-	})`
-		const http = require('http');
-		const ngrok = require("@ngrok/ngrok");
-		const server = http.createServer((req, res) => {
-			res.writeHead(200);
-			res.end("Hello!");
-		});
-	`}
-/>;
+### Overriding every option
+
+Pass options to `mantleCode()` to set the indentation, the first line number, the highlighted lines, and whether line numbers show.
+
+<OverriddenOptionsDemo />
+
+```tsx
+<CodeBlock.Root>
+	<CodeBlock.Header>
+		<CodeBlock.Icon preset="file" />
+		<CodeBlock.Title>ngrok-example.js (all options overridden)</CodeBlock.Title>
+	</CodeBlock.Header>
+	<CodeBlock.Body>
+		<CodeBlock.CopyButton />
+		<CodeBlock.Code
+			value={mantleCode("javascript", {
+				indentation: "spaces",
+				showLineNumbers: true,
+				highlightLines: [42, "46-48"],
+				lineNumberStart: 42,
+			})`
+				// by default, mantle decides that javascript uses tabs,
+				// but this example uses spaces for indentation
+				const http = require('http');
+				const ngrok = require("@ngrok/ngrok");
+				const server = http.createServer((req, res) => {
+					res.writeHead(200);
+					res.end("Hello!");
+					setTimeout(() => {
+						Promise.resolve().then(() => {
+							console.log("url:", server.tunnel.url());
+						});
+					}, timeout);
+				});
+				// Consumes authtoken from env automatically
+				ngrok.listen(server).then(() => {
+					console.log("url:", server.tunnel.url());
+				});
+			`}
+		/>
+	</CodeBlock.Body>
+</CodeBlock.Root>
 ```
 
 ## Composition

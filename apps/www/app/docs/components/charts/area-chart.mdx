@@ -26,6 +26,23 @@ export const trafficData = [
 	{ date: new Date("2026-07-14"), http: 6300, tcp: 1900, tls: 1200 },
 ];
 
+export function SingleSeriesAreaExample() {
+	return (
+		<AreaChart.Root
+			data={trafficData}
+			xKey="date"
+			aria-label="HTTP connections per day"
+			className="max-w-2xl"
+		>
+			<AreaChart.Grid />
+			<AreaChart.XAxis />
+			<AreaChart.YAxis tickFormat={(value) => `${value / 1000}k`} />
+			<AreaChart.Area dataKey="http" label="HTTP" color="blue" />
+			<AreaChart.Tooltip />
+		</AreaChart.Root>
+	);
+}
+
 export function StackedAreaExample() {
 	return (
 		<AreaChart.Root
@@ -373,6 +390,56 @@ export function SeriesIdentityAreaChartExample() {
 An area chart for showing how values (and, when stacked, a total and its parts) change over a continuous x axis. Compose the gridlines, axes, and one `AreaChart.Area` per series inside `AreaChart.Root`.
 
 <Example>
+	<SingleSeriesAreaExample />
+</Example>
+
+```tsx
+import { AreaChart } from "@ngrok/mantle/area-chart";
+
+const trafficData = [
+	{ date: new Date("2026-07-01"), http: 4200, tcp: 1400, tls: 860 },
+	{ date: new Date("2026-07-02"), http: 4600, tcp: 1350, tls: 900 },
+	{ date: new Date("2026-07-03"), http: 5100, tcp: 1500, tls: 940 },
+	{ date: new Date("2026-07-04"), http: 3800, tcp: 1250, tls: 780 },
+	{ date: new Date("2026-07-05"), http: 3500, tcp: 1200, tls: 750 },
+	{ date: new Date("2026-07-06"), http: 4900, tcp: 1550, tls: 980 },
+	{ date: new Date("2026-07-07"), http: 5400, tcp: 1600, tls: 1050 },
+	{ date: new Date("2026-07-08"), http: 5800, tcp: 1700, tls: 1100 },
+	{ date: new Date("2026-07-09"), http: 5200, tcp: 1650, tls: 1020 },
+	{ date: new Date("2026-07-10"), http: 6100, tcp: 1800, tls: 1150 },
+	{ date: new Date("2026-07-11"), http: 4400, tcp: 1450, tls: 880 },
+	{ date: new Date("2026-07-12"), http: 4100, tcp: 1400, tls: 840 },
+	{ date: new Date("2026-07-13"), http: 5600, tcp: 1750, tls: 1080 },
+	{ date: new Date("2026-07-14"), http: 6300, tcp: 1900, tls: 1200 },
+];
+
+<AreaChart.Root
+	data={trafficData}
+	xKey="date"
+	aria-label="HTTP connections per day"
+	className="max-w-2xl"
+>
+	<AreaChart.Grid />
+	<AreaChart.XAxis />
+	<AreaChart.YAxis tickFormat={(value) => `${value / 1000}k`} />
+	<AreaChart.Area dataKey="http" label="HTTP" color="blue" />
+	<AreaChart.Tooltip />
+</AreaChart.Root>;
+```
+
+## When to use
+
+- Show how the magnitude of a value changes over time. The fill gives the value weight.
+- Show a total and its parts over time with [stacked areas](#stacked-areas).
+- Compare a few series that each fill from zero with [overlapping areas](#overlapping-areas).
+- Prefer [`LineChart`](/components/charts/line-chart) to compare the shapes of trends, where filled areas would hide where the series cross.
+- Prefer [`BarChart`](/components/charts/bar-chart) to compare discrete categories by bar length from zero.
+
+## Stacked areas
+
+Set `stacked` on the Root to show a total and its parts. The top edge of the stack is the total, and each band is the share of one series. Compose `AreaChart.Legend` on every multi-series chart.
+
+<Example>
 	<StackedAreaExample />
 </Example>
 
@@ -413,14 +480,6 @@ const trafficData = [
 	<AreaChart.Legend />
 </AreaChart.Root>;
 ```
-
-## When to use
-
-- Show how the magnitude of a value changes over time. The fill gives the value weight.
-- Show a total and its parts over time with `stacked` on the Root, as in the chart above. The top edge of the stack is the total, and each band is the share of one series.
-- Compare a few series that each fill from zero with [overlapping areas](#overlapping-areas).
-- Prefer [`LineChart`](/components/charts/line-chart) to compare the shapes of trends, where filled areas would hide where the series cross.
-- Prefer [`BarChart`](/components/charts/bar-chart) to compare discrete categories by bar length from zero.
 
 ## Overlapping areas
 

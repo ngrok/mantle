@@ -21,86 +21,31 @@ import {
 
 A single top-level bar that surfaces one-to-many account alerts and their upgrade CTAs, expanding additional alerts inline. Compose it into [`AppLayout.Notice`](/layouts/app-layout#applayoutnotice), and author each alert as an `AlertCenter.Item` with the [`Alert`](/components/feedback/alert) banner parts as its children.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="alert-center-shell" title="Alert Center app shell demo" />
-	<CodeExample.Code>
+<Example>
+	<AlertCenterSingleAlertExample />
+</Example>
 
 ```tsx
 import { Alert } from "@ngrok/mantle/alert";
 import { AlertCenter } from "@ngrok/mantle/alert-center";
-import { AppLayout } from "@ngrok/mantle/app-layout";
-import { Sidebar } from "@ngrok/mantle/sidebar";
-import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
-import { useState } from "react";
-import { Outlet } from "react-router";
 
-export function Shell() {
-	const [dismissed, setDismissed] = useState<ReadonlySet<string>>(new Set());
-	const dismiss = (id: string) => setDismissed((previous) => new Set(previous).add(id));
-
+export function AccountAlerts() {
 	return (
-		<Sidebar.Root>
-			<AppLayout.Root className="fixed inset-0">
-				<SkipToMainLink />
-				<AppLayout.Notice>
-					{/* other window-level notices compose here, alongside the alert center */}
-					<AlertCenter.Root>
-						<AlertCenter.Bar />
-						<AlertCenter.Content />
-						{!dismissed.has("payment-failed") && (
-							<AlertCenter.Item id="payment-failed" intent="danger">
-								<Alert.Icon />
-								<Alert.Content>
-									<Alert.Title>
-										Payment failed — update your card <a href="/billing">Update payment method</a>
-									</Alert.Title>
-									<Alert.Description>We couldn't charge the card ending in 4242.</Alert.Description>
-									<AlertCenter.DismissIconButton onClick={() => dismiss("payment-failed")} />
-								</Alert.Content>
-							</AlertCenter.Item>
-						)}
-						{!dismissed.has("transfer-limit") && (
-							<AlertCenter.Item id="transfer-limit" intent="warning">
-								<Alert.Icon />
-								<Alert.Content>
-									<Alert.Title>
-										You've used 92% of your monthly data transfer{" "}
-										<a href="/billing/choose-a-plan">Upgrade</a>
-									</Alert.Title>
-									<AlertCenter.DismissIconButton onClick={() => dismiss("transfer-limit")} />
-								</Alert.Content>
-							</AlertCenter.Item>
-						)}
-					</AlertCenter.Root>
-				</AppLayout.Notice>
-				<AppLayout.Workspace>
-					<Sidebar.Nav aria-label="Main">
-						<Sidebar.Body>
-							<Sidebar.Group>
-								<Sidebar.List>
-									<Sidebar.Item>
-										<Sidebar.ItemButton asChild current>
-											<a href="/endpoints">Endpoints</a>
-										</Sidebar.ItemButton>
-									</Sidebar.Item>
-								</Sidebar.List>
-							</Sidebar.Group>
-						</Sidebar.Body>
-					</Sidebar.Nav>
-					<AppLayout.Content>
-						{/* each route renders AppLayout.Header and AppLayout.Body */}
-						<Outlet />
-					</AppLayout.Content>
-				</AppLayout.Workspace>
-			</AppLayout.Root>
-		</Sidebar.Root>
+		<AlertCenter.Root>
+			<AlertCenter.Bar />
+			<AlertCenter.Content />
+			<AlertCenter.Item id="payment-failed" intent="danger">
+				<Alert.Icon />
+				<Alert.Content>
+					<Alert.Title>
+						Payment failed — update your card <a href="/billing">Update payment method</a>
+					</Alert.Title>
+				</Alert.Content>
+			</AlertCenter.Item>
+		</AlertCenter.Root>
 	);
 }
 ```
-
-    </CodeExample.Code>
-
-</CodeExample.Root>
 
 ## When to use
 
@@ -175,7 +120,10 @@ into the bar.
   `Alert.Title` text (inline CTA anchors stripped), re-read on every commit so the announcement stays in
   lockstep with the visible copy. The bar itself claims no ARIA `banner` landmark.
 
-## Basic usage
+## Several alerts
+
+With exactly one alert there is nothing hidden, so the bar shows it inline with its CTA and omits the
+count-and-caret control. With more, the bar shows the highest-severity alert and a count that expands the rest.
 
 Author one `AlertCenter.Item` per alert, composing the `Alert` banner parts as its children. The consumer
 owns dismissal (including any persistence, e.g. `sessionStorage`): compose an
@@ -259,6 +207,91 @@ export function AccountAlerts() {
 	);
 }
 ```
+
+## In the app shell
+
+Compose `AlertCenter.Root` into [`AppLayout.Notice`](/layouts/app-layout#applayoutnotice), so the bar sits above the workspace and pushes it down.
+
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="alert-center-shell" title="Alert Center app shell demo" />
+	<CodeExample.Code>
+
+```tsx
+import { Alert } from "@ngrok/mantle/alert";
+import { AlertCenter } from "@ngrok/mantle/alert-center";
+import { AppLayout } from "@ngrok/mantle/app-layout";
+import { Sidebar } from "@ngrok/mantle/sidebar";
+import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
+import { useState } from "react";
+import { Outlet } from "react-router";
+
+export function Shell() {
+	const [dismissed, setDismissed] = useState<ReadonlySet<string>>(new Set());
+	const dismiss = (id: string) => setDismissed((previous) => new Set(previous).add(id));
+
+	return (
+		<Sidebar.Root>
+			<AppLayout.Root className="fixed inset-0">
+				<SkipToMainLink />
+				<AppLayout.Notice>
+					{/* other window-level notices compose here, alongside the alert center */}
+					<AlertCenter.Root>
+						<AlertCenter.Bar />
+						<AlertCenter.Content />
+						{!dismissed.has("payment-failed") && (
+							<AlertCenter.Item id="payment-failed" intent="danger">
+								<Alert.Icon />
+								<Alert.Content>
+									<Alert.Title>
+										Payment failed — update your card <a href="/billing">Update payment method</a>
+									</Alert.Title>
+									<Alert.Description>We couldn't charge the card ending in 4242.</Alert.Description>
+									<AlertCenter.DismissIconButton onClick={() => dismiss("payment-failed")} />
+								</Alert.Content>
+							</AlertCenter.Item>
+						)}
+						{!dismissed.has("transfer-limit") && (
+							<AlertCenter.Item id="transfer-limit" intent="warning">
+								<Alert.Icon />
+								<Alert.Content>
+									<Alert.Title>
+										You've used 92% of your monthly data transfer{" "}
+										<a href="/billing/choose-a-plan">Upgrade</a>
+									</Alert.Title>
+									<AlertCenter.DismissIconButton onClick={() => dismiss("transfer-limit")} />
+								</Alert.Content>
+							</AlertCenter.Item>
+						)}
+					</AlertCenter.Root>
+				</AppLayout.Notice>
+				<AppLayout.Workspace>
+					<Sidebar.Nav aria-label="Main">
+						<Sidebar.Body>
+							<Sidebar.Group>
+								<Sidebar.List>
+									<Sidebar.Item>
+										<Sidebar.ItemButton asChild current>
+											<a href="/endpoints">Endpoints</a>
+										</Sidebar.ItemButton>
+									</Sidebar.Item>
+								</Sidebar.List>
+							</Sidebar.Group>
+						</Sidebar.Body>
+					</Sidebar.Nav>
+					<AppLayout.Content>
+						{/* each route renders AppLayout.Header and AppLayout.Body */}
+						<Outlet />
+					</AppLayout.Content>
+				</AppLayout.Workspace>
+			</AppLayout.Root>
+		</Sidebar.Root>
+	);
+}
+```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## Dismissability
 
@@ -634,44 +667,13 @@ export function Shell() {
 The item unmounts with the route, so the alert clears on navigation for free. The route buttons stand in for
 a router. A real shell renders its `Outlet` inside `AppLayout.Body`, which is the `main` landmark, and pins
 the shell with `className="fixed inset-0"`, exactly as in the
-[example at the top of this page](#alert-center). This demo is embedded in a docs page that already owns the
+[app shell example](#in-the-app-shell). This demo is embedded in a docs page that already owns the
 `main` landmark, so it composes `AppLayout.Body` onto a plain `<div>` with `asChild` and does not pin.
 
 One consequence worth knowing: `AlertCenter.Root` renders the `sr-only` live region at its **own** position
 in the tree, so hoisting it also moves that element out of the notice slot. It is visually hidden either way,
 and it must stay mounted to announce anything, so this is harmless. But it is why `Root` is renderless rather
 than a wrapper you can style.
-
-## A single alert
-
-With exactly one alert there is nothing hidden, so the bar shows it inline with its CTA and omits the
-count-and-caret control.
-
-<Example>
-	<AlertCenterSingleAlertExample />
-</Example>
-
-```tsx
-import { Alert } from "@ngrok/mantle/alert";
-import { AlertCenter } from "@ngrok/mantle/alert-center";
-
-export function AccountAlerts() {
-	return (
-		<AlertCenter.Root>
-			<AlertCenter.Bar />
-			<AlertCenter.Content />
-			<AlertCenter.Item id="payment-failed" intent="danger">
-				<Alert.Icon />
-				<Alert.Content>
-					<Alert.Title>
-						Payment failed — update your card <a href="/billing">Update payment method</a>
-					</Alert.Title>
-				</Alert.Content>
-			</AlertCenter.Item>
-		</AlertCenter.Root>
-	);
-}
-```
 
 ## Custom content
 
