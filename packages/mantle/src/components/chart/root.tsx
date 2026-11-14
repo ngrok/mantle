@@ -755,7 +755,9 @@ const ChartRootPrimitive = ({
 				<div
 					data-slot={`${slotName}-plot`}
 					className={cx(
-						"relative min-h-0 w-full flex-1 transition-opacity duration-300 ease-out-strong motion-reduce:transition-none",
+						// Why select-none and no touch callout: a long press on a phone
+						// must inspect a datum, not select the plot or open a callout.
+						"relative min-h-0 w-full flex-1 select-none transition-opacity duration-300 ease-out-strong motion-reduce:transition-none [-webkit-touch-callout:none]",
 						pending && "opacity-60",
 					)}
 					// A static chart is an image: the plot is its single named element,
@@ -790,12 +792,13 @@ const ChartRootPrimitive = ({
 								// the ring's box shadow, and `outline-hidden` keeps an outline there.
 								"focus-visible:ring-focus-accent absolute inset-0 rounded-sm focus:outline-hidden focus-visible:ring-2",
 								(kind === "line" || kind === "area") && "cursor-crosshair",
-								// touch-none only in 3D: without it the browser claims the pan
-								// gesture and cancels the rotation drag on touch devices. 2D
-								// charts must NOT block page scrolling.
-								kind === "scatter" &&
-									zKey != null &&
-									"touch-none cursor-grab active:cursor-grabbing",
+								// Why touch-pan-y on 2D charts: a horizontal finger drag must
+								// scrub the tooltip, and with the default the browser claims
+								// that drag as a pan and cancels the pointer. A vertical drag
+								// still scrolls the page. 3D takes every gesture for rotation.
+								kind === "scatter" && zKey != null
+									? "touch-none cursor-grab active:cursor-grabbing"
+									: "touch-pan-y",
 							)}
 							onPointerDown={(event) => {
 								// Why: the middle and the right button belong to the browser, so
@@ -810,6 +813,13 @@ const ChartRootPrimitive = ({
 								// throws before the engine ever sees the press.
 								if (event.isTrusted && kind === "scatter" && zKey != null) {
 									event.currentTarget.setPointerCapture(event.pointerId);
+								}
+								// Why focus a touch: a mouse press focuses the overlay, but a finger
+								// drag fires no click and so does not. The tooltip stays after the
+								// finger lifts, and the blur of a tap elsewhere hides it. A finger
+								// shows no focus ring.
+								if (event.pointerType === "touch") {
+									event.currentTarget.focus({ focusVisible: false, preventScroll: true });
 								}
 								// A press can land before the chart's queued activation slice
 								// runs, and pointer-up activates only a press the engine saw.
@@ -838,7 +848,12 @@ const ChartRootPrimitive = ({
 									{ activate: event.button === 0 },
 								);
 							}}
-							onPointerLeave={() => {
+							onPointerLeave={(event) => {
+								// Why: a finger that lifts also leaves, and the tooltip must stay
+								// to read. A tap elsewhere blurs the overlay and clears it.
+								if (event.pointerType === "touch") {
+									return;
+								}
 								engineRef.current?.handlePointerLeave();
 							}}
 							onPointerCancel={() => {

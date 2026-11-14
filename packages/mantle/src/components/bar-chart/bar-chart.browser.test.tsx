@@ -300,6 +300,54 @@ describe("BarChart canvas painting", () => {
 			),
 		).toBeGreaterThan(1000);
 	});
+
+	test("a finger drag scrubs the tooltip, and the tooltip stays after the finger lifts", async () => {
+		const { container } = renderChart();
+		const canvas = await findChartCanvas(container);
+		await waitFor(() => {
+			expect(countPixels(canvas, isChart1Ink)).toBeGreaterThan(1000);
+		});
+		const overlay = mustBe(
+			container.querySelector('[role="application"]'),
+			HTMLElement,
+			"the overlay",
+		);
+		const touch = (type: string, fraction: number, init: PointerEventInit = {}) => {
+			const rect = overlay.getBoundingClientRect();
+			overlay.dispatchEvent(
+				new PointerEvent(type, {
+					bubbles: true,
+					pointerType: "touch",
+					clientX: rect.left + rect.width * fraction,
+					clientY: rect.top + rect.height * 0.5,
+					...init,
+				}),
+			);
+		};
+		const tooltip = () => container.querySelector('[data-slot="bar-chart-tooltip"]');
+		touch("pointerdown", 0.15);
+		// Re-dispatch inside waitFor: the test browser's idle mouse can send a
+		// leave when the tooltip first mounts under it. A phone has no mouse.
+		await waitFor(() => {
+			touch("pointermove", 0.85);
+			expect(tooltip()?.textContent).toContain("March");
+			expect(tooltip()).toHaveStyle({ opacity: "1" });
+		});
+		// A lifted finger also leaves the overlay. React reads the leave from `pointerout`.
+		touch("pointerup", 0.85);
+		touch("pointerout", 0.85, { relatedTarget: document.body });
+		await new Promise((resolve) => {
+			requestAnimationFrame(resolve);
+		});
+		expect(tooltip()).toHaveStyle({ opacity: "1" });
+		expect(tooltip()?.textContent).toContain("March");
+		// The press focused the overlay, so a tap elsewhere blurs it and hides the tooltip.
+		expect(overlay).toHaveFocus();
+		overlay.blur();
+		await waitFor(() => {
+			expect(tooltip()).toHaveStyle({ opacity: "0" });
+		});
+	});
 });
 
 describe("overriding a chart color token", () => {
