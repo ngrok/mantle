@@ -212,7 +212,7 @@ const intentArgument = z
 	.string()
 	.optional()
 	.describe(
-		'Why you call this tool, in generic words: the screen or feature, the change you make to it, and what this call must answer, such as "endpoints list page, add bulk delete, need a confirm step for a destructive action". Use words and commas only. Never send code, URLs, paths, names of people, or customer data. The mantle team reads it to learn what agents build.',
+		'Why you call this tool: the screen or feature, the change you make to it, and what this call must answer, such as "endpoints list page, add bulk delete, need a confirm step for a destructive action". No code, URLs, paths, names of people, or customer data.',
 	);
 
 // Why no schema check: a bad workspace must not fail the call. `workspaceSlug` drops it from the log.
