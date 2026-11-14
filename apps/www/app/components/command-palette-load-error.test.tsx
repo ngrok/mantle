@@ -5,8 +5,11 @@ import { createRoutesStub } from "react-router";
 import { describe, expect, it, vi } from "vitest";
 import { CommandPalette } from "./command-palette";
 
+const dialogImport = vi.hoisted(() => ({ calls: 0 }));
+
 // Why: a module factory that throws makes the dialog `import()` reject, as an old chunk does after a deploy.
 vi.mock("~/components/command-palette-dialog", () => {
+	dialogImport.calls += 1;
 	throw new Error("Failed to fetch dynamically imported module");
 });
 
@@ -25,8 +28,13 @@ describe("CommandPalette when the dialog fails to load", () => {
 		]);
 		render(<Stub />);
 		const toastText = "Search failed to load. Reload the page to try again.";
-		// Why: the dialog loads, and fails, after hydration. That failure must stay
-		// silent, so a `waitFor` for the toast must time out.
+		// Why: the dialog must load after hydration, before the first open. Else
+		// the first ⌘K suspends and feels slow.
+		await waitFor(() => {
+			expect(dialogImport.calls).toBe(1);
+		});
+		// Why: that failure must stay silent, so a `waitFor` for the toast must
+		// time out.
 		await expect(
 			waitFor(
 				() => {
