@@ -52,7 +52,7 @@ Create the page at its kind's path (§7.1) with [§7.2](../../COMPONENT_SPEC.md#
 - Prefer <Sibling> for <a job it does not do>.
 ````
 
-Take the `## When to use` bullets from the `@useWhen` and `@siblings` JSDoc tags. Put longer guidance in its own section after `## Polymorphism` (§7.2 item 10). Examples follow [§7.3](../../COMPONENT_SPEC.md#73-examples-must-be-live-and-complete): live, complete, and built from existing mantle components. Every compound example shows the composed tree, not a data prop. For a compound component, the primary example shows the simplest use case, and each other use case gets its own `##` section with an example and a code block (§7.2 item 7). Give each part an `### <ComponentName>.<Part>` API subsection.
+Take the `## When to use` bullets from the `@useWhen` and `@siblings` JSDoc tags. Put longer guidance in its own section after `## Polymorphism` (§7.2 item 10). Examples follow [§7.3](../../COMPONENT_SPEC.md#73-examples-must-be-live-and-complete): live, complete, and built from existing mantle components. Every compound example shows the composed tree, not a data prop. The primary example shows the simplest use case. Each other variant and use case gets its own section with one example and its code block (§7.2 item 7). Give each part an `### <ComponentName>.<Part>` API subsection.
 
 ## 4. Wire it up
 

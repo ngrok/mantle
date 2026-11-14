@@ -773,11 +773,19 @@ plain-markdown twin (`/api/…`, `llms-full.txt`) generated from it.
 6. **`## When to use`**, directly after the primary example's code block. A few bullets: the jobs the component
    does, and the sibling to use for each job it does not do. It agrees with the `@useWhen` and `@siblings` JSDoc
    tags. Longer guidance (a series limit, density rules, how the parts compose) gets its own section under item 9.
-7. **One `##` section for each other use case** — compound components whose parts serve distinct use cases
-   (`RadioGroup` has plain radios, a list, and cards). Each section has a heading that
-   names the use case, one or two sentences on when to use it and which parts it takes, a live example, and a
-   code block with only that use case. Never show two use cases in one example: a reader cannot tell which code
-   makes which shape, and the TOC cannot link to one of them.
+7. **One section for each variant and use case.** A variant is a layout, a part set, or a mode that a reader
+   picks for a job: `RadioGroup` has plain radios, a list, and cards, and `SegmentedControl` has text and icon
+   segments. Each section has, in order:
+   - a `##` heading that names the variant (`###` for a sub-case inside a section)
+   - one or two sentences on when to use it and which parts or props it takes
+   - a live example
+   - a code block with only that variant
+
+   A section holds one live example. Never show two variants in one example or in one section: a reader cannot
+   tell which code makes which shape, and the TOC cannot link to one of them. A do/don't pair is two `###`
+   sections. A prop scale that changes only the look (every `size`, every `intent`) is one variant: one section
+   named for the prop, with every value in one example.
+
 8. **`## Composition`** — compound components only: the ASCII tree in a ` ```text showLineNumbers=false `
    fence, identical to the namespace JSDoc's tree. Simple components omit it — there is no tree to draw.
 9. **`## Polymorphism`** — required when any part accepts `asChild`. List every part that supports it and when
@@ -836,6 +844,24 @@ Sentence-level style — voice, tense, sentence length, noun stacks, banned fill
   in a demo, a deliberate absence of a part, an intentional ARIA choice.
 - Link to sibling components and layouts by their docs URL rather than repeating their rules.
 - Do not document internals a consumer cannot reach.
+
+### 7.5. Enforcement
+
+This section is the source of truth for the docs page. `/scaffold-component` writes a page in this shape,
+`/audit-component` checks it, and a test fails CI on the rules a parser can check. When you change a rule here,
+change its check in the same PR.
+
+| Rule                                                      | Check                                                                                    |
+| --------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Title, lead, primary example, `## When to use` (§7.2 4–6) | `apps/www/app/utilities/docs-example-fences.test.ts` ("opens with the title, a lead, …") |
+| One live example per section (§7.2 item 7)                | `docs-example-fences.test.ts` ("holds one live example in each section")                 |
+| Code block directly below each example (§7.3)             | `docs-example-fences.test.ts` ("follows each <Example> with its code block")             |
+| Section order, Composition tree, API reference (§7.2)     | `/audit-component`                                                                       |
+| Live, complete, built from mantle (§7.3)                  | `/audit-component`                                                                       |
+| Lead length in sentences, prose (§7.2 item 4, §7.4)       | `/audit-component`; the test checks only that the lead is one paragraph                  |
+
+oxlint does not parse MDX, so these checks are Vitest tests over the MDX syntax tree. `check:changed` and CI
+run them with the `@app/www` tests.
 
 ---
 
@@ -969,6 +995,8 @@ beside it, because a wrapper makes the consumer's element a grandchild and break
 - Prose, a heading, a list, or a code block between the page title and the primary example → keep the lead
   ([§7.2](#72-required-structure-in-order) item 4), and move the rest below the primary example: short
   guidance into `## When to use`, and long guidance into its own optional section.
+- Two live examples in one section → split it: one heading, use-case sentence, example, and code block for each
+  variant ([§7.2](#72-required-structure-in-order) item 7).
 - A missing `## When to use` → write it from the `@useWhen` and `@siblings` JSDoc tags, and place it after the
   primary example's code block.
 - A usage code block with nothing live above it, or written as a fragment → add a live example and rewrite the
@@ -1068,7 +1096,7 @@ Run this against the diff before calling a component done. Each line is a defect
 - [ ] Every example builds its surround from existing mantle components, with no hand-rolled list, table, or
       card ([§7.3](#73-examples-must-be-live-and-complete)).
 - [ ] Trees in the JSDoc and the docs page match.
-- [ ] Compound: each use case has its own section, example, and code block
+- [ ] Each variant and use case has its own section, with one example and its code block
       ([§7.2](#72-required-structure-in-order) item 7).
 
 **Wiring**
