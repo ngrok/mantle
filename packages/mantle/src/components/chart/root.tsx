@@ -414,6 +414,9 @@ const ChartRootPrimitive = ({
 	/** Whether the engine effect's next run activates at once: its cleanup tore down a live engine. */
 	const reactivateRef = useRef(false);
 	const activateRef = useRef<((rect: DOMRectReadOnly | null) => void) | null>(null);
+	/** Removes the document listener that hides a touch tooltip on a press outside the chart. */
+	const stopTouchDismissRef = useRef<(() => void) | null>(null);
+	useLayoutEffect(() => () => stopTouchDismissRef.current?.(), []);
 	// The observer's latest reports, kept for an engine created later, and
 	// whether focus holds the chart painted wherever it is.
 	const visibilityRef = useRef<ChartVisibility>({
@@ -814,12 +817,25 @@ const ChartRootPrimitive = ({
 								if (event.isTrusted && kind === "scatter" && zKey != null) {
 									event.currentTarget.setPointerCapture(event.pointerId);
 								}
-								// Why focus a touch: a mouse press focuses the overlay, but a finger
-								// drag fires no click and so does not. The tooltip stays after the
-								// finger lifts, and the blur of a tap elsewhere hides it. A finger
-								// shows no focus ring.
-								if (event.pointerType === "touch") {
-									event.currentTarget.focus({ focusVisible: false, preventScroll: true });
+								// Why a document listener and not focus: a finger drag fires no
+								// click, so it does not focus the overlay, and a blur cannot hide
+								// the tooltip that stays after the finger lifts. Focus would also
+								// build the data table on every press.
+								if (event.pointerType === "touch" && stopTouchDismissRef.current == null) {
+									const overlay = event.currentTarget;
+									const doc = overlay.ownerDocument;
+									const onPress = (press: PointerEvent) => {
+										if (press.target instanceof Node && overlay.contains(press.target)) {
+											return;
+										}
+										stopTouchDismissRef.current?.();
+										engineRef.current?.handlePointerLeave();
+									};
+									doc.addEventListener("pointerdown", onPress, true);
+									stopTouchDismissRef.current = () => {
+										doc.removeEventListener("pointerdown", onPress, true);
+										stopTouchDismissRef.current = null;
+									};
 								}
 								// A press can land before the chart's queued activation slice
 								// runs, and pointer-up activates only a press the engine saw.
@@ -850,7 +866,7 @@ const ChartRootPrimitive = ({
 							}}
 							onPointerLeave={(event) => {
 								// Why: a finger that lifts also leaves, and the tooltip must stay
-								// to read. A tap elsewhere blurs the overlay and clears it.
+								// to read. A press outside the chart hides it.
 								if (event.pointerType === "touch") {
 									return;
 								}
