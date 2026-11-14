@@ -473,6 +473,8 @@ const CommandInput = ({
 			<MagnifyingGlassIcon aria-hidden className="size-5 shrink-0 opacity-50" />
 			<CommandPrimitive.Input
 				className={cx(
+					// Why 16px on a touch screen: iOS Safari zooms the page when it focuses a field under 16px.
+					"pointer-coarse:text-base",
 					"placeholder:text-muted flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
 					className,
 				)}

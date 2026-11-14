@@ -35,10 +35,9 @@ afterEach(() => {
 	vi.useRealTimers();
 });
 
-// Regression: the picker once nested `RadioGroup.ButtonGroup` inside
-// `RadioGroup.Root`, so the buttons bound to an inner, uncontrolled group. The
-// picker started with no selection, so every scenario opened a Sheet whichever
-// overlay the user picked.
+// Regression: the picker once nested its segments inside a second radio group,
+// so they bound to an inner, uncontrolled group. The picker started with no
+// selection, so every scenario opened a Sheet whichever overlay the user picked.
 describe("UserOverlayDemo", () => {
 	it("defaults the overlay picker to Sheet", () => {
 		renderDemo();

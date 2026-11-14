@@ -1,0 +1,288 @@
+---
+title: Segmented Control
+description: A row of segments that switches between a few short options, like a view or an environment. A raised thumb slides to the checked segment.
+aliases: [segmented button, view switcher, toggle group, button group radio]
+---
+
+import { Button } from "@ngrok/mantle/button";
+import { Field, toErrorMessages } from "@ngrok/mantle/field";
+import { SegmentedControl } from "@ngrok/mantle/segmented-control";
+import { ListIcon } from "@phosphor-icons/react/List";
+import { SquaresFourIcon } from "@phosphor-icons/react/SquaresFour";
+import { useForm } from "@tanstack/react-form";
+import { useState } from "react";
+import { z } from "zod";
+import { Example } from "~/components/example";
+
+export function ControlledExample() {
+	const [view, setView] = useState("list");
+
+    return (
+    	<div className="flex flex-col items-center gap-3">
+    		<SegmentedControl.Root aria-label="View" value={view} onChange={setView}>
+    			<SegmentedControl.Item value="list">List</SegmentedControl.Item>
+    			<SegmentedControl.Item value="board">Board</SegmentedControl.Item>
+    			<SegmentedControl.Item value="calendar">Calendar</SegmentedControl.Item>
+    		</SegmentedControl.Root>
+    		<p className="text-muted text-sm">Current view: {view}</p>
+    	</div>
+    );
+
+}
+
+export const formSchema = z.object({
+	region: z.string().min(1, "Choose a region."),
+});
+
+export function TanStackFormExample() {
+	const form = useForm({
+		defaultValues: { region: "" },
+		validators: {
+			onSubmit: formSchema,
+		},
+		onSubmit: ({ value }) => {
+			window.alert(`Submitted: ${JSON.stringify(value, null, 2)}`);
+		},
+	});
+
+    return (
+    	<form
+    		className="w-full max-w-sm space-y-4"
+    		onSubmit={(event) => {
+    			event.preventDefault();
+    			event.stopPropagation();
+    			void form.handleSubmit();
+    		}}
+    	>
+    		<form.Field name="region">
+    			{(field) => (
+    				<Field.Set>
+    					<Field.Legend>Region</Field.Legend>
+    					<SegmentedControl.Root
+    						name={field.name}
+    						value={field.state.value}
+    						onChange={field.handleChange}
+    					>
+    						<SegmentedControl.Item value="us">US</SegmentedControl.Item>
+    						<SegmentedControl.Item value="eu">EU</SegmentedControl.Item>
+    						<SegmentedControl.Item value="ap">AP</SegmentedControl.Item>
+    					</SegmentedControl.Root>
+    					<Field.Errors messages={toErrorMessages(field.state.meta.errors)} />
+    				</Field.Set>
+    			)}
+    		</form.Field>
+    		<Button type="submit" appearance="filled" intent="neutral">
+    			Submit
+    		</Button>
+    	</form>
+    );
+
+}
+
+# Segmented Control
+
+A row of segments that switches between a few short options, like a view or an environment. A raised thumb slides to the checked segment.
+
+`SegmentedControl` is a radio group underneath. It shares its primitive with [`RadioGroup`](/components/forms/radio-group), so it has the same contract: `role="radiogroup"`, one tab stop, arrow keys that move the checked segment, and a hidden `<input type="radio">` for form submission when it has a `name`. Use `RadioGroup` when the options need a description or stack in a column, and [`Tabs`](/components/navigation/tabs) when each option shows its own panel of content.
+
+To change the value, click a segment, use the arrow keys, or drag the thumb with a mouse or a finger.
+
+<Example>
+	<SegmentedControl.Root
+		aria-label="Environment"
+		defaultValue="production"
+		className="w-full max-w-md"
+	>
+		<SegmentedControl.Item value="development">Dev</SegmentedControl.Item>
+		<SegmentedControl.Item value="staging" disabled>
+			Staging
+		</SegmentedControl.Item>
+		<SegmentedControl.Item value="production">Prod</SegmentedControl.Item>
+	</SegmentedControl.Root>
+</Example>
+
+```tsx
+import { SegmentedControl } from "@ngrok/mantle/segmented-control";
+
+<SegmentedControl.Root aria-label="Environment" defaultValue="production">
+	<SegmentedControl.Item value="development">Dev</SegmentedControl.Item>
+	<SegmentedControl.Item value="staging" disabled>
+		Staging
+	</SegmentedControl.Item>
+	<SegmentedControl.Item value="production">Prod</SegmentedControl.Item>
+</SegmentedControl.Root>;
+```
+
+## Controlled
+
+Pass `value` and `onChange` to keep the checked segment in your own state. The control reports the new value on a click, a key, and a drag.
+
+<Example>
+	<ControlledExample />
+</Example>
+
+```tsx
+import { SegmentedControl } from "@ngrok/mantle/segmented-control";
+import { useState } from "react";
+
+function ControlledExample() {
+	const [view, setView] = useState("list");
+
+	return (
+		<div className="flex flex-col items-center gap-3">
+			<SegmentedControl.Root aria-label="View" value={view} onChange={setView}>
+				<SegmentedControl.Item value="list">List</SegmentedControl.Item>
+				<SegmentedControl.Item value="board">Board</SegmentedControl.Item>
+				<SegmentedControl.Item value="calendar">Calendar</SegmentedControl.Item>
+			</SegmentedControl.Root>
+			<p className="text-muted text-sm">Current view: {view}</p>
+		</div>
+	);
+}
+```
+
+## Icon segments
+
+A segment can hold only an icon. Give each one its name in `sr-only` text, so a screen reader announces it.
+
+<Example>
+	<SegmentedControl.Root aria-label="Layout" defaultValue="list" className="w-fit">
+		<SegmentedControl.Item value="list">
+			<ListIcon aria-hidden className="size-5" />
+			<span className="sr-only">List</span>
+		</SegmentedControl.Item>
+		<SegmentedControl.Item value="grid">
+			<SquaresFourIcon aria-hidden className="size-5" />
+			<span className="sr-only">Grid</span>
+		</SegmentedControl.Item>
+	</SegmentedControl.Root>
+</Example>
+
+```tsx
+import { SegmentedControl } from "@ngrok/mantle/segmented-control";
+import { ListIcon } from "@phosphor-icons/react/List";
+import { SquaresFourIcon } from "@phosphor-icons/react/SquaresFour";
+
+<SegmentedControl.Root aria-label="Layout" defaultValue="list" className="w-fit">
+	<SegmentedControl.Item value="list">
+		<ListIcon aria-hidden className="size-5" />
+		<span className="sr-only">List</span>
+	</SegmentedControl.Item>
+	<SegmentedControl.Item value="grid">
+		<SquaresFourIcon aria-hidden className="size-5" />
+		<span className="sr-only">Grid</span>
+	</SegmentedControl.Item>
+</SegmentedControl.Root>;
+```
+
+## With TanStack Form
+
+Use `@tanstack/react-form` with `zod` to keep the control controlled in a form. Pass the field's `name`, `value`, and `handleChange`. Use `Field.Set` and `Field.Legend` to name the group and show its errors.
+
+<Example className="w-full">
+	<TanStackFormExample />
+</Example>
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { Field, toErrorMessages } from "@ngrok/mantle/field";
+import { SegmentedControl } from "@ngrok/mantle/segmented-control";
+import { useForm } from "@tanstack/react-form";
+import { z } from "zod";
+
+export const formSchema = z.object({
+	region: z.string().min(1, "Choose a region."),
+});
+
+function TanStackFormExample() {
+	const form = useForm({
+		defaultValues: { region: "" },
+		validators: {
+			onSubmit: formSchema,
+		},
+		onSubmit: ({ value }) => {
+			// Handle form submission here
+		},
+	});
+
+	return (
+		<form
+			onSubmit={(event) => {
+				event.preventDefault();
+				event.stopPropagation();
+				void form.handleSubmit();
+			}}
+		>
+			<form.Field name="region">
+				{(field) => (
+					<Field.Set>
+						<Field.Legend>Region</Field.Legend>
+						<SegmentedControl.Root
+							name={field.name}
+							value={field.state.value}
+							onChange={field.handleChange}
+						>
+							<SegmentedControl.Item value="us">US</SegmentedControl.Item>
+							<SegmentedControl.Item value="eu">EU</SegmentedControl.Item>
+							<SegmentedControl.Item value="ap">AP</SegmentedControl.Item>
+						</SegmentedControl.Root>
+						<Field.Errors messages={toErrorMessages(field.state.meta.errors)} />
+					</Field.Set>
+				)}
+			</form.Field>
+			<Button type="submit" appearance="filled" intent="neutral">
+				Submit
+			</Button>
+		</form>
+	);
+}
+```
+
+## Composition
+
+```text showLineNumbers=false
+SegmentedControl.Root
+└── SegmentedControl.Item
+```
+
+## Dragging the thumb
+
+A sideways drag on the checked segment moves the thumb with the pointer. On release, the thumb slides to the nearest enabled segment, and that segment becomes checked. A flick carries the thumb further. Past either end, the thumb meets resistance and stays inside the track. A drag that goes up or down more than sideways does not start, so the page still scrolls on a touch screen.
+
+The thumb slides on every change: a click, a key, a drag, or a new `value`. With reduced motion, it moves at once.
+
+## API Reference
+
+### SegmentedControl.Root
+
+The row of segments. It renders the radio group itself, so use it in place of `RadioGroup.Root`, never inside one.
+
+All props from [Headless UI RadioGroup](https://headlessui.com/react/radio-group), including:
+
+| Prop            | Type                      | Default | Description                                                 |
+| :-------------- | :------------------------ | :------ | :---------------------------------------------------------- |
+| `value?`        | `string`                  |         | The controlled value of the checked segment.                |
+| `defaultValue?` | `string`                  |         | The value checked at first, when uncontrolled.              |
+| `onChange?`     | `(value: string) => void` |         | Called with the new value when the checked segment changes. |
+| `disabled?`     | `boolean`                 | `false` | When `true`, prevents interaction with every segment.       |
+| `name?`         | `string`                  |         | The name of the hidden radio input that a form submits.     |
+| `aria-label?`   | `string`                  |         | The name of the control. Set it, or set `aria-labelledby`.  |
+
+| Data Attribute  | Value                 | Description                                   |
+| :-------------- | :-------------------- | :-------------------------------------------- |
+| `data-slot`     | `"segmented-control"` | The control.                                  |
+| `data-dragging` | present during a drag | The thumb follows the pointer. Presence-only. |
+
+### SegmentedControl.Item
+
+One segment. It grows to share the row and keeps its label on one line, so keep labels to one or two words. Inside `Field.Control`, the segment picks up `aria-invalid`, `aria-errormessage`, and `aria-describedby`.
+
+| Prop        | Type      | Default | Description                                                 |
+| :---------- | :-------- | :------ | :---------------------------------------------------------- |
+| `value`     | `string`  |         | The value the control reports when this segment is checked. |
+| `disabled?` | `boolean` |         | When `true`, the segment cannot be checked.                 |
+
+| Data Attribute    | Value                      | Description                                    |
+| :---------------- | :------------------------- | :--------------------------------------------- |
+| `data-slot`       | `"segmented-control-item"` | The segment.                                   |
+| `data-thumb-over` | present during a drag      | The thumb is over this segment. Presence-only. |

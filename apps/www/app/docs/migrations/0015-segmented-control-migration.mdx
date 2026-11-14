@@ -1,0 +1,157 @@
+---
+title: Segmented Control Migration
+description: RadioGroup.ButtonGroup and RadioGroup.Button are gone. Use SegmentedControl.Root and SegmentedControl.Item from @ngrok/mantle/segmented-control.
+introducedIn: "0.94.0"
+---
+
+# Mantle Segmented Control Migration Guide
+
+`@ngrok/mantle` has a new `SegmentedControl` component, and `RadioGroup.ButtonGroup` and `RadioGroup.Button` are gone. `SegmentedControl.Root` replaces `RadioGroup.ButtonGroup`, and `SegmentedControl.Item` replaces `RadioGroup.Button`. The props, the keyboard, the ARIA roles, and the form behavior are the same: both components share one radio primitive. The styles change: a thumb slides on a track in place of a row of bordered buttons. This guide moves a codebase to the new import.
+
+**TL;DR:** Import `SegmentedControl` from `@ngrok/mantle/segmented-control`. Rename `RadioGroup.ButtonGroup` to `SegmentedControl.Root` and `RadioGroup.Button` to `SegmentedControl.Item`, in JSX and in `typeof` type queries. Delete a `RadioGroup` import that nothing reads any more. Change a `data-slot` selector from `radio-group-button-group` to `segmented-control`, and from `radio-group-button` to `segmented-control-item`.
+
+## Codemod
+
+From a mantle checkout:
+
+```sh
+pnpm -w run migrate 0015 <path>
+```
+
+In a project that installs `@ngrok/mantle`:
+
+```sh
+npx --yes --package=@ast-grep/cli@0.51.2 ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/0015-segmented-control.yml --update-all <path>
+```
+
+The rules apply steps 2 and 3. They rename each `RadioGroup.ButtonGroup` and `RadioGroup.Button` JSX tag and `typeof` type query, in `.tsx` and `.ts` files. They add the `SegmentedControl` import after the first `@ngrok/mantle/radio-group` import of each file they change. The rules read a part through its import from `@ngrok/mantle/radio-group`, under its own name or an alias. A part that reaches the file through a local re-export or a destructured namespace stays manual. A function that binds `RadioGroup` to a parameter or a local shadows the import, so the rules leave that function alone. Steps 4 and 5 stay manual: whether a file still reads `RadioGroup` depends on the rest of the file, and a `data-slot` selector is a string, not syntax. The codemod is safe to run more than once. Pass `--dry-run` to print the rewrites first, and run your formatter after the rewrite.
+
+## You are an agent migrating a codebase. Do this:
+
+1. Find every `RadioGroup.ButtonGroup` and `RadioGroup.Button` (parts of `@ngrok/mantle`'s `RadioGroup` compound component). Search for both names, and for a renamed import of the same component (`import { RadioGroup as MantleRadioGroup }`) or a destructured one (`const { ButtonGroup } = RadioGroup;`).
+2. In each file with a hit, add `import { SegmentedControl } from "@ngrok/mantle/segmented-control";`.
+3. Rename `RadioGroup.ButtonGroup` to `SegmentedControl.Root` and `RadioGroup.Button` to `SegmentedControl.Item`. Rename the opening tag, the closing tag, and each `typeof RadioGroup.ButtonGroup` or `typeof RadioGroup.Button` in a type. Keep every prop as it is.
+4. When the file no longer reads `RadioGroup` (no `RadioGroup.Root`, `Item`, `List`, `ListItem`, `Card`, `Indicator`, `ItemContent`, or `InputSandbox`), delete the `RadioGroup` import.
+5. Find a `data-slot` selector in CSS, in a Tailwind variant, or in a test. Change `radio-group-button-group` to `segmented-control` and `radio-group-button` to `segmented-control-item`. Leave `radio-group`, `radio-group-item`, and the other `radio-group-*` slots alone.
+6. After editing, run the project's formatter, linter, type checker, and tests.
+
+> **Why a separate component?** A segmented control switches a view or a mode in one row, and the change usually takes effect at once. A radio group is a form field whose options often carry a description. People and agents search for "segmented control", so the name now matches what they look for, in the import path, the component manifest, and the docs navigation. Underneath, it is still a radio group with the same contract.
+
+---
+
+## Before → after
+
+### A segmented control
+
+```tsx
+// BEFORE
+import { RadioGroup } from "@ngrok/mantle/radio-group";
+
+<RadioGroup.ButtonGroup aria-label="Environment" defaultValue="production">
+	<RadioGroup.Button value="development">Dev</RadioGroup.Button>
+	<RadioGroup.Button value="production">Prod</RadioGroup.Button>
+</RadioGroup.ButtonGroup>;
+```
+
+```tsx
+// AFTER
+import { SegmentedControl } from "@ngrok/mantle/segmented-control";
+
+<SegmentedControl.Root aria-label="Environment" defaultValue="production">
+	<SegmentedControl.Item value="development">Dev</SegmentedControl.Item>
+	<SegmentedControl.Item value="production">Prod</SegmentedControl.Item>
+</SegmentedControl.Root>;
+```
+
+### A file that also renders radios
+
+```tsx
+// BEFORE
+import { RadioGroup } from "@ngrok/mantle/radio-group";
+
+<>
+	<RadioGroup.ButtonGroup aria-label="View" defaultValue="list">
+		<RadioGroup.Button value="list">List</RadioGroup.Button>
+		<RadioGroup.Button value="grid">Grid</RadioGroup.Button>
+	</RadioGroup.ButtonGroup>
+	<RadioGroup.Root defaultValue="default">
+		<RadioGroup.Item value="default">
+			<RadioGroup.Indicator />
+			<RadioGroup.ItemContent>Default</RadioGroup.ItemContent>
+		</RadioGroup.Item>
+	</RadioGroup.Root>
+</>;
+```
+
+```tsx
+// AFTER
+import { RadioGroup } from "@ngrok/mantle/radio-group";
+import { SegmentedControl } from "@ngrok/mantle/segmented-control";
+
+<>
+	<SegmentedControl.Root aria-label="View" defaultValue="list">
+		<SegmentedControl.Item value="list">List</SegmentedControl.Item>
+		<SegmentedControl.Item value="grid">Grid</SegmentedControl.Item>
+	</SegmentedControl.Root>
+	<RadioGroup.Root defaultValue="default">
+		<RadioGroup.Item value="default">
+			<RadioGroup.Indicator />
+			<RadioGroup.ItemContent>Default</RadioGroup.ItemContent>
+		</RadioGroup.Item>
+	</RadioGroup.Root>
+</>;
+```
+
+### A type query and an aliased import
+
+```tsx
+// BEFORE
+import type { ComponentProps } from "react";
+import { RadioGroup as MantleRadioGroup } from "@ngrok/mantle/radio-group";
+
+type ViewSwitchProps = ComponentProps<typeof MantleRadioGroup.ButtonGroup>;
+```
+
+```tsx
+// AFTER
+import type { ComponentProps } from "react";
+import { SegmentedControl } from "@ngrok/mantle/segmented-control";
+
+type ViewSwitchProps = ComponentProps<typeof SegmentedControl.Root>;
+```
+
+### A data-slot selector
+
+```css
+/* BEFORE */
+[data-slot~="radio-group-button-group"] [data-slot~="radio-group-button"] {
+	font-weight: 500;
+}
+```
+
+```css
+/* AFTER */
+[data-slot~="segmented-control"] [data-slot~="segmented-control-item"] {
+	font-weight: 500;
+}
+```
+
+---
+
+## Edge cases & gotchas
+
+- **A `RadioGroup` import that nothing reads.** The codemod keeps it, because the file can still read `RadioGroup` elsewhere. Your linter flags it as unused; delete it.
+- **Classes on the old parts.** `SegmentedControl.Root` is a 36px (`h-9`) track with 4px (`p-1`) padding, so each item is about 28px tall. The thumb marks the checked item. Review each `h-*`, border, and background class on a `RadioGroup.ButtonGroup` or a `RadioGroup.Button`: it can overflow the track or cover the thumb.
+- **A type-only `SegmentedControl` import.** The codemod keeps `import type { SegmentedControl }` and adds no import, so the renamed JSX reads a type-only name. Change it to a value import.
+- **A local name `SegmentedControl`.** The codemod adds an import under that name. When the file already declares `SegmentedControl`, import the component under an alias and rename the tags to match.
+- **A `SegmentedControl.Item` outside `SegmentedControl.Root`.** It throws an error that names the root. `RadioGroup.Button` inside `RadioGroup.Root` rendered before; wrap the items in `SegmentedControl.Root` in place of `RadioGroup.Root`.
+- **Tests.** The roles are the same, so `getByRole("radiogroup")` and `getByRole("radio", { name })` still match. Only a `data-slot` query changes.
+
+---
+
+## How to verify
+
+1. Type check. A remaining `RadioGroup.ButtonGroup` or `RadioGroup.Button` fails, because the parts are gone.
+2. Search for `RadioGroup.ButtonGroup`, `RadioGroup.Button`, and `radio-group-button`. Zero hits outside comments.
+3. Load a page with a segmented control. The thumb sits under the checked segment, and a click, an arrow key, or a drag moves it.
+4. Run the project's formatter, linter, type checker, and tests.

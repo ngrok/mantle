@@ -142,7 +142,7 @@ describe("the site's agent manifest", () => {
 		["pick one value few fixed numeric", "Radio Group"],
 		["horizontal bar chart scores small label", "Bar Chart"],
 		["removable badge tag dismiss button", "Badge"],
-		["segmented control pick one three none", "Radio Group"],
+		["segmented control pick one three none", "Segmented Control"],
 	])("finds a strong match for %s", async (query, name) => {
 		const manifest = await buildSiteAgentManifest();
 		const records = recordsOf({
