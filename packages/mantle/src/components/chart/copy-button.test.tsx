@@ -58,3 +58,20 @@ test("a copy on a time scale writes an epoch x as ISO 8601", async () => {
 		);
 	});
 });
+
+test("a consumer data-slot joins the part's slot instead of replacing it", () => {
+	const context = contextWith({ data: [], xKey: "time", xScale: "time", zKey: undefined });
+	render(
+		<ChartContext.Provider value={context}>
+			<ChartCopyButtonPrimitive
+				partName="LineChart.CopyButton"
+				slotName="line-chart"
+				data-slot="toolbar-action"
+			/>
+		</ChartContext.Provider>,
+	);
+	expect(screen.getByRole("button", { name: "Copy data as Markdown" })).toHaveAttribute(
+		"data-slot",
+		"toolbar-action line-chart-copy-button icon-button",
+	);
+});

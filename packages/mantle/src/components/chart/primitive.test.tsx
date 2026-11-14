@@ -461,6 +461,23 @@ describe("activation outside React", () => {
 		);
 	});
 
+	test("a dormant chart checks new series keys again when the joined keys read the same", () => {
+		const stub = createIntersectionObserverStub({ intersecting: false });
+		vi.stubGlobal("IntersectionObserver", stub.Observer);
+		const rows = [{ x: "1", "a|b": 1, c: 2 }];
+		const chart = (keys: readonly [string, string]) => (
+			<BarChart.Root data={rows} xKey="x" aria-label="Demo">
+				<BarChart.Bar dataKey={keys[0]} color="blue" />
+				<BarChart.Bar dataKey={keys[1]} color="emerald" />
+			</BarChart.Root>
+		);
+		const { rerender } = render(chart(["a|b", "c"]));
+		// Why the same rows: a new data array runs the check for any key change.
+		expect(() => rerender(chart(["a", "b|c"]))).toThrow(
+			'BarChart.Bar dataKey "a" does not match any key in the provided data.',
+		);
+	});
+
 	test("a dataKey typo lists the keys of every row, not only the first", () => {
 		const stub = createIntersectionObserverStub({ intersecting: false });
 		vi.stubGlobal("IntersectionObserver", stub.Observer);

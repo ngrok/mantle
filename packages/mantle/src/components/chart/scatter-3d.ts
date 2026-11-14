@@ -128,9 +128,12 @@ class Scatter3d {
 		this.#projected = null;
 	}
 
-	/** Start a press, which may become a rotation drag. */
-	press(cssX: number, cssY: number): void {
-		this.#drag = { lastX: cssX, lastY: cssY, moved: false };
+	/**
+	 * Start a press, which may become a rotation drag. `moved` carries a drag
+	 * that passed the threshold before this state existed.
+	 */
+	press({ x, y, moved }: { x: number; y: number; moved: boolean }): void {
+		this.#drag = { lastX: x, lastY: y, moved };
 	}
 
 	/** Follow a pointer move during a 3D press: past the threshold it turns the camera. */

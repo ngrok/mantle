@@ -1433,7 +1433,9 @@ class ChartEngine {
 			// headroom that changes from chart to chart.
 			return [
 				typeof minOverride === "number" ? minOverride : min * BAR_HEADROOM,
-				typeof maxOverride === "number" ? maxOverride : max * BAR_HEADROOM || 1,
+				// Why the fallback only at a zero minimum: negative-only bars keep
+				// zero as their top edge, and only an all-zero domain needs a span.
+				typeof maxOverride === "number" ? maxOverride : max * BAR_HEADROOM || (min < 0 ? 0 : 1),
 			];
 		}
 		// Bars and areas measure length from zero, so both document an axis minimum

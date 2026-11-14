@@ -58,9 +58,11 @@ const pick = <T extends string>(value: string | null, allowed: readonly T[], fal
 export const readConfig = (search: string): Config => {
 	const params = new URLSearchParams(search);
 	const mode = pick(params.get("mode"), MODES, "list");
+	// Why: the agent cards always draw bars, so the scenario names the kind it renders.
+	const agents = mode === "agents" || mode === "agents-dom";
 	return {
 		animate: params.get("animate") !== "0",
-		kind: pick(params.get("kind"), KINDS, "line"),
+		kind: agents ? "bar" : pick(params.get("kind"), KINDS, "line"),
 		mode,
 		n: mode === "dense" ? 1 : Number(params.get("n") ?? 50),
 		points: Number(params.get("points") ?? (mode === "dense" ? 10_000 : 30)),

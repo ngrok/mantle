@@ -687,6 +687,39 @@ describe("stacked bar caps and baselines", () => {
 		});
 	});
 
+	test("negative-only bars without ticks keep zero at the top edge", async () => {
+		const { container } = render(
+			<div style={{ width: 600, height: 300 }}>
+				<CanvasBarChartRoot
+					data={[
+						{ day: "Mon", value: -50 },
+						{ day: "Tue", value: -100 },
+					]}
+					xKey="day"
+					animate={false}
+					aria-label="Tickless negative bars"
+				>
+					<BarChart.Bar dataKey="value" label="Value" color="blue" />
+				</CanvasBarChartRoot>
+			</div>,
+		);
+		const canvas = await findChartCanvas(container);
+		await waitForPlot(canvas);
+		await waitFor(() => {
+			const painted = readCanvas(canvas);
+			const bars = columnRunsOf(painted, CHART_1);
+			expect(bars).toHaveLength(2);
+			const longest = bars[1];
+			if (longest == null) {
+				throw new Error("expected the longest bar to paint");
+			}
+			const extent = verticalExtent(painted, CHART_1, longest);
+			// The bar hangs from the top edge, and its end leaves 1 - 1/1.12 of the height.
+			expect(extent.start).toBeLessThanOrEqual(painted.scale);
+			expect(extent.end / painted.height).toBeCloseTo(1 / 1.12, 1);
+		});
+	});
+
 	test("an all-zero area chart keeps its baseline at the axis minimum too", async () => {
 		// `AreaChart` fills from the same zero baseline and documents the same fixed
 		// minimum, so the anchor covers both kinds. Left to `niceDomain`, the flat

@@ -164,6 +164,7 @@ const buildMatrix = (): Case[] => {
 			}
 			if ((matrix === "agents" || matrix === "all") && kind === "bar") {
 				// Why one dom row per cell: the hand-rolled baseline has no List to group by.
+				// Why gate none: the agent page has no gate, so a cv label would be false.
 				for (const n of listCounts) {
 					for (const animate of animations) {
 						for (const group of groups) {
@@ -175,7 +176,7 @@ const buildMatrix = (): Case[] => {
 								points: 30,
 								throttle,
 								dpr,
-								gate,
+								gate: "none",
 								group,
 							});
 						}
@@ -187,7 +188,7 @@ const buildMatrix = (): Case[] => {
 							points: 30,
 							throttle,
 							dpr,
-							gate,
+							gate: "none",
 							group: "none",
 						});
 					}

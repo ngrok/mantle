@@ -7,6 +7,8 @@ import { useEffect, useRef, useState } from "react";
 import { useCopyToClipboard } from "../../hooks/use-copy-to-clipboard.js";
 import type { SelfClosingWithAsChild } from "../../types/as-child.js";
 import { alternateAnnouncement } from "../../utils/alternate-announcement.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { IconButton } from "../button/icon-button.js";
 import { IconSwap } from "../icon/icon-swap.js";
 import { LiveRegion } from "../live-region/live-region.js";
@@ -26,7 +28,8 @@ type CopyButtonPrimitiveProps = Omit<
 	ComponentProps<"button">,
 	"aria-label" | "children" | "type" | "onCopy"
 > &
-	SelfClosingWithAsChild & {
+	SelfClosingWithAsChild &
+	WithDataSlot & {
 		/**
 		 * Not part of the API: `label` is the single way to name the button.
 		 * Typed `never` rather than only omitted because TypeScript skips
@@ -70,6 +73,7 @@ const ChartCopyButtonPrimitive = ({
 	onCopyError,
 	onClick,
 	ref,
+	"data-slot": dataSlot,
 	...props
 }: CopyButtonPrimitiveProps & { partName: string; slotName: string }) => {
 	const context = useChartContext(partName);
@@ -97,7 +101,7 @@ const ChartCopyButtonPrimitive = ({
 				appearance="ghost"
 				intent="neutral"
 				size="sm"
-				data-slot={`${slotName}-copy-button`}
+				data-slot={joinDataSlot(dataSlot, `${slotName}-copy-button`)}
 				label={label}
 				icon={
 					<IconSwap

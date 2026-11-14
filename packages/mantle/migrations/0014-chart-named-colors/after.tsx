@@ -9,6 +9,8 @@ type Point = { day: string; a: number; b: number; c: number };
 declare const rows: Point[];
 declare const isError: boolean;
 declare const slot: 1 | 2;
+declare const overrides: Record<string, string>;
+declare const tone: string;
 
 export const Tokens = (
 	<BarChart.Root data={rows} xKey="day">
@@ -48,7 +50,7 @@ export const Points = (
 );
 
 export const Classes = (
-	<div className="bg-chart-blue text-chart-neutral [--color-chart-pink:var(--color-brand)]">
+	<div className="bg-chart-blue text-chart-neutral divide-chart-emerald border-x-chart-orange [--color-chart-pink:var(--color-brand)]">
 		<span style={{ backgroundColor: "var(--color-chart-amber)" }} />
 	</div>
 );
@@ -66,6 +68,14 @@ export const Foreign = (
 	<OtherBarChart.Root data={rows}>
 		<OtherBarChart.Bar dataKey="a" color="chart-1" seriesSlot={2} />
 	</OtherBarChart.Root>
+);
+
+// A lookup key and a compared operand are not the color, so they stay.
+export const Lookup = (
+	<BarChart.Root data={rows} xKey="day">
+		<BarChart.Bar dataKey="a" color={overrides["chart-1"]} />
+		<BarChart.Bar dataKey="b" color={tone === "chart-2" ? "pink" : "orange"} />
+	</BarChart.Root>
 );
 
 export const Prose = <p title="chart-1">see chart-12 and my-chart-1</p>;

@@ -180,7 +180,7 @@ class ScatterView {
 			const press = this.#pendingPress;
 			this.#pendingPress = null;
 			if (press != null) {
-				this.#three.press(press.x, press.y);
+				this.#three.press(press);
 			}
 		}
 		if (this.#three != null || this.#loading) {
@@ -278,7 +278,7 @@ class ScatterView {
 			// rotate, and must not end as a tap that activates a datum.
 			this.#pendingPress = { x: cssX, y: cssY, moved: false };
 		} else {
-			three.press(cssX, cssY);
+			three.press({ x: cssX, y: cssY, moved: false });
 		}
 		return true;
 	}

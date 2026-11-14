@@ -277,13 +277,34 @@ utils:
       regex: ^color$
     inside:
       matches: series-part
+  # A node whose value is the color: the attribute value, its expression, or a
+  # branch of a ternary there. A lookup key or a compared operand is not.
+  color-value:
+    any:
+      - inside:
+          matches: series-color
+      - inside:
+          kind: jsx_expression
+          inside:
+            matches: series-color
+      - inside:
+          kind: parenthesized_expression
+          matches: color-value
+      - inside:
+          kind: ternary_expression
+          field: consequence
+          matches: color-value
+      - inside:
+          kind: ternary_expression
+          field: alternative
+          matches: color-value
 rule:
   kind: string_fragment
   regex: ^chart-(?:[1-8]|other)$
   pattern: $V
   inside:
-    stopBy: end
-    matches: series-color
+    kind: string
+    matches: color-value
 transform:
   T1:
     replace:
@@ -1262,53 +1283,53 @@ language: tsx
 message: the chart tokens take color names, so --color-chart-1 and bg-chart-1 become --color-chart-blue and bg-chart-blue
 rule:
   kind: string_fragment
-  regex: '(?:--color-|bg-|text-|fill-|stroke-|border-|ring-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-)chart-(?:[1-8]|other)\b'
+  regex: '(?:--color-|bg-|text-|fill-|stroke-|border-|border-[xytrblse]-|divide-|ring-|ring-offset-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-|placeholder-)chart-(?:[1-8]|other)\b'
   pattern: $V
 transform:
   T1:
     replace:
       source: $V
-      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|ring-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-)chart-)1\b'
+      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|border-[xytrblse]-|divide-|ring-|ring-offset-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-|placeholder-)chart-)1\b'
       by: "${p}blue"
   T2:
     replace:
       source: $T1
-      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|ring-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-)chart-)2\b'
+      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|border-[xytrblse]-|divide-|ring-|ring-offset-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-|placeholder-)chart-)2\b'
       by: "${p}emerald"
   T3:
     replace:
       source: $T2
-      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|ring-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-)chart-)3\b'
+      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|border-[xytrblse]-|divide-|ring-|ring-offset-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-|placeholder-)chart-)3\b'
       by: "${p}pink"
   T4:
     replace:
       source: $T3
-      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|ring-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-)chart-)4\b'
+      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|border-[xytrblse]-|divide-|ring-|ring-offset-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-|placeholder-)chart-)4\b'
       by: "${p}orange"
   T5:
     replace:
       source: $T4
-      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|ring-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-)chart-)5\b'
+      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|border-[xytrblse]-|divide-|ring-|ring-offset-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-|placeholder-)chart-)5\b'
       by: "${p}teal"
   T6:
     replace:
       source: $T5
-      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|ring-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-)chart-)6\b'
+      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|border-[xytrblse]-|divide-|ring-|ring-offset-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-|placeholder-)chart-)6\b'
       by: "${p}fuchsia"
   T7:
     replace:
       source: $T6
-      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|ring-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-)chart-)7\b'
+      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|border-[xytrblse]-|divide-|ring-|ring-offset-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-|placeholder-)chart-)7\b'
       by: "${p}violet"
   T8:
     replace:
       source: $T7
-      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|ring-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-)chart-)8\b'
+      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|border-[xytrblse]-|divide-|ring-|ring-offset-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-|placeholder-)chart-)8\b'
       by: "${p}amber"
   T9:
     replace:
       source: $T8
-      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|ring-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-)chart-)other\b'
+      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|border-[xytrblse]-|divide-|ring-|ring-offset-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-|placeholder-)chart-)other\b'
       by: "${p}neutral"
 fix: $T9
 ---
@@ -1317,52 +1338,52 @@ language: typescript
 message: the chart tokens take color names, so --color-chart-1 and bg-chart-1 become --color-chart-blue and bg-chart-blue
 rule:
   kind: string_fragment
-  regex: '(?:--color-|bg-|text-|fill-|stroke-|border-|ring-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-)chart-(?:[1-8]|other)\b'
+  regex: '(?:--color-|bg-|text-|fill-|stroke-|border-|border-[xytrblse]-|divide-|ring-|ring-offset-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-|placeholder-)chart-(?:[1-8]|other)\b'
   pattern: $V
 transform:
   T1:
     replace:
       source: $V
-      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|ring-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-)chart-)1\b'
+      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|border-[xytrblse]-|divide-|ring-|ring-offset-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-|placeholder-)chart-)1\b'
       by: "${p}blue"
   T2:
     replace:
       source: $T1
-      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|ring-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-)chart-)2\b'
+      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|border-[xytrblse]-|divide-|ring-|ring-offset-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-|placeholder-)chart-)2\b'
       by: "${p}emerald"
   T3:
     replace:
       source: $T2
-      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|ring-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-)chart-)3\b'
+      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|border-[xytrblse]-|divide-|ring-|ring-offset-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-|placeholder-)chart-)3\b'
       by: "${p}pink"
   T4:
     replace:
       source: $T3
-      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|ring-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-)chart-)4\b'
+      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|border-[xytrblse]-|divide-|ring-|ring-offset-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-|placeholder-)chart-)4\b'
       by: "${p}orange"
   T5:
     replace:
       source: $T4
-      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|ring-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-)chart-)5\b'
+      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|border-[xytrblse]-|divide-|ring-|ring-offset-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-|placeholder-)chart-)5\b'
       by: "${p}teal"
   T6:
     replace:
       source: $T5
-      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|ring-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-)chart-)6\b'
+      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|border-[xytrblse]-|divide-|ring-|ring-offset-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-|placeholder-)chart-)6\b'
       by: "${p}fuchsia"
   T7:
     replace:
       source: $T6
-      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|ring-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-)chart-)7\b'
+      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|border-[xytrblse]-|divide-|ring-|ring-offset-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-|placeholder-)chart-)7\b'
       by: "${p}violet"
   T8:
     replace:
       source: $T7
-      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|ring-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-)chart-)8\b'
+      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|border-[xytrblse]-|divide-|ring-|ring-offset-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-|placeholder-)chart-)8\b'
       by: "${p}amber"
   T9:
     replace:
       source: $T8
-      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|ring-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-)chart-)other\b'
+      replace: '(?P<p>(?:--color-|bg-|text-|fill-|stroke-|border-|border-[xytrblse]-|divide-|ring-|ring-offset-|outline-|from-|via-|to-|decoration-|shadow-|accent-|caret-|placeholder-)chart-)other\b'
       by: "${p}neutral"
 fix: $T9

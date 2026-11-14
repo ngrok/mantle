@@ -671,7 +671,8 @@ const ChartRootPrimitive = ({
 			return;
 		}
 		const dataKeys = store.seriesSpecs().map((spec) => spec.dataKey);
-		const signature = `${xKey}|${resolvedXScale}|${zKey ?? ""}|${dataKeys.join("|")}`;
+		// Why JSON: a key may hold any character, so a joined string can collide.
+		const signature = JSON.stringify([xKey, resolvedXScale, zKey ?? null, dataKeys]);
 		const validated = validatedRef.current;
 		if (validated != null && validated.data === data && validated.signature === signature) {
 			return;
@@ -754,8 +755,8 @@ const ChartRootPrimitive = ({
 				<div
 					data-slot={`${slotName}-plot`}
 					className={cx(
-						"relative min-h-0 w-full flex-1",
-						pending && "opacity-60 transition-opacity duration-300",
+						"relative min-h-0 w-full flex-1 transition-opacity duration-300 ease-out-strong motion-reduce:transition-none",
+						pending && "opacity-60",
 					)}
 					// A static chart is an image: the plot is its single named element,
 					// and the description beside the canvas is what a screen reader

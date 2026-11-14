@@ -165,7 +165,7 @@ describe("Scatter3d settle", () => {
 	test("a camera at rest keeps the view that a drag gave it", () => {
 		const { three, paintedRow } = mountAt(3);
 		const initial = paintedRow();
-		three.press(100, 100);
+		three.press({ x: 100, y: 100, moved: false });
 		three.dragTo(160, 120);
 		three.release();
 		const rotated = paintedRow();

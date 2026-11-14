@@ -279,6 +279,25 @@ describe("ScatterView 3D loading", () => {
 		expect(onDatumActivate).not.toHaveBeenCalled();
 	});
 
+	test("a drag that passes the threshold while the 3D code loads still ends as a rotation", async () => {
+		const scatter = await freshScatterModule();
+		const cloud: Cloud = {
+			xs: Float64Array.from([1]),
+			columns: [{ dataKey: "y", values: Float64Array.from([2]) }],
+			x: UNIT_SCALE,
+			y: UNIT_SCALE,
+		};
+		const view = scatter.createScatterView(hostOf(cloud, { is3d: () => true }));
+
+		view.pressAt(10, 10);
+		view.dragTo(200, 100);
+		await scatter.preloadScatter3d();
+		// The paint creates the 3D state, which takes over the held press.
+		view.paint(recordingContext().context);
+
+		expect(view.release()).toBe("rotated");
+	});
+
 	test("a failed load reports the error, and the next paint loads the code again", async () => {
 		const reportError = vi.fn<(error: unknown) => void>();
 		vi.stubGlobal("reportError", reportError);

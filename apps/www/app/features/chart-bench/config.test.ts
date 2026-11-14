@@ -29,4 +29,18 @@ describe("writeConfig", () => {
 		} as const;
 		expect(readConfig(writeConfig(config))).toEqual({ ...config, n: 1 });
 	});
+
+	test("an agents scenario reads back as bars whatever kind it wrote", () => {
+		const config = {
+			animate: true,
+			kind: "scatter",
+			mode: "agents",
+			n: 10,
+			points: 30,
+			gate: "none",
+			group: "none",
+			noCharts: false,
+		} as const;
+		expect(readConfig(writeConfig(config))).toEqual({ ...config, kind: "bar" });
+	});
 });
