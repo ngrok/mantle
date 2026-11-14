@@ -1,5 +1,207 @@
 # @ngrok/mantle
 
+## 0.94.0
+
+### Minor Changes
+
+- [#1688](https://github.com/ngrok/mantle/pull/1688) [`39addaf`](https://github.com/ngrok/mantle/commit/39addaf4a8ae78d21666efc2503303a6947bcbda) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - **Breaking: every chart series names its color.** `BarChart.Bar`, `LineChart.Line`, `AreaChart.Area`, and `ScatterPlot.Point` take a required `color`: a mantle color name, the same `Color` that `Badge` takes (`"blue"`, `"emerald"`, `"danger"`, `"neutral"`, …), or any CSS color. The chart no longer picks a color for a series.
+
+  - Gone: the `"chart-1"` to `"chart-8"` and `"chart-other"` token names, the `--color-chart-1` to `--color-chart-8` and `--color-chart-other` custom properties, the `seriesSlot` prop, and the point shape paired to a slot.
+  - New: one `--color-chart-<name>` token per color name. It paints that color's 500 step in dark mode and its 600 step in light mode. Functional names alias the hue their status color uses, and `neutral` is the color for an "Other" series.
+  - A series that sets no `shape` wears the circle.
+  - A textured bar paints a light tint of its color, with the marks in the full color, so two series of one color stay apart by texture.
+
+  Keep a chart to 8 series: the top 7, plus one "Other" series in `neutral`. The chart docs gain a "Color and accessibility" section with the WCAG 2.2 SC 1.4.11 guidance and its exemptions.
+
+  Migration guide: https://mantle.ngrok.com/migrations/0014-chart-named-colors-migration. The codemod `0014` renames the tokens and replaces `seriesSlot`; the type checker names each series that still needs a `color`.
+
+- [#1683](https://github.com/ngrok/mantle/pull/1683) [`78664bc`](https://github.com/ngrok/mantle/commit/78664bc0badbe483c9ef7bb6865ef2286258ba33) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `BarChart`, `LineChart`, and `AreaChart` paint into an `<svg>` instead of a `<canvas>`. The marks, axes, tooltip, keyboard model, description, and data table are the same, and a browser test paints each scene as SVG and as canvas and compares the pixels. The SVG paints mantle's color tokens as CSS, so a theme switch repaints no chart, the chart reads no computed style to paint, and the page holds no canvas bitmaps.
+
+  Measured with the docs site's chart bench on a page of 100 line chart cards (Chromium 158 on Linux with a software GPU, median of 3 runs, this release against the last one): main-thread time at load fell from 824 ms to 225 ms, a data replace from 481 ms to 25 ms, and a hover sweep from 1,452 ms to 315 ms. Bar chart cards and a 100-row table of sparklines improved by similar ratios. The SVG paths are DOM nodes, so the same page holds about 700 more DOM nodes and 3 to 5 MB more JavaScript heap.
+
+  The paint surface is now `data-slot="bar-chart-svg"` (`line-chart-svg`, `area-chart-svg`). `ScatterPlot` still paints on canvas.
+
+  To migrate, point selectors and tests that read `[data-slot="bar-chart-canvas"]` (or a bare `canvas` inside a chart) at `[data-slot="bar-chart-svg"]`, and read the SVG's paths in a test that read canvas pixels. See https://mantle.ngrok.com/migrations/0013-chart-svg-renderer-migration.
+
+- [#1657](https://github.com/ngrok/mantle/pull/1657) [`1dcd48b`](https://github.com/ngrok/mantle/commit/1dcd48b6a3adbd71690ee1c4549f4d9a2a386267) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add `SegmentedControl`, a row of segments that picks one value from a few short options, like a view or an environment switch. It replaces `RadioGroup.ButtonGroup` and `RadioGroup.Button`, which are gone.
+
+  - `SegmentedControl.Root` replaces `RadioGroup.ButtonGroup`, and `SegmentedControl.Item` replaces `RadioGroup.Button`. Import them from `@ngrok/mantle/segmented-control`. The props are the same: `value`, `defaultValue`, `onChange`, `name`, and `disabled`.
+  - It is a radio group underneath. `SegmentedControl` and `RadioGroup` share one primitive, so the roles, the arrow keys, `Field.Control`, and form submission with a `name` work the same, in a plain form or with TanStack Form.
+  - The control is a dim track, and a raised thumb slides to the checked item. The slide runs in every browser, and with reduced motion the thumb moves at once.
+  - A mouse or a finger can drag the thumb. It follows the pointer, stays inside the track, and on release slides to the nearest enabled item and checks it. A flick carries it further. A drag that goes up or down more than sideways does not start, so the page still scrolls. Mantle adds no dependency for the drag.
+  - While a drag runs, the root has `data-dragging`, and the item under the thumb has `data-thumb-over`.
+  - The `data-slot` values are `segmented-control` and `segmented-control-item`, in place of `radio-group-button-group` and `radio-group-button`.
+
+  To migrate, rename the parts and change the import. The codemod does both: `npx --yes --package=@ast-grep/cli@0.51.2 ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/0015-segmented-control.yml --update-all <path>`. The guide is at https://mantle.ngrok.com/migrations/0015-segmented-control-migration, and the docs are at https://mantle.ngrok.com/components/forms/segmented-control.
+
+### Patch Changes
+
+- [#1684](https://github.com/ngrok/mantle/pull/1684) [`7df1440`](https://github.com/ngrok/mantle/commit/7df14405402e2482e414fde496a79c26f3742c65) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Alert.DismissIconButton` stays at the trailing edge when the alert also has an `Alert.ExpandButton`. The expand button now moves to the left of the dismiss button. `AlertCenter.Bar` gets the same order. Put `Alert.ExpandButton` before `Alert.DismissIconButton` in your markup so the Tab order matches the visual order.
+
+- [#1688](https://github.com/ngrok/mantle/pull/1688) [`39addaf`](https://github.com/ngrok/mantle/commit/39addaf4a8ae78d21666efc2503303a6947bcbda) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `BarChart` draws its bars in one new look:
+
+  - Bars fill their category step except for a 2px gap (1px, then none, as the step narrows). A sparse chart keeps its bars at the same width as before, because the thickness cap still holds them at 60% of a wide step.
+  - A bar, or a whole stack, rounds both ends at 2px. Before, only the data end rounded, at 4px.
+  - Stacked segments are 1px apart. Before, they were 2px apart.
+  - A chart with no axis and no grid runs its bars to the edges of its box, keeps 12% headroom over the tallest bar instead of a rounded-up maximum, and draws no zero rule.
+  - A stacked chart grows each column as one bar when it enters: every series rises together, and each seam stays inside the bar. A series that enters later still grows on top of the settled stack.
+  - On a stacked chart with two or more series, the tooltip leads with a Total row, and the hover snapshot carries `total`. A `valueFormat` receives `"total"` as the `dataKey` for that row.
+
+  The API does not change.
+
+- [#1688](https://github.com/ngrok/mantle/pull/1688) [`39addaf`](https://github.com/ngrok/mantle/commit/39addaf4a8ae78d21666efc2503303a6947bcbda) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `BarChart` with `orientation="horizontal"` sizes its category gutter from the category names on the first layout. Before, the first layout measured index ticks, so with `animate={false}`, `mode="static"`, or reduced motion the gutter was as wide as the label `0` and clipped the category names until the data or the size changed.
+
+- [#1688](https://github.com/ngrok/mantle/pull/1688) [`39addaf`](https://github.com/ngrok/mantle/commit/39addaf4a8ae78d21666efc2503303a6947bcbda) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - The screen-reader text of a chart now matches what the chart shows:
+
+  - On a time scale, each row header of the data table holds the formatted date in `<time dateTime>`, and `CopyButton` writes ISO 8601, for a `Date`, an epoch number, and a date string alike. Before, an epoch number read as `1,784,332,800,000`.
+  - On a linear scale, a row whose x has no text form (`null`, a missing key, `NaN`, or an infinite number) shows an em dash in the table, as its value cells do. Before, it read `null`, `undefined`, `NaN`, or `∞`.
+  - An announcement follows a keyboard step and nothing else. Before, each data update announced the datum under a parked keyboard cursor again, and updates faster than 120 ms kept a real step silent.
+  - The chart announces a step to a datum that reads the same as the last one.
+  - An announcement uses the `labelFormat` and `valueFormat` of the `Tooltip` part when they return a string or a number, so a unit such as `120ms` reaches a screen reader. A stacked chart announces the Total first, as the tooltip shows it.
+
+- [#1688](https://github.com/ngrok/mantle/pull/1688) [`39addaf`](https://github.com/ngrok/mantle/commit/39addaf4a8ae78d21666efc2503303a6947bcbda) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Two chart fixes:
+
+  - A chart `CopyButton` keeps its own `data-slot` (for example `bar-chart-copy-button`) when you pass a `data-slot`. Your value goes first, and selectors for the chart slot still match.
+  - The plot of a `pending` chart fades out and back in on the `ease-out-strong` curve. Before, it faded out but snapped back. With reduced motion, the fade does not animate.
+
+- [#1688](https://github.com/ngrok/mantle/pull/1688) [`39addaf`](https://github.com/ngrok/mantle/commit/39addaf4a8ae78d21666efc2503303a6947bcbda) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Charts keep their focus indicator and their cursor in forced-colors mode (Windows High Contrast). The focused chart and the focused scrollable `Legend` show an outline, where before the mode removed the focus ring, a box shadow, and nothing replaced it. The crosshair paints in the system highlight color, the hover band gets an outline in that color, and the hover dots and the tooltip's series key keep their series color.
+
+- [#1688](https://github.com/ngrok/mantle/pull/1688) [`39addaf`](https://github.com/ngrok/mantle/commit/39addaf4a8ae78d21666efc2503303a6947bcbda) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - An interactive chart makes its three hover layers (`bar-chart-crosshair`, `bar-chart-hover-band`, and `bar-chart-markers`, and the same slots in the other chart families) the first time it shows an active datum: on the first hover, the first keyboard step, or a controlled `activeIndex`. Before, each chart made them when it activated, so a page of cards held three layers for each chart that nobody pointed at. A selector or a test that reads a layer before any hover now finds nothing.
+
+- [#1688](https://github.com/ngrok/mantle/pull/1688) [`39addaf`](https://github.com/ngrok/mantle/commit/39addaf4a8ae78d21666efc2503303a6947bcbda) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - A chart places its hover readout right in the first frame, and the hover layers cost the page less:
+
+  - The tooltip no longer paints one frame at a stale position each time the pointer enters a chart. Before, the first frame used the size of the empty tooltip (or no size on the first hover), so on an 80 px chart the readout showed up to 66 px too low and then jumped.
+  - The crosshair, the hover band, the marker dots, and the tooltip move with a 2D `translate`. With `translate3d`, each chart that a reader pointed at kept up to four compositor layers. A test that parses the `transform` of a hover layer must read `translate(…)`.
+  - A `Tooltip` part that registers again (an inline `valueFormat` in an app without the React Compiler does so on each parent render) no longer repaints the marks.
+
+- [#1688](https://github.com/ngrok/mantle/pull/1688) [`39addaf`](https://github.com/ngrok/mantle/commit/39addaf4a8ae78d21666efc2503303a6947bcbda) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - A focused chart takes only the keys and the buttons it uses:
+
+  - A chord with Alt, Ctrl, or Meta passes to the browser. Before, a chart moved its point cursor and cancelled the key, so the history shortcuts (Alt or Cmd with the left or right arrow key) did nothing while a chart held focus. Ctrl+Home and Ctrl+End no longer step the cursor; Home and End do.
+  - The chart cancels Escape, Enter, and Space only while a datum is active. With no readout open, Escape now reaches the surface around the chart, so a floating `AppLayout.SidePanel` or a native `<dialog>` closes, and Space scrolls the page.
+  - A held Enter or Space calls `onDatumActivate` once.
+  - On `BarChart` with `orientation="horizontal"`, the down and up arrow keys step through the categories, and Page Down and Page Up jump forward and back. The left and right arrow keys still work.
+  - Only the primary button activates a datum. Before, a middle click called `onDatumActivate`, and so did a right click on a platform that opens the context menu on release. A right or middle press no longer rotates a 3D `ScatterPlot`.
+  - A click on a chart with a controlled `activeIndex` reports the datum under the pointer in `onDatumActivate`. Before, it reported the controlled datum when the consumer did not echo the index before the release.
+
+- [#1688](https://github.com/ngrok/mantle/pull/1688) [`39addaf`](https://github.com/ngrok/mantle/commit/39addaf4a8ae78d21666efc2503303a6947bcbda) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Charts skip work that changes no pixel:
+
+  - A web font that loads repaints only a chart that draws text. A chart with no axis, no grid, and no labeled reference line stays as it is.
+  - A chart above 2,500 rows keeps no per-datum tween buffers: 24 bytes less per row for each series, 4.8 MB for 100,000 rows of two series.
+  - `BarChart`, `LineChart`, and `AreaChart` stay off the far visibility band, which only frees a canvas bitmap. A page of 300 charts holds 600 observer entries in place of 900.
+  - One intersection delivery starts one 4 ms activation slice. Before, it started up to three in one task.
+  - A chart that throws while it activates no longer leaves the charts queued behind it blank.
+  - In a browser without `scrollMargin` on `IntersectionObserver` (Safari before 26, Firefox before 141), a sparkline in a `Table` activates when it nears the viewport. Before, every sparkline in the table activated at mount.
+  - An SVG chart at rest holds no copy of its path strings.
+
+- [#1683](https://github.com/ngrok/mantle/pull/1683) [`78664bc`](https://github.com/ngrok/mantle/commit/78664bc0badbe483c9ef7bb6865ef2286258ba33) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add `BarChart.List`, `LineChart.List`, `AreaChart.List`, and `ScatterPlot.List`. Wrap a list of chart Roots, such as one chart per card, in a `List`, and the charts share one `role="status"` live region. A page of 100 interactive charts mounts one live region instead of 100. Each chart keeps its own tooltip, description, and data table.
+
+- [#1688](https://github.com/ngrok/mantle/pull/1688) [`39addaf`](https://github.com/ngrok/mantle/commit/39addaf4a8ae78d21666efc2503303a6947bcbda) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - A chart plays its motion only while it is on screen. A chart paints one viewport ahead of the scroll, and before, each chart in that band ran every update tween, every axis glide, and every tick-label fade in full: on a list, one half to two thirds of the charts that animated a data update were off screen. A chart that is near the viewport but off screen now paints an update settled, in one frame.
+
+  The value axis also stops its glide when the marks are within half a device pixel of their target. Before, it ran 40 frames at 60 Hz for a change of any size, and each frame painted the whole chart.
+
+  Two changes are visible. A chart that scrolls into view in the middle of an update shows the settled data. On a band or point scale, when the categories change and their count stays the same (a sliding window of time buckets), the marks snap to their new values, where before each bar slid into the value of its neighbor. The value axis still glides.
+
+- [#1688](https://github.com/ngrok/mantle/pull/1688) [`39addaf`](https://github.com/ngrok/mantle/commit/39addaf4a8ae78d21666efc2503303a6947bcbda) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Charts ship no d3 code. Mantle computes time-axis ticks, tick labels, and line and area paths with its own code, and `@ngrok/mantle` no longer depends on `d3-scale`, `d3-shape`, `d3-time`, or `d3-time-format`. The package ships the d3 license for the code that mantle ported, in `src/components/chart/d3-license.md`.
+
+  The ticks, the labels, and the paths are the same as before. Tests compare the ticks and labels with `d3-scale`'s `scaleTime` across 4,000 time domains, and again in six time zones that change their offset, and compare each line and area path with `d3-shape` call for call.
+
+  The removal takes about 13 KB of JavaScript (minified and gzipped) out of each chart family: about 6 KB with `d3-scale`, which also pulled in `d3-interpolate` and `d3-color`, and about 7 KB with the other three packages.
+
+- [#1688](https://github.com/ngrok/mantle/pull/1688) [`39addaf`](https://github.com/ngrok/mantle/commit/39addaf4a8ae78d21666efc2503303a6947bcbda) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - A print paints every chart settled: tick labels and gridlines at full opacity, and each mark at the end of a tween that was in flight. Before, a chart with an axis or a grid that was more than one viewport from the screen printed its labels and gridlines at 41% opacity.
+
+- [#1688](https://github.com/ngrok/mantle/pull/1688) [`39addaf`](https://github.com/ngrok/mantle/commit/39addaf4a8ae78d21666efc2503303a6947bcbda) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `ScatterPlot` loads its 3D code (the camera, the rotation drag, the projection, and the cube frame) as a separate chunk when a chart with a `zKey` mounts. A 2D scatter plot never downloads it and ships 47.5 KB instead of 48.3 KB (minified and gzipped). A 3D scatter plot paints its plot once the 2.6 KB chunk arrives, so it loads 50.0 KB in total.
+
+- [#1688](https://github.com/ngrok/mantle/pull/1688) [`39addaf`](https://github.com/ngrok/mantle/commit/39addaf4a8ae78d21666efc2503303a6947bcbda) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `BarChart`, `LineChart`, and `AreaChart` no longer load the scatter plot's code: its point paint, its hit test, its 3D camera and rotation drag, and its cube frame. Only `ScatterPlot` loads that code now, so each of the other chart families ships 2.3 KB less JavaScript (minified and gzipped, 50.6 KB to 48.3 KB).
+
+- [#1683](https://github.com/ngrok/mantle/pull/1683) [`78664bc`](https://github.com/ngrok/mantle/commit/78664bc0badbe483c9ef7bb6865ef2286258ba33) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Charts on one page share one animation frame: a theme switch, a resize, or a data push across 100 charts asks for one frame instead of 100, and every chart commits inside it. A chart's tooltip also measures its size through the one `ResizeObserver` the page's charts share, instead of one observer per chart that stayed connected for the chart's lifetime.
+
+- [#1683](https://github.com/ngrok/mantle/pull/1683) [`78664bc`](https://github.com/ngrok/mantle/commit/78664bc0badbe483c9ef7bb6865ef2286258ba33) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Charts now paint and free their canvases at the distances their docs give. A chart paints once it comes within one viewport of the visible area. It frees its canvas three viewports away. The visibility observers set both `rootMargin` and `scrollMargin`, and browsers apply both margins to the document's own scroller. Firefox adds the two. Chromium and WebKit resolve the `scrollMargin` percentage against the viewport that `rootMargin` already widened, so the paint band reached four viewports past each edge of the visible area, and the release band reached 24. On a long page, nearly every chart painted at mount, and no chart freed its canvas. The observers now set `scrollMargin` alone, which widens the viewport and every scrolling panel by the same margin. A browser without `scrollMargin` support keeps `rootMargin` and the scroll-panel fallback.
+
+  Measured in Chromium 156 on Linux, on a list of 100 bar charts (median of 5 runs): 36 charts paint at mount instead of 96, the first full paint lands 47–60 ms sooner, and 76 canvases stay live after a scroll to the bottom and back instead of 100. The scroll now pays for the charts that paint later: 148–159 ms of main-thread time instead of 52–70 ms.
+
+- [#1657](https://github.com/ngrok/mantle/pull/1657) [`1dcd48b`](https://github.com/ngrok/mantle/commit/1dcd48b6a3adbd71690ee1c4549f4d9a2a386267) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Command.Input` uses a 16px font on a touch screen, like `Input` and `TextArea`. iOS Safari zooms the page when it focuses a field with a font smaller than 16px, so the 14px field zoomed in and made the page overflow when you tapped it. The field stays 14px with a mouse.
+
+- [`c9cbecd`](https://github.com/ngrok/mantle/commit/c9cbecd7551732a36826bd778c13cde08a9c8fc0) Thanks [@forzalupo](https://github.com/forzalupo)! - `Empty.Title` and `Empty.Description` use `text-pretty`, so the last line of long copy does not end on a single word.
+
+- [#1690](https://github.com/ngrok/mantle/pull/1690) [`d835af5`](https://github.com/ngrok/mantle/commit/d835af506111b45a81e3b34668ef646541706b58) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - The `RadioGroup` `useWhen` in `dist/agent.json` now says "a few fixed options", so an agent that asks for one value from a few fixed options finds `RadioGroup` first.
+
+- [#1681](https://github.com/ngrok/mantle/pull/1681) [`8d3a536`](https://github.com/ngrok/mantle/commit/8d3a536c91ebd792e3dc38856f3e24b7e7064647) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `dist/agent.json` lists more aliases, so an agent finds the mantle part for these names:
+
+  - `segmented control`: `SegmentedControl`
+  - `searchable select`: `Combobox`
+  - `sparkline`: `BarChart`, `LineChart`, and `AreaChart`
+
+  The `Sidebar` `useWhen` also names its app and account switchers.
+
+- [#1688](https://github.com/ngrok/mantle/pull/1688) [`39addaf`](https://github.com/ngrok/mantle/commit/39addaf4a8ae78d21666efc2503303a6947bcbda) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `IconSwap` hides an inactive icon with `visibility: hidden` when its exit transition ends. Before, the hidden loading spinner of each `IconButton`, and of each `Button` with an `icon`, held a paused animation, and Chromium kept one compositor layer for the spinner and one for the icon beside it. A page of 100 cards with one `IconButton` each held 130 such layers, and each layer made every compositing update of the page slower.
+
+  Measured with the docs site's chart bench on that page (Chromium 158 on Linux with a software GPU, median of 3 interleaved runs): the page holds 5 compositor layers at load in place of 135, and the main-thread time of one pointer move over a chart fell from 9.7 ms to 4.4 ms. The swap looks the same, and under reduced motion it is still instant.
+
+- [#1666](https://github.com/ngrok/mantle/pull/1666) [`ac18ed0`](https://github.com/ngrok/mantle/commit/ac18ed0509dae4cad34e396c0dfb3ae474c10719) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Bump `@tanstack/react-virtual` from 3.14.23 to 3.14.26.
+
+- [#1685](https://github.com/ngrok/mantle/pull/1685) [`95ac12a`](https://github.com/ngrok/mantle/commit/95ac12aef39a33076644f50e7b5e8471cdd5b7d9) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Bump `@ariakit/react` from 0.4.42 to 0.4.43. Build with pnpm 12.19.0, Node 26.13.1, `tsdown` 0.23.7, and `oxc-transform-react` 0.158.0.
+
+- [#1666](https://github.com/ngrok/mantle/pull/1666) [`ac18ed0`](https://github.com/ngrok/mantle/commit/ac18ed0509dae4cad34e396c0dfb3ae474c10719) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Build with pnpm 12.17.0 and typecheck with `tsrs` 0.21.0. The published code does not change.
+
+- [#1665](https://github.com/ngrok/mantle/pull/1665) [`07b43fd`](https://github.com/ngrok/mantle/commit/07b43fd822c2de0e63ff9529bf7780d0b380d3fd) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `OtpInput.Root`: let password managers fill the one-time code again. The hidden input no longer carries the ignore attributes for 1Password, Bitwarden, Dashlane, and Proton Pass, because those attributes also stop the fill. It keeps `data-lpignore`, because LastPass does not fill one-time codes.
+
+  Add `passwordManagerIgnoreProps` to `@ngrok/mantle/input`. Spread it on an input that is not a credential, such as a search box, to keep password managers off it.
+
+- [#1673](https://github.com/ngrok/mantle/pull/1673) [`3ab32c8`](https://github.com/ngrok/mantle/commit/3ab32c8aa2ac82571fb42a4fa8cae3ce5e09df25) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add `PaginationRange` to `@ngrok/mantle/pagination`: the count line beside a paginated list or table, such as "1–20 of 2,396 domains".
+
+  - It takes `offset`, `pageSize`, and `total`, so it works with `useOffsetPagination` beside a `Table` (`offset`) and with a TanStack table instance beside a `DataTable` (`pageIndex * pageSize` and `getRowCount()`).
+  - It renders a `role="status"` live region, so a screen reader announces the new range when the page changes. The element stays in the DOM while the list is empty.
+  - It shows the total alone when one page holds every row, and no text for an empty list. `noun` sets the counted noun in both forms, and defaults to "result" and "results".
+  - It carries `data-slot="pagination-range"` and takes `asChild`.
+
+  The `Table` and `DataTable` JSDoc now carry large-list guidelines (paginate past 100 rows, search the whole list, paginate before you virtualize) and a pagination example with `CursorPagination` and `PaginationRange`.
+
+  https://mantle.ngrok.com/components/navigation/pagination#paginationrange
+
+- [#1657](https://github.com/ngrok/mantle/pull/1657) [`1dcd48b`](https://github.com/ngrok/mantle/commit/1dcd48b6a3adbd71690ee1c4549f4d9a2a386267) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Restyle the radio controls:
+
+  - `RadioGroup.Indicator`: the default circle is outlined when unchecked and filled when checked. On hover, the outline or the fill moves toward more contrast.
+  - `RadioGroup.ListItem` and `RadioGroup.Card`: the item changes its background on hover and when checked, like a `SelectableList` row. Hover and focus no longer change the border color. A checked `RadioGroup.Card` has a translucent accent border, like an info `Alert`.
+  - `RadioGroup.List`: the group has one border and an inner gap, like `SelectableList`. Each item is a rounded row with no border.
+
+  See https://mantle.ngrok.com/components/forms/radio-group.
+
+- [#1688](https://github.com/ngrok/mantle/pull/1688) [`39addaf`](https://github.com/ngrok/mantle/commit/39addaf4a8ae78d21666efc2503303a6947bcbda) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `ScatterPlot`:
+
+  - The arrow keys step one point at a time at any density. Before, a plot with four or more rows for each device pixel of width stepped several rows at a time, as a decimated line chart does, and most points had no keyboard path.
+  - The loader reports a failed load of the 3D code once for each attempt, where before each 3D chart on the page reported it. The chart tries again after 1 s, 4 s, and 16 s, and on the next press or data update, so a chart that is idle recovers from a failed request.
+  - A series that is not revealed yet makes no draw call. A plot of 10,000 points one viewport below the fold made about 840,000 canvas calls that drew nothing.
+  - The 2D hit test reads only the rows within the hit radius of the pointer, found with a binary search over the sorted x values.
+
+- [#1686](https://github.com/ngrok/mantle/pull/1686) [`5fd9ac3`](https://github.com/ngrok/mantle/commit/5fd9ac330925e3a0f06ed34e6c168540a0306df7) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Each component docs page now has search aliases: the names that other UI libraries use for the same part, such as `data grid` for `DataTable`, `date picker` for `Calendar`, and `tag` for `Badge`. `dist/agent.json` and `dist/llms.txt` include them, so an agent that searches with the name from another library finds the mantle part.
+
+  The `Separator` `@useWhen` now says to wrap a text label and separators in a `HorizontalSeparatorGroup` to make a divider with a label in the middle or at one end. Agents that search the manifest for a labeled divider now find `Separator`.
+
+- [#1688](https://github.com/ngrok/mantle/pull/1688) [`39addaf`](https://github.com/ngrok/mantle/commit/39addaf4a8ae78d21666efc2503303a6947bcbda) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - A theme swap restyles the document one time in place of three, so the reveal starts sooner and fast clicks on a `ThemeSwitcher` keep up on a large page.
+
+  Before, `setTheme` set an attribute on `<html>` that turned on a `transition: none` rule for every element, then changed the theme, then removed the attribute. Each step was a full style pass. The swap now cancels the transitions that the new theme starts, in script, and marks each open dialog or menu itself so that its exit animation stops. A page that holds more than about 2,000 elements with a transition keeps the rule, because the browser's list of running transitions costs more there.
+
+  On the Bar Chart docs page (12,645 elements), one swap fell from 262 ms to 161 ms of main-thread time, and its style time from 171 ms to 55 ms.
+
+- [#1673](https://github.com/ngrok/mantle/pull/1673) [`3ab32c8`](https://github.com/ngrok/mantle/commit/3ab32c8aa2ac82571fb42a4fa8cae3ce5e09df25) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `TruncatedText`: mount fast in large tables, and keep the ellipsis flush against the tail in any font.
+
+  - Each instance renders once on mount. One batch after the commit measures every instance that mounted: it reads all of them, then writes all of them, before the browser paints. In a production build with 152 rows, the mount commit drops from 23 ms to 3 ms.
+  - The tooltip mounts on the first hover or keyboard focus while the value overflows. A missing `TooltipProvider` now throws at that moment, not at mount. The root still carries `data-state="closed"` before the tooltip mounts.
+  - One `ResizeObserver` serves every instance. A resize writes `data-truncated` in the same frame, so the ellipsis no longer lags one frame behind the container.
+  - In a proportional font, the head now ends at the last glyph that fits with the ellipsis, so no gap shows between the ellipsis and the tail.
+  - In Safari, `head` now keeps its whole lead, such as `mem_…A8KImPbQ` and not `mem…A8KImPbQ`, and the root no longer reserves an empty cell after the tail. The measurement reads the visually hidden copy of the value, because WebKit clips a text range at a `text-overflow` ellipsis.
+  - In Safari, a tooltip whose value wraps now gets lines of near-equal length. WebKit does not balance text that breaks between letters, so the last line held a few characters.
+  - A page change in a large table commits faster. The measurement reads every width through one text range, so a text write no longer visits thousands of ranges. In a production build with 500 rows, a page change drops from 73 ms to 51 ms in a proportional font, and from 54 ms to 32 ms in a monospace font.
+  - The measured widths go on the head and the tail, not on the root, so a write restyles only those two segments. With 500 rows, a mount drops from 69 ms to 60 ms, and a resize frame in a proportional font drops from 28 ms to 23 ms.
+  - In Firefox, a value in a container narrower than its tail no longer writes its styles in every frame while the page is idle. Firefox reads a text width up to 1e-5 px apart after the text moves, and the measurement now rounds each width to 1/64 px.
+  - Inside a `Dialog`, a `Popover`, or other content that opens with a zoom, `data-truncated`, the tab stop, and the ellipsis no longer depend on the scale at the time of the measurement.
+  - A clipped value no longer keeps its tab stop when an element above it becomes a link or another control after mount.
+  - A value that React renders into a same-origin frame now gets its measured fit and lead.
+
+  https://mantle.ngrok.com/components/data-display/truncated-text
+
+- [#1672](https://github.com/ngrok/mantle/pull/1672) [`f5ef94d`](https://github.com/ngrok/mantle/commit/f5ef94d2a96b202966d49f1e52bc460e9ecf2e1b) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add a `@useWhen` tag to the JSDoc of every component and layout, and a `@siblings` tag where a component has a close alternative. `dist/agent.json` carries the tags as `useWhen` and `siblings`, so an agent can pick a component from an intent such as "confirm before delete". The `AlertDialog` record also lists the aliases `confirm` and `confirmation`.
+
 ## 0.93.7
 
 ### Patch Changes
