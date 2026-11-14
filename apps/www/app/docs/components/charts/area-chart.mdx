@@ -381,7 +381,7 @@ Reach for an `AreaChart` when the magnitude of a value over time is the story: t
 - Prefer [`LineChart`](/components/charts/line-chart) when composition doesn't matter and you are comparing the shapes of trajectories.
 - Prefer [`BarChart`](/components/charts/bar-chart) when the x axis is categorical and the comparison is between discrete things, not over time.
 
-**Keep a chart to eight series.** Past eight, a reader can't match each band to its legend key by color. Rank the series by the window's total, keep the top seven, and sum the rest into one `"Other"` series. Give the Other series `color="neutral"`, so it reads as the tail and not as one more category. Keep it last, so it sits at the top of a stack. The Bar Chart page carries [a worked fold](/components/charts/bar-chart#when-to-use).
+**Keep a chart to eight series.** Past eight, a reader can't match each band to its legend key by color. Rank the series by the window's total, keep the top seven, and sum the rest into one `"Other"` series. Give the Other series `color="neutral"`, so it reads as the tail and not as one more category. Keep it last, so it sits at the top of a stack. The Bar Chart page carries [a worked fold](/components/charts/bar-chart#keep-a-chart-to-eight-series).
 
 Compose `AreaChart.Root` with the chrome parts (`Grid`, `XAxis`, `YAxis`) and one `AreaChart.Area` per series. A stacked chart of connections by protocol over two weeks:
 

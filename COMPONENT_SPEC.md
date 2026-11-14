@@ -750,7 +750,7 @@ plain-markdown twin (`/api/…`, `llms-full.txt`) generated from it.
 - **Layout page** — `apps/www/app/docs/layouts/<layout-name>.mdx`, wired through `layoutPages` /
   `layoutRoutes` / `layoutDescriptions`.
 - **Supplementary sub-page** — a routed deep-dive under a component's own folder
-  (`data-display/code-block/folding-by-language.mdx`). It gets a route but no nav entry, and §7.2 items 5–9 do
+  (`data-display/code-block/folding-by-language.mdx`). It gets a route but no nav entry, and §7.2 items 6–11 do
   not apply.
 
 ### 7.2. Required structure, in order
@@ -764,25 +764,32 @@ plain-markdown twin (`/api/…`, `llms-full.txt`) generated from it.
    a lifecycle badge (`isPreview` for preview pages, `isUnreleased` for an unpublished component). Note the
    trade-off: `PageHeader` is currently invisible to `render-mdx-to-markdown.server.ts` and
    `rehype-mdx-doc-handle.ts`, so a page using it loses its H1 in the markdown twin and its level-1 TOC entry
-   until those two files learn to handle it. Follow the title with prose stating what the component is for and which
-   decisions it encodes.
-4. **A primary live example** with its code block. For a compound component, it shows the simplest use case.
-5. **One `##` section for each other use case** — compound components whose parts serve distinct use cases
+   until those two files learn to handle it.
+4. **A lead of one or two sentences.** The first is the frontmatter `description`. An optional second states the
+   one decision a reader must know before they copy the example (`Button`: `appearance` and `intent` are
+   required). No heading, list, callout, or code block comes between the title and the primary example.
+5. **A primary live example** with its code block, directly after the lead. A reader who opens the page sees the
+   component above the fold, without a scroll. It shows the simplest use case.
+6. **`## When to use`**, directly after the primary example's code block. A few bullets: the jobs the component
+   does, and the sibling to use for each job it does not do. It agrees with the `@useWhen` and `@siblings` JSDoc
+   tags. Longer guidance (a series limit, density rules, how the parts compose) gets its own section under item 9.
+7. **One `##` section for each other use case** — compound components whose parts serve distinct use cases
    (`RadioGroup` has plain radios, a list, and cards). Each section has a heading that
    names the use case, one or two sentences on when to use it and which parts it takes, a live example, and a
    code block with only that use case. Never show two use cases in one example: a reader cannot tell which code
    makes which shape, and the TOC cannot link to one of them.
-6. **`## Composition`** — compound components only: the ASCII tree in a ` ```text showLineNumbers=false `
+8. **`## Composition`** — compound components only: the ASCII tree in a ` ```text showLineNumbers=false `
    fence, identical to the namespace JSDoc's tree. Simple components omit it — there is no tree to draw.
-7. **`## Polymorphism`** — required when any part accepts `asChild`. List every part that supports it and when
+9. **`## Polymorphism`** — required when any part accepts `asChild`. List every part that supports it and when
    a consumer would reach for it. Never title this section "Composition"; that name is reserved for the
    structural tree.
-8. **Optional sections** — variants, sizing, accessibility notes, recipes. They come after Composition and
-   Polymorphism, before the API reference, and none of them may be named "Composition".
-9. **`## API Reference`** — one `### <ComponentName>.<Part>` subsection per exported part (`### Alert.Root`,
-   `### Card.Header`), each with its props table and, where applicable, its CSS-variable
-   ([§5.2](#52-documenting)) and data-attribute ([§6](#6-data-attributes-are-api)) tables. Props tables use
-   `Prop | Type | Default | Description`.
+10. **Optional sections** — variants, sizing, accessibility notes, recipes, and the longer guidance item 6 moves
+    out. They come after Composition and Polymorphism, before the API reference, and none of them may be named
+    "Composition".
+11. **`## API Reference`** — one `### <ComponentName>.<Part>` subsection per exported part (`### Alert.Root`,
+    `### Card.Header`), each with its props table and, where applicable, its CSS-variable
+    ([§5.2](#52-documenting)) and data-attribute ([§6](#6-data-attributes-are-api)) tables. Props tables use
+    `Prop | Type | Default | Description`.
 
 ### 7.3. Examples must be live and complete
 
@@ -959,6 +966,11 @@ beside it, because a wrapper makes the consumer's element a grandchild and break
   something else → rename to a content-accurate title (ask if unclear).
 - An abbreviated `@example` on a namespace property or part declaration → replace with the full-tree example
   already present elsewhere in the same file.
+- Prose, a heading, a list, or a code block between the page title and the primary example → keep the lead
+  ([§7.2](#72-required-structure-in-order) item 4), and move the rest below the primary example: short
+  guidance into `## When to use`, and long guidance into its own optional section.
+- A missing `## When to use` → write it from the `@useWhen` and `@siblings` JSDoc tags, and place it after the
+  primary example's code block.
 - A usage code block with nothing live above it, or written as a fragment → add a live example and rewrite the
   block to be complete, modeled on the page's existing complete examples.
 - Missing route in `routes.ts`, missing nav entry in `navigation-data.ts`, or a missing
@@ -1051,11 +1063,13 @@ Run this against the diff before calling a component done. Each line is a defect
       with the wrapper's `display` stated.
 - [ ] Docs page has the required sections in order; `title:` is the Title Case display name; every example is
       live and self-contained.
+- [ ] The page opens with the title, a lead of one or two sentences, and the primary example above the fold;
+      `## When to use` follows that example's code block ([§7.2](#72-required-structure-in-order) items 4–6).
 - [ ] Every example builds its surround from existing mantle components, with no hand-rolled list, table, or
       card ([§7.3](#73-examples-must-be-live-and-complete)).
 - [ ] Trees in the JSDoc and the docs page match.
 - [ ] Compound: each use case has its own section, example, and code block
-      ([§7.2](#72-required-structure-in-order) item 5).
+      ([§7.2](#72-required-structure-in-order) item 7).
 
 **Wiring**
 
@@ -1088,7 +1102,7 @@ Run this against the diff before calling a component done. Each line is a defect
   `.claude/commands/audit-component.md`, `.claude/commands/promote-preview-component.md`, and, for a
   breaking `minor`, `.claude/commands/scaffold-migration.md` with the `write-migration` skill.
 - **Shapes worth copying, with their known gaps.** Copy compound-namespace JSDoc from `alert` or `card`. Copy
-  docs-page structure from `list` or `selectable-list` — the pages that already match §7.2. Copy the
+  docs-page structure from `list` or `selectable-list`, and add the `## When to use` section they predate. Copy the
   CSS-variable tables from `alert` and `icon-button`. Do **not** copy: `card` and `dialog` ship no test file;
   `code-block` emits `data-highlighted="false"` against [§6](#6-data-attributes-are-api) and uses `…`
   placeholders in its code blocks against [§7.3](#73-examples-must-be-live-and-complete); `dialog`, `empty`,

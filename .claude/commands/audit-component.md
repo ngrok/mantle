@@ -21,10 +21,11 @@ Per [§10.1](../../COMPONENT_SPEC.md#101-classify): compound or simple, `asChild
 
 ## 2. Check
 
-Walk [§10.2](../../COMPONENT_SPEC.md#102-check)'s table in order and record each violation with `file:line`. Four checks are most often missed:
+Walk [§10.2](../../COMPONENT_SPEC.md#102-check)'s table in order and record each violation with `file:line`. Five checks are most often missed:
 
 - **Composition ([§1.5](../../COMPONENT_SPEC.md#15-composition-vs-data-driven)).** Find every part that maps over data (`items`, `options`, `rows`, context arrays) and renders the rows, empty state, or footer itself. Each one is a finding, even when the data prop is legitimate. `Query.Content` shipped this way in #1622.
-- **Use cases ([§7.2](../../COMPONENT_SPEC.md#72-required-structure-in-order) item 5).** A compound docs page with one example that shows several layouts (a list, a segmented control, cards) is a finding. Split it into one `##` section for each use case, each with its own example and code block.
+- **Example first ([§7.2](../../COMPONENT_SPEC.md#72-required-structure-in-order) items 4–6).** Read the page from the title down. Anything between the title and the primary example other than a lead of one or two sentences is a finding: a `## When to use` heading, a list, a code block, or a third paragraph. A missing `## When to use` after the primary example's code block is a finding.
+- **Use cases ([§7.2](../../COMPONENT_SPEC.md#72-required-structure-in-order) item 7).** A compound docs page with one example that shows several layouts (a list, a segmented control, cards) is a finding. Split it into one `##` section for each use case, each with its own example and code block.
 - **CSS variables and data attributes ([§5.2](../../COMPONENT_SPEC.md#52-documenting), [§6](../../COMPONENT_SPEC.md#6-data-attributes-are-api)).** Each must appear in both the JSDoc and the docs-page API reference.
 - **Translation ([§3.8](../../COMPONENT_SPEC.md#38-browser-translation)).** A grep proves nothing here. Load the `browser-translation-hazards` skill, walk the JSX part by part with the §10.2 question, then work its blind-spot list (`.mdx`, `@example` fences, dependency portals, cross-file element types, `translate="no"`). Read its safe shapes before you propose a wrapper.
 

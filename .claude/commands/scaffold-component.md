@@ -33,7 +33,26 @@ Create `packages/mantle/src/components/<component-name>/` (or the family directo
 
 ## 3. Write the docs page
 
-Create the page at its kind's path (§7.1) with [§7.2](../../COMPONENT_SPEC.md#72-required-structure-in-order)'s sections in order. Examples follow [§7.3](../../COMPONENT_SPEC.md#73-examples-must-be-live-and-complete): live, complete, and built from existing mantle components. Every compound example shows the composed tree, not a data prop. For a compound component, the primary example shows the simplest use case, and each other use case gets its own `##` section with an example and a code block (§7.2 item 5). Give each part an `### <ComponentName>.<Part>` API subsection.
+Create the page at its kind's path (§7.1) with [§7.2](../../COMPONENT_SPEC.md#72-required-structure-in-order)'s sections in order. Open it in this shape, with nothing else before the first `##`:
+
+````mdx
+# <Display Name>
+
+<The frontmatter description.> <Optional: the one decision a reader must know before they copy the example.>
+
+<Example>…the simplest use case…</Example>
+
+```tsx
+…the code for that example…
+```
+
+## When to use
+
+- <A job the component does.>
+- Prefer <Sibling> for <a job it does not do>.
+````
+
+Take the `## When to use` bullets from the `@useWhen` and `@siblings` JSDoc tags. Put longer guidance in its own section after `## Polymorphism` (§7.2 item 10). Examples follow [§7.3](../../COMPONENT_SPEC.md#73-examples-must-be-live-and-complete): live, complete, and built from existing mantle components. Every compound example shows the composed tree, not a data prop. For a compound component, the primary example shows the simplest use case, and each other use case gets its own `##` section with an example and a code block (§7.2 item 7). Give each part an `### <ComponentName>.<Part>` API subsection.
 
 ## 4. Wire it up
 
