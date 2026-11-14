@@ -147,9 +147,9 @@ utils:
               has:
                 field: name
                 pattern: $SCATTER
-  # A series part of a chart family: Line, Bar, Area, or Point on the name
+  # A part that takes a color (Line, Bar, Area, Point, or ReferenceLine) on the name
   # the family's import binds.
-  series-part:
+  color-part:
     any:
       - kind: jsx_opening_element
       - kind: jsx_self_closing_element
@@ -163,7 +163,7 @@ utils:
                 pattern: $LINE
             - has:
                 field: property
-                regex: ^Line$
+                regex: ^(?:Line|ReferenceLine)$
             - inside:
                 stopBy: end
                 kind: program
@@ -191,7 +191,7 @@ utils:
                 pattern: $BAR
             - has:
                 field: property
-                regex: ^Bar$
+                regex: ^(?:Bar|ReferenceLine)$
             - inside:
                 stopBy: end
                 kind: program
@@ -219,7 +219,7 @@ utils:
                 pattern: $AREA
             - has:
                 field: property
-                regex: ^Area$
+                regex: ^(?:Area|ReferenceLine)$
             - inside:
                 stopBy: end
                 kind: program
@@ -247,7 +247,7 @@ utils:
                 pattern: $SCATTER
             - has:
                 field: property
-                regex: ^Point$
+                regex: ^(?:Point|ReferenceLine)$
             - inside:
                 stopBy: end
                 kind: program
@@ -269,24 +269,24 @@ utils:
                         has:
                           field: name
                           pattern: $SCATTER
-  # The `color` attribute of a series part.
-  series-color:
+  # The `color` attribute of a color part.
+  part-color:
     kind: jsx_attribute
     has:
       kind: property_identifier
       regex: ^color$
     inside:
-      matches: series-part
+      matches: color-part
   # A node whose value is the color: the attribute value, its expression, or a
   # branch of a ternary there. A lookup key or a compared operand is not.
   color-value:
     any:
       - inside:
-          matches: series-color
+          matches: part-color
       - inside:
           kind: jsx_expression
           inside:
-            matches: series-color
+            matches: part-color
       - inside:
           kind: parenthesized_expression
           matches: color-value

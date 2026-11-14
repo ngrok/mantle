@@ -49,6 +49,16 @@ export const Points = (
 	</ScatterPlot.Root>
 );
 
+// A reference line takes the same color names.
+export const ReferenceLines = (
+	<>
+		<LineChart.ReferenceLine y={1} color="emerald" />
+		<BarChart.ReferenceLine y={1} color="pink" />
+		<AreaChart.ReferenceLine y={1} color="neutral" />
+		<ScatterPlot.ReferenceLine y={1} color="amber" />
+	</>
+);
+
 export const Classes = (
 	<div className="bg-chart-blue text-chart-neutral divide-chart-emerald border-x-chart-orange [--color-chart-pink:var(--color-brand)]">
 		<span style={{ backgroundColor: "var(--color-chart-amber)" }} />

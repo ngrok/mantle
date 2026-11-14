@@ -471,6 +471,9 @@ class ChartEngine {
 			this.#schedule();
 		};
 		this.#store.onPresentationChange = () => {
+			// Why re-aim: a bar chart's domain depends on whether an axis or a grid
+			// draws ticks. Aiming at an unchanged target does nothing.
+			this.#aimYDomain();
 			this.#schedule();
 		};
 
@@ -810,15 +813,21 @@ class ChartEngine {
 			// mark moves, so drop the cached hover pixel (plot space) the way the
 			// resize observer does.
 			this.#activeScreen = null;
-			if (this.#hasIngested) {
-				if (this.#tweenDuration() === 0) {
-					this.#yTween.jump(this.#targetYDomain());
-				} else {
-					this.#yTween.aim(this.#targetYDomain(), performance.now());
-				}
-			}
+			this.#aimYDomain();
 		}
 		this.#schedule();
+	}
+
+	/** Move the value tween to the current target domain, if the chart has data. */
+	#aimYDomain(): void {
+		if (!this.#hasIngested) {
+			return;
+		}
+		if (this.#tweenDuration() === 0) {
+			this.#yTween.jump(this.#targetYDomain());
+		} else {
+			this.#yTween.aim(this.#targetYDomain(), performance.now());
+		}
 	}
 
 	setCallbacks(callbacks: EngineCallbacks): void {

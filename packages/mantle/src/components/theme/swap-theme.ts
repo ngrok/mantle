@@ -163,15 +163,18 @@ function isSwitcherMotion(transition: CSSTransition) {
 
 /**
  * Estimates whether more than {@link SCRIPT_CANCEL_LIMIT} elements hold a
- * transition. It reads every nth element in document order, so the estimate
- * costs the same on a small page and on a large one.
+ * transition. It reads one element at a random place in each run of n
+ * elements, so the estimate costs the same on a small page and on a large one.
+ *
+ * Why a random place: a fixed stride can match the period of repeated rows
+ * and read only the rows' wrappers.
  */
 function holdsManyTransitions() {
 	const elements = document.getElementsByTagName("*");
 	const step = Math.max(1, Math.floor(elements.length / SAMPLE_SIZE));
 	let sampled = 0;
-	for (let index = 0; index < elements.length; index += step) {
-		const element = elements[index];
+	for (let start = 0; start < elements.length; start += step) {
+		const element = elements[start + Math.floor(Math.random() * step)];
 		if (element != null && hasTransition(element)) {
 			sampled += 1;
 		}
@@ -227,6 +230,7 @@ function revealCircle(
 
 export {
 	//,
+	holdsManyTransitions,
 	revealCircle,
 	swapTheme,
 };

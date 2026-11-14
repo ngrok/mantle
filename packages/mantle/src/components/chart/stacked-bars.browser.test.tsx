@@ -720,6 +720,50 @@ describe("stacked bar caps and baselines", () => {
 		});
 	});
 
+	test("a chart that gains a grid takes the domain of a chart that mounts with one", async () => {
+		const data = [
+			{ day: "Mon", value: 40 },
+			{ day: "Tue", value: 81 },
+		];
+		const chart = (grid: boolean, label: string) => (
+			<div style={{ width: 600, height: 300 }}>
+				<CanvasBarChartRoot data={data} xKey="day" animate={false} aria-label={label}>
+					{grid && <BarChart.Grid />}
+					<BarChart.Bar dataKey="value" label="Value" color="blue" />
+				</CanvasBarChartRoot>
+			</div>
+		);
+		const tallestTop = (painted: Painted) => {
+			const tallest = columnRunsOf(painted, CHART_1)[1];
+			if (tallest == null) {
+				throw new Error("expected the tallest bar to paint");
+			}
+			return verticalExtent(painted, CHART_1, tallest).start;
+		};
+		const fresh = render(chart(true, "Fresh"));
+		const freshCanvas = await findChartCanvas(fresh.container);
+		await waitForPlot(freshCanvas);
+		let expected = -1;
+		await waitFor(() => {
+			const painted = readCanvas(freshCanvas);
+			expect(baselineRowOf(painted)).toBeGreaterThan(0);
+			expected = tallestTop(painted);
+		});
+
+		const changed = render(chart(false, "Changed"));
+		const changedCanvas = await findChartCanvas(changed.container);
+		await waitForPlot(changedCanvas);
+		await waitFor(() => {
+			expect(baselineRowOf(readCanvas(changedCanvas))).toBe(-1);
+		});
+		changed.rerender(chart(true, "Changed"));
+		await waitFor(() => {
+			const painted = readCanvas(changedCanvas);
+			expect(baselineRowOf(painted)).toBeGreaterThan(0);
+			expect(Math.abs(tallestTop(painted) - expected)).toBeLessThanOrEqual(painted.scale);
+		});
+	});
+
 	test("an all-zero area chart keeps its baseline at the axis minimum too", async () => {
 		// `AreaChart` fills from the same zero baseline and documents the same fixed
 		// minimum, so the anchor covers both kinds. Left to `niceDomain`, the flat
