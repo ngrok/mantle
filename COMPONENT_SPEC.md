@@ -772,7 +772,7 @@ plain-markdown twin (`/api/…`, `llms-full.txt`) generated from it.
    component above the fold, without a scroll. It shows the simplest use case.
 6. **`## When to use`**, directly after the primary example's code block. A few bullets: the jobs the component
    does, and the sibling to use for each job it does not do. It agrees with the `@useWhen` and `@siblings` JSDoc
-   tags. Longer guidance (a series limit, density rules, how the parts compose) gets its own section under item 9.
+   tags. Longer guidance (a series limit, density rules, how the parts compose) gets its own section under item 10.
 7. **One section for each variant and use case.** A variant is a layout, a part set, or a mode that a reader
    picks for a job: `RadioGroup` has plain radios, a list, and cards, and `SegmentedControl` has text and icon
    segments. Each section has, in order:
@@ -1130,7 +1130,7 @@ Run this against the diff before calling a component done. Each line is a defect
   `.claude/commands/audit-component.md`, `.claude/commands/promote-preview-component.md`, and, for a
   breaking `minor`, `.claude/commands/scaffold-migration.md` with the `write-migration` skill.
 - **Shapes worth copying, with their known gaps.** Copy compound-namespace JSDoc from `alert` or `card`. Copy
-  docs-page structure from `list` or `selectable-list`, and add the `## When to use` section they predate. Copy the
+  docs-page structure from `list` or `selectable-list`. Copy the
   CSS-variable tables from `alert` and `icon-button`. Do **not** copy: `card` and `dialog` ship no test file;
   `code-block` emits `data-highlighted="false"` against [§6](#6-data-attributes-are-api) and uses `…`
   placeholders in its code blocks against [§7.3](#73-examples-must-be-live-and-complete); `dialog`, `empty`,

@@ -139,7 +139,7 @@
     "category": "Navigation",
     "status": "stable",
     "importPath": "@ngrok/mantle/anchor",
-    "summary": "Fundamental component for rendering links to external addresses.",
+    "summary": "A fundamental component for rendering links to external addresses.",
     "jsdoc": "A styled hyperlink — a native `<a>` with mantle's link styling, focus treatment, optional leading/trailing icon, and a safer default for the `rel` attribute.",
     "examples": [
       "```tsx\nimport { Anchor } from \"@ngrok/mantle/anchor\";\nimport { BookIcon } from \"@phosphor-icons/react/Book\";\nimport { Link } from \"react-router\";\n\n// Basic external link.\n<Anchor href=\"https://ngrok.com/\">ngrok.com</Anchor>\n\n// External link in a new tab with a leading icon. `rel` defaults to\n// \"noopener noreferrer\" when `target=\"_blank\"`.\n<Anchor href=\"https://ngrok.com/docs\" target=\"_blank\" icon={<BookIcon />}>\n  ngrok docs\n</Anchor>\n\n// Compose Anchor styling onto a react-router Link for internal navigation.\n<Anchor asChild>\n  <Link to=\"/dashboard\">Open dashboard</Link>\n</Anchor>\n```"
@@ -477,7 +477,7 @@
     "category": "Forms",
     "status": "stable",
     "importPath": "@ngrok/mantle/checkbox",
-    "summary": "A form control that allows the user to toggle between checked and not checked. Supports indeterminate state.",
+    "summary": "A form control that toggles between checked and not checked, with an indeterminate state.",
     "jsdoc": "A form control that allows the user to toggle between checked and not checked.",
     "examples": [
       "```tsx\n<form>\n  <Label htmlFor=\"terms\" className=\"flex items-center gap-2\">\n    <Checkbox name=\"terms\" id=\"terms\" />\n    Accept terms and conditions\n  </Label>\n</form>\n```"
@@ -539,7 +539,7 @@
     "category": "Data Display",
     "status": "stable",
     "importPath": "@ngrok/mantle/code",
-    "summary": "Marks a short fragment of inline computer code — a function name, a variable, a CLI flag, a key.",
+    "summary": "Marks a short fragment of inline computer code, such as a function name, a variable, a CLI flag, or a key.",
     "jsdoc": "Marks a short fragment of inline computer code — a function name, a variable, a CLI flag, a key.",
     "examples": [
       "```tsx\nimport { Code } from \"@ngrok/mantle/code\";\n\n<p>\n  Use the <Code>console.log()</Code> function to debug your code.\n</p>\n\n// As a link, preserving Code styling.\n<Code asChild>\n  <a href=\"/api\">/api/components.json</a>\n</Code>\n```"
@@ -601,7 +601,7 @@
     "category": "Forms",
     "status": "stable",
     "importPath": "@ngrok/mantle/combobox",
-    "summary": "Fill in a React input field with autocomplete & autosuggest functionalities. Choose from a list of suggested values with full keyboard support.",
+    "summary": "A text input with autocomplete: the user types to filter a list of suggested values and picks one, with full keyboard support.",
     "jsdoc": "Fill in a React input field with autocomplete & autosuggest functionalities.",
     "examples": [
       "Composition:\n```\nCombobox.Root\n├── Combobox.Input\n└── Combobox.Content\n    ├── Combobox.Group\n    │   ├── Combobox.GroupLabel\n    │   └── Combobox.Item\n    │       └── Combobox.ItemValue\n    └── Combobox.Separator\n```",
@@ -640,7 +640,7 @@
     "category": "Navigation",
     "status": "stable",
     "importPath": "@ngrok/mantle/command",
-    "summary": "A command palette that allows users to search and execute commands.",
+    "summary": "A command palette that allows users to search and execute commands, built on top of cmdk.",
     "jsdoc": "A command palette: a modal search field over a filtered, keyboard-navigable list of items. `Command.SearchTrigger` is the field-shaped button that opens it, `Command.DialogRoot` owns the open state, the query, and the `⌘K` shortcut, and `Command.DialogTrigger` is the escape hatch for a trigger of your own.",
     "examples": [
       "Composition:\n```\nCommand.DialogRoot\n├── Command.SearchTrigger\n├── Command.DialogTrigger\n└── Command.DialogContent\n    ├── Command.Input\n    └── Command.List\n        ├── Command.Empty\n        ├── Command.Group\n        │   └── Command.Item\n        │       └── Command.Shortcut\n        └── Command.Separator\n```",
@@ -1036,7 +1036,7 @@
     "category": "Data Display",
     "status": "stable",
     "importPath": "@ngrok/mantle/kbd",
-    "summary": "A square, centered keyboard \"key\" chip for rendering keyboard shortcut hints.",
+    "summary": "A square, centered keyboard \"key\" chip for rendering keyboard shortcut hints, such as K, ⌘, ⌃, or Enter.",
     "jsdoc": "A square, centered keyboard \"key\" chip for rendering shortcut hints — \"K\", \"⌘\", \"⌃\", \"Enter\".",
     "examples": [
       "```tsx\nimport { Kbd } from \"@ngrok/mantle/kbd\";\n\n// Letter key.\n<Kbd>K</Kbd>\n\n// Symbol: a visually hidden label names the key, and the glyph is hidden.\n<Kbd>\n  <span className=\"sr-only\">Enter</span>\n  <span aria-hidden>↵</span>\n</Kbd>\n\n// Chord — render each key separately.\n<span className=\"inline-flex items-center gap-1\">\n  <Kbd>\n    <span className=\"sr-only\">Command</span>\n    <span aria-hidden>⌘</span>\n  </Kbd>\n  <span>+</span>\n  <Kbd>K</Kbd>\n</span>\n```"
@@ -1066,7 +1066,7 @@
     "category": "Forms",
     "status": "stable",
     "importPath": "@ngrok/mantle/label",
-    "summary": "A Label represents a caption for an item in a user interface. Renders an accessible label associated with controls.",
+    "summary": "A caption for a form control, such as an input, a checkbox, a radio, a switch, or a select.",
     "jsdoc": "A caption for a form control — input, checkbox, radio, switch, select.",
     "examples": [
       "```tsx\nimport { Label } from \"@ngrok/mantle/label\";\nimport { Input } from \"@ngrok/mantle/input\";\n\n// Implicit — control nested inside the label.\n<Label className=\"grid gap-1\">\n  <span>Email</span>\n  <Input type=\"email\" name=\"email\" />\n</Label>\n\n// Explicit — htmlFor matches the control's id.\n<div className=\"grid gap-1\">\n  <Label htmlFor=\"api-key\">API key</Label>\n  <Input id=\"api-key\" name=\"apiKey\" />\n</div>\n\n// Inline label for a checkbox.\n<Label className=\"flex items-center gap-2\">\n  <Checkbox name=\"terms\" />\n  <span>I agree to the terms</span>\n</Label>\n```"
@@ -1093,7 +1093,7 @@
     "category": "Charts",
     "status": "stable",
     "importPath": "@ngrok/mantle/line-chart",
-    "summary": "A line chart for trends over a continuous x axis, time above all. Min/max decimation keeps 100,000+ point series smooth.",
+    "summary": "A line chart for trends over a continuous x axis, time above all.",
     "jsdoc": "A line chart for trends over a continuous x — time above all.",
     "examples": [
       "Composition:\n```\nLineChart.Root\n├── LineChart.Grid\n├── LineChart.XAxis\n├── LineChart.YAxis\n├── LineChart.Line (one per series)\n├── LineChart.ReferenceLine\n├── LineChart.Tooltip\n├── LineChart.Legend\n└── LineChart.CopyButton\n```\n\nA List groups Roots:\n```\nLineChart.List\n└── LineChart.Root (one per chart)\n```",
@@ -1188,7 +1188,7 @@
     "category": "Primitives",
     "status": "stable",
     "importPath": "@ngrok/mantle/main",
-    "summary": "A focusable `<main>` landmark for the page's primary content, designed to be paired with a skip link.",
+    "summary": "A focusable `<main>` landmark for the page's primary content.",
     "jsdoc": "A focusable `<main>` landmark for the page's primary content.",
     "examples": [
       "```tsx\n<SkipToMainLink />\n<Header />\n<Main>\n  <h1>Page title</h1>\n</Main>\n```",
@@ -1216,7 +1216,7 @@
     "category": "Structure",
     "status": "stable",
     "importPath": "@ngrok/mantle/media-object",
-    "summary": "The Media Object is an image/icon (media) to the left, with descriptive content (title and subtitle/description) to the right.",
+    "summary": "The Media Object is an image or an icon (media) on the left, with descriptive content (a title and a subtitle or description) on the right.",
     "jsdoc": "A small, reusable layout primitive for \"image/icon on one side, descriptive content on the other\" — the foundational \"media object\" pattern.",
     "examples": [
       "Composition:\n```\nMediaObject.Root\n├── MediaObject.Media\n└── MediaObject.Content\n```",
@@ -1244,7 +1244,7 @@
     "category": "Forms",
     "status": "stable",
     "importPath": "@ngrok/mantle/multi-select",
-    "summary": "A typeahead multi-select combobox that allows users to select multiple values with filtering. Selected values are displayed as removable tags.",
+    "summary": "A typeahead multi-select combobox: the user picks several values with filtering, and the picks show as removable tags.",
     "jsdoc": "A multi-select combobox that allows users to select multiple values with typeahead filtering.",
     "examples": [
       "Composition:\n```\nMultiSelect.Root\n├── MultiSelect.Trigger\n│   ├── MultiSelect.TagValues\n│   └── MultiSelect.Input\n└── MultiSelect.Content\n    ├── MultiSelect.Group\n    │   ├── MultiSelect.GroupLabel\n    │   ├── MultiSelect.GroupDescription\n    │   └── MultiSelect.Item\n    ├── MultiSelect.Separator\n    ├── MultiSelect.Empty\n    └── MultiSelect.ContentFooter\n```",
@@ -1537,7 +1537,7 @@
     "category": "Feedback",
     "status": "stable",
     "importPath": "@ngrok/mantle/sandbar",
-    "summary": "A floating save bar for unsaved changes. Batch save form state with save and discard actions, announce pending state to screen readers, and block navigation until changes are resolved.",
+    "summary": "A floating save bar for unsaved changes.",
     "jsdoc": "A persistent, decision-bearing bar that floats near the bottom edge of the viewport.",
     "examples": [
       "Composition:\n```\nSandbar.Root\n├── Sandbar.Message\n└── Sandbar.Actions\n    ├── Sandbar.DiscardButton\n    └── Sandbar.SaveButton\n```",
@@ -1652,7 +1652,7 @@
     "category": "Forms",
     "status": "stable",
     "importPath": "@ngrok/mantle/select",
-    "summary": "Displays a list of options for the user to pick from—triggered by a button.",
+    "summary": "Displays a list of options for the user to pick from, triggered by a button.",
     "jsdoc": "Displays a list of options for the user to pick from—triggered by a button.",
     "examples": [
       "Composition:\n```\nSelect.Root\n├── Select.Trigger\n│   └── Select.Value\n└── Select.Content\n    ├── Select.Group\n    │   ├── Select.Label\n    │   └── Select.Item\n    └── Select.Separator\n```",
@@ -1821,7 +1821,7 @@
     "category": "Feedback",
     "status": "stable",
     "importPath": "@ngrok/mantle/skeleton",
-    "summary": "Use to show a placeholder while content is loading.",
+    "summary": "Use Skeleton to show a placeholder while content is loading.",
     "jsdoc": "A skeleton is a placeholder for content that is loading.",
     "examples": [
       "```tsx\nimport { Skeleton } from \"@ngrok/mantle/skeleton\";\n\n// Text-line placeholder.\n<Skeleton className=\"w-1/2\" />\n\n// Avatar placeholder.\n<Skeleton className=\"h-12 w-12 rounded-full\" />\n\n// Announce loading state to assistive tech.\n<div role=\"status\" aria-live=\"polite\">\n  <span className=\"sr-only\">Loading profile…</span>\n  <Skeleton className=\"h-12 w-12 rounded-full\" />\n</div>\n```"
@@ -1952,7 +1952,7 @@
     "category": "Structure",
     "status": "stable",
     "importPath": "@ngrok/mantle/strata",
-    "summary": "A page of titled sections, each one explained beside its content — the shape of a settings page or a configuration editor.",
+    "summary": "A page of titled sections, each one explained beside its content: the shape of a settings page or a configuration editor.",
     "jsdoc": "A page of titled sections, each one explained beside its content.",
     "examples": [
       "Composition:\n```\nStrata.Root\n└── Strata.Section\n    ├── Strata.Header\n    │   ├── Strata.Title\n    │   └── Strata.Description\n    └── Strata.Body\n```",
@@ -1985,7 +1985,7 @@
     "category": "Forms",
     "status": "stable",
     "importPath": "@ngrok/mantle/switch",
-    "summary": "A form control that toggles one setting on or off. Unlike Checkbox, it has no indeterminate state.",
+    "summary": "A form control that toggles one setting on or off.",
     "jsdoc": "A form control that toggles one setting on or off.",
     "examples": [
       "```tsx\n<form>\n  <Label htmlFor=\"airplane-mode\" className=\"flex items-center gap-2\">\n    Airplane Mode\n    <Switch name=\"airplane-mode\" id=\"airplane-mode\" />\n  </Label>\n</form>\n```"
@@ -2210,7 +2210,7 @@
     "category": "Data Display",
     "status": "stable",
     "importPath": "@ngrok/mantle/truncated-text",
-    "summary": "Renders one long opaque value on a single line and keeps its tail visible when it overflows.",
+    "summary": "Renders one long opaque value, such as a URL, a resource ID, a container image reference, or a token, on a single line and keeps its tail visible when it overflows.",
     "jsdoc": "Renders one long opaque value (a URL, a resource ID, an image reference, a token) on a single line.",
     "examples": [
       "```tsx\nimport { TruncatedText } from \"@ngrok/mantle/truncated-text\";\n\n// A URL whose last path segment tells it apart from its neighbors.\n<TruncatedText\n  className=\"font-mono text-sm\"\n  value=\"https://example.ngrok.app/api/items?filter=%7B%22name%22%3A%22x%22%7D&limit=200\"\n/>\n\n// Keep the six characters that tell two IDs apart.\n<TruncatedText className=\"font-mono text-sm\" tail={6} value=\"ep_2abcdEFGhijKL123456\" />\n\n// Show an ID as its type prefix, an ellipsis, and its last eight characters.\n<TruncatedText className=\"font-mono text-sm\" head={4} value=\"mem_21h80N9qQuAmhSB8nlTA8KImPbQ\" />\n\n// Mute the type prefix and the ellipsis, and keep the tail at body color.\n<TruncatedText\n  className=\"font-mono text-sm *:data-[slot=truncated-text-head]:text-muted *:data-[slot=truncated-text-tail]:text-body\"\n  head={4}\n  value=\"mem_21h80N9qQuAmhSB8nlTA8KImPbQ\"\n/>\n\n// As a <code> element.\n<TruncatedText asChild tail={12} value=\"ghcr.io/ngrok/ngrok-operator:0.14.0\">\n  <code />\n</TruncatedText>\n```"

@@ -102,7 +102,7 @@ When line numbers are shown, the gutter (numbers and fold toggles) stays pinned 
 						Promise.resolve().then(() => {
 							console.log("url:", server.tunnel.url());
 						});
-					}, timeout);
+					}, 1000);
 				});
 				// Consumes authtoken from env automatically
 				ngrok.listen(server).then(() => {
@@ -547,7 +547,7 @@ Pass options to `mantleCode()` to set the indentation, the first line number, th
 						Promise.resolve().then(() => {
 							console.log("url:", server.tunnel.url());
 						});
-					}, timeout);
+					}, 1000);
 				});
 				// Consumes authtoken from env automatically
 				ngrok.listen(server).then(() => {

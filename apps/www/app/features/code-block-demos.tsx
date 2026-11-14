@@ -133,7 +133,7 @@ export function HorizontalScrollingDemo() {
 									Promise.resolve().then(() => {
 										console.log("url:", server.tunnel.url());
 									});
-								}, timeout);
+								}, 1000);
 							});
 							// Consumes authtoken from env automatically
 							ngrok.listen(server).then(() => {
@@ -628,7 +628,7 @@ export function OverriddenOptionsDemo() {
 									Promise.resolve().then(() => {
 										console.log("url:", server.tunnel.url());
 									});
-								}, timeout);
+								}, 1000);
 							});
 							// Consumes authtoken from env automatically
 							ngrok.listen(server).then(() => {

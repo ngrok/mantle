@@ -117,7 +117,7 @@ Give each surface one theme control. Two controls for one preference in one view
 | A site header or a toolbar         | `ThemeSwitcher`                                                                        |
 | A signed-out page, such as sign-in | `ThemeSwitcher` in the layout footer                                                   |
 | An app account menu                | [`ThemeDropdownMenuItem`](#embedding-in-an-existing-menu) at the top level of the menu |
-| An app settings page               | Your own radio group over [`useTheme`](/components/primitives/theme#usage)             |
+| An app settings page               | Your own radio group over [`useTheme`](/components/primitives/theme)                   |
 
 In a signed-in app, put the control in the account menu, and leave `ThemeSwitcher` out of the app chrome.
 
@@ -266,7 +266,7 @@ export function ThemeItem() {
 
 ## Polymorphism
 
-`ThemeSwitcher`, `ThemeDropdownMenuItem`, and `ThemeSwitcherIcon` don't accept `asChild`. Each owns what it renders: the switcher renders only its icon, the item renders a `DropdownMenu.Item`, and the icon renders only the icon swap. To use your own menu item, call [`useThemeToggle`](#wiring-your-own-menu-item). To use your own control of another kind, call [`useTheme`](/components/primitives/theme#usage).
+`ThemeSwitcher`, `ThemeDropdownMenuItem`, and `ThemeSwitcherIcon` don't accept `asChild`. Each owns what it renders: the switcher renders only its icon, the item renders a `DropdownMenu.Item`, and the icon renders only the icon swap. To use your own menu item, call [`useThemeToggle`](#wiring-your-own-menu-item). To use your own control of another kind, call [`useTheme`](/components/primitives/theme).
 
 ## Accessibility
 
