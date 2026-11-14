@@ -50,6 +50,9 @@ import { ChartTooltipSurface } from "./tooltip.js";
 /** The `style` identity a Root with no inline style keys its color effect on. */
 const NO_STYLE: CSSProperties = {};
 
+/** A touch press that moves this many CSS pixels is a scrub, not a tap. */
+const TOUCH_SLOP = 10;
+
 /**
  * Root props shared by every chart kind, WITHOUT the accessibility/interaction
  * union or the data/x props. Public wrappers `Omit` from this base and
@@ -417,6 +420,8 @@ const ChartRootPrimitive = ({
 	/** Removes the document listener that hides a touch tooltip on a press outside the chart. */
 	const stopTouchDismissRef = useRef<(() => void) | null>(null);
 	useLayoutEffect(() => () => stopTouchDismissRef.current?.(), []);
+	/** Where the current touch press began, and whether it moved past `TOUCH_SLOP`. */
+	const touchPressRef = useRef<{ x: number; y: number; scrubbed: boolean } | null>(null);
 	// The observer's latest reports, kept for an engine created later, and
 	// whether focus holds the chart painted wherever it is.
 	const visibilityRef = useRef<ChartVisibility>({
@@ -798,10 +803,11 @@ const ChartRootPrimitive = ({
 								// Why touch-pan-y on 2D charts: a horizontal finger drag must
 								// scrub the tooltip, and with the default the browser claims
 								// that drag as a pan and cancels the pointer. A vertical drag
-								// still scrolls the page. 3D takes every gesture for rotation.
+								// still scrolls the page, and a pinch still zooms it. 3D takes
+								// every gesture for rotation.
 								kind === "scatter" && zKey != null
 									? "touch-none cursor-grab active:cursor-grabbing"
-									: "touch-pan-y",
+									: "touch-pan-y touch-pinch-zoom",
 							)}
 							onPointerDown={(event) => {
 								// Why: the middle and the right button belong to the browser, so
@@ -825,7 +831,9 @@ const ChartRootPrimitive = ({
 									const overlay = event.currentTarget;
 									const doc = overlay.ownerDocument;
 									const onPress = (press: PointerEvent) => {
-										if (press.target instanceof Node && overlay.contains(press.target)) {
+										// Why composedPath: in a shadow root, the document sees the
+										// host as the target, not the overlay.
+										if (press.composedPath().includes(overlay)) {
 											return;
 										}
 										stopTouchDismissRef.current?.();
@@ -837,6 +845,14 @@ const ChartRootPrimitive = ({
 										stopTouchDismissRef.current = null;
 									};
 								}
+								touchPressRef.current =
+									event.pointerType === "touch"
+										? {
+												x: event.nativeEvent.offsetX,
+												y: event.nativeEvent.offsetY,
+												scrubbed: false,
+											}
+										: null;
 								// A press can land before the chart's queued activation slice
 								// runs, and pointer-up activates only a press the engine saw.
 								// The plot rect sizes it now; the resize observer reports a
@@ -850,18 +866,32 @@ const ChartRootPrimitive = ({
 								);
 							}}
 							onPointerMove={(event) => {
+								const press = touchPressRef.current;
+								if (
+									press != null &&
+									Math.hypot(
+										event.nativeEvent.offsetX - press.x,
+										event.nativeEvent.offsetY - press.y,
+									) > TOUCH_SLOP
+								) {
+									press.scrubbed = true;
+								}
 								engineRef.current?.handlePointerMove(
 									event.nativeEvent.offsetX,
 									event.nativeEvent.offsetY,
 								);
 							}}
 							onPointerUp={(event) => {
+								// Why: a finger scrubs to read the tooltip, so the datum where a
+								// scrub lifts must not activate. A lift off the plot is a scrub too.
+								const scrubbed = touchPressRef.current?.scrubbed === true;
+								touchPressRef.current = null;
 								engineRef.current?.handlePointerUp(
 									event.nativeEvent.offsetX,
 									event.nativeEvent.offsetY,
 									// Why: a press of two buttons ends on the one released last,
 									// and the engine must still end the press.
-									{ activate: event.button === 0 },
+									{ activate: event.button === 0 && !scrubbed },
 								);
 							}}
 							onPointerLeave={(event) => {
