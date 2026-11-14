@@ -11,7 +11,7 @@ vi.mock("~/components/command-palette-dialog", () => {
 });
 
 describe("CommandPalette when the dialog fails to load", () => {
-	it("keeps the page and shows an error toast", async () => {
+	it("stays silent until the palette opens, then keeps the page and shows an error toast", async () => {
 		const Stub = createRoutesStub([
 			{
 				path: "*",
@@ -24,6 +24,17 @@ describe("CommandPalette when the dialog fails to load", () => {
 			},
 		]);
 		render(<Stub />);
+		const toastText = "Search failed to load. Reload the page to try again.";
+		// Why: the dialog loads, and fails, after hydration. That failure must stay
+		// silent, so a `waitFor` for the toast must time out.
+		await expect(
+			waitFor(
+				() => {
+					expect(screen.queryByText(toastText)).not.toBeNull();
+				},
+				{ timeout: 500 },
+			),
+		).rejects.toThrow("expected null not to be null");
 
 		const [trigger] = screen.getAllByRole("button", { name: /search mantle/i });
 		if (trigger == null) {
@@ -32,9 +43,7 @@ describe("CommandPalette when the dialog fails to load", () => {
 		fireEvent.click(trigger);
 
 		await waitFor(() => {
-			expect(
-				screen.queryByText("Search failed to load. Reload the page to try again."),
-			).not.toBeNull();
+			expect(screen.queryByText(toastText)).not.toBeNull();
 		});
 		expect(screen.getAllByRole("button", { name: /search mantle/i })).toHaveLength(2);
 	});
