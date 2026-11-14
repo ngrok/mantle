@@ -74,11 +74,7 @@ window.alert(`Submitted: ${JSON.stringify(value, null, 2)}`);
 
 # Radio Group
 
-A set of checkable buttons (known as radio buttons) where no more than one of the buttons can be checked at a time.
-
-For a few short options in one row, like a view or an environment switch, use [`SegmentedControl`](/components/forms/segmented-control). It is built on the same radio primitive.
-
-Pair with `Field.Set` and `Field.Legend` for grouped label/description/error wiring in forms. `RadioGroup` keeps its own `name` prop on `RadioGroup.Root`:
+A set of checkable buttons (known as radio buttons) where no more than one of the buttons can be checked at a time. Wrap it in `Field.Set` and `Field.Legend` to label the group in a form, and set `name` on `RadioGroup.Root`.
 
 <Example>
 	<Field.Set>
@@ -124,6 +120,14 @@ import { RadioGroup } from "@ngrok/mantle/radio-group";
 	<Field.Description>Choose the row spacing for tables.</Field.Description>
 </Field.Set>;
 ```
+
+## When to use
+
+- Pick exactly one value from a few fixed options, with every option visible at once.
+- Prefer [`Select`](/components/forms/select) when the set is long, or the form has little space.
+- Prefer [`Checkbox`](/components/forms/checkbox) when the user picks any number of options.
+- Prefer [`Choice`](/components/forms/choice) when each radio needs a title and a description beside it. See [Rich option layout](#rich-option-layout-with-choice).
+- Prefer [`SegmentedControl`](/components/forms/segmented-control) for a few short options in one row, like a view or an environment switch. It builds on the same radio primitive.
 
 ## List
 
@@ -309,6 +313,8 @@ import { RadioGroup } from "@ngrok/mantle/radio-group";
 Use **`Choice.Title`** here, not `Choice.Label`: the whole `RadioGroup.Item` is the click target, and a `<label htmlFor>` can't associate with the radio's `role="radio"` element. Inside any radio item (`Item`, `ListItem`, `Card`, or `Button`), `Choice.Title` and `Choice.Description` register their ids with the radio. The radio's `aria-labelledby` points at the title, so the option's accessible name is the title alone, and its `aria-describedby` points at the description. Without that wiring, `role="radio"` would flatten both texts into one name. A plain `RadioGroup.ItemContent` has no title or description part to register, so its text still reads as one name; reach for `Choice` when the option carries helper text.
 
 Give the `RadioGroup` itself an accessible name (an `aria-label`, as above, or a `Field.Set` / `Field.Legend` wrapper) so the group is announced as a named set rather than an anonymous `radiogroup`.
+
+### Inside a Field.Set
 
 To bind the same group into a form, wrap it in a `Field.Set` / `Field.Legend`: the legend names the set, and keeping `aria-label` on `RadioGroup.Root` names the inner `radiogroup` role too.
 

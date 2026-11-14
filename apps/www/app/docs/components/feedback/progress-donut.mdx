@@ -48,11 +48,9 @@ export const DynamicColorsExample = () => {
 
 # Progress Donut
 
-Displays an indicator showing the completion progress of a task as a circular progress bar.
+Displays an indicator showing the completion progress of a task as a circular progress bar. Give `ProgressDonut.Root` an `aria-label`, or a screen reader announces a bare "progress bar".
 
-The indicator color is inherited via `currentColor`. Override the default (`accent-600`) by setting the `ProgressDonut.Indicator`'s text color.
-
-<Example className="flex-col gap-6">
+<Example>
 	<ProgressDonut.Root
 		aria-label="Task progress"
 		value={60}
@@ -61,6 +59,31 @@ The indicator color is inherited via `currentColor`. Override the default (`acce
 	>
 		<ProgressDonut.Indicator />
 	</ProgressDonut.Root>
+</Example>
+
+```tsx
+import { ProgressDonut } from "@ngrok/mantle/progress";
+
+<ProgressDonut.Root
+	aria-label="Task progress"
+	value={60}
+	className="size-10"
+	strokeWidth="0.375rem"
+>
+	<ProgressDonut.Indicator />
+</ProgressDonut.Root>;
+```
+
+## When to use
+
+- Show how much of a task or a quota is complete, as a small circle.
+- Prefer [`ProgressBar`](/components/feedback/progress-bar) when the indicator is a horizontal bar.
+
+## Indicator color
+
+The indicator color is inherited via `currentColor`. Override the default (`accent-600`) by setting the `ProgressDonut.Indicator`'s text color.
+
+<Example>
 	<ProgressDonut.Root
 		aria-label="Task progress"
 		value={60}
@@ -69,6 +92,26 @@ The indicator color is inherited via `currentColor`. Override the default (`acce
 	>
 		<ProgressDonut.Indicator className="text-fuchsia-600" />
 	</ProgressDonut.Root>
+</Example>
+
+```tsx
+import { ProgressDonut } from "@ngrok/mantle/progress";
+
+<ProgressDonut.Root
+	aria-label="Task progress"
+	value={60}
+	className="size-10"
+	strokeWidth="0.375rem"
+>
+	<ProgressDonut.Indicator className="text-fuchsia-600" />
+</ProgressDonut.Root>;
+```
+
+## With a label
+
+Put a short label beside a small donut to show the usage of each item in a list.
+
+<Example>
 	<div className="flex flex-col gap-2">
 		<div className="flex items-center gap-1.5 text-sm">
 			<ProgressDonut.Root aria-label="Data transfer out" value={100} className="size-6">
@@ -93,8 +136,8 @@ The indicator color is inherited via `currentColor`. Override the default (`acce
 			<div className="grid w-6 place-items-center">
 				<ProgressDonut.Root
 					aria-label="Additional"
-					className="size-4"
 					value={25}
+					className="size-4"
 					strokeWidth="0.1875rem"
 				>
 					<ProgressDonut.Indicator />
@@ -108,14 +151,6 @@ The indicator color is inherited via `currentColor`. Override the default (`acce
 ```tsx
 import { ProgressDonut } from "@ngrok/mantle/progress";
 
-<ProgressDonut.Root aria-label="Task progress" value={60} className="size-10" strokeWidth="0.375rem">
-	<ProgressDonut.Indicator />
-</ProgressDonut.Root>
-
-<ProgressDonut.Root aria-label="Task progress" value={60} className="size-10" strokeWidth="0.375rem">
-	<ProgressDonut.Indicator className="text-fuchsia-600" />
-</ProgressDonut.Root>
-
 <div className="flex flex-col gap-2">
 	<div className="flex items-center gap-1.5 text-sm">
 		<ProgressDonut.Root aria-label="Data transfer out" value={100} className="size-6">
@@ -123,25 +158,33 @@ import { ProgressDonut } from "@ngrok/mantle/progress";
 		</ProgressDonut.Root>
 		Data transfer out
 	</div>
-
 	<div className="flex items-center gap-1.5 text-xs">
 		<div className="grid w-6 place-items-center">
-			<ProgressDonut.Root aria-label="Included" value={100} className="size-4" strokeWidth="0.1875rem">
+			<ProgressDonut.Root
+				aria-label="Included"
+				value={100}
+				className="size-4"
+				strokeWidth="0.1875rem"
+			>
 				<ProgressDonut.Indicator />
 			</ProgressDonut.Root>
 		</div>
 		Included
 	</div>
-
 	<div className="flex items-center gap-1.5 text-xs">
 		<div className="grid w-6 place-items-center">
-			<ProgressDonut.Root aria-label="Additional" value={25} className="size-4" strokeWidth="0.1875rem">
-				<ProgressDonut.Indicator className="text-success-600" />
+			<ProgressDonut.Root
+				aria-label="Additional"
+				value={25}
+				className="size-4"
+				strokeWidth="0.1875rem"
+			>
+				<ProgressDonut.Indicator />
 			</ProgressDonut.Root>
 		</div>
 		Additional
 	</div>
-</div>
+</div>;
 ```
 
 ## Accessibility

@@ -19,20 +19,7 @@ import {
 
 <PageHeader id="alert-center">Alert Center</PageHeader>
 
-A single, top-level entry point for one-to-many account alerts (usage limits, hard limits, billing
-problems) and the upgrade CTAs that resolve them. It replaces a stack of independent window banners with
-**one** severity-colored bar that surfaces the highest-priority alert inline (its message _and_ its
-call-to-action), plus a compact count-and-caret trigger that expands the remaining alerts as full-width banners,
-ranked by severity.
-
-Compose it into [`AppLayout.Notice`](/layouts/app-layout#applayoutnotice), the single top-of-window
-composition slot for app-wide messaging. Alerts are **authored as JSX**: each `AlertCenter.Item` composes
-the normal [`Alert`](/components/feedback/alert) banner parts as children and registers its coordination
-facts (`id`, `intent`) with the center, which derives the count, the top alert, and the
-severity ranking from the registrations. Mount an item to show its alert; unmount it to dismiss — dismissal
-is your state flipping a condition off. The demo runs in its own framed document. Choose the
-count-and-caret control to expand or collapse the full-width banners, or dismiss alerts (including the top
-one) to watch the next-highest severity promote into the bar.
+A single top-level bar that surfaces one-to-many account alerts and their upgrade CTAs, expanding additional alerts inline. Compose it into [`AppLayout.Notice`](/layouts/app-layout#applayoutnotice), and author each alert as an `AlertCenter.Item` with the [`Alert`](/components/feedback/alert) banner parts as its children.
 
 <CodeExample.Root>
 	<CodeExample.PreviewFrame example="alert-center-shell" title="Alert Center app shell demo" />
@@ -115,6 +102,13 @@ export function Shell() {
 
 </CodeExample.Root>
 
+## When to use
+
+- Show persistent account-level alerts, such as usage limits, hard limits, and billing problems, with the upgrade CTAs that resolve them.
+- Replace a stack of independent window banners with one severity-colored bar at the top of the app.
+- Prefer [`Alert`](/components/feedback/alert) when one message sits inline, and you place and control it yourself.
+- Prefer [`Toast`](/components/feedback/toast) when the message is brief and goes away on its own.
+
 ## Composition
 
 Compose the parts of an `AlertCenter` together to build your own. Items render `null` in place; their
@@ -150,6 +144,10 @@ the registered items' projected children. The element a consumer actually wants 
 banner chrome, an `Alert.Root` whose parts you already author as that item's children.
 
 ## How it works
+
+The demo at the top of the page runs in its own framed document. Choose the count-and-caret control to expand
+or collapse the full-width banners, or dismiss alerts (the top one too) to see the next-highest severity move
+into the bar.
 
 - **The bar surfaces the top alert inline.** `AlertCenter.Bar` renders the highest-severity item's authored
   children (icon, title, description, and call-to-action) directly in the strip, so the most urgent CTA is

@@ -65,9 +65,7 @@ export function TanStackFormExample() {
 
 # Slider
 
-An input where the user selects a value from within a given range.
-
-Pair with `Field.*` for description/error wiring in forms. Pass `aria-label` to `Slider` so the rendered thumb has an accessible name:
+An input where the user selects a value from within a given range. Pass `aria-label` to `Slider`, also inside a `Field`, so the thumb has an accessible name.
 
 <Example>
 	<Field.Item name="volume">
@@ -92,11 +90,31 @@ import { Slider } from "@ngrok/mantle/slider";
 </Field.Item>;
 ```
 
-Or render the control on its own:
+## When to use
 
-<Example className="flex-col gap-6">
-	<Slider aria-label="Volume" defaultValue={67} max={100} step={1} />
+- Pick a number, or a range between two numbers, with a thumb that moves along a track.
+- Pair it with `Field` to connect a description and errors in a form.
+- Prefer [`Input`](/components/forms/input) when the user types an exact number.
+
+## Disabled
+
+Set `disabled` to stop the user from changing the value.
+
+<Example>
 	<Slider aria-label="Disabled volume" defaultValue={67} max={100} step={1} disabled />
+</Example>
+
+```tsx
+import { Slider } from "@ngrok/mantle/slider";
+
+<Slider aria-label="Disabled volume" defaultValue={67} max={100} step={1} disabled />;
+```
+
+## Vertical
+
+Set `orientation="vertical"` to draw the track vertically.
+
+<Example>
 	<Slider
 		aria-label="Vertical volume"
 		defaultValue={67}
@@ -109,9 +127,7 @@ Or render the control on its own:
 ```tsx
 import { Slider } from "@ngrok/mantle/slider";
 
-<Slider aria-label="Volume" defaultValue={67} max={100} step={1} />
-<Slider aria-label="Disabled volume" defaultValue={67} max={100} step={1} disabled />
-<Slider aria-label="Vertical volume" defaultValue={67} max={100} step={1} orientation="vertical" />
+<Slider aria-label="Vertical volume" defaultValue={67} max={100} step={1} orientation="vertical" />;
 ```
 
 ## Examples

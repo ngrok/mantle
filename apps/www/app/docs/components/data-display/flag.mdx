@@ -9,12 +9,26 @@ import { Example } from "~/components/example";
 
 # Flag
 
-Renders a country flag from an [ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) country code, served as an SVG from ngrok's CDN.
+Displays a flag as an SVG for the country code you pass. The `code` prop takes an [ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) country code, such as `US`.
+
+<Example className="gap-4">
+	<Flag code="US" />
+	<Flag code="JP" />
+	<Flag code="BR" />
+</Example>
+
+```tsx
+import { Flag } from "@ngrok/mantle/flag";
+
+<Flag code="US" />
+<Flag code="JP" />
+<Flag code="BR" />
+```
 
 ## When to use
 
-- Showing the country associated with a region, IP, billing address, or locale.
-- Inside a select option, list row, or status pill that needs a quick visual cue.
+- Show the country of a region, an IP address, a billing address, or a locale.
+- Give a select option, a list row, or a status pill a quick visual cue.
 
 ## When not to use
 
@@ -31,7 +45,7 @@ The underlying `<img>` is given `alt="flag for {code}"`. If the country is decor
 
 ## Loading
 
-Defaults to `loading="lazy"`. Use `loading="eager"` for flags above the fold or in critical content.
+The SVG loads from ngrok's CDN. `Flag` defaults to `loading="lazy"`. Use `loading="eager"` for flags above the fold or in critical content.
 
 <Example className="flex-col gap-6">
 	<Flag code="US" />

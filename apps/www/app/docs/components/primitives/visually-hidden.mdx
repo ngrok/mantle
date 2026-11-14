@@ -10,19 +10,7 @@ import { Example } from "~/components/example";
 
 # Visually Hidden
 
-Content for assistive technology only. `VisuallyHidden` renders a native `<span>` clipped to a one-pixel box (the `sr-only` technique, never `display: none`). Screen readers read the content; sighted users never see it. The content also stays in copied and searched text.
-
-**When to use**
-
-- State context the visual design already carries: "(opens in a new tab)" on an external link, a caption on a layout table.
-- Give a screen reader a text alternative for content it cannot read, such as a decorative chart.
-- Style the message of a [`LiveRegion`](/components/primitives/live-region), which builds on the same technique.
-
-**When not to use**
-
-- To name an icon-only control. Voice-control software skips a control whose only label is hidden DOM text, so use `aria-label`, as [`IconButton`](/components/actions/icon-button)'s required `label` prop does.
-- To hide content from assistive technology too. Use the `hidden` attribute or `aria-hidden`.
-- For a link that appears on focus. Use [`SkipToMainLink`](/components/primitives/skip-to-main-link).
+Render content that screen readers announce and sighted users never see.
 
 <Example>
 	<p>
@@ -48,6 +36,15 @@ import { VisuallyHidden } from "@ngrok/mantle/visually-hidden";
 	before you file an incident.
 </p>;
 ```
+
+## When to use
+
+- State context the visual design already carries: "(opens in a new tab)" on an external link, a caption on a layout table.
+- Give a screen reader a text alternative for content it cannot read, such as a decorative chart.
+- Style the message of a [`LiveRegion`](/components/primitives/live-region), which builds on the same technique.
+- Prefer `aria-label` to name an icon-only control, as [`IconButton`](/components/actions/icon-button)'s required `label` prop does. Voice-control software skips a control whose only label is hidden DOM text.
+- Prefer the `hidden` attribute or `aria-hidden` to hide content from assistive technology too.
+- Prefer [`SkipToMainLink`](/components/primitives/skip-to-main-link) for a link that appears on focus.
 
 ## Polymorphism
 
@@ -102,6 +99,10 @@ import { VisuallyHidden } from "@ngrok/mantle/visually-hidden";
 	</tbody>
 </table>;
 ```
+
+## How it hides content
+
+`VisuallyHidden` renders a native `<span>` clipped to a one-pixel box (the `sr-only` technique, never `display: none`). Screen readers read the content, and sighted users never see it. The content also stays in copied and searched text.
 
 ## API Reference
 

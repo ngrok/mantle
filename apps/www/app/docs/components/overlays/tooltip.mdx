@@ -12,18 +12,6 @@ import { Example } from "~/components/example";
 
 A popup that displays information related to an element when the element receives keyboard focus or the mouse hovers over it.
 
-## When to use
-
-A `Tooltip` shows a short, non-interactive label when a control receives keyboard focus or a pointer hover. Reach for it to clarify the purpose of an icon-only button, surface a keyboard shortcut, or show a brief hint about a control. Do NOT put buttons, links, or form controls inside a `Tooltip`.
-
-- Prefer [`Popover`](/components/overlays/popover) when the floating content needs buttons, links, inputs, or anything else focusable.
-- Prefer [`HoverCard`](/components/overlays/hover-card) for a sighted-only preview of content that already lives behind a link.
-
-Mount `TooltipProvider` once at the app root when you want shared tooltip behavior, such as consistent delay and hover settings.
-
-> [!WARNING]
-> Per the [WAI-ARIA tooltip pattern](https://www.w3.org/WAI/ARIA/apg/patterns/tooltip/), tooltips must not contain interactive or focusable content: the tooltip itself never receives focus, so anything inside it is unreachable for keyboard users. If the floating content needs to be interactive, use [`Popover`](/components/overlays/popover) instead.
-
 <Example>
 	<Tooltip.Root>
 		<Tooltip.Trigger asChild>
@@ -53,6 +41,14 @@ import { Tooltip } from "@ngrok/mantle/tooltip";
 </Tooltip.Root>;
 ```
 
+## When to use
+
+- Show a short, non-interactive label when a control receives keyboard focus or a pointer hover.
+- Clarify the purpose of an icon-only button.
+- Show a keyboard shortcut or a brief hint about a control.
+- Prefer [`Popover`](/components/overlays/popover) when the floating content needs buttons, links, inputs, or anything else focusable.
+- Prefer [`HoverCard`](/components/overlays/hover-card) for a sighted-only preview of content that already lives behind a link.
+
 ## Layering and z-index
 
 `Tooltip.Content` renders at Tailwind `z-50`, Mantle's float tier. When composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into that overlay's positioner and paints above the overlay that owns it. Outside every overlay, it portals to `document.body`, below the overlay tier (`z-60`). When sibling floats share a container, the most recently mounted float paints on top.
@@ -79,6 +75,11 @@ Tooltip.Root
 
 > [!WARNING]
 > `Tooltip.Content` does not take `asChild`. The content renders its own arrow alongside your children, so a slot would receive more than the single element it requires. Style `Tooltip.Content` with `className` instead.
+
+## Accessibility
+
+> [!WARNING]
+> Per the [WAI-ARIA tooltip pattern](https://www.w3.org/WAI/ARIA/apg/patterns/tooltip/), tooltips must not contain interactive or focusable content: the tooltip itself never receives focus, so anything inside it is unreachable for keyboard users. If the floating content needs to be interactive, use [`Popover`](/components/overlays/popover) instead.
 
 ## API Reference
 

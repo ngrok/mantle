@@ -117,13 +117,7 @@ export function AvatarLinkExample() {
 
 # Avatar
 
-A small image representing a person or an account, with a text or icon fallback for when there is no picture —
-or before one loads.
-
-The shape carries the meaning. `appearance="circle"` is a person; `appearance="square"` (a rounded square)
-is one of the things people belong to: an account, workspace, team, or organization. A row that shows both, an
-account switcher with the signed-in user's photo beside it, stays readable without labels because the two never
-look alike.
+A small image representing a person or an account, with a text or icon fallback. Pick the shape by subject: `appearance="circle"` is a person, and `appearance="square"` is an account, workspace, team, or organization.
 
 <Example className="p-4 md:p-8">
 	<AvatarExample />
@@ -157,6 +151,13 @@ export function AccountAndUserAvatars() {
 	);
 }
 ```
+
+## When to use
+
+- Show a small picture of a person or an account.
+- Show initials or an icon when there is no picture, or while the picture loads.
+- Prefer [`MediaObject`](/components/structure/media-object) to put the picture beside a title and a description.
+- Prefer [`Icon`](/components/data-display/icon) when the image is a generic symbol, not a person or an account.
 
 ## Composition
 

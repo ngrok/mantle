@@ -12,15 +12,7 @@ import { CodeExample } from "~/components/code-example";
 
 # Command
 
-A command palette that allows users to search and execute commands. Built on top of [cmdk](https://cmdk.paco.me/).
-
-`Command.DialogRoot` owns the palette: its open state, its query text, and the `⌘K` shortcut. `Command.SearchTrigger` wraps whatever control opens it and makes that control behave like a search field: typing or pasting into it opens the palette with your text already in the query. It renders no DOM of its own, so the appearance is always the child's: in a sidebar that child is [`Sidebar.SearchTrigger`](https://mantle.ngrok.com/components/navigation/sidebar#sidebarsearchtrigger), which owns how the row looks in both panel states.
-
-For a text field that filters options in place rather than opening a modal, the component is [Combobox](https://mantle.ngrok.com/components/forms/combobox), not this one.
-
-### Search trigger example
-
-`Command.SearchTrigger` gives its child the dialog wiring and the typing behavior. Give the button focus and start typing: the palette opens seeded with what you typed. Pasting works too.
+A command palette that allows users to search and execute commands, built on top of [cmdk](https://cmdk.paco.me/). `Command.SearchTrigger` wraps the control that opens the palette and gives it the dialog wiring and the typing behavior.
 
 <Example className="flex flex-col gap-6">
 	<CommandSearchTriggerDemo />
@@ -82,10 +74,15 @@ function SearchPalette() {
 }
 ```
 
-> [!NOTE]
-> The demos on this page pass `keyboardShortcut={false}` because this documentation site binds `⌘K` to its own search palette and two palettes must not answer one chord. Leave it at its default in your app.
+## When to use
 
-### Inline example
+- Search for an action or a page and run it from a keyboard-first palette, such as a `⌘K` menu.
+- Open the palette from a search field. Give the trigger focus and start typing: the palette opens with what you typed already in the query. Pasting works too.
+- Show the same list and filtering [inline](#inline-palette), without a dialog around it.
+- Prefer [`Combobox`](/components/forms/combobox) for a text field that filters options in place and sets a form value, rather than opening a modal.
+- Prefer [`DropdownMenu`](/components/overlays/dropdown-menu) for a short list of actions that opens from one button.
+
+## Inline palette
 
 `Command.Root` is the always-visible palette: the same list and filtering without a dialog around it.
 
@@ -152,7 +149,7 @@ import { CalculatorIcon, CalendarIcon, SmileyIcon, UserIcon } from "@phosphor-ic
 </Command.Root>;
 ```
 
-### Button trigger example
+## Button trigger
 
 When the trigger should not behave like a search field at all, use `Command.DialogTrigger` with your own element. It carries no typing behavior; wrap the element in `Command.SearchTrigger` instead when it should.
 
@@ -207,6 +204,8 @@ function ButtonTriggerPalette() {
 
 ## Composition
 
+`Command.DialogRoot` owns the palette: its open state, its query text, and the `⌘K` shortcut. `Command.SearchTrigger` wraps whatever control opens it and makes that control behave like a search field: typing or pasting into it opens the palette with your text already in the query. It renders no DOM of its own, so the appearance is always the child's: in a sidebar that child is [`Sidebar.SearchTrigger`](https://mantle.ngrok.com/components/navigation/sidebar#sidebarsearchtrigger), which owns how the row looks in both panel states.
+
 Compose the parts of a `Command` together to build your own. `Command.SearchTrigger` and `Command.DialogTrigger` are alternatives; use one or the other, not both:
 
 ```text showLineNumbers=false
@@ -237,6 +236,9 @@ The common case is `Command.Item asChild` with an `<a>` or a router `Link`, so s
 ## The keyboard shortcut
 
 `Command.DialogRoot` binds `⌘K` on macOS and `Ctrl+K` everywhere else, and toggles the palette. You do not need a hotkey library, and you should not add one.
+
+> [!NOTE]
+> The demos on this page pass `keyboardShortcut={false}` because this documentation site binds `⌘K` to its own search palette and two palettes must not answer one chord. Leave it at its default in your app.
 
 It lives on the root rather than on the trigger because the trigger can be unmounted while the shortcut must still work: a sidebar rendered as a mobile sheet unmounts its whole tree when the sheet is closed.
 

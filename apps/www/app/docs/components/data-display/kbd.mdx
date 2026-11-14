@@ -9,18 +9,7 @@ import { Example } from "~/components/example";
 
 # Kbd
 
-A square, centered keyboard "key" chip for rendering shortcut hints — `K`, `⌘`, `⌃`, `Enter`. Renders a native `<kbd>` element so screen readers announce it as keyboard input. Sized so letters and modifier symbols share a consistent visual height, width, and baseline.
-
-## When to use
-
-- Documenting keyboard shortcuts in copy or tooltips.
-- Inside menu items and command palettes alongside the action label.
-- Inline with prose: "Press <Kbd>K</Kbd> to open search."
-
-## When not to use
-
-- For arbitrary monospace text — use [`Code`](/components/data-display/code).
-- For chord-style multi-key shortcuts as a single chip — render multiple `<Kbd>` elements separated by `+` text instead.
+A square, centered keyboard "key" chip for rendering keyboard shortcut hints, such as `K`, `⌘`, `⌃`, or `Enter`. For a symbol key, put a visually hidden label inside the `Kbd` and mark the glyph `aria-hidden`.
 
 <Example>
 	<div className="flex items-center gap-2">
@@ -67,6 +56,18 @@ import { Kbd } from "@ngrok/mantle/kbd";
 	</Kbd>
 </div>;
 ```
+
+## When to use
+
+- Show keyboard shortcuts in copy or tooltips.
+- Show a shortcut beside the action label in a menu item or a command palette.
+- Show a key inline with prose: "Press <Kbd>K</Kbd> to open search."
+- Prefer [`Code`](/components/data-display/code) for a fragment of code or other monospace text.
+- Prefer [`Badge`](/components/data-display/badge) for a status, a category, or a count.
+
+## When not to use
+
+- For a chord-style multi-key shortcut as a single chip. Render multiple `<Kbd>` elements separated by `+` text instead.
 
 ## Keyboard shortcuts
 
@@ -126,9 +127,13 @@ import { Kbd } from "@ngrok/mantle/kbd";
 </div>;
 ```
 
+## Sizing
+
+`Kbd` is sized so letters and modifier symbols share a consistent visual height, width, and baseline.
+
 ## Accessibility
 
-Screen readers do not announce symbol-only glyphs (`⌘`, `⌃`, `↵`) meaningfully. Put a visually hidden label inside the `<Kbd>` and mark the visible glyph `aria-hidden`. Do not set `aria-label` on the `<Kbd>`: `<kbd>` has the `generic` role, which [prohibits naming](https://www.w3.org/TR/wai-aria-1.2/#generic), so a screen reader does not read the label reliably.
+`Kbd` renders a native `<kbd>` element, so screen readers announce it as keyboard input. Screen readers do not announce symbol-only glyphs (`⌘`, `⌃`, `↵`) meaningfully. Put a visually hidden label inside the `<Kbd>` and mark the visible glyph `aria-hidden`. Do not set `aria-label` on the `<Kbd>`: `<kbd>` has the `generic` role, which [prohibits naming](https://www.w3.org/TR/wai-aria-1.2/#generic), so a screen reader does not read the label reliably.
 
 <Example>
 	<div className="flex items-center gap-2">

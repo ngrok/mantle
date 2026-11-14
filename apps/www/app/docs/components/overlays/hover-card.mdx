@@ -15,16 +15,6 @@ import { Example } from "~/components/example";
 
 For sighted users to preview content available behind a link.
 
-## When to use
-
-A `HoverCard` shows a preview of richer content (a user card, link preview, etc.) when a sighted user hovers a link or trigger.
-
-- Prefer [`Tooltip`](/components/overlays/tooltip) for short, non-interactive labels on controls.
-- Prefer [`Popover`](/components/overlays/popover) when the content must be reachable by all users and may contain interactive elements.
-
-> [!WARNING]
-> Do not rely on a `HoverCard` as the only accessible path to important content. Because it opens on pointer hover, it is not a reliable path for keyboard or screen reader users. Any information inside a `HoverCard` must also be available through another fully accessible path (usually the underlying link).
-
 <Example className="gap-2">
 	<HoverCard.Root>
 		<HoverCard.Trigger asChild>
@@ -81,6 +71,12 @@ import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
 </HoverCard.Root>;
 ```
 
+## When to use
+
+- Show a preview of richer content, such as a user card or a link preview, when a sighted user hovers a link or trigger.
+- Prefer [`Tooltip`](/components/overlays/tooltip) for short, non-interactive labels on controls.
+- Prefer [`Popover`](/components/overlays/popover) when the content must be reachable by all users and may contain interactive elements.
+
 ## Arrow
 
 Render `HoverCard.Arrow` as a child of `HoverCard.Content` when the card previews one specific link and needs a tip pointing at it. Radix positions the arrow with floating-ui's arrow middleware, so it stays centered on the trigger when collision detection shifts or flips the content. The arrow's fill and border repaint `HoverCard.Content`'s own edge across its base, so the two edges read as one line. The tip also casts its own shadow, because `shadow-md` on `HoverCard.Content` stops at that content's border and an unshadowed tip reads as pasted on. That shadow is clipped at the base, so it never darkens the content's interior.
@@ -134,6 +130,11 @@ HoverCard.Root
 └── HoverCard.Content
     └── HoverCard.Arrow
 ```
+
+## Accessibility
+
+> [!WARNING]
+> Do not rely on a `HoverCard` as the only accessible path to important content. Because it opens on pointer hover, it is not a reliable path for keyboard or screen reader users. Any information inside a `HoverCard` must also be available through another fully accessible path (usually the underlying link).
 
 ## API Reference
 

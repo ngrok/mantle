@@ -11,29 +11,92 @@ import { Example } from "~/components/example";
 
 Visually or semantically separates content.
 
-## When to use
-
-A `Separator` divides adjacent content without a box, in a row or in a column.
-
-- Prefer [`Card`](/components/structure/card) when the content needs a border on every side.
-- Prefer [`Well`](/components/structure/well) when the content needs a recessed background, not a line.
-- Prefer [`DescriptionList`](/components/data-display/description-list) when the content is key and value pairs, which carry their own rows.
-
 <Example>
-	<div className="space-y-4">
+	<div className="w-full max-w-sm">
 		<div className="space-y-1">
 			<h4 className="text-sm font-medium leading-none">mantle</h4>
 			<p className="text-muted-foreground text-sm">An open-source UI component library.</p>
 		</div>
 		<Separator className="my-4" />
+		<p className="text-sm">Build ngrok interfaces with shared components.</p>
+	</div>
+</Example>
+
+```tsx
+import { Separator } from "@ngrok/mantle/separator";
+
+<div className="w-full max-w-sm">
+	<div className="space-y-1">
+		<h4 className="text-sm font-medium leading-none">mantle</h4>
+		<p className="text-muted-foreground text-sm">An open-source UI component library.</p>
+	</div>
+	<Separator className="my-4" />
+	<p className="text-sm">Build ngrok interfaces with shared components.</p>
+</div>;
+```
+
+## When to use
+
+- Divide adjacent content without a box, in a row or in a column.
+- Put a text label in the middle or at one end of a horizontal divider: wrap the label and the separators in a `HorizontalSeparatorGroup`.
+- Prefer [`Card`](/components/structure/card) when the content needs a border on every side.
+- Prefer [`Well`](/components/structure/well) when the content needs a recessed background, not a line.
+- Prefer [`DescriptionList`](/components/data-display/description-list) when the content is key and value pairs, which carry their own rows.
+
+## Vertical
+
+Set `orientation="vertical"` to divide items in a row. The parent sets the height.
+
+<Example>
+	<div className="flex h-5 items-center gap-4 text-sm">
+		Blog
+		<Separator orientation="vertical" />
+		Docs
+		<Separator orientation="vertical" />
+		Source
+	</div>
+</Example>
+
+```tsx
+import { Separator } from "@ngrok/mantle/separator";
+
+<div className="flex h-5 items-center gap-4 text-sm">
+	Blog
+	<Separator orientation="vertical" />
+	Docs
+	<Separator orientation="vertical" />
+	Source
+</div>;
+```
+
+## Semantic
+
+A separator is decorative by default, and assistive technology skips it. Set `semantic` when the line marks a real boundary between two groups of content: it renders `role="separator"`.
+
+<Example>
+	<div className="w-full max-w-sm text-sm">
+		<p>Account settings</p>
 		<Separator className="my-4" semantic />
-		<div className="flex h-5 items-center gap-4 text-sm">
-			Blog
-			<Separator orientation="vertical" />
-			Docs
-			<Separator orientation="vertical" />
-			Source
-		</div>
+		<p>Danger zone</p>
+	</div>
+</Example>
+
+```tsx
+import { Separator } from "@ngrok/mantle/separator";
+
+<div className="w-full max-w-sm text-sm">
+	<p>Account settings</p>
+	<Separator className="my-4" semantic />
+	<p>Danger zone</p>
+</div>;
+```
+
+## Labeled divider
+
+Wrap a label and one or two separators in a `HorizontalSeparatorGroup` to put the label in the middle or at one end of the line.
+
+<Example>
+	<div className="w-full max-w-sm space-y-4">
 		<HorizontalSeparatorGroup>
 			<Separator />
 			<h3>ngrok mantle</h3>
@@ -53,20 +116,7 @@ A `Separator` divides adjacent content without a box, in a row or in a column.
 ```tsx
 import { HorizontalSeparatorGroup, Separator } from "@ngrok/mantle/separator";
 
-<div>
-	<div className="space-y-1">
-		<h4 className="text-sm font-medium leading-none">mantle</h4>
-		<p className="text-muted-foreground text-sm">An open-source UI component library.</p>
-	</div>
-	<Separator className="my-4" />
-	<Separator className="my-4" semantic />
-	<div className="flex h-5 items-center gap-4 text-sm">
-		Blog
-		<Separator orientation="vertical" />
-		Docs
-		<Separator orientation="vertical" />
-		Source
-	</div>
+<div className="w-full max-w-sm space-y-4">
 	<HorizontalSeparatorGroup>
 		<Separator />
 		<h3>ngrok mantle</h3>

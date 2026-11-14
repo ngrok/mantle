@@ -8,13 +8,7 @@ import { CodeExample } from "~/components/code-example";
 
 # Strata
 
-A page of titled sections, each one explained beside its content. Every section pairs a header — its title and description — with the controls that header describes. `Strata.Root` stacks the sections with a hairline between them. It is the shape of a settings page, a resource configuration editor, and any form long enough that each group needs its own sentence.
-
-Below the `md` breakpoint the header stacks above its own content, so a narrow viewport keeps the pairing rather than squeezing two columns into one. The component owns structure only: the grid, the vertical rhythm, and the rules between sections. Form state, validation, and the controls themselves arrive as composed JSX.
-
-Reach for [Card](/components/structure/card) when a group needs a raised surface of its own, for [Media Object](/components/structure/media-object) when the thing beside the text is an image or an icon, and for [Description List](/components/data-display/description-list) when the pairs are read-only term and value data rather than headed sections.
-
-Each demo below runs in its own framed document, so its media queries track the frame instead of your browser window. Switch the frame to tablet — Tailwind's `md` boundary, where the split is at its narrowest — and then to mobile, where every header stacks above its own controls.
+A page of titled sections, each one explained beside its content: the shape of a settings page or a configuration editor. Each `Strata.Section` pairs a `Strata.Header` (a title and a description) with the `Strata.Body` that the header describes.
 
 <CodeExample.Root>
 	<CodeExample.PreviewFrame example="strata" title="Strata demo" />
@@ -96,6 +90,14 @@ export function AccessKeyConfiguration() {
 
 </CodeExample.Root>
 
+## When to use
+
+- Lay out a settings page or a configuration editor as titled sections, each one explained beside its controls.
+- Lay out a form that is long enough that each group needs its own sentence.
+- Prefer [`Card`](/components/structure/card) when a group needs a raised surface of its own.
+- Prefer [`MediaObject`](/components/structure/media-object) when the thing beside the text is an image or an icon.
+- Prefer [`DescriptionList`](/components/data-display/description-list) when the pairs are read-only term and value data, not headed sections.
+
 ## Composition
 
 ```text showLineNumbers=false
@@ -113,6 +115,8 @@ Strata.Root
 - **`Title`** renders an `<h2>`, one level below the page's `<h1>`. Compose `asChild` when a page nests its sections deeper.
 - **`Description`** is the sentence that says what the section's controls do. Optional — a section whose title says everything may omit it.
 - **`Body`** is the content column: the controls, cards, or table the header describes. Its `gap-4` spaces stacked children, and a consumer's own `gap-*` replaces it.
+
+`Strata` owns only the structure: the grid, the vertical rhythm, and the rules between sections. Form state, validation, and the controls themselves come in as composed JSX.
 
 ## Polymorphism
 
@@ -161,6 +165,10 @@ export function AdvancedSettings() {
 </CodeExample.Root>
 
 ## Column split
+
+Below the `md` breakpoint, the header stacks above its own content. A narrow viewport therefore keeps the pairing, and does not squeeze two columns into one.
+
+Each demo on this page runs in its own framed document, so its media queries follow the frame and not your browser window. Switch the frame to tablet, which is the Tailwind `md` boundary where the split is narrowest. Then switch it to mobile, where every header stacks above its own controls.
 
 At `md` and up, `Section` reads its `grid-template-columns` from `--strata-columns`, defaulting to `minmax(0, 1fr) minmax(0, 2fr)`: a one-to-two split whose tracks shrink below their content, so a long single-line value in `Body` truncates or wraps instead of widening the page. Set the variable on `Root` to re-split every section at once, or on a single `Section` to move only that one — custom properties inherit, so the nearest declaration wins. Keep the `minmax(0, …)` form in an override: a bare `1fr` track grows to its content. Below `md` the variable goes quiet, because the two parts stack in one `minmax(0, 1fr)` track.
 

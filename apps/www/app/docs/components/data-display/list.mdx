@@ -190,7 +190,41 @@ export function ListLinkExample() {
 
 <PageHeader id="list">List</PageHeader>
 
-A scrollable list of clickable rows: the action / navigation counterpart to [`SelectableList`](/components/data-display/selectable-list). Compose `List.Item` rows directly inside a `List.Root`; each is a `<button>` (with `onClick`) or your own element via `asChild` (e.g. an `<a>`), with an optional `current` highlight. It shares `SelectableList`'s look (styled like the [`MultiSelect`](/components/forms/multi-select) popover, with rows that highlight on hover / selection as an inset, rounded pill inside a bordered `bg-popover` container) and suits an account switcher or an SSO provider picker. It renders every row by default; for long lists, swap `Root` → [`VirtualRoot`](#virtualization) to window them.
+A scrollable, optionally-virtualized list of clickable items. Compose `List.Item` rows inside a `List.Root`, and give each row an `onClick`.
+
+<Example>
+	<ListMinimalExample />
+</Example>
+
+```tsx
+import { List } from "@ngrok/mantle/list";
+
+const accounts = [
+	{ id: "personal", name: "Cody Price", plan: "All Subscription" },
+	{ id: "corp", name: "corp@ngrok.com", plan: "Enterprise Subscription" },
+	{ id: "dogfood", name: "dogfood@ngrok.com", plan: "Free" },
+];
+
+<List.Root aria-label="Switch account" className="max-h-80">
+	{accounts.map((account) => (
+		<List.Item key={account.id} onClick={() => {}}>
+			<List.ItemTitle>{account.name}</List.ItemTitle>
+			<List.ItemDescription>{account.plan}</List.ItemDescription>
+		</List.Item>
+	))}
+</List.Root>;
+```
+
+## When to use
+
+- Show a scrollable list of items that each run an action or navigate, such as an account switcher or an SSO provider picker.
+- Show a long list: swap `Root` for [`VirtualRoot`](#virtualization) to window the rows. `Root` renders every row.
+- Prefer [`SelectableList`](/components/data-display/selectable-list) when the user selects rows with checkboxes. `List` is its action and navigation counterpart.
+- Prefer [`DropdownMenu`](/components/overlays/dropdown-menu) when the actions open in a menu from a button.
+
+## Current row
+
+Set `current` on one `List.Item` to highlight it, such as the active account in an account switcher.
 
 <Example>
 	<ListExample />
@@ -222,30 +256,7 @@ function Example() {
 }
 ```
 
-A minimal version (three rows, no `current` state):
-
-<Example>
-	<ListMinimalExample />
-</Example>
-
-```tsx
-import { List } from "@ngrok/mantle/list";
-
-const accounts = [
-	{ id: "personal", name: "Cody Price", plan: "All Subscription" },
-	{ id: "corp", name: "corp@ngrok.com", plan: "Enterprise Subscription" },
-	{ id: "dogfood", name: "dogfood@ngrok.com", plan: "Free" },
-];
-
-<List.Root aria-label="Switch account" className="max-h-80">
-	{accounts.map((account) => (
-		<List.Item key={account.id} onClick={() => {}}>
-			<List.ItemTitle>{account.name}</List.ItemTitle>
-			<List.ItemDescription>{account.plan}</List.ItemDescription>
-		</List.Item>
-	))}
-</List.Root>;
-```
+## Hand-built rows
 
 The same three rows hand-built without `List`, with the same chrome and no virtualization (fine for short, static lists):
 
@@ -366,6 +377,10 @@ import { List } from "@ngrok/mantle/list";
 	))}
 </List.Root>;
 ```
+
+## Appearance
+
+`List` shares the look of [`SelectableList`](/components/data-display/selectable-list), which is styled like the [`MultiSelect`](/components/forms/multi-select) popover. Rows highlight on hover and on selection as an inset, rounded pill inside a bordered `bg-popover` container.
 
 ## Accessibility
 

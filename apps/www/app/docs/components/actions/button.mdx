@@ -19,11 +19,7 @@ export const copyPage = () => {};
 
 # Button
 
-Initiates an action, such as completing a task or submitting information.
-
-Every `Button` states what it means: `appearance` (visual weight) and `intent` (tone) are **required**; there are no implicit defaults, so every call site declares both.
-
-The primary action button should be `appearance="filled" intent="neutral"` — the system's default primary action. Reserve `intent="accent"` for deliberate brand emphasis.
+Initiates an action, such as completing a task or submitting information. Every `Button` requires `appearance` and `intent`.
 
 <Example className="flex flex-col items-center gap-6">
 	<div>
@@ -97,6 +93,13 @@ import { Button } from "@ngrok/mantle/button";
 <Button appearance="ghost" intent="danger">Ghost</Button>
 <Button appearance="link" intent="danger">Link</Button>
 ```
+
+## When to use
+
+- Run an action on a click: submit a form, save a change, or open a dialog.
+- Prefer [`IconButton`](/components/actions/icon-button) for a button that shows one icon and no text.
+- Prefer [`SplitButton`](/components/actions/split-button) for a default action beside a menu of related actions.
+- Prefer [`Anchor`](/components/navigation/anchor) for a control that goes to another address and runs no action.
 
 ## Size
 
@@ -205,6 +208,8 @@ import { FireIcon } from "@phosphor-icons/react/Fire";
 
 ## Common mistakes
 
+### An icon-only Button
+
 An icon-only button is not a `Button`: use [`IconButton`](/components/actions/icon-button) instead. `Button`'s `icon` prop places an icon _beside_ its text children; render it with no children and the button has no accessible name (screen readers announce nothing) and keeps its text-box horizontal padding, so it draws as an off-square lozenge instead of a square. `IconButton` requires an accessible `label`, rendered as its `aria-label`, and renders a square box on the same shared size scale.
 
 ```tsx
@@ -238,6 +243,8 @@ import { CopyIcon } from "@phosphor-icons/react/Copy";
 	onClick={copyPage}
 />;
 ```
+
+### An icon as a child
 
 Never pass an icon as a child. A child icon is an anti-pattern: use the `icon` prop. The `icon` slot sizes the icon, holds it at `shrink-0`, tightens the padding on its side so it reads as optically aligned, and hands its place to the spinner when `isLoading` turns on. A child icon gets none of that.
 
@@ -366,6 +373,8 @@ The span carries `display: contents`, so it generates no box: every child stays 
 </Button>
 ```
 
+### A truncated label
+
 Style the label by styling your own child, not the slot. A label that has to shrink inside a width-constrained button takes `min-w-0 flex-1 truncate`; those work because the child is a flex item of the button.
 
 <Example>
@@ -447,6 +456,12 @@ import { Link, href } from "react-router";
 	<Link to={href("/base/colors")}>See our colors!</Link>
 </Button>;
 ```
+
+## Appearance and intent
+
+Every `Button` states what it means. `appearance` sets the visual weight, and `intent` sets the tone. Both props are required and have no default, so every call site declares both.
+
+Use `appearance="filled" intent="neutral"` for the primary action. This is the default primary action of the system. Use `intent="accent"` only for deliberate brand emphasis.
 
 ## API Reference
 

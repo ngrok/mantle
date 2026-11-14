@@ -40,15 +40,59 @@ export function ThemeSelectExample() {
 
 # Theme
 
+Theme primitives (`ThemeProvider` and FOUC prevention) for light and dark modes that follow the OS by default. Before you read or set the theme with `useTheme`, wrap your app in `ThemeProvider` and add `PreventWrongThemeFlashScript` to `<head>`, as [Setup](#setup) shows.
+
+<Example>
+	<ThemeSelectExample />
+</Example>
+
+```tsx
+import { Select } from "@ngrok/mantle/select";
+import { $theme, isTheme, useTheme } from "@ngrok/mantle/theme";
+import { SunIcon } from "@phosphor-icons/react/Sun";
+
+function App() {
+	const [currentTheme, setTheme] = useTheme();
+
+	return (
+		<Select.Root
+			value={currentTheme}
+			onValueChange={(value) => {
+				if (isTheme(value)) {
+					setTheme(value);
+				}
+			}}
+		>
+			<Select.Trigger className="w-min" aria-label="Theme">
+				<SunIcon className="mr-1 h-6 w-6" />
+			</Select.Trigger>
+			<Select.Content>
+				<Select.Group>
+					<Select.Label>Choose a theme</Select.Label>
+					<Select.Item value={$theme("system")}>System</Select.Item>
+					<Select.Item value={$theme("light")}>Light</Select.Item>
+					<Select.Item value={$theme("dark")}>Dark</Select.Item>
+				</Select.Group>
+			</Select.Content>
+		</Select.Root>
+	);
+}
+```
+
+## When to use
+
+- Apply the light or dark theme to an app, follow the operating system by default, and stop a wrong-theme flash on load.
+- Read and set the stored preference with the `useTheme` hook, to build your own theme control.
+- Prefer [`ThemeSwitcher`](/components/forms/theme-switcher) when the user changes the theme from a ready-made control. See [Theme switcher](#theme-switcher).
+
+## How the theme works
+
 Mantle has two themes, light and dark. The stored preference is one of three values: `"system"` (the default, which follows the OS `prefers-color-scheme` setting), `"light"`, or `"dark"`. The theme system has two parts:
 
 - `ThemeProvider` holds the preference, saves it in a cookie, and keeps it in sync across tabs. On an `ngrok.com` or `ngrok.ai` host, the cookie covers every subdomain of that site.
 - `PreventWrongThemeFlashScript` puts the right theme class on `<html>` before first paint, so the page never flashes the wrong theme.
 
 `mantle.css` holds both themes. The theme class on `<html>` selects one.
-
-> [!TIP]
-> To let users change the theme, use [`ThemeSwitcher`](/components/forms/theme-switcher). It's a ready-made light/dark toggle for headers and toolbars. For an account menu, use `ThemeDropdownMenuItem` from the same entrypoint. It is the same light/dark toggle as one menu row.
 
 ## Setup
 
@@ -151,9 +195,9 @@ The script must run before `<body>`, because it writes the theme class onto `<ht
 > [!NOTE]
 > `preventWrongThemeFlashScriptContent()` from `@ngrok/mantle/theme` generates this script string. The script above is its output for the version of mantle this page was built with, so you can copy it as it is. Run the generator again after you upgrade mantle to pick up any changes.
 
-## Usage
+## Theme switcher
 
-Drop in [`ThemeSwitcher`](/components/forms/theme-switcher) for a one-click light/dark toggle:
+To let users change the theme, drop in [`ThemeSwitcher`](/components/forms/theme-switcher). It is a ready-made, one-click light/dark toggle for headers and toolbars. For an account menu, use `ThemeDropdownMenuItem` from the same entrypoint. It is the same light/dark toggle as one menu row.
 
 <Example>
 	<ThemeSwitcher />
@@ -163,45 +207,6 @@ Drop in [`ThemeSwitcher`](/components/forms/theme-switcher) for a one-click ligh
 import { ThemeSwitcher } from "@ngrok/mantle/theme-switcher";
 
 <ThemeSwitcher />;
-```
-
-To build your own control, read and set the preference with the `useTheme` hook:
-
-<Example>
-	<ThemeSelectExample />
-</Example>
-
-```tsx
-import { Select } from "@ngrok/mantle/select";
-import { $theme, isTheme, useTheme } from "@ngrok/mantle/theme";
-import { SunIcon } from "@phosphor-icons/react/Sun";
-
-function App() {
-	const [currentTheme, setTheme] = useTheme();
-
-	return (
-		<Select.Root
-			value={currentTheme}
-			onValueChange={(value) => {
-				if (isTheme(value)) {
-					setTheme(value);
-				}
-			}}
-		>
-			<Select.Trigger className="w-min" aria-label="Theme">
-				<SunIcon className="mr-1 h-6 w-6" />
-			</Select.Trigger>
-			<Select.Content>
-				<Select.Group>
-					<Select.Label>Choose a theme</Select.Label>
-					<Select.Item value={$theme("system")}>System</Select.Item>
-					<Select.Item value={$theme("light")}>Light</Select.Item>
-					<Select.Item value={$theme("dark")}>Dark</Select.Item>
-				</Select.Group>
-			</Select.Content>
-		</Select.Root>
-	);
-}
 ```
 
 ### The theme swap

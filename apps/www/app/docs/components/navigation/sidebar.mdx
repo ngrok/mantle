@@ -18,38 +18,7 @@ import {
 
 <PageHeader id="sidebar">Sidebar</PageHeader>
 
-A composable, collapsible app-navigation sidebar. `Sidebar.Root` owns the state and renders no DOM;
-`Sidebar.Nav` renders the panel — inline on desktop, collapsing to a skinny
-[icon rail](#collapsing-to-the-icon-rail), and a left-side [Sheet](/components/overlays/sheet) below the
-root's `mobileBreakpoint`; and `Sidebar.Trigger` toggles it from anywhere under the root, which is what
-keeps the sidebar decoupled from your app shell: place the trigger in an
-[App Layout](/layouts/app-layout) header without the shell knowing the sidebar exists.
-
-The sidebar is routing-agnostic. Compose router links with `asChild` on `Sidebar.ItemButton` and drive
-`current` from your router's location. The demo below runs in its own framed document, exactly like a real
-app: switch the preview to the mobile viewport to see the sheet presentation, use the trigger in the header
-to collapse and expand the panel, open the product switcher at the top of the sidebar to choose a product
-from a centered [Dialog](/components/overlays/dialog), and toggle the notice to see the shell's full-window
-[`AppLayout.Notice`](/layouts/app-layout) strip push everything (sidebar included) down.
-
-`Sidebar.Footer` holds the panel's stable rows, bottom-anchored under the scrolling body: the
-account-scoped destinations every product shares, a **Help** row, a `Sidebar.Separator`, and the
-account switcher. The Help row and the switcher row are ordinary sidebar rows composed with
-`DropdownMenu.Trigger asChild`, so each keeps the panel's row treatment, stays highlighted while its menu is
-open, and opens the menu upward (`side="top"`); the footer sits at the bottom of the viewport, so downward
-is off-screen. The switcher's one menu covers both scopes it names: account destinations and switching, then
-user-level items including a **Theme** row that flips light and dark. That row is mantle's
-[`ThemeDropdownMenuItem`](/components/forms/theme-switcher#embedding-in-an-existing-menu): one row, so it fits
-the menu beside the collapsed icon rail.
-
-Choosing **Account settings** from that menu shows a second **section** of navigation in the same
-sidebar: the header's switcher becomes a back link, `Sidebar.Body` renders the settings groups, and the
-`<nav>` landmark renames itself from `Main` to `Settings`. That is composition, not a feature: the sidebar
-never knows which section it is showing; the app derives it from the route and renders different children.
-The footer does not move while that happens.
-Click into the frame and press <kbd translate="no">⌘B</kbd>/<kbd translate="no">Ctrl+B</kbd>; the shortcut binds to the frame's own
-window, not this page. The demo narrows `mobileBreakpoint` to `md` so the desktop panel survives the
-preview's desktop and tablet widths; ngrok's dashboards keep the `lg` default.
+A composable, collapsible app-navigation sidebar with a mobile sheet presentation and a trigger that mounts anywhere in your app shell. Wrap the app shell in `Sidebar.Root`, and `Sidebar.Trigger` toggles the panel from anywhere under it.
 
 <CodeExample.Root>
 	<CodeExample.PreviewFrame example="app-shell" title="App shell demo" />
@@ -659,6 +628,14 @@ export function AppShell() {
 
 </CodeExample.Root>
 
+## When to use
+
+- Show the main navigation of an app, with its app and account switchers, in a column that collapses to an [icon rail](#collapsing-to-the-icon-rail), and to a sheet on small screens.
+- Show a second section of navigation, such as account settings, in the same sidebar. See [The app shell demo](#the-app-shell-demo).
+- Prefer [`Tabs`](/components/navigation/tabs) when the user switches between views inside one page.
+- Prefer [`Sheet`](/components/overlays/sheet) when a panel opens over the page for a task, not for navigation.
+- Prefer [`Breadcrumb`](/components/navigation/breadcrumb) when the page shows where it sits in a hierarchy.
+
 ## Composition
 
 Compose the parts of a `Sidebar` together to build your own:
@@ -684,7 +661,11 @@ Sidebar.Root
 ```
 
 `Sidebar.Root` renders no DOM: it only carries state, so `Sidebar.Trigger` can live anywhere under it,
-including inside layout components that know nothing about the sidebar. Render exactly one `Sidebar.Nav` per
+including inside layout components that know nothing about the sidebar.
+`Sidebar.Nav` renders the panel: inline on desktop, collapsing to a skinny
+[icon rail](#collapsing-to-the-icon-rail), and a left-side [Sheet](/components/overlays/sheet) below the
+root's `mobileBreakpoint`. This keeps the sidebar decoupled from your app shell: place the trigger in an
+[App Layout](/layouts/app-layout) header without the shell knowing the sidebar exists. Render exactly one `Sidebar.Nav` per
 `Sidebar.Root`; nested roots shadow the outer sidebar for everything below them.
 There is deliberately no account-switcher part: a "Switch accounts" submenu is a composition of
 [DropdownMenu](/components/overlays/dropdown-menu)'s `RadioGroup`/`RadioItem` with
@@ -847,6 +828,34 @@ export function PendingAwareRow() {
 	);
 }
 ```
+
+## The app shell demo
+
+The sidebar is routing-agnostic. Compose router links with `asChild` on `Sidebar.ItemButton` and drive
+`current` from your router's location. The demo at the top of this page runs in its own framed document, exactly like a real
+app: switch the preview to the mobile viewport to see the sheet presentation, use the trigger in the header
+to collapse and expand the panel, open the product switcher at the top of the sidebar to choose a product
+from a centered [Dialog](/components/overlays/dialog), and toggle the notice to see the shell's full-window
+[`AppLayout.Notice`](/layouts/app-layout) strip push everything (sidebar included) down.
+
+`Sidebar.Footer` holds the panel's stable rows, bottom-anchored under the scrolling body: the
+account-scoped destinations every product shares, a **Help** row, a `Sidebar.Separator`, and the
+account switcher. The Help row and the switcher row are ordinary sidebar rows composed with
+`DropdownMenu.Trigger asChild`, so each keeps the panel's row treatment, stays highlighted while its menu is
+open, and opens the menu upward (`side="top"`); the footer sits at the bottom of the viewport, so downward
+is off-screen. The switcher's one menu covers both scopes it names: account destinations and switching, then
+user-level items including a **Theme** row that flips light and dark. That row is mantle's
+[`ThemeDropdownMenuItem`](/components/forms/theme-switcher#embedding-in-an-existing-menu): one row, so it fits
+the menu beside the collapsed icon rail.
+
+Choosing **Account settings** from that menu shows a second **section** of navigation in the same
+sidebar: the header's switcher becomes a back link, `Sidebar.Body` renders the settings groups, and the
+`<nav>` landmark renames itself from `Main` to `Settings`. That is composition, not a feature: the sidebar
+never knows which section it is showing; the app derives it from the route and renders different children.
+The footer does not move while that happens.
+Click into the frame and press <kbd translate="no">⌘B</kbd>/<kbd translate="no">Ctrl+B</kbd>; the shortcut binds to the frame's own
+window, not this page. The demo narrows `mobileBreakpoint` to `md` so the desktop panel survives the
+preview's desktop and tablet widths; ngrok's dashboards keep the `lg` default.
 
 ## Width
 
@@ -1058,6 +1067,8 @@ variables either: it renders in a portal on `document.body`, so it inherits noth
 | --------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--sidebar-row-width` | `12rem` | One row's width inside the expanded panel (192px): `calc(var(--sidebar-width, 13rem) - 1rem)`, the panel width minus the gutter `Sidebar.Header`/`Body`/`Footer` all apply. |
 
+### Floor the menu at the row width
+
 Keep `width="trigger"` and floor the menu at it. The switcher row below is a collapsed chip; open its menu,
 expand the panel with the trigger, and open it again; the menu is the same width both times:
 
@@ -1145,6 +1156,8 @@ sheet's row is the wider of the two (`--sidebar-width-mobile` − `1.5rem` − t
 That last one is a condition, not a guarantee: **widen `--sidebar-width-mobile` whenever you widen
 `--sidebar-width`**, or the floor outgrows the sheet's row and the menu overhangs the panel it opened from
 (`--sidebar-width: 22rem` alone gives a 336px menu inside a 288px sheet).
+
+### A narrower panel
 
 The same asymmetry applies to a per-sidebar override. Because the token resolves at `:root`, a
 `--sidebar-width` set on a single `Sidebar.Nav` does not reach it in either direction: a narrower panel

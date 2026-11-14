@@ -11,7 +11,7 @@ import { Example } from "~/components/example";
 
 # Split Button
 
-A button group that pairs a one-click default action with a dropdown menu of related alternatives. Best for when users typically want one action but occasionally need variants.
+A button group that pairs a one-click default action with a dropdown menu of related alternatives.
 
 <Example>
 	<SplitButton.Root>
@@ -50,6 +50,12 @@ import { SplitButton } from "@ngrok/mantle/split-button";
 	</SplitButton.MenuContent>
 </SplitButton.Root>;
 ```
+
+## When to use
+
+- Run the action users usually want on one click, and offer the related alternatives they sometimes need in an attached menu.
+- Prefer [`Button`](/components/actions/button) for one action with no alternatives.
+- Prefer [`DropdownMenu`](/components/overlays/dropdown-menu) for a button that only opens a menu and runs no default action.
 
 ## Composition
 

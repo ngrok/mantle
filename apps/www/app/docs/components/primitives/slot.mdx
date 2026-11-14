@@ -10,7 +10,7 @@ import { Example } from "~/components/example";
 
 # Slot
 
-Merges its props onto its immediate child. This is a utility component used internally by other components to enable the `asChild` pattern.
+Merges its props onto its immediate child.
 
 <Example>
 	<div className="flex flex-col gap-4">
@@ -34,6 +34,10 @@ import { Slot } from "@ngrok/mantle/slot";
 	<button type="button">Click me</button>
 </Slot>
 ```
+
+## When to use
+
+- Merge the props of a part onto its one child element, to build an `asChild` prop.
 
 ## Usage with asChild
 

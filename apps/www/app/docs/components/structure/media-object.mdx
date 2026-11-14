@@ -22,25 +22,7 @@ export const ExampleMedia = () => (
 
 # Media Object
 
-A small, reusable layout primitive for "image/icon on one side, descriptive content on the other" — the foundational [media object pattern](https://www.stubbornella.org/2010/06/25/the-media-object-saves-hundreds-of-lines-of-code/). Use it to compose avatars-with-text, icons-with-copy, thumbnails-with-titles, and similar two-up rows without re-implementing flexbox each time.
-
-## When to use
-
-- Comment threads (avatar + name + body).
-- Compact list items (icon + label + secondary text).
-- Notification rows.
-- Feature lists, profile cards, attachment previews.
-
-## When not to use
-
-- For complex multi-region layouts — reach for [`Card`](/components/structure/card) or build a bespoke flex/grid.
-- When the media is purely decorative and adds no information — drop it and use a plain block.
-
-## Spacing & alignment
-
-Default gap is `gap-4`; override by passing a different `gap-*` class to `MediaObject.Root`. Use standard flex utilities (`items-start`, `items-center`, etc.) to align media and content vertically.
-
-Compose the `<MediaObject>` with the `<MediaObject.Media>` and `<MediaObject.Content>` components as direct children. Each part accepts `asChild` for swapping the rendered element (e.g. render `Root` as an `<a>` to make the whole row clickable).
+The Media Object is an image or an icon (media) on the left, with descriptive content (a title and a subtitle or description) on the right. Compose `MediaObject.Media` and `MediaObject.Content` as direct children of `MediaObject.Root`.
 
 <Example>
 	<MediaObject.Root>
@@ -75,6 +57,15 @@ import { MediaObject } from "@ngrok/mantle/media-object";
 	</MediaObject.Content>
 </MediaObject.Root>;
 ```
+
+## When to use
+
+- Put an avatar beside a name and a body in a comment thread.
+- Put an icon beside a label and secondary text in a compact list item or a notification row.
+- Build feature lists, profile cards, and attachment previews.
+- Leave out the media when it is decorative and adds no information. Use a plain block instead.
+- Prefer [`Card`](/components/structure/card) for a raised box with a border, or for a complex layout with many regions. You can also build your own flex or grid layout for that.
+- Prefer [`Choice`](/components/forms/choice) when the thing beside the text is a checkbox, a radio, or a switch.
 
 ## Composition
 
@@ -119,6 +110,14 @@ import { MediaObject } from "@ngrok/mantle/media-object";
 	</a>
 </MediaObject.Root>;
 ```
+
+## Spacing & alignment
+
+Default gap is `gap-4`; override by passing a different `gap-*` class to `MediaObject.Root`. Use standard flex utilities (`items-start`, `items-center`, etc.) to align media and content vertically.
+
+## The media object pattern
+
+`MediaObject` is a small layout primitive for the [media object pattern](https://www.stubbornella.org/2010/06/25/the-media-object-saves-hundreds-of-lines-of-code/): media on one side, and descriptive content on the other. Use it for each two-up row, so you do not write the same flexbox again.
 
 ## API Reference
 

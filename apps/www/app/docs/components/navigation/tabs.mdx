@@ -28,158 +28,11 @@ import { Example } from "~/components/example";
 
 Layered sections of content, called tab panels, that show one at a time.
 
-<Example className="mt-4 grid gap-6">
-	<p>`asChild` with `Link`s</p>
-	<div className="scrollbar -m-1 p-1 overflow-x-scroll">
-		<Tabs.Root orientation="horizontal" defaultValue="colors">
-			<Tabs.List>
-				<Tabs.Trigger value="colors" asChild>
-					<Link to={href("/base/colors")}>Colors</Link>
-				</Tabs.Trigger>
-				<Tabs.Trigger value="shadows" asChild>
-					<Link to={href("/base/shadows")}>Shadows</Link>
-				</Tabs.Trigger>
-				<Tabs.Trigger disabled value="tailwind-variants" asChild>
-					<Link to={href("/base/tailwind-variants")}>Tailwind Variants</Link>
-				</Tabs.Trigger>
-				<Tabs.Trigger value="typography" asChild>
-					<Link to={href("/base/typography")}>Typography</Link>
-				</Tabs.Trigger>
-			</Tabs.List>
-			<Tabs.Separator />
-		</Tabs.Root>
-	</div>
-	<div className="scrollbar -m-1 p-1 overflow-x-scroll">
-		<Tabs.Root orientation="horizontal" defaultValue="tab-1">
-			<Tabs.List>
-				<Tabs.Trigger value="tab-1">Tab Title</Tabs.Trigger>
-				<Tabs.Trigger value="tab-2">Tab Title</Tabs.Trigger>
-				<Tabs.Trigger disabled value="tab-3">
-					Tab Title
-				</Tabs.Trigger>
-				<Tabs.Trigger value="tab-4">Tab Title</Tabs.Trigger>
-			</Tabs.List>
-			<Tabs.Separator />
-		</Tabs.Root>
-	</div>
-	<div className="scrollbar -m-1 p-1 overflow-x-scroll">
-		<Tabs.Root orientation="horizontal" defaultValue="tab-1">
-			<Tabs.List>
-				<Tabs.Trigger value="tab-1">
-					<Icon svg={<GlobeIcon />} />
-					Tab Title
-				</Tabs.Trigger>
-				<Tabs.Trigger value="tab-2">
-					<Icon svg={<GlobeIcon />} />
-					Tab Title
-				</Tabs.Trigger>
-				<Tabs.Trigger disabled value="tab-3">
-					<Icon svg={<GlobeIcon />} />
-					Tab Title
-				</Tabs.Trigger>
-				<Tabs.Trigger value="tab-4">
-					<Icon svg={<GlobeIcon />} />
-					Tab Title
-				</Tabs.Trigger>
-			</Tabs.List>
-			<Tabs.Separator />
-		</Tabs.Root>
-	</div>
-	<div className="scrollbar -m-1 p-1 overflow-x-scroll">
-		<Tabs.Root orientation="horizontal" defaultValue="tab-1">
-			<Tabs.List>
-				<Tabs.Trigger value="tab-1">
-					Tab Title
-					<Tabs.Badge>32</Tabs.Badge>
-				</Tabs.Trigger>
-				<Tabs.Trigger value="tab-2">
-					Tab Title
-					<Tabs.Badge>32</Tabs.Badge>
-				</Tabs.Trigger>
-				<Tabs.Trigger disabled value="tab-3">
-					Tab Title
-					<Tabs.Badge>32</Tabs.Badge>
-				</Tabs.Trigger>
-				<Tabs.Trigger value="tab-4">
-					Tab Title
-					<Tabs.Badge>32</Tabs.Badge>
-				</Tabs.Trigger>
-			</Tabs.List>
-			<Tabs.Separator />
-		</Tabs.Root>
-	</div>
-	<div className="scrollbar -m-1 p-1 overflow-x-scroll">
-		<Tabs.Root orientation="horizontal" defaultValue="tab-1">
-			<Tabs.List>
-				<Tabs.Trigger value="tab-1">
-					<Icon svg={<GlobeIcon />} />
-					Tab Title
-					<Tabs.Badge>32</Tabs.Badge>
-				</Tabs.Trigger>
-				<Tabs.Trigger value="tab-2">
-					<Icon svg={<GlobeIcon />} />
-					Tab Title
-					<Tabs.Badge>32</Tabs.Badge>
-				</Tabs.Trigger>
-				<Tabs.Trigger disabled value="tab-3">
-					<Icon svg={<GlobeIcon />} />
-					Tab Title
-					<Tabs.Badge>32</Tabs.Badge>
-				</Tabs.Trigger>
-				<Tabs.Trigger value="tab-4">
-					<Icon svg={<GlobeIcon />} />
-					Tab Title
-					<Tabs.Badge>32</Tabs.Badge>
-				</Tabs.Trigger>
-			</Tabs.List>
-			<Tabs.Separator />
-		</Tabs.Root>
-	</div>
+<Example>
 	<Tabs.Root orientation="horizontal" defaultValue="account" className="w-100 max-w-[400px]">
-		<Tabs.List>
-			<Tabs.Trigger value="account">
-				<Icon svg={<UserIcon />} />
-				Account
-				<Tabs.Badge>2</Tabs.Badge>
-			</Tabs.Trigger>
-			<Tabs.Trigger value="password">
-				<Icon svg={<ShieldCheckIcon />} />
-				Password
-			</Tabs.Trigger>
-		</Tabs.List>
-		<Tabs.Separator />
-		<Tabs.Content value="account">
-			<Card.Root>
-				<Card.Header>
-					<Card.Title>Account</Card.Title>
-					<p className="text-muted">
-						Make changes to your account here. Click save when you're done.
-					</p>
-				</Card.Header>
-			</Card.Root>
-		</Tabs.Content>
-		<Tabs.Content value="password">
-			<Card.Root>
-				<Card.Header>
-					<Card.Title>Password</Card.Title>
-					<p className="text-muted">
-						Change your password here. After saving, you'll be logged out.
-					</p>
-				</Card.Header>
-			</Card.Root>
-		</Tabs.Content>
-	</Tabs.Root>
-	<Tabs.Root
-		orientation="vertical"
-		defaultValue="account"
-		className="scrollbar max-w-xl -m-1 p-1 overflow-x-scroll"
-	>
 		<Tabs.List>
 			<Tabs.Trigger value="account">Account</Tabs.Trigger>
 			<Tabs.Trigger value="password">Password</Tabs.Trigger>
-			<Tabs.Trigger value="disabled-tab" disabled>
-				Disabled tab
-			</Tabs.Trigger>
 		</Tabs.List>
 		<Tabs.Separator />
 		<Tabs.Content value="account">
@@ -207,30 +60,160 @@ Layered sections of content, called tab panels, that show one at a time.
 
 ```tsx
 import { Card } from "@ngrok/mantle/card";
+import { Tabs } from "@ngrok/mantle/tabs";
+
+<Tabs.Root orientation="horizontal" defaultValue="account" className="w-100 max-w-[400px]">
+	<Tabs.List>
+		<Tabs.Trigger value="account">Account</Tabs.Trigger>
+		<Tabs.Trigger value="password">Password</Tabs.Trigger>
+	</Tabs.List>
+	<Tabs.Separator />
+	<Tabs.Content value="account">
+		<Card.Root>
+			<Card.Header>
+				<Card.Title>Account</Card.Title>
+				<p className="text-muted">
+					Make changes to your account here. Click save when you're done.
+				</p>
+			</Card.Header>
+		</Card.Root>
+	</Tabs.Content>
+	<Tabs.Content value="password">
+		<Card.Root>
+			<Card.Header>
+				<Card.Title>Password</Card.Title>
+				<p className="text-muted">Change your password here. After saving, you'll be logged out.</p>
+			</Card.Header>
+		</Card.Root>
+	</Tabs.Content>
+</Tabs.Root>;
+```
+
+## When to use
+
+- Switch between peer views of related content in one place, with one view visible at a time.
+- Drive client-side navigation with a tab for each route, as in [Polymorphism](#polymorphism).
+- Prefer [`Accordion`](/components/data-display/accordion) when several sections stack, and each one expands in place.
+- Prefer [`RadioGroup`](/components/forms/radio-group) when the user picks a form value, not a view.
+
+## Icons
+
+Put an `Icon` before the label in `Tabs.Trigger` to help the user scan the tabs.
+
+<Example className="scrollbar -m-1 p-1 overflow-x-scroll">
+	<Tabs.Root orientation="horizontal" defaultValue="tab-1">
+		<Tabs.List>
+			<Tabs.Trigger value="tab-1">
+				<Icon svg={<GlobeIcon />} />
+				Tab Title
+			</Tabs.Trigger>
+			<Tabs.Trigger value="tab-2">
+				<Icon svg={<GlobeIcon />} />
+				Tab Title
+			</Tabs.Trigger>
+			<Tabs.Trigger value="tab-3">
+				<Icon svg={<GlobeIcon />} />
+				Tab Title
+			</Tabs.Trigger>
+		</Tabs.List>
+		<Tabs.Separator />
+	</Tabs.Root>
+</Example>
+
+```tsx
 import { Icon } from "@ngrok/mantle/icon";
 import { Tabs } from "@ngrok/mantle/tabs";
 import { GlobeIcon } from "@phosphor-icons/react/Globe";
-import { ShieldCheckIcon } from "@phosphor-icons/react/ShieldCheck";
-import { UserIcon } from "@phosphor-icons/react/User";
-import { Link, href } from "react-router";
 
-<Tabs.Root orientation="horizontal" defaultValue="colors">
+<Tabs.Root orientation="horizontal" defaultValue="tab-1">
 	<Tabs.List>
-		<Tabs.Trigger value="colors" asChild>
-			<Link to={href("/base/colors")}>Colors</Link>
+		<Tabs.Trigger value="tab-1">
+			<Icon svg={<GlobeIcon />} />
+			Tab Title
 		</Tabs.Trigger>
-		<Tabs.Trigger value="shadows" asChild>
-			<Link to={href("/base/shadows")}>Shadows</Link>
+		<Tabs.Trigger value="tab-2">
+			<Icon svg={<GlobeIcon />} />
+			Tab Title
 		</Tabs.Trigger>
-		<Tabs.Trigger disabled value="tailwind-variants" asChild>
-			<Link to={href("/base/tailwind-variants")}>Tailwind Variants</Link>
-		</Tabs.Trigger>
-		<Tabs.Trigger value="typography" asChild>
-			<Link to={href("/base/typography")}>Typography</Link>
+		<Tabs.Trigger value="tab-3">
+			<Icon svg={<GlobeIcon />} />
+			Tab Title
 		</Tabs.Trigger>
 	</Tabs.List>
 	<Tabs.Separator />
-</Tabs.Root>
+</Tabs.Root>;
+```
+
+## Badges
+
+Put a `Tabs.Badge` after the label in `Tabs.Trigger` to show a count for the tab. A badge can sit beside an icon.
+
+<Example className="scrollbar -m-1 p-1 overflow-x-scroll">
+	<Tabs.Root orientation="horizontal" defaultValue="tab-1">
+		<Tabs.List>
+			<Tabs.Trigger value="tab-1">
+				Tab Title
+				<Tabs.Badge>32</Tabs.Badge>
+			</Tabs.Trigger>
+			<Tabs.Trigger value="tab-2">
+				Tab Title
+				<Tabs.Badge>32</Tabs.Badge>
+			</Tabs.Trigger>
+			<Tabs.Trigger value="tab-3">
+				<Icon svg={<GlobeIcon />} />
+				Tab Title
+				<Tabs.Badge>32</Tabs.Badge>
+			</Tabs.Trigger>
+		</Tabs.List>
+		<Tabs.Separator />
+	</Tabs.Root>
+</Example>
+
+```tsx
+import { Icon } from "@ngrok/mantle/icon";
+import { Tabs } from "@ngrok/mantle/tabs";
+import { GlobeIcon } from "@phosphor-icons/react/Globe";
+
+<Tabs.Root orientation="horizontal" defaultValue="tab-1">
+	<Tabs.List>
+		<Tabs.Trigger value="tab-1">
+			Tab Title
+			<Tabs.Badge>32</Tabs.Badge>
+		</Tabs.Trigger>
+		<Tabs.Trigger value="tab-2">
+			Tab Title
+			<Tabs.Badge>32</Tabs.Badge>
+		</Tabs.Trigger>
+		<Tabs.Trigger value="tab-3">
+			<Icon svg={<GlobeIcon />} />
+			Tab Title
+			<Tabs.Badge>32</Tabs.Badge>
+		</Tabs.Trigger>
+	</Tabs.List>
+	<Tabs.Separator />
+</Tabs.Root>;
+```
+
+## Disabled tabs
+
+Pass `disabled` to a `Tabs.Trigger` to stop the user from selecting that tab.
+
+<Example className="scrollbar -m-1 p-1 overflow-x-scroll">
+	<Tabs.Root orientation="horizontal" defaultValue="tab-1">
+		<Tabs.List>
+			<Tabs.Trigger value="tab-1">Tab Title</Tabs.Trigger>
+			<Tabs.Trigger value="tab-2">Tab Title</Tabs.Trigger>
+			<Tabs.Trigger disabled value="tab-3">
+				Tab Title
+			</Tabs.Trigger>
+			<Tabs.Trigger value="tab-4">Tab Title</Tabs.Trigger>
+		</Tabs.List>
+		<Tabs.Separator />
+	</Tabs.Root>
+</Example>
+
+```tsx
+import { Tabs } from "@ngrok/mantle/tabs";
 
 <Tabs.Root orientation="horizontal" defaultValue="tab-1">
 	<Tabs.List>
@@ -242,124 +225,51 @@ import { Link, href } from "react-router";
 		<Tabs.Trigger value="tab-4">Tab Title</Tabs.Trigger>
 	</Tabs.List>
 	<Tabs.Separator />
-</Tabs.Root>
+</Tabs.Root>;
+```
 
-<Tabs.Root orientation="horizontal" defaultValue="tab-1">
-	<Tabs.List>
-		<Tabs.Trigger value="tab-1">
-			<Icon svg={<GlobeIcon />} />
-			Tab Title
-		</Tabs.Trigger>
-		<Tabs.Trigger value="tab-2">
-			<Icon svg={<GlobeIcon />} />
-			Tab Title
-		</Tabs.Trigger>
-		<Tabs.Trigger disabled value="tab-3">
-			<Icon svg={<GlobeIcon />} />
-			Tab Title
-		</Tabs.Trigger>
-		<Tabs.Trigger value="tab-4">
-			<Icon svg={<GlobeIcon />} />
-			Tab Title
-		</Tabs.Trigger>
-	</Tabs.List>
-	<Tabs.Separator />
-</Tabs.Root>
+## Vertical orientation
 
-<Tabs.Root orientation="horizontal" defaultValue="tab-1">
-	<Tabs.List>
-		<Tabs.Trigger value="tab-1">
-			Tab Title
-			<Tabs.Badge>32</Tabs.Badge>
-		</Tabs.Trigger>
-		<Tabs.Trigger value="tab-2">
-			Tab Title
-			<Tabs.Badge>32</Tabs.Badge>
-		</Tabs.Trigger>
-		<Tabs.Trigger disabled value="tab-3">
-			Tab Title
-			<Tabs.Badge>32</Tabs.Badge>
-		</Tabs.Trigger>
-		<Tabs.Trigger value="tab-4">
-			Tab Title
-			<Tabs.Badge>32</Tabs.Badge>
-		</Tabs.Trigger>
-	</Tabs.List>
-	<Tabs.Separator />
-</Tabs.Root>
+Set `orientation="vertical"` on `Tabs.Root` to stack the tabs beside the content.
 
-<Tabs.Root orientation="horizontal" defaultValue="tab-1">
-	<Tabs.List>
-		<Tabs.Trigger value="tab-1">
-			<Icon svg={<GlobeIcon />} />
-			Tab Title
-			<Tabs.Badge>32</Tabs.Badge>
-		</Tabs.Trigger>
-		<Tabs.Trigger value="tab-2">
-			<Icon svg={<GlobeIcon />} />
-			Tab Title
-			<Tabs.Badge>32</Tabs.Badge>
-		</Tabs.Trigger>
-		<Tabs.Trigger disabled value="tab-3">
-			<Icon svg={<GlobeIcon />} />
-			Tab Title
-			<Tabs.Badge>32</Tabs.Badge>
-		</Tabs.Trigger>
-		<Tabs.Trigger value="tab-4">
-			<Icon svg={<GlobeIcon />} />
-			Tab Title
-			<Tabs.Badge>32</Tabs.Badge>
-		</Tabs.Trigger>
-	</Tabs.List>
-	<Tabs.Separator />
-</Tabs.Root>
+<Example>
+	<Tabs.Root orientation="vertical" defaultValue="account" className="max-w-xl">
+		<Tabs.List>
+			<Tabs.Trigger value="account">Account</Tabs.Trigger>
+			<Tabs.Trigger value="password">Password</Tabs.Trigger>
+		</Tabs.List>
+		<Tabs.Separator />
+		<Tabs.Content value="account">
+			<Card.Root>
+				<Card.Header>
+					<Card.Title>Account</Card.Title>
+					<p className="text-muted">
+						Make changes to your account here. Click save when you're done.
+					</p>
+				</Card.Header>
+			</Card.Root>
+		</Tabs.Content>
+		<Tabs.Content value="password">
+			<Card.Root>
+				<Card.Header>
+					<Card.Title>Password</Card.Title>
+					<p className="text-muted">
+						Change your password here. After saving, you'll be logged out.
+					</p>
+				</Card.Header>
+			</Card.Root>
+		</Tabs.Content>
+	</Tabs.Root>
+</Example>
 
-<Tabs.Root orientation="horizontal" defaultValue="account" className="w-100 max-w-[400px]">
-	<Tabs.List>
-		<Tabs.Trigger value="account">
-			<Icon svg={<UserIcon />} />
-			Account
-			<Tabs.Badge>2</Tabs.Badge>
-		</Tabs.Trigger>
-		<Tabs.Trigger value="password">
-			<Icon svg={<ShieldCheckIcon />} />
-			Password
-		</Tabs.Trigger>
-	</Tabs.List>
-	<Tabs.Separator />
-	<Tabs.Content value="account">
-		<Card.Root>
-			<Card.Header>
-				<Card.Title>Account</Card.Title>
-				<p className="text-muted">
-					Make changes to your account here. Click save when you're done.
-				</p>
-			</Card.Header>
-		</Card.Root>
-	</Tabs.Content>
-	<Tabs.Content value="password">
-		<Card.Root>
-			<Card.Header>
-				<Card.Title>Password</Card.Title>
-				<p className="text-muted">
-					Change your password here. After saving, you'll be logged out.
-				</p>
-			</Card.Header>
-		</Card.Root>
-	</Tabs.Content>
-</Tabs.Root>
+```tsx
+import { Card } from "@ngrok/mantle/card";
+import { Tabs } from "@ngrok/mantle/tabs";
 
-<Tabs.Root
-	orientation="vertical"
-	defaultValue="account"
-	className="scrollbar max-w-xl -m-1 p-1 overflow-x-scroll"
->
+<Tabs.Root orientation="vertical" defaultValue="account" className="max-w-xl">
 	<Tabs.List>
 		<Tabs.Trigger value="account">Account</Tabs.Trigger>
 		<Tabs.Trigger value="password">Password</Tabs.Trigger>
-		<Tabs.Trigger value="disabled-tab" disabled>
-			Disabled tab
-		</Tabs.Trigger>
 	</Tabs.List>
 	<Tabs.Separator />
 	<Tabs.Content value="account">
@@ -376,13 +286,11 @@ import { Link, href } from "react-router";
 		<Card.Root>
 			<Card.Header>
 				<Card.Title>Password</Card.Title>
-				<p className="text-muted">
-					Change your password here. After saving, you'll be logged out.
-				</p>
+				<p className="text-muted">Change your password here. After saving, you'll be logged out.</p>
 			</Card.Header>
 		</Card.Root>
 	</Tabs.Content>
-</Tabs.Root>
+</Tabs.Root>;
 ```
 
 ## Composition

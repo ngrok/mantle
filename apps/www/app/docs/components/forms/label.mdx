@@ -50,24 +50,7 @@ export function TanStackFormExample() {
 
 # Label
 
-A caption for a form control — input, checkbox, radio, switch, select. Renders a native `<label>`. Pair every form control with a `Label` so the control has an accessible name, clicks on the label focus the control, and screen readers announce the field correctly.
-
-## When to use
-
-- Every visible form control. Always.
-- Above or beside an input to describe it ("Email", "API key").
-- Wrapping a checkbox or radio next to its descriptive text.
-
-## When not to use
-
-- For static UI text that isn't labeling a control, use a heading or plain `<p>`/`<span>`.
-- As a substitute for `aria-label` on non-`<input>` widgets that don't support `<label for>` association.
-
-## Two ways to associate
-
-Either wrap the control inside the `<Label>` (implicit association — simplest) or set `htmlFor` to the control's `id` (explicit — required when the control isn't a child).
-
-For the explicit form, React's [`useId()`](https://react.dev/reference/react/useId) is the easiest way to generate a unique, SSR-stable id without hand-managing strings:
+A caption for a form control, such as an input, a checkbox, a radio, a switch, or a select. Wrap the control in the `Label`, or set `htmlFor` to the control's `id`.
 
 <Example>
 	<EmailFieldExample />
@@ -86,6 +69,24 @@ function EmailField() {
 	);
 }
 ```
+
+## When to use
+
+- Give every visible form control a caption. A `Label` renders a native `<label>`, so the control gets an accessible name, a click on the label focuses the control, and screen readers announce the field correctly.
+- Describe an input above or beside it ("Email", "API key").
+- Wrap a checkbox or a radio next to its descriptive text.
+- Use a heading or a plain `<p>` or `<span>` for static UI text that does not label a control.
+- Do not use a `Label` as a substitute for `aria-label` on widgets other than `<input>` that do not support `<label for>` association.
+- Prefer [`Field`](/components/forms/field) when the control also needs a description or validation errors.
+- Prefer [`Choice`](/components/forms/choice) when the control needs a title and a description beside it.
+
+## Two ways to associate
+
+Wrap the control inside the `<Label>` for implicit association, the simplest form. Set `htmlFor` to the control's `id` for explicit association. The control must use the explicit form when it is not a child of the label.
+
+For the explicit form, React's [`useId()`](https://react.dev/reference/react/useId) generates a unique, SSR-stable id, so you do not manage id strings by hand. The example at the top of this page uses it.
+
+### With TanStack Form
 
 When you're using [TanStack Form](https://tanstack.com/form), `field.name` is already a stable, unique string for each field: pass it as both `htmlFor` on the `Label` and `id` on the input. You get a guaranteed-correct association for free without calling `useId()` separately:
 
@@ -154,6 +155,8 @@ A `Label` automatically gets `font-medium` when it doesn't contain a nested form
 	<Input id="email" type="email" />
 </div>
 ```
+
+### Label that wraps a control
 
 When the `Label` _wraps_ a control, the auto-default is skipped on purpose: otherwise the control's own typography would inherit the medium weight from the label. In that case, apply `font-medium` to your own caption element (a `<span>` or `<p>`) inside the label:
 

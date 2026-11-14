@@ -21,9 +21,7 @@ import {
 	Calendar
 </PageHeader>
 
-A calendar component that allows users to select a date or a range of dates. It renders a month grid with previous/next navigation; it has no text entry.
-
-Use `mode="single"` to let a user select a single date.
+A calendar component that allows users to select a date or a range of dates. Use `mode="single"` to let a user select a single date, or `mode="range"` to let a user select a [range](#range).
 
 <Example>
 	<SingleCalendarExample />
@@ -46,6 +44,11 @@ function Example() {
 	);
 }
 ```
+
+## When to use
+
+- Pick one date or a range of dates from a month grid with previous and next month buttons. The calendar has no text entry.
+- Reveal the calendar from a trigger: compose it inside a [`Popover`](#popover).
 
 ## Popover
 

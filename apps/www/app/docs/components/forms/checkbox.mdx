@@ -101,9 +101,7 @@ const someSelected = selected.length > 0 && !allSelected;
 
 # Checkbox
 
-A form control that allows the user to toggle between checked and not checked. Supports indeterminate state.
-
-Pair with `Field.*` for label/description/error wiring in forms:
+A form control that toggles between checked and not checked, with an indeterminate state. Pair it with `Field` to connect its label, description, and errors in a form.
 
 <Example>
 	<Field.Item name="terms-of-service">
@@ -132,7 +130,17 @@ import { Field } from "@ngrok/mantle/field";
 </Field.Item>;
 ```
 
-Or render the control on its own:
+## When to use
+
+- Turn one or more independent options on or off in a form.
+- Show a partial selection with the indeterminate state, such as a [select-all box](#select-all-helper).
+- Prefer [`Switch`](/components/forms/switch) when one setting turns on or off and needs no indeterminate state.
+- Prefer [`RadioGroup`](/components/forms/radio-group) when the user picks exactly one option from a set.
+- Prefer [`Choice`](/components/forms/choice) when the checkbox needs a title and a description beside it.
+
+## Without a Field
+
+Render the control on its own, with a `Label` as its caption:
 
 <Example>
 	<div className="flex flex-col">
@@ -231,6 +239,8 @@ import { Choice } from "@ngrok/mantle/choice";
 	</Choice.Content>
 </Choice.Root>;
 ```
+
+### Inside a Field
 
 Wrap that same `Choice` in a `Field.Item` / `Field.Control` to bind a form `name` and pick up validation. The field's `id` / `name` / `aria-*` flow onto the checkbox, and the `Field.Description` (or a `Field.Errors`) is merged into the control's `aria-describedby` alongside the `Choice.Description` (no duplicate ids, no manual wiring):
 

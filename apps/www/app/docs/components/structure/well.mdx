@@ -12,19 +12,7 @@ import { Example } from "~/components/example";
 
 # Well
 
-A recessed, inset container used to visually group and de-emphasize content
-relative to the surrounding surface. It renders like a `Card.Root` but with an
-inset shadow and the base background, making it feel sunken into the page. Reach
-for it to frame empty states, code samples, supplementary notes, or read-only
-summaries.
-
-## When to use
-
-A `Well` de-emphasizes a block of content relative to the surface around it.
-
-- Prefer [`Card`](/components/structure/card) when the content is primary and needs a raised box, a header, or a footer.
-- Compose [`Empty`](/components/feedback/empty) inside a `Well` when a zero-data state needs an inset panel.
-- Prefer [`CodeBlock`](/components/data-display/code-block) when the content is code and needs highlighting and a copy button.
+A recessed, inset container used to group and de-emphasize content.
 
 <Example>
 	<Well className="w-full">
@@ -64,6 +52,14 @@ import { MagnifyingGlassIcon } from "@phosphor-icons/react";
 	</Empty.Root>
 </Well>;
 ```
+
+## When to use
+
+- De-emphasize a block of content relative to the surface around it.
+- Frame an empty state, a code sample, a supplementary note, or a read-only summary.
+- Compose [`Empty`](/components/feedback/empty) inside a `Well` when a zero-data state needs an inset panel.
+- Prefer [`Card`](/components/structure/card) when the content is primary and needs a raised box, a header, or a footer.
+- Prefer [`CodeBlock`](/components/data-display/code-block) when the content is code and needs highlighting and a copy button.
 
 ## Polymorphism
 
@@ -115,6 +111,10 @@ import { MagnifyingGlassIcon, PlusIcon } from "@phosphor-icons/react";
 	</section>
 </Well>;
 ```
+
+## Appearance
+
+A `Well` renders like a `Card.Root`, but with an inset shadow and the base background. It therefore looks sunken into the page.
 
 ## API Reference
 

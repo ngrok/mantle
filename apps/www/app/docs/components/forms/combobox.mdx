@@ -71,13 +71,7 @@ window.alert(`Submitted: ${JSON.stringify(value, null, 2)}`);
 
 # Combobox
 
-Fill in a React input field with autocomplete & autosuggest functionalities. Choose from a list of suggested values with full keyboard support. `Combobox` follows the [WAI-ARIA Combobox Pattern](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/) and builds on the [ariakit Combobox](https://ariakit.org/components/combobox).
-
-## When to use
-
-Use `Combobox` for a list where the user types to filter — large static lists, async/server-side data, or any single-select where search is helpful. For small finite lists without filtering, use [`Select`](/components/forms/select). For multi-selection, use [`Multi Select`](/components/forms/multi-select).
-
-Pair with `Field.*` for label/description/error wiring in forms: wrap `Combobox.Input` in `Field.Control`. `Field.Control` flows the generated `id`, `name`, `aria-describedby`, `aria-errormessage`, and `aria-invalid` onto the focusable input.
+A text input with autocomplete: the user types to filter a list of suggested values and picks one, with full keyboard support. Wrap `Combobox.Input` in `Field.Control` to connect it to the label, description, and errors of a form field.
 
 <Example>
 	<Field.Item name="subdomain" className="max-w-96">
@@ -134,7 +128,18 @@ import { Field } from "@ngrok/mantle/field";
 </Field.Item>;
 ```
 
-Without helper or error text, a `Field.Item` with a `Field.Label` still gives the input its accessible name:
+## When to use
+
+- Pick one value from a long list, with a text field that filters the options as the user types.
+- Search async or server-side data for one value.
+- Prefer [`Select`](/components/forms/select) when the list is short and needs no filter.
+- Prefer [`MultiSelect`](/components/forms/multi-select) when the user picks several values, shown as tags.
+- Prefer [`Command`](/components/navigation/command) when the list runs actions or goes to pages, in a palette.
+- Prefer [`Query`](/components/forms/query) when the field filters a list with free text and `key:value` qualifiers.
+
+## Without helper text
+
+Use a `Field.Item` with only a `Field.Label` when the input needs no helper or error text. The label still gives the input its accessible name. This example also shows a disabled item, an item icon, and a separator.
 
 <Example className="gap-2">
 	<Field.Item name="subdomain-standalone" className="max-w-96">
@@ -369,6 +374,10 @@ import { Combobox } from "@ngrok/mantle/combobox";
 	</Combobox.Content>
 </Combobox.Root>;
 ```
+
+## Accessibility
+
+`Combobox` follows the [WAI-ARIA Combobox Pattern](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/) and builds on the [ariakit Combobox](https://ariakit.org/components/combobox). Inside a field, `Field.Control` puts the generated `id`, `name`, `aria-describedby`, `aria-errormessage`, and `aria-invalid` on the focusable input.
 
 ## API Reference
 

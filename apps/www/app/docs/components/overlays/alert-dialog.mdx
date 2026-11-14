@@ -11,11 +11,71 @@ import { TanStackFormDemo } from "~/examples/alert-dialog/alert-dialog-tanstack-
 
 # Alert Dialog
 
-A modal dialog that interrupts the user with important content and expects a response. Built on top of [Radix Dialog](https://www.radix-ui.com/primitives/docs/components/dialog).
+A modal dialog that interrupts the user with important content and expects a response. `AlertDialog.Root` requires an `intent`, which sets the color of the icon and the action.
+
+<Example>
+	<AlertDialog.Root intent="info">
+		<AlertDialog.Trigger asChild>
+			<Button type="button" appearance="outlined" intent="neutral">
+				Show Info Alert Dialog
+			</Button>
+		</AlertDialog.Trigger>
+		<AlertDialog.Content>
+			<AlertDialog.Icon />
+			<AlertDialog.Body>
+				<AlertDialog.Header>
+					<AlertDialog.Title>Are you absolutely sure?</AlertDialog.Title>
+					<AlertDialog.Description>
+						Proident quis nisi tempor irure sunt ut minim occaecat mollit sunt.
+					</AlertDialog.Description>
+				</AlertDialog.Header>
+				<AlertDialog.Footer>
+					<AlertDialog.Cancel type="button">Cancel</AlertDialog.Cancel>
+					<AlertDialog.Action type="button">Continue</AlertDialog.Action>
+				</AlertDialog.Footer>
+			</AlertDialog.Body>
+		</AlertDialog.Content>
+	</AlertDialog.Root>
+</Example>
+
+```tsx
+import { AlertDialog } from "@ngrok/mantle/alert-dialog";
+import { Button } from "@ngrok/mantle/button";
+
+<AlertDialog.Root intent="info">
+	<AlertDialog.Trigger asChild>
+		<Button type="button" appearance="outlined" intent="neutral">
+			Show Info Alert Dialog
+		</Button>
+	</AlertDialog.Trigger>
+	<AlertDialog.Content>
+		<AlertDialog.Icon />
+		<AlertDialog.Body>
+			<AlertDialog.Header>
+				<AlertDialog.Title>Are you absolutely sure?</AlertDialog.Title>
+				<AlertDialog.Description>
+					Proident quis nisi tempor irure sunt ut minim occaecat mollit sunt.
+				</AlertDialog.Description>
+			</AlertDialog.Header>
+			<AlertDialog.Footer>
+				<AlertDialog.Cancel type="button">Cancel</AlertDialog.Cancel>
+				<AlertDialog.Action type="button">Continue</AlertDialog.Action>
+			</AlertDialog.Footer>
+		</AlertDialog.Body>
+	</AlertDialog.Content>
+</AlertDialog.Root>;
+```
 
 ## When to use
 
-Use `AlertDialog` for destructive or irreversible confirmations (delete, sign out, leave without saving) where the user must explicitly acknowledge. `AlertDialog` blocks all background interaction. The content carries `role="alertdialog"`, and a click on the backdrop does not close it: the user closes it through `AlertDialog.Cancel`, `AlertDialog.Close`, or the Escape key. For non-destructive input modals, use [`Dialog`](/components/overlays/dialog).
+- Confirm a destructive or irreversible action before it runs, such as a delete, a sign-out, or a leave without saving.
+- Prefer [`Dialog`](/components/overlays/dialog) for a modal that gathers input or confirms a choice that is not destructive.
+- Prefer [`Sheet`](/components/overlays/sheet) for content that slides in from the edge of the screen, such as a filter panel or a detail view.
+- Prefer [`Sandbar`](/components/feedback/sandbar) for unsaved changes on the page, with a bar that waits for the user to save or discard them.
+
+## Intent
+
+Set `intent="danger"` when the action destroys data or cannot be undone. Use `intent="info"` for every other confirmation.
 
 <Example className="flex-col gap-6">
 	<AlertDialog.Root intent="info">
@@ -68,28 +128,52 @@ Use `AlertDialog` for destructive or irreversible confirmations (delete, sign ou
 import { AlertDialog } from "@ngrok/mantle/alert-dialog";
 import { Button } from "@ngrok/mantle/button";
 
-<AlertDialog.Root intent="info">
-	<AlertDialog.Trigger asChild>
-		<Button type="button" appearance="outlined" intent="neutral">
-			Show Info Alert Dialog
-		</Button>
-	</AlertDialog.Trigger>
-	<AlertDialog.Content>
-		<AlertDialog.Icon />
-		<AlertDialog.Body>
-			<AlertDialog.Header>
-				<AlertDialog.Title>Are you absolutely sure?</AlertDialog.Title>
-				<AlertDialog.Description>
-					Proident quis nisi tempor irure sunt ut minim occaecat mollit sunt.
-				</AlertDialog.Description>
-			</AlertDialog.Header>
-			<AlertDialog.Footer>
-				<AlertDialog.Cancel type="button">Cancel</AlertDialog.Cancel>
-				<AlertDialog.Action type="button">Continue</AlertDialog.Action>
-			</AlertDialog.Footer>
-		</AlertDialog.Body>
-	</AlertDialog.Content>
-</AlertDialog.Root>;
+<>
+	<AlertDialog.Root intent="info">
+		<AlertDialog.Trigger asChild>
+			<Button type="button" appearance="outlined" intent="neutral">
+				Show Info Alert Dialog
+			</Button>
+		</AlertDialog.Trigger>
+		<AlertDialog.Content>
+			<AlertDialog.Icon />
+			<AlertDialog.Body>
+				<AlertDialog.Header>
+					<AlertDialog.Title>Are you absolutely sure?</AlertDialog.Title>
+					<AlertDialog.Description>
+						Proident quis nisi tempor irure sunt ut minim occaecat mollit sunt.
+					</AlertDialog.Description>
+				</AlertDialog.Header>
+				<AlertDialog.Footer>
+					<AlertDialog.Cancel type="button">Cancel</AlertDialog.Cancel>
+					<AlertDialog.Action type="button">Continue</AlertDialog.Action>
+				</AlertDialog.Footer>
+			</AlertDialog.Body>
+		</AlertDialog.Content>
+	</AlertDialog.Root>
+	<AlertDialog.Root intent="danger">
+		<AlertDialog.Trigger asChild>
+			<Button type="button" appearance="outlined" intent="neutral">
+				Show Danger Alert Dialog
+			</Button>
+		</AlertDialog.Trigger>
+		<AlertDialog.Content>
+			<AlertDialog.Icon />
+			<AlertDialog.Body>
+				<AlertDialog.Header>
+					<AlertDialog.Title>Are you absolutely sure?</AlertDialog.Title>
+					<AlertDialog.Description>
+						Proident quis nisi tempor irure sunt ut minim occaecat mollit sunt.
+					</AlertDialog.Description>
+				</AlertDialog.Header>
+				<AlertDialog.Footer>
+					<AlertDialog.Cancel type="button">Cancel</AlertDialog.Cancel>
+					<AlertDialog.Action type="button">Continue</AlertDialog.Action>
+				</AlertDialog.Footer>
+			</AlertDialog.Body>
+		</AlertDialog.Content>
+	</AlertDialog.Root>
+</>;
 ```
 
 ## Layering and z-index
@@ -249,7 +333,13 @@ Every part of `AlertDialog` that renders DOM accepts `asChild`, which swaps the 
 | `AlertDialog.Header`, `AlertDialog.Body`, `AlertDialog.Footer` | The region should be a semantic element such as `<header>`, `<section>`, or `<footer>`.                   |
 | `AlertDialog.Content`                                          | You need to own the dialog panel element itself — rare, since `Content` already carries the panel chrome. |
 
+## Dismissal
+
+`AlertDialog` blocks all background interaction. The content carries `role="alertdialog"`, and a click on the backdrop does not close it. The user closes it with `AlertDialog.Cancel`, `AlertDialog.Close`, or the Escape key.
+
 ## API Reference
+
+The `AlertDialog` components are built on top of [Radix Dialog](https://www.radix-ui.com/primitives/docs/components/dialog).
 
 ### AlertDialog.Root
 

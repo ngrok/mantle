@@ -83,10 +83,6 @@ export function TanStackFormExample() {
 
 A row of segments that switches between a few short options, like a view or an environment. A raised thumb slides to the checked segment.
 
-`SegmentedControl` is a radio group underneath. It shares its primitive with [`RadioGroup`](/components/forms/radio-group), so it has the same contract: `role="radiogroup"`, one tab stop, arrow keys that move the checked segment, and a hidden `<input type="radio">` for form submission when it has a `name`. Use `RadioGroup` when the options need a description or stack in a column, and [`Tabs`](/components/navigation/tabs) when each option shows its own panel of content.
-
-To change the value, click a segment, use the arrow keys, or drag the thumb with a mouse or a finger.
-
 <Example>
 	<SegmentedControl.Root
 		aria-label="Environment"
@@ -112,6 +108,13 @@ import { SegmentedControl } from "@ngrok/mantle/segmented-control";
 	<SegmentedControl.Item value="production">Prod</SegmentedControl.Item>
 </SegmentedControl.Root>;
 ```
+
+## When to use
+
+- Switch between a few short options, like a view or an environment, in one row.
+- Prefer [`RadioGroup`](/components/forms/radio-group) for a form field whose options need a description, or stack in a column.
+- Prefer [`Tabs`](/components/navigation/tabs) when each option shows its own panel of content.
+- Prefer [`Select`](/components/forms/select) when the set is long, or the row has little space.
 
 ## Controlled
 
@@ -244,6 +247,12 @@ function TanStackFormExample() {
 SegmentedControl.Root
 └── SegmentedControl.Item
 ```
+
+## Radio semantics
+
+`SegmentedControl` is a radio group underneath. It shares its primitive with [`RadioGroup`](/components/forms/radio-group), so it has the same contract: `role="radiogroup"`, one tab stop, arrow keys that move the checked segment, and a hidden `<input type="radio">` for form submission when it has a `name`.
+
+To change the value, click a segment, use the arrow keys, or drag the thumb with a mouse or a finger.
 
 ## Dragging the thumb
 

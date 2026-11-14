@@ -6,9 +6,7 @@ aliases: [main landmark]
 
 # Main
 
-A focusable `<main>` landmark for the page's primary content. Renders with `id="main"` and `tabIndex={-1}` so a skip link (or any programmatic focus call) can send keyboard users directly to the main content without exposing a visible focus ring on the region itself.
-
-Pair with the [`SkipToMainLink`](/components/primitives/skip-to-main-link) component at the top of the document.
+A focusable `<main>` landmark for the page's primary content. Pair it with the [`SkipToMainLink`](/components/primitives/skip-to-main-link) component at the top of the document.
 
 A page has one `main` landmark, and this docs page already renders it around the content you are reading. A live example here would render a second one, so the page shows the markup instead:
 
@@ -20,6 +18,15 @@ import { Main } from "@ngrok/mantle/main";
 	<p className="text-sm text-muted">Primary page content goes here.</p>
 </Main>;
 ```
+
+## When to use
+
+- Mark the primary content of a page as a focusable `<main>` landmark that a skip link can move focus to.
+- Prefer [`AppLayout`](/layouts/app-layout) for a page in the app shell: `AppLayout.Body` already renders the landmark.
+
+## Focus target
+
+`Main` renders with `id="main"` and `tabIndex={-1}`. A skip link, or any programmatic focus call, can then send keyboard users directly to the main content, and the region itself shows no visible focus ring.
 
 ## API Reference
 
