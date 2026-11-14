@@ -313,6 +313,11 @@
 			"types": "./dist/scatter-plot.d.ts",
 			"import": "./dist/scatter-plot.js"
 		},
+		"./segmented-control": {
+			"@ngrok/src-live-types": "./src/components/segmented-control/index.ts",
+			"types": "./dist/segmented-control.d.ts",
+			"import": "./dist/segmented-control.js"
+		},
 		"./select": {
 			"@ngrok/src-live-types": "./src/components/select/index.ts",
 			"types": "./dist/select.d.ts",

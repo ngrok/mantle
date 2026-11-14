@@ -91,6 +91,7 @@ export const componentsByCategory = {
 		"Password Input",
 		"Query",
 		"Radio Group",
+		"Segmented Control",
 		"Select",
 		"Slider",
 		"Switch",
@@ -197,6 +198,7 @@ export const prodReadyComponentRouteLookup = {
 	Sandbar: "/components/feedback/sandbar",
 	SandboxedOnClick: "/components/primitives/sandboxed-on-click",
 	"Scatter Plot": "/components/charts/scatter-plot",
+	"Segmented Control": "/components/forms/segmented-control",
 	Select: "/components/forms/select",
 	"Selectable List": "/components/data-display/selectable-list",
 	Separator: "/components/structure/separator",
@@ -552,6 +554,14 @@ export const migrations = [
 		description:
 			"Every chart series names its color with a mantle color name, the same names Badge takes. The chart-1 to chart-8 tokens, chart-other, and seriesSlot are gone, and color is required.",
 		route: "/migrations/0014-chart-named-colors-migration",
+	},
+	{
+		number: 15,
+		slug: "segmented-control-migration",
+		title: "Segmented Control",
+		description:
+			"RadioGroup.ButtonGroup and RadioGroup.Button are gone. Use SegmentedControl.Root and SegmentedControl.Item from @ngrok/mantle/segmented-control.",
+		route: "/migrations/0015-segmented-control-migration",
 	},
 ] as const satisfies readonly Migration[];
 

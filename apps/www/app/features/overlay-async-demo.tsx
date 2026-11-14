@@ -5,7 +5,7 @@ import { Dialog } from "@ngrok/mantle/dialog";
 import { Empty } from "@ngrok/mantle/empty";
 import { Label } from "@ngrok/mantle/label";
 import { MediaObject } from "@ngrok/mantle/media-object";
-import { RadioGroup } from "@ngrok/mantle/radio-group";
+import { SegmentedControl } from "@ngrok/mantle/segmented-control";
 import { Separator } from "@ngrok/mantle/separator";
 import { Sheet } from "@ngrok/mantle/sheet";
 import { Skeleton } from "@ngrok/mantle/skeleton";
@@ -689,9 +689,7 @@ export function UserOverlayDemo() {
 		<div className="flex flex-col gap-3">
 			<div className="flex flex-col gap-1.5">
 				<Label id={overlayPickerLabelId}>Overlay</Label>
-				{/* ButtonGroup renders the radio group itself — do not nest it inside
-				    RadioGroup.Root, or the buttons bind to an inner, uncontrolled group. */}
-				<RadioGroup.ButtonGroup
+				<SegmentedControl.Root
 					aria-labelledby={overlayPickerLabelId}
 					className="w-fit"
 					value={overlay}
@@ -702,11 +700,11 @@ export function UserOverlayDemo() {
 					}}
 				>
 					{overlayKinds.map((kind) => (
-						<RadioGroup.Button key={kind} value={kind} className="whitespace-nowrap">
+						<SegmentedControl.Item key={kind} value={kind} className="whitespace-nowrap">
 							{overlayKindLabels[kind]}
-						</RadioGroup.Button>
+						</SegmentedControl.Item>
 					))}
-				</RadioGroup.ButtonGroup>
+				</SegmentedControl.Root>
 			</div>
 			<div className="flex flex-wrap items-center gap-2">
 				<Button

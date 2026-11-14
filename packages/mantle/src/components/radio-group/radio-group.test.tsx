@@ -211,7 +211,6 @@ const variants = [
 	{ variant: "Item", Group: RadioGroup.Root, Option: RadioGroup.Item },
 	{ variant: "ListItem", Group: RadioGroup.List, Option: RadioGroup.ListItem },
 	{ variant: "Card", Group: RadioGroup.Root, Option: RadioGroup.Card },
-	{ variant: "Button", Group: RadioGroup.ButtonGroup, Option: RadioGroup.Button },
 ] as const;
 
 test.each(variants)(

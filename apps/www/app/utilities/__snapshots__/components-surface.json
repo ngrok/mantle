@@ -1503,11 +1503,10 @@
     "summary": "A set of checkable buttons (known as radio buttons) where no more than one of the buttons can be checked at a time.",
     "jsdoc": "A group of radio items.",
     "examples": [
-      "Composition:\n```\n# Default radios\nRadioGroup.Root\n└── RadioGroup.Item\n    ├── RadioGroup.Indicator\n    └── RadioGroup.ItemContent\n\n# List layout with descriptions\nRadioGroup.List\n└── RadioGroup.ListItem\n    ├── RadioGroup.Indicator\n    └── RadioGroup.ItemContent\n\n# Segmented button group\nRadioGroup.ButtonGroup\n└── RadioGroup.Button\n\n# Card-style radios\nRadioGroup.Root\n└── RadioGroup.Card\n    └── RadioGroup.Indicator\n\n# Rich option layout (Choice)\nRadioGroup.Root\n└── RadioGroup.Item\n    └── Choice.Root\n        ├── Choice.Indicator\n        │   └── RadioGroup.Indicator\n        └── Choice.Content\n            ├── Choice.Title\n            └── Choice.Description\n```",
+      "Composition:\n```\n# Default radios\nRadioGroup.Root\n└── RadioGroup.Item\n    ├── RadioGroup.Indicator\n    └── RadioGroup.ItemContent\n\n# List layout with descriptions\nRadioGroup.List\n└── RadioGroup.ListItem\n    ├── RadioGroup.Indicator\n    └── RadioGroup.ItemContent\n\n# Card-style radios\nRadioGroup.Root\n└── RadioGroup.Card\n    └── RadioGroup.Indicator\n\n# Rich option layout (Choice)\nRadioGroup.Root\n└── RadioGroup.Item\n    └── Choice.Root\n        ├── Choice.Indicator\n        │   └── RadioGroup.Indicator\n        └── Choice.Content\n            ├── Choice.Title\n            └── Choice.Description\n```",
       "```tsx\n<RadioGroup.Root value={value} onChange={setValue}>\n  <RadioGroup.Item value=\"option1\">\n    <RadioGroup.Indicator />\n    <span>Option 1</span>\n  </RadioGroup.Item>\n  <RadioGroup.Item value=\"option2\">\n    <RadioGroup.Indicator />\n    <span>Option 2</span>\n  </RadioGroup.Item>\n</RadioGroup.Root>\n```"
     ],
     "aliases": [
-      "segmented control",
       "radio button",
       "radio"
     ],
@@ -1523,6 +1522,10 @@
       {
         "name": "Choice",
         "boundary": "each radio needs a title and a description beside it."
+      },
+      {
+        "name": "SegmentedControl",
+        "boundary": "a few short options switch a view or a mode in one row."
       }
     ],
     "useWhen": "Pick exactly one value from a few fixed options, with every option visible at once."
@@ -1606,6 +1609,41 @@
       }
     ],
     "useWhen": "Show how two measures correlate across many points, or three measures in a rotatable 3D view."
+  },
+  {
+    "name": "Segmented Control",
+    "slug": "components/forms/segmented-control",
+    "kind": "component",
+    "category": "Forms",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/segmented-control",
+    "summary": "A row of segments that switches between a few short options, like a view or an environment. A raised thumb slides to the checked segment.",
+    "jsdoc": "A row of segments that switches between a few short options, like a view or an environment.",
+    "examples": [
+      "Composition:\n```\nSegmentedControl.Root\n└── SegmentedControl.Item\n```",
+      "```tsx\n<SegmentedControl.Root aria-label=\"Environment\" defaultValue=\"production\">\n  <SegmentedControl.Item value=\"development\">Dev</SegmentedControl.Item>\n  <SegmentedControl.Item value=\"staging\">Staging</SegmentedControl.Item>\n  <SegmentedControl.Item value=\"production\">Prod</SegmentedControl.Item>\n</SegmentedControl.Root>\n```"
+    ],
+    "aliases": [
+      "segmented button",
+      "view switcher",
+      "toggle group",
+      "button group radio"
+    ],
+    "siblings": [
+      {
+        "name": "RadioGroup",
+        "boundary": "a form field whose options need a description, or stack in a column."
+      },
+      {
+        "name": "Tabs",
+        "boundary": "each option shows its own panel of content."
+      },
+      {
+        "name": "Select",
+        "boundary": "the set is long, or the row has little space."
+      }
+    ],
+    "useWhen": "Switch between a few short options, like a view or an environment, in one row."
   },
   {
     "name": "Select",

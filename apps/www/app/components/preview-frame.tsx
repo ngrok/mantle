@@ -1,6 +1,6 @@
 import { IconButton } from "@ngrok/mantle/button";
 import { cx } from "@ngrok/mantle/cx";
-import { RadioGroup } from "@ngrok/mantle/radio-group";
+import { SegmentedControl } from "@ngrok/mantle/segmented-control";
 import { ArrowClockwiseIcon } from "@phosphor-icons/react/ArrowClockwise";
 import { ArrowSquareOutIcon } from "@phosphor-icons/react/ArrowSquareOut";
 import { DesktopIcon } from "@phosphor-icons/react/Desktop";
@@ -78,7 +78,7 @@ export function PreviewFrame({ example, title, className }: PreviewFrameProps) {
 			)}
 		>
 			<div className="flex items-center gap-2 border-b border-gray-300 p-1.5">
-				<RadioGroup.ButtonGroup
+				<SegmentedControl.Root
 					aria-label="Preview viewport"
 					className="w-fit"
 					value={viewport}
@@ -89,12 +89,12 @@ export function PreviewFrame({ example, title, className }: PreviewFrameProps) {
 					}}
 				>
 					{viewportOptions.map((option) => (
-						<RadioGroup.Button key={option.value} value={option.value} className="px-2.5">
+						<SegmentedControl.Item key={option.value} value={option.value} className="px-2.5">
 							{option.icon}
 							<span className="sr-only">{option.label}</span>
-						</RadioGroup.Button>
+						</SegmentedControl.Item>
 					))}
-				</RadioGroup.ButtonGroup>
+				</SegmentedControl.Root>
 				<div className="ml-auto flex items-center gap-1">
 					<IconButton
 						type="button"

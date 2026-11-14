@@ -768,7 +768,7 @@ plain-markdown twin (`/api/…`, `llms-full.txt`) generated from it.
    decisions it encodes.
 4. **A primary live example** with its code block. For a compound component, it shows the simplest use case.
 5. **One `##` section for each other use case** — compound components whose parts serve distinct use cases
-   (`RadioGroup` has plain radios, a segmented control, a list, and cards). Each section has a heading that
+   (`RadioGroup` has plain radios, a list, and cards). Each section has a heading that
    names the use case, one or two sentences on when to use it and which parts it takes, a live example, and a
    code block with only that use case. Never show two use cases in one example: a reader cannot tell which code
    makes which shape, and the TOC cannot link to one of them.

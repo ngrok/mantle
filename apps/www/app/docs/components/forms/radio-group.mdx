@@ -1,7 +1,7 @@
 ---
 title: Radio Group
 description: A set of checkable buttons (known as radio buttons) where no more than one of the buttons can be checked at a time.
-aliases: [segmented control, radio button, radio]
+aliases: [radio button, radio]
 ---
 
 import { Button } from "@ngrok/mantle/button";
@@ -76,6 +76,8 @@ window.alert(`Submitted: ${JSON.stringify(value, null, 2)}`);
 
 A set of checkable buttons (known as radio buttons) where no more than one of the buttons can be checked at a time.
 
+For a few short options in one row, like a view or an environment switch, use [`SegmentedControl`](/components/forms/segmented-control). It is built on the same radio primitive.
+
 Pair with `Field.Set` and `Field.Legend` for grouped label/description/error wiring in forms. `RadioGroup` keeps its own `name` prop on `RadioGroup.Root`:
 
 <Example>
@@ -121,36 +123,6 @@ import { RadioGroup } from "@ngrok/mantle/radio-group";
 	</RadioGroup.Root>
 	<Field.Description>Choose the row spacing for tables.</Field.Description>
 </Field.Set>;
-```
-
-## Segmented control
-
-Use `RadioGroup.ButtonGroup` in place of `RadioGroup.Root` for a short set of options in one row, like a view or an environment switch. A raised thumb slides to the checked `RadioGroup.Button`.
-
-<Example>
-	<RadioGroup.ButtonGroup
-		aria-label="Environment"
-		defaultValue="production"
-		className="w-full max-w-md"
-	>
-		<RadioGroup.Button value="development">Dev</RadioGroup.Button>
-		<RadioGroup.Button value="staging" disabled>
-			Staging
-		</RadioGroup.Button>
-		<RadioGroup.Button value="production">Prod</RadioGroup.Button>
-	</RadioGroup.ButtonGroup>
-</Example>
-
-```tsx
-import { RadioGroup } from "@ngrok/mantle/radio-group";
-
-<RadioGroup.ButtonGroup aria-label="Environment" defaultValue="production">
-	<RadioGroup.Button value="development">Dev</RadioGroup.Button>
-	<RadioGroup.Button value="staging" disabled>
-		Staging
-	</RadioGroup.Button>
-	<RadioGroup.Button value="production">Prod</RadioGroup.Button>
-</RadioGroup.ButtonGroup>;
 ```
 
 ## List
@@ -485,10 +457,6 @@ RadioGroup.List
     ├── RadioGroup.Indicator
     └── RadioGroup.ItemContent
 
-# Segmented button group
-RadioGroup.ButtonGroup
-└── RadioGroup.Button
-
 # Card-style radios
 RadioGroup.Root
 └── RadioGroup.Card
@@ -509,7 +477,7 @@ RadioGroup.Root
 
 `RadioGroup.ItemContent` accepts `asChild`. When `true` it renders its single child instead of its default `<div>`, forwarding class names, `data-*` attributes, and `ref` onto that child. Reach for it when the title-and-description block beside a radio needs to be a specific element, such as a `<p>` or a link wrapping the whole content area. Do not reach for a `<label htmlFor>`: each item is a `div[role="radio"]`, which `for` cannot bind, and the item's text content is already its accessible name.
 
-The rest of the family deliberately does not take `asChild`. `RadioGroup.Root`, `List`, and `ButtonGroup` own the group's roving-focus and arrow-key contract; `Item`, `ListItem`, `Card`, and `Button` each render a `div[role="radio"]` with its keyboard handling, and `Indicator` paints the control itself. When the group has a `name`, Headless UI renders one hidden `<input type="radio">` for form submission. For a richer option layout, compose [`Choice`](/components/forms/choice) inside `RadioGroup.Item` (see [Rich option layout with `Choice`](#rich-option-layout-with-choice)) rather than swapping these elements out.
+The rest of the family deliberately does not take `asChild`. `RadioGroup.Root` and `List` own the group's roving-focus and arrow-key contract; `Item`, `ListItem`, and `Card` each render a `div[role="radio"]` with its keyboard handling, and `Indicator` paints the control itself. When the group has a `name`, Headless UI renders one hidden `<input type="radio">` for form submission. For a richer option layout, compose [`Choice`](/components/forms/choice) inside `RadioGroup.Item` (see [Rich option layout with `Choice`](#rich-option-layout-with-choice)) rather than swapping these elements out.
 
 ## API Reference
 
@@ -551,23 +519,6 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | Prop       | Type      | Default | Description                                                                     |
 | :--------- | :-------- | :------ | :------------------------------------------------------------------------------ |
 | `asChild?` | `boolean` | `false` | Use the `asChild` prop to render a custom element instead of the default `div`. |
-
-### RadioGroup.ButtonGroup
-
-An inline group of radio buttons rendered as a horizontal segmented control. Use `RadioGroup.Button` as direct children.
-
-Each segment keeps its label on one line and grows to fit it. Keep labels to one or two words. If the labels do not fit the width of the layout, use `RadioGroup.Root` or `RadioGroup.List` instead.
-
-Same props as `RadioGroup.Root`.
-
-### RadioGroup.Button
-
-A radio button used inside `RadioGroup.ButtonGroup` for inline grouped radio options. Inside `Field.Control`, the item picks up `aria-invalid`, `aria-errormessage`, and `aria-describedby`. A `Choice.Title` inside names it through `aria-labelledby`, and a `Choice.Description` describes it through `aria-describedby`.
-
-| Prop        | Type      | Default | Description                                                      |
-| :---------- | :-------- | :------ | :--------------------------------------------------------------- |
-| `value`     | `string`  |         | The unique value of the radio button.                            |
-| `disabled?` | `boolean` |         | When `true`, prevents the user from interacting with the button. |
 
 ### RadioGroup.List
 

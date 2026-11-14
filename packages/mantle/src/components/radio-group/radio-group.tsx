@@ -1,44 +1,18 @@
 "use client";
 
-import { Radio as HeadlessRadio, RadioGroup as HeadlessRadioGroup } from "@headlessui/react";
-import type {
-	RadioGroupProps as HeadlessRadioGroupProps,
-	RadioProps as HeadlessRadioProps,
-} from "@headlessui/react";
-import {
-	Children,
-	cloneElement,
-	createContext,
-	isValidElement,
-	useCallback,
-	useId,
-	useContext,
-	useMemo,
-	useRef,
-	useState,
-} from "react";
-import type {
-	ComponentProps,
-	ElementType,
-	HTMLAttributes,
-	PropsWithChildren,
-	ReactNode,
-	Ref,
-} from "react";
+import { Children, cloneElement, isValidElement, useContext, useRef } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 import type { WithAsChild } from "../../types/as-child.js";
-import { $cssProperties } from "../../types/index.js";
 import { clsx } from "../../utils/cx/clsx.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
-import { FieldControlContext } from "../field/field-context.js";
 import { isInput } from "../input/is-input.js";
 import { Slot } from "../slot/index.js";
-import { RadioItemContext, type RadioItemContextValue } from "./radio-item-context.js";
+import * as RadioPrimitive from "./primitive.js";
+import { RadioStateContext, type RadioStateContextValue } from "./primitive.js";
 
-type RadioGroupProps = PropsWithChildren<Omit<HeadlessRadioGroupProps, "as" | "children">> & {
-	ref?: Ref<HTMLElement>;
-} & WithDataSlot;
+type RadioGroupProps = RadioPrimitive.RootProps;
 
 /**
  * A group of radio items. It manages the state of the children radios. Unstyled and simple.
@@ -68,106 +42,10 @@ type RadioGroupProps = PropsWithChildren<Omit<HeadlessRadioGroupProps, "as" | "c
  * ```
  */
 const Root = ({ "data-slot": dataSlot, ref, ...props }: RadioGroupProps) => (
-	<HeadlessRadioGroup data-slot={joinDataSlot(dataSlot, "radio-group")} {...props} ref={ref} />
+	<RadioPrimitive.Root data-slot={joinDataSlot(dataSlot, "radio-group")} {...props} ref={ref} />
 );
 
-/**
- * The shape of the radio state context.
- */
-type RadioStateContextValue = {
-	autofocus: boolean;
-	checked: boolean;
-	disabled: boolean;
-	focus: boolean;
-	hover: boolean;
-};
-
-/**
- * The radio state. It's used to pass the state of the radio to its children components.
- * It's used internally by the radio components to manage the state/style of the radio items.
- * Used in place of css classes to avoid specificity issues and slightly improve performance.
- */
-const RadioStateContext = createContext<RadioStateContextValue>({
-	autofocus: false,
-	checked: false,
-	disabled: false,
-	focus: false,
-	hover: false,
-});
-
-/**
- * Joins element ids into one IDREF list. Returns `undefined` when there are
- * none, so the attribute is omitted.
- */
-function joinIds(ids: readonly (string | undefined)[]): string | undefined {
-	const present = ids.filter((id): id is string => id != null && id !== "");
-	return present.length > 0 ? present.join(" ") : undefined;
-}
-
-/**
- * A list of registered element ids and a stable callback that adds one and
- * returns the cleanup that removes it.
- */
-function useRegisteredIds(): [readonly string[], (id: string) => () => void] {
-	const [ids, setIds] = useState<readonly string[]>([]);
-	const register = useCallback((id: string) => {
-		setIds((current) => [...current, id]);
-		return () => {
-			setIds((current) => current.filter((candidate) => candidate !== id));
-		};
-	}, []);
-	return [ids, register];
-}
-
-/**
- * The element every radio item variant renders through Headless UI's `as`.
- * Headless UI's `Radio` owns `aria-labelledby` and `aria-describedby`. It reads
- * them from its own `Label` / `Description` context, which mantle does not use.
- * It then writes the result over the caller's props, `undefined` included.
- * Because mantle renders the element, the item stamps these after that spread:
- * - `aria-labelledby` and `aria-describedby`, from the ids its text registered
- * - `aria-describedby`, `aria-invalid`, and `aria-errormessage`, from a
- *   surrounding `Field.Control`
- *
- * It also publishes `RadioItemContext` to the children, so `Choice.Title` and
- * `Choice.Description` can register. The item's `as` arrives as `tag`, so a
- * consumer's element choice keeps this wiring.
- */
-type RadioElementProps = ComponentProps<"div"> & {
-	/** The element the item's `as` prop asked for. */
-	tag?: ElementType;
-};
-
-const RadioElement = ({ children, ref, tag: Tag = "div", ...props }: RadioElementProps) => {
-	const fieldControl = useContext(FieldControlContext);
-	const [labelIds, registerLabelId] = useRegisteredIds();
-	const [descriptionIds, registerDescriptionId] = useRegisteredIds();
-	const context = useMemo<RadioItemContextValue>(
-		() => ({ registerLabelId, registerDescriptionId }),
-		[registerLabelId, registerDescriptionId],
-	);
-	return (
-		<Tag
-			{...props}
-			{...(fieldControl
-				? {
-						"aria-errormessage": fieldControl["aria-errormessage"],
-						"aria-invalid": fieldControl["aria-invalid"],
-					}
-				: undefined)}
-			aria-labelledby={joinIds(labelIds)}
-			aria-describedby={joinIds([fieldControl?.["aria-describedby"], ...descriptionIds])}
-			ref={ref}
-		>
-			<RadioItemContext.Provider value={context}>{children}</RadioItemContext.Provider>
-		</Tag>
-	);
-};
-
-type RadioItemProps = Omit<HeadlessRadioProps, "children"> &
-	PropsWithChildren & {
-		ref?: Ref<HTMLDivElement>;
-	} & WithDataSlot;
+type RadioItemProps = RadioPrimitive.ItemProps;
 
 /**
  * A simple radio item that can be used inside a radio group. The "conventional" use-case.
@@ -201,7 +79,7 @@ const Item = ({
 	...props
 }: RadioItemProps) => {
 	return (
-		<HeadlessRadio
+		<RadioPrimitive.Item
 			data-slot={joinDataSlot(dataSlot, "radio-group-item")}
 			className={cx(
 				"group/radio cursor-pointer aria-disabled:cursor-default [&_label]:cursor-inherit flex gap-2 py-1 text-sm focus:outline-hidden",
@@ -211,12 +89,11 @@ const Item = ({
 				className,
 			)}
 			{...props}
-			as={RadioElement}
-			tag={tag}
+			as={tag}
 			ref={ref}
 		>
-			{(ctx) => <RadioStateContext.Provider value={ctx}>{children}</RadioStateContext.Provider>}
-		</HeadlessRadio>
+			{children}
+		</RadioPrimitive.Item>
 	);
 };
 
@@ -379,7 +256,7 @@ const ListItem = ({
 	...props
 }: RadioListItemProps) => {
 	return (
-		<HeadlessRadio
+		<RadioPrimitive.Item
 			data-slot={joinDataSlot(dataSlot, "radio-group-list-item")}
 			className={cx(
 				"group/radio [&_label]:cursor-inherit relative flex select-none gap-2 rounded-md px-3 py-2 text-sm",
@@ -391,12 +268,11 @@ const ListItem = ({
 				className,
 			)}
 			{...props}
-			as={RadioElement}
-			tag={tag}
+			as={tag}
 			ref={ref}
 		>
-			{(ctx) => <RadioStateContext.Provider value={ctx}>{children}</RadioStateContext.Provider>}
-		</HeadlessRadio>
+			{children}
+		</RadioPrimitive.Item>
 	);
 };
 
@@ -445,7 +321,7 @@ const Card = ({
 	...props
 }: RadioCardProps) => {
 	return (
-		<HeadlessRadio
+		<RadioPrimitive.Item
 			data-slot={joinDataSlot(dataSlot, "radio-group-card")}
 			className={clsx(
 				"group/radio border-card bg-card [&_label]:cursor-inherit relative rounded-md border p-4 text-sm",
@@ -457,12 +333,11 @@ const Card = ({
 				className,
 			)}
 			{...props}
-			as={RadioElement}
-			tag={tag}
+			as={tag}
 			ref={ref}
 		>
-			{(ctx) => <RadioStateContext.Provider value={ctx}>{children}</RadioStateContext.Provider>}
-		</HeadlessRadio>
+			{children}
+		</RadioPrimitive.Item>
 	);
 };
 
@@ -503,117 +378,6 @@ const ItemContent = ({
 		>
 			{children}
 		</Component>
-	);
-};
-
-/**
- * An inline group of radio buttons. Use RadioGroup.Button as direct children.
- * Renders the radio group itself (it wraps `Root`) — use it *in place of*
- * `RadioGroup.Root`, never nested inside one, or the buttons bind to an
- * inner, uncontrolled group and outer `value`/`onChange` props are ignored.
- *
- * @see https://mantle.ngrok.com/components/forms/radio-group#radiogroupbuttongroup
- *
- * @example
- * ```tsx
- * <Label id="size-label">Size</Label>
- * <RadioGroup.ButtonGroup aria-labelledby="size-label" defaultValue="small">
- *   <RadioGroup.Button value="small">Small</RadioGroup.Button>
- *   <RadioGroup.Button value="medium">Medium</RadioGroup.Button>
- *   <RadioGroup.Button value="large">Large</RadioGroup.Button>
- * </RadioGroup.ButtonGroup>
- * ```
- */
-const ButtonGroup = ({
-	"data-slot": dataSlot,
-	className,
-	ref,
-	style,
-	...props
-}: RadioGroupProps) => {
-	// Why a name for each group: anchor names are global, so two groups on one page
-	// would otherwise share one checked button.
-	const thumbAnchor = `--radio-group-thumb${useId().replaceAll(/[^\w-]/g, "")}`;
-	return (
-		<Root
-			data-slot={joinDataSlot(dataSlot, "radio-group-button-group")}
-			className={clsx(
-				// Why 0.625rem: the segment radius (6px) and the padding (4px) add up to it.
-				// The segments and their focus rings then follow the group corner.
-				"bg-neutral-500/10 relative flex h-9 flex-row flex-nowrap gap-px rounded-[0.625rem] p-1",
-				// Why a pseudo-element on the group: one thumb slides to the checked button,
-				// and no element sits beside the consumer's children.
-				"before:absolute before:rounded-md before:bg-card before:shadow-sm dark:before:bg-neutral-300",
-				"before:[position-anchor:var(--radio-group-thumb)] before:top-[anchor(top)] before:left-[anchor(left)] before:w-[anchor-size(width)] before:h-[anchor-size(height)]",
-				"motion-safe:before:transition-[left,width] motion-safe:before:duration-200 motion-safe:before:ease-out-strong",
-				// Why: a white thumb cannot get lighter, so hover on it lifts the shadow.
-				"has-[[aria-checked=true]:not([aria-disabled]):hover]:before:shadow",
-				className,
-			)}
-			style={{ ...$cssProperties({ "--radio-group-thumb": thumbAnchor }), ...style }}
-			{...props}
-			ref={ref}
-		/>
-	);
-};
-
-type RadioButtonProps = RadioItemProps & WithDataSlot;
-
-/**
- * A radio button that is used inside a `RadioGroup.ButtonGroup`.
- *
- * When rendered inside `Field.Control` (an alternative to the recommended
- * `Field.Set` / `Field.Legend` composition), picks up `aria-invalid`,
- * `aria-errormessage`, and `aria-describedby` from `FieldControlContext`. A
- * `Choice.Title` inside the item names it through `aria-labelledby`, and a
- * `Choice.Description` describes it through `aria-describedby`. The option's
- * accessible name is then the title alone.
- *
- * @see https://mantle.ngrok.com/components/forms/radio-group#radiogroupbutton
- *
- * @example
- * ```tsx
- * <RadioGroup.ButtonGroup defaultValue="option1">
- *   <RadioGroup.Button value="option1">Option 1</RadioGroup.Button>
- *   <RadioGroup.Button value="option2">Option 2</RadioGroup.Button>
- *   <RadioGroup.Button value="option3">Option 3</RadioGroup.Button>
- * </RadioGroup.ButtonGroup>
- * ```
- */
-const Button = ({
-	"data-slot": dataSlot,
-	as: tag,
-	children,
-	className,
-	ref,
-	...props
-}: RadioButtonProps) => {
-	return (
-		<HeadlessRadio
-			data-slot={joinDataSlot(dataSlot, "radio-group-button")}
-			className={cx(
-				"group/radio [&_label]:cursor-inherit relative flex flex-1 select-none items-center justify-center gap-2 rounded-md px-3 text-sm",
-				// Why nowrap: `ButtonGroup` has a fixed height, so a wrapped label spills out of the segment.
-				"whitespace-nowrap",
-				"focus-visible:ring-focus-accent focus-visible:z-1 focus-visible:ring-4",
-				"cursor-pointer aria-disabled:cursor-default focus:outline-hidden",
-				"text-muted not-aria-disabled:hover:text-strong aria-disabled:opacity-50",
-				// Why a lighter tint: hover moves a segment toward the raised thumb in both themes.
-				"not-aria-disabled:hover:bg-white/60 dark:not-aria-disabled:hover:bg-neutral-500/10",
-				// Why an anchor: the group's thumb slides under the checked button.
-				"aria-checked:text-strong aria-checked:[anchor-name:var(--radio-group-thumb)]",
-				// Why: a browser with no anchor positioning draws no thumb, so the button raises itself.
-				"not-supports-[anchor-name:--a]:aria-checked:bg-card not-supports-[anchor-name:--a]:aria-checked:shadow-sm dark:not-supports-[anchor-name:--a]:aria-checked:bg-neutral-300",
-				"has-[.radio-indicator:first-child]:pl-2 has-[.radio-indicator:last-child]:pr-2",
-				className,
-			)}
-			{...props}
-			as={RadioElement}
-			tag={tag}
-			ref={ref}
-		>
-			{(ctx) => <RadioStateContext.Provider value={ctx}>{children}</RadioStateContext.Provider>}
-		</HeadlessRadio>
 	);
 };
 
@@ -712,6 +476,7 @@ const InputSandbox = ({
  * - `Select`: the set is long, or the form has little space.
  * - `Checkbox`: the user picks any number of options.
  * - `Choice`: each radio needs a title and a description beside it.
+ * - `SegmentedControl`: a few short options switch a view or a mode in one row.
  *
  * @see https://mantle.ngrok.com/components/forms/radio-group#radiogrouproot
  *
@@ -729,10 +494,6 @@ const InputSandbox = ({
  * └── RadioGroup.ListItem
  *     ├── RadioGroup.Indicator
  *     └── RadioGroup.ItemContent
- *
- * # Segmented button group
- * RadioGroup.ButtonGroup
- * └── RadioGroup.Button
  *
  * # Card-style radios
  * RadioGroup.Root
@@ -765,38 +526,6 @@ const InputSandbox = ({
  * ```
  */
 const RadioGroup = {
-	/**
-	 * A radio button that is used inside a RadioGroup.ButtonGroup for inline grouped radio options.
-	 *
-	 * @see https://mantle.ngrok.com/components/forms/radio-group#radiogroupbutton
-	 *
-	 * @example
-	 * ```tsx
-	 * <RadioGroup.ButtonGroup defaultValue="option1">
-	 *   <RadioGroup.Button value="option1">Option 1</RadioGroup.Button>
-	 *   <RadioGroup.Button value="option2">Option 2</RadioGroup.Button>
-	 *   <RadioGroup.Button value="option3">Option 3</RadioGroup.Button>
-	 * </RadioGroup.ButtonGroup>
-	 * ```
-	 */
-	Button,
-	/**
-	 * An inline group of radio buttons. Use RadioGroup.Button as direct children for horizontal radio layouts.
-	 * Renders the radio group itself — use it in place of `RadioGroup.Root`, never nested inside one.
-	 *
-	 * @see https://mantle.ngrok.com/components/forms/radio-group#radiogroupbuttongroup
-	 *
-	 * @example
-	 * ```tsx
-	 * <Label id="size-label">Size</Label>
-	 * <RadioGroup.ButtonGroup aria-labelledby="size-label" defaultValue="small">
-	 *   <RadioGroup.Button value="small">Small</RadioGroup.Button>
-	 *   <RadioGroup.Button value="medium">Medium</RadioGroup.Button>
-	 *   <RadioGroup.Button value="large">Large</RadioGroup.Button>
-	 * </RadioGroup.ButtonGroup>
-	 * ```
-	 */
-	ButtonGroup,
 	/**
 	 * A radio card item with enhanced styling. Use it as a child of RadioGroup for card-based radio options.
 	 *

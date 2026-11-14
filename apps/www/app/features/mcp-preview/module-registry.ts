@@ -64,6 +64,7 @@ export const previewModules: Readonly<Record<string, () => Promise<unknown>>> = 
 	"@ngrok/mantle/sandbar": () => import("@ngrok/mantle/sandbar"),
 	"@ngrok/mantle/sandboxed-on-click": () => import("@ngrok/mantle/sandboxed-on-click"),
 	"@ngrok/mantle/scatter-plot": () => import("@ngrok/mantle/scatter-plot"),
+	"@ngrok/mantle/segmented-control": () => import("@ngrok/mantle/segmented-control"),
 	"@ngrok/mantle/select": () => import("@ngrok/mantle/select"),
 	"@ngrok/mantle/selectable-list": () => import("@ngrok/mantle/selectable-list"),
 	"@ngrok/mantle/separator": () => import("@ngrok/mantle/separator"),

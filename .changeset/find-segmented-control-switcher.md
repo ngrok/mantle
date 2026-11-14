@@ -4,7 +4,7 @@
 
 `dist/agent.json` lists more aliases, so an agent finds the mantle part for these names:
 
-- `segmented control`: `RadioGroup`
+- `segmented control`: `SegmentedControl`
 - `searchable select`: `Combobox`
 - `sparkline`: `BarChart`, `LineChart`, and `AreaChart`
 

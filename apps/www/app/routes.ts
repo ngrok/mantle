@@ -91,6 +91,7 @@ const docsPages = [
 	"components/forms/password-input",
 	"components/forms/query",
 	"components/forms/radio-group",
+	"components/forms/segmented-control",
 	"components/forms/select",
 	"components/forms/slider",
 	"components/forms/switch",
@@ -180,6 +181,7 @@ const migrationsPages = [
 	"0012-single-stylesheet-migration",
 	"0013-chart-svg-renderer-migration",
 	"0014-chart-named-colors-migration",
+	"0015-segmented-control-migration",
 ];
 
 export default [
