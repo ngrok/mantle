@@ -28,13 +28,13 @@ const viewportOptions = [
 /**
  * Fixed preset widths, not percentages: the presets exist to exercise real
  * media-query breakpoints inside the frame, so tablet is Tailwind's `md`
- * boundary (48rem) and mobile is a common phone width. Desktop fills the docs
+ * boundary (48rem) and mobile is the 320px minimum supported width. Desktop fills the docs
  * column. Static class Record so Tailwind sees every class.
  */
 const viewportWidthClasses = {
 	desktop: "w-full",
 	tablet: "w-192 max-w-full",
-	mobile: "w-[375px] max-w-full",
+	mobile: "w-80 max-w-full",
 } as const satisfies Record<Viewport, string>;
 
 type PreviewFrameProps = {
@@ -52,7 +52,7 @@ type PreviewFrameProps = {
 /**
  * A framed, viewport-switchable live example: an iframe pointed at the
  * chrome-less `/preview/:exampleName` route with a toolbar to preview the
- * example at desktop, tablet (48rem), and mobile (375px) widths, reload it,
+ * example at desktop, tablet (48rem), and mobile (320px) widths, reload it,
  * or open it in a new tab. Because the example is its own document it gets a
  * real `Main` landmark, its own `window` (document-level keyboard shortcuts
  * stay inside the frame), and media queries driven by the frame — not the

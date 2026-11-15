@@ -272,7 +272,9 @@ function MdxHeading({ as: Component, children, className, id, ...props }: MdxHea
 		<HashLinkHeading id={id}>
 			<Component
 				className={cx(
-					"font-medium text-strong mt-12 mb-4 [:is(h1,h2,h3,h4,h5,h6)+&]:mt-6",
+					// Why wrap-anywhere: one long identifier (`SandboxedOnClick`) is wider
+					// than a 320px screen, and `break-word` does not shrink a `w-fit` box.
+					"font-medium text-strong mt-12 mb-4 wrap-anywhere [:is(h1,h2,h3,h4,h5,h6)+&]:mt-6",
 					Component === "h1" && "text-5xl mt-0",
 					Component === "h2" && "text-3xl",
 					Component === "h3" && "text-2xl",

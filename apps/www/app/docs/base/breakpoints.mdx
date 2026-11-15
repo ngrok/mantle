@@ -30,6 +30,16 @@ There are seven breakpoints by default, inspired by common device resolutions:
 
 `xs` (480px) is wider than most phones, so a class with only an `xs:` value applies nothing on a phone. Give an unprefixed base value first, then override it at the breakpoint: `flex-col xs:flex-row`.
 
+## Minimum supported width
+
+Design for a viewport 320px (20rem) wide and wider. This floor applies to mantle, the docs and marketing sites, and the ngrok app.
+
+At 320px, the page doesn't scroll sideways and no content is cut off. A table, a code block, or a tab list can scroll inside its own box. Below 320px, a layout problem isn't a bug.
+
+320px is the width that [WCAG 2.2 Reflow (1.4.10)](https://www.w3.org/WAI/WCAG22/Understanding/reflow.html) requires: a 1280px window zoomed to 400%.
+
+The unprefixed styles cover every width below `2xs` (360px), so check them at 320px, not at a typical phone width.
+
 ## useBreakpoint hook
 
 The `useBreakpoint` hook returns the current breakpoint based on the viewport width. It efficiently tracks all breakpoints and returns the largest one that currently matches.

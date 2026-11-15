@@ -135,6 +135,9 @@ design system. Conventions:
   no 1-12 scale, so `text-accent-11` matches nothing. Text color tokens
   are `text-strong`, `text-body`, `text-muted`, and `text-placeholder`.
 - All external dependencies must be exact-pinned (no `^` or `~`).
+- The minimum supported viewport is 320px wide. At 320px, the page
+  never scrolls sideways and clips no content; a table, a code block,
+  or a tab list scrolls in its own box. Below 320px is out of scope.
 - Without network access, read node_modules/@ngrok/mantle/dist/agent.json:
   every component with its import path, examples, aliases, and sibling
   boundaries (useWhen, siblings), plus the hooks and utilities, for the
@@ -158,6 +161,7 @@ design system. Conventions:
 - **Phosphor icons by default.** Import icons from `@phosphor-icons/react/<IconName>` (e.g. `@phosphor-icons/react/Fire`). Custom ngrok icons live at [`@ngrok/mantle/icons`](/components/data-display/icons).
 - **No `as` casts in app code.** Use proper null checks and type narrowing. Type assertions are restricted to `as const` and dedicated type guards (see [Conventions](https://github.com/ngrok/mantle/blob/main/CONVENTIONS.md)).
 - **Translation-safe markup.** Google Translate reparents every text node, so React throws `NotFoundError` and the page goes blank when it inserts an element before one. Never render a conditional element immediately before bare text children: wrap the text in a `<span>`, move the element after it, or mount it unconditionally. Pass a `Button` or `Badge` icon through the `icon` prop, never as a child. Mark code, keys, filenames, IDs, and passcodes `translate="no"`; [`Code`](/components/data-display/code), [`Kbd`](/components/data-display/kbd), `CodeBlock.Code`, and `OtpInput.Slot` already do. The attribute classifies content and is never the fix for a crash: when a shape throws, fix the structure, and keep prose translatable.
+- **320px minimum width.** Design for a viewport 320px wide and wider (see [Breakpoints](/base/breakpoints#minimum-supported-width)). At 320px, the page doesn't scroll sideways and no content is cut off. A table, a code block, or a tab list can scroll inside its own box. Below 320px, a layout problem isn't a bug.
 - **Exact-pinned versions.** When adding a dependency, pin it. No `^` or `~` ranges.
 - **Tailwind 4.** Custom classes use the design tokens defined in `mantle.css`. Prefer semantic tokens (`text-strong`, `bg-form`, `border-accent-600`) over raw color names where they exist. Color scales use Tailwind's `50`–`950` steps (`text-accent-600`, `bg-neutral-100`); there is no `1`–`12` scale, so `text-accent-11` matches nothing. The text color tokens are on [Typography](/base/typography#colors) and the palettes on [Colors](/base/colors).
 

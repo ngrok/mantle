@@ -505,6 +505,8 @@ Errors are control flow. `console.error` is not error handling.
   unless you test it ([§8](#8-tests)).
 - Any animation or transition follows [docs/motion.md](./docs/motion.md): a strong ease-out, a still control, an
   exit that mirrors its enter, and motion that a second input can interrupt.
+- At a 320px viewport, the component wraps, truncates, or scrolls in its own box. It never makes the page scroll
+  sideways or clips content ([CONVENTIONS.md § Browser code](./CONVENTIONS.md#browser-code)).
 - Interactive state is styled through the custom Tailwind variants that match the DOM the headless layer
   actually emits (`data-state-*`, `aria-*`), not through JS-toggled classes.
 
@@ -1070,6 +1072,7 @@ Run this against the diff before calling a component done. Each line is a defect
       `== null` for nullish checks.
 - [ ] Invariants throw descriptively; no `console.error` as handling.
 - [ ] Animation honors reduced motion; SSR renders the final paint.
+- [ ] At a 320px viewport, nothing makes the page scroll sideways or clips content.
 - [ ] No part leaves text bare beside a sibling: no element mounts in front of it, no keyed list re-sorts in
       front of it, no text child unmounts while a sibling stays, no child swaps between a string and an element,
       and no portal, keyed `Fragment`, array, or text-returning component holds bare text directly.

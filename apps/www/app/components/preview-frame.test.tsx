@@ -46,12 +46,12 @@ describe("PreviewFrame", () => {
 		expect(getIframe().parentElement?.classList.contains("w-full")).toBe(false);
 
 		fireEvent.click(screen.getByRole("radio", { name: "Mobile viewport" }));
-		expect(getIframe().parentElement?.classList.contains("w-[375px]")).toBe(true);
+		expect(getIframe().parentElement?.classList.contains("w-80")).toBe(true);
 		expect(getIframe().parentElement?.classList.contains("w-192")).toBe(false);
 
 		fireEvent.click(screen.getByRole("radio", { name: "Desktop viewport" }));
 		expect(getIframe().parentElement?.classList.contains("w-full")).toBe(true);
-		expect(getIframe().parentElement?.classList.contains("w-[375px]")).toBe(false);
+		expect(getIframe().parentElement?.classList.contains("w-80")).toBe(false);
 	});
 
 	// Why a class assertion: the tailwind-merge override contract. `className` is documented as
