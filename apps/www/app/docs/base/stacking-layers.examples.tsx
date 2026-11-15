@@ -137,7 +137,7 @@ export function FloatsInsideAFloatStackByMountOrderExample() {
 					</Button>
 				</Popover.Trigger>
 				<Popover.Content className="space-y-2">
-					<p>Open the select — it paints above this popover.</p>
+					<p>Open the select. It paints above this popover.</p>
 					<Select.Root>
 						<Select.Trigger className="w-45">
 							<Select.Value placeholder="Open select" />
@@ -192,7 +192,7 @@ export function OverlaysStackInMountOrderExample() {
 											</Button>
 										</Popover.Trigger>
 										<Popover.Content>
-											<p>Dialog, then sheet, then this popover — each paints above the last.</p>
+											<p>Dialog, then sheet, then this popover: each paints above the last.</p>
 										</Popover.Content>
 									</Popover.Root>
 								</Sheet.Body>

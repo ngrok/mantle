@@ -32,8 +32,8 @@ export function LateAnnouncementDemo() {
 					</Button>
 				</Popover.Anchor>
 				<Popover.Content
-					// A click anywhere else must not dismiss the announcement — only
-					// its own button does, like a real onboarding popover.
+					// Only the announcement's own button dismisses it, as with a real
+					// onboarding popover. A click anywhere else does not.
 					onInteractOutside={(event) => {
 						event.preventDefault();
 					}}
@@ -61,8 +61,8 @@ export function LateAnnouncementDemo() {
 					</Dialog.Header>
 					<Dialog.Body className="space-y-4">
 						<p>
-							This button opens the page-level announcement popover while the dialog is on top — the
-							way an onboarding popover opens on its own after hydration.
+							This button opens the page-level announcement popover while the dialog is open, as an
+							onboarding popover does on its own after hydration.
 						</p>
 						<Button
 							type="button"

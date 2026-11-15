@@ -8,43 +8,27 @@ import { BlackWhiteDemo } from "~/features/colors-demo";
 
 # Colors
 
-Colors are a key component of any design system. They convey meaning, attract
-attention, and give feedback. Mantle's color system is accessible and flexible,
-with a dark mode.
+Mantle's color tokens follow the theme. Write the light-mode class, and dark mode comes with it.
 
-## Tailwind
+## Dark mode
 
-Mantle uses Tailwind under the hood for all its CSS styling. However, we differ from
-Tailwind when it comes to colors. Mantle ships a full color library with an automatic
-dark mode. This is different from standard Tailwind usage
-that _requires_ dark class variations. Specify Mantle's light colors and you get
-dark mode for free. If you need more customization,
-add dark variant classes as an override.
+Mantle styles with Tailwind but ships its own color palette. In dark mode, each ramp flips: `blue-400` takes the light-mode `blue-600` value, and `blue-600` takes `blue-400`. A class such as `bg-blue-600` keeps its contrast against the page in both themes, so it needs no `dark:` partner.
+
+To set a different value in dark mode, add a [`dark:` class](https://tailwindcss.com/docs/dark-mode) as an override.
 
 ## Variables
 
-Mantle's colors are delivered as CSS variables via Tailwind's API e.g.
-`.text-blue-500`. They can be directly accessed via `var(--color-blue-500)` and use `oklch()` color space.
+Each color is a CSS variable in the `oklch()` color space. Use it through a Tailwind class (`text-blue-500`) or read it directly (`var(--color-blue-500)`).
 
 ## Black and white color variables
 
-Mantle overrides what "black" and "white" mean depending on the theme. They are
-semantic colors, not literal ones. In dark mode, we swap them
-so that white is actually black and vice versa. Pay attention to the example below when
-swapping between our themes!
+`black` and `white` are semantic colors, not literal ones. In dark mode, `white` resolves to black and `black` resolves to white. Switch the theme to see the swap:
 
 <BlackWhiteDemo />
 
-## Overrides
-
-Most colors should appropriately swap for sensible values in dark mode.
-However, there are often cases where you'll need to specify an override. The
-`dark:` variant is well-documented on [Tailwind's website](https://tailwindcss.com/docs/dark-mode).
-
 ## Functional colors
 
-Mantle generally limits its color choices to the following functional colors for primary
-actions, and various states like danger and warnings.
+Use these colors for actions and states: `accent` for primary actions, and `danger`, `warning`, `success`, `info`, and `important` for the states they name. Use `neutral` for UI with no state.
 
 ### Neutral
 
@@ -160,10 +144,9 @@ actions, and various states like danger and warnings.
 
 ## Extended palette
 
-Mantle also supports a curated subset of Tailwind's color palette in light, dark, and high
-contrast variants. These are to be used when there is no functional meaning behind the color
-choice. We've left out the extended collection of Tailwind's grays eg.
-slate, zinc, etc. since we only want to use our own custom branded gray.
+Use these when a color carries no functional meaning. They're a subset of
+Tailwind's palette, with a light and a dark value each. Tailwind's extra grays
+(`slate`, `zinc`, and the rest) aren't included. Use mantle's `gray` instead.
 
 ### Gray
 
@@ -311,10 +294,9 @@ slate, zinc, etc. since we only want to use our own custom branded gray.
 
 ## Reserve palette
 
-These additional colors are available when you need more color variety than the extended
-palette covers, such as for line charts, data visualization, or categorical distinctions.
-They are less harmonious with the rest of the Mantle palette, so prefer functional and
-extended colors first.
+Use these colors when the extended palette runs out, as in a chart with many series.
+They match the rest of the palette less closely, so try the functional and extended
+colors first.
 
 ### Red
 

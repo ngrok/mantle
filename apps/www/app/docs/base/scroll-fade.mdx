@@ -7,18 +7,16 @@ import { Example } from "~/components/example";
 
 # Scroll Fade
 
-Edge-fade utilities for scroll containers. They mask the edge of an overflowing
-container so content gently fades out where there is more to scroll, and render
-cleanly once you reach that edge (or when there is no overflow at all).
+Edge-fade utilities for scroll containers. An edge with more content past it
+fades out. At the end of the scroll, or when nothing overflows, the edge stays
+fully opaque.
 
-The fade is driven entirely by a CSS [scroll-driven animation](https://developer.mozilla.org/en-US/docs/Web/CSS/animation-timeline/scroll):
-there is no scroll listener, `ResizeObserver`, or JavaScript involved. Apply the
-utility directly to the scroll container itself (the element with
-`overflow-*-auto`).
+The fade is CSS only: a [scroll-driven animation](https://developer.mozilla.org/en-US/docs/Web/CSS/animation-timeline/scroll)
+runs it.
 
 > [!NOTE]
-> Where `animation-timeline: scroll()` is unsupported (Firefox stable as of
-> mid-2026), the fade is absent; content is never clipped.
+> A browser without `animation-timeline: scroll()` support (Firefox before 159)
+> shows no fade. It never clips the content.
 
 ## Both edges
 
@@ -49,9 +47,9 @@ Fades the left and right edges of a horizontally scrolling container.
 
 ## Single edge
 
-When only one edge should fade (for example, a sidebar that fades content
-scrolling under a sticky header but stays flush at the bottom), use a single-edge
-utility. The opposite edge always stays fully opaque.
+To fade only one edge, use a single-edge utility. A sidebar, for example, can
+fade content under a sticky header and stay flush at the bottom. The opposite
+edge always stays fully opaque.
 
 | Utility         | Axis       | Fades       |
 | --------------- | ---------- | ----------- |
@@ -84,16 +82,14 @@ out against the flush opposite edge.
 ## Requirements
 
 - Apply the utility to the scroll container itself: the element that has
-  `overflow-x-auto` / `overflow-y-auto`. The fade follows that element's own
+  `overflow-x-auto` or `overflow-y-auto`. The fade follows that element's own
   scroll position.
-- The utility uses `mask-image`, so it composes with the element's background and
-  content but cannot be combined with a different `mask-image` on the same
+- The utility sets `mask-image`, so don't put another `mask-image` on the same
   element.
 - The mask fades _everything_ the element paints, border and background
-  included. If the scroll container sits inside a visible card, keep the
-  `border`, `background`, and `rounded-*` on a wrapper element (plus
-  `overflow-hidden` to clip the corners) and apply the fade utility to an inner
-  scroll container, as the examples on this page do:
+  included. To fade the content of a visible card, put the `border`, the
+  background, `rounded-*`, and `overflow-hidden` on a wrapper. Then put the fade
+  utility on the inner scroll container, as the examples on this page do:
 
 ```tsx
 <div className="overflow-hidden rounded-lg border border-card bg-card">

@@ -15,7 +15,7 @@ Responsive breakpoints for building adaptive layouts.
 
 ## Breakpoint values
 
-There are seven breakpoints by default, inspired by common device resolutions:
+Mantle has seven breakpoints. The `default` row is the unprefixed base, which applies at every width:
 
 | Breakpoint prefix | Minimum width   | CSS                                 |
 | ----------------- | --------------- | ----------------------------------- |
@@ -42,7 +42,7 @@ The unprefixed styles cover every width below `2xs` (360px), so check them at 32
 
 ## useBreakpoint hook
 
-The `useBreakpoint` hook returns the current breakpoint based on the viewport width. It efficiently tracks all breakpoints and returns the largest one that currently matches.
+The `useBreakpoint` hook returns the largest breakpoint that the viewport width matches.
 
 ```tsx
 import { useBreakpoint } from "@ngrok/mantle/hooks";
@@ -53,26 +53,21 @@ function ResponsiveComponent() {
 	return (
 		<div>
 			<p>Current breakpoint: {breakpoint}</p>
-			{breakpoint === "lg" && <p>This only shows on large screens and above!</p>}
+			{breakpoint === "lg" && <p>This shows only at the lg breakpoint.</p>}
 		</div>
 	);
 }
 ```
 
-### Features
-
-- **Performance optimized:** Uses a single subscription for all breakpoint changes
-- **SSR compatible:** Returns `default` during server-side rendering
-- **Real-time updates:** Automatically updates when the viewport size changes
-- **TypeScript support:** Fully typed with autocompletion for all breakpoints
+Every caller shares one app-wide subscription to the breakpoint media queries. On the server and during hydration, the hook returns `"default"`. After hydration, it returns the breakpoint of the viewport.
 
 ### Return value
 
-Returns a `Breakpoint` type that can be one of: `"default"`, `"2xs"`, `"xs"`, `"sm"`, `"md"`, `"lg"`, `"xl"`, or `"2xl"`.
+A `Breakpoint`: `"default"`, `"2xs"`, `"xs"`, `"sm"`, `"md"`, `"lg"`, `"xl"`, or `"2xl"`.
 
 ## useIsBelowBreakpoint hook
 
-The `useIsBelowBreakpoint` hook returns `true` if the current viewport width is below the specified breakpoint. Perfect for mobile-first responsive design patterns.
+The `useIsBelowBreakpoint` hook returns `true` while the viewport is narrower than the given breakpoint. On the server and during hydration, it returns `false`.
 
 ```tsx
 import { useIsBelowBreakpoint } from "@ngrok/mantle/hooks";
@@ -80,21 +75,14 @@ import { useIsBelowBreakpoint } from "@ngrok/mantle/hooks";
 function ResponsiveSidebar() {
 	const isMobile = useIsBelowBreakpoint("md");
 
-	return (
-		<aside className={isMobile ? "mobile-sidebar" : "desktop-sidebar"}>
-			{isMobile ? <MobileNav /> : <DesktopNav />}
-		</aside>
-	);
+	return <aside>{isMobile ? <MobileNav /> : <DesktopNav />}</aside>;
 }
 ```
 
 ### Parameters
 
-Accepts a `TailwindBreakpoint` which can be one of: `"2xs"`, `"xs"`, `"sm"`, `"md"`, `"lg"`, `"xl"`, or `"2xl"`.
+A `TailwindBreakpoint`: `"2xs"`, `"xs"`, `"sm"`, `"md"`, `"lg"`, `"xl"`, or `"2xl"`.
 
-### Common use cases
+## Hooks or classes
 
-- **Mobile detection:** `useIsBelowBreakpoint("md")` for mobile-first layouts
-- **Conditional rendering:** Show/hide components based on screen size
-- **Dynamic styling:** Apply different CSS classes for mobile vs desktop
-- **Component adaptation:** Switch between mobile and desktop component variants
+Use a hook when the component tree changes at a breakpoint, as in the sidebar above. For a style change, use a breakpoint class such as `md:hidden`. CSS applies at first paint. A hook value changes only after hydration, so in a server-rendered app a phone first shows the desktop layout.
