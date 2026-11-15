@@ -200,19 +200,22 @@ const importPathOverrides: Record<string, string> = {
 	"components/feedback/progress-donut": "@ngrok/mantle/progress",
 };
 
+/** Matches an export key that names a file, such as `./mantle.css`. */
+const FILE_EXTENSION_RE = /\.[a-z]+$/;
+
 /**
  * Sorted list of importable `@ngrok/mantle/*` specifiers, derived from
- * `package.json#exports`. Skips CSS bundles, the `./package.json`
- * passthrough, and the agent artifacts the manifest itself describes.
+ * `package.json#exports`. A key with a file extension is a file, such as
+ * `./mantle.css`, `./agent.json`, or `./tokens.json`, not a module, so the
+ * list skips it.
  *
  * @example
  * importableSubpaths({ "./button": {}, "./mantle.css": "./dist/mantle.css" });
  * // => ["@ngrok/mantle/button"]
  */
 function importableSubpaths(exports: Record<string, unknown>): string[] {
-	const skip = new Set(["./package.json", "./agent.json", "./llms.txt"]);
 	return Object.keys(exports)
-		.filter((key) => key.startsWith("./") && !skip.has(key) && !key.endsWith(".css"))
+		.filter((key) => key.startsWith("./") && !FILE_EXTENSION_RE.test(key))
 		.map((key) => `@ngrok/mantle/${key.slice(2)}`)
 		.toSorted((a, b) => a.localeCompare(b));
 }
