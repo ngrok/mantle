@@ -281,7 +281,7 @@ describe("AlertDialog", () => {
 		// React logs the failed render before rethrowing.
 		vi.spyOn(console, "error").mockImplementation(() => {});
 		expect(() => render(<AlertDialog.Action>Confirm</AlertDialog.Action>)).toThrow(
-			"AlertDialog child component used outside of AlertDialog parent!",
+			"AlertDialog parts must be rendered inside AlertDialog.Root.",
 		);
 	});
 });

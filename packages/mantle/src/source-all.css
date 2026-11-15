@@ -5,8 +5,12 @@
  * dist files for utility class names. This is the supported way to register
  * mantle's Tailwind sources.
  *
+ * The glob scans only the JavaScript. The `.d.ts`, `agent.json`, `llms.txt`, and
+ * migration files hold JSDoc examples, so a scan of them emits CSS that no
+ * component renders.
+ *
  * Usage:
  *   @import "@ngrok/mantle/mantle.css";
  *   @import "@ngrok/mantle/source-all.css";
  */
-@source "../dist";
+@source "../dist/*.js";

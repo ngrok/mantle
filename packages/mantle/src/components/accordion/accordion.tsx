@@ -32,8 +32,10 @@ import { canUseDOM } from "../browser-only/browser-only.js";
  * preserved without a type assertion.
  *
  * @example
+ * ```ts
  * emitValueChange({ type: "single", onValueChange }, ["a"]);        // onValueChange("a")
  * emitValueChange({ type: "multiple", onValueChange }, ["a", "b"]); // onValueChange(["a", "b"])
+ * ```
  */
 function emitValueChange(props: AccordionRootProps, next: readonly string[]): void {
 	if (props.type === "single") {
@@ -49,7 +51,9 @@ function emitValueChange(props: AccordionRootProps, next: readonly string[]): vo
  * to call only on the client (after mount).
  *
  * @example
+ * ```ts
  * if (supportsBeforeMatch()) { node.setAttribute("hidden", "until-found"); }
+ * ```
  */
 function supportsBeforeMatch(): boolean {
 	return canUseDOM() && document.body != null && "onbeforematch" in document.body;
@@ -182,6 +186,7 @@ type AccordionRootProps = (AccordionSingleProps | AccordionMultipleProps) &
  * @see https://mantle.ngrok.com/components/data-display/accordion#accordionroot
  *
  * @example
+ * ```tsx
  * <Accordion.Root type="single" defaultValue="shipping">
  *   <Accordion.Item value="shipping">
  *     <Accordion.Trigger>
@@ -193,6 +198,7 @@ type AccordionRootProps = (AccordionSingleProps | AccordionMultipleProps) &
  *     </Accordion.Content>
  *   </Accordion.Item>
  * </Accordion.Root>
+ * ```
  */
 const Root = (props: AccordionRootProps) => {
 	// Pull the accordion-specific props out so the rest (`aria-*`, `data-*`, `id`,
@@ -290,6 +296,7 @@ const Root = (props: AccordionRootProps) => {
  * @see https://mantle.ngrok.com/components/data-display/accordion#accordionitem
  *
  * @example
+ * ```tsx
  * <Accordion.Root type="single" defaultValue="item-1">
  *   <Accordion.Item value="item-1">
  *     <Accordion.Trigger>
@@ -301,6 +308,7 @@ const Root = (props: AccordionRootProps) => {
  *     </Accordion.Content>
  *   </Accordion.Item>
  * </Accordion.Root>
+ * ```
  */
 const Item = ({
 	"data-slot": dataSlot,
@@ -354,6 +362,7 @@ const Item = ({
  * @see https://mantle.ngrok.com/components/data-display/accordion#accordiontrigger
  *
  * @example
+ * ```tsx
  * <Accordion.Root type="single" defaultValue="item-1">
  *   <Accordion.Item value="item-1">
  *     <Accordion.Trigger>
@@ -365,6 +374,7 @@ const Item = ({
  *     </Accordion.Content>
  *   </Accordion.Item>
  * </Accordion.Root>
+ * ```
  */
 const Trigger = ({
 	"data-slot": dataSlot,
@@ -421,6 +431,7 @@ const defaultTriggerIcon = <CaretDownIcon weight="bold" />;
  * @see https://mantle.ngrok.com/components/data-display/accordion#accordiontriggericon
  *
  * @example
+ * ```tsx
  * // Default caret
  * <Accordion.Root type="single" defaultValue="item-1">
  *   <Accordion.Item value="item-1">
@@ -433,8 +444,10 @@ const defaultTriggerIcon = <CaretDownIcon weight="bold" />;
  *     </Accordion.Content>
  *   </Accordion.Item>
  * </Accordion.Root>
+ * ```
  *
  * @example
+ * ```tsx
  * // Custom icon
  * import { PlusIcon } from "@phosphor-icons/react/Plus";
  *
@@ -449,6 +462,7 @@ const defaultTriggerIcon = <CaretDownIcon weight="bold" />;
  *     </Accordion.Content>
  *   </Accordion.Item>
  * </Accordion.Root>
+ * ```
  */
 const TriggerIcon = ({
 	"data-slot": dataSlot,
@@ -492,6 +506,7 @@ const TriggerIcon = ({
  * @see https://mantle.ngrok.com/components/data-display/accordion#accordioncontent
  *
  * @example
+ * ```tsx
  * <Accordion.Root type="single" defaultValue="item-1">
  *   <Accordion.Item value="item-1">
  *     <Accordion.Trigger>
@@ -503,6 +518,7 @@ const TriggerIcon = ({
  *     </Accordion.Content>
  *   </Accordion.Item>
  * </Accordion.Root>
+ * ```
  */
 const Content = ({
 	"data-slot": dataSlot,
@@ -639,6 +655,7 @@ const Content = ({
  * @see https://mantle.ngrok.com/components/data-display/accordion#accordionbody
  *
  * @example
+ * ```tsx
  * <Accordion.Root type="single" defaultValue="item-1">
  *   <Accordion.Item value="item-1">
  *     <Accordion.Trigger>
@@ -652,6 +669,7 @@ const Content = ({
  *     </Accordion.Content>
  *   </Accordion.Item>
  * </Accordion.Root>
+ * ```
  */
 const Body = ({
 	"data-slot": dataSlot,
@@ -702,6 +720,7 @@ const Body = ({
  * ```
  *
  * @example
+ * ```tsx
  * <Accordion.Root type="single" defaultValue="item-1">
  *   <Accordion.Item value="item-1">
  *     <Accordion.Trigger>
@@ -713,12 +732,16 @@ const Body = ({
  *     </Accordion.Content>
  *   </Accordion.Item>
  * </Accordion.Root>
+ * ```
  */
 const Accordion = {
 	/**
 	 * The root that owns open/closed state. See {@link Root}.
 	 *
+	 * @see https://mantle.ngrok.com/components/data-display/accordion#accordionroot
+	 *
 	 * @example
+	 * ```tsx
 	 * <Accordion.Root type="single" defaultValue="item-1">
 	 *   <Accordion.Item value="item-1">
 	 *     <Accordion.Trigger>
@@ -730,12 +753,16 @@ const Accordion = {
 	 *     </Accordion.Content>
 	 *   </Accordion.Item>
 	 * </Accordion.Root>
+	 * ```
 	 */
 	Root,
 	/**
 	 * A single collapsible section. See {@link Item}.
 	 *
+	 * @see https://mantle.ngrok.com/components/data-display/accordion#accordionitem
+	 *
 	 * @example
+	 * ```tsx
 	 * <Accordion.Root type="single" defaultValue="item-1">
 	 *   <Accordion.Item value="item-1">
 	 *     <Accordion.Trigger>
@@ -747,12 +774,16 @@ const Accordion = {
 	 *     </Accordion.Content>
 	 *   </Accordion.Item>
 	 * </Accordion.Root>
+	 * ```
 	 */
 	Item,
 	/**
 	 * The `<button>` header that toggles a section. See {@link Trigger}.
 	 *
+	 * @see https://mantle.ngrok.com/components/data-display/accordion#accordiontrigger
+	 *
 	 * @example
+	 * ```tsx
 	 * <Accordion.Root type="single" defaultValue="item-1">
 	 *   <Accordion.Item value="item-1">
 	 *     <Accordion.Trigger>
@@ -764,12 +795,16 @@ const Accordion = {
 	 *     </Accordion.Content>
 	 *   </Accordion.Item>
 	 * </Accordion.Root>
+	 * ```
 	 */
 	Trigger,
 	/**
 	 * The caret indicating open/closed state. See {@link TriggerIcon}.
 	 *
+	 * @see https://mantle.ngrok.com/components/data-display/accordion#accordiontriggericon
+	 *
 	 * @example
+	 * ```tsx
 	 * <Accordion.Root type="single" defaultValue="item-1">
 	 *   <Accordion.Item value="item-1">
 	 *     <Accordion.Trigger>
@@ -781,12 +816,16 @@ const Accordion = {
 	 *     </Accordion.Content>
 	 *   </Accordion.Item>
 	 * </Accordion.Root>
+	 * ```
 	 */
 	TriggerIcon,
 	/**
 	 * The collapsible, find-in-page-discoverable body. See {@link Content}.
 	 *
+	 * @see https://mantle.ngrok.com/components/data-display/accordion#accordioncontent
+	 *
 	 * @example
+	 * ```tsx
 	 * <Accordion.Root type="single" defaultValue="item-1">
 	 *   <Accordion.Item value="item-1">
 	 *     <Accordion.Trigger>
@@ -798,12 +837,16 @@ const Accordion = {
 	 *     </Accordion.Content>
 	 *   </Accordion.Item>
 	 * </Accordion.Root>
+	 * ```
 	 */
 	Content,
 	/**
 	 * The padded inner region of a {@link Content}. See {@link Body}.
 	 *
+	 * @see https://mantle.ngrok.com/components/data-display/accordion#accordionbody
+	 *
 	 * @example
+	 * ```tsx
 	 * <Accordion.Root type="single" defaultValue="item-1">
 	 *   <Accordion.Item value="item-1">
 	 *     <Accordion.Trigger>
@@ -817,6 +860,7 @@ const Accordion = {
 	 *     </Accordion.Content>
 	 *   </Accordion.Item>
 	 * </Accordion.Root>
+	 * ```
 	 */
 	Body,
 } as const;

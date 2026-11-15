@@ -4,6 +4,33 @@ import { describe, expect, it, vi } from "vitest";
 import { Dialog } from "../dialog/dialog.js";
 import { Sheet } from "./sheet.js";
 
+describe("Sheet.Trigger and Sheet.Close", () => {
+	it("stamp their data-slot on the asChild child", async () => {
+		const user = userEvent.setup();
+		render(
+			<Sheet.Root>
+				<Sheet.Trigger asChild>
+					<button type="button">Open</button>
+				</Sheet.Trigger>
+				<Sheet.Content>
+					<Sheet.Title>Settings</Sheet.Title>
+					<Sheet.Close asChild>
+						<button type="button">Done</button>
+					</Sheet.Close>
+				</Sheet.Content>
+			</Sheet.Root>,
+		);
+
+		const trigger = screen.getByRole("button", { name: "Open" });
+		expect(trigger).toHaveAttribute("data-slot", "sheet-trigger");
+		await user.click(trigger);
+		expect(await screen.findByRole("button", { name: "Done" })).toHaveAttribute(
+			"data-slot",
+			"sheet-close",
+		);
+	});
+});
+
 describe("Sheet.Content", () => {
 	describe("accessible description", () => {
 		it("carries no aria-describedby when no Description is rendered", async () => {

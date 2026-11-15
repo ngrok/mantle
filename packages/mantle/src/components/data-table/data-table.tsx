@@ -1,3 +1,5 @@
+"use client";
+
 // Why `Subscribe` boundaries: TanStack Table v9 keeps its core `row`, `column`,
 // and `header` objects referentially stable and reads state through their
 // methods. A compiled part that receives only those objects as props memoizes
@@ -132,7 +134,7 @@ function useDataTableContext<
 >() {
 	const context = useContext(DataTableContext);
 
-	invariant(context, "useDataTableContext should only be used within a DataTable child component");
+	invariant(context, "DataTable parts must be rendered inside DataTable.Root.");
 
 	return context as DataTableContextShape<TFeatures, TData>;
 }

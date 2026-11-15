@@ -1135,13 +1135,14 @@ const Group = ({
 	"data-slot": dataSlot,
 	asChild = false,
 	children,
+	className,
 	ref,
 	...props
 }: MultiSelectGroupProps) => {
 	return (
 		<AriakitComboboxGroup
 			data-slot={joinDataSlot(dataSlot, "multi-select-group")}
-			className="mx-1"
+			className={cx("mx-1", className)}
 			ref={ref}
 			render={asChild ? ({ ref, ...childProps }) => <Slot ref={ref} {...childProps} /> : undefined}
 			{...props}

@@ -5,9 +5,20 @@
 	"homepage": "https://mantle.ngrok.com",
 	"license": "MIT",
 	"author": "ngrok",
+	"keywords": [
+		"react",
+		"design-system",
+		"component-library",
+		"ui",
+		"tailwindcss",
+		"radix-ui",
+		"accessibility",
+		"ngrok"
+	],
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/ngrok/mantle"
+		"url": "https://github.com/ngrok/mantle",
+		"directory": "packages/mantle"
 	},
 	"files": [
 		"dist",

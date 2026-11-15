@@ -1,3 +1,9 @@
+/**
+ * Re-exports for the Query component.
+ *
+ * @see https://mantle.ngrok.com/components/forms/query
+ */
+
 export {
 	//,
 	Query,

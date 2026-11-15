@@ -131,7 +131,8 @@ const VirtualRoot = (props: ListVirtualRootProps) => (
  * ```
  */
 type ListItemProps = Omit<ComponentProps<"button">, "type"> &
-	WithAsChild & {
+	WithAsChild &
+	WithDataSlot & {
 		/**
 		 * Marks the item as the current one (e.g. the active account) — gives its
 		 * pill the accent tint and sets `aria-current` so the state is announced,
@@ -178,14 +179,23 @@ type ListItemProps = Omit<ComponentProps<"button">, "type"> &
  * </List.Root>
  * ```
  */
-const Item = ({ asChild, className, current, disabled, onClick, ref, ...props }: ListItemProps) => {
+const Item = ({
+	asChild,
+	className,
+	current,
+	"data-slot": dataSlot,
+	disabled,
+	onClick,
+	ref,
+	...props
+}: ListItemProps) => {
 	const Comp = asChild ? Slot : "button";
 
 	return (
 		<ListPrimitiveItem selected={current} disabled={disabled}>
 			<Comp
 				ref={ref}
-				data-slot="list-item-control"
+				data-slot={joinDataSlot(dataSlot, "list-item-control")}
 				// `role="list"` items carry no aria-selected; announce the current
 				// item (e.g. the active account) with aria-current so the state isn't
 				// conveyed by the pill tint alone.

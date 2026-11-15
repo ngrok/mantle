@@ -593,7 +593,7 @@ const Title = ({
 	className,
 	ref,
 	...props
-}: ComponentProps<"h3"> & { asChild?: boolean } & WithDataSlot) => {
+}: ComponentProps<"h3"> & WithAsChild & WithDataSlot) => {
 	const Component = asChild ? Slot : "h3";
 	return (
 		<Component

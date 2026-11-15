@@ -103,7 +103,10 @@ async function buildBody(): Promise<string> {
 		...section,
 		entries: entries
 			.filter((entry) => section.match(entry.slug))
-			.toSorted((a, b) => a.title.localeCompare(b.title)),
+			// Why slug order: a migration slug starts with its step number.
+			.toSorted((a, b) =>
+				section.id === "migrations" ? a.slug.localeCompare(b.slug) : a.title.localeCompare(b.title),
+			),
 	})).filter((section) => section.entries.length > 0);
 
 	const lines: string[] = [
@@ -112,6 +115,7 @@ async function buildBody(): Promise<string> {
 		"> ngrok's UI library and design system — built with React, TypeScript, Tailwind CSS, Radix, and Ariakit. Accessible, semantic, and progressively enhanced primitives for production web apps.",
 		"",
 		`Docs: ${canonicalHref("/")}`,
+		`MCP server: ${canonicalHref("/mcp")}`,
 		`NPM: https://www.npmjs.com/package/@ngrok/mantle`,
 		`Source: https://github.com/ngrok/mantle`,
 		`Component manifest: ${canonicalHref("/api/components.json")}`,

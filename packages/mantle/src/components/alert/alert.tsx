@@ -59,7 +59,7 @@ const defaultDismissIcon = <XIcon />;
 
 function useAlertContext() {
 	const context = useContext(AlertContext);
-	invariant(context, "useAlertContext hook used outside of Alert parent!");
+	invariant(context, "Alert parts must be rendered inside Alert.Root.");
 	return context;
 }
 

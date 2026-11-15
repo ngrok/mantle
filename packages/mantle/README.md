@@ -14,7 +14,6 @@
 ## Documentation
 
 - [mantle.ngrok.com](https://mantle.ngrok.com) - our official component documentation site (reflects latest releases)
-- [develop.mantle.ngrok.com](https://develop.mantle.ngrok.com) - staging site for all merges to `main`
 
 ## Installation
 
@@ -40,7 +39,13 @@ Next, check out the [Overview & Setup](https://mantle.ngrok.com/) docs and start
 
 ## Using with AI Agents
 
-Mantle ships machine-readable entry points for coding agents — see [For AI Agents](https://mantle.ngrok.com/for-ai-agents) for the system-prompt snippet, conventions, and the full list of `/api/*.json` and `llms.txt` endpoints. An offline pointer file (`@ngrok/mantle/agent.json`) is included in the published package as a fallback when network access isn't available.
+Mantle runs a hosted, read-only [MCP](https://modelcontextprotocol.io) server at `https://mantle.ngrok.com/mcp`. It reads the API of the version you installed. [For AI Agents](https://mantle.ngrok.com/for-ai-agents) has the setup for each client, the system-prompt snippet, and the full list of `/api/*.json` and `llms.txt` endpoints.
+
+The package also works offline:
+
+- `@ngrok/mantle/agent.json`: the full component, hook, and utility records for the installed version.
+- `@ngrok/mantle/llms.txt`: one line for each module, with its import path and summary.
+- `dist/migrations/`: the codemods that the migration guides name.
 
 ## Code Block Tooling
 

@@ -115,10 +115,10 @@ describe("CursorPagination", () => {
 		// silence React's own error logging for the intentional render throws
 		vi.spyOn(console, "error").mockImplementation(() => {});
 		expect(() => render(<CursorPagination.PageSizeSelect />)).toThrow(
-			/must be used as a child of a CursorPagination component/,
+			"CursorPagination.PageSizeSelect must be rendered inside CursorPagination.Root.",
 		);
 		expect(() => render(<CursorPagination.PageSizeValue />)).toThrow(
-			/must be used as a child of a CursorPagination component/,
+			"CursorPagination.PageSizeValue must be rendered inside CursorPagination.Root.",
 		);
 	});
 

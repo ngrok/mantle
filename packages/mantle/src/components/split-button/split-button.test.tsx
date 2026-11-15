@@ -248,4 +248,22 @@ describe("SplitButton", () => {
 		expect(shownIcons).toHaveLength(1);
 		expect(shownIcons[0]).toBe(screen.getByTestId("custom-icon"));
 	});
+
+	test("every part stamps its own data-slot in front of the part it wraps", async () => {
+		const user = userEvent.setup();
+		const { primaryAction, menuTrigger } = renderSplitButton();
+
+		expect(primaryAction).toHaveAttribute("data-slot", "split-button-primary-action button");
+		expect(menuTrigger).toHaveAttribute(
+			"data-slot",
+			"split-button-menu-trigger dropdown-menu-trigger icon-button",
+		);
+		await user.click(menuTrigger);
+		const menu = await screen.findByRole("menu");
+		expect(menu).toHaveAttribute("data-slot", "split-button-menu-content dropdown-menu-content");
+		expect(screen.getByRole("menuitem", { name: "Save as draft" })).toHaveAttribute(
+			"data-slot",
+			"split-button-menu-item dropdown-menu-item",
+		);
+	});
 });

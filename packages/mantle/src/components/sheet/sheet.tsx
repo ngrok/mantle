@@ -197,9 +197,18 @@ const Root = (props: ComponentProps<typeof SheetPrimitiveRoot>) => {
  * </Sheet.Root>
  * ```
  */
-const Trigger = (props: ComponentProps<typeof SheetPrimitiveTrigger>) => {
+const Trigger = ({
+	"data-slot": dataSlot,
+	...props
+}: ComponentProps<typeof SheetPrimitiveTrigger> & WithDataSlot) => {
 	const sheetScope = useSheetScope();
-	return <SheetPrimitiveTrigger {...props} {...sheetScope} />;
+	return (
+		<SheetPrimitiveTrigger
+			data-slot={joinDataSlot(dataSlot, "sheet-trigger")}
+			{...props}
+			{...sheetScope}
+		/>
+	);
 };
 
 /**
@@ -243,9 +252,18 @@ const Trigger = (props: ComponentProps<typeof SheetPrimitiveTrigger>) => {
  * </Sheet.Root>
  * ```
  */
-const Close = (props: ComponentProps<typeof SheetPrimitiveClose>) => {
+const Close = ({
+	"data-slot": dataSlot,
+	...props
+}: ComponentProps<typeof SheetPrimitiveClose> & WithDataSlot) => {
 	const sheetScope = useSheetScope();
-	return <SheetPrimitiveClose {...props} {...sheetScope} />;
+	return (
+		<SheetPrimitiveClose
+			data-slot={joinDataSlot(dataSlot, "sheet-close")}
+			{...props}
+			{...sheetScope}
+		/>
+	);
 };
 
 /**

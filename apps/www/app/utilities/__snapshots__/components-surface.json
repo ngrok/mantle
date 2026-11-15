@@ -10,7 +10,7 @@
     "jsdoc": "A vertically stacked set of disclosure sections styled after the shadcn / ngrok.com accordion.",
     "examples": [
       "Composition:\n```\nAccordion.Root\n└── Accordion.Item\n    ├── Accordion.Trigger\n    │   └── Accordion.TriggerIcon\n    └── Accordion.Content\n        └── Accordion.Body\n```",
-      "<Accordion.Root type=\"single\" defaultValue=\"item-1\">\n  <Accordion.Item value=\"item-1\">\n    <Accordion.Trigger>\n      Is it accessible?\n      <Accordion.TriggerIcon />\n    </Accordion.Trigger>\n    <Accordion.Content>\n      <Accordion.Body>Yes. It adheres to the WAI-ARIA disclosure pattern.</Accordion.Body>\n    </Accordion.Content>\n  </Accordion.Item>\n</Accordion.Root>"
+      "```tsx\n<Accordion.Root type=\"single\" defaultValue=\"item-1\">\n  <Accordion.Item value=\"item-1\">\n    <Accordion.Trigger>\n      Is it accessible?\n      <Accordion.TriggerIcon />\n    </Accordion.Trigger>\n    <Accordion.Content>\n      <Accordion.Body>Yes. It adheres to the WAI-ARIA disclosure pattern.</Accordion.Body>\n    </Accordion.Content>\n  </Accordion.Item>\n</Accordion.Root>\n```"
     ],
     "aliases": [
       "collapsible",

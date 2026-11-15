@@ -36,7 +36,7 @@ const AlertDialogContext = createContext<AlertDialogContextValue | null>(null);
 
 function useAlertDialogContext() {
 	const context = useContext(AlertDialogContext);
-	invariant(context, "AlertDialog child component used outside of AlertDialog parent!");
+	invariant(context, "AlertDialog parts must be rendered inside AlertDialog.Root.");
 	return context;
 }
 

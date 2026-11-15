@@ -1,3 +1,5 @@
+"use client";
+
 import type { ComponentProps } from "react";
 import { createContext, useContext } from "react";
 import type { WithAsChild } from "../../types/as-child.js";

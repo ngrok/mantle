@@ -1,3 +1,5 @@
+"use client";
+
 import type { ReactNode } from "react";
 import { useIsHydrated } from "../../hooks/use-is-hydrated.js";
 

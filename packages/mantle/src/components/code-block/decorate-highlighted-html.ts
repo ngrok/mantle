@@ -1,6 +1,6 @@
 import type { LineRange } from "./line-numbers.js";
 import { resolveLineNumbers } from "./line-numbers.js";
-import { cx } from "../../utils/cx/cx.js";
+import { clsx } from "../../utils/cx/clsx.js";
 import type { FoldableRange } from "./compute-json-fold-ranges.js";
 
 /** Removes trailing `\n` and `\r` characters from the end of a string. */
@@ -112,7 +112,9 @@ function decorateHighlightedHtml({
 		// count, and adds near-zero markup (see mantle.css). `openerId` is only set
 		// when folding is active, so the tag never appears in non-fold blocks.
 		const openerId = hasFolds ? openerIdByBufferLine.get(bufferLineNumber) : undefined;
-		const lineClassName = cx(
+		// Why `clsx`: these are mantle class names, not Tailwind utilities, so the
+		// Tailwind merge engine in `cx` has nothing to resolve and only adds bundle weight.
+		const lineClassName = clsx(
 			"mantle-code-line",
 			highlightedLineNumbers.has(displayedLineNumber) && "mantle-code-line-highlighted",
 			openerId != null && "mantle-code-line-opener",

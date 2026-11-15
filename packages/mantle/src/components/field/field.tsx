@@ -1,3 +1,5 @@
+"use client";
+
 import { QuestionIcon } from "@phosphor-icons/react/Question";
 import {
 	cloneElement,
@@ -106,11 +108,16 @@ const FieldSet = ({
  * </Field.Set>
  * ```
  */
-const Legend = ({ className, ref, ...props }: ComponentProps<"legend">) => {
+const Legend = ({
+	className,
+	"data-slot": dataSlot,
+	ref,
+	...props
+}: ComponentProps<"legend"> & WithDataSlot) => {
 	return (
 		<legend
 			ref={ref}
-			data-slot="field-legend"
+			data-slot={joinDataSlot(dataSlot, "field-legend")}
 			// `mb-1.5` (not the parent's `gap-*`) drives the Legend ↔ next-sibling
 			// spacing because `<legend>` has special browser rendering inside a
 			// `<fieldset>` that ignores the parent's flex `gap`. Pairs with
@@ -170,12 +177,13 @@ type FieldLabelProps = Omit<ComponentProps<typeof Label>, "htmlFor">;
  * </Field.Item>
  * ```
  */
-const FieldLabel = ({ ref, ...props }: FieldLabelProps) => {
+const FieldLabel = ({ "data-slot": dataSlot, ref, ...props }: FieldLabelProps) => {
 	const context = useContext(FieldItemContext);
 
 	return (
 		<Label
 			ref={ref}
+			data-slot={joinDataSlot(dataSlot, "field-label")}
 			{...props}
 			// Why after the spread: a wider props object can still carry `htmlFor`
 			// past the type, and `Field.Item` owns the control id.
@@ -405,6 +413,7 @@ type FieldHelpTriggerProps = Partial<
 const HelpTrigger = ({
 	appearance = "ghost",
 	className,
+	"data-slot": dataSlot,
 	icon = defaultHelpTriggerIcon,
 	intent = "neutral",
 	label,
@@ -413,7 +422,7 @@ const HelpTrigger = ({
 	type = "button",
 	...props
 }: FieldHelpTriggerProps) => (
-	<Popover.Trigger asChild>
+	<Popover.Trigger asChild data-slot={joinDataSlot(dataSlot, "field-help-trigger")}>
 		<IconButton
 			ref={ref}
 			appearance={appearance}

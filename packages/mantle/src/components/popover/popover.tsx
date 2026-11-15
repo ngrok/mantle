@@ -63,7 +63,12 @@ const Root = PopoverPrimitiveRoot;
  * </Popover.Root>
  * ```
  */
-const Trigger = PopoverPrimitiveTrigger;
+const Trigger = ({
+	"data-slot": dataSlot,
+	...props
+}: ComponentProps<typeof PopoverPrimitiveTrigger> & WithDataSlot) => (
+	<PopoverPrimitiveTrigger data-slot={joinDataSlot(dataSlot, "popover-trigger")} {...props} />
+);
 
 /**
  * An optional element to position the PopoverContent against. If this part is not used, the content will position alongside the PopoverTrigger.
@@ -87,7 +92,12 @@ const Trigger = PopoverPrimitiveTrigger;
  * </Popover.Root>
  * ```
  */
-const Anchor = PopoverPrimitiveAnchor;
+const Anchor = ({
+	"data-slot": dataSlot,
+	...props
+}: ComponentProps<typeof PopoverPrimitiveAnchor> & WithDataSlot) => (
+	<PopoverPrimitiveAnchor data-slot={joinDataSlot(dataSlot, "popover-anchor")} {...props} />
+);
 
 /**
  * A button that closes an open popover.
@@ -111,7 +121,12 @@ const Anchor = PopoverPrimitiveAnchor;
  * </Popover.Root>
  * ```
  */
-const Close = PopoverPrimitiveClose;
+const Close = ({
+	"data-slot": dataSlot,
+	...props
+}: ComponentProps<typeof PopoverPrimitiveClose> & WithDataSlot) => (
+	<PopoverPrimitiveClose data-slot={joinDataSlot(dataSlot, "popover-close")} {...props} />
+);
 
 type PopoverContentProps = ComponentProps<typeof PopoverPrimitiveContent> & {
 	/**
