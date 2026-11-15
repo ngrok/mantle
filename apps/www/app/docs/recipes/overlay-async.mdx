@@ -3,7 +3,7 @@ title: Overlays + Async Data (React Query)
 description: Render a Sheet, Dialog, or Alert Dialog immediately, then swap its body between pending, success, 404, and 500 states with TanStack Query.
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # Overlays + Async Data (React Query)
 
@@ -63,9 +63,7 @@ The worked example below uses `Sheet` as the shell; the [next section](#swapping
 
 What transfers is the **structure**: the synchronous mount, the single branching region, the hook-owned retry policy, and the success-gated actions. What doesn't is the markup inside each state: `UserDetails`, the skeleton shapes, and the header/footer copy are demo content standing in for your real UI.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="recipes/overlay-async/complete-recipe" title="Overlays + Async Data (React Query) complete recipe example" />
-	<CodeExample.Code>
+<Example name="recipes/overlay-async/complete-recipe" title="Overlays + Async Data (React Query) complete recipe example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -538,9 +536,7 @@ function shouldRetryUserQuery({ error, failureCount }: ShouldRetryUserQueryOptio
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Swapping the shell
 

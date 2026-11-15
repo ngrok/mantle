@@ -4,7 +4,7 @@ description: "A viewport-locked application shell: a full-width notice strip, a 
 aliases: [app shell, application shell, dashboard shell]
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 import { PageHeader } from "~/components/page-header";
 
 <PageHeader id="app-layout">App Layout</PageHeader>
@@ -47,9 +47,7 @@ you left. The demo narrows the sidebar's `mobileBreakpoint` to `md`
 so the desktop panel survives the preview's desktop and tablet widths; ngrok's dashboards keep the `lg`
 default.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="app-shell" title="App shell demo" />
-	<CodeExample.Code>
+<Example name="app-shell" title="App shell demo">
 
 ```tsx
 import { Alert } from "@ngrok/mantle/alert";
@@ -705,9 +703,7 @@ export function Shell() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 > [!NOTE]
 > The full-shell demos on this page render inside framed previews: each is a separate document, exactly
@@ -835,9 +831,7 @@ Build a custom trigger from [`useSidePanel`](#usesidepanel) instead.
 - **`AppLayout.SidePanelFooter`**: a `<form>` when the bar is a composer, so the submit key and the send
   control share one submission.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="layouts/app-layout/polymorphism" title="App Layout polymorphism example" height="fixed" />
-	<CodeExample.Code>
+<Example name="layouts/app-layout/polymorphism" title="App Layout polymorphism example" height="fixed">
 
 ```tsx
 import { AppLayout } from "@ngrok/mantle/app-layout";
@@ -862,9 +856,7 @@ export function SectionContent() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 Composing the [Main](/components/primitives/main) landmark works the same way; see
 [Landmarks](#landmarks). (This page already has its own `Main` landmark, so the live example above uses a
@@ -888,9 +880,7 @@ control at the start or a second action at the end sits at the same spacing as t
 trail below and watch it scroll inside the content slot while the two ends hold their width. The shell is
 embedded and has no sidebar, so a back link takes the start slot that `Sidebar.Trigger` takes in an app shell.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="layouts/app-layout/header-slots" title="App Layout header slots example" height="fixed" />
-	<CodeExample.Code>
+<Example name="layouts/app-layout/header-slots" title="App Layout header slots example" height="fixed">
 
 ```tsx
 import { AppLayout } from "@ngrok/mantle/app-layout";
@@ -1011,9 +1001,7 @@ export function AppLayoutHeaderSlotsExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 Each route renders its own header, and [One header per page](#one-header-per-page) is the canonical shell.
 Collapse the actions into one menu below the sidebar's mobile breakpoint. The
@@ -1111,9 +1099,7 @@ An assistant can also be a page of its own. [Assistant Across Routes](/recipes/a
 renders one conversation in `main` on the assistant's route and in this panel on every other route, with a
 View Transition between the two.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="app-layout-side-panel" title="Side panel demo" />
-	<CodeExample.Code>
+<Example name="app-layout-side-panel" title="Side panel demo">
 
 ```tsx
 import { AppLayout } from "@ngrok/mantle/app-layout";
@@ -1241,9 +1227,7 @@ export function Shell() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ### Persisting the side panel to a cookie (SSR)
 
@@ -1451,9 +1435,7 @@ keeps its header in the shell and no route needs page state in its actions. Neve
 The shell composes just as well without a sidebar: `AppLayout.Workspace`'s columns are whatever you put
 there. Nothing in the shell knows the sidebar exists; the pairing above is composition, not coupling.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="app-layout-standalone" title="Standalone app layout demo" />
-	<CodeExample.Code>
+<Example name="app-layout-standalone" title="Standalone app layout demo">
 
 ```tsx
 import { AppLayout } from "@ngrok/mantle/app-layout";
@@ -1502,9 +1484,7 @@ export function Shell() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Sizing a page to the card
 
@@ -1523,9 +1503,7 @@ Switch between all four shapes below: the shell markup never changes, only the c
 root. The example embeds the shell rather than pinning it with `fixed inset-0`, and passes `asChild` with a
 `<div>` to `AppLayout.Body`, because this docs page already owns the `main` landmark.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="layouts/app-layout/sizing-a-page-to-the-card" title="App Layout sizing a page to the card example" height="fixed" />
-	<CodeExample.Code>
+<Example name="layouts/app-layout/sizing-a-page-to-the-card" title="App Layout sizing a page to the card example" height="fixed">
 
 ```tsx
 import { AppLayout } from "@ngrok/mantle/app-layout";
@@ -1651,9 +1629,7 @@ export function PageShapes() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 Why each class on `AppLayout.Body` is there, and what breaks without it:
 
@@ -1680,9 +1656,7 @@ The **fill the card** shape at full scale, in its own framed document: a toolbar
 region that scrolls, floating actions positioned over it, and a status bar pinned to the card's bottom edge.
 Grow the policy with **Add rules**: the editor scrolls while the toolbar and status bar hold their positions.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="app-layout-editor" title="Editor page demo" />
-	<CodeExample.Code>
+<Example name="app-layout-editor" title="Editor page demo">
 
 ```tsx
 import { AppLayout } from "@ngrok/mantle/app-layout";
@@ -1840,9 +1814,7 @@ function fakePolicy(ruleCount: number): string {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ### Pinning a footer to the card
 
@@ -1851,9 +1823,7 @@ renders through an `<Outlet />` inside `AppLayout.Body`, so it can only ever add
 region. There is no `AppLayout.Footer` for it to reach, and it does not need one. A flex column and a
 sticky bar do the whole job, and the body stays the one scroll region:
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="layouts/app-layout/pinning-a-footer-to-the-card" title="App Layout pinning a footer to the card example" height="fixed" />
-	<CodeExample.Code>
+<Example name="layouts/app-layout/pinning-a-footer-to-the-card" title="App Layout pinning a footer to the card example" height="fixed">
 
 ```tsx
 import { AppLayout } from "@ngrok/mantle/app-layout";
@@ -1913,9 +1883,7 @@ export function PolicyPage() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 - **`min-h-full` on the page root** makes it at least as tall as the card's interior, so a short page still
   reaches the bottom edge. This is the part that only works because `AppLayout.Body` is a flex item with
@@ -1934,9 +1902,7 @@ column that grows, and the bar at the leaf carries `mt-auto` and `sticky bottom-
 **Add rules**: the title and tabs stick to the top edge, the editor scrolls with the body, and the validity
 bar stays on the card's bottom edge.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="app-layout-pinned-footer" title="Pinned footer demo" />
-	<CodeExample.Code>
+<Example name="app-layout-pinned-footer" title="Pinned footer demo">
 
 ```tsx
 import { AppLayout } from "@ngrok/mantle/app-layout";
@@ -2033,9 +1999,7 @@ export function TrafficPolicyEditorRoute() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 Each level hands the next `flex-1`, never a height: `Tabs.Content` grows inside `Tabs.Root`, and the child
 route's root grows inside it, so `mt-auto` on the bar pushes it to the card's bottom edge on a short policy.
@@ -2066,9 +2030,7 @@ router**, so it can be embedded here; a real shell has no local `pathname` and k
 element either way: this example passes `asChild` with a `<div>` because the docs page already owns the
 `main` landmark, while a real shell puts the ref on `AppLayout.Body` itself.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="layouts/app-layout/scroll-restoration" title="App Layout scroll restoration example" height="fixed" />
-	<CodeExample.Code>
+<Example name="layouts/app-layout/scroll-restoration" title="App Layout scroll restoration example" height="fixed">
 
 ```tsx
 import { AppLayout } from "@ngrok/mantle/app-layout";
@@ -2137,9 +2099,7 @@ export function ScrollResetShell() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 To restore rather than reset, save `scrollportRef.current.scrollTop` into `sessionStorage` keyed on
 `location.key` in the effect's cleanup, and read it back on the way in.

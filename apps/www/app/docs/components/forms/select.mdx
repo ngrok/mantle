@@ -4,15 +4,13 @@ description: Displays a list of options for the user to pick from, triggered by 
 aliases: [dropdown, select box]
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # Select
 
 Displays a list of options for the user to pick from, triggered by a button. Inside a `Field.Item`, wrap `Select.Root` in `Field.Control`.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/forms/select/overview" title="Select example" />
-	<CodeExample.Code>
+<Example name="components/forms/select/overview" title="Select example">
 
 ```tsx
 import { Field } from "@ngrok/mantle/field";
@@ -52,9 +50,7 @@ import { Select } from "@ngrok/mantle/select";
 </Field.Item>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## When to use
 
@@ -106,9 +102,7 @@ Select.Root
 
 Use `@tanstack/react-form` with `zod` to keep `Select.Root` controlled. Wrap the root in `Field.Control` so the generated name, id, and ARIA props reach the select trigger and hidden input.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/forms/select/with-tanstack-form" title="Select With TanStack Form example" />
-	<CodeExample.Code>
+<Example name="components/forms/select/with-tanstack-form" title="Select With TanStack Form example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -174,17 +168,13 @@ function Example() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ### Raw usage and validation
 
 Use `Select.Root` directly when you don't need `Field` label, helper, or error wiring. Set `validation` on `Select.Root` to render a success, warning, or error state outside of a field.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/forms/select/raw-usage-and-validation" title="Select raw usage and validation example" />
-	<CodeExample.Code>
+<Example name="components/forms/select/raw-usage-and-validation" title="Select raw usage and validation example">
 
 ```tsx
 import { Select } from "@ngrok/mantle/select";
@@ -234,17 +224,13 @@ import { Select } from "@ngrok/mantle/select";
 </Select.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ### Custom selected value
 
 By default the selected item's text renders in the trigger. To render something different, control the select and pass `children` instead.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/forms/select/custom-selected-value" title="Select custom selected value example" />
-	<CodeExample.Code>
+<Example name="components/forms/select/custom-selected-value" title="Select custom selected value example">
 
 ```tsx
 import { Select } from "@ngrok/mantle/select";
@@ -269,17 +255,13 @@ function Example() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ### Rich item labels
 
 An item takes any content, and the trigger shows the selected label as-is. When the list needs two lines and the trigger must stay on one line, control the select and render a compact value with `Select.Value` children. Both renders stay safe on a translated page: React removes the label span or the value span, never a bare text node.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/forms/select/rich-item-labels" title="Select rich item labels example" />
-	<CodeExample.Code>
+<Example name="components/forms/select/rich-item-labels" title="Select rich item labels example">
 
 ```tsx
 import { Icon } from "@ngrok/mantle/icon";
@@ -330,17 +312,13 @@ function Example() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ### Untranslatable labels
 
 When a label is an ID, a path, a filename, or a key, set `translate="no"` on the item. A browser translation engine then skips the row and the copy the trigger shows, so the reader copies the right string.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/forms/select/untranslatable-labels" title="Select untranslatable labels example" />
-	<CodeExample.Code>
+<Example name="components/forms/select/untranslatable-labels" title="Select untranslatable labels example">
 
 ```tsx
 import { Select } from "@ngrok/mantle/select";
@@ -363,9 +341,7 @@ import { Select } from "@ngrok/mantle/select";
 </Select.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## API Reference
 

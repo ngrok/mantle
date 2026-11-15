@@ -3,15 +3,13 @@ title: Filter from a Value
 description: Turn a value in a table row into a Query filter with one click, and take it out with a second click, with toggleFacet.
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # Filter from a value
 
 A list already shows the values people want to filter by. Let them select one. Select **shared** in a row, and the field gets `is:shared`. Select it again, and the filter goes away. The field shows every filter that runs, so the person can read it and edit it like typed text.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="recipes/filter-from-a-value/overview" title="Filter from a Value example" />
-	<CodeExample.Code>
+<Example name="recipes/filter-from-a-value/overview" title="Filter from a Value example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -164,9 +162,7 @@ export function FilterFromAValueDemo() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## How it works
 

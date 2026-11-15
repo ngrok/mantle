@@ -4,15 +4,13 @@ description: Decorates an svg icon with automatic sizing. Useful when applying b
 aliases: [svg icon]
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # Icon
 
 Decorates an svg icon with automatic sizing. Useful when applying base styles to [phosphor icons](https://phosphoricons.com).
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/data-display/icon/overview" title="Icon example" />
-	<CodeExample.Code>
+<Example name="components/data-display/icon/overview" title="Icon example">
 
 ```tsx
 import { Icon } from "@ngrok/mantle/icon";
@@ -22,9 +20,7 @@ import { FireIcon } from "@phosphor-icons/react/Fire";
 <Icon className="text-danger-600" svg={<FireIcon weight="fill" />} />
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## When to use
 
@@ -53,9 +49,7 @@ The `Icon` merges `className` selectors with the following order of precedence (
 3. Icon className
 4. svg className
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/data-display/icon/merging-classnames" title="Icon Merging classNames example" />
-	<CodeExample.Code>
+<Example name="components/data-display/icon/merging-classnames" title="Icon Merging classNames example">
 
 ```tsx
 import { Icon } from "@ngrok/mantle/icon";
@@ -67,9 +61,7 @@ import { FireIcon } from "@phosphor-icons/react/Fire";
 <Icon className="size-20 sm:size-28" svg={<FireIcon className="size-12 sm:size-16" />} />
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## API Reference
 

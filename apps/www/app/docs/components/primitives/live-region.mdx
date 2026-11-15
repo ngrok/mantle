@@ -4,15 +4,13 @@ description: A persistent, visually hidden region that announces its text to scr
 aliases: [aria live, announcer]
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # Live Region
 
 A persistent, visually hidden region that announces its text to screen readers when the text changes. Keep `LiveRegion` mounted from first paint and swap only its children.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/primitives/live-region/overview" title="Live Region example" />
-	<CodeExample.Code>
+<Example name="components/primitives/live-region/overview" title="Live Region example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -42,9 +40,7 @@ function ResultsExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## When to use
 
@@ -58,9 +54,7 @@ function ResultsExample() {
 
 `LiveRegion` accepts an `asChild` prop. When `true`, it renders its single child instead of its default `<span>`, forwarding its class names, ARIA attributes, `data-*` attributes, and ref onto that child.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/primitives/live-region/polymorphism" title="Live Region polymorphism example" />
-	<CodeExample.Code>
+<Example name="components/primitives/live-region/polymorphism" title="Live Region polymorphism example">
 
 ```tsx
 import { LiveRegion } from "@ngrok/mantle/live-region";
@@ -70,9 +64,7 @@ import { LiveRegion } from "@ngrok/mantle/live-region";
 </LiveRegion>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Announcing reliably
 
@@ -86,9 +78,7 @@ A screen reader does not re-announce a message identical to the previous one. Wh
 
 By default, `LiveRegion` renders a persistent, visually hidden `<span>` with `role="status"` and `aria-live="polite"`. The redundant `aria-live` covers screen reader and browser pairs that honor only one of the two. When `politeness` is `"assertive"`, it renders `role="alert"` alone. The role already carries assertive live-region semantics, and a redundant `aria-live` makes VoiceOver on iOS announce the message twice.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/primitives/live-region/politeness" title="Live Region politeness example" />
-	<CodeExample.Code>
+<Example name="components/primitives/live-region/politeness" title="Live Region politeness example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -114,17 +104,13 @@ function AssertiveExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Announcing route changes
 
 A single-page app repaints on navigation without a page load, so screen readers announce nothing. Feed a persistent `LiveRegion` the page name from your router's location, so it announces each completed navigation. The demo swaps pages with local state because the docs site cannot navigate inside an example. In your app, derive `pageName` from the router's location instead. The [Route Announcer recipe](/recipes/route-announcer) is the complete pattern wired to React Router: page-name fallbacks, repeat-message handling, and tests.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/primitives/live-region/announcing-route-changes" title="Live Region announcing route changes example" />
-	<CodeExample.Code>
+<Example name="components/primitives/live-region/announcing-route-changes" title="Live Region announcing route changes example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -160,9 +146,7 @@ function RouteAnnouncerExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## API Reference
 

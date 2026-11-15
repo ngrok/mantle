@@ -4,15 +4,13 @@ description: A non-interactive label used to highlight short, scannable informat
 aliases: [tag, chip, pill, lozenge]
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # Badge
 
 A non-interactive label used to highlight short, scannable information — a status, a category tag, or a count — in the smallest possible footprint.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/data-display/badge/overview" title="Badge example" />
-	<CodeExample.Code>
+<Example name="components/data-display/badge/overview" title="Badge example">
 
 ```tsx
 import { Badge } from "@ngrok/mantle/badge";
@@ -22,9 +20,7 @@ import { Badge } from "@ngrok/mantle/badge";
 </Badge>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## When to use
 
@@ -46,9 +42,7 @@ Prefer functional colors (`success`, `warning`, `danger`, `info`, `accent`, `neu
 
 Every color, with and without an `icon`:
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/data-display/badge/choosing-a-color" title="Badge choosing a color example" />
-	<CodeExample.Code>
+<Example name="components/data-display/badge/choosing-a-color" title="Badge choosing a color example">
 
 ```tsx
 import { Badge } from "@ngrok/mantle/badge";
@@ -62,17 +56,13 @@ import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWe
 </Badge>
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Polymorphism
 
 When you want to render _something else_ as a `Badge`, you can use the `asChild` prop to compose. This is useful when you want to splat the `Badge` styling onto a `react-router` `Link`.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/data-display/badge/polymorphism" title="Badge polymorphism example" />
-	<CodeExample.Code>
+<Example name="components/data-display/badge/polymorphism" title="Badge polymorphism example">
 
 ```tsx
 import { Badge } from "@ngrok/mantle/badge";
@@ -84,9 +74,7 @@ import { Link, href } from "react-router";
 </Badge>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## API Reference
 

@@ -4,58 +4,52 @@ import { describe, expect, test } from "vitest";
 import { renderMdxToMarkdown } from "./render-mdx-to-markdown.server";
 
 describe("renderMdxToMarkdown", () => {
-	test("hoists the code fence out of a CodeExample and drops a page example frame", () => {
+	test("keeps a page example's code fence and drops its frame", () => {
 		const result = renderMdxToMarkdown(
 			[
-				"<CodeExample.Root>",
-				'\t<CodeExample.PreviewFrame example="layouts/app-layout/my-demo" title="MyDemo" />',
-				"\t<CodeExample.Code>",
+				'<Example name="layouts/app-layout/my-demo" title="MyDemo">',
 				"",
 				"```tsx",
 				"const answer = 42;",
 				"```",
 				"",
-				"\t</CodeExample.Code>",
-				"</CodeExample.Root>",
+				"</Example>",
 			].join("\n"),
 		);
 
 		expect(result).toContain("```tsx");
 		expect(result).toContain("const answer = 42;");
-		expect(result).not.toContain("CodeExample");
+		expect(result).not.toContain("Example");
 		expect(result).not.toContain("MyDemo");
 		expect(result).not.toContain("omitted in markdown output");
 	});
 
-	test("replaces the self-closing CodeExample.PreviewFrame with a source pointer", () => {
+	test("puts a source pointer before a shell demo's code fence", () => {
 		// The page's fence is a hand-written excerpt of the framed demo, so a reader
 		// of the `.md` twin gets the preview's name and where its full source lives
 		// (issue #1399) instead of a silently dropped element.
 		const result = renderMdxToMarkdown(
 			[
-				"<CodeExample.Root>",
-				'\t<CodeExample.PreviewFrame example="centered-layout" title="Centered layout demo" />',
-				"\t<CodeExample.Code>",
+				'<Example name="centered-layout" title="Centered layout demo">',
 				"",
 				"```tsx",
 				"const answer = 42;",
 				"```",
 				"",
-				"\t</CodeExample.Code>",
-				"</CodeExample.Root>",
+				"</Example>",
 			].join("\n"),
 		);
 
 		expect(result).toContain("const answer = 42;");
-		expect(result).not.toContain("CodeExample");
+		expect(result).not.toContain("<Example");
 		expect(result).toContain(
 			'<!-- framed preview /preview/centered-layout — full source in /llms-full.txt under "# Framed preview sources" -->',
 		);
 		expect(result).not.toContain("omitted in markdown output");
 	});
 
-	test("names no preview when the frame carries no example attribute", () => {
-		const result = renderMdxToMarkdown("<CodeExample.PreviewFrame />\n\nAfter.");
+	test("names no preview when the example carries no name", () => {
+		const result = renderMdxToMarkdown("<Example />\n\nAfter.");
 
 		expect(result).toContain(
 			'<!-- framed preview — full source in /llms-full.txt under "# Framed preview sources" -->',
@@ -80,10 +74,10 @@ function countFences(source: string, opener: string): number {
 }
 
 describe("renderMdxToMarkdown on real doc pages", () => {
-	// Why real pages: a fence nested inside `CodeExample.Code` must land in the
+	// Why real pages: a fence nested inside an `Example` must land in the
 	// `.md` output as a code block, not vanish with the wrapper.
-	// Why these two rows: both reach page-example `CodeExample.PreviewFrame` -> drop and
-	// `CodeExample.Code` -> unwrap; app-layout.mdx adds registry `CodeExample.PreviewFrame` -> pointer.
+	// Why these two rows: both reach page `Example` -> unwrap; app-layout.mdx adds a
+	// shell-demo `Example` -> pointer and unwrap.
 	const pages = ["../docs/components/navigation/sidebar.mdx", "../docs/layouts/app-layout.mdx"];
 
 	for (const page of pages) {
@@ -98,7 +92,7 @@ describe("renderMdxToMarkdown on real doc pages", () => {
 			}
 
 			// JSX wrappers must not leak into the markdown output as raw tags.
-			expect(output).not.toContain("<CodeExample");
+			expect(output).not.toContain("<Example");
 		});
 	}
 

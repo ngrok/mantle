@@ -4,15 +4,13 @@ description: Initiates an action, such as completing a task or submitting inform
 aliases: [cta, call to action]
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # Button
 
 Initiates an action, such as completing a task or submitting information. Every `Button` requires `appearance` and `intent`.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/actions/button/overview" title="Button example" />
-	<CodeExample.Code>
+<Example name="components/actions/button/overview" title="Button example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -33,9 +31,7 @@ import { Button } from "@ngrok/mantle/button";
 <Button appearance="link" intent="danger">Link</Button>
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## When to use
 
@@ -52,9 +48,7 @@ Only the box scales: every size keeps the same typography (`text-sm font-medium`
 
 `size` has no effect when `appearance="link"`: link buttons inherit the surrounding typography and have no box to size.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/actions/button/size" title="Button size example" />
-	<CodeExample.Code>
+<Example name="components/actions/button/size" title="Button size example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -66,9 +60,7 @@ import { Button } from "@ngrok/mantle/button";
 <Button appearance="outlined" intent="neutral" size="xl">Extra Large</Button>
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Type
 
@@ -92,9 +84,7 @@ Use the `icon` prop to add an icon to the button. Never pass the icon as a child
 
 A button with an icon tightens the padding on the icon's side by `0.125rem`, so the glyph reads optically aligned with the text block. That arrives as a `ps-*` or `pe-*` longhand, which a `px-*` override cannot beat: both survive the class merge, and Tailwind emits the longhand last. Override padding on a button with an icon in longhands too: `className="ps-1.5 pe-1"`, not `className="px-1.5"`.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/actions/button/icon-and-positioning" title="Button icon and positioning example" />
-	<CodeExample.Code>
+<Example name="components/actions/button/icon-and-positioning" title="Button icon and positioning example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -108,9 +98,7 @@ import { FireIcon } from "@phosphor-icons/react/Fire";
 </Button>
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Common mistakes
 
@@ -126,9 +114,7 @@ import { CopyIcon } from "@phosphor-icons/react/Copy";
 <Button appearance="outlined" intent="neutral" icon={<CopyIcon />} onClick={copyPage} />;
 ```
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/actions/button/an-icon-only-button" title="Button An icon-only Button example" />
-	<CodeExample.Code>
+<Example name="components/actions/button/an-icon-only-button" title="Button An icon-only Button example">
 
 ```tsx
 import { IconButton } from "@ngrok/mantle/button";
@@ -144,9 +130,7 @@ import { CopyIcon } from "@phosphor-icons/react/Copy";
 />;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ### An icon as a child
 
@@ -165,9 +149,7 @@ import { PlusIcon } from "@phosphor-icons/react/Plus";
 </Button>;
 ```
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/actions/button/an-icon-as-a-child" title="Button an icon as a child example" />
-	<CodeExample.Code>
+<Example name="components/actions/button/an-icon-as-a-child" title="Button an icon as a child example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -179,17 +161,13 @@ import { PlusIcon } from "@phosphor-icons/react/Plus";
 </Button>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## isLoading
 
 `isLoading` sets whether the button is in a loading state, default `false`. Setting `isLoading` replaces any `icon` with a spinner, or adds one when the button has no icon. It also disables user interaction with the button and sets `aria-disabled`.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/actions/button/isloading" title="Button isLoading example" />
-	<CodeExample.Code>
+<Example name="components/actions/button/isloading" title="Button isLoading example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -221,9 +199,7 @@ import { FireIcon } from "@phosphor-icons/react/Fire";
 </Button>
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## The label slot
 
@@ -231,9 +207,7 @@ import { FireIcon } from "@phosphor-icons/react/Fire";
 
 The span carries `display: contents`, so it generates no box: every child stays a flex item of the button, and the button's `gap` still falls between them. Two children therefore lay out exactly as they did before the span existed.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/actions/button/the-label-slot" title="Button the label slot example" />
-	<CodeExample.Code>
+<Example name="components/actions/button/the-label-slot" title="Button the label slot example">
 
 ```tsx
 <Button appearance="outlined" intent="neutral" icon={<PlusIcon />}>
@@ -242,17 +216,13 @@ The span carries `display: contents`, so it generates no box: every child stays 
 </Button>
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ### A truncated label
 
 Style the label by styling your own child, not the slot. A label that has to shrink inside a width-constrained button takes `min-w-0 flex-1 truncate`; those work because the child is a flex item of the button.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/actions/button/a-truncated-label" title="Button a truncated label example" />
-	<CodeExample.Code>
+<Example name="components/actions/button/a-truncated-label" title="Button a truncated label example">
 
 ```tsx
 <Button
@@ -268,17 +238,13 @@ Style the label by styling your own child, not the slot. A label that has to shr
 </Button>
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Button group
 
 `ButtonGroup` is a contained group of related buttons. The `"panel"` appearance draws a bordered panel and sets `--icon-button-border-radius` to `0.125rem`, so nested icon buttons square up to fit the chrome. The `"ghost"` appearance only spaces the buttons.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/actions/button/button-group" title="Button button group example" />
-	<CodeExample.Code>
+<Example name="components/actions/button/button-group" title="Button button group example">
 
 ```tsx
 import { ButtonGroup, IconButton } from "@ngrok/mantle/button";
@@ -293,9 +259,7 @@ import { TextUnderlineIcon } from "@phosphor-icons/react/TextUnderline";
 </ButtonGroup>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Polymorphism
 
@@ -303,9 +267,7 @@ To render _something else_ as a `Button`, use the `asChild` prop to compose. Thi
 
 A disabled or loading `Button` under `asChild` gets no `disabled` attribute, because the attribute is inert on an `<a>`. The child gets `aria-disabled="true"`, leaves the tab order with `tabIndex={-1}`, and a click on it is cancelled before any handler or router navigation runs.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/actions/button/polymorphism" title="Button polymorphism example" />
-	<CodeExample.Code>
+<Example name="components/actions/button/polymorphism" title="Button polymorphism example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -317,9 +279,7 @@ import { Link, href } from "react-router";
 </Button>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Appearance and intent
 

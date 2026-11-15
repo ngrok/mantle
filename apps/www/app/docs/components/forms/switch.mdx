@@ -4,15 +4,13 @@ description: A form control that toggles one setting on or off.
 aliases: [toggle, toggle switch]
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # Switch
 
 A form control that toggles one setting on or off. Pair it with `Field` to connect its label, description, and errors in a form.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/forms/switch/overview" title="Switch example" />
-	<CodeExample.Code>
+<Example name="components/forms/switch/overview" title="Switch example">
 
 ```tsx
 import { Field } from "@ngrok/mantle/field";
@@ -29,9 +27,7 @@ import { Switch } from "@ngrok/mantle/switch";
 </Field.Item>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## When to use
 
@@ -44,9 +40,7 @@ import { Switch } from "@ngrok/mantle/switch";
 
 Render the control on its own, with a `Label` as its caption:
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/forms/switch/without-a-field" title="Switch Without a Field example" />
-	<CodeExample.Code>
+<Example name="components/forms/switch/without-a-field" title="Switch Without a Field example">
 
 ```tsx
 import { Label } from "@ngrok/mantle/label";
@@ -58,17 +52,13 @@ import { Switch } from "@ngrok/mantle/switch";
 </Label>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Multi-line label with description
 
 For a switch with an emphasized title and a supplementary description beneath it, compose it inside [`Choice`](/components/forms/choice): drop the `Switch` into `Choice.Indicator` and pair `Choice.Label` (a real `<label>`; clicking it flips the switch, since a `<button role="switch">` is a labelable element) with an optional `Choice.Description`. The switch aligns to the leading of the title's first line, and the description associates via `aria-describedby`.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/forms/switch/multi-line-label-with-description" title="Switch multi-line label with description example" />
-	<CodeExample.Code>
+<Example name="components/forms/switch/multi-line-label-with-description" title="Switch multi-line label with description example">
 
 ```tsx
 import { Choice } from "@ngrok/mantle/choice";
@@ -87,17 +77,13 @@ import { Switch } from "@ngrok/mantle/switch";
 </Choice.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ### Inside a Field
 
 Wrap that same `Choice` in a `Field.Item` / `Field.Control` to bind a form `name` and pick up validation. The field's `id` / `name` / `aria-*` flow onto the switch, and the `Field.Description` (or a `Field.Errors`) is merged into the control's `aria-describedby` alongside the `Choice.Description`:
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/forms/switch/inside-a-field" title="Switch Inside a Field example" />
-	<CodeExample.Code>
+<Example name="components/forms/switch/inside-a-field" title="Switch Inside a Field example">
 
 ```tsx
 import { Choice } from "@ngrok/mantle/choice";
@@ -122,9 +108,7 @@ import { Switch } from "@ngrok/mantle/switch";
 </Field.Item>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 See the [`Choice` docs](/components/forms/choice) for the clickable-row variant and the full API.
 
@@ -134,9 +118,7 @@ See the [`Choice` docs](/components/forms/choice) for the clickable-row variant 
 
 In this example, the `Switch` is used in a form with client-side validation. The form is built using [`@tanstack/react-form`](https://tanstack.com/form/latest/docs) and `zod` for validation. The form accepts and validates the input before submission.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/forms/switch/switch-in-a-form-with-client-side-validation" title="Switch switch in a form with client-side validation example" />
-	<CodeExample.Code>
+<Example name="components/forms/switch/switch-in-a-form-with-client-side-validation" title="Switch switch in a form with client-side validation example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -196,9 +178,7 @@ function FormExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## API Reference
 

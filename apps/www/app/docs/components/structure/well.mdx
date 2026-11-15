@@ -4,15 +4,13 @@ description: A recessed, inset container used to group and de-emphasize content.
 aliases: [inset]
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # Well
 
 A recessed, inset container used to group and de-emphasize content.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/structure/well/overview" title="Well example" />
-	<CodeExample.Code>
+<Example name="components/structure/well/overview" title="Well example">
 
 ```tsx
 import { Well } from "@ngrok/mantle/well";
@@ -36,9 +34,7 @@ import { MagnifyingGlassIcon } from "@phosphor-icons/react";
 </Well>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## When to use
 
@@ -56,9 +52,7 @@ attributes, and the ref onto that child. Reach for this when the recessed
 container should also be a more semantic element, such as a labelled
 `<section>`.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/structure/well/polymorphism" title="Well polymorphism example" />
-	<CodeExample.Code>
+<Example name="components/structure/well/polymorphism" title="Well polymorphism example">
 
 ```tsx
 import { Well } from "@ngrok/mantle/well";
@@ -84,9 +78,7 @@ import { MagnifyingGlassIcon, PlusIcon } from "@phosphor-icons/react";
 </Well>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Appearance
 

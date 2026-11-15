@@ -4,15 +4,13 @@ description: An area chart for showing how values (and, when stacked, a total an
 aliases: [sparkline, area graph]
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # Area Chart
 
 An area chart for showing how values (and, when stacked, a total and its parts) change over a continuous x axis. Compose the gridlines, axes, and one `AreaChart.Area` per series inside `AreaChart.Root`.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/area-chart/overview" title="Area Chart example" />
-	<CodeExample.Code>
+<Example name="components/charts/area-chart/overview" title="Area Chart example">
 
 ```tsx
 import { AreaChart } from "@ngrok/mantle/area-chart";
@@ -48,9 +46,7 @@ const trafficData = [
 </AreaChart.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## When to use
 
@@ -64,9 +60,7 @@ const trafficData = [
 
 Set `stacked` on the Root to show a total and its parts. The top edge of the stack is the total, and each band is the share of one series. Compose `AreaChart.Legend` on every multi-series chart.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/area-chart/stacked-areas" title="Area Chart stacked areas example" />
-	<CodeExample.Code>
+<Example name="components/charts/area-chart/stacked-areas" title="Area Chart stacked areas example">
 
 ```tsx
 import { AreaChart } from "@ngrok/mantle/area-chart";
@@ -106,17 +100,13 @@ const trafficData = [
 </AreaChart.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Overlapping areas
 
 Without `stacked`, every series fills from the zero baseline and the areas overlap. The 10% wash is what keeps this legible: with two series you can read both bands and the region where they cross. Every hover dot is a circle by default. Where bands cross, set `shape` on a series to give its dot a second encoding beside color (see [Shapes](#shapes) below).
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/area-chart/overlapping-areas" title="Area Chart overlapping areas example" />
-	<CodeExample.Code>
+<Example name="components/charts/area-chart/overlapping-areas" title="Area Chart overlapping areas example">
 
 ```tsx
 import { AreaChart } from "@ngrok/mantle/area-chart";
@@ -149,9 +139,7 @@ const regionData = [
 </AreaChart.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 Overlap stops scaling: past two or three series the intersections turn to mud. When the series compose a meaningful total, stack them; when they don't, switch to a [`LineChart`](/components/charts/line-chart).
 
@@ -163,9 +151,7 @@ There are eight glyphs: `"circle"`, `"square"`, `"triangle"`, `"diamond"`, `"tri
 
 The example below pins a controlled `activeIndex` (falling back to a fixed point when the pointer leaves) so the dots stay visible without hovering. US East keeps the default circle, EU West sets `"square"`, and AP South sets `"star"`. Move the crosshair and each dot keeps its series' glyph at every position. [Point shapes](/components/charts/scatter-plot#point-shapes) on the scatter plot page is the full family treatment.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/area-chart/shapes" title="Area Chart shapes example" />
-	<CodeExample.Code>
+<Example name="components/charts/area-chart/shapes" title="Area Chart shapes example">
 
 ```tsx
 import { AreaChart } from "@ngrok/mantle/area-chart";
@@ -214,17 +200,13 @@ function ShapesExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Curve interpolation
 
 `curve` picks the interpolation between points: `"linear"` (the default) draws straight segments, `"monotone"` smooths the band without overshooting the data, and `"step"` holds each value until the next point. Smoothing is presentation only: the plotted values, tooltip readout, and keyboard cursor are identical in both charts below.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/area-chart/curve-interpolation" title="Area Chart curve interpolation example" />
-	<CodeExample.Code>
+<Example name="components/charts/area-chart/curve-interpolation" title="Area Chart curve interpolation example">
 
 ```tsx
 import { AreaChart } from "@ngrok/mantle/area-chart";
@@ -267,17 +249,13 @@ const sessionData = [
 </div>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Gaps in the data
 
 `null` (or missing) values render as gaps by default: a hole in the band that says "no data here", which is usually the honest choice for missed scrapes and collection outages. Set `connectNulls` on the `Area` to join across the hole when the gap is a collection artifact rather than a real absence.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/area-chart/gaps-in-the-data" title="Area Chart gaps in the data example" />
-	<CodeExample.Code>
+<Example name="components/charts/area-chart/gaps-in-the-data" title="Area Chart gaps in the data example">
 
 ```tsx
 import { AreaChart } from "@ngrok/mantle/area-chart";
@@ -323,9 +301,7 @@ const outageData = [
 </div>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 In a stacked chart a gap in one series contributes nothing to the stack at that x position, and the boundary stays continuous so the series above it don't tear.
 
@@ -336,9 +312,7 @@ anchored there and the baseline sits on the axis rather than floating through th
 accessible name, the tooltip, and the data table: "0" is the answer, and a screen reader needs to hear it. Reach
 for `mode="decorative"` only when the values are a synthetic backdrop behind an empty-state message.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/area-chart/no-traffic-yet" title="Area Chart no traffic yet example" />
-	<CodeExample.Code>
+<Example name="components/charts/area-chart/no-traffic-yet" title="Area Chart no traffic yet example">
 
 ```tsx
 import { AreaChart } from "@ngrok/mantle/area-chart";
@@ -366,17 +340,13 @@ function NoTrafficYetAreaChartExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Reference lines
 
 `AreaChart.ReferenceLine` paints a dashed horizontal marker at a y value — an SLO threshold, a budget, a capacity limit — with an optional label above its right end. Here the stacked total crosses provisioned capacity twice:
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/area-chart/reference-lines" title="Area Chart reference lines example" />
-	<CodeExample.Code>
+<Example name="components/charts/area-chart/reference-lines" title="Area Chart reference lines example">
 
 ```tsx
 import { AreaChart } from "@ngrok/mantle/area-chart";
@@ -417,9 +387,7 @@ const trafficData = [
 </AreaChart.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Live data
 
@@ -429,9 +397,7 @@ Motion plays only while the chart is on screen. A chart that is near the viewpor
 
 This demo appends one point every 200ms to a sliding 60-point window. Each point derives from a pure formula over a tick counter and a fixed epoch, so every render is deterministic; a real chart would append measurements as they arrive.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/area-chart/live-data" title="Area Chart live data example" />
-	<CodeExample.Code>
+<Example name="components/charts/area-chart/live-data" title="Area Chart live data example">
 
 ```tsx
 import { AreaChart } from "@ngrok/mantle/area-chart";
@@ -492,17 +458,13 @@ function LiveAreaExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Copy as markdown
 
 `AreaChart.CopyButton` copies the chart's current rows to the clipboard as a machine-stable, GitHub-flavored markdown table: one x column plus one column per series in paint order (an ISO 8601 timestamp for every x on a time scale, plain un-separated numbers, an em dash for gaps), pasteable into Slack, issues, spreadsheets, and LLM chats. The button renders in flow where composed; `Root` is relatively positioned, so `className` can dock it over a corner.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/area-chart/copy-as-markdown" title="Area Chart copy as markdown example" />
-	<CodeExample.Code>
+<Example name="components/charts/area-chart/copy-as-markdown" title="Area Chart copy as markdown example">
 
 ```tsx
 import { AreaChart } from "@ngrok/mantle/area-chart";
@@ -520,9 +482,7 @@ import { AreaChart } from "@ngrok/mantle/area-chart";
 </AreaChart.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Lists of charts
 
@@ -573,9 +533,7 @@ Reach for `mode="decorative"` over hand-rolled `inert` + CSS: it removes the int
 
 `mode="decorative"` says the values are not information; it is not a `disabled` flag (a chart is not a form control). For real data a reader only glances at, use [`mode="static"`](#static-charts).
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/area-chart/decorative-charts" title="Area Chart decorative charts example" />
-	<CodeExample.Code>
+<Example name="components/charts/area-chart/decorative-charts" title="Area Chart decorative charts example">
 
 ```tsx
 import { Empty } from "@ngrok/mantle/empty";
@@ -605,9 +563,7 @@ function EmptyStateAreaChartExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Composition
 
@@ -892,9 +848,7 @@ The chart paints every token as CSS, so the browser resolves it inside the Root'
 
 The example below rethemes `blue` to a brand orange, so HTTP paints `#d07c00`. TLS paints a CSS string, `var(--color-accent-600)`, which each theme declares.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/area-chart/series-identity-and-color" title="Area Chart series identity and color example" />
-	<CodeExample.Code>
+<Example name="components/charts/area-chart/series-identity-and-color" title="Area Chart series identity and color example">
 
 ```tsx
 import { AreaChart } from "@ngrok/mantle/area-chart";
@@ -937,6 +891,4 @@ const trafficData = [
 </AreaChart.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>

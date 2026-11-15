@@ -4,15 +4,13 @@ description: A container that overlays the current view from the edge of the scr
 aliases: [drawer, side panel, offcanvas, slide over]
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # Sheet
 
 A container that overlays the current view from the edge of the screen.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/overlays/sheet/overview" title="Sheet example" />
-	<CodeExample.Code>
+<Example name="components/overlays/sheet/overview" title="Sheet example">
 
 ```tsx
 import { Button, IconButton } from "@ngrok/mantle/button";
@@ -77,9 +75,7 @@ import { TrashSimpleIcon } from "@phosphor-icons/react/TrashSimple";
 </Sheet.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## When to use
 
@@ -113,9 +109,7 @@ The class reaches pointer input only. The open sheet traps keyboard focus and hi
 
 Control when to render a Sheet with a router or with outside state management to open and close it programmatically without a `Sheet.Trigger`.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/overlays/sheet/router-or-state-management-controlled-sheet" title="Sheet Router or state management controlled Sheet example" />
-	<CodeExample.Code>
+<Example name="components/overlays/sheet/router-or-state-management-controlled-sheet" title="Sheet Router or state management controlled Sheet example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -160,17 +154,13 @@ export default function Component() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ### Setting a preferred width of the Sheet
 
 By default, a `Sheet`'s content width is responsive with a default _preferred width_: the maximum width of the `Sheet.Content` when the window viewport is larger than the mobile breakpoint (`sm`). Control the preferred width of the `Sheet.Content` with the `preferredWidth` prop:
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/overlays/sheet/setting-a-preferred-width-of-the-sheet" title="Sheet Setting a preferred width of the Sheet example" />
-	<CodeExample.Code>
+<Example name="components/overlays/sheet/setting-a-preferred-width-of-the-sheet" title="Sheet Setting a preferred width of the Sheet example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -213,17 +203,13 @@ import { Sheet } from "@ngrok/mantle/sheet";
 </Sheet.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ### With TanStack Form
 
 Sheets often host small create/edit forms. Use [TanStack Form](https://tanstack.com/form) with [`Field`](/components/forms/field) for label, description, and error wiring. `Sheet.Content` is a flex column, so wrap `Sheet.Body` and `Sheet.Footer` in a `display: contents` form; the footer's submit button participates in the form while the body keeps its scrollable layout. Close the sheet from the form's `onSubmit` (it only runs once validation passes) and reset the form when the sheet closes so a cancelled draft doesn't leak into the next open.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/overlays/sheet/with-tanstack-form" title="Sheet With TanStack Form example" />
-	<CodeExample.Code>
+<Example name="components/overlays/sheet/with-tanstack-form" title="Sheet With TanStack Form example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -344,9 +330,7 @@ function Example() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Composition
 

@@ -3,7 +3,7 @@ title: Stacking Layers
 description: The z-index tiers mantle's floating UI stacks on, what each tier means, and how to place custom UI on the scale
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # Stacking Layers
 
@@ -49,9 +49,7 @@ Every rule above has a live permutation below, and each also has an automated tw
 
 The bug shape the overlay tier exists for: an announcement popover opens on its own while a takeover dialog covers its anchor. Open the takeover, then trigger the late announcement from inside it: the announcement stays under the dialog, and it waits on the page when the dialog closes.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="base/stacking-layers/a-base-float-never-paints-above-an-overlay" title="Stacking Layers a base float never paints above an overlay example" />
-	<CodeExample.Code>
+<Example name="base/stacking-layers/a-base-float-never-paints-above-an-overlay" title="Stacking Layers a base float never paints above an overlay example">
 
 ```tsx collapsible
 import { Button } from "@ngrok/mantle/button";
@@ -128,17 +126,13 @@ export function LateAnnouncementDemo() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ### Floats inside a dialog paint above it
 
 Each float composed inside the dialog portals into the dialog's positioner, so it opens on top of the dialog: never behind it, never clipped by it.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="base/stacking-layers/floats-inside-a-dialog-paint-above-it" title="Stacking Layers floats inside a dialog paint above it example" />
-	<CodeExample.Code>
+<Example name="base/stacking-layers/floats-inside-a-dialog-paint-above-it" title="Stacking Layers floats inside a dialog paint above it example">
 
 ```tsx collapsible
 <Dialog.Root>
@@ -195,17 +189,13 @@ Each float composed inside the dialog portals into the dialog's positioner, so i
 </Dialog.Root>
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ### Pickers inside a sheet place themselves
 
 `Combobox.Content` renders in place and `MultiSelect.Content` portals into the sheet's content element, so both open above the sheet and scroll with it.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="base/stacking-layers/pickers-inside-a-sheet-place-themselves" title="Stacking Layers pickers inside a sheet place themselves example" />
-	<CodeExample.Code>
+<Example name="base/stacking-layers/pickers-inside-a-sheet-place-themselves" title="Stacking Layers pickers inside a sheet place themselves example">
 
 ```tsx collapsible
 <Sheet.Root>
@@ -247,17 +237,13 @@ Each float composed inside the dialog portals into the dialog's positioner, so i
 </Sheet.Root>
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ### Floats inside a float stack by mount order
 
 A float does not register a layer container, so a select opened from a popover shares the popover's container and paints above the popover that spawned it.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="base/stacking-layers/floats-inside-a-float-stack-by-mount-order" title="Stacking Layers floats inside a float stack by mount order example" />
-	<CodeExample.Code>
+<Example name="base/stacking-layers/floats-inside-a-float-stack-by-mount-order" title="Stacking Layers floats inside a float stack by mount order example">
 
 ```tsx collapsible
 <Popover.Root>
@@ -281,17 +267,13 @@ A float does not register a layer container, so a select opened from a popover s
 </Popover.Root>
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ### Overlays stack in mount order
 
 An overlay opened from inside another overlay portals into the outer overlay's positioner and paints above it, backdrop and all. The popover at the end of the chain paints above both.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="base/stacking-layers/overlays-stack-in-mount-order" title="Stacking Layers overlays stack in mount order example" />
-	<CodeExample.Code>
+<Example name="base/stacking-layers/overlays-stack-in-mount-order" title="Stacking Layers overlays stack in mount order example">
 
 ```tsx collapsible
 <Dialog.Root>
@@ -340,17 +322,13 @@ An overlay opened from inside another overlay portals into the outer overlay's p
 </Dialog.Root>
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ### Toasts clear every tier
 
 A toast fired from inside an overlay renders in sonner's viewport, far above both tiers, so results stay visible no matter what is open.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="base/stacking-layers/toasts-clear-every-tier" title="Stacking Layers toasts clear every tier example" />
-	<CodeExample.Code>
+<Example name="base/stacking-layers/toasts-clear-every-tier" title="Stacking Layers toasts clear every tier example">
 
 ```tsx collapsible
 <Dialog.Root>
@@ -385,9 +363,7 @@ A toast fired from inside an overlay renders in sonner's viewport, far above bot
 </Dialog.Root>
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Placing custom UI on the scale
 

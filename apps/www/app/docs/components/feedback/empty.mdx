@@ -4,15 +4,13 @@ description: Display a placeholder when there is no data or content to show.
 aliases: [empty state, zero state, blank slate, no data, no results]
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # Empty
 
 Display a placeholder when there is no data or content to show.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/feedback/empty/overview" title="Empty example" />
-	<CodeExample.Code>
+<Example name="components/feedback/empty/overview" title="Empty example">
 
 ```tsx
 import { Empty } from "@ngrok/mantle/empty";
@@ -33,9 +31,7 @@ import { GhostIcon, PlusIcon } from "@phosphor-icons/react";
 </Empty.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## When to use
 
@@ -49,9 +45,7 @@ import { GhostIcon, PlusIcon } from "@phosphor-icons/react";
 
 A full-page error state with a retry action.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/feedback/empty/error-page" title="Empty error page example" />
-	<CodeExample.Code>
+<Example name="components/feedback/empty/error-page" title="Empty error page example">
 
 ```tsx
 import { Empty } from "@ngrok/mantle/empty";
@@ -72,17 +66,13 @@ import { SmileyMeltingIcon } from "@phosphor-icons/react";
 </Empty.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## No filter results
 
 A common pattern for empty states when a filter or search yields no results.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/feedback/empty/no-filter-results" title="Empty no filter results example" />
-	<CodeExample.Code>
+<Example name="components/feedback/empty/no-filter-results" title="Empty no filter results example">
 
 ```tsx
 import { Empty } from "@ngrok/mantle/empty";
@@ -103,9 +93,7 @@ import { MagnifyingGlassIcon } from "@phosphor-icons/react";
 </Empty.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Within a data table
 
@@ -174,9 +162,7 @@ function EmptyInTableExample({ data }: { data: Row[] }) {
 
 Use only the sub-components you need.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/feedback/empty/minimal" title="Empty minimal example" />
-	<CodeExample.Code>
+<Example name="components/feedback/empty/minimal" title="Empty minimal example">
 
 ```tsx
 import { Empty } from "@ngrok/mantle/empty";
@@ -188,9 +174,7 @@ import { GhostIcon } from "@phosphor-icons/react";
 </Empty.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Composition
 

@@ -5,15 +5,13 @@ aliases: [keyboard shortcut, hotkey, keycap, keyboard key]
 ---
 
 import { Kbd } from "@ngrok/mantle/kbd";
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # Kbd
 
 A square, centered keyboard "key" chip for rendering keyboard shortcut hints, such as `K`, `⌘`, `⌃`, or `Enter`. For a symbol key, put a visually hidden label inside the `Kbd` and mark the glyph `aria-hidden`.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/data-display/kbd/overview" title="Kbd example" />
-	<CodeExample.Code>
+<Example name="components/data-display/kbd/overview" title="Kbd example">
 
 ```tsx
 import { Kbd } from "@ngrok/mantle/kbd";
@@ -39,9 +37,7 @@ import { Kbd } from "@ngrok/mantle/kbd";
 </div>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## When to use
 
@@ -59,9 +55,7 @@ import { Kbd } from "@ngrok/mantle/kbd";
 
 Combine multiple `Kbd` components to display keyboard shortcuts.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/data-display/kbd/keyboard-shortcuts" title="Kbd keyboard shortcuts example" />
-	<CodeExample.Code>
+<Example name="components/data-display/kbd/keyboard-shortcuts" title="Kbd keyboard shortcuts example">
 
 ```tsx
 import { Kbd } from "@ngrok/mantle/kbd";
@@ -91,9 +85,7 @@ import { Kbd } from "@ngrok/mantle/kbd";
 </div>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Sizing
 
@@ -103,9 +95,7 @@ import { Kbd } from "@ngrok/mantle/kbd";
 
 `Kbd` renders a native `<kbd>` element, so screen readers announce it as keyboard input. Screen readers do not announce symbol-only glyphs (`⌘`, `⌃`, `↵`) meaningfully. Put a visually hidden label inside the `<Kbd>` and mark the visible glyph `aria-hidden`. Do not set `aria-label` on the `<Kbd>`: `<kbd>` has the `generic` role, which [prohibits naming](https://www.w3.org/TR/wai-aria-1.2/#generic), so a screen reader does not read the label reliably.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/data-display/kbd/accessibility" title="Kbd accessibility example" />
-	<CodeExample.Code>
+<Example name="components/data-display/kbd/accessibility" title="Kbd accessibility example">
 
 ```tsx
 import { Kbd } from "@ngrok/mantle/kbd";
@@ -120,9 +110,7 @@ import { Kbd } from "@ngrok/mantle/kbd";
 </div>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Translation
 

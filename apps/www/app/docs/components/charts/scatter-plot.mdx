@@ -4,15 +4,13 @@ description: A canvas-rendered scatter plot for correlating two continuous measu
 aliases: [scatter chart, scatter graph]
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # Scatter Plot
 
 A canvas-rendered scatter plot for correlating two continuous measures (three with the rotatable 3D projection). Compose the gridlines, axes, and one `ScatterPlot.Point` per series inside `ScatterPlot.Root`.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/scatter-plot/overview" title="Scatter Plot example" />
-	<CodeExample.Code>
+<Example name="components/charts/scatter-plot/overview" title="Scatter Plot example">
 
 ```tsx
 import { ScatterPlot } from "@ngrok/mantle/scatter-plot";
@@ -62,9 +60,7 @@ function RegionScatterExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## When to use
 
@@ -91,9 +87,7 @@ The encoding is family-wide (the same prop, glyph set, and equal-weight sizing o
 
 US East below sets no `shape`, so it wears the circle. EU West sets `shape="square"`, and AP South sets `shape="star"`.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/scatter-plot/point-shapes" title="Scatter Plot point shapes example" />
-	<CodeExample.Code>
+<Example name="components/charts/scatter-plot/point-shapes" title="Scatter Plot point shapes example">
 
 ```tsx
 import { ScatterPlot } from "@ngrok/mantle/scatter-plot";
@@ -120,17 +114,13 @@ const shapedRegions = [
 </ScatterPlot.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Dense scatter
 
 This chart plots 8,000 seeded points in a single series. Rendering degrades by total point count in tiers, never all at once: past 5,000 points the dots drop their 2px surface ring, and past 20,000 they become fast-path rects with no arc calls at all. Hover stays nearest-point at every tier (the hit test walks the data, not the pixels), so a dense cloud is exactly as inspectable as a sparse one. A single series also means no legend: `ScatterPlot.Legend` renders nothing for one series, because the chart's title already names it.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/scatter-plot/dense-scatter" title="Scatter Plot dense scatter example" />
-	<CodeExample.Code>
+<Example name="components/charts/scatter-plot/dense-scatter" title="Scatter Plot dense scatter example">
 
 ```tsx
 import { ScatterPlot } from "@ngrok/mantle/scatter-plot";
@@ -173,9 +163,7 @@ function DenseScatterExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## 3D scatter
 
@@ -185,9 +173,7 @@ Axis parts and reference lines apply to the 2D projection only and are ignored i
 
 The glyphs carry into the projection too, and each one depth-sorts with its point. The three series below wear the circle, the square, and the triangle. The redundant encoding earns its keep in 3D more than anywhere: rotation constantly changes which clouds overlap, and the glyphs keep every series identifiable at any camera angle, with or without color vision.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/scatter-plot/scatter-3d" title="Scatter Plot 3D scatter example" />
-	<CodeExample.Code>
+<Example name="components/charts/scatter-plot/scatter-3d" title="Scatter Plot 3D scatter example">
 
 ```tsx
 import { ScatterPlot } from "@ngrok/mantle/scatter-plot";
@@ -258,17 +244,13 @@ function Scatter3dExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Dimensions
 
 `dimensions` controls how many axes the cloud currently occupies: the pattern behind "watch the clusters separate" explainers. At `1` every point collapses onto the x axis line and the four clusters below read as one jumbled strip (only their glyphs still tell them apart); at `2` they spread across the plane; at `3` they fill the cube. Each cluster sets its own `shape` (circle, square, triangle, diamond), so cluster identity survives even where position collapses. Changing it morphs every point along a smooth glide (the same chase that drives the domains), the y and z frame edges fade in with their dimension, and `prefers-reduced-motion` snaps the whole move.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/scatter-plot/dimensions" title="Scatter Plot dimensions example" />
-	<CodeExample.Code>
+<Example name="components/charts/scatter-plot/dimensions" title="Scatter Plot dimensions example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -368,17 +350,13 @@ function DimensionsExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Reference lines
 
 `ScatterPlot.ReferenceLine` paints a dashed horizontal marker at a y value (a target, a budget, an SLO) in the neutral reference color, with an optional label above its right end. Like the axis parts, it applies to the 2D projection only and is ignored in 3D.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/scatter-plot/reference-lines" title="Scatter Plot reference lines example" />
-	<CodeExample.Code>
+<Example name="components/charts/scatter-plot/reference-lines" title="Scatter Plot reference lines example">
 
 ```tsx
 import { ScatterPlot } from "@ngrok/mantle/scatter-plot";
@@ -416,17 +394,13 @@ function ReferenceLineScatterExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Copy as markdown
 
 `ScatterPlot.CopyButton` copies the chart's current rows to the clipboard as a machine-stable, GitHub-flavored markdown table: one x column plus one column per series in paint order, and the z column in 3D (an ISO 8601 timestamp for every x on a time scale, plain un-separated numbers, an em dash for gaps). The table pastes into Slack, issues, spreadsheets, and LLM chats. The button renders in flow where composed; `Root` is relatively positioned, so `className` can dock it over a corner.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/scatter-plot/copy-as-markdown" title="Scatter Plot copy as markdown example" />
-	<CodeExample.Code>
+<Example name="components/charts/scatter-plot/copy-as-markdown" title="Scatter Plot copy as markdown example">
 
 ```tsx
 import { ScatterPlot } from "@ngrok/mantle/scatter-plot";
@@ -447,9 +421,7 @@ import { ScatterPlot } from "@ngrok/mantle/scatter-plot";
 </ScatterPlot.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Lists of charts
 
@@ -500,9 +472,7 @@ Reach for `mode="decorative"` over hand-rolled `inert` + CSS: it removes the int
 
 `mode="decorative"` says the values are not information; it is not a `disabled` flag (a chart is not a form control). For real data a reader only glances at, use [`mode="static"`](#static-charts).
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/scatter-plot/decorative-charts" title="Scatter Plot decorative charts example" />
-	<CodeExample.Code>
+<Example name="components/charts/scatter-plot/decorative-charts" title="Scatter Plot decorative charts example">
 
 ```tsx
 import { Empty } from "@ngrok/mantle/empty";
@@ -538,9 +508,7 @@ function EmptyStateScatterPlotExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Composition
 
@@ -812,9 +780,7 @@ The chart resolves every token from `Root`'s computed style in one read, inside 
 
 Mantle measures only its own tokens. Check a value you set against the card in both themes, and against every other color on the plot, because scatter marks meet at every pair. The chart below restyles `blue` to a brand color, and EU West passes a CSS color string.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/scatter-plot/series-color" title="Scatter Plot series color example" />
-	<CodeExample.Code>
+<Example name="components/charts/scatter-plot/series-color" title="Scatter Plot series color example">
 
 ```tsx
 import { ScatterPlot } from "@ngrok/mantle/scatter-plot";
@@ -843,6 +809,4 @@ const regionThroughput = [
 </ScatterPlot.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>

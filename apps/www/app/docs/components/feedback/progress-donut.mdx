@@ -4,15 +4,13 @@ description: Displays an indicator showing the completion progress of a task as 
 aliases: [circular progress, progress ring, progress circle, radial progress]
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # Progress Donut
 
 Displays an indicator showing the completion progress of a task as a circular progress bar. Give `ProgressDonut.Root` an `aria-label`, or a screen reader announces a bare "progress bar".
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/feedback/progress-donut/overview" title="Progress Donut example" />
-	<CodeExample.Code>
+<Example name="components/feedback/progress-donut/overview" title="Progress Donut example">
 
 ```tsx
 import { ProgressDonut } from "@ngrok/mantle/progress";
@@ -27,9 +25,7 @@ import { ProgressDonut } from "@ngrok/mantle/progress";
 </ProgressDonut.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## When to use
 
@@ -40,9 +36,7 @@ import { ProgressDonut } from "@ngrok/mantle/progress";
 
 The indicator color is inherited via `currentColor`. Override the default (`accent-600`) by setting the `ProgressDonut.Indicator`'s text color.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/feedback/progress-donut/indicator-color" title="Progress Donut indicator color example" />
-	<CodeExample.Code>
+<Example name="components/feedback/progress-donut/indicator-color" title="Progress Donut indicator color example">
 
 ```tsx
 import { ProgressDonut } from "@ngrok/mantle/progress";
@@ -57,17 +51,13 @@ import { ProgressDonut } from "@ngrok/mantle/progress";
 </ProgressDonut.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## With a label
 
 Put a short label beside a small donut to show the usage of each item in a list.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/feedback/progress-donut/with-a-label" title="Progress Donut with a label example" />
-	<CodeExample.Code>
+<Example name="components/feedback/progress-donut/with-a-label" title="Progress Donut with a label example">
 
 ```tsx
 import { ProgressDonut } from "@ngrok/mantle/progress";
@@ -108,9 +98,7 @@ import { ProgressDonut } from "@ngrok/mantle/progress";
 </div>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Accessibility
 
@@ -122,9 +110,7 @@ Set the `value` prop to `"indeterminate"` to show the donut in an indeterminate 
 
 Control the rotation speed with the `indeterminateRotationSpeed` prop.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/feedback/progress-donut/indeterminate-value" title="Progress Donut indeterminate value example" />
-	<CodeExample.Code>
+<Example name="components/feedback/progress-donut/indeterminate-value" title="Progress Donut indeterminate value example">
 
 ```tsx
 import { ProgressDonut } from "@ngrok/mantle/progress";
@@ -144,17 +130,13 @@ import { ProgressDonut } from "@ngrok/mantle/progress";
 </ProgressDonut.Root>
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Dynamic colors
 
 `ProgressDonut.Indicator` inherits its color from the parent text color through `currentColor`. Set the parent's text color to change the indicator based on the current progress value.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/feedback/progress-donut/dynamic-colors" title="Progress Donut dynamic colors example" />
-	<CodeExample.Code>
+<Example name="components/feedback/progress-donut/dynamic-colors" title="Progress Donut dynamic colors example">
 
 ```tsx
 import { ProgressDonut } from "@ngrok/mantle/progress";
@@ -204,9 +186,7 @@ const Example = () => {
 };
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Composition
 

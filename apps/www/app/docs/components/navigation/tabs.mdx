@@ -4,15 +4,13 @@ description: Layered sections of content, called tab panels, that show one at a 
 aliases: [tab bar, tab list, tab strip]
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # Tabs
 
 Layered sections of content, called tab panels, that show one at a time.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/navigation/tabs/overview" title="Tabs example" />
-	<CodeExample.Code>
+<Example name="components/navigation/tabs/overview" title="Tabs example">
 
 ```tsx
 import { Card } from "@ngrok/mantle/card";
@@ -45,9 +43,7 @@ import { Tabs } from "@ngrok/mantle/tabs";
 </Tabs.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## When to use
 
@@ -60,9 +56,7 @@ import { Tabs } from "@ngrok/mantle/tabs";
 
 Put an `Icon` before the label in `Tabs.Trigger` to help the user scan the tabs.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/navigation/tabs/icons" title="Tabs icons example" />
-	<CodeExample.Code>
+<Example name="components/navigation/tabs/icons" title="Tabs icons example">
 
 ```tsx
 import { Icon } from "@ngrok/mantle/icon";
@@ -88,17 +82,13 @@ import { GlobeIcon } from "@phosphor-icons/react/Globe";
 </Tabs.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Badges
 
 Put a `Tabs.Badge` after the label in `Tabs.Trigger` to show a count for the tab. A badge can sit beside an icon.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/navigation/tabs/badges" title="Tabs badges example" />
-	<CodeExample.Code>
+<Example name="components/navigation/tabs/badges" title="Tabs badges example">
 
 ```tsx
 import { Icon } from "@ngrok/mantle/icon";
@@ -125,17 +115,13 @@ import { GlobeIcon } from "@phosphor-icons/react/Globe";
 </Tabs.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Disabled tabs
 
 Pass `disabled` to a `Tabs.Trigger` to stop the user from selecting that tab.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/navigation/tabs/disabled-tabs" title="Tabs disabled tabs example" />
-	<CodeExample.Code>
+<Example name="components/navigation/tabs/disabled-tabs" title="Tabs disabled tabs example">
 
 ```tsx
 import { Tabs } from "@ngrok/mantle/tabs";
@@ -153,17 +139,13 @@ import { Tabs } from "@ngrok/mantle/tabs";
 </Tabs.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Vertical orientation
 
 Set `orientation="vertical"` on `Tabs.Root` to stack the tabs beside the content.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/navigation/tabs/vertical-orientation" title="Tabs vertical orientation example" />
-	<CodeExample.Code>
+<Example name="components/navigation/tabs/vertical-orientation" title="Tabs vertical orientation example">
 
 ```tsx
 import { Card } from "@ngrok/mantle/card";
@@ -196,9 +178,7 @@ import { Tabs } from "@ngrok/mantle/tabs";
 </Tabs.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Composition
 
@@ -222,9 +202,7 @@ A link tab activates on click, not on the press, so a press released off the lin
 
 `Tabs.Root`, `Tabs.List`, and `Tabs.Content` accept `asChild` through Radix. Each composes its part's attributes and behavior onto your own element instead of rendering its own `<div>`.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/navigation/tabs/polymorphism" title="Tabs polymorphism example" />
-	<CodeExample.Code>
+<Example name="components/navigation/tabs/polymorphism" title="Tabs polymorphism example">
 
 ```tsx
 import { Tabs } from "@ngrok/mantle/tabs";
@@ -246,17 +224,13 @@ import { Link, href } from "react-router";
 </Tabs.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Horizontal overflow
 
 When there are too many tabs to fit the container, the list scrolls horizontally with scroll-position-aware fade shadows at the edges.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/navigation/tabs/horizontal-overflow" title="Tabs horizontal overflow example" />
-	<CodeExample.Code>
+<Example name="components/navigation/tabs/horizontal-overflow" title="Tabs horizontal overflow example">
 
 ```tsx
 import { Icon } from "@ngrok/mantle/icon";
@@ -339,17 +313,13 @@ import { UserIcon } from "@phosphor-icons/react/User";
 </Tabs.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Pill appearance
 
 Use `appearance="pill"` to render each tab as a pill instead of the default classic underline style.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/navigation/tabs/pill-appearance" title="Tabs pill appearance example" />
-	<CodeExample.Code>
+<Example name="components/navigation/tabs/pill-appearance" title="Tabs pill appearance example">
 
 ```tsx
 import { Card } from "@ngrok/mantle/card";
@@ -530,9 +500,7 @@ import { Link, href } from "react-router";
 </Tabs.Root>
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Separator
 
@@ -542,9 +510,7 @@ As the root's direct child, the separator pulls itself up by `--tabs-gap`, the r
 
 The separator is decorative (`role="none"`). Pass `semantic` to render `role="separator"`.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/navigation/tabs/separator" title="Tabs separator example" />
-	<CodeExample.Code>
+<Example name="components/navigation/tabs/separator" title="Tabs separator example">
 
 ```tsx
 import { Tabs } from "@ngrok/mantle/tabs";
@@ -585,9 +551,7 @@ import { Tabs } from "@ngrok/mantle/tabs";
 </Tabs.Root>
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Accessibility
 

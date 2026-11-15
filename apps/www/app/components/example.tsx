@@ -1,6 +1,7 @@
 import { IconButton } from "@ngrok/mantle/button";
 import { cx } from "@ngrok/mantle/cx";
 import { SegmentedControl } from "@ngrok/mantle/segmented-control";
+import { Tabs } from "@ngrok/mantle/tabs";
 import { ArrowClockwiseIcon } from "@phosphor-icons/react/ArrowClockwise";
 import { ArrowSquareOutIcon } from "@phosphor-icons/react/ArrowSquareOut";
 import { DesktopIcon } from "@phosphor-icons/react/Desktop";
@@ -43,52 +44,29 @@ const viewportWidthClasses = {
  */
 export type PreviewKey = PreviewExampleName | `${string}/${string}`;
 
-type PreviewFrameProps = {
-	/** Which example the frame renders: a preview registry name or a page example key. */
-	example: PreviewKey;
-	/**
-	 * Human-readable name of the example — the iframe's accessible title and
-	 * part of the toolbar buttons' labels.
-	 */
+type FrameProps = {
+	name: PreviewKey;
 	title: string;
-	/**
-	 * `fixed` (default): the frame is `h-160` tall and the example fills it,
-	 * for full-page layout demos. `content`: the frame grows to the height of
-	 * the example's `PreviewCanvas`, for component examples.
-	 */
-	height?: "fixed" | "content";
-	/** Merged onto the outer frame — e.g. to override the default `h-160` canvas height. */
-	className?: string;
+	height: "fixed" | "content";
 };
 
 /**
- * A framed, viewport-switchable live example: an iframe pointed at the
- * chrome-less `/preview/*` route with a toolbar to preview the
- * example at desktop, tablet (48rem), and mobile (320px) widths, reload it,
- * or open it in a new tab. Because the example is its own document it gets a
- * real `Main` landmark, its own `window` (document-level keyboard shortcuts
- * stay inside the frame), and media queries driven by the frame — not the
- * reader's browser window. Theme changes on the docs page propagate automatically:
- * both documents share mantle's cookie + BroadcastChannel theme sync.
- *
- * @example
- * ```tsx
- * <PreviewFrame example="centered-layout" title="Centered layout demo" />
- * ```
+ * The sandbox half of an `Example`: an iframe pointed at the chrome-less
+ * `/preview/*` route, with a toolbar to switch the viewport, reload the
+ * example, or open it in a new tab.
  */
-export function PreviewFrame({ example, title, height = "fixed", className }: PreviewFrameProps) {
+function Frame({ name, title, height }: FrameProps) {
 	const [viewport, setViewport] = useState<Viewport>("desktop");
 	// remounting the iframe with a new key is a full document reload
 	const [reloadCount, setReloadCount] = useState(0);
 	const [contentHeight, setContentHeight] = useState<number | null>(null);
-	const previewHref = href("/preview/*", { "*": example });
+	const previewHref = href("/preview/*", { "*": name });
 
 	return (
 		<div
 			className={cx(
 				"grid overflow-hidden rounded-lg border border-gray-300",
 				height === "fixed" ? "h-160 grid-rows-[auto_minmax(0,1fr)]" : "grid-rows-[auto_auto]",
-				className,
 			)}
 		>
 			<div className="flex items-center gap-2 border-b border-gray-300 p-1.5">
@@ -200,4 +178,77 @@ function observeCanvasHeight(
 	});
 	observer.observe(canvas);
 	return observer;
+}
+
+type ExampleProps = {
+	/**
+	 * The example to run. A page example is `<page path>/<name>`: the key
+	 * `components/actions/button/size` renders `SizeExample` from
+	 * `app/docs/components/actions/button.examples.tsx`. A key with no slash
+	 * names a shell demo in the preview registry.
+	 */
+	name: PreviewKey;
+	/** The example's name, for the frame's accessible title and toolbar labels. */
+	title: string;
+	/**
+	 * `content`: the frame grows to the height of the example's
+	 * `PreviewCanvas`. `fixed`: the frame is `h-160` tall and the example fills
+	 * it. Defaults to `content` for a page example and `fixed` for a shell demo.
+	 */
+	height?: "fixed" | "content";
+	/** The example's code, as an MDX code fence. It shows in the Code tab. */
+	children?: ReactNode;
+};
+
+/**
+ * A live docs example: the component or layout runs in a sandboxed iframe
+ * with its own document, so its breakpoints, keyboard shortcuts, and overlays
+ * stay in the frame. A Preview/Code toggle sits above it. The frame has a
+ * desktop, tablet, and mobile (320px) viewport switch, a reload button, and a
+ * link that opens the example in a new tab. The preview panel stays mounted
+ * on the Code tab, so a toggle never reloads the example.
+ *
+ * @example
+ * ```mdx
+ * <Example name="components/actions/button/size" title="Button size example">
+ *
+ * {tsx fence}
+ *
+ * </Example>
+ * ```
+ */
+export function Example({ name, title, height, children }: ExampleProps) {
+	const frame = (
+		<Frame
+			name={name}
+			title={title}
+			height={height ?? (name.includes("/") ? "content" : "fixed")}
+		/>
+	);
+	if (children == null) {
+		return (
+			<div data-full-bleed="" className="mb-6">
+				{frame}
+			</div>
+		);
+	}
+	return (
+		<Tabs.Root appearance="pill" defaultValue="preview" data-full-bleed="" className="mb-6">
+			<Tabs.List aria-label={`${title}: preview and code`}>
+				<Tabs.Trigger value="preview">Preview</Tabs.Trigger>
+				<Tabs.Trigger value="code">Code</Tabs.Trigger>
+			</Tabs.List>
+			<Tabs.Content
+				value="preview"
+				// Radix leaves a force-mounted inactive panel visible, so hide it here.
+				forceMount
+				className="data-[state=inactive]:hidden"
+			>
+				{frame}
+			</Tabs.Content>
+			<Tabs.Content value="code" className="**:data-[slot=code-block]:mb-0">
+				{children}
+			</Tabs.Content>
+		</Tabs.Root>
+	);
 }

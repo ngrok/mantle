@@ -4,15 +4,13 @@ description: Displays an indicator showing the completion progress of a task as 
 aliases: [linear progress, loading bar, meter]
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # Progress Bar
 
 Displays an indicator showing the completion progress of a task as a linear progress bar with customizable colors. Give `ProgressBar.Root` an `aria-label`, or a screen reader announces a bare "progress bar".
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/feedback/progress-bar/overview" title="Progress Bar example" />
-	<CodeExample.Code>
+<Example name="components/feedback/progress-bar/overview" title="Progress Bar example">
 
 ```tsx
 import { ProgressBar } from "@ngrok/mantle/progress";
@@ -22,9 +20,7 @@ import { ProgressBar } from "@ngrok/mantle/progress";
 </ProgressBar.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## When to use
 
@@ -36,9 +32,7 @@ import { ProgressBar } from "@ngrok/mantle/progress";
 
 The indicator is `bg-accent-600` by default. Set another background color on `ProgressBar.Indicator` with `className`.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/feedback/progress-bar/indicator-color" title="Progress Bar indicator color example" />
-	<CodeExample.Code>
+<Example name="components/feedback/progress-bar/indicator-color" title="Progress Bar indicator color example">
 
 ```tsx
 import { ProgressBar } from "@ngrok/mantle/progress";
@@ -54,17 +48,13 @@ import { ProgressBar } from "@ngrok/mantle/progress";
 </ProgressBar.Root>
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## With a label
 
 Put a short status label beside a narrow bar to show the state of each item in a list.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/feedback/progress-bar/with-a-label" title="Progress Bar with a label example" />
-	<CodeExample.Code>
+<Example name="components/feedback/progress-bar/with-a-label" title="Progress Bar with a label example">
 
 ```tsx
 import { ProgressBar } from "@ngrok/mantle/progress";
@@ -91,9 +81,7 @@ import { ProgressBar } from "@ngrok/mantle/progress";
 </div>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Accessibility
 
@@ -103,9 +91,7 @@ import { ProgressBar } from "@ngrok/mantle/progress";
 
 Set a custom maximum value with the `max` prop. The progress bar renders the value as a percentage of that maximum.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/feedback/progress-bar/custom-maximum-value" title="Progress Bar custom maximum value example" />
-	<CodeExample.Code>
+<Example name="components/feedback/progress-bar/custom-maximum-value" title="Progress Bar custom maximum value example">
 
 ```tsx
 import { ProgressBar } from "@ngrok/mantle/progress";
@@ -115,17 +101,13 @@ import { ProgressBar } from "@ngrok/mantle/progress";
 </ProgressBar.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Indeterminate value
 
 Set the `value` prop to `"indeterminate"` to show the progress bar in an indeterminate state. Currently, this displays as a progress bar at 0% but keeps accessibility attributes for screen readers.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/feedback/progress-bar/indeterminate-value" title="Progress Bar indeterminate value example" />
-	<CodeExample.Code>
+<Example name="components/feedback/progress-bar/indeterminate-value" title="Progress Bar indeterminate value example">
 
 ```tsx
 import { ProgressBar } from "@ngrok/mantle/progress";
@@ -135,17 +117,13 @@ import { ProgressBar } from "@ngrok/mantle/progress";
 </ProgressBar.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Dynamic colors
 
 Set the color of the `ProgressBar.Indicator` with the `className` prop to change colors based on the current progress value or application state.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/feedback/progress-bar/dynamic-colors" title="Progress Bar dynamic colors example" />
-	<CodeExample.Code>
+<Example name="components/feedback/progress-bar/dynamic-colors" title="Progress Bar dynamic colors example">
 
 ```tsx
 import { ProgressBar } from "@ngrok/mantle/progress";
@@ -190,9 +168,7 @@ const Example = () => {
 };
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Composition
 

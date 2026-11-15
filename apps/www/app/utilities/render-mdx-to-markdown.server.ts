@@ -81,34 +81,30 @@ function stringAttribute(node: MdxJsxElement, name: string): string | undefined 
 }
 
 const handlers: Record<string, Handler> = {
-	// `<CodeExample>` is the tabbed Preview/Code example. Every part but
-	// `PreviewFrame` is a structural wrapper around real markdown — unwrap them so
-	// the fenced code block inside `CodeExample.Code` lands in the markdown output.
-	CodeExample: (node) => {
-		if (node.name === "CodeExample.PreviewFrame") {
-			const example = stringAttribute(node, "example");
-			// A page example key (`<page>/<name>`) is the page's own demo, and the
-			// fence in `CodeExample.Code` is its code, so dropping it loses nothing.
-			if (example?.includes("/")) {
-				return { kind: "drop" };
-			}
-			// The iframed variant runs a registered demo module whose whole source
-			// ships in /llms-full.txt, while the fence beside it here is a shorter
-			// hand-written excerpt. Leave the pointer rather than dropping silently:
-			// a reader of the `.md` twin has no other way to learn the fuller source
-			// exists (issue #1399).
-			const preview = example == null ? "framed preview" : `framed preview /preview/${example}`;
-			return {
-				kind: "replace",
-				nodes: [
-					{
-						type: "html",
-						value: `<!-- ${preview} — full source in /llms-full.txt under "# Framed preview sources" -->`,
-					},
-				],
-			};
+	// `<Example>` runs a live example in a sandboxed frame, and its children are
+	// the example's code fence. Keep the fence: it carries the example's code.
+	Example: (node) => {
+		const name = stringAttribute(node, "name");
+		// A page example key (`<page>/<name>`) is the page's own demo, and the
+		// fence is its code, so the frame adds nothing to the markdown.
+		if (name?.includes("/")) {
+			return { kind: "unwrap" };
 		}
-		return { kind: "unwrap" };
+		// A shell demo runs a registered module whose whole source ships in
+		// /llms-full.txt, while the fence here is a shorter hand-written excerpt.
+		// Leave the pointer: a reader of the `.md` twin has no other way to learn
+		// the fuller source exists (issue #1399).
+		const preview = name == null ? "framed preview" : `framed preview /preview/${name}`;
+		return {
+			kind: "replace",
+			nodes: [
+				{
+					type: "html",
+					value: `<!-- ${preview} — full source in /llms-full.txt under "# Framed preview sources" -->`,
+				},
+				...node.children,
+			],
+		};
 	},
 };
 

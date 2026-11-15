@@ -4,15 +4,13 @@ description: A small image representing a person or an account, with a text or i
 aliases: [profile picture, profile photo]
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # Avatar
 
 A small image representing a person or an account, with a text or icon fallback. Pick the shape by subject: `appearance="circle"` is a person, and `appearance="square"` is an account, workspace, team, or organization.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/data-display/avatar/overview" title="Avatar example" />
-	<CodeExample.Code>
+<Example name="components/data-display/avatar/overview" title="Avatar example">
 
 ```tsx
 import { Avatar } from "@ngrok/mantle/avatar";
@@ -43,9 +41,7 @@ export function AccountAndUserAvatars() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## When to use
 
@@ -74,9 +70,7 @@ initials show through a loaded picture; give it its own backdrop if that matters
 framework image component, on `Root` when the avatar is itself a link or a button, and on `Fallback` when the
 initials want a more specific element (an `<abbr title="…">`, say).
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/data-display/avatar/polymorphism" title="Avatar polymorphism example" />
-	<CodeExample.Code>
+<Example name="components/data-display/avatar/polymorphism" title="Avatar polymorphism example">
 
 ```tsx
 import { Avatar } from "@ngrok/mantle/avatar";
@@ -92,18 +86,14 @@ export function LinkedAvatar() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Appearance
 
 Circles are people, rounded squares are accounts. Nothing enforces it, but keeping the two distinct is what
 lets a dense row of both stay legible, so pick per subject rather than per screen.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/data-display/avatar/appearance" title="Avatar appearance example" />
-	<CodeExample.Code>
+<Example name="components/data-display/avatar/appearance" title="Avatar appearance example">
 
 ```tsx
 import { Avatar } from "@ngrok/mantle/avatar";
@@ -128,9 +118,7 @@ export function Appearances() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Deterministic color
 
@@ -140,9 +128,7 @@ name**: names get edited, and a rename would silently recolor the avatar.
 
 Omit `colorSeed` for a neutral surface, or set your own `bg-*` through `className` to opt out entirely.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/data-display/avatar/deterministic-color" title="Avatar deterministic color example" />
-	<CodeExample.Code>
+<Example name="components/data-display/avatar/deterministic-color" title="Avatar deterministic color example">
 
 ```tsx
 import { Avatar } from "@ngrok/mantle/avatar";
@@ -171,9 +157,7 @@ export function SeededAvatars() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Sizing
 
@@ -181,9 +165,7 @@ An avatar is `size-7` and `shrink-0`: a fixed-size visual that the flex rows it 
 row, a table cell, a comment header) must not be able to squeeze. Override the size with `className`, which
 merges last and wins, and scale the text with it so initials stay proportional.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/data-display/avatar/sizing" title="Avatar sizing example" />
-	<CodeExample.Code>
+<Example name="components/data-display/avatar/sizing" title="Avatar sizing example">
 
 ```tsx
 import { Avatar } from "@ngrok/mantle/avatar";
@@ -208,9 +190,7 @@ export function Sizes() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Accessibility
 
@@ -231,9 +211,7 @@ An avatar is almost always redundant with text beside it, and mantle defaults to
 For a name and a secondary line beside the avatar, compose
 [MediaObject](/components/structure/media-object) rather than hand-rolling the row.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/data-display/avatar/composing-with-mediaobject" title="Avatar Composing with MediaObject example" />
-	<CodeExample.Code>
+<Example name="components/data-display/avatar/composing-with-mediaobject" title="Avatar Composing with MediaObject example">
 
 ```tsx
 import { Avatar } from "@ngrok/mantle/avatar";
@@ -256,9 +234,7 @@ export function MemberRow() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## API Reference
 

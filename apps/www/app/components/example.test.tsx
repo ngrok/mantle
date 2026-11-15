@@ -4,19 +4,19 @@
 // only assert attributes and remounting, never framed content)
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { PreviewFrame } from "./preview-frame";
+import { Example } from "./example";
 
 function getIframe(): HTMLIFrameElement {
 	const iframe = document.querySelector("iframe");
 	if (iframe == null) {
-		throw new Error("expected the preview frame to render an iframe");
+		throw new Error("expected the example to render an iframe");
 	}
 	return iframe;
 }
 
-describe("PreviewFrame", () => {
+describe("Example", () => {
 	it("renders an iframe pointed at the example's chrome-less preview route", () => {
-		render(<PreviewFrame example="centered-layout" title="Centered layout demo" />);
+		render(<Example name="centered-layout" title="Centered layout demo" />);
 
 		const iframe = getIframe();
 		expect(iframe.getAttribute("src")).toBe("/preview/centered-layout");
@@ -24,7 +24,7 @@ describe("PreviewFrame", () => {
 	});
 
 	it("defaults to the desktop viewport", () => {
-		render(<PreviewFrame example="centered-layout" title="Centered layout demo" />);
+		render(<Example name="centered-layout" title="Centered layout demo" />);
 
 		expect(
 			screen.getByRole("radio", { name: "Desktop viewport" }).getAttribute("aria-checked"),
@@ -36,7 +36,7 @@ describe("PreviewFrame", () => {
 	});
 
 	it("resizes the frame when a viewport preset is picked", () => {
-		render(<PreviewFrame example="centered-layout" title="Centered layout demo" />);
+		render(<Example name="centered-layout" title="Centered layout demo" />);
 
 		fireEvent.click(screen.getByRole("radio", { name: "Tablet viewport" }));
 		// Why a class-token check: the wrapper emits no data attribute, so the width class is the
@@ -54,23 +54,36 @@ describe("PreviewFrame", () => {
 		expect(getIframe().parentElement?.classList.contains("w-80")).toBe(false);
 	});
 
-	// Why a class assertion: the tailwind-merge override contract. `className` is documented as
-	// merged onto the outer frame so a caller can replace the default `h-160` canvas height.
-	it("merges className onto the outer frame, overriding the default height", () => {
-		const { container } = render(
-			<PreviewFrame example="centered-layout" title="Centered layout demo" className="h-96" />,
+	it("shows a shell demo in a fixed-height frame and a page example at its content height", () => {
+		const { container, unmount } = render(
+			<Example name="centered-layout" title="Centered layout demo" />,
+		);
+		// Why a class check: the height mode has no other observable in happy-dom, which lays out nothing.
+		expect(container.querySelector(".h-160")).not.toBeNull();
+		unmount();
+
+		render(<Example name="components/actions/button/size" title="Button size example" />);
+		expect(document.querySelector(".h-160")).toBeNull();
+		expect(getIframe().getAttribute("src")).toBe("/preview/components/actions/button/size");
+	});
+
+	it("puts its code in a Code tab and keeps the preview mounted", () => {
+		render(
+			<Example name="components/actions/button/size" title="Button size example">
+				<pre>const answer = 42;</pre>
+			</Example>,
 		);
 
-		const frame = container.firstElementChild;
-		if (!(frame instanceof HTMLElement)) {
-			throw new Error("expected the preview frame to render an outer frame element");
-		}
-		expect(frame.classList.contains("h-96")).toBe(true);
-		expect(frame.classList.contains("h-160")).toBe(false);
+		const iframe = getIframe();
+		const codeTab = screen.getByRole("tab", { name: "Code" });
+		fireEvent.mouseDown(codeTab);
+		expect(codeTab.getAttribute("aria-selected")).toBe("true");
+		expect(screen.getByText("const answer = 42;").tagName).toBe("PRE");
+		expect(getIframe()).toBe(iframe);
 	});
 
 	it("reloads the preview by remounting the iframe", () => {
-		render(<PreviewFrame example="centered-layout" title="Centered layout demo" />);
+		render(<Example name="centered-layout" title="Centered layout demo" />);
 
 		const before = getIframe();
 		fireEvent.click(
@@ -83,7 +96,7 @@ describe("PreviewFrame", () => {
 	});
 
 	it("links to the preview route in a new tab", () => {
-		render(<PreviewFrame example="centered-layout" title="Centered layout demo" />);
+		render(<Example name="centered-layout" title="Centered layout demo" />);
 
 		const link = screen.getByRole("link", {
 			name: "Open the Centered layout demo preview in a new tab",

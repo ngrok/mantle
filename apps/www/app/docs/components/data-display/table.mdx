@@ -4,15 +4,13 @@ description: A structured way to display data in rows and columns.
 aliases: [html table, basic table]
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # Table
 
 A structured way to display data in rows and columns. Rows and cells render exactly what you put in them, with no sorting, filtering, selection, or pagination built in.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/data-display/table/overview" title="Table example" />
-	<CodeExample.Code>
+<Example name="components/data-display/table/overview" title="Table example">
 
 ```tsx
 import { Table } from "@ngrok/mantle/table";
@@ -48,9 +46,7 @@ import { Table } from "@ngrok/mantle/table";
 </Table.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## When to use
 
@@ -93,9 +89,7 @@ Use [`DataTable`](/components/data-display/data-table#pagination-controls) when 
 
 Slice the rows with [`useOffsetPagination`](/components/navigation/pagination#useoffsetpagination) and `getOffsetPaginatedSlice`. Then compose [`CursorPagination`](/components/navigation/pagination) and `PaginationRange` under the table. The count line is a live region, so a screen reader hears the new range when the page changes.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/data-display/table/pagination" title="Table pagination example" />
-	<CodeExample.Code>
+<Example name="components/data-display/table/pagination" title="Table pagination example">
 
 ```tsx
 import {
@@ -170,9 +164,7 @@ function PaginatedInvoices() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## API Reference
 

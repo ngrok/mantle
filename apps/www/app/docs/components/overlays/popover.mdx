@@ -4,15 +4,13 @@ description: Displays rich content in a portal, triggered by a button.
 aliases: [popup, flyout]
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # Popover
 
 Displays rich content in a portal, triggered by a button.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/overlays/popover/overview" title="Popover example" />
-	<CodeExample.Code>
+<Example name="components/overlays/popover/overview" title="Popover example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -59,9 +57,7 @@ import { Popover } from "@ngrok/mantle/popover";
 </Popover.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## When to use
 
@@ -77,9 +73,7 @@ Render `Popover.Arrow` as a child of `Popover.Content` when the popover explains
 
 `Popover.Arrow` takes no `asChild`. The shape is two layers (a filled polygon, plus a polyline that strokes the slanted edges only), and a swapped element loses the border. Restyle it with `className` instead: `fill-*` for the surface and a `stroke-*` on the arrow's `polyline` child for the edge, since Radix renders the arrow as an `svg` where `bg-*` paints nothing.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/overlays/popover/arrow" title="Popover arrow example" />
-	<CodeExample.Code>
+<Example name="components/overlays/popover/arrow" title="Popover arrow example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -98,9 +92,7 @@ import { Popover } from "@ngrok/mantle/popover";
 </Popover.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Layering and z-index
 

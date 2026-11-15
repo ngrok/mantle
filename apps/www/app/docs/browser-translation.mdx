@@ -3,7 +3,7 @@ title: Browser Translation
 description: What a browser translation engine does to a React DOM, which guarantees mantle ships, and the rules your own components must follow to survive it.
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # Browser Translation
 
@@ -122,9 +122,7 @@ Pass a button's icon through `icon`, never as a child. The slot sizes the glyph,
 
 A button can still carry a second icon. Put it after the label text as a child: the `icon` slot and every child of the label slot are flex items of the button, so the button's `gap` falls between all of them.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="browser-translation/buttons-with-an-icon-or-two" title="Browser Translation buttons with an icon, or two example" />
-	<CodeExample.Code>
+<Example name="browser-translation/buttons-with-an-icon-or-two" title="Browser Translation buttons with an icon, or two example">
 
 ```tsx
 <Button appearance="outlined" intent="neutral" icon={<PlusIcon />}>
@@ -133,9 +131,7 @@ A button can still carry a second icon. Put it after the label text as a child: 
 </Button>
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 The label text is wrapped, which matters when that second icon is conditional: a trailing icon appends and is safe either way, but a **leading** child icon inserts before the text, and the wrapper is what keeps it from throwing.
 
@@ -155,9 +151,7 @@ The attribute classifies content. It is not a fix for a crash. Descendants inher
 
 The label slot takes no styling of its own: `display: contents` generates no box, so there is nothing there to size. Style your own child instead, which is still a flex item of the button:
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="browser-translation/a-label-that-has-to-shrink" title="Browser Translation a label that has to shrink example" />
-	<CodeExample.Code>
+<Example name="browser-translation/a-label-that-has-to-shrink" title="Browser Translation a label that has to shrink example">
 
 ```tsx
 <Button
@@ -173,9 +167,7 @@ The label slot takes no styling of its own: `display: contents` generates no box
 </Button>
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 This is the shape a wrapper box breaks. `flex-1` and `min-w-0` need the span to be a flex item of the button, so a label slot that laid out a box would drop both and the text would push past the button's width instead of clamping.
 

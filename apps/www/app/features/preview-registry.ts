@@ -27,7 +27,7 @@ type PreviewExample = {
 /**
  * Every shell-scale demo that renders as a framed preview. The key is the path
  * after `/preview/` on the chrome-less `/preview/*` route,
- * and the docs pages point `<CodeExample.PreviewFrame example="…">` at the
+ * and the docs pages point `<Example name="…">` at the
  * same key. Because the preview is its own document, examples get a real
  * `Main` landmark, their own `window` (document-level keyboard shortcuts and
  * listeners never leak onto the docs page), and media queries that track the
@@ -157,7 +157,7 @@ export const previewExamples = {
 
 /**
  * The names of all registered preview examples — the valid values for the
- * path after `/preview/` and `CodeExample.PreviewFrame`'s
+ * path after `/preview/` and `Example`'s
  * `example` prop.
  */
 export type PreviewExampleName = keyof typeof previewExamples;

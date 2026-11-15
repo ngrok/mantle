@@ -4,15 +4,13 @@ description: A container that prevents the click event from bubbling out of it.
 aliases: [stop propagation]
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # SandboxedOnClick
 
 A container that prevents the click event from bubbling out of it. In the example, a click on a table row calls `window.alert()`, but the icon button inside `SandboxedOnClick` only opens [the ngrok docs](https://ngrok.com/docs).
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/primitives/sandboxed-on-click/overview" title="SandboxedOnClick example" />
-	<CodeExample.Code>
+<Example name="components/primitives/sandboxed-on-click/overview" title="SandboxedOnClick example">
 
 ```tsx
 import { IconButton } from "@ngrok/mantle/button";
@@ -73,9 +71,7 @@ import { BookIcon } from "@phosphor-icons/react/Book";
 </Table.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## When to use
 
@@ -85,9 +81,7 @@ import { BookIcon } from "@phosphor-icons/react/Book";
 
 `SandboxedOnClick` accepts an `asChild` prop. When `true`, it renders its single child instead of its default `<div>`, forwarding the sandboxed `onClick` handler and the ref onto that child. The child keeps its own role: the default `<div>` carries `role="presentation"` because it exists only to catch bubbled clicks, but a presentational role on a link or button is a conflict that user agents ignore. Reach for this when the sandboxed click behavior should live directly on a semantic element such as an anchor, without an extra wrapper `<div>`.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/primitives/sandboxed-on-click/polymorphism" title="SandboxedOnClick polymorphism example" />
-	<CodeExample.Code>
+<Example name="components/primitives/sandboxed-on-click/polymorphism" title="SandboxedOnClick polymorphism example">
 
 ```tsx
 import { SandboxedOnClick } from "@ngrok/mantle/sandboxed-on-click";
@@ -99,9 +93,7 @@ import { SandboxedOnClick } from "@ngrok/mantle/sandboxed-on-click";
 </SandboxedOnClick>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## API Reference
 

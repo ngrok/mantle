@@ -4,15 +4,13 @@ description: Theme primitives (ThemeProvider and FOUC prevention) for light and 
 aliases: [theme provider, color scheme]
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # Theme
 
 Theme primitives (`ThemeProvider` and FOUC prevention) for light and dark modes that follow the OS by default. Before you read or set the theme with `useTheme`, wrap your app in `ThemeProvider` and add `PreventWrongThemeFlashScript` to `<head>`, as [Setup](#setup) shows.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/primitives/theme/overview" title="Theme example" />
-	<CodeExample.Code>
+<Example name="components/primitives/theme/overview" title="Theme example">
 
 ```tsx
 import { Select } from "@ngrok/mantle/select";
@@ -47,9 +45,7 @@ function App() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## When to use
 
@@ -171,9 +167,7 @@ The script must run before `<body>`, because it writes the theme class onto `<ht
 
 To let users change the theme, drop in [`ThemeSwitcher`](/components/forms/theme-switcher). It is a ready-made, one-click light/dark toggle for headers and toolbars. For an account menu, use `ThemeDropdownMenuItem` from the same entrypoint. It is the same light/dark toggle as one menu row.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/primitives/theme/theme-switcher" title="Theme theme switcher example" />
-	<CodeExample.Code>
+<Example name="components/primitives/theme/theme-switcher" title="Theme theme switcher example">
 
 ```tsx
 import { ThemeSwitcher } from "@ngrok/mantle/theme-switcher";
@@ -181,9 +175,7 @@ import { ThemeSwitcher } from "@ngrok/mantle/theme-switcher";
 <ThemeSwitcher />;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ### The theme swap
 

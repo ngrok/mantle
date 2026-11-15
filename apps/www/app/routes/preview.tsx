@@ -52,7 +52,7 @@ export function meta({ loaderData }: Route.MetaArgs) {
 }
 
 /**
- * The chrome-less document a docs `PreviewFrame` iframes. Renders nothing but
+ * The chrome-less document a docs `Example` frames. Renders nothing but
  * the example: the root `App` skips the site header and skip link for this
  * route (matched by route id), so the example owns the whole document: its own
  * `window` for document-level keyboard shortcuts, and media queries that track

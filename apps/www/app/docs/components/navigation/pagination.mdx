@@ -4,15 +4,13 @@ description: Components and hooks for navigating through paged data with cursor-
 aliases: [pager, paginator]
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # Pagination
 
 Components and hooks for navigating through paged data with cursor-based and offset-based pagination strategies. Use `CursorPagination` when the data loads by cursor, and the `useOffsetPagination` hook when it loads by offset.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/navigation/pagination/overview" title="Pagination example" />
-	<CodeExample.Code>
+<Example name="components/navigation/pagination/overview" title="Pagination example">
 
 ```tsx
 import { CursorPagination } from "@ngrok/mantle/pagination";
@@ -23,9 +21,7 @@ import { CursorPagination } from "@ngrok/mantle/pagination";
 </CursorPagination.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## When to use
 
@@ -42,9 +38,7 @@ A pagination component for use with cursor-based pagination. Cursor-based pagina
 
 When the server fixes the page size, show it with `CursorPagination.PageSizeValue` in place of `PageSizeSelect`.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/navigation/pagination/read-only-page-size" title="Pagination read-only page size example" />
-	<CodeExample.Code>
+<Example name="components/navigation/pagination/read-only-page-size" title="Pagination read-only page size example">
 
 ```tsx
 import { CursorPagination } from "@ngrok/mantle/pagination";
@@ -55,17 +49,13 @@ import { CursorPagination } from "@ngrok/mantle/pagination";
 </CursorPagination.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ### Buttons only
 
 Leave out the page size part to show only the buttons. On the first page, pass `hasPreviousPage={false}` to disable the previous button.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/navigation/pagination/buttons-only" title="Pagination buttons only example" />
-	<CodeExample.Code>
+<Example name="components/navigation/pagination/buttons-only" title="Pagination buttons only example">
 
 ```tsx
 import { CursorPagination } from "@ngrok/mantle/pagination";
@@ -75,17 +65,13 @@ import { CursorPagination } from "@ngrok/mantle/pagination";
 </CursorPagination.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Controlled page size
 
 `Root` owns the page size when you pass `defaultPageSize`. When the page size must survive navigation, browser history moves, or a refetch, own it yourself: pass `pageSize` with `onChangePageSize`. `PageSizeSelect` shows the value you pass, so a change from outside the component reaches the select. The demo holds the page size in React state and changes it from a button; a URL search param that a back button rewrites works the same way.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/navigation/pagination/controlled-page-size" title="Pagination controlled page size example" />
-	<CodeExample.Code>
+<Example name="components/navigation/pagination/controlled-page-size" title="Pagination controlled page size example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -118,9 +104,7 @@ function ControlledPageSize() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Within a data table
 
@@ -130,9 +114,7 @@ function ControlledPageSize() {
 
 The table holds every row, and the `paginatedRowModel` slices them. Register `rowPaginationFeature` and `createPaginatedRowModel()` with `tableFeatures`. The table owns the page size, so pass `table.state.pagination.pageSize` as `pageSize` and the select follows a `setPageSize()` call from anywhere. Read `getCanPreviousPage()` / `getCanNextPage()` for the buttons and call `setPageSize()` / `setPageIndex(0)` when the size changes:
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/navigation/pagination/client-paginated" title="Pagination client-paginated example" />
-	<CodeExample.Code>
+<Example name="components/navigation/pagination/client-paginated" title="Pagination client-paginated example">
 
 ```tsx
 import {
@@ -235,17 +217,13 @@ function PaginatedTable({ data }: { data: Payment[] }) {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ### Server cursor data
 
 The server returns one page at a time, so there is no `paginatedRowModel` and no total count. Wire `Buttons` to your fetch's has-next / has-prev and load callbacks, and show the fixed, server-controlled page size with the read-only `PageSizeValue` instead of `PageSizeSelect`. The example simulates the server's cursor state with a page index:
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/navigation/pagination/server-cursor-data" title="Pagination server cursor data example" />
-	<CodeExample.Code>
+<Example name="components/navigation/pagination/server-cursor-data" title="Pagination server cursor data example">
 
 ```tsx
 import { CursorPagination } from "@ngrok/mantle/pagination";
@@ -274,9 +252,7 @@ function ServerCursorPagination() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 See the [DataTable pagination recipe](/components/data-display/data-table#pagination-controls) for the full table markup.
 
@@ -361,9 +337,7 @@ The count line for one page of a list. It renders a `span` with `role="status"`.
 
 A headless hook for managing offset-based pagination state. Offset-based pagination lets you jump to a specific page and know the total number of pages.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/navigation/pagination/useoffsetpagination" title="Pagination useOffsetPagination example" />
-	<CodeExample.Code>
+<Example name="components/navigation/pagination/useoffsetpagination" title="Pagination useOffsetPagination example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -400,17 +374,13 @@ function OffsetPaginationControls() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ### Own the page
 
 The hook owns the page by default. When the page must survive navigation, browser history moves, or a refetch, own it yourself: pass `page` with `onPageChange`. Keep the value where you need it, such as a URL search param. Set `resetPageOnListSizeChange` to `false` when a refetch can change the list length. The hook then stays on the current page and clamps it to the new page count instead of returning to page 1. The demo holds the page in React state and starts on page 5; the refetch button shrinks the list to 25 items, and the page clamps to 3.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/navigation/pagination/own-the-page" title="Pagination own the page example" />
-	<CodeExample.Code>
+<Example name="components/navigation/pagination/own-the-page" title="Pagination own the page example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -467,9 +437,7 @@ function ControlledOffsetPagination() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ### Parameters
 
@@ -505,9 +473,7 @@ The hook returns an object with the current pagination state and navigation help
 
 A utility function to get a paginated slice of a list based on the current offset pagination state. Pair it with `useOffsetPagination` to render only the current page of items.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/navigation/pagination/getoffsetpaginatedslice" title="Pagination getOffsetPaginatedSlice example" />
-	<CodeExample.Code>
+<Example name="components/navigation/pagination/getoffsetpaginatedslice" title="Pagination getOffsetPaginatedSlice example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -556,6 +522,4 @@ function PaginatedList() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>

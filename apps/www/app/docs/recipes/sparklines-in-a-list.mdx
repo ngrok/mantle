@@ -3,7 +3,7 @@ title: Sparklines in a List
 description: Put two BarChart sparklines in every row of a DataTable, sized for a row, named for the row, with a compact total beside each one, and dormant until the reader scrolls near it.
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # Sparklines in a List
 
@@ -14,9 +14,7 @@ The failure modes it removes are the ones a first draft ships: a 16:9 chart as w
 > [!IMPORTANT]
 > Don't copy this UI verbatim. The recipe teaches the **per-row chart composition**: one static `BarChart.Root` per measure, sized for a row, named for the row and the measure, a total beside it, and a `data` array that keeps its identity. The services table, its columns, and the seeded data are stand-ins. Swap them for your product's rows and keep the composition.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="sparklines-in-a-list" title="Sparklines in a list demo" />
-	<CodeExample.Code>
+<Example name="sparklines-in-a-list" title="Sparklines in a list demo">
 
 ```tsx
 import { AppLayout } from "@ngrok/mantle/app-layout";
@@ -480,9 +478,7 @@ export function SparklinesInAListDemo() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 Tab through the table: no sparkline is a Tab stop. A screen reader that reaches a cell hears the chart's name and what it holds, and reads the total beside it.
 

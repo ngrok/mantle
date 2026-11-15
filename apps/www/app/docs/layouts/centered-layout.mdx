@@ -4,16 +4,14 @@ description: A viewport-filling centered page flow, with utility header and foot
 aliases: [auth page, login page, sign in page]
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 import { PageHeader } from "~/components/page-header";
 
 <PageHeader id="centered-layout">Centered Layout</PageHeader>
 
 A viewport-filling centered page flow for sign-in, sign-up, onboarding, 404, and other focused full-page states. It is a **layout**: it owns _where things go_ (the flex/overflow skeleton and region ordering), not what they are. App state (routing, sessions, data) never enters it; the brand mark, form card, and footer links arrive as composed JSX. It consolidates the centered "auth shell" that was duplicated across ngrok's dashboard and login apps. The demo runs in its own framed document, exactly like a real sign-in page: the layout owns the document, so it composes a real [Main](/components/primitives/main) landmark and a skip link (see [Landmarks](#landmarks)).
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="centered-layout" title="Centered layout demo" />
-	<CodeExample.Code>
+<Example name="centered-layout" title="Centered layout demo">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -63,9 +61,7 @@ import { ThemeSwitcher } from "@ngrok/mantle/theme-switcher";
 </CenteredLayout.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Composition
 
@@ -87,9 +83,7 @@ CenteredLayout.Root
 
 Focused flows that the user can leave (checkout, plan pickers, onboarding steps) carry a utility strip at the top: who is signed in on the left, a close button on the right. `Header` is that strip, the mirror of `Footer`. To keep the close button reachable while the page scrolls, merge `sticky top-0 z-10` (and a background) via `className` — prefer `sticky` over `fixed`, which removes the strip from flow and underlaps the content below it. The demo runs in its own framed document, so its page really does own the scroller; scroll it to see the header stay pinned. On a real page, give the document scroller `overscroll-none` to suppress rubber-banding and pull-to-refresh; don't set it on a nested scroller, where cutting scroll chaining swallows the wheel at the scroller's edge instead of handing it back to the page.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="centered-layout-header" title="Centered layout header demo" />
-	<CodeExample.Code>
+<Example name="centered-layout-header" title="Centered layout header demo">
 
 ```tsx
 import { IconButton } from "@ngrok/mantle/button";
@@ -116,9 +110,7 @@ import { XIcon } from "@phosphor-icons/react/X";
 </CenteredLayout.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Notice
 
@@ -132,9 +124,7 @@ page by default; merge `sticky top-0 z-20` via `className` to pin it to the wind
 [`Header`](#header) pinned as well, wrap the two strips in a single `sticky top-0` container — two
 elements pinned at `top-0` overlap each other once the page scrolls.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="centered-layout-notice" title="Centered layout notice demo" />
-	<CodeExample.Code>
+<Example name="centered-layout-notice" title="Centered layout notice demo">
 
 ```tsx
 import { Button, IconButton } from "@ngrok/mantle/button";
@@ -179,9 +169,7 @@ export function CheckoutPage() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Landmarks
 
@@ -209,9 +197,7 @@ import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 
 Every part supports `asChild` to compose its structure onto alternative element types: here `Root` renders as a labelled `<section>`.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="layouts/centered-layout/polymorphism" title="Centered Layout polymorphism example" height="fixed" />
-	<CodeExample.Code>
+<Example name="layouts/centered-layout/polymorphism" title="Centered Layout polymorphism example" height="fixed">
 
 ```tsx
 import { Card } from "@ngrok/mantle/card";
@@ -238,9 +224,7 @@ import { CenteredLayout } from "@ngrok/mantle/centered-layout";
 </CenteredLayout.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Accessibility
 

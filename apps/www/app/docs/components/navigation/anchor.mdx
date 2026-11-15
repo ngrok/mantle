@@ -4,15 +4,13 @@ description: A fundamental component for rendering links to external addresses.
 aliases: [link, hyperlink]
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # Anchor
 
 A fundamental component for rendering links to external addresses.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/navigation/anchor/overview" title="Anchor example" />
-	<CodeExample.Code>
+<Example name="components/navigation/anchor/overview" title="Anchor example">
 
 ```tsx
 import { Anchor } from "@ngrok/mantle/anchor";
@@ -22,9 +20,7 @@ import { Anchor } from "@ngrok/mantle/anchor";
 </p>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## When to use
 
@@ -42,9 +38,7 @@ import { Anchor } from "@ngrok/mantle/anchor";
 
 Pass `icon` (a phosphor or custom SVG) and optionally `iconPlacement` (`"start"` default, or `"end"`) to render a small inline icon — useful for "external link" or "download" affordances. Icons are decorative; the link text must still describe the destination on its own.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/navigation/anchor/icons" title="Anchor icons example" />
-	<CodeExample.Code>
+<Example name="components/navigation/anchor/icons" title="Anchor icons example">
 
 ```tsx
 import { Anchor } from "@ngrok/mantle/anchor";
@@ -67,9 +61,7 @@ import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
 </p>
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Security
 
@@ -83,9 +75,7 @@ Link text must be self-describing: avoid "click here" / "read more". The icon is
 
 Use the `asChild` prop to compose the `Anchor` styling onto another element, most commonly a `react-router` `<Link>` for internal, client-side navigation.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/navigation/anchor/polymorphism" title="Anchor polymorphism example" />
-	<CodeExample.Code>
+<Example name="components/navigation/anchor/polymorphism" title="Anchor polymorphism example">
 
 ```tsx
 import { Anchor } from "@ngrok/mantle/anchor";
@@ -96,9 +86,7 @@ import { Link, href } from "react-router";
 </Anchor>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## API Reference
 

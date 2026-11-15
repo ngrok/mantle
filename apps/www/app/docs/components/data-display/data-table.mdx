@@ -4,15 +4,13 @@ description: Tables purposefully designed for dynamic, application data with fea
 aliases: [data grid, datagrid, grid, sortable table]
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # Data Table
 
 Tables purposefully designed for dynamic, application data with features like sorting, filtering, and pagination. Pass a TanStack Table instance from `useTable` to `DataTable.Root`, and render one `DataTable.Row` for each row.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/data-display/data-table/overview" title="Data Table example" />
-	<CodeExample.Code>
+<Example name="components/data-display/data-table/overview" title="Data Table example">
 
 ```tsx
 import {
@@ -82,9 +80,7 @@ function QuickStartExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## When to use
 
@@ -97,9 +93,7 @@ function QuickStartExample() {
 
 A full table sorts each column, opens a record on row click, and pins an action column to the right edge.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/data-display/data-table/sorting-row-links-and-actions" title="Data Table sorting, row links, and actions example" />
-	<CodeExample.Code>
+<Example name="components/data-display/data-table/sorting-row-links-and-actions" title="Data Table sorting, row links, and actions example">
 
 ```tsx
 import { IconButton } from "@ngrok/mantle/button";
@@ -265,9 +259,7 @@ function PaymentsTable({ data }: { data: Payment[] }) {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## TanStack Table
 
@@ -441,9 +433,7 @@ Branch on `rows.length`, then on whether a filter is active, and host an [`Empty
 
 Type into the filter below to see the "no results" branch and its working `Clear filters` reset:
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/data-display/data-table/no-results-for-a-filter" title="Data Table no results for a filter example" />
-	<CodeExample.Code>
+<Example name="components/data-display/data-table/no-results-for-a-filter" title="Data Table no results for a filter example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -497,17 +487,13 @@ const isFiltered = globalFilter.trim() !== ""; // or table.state.columnFilters.l
 </DataTable.Body>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 #### No data
 
 With no data at all, the table shows the first branch:
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/data-display/data-table/no-data" title="Data Table no data example" />
-	<CodeExample.Code>
+<Example name="components/data-display/data-table/no-data" title="Data Table no data example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -545,9 +531,7 @@ function EmptyPaymentsTable() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ### Navigating on row click
 
@@ -631,9 +615,7 @@ function PaymentsTable({ data }: { data: Payment[] }) {
 
 Define the action column with `columnHelper.display` and pair `DataTable.ActionHeader` with `DataTable.ActionCell`. The cell stops its own clicks, so the menu opens without a clickable row navigating. The table below is wider than the page, so it scrolls; the action column stays on the right edge.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/data-display/data-table/action-column-with-a-dropdown-menu" title="Data Table action column with a dropdown menu example" />
-	<CodeExample.Code>
+<Example name="components/data-display/data-table/action-column-with-a-dropdown-menu" title="Data Table action column with a dropdown menu example">
 
 ```tsx
 import { IconButton } from "@ngrok/mantle/button";
@@ -677,9 +659,7 @@ columnHelper.display({
 });
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ### Customizing cells (badges, numeric, truncation)
 
@@ -751,9 +731,7 @@ columnHelper.accessor("url", {
 
 The table uses the browser's automatic layout, so every column gets a share of the spare width. A short value such as a timestamp then sits in a wide column, far from the next value. Set `meta: { width: "fit" }` on the column, and pass `column` to its `DataTable.Header` and to every `DataTable.Cell`. The column is then only as wide as its widest value, on one line, and the spare width goes to the other columns.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/data-display/data-table/sizing-a-column-to-its-content" title="Data Table sizing a column to its content example" />
-	<CodeExample.Code>
+<Example name="components/data-display/data-table/sizing-a-column-to-its-content" title="Data Table sizing a column to its content example">
 
 ```tsx
 import { DataTable, createColumnHelper, tableFeatures, useTable } from "@ngrok/mantle/data-table";
@@ -810,9 +788,7 @@ function ConnectionsTable() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 Pass `column` to the header and to each cell of the column. A part with no `column` cannot read `meta`, so a header without it keeps its share of the spare width, and a cell without it can wrap.
 
@@ -832,9 +808,7 @@ const features = tableFeatures({
 
 Register `rowPaginationFeature` with `paginatedRowModel: createPaginatedRowModel()`, then wire [`CursorPagination`](/components/navigation/pagination) to the table instance for a page-size dropdown plus previous/next buttons: no hand-rolled `Button`s or `Page X of Y` span needed. Add [`PaginationRange`](/components/navigation/pagination#paginationrange) for the count line. It's a live region, so a screen reader hears the new range when the page changes.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/data-display/data-table/pagination-controls" title="Data Table pagination controls example" />
-	<CodeExample.Code>
+<Example name="components/data-display/data-table/pagination-controls" title="Data Table pagination controls example">
 
 ```tsx
 import {
@@ -922,9 +896,7 @@ function PaginatedTable({ data }: { data: Payment[] }) {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 **Rules:**
 
@@ -940,9 +912,7 @@ Add a `columnHelper.display` checkbox column: the header checkbox toggles every 
 
 Put each row checkbox in a `DataTable.ControlCell`. A click on the cell's padding toggles the checkbox, so the whole cell is the target. No click in the cell reaches a clickable row, so a click that misses the checkbox doesn't navigate. Give each checkbox a label that names its row, such as `Select payment 3u1reuv4`. A screen reader reads the label out of the row's context, so `Select row` alone doesn't say which row.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/data-display/data-table/row-selection-with-checkboxes" title="Data Table row selection with checkboxes example" />
-	<CodeExample.Code>
+<Example name="components/data-display/data-table/row-selection-with-checkboxes" title="Data Table row selection with checkboxes example">
 
 ```tsx
 import { Checkbox, selectAllChecked } from "@ngrok/mantle/checkbox";
@@ -1038,9 +1008,7 @@ function SelectableTable({ data }: { data: Payment[] }) {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ### Expandable rows
 
@@ -1050,9 +1018,7 @@ Three parts cover the toggle: `DataTable.ExpandHeader` (the toggle column header
 
 The detail panel below renders each row's object as JSON via [`CodeBlock`](/components/data-display/code-block), highlighted with [`jsonCodeBlockValue`](/components/data-display/code-block). It runs entirely on the client, with no Shiki runtime shipped to the browser, no build-time plugin, and no server roundtrip. Multi-line objects and arrays are collapsible by default, just like every other JSON code block (pass `{ foldable: false }` for a flat panel).
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/data-display/data-table/expandable-rows" title="Data Table expandable rows example" />
-	<CodeExample.Code>
+<Example name="components/data-display/data-table/expandable-rows" title="Data Table expandable rows example">
 
 ```tsx
 import { CodeBlock, jsonCodeBlockValue } from "@ngrok/mantle/code-block";
@@ -1142,9 +1108,7 @@ function ExpandableTable({ data }: { data: Payment[] }) {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 For full control over the detail row (a custom `colSpan`, multiple panels, or bespoke markup), omit `renderExpanded` and render `DataTable.ExpandedRow` yourself, directly after `DataTable.Row` and wrapped in a `Fragment` (never a DOM element, since a node between `<tbody>` and `<tr>` is invalid HTML):
 
@@ -1177,9 +1141,7 @@ Each row has two actions: the caret expands it, and a click anywhere else opens 
 
 For a row with sub-rows, the toggle's accessible label is `Expand …` / `Collapse …`, and it sets `aria-expanded`. It sets `aria-controls` only when the row also renders a detail panel through `renderExpanded`. The sub-rows open and close with the same motion as a [detail panel](#expandable-rows). Pass `size="xs"` with `expandIcon` and `collapseIcon` for a caret. The `xs` button is 24 × 24 px, the WCAG 2.2 minimum target size. The demo puts the row's id in the query string instead of opening a page.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/data-display/data-table/sub-rows" title="Data Table sub-rows example" />
-	<CodeExample.Code>
+<Example name="components/data-display/data-table/sub-rows" title="Data Table sub-rows example">
 
 ```tsx
 import { Badge } from "@ngrok/mantle/badge";
@@ -1304,9 +1266,7 @@ function WorkloadsTable({ data }: { data: Workload[] }) {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## API Reference
 

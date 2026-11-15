@@ -4,15 +4,13 @@ description: Marks a short fragment of inline computer code, such as a function 
 aliases: [inline code, monospace]
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # Code
 
 Marks a short fragment of inline computer code, such as a function name, a variable, a CLI flag, or a key.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/data-display/code/overview" title="Code example" />
-	<CodeExample.Code>
+<Example name="components/data-display/code/overview" title="Code example">
 
 ```tsx
 import { Code } from "@ngrok/mantle/code";
@@ -22,9 +20,7 @@ import { Code } from "@ngrok/mantle/code";
 </p>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## When to use
 
@@ -42,9 +38,7 @@ import { Code } from "@ngrok/mantle/code";
 
 `Code` renders a native `<code>` element with mantle's monospace styling. Pass `asChild` to render `Code` styling on a different element (for example, a link wrapping a code-styled label).
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/data-display/code/polymorphism" title="Code polymorphism example" />
-	<CodeExample.Code>
+<Example name="components/data-display/code/polymorphism" title="Code polymorphism example">
 
 ```tsx
 import { Anchor } from "@ngrok/mantle/anchor";
@@ -55,9 +49,7 @@ import { Code } from "@ngrok/mantle/code";
 </Code>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Translation
 
@@ -67,9 +59,7 @@ The attribute also protects the render itself: Google Translate replaces each te
 
 `Code` also styles terms that are not code, so the default is overridable. Pass `translate="yes"` when the content is prose:
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/data-display/code/translation" title="Code translation example" />
-	<CodeExample.Code>
+<Example name="components/data-display/code/translation" title="Code translation example">
 
 ```tsx
 import { Code } from "@ngrok/mantle/code";
@@ -79,9 +69,7 @@ import { Code } from "@ngrok/mantle/code";
 </p>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 [`Kbd`](/components/data-display/kbd) and `CodeBlock.Code` take no such override — a key and a block of code are never translatable.
 

@@ -4,15 +4,13 @@ description: A reusable indicator-left / content-right layout for a single choic
 aliases: [checkbox with description, radio with description, switch with description]
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # Choice
 
 A reusable indicator-left, content-right layout for a single choice: a control beside a titled, multi-line label. Put your own checkbox, radio, or switch in `Choice.Indicator`, and `Choice` connects it to the title and the description.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/forms/choice/overview" title="Choice example" />
-	<CodeExample.Code>
+<Example name="components/forms/choice/overview" title="Choice example">
 
 ```tsx
 import { Checkbox } from "@ngrok/mantle/checkbox";
@@ -29,9 +27,7 @@ import { Choice } from "@ngrok/mantle/choice";
 </Choice.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## When to use
 
@@ -47,9 +43,7 @@ import { Choice } from "@ngrok/mantle/choice";
 
 Drop `Choice.Root` inside a `Field.Control` and the field's `id` / `name` / `aria-invalid` and description/error `aria-describedby` flow onto the control automatically: the field's `aria-describedby` is **merged** with the `Choice`'s own description rather than replaced. Because the control adopts the field's `id`, `Choice.Label`'s `htmlFor` resolves to that same control, so the title stays a real, clickable label (clicking **Email** below toggles the checkbox), sharing the control with `Field.Label`. Reach for `Choice.Title` only when you specifically want the title to _not_ be a label (e.g. a clickable row that owns the click itself).
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/forms/choice/inside-a-field" title="Choice Inside a Field example" />
-	<CodeExample.Code>
+<Example name="components/forms/choice/inside-a-field" title="Choice Inside a Field example">
 
 ```tsx
 import { Checkbox } from "@ngrok/mantle/checkbox";
@@ -73,9 +67,7 @@ import { Field } from "@ngrok/mantle/field";
 </Field.Item>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## `Choice.Label` vs `Choice.Title`
 
@@ -86,9 +78,7 @@ Both render the emphasized title with identical typography; they differ in **who
 
 The example below is a fully-clickable row: the row's own `<label>` (sharing the control's `id`) owns the click, so the title is a `Choice.Title`.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/forms/choice/choice-label-vs-choice-title" title="Choice Choice.Label vs Choice.Title example" />
-	<CodeExample.Code>
+<Example name="components/forms/choice/choice-label-vs-choice-title" title="Choice Choice.Label vs Choice.Title example">
 
 ```tsx
 // The row's <label> (sharing the control id) owns the click, so the title is text.
@@ -105,9 +95,7 @@ The example below is a fully-clickable row: the row's own `<label>` (sharing the
 </label>
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Composition
 
@@ -123,9 +111,7 @@ Choice.Root
 
 `Choice.Content`, `Choice.Title`, and `Choice.Description` each accept `asChild` to render as your own element while keeping the styling and wiring. For example, render the description as a `<div>` so it can contain block content. `Choice.Label` is the mantle [`Label`](/components/forms/label) (it always renders a real `<label>`, like `Field.Label`); reach for `Choice.Title` (which accepts `asChild`) when you need a different element. `Choice.Indicator` is itself a slot: it clones whatever single control element you place inside it, injecting the shared `id` / `name` / `aria-*` / `disabled`.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/forms/choice/polymorphism" title="Choice polymorphism example" />
-	<CodeExample.Code>
+<Example name="components/forms/choice/polymorphism" title="Choice polymorphism example">
 
 ```tsx
 import { Checkbox } from "@ngrok/mantle/checkbox";
@@ -146,9 +132,7 @@ import { Choice } from "@ngrok/mantle/choice";
 </Choice.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Layout and association
 

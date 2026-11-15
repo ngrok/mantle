@@ -4,15 +4,13 @@ description: A bar chart for comparing values across categories, with grouped an
 aliases: [sparkline, bar graph, column chart, histogram]
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # Bar Chart
 
 A bar chart for comparing values across categories, with grouped and stacked variants. Compose the gridlines, axes, and one `BarChart.Bar` per series inside `BarChart.Root`.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/bar-chart/overview" title="Bar Chart example" />
-	<CodeExample.Code>
+<Example name="components/charts/bar-chart/overview" title="Bar Chart example">
 
 ```tsx
 import { BarChart } from "@ngrok/mantle/bar-chart";
@@ -48,9 +46,7 @@ function DailyBarChartExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## When to use
 
@@ -65,9 +61,7 @@ function DailyBarChartExample() {
 
 The default layout draws one bar per series side by side within each category: the head-to-head comparison. Always compose `BarChart.Legend` on multi-series charts: series identity must never rely on color-matching alone.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/bar-chart/grouped-bars" title="Bar Chart grouped bars example" />
-	<CodeExample.Code>
+<Example name="components/charts/bar-chart/grouped-bars" title="Bar Chart grouped bars example">
 
 ```tsx
 import { BarChart } from "@ngrok/mantle/bar-chart";
@@ -96,17 +90,13 @@ function GroupedBarChartExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Stacked bars
 
 Add `stacked` to the Root to stack the composed series instead of grouping them. Bars stack from the baseline up in registration order: series that mount together register in composition order, so the first `BarChart.Bar` sits on the baseline and the last on top. A `Bar` that mounts later stacks on top of every series already registered, whatever its position in the JSX, and a `dataKey` that unmounts and returns resumes its original position. Reordering the parts of a mounted chart does not restack it: the position sticks to the `dataKey`, which is what keeps a series from jumping when you rename its `label`. The tooltip leads with the column's total, then lists the far end of the stack first, so a vertical chart reads top-down and a horizontal one reads from the far end back to the baseline.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/bar-chart/stacked-bars" title="Bar Chart stacked bars example" />
-	<CodeExample.Code>
+<Example name="components/charts/bar-chart/stacked-bars" title="Bar Chart stacked bars example">
 
 ```tsx
 import { BarChart } from "@ngrok/mantle/bar-chart";
@@ -134,9 +124,7 @@ function StackedBarChartExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Sparse stacks
 
@@ -146,9 +134,7 @@ ends at 2px, so the rounded corners go to the segments that actually start and e
 gap is carved only where a neighbor adjoins. March carries one series, so its one segment wears both rounded
 ends. June carries all three, so its seams are separated. Both orientations follow the same rule.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/bar-chart/sparse-stacks" title="Bar Chart sparse stacks example" />
-	<CodeExample.Code>
+<Example name="components/charts/bar-chart/sparse-stacks" title="Bar Chart sparse stacks example">
 
 ```tsx
 import { BarChart } from "@ngrok/mantle/bar-chart";
@@ -199,9 +185,7 @@ function SparseStackBarChartExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ### Segments smaller than the surface gap
 
@@ -211,9 +195,7 @@ and a taller segment never paints shorter than the one beside it. A segment that
 take the rounded end from the segment a reader can see: March's `events` value is `$0.004`, so the column reads
 the same as May's exact `$0`.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/bar-chart/segments-smaller-than-the-surface-gap" title="Bar Chart segments smaller than the surface gap example" />
-	<CodeExample.Code>
+<Example name="components/charts/bar-chart/segments-smaller-than-the-surface-gap" title="Bar Chart segments smaller than the surface gap example">
 
 ```tsx
 import { BarChart } from "@ngrok/mantle/bar-chart";
@@ -243,9 +225,7 @@ function SubCentBarChartExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Diverging stacks
 
@@ -255,9 +235,7 @@ baseline, not the data floor. April is the month worth looking at: 62 endpoints 
 net is negative and the two piles are visibly unequal. Series that carry good or bad meaning wear the functional
 colors: `success` for the endpoints added, `danger` and `warning` for the two kinds of loss.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/bar-chart/diverging-stacks" title="Bar Chart diverging stacks example" />
-	<CodeExample.Code>
+<Example name="components/charts/bar-chart/diverging-stacks" title="Bar Chart diverging stacks example">
 
 ```tsx
 import { BarChart } from "@ngrok/mantle/bar-chart";
@@ -296,9 +274,7 @@ function DivergingBarChartExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## No usage yet
 
@@ -308,9 +284,7 @@ accessible name, the tooltip, and the data table: a reader and a screen reader b
 nothing. Reach for `mode="decorative"` only when the values are a synthetic backdrop behind an empty-state message; see
 [Decorative charts](#decorative-charts).
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/bar-chart/no-usage-yet" title="Bar Chart no usage yet example" />
-	<CodeExample.Code>
+<Example name="components/charts/bar-chart/no-usage-yet" title="Bar Chart no usage yet example">
 
 ```tsx
 import { BarChart } from "@ngrok/mantle/bar-chart";
@@ -337,9 +311,7 @@ function NoUsageYetBarChartExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Regrouping a live chart
 
@@ -351,9 +323,7 @@ chart.
 Do not put a `key` on the Root. Remounting discards the tween state, the measured layout, and the hover position,
 and it replays the enter animation on every switch. Cycle the series instead and let the Root keep its store.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/bar-chart/regrouping-a-live-chart" title="Bar Chart regrouping a live chart example" />
-	<CodeExample.Code>
+<Example name="components/charts/bar-chart/regrouping-a-live-chart" title="Bar Chart regrouping a live chart example">
 
 ```tsx
 import { BarChart, type BarChartBarProps } from "@ngrok/mantle/bar-chart";
@@ -443,9 +413,7 @@ function RegroupBarChartExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Brand colors
 
@@ -471,9 +439,7 @@ Brand colors have three more limits:
 - Brand colors collide with each other. Five of the major AI providers use nearly the same blue.
 - A black or near-black brand color carries no hue, so it reads as the neutral Other series.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/bar-chart/brand-colors" title="Bar Chart brand colors example" />
-	<CodeExample.Code>
+<Example name="components/charts/bar-chart/brand-colors" title="Bar Chart brand colors example">
 
 ```tsx
 import { BarChart } from "@ngrok/mantle/bar-chart";
@@ -524,9 +490,7 @@ function BrandColorBarChartExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 A named entity that has no brand color takes a mantle color name, as Acme LLM and BYO Router do above. Pick
 names that stay clear of the brand hues on the same chart.
@@ -535,9 +499,7 @@ names that stay clear of the brand hues on the same chart.
 
 `orientation` names the direction the bars point, not an axis: `"vertical"` (the default) bars stand up, `"horizontal"` bars lie across. Set `orientation="horizontal"` to grow bars rightward from a left baseline with categories banded down the y axis. Reach for it when category labels are long (they read straight instead of angled or truncated under the axis) or when there are many categories to rank. `xKey` still names the category and `YAxis` still labels the value. Only the drawing flips: the category axis moves to the left gutter, the value axis to the bottom, and the baseline, reference lines, and the two rung textures (`"perpendicular"` and `"parallel"`) all rotate to match. The `"grid"` lattice inks both rung directions, so it looks the same either way. Everything else (grouping, stacking, hover, the data table) works unchanged. The keyboard follows the layout: the Down and Up arrow keys step through the categories, and Page Down and Page Up jump forward and back. The Left and Right arrow keys still work.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/bar-chart/horizontal-bars" title="Bar Chart horizontal bars example" />
-	<CodeExample.Code>
+<Example name="components/charts/bar-chart/horizontal-bars" title="Bar Chart horizontal bars example">
 
 ```tsx
 import { BarChart } from "@ngrok/mantle/bar-chart";
@@ -568,9 +530,7 @@ function HorizontalBarChartExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Textures
 
@@ -580,9 +540,7 @@ A textured series paints a light tint of its color (25% of the color mixed into 
 
 Texture is opt-in and purposeful, never decorative. Mantle assigns none of it for you. A bar carries no point [`shape`](/components/charts/scatter-plot#point-shapes), so the `texture` you set is a bar's only second channel. Keep solid fills when color alone already carries identity. When it does not, either leave the first series solid and texture the rest, or texture only the series in the pair that collides. The [Diverging stacks](#diverging-stacks) and [Brand colors](#brand-colors) examples above take the targeted form.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/bar-chart/textures" title="Bar Chart textures example" />
-	<CodeExample.Code>
+<Example name="components/charts/bar-chart/textures" title="Bar Chart textures example">
 
 ```tsx
 import { BarChart } from "@ngrok/mantle/bar-chart";
@@ -618,9 +576,7 @@ function TexturedBarChartExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ### Sharing one color
 
@@ -635,9 +591,7 @@ Count the costs before you reach for it. One hue no longer names one series, so 
 
 Below, the three us-east zones share blue, and `eu-west-1` takes its own color.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/bar-chart/sharing-one-color" title="Bar Chart sharing one color example" />
-	<CodeExample.Code>
+<Example name="components/charts/bar-chart/sharing-one-color" title="Bar Chart sharing one color example">
 
 ```tsx
 import { BarChart } from "@ngrok/mantle/bar-chart";
@@ -674,9 +628,7 @@ function SharedColorBarChartExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Neutral bars in a card list
 
@@ -684,9 +636,7 @@ Use `color="neutral"` when a chart gives context to a card and is not its subjec
 
 A chart with no axes and no grid has no plot padding and no zero rule, and the tallest stack leaves 12% headroom. The tooltip leads with the bucket's total. The cards share one live region through [`BarChart.List`](#lists-of-charts).
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/bar-chart/neutral-bars-in-a-card-list" title="Bar Chart neutral bars in a card list example" />
-	<CodeExample.Code>
+<Example name="components/charts/bar-chart/neutral-bars-in-a-card-list" title="Bar Chart neutral bars in a card list example">
 
 ```tsx
 import { Badge } from "@ngrok/mantle/badge";
@@ -784,17 +734,13 @@ function AgentTrafficBarChartExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Single series
 
 A single-series chart draws every bar in the one `color` its `BarChart.Bar` names. One series means one color: never color bars by their own value, and never assign each category its own hue; that adds a false second encoding to data the bar lengths already show. There is no legend either; `BarChart.Legend` renders nothing for a single series because the chart's title already names it. Here the visible title carries the accessible name via `aria-labelledby`.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/bar-chart/single-series" title="Bar Chart single series example" />
-	<CodeExample.Code>
+<Example name="components/charts/bar-chart/single-series" title="Bar Chart single series example">
 
 ```tsx
 import { BarChart } from "@ngrok/mantle/bar-chart";
@@ -828,17 +774,13 @@ function SingleSeriesBarChartExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Integer counts
 
 Counts are integers, and the value axis knows it: when every series value is a whole number, ticks step by whole numbers. This chart's `[0, 3]` domain ticks at 0, 1, 2, 3 rather than inventing a meaningless "1.5 failures" gridline. Nothing to configure; the behavior follows the data, so a single fractional value (an average, a rate) restores sub-integer ticks. The same guarantee covers the value axis of horizontal bars and linear x axes on the other chart families.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/bar-chart/integer-counts" title="Bar Chart integer counts example" />
-	<CodeExample.Code>
+<Example name="components/charts/bar-chart/integer-counts" title="Bar Chart integer counts example">
 
 ```tsx
 import { BarChart } from "@ngrok/mantle/bar-chart";
@@ -864,17 +806,13 @@ function IntegerCountsBarChartExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Reference lines
 
 Compose `BarChart.ReferenceLine` to mark a threshold, budget, or limit as a dashed horizontal line at a y value, with an optional label painted above its right end.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/bar-chart/reference-lines" title="Bar Chart reference lines example" />
-	<CodeExample.Code>
+<Example name="components/charts/bar-chart/reference-lines" title="Bar Chart reference lines example">
 
 ```tsx
 import { BarChart } from "@ngrok/mantle/bar-chart";
@@ -903,17 +841,13 @@ function ReferenceLineBarChartExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Custom tooltip
 
 The tooltip is part of `BarChart.Root`'s interaction contract and is always on: composing `BarChart.Tooltip` never adds or removes it, it only customizes the readout. Use `labelFormat` and `valueFormat` to format the rows, `footer` to append a hint below them, or the render-prop `children` to replace the content entirely.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/bar-chart/custom-tooltip" title="Bar Chart custom tooltip example" />
-	<CodeExample.Code>
+<Example name="components/charts/bar-chart/custom-tooltip" title="Bar Chart custom tooltip example">
 
 ```tsx
 import { BarChart } from "@ngrok/mantle/bar-chart";
@@ -945,17 +879,13 @@ function CustomTooltipBarChartExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Activation
 
 `onDatumActivate` fires when a user clicks a bar with the primary button, or presses Enter or Space while a category is active. The event carries `{ index, xValue, datum, dataKey }`. On a stacked chart, `dataKey` names the segment the pointer sits in; otherwise it names the series nearest the pointer. Keyboard and whole-band activation set it to `null`. Click a bar (or Tab to the chart, arrow to a month, and press Enter) to update the readout below.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/bar-chart/activation" title="Bar Chart activation example" />
-	<CodeExample.Code>
+<Example name="components/charts/bar-chart/activation" title="Bar Chart activation example">
 
 ```tsx
 import { BarChart } from "@ngrok/mantle/bar-chart";
@@ -997,9 +927,7 @@ function ActivationBarChartExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ### Activating a stacked segment
 
@@ -1008,9 +936,7 @@ the mark is the filled span. Click the lower third of a band and the readout sti
 the nearest cumulative boundary instead would hand the baseline-side half of every segment to the series below
 it.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/bar-chart/activating-a-stacked-segment" title="Bar Chart activating a stacked segment example" />
-	<CodeExample.Code>
+<Example name="components/charts/bar-chart/activating-a-stacked-segment" title="Bar Chart activating a stacked segment example">
 
 ```tsx
 import { BarChart } from "@ngrok/mantle/bar-chart";
@@ -1053,17 +979,13 @@ function StackedActivationBarChartExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Controlled hover
 
 Pass `activeIndex` with `onActiveIndexChange` to control the active category from outside the chart: pin a category from a linked table row, or sync hover across sibling charts. Omit `activeIndex` for uncontrolled hover.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/bar-chart/controlled-hover" title="Bar Chart controlled hover example" />
-	<CodeExample.Code>
+<Example name="components/charts/bar-chart/controlled-hover" title="Bar Chart controlled hover example">
 
 ```tsx
 import { BarChart } from "@ngrok/mantle/bar-chart";
@@ -1116,17 +1038,13 @@ function ControlledHoverBarChartExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Pending data
 
 Set `pending` while a refetch is in flight: the chart holds the previous frame at reduced opacity instead of unmounting. Never swap a chart that has rendered once for a skeleton: the held frame keeps the axes, scales, and the user's place stable while fresh data loads.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/bar-chart/pending-data" title="Bar Chart pending data example" />
-	<CodeExample.Code>
+<Example name="components/charts/bar-chart/pending-data" title="Bar Chart pending data example">
 
 ```tsx
 import { BarChart } from "@ngrok/mantle/bar-chart";
@@ -1174,9 +1092,7 @@ function PendingBarChartExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Live data
 
@@ -1186,9 +1102,7 @@ When the categories change (a sliding window of buckets, for example), the bars 
 
 This demo recomputes all six regions every 400ms from a pure function of a tick counter (offset sine waves per region), so it renders deterministically; a real chart would replace `data` as new readings arrive.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/bar-chart/live-data" title="Bar Chart live data example" />
-	<CodeExample.Code>
+<Example name="components/charts/bar-chart/live-data" title="Bar Chart live data example">
 
 ```tsx
 import { BarChart } from "@ngrok/mantle/bar-chart";
@@ -1231,17 +1145,13 @@ function LiveBarChartExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Copy as markdown
 
 `BarChart.CopyButton` copies the chart's current rows to the clipboard as a machine-stable, GitHub-flavored markdown table: the category column plus one column per series in paint order (plain un-separated numbers, an em dash for gaps). The table pastes into Slack, issues, spreadsheets, and LLM chats. The button renders in flow where composed; `Root` is relatively positioned, so `className` can dock it over a corner.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/bar-chart/copy-as-markdown" title="Bar Chart copy as markdown example" />
-	<CodeExample.Code>
+<Example name="components/charts/bar-chart/copy-as-markdown" title="Bar Chart copy as markdown example">
 
 ```tsx
 import { BarChart } from "@ngrok/mantle/bar-chart";
@@ -1271,9 +1181,7 @@ function CopyMarkdownExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Lists of charts
 
@@ -1326,9 +1234,7 @@ Reach for `mode="decorative"` over hand-rolled `inert` + CSS: it removes the int
 
 `mode="decorative"` says the values are not information; it is not a `disabled` flag (a chart is not a form control). For real data a reader only glances at, use [`mode="static"`](#static-charts).
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/bar-chart/decorative-charts" title="Bar Chart decorative charts example" />
-	<CodeExample.Code>
+<Example name="components/charts/bar-chart/decorative-charts" title="Bar Chart decorative charts example">
 
 ```tsx
 import { BarChart } from "@ngrok/mantle/bar-chart";
@@ -1358,9 +1264,7 @@ function EmptyStateBarChartExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Composition
 
@@ -1692,9 +1596,7 @@ The chart paints every token as CSS, so the browser resolves it inside the Root'
 
 Both paths want a `var()` reference rather than a raw hex, for the reason [Brand colors](#brand-colors) gives. A restyled name leaves mantle's measurements behind, so the measurement is yours. The `#d07c00` below measures 3.19:1 on the light card surface.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/bar-chart/restyle-a-color-name" title="Bar Chart restyle a color name example" />
-	<CodeExample.Code>
+<Example name="components/charts/bar-chart/restyle-a-color-name" title="Bar Chart restyle a color name example">
 
 ```tsx
 import { BarChart } from "@ngrok/mantle/bar-chart";
@@ -1746,6 +1648,4 @@ function SeriesIdentityBarChartExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>

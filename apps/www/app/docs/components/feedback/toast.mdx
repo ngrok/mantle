@@ -4,15 +4,13 @@ description: A succinct message that appears temporarily.
 aliases: [notification, snackbar, toaster, flash message]
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # Toast
 
 A succinct message that appears temporarily. Render one `Toaster` at the root of your app, then call `makeToast` to show a toast.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/feedback/toast/overview" title="Toast example" />
-	<CodeExample.Code>
+<Example name="components/feedback/toast/overview" title="Toast example">
 
 ```tsx
 import { Button, IconButton } from "@ngrok/mantle/button";
@@ -53,9 +51,7 @@ import { XIcon } from "@phosphor-icons/react/X";
 </Button>
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## When to use
 
@@ -69,9 +65,7 @@ import { XIcon } from "@phosphor-icons/react/X";
 
 A toast shows above an open sheet, dialog, or alert dialog. A click on the toast does not close the overlay under it.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/feedback/toast/over-a-sheet-or-dialog" title="Toast over a sheet or dialog example" />
-	<CodeExample.Code>
+<Example name="components/feedback/toast/over-a-sheet-or-dialog" title="Toast over a sheet or dialog example">
 
 ```tsx
 import { AlertDialog } from "@ngrok/mantle/alert-dialog";
@@ -174,9 +168,7 @@ function showToast(intent: "danger" | "success" | "warning") {
 </AlertDialog.Root>
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Composition
 

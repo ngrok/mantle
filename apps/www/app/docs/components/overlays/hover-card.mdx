@@ -4,15 +4,13 @@ description: For sighted users to preview content available behind a link.
 aliases: [hovercard, link preview, preview card]
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # Hover Card
 
 For sighted users to preview content available behind a link.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/overlays/hover-card/overview" title="Hover Card example" />
-	<CodeExample.Code>
+<Example name="components/overlays/hover-card/overview" title="Hover Card example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -45,9 +43,7 @@ import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
 </HoverCard.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## When to use
 
@@ -61,9 +57,7 @@ Render `HoverCard.Arrow` as a child of `HoverCard.Content` when the card preview
 
 `HoverCard.Arrow` takes no `asChild`. The shape is two layers (a filled polygon, plus a polyline that strokes the slanted edges only), and a swapped element loses the border. Restyle it with `className` instead: `fill-*` for the surface and a `stroke-*` on the arrow's `polyline` child for the edge, since Radix renders the arrow as an `svg` where `bg-*` paints nothing.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/overlays/hover-card/arrow" title="Hover Card arrow example" />
-	<CodeExample.Code>
+<Example name="components/overlays/hover-card/arrow" title="Hover Card arrow example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -82,9 +76,7 @@ import { HoverCard } from "@ngrok/mantle/hover-card";
 </HoverCard.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Layering and z-index
 

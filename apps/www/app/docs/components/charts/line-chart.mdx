@@ -4,15 +4,13 @@ description: A line chart for trends over a continuous x axis, time above all.
 aliases: [sparkline, line graph, time series chart]
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # Line Chart
 
 A line chart for trends over a continuous x axis, time above all. Compose the gridlines, axes, and one `LineChart.Line` per series inside `LineChart.Root`.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/line-chart/overview" title="Line Chart example" />
-	<CodeExample.Code>
+<Example name="components/charts/line-chart/overview" title="Line Chart example">
 
 ```tsx
 import { LineChart } from "@ngrok/mantle/line-chart";
@@ -40,9 +38,7 @@ function LatencyExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## When to use
 
@@ -61,9 +57,7 @@ The glyphs are `"circle"`, `"square"`, `"triangle"`, `"diamond"`, `"triangle-dow
 
 String x values put the chart on a `"point"` scale: evenly spaced categorical positions with no band thickness.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/line-chart/curves-markers-and-shapes" title="Line Chart curves, markers, and shapes example" />
-	<CodeExample.Code>
+<Example name="components/charts/line-chart/curves-markers-and-shapes" title="Line Chart curves, markers, and shapes example">
 
 ```tsx
 import { LineChart } from "@ngrok/mantle/line-chart";
@@ -100,17 +94,13 @@ function CurveMarkersExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## High-density series
 
 Rendering decimates each series to its min/max per pixel column, so series of 100,000+ points stay smooth. This chart plots a 50,000-point seeded pseudo-random walk on a `"linear"` x scale. Past 4 points per device pixel, the engine decimates each series to its min/max per device-pixel column, so a redraw costs O(plot width), not O(points). It is also visually lossless, because a line through every intermediate value paints the same column of pixels anyway. The idle chart costs zero CPU: there is no always-on render loop; every mutation coalesces into a single `requestAnimationFrame` commit. And hover never repaints the chart: the crosshair, active-point markers, and tooltip are DOM overlay elements moved with transforms.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/line-chart/high-density-series" title="Line Chart high-density series example" />
-	<CodeExample.Code>
+<Example name="components/charts/line-chart/high-density-series" title="Line Chart high-density series example">
 
 ```tsx
 import { LineChart } from "@ngrok/mantle/line-chart";
@@ -144,17 +134,13 @@ function HighDensityExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Gaps and connectNulls
 
 `null` and missing values render as gaps by default, and gaps are the honest default: a gap says "we did not measure this," where a bridged line invents values that were never recorded. Pass `connectNulls` to join across missing values only when a gap genuinely means "unchanged" rather than "unknown." Gapped values read as an em dash in the tooltip and as "no data" in keyboard announcements.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/line-chart/gaps-and-connectnulls" title="Line Chart Gaps and connectNulls example" />
-	<CodeExample.Code>
+<Example name="components/charts/line-chart/gaps-and-connectnulls" title="Line Chart Gaps and connectNulls example">
 
 ```tsx
 import { LineChart } from "@ngrok/mantle/line-chart";
@@ -193,17 +179,13 @@ function GapsExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Reference lines
 
 `LineChart.ReferenceLine` paints a dashed horizontal marker at a y value — an SLO threshold, a budget, a limit — in the neutral reference color, with an optional label above its right end. Two conventions worth copying here: a series that carries bad meaning (an error rate) wears the functional `color="danger"`, and `yDomain` anchors the rate at zero so the distance to the threshold reads truthfully.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/line-chart/reference-lines" title="Line Chart reference lines example" />
-	<CodeExample.Code>
+<Example name="components/charts/line-chart/reference-lines" title="Line Chart reference lines example">
 
 ```tsx
 import { LineChart } from "@ngrok/mantle/line-chart";
@@ -232,17 +214,13 @@ function ReferenceLineExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Linked charts
 
 The active position is controllable: pass `activeIndex` and `onActiveIndexChange` to share one crosshair across charts plotted over the same rows (the dashboard "linked crosshair" pattern). Hover or arrow through either chart and both move together, so a latency spike and its error spike line up without eyeballing timestamps.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/line-chart/linked-charts" title="Line Chart linked charts example" />
-	<CodeExample.Code>
+<Example name="components/charts/line-chart/linked-charts" title="Line Chart linked charts example">
 
 ```tsx
 import { LineChart } from "@ngrok/mantle/line-chart";
@@ -293,9 +271,7 @@ function LinkedChartsExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Live data
 
@@ -305,9 +281,7 @@ Motion plays only while the chart is on screen. A chart that is near the viewpor
 
 This demo appends one point every 150ms to a sliding 240-point window, dropping the oldest point each time. Both series derive from pure sine compositions over a tick counter and a fixed epoch (a slow drift plus faster waves), so the demo renders deterministically; a real chart would append measurements as they arrive.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/line-chart/live-data" title="Line Chart live data example" />
-	<CodeExample.Code>
+<Example name="components/charts/line-chart/live-data" title="Line Chart live data example">
 
 ```tsx
 import { LineChart } from "@ngrok/mantle/line-chart";
@@ -367,9 +341,7 @@ function LiveLineExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Copy as markdown
 
@@ -377,9 +349,7 @@ Every chart renders its data as real DOM once it takes focus: the screen-reader 
 
 The button renders in flow where composed; `Root` is relatively positioned, so `className` can dock it over a corner instead.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/line-chart/copy-as-markdown" title="Line Chart copy as markdown example" />
-	<CodeExample.Code>
+<Example name="components/charts/line-chart/copy-as-markdown" title="Line Chart copy as markdown example">
 
 ```tsx
 import { LineChart } from "@ngrok/mantle/line-chart";
@@ -396,9 +366,7 @@ import { LineChart } from "@ngrok/mantle/line-chart";
 </LineChart.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Lists of charts
 
@@ -449,9 +417,7 @@ Reach for `mode="decorative"` over hand-rolled `inert` + CSS: it removes the int
 
 `mode="decorative"` says the values are not information; it is not a `disabled` flag (a chart is not a form control). For real data a reader only glances at, use [`mode="static"`](#static-charts).
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/line-chart/decorative-charts" title="Line Chart decorative charts example" />
-	<CodeExample.Code>
+<Example name="components/charts/line-chart/decorative-charts" title="Line Chart decorative charts example">
 
 ```tsx
 import { Empty } from "@ngrok/mantle/empty";
@@ -481,9 +447,7 @@ function EmptyStateLineChartExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Composition
 
@@ -745,9 +709,7 @@ The chart paints every token as CSS, so the browser resolves it inside the Root'
 
 Below, this week paints the brand color through `color="blue"`. Last week wears `gray`, and its square glyph in the legend and under the crosshair keeps it apart from this week by shape as well as color.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/charts/line-chart/restyle-a-color-for-one-chart" title="Line Chart restyle a color for one chart example" />
-	<CodeExample.Code>
+<Example name="components/charts/line-chart/restyle-a-color-for-one-chart" title="Line Chart restyle a color for one chart example">
 
 ```tsx
 import { LineChart } from "@ngrok/mantle/line-chart";
@@ -785,6 +747,4 @@ function SeriesIdentityLineChartExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>

@@ -4,15 +4,13 @@ description: Renders one long opaque value, such as a URL, a resource ID, a cont
 aliases: [ellipsis, middle truncation, truncate]
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # Truncated Text
 
 Renders one long opaque value, such as a URL, a resource ID, a container image reference, or a token, on a single line and keeps its tail visible when it overflows.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/data-display/truncated-text/overview" title="Truncated Text example" />
-	<CodeExample.Code>
+<Example name="components/data-display/truncated-text/overview" title="Truncated Text example">
 
 ```tsx
 import { TruncatedText } from "@ngrok/mantle/truncated-text";
@@ -22,9 +20,7 @@ import { TruncatedText } from "@ngrok/mantle/truncated-text";
 </div>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## When to use
 
@@ -40,9 +36,7 @@ import { TruncatedText } from "@ngrok/mantle/truncated-text";
 
 Pass `asChild` to render the value inside a different element instead of the default `<span>`. The child must have no children of its own, because `value` is the content, and it must render `children` directly, as `<code>` does: `TruncatedText` renders the two segments inside the child. The class names, `data-*` attributes, and the ref land on that child.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/data-display/truncated-text/polymorphism" title="Truncated Text polymorphism example" />
-	<CodeExample.Code>
+<Example name="components/data-display/truncated-text/polymorphism" title="Truncated Text polymorphism example">
 
 ```tsx
 import { Code } from "@ngrok/mantle/code";
@@ -55,9 +49,7 @@ import { TruncatedText } from "@ngrok/mantle/truncated-text";
 </div>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## How it truncates
 
@@ -71,9 +63,7 @@ Drag the corner of the box in the first example on this page to see the head giv
 
 `tail` is the number of graphemes that stay visible, 8 by default. Count what tells your values apart: an ngrok resource ID ends in the characters that differ, so `tail={6}` keeps them. The count is in grapheme clusters, so an emoji or a letter with a combining mark never splits in half.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/data-display/truncated-text/tail-length" title="Truncated Text tail length example" />
-	<CodeExample.Code>
+<Example name="components/data-display/truncated-text/tail-length" title="Truncated Text tail length example">
 
 ```tsx
 import { DescriptionList } from "@ngrok/mantle/description-list";
@@ -103,9 +93,7 @@ import { TruncatedText } from "@ngrok/mantle/truncated-text";
 </div>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Head length
 
@@ -113,9 +101,7 @@ import { TruncatedText } from "@ngrok/mantle/truncated-text";
 
 The head rounds up to whole `ch` cells. In a monospace font the shape is exact. In a proportional font, one more narrow glyph can show before the ellipsis.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/data-display/truncated-text/head-length" title="Truncated Text head length example" />
-	<CodeExample.Code>
+<Example name="components/data-display/truncated-text/head-length" title="Truncated Text head length example">
 
 ```tsx
 import { DescriptionList } from "@ngrok/mantle/description-list";
@@ -139,17 +125,13 @@ import { TruncatedText } from "@ngrok/mantle/truncated-text";
 </div>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Style the head and the tail
 
 The head and the tail are two `<span>` elements, `data-slot="truncated-text-head"` and `data-slot="truncated-text-tail"`. Style each one from the root with a `*:data-[slot=…]:` class. Change a segment's color, not its font: the component measures the whole value in the root's font, so set a font on the root. CSS draws the ellipsis at the end of the head, so the ellipsis takes the head's color. To mute the type prefix of an ID and keep its tail at body color, pass `head` and color the head:
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/data-display/truncated-text/style-the-head-and-the-tail" title="Truncated Text style the head and the tail example" />
-	<CodeExample.Code>
+<Example name="components/data-display/truncated-text/style-the-head-and-the-tail" title="Truncated Text style the head and the tail example">
 
 ```tsx
 import { TruncatedText } from "@ngrok/mantle/truncated-text";
@@ -163,9 +145,7 @@ import { TruncatedText } from "@ngrok/mantle/truncated-text";
 </div>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 The two segments render when the value fits too, so these classes also color a value that fits. To color the segments only while the value overflows, add the `data-truncated:` variant first: `data-truncated:*:data-[slot=truncated-text-head]:text-muted`. A value no longer than `tail` has an empty head, so its tail draws the ellipsis in the tail's color.
 
@@ -173,9 +153,7 @@ The two segments render when the value fits too, so these classes also color a v
 
 The root carries `user-select: all`, so one click selects the whole value across both segments, and a copy yields the full string. CSS draws the ellipsis, so a selection never contains it. The two segments copy as one line. Click the value below, then copy it. Pass `className="select-text"` to get normal text selection instead.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/data-display/truncated-text/selection" title="Truncated Text selection example" />
-	<CodeExample.Code>
+<Example name="components/data-display/truncated-text/selection" title="Truncated Text selection example">
 
 ```tsx
 import { TruncatedText } from "@ngrok/mantle/truncated-text";
@@ -185,9 +163,7 @@ import { TruncatedText } from "@ngrok/mantle/truncated-text";
 </div>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Layout
 
@@ -213,9 +189,7 @@ The server render reserves one `ch` per grapheme for the tail, which is exact in
 
 A table still lays out each cell that it renders. Paginate a long table: see [Table](/components/data-display/table#pagination).
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/data-display/truncated-text/performance" title="Truncated Text performance example" />
-	<CodeExample.Code>
+<Example name="components/data-display/truncated-text/performance" title="Truncated Text performance example">
 
 ```tsx
 import { DescriptionList } from "@ngrok/mantle/description-list";
@@ -239,17 +213,13 @@ import { TruncatedText } from "@ngrok/mantle/truncated-text";
 </div>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Tooltip
 
 The tooltip shows the whole value. It is up to 24rem wide, so a resource ID fits on one line. A longer value breaks into lines of near-equal length, so the last line never holds only one or two characters, and the tooltip narrows to the longest line. Hover each value below.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/data-display/truncated-text/tooltip" title="Truncated Text tooltip example" />
-	<CodeExample.Code>
+<Example name="components/data-display/truncated-text/tooltip" title="Truncated Text tooltip example">
 
 ```tsx
 import { DescriptionList } from "@ngrok/mantle/description-list";
@@ -273,9 +243,7 @@ import { TruncatedText } from "@ngrok/mantle/truncated-text";
 </div>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Accessibility
 

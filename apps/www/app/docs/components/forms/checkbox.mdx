@@ -4,15 +4,13 @@ description: A form control that toggles between checked and not checked, with a
 aliases: [check box, tickbox]
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # Checkbox
 
 A form control that toggles between checked and not checked, with an indeterminate state. Pair it with `Field` to connect its label, description, and errors in a form.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/forms/checkbox/overview" title="Checkbox example" />
-	<CodeExample.Code>
+<Example name="components/forms/checkbox/overview" title="Checkbox example">
 
 ```tsx
 import { Checkbox } from "@ngrok/mantle/checkbox";
@@ -29,9 +27,7 @@ import { Field } from "@ngrok/mantle/field";
 </Field.Item>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## When to use
 
@@ -45,9 +41,7 @@ import { Field } from "@ngrok/mantle/field";
 
 Render the control on its own, with a `Label` as its caption:
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/forms/checkbox/without-a-field" title="Checkbox Without a Field example" />
-	<CodeExample.Code>
+<Example name="components/forms/checkbox/without-a-field" title="Checkbox Without a Field example">
 
 ```tsx
 import { Checkbox } from "@ngrok/mantle/checkbox";
@@ -71,17 +65,13 @@ import { Label } from "@ngrok/mantle/label";
 </Label>
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Multi-line label with description
 
 For a checkbox with an emphasized title and a supplementary description beneath it, compose it inside [`Choice`](/components/forms/choice): drop the `Checkbox` into `Choice.Indicator` and pair `Choice.Label` (a real `<label>`, so clicking it toggles the box) with an optional `Choice.Description`. The description forwards its click to that label, so the whole text block toggles the box. The box aligns to the leading of the title's first line, and the description associates via `aria-describedby`.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/forms/checkbox/multi-line-label-with-description" title="Checkbox multi-line label with description example" />
-	<CodeExample.Code>
+<Example name="components/forms/checkbox/multi-line-label-with-description" title="Checkbox multi-line label with description example">
 
 ```tsx
 import { Checkbox } from "@ngrok/mantle/checkbox";
@@ -100,17 +90,13 @@ import { Choice } from "@ngrok/mantle/choice";
 </Choice.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ### Inside a Field
 
 Wrap that same `Choice` in a `Field.Item` / `Field.Control` to bind a form `name` and pick up validation. The field's `id` / `name` / `aria-*` flow onto the checkbox, and the `Field.Description` (or a `Field.Errors`) is merged into the control's `aria-describedby` alongside the `Choice.Description` (no duplicate ids, no manual wiring):
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/forms/checkbox/inside-a-field" title="Checkbox Inside a Field example" />
-	<CodeExample.Code>
+<Example name="components/forms/checkbox/inside-a-field" title="Checkbox Inside a Field example">
 
 ```tsx
 import { Checkbox } from "@ngrok/mantle/checkbox";
@@ -135,9 +121,7 @@ import { Field } from "@ngrok/mantle/field";
 </Field.Item>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 For the fully-clickable list-row variant (and the full API), see the [`Choice` docs](/components/forms/choice).
 
@@ -145,9 +129,7 @@ For the fully-clickable list-row variant (and the full API), see the [`Choice` d
 
 Use `@tanstack/react-form` with `zod` to keep the checkbox controlled and render errors through `Field.Errors`.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/forms/checkbox/with-tanstack-form" title="Checkbox With TanStack Form example" />
-	<CodeExample.Code>
+<Example name="components/forms/checkbox/with-tanstack-form" title="Checkbox With TanStack Form example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -207,17 +189,13 @@ function Example() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Select-all helper
 
 `selectAllChecked` resolves the tri-state `checked` value for a "select all" checkbox from the current selection counts: `true` when everything is selected, `"indeterminate"` when only some is, and `false` when nothing is. Use it to keep the header checkbox of a multi-select list correct without hand-rolling the tri-state branch. It pairs directly with a [`DataTable`](/components/data-display/data-table#row-selection-with-checkboxes) row-selection column:
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/forms/checkbox/select-all-helper" title="Checkbox select-all helper example" />
-	<CodeExample.Code>
+<Example name="components/forms/checkbox/select-all-helper" title="Checkbox select-all helper example">
 
 ```tsx
 import { Checkbox, selectAllChecked } from "@ngrok/mantle/checkbox";
@@ -258,9 +236,7 @@ function Example() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 Returns `boolean | "indeterminate"` (a `CheckedState`), ready to pass straight to `Checkbox`'s `checked` prop. `allSelected` takes precedence, so it wins even if a caller also reports `someSelected`.
 

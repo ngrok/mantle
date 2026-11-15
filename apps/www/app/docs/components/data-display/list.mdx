@@ -5,15 +5,13 @@ aliases: [virtual list, virtualized list]
 ---
 
 import { PageHeader } from "~/components/page-header";
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 <PageHeader id="list">List</PageHeader>
 
 A scrollable, optionally-virtualized list of clickable items. Compose `List.Item` rows inside a `List.Root`, and give each row an `onClick`.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/data-display/list/overview" title="List example" />
-	<CodeExample.Code>
+<Example name="components/data-display/list/overview" title="List example">
 
 ```tsx
 import { List } from "@ngrok/mantle/list";
@@ -34,9 +32,7 @@ const accounts = [
 </List.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## When to use
 
@@ -49,9 +45,7 @@ const accounts = [
 
 Set `current` on one `List.Item` to highlight it, such as the active account in an account switcher.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/data-display/list/current-row" title="List current row example" />
-	<CodeExample.Code>
+<Example name="components/data-display/list/current-row" title="List current row example">
 
 ```tsx
 import { List } from "@ngrok/mantle/list";
@@ -79,9 +73,7 @@ function Example() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Composition
 
@@ -103,9 +95,7 @@ List.Root   (or .VirtualRoot)
 
 On the server, `VirtualRoot` renders the first slice of rows, sized by `estimateItemHeight` and `overscan`. The rest mount after hydration measures the viewport. `Root` renders every row in the server HTML. If the whole list must be in that HTML (for find-in-page, or for a reader without JavaScript), pick `Root`.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/data-display/list/virtualization" title="List virtualization example" />
-	<CodeExample.Code>
+<Example name="components/data-display/list/virtualization" title="List virtualization example">
 
 ```tsx
 import { List } from "@ngrok/mantle/list";
@@ -134,9 +124,7 @@ function Example() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 > **Windowing trade-off.** Off-screen rows aren't in the DOM, so Tab and browser find-in-page only reach mounted rows (arrow keys still span the full list; they mount the target row before focusing it). That is the right trade for a large enough list. Prefer `Root` until a list is actually long.
 
@@ -144,9 +132,7 @@ function Example() {
 
 Render rows as links by passing `asChild` and an `<a>`: the row chrome (hover pill, keyboard-focus tint) applies to your element, so clicking navigates. Rows compose freely: each one here is a [`MediaObject`](/components/structure/media-object) with the provider icon on the left and the name over a de-emphasized owner on the right (an SSO identity-provider picker, as a list rather than a stack of cards).
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/data-display/list/polymorphism" title="List polymorphism example" />
-	<CodeExample.Code>
+<Example name="components/data-display/list/polymorphism" title="List polymorphism example">
 
 ```tsx
 import { cx } from "@ngrok/mantle/cx";
@@ -172,9 +158,7 @@ import { List } from "@ngrok/mantle/list";
 </List.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Appearance
 

@@ -4,15 +4,13 @@ description: Render content that screen readers announce and sighted users never
 aliases: [sr only, screen reader only]
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # Visually Hidden
 
 Render content that screen readers announce and sighted users never see.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/primitives/visually-hidden/overview" title="Visually Hidden example" />
-	<CodeExample.Code>
+<Example name="components/primitives/visually-hidden/overview" title="Visually Hidden example">
 
 ```tsx
 import { Anchor } from "@ngrok/mantle/anchor";
@@ -28,9 +26,7 @@ import { VisuallyHidden } from "@ngrok/mantle/visually-hidden";
 </p>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## When to use
 
@@ -45,9 +41,7 @@ import { VisuallyHidden } from "@ngrok/mantle/visually-hidden";
 
 `VisuallyHidden` accepts an `asChild` prop. When `true`, it renders its single child instead of its default `<span>`, forwarding its class names, `data-*` attributes, and ref onto that child. When the hidden content should be a more semantic element (a `<caption>`, a `<legend>`, a heading), reach for `asChild`.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/primitives/visually-hidden/polymorphism" title="Visually Hidden polymorphism example" />
-	<CodeExample.Code>
+<Example name="components/primitives/visually-hidden/polymorphism" title="Visually Hidden polymorphism example">
 
 ```tsx
 import { VisuallyHidden } from "@ngrok/mantle/visually-hidden";
@@ -75,9 +69,7 @@ import { VisuallyHidden } from "@ngrok/mantle/visually-hidden";
 </table>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## How it hides content
 

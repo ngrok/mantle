@@ -15,7 +15,7 @@ import { exampleExportName, isComponentType, parsePageExampleKey } from "./page-
 /**
  * Every docs page example renders in its own preview document, so the page
  * hydration sweep no longer reaches it. These tests read each page's
- * `<CodeExample.PreviewFrame example="…">` keys,
+ * `<Example name="…">` keys,
  * check that each names a component in the page's examples module, and hydrate
  * that component the way the preview route renders it.
  */
@@ -34,12 +34,12 @@ function docsPages(): ReadonlyArray<string> {
 
 const parser = unified().use(remarkParse).use(remarkFrontmatter).use(remarkGfm).use(remarkMdx);
 
-/** Each `CodeExample.PreviewFrame` in the docs that has children, or no `example` key or `title`. */
+/** Each `<Example>` in the docs with no `name` or `title`. */
 function malformedFrames(): ReadonlyArray<string> {
 	const out: Array<string> = [];
 	for (const page of docsPages()) {
 		const visit = (node: Nodes) => {
-			if (node.type === "mdxJsxFlowElement" && node.name === "CodeExample.PreviewFrame") {
+			if (node.type === "mdxJsxFlowElement" && node.name === "Example") {
 				const has = (name: string) =>
 					node.attributes.some(
 						(attr) =>
@@ -47,7 +47,7 @@ function malformedFrames(): ReadonlyArray<string> {
 							attr.name === name &&
 							typeof attr.value === "string",
 					);
-				if (node.children.length > 0 || !has("example") || !has("title")) {
+				if (!has("name") || !has("title")) {
 					out.push(`${page}:${node.position?.start.line ?? 0}`);
 				}
 			}
@@ -65,9 +65,9 @@ function pageExampleKeys(): ReadonlyArray<{ page: string; key: string }> {
 	const keys: Array<{ page: string; key: string }> = [];
 	for (const page of docsPages()) {
 		const visit = (node: Nodes) => {
-			if (node.type === "mdxJsxFlowElement" && node.name === "CodeExample.PreviewFrame") {
+			if (node.type === "mdxJsxFlowElement" && node.name === "Example") {
 				const attribute = node.attributes.find(
-					(attr) => attr.type === "mdxJsxAttribute" && attr.name === "example",
+					(attr) => attr.type === "mdxJsxAttribute" && attr.name === "name",
 				);
 				const key = typeof attribute?.value === "string" ? attribute.value : null;
 				if (key?.includes("/")) {
@@ -128,7 +128,7 @@ describe("docs page examples", () => {
 		expect(orphans).toEqual([]);
 	});
 
-	it("gives every preview frame an example key and a title, and no children", () => {
+	it("gives every <Example> a name and a title", () => {
 		expect(malformedFrames()).toEqual([]);
 	});
 

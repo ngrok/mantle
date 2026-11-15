@@ -4,15 +4,13 @@ description: A window overlaid on either the primary window or another dialog wi
 aliases: [modal, modal dialog]
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # Dialog
 
 A window overlaid on either the primary window or another dialog window, rendering the content underneath inert.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/overlays/dialog/overview" title="Dialog example" />
-	<CodeExample.Code>
+<Example name="components/overlays/dialog/overview" title="Dialog example">
 
 ```tsx
 import { Dialog } from "@ngrok/mantle/dialog";
@@ -49,9 +47,7 @@ import { Button } from "@ngrok/mantle/button";
 </Dialog.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## When to use
 
@@ -122,9 +118,7 @@ Dialog.Root
 
 The first dialog pairs a short title with a long description. The second pairs a long title with a one-line description in a wider dialog. In both, the title keeps its width and the description sits under it.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/overlays/dialog/header-with-a-description" title="Dialog header with a description example" />
-	<CodeExample.Code>
+<Example name="components/overlays/dialog/header-with-a-description" title="Dialog header with a description example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -202,9 +196,7 @@ import { Dialog } from "@ngrok/mantle/dialog";
 </Dialog.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Full-page dialog
 
@@ -237,9 +229,7 @@ When the content needs the whole viewport, reach for this: a request log, a diff
 
 The switch in the demo body swaps `"full-page"` for `"full-bleed"`.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/overlays/dialog/full-page-dialog" title="Dialog full-page dialog example" />
-	<CodeExample.Code>
+<Example name="components/overlays/dialog/full-page-dialog" title="Dialog full-page dialog example">
 
 ```tsx
 import { Badge } from "@ngrok/mantle/badge";
@@ -318,17 +308,13 @@ function RequestLogDialog() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Combining with a Tooltip
 
 In some cases, you might wish to have a tooltip over the dialog trigger. If the dialog trigger is an `IconButton`, a tooltip adds context about what the button does. Compose the two so the dialog trigger is also the tooltip trigger.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/overlays/dialog/combining-with-a-tooltip" title="Dialog Combining with a Tooltip example" />
-	<CodeExample.Code>
+<Example name="components/overlays/dialog/combining-with-a-tooltip" title="Dialog Combining with a Tooltip example">
 
 ```tsx
 import { Dialog } from "@ngrok/mantle/dialog";
@@ -379,17 +365,13 @@ import { TrashSimpleIcon } from "@phosphor-icons/react/TrashSimple";
 </Dialog.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Stacking a Sheet over a Dialog
 
 `Dialog` and `Sheet` share the overlay tier (`z-60`), so the most recently mounted overlay renders on top. Open the dialog below first, then open the sheet from inside it: the sheet stacks over the dialog rather than disappearing behind it. Each overlay renders its own backdrop, so the dialog beneath is dimmed by the sheet's overlay.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/overlays/dialog/stacking-a-sheet-over-a-dialog" title="Dialog Stacking a Sheet over a Dialog example" />
-	<CodeExample.Code>
+<Example name="components/overlays/dialog/stacking-a-sheet-over-a-dialog" title="Dialog Stacking a Sheet over a Dialog example">
 
 ```tsx
 import { Dialog } from "@ngrok/mantle/dialog";
@@ -451,9 +433,7 @@ import { Button } from "@ngrok/mantle/button";
 </Dialog.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## With TanStack Form
 
@@ -461,9 +441,7 @@ Use [TanStack Form](https://tanstack.com/form) with [`Field`](/components/forms/
 
 If password managers or browser autofill overlays interfere with outside-click dismissal, see [Handling autofill overlays](#handling-autofill-overlays).
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/overlays/dialog/with-tanstack-form" title="Dialog With TanStack Form example" />
-	<CodeExample.Code>
+<Example name="components/overlays/dialog/with-tanstack-form" title="Dialog With TanStack Form example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -584,9 +562,7 @@ function Example() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Polymorphism
 

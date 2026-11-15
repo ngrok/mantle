@@ -4,16 +4,14 @@ description: A floating save bar for unsaved changes.
 aliases: [save bar, contextual save bar, unsaved changes]
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 import { PageHeader } from "~/components/page-header";
 
 <PageHeader id="sandbar">Sandbar</PageHeader>
 
 A floating save bar for unsaved changes. Keep `Sandbar.Root` mounted, and toggle it with the controlled `open` prop.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="sandbar" title="Sandbar demo" />
-	<CodeExample.Code>
+<Example name="sandbar" title="Sandbar demo">
 
 ```tsx
 import { Alert } from "@ngrok/mantle/alert";
@@ -153,9 +151,7 @@ export function EndpointSettings() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## When to use
 
@@ -204,9 +200,7 @@ moving on fits: compose your own `Button`s inside `Sandbar.Actions` and pass a c
 blocked-navigation announcement to `shake()` so screen-reader users hear the actions that actually
 exist on screen. The panel's accessible name follows `Sandbar.Message` automatically.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="sandbar-pending-publish" title="Sandbar pending publish demo" />
-	<CodeExample.Code>
+<Example name="sandbar-pending-publish" title="Sandbar pending publish demo">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -269,9 +263,7 @@ export function DraftPosts() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Reporting a failed save
 
@@ -296,9 +288,7 @@ Two things to get right in the error you render:
 
 Saving in the demo below always fails, so the contextual error appears on every attempt.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="sandbar-failed-save" title="Sandbar failed save demo" />
-	<CodeExample.Code>
+<Example name="sandbar-failed-save" title="Sandbar failed save demo">
 
 ```tsx
 import { Alert } from "@ngrok/mantle/alert";
@@ -375,9 +365,7 @@ export function EndpointName() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Theming
 
@@ -405,9 +393,7 @@ reproduces the same two outcomes for a reader whose system allows motion. It doe
 `className`, which `Sandbar.Root` merges last (the same escape hatch you have). The readout tracks
 the real preference live, because `usePrefersReducedMotion` subscribes to the query.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="sandbar-reduced-motion" title="Sandbar reduced motion demo" />
-	<CodeExample.Code>
+<Example name="sandbar-reduced-motion" title="Sandbar reduced motion demo">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -489,9 +475,7 @@ export function ReducedMotionExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 Do not reach for `STILLNESS` in an app. It exists to demonstrate the reduced-motion result to a
 reader who has motion switched on; in production the preference does this by itself.
@@ -556,9 +540,7 @@ The open overlay traps focus and hides the rest of the page from screen readers.
 screen-reader users reach the bar after the overlay closes. For a form inside a dialog or sheet, put
 the save and discard actions in the overlay's footer, not in a Sandbar.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="sandbar-over-sheet" title="Sandbar over sheet demo" />
-	<CodeExample.Code>
+<Example name="sandbar-over-sheet" title="Sandbar over sheet demo">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -637,9 +619,7 @@ export function EndpointSettings() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Placement
 

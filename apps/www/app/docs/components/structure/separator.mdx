@@ -4,15 +4,13 @@ description: Visually or semantically separates content.
 aliases: [divider, horizontal rule, hr]
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # Separator
 
 Visually or semantically separates content.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/structure/separator/overview" title="Separator example" />
-	<CodeExample.Code>
+<Example name="components/structure/separator/overview" title="Separator example">
 
 ```tsx
 import { Separator } from "@ngrok/mantle/separator";
@@ -27,9 +25,7 @@ import { Separator } from "@ngrok/mantle/separator";
 </div>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## When to use
 
@@ -43,9 +39,7 @@ import { Separator } from "@ngrok/mantle/separator";
 
 Set `orientation="vertical"` to divide items in a row. The parent sets the height.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/structure/separator/vertical" title="Separator vertical example" />
-	<CodeExample.Code>
+<Example name="components/structure/separator/vertical" title="Separator vertical example">
 
 ```tsx
 import { Separator } from "@ngrok/mantle/separator";
@@ -59,17 +53,13 @@ import { Separator } from "@ngrok/mantle/separator";
 </div>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Semantic
 
 A separator is decorative by default, and assistive technology skips it. Set `semantic` when the line marks a real boundary between two groups of content: it renders `role="separator"`.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/structure/separator/semantic" title="Separator semantic example" />
-	<CodeExample.Code>
+<Example name="components/structure/separator/semantic" title="Separator semantic example">
 
 ```tsx
 import { Separator } from "@ngrok/mantle/separator";
@@ -81,17 +71,13 @@ import { Separator } from "@ngrok/mantle/separator";
 </div>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Labeled divider
 
 Wrap a label and one or two separators in a `HorizontalSeparatorGroup` to put the label in the middle or at one end of the line.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/structure/separator/labeled-divider" title="Separator labeled divider example" />
-	<CodeExample.Code>
+<Example name="components/structure/separator/labeled-divider" title="Separator labeled divider example">
 
 ```tsx
 import { HorizontalSeparatorGroup, Separator } from "@ngrok/mantle/separator";
@@ -113,17 +99,13 @@ import { HorizontalSeparatorGroup, Separator } from "@ngrok/mantle/separator";
 </div>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Polymorphism
 
 When you want to render _something else_ as a `HorizontalSeparatorGroup` or `Separator`, you can use the `asChild` prop to compose.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/structure/separator/polymorphism" title="Separator polymorphism example" />
-	<CodeExample.Code>
+<Example name="components/structure/separator/polymorphism" title="Separator polymorphism example">
 
 ```tsx
 import { HorizontalSeparatorGroup, Separator } from "@ngrok/mantle/separator";
@@ -168,9 +150,7 @@ import { HorizontalSeparatorGroup, Separator } from "@ngrok/mantle/separator";
 </div>
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Color
 
@@ -180,9 +160,7 @@ This is the canonical divider color across mantle: `Accordion` dividers,
 
 Reuse the same color on your own dividers instead of hard-coding it:
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/structure/separator/color" title="Separator color example" />
-	<CodeExample.Code>
+<Example name="components/structure/separator/color" title="Separator color example">
 
 ```tsx
 <div className="border-separator w-full border-b" />
@@ -194,9 +172,7 @@ Reuse the same color on your own dividers instead of hard-coding it:
 <span className="bg-separator h-px w-full" />
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## API Reference
 

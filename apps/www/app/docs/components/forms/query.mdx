@@ -4,15 +4,13 @@ description: A filter field where free text and key:value qualifiers interleave,
 aliases: [search bar, search input, filter bar, filter syntax]
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # Query
 
 A filter field where free text and `key:value` qualifiers interleave, with in-place highlighting and suggestions. A grammar from [`@ngrok/mantle/query-filter`](/utils/query-filter) sets the vocabulary, and you own the query through `value` and `onValueChange`.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/forms/query/overview" title="Query example" />
-	<CodeExample.Code>
+<Example name="components/forms/query/overview" title="Query example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -195,9 +193,7 @@ export function QueryExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## When to use
 
@@ -261,9 +257,7 @@ While the query has text, `Query.Input` shows a clear button at its right edge. 
 
 `Query.KeyboardHints` shows the keys the field answers to. When Enter submits a form, set `enterHint` to name that action, such as `"select, or search"`. Put your own footer content in `Query.Footer`, after the hints.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/forms/query/inline-actions-and-a-footer" title="Query inline actions and a footer example" />
-	<CodeExample.Code>
+<Example name="components/forms/query/inline-actions-and-a-footer" title="Query inline actions and a footer example">
 
 ```tsx
 import { IconButton } from "@ngrok/mantle/button";
@@ -310,9 +304,7 @@ export function InlineActionsQueryExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 `projectFilterGrammar` and `projects` are the ones from the first example.
 
@@ -322,9 +314,7 @@ When a server runs the query, declare its vocabulary with `defineRemoteFilterGra
 
 Inside a `<form>`, Enter submits the form, unless the keyboard made a suggestion active. Then Enter accepts that suggestion.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/forms/query/search-on-the-server" title="Query search on the server example" />
-	<CodeExample.Code>
+<Example name="components/forms/query/search-on-the-server" title="Query search on the server example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -380,9 +370,7 @@ export function RemoteQueryExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Large lists
 
@@ -396,9 +384,7 @@ To let a person select a value in a table row and get its filter, call `toggleFa
 
 Keys, values, and `OR` take the colors that [Code Block](/components/data-display/code-block) gives attributes, strings, and operators, so a query reads like the code on the same page. Set the three CSS variables on the field or any ancestor to change them. This calmer set colors only the keys:
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/forms/query/token-colors" title="Query token colors example" />
-	<CodeExample.Code>
+<Example name="components/forms/query/token-colors" title="Query token colors example">
 
 ```tsx
 import { Query } from "@ngrok/mantle/query";
@@ -432,9 +418,7 @@ export function TokenColorsQueryExample() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Accessibility
 

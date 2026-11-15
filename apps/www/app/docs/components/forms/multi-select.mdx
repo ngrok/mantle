@@ -4,15 +4,13 @@ description: "A typeahead multi-select combobox: the user picks several values w
 aliases: [tag input, tags input, multiple select, chip input]
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # Multi Select
 
 A typeahead multi-select combobox: the user picks several values with filtering, and the picks show as removable tags. Wrap `MultiSelect.Root` in `Field.Control` to connect it to the label, description, and errors of a form field.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/forms/multi-select/overview" title="Multi Select example" />
-	<CodeExample.Code>
+<Example name="components/forms/multi-select/overview" title="Multi Select example">
 
 ```tsx
 import { Field } from "@ngrok/mantle/field";
@@ -39,9 +37,7 @@ import { MultiSelect } from "@ngrok/mantle/multi-select";
 </Field.Item>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## When to use
 
@@ -54,9 +50,7 @@ import { MultiSelect } from "@ngrok/mantle/multi-select";
 
 Render the control on its own. This example filters the options with `match-sorter` as the user types.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/forms/multi-select/without-a-field" title="Multi Select Without a Field example" />
-	<CodeExample.Code>
+<Example name="components/forms/multi-select/without-a-field" title="Multi Select Without a Field example">
 
 ```tsx
 import { MultiSelect } from "@ngrok/mantle/multi-select";
@@ -111,9 +105,7 @@ function Example() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Layering and z-index
 
@@ -127,9 +119,7 @@ function Example() {
 
 Use `selectedValue` and `setSelectedValue` to control the selected values.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/forms/multi-select/controlled" title="Multi Select controlled example" />
-	<CodeExample.Code>
+<Example name="components/forms/multi-select/controlled" title="Multi Select controlled example">
 
 ```tsx
 import { MultiSelect } from "@ngrok/mantle/multi-select";
@@ -170,17 +160,13 @@ function Example() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ### In a Sheet
 
 Use `@tanstack/react-form` to manage the selected values when a side panel needs validation and submit handling. `MultiSelect.Content` will automatically scope its portal to the surrounding sheet so the default modal behavior works without extra configuration.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/forms/multi-select/in-a-sheet" title="Multi Select In a Sheet example" />
-	<CodeExample.Code>
+<Example name="components/forms/multi-select/in-a-sheet" title="Multi Select In a Sheet example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -330,17 +316,13 @@ const filteredVeggies = useMemo(
 </Sheet.Root>;
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ### Locked values
 
 Use `lockedValues` on `MultiSelect.TagValues` to pin specific tags that cannot be removed. Locked tags display a lock icon instead of an ✕ and shake when the user tries to remove them. Locked values also cannot be deselected by clicking them in the popover.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/forms/multi-select/locked-values" title="Multi Select locked values example" />
-	<CodeExample.Code>
+<Example name="components/forms/multi-select/locked-values" title="Multi Select locked values example">
 
 ```tsx
 import { MultiSelect } from "@ngrok/mantle/multi-select";
@@ -386,17 +368,13 @@ function Example() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ### Creatable
 
 Render a dynamic "Create …" item when the search text doesn't match any existing option. When selected, add the new value to both your options list and the selection. No component changes needed: consumers own the items rendered in `Content`.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/forms/multi-select/creatable" title="Multi Select creatable example" />
-	<CodeExample.Code>
+<Example name="components/forms/multi-select/creatable" title="Multi Select creatable example">
 
 ```tsx
 import { MultiSelect } from "@ngrok/mantle/multi-select";
@@ -454,17 +432,13 @@ function Example() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ### With groups
 
 Use `MultiSelect.Group`, `MultiSelect.GroupLabel`, and `MultiSelect.Separator` to organize items.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/forms/multi-select/with-groups" title="Multi Select with groups example" />
-	<CodeExample.Code>
+<Example name="components/forms/multi-select/with-groups" title="Multi Select with groups example">
 
 ```tsx
 import { MultiSelect } from "@ngrok/mantle/multi-select";
@@ -524,17 +498,13 @@ function Example() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ### With TanStack Form
 
 Use `@tanstack/react-form` with `zod` to wire selected values into form state. Pass `field.state.value` to `selectedValue` and `field.handleChange` to `setSelectedValue`.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/forms/multi-select/with-tanstack-form" title="Multi Select With TanStack Form example" />
-	<CodeExample.Code>
+<Example name="components/forms/multi-select/with-tanstack-form" title="Multi Select With TanStack Form example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -608,17 +578,13 @@ function Example() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ### Validation states
 
 Use the `validation` prop on `MultiSelect.Trigger` to show validation states.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/forms/multi-select/validation-states" title="Multi Select validation states example" />
-	<CodeExample.Code>
+<Example name="components/forms/multi-select/validation-states" title="Multi Select validation states example">
 
 ```tsx
 <MultiSelect.Root>
@@ -632,17 +598,13 @@ Use the `validation` prop on `MultiSelect.Trigger` to show validation states.
 </MultiSelect.Root>
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ### Region pinning
 
 A real-world example with three groups (regional aliases, PoPs, dedicated IPs), disabled items, secondary metadata per item, a stacked item description layout, a trailing link in the trigger, and a sticky footer CTA inside the content.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="components/forms/multi-select/region-pinning" title="Multi Select region pinning example" />
-	<CodeExample.Code>
+<Example name="components/forms/multi-select/region-pinning" title="Multi Select region pinning example">
 
 ```tsx
 import { Anchor } from "@ngrok/mantle/anchor";
@@ -798,9 +760,7 @@ function Example() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Composition
 
