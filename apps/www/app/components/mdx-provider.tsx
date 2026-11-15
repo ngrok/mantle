@@ -127,11 +127,15 @@ const components = {
 
 		// Why overflow-x-auto: a fence in a language without highlighting renders
 		// here, and a long line must scroll in the block, not widen the page.
-		const fallbackClassName = cx("scrollbar overflow-x-auto", className);
+		const fallbackClassName = cx(
+			"scrollbar overflow-x-auto focus:outline-hidden focus-visible:ring-2 focus-visible:ring-focus-accent",
+			className,
+		);
 
 		if (!preRendered) {
 			return (
-				<pre className={fallbackClassName} {...rest}>
+				// oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- Safari does not put a scroll container in the Tab order, so a keyboard could not scroll a long line into view
+				<pre className={fallbackClassName} tabIndex={0} {...rest}>
 					{children}
 				</pre>
 			);
@@ -141,7 +145,8 @@ const components = {
 		if (!code || !language || !preHtml) {
 			warnMalformedPreRenderedCodeBlock(preRendered.rawLanguage);
 			return (
-				<pre className={fallbackClassName} {...rest}>
+				// oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- the same Safari gap as above
+				<pre className={fallbackClassName} tabIndex={0} {...rest}>
 					{children}
 				</pre>
 			);

@@ -187,7 +187,7 @@ export function OffsetPaginatedSliceExample() {
 /** The first example on the Pagination docs page. */
 export function OverviewExample() {
 	return (
-		<PreviewCanvas>
+		<PreviewCanvas className="min-h-160">
 			<CursorPagination.Root defaultPageSize={100}>
 				<CursorPagination.PageSizeSelect />
 				<CursorPagination.Buttons hasNextPage hasPreviousPage />
@@ -222,7 +222,7 @@ export function ButtonsOnlyExample() {
 /** The "Controlled page size" example on the Pagination docs page. */
 export function ControlledPageSizeExample() {
 	return (
-		<PreviewCanvas>
+		<PreviewCanvas className="min-h-160">
 			<ControlledPageSizeDemo />
 		</PreviewCanvas>
 	);

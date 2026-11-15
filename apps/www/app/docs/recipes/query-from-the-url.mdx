@@ -14,7 +14,7 @@ Two rules shape it:
 - The typed text is the source of truth while you type. Bind the field straight to the URL and every keystroke is a navigation, so the URL write waits 250 ms after the last edit and replaces the history entry instead of pushing one. A clear writes at once, so an empty field never shows a filtered list.
 - A URL change from outside (the back button, a link to `?q=is:shared`) replaces the typed text. The hook compares the URL value with the one it saw last render and resets the text during render, not in an effect.
 
-Type a filter below and watch the address bar.
+The example below runs in a frame, so this page's URL doesn't change. Open it with the new-tab button in its toolbar, then type a filter and watch the address bar.
 
 <Example name="recipes/query-from-the-url/overview" title="Query from the URL example">
 
