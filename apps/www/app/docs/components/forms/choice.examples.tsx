@@ -86,7 +86,11 @@ export function PolymorphismExample() {
 						<Choice.Label>Email</Choice.Label>
 						<Choice.Description asChild>
 							<div>
-								Supports <a href="/docs">rich content</a> when rendered as a div.
+								Supports{" "}
+								<a href="/docs" target="_top">
+									rich content
+								</a>{" "}
+								when rendered as a div.
 							</div>
 						</Choice.Description>
 					</Choice.Content>

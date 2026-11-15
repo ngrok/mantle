@@ -41,7 +41,9 @@ export function PolymorphismExample() {
 	return (
 		<PreviewCanvas>
 			<Badge appearance="muted" asChild color="pink" icon={<GlobeHemisphereWestIcon />}>
-				<Link to={href("/base/colors")}>See our colors!</Link>
+				<Link to={href("/base/colors")} target="_top">
+					See our colors!
+				</Link>
 			</Badge>
 		</PreviewCanvas>
 	);

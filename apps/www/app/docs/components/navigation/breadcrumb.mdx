@@ -113,13 +113,17 @@ import { Link, href } from "react-router";
 	<Breadcrumb.List>
 		<Breadcrumb.Item>
 			<Breadcrumb.Link asChild>
-				<Link to={href("/")}>Home</Link>
+				<Link to={href("/")} target="_top">
+					Home
+				</Link>
 			</Breadcrumb.Link>
 		</Breadcrumb.Item>
 		<Breadcrumb.Separator />
 		<Breadcrumb.Item>
 			<Breadcrumb.Link asChild>
-				<Link to={href("/components/navigation/anchor")}>Anchor</Link>
+				<Link to={href("/components/navigation/anchor")} target="_top">
+					Anchor
+				</Link>
 			</Breadcrumb.Link>
 		</Breadcrumb.Item>
 		<Breadcrumb.Separator />

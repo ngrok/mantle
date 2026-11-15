@@ -1,3 +1,4 @@
+import { Main } from "@ngrok/mantle/main";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 
 import { PreviewCanvas } from "~/components/preview-canvas";
@@ -6,12 +7,14 @@ import { PreviewCanvas } from "~/components/preview-canvas";
 export function OverviewExample() {
 	return (
 		<PreviewCanvas className="flex-col gap-4">
-			<p className="text-sm text-muted">
-				Tab into the example below — the skip link appears fixed to the top-left of the viewport
-				when focused. It targets this page&apos;s own <code translate="no">main</code> landmark, the
-				one around the content you are reading, because a page has one.
-			</p>
 			<SkipToMainLink />
+			<p className="text-sm text-muted">
+				Tab into the example: the skip link appears at the top left of the frame. Press Enter to
+				move focus to the <code translate="no">Main</code> landmark below.
+			</p>
+			<Main>
+				<h1 className="text-strong text-lg font-medium">Page title</h1>
+			</Main>
 		</PreviewCanvas>
 	);
 }

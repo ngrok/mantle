@@ -55,7 +55,9 @@ export function PolymorphismExample() {
 					<DescriptionList.Item>
 						<DescriptionList.Label>Docs</DescriptionList.Label>
 						<DescriptionList.Value asChild>
-							<a href="https://mantle.ngrok.com">mantle.ngrok.com</a>
+							<a href="https://mantle.ngrok.com" target="_top">
+								mantle.ngrok.com
+							</a>
 						</DescriptionList.Value>
 					</DescriptionList.Item>
 				</DescriptionList.Root>

@@ -10,7 +10,11 @@ export function OverviewExample() {
 	return (
 		<PreviewCanvas>
 			<p>
-				This link will go to <Anchor href="https://ngrok.com/">ngrok.com</Anchor>!
+				This link will go to{" "}
+				<Anchor href="https://ngrok.com/" target="_top">
+					ngrok.com
+				</Anchor>
+				!
 			</p>
 		</PreviewCanvas>
 	);
@@ -22,14 +26,19 @@ export function IconsExample() {
 		<PreviewCanvas className="flex-col">
 			<p>
 				This icon renders at the start:{" "}
-				<Anchor href="https://ngrok.com/docs" icon={<BookIcon />}>
+				<Anchor href="https://ngrok.com/docs" target="_top" icon={<BookIcon />}>
 					ngrok docs
 				</Anchor>
 				!
 			</p>
 			<p>
 				And this icon renders at the end:{" "}
-				<Anchor href="https://dashboard.ngrok.com" icon={<ShrimpIcon />} iconPlacement="end">
+				<Anchor
+					href="https://dashboard.ngrok.com"
+					target="_top"
+					icon={<ShrimpIcon />}
+					iconPlacement="end"
+				>
 					ngrok dashboard
 				</Anchor>
 				!
@@ -43,7 +52,9 @@ export function PolymorphismExample() {
 	return (
 		<PreviewCanvas className="flex-col">
 			<Anchor asChild>
-				<Link to={href("/base/colors")}>See our colors!</Link>
+				<Link to={href("/base/colors")} target="_top">
+					See our colors!
+				</Link>
 			</Anchor>
 		</PreviewCanvas>
 	);

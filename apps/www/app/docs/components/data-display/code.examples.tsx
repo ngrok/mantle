@@ -19,7 +19,9 @@ export function PolymorphismExample() {
 	return (
 		<PreviewCanvas>
 			<Code asChild>
-				<Anchor href="https://ngrok.com/docs">/api/components.json</Anchor>
+				<Anchor href="https://ngrok.com/docs" target="_top">
+					/api/components.json
+				</Anchor>
 			</Code>
 		</PreviewCanvas>
 	);

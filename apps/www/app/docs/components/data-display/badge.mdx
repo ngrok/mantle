@@ -70,7 +70,9 @@ import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWe
 import { Link, href } from "react-router";
 
 <Badge appearance="muted" asChild color="pink" icon={<GlobeHemisphereWestIcon />}>
-	<Link to={href("/base/colors")}>See our colors!</Link>
+	<Link to={href("/base/colors")} target="_top">
+		See our colors!
+	</Link>
 </Badge>;
 ```
 

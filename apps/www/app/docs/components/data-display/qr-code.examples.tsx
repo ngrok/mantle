@@ -63,7 +63,7 @@ export function PolymorphismExample() {
 	return (
 		<PreviewCanvas>
 			<QrCode.Root asChild value="https://ngrok.com">
-				<a href="https://ngrok.com">
+				<a href="https://ngrok.com" target="_top">
 					<QrCode.Frame>
 						<QrCode.Pattern />
 					</QrCode.Frame>

@@ -41,7 +41,7 @@ export function PolymorphismExample() {
 	return (
 		<PreviewCanvas>
 			<MediaObject.Root asChild>
-				<a href="https://ngrok.com">
+				<a href="https://ngrok.com" target="_top">
 					<MediaObject.Media>
 						<ExampleMedia />
 					</MediaObject.Media>

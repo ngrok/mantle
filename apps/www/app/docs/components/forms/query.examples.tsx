@@ -9,7 +9,7 @@ import { PreviewCanvas } from "~/components/preview-canvas";
 /** The first example on the Query docs page. */
 export function OverviewExample() {
 	return (
-		<PreviewCanvas>
+		<PreviewCanvas className="min-h-160">
 			<QueryExample />
 		</PreviewCanvas>
 	);
@@ -18,7 +18,7 @@ export function OverviewExample() {
 /** The "Inline actions and a footer" example on the Query docs page. */
 export function InlineActionsAndAFooterExample() {
 	return (
-		<PreviewCanvas>
+		<PreviewCanvas className="min-h-160">
 			<InlineActionsQueryExample />
 		</PreviewCanvas>
 	);
@@ -27,7 +27,7 @@ export function InlineActionsAndAFooterExample() {
 /** The "Search on the server" example on the Query docs page. */
 export function SearchOnTheServerExample() {
 	return (
-		<PreviewCanvas>
+		<PreviewCanvas className="min-h-160">
 			<RemoteQueryExample />
 		</PreviewCanvas>
 	);
@@ -36,7 +36,7 @@ export function SearchOnTheServerExample() {
 /** The "Token colors" example on the Query docs page. */
 export function TokenColorsExample() {
 	return (
-		<PreviewCanvas>
+		<PreviewCanvas className="min-h-160">
 			<TokenColorsQueryExample />
 		</PreviewCanvas>
 	);

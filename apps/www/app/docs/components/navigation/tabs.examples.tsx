@@ -167,13 +167,19 @@ export function PolymorphismExample() {
 			<Tabs.Root orientation="horizontal" defaultValue="colors">
 				<Tabs.List>
 					<Tabs.Trigger value="colors" asChild>
-						<Link to={href("/base/colors")}>Colors</Link>
+						<Link to={href("/base/colors")} target="_top">
+							Colors
+						</Link>
 					</Tabs.Trigger>
 					<Tabs.Trigger value="shadows" asChild>
-						<Link to={href("/base/shadows")}>Shadows</Link>
+						<Link to={href("/base/shadows")} target="_top">
+							Shadows
+						</Link>
 					</Tabs.Trigger>
 					<Tabs.Trigger value="typography" asChild>
-						<Link to={href("/base/typography")}>Typography</Link>
+						<Link to={href("/base/typography")} target="_top">
+							Typography
+						</Link>
 					</Tabs.Trigger>
 				</Tabs.List>
 				<Tabs.Separator />
@@ -262,16 +268,24 @@ export function PillAppearanceExample() {
 				<Tabs.Root appearance="pill" orientation="horizontal" defaultValue="colors">
 					<Tabs.List>
 						<Tabs.Trigger value="colors" asChild>
-							<Link to={href("/base/colors")}>Colors</Link>
+							<Link to={href("/base/colors")} target="_top">
+								Colors
+							</Link>
 						</Tabs.Trigger>
 						<Tabs.Trigger value="shadows" asChild>
-							<Link to={href("/base/shadows")}>Shadows</Link>
+							<Link to={href("/base/shadows")} target="_top">
+								Shadows
+							</Link>
 						</Tabs.Trigger>
 						<Tabs.Trigger disabled value="tailwind-variants" asChild>
-							<Link to={href("/base/tailwind-variants")}>Tailwind Variants</Link>
+							<Link to={href("/base/tailwind-variants")} target="_top">
+								Tailwind Variants
+							</Link>
 						</Tabs.Trigger>
 						<Tabs.Trigger value="typography" asChild>
-							<Link to={href("/base/typography")}>Typography</Link>
+							<Link to={href("/base/typography")} target="_top">
+								Typography
+							</Link>
 						</Tabs.Trigger>
 					</Tabs.List>
 				</Tabs.Root>

@@ -11,7 +11,7 @@ import { PreviewCanvas } from "~/components/preview-canvas";
 /** The first example on the Command docs page. */
 export function OverviewExample() {
 	return (
-		<PreviewCanvas className="flex flex-col gap-6">
+		<PreviewCanvas className="min-h-160 flex flex-col gap-6">
 			<CommandSearchTriggerDemo />
 		</PreviewCanvas>
 	);
@@ -55,7 +55,7 @@ export function InlinePaletteExample() {
 /** The "Button trigger" example on the Command docs page. */
 export function ButtonTriggerExample() {
 	return (
-		<PreviewCanvas className="flex flex-col gap-6">
+		<PreviewCanvas className="min-h-160 flex flex-col gap-6">
 			<CommandDialogDemo />
 		</PreviewCanvas>
 	);

@@ -9,7 +9,9 @@ export function OverviewExample() {
 		<PreviewCanvas>
 			<div className="flex flex-col gap-4">
 				<Slot className="rounded bg-blue-500 px-4 py-2 text-white">
-					<a href="https://ngrok.com">Visit ngrok</a>
+					<a href="https://ngrok.com" target="_top">
+						Visit ngrok
+					</a>
 				</Slot>
 				<Slot className="rounded bg-red-500 px-4 py-2 text-white">
 					<button type="button">Click me</button>
@@ -25,10 +27,14 @@ export function UsageWithAschildExample() {
 		<PreviewCanvas>
 			<div className="flex gap-4">
 				<Button appearance="filled" intent="neutral" asChild>
-					<a href="https://ngrok.com">Visit ngrok</a>
+					<a href="https://ngrok.com" target="_top">
+						Visit ngrok
+					</a>
 				</Button>
 				<Button appearance="outlined" intent="neutral" asChild>
-					<a href="https://github.com/ngrok/ngrok">View on GitHub</a>
+					<a href="https://github.com/ngrok/ngrok" target="_top">
+						View on GitHub
+					</a>
 				</Button>
 			</div>
 		</PreviewCanvas>

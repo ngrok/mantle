@@ -288,7 +288,7 @@ export function PolymorphismExample() {
 				label="prestige worldwide"
 				icon={<GlobeIcon />}
 			>
-				<Link to={href("/base/colors")} />
+				<Link to={href("/base/colors")} target="_top" />
 			</IconButton>
 		</PreviewCanvas>
 	);

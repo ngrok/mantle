@@ -6,10 +6,11 @@ import remarkFrontmatter from "remark-frontmatter";
 import remarkGfm from "remark-gfm";
 import remarkMdx from "remark-mdx";
 import remarkParse from "remark-parse";
-import { MemoryRouter } from "react-router";
+import { fireEvent, render } from "@testing-library/react";
+import { MemoryRouter, useLocation } from "react-router";
 import { unified } from "unified";
 import { describe, expect, it } from "vitest";
-import { hydrationErrorsOf } from "~/test-utils/hydration";
+import { hydrationErrorsOf, RootProviders } from "~/test-utils/hydration";
 import { exampleExportName, isComponentType, parsePageExampleKey } from "./page-examples";
 
 /**
@@ -106,6 +107,47 @@ describe("docs page examples", () => {
 				</MemoryRouter>,
 			),
 		).toEqual([]);
+	});
+
+	// Why: an example runs in an iframe, so a link click that is not prevented
+	// navigates the frame. The docs page's `frame-src` blocks another origin, and
+	// a docs page in the frame replaces the example. A link that leaves the
+	// example sets a `target`. A fake link prevents its click, and an in-frame
+	// router link stays on the example's path.
+	it.for(keys)("$key keeps each link with no target in the example", ({ key }) => {
+		const ref = parsePageExampleKey(key);
+		const Example = ref == null ? null : modules[ref.modulePath]?.[ref.exportName];
+		if (!isComponentType(Example)) {
+			throw new Error(`${key} names no component.`);
+		}
+		const examplePath = `/preview/${key}`;
+		let pathname = examplePath;
+		function LocationProbe() {
+			pathname = useLocation().pathname;
+			return null;
+		}
+		const { container, unmount } = render(
+			<RootProviders>
+				<MemoryRouter initialEntries={[examplePath]}>
+					<Example />
+					<LocationProbe />
+				</MemoryRouter>
+			</RootProviders>,
+		);
+		const leaks: Array<string> = [];
+		for (const link of container.querySelectorAll("a[href]:not([target])")) {
+			const href = link.getAttribute("href") ?? "";
+			if (href.startsWith("#")) {
+				continue;
+			}
+			// `fireEvent` returns false when a handler prevented the click.
+			const followed = fireEvent.click(link);
+			if (followed || pathname !== examplePath) {
+				leaks.push(href);
+			}
+		}
+		unmount();
+		expect(leaks).toEqual([]);
 	});
 
 	it("every example export is on its page or used by another example", () => {

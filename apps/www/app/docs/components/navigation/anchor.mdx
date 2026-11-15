@@ -16,7 +16,11 @@ A fundamental component for rendering links to external addresses.
 import { Anchor } from "@ngrok/mantle/anchor";
 
 <p>
-	This link will go to <Anchor href="https://ngrok.com/">ngrok.com</Anchor>!
+	This link will go to{" "}
+	<Anchor href="https://ngrok.com/" target="_top">
+		ngrok.com
+	</Anchor>
+	!
 </p>;
 ```
 
@@ -47,14 +51,14 @@ import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
 
 <p>
 	This icon renders at the start:{" "}
-	<Anchor href="https://ngrok.com/docs" icon={<BookIcon />}>
+	<Anchor href="https://ngrok.com/docs" target="_top" icon={<BookIcon />}>
 		ngrok docs
 	</Anchor>
 	!
 </p>
 <p>
 	And this icon renders at the end:{" "}
-	<Anchor href="https://dashboard.ngrok.com" icon={<ShrimpIcon />} iconPlacement="end">
+	<Anchor href="https://dashboard.ngrok.com" target="_top" icon={<ShrimpIcon />} iconPlacement="end">
 		ngrok dashboard
 	</Anchor>
 	!
@@ -82,7 +86,9 @@ import { Anchor } from "@ngrok/mantle/anchor";
 import { Link, href } from "react-router";
 
 <Anchor asChild>
-	<Link to={href("/base/colors")}>See our colors!</Link>
+	<Link to={href("/base/colors")} target="_top">
+		See our colors!
+	</Link>
 </Anchor>;
 ```
 

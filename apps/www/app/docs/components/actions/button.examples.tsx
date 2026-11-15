@@ -266,7 +266,9 @@ export function PolymorphismExample() {
 	return (
 		<PreviewCanvas>
 			<Button appearance="filled" intent="neutral" icon={<FireIcon weight="fill" />} asChild>
-				<Link to={href("/base/colors")}>See our colors!</Link>
+				<Link to={href("/base/colors")} target="_top">
+					See our colors!
+				</Link>
 			</Button>
 		</PreviewCanvas>
 	);

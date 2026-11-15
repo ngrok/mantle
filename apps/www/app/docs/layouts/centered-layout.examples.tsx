@@ -19,7 +19,11 @@ export function CenteredLayoutAsChildExample() {
 						</div>
 					</CenteredLayout.Body>
 					<CenteredLayout.Footer>
-						<a className="text-muted text-sm hover:underline" href="https://ngrok.com">
+						<a
+							className="text-muted text-sm hover:underline"
+							href="https://ngrok.com"
+							target="_top"
+						>
 							Legal
 						</a>
 					</CenteredLayout.Footer>

@@ -104,4 +104,5 @@ function hydrationErrorsOf(app: ReactNode): ReadonlyArray<string> {
 export {
 	//,
 	hydrationErrorsOf,
+	RootProviders,
 };

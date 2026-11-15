@@ -103,7 +103,7 @@ export function AvatarMediaObjectExample() {
 export function AvatarLinkExample() {
 	return (
 		<Avatar.Root asChild appearance="square" colorSeed="acc_acme">
-			<a href="/components/data-display/avatar" title="Acme Corp">
+			<a href="/components/data-display/avatar" target="_top" title="Acme Corp">
 				<Avatar.Fallback name="Acme Corp" />
 			</a>
 		</Avatar.Root>

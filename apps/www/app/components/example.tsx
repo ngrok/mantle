@@ -110,7 +110,7 @@ function Frame({ name, title, height }: FrameProps) {
 			<div className="bg-base bg-[radial-gradient(var(--color-gray-300)_1px,transparent_1px)] bg-size-[16px_16px]">
 				<div
 					className={cx(
-						"mx-auto h-full transition-[width] duration-200 motion-reduce:transition-none",
+						"mx-auto h-full transition-[width] duration-200 ease-out-strong motion-reduce:transition-none",
 						// box-content keeps the preset width as the iframe's actual
 						// viewport width — the delineating borders sit outside it
 						viewport !== "desktop" && "box-content border-x border-gray-300",
