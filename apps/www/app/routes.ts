@@ -258,9 +258,9 @@ export default [
 	// chrome-less framed example previews — the document the docs pages' iframe
 	// preview frames point at. The explicit id is load-bearing: root.tsx matches
 	// on it to skip the site chrome, and entry.server.tsx path-matches /preview/
-	// to allow same-origin framing. Dynamic-param routes are excluded from
+	// to allow same-origin framing. Splat routes are excluded from
 	// prerendering and served by the runtime SSR function.
-	route("preview/:exampleName", "./routes/preview.tsx", { id: "preview-example" }),
+	route("preview/*", "./routes/preview.tsx", { id: "preview-example" }),
 	// The MCP server: a stateless resource route that answers 404 while the MANTLE_MCP flag is off.
 	route("mcp", "./routes/mcp.tsx", { id: "mcp" }),
 	// The MCP `preview` tool's link target and the sandboxed frame it embeds. root.tsx

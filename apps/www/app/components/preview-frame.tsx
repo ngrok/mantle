@@ -37,21 +37,33 @@ const viewportWidthClasses = {
 	mobile: "w-80 max-w-full",
 } as const satisfies Record<Viewport, string>;
 
+/**
+ * A key the `/preview/*` route resolves: a shell demo in the preview registry,
+ * or a docs page example as `<page path>/<example name>`.
+ */
+export type PreviewKey = PreviewExampleName | `${string}/${string}`;
+
 type PreviewFrameProps = {
-	/** Which registered preview example the frame renders (see preview-registry.ts). */
-	example: PreviewExampleName;
+	/** Which example the frame renders: a preview registry name or a page example key. */
+	example: PreviewKey;
 	/**
 	 * Human-readable name of the example — the iframe's accessible title and
-	 * part of the toolbar buttons' labels. Usually matches the registry title.
+	 * part of the toolbar buttons' labels.
 	 */
 	title: string;
+	/**
+	 * `fixed` (default): the frame is `h-160` tall and the example fills it,
+	 * for full-page layout demos. `content`: the frame grows to the height of
+	 * the example's `PreviewCanvas`, for component examples.
+	 */
+	height?: "fixed" | "content";
 	/** Merged onto the outer frame — e.g. to override the default `h-160` canvas height. */
 	className?: string;
 };
 
 /**
  * A framed, viewport-switchable live example: an iframe pointed at the
- * chrome-less `/preview/:exampleName` route with a toolbar to preview the
+ * chrome-less `/preview/*` route with a toolbar to preview the
  * example at desktop, tablet (48rem), and mobile (320px) widths, reload it,
  * or open it in a new tab. Because the example is its own document it gets a
  * real `Main` landmark, its own `window` (document-level keyboard shortcuts
@@ -64,16 +76,18 @@ type PreviewFrameProps = {
  * <PreviewFrame example="centered-layout" title="Centered layout demo" />
  * ```
  */
-export function PreviewFrame({ example, title, className }: PreviewFrameProps) {
+export function PreviewFrame({ example, title, height = "fixed", className }: PreviewFrameProps) {
 	const [viewport, setViewport] = useState<Viewport>("desktop");
 	// remounting the iframe with a new key is a full document reload
 	const [reloadCount, setReloadCount] = useState(0);
-	const previewHref = href("/preview/:exampleName", { exampleName: example });
+	const [contentHeight, setContentHeight] = useState<number | null>(null);
+	const previewHref = href("/preview/*", { "*": example });
 
 	return (
 		<div
 			className={cx(
-				"grid h-160 grid-rows-[auto_minmax(0,1fr)] overflow-hidden rounded-lg border border-gray-300",
+				"grid overflow-hidden rounded-lg border border-gray-300",
+				height === "fixed" ? "h-160 grid-rows-[auto_minmax(0,1fr)]" : "grid-rows-[auto_auto]",
 				className,
 			)}
 		>
@@ -134,10 +148,56 @@ export function PreviewFrame({ example, title, className }: PreviewFrameProps) {
 						src={previewHref}
 						title={`Preview of the ${title}`}
 						loading="lazy"
-						className="bg-card size-full"
+						className={cx("bg-card block w-full", height === "fixed" ? "h-full" : "h-40")}
+						style={
+							height === "content" && contentHeight != null ? { height: contentHeight } : undefined
+						}
+						ref={(iframe) => {
+							if (iframe == null || height !== "content") {
+								return;
+							}
+							let observer: ResizeObserver | null = null;
+							const observe = () => {
+								observer?.disconnect();
+								observer = observeCanvasHeight(iframe, setContentHeight);
+							};
+							// Why check readyState: a frame near the top can finish loading
+							// before the page hydrates, and then its load event is gone.
+							if (iframe.contentDocument?.readyState === "complete") {
+								observe();
+							}
+							iframe.addEventListener("load", observe);
+							return () => {
+								iframe.removeEventListener("load", observe);
+								observer?.disconnect();
+							};
+						}}
 					/>
 				</div>
 			</div>
 		</div>
 	);
+}
+
+/**
+ * Reports the height of the `PreviewCanvas` in a loaded preview frame, now and
+ * on each resize. Returns the observer, or `null` when the frame's document has
+ * no canvas yet (the blank document before the preview loads).
+ */
+function observeCanvasHeight(
+	iframe: HTMLIFrameElement,
+	onHeight: (height: number) => void,
+): ResizeObserver | null {
+	const canvas = iframe.contentDocument?.querySelector("[data-preview-canvas]");
+	const frameWindow = canvas?.ownerDocument.defaultView;
+	if (canvas == null || frameWindow == null) {
+		return null;
+	}
+	// Why the frame's own ResizeObserver: the canvas lives in the frame's
+	// document, and that document runs the resize steps for it.
+	const observer = new frameWindow.ResizeObserver(() => {
+		onHeight(Math.ceil(canvas.getBoundingClientRect().height));
+	});
+	observer.observe(canvas);
+	return observer;
 }

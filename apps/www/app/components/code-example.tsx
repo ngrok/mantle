@@ -17,9 +17,7 @@ type CodeExampleRootProps = Omit<
  * @example
  * ```mdx
  * <CodeExample.Root>
- * 	<CodeExample.Preview className="p-0 md:p-0">
- * 		<MyDemo />
- * 	</CodeExample.Preview>
+ * 	<CodeExample.PreviewFrame example="centered-layout" title="Centered layout demo" />
  * 	<CodeExample.Code>{tsx fence}</CodeExample.Code>
  * </CodeExample.Root>
  * ```
@@ -45,37 +43,6 @@ function Root({ className, children, ...props }: CodeExampleRootProps) {
 
 type CodeExamplePanelProps = Omit<ComponentProps<typeof Tabs.Content>, "value">;
 
-/**
- * The live-demo panel of a `CodeExample`: a bordered, centered 16:9 frame —
- * a typical screen, scaled down to the docs canvas — so layout demos read as
- * miniature viewports. Merge a height/aspect class to override, and have the
- * demo fill the frame with `h-full` — an inner scrollbar should only appear
- * when the demo is about scrolling.
- *
- * @example
- * ```tsx
- * <CodeExample.Preview className="p-0 md:p-0">
- * 	<MyDemo />
- * </CodeExample.Preview>
- * ```
- */
-function Preview({ className, children, ...props }: CodeExamplePanelProps) {
-	return (
-		<Tabs.Content
-			value="preview"
-			className={cx(
-				// overflow-hidden clips square-cornered demo children (e.g. full-bleed
-				// backgrounds) to the frame's rounded corners
-				"flex aspect-video items-center justify-center overflow-hidden rounded-lg border border-gray-300 p-4 md:p-16",
-				className,
-			)}
-			{...props}
-		>
-			{children}
-		</Tabs.Content>
-	);
-}
-
 type CodeExamplePreviewFrameProps = Omit<
 	ComponentProps<typeof Tabs.Content>,
 	"value" | "forceMount" | "children"
@@ -83,12 +50,12 @@ type CodeExamplePreviewFrameProps = Omit<
 	ComponentProps<typeof PreviewFrameImpl>;
 
 /**
- * The framed alternative to `CodeExample.Preview`: hosts a {@link PreviewFrameImpl PreviewFrame}
- * — an iframe pointed at the chrome-less `/preview/:exampleName` route with a
- * desktop/tablet/mobile viewport switcher. Reach for it when the demo is a
- * full-page layout that wants its own document (real `Main` landmark, isolated
- * keyboard shortcuts, frame-driven breakpoints). The panel is force-mounted
- * so flipping to the Code tab and back never reloads the iframe.
+ * The live-demo panel of a `CodeExample`: hosts a {@link PreviewFrameImpl PreviewFrame},
+ * an iframe pointed at the chrome-less `/preview/*` route with a
+ * desktop/tablet/mobile viewport switcher. The demo gets its own document (its
+ * own `window`, isolated keyboard shortcuts, frame-driven breakpoints). The
+ * panel is force-mounted so flipping to the Code tab and back never reloads
+ * the iframe.
  *
  * @example
  * ```mdx
@@ -148,13 +115,12 @@ function Code({ className, children, ...props }: CodeExamplePanelProps) {
  * Composition:
  * ```
  * CodeExample.Root
- * ├── CodeExample.Preview (inline demo) or CodeExample.PreviewFrame (iframed demo)
+ * ├── CodeExample.PreviewFrame
  * └── CodeExample.Code
  * ```
  */
 const CodeExample = {
 	Root,
-	Preview,
 	PreviewFrame,
 	Code,
 } as const;

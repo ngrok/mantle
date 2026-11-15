@@ -4,394 +4,13 @@ description: An area chart for showing how values (and, when stacked, a total an
 aliases: [sparkline, area graph]
 ---
 
-import { AreaChart } from "@ngrok/mantle/area-chart";
-import { Empty } from "@ngrok/mantle/empty";
-import { useEffect, useState } from "react";
 import { Example } from "~/components/example";
-
-export const trafficData = [
-	{ date: new Date("2026-07-01"), http: 4200, tcp: 1400, tls: 860 },
-	{ date: new Date("2026-07-02"), http: 4600, tcp: 1350, tls: 900 },
-	{ date: new Date("2026-07-03"), http: 5100, tcp: 1500, tls: 940 },
-	{ date: new Date("2026-07-04"), http: 3800, tcp: 1250, tls: 780 },
-	{ date: new Date("2026-07-05"), http: 3500, tcp: 1200, tls: 750 },
-	{ date: new Date("2026-07-06"), http: 4900, tcp: 1550, tls: 980 },
-	{ date: new Date("2026-07-07"), http: 5400, tcp: 1600, tls: 1050 },
-	{ date: new Date("2026-07-08"), http: 5800, tcp: 1700, tls: 1100 },
-	{ date: new Date("2026-07-09"), http: 5200, tcp: 1650, tls: 1020 },
-	{ date: new Date("2026-07-10"), http: 6100, tcp: 1800, tls: 1150 },
-	{ date: new Date("2026-07-11"), http: 4400, tcp: 1450, tls: 880 },
-	{ date: new Date("2026-07-12"), http: 4100, tcp: 1400, tls: 840 },
-	{ date: new Date("2026-07-13"), http: 5600, tcp: 1750, tls: 1080 },
-	{ date: new Date("2026-07-14"), http: 6300, tcp: 1900, tls: 1200 },
-];
-
-export function SingleSeriesAreaExample() {
-	return (
-		<AreaChart.Root
-			data={trafficData}
-			xKey="date"
-			aria-label="HTTP connections per day"
-			className="max-w-2xl"
-		>
-			<AreaChart.Grid />
-			<AreaChart.XAxis />
-			<AreaChart.YAxis tickFormat={(value) => `${value / 1000}k`} />
-			<AreaChart.Area dataKey="http" label="HTTP" color="blue" />
-			<AreaChart.Tooltip />
-		</AreaChart.Root>
-	);
-}
-
-export function StackedAreaExample() {
-	return (
-		<AreaChart.Root
-			data={trafficData}
-			xKey="date"
-			stacked
-			aria-label="Connections by protocol"
-			className="max-w-2xl"
-		>
-			<AreaChart.Grid />
-			<AreaChart.XAxis />
-			<AreaChart.YAxis tickFormat={(value) => `${value / 1000}k`} />
-			<AreaChart.Area dataKey="http" label="HTTP" color="blue" />
-			<AreaChart.Area dataKey="tcp" label="TCP" color="emerald" />
-			<AreaChart.Area dataKey="tls" label="TLS" color="pink" />
-			<AreaChart.Tooltip />
-			<AreaChart.Legend />
-		</AreaChart.Root>
-	);
-}
-
-export const noTrafficYet = [
-	{ date: new Date("2026-07-08"), requests: 0 },
-	{ date: new Date("2026-07-09"), requests: 0 },
-	{ date: new Date("2026-07-10"), requests: 0 },
-	{ date: new Date("2026-07-11"), requests: 0 },
-	{ date: new Date("2026-07-12"), requests: 0 },
-	{ date: new Date("2026-07-13"), requests: 0 },
-	{ date: new Date("2026-07-14"), requests: 0 },
-];
-
-export function NoTrafficYetAreaChartExample() {
-	return (
-		<AreaChart.Root data={noTrafficYet} xKey="date" aria-label="Requests per day">
-			<AreaChart.Grid />
-			<AreaChart.XAxis />
-			<AreaChart.YAxis />
-			<AreaChart.Area dataKey="requests" label="Requests" color="blue" />
-			<AreaChart.Tooltip />
-		</AreaChart.Root>
-	);
-}
-
-export const regionData = [
-	{ date: new Date("2026-07-01"), usEast: 2400, euWest: 1900 },
-	{ date: new Date("2026-07-02"), usEast: 2600, euWest: 2100 },
-	{ date: new Date("2026-07-03"), usEast: 2500, euWest: 2350 },
-	{ date: new Date("2026-07-04"), usEast: 2100, euWest: 2500 },
-	{ date: new Date("2026-07-05"), usEast: 1950, euWest: 2650 },
-	{ date: new Date("2026-07-06"), usEast: 2300, euWest: 2600 },
-	{ date: new Date("2026-07-07"), usEast: 2700, euWest: 2450 },
-	{ date: new Date("2026-07-08"), usEast: 2900, euWest: 2300 },
-	{ date: new Date("2026-07-09"), usEast: 2800, euWest: 2500 },
-	{ date: new Date("2026-07-10"), usEast: 3000, euWest: 2700 },
-	{ date: new Date("2026-07-11"), usEast: 2600, euWest: 2850 },
-	{ date: new Date("2026-07-12"), usEast: 2450, euWest: 2900 },
-	{ date: new Date("2026-07-13"), usEast: 2750, euWest: 2700 },
-	{ date: new Date("2026-07-14"), usEast: 3100, euWest: 2550 },
-];
-
-export function OverlappingAreasExample() {
-	return (
-		<AreaChart.Root
-			data={regionData}
-			xKey="date"
-			aria-label="Requests by region"
-			className="max-w-2xl"
-		>
-			<AreaChart.Grid />
-			<AreaChart.XAxis />
-			<AreaChart.YAxis />
-			<AreaChart.Area dataKey="usEast" label="US East" color="blue" />
-			<AreaChart.Area dataKey="euWest" label="EU West" color="emerald" />
-			<AreaChart.Tooltip />
-			<AreaChart.Legend />
-		</AreaChart.Root>
-	);
-}
-
-export const shapedRegionData = [
-	{ date: new Date("2026-07-01"), usEast: 2400, euWest: 1900, apSouth: 1150 },
-	{ date: new Date("2026-07-02"), usEast: 2600, euWest: 2100, apSouth: 1300 },
-	{ date: new Date("2026-07-03"), usEast: 2500, euWest: 2350, apSouth: 1250 },
-	{ date: new Date("2026-07-04"), usEast: 2100, euWest: 2500, apSouth: 1400 },
-	{ date: new Date("2026-07-05"), usEast: 1950, euWest: 2650, apSouth: 1500 },
-	{ date: new Date("2026-07-06"), usEast: 2300, euWest: 2600, apSouth: 1450 },
-	{ date: new Date("2026-07-07"), usEast: 2700, euWest: 2450, apSouth: 1350 },
-	{ date: new Date("2026-07-08"), usEast: 2900, euWest: 2300, apSouth: 1500 },
-	{ date: new Date("2026-07-09"), usEast: 2800, euWest: 2500, apSouth: 1600 },
-	{ date: new Date("2026-07-10"), usEast: 3000, euWest: 2700, apSouth: 1550 },
-	{ date: new Date("2026-07-11"), usEast: 2600, euWest: 2850, apSouth: 1650 },
-	{ date: new Date("2026-07-12"), usEast: 2450, euWest: 2900, apSouth: 1600 },
-	{ date: new Date("2026-07-13"), usEast: 2750, euWest: 2700, apSouth: 1500 },
-	{ date: new Date("2026-07-14"), usEast: 3100, euWest: 2550, apSouth: 1700 },
-];
-
-export function ShapesExample() {
-	const [activeIndex, setActiveIndex] = useState(9);
-	return (
-		<AreaChart.Root
-			data={shapedRegionData}
-			xKey="date"
-			stacked
-			activeIndex={activeIndex}
-			onActiveIndexChange={(index) => setActiveIndex(index ?? 9)}
-			aria-label="Requests by region, shape-coded"
-			className="max-w-2xl"
-		>
-			<AreaChart.Grid />
-			<AreaChart.XAxis />
-			<AreaChart.YAxis />
-			<AreaChart.Area dataKey="usEast" label="US East" color="blue" />
-			<AreaChart.Area dataKey="euWest" label="EU West" color="emerald" shape="square" />
-			<AreaChart.Area dataKey="apSouth" label="AP South" color="pink" shape="star" />
-			<AreaChart.Tooltip />
-			<AreaChart.Legend />
-		</AreaChart.Root>
-	);
-}
-
-export function CopyMarkdownExample() {
-	return (
-		<AreaChart.Root
-			data={trafficData}
-			xKey="date"
-			stacked
-			aria-label="Traffic by protocol, copyable"
-		>
-			<AreaChart.Grid />
-			<AreaChart.XAxis />
-			<AreaChart.YAxis />
-			<AreaChart.Area dataKey="http" label="HTTP" color="blue" />
-			<AreaChart.Area dataKey="tcp" label="TCP" color="emerald" />
-			<AreaChart.Area dataKey="tls" label="TLS" color="pink" />
-			<AreaChart.Tooltip />
-			<AreaChart.Legend />
-			<AreaChart.CopyButton className="absolute right-0 top-0" />
-		</AreaChart.Root>
-	);
-}
-
-export const sessionData = [
-	{ date: new Date("2026-07-08"), sessions: 320 },
-	{ date: new Date("2026-07-09"), sessions: 180 },
-	{ date: new Date("2026-07-10"), sessions: 540 },
-	{ date: new Date("2026-07-11"), sessions: 260 },
-	{ date: new Date("2026-07-12"), sessions: 210 },
-	{ date: new Date("2026-07-13"), sessions: 480 },
-	{ date: new Date("2026-07-14"), sessions: 380 },
-];
-
-export function CurveExample() {
-	return (
-		<div className="grid w-full gap-6 sm:grid-cols-2">
-			<div className="flex flex-col gap-2">
-				<p id="area-curve-linear" className="text-muted font-mono text-xs">
-					curve="linear" (default)
-				</p>
-				<AreaChart.Root data={sessionData} xKey="date" aria-labelledby="area-curve-linear">
-					<AreaChart.Grid />
-					<AreaChart.XAxis />
-					<AreaChart.YAxis />
-					<AreaChart.Area dataKey="sessions" label="Sessions" color="blue" />
-					<AreaChart.Tooltip />
-				</AreaChart.Root>
-			</div>
-			<div className="flex flex-col gap-2">
-				<p id="area-curve-monotone" className="text-muted font-mono text-xs">
-					curve="monotone"
-				</p>
-				<AreaChart.Root data={sessionData} xKey="date" aria-labelledby="area-curve-monotone">
-					<AreaChart.Grid />
-					<AreaChart.XAxis />
-					<AreaChart.YAxis />
-					<AreaChart.Area dataKey="sessions" label="Sessions" curve="monotone" color="blue" />
-					<AreaChart.Tooltip />
-				</AreaChart.Root>
-			</div>
-		</div>
-	);
-}
-
-export const outageData = [
-	{ date: new Date("2026-07-05"), requests: 1200 },
-	{ date: new Date("2026-07-06"), requests: 1350 },
-	{ date: new Date("2026-07-07"), requests: 1500 },
-	{ date: new Date("2026-07-08"), requests: null },
-	{ date: new Date("2026-07-09"), requests: null },
-	{ date: new Date("2026-07-10"), requests: 1420 },
-	{ date: new Date("2026-07-11"), requests: 1600 },
-	{ date: new Date("2026-07-12"), requests: 1680 },
-	{ date: new Date("2026-07-13"), requests: 1540 },
-	{ date: new Date("2026-07-14"), requests: 1750 },
-];
-
-export function GapsExample() {
-	return (
-		<div className="grid w-full gap-6 sm:grid-cols-2">
-			<div className="flex flex-col gap-2">
-				<p id="area-gaps-default" className="text-muted font-mono text-xs">
-					gaps (default)
-				</p>
-				<AreaChart.Root data={outageData} xKey="date" aria-labelledby="area-gaps-default">
-					<AreaChart.Grid />
-					<AreaChart.XAxis />
-					<AreaChart.YAxis />
-					<AreaChart.Area dataKey="requests" label="Requests" color="blue" />
-					<AreaChart.Tooltip />
-				</AreaChart.Root>
-			</div>
-			<div className="flex flex-col gap-2">
-				<p id="area-gaps-connect" className="text-muted font-mono text-xs">
-					connectNulls
-				</p>
-				<AreaChart.Root data={outageData} xKey="date" aria-labelledby="area-gaps-connect">
-					<AreaChart.Grid />
-					<AreaChart.XAxis />
-					<AreaChart.YAxis />
-					<AreaChart.Area dataKey="requests" label="Requests" connectNulls color="blue" />
-					<AreaChart.Tooltip />
-				</AreaChart.Root>
-			</div>
-		</div>
-	);
-}
-
-export function ReferenceLineExample() {
-	return (
-		<AreaChart.Root
-			data={trafficData}
-			xKey="date"
-			stacked
-			aria-label="Connections by protocol against provisioned capacity"
-			className="max-w-2xl"
-		>
-			<AreaChart.Grid />
-			<AreaChart.XAxis />
-			<AreaChart.YAxis tickFormat={(value) => `${value / 1000}k`} />
-			<AreaChart.Area dataKey="http" label="HTTP" color="blue" />
-			<AreaChart.Area dataKey="tcp" label="TCP" color="emerald" />
-			<AreaChart.Area dataKey="tls" label="TLS" color="pink" />
-			<AreaChart.ReferenceLine y={9000} label="Capacity" />
-			<AreaChart.Tooltip />
-			<AreaChart.Legend />
-		</AreaChart.Root>
-	);
-}
-
-export const streamEpoch = new Date("2026-07-14T12:00:00Z").getTime();
-
-export const formatClock = new Intl.DateTimeFormat("en-US", {
-	hour: "2-digit",
-	minute: "2-digit",
-	second: "2-digit",
-	hour12: false,
-	timeZone: "UTC",
-});
-
-export function streamPoint(tick) {
-	const drift = 400 * Math.sin(tick / 240);
-	const swell = 600 * Math.sin(tick / 9);
-	const chop = 180 * Math.sin(tick / 2.2);
-	return {
-		time: new Date(streamEpoch + tick * 200),
-		throughput: Math.round(2400 + drift + swell + chop),
-	};
-}
-
-export function LiveAreaExample() {
-	const [tick, setTick] = useState(0);
-	useEffect(() => {
-		const interval = setInterval(() => {
-			setTick((current) => current + 1);
-		}, 200);
-		return () => clearInterval(interval);
-	}, []);
-	const data = Array.from({ length: 60 }, (_, index) => streamPoint(tick + index));
-	return (
-		<AreaChart.Root
-			data={data}
-			xKey="time"
-			aria-label="Live tunnel throughput"
-			className="max-w-2xl"
-		>
-			<AreaChart.Grid />
-			<AreaChart.XAxis
-				tickFormat={(value) => (value instanceof Date ? formatClock.format(value) : String(value))}
-			/>
-			<AreaChart.YAxis />
-			<AreaChart.Area dataKey="throughput" label="Throughput" curve="monotone" color="blue" />
-			<AreaChart.Tooltip
-				labelFormat={(value) => (value instanceof Date ? formatClock.format(value) : String(value))}
-			/>
-		</AreaChart.Root>
-	);
-}
-
-export const placeholderTraffic = [30, 48, 40, 62, 55, 74, 66, 80].map((value, index) => ({
-	minute: index,
-	value,
-}));
-
-export function EmptyStateAreaChartExample() {
-	return (
-		<div className="relative w-full">
-			<AreaChart.Root data={placeholderTraffic} xKey="minute" mode="decorative">
-				<AreaChart.Area dataKey="value" curve="monotone" color="blue" />
-			</AreaChart.Root>
-			<Empty.Root className="absolute inset-0 m-auto h-fit w-fit">
-				<Empty.Title>No traffic yet</Empty.Title>
-				<Empty.Description>
-					<p>Throughput will appear here once your endpoints start serving traffic.</p>
-				</Empty.Description>
-			</Empty.Root>
-		</div>
-	);
-}
-
-export function SeriesIdentityAreaChartExample() {
-	return (
-		<AreaChart.Root
-			data={trafficData}
-			xKey="date"
-			stacked
-			// An app declares its brand token once, high in the tree. This example
-			// declares it beside the override so it stands alone. A theme that needs
-			// its own value takes a variant: `dark:[--color-brand:…]`.
-			className="max-w-2xl [--color-brand:#d07c00] [--color-chart-blue:var(--color-brand)]"
-			aria-label="Connections by protocol, HTTP in the brand color"
-		>
-			<AreaChart.Grid />
-			<AreaChart.XAxis />
-			<AreaChart.YAxis tickFormat={(value) => `${value / 1000}k`} />
-			<AreaChart.Area dataKey="http" label="HTTP" color="blue" />
-			<AreaChart.Area dataKey="tcp" label="TCP" color="emerald" />
-			<AreaChart.Area dataKey="tls" label="TLS" color="var(--color-accent-600)" />
-			<AreaChart.Tooltip />
-			<AreaChart.Legend />
-		</AreaChart.Root>
-	);
-}
 
 # Area Chart
 
 An area chart for showing how values (and, when stacked, a total and its parts) change over a continuous x axis. Compose the gridlines, axes, and one `AreaChart.Area` per series inside `AreaChart.Root`.
 
-<Example>
-	<SingleSeriesAreaExample />
-</Example>
+<Example example="components/charts/area-chart/overview" title="Area Chart example" />
 
 ```tsx
 import { AreaChart } from "@ngrok/mantle/area-chart";
@@ -439,9 +58,10 @@ const trafficData = [
 
 Set `stacked` on the Root to show a total and its parts. The top edge of the stack is the total, and each band is the share of one series. Compose `AreaChart.Legend` on every multi-series chart.
 
-<Example>
-	<StackedAreaExample />
-</Example>
+<Example
+	example="components/charts/area-chart/stacked-areas"
+	title="Area Chart stacked areas example"
+/>
 
 ```tsx
 import { AreaChart } from "@ngrok/mantle/area-chart";
@@ -485,9 +105,10 @@ const trafficData = [
 
 Without `stacked`, every series fills from the zero baseline and the areas overlap. The 10% wash is what keeps this legible: with two series you can read both bands and the region where they cross. Every hover dot is a circle by default. Where bands cross, set `shape` on a series to give its dot a second encoding beside color (see [Shapes](#shapes) below).
 
-<Example>
-	<OverlappingAreasExample />
-</Example>
+<Example
+	example="components/charts/area-chart/overlapping-areas"
+	title="Area Chart overlapping areas example"
+/>
 
 ```tsx
 import { AreaChart } from "@ngrok/mantle/area-chart";
@@ -530,9 +151,7 @@ There are eight glyphs: `"circle"`, `"square"`, `"triangle"`, `"diamond"`, `"tri
 
 The example below pins a controlled `activeIndex` (falling back to a fixed point when the pointer leaves) so the dots stay visible without hovering. US East keeps the default circle, EU West sets `"square"`, and AP South sets `"star"`. Move the crosshair and each dot keeps its series' glyph at every position. [Point shapes](/components/charts/scatter-plot#point-shapes) on the scatter plot page is the full family treatment.
 
-<Example>
-	<ShapesExample />
-</Example>
+<Example example="components/charts/area-chart/shapes" title="Area Chart shapes example" />
 
 ```tsx
 import { AreaChart } from "@ngrok/mantle/area-chart";
@@ -585,9 +204,10 @@ function ShapesExample() {
 
 `curve` picks the interpolation between points: `"linear"` (the default) draws straight segments, `"monotone"` smooths the band without overshooting the data, and `"step"` holds each value until the next point. Smoothing is presentation only: the plotted values, tooltip readout, and keyboard cursor are identical in both charts below.
 
-<Example>
-	<CurveExample />
-</Example>
+<Example
+	example="components/charts/area-chart/curve-interpolation"
+	title="Area Chart curve interpolation example"
+/>
 
 ```tsx
 import { AreaChart } from "@ngrok/mantle/area-chart";
@@ -634,9 +254,10 @@ const sessionData = [
 
 `null` (or missing) values render as gaps by default: a hole in the band that says "no data here", which is usually the honest choice for missed scrapes and collection outages. Set `connectNulls` on the `Area` to join across the hole when the gap is a collection artifact rather than a real absence.
 
-<Example>
-	<GapsExample />
-</Example>
+<Example
+	example="components/charts/area-chart/gaps-in-the-data"
+	title="Area Chart gaps in the data example"
+/>
 
 ```tsx
 import { AreaChart } from "@ngrok/mantle/area-chart";
@@ -691,9 +312,10 @@ anchored there and the baseline sits on the axis rather than floating through th
 accessible name, the tooltip, and the data table: "0" is the answer, and a screen reader needs to hear it. Reach
 for `mode="decorative"` only when the values are a synthetic backdrop behind an empty-state message.
 
-<Example>
-	<NoTrafficYetAreaChartExample />
-</Example>
+<Example
+	example="components/charts/area-chart/no-traffic-yet"
+	title="Area Chart no traffic yet example"
+/>
 
 ```tsx
 import { AreaChart } from "@ngrok/mantle/area-chart";
@@ -725,9 +347,10 @@ function NoTrafficYetAreaChartExample() {
 
 `AreaChart.ReferenceLine` paints a dashed horizontal marker at a y value — an SLO threshold, a budget, a capacity limit — with an optional label above its right end. Here the stacked total crosses provisioned capacity twice:
 
-<Example>
-	<ReferenceLineExample />
-</Example>
+<Example
+	example="components/charts/area-chart/reference-lines"
+	title="Area Chart reference lines example"
+/>
 
 ```tsx
 import { AreaChart } from "@ngrok/mantle/area-chart";
@@ -776,9 +399,7 @@ Motion plays only while the chart is on screen. A chart that is near the viewpor
 
 This demo appends one point every 200ms to a sliding 60-point window. Each point derives from a pure formula over a tick counter and a fixed epoch, so every render is deterministic; a real chart would append measurements as they arrive.
 
-<Example>
-	<LiveAreaExample />
-</Example>
+<Example example="components/charts/area-chart/live-data" title="Area Chart live data example" />
 
 ```tsx
 import { AreaChart } from "@ngrok/mantle/area-chart";
@@ -843,9 +464,10 @@ function LiveAreaExample() {
 
 `AreaChart.CopyButton` copies the chart's current rows to the clipboard as a machine-stable, GitHub-flavored markdown table: one x column plus one column per series in paint order (an ISO 8601 timestamp for every x on a time scale, plain un-separated numbers, an em dash for gaps), pasteable into Slack, issues, spreadsheets, and LLM chats. The button renders in flow where composed; `Root` is relatively positioned, so `className` can dock it over a corner.
 
-<Example>
-	<CopyMarkdownExample />
-</Example>
+<Example
+	example="components/charts/area-chart/copy-as-markdown"
+	title="Area Chart copy as markdown example"
+/>
 
 ```tsx
 import { AreaChart } from "@ngrok/mantle/area-chart";
@@ -912,9 +534,10 @@ Reach for `mode="decorative"` over hand-rolled `inert` + CSS: it removes the int
 
 `mode="decorative"` says the values are not information; it is not a `disabled` flag (a chart is not a form control). For real data a reader only glances at, use [`mode="static"`](#static-charts).
 
-<Example>
-	<EmptyStateAreaChartExample />
-</Example>
+<Example
+	example="components/charts/area-chart/decorative-charts"
+	title="Area Chart decorative charts example"
+/>
 
 ```tsx
 import { Empty } from "@ngrok/mantle/empty";
@@ -1227,9 +850,10 @@ The chart paints every token as CSS, so the browser resolves it inside the Root'
 
 The example below rethemes `blue` to a brand orange, so HTTP paints `#d07c00`. TLS paints a CSS string, `var(--color-accent-600)`, which each theme declares.
 
-<Example>
-	<SeriesIdentityAreaChartExample />
-</Example>
+<Example
+	example="components/charts/area-chart/series-identity-and-color"
+	title="Area Chart series identity and color example"
+/>
 
 ```tsx
 import { AreaChart } from "@ngrok/mantle/area-chart";

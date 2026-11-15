@@ -4,19 +4,13 @@ description: Marks a short fragment of inline computer code, such as a function 
 aliases: [inline code, monospace]
 ---
 
-import { Anchor } from "@ngrok/mantle/anchor";
-import { Code } from "@ngrok/mantle/code";
 import { Example } from "~/components/example";
 
 # Code
 
 Marks a short fragment of inline computer code, such as a function name, a variable, a CLI flag, or a key.
 
-<Example>
-	<p>
-		Use the <Code>console.log()</Code> function to debug your code.
-	</p>
-</Example>
+<Example example="components/data-display/code/overview" title="Code example" />
 
 ```tsx
 import { Code } from "@ngrok/mantle/code";
@@ -42,11 +36,7 @@ import { Code } from "@ngrok/mantle/code";
 
 `Code` renders a native `<code>` element with mantle's monospace styling. Pass `asChild` to render `Code` styling on a different element (for example, a link wrapping a code-styled label).
 
-<Example>
-	<Code asChild>
-		<Anchor href="https://ngrok.com/docs">/api/components.json</Anchor>
-	</Code>
-</Example>
+<Example example="components/data-display/code/polymorphism" title="Code polymorphism example" />
 
 ```tsx
 import { Anchor } from "@ngrok/mantle/anchor";
@@ -65,11 +55,7 @@ The attribute also protects the render itself: Google Translate replaces each te
 
 `Code` also styles terms that are not code, so the default is overridable. Pass `translate="yes"` when the content is prose:
 
-<Example>
-	<p>
-		Open the <Code translate="yes">dashboard</Code> to see your endpoints.
-	</p>
-</Example>
+<Example example="components/data-display/code/translation" title="Code translation example" />
 
 ```tsx
 import { Code } from "@ngrok/mantle/code";

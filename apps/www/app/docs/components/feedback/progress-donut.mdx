@@ -4,62 +4,13 @@ description: Displays an indicator showing the completion progress of a task as 
 aliases: [circular progress, progress ring, progress circle, radial progress]
 ---
 
-import { ProgressDonut } from "@ngrok/mantle/progress";
-import { useState } from "react";
 import { Example } from "~/components/example";
-
-export const DynamicColorsExample = () => {
-	const [value, setValue] = useState(0);
-
-    function computeColor() {
-    	switch (true) {
-    		case value <= 20:
-    			return "text-accent-600";
-    		case value <= 40:
-    			return "text-success-600";
-    		case value <= 60:
-    			return "text-warning-600";
-    		case value <= 80:
-    			return "text-fuchsia-600";
-    		default:
-    			return "text-danger-600";
-    	}
-    }
-
-    return (
-    	<form className="space-y-4">
-    		<ProgressDonut.Root aria-label="Task progress" value={value} className="size-10" strokeWidth="0.375rem">
-    			<ProgressDonut.Indicator className={computeColor()} />
-    		</ProgressDonut.Root>
-    		<label className="block space-y-1">
-    			<p>Value: {value}%</p>
-    			<input
-    				type="range"
-    				min={0}
-    				max={100}
-    				value={value}
-    				onChange={(event) => setValue(Number(event.target.value))}
-    			/>
-    		</label>
-    	</form>
-    );
-
-};
 
 # Progress Donut
 
 Displays an indicator showing the completion progress of a task as a circular progress bar. Give `ProgressDonut.Root` an `aria-label`, or a screen reader announces a bare "progress bar".
 
-<Example>
-	<ProgressDonut.Root
-		aria-label="Task progress"
-		value={60}
-		className="size-10"
-		strokeWidth="0.375rem"
-	>
-		<ProgressDonut.Indicator />
-	</ProgressDonut.Root>
-</Example>
+<Example example="components/feedback/progress-donut/overview" title="Progress Donut example" />
 
 ```tsx
 import { ProgressDonut } from "@ngrok/mantle/progress";
@@ -83,16 +34,10 @@ import { ProgressDonut } from "@ngrok/mantle/progress";
 
 The indicator color is inherited via `currentColor`. Override the default (`accent-600`) by setting the `ProgressDonut.Indicator`'s text color.
 
-<Example>
-	<ProgressDonut.Root
-		aria-label="Task progress"
-		value={60}
-		className="size-10"
-		strokeWidth="0.375rem"
-	>
-		<ProgressDonut.Indicator className="text-fuchsia-600" />
-	</ProgressDonut.Root>
-</Example>
+<Example
+	example="components/feedback/progress-donut/indicator-color"
+	title="Progress Donut indicator color example"
+/>
 
 ```tsx
 import { ProgressDonut } from "@ngrok/mantle/progress";
@@ -111,42 +56,10 @@ import { ProgressDonut } from "@ngrok/mantle/progress";
 
 Put a short label beside a small donut to show the usage of each item in a list.
 
-<Example>
-	<div className="flex flex-col gap-2">
-		<div className="flex items-center gap-1.5 text-sm">
-			<ProgressDonut.Root aria-label="Data transfer out" value={100} className="size-6">
-				<ProgressDonut.Indicator />
-			</ProgressDonut.Root>
-			Data transfer out
-		</div>
-		<div className="flex items-center gap-1.5 text-xs">
-			<div className="grid w-6 place-items-center">
-				<ProgressDonut.Root
-					aria-label="Included"
-					value={100}
-					className="size-4"
-					strokeWidth="0.1875rem"
-				>
-					<ProgressDonut.Indicator />
-				</ProgressDonut.Root>
-			</div>
-			Included
-		</div>
-		<div className="flex items-center gap-1.5 text-xs">
-			<div className="grid w-6 place-items-center">
-				<ProgressDonut.Root
-					aria-label="Additional"
-					value={25}
-					className="size-4"
-					strokeWidth="0.1875rem"
-				>
-					<ProgressDonut.Indicator />
-				</ProgressDonut.Root>
-			</div>
-			Additional
-		</div>
-	</div>
-</Example>
+<Example
+	example="components/feedback/progress-donut/with-a-label"
+	title="Progress Donut with a label example"
+/>
 
 ```tsx
 import { ProgressDonut } from "@ngrok/mantle/progress";
@@ -197,25 +110,10 @@ Set the `value` prop to `"indeterminate"` to show the donut in an indeterminate 
 
 Control the rotation speed with the `indeterminateRotationSpeed` prop.
 
-<Example className="flex-col gap-6">
-	<ProgressDonut.Root
-		aria-label="Task progress"
-		className="size-10"
-		value="indeterminate"
-		strokeWidth="0.375rem"
-	>
-		<ProgressDonut.Indicator />
-	</ProgressDonut.Root>
-	<ProgressDonut.Root
-		aria-label="Task progress"
-		className="size-10"
-		value="indeterminate"
-		indeterminateRotationSpeed="animation-duration-[2s]"
-		strokeWidth="0.375rem"
-	>
-		<ProgressDonut.Indicator />
-	</ProgressDonut.Root>
-</Example>
+<Example
+	example="components/feedback/progress-donut/indeterminate-value"
+	title="Progress Donut indeterminate value example"
+/>
 
 ```tsx
 import { ProgressDonut } from "@ngrok/mantle/progress";
@@ -239,9 +137,10 @@ import { ProgressDonut } from "@ngrok/mantle/progress";
 
 `ProgressDonut.Indicator` inherits its color from the parent text color through `currentColor`. Set the parent's text color to change the indicator based on the current progress value.
 
-<Example>
-	<DynamicColorsExample />
-</Example>
+<Example
+	example="components/feedback/progress-donut/dynamic-colors"
+	title="Progress Donut dynamic colors example"
+/>
 
 ```tsx
 import { ProgressDonut } from "@ngrok/mantle/progress";
@@ -250,18 +149,19 @@ const Example = () => {
 	const [value, setValue] = useState(0);
 
 	function computeColor() {
-		switch (true) {
-			case value <= 20:
-				return "text-accent-600";
-			case value <= 40:
-				return "text-success-600";
-			case value <= 60:
-				return "text-warning-600";
-			case value <= 80:
-				return "text-fuchsia-600";
-			default:
-				return "text-danger-600";
+		if (value <= 20) {
+			return "text-accent-600";
 		}
+		if (value <= 40) {
+			return "text-success-600";
+		}
+		if (value <= 60) {
+			return "text-warning-600";
+		}
+		if (value <= 80) {
+			return "text-fuchsia-600";
+		}
+		return "text-danger-600";
 	}
 
 	return (

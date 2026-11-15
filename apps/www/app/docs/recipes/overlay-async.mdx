@@ -4,7 +4,6 @@ description: Render a Sheet, Dialog, or Alert Dialog immediately, then swap its 
 ---
 
 import { Example } from "~/components/example";
-import { UserOverlayDemo } from "~/features/overlay-async-demo";
 
 # Overlays + Async Data (React Query)
 
@@ -64,9 +63,10 @@ The worked example below uses `Sheet` as the shell; the [next section](#swapping
 
 What transfers is the **structure**: the synchronous mount, the single branching region, the hook-owned retry policy, and the success-gated actions. What doesn't is the markup inside each state: `UserDetails`, the skeleton shapes, and the header/footer copy are demo content standing in for your real UI.
 
-<Example className="rounded-b-lg border-b">
-	<UserOverlayDemo />
-</Example>
+<Example
+	example="recipes/overlay-async/complete-recipe"
+	title="Overlays + Async Data (React Query) complete recipe example"
+/>
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";

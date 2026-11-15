@@ -109,9 +109,9 @@ const trails = [
  *
  * @example
  * ```tsx
- * <Example>
+ * <PreviewCanvas>
  *   <RouteBreadcrumbsDemo />
- * </Example>
+ * </PreviewCanvas>
  * ```
  */
 export function RouteBreadcrumbsDemo() {

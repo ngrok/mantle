@@ -5,25 +5,14 @@ aliases: [banner, announcement bar, global banner]
 ---
 
 import { CodeExample } from "~/components/code-example";
-import { Example } from "~/components/example";
 import { PageHeader } from "~/components/page-header";
-import {
-	AlertCenterCustomContentExample,
-	AlertCenterExample,
-	AlertCenterMixedDismissabilityExample,
-	AlertCenterPersistedDismissExample,
-	AlertCenterRouteAlertExample,
-	AlertCenterSingleAlertExample,
-	AlertCenterSupportingCopyExample,
-} from "~/features/alert-center-demos";
+import { Example } from "~/components/example";
 
 <PageHeader id="alert-center">Alert Center</PageHeader>
 
 A single top-level bar that surfaces one-to-many account alerts and their upgrade CTAs, expanding additional alerts inline. Compose it into [`AppLayout.Notice`](/layouts/app-layout#applayoutnotice), and author each alert as an `AlertCenter.Item` with the [`Alert`](/components/feedback/alert) banner parts as its children.
 
-<Example>
-	<AlertCenterSingleAlertExample />
-</Example>
+<Example example="components/feedback/alert-center/overview" title="Alert Center example" />
 
 ```tsx
 import { Alert } from "@ngrok/mantle/alert";
@@ -132,9 +121,10 @@ next-highest severity into the bar. An item authored without one (say, a hard-st
 must resolve) is not dismissable; see [Dismissability](#dismissability) for choosing which alerts
 offer it.
 
-<Example>
-	<AlertCenterExample />
-</Example>
+<Example
+	example="components/feedback/alert-center/several-alerts"
+	title="Alert Center several alerts example"
+/>
 
 ```tsx
 import { Alert } from "@ngrok/mantle/alert";
@@ -313,9 +303,10 @@ Because the bar always surfaces the top-ranked alert, a non-dismissable danger a
 to the most urgent call-to-action while acknowledgeable alerts come and go beneath it. This demo opens
 expanded; note the top danger alert and the hard-limit warning render no dismiss button:
 
-<Example>
-	<AlertCenterMixedDismissabilityExample />
-</Example>
+<Example
+	example="components/feedback/alert-center/dismissability"
+	title="Alert Center dismissability example"
+/>
 
 ```tsx
 import { Alert } from "@ngrok/mantle/alert";
@@ -402,9 +393,10 @@ The demo simulates the fetch loop: dismiss the transfer warning, then resolve an
 the "server". The alert returns even though its id was acknowledged, because the dismissal was pruned when
 the condition cleared. Reload the page mid-session and acknowledged alerts stay away.
 
-<Example>
-	<AlertCenterPersistedDismissExample />
-</Example>
+<Example
+	example="components/feedback/alert-center/persisting-dismissals"
+	title="Alert Center persisting dismissals example"
+/>
 
 ```tsx
 import { Alert } from "@ngrok/mantle/alert";
@@ -482,9 +474,10 @@ a single line for a title alone and a two-line banner once a description is comp
 alert renders as an expansion row. Nothing is suppressed by placement, so a CTA reads naturally from the
 description (`Please update your payment method.`) instead of being crammed into the title.
 
-<Example>
-	<AlertCenterSupportingCopyExample />
-</Example>
+<Example
+	example="components/feedback/alert-center/supporting-copy-in-the-bar"
+	title="Alert Center supporting copy in the bar example"
+/>
 
 ```tsx
 import { Alert } from "@ngrok/mantle/alert";
@@ -576,9 +569,10 @@ the shell's bar by rendering an item: no shell state, no prop drilling, no conte
 **Endpoints** to have the route raise a DNS warning that outranks the account notice, then **Agents** to
 watch it clear:
 
-<Example>
-	<AlertCenterRouteAlertExample />
-</Example>
+<Example
+	example="components/feedback/alert-center/where-alertcenter-root-goes"
+	title="Alert Center Where AlertCenter.Root goes example"
+/>
 
 ```tsx
 import { Alert } from "@ngrok/mantle/alert";
@@ -680,9 +674,10 @@ than a wrapper you can style.
 Every banner is authored JSX, so anything composes: a custom icon via `Alert.Icon`'s `svg` prop, inline
 `code`, or placement-aware extras using the `data-placement` styling hook.
 
-<Example>
-	<AlertCenterCustomContentExample />
-</Example>
+<Example
+	example="components/feedback/alert-center/custom-content"
+	title="Alert Center custom content example"
+/>
 
 ```tsx
 import { Alert } from "@ngrok/mantle/alert";

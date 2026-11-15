@@ -156,9 +156,9 @@ function Trail({ crumbs }: { crumbs: ReadonlyArray<string> }) {
  *
  * @example
  * ```tsx
- * <Example>
+ * <PreviewCanvas>
  *   <RouteHeaderActionsDemo />
- * </Example>
+ * </PreviewCanvas>
  * ```
  */
 export function RouteHeaderActionsDemo() {

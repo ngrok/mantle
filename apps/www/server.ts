@@ -8,7 +8,7 @@ import { allowsIndexing, EDGE_HEADER } from "~/utilities/indexing";
 import { previewFrameOrigin } from "~/utilities/mcp/flags.server";
 import { DIGEST_INTERVAL_MS, mcpPulse } from "~/utilities/mcp/pulse.server";
 
-/** True for a framed example preview (`/preview/:exampleName`), which a docs page shows in an iframe. */
+/** True for a framed example preview (`/preview/*`), which a docs page shows in an iframe. */
 function isPreviewDocument(path: string): boolean {
 	return path === "/preview" || path.startsWith("/preview/");
 }

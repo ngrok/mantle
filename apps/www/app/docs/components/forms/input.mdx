@@ -4,84 +4,13 @@ description: Fundamental component for inputs.
 aliases: [text input, text field, textfield, textbox]
 ---
 
-import { Button } from "@ngrok/mantle/button";
-import { Field, toErrorMessages } from "@ngrok/mantle/field";
-import { Input, InputCapture } from "@ngrok/mantle/input";
-import { InfoIcon } from "@phosphor-icons/react/Info";
-import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
-import { useForm } from "@tanstack/react-form";
-import { z } from "zod";
 import { Example } from "~/components/example";
-
-export const formSchema = z.object({
-email: z.string().email("Enter a valid email address."),
-});
-export function TanStackFormExample() {
-const defaultValues = {
-email: "",
-};
-const form = useForm({
-defaultValues,
-validators: {
-onSubmit: formSchema,
-},
-onSubmit: ({ value }) => {
-window.alert(`Submitted: ${JSON.stringify(value, null, 2)}`);
-},
-});
-
-    return (
-    	<form
-    		className="w-full max-w-sm space-y-4"
-    		onSubmit={(event) => {
-    			event.preventDefault();
-    			event.stopPropagation();
-    			void form.handleSubmit();
-    		}}
-    	>
-    		<form.Field name="email">
-    			{(field) => (
-    				<Field.Item name={field.name}>
-    					<Field.Label>Email</Field.Label>
-    					<Field.Control>
-    						<Input
-    							type="email"
-    							value={field.state.value}
-    							onBlur={field.handleBlur}
-    							onChange={(event) => field.handleChange(event.target.value)}
-    							placeholder="you@example.com"
-    						/>
-    					</Field.Control>
-    					<Field.Errors messages={toErrorMessages(field.state.meta.errors)} />
-    				</Field.Item>
-    			)}
-    		</form.Field>
-    		<Button type="submit" appearance="filled" intent="neutral">
-    			Submit
-    		</Button>
-    	</form>
-    );
-
-}
 
 # Input
 
 Fundamental component for inputs. Pair it with `Field` to connect its label, description, and errors in a form.
 
-<Example className="flex flex-col gap-6">
-	<Field.Item className="max-w-80" name="username">
-		<Field.Label>Username</Field.Label>
-		<Field.Control>
-			<Input placeholder="Enter a username" />
-		</Field.Control>
-	</Field.Item>
-	<Field.Item className="max-w-80" name="email">
-		<Field.Label>Email</Field.Label>
-		<Field.Control>
-			<Input placeholder="Enter your email" autoComplete="email" />
-		</Field.Control>
-	</Field.Item>
-</Example>
+<Example example="components/forms/input/overview" title="Input example" />
 
 ```tsx
 import { Field } from "@ngrok/mantle/field";
@@ -114,26 +43,7 @@ import { Input } from "@ngrok/mantle/input";
 
 Set `validation` to show the validation status of the input. It changes the border and the outline.
 
-<Example className="flex flex-col gap-6">
-	<Field.Item className="max-w-80" name="error">
-		<Field.Label>Error</Field.Label>
-		<Field.Control>
-			<Input placeholder={'validation="error"'} validation="error" />
-		</Field.Control>
-	</Field.Item>
-	<Field.Item className="max-w-80" name="success">
-		<Field.Label>Success</Field.Label>
-		<Field.Control>
-			<Input placeholder={'validation="success"'} validation="success" />
-		</Field.Control>
-	</Field.Item>
-	<Field.Item className="max-w-80" name="warning">
-		<Field.Label>Warning</Field.Label>
-		<Field.Control>
-			<Input placeholder={'validation="warning"'} validation="warning" />
-		</Field.Control>
-	</Field.Item>
-</Example>
+<Example example="components/forms/input/validation" title="Input validation example" />
 
 ```tsx
 import { Field } from "@ngrok/mantle/field";
@@ -163,9 +73,7 @@ import { Input } from "@ngrok/mantle/input";
 
 Render the control on its own when a form field wrapper does not fit.
 
-<Example>
-	<Input className="max-w-80" placeholder="Enter a username" />
-</Example>
+<Example example="components/forms/input/without-a-field" title="Input Without a Field example" />
 
 ```tsx
 import { Input } from "@ngrok/mantle/input";
@@ -179,9 +87,10 @@ import { Input } from "@ngrok/mantle/input";
 
 Use `@tanstack/react-form` with `zod` when the input needs controlled value, blur, submit, and validation state. `Field.Item` owns the field name and `Field.Errors` renders normalized validator messages.
 
-<Example className="w-full">
-	<TanStackFormExample />
-</Example>
+<Example
+	example="components/forms/input/with-tanstack-form"
+	title="Input With TanStack Form example"
+/>
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -191,7 +100,7 @@ import { useForm } from "@tanstack/react-form";
 import { z } from "zod";
 
 export const formSchema = z.object({
-	email: z.string().email("Enter a valid email address."),
+	email: z.email("Enter a valid email address."),
 });
 function Example() {
 	const defaultValues = {
@@ -245,64 +154,7 @@ Compose additional visual or functional elements within the `Input` using `child
 
 When composing with interactive content (e.g. a `button`), consider whether that element should be tab-indexable or receive focus!
 
-<Example className="grid grid-cols-2 place-items-center gap-6">
-	<Field.Item className="max-w-80" name="search-start">
-		<Field.Label>Search with start icon</Field.Label>
-		<Field.Control>
-			<Input className="max-w-64" placeholder="Search...">
-				<MagnifyingGlassIcon />
-				<InputCapture />
-			</Input>
-		</Field.Control>
-	</Field.Item>
-	<Field.Item className="max-w-80" name="search-end">
-		<Field.Label>Search with end icon</Field.Label>
-		<Field.Control>
-			<Input className="max-w-64" placeholder="Search...">
-				<InputCapture />
-				<InfoIcon />
-			</Input>
-		</Field.Control>
-	</Field.Item>
-	<Field.Item className="max-w-80" name="search-both">
-		<Field.Label>Search with start and end icons</Field.Label>
-		<Field.Control>
-			<Input className="max-w-64" placeholder="Search...">
-				<MagnifyingGlassIcon />
-				<InputCapture />
-				<InfoIcon />
-			</Input>
-		</Field.Control>
-	</Field.Item>
-	<Field.Item className="max-w-80" name="search-start-error">
-		<Field.Label>Search with start icon (error)</Field.Label>
-		<Field.Control>
-			<Input className="max-w-64" placeholder="Search..." validation="error">
-				<MagnifyingGlassIcon />
-				<InputCapture />
-			</Input>
-		</Field.Control>
-	</Field.Item>
-	<Field.Item className="max-w-80" name="search-end-error">
-		<Field.Label>Search with end icon (error)</Field.Label>
-		<Field.Control>
-			<Input className="max-w-64" placeholder="Search..." validation="error">
-				<InputCapture />
-				<InfoIcon />
-			</Input>
-		</Field.Control>
-	</Field.Item>
-	<Field.Item className="max-w-80" name="search-both-error">
-		<Field.Label>Search with start and end icons (error)</Field.Label>
-		<Field.Control>
-			<Input className="max-w-64" validation="error" placeholder="Search...">
-				<MagnifyingGlassIcon />
-				<InputCapture />
-				<InfoIcon />
-			</Input>
-		</Field.Control>
-	</Field.Item>
-</Example>
+<Example example="components/forms/input/child-elements" title="Input child elements example" />
 
 ```tsx
 import { Field } from "@ngrok/mantle/field";

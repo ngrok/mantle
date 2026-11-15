@@ -4,7 +4,6 @@ description: Custom React hooks exported from @ngrok/mantle/hooks
 ---
 
 import { Example } from "~/components/example";
-import { UseInViewDemo } from "~/features/use-in-view-demo";
 
 # Hooks
 
@@ -552,9 +551,7 @@ Do not combine `once: true` with `initial: true`. With both set, the hook report
 Live demo for the useInView hook.
 A scrollable container where the observed element transitions between in-view and out-of-view states as you scroll.
 
-<Example className="p-0 overflow-hidden">
-	<UseInViewDemo />
-</Example>
+<Example example="hooks/useinview-example" title="Hooks useInView example example" />
 
 ```tsx
 "use client";

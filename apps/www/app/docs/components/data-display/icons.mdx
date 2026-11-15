@@ -4,33 +4,14 @@ description: Custom icons used throughout ngrok UI.
 aliases: [icon set, icon library]
 ---
 
-import {
-	AutoThemeIcon,
-	NgrokLettermarkIcon,
-	NgrokWordmarkIcon,
-	SortIcon,
-	ThemeIcon,
-	TrafficPolicyFileIcon,
-} from "@ngrok/mantle/icons";
-import { CheckCircleIcon } from "@phosphor-icons/react/CheckCircle";
-import { WarningIcon } from "@phosphor-icons/react/Warning";
-import { XCircleIcon } from "@phosphor-icons/react/XCircle";
-import { Example } from "~/components/example";
-import { Icon } from "@ngrok/mantle/icon";
 import { IconsExplorer } from "~/features/icons-explorer";
+import { Example } from "~/components/example";
 
 # Icons
 
 Custom icons used throughout ngrok UI.
 
-<Example className="gap-4">
-	<SortIcon mode="time" direction="newest-to-oldest" />
-	<ThemeIcon theme="system" />
-	<AutoThemeIcon />
-	<TrafficPolicyFileIcon />
-	<NgrokLettermarkIcon />
-	<NgrokWordmarkIcon />
-</Example>
+<Example example="components/data-display/icons/overview" title="Icons example" />
 
 ```tsx
 import {
@@ -76,20 +57,10 @@ Icons inherit the text color, so most icons stay neutral. Tint an icon only when
 - **Use one meaning for each color.** Danger red means an error or a destructive result. Do not use it for an icon that is only important.
 - **Keep the label in the body color.** Tint the icon, not the text beside it, so the label stays readable.
 
-<Example className="flex-col items-start gap-2">
-	<p className="flex items-center gap-2">
-		<Icon svg={<CheckCircleIcon weight="fill" />} className="text-success-600" />
-		Online
-	</p>
-	<p className="flex items-center gap-2">
-		<Icon svg={<WarningIcon weight="fill" />} className="text-warning-600" />
-		Degraded
-	</p>
-	<p className="flex items-center gap-2">
-		<Icon svg={<XCircleIcon weight="fill" />} className="text-danger-600" />
-		Offline
-	</p>
-</Example>
+<Example
+	example="components/data-display/icons/color-coded-icons"
+	title="Icons color-coded icons example"
+/>
 
 ```tsx
 import { Icon } from "@ngrok/mantle/icon";

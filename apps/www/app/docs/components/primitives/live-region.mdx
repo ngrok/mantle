@@ -4,40 +4,13 @@ description: A persistent, visually hidden region that announces its text to scr
 aliases: [aria live, announcer]
 ---
 
-import { Button } from "@ngrok/mantle/button";
-import { LiveRegion } from "@ngrok/mantle/live-region";
-import { useState } from "react";
 import { Example } from "~/components/example";
 
 # Live Region
 
 A persistent, visually hidden region that announces its text to screen readers when the text changes. Keep `LiveRegion` mounted from first paint and swap only its children.
 
-export function ResultsExample() {
-	const [count, setCount] = useState(3);
-	return (
-		<div className="flex flex-col items-start gap-4">
-			<Button
-				type="button"
-				appearance="filled"
-				intent="neutral"
-				onClick={() => setCount((current) => current + 1)}
-			>
-				Add a result
-			</Button>
-			<LiveRegion>{`${count} results found`}</LiveRegion>
-			<ul className="list-disc pl-5 text-sm">
-				{Array.from({ length: count }, (_, index) => (
-					<li key={index}>Result {index + 1}</li>
-				))}
-			</ul>
-		</div>
-	);
-}
-
-<Example>
-	<ResultsExample />
-</Example>
+<Example example="components/primitives/live-region/overview" title="Live Region example" />
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -79,12 +52,10 @@ function ResultsExample() {
 
 `LiveRegion` accepts an `asChild` prop. When `true`, it renders its single child instead of its default `<span>`, forwarding its class names, ARIA attributes, `data-*` attributes, and ref onto that child.
 
-<Example>
-	<LiveRegion asChild>
-		<p>Ready.</p>
-	</LiveRegion>
-	<p className="text-muted text-sm">The live region above is a hidden paragraph element.</p>
-</Example>
+<Example
+	example="components/primitives/live-region/polymorphism"
+	title="Live Region polymorphism example"
+/>
 
 ```tsx
 import { LiveRegion } from "@ngrok/mantle/live-region";
@@ -106,27 +77,10 @@ A screen reader does not re-announce a message identical to the previous one. Wh
 
 By default, `LiveRegion` renders a persistent, visually hidden `<span>` with `role="status"` and `aria-live="polite"`. The redundant `aria-live` covers screen reader and browser pairs that honor only one of the two. When `politeness` is `"assertive"`, it renders `role="alert"` alone. The role already carries assertive live-region semantics, and a redundant `aria-live` makes VoiceOver on iOS announce the message twice.
 
-export function AssertiveExample() {
-	const [message, setMessage] = useState("");
-	return (
-		<div className="flex flex-col items-start gap-4">
-			<Button
-				type="button"
-				appearance="outlined"
-				intent="danger"
-				onClick={() => setMessage("Session expired. Sign in again.")}
-			>
-				Expire the session
-			</Button>
-			<LiveRegion politeness="assertive">{message}</LiveRegion>
-			<p className="text-muted text-sm">{message || "The session is active."}</p>
-		</div>
-	);
-}
-
-<Example>
-	<AssertiveExample />
-</Example>
+<Example
+	example="components/primitives/live-region/politeness"
+	title="Live Region politeness example"
+/>
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -156,37 +110,10 @@ function AssertiveExample() {
 
 A single-page app repaints on navigation without a page load, so screen readers announce nothing. Feed a persistent `LiveRegion` the page name from your router's location, so it announces each completed navigation. The demo swaps pages with local state because the docs site cannot navigate inside an example. In your app, derive `pageName` from the router's location instead. The [Route Announcer recipe](/recipes/route-announcer) is the complete pattern wired to React Router: page-name fallbacks, repeat-message handling, and tests.
 
-export function RouteAnnouncerExample() {
-	const [pageName, setPageName] = useState("Dashboard");
-	return (
-		<div className="flex flex-col items-start gap-4">
-			<nav className="flex gap-2">
-				<Button
-					type="button"
-					appearance="outlined"
-					intent="neutral"
-					onClick={() => setPageName("Dashboard")}
-				>
-					Dashboard
-				</Button>
-				<Button
-					type="button"
-					appearance="outlined"
-					intent="neutral"
-					onClick={() => setPageName("Settings")}
-				>
-					Settings
-				</Button>
-			</nav>
-			<LiveRegion>{`Navigated to ${pageName}`}</LiveRegion>
-			<h3 className="text-lg font-medium">{pageName}</h3>
-		</div>
-	);
-}
-
-<Example>
-	<RouteAnnouncerExample />
-</Example>
+<Example
+	example="components/primitives/live-region/announcing-route-changes"
+	title="Live Region announcing route changes example"
+/>
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";

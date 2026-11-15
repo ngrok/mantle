@@ -4,30 +4,13 @@ description: A form control that toggles one setting on or off.
 aliases: [toggle, toggle switch]
 ---
 
-import { Button } from "@ngrok/mantle/button";
-import { Choice } from "@ngrok/mantle/choice";
-import { Field, toErrorMessages } from "@ngrok/mantle/field";
-import { Label } from "@ngrok/mantle/label";
-import { Switch } from "@ngrok/mantle/switch";
-import { useForm } from "@tanstack/react-form";
-import { z } from "zod";
 import { Example } from "~/components/example";
 
 # Switch
 
 A form control that toggles one setting on or off. Pair it with `Field` to connect its label, description, and errors in a form.
 
-<Example>
-	<Field.Item name="airplane-mode-field">
-		<Field.Label className="inline-flex items-center gap-2">
-			<Field.Control>
-				<Switch />
-			</Field.Control>
-			Airplane Mode
-		</Field.Label>
-		<Field.Description>Disables wireless radios while in flight.</Field.Description>
-	</Field.Item>
-</Example>
+<Example example="components/forms/switch/overview" title="Switch example" />
 
 ```tsx
 import { Field } from "@ngrok/mantle/field";
@@ -55,36 +38,7 @@ import { Switch } from "@ngrok/mantle/switch";
 
 Render the control on its own, with a `Label` as its caption:
 
-<Example className="grid place-items-center">
-	<div className="flex flex-col gap-6">
-		<Label htmlFor="airplane-mode" className="self-start inline-flex items-center gap-2">
-			Airplane Mode
-			<Switch id="airplane-mode" />
-		</Label>
-		<Label htmlFor="unchecked" className="self-start inline-flex items-center gap-2">
-			<Switch checked={false} id="unchecked" readOnly />
-			<p>Unchecked (readonly)</p>
-		</Label>
-		<Label htmlFor="checked" className="self-start inline-flex items-center gap-2">
-			<Switch checked={true} id="checked" readOnly />
-			<p>Checked (readonly)</p>
-		</Label>
-		<Label
-			htmlFor="airplane-mode-disabled-unchecked"
-			className="self-start inline-flex items-center gap-2"
-		>
-			<Switch disabled id="airplane-mode-disabled-unchecked" readOnly />
-			<p>Airplane Mode Disabled Unchecked (readonly)</p>
-		</Label>
-		<Label
-			htmlFor="airplane-mode-disabled-checked"
-			className="self-start inline-flex items-center gap-2"
-		>
-			<Switch checked disabled id="airplane-mode-disabled-checked" readOnly />
-			<p>Airplane Mode Disabled Checked (readonly)</p>
-		</Label>
-	</div>
-</Example>
+<Example example="components/forms/switch/without-a-field" title="Switch Without a Field example" />
 
 ```tsx
 import { Label } from "@ngrok/mantle/label";
@@ -100,21 +54,10 @@ import { Switch } from "@ngrok/mantle/switch";
 
 For a switch with an emphasized title and a supplementary description beneath it, compose it inside [`Choice`](/components/forms/choice): drop the `Switch` into `Choice.Indicator` and pair `Choice.Label` (a real `<label>`; clicking it flips the switch, since a `<button role="switch">` is a labelable element) with an optional `Choice.Description`. The switch aligns to the leading of the title's first line, and the description associates via `aria-describedby`.
 
-<Example>
-	<div className="w-full max-w-md">
-		<Choice.Root name="email-notifications">
-			<Choice.Indicator>
-				<Switch defaultChecked />
-			</Choice.Indicator>
-			<Choice.Content>
-				<Choice.Label>Email notifications</Choice.Label>
-				<Choice.Description>
-					Get notified by email when a deploy finishes or a tunnel goes offline.
-				</Choice.Description>
-			</Choice.Content>
-		</Choice.Root>
-	</div>
-</Example>
+<Example
+	example="components/forms/switch/multi-line-label-with-description"
+	title="Switch multi-line label with description example"
+/>
 
 ```tsx
 import { Choice } from "@ngrok/mantle/choice";
@@ -137,26 +80,7 @@ import { Switch } from "@ngrok/mantle/switch";
 
 Wrap that same `Choice` in a `Field.Item` / `Field.Control` to bind a form `name` and pick up validation. The field's `id` / `name` / `aria-*` flow onto the switch, and the `Field.Description` (or a `Field.Errors`) is merged into the control's `aria-describedby` alongside the `Choice.Description`:
 
-<Example>
-	<div className="w-full max-w-md">
-		<Field.Item name="email-notifications">
-			<Field.Control>
-				<Choice.Root>
-					<Choice.Indicator>
-						<Switch defaultChecked />
-					</Choice.Indicator>
-					<Choice.Content>
-						<Choice.Label>Email notifications</Choice.Label>
-						<Choice.Description>
-							Get notified by email when a deploy finishes or a tunnel goes offline.
-						</Choice.Description>
-					</Choice.Content>
-				</Choice.Root>
-			</Field.Control>
-			<Field.Description>You can fine-tune which events notify you later.</Field.Description>
-		</Field.Item>
-	</div>
-</Example>
+<Example example="components/forms/switch/inside-a-field" title="Switch Inside a Field example" />
 
 ```tsx
 import { Choice } from "@ngrok/mantle/choice";
@@ -189,61 +113,10 @@ See the [`Choice` docs](/components/forms/choice) for the clickable-row variant 
 
 In this example, the `Switch` is used in a form with client-side validation. The form is built using [`@tanstack/react-form`](https://tanstack.com/form/latest/docs) and `zod` for validation. The form accepts and validates the input before submission.
 
-export const formSchema = z.object({
-	airplaneMode: z.boolean(),
-});
-
-export function FormExample() {
-	const defaultValues = {
-		airplaneMode: false,
-	};
-	const form = useForm({
-		defaultValues,
-		validators: {
-			onSubmit: formSchema,
-		},
-		onSubmit: ({ value }) => {
-			window.alert(`Form submitted: ${JSON.stringify(value, null, 2)}`);
-		},
-	});
-
-    return (
-    <form
-    	className="space-y-4 w-full"
-    	onSubmit={(event) => {
-    		event.preventDefault();
-    		event.stopPropagation();
-    		void form.handleSubmit();
-    	}}
-    >
-    	<form.Field name="airplaneMode">
-    		{(field) => (
-    			<Field.Item name={field.name}>
-    				<Field.Label className="inline-flex items-center gap-2">
-    					Airplane Mode
-    					<Field.Control>
-    						<Switch
-    							checked={field.state.value}
-    							onBlur={field.handleBlur}
-    							onCheckedChange={(value) => field.handleChange(value)}
-    						/>
-    					</Field.Control>
-    				</Field.Label>
-    				<Field.Errors messages={toErrorMessages(field.state.meta.errors)} />
-    			</Field.Item>
-    		)}
-    	</form.Field>
-    	<Button type="submit" appearance="filled" intent="neutral">
-    		Submit
-    	</Button>
-    </form>
-    );
-
-}
-
-<Example className="flex-col w-full">
-	<FormExample />
-</Example>
+<Example
+	example="components/forms/switch/switch-in-a-form-with-client-side-validation"
+	title="Switch switch in a form with client-side validation example"
+/>
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";

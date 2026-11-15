@@ -4,146 +4,14 @@ description: Hierarchy-path navigation, an ordered list of links from a root to 
 aliases: [breadcrumbs, crumbs]
 ---
 
-import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
-import { Link, href } from "react-router";
-import { Example } from "~/components/example";
 import { PageHeader } from "~/components/page-header";
-
-export function BreadcrumbExample() {
-	return (
-		<Breadcrumb.Root>
-			<Breadcrumb.List>
-				<Breadcrumb.Item>
-					<Breadcrumb.Link href="#">Home</Breadcrumb.Link>
-				</Breadcrumb.Item>
-				<Breadcrumb.Separator />
-				<Breadcrumb.Item>
-					<Breadcrumb.Link href="#">Endpoints</Breadcrumb.Link>
-				</Breadcrumb.Item>
-				<Breadcrumb.Separator />
-				<Breadcrumb.Item>
-					<Breadcrumb.Page>ep_2h8…</Breadcrumb.Page>
-				</Breadcrumb.Item>
-			</Breadcrumb.List>
-		</Breadcrumb.Root>
-	);
-}
-
-export function BreadcrumbSlashSeparatorExample() {
-	return (
-		<Breadcrumb.Root>
-			<Breadcrumb.List>
-				<Breadcrumb.Item>
-					<Breadcrumb.Link href="#">Home</Breadcrumb.Link>
-				</Breadcrumb.Item>
-				<Breadcrumb.Separator>
-					<span>/</span>
-				</Breadcrumb.Separator>
-				<Breadcrumb.Item>
-					<Breadcrumb.Link href="#">Domains</Breadcrumb.Link>
-				</Breadcrumb.Item>
-				<Breadcrumb.Separator>
-					<span>/</span>
-				</Breadcrumb.Separator>
-				<Breadcrumb.Item>
-					<Breadcrumb.Page>app.example.com</Breadcrumb.Page>
-				</Breadcrumb.Item>
-			</Breadcrumb.List>
-		</Breadcrumb.Root>
-	);
-}
-
-export function BreadcrumbPrefixCrumbExample() {
-	return (
-		<Breadcrumb.Root>
-			<Breadcrumb.List>
-				<Breadcrumb.Item>
-					<Breadcrumb.Label>Settings</Breadcrumb.Label>
-				</Breadcrumb.Item>
-				<Breadcrumb.Separator />
-				<Breadcrumb.Item>
-					<Breadcrumb.Page>General</Breadcrumb.Page>
-				</Breadcrumb.Item>
-			</Breadcrumb.List>
-		</Breadcrumb.Root>
-	);
-}
-
-export function BreadcrumbSkeletonExample() {
-	return (
-		<Breadcrumb.Root>
-			<Breadcrumb.List>
-				<Breadcrumb.Item>
-					<Breadcrumb.Link href="#">Apps</Breadcrumb.Link>
-				</Breadcrumb.Item>
-				<Breadcrumb.Separator />
-				<Breadcrumb.Skeleton className="w-40" />
-			</Breadcrumb.List>
-		</Breadcrumb.Root>
-	);
-}
-
-export function BreadcrumbOverflowExample() {
-	return (
-		<div className="border-card-muted bg-card flex w-full max-w-sm items-center gap-2 rounded-lg border px-4 py-3">
-			<Breadcrumb.Root>
-				<Breadcrumb.List>
-					<Breadcrumb.Item>
-						<Breadcrumb.Link href="#">Acme Corp</Breadcrumb.Link>
-					</Breadcrumb.Item>
-					<Breadcrumb.Separator />
-					<Breadcrumb.Item>
-						<Breadcrumb.Link href="#">Endpoints</Breadcrumb.Link>
-					</Breadcrumb.Item>
-					<Breadcrumb.Separator />
-					<Breadcrumb.Item>
-						<Breadcrumb.Link href="#">Cloud Endpoints</Breadcrumb.Link>
-					</Breadcrumb.Item>
-					<Breadcrumb.Separator />
-					<Breadcrumb.Item>
-						<Breadcrumb.Link href="#">Traffic Policy</Breadcrumb.Link>
-					</Breadcrumb.Item>
-					<Breadcrumb.Separator />
-					<Breadcrumb.Item>
-						<Breadcrumb.Page>ep_2h8xyz</Breadcrumb.Page>
-					</Breadcrumb.Item>
-				</Breadcrumb.List>
-			</Breadcrumb.Root>
-		</div>
-	);
-}
-
-export function BreadcrumbRouterLinkExample() {
-	return (
-		<Breadcrumb.Root>
-			<Breadcrumb.List>
-				<Breadcrumb.Item>
-					<Breadcrumb.Link asChild>
-						<Link to={href("/")}>Home</Link>
-					</Breadcrumb.Link>
-				</Breadcrumb.Item>
-				<Breadcrumb.Separator />
-				<Breadcrumb.Item>
-					<Breadcrumb.Link asChild>
-						<Link to={href("/components/navigation/anchor")}>Anchor</Link>
-					</Breadcrumb.Link>
-				</Breadcrumb.Item>
-				<Breadcrumb.Separator />
-				<Breadcrumb.Item>
-					<Breadcrumb.Page>Breadcrumb</Breadcrumb.Page>
-				</Breadcrumb.Item>
-			</Breadcrumb.List>
-		</Breadcrumb.Root>
-	);
-}
+import { Example } from "~/components/example";
 
 <PageHeader id="breadcrumb">Breadcrumb</PageHeader>
 
 Hierarchy-path navigation per the [WAI-ARIA breadcrumb pattern](https://www.w3.org/WAI/ARIA/apg/patterns/breadcrumb/): an ordered list of links from a root to the current page, inside a `<nav>` landmark labeled "Breadcrumb".
 
-<Example>
-	<BreadcrumbExample />
-</Example>
+<Example example="components/navigation/breadcrumb/overview" title="Breadcrumb example" />
 
 ```tsx
 import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
@@ -176,9 +44,10 @@ import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
 
 `Breadcrumb.Separator` renders a caret icon by default. Pass your own children to replace it, such as a slash.
 
-<Example>
-	<BreadcrumbSlashSeparatorExample />
-</Example>
+<Example
+	example="components/navigation/breadcrumb/custom-separator"
+	title="Breadcrumb custom separator example"
+/>
 
 ```tsx
 import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
@@ -233,9 +102,10 @@ Breadcrumb.Root
 
 Every part except `Breadcrumb.Skeleton` supports `asChild`: the skeleton's whole value is the placeholder content it generates, so there is no element to swap. The one that matters most is `Breadcrumb.Link`: the component never imports a router, so compose the link styling onto your framework's link (a `react-router` `Link` here) to get client-side navigation:
 
-<Example>
-	<BreadcrumbRouterLinkExample />
-</Example>
+<Example
+	example="components/navigation/breadcrumb/polymorphism"
+	title="Breadcrumb polymorphism example"
+/>
 
 ```tsx
 import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
@@ -266,9 +136,10 @@ import { Link, href } from "react-router";
 
 Not every crumb is a destination. In a trail like `Settings > General`, `Settings` is a section prefix: its index URL only redirects to `/settings/general`, so a link there would bounce the user back to the page they are already on. Render that crumb as a `Breadcrumb.Label`, muted text like the rest of the trail, with no `href` and no `aria-current`:
 
-<Example>
-	<BreadcrumbPrefixCrumbExample />
-</Example>
+<Example
+	example="components/navigation/breadcrumb/the-prefix-crumb"
+	title="Breadcrumb the prefix crumb example"
+/>
 
 ```tsx
 import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
@@ -292,9 +163,10 @@ The label stays an `Item` in the `<ol>`, so it still counts as a step in the tra
 
 Some labels only exist in fetched data: `Apps > my-app > Settings`, where `my-app` is a resource name the URL does not carry. While that query is pending, `Breadcrumb.Skeleton` stands in for the unresolved segment: one crumb-sized pulsing bar, plus a screen-reader-only `role="status"` announcement ("Loading breadcrumbs…" by default; set `label` for localization). The bar is `w-24` by default — pass a `w-*` utility for your best-guess width, so the row's shape holds when the real crumbs replace it:
 
-<Example>
-	<BreadcrumbSkeletonExample />
-</Example>
+<Example
+	example="components/navigation/breadcrumb/the-pending-trail"
+	title="Breadcrumb the pending trail example"
+/>
 
 ```tsx
 import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
@@ -330,9 +202,7 @@ The trail starts at its end, because the end is the current page. It scrolls its
 
 For this to work inside a flex row such as [`AppLayout.Header`](/layouts/app-layout#applayoutheader), `Breadcrumb.Root` carries `min-w-0`: the landmark gives up width to the row instead of pushing its siblings out of it. The crumbs themselves never shrink, so a crumb keeps its label on one line.
 
-<Example>
-	<BreadcrumbOverflowExample />
-</Example>
+<Example example="components/navigation/breadcrumb/overflow" title="Breadcrumb overflow example" />
 
 ```tsx
 import { Breadcrumb } from "@ngrok/mantle/breadcrumb";

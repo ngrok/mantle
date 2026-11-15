@@ -4,124 +4,13 @@ description: A small image representing a person or an account, with a text or i
 aliases: [profile picture, profile photo]
 ---
 
-import { Avatar } from "@ngrok/mantle/avatar";
-import { MediaObject } from "@ngrok/mantle/media-object";
-import { UserIcon } from "@phosphor-icons/react/User";
 import { Example } from "~/components/example";
-
-export const accounts = [
-	{ id: "acc_acme", name: "Acme Corp" },
-	{ id: "acc_atlas", name: "Atlas Industries" },
-	{ id: "acc_globex", name: "Globex" },
-	{ id: "acc_initech", name: "Initech" },
-	{ id: "acc_umbrella", name: "Umbrella Group" },
-];
-
-export function AvatarExample() {
-	return (
-		<div className="flex items-center gap-4">
-			<Avatar.Root appearance="square" colorSeed="acc_acme">
-				<Avatar.Fallback name="Acme Corp" />
-			</Avatar.Root>
-			<Avatar.Root>
-				<Avatar.Image alt="Jane Doe" src="/example-avatar.svg" />
-				<Avatar.Fallback name="Jane Doe" />
-			</Avatar.Root>
-			<Avatar.Root aria-label="Your account" className="text-muted" role="img">
-				<Avatar.Fallback>
-					<UserIcon className="size-4" />
-				</Avatar.Fallback>
-			</Avatar.Root>
-		</div>
-	);
-}
-
-export function AvatarAppearanceExample() {
-	return (
-		<div className="flex items-center gap-6">
-			<div className="flex items-center gap-2">
-				<Avatar.Root appearance="circle" colorSeed="usr_jane">
-					<Avatar.Fallback name="Jane Doe" />
-				</Avatar.Root>
-				<span className="text-sm">Jane Doe</span>
-			</div>
-			<div className="flex items-center gap-2">
-				<Avatar.Root appearance="square" colorSeed="acc_acme">
-					<Avatar.Fallback name="Acme Corp" />
-				</Avatar.Root>
-				<span className="text-sm">Acme Corp</span>
-			</div>
-		</div>
-	);
-}
-
-export function AvatarSeedExample() {
-	return (
-		<div className="flex flex-wrap items-center gap-4">
-			{accounts.map((account) => (
-				<div key={account.id} className="flex items-center gap-2">
-					<Avatar.Root appearance="square" colorSeed={account.id}>
-						<Avatar.Fallback name={account.name} />
-					</Avatar.Root>
-					<span className="text-sm">{account.name}</span>
-				</div>
-			))}
-		</div>
-	);
-}
-
-export function AvatarSizeExample() {
-	return (
-		<div className="flex items-end gap-4">
-			<Avatar.Root className="size-5 text-[0.625rem]" colorSeed="usr_jane">
-				<Avatar.Fallback name="Jane Doe" />
-			</Avatar.Root>
-			<Avatar.Root colorSeed="usr_jane">
-				<Avatar.Fallback name="Jane Doe" />
-			</Avatar.Root>
-			<Avatar.Root className="size-10 text-sm" colorSeed="usr_jane">
-				<Avatar.Fallback name="Jane Doe" />
-			</Avatar.Root>
-			<Avatar.Root className="size-16 text-lg" colorSeed="usr_jane">
-				<Avatar.Fallback name="Jane Doe" />
-			</Avatar.Root>
-		</div>
-	);
-}
-
-export function AvatarMediaObjectExample() {
-	return (
-		<MediaObject.Root className="max-w-sm">
-			<MediaObject.Media>
-				<Avatar.Root className="size-9" colorSeed="usr_jane">
-					<Avatar.Fallback name="Jane Doe" />
-				</Avatar.Root>
-			</MediaObject.Media>
-			<MediaObject.Content>
-				<p className="text-strong text-sm font-medium">Jane Doe</p>
-				<p className="text-muted text-sm">jane@acme.com</p>
-			</MediaObject.Content>
-		</MediaObject.Root>
-	);
-}
-
-export function AvatarLinkExample() {
-	return (
-		<Avatar.Root asChild appearance="square" colorSeed="acc_acme">
-			<a href="/components/data-display/avatar" title="Acme Corp">
-				<Avatar.Fallback name="Acme Corp" />
-			</a>
-		</Avatar.Root>
-	);
-}
 
 # Avatar
 
 A small image representing a person or an account, with a text or icon fallback. Pick the shape by subject: `appearance="circle"` is a person, and `appearance="square"` is an account, workspace, team, or organization.
 
-<Example className="p-4 md:p-8">
-	<AvatarExample />
-</Example>
+<Example example="components/data-display/avatar/overview" title="Avatar example" />
 
 ```tsx
 import { Avatar } from "@ngrok/mantle/avatar";
@@ -179,9 +68,10 @@ initials show through a loaded picture; give it its own backdrop if that matters
 framework image component, on `Root` when the avatar is itself a link or a button, and on `Fallback` when the
 initials want a more specific element (an `<abbr title="…">`, say).
 
-<Example className="p-4 md:p-8">
-	<AvatarLinkExample />
-</Example>
+<Example
+	example="components/data-display/avatar/polymorphism"
+	title="Avatar polymorphism example"
+/>
 
 ```tsx
 import { Avatar } from "@ngrok/mantle/avatar";
@@ -202,9 +92,7 @@ export function LinkedAvatar() {
 Circles are people, rounded squares are accounts. Nothing enforces it, but keeping the two distinct is what
 lets a dense row of both stay legible, so pick per subject rather than per screen.
 
-<Example className="p-4 md:p-8">
-	<AvatarAppearanceExample />
-</Example>
+<Example example="components/data-display/avatar/appearance" title="Avatar appearance example" />
 
 ```tsx
 import { Avatar } from "@ngrok/mantle/avatar";
@@ -237,9 +125,10 @@ name**: names get edited, and a rename would silently recolor the avatar.
 
 Omit `colorSeed` for a neutral surface, or set your own `bg-*` through `className` to opt out entirely.
 
-<Example className="p-4 md:p-8">
-	<AvatarSeedExample />
-</Example>
+<Example
+	example="components/data-display/avatar/deterministic-color"
+	title="Avatar deterministic color example"
+/>
 
 ```tsx
 import { Avatar } from "@ngrok/mantle/avatar";
@@ -274,9 +163,7 @@ An avatar is `size-7` and `shrink-0`: a fixed-size visual that the flex rows it 
 row, a table cell, a comment header) must not be able to squeeze. Override the size with `className`, which
 merges last and wins, and scale the text with it so initials stay proportional.
 
-<Example className="p-4 md:p-8">
-	<AvatarSizeExample />
-</Example>
+<Example example="components/data-display/avatar/sizing" title="Avatar sizing example" />
 
 ```tsx
 import { Avatar } from "@ngrok/mantle/avatar";
@@ -320,9 +207,10 @@ An avatar is almost always redundant with text beside it, and mantle defaults to
 For a name and a secondary line beside the avatar, compose
 [MediaObject](/components/structure/media-object) rather than hand-rolling the row.
 
-<Example className="p-4 md:p-8">
-	<AvatarMediaObjectExample />
-</Example>
+<Example
+	example="components/data-display/avatar/composing-with-mediaobject"
+	title="Avatar Composing with MediaObject example"
+/>
 
 ```tsx
 import { Avatar } from "@ngrok/mantle/avatar";

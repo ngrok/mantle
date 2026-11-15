@@ -275,9 +275,9 @@ export function AppLayoutHeaderSlotsExample() {
  *
  * @example
  * ```tsx
- * <CodeExample.Preview className="p-0 md:p-0">
+ * <PreviewCanvas className="h-dvh p-0 md:p-0">
  *   <AppLayoutPageShapesExample />
- * </CodeExample.Preview>
+ * </PreviewCanvas>
  * ```
  */
 export function AppLayoutPageShapesExample() {
@@ -330,9 +330,9 @@ export function AppLayoutPageShapesExample() {
  *
  * @example
  * ```tsx
- * <CodeExample.Preview className="p-0 md:p-0">
+ * <PreviewCanvas className="h-dvh p-0 md:p-0">
  *   <AppLayoutPinnedFooterExample />
- * </CodeExample.Preview>
+ * </PreviewCanvas>
  * ```
  */
 export function AppLayoutPinnedFooterExample() {
@@ -401,9 +401,9 @@ const scrollResetRoutes = [
  *
  * @example
  * ```tsx
- * <CodeExample.Preview className="p-0 md:p-0">
+ * <PreviewCanvas className="h-dvh p-0 md:p-0">
  *   <AppLayoutScrollResetExample />
- * </CodeExample.Preview>
+ * </PreviewCanvas>
  * ```
  */
 export function AppLayoutScrollResetExample() {

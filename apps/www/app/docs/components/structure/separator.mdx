@@ -4,23 +4,13 @@ description: Visually or semantically separates content.
 aliases: [divider, horizontal rule, hr]
 ---
 
-import { HorizontalSeparatorGroup, Separator } from "@ngrok/mantle/separator";
 import { Example } from "~/components/example";
 
 # Separator
 
 Visually or semantically separates content.
 
-<Example>
-	<div className="w-full max-w-sm">
-		<div className="space-y-1">
-			<h4 className="text-sm font-medium leading-none">mantle</h4>
-			<p className="text-muted-foreground text-sm">An open-source UI component library.</p>
-		</div>
-		<Separator className="my-4" />
-		<p className="text-sm">Build ngrok interfaces with shared components.</p>
-	</div>
-</Example>
+<Example example="components/structure/separator/overview" title="Separator example" />
 
 ```tsx
 import { Separator } from "@ngrok/mantle/separator";
@@ -47,15 +37,7 @@ import { Separator } from "@ngrok/mantle/separator";
 
 Set `orientation="vertical"` to divide items in a row. The parent sets the height.
 
-<Example>
-	<div className="flex h-5 items-center gap-4 text-sm">
-		Blog
-		<Separator orientation="vertical" />
-		Docs
-		<Separator orientation="vertical" />
-		Source
-	</div>
-</Example>
+<Example example="components/structure/separator/vertical" title="Separator vertical example" />
 
 ```tsx
 import { Separator } from "@ngrok/mantle/separator";
@@ -73,13 +55,7 @@ import { Separator } from "@ngrok/mantle/separator";
 
 A separator is decorative by default, and assistive technology skips it. Set `semantic` when the line marks a real boundary between two groups of content: it renders `role="separator"`.
 
-<Example>
-	<div className="w-full max-w-sm text-sm">
-		<p>Account settings</p>
-		<Separator className="my-4" semantic />
-		<p>Danger zone</p>
-	</div>
-</Example>
+<Example example="components/structure/separator/semantic" title="Separator semantic example" />
 
 ```tsx
 import { Separator } from "@ngrok/mantle/separator";
@@ -95,23 +71,10 @@ import { Separator } from "@ngrok/mantle/separator";
 
 Wrap a label and one or two separators in a `HorizontalSeparatorGroup` to put the label in the middle or at one end of the line.
 
-<Example>
-	<div className="w-full max-w-sm space-y-4">
-		<HorizontalSeparatorGroup>
-			<Separator />
-			<h3>ngrok mantle</h3>
-			<Separator />
-		</HorizontalSeparatorGroup>
-		<HorizontalSeparatorGroup>
-			<h3>ngrok mantle</h3>
-			<Separator />
-		</HorizontalSeparatorGroup>
-		<HorizontalSeparatorGroup>
-			<Separator />
-			<h3>ngrok mantle</h3>
-		</HorizontalSeparatorGroup>
-	</div>
-</Example>
+<Example
+	example="components/structure/separator/labeled-divider"
+	title="Separator labeled divider example"
+/>
 
 ```tsx
 import { HorizontalSeparatorGroup, Separator } from "@ngrok/mantle/separator";
@@ -137,47 +100,10 @@ import { HorizontalSeparatorGroup, Separator } from "@ngrok/mantle/separator";
 
 When you want to render _something else_ as a `HorizontalSeparatorGroup` or `Separator`, you can use the `asChild` prop to compose.
 
-<Example>
-	<div className="flex w-full max-w-96 flex-col space-y-16">
-		<form>
-			<fieldset className="space-y-4">
-				<HorizontalSeparatorGroup className="w-full" asChild>
-					<legend>
-						Choose your favorite fruit!
-						<Separator asChild>
-							<span />
-						</Separator>
-					</legend>
-				</HorizontalSeparatorGroup>
-				<div className="space-y-2">
-					<div className="space-x-2">
-						<input type="radio" id="apple" name="monster" value="apple" />
-						<label htmlFor="apple">Apple</label>
-					</div>
-					<div className="space-x-2">
-						<input type="radio" id="mango" name="monster" value="mango" />
-						<label htmlFor="mango">Mango</label>
-					</div>
-					<div className="space-x-2">
-						<input type="radio" id="pear" name="monster" value="pear" />
-						<label htmlFor="pear">Pear</label>
-					</div>
-				</div>
-			</fieldset>
-		</form>
-		<div className="flex h-5 items-center space-x-4 text-sm">
-			<div>Blog</div>
-			<Separator orientation="vertical" asChild>
-				<span />
-			</Separator>
-			<div>Docs</div>
-			<Separator orientation="vertical" asChild>
-				<span />
-			</Separator>
-			<div>Source</div>
-		</div>
-	</div>
-</Example>
+<Example
+	example="components/structure/separator/polymorphism"
+	title="Separator polymorphism example"
+/>
 
 ```tsx
 import { HorizontalSeparatorGroup, Separator } from "@ngrok/mantle/separator";
@@ -230,15 +156,7 @@ This is the canonical divider color across mantle: `Accordion` dividers,
 
 Reuse the same color on your own dividers instead of hard-coding it:
 
-<Example className="flex-col gap-4">
-	<div className="border-separator w-full border-b" />
-	<ul className="divide-separator w-full divide-y">
-		<li className="py-1">Blog</li>
-		<li className="py-1">Docs</li>
-		<li className="py-1">Source</li>
-	</ul>
-	<span className="bg-separator h-px w-full" />
-</Example>
+<Example example="components/structure/separator/color" title="Separator color example" />
 
 ```tsx
 <div className="border-separator w-full border-b" />

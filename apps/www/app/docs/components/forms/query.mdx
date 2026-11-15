@@ -5,20 +5,12 @@ aliases: [search bar, search input, filter bar, filter syntax]
 ---
 
 import { Example } from "~/components/example";
-import {
-	InlineActionsQueryExample,
-	QueryExample,
-	RemoteQueryExample,
-	TokenColorsQueryExample,
-} from "~/features/query-demos";
 
 # Query
 
 A filter field where free text and `key:value` qualifiers interleave, with in-place highlighting and suggestions. A grammar from [`@ngrok/mantle/query-filter`](/utils/query-filter) sets the vocabulary, and you own the query through `value` and `onValueChange`.
 
-<Example>
-	<QueryExample />
-</Example>
+<Example example="components/forms/query/overview" title="Query example" />
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -263,9 +255,10 @@ While the query has text, `Query.Input` shows a clear button at its right edge. 
 
 `Query.KeyboardHints` shows the keys the field answers to. When Enter submits a form, set `enterHint` to name that action, such as `"select, or search"`. Put your own footer content in `Query.Footer`, after the hints.
 
-<Example>
-	<InlineActionsQueryExample />
-</Example>
+<Example
+	example="components/forms/query/inline-actions-and-a-footer"
+	title="Query inline actions and a footer example"
+/>
 
 ```tsx
 import { IconButton } from "@ngrok/mantle/button";
@@ -320,9 +313,10 @@ When a server runs the query, declare its vocabulary with `defineRemoteFilterGra
 
 Inside a `<form>`, Enter submits the form, unless the keyboard made a suggestion active. Then Enter accepts that suggestion.
 
-<Example>
-	<RemoteQueryExample />
-</Example>
+<Example
+	example="components/forms/query/search-on-the-server"
+	title="Query search on the server example"
+/>
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -390,9 +384,7 @@ To let a person select a value in a table row and get its filter, call `toggleFa
 
 Keys, values, and `OR` take the colors that [Code Block](/components/data-display/code-block) gives attributes, strings, and operators, so a query reads like the code on the same page. Set the three CSS variables on the field or any ancestor to change them. This calmer set colors only the keys:
 
-<Example>
-	<TokenColorsQueryExample />
-</Example>
+<Example example="components/forms/query/token-colors" title="Query token colors example" />
 
 ```tsx
 import { Query } from "@ngrok/mantle/query";

@@ -6,13 +6,6 @@ aliases: [app shell, application shell, dashboard shell]
 
 import { CodeExample } from "~/components/code-example";
 import { PageHeader } from "~/components/page-header";
-import {
-	AppLayoutHeaderSlotsExample,
-	AppLayoutPageShapesExample,
-	AppLayoutPinnedFooterExample,
-	AppLayoutPolymorphismDemo,
-	AppLayoutScrollResetExample,
-} from "~/features/app-layout-demos";
 
 <PageHeader id="app-layout">App Layout</PageHeader>
 
@@ -843,9 +836,7 @@ Build a custom trigger from [`useSidePanel`](#usesidepanel) instead.
   control share one submission.
 
 <CodeExample.Root>
-	<CodeExample.Preview className="p-0 md:p-0">
-		<AppLayoutPolymorphismDemo />
-	</CodeExample.Preview>
+	<CodeExample.PreviewFrame example="layouts/app-layout/polymorphism" title="App Layout polymorphism example" />
 	<CodeExample.Code>
 
 ```tsx
@@ -898,9 +889,7 @@ trail below and watch it scroll inside the content slot while the two ends hold 
 embedded and has no sidebar, so a back link takes the start slot that `Sidebar.Trigger` takes in an app shell.
 
 <CodeExample.Root>
-	<CodeExample.Preview className="p-0 md:p-0">
-		<AppLayoutHeaderSlotsExample />
-	</CodeExample.Preview>
+	<CodeExample.PreviewFrame example="layouts/app-layout/header-slots" title="App Layout header slots example" />
 	<CodeExample.Code>
 
 ```tsx
@@ -1535,9 +1524,7 @@ root. The example embeds the shell rather than pinning it with `fixed inset-0`, 
 `<div>` to `AppLayout.Body`, because this docs page already owns the `main` landmark.
 
 <CodeExample.Root>
-	<CodeExample.Preview className="p-0 md:p-0">
-		<AppLayoutPageShapesExample />
-	</CodeExample.Preview>
+	<CodeExample.PreviewFrame example="layouts/app-layout/sizing-a-page-to-the-card" title="App Layout sizing a page to the card example" />
 	<CodeExample.Code>
 
 ```tsx
@@ -1865,9 +1852,7 @@ region. There is no `AppLayout.Footer` for it to reach, and it does not need one
 sticky bar do the whole job, and the body stays the one scroll region:
 
 <CodeExample.Root>
-	<CodeExample.Preview className="p-0 md:p-0">
-		<AppLayoutPinnedFooterExample />
-	</CodeExample.Preview>
+	<CodeExample.PreviewFrame example="layouts/app-layout/pinning-a-footer-to-the-card" title="App Layout pinning a footer to the card example" />
 	<CodeExample.Code>
 
 ```tsx
@@ -2082,9 +2067,7 @@ element either way: this example passes `asChild` with a `<div>` because the doc
 `main` landmark, while a real shell puts the ref on `AppLayout.Body` itself.
 
 <CodeExample.Root>
-	<CodeExample.Preview className="p-0 md:p-0">
-		<AppLayoutScrollResetExample />
-	</CodeExample.Preview>
+	<CodeExample.PreviewFrame example="layouts/app-layout/scroll-restoration" title="App Layout scroll restoration example" />
 	<CodeExample.Code>
 
 ```tsx

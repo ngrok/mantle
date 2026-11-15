@@ -4,24 +4,13 @@ description: Render content that screen readers announce and sighted users never
 aliases: [sr only, screen reader only]
 ---
 
-import { Anchor } from "@ngrok/mantle/anchor";
-import { VisuallyHidden } from "@ngrok/mantle/visually-hidden";
 import { Example } from "~/components/example";
 
 # Visually Hidden
 
 Render content that screen readers announce and sighted users never see.
 
-<Example>
-	<p>
-		Read the{" "}
-		<Anchor href="https://status.ngrok.com" target="_blank" rel="noreferrer">
-			status page
-			<VisuallyHidden> (opens in a new tab)</VisuallyHidden>
-		</Anchor>{" "}
-		before you file an incident.
-	</p>
-</Example>
+<Example example="components/primitives/visually-hidden/overview" title="Visually Hidden example" />
 
 ```tsx
 import { Anchor } from "@ngrok/mantle/anchor";
@@ -50,29 +39,10 @@ import { VisuallyHidden } from "@ngrok/mantle/visually-hidden";
 
 `VisuallyHidden` accepts an `asChild` prop. When `true`, it renders its single child instead of its default `<span>`, forwarding its class names, `data-*` attributes, and ref onto that child. When the hidden content should be a more semantic element (a `<caption>`, a `<legend>`, a heading), reach for `asChild`.
 
-<Example>
-	<table className="w-full text-sm">
-		<VisuallyHidden asChild>
-			<caption>Monthly revenue by region</caption>
-		</VisuallyHidden>
-		<thead>
-			<tr>
-				<th className="text-left font-medium">Region</th>
-				<th className="text-right font-medium">Revenue</th>
-			</tr>
-		</thead>
-		<tbody>
-			<tr>
-				<td>North America</td>
-				<td className="text-right">$1,204</td>
-			</tr>
-			<tr>
-				<td>Europe</td>
-				<td className="text-right">$986</td>
-			</tr>
-		</tbody>
-	</table>
-</Example>
+<Example
+	example="components/primitives/visually-hidden/polymorphism"
+	title="Visually Hidden polymorphism example"
+/>
 
 ```tsx
 import { VisuallyHidden } from "@ngrok/mantle/visually-hidden";

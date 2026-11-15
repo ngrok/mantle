@@ -4,51 +4,13 @@ description: A window overlaid on either the primary window or another dialog wi
 aliases: [modal, modal dialog]
 ---
 
-import { Button, IconButton } from "@ngrok/mantle/button";
-import { Code } from "@ngrok/mantle/code";
-import { Dialog } from "@ngrok/mantle/dialog";
-import { Sheet } from "@ngrok/mantle/sheet";
-import { Tooltip } from "@ngrok/mantle/tooltip";
-import { TrashSimpleIcon } from "@phosphor-icons/react/TrashSimple";
 import { Example } from "~/components/example";
-import { FullPageDialogDemo } from "~/examples/dialog/dialog-full-page-demo";
-import { TanStackFormDemo } from "~/examples/dialog/dialog-tanstack-form-demo";
 
 # Dialog
 
 A window overlaid on either the primary window or another dialog window, rendering the content underneath inert.
 
-<Example className="flex-col gap-6">
-	<Dialog.Root>
-		<Dialog.Trigger asChild>
-			<Button type="button" appearance="filled" intent="neutral">
-				Open dialog
-			</Button>
-		</Dialog.Trigger>
-		<Dialog.Content>
-			<Dialog.Header>
-				<Dialog.Title>Are you absolutely sure?</Dialog.Title>
-				<Dialog.CloseIconButton />
-			</Dialog.Header>
-			<Dialog.Body>
-				This action cannot be undone. This will permanently delete your account and remove your data
-				from our servers.
-			</Dialog.Body>
-			<Dialog.Footer>
-				<Dialog.Close asChild>
-					<Button type="button" intent="neutral" appearance="outlined">
-						Cancel
-					</Button>
-				</Dialog.Close>
-				<Dialog.Close asChild>
-					<Button type="button" intent="danger" appearance="filled">
-						Delete
-					</Button>
-				</Dialog.Close>
-			</Dialog.Footer>
-		</Dialog.Content>
-	</Dialog.Root>
-</Example>
+<Example example="components/overlays/dialog/overview" title="Dialog example" />
 
 ```tsx
 import { Dialog } from "@ngrok/mantle/dialog";
@@ -154,76 +116,10 @@ Dialog.Root
 
 The first dialog pairs a short title with a long description. The second pairs a long title with a one-line description in a wider dialog. In both, the title keeps its width and the description sits under it.
 
-<Example className="flex-wrap gap-4">
-	<Dialog.Root>
-		<Dialog.Trigger asChild>
-			<Button type="button" appearance="filled" intent="neutral">
-				Decommission a runner
-			</Button>
-		</Dialog.Trigger>
-		<Dialog.Content>
-			<Dialog.Header>
-				<Dialog.Title>Request decommission?</Dialog.Title>
-				<Dialog.Description>
-					<Code>runner-ecs-us-east-1-7f3a9c</Code> drains before it leaves the pool. It keeps its
-					assigned replicas until it acknowledges the request, then the scheduler removes it.
-				</Dialog.Description>
-				<Dialog.CloseIconButton />
-			</Dialog.Header>
-			<Dialog.Body>
-				<p>
-					Queued work on this runner finishes first. New work goes to the other runners in the pool.
-				</p>
-			</Dialog.Body>
-			<Dialog.Footer>
-				<Dialog.Close asChild>
-					<Button type="button" appearance="outlined" intent="neutral">
-						Cancel
-					</Button>
-				</Dialog.Close>
-				<Dialog.Close asChild>
-					<Button type="button" appearance="filled" intent="danger">
-						Request decommission
-					</Button>
-				</Dialog.Close>
-			</Dialog.Footer>
-		</Dialog.Content>
-	</Dialog.Root>
-	<Dialog.Root>
-		<Dialog.Trigger asChild>
-			<Button type="button" appearance="outlined" intent="neutral">
-				Rotate a signing key
-			</Button>
-		</Dialog.Trigger>
-		<Dialog.Content preferredWidth="max-w-3xl">
-			<Dialog.Header>
-				<Dialog.Title>
-					Rotate the signing key for every endpoint on the staging cluster and revoke the current
-					key after the next deploy?
-				</Dialog.Title>
-				<Dialog.Description>
-					Connected clients re-authenticate on their next request.
-				</Dialog.Description>
-				<Dialog.CloseIconButton />
-			</Dialog.Header>
-			<Dialog.Body>
-				<p>The current key stays valid for one hour after the rotation.</p>
-			</Dialog.Body>
-			<Dialog.Footer>
-				<Dialog.Close asChild>
-					<Button type="button" appearance="outlined" intent="neutral">
-						Cancel
-					</Button>
-				</Dialog.Close>
-				<Dialog.Close asChild>
-					<Button type="button" appearance="filled" intent="neutral">
-						Rotate key
-					</Button>
-				</Dialog.Close>
-			</Dialog.Footer>
-		</Dialog.Content>
-	</Dialog.Root>
-</Example>
+<Example
+	example="components/overlays/dialog/header-with-a-description"
+	title="Dialog header with a description example"
+/>
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -332,9 +228,10 @@ When the content needs the whole viewport, reach for this: a request log, a diff
 
 The switch in the demo body swaps `"full-page"` for `"full-bleed"`.
 
-<Example className="w-full">
-	<FullPageDialogDemo />
-</Example>
+<Example
+	example="components/overlays/dialog/full-page-dialog"
+	title="Dialog full-page dialog example"
+/>
 
 ```tsx
 import { Badge } from "@ngrok/mantle/badge";
@@ -417,49 +314,10 @@ function RequestLogDialog() {
 
 In some cases, you might wish to have a tooltip over the dialog trigger. If the dialog trigger is an `IconButton`, a tooltip adds context about what the button does. Compose the two so the dialog trigger is also the tooltip trigger.
 
-<Example>
-	<Dialog.Root>
-		<Tooltip.Root>
-			<Tooltip.Trigger asChild>
-				<Dialog.Trigger asChild>
-					<IconButton
-						type="button"
-						appearance="outlined"
-						intent="neutral"
-						label="Delete"
-						size="sm"
-						icon={<TrashSimpleIcon />}
-					/>
-				</Dialog.Trigger>
-			</Tooltip.Trigger>
-			<Tooltip.Content>
-				<p>Delete</p>
-			</Tooltip.Content>
-		</Tooltip.Root>
-		<Dialog.Content>
-			<Dialog.Header>
-				<Dialog.Title>Are you absolutely sure?</Dialog.Title>
-				<Dialog.CloseIconButton />
-			</Dialog.Header>
-			<Dialog.Body>
-				This action cannot be undone. This will permanently delete your account and remove your data
-				from our servers.
-			</Dialog.Body>
-			<Dialog.Footer>
-				<Dialog.Close asChild>
-					<Button type="button" intent="neutral" appearance="outlined">
-						Cancel
-					</Button>
-				</Dialog.Close>
-				<Dialog.Close asChild>
-					<Button type="button" intent="danger" appearance="filled">
-						Delete
-					</Button>
-				</Dialog.Close>
-			</Dialog.Footer>
-		</Dialog.Content>
-	</Dialog.Root>
-</Example>
+<Example
+	example="components/overlays/dialog/combining-with-a-tooltip"
+	title="Dialog Combining with a Tooltip example"
+/>
 
 ```tsx
 import { Dialog } from "@ngrok/mantle/dialog";
@@ -514,61 +372,10 @@ import { TrashSimpleIcon } from "@phosphor-icons/react/TrashSimple";
 
 `Dialog` and `Sheet` share the overlay tier (`z-60`), so the most recently mounted overlay renders on top. Open the dialog below first, then open the sheet from inside it: the sheet stacks over the dialog rather than disappearing behind it. Each overlay renders its own backdrop, so the dialog beneath is dimmed by the sheet's overlay.
 
-<Example>
-	<Dialog.Root>
-		<Dialog.Trigger asChild>
-			<Button type="button" appearance="filled" intent="neutral">
-				Open dialog
-			</Button>
-		</Dialog.Trigger>
-		<Dialog.Content>
-			<Dialog.Header>
-				<Dialog.Title>Dialog</Dialog.Title>
-				<Dialog.CloseIconButton />
-			</Dialog.Header>
-			<Dialog.Body className="space-y-4">
-				<p>Open the sheet below — it stacks on top of this dialog.</p>
-				<Sheet.Root>
-					<Sheet.Trigger asChild>
-						<Button type="button" appearance="outlined" intent="neutral">
-							Open sheet
-						</Button>
-					</Sheet.Trigger>
-					<Sheet.Content>
-						<Sheet.Header>
-							<Sheet.TitleGroup>
-								<Sheet.Title>Sheet over a dialog</Sheet.Title>
-								<Sheet.Actions>
-									<Sheet.CloseIconButton />
-								</Sheet.Actions>
-							</Sheet.TitleGroup>
-							<Sheet.Description>
-								This sheet renders on top of the dialog that opened it.
-							</Sheet.Description>
-						</Sheet.Header>
-						<Sheet.Body>
-							<p>Close this sheet to return to the dialog underneath.</p>
-						</Sheet.Body>
-						<Sheet.Footer>
-							<Sheet.Close asChild>
-								<Button type="button" appearance="outlined" intent="neutral">
-									Close
-								</Button>
-							</Sheet.Close>
-						</Sheet.Footer>
-					</Sheet.Content>
-				</Sheet.Root>
-			</Dialog.Body>
-			<Dialog.Footer>
-				<Dialog.Close asChild>
-					<Button type="button" appearance="outlined" intent="neutral">
-						Close
-					</Button>
-				</Dialog.Close>
-			</Dialog.Footer>
-		</Dialog.Content>
-	</Dialog.Root>
-</Example>
+<Example
+	example="components/overlays/dialog/stacking-a-sheet-over-a-dialog"
+	title="Dialog Stacking a Sheet over a Dialog example"
+/>
 
 ```tsx
 import { Dialog } from "@ngrok/mantle/dialog";
@@ -636,9 +443,10 @@ Use [TanStack Form](https://tanstack.com/form) with [`Field`](/components/forms/
 
 If password managers or browser autofill overlays interfere with outside-click dismissal, see [Handling autofill overlays](#handling-autofill-overlays).
 
-<Example className="w-full">
-	<TanStackFormDemo />
-</Example>
+<Example
+	example="components/overlays/dialog/with-tanstack-form"
+	title="Dialog With TanStack Form example"
+/>
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";

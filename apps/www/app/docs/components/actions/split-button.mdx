@@ -4,31 +4,13 @@ description: A button group that pairs a one-click default action with a dropdow
 aliases: [dropdown button, split dropdown, combo button]
 ---
 
-import { CopyIcon, FileTextIcon, PlusIcon, DownloadIcon } from "@phosphor-icons/react";
-import { Icon } from "@ngrok/mantle/icon";
-import { SplitButton } from "@ngrok/mantle/split-button";
 import { Example } from "~/components/example";
 
 # Split Button
 
 A button group that pairs a one-click default action with a dropdown menu of related alternatives.
 
-<Example>
-	<SplitButton.Root>
-		<SplitButton.PrimaryAction icon={<CopyIcon />}>Copy page</SplitButton.PrimaryAction>
-		<SplitButton.MenuTrigger label="Open actions menu" />
-		<SplitButton.MenuContent>
-			<SplitButton.MenuItem>
-				<Icon svg={<CopyIcon />} />
-				Copy page
-			</SplitButton.MenuItem>
-			<SplitButton.MenuItem>
-				<Icon svg={<FileTextIcon />} />
-				View as Markdown
-			</SplitButton.MenuItem>
-		</SplitButton.MenuContent>
-	</SplitButton.Root>
-</Example>
+<Example example="components/actions/split-button/overview" title="Split Button example" />
 
 ```tsx
 import { CopyIcon, FileTextIcon } from "@phosphor-icons/react";
@@ -73,29 +55,7 @@ SplitButton.Root
 
 Set the `size` prop on `SplitButton.Root` to control the height of the whole composite, default `md`. The size applies to both the primary action and the menu trigger so the two halves always share one height; the parts themselves do not accept a `size` prop. The scale is shared with [Button](/components/actions/button) and [IconButton](/components/actions/icon-button).
 
-<Example className="flex-col items-start gap-4">
-	<SplitButton.Root size="sm">
-		<SplitButton.PrimaryAction icon={<PlusIcon />}>New endpoint</SplitButton.PrimaryAction>
-		<SplitButton.MenuTrigger label="Open create options" />
-		<SplitButton.MenuContent>
-			<SplitButton.MenuItem>New domain</SplitButton.MenuItem>
-		</SplitButton.MenuContent>
-	</SplitButton.Root>
-	<SplitButton.Root size="md">
-		<SplitButton.PrimaryAction icon={<PlusIcon />}>New endpoint</SplitButton.PrimaryAction>
-		<SplitButton.MenuTrigger label="Open create options" />
-		<SplitButton.MenuContent>
-			<SplitButton.MenuItem>New domain</SplitButton.MenuItem>
-		</SplitButton.MenuContent>
-	</SplitButton.Root>
-	<SplitButton.Root size="lg">
-		<SplitButton.PrimaryAction icon={<PlusIcon />}>New endpoint</SplitButton.PrimaryAction>
-		<SplitButton.MenuTrigger label="Open create options" />
-		<SplitButton.MenuContent>
-			<SplitButton.MenuItem>New domain</SplitButton.MenuItem>
-		</SplitButton.MenuContent>
-	</SplitButton.Root>
-</Example>
+<Example example="components/actions/split-button/size" title="Split Button size example" />
 
 ```tsx
 import { PlusIcon } from "@phosphor-icons/react";
@@ -114,24 +74,10 @@ import { SplitButton } from "@ngrok/mantle/split-button";
 
 When you want to render _something else_ as a `SplitButton.MenuItem`, you can use the `asChild` prop to compose. This is useful for rendering links as menu items.
 
-<Example>
-	<SplitButton.Root>
-		<SplitButton.PrimaryAction icon={<DownloadIcon />}>Download</SplitButton.PrimaryAction>
-		<SplitButton.MenuTrigger label="Open download options" />
-		<SplitButton.MenuContent>
-			<SplitButton.MenuItem>
-				<Icon svg={<DownloadIcon />} />
-				Download as PDF
-			</SplitButton.MenuItem>
-			<SplitButton.MenuItem asChild>
-				<a href="https://example.com" target="_blank" rel="noopener noreferrer">
-					<Icon svg={<FileTextIcon />} />
-					Open in new tab
-				</a>
-			</SplitButton.MenuItem>
-		</SplitButton.MenuContent>
-	</SplitButton.Root>
-</Example>
+<Example
+	example="components/actions/split-button/polymorphism"
+	title="Split Button polymorphism example"
+/>
 
 ```tsx
 import { DownloadIcon, FileTextIcon } from "@phosphor-icons/react";

@@ -4,19 +4,14 @@ description: A command palette that allows users to search and execute commands,
 aliases: [command palette, command menu, cmdk, spotlight]
 ---
 
-import { Command, MetaKey } from "@ngrok/mantle/command";
-import { CalculatorIcon, CalendarIcon, SmileyIcon, UserIcon } from "@phosphor-icons/react";
-import { Example } from "~/components/example";
-import { CommandDialogDemo, CommandSearchTriggerDemo } from "~/features/command-demos";
 import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # Command
 
 A command palette that allows users to search and execute commands, built on top of [cmdk](https://cmdk.paco.me/). `Command.SearchTrigger` wraps the control that opens the palette and gives it the dialog wiring and the typing behavior.
 
-<Example className="flex flex-col gap-6">
-	<CommandSearchTriggerDemo />
-</Example>
+<Example example="components/navigation/command/overview" title="Command example" />
 
 ```tsx
 import { Command } from "@ngrok/mantle/command";
@@ -86,35 +81,10 @@ function SearchPalette() {
 
 `Command.Root` is the always-visible palette: the same list and filtering without a dialog around it.
 
-<Example className="flex flex-col gap-6">
-	<Command.Root className="rounded-lg border border-dialog shadow-lg bg-dialog md:min-w-112.5">
-		<Command.Input placeholder="Type a command or search..." />
-		<Command.List>
-			<Command.Empty>No results found.</Command.Empty>
-			<Command.Group heading="Suggestions">
-				<Command.Item>
-					<CalendarIcon />
-					<span>Calendar</span>
-				</Command.Item>
-				<Command.Item>
-					<SmileyIcon />
-					<span>Search Emoji</span>
-				</Command.Item>
-				<Command.Item>
-					<CalculatorIcon />
-					<span>Calculator</span>
-				</Command.Item>
-			</Command.Group>
-			<Command.Separator />
-			<Command.Group heading="Settings">
-				<Command.Item>
-					<UserIcon />
-					<span>Profile</span>
-				</Command.Item>
-			</Command.Group>
-		</Command.List>
-	</Command.Root>
-</Example>
+<Example
+	example="components/navigation/command/inline-palette"
+	title="Command inline palette example"
+/>
 
 ```tsx
 import { Command } from "@ngrok/mantle/command";
@@ -153,9 +123,10 @@ import { CalculatorIcon, CalendarIcon, SmileyIcon, UserIcon } from "@phosphor-ic
 
 When the trigger should not behave like a search field at all, use `Command.DialogTrigger` with your own element. It carries no typing behavior; wrap the element in `Command.SearchTrigger` instead when it should.
 
-<Example className="flex flex-col gap-6">
-	<CommandDialogDemo />
-</Example>
+<Example
+	example="components/navigation/command/button-trigger"
+	title="Command button trigger example"
+/>
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -602,11 +573,7 @@ Renders the platform-appropriate meta key glyph (`⌘` for macOS/iOS, `⌃` for 
 
 Use it in keyboard shortcut hints and `Command.Shortcut` labels so each platform shows its own modifier key.
 
-<Example>
-	<kbd className="bg-muted text-muted inline-flex h-5 items-center gap-1 rounded border px-1.5 font-mono text-[10px] font-medium">
-		<MetaKey /> K
-	</kbd>
-</Example>
+<Example example="components/navigation/command/metakey" title="Command MetaKey example" />
 
 ```tsx
 import { MetaKey } from "@ngrok/mantle/command";

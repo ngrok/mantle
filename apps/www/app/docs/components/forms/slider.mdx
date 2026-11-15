@@ -4,78 +4,13 @@ description: An input where the user selects a value from within a given range.
 aliases: [range slider, range input]
 ---
 
-import { Button } from "@ngrok/mantle/button";
-import { Field, toErrorMessages } from "@ngrok/mantle/field";
-import { Slider } from "@ngrok/mantle/slider";
-import { useForm } from "@tanstack/react-form";
-import { z } from "zod";
 import { Example } from "~/components/example";
-
-export const formSchema = z.object({
-	volume: z.number().min(25, "Choose at least 25."),
-});
-export function TanStackFormExample() {
-	const defaultValues = {
-		volume: 50,
-	};
-	const form = useForm({
-		defaultValues,
-		validators: {
-			onSubmit: formSchema,
-		},
-		onSubmit: ({ value }) => {
-			window.alert(`Submitted: ${JSON.stringify(value, null, 2)}`);
-		},
-	});
-
-    return (
-    	<form
-    		className="w-full max-w-sm space-y-4"
-    		onSubmit={(event) => {
-    			event.preventDefault();
-    			event.stopPropagation();
-    			void form.handleSubmit();
-    		}}
-    	>
-    		<form.Field name="volume">
-    			{(field) => (
-    				<Field.Item name={field.name}>
-    					<Field.Label>Volume</Field.Label>
-    					<Field.Control>
-    						<Slider
-    							aria-label="Volume"
-    							value={field.state.value}
-    							onBlur={field.handleBlur}
-    							onValueChange={(value) => field.handleChange(value[0] ?? 0)}
-    							max={100}
-    							step={1}
-    						/>
-    					</Field.Control>
-    					<Field.Errors messages={toErrorMessages(field.state.meta.errors)} />
-    				</Field.Item>
-    			)}
-    		</form.Field>
-    		<Button type="submit" appearance="filled" intent="neutral">
-    			Submit
-    		</Button>
-    	</form>
-    );
-
-}
 
 # Slider
 
 An input where the user selects a value from within a given range. Pass `aria-label` to `Slider`, also inside a `Field`, so the thumb has an accessible name.
 
-<Example>
-	<Field.Item name="volume">
-		<Field.Label>Volume</Field.Label>
-		<Field.Control>
-			<Slider aria-label="Volume" defaultValue={67} max={100} step={1} />
-		</Field.Control>
-		<Field.Description>Drag to adjust playback volume.</Field.Description>
-	</Field.Item>
-</Example>
+<Example example="components/forms/slider/overview" title="Slider example" />
 
 ```tsx
 import { Field } from "@ngrok/mantle/field";
@@ -100,9 +35,7 @@ import { Slider } from "@ngrok/mantle/slider";
 
 Set `disabled` to stop the user from changing the value.
 
-<Example>
-	<Slider aria-label="Disabled volume" defaultValue={67} max={100} step={1} disabled />
-</Example>
+<Example example="components/forms/slider/disabled" title="Slider disabled example" />
 
 ```tsx
 import { Slider } from "@ngrok/mantle/slider";
@@ -114,15 +47,7 @@ import { Slider } from "@ngrok/mantle/slider";
 
 Set `orientation="vertical"` to draw the track vertically.
 
-<Example>
-	<Slider
-		aria-label="Vertical volume"
-		defaultValue={67}
-		max={100}
-		step={1}
-		orientation="vertical"
-	/>
-</Example>
+<Example example="components/forms/slider/vertical" title="Slider vertical example" />
 
 ```tsx
 import { Slider } from "@ngrok/mantle/slider";
@@ -136,9 +61,10 @@ import { Slider } from "@ngrok/mantle/slider";
 
 Use `@tanstack/react-form` with `zod` to keep a single-thumb slider controlled. Radix emits slider values as an array, so pass the first value into `field.handleChange`.
 
-<Example className="w-full">
-	<TanStackFormExample />
-</Example>
+<Example
+	example="components/forms/slider/with-tanstack-form"
+	title="Slider With TanStack Form example"
+/>
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -202,9 +128,7 @@ function Example() {
 
 A basic slider with a single thumb for selecting a single value. You can pass a single number instead of an array.
 
-<Example>
-	<Slider aria-label="Volume" defaultValue={67} max={100} step={1} />
-</Example>
+<Example example="components/forms/slider/single-thumb" title="Slider single thumb example" />
 
 ```tsx
 import { Slider } from "@ngrok/mantle/slider";
@@ -216,9 +140,7 @@ import { Slider } from "@ngrok/mantle/slider";
 
 Use two values to create a range slider with two thumbs.
 
-<Example>
-	<Slider aria-label="Price" defaultValue={[25, 50]} max={100} step={5} />
-</Example>
+<Example example="components/forms/slider/range" title="Slider range example" />
 
 ```tsx
 import { Slider } from "@ngrok/mantle/slider";
@@ -230,9 +152,7 @@ import { Slider } from "@ngrok/mantle/slider";
 
 Use more than two values to create a slider with multiple thumbs.
 
-<Example>
-	<Slider aria-label="Breakpoint" defaultValue={[10, 20, 70]} max={100} step={10} />
-</Example>
+<Example example="components/forms/slider/multiple-thumbs" title="Slider multiple thumbs example" />
 
 ```tsx
 import { Slider } from "@ngrok/mantle/slider";
@@ -244,29 +164,7 @@ import { Slider } from "@ngrok/mantle/slider";
 
 Use the `color` prop to change the color of the slider range. Accepts any Tailwind `bg-*` class.
 
-<Example className="flex-col gap-6">
-	<Slider
-		aria-label="Warning threshold"
-		defaultValue={67}
-		max={100}
-		step={1}
-		color="bg-warning-600"
-	/>
-	<Slider
-		aria-label="Danger threshold"
-		defaultValue={67}
-		max={100}
-		step={1}
-		color="bg-danger-600"
-	/>
-	<Slider
-		aria-label="Success threshold"
-		defaultValue={67}
-		max={100}
-		step={1}
-		color="bg-emerald-600"
-	/>
-</Example>
+<Example example="components/forms/slider/color" title="Slider color example" />
 
 ```tsx
 import { Slider } from "@ngrok/mantle/slider";
@@ -280,10 +178,7 @@ import { Slider } from "@ngrok/mantle/slider";
 
 Use the `showTicks` prop to show tick marks along the track, one per `step`, spread evenly. When the range is not a multiple of `step`, the ticks do not land on the step values.
 
-<Example className="flex-col gap-6">
-	<Slider aria-label="Volume" defaultValue={50} max={100} step={10} showTicks />
-	<Slider aria-label="Price" defaultValue={[20, 80]} max={100} step={20} showTicks />
-</Example>
+<Example example="components/forms/slider/ticks" title="Slider ticks example" />
 
 ```tsx
 import { Slider } from "@ngrok/mantle/slider";

@@ -4,18 +4,13 @@ description: Decorates an svg icon with automatic sizing. Useful when applying b
 aliases: [svg icon]
 ---
 
-import { Icon } from "@ngrok/mantle/icon";
-import { FireIcon } from "@phosphor-icons/react/Fire";
 import { Example } from "~/components/example";
 
 # Icon
 
 Decorates an svg icon with automatic sizing. Useful when applying base styles to [phosphor icons](https://phosphoricons.com).
 
-<Example>
-	<Icon svg={<FireIcon />} />
-	<Icon className="text-danger-600" svg={<FireIcon weight="fill" />} />
-</Example>
+<Example example="components/data-display/icon/overview" title="Icon example" />
 
 ```tsx
 import { Icon } from "@ngrok/mantle/icon";
@@ -52,32 +47,10 @@ The `Icon` merges `className` selectors with the following order of precedence (
 3. Icon className
 4. svg className
 
-<Example className="flex-col gap-6">
-	<div className="text-center">
-		<p>When `className` is not specified:</p>
-		<div className="flex items-center justify-center">
-			<Icon svg={<FireIcon />} />
-		</div>
-	</div>
-	<div className="text-center">
-		<p>When `className` is only specified on `svg`:</p>
-		<div className="flex items-center justify-center">
-			<Icon svg={<FireIcon className="size-12 sm:size-16" />} />
-		</div>
-	</div>
-	<div className="text-center">
-		<p>When `className` is only specified on `Icon`:</p>
-		<div className="flex items-center justify-center">
-			<Icon className="size-20 sm:size-28" svg={<FireIcon />} />
-		</div>
-	</div>
-	<div className="text-center">
-		<p>When `className` is specified on both `svg` and `Icon`:</p>
-		<div className="flex items-center justify-center">
-			<Icon className="size-20 sm:size-28" svg={<FireIcon className="size-12 sm:size-16" />} />
-		</div>
-	</div>
-</Example>
+<Example
+	example="components/data-display/icon/merging-classnames"
+	title="Icon Merging classNames example"
+/>
 
 ```tsx
 import { Icon } from "@ngrok/mantle/icon";

@@ -4,57 +4,13 @@ description: A caption for a form control, such as an input, a checkbox, a radio
 aliases: [form label]
 ---
 
-import { Input } from "@ngrok/mantle/input";
-import { Label } from "@ngrok/mantle/label";
-import { useForm } from "@tanstack/react-form";
-import { useId } from "react";
 import { Example } from "~/components/example";
-
-export function EmailFieldExample() {
-	const id = useId();
-	return (
-		<div className="flex flex-col gap-1.5">
-			<Label htmlFor={id}>Email</Label>
-			<Input id={id} type="email" />
-		</div>
-	);
-}
-
-export function TanStackFormExample() {
-	const form = useForm({
-		defaultValues: { email: "" },
-		onSubmit: () => {},
-	});
-
-    return (
-    	<form>
-    		<form.Field name="email">
-    			{(field) => (
-    				<div className="flex flex-col gap-1.5">
-    					<Label htmlFor={field.name}>Email</Label>
-    					<Input
-    						id={field.name}
-    						name={field.name}
-    						type="email"
-    						value={field.state.value}
-    						onBlur={field.handleBlur}
-    						onChange={(event) => field.handleChange(event.target.value)}
-    					/>
-    				</div>
-    			)}
-    		</form.Field>
-    	</form>
-    );
-
-}
 
 # Label
 
 A caption for a form control, such as an input, a checkbox, a radio, a switch, or a select. Wrap the control in the `Label`, or set `htmlFor` to the control's `id`.
 
-<Example>
-	<EmailFieldExample />
-</Example>
+<Example example="components/forms/label/overview" title="Label example" />
 
 ```tsx
 import { useId } from "react";
@@ -90,9 +46,10 @@ For the explicit form, React's [`useId()`](https://react.dev/reference/react/use
 
 When you're using [TanStack Form](https://tanstack.com/form), `field.name` is already a stable, unique string for each field: pass it as both `htmlFor` on the `Label` and `id` on the input. You get a guaranteed-correct association for free without calling `useId()` separately:
 
-<Example>
-	<TanStackFormExample />
-</Example>
+<Example
+	example="components/forms/label/with-tanstack-form"
+	title="Label With TanStack Form example"
+/>
 
 ```tsx
 import { Input } from "@ngrok/mantle/input";
@@ -131,18 +88,7 @@ function Example() {
 
 A `Label` automatically gets `font-medium` when it doesn't contain a nested form control (`<input>`, `<textarea>`, `<select>`, `<button>`, or `[contenteditable]`). The default is detected via `:has()` and applied through a `:where()`-wrapped variant so its specificity is `0`; any font-weight utility you pass on the `Label` itself overrides cleanly:
 
-<Example className="flex flex-col gap-6">
-	<div className="flex flex-col gap-1.5">
-		<Label htmlFor="email-fw-1">Email</Label>
-		<Input id="email-fw-1" type="email" />
-	</div>
-	<div className="flex flex-col gap-1.5">
-		<Label htmlFor="email-fw-2" className="font-bold">
-			Email
-		</Label>
-		<Input id="email-fw-2" type="email" />
-	</div>
-</Example>
+<Example example="components/forms/label/font-weight" title="Label font weight example" />
 
 ```tsx
 <div className="flex flex-col gap-1.5">
@@ -160,12 +106,10 @@ A `Label` automatically gets `font-medium` when it doesn't contain a nested form
 
 When the `Label` _wraps_ a control, the auto-default is skipped on purpose: otherwise the control's own typography would inherit the medium weight from the label. In that case, apply `font-medium` to your own caption element (a `<span>` or `<p>`) inside the label:
 
-<Example>
-	<Label htmlFor="email-fw-3" className="flex flex-col gap-1.5">
-		<span className="font-medium">Email</span>
-		<Input id="email-fw-3" type="email" />
-	</Label>
-</Example>
+<Example
+	example="components/forms/label/label-that-wraps-a-control"
+	title="Label label that wraps a control example"
+/>
 
 ```tsx
 <Label htmlFor="email" className="flex flex-col gap-1.5">
@@ -178,20 +122,7 @@ When the `Label` _wraps_ a control, the auto-default is skipped on purpose: othe
 
 Pass `disabled` to render the label in a disabled style. Typically you'll want this to mirror the underlying control's disabled state so the visual treatment stays consistent.
 
-<Example className="flex flex-col gap-6">
-	<div className="flex flex-col gap-1.5">
-		<Label htmlFor="name-disabled" disabled>
-			Name
-		</Label>
-		<Input id="name-disabled" type="text" disabled value="foo" readOnly />
-	</div>
-	<div className="flex items-center gap-2">
-		<Label htmlFor="name-disabled-inline" disabled>
-			Name:
-		</Label>
-		<Input id="name-disabled-inline" type="text" disabled value="foo" readOnly />
-	</div>
-</Example>
+<Example example="components/forms/label/disabled-state" title="Label disabled state example" />
 
 ```tsx
 import { Input } from "@ngrok/mantle/input";

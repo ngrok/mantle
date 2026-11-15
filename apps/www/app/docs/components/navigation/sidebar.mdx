@@ -5,16 +5,8 @@ aliases: [side nav, side navigation, navigation drawer]
 ---
 
 import { CodeExample } from "~/components/code-example";
-import { Example } from "~/components/example";
 import { PageHeader } from "~/components/page-header";
-import {
-	SidebarAnatomyDemo,
-	SidebarNarrowMenuExample,
-	SidebarPolymorphismDemo,
-	SidebarRailTooltipExample,
-	SidebarRowWidthMenuExample,
-	SidebarWidthExample,
-} from "~/features/sidebar-demos";
+import { Example } from "~/components/example";
 
 <PageHeader id="sidebar">Sidebar</PageHeader>
 
@@ -696,9 +688,10 @@ Below, `Sidebar.GroupLabel` renders a real `<h3>` and each `Sidebar.ItemButton` 
 its default `<button>`. The parts' classes, `data-*` state, and refs land on your elements, and the
 group's `aria-labelledby` wiring still names the list. Inspect the rendered markup to see it.
 
-<Example className="p-4 md:p-8">
-	<SidebarPolymorphismDemo />
-</Example>
+<Example
+	example="components/navigation/sidebar/polymorphism"
+	title="Sidebar polymorphism example"
+/>
 
 ```tsx
 import { Sidebar } from "@ngrok/mantle/sidebar";
@@ -873,9 +866,7 @@ Override one sidebar by setting the variable on `Sidebar.Nav`: a Tailwind arbitr
 shortest route, and `cx` keeps it deterministic. The panel below is `18rem` wide expanded; collapse it with
 the trigger and the rail still uses the default `--sidebar-width-icon`:
 
-<Example className="p-4 md:p-8">
-	<SidebarWidthExample />
-</Example>
+<Example example="components/navigation/sidebar/width" title="Sidebar width example" />
 
 ```tsx
 import { Sidebar } from "@ngrok/mantle/sidebar";
@@ -966,9 +957,10 @@ Keeping labels in the accessibility tree serves screen-reader users, but a sight
 collapsed rail sees an unlabeled icon column. Wrap a row in `Sidebar.Tooltip` to give them the label back.
 The panel below starts collapsed; hover either icon to see its label, and use the trigger to expand it:
 
-<Example className="p-4 md:p-8">
-	<SidebarRailTooltipExample />
-</Example>
+<Example
+	example="components/navigation/sidebar/labeling-the-rail-for-pointer-users"
+	title="Sidebar labeling the rail for pointer users example"
+/>
 
 ```tsx
 import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
@@ -1072,9 +1064,10 @@ variables either: it renders in a portal on `document.body`, so it inherits noth
 Keep `width="trigger"` and floor the menu at it. The switcher row below is a collapsed chip; open its menu,
 expand the panel with the trigger, and open it again; the menu is the same width both times:
 
-<Example className="p-4 md:p-8">
-	<SidebarRowWidthMenuExample />
-</Example>
+<Example
+	example="components/navigation/sidebar/floor-the-menu-at-the-row-width"
+	title="Sidebar floor the menu at the row width example"
+/>
 
 ```tsx
 import { Avatar } from "@ngrok/mantle/avatar";
@@ -1166,9 +1159,10 @@ panel and its menus together, or declare the token on the menu content for a one
 custom property is read from the element that declares it. The panel below is `12rem` wide and its Help menu
 carries a matching floor, so the menu stays flush with the row instead of overhanging it:
 
-<Example className="p-4 md:p-8">
-	<SidebarNarrowMenuExample />
-</Example>
+<Example
+	example="components/navigation/sidebar/a-narrower-panel"
+	title="Sidebar a narrower panel example"
+/>
 
 ```tsx
 import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
@@ -1251,9 +1245,10 @@ follows either one, so a composed child that marks itself (react-router's `NavLi
 > need a tree, compose one from [Accordion](/components/data-display/accordion) inside `Sidebar.Body` rather than
 > expecting the rail to collapse it.
 
-<Example className="p-4 md:p-8">
-	<SidebarAnatomyDemo />
-</Example>
+<Example
+	example="components/navigation/sidebar/navigation-anatomy"
+	title="Sidebar navigation anatomy example"
+/>
 
 ```tsx
 import { Sidebar } from "@ngrok/mantle/sidebar";

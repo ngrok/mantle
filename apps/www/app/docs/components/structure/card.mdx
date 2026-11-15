@@ -4,20 +4,13 @@ description: A container used to display content in a box, resembling a physical
 aliases: [panel, tile, paper]
 ---
 
-import { Card } from "@ngrok/mantle/card";
 import { Example } from "~/components/example";
 
 # Card
 
 A container used to display content in a box, resembling a physical card. Compose a `Card.Body`, with an optional `Card.Header` and `Card.Footer`, inside `Card.Root`.
 
-<Example>
-	<Card.Root>
-		<Card.Body>
-			<p>Laborum in aute officia adipisicing elit velit.</p>
-		</Card.Body>
-	</Card.Root>
-</Example>
+<Example example="components/structure/card/overview" title="Card example" />
 
 ```tsx
 import { Card } from "@ngrok/mantle/card";
@@ -40,19 +33,10 @@ import { Card } from "@ngrok/mantle/card";
 
 Add a `Card.Header` with a `Card.Title` to name the card, and a `Card.Footer` for actions or a summary. Each one is optional.
 
-<Example>
-	<Card.Root>
-		<Card.Header>
-			<Card.Title>Card Title Here</Card.Title>
-		</Card.Header>
-		<Card.Body>
-			<p>Laborum in aute officia adipisicing elit velit.</p>
-		</Card.Body>
-		<Card.Footer>
-			<p>Card footer</p>
-		</Card.Footer>
-	</Card.Root>
-</Example>
+<Example
+	example="components/structure/card/header-and-footer"
+	title="Card header and footer example"
+/>
 
 ```tsx
 import { Card } from "@ngrok/mantle/card";
@@ -86,18 +70,7 @@ Card.Root
 
 Every `Card` part accepts an `asChild` prop. When `true`, the part renders its single child instead of its default element, forwarding all class names, `data-*` attributes, and the ref onto that child. Reach for this when a card part should also be a more semantic element: for example, rendering `Card.Title` as an `h2` to fit the surrounding document outline.
 
-<Example className="flex-col gap-4">
-	<Card.Root>
-		<Card.Header>
-			<Card.Title asChild>
-				<h2>Card Title as an h2</h2>
-			</Card.Title>
-		</Card.Header>
-		<Card.Body>
-			<p>Laborum in aute officia adipisicing elit velit.</p>
-		</Card.Body>
-	</Card.Root>
-</Example>
+<Example example="components/structure/card/polymorphism" title="Card polymorphism example" />
 
 ```tsx
 import { Card } from "@ngrok/mantle/card";

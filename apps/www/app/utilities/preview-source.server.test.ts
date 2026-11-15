@@ -15,13 +15,15 @@ describe("collectPreviewSources", () => {
 	// but this makes them agree: rename a demo's export or move it to another
 	// module and the published source stops carrying the component the preview
 	// renders, while `/preview/<name>` keeps working.
-	it("publishes the module that declares each preview's component", () => {
-		const componentNames = collectPreviewSources().flatMap(({ path, previewNames, source }) =>
-			previewNames.map((name) => ({
-				componentName: previewExamples[name].Component.name,
-				path,
-				source,
-			})),
+	it("publishes the module that declares each preview's component", async () => {
+		const componentNames = await Promise.all(
+			collectPreviewSources().flatMap(({ path, previewNames, source }) =>
+				previewNames.map(async (name) => ({
+					componentName: (await previewExamples[name].load()).name,
+					path,
+					source,
+				})),
+			),
 		);
 		const missing = componentNames
 			.filter(({ componentName, source }) => !source.includes(`export function ${componentName}`))

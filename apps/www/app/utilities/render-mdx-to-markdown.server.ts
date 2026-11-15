@@ -81,22 +81,26 @@ function stringAttribute(node: MdxJsxElement, name: string): string | undefined 
 }
 
 const handlers: Record<string, Handler> = {
-	// `<Example>` wraps a live preview of a component, and is always followed
+	// `<Example>` frames a live preview of a component, and is always followed
 	// by a fenced code block that contains the same code in textual form.
-	// Dropping it removes a wall of rendered DOM without losing information.
+	// Dropping it loses no information.
 	Example: () => ({ kind: "drop" }),
-	// `<CodeExample>` is the tabbed Preview/Code example. `Preview` wraps a live
-	// demo and is dropped like `<Example>`; every other part is a structural
-	// wrapper around real markdown — unwrap them so the fenced code block inside
-	// `CodeExample.Code` lands in the markdown output.
+	// `<CodeExample>` is the tabbed Preview/Code example. Every part but
+	// `PreviewFrame` is a structural wrapper around real markdown — unwrap them so
+	// the fenced code block inside `CodeExample.Code` lands in the markdown output.
 	CodeExample: (node) => {
 		if (node.name === "CodeExample.PreviewFrame") {
+			const example = stringAttribute(node, "example");
+			// A page example key (`<page>/<name>`) is the page's own demo, and the
+			// fence beside it is its code, so it drops like `<Example>`.
+			if (example?.includes("/")) {
+				return { kind: "drop" };
+			}
 			// The iframed variant runs a registered demo module whose whole source
 			// ships in /llms-full.txt, while the fence beside it here is a shorter
 			// hand-written excerpt. Leave the pointer rather than dropping silently:
 			// a reader of the `.md` twin has no other way to learn the fuller source
 			// exists (issue #1399).
-			const example = stringAttribute(node, "example");
 			const preview = example == null ? "framed preview" : `framed preview /preview/${example}`;
 			return {
 				kind: "replace",
@@ -107,9 +111,6 @@ const handlers: Record<string, Handler> = {
 					},
 				],
 			};
-		}
-		if (node.name === "CodeExample.Preview") {
-			return { kind: "drop" };
 		}
 		return { kind: "unwrap" };
 	},

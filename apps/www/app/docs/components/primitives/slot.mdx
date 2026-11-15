@@ -4,24 +4,13 @@ description: Merges its props onto its immediate child.
 aliases: [as child, polymorphic]
 ---
 
-import { Button } from "@ngrok/mantle/button";
-import { Slot } from "@ngrok/mantle/slot";
 import { Example } from "~/components/example";
 
 # Slot
 
 Merges its props onto its immediate child.
 
-<Example>
-	<div className="flex flex-col gap-4">
-		<Slot className="rounded bg-blue-500 px-4 py-2 text-white">
-			<a href="https://ngrok.com">Visit ngrok</a>
-		</Slot>
-		<Slot className="rounded bg-red-500 px-4 py-2 text-white">
-			<button type="button">Click me</button>
-		</Slot>
-	</div>
-</Example>
+<Example example="components/primitives/slot/overview" title="Slot example" />
 
 ```tsx
 import { Slot } from "@ngrok/mantle/slot";
@@ -43,16 +32,10 @@ import { Slot } from "@ngrok/mantle/slot";
 
 The `Slot` component is the foundation of the `asChild` pattern used throughout Mantle. When a component supports `asChild`, it uses `Slot` internally to merge its props onto the child element instead of rendering a wrapper.
 
-<Example>
-	<div className="flex gap-4">
-		<Button appearance="filled" intent="neutral" asChild>
-			<a href="https://ngrok.com">Visit ngrok</a>
-		</Button>
-		<Button appearance="outlined" intent="neutral" asChild>
-			<a href="https://github.com/ngrok/ngrok">View on GitHub</a>
-		</Button>
-	</div>
-</Example>
+<Example
+	example="components/primitives/slot/usage-with-aschild"
+	title="Slot Usage with asChild example"
+/>
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -70,11 +53,10 @@ import { Button } from "@ngrok/mantle/button";
 
 `Slot` automatically merges `className` props using Tailwind CSS's merge logic. Child classes take priority over parent classes for conflicting styles, while non-conflicting classes are preserved.
 
-<Example>
-	<Slot className="rounded bg-blue-500 px-4 text-white">
-		<div className="bg-red-500 py-2">Child bg-red-500 wins, parent px-4 and py-2 merge</div>
-	</Slot>
-</Example>
+<Example
+	example="components/primitives/slot/class-name-merging"
+	title="Slot class name merging example"
+/>
 
 ```tsx
 import { Slot } from "@ngrok/mantle/slot";

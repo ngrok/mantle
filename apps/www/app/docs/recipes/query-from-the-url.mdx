@@ -4,8 +4,6 @@ description: Keep the text of a Query field in the ?q= URL param, so a filtered 
 ---
 
 import { Example } from "~/components/example";
-import { QueryFromUrlDemo } from "~/features/query-url-state-demo";
-import { QueryFromUrlSubmitDemo } from "~/features/query-url-submit-demo";
 
 # Query from the URL
 
@@ -18,9 +16,7 @@ Two rules shape it:
 
 Type a filter below and watch the address bar.
 
-<Example>
-	<QueryFromUrlDemo />
-</Example>
+<Example example="recipes/query-from-the-url/overview" title="Query from the URL example" />
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -222,9 +218,10 @@ Filtering on every keystroke is right for most lists. When one filter pass over 
 
 Pick the mode from the list size, such as `commitOn: rows.length > 2000 ? "submit" : "change"`. The hook reads the mode on each render, so the switch keeps the person's focus and caret.
 
-<Example>
-	<QueryFromUrlSubmitDemo />
-</Example>
+<Example
+	example="recipes/query-from-the-url/apply-on-enter"
+	title="Query from the URL Apply on Enter example"
+/>
 
 ```tsx
 import { filterItemsByQuery } from "@ngrok/mantle/query-filter";

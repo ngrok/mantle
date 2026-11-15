@@ -4,13 +4,11 @@ import { describe, expect, test } from "vitest";
 import { renderMdxToMarkdown } from "./render-mdx-to-markdown.server";
 
 describe("renderMdxToMarkdown", () => {
-	test("hoists the code fence out of a CodeExample and drops the preview panel", () => {
+	test("hoists the code fence out of a CodeExample and drops a page example frame", () => {
 		const result = renderMdxToMarkdown(
 			[
 				"<CodeExample.Root>",
-				'\t<CodeExample.Preview className="h-150">',
-				"\t\t<MyDemo />",
-				"\t</CodeExample.Preview>",
+				'\t<CodeExample.PreviewFrame example="layouts/app-layout/my-demo" title="MyDemo" />',
 				"\t<CodeExample.Code>",
 				"",
 				"```tsx",
@@ -67,7 +65,9 @@ describe("renderMdxToMarkdown", () => {
 	});
 
 	test("drops Example previews without a trail comment", () => {
-		const result = renderMdxToMarkdown("<Example>\n\t<MyDemo />\n</Example>\n\nAfter.");
+		const result = renderMdxToMarkdown(
+			'<Example example="components/x/y/overview" title="Y example" />\n\nAfter.',
+		);
 
 		expect(result).not.toContain("Example");
 		expect(result).not.toContain("MyDemo");
@@ -93,7 +93,7 @@ describe("renderMdxToMarkdown on real doc pages", () => {
 	// Why real pages: a fence nested inside `CodeExample.Code` must land in the
 	// `.md` output as a code block, not vanish with the wrapper.
 	// Why these two rows: sidebar.mdx reaches `Example` -> drop, top-level fences,
-	// and `CodeExample.Code` -> unwrap; app-layout.mdx adds `CodeExample.Preview` -> drop.
+	// and `CodeExample.Code` -> unwrap; app-layout.mdx adds page-example `CodeExample.PreviewFrame` -> drop.
 	const pages = ["../docs/components/navigation/sidebar.mdx", "../docs/layouts/app-layout.mdx"];
 
 	for (const page of pages) {

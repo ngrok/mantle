@@ -4,76 +4,13 @@ description: Initiates an action, such as completing a task or submitting inform
 aliases: [cta, call to action]
 ---
 
-import { Button, ButtonGroup, IconButton } from "@ngrok/mantle/button";
-import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
-import { CopyIcon } from "@phosphor-icons/react/Copy";
-import { FireIcon } from "@phosphor-icons/react/Fire";
-import { PlusIcon } from "@phosphor-icons/react/Plus";
-import { TextBIcon } from "@phosphor-icons/react/TextB";
-import { TextItalicIcon } from "@phosphor-icons/react/TextItalic";
-import { TextUnderlineIcon } from "@phosphor-icons/react/TextUnderline";
-import { Link, href } from "react-router";
 import { Example } from "~/components/example";
-
-export const copyPage = () => {};
 
 # Button
 
 Initiates an action, such as completing a task or submitting information. Every `Button` requires `appearance` and `intent`.
 
-<Example className="flex flex-col items-center gap-6">
-	<div>
-		<p className="mb-2 text-center font-mono text-xs">Neutral</p>
-		<div className="flex flex-wrap items-center justify-center gap-2">
-			<Button appearance="ghost" intent="neutral">
-				Ghost
-			</Button>
-			<Button appearance="filled" intent="neutral">
-				Filled
-			</Button>
-			<Button appearance="outlined" intent="neutral">
-				Outlined
-			</Button>
-			<Button appearance="link" intent="neutral">
-				Link
-			</Button>
-		</div>
-	</div>
-	<div>
-		<p className="mb-2 text-center font-mono text-xs">Accent</p>
-		<div className="flex flex-wrap items-center justify-center gap-2">
-			<Button appearance="ghost" intent="accent">
-				Ghost
-			</Button>
-			<Button appearance="filled" intent="accent">
-				Filled
-			</Button>
-			<Button appearance="outlined" intent="accent">
-				Outlined
-			</Button>
-			<Button appearance="link" intent="accent">
-				Link
-			</Button>
-		</div>
-	</div>
-	<div>
-		<p className="mb-2 text-center font-mono text-xs">Danger</p>
-		<div className="flex flex-wrap items-center justify-center gap-2">
-			<Button appearance="ghost" intent="danger">
-				Ghost
-			</Button>
-			<Button appearance="filled" intent="danger">
-				Filled
-			</Button>
-			<Button appearance="outlined" intent="danger">
-				Outlined
-			</Button>
-			<Button appearance="link" intent="danger">
-				Link
-			</Button>
-		</div>
-	</div>
-</Example>
+<Example example="components/actions/button/overview" title="Button example" />
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -109,42 +46,7 @@ Only the box scales: every size keeps the same typography (`text-sm font-medium`
 
 `size` has no effect when `appearance="link"`: link buttons inherit the surrounding typography and have no box to size.
 
-<Example className="flex-col gap-4">
-	<div className="flex flex-wrap items-center justify-center gap-2">
-		<Button appearance="outlined" intent="neutral" size="xs">
-			Extra Small
-		</Button>
-		<Button appearance="outlined" intent="neutral" size="sm">
-			Small
-		</Button>
-		<Button appearance="outlined" intent="neutral" size="md">
-			Medium
-		</Button>
-		<Button appearance="outlined" intent="neutral" size="lg">
-			Large
-		</Button>
-		<Button appearance="outlined" intent="neutral" size="xl">
-			Extra Large
-		</Button>
-	</div>
-	<div className="flex flex-wrap items-center justify-center gap-2">
-		<Button appearance="outlined" intent="neutral" size="xs" icon={<FireIcon weight="fill" />}>
-			Extra Small
-		</Button>
-		<Button appearance="outlined" intent="neutral" size="sm" icon={<FireIcon weight="fill" />}>
-			Small
-		</Button>
-		<Button appearance="outlined" intent="neutral" size="md" icon={<FireIcon weight="fill" />}>
-			Medium
-		</Button>
-		<Button appearance="outlined" intent="neutral" size="lg" icon={<FireIcon weight="fill" />}>
-			Large
-		</Button>
-		<Button appearance="outlined" intent="neutral" size="xl" icon={<FireIcon weight="fill" />}>
-			Extra Large
-		</Button>
-	</div>
-</Example>
+<Example example="components/actions/button/size" title="Button size example" />
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -178,21 +80,10 @@ Use the `icon` prop to add an icon to the button. Never pass the icon as a child
 
 A button with an icon tightens the padding on the icon's side by `0.125rem`, so the glyph reads optically aligned with the text block. That arrives as a `ps-*` or `pe-*` longhand, which a `px-*` override cannot beat: both survive the class merge, and Tailwind emits the longhand last. Override padding on a button with an icon in longhands too: `className="ps-1.5 pe-1"`, not `className="px-1.5"`.
 
-<Example>
-	<div className="flex items-center gap-2">
-		<Button appearance="outlined" intent="neutral" icon={<FireIcon weight="fill" />}>
-			Icon Start
-		</Button>
-		<Button
-			appearance="outlined"
-			intent="neutral"
-			icon={<FireIcon weight="fill" />}
-			iconPlacement="end"
-		>
-			Icon End
-		</Button>
-	</div>
-</Example>
+<Example
+	example="components/actions/button/icon-and-positioning"
+	title="Button icon and positioning example"
+/>
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -220,15 +111,10 @@ import { CopyIcon } from "@phosphor-icons/react/Copy";
 <Button appearance="outlined" intent="neutral" icon={<CopyIcon />} onClick={copyPage} />;
 ```
 
-<Example>
-	<IconButton
-		appearance="outlined"
-		intent="neutral"
-		icon={<CopyIcon />}
-		label="Copy page"
-		onClick={copyPage}
-	/>
-</Example>
+<Example
+	example="components/actions/button/an-icon-only-button"
+	title="Button An icon-only Button example"
+/>
 
 ```tsx
 import { IconButton } from "@ngrok/mantle/button";
@@ -261,11 +147,10 @@ import { PlusIcon } from "@phosphor-icons/react/Plus";
 </Button>;
 ```
 
-<Example>
-	<Button appearance="filled" intent="neutral" icon={<PlusIcon />}>
-		Create endpoint
-	</Button>
-</Example>
+<Example
+	example="components/actions/button/an-icon-as-a-child"
+	title="Button an icon as a child example"
+/>
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -281,47 +166,7 @@ import { PlusIcon } from "@phosphor-icons/react/Plus";
 
 `isLoading` sets whether the button is in a loading state, default `false`. Setting `isLoading` replaces any `icon` with a spinner, or adds one when the button has no icon. It also disables user interaction with the button and sets `aria-disabled`.
 
-<Example className="flex-col gap-4">
-	<div className="space-y-2">
-		<p className="mb-2 text-center font-mono text-xs">Idle</p>
-		<div className="flex flex-wrap items-center justify-center gap-2">
-			<Button appearance="outlined" intent="neutral">
-				No Icon + Idle
-			</Button>
-			<Button appearance="outlined" intent="neutral" icon={<FireIcon weight="fill" />}>
-				Icon Start + Idle
-			</Button>
-			<Button
-				appearance="outlined"
-				intent="neutral"
-				icon={<FireIcon weight="fill" />}
-				iconPlacement="end"
-			>
-				Icon End + Idle
-			</Button>
-		</div>
-	</div>
-	<div className="space-y-2">
-		<p className="mb-2 text-center font-mono text-xs">isLoading</p>
-		<div className="flex flex-wrap items-center justify-center gap-2">
-			<Button appearance="outlined" intent="neutral" isLoading>
-				No Icon + isLoading
-			</Button>
-			<Button appearance="outlined" intent="neutral" icon={<FireIcon weight="fill" />} isLoading>
-				Icon Start + isLoading
-			</Button>
-			<Button
-				appearance="outlined"
-				intent="neutral"
-				icon={<FireIcon weight="fill" />}
-				iconPlacement="end"
-				isLoading
-			>
-				Icon End + isLoading
-			</Button>
-		</div>
-	</div>
-</Example>
+<Example example="components/actions/button/isloading" title="Button isLoading example" />
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -359,12 +204,7 @@ import { FireIcon } from "@phosphor-icons/react/Fire";
 
 The span carries `display: contents`, so it generates no box: every child stays a flex item of the button, and the button's `gap` still falls between them. Two children therefore lay out exactly as they did before the span existed.
 
-<Example>
-	<Button appearance="outlined" intent="neutral" icon={<PlusIcon />}>
-		<span>Create endpoint</span>
-		<CaretDownIcon />
-	</Button>
-</Example>
+<Example example="components/actions/button/the-label-slot" title="Button the label slot example" />
 
 ```tsx
 <Button appearance="outlined" intent="neutral" icon={<PlusIcon />}>
@@ -377,19 +217,10 @@ The span carries `display: contents`, so it generates no box: every child stays 
 
 Style the label by styling your own child, not the slot. A label that has to shrink inside a width-constrained button takes `min-w-0 flex-1 truncate`; those work because the child is a flex item of the button.
 
-<Example>
-	<Button
-		appearance="outlined"
-		intent="neutral"
-		className="max-w-48 min-w-0 justify-start"
-		icon={<PlusIcon />}
-	>
-		<span className="min-w-0 flex-1 truncate text-left">
-			A label far too long for the width of this button
-		</span>
-		<CaretDownIcon />
-	</Button>
-</Example>
+<Example
+	example="components/actions/button/a-truncated-label"
+	title="Button a truncated label example"
+/>
 
 ```tsx
 <Button
@@ -409,18 +240,7 @@ Style the label by styling your own child, not the slot. A label that has to shr
 
 `ButtonGroup` is a contained group of related buttons. The `"panel"` appearance draws a bordered panel and sets `--icon-button-border-radius` to `0.125rem`, so nested icon buttons square up to fit the chrome. The `"ghost"` appearance only spaces the buttons.
 
-<Example>
-	<ButtonGroup appearance="panel">
-		<IconButton appearance="ghost" intent="neutral" icon={<TextBIcon />} label="Bold" />
-		<IconButton appearance="ghost" intent="neutral" icon={<TextItalicIcon />} label="Italic" />
-		<IconButton
-			appearance="ghost"
-			intent="neutral"
-			icon={<TextUnderlineIcon />}
-			label="Underline"
-		/>
-	</ButtonGroup>
-</Example>
+<Example example="components/actions/button/button-group" title="Button button group example" />
 
 ```tsx
 import { ButtonGroup, IconButton } from "@ngrok/mantle/button";
@@ -441,11 +261,7 @@ To render _something else_ as a `Button`, use the `asChild` prop to compose. Thi
 
 A disabled or loading `Button` under `asChild` gets no `disabled` attribute, because the attribute is inert on an `<a>`. The child gets `aria-disabled="true"`, leaves the tab order with `tabIndex={-1}`, and a click on it is cancelled before any handler or router navigation runs.
 
-<Example>
-	<Button appearance="filled" intent="neutral" icon={<FireIcon weight="fill" />} asChild>
-		<Link to={href("/base/colors")}>See our colors!</Link>
-	</Button>
-</Example>
+<Example example="components/actions/button/polymorphism" title="Button polymorphism example" />
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";

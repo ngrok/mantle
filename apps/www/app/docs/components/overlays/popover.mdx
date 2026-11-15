@@ -4,55 +4,13 @@ description: Displays rich content in a portal, triggered by a button.
 aliases: [popup, flyout]
 ---
 
-import { Button } from "@ngrok/mantle/button";
-import { Input } from "@ngrok/mantle/input";
-import { Popover } from "@ngrok/mantle/popover";
 import { Example } from "~/components/example";
 
 # Popover
 
 Displays rich content in a portal, triggered by a button.
 
-<Example className="gap-2">
-	<Popover.Root>
-		<Popover.Trigger asChild>
-			<Button type="button" appearance="filled" intent="neutral">
-				Open popover
-			</Button>
-		</Popover.Trigger>
-		<Popover.Content preferredWidth="max-w-96">
-			<form
-				className="grid gap-4"
-				onSubmit={(event) => {
-					event.preventDefault();
-				}}
-			>
-				<div className="space-y-2">
-					<h4 className="font-medium leading-none">Dimensions</h4>
-					<p className="text-sm text-gray-700">Set the dimensions for the layer.</p>
-				</div>
-				<div className="grid gap-2">
-					<div className="grid grid-cols-3 items-center gap-4">
-						<label htmlFor="popover-width">Width</label>
-						<Input id="popover-width" defaultValue="100%" className="col-span-2 h-8" />
-					</div>
-					<div className="grid grid-cols-3 items-center gap-4">
-						<label htmlFor="popover-maxWidth">Max width</label>
-						<Input id="popover-maxWidth" defaultValue="300px" className="col-span-2 h-8" />
-					</div>
-					<div className="grid grid-cols-3 items-center gap-4">
-						<label htmlFor="popover-height">Height</label>
-						<Input id="popover-height" defaultValue="25px" className="col-span-2 h-8" />
-					</div>
-					<div className="grid grid-cols-3 items-center gap-4">
-						<label htmlFor="popover-maxHeight">Max height</label>
-						<Input id="popover-maxHeight" defaultValue="none" className="col-span-2 h-8" />
-					</div>
-				</div>
-			</form>
-		</Popover.Content>
-	</Popover.Root>
-</Example>
+<Example example="components/overlays/popover/overview" title="Popover example" />
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -113,19 +71,7 @@ Render `Popover.Arrow` as a child of `Popover.Content` when the popover explains
 
 `Popover.Arrow` takes no `asChild`. The shape is two layers (a filled polygon, plus a polyline that strokes the slanted edges only), and a swapped element loses the border. Restyle it with `className` instead: `fill-*` for the surface and a `stroke-*` on the arrow's `polyline` child for the edge, since Radix renders the arrow as an `svg` where `bg-*` paints nothing.
 
-<Example className="gap-2">
-	<Popover.Root>
-		<Popover.Trigger asChild>
-			<Button type="button" appearance="filled" intent="neutral">
-				What moved?
-			</Button>
-		</Popover.Trigger>
-		<Popover.Content side="right" preferredWidth="max-w-64">
-			<Popover.Arrow />
-			<p className="text-sm">Products moved up here.</p>
-		</Popover.Content>
-	</Popover.Root>
-</Example>
+<Example example="components/overlays/popover/arrow" title="Popover arrow example" />
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
