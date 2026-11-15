@@ -5,28 +5,32 @@ import { Dialog } from "../dialog/dialog.js";
 import { Sheet } from "./sheet.js";
 
 describe("Sheet.Trigger and Sheet.Close", () => {
-	it("stamp their data-slot on the asChild child", async () => {
+	it("join their data-slot with the asChild child's own", async () => {
 		const user = userEvent.setup();
 		render(
 			<Sheet.Root>
-				<Sheet.Trigger asChild>
-					<button type="button">Open</button>
+				<Sheet.Trigger asChild data-slot="outer">
+					<button data-slot="inner" type="button">
+						Open
+					</button>
 				</Sheet.Trigger>
 				<Sheet.Content>
 					<Sheet.Title>Settings</Sheet.Title>
 					<Sheet.Close asChild>
-						<button type="button">Done</button>
+						<button data-slot="inner" type="button">
+							Done
+						</button>
 					</Sheet.Close>
 				</Sheet.Content>
 			</Sheet.Root>,
 		);
 
 		const trigger = screen.getByRole("button", { name: "Open" });
-		expect(trigger).toHaveAttribute("data-slot", "sheet-trigger");
+		expect(trigger).toHaveAttribute("data-slot", "outer sheet-trigger inner");
 		await user.click(trigger);
 		expect(await screen.findByRole("button", { name: "Done" })).toHaveAttribute(
 			"data-slot",
-			"sheet-close",
+			"sheet-close inner",
 		);
 	});
 });

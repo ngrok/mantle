@@ -121,6 +121,33 @@ describe("the preview MCP App view", () => {
 		);
 	});
 
+	// Why: the MCP Apps spec reads an omitted `frameDomains` as `frame-src 'none'`.
+	it("opens the preview page instead when the host's CSP lists no frame domains", async () => {
+		const view = startView();
+		await view.initialize({ hostCapabilities: { sandbox: { csp: {} } } });
+
+		view.toolResult("https://mantle.example/mcp/preview#code=abc");
+
+		expect(view.frame()).toBeNull();
+		expect(document.querySelector<HTMLElement>("#status")?.hidden).toBe(false);
+	});
+
+	it("says so when the host answers the open-link request with an error result", async () => {
+		const view = startView();
+		await view.initialize({ hostCapabilities: { sandbox: { csp: { frameDomains: [] } } } });
+		view.toolResult("https://mantle.example/mcp/preview#code=abc");
+
+		document.querySelector<HTMLButtonElement>("#open")?.click();
+		const request = view.sent().find((message) => message.method === "ui/open-link");
+		view.receive({ jsonrpc: "2.0", id: request?.id, result: { isError: true } });
+
+		await vi.waitFor(() => {
+			expect(document.querySelector("#status")?.textContent).toBe(
+				"The chat did not open the link.",
+			);
+		});
+	});
+
 	it("loads the frame when a wildcard in the host's frame domains covers its origin", async () => {
 		const view = startView();
 		await view.initialize({

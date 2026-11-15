@@ -31,8 +31,8 @@ function scriptLiteral(value: string): string {
  * to the host and reads the preview link from the `structuredContent.url` of
  * the `ui/notifications/tool-result` notification. It loads the prototype
  * frame from `frameOrigin` with the fragment of that link, so it never loads a
- * host-supplied origin. When the host reports `frameDomains` that do not cover
- * `frameOrigin`, it shows a button that opens the preview page with
+ * host-supplied origin. When the host reports a CSP whose `frameDomains` do not
+ * cover `frameOrigin`, it shows a button that opens the preview page with
  * `ui/open-link` instead.
  *
  * @example
@@ -181,10 +181,19 @@ window.addEventListener("message", (event) => {
 });
 
 openButton.addEventListener("click", () => {
-	request("ui/open-link", { url: PAGE_ORIGIN + "/mcp/preview" + hashWithTheme() }).catch(() => {
+	const showFailure = () => {
 		statusLine.hidden = false;
 		statusLine.textContent = "The chat did not open the link.";
-	});
+	};
+	// Why both paths: a host reports a failure as a JSON-RPC error or as \`{ isError: true }\`.
+	request("ui/open-link", { url: PAGE_ORIGIN + "/mcp/preview" + hashWithTheme() }).then(
+		(result) => {
+			if (result != null && result.isError === true) {
+				showFailure();
+			}
+		},
+		showFailure,
+	);
 });
 
 request("ui/initialize", {
@@ -194,8 +203,8 @@ request("ui/initialize", {
 }).then(
 	(result) => {
 		const csp = result.hostCapabilities && result.hostCapabilities.sandbox && result.hostCapabilities.sandbox.csp;
-		const domains = csp == null ? undefined : csp.frameDomains;
-		frameAllowed = !Array.isArray(domains) || domains.some(covers);
+		// Why: with no CSP the host states no limit, but a CSP without \`frameDomains\` means \`frame-src 'none'\`.
+		frameAllowed = csp == null || (Array.isArray(csp.frameDomains) && csp.frameDomains.some(covers));
 		send({ method: "ui/notifications/initialized" });
 		applyContext(result.hostContext);
 		window.addEventListener("resize", reportSize);
