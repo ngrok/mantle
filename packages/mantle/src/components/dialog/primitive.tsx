@@ -12,17 +12,52 @@ import {
 	Trigger as DialogPrimitiveTrigger,
 } from "@radix-ui/react-dialog";
 import type { ComponentProps, ComponentPropsWithoutRef, Ref } from "react";
+import { createContext, useContext, useState } from "react";
+import { useCallbackRef } from "../../hooks/use-callback-ref.js";
 import { Slot } from "../slot/index.js";
 import { preventCloseOnPromptInteraction } from "../toast/prevent-close-on-prompt-interaction.js";
 import { parseBooleanish } from "../../types/booleanish.js";
 import {
 	LayerContainerContext,
 	useLayerContainer,
+	useRegisterOverlay,
 } from "../../utils/layer-container/layer-container.js";
 
 type DialogPrimitiveContentProps = ComponentProps<typeof DialogPrimitiveContent>;
 
-const Root = DialogPrimitiveRoot;
+/**
+ * Closes the nearest dialog root. A float that the dialog covers uses it to
+ * hand the dialog an Escape, which Radix sent to the float.
+ */
+const CloseDialogContext = createContext<(() => void) | null>(null);
+
+/**
+ * The Radix dialog root, with the open state kept here so that mantle can
+ * close the dialog from outside Radix. It is controlled when `open` is set.
+ */
+const Root = ({
+	defaultOpen = false,
+	onOpenChange,
+	open: openProp,
+	...props
+}: ComponentProps<typeof DialogPrimitiveRoot>) => {
+	const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
+	const open = openProp ?? uncontrolledOpen;
+
+	const setOpen = (next: boolean) => {
+		if (openProp === undefined) {
+			setUncontrolledOpen(next);
+		}
+		onOpenChange?.(next);
+	};
+	const closeDialog = useCallbackRef(() => setOpen(false));
+
+	return (
+		<CloseDialogContext.Provider value={closeDialog}>
+			<DialogPrimitiveRoot open={open} onOpenChange={setOpen} {...props} />
+		</CloseDialogContext.Provider>
+	);
+};
 const Trigger = DialogPrimitiveTrigger;
 
 /**
@@ -63,27 +98,44 @@ const Content = ({
 	onPointerDownOutside,
 	ref,
 	...props
-}: DialogPrimitiveContentProps) => (
-	<DialogPrimitiveContent
-		ref={ref}
-		onEscapeKeyDown={(event) => {
-			preventCloseOnNestedPopupEscape(event);
-			onEscapeKeyDown?.(event);
-		}}
-		onInteractOutside={(event) => {
-			preventCloseOnPromptInteraction(event);
-			onInteractOutside?.(event);
-		}}
-		onPointerDownOutside={(event) => {
-			preventCloseOnPromptInteraction(event);
-			onPointerDownOutside?.(event);
-		}}
-		// Why no `aria-describedby` here: Radix sets it only while a `Description`
-		// is mounted. Radix spreads these props after that computed value, so a
-		// value set here, even `undefined`, replaces the Radix one.
-		{...props}
-	/>
-);
+}: DialogPrimitiveContentProps) => {
+	const closeDialog = useContext(CloseDialogContext);
+	const layerContainer = useLayerContainer();
+
+	// Why register: Radix can send Escape to a float this dialog covers. The
+	// float then passes it here, and this runs the same guards as Radix would.
+	useRegisterOverlay(closeDialog == null ? null : layerContainer, (event) => {
+		if (layerContainer != null && escapeBelongsToNestedPopup(layerContainer, event.target)) {
+			event.preventDefault();
+		}
+		onEscapeKeyDown?.(event);
+		if (!event.defaultPrevented) {
+			closeDialog?.();
+		}
+	});
+
+	return (
+		<DialogPrimitiveContent
+			ref={ref}
+			onEscapeKeyDown={(event) => {
+				preventCloseOnNestedPopupEscape(event);
+				onEscapeKeyDown?.(event);
+			}}
+			onInteractOutside={(event) => {
+				preventCloseOnPromptInteraction(event);
+				onInteractOutside?.(event);
+			}}
+			onPointerDownOutside={(event) => {
+				preventCloseOnPromptInteraction(event);
+				onPointerDownOutside?.(event);
+			}}
+			// Why no `aria-describedby` here: Radix sets it only while a `Description`
+			// is mounted. Radix spreads these props after that computed value, so a
+			// value set here, even `undefined`, replaces the Radix one.
+			{...props}
+		/>
+	);
+};
 
 const Title = DialogPrimitiveTitle;
 

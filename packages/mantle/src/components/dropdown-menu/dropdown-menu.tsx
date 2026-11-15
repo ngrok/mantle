@@ -21,7 +21,10 @@ import {
 import { Slottable } from "@radix-ui/react-slot";
 import type { ComponentProps } from "react";
 import { cx } from "../../utils/cx/cx.js";
-import { useLayerContainer } from "../../utils/layer-container/layer-container.js";
+import {
+	useFloatEscapeKeyDown,
+	useLayerContainer,
+} from "../../utils/layer-container/layer-container.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import { Icon } from "../icon/icon.js";
@@ -300,22 +303,28 @@ const SubContent = ({
 	"data-slot": dataSlot,
 	className,
 	loop = true,
+	onEscapeKeyDown,
 	...props
-}: ComponentProps<typeof DropdownMenuPrimitiveSubContent> & WithDataSlot) => (
-	<Portal>
-		<DropdownMenuPrimitiveSubContent
-			data-slot={joinDataSlot(dataSlot, "dropdown-menu-sub-content")}
-			className={cx(
-				"scrollbar",
-				"text-popover-foreground border-popover bg-popover p-1.25 data-state-closed:animate-out data-state-closed:fade-out-0 data-state-closed:zoom-out-95 data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95 data-side-bottom:slide-in-from-top-1 data-side-left:slide-in-from-right-1 data-side-right:slide-in-from-left-1 data-side-top:slide-in-from-bottom-1 data-side-bottom:slide-out-to-top-1 data-side-left:slide-out-to-right-1 data-side-right:slide-out-to-left-1 data-side-top:slide-out-to-bottom-1 duration-200 ease-out-strong data-state-closed:duration-150 motion-reduce:animate-none! z-50 min-w-32 overflow-hidden rounded-md border shadow-xl space-y-px font-sans",
-				"my-2 max-h-[calc(var(--radix-dropdown-menu-content-available-height)-16px)] overflow-auto",
-				className,
-			)}
-			loop={loop}
-			{...props}
-		/>
-	</Portal>
-);
+}: ComponentProps<typeof DropdownMenuPrimitiveSubContent> & WithDataSlot) => {
+	const handleEscapeKeyDown = useFloatEscapeKeyDown(onEscapeKeyDown);
+
+	return (
+		<Portal>
+			<DropdownMenuPrimitiveSubContent
+				data-slot={joinDataSlot(dataSlot, "dropdown-menu-sub-content")}
+				className={cx(
+					"scrollbar",
+					"text-popover-foreground border-popover bg-popover p-1.25 data-state-closed:animate-out data-state-closed:fade-out-0 data-state-closed:zoom-out-95 data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95 data-side-bottom:slide-in-from-top-1 data-side-left:slide-in-from-right-1 data-side-right:slide-in-from-left-1 data-side-top:slide-in-from-bottom-1 data-side-bottom:slide-out-to-top-1 data-side-left:slide-out-to-right-1 data-side-right:slide-out-to-left-1 data-side-top:slide-out-to-bottom-1 duration-200 ease-out-strong data-state-closed:duration-150 motion-reduce:animate-none! z-50 min-w-32 overflow-hidden rounded-md border shadow-xl space-y-px font-sans",
+					"my-2 max-h-[calc(var(--radix-dropdown-menu-content-available-height)-16px)] overflow-auto",
+					className,
+				)}
+				loop={loop}
+				onEscapeKeyDown={handleEscapeKeyDown}
+				{...props}
+			/>
+		</Portal>
+	);
+};
 
 type DropdownMenuContentProps = ComponentProps<typeof DropdownMenuPrimitiveContent> &
 	WithDataSlot & {
@@ -356,34 +365,40 @@ const Content = ({
 	className,
 	"data-slot": dataSlot,
 	onClick,
+	onEscapeKeyDown,
 	loop = true,
 	width,
 	...props
-}: DropdownMenuContentProps) => (
-	<Portal>
-		<DropdownMenuPrimitiveContent
-			data-slot={joinDataSlot(dataSlot, "dropdown-menu-content")}
-			className={cx(
-				"scrollbar",
-				"text-popover-foreground border-popover bg-popover p-1.25 z-50 min-w-32 overflow-hidden rounded-md border shadow-xl outline-hidden space-y-px font-sans",
-				"data-side-bottom:slide-in-from-top-1 data-side-left:slide-in-from-right-1 data-side-right:slide-in-from-left-1 data-side-top:slide-in-from-bottom-1 data-side-bottom:slide-out-to-top-1 data-side-left:slide-out-to-right-1 data-side-right:slide-out-to-left-1 data-side-top:slide-out-to-bottom-1 duration-200 ease-out-strong data-state-closed:duration-150 motion-reduce:animate-none! data-state-closed:animate-out data-state-closed:fade-out-0 data-state-closed:zoom-out-95 data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95",
-				"my-2 max-h-[calc(var(--radix-dropdown-menu-content-available-height)-16px)] overflow-auto",
-				width === "trigger" && "w-(--radix-dropdown-menu-trigger-width)",
-				className,
-			)}
-			loop={loop}
-			onClick={(event) => {
-				/**
-				 * Prevent the click event from propagating up to parent/containing elements
-				 * of the DropdownMenu
-				 */
-				event.stopPropagation();
-				onClick?.(event);
-			}}
-			{...props}
-		/>
-	</Portal>
-);
+}: DropdownMenuContentProps) => {
+	const handleEscapeKeyDown = useFloatEscapeKeyDown(onEscapeKeyDown);
+
+	return (
+		<Portal>
+			<DropdownMenuPrimitiveContent
+				data-slot={joinDataSlot(dataSlot, "dropdown-menu-content")}
+				className={cx(
+					"scrollbar",
+					"text-popover-foreground border-popover bg-popover p-1.25 z-50 min-w-32 overflow-hidden rounded-md border shadow-xl outline-hidden space-y-px font-sans",
+					"data-side-bottom:slide-in-from-top-1 data-side-left:slide-in-from-right-1 data-side-right:slide-in-from-left-1 data-side-top:slide-in-from-bottom-1 data-side-bottom:slide-out-to-top-1 data-side-left:slide-out-to-right-1 data-side-right:slide-out-to-left-1 data-side-top:slide-out-to-bottom-1 duration-200 ease-out-strong data-state-closed:duration-150 motion-reduce:animate-none! data-state-closed:animate-out data-state-closed:fade-out-0 data-state-closed:zoom-out-95 data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95",
+					"my-2 max-h-[calc(var(--radix-dropdown-menu-content-available-height)-16px)] overflow-auto",
+					width === "trigger" && "w-(--radix-dropdown-menu-trigger-width)",
+					className,
+				)}
+				loop={loop}
+				onClick={(event) => {
+					/**
+					 * Prevent the click event from propagating up to parent/containing elements
+					 * of the DropdownMenu
+					 */
+					event.stopPropagation();
+					onClick?.(event);
+				}}
+				onEscapeKeyDown={handleEscapeKeyDown}
+				{...props}
+			/>
+		</Portal>
+	);
+};
 
 /**
  * An item in the dropdown menu.

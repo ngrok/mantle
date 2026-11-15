@@ -13,7 +13,11 @@ import type { ComponentProps } from "react";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
-import { useLayerContainer } from "../../utils/layer-container/layer-container.js";
+import {
+	useFloatEscapeKeyDown,
+	useFloatOpenAutoFocus,
+	useLayerContainer,
+} from "../../utils/layer-container/layer-container.js";
 import { Slot } from "../slot/index.js";
 
 /**
@@ -200,12 +204,16 @@ const Content = ({
 	align = "center",
 	className,
 	onClick,
+	onEscapeKeyDown,
+	onOpenAutoFocus,
 	preferredWidth = "max-w-72",
 	ref,
 	sideOffset = 4,
 	...props
 }: PopoverContentProps) => {
 	const layerContainer = useLayerContainer();
+	const handleEscapeKeyDown = useFloatEscapeKeyDown(onEscapeKeyDown);
+	const handleOpenAutoFocus = useFloatOpenAutoFocus(onOpenAutoFocus);
 
 	return (
 		<PopoverPrimitivePortal container={layerContainer}>
@@ -230,6 +238,8 @@ const Content = ({
 					event.stopPropagation();
 					onClick?.(event);
 				}}
+				onEscapeKeyDown={handleEscapeKeyDown}
+				onOpenAutoFocus={handleOpenAutoFocus}
 				ref={ref}
 				sideOffset={sideOffset}
 				{...props}

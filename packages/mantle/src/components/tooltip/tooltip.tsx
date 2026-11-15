@@ -12,7 +12,10 @@ import type { ComponentProps, ComponentPropsWithoutRef } from "react";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
-import { useLayerContainer } from "../../utils/layer-container/layer-container.js";
+import {
+	useFloatEscapeKeyDown,
+	useLayerContainer,
+} from "../../utils/layer-container/layer-container.js";
 
 /**
  * Wraps your app to set shared global behavior for your tooltips, such
@@ -167,11 +170,13 @@ const Content = ({
 	children,
 	className,
 	"data-slot": dataSlot,
+	onEscapeKeyDown,
 	ref,
 	sideOffset = 4,
 	...props
 }: TooltipContentProps) => {
 	const layerContainer = useLayerContainer();
+	const handleEscapeKeyDown = useFloatEscapeKeyDown(onEscapeKeyDown);
 
 	return (
 		<TooltipPrimitivePortal container={layerContainer}>
@@ -181,6 +186,7 @@ const Content = ({
 					className,
 				)}
 				data-slot={joinDataSlot(dataSlot, "tooltip-content")}
+				onEscapeKeyDown={handleEscapeKeyDown}
 				ref={ref}
 				sideOffset={sideOffset}
 				{...props}

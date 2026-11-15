@@ -13,6 +13,7 @@ import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import {
 	LayerContainerContext,
+	useFloatEscapeKeyDown,
 	useLayerContainer,
 } from "../../utils/layer-container/layer-container.js";
 
@@ -153,36 +154,42 @@ const Content = ({
 	"data-slot": dataSlot,
 	className,
 	onClick,
+	onEscapeKeyDown,
 	align = "center",
 	sideOffset = 4,
 	...props
-}: ComponentProps<typeof HoverCardPrimitiveContent> & WithDataSlot) => (
-	<Portal>
-		<HoverCardPrimitiveContent
-			data-slot={joinDataSlot(dataSlot, "hover-card-content")}
-			align={align}
-			sideOffset={sideOffset}
-			className={cx(
-				// Why relative: `HoverCard.Arrow`'s wrapper is absolutely positioned, and
-				// the open animation's `scale` makes this element its containing block for
-				// one frame — then drops it, moving the arrow 1px. Positioning this element
-				// keeps that containing block the same before, during, and after.
-				"relative",
-				"bg-popover border-popover z-50 w-64 rounded-md border p-4 shadow-md outline-hidden",
-				"data-state-open:animate-in data-state-closed:animate-out data-state-closed:fade-out-0 data-state-open:fade-in-0 data-state-closed:zoom-out-95 data-state-open:zoom-in-95 data-side-bottom:slide-in-from-top-1 data-side-left:slide-in-from-right-1 data-side-right:slide-in-from-left-1 data-side-top:slide-in-from-bottom-1 data-side-bottom:slide-out-to-top-1 data-side-left:slide-out-to-right-1 data-side-right:slide-out-to-left-1 data-side-top:slide-out-to-bottom-1 duration-200 ease-out-strong data-state-closed:duration-150 motion-reduce:animate-none!",
-				className,
-			)}
-			onClick={(event) => {
-				/**
-				 * Prevent the click event from propagating up to parent/containing elements
-				 */
-				event.stopPropagation();
-				onClick?.(event);
-			}}
-			{...props}
-		/>
-	</Portal>
-);
+}: ComponentProps<typeof HoverCardPrimitiveContent> & WithDataSlot) => {
+	const handleEscapeKeyDown = useFloatEscapeKeyDown(onEscapeKeyDown);
+
+	return (
+		<Portal>
+			<HoverCardPrimitiveContent
+				data-slot={joinDataSlot(dataSlot, "hover-card-content")}
+				align={align}
+				sideOffset={sideOffset}
+				className={cx(
+					// Why relative: `HoverCard.Arrow`'s wrapper is absolutely positioned, and
+					// the open animation's `scale` makes this element its containing block for
+					// one frame — then drops it, moving the arrow 1px. Positioning this element
+					// keeps that containing block the same before, during, and after.
+					"relative",
+					"bg-popover border-popover z-50 w-64 rounded-md border p-4 shadow-md outline-hidden",
+					"data-state-open:animate-in data-state-closed:animate-out data-state-closed:fade-out-0 data-state-open:fade-in-0 data-state-closed:zoom-out-95 data-state-open:zoom-in-95 data-side-bottom:slide-in-from-top-1 data-side-left:slide-in-from-right-1 data-side-right:slide-in-from-left-1 data-side-top:slide-in-from-bottom-1 data-side-bottom:slide-out-to-top-1 data-side-left:slide-out-to-right-1 data-side-right:slide-out-to-left-1 data-side-top:slide-out-to-bottom-1 duration-200 ease-out-strong data-state-closed:duration-150 motion-reduce:animate-none!",
+					className,
+				)}
+				onClick={(event) => {
+					/**
+					 * Prevent the click event from propagating up to parent/containing elements
+					 */
+					event.stopPropagation();
+					onClick?.(event);
+				}}
+				onEscapeKeyDown={handleEscapeKeyDown}
+				{...props}
+			/>
+		</Portal>
+	);
+};
 
 type HoverCardArrowProps = Omit<
 	ComponentProps<typeof HoverCardPrimitiveArrow>,

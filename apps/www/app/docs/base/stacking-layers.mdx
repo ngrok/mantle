@@ -41,13 +41,15 @@ Ownership comes from composition, not timing. A float rendered inside `Dialog.Co
 
 Floats do not register a container of their own. A select opened from inside a popover shares the popover's container and paints above the popover by mount order: the right rule for layers the user opened in sequence.
 
+Escape follows the same order. While focus is in an overlay, Escape closes that overlay, even when a float outside it opened later. The float stays open under it.
+
 ## See the contract work
 
 Each example below shows one rule from this page.
 
 ### A base float never paints above an overlay
 
-The overlay tier exists for this case: an announcement popover opens on its own while a takeover dialog covers its anchor. Open the takeover, then trigger the late announcement from inside it: the announcement stays under the dialog, and it waits on the page when the dialog closes.
+The overlay tier exists for this case: an announcement popover opens on its own while a takeover dialog covers its anchor. Open the takeover, then trigger the late announcement from inside it: the announcement stays under the dialog. Press Escape to close the dialog, and the announcement waits on the page.
 
 <Example name="base/stacking-layers/a-base-float-never-paints-above-an-overlay" title="Stacking Layers a base float never paints above an overlay example">
 

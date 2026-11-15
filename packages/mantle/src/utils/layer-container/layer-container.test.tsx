@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
+import { type ReactNode, useState } from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
 import { AlertDialog } from "../../components/alert-dialog/alert-dialog.js";
@@ -879,4 +880,125 @@ test("LayerContainer fires a callback ref once with the container across a re-re
 
 	expect(refSpy).toHaveBeenCalledTimes(1);
 	expect(refSpy).toHaveBeenLastCalledWith(screen.getByTestId("container"));
+});
+
+/**
+ * Each overlay, open by default and uncontrolled, so Escape must close it
+ * through the root's own state.
+ */
+const uncontrolledOverlays = [
+	{
+		name: "Dialog",
+		render: (children: ReactNode) => (
+			<Dialog.Root defaultOpen>
+				<Dialog.Content>
+					<Dialog.Title>Overlay</Dialog.Title>
+					<Dialog.Body>{children}</Dialog.Body>
+				</Dialog.Content>
+			</Dialog.Root>
+		),
+	},
+	{
+		name: "AlertDialog",
+		render: (children: ReactNode) => (
+			<AlertDialog.Root intent="info" defaultOpen>
+				<AlertDialog.Content>
+					<AlertDialog.Body>
+						<AlertDialog.Title>Overlay</AlertDialog.Title>
+						{children}
+					</AlertDialog.Body>
+				</AlertDialog.Content>
+			</AlertDialog.Root>
+		),
+	},
+	{
+		name: "Sheet",
+		render: (children: ReactNode) => (
+			<Sheet.Root defaultOpen>
+				<Sheet.Content>
+					<Sheet.Header>
+						<Sheet.TitleGroup>
+							<Sheet.Title>Overlay</Sheet.Title>
+						</Sheet.TitleGroup>
+					</Sheet.Header>
+					<Sheet.Body>{children}</Sheet.Body>
+				</Sheet.Content>
+			</Sheet.Root>
+		),
+	},
+] as const;
+
+/**
+ * A page-level popover that a button inside the overlay opens, so the
+ * popover mounts after the overlay and paints under it.
+ */
+function LateFloatUnderOverlay({
+	renderOverlay,
+}: {
+	renderOverlay: (children: ReactNode) => ReactNode;
+}) {
+	const [floatOpen, setFloatOpen] = useState(false);
+
+	return (
+		<>
+			<Popover.Root open={floatOpen} onOpenChange={setFloatOpen}>
+				<Popover.Anchor asChild>
+					<span>Anchor</span>
+				</Popover.Anchor>
+				{/* Why: an onboarding popover stays open until its own button closes it. */}
+				<Popover.Content onInteractOutside={(event) => event.preventDefault()}>
+					Page popover
+				</Popover.Content>
+			</Popover.Root>
+			{renderOverlay(
+				<button type="button" onClick={() => setFloatOpen(true)}>
+					Open late float
+				</button>,
+			)}
+		</>
+	);
+}
+
+describe("Escape and covered floats", () => {
+	test.each(uncontrolledOverlays)(
+		"Escape closes the $name that covers a late float, and the float stays open without focus",
+		async ({ render: renderOverlay }) => {
+			const user = userEvent.setup();
+			render(<LateFloatUnderOverlay renderOverlay={renderOverlay} />);
+
+			const opener = screen.getByRole("button", { name: "Open late float" });
+			await user.click(opener);
+			expect(screen.getByText("Page popover")).toBeInTheDocument();
+			// The covered float must not take focus out of the overlay.
+			expect(opener).toHaveFocus();
+			await user.keyboard("{Escape}");
+
+			await waitFor(() => {
+				expect(screen.queryByText("Open late float")).not.toBeInTheDocument();
+			});
+			expect(screen.getByText("Page popover")).toBeInTheDocument();
+		},
+	);
+
+	test("Escape inside an overlay still closes a float the overlay owns first", async () => {
+		const user = userEvent.setup();
+		render(
+			<Dialog.Root defaultOpen>
+				<Dialog.Content>
+					<Dialog.Title>Overlay</Dialog.Title>
+					<Popover.Root defaultOpen>
+						<Popover.Trigger>Owned trigger</Popover.Trigger>
+						<Popover.Content>Owned popover</Popover.Content>
+					</Popover.Root>
+				</Dialog.Content>
+			</Dialog.Root>,
+		);
+
+		await user.keyboard("{Escape}");
+
+		await waitFor(() => {
+			expect(screen.queryByText("Owned popover")).not.toBeInTheDocument();
+		});
+		expect(screen.getByRole("dialog")).toBeInTheDocument();
+	});
 });

@@ -33,7 +33,10 @@ import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
-import { useLayerContainer } from "../../utils/layer-container/layer-container.js";
+import {
+	useFloatEscapeKeyDown,
+	useLayerContainer,
+} from "../../utils/layer-container/layer-container.js";
 import { FieldControlContext } from "../field/field-context.js";
 import { parseValidation, useFieldValidation } from "../field/validation.js";
 import type { WithValidation } from "../field/validation.js";
@@ -590,12 +593,14 @@ const Content = ({
 	className,
 	children,
 	"data-slot": dataSlot,
+	onEscapeKeyDown,
 	position = "popper",
 	ref,
 	width = "trigger",
 	...props
 }: SelectContentProps) => {
 	const layerContainer = useLayerContainer();
+	const handleEscapeKeyDown = useFloatEscapeKeyDown(onEscapeKeyDown);
 
 	return (
 		<SelectPrimitivePortal container={layerContainer}>
@@ -610,6 +615,7 @@ const Content = ({
 					width === "trigger" && "w-(--radix-select-trigger-width)",
 					className,
 				)}
+				onEscapeKeyDown={handleEscapeKeyDown}
 				position={position}
 				{...props}
 			>
