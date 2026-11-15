@@ -3,21 +3,13 @@ title: QR Code
 description: Render a scannable QR code, optionally branded with a centered logo.
 ---
 
-import { QrCode } from "@ngrok/mantle/qr-code";
-import { NgrokLettermarkIcon } from "@ngrok/mantle/icons";
 import { Example } from "~/components/example";
 
 # QR Code
 
 Render a scannable QR code, optionally branded with a centered logo. Compose a `QrCode.Frame` (the `svg`) wrapping a `QrCode.Pattern` (the modules) inside a `QrCode.Root`.
 
-<Example>
-	<QrCode.Root value="https://ngrok.com">
-		<QrCode.Frame>
-			<QrCode.Pattern />
-		</QrCode.Frame>
-	</QrCode.Root>
-</Example>
+<Example name="components/data-display/qr-code/overview" title="QR Code example">
 
 ```tsx
 import { QrCode } from "@ngrok/mantle/qr-code";
@@ -28,6 +20,8 @@ import { QrCode } from "@ngrok/mantle/qr-code";
 	</QrCode.Frame>
 </QrCode.Root>;
 ```
+
+</Example>
 
 ## When to use
 
@@ -41,16 +35,7 @@ level via the `ecc` prop to keep the code scannable. Levels are `L` (~7%), `M`
 (~15%), `Q` (~25%), and `H` (~30%). Prefer `H` whenever a logo is present.
 The default level is `L`, which is plenty when no overlay covers modules.
 
-<Example>
-	<QrCode.Root value="https://ngrok.com" ecc="H">
-		<QrCode.Frame>
-			<QrCode.Pattern />
-		</QrCode.Frame>
-		<QrCode.Overlay>
-			<NgrokLettermarkIcon className="size-7" />
-		</QrCode.Overlay>
-	</QrCode.Root>
-</Example>
+<Example name="components/data-display/qr-code/error-correction" title="QR Code error correction example">
 
 ```tsx
 import { QrCode } from "@ngrok/mantle/qr-code";
@@ -66,19 +51,15 @@ import { NgrokLettermarkIcon } from "@ngrok/mantle/icons";
 </QrCode.Root>;
 ```
 
+</Example>
+
 ## Sizing
 
 The `Frame` defaults to a square `size-48`. Because the encoded pattern scales
 to the frame's `viewBox`, resize the whole code by passing a different size to
 the `Frame`'s `className`.
 
-<Example>
-	<QrCode.Root value="https://ngrok.com">
-		<QrCode.Frame className="size-32">
-			<QrCode.Pattern />
-		</QrCode.Frame>
-	</QrCode.Root>
-</Example>
+<Example name="components/data-display/qr-code/sizing" title="QR Code sizing example">
 
 ```tsx
 import { QrCode } from "@ngrok/mantle/qr-code";
@@ -90,6 +71,8 @@ import { QrCode } from "@ngrok/mantle/qr-code";
 </QrCode.Root>;
 ```
 
+</Example>
+
 ## Quiet zone
 
 A QR code includes a margin of light modules around the pattern (the _quiet
@@ -99,13 +82,7 @@ itself, not cosmetic CSS padding, so adjust it with the `quietZone` prop on
 margin. Lower it to tighten the surrounding whitespace; avoid `0`, which makes
 the code unreliable for many scanners.
 
-<Example>
-	<QrCode.Root value="https://ngrok.com" quietZone={1}>
-		<QrCode.Frame>
-			<QrCode.Pattern />
-		</QrCode.Frame>
-	</QrCode.Root>
-</Example>
+<Example name="components/data-display/qr-code/quiet-zone" title="QR Code quiet zone example">
 
 ```tsx
 import { QrCode } from "@ngrok/mantle/qr-code";
@@ -116,6 +93,8 @@ import { QrCode } from "@ngrok/mantle/qr-code";
 	</QrCode.Frame>
 </QrCode.Root>;
 ```
+
+</Example>
 
 ## Composition
 
@@ -139,27 +118,21 @@ forwarding all class names, `data-*` attributes, and behavior onto that child
 and do not support `asChild`: the QR pattern must live inside an svg, so those
 elements cannot be swapped.
 
-<Example>
-	<QrCode.Root asChild value="https://ngrok.com">
-		<a href="https://ngrok.com">
-			<QrCode.Frame>
-				<QrCode.Pattern />
-			</QrCode.Frame>
-		</a>
-	</QrCode.Root>
-</Example>
+<Example name="components/data-display/qr-code/polymorphism" title="QR Code polymorphism example">
 
 ```tsx
 import { QrCode } from "@ngrok/mantle/qr-code";
 
 <QrCode.Root asChild value="https://ngrok.com">
-	<a href="https://ngrok.com">
+	<a href="https://ngrok.com" target="_top">
 		<QrCode.Frame>
 			<QrCode.Pattern />
 		</QrCode.Frame>
 	</a>
 </QrCode.Root>;
 ```
+
+</Example>
 
 ## Accessibility
 

@@ -297,7 +297,8 @@ _after_ all of [§9](#9-verification) passes:
 | `apps/www/app/utilities/__snapshots__/components-surface.json`       | always — any new component, or any edit to a docs `description`, JSDoc summary, or `@example` | CI's Vibe Check fails. Regenerate with `pnpm -F @app/www test -u` and commit it                 |
 | `doNotPublish` in `packages/mantle/tsdown.config.ts`                 | adding an internal engine _directory_ (`chart/`)                                              | tsdown publishes a subpath for a directory that must have none                                  |
 | `importPathOverrides` in `packages/mantle/scripts/agent-manifest.ts` | the docs slug is not also the export key ([§2.2](#22-naming))                                 | the agent manifest build fails, because the slug names a subpath `package.json` does not export |
-| `previewExamples` in `apps/www/app/features/preview-registry.ts`     | the docs page uses `CodeExample.PreviewFrame`                                                 | the `example` prop fails typecheck                                                              |
+| `previewExamples` in `apps/www/app/features/preview-registry.ts`     | the docs page runs a shell demo in an `Example`                                               | the `example` prop fails typecheck                                                              |
+| `apps/www/app/docs/<page>.examples.tsx`                              | the docs page has a page example ([§7.3](#73-examples-must-be-live-and-complete))             | `page-examples.test.tsx` fails, and the preview frame shows a 404                               |
 
 ### 2.2. Naming
 
@@ -505,6 +506,8 @@ Errors are control flow. `console.error` is not error handling.
   unless you test it ([§8](#8-tests)).
 - Any animation or transition follows [docs/motion.md](./docs/motion.md): a strong ease-out, a still control, an
   exit that mirrors its enter, and motion that a second input can interrupt.
+- At a 320px viewport, the component wraps, truncates, or scrolls in its own box. It never makes the page scroll
+  sideways or clips content ([CONVENTIONS.md § Browser code](./CONVENTIONS.md#browser-code)).
 - Interactive state is styled through the custom Tailwind variants that match the DOM the headless layer
   actually emits (`data-state-*`, `aria-*`), not through JS-toggled classes.
 
@@ -757,8 +760,8 @@ plain-markdown twin (`/api/…`, `llms-full.txt`) generated from it.
 
 1. **Frontmatter** — `title: <Display Name>` (Title Case, matching the nav label — this feeds `<title>`,
    `og:title`, JSON-LD, and every `llms.txt` entry) and a one-line `description`.
-2. **Imports** — `Example` and/or `CodeExample`, plus any demos imported from
-   `~/features/<component-name>-demos` or `~/examples/<component-name>`.
+2. **Imports** — `Example`. The demos live in the page's examples module
+   ([§7.3](#73-examples-must-be-live-and-complete)), not in the MDX.
 3. **Page title** — `# <Display Name>`, the house default. Use
    `<PageHeader id="<component-name>">Display Name</PageHeader>` when the page needs a copyable hash anchor or
    a lifecycle badge (`isPreview` for preview pages, `isUnreleased` for an unpublished component). Note the
@@ -804,16 +807,14 @@ plain-markdown twin (`/api/…`, `llms-full.txt`) generated from it.
 Both, for **every** example on the page — primary and secondary (variants, virtualization,
 controlled/uncontrolled, polymorphism):
 
-- **Live.** Each `tsx`/`jsx` usage block is immediately preceded by something that renders that exact usage.
-  Three sanctioned forms: an `<Example>` wrapper (the default); a bare demo component imported from
-  `~/features/<component-name>-demos` (what `code-block` does, for demos that need build-time transforms); or
-  `CodeExample.Root` → `CodeExample.PreviewFrame example="<key>"` for shell-scale demos that own a whole
-  document — that key must be registered in `apps/www/app/features/preview-registry.ts`, and the fence lives
-  inside `CodeExample.Code`. Never ship a usage block with nothing rendering it, outside the one exception
-  below.
-- **Code directly below.** Each `<Example>` is followed at once by the code block that renders it: no paragraph,
-  note, or heading between them. Put a note about the demo above the `<Example>`. A demo whose code lives in a
-  later section moves down to sit above that code. `apps/www/app/utilities/docs-example-fences.test.ts` checks
+- **Live, in an `Example`.** Every example is one `<Example name="…" title="…">` with its usage block inside
+  it. `Example` runs the example in a sandboxed frame with its own document: a Preview/Code toggle, a
+  desktop, tablet, and mobile (320px) viewport switch, and a reload button. `name` is a page example,
+  `<page path>/<name>`, which renders `<Name>Example` from the page's examples module, or a shell-scale demo
+  registered in `apps/www/app/features/preview-registry.ts`. Never render a demo inline in the MDX, and never
+  ship a usage block with nothing rendering it, outside the one exception below.
+- **Code inside the example.** The usage block goes inside its `<Example>`, with a blank line on each side. Put
+  a note about the demo above the `<Example>`. `apps/www/app/utilities/docs-example-fences.test.ts` checks
   every docs page.
 - **Server-render exception.** A fence that needs a router or a request loader (a `useMatches()` consumer, a
   cookie read in a loader) may ship with nothing rendering it. The paragraph above it must state why, and
@@ -829,10 +830,15 @@ controlled/uncontrolled, polymorphism):
   ([§0](#0-principles) item 12), so a one-off shape in a demo becomes a one-off in product code and reads as a
   blessed pattern. If no mantle component fits the surround, leave the surround out.
 
-Define the demo as an `export function <Name>Example()` in the page's module scope — the default — and move it
-to `~/features/<component-name>-demos.tsx` (plural, the canonical suffix for new files) when it is large,
-shared across pages, or worth unit-testing, or to `apps/www/app/examples/<component-name>/` when it is a
-multi-file example app. Keep the live example and its code block in sync; the live one may use a larger
+Define each example as an `export function <Name>Example()` in the page's examples module,
+`apps/www/app/docs/<page path>.examples.tsx`, beside the `.mdx`. The key `components/actions/button/size`
+renders `SizeExample` from `components/actions/button.examples.tsx`. Its root is a `PreviewCanvas`, which
+takes the classes that lay out the demo; the frame grows to the canvas height. Add `min-h-160` to the canvas
+when the demo opens an overlay (a menu, a dialog, a toast), so the overlay has room in the frame. Data and
+helpers the examples share live in the same module. Move a demo to `~/features/<component-name>-demos.tsx`
+(plural, the canonical suffix for new files) when it is large, shared across pages, or worth unit-testing, or
+to `apps/www/app/examples/<component-name>/` when it is a multi-file example app, and render it from the
+example. Keep the live example and its code block in sync; the live one may use a larger
 generated dataset. Icons come from `@phosphor-icons/react`.
 
 ### 7.4. Prose rules
@@ -855,7 +861,8 @@ change its check in the same PR.
 | --------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | Title, lead, primary example, `## When to use` (§7.2 4–6) | `apps/www/app/utilities/docs-example-fences.test.ts` ("opens with the title, a lead, …") |
 | One live example per section (§7.2 item 7)                | `docs-example-fences.test.ts` ("holds one live example in each section")                 |
-| Code block directly below each example (§7.3)             | `docs-example-fences.test.ts` ("follows each <Example> with its code block")             |
+| Code inside each `<Example>` (§7.3)                       | `docs-example-fences.test.ts` ("puts each example's code inside its <Example>")          |
+| Each example framed, and its key resolves (§7.3)          | `apps/www/app/features/page-examples.test.tsx`                                           |
 | Section order, Composition tree, API reference (§7.2)     | `/audit-component`                                                                       |
 | Live, complete, built from mantle (§7.3)                  | `/audit-component`                                                                       |
 | Lead length in sentences, prose (§7.2 item 4, §7.4)       | `/audit-component`; the test checks only that the lead is one paragraph                  |
@@ -1070,6 +1077,7 @@ Run this against the diff before calling a component done. Each line is a defect
       `== null` for nullish checks.
 - [ ] Invariants throw descriptively; no `console.error` as handling.
 - [ ] Animation honors reduced motion; SSR renders the final paint.
+- [ ] At a 320px viewport, nothing makes the page scroll sideways or clips content.
 - [ ] No part leaves text bare beside a sibling: no element mounts in front of it, no keyed list re-sorts in
       front of it, no text child unmounts while a sibling stays, no child swaps between a string and an element,
       and no portal, keyed `Fragment`, array, or text-returning component holds bare text directly.

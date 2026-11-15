@@ -37,7 +37,8 @@ import { useState } from "react";
  * ```tsx
  * previewExamples["app-layout-editor"] = {
  *   title: "Editor page demo",
- *   Component: AppLayoutEditorDemo,
+ *   load: () => import("./app-layout-editor-demo").then((module) => module.AppLayoutEditorDemo),
+ *   sourceFile: "app-layout-editor-demo.tsx",
  * };
  * ```
  */
@@ -173,7 +174,8 @@ export function AppLayoutEditorDemo() {
  * ```tsx
  * previewExamples["app-layout-pinned-footer"] = {
  *   title: "Pinned footer demo",
- *   Component: AppLayoutPinnedFooterDemo,
+ *   load: () => import("./app-layout-editor-demo").then((module) => module.AppLayoutPinnedFooterDemo),
+ *   sourceFile: "app-layout-editor-demo.tsx",
  * };
  * ```
  */

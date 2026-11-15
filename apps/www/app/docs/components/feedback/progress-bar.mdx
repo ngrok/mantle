@@ -4,57 +4,13 @@ description: Displays an indicator showing the completion progress of a task as 
 aliases: [linear progress, loading bar, meter]
 ---
 
-import { ProgressBar } from "@ngrok/mantle/progress";
-import { useState } from "react";
 import { Example } from "~/components/example";
-
-export const DynamicColorsExample = () => {
-	const [value, setValue] = useState(0);
-
-    function computeIndicatorColor() {
-    	switch (true) {
-    		case value <= 20:
-    			return "bg-danger-600";
-    		case value <= 40:
-    			return "bg-warning-600";
-    		case value <= 60:
-    			return "bg-accent-600";
-    		case value <= 80:
-    			return "bg-success-600";
-    		default:
-    			return "bg-fuchsia-600";
-    	}
-    }
-
-    return (
-    	<form className="space-y-4">
-    		<ProgressBar.Root aria-label="Task progress" value={value}>
-    			<ProgressBar.Indicator className={computeIndicatorColor()} />
-    		</ProgressBar.Root>
-    		<label className="block space-y-1">
-    			<p>Value: {value}%</p>
-    			<input
-    				type="range"
-    				min={0}
-    				max={100}
-    				value={value}
-    				onChange={(event) => setValue(Number(event.target.value))}
-    			/>
-    		</label>
-    	</form>
-    );
-
-};
 
 # Progress Bar
 
 Displays an indicator showing the completion progress of a task as a linear progress bar with customizable colors. Give `ProgressBar.Root` an `aria-label`, or a screen reader announces a bare "progress bar".
 
-<Example>
-	<ProgressBar.Root aria-label="Task progress" value={60}>
-		<ProgressBar.Indicator />
-	</ProgressBar.Root>
-</Example>
+<Example name="components/feedback/progress-bar/overview" title="Progress Bar example">
 
 ```tsx
 import { ProgressBar } from "@ngrok/mantle/progress";
@@ -63,6 +19,8 @@ import { ProgressBar } from "@ngrok/mantle/progress";
 	<ProgressBar.Indicator />
 </ProgressBar.Root>;
 ```
+
+</Example>
 
 ## When to use
 
@@ -74,17 +32,7 @@ import { ProgressBar } from "@ngrok/mantle/progress";
 
 The indicator is `bg-accent-600` by default. Set another background color on `ProgressBar.Indicator` with `className`.
 
-<Example className="flex-col gap-6">
-	<ProgressBar.Root aria-label="Task progress" value={60}>
-		<ProgressBar.Indicator className="bg-warning-600" />
-	</ProgressBar.Root>
-	<ProgressBar.Root aria-label="Task progress" value={30}>
-		<ProgressBar.Indicator className="bg-accent-600" />
-	</ProgressBar.Root>
-	<ProgressBar.Root aria-label="Task progress" value={85}>
-		<ProgressBar.Indicator className="bg-emerald-600" />
-	</ProgressBar.Root>
-</Example>
+<Example name="components/feedback/progress-bar/indicator-color" title="Progress Bar indicator color example">
 
 ```tsx
 import { ProgressBar } from "@ngrok/mantle/progress";
@@ -100,32 +48,13 @@ import { ProgressBar } from "@ngrok/mantle/progress";
 </ProgressBar.Root>
 ```
 
+</Example>
+
 ## With a label
 
 Put a short status label beside a narrow bar to show the state of each item in a list.
 
-<Example>
-	<div className="flex flex-col gap-3">
-		<div className="flex items-center gap-3 text-sm">
-			<ProgressBar.Root aria-label="Complete" value={100} className="w-24">
-				<ProgressBar.Indicator className="bg-success-600" />
-			</ProgressBar.Root>
-			Complete
-		</div>
-		<div className="flex items-center gap-3 text-sm">
-			<ProgressBar.Root aria-label="In progress" value={45} className="w-24">
-				<ProgressBar.Indicator className="bg-warning-600" />
-			</ProgressBar.Root>
-			In Progress
-		</div>
-		<div className="flex items-center gap-3 text-sm">
-			<ProgressBar.Root aria-label="Starting" value={10} className="w-24">
-				<ProgressBar.Indicator className="bg-danger-600" />
-			</ProgressBar.Root>
-			Starting
-		</div>
-	</div>
-</Example>
+<Example name="components/feedback/progress-bar/with-a-label" title="Progress Bar with a label example">
 
 ```tsx
 import { ProgressBar } from "@ngrok/mantle/progress";
@@ -152,6 +81,8 @@ import { ProgressBar } from "@ngrok/mantle/progress";
 </div>;
 ```
 
+</Example>
+
 ## Accessibility
 
 `ProgressBar.Root` renders `role="progressbar"` with `aria-valuemin`, `aria-valuemax`, and `aria-valuenow`, and omits `aria-valuenow` while indeterminate. The role needs a name: pass `aria-label`, or `aria-labelledby` that points at a visible label, or a screen reader announces a bare "progress bar".
@@ -160,11 +91,7 @@ import { ProgressBar } from "@ngrok/mantle/progress";
 
 Set a custom maximum value with the `max` prop. The progress bar renders the value as a percentage of that maximum.
 
-<Example>
-	<ProgressBar.Root aria-label="Task progress" value={150} max={200}>
-		<ProgressBar.Indicator className="bg-purple-600" />
-	</ProgressBar.Root>
-</Example>
+<Example name="components/feedback/progress-bar/custom-maximum-value" title="Progress Bar custom maximum value example">
 
 ```tsx
 import { ProgressBar } from "@ngrok/mantle/progress";
@@ -174,15 +101,13 @@ import { ProgressBar } from "@ngrok/mantle/progress";
 </ProgressBar.Root>;
 ```
 
+</Example>
+
 ## Indeterminate value
 
 Set the `value` prop to `"indeterminate"` to show the progress bar in an indeterminate state. Currently, this displays as a progress bar at 0% but keeps accessibility attributes for screen readers.
 
-<Example>
-	<ProgressBar.Root aria-label="Task progress" value="indeterminate">
-		<ProgressBar.Indicator className="bg-accent-600" />
-	</ProgressBar.Root>
-</Example>
+<Example name="components/feedback/progress-bar/indeterminate-value" title="Progress Bar indeterminate value example">
 
 ```tsx
 import { ProgressBar } from "@ngrok/mantle/progress";
@@ -192,13 +117,13 @@ import { ProgressBar } from "@ngrok/mantle/progress";
 </ProgressBar.Root>;
 ```
 
+</Example>
+
 ## Dynamic colors
 
 Set the color of the `ProgressBar.Indicator` with the `className` prop to change colors based on the current progress value or application state.
 
-<Example>
-	<DynamicColorsExample />
-</Example>
+<Example name="components/feedback/progress-bar/dynamic-colors" title="Progress Bar dynamic colors example">
 
 ```tsx
 import { ProgressBar } from "@ngrok/mantle/progress";
@@ -207,18 +132,19 @@ const Example = () => {
 	const [value, setValue] = useState(0);
 
 	function computeIndicatorColor() {
-		switch (true) {
-			case value <= 20:
-				return "bg-danger-600";
-			case value <= 40:
-				return "bg-warning-600";
-			case value <= 60:
-				return "bg-accent-600";
-			case value <= 80:
-				return "bg-success-600";
-			default:
-				return "bg-fuchsia-600";
+		if (value <= 20) {
+			return "bg-danger-600";
 		}
+		if (value <= 40) {
+			return "bg-warning-600";
+		}
+		if (value <= 60) {
+			return "bg-accent-600";
+		}
+		if (value <= 80) {
+			return "bg-success-600";
+		}
+		return "bg-fuchsia-600";
 	}
 
 	return (
@@ -241,6 +167,8 @@ const Example = () => {
 	);
 };
 ```
+
+</Example>
 
 ## Composition
 

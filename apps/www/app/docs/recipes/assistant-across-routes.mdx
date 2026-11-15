@@ -4,7 +4,7 @@ description: Render an assistant in main on its own route and in the AppLayout s
 layout: full
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # Assistant Across Routes
 
@@ -16,12 +16,7 @@ navigation crosses between them, so the page folds into the panel with the reply
 
 Start a conversation, then click Endpoints. Click Assistant to bring it back.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame
-		example="assistant-across-routes"
-		title="Assistant across routes demo"
-	/>
-</CodeExample.Root>
+<Example name="assistant-across-routes" title="Assistant across routes demo" />
 
 > [!NOTE]
 > The demo fakes its router, because a preview is a document inside this site's own router and React

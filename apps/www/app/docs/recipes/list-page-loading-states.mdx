@@ -3,7 +3,7 @@ title: List Page Loading States
 description: Render a list page's header, filters, and column headers on the first frame, then fill the table with skeleton rows that match the loaded rows, so nothing shifts when the data lands.
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # List Page Loading States
 
@@ -14,9 +14,7 @@ The failure modes it removes are ones you have seen: a spinner where the page sh
 > [!IMPORTANT]
 > Don't copy this UI verbatim. The recipe teaches the **state structure**: the shell renders on the first frame, exactly one region of the table body branches, the skeleton derives from the real columns, and a refetch keeps the loaded rows. The domains table, its copy, and the toolbar controls are stand-ins. Swap them for your product's content and keep the structure.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="list-page-loading" title="List page loading demo" />
-	<CodeExample.Code>
+<Example name="list-page-loading" title="List page loading demo">
 
 ```tsx
 import { AppLayout } from "@ngrok/mantle/app-layout";
@@ -846,9 +844,7 @@ export function ListPageLoadingDemo() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 Pick a scenario in the toolbar, then click **Replay load** to watch it from a cold start. After the rows land, type in the search box: the rows dim while the next page loads, and the skeleton never comes back.
 

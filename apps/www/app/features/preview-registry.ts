@@ -1,30 +1,4 @@
 import type { ComponentType } from "react";
-import { AlertCenterShellDemo } from "~/features/alert-center-demos";
-import { AppLayoutDemo, AppLayoutSidePanelDemo } from "~/features/app-layout-demos";
-import { AppLayoutEditorDemo, AppLayoutPinnedFooterDemo } from "~/features/app-layout-editor-demo";
-import { AppShellDemo } from "~/features/app-shell-demo";
-import { AssistantAcrossRoutesDemo } from "~/features/assistant-across-routes-demo";
-import { CommandSearchShellDemo } from "~/features/command-demos";
-import { ListPageLoadingDemo } from "~/features/list-page-loading-demo";
-import {
-	CenteredLayoutDemo,
-	CenteredLayoutHeaderDemo,
-	CenteredLayoutNoticeDemo,
-} from "~/features/centered-layout-demos";
-import {
-	SandbarDemo,
-	SandbarFailedSaveDemo,
-	SandbarOverSheetDemo,
-	SandbarPendingPublishDemo,
-	SandbarReducedMotionDemo,
-} from "~/features/sandbar-demos";
-import { SidebarPersistenceDemo } from "~/features/sidebar-demos";
-import { SparklinesInAListDemo } from "~/features/sparklines-in-a-list-demo";
-import {
-	StrataColumnsExample,
-	StrataExample,
-	StrataPolymorphismExample,
-} from "~/features/strata-demos";
 
 type PreviewExample = {
 	/**
@@ -33,15 +7,16 @@ type PreviewExample = {
 	 */
 	title: string;
 	/**
-	 * The demo component. It renders as the entire preview document (no site
-	 * chrome), so it must size itself to the viewport — full-page layout demos
-	 * fill it (`min-h-full`) or pin themselves with `fixed inset-0` — and
-	 * should own the document's landmarks (a real `Main`, optionally a
-	 * `SkipToMainLink`).
+	 * Loads the demo component. A preview document loads only its own demo,
+	 * not every module in the registry. The demo renders as the entire preview
+	 * document (no site chrome), so it must size itself to the viewport —
+	 * full-page layout demos fill it (`min-h-full`) or pin themselves with
+	 * `fixed inset-0` — and should own the document's landmarks (a real `Main`,
+	 * optionally a `SkipToMainLink`).
 	 */
-	Component: ComponentType;
+	load: () => Promise<ComponentType>;
 	/**
-	 * `Component`'s module, named relative to `app/features/`. `/llms-full.txt`
+	 * The demo's module, named relative to `app/features/`. `/llms-full.txt`
 	 * publishes that file verbatim, so an agent reading the offline docs builds
 	 * against the code the preview runs rather than a docs-page excerpt of it.
 	 * Several examples may name one module.
@@ -50,9 +25,9 @@ type PreviewExample = {
 };
 
 /**
- * Every example that can render as a framed preview. The key is the
- * `:exampleName` URL segment of the chrome-less `/preview/:exampleName` route,
- * and the docs pages point `<CodeExample.PreviewFrame example="…">` at the
+ * Every shell-scale demo that renders as a framed preview. The key is the path
+ * after `/preview/` on the chrome-less `/preview/*` route,
+ * and the docs pages point `<Example name="…">` at the
  * same key. Because the preview is its own document, examples get a real
  * `Main` landmark, their own `window` (document-level keyboard shortcuts and
  * listeners never leak onto the docs page), and media queries that track the
@@ -60,126 +35,129 @@ type PreviewExample = {
  *
  * @example
  * ```tsx
- * const { title, Component } = previewExamples["centered-layout"];
+ * const Component = await previewExamples["centered-layout"].load();
  * <Component />; // renders the whole preview document
  * ```
  */
 export const previewExamples = {
 	"alert-center-shell": {
 		title: "Alert Center app shell demo",
-		Component: AlertCenterShellDemo,
+		load: () => import("./alert-center-demos").then((module) => module.AlertCenterShellDemo),
 		sourceFile: "alert-center-demos.tsx",
 	},
 	"app-shell": {
 		title: "App shell demo",
-		Component: AppShellDemo,
+		load: () => import("./app-shell-demo").then((module) => module.AppShellDemo),
 		sourceFile: "app-shell-demo.tsx",
 	},
 	"command-search-shell": {
 		title: "Sidebar search trigger demo",
-		Component: CommandSearchShellDemo,
+		load: () => import("./command-demos").then((module) => module.CommandSearchShellDemo),
 		sourceFile: "command-demos.tsx",
 	},
 	"app-layout-standalone": {
 		title: "Standalone app layout demo",
-		Component: AppLayoutDemo,
+		load: () => import("./app-layout-demos").then((module) => module.AppLayoutDemo),
 		sourceFile: "app-layout-demos.tsx",
 	},
 	"app-layout-editor": {
 		title: "Editor page demo",
-		Component: AppLayoutEditorDemo,
+		load: () => import("./app-layout-editor-demo").then((module) => module.AppLayoutEditorDemo),
 		sourceFile: "app-layout-editor-demo.tsx",
 	},
 	"app-layout-pinned-footer": {
 		title: "Pinned footer demo",
-		Component: AppLayoutPinnedFooterDemo,
+		load: () =>
+			import("./app-layout-editor-demo").then((module) => module.AppLayoutPinnedFooterDemo),
 		sourceFile: "app-layout-editor-demo.tsx",
 	},
 	"app-layout-side-panel": {
 		title: "Side panel demo",
-		Component: AppLayoutSidePanelDemo,
+		load: () => import("./app-layout-demos").then((module) => module.AppLayoutSidePanelDemo),
 		sourceFile: "app-layout-demos.tsx",
 	},
 	"assistant-across-routes": {
 		title: "Assistant across routes demo",
-		Component: AssistantAcrossRoutesDemo,
+		load: () =>
+			import("./assistant-across-routes-demo").then((module) => module.AssistantAcrossRoutesDemo),
 		sourceFile: "assistant-across-routes-demo.tsx",
 	},
 	"centered-layout": {
 		title: "Centered layout demo",
-		Component: CenteredLayoutDemo,
+		load: () => import("./centered-layout-demos").then((module) => module.CenteredLayoutDemo),
 		sourceFile: "centered-layout-demos.tsx",
 	},
 	"centered-layout-header": {
 		title: "Centered layout header demo",
-		Component: CenteredLayoutHeaderDemo,
+		load: () => import("./centered-layout-demos").then((module) => module.CenteredLayoutHeaderDemo),
 		sourceFile: "centered-layout-demos.tsx",
 	},
 	"centered-layout-notice": {
 		title: "Centered layout notice demo",
-		Component: CenteredLayoutNoticeDemo,
+		load: () => import("./centered-layout-demos").then((module) => module.CenteredLayoutNoticeDemo),
 		sourceFile: "centered-layout-demos.tsx",
 	},
 	"list-page-loading": {
 		title: "List page loading demo",
-		Component: ListPageLoadingDemo,
+		load: () => import("./list-page-loading-demo").then((module) => module.ListPageLoadingDemo),
 		sourceFile: "list-page-loading-demo.tsx",
 	},
 	sandbar: {
 		title: "Sandbar demo",
-		Component: SandbarDemo,
+		load: () => import("./sandbar-demos").then((module) => module.SandbarDemo),
 		sourceFile: "sandbar-demos.tsx",
 	},
 	"sandbar-failed-save": {
 		title: "Sandbar failed save demo",
-		Component: SandbarFailedSaveDemo,
+		load: () => import("./sandbar-demos").then((module) => module.SandbarFailedSaveDemo),
 		sourceFile: "sandbar-demos.tsx",
 	},
 	"sandbar-over-sheet": {
 		title: "Sandbar over sheet demo",
-		Component: SandbarOverSheetDemo,
+		load: () => import("./sandbar-demos").then((module) => module.SandbarOverSheetDemo),
 		sourceFile: "sandbar-demos.tsx",
 	},
 	"sandbar-pending-publish": {
 		title: "Sandbar pending publish demo",
-		Component: SandbarPendingPublishDemo,
+		load: () => import("./sandbar-demos").then((module) => module.SandbarPendingPublishDemo),
 		sourceFile: "sandbar-demos.tsx",
 	},
 	"sandbar-reduced-motion": {
 		title: "Sandbar reduced motion demo",
-		Component: SandbarReducedMotionDemo,
+		load: () => import("./sandbar-demos").then((module) => module.SandbarReducedMotionDemo),
 		sourceFile: "sandbar-demos.tsx",
 	},
 	"sidebar-persistence": {
 		title: "Sidebar persistence demo",
-		Component: SidebarPersistenceDemo,
+		load: () => import("./sidebar-demos").then((module) => module.SidebarPersistenceDemo),
 		sourceFile: "sidebar-demos.tsx",
 	},
 	"sparklines-in-a-list": {
 		title: "Sparklines in a list demo",
-		Component: SparklinesInAListDemo,
+		load: () =>
+			import("./sparklines-in-a-list-demo").then((module) => module.SparklinesInAListDemo),
 		sourceFile: "sparklines-in-a-list-demo.tsx",
 	},
 	strata: {
 		title: "Strata demo",
-		Component: StrataExample,
+		load: () => import("./strata-demos").then((module) => module.StrataExample),
 		sourceFile: "strata-demos.tsx",
 	},
 	"strata-columns": {
 		title: "Strata column split demo",
-		Component: StrataColumnsExample,
+		load: () => import("./strata-demos").then((module) => module.StrataColumnsExample),
 		sourceFile: "strata-demos.tsx",
 	},
 	"strata-polymorphism": {
 		title: "Strata polymorphism demo",
-		Component: StrataPolymorphismExample,
+		load: () => import("./strata-demos").then((module) => module.StrataPolymorphismExample),
 		sourceFile: "strata-demos.tsx",
 	},
 } as const satisfies Record<string, PreviewExample>;
 
 /**
  * The names of all registered preview examples — the valid values for the
- * `/preview/:exampleName` URL segment and `CodeExample.PreviewFrame`'s
+ * path after `/preview/` and `Example`'s
  * `example` prop.
  */
 export type PreviewExampleName = keyof typeof previewExamples;

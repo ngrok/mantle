@@ -4,28 +4,13 @@ description: A reusable indicator-left / content-right layout for a single choic
 aliases: [checkbox with description, radio with description, switch with description]
 ---
 
-import { Checkbox } from "@ngrok/mantle/checkbox";
-import { Choice } from "@ngrok/mantle/choice";
-import { Field } from "@ngrok/mantle/field";
 import { Example } from "~/components/example";
 
 # Choice
 
 A reusable indicator-left, content-right layout for a single choice: a control beside a titled, multi-line label. Put your own checkbox, radio, or switch in `Choice.Indicator`, and `Choice` connects it to the title and the description.
 
-<Example>
-	<div className="w-full max-w-md">
-		<Choice.Root name="notify-email">
-			<Choice.Indicator>
-				<Checkbox defaultChecked />
-			</Choice.Indicator>
-			<Choice.Content>
-				<Choice.Label>Email</Choice.Label>
-				<Choice.Description>Get notified by email when a deploy finishes.</Choice.Description>
-			</Choice.Content>
-		</Choice.Root>
-	</div>
-</Example>
+<Example name="components/forms/choice/overview" title="Choice example">
 
 ```tsx
 import { Checkbox } from "@ngrok/mantle/checkbox";
@@ -42,6 +27,8 @@ import { Choice } from "@ngrok/mantle/choice";
 </Choice.Root>;
 ```
 
+</Example>
+
 ## When to use
 
 - Put a checkbox, a radio, or a switch beside an emphasized title and a description.
@@ -56,25 +43,7 @@ import { Choice } from "@ngrok/mantle/choice";
 
 Drop `Choice.Root` inside a `Field.Control` and the field's `id` / `name` / `aria-invalid` and description/error `aria-describedby` flow onto the control automatically: the field's `aria-describedby` is **merged** with the `Choice`'s own description rather than replaced. Because the control adopts the field's `id`, `Choice.Label`'s `htmlFor` resolves to that same control, so the title stays a real, clickable label (clicking **Email** below toggles the checkbox), sharing the control with `Field.Label`. Reach for `Choice.Title` only when you specifically want the title to _not_ be a label (e.g. a clickable row that owns the click itself).
 
-<Example>
-	<div className="w-full max-w-md">
-		<Field.Item name="notify">
-			<Field.Label>Notifications</Field.Label>
-			<Field.Control>
-				<Choice.Root>
-					<Choice.Indicator>
-						<Checkbox />
-					</Choice.Indicator>
-					<Choice.Content>
-						<Choice.Label>Email</Choice.Label>
-						<Choice.Description>Sent to your primary address.</Choice.Description>
-					</Choice.Content>
-				</Choice.Root>
-			</Field.Control>
-			<Field.Description>Choose how we reach you.</Field.Description>
-		</Field.Item>
-	</div>
-</Example>
+<Example name="components/forms/choice/inside-a-field" title="Choice Inside a Field example">
 
 ```tsx
 import { Checkbox } from "@ngrok/mantle/checkbox";
@@ -98,6 +67,8 @@ import { Field } from "@ngrok/mantle/field";
 </Field.Item>;
 ```
 
+</Example>
+
 ## `Choice.Label` vs `Choice.Title`
 
 Both render the emphasized title with identical typography; they differ in **who labels the control**:
@@ -107,24 +78,7 @@ Both render the emphasized title with identical typography; they differ in **who
 
 The example below is a fully-clickable row: the row's own `<label>` (sharing the control's `id`) owns the click, so the title is a `Choice.Title`.
 
-<Example>
-	<div className="w-full max-w-md">
-		<label
-			htmlFor="choice-onboarding-key"
-			className="border-form flex cursor-pointer rounded-md border p-3"
-		>
-			<Choice.Root id="choice-onboarding-key">
-				<Choice.Indicator>
-					<Checkbox defaultChecked />
-				</Choice.Indicator>
-				<Choice.Content>
-					<Choice.Title>Onboarding Key</Choice.Title>
-					<Choice.Description translate="no">ng-3FaThZL***8xiA</Choice.Description>
-				</Choice.Content>
-			</Choice.Root>
-		</label>
-	</div>
-</Example>
+<Example name="components/forms/choice/choice-label-vs-choice-title" title="Choice Choice.Label vs Choice.Title example">
 
 ```tsx
 // The row's <label> (sharing the control id) owns the click, so the title is text.
@@ -141,6 +95,8 @@ The example below is a fully-clickable row: the row's own `<label>` (sharing the
 </label>
 ```
 
+</Example>
+
 ## Composition
 
 ```text showLineNumbers=false
@@ -155,23 +111,7 @@ Choice.Root
 
 `Choice.Content`, `Choice.Title`, and `Choice.Description` each accept `asChild` to render as your own element while keeping the styling and wiring. For example, render the description as a `<div>` so it can contain block content. `Choice.Label` is the mantle [`Label`](/components/forms/label) (it always renders a real `<label>`, like `Field.Label`); reach for `Choice.Title` (which accepts `asChild`) when you need a different element. `Choice.Indicator` is itself a slot: it clones whatever single control element you place inside it, injecting the shared `id` / `name` / `aria-*` / `disabled`.
 
-<Example>
-	<div className="w-full max-w-md">
-		<Choice.Root name="notify-rich">
-			<Choice.Indicator>
-				<Checkbox defaultChecked />
-			</Choice.Indicator>
-			<Choice.Content>
-				<Choice.Label>Email</Choice.Label>
-				<Choice.Description asChild>
-					<div>
-						Supports <a href="/docs">rich content</a> when rendered as a div.
-					</div>
-				</Choice.Description>
-			</Choice.Content>
-		</Choice.Root>
-	</div>
-</Example>
+<Example name="components/forms/choice/polymorphism" title="Choice polymorphism example">
 
 ```tsx
 import { Checkbox } from "@ngrok/mantle/checkbox";
@@ -185,12 +125,18 @@ import { Choice } from "@ngrok/mantle/choice";
 		<Choice.Label>Email</Choice.Label>
 		<Choice.Description asChild>
 			<div>
-				Supports <a href="/docs">rich content</a> when rendered as a div.
+				Supports{" "}
+				<a href="/docs" target="_top">
+					rich content
+				</a>{" "}
+				when rendered as a div.
 			</div>
 		</Choice.Description>
 	</Choice.Content>
 </Choice.Root>;
 ```
+
+</Example>
 
 ## Layout and association
 

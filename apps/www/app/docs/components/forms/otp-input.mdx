@@ -4,95 +4,13 @@ description: Accessible one-time passcode (OTP) input with paste, autofill, and 
 aliases: [one time password, verification code, pin input, 2fa]
 ---
 
-import { Button } from "@ngrok/mantle/button";
-import { Field, toErrorMessages } from "@ngrok/mantle/field";
-import { OtpInput, REGEXP_ONLY_DIGITS } from "@ngrok/mantle/otp-input";
-import { useForm } from "@tanstack/react-form";
-import { z } from "zod";
 import { Example } from "~/components/example";
-
-export const formSchema = z.object({
-code: z.string().length(6, "Enter the 6-digit code."),
-});
-export function TanStackFormExample() {
-const defaultValues = {
-code: "",
-};
-const form = useForm({
-defaultValues,
-validators: {
-onSubmit: formSchema,
-},
-onSubmit: ({ value }) => {
-window.alert(`Submitted: ${JSON.stringify(value, null, 2)}`);
-},
-});
-
-    return (
-    	<form
-    		className="w-full max-w-sm space-y-4"
-    		onSubmit={(event) => {
-    			event.preventDefault();
-    			event.stopPropagation();
-    			void form.handleSubmit();
-    		}}
-    	>
-    		<form.Field name="code">
-    			{(field) => (
-    				<Field.Item name={field.name}>
-    					<Field.Label>Verification code</Field.Label>
-    					<Field.Control>
-    						<OtpInput.Root
-    							value={field.state.value}
-    							onBlur={field.handleBlur}
-    							onChange={field.handleChange}
-    							maxLength={6}
-    							pattern={REGEXP_ONLY_DIGITS}
-    						>
-    							<OtpInput.Group>
-    								<OtpInput.Slot index={0} />
-    								<OtpInput.Slot index={1} />
-    								<OtpInput.Slot index={2} />
-    								<OtpInput.Slot index={3} />
-    								<OtpInput.Slot index={4} />
-    								<OtpInput.Slot index={5} />
-    							</OtpInput.Group>
-    						</OtpInput.Root>
-    					</Field.Control>
-    					<Field.Errors messages={toErrorMessages(field.state.meta.errors)} />
-    				</Field.Item>
-    			)}
-    		</form.Field>
-    		<Button type="submit" appearance="filled" intent="neutral">
-    			Submit
-    		</Button>
-    	</form>
-    );
-
-}
 
 # OTP Input
 
 Accessible one-time passcode (OTP) input with paste, autofill, and IME support. Pair it with `Field` to connect its label, description, and errors in a form.
 
-<Example>
-	<Field.Item name="otp">
-		<Field.Label>Verification code</Field.Label>
-		<Field.Control>
-			<OtpInput.Root maxLength={6}>
-				<OtpInput.Group>
-					<OtpInput.Slot index={0} />
-					<OtpInput.Slot index={1} />
-					<OtpInput.Slot index={2} />
-					<OtpInput.Slot index={3} />
-					<OtpInput.Slot index={4} />
-					<OtpInput.Slot index={5} />
-				</OtpInput.Group>
-			</OtpInput.Root>
-		</Field.Control>
-		<Field.Description>Enter the 6-digit code we emailed you.</Field.Description>
-	</Field.Item>
-</Example>
+<Example name="components/forms/otp-input/overview" title="OTP Input example">
 
 ```tsx
 import { Field } from "@ngrok/mantle/field";
@@ -116,6 +34,8 @@ import { OtpInput } from "@ngrok/mantle/otp-input";
 </Field.Item>;
 ```
 
+</Example>
+
 ## When to use
 
 - Capture a short, fixed-length one-time passcode, with one box for each character: two-factor codes, email verification codes, magic-link codes, and similar flows.
@@ -126,21 +46,7 @@ import { OtpInput } from "@ngrok/mantle/otp-input";
 
 Render the control on its own, and give it an accessible name with `aria-label`. This example splits the slots into two groups with an `OtpInput.Separator`.
 
-<Example>
-	<OtpInput.Root aria-label="Verification code" maxLength={6}>
-		<OtpInput.Group>
-			<OtpInput.Slot index={0} />
-			<OtpInput.Slot index={1} />
-			<OtpInput.Slot index={2} />
-		</OtpInput.Group>
-		<OtpInput.Separator />
-		<OtpInput.Group>
-			<OtpInput.Slot index={3} />
-			<OtpInput.Slot index={4} />
-			<OtpInput.Slot index={5} />
-		</OtpInput.Group>
-	</OtpInput.Root>
-</Example>
+<Example name="components/forms/otp-input/without-a-field" title="OTP Input Without a Field example">
 
 ```tsx
 import { OtpInput } from "@ngrok/mantle/otp-input";
@@ -160,13 +66,13 @@ import { OtpInput } from "@ngrok/mantle/otp-input";
 </OtpInput.Root>;
 ```
 
+</Example>
+
 ## With TanStack Form
 
 Use `@tanstack/react-form` with `zod` to validate the hidden OTP input while `Field.Control` handles label, name, and validation ARIA.
 
-<Example className="w-full">
-	<TanStackFormExample />
-</Example>
+<Example name="components/forms/otp-input/with-tanstack-form" title="OTP Input With TanStack Form example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -234,20 +140,13 @@ function Example() {
 }
 ```
 
+</Example>
+
 ## Single group
 
 Render all slots in a single group with no separator.
 
-<Example>
-	<OtpInput.Root aria-label="Verification code" maxLength={4}>
-		<OtpInput.Group>
-			<OtpInput.Slot index={0} />
-			<OtpInput.Slot index={1} />
-			<OtpInput.Slot index={2} />
-			<OtpInput.Slot index={3} />
-		</OtpInput.Group>
-	</OtpInput.Root>
-</Example>
+<Example name="components/forms/otp-input/single-group" title="OTP Input single group example">
 
 ```tsx
 <OtpInput.Root aria-label="Verification code" maxLength={4}>
@@ -260,23 +159,14 @@ Render all slots in a single group with no separator.
 </OtpInput.Root>
 ```
 
+</Example>
+
 ## Digits only
 
 Restrict input to numeric characters using the `pattern` prop and the
 `REGEXP_ONLY_DIGITS` helper.
 
-<Example>
-	<OtpInput.Root aria-label="Verification code" maxLength={6} pattern={REGEXP_ONLY_DIGITS}>
-		<OtpInput.Group>
-			<OtpInput.Slot index={0} />
-			<OtpInput.Slot index={1} />
-			<OtpInput.Slot index={2} />
-			<OtpInput.Slot index={3} />
-			<OtpInput.Slot index={4} />
-			<OtpInput.Slot index={5} />
-		</OtpInput.Group>
-	</OtpInput.Root>
-</Example>
+<Example name="components/forms/otp-input/digits-only" title="OTP Input digits only example">
 
 ```tsx
 import { OtpInput, REGEXP_ONLY_DIGITS } from "@ngrok/mantle/otp-input";
@@ -293,25 +183,13 @@ import { OtpInput, REGEXP_ONLY_DIGITS } from "@ngrok/mantle/otp-input";
 </OtpInput.Root>;
 ```
 
+</Example>
+
 ## Disabled
 
 Pass `disabled` to the root to disable the entire input.
 
-<Example>
-	<OtpInput.Root aria-label="Verification code" maxLength={6} disabled>
-		<OtpInput.Group>
-			<OtpInput.Slot index={0} />
-			<OtpInput.Slot index={1} />
-			<OtpInput.Slot index={2} />
-		</OtpInput.Group>
-		<OtpInput.Separator />
-		<OtpInput.Group>
-			<OtpInput.Slot index={3} />
-			<OtpInput.Slot index={4} />
-			<OtpInput.Slot index={5} />
-		</OtpInput.Group>
-	</OtpInput.Root>
-</Example>
+<Example name="components/forms/otp-input/disabled" title="OTP Input disabled example">
 
 ```tsx
 <OtpInput.Root aria-label="Verification code" maxLength={6} disabled>
@@ -329,6 +207,8 @@ Pass `disabled` to the root to disable the entire input.
 </OtpInput.Root>
 ```
 
+</Example>
+
 ## Validation
 
 Pass `validation="error"`, `"success"`, or `"warning"` on `OtpInput.Root` to
@@ -341,47 +221,7 @@ the prop also accepts `false`, form-library state can short-circuit validation
 styling, e.g.
 `validation={field.state.meta.errors.length > 0 && "error"}`.
 
-<Example className="flex-col gap-4">
-	<OtpInput.Root aria-label="Verification code" maxLength={6} validation="error">
-		<OtpInput.Group>
-			<OtpInput.Slot index={0} />
-			<OtpInput.Slot index={1} />
-			<OtpInput.Slot index={2} />
-		</OtpInput.Group>
-		<OtpInput.Separator />
-		<OtpInput.Group>
-			<OtpInput.Slot index={3} />
-			<OtpInput.Slot index={4} />
-			<OtpInput.Slot index={5} />
-		</OtpInput.Group>
-	</OtpInput.Root>
-	<OtpInput.Root aria-label="Verification code" maxLength={6} validation="success">
-		<OtpInput.Group>
-			<OtpInput.Slot index={0} />
-			<OtpInput.Slot index={1} />
-			<OtpInput.Slot index={2} />
-		</OtpInput.Group>
-		<OtpInput.Separator />
-		<OtpInput.Group>
-			<OtpInput.Slot index={3} />
-			<OtpInput.Slot index={4} />
-			<OtpInput.Slot index={5} />
-		</OtpInput.Group>
-	</OtpInput.Root>
-	<OtpInput.Root aria-label="Verification code" maxLength={6} validation="warning">
-		<OtpInput.Group>
-			<OtpInput.Slot index={0} />
-			<OtpInput.Slot index={1} />
-			<OtpInput.Slot index={2} />
-		</OtpInput.Group>
-		<OtpInput.Separator />
-		<OtpInput.Group>
-			<OtpInput.Slot index={3} />
-			<OtpInput.Slot index={4} />
-			<OtpInput.Slot index={5} />
-		</OtpInput.Group>
-	</OtpInput.Root>
-</Example>
+<Example name="components/forms/otp-input/validation" title="OTP Input validation example">
 
 ```tsx
 // "success" and "warning" render the same structure with a different hue.
@@ -399,6 +239,8 @@ styling, e.g.
 	</OtpInput.Group>
 </OtpInput.Root>
 ```
+
+</Example>
 
 ## Composition
 
@@ -421,29 +263,15 @@ class names, `data-*` attributes, and the ref onto that child. Use this when you
 need a different underlying element: for example, rendering the separator as a
 semantic span, or wrapping a group in a styled label.
 
-<Example>
-	<OtpInput.Root aria-label="Verification code" maxLength={6}>
-		<OtpInput.Group>
-			<OtpInput.Slot index={0} />
-			<OtpInput.Slot index={1} />
-			<OtpInput.Slot index={2} />
-		</OtpInput.Group>
-		<OtpInput.Separator asChild>
-			<span aria-hidden>·</span>
-		</OtpInput.Separator>
-		<OtpInput.Group>
-			<OtpInput.Slot index={3} />
-			<OtpInput.Slot index={4} />
-			<OtpInput.Slot index={5} />
-		</OtpInput.Group>
-	</OtpInput.Root>
-</Example>
+<Example name="components/forms/otp-input/polymorphism" title="OTP Input polymorphism example">
 
 ```tsx
 <OtpInput.Separator asChild>
 	<span aria-hidden>·</span>
 </OtpInput.Separator>
 ```
+
+</Example>
 
 ## Accessibility
 

@@ -4,304 +4,13 @@ description: A line chart for trends over a continuous x axis, time above all.
 aliases: [sparkline, line graph, time series chart]
 ---
 
-import { Empty } from "@ngrok/mantle/empty";
-import { LineChart } from "@ngrok/mantle/line-chart";
-import { useEffect, useState } from "react";
 import { Example } from "~/components/example";
-
-export const latencyStart = new Date("2026-07-18T10:00:00Z").getTime();
-export const latencyPoint = (minute) => ({
-	time: new Date(latencyStart + minute * 60_000),
-	p50: Math.round(120 + 18 * Math.sin(minute / 4) + 6 * Math.sin(minute / 1.7)),
-	p99: Math.round(480 + 80 * Math.sin(minute / 5 + 1) + 24 * Math.sin(minute / 2.3)),
-});
-export const latencyData = Array.from({ length: 30 }, (_, minute) => latencyPoint(minute));
-
-export function LatencyExample() {
-	return (
-		<LineChart.Root data={latencyData} xKey="time" aria-label="Request latency by percentile">
-			<LineChart.Grid />
-			<LineChart.XAxis />
-			<LineChart.YAxis tickFormat={(value) => `${value}ms`} />
-			<LineChart.Line dataKey="p50" label="p50" color="blue" />
-			<LineChart.Line dataKey="p99" label="p99" color="emerald" />
-			<LineChart.Tooltip valueFormat={(value) => `${value}ms`} />
-			<LineChart.Legend />
-		</LineChart.Root>
-	);
-}
-
-export function CopyMarkdownExample() {
-	return (
-		<LineChart.Root data={latencyData} xKey="time" aria-label="Request latency, copyable">
-			<LineChart.Grid />
-			<LineChart.XAxis />
-			<LineChart.YAxis tickFormat={(value) => `${value}ms`} />
-			<LineChart.Line dataKey="p50" label="p50" color="blue" />
-			<LineChart.Line dataKey="p99" label="p99" color="emerald" />
-			<LineChart.Tooltip valueFormat={(value) => `${value}ms`} />
-			<LineChart.Legend />
-			<LineChart.CopyButton className="absolute right-0 top-0" />
-		</LineChart.Root>
-	);
-}
-
-export const signupsData = [
-	{ day: "Mon", thisWeek: 42, lastWeek: 38 },
-	{ day: "Tue", thisWeek: 61, lastWeek: 47 },
-	{ day: "Wed", thisWeek: 55, lastWeek: 60 },
-	{ day: "Thu", thisWeek: 67, lastWeek: 52 },
-	{ day: "Fri", thisWeek: 74, lastWeek: 66 },
-	{ day: "Sat", thisWeek: 30, lastWeek: 34 },
-	{ day: "Sun", thisWeek: 26, lastWeek: 22 },
-];
-
-export function CurveMarkersExample() {
-	return (
-		<LineChart.Root data={signupsData} xKey="day" aria-label="Signups by day of week">
-			<LineChart.Grid />
-			<LineChart.XAxis />
-			<LineChart.YAxis />
-			<LineChart.Line dataKey="thisWeek" label="This week" curve="monotone" markers color="blue" />
-			<LineChart.Line
-				dataKey="lastWeek"
-				label="Last week"
-				curve="monotone"
-				markers
-				color="emerald"
-				shape="square"
-			/>
-			<LineChart.Tooltip />
-			<LineChart.Legend />
-		</LineChart.Root>
-	);
-}
-
-export function seededWalk(count, seed) {
-	// Deterministic LCG (Numerical Recipes constants) — the docs render
-	// identically on every load, no Math.random.
-	let state = seed >>> 0;
-	const nextRandom = () => {
-		state = (state * 1664525 + 1013904223) >>> 0;
-		return state / 4294967296;
-	};
-	let value = 250;
-	return Array.from({ length: count }, (_, sample) => {
-		value += nextRandom() * 2 - 1;
-		return { sample, value: Math.round(value * 100) / 100 };
-	});
-}
-export const walkData = seededWalk(50_000, 20_260_718);
-
-export function HighDensityExample() {
-	return (
-		<LineChart.Root data={walkData} xKey="sample" aria-label="Seeded random walk, 50,000 samples">
-			<LineChart.Grid />
-			<LineChart.XAxis />
-			<LineChart.YAxis />
-			<LineChart.Line dataKey="value" label="Value" color="blue" />
-			<LineChart.Tooltip />
-		</LineChart.Root>
-	);
-}
-
-export const sensorData = [
-	{ hour: "00:00", roof: 21.1, lobby: 20.9 },
-	{ hour: "02:00", roof: 20.4, lobby: 20.7 },
-	{ hour: "04:00", roof: null, lobby: null },
-	{ hour: "06:00", roof: null, lobby: null },
-	{ hour: "08:00", roof: 22.8, lobby: 21.4 },
-	{ hour: "10:00", roof: 25.2, lobby: 21.9 },
-	{ hour: "12:00", roof: 27.6, lobby: 22.3 },
-	{ hour: "14:00", roof: 28.1, lobby: 22.5 },
-	{ hour: "16:00", roof: 26.9, lobby: 22.2 },
-	{ hour: "18:00", roof: 24.3, lobby: 21.8 },
-	{ hour: "20:00", roof: 22.6, lobby: 21.3 },
-	{ hour: "22:00", roof: 21.7, lobby: 21.0 },
-];
-
-export function GapsExample() {
-	return (
-		<LineChart.Root
-			data={sensorData}
-			xKey="hour"
-			aria-label="Sensor temperature with an outage window"
-		>
-			<LineChart.Grid />
-			<LineChart.XAxis />
-			<LineChart.YAxis tickFormat={(value) => `${value}°C`} />
-			<LineChart.Line dataKey="roof" label="Roof (gaps)" color="blue" />
-			<LineChart.Line dataKey="lobby" label="Lobby (connectNulls)" connectNulls color="emerald" />
-			<LineChart.Tooltip valueFormat={(value) => `${value}°C`} />
-			<LineChart.Legend />
-		</LineChart.Root>
-	);
-}
-
-export const errorRateData = Array.from({ length: 24 }, (_, hour) => ({
-	time: new Date(Date.UTC(2026, 6, 17, hour)),
-	errorRate: Number((0.62 + 0.35 * Math.sin(hour / 3) + 0.22 * Math.sin(hour / 1.3)).toFixed(2)),
-}));
-
-export function ReferenceLineExample() {
-	return (
-		<LineChart.Root
-			data={errorRateData}
-			xKey="time"
-			yDomain={[0, "auto"]}
-			aria-label="Error rate against the SLO"
-		>
-			<LineChart.Grid />
-			<LineChart.XAxis />
-			<LineChart.YAxis tickFormat={(value) => `${value}%`} />
-			<LineChart.Line dataKey="errorRate" label="Error rate" color="danger" />
-			<LineChart.ReferenceLine y={1} label="SLO" />
-			<LineChart.Tooltip valueFormat={(value) => `${value}%`} />
-		</LineChart.Root>
-	);
-}
-
-export const trafficPoint = (minute) => ({
-	time: new Date(latencyStart + minute * 60_000),
-	requests: Math.round(1200 + 260 * Math.sin(minute / 5) + 90 * Math.sin(minute / 1.9)),
-	errors: Math.round(14 + 9 * Math.sin(minute / 3.2 + 2) + 4 * Math.sin(minute / 1.4)),
-});
-export const trafficData = Array.from({ length: 60 }, (_, minute) => trafficPoint(minute));
-
-export function LinkedChartsExample() {
-	const [activeIndex, setActiveIndex] = useState(null);
-	return (
-		<div className="flex w-full flex-col gap-4">
-			<LineChart.Root
-				data={trafficData}
-				xKey="time"
-				aria-label="Requests per minute"
-				activeIndex={activeIndex}
-				onActiveIndexChange={setActiveIndex}
-				className="aspect-[3/1]"
-			>
-				<LineChart.Grid />
-				<LineChart.XAxis />
-				<LineChart.YAxis />
-				<LineChart.Line dataKey="requests" label="Requests" color="blue" />
-				<LineChart.Tooltip />
-			</LineChart.Root>
-			<LineChart.Root
-				data={trafficData}
-				xKey="time"
-				aria-label="Errors per minute"
-				activeIndex={activeIndex}
-				onActiveIndexChange={setActiveIndex}
-				className="aspect-[3/1]"
-			>
-				<LineChart.Grid />
-				<LineChart.XAxis />
-				<LineChart.YAxis />
-				<LineChart.Line dataKey="errors" label="Errors" color="danger" />
-				<LineChart.Tooltip />
-			</LineChart.Root>
-		</div>
-	);
-}
-
-export const liveStart = new Date("2026-07-18T12:00:00Z").getTime();
-
-export const formatClock = new Intl.DateTimeFormat("en-US", {
-	hour: "2-digit",
-	minute: "2-digit",
-	second: "2-digit",
-	hour12: false,
-	timeZone: "UTC",
-});
-
-export function livePoint(tick) {
-	const drift = Math.sin(tick / 160);
-	const wave = Math.sin(tick / 14);
-	const ripple = Math.sin(tick / 5.3);
-	return {
-		time: new Date(liveStart + tick * 150),
-		p50: Math.round(120 + 12 * drift + 14 * wave + 5 * ripple),
-		p99: Math.round(470 + 45 * Math.sin(tick / 130 + 2) + 48 * wave + 20 * ripple),
-	};
-}
-
-export function LiveLineExample() {
-	const [tick, setTick] = useState(0);
-	useEffect(() => {
-		const interval = setInterval(() => {
-			setTick((current) => current + 1);
-		}, 150);
-		return () => clearInterval(interval);
-	}, []);
-	const data = Array.from({ length: 240 }, (_, index) => livePoint(tick + index));
-	return (
-		<LineChart.Root data={data} xKey="time" aria-label="Live request latency by percentile">
-			<LineChart.Grid />
-			<LineChart.XAxis
-				tickFormat={(value) => (value instanceof Date ? formatClock.format(value) : String(value))}
-			/>
-			<LineChart.YAxis tickFormat={(value) => `${value}ms`} />
-			<LineChart.Line dataKey="p50" label="p50" color="blue" />
-			<LineChart.Line dataKey="p99" label="p99" color="emerald" />
-			<LineChart.Tooltip
-				valueFormat={(value) => `${value}ms`}
-				labelFormat={(value) => (value instanceof Date ? formatClock.format(value) : String(value))}
-			/>
-			<LineChart.Legend />
-		</LineChart.Root>
-	);
-}
-
-export const placeholderLatency = [120, 138, 126, 152, 141, 168, 150, 162].map((value, index) => ({
-	minute: index,
-	value,
-}));
-
-export function EmptyStateLineChartExample() {
-	return (
-		<div className="relative w-full">
-			<LineChart.Root data={placeholderLatency} xKey="minute" mode="decorative">
-				<LineChart.Line dataKey="value" curve="monotone" color="blue" />
-			</LineChart.Root>
-			<Empty.Root className="absolute inset-0 m-auto h-fit w-fit">
-				<Empty.Title>No latency data yet</Empty.Title>
-				<Empty.Description>
-					<p>Percentile latencies will appear here once requests flow through your endpoints.</p>
-				</Empty.Description>
-			</Empty.Root>
-		</div>
-	);
-}
-
-export function SeriesIdentityLineChartExample() {
-	return (
-		<LineChart.Root
-			data={signupsData}
-			xKey="day"
-			// An app declares its brand token once, high in the tree. This example
-			// declares it beside the override so it stands alone. A theme that needs
-			// its own value takes a variant: `dark:[--color-brand:…]`.
-			className="[--color-brand:#d07c00] [--color-chart-blue:var(--color-brand)]"
-			aria-label="Signups by day of week"
-		>
-			<LineChart.Grid />
-			<LineChart.XAxis />
-			<LineChart.YAxis />
-			<LineChart.Line dataKey="thisWeek" label="This week" color="blue" />
-			<LineChart.Line dataKey="lastWeek" label="Last week" color="gray" shape="square" />
-			<LineChart.Tooltip />
-			<LineChart.Legend />
-		</LineChart.Root>
-	);
-}
 
 # Line Chart
 
 A line chart for trends over a continuous x axis, time above all. Compose the gridlines, axes, and one `LineChart.Line` per series inside `LineChart.Root`.
 
-<Example>
-	<LatencyExample />
-</Example>
+<Example name="components/charts/line-chart/overview" title="Line Chart example">
 
 ```tsx
 import { LineChart } from "@ngrok/mantle/line-chart";
@@ -329,6 +38,8 @@ function LatencyExample() {
 }
 ```
 
+</Example>
+
 ## When to use
 
 - Show how a value changes over time, such as latency percentiles, request rates, or resource usage.
@@ -346,9 +57,7 @@ The glyphs are `"circle"`, `"square"`, `"triangle"`, `"diamond"`, `"triangle-dow
 
 String x values put the chart on a `"point"` scale: evenly spaced categorical positions with no band thickness.
 
-<Example>
-	<CurveMarkersExample />
-</Example>
+<Example name="components/charts/line-chart/curves-markers-and-shapes" title="Line Chart curves, markers, and shapes example">
 
 ```tsx
 import { LineChart } from "@ngrok/mantle/line-chart";
@@ -385,13 +94,13 @@ function CurveMarkersExample() {
 }
 ```
 
+</Example>
+
 ## High-density series
 
 Rendering decimates each series to its min/max per pixel column, so series of 100,000+ points stay smooth. This chart plots a 50,000-point seeded pseudo-random walk on a `"linear"` x scale. Past 4 points per device pixel, the engine decimates each series to its min/max per device-pixel column, so a redraw costs O(plot width), not O(points). It is also visually lossless, because a line through every intermediate value paints the same column of pixels anyway. The idle chart costs zero CPU: there is no always-on render loop; every mutation coalesces into a single `requestAnimationFrame` commit. And hover never repaints the chart: the crosshair, active-point markers, and tooltip are DOM overlay elements moved with transforms.
 
-<Example>
-	<HighDensityExample />
-</Example>
+<Example name="components/charts/line-chart/high-density-series" title="Line Chart high-density series example">
 
 ```tsx
 import { LineChart } from "@ngrok/mantle/line-chart";
@@ -425,13 +134,13 @@ function HighDensityExample() {
 }
 ```
 
+</Example>
+
 ## Gaps and connectNulls
 
 `null` and missing values render as gaps by default, and gaps are the honest default: a gap says "we did not measure this," where a bridged line invents values that were never recorded. Pass `connectNulls` to join across missing values only when a gap genuinely means "unchanged" rather than "unknown." Gapped values read as an em dash in the tooltip and as "no data" in keyboard announcements.
 
-<Example>
-	<GapsExample />
-</Example>
+<Example name="components/charts/line-chart/gaps-and-connectnulls" title="Line Chart Gaps and connectNulls example">
 
 ```tsx
 import { LineChart } from "@ngrok/mantle/line-chart";
@@ -470,13 +179,13 @@ function GapsExample() {
 }
 ```
 
+</Example>
+
 ## Reference lines
 
 `LineChart.ReferenceLine` paints a dashed horizontal marker at a y value — an SLO threshold, a budget, a limit — in the neutral reference color, with an optional label above its right end. Two conventions worth copying here: a series that carries bad meaning (an error rate) wears the functional `color="danger"`, and `yDomain` anchors the rate at zero so the distance to the threshold reads truthfully.
 
-<Example>
-	<ReferenceLineExample />
-</Example>
+<Example name="components/charts/line-chart/reference-lines" title="Line Chart reference lines example">
 
 ```tsx
 import { LineChart } from "@ngrok/mantle/line-chart";
@@ -505,13 +214,13 @@ function ReferenceLineExample() {
 }
 ```
 
+</Example>
+
 ## Linked charts
 
 The active position is controllable: pass `activeIndex` and `onActiveIndexChange` to share one crosshair across charts plotted over the same rows (the dashboard "linked crosshair" pattern). Hover or arrow through either chart and both move together, so a latency spike and its error spike line up without eyeballing timestamps.
 
-<Example>
-	<LinkedChartsExample />
-</Example>
+<Example name="components/charts/line-chart/linked-charts" title="Line Chart linked charts example">
 
 ```tsx
 import { LineChart } from "@ngrok/mantle/line-chart";
@@ -562,6 +271,8 @@ function LinkedChartsExample() {
 }
 ```
 
+</Example>
+
 ## Live data
 
 For streaming data, append points to the end of a sliding window and let the chart supply the motion. When appends arrive at a steady rate, the x domain scrolls at one constant speed. The chart measures the time between appends and glides the domain to each new target over that interval, so back-to-back appends read as one continuous scroll, never ease-stop-jump ticks. A point that arrives early or late changes the speed from the current position, with no jump. As the window slides, tick labels fade in and out per label (gridlines share their labels' fade) instead of popping between tick sets. `prefers-reduced-motion` snaps everything: appends land instantly, with no glide and no fades.
@@ -570,9 +281,7 @@ Motion plays only while the chart is on screen. A chart that is near the viewpor
 
 This demo appends one point every 150ms to a sliding 240-point window, dropping the oldest point each time. Both series derive from pure sine compositions over a tick counter and a fixed epoch (a slow drift plus faster waves), so the demo renders deterministically; a real chart would append measurements as they arrive.
 
-<Example>
-	<LiveLineExample />
-</Example>
+<Example name="components/charts/line-chart/live-data" title="Line Chart live data example">
 
 ```tsx
 import { LineChart } from "@ngrok/mantle/line-chart";
@@ -632,15 +341,15 @@ function LiveLineExample() {
 }
 ```
 
+</Example>
+
 ## Copy as markdown
 
 Every chart renders its data as real DOM once it takes focus: the screen-reader data table carries exact machine-readable values (an ISO 8601 timestamp in `<time dateTime>` for every x on a time scale, and raw numbers in `data-value`), so an agent that focuses the chart gets the series, not a picture of it. `LineChart.CopyButton` is the hand-off counterpart: one click copies the current rows to the clipboard as a GitHub-flavored markdown table, one x column plus one column per series in paint order. The output is machine-stable (an ISO 8601 timestamp for every x on a time scale, plain un-separated numbers, an em dash for gaps), so it stays parseable wherever it lands: Slack, an issue, a spreadsheet, an LLM chat.
 
 The button renders in flow where composed; `Root` is relatively positioned, so `className` can dock it over a corner instead.
 
-<Example>
-	<CopyMarkdownExample />
-</Example>
+<Example name="components/charts/line-chart/copy-as-markdown" title="Line Chart copy as markdown example">
 
 ```tsx
 import { LineChart } from "@ngrok/mantle/line-chart";
@@ -656,6 +365,8 @@ import { LineChart } from "@ngrok/mantle/line-chart";
 	<LineChart.CopyButton className="absolute right-0 top-0" />
 </LineChart.Root>;
 ```
+
+</Example>
 
 ## Lists of charts
 
@@ -706,9 +417,7 @@ Reach for `mode="decorative"` over hand-rolled `inert` + CSS: it removes the int
 
 `mode="decorative"` says the values are not information; it is not a `disabled` flag (a chart is not a form control). For real data a reader only glances at, use [`mode="static"`](#static-charts).
 
-<Example>
-	<EmptyStateLineChartExample />
-</Example>
+<Example name="components/charts/line-chart/decorative-charts" title="Line Chart decorative charts example">
 
 ```tsx
 import { Empty } from "@ngrok/mantle/empty";
@@ -737,6 +446,8 @@ function EmptyStateLineChartExample() {
 	);
 }
 ```
+
+</Example>
 
 ## Composition
 
@@ -998,9 +709,7 @@ The chart paints every token as CSS, so the browser resolves it inside the Root'
 
 Below, this week paints the brand color through `color="blue"`. Last week wears `gray`, and its square glyph in the legend and under the crosshair keeps it apart from this week by shape as well as color.
 
-<Example>
-	<SeriesIdentityLineChartExample />
-</Example>
+<Example name="components/charts/line-chart/restyle-a-color-for-one-chart" title="Line Chart restyle a color for one chart example">
 
 ```tsx
 import { LineChart } from "@ngrok/mantle/line-chart";
@@ -1037,3 +746,5 @@ function SeriesIdentityLineChartExample() {
 	);
 }
 ```
+
+</Example>

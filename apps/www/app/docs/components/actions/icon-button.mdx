@@ -4,31 +4,13 @@ description: Initiates an action, such as completing a task or submitting inform
 aliases: [icon only button, action icon]
 ---
 
-import { IconButton } from "@ngrok/mantle/button";
-import { Tooltip } from "@ngrok/mantle/tooltip";
-import { GlobeIcon } from "@phosphor-icons/react/Globe";
-import { Link, href } from "react-router";
 import { Example } from "~/components/example";
 
 # Icon Button
 
 Initiates an action, such as completing a task or submitting information. Renders one icon and nothing else, with a required `label` prop that carries the accessible name.
 
-<Example className="flex items-center justify-center gap-2">
-	<IconButton appearance="ghost" intent="neutral" label="prestige worldwide" icon={<GlobeIcon />} />
-	<IconButton
-		appearance="filled"
-		intent="neutral"
-		label="prestige worldwide"
-		icon={<GlobeIcon />}
-	/>
-	<IconButton
-		appearance="outlined"
-		intent="neutral"
-		label="prestige worldwide"
-		icon={<GlobeIcon />}
-	/>
-</Example>
+<Example name="components/actions/icon-button/overview" title="Icon Button example">
 
 ```tsx
 import { IconButton } from "@ngrok/mantle/button";
@@ -38,6 +20,8 @@ import { GlobeIcon } from "@phosphor-icons/react/Globe";
 <IconButton appearance="filled" intent="neutral" label="prestige worldwide" icon={<GlobeIcon />} />
 <IconButton appearance="outlined" intent="neutral" label="prestige worldwide" icon={<GlobeIcon />} />
 ```
+
+</Example>
 
 ## When to use
 
@@ -56,202 +40,7 @@ Use the `size` prop to control the box size of the icon button, default `md`. Th
 
 `2xs` is for `IconButton` only. It renders a 20px box and shrinks the icon to 16px, so the button fits inside a line of text, such as a copy button beside a value in a [Description List](/components/data-display/description-list) row. The other sizes scale only the box.
 
-<Example className="flex flex-wrap gap-6">
-	<div>
-		<p className="mb-2 text-center font-mono text-xs">Size 2xs</p>
-		<div className="flex items-center gap-2">
-			<IconButton
-				appearance="ghost"
-				intent="neutral"
-				label="prestige worldwide"
-				size="2xs"
-				icon={<GlobeIcon />}
-			/>
-			<IconButton
-				appearance="filled"
-				intent="neutral"
-				label="prestige worldwide"
-				size="2xs"
-				icon={<GlobeIcon />}
-			/>
-			<IconButton
-				appearance="outlined"
-				intent="neutral"
-				label="prestige worldwide"
-				size="2xs"
-				icon={<GlobeIcon />}
-			/>
-		</div>
-	</div>
-	<div>
-		<p className="mb-2 text-center font-mono text-xs">Size xs</p>
-		<div className="flex items-center gap-2">
-			<IconButton
-				appearance="ghost"
-				intent="neutral"
-				label="prestige worldwide"
-				size="xs"
-				icon={<GlobeIcon />}
-			/>
-			<IconButton
-				appearance="filled"
-				intent="neutral"
-				label="prestige worldwide"
-				size="xs"
-				icon={<GlobeIcon />}
-			/>
-			<IconButton
-				appearance="outlined"
-				intent="neutral"
-				label="prestige worldwide"
-				size="xs"
-				icon={<GlobeIcon />}
-			/>
-		</div>
-	</div>
-	<div>
-		<p className="mb-2 text-center font-mono text-xs">Size sm</p>
-		<div className="flex items-center gap-2">
-			<IconButton
-				appearance="ghost"
-				intent="neutral"
-				label="prestige worldwide"
-				size="sm"
-				icon={<GlobeIcon />}
-			/>
-			<IconButton
-				appearance="filled"
-				intent="neutral"
-				label="prestige worldwide"
-				size="sm"
-				icon={<GlobeIcon />}
-			/>
-			<IconButton
-				appearance="outlined"
-				intent="neutral"
-				label="prestige worldwide"
-				size="sm"
-				icon={<GlobeIcon />}
-			/>
-		</div>
-	</div>
-	<div>
-		<p className="mb-2 text-center font-mono text-xs">Size md</p>
-		<div className="flex items-center gap-2">
-			<IconButton
-				appearance="ghost"
-				intent="neutral"
-				label="prestige worldwide"
-				icon={<GlobeIcon />}
-			/>
-			<IconButton
-				appearance="filled"
-				intent="neutral"
-				label="prestige worldwide"
-				icon={<GlobeIcon />}
-			/>
-			<IconButton
-				appearance="outlined"
-				intent="neutral"
-				label="prestige worldwide"
-				icon={<GlobeIcon />}
-			/>
-		</div>
-	</div>
-	<div>
-		<p className="mb-2 text-center font-mono text-xs">Size lg</p>
-		<div className="flex items-center gap-2">
-			<IconButton
-				appearance="ghost"
-				intent="neutral"
-				label="prestige worldwide"
-				size="lg"
-				icon={<GlobeIcon />}
-			/>
-			<IconButton
-				appearance="filled"
-				intent="neutral"
-				label="prestige worldwide"
-				size="lg"
-				icon={<GlobeIcon />}
-			/>
-			<IconButton
-				appearance="outlined"
-				intent="neutral"
-				label="prestige worldwide"
-				size="lg"
-				icon={<GlobeIcon />}
-			/>
-		</div>
-	</div>
-	<div>
-		<p className="mb-2 text-center font-mono text-xs">Size xl</p>
-		<div className="flex items-center gap-2">
-			<IconButton
-				appearance="ghost"
-				intent="neutral"
-				label="prestige worldwide"
-				size="xl"
-				icon={<GlobeIcon />}
-			/>
-			<IconButton
-				appearance="filled"
-				intent="neutral"
-				label="prestige worldwide"
-				size="xl"
-				icon={<GlobeIcon />}
-			/>
-			<IconButton
-				appearance="outlined"
-				intent="neutral"
-				label="prestige worldwide"
-				size="xl"
-				icon={<GlobeIcon />}
-			/>
-		</div>
-	</div>
-	<div>
-		<p className="mb-2 text-center font-mono text-xs">Disabled</p>
-		<div className="flex items-center gap-2">
-			<Tooltip.Root>
-				<Tooltip.Trigger asChild>
-					<IconButton
-						disabled
-						appearance="ghost"
-						intent="neutral"
-						label="prestige worldwide"
-						icon={<GlobeIcon />}
-					/>
-				</Tooltip.Trigger>
-				<Tooltip.Content>Tooltips work on disabled buttons!</Tooltip.Content>
-			</Tooltip.Root>
-			<Tooltip.Root>
-				<Tooltip.Trigger asChild>
-					<IconButton
-						disabled
-						appearance="filled"
-						intent="neutral"
-						label="prestige worldwide"
-						icon={<GlobeIcon />}
-					/>
-				</Tooltip.Trigger>
-				<Tooltip.Content>Tooltips work on disabled buttons!</Tooltip.Content>
-			</Tooltip.Root>
-			<Tooltip.Root>
-				<Tooltip.Trigger asChild>
-					<IconButton
-						disabled
-						appearance="outlined"
-						intent="neutral"
-						label="prestige worldwide"
-						icon={<GlobeIcon />}
-					/>
-				</Tooltip.Trigger>
-				<Tooltip.Content>Tooltips work on disabled buttons!</Tooltip.Content>
-			</Tooltip.Root>
-		</div>
-	</div>
-</Example>
+<Example name="components/actions/icon-button/size" title="Icon Button size example">
 
 ```tsx
 import { IconButton } from "@ngrok/mantle/button";
@@ -282,6 +71,8 @@ import { GlobeIcon } from "@phosphor-icons/react/Globe";
 <IconButton appearance="outlined" intent="neutral" label="prestige worldwide" size="xl" icon={<GlobeIcon />} />
 ```
 
+</Example>
+
 ## Type
 
 Like [`Button`](/components/actions/button#type), `IconButton` defaults to **`type="button"`** rather than the native `submit`, so it never accidentally submits a surrounding `<form>`. Opt in with `type="submit"` (or `type="reset"`) when the button should submit or reset a form. When `asChild` is used, `type` has no effect and is not forwarded to the child.
@@ -290,44 +81,7 @@ Like [`Button`](/components/actions/button#type), `IconButton` defaults to **`ty
 
 `isLoading` determines whether the icon button is in a loading state, default `false`. Setting `isLoading` replaces the icon with a spinner. It also disables user interaction with the button and sets `aria-disabled`.
 
-<Example className="flex-col gap-4">
-	<div>
-		<p className="mb-2 text-center font-mono text-xs">idle</p>
-		<div className="flex items-center gap-2">
-			<IconButton
-				appearance="ghost"
-				intent="neutral"
-				label="prestige worldwide"
-				icon={<GlobeIcon />}
-			/>
-			<IconButton
-				appearance="outlined"
-				intent="neutral"
-				label="prestige worldwide"
-				icon={<GlobeIcon />}
-			/>
-		</div>
-	</div>
-	<div>
-		<p className="mb-2 text-center font-mono text-xs">isLoading</p>
-		<div className="flex items-center gap-2">
-			<IconButton
-				appearance="ghost"
-				intent="neutral"
-				label="prestige worldwide"
-				isLoading
-				icon={<GlobeIcon />}
-			/>
-			<IconButton
-				appearance="outlined"
-				intent="neutral"
-				label="prestige worldwide"
-				isLoading
-				icon={<GlobeIcon />}
-			/>
-		</div>
-	</div>
-</Example>
+<Example name="components/actions/icon-button/isloading" title="Icon Button isLoading example">
 
 ```tsx
 import { IconButton } from "@ngrok/mantle/button";
@@ -340,23 +94,15 @@ import { GlobeIcon } from "@phosphor-icons/react/Globe";
 <IconButton appearance="outlined" intent="neutral" label="prestige worldwide" isLoading icon={<GlobeIcon />} />
 ```
 
+</Example>
+
 ## Polymorphism
 
 To render _something else_ as an `IconButton`, use the `asChild` prop to compose. This is useful when you want to splat the `IconButton` styling onto a `react-router` `Link`. When you use `asChild`, the `IconButton` does **NOT** pass its `type` prop to the child component.
 
 A disabled or loading `IconButton` under `asChild` gets no `disabled` attribute, because the attribute is inert on an `<a>`. The child gets `aria-disabled="true"`, leaves the tab order with `tabIndex={-1}`, and a click on it is cancelled before any handler or router navigation runs.
 
-<Example>
-	<IconButton
-		appearance="outlined"
-		intent="neutral"
-		asChild
-		label="prestige worldwide"
-		icon={<GlobeIcon />}
-	>
-		<Link to={href("/base/colors")} />
-	</IconButton>
-</Example>
+<Example name="components/actions/icon-button/polymorphism" title="Icon Button polymorphism example">
 
 ```tsx
 import { IconButton } from "@ngrok/mantle/button";
@@ -370,9 +116,11 @@ import { Link, href } from "react-router";
 	label="prestige worldwide"
 	icon={<GlobeIcon />}
 >
-	<Link to={href("/base/colors")} />
+	<Link to={href("/base/colors")} target="_top" />
 </IconButton>;
 ```
+
+</Example>
 
 ## API Reference
 

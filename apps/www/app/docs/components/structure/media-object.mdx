@@ -4,41 +4,13 @@ description: The Media Object is an image or an icon (media) on the left, with d
 aliases: [media block]
 ---
 
-import { MediaObject } from "@ngrok/mantle/media-object";
 import { Example } from "~/components/example";
-
-export const ExampleMedia = () => (
-	<svg
-		className="h-16 w-16 border border-gray-300 bg-white text-gray-300"
-		preserveAspectRatio="none"
-		stroke="currentColor"
-		fill="none"
-		viewBox="0 0 200 200"
-		aria-hidden="true"
-	>
-		<path vectorEffect="non-scaling-stroke" strokeWidth={1} d="M0 0l200 200M0 200L200 0" />
-	</svg>
-);
 
 # Media Object
 
 The Media Object is an image or an icon (media) on the left, with descriptive content (a title and a subtitle or description) on the right. Compose `MediaObject.Media` and `MediaObject.Content` as direct children of `MediaObject.Root`.
 
-<Example>
-	<MediaObject.Root>
-		<MediaObject.Media>
-			<ExampleMedia />
-		</MediaObject.Media>
-		<MediaObject.Content>
-			<h4 className="text-lg font-medium">Lorem ipsum</h4>
-			<p className="mb-4 mt-1">
-				Repudiandae sint consequuntur vel. Amet ut nobis explicabo numquam expedita quia omnis
-				voluptatem. Minus quidem ipsam quia iusto.
-			</p>
-			<p>Ea eiusmod eiusmod aute reprehenderit exercitation eu ea id adipisicing occaecat.</p>
-		</MediaObject.Content>
-	</MediaObject.Root>
-</Example>
+<Example name="components/structure/media-object/overview" title="Media Object example">
 
 ```tsx
 import { MediaObject } from "@ngrok/mantle/media-object";
@@ -57,6 +29,8 @@ import { MediaObject } from "@ngrok/mantle/media-object";
 	</MediaObject.Content>
 </MediaObject.Root>;
 ```
+
+</Example>
 
 ## When to use
 
@@ -81,25 +55,13 @@ MediaObject.Root
 
 Each part accepts an `asChild` prop. When `true`, the part renders its single child instead of its default `<div>`, forwarding its styling and props onto that child. Render `MediaObject.Root` as an `<a>` to make the whole row a link.
 
-<Example>
-	<MediaObject.Root asChild>
-		<a href="https://ngrok.com">
-			<MediaObject.Media>
-				<ExampleMedia />
-			</MediaObject.Media>
-			<MediaObject.Content>
-				<h4 className="text-lg font-medium">Lorem ipsum</h4>
-				<p>Repudiandae sint consequuntur vel.</p>
-			</MediaObject.Content>
-		</a>
-	</MediaObject.Root>
-</Example>
+<Example name="components/structure/media-object/polymorphism" title="Media Object polymorphism example">
 
 ```tsx
 import { MediaObject } from "@ngrok/mantle/media-object";
 
 <MediaObject.Root asChild>
-	<a href="https://ngrok.com">
+	<a href="https://ngrok.com" target="_top">
 		<MediaObject.Media>
 			<ExampleMedia />
 		</MediaObject.Media>
@@ -110,6 +72,8 @@ import { MediaObject } from "@ngrok/mantle/media-object";
 	</a>
 </MediaObject.Root>;
 ```
+
+</Example>
 
 ## Spacing & alignment
 

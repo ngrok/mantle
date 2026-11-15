@@ -124,7 +124,7 @@ const chromelessRouteIds = new Set([
 
 /**
  * Whether the matched route is a chrome-less document: a framed example
- * preview (`/preview/:exampleName`), the chart benchmark page
+ * preview (`/preview/*`), the chart benchmark page
  * (`/bench/charts`), or an MCP prototype preview (`/mcp/preview` and its
  * frame). Matched on route identity, not pathname —
  * mirroring the `layouts-index` pattern in layouts-layout.tsx. Preview

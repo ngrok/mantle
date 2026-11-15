@@ -5,17 +5,8 @@ category: Forms
 aliases: [date picker, datepicker, date range picker]
 ---
 
-import { Example } from "~/components/example";
 import { PageHeader } from "~/components/page-header";
-import {
-	DisabledDaysCalendarExample,
-	HiddenDaysCalendarExample,
-	PopoverCalendarExample,
-	RangeCalendarExample,
-	RangeMultipleCalendarExample,
-	ServerRenderedCalendarExample,
-	SingleCalendarExample,
-} from "~/features/calendar-demos";
+import { Example } from "~/components/example";
 
 <PageHeader id="calendar" isPreview>
 	Calendar
@@ -23,9 +14,7 @@ import {
 
 A calendar component that allows users to select a date or a range of dates. Use `mode="single"` to let a user select a single date, or `mode="range"` to let a user select a [range](#range).
 
-<Example>
-	<SingleCalendarExample />
-</Example>
+<Example name="components/preview/calendar/overview" title="Calendar example">
 
 ```tsx
 import { Calendar } from "@ngrok/mantle/calendar";
@@ -45,6 +34,8 @@ function Example() {
 }
 ```
 
+</Example>
+
 ## When to use
 
 - Pick one date or a range of dates from a month grid with previous and next month buttons. The calendar has no text entry.
@@ -54,9 +45,7 @@ function Example() {
 
 Compose the `Calendar` inside a `Popover` to reveal it from a trigger.
 
-<Example>
-	<PopoverCalendarExample />
-</Example>
+<Example name="components/preview/calendar/popover" title="Calendar popover example">
 
 ```tsx
 import { IconButton } from "@ngrok/mantle/button";
@@ -87,13 +76,13 @@ function Example() {
 }
 ```
 
+</Example>
+
 ## Range
 
 Use `mode="range"` to let a user select a start and end date.
 
-<Example>
-	<RangeCalendarExample />
-</Example>
+<Example name="components/preview/calendar/range" title="Calendar range example">
 
 ```tsx
 import { Calendar, type DateRange } from "@ngrok/mantle/calendar";
@@ -117,13 +106,13 @@ function Example() {
 }
 ```
 
+</Example>
+
 ## Range with multiple months
 
 Use `numberOfMonths` to render more than one month at a time.
 
-<Example>
-	<RangeMultipleCalendarExample />
-</Example>
+<Example name="components/preview/calendar/range-with-multiple-months" title="Calendar range with multiple months example">
 
 ```tsx
 import { Calendar, type DateRange } from "@ngrok/mantle/calendar";
@@ -148,13 +137,13 @@ function Example() {
 }
 ```
 
+</Example>
+
 ## Hidden days
 
 Pass an array of dates to `hidden` to remove them from the calendar.
 
-<Example>
-	<HiddenDaysCalendarExample />
-</Example>
+<Example name="components/preview/calendar/hidden-days" title="Calendar hidden days example">
 
 ```tsx
 import { Calendar, type DateRange } from "@ngrok/mantle/calendar";
@@ -180,13 +169,13 @@ function Example() {
 }
 ```
 
+</Example>
+
 ## Disabled days
 
 Pass an array of dates to `disabled` to prevent them from being selected.
 
-<Example>
-	<DisabledDaysCalendarExample />
-</Example>
+<Example name="components/preview/calendar/disabled-days" title="Calendar disabled days example">
 
 ```tsx
 import { Calendar, type DateRange } from "@ngrok/mantle/calendar";
@@ -212,15 +201,15 @@ function Example() {
 }
 ```
 
+</Example>
+
 ## Server rendering
 
 `Calendar` highlights today's date and prefixes that day's `aria-label` with `Today,`. If you omit `today`, `DayPicker` reads the clock during render, once on the server and again in the browser. If the two clocks or time zones disagree on the date, the highlight and the label land on different days. React then reports a hydration mismatch. If you also omit `month` and `defaultMonth`, the grid opens on different months.
 
 Under SSR, pass `today` and `defaultMonth` (or `month`) from one date the request produced, such as a loader value. `timeZone` aligns the zone only, not the clock, so it doesn't replace `today`.
 
-<Example>
-	<ServerRenderedCalendarExample />
-</Example>
+<Example name="components/preview/calendar/server-rendering" title="Calendar server rendering example">
 
 ```tsx
 import { Calendar } from "@ngrok/mantle/calendar";
@@ -244,6 +233,8 @@ function Example() {
 	);
 }
 ```
+
+</Example>
 
 ## Accessibility
 

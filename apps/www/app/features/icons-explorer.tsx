@@ -39,7 +39,7 @@ export function IconsExplorer() {
 					</Button>
 				</div>
 			) : (
-				<ul className="grid grid-cols-4 gap-2">
+				<ul className="grid grid-cols-2 gap-2 sm:grid-cols-4">
 					{filtered.map((item) => (
 						<ListItem key={item.id} item={item} />
 					))}
@@ -92,7 +92,7 @@ function ListItem({ item }: { item: IconData }) {
 				<p translate="no" className="text-sm text-strong font-medium">
 					{item.name}
 				</p>
-				<div className="text-sm">{item.description}</div>
+				<div className="w-full text-sm wrap-anywhere">{item.description}</div>
 			</button>
 		</li>
 	);

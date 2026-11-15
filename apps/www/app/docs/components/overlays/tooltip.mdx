@@ -4,26 +4,13 @@ description: A popup that displays information related to an element when the el
 aliases: [hint]
 ---
 
-import { Button } from "@ngrok/mantle/button";
-import { Tooltip } from "@ngrok/mantle/tooltip";
 import { Example } from "~/components/example";
 
 # Tooltip
 
 A popup that displays information related to an element when the element receives keyboard focus or the mouse hovers over it.
 
-<Example>
-	<Tooltip.Root>
-		<Tooltip.Trigger asChild>
-			<Button type="button" appearance="filled" intent="neutral">
-				Hover me
-			</Button>
-		</Tooltip.Trigger>
-		<Tooltip.Content>
-			<p>This feature is part of your plan</p>
-		</Tooltip.Content>
-	</Tooltip.Root>
-</Example>
+<Example name="components/overlays/tooltip/overview" title="Tooltip example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -40,6 +27,8 @@ import { Tooltip } from "@ngrok/mantle/tooltip";
 	</Tooltip.Content>
 </Tooltip.Root>;
 ```
+
+</Example>
 
 ## When to use
 

@@ -9,13 +9,13 @@ import { unified } from "unified";
 import { describe, expect, it } from "vitest";
 
 /**
- * Every live `<Example>` on a docs page is followed at once by the code block
- * that renders it (COMPONENT_SPEC.md §7.3). A reader who sees a demo looks
- * directly below it for the code. A paragraph, a heading, or nothing at all
- * between the two breaks that.
+ * Every live example on a docs page is one `<Example>` that holds its code
+ * (COMPONENT_SPEC.md §7.3). The reader toggles between the preview and the
+ * code, and the preview runs in a sandboxed frame with the viewport switch and
+ * the reload button.
  *
- * If this fails, move the code block up to the line after `</Example>`, or
- * write the missing one. Put a note about the demo above the `<Example>`.
+ * If this fails, put the code block inside the `<Example>`, or move an inline
+ * demo into the page's examples module and render it with `<Example>`.
  */
 const DOCS_ROOT = new URL("../docs/", import.meta.url);
 
@@ -32,22 +32,47 @@ function isParent(node: Nodes): node is Nodes & Parent {
 	return "children" in node;
 }
 
+/** Whether a node is the JSX element of that name. */
+function isElement(node: Nodes | undefined, name: string): boolean {
+	return node?.type === "mdxJsxFlowElement" && node.name === name;
+}
+
+/** Whether an `<Example>` runs a page example, `<page>/<name>`, not a shell demo. */
+function isPageExample(node: Nodes): boolean {
+	return (
+		node.type === "mdxJsxFlowElement" &&
+		node.attributes.some(
+			(attr) =>
+				attr.type === "mdxJsxAttribute" &&
+				attr.name === "name" &&
+				typeof attr.value === "string" &&
+				attr.value.includes("/"),
+		)
+	);
+}
+
 /**
- * The line of each `<Example>` whose next sibling is not a code block. Nested
- * examples count too: the rule holds inside any parent element.
+ * The line of each example that is not framed and paired with its code: a
+ * page `<Example>` without a code block inside it, and a JSX demo that sits
+ * right above a bare code block. Nested elements count too.
  */
-function examplesWithoutCode(source: string): ReadonlyArray<number> {
+function unframedExamples(source: string): ReadonlyArray<number> {
 	const lines: Array<number> = [];
 	const visit = (node: Nodes) => {
 		if (!isParent(node)) {
 			return;
 		}
 		node.children.forEach((child, index) => {
-			if (child.type === "mdxJsxFlowElement" && child.name === "Example") {
-				const next = node.children[index + 1];
-				if (next?.type !== "code") {
-					lines.push(child.position?.start.line ?? 0);
+			const line = child.position?.start.line ?? 0;
+			if (isElement(child, "Example") && isParent(child)) {
+				// Why only page examples need code: a shell demo publishes its whole
+				// source in /llms-full.txt, and its page can explain it in parts.
+				const hasFence = child.children.some((part) => part.type === "code");
+				if (isPageExample(child) && !hasFence) {
+					lines.push(line);
 				}
+			} else if (child.type === "mdxJsxFlowElement" && node.children[index + 1]?.type === "code") {
+				lines.push(line);
 			}
 			visit(child);
 		});
@@ -57,9 +82,9 @@ function examplesWithoutCode(source: string): ReadonlyArray<number> {
 }
 
 describe("docs examples", () => {
-	it.for(docsPages())("%s follows each <Example> with its code block", (page) => {
+	it.for(docsPages())("%s puts each example's code inside its <Example>", (page) => {
 		const source = readFileSync(fileURLToPath(new URL(page, DOCS_ROOT)), "utf8");
-		expect(examplesWithoutCode(source)).toEqual([]);
+		expect(unframedExamples(source)).toEqual([]);
 	});
 });
 
@@ -122,12 +147,8 @@ function pageTopProblem(page: string, source: string): string | undefined {
 		if (paragraphs > 1) {
 			return `${paragraphs} paragraphs before the primary example; keep a lead of one or two sentences`;
 		}
-		// A `CodeExample.Root` holds its own code; every other primary is followed by its code block.
-		if (primary.name !== "CodeExample.Root") {
-			if (nodes[index + 1]?.type !== "code") {
-				return "no code block directly after the primary example";
-			}
-			index += 1;
+		if (primary.name !== "Example") {
+			return "a primary example outside an <Example>; frame it and put its code inside";
 		}
 	} else {
 		return `a ${primary?.type ?? "page end"} before the primary example`;
@@ -150,12 +171,17 @@ describe("component docs pages", () => {
 		},
 	);
 
+	// A primary example in the shape COMPONENT_SPEC.md §7.3 asks for.
+	const codeExample =
+		'<Example name="components/forms/button/overview" title="Button example">\n\n```tsx\nx\n```\n\n</Example>';
+
 	it.each([
+		["content before the title", `Intro.\n\n# Button\n\nLead.\n\n${codeExample}\n\n## When to use`],
+		["no lead", `# Button\n\n${codeExample}\n\n## When to use`],
 		[
-			"content before the title",
-			"Intro.\n\n# Button\n\nLead.\n\n<Example />\n\n```tsx\nx\n```\n\n## When to use",
+			"an unframed demo as the primary",
+			"# Button\n\nLead.\n\n<ButtonDemo />\n\n```tsx\nx\n```\n\n## When to use",
 		],
-		["no lead", "# Button\n\n<Example />\n\n```tsx\nx\n```\n\n## When to use"],
 		["no primary code block", "# Button\n\nLead.\n\n<ButtonDemo />\n\n## When to use"],
 		["a code block as the primary", "# Button\n\nLead.\n\n```tsx\nx\n```\n\n## When to use"],
 	])("rejects a page with %s", (_, source) => {
@@ -163,17 +189,14 @@ describe("component docs pages", () => {
 	});
 
 	it("accepts a page in the expected shape", () => {
-		const source =
-			"---\ntitle: Button\n---\n\n# Button\n\nLead.\n\n<Example />\n\n```tsx\nx\n```\n\n## When to use";
+		const source = `---\ntitle: Button\n---\n\n# Button\n\nLead.\n\n${codeExample}\n\n## When to use`;
 		expect(pageTopProblem("components/forms/button.mdx", source)).toBeUndefined();
 	});
 });
 
-/** A root-level node that renders a live example: a demo with its code block below, or a `CodeExample.Root`. */
-function isLiveExample(node: Nodes, next: Nodes | undefined): boolean {
-	return (
-		node.type === "mdxJsxFlowElement" && (next?.type === "code" || node.name === "CodeExample.Root")
-	);
+/** A root-level node that renders a live example: an `<Example>`. */
+function isLiveExample(node: Nodes): boolean {
+	return isElement(node, "Example");
 }
 
 /**
@@ -186,11 +209,11 @@ function sectionsWithManyExamples(source: string): ReadonlyArray<string> {
 	const crowded = new Set<string>();
 	let section = "(page title)";
 	let examples = 0;
-	nodes.forEach((node, index) => {
+	nodes.forEach((node) => {
 		if (node.type === "heading") {
 			section = node.children.map((child) => ("value" in child ? child.value : "")).join("");
 			examples = 0;
-		} else if (isLiveExample(node, nodes[index + 1])) {
+		} else if (isLiveExample(node)) {
 			examples += 1;
 			if (examples > 1) {
 				crowded.add(section);

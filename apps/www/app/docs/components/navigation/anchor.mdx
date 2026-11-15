@@ -4,29 +4,27 @@ description: A fundamental component for rendering links to external addresses.
 aliases: [link, hyperlink]
 ---
 
-import { Anchor } from "@ngrok/mantle/anchor";
-import { BookIcon } from "@phosphor-icons/react/Book";
-import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
-import { Link, href } from "react-router";
 import { Example } from "~/components/example";
 
 # Anchor
 
 A fundamental component for rendering links to external addresses.
 
-<Example>
-	<p>
-		This link will go to <Anchor href="https://ngrok.com/">ngrok.com</Anchor>!
-	</p>
-</Example>
+<Example name="components/navigation/anchor/overview" title="Anchor example">
 
 ```tsx
 import { Anchor } from "@ngrok/mantle/anchor";
 
 <p>
-	This link will go to <Anchor href="https://ngrok.com/">ngrok.com</Anchor>!
+	This link will go to{" "}
+	<Anchor href="https://ngrok.com/" target="_top">
+		ngrok.com
+	</Anchor>
+	!
 </p>;
 ```
+
+</Example>
 
 ## When to use
 
@@ -44,22 +42,7 @@ import { Anchor } from "@ngrok/mantle/anchor";
 
 Pass `icon` (a phosphor or custom SVG) and optionally `iconPlacement` (`"start"` default, or `"end"`) to render a small inline icon — useful for "external link" or "download" affordances. Icons are decorative; the link text must still describe the destination on its own.
 
-<Example className="flex-col">
-	<p>
-		This icon renders at the start:{" "}
-		<Anchor href="https://ngrok.com/docs" icon={<BookIcon />}>
-			ngrok docs
-		</Anchor>
-		!
-	</p>
-	<p>
-		And this icon renders at the end:{" "}
-		<Anchor href="https://dashboard.ngrok.com" icon={<ShrimpIcon />} iconPlacement="end">
-			ngrok dashboard
-		</Anchor>
-		!
-	</p>
-</Example>
+<Example name="components/navigation/anchor/icons" title="Anchor icons example">
 
 ```tsx
 import { Anchor } from "@ngrok/mantle/anchor";
@@ -68,19 +51,21 @@ import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
 
 <p>
 	This icon renders at the start:{" "}
-	<Anchor href="https://ngrok.com/docs" icon={<BookIcon />}>
+	<Anchor href="https://ngrok.com/docs" target="_top" icon={<BookIcon />}>
 		ngrok docs
 	</Anchor>
 	!
 </p>
 <p>
 	And this icon renders at the end:{" "}
-	<Anchor href="https://dashboard.ngrok.com" icon={<ShrimpIcon />} iconPlacement="end">
+	<Anchor href="https://dashboard.ngrok.com" target="_top" icon={<ShrimpIcon />} iconPlacement="end">
 		ngrok dashboard
 	</Anchor>
 	!
 </p>
 ```
+
+</Example>
 
 ## Security
 
@@ -94,20 +79,20 @@ Link text must be self-describing: avoid "click here" / "read more". The icon is
 
 Use the `asChild` prop to compose the `Anchor` styling onto another element, most commonly a `react-router` `<Link>` for internal, client-side navigation.
 
-<Example className="flex-col">
-	<Anchor asChild>
-		<Link to={href("/base/colors")}>See our colors!</Link>
-	</Anchor>
-</Example>
+<Example name="components/navigation/anchor/polymorphism" title="Anchor polymorphism example">
 
 ```tsx
 import { Anchor } from "@ngrok/mantle/anchor";
 import { Link, href } from "react-router";
 
 <Anchor asChild>
-	<Link to={href("/base/colors")}>See our colors!</Link>
+	<Link to={href("/base/colors")} target="_top">
+		See our colors!
+	</Link>
 </Anchor>;
 ```
+
+</Example>
 
 ## API Reference
 

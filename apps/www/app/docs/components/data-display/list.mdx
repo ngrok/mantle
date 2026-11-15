@@ -4,172 +4,14 @@ description: A scrollable, optionally-virtualized list of clickable items.
 aliases: [virtual list, virtualized list]
 ---
 
-import { cx } from "@ngrok/mantle/cx";
-import { MediaObject } from "@ngrok/mantle/media-object";
-import { List } from "@ngrok/mantle/list";
-import { BuildingsIcon } from "@phosphor-icons/react/Buildings";
-import { FingerprintIcon } from "@phosphor-icons/react/Fingerprint";
-import { KeyIcon } from "@phosphor-icons/react/Key";
-import { LockKeyIcon } from "@phosphor-icons/react/LockKey";
-import { ShieldCheckIcon } from "@phosphor-icons/react/ShieldCheck";
-import { useState } from "react";
-import { Example } from "~/components/example";
 import { PageHeader } from "~/components/page-header";
-
-export const accounts = Array.from({ length: 14 }, (_, index) => {
-	const names = [
-		"Cody Price",
-		"cody@ngrok.com",
-		"corp@ngrok.com",
-		"dogfood@ngrok.com",
-		"ngrok eng (dev)",
-		"acme corp",
-		"globex",
-	];
-	const plans = ["All Subscription", "Enterprise Subscription", "Free"];
-	const name = names[index % names.length];
-	return {
-		id: `account-${index}`,
-		name: index < names.length ? name : `${name} ${Math.floor(index / names.length) + 1}`,
-		plan: plans[index % plans.length],
-		memberCount: (index * 7 + 1) % 120,
-	};
-});
-
-export function ListExample() {
-	const [activeId, setActiveId] = useState("account-2");
-	return (
-		<div className="w-full max-w-md">
-			<List.Root aria-label="Your accounts" className="max-h-80">
-				{accounts.map((account) => (
-					<List.Item
-						key={account.id}
-						current={account.id === activeId}
-						onClick={() => setActiveId(account.id)}
-					>
-						<List.ItemTitle>{account.name}</List.ItemTitle>
-						<List.ItemDescription>
-							{account.plan} · {account.memberCount} members
-						</List.ItemDescription>
-					</List.Item>
-				))}
-			</List.Root>
-		</div>
-	);
-}
-
-export function ListVirtualExample() {
-	const [activeId, setActiveId] = useState("account-2");
-	return (
-		<div className="w-full max-w-md">
-			<List.VirtualRoot aria-label="Your accounts" className="max-h-80">
-				{accounts.map((account) => (
-					<List.Item
-						key={account.id}
-						current={account.id === activeId}
-						onClick={() => setActiveId(account.id)}
-					>
-						<List.ItemTitle>{account.name}</List.ItemTitle>
-						<List.ItemDescription>
-							{account.plan} · {account.memberCount} members
-						</List.ItemDescription>
-					</List.Item>
-				))}
-			</List.VirtualRoot>
-		</div>
-	);
-}
-
-export const simpleAccounts = [
-	{ id: "personal", name: "Cody Price", plan: "All Subscription" },
-	{ id: "corp", name: "corp@ngrok.com", plan: "Enterprise Subscription" },
-	{ id: "dogfood", name: "dogfood@ngrok.com", plan: "Free" },
-];
-
-export function ListMinimalExample() {
-	return (
-		<div className="w-full max-w-md">
-			<List.Root aria-label="Switch account" className="max-h-80">
-				{simpleAccounts.map((account) => (
-					<List.Item key={account.id} onClick={() => {}}>
-						<List.ItemTitle>{account.name}</List.ItemTitle>
-						<List.ItemDescription>{account.plan}</List.ItemDescription>
-					</List.Item>
-				))}
-			</List.Root>
-		</div>
-	);
-}
-
-export const providers = [
-	{
-		id: "okta",
-		name: "Okta Workforce",
-		owner: "ngrok eng (dev)",
-		Icon: ShieldCheckIcon,
-		tint: "text-blue-600",
-	},
-	{
-		id: "entra",
-		name: "Microsoft Entra ID",
-		owner: "corp@ngrok.com",
-		Icon: BuildingsIcon,
-		tint: "text-sky-500",
-	},
-	{
-		id: "onelogin",
-		name: "OneLogin",
-		owner: "Cody Price",
-		Icon: FingerprintIcon,
-		tint: "text-orange-500",
-	},
-	{
-		id: "google",
-		name: "Google Workspace",
-		owner: "platform@ngrok.com",
-		Icon: KeyIcon,
-		tint: "text-red-500",
-	},
-	{
-		id: "auth0",
-		name: "Auth0",
-		owner: "security@ngrok.com",
-		Icon: LockKeyIcon,
-		tint: "text-violet-600",
-	},
-];
-
-export function ListLinkExample() {
-	return (
-		<div className="w-full max-w-md">
-			<List.Root aria-label="Identity providers" className="max-h-72">
-				{providers.map((provider) => (
-					<List.Item key={provider.id} asChild className="py-2.5">
-						<a href={`#${provider.id}`}>
-							<MediaObject.Root className="items-center gap-3">
-								<MediaObject.Media>
-									<provider.Icon weight="duotone" className={cx("size-8", provider.tint)} />
-								</MediaObject.Media>
-								<MediaObject.Content className="flex flex-col gap-0.5">
-									<List.ItemTitle>{provider.name}</List.ItemTitle>
-									<List.ItemDescription>{provider.owner}</List.ItemDescription>
-								</MediaObject.Content>
-							</MediaObject.Root>
-						</a>
-					</List.Item>
-				))}
-			</List.Root>
-		</div>
-	);
-}
+import { Example } from "~/components/example";
 
 <PageHeader id="list">List</PageHeader>
 
 A scrollable, optionally-virtualized list of clickable items. Compose `List.Item` rows inside a `List.Root`, and give each row an `onClick`.
 
-<Example>
-	<ListMinimalExample />
-</Example>
+<Example name="components/data-display/list/overview" title="List example">
 
 ```tsx
 import { List } from "@ngrok/mantle/list";
@@ -190,6 +32,8 @@ const accounts = [
 </List.Root>;
 ```
 
+</Example>
+
 ## When to use
 
 - Show a scrollable list of items that each run an action or navigate, such as an account switcher or an SSO provider picker.
@@ -201,9 +45,7 @@ const accounts = [
 
 Set `current` on one `List.Item` to highlight it, such as the active account in an account switcher.
 
-<Example>
-	<ListExample />
-</Example>
+<Example name="components/data-display/list/current-row" title="List current row example">
 
 ```tsx
 import { List } from "@ngrok/mantle/list";
@@ -231,6 +73,8 @@ function Example() {
 }
 ```
 
+</Example>
+
 ## Composition
 
 ```text showLineNumbers=false
@@ -251,9 +95,7 @@ List.Root   (or .VirtualRoot)
 
 On the server, `VirtualRoot` renders the first slice of rows, sized by `estimateItemHeight` and `overscan`. The rest mount after hydration measures the viewport. `Root` renders every row in the server HTML. If the whole list must be in that HTML (for find-in-page, or for a reader without JavaScript), pick `Root`.
 
-<Example>
-	<ListVirtualExample />
-</Example>
+<Example name="components/data-display/list/virtualization" title="List virtualization example">
 
 ```tsx
 import { List } from "@ngrok/mantle/list";
@@ -282,15 +124,15 @@ function Example() {
 }
 ```
 
+</Example>
+
 > **Windowing trade-off.** Off-screen rows aren't in the DOM, so Tab and browser find-in-page only reach mounted rows (arrow keys still span the full list; they mount the target row before focusing it). That is the right trade for a large enough list. Prefer `Root` until a list is actually long.
 
 ## Polymorphism
 
 Render rows as links by passing `asChild` and an `<a>`: the row chrome (hover pill, keyboard-focus tint) applies to your element, so clicking navigates. Rows compose freely: each one here is a [`MediaObject`](/components/structure/media-object) with the provider icon on the left and the name over a de-emphasized owner on the right (an SSO identity-provider picker, as a list rather than a stack of cards).
 
-<Example>
-	<ListLinkExample />
-</Example>
+<Example name="components/data-display/list/polymorphism" title="List polymorphism example">
 
 ```tsx
 import { cx } from "@ngrok/mantle/cx";
@@ -315,6 +157,8 @@ import { List } from "@ngrok/mantle/list";
 	))}
 </List.Root>;
 ```
+
+</Example>
 
 ## Appearance
 

@@ -4,41 +4,13 @@ description: For sighted users to preview content available behind a link.
 aliases: [hovercard, link preview, preview card]
 ---
 
-import { Button } from "@ngrok/mantle/button";
-import { HoverCard } from "@ngrok/mantle/hover-card";
-import { Icon } from "@ngrok/mantle/icon";
-import { CalendarIcon } from "@phosphor-icons/react/Calendar";
-import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
 import { Example } from "~/components/example";
 
 # Hover Card
 
 For sighted users to preview content available behind a link.
 
-<Example className="gap-2">
-	<HoverCard.Root>
-		<HoverCard.Trigger asChild>
-			<Button type="button" appearance="link" intent="accent">
-				Open Hover Card
-			</Button>
-		</HoverCard.Trigger>
-		<HoverCard.Content className="w-80">
-			<div className="flex justify-between space-x-4">
-				<div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-pink-300">
-					<Icon svg={<ShrimpIcon />} className="size-12" />
-				</div>
-				<div className="space-y-1">
-					<h4 className="text-sm font-medium">@ngrok/mantle</h4>
-					<p className="text-sm">The Design System – created and maintained by @ngrok.</p>
-					<div className="flex items-center pt-2">
-						<Icon svg={<CalendarIcon />} className="mr-2 h-4 w-4 opacity-70" />{" "}
-						<span className="text-muted-foreground text-xs">Joined November 2023</span>
-					</div>
-				</div>
-			</div>
-		</HoverCard.Content>
-	</HoverCard.Root>
-</Example>
+<Example name="components/overlays/hover-card/overview" title="Hover Card example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -71,6 +43,8 @@ import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
 </HoverCard.Root>;
 ```
 
+</Example>
+
 ## When to use
 
 - Show a preview of richer content, such as a user card or a link preview, when a sighted user hovers a link or trigger.
@@ -83,19 +57,7 @@ Render `HoverCard.Arrow` as a child of `HoverCard.Content` when the card preview
 
 `HoverCard.Arrow` takes no `asChild`. The shape is two layers (a filled polygon, plus a polyline that strokes the slanted edges only), and a swapped element loses the border. Restyle it with `className` instead: `fill-*` for the surface and a `stroke-*` on the arrow's `polyline` child for the edge, since Radix renders the arrow as an `svg` where `bg-*` paints nothing.
 
-<Example className="gap-2">
-	<HoverCard.Root>
-		<HoverCard.Trigger asChild>
-			<Button type="button" appearance="link" intent="accent">
-				@ngrok/mantle
-			</Button>
-		</HoverCard.Trigger>
-		<HoverCard.Content className="w-64">
-			<HoverCard.Arrow />
-			<p className="text-sm">The Design System – created and maintained by @ngrok.</p>
-		</HoverCard.Content>
-	</HoverCard.Root>
-</Example>
+<Example name="components/overlays/hover-card/arrow" title="Hover Card arrow example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -113,6 +75,8 @@ import { HoverCard } from "@ngrok/mantle/hover-card";
 	</HoverCard.Content>
 </HoverCard.Root>;
 ```
+
+</Example>
 
 ## Layering and z-index
 

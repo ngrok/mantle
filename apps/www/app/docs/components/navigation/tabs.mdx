@@ -4,65 +4,19 @@ description: Layered sections of content, called tab panels, that show one at a 
 aliases: [tab bar, tab list, tab strip]
 ---
 
-import { Card } from "@ngrok/mantle/card";
-import { Icon } from "@ngrok/mantle/icon";
-import { Tabs } from "@ngrok/mantle/tabs";
-import { ArrowsSplitIcon } from "@phosphor-icons/react/ArrowsSplit";
-import { BellIcon } from "@phosphor-icons/react/Bell";
-import { CertificateIcon } from "@phosphor-icons/react/Certificate";
-import { ChartBarIcon } from "@phosphor-icons/react/ChartBar";
-import { ChartLineIcon } from "@phosphor-icons/react/ChartLine";
-import { GearSixIcon } from "@phosphor-icons/react/GearSix";
-import { GlobeIcon } from "@phosphor-icons/react/Globe";
-import { KeyIcon } from "@phosphor-icons/react/Key";
-import { ListIcon } from "@phosphor-icons/react/List";
-import { LockIcon } from "@phosphor-icons/react/Lock";
-import { PlugIcon } from "@phosphor-icons/react/Plug";
-import { RocketLaunchIcon } from "@phosphor-icons/react/RocketLaunch";
-import { ShieldCheckIcon } from "@phosphor-icons/react/ShieldCheck";
-import { UserIcon } from "@phosphor-icons/react/User";
-import { Link, href } from "react-router";
 import { Example } from "~/components/example";
 
 # Tabs
 
 Layered sections of content, called tab panels, that show one at a time.
 
-<Example>
-	<Tabs.Root orientation="horizontal" defaultValue="account" className="w-100 max-w-[400px]">
-		<Tabs.List>
-			<Tabs.Trigger value="account">Account</Tabs.Trigger>
-			<Tabs.Trigger value="password">Password</Tabs.Trigger>
-		</Tabs.List>
-		<Tabs.Separator />
-		<Tabs.Content value="account">
-			<Card.Root>
-				<Card.Header>
-					<Card.Title>Account</Card.Title>
-					<p className="text-muted">
-						Make changes to your account here. Click save when you're done.
-					</p>
-				</Card.Header>
-			</Card.Root>
-		</Tabs.Content>
-		<Tabs.Content value="password">
-			<Card.Root>
-				<Card.Header>
-					<Card.Title>Password</Card.Title>
-					<p className="text-muted">
-						Change your password here. After saving, you'll be logged out.
-					</p>
-				</Card.Header>
-			</Card.Root>
-		</Tabs.Content>
-	</Tabs.Root>
-</Example>
+<Example name="components/navigation/tabs/overview" title="Tabs example">
 
 ```tsx
 import { Card } from "@ngrok/mantle/card";
 import { Tabs } from "@ngrok/mantle/tabs";
 
-<Tabs.Root orientation="horizontal" defaultValue="account" className="w-100 max-w-[400px]">
+<Tabs.Root orientation="horizontal" defaultValue="account" className="w-full max-w-100">
 	<Tabs.List>
 		<Tabs.Trigger value="account">Account</Tabs.Trigger>
 		<Tabs.Trigger value="password">Password</Tabs.Trigger>
@@ -89,6 +43,8 @@ import { Tabs } from "@ngrok/mantle/tabs";
 </Tabs.Root>;
 ```
 
+</Example>
+
 ## When to use
 
 - Switch between peer views of related content in one place, with one view visible at a time.
@@ -100,25 +56,7 @@ import { Tabs } from "@ngrok/mantle/tabs";
 
 Put an `Icon` before the label in `Tabs.Trigger` to help the user scan the tabs.
 
-<Example className="scrollbar -m-1 p-1 overflow-x-scroll">
-	<Tabs.Root orientation="horizontal" defaultValue="tab-1">
-		<Tabs.List>
-			<Tabs.Trigger value="tab-1">
-				<Icon svg={<GlobeIcon />} />
-				Tab Title
-			</Tabs.Trigger>
-			<Tabs.Trigger value="tab-2">
-				<Icon svg={<GlobeIcon />} />
-				Tab Title
-			</Tabs.Trigger>
-			<Tabs.Trigger value="tab-3">
-				<Icon svg={<GlobeIcon />} />
-				Tab Title
-			</Tabs.Trigger>
-		</Tabs.List>
-		<Tabs.Separator />
-	</Tabs.Root>
-</Example>
+<Example name="components/navigation/tabs/icons" title="Tabs icons example">
 
 ```tsx
 import { Icon } from "@ngrok/mantle/icon";
@@ -143,31 +81,14 @@ import { GlobeIcon } from "@phosphor-icons/react/Globe";
 	<Tabs.Separator />
 </Tabs.Root>;
 ```
+
+</Example>
 
 ## Badges
 
 Put a `Tabs.Badge` after the label in `Tabs.Trigger` to show a count for the tab. A badge can sit beside an icon.
 
-<Example className="scrollbar -m-1 p-1 overflow-x-scroll">
-	<Tabs.Root orientation="horizontal" defaultValue="tab-1">
-		<Tabs.List>
-			<Tabs.Trigger value="tab-1">
-				Tab Title
-				<Tabs.Badge>32</Tabs.Badge>
-			</Tabs.Trigger>
-			<Tabs.Trigger value="tab-2">
-				Tab Title
-				<Tabs.Badge>32</Tabs.Badge>
-			</Tabs.Trigger>
-			<Tabs.Trigger value="tab-3">
-				<Icon svg={<GlobeIcon />} />
-				Tab Title
-				<Tabs.Badge>32</Tabs.Badge>
-			</Tabs.Trigger>
-		</Tabs.List>
-		<Tabs.Separator />
-	</Tabs.Root>
-</Example>
+<Example name="components/navigation/tabs/badges" title="Tabs badges example">
 
 ```tsx
 import { Icon } from "@ngrok/mantle/icon";
@@ -194,23 +115,13 @@ import { GlobeIcon } from "@phosphor-icons/react/Globe";
 </Tabs.Root>;
 ```
 
+</Example>
+
 ## Disabled tabs
 
 Pass `disabled` to a `Tabs.Trigger` to stop the user from selecting that tab.
 
-<Example className="scrollbar -m-1 p-1 overflow-x-scroll">
-	<Tabs.Root orientation="horizontal" defaultValue="tab-1">
-		<Tabs.List>
-			<Tabs.Trigger value="tab-1">Tab Title</Tabs.Trigger>
-			<Tabs.Trigger value="tab-2">Tab Title</Tabs.Trigger>
-			<Tabs.Trigger disabled value="tab-3">
-				Tab Title
-			</Tabs.Trigger>
-			<Tabs.Trigger value="tab-4">Tab Title</Tabs.Trigger>
-		</Tabs.List>
-		<Tabs.Separator />
-	</Tabs.Root>
-</Example>
+<Example name="components/navigation/tabs/disabled-tabs" title="Tabs disabled tabs example">
 
 ```tsx
 import { Tabs } from "@ngrok/mantle/tabs";
@@ -228,39 +139,13 @@ import { Tabs } from "@ngrok/mantle/tabs";
 </Tabs.Root>;
 ```
 
+</Example>
+
 ## Vertical orientation
 
 Set `orientation="vertical"` on `Tabs.Root` to stack the tabs beside the content.
 
-<Example>
-	<Tabs.Root orientation="vertical" defaultValue="account" className="max-w-xl">
-		<Tabs.List>
-			<Tabs.Trigger value="account">Account</Tabs.Trigger>
-			<Tabs.Trigger value="password">Password</Tabs.Trigger>
-		</Tabs.List>
-		<Tabs.Separator />
-		<Tabs.Content value="account">
-			<Card.Root>
-				<Card.Header>
-					<Card.Title>Account</Card.Title>
-					<p className="text-muted">
-						Make changes to your account here. Click save when you're done.
-					</p>
-				</Card.Header>
-			</Card.Root>
-		</Tabs.Content>
-		<Tabs.Content value="password">
-			<Card.Root>
-				<Card.Header>
-					<Card.Title>Password</Card.Title>
-					<p className="text-muted">
-						Change your password here. After saving, you'll be logged out.
-					</p>
-				</Card.Header>
-			</Card.Root>
-		</Tabs.Content>
-	</Tabs.Root>
-</Example>
+<Example name="components/navigation/tabs/vertical-orientation" title="Tabs vertical orientation example">
 
 ```tsx
 import { Card } from "@ngrok/mantle/card";
@@ -293,6 +178,8 @@ import { Tabs } from "@ngrok/mantle/tabs";
 </Tabs.Root>;
 ```
 
+</Example>
+
 ## Composition
 
 Compose the parts of `Tabs` together to build your own:
@@ -315,22 +202,7 @@ A link tab activates on click, not on the press, so a press released off the lin
 
 `Tabs.Root`, `Tabs.List`, and `Tabs.Content` accept `asChild` through Radix. Each composes its part's attributes and behavior onto your own element instead of rendering its own `<div>`.
 
-<Example className="scrollbar -m-1 p-1 overflow-x-scroll">
-	<Tabs.Root orientation="horizontal" defaultValue="colors">
-		<Tabs.List>
-			<Tabs.Trigger value="colors" asChild>
-				<Link to={href("/base/colors")}>Colors</Link>
-			</Tabs.Trigger>
-			<Tabs.Trigger value="shadows" asChild>
-				<Link to={href("/base/shadows")}>Shadows</Link>
-			</Tabs.Trigger>
-			<Tabs.Trigger value="typography" asChild>
-				<Link to={href("/base/typography")}>Typography</Link>
-			</Tabs.Trigger>
-		</Tabs.List>
-		<Tabs.Separator />
-	</Tabs.Root>
-</Example>
+<Example name="components/navigation/tabs/polymorphism" title="Tabs polymorphism example">
 
 ```tsx
 import { Tabs } from "@ngrok/mantle/tabs";
@@ -339,86 +211,32 @@ import { Link, href } from "react-router";
 <Tabs.Root orientation="horizontal" defaultValue="colors">
 	<Tabs.List>
 		<Tabs.Trigger value="colors" asChild>
-			<Link to={href("/base/colors")}>Colors</Link>
+			<Link to={href("/base/colors")} target="_top">
+				Colors
+			</Link>
 		</Tabs.Trigger>
 		<Tabs.Trigger value="shadows" asChild>
-			<Link to={href("/base/shadows")}>Shadows</Link>
+			<Link to={href("/base/shadows")} target="_top">
+				Shadows
+			</Link>
 		</Tabs.Trigger>
 		<Tabs.Trigger value="typography" asChild>
-			<Link to={href("/base/typography")}>Typography</Link>
+			<Link to={href("/base/typography")} target="_top">
+				Typography
+			</Link>
 		</Tabs.Trigger>
 	</Tabs.List>
 	<Tabs.Separator />
 </Tabs.Root>;
 ```
 
+</Example>
+
 ## Horizontal overflow
 
 When there are too many tabs to fit the container, the list scrolls horizontally with scroll-position-aware fade shadows at the edges.
 
-<Example>
-	<Tabs.Root orientation="horizontal" defaultValue="getting-started" className="w-full">
-		<Tabs.List>
-			<Tabs.Trigger value="getting-started">
-				<Icon svg={<RocketLaunchIcon />} />
-				Getting Started
-			</Tabs.Trigger>
-			<Tabs.Trigger value="traffic-policy">
-				<Icon svg={<ArrowsSplitIcon />} />
-				Traffic Policy
-			</Tabs.Trigger>
-			<Tabs.Trigger value="api-keys">
-				<Icon svg={<KeyIcon />} />
-				API Keys
-			</Tabs.Trigger>
-			<Tabs.Trigger value="usage">
-				<Icon svg={<ChartBarIcon />} />
-				Usage
-			</Tabs.Trigger>
-			<Tabs.Trigger value="settings">
-				<Icon svg={<GearSixIcon />} />
-				Settings
-			</Tabs.Trigger>
-			<Tabs.Trigger value="logs">
-				<Icon svg={<ListIcon />} />
-				Logs
-			</Tabs.Trigger>
-			<Tabs.Trigger value="analytics">
-				<Icon svg={<ChartLineIcon />} />
-				Analytics
-			</Tabs.Trigger>
-			<Tabs.Trigger value="integrations">
-				<Icon svg={<PlugIcon />} />
-				Integrations
-			</Tabs.Trigger>
-			<Tabs.Trigger value="domains">
-				<Icon svg={<GlobeIcon />} />
-				Domains
-			</Tabs.Trigger>
-			<Tabs.Trigger value="team">
-				<Icon svg={<UserIcon />} />
-				Team
-			</Tabs.Trigger>
-			<Tabs.Trigger value="security">
-				<Icon svg={<ShieldCheckIcon />} />
-				Security
-			</Tabs.Trigger>
-			<Tabs.Trigger value="notifications">
-				<Icon svg={<BellIcon />} />
-				Notifications
-			</Tabs.Trigger>
-			<Tabs.Trigger value="certificates">
-				<Icon svg={<CertificateIcon />} />
-				Certificates
-			</Tabs.Trigger>
-			<Tabs.Trigger value="permissions">
-				<Icon svg={<LockIcon />} />
-				Permissions
-			</Tabs.Trigger>
-		</Tabs.List>
-		<Tabs.Separator />
-	</Tabs.Root>
-</Example>
+<Example name="components/navigation/tabs/horizontal-overflow" title="Tabs horizontal overflow example">
 
 ```tsx
 import { Icon } from "@ngrok/mantle/icon";
@@ -501,185 +319,13 @@ import { UserIcon } from "@phosphor-icons/react/User";
 </Tabs.Root>;
 ```
 
+</Example>
+
 ## Pill appearance
 
 Use `appearance="pill"` to render each tab as a pill instead of the default classic underline style.
 
-<Example className="grid gap-6">
-	<p>`asChild` with `Link`s</p>
-	<div className="scrollbar -m-1 p-1 overflow-x-scroll">
-		<Tabs.Root appearance="pill" orientation="horizontal" defaultValue="colors">
-			<Tabs.List>
-				<Tabs.Trigger value="colors" asChild>
-					<Link to={href("/base/colors")}>Colors</Link>
-				</Tabs.Trigger>
-				<Tabs.Trigger value="shadows" asChild>
-					<Link to={href("/base/shadows")}>Shadows</Link>
-				</Tabs.Trigger>
-				<Tabs.Trigger disabled value="tailwind-variants" asChild>
-					<Link to={href("/base/tailwind-variants")}>Tailwind Variants</Link>
-				</Tabs.Trigger>
-				<Tabs.Trigger value="typography" asChild>
-					<Link to={href("/base/typography")}>Typography</Link>
-				</Tabs.Trigger>
-			</Tabs.List>
-		</Tabs.Root>
-	</div>
-	<div className="scrollbar -m-1 p-1 overflow-x-scroll">
-		<Tabs.Root appearance="pill" orientation="horizontal" defaultValue="tab-1">
-			<Tabs.List>
-				<Tabs.Trigger value="tab-1">Tab Title</Tabs.Trigger>
-				<Tabs.Trigger value="tab-2">Tab Title</Tabs.Trigger>
-				<Tabs.Trigger disabled value="tab-3">
-					Tab Title
-				</Tabs.Trigger>
-				<Tabs.Trigger value="tab-4">Tab Title</Tabs.Trigger>
-			</Tabs.List>
-		</Tabs.Root>
-	</div>
-	<div className="scrollbar -m-1 p-1 overflow-x-scroll">
-		<Tabs.Root appearance="pill" orientation="horizontal" defaultValue="tab-1">
-			<Tabs.List>
-				<Tabs.Trigger value="tab-1">
-					<Icon svg={<GlobeIcon />} />
-					Tab Title
-				</Tabs.Trigger>
-				<Tabs.Trigger value="tab-2">
-					<Icon svg={<GlobeIcon />} />
-					Tab Title
-				</Tabs.Trigger>
-				<Tabs.Trigger disabled value="tab-3">
-					<Icon svg={<GlobeIcon />} />
-					Tab Title
-				</Tabs.Trigger>
-				<Tabs.Trigger value="tab-4">
-					<Icon svg={<GlobeIcon />} />
-					Tab Title
-				</Tabs.Trigger>
-			</Tabs.List>
-		</Tabs.Root>
-	</div>
-	<div className="scrollbar -m-1 p-1 overflow-x-scroll">
-		<Tabs.Root appearance="pill" orientation="horizontal" defaultValue="tab-1">
-			<Tabs.List>
-				<Tabs.Trigger value="tab-1">
-					Tab Title
-					<Tabs.Badge>32</Tabs.Badge>
-				</Tabs.Trigger>
-				<Tabs.Trigger value="tab-2">
-					Tab Title
-					<Tabs.Badge>32</Tabs.Badge>
-				</Tabs.Trigger>
-				<Tabs.Trigger disabled value="tab-3">
-					Tab Title
-					<Tabs.Badge>32</Tabs.Badge>
-				</Tabs.Trigger>
-				<Tabs.Trigger value="tab-4">
-					Tab Title
-					<Tabs.Badge>32</Tabs.Badge>
-				</Tabs.Trigger>
-			</Tabs.List>
-		</Tabs.Root>
-	</div>
-	<div className="scrollbar -m-1 p-1 overflow-x-scroll">
-		<Tabs.Root appearance="pill" orientation="horizontal" defaultValue="tab-1">
-			<Tabs.List>
-				<Tabs.Trigger value="tab-1">
-					<Icon svg={<GlobeIcon />} />
-					Tab Title
-					<Tabs.Badge>32</Tabs.Badge>
-				</Tabs.Trigger>
-				<Tabs.Trigger value="tab-2">
-					<Icon svg={<GlobeIcon />} />
-					Tab Title
-					<Tabs.Badge>32</Tabs.Badge>
-				</Tabs.Trigger>
-				<Tabs.Trigger disabled value="tab-3">
-					<Icon svg={<GlobeIcon />} />
-					Tab Title
-					<Tabs.Badge>32</Tabs.Badge>
-				</Tabs.Trigger>
-				<Tabs.Trigger value="tab-4">
-					<Icon svg={<GlobeIcon />} />
-					Tab Title
-					<Tabs.Badge>32</Tabs.Badge>
-				</Tabs.Trigger>
-			</Tabs.List>
-		</Tabs.Root>
-	</div>
-	<Tabs.Root
-		appearance="pill"
-		orientation="horizontal"
-		defaultValue="account"
-		className="w-100 max-w-[400px]"
-	>
-		<Tabs.List>
-			<Tabs.Trigger value="account">
-				<Icon svg={<UserIcon />} />
-				Account
-				<Tabs.Badge>2</Tabs.Badge>
-			</Tabs.Trigger>
-			<Tabs.Trigger value="password">
-				<Icon svg={<ShieldCheckIcon />} />
-				Password
-			</Tabs.Trigger>
-		</Tabs.List>
-		<Tabs.Content value="account">
-			<Card.Root>
-				<Card.Header>
-					<Card.Title>Account</Card.Title>
-					<p className="text-muted">
-						Make changes to your account here. Click save when you're done.
-					</p>
-				</Card.Header>
-			</Card.Root>
-		</Tabs.Content>
-		<Tabs.Content value="password">
-			<Card.Root>
-				<Card.Header>
-					<Card.Title>Password</Card.Title>
-					<p className="text-muted">
-						Change your password here. After saving, you'll be logged out.
-					</p>
-				</Card.Header>
-			</Card.Root>
-		</Tabs.Content>
-	</Tabs.Root>
-	<Tabs.Root
-		appearance="pill"
-		orientation="vertical"
-		defaultValue="account"
-		className="scrollbar max-w-xl -m-1 p-1 overflow-x-scroll"
-	>
-		<Tabs.List>
-			<Tabs.Trigger value="account">Account</Tabs.Trigger>
-			<Tabs.Trigger value="password">Password</Tabs.Trigger>
-			<Tabs.Trigger value="disabled-tab" disabled>
-				Disabled tab
-			</Tabs.Trigger>
-		</Tabs.List>
-		<Tabs.Content value="account">
-			<Card.Root>
-				<Card.Header>
-					<Card.Title>Account</Card.Title>
-					<p className="text-muted">
-						Make changes to your account here. Click save when you're done.
-					</p>
-				</Card.Header>
-			</Card.Root>
-		</Tabs.Content>
-		<Tabs.Content value="password">
-			<Card.Root>
-				<Card.Header>
-					<Card.Title>Password</Card.Title>
-					<p className="text-muted">
-						Change your password here. After saving, you'll be logged out.
-					</p>
-				</Card.Header>
-			</Card.Root>
-		</Tabs.Content>
-	</Tabs.Root>
-</Example>
+<Example name="components/navigation/tabs/pill-appearance" title="Tabs pill appearance example">
 
 ```tsx
 import { Card } from "@ngrok/mantle/card";
@@ -693,16 +339,16 @@ import { Link, href } from "react-router";
 <Tabs.Root appearance="pill" orientation="horizontal" defaultValue="colors">
 	<Tabs.List>
 		<Tabs.Trigger value="colors" asChild>
-			<Link to={href("/base/colors")}>Colors</Link>
+			<Link to={href("/base/colors")} target="_top">Colors</Link>
 		</Tabs.Trigger>
 		<Tabs.Trigger value="shadows" asChild>
-			<Link to={href("/base/shadows")}>Shadows</Link>
+			<Link to={href("/base/shadows")} target="_top">Shadows</Link>
 		</Tabs.Trigger>
 		<Tabs.Trigger disabled value="tailwind-variants" asChild>
-			<Link to={href("/base/tailwind-variants")}>Tailwind Variants</Link>
+			<Link to={href("/base/tailwind-variants")} target="_top">Tailwind Variants</Link>
 		</Tabs.Trigger>
 		<Tabs.Trigger value="typography" asChild>
-			<Link to={href("/base/typography")}>Typography</Link>
+			<Link to={href("/base/typography")} target="_top">Typography</Link>
 		</Tabs.Trigger>
 	</Tabs.List>
 </Tabs.Root>
@@ -789,7 +435,7 @@ import { Link, href } from "react-router";
 	appearance="pill"
 	orientation="horizontal"
 	defaultValue="account"
-	className="w-100 max-w-[400px]"
+	className="w-full max-w-100"
 >
 	<Tabs.List>
 		<Tabs.Trigger value="account">
@@ -860,6 +506,8 @@ import { Link, href } from "react-router";
 </Tabs.Root>
 ```
 
+</Example>
+
 ## Separator
 
 `Tabs.List` draws no border of its own. Compose `Tabs.Separator` directly after it for the 1px hairline in the `separator` color: under the list when the root is horizontal, beside the list when the root is vertical. The separator is a sibling of the list and not a child, so it spans the root's full width and neither scrolls nor fades with the triggers.
@@ -868,55 +516,7 @@ As the root's direct child, the separator pulls itself up by `--tabs-gap`, the r
 
 The separator is decorative (`role="none"`). Pass `semantic` to render `role="separator"`.
 
-<Example className="grid gap-6">
-	<div>
-		<p className="mb-2 font-mono text-xs">with Tabs.Separator</p>
-		<div className="scrollbar -m-1 p-1 overflow-x-scroll">
-			<Tabs.Root orientation="horizontal" defaultValue="tab-1">
-				<Tabs.List>
-					<Tabs.Trigger value="tab-1">Tab Title</Tabs.Trigger>
-					<Tabs.Trigger value="tab-2">Tab Title</Tabs.Trigger>
-					<Tabs.Trigger value="tab-3">Tab Title</Tabs.Trigger>
-				</Tabs.List>
-				<Tabs.Separator />
-			</Tabs.Root>
-		</div>
-	</div>
-	<div>
-		<p className="mb-2 font-mono text-xs">without</p>
-		<div className="scrollbar -m-1 p-1 overflow-x-scroll">
-			<Tabs.Root orientation="horizontal" defaultValue="tab-1">
-				<Tabs.List>
-					<Tabs.Trigger value="tab-1">Tab Title</Tabs.Trigger>
-					<Tabs.Trigger value="tab-2">Tab Title</Tabs.Trigger>
-					<Tabs.Trigger value="tab-3">Tab Title</Tabs.Trigger>
-				</Tabs.List>
-			</Tabs.Root>
-		</div>
-	</div>
-	<div>
-		<p className="mb-2 font-mono text-xs">vertical</p>
-		<Tabs.Root orientation="vertical" defaultValue="tab-1" className="max-w-xl">
-			<Tabs.List>
-				<Tabs.Trigger value="tab-1">Tab Title</Tabs.Trigger>
-				<Tabs.Trigger value="tab-2">Tab Title</Tabs.Trigger>
-				<Tabs.Trigger value="tab-3">Tab Title</Tabs.Trigger>
-			</Tabs.List>
-			<Tabs.Separator />
-			<Tabs.Content value="tab-1">
-				<p className="text-muted">
-					The separator runs beside the list, the full height of the root.
-				</p>
-			</Tabs.Content>
-			<Tabs.Content value="tab-2">
-				<p className="text-muted">Tab 2 content.</p>
-			</Tabs.Content>
-			<Tabs.Content value="tab-3">
-				<p className="text-muted">Tab 3 content.</p>
-			</Tabs.Content>
-		</Tabs.Root>
-	</div>
-</Example>
+<Example name="components/navigation/tabs/separator" title="Tabs separator example">
 
 ```tsx
 import { Tabs } from "@ngrok/mantle/tabs";
@@ -956,6 +556,8 @@ import { Tabs } from "@ngrok/mantle/tabs";
 	</Tabs.Content>
 </Tabs.Root>
 ```
+
+</Example>
 
 ## Accessibility
 

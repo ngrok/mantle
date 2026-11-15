@@ -109,9 +109,9 @@ const trails = [
  *
  * @example
  * ```tsx
- * <Example>
+ * <PreviewCanvas>
  *   <RouteBreadcrumbsDemo />
- * </Example>
+ * </PreviewCanvas>
  * ```
  */
 export function RouteBreadcrumbsDemo() {
@@ -129,8 +129,10 @@ export function RouteBreadcrumbsDemo() {
 						appearance={index === urlIndex ? "filled" : "outlined"}
 						intent={index === urlIndex ? "accent" : "neutral"}
 						onClick={() => setUrlIndex(index)}
+						className="max-w-full"
 					>
-						{candidate.url}
+						{/* Why truncate: the longest path is wider than a 320px screen. */}
+						<span className="min-w-0 truncate">{candidate.url}</span>
 					</Button>
 				))}
 			</div>

@@ -4,15 +4,13 @@ description: "A page of titled sections, each one explained beside its content: 
 aliases: [settings page, settings layout]
 ---
 
-import { CodeExample } from "~/components/code-example";
+import { Example } from "~/components/example";
 
 # Strata
 
 A page of titled sections, each one explained beside its content: the shape of a settings page or a configuration editor. Each `Strata.Section` pairs a `Strata.Header` (a title and a description) with the `Strata.Body` that the header describes.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="strata" title="Strata demo" />
-	<CodeExample.Code>
+<Example name="strata" title="Strata demo">
 
 ```tsx
 import { Badge } from "@ngrok/mantle/badge";
@@ -86,9 +84,7 @@ export function AccessKeyConfiguration() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## When to use
 
@@ -122,9 +118,7 @@ Strata.Root
 
 Every part accepts `asChild`, so the structure composes onto the element a page actually needs. `Root` renders as the `<form>` below, which keeps the form element outside every section instead of repeating one per band. `Title` renders as an `<h3>` because this section sits under a sub-heading rather than directly under the page `<h1>`.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="strata-polymorphism" title="Strata polymorphism demo" />
-	<CodeExample.Code>
+<Example name="strata-polymorphism" title="Strata polymorphism demo">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -160,9 +154,7 @@ export function AdvancedSettings() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Column split
 
@@ -174,9 +166,7 @@ At `md` and up, `Section` reads its `grid-template-columns` from `--strata-colum
 
 The default suits a short label beside a wide set of controls. When the explanation carries as much weight as the controls, an even split reads better — switch the frame to mobile to watch both splits collapse to the same stack:
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="strata-columns" title="Strata column split demo" />
-	<CodeExample.Code>
+<Example name="strata-columns" title="Strata column split demo">
 
 ```tsx
 import { Main } from "@ngrok/mantle/main";
@@ -219,9 +209,7 @@ export function ModelSettings() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## Accessibility
 

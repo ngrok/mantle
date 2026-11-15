@@ -103,7 +103,7 @@ const components = {
 	// },
 	li: (props) => {
 		const { node: _node, className, ...rest } = props;
-		return <li className={cx("text-body", className)} {...rest} />;
+		return <li className={cx("wrap-break-word text-body", className)} {...rest} />;
 	},
 	ol: (props) => {
 		const { node: _node, className, ...rest } = props;
@@ -125,9 +125,17 @@ const components = {
 		const { children, className, indentation: _indentation, ...rawProps } = props;
 		const { mantleCode: preRendered, props: rest } = resolvePreRenderedCodeBlockProps(rawProps);
 
+		// Why overflow-x-auto: a fence in a language without highlighting renders
+		// here, and a long line must scroll in the block, not widen the page.
+		const fallbackClassName = cx(
+			"scrollbar overflow-x-auto focus:outline-hidden focus-visible:ring-2 focus-visible:ring-focus-accent",
+			className,
+		);
+
 		if (!preRendered) {
 			return (
-				<pre className={className} {...rest}>
+				// oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- Safari does not put a scroll container in the Tab order, so a keyboard could not scroll a long line into view
+				<pre className={fallbackClassName} tabIndex={0} {...rest}>
 					{children}
 				</pre>
 			);
@@ -137,7 +145,8 @@ const components = {
 		if (!code || !language || !preHtml) {
 			warnMalformedPreRenderedCodeBlock(preRendered.rawLanguage);
 			return (
-				<pre className={className} {...rest}>
+				// oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- the same Safari gap as above
+				<pre className={fallbackClassName} tabIndex={0} {...rest}>
 					{children}
 				</pre>
 			);
@@ -268,7 +277,9 @@ function MdxHeading({ as: Component, children, className, id, ...props }: MdxHea
 		<HashLinkHeading id={id}>
 			<Component
 				className={cx(
-					"font-medium text-strong mt-12 mb-4 [:is(h1,h2,h3,h4,h5,h6)+&]:mt-6",
+					// Why wrap-anywhere: one long identifier (`SandboxedOnClick`) is wider
+					// than a 320px screen, and `break-word` does not shrink a `w-fit` box.
+					"font-medium text-strong mt-12 mb-4 wrap-anywhere [:is(h1,h2,h3,h4,h5,h6)+&]:mt-6",
 					Component === "h1" && "text-5xl mt-0",
 					Component === "h2" && "text-3xl",
 					Component === "h3" && "text-2xl",

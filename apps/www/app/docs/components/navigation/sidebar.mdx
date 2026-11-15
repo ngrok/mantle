@@ -4,25 +4,14 @@ description: A composable, collapsible app-navigation sidebar with a mobile shee
 aliases: [side nav, side navigation, navigation drawer]
 ---
 
-import { CodeExample } from "~/components/code-example";
 import { Example } from "~/components/example";
 import { PageHeader } from "~/components/page-header";
-import {
-	SidebarAnatomyDemo,
-	SidebarNarrowMenuExample,
-	SidebarPolymorphismDemo,
-	SidebarRailTooltipExample,
-	SidebarRowWidthMenuExample,
-	SidebarWidthExample,
-} from "~/features/sidebar-demos";
 
 <PageHeader id="sidebar">Sidebar</PageHeader>
 
 A composable, collapsible app-navigation sidebar with a mobile sheet presentation and a trigger that mounts anywhere in your app shell. Wrap the app shell in `Sidebar.Root`, and `Sidebar.Trigger` toggles the panel from anywhere under it.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="app-shell" title="App shell demo" />
-	<CodeExample.Code>
+<Example name="app-shell" title="App shell demo">
 
 ```tsx
 import { AppLayout } from "@ngrok/mantle/app-layout";
@@ -624,9 +613,7 @@ export function AppShell() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 ## When to use
 
@@ -696,9 +683,7 @@ Below, `Sidebar.GroupLabel` renders a real `<h3>` and each `Sidebar.ItemButton` 
 its default `<button>`. The parts' classes, `data-*` state, and refs land on your elements, and the
 group's `aria-labelledby` wiring still names the list. Inspect the rendered markup to see it.
 
-<Example className="p-4 md:p-8">
-	<SidebarPolymorphismDemo />
-</Example>
+<Example name="components/navigation/sidebar/polymorphism" title="Sidebar polymorphism example">
 
 ```tsx
 import { Sidebar } from "@ngrok/mantle/sidebar";
@@ -752,6 +737,8 @@ export function TrafficNav() {
 	);
 }
 ```
+
+</Example>
 
 ### With react-router
 
@@ -873,9 +860,7 @@ Override one sidebar by setting the variable on `Sidebar.Nav`: a Tailwind arbitr
 shortest route, and `cx` keeps it deterministic. The panel below is `18rem` wide expanded; collapse it with
 the trigger and the rail still uses the default `--sidebar-width-icon`:
 
-<Example className="p-4 md:p-8">
-	<SidebarWidthExample />
-</Example>
+<Example name="components/navigation/sidebar/width" title="Sidebar width example">
 
 ```tsx
 import { Sidebar } from "@ngrok/mantle/sidebar";
@@ -919,6 +904,8 @@ export function WideSidebar() {
 	);
 }
 ```
+
+</Example>
 
 Override every sidebar in your app from your global stylesheet. Custom properties inherit, and the parts
 read them with a fallback, so any ancestor of `Sidebar.Nav` can set them:
@@ -966,9 +953,7 @@ Keeping labels in the accessibility tree serves screen-reader users, but a sight
 collapsed rail sees an unlabeled icon column. Wrap a row in `Sidebar.Tooltip` to give them the label back.
 The panel below starts collapsed; hover either icon to see its label, and use the trigger to expand it:
 
-<Example className="p-4 md:p-8">
-	<SidebarRailTooltipExample />
-</Example>
+<Example name="components/navigation/sidebar/labeling-the-rail-for-pointer-users" title="Sidebar labeling the rail for pointer users example">
 
 ```tsx
 import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
@@ -1036,6 +1021,8 @@ export function LabeledRail() {
 }
 ```
 
+</Example>
+
 The label shows only while the desktop panel is collapsed: expanded rows already read their own text and the
 mobile sheet shows full labels, so there is nothing to duplicate. The rail state _vetoes_ the tooltip's open
 state rather than withholding its content: the expanded panel and the mobile sheet keep the row at
@@ -1072,9 +1059,7 @@ variables either: it renders in a portal on `document.body`, so it inherits noth
 Keep `width="trigger"` and floor the menu at it. The switcher row below is a collapsed chip; open its menu,
 expand the panel with the trigger, and open it again; the menu is the same width both times:
 
-<Example className="p-4 md:p-8">
-	<SidebarRowWidthMenuExample />
-</Example>
+<Example name="components/navigation/sidebar/floor-the-menu-at-the-row-width" title="Sidebar floor the menu at the row width example">
 
 ```tsx
 import { Avatar } from "@ngrok/mantle/avatar";
@@ -1147,6 +1132,8 @@ export function AccountRowMenu() {
 }
 ```
 
+</Example>
+
 One static class covers all three presentations at the default widths. Expanded, the floor is a no-op: the
 row already measures that wide, so the menu is flush with it. Collapsed, the floor holds the menu at the
 expanded row's width, so it looks identical in the rail. In the mobile `Sheet` the floor is inert because the
@@ -1166,9 +1153,7 @@ panel and its menus together, or declare the token on the menu content for a one
 custom property is read from the element that declares it. The panel below is `12rem` wide and its Help menu
 carries a matching floor, so the menu stays flush with the row instead of overhanging it:
 
-<Example className="p-4 md:p-8">
-	<SidebarNarrowMenuExample />
-</Example>
+<Example name="components/navigation/sidebar/a-narrower-panel" title="Sidebar a narrower panel example">
 
 ```tsx
 import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
@@ -1230,6 +1215,8 @@ export function NarrowSidebarMenu() {
 }
 ```
 
+</Example>
+
 ## Navigation anatomy
 
 The navigation parts are plain styled elements: `Sidebar.Group` pairs an optional muted `Sidebar.GroupLabel`
@@ -1251,9 +1238,7 @@ follows either one, so a composed child that marks itself (react-router's `NavLi
 > need a tree, compose one from [Accordion](/components/data-display/accordion) inside `Sidebar.Body` rather than
 > expecting the rail to collapse it.
 
-<Example className="p-4 md:p-8">
-	<SidebarAnatomyDemo />
-</Example>
+<Example name="components/navigation/sidebar/navigation-anatomy" title="Sidebar navigation anatomy example">
 
 ```tsx
 import { Sidebar } from "@ngrok/mantle/sidebar";
@@ -1306,6 +1291,8 @@ export function NetworkNav() {
 }
 ```
 
+</Example>
+
 ## The search row
 
 `Sidebar.SearchTrigger` is the row that opens a search or command palette. It is deliberately a navigation row
@@ -1329,9 +1316,7 @@ the rows inside `Sidebar.Body`.
 
 Collapse the panel to watch the row join the icon column, or press `⌘K` inside the preview.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="command-search-shell" title="Sidebar search row demo" />
-	<CodeExample.Code>
+<Example name="command-search-shell" title="Sidebar search row demo">
 
 ```tsx
 import { Command, MetaKey } from "@ngrok/mantle/command";
@@ -1432,9 +1417,7 @@ function SidebarWithSearch() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 Put it above the first `Sidebar.Group` so it shares the column the navigation rows use in both panel states, and
 mark it up like any other row: a leading icon, then the label in an element of its own so the rail can clip it
@@ -1462,9 +1445,7 @@ server-rendered HTML itself: a persisted-collapsed sidebar paints expanded for o
 post-hydration correction. If that frame matters, [persist to a **cookie**](#persisting-to-a-cookie-ssr)
 instead, the same way the theme system solves FOUC server-side.
 
-<CodeExample.Root>
-	<CodeExample.PreviewFrame example="sidebar-persistence" title="Sidebar persistence demo" />
-	<CodeExample.Code>
+<Example name="sidebar-persistence" title="Sidebar persistence demo">
 
 ```tsx
 import { AppLayout } from "@ngrok/mantle/app-layout";
@@ -1519,9 +1500,7 @@ export function PersistedShell() {
 }
 ```
 
-    </CodeExample.Code>
-
-</CodeExample.Root>
+</Example>
 
 Toggle the sidebar in the demo, then reload the preview with the toolbar's reload button: the collapsed
 state is restored from localStorage.

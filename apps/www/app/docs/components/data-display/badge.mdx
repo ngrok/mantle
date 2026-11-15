@@ -4,21 +4,13 @@ description: A non-interactive label used to highlight short, scannable informat
 aliases: [tag, chip, pill, lozenge]
 ---
 
-import { Badge } from "@ngrok/mantle/badge";
-import { colors } from "@ngrok/mantle/color";
-import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
-import { Link, href } from "react-router";
 import { Example } from "~/components/example";
 
 # Badge
 
 A non-interactive label used to highlight short, scannable information — a status, a category tag, or a count — in the smallest possible footprint.
 
-<Example>
-	<Badge appearance="muted" color="success">
-		Online
-	</Badge>
-</Example>
+<Example name="components/data-display/badge/overview" title="Badge example">
 
 ```tsx
 import { Badge } from "@ngrok/mantle/badge";
@@ -27,6 +19,8 @@ import { Badge } from "@ngrok/mantle/badge";
 	Online
 </Badge>;
 ```
+
+</Example>
 
 ## When to use
 
@@ -48,20 +42,7 @@ Prefer functional colors (`success`, `warning`, `danger`, `info`, `accent`, `neu
 
 Every color, with and without an `icon`:
 
-<Example className="p-4 md:p-8">
-	<ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-		{colors.map((color) => (
-			<li key={color} className="flex flex-col gap-2">
-				<Badge appearance="muted" color={color}>
-					Muted {color}
-				</Badge>
-				<Badge appearance="muted" color={color} icon={<GlobeHemisphereWestIcon />}>
-					Muted {color}
-				</Badge>
-			</li>
-		))}
-	</ul>
-</Example>
+<Example name="components/data-display/badge/choosing-a-color" title="Badge choosing a color example">
 
 ```tsx
 import { Badge } from "@ngrok/mantle/badge";
@@ -75,15 +56,13 @@ import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWe
 </Badge>
 ```
 
+</Example>
+
 ## Polymorphism
 
 When you want to render _something else_ as a `Badge`, you can use the `asChild` prop to compose. This is useful when you want to splat the `Badge` styling onto a `react-router` `Link`.
 
-<Example>
-	<Badge appearance="muted" asChild color="pink" icon={<GlobeHemisphereWestIcon />}>
-		<Link to={href("/base/colors")}>See our colors!</Link>
-	</Badge>
-</Example>
+<Example name="components/data-display/badge/polymorphism" title="Badge polymorphism example">
 
 ```tsx
 import { Badge } from "@ngrok/mantle/badge";
@@ -91,9 +70,13 @@ import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWe
 import { Link, href } from "react-router";
 
 <Badge appearance="muted" asChild color="pink" icon={<GlobeHemisphereWestIcon />}>
-	<Link to={href("/base/colors")}>See our colors!</Link>
+	<Link to={href("/base/colors")} target="_top">
+		See our colors!
+	</Link>
 </Badge>;
 ```
+
+</Example>
 
 ## API Reference
 

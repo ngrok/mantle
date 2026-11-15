@@ -4,8 +4,6 @@ description: Keep the text of a Query field in the ?q= URL param, so a filtered 
 ---
 
 import { Example } from "~/components/example";
-import { QueryFromUrlDemo } from "~/features/query-url-state-demo";
-import { QueryFromUrlSubmitDemo } from "~/features/query-url-submit-demo";
 
 # Query from the URL
 
@@ -16,11 +14,9 @@ Two rules shape it:
 - The typed text is the source of truth while you type. Bind the field straight to the URL and every keystroke is a navigation, so the URL write waits 250 ms after the last edit and replaces the history entry instead of pushing one. A clear writes at once, so an empty field never shows a filtered list.
 - A URL change from outside (the back button, a link to `?q=is:shared`) replaces the typed text. The hook compares the URL value with the one it saw last render and resets the text during render, not in an effect.
 
-Type a filter below and watch the address bar.
+The example below runs in a frame, so this page's URL doesn't change. Open it with the new-tab button in its toolbar, then type a filter and watch the address bar.
 
-<Example>
-	<QueryFromUrlDemo />
-</Example>
+<Example name="recipes/query-from-the-url/overview" title="Query from the URL example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -113,6 +109,8 @@ export function QueryFromUrlDemo() {
 	);
 }
 ```
+
+</Example>
 
 ## The hook with React Router
 
@@ -222,9 +220,7 @@ Filtering on every keystroke is right for most lists. When one filter pass over 
 
 Pick the mode from the list size, such as `commitOn: rows.length > 2000 ? "submit" : "change"`. The hook reads the mode on each render, so the switch keeps the person's focus and caret.
 
-<Example>
-	<QueryFromUrlSubmitDemo />
-</Example>
+<Example name="recipes/query-from-the-url/apply-on-enter" title="Query from the URL Apply on Enter example">
 
 ```tsx
 import { filterItemsByQuery } from "@ngrok/mantle/query-filter";
@@ -276,6 +272,8 @@ export function QueryFromUrlSubmitDemo() {
 	);
 }
 ```
+
+</Example>
 
 ## The hook with nuqs
 

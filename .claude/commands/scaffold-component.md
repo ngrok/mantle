@@ -40,17 +40,21 @@ Create the page at its kind's path (§7.1) with [§7.2](../../COMPONENT_SPEC.md#
 
 <The frontmatter description.> <Optional: the one decision a reader must know before they copy the example.>
 
-<Example>…the simplest use case…</Example>
+<Example name="components/<category>/<slug>/overview" title="<Display Name> example">
 
 ```tsx
 …the code for that example…
 ```
+
+</Example>
 
 ## When to use
 
 - <A job the component does.>
 - Prefer <Sibling> for <a job it does not do>.
 ````
+
+Render each `<Example>` from `apps/www/app/docs/components/<category>/<slug>.examples.tsx`: an `export function <Name>Example()` whose root is a `PreviewCanvas` ([§7.3](../../COMPONENT_SPEC.md#73-examples-must-be-live-and-complete)). The key's last segment names the export: `overview` is `OverviewExample`.
 
 A preview page replaces the `#` title with `<PageHeader id="<component-name>" isPreview>Display Name</PageHeader>` ([§7.2](../../COMPONENT_SPEC.md#72-required-structure-in-order) item 3).
 

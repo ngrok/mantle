@@ -18,7 +18,7 @@ import { findTranslatedFont, translateTextNodes } from "~/test-utils/translate-t
 
 const selectableListDemos = import.meta.glob<{
 	ControlledQueryExample: () => ReactElement;
-}>("../docs/components/data-display/selectable-list.mdx", { eager: true });
+}>("../docs/components/data-display/selectable-list.examples.tsx", { eager: true });
 
 describe("SelectableList controlled-query demo on a translated page", () => {
 	it("clears the filter without removing a reparented text node", async () => {

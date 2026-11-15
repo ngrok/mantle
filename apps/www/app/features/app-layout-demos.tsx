@@ -275,9 +275,9 @@ export function AppLayoutHeaderSlotsExample() {
  *
  * @example
  * ```tsx
- * <CodeExample.Preview className="p-0 md:p-0">
+ * <PreviewCanvas className="h-dvh p-0 md:p-0">
  *   <AppLayoutPageShapesExample />
- * </CodeExample.Preview>
+ * </PreviewCanvas>
  * ```
  */
 export function AppLayoutPageShapesExample() {
@@ -289,18 +289,21 @@ export function AppLayoutPageShapesExample() {
 				<AppLayout.Workspace>
 					<AppLayout.Content>
 						<AppLayout.Header>
-							{pageShapes.map((candidate) => (
-								<Button
-									key={candidate.id}
-									type="button"
-									size="sm"
-									appearance={candidate.id === shape ? "filled" : "outlined"}
-									intent={candidate.id === shape ? "accent" : "neutral"}
-									onClick={() => setShape(candidate.id)}
-								>
-									{candidate.label}
-								</Button>
-							))}
+							{/* Why overflow-x-auto: on a phone, the buttons scroll instead of clipping. */}
+							<AppLayout.HeaderContent className="scrollbar overflow-x-auto py-1">
+								{pageShapes.map((candidate) => (
+									<Button
+										key={candidate.id}
+										type="button"
+										size="sm"
+										appearance={candidate.id === shape ? "filled" : "outlined"}
+										intent={candidate.id === shape ? "accent" : "neutral"}
+										onClick={() => setShape(candidate.id)}
+									>
+										{candidate.label}
+									</Button>
+								))}
+							</AppLayout.HeaderContent>
 						</AppLayout.Header>
 						{/* Why asChild: the docs page already owns the main landmark. */}
 						<AppLayout.Body asChild>
@@ -327,9 +330,9 @@ export function AppLayoutPageShapesExample() {
  *
  * @example
  * ```tsx
- * <CodeExample.Preview className="p-0 md:p-0">
+ * <PreviewCanvas className="h-dvh p-0 md:p-0">
  *   <AppLayoutPinnedFooterExample />
- * </CodeExample.Preview>
+ * </PreviewCanvas>
  * ```
  */
 export function AppLayoutPinnedFooterExample() {
@@ -398,9 +401,9 @@ const scrollResetRoutes = [
  *
  * @example
  * ```tsx
- * <CodeExample.Preview className="p-0 md:p-0">
+ * <PreviewCanvas className="h-dvh p-0 md:p-0">
  *   <AppLayoutScrollResetExample />
- * </CodeExample.Preview>
+ * </PreviewCanvas>
  * ```
  */
 export function AppLayoutScrollResetExample() {

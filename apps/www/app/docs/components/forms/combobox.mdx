@@ -4,100 +4,13 @@ description: "A text input with autocomplete: the user types to filter a list of
 aliases: [autocomplete, typeahead, searchable select, autosuggest]
 ---
 
-import { Button } from "@ngrok/mantle/button";
-import { Combobox } from "@ngrok/mantle/combobox";
-import { Field, toErrorMessages } from "@ngrok/mantle/field";
-import { CirclesThreePlusIcon } from "@phosphor-icons/react/CirclesThreePlus";
-import { useForm } from "@tanstack/react-form";
-import { z } from "zod";
 import { Example } from "~/components/example";
-
-export const formSchema = z.object({
-region: z.string().min(1, "Choose a region."),
-});
-export function TanStackFormExample() {
-const defaultValues = {
-region: "",
-};
-const form = useForm({
-defaultValues,
-validators: {
-onSubmit: formSchema,
-},
-onSubmit: ({ value }) => {
-window.alert(`Submitted: ${JSON.stringify(value, null, 2)}`);
-},
-});
-
-    return (
-    	<form
-    		className="w-full max-w-sm space-y-4"
-    		onSubmit={(event) => {
-    			event.preventDefault();
-    			event.stopPropagation();
-    			void form.handleSubmit();
-    		}}
-    	>
-    		<form.Field name="region">
-    			{(field) => (
-    				<Field.Item name={field.name}>
-    					<Field.Label>Region</Field.Label>
-    					<Combobox.Root
-    						value={field.state.value}
-    						setValue={(value) => {
-    							field.handleChange(value);
-    						}}
-    					>
-    						<Field.Control>
-    							<Combobox.Input onBlur={field.handleBlur} placeholder="Choose a region..." />
-    						</Field.Control>
-    						<Combobox.Content>
-    							<Combobox.Item value="us-east-1">US East</Combobox.Item>
-    							<Combobox.Item value="us-west-2">US West</Combobox.Item>
-    							<Combobox.Item value="eu-west-1">EU West</Combobox.Item>
-    						</Combobox.Content>
-    					</Combobox.Root>
-    					<Field.Errors messages={toErrorMessages(field.state.meta.errors)} />
-    				</Field.Item>
-    			)}
-    		</form.Field>
-    		<Button type="submit" appearance="filled" intent="neutral">
-    			Submit
-    		</Button>
-    	</form>
-    );
-
-}
 
 # Combobox
 
 A text input with autocomplete: the user types to filter a list of suggested values and picks one, with full keyboard support. Wrap `Combobox.Input` in `Field.Control` to connect it to the label, description, and errors of a form field.
 
-<Example>
-	<Field.Item name="subdomain" className="max-w-96">
-		<Field.Label>Subdomain</Field.Label>
-		<Combobox.Root>
-			<Field.Control>
-				<Combobox.Input placeholder="Choose an ngrok subdomain..." />
-			</Field.Control>
-			<Combobox.Content>
-				<Combobox.Group>
-					<Combobox.GroupLabel>Available domains</Combobox.GroupLabel>
-					<Combobox.Item value="https://${random}.ngrok.app">
-						<Combobox.ItemValue />
-					</Combobox.Item>
-					<Combobox.Item value="https://${random}.ngrok.dev">
-						<Combobox.ItemValue />
-					</Combobox.Item>
-					<Combobox.Item value="https://${random}.ngrok.io">
-						<Combobox.ItemValue />
-					</Combobox.Item>
-				</Combobox.Group>
-			</Combobox.Content>
-		</Combobox.Root>
-		<Field.Description>Start typing to filter available domains.</Field.Description>
-	</Field.Item>
-</Example>
+<Example name="components/forms/combobox/overview" title="Combobox example">
 
 ```tsx
 import { Combobox } from "@ngrok/mantle/combobox";
@@ -128,6 +41,8 @@ import { Field } from "@ngrok/mantle/field";
 </Field.Item>;
 ```
 
+</Example>
+
 ## When to use
 
 - Pick one value from a long list, with a text field that filters the options as the user types.
@@ -141,74 +56,7 @@ import { Field } from "@ngrok/mantle/field";
 
 Use a `Field.Item` with only a `Field.Label` when the input needs no helper or error text. The label still gives the input its accessible name. This example also shows a disabled item, an item icon, and a separator.
 
-<Example className="gap-2">
-	<Field.Item name="subdomain-standalone" className="max-w-96">
-		<Field.Label>Subdomain</Field.Label>
-		<Combobox.Root>
-			<Field.Control>
-				<Combobox.Input />
-			</Field.Control>
-			<Combobox.Content>
-				<Combobox.Group>
-					<Combobox.GroupLabel>Choose an ngrok subdomain</Combobox.GroupLabel>
-					<Combobox.Item value="https://" disabled>
-						<Combobox.ItemValue />
-					</Combobox.Item>
-					<Combobox.Item value="https://${random}.ngrok.app">
-						<CirclesThreePlusIcon weight="duotone" className="text-accent-600" />
-						<Combobox.ItemValue />
-					</Combobox.Item>
-					<Combobox.Item value="https://${random}.ngrok.dev">
-						<Combobox.ItemValue />
-					</Combobox.Item>
-					<Combobox.Item value="https://${random}.ngrok.io">
-						<Combobox.ItemValue />
-					</Combobox.Item>
-					<Combobox.Item value="https://${random}.ngrok.free">
-						<Combobox.ItemValue />
-					</Combobox.Item>
-					<Combobox.Item value="https://${random}.ngrok.pizza">
-						<Combobox.ItemValue />
-					</Combobox.Item>
-					<Combobox.Item value="https://${random}.ngrok.ninja">
-						<Combobox.ItemValue />
-					</Combobox.Item>
-					<Combobox.Item value="https://${random}.ngrok.wtf">
-						<Combobox.ItemValue />
-					</Combobox.Item>
-					<Combobox.Item value="https://${random}.ngrok.biz">
-						<Combobox.ItemValue />
-					</Combobox.Item>
-					<Combobox.Item value="https://${random}.ngrok.online">
-						<Combobox.ItemValue />
-					</Combobox.Item>
-					<Combobox.Item value="https://${random}.ngrok.space">
-						<Combobox.ItemValue />
-					</Combobox.Item>
-					<Combobox.Item value="https://${random}.ngrok.tld0">
-						<Combobox.ItemValue />
-					</Combobox.Item>
-					<Combobox.Item value="https://${random}.ngrok.tld1">
-						<Combobox.ItemValue />
-					</Combobox.Item>
-					<Combobox.Item value="https://${random}.ngrok.tld2">
-						<Combobox.ItemValue />
-					</Combobox.Item>
-					<Combobox.Item value="https://${random}.ngrok.tld3">
-						<Combobox.ItemValue />
-					</Combobox.Item>
-					<Combobox.Item value="https://${random}.ngrok.tld4">
-						<Combobox.ItemValue />
-					</Combobox.Item>
-				</Combobox.Group>
-				<Combobox.Separator />
-				<Combobox.Item>
-					Sit dolor enim eiusmod nulla nostrud officia in magna deserunt ut ex veniam cillum.
-				</Combobox.Item>
-			</Combobox.Content>
-		</Combobox.Root>
-	</Field.Item>
-</Example>
+<Example name="components/forms/combobox/without-helper-text" title="Combobox without helper text example">
 
 ```tsx
 import { Combobox } from "@ngrok/mantle/combobox";
@@ -247,6 +95,8 @@ import { CirclesThreePlusIcon } from "@phosphor-icons/react/CirclesThreePlus";
 </Field.Item>;
 ```
 
+</Example>
+
 ## Layering and z-index
 
 `Combobox.Content` renders in place at Tailwind `z-50`, Mantle's float tier — it does not portal, so the dialog primitive's Escape guard can see it. Inside an overlay it paints with the overlay's content. Outside one, an open overlay (`z-60`) covers it.
@@ -259,9 +109,7 @@ import { CirclesThreePlusIcon } from "@phosphor-icons/react/CirclesThreePlus";
 
 Use `@tanstack/react-form` with `zod` to keep the combobox input controlled. Wrap `Combobox.Input` in `Field.Control` so label, name, and validation ARIA are applied to the focusable input.
 
-<Example className="w-full">
-	<TanStackFormExample />
-</Example>
+<Example name="components/forms/combobox/with-tanstack-form" title="Combobox With TanStack Form example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -300,8 +148,8 @@ function Example() {
 					<Field.Item name={field.name}>
 						<Field.Label>Region</Field.Label>
 						<Combobox.Root
-							value={field.state.value}
-							setValue={(value) => {
+							inputValue={field.state.value}
+							setInputValue={(value) => {
 								field.handleChange(value);
 							}}
 						>
@@ -326,6 +174,8 @@ function Example() {
 }
 ```
 
+</Example>
+
 ## Composition
 
 Compose the parts of a `Combobox` together to build your own:
@@ -345,19 +195,7 @@ Combobox.Root
 
 `Combobox.Content`, `Combobox.Item`, `Combobox.Group`, `Combobox.GroupLabel`, and `Combobox.ItemValue` support `asChild` to render as a different element or your own component while keeping the combobox behavior and styling.
 
-<Example>
-	<Combobox.Root>
-		<Combobox.Input placeholder="Search links..." />
-		<Combobox.Content>
-			<Combobox.Item value="Dashboard" asChild>
-				<a href="#dashboard">Dashboard</a>
-			</Combobox.Item>
-			<Combobox.Item value="Settings" asChild>
-				<a href="#settings">Settings</a>
-			</Combobox.Item>
-		</Combobox.Content>
-	</Combobox.Root>
-</Example>
+<Example name="components/forms/combobox/polymorphism" title="Combobox polymorphism example">
 
 ```tsx
 import { Combobox } from "@ngrok/mantle/combobox";
@@ -374,6 +212,8 @@ import { Combobox } from "@ngrok/mantle/combobox";
 	</Combobox.Content>
 </Combobox.Root>;
 ```
+
+</Example>
 
 ## Accessibility
 

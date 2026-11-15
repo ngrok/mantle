@@ -4,28 +4,13 @@ description: Code blocks render and apply syntax highlighting to blocks of code 
 aliases: [syntax highlighter, code snippet, code sample]
 ---
 
-import {
-	PrimaryCodeBlockDemo,
-	SingleLineWithHeaderDemo,
-	HorizontalScrollingDemo,
-	NoHeaderOrCopyButtonDemo,
-	SingleLineHorizontalScrollingDemo,
-	ServerRenderedHighlightingDemo,
-	MantleCodeOptionsDemo,
-	TabbedCodeBlockDemo,
-	ScrollingTabListDemo,
-	FoldableJsonDemo,
-	JsonCodeBlockValueDemo,
-	NestedFragmentInterpolationDemo,
-	DefaultOptionsDemo,
-	OverriddenOptionsDemo,
-} from "~/features/code-block-demos";
+import { Example } from "~/components/example";
 
 # Code Block
 
 Code blocks render and apply syntax highlighting to blocks of code using Shiki at build time. Define each code value with a `mantleCode("language")` tagged template literal.
 
-<PrimaryCodeBlockDemo />
+<Example name="components/data-display/code-block/overview" title="Code Block example">
 
 ```tsx
 import { CodeBlock, mantleCode } from "@ngrok/mantle/code-block";
@@ -43,6 +28,8 @@ import { CodeBlock, mantleCode } from "@ngrok/mantle/code-block";
 </CodeBlock.Root>;
 ```
 
+</Example>
+
 ## When to use
 
 - Show a block of code with syntax highlighting and a copy button.
@@ -56,7 +43,7 @@ import { CodeBlock, mantleCode } from "@ngrok/mantle/code-block";
 
 Many code blocks will be single line command line prompts and should be able to render with a header and copy button. This makes it absolutely clear that this example is a command line prompt and not a code sample.
 
-<SingleLineWithHeaderDemo />
+<Example name="components/data-display/code-block/single-line-with-a-header" title="Code Block single line with a header example">
 
 ```tsx
 <CodeBlock.Root>
@@ -75,13 +62,15 @@ Many code blocks will be single line command line prompts and should be able to 
 </CodeBlock.Root>
 ```
 
+</Example>
+
 ### Horizontal scrolling
 
 This example is included to demonstrate that code blocks can scroll horizontally if the content is too wide. Mantle attempts to normalize scrollbar styling across browsers and platforms.
 
 When line numbers are shown, the gutter (numbers and fold toggles) stays pinned to the left edge while the code scrolls under it.
 
-<HorizontalScrollingDemo />
+<Example name="components/data-display/code-block/horizontal-scrolling" title="Code Block horizontal scrolling example">
 
 ```tsx
 <CodeBlock.Root>
@@ -115,11 +104,13 @@ When line numbers are shown, the gutter (numbers and fold toggles) stays pinned 
 </CodeBlock.Root>
 ```
 
+</Example>
+
 ### No header or copy button
 
 This is the most simple example of our code block component. While very useful, the copy button is optional. It is also perfectly acceptable to render a code block without a header, especially if the surrounding content carries the context or the code block is self-explanatory eg. "In your index.js file, paste the following:".
 
-<NoHeaderOrCopyButtonDemo />
+<Example name="components/data-display/code-block/no-header-or-copy-button" title="Code Block no header or copy button example">
 
 ```tsx
 <CodeBlock.Root>
@@ -141,11 +132,13 @@ This is the most simple example of our code block component. While very useful, 
 </CodeBlock.Root>
 ```
 
+</Example>
+
 ### Single line with horizontal scrolling
 
 This example is included to show the interaction between the copy button and horizontal scrolling on a single verbose terminal command.
 
-<SingleLineHorizontalScrollingDemo />
+<Example name="components/data-display/code-block/single-line-with-horizontal-scrolling" title="Code Block single line with horizontal scrolling example">
 
 ```tsx
 <CodeBlock.Root>
@@ -160,11 +153,13 @@ This example is included to show the interaction between the copy button and hor
 </CodeBlock.Root>
 ```
 
+</Example>
+
 ### Server-rendered syntax highlighting
 
 The `CodeBlock` supports server-rendered syntax highlighting for dynamic or user-supplied code. Use `createMantleCodeBlockValue()` to construct a value from server-highlighted HTML and pass it to `CodeBlock.Code`. This is useful when the code to highlight isn't known at build time (for example, user input or API responses).
 
-<ServerRenderedHighlightingDemo />
+<Example name="components/data-display/code-block/server-rendered-syntax-highlighting" title="Code Block server-rendered syntax highlighting example">
 
 ```tsx
 import {
@@ -198,6 +193,8 @@ const value: MantleCodeBlockValue = createMantleCodeBlockValue({
 	</CodeBlock.Body>
 </CodeBlock.Root>;
 ```
+
+</Example>
 
 ### Highlight microservice (for Go / non-Node.js backends)
 
@@ -267,7 +264,7 @@ The `mantleCode()` Vite transform, MDX code fences, and `createMantleServerSynta
 
 For one example per supported language plus a list of caveats, see [folding by language](/components/data-display/code-block/folding-by-language).
 
-<FoldableJsonDemo />
+<Example name="components/data-display/code-block/foldable-code-blocks" title="Code Block foldable code blocks example">
 
 ```tsx
 import { CodeBlock, mantleCode } from "@ngrok/mantle/code-block";
@@ -300,13 +297,15 @@ import { CodeBlock, mantleCode } from "@ngrok/mantle/code-block";
 </CodeBlock.Root>;
 ```
 
+</Example>
+
 ### Highlighting runtime JSON on the client
 
 `mantleCode()` highlights at **build time**, so it can't highlight a value you only have at runtime: an API response, a table row's underlying record, anything fetched or computed in the browser. For that, use `jsonCodeBlockValue(value)`: it serializes the value with `JSON.stringify` (2-space indent), tokenizes it, and returns a `MantleCodeBlockValue` you pass straight to `CodeBlock.Code`, **entirely on the client, with no Shiki runtime, grammar, or WASM shipped to the browser** (~1 KB). Because Mantle highlights with a CSS-variables theme the colors already live in CSS, so only tokenization happens at runtime; the output is byte-for-byte identical to a server/build-time highlighted block and adapts to light/dark themes for free.
 
 Multi-line objects and arrays are collapsible by default (the same fold runtime as every other JSON block), so pass `{ foldable: false }` for a flat panel, or `{ showLineNumbers: true }` for a gutter. Serialization is safe and never throws: `BigInt` renders as its decimal string, circular/repeated references collapse to `"[Circular]"`, and values that serialize to `undefined` render as an empty string. It's ideal for inspecting a record inside a [`DataTable.ExpandedRow`](/components/data-display/data-table#expandable-rows).
 
-<JsonCodeBlockValueDemo />
+<Example name="components/data-display/code-block/highlighting-runtime-json-on-the-client" title="Code Block Highlighting runtime JSON on the client example">
 
 ```tsx
 import { CodeBlock, jsonCodeBlockValue } from "@ngrok/mantle/code-block";
@@ -324,13 +323,15 @@ jsonCodeBlockValue(record, { foldable: false });
 jsonCodeBlockValue(record, { showLineNumbers: true });
 ```
 
+</Example>
+
 For lower-level control, `jsonToShikiHtml(code)` returns only the Shiki-identical inner HTML for a `<code>` element (no line-number or fold decoration); `jsonCodeBlockValue` builds on it.
 
 ### Tabbed code block
 
 Use `CodeBlock.TabList`, `CodeBlock.TabTrigger`, and `CodeBlock.TabContent` to create a tabbed code block. Pass `defaultTab` (or `activeTab` / `onActiveTabChange` for controlled mode) to `CodeBlock.Root`, place the tab triggers in the `CodeBlock.Header`, and wrap each `CodeBlock.Code` in a `CodeBlock.TabContent`. The copy button automatically copies whichever code is currently displayed.
 
-<TabbedCodeBlockDemo />
+<Example name="components/data-display/code-block/tabbed-code-block" title="Code Block tabbed code block example">
 
 ```tsx
 import { CodeBlock, mantleCode } from "@ngrok/mantle/code-block";
@@ -357,11 +358,13 @@ const policyJson = mantleCode("json")`…`;
 </CodeBlock.Root>;
 ```
 
+</Example>
+
 ### Scrolling tab list
 
 When the tabs are too wide for the header, `CodeBlock.TabList` scrolls horizontally with a [`scroll-fade-x`](/base/scroll-fade#horizontal-scroll-fade-x) edge fade instead of wrapping onto a second row (no extra wiring required).
 
-<ScrollingTabListDemo />
+<Example name="components/data-display/code-block/scrolling-tab-list" title="Code Block scrolling tab list example">
 
 ```tsx
 import { CodeBlock, mantleCode } from "@ngrok/mantle/code-block";
@@ -408,13 +411,15 @@ const helloRb = mantleCode("ruby")`puts "Hello, ngrok!"`;
 </CodeBlock.Root>;
 ```
 
+</Example>
+
 ### Reusing fragments with nested interpolation
 
 A `mantleCode` value can be embedded into another `mantleCode` template by interpolating its `.code` property. When the Vite plugin recognizes the reference, it inlines the fragment's source **at build time**, so the embedded code is highlighted line-for-line in its host language (correct line numbers, folding, and copy text) with **no runtime substitution cost**.
 
 This is ideal for sharing a Traffic Policy or config snippet across multiple SDK examples without duplicating it. The fragment can live at the top level of the same module, or be imported from another module:
 
-<NestedFragmentInterpolationDemo />
+<Example name="components/data-display/code-block/reusing-fragments-with-nested-interpolation" title="Code Block reusing fragments with nested interpolation example">
 
 ```tsx
 // shared-policies.ts — author the reusable policy once.
@@ -426,6 +431,8 @@ export const oauthPolicyFragment = mantleCode("yaml")`on_http_request:
         config:
           provider: google`;
 ```
+
+</Example>
 
 ```tsx
 // listener-demo.tsx — embed it into a Java text block.
@@ -451,7 +458,7 @@ The `mantleCode()` tagged template accepts an optional second argument with the 
 - **`lineNumberStart`**: The starting line number when line numbers are displayed. Defaults to `1`.
 - **`indentation`**: Override the default indentation style (`"tabs"` or `"spaces"`).
 
-<MantleCodeOptionsDemo />
+<Example name="components/data-display/code-block/mantlecode-options" title="Code Block mantleCode() options example">
 
 ```tsx
 import { CodeBlock, mantleCode } from "@ngrok/mantle/code-block";
@@ -486,11 +493,13 @@ import { CodeBlock, mantleCode } from "@ngrok/mantle/code-block";
 </CodeBlock.Root>;
 ```
 
+</Example>
+
 ### Default options
 
 By default, `mantleCode()` shows line numbers from 1 and infers the indentation from the language. YAML must use spaces, so a YAML block gets space indentation with no options.
 
-<DefaultOptionsDemo />
+<Example name="components/data-display/code-block/default-options" title="Code Block default options example">
 
 ```tsx
 <CodeBlock.Root>
@@ -515,11 +524,13 @@ By default, `mantleCode()` shows line numbers from 1 and infers the indentation 
 </CodeBlock.Root>
 ```
 
+</Example>
+
 ### Overriding every option
 
 Pass options to `mantleCode()` to set the indentation, the first line number, the highlighted lines, and whether line numbers show.
 
-<OverriddenOptionsDemo />
+<Example name="components/data-display/code-block/overriding-every-option" title="Code Block overriding every option example">
 
 ```tsx
 <CodeBlock.Root>
@@ -558,6 +569,8 @@ Pass options to `mantleCode()` to set the indentation, the first line number, th
 	</CodeBlock.Body>
 </CodeBlock.Root>
 ```
+
+</Example>
 
 ## Composition
 

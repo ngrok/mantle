@@ -16,7 +16,7 @@ import { useForm } from "@tanstack/react-form";
 import { useState } from "react";
 import { href } from "react-router";
 import { z } from "zod";
-import { Example } from "~/components/example";
+import { PreviewCanvas } from "~/components/preview-canvas";
 import { oauthPolicyFragment } from "~/features/shared-policies";
 
 /**
@@ -24,7 +24,7 @@ import { oauthPolicyFragment } from "~/features/shared-policies";
  */
 export function PrimaryCodeBlockDemo() {
 	return (
-		<Example>
+		<PreviewCanvas>
 			<CodeBlock.Root>
 				<CodeBlock.Header>
 					<CodeBlock.Icon preset="file" />
@@ -81,7 +81,7 @@ export function PrimaryCodeBlockDemo() {
 				</CodeBlock.Body>
 				<CodeBlock.ExpanderButton />
 			</CodeBlock.Root>
-		</Example>
+		</PreviewCanvas>
 	);
 }
 
@@ -90,7 +90,7 @@ export function PrimaryCodeBlockDemo() {
  */
 export function SingleLineWithHeaderDemo() {
 	return (
-		<Example>
+		<PreviewCanvas>
 			<CodeBlock.Root>
 				<CodeBlock.Header>
 					<CodeBlock.Icon preset="cli" />
@@ -105,7 +105,7 @@ export function SingleLineWithHeaderDemo() {
 					/>
 				</CodeBlock.Body>
 			</CodeBlock.Root>
-		</Example>
+		</PreviewCanvas>
 	);
 }
 
@@ -114,7 +114,7 @@ export function SingleLineWithHeaderDemo() {
  */
 export function HorizontalScrollingDemo() {
 	return (
-		<Example>
+		<PreviewCanvas>
 			<CodeBlock.Root>
 				<CodeBlock.Header>
 					<CodeBlock.Icon preset="file" />
@@ -144,7 +144,7 @@ export function HorizontalScrollingDemo() {
 					/>
 				</CodeBlock.Body>
 			</CodeBlock.Root>
-		</Example>
+		</PreviewCanvas>
 	);
 }
 
@@ -153,7 +153,7 @@ export function HorizontalScrollingDemo() {
  */
 export function NoHeaderOrCopyButtonDemo() {
 	return (
-		<Example>
+		<PreviewCanvas>
 			<CodeBlock.Root>
 				<CodeBlock.Body>
 					<CodeBlock.Code
@@ -172,7 +172,7 @@ export function NoHeaderOrCopyButtonDemo() {
 					/>
 				</CodeBlock.Body>
 			</CodeBlock.Root>
-		</Example>
+		</PreviewCanvas>
 	);
 }
 
@@ -181,7 +181,7 @@ export function NoHeaderOrCopyButtonDemo() {
  */
 export function SingleLineHorizontalScrollingDemo() {
 	return (
-		<Example>
+		<PreviewCanvas>
 			<CodeBlock.Root>
 				<CodeBlock.Body>
 					<CodeBlock.CopyButton />
@@ -192,7 +192,7 @@ export function SingleLineHorizontalScrollingDemo() {
 					/>
 				</CodeBlock.Body>
 			</CodeBlock.Root>
-		</Example>
+		</PreviewCanvas>
 	);
 }
 
@@ -295,7 +295,7 @@ export function ServerRenderedHighlightingDemo() {
 	});
 
 	return (
-		<Example className="flex-col items-stretch gap-4">
+		<PreviewCanvas className="flex-col items-stretch gap-4">
 			<form
 				className="space-y-3"
 				onSubmit={(event) => {
@@ -413,7 +413,7 @@ export function ServerRenderedHighlightingDemo() {
 					</CodeBlock.Body>
 				</CodeBlock.Root>
 			)}
-		</Example>
+		</PreviewCanvas>
 	);
 }
 
@@ -458,7 +458,7 @@ const tabbedPolicyJson = mantleCode("json")`
  */
 export function TabbedCodeBlockDemo() {
 	return (
-		<Example>
+		<PreviewCanvas>
 			<CodeBlock.Root defaultTab="yml">
 				<CodeBlock.Header>
 					<CodeBlock.TabList>
@@ -476,7 +476,7 @@ export function TabbedCodeBlockDemo() {
 					</CodeBlock.TabContent>
 				</CodeBlock.Body>
 			</CodeBlock.Root>
-		</Example>
+		</PreviewCanvas>
 	);
 }
 
@@ -494,7 +494,7 @@ const helloRb = mantleCode("ruby")`puts "Hello, ngrok!"`;
  */
 export function ScrollingTabListDemo() {
 	return (
-		<Example>
+		<PreviewCanvas>
 			<CodeBlock.Root defaultTab="ts" className="max-w-xs">
 				<CodeBlock.Header>
 					<CodeBlock.TabList>
@@ -528,7 +528,7 @@ export function ScrollingTabListDemo() {
 					</CodeBlock.TabContent>
 				</CodeBlock.Body>
 			</CodeBlock.Root>
-		</Example>
+		</PreviewCanvas>
 	);
 }
 
@@ -538,7 +538,7 @@ export function ScrollingTabListDemo() {
  */
 export function MantleCodeOptionsDemo() {
 	return (
-		<Example>
+		<PreviewCanvas>
 			<CodeBlock.Root>
 				<CodeBlock.Header>
 					<CodeBlock.Icon preset="file" />
@@ -567,14 +567,14 @@ export function MantleCodeOptionsDemo() {
 					/>
 				</CodeBlock.Body>
 			</CodeBlock.Root>
-		</Example>
+		</PreviewCanvas>
 	);
 }
 
 /** `mantleCode()` with no options: YAML infers space indentation. */
 export function DefaultOptionsDemo() {
 	return (
-		<Example>
+		<PreviewCanvas>
 			<CodeBlock.Root>
 				<CodeBlock.Header>
 					<CodeBlock.Icon preset="traffic-policy" />
@@ -595,14 +595,14 @@ export function DefaultOptionsDemo() {
 					/>
 				</CodeBlock.Body>
 			</CodeBlock.Root>
-		</Example>
+		</PreviewCanvas>
 	);
 }
 
 /** `mantleCode()` with every option set. */
 export function OverriddenOptionsDemo() {
 	return (
-		<Example>
+		<PreviewCanvas>
 			<CodeBlock.Root>
 				<CodeBlock.Header>
 					<CodeBlock.Icon preset="file" />
@@ -638,7 +638,7 @@ export function OverriddenOptionsDemo() {
 					/>
 				</CodeBlock.Body>
 			</CodeBlock.Root>
-		</Example>
+		</PreviewCanvas>
 	);
 }
 
@@ -649,7 +649,7 @@ export function OverriddenOptionsDemo() {
  */
 export function FoldableJsonDemo() {
 	return (
-		<Example>
+		<PreviewCanvas>
 			<CodeBlock.Root>
 				<CodeBlock.Header>
 					<CodeBlock.Icon preset="file" />
@@ -683,7 +683,7 @@ export function FoldableJsonDemo() {
 					/>
 				</CodeBlock.Body>
 			</CodeBlock.Root>
-		</Example>
+		</PreviewCanvas>
 	);
 }
 
@@ -710,7 +710,7 @@ listener = ngrok.forward(8080, traffic_policy=policy)`;
  */
 export function NestedFragmentInterpolationDemo() {
 	return (
-		<Example>
+		<PreviewCanvas>
 			<CodeBlock.Root defaultTab="java">
 				<CodeBlock.Header>
 					<CodeBlock.TabList>
@@ -728,7 +728,7 @@ export function NestedFragmentInterpolationDemo() {
 					</CodeBlock.TabContent>
 				</CodeBlock.Body>
 			</CodeBlock.Root>
-		</Example>
+		</PreviewCanvas>
 	);
 }
 
@@ -755,13 +755,13 @@ const exampleRuntimeRecord = {
  */
 export function JsonCodeBlockValueDemo() {
 	return (
-		<Example>
+		<PreviewCanvas>
 			<CodeBlock.Root>
 				<CodeBlock.Body>
 					<CodeBlock.CopyButton />
 					<CodeBlock.Code value={jsonCodeBlockValue(exampleRuntimeRecord)} />
 				</CodeBlock.Body>
 			</CodeBlock.Root>
-		</Example>
+		</PreviewCanvas>
 	);
 }

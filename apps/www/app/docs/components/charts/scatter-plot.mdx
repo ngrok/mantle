@@ -4,326 +4,13 @@ description: A canvas-rendered scatter plot for correlating two continuous measu
 aliases: [scatter chart, scatter graph]
 ---
 
-import { Button } from "@ngrok/mantle/button";
-import { Empty } from "@ngrok/mantle/empty";
-import { ScatterPlot } from "@ngrok/mantle/scatter-plot";
-import { useState } from "react";
 import { Example } from "~/components/example";
-
-export function createSeededRandom(seed) {
-	// Deterministic LCG (Numerical Recipes constants) — the docs render
-	// identically on every load, no Math.random.
-	let state = seed >>> 0;
-	return () => {
-		state = (state * 1664525 + 1013904223) >>> 0;
-		return state / 4294967296;
-	};
-}
-
-export function regionPoints({ key, seed, latencyBase }) {
-	const random = createSeededRandom(seed);
-	return Array.from({ length: 40 }, () => {
-		const latency = Math.round(latencyBase + (random() + random()) * 45);
-		const throughput = Math.round(1180 - latency * 6 + (random() - 0.5) * 160);
-		return { latency, [key]: throughput };
-	});
-}
-
-export const regionThroughput = [
-	...regionPoints({ key: "usEast", seed: 11, latencyBase: 18 }),
-	...regionPoints({ key: "euWest", seed: 47, latencyBase: 62 }),
-];
-
-export function RegionScatterExample() {
-	return (
-		<ScatterPlot.Root
-			data={regionThroughput}
-			xKey="latency"
-			aria-label="Latency vs throughput by region"
-		>
-			<ScatterPlot.Grid />
-			<ScatterPlot.XAxis tickFormat={(value) => `${value}ms`} />
-			<ScatterPlot.YAxis />
-			<ScatterPlot.Point dataKey="usEast" label="US East" color="blue" />
-			<ScatterPlot.Point dataKey="euWest" label="EU West" color="emerald" />
-			<ScatterPlot.Tooltip valueFormat={(value) => `${value} rps`} />
-			<ScatterPlot.Legend />
-		</ScatterPlot.Root>
-	);
-}
-
-export const shapedRegions = [
-	...regionPoints({ key: "usEast", seed: 11, latencyBase: 18 }),
-	...regionPoints({ key: "euWest", seed: 47, latencyBase: 62 }),
-	...regionPoints({ key: "apSouth", seed: 83, latencyBase: 104 }),
-];
-
-export function PointShapesExample() {
-	return (
-		<ScatterPlot.Root
-			data={shapedRegions}
-			xKey="latency"
-			aria-label="Latency vs throughput by region, shape-coded"
-		>
-			<ScatterPlot.Grid />
-			<ScatterPlot.XAxis tickFormat={(value) => `${value}ms`} />
-			<ScatterPlot.YAxis />
-			<ScatterPlot.Point dataKey="usEast" label="US East" color="blue" />
-			<ScatterPlot.Point dataKey="euWest" label="EU West" shape="square" color="emerald" />
-			<ScatterPlot.Point dataKey="apSouth" label="AP South" shape="star" color="pink" />
-			<ScatterPlot.Tooltip valueFormat={(value) => `${value} rps`} />
-			<ScatterPlot.Legend />
-		</ScatterPlot.Root>
-	);
-}
-
-export function CopyMarkdownExample() {
-	return (
-		<ScatterPlot.Root
-			data={regionThroughput}
-			xKey="latency"
-			aria-label="Latency vs throughput by region, copyable"
-		>
-			<ScatterPlot.Grid />
-			<ScatterPlot.XAxis tickFormat={(value) => `${value}ms`} />
-			<ScatterPlot.YAxis />
-			<ScatterPlot.Point dataKey="usEast" label="US East" color="blue" />
-			<ScatterPlot.Point dataKey="euWest" label="EU West" color="emerald" />
-			<ScatterPlot.Tooltip valueFormat={(value) => `${value} rps`} />
-			<ScatterPlot.Legend />
-			<ScatterPlot.CopyButton className="absolute right-0 top-0" />
-		</ScatterPlot.Root>
-	);
-}
-
-export function seededRequests(count, seed) {
-	const random = createSeededRandom(seed);
-	return Array.from({ length: count }, () => {
-		const size = Math.round(2 + random() * random() * 510);
-		const duration = Math.max(2, Math.round(6 + size * 0.55 + (random() + random() - 1) * 90));
-		return { size, duration };
-	});
-}
-
-export const requestDurations = seededRequests(8_000, 20_260_719);
-
-export function DenseScatterExample() {
-	return (
-		<ScatterPlot.Root
-			data={requestDurations}
-			xKey="size"
-			aria-label="Response duration by payload size, 8,000 requests"
-		>
-			<ScatterPlot.Grid />
-			<ScatterPlot.XAxis tickFormat={(value) => `${value}KB`} />
-			<ScatterPlot.YAxis tickFormat={(value) => `${value}ms`} />
-			<ScatterPlot.Point dataKey="duration" label="Duration" color="blue" />
-			<ScatterPlot.Tooltip valueFormat={(value) => `${value}ms`} />
-		</ScatterPlot.Root>
-	);
-}
-
-export function seededCluster({ key, seed, center, spread }) {
-	const random = createSeededRandom(seed);
-	const jitter = () => random() + random() - 1;
-	return Array.from({ length: 32 }, () => ({
-		cpu: Math.round(center.cpu + jitter() * spread.cpu),
-		[key]: Math.round(center.memory + jitter() * spread.memory),
-		connections: Math.round(center.connections + jitter() * spread.connections),
-	}));
-}
-
-export const gatewayNodes = [
-	...seededCluster({
-		key: "usEast",
-		seed: 3,
-		center: { cpu: 34, memory: 46, connections: 420 },
-		spread: { cpu: 14, memory: 12, connections: 110 },
-	}),
-	...seededCluster({
-		key: "euWest",
-		seed: 17,
-		center: { cpu: 64, memory: 72, connections: 660 },
-		spread: { cpu: 12, memory: 10, connections: 90 },
-	}),
-	...seededCluster({
-		key: "apSoutheast",
-		seed: 29,
-		center: { cpu: 80, memory: 34, connections: 240 },
-		spread: { cpu: 9, memory: 12, connections: 80 },
-	}),
-];
-
-export function Scatter3dExample() {
-	return (
-		<ScatterPlot.Root
-			data={gatewayNodes}
-			xKey="cpu"
-			zKey="connections"
-			aria-label="Gateway nodes by CPU, memory, and connections"
-		>
-			<ScatterPlot.Point dataKey="usEast" label="US East" color="blue" />
-			<ScatterPlot.Point dataKey="euWest" label="EU West" shape="square" color="emerald" />
-			<ScatterPlot.Point dataKey="apSoutheast" label="AP Southeast" shape="triangle" color="pink" />
-			<ScatterPlot.Tooltip />
-			<ScatterPlot.Legend />
-		</ScatterPlot.Root>
-	);
-}
-
-export const coldStarts = [
-	{ bundleSize: 4.1, startupTime: 148 },
-	{ bundleSize: 5.6, startupTime: 172 },
-	{ bundleSize: 7.4, startupTime: 205 },
-	{ bundleSize: 9.8, startupTime: 288 },
-	{ bundleSize: 11.2, startupTime: 254 },
-	{ bundleSize: 12.9, startupTime: 341 },
-	{ bundleSize: 14.4, startupTime: 312 },
-	{ bundleSize: 16.2, startupTime: 398 },
-	{ bundleSize: 17.3, startupTime: 288 },
-	{ bundleSize: 19.1, startupTime: 452 },
-	{ bundleSize: 21.5, startupTime: 384 },
-	{ bundleSize: 24.0, startupTime: 507 },
-];
-
-export const dimensionClusters = [
-	...seededCluster({
-		key: "clusterA",
-		seed: 5,
-		center: { cpu: 40, memory: 25, connections: 75 },
-		spread: { cpu: 12, memory: 8, connections: 9 },
-	}),
-	...seededCluster({
-		key: "clusterB",
-		seed: 23,
-		center: { cpu: 45, memory: 75, connections: 25 },
-		spread: { cpu: 12, memory: 8, connections: 9 },
-	}),
-	...seededCluster({
-		key: "clusterC",
-		seed: 41,
-		center: { cpu: 55, memory: 30, connections: 30 },
-		spread: { cpu: 12, memory: 8, connections: 9 },
-	}),
-	...seededCluster({
-		key: "clusterD",
-		seed: 59,
-		center: { cpu: 60, memory: 70, connections: 80 },
-		spread: { cpu: 12, memory: 8, connections: 9 },
-	}),
-];
-
-export function DimensionsExample() {
-	const [dimensions, setDimensions] = useState(1);
-	return (
-		<div className="flex w-full flex-col gap-3">
-			<div className="flex items-center justify-between">
-				<div className="flex gap-1">
-					{[1, 2, 3].map((option) => (
-						<Button
-							key={option}
-							type="button"
-							appearance={dimensions === option ? "filled" : "outlined"}
-							intent="neutral"
-							onClick={() => setDimensions(option)}
-						>
-							{option}D
-						</Button>
-					))}
-				</div>
-				<span className="text-muted text-xs">Drag to rotate</span>
-			</div>
-			<ScatterPlot.Root
-				data={dimensionClusters}
-				xKey="cpu"
-				zKey="connections"
-				dimensions={dimensions}
-				aria-label="Four clusters separating across one, two, and three dimensions"
-			>
-				<ScatterPlot.Point dataKey="clusterA" label="Cluster A" color="blue" />
-				<ScatterPlot.Point dataKey="clusterB" label="Cluster B" shape="square" color="emerald" />
-				<ScatterPlot.Point dataKey="clusterC" label="Cluster C" shape="triangle" color="pink" />
-				<ScatterPlot.Point dataKey="clusterD" label="Cluster D" shape="diamond" color="orange" />
-				<ScatterPlot.Tooltip />
-				<ScatterPlot.Legend />
-			</ScatterPlot.Root>
-		</div>
-	);
-}
-
-export function ReferenceLineScatterExample() {
-	return (
-		<ScatterPlot.Root
-			data={coldStarts}
-			xKey="bundleSize"
-			aria-label="Cold start time by bundle size"
-		>
-			<ScatterPlot.Grid />
-			<ScatterPlot.XAxis tickFormat={(value) => `${value}MB`} />
-			<ScatterPlot.YAxis tickFormat={(value) => `${value}ms`} />
-			<ScatterPlot.Point dataKey="startupTime" label="Cold start" color="blue" />
-			<ScatterPlot.ReferenceLine y={300} label="Target" />
-			<ScatterPlot.Tooltip valueFormat={(value) => `${value}ms`} />
-		</ScatterPlot.Root>
-	);
-}
-
-export const placeholderCloud = [
-	[12, 840],
-	[20, 610],
-	[28, 720],
-	[34, 480],
-	[41, 560],
-	[47, 390],
-	[55, 470],
-	[62, 300],
-].map(([latency, throughput]) => ({ latency, throughput }));
-
-export function EmptyStateScatterPlotExample() {
-	return (
-		<div className="relative w-full">
-			<ScatterPlot.Root data={placeholderCloud} xKey="latency" mode="decorative">
-				<ScatterPlot.Point dataKey="throughput" color="blue" />
-			</ScatterPlot.Root>
-			<Empty.Root className="absolute inset-0 m-auto h-fit w-fit">
-				<Empty.Title>No data to correlate yet</Empty.Title>
-				<Empty.Description>
-					<p>Points will appear here once your endpoints report latency and throughput.</p>
-				</Empty.Description>
-			</Empty.Root>
-		</div>
-	);
-}
-
-export function SeriesIdentityScatterPlotExample() {
-	return (
-		<ScatterPlot.Root
-			data={regionThroughput}
-			xKey="latency"
-			// An app declares its brand token once, high in the tree. This example
-			// declares it beside the override so it stands alone. A theme that needs
-			// its own value takes a variant: `dark:[--color-brand:…]`.
-			className="[--color-brand:#d07c00] [--color-chart-blue:var(--color-brand)]"
-			aria-label="Latency vs throughput by region, blue rethemed"
-		>
-			<ScatterPlot.Grid />
-			<ScatterPlot.XAxis tickFormat={(value) => `${value}ms`} />
-			<ScatterPlot.YAxis />
-			<ScatterPlot.Point dataKey="usEast" label="US East" color="blue" />
-			<ScatterPlot.Point dataKey="euWest" label="EU West" color="var(--color-accent-600)" />
-			<ScatterPlot.Tooltip valueFormat={(value) => `${value} rps`} />
-			<ScatterPlot.Legend />
-		</ScatterPlot.Root>
-	);
-}
 
 # Scatter Plot
 
 A canvas-rendered scatter plot for correlating two continuous measures (three with the rotatable 3D projection). Compose the gridlines, axes, and one `ScatterPlot.Point` per series inside `ScatterPlot.Root`.
 
-<Example>
-	<RegionScatterExample />
-</Example>
+<Example name="components/charts/scatter-plot/overview" title="Scatter Plot example">
 
 ```tsx
 import { ScatterPlot } from "@ngrok/mantle/scatter-plot";
@@ -362,7 +49,7 @@ function RegionScatterExample() {
 			aria-label="Latency vs throughput by region"
 		>
 			<ScatterPlot.Grid />
-			<ScatterPlot.XAxis tickFormat={(value) => `${value}ms`} />
+			<ScatterPlot.XAxis tickFormat={(value) => `${String(value)}ms`} />
 			<ScatterPlot.YAxis />
 			<ScatterPlot.Point dataKey="usEast" label="US East" color="blue" />
 			<ScatterPlot.Point dataKey="euWest" label="EU West" color="emerald" />
@@ -372,6 +59,8 @@ function RegionScatterExample() {
 	);
 }
 ```
+
+</Example>
 
 ## When to use
 
@@ -398,9 +87,7 @@ The encoding is family-wide (the same prop, glyph set, and equal-weight sizing o
 
 US East below sets no `shape`, so it wears the circle. EU West sets `shape="square"`, and AP South sets `shape="star"`.
 
-<Example>
-	<PointShapesExample />
-</Example>
+<Example name="components/charts/scatter-plot/point-shapes" title="Scatter Plot point shapes example">
 
 ```tsx
 import { ScatterPlot } from "@ngrok/mantle/scatter-plot";
@@ -417,7 +104,7 @@ const shapedRegions = [
 	aria-label="Latency vs throughput by region, shape-coded"
 >
 	<ScatterPlot.Grid />
-	<ScatterPlot.XAxis tickFormat={(value) => `${value}ms`} />
+	<ScatterPlot.XAxis tickFormat={(value) => `${String(value)}ms`} />
 	<ScatterPlot.YAxis />
 	<ScatterPlot.Point dataKey="usEast" label="US East" color="blue" />
 	<ScatterPlot.Point dataKey="euWest" label="EU West" shape="square" color="emerald" />
@@ -427,13 +114,13 @@ const shapedRegions = [
 </ScatterPlot.Root>;
 ```
 
+</Example>
+
 ## Dense scatter
 
 This chart plots 8,000 seeded points in a single series. Rendering degrades by total point count in tiers, never all at once: past 5,000 points the dots drop their 2px surface ring, and past 20,000 they become fast-path rects with no arc calls at all. Hover stays nearest-point at every tier (the hit test walks the data, not the pixels), so a dense cloud is exactly as inspectable as a sparse one. A single series also means no legend: `ScatterPlot.Legend` renders nothing for one series, because the chart's title already names it.
 
-<Example>
-	<DenseScatterExample />
-</Example>
+<Example name="components/charts/scatter-plot/dense-scatter" title="Scatter Plot dense scatter example">
 
 ```tsx
 import { ScatterPlot } from "@ngrok/mantle/scatter-plot";
@@ -467,14 +154,16 @@ function DenseScatterExample() {
 			aria-label="Response duration by payload size, 8,000 requests"
 		>
 			<ScatterPlot.Grid />
-			<ScatterPlot.XAxis tickFormat={(value) => `${value}KB`} />
-			<ScatterPlot.YAxis tickFormat={(value) => `${value}ms`} />
+			<ScatterPlot.XAxis tickFormat={(value) => `${String(value)}KB`} />
+			<ScatterPlot.YAxis tickFormat={(value) => `${String(value)}ms`} />
 			<ScatterPlot.Point dataKey="duration" label="Duration" color="blue" />
-			<ScatterPlot.Tooltip valueFormat={(value) => `${value}ms`} />
+			<ScatterPlot.Tooltip valueFormat={(value) => `${String(value)}ms`} />
 		</ScatterPlot.Root>
 	);
 }
 ```
+
+</Example>
 
 ## 3D scatter
 
@@ -484,9 +173,7 @@ Axis parts and reference lines apply to the 2D projection only and are ignored i
 
 The glyphs carry into the projection too, and each one depth-sorts with its point. The three series below wear the circle, the square, and the triangle. The redundant encoding earns its keep in 3D more than anywhere: rotation constantly changes which clouds overlap, and the glyphs keep every series identifiable at any camera angle, with or without color vision.
 
-<Example>
-	<Scatter3dExample />
-</Example>
+<Example name="components/charts/scatter-plot/scatter-3d" title="Scatter Plot 3D scatter example">
 
 ```tsx
 import { ScatterPlot } from "@ngrok/mantle/scatter-plot";
@@ -557,13 +244,13 @@ function Scatter3dExample() {
 }
 ```
 
+</Example>
+
 ## Dimensions
 
 `dimensions` controls how many axes the cloud currently occupies: the pattern behind "watch the clusters separate" explainers. At `1` every point collapses onto the x axis line and the four clusters below read as one jumbled strip (only their glyphs still tell them apart); at `2` they spread across the plane; at `3` they fill the cube. Each cluster sets its own `shape` (circle, square, triangle, diamond), so cluster identity survives even where position collapses. Changing it morphs every point along a smooth glide (the same chase that drives the domains), the y and z frame edges fade in with their dimension, and `prefers-reduced-motion` snaps the whole move.
 
-<Example>
-	<DimensionsExample />
-</Example>
+<Example name="components/charts/scatter-plot/dimensions" title="Scatter Plot dimensions example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -663,13 +350,13 @@ function DimensionsExample() {
 }
 ```
 
+</Example>
+
 ## Reference lines
 
 `ScatterPlot.ReferenceLine` paints a dashed horizontal marker at a y value (a target, a budget, an SLO) in the neutral reference color, with an optional label above its right end. Like the axis parts, it applies to the 2D projection only and is ignored in 3D.
 
-<Example>
-	<ReferenceLineScatterExample />
-</Example>
+<Example name="components/charts/scatter-plot/reference-lines" title="Scatter Plot reference lines example">
 
 ```tsx
 import { ScatterPlot } from "@ngrok/mantle/scatter-plot";
@@ -697,23 +384,23 @@ function ReferenceLineScatterExample() {
 			aria-label="Cold start time by bundle size"
 		>
 			<ScatterPlot.Grid />
-			<ScatterPlot.XAxis tickFormat={(value) => `${value}MB`} />
-			<ScatterPlot.YAxis tickFormat={(value) => `${value}ms`} />
+			<ScatterPlot.XAxis tickFormat={(value) => `${String(value)}MB`} />
+			<ScatterPlot.YAxis tickFormat={(value) => `${String(value)}ms`} />
 			<ScatterPlot.Point dataKey="startupTime" label="Cold start" color="blue" />
 			<ScatterPlot.ReferenceLine y={300} label="Target" />
-			<ScatterPlot.Tooltip valueFormat={(value) => `${value}ms`} />
+			<ScatterPlot.Tooltip valueFormat={(value) => `${String(value)}ms`} />
 		</ScatterPlot.Root>
 	);
 }
 ```
 
+</Example>
+
 ## Copy as markdown
 
 `ScatterPlot.CopyButton` copies the chart's current rows to the clipboard as a machine-stable, GitHub-flavored markdown table: one x column plus one column per series in paint order, and the z column in 3D (an ISO 8601 timestamp for every x on a time scale, plain un-separated numbers, an em dash for gaps). The table pastes into Slack, issues, spreadsheets, and LLM chats. The button renders in flow where composed; `Root` is relatively positioned, so `className` can dock it over a corner.
 
-<Example>
-	<CopyMarkdownExample />
-</Example>
+<Example name="components/charts/scatter-plot/copy-as-markdown" title="Scatter Plot copy as markdown example">
 
 ```tsx
 import { ScatterPlot } from "@ngrok/mantle/scatter-plot";
@@ -724,7 +411,7 @@ import { ScatterPlot } from "@ngrok/mantle/scatter-plot";
 	aria-label="Latency vs throughput by region, copyable"
 >
 	<ScatterPlot.Grid />
-	<ScatterPlot.XAxis tickFormat={(value) => `${value}ms`} />
+	<ScatterPlot.XAxis tickFormat={(value) => `${String(value)}ms`} />
 	<ScatterPlot.YAxis />
 	<ScatterPlot.Point dataKey="usEast" label="US East" color="blue" />
 	<ScatterPlot.Point dataKey="euWest" label="EU West" color="emerald" />
@@ -733,6 +420,8 @@ import { ScatterPlot } from "@ngrok/mantle/scatter-plot";
 	<ScatterPlot.CopyButton className="absolute right-0 top-0" />
 </ScatterPlot.Root>;
 ```
+
+</Example>
 
 ## Lists of charts
 
@@ -783,9 +472,7 @@ Reach for `mode="decorative"` over hand-rolled `inert` + CSS: it removes the int
 
 `mode="decorative"` says the values are not information; it is not a `disabled` flag (a chart is not a form control). For real data a reader only glances at, use [`mode="static"`](#static-charts).
 
-<Example>
-	<EmptyStateScatterPlotExample />
-</Example>
+<Example name="components/charts/scatter-plot/decorative-charts" title="Scatter Plot decorative charts example">
 
 ```tsx
 import { Empty } from "@ngrok/mantle/empty";
@@ -820,6 +507,8 @@ function EmptyStateScatterPlotExample() {
 	);
 }
 ```
+
+</Example>
 
 ## Composition
 
@@ -1091,9 +780,7 @@ The chart resolves every token from `Root`'s computed style in one read, inside 
 
 Mantle measures only its own tokens. Check a value you set against the card in both themes, and against every other color on the plot, because scatter marks meet at every pair. The chart below restyles `blue` to a brand color, and EU West passes a CSS color string.
 
-<Example>
-	<SeriesIdentityScatterPlotExample />
-</Example>
+<Example name="components/charts/scatter-plot/series-color" title="Scatter Plot series color example">
 
 ```tsx
 import { ScatterPlot } from "@ngrok/mantle/scatter-plot";
@@ -1113,7 +800,7 @@ const regionThroughput = [
 	aria-label="Latency vs throughput by region, blue rethemed"
 >
 	<ScatterPlot.Grid />
-	<ScatterPlot.XAxis tickFormat={(value) => `${value}ms`} />
+	<ScatterPlot.XAxis tickFormat={(value) => `${String(value)}ms`} />
 	<ScatterPlot.YAxis />
 	<ScatterPlot.Point dataKey="usEast" label="US East" color="blue" />
 	<ScatterPlot.Point dataKey="euWest" label="EU West" color="var(--color-accent-600)" />
@@ -1121,3 +808,5 @@ const regionThroughput = [
 	<ScatterPlot.Legend />
 </ScatterPlot.Root>;
 ```
+
+</Example>

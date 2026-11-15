@@ -4,209 +4,14 @@ description: A filterable, multi-select grid of checkbox rows.
 aliases: [checkbox list, checklist]
 ---
 
-import { Badge } from "@ngrok/mantle/badge";
-import { Button } from "@ngrok/mantle/button";
-import { optionLabelText, SelectableList } from "@ngrok/mantle/selectable-list";
-import { useState } from "react";
-import { Example } from "~/components/example";
 import { PageHeader } from "~/components/page-header";
-
-export const accessKeyOptions = Array.from({ length: 60 }, (_, index) => {
-	const names = [
-		"Onboarding Key",
-		"prod",
-		"staging",
-		"CI deploy",
-		"edge worker",
-		"analytics",
-		"backup",
-		"webhook relay",
-	];
-	const name = names[index % names.length];
-	return {
-		value: `key-${index}`,
-		label: index < names.length ? name : `${name} ${Math.floor(index / names.length) + 1}`,
-		description: `ng-${index.toString(36).padStart(6, "0")}***${(index * 7).toString(36).padStart(4, "0")}`,
-		// A disabled row renders dimmed and can't be toggled or "select all"-ed.
-		disabled: index === 2,
-	};
-});
-
-export const keyOptions = [
-	{ value: "onboarding", label: "Onboarding Key", description: "ng-3FbZthp***xcc3" },
-	{ value: "prod", label: "prod", description: "ng-3FaThZL***8xiA" },
-	{ value: "staging", label: "staging", description: "ng-7HkLmNp***1q2w" },
-	{ value: "ci", label: "CI deploy", description: "ng-9XyZ012***3r4t" },
-	{ value: "edge", label: "edge worker", description: "ng-4QrStUv***5w6x" },
-];
-
-export function SelectableListExample() {
-	const [selected, setSelected] = useState(["key-0", "key-1"]);
-	return (
-		<div className="w-full max-w-md">
-			<SelectableList.Root options={accessKeyOptions} value={selected} onValueChange={setSelected}>
-				<SelectableList.Filter placeholder="Filter access keys…" aria-label="Filter access keys" />
-				<SelectableList.SelectAll>Select all</SelectableList.SelectAll>
-				<SelectableList.Viewport aria-label="Access keys" className="max-h-80" />
-				<SelectableList.Empty>No access keys found.</SelectableList.Empty>
-			</SelectableList.Root>
-			<p className="text-muted mt-3 text-sm">{selected.length} selected</p>
-		</div>
-	);
-}
-
-export const keyStatus = {
-	onboarding: "expiring soon",
-	prod: "active",
-	staging: "active",
-	ci: "active",
-	edge: "expiring soon",
-};
-
-export function CustomRowsExample() {
-	const [selected, setSelected] = useState(["prod"]);
-	return (
-		<div className="w-full max-w-md">
-			<SelectableList.Root options={keyOptions} value={selected} onValueChange={setSelected}>
-				<SelectableList.Viewport aria-label="Access keys" className="max-h-80">
-					{(option) => {
-						// Rich row data that isn't part of the option — look it up by `option.value`.
-						const status = keyStatus[option.value];
-						return (
-							<SelectableList.Item value={option.value}>
-								{/* Stopgap: inside Item you are hand-rolling the row's content cell.
-								    Keep ItemTitle — it is the label that names the row's checkbox. */}
-								<div className="flex items-center gap-2">
-									<SelectableList.ItemTitle>{option.label}</SelectableList.ItemTitle>
-									<Badge appearance="muted" color={status === "active" ? "success" : "warning"}>
-										{status}
-									</Badge>
-								</div>
-								<SelectableList.ItemDescription translate="no" className="font-mono">
-									{option.description}
-								</SelectableList.ItemDescription>
-							</SelectableList.Item>
-						);
-					}}
-				</SelectableList.Viewport>
-			</SelectableList.Root>
-		</div>
-	);
-}
-
-export function ControlledExample() {
-	const [selected, setSelected] = useState(["onboarding"]);
-	return (
-		<div className="w-full max-w-md space-y-3">
-			<SelectableList.Root options={keyOptions} value={selected} onValueChange={setSelected}>
-				<SelectableList.SelectAll>Select all</SelectableList.SelectAll>
-				<SelectableList.Viewport aria-label="Access keys" className="max-h-72" />
-			</SelectableList.Root>
-			<div className="flex items-center justify-between text-sm">
-				<span className="text-muted">{selected.length} selected</span>
-				<Button
-					type="button"
-					appearance="outlined"
-					intent="neutral"
-					onClick={() => setSelected([])}
-					disabled={selected.length === 0}
-				>
-					Clear
-				</Button>
-			</div>
-		</div>
-	);
-}
-
-export function UncontrolledExample() {
-	return (
-		<div className="w-full max-w-md">
-			<SelectableList.Root options={keyOptions} defaultValue={["prod"]}>
-				<SelectableList.Filter placeholder="Filter access keys…" aria-label="Filter access keys" />
-				<SelectableList.Viewport aria-label="Access keys" className="max-h-72" />
-				<SelectableList.Empty>No access keys found.</SelectableList.Empty>
-			</SelectableList.Root>
-		</div>
-	);
-}
-
-export function ControlledQueryExample() {
-	const [query, setQuery] = useState("ng-3f");
-	const [selected, setSelected] = useState(["prod"]);
-	return (
-		<div className="w-full max-w-md space-y-3">
-			<SelectableList.Root
-				options={keyOptions}
-				value={selected}
-				onValueChange={setSelected}
-				query={query}
-				onQueryChange={setQuery}
-				filter={(option, query) => {
-					const needle = query.trim().toLowerCase();
-					if (needle === "") {
-						return true;
-					}
-					const description = typeof option.description === "string" ? option.description : "";
-					return (
-						optionLabelText(option).toLowerCase().includes(needle) ||
-						description.toLowerCase().includes(needle)
-					);
-				}}
-			>
-				<SelectableList.Filter
-					placeholder="Filter by name or key…"
-					aria-label="Filter access keys"
-				/>
-				<SelectableList.Viewport aria-label="Access keys" className="max-h-72" />
-				<SelectableList.Empty>No access keys found.</SelectableList.Empty>
-			</SelectableList.Root>
-			<p className="text-muted text-sm">
-				query: <span>{`“${query}”`}</span>
-			</p>
-		</div>
-	);
-}
-
-export const disabledOptions = [
-	{ value: "prod", label: "prod", description: "ng-3FaThZL***8xiA" },
-	{ value: "staging", label: "staging", description: "ng-7HkLmNp***1q2w" },
-	// A disabled row renders dimmed and can't be toggled or "select all"-ed.
-	{ value: "legacy", label: "legacy", description: "ng-1AbCdEf***0000", disabled: true },
-];
-
-export function DisabledRowExample() {
-	const [selected, setSelected] = useState(["prod"]);
-	return (
-		<div className="w-full max-w-md">
-			<SelectableList.Root options={disabledOptions} value={selected} onValueChange={setSelected}>
-				<SelectableList.SelectAll>Select all</SelectableList.SelectAll>
-				<SelectableList.Viewport aria-label="Access keys" className="max-h-72" />
-			</SelectableList.Root>
-		</div>
-	);
-}
-
-export function VirtualViewportExample() {
-	const [selected, setSelected] = useState(["key-0", "key-1"]);
-	return (
-		<div className="w-full max-w-md">
-			<SelectableList.Root options={accessKeyOptions} value={selected} onValueChange={setSelected}>
-				<SelectableList.Filter placeholder="Filter access keys…" aria-label="Filter access keys" />
-				<SelectableList.SelectAll>Select all</SelectableList.SelectAll>
-				<SelectableList.VirtualViewport aria-label="Access keys" className="max-h-80" />
-				<SelectableList.Empty>No access keys found.</SelectableList.Empty>
-			</SelectableList.Root>
-		</div>
-	);
-}
+import { Example } from "~/components/example";
 
 <PageHeader id="selectable-list">Selectable List</PageHeader>
 
 A filterable, multi-select grid of checkbox rows. Map your data into `options` once, and the list owns filtering and selection.
 
-<Example>
-	<SelectableListExample />
-</Example>
+<Example name="components/data-display/selectable-list/overview" title="Selectable List example">
 
 ```tsx
 import { SelectableList } from "@ngrok/mantle/selectable-list";
@@ -231,6 +36,8 @@ function Example() {
 	);
 }
 ```
+
+</Example>
 
 ## When to use
 
@@ -267,9 +74,7 @@ SelectableList.Root
 
 Mark an option `disabled` to render its row dimmed and exclude it from toggling and "select all" (the `legacy` row below, and one in the list at the top of this page):
 
-<Example>
-	<DisabledRowExample />
-</Example>
+<Example name="components/data-display/selectable-list/disabled-rows" title="Selectable List disabled rows example">
 
 ```tsx
 import { SelectableList } from "@ngrok/mantle/selectable-list";
@@ -294,6 +99,8 @@ function Example() {
 }
 ```
 
+</Example>
+
 ## Custom rows
 
 The default row (a title over a description) is the design-system row; prefer it. When a row must carry content the default shape can't express (a status badge, extra metadata, even interactive controls; the grid pattern permits a row to hold its own buttons/links), pass a render-prop child to a viewport and compose a `SelectableList.Item`.
@@ -313,9 +120,7 @@ Two rules keep the row's accessibility wiring intact:
 - **Always render `SelectableList.ItemTitle`.** It is the row's [`Choice.Label`](/components/forms/choice): the real `<label>` that gives the checkbox its accessible name and makes the title click-to-toggle.
 - **Never nest a `Choice.Root` inside an `Item`.** The row already renders one; a nested root silently re-wires the title and description away from the row's checkbox.
 
-<Example>
-	<CustomRowsExample />
-</Example>
+<Example name="components/data-display/selectable-list/custom-rows" title="Selectable List custom rows example">
 
 ```tsx
 import { Badge } from "@ngrok/mantle/badge";
@@ -365,6 +170,8 @@ function Example() {
 }
 ```
 
+</Example>
+
 The whole row is click-to-toggle, but it is **not** a `<label>`; it's a grid `role="row"`. A bare click anywhere toggles selection, while clicks on the checkbox, the title label, or any nested control are left to those controls (no double-toggle). So a row **can** hold interactive content (a link, an overflow menu), each in the content cell as an ordinary sibling.
 
 > **Why `options` is still data.** `Root` needs the full item set up front to support "select all" over the filtered set and to window rows under `VirtualViewport` (off-screen rows unmount); neither can be derived from rendered children, since unmounted rows can't report themselves. So `options` is the lightweight **data layer** (a `value`, the filter text, and `disabled`); a viewport's render-prop is the **rendering layer**. For rich rows, look your own data up by `option.value`.
@@ -375,9 +182,7 @@ The whole row is click-to-toggle, but it is **not** a `<label>`; it's a grid `ro
 
 On the server, `VirtualViewport` renders the first slice of rows, sized by `estimateItemHeight` and `overscan`. The rest mount after hydration measures the viewport. `Viewport` renders every row in the server HTML. If the whole list must be in that HTML (for find-in-page, or for a reader without JavaScript), pick `Viewport`.
 
-<Example>
-	<VirtualViewportExample />
-</Example>
+<Example name="components/data-display/selectable-list/virtualization" title="Selectable List virtualization example">
 
 ```tsx
 import { SelectableList } from "@ngrok/mantle/selectable-list";
@@ -398,15 +203,15 @@ function Example() {
 }
 ```
 
+</Example>
+
 > **Windowing trade-off.** Keyboard grid navigation still works across the **full** list: arrows move the active row and scroll it into view (`aria-activedescendant`, plus `aria-rowcount` on the grid and `aria-rowindex` on each windowed row, keep screen-reader counts true). What windowing does cost: browser find-in-page (Ctrl/⌘-F) only searches mounted rows. The right trade for a large enough list; prefer `Viewport` until a list is actually long.
 
 ## Controlled
 
 Pass `value` + `onValueChange` to own the selection state (e.g. to show a count and a clear button).
 
-<Example>
-	<ControlledExample />
-</Example>
+<Example name="components/data-display/selectable-list/controlled" title="Selectable List controlled example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -445,13 +250,13 @@ function Example() {
 }
 ```
 
+</Example>
+
 ## Uncontrolled
 
 Pass `defaultValue` instead and let the list manage selection internally.
 
-<Example>
-	<UncontrolledExample />
-</Example>
+<Example name="components/data-display/selectable-list/uncontrolled" title="Selectable List uncontrolled example">
 
 ```tsx
 import { SelectableList } from "@ngrok/mantle/selectable-list";
@@ -469,13 +274,13 @@ const options = [
 </SelectableList.Root>;
 ```
 
+</Example>
+
 ## Controlled query and custom filter
 
 Like selection, the filter query is uncontrolled by default (seed it with `defaultQuery`) or controlled: pass `query` + `onQueryChange` to own it (e.g. to sync the filter with URL search params so a filtered view is shareable, or to clear it from outside the list). Pass `filter` to replace the default match (a trimmed, case-insensitive substring test over each option's plain text; see the exported `optionLabelText` helper) with your own predicate: it's called per option with the raw query; return `true` to keep the option. The example below controls the query and filters over the masked key `description` as well as the label text: the initial query `ng-3f` matches two keys by description alone (the default filter would match none).
 
-<Example>
-	<ControlledQueryExample />
-</Example>
+<Example name="components/data-display/selectable-list/controlled-query-and-custom-filter" title="Selectable List controlled query and custom filter example">
 
 ```tsx
 import { optionLabelText, SelectableList } from "@ngrok/mantle/selectable-list";
@@ -527,6 +332,8 @@ function Example() {
 	);
 }
 ```
+
+</Example>
 
 ## Polymorphism
 

@@ -18,7 +18,7 @@ type ContentLayoutProps = {
 /**
  * Classes a full-width section layout (e.g. /layouts) passes to `PageLayout`
  * to keep MDX flow content at a readable centered measure while blocks marked
- * `data-full-bleed` (e.g. `CodeExample`) span the whole canvas. Lives here so
+ * `data-full-bleed` (e.g. `Example`) span the whole canvas. Lives here so
  * the long-distance selectors stay next to the `data-mdx-content` element
  * they target.
  *

@@ -8,11 +8,11 @@ import { ContentLayout } from "~/components/content-layout";
 import { hydrationErrorsOf } from "~/test-utils/hydration";
 
 /**
- * Every docs page hydrates its server markup without a mismatch, inline demos
- * included. The preview sweep covers the framed examples; this one renders
- * each compiled MDX page the way `doc-page.tsx` does, so a demo written in the
- * page itself, or a helper the page renders in its prose, is covered the
- * moment it lands. The glob mirrors `docs.ts`, which is the module-resolution
+ * Every docs page hydrates its server markup without a mismatch. The examples
+ * render in preview frames, and `page-examples.test.tsx` and the preview sweep
+ * cover them; this one renders each compiled MDX page the way `doc-page.tsx`
+ * does, so a helper the page renders in its prose is covered the moment it
+ * lands. The glob mirrors `docs.ts`, which is the module-resolution
  * shape TypeScript can follow for `.mdx`.
  */
 const pages = import.meta.glob<{ default: ComponentType }>("../docs/**/*.mdx", { eager: true });

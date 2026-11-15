@@ -4,39 +4,13 @@ description: A modal dialog that interrupts the user with important content and 
 aliases: [confirm, confirmation, confirm dialog]
 ---
 
-import { AlertDialog } from "@ngrok/mantle/alert-dialog";
-import { Button } from "@ngrok/mantle/button";
 import { Example } from "~/components/example";
-import { TanStackFormDemo } from "~/examples/alert-dialog/alert-dialog-tanstack-form-demo";
 
 # Alert Dialog
 
 A modal dialog that interrupts the user with important content and expects a response. `AlertDialog.Root` requires an `intent`, which sets the color of the icon and the action.
 
-<Example>
-	<AlertDialog.Root intent="info">
-		<AlertDialog.Trigger asChild>
-			<Button type="button" appearance="outlined" intent="neutral">
-				Show Info Alert Dialog
-			</Button>
-		</AlertDialog.Trigger>
-		<AlertDialog.Content>
-			<AlertDialog.Icon />
-			<AlertDialog.Body>
-				<AlertDialog.Header>
-					<AlertDialog.Title>Are you absolutely sure?</AlertDialog.Title>
-					<AlertDialog.Description>
-						Proident quis nisi tempor irure sunt ut minim occaecat mollit sunt.
-					</AlertDialog.Description>
-				</AlertDialog.Header>
-				<AlertDialog.Footer>
-					<AlertDialog.Cancel type="button">Cancel</AlertDialog.Cancel>
-					<AlertDialog.Action type="button">Continue</AlertDialog.Action>
-				</AlertDialog.Footer>
-			</AlertDialog.Body>
-		</AlertDialog.Content>
-	</AlertDialog.Root>
-</Example>
+<Example name="components/overlays/alert-dialog/overview" title="Alert Dialog example">
 
 ```tsx
 import { AlertDialog } from "@ngrok/mantle/alert-dialog";
@@ -66,6 +40,8 @@ import { Button } from "@ngrok/mantle/button";
 </AlertDialog.Root>;
 ```
 
+</Example>
+
 ## When to use
 
 - Confirm a destructive or irreversible action before it runs, such as a delete, a sign-out, or a leave without saving.
@@ -77,52 +53,7 @@ import { Button } from "@ngrok/mantle/button";
 
 Set `intent="danger"` when the action destroys data or cannot be undone. Use `intent="info"` for every other confirmation.
 
-<Example className="flex-col gap-6">
-	<AlertDialog.Root intent="info">
-		<AlertDialog.Trigger asChild>
-			<Button type="button" appearance="outlined" intent="neutral">
-				Show Info Alert Dialog
-			</Button>
-		</AlertDialog.Trigger>
-		<AlertDialog.Content>
-			<AlertDialog.Icon />
-			<AlertDialog.Body>
-				<AlertDialog.Header>
-					<AlertDialog.Title>Are you absolutely sure?</AlertDialog.Title>
-					<AlertDialog.Description>
-						Proident quis nisi tempor irure sunt ut minim occaecat mollit sunt.
-					</AlertDialog.Description>
-				</AlertDialog.Header>
-				<AlertDialog.Footer>
-					<AlertDialog.Cancel type="button">Cancel</AlertDialog.Cancel>
-					<AlertDialog.Action type="button">Continue</AlertDialog.Action>
-				</AlertDialog.Footer>
-			</AlertDialog.Body>
-		</AlertDialog.Content>
-	</AlertDialog.Root>
-	<AlertDialog.Root intent="danger">
-		<AlertDialog.Trigger asChild>
-			<Button type="button" appearance="outlined" intent="neutral">
-				Show Danger Alert Dialog
-			</Button>
-		</AlertDialog.Trigger>
-		<AlertDialog.Content>
-			<AlertDialog.Icon />
-			<AlertDialog.Body>
-				<AlertDialog.Header>
-					<AlertDialog.Title>Are you absolutely sure?</AlertDialog.Title>
-					<AlertDialog.Description>
-						Proident quis nisi tempor irure sunt ut minim occaecat mollit sunt.
-					</AlertDialog.Description>
-				</AlertDialog.Header>
-				<AlertDialog.Footer>
-					<AlertDialog.Cancel type="button">Cancel</AlertDialog.Cancel>
-					<AlertDialog.Action type="button">Continue</AlertDialog.Action>
-				</AlertDialog.Footer>
-			</AlertDialog.Body>
-		</AlertDialog.Content>
-	</AlertDialog.Root>
-</Example>
+<Example name="components/overlays/alert-dialog/intent" title="Alert Dialog intent example">
 
 ```tsx
 import { AlertDialog } from "@ngrok/mantle/alert-dialog";
@@ -176,6 +107,8 @@ import { Button } from "@ngrok/mantle/button";
 </>;
 ```
 
+</Example>
+
 ## Layering and z-index
 
 `AlertDialog.Content` renders its floating layer at Tailwind `z-60`, Mantle's overlay tier, above every float (`z-50`). Floats composed inside the content portal into the positioner (`data-slot="alert-dialog-positioner"`) and paint above the content. When multiple overlays are open, the most recently mounted overlay renders on top.
@@ -218,9 +151,7 @@ Compose an `AlertDialog` with [TanStack Form](https://tanstack.com/form) and [`F
 
 The acknowledgment row composes [`Choice`](/components/forms/choice) inside `Field.Control`, so the checkbox aligns to the first line of its label and the field's `name` and ARIA wiring flow onto the checkbox automatically.
 
-<Example className="w-full">
-	<TanStackFormDemo />
-</Example>
+<Example name="components/overlays/alert-dialog/with-tanstack-form" title="Alert Dialog With TanStack Form example">
 
 ```tsx
 import { AlertDialog } from "@ngrok/mantle/alert-dialog";
@@ -317,6 +248,8 @@ function Example() {
 	);
 }
 ```
+
+</Example>
 
 ## Polymorphism
 

@@ -4,26 +4,13 @@ description: Displays a callout for user attention.
 aliases: [callout, notice, admonition]
 ---
 
-import { Alert } from "@ngrok/mantle/alert";
-import { Card } from "@ngrok/mantle/card";
-import { $cssProperties } from "@ngrok/mantle/types";
-import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
 import { Example } from "~/components/example";
-import { DismissibleAlertDemo, DynamicAlertDemo } from "~/features/alert-demos";
 
 # Alert
 
 Displays a callout for user attention. `intent` on `Alert.Root` is required: it sets the color and the default icon.
 
-<Example>
-	<Alert.Root intent="info">
-		<Alert.Icon />
-		<Alert.Content>
-			<Alert.Title>Maintenance window</Alert.Title>
-			<Alert.Description>Service may be briefly unavailable.</Alert.Description>
-		</Alert.Content>
-	</Alert.Root>
-</Example>
+<Example name="components/feedback/alert/overview" title="Alert example">
 
 ```tsx
 import { Alert } from "@ngrok/mantle/alert";
@@ -36,6 +23,8 @@ import { Alert } from "@ngrok/mantle/alert";
 	</Alert.Content>
 </Alert.Root>;
 ```
+
+</Example>
 
 ## When to use
 
@@ -64,19 +53,7 @@ Alert.Root
 
 `Alert.Title` and `Alert.Description` support `asChild` when the alert's surrounding document structure needs a different semantic element.
 
-<Example>
-	<Alert.Root intent="info">
-		<Alert.Icon />
-		<Alert.Content>
-			<Alert.Title asChild>
-				<h2>Maintenance window</h2>
-			</Alert.Title>
-			<Alert.Description asChild>
-				<p>Service may be briefly unavailable.</p>
-			</Alert.Description>
-		</Alert.Content>
-	</Alert.Root>
-</Example>
+<Example name="components/feedback/alert/polymorphism" title="Alert polymorphism example">
 
 ```tsx
 import { Alert } from "@ngrok/mantle/alert";
@@ -94,47 +71,13 @@ import { Alert } from "@ngrok/mantle/alert";
 </Alert.Root>;
 ```
 
+</Example>
+
 ## Intents
 
 `intent` sets the color and the default icon of the alert.
 
-<Example className="flex-col gap-2">
-	<Alert.Root intent="danger">
-		<Alert.Icon />
-		<Alert.Content>
-			<Alert.Title>Danger</Alert.Title>
-			<Alert.Description>This is a danger Alert.</Alert.Description>
-		</Alert.Content>
-	</Alert.Root>
-	<Alert.Root intent="info">
-		<Alert.Icon />
-		<Alert.Content>
-			<Alert.Title>Info</Alert.Title>
-			<Alert.Description>This is an info Alert.</Alert.Description>
-		</Alert.Content>
-	</Alert.Root>
-	<Alert.Root intent="important">
-		<Alert.Icon />
-		<Alert.Content>
-			<Alert.Title>Important</Alert.Title>
-			<Alert.Description>This is an important Alert.</Alert.Description>
-		</Alert.Content>
-	</Alert.Root>
-	<Alert.Root intent="success">
-		<Alert.Icon />
-		<Alert.Content>
-			<Alert.Title>Success</Alert.Title>
-			<Alert.Description>This is a success Alert.</Alert.Description>
-		</Alert.Content>
-	</Alert.Root>
-	<Alert.Root intent="warning">
-		<Alert.Icon />
-		<Alert.Content>
-			<Alert.Title>Warning</Alert.Title>
-			<Alert.Description>This is a warning Alert.</Alert.Description>
-		</Alert.Content>
-	</Alert.Root>
-</Example>
+<Example name="components/feedback/alert/intents" title="Alert intents example">
 
 ```tsx
 import { Alert } from "@ngrok/mantle/alert";
@@ -176,19 +119,13 @@ import { Alert } from "@ngrok/mantle/alert";
 </Alert.Root>
 ```
 
+</Example>
+
 ## Custom icon
 
 Pass the `svg` prop to `Alert.Icon` to replace the default icon of the intent.
 
-<Example>
-	<Alert.Root intent="danger">
-		<Alert.Icon svg={<ShrimpIcon />} />
-		<Alert.Content>
-			<Alert.Title>Danger w/ custom icon</Alert.Title>
-			<Alert.Description>This is a danger Alert.</Alert.Description>
-		</Alert.Content>
-	</Alert.Root>
-</Example>
+<Example name="components/feedback/alert/custom-icon" title="Alert custom icon example">
 
 ```tsx
 import { Alert } from "@ngrok/mantle/alert";
@@ -203,52 +140,13 @@ import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
 </Alert.Root>;
 ```
 
+</Example>
+
 ## Layouts
 
 Mix and match what you put inside the `Alert` component to create different Alert layouts.
 
-<Example className="flex-col gap-4">
-	<div className="w-full max-w-screen-sm space-y-2">
-		<Alert.Root intent="danger">
-			<Alert.Icon />
-			<Alert.Content>
-				<Alert.Title>Danger Will Robinson</Alert.Title>
-				<Alert.DismissIconButton />
-				<Alert.Description>
-					Cupidatat ullamco commodo laborum consectetur ut mollit et nostrud amet elit ut Lorem
-					culpa.
-				</Alert.Description>
-			</Alert.Content>
-		</Alert.Root>
-	</div>
-	<div className="w-full max-w-screen-sm space-y-2">
-		<Alert.Root intent="danger">
-			<Alert.Content>
-				<Alert.Title>Danger Will Robinson</Alert.Title>
-				<Alert.Description>
-					Cupidatat ullamco commodo laborum consectetur ut mollit et nostrud amet elit ut Lorem
-					culpa.
-				</Alert.Description>
-			</Alert.Content>
-		</Alert.Root>
-	</div>
-	<div className="w-full max-w-screen-sm space-y-2">
-		<Alert.Root intent="danger">
-			<Alert.Icon />
-			<Alert.Content>
-				<Alert.Title>Danger Will Robinson</Alert.Title>
-			</Alert.Content>
-		</Alert.Root>
-	</div>
-	<div className="w-full max-w-screen-sm space-y-2">
-		<Alert.Root intent="danger">
-			<Alert.Content>
-				<Alert.Title>Danger Will Robinson</Alert.Title>
-				<Alert.DismissIconButton />
-			</Alert.Content>
-		</Alert.Root>
-	</div>
-</Example>
+<Example name="components/feedback/alert/layouts" title="Alert layouts example">
 
 ```tsx
 import { Alert } from "@ngrok/mantle/alert";
@@ -288,27 +186,13 @@ import { Alert } from "@ngrok/mantle/alert";
 </Alert.Root>
 ```
 
+</Example>
+
 ## Banners
 
 For banner-like alerts, use the `appearance="banner"` prop. This automatically removes the top, left, and right border, leaving only the bottom border.
 
-<Example>
-	<div className="border-card min-h-56 space-y-4 border">
-		<Alert.Root intent="info" appearance="banner">
-			<Alert.Icon />
-			<Alert.Content>
-				<Alert.Title>This is an info Alert as a page banner</Alert.Title>
-			</Alert.Content>
-		</Alert.Root>
-		<div className="px-4">
-			<Card.Root className="mx-auto max-w-screen-sm">
-				<Card.Body>
-					<p className="my-4">Laboris commodo Lorem anim consequat ut dolore proident.</p>
-				</Card.Body>
-			</Card.Root>
-		</div>
-	</div>
-</Example>
+<Example name="components/feedback/alert/banners" title="Alert banners example">
 
 ```tsx
 import { Alert } from "@ngrok/mantle/alert";
@@ -321,15 +205,15 @@ import { Alert } from "@ngrok/mantle/alert";
 </Alert.Root>;
 ```
 
+</Example>
+
 ## Dismissal
 
 `Alert.DismissIconButton` removes nothing on its own. Your state does: stop rendering the alert in its `onClick` handler. When that unmount happens while the dismiss button holds focus, focus moves to the nearest tabbable element outside the alert: the next one in document order, or the previous one when nothing follows. Without that move, focus falls to `<body>` and the next Tab restarts at the top of the page. A screen reader user also gets no confirmation that the alert left. If your handler or a layout effect places focus first, the alert keeps that choice.
 
 In the demo below, Tab to the dismiss button and press Enter. Focus lands on the button that follows the alert.
 
-<Example className="w-full">
-	<DismissibleAlertDemo />
-</Example>
+<Example name="components/feedback/alert/dismissal" title="Alert dismissal example">
 
 ```tsx
 import { Alert } from "@ngrok/mantle/alert";
@@ -366,19 +250,13 @@ export function TrialAlert() {
 }
 ```
 
+</Example>
+
 ## Expand button
 
 Use `Alert.ExpandButton` for a compact control that reveals related alerts. It sits at the trailing edge, to the left of the dismiss button when both are present, and reserves space for the count and caret, so alert copy remains contained on narrow viewports. It shows `+N` on mobile and `+N more` from the `md` (tablet) breakpoint.
 
-<Example>
-	<Alert.Root intent="warning">
-		<Alert.Icon />
-		<Alert.Content>
-			<Alert.Title>Your workspace is approaching its monthly usage limit</Alert.Title>
-			<Alert.ExpandButton count={2} expanded={false} />
-		</Alert.Content>
-	</Alert.Root>
-</Example>
+<Example name="components/feedback/alert/expand-button" title="Alert expand button example">
 
 ```tsx
 import { Alert } from "@ngrok/mantle/alert";
@@ -395,20 +273,13 @@ const toggle = () => {};
 </Alert.Root>;
 ```
 
+</Example>
+
 ## Dismiss and expand
 
 `Alert.DismissIconButton` and `Alert.ExpandButton` compose safely in the same alert. Both stay absolutely positioned at the trailing edge. When both are present, the dismiss button stays rightmost, the expander moves to its left, and `Alert.Content` reserves room for the pair. Put `Alert.ExpandButton` before `Alert.DismissIconButton` in your markup so the Tab order matches the visual order. This also handles an alert that first renders dismissable and later gains an expander as more alerts arrive.
 
-<Example>
-	<Alert.Root intent="warning">
-		<Alert.Icon />
-		<Alert.Content>
-			<Alert.Title>Your workspace is approaching its monthly usage limit</Alert.Title>
-			<Alert.ExpandButton count={2} expanded={false} />
-			<Alert.DismissIconButton />
-		</Alert.Content>
-	</Alert.Root>
-</Example>
+<Example name="components/feedback/alert/dismiss-and-expand" title="Alert dismiss and expand example">
 
 ```tsx
 import { Alert } from "@ngrok/mantle/alert";
@@ -427,6 +298,8 @@ const toggle = () => {};
 </Alert.Root>;
 ```
 
+</Example>
+
 ## Trailing control colors
 
 `Alert.DismissIconButton` and `Alert.ExpandButton` share the following CSS custom properties from `Alert.Root`. Each intent supplies the listed defaults; set them once on the root to theme both controls together.
@@ -437,23 +310,7 @@ const toggle = () => {};
 | `--alert-control-hover-color` | `var(--color-<intent>-800)`                                       | Control text and icon color on hover. |
 | `--alert-control-hover-bg`    | `color-mix(in oklab, var(--color-<intent>-500) 10%, transparent)` | Control background on hover.          |
 
-<Example>
-	<Alert.Root
-		intent="warning"
-		style={$cssProperties({
-			"--alert-control-color": "var(--color-neutral-700)",
-			"--alert-control-hover-color": "var(--color-neutral-900)",
-			"--alert-control-hover-bg": "color-mix(in oklab, var(--color-neutral-500) 10%, transparent)",
-		})}
-	>
-		<Alert.Icon />
-		<Alert.Content>
-			<Alert.Title>Usage limit approaching</Alert.Title>
-			<Alert.ExpandButton count={2} expanded={false} />
-			<Alert.DismissIconButton />
-		</Alert.Content>
-	</Alert.Root>
-</Example>
+<Example name="components/feedback/alert/trailing-control-colors" title="Alert trailing control colors example">
 
 ```tsx
 import { $cssProperties } from "@ngrok/mantle/types";
@@ -476,20 +333,13 @@ import { Alert } from "@ngrok/mantle/alert";
 </Alert.Root>;
 ```
 
+</Example>
+
 ## Custom dismiss icon
 
 Use the `icon` prop on `Alert.DismissIconButton` to render a custom icon in place of the default `X`.
 
-<Example>
-	<Alert.Root intent="warning">
-		<Alert.Icon />
-		<Alert.Content>
-			<Alert.Title>Custom Dismiss Icon</Alert.Title>
-			<Alert.DismissIconButton icon={<ShrimpIcon />} />
-			<Alert.Description>This dismiss button uses a custom icon.</Alert.Description>
-		</Alert.Content>
-	</Alert.Root>
-</Example>
+<Example name="components/feedback/alert/custom-dismiss-icon" title="Alert custom dismiss icon example">
 
 ```tsx
 import { Alert } from "@ngrok/mantle/alert";
@@ -505,6 +355,8 @@ import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
 </Alert.Root>;
 ```
 
+</Example>
+
 ## Announcing a dynamic alert
 
 `Alert.Root` renders a plain `<div>` with no ARIA role. A static alert that is on the page at load does not need one. When your code inserts an alert after an action, such as "Invalid email or password." after a submit, pass `role="alert"` so a screen reader announces it.
@@ -513,9 +365,7 @@ The role alone is not reliable. Assistive tech can miss a live region that mount
 
 The demo below rejects every sign-in, so the alert mounts after the action. The `key` remounts the alert on a repeated attempt, so it announces again.
 
-<Example className="w-full">
-	<DynamicAlertDemo />
-</Example>
+<Example name="components/feedback/alert/announcing-a-dynamic-alert" title="Alert announcing a dynamic alert example">
 
 ```tsx
 import { Alert } from "@ngrok/mantle/alert";
@@ -572,6 +422,8 @@ export function SignInForm() {
 	);
 }
 ```
+
+</Example>
 
 ## API Reference
 

@@ -4,47 +4,13 @@ description: A semantically correct description list built on the HTML dl elemen
 aliases: [key value list, definition list, property list]
 ---
 
-import { IconButton } from "@ngrok/mantle/button";
-import { DescriptionList } from "@ngrok/mantle/description-list";
-import { CopyIcon } from "@phosphor-icons/react/Copy";
 import { Example } from "~/components/example";
 
 # Description List
 
 A semantically correct description list built on the HTML [`<dl>`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/dl) element. Compose `<DescriptionList.Item>`, `<DescriptionList.Label>`, and `<DescriptionList.Value>` as direct children of `<DescriptionList.Root>`.
 
-<Example>
-	<div className="w-full max-w-lg">
-		<DescriptionList.Root>
-			<DescriptionList.Item>
-				<DescriptionList.Label>Key</DescriptionList.Label>
-				<DescriptionList.Value className="font-bold">my-api-key</DescriptionList.Value>
-			</DescriptionList.Item>
-			<DescriptionList.Item>
-				<DescriptionList.Label>ID</DescriptionList.Label>
-				<DescriptionList.Value translate="no">aigk_2fKm9x8Hn3QpYT7zKlR0vW5</DescriptionList.Value>
-			</DescriptionList.Item>
-			<DescriptionList.Item>
-				<DescriptionList.Label>Description</DescriptionList.Label>
-				<DescriptionList.Value>Production API key for the billing service</DescriptionList.Value>
-			</DescriptionList.Item>
-			<DescriptionList.Item>
-				<DescriptionList.Label>Created</DescriptionList.Label>
-				<DescriptionList.Value>2 days ago by admin@example.com</DescriptionList.Value>
-			</DescriptionList.Item>
-			<DescriptionList.Item>
-				<DescriptionList.Label>Last Used</DescriptionList.Label>
-				<DescriptionList.Value>
-					<span className="italic text-muted">Never</span>
-				</DescriptionList.Value>
-			</DescriptionList.Item>
-			<DescriptionList.Item>
-				<DescriptionList.Label>Metadata</DescriptionList.Label>
-				<DescriptionList.Value>17 Bytes</DescriptionList.Value>
-			</DescriptionList.Item>
-		</DescriptionList.Root>
-	</div>
-</Example>
+<Example name="components/data-display/description-list/overview" title="Description List example">
 
 ```tsx
 import { DescriptionList } from "@ngrok/mantle/description-list";
@@ -79,6 +45,8 @@ import { DescriptionList } from "@ngrok/mantle/description-list";
 </DescriptionList.Root>;
 ```
 
+</Example>
+
 ## When to use
 
 - Show a list of label and value pairs, such as the metadata of a resource on a detail page.
@@ -100,18 +68,7 @@ DescriptionList.Root
 
 `DescriptionList.Root`, `DescriptionList.Item`, `DescriptionList.Label`, and `DescriptionList.Value` each accept an `asChild` prop. When `true`, the part renders its single child instead of its default element (`<dl>`, `<div>`, `<dt>`, `<dd>`), forwarding all class names, `data-*` attributes, and the ref onto that child.
 
-<Example>
-	<div className="w-full max-w-lg">
-		<DescriptionList.Root>
-			<DescriptionList.Item>
-				<DescriptionList.Label>Docs</DescriptionList.Label>
-				<DescriptionList.Value asChild>
-					<a href="https://mantle.ngrok.com">mantle.ngrok.com</a>
-				</DescriptionList.Value>
-			</DescriptionList.Item>
-		</DescriptionList.Root>
-	</div>
-</Example>
+<Example name="components/data-display/description-list/polymorphism" title="Description List polymorphism example">
 
 ```tsx
 import { DescriptionList } from "@ngrok/mantle/description-list";
@@ -120,41 +77,21 @@ import { DescriptionList } from "@ngrok/mantle/description-list";
 	<DescriptionList.Item>
 		<DescriptionList.Label>Docs</DescriptionList.Label>
 		<DescriptionList.Value asChild>
-			<a href="https://mantle.ngrok.com">mantle.ngrok.com</a>
+			<a href="https://mantle.ngrok.com" target="_top">
+				mantle.ngrok.com
+			</a>
 		</DescriptionList.Value>
 	</DescriptionList.Item>
 </DescriptionList.Root>;
 ```
 
+</Example>
+
 ## Actions in a row
 
 To put a copy button or another action beside a value, use an [`IconButton`](/components/actions/icon-button#size) with `size="2xs"`. Its 20px box fits inside the line of text, so a row with an action is the same height as a row without one. Wrap the value text in its own element beside the button.
 
-<Example>
-	<div className="w-full max-w-lg">
-		<DescriptionList.Root>
-			<DescriptionList.Item>
-				<DescriptionList.Label>Name</DescriptionList.Label>
-				<DescriptionList.Value>my-api-key</DescriptionList.Value>
-			</DescriptionList.Item>
-			<DescriptionList.Item>
-				<DescriptionList.Label>ID</DescriptionList.Label>
-				<DescriptionList.Value className="flex items-center gap-2">
-					<span translate="no" className="truncate">
-						aigk_2fKm9x8Hn3QpYT7zKlR0vW5
-					</span>
-					<IconButton
-						appearance="ghost"
-						intent="neutral"
-						size="2xs"
-						label="Copy ID"
-						icon={<CopyIcon />}
-					/>
-				</DescriptionList.Value>
-			</DescriptionList.Item>
-		</DescriptionList.Root>
-	</div>
-</Example>
+<Example name="components/data-display/description-list/actions-in-a-row" title="Description List actions in a row example">
 
 ```tsx
 import { IconButton } from "@ngrok/mantle/button";
@@ -184,32 +121,15 @@ import { CopyIcon } from "@phosphor-icons/react/Copy";
 </DescriptionList.Root>;
 ```
 
+</Example>
+
 ## Long values
 
 The value column has a `0` minimum width, so a long value stays inside its row instead of widening the list. Set the overflow behavior on `DescriptionList.Value` or on a child: `truncate` clips a single line with an ellipsis, and `wrap-anywhere` breaks a line at any character. `DescriptionList.Value` does not need `min-w-0`.
 
 When the end of the value is the part that matters, as in a URL or an ID, render it with [`TruncatedText`](/components/data-display/truncated-text): the head clips and the tail stays visible.
 
-<Example>
-	<div className="w-full max-w-lg">
-		<DescriptionList.Root>
-			<DescriptionList.Item>
-				<DescriptionList.Label>Request URL</DescriptionList.Label>
-				<DescriptionList.Value>
-					<span className="block truncate">
-						https://example.ngrok.app/api/items?filter=%7B%22name%22%3A%22very-long-value%22%7D&limit=200&offset=0
-					</span>
-				</DescriptionList.Value>
-			</DescriptionList.Item>
-			<DescriptionList.Item>
-				<DescriptionList.Label>Token</DescriptionList.Label>
-				<DescriptionList.Value translate="no" className="wrap-anywhere">
-					aigk_2fKm9x8Hn3QpYT7zKlR0vW5bN1cD4eF6gH8jK0lM2nP4qR6sT8uV0wX2yZ4aB6cD8eF0gH2jK4
-				</DescriptionList.Value>
-			</DescriptionList.Item>
-		</DescriptionList.Root>
-	</div>
-</Example>
+<Example name="components/data-display/description-list/long-values" title="Description List long values example">
 
 ```tsx
 import { DescriptionList } from "@ngrok/mantle/description-list";
@@ -231,6 +151,8 @@ import { DescriptionList } from "@ngrok/mantle/description-list";
 	</DescriptionList.Item>
 </DescriptionList.Root>;
 ```
+
+</Example>
 
 Content that cannot shrink and has no scroll container of its own (a wide table, a `pre`) overflows its cell. `DescriptionList.Root` scrolls to reveal it. Give that content `overflow-x-auto` to scroll it inside the row instead.
 

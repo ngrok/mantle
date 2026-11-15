@@ -4,174 +4,13 @@ description: Displays a list of options for the user to pick from, triggered by 
 aliases: [dropdown, select box]
 ---
 
-import { Button } from "@ngrok/mantle/button";
-import { Field, toErrorMessages } from "@ngrok/mantle/field";
-import { Icon } from "@ngrok/mantle/icon";
-import { Select } from "@ngrok/mantle/select";
-import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
-import { useForm } from "@tanstack/react-form";
-import { useState } from "react";
-import { z } from "zod";
 import { Example } from "~/components/example";
-
-export function CustomSelectedValueDemo() {
-	const [value, setValue] = useState("");
-
-    return (
-    	<Select.Root value={value} onValueChange={setValue}>
-    		<Select.Trigger className="w-45">
-    			<Select.Value placeholder="Select a fruit">
-    				{value === "apple" ? <>🍎 Apple</> : <>🍑 Peach</>}
-    			</Select.Value>
-    		</Select.Trigger>
-    		<Select.Content width="trigger">
-    			<Select.Item value="apple">Apple</Select.Item>
-    			<Select.Item value="peach">Peach</Select.Item>
-    		</Select.Content>
-    	</Select.Root>
-    );
-
-}
-
-export const formSchema = z.object({
-fruit: z.string().min(1, "Choose a fruit."),
-});
-export function TanStackFormExample() {
-const defaultValues = {
-fruit: "",
-};
-const form = useForm({
-defaultValues,
-validators: {
-onSubmit: formSchema,
-},
-onSubmit: ({ value }) => {
-window.alert(`Submitted: ${JSON.stringify(value, null, 2)}`);
-},
-});
-
-    return (
-    	<form
-    		className="w-full max-w-sm space-y-4"
-    		onSubmit={(event) => {
-    			event.preventDefault();
-    			event.stopPropagation();
-    			void form.handleSubmit();
-    		}}
-    	>
-    		<form.Field name="fruit">
-    			{(field) => (
-    				<Field.Item name={field.name}>
-    					<Field.Label>Fruit</Field.Label>
-    					<Field.Control>
-    						<Select.Root
-    							value={field.state.value}
-    							onBlur={field.handleBlur}
-    							onValueChange={field.handleChange}
-    						>
-    							<Select.Trigger>
-    								<Select.Value placeholder="Select a fruit" />
-    							</Select.Trigger>
-    							<Select.Content width="trigger">
-    								<Select.Item value="apple">Apple</Select.Item>
-    								<Select.Item value="banana">Banana</Select.Item>
-    								<Select.Item value="blueberry">Blueberry</Select.Item>
-    							</Select.Content>
-    						</Select.Root>
-    					</Field.Control>
-    					<Field.Errors messages={toErrorMessages(field.state.meta.errors)} />
-    				</Field.Item>
-    			)}
-    		</form.Field>
-    		<Button type="submit" appearance="filled" intent="neutral">
-    			Submit
-    		</Button>
-    	</form>
-    );
-
-}
-
-export const regions = [
-	{ value: "us", label: "United States", host: "us.ngrok.com" },
-	{ value: "eu", label: "Europe", host: "eu.ngrok.com" },
-	{ value: "ap", label: "Asia Pacific", host: "ap.ngrok.com" },
-	{ value: "au", label: "Australia", host: "au.ngrok.com" },
-];
-
-export function RichItemLabelsExample() {
-	const [value, setValue] = useState("us");
-	const region = regions.find((candidate) => candidate.value === value);
-
-    return (
-    	<Select.Root value={value} onValueChange={setValue}>
-    		<Select.Trigger className="w-72" aria-label="Region">
-    			<Select.Value placeholder="Select a region">
-    				{region && (
-    					<span className="flex items-center gap-2">
-    						<Icon svg={<GlobeHemisphereWestIcon />} className="size-4" />
-    						<span>{region.label}</span>
-    						<span className="text-muted text-xs" translate="no">
-    							{region.host}
-    						</span>
-    					</span>
-    				)}
-    			</Select.Value>
-    		</Select.Trigger>
-    		<Select.Content width="trigger">
-    			{regions.map((region) => (
-    				<Select.Item key={region.value} value={region.value} icon={<GlobeHemisphereWestIcon />}>
-    					<span className="flex flex-col">
-    						<span>{region.label}</span>
-    						<span className="text-muted text-xs" translate="no">
-    							{region.host}
-    						</span>
-    					</span>
-    				</Select.Item>
-    			))}
-    		</Select.Content>
-    	</Select.Root>
-    );
-
-}
 
 # Select
 
 Displays a list of options for the user to pick from, triggered by a button. Inside a `Field.Item`, wrap `Select.Root` in `Field.Control`.
 
-<Example>
-	<Field.Item className="max-w-64" name="fruits">
-		<Field.Label>Fruits</Field.Label>
-		<Field.Control>
-			<Select.Root>
-				<Select.Trigger>
-					<Select.Value placeholder="Select a fruit" />
-				</Select.Trigger>
-				<Select.Content width="trigger">
-					<Select.Group>
-						<Select.Label>Fruits</Select.Label>
-						<Select.Item value="apple">Apple</Select.Item>
-						<Select.Item value="banana">Banana</Select.Item>
-						<Select.Item value="blueberry">Blueberry</Select.Item>
-						<Select.Item value="grapes">Grapes</Select.Item>
-						<Select.Item value="pineapple">Pineapple</Select.Item>
-					</Select.Group>
-					<Select.Separator />
-					<Select.Group>
-						<Select.Label>Vegetables</Select.Label>
-						<Select.Item value="carrot">Carrot</Select.Item>
-						<Select.Item value="cucumber">Cucumber</Select.Item>
-						<Select.Item value="lettuce">Lettuce</Select.Item>
-						<Select.Item value="tomato">Tomato</Select.Item>
-						<Select.Item value="zucchini">
-							<p>Zucchini</p>
-							<p>Ex sit voluptate incididunt pariatur velit consequat reprehenderit.</p>
-						</Select.Item>
-					</Select.Group>
-				</Select.Content>
-			</Select.Root>
-		</Field.Control>
-	</Field.Item>
-</Example>
+<Example name="components/forms/select/overview" title="Select example">
 
 ```tsx
 import { Field } from "@ngrok/mantle/field";
@@ -210,6 +49,8 @@ import { Select } from "@ngrok/mantle/select";
 	</Field.Control>
 </Field.Item>;
 ```
+
+</Example>
 
 ## When to use
 
@@ -261,9 +102,7 @@ Select.Root
 
 Use `@tanstack/react-form` with `zod` to keep `Select.Root` controlled. Wrap the root in `Field.Control` so the generated name, id, and ARIA props reach the select trigger and hidden input.
 
-<Example className="w-full">
-	<TanStackFormExample />
-</Example>
+<Example name="components/forms/select/with-tanstack-form" title="Select With TanStack Form example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -329,52 +168,13 @@ function Example() {
 }
 ```
 
+</Example>
+
 ### Raw usage and validation
 
 Use `Select.Root` directly when you don't need `Field` label, helper, or error wiring. Set `validation` on `Select.Root` to render a success, warning, or error state outside of a field.
 
-<Example className="flex-col gap-4">
-	<Select.Root>
-		<Select.Trigger className="max-w-64" aria-label="Fruit">
-			<Select.Value placeholder="Select a fruit" />
-		</Select.Trigger>
-		<Select.Content width="trigger">
-			<Select.Item value="apple">Apple</Select.Item>
-			<Select.Item value="banana">Banana</Select.Item>
-			<Select.Item value="blueberry">Blueberry</Select.Item>
-		</Select.Content>
-	</Select.Root>
-	<Select.Root validation="error">
-		<Select.Trigger className="max-w-64" aria-label="Fruit with error">
-			<Select.Value placeholder="Select a fruit" />
-		</Select.Trigger>
-		<Select.Content width="trigger">
-			<Select.Item value="apple">Apple</Select.Item>
-			<Select.Item value="banana">Banana</Select.Item>
-			<Select.Item value="blueberry">Blueberry</Select.Item>
-		</Select.Content>
-	</Select.Root>
-	<Select.Root validation="success">
-		<Select.Trigger className="max-w-64" aria-label="Fruit with success">
-			<Select.Value placeholder="Select a fruit" />
-		</Select.Trigger>
-		<Select.Content width="trigger">
-			<Select.Item value="apple">Apple</Select.Item>
-			<Select.Item value="banana">Banana</Select.Item>
-			<Select.Item value="blueberry">Blueberry</Select.Item>
-		</Select.Content>
-	</Select.Root>
-	<Select.Root validation="warning">
-		<Select.Trigger className="max-w-64" aria-label="Fruit with warning">
-			<Select.Value placeholder="Select a fruit" />
-		</Select.Trigger>
-		<Select.Content width="trigger">
-			<Select.Item value="apple">Apple</Select.Item>
-			<Select.Item value="banana">Banana</Select.Item>
-			<Select.Item value="blueberry">Blueberry</Select.Item>
-		</Select.Content>
-	</Select.Root>
-</Example>
+<Example name="components/forms/select/raw-usage-and-validation" title="Select raw usage and validation example">
 
 ```tsx
 import { Select } from "@ngrok/mantle/select";
@@ -424,13 +224,13 @@ import { Select } from "@ngrok/mantle/select";
 </Select.Root>;
 ```
 
+</Example>
+
 ### Custom selected value
 
 By default the selected item's text renders in the trigger. To render something different, control the select and pass `children` instead.
 
-<Example>
-	<CustomSelectedValueDemo />
-</Example>
+<Example name="components/forms/select/custom-selected-value" title="Select custom selected value example">
 
 ```tsx
 import { Select } from "@ngrok/mantle/select";
@@ -455,13 +255,13 @@ function Example() {
 }
 ```
 
+</Example>
+
 ### Rich item labels
 
 An item takes any content, and the trigger shows the selected label as-is. When the list needs two lines and the trigger must stay on one line, control the select and render a compact value with `Select.Value` children. Both renders stay safe on a translated page: React removes the label span or the value span, never a bare text node.
 
-<Example>
-	<RichItemLabelsExample />
-</Example>
+<Example name="components/forms/select/rich-item-labels" title="Select rich item labels example">
 
 ```tsx
 import { Icon } from "@ngrok/mantle/icon";
@@ -512,28 +312,13 @@ function Example() {
 }
 ```
 
+</Example>
+
 ### Untranslatable labels
 
 When a label is an ID, a path, a filename, or a key, set `translate="no"` on the item. A browser translation engine then skips the row and the copy the trigger shows, so the reader copies the right string.
 
-<Example>
-	<Select.Root defaultValue="us-east-1">
-		<Select.Trigger className="w-56" aria-label="AWS region">
-			<Select.Value placeholder="Select a region" />
-		</Select.Trigger>
-		<Select.Content width="trigger">
-			<Select.Item value="us-east-1" translate="no">
-				us-east-1
-			</Select.Item>
-			<Select.Item value="eu-west-1" translate="no">
-				eu-west-1
-			</Select.Item>
-			<Select.Item value="ap-southeast-2" translate="no">
-				ap-southeast-2
-			</Select.Item>
-		</Select.Content>
-	</Select.Root>
-</Example>
+<Example name="components/forms/select/untranslatable-labels" title="Select untranslatable labels example">
 
 ```tsx
 import { Select } from "@ngrok/mantle/select";
@@ -555,6 +340,8 @@ import { Select } from "@ngrok/mantle/select";
 	</Select.Content>
 </Select.Root>;
 ```
+
+</Example>
 
 ## API Reference
 

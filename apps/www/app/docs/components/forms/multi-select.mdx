@@ -4,383 +4,13 @@ description: "A typeahead multi-select combobox: the user picks several values w
 aliases: [tag input, tags input, multiple select, chip input]
 ---
 
-import { Field } from "@ngrok/mantle/field";
-import { MultiSelect } from "@ngrok/mantle/multi-select";
-import { matchSorter } from "match-sorter";
-import { useMemo, useState, useTransition } from "react";
 import { Example } from "~/components/example";
-import { InSheetDemo } from "~/examples/multi-select/multi-select-in-sheet-demo";
-import { RegionPinningDemo } from "~/examples/multi-select/multi-select-region-pinning-demo";
-import { TanStackFormDemo } from "~/examples/multi-select/multi-select-tanstack-form-demo";
-
-export const fruits = [
-	"Apple",
-	"Banana",
-	"Blueberry",
-	"Cherry",
-	"Grapes",
-	"Kiwi",
-	"Lemon",
-	"Mango",
-	"Orange",
-	"Peach",
-	"Pear",
-	"Pineapple",
-	"Strawberry",
-	"Watermelon",
-];
-
-export function BasicDemo() {
-	const [isPending, startTransition] = useTransition();
-	const [searchValue, setSearchValue] = useState("");
-	const matches = useMemo(() => matchSorter(fruits, searchValue), [searchValue]);
-
-    return (
-    	<Field.Item name="fruits" className="max-w-96">
-    		<Field.Label>Fruits</Field.Label>
-    		<Field.Control>
-    			<MultiSelect.Root
-    				setOpen={() => {
-    					setSearchValue("");
-    				}}
-    			>
-    				<MultiSelect.Trigger>
-    					<MultiSelect.TagValues />
-    					<MultiSelect.Input
-    						onValueChange={(value) => startTransition(() => setSearchValue(value))}
-    						placeholder="Select fruits..."
-    					/>
-    				</MultiSelect.Trigger>
-    				<MultiSelect.Content aria-busy={isPending}>
-    					{matches.map((value) => (
-    						<MultiSelect.Item key={value} value={value}>
-    							{value}
-    						</MultiSelect.Item>
-    					))}
-    					{matches.length === 0 && (
-    						<MultiSelect.Empty>No results found</MultiSelect.Empty>
-    					)}
-    				</MultiSelect.Content>
-    			</MultiSelect.Root>
-    		</Field.Control>
-    	</Field.Item>
-    );
-
-}
-
-export function GroupedDemo() {
-	const [isPending, startTransition] = useTransition();
-	const [searchValue, setSearchValue] = useState("");
-	const fruitList = ["Apple", "Banana", "Cherry", "Grapes", "Orange", "Strawberry"];
-	const veggieList = ["Carrot", "Cucumber", "Lettuce", "Tomato", "Zucchini"];
-	const filteredFruits = useMemo(() => matchSorter(fruitList, searchValue), [searchValue]);
-	const filteredVeggies = useMemo(() => matchSorter(veggieList, searchValue), [searchValue]);
-
-    return (
-    	<Field.Item name="produce" className="max-w-96">
-    		<Field.Label>Produce</Field.Label>
-    		<Field.Control>
-    			<MultiSelect.Root
-    				setOpen={() => {
-    					setSearchValue("");
-    				}}
-    			>
-    				<MultiSelect.Trigger>
-    					<MultiSelect.TagValues />
-    					<MultiSelect.Input
-    						onValueChange={(value) => startTransition(() => setSearchValue(value))}
-    						placeholder="Select items..."
-    					/>
-    				</MultiSelect.Trigger>
-    				<MultiSelect.Content aria-busy={isPending}>
-    					{filteredFruits.length > 0 && (
-    						<MultiSelect.Group>
-    							<MultiSelect.GroupLabel>Fruits</MultiSelect.GroupLabel>
-    							{filteredFruits.map((value) => (
-    								<MultiSelect.Item key={value} value={value}>
-    									{value}
-    								</MultiSelect.Item>
-    							))}
-    						</MultiSelect.Group>
-    					)}
-    					{filteredFruits.length > 0 && filteredVeggies.length > 0 && (
-    						<MultiSelect.Separator />
-    					)}
-    					{filteredVeggies.length > 0 && (
-    						<MultiSelect.Group>
-    							<MultiSelect.GroupLabel>Vegetables</MultiSelect.GroupLabel>
-    							{filteredVeggies.map((value) => (
-    								<MultiSelect.Item key={value} value={value}>
-    									{value}
-    								</MultiSelect.Item>
-    							))}
-    						</MultiSelect.Group>
-    					)}
-    					{filteredFruits.length === 0 && filteredVeggies.length === 0 && (
-    						<MultiSelect.Empty>No results found</MultiSelect.Empty>
-    					)}
-    				</MultiSelect.Content>
-    			</MultiSelect.Root>
-    		</Field.Control>
-    	</Field.Item>
-    );
-
-}
-
-export function ControlledDemo() {
-	const [isPending, startTransition] = useTransition();
-	const [searchValue, setSearchValue] = useState("");
-	const [selected, setSelected] = useState(["Apple", "Cherry"]);
-	const matches = useMemo(() => matchSorter(fruits, searchValue), [searchValue]);
-
-    return (
-    	<Field.Item name="fruits-controlled" className="max-w-96">
-    		<Field.Label>Fruits</Field.Label>
-    		<Field.Control>
-    			<MultiSelect.Root
-    				selectedValue={selected}
-    				setOpen={() => {
-    					setSearchValue("");
-    				}}
-    				setSelectedValue={setSelected}
-    			>
-    				<MultiSelect.Trigger>
-    					<MultiSelect.TagValues />
-    					<MultiSelect.Input
-    						onValueChange={(value) => startTransition(() => setSearchValue(value))}
-    						placeholder="Select fruits..."
-    					/>
-    				</MultiSelect.Trigger>
-    				<MultiSelect.Content aria-busy={isPending}>
-    					{matches.map((value) => (
-    						<MultiSelect.Item key={value} value={value}>
-    							{value}
-    						</MultiSelect.Item>
-    					))}
-    					{matches.length === 0 && (
-    						<MultiSelect.Empty>No results found</MultiSelect.Empty>
-    					)}
-    				</MultiSelect.Content>
-    			</MultiSelect.Root>
-    		</Field.Control>
-    	</Field.Item>
-    );
-
-}
-
-export function CreatableDemo() {
-	const [isPending, startTransition] = useTransition();
-	const [searchValue, setSearchValue] = useState("");
-	const [selected, setSelected] = useState(["Apple", "Cherry"]);
-	const [options, setOptions] = useState(fruits);
-	const matches = useMemo(() => matchSorter(options, searchValue), [options, searchValue]);
-	const showCreate =
-		searchValue.trim() !== "" &&
-		!options.some((o) => o.toLowerCase() === searchValue.trim().toLowerCase());
-
-    return (
-    	<Field.Item name="fruits-creatable" className="max-w-96">
-    		<Field.Label>Fruits</Field.Label>
-    		<Field.Control>
-    			<MultiSelect.Root
-    				selectedValue={selected}
-    				setOpen={() => {
-    					setSearchValue("");
-    				}}
-    				setSelectedValue={(values) => {
-    					setSelected(values);
-    					startTransition(() => setSearchValue(""));
-    				}}
-    			>
-    				<MultiSelect.Trigger>
-    					<MultiSelect.TagValues />
-    					<MultiSelect.Input
-    						onValueChange={(value) => startTransition(() => setSearchValue(value))}
-    						placeholder="Select or create fruits..."
-    					/>
-    				</MultiSelect.Trigger>
-    				<MultiSelect.Content aria-busy={isPending}>
-    					{matches.map((value) => (
-    						<MultiSelect.Item key={value} value={value}>
-    							{value}
-    						</MultiSelect.Item>
-    					))}
-    					{showCreate && (
-    						<MultiSelect.Item
-    							value={searchValue.trim()}
-    							onClick={() => setOptions((prev) => [...prev, searchValue.trim()])}
-    						>
-    							Create "{searchValue.trim()}"
-    						</MultiSelect.Item>
-    					)}
-    					{matches.length === 0 && !showCreate && (
-    						<MultiSelect.Empty>No results found</MultiSelect.Empty>
-    					)}
-    				</MultiSelect.Content>
-    			</MultiSelect.Root>
-    		</Field.Control>
-    	</Field.Item>
-    );
-
-}
-
-export function LockedValuesDemo() {
-	const [isPending, startTransition] = useTransition();
-	const [searchValue, setSearchValue] = useState("");
-	const [selected, setSelected] = useState(["apple", "banana", "cherry"]);
-	const matches = useMemo(
-		() =>
-			["apple", "banana", "cherry", "grape", "kiwi", "mango"].filter((f) =>
-				f.includes(searchValue.toLowerCase()),
-			),
-		[searchValue],
-	);
-
-    return (
-    	<Field.Item name="fruits-locked" className="max-w-96">
-    		<Field.Label>Fruits</Field.Label>
-    		<Field.Control>
-    			<MultiSelect.Root
-    				selectedValue={selected}
-    				setOpen={() => {
-    					setSearchValue("");
-    				}}
-    				setSelectedValue={setSelected}
-    			>
-    				<MultiSelect.Trigger>
-    					<MultiSelect.TagValues lockedValues={["apple", "cherry"]} />
-    					<MultiSelect.Input
-    						onValueChange={(value) => startTransition(() => setSearchValue(value))}
-    						placeholder="Select fruits..."
-    					/>
-    				</MultiSelect.Trigger>
-    				<MultiSelect.Content aria-busy={isPending}>
-    					{matches.map((value) => (
-    						<MultiSelect.Item key={value} value={value}>
-    							{value}
-    						</MultiSelect.Item>
-    					))}
-    					{matches.length === 0 && <MultiSelect.Empty>No results found</MultiSelect.Empty>}
-    				</MultiSelect.Content>
-    			</MultiSelect.Root>
-    		</Field.Control>
-    	</Field.Item>
-    );
-
-}
-
-export function ValidationDemo() {
-	const [isPending, startTransition] = useTransition();
-	const [searchValue, setSearchValue] = useState("");
-	const matches = useMemo(() => matchSorter(fruits, searchValue), [searchValue]);
-
-    return (
-    	<div className="flex w-full max-w-96 flex-col gap-4">
-    		<Field.Item name="fruits-error">
-    			<Field.Label>Fruits (error)</Field.Label>
-    			<Field.Control>
-    				<MultiSelect.Root
-    					setOpen={() => {
-    						setSearchValue("");
-    					}}
-    				>
-    					<MultiSelect.Trigger validation="error">
-    						<MultiSelect.TagValues />
-    						<MultiSelect.Input
-    							onValueChange={(value) => startTransition(() => setSearchValue(value))}
-    							placeholder="Error state..."
-    						/>
-    					</MultiSelect.Trigger>
-    					<MultiSelect.Content aria-busy={isPending}>
-    						{matches.map((value) => (
-    							<MultiSelect.Item key={value} value={value}>
-    								{value}
-    							</MultiSelect.Item>
-    						))}
-    					</MultiSelect.Content>
-    				</MultiSelect.Root>
-    			</Field.Control>
-    		</Field.Item>
-    		<Field.Item name="fruits-success">
-    			<Field.Label>Fruits (success)</Field.Label>
-    			<Field.Control>
-    				<MultiSelect.Root
-    					setOpen={() => {
-    						setSearchValue("");
-    					}}
-    				>
-    					<MultiSelect.Trigger validation="success">
-    						<MultiSelect.TagValues />
-    						<MultiSelect.Input
-    							onValueChange={(value) => startTransition(() => setSearchValue(value))}
-    							placeholder="Success state..."
-    						/>
-    					</MultiSelect.Trigger>
-    					<MultiSelect.Content aria-busy={isPending}>
-    						{matches.map((value) => (
-    							<MultiSelect.Item key={value} value={value}>
-    								{value}
-    							</MultiSelect.Item>
-    						))}
-    					</MultiSelect.Content>
-    				</MultiSelect.Root>
-    			</Field.Control>
-    		</Field.Item>
-    		<Field.Item name="fruits-warning">
-    			<Field.Label>Fruits (warning)</Field.Label>
-    			<Field.Control>
-    				<MultiSelect.Root
-    					setOpen={() => {
-    						setSearchValue("");
-    					}}
-    				>
-    					<MultiSelect.Trigger validation="warning">
-    						<MultiSelect.TagValues />
-    						<MultiSelect.Input
-    							onValueChange={(value) => startTransition(() => setSearchValue(value))}
-    							placeholder="Warning state..."
-    						/>
-    					</MultiSelect.Trigger>
-    					<MultiSelect.Content aria-busy={isPending}>
-    						{matches.map((value) => (
-    							<MultiSelect.Item key={value} value={value}>
-    								{value}
-    							</MultiSelect.Item>
-    						))}
-    					</MultiSelect.Content>
-    				</MultiSelect.Root>
-    			</Field.Control>
-    		</Field.Item>
-    	</div>
-    );
-
-}
 
 # Multi Select
 
 A typeahead multi-select combobox: the user picks several values with filtering, and the picks show as removable tags. Wrap `MultiSelect.Root` in `Field.Control` to connect it to the label, description, and errors of a form field.
 
-<Example>
-	<Field.Item name="fruits" className="max-w-96">
-		<Field.Label>Fruits</Field.Label>
-		<Field.Control>
-			<MultiSelect.Root>
-				<MultiSelect.Trigger>
-					<MultiSelect.TagValues />
-					<MultiSelect.Input placeholder="Select fruits..." />
-				</MultiSelect.Trigger>
-				<MultiSelect.Content>
-					{fruits.map((value) => (
-						<MultiSelect.Item key={value} value={value}>
-							{value}
-						</MultiSelect.Item>
-					))}
-				</MultiSelect.Content>
-			</MultiSelect.Root>
-		</Field.Control>
-		<Field.Description>Pick one or more.</Field.Description>
-	</Field.Item>
-</Example>
+<Example name="components/forms/multi-select/overview" title="Multi Select example">
 
 ```tsx
 import { Field } from "@ngrok/mantle/field";
@@ -407,6 +37,8 @@ import { MultiSelect } from "@ngrok/mantle/multi-select";
 </Field.Item>;
 ```
 
+</Example>
+
 ## When to use
 
 - Pick several values from a list with a typeahead filter, and show the picks as removable tags.
@@ -418,9 +50,7 @@ import { MultiSelect } from "@ngrok/mantle/multi-select";
 
 Render the control on its own. This example filters the options with `match-sorter` as the user types.
 
-<Example>
-	<BasicDemo />
-</Example>
+<Example name="components/forms/multi-select/without-a-field" title="Multi Select Without a Field example">
 
 ```tsx
 import { MultiSelect } from "@ngrok/mantle/multi-select";
@@ -475,6 +105,8 @@ function Example() {
 }
 ```
 
+</Example>
+
 ## Layering and z-index
 
 `MultiSelect.Content` renders at Tailwind `z-50` and portals into the closest `data-mantle-modal-content` element — an enclosing overlay's content — else the nearest overlay's positioner, else `document.body`. Inside an overlay it paints above the content that contains it. Outside one, an open overlay (`z-60`) covers it.
@@ -487,9 +119,7 @@ function Example() {
 
 Use `selectedValue` and `setSelectedValue` to control the selected values.
 
-<Example>
-	<ControlledDemo />
-</Example>
+<Example name="components/forms/multi-select/controlled" title="Multi Select controlled example">
 
 ```tsx
 import { MultiSelect } from "@ngrok/mantle/multi-select";
@@ -530,13 +160,13 @@ function Example() {
 }
 ```
 
+</Example>
+
 ### In a Sheet
 
 Use `@tanstack/react-form` to manage the selected values when a side panel needs validation and submit handling. `MultiSelect.Content` will automatically scope its portal to the surrounding sheet so the default modal behavior works without extra configuration.
 
-<Example>
-	<InSheetDemo />
-</Example>
+<Example name="components/forms/multi-select/in-a-sheet" title="Multi Select In a Sheet example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -686,13 +316,13 @@ const filteredVeggies = useMemo(
 </Sheet.Root>;
 ```
 
+</Example>
+
 ### Locked values
 
 Use `lockedValues` on `MultiSelect.TagValues` to pin specific tags that cannot be removed. Locked tags display a lock icon instead of an ✕ and shake when the user tries to remove them. Locked values also cannot be deselected by clicking them in the popover.
 
-<Example>
-	<LockedValuesDemo />
-</Example>
+<Example name="components/forms/multi-select/locked-values" title="Multi Select locked values example">
 
 ```tsx
 import { MultiSelect } from "@ngrok/mantle/multi-select";
@@ -738,13 +368,13 @@ function Example() {
 }
 ```
 
+</Example>
+
 ### Creatable
 
 Render a dynamic "Create …" item when the search text doesn't match any existing option. When selected, add the new value to both your options list and the selection. No component changes needed: consumers own the items rendered in `Content`.
 
-<Example>
-	<CreatableDemo />
-</Example>
+<Example name="components/forms/multi-select/creatable" title="Multi Select creatable example">
 
 ```tsx
 import { MultiSelect } from "@ngrok/mantle/multi-select";
@@ -802,24 +432,25 @@ function Example() {
 }
 ```
 
+</Example>
+
 ### With groups
 
 Use `MultiSelect.Group`, `MultiSelect.GroupLabel`, and `MultiSelect.Separator` to organize items.
 
-<Example>
-	<GroupedDemo />
-</Example>
+<Example name="components/forms/multi-select/with-groups" title="Multi Select with groups example">
 
 ```tsx
 import { MultiSelect } from "@ngrok/mantle/multi-select";
 import { matchSorter } from "match-sorter";
 import { useMemo, useState, useTransition } from "react";
 
+const fruitList = ["Apple", "Banana", "Cherry", "Grapes", "Orange", "Strawberry"];
+const veggieList = ["Carrot", "Cucumber", "Lettuce", "Tomato", "Zucchini"];
+
 function Example() {
 	const [isPending, startTransition] = useTransition();
 	const [searchValue, setSearchValue] = useState("");
-	const fruitList = ["Apple", "Banana", "Cherry", "Grapes", "Orange", "Strawberry"];
-	const veggieList = ["Carrot", "Cucumber", "Lettuce", "Tomato", "Zucchini"];
 	const filteredFruits = useMemo(() => matchSorter(fruitList, searchValue), [searchValue]);
 	const filteredVeggies = useMemo(() => matchSorter(veggieList, searchValue), [searchValue]);
 
@@ -867,13 +498,13 @@ function Example() {
 }
 ```
 
+</Example>
+
 ### With TanStack Form
 
 Use `@tanstack/react-form` with `zod` to wire selected values into form state. Pass `field.state.value` to `selectedValue` and `field.handleChange` to `setSelectedValue`.
 
-<Example className="w-full">
-	<TanStackFormDemo />
-</Example>
+<Example name="components/forms/multi-select/with-tanstack-form" title="Multi Select With TanStack Form example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -947,13 +578,13 @@ function Example() {
 }
 ```
 
+</Example>
+
 ### Validation states
 
 Use the `validation` prop on `MultiSelect.Trigger` to show validation states.
 
-<Example>
-	<ValidationDemo />
-</Example>
+<Example name="components/forms/multi-select/validation-states" title="Multi Select validation states example">
 
 ```tsx
 <MultiSelect.Root>
@@ -967,13 +598,13 @@ Use the `validation` prop on `MultiSelect.Trigger` to show validation states.
 </MultiSelect.Root>
 ```
 
+</Example>
+
 ### Region pinning
 
 A real-world example with three groups (regional aliases, PoPs, dedicated IPs), disabled items, secondary metadata per item, a stacked item description layout, a trailing link in the trigger, and a sticky footer CTA inside the content.
 
-<Example>
-	<RegionPinningDemo />
-</Example>
+<Example name="components/forms/multi-select/region-pinning" title="Multi Select region pinning example">
 
 ```tsx
 import { Anchor } from "@ngrok/mantle/anchor";
@@ -1128,6 +759,8 @@ function Example() {
 	);
 }
 ```
+
+</Example>
 
 ## Composition
 

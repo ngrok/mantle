@@ -4,15 +4,12 @@ description: Turn a value in a table row into a Query filter with one click, and
 ---
 
 import { Example } from "~/components/example";
-import { FilterFromAValueDemo } from "~/features/filter-from-a-value-demo";
 
 # Filter from a value
 
 A list already shows the values people want to filter by. Let them select one. Select **shared** in a row, and the field gets `is:shared`. Select it again, and the filter goes away. The field shows every filter that runs, so the person can read it and edit it like typed text.
 
-<Example>
-	<FilterFromAValueDemo />
-</Example>
+<Example name="recipes/filter-from-a-value/overview" title="Filter from a Value example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -164,6 +161,8 @@ export function FilterFromAValueDemo() {
 	);
 }
 ```
+
+</Example>
 
 ## How it works
 

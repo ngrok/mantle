@@ -9,7 +9,8 @@ import { previewExamples } from "./preview-registry";
  * the server tree away, the demo flashes, and the console reports it.
  */
 describe("preview examples hydrate without a mismatch", () => {
-	it.for(Object.entries(previewExamples))("%s", ([, { Component }]) => {
+	it.for(Object.entries(previewExamples))("%s", async ([, { load }]) => {
+		const Component = await load();
 		expect(hydrationErrorsOf(<Component />)).toEqual([]);
 	});
 });

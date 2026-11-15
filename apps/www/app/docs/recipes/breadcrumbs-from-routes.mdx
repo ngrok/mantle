@@ -4,7 +4,6 @@ description: Derive a breadcrumb trail from the matched route chain with React R
 ---
 
 import { Example } from "~/components/example";
-import { RouteBreadcrumbsDemo } from "~/features/route-breadcrumbs-demo";
 
 # Breadcrumbs from Routes
 
@@ -271,9 +270,7 @@ Pick a URL. The trail grows, the leaf becomes the current page, and its ancestor
 > half takes `crumbs` as a prop: the same component runs against real `useMatches()` output in your app, and
 > against a fixture here and in your tests.
 
-<Example>
-	<RouteBreadcrumbsDemo />
-</Example>
+<Example name="recipes/breadcrumbs-from-routes/building-and-rendering-the-trail" title="Breadcrumbs from Routes building and rendering the trail example">
 
 ````tsx
 import type { ResolvedCrumb } from "@ngrok/mantle/breadcrumb";
@@ -384,6 +381,8 @@ export {
 	RouteBreadcrumbs,
 };
 ````
+
+</Example>
 
 `Breadcrumb.Page` clones `aria-current="page"` onto its child, and `Root` / `List` / `Item` render
 `<nav aria-label="Breadcrumb">` → `<ol>` → `<li>`, so the trail is an ordered list to a screen reader rather

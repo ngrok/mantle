@@ -13,12 +13,15 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
  * scatter plot.
  *
  * Both lists are derived rather than written out, so a new chart page or a new
- * example is covered the moment it lands. The glob mirrors `docs.ts`, which is
- * the module-resolution shape TypeScript can follow for `.mdx`.
+ * example is covered the moment it lands. Each chart page's examples live in
+ * its `.examples.tsx` module, beside the `.mdx`.
  */
-const chartPages = import.meta.glob<Record<string, unknown>>("../docs/components/charts/*.mdx", {
-	eager: true,
-});
+const chartPages = import.meta.glob<Record<string, unknown>>(
+	"../docs/components/charts/*.examples.tsx",
+	{
+		eager: true,
+	},
+);
 
 /** Narrows a page export to a renderable demo. */
 const isDemo = (value: unknown): value is () => ReactNode => typeof value === "function";

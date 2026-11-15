@@ -207,6 +207,7 @@ Fix what you find. Report it in the `Conventions pass:` note [AGENTS.md](./AGENT
 
 - Gate browser-only code with `canUseDOM()` from `@ngrok/mantle/browser-only`, never `typeof window`, `typeof document`, or `typeof navigator`. Node has a `navigator` global. (lint: `mantle/prefer-can-use-dom`)
 - Set `width` and `height` on every `<img>`, so the layout does not shift when it loads. (lint: `mantle/img-dimensions`)
+- The minimum supported viewport is 320px wide ([Breakpoints](./apps/www/app/docs/base/breakpoints.mdx#minimum-supported-width)). At 320px, the page does not scroll sideways and clips no content. A table, a code block, or a tab list can scroll in its own box. A layout problem below 320px is not a bug.
 
 ## className Composition
 
