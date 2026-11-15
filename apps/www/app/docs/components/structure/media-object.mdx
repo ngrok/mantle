@@ -4,13 +4,15 @@ description: The Media Object is an image or an icon (media) on the left, with d
 aliases: [media block]
 ---
 
-import { Example } from "~/components/example";
+import { CodeExample } from "~/components/code-example";
 
 # Media Object
 
 The Media Object is an image or an icon (media) on the left, with descriptive content (a title and a subtitle or description) on the right. Compose `MediaObject.Media` and `MediaObject.Content` as direct children of `MediaObject.Root`.
 
-<Example example="components/structure/media-object/overview" title="Media Object example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/structure/media-object/overview" title="Media Object example" />
+	<CodeExample.Code>
 
 ```tsx
 import { MediaObject } from "@ngrok/mantle/media-object";
@@ -29,6 +31,10 @@ import { MediaObject } from "@ngrok/mantle/media-object";
 	</MediaObject.Content>
 </MediaObject.Root>;
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## When to use
 
@@ -53,10 +59,9 @@ MediaObject.Root
 
 Each part accepts an `asChild` prop. When `true`, the part renders its single child instead of its default `<div>`, forwarding its styling and props onto that child. Render `MediaObject.Root` as an `<a>` to make the whole row a link.
 
-<Example
-	example="components/structure/media-object/polymorphism"
-	title="Media Object polymorphism example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/structure/media-object/polymorphism" title="Media Object polymorphism example" />
+	<CodeExample.Code>
 
 ```tsx
 import { MediaObject } from "@ngrok/mantle/media-object";
@@ -73,6 +78,10 @@ import { MediaObject } from "@ngrok/mantle/media-object";
 	</a>
 </MediaObject.Root>;
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## Spacing & alignment
 

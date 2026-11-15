@@ -4,13 +4,15 @@ description: A modal dialog that interrupts the user with important content and 
 aliases: [confirm, confirmation, confirm dialog]
 ---
 
-import { Example } from "~/components/example";
+import { CodeExample } from "~/components/code-example";
 
 # Alert Dialog
 
 A modal dialog that interrupts the user with important content and expects a response. `AlertDialog.Root` requires an `intent`, which sets the color of the icon and the action.
 
-<Example example="components/overlays/alert-dialog/overview" title="Alert Dialog example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/overlays/alert-dialog/overview" title="Alert Dialog example" />
+	<CodeExample.Code>
 
 ```tsx
 import { AlertDialog } from "@ngrok/mantle/alert-dialog";
@@ -40,6 +42,10 @@ import { Button } from "@ngrok/mantle/button";
 </AlertDialog.Root>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## When to use
 
 - Confirm a destructive or irreversible action before it runs, such as a delete, a sign-out, or a leave without saving.
@@ -51,7 +57,9 @@ import { Button } from "@ngrok/mantle/button";
 
 Set `intent="danger"` when the action destroys data or cannot be undone. Use `intent="info"` for every other confirmation.
 
-<Example example="components/overlays/alert-dialog/intent" title="Alert Dialog intent example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/overlays/alert-dialog/intent" title="Alert Dialog intent example" />
+	<CodeExample.Code>
 
 ```tsx
 import { AlertDialog } from "@ngrok/mantle/alert-dialog";
@@ -105,6 +113,10 @@ import { Button } from "@ngrok/mantle/button";
 </>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Layering and z-index
 
 `AlertDialog.Content` renders its floating layer at Tailwind `z-60`, Mantle's overlay tier, above every float (`z-50`). Floats composed inside the content portal into the positioner (`data-slot="alert-dialog-positioner"`) and paint above the content. When multiple overlays are open, the most recently mounted overlay renders on top.
@@ -147,10 +159,9 @@ Compose an `AlertDialog` with [TanStack Form](https://tanstack.com/form) and [`F
 
 The acknowledgment row composes [`Choice`](/components/forms/choice) inside `Field.Control`, so the checkbox aligns to the first line of its label and the field's `name` and ARIA wiring flow onto the checkbox automatically.
 
-<Example
-	example="components/overlays/alert-dialog/with-tanstack-form"
-	title="Alert Dialog With TanStack Form example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/overlays/alert-dialog/with-tanstack-form" title="Alert Dialog With TanStack Form example" />
+	<CodeExample.Code>
 
 ```tsx
 import { AlertDialog } from "@ngrok/mantle/alert-dialog";
@@ -247,6 +258,10 @@ function Example() {
 	);
 }
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## Polymorphism
 

@@ -298,7 +298,7 @@ _after_ all of [§9](#9-verification) passes:
 | `doNotPublish` in `packages/mantle/tsdown.config.ts`                 | adding an internal engine _directory_ (`chart/`)                                              | tsdown publishes a subpath for a directory that must have none                                  |
 | `importPathOverrides` in `packages/mantle/scripts/agent-manifest.ts` | the docs slug is not also the export key ([§2.2](#22-naming))                                 | the agent manifest build fails, because the slug names a subpath `package.json` does not export |
 | `previewExamples` in `apps/www/app/features/preview-registry.ts`     | the docs page frames a shell demo with `CodeExample.PreviewFrame`                             | the `example` prop fails typecheck                                                              |
-| `apps/www/app/docs/<page>.examples.tsx`                              | the docs page has an `<Example>` ([§7.3](#73-examples-must-be-live-and-complete))             | `page-examples.test.tsx` fails, and the preview frame shows a 404                               |
+| `apps/www/app/docs/<page>.examples.tsx`                              | the docs page has a page example ([§7.3](#73-examples-must-be-live-and-complete))             | `page-examples.test.tsx` fails, and the preview frame shows a 404                               |
 
 ### 2.2. Naming
 
@@ -760,8 +760,8 @@ plain-markdown twin (`/api/…`, `llms-full.txt`) generated from it.
 
 1. **Frontmatter** — `title: <Display Name>` (Title Case, matching the nav label — this feeds `<title>`,
    `og:title`, JSON-LD, and every `llms.txt` entry) and a one-line `description`.
-2. **Imports** — `Example` and/or `CodeExample`, plus any demos imported from
-   `~/features/<component-name>-demos` or `~/examples/<component-name>`.
+2. **Imports** — `CodeExample`. The demos live in the page's examples module
+   ([§7.3](#73-examples-must-be-live-and-complete)), not in the MDX.
 3. **Page title** — `# <Display Name>`, the house default. Use
    `<PageHeader id="<component-name>">Display Name</PageHeader>` when the page needs a copyable hash anchor or
    a lifecycle badge (`isPreview` for preview pages, `isUnreleased` for an unpublished component). Note the
@@ -807,18 +807,16 @@ plain-markdown twin (`/api/…`, `llms-full.txt`) generated from it.
 Both, for **every** example on the page — primary and secondary (variants, virtualization,
 controlled/uncontrolled, polymorphism):
 
-- **Live, in a frame.** Each `tsx`/`jsx` usage block is immediately preceded by a preview frame that renders
-  that exact usage in its own document, with a desktop, tablet, and mobile (320px) viewport switch and a
-  reload button. Two sanctioned forms: `<Example example="<page path>/<name>" title="…" />` (the default),
-  which renders `<Name>Example` from the page's examples module; or `CodeExample.Root` →
-  `CodeExample.PreviewFrame example="<key>"` with the fence inside `CodeExample.Code`, for a tabbed example. Its
-  key is a page example key, or a shell-scale demo registered in `apps/www/app/features/preview-registry.ts`.
-  Never render a demo inline in the MDX, and never ship a usage block with nothing rendering it, outside the
-  one exception below.
-- **Code directly below.** Each `<Example>` is followed at once by the code block that renders it: no paragraph,
-  note, or heading between them. Put a note about the demo above the `<Example>`. A demo whose code lives in a
-  later section moves down to sit above that code. `apps/www/app/utilities/docs-example-fences.test.ts` checks
-  every docs page.
+- **Live, in a `CodeExample`.** Every example is one `CodeExample.Root`: a Preview/Code toggle over a
+  `CodeExample.PreviewFrame` and a `CodeExample.Code` that holds the usage block. The preview frame renders the
+  example in its own document, with a desktop, tablet, and mobile (320px) viewport switch and a reload button.
+  Its `example` key is a page example, `<page path>/<name>`, which renders `<Name>Example` from the page's
+  examples module, or a shell-scale demo registered in `apps/www/app/features/preview-registry.ts`. Never
+  render a demo inline in the MDX, and never ship a usage block with nothing rendering it, outside the one
+  exception below.
+- **Code in the same block.** The usage block for an example goes in that example's `CodeExample.Code`. Put a
+  note about the demo above the `CodeExample.Root`. `apps/www/app/utilities/docs-example-fences.test.ts`
+  checks every docs page.
 - **Server-render exception.** A fence that needs a router or a request loader (a `useMatches()` consumer, a
   cookie read in a loader) may ship with nothing rendering it. The paragraph above it must state why, and
   must link the recipe or the page that renders it for real.
@@ -864,7 +862,7 @@ change its check in the same PR.
 | --------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | Title, lead, primary example, `## When to use` (§7.2 4–6) | `apps/www/app/utilities/docs-example-fences.test.ts` ("opens with the title, a lead, …") |
 | One live example per section (§7.2 item 7)                | `docs-example-fences.test.ts` ("holds one live example in each section")                 |
-| Code block directly below each example (§7.3)             | `docs-example-fences.test.ts` ("follows each <Example> with its code block")             |
+| Preview and code in each `CodeExample` (§7.3)             | `docs-example-fences.test.ts` ("gives each CodeExample its preview and its code")        |
 | Each example framed, and its key resolves (§7.3)          | `apps/www/app/features/page-examples.test.tsx`                                           |
 | Section order, Composition tree, API reference (§7.2)     | `/audit-component`                                                                       |
 | Live, complete, built from mantle (§7.3)                  | `/audit-component`                                                                       |

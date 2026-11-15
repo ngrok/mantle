@@ -7,7 +7,7 @@ type Props = PropsWithChildren & WithStyleProps;
 /**
  * The root of a docs example inside its preview document. It centers the demo
  * and pads it, and a demo wider than the frame scrolls from its start edge.
- * `Example` grows its frame to this element's height, so put a `min-h-*`
+ * `CodeExample.PreviewFrame` grows its frame to this element's height, so put a `min-h-*`
  * class on it when the demo opens an overlay that needs room.
  *
  * @example

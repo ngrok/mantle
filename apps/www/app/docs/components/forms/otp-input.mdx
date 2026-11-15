@@ -4,13 +4,15 @@ description: Accessible one-time passcode (OTP) input with paste, autofill, and 
 aliases: [one time password, verification code, pin input, 2fa]
 ---
 
-import { Example } from "~/components/example";
+import { CodeExample } from "~/components/code-example";
 
 # OTP Input
 
 Accessible one-time passcode (OTP) input with paste, autofill, and IME support. Pair it with `Field` to connect its label, description, and errors in a form.
 
-<Example example="components/forms/otp-input/overview" title="OTP Input example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/otp-input/overview" title="OTP Input example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Field } from "@ngrok/mantle/field";
@@ -34,6 +36,10 @@ import { OtpInput } from "@ngrok/mantle/otp-input";
 </Field.Item>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## When to use
 
 - Capture a short, fixed-length one-time passcode, with one box for each character: two-factor codes, email verification codes, magic-link codes, and similar flows.
@@ -44,10 +50,9 @@ import { OtpInput } from "@ngrok/mantle/otp-input";
 
 Render the control on its own, and give it an accessible name with `aria-label`. This example splits the slots into two groups with an `OtpInput.Separator`.
 
-<Example
-	example="components/forms/otp-input/without-a-field"
-	title="OTP Input Without a Field example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/otp-input/without-a-field" title="OTP Input Without a Field example" />
+	<CodeExample.Code>
 
 ```tsx
 import { OtpInput } from "@ngrok/mantle/otp-input";
@@ -67,14 +72,17 @@ import { OtpInput } from "@ngrok/mantle/otp-input";
 </OtpInput.Root>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## With TanStack Form
 
 Use `@tanstack/react-form` with `zod` to validate the hidden OTP input while `Field.Control` handles label, name, and validation ARIA.
 
-<Example
-	example="components/forms/otp-input/with-tanstack-form"
-	title="OTP Input With TanStack Form example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/otp-input/with-tanstack-form" title="OTP Input With TanStack Form example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -142,11 +150,17 @@ function Example() {
 }
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Single group
 
 Render all slots in a single group with no separator.
 
-<Example example="components/forms/otp-input/single-group" title="OTP Input single group example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/otp-input/single-group" title="OTP Input single group example" />
+	<CodeExample.Code>
 
 ```tsx
 <OtpInput.Root aria-label="Verification code" maxLength={4}>
@@ -159,12 +173,18 @@ Render all slots in a single group with no separator.
 </OtpInput.Root>
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Digits only
 
 Restrict input to numeric characters using the `pattern` prop and the
 `REGEXP_ONLY_DIGITS` helper.
 
-<Example example="components/forms/otp-input/digits-only" title="OTP Input digits only example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/otp-input/digits-only" title="OTP Input digits only example" />
+	<CodeExample.Code>
 
 ```tsx
 import { OtpInput, REGEXP_ONLY_DIGITS } from "@ngrok/mantle/otp-input";
@@ -181,11 +201,17 @@ import { OtpInput, REGEXP_ONLY_DIGITS } from "@ngrok/mantle/otp-input";
 </OtpInput.Root>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Disabled
 
 Pass `disabled` to the root to disable the entire input.
 
-<Example example="components/forms/otp-input/disabled" title="OTP Input disabled example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/otp-input/disabled" title="OTP Input disabled example" />
+	<CodeExample.Code>
 
 ```tsx
 <OtpInput.Root aria-label="Verification code" maxLength={6} disabled>
@@ -203,6 +229,10 @@ Pass `disabled` to the root to disable the entire input.
 </OtpInput.Root>
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Validation
 
 Pass `validation="error"`, `"success"`, or `"warning"` on `OtpInput.Root` to
@@ -215,7 +245,9 @@ the prop also accepts `false`, form-library state can short-circuit validation
 styling, e.g.
 `validation={field.state.meta.errors.length > 0 && "error"}`.
 
-<Example example="components/forms/otp-input/validation" title="OTP Input validation example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/otp-input/validation" title="OTP Input validation example" />
+	<CodeExample.Code>
 
 ```tsx
 // "success" and "warning" render the same structure with a different hue.
@@ -233,6 +265,10 @@ styling, e.g.
 	</OtpInput.Group>
 </OtpInput.Root>
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## Composition
 
@@ -255,13 +291,19 @@ class names, `data-*` attributes, and the ref onto that child. Use this when you
 need a different underlying element: for example, rendering the separator as a
 semantic span, or wrapping a group in a styled label.
 
-<Example example="components/forms/otp-input/polymorphism" title="OTP Input polymorphism example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/otp-input/polymorphism" title="OTP Input polymorphism example" />
+	<CodeExample.Code>
 
 ```tsx
 <OtpInput.Separator asChild>
 	<span aria-hidden>·</span>
 </OtpInput.Separator>
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## Accessibility
 

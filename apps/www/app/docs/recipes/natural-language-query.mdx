@@ -4,7 +4,7 @@ description: Let people describe a filter in plain words, and turn the words int
 ---
 
 import { PageHeader } from "~/components/page-header";
-import { Example } from "~/components/example";
+import { CodeExample } from "~/components/code-example";
 
 <PageHeader id="natural-language-query" isProposal>
 	Natural language query
@@ -17,7 +17,9 @@ Filter syntax is fast once you know it, and a wall until you do. Let people type
 
 The translation goes through the ngrok.ai gateway, which routes the request to a model. The demo below mocks that call, so it runs with no network and answers the same way every time.
 
-<Example example="recipes/natural-language-query/overview" title="Natural Language Query example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="recipes/natural-language-query/overview" title="Natural Language Query example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Button, IconButton } from "@ngrok/mantle/button";
@@ -172,6 +174,10 @@ export function NaturalLanguageQueryDemo() {
 	);
 }
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 The arrow button inside the field submits the same form, for people who reach for the mouse. `enterHint` on `Query.KeyboardHints` names the new meaning of Enter.
 

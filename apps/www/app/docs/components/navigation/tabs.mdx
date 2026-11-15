@@ -4,13 +4,15 @@ description: Layered sections of content, called tab panels, that show one at a 
 aliases: [tab bar, tab list, tab strip]
 ---
 
-import { Example } from "~/components/example";
+import { CodeExample } from "~/components/code-example";
 
 # Tabs
 
 Layered sections of content, called tab panels, that show one at a time.
 
-<Example example="components/navigation/tabs/overview" title="Tabs example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/navigation/tabs/overview" title="Tabs example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Card } from "@ngrok/mantle/card";
@@ -43,6 +45,10 @@ import { Tabs } from "@ngrok/mantle/tabs";
 </Tabs.Root>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## When to use
 
 - Switch between peer views of related content in one place, with one view visible at a time.
@@ -54,7 +60,9 @@ import { Tabs } from "@ngrok/mantle/tabs";
 
 Put an `Icon` before the label in `Tabs.Trigger` to help the user scan the tabs.
 
-<Example example="components/navigation/tabs/icons" title="Tabs icons example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/navigation/tabs/icons" title="Tabs icons example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Icon } from "@ngrok/mantle/icon";
@@ -79,12 +87,18 @@ import { GlobeIcon } from "@phosphor-icons/react/Globe";
 	<Tabs.Separator />
 </Tabs.Root>;
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## Badges
 
 Put a `Tabs.Badge` after the label in `Tabs.Trigger` to show a count for the tab. A badge can sit beside an icon.
 
-<Example example="components/navigation/tabs/badges" title="Tabs badges example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/navigation/tabs/badges" title="Tabs badges example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Icon } from "@ngrok/mantle/icon";
@@ -111,11 +125,17 @@ import { GlobeIcon } from "@phosphor-icons/react/Globe";
 </Tabs.Root>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Disabled tabs
 
 Pass `disabled` to a `Tabs.Trigger` to stop the user from selecting that tab.
 
-<Example example="components/navigation/tabs/disabled-tabs" title="Tabs disabled tabs example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/navigation/tabs/disabled-tabs" title="Tabs disabled tabs example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Tabs } from "@ngrok/mantle/tabs";
@@ -133,14 +153,17 @@ import { Tabs } from "@ngrok/mantle/tabs";
 </Tabs.Root>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Vertical orientation
 
 Set `orientation="vertical"` on `Tabs.Root` to stack the tabs beside the content.
 
-<Example
-	example="components/navigation/tabs/vertical-orientation"
-	title="Tabs vertical orientation example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/navigation/tabs/vertical-orientation" title="Tabs vertical orientation example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Card } from "@ngrok/mantle/card";
@@ -173,6 +196,10 @@ import { Tabs } from "@ngrok/mantle/tabs";
 </Tabs.Root>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Composition
 
 Compose the parts of `Tabs` together to build your own:
@@ -195,7 +222,9 @@ A link tab activates on click, not on the press, so a press released off the lin
 
 `Tabs.Root`, `Tabs.List`, and `Tabs.Content` accept `asChild` through Radix. Each composes its part's attributes and behavior onto your own element instead of rendering its own `<div>`.
 
-<Example example="components/navigation/tabs/polymorphism" title="Tabs polymorphism example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/navigation/tabs/polymorphism" title="Tabs polymorphism example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Tabs } from "@ngrok/mantle/tabs";
@@ -217,14 +246,17 @@ import { Link, href } from "react-router";
 </Tabs.Root>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Horizontal overflow
 
 When there are too many tabs to fit the container, the list scrolls horizontally with scroll-position-aware fade shadows at the edges.
 
-<Example
-	example="components/navigation/tabs/horizontal-overflow"
-	title="Tabs horizontal overflow example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/navigation/tabs/horizontal-overflow" title="Tabs horizontal overflow example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Icon } from "@ngrok/mantle/icon";
@@ -307,14 +339,17 @@ import { UserIcon } from "@phosphor-icons/react/User";
 </Tabs.Root>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Pill appearance
 
 Use `appearance="pill"` to render each tab as a pill instead of the default classic underline style.
 
-<Example
-	example="components/navigation/tabs/pill-appearance"
-	title="Tabs pill appearance example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/navigation/tabs/pill-appearance" title="Tabs pill appearance example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Card } from "@ngrok/mantle/card";
@@ -495,6 +530,10 @@ import { Link, href } from "react-router";
 </Tabs.Root>
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Separator
 
 `Tabs.List` draws no border of its own. Compose `Tabs.Separator` directly after it for the 1px hairline in the `separator` color: under the list when the root is horizontal, beside the list when the root is vertical. The separator is a sibling of the list and not a child, so it spans the root's full width and neither scrolls nor fades with the triggers.
@@ -503,7 +542,9 @@ As the root's direct child, the separator pulls itself up by `--tabs-gap`, the r
 
 The separator is decorative (`role="none"`). Pass `semantic` to render `role="separator"`.
 
-<Example example="components/navigation/tabs/separator" title="Tabs separator example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/navigation/tabs/separator" title="Tabs separator example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Tabs } from "@ngrok/mantle/tabs";
@@ -543,6 +584,10 @@ import { Tabs } from "@ngrok/mantle/tabs";
 	</Tabs.Content>
 </Tabs.Root>
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## Accessibility
 

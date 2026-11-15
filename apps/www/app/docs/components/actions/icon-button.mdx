@@ -4,13 +4,15 @@ description: Initiates an action, such as completing a task or submitting inform
 aliases: [icon only button, action icon]
 ---
 
-import { Example } from "~/components/example";
+import { CodeExample } from "~/components/code-example";
 
 # Icon Button
 
 Initiates an action, such as completing a task or submitting information. Renders one icon and nothing else, with a required `label` prop that carries the accessible name.
 
-<Example example="components/actions/icon-button/overview" title="Icon Button example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/actions/icon-button/overview" title="Icon Button example" />
+	<CodeExample.Code>
 
 ```tsx
 import { IconButton } from "@ngrok/mantle/button";
@@ -20,6 +22,10 @@ import { GlobeIcon } from "@phosphor-icons/react/Globe";
 <IconButton appearance="filled" intent="neutral" label="prestige worldwide" icon={<GlobeIcon />} />
 <IconButton appearance="outlined" intent="neutral" label="prestige worldwide" icon={<GlobeIcon />} />
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## When to use
 
@@ -38,7 +44,9 @@ Use the `size` prop to control the box size of the icon button, default `md`. Th
 
 `2xs` is for `IconButton` only. It renders a 20px box and shrinks the icon to 16px, so the button fits inside a line of text, such as a copy button beside a value in a [Description List](/components/data-display/description-list) row. The other sizes scale only the box.
 
-<Example example="components/actions/icon-button/size" title="Icon Button size example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/actions/icon-button/size" title="Icon Button size example" />
+	<CodeExample.Code>
 
 ```tsx
 import { IconButton } from "@ngrok/mantle/button";
@@ -69,6 +77,10 @@ import { GlobeIcon } from "@phosphor-icons/react/Globe";
 <IconButton appearance="outlined" intent="neutral" label="prestige worldwide" size="xl" icon={<GlobeIcon />} />
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Type
 
 Like [`Button`](/components/actions/button#type), `IconButton` defaults to **`type="button"`** rather than the native `submit`, so it never accidentally submits a surrounding `<form>`. Opt in with `type="submit"` (or `type="reset"`) when the button should submit or reset a form. When `asChild` is used, `type` has no effect and is not forwarded to the child.
@@ -77,7 +89,9 @@ Like [`Button`](/components/actions/button#type), `IconButton` defaults to **`ty
 
 `isLoading` determines whether the icon button is in a loading state, default `false`. Setting `isLoading` replaces the icon with a spinner. It also disables user interaction with the button and sets `aria-disabled`.
 
-<Example example="components/actions/icon-button/isloading" title="Icon Button isLoading example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/actions/icon-button/isloading" title="Icon Button isLoading example" />
+	<CodeExample.Code>
 
 ```tsx
 import { IconButton } from "@ngrok/mantle/button";
@@ -90,16 +104,19 @@ import { GlobeIcon } from "@phosphor-icons/react/Globe";
 <IconButton appearance="outlined" intent="neutral" label="prestige worldwide" isLoading icon={<GlobeIcon />} />
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Polymorphism
 
 To render _something else_ as an `IconButton`, use the `asChild` prop to compose. This is useful when you want to splat the `IconButton` styling onto a `react-router` `Link`. When you use `asChild`, the `IconButton` does **NOT** pass its `type` prop to the child component.
 
 A disabled or loading `IconButton` under `asChild` gets no `disabled` attribute, because the attribute is inert on an `<a>`. The child gets `aria-disabled="true"`, leaves the tab order with `tabIndex={-1}`, and a click on it is cancelled before any handler or router navigation runs.
 
-<Example
-	example="components/actions/icon-button/polymorphism"
-	title="Icon Button polymorphism example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/actions/icon-button/polymorphism" title="Icon Button polymorphism example" />
+	<CodeExample.Code>
 
 ```tsx
 import { IconButton } from "@ngrok/mantle/button";
@@ -116,6 +133,10 @@ import { Link, href } from "react-router";
 	<Link to={href("/base/colors")} />
 </IconButton>;
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## API Reference
 

@@ -4,19 +4,25 @@ description: Use Skeleton to show a placeholder while content is loading.
 aliases: [shimmer, loading placeholder, content loader]
 ---
 
-import { Example } from "~/components/example";
+import { CodeExample } from "~/components/code-example";
 
 # Skeleton
 
 Use `Skeleton` to show a placeholder while content is loading.
 
-<Example example="components/feedback/skeleton/overview" title="Skeleton example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/feedback/skeleton/overview" title="Skeleton example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Skeleton } from "@ngrok/mantle/skeleton";
 
 <Skeleton className="w-full" />;
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## When to use
 
@@ -42,10 +48,9 @@ Default height is `1rem`. Override `className` with `h-*`, `w-*`, and `rounded-*
 
 Skeletons are decorative and convey no semantic meaning to assistive tech, so `Skeleton` renders `aria-hidden="true"` by default. Pass `aria-hidden={false}` to opt out. If the underlying region is loading, also announce it to screen readers, for example wrap it in an element with `role="status"` and a visually-hidden "Loading…" label.
 
-<Example
-	example="components/feedback/skeleton/accessibility"
-	title="Skeleton accessibility example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/feedback/skeleton/accessibility" title="Skeleton accessibility example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Skeleton } from "@ngrok/mantle/skeleton";
@@ -56,16 +61,19 @@ import { Skeleton } from "@ngrok/mantle/skeleton";
 </div>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Examples
 
 ### Composition: Skeleton within a Media Object
 
 Include the Skeleton within other components. Pass Tailwind utility classes for further control.
 
-<Example
-	example="components/feedback/skeleton/composition-skeleton-within-a-media-object"
-	title="Skeleton Composition: Skeleton within a Media Object example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/feedback/skeleton/composition-skeleton-within-a-media-object" title="Skeleton Composition: Skeleton within a Media Object example" />
+	<CodeExample.Code>
 
 ```tsx
 import { MediaObject } from "@ngrok/mantle/media-object";
@@ -82,14 +90,17 @@ import { Skeleton } from "@ngrok/mantle/skeleton";
 </MediaObject.Root>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Polymorphism
 
 `Skeleton` accepts an `asChild` prop. When `true`, it renders its single child instead of its default `<div>`, forwarding its class names, `data-*` attributes, and ref onto that child. Reach for this when the placeholder should also be a more semantic element.
 
-<Example
-	example="components/feedback/skeleton/polymorphism"
-	title="Skeleton polymorphism example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/feedback/skeleton/polymorphism" title="Skeleton polymorphism example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Skeleton } from "@ngrok/mantle/skeleton";
@@ -98,6 +109,10 @@ import { Skeleton } from "@ngrok/mantle/skeleton";
 	<span />
 </Skeleton>;
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## API Reference
 

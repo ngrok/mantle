@@ -4,13 +4,15 @@ description: A multi-line plain-text editing control.
 aliases: [multiline input, multiline text field]
 ---
 
-import { Example } from "~/components/example";
+import { CodeExample } from "~/components/code-example";
 
 # Text Area
 
 A multi-line plain-text editing control. Pair it with `Field` to connect its label, description, and errors in a form.
 
-<Example example="components/forms/text-area/overview" title="Text Area example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/text-area/overview" title="Text Area example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Field } from "@ngrok/mantle/field";
@@ -24,6 +26,10 @@ import { TextArea } from "@ngrok/mantle/text-area";
 </Field.Item>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## When to use
 
 - Accept several lines of free-form text, such as a comment on a review or a feedback form.
@@ -33,7 +39,9 @@ import { TextArea } from "@ngrok/mantle/text-area";
 
 Set `appearance="monospaced"` to render the text in a fixed-width font.
 
-<Example example="components/forms/text-area/appearance" title="Text Area appearance example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/text-area/appearance" title="Text Area appearance example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Field } from "@ngrok/mantle/field";
@@ -47,11 +55,17 @@ import { TextArea } from "@ngrok/mantle/text-area";
 </Field.Item>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Validation
 
 Set `validation` to show the validation status of the text area.
 
-<Example example="components/forms/text-area/validation" title="Text Area validation example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/text-area/validation" title="Text Area validation example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Field } from "@ngrok/mantle/field";
@@ -77,14 +91,17 @@ import { TextArea } from "@ngrok/mantle/text-area";
 </Field.Item>
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Without a Field
 
 Render the control on its own, and give it an accessible name with `aria-label`.
 
-<Example
-	example="components/forms/text-area/without-a-field"
-	title="Text Area Without a Field example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/text-area/without-a-field" title="Text Area Without a Field example" />
+	<CodeExample.Code>
 
 ```tsx
 import { TextArea } from "@ngrok/mantle/text-area";
@@ -92,16 +109,19 @@ import { TextArea } from "@ngrok/mantle/text-area";
 <TextArea aria-label="Feedback" placeholder="Tell us about your experience…" />;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Examples
 
 ### TextArea in a form with client-side validation
 
 In this example, the `TextArea` is used in a form with client-side validation. The form is built using [`@tanstack/react-form`](https://tanstack.com/form/latest/docs) and `zod` for validation. The form accepts user feedback and validates the input before submission.
 
-<Example
-	example="components/forms/text-area/textarea-in-a-form-with-client-side-validation"
-	title="Text Area TextArea in a form with client-side validation example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/text-area/textarea-in-a-form-with-client-side-validation" title="Text Area TextArea in a form with client-side validation example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -159,6 +179,10 @@ function FormExample() {
 	);
 }
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## API Reference
 

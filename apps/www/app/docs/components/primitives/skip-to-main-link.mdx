@@ -4,16 +4,15 @@ description: A visually-hidden-until-focused "skip link" that lets keyboard user
 aliases: [skip link, skip nav]
 ---
 
-import { Example } from "~/components/example";
+import { CodeExample } from "~/components/code-example";
 
 # Skip to Main Link
 
 A visually-hidden-until-focused "skip link" that lets keyboard users jump past repeated navigation and land directly on the page's main content landmark. Pair it with the [`Main`](/components/primitives/main) component (or any element with a matching `id` and `tabIndex={-1}`) so the target can receive focus.
 
-<Example
-	example="components/primitives/skip-to-main-link/overview"
-	title="Skip to Main Link example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/primitives/skip-to-main-link/overview" title="Skip to Main Link example" />
+	<CodeExample.Code>
 
 ```tsx
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
@@ -30,6 +29,10 @@ export function App() {
 	);
 }
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## When to use
 

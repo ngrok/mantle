@@ -40,11 +40,17 @@ Create the page at its kind's path (§7.1) with [§7.2](../../COMPONENT_SPEC.md#
 
 <The frontmatter description.> <Optional: the one decision a reader must know before they copy the example.>
 
-<Example example="components/<category>/<slug>/overview" title="<Display Name> example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/<category>/<slug>/overview" title="<Display Name> example" />
+	<CodeExample.Code>
 
 ```tsx
 …the code for that example…
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## When to use
 
@@ -52,7 +58,7 @@ Create the page at its kind's path (§7.1) with [§7.2](../../COMPONENT_SPEC.md#
 - Prefer <Sibling> for <a job it does not do>.
 ````
 
-Render each `<Example>` from `apps/www/app/docs/components/<category>/<slug>.examples.tsx`: an `export function <Name>Example()` whose root is a `PreviewCanvas` ([§7.3](../../COMPONENT_SPEC.md#73-examples-must-be-live-and-complete)). The key's last segment names the export: `overview` is `OverviewExample`.
+Render each `CodeExample.PreviewFrame` from `apps/www/app/docs/components/<category>/<slug>.examples.tsx`: an `export function <Name>Example()` whose root is a `PreviewCanvas` ([§7.3](../../COMPONENT_SPEC.md#73-examples-must-be-live-and-complete)). The key's last segment names the export: `overview` is `OverviewExample`.
 
 A preview page replaces the `#` title with `<PageHeader id="<component-name>" isPreview>Display Name</PageHeader>` ([§7.2](../../COMPONENT_SPEC.md#72-required-structure-in-order) item 3).
 

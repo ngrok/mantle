@@ -4,16 +4,15 @@ description: A semantically correct description list built on the HTML dl elemen
 aliases: [key value list, definition list, property list]
 ---
 
-import { Example } from "~/components/example";
+import { CodeExample } from "~/components/code-example";
 
 # Description List
 
 A semantically correct description list built on the HTML [`<dl>`](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/dl) element. Compose `<DescriptionList.Item>`, `<DescriptionList.Label>`, and `<DescriptionList.Value>` as direct children of `<DescriptionList.Root>`.
 
-<Example
-	example="components/data-display/description-list/overview"
-	title="Description List example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/data-display/description-list/overview" title="Description List example" />
+	<CodeExample.Code>
 
 ```tsx
 import { DescriptionList } from "@ngrok/mantle/description-list";
@@ -48,6 +47,10 @@ import { DescriptionList } from "@ngrok/mantle/description-list";
 </DescriptionList.Root>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## When to use
 
 - Show a list of label and value pairs, such as the metadata of a resource on a detail page.
@@ -69,10 +72,9 @@ DescriptionList.Root
 
 `DescriptionList.Root`, `DescriptionList.Item`, `DescriptionList.Label`, and `DescriptionList.Value` each accept an `asChild` prop. When `true`, the part renders its single child instead of its default element (`<dl>`, `<div>`, `<dt>`, `<dd>`), forwarding all class names, `data-*` attributes, and the ref onto that child.
 
-<Example
-	example="components/data-display/description-list/polymorphism"
-	title="Description List polymorphism example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/data-display/description-list/polymorphism" title="Description List polymorphism example" />
+	<CodeExample.Code>
 
 ```tsx
 import { DescriptionList } from "@ngrok/mantle/description-list";
@@ -87,14 +89,17 @@ import { DescriptionList } from "@ngrok/mantle/description-list";
 </DescriptionList.Root>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Actions in a row
 
 To put a copy button or another action beside a value, use an [`IconButton`](/components/actions/icon-button#size) with `size="2xs"`. Its 20px box fits inside the line of text, so a row with an action is the same height as a row without one. Wrap the value text in its own element beside the button.
 
-<Example
-	example="components/data-display/description-list/actions-in-a-row"
-	title="Description List actions in a row example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/data-display/description-list/actions-in-a-row" title="Description List actions in a row example" />
+	<CodeExample.Code>
 
 ```tsx
 import { IconButton } from "@ngrok/mantle/button";
@@ -124,16 +129,19 @@ import { CopyIcon } from "@phosphor-icons/react/Copy";
 </DescriptionList.Root>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Long values
 
 The value column has a `0` minimum width, so a long value stays inside its row instead of widening the list. Set the overflow behavior on `DescriptionList.Value` or on a child: `truncate` clips a single line with an ellipsis, and `wrap-anywhere` breaks a line at any character. `DescriptionList.Value` does not need `min-w-0`.
 
 When the end of the value is the part that matters, as in a URL or an ID, render it with [`TruncatedText`](/components/data-display/truncated-text): the head clips and the tail stays visible.
 
-<Example
-	example="components/data-display/description-list/long-values"
-	title="Description List long values example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/data-display/description-list/long-values" title="Description List long values example" />
+	<CodeExample.Code>
 
 ```tsx
 import { DescriptionList } from "@ngrok/mantle/description-list";
@@ -155,6 +163,10 @@ import { DescriptionList } from "@ngrok/mantle/description-list";
 	</DescriptionList.Item>
 </DescriptionList.Root>;
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 Content that cannot shrink and has no scroll container of its own (a wide table, a `pre`) overflows its cell. `DescriptionList.Root` scrolls to reveal it. Give that content `overflow-x-auto` to scroll it inside the row instead.
 

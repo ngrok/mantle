@@ -4,13 +4,15 @@ description: "Layout primitive for a single form field: label, control, helper t
 aliases: [form field, form group, form item]
 ---
 
-import { Example } from "~/components/example";
+import { CodeExample } from "~/components/code-example";
 
 # Field
 
 A layout primitive for a single form field: label, control, helper text, and error messages stacked with consistent spacing. Wrap the focusable control in `Field.Control`, and `Field.Item` connects it to the label, the description, and the errors.
 
-<Example example="components/forms/field/overview" title="Field example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/field/overview" title="Field example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Field } from "@ngrok/mantle/field";
@@ -24,6 +26,10 @@ import { Input } from "@ngrok/mantle/input";
 	<Field.Description>Pick something memorable — you can change it later.</Field.Description>
 </Field.Item>;
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## When to use
 
@@ -48,7 +54,9 @@ The canonical slot order inside a `Field.Item` is `Field.Label` → `Field.Contr
 </Field.Item>
 ```
 
-<Example example="components/forms/field/common-mistakes" title="Field common mistakes example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/field/common-mistakes" title="Field common mistakes example" />
+	<CodeExample.Code>
 
 ```tsx
 // ✅ Correct — label, control, then errors and help text below
@@ -62,6 +70,10 @@ The canonical slot order inside a `Field.Item` is `Field.Label` → `Field.Contr
 </Field.Item>
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Error messages
 
 Use `Field.Errors` below the control when validation fails. It accepts string messages, trims them, filters empty values, removes duplicates, and renders a semantic `<ul>` with `<li>` items so screen readers announce the errors as a list. When the list renders, `Field.Item` infers error state after hydration so the visual state and ARIA invalid state stay in sync. For errors that render on the server, see [Server-rendered errors](#server-rendered-errors) below.
@@ -70,7 +82,9 @@ For custom list markup or rich error content, compose the lower-level `Field.Err
 
 When a `Field.Description` follows directly after `Field.Errors` or `Field.ErrorList`, `Field.Description` automatically collapses the parent's `gap-1.5` with a matching negative top margin so the errors + helper read as one tight block, matching the figma. Pass any margin utility on `Field.Description` (e.g. `className="mt-1"`, `className="mt-0"`) to override.
 
-<Example example="components/forms/field/error-messages" title="Field error messages example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/field/error-messages" title="Field error messages example" />
+	<CodeExample.Code>
 
 ```tsx
 <Field.Item name="email">
@@ -83,11 +97,17 @@ When a `Field.Description` follows directly after `Field.Errors` or `Field.Error
 </Field.Item>
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Multiple errors
 
 Pass multiple messages to `Field.Errors` when a validator produces more than one message at once (e.g. `minLength` + `pattern` + custom rule). Items stack tightly so the whole error block reads as one unit.
 
-<Example example="components/forms/field/multiple-errors" title="Field multiple errors example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/field/multiple-errors" title="Field multiple errors example" />
+	<CodeExample.Code>
 
 ```tsx
 <Field.Item name="password">
@@ -106,16 +126,19 @@ Pass multiple messages to `Field.Errors` when a validator produces more than one
 </Field.Item>
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 When errors arrive from a validator as an array (e.g. `field.state.meta.errors` from TanStack Form), map them to messages and pass them to `Field.Errors`. Empty, blank, missing, or duplicate messages render nothing and do not add an error message reference. Reach for `toErrorMessages` to handle the mixed string / `{ message }` / nullish shapes that TanStack Form yields; see [With TanStack Form](#with-tanstack-form) below.
 
 ## Manual error list
 
 Prefer `Field.Errors` when you already have plain string messages. Compose `Field.ErrorList` and `Field.ErrorItem` directly when you need custom list contents, richer message markup, or a polymorphic list element. Use one or the other in a `Field.Item`: `Field.Item` owns a single errors slot ID, and `Field.Errors` is itself a `Field.ErrorList` under the hood, so rendering both would duplicate the `id` on the page.
 
-<Example
-	example="components/forms/field/manual-error-list"
-	title="Field manual error list example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/field/manual-error-list" title="Field manual error list example" />
+	<CodeExample.Code>
 
 ```tsx
 <Field.Item name="username">
@@ -130,6 +153,10 @@ Prefer `Field.Errors` when you already have plain string messages. Compose `Fiel
 	<Field.Description>Pick something memorable.</Field.Description>
 </Field.Item>
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## Server-rendered errors
 
@@ -153,7 +180,9 @@ When errors come back from the server, for example from a React Router action, s
 
 Use `Field.Optional` inside a `<Field.Label>` to mark a field as optional. It renders a muted "(Optional)" suffix at `text-sm` regular weight so it reads as secondary metadata without competing with the bolder label text. Defaults to the literal "(Optional)"; pass children to translate or replace.
 
-<Example example="components/forms/field/optional-fields" title="Field optional fields example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/field/optional-fields" title="Field optional fields example" />
+	<CodeExample.Code>
 
 ```tsx
 <Field.Item name="nickname">
@@ -167,6 +196,10 @@ Use `Field.Optional` inside a `<Field.Label>` to mark a field as optional. It re
 </Field.Item>
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 Place `Field.Optional` inside the `<Field.Label>` so screen readers announce it as part of the accessible name (e.g. "Nickname, Optional, edit text"). The label's `flex items-baseline gap-1` keeps the suffix on the same baseline as the bolder label text.
 
 ## Help icon next to the label
@@ -177,10 +210,9 @@ Putting an interactive button inside `<label>` is a footgun: clicks on a `<label
 
 Reach for the bundled `Field.Help` / `Field.HelpTrigger` / `Field.HelpContent` rather than wiring `Popover` + `IconButton` + an icon by hand: it's the same composition, three thin wrappers, with sensible visual defaults (ghost `IconButton`, `xs` size, default Phosphor `QuestionIcon`, `text-body` color). `Field.HelpTrigger` still requires a contextual accessible `label` so repeated help icons do not all announce the same thing. [`Popover`](/components/overlays/popover) under the hood (not [`Tooltip`](/components/overlays/tooltip)), so the affordance is reachable on touch devices.
 
-<Example
-	example="components/forms/field/help-icon-next-to-the-label"
-	title="Field help icon next to the label example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/field/help-icon-next-to-the-label" title="Field help icon next to the label example" />
+	<CodeExample.Code>
 
 ```tsx
 <Field.Item name="apiKey">
@@ -200,11 +232,17 @@ Reach for the bundled `Field.Help` / `Field.HelpTrigger` / `Field.HelpContent` r
 </Field.Item>
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ### Custom help icon
 
 `Field.HelpTrigger` accepts every `IconButton` prop. Use it to change the icon or the appearance without a raw `Popover`.
 
-<Example example="components/forms/field/custom-help-icon" title="Field custom help icon example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/field/custom-help-icon" title="Field custom help icon example" />
+	<CodeExample.Code>
 
 ```tsx
 <Field.Item name="webhookSecret">
@@ -224,11 +262,17 @@ Reach for the bundled `Field.Help` / `Field.HelpTrigger` / `Field.HelpContent` r
 </Field.Item>
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Multiple fields
 
 Wrap multiple `Field.Item`s in a `Field.Group` to stack them with consistent `gap-4` spacing. This is the default for any form with more than one field: pure layout, no `<fieldset>` semantics.
 
-<Example example="components/forms/field/multiple-fields" title="Field multiple fields example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/field/multiple-fields" title="Field multiple fields example" />
+	<CodeExample.Code>
 
 ```tsx
 <Field.Group>
@@ -248,6 +292,10 @@ Wrap multiple `Field.Item`s in a `Field.Group` to stack them with consistent `ga
 </Field.Group>
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Radio and checkbox groups
 
 `Field.Set` renders a real `<fieldset>`. Paired with `Field.Legend`, it gives a related set of controls a single accessible name (so a screen reader announces "Notification frequency, group, Daily"). Reach for it specifically when the grouping is itself the question the user is answering: most commonly a [`RadioGroup`](/components/forms/radio-group) (one question, many possible answers), or a set of related checkboxes (preference toggles, permission flags, opt-ins).
@@ -256,10 +304,9 @@ Wrap multiple `Field.Item`s in a `Field.Group` to stack them with consistent `ga
 
 Keep the `Field.Legend` self-contained: it is the accessible name for the group. `Field.Set` does not auto-associate `Field.Description`; if a group needs extra instructions announced by assistive technology, wire your own description with `aria-describedby`.
 
-<Example
-	example="components/forms/field/radio-and-checkbox-groups"
-	title="Field radio and checkbox groups example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/field/radio-and-checkbox-groups" title="Field radio and checkbox groups example" />
+	<CodeExample.Code>
 
 ```tsx
 <Field.Set>
@@ -287,16 +334,19 @@ Keep the `Field.Legend` self-contained: it is the accessible name for the group.
 </Field.Set>
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## With TanStack Form
 
 `Field` is designed to slot directly into [TanStack Form](https://tanstack.com/form). Pass `field.name` as the `name` prop on `Field.Item`: it splats onto the focusable control inside `Field.Control` and generates a stable id that wires `Field.Label` ↔ control association automatically. Wrap the input in `Field.Control` so descriptions and rendered errors are associated with the control.
 
 `field.state.meta.errors` is a mixed array: TanStack Form yields plain strings, `{ message }` issue objects (Zod / Standard Schema), thrown `Error` instances, and falsy slots all in one place. Pass it through `toErrorMessages` to get a clean `string[]` for `Field.Errors`. The list renders nothing when the result is empty, and infers error state only when it has messages, so it's safe to leave mounted unconditionally:
 
-<Example
-	example="components/forms/field/with-tanstack-form"
-	title="Field With TanStack Form example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/field/with-tanstack-form" title="Field With TanStack Form example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Field, toErrorMessages } from "@ngrok/mantle/field";
@@ -371,14 +421,17 @@ export function AccountForm() {
 }
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ### Without `toErrorMessages`
 
 `toErrorMessages` is a convenience: `Field.Errors` itself only needs a `string[]`. If you already know your validator's error shape (or you want to filter / re-format messages first), map the array inline and skip the helper. The example below mirrors the TanStack Form example above, but pulls `.message` off each entry by hand:
 
-<Example
-	example="components/forms/field/without-toerrormessages"
-	title="Field Without toErrorMessages example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/field/without-toerrormessages" title="Field Without toErrorMessages example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Field } from "@ngrok/mantle/field";
@@ -437,6 +490,10 @@ export function EmailForm() {
 }
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 `Field.Errors` already trims each string, filters empty / nullish / `false` entries, and renders nothing when no messages remain, so passing `undefined` / empty strings through the `.map` is safe and behaves the same as filtering them out. Use the inline form when the helper's mixed-shape handling isn't pulling its weight (e.g. a validator that always emits `{ message: string }`, where a bare `error?.message` map is enough), and reach for `toErrorMessages` when you want a single call that handles the full TanStack Form error array shape.
 
 ## Composition
@@ -474,7 +531,9 @@ Skip `Field.Set` for unrelated fields stacked together: `<fieldset>` semantics a
 
 Layout parts plus `Field.Description`, `Field.Optional`, and `Field.ErrorList` accept an `asChild` prop. When `true`, the part renders its single child instead of its default element, forwarding all class names, `data-*` attributes, and the ref onto that child. `Field.Set`, `Field.Legend`, and `Field.ErrorItem` always render `<fieldset>`, `<legend>`, and `<li>` respectively, because those elements are the semantics those parts exist to carry.
 
-<Example example="components/forms/field/polymorphism" title="Field polymorphism example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/field/polymorphism" title="Field polymorphism example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Field } from "@ngrok/mantle/field";
@@ -488,6 +547,10 @@ import { Field } from "@ngrok/mantle/field";
 	</Field.ErrorList>
 </Field.Item>;
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## Label and control association
 
@@ -524,7 +587,9 @@ Static, label-styled text for a `Field.Item` row that does **not** caption a foc
 - The row has a focusable control. Use `Field.Label` so the `htmlFor` ↔ control association, click-to-focus, and accessible name are wired automatically.
 - For body copy, section headings, or any text whose typography only happens to match by accident. Reach for a heading or a plain `<p>` instead — `Field.LabelText` exists specifically to slot into the `Field.Label` position of a `Field.Item`.
 
-<Example example="components/forms/field/when-not-to-use" title="Field when not to use example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/field/when-not-to-use" title="Field when not to use example" />
+	<CodeExample.Code>
 
 ```tsx
 <Field.Item name="owner">
@@ -533,6 +598,10 @@ Static, label-styled text for a `Field.Item` row that does **not** caption a foc
 	<Field.Description>The user or service user that owns this API key.</Field.Description>
 </Field.Item>
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 All props from [p](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/p#attributes), plus:
 
@@ -565,7 +634,9 @@ For the simple element-child form, see the [primary example](#field) above; to w
 
 Use a function child when the focusable element is nested inside a wrapper that `Slot` cannot reach — for example a `<label>`-wrapped native checkbox where the `<input>` is the focusable target but the outer `<label>` is the rendered element. The function receives the generated ARIA props and the caller spreads them onto the inner control.
 
-<Example example="components/forms/field/field-control" title="Field Field.Control example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/field/field-control" title="Field Field.Control example" />
+	<CodeExample.Code>
 
 ```tsx
 <Field.Item name="termsAccepted">
@@ -580,6 +651,10 @@ Use a function child when the focusable element is nested inside a wrapper that 
 	<Field.Errors messages={["You must accept the terms to continue."]} />
 </Field.Item>
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 | Prop          | Type                                         | Default | Description                                    |
 | ------------- | -------------------------------------------- | ------- | ---------------------------------------------- |
@@ -716,7 +791,9 @@ Normalize a TanStack React Form field's `meta.errors` array (or any mixed array 
 
 Use this for [TanStack Form](https://tanstack.com/form) with Zod, Standard Schema, or thrown `Error` validators — `field.state.meta.errors` is a union of all of those shapes, and this helper folds them down to plain strings without coupling Mantle to a specific form library. For other validators where the error shape is already a `string[]`, skip the helper and pass the array directly.
 
-<Example example="components/forms/field/toerrormessages" title="Field toErrorMessages example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/field/toerrormessages" title="Field toErrorMessages example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Field, toErrorMessages } from "@ngrok/mantle/field";
@@ -730,6 +807,10 @@ import { Input } from "@ngrok/mantle/input";
 	<Field.Errors messages={toErrorMessages(["Enter a valid email."])} />
 </Field.Item>;
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 | Argument | Type                                         | Description                                                    |
 | -------- | -------------------------------------------- | -------------------------------------------------------------- |

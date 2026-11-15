@@ -4,13 +4,15 @@ description: A non-interactive label used to highlight short, scannable informat
 aliases: [tag, chip, pill, lozenge]
 ---
 
-import { Example } from "~/components/example";
+import { CodeExample } from "~/components/code-example";
 
 # Badge
 
 A non-interactive label used to highlight short, scannable information — a status, a category tag, or a count — in the smallest possible footprint.
 
-<Example example="components/data-display/badge/overview" title="Badge example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/data-display/badge/overview" title="Badge example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Badge } from "@ngrok/mantle/badge";
@@ -19,6 +21,10 @@ import { Badge } from "@ngrok/mantle/badge";
 	Online
 </Badge>;
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## When to use
 
@@ -40,10 +46,9 @@ Prefer functional colors (`success`, `warning`, `danger`, `info`, `accent`, `neu
 
 Every color, with and without an `icon`:
 
-<Example
-	example="components/data-display/badge/choosing-a-color"
-	title="Badge choosing a color example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/data-display/badge/choosing-a-color" title="Badge choosing a color example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Badge } from "@ngrok/mantle/badge";
@@ -57,11 +62,17 @@ import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWe
 </Badge>
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Polymorphism
 
 When you want to render _something else_ as a `Badge`, you can use the `asChild` prop to compose. This is useful when you want to splat the `Badge` styling onto a `react-router` `Link`.
 
-<Example example="components/data-display/badge/polymorphism" title="Badge polymorphism example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/data-display/badge/polymorphism" title="Badge polymorphism example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Badge } from "@ngrok/mantle/badge";
@@ -72,6 +83,10 @@ import { Link, href } from "react-router";
 	<Link to={href("/base/colors")}>See our colors!</Link>
 </Badge>;
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## API Reference
 

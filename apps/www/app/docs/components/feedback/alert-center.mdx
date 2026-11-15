@@ -6,13 +6,14 @@ aliases: [banner, announcement bar, global banner]
 
 import { CodeExample } from "~/components/code-example";
 import { PageHeader } from "~/components/page-header";
-import { Example } from "~/components/example";
 
 <PageHeader id="alert-center">Alert Center</PageHeader>
 
 A single top-level bar that surfaces one-to-many account alerts and their upgrade CTAs, expanding additional alerts inline. Compose it into [`AppLayout.Notice`](/layouts/app-layout#applayoutnotice), and author each alert as an `AlertCenter.Item` with the [`Alert`](/components/feedback/alert) banner parts as its children.
 
-<Example example="components/feedback/alert-center/overview" title="Alert Center example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/feedback/alert-center/overview" title="Alert Center example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Alert } from "@ngrok/mantle/alert";
@@ -35,6 +36,10 @@ export function AccountAlerts() {
 	);
 }
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## When to use
 
@@ -121,10 +126,9 @@ next-highest severity into the bar. An item authored without one (say, a hard-st
 must resolve) is not dismissable; see [Dismissability](#dismissability) for choosing which alerts
 offer it.
 
-<Example
-	example="components/feedback/alert-center/several-alerts"
-	title="Alert Center several alerts example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/feedback/alert-center/several-alerts" title="Alert Center several alerts example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Alert } from "@ngrok/mantle/alert";
@@ -197,6 +201,10 @@ export function AccountAlerts() {
 	);
 }
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## In the app shell
 
@@ -303,10 +311,9 @@ Because the bar always surfaces the top-ranked alert, a non-dismissable danger a
 to the most urgent call-to-action while acknowledgeable alerts come and go beneath it. This demo opens
 expanded; note the top danger alert and the hard-limit warning render no dismiss button:
 
-<Example
-	example="components/feedback/alert-center/dismissability"
-	title="Alert Center dismissability example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/feedback/alert-center/dismissability" title="Alert Center dismissability example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Alert } from "@ngrok/mantle/alert";
@@ -369,6 +376,10 @@ export function Example() {
 }
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Persisting dismissals
 
 Dismissal is your state, so persistence is your choice of store. Session scope is usually the right default
@@ -393,10 +404,9 @@ The demo simulates the fetch loop: dismiss the transfer warning, then resolve an
 the "server". The alert returns even though its id was acknowledged, because the dismissal was pruned when
 the condition cleared. Reload the page mid-session and acknowledged alerts stay away.
 
-<Example
-	example="components/feedback/alert-center/persisting-dismissals"
-	title="Alert Center persisting dismissals example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/feedback/alert-center/persisting-dismissals" title="Alert Center persisting dismissals example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Alert } from "@ngrok/mantle/alert";
@@ -467,6 +477,10 @@ export function AccountAlerts({ serverAlerts }: { serverAlerts: ReadonlyArray<Se
 }
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Supporting copy in the bar
 
 The bar renders the top alert **as authored** (icon, title, `Alert.Description`, call-to-action), so it is
@@ -474,10 +488,9 @@ a single line for a title alone and a two-line banner once a description is comp
 alert renders as an expansion row. Nothing is suppressed by placement, so a CTA reads naturally from the
 description (`Please update your payment method.`) instead of being crammed into the title.
 
-<Example
-	example="components/feedback/alert-center/supporting-copy-in-the-bar"
-	title="Alert Center supporting copy in the bar example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/feedback/alert-center/supporting-copy-in-the-bar" title="Alert Center supporting copy in the bar example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Alert } from "@ngrok/mantle/alert";
@@ -512,6 +525,10 @@ export function AccountAlerts() {
 	);
 }
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 Two things still argue for a title on every alert, and for keeping bar copy short:
 
@@ -569,10 +586,9 @@ the shell's bar by rendering an item: no shell state, no prop drilling, no conte
 **Endpoints** to have the route raise a DNS warning that outranks the account notice, then **Agents** to
 watch it clear:
 
-<Example
-	example="components/feedback/alert-center/where-alertcenter-root-goes"
-	title="Alert Center Where AlertCenter.Root goes example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/feedback/alert-center/where-alertcenter-root-goes" title="Alert Center Where AlertCenter.Root goes example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Alert } from "@ngrok/mantle/alert";
@@ -658,6 +674,10 @@ export function Shell() {
 }
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 The item unmounts with the route, so the alert clears on navigation for free. The route buttons stand in for
 a router. A real shell renders its `Outlet` inside `AppLayout.Body`, which is the `main` landmark, and pins
 the shell with `className="fixed inset-0"`, exactly as in the
@@ -674,10 +694,9 @@ than a wrapper you can style.
 Every banner is authored JSX, so anything composes: a custom icon via `Alert.Icon`'s `svg` prop, inline
 `code`, or placement-aware extras using the `data-placement` styling hook.
 
-<Example
-	example="components/feedback/alert-center/custom-content"
-	title="Alert Center custom content example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/feedback/alert-center/custom-content" title="Alert Center custom content example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Alert } from "@ngrok/mantle/alert";
@@ -713,6 +732,10 @@ export function AccountAlerts() {
 	);
 }
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 Need a fully custom bar (different chrome, your own expand affordance)? That's outside `AlertCenter`'s
 scope by design: compose [`Alert`](/components/feedback/alert#banners)'s banner parts (including

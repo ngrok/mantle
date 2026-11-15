@@ -4,13 +4,15 @@ description: Fundamental component for inputs.
 aliases: [text input, text field, textfield, textbox]
 ---
 
-import { Example } from "~/components/example";
+import { CodeExample } from "~/components/code-example";
 
 # Input
 
 Fundamental component for inputs. Pair it with `Field` to connect its label, description, and errors in a form.
 
-<Example example="components/forms/input/overview" title="Input example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/input/overview" title="Input example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Field } from "@ngrok/mantle/field";
@@ -30,6 +32,10 @@ import { Input } from "@ngrok/mantle/input";
 </Field.Item>
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## When to use
 
 - Accept one line of text from the user, such as a name, an email address, a URL, or a search term.
@@ -43,7 +49,9 @@ import { Input } from "@ngrok/mantle/input";
 
 Set `validation` to show the validation status of the input. It changes the border and the outline.
 
-<Example example="components/forms/input/validation" title="Input validation example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/input/validation" title="Input validation example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Field } from "@ngrok/mantle/field";
@@ -69,11 +77,17 @@ import { Input } from "@ngrok/mantle/input";
 </Field.Item>
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Without a Field
 
 Render the control on its own when a form field wrapper does not fit.
 
-<Example example="components/forms/input/without-a-field" title="Input Without a Field example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/input/without-a-field" title="Input Without a Field example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Input } from "@ngrok/mantle/input";
@@ -81,16 +95,19 @@ import { Input } from "@ngrok/mantle/input";
 <Input placeholder="Enter a username" />;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Examples
 
 ### With TanStack Form
 
 Use `@tanstack/react-form` with `zod` when the input needs controlled value, blur, submit, and validation state. `Field.Item` owns the field name and `Field.Errors` renders normalized validator messages.
 
-<Example
-	example="components/forms/input/with-tanstack-form"
-	title="Input With TanStack Form example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/input/with-tanstack-form" title="Input With TanStack Form example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -148,13 +165,19 @@ function Example() {
 }
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Child elements
 
 Compose additional visual or functional elements within the `Input` using `children`. The examples below show how to render start and end icons or buttons. The [Password Input](/components/forms/password-input) is built with this API under the hood! You must also pass the `InputCapture` component as children, because it renders the actual form `input` element! When you do not use the `children` API, `Input` renders an `InputCapture` for you.
 
 When composing with interactive content (e.g. a `button`), consider whether that element should be tab-indexable or receive focus!
 
-<Example example="components/forms/input/child-elements" title="Input child elements example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/input/child-elements" title="Input child elements example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Field } from "@ngrok/mantle/field";
@@ -191,6 +214,10 @@ import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
 	</Field.Control>
 </Field.Item>
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## When to use InputCapture
 

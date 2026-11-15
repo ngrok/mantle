@@ -4,13 +4,15 @@ description: Displays an indicator showing the completion progress of a task as 
 aliases: [circular progress, progress ring, progress circle, radial progress]
 ---
 
-import { Example } from "~/components/example";
+import { CodeExample } from "~/components/code-example";
 
 # Progress Donut
 
 Displays an indicator showing the completion progress of a task as a circular progress bar. Give `ProgressDonut.Root` an `aria-label`, or a screen reader announces a bare "progress bar".
 
-<Example example="components/feedback/progress-donut/overview" title="Progress Donut example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/feedback/progress-donut/overview" title="Progress Donut example" />
+	<CodeExample.Code>
 
 ```tsx
 import { ProgressDonut } from "@ngrok/mantle/progress";
@@ -25,6 +27,10 @@ import { ProgressDonut } from "@ngrok/mantle/progress";
 </ProgressDonut.Root>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## When to use
 
 - Show how much of a task or a quota is complete, as a small circle.
@@ -34,10 +40,9 @@ import { ProgressDonut } from "@ngrok/mantle/progress";
 
 The indicator color is inherited via `currentColor`. Override the default (`accent-600`) by setting the `ProgressDonut.Indicator`'s text color.
 
-<Example
-	example="components/feedback/progress-donut/indicator-color"
-	title="Progress Donut indicator color example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/feedback/progress-donut/indicator-color" title="Progress Donut indicator color example" />
+	<CodeExample.Code>
 
 ```tsx
 import { ProgressDonut } from "@ngrok/mantle/progress";
@@ -52,14 +57,17 @@ import { ProgressDonut } from "@ngrok/mantle/progress";
 </ProgressDonut.Root>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## With a label
 
 Put a short label beside a small donut to show the usage of each item in a list.
 
-<Example
-	example="components/feedback/progress-donut/with-a-label"
-	title="Progress Donut with a label example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/feedback/progress-donut/with-a-label" title="Progress Donut with a label example" />
+	<CodeExample.Code>
 
 ```tsx
 import { ProgressDonut } from "@ngrok/mantle/progress";
@@ -100,6 +108,10 @@ import { ProgressDonut } from "@ngrok/mantle/progress";
 </div>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Accessibility
 
 `ProgressDonut.Root` renders `role="progressbar"` with `aria-valuemin`, `aria-valuemax`, and `aria-valuenow`, and omits `aria-valuenow` while indeterminate. The role needs a name: pass `aria-label`, or `aria-labelledby` that points at a visible label, or a screen reader announces a bare "progress bar".
@@ -110,10 +122,9 @@ Set the `value` prop to `"indeterminate"` to show the donut in an indeterminate 
 
 Control the rotation speed with the `indeterminateRotationSpeed` prop.
 
-<Example
-	example="components/feedback/progress-donut/indeterminate-value"
-	title="Progress Donut indeterminate value example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/feedback/progress-donut/indeterminate-value" title="Progress Donut indeterminate value example" />
+	<CodeExample.Code>
 
 ```tsx
 import { ProgressDonut } from "@ngrok/mantle/progress";
@@ -133,14 +144,17 @@ import { ProgressDonut } from "@ngrok/mantle/progress";
 </ProgressDonut.Root>
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Dynamic colors
 
 `ProgressDonut.Indicator` inherits its color from the parent text color through `currentColor`. Set the parent's text color to change the indicator based on the current progress value.
 
-<Example
-	example="components/feedback/progress-donut/dynamic-colors"
-	title="Progress Donut dynamic colors example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/feedback/progress-donut/dynamic-colors" title="Progress Donut dynamic colors example" />
+	<CodeExample.Code>
 
 ```tsx
 import { ProgressDonut } from "@ngrok/mantle/progress";
@@ -189,6 +203,10 @@ const Example = () => {
 	);
 };
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## Composition
 

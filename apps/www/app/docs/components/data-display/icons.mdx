@@ -5,13 +5,15 @@ aliases: [icon set, icon library]
 ---
 
 import { IconsExplorer } from "~/features/icons-explorer";
-import { Example } from "~/components/example";
+import { CodeExample } from "~/components/code-example";
 
 # Icons
 
 Custom icons used throughout ngrok UI.
 
-<Example example="components/data-display/icons/overview" title="Icons example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/data-display/icons/overview" title="Icons example" />
+	<CodeExample.Code>
 
 ```tsx
 import {
@@ -37,6 +39,10 @@ function IconGallery() {
 }
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## When to use
 
 - Show an ngrok glyph that `@phosphor-icons/react` does not ship, such as the ngrok wordmark or the icon for a traffic policy file.
@@ -57,10 +63,9 @@ Icons inherit the text color, so most icons stay neutral. Tint an icon only when
 - **Use one meaning for each color.** Danger red means an error or a destructive result. Do not use it for an icon that is only important.
 - **Keep the label in the body color.** Tint the icon, not the text beside it, so the label stays readable.
 
-<Example
-	example="components/data-display/icons/color-coded-icons"
-	title="Icons color-coded icons example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/data-display/icons/color-coded-icons" title="Icons color-coded icons example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Icon } from "@ngrok/mantle/icon";
@@ -83,6 +88,10 @@ import { XCircleIcon } from "@phosphor-icons/react/XCircle";
 	</p>
 </>;
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## API Reference
 

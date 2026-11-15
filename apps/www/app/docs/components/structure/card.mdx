@@ -4,13 +4,15 @@ description: A container used to display content in a box, resembling a physical
 aliases: [panel, tile, paper]
 ---
 
-import { Example } from "~/components/example";
+import { CodeExample } from "~/components/code-example";
 
 # Card
 
 A container used to display content in a box, resembling a physical card. Compose a `Card.Body`, with an optional `Card.Header` and `Card.Footer`, inside `Card.Root`.
 
-<Example example="components/structure/card/overview" title="Card example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/structure/card/overview" title="Card example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Card } from "@ngrok/mantle/card";
@@ -21,6 +23,10 @@ import { Card } from "@ngrok/mantle/card";
 	</Card.Body>
 </Card.Root>;
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## When to use
 
@@ -33,10 +39,9 @@ import { Card } from "@ngrok/mantle/card";
 
 Add a `Card.Header` with a `Card.Title` to name the card, and a `Card.Footer` for actions or a summary. Each one is optional.
 
-<Example
-	example="components/structure/card/header-and-footer"
-	title="Card header and footer example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/structure/card/header-and-footer" title="Card header and footer example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Card } from "@ngrok/mantle/card";
@@ -54,6 +59,10 @@ import { Card } from "@ngrok/mantle/card";
 </Card.Root>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Composition
 
 Compose the parts of a `Card` together to build your own:
@@ -70,7 +79,9 @@ Card.Root
 
 Every `Card` part accepts an `asChild` prop. When `true`, the part renders its single child instead of its default element, forwarding all class names, `data-*` attributes, and the ref onto that child. Reach for this when a card part should also be a more semantic element: for example, rendering `Card.Title` as an `h2` to fit the surrounding document outline.
 
-<Example example="components/structure/card/polymorphism" title="Card polymorphism example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/structure/card/polymorphism" title="Card polymorphism example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Card } from "@ngrok/mantle/card";
@@ -86,6 +97,10 @@ import { Card } from "@ngrok/mantle/card";
 	</Card.Body>
 </Card.Root>;
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## API Reference
 

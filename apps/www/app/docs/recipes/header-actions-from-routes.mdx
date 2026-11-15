@@ -3,7 +3,7 @@ title: Header Actions from Routes
 description: The documented deviation from the canonical route-owned header. A shell-owned header takes its actions from React Router route handles (derived state, so the server renders them and no page pushes anything up).
 ---
 
-import { Example } from "~/components/example";
+import { CodeExample } from "~/components/code-example";
 
 # Header Actions from Routes
 
@@ -254,10 +254,9 @@ Pick a URL. The actions follow the deepest route that declares any:
 > cannot mount a second router. The real `findHeaderActions` reads them, unmodified. Narrow the window below
 > `md` to watch the actions collapse into one menu.
 
-<Example
-	example="recipes/header-actions-from-routes/the-file"
-	title="Header Actions from Routes the file example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="recipes/header-actions-from-routes/the-file" title="Header Actions from Routes the file example" />
+	<CodeExample.Code>
 
 ````tsx
 import { IconButton } from "@ngrok/mantle/button";
@@ -456,6 +455,10 @@ export type {
 	PageAction,
 };
 ````
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## Testing it
 

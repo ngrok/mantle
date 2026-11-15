@@ -4,13 +4,15 @@ description: Marks a short fragment of inline computer code, such as a function 
 aliases: [inline code, monospace]
 ---
 
-import { Example } from "~/components/example";
+import { CodeExample } from "~/components/code-example";
 
 # Code
 
 Marks a short fragment of inline computer code, such as a function name, a variable, a CLI flag, or a key.
 
-<Example example="components/data-display/code/overview" title="Code example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/data-display/code/overview" title="Code example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Code } from "@ngrok/mantle/code";
@@ -19,6 +21,10 @@ import { Code } from "@ngrok/mantle/code";
 	Use the <Code>console.log()</Code> function to debug your code.
 </p>;
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## When to use
 
@@ -36,7 +42,9 @@ import { Code } from "@ngrok/mantle/code";
 
 `Code` renders a native `<code>` element with mantle's monospace styling. Pass `asChild` to render `Code` styling on a different element (for example, a link wrapping a code-styled label).
 
-<Example example="components/data-display/code/polymorphism" title="Code polymorphism example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/data-display/code/polymorphism" title="Code polymorphism example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Anchor } from "@ngrok/mantle/anchor";
@@ -47,6 +55,10 @@ import { Code } from "@ngrok/mantle/code";
 </Code>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Translation
 
 The `<code>` element carries [`translate="no"`](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/translate) by default, so a browser translation engine skips the subtree. A translated CLI flag, env var, or YAML key is wrong, and the reader copies it anyway.
@@ -55,7 +67,9 @@ The attribute also protects the render itself: Google Translate replaces each te
 
 `Code` also styles terms that are not code, so the default is overridable. Pass `translate="yes"` when the content is prose:
 
-<Example example="components/data-display/code/translation" title="Code translation example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/data-display/code/translation" title="Code translation example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Code } from "@ngrok/mantle/code";
@@ -64,6 +78,10 @@ import { Code } from "@ngrok/mantle/code";
 	Open the <Code translate="yes">dashboard</Code> to see your endpoints.
 </p>;
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 [`Kbd`](/components/data-display/kbd) and `CodeBlock.Code` take no such override — a key and a block of code are never translatable.
 

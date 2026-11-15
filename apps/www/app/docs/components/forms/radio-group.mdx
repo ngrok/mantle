@@ -4,13 +4,15 @@ description: A set of checkable buttons (known as radio buttons) where no more t
 aliases: [radio button, radio]
 ---
 
-import { Example } from "~/components/example";
+import { CodeExample } from "~/components/code-example";
 
 # Radio Group
 
 A set of checkable buttons (known as radio buttons) where no more than one of the buttons can be checked at a time. Wrap it in `Field.Set` and `Field.Legend` to label the group in a form, and set `name` on `RadioGroup.Root`.
 
-<Example example="components/forms/radio-group/overview" title="Radio Group example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/radio-group/overview" title="Radio Group example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Field } from "@ngrok/mantle/field";
@@ -36,6 +38,10 @@ import { RadioGroup } from "@ngrok/mantle/radio-group";
 </Field.Set>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## When to use
 
 - Pick exactly one value from a few fixed options, with every option visible at once.
@@ -48,7 +54,9 @@ import { RadioGroup } from "@ngrok/mantle/radio-group";
 
 Use `RadioGroup.List` and `RadioGroup.ListItem` when each option needs a description. The list draws one border, and each row tints on hover and when checked.
 
-<Example example="components/forms/radio-group/list" title="Radio Group list example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/radio-group/list" title="Radio Group list example" />
+	<CodeExample.Code>
 
 ```tsx
 import { RadioGroup } from "@ngrok/mantle/radio-group";
@@ -78,11 +86,17 @@ import { RadioGroup } from "@ngrok/mantle/radio-group";
 </RadioGroup.List>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Cards
 
 Use `RadioGroup.Card` when each option is a larger block of content, like a plan or an audience. Lay the cards out with a grid on `RadioGroup.Root`. The checked card gets an accent border and tint.
 
-<Example example="components/forms/radio-group/cards" title="Radio Group cards example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/radio-group/cards" title="Radio Group cards example" />
+	<CodeExample.Code>
 
 ```tsx
 import { RadioGroup } from "@ngrok/mantle/radio-group";
@@ -119,14 +133,17 @@ import { RadioGroup } from "@ngrok/mantle/radio-group";
 </RadioGroup.Root>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Rich option layout with `Choice`
 
 [`Choice`](/components/forms/choice) gives each radio option the same indicator-left / title-over-description layout used across mantle, without hand-rolling the flexbox: put `RadioGroup.Indicator` in `Choice.Indicator` and the copy in `Choice.Content`.
 
-<Example
-	example="components/forms/radio-group/rich-option-layout-with-choice"
-	title="Radio Group Rich option layout with Choice example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/radio-group/rich-option-layout-with-choice" title="Radio Group Rich option layout with Choice example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Choice } from "@ngrok/mantle/choice";
@@ -148,6 +165,10 @@ import { RadioGroup } from "@ngrok/mantle/radio-group";
 </RadioGroup.Root>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 Use **`Choice.Title`** here, not `Choice.Label`: the whole `RadioGroup.Item` is the click target, and a `<label htmlFor>` can't associate with the radio's `role="radio"` element. Inside any radio item (`Item`, `ListItem`, `Card`, or `Button`), `Choice.Title` and `Choice.Description` register their ids with the radio. The radio's `aria-labelledby` points at the title, so the option's accessible name is the title alone, and its `aria-describedby` points at the description. Without that wiring, `role="radio"` would flatten both texts into one name. A plain `RadioGroup.ItemContent` has no title or description part to register, so its text still reads as one name; reach for `Choice` when the option carries helper text.
 
 Give the `RadioGroup` itself an accessible name (an `aria-label`, as above, or a `Field.Set` / `Field.Legend` wrapper) so the group is announced as a named set rather than an anonymous `radiogroup`.
@@ -156,10 +177,9 @@ Give the `RadioGroup` itself an accessible name (an `aria-label`, as above, or a
 
 To bind the same group into a form, wrap it in a `Field.Set` / `Field.Legend`: the legend names the set, and keeping `aria-label` on `RadioGroup.Root` names the inner `radiogroup` role too.
 
-<Example
-	example="components/forms/radio-group/inside-a-field-set"
-	title="Radio Group Inside a Field.Set example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/radio-group/inside-a-field-set" title="Radio Group Inside a Field.Set example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Choice } from "@ngrok/mantle/choice";
@@ -185,14 +205,17 @@ import { RadioGroup } from "@ngrok/mantle/radio-group";
 </Field.Set>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## With TanStack Form
 
 Use `@tanstack/react-form` with `zod` to keep a radio group controlled. Use `Field.Set` and `Field.Legend` because the grouped choices answer one shared question.
 
-<Example
-	example="components/forms/radio-group/with-tanstack-form"
-	title="Radio Group With TanStack Form example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/radio-group/with-tanstack-form" title="Radio Group With TanStack Form example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -259,6 +282,10 @@ function Example() {
 	);
 }
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## Composition
 

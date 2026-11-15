@@ -15,7 +15,7 @@ import { exampleExportName, isComponentType, parsePageExampleKey } from "./page-
 /**
  * Every docs page example renders in its own preview document, so the page
  * hydration sweep no longer reaches it. These tests read each page's
- * `<Example example="…">` and `<CodeExample.PreviewFrame example="…">` keys,
+ * `<CodeExample.PreviewFrame example="…">` keys,
  * check that each names a component in the page's examples module, and hydrate
  * that component the way the preview route renders it.
  */
@@ -34,12 +34,12 @@ function docsPages(): ReadonlyArray<string> {
 
 const parser = unified().use(remarkParse).use(remarkFrontmatter).use(remarkGfm).use(remarkMdx);
 
-/** Each `<Example>` in the docs that has children, or no `example` key or `title`. */
-function malformedExamples(): ReadonlyArray<string> {
+/** Each `CodeExample.PreviewFrame` in the docs that has children, or no `example` key or `title`. */
+function malformedFrames(): ReadonlyArray<string> {
 	const out: Array<string> = [];
 	for (const page of docsPages()) {
 		const visit = (node: Nodes) => {
-			if (node.type === "mdxJsxFlowElement" && node.name === "Example") {
+			if (node.type === "mdxJsxFlowElement" && node.name === "CodeExample.PreviewFrame") {
 				const has = (name: string) =>
 					node.attributes.some(
 						(attr) =>
@@ -65,10 +65,7 @@ function pageExampleKeys(): ReadonlyArray<{ page: string; key: string }> {
 	const keys: Array<{ page: string; key: string }> = [];
 	for (const page of docsPages()) {
 		const visit = (node: Nodes) => {
-			if (
-				node.type === "mdxJsxFlowElement" &&
-				(node.name === "Example" || node.name === "CodeExample.PreviewFrame")
-			) {
+			if (node.type === "mdxJsxFlowElement" && node.name === "CodeExample.PreviewFrame") {
 				const attribute = node.attributes.find(
 					(attr) => attr.type === "mdxJsxAttribute" && attr.name === "example",
 				);
@@ -131,8 +128,8 @@ describe("docs page examples", () => {
 		expect(orphans).toEqual([]);
 	});
 
-	it("frames every <Example>: self-closing, with an example key and a title", () => {
-		expect(malformedExamples()).toEqual([]);
+	it("gives every preview frame an example key and a title, and no children", () => {
+		expect(malformedFrames()).toEqual([]);
 	});
 
 	it("names an example export from its key", () => {

@@ -3,7 +3,7 @@ title: Scroll Fade
 description: Utilities that fade the edges of a scroll container to signal more content.
 ---
 
-import { Example } from "~/components/example";
+import { CodeExample } from "~/components/code-example";
 
 # Scroll Fade
 
@@ -27,27 +27,33 @@ utility directly to the scroll container itself (the element with
 Fades the top and bottom edges of a vertically scrolling container. Scroll the
 list to see each edge fade in and out.
 
-<Example
-	example="base/scroll-fade/vertical-scroll-fade-y"
-	title="Scroll Fade vertical (scroll-fade-y) example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="base/scroll-fade/vertical-scroll-fade-y" title="Scroll Fade vertical (scroll-fade-y) example" />
+	<CodeExample.Code>
 
 ```tsx
 <div className="scroll-fade-y h-56 overflow-y-auto">{/* tall content */}</div>
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ### Horizontal (`scroll-fade-x`)
 
 Fades the left and right edges of a horizontally scrolling container.
 
-<Example
-	example="base/scroll-fade/horizontal-scroll-fade-x"
-	title="Scroll Fade horizontal (scroll-fade-x) example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="base/scroll-fade/horizontal-scroll-fade-x" title="Scroll Fade horizontal (scroll-fade-x) example" />
+	<CodeExample.Code>
 
 ```tsx
 <div className="scroll-fade-x w-72 overflow-x-auto">{/* wide content */}</div>
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## Single edge
 
@@ -72,7 +78,9 @@ container. The sidebar example above becomes:
 Each box below is pre-scrolled to its midpoint so the single faded edge stands
 out against the flush opposite edge.
 
-<Example example="base/scroll-fade/single-edge" title="Scroll Fade single edge example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="base/scroll-fade/single-edge" title="Scroll Fade single edge example" />
+	<CodeExample.Code>
 
 ```tsx
 <div className="scroll-fade-t h-44 overflow-y-auto">{/* tall content */}</div>
@@ -80,6 +88,10 @@ out against the flush opposite edge.
 <div className="scroll-fade-l overflow-x-auto">{/* wide content */}</div>
 <div className="scroll-fade-r overflow-x-auto">{/* wide content */}</div>
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## Requirements
 

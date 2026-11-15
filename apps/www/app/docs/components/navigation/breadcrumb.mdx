@@ -5,13 +5,15 @@ aliases: [breadcrumbs, crumbs]
 ---
 
 import { PageHeader } from "~/components/page-header";
-import { Example } from "~/components/example";
+import { CodeExample } from "~/components/code-example";
 
 <PageHeader id="breadcrumb">Breadcrumb</PageHeader>
 
 Hierarchy-path navigation per the [WAI-ARIA breadcrumb pattern](https://www.w3.org/WAI/ARIA/apg/patterns/breadcrumb/): an ordered list of links from a root to the current page, inside a `<nav>` landmark labeled "Breadcrumb".
 
-<Example example="components/navigation/breadcrumb/overview" title="Breadcrumb example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/navigation/breadcrumb/overview" title="Breadcrumb example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
@@ -33,6 +35,10 @@ import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
 </Breadcrumb.Root>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## When to use
 
 - Show where a detail page sits in a deep hierarchy (an endpoint under a project under an account), so users can see how they got here and jump back up a level.
@@ -44,10 +50,9 @@ import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
 
 `Breadcrumb.Separator` renders a caret icon by default. Pass your own children to replace it, such as a slash.
 
-<Example
-	example="components/navigation/breadcrumb/custom-separator"
-	title="Breadcrumb custom separator example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/navigation/breadcrumb/custom-separator" title="Breadcrumb custom separator example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
@@ -72,6 +77,10 @@ import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
 	</Breadcrumb.List>
 </Breadcrumb.Root>;
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## Composition
 
@@ -102,10 +111,9 @@ Breadcrumb.Root
 
 Every part except `Breadcrumb.Skeleton` supports `asChild`: the skeleton's whole value is the placeholder content it generates, so there is no element to swap. The one that matters most is `Breadcrumb.Link`: the component never imports a router, so compose the link styling onto your framework's link (a `react-router` `Link` here) to get client-side navigation:
 
-<Example
-	example="components/navigation/breadcrumb/polymorphism"
-	title="Breadcrumb polymorphism example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/navigation/breadcrumb/polymorphism" title="Breadcrumb polymorphism example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
@@ -132,14 +140,17 @@ import { Link, href } from "react-router";
 </Breadcrumb.Root>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## The prefix crumb
 
 Not every crumb is a destination. In a trail like `Settings > General`, `Settings` is a section prefix: its index URL only redirects to `/settings/general`, so a link there would bounce the user back to the page they are already on. Render that crumb as a `Breadcrumb.Label`, muted text like the rest of the trail, with no `href` and no `aria-current`:
 
-<Example
-	example="components/navigation/breadcrumb/the-prefix-crumb"
-	title="Breadcrumb the prefix crumb example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/navigation/breadcrumb/the-prefix-crumb" title="Breadcrumb the prefix crumb example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
@@ -157,16 +168,19 @@ import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
 </Breadcrumb.Root>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 The label stays an `Item` in the `<ol>`, so it still counts as a step in the trail: assistive technology reads it as a crumb, without offering it as a link. To derive a trail like this from your route tree, see [the prefix crumb in the breadcrumbs-from-routes recipe](/recipes/breadcrumbs-from-routes#the-prefix-crumb): a layout route contributes the label, and its child routes contribute the pages under it.
 
 ## The pending trail
 
 Some labels only exist in fetched data: `Apps > my-app > Settings`, where `my-app` is a resource name the URL does not carry. While that query is pending, `Breadcrumb.Skeleton` stands in for the unresolved segment: one crumb-sized pulsing bar, plus a screen-reader-only `role="status"` announcement ("Loading breadcrumbs…" by default; set `label` for localization). The bar is `w-24` by default — pass a `w-*` utility for your best-guess width, so the row's shape holds when the real crumbs replace it:
 
-<Example
-	example="components/navigation/breadcrumb/the-pending-trail"
-	title="Breadcrumb the pending trail example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/navigation/breadcrumb/the-pending-trail" title="Breadcrumb the pending trail example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
@@ -181,6 +195,10 @@ import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
 	</Breadcrumb.List>
 </Breadcrumb.Root>;
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 The skeleton is one `<li>`, so the pending segment counts as one crumb until the real items arrive, and the status announcement is all assistive technology hears. One skeleton usually stands in for a whole segment; compose several with `Breadcrumb.Separator` between them when the segment's shape matters. The full pattern (a route contributes a component that shares the page's query and swaps the skeleton for real crumbs on resolve) is [the query-backed crumb in the breadcrumbs-from-routes recipe](/recipes/breadcrumbs-from-routes#choosing-a-label).
 
@@ -202,7 +220,9 @@ The trail starts at its end, because the end is the current page. It scrolls its
 
 For this to work inside a flex row such as [`AppLayout.Header`](/layouts/app-layout#applayoutheader), `Breadcrumb.Root` carries `min-w-0`: the landmark gives up width to the row instead of pushing its siblings out of it. The crumbs themselves never shrink, so a crumb keeps its label on one line.
 
-<Example example="components/navigation/breadcrumb/overflow" title="Breadcrumb overflow example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/navigation/breadcrumb/overflow" title="Breadcrumb overflow example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
@@ -233,6 +253,10 @@ import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
 	</Breadcrumb.Root>
 </div>;
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 Two constraints come with the mask, both covered in full on the [scroll fade](/base/scroll-fade) page:
 

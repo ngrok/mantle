@@ -64,16 +64,6 @@ describe("renderMdxToMarkdown", () => {
 		expect(result).not.toContain("/preview/");
 	});
 
-	test("drops Example previews without a trail comment", () => {
-		const result = renderMdxToMarkdown(
-			'<Example example="components/x/y/overview" title="Y example" />\n\nAfter.',
-		);
-
-		expect(result).not.toContain("Example");
-		expect(result).not.toContain("MyDemo");
-		expect(result).toContain("After.");
-	});
-
 	test("replaces unhandled components with an omission comment", () => {
 		const result = renderMdxToMarkdown("<Mystery />");
 
@@ -92,8 +82,8 @@ function countFences(source: string, opener: string): number {
 describe("renderMdxToMarkdown on real doc pages", () => {
 	// Why real pages: a fence nested inside `CodeExample.Code` must land in the
 	// `.md` output as a code block, not vanish with the wrapper.
-	// Why these two rows: sidebar.mdx reaches `Example` -> drop, top-level fences,
-	// and `CodeExample.Code` -> unwrap; app-layout.mdx adds page-example `CodeExample.PreviewFrame` -> drop.
+	// Why these two rows: both reach page-example `CodeExample.PreviewFrame` -> drop and
+	// `CodeExample.Code` -> unwrap; app-layout.mdx adds registry `CodeExample.PreviewFrame` -> pointer.
 	const pages = ["../docs/components/navigation/sidebar.mdx", "../docs/layouts/app-layout.mdx"];
 
 	for (const page of pages) {
@@ -109,7 +99,6 @@ describe("renderMdxToMarkdown on real doc pages", () => {
 
 			// JSX wrappers must not leak into the markdown output as raw tags.
 			expect(output).not.toContain("<CodeExample");
-			expect(output).not.toContain("<Example>");
 		});
 	}
 

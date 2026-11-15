@@ -5,16 +5,15 @@ aliases: [checkbox list, checklist]
 ---
 
 import { PageHeader } from "~/components/page-header";
-import { Example } from "~/components/example";
+import { CodeExample } from "~/components/code-example";
 
 <PageHeader id="selectable-list">Selectable List</PageHeader>
 
 A filterable, multi-select grid of checkbox rows. Map your data into `options` once, and the list owns filtering and selection.
 
-<Example
-	example="components/data-display/selectable-list/overview"
-	title="Selectable List example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/data-display/selectable-list/overview" title="Selectable List example" />
+	<CodeExample.Code>
 
 ```tsx
 import { SelectableList } from "@ngrok/mantle/selectable-list";
@@ -39,6 +38,10 @@ function Example() {
 	);
 }
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## When to use
 
@@ -75,10 +78,9 @@ SelectableList.Root
 
 Mark an option `disabled` to render its row dimmed and exclude it from toggling and "select all" (the `legacy` row below, and one in the list at the top of this page):
 
-<Example
-	example="components/data-display/selectable-list/disabled-rows"
-	title="Selectable List disabled rows example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/data-display/selectable-list/disabled-rows" title="Selectable List disabled rows example" />
+	<CodeExample.Code>
 
 ```tsx
 import { SelectableList } from "@ngrok/mantle/selectable-list";
@@ -103,6 +105,10 @@ function Example() {
 }
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Custom rows
 
 The default row (a title over a description) is the design-system row; prefer it. When a row must carry content the default shape can't express (a status badge, extra metadata, even interactive controls; the grid pattern permits a row to hold its own buttons/links), pass a render-prop child to a viewport and compose a `SelectableList.Item`.
@@ -122,10 +128,9 @@ Two rules keep the row's accessibility wiring intact:
 - **Always render `SelectableList.ItemTitle`.** It is the row's [`Choice.Label`](/components/forms/choice): the real `<label>` that gives the checkbox its accessible name and makes the title click-to-toggle.
 - **Never nest a `Choice.Root` inside an `Item`.** The row already renders one; a nested root silently re-wires the title and description away from the row's checkbox.
 
-<Example
-	example="components/data-display/selectable-list/custom-rows"
-	title="Selectable List custom rows example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/data-display/selectable-list/custom-rows" title="Selectable List custom rows example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Badge } from "@ngrok/mantle/badge";
@@ -175,6 +180,10 @@ function Example() {
 }
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 The whole row is click-to-toggle, but it is **not** a `<label>`; it's a grid `role="row"`. A bare click anywhere toggles selection, while clicks on the checkbox, the title label, or any nested control are left to those controls (no double-toggle). So a row **can** hold interactive content (a link, an overflow menu), each in the content cell as an ordinary sibling.
 
 > **Why `options` is still data.** `Root` needs the full item set up front to support "select all" over the filtered set and to window rows under `VirtualViewport` (off-screen rows unmount); neither can be derived from rendered children, since unmounted rows can't report themselves. So `options` is the lightweight **data layer** (a `value`, the filter text, and `disabled`); a viewport's render-prop is the **rendering layer**. For rich rows, look your own data up by `option.value`.
@@ -185,10 +194,9 @@ The whole row is click-to-toggle, but it is **not** a `<label>`; it's a grid `ro
 
 On the server, `VirtualViewport` renders the first slice of rows, sized by `estimateItemHeight` and `overscan`. The rest mount after hydration measures the viewport. `Viewport` renders every row in the server HTML. If the whole list must be in that HTML (for find-in-page, or for a reader without JavaScript), pick `Viewport`.
 
-<Example
-	example="components/data-display/selectable-list/virtualization"
-	title="Selectable List virtualization example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/data-display/selectable-list/virtualization" title="Selectable List virtualization example" />
+	<CodeExample.Code>
 
 ```tsx
 import { SelectableList } from "@ngrok/mantle/selectable-list";
@@ -209,16 +217,19 @@ function Example() {
 }
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 > **Windowing trade-off.** Keyboard grid navigation still works across the **full** list: arrows move the active row and scroll it into view (`aria-activedescendant`, plus `aria-rowcount` on the grid and `aria-rowindex` on each windowed row, keep screen-reader counts true). What windowing does cost: browser find-in-page (Ctrl/⌘-F) only searches mounted rows. The right trade for a large enough list; prefer `Viewport` until a list is actually long.
 
 ## Controlled
 
 Pass `value` + `onValueChange` to own the selection state (e.g. to show a count and a clear button).
 
-<Example
-	example="components/data-display/selectable-list/controlled"
-	title="Selectable List controlled example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/data-display/selectable-list/controlled" title="Selectable List controlled example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -257,14 +268,17 @@ function Example() {
 }
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Uncontrolled
 
 Pass `defaultValue` instead and let the list manage selection internally.
 
-<Example
-	example="components/data-display/selectable-list/uncontrolled"
-	title="Selectable List uncontrolled example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/data-display/selectable-list/uncontrolled" title="Selectable List uncontrolled example" />
+	<CodeExample.Code>
 
 ```tsx
 import { SelectableList } from "@ngrok/mantle/selectable-list";
@@ -282,14 +296,17 @@ const options = [
 </SelectableList.Root>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Controlled query and custom filter
 
 Like selection, the filter query is uncontrolled by default (seed it with `defaultQuery`) or controlled: pass `query` + `onQueryChange` to own it (e.g. to sync the filter with URL search params so a filtered view is shareable, or to clear it from outside the list). Pass `filter` to replace the default match (a trimmed, case-insensitive substring test over each option's plain text; see the exported `optionLabelText` helper) with your own predicate: it's called per option with the raw query; return `true` to keep the option. The example below controls the query and filters over the masked key `description` as well as the label text: the initial query `ng-3f` matches two keys by description alone (the default filter would match none).
 
-<Example
-	example="components/data-display/selectable-list/controlled-query-and-custom-filter"
-	title="Selectable List controlled query and custom filter example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/data-display/selectable-list/controlled-query-and-custom-filter" title="Selectable List controlled query and custom filter example" />
+	<CodeExample.Code>
 
 ```tsx
 import { optionLabelText, SelectableList } from "@ngrok/mantle/selectable-list";
@@ -341,6 +358,10 @@ function Example() {
 	);
 }
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## Polymorphism
 

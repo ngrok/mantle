@@ -4,13 +4,15 @@ description: A wrapper component that renders its children in the browser only, 
 aliases: [client only, no ssr]
 ---
 
-import { Example } from "~/components/example";
+import { CodeExample } from "~/components/code-example";
 
 # Browser Only
 
 A wrapper component that renders its children in the browser only, after hydration completes.
 
-<Example example="components/primitives/browser-only/overview" title="Browser Only example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/primitives/browser-only/overview" title="Browser Only example" />
+	<CodeExample.Code>
 
 ```tsx
 import { BrowserOnly } from "@ngrok/mantle/browser-only";
@@ -29,6 +31,10 @@ import { BrowserOnly } from "@ngrok/mantle/browser-only";
 	)}
 </BrowserOnly>
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## When to use
 

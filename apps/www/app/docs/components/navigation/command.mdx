@@ -5,13 +5,14 @@ aliases: [command palette, command menu, cmdk, spotlight]
 ---
 
 import { CodeExample } from "~/components/code-example";
-import { Example } from "~/components/example";
 
 # Command
 
 A command palette that allows users to search and execute commands, built on top of [cmdk](https://cmdk.paco.me/). `Command.SearchTrigger` wraps the control that opens the palette and gives it the dialog wiring and the typing behavior.
 
-<Example example="components/navigation/command/overview" title="Command example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/navigation/command/overview" title="Command example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Command } from "@ngrok/mantle/command";
@@ -69,6 +70,10 @@ function SearchPalette() {
 }
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## When to use
 
 - Search for an action or a page and run it from a keyboard-first palette, such as a `⌘K` menu.
@@ -81,10 +86,9 @@ function SearchPalette() {
 
 `Command.Root` is the always-visible palette: the same list and filtering without a dialog around it.
 
-<Example
-	example="components/navigation/command/inline-palette"
-	title="Command inline palette example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/navigation/command/inline-palette" title="Command inline palette example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Command } from "@ngrok/mantle/command";
@@ -119,14 +123,17 @@ import { CalculatorIcon, CalendarIcon, SmileyIcon, UserIcon } from "@phosphor-ic
 </Command.Root>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Button trigger
 
 When the trigger should not behave like a search field at all, use `Command.DialogTrigger` with your own element. It carries no typing behavior; wrap the element in `Command.SearchTrigger` instead when it should.
 
-<Example
-	example="components/navigation/command/button-trigger"
-	title="Command button trigger example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/navigation/command/button-trigger" title="Command button trigger example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -172,6 +179,10 @@ function ButtonTriggerPalette() {
 	);
 }
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## Composition
 
@@ -573,7 +584,9 @@ Renders the platform-appropriate meta key glyph (`⌘` for macOS/iOS, `⌃` for 
 
 Use it in keyboard shortcut hints and `Command.Shortcut` labels so each platform shows its own modifier key.
 
-<Example example="components/navigation/command/metakey" title="Command MetaKey example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/navigation/command/metakey" title="Command MetaKey example" />
+	<CodeExample.Code>
 
 ```tsx
 import { MetaKey } from "@ngrok/mantle/command";
@@ -582,6 +595,10 @@ import { MetaKey } from "@ngrok/mantle/command";
 	<MetaKey /> K
 </kbd>;
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ### useCommandState
 

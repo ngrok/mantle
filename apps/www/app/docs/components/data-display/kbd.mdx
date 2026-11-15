@@ -5,13 +5,15 @@ aliases: [keyboard shortcut, hotkey, keycap, keyboard key]
 ---
 
 import { Kbd } from "@ngrok/mantle/kbd";
-import { Example } from "~/components/example";
+import { CodeExample } from "~/components/code-example";
 
 # Kbd
 
 A square, centered keyboard "key" chip for rendering keyboard shortcut hints, such as `K`, `⌘`, `⌃`, or `Enter`. For a symbol key, put a visually hidden label inside the `Kbd` and mark the glyph `aria-hidden`.
 
-<Example example="components/data-display/kbd/overview" title="Kbd example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/data-display/kbd/overview" title="Kbd example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Kbd } from "@ngrok/mantle/kbd";
@@ -37,6 +39,10 @@ import { Kbd } from "@ngrok/mantle/kbd";
 </div>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## When to use
 
 - Show keyboard shortcuts in copy or tooltips.
@@ -53,10 +59,9 @@ import { Kbd } from "@ngrok/mantle/kbd";
 
 Combine multiple `Kbd` components to display keyboard shortcuts.
 
-<Example
-	example="components/data-display/kbd/keyboard-shortcuts"
-	title="Kbd keyboard shortcuts example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/data-display/kbd/keyboard-shortcuts" title="Kbd keyboard shortcuts example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Kbd } from "@ngrok/mantle/kbd";
@@ -86,6 +91,10 @@ import { Kbd } from "@ngrok/mantle/kbd";
 </div>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Sizing
 
 `Kbd` is sized so letters and modifier symbols share a consistent visual height, width, and baseline.
@@ -94,7 +103,9 @@ import { Kbd } from "@ngrok/mantle/kbd";
 
 `Kbd` renders a native `<kbd>` element, so screen readers announce it as keyboard input. Screen readers do not announce symbol-only glyphs (`⌘`, `⌃`, `↵`) meaningfully. Put a visually hidden label inside the `<Kbd>` and mark the visible glyph `aria-hidden`. Do not set `aria-label` on the `<Kbd>`: `<kbd>` has the `generic` role, which [prohibits naming](https://www.w3.org/TR/wai-aria-1.2/#generic), so a screen reader does not read the label reliably.
 
-<Example example="components/data-display/kbd/accessibility" title="Kbd accessibility example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/data-display/kbd/accessibility" title="Kbd accessibility example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Kbd } from "@ngrok/mantle/kbd";
@@ -108,6 +119,10 @@ import { Kbd } from "@ngrok/mantle/kbd";
 	<Kbd>K</Kbd>
 </div>;
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## Translation
 

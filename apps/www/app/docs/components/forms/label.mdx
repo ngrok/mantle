@@ -4,13 +4,15 @@ description: A caption for a form control, such as an input, a checkbox, a radio
 aliases: [form label]
 ---
 
-import { Example } from "~/components/example";
+import { CodeExample } from "~/components/code-example";
 
 # Label
 
 A caption for a form control, such as an input, a checkbox, a radio, a switch, or a select. Wrap the control in the `Label`, or set `htmlFor` to the control's `id`.
 
-<Example example="components/forms/label/overview" title="Label example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/label/overview" title="Label example" />
+	<CodeExample.Code>
 
 ```tsx
 import { useId } from "react";
@@ -25,6 +27,10 @@ function EmailField() {
 	);
 }
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## When to use
 
@@ -46,10 +52,9 @@ For the explicit form, React's [`useId()`](https://react.dev/reference/react/use
 
 When you're using [TanStack Form](https://tanstack.com/form), `field.name` is already a stable, unique string for each field: pass it as both `htmlFor` on the `Label` and `id` on the input. You get a guaranteed-correct association for free without calling `useId()` separately:
 
-<Example
-	example="components/forms/label/with-tanstack-form"
-	title="Label With TanStack Form example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/label/with-tanstack-form" title="Label With TanStack Form example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Input } from "@ngrok/mantle/input";
@@ -84,11 +89,17 @@ function Example() {
 }
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Font weight
 
 A `Label` automatically gets `font-medium` when it doesn't contain a nested form control (`<input>`, `<textarea>`, `<select>`, `<button>`, or `[contenteditable]`). The default is detected via `:has()` and applied through a `:where()`-wrapped variant so its specificity is `0`; any font-weight utility you pass on the `Label` itself overrides cleanly:
 
-<Example example="components/forms/label/font-weight" title="Label font weight example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/label/font-weight" title="Label font weight example" />
+	<CodeExample.Code>
 
 ```tsx
 <div className="flex flex-col gap-1.5">
@@ -102,14 +113,17 @@ A `Label` automatically gets `font-medium` when it doesn't contain a nested form
 </div>
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ### Label that wraps a control
 
 When the `Label` _wraps_ a control, the auto-default is skipped on purpose: otherwise the control's own typography would inherit the medium weight from the label. In that case, apply `font-medium` to your own caption element (a `<span>` or `<p>`) inside the label:
 
-<Example
-	example="components/forms/label/label-that-wraps-a-control"
-	title="Label label that wraps a control example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/label/label-that-wraps-a-control" title="Label label that wraps a control example" />
+	<CodeExample.Code>
 
 ```tsx
 <Label htmlFor="email" className="flex flex-col gap-1.5">
@@ -118,11 +132,17 @@ When the `Label` _wraps_ a control, the auto-default is skipped on purpose: othe
 </Label>
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Disabled state
 
 Pass `disabled` to render the label in a disabled style. Typically you'll want this to mirror the underlying control's disabled state so the visual treatment stays consistent.
 
-<Example example="components/forms/label/disabled-state" title="Label disabled state example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/label/disabled-state" title="Label disabled state example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Input } from "@ngrok/mantle/input";
@@ -138,6 +158,10 @@ import { Label } from "@ngrok/mantle/label";
 	<Input id="name" type="text" disabled readOnly value="foo" />
 </div>
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## API Reference
 

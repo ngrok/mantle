@@ -52,7 +52,9 @@ type CodeExamplePreviewFrameProps = Omit<
 /**
  * The live-demo panel of a `CodeExample`: hosts a {@link PreviewFrameImpl PreviewFrame},
  * an iframe pointed at the chrome-less `/preview/*` route with a
- * desktop/tablet/mobile viewport switcher. The demo gets its own document (its
+ * desktop/tablet/mobile viewport switcher and a reload button. A page example
+ * key (`<page>/<name>`) grows the frame to the example's height; pass
+ * `height="fixed"` for a demo that fills the frame. The demo gets its own document (its
  * own `window`, isolated keyboard shortcuts, frame-driven breakpoints). The
  * panel is force-mounted so flipping to the Code tab and back never reloads
  * the iframe.
@@ -65,7 +67,13 @@ type CodeExamplePreviewFrameProps = Omit<
  * </CodeExample.Root>
  * ```
  */
-function PreviewFrame({ className, example, title, ...props }: CodeExamplePreviewFrameProps) {
+function PreviewFrame({
+	className,
+	example,
+	title,
+	height,
+	...props
+}: CodeExamplePreviewFrameProps) {
 	return (
 		<Tabs.Content
 			value="preview"
@@ -75,7 +83,14 @@ function PreviewFrame({ className, example, title, ...props }: CodeExamplePrevie
 			className="data-[state=inactive]:hidden"
 			{...props}
 		>
-			<PreviewFrameImpl example={example} title={title} className={className} />
+			<PreviewFrameImpl
+				example={example}
+				title={title}
+				// Why the default: a page example sizes to its content, and a registry
+				// shell demo fills a fixed-height frame.
+				height={height ?? (example.includes("/") ? "content" : "fixed")}
+				className={className}
+			/>
 		</Tabs.Content>
 	);
 }

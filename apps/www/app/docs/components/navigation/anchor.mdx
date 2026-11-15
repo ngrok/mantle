@@ -4,13 +4,15 @@ description: A fundamental component for rendering links to external addresses.
 aliases: [link, hyperlink]
 ---
 
-import { Example } from "~/components/example";
+import { CodeExample } from "~/components/code-example";
 
 # Anchor
 
 A fundamental component for rendering links to external addresses.
 
-<Example example="components/navigation/anchor/overview" title="Anchor example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/navigation/anchor/overview" title="Anchor example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Anchor } from "@ngrok/mantle/anchor";
@@ -19,6 +21,10 @@ import { Anchor } from "@ngrok/mantle/anchor";
 	This link will go to <Anchor href="https://ngrok.com/">ngrok.com</Anchor>!
 </p>;
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## When to use
 
@@ -36,7 +42,9 @@ import { Anchor } from "@ngrok/mantle/anchor";
 
 Pass `icon` (a phosphor or custom SVG) and optionally `iconPlacement` (`"start"` default, or `"end"`) to render a small inline icon — useful for "external link" or "download" affordances. Icons are decorative; the link text must still describe the destination on its own.
 
-<Example example="components/navigation/anchor/icons" title="Anchor icons example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/navigation/anchor/icons" title="Anchor icons example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Anchor } from "@ngrok/mantle/anchor";
@@ -59,6 +67,10 @@ import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
 </p>
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Security
 
 When `target="_blank"` and `rel` is omitted, the anchor renders `rel="noopener noreferrer"`. A `rel` you pass is used as-is. The `rel` prop accepts an array: duplicates are de-duped and sorted, so it's safe to merge token sets.
@@ -71,7 +83,9 @@ Link text must be self-describing: avoid "click here" / "read more". The icon is
 
 Use the `asChild` prop to compose the `Anchor` styling onto another element, most commonly a `react-router` `<Link>` for internal, client-side navigation.
 
-<Example example="components/navigation/anchor/polymorphism" title="Anchor polymorphism example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/navigation/anchor/polymorphism" title="Anchor polymorphism example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Anchor } from "@ngrok/mantle/anchor";
@@ -81,6 +95,10 @@ import { Link, href } from "react-router";
 	<Link to={href("/base/colors")}>See our colors!</Link>
 </Anchor>;
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## API Reference
 

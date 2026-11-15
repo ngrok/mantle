@@ -3,7 +3,7 @@ title: Query from the URL
 description: Keep the text of a Query field in the ?q= URL param, so a filtered list is shareable by its URL, with React Router or nuqs.
 ---
 
-import { Example } from "~/components/example";
+import { CodeExample } from "~/components/code-example";
 
 # Query from the URL
 
@@ -16,7 +16,9 @@ Two rules shape it:
 
 Type a filter below and watch the address bar.
 
-<Example example="recipes/query-from-the-url/overview" title="Query from the URL example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="recipes/query-from-the-url/overview" title="Query from the URL example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -109,6 +111,10 @@ export function QueryFromUrlDemo() {
 	);
 }
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## The hook with React Router
 
@@ -218,10 +224,9 @@ Filtering on every keystroke is right for most lists. When one filter pass over 
 
 Pick the mode from the list size, such as `commitOn: rows.length > 2000 ? "submit" : "change"`. The hook reads the mode on each render, so the switch keeps the person's focus and caret.
 
-<Example
-	example="recipes/query-from-the-url/apply-on-enter"
-	title="Query from the URL Apply on Enter example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="recipes/query-from-the-url/apply-on-enter" title="Query from the URL Apply on Enter example" />
+	<CodeExample.Code>
 
 ```tsx
 import { filterItemsByQuery } from "@ngrok/mantle/query-filter";
@@ -273,6 +278,10 @@ export function QueryFromUrlSubmitDemo() {
 	);
 }
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## The hook with nuqs
 

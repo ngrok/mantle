@@ -4,13 +4,15 @@ description: An input where the user selects a value from within a given range.
 aliases: [range slider, range input]
 ---
 
-import { Example } from "~/components/example";
+import { CodeExample } from "~/components/code-example";
 
 # Slider
 
 An input where the user selects a value from within a given range. Pass `aria-label` to `Slider`, also inside a `Field`, so the thumb has an accessible name.
 
-<Example example="components/forms/slider/overview" title="Slider example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/slider/overview" title="Slider example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Field } from "@ngrok/mantle/field";
@@ -25,6 +27,10 @@ import { Slider } from "@ngrok/mantle/slider";
 </Field.Item>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## When to use
 
 - Pick a number, or a range between two numbers, with a thumb that moves along a track.
@@ -35,7 +41,9 @@ import { Slider } from "@ngrok/mantle/slider";
 
 Set `disabled` to stop the user from changing the value.
 
-<Example example="components/forms/slider/disabled" title="Slider disabled example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/slider/disabled" title="Slider disabled example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Slider } from "@ngrok/mantle/slider";
@@ -43,11 +51,17 @@ import { Slider } from "@ngrok/mantle/slider";
 <Slider aria-label="Disabled volume" defaultValue={67} max={100} step={1} disabled />;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Vertical
 
 Set `orientation="vertical"` to draw the track vertically.
 
-<Example example="components/forms/slider/vertical" title="Slider vertical example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/slider/vertical" title="Slider vertical example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Slider } from "@ngrok/mantle/slider";
@@ -55,16 +69,19 @@ import { Slider } from "@ngrok/mantle/slider";
 <Slider aria-label="Vertical volume" defaultValue={67} max={100} step={1} orientation="vertical" />;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Examples
 
 ### With TanStack Form
 
 Use `@tanstack/react-form` with `zod` to keep a single-thumb slider controlled. Radix emits slider values as an array, so pass the first value into `field.handleChange`.
 
-<Example
-	example="components/forms/slider/with-tanstack-form"
-	title="Slider With TanStack Form example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/slider/with-tanstack-form" title="Slider With TanStack Form example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -124,11 +141,17 @@ function Example() {
 }
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ### Single thumb
 
 A basic slider with a single thumb for selecting a single value. You can pass a single number instead of an array.
 
-<Example example="components/forms/slider/single-thumb" title="Slider single thumb example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/slider/single-thumb" title="Slider single thumb example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Slider } from "@ngrok/mantle/slider";
@@ -136,11 +159,17 @@ import { Slider } from "@ngrok/mantle/slider";
 <Slider aria-label="Volume" defaultValue={75} max={100} step={1} />;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ### Range
 
 Use two values to create a range slider with two thumbs.
 
-<Example example="components/forms/slider/range" title="Slider range example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/slider/range" title="Slider range example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Slider } from "@ngrok/mantle/slider";
@@ -148,11 +177,17 @@ import { Slider } from "@ngrok/mantle/slider";
 <Slider aria-label="Price" defaultValue={[25, 50]} max={100} step={5} />;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ### Multiple thumbs
 
 Use more than two values to create a slider with multiple thumbs.
 
-<Example example="components/forms/slider/multiple-thumbs" title="Slider multiple thumbs example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/slider/multiple-thumbs" title="Slider multiple thumbs example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Slider } from "@ngrok/mantle/slider";
@@ -160,11 +195,17 @@ import { Slider } from "@ngrok/mantle/slider";
 <Slider aria-label="Breakpoint" defaultValue={[10, 20, 70]} max={100} step={10} />;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ### Color
 
 Use the `color` prop to change the color of the slider range. Accepts any Tailwind `bg-*` class.
 
-<Example example="components/forms/slider/color" title="Slider color example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/slider/color" title="Slider color example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Slider } from "@ngrok/mantle/slider";
@@ -174,11 +215,17 @@ import { Slider } from "@ngrok/mantle/slider";
 <Slider aria-label="Success threshold" defaultValue={67} max={100} step={1} color="bg-emerald-600" />
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ### Ticks
 
 Use the `showTicks` prop to show tick marks along the track, one per `step`, spread evenly. When the range is not a multiple of `step`, the ticks do not land on the step values.
 
-<Example example="components/forms/slider/ticks" title="Slider ticks example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/slider/ticks" title="Slider ticks example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Slider } from "@ngrok/mantle/slider";
@@ -186,6 +233,10 @@ import { Slider } from "@ngrok/mantle/slider";
 <Slider aria-label="Volume" defaultValue={50} max={100} step={10} showTicks />
 <Slider aria-label="Price" defaultValue={[20, 80]} max={100} step={20} showTicks />
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## API Reference
 

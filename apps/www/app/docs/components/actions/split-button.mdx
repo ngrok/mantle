@@ -4,13 +4,15 @@ description: A button group that pairs a one-click default action with a dropdow
 aliases: [dropdown button, split dropdown, combo button]
 ---
 
-import { Example } from "~/components/example";
+import { CodeExample } from "~/components/code-example";
 
 # Split Button
 
 A button group that pairs a one-click default action with a dropdown menu of related alternatives.
 
-<Example example="components/actions/split-button/overview" title="Split Button example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/actions/split-button/overview" title="Split Button example" />
+	<CodeExample.Code>
 
 ```tsx
 import { CopyIcon, FileTextIcon } from "@phosphor-icons/react";
@@ -32,6 +34,10 @@ import { SplitButton } from "@ngrok/mantle/split-button";
 	</SplitButton.MenuContent>
 </SplitButton.Root>;
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## When to use
 
@@ -55,7 +61,9 @@ SplitButton.Root
 
 Set the `size` prop on `SplitButton.Root` to control the height of the whole composite, default `md`. The size applies to both the primary action and the menu trigger so the two halves always share one height; the parts themselves do not accept a `size` prop. The scale is shared with [Button](/components/actions/button) and [IconButton](/components/actions/icon-button).
 
-<Example example="components/actions/split-button/size" title="Split Button size example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/actions/split-button/size" title="Split Button size example" />
+	<CodeExample.Code>
 
 ```tsx
 import { PlusIcon } from "@phosphor-icons/react";
@@ -70,14 +78,17 @@ import { SplitButton } from "@ngrok/mantle/split-button";
 </SplitButton.Root>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Polymorphism
 
 When you want to render _something else_ as a `SplitButton.MenuItem`, you can use the `asChild` prop to compose. This is useful for rendering links as menu items.
 
-<Example
-	example="components/actions/split-button/polymorphism"
-	title="Split Button polymorphism example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/actions/split-button/polymorphism" title="Split Button polymorphism example" />
+	<CodeExample.Code>
 
 ```tsx
 import { DownloadIcon, FileTextIcon } from "@phosphor-icons/react";
@@ -101,6 +112,10 @@ import { SplitButton } from "@ngrok/mantle/split-button";
 	</SplitButton.MenuContent>
 </SplitButton.Root>;
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## API Reference
 

@@ -5,19 +5,25 @@ aliases: [theme toggle, dark mode toggle, color mode toggle]
 ---
 
 import { PageHeader } from "~/components/page-header";
-import { Example } from "~/components/example";
+import { CodeExample } from "~/components/code-example";
 
 <PageHeader id="theme-switcher">Theme Switcher</PageHeader>
 
 The canonical light/dark toggle for headers and toolbars, plus the same toggle as one item for account menus. It reads and writes the theme with `useTheme`, so it needs a [`ThemeProvider`](/components/primitives/theme) ancestor.
 
-<Example example="components/forms/theme-switcher/overview" title="Theme Switcher example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/theme-switcher/overview" title="Theme Switcher example" />
+	<CodeExample.Code>
 
 ```tsx
 import { ThemeSwitcher } from "@ngrok/mantle/theme-switcher";
 
 <ThemeSwitcher />;
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## When to use
 
@@ -70,10 +76,9 @@ The swap is part of `setTheme` from [`useTheme`](/components/primitives/theme#th
 
 `ThemeSwitcher` forwards [`IconButton`](/components/actions/icon-button)'s props, so `appearance`, `className`, `disabled`, `onClick`, and `ref` work as you'd expect. An `onClick` that calls `event.preventDefault()` cancels the theme change. Pass `label` to set the accessible name, for example to localize it:
 
-<Example
-	example="components/forms/theme-switcher/customizing"
-	title="Theme Switcher customizing example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/theme-switcher/customizing" title="Theme Switcher customizing example" />
+	<CodeExample.Code>
 
 ```tsx
 import { ThemeSwitcher } from "@ngrok/mantle/theme-switcher";
@@ -81,14 +86,17 @@ import { ThemeSwitcher } from "@ngrok/mantle/theme-switcher";
 <ThemeSwitcher appearance="outlined" label="Cambiar tema" />;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Embedding in an existing menu
 
 `ThemeDropdownMenuItem` is the toggle in menu form: one **Theme** row that ends in the `ThemeSwitcher` icon, for an account menu or any other dropdown menu. One row fits a narrow menu, such as the one beside a collapsed sidebar, with no submenu to open. A press works like a `ThemeSwitcher` click: it flips between light and dark, and the icon swaps between the sun and the moon. The menu stays open, and the new theme grows in a circle from the icon.
 
-<Example
-	example="components/forms/theme-switcher/embedding-in-an-existing-menu"
-	title="Theme Switcher embedding in an existing menu example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/theme-switcher/embedding-in-an-existing-menu" title="Theme Switcher embedding in an existing menu example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -110,14 +118,17 @@ import { ThemeDropdownMenuItem } from "@ngrok/mantle/theme-switcher";
 </DropdownMenu.Root>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ### Laying out the row
 
 To lay out the row yourself, pass `children` and put a `ThemeSwitcherIcon` where the icon goes. Here the icon comes first, to line up with the icons of other menu rows. The children are the accessible name, and the new theme grows in a circle from the icon.
 
-<Example
-	example="components/forms/theme-switcher/laying-out-the-row"
-	title="Theme Switcher laying out the row example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/theme-switcher/laying-out-the-row" title="Theme Switcher laying out the row example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -142,14 +153,17 @@ import { ThemeDropdownMenuItem, ThemeSwitcherIcon } from "@ngrok/mantle/theme-sw
 </DropdownMenu.Root>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ### Wiring your own menu item
 
 To put the toggle on a `DropdownMenu.Item` of your own, call `useThemeToggle`. Pass its `onSelect` and `disabled` to the item. A press flips the theme and keeps the menu open, and the new theme grows in a circle from the `ThemeSwitcherIcon` in the item. Call the hook in a component that renders inside the menu content.
 
-<Example
-	example="components/forms/theme-switcher/wiring-your-own-menu-item"
-	title="Theme Switcher wiring your own menu item example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/theme-switcher/wiring-your-own-menu-item" title="Theme Switcher wiring your own menu item example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -181,6 +195,10 @@ export function ThemeItem() {
 	</DropdownMenu.Content>
 </DropdownMenu.Root>;
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 > [!IMPORTANT]
 > `ThemeDropdownMenuItem` must render inside a `DropdownMenu.Content` or `DropdownMenu.SubContent`. It renders a `DropdownMenu.Item`, which only works within an open dropdown menu. The type system cannot express this constraint, so it is on you to uphold it.

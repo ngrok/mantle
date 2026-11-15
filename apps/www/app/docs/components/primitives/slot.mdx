@@ -4,13 +4,15 @@ description: Merges its props onto its immediate child.
 aliases: [as child, polymorphic]
 ---
 
-import { Example } from "~/components/example";
+import { CodeExample } from "~/components/code-example";
 
 # Slot
 
 Merges its props onto its immediate child.
 
-<Example example="components/primitives/slot/overview" title="Slot example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/primitives/slot/overview" title="Slot example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Slot } from "@ngrok/mantle/slot";
@@ -24,6 +26,10 @@ import { Slot } from "@ngrok/mantle/slot";
 </Slot>
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## When to use
 
 - Merge the props of a part onto its one child element, to build an `asChild` prop.
@@ -32,10 +38,9 @@ import { Slot } from "@ngrok/mantle/slot";
 
 The `Slot` component is the foundation of the `asChild` pattern used throughout Mantle. When a component supports `asChild`, it uses `Slot` internally to merge its props onto the child element instead of rendering a wrapper.
 
-<Example
-	example="components/primitives/slot/usage-with-aschild"
-	title="Slot Usage with asChild example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/primitives/slot/usage-with-aschild" title="Slot Usage with asChild example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -49,14 +54,17 @@ import { Button } from "@ngrok/mantle/button";
 </Button>
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Class name merging
 
 `Slot` automatically merges `className` props using Tailwind CSS's merge logic. Child classes take priority over parent classes for conflicting styles, while non-conflicting classes are preserved.
 
-<Example
-	example="components/primitives/slot/class-name-merging"
-	title="Slot class name merging example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/primitives/slot/class-name-merging" title="Slot class name merging example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Slot } from "@ngrok/mantle/slot";
@@ -67,6 +75,10 @@ import { Slot } from "@ngrok/mantle/slot";
 
 // Result: className="bg-red-500 rounded px-4 py-2 text-white"
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## Render props on the child
 

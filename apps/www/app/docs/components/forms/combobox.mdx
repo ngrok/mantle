@@ -4,13 +4,15 @@ description: "A text input with autocomplete: the user types to filter a list of
 aliases: [autocomplete, typeahead, searchable select, autosuggest]
 ---
 
-import { Example } from "~/components/example";
+import { CodeExample } from "~/components/code-example";
 
 # Combobox
 
 A text input with autocomplete: the user types to filter a list of suggested values and picks one, with full keyboard support. Wrap `Combobox.Input` in `Field.Control` to connect it to the label, description, and errors of a form field.
 
-<Example example="components/forms/combobox/overview" title="Combobox example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/combobox/overview" title="Combobox example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Combobox } from "@ngrok/mantle/combobox";
@@ -41,6 +43,10 @@ import { Field } from "@ngrok/mantle/field";
 </Field.Item>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## When to use
 
 - Pick one value from a long list, with a text field that filters the options as the user types.
@@ -54,10 +60,9 @@ import { Field } from "@ngrok/mantle/field";
 
 Use a `Field.Item` with only a `Field.Label` when the input needs no helper or error text. The label still gives the input its accessible name. This example also shows a disabled item, an item icon, and a separator.
 
-<Example
-	example="components/forms/combobox/without-helper-text"
-	title="Combobox without helper text example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/combobox/without-helper-text" title="Combobox without helper text example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Combobox } from "@ngrok/mantle/combobox";
@@ -96,6 +101,10 @@ import { CirclesThreePlusIcon } from "@phosphor-icons/react/CirclesThreePlus";
 </Field.Item>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Layering and z-index
 
 `Combobox.Content` renders in place at Tailwind `z-50`, Mantle's float tier — it does not portal, so the dialog primitive's Escape guard can see it. Inside an overlay it paints with the overlay's content. Outside one, an open overlay (`z-60`) covers it.
@@ -108,10 +117,9 @@ import { CirclesThreePlusIcon } from "@phosphor-icons/react/CirclesThreePlus";
 
 Use `@tanstack/react-form` with `zod` to keep the combobox input controlled. Wrap `Combobox.Input` in `Field.Control` so label, name, and validation ARIA are applied to the focusable input.
 
-<Example
-	example="components/forms/combobox/with-tanstack-form"
-	title="Combobox With TanStack Form example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/combobox/with-tanstack-form" title="Combobox With TanStack Form example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -176,6 +184,10 @@ function Example() {
 }
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Composition
 
 Compose the parts of a `Combobox` together to build your own:
@@ -195,7 +207,9 @@ Combobox.Root
 
 `Combobox.Content`, `Combobox.Item`, `Combobox.Group`, `Combobox.GroupLabel`, and `Combobox.ItemValue` support `asChild` to render as a different element or your own component while keeping the combobox behavior and styling.
 
-<Example example="components/forms/combobox/polymorphism" title="Combobox polymorphism example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/forms/combobox/polymorphism" title="Combobox polymorphism example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Combobox } from "@ngrok/mantle/combobox";
@@ -212,6 +226,10 @@ import { Combobox } from "@ngrok/mantle/combobox";
 	</Combobox.Content>
 </Combobox.Root>;
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## Accessibility
 

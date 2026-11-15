@@ -81,10 +81,6 @@ function stringAttribute(node: MdxJsxElement, name: string): string | undefined 
 }
 
 const handlers: Record<string, Handler> = {
-	// `<Example>` frames a live preview of a component, and is always followed
-	// by a fenced code block that contains the same code in textual form.
-	// Dropping it loses no information.
-	Example: () => ({ kind: "drop" }),
 	// `<CodeExample>` is the tabbed Preview/Code example. Every part but
 	// `PreviewFrame` is a structural wrapper around real markdown — unwrap them so
 	// the fenced code block inside `CodeExample.Code` lands in the markdown output.
@@ -92,7 +88,7 @@ const handlers: Record<string, Handler> = {
 		if (node.name === "CodeExample.PreviewFrame") {
 			const example = stringAttribute(node, "example");
 			// A page example key (`<page>/<name>`) is the page's own demo, and the
-			// fence beside it is its code, so it drops like `<Example>`.
+			// fence in `CodeExample.Code` is its code, so dropping it loses nothing.
 			if (example?.includes("/")) {
 				return { kind: "drop" };
 			}

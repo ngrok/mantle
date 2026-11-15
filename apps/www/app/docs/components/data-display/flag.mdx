@@ -4,13 +4,15 @@ description: Displays a flag as an SVG for the country code you pass.
 aliases: [country flag]
 ---
 
-import { Example } from "~/components/example";
+import { CodeExample } from "~/components/code-example";
 
 # Flag
 
 Displays a flag as an SVG for the country code you pass. The `code` prop takes an [ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) country code, such as `US`.
 
-<Example example="components/data-display/flag/overview" title="Flag example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/data-display/flag/overview" title="Flag example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Flag } from "@ngrok/mantle/flag";
@@ -19,6 +21,10 @@ import { Flag } from "@ngrok/mantle/flag";
 <Flag code="JP" />
 <Flag code="BR" />
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## When to use
 
@@ -42,7 +48,9 @@ The underlying `<img>` is given `alt="flag for {code}"`. If the country is decor
 
 The SVG loads from ngrok's CDN. `Flag` defaults to `loading="lazy"`. Use `loading="eager"` for flags above the fold or in critical content.
 
-<Example example="components/data-display/flag/loading" title="Flag loading example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/data-display/flag/loading" title="Flag loading example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Flag } from "@ngrok/mantle/flag";
@@ -51,6 +59,10 @@ import { Flag } from "@ngrok/mantle/flag";
 <Flag code="JP" loading="lazy" />
 <Flag code="ES" loading="eager" />
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## API Reference
 

@@ -4,13 +4,15 @@ description: Visually or semantically separates content.
 aliases: [divider, horizontal rule, hr]
 ---
 
-import { Example } from "~/components/example";
+import { CodeExample } from "~/components/code-example";
 
 # Separator
 
 Visually or semantically separates content.
 
-<Example example="components/structure/separator/overview" title="Separator example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/structure/separator/overview" title="Separator example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Separator } from "@ngrok/mantle/separator";
@@ -25,6 +27,10 @@ import { Separator } from "@ngrok/mantle/separator";
 </div>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## When to use
 
 - Divide adjacent content without a box, in a row or in a column.
@@ -37,7 +43,9 @@ import { Separator } from "@ngrok/mantle/separator";
 
 Set `orientation="vertical"` to divide items in a row. The parent sets the height.
 
-<Example example="components/structure/separator/vertical" title="Separator vertical example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/structure/separator/vertical" title="Separator vertical example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Separator } from "@ngrok/mantle/separator";
@@ -51,11 +59,17 @@ import { Separator } from "@ngrok/mantle/separator";
 </div>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Semantic
 
 A separator is decorative by default, and assistive technology skips it. Set `semantic` when the line marks a real boundary between two groups of content: it renders `role="separator"`.
 
-<Example example="components/structure/separator/semantic" title="Separator semantic example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/structure/separator/semantic" title="Separator semantic example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Separator } from "@ngrok/mantle/separator";
@@ -67,14 +81,17 @@ import { Separator } from "@ngrok/mantle/separator";
 </div>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Labeled divider
 
 Wrap a label and one or two separators in a `HorizontalSeparatorGroup` to put the label in the middle or at one end of the line.
 
-<Example
-	example="components/structure/separator/labeled-divider"
-	title="Separator labeled divider example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/structure/separator/labeled-divider" title="Separator labeled divider example" />
+	<CodeExample.Code>
 
 ```tsx
 import { HorizontalSeparatorGroup, Separator } from "@ngrok/mantle/separator";
@@ -96,14 +113,17 @@ import { HorizontalSeparatorGroup, Separator } from "@ngrok/mantle/separator";
 </div>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Polymorphism
 
 When you want to render _something else_ as a `HorizontalSeparatorGroup` or `Separator`, you can use the `asChild` prop to compose.
 
-<Example
-	example="components/structure/separator/polymorphism"
-	title="Separator polymorphism example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/structure/separator/polymorphism" title="Separator polymorphism example" />
+	<CodeExample.Code>
 
 ```tsx
 import { HorizontalSeparatorGroup, Separator } from "@ngrok/mantle/separator";
@@ -148,6 +168,10 @@ import { HorizontalSeparatorGroup, Separator } from "@ngrok/mantle/separator";
 </div>
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## Color
 
 The separator renders in the semantic `separator` color token: `gray-500/20` in light and `gray-600/20` in dark.
@@ -156,7 +180,9 @@ This is the canonical divider color across mantle: `Accordion` dividers,
 
 Reuse the same color on your own dividers instead of hard-coding it:
 
-<Example example="components/structure/separator/color" title="Separator color example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/structure/separator/color" title="Separator color example" />
+	<CodeExample.Code>
 
 ```tsx
 <div className="border-separator w-full border-b" />
@@ -167,6 +193,10 @@ Reuse the same color on your own dividers instead of hard-coding it:
 </ul>
 <span className="bg-separator h-px w-full" />
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## API Reference
 

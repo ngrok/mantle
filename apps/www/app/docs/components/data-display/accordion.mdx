@@ -5,13 +5,15 @@ aliases: [collapsible, collapse, disclosure, expansion panel]
 ---
 
 import { PageHeader } from "~/components/page-header";
-import { Example } from "~/components/example";
+import { CodeExample } from "~/components/code-example";
 
 <PageHeader id="accordion">Accordion</PageHeader>
 
 A vertically stacked set of disclosure sections whose collapsed content stays in the DOM, so browser find-in-page (<kbd translate="no">⌘F</kbd>) can reveal it. `type` is optional and defaults to `"multiple"`, so any number of sections can be open at once.
 
-<Example example="components/data-display/accordion/overview" title="Accordion example" />
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/data-display/accordion/overview" title="Accordion example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Accordion } from "@ngrok/mantle/accordion";
@@ -57,6 +59,10 @@ import { Accordion } from "@ngrok/mantle/accordion";
 </Accordion.Root>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ## When to use
 
 - Stack titled sections that each expand and collapse in place, such as an FAQ or a group of advanced settings.
@@ -77,10 +83,9 @@ import { Accordion } from "@ngrok/mantle/accordion";
 Set `type="single"` for the classic accordion, where at most one section is open at a time. When a user opens a
 section, the section that was open closes.
 
-<Example
-	example="components/data-display/accordion/one-section-open-at-a-time"
-	title="Accordion one section open at a time example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/data-display/accordion/one-section-open-at-a-time" title="Accordion one section open at a time example" />
+	<CodeExample.Code>
 
 ```tsx
 <Accordion.Root type="single" defaultValue="dns" className="max-w-xl">
@@ -123,15 +128,18 @@ section, the section that was open closes.
 </Accordion.Root>
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ### Multiple sections open at once
 
 `type="multiple"` lets any number of sections be open at once, and it's the **default**, so you can omit `type`
 entirely. Pass `defaultValue` (uncontrolled) or `value` + `onValueChange` (controlled) as a `string[]`.
 
-<Example
-	example="components/data-display/accordion/multiple-sections-open-at-once"
-	title="Accordion multiple sections open at once example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/data-display/accordion/multiple-sections-open-at-once" title="Accordion multiple sections open at once example" />
+	<CodeExample.Code>
 
 ```tsx
 <Accordion.Root type="multiple" defaultValue={["one"]} className="max-w-xl">
@@ -156,15 +164,18 @@ entirely. Pass `defaultValue` (uncontrolled) or `value` + `onValueChange` (contr
 </Accordion.Root>
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ### Controlled
 
 Drive the open state yourself with `value` + `onValueChange` when another control needs to open or collapse sections.
 In `type="single"` the value is a `string` (use `""` for "nothing open"); in `type="multiple"` it's a `string[]`.
 
-<Example
-	example="components/data-display/accordion/controlled"
-	title="Accordion controlled example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/data-display/accordion/controlled" title="Accordion controlled example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Accordion } from "@ngrok/mantle/accordion";
@@ -217,6 +228,10 @@ function ControlledAccordionExample() {
 }
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ### Custom header with an inline action
 
 The dashboard's Traffic Policy GUI puts a monospace label, a count badge, and an always-visible **Add Rule** action in
@@ -226,10 +241,9 @@ no absolute positioning. The `Trigger` toggles its section; the **Add Rule** but
 never toggles it; and the `Content` spans full-width below. Override the defaults (`space-y-*` and `divide-y-0` on
 `Root` to swap the dividers for spacing; and `w-auto` on `Trigger` so it sizes to its label) for the spaced-card look.
 
-<Example
-	example="components/data-display/accordion/custom-header-with-an-inline-action"
-	title="Accordion custom header with an inline action example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/data-display/accordion/custom-header-with-an-inline-action" title="Accordion custom header with an inline action example" />
+	<CodeExample.Code>
 
 ```tsx
 // The header is a plain flex row: the Trigger button, a divider, and the action
@@ -314,14 +328,17 @@ import { PlusIcon } from "@phosphor-icons/react/Plus";
 </Accordion.Root>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ### Multi-line trigger labels
 
 When a trigger label wraps, `Accordion.TriggerIcon` stays centered on the first line of the label.
 
-<Example
-	example="components/data-display/accordion/multi-line-trigger-labels"
-	title="Accordion multi-line trigger labels example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/data-display/accordion/multi-line-trigger-labels" title="Accordion multi-line trigger labels example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Accordion } from "@ngrok/mantle/accordion";
@@ -348,15 +365,18 @@ import { Accordion } from "@ngrok/mantle/accordion";
 </Accordion.Root>;
 ```
 
+    </CodeExample.Code>
+
+</CodeExample.Root>
+
 ### Custom indicator icon
 
 Pass `svg` to `Accordion.TriggerIcon` to replace the default caret. The indicator still rotates 180° on open; override
 its `className` to change that: here a right caret rotates 90° into a downward one for a file-tree feel.
 
-<Example
-	example="components/data-display/accordion/custom-indicator-icon"
-	title="Accordion custom indicator icon example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/data-display/accordion/custom-indicator-icon" title="Accordion custom indicator icon example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Accordion } from "@ngrok/mantle/accordion";
@@ -389,6 +409,10 @@ import { CaretRightIcon } from "@phosphor-icons/react/CaretRight";
 	</Accordion.Item>
 </Accordion.Root>;
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## Accessibility
 
@@ -426,10 +450,9 @@ Accordion.Root
 
 `Accordion.Root` accepts an `asChild` prop. When `true`, the root renders its single child element instead of the default `<div>`, forwarding its class names, `data-*` attributes, and `ref` onto that child. Reach for it when the accordion should be a semantic landmark such as a `<section>`.
 
-<Example
-	example="components/data-display/accordion/polymorphism"
-	title="Accordion polymorphism example"
-/>
+<CodeExample.Root>
+	<CodeExample.PreviewFrame example="components/data-display/accordion/polymorphism" title="Accordion polymorphism example" />
+	<CodeExample.Code>
 
 ```tsx
 import { Accordion } from "@ngrok/mantle/accordion";
@@ -451,6 +474,10 @@ import { Accordion } from "@ngrok/mantle/accordion";
 	</section>
 </Accordion.Root>;
 ```
+
+    </CodeExample.Code>
+
+</CodeExample.Root>
 
 ## Find-in-page
 
