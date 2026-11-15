@@ -21,7 +21,7 @@ import {
 import invariant from "tiny-invariant";
 import type { SelfClosingWithAsChild } from "../../types/as-child.js";
 import { parseBooleanish } from "../../types/booleanish.js";
-import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
+import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import { clsx } from "../../utils/cx/clsx.js";

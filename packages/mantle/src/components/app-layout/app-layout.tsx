@@ -20,7 +20,7 @@ import { useIsHydratedAfterPaint } from "../../hooks/use-is-hydrated-after-paint
 import { useMatchesMediaQuery } from "../../hooks/use-matches-media-query.js";
 import { useSwipeToDismiss } from "../../hooks/use-swipe-to-dismiss.js";
 import type { WithAsChild } from "../../types/as-child.js";
-import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
+import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";

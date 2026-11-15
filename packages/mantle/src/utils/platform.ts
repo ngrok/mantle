@@ -1,4 +1,4 @@
-import { canUseDOM } from "../components/browser-only/browser-only.js";
+import { canUseDOM } from "../components/browser-only/can-use-dom.js";
 
 /**
  * Type guard for `navigator.userAgentData` existence — the modern UA-hints

@@ -660,15 +660,14 @@ function rewriteSourceAllImports(input: {
 }
 
 /**
- * Counts the files `source-all.css` makes Tailwind scan: everything under `dist` except the
- * stylesheets, which the scanner skips on its own. Returns null when the read fails.
+ * Counts the files `source-all.css` makes Tailwind scan: its `@source "../dist/*.js"` glob
+ * matches the JavaScript files at the top of `dist`. Returns null when the read fails.
  */
 function countSourceAllFiles(mantleDir: string): number | null {
 	try {
-		return readdirSync(path.join(mantleDir, "dist"), {
-			recursive: true,
-			withFileTypes: true,
-		}).filter((entry) => entry.isFile() && path.extname(entry.name) !== ".css").length;
+		return readdirSync(path.join(mantleDir, "dist"), { withFileTypes: true }).filter(
+			(entry) => entry.isFile() && path.extname(entry.name) === ".js",
+		).length;
 	} catch {
 		return null;
 	}

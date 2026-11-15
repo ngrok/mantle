@@ -6,7 +6,7 @@ import type { TestingLibraryMatchers } from "@testing-library/jest-dom/matchers"
 import { cleanup } from "@testing-library/react";
 import { afterEach } from "vitest";
 import { createIntersectionObserverStub } from "./src/test-utils/mock-intersection-observer.js";
-import { canUseDOM } from "./src/components/browser-only/browser-only.js";
+import { canUseDOM } from "./src/components/browser-only/can-use-dom.js";
 
 // Why: `@testing-library/jest-dom/vitest` extends `expect` at runtime, but it types its matchers
 // onto `Assertion<T>`, and Vitest 5 declares `Assertion<R, T>`, so that declaration no longer

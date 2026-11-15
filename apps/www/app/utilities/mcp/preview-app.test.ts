@@ -25,6 +25,7 @@ function startView() {
 		throw new Error("The view has no script.");
 	}
 	script.remove();
+	document.head.innerHTML = parsed.head.innerHTML;
 	document.body.innerHTML = parsed.body.innerHTML;
 
 	const host = { postMessage: vi.fn<(message: RpcMessage, target: string) => void>() };
@@ -129,6 +130,44 @@ describe("the preview MCP App view", () => {
 		view.toolResult("https://mantle.example/mcp/preview#code=abc");
 
 		expect(view.frame()).toBe("https://frame.example/mcp/preview-frame#code=abc&theme=light");
+	});
+
+	it("loads the frame when the host allows every frame domain", async () => {
+		const view = startView();
+		await view.initialize({ hostCapabilities: { sandbox: { csp: { frameDomains: ["*"] } } } });
+
+		view.toolResult("https://mantle.example/mcp/preview#code=abc");
+
+		expect(view.frame()).toBe("https://frame.example/mcp/preview-frame#code=abc&theme=light");
+	});
+
+	it("takes no space for the frame before a tool result", async () => {
+		const view = startView();
+		await view.initialize({ hostCapabilities: {} });
+
+		// Why not "none": happy-dom has no user-agent `[hidden]` rule. A browser
+		// applies it when no author rule sets `display` on the hidden frame.
+		const frame = document.querySelector("iframe");
+		expect(frame?.hidden).toBe(true);
+		expect(frame && getComputedStyle(frame).display).not.toBe("block");
+	});
+
+	it("replaces a shown prototype with the error text of a later result", async () => {
+		const view = startView();
+		await view.initialize({ hostCapabilities: {} });
+		view.toolResult("https://mantle.example/mcp/preview#code=abc");
+
+		view.receive({
+			jsonrpc: "2.0",
+			method: "ui/notifications/tool-result",
+			params: { content: [{ type: "text", text: "The code did not compile." }] },
+		});
+
+		const status = document.querySelector<HTMLElement>("#status");
+		expect(status?.hidden).toBe(false);
+		expect(status?.textContent).toBe("The code did not compile.");
+		expect(document.querySelector<HTMLIFrameElement>("iframe")?.hidden).toBe(true);
+		expect(document.querySelector<HTMLButtonElement>("#open")?.hidden).toBe(true);
 	});
 
 	it("shows the tool's error text when the result has no link", async () => {

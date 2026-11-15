@@ -2,7 +2,8 @@ import { render, renderHook, screen } from "@testing-library/react";
 import { createRef, useRef } from "react";
 import type { Ref } from "react";
 import { describe, expect, test, vi } from "vitest";
-import { composeRefs, useComposedRefs } from "./compose-refs.js";
+import { composeRefs } from "./compose-refs.js";
+import { useComposedRefs } from "./use-composed-refs.js";
 
 describe("composeRefs", () => {
 	test("writes the node to callback refs and ref objects", () => {

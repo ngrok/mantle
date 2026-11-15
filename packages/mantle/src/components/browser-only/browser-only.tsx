@@ -48,29 +48,7 @@ function BrowserOnly({ children, fallback = null }: Props) {
 	return useIsHydrated() ? children() : fallback;
 }
 
-/**
- * Detects whether DOM APIs are available.
- *
- * @description
- * Returns `true` when running in a windowed browser context where both
- * `window` and a real `document` exist. This will be `false` in SSR/Node.
- *
- * Note: In a test environment with a DOM shim (e.g. JSDOM), this returns `true`.
- *
- * @returns {boolean} `true` if DOM APIs are available; otherwise `false`.
- *
- * @example
- * if (canUseDOM()) {
- *   localStorage.setItem("foo", "bar");
- * }
- */
-function canUseDOM(): boolean {
-	// oxlint-disable-next-line mantle/prefer-can-use-dom -- Why: this is the check the rule asks for.
-	return typeof window !== "undefined" && typeof document !== "undefined";
-}
-
 export {
 	//,
-	canUseDOM,
 	BrowserOnly,
 };

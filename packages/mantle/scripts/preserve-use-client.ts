@@ -42,6 +42,45 @@ function chunkNeedsUseClient({
 	);
 }
 
+/** An output chunk, as far as {@link findClientImport} reads it. */
+type OutputChunkLike = { type: string; code?: string; imports?: readonly string[] };
+
+/**
+ * Finds a client chunk that a server-callable entry imports, directly or
+ * through other chunks. Returns the chunk files from the entry to that chunk,
+ * or `undefined` when the entry reaches no client chunk.
+ *
+ * @example
+ * findClientImport("utils.js", {
+ *   "utils.js": { type: "chunk", code: 'import"./a.js";', imports: ["a.js"] },
+ *   "a.js": { type: "chunk", code: '"use client";', imports: [] },
+ * }); // => ["utils.js", "a.js"]
+ */
+function findClientImport(
+	entry: string,
+	bundle: Readonly<Record<string, OutputChunkLike>>,
+): string[] | undefined {
+	const seen = new Set<string>();
+	const visit = (fileName: string, path: string[]): string[] | undefined => {
+		const chunk = bundle[fileName];
+		if (chunk == null || chunk.type !== "chunk" || seen.has(fileName)) {
+			return undefined;
+		}
+		seen.add(fileName);
+		if (hasUseClientDirective(chunk.code ?? "")) {
+			return path;
+		}
+		for (const imported of chunk.imports ?? []) {
+			const found = visit(imported, [...path, imported]);
+			if (found != null) {
+				return found;
+			}
+		}
+		return undefined;
+	};
+	return visit(entry, [entry]);
+}
+
 /**
  * A rolldown plugin that puts `"use client"` back on each output chunk that
  * needs it (see {@link chunkNeedsUseClient}).
@@ -52,9 +91,14 @@ function chunkNeedsUseClient({
  * the directive, so server code can still call it.
  *
  * @example
- * defineConfig({ plugins: [preserveUseClient()] });
+ * defineConfig({ plugins: [preserveUseClient({ serverEntries: ["cx.js"] })] });
  */
-function preserveUseClient() {
+function preserveUseClient({
+	serverEntries,
+}: {
+	/** The entries that server code calls. The build fails when one imports a client chunk. */
+	serverEntries: readonly string[];
+}) {
 	const clientModuleIds = new Set<string>();
 	return {
 		name: "preserve-use-client",
@@ -77,12 +121,23 @@ function preserveUseClient() {
 			}
 			return `"use client";\n${code}`;
 		},
+		generateBundle: (_options: unknown, bundle: Record<string, OutputChunkLike>) => {
+			for (const entry of serverEntries) {
+				const path = findClientImport(entry, bundle);
+				if (path != null) {
+					throw new Error(
+						`${entry} must stay server-callable, but it imports a client chunk: ${path.join(" -> ")}. Move the pure code out of the "use client" module.`,
+					);
+				}
+			}
+		},
 	};
 }
 
 export {
 	//,
 	chunkNeedsUseClient,
+	findClientImport,
 	hasUseClientDirective,
 	preserveUseClient,
 };

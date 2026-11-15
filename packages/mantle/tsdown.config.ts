@@ -154,7 +154,10 @@ export default defineConfig((options) => [
 		tsconfig: "tsconfig.build.json",
 		fixedExtension: false,
 		format: "esm",
-		plugins: [preserveUseClient(), reactCompiler()],
+		plugins: [
+			preserveUseClient({ serverEntries: ["color.js", "cx.js", "types.js", "utils.js"] }),
+			reactCompiler(),
+		],
 		outputOptions: {
 			// Name shared chunks after their owning component directory so
 			// per-component `@source "<name>-*.js"` globs match them (see

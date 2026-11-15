@@ -43,7 +43,7 @@ export type {
 	SwipeProperty,
 	UseSwipeToDismissOptions,
 } from "./use-swipe-to-dismiss.js";
-export { useComposedRefs } from "../utils/compose-refs/compose-refs.js";
+export { useComposedRefs } from "../utils/compose-refs/use-composed-refs.js";
 export { useInView } from "./use-in-view.js";
 export type { UseInViewOptions } from "./use-in-view.js";
 export { useUndoRedo } from "./use-undo-redo.js";

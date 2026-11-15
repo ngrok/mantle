@@ -143,8 +143,8 @@ design system. Conventions:
   mantle's components use. The components render unstyled.
 - To trim the production stylesheet, add `mantleSourcesPlugin()` from
   @ngrok/mantle-vite-plugins next to `tailwindcss()` in vite.config.ts
-  (see /vite-plugins). The CSS file does not change. Dev scans every
-  mantle file; the build lists only the files the client bundle contains.
+  (see /vite-plugins). The CSS file does not change. Dev scans all
+  mantle JavaScript; the build lists only the files the client bundle contains.
 - Color scales use Tailwind's 50-950 steps (`text-accent-600`). There is
   no 1-12 scale, so `text-accent-11` matches nothing. Text color tokens
   are `text-strong`, `text-body`, `text-muted`, and `text-placeholder`.

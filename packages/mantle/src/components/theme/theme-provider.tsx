@@ -6,7 +6,7 @@ import invariant from "tiny-invariant";
 import { useMatchesMediaQuery } from "../../hooks/use-matches-media-query.js";
 import { findCookiePair, readCookie } from "../../utils/cookie.js";
 import { cx } from "../../utils/cx/cx.js";
-import { canUseDOM } from "../browser-only/browser-only.js";
+import { canUseDOM } from "../browser-only/can-use-dom.js";
 import { swapTheme } from "./swap-theme.js";
 import {
 	type ResolvedTheme,

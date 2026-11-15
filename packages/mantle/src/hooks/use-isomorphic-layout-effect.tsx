@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect } from "react";
-import { canUseDOM } from "../components/browser-only/browser-only.js";
+import { canUseDOM } from "../components/browser-only/can-use-dom.js";
 
 /**
  * A drop-in replacement for `useLayoutEffect` that does not warn during

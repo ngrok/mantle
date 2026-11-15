@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { chunkNeedsUseClient, hasUseClientDirective } from "./preserve-use-client.ts";
+import {
+	chunkNeedsUseClient,
+	findClientImport,
+	hasUseClientDirective,
+} from "./preserve-use-client.ts";
 
 describe("hasUseClientDirective", () => {
 	it("finds the directive after leading comments", () => {
@@ -44,5 +48,26 @@ describe("chunkNeedsUseClient", () => {
 				clientModuleIds,
 			}),
 		).toBe(false);
+	});
+});
+
+describe("findClientImport", () => {
+	it("finds a client chunk that an entry imports through another chunk", () => {
+		expect(
+			findClientImport("utils.js", {
+				"utils.js": { type: "chunk", code: 'import"./copy.js";', imports: ["copy.js"] },
+				"copy.js": { type: "chunk", code: 'import"./dom.js";', imports: ["dom.js"] },
+				"dom.js": { type: "chunk", code: '"use client";\nexport {};', imports: [] },
+			}),
+		).toEqual(["utils.js", "copy.js", "dom.js"]);
+	});
+
+	it("passes an entry that reaches only server chunks", () => {
+		expect(
+			findClientImport("cx.js", {
+				"cx.js": { type: "chunk", code: 'import"./clsx.js";', imports: ["clsx.js"] },
+				"clsx.js": { type: "chunk", code: "export {};", imports: [] },
+			}),
+		).toBeUndefined();
 	});
 });

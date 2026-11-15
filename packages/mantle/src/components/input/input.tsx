@@ -13,7 +13,7 @@ import type {
 } from "react";
 import { createContext, useContext, useMemo, useRef } from "react";
 import { parseBooleanish } from "../../types/booleanish.js";
-import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
+import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { clsx } from "../../utils/cx/clsx.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";

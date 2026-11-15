@@ -60,7 +60,7 @@ body { margin: 0; color: CanvasText; }
 header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0.5rem 0.75rem; background: light-dark(#fef3c7, #422006); color: light-dark(#78350f, #fde68a); }
 button { font: inherit; }
 #status { margin: 0; padding: 1rem 0.75rem; }
-iframe { display: block; width: 100%; height: 480px; border: 0; }
+iframe:not([hidden]) { display: block; width: 100%; height: 480px; border: 0; }
 </style>
 </head>
 <body>
@@ -104,7 +104,7 @@ function hashWithTheme() {
 }
 
 function covers(domain) {
-	if (domain === FRAME_ORIGIN) {
+	if (domain === "*" || domain === FRAME_ORIGIN) {
 		return true;
 	}
 	const frameUrl = new URL(FRAME_ORIGIN);
@@ -142,6 +142,11 @@ function showResult(result) {
 		render();
 		return;
 	}
+	fragment = null;
+	frame.hidden = true;
+	frame.removeAttribute("src");
+	openButton.hidden = true;
+	statusLine.hidden = false;
 	const content = result == null || !Array.isArray(result.content) ? [] : result.content;
 	statusLine.textContent = content.map((block) => (block.type === "text" ? block.text : "")).join("\\n") || "The preview tool returned no link.";
 	reportSize();
